@@ -1,5 +1,5 @@
 {
-  "_comment": "Orc grunt (content pass C6, plan-content-zones12.md §B): the Warlord's reinforcement wave add — encounter-spawned at the wave-mouth anchor on the 66%/33% HP thresholds, never a zone spawn. Normal tier at the orc band (cL20): individually clearable under boss pressure, a rank below the elite Orc wall. experience 75 = full band pay for a cL20 normal (PO 2026-08-02, intake round 7 item 4 — supersedes the starved-trickle 5; derived elite/4 from the Orc's 300, keeps a wave worth less than one elite). Large aggro sensor so a spawned wave finds the fight on its own while charging in. Speed under the 0.7 PO ceiling. All values [PLACEHOLDER]",
+  "_comment": "Orc grunt (content pass C6, plan-content-zones12.md §B): the Warlord's reinforcement wave add — encounter-spawned at the wave-mouth anchor on the 66%/33% HP thresholds, never a zone spawn. Normal tier at the orc band (cL20): individually clearable under boss pressure, a rank below the elite Orc wall. experience 75 = full band pay for a cL20 normal (PO 2026-08-02, intake round 7 item 4 — supersedes the starved-trickle 5; derived elite/4 from the Orc's 300, keeps a wave worth less than one elite) — RETIRED: kill XP is no longer authored as an absolute value (plan-xp-formula.md C1): the award is computed from the KILLER's level, so what is left here is factors.xpFactor, a relative weight defaulting to 1 = a full at-level kill for its tier, and a wave add is worth less than one elite for free now, because elite carries a tier multiplier. Large aggro sensor so a spawned wave finds the fight on its own while charging in. Speed under the 0.7 PO ceiling. All values [PLACEHOLDER]",
   "id": 37,
   "name": "OrcGrunt",
   "type": "MOB",
@@ -9,7 +9,6 @@
   "factors": {
     "baseMaxHealth": 75,
     "maxHealthVariance": 0.1,
-    "experience": 75,
     "speed": 0.6,
     "deltaPhi": 0.1,
     "turnRate": 0.1

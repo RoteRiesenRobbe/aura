@@ -1,5 +1,5 @@
 {
-  "_comment": "cL8-17 farm-band normal #3 (Z2-hardening pre-chunk, PO 2026-07-21): hardened outlaws past the bandit camp — the humanoid farm mob of the band, an EliteBandit-derived NORMAL (the eliteness went into curveLevel 12, not the baseline). The band's HARD normal (guardrail band-check): BanditBlades at level 3 + the deeper pool kill the facetank bot — danger pays via the kph-derived XP. Own sprite/EntityType (PO ruling 2026-07-21: unique art per mob, higher tier looks meaner). BanditBlades baseline shared with the line (physical+bleed), f(cL12) scales it. experience kph-derived per the Session-⑥ XP rule. PO places spawns in the editor. All values [PLACEHOLDER]",
+  "_comment": "cL8-17 farm-band normal #3 (Z2-hardening pre-chunk, PO 2026-07-21): hardened outlaws past the bandit camp — the humanoid farm mob of the band, an EliteBandit-derived NORMAL (the eliteness went into curveLevel 12, not the baseline). The band's HARD normal (guardrail band-check): BanditBlades at level 3 + the deeper pool kill the facetank bot — danger pays via the kph-derived XP. Own sprite/EntityType (PO ruling 2026-07-21: unique art per mob, higher tier looks meaner). BanditBlades baseline shared with the line (physical+bleed), f(cL12) scales it. experience kph-derived per the Session-⑥ XP rule — RETIRED: kill XP is no longer authored as an absolute value (plan-xp-formula.md C1): the award is computed from the KILLER's level, so what is left here is factors.xpFactor, a relative weight defaulting to 1 = a full at-level kill for its tier; the surviving half of the Session-⑥ rule is 'kite mobs author xpFactor 0.5', and which species that covers is a C2 call. PO places spawns in the editor. All values [PLACEHOLDER]",
   "id": 47,
   "name": "Marauder",
   "type": "MOB",
@@ -9,7 +9,6 @@
   "factors": {
     "baseMaxHealth": 195,
     "maxHealthVariance": 0.1,
-    "experience": 262,
     "speed": 0.92,
     "deltaPhi": 0.1,
     "turnRate": 0.1,

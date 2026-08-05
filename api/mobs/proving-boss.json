@@ -9,7 +9,6 @@
   "entityType": "AngryMammoth",
   "factors": {
     "baseMaxHealth": 600,
-    "experience": 800,
     "speed": 0.25,
     "deltaPhi": 0.05,
     "turnRate": 0.008

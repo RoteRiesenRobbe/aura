@@ -8,7 +8,7 @@
   "curveLevel": 1,
   "factors": {
     "baseMaxHealth": 40,
-    "experience": 0,
+    "xpFactor": 0,
     "speed": 0,
     "resistances": { "*": 0 },
     "gateKeys": ["harvest"]

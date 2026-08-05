@@ -98,12 +98,12 @@ func TestMobCatalogJSON_CombatTargetExcludesPropsAndAllies(t *testing.T) {
 	r, err := RegistryFromFS(testSkillRegistry(t), nil, testCurve(), fstest.MapFS{
 		"wolf.json": {Data: []byte(`{
 		  "id": 12, "name": "Wolf", "type": "MOB", "curveLevel": 2,
-		  "factors": {"baseMaxHealth": 20, "experience": 40},
+		  "factors": {"baseMaxHealth": 20},
 		  "body": {"radius": 0.3, "aggroRadius": 3}
 		}`)},
 		"campfire.json": {Data: []byte(`{
 		  "id": 13, "name": "Campfire", "type": "MOB", "curveLevel": 1,
-		  "factors": {"baseMaxHealth": 50, "experience": 0, "speed": 0},
+		  "factors": {"baseMaxHealth": 50, "xpFactor": 0, "speed": 0},
 		  "body": {"radius": 0.3, "aggroRadius": 0.1}
 		}`)},
 	})
@@ -113,8 +113,8 @@ func TestMobCatalogJSON_CombatTargetExcludesPropsAndAllies(t *testing.T) {
 	require.NoError(t, err)
 	entries := decodeMobCatalog(t, data)
 
-	assert.Equal(t, true, entries[0]["combatTarget"], "a wolf grants XP — it is a target")
-	assert.Equal(t, false, entries[1]["combatTarget"], "a campfire grants no XP — it is a fixture")
+	assert.Equal(t, true, entries[0]["combatTarget"], "a wolf grants XP (absent xpFactor defaults to 1) — it is a target")
+	assert.Equal(t, false, entries[1]["combatTarget"], "a campfire authors xpFactor 0 — it is a fixture")
 }
 
 // The catalog is public and read-only. Anything beyond the nameplate fields

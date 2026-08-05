@@ -204,7 +204,7 @@ func TestContent_ConversantsAreUnattackableAndSensed(t *testing.T) {
 		assert.True(t, def.FriendlyToPlayers, "%s: player damage must skip it", name)
 		assert.Zero(t, def.Body.CollisionLayer&layerAction,
 			"%s: a body on the Action layer is aura-targetable by everything", name)
-		assert.Zero(t, def.Factors.Experience, "%s: an NPC is not prey", name)
+		assert.Zero(t, def.Factors.XPFactor, "%s: an NPC is not prey", name)
 		assert.Greater(t, def.SenseRadius(), float32(0),
 			"%s: a conversant nobody can reach is a mute NPC", name)
 	}

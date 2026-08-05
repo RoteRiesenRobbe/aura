@@ -600,8 +600,15 @@ Vision: **all combat participants receive XP** (no formal groups in v1).
 
 - ✓ Implemented (Block 3, with the Phase 6 mob chapter): mobs track damage
   contributors (`participants`, keyed by entity ID); on death **every
-  participant receives the full XP amount** (no split — no groups, no grief
+  participant receives a full award** (no split — no groups, no grief
   potential in v1).
+- ✓ **AMENDED 2026-08-05 by `plan-xp-formula.md` C1: "the full XP amount" is
+  now priced PER PARTICIPANT, at that participant's own level.** There is
+  still no split and no group-size penalty — what varies is the *price*, not
+  the share. The flat authored `factors.experience` is gone (replaced by the
+  relative `factors.xpFactor`), because one number for everyone is exactly
+  what let a level-3 tagalong level off an endgame kill and a level-30 farm
+  the starting zone forever. C2 (calibration + the pacing call) is open.
 - ✓ **Decided: healing counts.** Any successful heal registers the caster as
   a "recent healer" on the target (`NoteHealedBy`/`RecentHealers`, window
   ~10 s [PLACEHOLDER], refreshed per heal); on mob death the recent healers

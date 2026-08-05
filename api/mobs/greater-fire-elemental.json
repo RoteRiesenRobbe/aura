@@ -10,7 +10,6 @@
     "resistances": {"fire": 0.25, "frost": 1.5},
     "baseMaxHealth": 450,
     "maxHealthVariance": 0.1,
-    "experience": 390,
     "speed": 0.45,
     "deltaPhi": 0.1,
     "turnRate": 0.1,

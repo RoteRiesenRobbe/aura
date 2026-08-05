@@ -46,6 +46,24 @@ var tierRanks = map[string]TierRank{
 // constant being added without an encoding.
 func (d *MobDefinition) Rank() TierRank { return tierRanks[d.Tier] }
 
+// KillXPTierMultiplier resolves this definition's tier to its kill-XP weight
+// (plan-xp-formula.md §3). The mapping lives HERE rather than on curve.KillXP
+// so the tier vocabulary stays in one package — curve holds the numbers, this
+// holds what a tier is. Normal is 1 by definition: base(P) is the at-level
+// normal kill, so a normal knob would be a second name for killXP.base.
+// TestKillXPTierMultiplier_CoversEveryTier guards a new tier being added
+// without a weight and silently paying like a normal.
+func (d *MobDefinition) KillXPTierMultiplier(k curve.KillXP) float64 {
+	switch d.Tier {
+	case TierElite:
+		return k.TierElite
+	case TierBoss:
+		return k.TierBoss
+	default:
+		return 1
+	}
+}
+
 //{
 //"id": 1,
 //"name": "Dodo",
@@ -133,7 +151,21 @@ type Factors struct {
 	DeltaPhi                float32
 	TurnRate                float32
 	StructureDamageFraction float32
-	Experience              uint32
+
+	// XPFactor is this species' RELATIVE kill-XP weight — the last authored
+	// input to an award that is otherwise computed from the recipient's level
+	// (plan-xp-formula.md §3.4). It replaced the absolute `experience` value
+	// outright: 1 = a full at-level kill for its tier, 0 = pays nothing (every
+	// NPC, structure, totem and summon), fractions for species whose authored
+	// TTK is nothing like a normal fight — harvest vegetables, and the
+	// Session-⑥ kite rule, which now reads "kite mobs author xpFactor 0.5".
+	//
+	// ⚑ The loader defaults an ABSENT key to 1; the Go zero value is 0, so a
+	// definition hand-built in a test or the sim harness pays nothing until it
+	// says otherwise. That asymmetry is deliberate — a missing authored value
+	// should mean "an ordinary mob", a missing Go value should fail loudly in
+	// the test that expected XP.
+	XPFactor float32
 }
 
 type Body struct {
@@ -269,7 +301,20 @@ type mobDefinition struct {
 		Speed                float32            `json:"speed"`
 		DeltaPhi             float32            `json:"deltaPhi"`
 		TurnRate             float32            `json:"turnRate"`
-		Experience           uint32             `json:"experience"`
+
+		// XPFactor is a POINTER so an absent key is distinguishable from an
+		// authored 0 — absent means "an ordinary mob" (1), authored 0 means
+		// "pays nothing", and the two must not collapse.
+		XPFactor *float32 `json:"xpFactor"`
+
+		// Experience is a TOMBSTONE for the pre-formula absolute XP value
+		// (plan-xp-formula.md L2, the jsonInteraction.Trigger precedent). It
+		// is a pointer for the same reason DisallowUnknownFields is not enough
+		// on its own: the 29 defs authoring `"experience": 0` would parse
+		// perfectly against a plain uint32 and every one of them would keep
+		// its old meaning by accident. Any presence hard-fails with the
+		// migration rule attached.
+		Experience *uint32 `json:"experience"`
 	} `json:"factors"`
 
 	Body struct {
@@ -332,6 +377,21 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 	// position 1, f = 1) so synthetic/test defs stay minimal.
 	if m.Factors.MaxHealth != 0 {
 		return nil, fmt.Errorf("mob %q: factors.maxHealth is raw authoring — author factors.baseMaxHealth + tier + curveLevel instead (C0 tier+baseline rule)", m.Name)
+	}
+
+	// The same refusal for the absolute XP value the formula replaced: kill XP
+	// is computed from the RECIPIENT's level now, so an authored number here is
+	// not a smaller balance input, it is a stale one (plan-xp-formula.md L2).
+	if m.Factors.Experience != nil {
+		return nil, fmt.Errorf("mob %q: factors.experience was replaced by the kill-XP formula — author factors.xpFactor instead (0 stays 0; any other value: drop the key, the default 1 is a full at-level kill)", m.Name)
+	}
+	// Absent = an ordinary mob. Only an EXPLICIT 0 pays nothing.
+	xpFactor := float32(1)
+	if m.Factors.XPFactor != nil {
+		xpFactor = *m.Factors.XPFactor
+	}
+	if xpFactor < 0 {
+		return nil, fmt.Errorf("mob %q: factors.xpFactor %v must be >= 0", m.Name, xpFactor)
 	}
 	tier := m.Tier
 	if tier == "" {
@@ -480,7 +540,7 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 			Speed:                m.Factors.Speed,
 			DeltaPhi:             m.Factors.DeltaPhi,
 			TurnRate:             m.Factors.TurnRate,
-			Experience:           m.Factors.Experience,
+			XPFactor:             xpFactor,
 		},
 		Body: Body{
 			Radius:         m.Body.Radius,

@@ -4122,11 +4122,14 @@ writing down as a small change rather than a system.
 
 Everything above is mechanical. These are not:
 
-- **XP reward.** `factors.experience` is a flat per-species number, so a
-  level-30 Wolf would grant a level-1 Wolf's XP. That directly breaks the
-  standing **Session-⑥ XP band rule** (facetank kills-per-hour, else kite ×0.5),
-  which is a CLAUDE.md standing lock. Either XP is derived from level (a formula
-  nobody has designed) or it is authored per spawn alongside the level.
+- ~~**XP reward.** `factors.experience` is a flat per-species number, so a
+  level-30 Wolf would grant a level-1 Wolf's XP.~~ **ANSWERED 2026-08-05 by
+  `plan-xp-formula.md` C1** — and the answer is the first branch: kill XP is
+  now derived, from the **killer's** level (`base(P) × mod(Δ) × tier ×
+  xpFactor`), with the mob's level entering as Δ via `Mob.Level()`. So an
+  overridden spawn prices itself with **zero seam code**, no per-spawn XP
+  authoring is needed, and the Session-⑥ band rule survives only as "kite mobs
+  author `xpFactor` 0.5". This was §38's one hard open question.
 - **Drops and unlock tables.** Authored per species. Is a level-30 Wolf still
   dropping the level-1 aura correct (the aura is the species' identity) or wrong
   (rewards should track difficulty)?

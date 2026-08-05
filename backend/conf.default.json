@@ -16,6 +16,17 @@
       "maxLevel": 30,
       "levelUpXPBase": 300,
       "levelUpXPGrowthFactor": 1.2,
+      "killXP": {
+        "_comment": "What ONE mob death pays ONE participant (docs/plan-xp-formula.md). Anchored to the RECIPIENT's level, not the mob's: award = base(P) × mod(Δ) × tier × the mob's authored xpFactor, where base(P) = base × growth^(P−1). growth == levelUpXPGrowthFactor is what makes kills-per-level flat across the span (~7.5 at these numbers); dropping it below is the one knob that slows the late game. Δ ≥ 0 pays +upBonusPerLevel per level up to upBonusCapLevels — that bound is what stops a carried low-level player levelling off an endgame kill. Δ < 0 tapers linearly to exactly 0 at grayBase + P/grayStep levels below you, which is what stops endgame gray farming. Normal has no multiplier by design: base IS the at-level normal kill. ⚑ A field left out (or set ≤ 0) falls back to the Go default FOR THAT FIELD — so authoring only base+growth does not zero the gray distance or the tier weights. The flip side: **`upBonusPerLevel` and `upBonusCapLevels` cannot be authored as 0** (WoW-flat, no bonus for killing above your level) — they would read as unauthored. Expressing that needs pointer conf fields; C2's problem if it ever wants it. A genuinely free species is `xpFactor: 0`, never a zeroed tier. ⚑ The Go defaults in pkg/aura/curve (DefaultKillXP) are the source of truth; this restates them, and removing the block resolves back to them rather than zeroing the economy. All values [PLACEHOLDER] — C2 calibrates against the simharness kills-per-level battery.",
+        "base": 40,
+        "growth": 1.2,
+        "upBonusPerLevel": 0.05,
+        "upBonusCapLevels": 4,
+        "grayBase": 5,
+        "grayStep": 6,
+        "tierElite": 2,
+        "tierBoss": 5
+      },
       "skillPointsPerLevel": 1,
       "critChance": 0.05,
       "maxAliveCharacters": 3

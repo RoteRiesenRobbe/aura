@@ -1,6 +1,6 @@
 # Plan: Kill XP becomes a formula — level-relative XP
 
-> **Status: DESIGNED 2026-08-05, no chunk built.**
+> **Status: C1 BUILT 2026-08-05 (`37668bc3`, headless-verified, §10) — C2 open.**
 > Replaces the flat authored per-mob `experience` value with a computed,
 > level-relative award — WoW-Classic-shaped, anchored to the *recipient's*
 > level. Every number is [PLACEHOLDER] unless marked.
@@ -54,6 +54,41 @@ mechanics walkthrough was requested and given):
   `wolves-on-the-road` legs) and the XP cheat stay flat authored/typed
   amounts. Quests are one-shot at roughly their zone's level — no farming
   loop to close. `AddExperience` remains the single front door for all of it.
+
+### Taken during C1 (2026-08-05)
+
+- **D4 — `xpFactor` is a free per-species knob, and the Turnip ships at 0.05.**
+  Asked whether C1 should apply §3.4's migration rule mechanically (which would
+  have made a harvest vegetable pay a **full at-level kill** — it authored
+  `experience: 1`, and "any non-zero value drops the key" defaults to 1), the PO
+  ruled the knob must be able to take *any* value on *any* species, zero
+  included, and picked 0.05 for the Turnip. So C1 pulls forward the one
+  curation §3.4 names by example; the rest of the exception list (the kite mobs)
+  is still C2's. ⚑ It is per **species**, not per spawn — a single placement
+  cannot be zeroed today, which is backlog §38's axis, still untaken.
+- **D5 — the min-1 floor is gated on `xpFactor > 0`, not only on `mod > 0`.**
+  §3's `min 1 while mod > 0` under-specifies against §3.4's `0 = pays nothing`:
+  read literally, every NPC, structure, totem and summon in the game would pay
+  1 XP per kill. The floor exists for L4 (a positive-but-tiny product must not
+  round to zero and make "almost gray" read as gray), and an authored 0 is not
+  that case. Both zeros are pinned.
+
+- **D6 — the gray band STAYS at `5 + P/6` for now; the symptom is content, not
+  formula.** Playing C1, the PO reported that "very little worthwhile enemies
+  give relevant XP" and that "even mobs 10 levels below can still be
+  challenging in mass", and proposed widening the band so a 10-level gap still
+  progresses. The roster survey (§11) says the band is not what is broken:
+  **at level 20, exactly two rungs of the 36-species roster pay anything** —
+  cL18 and cL20 — because the species cluster at cL1–7 and **cL13–17 is
+  completely empty**. Widening the band would paper over that hole and would
+  then be too generous once the hole is filled. Ruling: leave the band, make
+  sure the knob is cheap to turn later. It is — `game.player.killXP.grayBase`
+  / `.grayStep` are conf fields; **edit `backend/conf.json` and restart, no
+  rebuild** (verified end to end 2026-08-05: `grayBase: 11` reached the boot
+  log, then reverted). The requirement itself — "10 levels of difference should
+  still lead to some progress" — is **recorded, not discarded**: it is the
+  acceptance test for whoever turns the knob, and the candidate shapes are
+  costed in §11.
 
 ## 3. The formula
 
@@ -242,3 +277,129 @@ Two chunks, buildable in one execution session each.
 - **L5 — five conf files** (§35): the new block must land in all of them
   including the live server's, and the Go defaults must be sane so a conf
   missing the block doesn't zero the economy.
+
+## 10. Chunk ledger
+
+### C1 — the formula, wired ✅ `37668bc3` 2026-08-05, headless-verified
+
+The economy is level-relative end to end. `curve.KillXP` is the shared type
+(the sim harness consumes it), `factors.xpFactor` replaced `factors.experience`
+across all 65 defs, and the award is computed **per participant** inside the
+existing fan-out. **Schema impact: NONE** — verified, not reasoned: kill XP was
+never on the wire and the DB stores only the accumulated total.
+
+**What the plan did not predict:**
+
+- ⚑ **L5 was already answered, and the answer is better than the plan's.**
+  §5 warned the live server's conf must carry the new block or it boots on Go
+  zero values. It carries **no `game.player` block at all** (`devops/conf.json`
+  — checked, `game` holds only `zone`), so it has *always* run the player
+  economy on Go defaults; `levelUpXPBase` works exactly this way today. With
+  `curve.DefaultKillXP()` as the source of truth and `mob.SetKillXP`
+  normalizing a non-positive block back to it, the three repo confs that got
+  the block restate the defaults **verbatim** (verified by loading all three).
+  So deployment carries no dependency — L5 is a recorded non-issue, not a
+  release step.
+- ⚑ **`DisallowUnknownFields` is NOT enough to catch the rename** (L2). The
+  loader already rejects unknown keys, which looks like it makes the tombstone
+  redundant — but 29 of the 65 defs authored `"experience": 0`, and against a
+  plain `uint32` every one of them parses perfectly and silently *keeps
+  meaning something*. The tombstone is a **pointer**, so any presence at all
+  hard-fails; a non-pointer would have caught the 36 combat mobs and waved
+  through every NPC. *General shape: a rename is only loud where the old value
+  differed from the zero value.*
+- ⚑ **The nameplate migration was PROVEN, not argued.** L1 says "re-derive and
+  pin"; instead the `name → combatTarget` map of all 65 defs was captured
+  **before** the JSON sweep and diffed after: **65/65 identical**, 36 prey and
+  29 not. Order-sensitive — capture first or the cheap version is gone.
+- ⚑ **A double that panics instead of answering, again** (the flight-C4
+  lesson): `encounter.fakePlayer` embeds the interface, so the moment the award
+  site read `Progression()` it nil-panicked *inside the reward fan-out* rather
+  than saying "this test needs a level". It now answers.
+- ⚑ **L2 STRUCK A THIRD TIME, at the conf seam, and the first fix blessed it.**
+  `SetKillXP` originally guarded the block as a whole (`Base > 0 && Growth > 0`)
+  and installed anything that passed verbatim — so a calibration pass writing
+  the two knobs it is calibrating, `{"base": 60, "growth": 1.15}`, would have
+  installed `grayStep 0` (⇒ **everything below your level pays nothing**),
+  `upBonus 0`, and `tierElite/tierBoss 0` (⇒ **every elite and boss in the game
+  pays nothing**, through `Award`'s own tier guard). Silently: the boot log
+  printed `base` and `growth`, the two fields that *were* set, and both looked
+  healthy. Worse, a test asserted that exact partial block installed correctly —
+  **the hazard was scored as a pass.** The fix is `curve.KillXP.Normalized()`,
+  falling back **per field**, plus the resolved gray + tier fields in the boot
+  log. ⚑ *General shape: a whole-object "is it configured" guard cannot protect
+  a struct whose fields are independently meaningful — and the fields most
+  likely to be authored alone are the ones a log line is most likely to show.*
+- ⚑ **`Turnip` was the whole harvest problem** — the only gate-keyed species
+  with non-zero authored XP (Bramble and Rockfall were already 0), so D4's
+  curation is one line, and a content pin now says exactly one structure in the
+  game pays anything and it is the chore target.
+
+⚑ **One knob C2 should know it cannot express:** `Normalized()` falls every
+non-positive field back to the default for that field, so `upBonusPerLevel: 0`
+and `upBonusCapLevels: 0` — a legitimate WoW-flat choice (no bonus at all for
+killing above your level) — read as *unauthored* and are overwritten. The other
+six have no meaningful zero. Making those two authorable means pointer conf
+fields; deliberately not built, since nothing wants it yet.
+
+**Not done, deliberately:** the kite list (§8.2) and the pacing call (§8.1) are
+C2's, and the constants are untouched [PLACEHOLDER] defaults.
+
+**Pre-existing, found while verifying:** `sys.TestDwell_TakeoffDropsAnInProgressCount`
+fails under `-count=3` and passes under `-count=1` — reproduced at clean HEAD in
+a scratch worktree, so it is not this chunk's. It is not repeat-safe.
+
+Verified: full Go suite + `go build` · `go vet` · **~30 new Go tests** (the
+formula table incl. §3.2's three worked examples transcribed, the award-site
+per-participant split, the L3 pins, the loader tombstone, the tier census) ·
+the 65-def nameplate golden · all three confs parsed and asserted equal to the
+Go defaults · vitest 225/225 + `tsc` clean · boot 0 panics with
+`player.killXP.base=40 growth=1.2` in the tuning-knobs line · **`chunkP-presence`
+6/6, 0 console errors** — its measured award is `0 → 42`, which is the formula
+(`base(1) 40 × 1.05` for a level-1 player killing a level-2 wolf), not the old
+authored sentinel · **`npc-portraits` 4/4 NPCs plate-less with 8/7/7/2 mob
+plates as the control**, both directions of the L1 derivation at the real
+surface.
+
+## 11. The roster is the problem the band was blamed for (evidence, 2026-08-05)
+
+Measured over `api/mobs/*.json` at C1, prey species only (`xpFactor > 0`):
+
+```
+cL1  ×11  AngryMammoth, Dodo, Healer, Mammoth, ProvingAdd, ProvingBoss,
+          ProvingGuard, Rabbit, SaberToothCat, Stag, Turnip
+cL2  ×2   cL3 ×2   cL4 ×3   cL5 ×4   cL6 ×3   cL7 ×2      ← 27 of 36 species
+cL8  —    (empty)
+cL9  ×1   cL10 ×1  cL11 ×1  cL12 ×1
+cL13–17 — (EMPTY — five consecutive levels with nothing in them)
+cL18 ×1   cL20 ×3  cL23 ×1
+```
+
+Three distinct problems live in that table, and only one of them is the band:
+
+1. **The cL13–17 hole.** A player at those levels has *nothing* at their level.
+   `plan-mob-levels.md` is the structural fix — a per-spawn level places a
+   level-15 Wolf without authoring a new species. This is what the PO's "should
+   the mob changes impact that?" was reaching for: yes, and this is how.
+2. **`curveLevel` does not track difficulty.** AngryMammoth, SaberToothCat and
+   ProvingBoss are all authored **cL1**. Neither plan fixes this — it is a
+   content re-authoring pass. ⚑ **C1 made it more load-bearing than §4 warned**:
+   a mis-authored level now mis-prices XP *and* mis-scales HP, and the PO's
+   "mobs 10 levels below are still challenging in mass" is that mismatch being
+   felt rather than a taper being wrong.
+3. **The band**, which is fine as designed (D6) and cheap to revisit.
+
+⚑ **This is C2's sequencing problem, and `plan-mob-levels.md` is the gate.**
+Calibrating an economy against a roster whose levels are untrustworthy and
+which has a five-level hole calibrates against noise. Recommended order:
+**C1 ✅ → `plan-mob-levels.md` (fills the hole) → C2 (calibrate)**. Recorded in
+that plan's header and its §6.6 as well, from the other side. Costed candidates, if the knob is turned later — all satisfy
+"Δ=−10 still progresses", they differ in reach (mod at Δ=−10, and what a
+level-20 can earn from):
+
+| band | ZD(20) | ZD(30) | Δ=−10 @L20 | opens, for a level-20 |
+| --- | --- | --- | --- | --- |
+| `5 + P/6` (shipped) | 8 | 10 | **0** | cL18, cL20 only |
+| `10 + P/6` | 13 | 15 | 0.23 | +cL9–12 |
+| `5 + P/2` | 15 | 20 | 0.33 | +cL7, cL9–12 |
+| `12 + P/4` | 17 | 19 | 0.41 | +cL5(!), cL7, cL9–12 |

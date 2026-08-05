@@ -1,11 +1,33 @@
 # Plan: One species, many levels — the per-spawn level override
 
-> **Status: DESIGNED 2026-08-05, no chunk built.**
+> **Status: DESIGNED 2026-08-05, no chunk built — ⭐ UNBLOCKED 2026-08-05 and
+> now the SEQUENCING GATE for the sibling plan's C2.**
 > Ratifies backlog §38 (PO ask 2026-07-29: *"I want to be able to author a
 > single mob in all levels — so be able to spawn the same wolf on level 1 and
 > level 30"*). A spawn point may author a `level`; the mob placed there stands
-> at it — HP, damage and (once `plan-xp-formula.md` lands) kill XP all follow
-> automatically, because all three already derive live from `Mob.Level()`.
+> at it — HP, damage and kill XP all follow automatically, because all three
+> already derive live from `Mob.Level()`.
+>
+> ⭐ **UNBLOCKED 2026-08-05: `plan-xp-formula.md` C1 shipped**, which was this
+> plan's one ordering constraint (§6.5 — no overridden spawn in a live zone
+> before it). Kill XP is now `killXP.Award(participantLevel, m.Level(), tier,
+> xpFactor)`, so an authored per-spawn level flows into the award through
+> `Mob.Level()` with **zero seam code**, exactly as §6 predicted.
+>
+> ⭐ **And it now blocks in the other direction: this plan gates that plan's
+> C2.** C1's play-test surfaced that the ROSTER, not the formula, is what makes
+> XP feel wrong — measured, **at level 20 exactly two rungs of the 36-species
+> roster pay anything** (cL18 and cL20), because 27 species sit at cL1–7 and
+> **cL13–17 is completely empty** (`plan-xp-formula.md` §11 + D6). Its C2 is
+> *calibration*, and calibrating an economy against a five-level hole
+> calibrates against noise. **This plan is the structural fix for the hole** —
+> a per-spawn level places a level-15 Wolf without authoring a new species —
+> so the honest order is: this plan, then that C2. ⚑ It does NOT fix the
+> second half, `curveLevel` not tracking difficulty (AngryMammoth,
+> SaberToothCat and ProvingBoss are all authored **cL1**); that is a content
+> re-authoring pass neither plan owns, and the XP formula made it *more*
+> load-bearing because a mis-authored level now mis-prices XP as well as
+> mis-scaling HP.
 >
 > ⚑ **Schema impact: DB NONE, FlatBuffers YES** — one field appended to the
 > `Mob` table (`server.fbs`), both binding sets regenerated together. No
@@ -159,8 +181,12 @@ per-spawn levels, every overridden mob's plate and tint would lie.
 - Nameplate text and tint both read catalog `curveLevel`
   (`Mobs.ts:174,213,218`); `difficultyColor` (`client-data/Mobs.ts:113`)
   works on the **difference** to the local player over fixed bands.
-- Kill XP today: `tryGrantKillRewards` (`mob.go:1997`) reads the flat
-  `Factors.Experience` — the exact line the sibling plan replaces.
+- ~~Kill XP today: `tryGrantKillRewards` reads the flat `Factors.Experience`~~
+  — **DONE 2026-08-05, `plan-xp-formula.md` C1**: that line now computes
+  `killXP.Award(participantLevel, m.Level(), tier, xpFactor)` per participant,
+  so an overridden spawn level flows into the award through `Mob.Level()` with
+  **no seam code**, exactly as D2 predicted. The ordering rule below is
+  satisfied.
 - The simharness builds inline definitions (`sim/world.go`) and its roster is
   species-keyed — per-spawn levels are invisible to it (§8.3).
 
@@ -211,17 +237,26 @@ What the combination makes *easier*, in both directions:
    cross-check step owns it explicitly. (Cheapest v1 answer: tune the
    client's gray band to approximate ZD at mid levels and accept the drift;
    the honest answer needs ZD client-side, e.g. shipped in `Welcome`.)
-5. **Ordering constraint (the only one):** the *mechanisms* are independent
-   and can be built in either order or in parallel — but **no overridden
-   spawn should be placed in a live zone before the XP formula's C1 ships**,
-   or the band rule breaks for real players in exactly the way §38 predicted
-   (a farmed high-level wolf paying gray-level XP, or worse, a low-level
-   wolf paying its species' high authored value). Placement is C3 here;
-   gate it on `plan-xp-formula.md` C1, not on its C2 calibration.
+5. ~~**Ordering constraint (the only one):**~~ **SATISFIED 2026-08-05** — the
+   constraint was "no overridden spawn placed in a live zone before the XP
+   formula's C1 ships", and C1 shipped that day. Placement (C3 here) is
+   clear to proceed: a spawn's authored level reaches the award through
+   `Mob.Level()` with no seam code, so neither failure §38 predicted (a farmed
+   high-level wolf paying gray-level XP; a low-level wolf paying its species'
+   high authored value) is reachable any more — the second one is not even
+   representable, since the authored absolute value no longer exists.
+6. **The constraint REVERSED, and this plan is now the gate.** The sibling
+   plan's **C2 is calibration**, and its C1 play-test showed the roster — not
+   the formula — is what makes XP feel wrong (§11 there: two paying rungs at
+   level 20, cL13–17 empty). Calibrating against that roster tunes to noise,
+   and **this plan is what fills the hole**. So the recommended order is
+   `xp C1` ✅ → **this plan** → `xp C2`. It is a recommendation, not a
+   mechanism lock: nothing breaks if C2 runs first, the numbers it produces
+   are just measured against a world that is about to change.
 
-Non-interactions, checked so nobody re-checks them: the XP plan renames
-`factors.experience` → `xpFactor` and re-derives `CombatTarget` — species-def
-territory this plan never touches. This plan's wire field carries the level;
+Non-interactions, checked so nobody re-checks them: the XP plan renamed
+`factors.experience` → `xpFactor` and re-derived `CombatTarget` (**shipped
+2026-08-05**) — species-def territory this plan never touches. This plan's wire field carries the level;
 XP was never on the wire. Both plans leave the DB alone.
 
 ## 7. Chunk breakdown

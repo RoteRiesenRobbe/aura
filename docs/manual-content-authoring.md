@@ -78,8 +78,16 @@ faction and skills without a schema append (see §5 and
      legal and neither is warned about — author the role you mean. Before
      chunk 2 this was inferred (`speed: 0` = structure, owner + moving =
      follower), which is why old defs carried a dummy `aggroRadius`.
-   - `factors`: `baseMaxHealth`, `maxHealthVariance`, `experience`, `speed`,
+   - `factors`: `baseMaxHealth`, `maxHealthVariance`, `xpFactor`, `speed`,
      `deltaPhi`, `turnRate`, optional `resistances` / `damageTags`
+   - ⚑ **`xpFactor` is RELATIVE, and absolute `experience` hard-fails**
+     (`plan-xp-formula.md` C1, the `maxHealth` precedent): kill XP is computed
+     from the *killer's* level, so a per-mob XP number is not a smaller balance
+     input, it is a stale one. Absent → **1** = a full at-level kill for its
+     tier; `0` = pays nothing (every NPC, structure, totem, summon, sign) and
+     also takes it off the nameplate path; fractions for species whose fight is
+     nothing like a normal one (the Turnip is 0.05, and the Session-⑥ kite rule
+     now reads "kite mobs author `xpFactor` 0.5").
    - **Chore/gate keys are opt-in (C1; the vocabulary split is D4):**
      gate-style damage (Harvest) carries `"gateKey": "harvest"` on its effect,
      and a mob opts in by listing that key in **`factors.gateKeys`**. Combat

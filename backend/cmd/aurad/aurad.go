@@ -116,6 +116,7 @@ func main() {
 	// defaults when the conf block is absent.
 	mob.SetHealthGainTick(config.Game.Mob.HealthGainTick)
 	mob.SetWalkingSpeedPerTick(config.Game.Mob.WalkingSpeedPerTick)
+	mob.SetKillXP(config.Game.Player.KillXP)
 	combat := cfg.CombatConfig{
 		DefaultCritFactor:  config.Game.Combat.DefaultCritFactor,
 		HealerThreatFactor: config.Game.Combat.HealerThreatFactor,
@@ -130,7 +131,19 @@ func main() {
 		slog.Float64("mob.walkingSpeedPerTick", float64(mob.WalkingSpeedPerTick())),
 		slog.Float64("combat.defaultCritFactor", float64(combat.CritFactor())),
 		slog.Float64("combat.healerThreatFactor", float64(combat.HealerThreat())),
-		slog.Float64("combat.presenceRadius", float64(combat.PresenceRange())))
+		slog.Float64("combat.presenceRadius", float64(combat.PresenceRange())),
+		// The kill-XP economy is the one knob whose absence used to be
+		// indistinguishable from "nobody earns anything" (plan-xp-formula.md
+		// L2/L5), so the resolved base + growth go in the boot log by name.
+		slog.Float64("player.killXP.base", mob.KillXPConfig().Base),
+		slog.Float64("player.killXP.growth", mob.KillXPConfig().Growth),
+		// The resolved gray + tier fields belong here too: a conf authoring
+		// only base+growth used to zero them, and printing just the two fields
+		// that WERE set is what would have made that invisible.
+		slog.Int("player.killXP.grayBase", mob.KillXPConfig().GrayBase),
+		slog.Int("player.killXP.grayStep", mob.KillXPConfig().GrayStep),
+		slog.Float64("player.killXP.tierElite", mob.KillXPConfig().TierElite),
+		slog.Float64("player.killXP.tierBoss", mob.KillXPConfig().TierBoss))
 
 	g, err := core.NewGameWith(
 		rnd.Int63(),

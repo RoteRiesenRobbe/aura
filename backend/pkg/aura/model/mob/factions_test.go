@@ -317,7 +317,7 @@ func TestMob_MobKillingBlowGrantsRewardsToParticipants(t *testing.T) {
 
 	m.MobTouches(wolf, mobs.Factors{Damage: 1e6})
 
-	require.Equal(t, []uint64{42}, p.xp,
+	require.Equal(t, []uint64{atLevelNormalAward}, p.xp,
 		"the mob's killing blow triggers the participant rewards")
 }
 

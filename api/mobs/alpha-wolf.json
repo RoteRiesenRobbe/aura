@@ -1,5 +1,5 @@
 {
-  "_comment": "cL8-17 farm-band normal #2 (Z2-hardening pre-chunk, PO 2026-07-21): the wolf line's apex — above Wolf (cL2) and DireWolf (cL6), the fast chaser of the high-tier farm areas. Own sprite/EntityType (PO ruling 2026-07-21: unique art per mob, higher tier looks meaner). Speed 0.74 stays under the PO normal-mob ceiling (clearly slower than the player); WolfBite baseline shared with the line, f(cL10) does the scaling. experience kph-derived per the Session-⑥ XP rule. Drops added 2026-07-21 (PO — it was the only dropless wolf): Swift 0.1 + KeenEye 0.06 line-wide, plus Reaper 0.2 as the line's apex payload, moved up from EliteWolf. PO places spawns in the editor. All values [PLACEHOLDER]",
+  "_comment": "cL8-17 farm-band normal #2 (Z2-hardening pre-chunk, PO 2026-07-21): the wolf line's apex — above Wolf (cL2) and DireWolf (cL6), the fast chaser of the high-tier farm areas. Own sprite/EntityType (PO ruling 2026-07-21: unique art per mob, higher tier looks meaner). Speed 0.74 stays under the PO normal-mob ceiling (clearly slower than the player); WolfBite baseline shared with the line, f(cL10) does the scaling. experience kph-derived per the Session-⑥ XP rule — RETIRED: kill XP is no longer authored as an absolute value (plan-xp-formula.md C1): the award is computed from the KILLER's level, so what is left here is factors.xpFactor, a relative weight defaulting to 1 = a full at-level kill for its tier; the surviving half of the Session-⑥ rule is 'kite mobs author xpFactor 0.5', and which species that covers is a C2 call. Drops added 2026-07-21 (PO — it was the only dropless wolf): Swift 0.1 + KeenEye 0.06 line-wide, plus Reaper 0.2 as the line's apex payload, moved up from EliteWolf. PO places spawns in the editor. All values [PLACEHOLDER]",
   "id": 46,
   "name": "AlphaWolf",
   "type": "MOB",
@@ -9,7 +9,6 @@
   "factors": {
     "baseMaxHealth": 162,
     "maxHealthVariance": 0.1,
-    "experience": 371,
     "speed": 0.95,
     "deltaPhi": 0.1,
     "turnRate": 0.1,

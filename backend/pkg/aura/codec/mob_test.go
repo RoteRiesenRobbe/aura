@@ -23,7 +23,7 @@ func testMobDef(role mobs.Role) *mobs.MobDefinition {
 		Factors: mobs.Factors{
 			Speed:         1,
 			BaseMaxHealth: 40,
-			Experience:    1,
+			XPFactor:      1,
 		},
 		Body: mobs.Body{Radius: 0.3, AggroRadius: 2.0},
 		Skills: []mobs.MobSkill{{

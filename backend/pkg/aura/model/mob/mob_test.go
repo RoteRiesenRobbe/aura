@@ -12,6 +12,7 @@ import (
 
 	"github.com/EngoEngine/ecs"
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
@@ -36,13 +37,20 @@ func testAuraSkill() *skills.SkillDefinition {
 	}
 }
 
+// atLevelNormalAward is what testMobDefinition's mob pays a participant: both
+// stand at curve level 1 (the fixture authors no curveLevel, the fake player
+// no level), so the award is base(1) × mod(0) × normal × xpFactor 1. Derived,
+// never transcribed — every constant in the economy is [PLACEHOLDER] and C2
+// moves them.
+var atLevelNormalAward = curve.DefaultKillXP().Award(1, 1, 1, 1)
+
 func testMobDefinition() *mobs.MobDefinition {
 	return &mobs.MobDefinition{
 		ID:   1,
 		Name: "Dodo", // must be a valid AuraApi entity type name
 		Factors: mobs.Factors{
-			Speed:      1.0,
-			Experience: 42,
+			Speed:    1.0,
+			XPFactor: 1, // an ordinary mob: a full at-level kill for its tier
 		},
 		Body: mobs.Body{
 			Radius:      0.3,
@@ -69,8 +77,11 @@ type fakeAuraPlayer struct {
 	xp      []uint64
 	healers []model.PlayerEntity
 	sc      *skills.SkillComponent
-	client  *mobFakeClient
-	ledger  *quests.Ledger
+	// cascaded records ApplyRecipeCascade, so the reward fan-out's
+	// participation-based tail can be asserted on a 0-XP kill (L3).
+	cascaded bool
+	client   *mobFakeClient
+	ledger   *quests.Ledger
 }
 
 // mobFakeClient captures SendUnlock for the kill-drop attribution test; the rest
@@ -103,7 +114,7 @@ func (f *fakeAuraPlayer) AddExperience(xp uint64)                { f.xp = append
 func (f *fakeAuraPlayer) RecentHealers() []model.PlayerEntity    { return f.healers }
 func (f *fakeAuraPlayer) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakeAuraPlayer) QuestLedger() *quests.Ledger            { return f.ledger }
-func (f *fakeAuraPlayer) ApplyRecipeCascade()                    {}
+func (f *fakeAuraPlayer) ApplyRecipeCascade()                    { f.cascaded = true }
 func (f *fakeAuraPlayer) Client() model.Client                   { return f.client }
 
 func newFakeAuraPlayer() *fakeAuraPlayer {
@@ -421,8 +432,8 @@ func TestMob_Kill_AllDamagersGetFullXP(t *testing.T) {
 	m.PlayerTouches(attacker, model.Damage{HP: 5})    // participates, doesn't kill
 	m.PlayerTouches(finisher, model.Damage{HP: 1000}) // kill (overkill vs. 100 HP)
 
-	assert.Equal(t, []uint64{42}, attacker.xp, "every damage participant gets the full XP")
-	assert.Equal(t, []uint64{42}, finisher.xp)
+	assert.Equal(t, []uint64{atLevelNormalAward}, attacker.xp, "every damage participant gets a full award at their own level")
+	assert.Equal(t, []uint64{atLevelNormalAward}, finisher.xp)
 }
 
 func TestMob_Kill_RecentHealerOfParticipantGetsXP(t *testing.T) {
@@ -433,9 +444,9 @@ func TestMob_Kill_RecentHealerOfParticipantGetsXP(t *testing.T) {
 
 	m.PlayerTouches(damager, model.Damage{HP: 1000}) // kill
 
-	assert.Equal(t, []uint64{42}, healer.xp,
+	assert.Equal(t, []uint64{atLevelNormalAward}, healer.xp,
 		"healing a participant within the window counts as participating")
-	assert.Equal(t, []uint64{42}, damager.xp)
+	assert.Equal(t, []uint64{atLevelNormalAward}, damager.xp)
 }
 
 func TestMob_Kill_HealerWhoAlsoDamagedGetsXPOnce(t *testing.T) {
@@ -447,7 +458,7 @@ func TestMob_Kill_HealerWhoAlsoDamagedGetsXPOnce(t *testing.T) {
 	m.PlayerTouches(hybrid, model.Damage{HP: 5})
 	m.PlayerTouches(damager, model.Damage{HP: 1000}) // kill
 
-	assert.Equal(t, []uint64{42}, hybrid.xp, "no double grant for damager+healer")
+	assert.Equal(t, []uint64{atLevelNormalAward}, hybrid.xp, "no double grant for damager+healer")
 }
 
 // --- kill unlocks (Phase 6.2) ---
@@ -536,7 +547,7 @@ func TestMob_FullOutOfCombatRegenClearsParticipants(t *testing.T) {
 	m.PlayerTouches(killer, model.Damage{HP: 1000})
 
 	assert.Empty(t, early.xp, "full regen is a combat reset — earlier participants are cleared")
-	assert.Equal(t, []uint64{42}, killer.xp)
+	assert.Equal(t, []uint64{atLevelNormalAward}, killer.xp)
 }
 
 // --- presence participation (chunk P, plan-playtest-feedback.md §Chunk P plan) ---
@@ -552,8 +563,8 @@ func TestMob_Presence_BystanderEarnsFullXPOnKill(t *testing.T) {
 	m.NotePresence(bystander)
 	m.PlayerTouches(damager, model.Damage{HP: 1000}) // kill
 
-	assert.Equal(t, []uint64{42}, bystander.xp, "a presence participant gets the full XP")
-	assert.Equal(t, []uint64{42}, damager.xp)
+	assert.Equal(t, []uint64{atLevelNormalAward}, bystander.xp, "a presence participant is priced like anyone else")
+	assert.Equal(t, []uint64{atLevelNormalAward}, damager.xp)
 }
 
 // The P2 gate, InCombat half: a mob that has a recorded participant but is no
@@ -606,9 +617,9 @@ func TestMob_Presence_DedupesAndFansOutToHealers(t *testing.T) {
 	m.PlayerTouches(bystander, model.Damage{HP: 5})  // damage on an existing presence participant
 	m.PlayerTouches(damager, model.Damage{HP: 1000}) // kill
 
-	assert.Equal(t, []uint64{42}, damager.xp, "presence + damage is still one grant")
-	assert.Equal(t, []uint64{42}, bystander.xp, "damage + presence is still one grant")
-	assert.Equal(t, []uint64{42}, healer.xp, "a presence participant's recent healer earns like any participant's")
+	assert.Equal(t, []uint64{atLevelNormalAward}, damager.xp, "presence + damage is still one grant")
+	assert.Equal(t, []uint64{atLevelNormalAward}, bystander.xp, "damage + presence is still one grant")
+	assert.Equal(t, []uint64{atLevelNormalAward}, healer.xp, "a presence participant's recent healer earns like any participant's")
 }
 
 // P3: a guaranteed kill unlock rolls for a presence participant exactly like
@@ -656,7 +667,7 @@ func TestMob_Presence_FullRegenClearsBystander(t *testing.T) {
 
 	assert.Empty(t, early.xp, "full regen clears damage participants")
 	assert.Empty(t, bystander.xp, "full regen clears presence participants the same way")
-	assert.Equal(t, []uint64{42}, killer.xp)
+	assert.Equal(t, []uint64{atLevelNormalAward}, killer.xp)
 }
 
 func TestMob_KillGrantsExperienceExactlyOnce(t *testing.T) {
@@ -666,11 +677,11 @@ func TestMob_KillGrantsExperienceExactlyOnce(t *testing.T) {
 	m.PlayerTouches(p, model.Damage{HP: 1000}) // overkill vs. 100 HP, health clamps to 0
 
 	require.Equal(t, vitals.VitalSign(0), m.Health())
-	require.Equal(t, []uint64{42}, p.xp, "killer receives Factors.Experience")
+	require.Equal(t, []uint64{atLevelNormalAward}, p.xp, "killer receives their at-level award")
 
 	// A second touch on the corpse must not grant rewards again.
 	m.PlayerTouches(p, model.Damage{HP: 1000})
-	assert.Equal(t, []uint64{42}, p.xp)
+	assert.Equal(t, []uint64{atLevelNormalAward}, p.xp)
 }
 
 func TestMob_Update_DeadMobWithAggroTargetIsRemoved(t *testing.T) {
@@ -2194,16 +2205,16 @@ func TestMob_KillCredit_IncrementsQuestCounterAndAdvancesQuest(t *testing.T) {
 	assert.True(t, completed, "the credited kill advances the running quest at the same event")
 }
 
-// L13: 28 of 64 defs author experience: 0 and the reward fan-out still runs —
+// L13: 29 of 65 defs author xpFactor: 0 and the reward fan-out still runs —
 // the counter fires on participation, not XP amount, or every harvest quest
 // is impossible.
 func TestMob_KillCredit_CountsZeroExperienceSpecies(t *testing.T) {
 	def := testMobDefinition()
-	def.Factors.Experience = 0
+	def.Factors.XPFactor = 0
 	m := NewMob(def, 0, nil)
 	harvester := newFakeAuraPlayer()
 
 	m.PlayerTouches(harvester, model.Damage{HP: 1000})
 
-	assert.Equal(t, uint64(1), harvester.ledger.KillCount(1), "an experience: 0 harvest still counts")
+	assert.Equal(t, uint64(1), harvester.ledger.KillCount(1), "an xpFactor: 0 harvest still counts")
 }

@@ -1,5 +1,5 @@
 {
-  "_comment": "Ork World Boss (content pass C6, plan-content-zones12.md §B): the v1 completion beat — encounter-spawned only (never a zone spawn; the OrcWarlordEncounter owns spawn/respawn via the warlord-home anchor). tier boss, curveLevel 23 (PO 2026-07-18: a couple of levels above the front band, punishes undersized groups). Boss baseline ≈3x the elite Orc — the mechanics (Warbanner invuln gate, grunt waves, Frenzy windows) carry the fight, not the stat block. experience 600 = the 'large XP' §B beat (contrast the deliberately-starved Orc 15). Kill-drop Call for Aid at chance 1.0 — all participants + recent healers (§B). Rejuvenation at 0.25 = the first boss rare re-farm drop (C8 drop-rate pass, PO 2026-07-20: guaranteed identity drop + low-chance hunt slot; the support aura on the group-roles capstone; raised 0.1 → 0.25 in playtest-1 Pass A). Slow heavy stride under the orc 0.5. All values [PLACEHOLDER]",
+  "_comment": "Ork World Boss (content pass C6, plan-content-zones12.md §B): the v1 completion beat — encounter-spawned only (never a zone spawn; the OrcWarlordEncounter owns spawn/respawn via the warlord-home anchor). tier boss, curveLevel 23 (PO 2026-07-18: a couple of levels above the front band, punishes undersized groups). Boss baseline ≈3x the elite Orc — the mechanics (Warbanner invuln gate, grunt waves, Frenzy windows) carry the fight, not the stat block. experience 600 = the 'large XP' §B beat — RETIRED: kill XP is no longer authored as an absolute value (plan-xp-formula.md C1): the award is computed from the KILLER's level, so what is left here is factors.xpFactor, a relative weight defaulting to 1 = a full at-level kill for its tier; a boss pays its beat through the tier multiplier now, not an authored number. Kill-drop Call for Aid at chance 1.0 — all participants + recent healers (§B). Rejuvenation at 0.25 = the first boss rare re-farm drop (C8 drop-rate pass, PO 2026-07-20: guaranteed identity drop + low-chance hunt slot; the support aura on the group-roles capstone; raised 0.1 → 0.25 in playtest-1 Pass A). Slow heavy stride under the orc 0.5. All values [PLACEHOLDER]",
   "id": 35,
   "name": "OrcWarlord",
   "type": "MOB",
@@ -9,7 +9,6 @@
   "factors": {
     "baseMaxHealth": 900,
     "maxHealthVariance": 0.0,
-    "experience": 600,
     "speed": 0.45,
     "deltaPhi": 0.1,
     "turnRate": 0.1

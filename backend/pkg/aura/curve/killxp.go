@@ -1,0 +1,203 @@
+package curve
+
+import "math"
+
+// KillXP is the kill-XP economy (docs/plan-xp-formula.md §3, D1): what one mob
+// death pays ONE participant. The whole point is the anchor — every term but
+// the mob's tier and species factor is evaluated at the RECIPIENT's level, so
+// the award is bounded by what that player's own at-level kill is worth no
+// matter what died:
+//
+//	award = base(P) × mod(Δ) × tier × xpFactor        P = recipient's level
+//	base(P) = Base × Growth^(P-1)                     Δ = mob level − P
+//
+// That closes both failure modes the flat authored `experience` had: a
+// low-level tagalong at an endgame kill (bounded to +20% of their own at-level
+// pay, D1) and endgame gray farming (a linear taper to exactly zero, D2).
+//
+// The base is EXPONENTIAL rather than WoW's linear L×5+45 because the
+// level-up requirement is exponential (levelUpXPBase × levelUpXPGrowthFactor^
+// (L-1)); Growth == levelUpXPGrowthFactor is the property that makes
+// kills-per-level flat across the whole span (§3.1). Setting Growth a notch
+// lower is the one knob that slows the late game — a C2 calibration question,
+// not a structural one.
+//
+// Every value is [PLACEHOLDER] until C2's calibration pass says otherwise.
+//
+// ⚑ It lives here, beside Curve, for the reason sim.Curve aliases curve.Curve:
+// the sim harness consumes this type (sim.XPModel.KillXP), so the tool that
+// calibrates the economy is structurally incapable of modelling a different
+// one than the game pays.
+type KillXP struct {
+	// Base is what an at-level normal kill pays a level-1 player, and Growth
+	// inflates it per recipient level.
+	Base   float64 `json:"base"`
+	Growth float64 `json:"growth"`
+
+	// UpBonus is the per-level bonus for killing ABOVE your level and UpCap
+	// how many levels of it count (WoW's +5%/level, capped). The cap is what
+	// bounds pull-through: past it, an endgame boss pays a level-3 exactly the
+	// same as a mob UpCap levels above them.
+	UpBonus float64 `json:"upBonusPerLevel"`
+	UpCap   int     `json:"upBonusCapLevels"`
+
+	// GrayBase and GrayStep define the gray distance ZD(P) = GrayBase +
+	// P/GrayStep: how far below you a mob must be to pay nothing. It widens
+	// with level so a high-level player keeps earning across a wider band than
+	// a new one — the same shape WoW uses.
+	GrayBase int `json:"grayBase"`
+	GrayStep int `json:"grayStep"`
+
+	// TierElite and TierBoss multiply the award for the two marked tiers.
+	// Normal has no knob BY DESIGN: base(P) IS the at-level normal kill, so a
+	// normal multiplier would be a second name for Base.
+	TierElite float64 `json:"tierElite"`
+	TierBoss  float64 `json:"tierBoss"`
+}
+
+// DefaultKillXP is the built-in economy — THE source of truth for the numbers,
+// which conf.json restates and the sim harness's flag defaults read (the
+// defaultMobHealthGainTick precedent). An absent conf block resolves back to
+// here rather than to Go zero values, which is what keeps a deployment that
+// predates the block (the live server, §35/L5) paying a working economy
+// instead of nothing.
+//
+// Base 40 × Growth 1.2 is the sim harness's long-standing XPModel default:
+// ~7.5 normal kills per level, flat across all 30 levels. [PLACEHOLDER]
+func DefaultKillXP() KillXP {
+	return KillXP{
+		Base:      40,
+		Growth:    1.2,
+		UpBonus:   0.05,
+		UpCap:     4,
+		GrayBase:  5,
+		GrayStep:  6,
+		TierElite: 2,
+		TierBoss:  5,
+	}
+}
+
+// Configured reports whether this economy can pay anything at all. A zero value
+// cannot, and says so here rather than paying a floored 1 XP per kill.
+func (k KillXP) Configured() bool { return k.Base > 0 && k.Growth > 0 }
+
+// Normalized falls every non-positive field back to the default for THAT
+// field, so a partially-authored conf block is completed rather than taken
+// literally.
+//
+// ⚑ This is the whole-block guard's blind spot, and it is L2's shape at the
+// conf seam. A calibration pass writing only `{"base": 60, "growth": 1.15}` —
+// exactly what C2 invites — passes Configured() and would otherwise install
+// GrayStep 0 (⇒ gray distance 0, so EVERY mob below your level pays nothing),
+// UpBonus 0 (no up-bonus ever) and TierElite/TierBoss 0 (⇒ every elite and
+// boss in the game pays NOTHING, via Award's tierMultiplier guard). All of it
+// silent, and the two fields that were set are the two the boot log prints.
+//
+// A zero here can only ever mean "unauthored": a genuinely free tier is
+// expressed on the species with xpFactor 0, not by zeroing the whole tier.
+func (k KillXP) Normalized() KillXP {
+	d := DefaultKillXP()
+	if k.Base <= 0 {
+		k.Base = d.Base
+	}
+	if k.Growth <= 0 {
+		k.Growth = d.Growth
+	}
+	if k.UpBonus <= 0 {
+		k.UpBonus = d.UpBonus
+	}
+	if k.UpCap <= 0 {
+		k.UpCap = d.UpCap
+	}
+	if k.GrayBase <= 0 {
+		k.GrayBase = d.GrayBase
+	}
+	if k.GrayStep <= 0 {
+		k.GrayStep = d.GrayStep
+	}
+	if k.TierElite <= 0 {
+		k.TierElite = d.TierElite
+	}
+	if k.TierBoss <= 0 {
+		k.TierBoss = d.TierBoss
+	}
+	return k
+}
+
+// BaseAt is what an at-level normal kill pays a player at this level; levels
+// below 1 clamp to the baseline, matching Curve.F.
+func (k KillXP) BaseAt(level int) float64 {
+	if !k.Configured() {
+		return 0
+	}
+	if level < 1 {
+		level = 1
+	}
+	return k.Base * math.Pow(k.Growth, float64(level-1))
+}
+
+// GrayDistance is ZD(P) — how many levels below the recipient a mob has to be
+// before it pays nothing.
+func (k KillXP) GrayDistance(level int) int {
+	if level < 1 {
+		level = 1
+	}
+	step := k.GrayStep
+	if step < 1 {
+		return k.GrayBase
+	}
+	return k.GrayBase + level/step
+}
+
+// Modifier is mod(Δ): a bounded bonus for killing above your level, a linear
+// taper to exactly zero for killing below it (D2 — not a token floor, not a
+// cliff at full value).
+func (k KillXP) Modifier(recipientLevel, mobLevel int) float64 {
+	if recipientLevel < 1 {
+		recipientLevel = 1
+	}
+	if mobLevel < 1 {
+		mobLevel = 1
+	}
+	delta := mobLevel - recipientLevel
+
+	if delta >= 0 {
+		counted := delta
+		if k.UpCap >= 0 && counted > k.UpCap {
+			counted = k.UpCap
+		}
+		return 1 + k.UpBonus*float64(counted)
+	}
+
+	gray := k.GrayDistance(recipientLevel)
+	if gray < 1 {
+		return 0
+	}
+	mod := 1 + float64(delta)/float64(gray)
+	if mod < 0 {
+		return 0
+	}
+	return mod
+}
+
+// Award is what this kill pays one participant, rounded to whole XP.
+//
+// ⚑ The min-1 floor is gated on the award being MEANT to be non-zero — an
+// authored xpFactor 0 (every NPC, structure, totem and summon) pays zero, and
+// so does a gray kill. Between those, a positive-but-tiny product floors at 1
+// rather than rounding to nothing, or "almost gray" reads as gray and the
+// taper's shape lies (L4).
+func (k KillXP) Award(recipientLevel, mobLevel int, tierMultiplier, xpFactor float64) uint64 {
+	if !k.Configured() || tierMultiplier <= 0 || xpFactor <= 0 {
+		return 0
+	}
+	mod := k.Modifier(recipientLevel, mobLevel)
+	if mod <= 0 {
+		return 0
+	}
+	award := math.Round(k.BaseAt(recipientLevel) * mod * tierMultiplier * xpFactor)
+	if award < 1 {
+		return 1
+	}
+	return uint64(award)
+}

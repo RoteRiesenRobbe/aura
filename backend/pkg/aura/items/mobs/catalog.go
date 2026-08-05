@@ -60,7 +60,10 @@ func CatalogJSON(r Registry) ([]byte, error) {
 			DisplayName:  skills.DeriveDisplayName(d.Name),
 			CurveLevel:   d.CurveLevel,
 			Tier:         d.Rank(),
-			CombatTarget: d.Factors.Experience > 0 && !d.FriendlyToPlayers,
+			// Re-derived from xpFactor when the formula replaced the absolute
+			// experience value (plan-xp-formula.md L1): "pays kill XP at all"
+			// is still the test for "is prey", it is just spelled differently.
+			CombatTarget: d.Factors.XPFactor > 0 && !d.FriendlyToPlayers,
 		})
 	}
 	return json.Marshal(entries)

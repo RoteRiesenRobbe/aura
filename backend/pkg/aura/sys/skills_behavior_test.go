@@ -45,6 +45,13 @@ type touchRecorder struct {
 	hitStyles  []model.AuraHitStyle
 }
 
+// atLevelNormalAward is what a level-1 participant earns from a level-1 normal
+// mob authoring xpFactor 1 — derived from the shared economy rather than
+// transcribed, because every constant in it is [PLACEHOLDER] until C2
+// (plan-xp-formula.md). It replaced the flat authored 42 these tests used to
+// assert: the award is a function of the KILLER's level now, not the mob's.
+var atLevelNormalAward = curve.DefaultKillXP().Award(1, 1, 1, 1)
+
 func (r *touchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {}
 func (r *touchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	r.touches = append(r.touches, damage.HP)
@@ -2791,7 +2798,7 @@ func TestTotemAuraDamage_CreditsOwnerXPAndKillRewards(t *testing.T) {
 	totem := newTestTotem(owner)
 
 	targetDef := testMobDef()
-	targetDef.Factors.Experience = 42
+	targetDef.Factors.XPFactor = 1
 	target := mob.NewMob(targetDef, 0, nil)
 
 	effect := damageEffect(1)
@@ -2800,7 +2807,7 @@ func TestTotemAuraDamage_CreditsOwnerXPAndKillRewards(t *testing.T) {
 	applyDamageAura(totem, 1, effect, colliderSetOf(target), testRNG())
 
 	assert.Equal(t, vitals.VitalSign(0), target.Health(), "the totem's hit lands")
-	assert.Equal(t, []uint64{42}, owner.xp,
+	assert.Equal(t, []uint64{atLevelNormalAward}, owner.xp,
 		"kill XP rides PlayerTouches(owner) — the full player reward path")
 	assert.Equal(t, target.MaxHealth(), target.DamageTaken(), "floating damage number recorded")
 }
@@ -4414,7 +4421,7 @@ func TestCharmedMobAuraDamage_CreditsTheCharmerNotItself(t *testing.T) {
 	wolf.Charm(charmer, 63, 1800)
 
 	targetDef := testMobDef()
-	targetDef.Factors.Experience = 42
+	targetDef.Factors.XPFactor = 1
 	target := mob.NewMob(targetDef, 0, nil)
 
 	effect := damageEffect(1)
@@ -4423,7 +4430,7 @@ func TestCharmedMobAuraDamage_CreditsTheCharmerNotItself(t *testing.T) {
 	applyDamageAura(wolf, 1, effect, colliderSetOf(target), testRNG())
 
 	assert.Equal(t, vitals.VitalSign(0), target.Health(), "the pet's hit lands")
-	assert.Equal(t, []uint64{42}, charmer.xp, "kill XP rides PlayerTouches(charmer)")
+	assert.Equal(t, []uint64{atLevelNormalAward}, charmer.xp, "kill XP rides PlayerTouches(charmer)")
 	assert.Nil(t, wolf.Owner(), "…and it is still nobody's summon")
 }
 
@@ -4744,7 +4751,7 @@ func presenceMobDef() *mobs.MobDefinition {
 	return &mobs.MobDefinition{
 		ID: 7, Name: "Boar",
 		Body:    mobs.Body{Radius: 0.3, AggroRadius: 2.0},
-		Factors: mobs.Factors{BaseMaxHealth: 100, Experience: 42},
+		Factors: mobs.Factors{BaseMaxHealth: 100, XPFactor: 1},
 	}
 }
 
@@ -4787,8 +4794,8 @@ func TestPresenceScan_BystanderInsideRadiusEarnsKillXP(t *testing.T) {
 	s.Update(33.0)
 	m.PlayerTouches(fighter, model.Damage{HP: 1000}) // kill
 
-	assert.Equal(t, []uint64{42}, bystander.xp, "the scan must register the bystander as a participant")
-	assert.Equal(t, []uint64{42}, fighter.xp)
+	assert.Equal(t, []uint64{atLevelNormalAward}, bystander.xp, "the scan must register the bystander as a participant")
+	assert.Equal(t, []uint64{atLevelNormalAward}, fighter.xp)
 }
 
 // Aura off (no active slot) → the scan skips the player entirely: presence
@@ -4803,7 +4810,7 @@ func TestPresenceScan_AuraOff_NoCredit(t *testing.T) {
 	m.PlayerTouches(fighter, model.Damage{HP: 1000})
 
 	assert.Empty(t, bystander.xp, "no active aura → no presence credit")
-	assert.Equal(t, []uint64{42}, fighter.xp)
+	assert.Equal(t, []uint64{atLevelNormalAward}, fighter.xp)
 }
 
 // Beyond presenceRadius + the mob's body radius → no credit. The default
@@ -4855,7 +4862,7 @@ func TestPresenceScan_SensorBlindHarvestMob_StillCredits(t *testing.T) {
 	s.Update(33.0)
 	m.PlayerTouches(harvester, model.Damage{HP: 1000})
 
-	assert.Equal(t, []uint64{42}, bystander.xp,
+	assert.Equal(t, []uint64{atLevelNormalAward}, bystander.xp,
 		"presence is a player-side probe — a sensor-blind mob still credits the bystander")
 }
 

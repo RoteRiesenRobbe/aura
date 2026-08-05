@@ -1,5 +1,5 @@
 {
-  "_comment": "Z2 front-line soldier (content pass C5, plan-content-zones12.md §4): the Human Army's rank and file — friendly to players (§9 lift 6 rides the human_army faction), fights the orc line for the war ambience. experience 0 (locked PO ruling: no XP-via-army faucet); numerous with a fast respawn so the front never falls silent. curveLevel 18 = the front band, re-anchored to the PO's L20 journey-end ruling (Vanguard anchor) — one band below the orcs so the line visibly bleeds. Speed under the 0.7 PO ceiling. All values [PLACEHOLDER]",
+  "_comment": "Z2 front-line soldier (content pass C5, plan-content-zones12.md §4): the Human Army's rank and file — friendly to players (§9 lift 6 rides the human_army faction), fights the orc line for the war ambience. xpFactor 0 (locked PO ruling: no XP-via-army faucet); numerous with a fast respawn so the front never falls silent. curveLevel 18 = the front band, re-anchored to the PO's L20 journey-end ruling (Vanguard anchor) — one band below the orcs so the line visibly bleeds. Speed under the 0.7 PO ceiling. All values [PLACEHOLDER]",
   "id": 32,
   "name": "ArmySoldier",
   "type": "MOB",
@@ -9,7 +9,7 @@
   "factors": {
     "baseMaxHealth": 65,
     "maxHealthVariance": 0.1,
-    "experience": 0,
+    "xpFactor": 0,
     "speed": 0.6,
     "deltaPhi": 0.1,
     "turnRate": 0.1,

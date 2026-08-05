@@ -170,7 +170,7 @@ func NewWorld(sc Scenario, seed int64) *World {
 				BaseMaxHealth:        uint32(mobHPs[i]),
 				Speed:                sc.Mob.Speed,
 				FleeBelowHealthRatio: sc.Mob.FleeBelowHealthRatio,
-				Experience:           0, // no XP: the player must not level mid-measurement
+				XPFactor:             0, // no XP: the player must not level mid-measurement
 			},
 			Body:   mobs.Body{Radius: sc.Mob.BodyRadius, AggroRadius: sc.Mob.AggroRadius},
 			Skills: []mobs.MobSkill{{Def: sc.Mob.Aura.definition(skills.SkillID(2+i), "SimMobAura"), Level: 1}},

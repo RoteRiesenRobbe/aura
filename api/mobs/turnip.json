@@ -9,7 +9,7 @@
   "factors": {
     "baseMaxHealth": 20,
     "maxHealthVariance": 0.1,
-    "experience": 1,
+    "xpFactor": 0.05,
     "speed": 0,
     "resistances": { "*": 0 },
     "gateKeys": ["harvest"]

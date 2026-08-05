@@ -8,7 +8,6 @@
   "curveLevel": 1,
   "factors": {
     "baseMaxHealth": 400,
-    "experience": 1000,
     "speed": 0.1,
     "deltaPhi": 0.05,
     "turnRate": 0.008

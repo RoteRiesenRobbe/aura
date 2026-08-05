@@ -43,12 +43,16 @@ func (x XPModel) XPToNext(level int) float64 {
 	return math.Round(required)
 }
 
-// KillXP is the modeled XP for killing one same-tier mob at a tier.
+// KillXP is the modeled XP for killing one at-level normal mob at a tier.
+//
+// Since plan-xp-formula.md C1 this is the LIVE formula's base(P), not a model
+// of authored content: the game computes kill XP per participant from
+// curve.KillXP, and this delegates to it so the calibration battery cannot
+// model an economy the server does not pay. The two knobs stay XPModel's own
+// JSON fields — the -serve API and the preset files are keyed on them — and
+// the harness flag defaults read curve.DefaultKillXP().
 func (x XPModel) KillXP(tier int) float64 {
-	if tier < 1 {
-		tier = 1
-	}
-	return x.KillBase * math.Pow(x.KillGrowth, float64(tier-1))
+	return curve.KillXP{Base: x.KillBase, Growth: x.KillGrowth}.BaseAt(tier)
 }
 
 // KillsPerLevel is how many same-tier kills advance one level.

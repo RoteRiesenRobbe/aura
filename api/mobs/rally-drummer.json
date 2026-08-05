@@ -9,7 +9,6 @@
   "factors": {
     "baseMaxHealth": 96,
     "maxHealthVariance": 0.1,
-    "experience": 42,
     "speed": 0.45,
     "deltaPhi": 0.1,
     "turnRate": 0.1,

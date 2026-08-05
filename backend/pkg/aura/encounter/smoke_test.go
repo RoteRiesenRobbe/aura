@@ -22,6 +22,7 @@ type fakePlayer struct {
 	name   string
 	pos    phy.Vec2f
 	ledger *quests.Ledger
+	level  uint32
 }
 
 func (f *fakePlayer) Basic() ecs.BasicEntity              { return f.basic }
@@ -33,6 +34,18 @@ func (f *fakePlayer) Faction() model.Faction              { return model.Faction
 func (f *fakePlayer) HealthRatio() float32                { return 1 }
 func (f *fakePlayer) InCombat() bool                      { return false }
 func (f *fakePlayer) AddExperience(xp uint64)             {}
+
+// Progression ANSWERS rather than panics: since plan-xp-formula.md C1 the kill
+// award is priced at the recipient's level, so every death in the encounter
+// path reads this. A double that panicked here would report a nil dereference
+// inside the reward fan-out instead of "this test needs a level".
+func (f *fakePlayer) Progression() model.PlayerProgression {
+	level := f.level
+	if level < 1 {
+		level = 1
+	}
+	return model.PlayerProgression{Level: level}
+}
 func (f *fakePlayer) RecentHealers() []model.PlayerEntity { return nil }
 func (f *fakePlayer) QuestLedger() *quests.Ledger         { return f.ledger }
 
@@ -59,7 +72,7 @@ func smokeDef(id mobs.MobID, name, entityType string, maxHealth uint32, radius f
 		Name:       name,
 		EntityType: entityType,
 		Body:       mobs.Body{Radius: radius, AggroRadius: 5},
-		Factors:    mobs.Factors{BaseMaxHealth: maxHealth, Speed: 1.0, Experience: 10},
+		Factors:    mobs.Factors{BaseMaxHealth: maxHealth, Speed: 1.0, XPFactor: 1},
 		Skills:     []mobs.MobSkill{{Def: smokeAuraSkill(), Level: 1}},
 	}
 }

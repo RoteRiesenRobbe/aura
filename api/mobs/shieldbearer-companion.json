@@ -8,7 +8,7 @@
   "curveLevel": 1,
   "factors": {
     "baseMaxHealth": 90,
-    "experience": 0,
+    "xpFactor": 0,
     "speed": 1.2
   },
   "body": {

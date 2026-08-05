@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
 )
@@ -76,8 +77,12 @@ func main() {
 	maxLevels := flag.String("max-levels", "20,25,30,35", "triple-table max-level candidates (comma-separated)")
 	xpBase := flag.Float64("xp-base", 300, "XP required level 1→2 (mirrors conf levelUpXPBase)")
 	xpGrowth := flag.Float64("xp-growth", 1.2, "level-up XP growth per level (mirrors conf levelUpXPGrowthFactor)")
-	xpKill := flag.Float64("xp-kill", 40, "XP per same-tier kill at tier 1")
-	xpKillGrowth := flag.Float64("xp-kill-growth", 1.2, "kill-XP growth per tier (= xp-growth → flat kills-per-level)")
+	// The kill-XP defaults are the LIVE economy's (curve.DefaultKillXP), not a
+	// restatement: since plan-xp-formula.md C1 the game computes kill XP from
+	// the same type, so calibrating here calibrates what ships.
+	killXP := curve.DefaultKillXP()
+	xpKill := flag.Float64("xp-kill", killXP.Base, "XP per at-level normal kill at level 1 (mirrors conf killXP.base)")
+	xpKillGrowth := flag.Float64("xp-kill-growth", killXP.Growth, "kill-XP growth per level (= xp-growth → flat kills-per-level)")
 
 	// Matrix battery (chunk 3): -matrix sweeps player MaxTargets builds ×
 	// pack size instead of the single 1v1; the player/mob flags below are the

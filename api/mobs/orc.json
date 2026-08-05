@@ -1,5 +1,5 @@
 {
-  "_comment": "Z2 front orc (content pass C5, plan-content-zones12.md §4): very strong and tanky, hostile to players AND the Human Army. experience 200 (PO balancing pass 2026-07-21 — supersedes the earlier XP-15 'wall, not grind spot' ruling; the front now pays like real content). curveLevel 20 = the Vanguard anchor (PO 2026-07-18: the front is the journey's final step) — at-level content exactly when the Front NPC starts teaching. Elite baseline ≈4x+ normal (elite-bandit precedent, 'tanky' tops it). Slow lumber. All values [PLACEHOLDER]",
+  "_comment": "Z2 front orc (content pass C5, plan-content-zones12.md §4): very strong and tanky, hostile to players AND the Human Army. experience 200 (PO balancing pass 2026-07-21 — supersedes the earlier XP-15 'wall, not grind spot' ruling; the front now pays like real content) — RETIRED: kill XP is no longer authored as an absolute value (plan-xp-formula.md C1): the award is computed from the KILLER's level, so what is left here is factors.xpFactor, a relative weight defaulting to 1 = a full at-level kill for its tier. curveLevel 20 = the Vanguard anchor (PO 2026-07-18: the front is the journey's final step) — at-level content exactly when the Front NPC starts teaching. Elite baseline ≈4x+ normal (elite-bandit precedent, 'tanky' tops it). Slow lumber. All values [PLACEHOLDER]",
   "id": 33,
   "name": "Orc",
   "type": "MOB",
@@ -9,7 +9,6 @@
   "factors": {
     "baseMaxHealth": 420,
     "maxHealthVariance": 0.1,
-    "experience": 300,
     "speed": 0.5,
     "deltaPhi": 0.1,
     "turnRate": 0.1,

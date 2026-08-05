@@ -55,6 +55,18 @@ type Config struct {
 			MaxLevel              int     `json:"maxLevel"`
 			LevelUpXPBase         uint32  `json:"levelUpXPBase"`
 			LevelUpXPGrowthFactor float32 `json:"levelUpXPGrowthFactor"`
+
+			// KillXP prices one mob death for one participant, anchored to
+			// THAT participant's level (plan-xp-formula.md). It sits in the
+			// player block beside the level-up requirement it is calibrated
+			// against — killXP.growth == levelUpXPGrowthFactor is what makes
+			// kills-per-level flat across the span.
+			//
+			// ⚑ An absent block is not an absent economy: curve.DefaultKillXP
+			// is the source of truth and mob.SetKillXP normalizes back to it,
+			// so a conf predating this (the live server's, §35) keeps paying.
+			// [PLACEHOLDER — C2 calibrates]
+			KillXP curve.KillXP `json:"killXP"`
 			SkillPointsPerLevel   int     `json:"skillPointsPerLevel"`
 			// CritChance is the flat base crit chance every player character
 			// has (§4.3 v2, PO 2026-07-20) [PLACEHOLDER 0.05]; skill-authored

@@ -9,7 +9,7 @@
   "curveLevel": 20,
   "factors": {
     "baseMaxHealth": 160,
-    "experience": 0,
+    "xpFactor": 0,
     "speed": 0
   },
   "body": {

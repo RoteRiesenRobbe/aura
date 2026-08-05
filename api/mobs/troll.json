@@ -10,7 +10,6 @@
     "resistances": {"fire": 1.5, "bleed": 0.5},
     "baseMaxHealth": 182,
     "maxHealthVariance": 0.1,
-    "experience": 587,
     "speed": 0.45,
     "deltaPhi": 0.1,
     "turnRate": 0.1,

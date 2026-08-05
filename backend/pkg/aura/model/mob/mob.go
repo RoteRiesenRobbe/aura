@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"sort"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
@@ -71,6 +72,30 @@ func SetHealthGainTick(fractionPerTick float32) {
 // HealthGainTick is the effective regen rate after normalization — the value a
 // boot log should report, since a missing conf entry resolves to the default.
 func HealthGainTick() float32 { return healthGainTick }
+
+// killXP is the kill-XP economy every mob death is priced by
+// (plan-xp-formula.md). Set once at boot via SetKillXP, exactly like
+// healthGainTick above; left at the shared default in tests and the sim
+// harness, so a package that never configures it still pays a working economy
+// rather than nothing.
+var killXP = curve.DefaultKillXP()
+
+// SetKillXP installs the configured kill-XP economy. Call once at server boot;
+// not safe to mutate concurrently with live kills. An absent conf block —
+// including the live server's, which predates it (L5) — restores the built-in
+// default rather than zeroing every award: the whole class of bug this plan
+// guards against is a silent no-pay, so the single write point normalizes and
+// no read site has to re-check.
+//
+// ⚑ FIELD BY FIELD, not all-or-nothing: a block authoring only base+growth
+// (what a calibration pass writes) would otherwise install a zero gray step
+// and zero tier weights, and every elite in the game would pay nothing while
+// the boot log printed the two healthy-looking fields. See curve.Normalized.
+func SetKillXP(k curve.KillXP) { killXP = k.Normalized() }
+
+// KillXPConfig is the effective economy after normalization — the value a boot
+// log should report, since a missing conf block resolves to the default.
+func KillXPConfig() curve.KillXP { return killXP }
 
 // defaultMobWalkingSpeedPerTick is the built-in base movement step in world
 // units per tick, multiplied by the mob's factors.speed to give its velocity.
@@ -1967,8 +1992,13 @@ func (m *Mob) forEachCredited(visit func(model.PlayerEntity)) {
 // player-credited summon/charm damage via CreditTo, both of which land in
 // PlayerTouches). An NPC-vs-NPC fight has participants empty, so standing at
 // the army-vs-orc skirmish earns nothing. From here the bystander is an
-// ordinary participant (P3): same rewardPlayer fan-out — full XP, kill-unlock
-// rolls, the C6 kill-broadcast name — and the same clear-on-full-regen.
+// ordinary participant (P3): same rewardPlayer fan-out — kill-unlock rolls,
+// the C6 kill-broadcast name — and the same clear-on-full-regen.
+//
+// ⚑ The bystander used to receive the mob's FULL authored XP for standing near
+// a fight, which is half of what plan-xp-formula.md closes: they are now priced
+// by their own level like every other participant, so tagging along at an
+// endgame kill pays a bounded multiple of their own at-level kill.
 func (m *Mob) NotePresence(p model.PlayerEntity) {
 	if !m.InCombat() || len(m.participants) == 0 {
 		return
@@ -1986,22 +2016,48 @@ func (m *Mob) noteParticipant(p model.PlayerEntity) {
 
 // tryGrantKillRewards distributes the death rewards once (roadmap item 10):
 // every combat participant — damage contributors plus their recent healers —
-// receives the full XP amount; drops go to the last toucher only (the item
-// system is scheduled for removal, so no investment there).
+// receives a full award, computed at their OWN level (there is still no split
+// and no group size penalty; what varies is the price, not the share); drops
+// go to the last toucher only (the item system is scheduled for removal, so no
+// investment there).
 func (m *Mob) tryGrantKillRewards() {
 	if m.health > 0 || m.deathRewardGiven {
 		return
 	}
 	m.deathRewardGiven = true
 
-	xp := uint64(m.definition.Factors.Experience)
-	m.forEachCredited(func(p model.PlayerEntity) { m.rewardPlayer(p, xp) })
+	// ⚑ Priced PER PARTICIPANT, not once for the kill (plan-xp-formula.md D1):
+	// the award is anchored to each recipient's own level, so two players of
+	// different levels credited on the same corpse receive different amounts.
+	// That is the whole mechanism — it is what bounds a carried low-level
+	// player's pay and what makes a high-level player's gray farming worthless.
+	m.forEachCredited(func(p model.PlayerEntity) { m.rewardPlayer(p, m.killXPFor(p)) })
 }
 
-// rewardPlayer grants one participant their death rewards: the full XP amount
-// plus an independent roll on every declared kill unlock (Phase 6.2, unlock
-// source #2). Discovery is idempotent; the client-side spellbook diff turns a
-// fresh unlock into the glow animation with no extra wire event.
+// killXPFor is what this mob's death pays one participant. Both level operands
+// are read LIVE: the recipient's current level, and Level() — which is the
+// mob's authored curve position, or its OWNER's level for a summon, so a
+// player-owned companion's kills price by the owner unprompted (§3.3).
+func (m *Mob) killXPFor(p model.PlayerEntity) uint64 {
+	return killXP.Award(
+		int(p.Progression().Level),
+		m.Level(),
+		m.definition.KillXPTierMultiplier(killXP),
+		float64(m.definition.Factors.XPFactor),
+	)
+}
+
+// rewardPlayer grants one participant their death rewards: their computed XP
+// award plus an independent roll on every declared kill unlock (Phase 6.2,
+// unlock source #2). Discovery is idempotent; the client-side spellbook diff
+// turns a fresh unlock into the glow animation with no extra wire event.
+//
+// ⚑ EVERYTHING below the XP line is participation-based and must stay so
+// (plan-xp-formula.md L3): a gray kill worth 0 XP still takes quest credit,
+// still consumes and can win the unlock roll, still cascades recipes. An
+// `if xp == 0 { return }` early-out is the natural wrong fix — it would make
+// an endgame player unable to finish a low-level quest or farm a low-level
+// skill drop, and it would shift the per-mob RNG stream by skipping rolls.
 func (m *Mob) rewardPlayer(p model.PlayerEntity, xp uint64) {
 	p.AddExperience(xp)
 	// Quest credit rides the same fan-out as XP credit (plan-quests.md D4) and
