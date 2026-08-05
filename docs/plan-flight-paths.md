@@ -3,11 +3,15 @@
 **Status:** DESIGNED 2026-08-04; C2's mechanism surveyed and decided 2026-08-05
 (D13–D15). **C1 is DONE** — shipped inside `plan-world-map.md` C2 (2026-08-04),
 because the PO ruled discovered fires must persist per character while that
-chunk was being built and C1 *was* that work. **C2 (the server state machine) and
-C3 (the client experience) are both BUILT AND HEADLESS-VERIFIED 2026-08-05**
-(§10 ledgers). C3 is the first time flight ran outside a Go test at all, and it
-**owes the PO feel pass** — speed 4× and viewport scale 2.5× are [PLACEHOLDER]
-and only judgeable in the air. **C4–C5 not started.**
+chunk was being built and C1 *was* that work. **C2 (`bc01a45c`) and C3
+(`bcfb4faf`) are both DONE 2026-08-05, C3 PO-VERIFIED IN-GAME the same day**
+(§10 ledgers) — flight is playable end to end. **C4–C5 not started.**
+
+⚑ **The C3 feel pass reshaped the design, so read §10 C3 "The PO feel pass"
+before §1 or §3.** It moved the trigger to **`E` at the campfire** (an
+`M`-opened map is read-only), retuned **D8's speed to 2.8×** and **D3's
+viewport to 1.2×**, and — by removing the not-at-a-fire case rather than
+reporting it — **shrank C5** to the route overlay plus one open question.
 
 **Depends on:** `plan-world-map.md` (part 1, **complete and archived 2026-08-04** —
 `docs/archive/plan-world-map.md`) — destination selection happens on
@@ -23,11 +27,16 @@ option 1 (campfire teleport network).
 1. A character walks into a campfire's bind radius and dwells 1.7 s. That
    already binds their respawn point and refills Camp charges; it now also
    **discovers** the fire as a flight node.
-2. Standing at any discovered fire, they open the map (part 1) and click another
-   **discovered** fire. Undiscovered fires are not on the map at all (D6).
+2. Standing at any discovered fire, **`E`** (the interact verb, prompted by a
+   badge over the fire) opens the map, and they press another **discovered**
+   fire twice — once to arm, once to confirm. Undiscovered fires are not on the
+   map at all (D6). ⚑ **As built (C3 feel pass), not as designed:** the map
+   opened with `M` is read-only, so this is the *only* route into flight and the
+   "press while not at a fire" case cannot occur.
 3. **Takeoff.** The character lifts off, the camera zooms out, movement input is
    ignored, the active aura goes off and no ability can be used.
-4. **In flight.** They travel in a straight line at ~4× walk speed, seeing mobs
+4. **In flight.** They travel in a straight line at ~2.8× walk speed (4× as
+   designed; retuned in the C3 feel pass), seeing mobs
    and players below them. Ground players **cannot see them**. Mobs cannot
    aggro, target, or damage them; they cannot damage anything.
 5. **Landing** at the destination fire. Camera returns, control returns, the aura
@@ -94,13 +103,16 @@ as a brake** — that is a real finding, not an omission.
   content authoring, no editor work, and every campfire ever placed joins the
   network for free. Auras and LoS don't exist, so flying over unseen terrain
   breaks nothing.
-- **D3 — The flyer's server viewport grows to ~2.5×** (≈50 × 30 m) for the
-  duration. *Why:* the zoom-out is the point, and client zoom is capped by the
+- **D3 — The flyer's server viewport grows** for the duration. ⚑ **Shipped at
+  2.5×, retuned to 1.2× in the C3 feel pass** (twice, both "still too far
+  out") — which spends this decision's perf rationale: streamed area is now
+  ~1.4× the ground viewport, not ~6.25×. *Why:* the zoom-out is the point, and client zoom is capped by the
   server AOI (§4.3). Bounded, temporary, one player at a time.
 - **D4 — Only fires the character has dwelled at.** Discovery = the existing
   bind. *Why:* no new interaction, and the map turns exploration into a visible
   reward.
-- **D8 — Time is the only cost; flight speed ≈ 4× walk.** Free, no cooldown, no
+- **D8 — Time is the only cost; flight speed ≈ 4× walk** (⚑ **retuned to 2.8×**
+  in the C3 feel pass — the first in-air judgement; 4× read as too fast). Free, no cooldown, no
   resource. *Why:* it matches the baseline-utility philosophy already ruled for
   Recall and Camp (D7 of `plan-downtime.md`: the cast window is the entire
   brake). Here the flight itself is the brake.
@@ -499,7 +511,7 @@ the client zoom cap moving with the AOI (landmine 3) · the roster filter
 ### C3 — the client flight experience
 
 **C3 DONE (2026-08-05), the client flight experience — PO-VERIFIED IN-GAME
-2026-08-05, committed `[uncommitted]`.** Built and headless-verified first (the
+2026-08-05, committed `bcfb4faf`.** Built and headless-verified first (the
 first time flight ran outside a Go test), then reshaped by the PO feel pass the
 same day — see **"The PO feel pass"** at the end of this ledger, which is where
 the trigger, both tuning knobs and the render order actually landed.
