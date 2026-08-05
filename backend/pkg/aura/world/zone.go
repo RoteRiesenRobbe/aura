@@ -62,6 +62,12 @@ type Waypoint struct {
 // > 0 overrides the radius. Explicit radius > 0 plus waypoints is an
 // authoring error. IdleSpeedFactor overrides the type's idle pace for this
 // spawn (nil = inherit; valid (0, 1]).
+//
+// Level is the ABSOLUTE per-spawn level (plan-mob-levels.md C1, D1): the mob
+// placed here stands at it, so HP, damage and kill XP all follow — all three
+// already derive live from Mob.Level(). nil = inherit the species curveLevel,
+// which is today's behaviour byte-for-byte. Deliberately absolute rather than
+// an offset: a species rebalance must not move placements.
 type Spawn struct {
 	Mob                string     `json:"mob"`
 	X                  float32    `json:"x"`
@@ -71,6 +77,7 @@ type Spawn struct {
 	RespawnVariancePct float32    `json:"respawnVariancePct"`
 	WanderRadius       *float32   `json:"wanderRadius"`
 	IdleSpeedFactor    *float32   `json:"idleSpeedFactor"`
+	Level              *int       `json:"level"`
 	Waypoints          []Waypoint `json:"waypoints"`
 	PatrolMode         string     `json:"patrolMode"`
 
@@ -284,6 +291,16 @@ func (z *Zone) validate() error {
 		}
 		if f := s.IdleSpeedFactor; f != nil && (*f <= 0 || *f > 1) {
 			return fmt.Errorf("spawn %d: idleSpeedFactor %g must be in (0, 1]", i, *f)
+		}
+		// Mirrors the species check (mobs/definitions.go: "curveLevel %d must
+		// be >= 1"); no upper bound there or here — the player caps at 30 in
+		// conf, but a >30 mob is a legitimate "unkillable for now" authoring
+		// tool (§8.1).
+		//
+		// ⚑ Rejecting 0 is not cosmetic: Mob.spawnLevel encodes "no override"
+		// as 0, which is only safe because 0 can never be authored.
+		if l := s.Level; l != nil && *l < 1 {
+			return fmt.Errorf("spawn %d: level %d must be >= 1", i, *l)
 		}
 		if len(s.Waypoints) == 1 {
 			return fmt.Errorf("spawn %d: waypoints needs at least 2 points for a route", i)

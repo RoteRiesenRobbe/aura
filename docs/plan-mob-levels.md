@@ -1,7 +1,11 @@
 # Plan: One species, many levels — the per-spawn level override
 
-> **Status: DESIGNED 2026-08-05, no chunk built — ⭐ UNBLOCKED 2026-08-05 and
-> now the SEQUENCING GATE for the sibling plan's C2.**
+> **Status: ⭐ C1 SHIPPED 2026-08-05 (`[uncommitted]`, headless-verified) —
+> C2 + C3 open. Still the SEQUENCING GATE for the sibling plan's C2.**
+> ⚑ **C1 alone must not reach a live zone (L3):** the nameplate and its
+> difficulty tint still read the species catalog, so an overridden mob's plate
+> would lie until **C2** puts the effective level on the wire. Full C1 ledger:
+> **§11**.
 > Ratifies backlog §38 (PO ask 2026-07-29: *"I want to be able to author a
 > single mob in all levels — so be able to spawn the same wolf on level 1 and
 > level 30"*). A spawn point may author a `level`; the mob placed there stands
@@ -115,6 +119,12 @@ Taken as choice prompts in this design session:
   L-B/L-M pin that a charmed mob keeps its own. In practice the two never
   coexist (summons are skill-spawned, not point-spawned), but the order is
   load-bearing the day something makes them meet (L2).
+  ✅ **Verified in C1, and it was worth verifying** — charm targets *world*
+  mobs, which are exactly the point-spawned ones, so "they never coexist"
+  was a real claim and not a truism. Charm binds `charmer`, **deliberately
+  never `owner`** (`mob.go:549-560`), and both `SetOwner` call sites are skill
+  spawns (`sys/skills.go`). A charmed overridden mob keeps the *placement's*
+  level; pinned by `TestMob_SpawnLevel_SurvivesCharm`.
 
 Everything downstream is already live-derived and needs **zero changes**:
 `MaxHealth()`, `PowerScale()`, `casterPowerScale` for skill output, the
@@ -159,8 +169,15 @@ per-spawn levels, every overridden mob's plate and tint would lie.
 ### 3.4 Zone editor + authoring
 
 - `ZoneSpawn` (`ZoneModel.ts`) gains optional `level`; the spawn tool panel
-  gets a number field (blank = inherit). Until that ships the PO can author
-  `level` by hand in the zone JSON — the loader accepts it from C1 on.
+  gets a number field (blank = inherit). ~~Until that ships the PO can author
+  `level` by hand in the zone JSON — the loader accepts it from C1 on.~~
+  ⛔ **FALSE, found in C1 — do not hand-author until C3.** The loader does
+  accept it, but `ZoneModel.toJSON` (`ZoneModel.ts:271-287`) serializes an
+  explicit **field whitelist**, so opening such a zone in the editor and saving
+  it **silently deletes** the override. `fromJSON` spreads and would preserve
+  it; only the serializer drops it — the same whitelist that could drop a
+  hand-authored campfire `id`, which the file already warns about. C3 must add
+  `level` to **both** halves (L7).
 - ⚑ The editor's mob picker suffix `cL<n>` (`_ZoneEditorPanel.ts:201`) shows
   the **species** curve level and keeps doing so — it describes the species
   default, not the placement. The spawn's own field is where the override
@@ -346,3 +363,94 @@ one execution session if it runs clean (they verify at different surfaces).
   them in the UI (or "helpfully" pre-filling the field with the species
   value, which would freeze inheritance into a copy) breaks the
   absent-means-inherit tri-state.
+- **L7 — the editor's serializer is a WHITELIST, and it eats what it does not
+  know** (found in C1, owned by C3). `ZoneModel.toJSON` names every spawn field
+  it writes, so a `level` that only exists in `fromJSON`'s spread survives a
+  load and vanishes on the next save — **silent data loss on a round-trip**,
+  and the reason §3.4's hand-authoring window is closed until C3 adds the field
+  to **both** halves. ⚑ The failure is invisible from the editor: the override
+  works right up until someone opens the zone for an unrelated edit.
+
+## 11. Chunk ledger
+
+### C1 — the override, server-side ✅ `[uncommitted]` 2026-08-05, headless-verified
+
+A spawn point may author `level`, and the mob standing there stands at it —
+pool, damage and (through `plan-xp-formula.md` C1) kill XP all follow. Three
+production files, and **§3's central claim held exactly**: everything
+downstream is already live-derived, so `MaxHealth()`, `PowerScale()`,
+`casterPowerScale` and the XP award needed **zero changes**.
+
+- `world/zone.go` — `Spawn.Level *int` (`"level"`, nil = inherit) +
+  validation `>= 1`, worded to mirror the species check.
+- `model/mob/mob.go` — `spawnLevel` field, `SetSpawnLevel`, and the `Level()`
+  branch: `owner ?? spawnLevel ?? definition.CurveLevel`.
+- `sys/mob.go` — `spawnPoint.level` carried from the loader, and
+  `SetSpawnLevel` + `RestoreToFullHealth` paired in `spawnAt` (L1).
+
+**Schema impact: DB NONE · FlatBuffers NONE · content JSON:** zone files may
+now carry optional `spawn.level`; absent is today's behaviour byte-for-byte.
+⚑ The banner's "FlatBuffers YES" is **C2's** field, not this chunk's — nothing
+here touches the wire.
+
+**No `api/zones/*.json` was edited** (L3): every fixture is inline JSON, so no
+overridden spawn exists in a live zone yet.
+
+**What the plan did not predict:**
+
+- ⚑ **L2's premise was VERIFIED rather than inherited, and it survived.** The
+  plan argued owner and spawnLevel "never coexist (summons are skill-spawned,
+  not point-spawned)" — but charm targets *world* mobs, which are exactly the
+  point-spawned ones, so the claim was worth one grep. Charm binds `charmer`,
+  **deliberately never `owner`** (`mob.go:549-560`), and the only two
+  `SetOwner` call sites are both in `sys/skills.go` (the summon path and the
+  camp utility mob). The precedence is safe, and a charmed overridden mob keeps
+  the *placement's* level — now pinned by its own test. *This is C4's
+  "two channels carry the same fact" lesson applied in the cheap direction:
+  the claim was true, and confirming it cost one grep.*
+- ⚑ **L1 is fully closed, and that was also checked rather than assumed.**
+  `m.health` is the *only* level-derived value stamped at construction —
+  `MaxHealth()`/`PowerScale()` are live reads. `SummonPower` was found
+  half-frozen once before (entity-model R5), which is the same failure shape,
+  so the grep was worth running: nothing else needs a spawn-site repair.
+- ⚑ **The `0` sentinel is now a PINNED PAIR, not a coincidence.**
+  `Mob.spawnLevel == 0` means "no override" *only because* the loader rejects
+  `level: 0`. Both halves are tests, and `Level()` guards on `> 0` (not `!= 0`)
+  so a directly-constructed mob that never met the loader falls through to the
+  species value instead of returning nonsense. *This is the flight-C3 bug class
+  — a sentinel compared against a value that can also be legitimate — headed
+  off at authoring time rather than found later.*
+- ⚑ **The wiring line needed its own end-to-end test, and the first two tests
+  did not provide it.** Both sys tests construct `world.Spawn` directly and
+  never reach `parseZone`, so the JSON→`Spawn.Level`→`spawnPoint`→mob chain was
+  only covered as two disjoint halves that happened to meet at the same field.
+  `TestSpawnPoint_AuthoredZoneLevelReachesTheLiveMob` drives it whole (§9's
+  "survives the round-trip into `spawnPoint`") and was **proven red** by
+  deleting `level: s.Level`. *This is the silent-wiring class CLAUDE.md records
+  as having struck twice; the honest test is the one that starts at the
+  authored text.*
+- ⚑ **Every pin was proven RED before it was allowed to be green** — the fill
+  dropped from `spawnAt` (L1), the precedence swapped (L2), the carry line
+  deleted (the wiring seam). A pin that has never failed is a claim, not a test.
+- ⚑ **A C2 blocker found early: `Level()` is not on `model.MobEntity`.** The
+  sys tests type-assert to `*mob.Mob` to read it, which is fine here — but
+  `codec/mob.go` encodes against the interface, so **exposing `Level()` there is
+  C2's first edit**, not a mid-chunk discovery.
+- ⚑ **§3.4 contains a promise the code cannot keep, and it is C3's to fix.**
+  "Until that ships the PO can author `level` by hand in the zone JSON" is
+  **false through the editor**: `ZoneModel.toJSON` (`ZoneModel.ts:271-287`) is
+  an explicit field whitelist, so opening and saving such a zone silently
+  **deletes** the override — data loss, not cosmetics. `fromJSON` spreads and
+  would preserve it; only the serializer drops it. Harmless today because L3
+  bars overridden spawns from live zones until C2, but C3 must add
+  `ZoneSpawn.level` to **both** halves, and the hand-authoring window should be
+  treated as closed until it does. (The same whitelist is why a hand-authored
+  campfire `id` could be dropped — the file already carries that warning.)
+
+**Verified:** full Go suite **53 packages, 0 FAIL** · `go build ./...` ·
+`go vet ./...` clean · **~11 new Go tests** (the `Level()` precedence table
+including the charm and owner pins, the pool computed both ways, the L1 fill,
+variance-composes-with-override, the loader tri-state + the `level: 0`
+rejection, the respawn carry, and the end-to-end authored-JSON seam) · boot
+`-content ../api`: 15 factions/87 skills/65 mobs/3 milestones/10 recipes/4
+quests/5 props/777 props placed/485 spawns/5 campfires, **0 panics** · **`chunk2-follower` 5/5 + 1 SKIP, 0 console errors, 0 WebGL losses** — the one row in the `verify` coverage map this chunk owns ("owner/**level** plumbing", since `Level()` changed); its SKIP is the script's own documented tri-state, the companion dying at a deliberately hot venue. ⚑ The first attempt timed out in `joinAsNewCharacter` and did **not** reproduce — the account panel was confirmed rendering (384×545, unhidden) on a fresh probe and the re-run was clean; recorded so the next person does not chase it. No other harness re-run, reasoned: no wire, no client, and no zone content changed.

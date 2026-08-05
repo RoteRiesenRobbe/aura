@@ -36,6 +36,12 @@ type spawnPoint struct {
 	patrolLoop      bool
 	idleSpeedFactor *float32
 
+	// level is the authored per-spawn level override (plan-mob-levels.md C1;
+	// nil = inherit the species curveLevel). It is carried on the POINT, not
+	// just applied to the first mob, so a respawn reproduces it instead of
+	// silently falling back to the species value on first death (L5).
+	level *int
+
 	liveMobID uint64 // 0 = none live (respawn pending)
 	respawnAt uint64 // tick to respawn at; only meaningful while liveMobID == 0
 }
@@ -68,6 +74,7 @@ func NewMobSystem(g model.Game, seed int64, spawns []world.Spawn, space *phy.Spa
 			waypoints:       waypoints,
 			patrolLoop:      s.PatrolMode == "loop",
 			idleSpeedFactor: s.IdleSpeedFactor,
+			level:           s.Level,
 		})
 	}
 	return &MobSystem{game: g, rnd: rnd, points: points, space: space}
@@ -167,6 +174,16 @@ func (n *MobSystem) spawnAt(p *spawnPoint) {
 	}
 	if p.idleSpeedFactor != nil {
 		m.SetIdleSpeedFactor(*p.idleSpeedFactor)
+	}
+	if p.level != nil {
+		// The two calls belong together (plan-mob-levels.md L1): NewMob already
+		// filled the pool at the SPECIES level, so the override widens the max
+		// without moving the health — an up-levelled mob would spawn wounded,
+		// and out-of-combat regen would quietly close the gap, making it
+		// reproduce only on a fresh pull. Same trap, same fix, as the summon
+		// path's SetOwner + RestoreToFullHealth pair.
+		m.SetSpawnLevel(*p.level)
+		m.RestoreToFullHealth()
 	}
 	m.SetPosition(pos)
 	m.SetAngle(p.angle)

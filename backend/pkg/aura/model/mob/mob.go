@@ -546,6 +546,16 @@ type Mob struct {
 	ttlTicks            int
 	summonPowerPerLevel float32
 
+	// spawnLevel is the zone spawn point's authored level override
+	// (plan-mob-levels.md C1): this placement's level, beating the species
+	// curveLevel but losing to an owner. 0 = none.
+	//
+	// ⚑ The 0 sentinel is safe ONLY because the zone loader rejects
+	// `level: 0` (world/zone.go validate) — the two are a pinned pair, not a
+	// coincidence. Level() guards on > 0 so a directly-constructed mob that
+	// never went through the loader still falls through to the species value.
+	spawnLevel int
+
 	// charmer is the player this mob currently fights for (plan-faction-flips
 	// chunk 3, D2/D6), nil for everything else. It is deliberately NOT owner:
 	// owner answers "whose level do I stand at", and a charmed mob keeps its
@@ -855,6 +865,16 @@ func (m *Mob) SetTTLTicks(t int) {
 	m.ttlTicks = t
 }
 
+// SetSpawnLevel applies the zone spawn point's authored level (spawn site
+// only; 0 = none). ⚑ The caller owes a RestoreToFullHealth() right after:
+// NewMob fills the pool at construction, at the SPECIES level, so an
+// up-levelled mob otherwise stands with a small pool inside a big max — and
+// out-of-combat regen quietly closes the gap, which makes it reproduce only on
+// a fresh pull (plan-mob-levels.md L1; the summon path has the same trap).
+func (m *Mob) SetSpawnLevel(level int) {
+	m.spawnLevel = level
+}
+
 // SetSummonPowerPerLevel sets the summon skill's authored powerPerOwnerLevel
 // rate (spawn site only). Deliberately the RATE and not the product: the product
 // would freeze the owner's level at spawn.
@@ -900,9 +920,24 @@ func (m *Mob) SummonPower() float32 {
 // and the loader's default for an unauthored curveLevel. The owner reference
 // wins over the authored level outright — no max, no sum: the summon defs are
 // authored at the baseline precisely because the owner supplies the level.
+//
+// Since plan-mob-levels.md C1 a zone spawn point may author its own level, so
+// the precedence is `owner ?? spawnLevel ?? definition.CurveLevel`.
+//
+// ⚑ The override sits AFTER owner, and that order is pinned by two OTHER plans
+// (landmine L2): entity-model chunk 1b makes a summon stand at its owner's
+// level live, and plan-faction-flips L-B/L-M pin that a CHARMED mob keeps its
+// own — charm binds `charmer`, deliberately never `owner`, so charming an
+// overridden mob leaves it at the placement's level. In practice owner and
+// spawnLevel never coexist (an owner is bound only by SKILL spawns — summons
+// and the camp utility mob — which are never point-spawned), but the order is
+// load-bearing the day something makes them meet.
 func (m *Mob) Level() int {
 	if m.owner != nil {
 		return int(m.owner.Progression().Level)
+	}
+	if m.spawnLevel > 0 {
+		return m.spawnLevel
 	}
 	if m.definition.CurveLevel < 1 {
 		return 1

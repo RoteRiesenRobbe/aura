@@ -420,6 +420,42 @@ func TestZone_RejectsInvalidIdleSpeedFactor(t *testing.T) {
 	}
 }
 
+// plan-mob-levels.md C1: an absolute per-spawn level, the same tri-state as
+// wanderRadius/idleSpeedFactor — absent (nil) inherits the species curveLevel.
+func TestZone_ParsesPerSpawnLevel(t *testing.T) {
+	const doc = `{
+		"name": "X", "bounds": { "width": 60, "height": 40 },
+		"spawns": [
+			{ "mob": "Dodo", "x": 1, "y": 1, "level": 15 },
+			{ "mob": "Dodo", "x": 2, "y": 2 }
+		]
+	}`
+
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
+	require.NoError(t, err)
+	require.NotNil(t, z.Spawns[0].Level)
+	assert.Equal(t, 15, *z.Spawns[0].Level, "the placement's own level, not the species'")
+	assert.Nil(t, z.Spawns[1].Level, "absent = inherit the species curveLevel")
+}
+
+// ⚑ The sentinel pair: Mob.spawnLevel uses 0 for "no override", which is only
+// safe BECAUSE the loader rejects level: 0. This test is the other half of that
+// pin — delete it and the zero value silently becomes a legitimate authored
+// value (the flight-C3 sentinel bug class).
+//
+// No upper bound deliberately (§8.1): the species curveLevel has none either,
+// and a >30 mob is a legitimate "unkillable for now" authoring tool.
+func TestZone_RejectsNonPositiveSpawnLevel(t *testing.T) {
+	for _, level := range []string{"0", "-1"} {
+		doc := `{ "name": "X", "bounds": { "width": 60, "height": 40 },
+			"spawns": [ { "mob": "Dodo", "x": 0, "y": 0, "level": ` + level + ` } ] }`
+
+		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
+		require.Error(t, err, "level %s must be rejected", level)
+		assert.Contains(t, err.Error(), "level")
+	}
+}
+
 func TestZone_RejectsBadPatrolMode(t *testing.T) {
 	for _, spawn := range []string{
 		// unknown mode name
