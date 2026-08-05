@@ -4043,6 +4043,14 @@ that would be a tombstone for a decision not yet taken.
 
 ## 38. One species, many levels — a per-SPAWN level override
 
+> ✅ **PLANNED 2026-08-05** — `docs/plan-mob-levels.md` (4 PO rulings: absolute
+> `level` per spawn · XP priced by `plan-xp-formula.md`'s formula, no seam code
+> · CC axis flat for v1 · wolf family stays separate creatures, purely
+> additive). The XP question that gated this entry **dissolved**: the sibling
+> plan computes the award from live `Mob.Level()`, so an overridden spawn is
+> priced correctly with zero contact between the plans. Open questions below
+> are superseded by the plan's §8.
+
 **WoW/Gothic fit: low** *(ranked 2026-07-29, PO-confirmed)* — demoted from the
 top tier in the ranking session: per-species leveling already covers the WoW
 pattern (a named mob type owns a narrow band; different levels get different
