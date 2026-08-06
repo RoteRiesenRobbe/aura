@@ -3,7 +3,7 @@ package player
 // Flight state machine — plan-flight-paths.md C2 (§4.1/§4.2, D13).
 //
 // The load-bearing claim here is STRUCTURAL non-interaction: takeoff removes
-// the body, hand and aura sensor from the physics space, so nothing that
+// the body and aura sensor from the physics space, so nothing that
 // reaches entities through sensor overlap — damage, debuffs, heals, mob
 // acquisition, actor prompts, other players' viewport queries — can reach a
 // flyer. These tests pin that with a real phy.Space and a real recording
@@ -245,10 +245,9 @@ func TestBeginFlight_InvisibleToAnotherPlayersViewport(t *testing.T) {
 	assert.True(t, inView(), "landing makes the player visible again")
 }
 
-// Own aura and hand leave the space with the body: a flyer's aura ticks on
-// nothing, and nothing reads the hand (§4.2 "the flyer's own aura and hand
-// touch nothing").
-func TestBeginFlight_OwnAuraAndHandTouchNothing(t *testing.T) {
+// Own aura leaves the space with the body: a flyer's aura ticks on nothing
+// (§4.2 "the flyer's own aura touches nothing").
+func TestBeginFlight_OwnAuraTouchesNothing(t *testing.T) {
 	flyer := newFlightPlayer(t)
 	other := newFlightPlayer(t)
 	flyer.SetPosition(phy.Vec2f{X: 1, Y: 1})
@@ -267,7 +266,6 @@ func TestBeginFlight_OwnAuraAndHandTouchNothing(t *testing.T) {
 	space.Update()
 
 	assert.Empty(t, flyer.aura.Collisions(), "an airborne aura records nothing")
-	assert.Empty(t, flyer.hand.Collider.Collisions(), "an airborne hand records nothing")
 }
 
 // zoomTSPath is the client's zoom module, relative to this package.

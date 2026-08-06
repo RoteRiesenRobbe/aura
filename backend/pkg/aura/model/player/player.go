@@ -81,12 +81,6 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	//--- setup vital signs
 	p.PlayerVitalSigns.Health = p.MaxHealth() // absolute HP (item 11 Phase 1)
 
-	// setup hand sensor
-	hand := phy.NewCircle(e.Body.Position(), 0.25)
-	hand.Shape().IsSensor = true
-	hand.Shape().Group = shapeGroup
-	p.hand = model.Hand{Collider: hand}
-
 	// setup the single aura sensor; SkillSystem resizes it per tick to the
 	// active skill's EffectiveRadius (0 while nothing is active)
 	aura := phy.NewCircle(e.Body.Position(), 0)
@@ -95,8 +89,6 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	aura.Shape().Layer = int(model.LayerNoneCollision)
 	aura.Shape().Mask = int(model.LayerPlayerCollision | model.LayerActionCollision)
 	p.aura = aura
-
-	p.updateHand()
 
 	return p
 }
@@ -120,8 +112,6 @@ type player struct {
 
 	viewport *phy.Box
 	aura     *phy.Circle
-
-	hand model.Hand
 
 	model.PlayerVitalSigns
 
@@ -747,11 +737,10 @@ func (p *player) Faction() model.Faction {
 }
 
 func (p *player) Bodies() model.Bodies {
-	b := make(model.Bodies, 4)
+	b := make(model.Bodies, 3)
 	b[0] = p.Body
-	b[1] = p.hand.Collider
-	b[2] = p.viewport
-	b[3] = p.aura
+	b[1] = p.viewport
+	b[2] = p.aura
 	return b
 }
 
@@ -775,12 +764,10 @@ func (p *player) SetPosition(v phy.Vec2f) {
 	p.Body.SetPosition(v)
 	p.viewport.SetPosition(v)
 	p.aura.SetPosition(v)
-	p.updateHand()
 }
 
 func (p *player) SetAngle(a float32) {
 	p.angle = a
-	p.updateHand()
 }
 
 func (p *player) Angle() float32 {
@@ -795,10 +782,6 @@ func (p *player) LastMoveDir() phy.Vec2f {
 
 func (p *player) SetLastMoveDir(v phy.Vec2f) {
 	p.lastMoveDir = v
-}
-
-func (p *player) Hand() *model.Hand {
-	return &p.hand
 }
 
 func (p *player) Config() *cfg.PlayerConfig {
@@ -1140,15 +1123,6 @@ func (p *player) levelForExperienceUntabled(xp uint64, maxLevel uint32) uint32 {
 			return level
 		}
 	}
-}
-
-var handOffset = phy.Vec2f{X: 0.25, Y: 0}
-
-func (p *player) updateHand() {
-	// could cache Rotation matrix/ handOffset
-	relativeOffset := phy.NewRotMat2f(p.angle).Mult(handOffset)
-	handPos := p.Position().Add(relativeOffset)
-	p.hand.Collider.SetPosition(handPos)
 }
 
 func (p *player) SkillComponent() *skills.SkillComponent {
