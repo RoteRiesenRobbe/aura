@@ -43,12 +43,13 @@ type XPModel struct {
 	// resolves to the live default for that field — none of the six has a
 	// meaningful zero, and a zeroed GrayStep alone would mean every mob below
 	// your level pays nothing (curve.KillXP.Normalized's own record of L2).
-	KillUpBonus   float64 `json:"killUpBonusPerLevel,omitempty"`
-	KillUpCap     int     `json:"killUpBonusCapLevels,omitempty"`
-	KillGrayBase  int     `json:"killGrayBase,omitempty"`
-	KillGrayStep  int     `json:"killGrayStep,omitempty"`
-	KillTierElite float64 `json:"killTierElite,omitempty"`
-	KillTierBoss  float64 `json:"killTierBoss,omitempty"`
+	KillUpBonus      float64 `json:"killUpBonusPerLevel,omitempty"`
+	KillUpCap        int     `json:"killUpBonusCapLevels,omitempty"`
+	KillGrayBase     int     `json:"killGrayBase,omitempty"`
+	KillGrayStep     int     `json:"killGrayStep,omitempty"`
+	KillTaperStretch float64 `json:"killTaperStretch,omitempty"`
+	KillTierElite    float64 `json:"killTierElite,omitempty"`
+	KillTierBoss     float64 `json:"killTierBoss,omitempty"`
 }
 
 // killXP assembles the live kill-XP economy this model pays with.
@@ -63,12 +64,13 @@ type XPModel struct {
 // pre-C1.5 raw curve.KillXP{Base, Growth}.BaseAt path.
 func (x XPModel) killXP() curve.KillXP {
 	k := curve.KillXP{
-		UpBonus:   x.KillUpBonus,
-		UpCap:     x.KillUpCap,
-		GrayBase:  x.KillGrayBase,
-		GrayStep:  x.KillGrayStep,
-		TierElite: x.KillTierElite,
-		TierBoss:  x.KillTierBoss,
+		UpBonus:      x.KillUpBonus,
+		UpCap:        x.KillUpCap,
+		GrayBase:     x.KillGrayBase,
+		GrayStep:     x.KillGrayStep,
+		TaperStretch: x.KillTaperStretch,
+		TierElite:    x.KillTierElite,
+		TierBoss:     x.KillTierBoss,
 	}.Normalized()
 	k.Base, k.Growth = x.KillBase, x.KillGrowth
 	return k

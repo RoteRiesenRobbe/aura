@@ -92,26 +92,29 @@ func TestRunPlacements_PlayerLevelAxisMovesTheAward(t *testing.T) {
 	for i, row := range fixed.Rows {
 		assert.Equal(t, 20, row.PlayerLevel)
 		assert.Equal(t, row.Level-20, row.Delta)
-		// ZD(20) = 5 + 20/6 = 8, so rungs 4 and 8 are both ≥ 8 below a
+		// GD(20) = 5 + 20/10 = 7 (D18), so rungs 4 and 8 are both ≥ 7 below a
 		// level-20 player: gray, where the diagonal paid full.
 		assert.Zero(t, row.Award, "rung %d is gray to a level-20", row.Level)
 		assert.Zero(t, row.XPPerHour)
 		assert.Greater(t, diagonal.Rows[i].Award, 0.0, "...and pays at level")
 	}
 
-	// One rung inside the band pays, and pays LESS than at-level.
+	// One rung inside the band pays, and pays LESS than the same player's own
+	// at-level kill — the recipient-anchored claim D1 makes.
 	//
-	// ⚑ Δ = −1 would NOT show this at the shipped defaults, and the near-miss
-	// is worth recording: at growth 1.2 and ZD(9) = 6, one level of base gain
-	// exactly cancels one level of taper (1.2 × 5/6 = 1.00), so a level-9
-	// player gets the identical 143 XP from a rung-8 mob that a level-8 gets.
-	// Δ = −2 is where the taper starts winning.
+	// ⚑ Since D13 that is the ONLY direction the taper is visible in absolute
+	// XP: the slope inside green (1/(GD × stretch) ≈ 9–12%/level) is shallower
+	// than base growth (20%/level), so a fixed rung's absolute award RISES as
+	// the player outlevels it, until the gray cliff. Progress still fades —
+	// kills-per-level grows monotonically — but "pays less than the rung's
+	// diagonal award" stopped being true, and this leg stopped asserting it.
 	cfg.PlayerLevel = 10
 	near := RunPlacements(cfg)
 	deep := near.Rows[1] // rung 8, Δ = −2
 	require.Equal(t, 8, deep.Level)
 	assert.Greater(t, deep.Award, 0.0)
-	assert.Less(t, deep.Award, diagonal.Rows[1].Award)
+	assert.Less(t, deep.Award, float64(cfg.XP.Award(10, 10, 1, 1)),
+		"a below-level kill pays less than YOUR at-level kill")
 }
 
 // An xpFactor-0 species is fightable and pays nothing — the cell must say so

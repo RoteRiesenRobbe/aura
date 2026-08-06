@@ -61,7 +61,7 @@ func TestWelcome_GrayKnobs_ShipNormalizedNotRaw(t *testing.T) {
 	w := decodeWelcome(t, g.(*game).welcomeMsg)
 	assert.Equal(t, int32(5), w.GrayBase(),
 		"an unauthored grayBase must reach the client as the effective default, not 0")
-	assert.Equal(t, int32(6), w.GrayStep(),
+	assert.Equal(t, int32(10), w.GrayStep(),
 		"an unauthored grayStep must reach the client as the effective default, not 0")
 }
 

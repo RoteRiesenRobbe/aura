@@ -14,17 +14,20 @@ import (
 func TestKillXP_PlanWorkedExamples(t *testing.T) {
 	k := DefaultKillXP()
 
-	// "Carried level-3 at a level-23 boss kill: base(3) × 1.20 × 5 ≈ 346."
-	assert.EqualValues(t, 346, k.Award(3, 23, k.TierBoss, 1),
-		"§3.2: a carried level-3 gets ~0.8 of a level from an endgame boss, once")
+	// "Carried level-3 at a level-23 boss kill: base(3) × 1.20 × 5 ≈ 173."
+	assert.EqualValues(t, 173, k.Award(3, 23, k.TierBoss, 1),
+		"§3.2: a carried level-3 gets ~0.4 of a level from an endgame boss, once")
 
-	// "Level-30 farming rabbits (Δ = −29, ZD = 10): mod = 0. Nothing, forever."
-	assert.Equal(t, 10, k.GrayDistance(30))
+	// "Level-30 farming rabbits (Δ = −29, GD = 8): mod = 0. Nothing, forever."
+	assert.Equal(t, 8, k.GrayDistance(30))
 	assert.EqualValues(t, 0, k.Award(30, 1, 1, 1), "§3.2: gray farming pays nothing")
 
-	// "A level-12 clearing the level-6 forest (Δ = −6, ZD = 7): mod = 0.14."
-	assert.Equal(t, 7, k.GrayDistance(12))
-	assert.InDelta(t, 0.143, k.Modifier(12, 6), 0.001, "§3.2: fading, not yet gray")
+	// "A level-12 clearing the level-6 forest (Δ = −6, GD = 6): GRAY, 0" —
+	// D18's boundary, the one the PO set at the game surface ("at 12, not
+	// even a level-6 mob"), which is WoW's L12 gray level to the digit.
+	assert.Equal(t, 6, k.GrayDistance(12))
+	assert.Zero(t, k.Modifier(12, 6), "§3.2: the D18 boundary — gray, pays nothing")
+	assert.InDelta(t, 0.275, k.Modifier(12, 7), 0.001, "§3.2: one rung inside, fading")
 }
 
 // At level, at any level, one normal kill is worth base(P) — which is what
@@ -50,7 +53,7 @@ func TestKillXP_FlatKillsPerLevelWhenGrowthMatchesTheRequirement(t *testing.T) {
 		required := levelUpBase * math.Pow(levelUpGrowth, float64(level-1))
 		assert.InDelta(t, first, required/k.BaseAt(level), 0.0001, "kills per level at L%d", level)
 	}
-	assert.InDelta(t, 7.5, first, 0.01, "§3.1: ~7.5 normal kills per level at the defaults")
+	assert.InDelta(t, 15, first, 0.01, "§3.1/D19: ~15 normal kills per level at the defaults")
 }
 
 func TestKillXP_UpwardBonusAndItsCap(t *testing.T) {
@@ -64,33 +67,76 @@ func TestKillXP_UpwardBonusAndItsCap(t *testing.T) {
 		"the bound is what closes pull-through: no kill is worth more than +20%")
 }
 
-func TestKillXP_TaperReachesExactlyZeroAtGray(t *testing.T) {
+func TestKillXP_TaperIsLinearInsideGreenAndZeroAtGray(t *testing.T) {
 	k := DefaultKillXP()
 
-	// ZD(6) = 5 + 1 = 6, so Δ = −6 is the gray line.
-	require.Equal(t, 6, k.GrayDistance(6))
-	assert.InDelta(t, 5.0/6.0, k.Modifier(6, 5), 1e-9, "Δ=−1")
-	assert.InDelta(t, 1.0/6.0, k.Modifier(6, 1), 1e-9, "Δ=−5, one short of gray")
-	assert.InDelta(t, 0, k.Modifier(12, 6), 0.15, "Δ=−6 at L12 is not gray (ZD widened)")
+	// GD(6) = 5 + 0 = 5 (D18: WoW's own gray distance), taper zero at
+	// 5 × 1.15 = 5.75 — but the boundary truncates it first (D13).
+	require.Equal(t, 5, k.GrayDistance(6))
+	assert.InDelta(t, 1-1/5.75, k.Modifier(6, 5), 1e-9, "Δ=−1")
+	assert.InDelta(t, 1-4/5.75, k.Modifier(6, 2), 1e-9, "Δ=−4, deepest green, pays 30%")
+	assert.Greater(t, k.Modifier(12, 7), 0.0, "Δ=−5 at L12 is not gray (GD widened to 6)")
 
-	// D2: a linear taper to exactly zero — not a token floor, not a cliff.
-	// ZD(7) is also 6, and a level-1 mob is Δ=−6 from a level-7 player: the
+	// D2 as amended by D13: linear inside green, exactly zero at/past the
+	// boundary — never a token floor, never a cliff at full value.
+	// GD(6) = 5, and a level-1 mob is Δ=−5 from a level-6 player: the
 	// shallowest gray kill in the game, since mob levels clamp at 1.
-	require.Equal(t, 6, k.GrayDistance(7))
-	assert.Zero(t, k.Modifier(7, 1), "Δ=−6 at L7 is exactly gray")
+	assert.Zero(t, k.Modifier(6, 1), "Δ=−5 at L6 is exactly gray")
 	assert.Zero(t, k.Modifier(20, 1), "far below gray stays zero, never negative")
 
-	// Below L7 nothing in the world can be gray to you, because the taper
+	// Below L6 nothing in the world can be gray to you, because the taper
 	// needs a mob further down than level 1 exists.
-	for level := 1; level <= 6; level++ {
+	for level := 1; level <= 5; level++ {
 		assert.Greater(t, k.Modifier(level, 1), 0.0, "nothing is gray to a level-%d player", level)
 	}
+}
+
+// D13 (2026-08-06): the WoW-faithful two-distance shape. The gray boundary is
+// unchanged and pays exactly zero, but the taper's zero point runs TaperStretch
+// deeper — so the boundary truncates the linear taper while it still pays a
+// WoW-range fraction (~30–45% of at-level), instead of tapering to zero AT the
+// boundary (which made the deepest green pay 1/ZD ≈ 10–15%, the D8 defect).
+func TestKillXP_D13_GrayTruncatesTheTaper(t *testing.T) {
+	k := DefaultKillXP()
+	require.Equal(t, 1.15, k.TaperStretch, "the lean stretch, kept by D18 [PLACEHOLDER]")
+
+	// At L20: gray distance 7 (D18: WoW's 5 + P/10), taper zero at 7 × 1.15 = 8.05.
+	require.Equal(t, 7, k.GrayDistance(20))
+	assert.InDelta(t, 1-6/8.05, k.Modifier(20, 14), 1e-9,
+		"Δ=−6, deepest green: pays ~25%, WoW's lean end — not 1/7")
+	assert.Zero(t, k.Modifier(20, 13), "Δ=−7: the cliff — gray pays exactly 0")
+
+	// The bottom of green lands at WoW's lean end at EVERY level: green must
+	// pay meaningfully (D8), gray must pay nothing, and the colors are exact
+	// functions of those two facts.
+	for level := 1; level <= 30; level++ {
+		gray := k.GrayDistance(level)
+		deepestGreen := level - gray + 1
+		if deepestGreen < 2 {
+			continue // low levels: nothing can be gray to you (mob levels clamp at 1)
+		}
+		assert.GreaterOrEqual(t, k.Modifier(level, deepestGreen), 0.23,
+			"deepest green at L%d must pay meaningfully", level)
+		assert.Zero(t, k.Modifier(level, deepestGreen-1),
+			"one past it at L%d is gray and pays nothing", level)
+	}
+
+	// Stretch 1 collapses the two distances back into one — the pre-D13 shape,
+	// authorable explicitly. (Absent/zero means unauthored and resolves to the
+	// default; sub-1 values clamp to 1, or a green mob could pay zero.)
+	one := k
+	one.TaperStretch = 1
+	require.Equal(t, 6, one.GrayDistance(13))
+	assert.InDelta(t, 1.0/6.0, one.Modifier(13, 8), 1e-9, "stretch 1: taper zero AT the boundary")
+	sub := k
+	sub.TaperStretch = 0.5
+	assert.Greater(t, sub.Modifier(13, 8), 0.0, "sub-1 stretch clamps: green may never pay 0")
 }
 
 func TestKillXP_GrayDistanceWidensWithLevel(t *testing.T) {
 	k := DefaultKillXP()
 	for _, c := range []struct{ level, want int }{
-		{1, 5}, {5, 5}, {6, 6}, {11, 6}, {12, 7}, {24, 9}, {30, 10},
+		{1, 5}, {9, 5}, {10, 6}, {19, 6}, {20, 7}, {29, 7}, {30, 8},
 	} {
 		assert.Equal(t, c.want, k.GrayDistance(c.level), "ZD(%d)", c.level)
 	}
@@ -103,15 +149,17 @@ func TestKillXP_TierMultipliesTheAward(t *testing.T) {
 	// Rounded from the product, not from the normal award — 2 × round(x) and
 	// round(2x) differ by one XP and the formula is the authority.
 	assert.EqualValues(t, math.Round(base), k.Award(10, 10, 1, 1))
-	assert.EqualValues(t, math.Round(base*2), k.Award(10, 10, k.TierElite, 1))
+	assert.EqualValues(t, math.Round(base*2.5), k.Award(10, 10, k.TierElite, 1))
 	assert.EqualValues(t, math.Round(base*5), k.Award(10, 10, k.TierBoss, 1))
 }
 
 func TestKillXP_XPFactorScalesAndZeroPaysNothing(t *testing.T) {
 	k := DefaultKillXP()
-	full := k.Award(10, 10, 1, 1)
 
-	assert.EqualValues(t, full/2, k.Award(10, 10, 1, 0.5), "the surviving kite rule (§3.4)")
+	// Rounded from the product, not from the halved award — base(10) is odd at
+	// the D19 defaults, so round(base × 0.5) and round(base)/2 differ by one.
+	assert.EqualValues(t, math.Round(k.BaseAt(10)*0.5), k.Award(10, 10, 1, 0.5),
+		"a fractional xpFactor scales the award (§3.4's knob, D16 keeps it unused)")
 
 	// ⚑ The min-1 floor is gated on xpFactor too, not only on mod: a structure
 	// or NPC authoring xpFactor 0 must pay ZERO, not the floor. (Amendment to
@@ -130,9 +178,9 @@ func TestKillXP_FloorKeepsTheTaperHonestAboveGray(t *testing.T) {
 	assert.EqualValues(t, 1, k.Award(1, 1, 1, 0.001), "rounds to 0, floored to 1")
 
 	// The same shape from the taper side: one level short of gray still pays.
-	require.Equal(t, 6, k.GrayDistance(7))
-	assert.EqualValues(t, 1, k.Award(7, 2, 1, 0.02), "Δ=−5 of 6 — faded, not gray")
-	assert.Zero(t, k.Award(7, 1, 1, 1), "at gray the floor does not apply")
+	require.Equal(t, 6, k.GrayDistance(13))
+	assert.EqualValues(t, 1, k.Award(13, 8, 1, 0.008), "Δ=−5 of 6 — faded, not gray")
+	assert.Zero(t, k.Award(13, 7, 1, 1), "at gray the floor does not apply")
 }
 
 func TestKillXP_LevelsBelowOneClampToTheBaseline(t *testing.T) {
@@ -165,6 +213,7 @@ func TestKillXP_NormalizedFillsEveryUnauthoredFieldIndividually(t *testing.T) {
 	assert.Equal(t, d.UpCap, got.UpCap)
 	assert.Equal(t, d.GrayBase, got.GrayBase)
 	assert.Equal(t, d.GrayStep, got.GrayStep)
+	assert.Equal(t, d.TaperStretch, got.TaperStretch)
 	assert.Equal(t, d.TierElite, got.TierElite)
 	assert.Equal(t, d.TierBoss, got.TierBoss)
 

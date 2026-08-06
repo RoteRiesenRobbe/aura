@@ -1,7 +1,12 @@
 # Plan: Kill XP becomes a formula — level-relative XP
 
-> **Status: C1 BUILT 2026-08-05 (`a03b95ff`, headless-verified, §10) — C2 open,
-> and RE-SCOPED the same evening by D7–D9 (§12, recorded `f1d6eebc`).**
+> **Status: COMPLETE — C1 `a03b95ff` 2026-08-05 · C1.5 2026-08-06 (§13.6) ·
+> C2 2026-08-06 (D13–D19, §12.2–§12.4 + §10 C2, PO-verified in-game: "feels
+> much better"), commit `[uncommitted]`. This plan is finished and archived;
+> it closes the mob/XP chain (roadmap step 2's work-through list, item 3 of 3).**
+> *(The paragraph below is the historical C1-era banner, kept as written.)*
+> C1 built 2026-08-05 (`a03b95ff`, headless-verified, §10) — C2
+> RE-SCOPED the same evening by D7–D9 (§12, recorded `f1d6eebc`).
 > Replaces the flat authored per-mob `experience` value with a computed,
 > level-relative award — WoW-Classic-shaped, anchored to the *recipient's*
 > level. Every number is [PLACEHOLDER] unless marked.
@@ -26,7 +31,20 @@
 > ⚑ **D8 ("green must pay meaningfully") is NOT answered by §11's candidate
 > band table** — §12.1 measures why: the taper is linear to zero, so a *wider*
 > band makes the deepest green pay a *smaller* fraction (10 % → 5 %). It is a
-> question about the taper's shape or the boundary's definition. Full ledger: **§12**.
+> question about the taper's shape or the boundary's definition.
+> ⭐ **ANSWERED 2026-08-06 by D13 (§12.2), C2 session 1, and the answer is
+> neither A nor B: WoW Classic itself keeps TWO distances, and the shipped
+> formula had collapsed them.** Gray truncates the taper; gray still pays
+> exactly 0; no wire or client change. ⭐ **The numbers pass followed the same
+> session (D14–D17, §12.3)**: band `10 + ⌊P/6⌋` × stretch **1.15** (wide+lean —
+> the pairing is load-bearing: wide+rich measurably inverted the economy),
+> pacing flat, kite list **empty by ruling**, elite 2.5×.
+> ⭐ **The (c) in-game pass then falsified D14's width the same day (§12.4)**:
+> **D18** sets the band to WoW Classic's own `5 + ⌊P/10⌋` (the PO's in-game
+> boundary matched WoW's to the digit), **D19** halves `killXPBase` to 20
+> (~15 kills/level). Verified at L12: level-6-and-below pays 0, a level-7 pays
+> a 41-XP trickle, at-level 149. **C2's remaining work: finish the (c) walk on
+> these numbers.** Full ledger: **§12**.
 >
 > ⚑ **Schema impact: NONE. No migration, no wire change.** The award is
 > computed server-side at kill time; the DB stores only the player's XP total
@@ -127,10 +145,20 @@ base(P)       = killXPBase × killXPGrowth^(P−1)          P = recipient's leve
 Δ             = mob.Level() − P
 
 Δ ≥ 0 (mob at/above):  mod = 1 + 0.05 × min(Δ, 4)        bounded bonus, WoW's +5 %/level
-Δ < 0 (mob below):     mod = max(0, 1 + Δ/ZD(P))         linear taper, 0 at Δ = −ZD (gray)
-ZD(P)         = 5 + ⌊P/6⌋                                gray distance widens with level
-tier          = normal 1 · elite 2 · boss 5
+Δ < 0 (mob below):     mod = 0            if −Δ ≥ GD(P)  gray: at/past the boundary pays NOTHING
+                       mod = 1 + Δ/(GD(P) × stretch)     else: linear taper, TRUNCATED by gray (D13)
+GD(P)         = 5 + ⌊P/10⌋                               D18: WoW Classic's OWN gray distance (supersedes D14)
+stretch       = 1.15                                     lean, kept through D14 → D18
+tier          = normal 1 · elite 2.5 · boss 5            elite raised by D17 (was 2)
+base          = 20 × 1.2^(P−1)                           D19: ~15 kills/level (was 40, ~7.5)
 ```
+
+⭐ **D13 (2026-08-06) amended the Δ < 0 branch — it originally read
+`mod = max(0, 1 + Δ/ZD(P))`, tapering to zero AT the boundary.** That collapse
+of WoW's two distances into one is what made the deepest green pay `1/ZD` ≈
+10–15 % (the whole D8 defect); under D13 the deepest green pays
+`≈ 1 − 1/stretch` ≈ 30–40 %, WoW Classic's own bottom-of-green range. §12's
+D13 entry has the vanilla measurement.
 
 ### 3.1 Why an exponential base, not WoW's linear `L×5+45`
 
@@ -154,9 +182,11 @@ a C2 calibration/PO call, not a structural one.
   about 0.8 of a level at L3, once. Today the same kill pays the authored 600,
   and repeating it is the fastest thing a level-3 could possibly do; under the
   formula repeating it is ~4 at-level kills' worth per boss.
-- **Level-30 farming rabbits (Δ = −29, ZD = 10):** mod = 0. Nothing, forever.
-  A level-12 clearing the level-6 forest (Δ = −6, ZD = 7): mod = 0.14 — fading,
-  not yet gray.
+- **Level-30 farming rabbits (Δ = −29, GD = 8):** mod = 0. Nothing, forever.
+  A level-12 clearing the level-6 forest (Δ = −6, GD = 6): **gray, 0** — D18's
+  boundary, the one the PO set at the game surface ("at 12, not even a level-6
+  mob"), which is WoW's L12 gray level to the digit. One rung inside (a
+  level-7): mod = 0.275, ~41 XP.
 
 ### 3.3 `Mob.Level()` is already the right left operand
 
@@ -257,17 +287,17 @@ deferral. Full design + rulings: **§13**.
   named neither D8 nor the placement battery). **Realistically 2–3 sessions, not
   one** — D9 calls it one *pass*, but it bundles a code-bearing ruling with a
   numbers pass and a feel pass:
-  - **(a) the D8 ruling**, taken with `-placements` output in front of the PO.
-    ⚠️ **A and B are NOT the same size** — see §12.1's cost note.
-  - **(b) the numbers:** §8.1 pacing (`killXPGrowth` a notch below
-    `levelUpXPGrowth`?), the §8.2 kite list (`xpFactor 0.5`), `killXPBase` and
-    the tier multipliers, and the band candidates in §11. ⛔ Read
-    `plan-world-replacement.md` §12 C2 + §3.11 first: the high regions sit at
-    **1.8–2.1 ×** a standard at-level fight against **0.7–1.0 ×** in the low
-    half, and **no mob speed has ever been measured**.
-  - **(c) the two-ended in-game pass:** a fresh level-1 at spawn; a SKILL/WARP-
-    cheated high level farming grays and tagging an endgame kill.
-  Numbers may lose [PLACEHOLDER] here or stay tuning-open.
+  - **(a) the D8 ruling** ✅ **TAKEN AND BUILT 2026-08-06 (D13, §12.2)**, with
+    `-placements` output in front of the PO — and it chose neither A nor B:
+    gray truncates the taper (`taperStretch` 1.4), WoW's own two-distance shape.
+  - **(b) the numbers** ✅ **RULED AND BUILT 2026-08-06 (D14–D17, §12.3)**:
+    band wide + lean (`10 + P/6` × stretch 1.15 — the pairing is load-bearing,
+    §12.3), pacing stays flat 1.2, the kite list is **empty by ruling** (D16
+    retires the Session-⑥ rule as applied content), elite tier 2 → 2.5.
+  - **(c) the two-ended in-game pass** ✅ **RUN 2026-08-06, and it earned its
+    place**: the first walk falsified D14's width within the session (→ D18
+    WoW-exact band, D19 half base, §12.4); the re-walk verdict is **"feels
+    much better"**. Numbers stay [PLACEHOLDER]-as-calibrated (tuning-open).
 
 ## 7. Test strategy
 
@@ -326,16 +356,13 @@ deferral. Full design + rulings: **§13**.
 
 ## 8. Open questions & deferred
 
-1. **Pacing at the top (C2, PO):** `killXPGrowth = levelUpXPGrowthFactor`
-   means flat ~7.5 kills/level for all 30 levels. Is late-game levelling
-   supposed to be slower? One knob (`killXPGrowth` a notch lower) answers it;
-   needs a PO ruling with sim output in front of them. Note the change is
-   *large* at the top relative to today's authored numbers (orc-grunt: 75
-   authored vs ~1273 formula at level 20) — today's endgame pacing does not
-   survive this plan either way.
-2. **The kite list (C2):** which current species author `xpFactor 0.5` under
-   the surviving Session-⑥ rule. Needs the same judgment that authored their
-   kph values originally.
+1. ~~**Pacing at the top (C2, PO)**~~ ✅ **RULED 2026-08-06 — D15: stays flat**
+   (revisit when levels 21–30 get content; the D5 gap made a slowdown
+   pointless today).
+2. ~~**The kite list (C2)**~~ ✅ **RULED 2026-08-06 — D16: EMPTY.** No species
+   authors 0.5; the Session-⑥ rule is retired as applied content (every placed
+   species is slower than the player, so kiteability cannot define a list).
+   The per-species knob remains the adjustment path.
 3. **Deferred, not blocked:** any group-size bonus (no formal groups in v1) ·
    rested/quest-context multipliers · per-spawn levels (§38, would slot in as
    the `mob.Level()` operand with zero formula change).
@@ -470,6 +497,44 @@ authored sentinel · **`npc-portraits` 4/4 NPCs plate-less with 8/7/7/2 mob
 plates as the control**, both directions of the L1 derivation at the real
 surface.
 
+### C2 — the single final pass ✅ 2026-08-06, PO-verified in-game ("feels much better"), `[uncommitted]`
+
+One session, seven rulings, three of them reversing earlier ones with
+measurements as the reason. The full ledgers are **§12.2 (D13)**, **§12.3
+(D14–D17)** and **§12.4 (D18–D19)** — written as they happened; this entry is
+the close-out tally.
+
+**Shipped state:** `award = base(P) × mod(Δ) × tier × xpFactor` with
+`base = 20 × 1.2^(P−1)` (~15 kills/level, D19) · gray distance
+`5 + ⌊P/10⌋` — **WoW Classic's own formula** (D18) · taper truncated by the
+boundary at ~24–30 % via `taperStretch 1.15` (D13) · tiers 1 / 2.5 / 5 (D17) ·
+kite list **empty** (D16) · growth flat (D15). All conf-only beyond the D13
+mechanism; the client was never touched (it derives only the gray boundary,
+whose meaning never moved).
+
+**Verified:** full Go suite uncached 0 FAIL (the pre-existing unowned
+`sys.TestDwell` flake passed 2/2 isolated) · `db-test` green vs real Postgres ·
+`-placements` diagonal **byte-identical across all three value changes**
+(at-level pay is the anchor and never moved) · boot `-content ../api`
+15 factions/87 skills/65 mobs/3 milestones/10 recipes/4 quests/5 props/777
+props/485 spawns/5 campfires, 0 panics, tuning line
+`base=20 grayBase=5 grayStep=10 taperStretch=1.15 tierElite=2.5` ·
+**`c0-honest-plate` 7/8, 0 FAIL** — the pay leg measured **Δ234, the formula's
+exact number**, and the one FAIL en route was the documented patroller-
+sampling weakness (walked off-screen reads as died), proven unrelated by
+probe + re-run · **`chunkP-presence` all PASS** (bystander credit 22 = the
+D19 formula at its venue) · 0 console errors on both.
+
+**Schema impact: DB NONE · FlatBuffers NONE · content JSON NONE · conf YES**
+(the three repo copies; the live server carries no `killXP` block and picks up
+the new defaults with the next binary deploy — L5's recorded non-issue).
+
+⚑ **Watch items handed forward:** the D13 rising-absolute-award inside green
+(kills-per-level still fades monotonically; recorded in §12.2) · the OrcGrunt
+front outlier, accepted by D16 · per-species feel tuning stays expected
+(`plan-world-replacement.md`'s cost table: speed/xpFactor cheap, HP/damage
+re-price placements).
+
 ## 11. The roster is the problem the band was blamed for (evidence, 2026-08-05)
 
 Measured over `api/mobs/*.json` at C1, prey species only (`xpFactor > 0`):
@@ -509,9 +574,10 @@ header and its §6.6 as well, from the other side.
 
 ⚑ **The candidates below answer "how many rungs pay at all", NOT D8's "does
 green pay meaningfully"** — §12.1 measures the difference, and a *wider* band
-makes the deepest green rung pay a *smaller* fraction. Costed candidates, if the knob is turned later — all satisfy
-"Δ=−10 still progresses", they differ in reach (mod at Δ=−10, and what a
-level-20 can earn from):
+makes the deepest green rung pay a *smaller* fraction. ✅ **RULED 2026-08-06:
+D14 took `10 + P/6` — but paired with taperStretch 1.15, which this table
+predates (§12.3; under D13 the width/pay coupling this table warns about is
+broken by design).** Historical candidates:
 
 | band | ZD(20) | ZD(30) | Δ=−10 @L20 | opens, for a level-20 |
 | --- | --- | --- | --- | --- |
@@ -602,6 +668,127 @@ sim harness in hand — it is a numbers question and this plan's numbers are all
 So B's "zero balance cost" is real and its *implementation* cost is not. If the
 pass runs short, A is the branch that fits in the numbers session; B wants its
 own chunk.
+
+### 12.2 ⭐ D13 — D8 is answered by NEITHER A nor B: gray TRUNCATES the taper (C2 session 1, 2026-08-06)
+
+Taken with `-placements` output in front of the PO, as D9 required. The PO's
+framing — *"green has to pay XP, grey must pay no XP, the colors are explicit
+and this is a rule — but green does not have to pay a lot; what range does WoW
+use?"* — sent the session to the vanilla formulas, and **the answer reframed
+the whole A-vs-B question**:
+
+- ⭐ **WoW Classic uses TWO distances, and the shipped formula had collapsed
+  them into one.** WoW's gray level (`CL − ⌊CL/10⌋ − 5`, later `− ⌊CL/5⌋ − 1`)
+  and its taper denominator ZD (a table, 5→17) are **separate formulas, and ZD
+  is always ~1.3–1.6 × deeper** — so the linear taper never runs to zero: the
+  gray boundary cuts it off while it still pays **20–45 % of an at-level kill**
+  (level 60: a L48 mob pays 29 %, a L47 pays 0 — a deliberate cliff at ~30 %,
+  never at full value). Aura's shipped `ZD = grayDistance` conflation is the
+  entire reason the deepest green paid `1/ZD` ≈ 10–15 % — **D8 existed because
+  of a transcription error in WoW's structure, not because WoW's design needed
+  improving.**
+- **D13 — restore the two-distance shape.** `KillXP.TaperStretch` (default
+  **1.4** [PLACEHOLDER], conf `game.player.killXP.taperStretch`): the taper's
+  zero sits `GD × stretch` deep, the boundary truncates it at
+  `≈ 1 − 1/stretch` ≈ 30–40 %, and at/past the boundary the award is exactly 0.
+  **Amends D2** ("taper to exactly zero") with a measurement as the reason;
+  D2's actual target — "not a token floor, not a cliff at full value" — still
+  holds. Sub-1 stretch values clamp to 1 (a green kill may never pay zero);
+  stretch 1 reproduces the pre-D13 shape, authorable explicitly.
+- ⚑ **Cost: Go + conf ONLY — cheaper than both A and B.** The client derives
+  only the gray *boundary* from the `Welcome` knobs (verified at
+  `client-data/Mobs.ts:122` — `grayBase + ⌊P/grayStep⌋`, no taper term), and
+  the boundary's meaning does not move: *gray ⟺ pays exactly 0* stays
+  structural, and *green always pays* now pays meaningfully. No wire field, no
+  frontend change, no content change.
+- ⚑ **One behavioral consequence, recorded not hidden:** the taper's slope
+  inside green (`1/(GD × 1.4)` ≈ 9–12 %/level) is now **shallower than base
+  growth (20 %/level)**, so a fixed rung's *absolute* award **rises** as the
+  player outlevels it, until the cliff. Progress still fades monotonically
+  (kills-per-level strictly grows), and the L16 `-placements` read shows no
+  dominant deep-farm strategy (green-band XP/hour 58–77k, flat), but the sim
+  leg that asserted "a below-level kill pays less than the rung's diagonal
+  award" stopped being true and now asserts the recipient-anchored claim
+  instead (`placements_test.go`).
+- ⚑ **The width question (D6's "Δ = −10 still progresses") was deliberately NOT
+  ruled** — "decide in the numbers step, with fresh tables under the new
+  shape". Worth knowing when it comes up: WoW itself only reaches Δ = −10 green
+  at character level ~50; at level 20 it grays at Δ = −7, *harsher* than Aura's
+  shipped Δ = −8.
+
+### 12.3 ⭐ D14–D17 — the numbers pass (C2 session 1, 2026-08-06, same session as D13)
+
+All four taken as one prompt round, each with `-placements` tables in front of
+the PO. The constants live in `curve.DefaultKillXP()` (source of truth) and are
+restated in the three conf copies; all still [PLACEHOLDER] in the sense that
+the in-game pass (c) may move them, but they are now *calibrated placeholders*.
+
+- ~~**D14 — the band goes WIDE + LEAN: `GD = 10 + ⌊P/6⌋`, `taperStretch 1.15`.**~~
+  ⛔ **SUPERSEDED the same day by D18 (§12.4)** — the in-game pass falsified
+  the D6 requirement this width served. The inversion measurement below stays
+  valid and load-bearing for any future widening.
+  The deferred D6-width ruling. ⭐ **The measurement that forced the pairing:
+  widening the band under D13's rich 1.4 stretch INVERTS the economy** — at L20
+  under `10 + P/6`, farming Δ = −9…−11 measured **137–166k XP/h**, beating
+  every at-level option except the front (146k), risk-free at 260–295 kills/h:
+  the taper discount (~2×) loses to how much faster deep mobs die (~2.5×). At
+  stretch 1.15 the same rungs measure 75–131k against 135–146k near level —
+  monotonic again. Result: **Δ = −10 pays ~33 %** (D6's acceptance test finally
+  green), the deepest green pays ~19–22 % (WoW's lean end — WoW's own bottom of
+  green spans 20–45 %), and a level-20 sees 270 of 423 spawns green (was 92).
+  *General shape: a taper knob and a boundary knob are one decision, not two —
+  either alone re-creates a defect the other was meant to prevent.*
+- **D15 — pacing stays flat (`killXPGrowth` = 1.2).** ~7.5 kills/level at every
+  level. Ruled with the D5 gap in view: levels 21–30 are empty, so a late-game
+  slowdown would lengthen a span with no content. Revisit when 21–30 gets
+  content; the knob is conf-cheap and the tables regenerate in seconds.
+- **D16 — the kite list is EMPTY, deliberately.** *"None of them — equalize
+  them for now to be appropriate to their level, just ensure we can adjust them
+  later."* No species authors `xpFactor 0.5`; the per-species knob (D4) is the
+  later-adjustment guarantee. ⭐ **This effectively retires the Session-⑥ kite
+  rule as applied content** — the catalog sweep that reframed it: **every
+  placed combat species is slower than the player** (speed 0.4–0.95), so
+  "kiteable" describes the roster, not a subset, and can't define a list. The
+  candidates presented (OrcGrunt at 258k XP/h — 2× the next-best rung; Stag
+  with `fleeBelowHealthRatio 1`, fleeing from full health at the battery's top
+  kill rate) are **recorded as accepted outliers**, not defects. Turnip 0.05
+  stands — the harvest rule (D4) is a different rule and survives.
+- **D17 — elite tier 2 → 2.5.** The PO ruled "raise to 2.5–3×"; **2.5 is the
+  conservative end, chosen as the first step** (cheap to raise again). Context
+  that motivated it: the battery shows elites are genuinely unfarmable solo —
+  "not measurable" means they kill the facetank bot AND have no kite ring — so
+  the multiplier rewards a fight that actually costs more. Boss stays 5×.
+
+### 12.4 ⭐ D18–D19 — the in-game pass falsified D14 the same day (C2 session 1, 2026-08-06)
+
+The two-ended pass's first walk came back within the session: *"generally,
+it's too much XP… at level 12 I should not get XP from a level 5 mob, probably
+not even a level 6 mob — but the range should still increase with level."*
+
+- ⭐ **The PO's in-game boundary is WoW Classic's gray level TO THE DIGIT.**
+  WoW at character level 12 grays mobs ≤ 6. **D18: `GD = 5 + ⌊P/10⌋`** —
+  literally WoW's own gray-distance formula (5→8 across levels 1–39; ours ends
+  at 8 because maxLevel is 30). **Supersedes D14's `10 + ⌊P/6⌋`**, which had
+  been tuned to satisfy the *recorded* D6 requirement ("Δ=−10 still
+  progresses") — the game surface has now falsified that requirement, which is
+  exactly what the (c) pass exists to do. Stretch 1.15 survives: deepest green
+  pays ~24–30 %, then the cliff. ⚑ *A requirement recorded from imagined play
+  lost to twenty minutes of real play; the wide-band engineering (D14's
+  inversion measurement) remains true and recorded — it answered a question
+  the game no longer asks.*
+- **D19 — `killXPBase` 40 → 20: ~15 kills per level**, the strongest of the
+  offered brakes, on top of the band fix. Chosen via `levelUpXPBase` staying
+  untouched, so the XP-bar requirement numbers and flat quest rewards (D3) are
+  unmoved — quests got relatively more valuable, noted as a feature.
+- Measured at L12 after both: rungs 1–6 gray · a level-7 pays 41 (trickle) ·
+  at-level 149 at 15.0 kills/level · XP/hour peaks near own level (24k at
+  Δ=−1) — no depth incentive, no free lunch from the low world.
+- ⚑ Two test repairs worth their notes: the fractional-xpFactor pin broke
+  because **base(10) is odd at D19's numbers** — `round(base)/2` and
+  `round(base × 0.5)` differ by one, and the formula is the authority; and the
+  L6 legacy-four-key pin had to keep asserting **the poster's own 7.5**, not
+  the new default 15 — base/growth are caller-supplied raw by design, which is
+  that seam's whole point.
 
 ⛔ **"With the sim harness in hand" was an assumption, and §13.1 disproved it.**
 The harness modelled `base(P)` and nothing else, so it could not see the taper A

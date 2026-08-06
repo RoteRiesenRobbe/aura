@@ -1,7 +1,7 @@
 package mobs
 
 // Loader + catalog coverage for the kill-XP formula's one surviving authored
-// input (docs/plan-xp-formula.md C1, landmines L1 + L2).
+// input (docs/archive/plan-xp-formula.md C1, landmines L1 + L2).
 
 import (
 	"testing"

@@ -142,6 +142,7 @@ func main() {
 		// that WERE set is what would have made that invisible.
 		slog.Int("player.killXP.grayBase", mob.KillXPConfig().GrayBase),
 		slog.Int("player.killXP.grayStep", mob.KillXPConfig().GrayStep),
+		slog.Float64("player.killXP.taperStretch", mob.KillXPConfig().TaperStretch),
 		slog.Float64("player.killXP.tierElite", mob.KillXPConfig().TierElite),
 		slog.Float64("player.killXP.tierBoss", mob.KillXPConfig().TierBoss))
 

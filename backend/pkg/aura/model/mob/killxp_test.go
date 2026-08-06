@@ -1,7 +1,7 @@
 package mob
 
 // The award site: kill XP is computed PER PARTICIPANT at that participant's
-// own level (docs/plan-xp-formula.md D1), and everything else in the reward
+// own level (docs/archive/plan-xp-formula.md D1), and everything else in the reward
 // fan-out stays participation-based no matter what the award comes to (L3).
 
 import (

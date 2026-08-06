@@ -1,6 +1,6 @@
 package sim
 
-// C1.5 (docs/plan-xp-formula.md §13): the placement battery — what the AUTHORED
+// C1.5 (docs/archive/plan-xp-formula.md §13): the placement battery — what the AUTHORED
 // WORLD pays, rung by rung. Every other battery measures a synthetic combatant
 // pair standing on the curve; this one measures the species that actually stand
 // at each placed level in world.json, priced with the live kill-XP economy.

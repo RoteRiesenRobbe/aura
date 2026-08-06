@@ -88,8 +88,9 @@ func main() {
 	// the knobs -placements reads: the taper's boundary is what D8 is about.
 	xpKillUpBonus := flag.Float64("xp-kill-up-bonus", killXP.UpBonus, "kill-XP bonus per level for killing ABOVE you")
 	xpKillUpCap := flag.Int("xp-kill-up-cap", killXP.UpCap, "how many levels of the up-bonus count")
-	xpKillGrayBase := flag.Int("xp-kill-gray-base", killXP.GrayBase, "gray distance ZD(P) = grayBase + P/grayStep")
-	xpKillGrayStep := flag.Int("xp-kill-gray-step", killXP.GrayStep, "gray distance ZD(P) = grayBase + P/grayStep")
+	xpKillGrayBase := flag.Int("xp-kill-gray-base", killXP.GrayBase, "gray distance GD(P) = grayBase + P/grayStep")
+	xpKillGrayStep := flag.Int("xp-kill-gray-step", killXP.GrayStep, "gray distance GD(P) = grayBase + P/grayStep")
+	xpKillTaperStretch := flag.Float64("xp-kill-taper-stretch", killXP.TaperStretch, "the taper's zero point sits GD × this deep; the boundary truncates it (D13)")
 	xpKillTierElite := flag.Float64("xp-kill-tier-elite", killXP.TierElite, "kill-XP multiplier for elites")
 	xpKillTierBoss := flag.Float64("xp-kill-tier-boss", killXP.TierBoss, "kill-XP multiplier for bosses")
 
@@ -165,6 +166,7 @@ func main() {
 		KillBase: *xpKill, KillGrowth: *xpKillGrowth,
 		KillUpBonus: *xpKillUpBonus, KillUpCap: *xpKillUpCap,
 		KillGrayBase: *xpKillGrayBase, KillGrayStep: *xpKillGrayStep,
+		KillTaperStretch: *xpKillTaperStretch,
 		KillTierElite: *xpKillTierElite, KillTierBoss: *xpKillTierBoss,
 	}
 

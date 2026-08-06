@@ -1079,7 +1079,7 @@ system ships blind.
 > | --- | --- | --- | --- |
 > | ~~1~~ | ✅ **C1.5 — sim-harness placement support** — **SHIPPED 2026-08-06, in one session** | ~~1 (2 if L6 fights back)~~ | `plan-xp-formula.md` **§13** + ledger **§13.6** |
 > | ~~2~~ | ✅ **The kite in-game pass** — **RUN 2026-08-06, verdict "feels very good"; the seven speeds stand provisionally and `plan-world-replacement.md` is ARCHIVED** | ~~1~~ | `archive/plan-world-replacement.md` — verdict + the four-knob tuning cost table in its status banner |
-> | 3 | **`xp C2` — the final pass** | **2–3** | `plan-xp-formula.md` **§6 C2** (a/b/c) + §8.1 + §8.2 + §11 + §12.1 |
+> | ~~3~~ | ✅ **`xp C2` — the final pass** — **SHIPPED 2026-08-06, in ONE session (D13–D19), PO verdict "feels much better"; `plan-xp-formula.md` is ARCHIVED and the chain is CLOSED** | ~~2–3~~ | `archive/plan-xp-formula.md` **§10 C2** + §12.2–§12.4 |
 >
 > ⚑ **L6 did not fight back, so C1.5 came in at the 1-session estimate** — but only
 > because the shape that *would* have cost the second session was rejected on
@@ -1089,10 +1089,10 @@ system ships blind.
 > `zones`** (a zone does not resolve without a PropRegistry) and a `-zone` flag,
 > both inherited from obeying **L7** and reusing the real loader.
 >
-> ⚑ **3 — `xp C2` — is ALL that is left.** The kite pass ran 2026-08-06 and the
-> seven speeds stand (accepted provisionally, deeper testing expected), so the
-> rates `-placements` reports are the rates `xp C2` calibrates against — the
-> sequencing rule is satisfied, not waived. ⚑ **The PO expects later per-species
+> ✅ **3 — `xp C2` — RAN AND CLOSED 2026-08-06, and the 2–3-session estimate came in at ONE**
+> — because the D8 branch question dissolved: neither A nor B, but WoW's own
+> two-distance shape (D13), Go + conf only. The list is EMPTY; **the visibly-next
+> item is Ascension C1**. ⚑ **The PO expects later per-species
 > feel tuning** (damage, HP, xpFactor, speed): speed/xpFactor are cheap JSON
 > edits; an HP or damage edit re-prices placements (**L6**) and, once `xp C2`
 > has calibrated, wants a calibration re-check — the cost table is in

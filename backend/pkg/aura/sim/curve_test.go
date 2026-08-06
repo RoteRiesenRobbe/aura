@@ -28,7 +28,8 @@ func defaultXPModel() XPModel {
 		KillBase: d.Base, KillGrowth: d.Growth,
 		KillUpBonus: d.UpBonus, KillUpCap: d.UpCap,
 		KillGrayBase: d.GrayBase, KillGrayStep: d.GrayStep,
-		KillTierElite: d.TierElite, KillTierBoss: d.TierBoss,
+		KillTaperStretch: d.TaperStretch,
+		KillTierElite:    d.TierElite, KillTierBoss: d.TierBoss,
 	}
 }
 
@@ -125,7 +126,7 @@ func TestXPModel_KillsPerLevelFlatWhenGrowthsMatch(t *testing.T) {
 // curve.KillXP — a restatement of the implementation would agree with a wrong
 // implementation (C0's vitest-oracle discipline).
 func expectedAward(base, growth float64, upBonus float64, upCap int,
-	grayBase, grayStep int, playerLevel, mobLevel int, tier, xpFactor float64) uint64 {
+	grayBase, grayStep int, taperStretch float64, playerLevel, mobLevel int, tier, xpFactor float64) uint64 {
 	if tier <= 0 || xpFactor <= 0 {
 		return 0
 	}
@@ -138,8 +139,13 @@ func expectedAward(base, growth float64, upBonus float64, upCap int,
 		}
 		mod = 1 + upBonus*float64(counted)
 	} else {
-		zd := grayBase + playerLevel/grayStep
-		mod = 1 + float64(delta)/float64(zd)
+		// D13: the gray boundary truncates the taper, whose own zero sits
+		// taperStretch deeper — WoW's two-distance shape.
+		gd := grayBase + playerLevel/grayStep
+		if -delta >= gd {
+			return 0
+		}
+		mod = 1 + float64(delta)/(float64(gd)*taperStretch)
 	}
 	if mod <= 0 {
 		return 0
@@ -178,7 +184,7 @@ func TestXPModel_AwardIsTheWholeLiveEconomy(t *testing.T) {
 				{"free", 1, 0},
 			} {
 				want := expectedAward(d.Base, d.Growth, d.UpBonus, d.UpCap,
-					d.GrayBase, d.GrayStep, playerLevel, mobLevel, tc.tier, tc.xpFactor)
+					d.GrayBase, d.GrayStep, d.TaperStretch, playerLevel, mobLevel, tc.tier, tc.xpFactor)
 				got := x.Award(playerLevel, mobLevel, tc.tier, tc.xpFactor)
 				assert.Equal(t, want, got, "P%d vs mob L%d (Δ%+d) %s", playerLevel, mobLevel, delta, tc.name)
 			}
@@ -205,21 +211,25 @@ func TestXPModel_AwardMatchesTheLiveType(t *testing.T) {
 	}
 }
 
-// The taper reaches exactly zero at the boundary and the last green rung pays
-// a real amount — §12.1's measurement, now visible from inside the harness.
-func TestXPModel_TaperReachesZeroAtTheGrayBoundary(t *testing.T) {
+// The gray boundary truncates the taper while it still pays a WoW-range
+// fraction — D13's shape, visible from inside the harness. (Pre-D13 this leg
+// pinned §12.1's defect instead: the deepest green paid ~1/ZD = 10%.)
+func TestXPModel_GrayTruncatesTheTaperAtAMeaningfulPay(t *testing.T) {
 	x := defaultXPModel()
+	d := curve.DefaultKillXP()
 	const playerLevel = 30
-	zd := curve.DefaultKillXP().GrayDistance(playerLevel) // 10
+	gd := d.GrayDistance(playerLevel) // 8 (D18: WoW's own 5 + P/10)
 
 	atLevel := x.Award(playerLevel, playerLevel, 1, 1)
-	lastGreen := x.Award(playerLevel, playerLevel-zd+1, 1, 1)
-	gray := x.Award(playerLevel, playerLevel-zd, 1, 1)
+	lastGreen := x.Award(playerLevel, playerLevel-gd+1, 1, 1)
+	gray := x.Award(playerLevel, playerLevel-gd, 1, 1)
 
-	assert.EqualValues(t, 0, gray, "Δ = −ZD pays exactly nothing (D2)")
+	assert.EqualValues(t, 0, gray, "Δ = −GD pays exactly nothing (the cliff)")
 	assert.Greater(t, lastGreen, uint64(0))
-	assert.InDelta(t, 0.10, float64(lastGreen)/float64(atLevel), 0.005,
-		"§12.1: the deepest green rung pays ~1/ZD of an at-level kill")
+	// 1 − (GD−1)/(GD × 1.15) = 1 − 7/9.2 ≈ 0.239 — D8's "meaningfully" at the
+	// lean stretch, the bottom of WoW Classic's own 20–45% green band.
+	assert.InDelta(t, 1-7.0/9.2, float64(lastGreen)/float64(atLevel), 0.005,
+		"D13: the deepest green rung pays ~1 − 1/stretch of an at-level kill")
 }
 
 // KillsPerLevelAt is the Δ-aware sibling. On the diagonal it must agree with
@@ -243,8 +253,8 @@ func TestXPModel_KillsPerLevelAtAgreesWithTheAtLevelColumn(t *testing.T) {
 	// Below you: more kills. Above you: fewer, up to the bounded bonus.
 	assert.Greater(t, x.KillsPerLevelAt(20, 17, 1, 1), x.KillsPerLevel(20))
 	assert.Less(t, x.KillsPerLevelAt(20, 24, 1, 1), x.KillsPerLevel(20))
-	// Gray never gets you there.
-	assert.True(t, math.IsInf(x.KillsPerLevelAt(20, 12, 1, 1), 1), "gray is infinitely many kills")
+	// Gray never gets you there (GD(20) = 7 since D18, so mob 7 is Δ=−13).
+	assert.True(t, math.IsInf(x.KillsPerLevelAt(20, 7, 1, 1), 1), "gray is infinitely many kills")
 	assert.True(t, math.IsInf(x.KillsPerLevelAt(20, 20, 1, 0), 1), "xpFactor 0 pays nothing, forever")
 }
 
@@ -260,18 +270,23 @@ func TestXPModel_LegacyFourKeyPostResolvesToTheLiveEconomy(t *testing.T) {
 	var x XPModel
 	require.NoError(t, json.Unmarshal([]byte(legacy), &x))
 
-	assert.Equal(t, curve.DefaultKillXP(), x.KillEconomy(),
-		"the six unposted fields fall back to the live defaults, not to zero")
+	// Base/Growth are the poster's own (raw, by design — a zero there is an
+	// explicit "off"); only the unposted seven fall back to the live defaults.
+	want := curve.DefaultKillXP()
+	want.Base, want.Growth = 40, 1.2
+	assert.Equal(t, want, x.KillEconomy(),
+		"the unposted fields fall back to the live defaults, not to zero")
 	assert.Equal(t, 300.0, x.XPToNext(1))
-	assert.InDelta(t, 7.5, x.KillsPerLevel(1), 1e-9)
+	assert.InDelta(t, 7.5, x.KillsPerLevel(1), 1e-9, "the legacy poster still gets ITS numbers")
 }
 
 // ... and the six ARE knobs when they are posted.
 func TestXPModel_NewKnobsAreHonoured(t *testing.T) {
 	x := defaultXPModel()
-	x.KillGrayBase, x.KillGrayStep = 10, 6 // §11's `10 + P/6` candidate
+	x.KillGrayBase, x.KillGrayStep = 10, 6 // D14's wide band — superseded by D18, so NOT the default
 
 	assert.Equal(t, 13, x.KillEconomy().GrayDistance(20))
-	assert.Greater(t, x.Award(20, 10, 1, 1), uint64(0), "Δ=−10 progresses under the wider band")
-	assert.EqualValues(t, 0, defaultXPModel().Award(20, 10, 1, 1), "...and pays nothing under the shipped one")
+	assert.Greater(t, x.Award(20, 10, 1, 1), uint64(0), "Δ=−10 pays under the posted wide band")
+	assert.EqualValues(t, 0, defaultXPModel().Award(20, 10, 1, 1),
+		"...and is gray under the shipped WoW-exact one (D18)")
 }
