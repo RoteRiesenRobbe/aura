@@ -1161,7 +1161,7 @@ failure**; it belongs to whoever next touches that row.
 **· content JSON NONE.** No `world.json` and no `api/mobs/*.json` were touched —
 C1 owns the catalog and L6 requires it to precede any placement.
 
-### C1 — the decisions, and the archetype rule ✅ 2026-08-06, verified, `[uncommitted]`
+### C1 — the decisions, and the archetype rule ✅ 2026-08-06, verified, `3df461a8`
 
 **Every decision C1 owed is taken, and the catalog half is executed** (the PO
 ruled *"do it now"* rather than deferring the sweep). **C2 is the only chunk
