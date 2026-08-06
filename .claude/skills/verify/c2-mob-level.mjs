@@ -11,12 +11,21 @@
 //
 //   · the overridden Stag plates "Stag 25" and tints RED (24 levels above a
 //     fresh character) — the number came from the placement
-//   · a second, untouched Stag of the SAME species plates "Stag 1" and tints
-//     yellow — the number still comes from the catalog when nothing overrides
+//   · a second Stag of the SAME species plates "Stag 1" and tints yellow
 //
 // One species, two levels, in one world. Either half alone proves much less:
 // a catalog-fed plate would show "Stag 1" for both, and a plate fed the raw
 // override rather than the effective level would show "Stag 0" for the control.
+//
+// ⚑ THE CONTROL CHANGED MEANING IN world-replacement C2 (2026-08-06), and the
+// assertion survived it. This script was written when NO spawn in the world
+// carried a level, so the control proved the *catalog fallback*: "Stag 1"
+// because nothing overrode it. C2 authored a level on all 423 combat spawns,
+// so spawn 172 now carries an explicit `level: 1` — the same plate, a
+// different reason. What the pair still proves is what it is named for: the
+// plate is per-INSTANCE. It no longer covers `Mob.Level()`'s catalog fallback
+// at the game surface, and nothing else does either — that leg lives only in
+// the Go tests now. Say so rather than reading this run as broader than it is.
 //
 // ⚑ TEXT and TINT are asserted separately on purpose. They can drift: the
 // text is written ONCE per species (setMobId early-returns on an unchanged id)
@@ -24,9 +33,10 @@
 // setLevel that only stored the number would leave the text catalog-fed
 // forever and the tint correct — a half-fix that looks right in-game.
 //
-// ⚑ NEEDS A THROWAWAY CONTENT EDIT (the probe-quest precedent). No zone JSON
-// ships with an override — C3 owns the first real placements — so install one
-// by hand, restart, run, then revert:
+// ⚑ NEEDS A THROWAWAY CONTENT EDIT (the probe-quest precedent). The world now
+// authors a level on every combat spawn, but none of them is 25, and the point
+// of the probe is a level no catalog could have produced — so install it by
+// hand, restart, run, then revert:
 //
 //     node .claude/skills/verify/c2-mob-level.mjs --install   # patches world.json
 //     ./scripts/dev-restart.sh                                # -content ../api

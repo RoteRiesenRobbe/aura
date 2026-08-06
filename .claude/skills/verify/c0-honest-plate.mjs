@@ -28,12 +28,24 @@
 // constant. Leg 3 reports which regime it is in, so the second run is
 // self-labelling rather than something the reader has to remember.
 //
-// The venue is the ISOLATED Marauder at (32.68, 16.64) — 10 spawns of cL12
+// The venue is the ISOLATED Marauder at (32.68, 16.64) — 10 Marauder spawns
 // exist and nine of them are in the bandit camp at (45,-29); this one stands
-// alone, with a cL2 Boar 3.8 units away as the control. At player level 18
-// under the shipped conf: ZD(18) = 5 + 3 = 8, so the server pays for anything
-// above level 10 — the Marauder pays, the Boar does not — while the deleted
-// client rule grayed everything at or below 12, i.e. BOTH.
+// alone, with a Boar 3.8 units away as the control. At player level 22 under
+// the shipped conf: ZD(22) = 5 + 3 = 8, so the server pays for anything above
+// level 14 — the Marauder pays, the Boar does not — while the deleted client
+// rule grayed everything at or below 16, i.e. BOTH.
+//
+// ⚑ THE VENUE'S NUMBERS MOVED IN world-replacement C2 (2026-08-06), and the
+// script had to move with them. C2 authored a level on all 423 combat spawns:
+// this Marauder is the V→M patroller and now stands at **16**, not its cL12,
+// and the control Boar is one of the five D13 village-livestock spawns, held
+// at 2 on purpose. A subject at 16 no longer divides the two rules at player
+// level 18 (the deleted rule only grayed 5+ below, and 16 is 2 below 18), so
+// the PLAYER LEVEL moved 18 → 22 to restore the divergence. ⚑ The script would
+// have SAID so rather than passing falsely — leg 3 exists for exactly this and
+// reported INCONCLUSIVE — but a harness left self-labelling is a harness that
+// proves nothing, so it is repaired here rather than in whatever chunk next
+// runs it.
 //
 // ⚑ Boundary with c2-mob-level: that one owns what a plate SAYS (its level
 // text and tint come from the wire, per instance). This one owns what the tint
@@ -78,8 +90,8 @@ const grayDistance = (p) => {
 const oldRuleSaysGray = (playerLevel, mobLevel) => mobLevel - playerLevel < -5;
 
 const GRAY = 0x9d9d9d;
-const PLAYER_LEVEL = 18;
-const SUBJECT = { mob: 'Marauder', level: 12, x: 32.68, y: 16.64 };
+const PLAYER_LEVEL = 22;
+const SUBJECT = { mob: 'Marauder', level: 16, x: 32.68, y: 16.64 };
 const CONTROL = { mob: 'Boar', level: 2, x: 36.4, y: 15.6 };
 
 const w = (x, y) => `${Math.round(x) * 120} ${Math.round(y) * 120}`;
@@ -141,11 +153,12 @@ const sample = () => page.evaluate(() => {
 const results = [];
 const record = (name, state, detail) => results.push({ name, state, detail });
 
-// --- reach player level 18 ----------------------------------------------------
+// --- reach the player level the venue needs -----------------------------------
 // The venue only divides the two rules at a level where they disagree, so the
 // level is a PRECONDITION, not a detail. A coarse grant first (well under the
-// 18 threshold at the shipped curve), then steps too small to skip a level.
-await cmd('XP 25000');
+// threshold at the shipped curve — 22 costs 67.5k cumulative at base 300 ×
+// growth 1.2), then steps too small to skip a level.
+await cmd('XP 60000');
 let lvl = (await sample()).level;
 for (let i = 0; i < 60 && lvl < PLAYER_LEVEL; i++) {
   await cmd('XP 1000');
@@ -162,10 +175,24 @@ record(`player is level ${PLAYER_LEVEL} — the tint's other operand`,
 await cmd(`WARP ${w((SUBJECT.x + CONTROL.x) / 2, (SUBJECT.y + CONTROL.y) / 2)}`);
 await page.waitForTimeout(22_000); // the camera interpolates a long warp slowly
 
-let s = await sample();
-await page.screenshot({ path: `/tmp/c0-honest-plate-${label}-venue.png` });
-
 const plateFor = (snap, m) => snap.plates.find((p) => p.text === `${m.mob} ${m.level}`);
+
+// ⚑ THE SUBJECT IS A PATROLLER, and one shot at it misses. `world.json` gives
+// this Marauder three waypoints running ~13 units west (it is spawn #402, the
+// V→M route), so most of the time it is nowhere near its spawn point and the
+// midpoint venue cannot see it. Two consecutive single-sample runs scored the
+// colour leg INCONCLUSIVE while the pay leg found and killed it for Δ460 both
+// times — the mob was fine, the sampling was not. Sample until both plates are
+// in one frame, bounded, and fall back to the last frame so the tri-state still
+// reports rather than hangs. (The header calls the venue "isolated", which is
+// true of its NEIGHBOURS — nine other Marauders are 45 units away — and says
+// nothing about it standing still.)
+let s = await sample();
+for (let i = 0; i < 8 && !(plateFor(s, SUBJECT) && plateFor(s, CONTROL)); i++) {
+  await page.waitForTimeout(4_000);
+  s = await sample();
+}
+await page.screenshot({ path: `/tmp/c0-honest-plate-${label}-venue.png` });
 const zd = grayDistance(lvl);
 
 record(`venue: "${SUBJECT.mob} ${SUBJECT.level}" and "${CONTROL.mob} ${CONTROL.level}" are both on screen`,

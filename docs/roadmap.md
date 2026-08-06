@@ -1080,7 +1080,7 @@ system ships blind.
 >    carries a level yet. **This closes backlog §38 and finishes the plan's
 >    build work; the plan stays live only for that content half.**
 > 2. **The world re-placement pass — ⭐ THIS IS THE NEXT STEP. ✅ DESIGNED
->    2026-08-06 → `docs/plan-world-replacement.md`** (D2–D5, **three** chunks —
+>    2026-08-06, ✅ **FULLY BUILT the same day (C0+C1+C2) — but NOT closed** → `docs/plan-world-replacement.md`, still live: C2's brief made the kiteability verdict *"C2's finding to make"* and C2's walk was scripted, so one in-game pass remains** (D2–D5, **three** chunks —
 >    C0 the honest plate · C1 the decisions · C2 the re-placement. ⭐ **C0
 >    SHIPPED 2026-08-06** — see the ⚑ note below, which it discharges — **and
 >    C1 IS DONE the same day**, so the next session is **C2, the re-placement**,
@@ -1095,9 +1095,14 @@ system ships blind.
 >    reshape is invisible to every battery the project has** — the facetank leg
 >    starts at 0.5 units, so approach time never enters it: seven species became
 >    markedly more kiteable and nothing measured it. **C2's walk is the
->    instrument.** ⚑ **§3.4's wrong-example correction is now owed by C2 alone**
->    — the roadmap's AngryMammoth / SaberToothCat / ProvingBoss are catalog-true
->    but **unplaced**, and the live offenders were the eight D6 measured.). It
+>    instrument.** ✅ **§3.4's wrong-example correction is DISCHARGED by C2**
+>    (2026-08-06): AngryMammoth / SaberToothCat / ProvingBoss are catalog-true
+>    but **unplaced**, so re-authoring them changes nothing a player touches;
+>    the live offenders were the eight D6 measured, and the last of them —
+>    OrcGrunt's cL20 label — resolved in C2 as **no change, with cause** (D14:
+>    it *passes* the archetype rule; a light, fast-aggroing add at the front's
+>    level is a correct shape). What C2 did move is the front's **Trolls**,
+>    cL11 standing beside cL20 Orcs, now placed at 17–18.). It
 >    no longer "owns no plan
 >    doc" — that was true until the design session, and this file is the
 >    answer. Re-places and re-levels `world.json`'s **423 combat spawns** so
@@ -1122,7 +1127,11 @@ system ships blind.
 >    The live offenders are **Bear** (cL4 but 270 effHP, tougher than every cL5
 >    and cL6), **OrcGrunt** (cL20 but 646 effHP) and **EliteBandit**, plus 18
 >    `ArmySoldier` spawns at cL18 paying nothing — that is the list D4 puts in
->    scope. See `plan-world-replacement.md` §3.3–§3.4.
+>    scope. ✅ **All of it is now discharged**: D6 subsumed D4 (Bear and
+>    EliteBandit are *shape* problems, and the archetype rule fixed 7 species by
+>    `factors.speed`), **D11** ruled ArmySoldier stays `xpFactor: 0` as
+>    deliberate set-dressing, and **D14** ruled OrcGrunt unchanged with cause.
+>    See `plan-world-replacement.md` §3.3–§3.4 and §3.8.
 > 3. **Sim-harness placement support** — the harness balances *species at their
 >    curve position* and is blind to placements. ⚑ This **reverses a deliberate
 >    YAGNI deferral** (`plan-mob-levels.md` §8.3, which declined it and named its

@@ -4043,7 +4043,16 @@ that would be a tombstone for a decision not yet taken.
 
 ## 38. One species, many levels — a per-SPAWN level override
 
-> ✅ **PLANNED 2026-08-05** — `docs/plan-mob-levels.md` (4 PO rulings: absolute
+> ✅ **CLOSED 2026-08-06 — TOOL AND CONTENT BOTH SHIPPED.** The tool:
+> `docs/archive/plan-mob-levels.md` C1–C3 (2026-08-05, `975e5c4c` + `f1d6eebc`
+> + `0c6eca22`) — server, wire + nameplate, zone editor. The content:
+> `docs/plan-world-replacement.md` C2 (2026-08-06) — **all 423 combat
+> spawns in `world.json` now carry a decided `level`**, so this entry's ask
+> (*"spawn the same wolf on level 1 and 30"*) is not merely possible but
+> exercised across the whole world. ⚑ `plan-mob-levels.md` is archived; the
+> re-placement plan stays live for one in-game pass (the kiteability verdict).
+>
+> ✅ **PLANNED 2026-08-05** — `docs/archive/plan-mob-levels.md` (4 PO rulings: absolute
 > `level` per spawn · XP priced by `plan-xp-formula.md`'s formula, no seam code
 > · CC axis flat for v1 · wolf family stays separate creatures, purely
 > additive). The XP question that gated this entry **dissolved**: the sibling

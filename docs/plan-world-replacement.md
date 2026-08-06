@@ -1,25 +1,48 @@
 # Plan: The world re-placement pass — sensible level bands across `world.json`
 
-> **Status: ✅ DESIGNED 2026-08-06 — D2–D5 ruled, THREE chunks decided. ⭐ C0 IS
-> BUILT (2026-08-06, headless-verified, `7055aad4`) — the next session is
-> C1, the decisions session, and it needs the PO in the loop for all four of its
-> items.** Ledger: §12 C0. Open items O2–O5 are
-> deferred *into* C1 rather than pre-ruled, because each needs the map in front
-> of it (§6). ⭐ **Two same-day corrections after the first pass:** **D5
-> supersedes D1** — the band is the roster's *current* ~1–20 and the top of
-> difficulty is **not** retuned, because the world is too small to spread 30
-> levels and still offer options per level range — and the **six-chunk split
-> collapsed to three**, because four of the six shared all their context and
-> were a review unit mistaken for a session unit (§7).
-> This is roadmap **step 2 of the XP-economy chain**
-> (`roadmap.md` → Execution order → "Post-8a insert"), the step that
-> `plan-xp-formula.md` §12 D9 named and that **no plan owned** until this file.
-> Its tool shipped the day before: `plan-mob-levels.md` C3 (`0c6eca22`) gave the
-> zone editor a per-spawn *Level* field whose value survives a save.
+> **Status: ⭐ BUILD WORK COMPLETE — C0 `7055aad4` + C1 `3df461a8` + C2, all
+> three 2026-08-06. ⛔ NOT ARCHIVED: ONE THING C2 OWED IS STILL OPEN.**
 >
-> **It gates `xp C2`**, the single final calibration pass — D9's ruling is that
-> calibrating an economy against a roster with untrustworthy levels and a
-> multi-level hole calibrates against noise.
+> All 423 combat spawns carry a decided `level`, 27 stand under a different
+> species, and every scripted check is green (§12 C2). What is **not** done is
+> the item C2's own brief listed second among the three most likely to go wrong:
+>
+> > *"Seven species are markedly more kiteable than the last time anyone played
+> > this world, and no battery in the project can see it (§3.8). DireWolf
+> > 0.88 → 0.55 is the big one — 42 spawns, the world's most common mid mob.
+> > **The walk is the only instrument.** If they now feel like non-threats, that
+> > is **C2's finding to make** and the speeds are `[PLACEHOLDER]`."*
+>
+> C2's walk was **scripted** (`c2-world-walk.mjs`, 10 regions, 0 FAIL). It
+> proves the plate a player reads matches the placement authored where that mob
+> stands. It **cannot** judge whether a DireWolf at `speed` 0.55 still reads as
+> a threat — and **nobody has played the re-placed world.** A finding is owed,
+> not a tuning: the plan explicitly permitted closing with numbers untuned so
+> long as they were recorded (§3.11 records them), but the *judgement* on the
+> seven reshaped species was C2's to make.
+>
+> **To close this plan, one session is needed:** walk the world in-game, low to
+> high, and either accept the seven speeds or re-tune them. ⚑ A post-placement
+> `factors.speed` edit is **SAFE** — speed is not in `PowerScale()` (§3.5), so
+> it re-prices nothing. An HP or damage edit is **not**: it would re-price every
+> placement C2 just made, which is what **L6** protects. The second thing worth
+> a verdict on the same walk is §12 C2's fight-size finding — the high regions
+> now sit at **1.8–2.1 × a standard at-level fight** where the low half sits at
+> 0.7–1.0 ×, and **D12 bought part of that** by choosing the HP-heavy predator
+> family for the village.
+>
+> ⚑ **`plan-mob-levels.md` IS archived** (`docs/archive/`) — its only open item
+> was the content half, and C2 placed it. This plan is the one with something
+> left. ⚑ It does **not** block the chain: roadmap step 3 (sim-harness placement
+> support) and `xp C2` can both proceed, and `xp C2` should read §12 C2 first.
+>
+> Design history, for context: designed 2026-08-06 (**D2–D5**, three chunks),
+> **D5 superseded D1** the same day — the band stays the roster's current ~1–20
+> and the top of difficulty is not retuned, because a 144 × 72 world is too
+> small to spread 30 levels and still offer options per level range — and the
+> **six-chunk split collapsed to three**, a *review* unit having been mistaken
+> for a *session* unit (§7). Roadmap **step 2 of the XP-economy chain**, which
+> `plan-xp-formula.md` §12 D9 named and no plan owned until this file.
 
 ---
 
@@ -151,6 +174,43 @@ sibling plan for a reason stated there.
   home (the farm) deliberately: it is the start, not a choice. §3.6's original
   proposal is superseded; it left levels 14, 16 and 17 (and 2 and 4) with a
   single home even after D7.
+- ⭐ **D12 — East village + Gates goes PREDATOR-heavy, not bandit (§3.9's
+  blocker).** Ruled in C2, 2026-08-06. The 26 Boar/DireWolf spawns that could
+  not carry 14–18 are re-placed as **DireWolf → AlphaWolf → Bear → EliteWolf →
+  DireBear**, one species per rung: the woods around the village have gone bad,
+  and the village keeps its guarded-settlement reading. ⚑ **Rejected: the
+  bandit-camp roster §3.9 nominated as the donor.** It is the obvious move —
+  the horde is 10 species directly north, and the faction check clears it
+  (`bandit` is `hostileTo: ["aligned"]` only, so bandits beside the CityGuard
+  would *not* have produced NPC-vs-NPC combat, which was the thing worth
+  checking). It was rejected on content grounds: it would have pitched a second
+  bandit camp next to the city guard and given V a roster the player already
+  met twice. ⚑ **One bandit spawn survives in V by design** — the Marauder at
+  (32.68, 16.64) is the V→M **patroller**, and §4.2's per-route decision is
+  that a patroller keeps its route and takes its spawn point's region. A scout
+  on the road west is not a camp at the gate.
+- ⭐ **D13 — the village livestock ring: prey within 10 units of the village
+  fire keeps its native level.** Ruled in C2, 2026-08-06. `spawnpoint-2` (44,
+  10.5) is the only bound respawn in the east and it sits *inside* a 14–18
+  region; the **5 Boars** inside that radius stay at **cL2**, authored
+  explicitly so they count as decided. ⚑ **This is a stated exception to D10,
+  not a tolerance** — a region's band describes its content, and a hub's tame
+  ring is content too. C0's honest plate is what makes it legible rather than
+  confusing: those Boars plate **gray and pay 0** to anyone who can be standing
+  there. ⚑ It is also why §9's campfire assert is **geometric**, not a level
+  rule: the ring is the answer to "what stands next to a respawning player",
+  and the assert measures reach, not rungs.
+- ⭐ **D14 — the front's ADDS are made honest; its ceiling is not touched.
+  AMENDS D5.** Ruled in C2, 2026-08-06. D5 said the front is not retuned, which
+  left its 3 **Trolls standing at cL11 beside cL20 Orcs** — a plate that lies
+  about the fight, which is exactly what C0 was built to end. They move to
+  **17–18**. **Orc and OrcGrunt keep 20**, so the ceiling is where D5 left it.
+  ⚑ **OrcGrunt is deliberately NOT lowered**, and §3.8 is the reason: it
+  *passes* D6's archetype rule — 1.36 × HP, 1.33 × dps, 0.86 × speed, the
+  world's widest aggro radius. A light, fast-aggroing add at the front's level
+  is a correct **shape**, not a mis-priced one, and lowering it would have made
+  the front easier, which D5 does forbid. §3.8's "that is a C2 question"
+  resolves as *no change, with cause*.
 - **D11 — ArmySoldier stays at `xpFactor: 0` (O5).** The 18 cL18 spawns are the
   friendly Human Army the content pass built to war with the orcs — deliberate
   set-dressing, not an authoring miss. They remain in the **62 non-combat** set,
@@ -692,6 +752,139 @@ obvious donor: the Bandit horde carries 10 distinct species across 44 spawns and
 sits directly north of the village. **Record the outcome either way** — if C2
 closes with a Boar standing at 18, this section is the evidence that it was
 known and chosen.
+
+### 3.10 ⭐ The placement, as executed (C2, 2026-08-06)
+
+**This is the authoritative table.** It ships as `scripts/world-place.py`, which
+also produces the listing below — the two cannot drift, the same discipline
+§3.7 and `world-regions.py` established.
+
+⚑ **Three rules, and only three.** The judgement is in the table; nothing else
+invents a number.
+
+- **R1 — within a region, rungs ascend by HPx** (D6's archetype ratio,
+  `baseMaxHealth` / 55). The plate then tracks the fight.
+- **R2 — a species given a multi-rung range spreads its spawns evenly across
+  those rungs, ordered by distance from the START FIRE** (`spawnpoint-1`,
+  −58.2/+24). One world-wide geometric axis, so no region has to defend a
+  difficulty direction of its own, and it is the same axis §3.1 measured as the
+  world's existing west→east gradient.
+- **R3 — when a region sheds a species it sheds the instances FARTHEST from the
+  start fire**, and the freed points go to the incoming species deepest-first.
+  A species retreats toward home; what replaces it arrives from away.
+
+⛑ **The rung is nearly cosmetic next to the species choice, and that is why
+this is a re-PLACEMENT pass.** A 5-rung band is `1.12⁴` = **1.57 ×** wide. The
+roster's HPx spans **0.64 → 8.18**, a 9 × range. So which species stands in a
+region decides its difficulty by roughly an order of magnitude more than which
+rung that species takes — the levels mostly make the plate and the XP honest.
+This is the measured form of §3.9's instruction and it is why stretching would
+not have worked even if L2 were free.
+
+```
+  F  band 1-3         L1  Turnip x6  Stag x2
+                      L2  Boar x10
+                      L3  Wolf x7
+  W  band 2-6         L2  Stag x16
+                      L3  Wolf x38
+                      L4  Boar x14
+                      L5  DireWolf x4
+                      L6  Bear x2
+  D  band 4-8         L4  Wolf x7
+                      L5  Spider x3
+                      L6  DireWolf x3
+                      L7  Bear x5
+                      L8  EliteWolf x3
+  K  band 6-10        L6  KoboldRanged x6  Stag x5
+                      L7  Kobold x20
+                      L8  Wolf x19  Boar x9
+                      L9  DireWolf x4
+                      L10 AlphaWolf x2
+  M  band 8-12        L8  Wolf x26  Stag x11
+                      L9  Boar x15  BanditRanged x2  BanditHealer x1
+                      L10 Bandit x10  BanditPyromancer x1  RallyDrummer x1
+                      L11 DireWolf x11  AlphaWolf x3
+                      L12 DireBear x4  Bear x3  Troll x2
+  T  band 10-14       L10 Wolf x12  Stag x1
+                      L11 Spider x7  VenomSpider x6  Boar x5
+                      L12 Spider x7  DireWolf x3
+                      L13 AlphaWolf x1  Troll x1  Bear x1
+                      L14 GiantSpider x5  Marauder x1
+  B  band 12-16       L12 Bandit x6  BanditRanged x2  BanditHealer x2
+                      L13 Bandit x5  DireWolf x5  BanditPyromancer x2
+                      L14 DireWolf x5  AlphaWolf x4
+                      L15 Marauder x8  EliteWolf x3
+                      L16 DireBear x1  EliteBandit x1
+  V  band 14-18       L2  Boar x5           <- the D13 livestock ring
+                      L14 DireWolf x8
+                      L15 AlphaWolf x6
+                      L16 Bear x5  Marauder x1
+                      L17 EliteWolf x3
+                      L18 DireBear x3
+  P  band 17-20       L17 FireElemental x2
+                      L18 FireElemental x1
+                      L19 FireElemental x1
+                      L20 GreaterFireElemental x1
+  R  band unchanged   L17 Troll x2
+                      L18 Troll x1          <- D14, the adds made honest
+                      L20 Orc x12  OrcGrunt x3
+```
+
+**27 spawns changed species** — W 5, D 5, K 2, V 15. Every band rung from 1 to
+20 has a tenant, and **every region fills every rung of its own band**.
+
+⚑ **But "has a tenant" is not "is populated", and the top of the band is thin.**
+Spawns per rung, measured:
+
+```
+  L1   8   L5   7   L9  22   L13 15   L17  7
+  L2  31   L6  16   L10 27   L14 23   L18  5
+  L3  45   L7  25   L11 32   L15 17   L19  1
+  L4  21   L8  68   L12 29   L16  8   L20 16
+```
+
+⛔ **Rung 19 holds exactly ONE spawn in the entire world** — a single
+FireElemental — because P is the only region whose band reaches it (D8 sites it
+at 17–20) and P has five spawns in total. **L20's 16 are 12 Orcs, 3 OrcGrunts
+and the Greater Fire Elemental**, i.e. the front and the teaser, not a farmable
+rung. This follows from D10 + D8 + D5 rather than from anything C2 chose, but
+the shape is what matters: **the dense world is 1–16**, and above that it is a
+boss camp and a Zone-3 teaser. `xp C2` must not read the rung table as uniform.
+
+⛑ **The re-skins introduce NO new species to the world** — every arrival
+(DireWolf, Bear, Spider, AlphaWolf, EliteWolf, DireBear) was already placed
+somewhere. §3.9 asked for a re-placement, and a re-placement is what this is;
+authoring new mobs would have been a different plan.
+
+⛔ **The three regions §3.9 flagged, resolved:**
+
+- **East village + Gates** — D12, above. 15 spawns re-skinned, 26 → 5 wildlife.
+- **West wildlife** — 5 of its 43 Wolves become 3 DireWolf + 2 Bear, which
+  gives rungs 5 and 6 a tenant. 38 Wolves is still far above the 8 that
+  `wolves-on-the-road` needs.
+- **Dark forest** — 5 of its 12 Wolves become 3 DireWolf + 2 Spider, filling
+  rungs 5 and 6. **Kobold hideout** needed the same treatment for rung 9–10 (2
+  Wolves → AlphaWolf), which §3.9's table did not flag.
+
+### 3.11 ⚑ What C2 did NOT tune — read this before `xp C2`
+
+- **Nothing about mob SPEED was measured.** §3.8's seven reshaped species went
+  into this walk untested and come out of it untested by any battery; the walk
+  is qualitative. **DireWolf 0.88 → 0.55 across 42 spawns** is still the open
+  one. C2 did **not** re-tune any `factors.speed` — the sequencing note is that
+  it safely could have (speed is not in `PowerScale()`, §3.5), where an HP or
+  damage edit would have re-priced every placement this pass just made. That is
+  what **L6** actually protects.
+- **`respawnTicks` and `wanderRadius` are UNCHANGED** (§4.3). A higher-level
+  region arguably wants slower respawns; nothing in this pass tested that, and
+  the diff guard asserts they did not move.
+- **The 27 re-skinned points keep their authored `wanderRadius` /
+  `idleSpeedFactor`.** They are properties of the *spot* (how much room is
+  there), not of the species, so they carry — but 18 of the 27 have one, and if
+  a re-skinned Bear feels oddly leashed, that is where to look.
+- **`api/zones/proving-grounds.json` is untouched**, per §4.5, as a decision.
+- **Levels 21–30 are still empty**, per D5/§3.3, and the world's ceiling is
+  exactly where C1 left it.
 
 ---
 
@@ -1313,3 +1506,179 @@ errors** · no frontend file changed and no `.fbs` touched, so `tsc`, vitest and
 **Schema impact: DB NONE · FlatBuffers NONE · content JSON YES** (7 `api/mobs/`
 files, `factors.speed` only — **no `world.json` change**: C1 places nothing, and
 L6 is satisfied because the catalog moved *before* any placement).
+
+### C2 — the re-placement ✅ 2026-08-06, headless-verified
+
+**All 423 combat spawns carry a decided level, 27 of them under a different
+species than yesterday, and the plate a player reads was checked against the
+file in all ten regions.** This is the plan's last chunk.
+
+**PO rulings — D12–D14** (full text in §2):
+
+- **D12 — East village + Gates goes PREDATOR-heavy, not bandit.** §3.9's donor
+  was the bandit camp; it was rejected on content grounds after the faction
+  check **cleared** it (`bandit` is `hostileTo: ["aligned"]` only, so bandits
+  beside the CityGuard would *not* have fought the NPCs — worth knowing, and
+  not what decided it).
+- **D13 — the village livestock ring**: prey within 10 units of `spawnpoint-2`
+  keeps its native cL2 inside a 14–18 region. 5 Boars. A stated exception to
+  D10, not a tolerance.
+- **D14 — the front's ADDS are made honest, its ceiling is not. AMENDS D5.**
+  The 3 Trolls move cL11 → 17–18; Orc and OrcGrunt keep 20.
+
+**Content + tooling:**
+
+- `api/zones/world.json` — **423 `level` keys, 27 `mob` changes.** The 62
+  non-combat spawns are byte-identical and **no other field moved on any
+  spawn**, asserted rather than reviewed.
+- `scripts/world-place.py` — **NEW.** The authored table (§3.10) plus §9's test
+  strategy as `--check`. It writes the file, so the table and the world cannot
+  drift; a `json.dumps(indent=2)` round-trip of `world.json` is **byte-identical
+  at HEAD**, which is what makes a generated file safe here.
+- `.claude/skills/verify/c2-world-walk.mjs` — **NEW**, registered in the
+  coverage map. The walk, as an assertion instead of a memory.
+
+⛑ **Six findings, in the order they cost time:**
+
+1. ⭐ **THE RUNG IS NEARLY COSMETIC NEXT TO THE SPECIES.** A 5-rung band is
+   `1.12⁴` = **1.57 ×** wide; the roster's HPx spans **0.64 → 8.18**, a 9 ×
+   range. So *which species stands in a region* sets its difficulty by an order
+   of magnitude more than which rung that species takes. This is why §3.9's
+   "move species in, do not stretch" is not a style preference — **stretching
+   cannot reach the target at all**, because a region's difficulty is
+   essentially its roster. It also reframes what the `level` keys are for: they
+   make the plate and the XP honest, and the re-**placement** does the work.
+2. ⛔ **Boar and Stag are `wildlife_prey`, `hostileTo: []` — RETALIATION-ONLY.**
+   So §3.9 understated its own case: a Boar at 18 is not "a 516 HP healthbar
+   with a level-2 moveset", it is a **passive** 516 HP pinata that never fights
+   you until you open it. 26 of V's 31 spawns were that. Measured before
+   anything was placed, and it is what made D12 easy.
+3. ⛑ **The campfire assert is GEOMETRIC, and its first version was wrong in a
+   way that produced two false failures.** Treating a patroller's farthest
+   waypoint as a wander *radius* reads the two routes that pass near a fire as
+   if they surrounded it — both actually run **away**. `spawnpoint-2` scored
+   −3.35u and `spawnpoint-5` −0.81u against a correct world. A patroller is a
+   **polyline**: the clearance is the closest approach along its route.
+   *An assert that cries wolf on correct content gets deleted, not fixed.*
+4. ⛑ **The walk's obvious formulation is also wrong, for the same class of
+   reason.** "Every plate belongs to the region I warped to" scored **4 FAILs**
+   on a correct world — the viewport spans ~20 world units and every venue sees
+   across a seam (a West-wildlife Boar 4 visible from the Kobold hideout, the
+   horde's Bandits visible from the tunnel). What is actually assertable at the
+   game surface is **local**: every plate matches a placement authored within
+   15 units of where that plate stands. The D10 **band** claim is a property of
+   the FILE and is asserted there instead — checking it off a wandering mob adds
+   flakiness to a fact already pinned exactly.
+5. ⛑ **Plate text is the DISPLAY name, with spaces** — `Fire Elemental 17`, not
+   `FireElemental 17`. A `^[A-Za-z]+ \d+$` regex silently drops every
+   multi-word species (Dire Wolf, Alpha Wolf, Elite Bandit, Greater Fire
+   Elemental…), and it reads as **"no plates in view"**, not as a bug: the NE
+   fire pocket scored INCONCLUSIVE with three perfectly good elemental plates
+   on the screenshot. A plate's world position is `text.parent.{x,y}`, in wire
+   units.
+6. ⛑ **THREE harnesses had their premise moved by this chunk and are repaired
+   here, per the suite's own rule 8** — and the third is the one that shows the
+   class is worth hunting rather than waiting for. `c3-zone-editor-level`'s
+   protective leg asserted **`untouched === 0`**: *no pre-existing spawn carries
+   a level at all*. That was true only while no zone shipped a placement, so C2
+   turned it red (**423 with a level**) on entirely correct content, where it
+   reads as a C3 regression. ⚑ **It was invisible until the frontend was
+   rebuilt** — the editor's zone JSON is webpack-BUNDLED, so a stale `dist`
+   served the pre-C2 world and the leg passed against a file that no longer
+   existed. ⭐ **The repair is stronger than the original**: what the leg
+   protects is not ABSENCE but **non-interference** — an edit to one spawn must
+   not rewrite the levels of the ones it never touched — so it now compares the
+   pre-existing slice's levels before and after, which also catches a level
+   being *changed*, not merely added. 7/7. `c2-mob-level`'s CONTROL used to prove
+   the *catalog fallback* ("Stag 1 because nothing overrides it"); every combat
+   spawn now carries a level, so it proves only what it is named for — the
+   plate is per-instance — and that fallback now lives only in the Go tests.
+   `c0-honest-plate`'s subject **is** the V patroller: cL12 → **16**, which
+   stops dividing the two rules at player level 18, so its player level moved to
+   **22**. ⚑ It would have *said* so (leg 3 reported INCONCLUSIVE, exactly as
+   designed) — but a harness left self-labelling proves nothing.
+   ⭐ **And repairing it exposed a flakiness that was never C2's**: the venue
+   its header calls "the ISOLATED Marauder" is spawn **#402, a PATROLLER** with
+   three waypoints running ~13 units west, so most of the time it is nowhere
+   near its spawn point and the midpoint venue cannot see it. Two consecutive
+   single-sample runs scored the colour leg INCONCLUSIVE while the pay leg
+   found and killed it for **Δ460 both times** — the mob was fine, the sampling
+   was not. A bounded re-sample (8 × 4 s, until both plates share one frame)
+   takes it to **8/8**, above the **6/8** its own C0 ledger recorded. *"Isolated"
+   was true of its NEIGHBOURS — nine other Marauders sit 45 units away — and
+   said nothing about it standing still.*
+
+⚑ **The measurement `xp C2` should actually read.** "Fight size" = a spawn's HP
+as a multiple of a level-1 Wolf, and the useful column is the **ratio to a Wolf
+at that region's band top** — i.e. how big the typical fight is against a
+*standard mob of the level the plate claims*:
+
+```
+ region  band       median fight size          x a Wolf at band top
+   F     1-3     1.1x -> 1.2x                  0.89 -> 0.97
+   W     2-6     1.1x -> 1.3x                  0.64 -> 0.71
+   D     4-8     1.1x -> 4.0x                  0.51 -> 1.83
+   K     6-10    1.1x -> 2.2x                  0.40 -> 0.80
+   M     8-12    1.2x -> 2.7x                  0.35 -> 0.78
+   T    10-14    2.1x -> 4.7x                  0.49 -> 1.09
+   B    12-16    4.0x -> 10.0x                 0.74 -> 1.83
+   V    14-18    4.0x -> 14.4x                 0.59 -> 2.10
+   P    17-20   20.6x -> 20.6x                 2.39 -> 2.39   (untouched, D8)
+   R      —     65.8x -> 65.8x                 7.64 -> 7.64   (untouched, D5)
+```
+
+⭐ **Before this pass every region except P and R sat at 0.35–0.89 ×** — the
+whole world was *below* the level it presented, which is the defect the chain
+was called for. After, the low half lands at **0.71–1.0 ×** (at level) and the
+high half at **1.8–2.1 ×**.
+
+⛔ **That 1.8–2.1 × is C2's most significant untested consequence, and D12
+caused part of it.** The heavy end has two sources: elite-tier species in D and
+B (EliteWolf, EliteBandit — legitimately big fights), and in **V, the archetype
+family the ruling picked.** The `wildlife_predator` roster *is* the HP-heavy
+family (DireBear 5.16 ×, EliteWolf 4.80 ×, Bear 3.49 ×, AlphaWolf 2.95 ×) while
+the rejected bandit roster holds the light species (BanditRanged 1.09 ×,
+BanditHealer 1.20 ×). **D12 bought V's identity with fight length**, and there
+was no light predator to spend instead — the only one is the Wolf, which at 14
+is L2's stretched kit in its purest form. Recorded, not fixed: it is a
+calibration question and `xp C2` owns it.
+
+⛑ **What was NOT tuned — §3.11, and read it before calibrating.** No mob speed
+was measured (C1's seven reshaped species come out of this pass exactly as
+untested as they went in; **DireWolf 0.88 → 0.55 across 42 spawns** is still
+open) · `respawnTicks` and `wanderRadius` are unchanged and the diff guard
+proves it · the 27 re-skinned points keep their authored `wanderRadius` /
+`idleSpeedFactor`, which are properties of the spot, not the species (18 of
+the 27 carry one) · `proving-grounds.json` untouched per §4.5 · **levels 21–30
+are still empty by D5**. ⚑ The sequencing note for whoever tunes next: a
+post-placement `factors.speed` edit is **safe** (speed is not in
+`PowerScale()`, §3.5); an HP or damage edit **re-prices every placement this
+pass just made**. That is what **L6** actually protects.
+
+⚑ **§4.2's patrol decision, taken:** a patroller keeps its route and takes the
+region of its **spawn point**. Two of the six routes descend one band (#239
+DireWolf B→M at 14, #402 Marauder V→M at 16) — a scout from the harder region
+walking the road, which is content rather than a defect. None of the six was
+re-skinned.
+
+**Verified:** `scripts/world-place.py --check` **all legs green**, and **every
+leg proven RED first** against a mutated copy (a mob parked on the village
+fire · an over-band Orc inside the clearance ring · one spawn losing its level ·
+a stray `respawnTicks` edit · the quest floor breached · a level pushed out of
+band) · `scripts/world-regions.py --levels` **423/423 resolved, 423/423
+levelled** · **`c2-world-walk` 10 PASS / 0 FAIL / 0 INCONCLUSIVE, 0 console
+errors** (NEW) · **`c0-honest-plate` 8/8, 0 FAIL, 0 INCONCLUSIVE** · **`c3-zone-editor-level` 7/7, 0 console errors** after its repair, run against a **freshly rebuilt** `frontend/dist` after its
+repair — the Marauder now plates **green** (`5fd35f`) at level 16 and pays
+**460**, the ring Boar plates gray and pays **0** · `go
+build` / `go vet` clean with **no Go file changed** · full Go suite **53 packages** — 0 FAIL on a clean run, with **one documented pre-existing nondeterministic red**, `sys.TestDwell_TakeoffDropsAnInProgressCount` (C0's ledger already carries it as unowned). ⚑ **Measured, not assumed**: it fails **13/20 and 13/20 with C2's `world.json` STASHED**, versus 4–11/20 with it — so C2 neither causes nor worsens it, and there is no mechanism (it is a flight-dwell fixture and F, the region holding `spawnpoint-1`, had no re-skin) · `db-test` green **uncached** against real Postgres · boot
+`-content ../api` 15 factions / 87 skills / 65 mobs / 3 milestones / 10 recipes
+/ 4 quests / 5 props / 777 props / **485 spawns** / 5 campfires, **0 panics, 0
+errors, 0 warnings**, and `grayBase=5 grayStep=6` confirmed as the cold-start
+section required · **no frontend source and no `.fbs` changed**, so `tsc`,
+vitest and **`hygiene-wire-prune` are not implicated** (reasoned against the
+coverage map, not skipped).
+
+**Schema impact: DB NONE · FlatBuffers NONE · content JSON YES**
+(`api/zones/world.json` + its embedded copy under `backend/pkg/api/`, which
+`cp-defs` syncs — **no `api/mobs/` change**: C1 owns the catalog and L6 requires
+it to have moved first, which it did).

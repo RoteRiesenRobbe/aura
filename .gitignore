@@ -28,3 +28,4 @@ frontend/package-lock.json
 # read by eye, so the scripts shoot deliberately and every run overwrites them.
 # Ignored rather than swept, so `git status` after a harness run stays readable.
 /.claude/skills/verify/*.png
+scripts/__pycache__/

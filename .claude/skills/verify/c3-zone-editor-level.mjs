@@ -120,7 +120,10 @@ const deselect = async () => {
   }
 };
 
-const before = (await exportedSpawns()).length;
+// The zone as it stands before the probe touches anything — kept whole, not
+// just counted, because the non-interference leg below compares levels.
+const baseline = await exportedSpawns();
+const before = baseline.length;
 
 // Leg 2 — an authored level reaches the export.
 await page.fill('#zoneEditor_spawnLevel', String(LEVEL));
@@ -184,11 +187,27 @@ record('a spawn placed with a blank field exports no level key',
   spawns.length === before + 2 && inherited?.mob === MOB && !('level' in (inherited || {})),
   JSON.stringify(inherited));
 
-// …and the untouched ones stay untouched — the property that protects the
-// other 485 spawns from a one-spawn edit.
-const untouched = spawns.slice(0, before).filter((s) => 'level' in s).length;
-record('no pre-existing spawn gained a level key', untouched === 0,
-  `${before} pre-existing spawns, ${untouched} with a level`);
+// …and the untouched ones stay untouched — the property that protects every
+// other spawn in the zone from a one-spawn edit.
+//
+// ⚑ THIS LEG WAS REWRITTEN IN world-replacement C2 (2026-08-06), because the
+// world moved out from under it. It used to assert `untouched === 0` — no
+// pre-existing spawn carries a level at all — which was true only while NO
+// zone shipped a placement. C2 authored one on all 423 combat spawns, so the
+// old form went red on correct content and read as a C3 regression.
+//
+// What it was really protecting is not ABSENCE, it is NON-INTERFERENCE: an
+// edit to one spawn must not rewrite the levels of the ones it never touched.
+// So the assertion is now that the pre-existing slice round-trips **exactly**,
+// levels and all — which is strictly stronger than the old form (it would also
+// catch a level being changed, not just added) and no longer depends on the
+// world happening to be un-levelled.
+const beforeLevels = JSON.stringify(baseline.map((s) => s.level ?? null));
+const afterLevels = JSON.stringify(spawns.slice(0, before).map((s) => s.level ?? null));
+const authored = baseline.filter((s) => 'level' in s).length;
+record('no pre-existing spawn had its level added, changed or dropped',
+  beforeLevels === afterLevels,
+  `${before} pre-existing spawns, ${authored} authored a level — all unchanged`);
 
 // Leg 5 — a fraction is refused, and refusal means NOTHING is placed.
 await deselect();

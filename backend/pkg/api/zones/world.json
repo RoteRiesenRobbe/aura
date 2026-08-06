@@ -9750,7 +9750,8 @@
       "y": 10.8,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 4
     },
     {
       "mob": "Boar",
@@ -9758,7 +9759,8 @@
       "y": 13.2,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 4
     },
     {
       "mob": "Boar",
@@ -9766,7 +9768,8 @@
       "y": 2.4,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 4
     },
     {
       "mob": "Boar",
@@ -9774,7 +9777,8 @@
       "y": 14.4,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 4
     },
     {
       "mob": "Stag",
@@ -9782,7 +9786,8 @@
       "y": 2.4,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Stag",
@@ -9790,7 +9795,8 @@
       "y": 1.8,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Stag",
@@ -9798,7 +9804,8 @@
       "y": 3,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Stag",
@@ -9806,7 +9813,8 @@
       "y": 6,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Stag",
@@ -9814,7 +9822,8 @@
       "y": 14.4,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Stag",
@@ -9822,7 +9831,8 @@
       "y": 13.2,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Stag",
@@ -9830,7 +9840,8 @@
       "y": 9.6,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Stag",
@@ -9838,7 +9849,8 @@
       "y": -1.2,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Wolf",
@@ -9847,7 +9859,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -9855,7 +9868,8 @@
       "y": 0,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -9863,7 +9877,8 @@
       "y": 0.6,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -9872,7 +9887,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 4
     },
     {
       "mob": "Wolf",
@@ -9881,7 +9897,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 4
     },
     {
       "mob": "Wolf",
@@ -9890,7 +9907,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 4
     },
     {
       "mob": "Wolf",
@@ -9898,7 +9916,8 @@
       "y": 16.8,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -9906,7 +9925,8 @@
       "y": 17.7,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -9914,7 +9934,8 @@
       "y": 18,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Bear",
@@ -9922,7 +9943,8 @@
       "y": -9.6,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 7
     },
     {
       "mob": "Bear",
@@ -9931,7 +9953,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 7
     },
     {
       "mob": "Bear",
@@ -9940,7 +9963,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 7
     },
     {
       "mob": "EliteWolf",
@@ -9949,7 +9973,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 8
     },
     {
       "mob": "Bramble",
@@ -9990,7 +10015,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -9999,7 +10025,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -10008,7 +10035,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -10016,7 +10044,8 @@
       "y": 9,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -10024,7 +10053,8 @@
       "y": 8.83,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -10032,23 +10062,26 @@
       "y": 8.27,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
-      "mob": "Wolf",
+      "mob": "DireWolf",
       "x": -40.26,
       "y": 0.62,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 5
     },
     {
-      "mob": "Wolf",
+      "mob": "DireWolf",
       "x": -40.02,
       "y": -0.17,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 5
     },
     {
       "mob": "Boar",
@@ -10056,7 +10089,8 @@
       "y": 7.75,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 4
     },
     {
       "mob": "Boar",
@@ -10064,7 +10098,8 @@
       "y": 15.81,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 4
     },
     {
       "mob": "Boar",
@@ -10072,7 +10107,8 @@
       "y": -2.06,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 4
     },
     {
       "mob": "Boar",
@@ -10080,7 +10116,8 @@
       "y": 4.25,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 4
     },
     {
       "mob": "Boar",
@@ -10089,7 +10126,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 4
     },
     {
       "mob": "Boar",
@@ -10097,7 +10135,8 @@
       "y": 7.22,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 4
     },
     {
       "mob": "Stag",
@@ -10105,7 +10144,8 @@
       "y": 15.01,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Stag",
@@ -10113,7 +10153,8 @@
       "y": 4.45,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Stag",
@@ -10121,7 +10162,8 @@
       "y": 10.1,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Stag",
@@ -10129,7 +10171,8 @@
       "y": 1.07,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Wolf",
@@ -10137,7 +10180,8 @@
       "y": -29.5,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 10
     },
     {
       "mob": "Wolf",
@@ -10145,7 +10189,8 @@
       "y": -28.27,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 10
     },
     {
       "mob": "Wolf",
@@ -10153,7 +10198,8 @@
       "y": -28.39,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 10
     },
     {
       "mob": "Boar",
@@ -10161,7 +10207,8 @@
       "y": -4.99,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 4
     },
     {
       "mob": "Stag",
@@ -10169,25 +10216,28 @@
       "y": -10.09,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
-      "mob": "Wolf",
+      "mob": "Spider",
       "x": -48.7,
       "y": -25.57,
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 5
     },
     {
-      "mob": "Wolf",
+      "mob": "DireWolf",
       "x": -47.91,
       "y": -25.57,
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 6
     },
     {
       "mob": "Bear",
@@ -10195,7 +10245,8 @@
       "y": -17.81,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 7
     },
     {
       "mob": "Stag",
@@ -10203,7 +10254,8 @@
       "y": 32.77,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Stag",
@@ -10211,7 +10263,8 @@
       "y": 22.78,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Kobold",
@@ -10220,7 +10273,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -10229,7 +10283,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -10238,7 +10293,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -10247,7 +10303,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -10256,7 +10313,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 7
     },
     {
       "mob": "KoboldRanged",
@@ -10264,7 +10322,8 @@
       "y": 22.8,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 6
     },
     {
       "mob": "KoboldRanged",
@@ -10273,7 +10332,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 6
     },
     {
       "mob": "KoboldRanged",
@@ -10282,7 +10342,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 6
     },
     {
       "mob": "Kobold",
@@ -10291,7 +10352,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0.5
+      "wanderRadius": 0.5,
+      "level": 7
     },
     {
       "mob": "Rockfall",
@@ -10315,7 +10377,8 @@
       "y": -25.8,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 11
     },
     {
       "mob": "VenomSpider",
@@ -10323,7 +10386,8 @@
       "y": -24.9,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 11
     },
     {
       "mob": "PoisonPool",
@@ -10340,7 +10404,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 11
     },
     {
       "mob": "Spider",
@@ -10349,7 +10414,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 11
     },
     {
       "mob": "Spider",
@@ -10358,7 +10424,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "Spider",
@@ -10367,7 +10434,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "VenomSpider",
@@ -10376,7 +10444,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "VenomSpider",
@@ -10385,7 +10454,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2.5
+      "wanderRadius": 2.5,
+      "level": 11
     },
     {
       "mob": "VenomSpider",
@@ -10394,7 +10464,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "PoisonPool",
@@ -10426,7 +10497,8 @@
       "y": -24.2,
       "angle": 2.45,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 16
     },
     {
       "mob": "BanditHealer",
@@ -10434,7 +10506,8 @@
       "y": -21.5,
       "angle": 0.51,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 12
     },
     {
       "mob": "Bandit",
@@ -10442,7 +10515,8 @@
       "y": -20.75,
       "angle": 0.36,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 13
     },
     {
       "mob": "Bandit",
@@ -10450,7 +10524,8 @@
       "y": -18.8,
       "angle": 1.93,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 13
     },
     {
       "mob": "Bandit",
@@ -10458,7 +10533,8 @@
       "y": -21.23,
       "angle": 3.11,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 13
     },
     {
       "mob": "Bandit",
@@ -10466,7 +10542,8 @@
       "y": -24.62,
       "angle": 5.73,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 13
     },
     {
       "mob": "BanditRanged",
@@ -10474,7 +10551,8 @@
       "y": -23.77,
       "angle": 5.99,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 12
     },
     {
       "mob": "BanditRanged",
@@ -10482,7 +10560,8 @@
       "y": -22.75,
       "angle": 0.71,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 12
     },
     {
       "mob": "RallyDrummer",
@@ -10491,7 +10570,8 @@
       "angle": 5.725,
       "respawnTicks": 10800,
       "respawnVariancePct": 0.1,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 10
     },
     {
       "mob": "BanditHealer",
@@ -10500,7 +10580,8 @@
       "angle": 1.658,
       "respawnTicks": 10800,
       "respawnVariancePct": 0.1,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 9
     },
     {
       "mob": "Bandit",
@@ -10509,7 +10590,8 @@
       "angle": 1.117,
       "respawnTicks": 10800,
       "respawnVariancePct": 0.1,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 10
     },
     {
       "mob": "Bandit",
@@ -10518,7 +10600,8 @@
       "angle": 5.603,
       "respawnTicks": 10800,
       "respawnVariancePct": 0.1,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 10
     },
     {
       "mob": "Bandit",
@@ -10527,7 +10610,8 @@
       "angle": 1.117,
       "respawnTicks": 10800,
       "respawnVariancePct": 0.1,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 10
     },
     {
       "mob": "BanditRanged",
@@ -10536,7 +10620,8 @@
       "angle": 2.147,
       "respawnTicks": 10800,
       "respawnVariancePct": 0.1,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 9
     },
     {
       "mob": "BanditRanged",
@@ -10545,23 +10630,26 @@
       "angle": 0.524,
       "respawnTicks": 10800,
       "respawnVariancePct": 0.1,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 9
     },
     {
-      "mob": "Boar",
+      "mob": "Bear",
       "x": 56.34,
       "y": 3.38,
       "angle": 4.85,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 16
     },
     {
-      "mob": "Stag",
+      "mob": "EliteWolf",
       "x": 61.36,
       "y": 20.06,
       "angle": 3.38,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 17
     },
     {
       "mob": "Wolf",
@@ -10570,15 +10658,17 @@
       "angle": 0.07,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 8
     },
     {
-      "mob": "Boar",
+      "mob": "Bear",
       "x": 53.16,
       "y": 2.56,
       "angle": 2.51,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 16
     },
     {
       "mob": "ArmySoldier",
@@ -10650,7 +10740,8 @@
       "y": 32.1,
       "angle": 3.93,
       "respawnTicks": 7200,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 20
     },
     {
       "mob": "Orc",
@@ -10658,7 +10749,8 @@
       "y": 32.06,
       "angle": 4,
       "respawnTicks": 7200,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 20
     },
     {
       "mob": "Orc",
@@ -10666,7 +10758,8 @@
       "y": 32.05,
       "angle": 4.91,
       "respawnTicks": 7200,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 20
     },
     {
       "mob": "Orc",
@@ -10674,7 +10767,8 @@
       "y": 32.61,
       "angle": 1.74,
       "respawnTicks": 7200,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 20
     },
     {
       "mob": "Orc",
@@ -10682,7 +10776,8 @@
       "y": 32.5,
       "angle": 1.93,
       "respawnTicks": 7200,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 20
     },
     {
       "mob": "Orc",
@@ -10690,7 +10785,8 @@
       "y": 33.9,
       "angle": 1,
       "respawnTicks": 7200,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 20
     },
     {
       "mob": "Orc",
@@ -10698,7 +10794,8 @@
       "y": 33.4,
       "angle": 3.18,
       "respawnTicks": 7200,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 20
     },
     {
       "mob": "SpikeBarricade",
@@ -10778,7 +10875,8 @@
       "y": -19,
       "angle": 0,
       "respawnTicks": 3600,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 13
     },
     {
       "mob": "BanditPyromancer",
@@ -10786,7 +10884,8 @@
       "y": -25.5,
       "angle": 0,
       "respawnTicks": 3600,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 13
     },
     {
       "mob": "BanditPyromancer",
@@ -10795,7 +10894,8 @@
       "angle": 0,
       "respawnTicks": 3600,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 10
     },
     {
       "mob": "Wolf",
@@ -10803,7 +10903,8 @@
       "y": -0.19,
       "angle": 1.71,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -10811,7 +10912,8 @@
       "y": 6.93,
       "angle": 1.09,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -10819,7 +10921,8 @@
       "y": -12.27,
       "angle": 1.23,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -10827,15 +10930,17 @@
       "y": -14.62,
       "angle": 3.17,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
-      "mob": "Wolf",
+      "mob": "AlphaWolf",
       "x": -10.57,
       "y": -12.35,
       "angle": 1.77,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 10
     },
     {
       "mob": "Stag",
@@ -10843,7 +10948,8 @@
       "y": -6.57,
       "angle": 3.2,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Stag",
@@ -10851,7 +10957,8 @@
       "y": 5.13,
       "angle": 1.6,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Stag",
@@ -10859,7 +10966,8 @@
       "y": 16.97,
       "angle": 2.61,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Stag",
@@ -10867,7 +10975,8 @@
       "y": -9.73,
       "angle": 2.84,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 6
     },
     {
       "mob": "Boar",
@@ -10875,7 +10984,8 @@
       "y": 10.62,
       "angle": 3.04,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "Boar",
@@ -10883,7 +10993,8 @@
       "y": -19.27,
       "angle": 2.82,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 11
     },
     {
       "mob": "Boar",
@@ -10891,7 +11002,8 @@
       "y": 1.24,
       "angle": 4.73,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "Boar",
@@ -10899,7 +11011,8 @@
       "y": -2.38,
       "angle": 1.3,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "Bear",
@@ -10907,7 +11020,8 @@
       "y": 15.28,
       "angle": 2.4,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 12
     },
     {
       "mob": "Boar",
@@ -10915,7 +11029,8 @@
       "y": 33.74,
       "angle": 1.55,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Boar",
@@ -10923,7 +11038,8 @@
       "y": 26.8,
       "angle": 2.94,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "Boar",
@@ -10931,7 +11047,8 @@
       "y": 28.68,
       "angle": 5.97,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "Boar",
@@ -10939,7 +11056,8 @@
       "y": 30.92,
       "angle": 0.29,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "Boar",
@@ -10947,7 +11065,8 @@
       "y": 23.45,
       "angle": 3.82,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Stag",
@@ -10955,7 +11074,8 @@
       "y": 28.06,
       "angle": 3.65,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Stag",
@@ -10963,7 +11083,8 @@
       "y": 28.75,
       "angle": 1.33,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -10971,7 +11092,8 @@
       "y": 23.35,
       "angle": 0.12,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -10979,7 +11101,8 @@
       "y": 23.19,
       "angle": 4.61,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -10987,7 +11110,8 @@
       "y": -20.98,
       "angle": 0.01,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 10
     },
     {
       "mob": "Bear",
@@ -10995,23 +11119,26 @@
       "y": -19.34,
       "angle": 4.62,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 13
     },
     {
-      "mob": "Stag",
+      "mob": "AlphaWolf",
       "x": 49.12,
       "y": 21.66,
       "angle": 3.38,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 15
     },
     {
-      "mob": "Boar",
+      "mob": "AlphaWolf",
       "x": 35.7,
       "y": 21.81,
       "angle": 3.94,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 15
     },
     {
       "mob": "Boar",
@@ -11019,15 +11146,17 @@
       "y": 17.68,
       "angle": 5.47,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
-      "mob": "Boar",
+      "mob": "EliteWolf",
       "x": 60.66,
       "y": 15.91,
       "angle": 2.63,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 17
     },
     {
       "mob": "Kobold",
@@ -11035,7 +11164,8 @@
       "y": 1.05,
       "angle": 3.53,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -11043,7 +11173,8 @@
       "y": 6.27,
       "angle": 2.85,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -11051,7 +11182,8 @@
       "y": 6.69,
       "angle": 0.02,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -11059,7 +11191,8 @@
       "y": 5.55,
       "angle": 1.74,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -11067,7 +11200,8 @@
       "y": 0.05,
       "angle": 2.72,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 7
     },
     {
       "mob": "KoboldRanged",
@@ -11075,7 +11209,8 @@
       "y": 4.71,
       "angle": 0.98,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 6
     },
     {
       "mob": "KoboldRanged",
@@ -11083,7 +11218,8 @@
       "y": -1.84,
       "angle": 0.84,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 6
     },
     {
       "mob": "KoboldRanged",
@@ -11091,16 +11227,18 @@
       "y": 9.52,
       "angle": 5.33,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 6
     },
     {
-      "mob": "Wolf",
+      "mob": "DireWolf",
       "x": -47.74,
       "y": -29.02,
       "angle": 6.144,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0.5
+      "wanderRadius": 0.5,
+      "level": 6
     },
     {
       "mob": "Boar",
@@ -11108,7 +11246,8 @@
       "y": -14.93,
       "angle": 1.86,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "Stag",
@@ -11116,7 +11255,8 @@
       "y": -16.29,
       "angle": 4.53,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 10
     },
     {
       "mob": "Wolf",
@@ -11124,7 +11264,8 @@
       "y": -10.13,
       "angle": 3.73,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 4
     },
     {
       "mob": "Stag",
@@ -11132,7 +11273,8 @@
       "y": -9.1,
       "angle": 0.53,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 6
     },
     {
       "mob": "Wolf",
@@ -11140,7 +11282,8 @@
       "y": 6.95,
       "angle": 0.59,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Stag",
@@ -11148,7 +11291,8 @@
       "y": 14.55,
       "angle": 2.09,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Stag",
@@ -11156,7 +11300,8 @@
       "y": 17.56,
       "angle": 0.03,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Stag",
@@ -11164,7 +11309,8 @@
       "y": 22.55,
       "angle": 4.21,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 1
     },
     {
       "mob": "Boar",
@@ -11172,16 +11318,18 @@
       "y": 28.78,
       "angle": 1.6,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
-      "mob": "Wolf",
+      "mob": "Bear",
       "x": -37.25,
       "y": -14.29,
       "angle": 2.409,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 6
     },
     {
       "mob": "Wolf",
@@ -11189,7 +11337,8 @@
       "y": -13.6,
       "angle": 6.12,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Bear",
@@ -11198,7 +11347,8 @@
       "angle": 0.297,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0
+      "wanderRadius": 0,
+      "level": 7
     },
     {
       "mob": "Wolf",
@@ -11206,7 +11356,8 @@
       "y": -10.02,
       "angle": 3.28,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Boar",
@@ -11214,7 +11365,8 @@
       "y": -7.25,
       "angle": 4.73,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -11222,7 +11374,8 @@
       "y": -7.13,
       "angle": 3.07,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Boar",
@@ -11230,7 +11383,8 @@
       "y": -3.48,
       "angle": 1.4,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -11238,7 +11392,8 @@
       "y": 1.25,
       "angle": 3.13,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Stag",
@@ -11246,7 +11401,8 @@
       "y": 1.31,
       "angle": 5.61,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 6
     },
     {
       "mob": "Wolf",
@@ -11254,7 +11410,8 @@
       "y": 4.18,
       "angle": 2.3,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Boar",
@@ -11262,7 +11419,8 @@
       "y": 11.26,
       "angle": 5.76,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 4
     },
     {
       "mob": "Stag",
@@ -11270,7 +11428,8 @@
       "y": 14.23,
       "angle": 4.18,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Wolf",
@@ -11278,7 +11437,8 @@
       "y": 17.53,
       "angle": 2.31,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -11286,7 +11446,8 @@
       "y": 18.36,
       "angle": 0.92,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -11294,7 +11455,8 @@
       "y": 20.54,
       "angle": 1,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -11303,7 +11465,8 @@
       "angle": 3.875,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 4
     },
     {
       "mob": "Boar",
@@ -11311,7 +11474,8 @@
       "y": -12.14,
       "angle": 5.37,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "DireWolf",
@@ -11319,7 +11483,8 @@
       "y": -12.99,
       "angle": 3.59,
       "respawnTicks": 2400,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 13
     },
     {
       "mob": "Wolf",
@@ -11327,7 +11492,8 @@
       "y": -9.51,
       "angle": 6.21,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Boar",
@@ -11335,7 +11501,8 @@
       "y": -9.66,
       "angle": 4.25,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "Wolf",
@@ -11343,7 +11510,8 @@
       "y": -9.6,
       "angle": 2.02,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "DireBear",
@@ -11352,7 +11520,8 @@
       "angle": 2.443,
       "respawnTicks": 4800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 16
     },
     {
       "mob": "Wolf",
@@ -11360,7 +11529,8 @@
       "y": -7.11,
       "angle": 0.72,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Kobold",
@@ -11368,7 +11538,8 @@
       "y": -5.08,
       "angle": 0.39,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 7
     },
     {
       "mob": "Wolf",
@@ -11376,7 +11547,8 @@
       "y": -6.23,
       "angle": 3.36,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Stag",
@@ -11384,7 +11556,8 @@
       "y": -6.89,
       "angle": 3.01,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Boar",
@@ -11392,7 +11565,8 @@
       "y": -6.01,
       "angle": 4.62,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "Boar",
@@ -11400,15 +11574,17 @@
       "y": -3.71,
       "angle": 1.93,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
-      "mob": "Boar",
+      "mob": "Bear",
       "x": 50.2,
       "y": -2.04,
       "angle": 2.9,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 16
     },
     {
       "mob": "Boar",
@@ -11416,7 +11592,8 @@
       "y": 4,
       "angle": 4.67,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "Wolf",
@@ -11424,7 +11601,8 @@
       "y": 1.74,
       "angle": 4.52,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Bear",
@@ -11432,7 +11610,8 @@
       "y": 7.63,
       "angle": 1.36,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 12
     },
     {
       "mob": "Wolf",
@@ -11440,7 +11619,8 @@
       "y": 12.03,
       "angle": 4.77,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -11448,7 +11628,8 @@
       "y": 11.96,
       "angle": 4.45,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Boar",
@@ -11456,7 +11637,8 @@
       "y": 15.55,
       "angle": 1.25,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Boar",
@@ -11464,7 +11646,8 @@
       "y": 18.23,
       "angle": 6.03,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Stag",
@@ -11472,7 +11655,8 @@
       "y": 17.91,
       "angle": 0.83,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Bear",
@@ -11480,7 +11664,8 @@
       "y": 21.17,
       "angle": 1.03,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 12
     },
     {
       "mob": "Stag",
@@ -11488,7 +11673,8 @@
       "y": 28.11,
       "angle": 1.64,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "Stag",
@@ -11496,7 +11682,8 @@
       "y": 29.88,
       "angle": 2.84,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 1
     },
     {
       "mob": "Stag",
@@ -11505,7 +11692,8 @@
       "angle": 5.445,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 6
     },
     {
       "mob": "Boar",
@@ -11513,7 +11701,8 @@
       "y": 31.63,
       "angle": 3.73,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Boar",
@@ -11521,7 +11710,8 @@
       "y": 34.18,
       "angle": 0.67,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 2
     },
     {
       "mob": "Turnip",
@@ -11529,7 +11719,8 @@
       "y": 30.1,
       "angle": 0,
       "respawnTicks": 600,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 1
     },
     {
       "mob": "Turnip",
@@ -11537,7 +11728,8 @@
       "y": 30.4,
       "angle": 0,
       "respawnTicks": 600,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 1
     },
     {
       "mob": "Turnip",
@@ -11545,7 +11737,8 @@
       "y": 30.2,
       "angle": 0,
       "respawnTicks": 600,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 1
     },
     {
       "mob": "Turnip",
@@ -11553,7 +11746,8 @@
       "y": 31.2,
       "angle": 0,
       "respawnTicks": 600,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 1
     },
     {
       "mob": "Turnip",
@@ -11561,7 +11755,8 @@
       "y": 31.4,
       "angle": 0,
       "respawnTicks": 600,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 1
     },
     {
       "mob": "Wolf",
@@ -11569,7 +11764,8 @@
       "y": 11.75,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -11577,7 +11773,8 @@
       "y": 13.9,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -11585,7 +11782,8 @@
       "y": 14.41,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -11594,7 +11792,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -11602,7 +11801,8 @@
       "y": 29.88,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -11610,7 +11810,8 @@
       "y": 34.76,
       "angle": 0,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -11619,7 +11820,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -11628,7 +11830,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -11636,7 +11839,8 @@
       "y": 11.71,
       "angle": 0.663,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -11644,7 +11848,8 @@
       "y": 8.58,
       "angle": 0.663,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -11652,7 +11857,8 @@
       "y": 10.09,
       "angle": 0.663,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -11660,7 +11866,8 @@
       "y": 8.67,
       "angle": 0.663,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -11668,7 +11875,8 @@
       "y": 29.7,
       "angle": 0.663,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -11676,7 +11884,8 @@
       "y": 34.2,
       "angle": 0.663,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 3
     },
     {
       "mob": "Boar",
@@ -11684,7 +11893,8 @@
       "y": 22.24,
       "angle": 1.885,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 8
     },
     {
       "mob": "DireWolf",
@@ -11692,7 +11902,8 @@
       "y": -8.65,
       "angle": 1.885,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "AlphaWolf",
@@ -11700,7 +11911,8 @@
       "y": -20.14,
       "angle": 0,
       "respawnTicks": 10800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 14
     },
     {
       "mob": "DireWolf",
@@ -11709,6 +11921,7 @@
       "angle": 0.436,
       "respawnTicks": 2400,
       "respawnVariancePct": 0.2,
+      "level": 13,
       "waypoints": [
         {
           "x": 25.13,
@@ -11730,7 +11943,8 @@
       "y": 35.34,
       "angle": 0,
       "respawnTicks": 10800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 18
     },
     {
       "mob": "Troll",
@@ -11738,7 +11952,8 @@
       "y": 35.62,
       "angle": 0,
       "respawnTicks": 10800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 17
     },
     {
       "mob": "Troll",
@@ -11746,7 +11961,8 @@
       "y": 35.4,
       "angle": 0,
       "respawnTicks": 10800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 17
     },
     {
       "mob": "Bandit",
@@ -11755,7 +11971,8 @@
       "angle": 0,
       "respawnTicks": 10800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0
+      "wanderRadius": 0,
+      "level": 10
     },
     {
       "mob": "Bandit",
@@ -11764,7 +11981,8 @@
       "angle": 0,
       "respawnTicks": 10800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0
+      "wanderRadius": 0,
+      "level": 10
     },
     {
       "mob": "Bandit",
@@ -11773,7 +11991,8 @@
       "angle": 0,
       "respawnTicks": 10800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0
+      "wanderRadius": 0,
+      "level": 10
     },
     {
       "mob": "PoisonPool",
@@ -11790,7 +12009,8 @@
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "Spider",
@@ -11799,7 +12019,8 @@
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 12
     },
     {
       "mob": "PoisonPool",
@@ -11816,7 +12037,8 @@
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 12
     },
     {
       "mob": "Spider",
@@ -11825,7 +12047,8 @@
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 12
     },
     {
       "mob": "Wolf",
@@ -11833,7 +12056,8 @@
       "y": -22.3,
       "angle": 5.76,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 10
     },
     {
       "mob": "Wolf",
@@ -11841,7 +12065,8 @@
       "y": -21.11,
       "angle": 5.76,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 10
     },
     {
       "mob": "Wolf",
@@ -11849,7 +12074,8 @@
       "y": -24.29,
       "angle": 5.76,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 10
     },
     {
       "mob": "Wolf",
@@ -11857,7 +12083,8 @@
       "y": -20.47,
       "angle": 5.76,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 10
     },
     {
       "mob": "Wolf",
@@ -11865,7 +12092,8 @@
       "y": -18.27,
       "angle": 5.76,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 10
     },
     {
       "mob": "AlphaWolf",
@@ -11873,7 +12101,8 @@
       "y": -17.61,
       "angle": 5.76,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 13
     },
     {
       "mob": "DireWolf",
@@ -11881,7 +12110,8 @@
       "y": -10.41,
       "angle": 5.76,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 11
     },
     {
       "mob": "GiantSpider",
@@ -11891,6 +12121,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 0,
+      "level": 14,
       "waypoints": [
         {
           "x": 31.94,
@@ -11910,7 +12141,8 @@
       "angle": 1.309,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 12
     },
     {
       "mob": "Troll",
@@ -11919,7 +12151,8 @@
       "angle": 3.857,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 13
     },
     {
       "mob": "Wolf",
@@ -11928,7 +12161,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 3
     },
     {
       "mob": "Boar",
@@ -11937,7 +12171,8 @@
       "angle": 1.71,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 11
     },
     {
       "mob": "Spider",
@@ -11946,7 +12181,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 11
     },
     {
       "mob": "Spider",
@@ -11955,7 +12191,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 11
     },
     {
       "mob": "DireWolf",
@@ -11964,7 +12201,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 12
     },
     {
       "mob": "DireWolf",
@@ -11973,7 +12211,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 12
     },
     {
       "mob": "DireWolf",
@@ -11982,7 +12221,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 12
     },
     {
       "mob": "DireWolf",
@@ -11991,7 +12231,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 11
     },
     {
       "mob": "DireWolf",
@@ -12000,7 +12241,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 11
     },
     {
       "mob": "Kobold",
@@ -12009,7 +12251,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -12018,7 +12261,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -12027,7 +12271,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 7
     },
     {
       "mob": "Boar",
@@ -12036,7 +12281,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 2
     },
     {
       "mob": "Boar",
@@ -12045,7 +12291,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 2
     },
     {
       "mob": "Boar",
@@ -12054,7 +12301,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 2
     },
     {
       "mob": "Boar",
@@ -12063,7 +12311,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 2
     },
     {
       "mob": "Boar",
@@ -12072,7 +12321,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 2
     },
     {
       "mob": "Boar",
@@ -12081,7 +12331,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 2
     },
     {
       "mob": "Boar",
@@ -12090,7 +12341,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 4
     },
     {
       "mob": "Boar",
@@ -12099,7 +12351,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 4
     },
     {
       "mob": "PoisonPool",
@@ -12134,22 +12387,24 @@
       "respawnVariancePct": 0
     },
     {
-      "mob": "DireWolf",
+      "mob": "AlphaWolf",
       "x": 43.73,
       "y": 20.26,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 15
     },
     {
-      "mob": "DireWolf",
+      "mob": "AlphaWolf",
       "x": 47.17,
       "y": 18.68,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 15
     },
     {
       "mob": "EliteWolf",
@@ -12157,7 +12412,8 @@
       "y": -5.3,
       "angle": 5.498,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 17
     },
     {
       "mob": "DireWolf",
@@ -12165,7 +12421,8 @@
       "y": -8.36,
       "angle": 5.341,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 14
     },
     {
       "mob": "EliteWolf",
@@ -12173,7 +12430,8 @@
       "y": -9.35,
       "angle": 5.341,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 15
     },
     {
       "mob": "EliteWolf",
@@ -12181,7 +12439,8 @@
       "y": -14.6,
       "angle": 5.341,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 15
     },
     {
       "mob": "Boar",
@@ -12189,7 +12448,8 @@
       "y": 18,
       "angle": 5.341,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "Boar",
@@ -12197,7 +12457,8 @@
       "y": 16.33,
       "angle": 5.341,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "Boar",
@@ -12205,7 +12466,8 @@
       "y": 19.27,
       "angle": 5.341,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "Boar",
@@ -12213,7 +12475,8 @@
       "y": 21.38,
       "angle": 5.341,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 9
     },
     {
       "mob": "Kobold",
@@ -12222,7 +12485,8 @@
       "angle": 5.341,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 7
     },
     {
       "mob": "Marauder",
@@ -12231,7 +12495,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 15
     },
     {
       "mob": "Marauder",
@@ -12240,7 +12505,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 15
     },
     {
       "mob": "Marauder",
@@ -12249,7 +12515,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 15
     },
     {
       "mob": "Bandit",
@@ -12259,7 +12526,8 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "idleSpeedFactor": 0.1
+      "idleSpeedFactor": 0.1,
+      "level": 13
     },
     {
       "mob": "Bandit",
@@ -12269,7 +12537,8 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 1,
-      "idleSpeedFactor": 0.1
+      "idleSpeedFactor": 0.1,
+      "level": 12
     },
     {
       "mob": "Bandit",
@@ -12278,7 +12547,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 12
     },
     {
       "mob": "BanditHealer",
@@ -12287,7 +12557,8 @@
       "angle": 6.021,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 12
     },
     {
       "mob": "Marauder",
@@ -12296,7 +12567,8 @@
       "angle": 6.021,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 15
     },
     {
       "mob": "Bandit",
@@ -12305,7 +12577,8 @@
       "angle": 6.056,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 12
     },
     {
       "mob": "Bandit",
@@ -12314,7 +12587,8 @@
       "angle": 6.056,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 12
     },
     {
       "mob": "FireElemental",
@@ -12323,7 +12597,8 @@
       "angle": 6.056,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 19
     },
     {
       "mob": "FireElemental",
@@ -12332,7 +12607,8 @@
       "angle": 6.056,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 18
     },
     {
       "mob": "FireElemental",
@@ -12341,7 +12617,8 @@
       "angle": 6.056,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 17
     },
     {
       "mob": "GreaterFireElemental",
@@ -12350,7 +12627,8 @@
       "angle": 6.056,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 20
     },
     {
       "mob": "Bandit",
@@ -12359,25 +12637,28 @@
       "angle": 1.466,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0
+      "wanderRadius": 0,
+      "level": 10
     },
     {
-      "mob": "Wolf",
+      "mob": "DireWolf",
       "x": -61.99,
       "y": -27.24,
       "angle": 3.805,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 6
     },
     {
-      "mob": "Wolf",
+      "mob": "Spider",
       "x": -63.88,
       "y": -25.52,
       "angle": 3.805,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 5
     },
     {
       "mob": "Wolf",
@@ -12386,7 +12667,8 @@
       "angle": 3.805,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 4
     },
     {
       "mob": "Spider",
@@ -12395,7 +12677,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0
+      "wanderRadius": 0,
+      "level": 5
     },
     {
       "mob": "Turnip",
@@ -12404,7 +12687,8 @@
       "angle": 1.117,
       "respawnTicks": 10800,
       "respawnVariancePct": 0.1,
-      "wanderRadius": 0
+      "wanderRadius": 0,
+      "level": 1
     },
     {
       "mob": "Bandit",
@@ -12413,7 +12697,8 @@
       "angle": 1.466,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0
+      "wanderRadius": 0,
+      "level": 10
     },
     {
       "mob": "Stag",
@@ -12422,7 +12707,8 @@
       "angle": 1.937,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 8
     },
     {
       "mob": "Stag",
@@ -12431,7 +12717,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 6
     },
     {
       "mob": "DireWolf",
@@ -12439,7 +12726,8 @@
       "y": -13.69,
       "angle": 3.421,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 14
     },
     {
       "mob": "DireWolf",
@@ -12447,7 +12735,8 @@
       "y": -14.45,
       "angle": 3.421,
       "respawnTicks": 1800,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "level": 14
     },
     {
       "mob": "Marauder",
@@ -12456,7 +12745,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 15
     },
     {
       "mob": "Marauder",
@@ -12465,7 +12755,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 14
     },
     {
       "mob": "Marauder",
@@ -12474,7 +12765,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 15
     },
     {
       "mob": "EliteWolf",
@@ -12483,7 +12775,8 @@
       "angle": 0.436,
       "respawnTicks": 2400,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 15
     },
     {
       "mob": "AlphaWolf",
@@ -12492,7 +12785,8 @@
       "angle": 0.436,
       "respawnTicks": 2400,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "AlphaWolf",
@@ -12501,7 +12795,8 @@
       "angle": 0.436,
       "respawnTicks": 2400,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "AlphaWolf",
@@ -12510,7 +12805,8 @@
       "angle": 0.436,
       "respawnTicks": 2400,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "DireWolf",
@@ -12519,7 +12815,8 @@
       "angle": 0.436,
       "respawnTicks": 2400,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 14
     },
     {
       "mob": "DireWolf",
@@ -12528,7 +12825,8 @@
       "angle": 0.436,
       "respawnTicks": 2400,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 14
     },
     {
       "mob": "DireBear",
@@ -12537,7 +12835,8 @@
       "angle": 0,
       "respawnTicks": 4800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 12
     },
     {
       "mob": "DireBear",
@@ -12546,7 +12845,8 @@
       "angle": 0,
       "respawnTicks": 4800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 12
     },
     {
       "mob": "DireBear",
@@ -12555,7 +12855,8 @@
       "angle": 4.102,
       "respawnTicks": 4800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 18
     },
     {
       "mob": "DireBear",
@@ -12564,7 +12865,8 @@
       "angle": 4.102,
       "respawnTicks": 4800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 12
     },
     {
       "mob": "DireBear",
@@ -12573,7 +12875,8 @@
       "angle": 4.102,
       "respawnTicks": 4800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 12
     },
     {
       "mob": "DireWolf",
@@ -12582,7 +12885,8 @@
       "angle": 4.102,
       "respawnTicks": 4800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "DireWolf",
@@ -12591,7 +12895,8 @@
       "angle": 4.102,
       "respawnTicks": 4800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "DireWolf",
@@ -12600,7 +12905,8 @@
       "angle": 4.102,
       "respawnTicks": 4800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 13
     },
     {
       "mob": "AlphaWolf",
@@ -12609,16 +12915,18 @@
       "angle": 6.126,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0
+      "wanderRadius": 0,
+      "level": 14
     },
     {
-      "mob": "Boar",
+      "mob": "DireBear",
       "x": 60.03,
       "y": 4.75,
       "angle": 2.897,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 18
     },
     {
       "mob": "Boar",
@@ -12627,16 +12935,18 @@
       "angle": 2.897,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 2
     },
     {
-      "mob": "Boar",
+      "mob": "Bear",
       "x": 58.71,
       "y": 10.75,
       "angle": 2.897,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 16
     },
     {
       "mob": "Kobold",
@@ -12645,7 +12955,8 @@
       "angle": 6.039,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0.5
+      "wanderRadius": 0.5,
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -12654,7 +12965,8 @@
       "angle": 6.039,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0.5
+      "wanderRadius": 0.5,
+      "level": 7
     },
     {
       "mob": "Kobold",
@@ -12663,25 +12975,28 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0.5
+      "wanderRadius": 0.5,
+      "level": 7
     },
     {
-      "mob": "Wolf",
+      "mob": "DireWolf",
       "x": -40.25,
       "y": -6.62,
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0.5
+      "wanderRadius": 0.5,
+      "level": 5
     },
     {
-      "mob": "Wolf",
+      "mob": "Bear",
       "x": -37.39,
       "y": -12.21,
       "angle": 2.409,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 6
     },
     {
       "mob": "Wolf",
@@ -12690,7 +13005,8 @@
       "angle": 2.409,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 4
     },
     {
       "mob": "Wolf",
@@ -12699,7 +13015,8 @@
       "angle": 2.409,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 8
     },
     {
       "mob": "Orc",
@@ -12708,7 +13025,8 @@
       "angle": 2.409,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 20
     },
     {
       "mob": "Orc",
@@ -12717,7 +13035,8 @@
       "angle": 2.409,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 20
     },
     {
       "mob": "Orc",
@@ -12726,7 +13045,8 @@
       "angle": 2.409,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 20
     },
     {
       "mob": "OrcGrunt",
@@ -12735,7 +13055,8 @@
       "angle": 2.409,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0.5
+      "wanderRadius": 0.5,
+      "level": 20
     },
     {
       "mob": "OrcGrunt",
@@ -12744,7 +13065,8 @@
       "angle": 2.409,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0.5
+      "wanderRadius": 0.5,
+      "level": 20
     },
     {
       "mob": "OrcGrunt",
@@ -12753,7 +13075,8 @@
       "angle": 2.409,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 0.5
+      "wanderRadius": 0.5,
+      "level": 20
     },
     {
       "mob": "DireWolf",
@@ -12762,7 +13085,8 @@
       "angle": 0.436,
       "respawnTicks": 2400,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 14
     },
     {
       "mob": "DireWolf",
@@ -12771,7 +13095,8 @@
       "angle": 0.436,
       "respawnTicks": 2400,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "DireWolf",
@@ -12780,7 +13105,8 @@
       "angle": 0.436,
       "respawnTicks": 2400,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 14
     },
     {
       "mob": "DireWolf",
@@ -12789,7 +13115,8 @@
       "angle": 0.436,
       "respawnTicks": 2400,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "DireWolf",
@@ -12798,7 +13125,8 @@
       "angle": 0.436,
       "respawnTicks": 2400,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 14
     },
     {
       "mob": "DireWolf",
@@ -12807,7 +13135,8 @@
       "angle": 0.436,
       "respawnTicks": 2400,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "Wolf",
@@ -12816,7 +13145,8 @@
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -12825,7 +13155,8 @@
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -12834,7 +13165,8 @@
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -12843,7 +13175,8 @@
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -12852,7 +13185,8 @@
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -12861,7 +13195,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -12870,7 +13205,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 3
     },
     {
       "mob": "Boar",
@@ -12879,7 +13215,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 8
     },
     {
       "mob": "Boar",
@@ -12888,7 +13225,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 8
     },
     {
       "mob": "Boar",
@@ -12897,7 +13235,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -12906,7 +13245,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -12915,7 +13255,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -12924,7 +13265,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -12933,7 +13275,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -12942,7 +13285,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -12951,7 +13295,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -12960,7 +13305,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -12969,7 +13315,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -12978,7 +13325,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -12987,7 +13335,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -12996,16 +13345,18 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 8
     },
     {
-      "mob": "Wolf",
+      "mob": "AlphaWolf",
       "x": -4.69,
       "y": -10.55,
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 10
     },
     {
       "mob": "Wolf",
@@ -13014,7 +13365,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -13023,7 +13375,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -13032,7 +13385,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -13041,7 +13395,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 3
     },
     {
       "mob": "PoisonPool",
@@ -13090,7 +13445,8 @@
       "angle": 0.96,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 12
     },
     {
       "mob": "Spider",
@@ -13099,7 +13455,8 @@
       "angle": 0.96,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 12
     },
     {
       "mob": "DireWolf",
@@ -13108,25 +13465,28 @@
       "angle": 1.309,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 13
     },
     {
-      "mob": "DireWolf",
+      "mob": "Bear",
       "x": 53.8,
       "y": -4.43,
       "angle": 1.309,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 16
     },
     {
-      "mob": "DireWolf",
+      "mob": "DireBear",
       "x": 59.3,
       "y": -3.57,
       "angle": 1.309,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 18
     },
     {
       "mob": "DireWolf",
@@ -13135,7 +13495,8 @@
       "angle": 4.032,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 14
     },
     {
       "mob": "DireWolf",
@@ -13144,7 +13505,8 @@
       "angle": 4.032,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 14
     },
     {
       "mob": "DireWolf",
@@ -13153,7 +13515,8 @@
       "angle": 4.032,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 14
     },
     {
       "mob": "DireWolf",
@@ -13162,7 +13525,8 @@
       "angle": 4.032,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 13
     },
     {
       "mob": "Marauder",
@@ -13173,6 +13537,7 @@
       "respawnVariancePct": 0.2,
       "wanderRadius": 0,
       "idleSpeedFactor": 0.3,
+      "level": 16,
       "waypoints": [
         {
           "x": 31.85,
@@ -13266,7 +13631,8 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 1,
-      "idleSpeedFactor": 0.3
+      "idleSpeedFactor": 0.3,
+      "level": 20
     },
     {
       "mob": "Orc",
@@ -13276,7 +13642,8 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 1,
-      "idleSpeedFactor": 0.3
+      "idleSpeedFactor": 0.3,
+      "level": 20
     },
     {
       "mob": "ArmySoldier",
@@ -13309,14 +13676,15 @@
       "idleSpeedFactor": 0.3
     },
     {
-      "mob": "Boar",
+      "mob": "AlphaWolf",
       "x": 50.81,
       "y": 2.98,
       "angle": 4.032,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "idleSpeedFactor": 0.3
+      "idleSpeedFactor": 0.3,
+      "level": 15
     },
     {
       "mob": "Boar",
@@ -13326,7 +13694,8 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2,
-      "idleSpeedFactor": 0.3
+      "idleSpeedFactor": 0.3,
+      "level": 2
     },
     {
       "mob": "Wolf",
@@ -13335,7 +13704,8 @@
       "angle": 1.065,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 10
     },
     {
       "mob": "Wolf",
@@ -13344,7 +13714,8 @@
       "angle": 1.065,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 10
     },
     {
       "mob": "Wolf",
@@ -13353,7 +13724,8 @@
       "angle": 1.065,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 10
     },
     {
       "mob": "Bandit",
@@ -13363,7 +13735,8 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 0,
-      "idleSpeedFactor": 0.3
+      "idleSpeedFactor": 0.3,
+      "level": 10
     },
     {
       "mob": "Bandit",
@@ -13373,7 +13746,8 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 0,
-      "idleSpeedFactor": 0.3
+      "idleSpeedFactor": 0.3,
+      "level": 10
     },
     {
       "mob": "DireWolf",
@@ -13383,7 +13757,8 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 0,
-      "idleSpeedFactor": 0.3
+      "idleSpeedFactor": 0.3,
+      "level": 11
     },
     {
       "mob": "EliteWolf",
@@ -13392,7 +13767,8 @@
       "angle": 5.707,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 8
     },
     {
       "mob": "EliteWolf",
@@ -13401,7 +13777,8 @@
       "angle": 0,
       "respawnTicks": 10800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 8
     },
     {
       "mob": "Boar",
@@ -13410,7 +13787,8 @@
       "angle": 6.091,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "Boar",
@@ -13419,7 +13797,8 @@
       "angle": 6.091,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "Boar",
@@ -13428,7 +13807,8 @@
       "angle": 6.091,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "Wolf",
@@ -13437,7 +13817,8 @@
       "angle": 2.897,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -13446,7 +13827,8 @@
       "angle": 2.897,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -13455,7 +13837,8 @@
       "angle": 2.897,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -13464,7 +13847,8 @@
       "angle": 2.897,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -13473,7 +13857,8 @@
       "angle": 2.897,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -13482,7 +13867,8 @@
       "angle": 2.374,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -13491,7 +13877,8 @@
       "angle": 2.374,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -13500,7 +13887,8 @@
       "angle": 2.374,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -13509,7 +13897,8 @@
       "angle": 2.374,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 8
     },
     {
       "mob": "Wolf",
@@ -13518,7 +13907,8 @@
       "angle": 2.374,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 8
     },
     {
       "mob": "Troll",
@@ -13527,7 +13917,8 @@
       "angle": 2.042,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 12
     },
     {
       "mob": "DireWolf",
@@ -13536,7 +13927,8 @@
       "angle": 2.042,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
       "mob": "DireWolf",
@@ -13545,16 +13937,18 @@
       "angle": 2.042,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 11
     },
     {
-      "mob": "DireWolf",
+      "mob": "AlphaWolf",
       "x": 41.68,
       "y": 22.56,
       "angle": 2.042,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 15
     },
     {
       "mob": "Boar",
@@ -13563,7 +13957,8 @@
       "angle": 5.463,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 2
     },
     {
       "mob": "Kobold",
@@ -13572,7 +13967,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 7
     },
     {
       "mob": "Wolf",
@@ -13581,7 +13977,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -13590,7 +13987,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -13599,7 +13997,8 @@
       "angle": 3.665,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -13608,7 +14007,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 3
     },
     {
       "mob": "Wolf",
@@ -13618,6 +14018,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 0,
+      "level": 3,
       "waypoints": [
         {
           "x": -42.37,
@@ -13637,6 +14038,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 0,
+      "level": 3,
       "waypoints": [
         {
           "x": -40.27,
@@ -13655,7 +14057,8 @@
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 3
     },
     {
       "mob": "DireWolf",
@@ -13665,6 +14068,7 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 0,
+      "level": 5,
       "waypoints": [
         {
           "x": -41.26,
@@ -13683,7 +14087,8 @@
       "angle": 6.144,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 12
     },
     {
       "mob": "VenomSpider",
@@ -13692,7 +14097,8 @@
       "angle": 6.144,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1.5
+      "wanderRadius": 1.5,
+      "level": 11
     },
     {
       "mob": "Marauder",
@@ -13701,7 +14107,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 15
     },
     {
       "mob": "GiantSpider",
@@ -13710,7 +14117,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 14
     },
     {
       "mob": "GiantSpider",
@@ -13719,7 +14127,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 14
     },
     {
       "mob": "GiantSpider",
@@ -13728,7 +14137,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 14
     },
     {
       "mob": "GiantSpider",
@@ -13737,7 +14147,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 14
     },
     {
       "mob": "AlphaWolf",
@@ -13746,7 +14157,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 14
     },
     {
       "mob": "AlphaWolf",
@@ -13755,7 +14167,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 14
     },
     {
       "mob": "Spider",
@@ -13764,7 +14177,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 12
     },
     {
       "mob": "Bandit",
@@ -13773,7 +14187,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 12
     },
     {
       "mob": "Bandit",
@@ -13782,7 +14197,8 @@
       "angle": 5.027,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 1
+      "wanderRadius": 1,
+      "level": 12
     },
     {
       "mob": "DireWolf",
@@ -13791,7 +14207,8 @@
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 14
     },
     {
       "mob": "DireWolf",
@@ -13800,7 +14217,8 @@
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 14
     },
     {
       "mob": "Marauder",
@@ -13809,7 +14227,8 @@
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 15
     },
     {
       "mob": "FireElemental",
@@ -13818,7 +14237,8 @@
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 17
     },
     {
       "mob": "DireWolf",
@@ -13827,7 +14247,8 @@
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 9
     },
     {
       "mob": "DireWolf",
@@ -13836,7 +14257,8 @@
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 9
     },
     {
       "mob": "DireWolf",
@@ -13845,7 +14267,8 @@
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
-      "wanderRadius": 2
+      "wanderRadius": 2,
+      "level": 9
     },
     {
       "mob": "Farmer",
