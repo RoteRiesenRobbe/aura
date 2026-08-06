@@ -80,10 +80,59 @@ type ChainConfig struct {
 	// (0 = off). Policy: fired at recovery start whenever ready and the
 	// player is hurt; the cooldown runs on the chain clock, so downtime
 	// counts toward it.
-	SelfHealLevel      int     `json:"selfHealLevel,omitempty"`
-	BaseSeed           int64   `json:"baseSeed"`
-	Runs               int     `json:"runs"`
-	MaxSecondsPerFight float64 `json:"maxSecondsPerFight,omitempty"` // 0 = the default fight timeout
+	SelfHealLevel int `json:"selfHealLevel,omitempty"`
+	// KillXP prices the chain's kills so the cells can report XP/hour; nil
+	// leaves the XP columns empty, which is what every caller before C1.5 got
+	// (§13.1: "the chain battery reports no XP at all").
+	KillXP             *ChainKillXP `json:"killXP,omitempty"`
+	BaseSeed           int64        `json:"baseSeed"`
+	Runs               int          `json:"runs"`
+	MaxSecondsPerFight float64      `json:"maxSecondsPerFight,omitempty"` // 0 = the default fight timeout
+}
+
+// ChainKillXP prices one chain's kills (plan-xp-formula.md C1.5). The bracket
+// level is the default for BOTH combatants — a bracket is same-tier by
+// construction, so Δ = 0 and one kill pays base(P). The overrides exist for the
+// placement battery, where the whole point is that the mob stands at a level
+// the player is not.
+type ChainKillXP struct {
+	XP XPModel `json:"xp"`
+	// PlayerLevel and MobLevel override the bracket level; 0 = the bracket's.
+	// Both are required in the explicit-numbers bracket (level 0), which
+	// carries no level of its own — without them the row reports no XP.
+	PlayerLevel int `json:"playerLevel,omitempty"`
+	MobLevel    int `json:"mobLevel,omitempty"`
+	// TierMultiplier and XPFactor are the species terms; 0 → 1 for the tier
+	// (an unpriced tier is normal), and 0 is MEANINGFUL for XPFactor — it is
+	// how content spells "this pays nothing" — so it is a pointer.
+	TierMultiplier float64  `json:"tierMultiplier,omitempty"`
+	XPFactor       *float64 `json:"xpFactor,omitempty"`
+}
+
+// award is what one kill in a bracket pays, or 0 when the chain is unpriced.
+func (k *ChainKillXP) award(bracketLevel int) uint64 {
+	if k == nil {
+		return 0
+	}
+	playerLevel, mobLevel := k.PlayerLevel, k.MobLevel
+	if playerLevel == 0 {
+		playerLevel = bracketLevel
+	}
+	if mobLevel == 0 {
+		mobLevel = bracketLevel
+	}
+	if playerLevel < 1 || mobLevel < 1 {
+		return 0 // the explicit-numbers bracket, unlevelled and unpriced
+	}
+	tier := k.TierMultiplier
+	if tier <= 0 {
+		tier = 1
+	}
+	xpFactor := 1.0
+	if k.XPFactor != nil {
+		xpFactor = *k.XPFactor
+	}
+	return k.XP.Award(playerLevel, mobLevel, tier, xpFactor)
 }
 
 // ChainCell is one stance in one bracket over N seeded chains.
@@ -104,12 +153,20 @@ type ChainCell struct {
 	// explainability (downtime is a config echo).
 	MeanFightSeconds    float64 `json:"meanFightSeconds"`
 	MeanRecoverySeconds float64 `json:"meanRecoverySeconds"`
+	// XPPerHour is KillsPerHour.P50 × the row's award; 0 when the chain is
+	// unpriced (no ChainKillXP) or the kill is gray.
+	XPPerHour float64 `json:"xpPerHour,omitempty"`
 }
 
 // ChainRow is one level bracket: both stances plus their ratio.
 type ChainRow struct {
 	Level int     `json:"level"` // 0 = the explicit-numbers bracket
 	F     float64 `json:"f,omitempty"`
+	// Award is what one kill in this bracket pays the player, 0 = unpriced or
+	// gray. ⚑ 0 is BOTH, deliberately: a report field cannot carry the +Inf
+	// KillsPerLevelAt returns, so "did this pay anything" is the one question
+	// the artifact answers, and the config echo says whether it was priced.
+	Award uint64 `json:"award,omitempty"`
 	// Facetank ÷ kite kills/hour (p50). 0 with Facetank.SurviveRate < 0.5
 	// [PLACEHOLDER] means "facetank dies" (the GDD boss case); 0 with
 	// !Kite.Feasible means "no kite ring".
@@ -372,6 +429,10 @@ func RunChain(cfg ChainConfig) *ChainReport {
 				continue
 			}
 			rowCells[si] = aggregateCell(st, cells[ci].kiteD, results[ci*runs:(ci+1)*runs])
+		}
+		row.Award = cfg.KillXP.award(level)
+		for si := range rowCells {
+			rowCells[si].XPPerHour = float64(row.Award) * rowCells[si].KillsPerHour.P50
 		}
 		row.Facetank, row.Kite = rowCells[0], rowCells[1]
 		if row.Facetank.SurviveRate >= surviveThreshold &&

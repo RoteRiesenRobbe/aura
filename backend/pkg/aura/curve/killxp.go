@@ -25,9 +25,17 @@ import "math"
 // Every value is [PLACEHOLDER] until C2's calibration pass says otherwise.
 //
 // ⚑ It lives here, beside Curve, for the reason sim.Curve aliases curve.Curve:
-// the sim harness consumes this type (sim.XPModel.KillXP), so the tool that
-// calibrates the economy is structurally incapable of modelling a different
-// one than the game pays.
+// the sim harness consumes this type, so the tool that calibrates the economy
+// cannot model a different one than the game pays.
+//
+// ⛑ That claim was HALF TRUE from C1 until C1.5, and the half it was missing is
+// the half the calibration pass needs (plan-xp-formula.md §13.1). sim.XPModel
+// carried four scalars and reached BaseAt ALONE — no Modifier, no gray boundary,
+// no up-bonus, no tier multipliers, no xpFactor — so the harness could see
+// base(P) and nothing else, and the taper's shape is precisely the open D8
+// question. It now goes through Award. *A shared type is not a shared model:
+// delegating one method proves no drift in that method and nothing about the
+// rest.*
 type KillXP struct {
 	// Base is what an at-level normal kill pays a level-1 player, and Growth
 	// inflates it per recipient level.

@@ -99,7 +99,7 @@ func facetankSurvival(t *testing.T, def *mobs.MobDefinition, botAura sim.AuraSpe
 	}
 	bot.Aura.DamageHP *= float32(f)
 
-	mobSpec, err := mobSpecOf(def)
+	mobSpec, err := mobSpecOf(def, def.CurveLevel)
 	require.NoError(t, err)
 
 	rep := sim.RunChain(sim.ChainConfig{
@@ -144,7 +144,7 @@ func sustainedEVPerTick(s sim.AuraSpec) float64 {
 // the served presets — content drift that outdamages the ceiling fails here
 // before it surprises anyone (§A "never a surprise").
 func TestGuardrails_CeilingOrdering(t *testing.T) {
-	_, presets, err := loadPresets("")
+	_, presets, err := loadPresets("", 0)
 	require.NoError(t, err)
 
 	ceiling := map[string]bool{"Spearhead": true, "Warbanner": true, "Vanguard": true}
@@ -212,7 +212,7 @@ func TestGuardrails_TierThresholdsVsRealRoster(t *testing.T) {
 			t.Logf("skip %-18s %s", def.Name, reason)
 			continue
 		}
-		spec, err := mobSpecOf(def)
+		spec, err := mobSpecOf(def, def.CurveLevel)
 		require.NoError(t, err, "%s: content the sim cannot model faithfully", def.Name)
 		if spec.Aura.DamageHP == 0 && spec.Aura.DotHP == 0 {
 			continue // unarmed — harmless-turret mapping, not measurable

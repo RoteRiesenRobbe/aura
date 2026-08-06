@@ -46,6 +46,19 @@ var tierRanks = map[string]TierRank{
 // constant being added without an encoding.
 func (d *MobDefinition) Rank() TierRank { return tierRanks[d.Tier] }
 
+// IsCombatTarget reports whether this species is something a player fights —
+// the derivation the nameplate catalog rides (CatalogEntry.CombatTarget, whose
+// doc comment is the long version): it pays kill XP, and it is not friendly.
+//
+// ⚑ Named rather than repeated because it now has a SECOND reader: the sim
+// harness's placement battery enumerates the world's combat spawns with it
+// (plan-xp-formula.md §7.1). scripts/world-regions.py spells the same rule in
+// Python and the two agree exactly today (423 spawns both ways) — a third
+// hand-written copy inside Go is what this exists to prevent.
+func (d *MobDefinition) IsCombatTarget() bool {
+	return d.Factors.XPFactor > 0 && !d.FriendlyToPlayers
+}
+
 // KillXPTierMultiplier resolves this definition's tier to its kill-XP weight
 // (plan-xp-formula.md §3). The mapping lives HERE rather than on curve.KillXP
 // so the tier vocabulary stays in one package — curve holds the numbers, this

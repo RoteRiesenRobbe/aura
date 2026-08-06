@@ -80,8 +80,11 @@
 
 <div class="preset-bar">
   Mob preset: <select id="mobPreset"><option value="-1">custom</option></select>
+  at level <input type="number" id="mobPresetLevel" value="0" min="0" max="60" step="1" style="width: 4.5rem">
   Player aura: <select id="playerPreset"><option value="-1">custom</option></select>
   <small>(authored content; picking one fills the knobs — editing them switches back to custom.
+  Level 0 = each species' own curveLevel; any other value derives the whole roster at that
+  PLACED level, the way world.json puts it there.
   Player presets model the damage (or dot) effect only — a multi-effect skill like Vanguard is stronger than its numbers here)</small>
 </div>
 
@@ -220,22 +223,33 @@ for (const [group, label, path, def, step, options] of KNOBS) {
 }
 
 // --- mob presets (authored mobs, served from the real content registry) ---
+// The roster is re-fetched per level (C1.5): the same species standing where
+// the world places it, not only at its authored curveLevel.
 const presetSel = document.getElementById('mobPreset');
+const presetLevelEl = document.getElementById('mobPresetLevel');
 let mobPresets = [];
-fetch('/mobs')
-  .then(r => r.ok ? r.json() : [])
-  .then(list => {
-    mobPresets = list || [];
-    mobPresets.forEach((p, i) => {
-      const o = document.createElement('option');
-      o.value = i;
-      o.textContent = p.name;
-      presetSel.appendChild(o);
-    });
-  })
-  .catch(() => { /* roster unavailable — dropdown stays custom-only */ });
 
-presetSel.addEventListener('change', () => {
+function loadMobPresets(level) {
+  const url = level > 0 ? `/mobs?level=${level}` : '/mobs';
+  return fetch(url)
+    .then(r => r.ok ? r.json() : [])
+    .then(list => {
+      mobPresets = list || [];
+      const selected = presetSel.value;
+      presetSel.innerHTML = '<option value="-1">custom</option>';
+      mobPresets.forEach((p, i) => {
+        const o = document.createElement('option');
+        o.value = i;
+        o.textContent = p.level ? `${p.name} (L${p.level})` : p.name;
+        presetSel.appendChild(o);
+      });
+      presetSel.value = selected;
+    })
+    .catch(() => { /* roster unavailable — dropdown stays custom-only */ });
+}
+loadMobPresets(0);
+
+function applyMobPreset() {
   const p = mobPresets[parseInt(presetSel.value, 10)];
   if (!p) return;
   for (const path of Object.keys(inputs)) {
@@ -247,6 +261,13 @@ presetSel.addEventListener('change', () => {
       : Math.round((v ?? 0) * 1000) / 1000;
   }
   run();
+}
+
+presetSel.addEventListener('change', applyMobPreset);
+// Re-deriving the roster keeps the current selection, so nudging the level
+// walks one species up and down the curve.
+presetLevelEl.addEventListener('change', () => {
+  loadMobPresets(parseInt(presetLevelEl.value, 10) || 0).then(applyMobPreset);
 });
 
 // --- player-aura presets (authored player skills, damage effect only — C5) ---

@@ -83,6 +83,15 @@ func main() {
 	killXP := curve.DefaultKillXP()
 	xpKill := flag.Float64("xp-kill", killXP.Base, "XP per at-level normal kill at level 1 (mirrors conf killXP.base)")
 	xpKillGrowth := flag.Float64("xp-kill-growth", killXP.Growth, "kill-XP growth per level (= xp-growth → flat kills-per-level)")
+	// The other six terms of the live economy (C1.5, §13.1). They do nothing
+	// to the at-level -levels column by construction — Δ is 0 there — and are
+	// the knobs -placements reads: the taper's boundary is what D8 is about.
+	xpKillUpBonus := flag.Float64("xp-kill-up-bonus", killXP.UpBonus, "kill-XP bonus per level for killing ABOVE you")
+	xpKillUpCap := flag.Int("xp-kill-up-cap", killXP.UpCap, "how many levels of the up-bonus count")
+	xpKillGrayBase := flag.Int("xp-kill-gray-base", killXP.GrayBase, "gray distance ZD(P) = grayBase + P/grayStep")
+	xpKillGrayStep := flag.Int("xp-kill-gray-step", killXP.GrayStep, "gray distance ZD(P) = grayBase + P/grayStep")
+	xpKillTierElite := flag.Float64("xp-kill-tier-elite", killXP.TierElite, "kill-XP multiplier for elites")
+	xpKillTierBoss := flag.Float64("xp-kill-tier-boss", killXP.TierBoss, "kill-XP multiplier for bosses")
 
 	// Matrix battery (chunk 3): -matrix sweeps player MaxTargets builds ×
 	// pack size instead of the single 1v1; the player/mob flags below are the
@@ -104,6 +113,16 @@ func main() {
 	regenTick := flag.Float64("regen-tick", 0, "out-of-combat regen fraction of max HP per tick (0 = game default; raise it to model time-at-fire)")
 	selfHeal := flag.Int("self-heal", 0, "self-heal cooldown level, 0 = none (20%+5%/lvl of max HP, 30s cd — mirrors FirstAid)")
 	chainLevels := flag.String("chain-levels", "", "level brackets, comma-separated (scaled same-tier by -growth; empty = the explicit numbers)")
+
+	// Placement battery (C1.5, plan-xp-formula.md §13): what the AUTHORED
+	// world pays, rung by rung — the species actually standing at each placed
+	// level in world.json, priced with the live kill-XP economy. The player
+	// build is the level-1 baseline below, inflated per row like the guardrail
+	// battery's bot.
+	placements := flag.Bool("placements", false, "run the placed-level battery over the authored world (kills/hour, XP/hour, kills-per-level per placed rung)")
+	zoneName := flag.String("zone", "world", "-placements zone file stem")
+	playerLevel := flag.Int("player-level", 0, "-placements player level (0 = the diagonal: player level = placed level)")
+	placementFights := flag.Int("placement-fights", 20, "fights per chain in the placement battery")
 
 	// Battery controls.
 	runs := flag.Int("runs", 200, "seeded runs per scenario")
@@ -136,16 +155,32 @@ func main() {
 	mobAggro := flag.Float64("mob-aggro", 4.0, "mob aggro sensor radius")
 	mobVariance := flag.Float64("mob-variance", 0, "mob per-hit variance band")
 	mobFlee := flag.Float64("mob-flee-below", 0, "mob flees below this health ratio (0 = never)")
+	mobPresetName := flag.String("mob-preset", "", "prefill the mob from an authored species (e.g. DireWolf); overrides the -mob-hp/-dmg/-tick/-radius/-speed/-role/-body/-aggro/-variance/-flee flags")
+	mobLevel := flag.Int("mob-level", 0, "level the -mob-preset species STANDS at (0 = its authored curveLevel) — the placement axis, C1.5")
 
 	flag.Parse()
 
+	xpModel := sim.XPModel{
+		LevelUpBase: *xpBase, LevelUpGrowth: *xpGrowth,
+		KillBase: *xpKill, KillGrowth: *xpKillGrowth,
+		KillUpBonus: *xpKillUpBonus, KillUpCap: *xpKillUpCap,
+		KillGrayBase: *xpKillGrayBase, KillGrayStep: *xpKillGrayStep,
+		KillTierElite: *xpKillTierElite, KillTierBoss: *xpKillTierBoss,
+	}
+
 	if *serveAddr != "" {
-		presets, playerPresets, err := loadPresets(*contentDir)
+		// The explorer re-derives its mob roster per requested level, so the
+		// dropdown can ask "what is this species like where it is PLACED".
+		roster := func(level int) ([]mobPreset, error) {
+			presets, _, err := loadPresets(*contentDir, level)
+			return presets, err
+		}
+		presets, playerPresets, err := loadPresets(*contentDir, 0)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "loading presets: %v\n", err)
 			os.Exit(1)
 		}
-		if err := serve(*serveAddr, presets, playerPresets); err != nil {
+		if err := serve(*serveAddr, presets, playerPresets, roster); err != nil {
 			fmt.Fprintf(os.Stderr, "serve: %v\n", err)
 			os.Exit(1)
 		}
@@ -197,6 +232,47 @@ func main() {
 			MaxTargets:   1,
 		},
 	}
+	if *mobPresetName != "" {
+		spec, err := mobSpecByName(*contentDir, *mobPresetName, *mobLevel)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(1)
+		}
+		mob = spec
+	}
+
+	if *placements {
+		report, err := runPlacementsBattery(placementsInput{
+			contentDir:  *contentDir,
+			zone:        *zoneName,
+			player:      player,
+			curve:       sim.Curve{Growth: *growth, MaxLevel: *maxLevel},
+			xp:          xpModel,
+			playerLevel: *playerLevel,
+			fights:      *placementFights,
+			downtime:    *downtime,
+			seed:        *seed,
+			runs:        *runs,
+			maxSeconds:  *maxSeconds,
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("PLACED-LEVEL BATTERY (%d fights/chain, %.0fs downtime — the authored world, priced with the live kill-XP economy)\n%s\n",
+			*placementFights, *downtime, report.PlacementTable())
+		fmt.Printf("PER SPECIES (the content behind each rung)\n%s", report.PlacementSpeciesTable())
+
+		if *out != "" {
+			if err := report.WriteJSON(*out); err != nil {
+				fmt.Fprintf(os.Stderr, "writing artifact: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf("\nartifact written to %s\n", *out)
+		}
+		return
+	}
 
 	if *levels {
 		growthList, err := parseFloats(*growths)
@@ -214,7 +290,7 @@ func main() {
 				Curve:  sim.Curve{Growth: *growth, MaxLevel: *maxLevel},
 				Player: player,
 				Mob:    mob,
-				XP:     sim.XPModel{LevelUpBase: *xpBase, LevelUpGrowth: *xpGrowth, KillBase: *xpKill, KillGrowth: *xpKillGrowth},
+				XP:     xpModel,
 			},
 			BaseSeed:           *seed,
 			Runs:               *runs,

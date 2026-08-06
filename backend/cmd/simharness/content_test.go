@@ -163,7 +163,7 @@ func TestMobSpecOf_GiantSpiderCarriesBiteAndVenom(t *testing.T) {
 	}
 	require.NotNil(t, spider, "GiantSpider must exist in content")
 
-	spec, err := mobSpecOf(spider)
+	spec, err := mobSpecOf(spider, spider.CurveLevel)
 	require.NoError(t, err)
 
 	assert.Greater(t, spec.Aura.DamageHP, float32(0), "the bite lands on the aura tick")

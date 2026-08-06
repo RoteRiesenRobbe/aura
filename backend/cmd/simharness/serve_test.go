@@ -48,7 +48,7 @@ func TestHandleRun_RunsBatteryAndReturnsReport(t *testing.T) {
 // The preset roster maps authored mobs onto MobSpecs — pinned against the
 // embedded SaberToothCat (60 HP, aura 8 HP / 20 ticks / r1.0 at level 1).
 func TestLoadMobPresets_EmbeddedContent(t *testing.T) {
-	presets, _, err := loadPresets("")
+	presets, _, err := loadPresets("", 0)
 	require.NoError(t, err)
 	require.NotEmpty(t, presets)
 
@@ -81,7 +81,7 @@ func TestLoadPlayerAuraPresets_EmbeddedContent(t *testing.T) {
 	vanguard, err := sr.GetByName("Vanguard")
 	require.NoError(t, err)
 
-	_, presets, err := loadPresets("")
+	_, presets, err := loadPresets("", 0)
 	require.NoError(t, err)
 	require.NotEmpty(t, presets)
 
@@ -119,7 +119,7 @@ func TestLoadPlayerAuraPresets_EmbeddedContent(t *testing.T) {
 // cL4, 4 events every 45 ticks) are the pins. EmberAura went 6 → 7.5 with the
 // playtest-1 Pass A Z2 damage pass (×1.25, PO 2026-07-22).
 func TestLoadMobPresets_DotAuraMobsDerive(t *testing.T) {
-	presets, _, err := loadPresets("")
+	presets, _, err := loadPresets("", 0)
 	require.NoError(t, err)
 
 	byName := map[string]sim.MobSpec{}
@@ -148,7 +148,7 @@ func TestLoadMobPresets_DotAuraMobsDerive(t *testing.T) {
 // compensation, 3 events every 60 ticks, aura tick 20 after the 2026-07-21
 // dot-responsiveness halving).
 func TestLoadPlayerAuraPresets_DotSkillsDerive(t *testing.T) {
-	_, presets, err := loadPresets("")
+	_, presets, err := loadPresets("", 0)
 	require.NoError(t, err)
 
 	byName := map[string]sim.AuraSpec{}
@@ -178,7 +178,7 @@ func TestHandleMobs_ServesRoster(t *testing.T) {
 	presets := []mobPreset{{Name: "SimMob", Spec: sim.MobSpec{MaxHealth: 40}}}
 	req := httptest.NewRequest(http.MethodGet, "/mobs", nil)
 	w := httptest.NewRecorder()
-	handleMobs(presets)(w, req)
+	handleMobs(presets, nil)(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
 	var got []mobPreset
@@ -186,6 +186,39 @@ func TestHandleMobs_ServesRoster(t *testing.T) {
 	require.Len(t, got, 1)
 	assert.Equal(t, "SimMob", got[0].Name)
 	assert.EqualValues(t, 40, got[0].Spec.MaxHealth)
+}
+
+// ?level=N re-derives the whole roster at a placed level (C1.5), so the
+// explorer can ask the question the CLI's -mob-preset/-mob-level pair can.
+func TestHandleMobs_LevelQueryRederivesTheRoster(t *testing.T) {
+	startup := []mobPreset{{Name: "SimMob", Level: 3, Spec: sim.MobSpec{MaxHealth: 40}}}
+	roster := func(level int) ([]mobPreset, error) {
+		return []mobPreset{{Name: "SimMob", Level: level, Spec: sim.MobSpec{MaxHealth: float32(40 * level)}}}, nil
+	}
+	get := func(query string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodGet, "/mobs"+query, nil)
+		w := httptest.NewRecorder()
+		handleMobs(startup, roster)(w, req)
+		return w
+	}
+
+	w := get("?level=16")
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var got []mobPreset
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
+	require.Len(t, got, 1)
+	assert.Equal(t, 16, got[0].Level)
+	assert.EqualValues(t, 640, got[0].Spec.MaxHealth)
+
+	// No query = the startup roster, each species at its own curveLevel.
+	w = get("")
+	require.Equal(t, http.StatusOK, w.Code)
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
+	assert.Equal(t, 3, got[0].Level)
+
+	assert.Equal(t, http.StatusBadRequest, get("?level=nope").Code)
+	assert.Equal(t, http.StatusBadRequest, get("?level=-1").Code)
+	assert.Equal(t, http.StatusBadRequest, get("?level=61").Code)
 }
 
 func postCurve(t *testing.T, body string) *httptest.ResponseRecorder {

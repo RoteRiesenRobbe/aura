@@ -7,14 +7,20 @@
 > level. Every number is [PLACEHOLDER] unless marked.
 >
 > ⚑ **C2 IS NOT "CALIBRATE NEXT" ANY MORE.** Per **D9** it is the *single final
-> pass*, and three things must land first: ✅ `plan-mob-levels.md` C3 (the tool,
-> archived 2026-08-05), ✅ the **world re-placement pass** (the content, built
-> 2026-08-06 — `plan-world-replacement.md`, live only for its in-game kite
-> verdict), and **sim-harness placement support**, which is now **C1.5 of this
-> plan — DESIGNED 2026-08-06, not yet built (§13)**. ⭐ **That design session
-> found the step is bigger than its name**: the harness consumes `BaseAt` alone,
-> so it **cannot see the taper** — the exact mechanism D8 exists to settle
-> (§13.1). Three rulings **D10–D12**. ⚑ **D7** adds a droppable,
+> pass*, and three things had to land first — **all three now have**: ✅
+> `plan-mob-levels.md` C3 (the tool, archived 2026-08-05), ✅ the **world
+> re-placement pass** (the content, built 2026-08-06 — `plan-world-replacement.md`,
+> live only for its in-game kite verdict), and ✅ **sim-harness placement
+> support**, this plan's **C1.5 — DESIGNED and BUILT 2026-08-06 (§13, ledger
+> §13.6)**. ⭐ **That design session found the step is bigger than its name**: the
+> harness consumed `BaseAt` alone, so it **could not see the taper** — the exact
+> mechanism D8 exists to settle (§13.1). It now pays the whole `curve.KillXP`, and
+> `-placements` reports the authored world's 423 combat spawns rung by rung with
+> the player level as its own axis. Three rulings **D10–D12**. ⛔ **C2 is the only
+> chunk left in this plan and D9's chain is fully satisfied — but it is not
+> "next": the kite in-game pass (`plan-world-replacement.md` §3.11) should go
+> first, because it may re-tune `factors.speed` and that moves the kills/hour
+> `-placements` reports.** ⚑ **D7** adds a droppable,
 > mechanism-independent piece — the nameplate's difficulty colour must be
 > *derived* from the server's gray knobs instead of the client's frozen copy.
 > ⚑ **D8 ("green must pay meaningfully") is NOT answered by §11's candidate
@@ -234,7 +240,8 @@ deferral. Full design + rulings: **§13**.
   (L2) + the ~36 JSON migrations; `CombatTarget` re-derivation (L1); the
   gray-kill pins (L3). Full Go suite + vitest + a headless verify pass.
 - **C1.5 — the harness pays what the game pays, and it can see a placement**
-  (designed 2026-08-06, **§13**). Two halves in one session, ruled together by
+  ✅ **BUILT 2026-08-06, ledger §13.6** (designed the same day, **§13**). Two
+  halves in one session, ruled together by
   **D10** because the second is near-useless without the first. **(a)** Wire the
   *whole* `curve.KillXP` into `sim.XPModel` — today it consumes `BaseAt` alone,
   so the harness cannot see the taper, the gray boundary, the up-bonus, the tier
@@ -596,9 +603,12 @@ So B's "zero balance cost" is real and its *implementation* cost is not. If the
 pass runs short, A is the branch that fits in the numbers session; B wants its
 own chunk.
 
-⛔ **"With the sim harness in hand" was an assumption, and §13.1 disproves it.**
-The harness models `base(P)` and nothing else, so as of today it cannot see the
-taper A and B are both about. That is what C1.5 is for.
+⛔ **"With the sim harness in hand" was an assumption, and §13.1 disproved it.**
+The harness modelled `base(P)` and nothing else, so it could not see the taper A
+and B are both about. ✅ **C1.5 fixed exactly that** (§13.6): `XPModel` now pays
+the whole `curve.KillXP`, and the gray boundary is a CLI knob
+(`-xp-kill-gray-base` / `-xp-kill-gray-step`) that `-placements` reads. So A-vs-B
+can now be measured rather than guessed — which is C2's to do, not C1.5's.
 
 ---
 
@@ -735,3 +745,177 @@ Sized honestly, so the chunk is not discovered mid-session:
 - ⚑ The one compat surface is **`XPModel`'s JSON field names**, and it is one
   file: **`cmd/simharness/index.html`** (plus the `serve_test.go` request pin).
   **L6** has the line numbers and the two wrong guesses it rules out.
+
+### 13.6 C1.5 ledger — the harness pays what the game pays, and it can see a placement ✅ 2026-08-06
+
+Both halves shipped in one chunk per **D10**. `-placements` runs the authored
+world — all **423 combat spawns**, 69 distinct (species, rung) groups, 20 rungs —
+in **~8 s**, and the player level is its own axis. **Schema impact: DB NONE ·
+FlatBuffers NONE · content JSON NONE · conf.json NONE.** No Go file outside
+`sim/`, `cmd/simharness/` and one three-line derivation in `items/mobs/` changed.
+
+**What the design did not predict:**
+
+- ⛑ **§13.5 undercounted `contentFS` by a whole directory, and the missing one is
+  `props`.** The plan named `zones` as "a fourth entry". But `world.LoadZoneFS`
+  calls `Zone.resolve`, which binds **every prop's type against a PropRegistry** —
+  so reading `world.json` needs the same *two* sources aurad boots with, not one.
+  `LoadZoneFS("")` also refuses when more than one zone exists (there are two:
+  `world` and `proving-grounds`), so the battery needed a `-zone` flag defaulting
+  to `world`. Both are consequences of **L7 being obeyed**: the moment you reuse
+  the real loader you inherit the real loader's preconditions. A convenience
+  re-parse would have "needed" neither — which is exactly why it would have been
+  wrong.
+- ⭐ **L6 was settled by measuring `Normalized()`, not by taste.** The plan allowed
+  either "preserve the four names" or "migrate the caller in the same commit". The
+  second is the DRY-looking option and it is the **dangerous** one: embedding
+  `curve.KillXP` means a poster that still sends `killBase` decodes the block to
+  the zero value, `Normalized()` fills it with defaults, and the battery reports a
+  healthy-looking economy that **silently ignores what the user typed**. That is
+  L2's shape at a fourth seam. Shipped instead: the four names stay, the six new
+  terms are flat `kill*` siblings, and **only the six normalize** —
+  `KillBase`/`KillGrowth` are overwritten raw afterwards, because every caller has
+  always supplied them (the flags default to `curve.DefaultKillXP`), so a zero
+  there is an explicit "off" and not an omission. *A fallback is only safe on a
+  field whose absence is distinguishable from its zero.*
+- ⚑ **That split is also what keeps `KillXP(tier)` byte-identical.** `BaseAt` and
+  `Configured()` read Base/Growth alone, so routing the old method through the new
+  `killXP()` assembler changes nothing — the `-levels` sweep column the PO has been
+  reading since chunk 2 could not move even if someone wanted it to.
+- ⛑ **`KillsPerLevel` and `KillsPerLevelAt` do NOT agree exactly, and the gap has a
+  direction.** The old column divides by the *unrounded* `base(P)`; the new sibling
+  divides by the **rounded whole-XP award the server actually hands out**. So the
+  sweep column has always been very slightly optimistic — 7.5005 vs 7.47 at L6,
+  worst case ~1.25 % (half an XP over the smallest base). **Recorded, not
+  "corrected"**: §13.3 says that column's meaning must not move, and this is the
+  meaning it has always had.
+- ⛑ **The report cannot carry the honest answer, so it carries the question
+  instead.** `KillsPerLevelAt` returns **+Inf** for a gray kill, which is correct
+  and which `encoding/json` **refuses to marshal** — a long calibration run would
+  have died at the artifact write. The rows store `0` and every reader branches on
+  `Award == 0`; a leg marshals a report where *every* rung is gray and asserts the
+  string contains no `Inf`.
+- ⛑ **"Nothing measurable" and "pays nothing" are one line apart in the renderer,
+  and they are opposite claims.** A rung whose every species kills the bot has a
+  spawn-weighted award of 0 *because there is no sample* — printing that as
+  `gray` tells the reader a Δ=+3 wall pays nothing. It renders `-`, with a
+  `measured/authored` spawn count (`0/7`), and the per-species table still shows
+  the real per-kill pay, because **what one kill pays does not depend on the bot
+  managing it**. 34 of 423 spawns are unmeasurable on the diagonal; the footer
+  says so rather than averaging them in as zeros.
+- ⛑ **A lethal mob is NOT unmeasurable — the kite stance pins it.** `chainScenario`
+  sets the kited mob to speed 0 and role `structure`, so anything with a kite ring
+  is farmable no matter how hard it hits. Unmeasurable needs **both** legs to fail:
+  it kills the facetank bot *and* it outranges the player so there is no ring. The
+  same mechanism means a **fleeing** species (Stag, `flee 1.0`) reads as perfectly
+  measurable *in the kite cell* — it stands and trades there. The battery reports
+  the stance the numbers came from; the doc comment says why that column matters.
+  ⚑ The first draft of the unmeasurable-cell test asserted a 1000-damage boss was
+  unmeasurable and **went green for the wrong reason**; the mutation sweep caught it.
+- ⚑ **The sim does not model `hostileTo`** — a creature's aura gates on aggro and
+  nothing else — so the retaliation-only prey (`Boar`, `Stag`) fight back in the
+  battery where in the world they wait to be opened. Their cells read **harder**
+  than the world is. Pre-existing, recorded in `placements.go`, not fixed.
+- ⚑ **`-mob-level` needed something to act on.** The CLI had no mob-preset path at
+  all (only `-player-aura`), so the flag shipped with a **`-mob-preset Name`**
+  sibling in the same idiom. The explorer got the level as a query on the roster
+  endpoint (`/mobs?level=N`) rather than a second roster, so the CLI and the page
+  ask the identical question.
+- ⚑ **`IsCombatTarget()` is a new three-line method on `MobDefinition`**, extracted
+  from `catalog.go`'s inline `XPFactor > 0 && !FriendlyToPlayers`. §7.1 asked the
+  423 assert to "ride the catalog's own flag"; with the rule spelled inline there
+  was no flag to ride, only a copy to make. It now has one reader in the wire path
+  and one in the harness, and `scripts/world-regions.py` is the (agreeing) Python
+  statement of the same rule.
+
+**Verified:**
+
+- ⭐ **The refactor is byte-identical over the whole catalog, proven not argued.**
+  `map[name]sim.MobSpec` for all **65** species captured **before** the signature
+  change and diffed after: **65/65 identical** (order-sensitive — capture first, as
+  C1's nameplate golden had to). The capture harness was transient and is deleted.
+- ⭐ **Guardrail classification identical to baseline**, measured against a clean
+  `HEAD` worktree: **28 species facetank-survival lines byte-identical**, and all
+  three band memberships identical (`Z1` soft 7 / hard 2, `Z2` 3 / 2, `farm` 0 / 3).
+  Only the within-list *order* differed, which is `mr.Mobs()` map iteration and not
+  content — normalised and re-diffed to prove it.
+- ⭐ **14 new legs, every one proven RED first** against a mutated implementation
+  (each mutation applied, target test run, source restored): `killXP` dropping
+  `Normalized` · `Award` ignoring Δ (the pre-C1.5 model) · `KillsPerLevelAt`
+  returning 0 instead of +Inf · `mobSpecOf` ignoring its level parameter ·
+  placements ignoring the spawn override · the combat filter dropped (485 not 423) ·
+  `contentFS` no longer checking `zones`/`props` · a prey-less zone reporting an
+  empty table · unmeasurable cells averaged in · a *dying* stance counting as a way
+  to farm · the player-level axis ignored · an unpriced chain pricing itself · an
+  unmeasured rung rendering as `gray` · the at-level column drifting. ⚑ **Two of
+  those first stayed GREEN and both were real gaps**: the empty-zone leg passed
+  because `LoadZoneFS` errors on an empty *directory* long before the guard, so a
+  zone that parses but holds only NPCs now has its own test; and the `ChainKillXP`
+  nil-guard mutation was neutered by the level-0 branch, so the test grew a
+  *levelled* bracket.
+- `go build` · `go vet` clean · full Go suite **53 packages, 0 FAIL** on a clean
+  uncached run. ⚑ The documented pre-existing nondeterministic red,
+  `sys.TestDwell_TakeoffDropsAnInProgressCount`, is still nondeterministic (1 of 3
+  isolated `-count=1` runs failed) — **unowned and unrelated**: it is a
+  flight-dwell fixture and C1.5 changed no file in `sys`, no content and no conf.
+  Carried forward from C0/C2's ledgers, not introduced here ·
+  `db-test` green **uncached** vs real Postgres (store 28.9 s, accounts 16.7 s) ·
+  boot `-content ../api` 15 factions/87 skills/65 mobs/3 milestones/10 recipes/4
+  quests/5 props/777 props/485 spawns, **0 panics, 0 errors, 0 warnings**.
+- **`-placements` is deterministic at full scale**: two runs, tables and artifacts
+  byte-identical (20 rows, 423 spawns, 34 unmeasured) after dropping the timestamp.
+- **The explorer was driven in a real DOM** (jsdom — ⚑ headless Chromium cannot
+  launch in this environment, `libnspr4.so` missing): the level input renders,
+  `/mobs?level=16` re-derives the roster, the selection survives the re-derive, the
+  mob HP knob follows **222 → 690** for a DireWolf moved cL6 → 16, and the page
+  raises **0 errors**. Server-side the same two calls return the same numbers, and
+  `?level=99` / `?level=-1` / `?level=nope` are 400s.
+- **L6 checked at the real seam**: the explorer's verbatim four-key `xp` object
+  POSTed to `/curve` still reports 7.5 kills/level, and its echo carries **exactly
+  those four keys** — the six new fields are `omitempty`, so an old caller's
+  artifact round-trips unchanged.
+- ⭐ **The DOCUMENTED build path was verified COLD, not just `go build`.** The two
+  new `contentFS` entries are `go:embed` filesystems, so the risk is C2's
+  stale-`dist` class at the Go seam — a build that works only because the embedded
+  JSON happens to be there from a previous run. Checked in a fresh worktree with
+  the working tree replicated: `find ./pkg/api -name '*.json' -delete`, then
+  `make -C backend simharness.build` (= `gen` + `cp-defs` + build), then
+  `-placements` → **423 combat spawns**. ⚑ **And the class cannot bite here at
+  all**: a purged embed is a **compile-time** error (`pattern *.json: no matching
+  files found`), never a silently empty filesystem. `cp-defs` copies all eight
+  content dirs including `zones` and `props` (`Makefile:16`) — ⛑ its `$(info)`
+  line said *"mobs, skills and recipe definitions"*, three of the eight, which is
+  exactly the kind of stale string that makes a reader verify the wrong thing;
+  corrected in passing.
+- **No frontend source, no `.fbs`, no content JSON and no conf changed**, so `tsc`,
+  vitest and `hygiene-wire-prune` are not implicated (reasoned against the coverage
+  map, not skipped).
+
+**Not done, deliberately:**
+
+- **No `/placements` HTTP endpoint.** §13.3 asked only for "a level input beside
+  the mob dropdown", which shipped as `/mobs?level=N`. A battery endpoint would
+  need its own fight-budget guard like the other three, for a report nobody has
+  asked to read in a browser. YAGNI, and recorded so the next reader can tell it
+  was chosen rather than forgotten.
+- ⚑ **`-mob-preset` is scope this chunk ADDED, with cause.** §13.3 named
+  `-mob-level`, but the CLI had no mob-content path at all (only `-player-aura`),
+  so the named flag had nothing to act on. It ships as a ~15-line mirror of the
+  `-player-aura` idiom; without it `-mob-level` would be a flag that modifies
+  nothing.
+- **§8.1 pacing, §8.2's kite list, D8 A-vs-B, and the §13.4 kiteability leg** are
+  all still out of scope and untouched.
+
+⛔ **It does NOT close `plan-world-replacement.md`'s speed gap, and the reason is
+structural.** That plan records two distortions: the high regions at **1.8–2.1 ×**,
+and **no battery measuring mob speed**. `-placements` makes the first measurable.
+It cannot touch the second — `chainScenario` spawns the facetank mob at **distance
+0** and **pins the kited mob to speed 0**, so `MobSpec.Speed` never enters a chain
+at all. The new battery inherits that blindness rather than fixing it; §13.4
+deliberately left the approach-distance leg unbuilt, and the kite verdict stays an
+in-game judgement.
+
+⛔ **Read nothing off it — D9/§13.4.** The first `-placements` table prints the
+distortion `plan-world-replacement.md` §12 C2 predicted, and interpreting it is
+**C2's**, not this chunk's. Recorded only as "the instrument runs and its output
+is stable".

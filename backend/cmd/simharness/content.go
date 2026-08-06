@@ -11,12 +11,15 @@ import (
 
 	afactions "github.com/RoteRiesenRobbe/aura/pkg/api/factions"
 	amobs "github.com/RoteRiesenRobbe/aura/pkg/api/mobs"
+	aprops "github.com/RoteRiesenRobbe/aura/pkg/api/props"
 	askills "github.com/RoteRiesenRobbe/aura/pkg/api/skills"
+	azones "github.com/RoteRiesenRobbe/aura/pkg/api/zones"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
 
 // mobPreset is one entry of the explorer's mob dropdown: an authored mob's
@@ -25,8 +28,11 @@ import (
 // aura; a mob whose loadout has neither maps to a harmless no-op — it keeps its
 // authored role, which since chunk 2 is stated rather than implied by speed 0).
 type mobPreset struct {
-	Name string      `json:"name"`
-	Spec sim.MobSpec `json:"spec"`
+	Name string `json:"name"`
+	// Level is the level the spec was derived at — the species' own
+	// curveLevel unless the roster was asked for a placement (C1.5).
+	Level int         `json:"level"`
+	Spec  sim.MobSpec `json:"spec"`
 }
 
 // playerAuraPreset is one entry of the explorer's player-aura dropdown
@@ -46,63 +52,158 @@ type playerAuraPreset struct {
 // below 100, mob skills (api/skills/mobs/) number from 101.
 const firstMobSkillID skills.SkillID = 100
 
-// contentFS resolves the three content filesystems: the embedded pkg/api
-// copies by default (synced from api/ via `make cp-defs`), or a live
-// api/-layout directory when contentDir is set — the aurad -content
-// convention, so content edits show up on a harness restart without cp-defs.
-func contentFS(contentDir string) (skillsFS, factionsFS, mobsFS fs.FS, err error) {
-	skillsFS, factionsFS, mobsFS = fs.FS(askills.Skills), fs.FS(afactions.Factions), fs.FS(amobs.Mobs)
+// contentDirs are the definition filesystems the harness consumes. zones and
+// props joined with the C1.5 placement battery (plan-xp-formula.md §13.3) —
+// props because a zone does not load without them: world.Zone.resolve binds
+// every prop's type against the registry, so reading world.json needs the same
+// two sources aurad boots with.
+type contentDirs struct {
+	skills   fs.FS
+	factions fs.FS
+	mobs     fs.FS
+	zones    fs.FS
+	props    fs.FS
+}
+
+// contentFS resolves them: the embedded pkg/api copies by default (synced from
+// api/ via `make cp-defs`), or a live api/-layout directory when contentDir is
+// set — the aurad -content convention, so content edits show up on a harness
+// restart without cp-defs.
+//
+// ⚑ A missing subdirectory is an ERROR, never an empty filesystem. An empty
+// zones dir reports a placement table with no rows, which reads as "nothing in
+// the world is placed" rather than as a broken -content path (§7.1's
+// no-content degrade leg; the C2 world walk's "no plates in view" lesson, one
+// level up).
+func contentFS(contentDir string) (contentDirs, error) {
+	c := contentDirs{
+		skills:   askills.Skills,
+		factions: afactions.Factions,
+		mobs:     amobs.Mobs,
+		zones:    azones.Zones,
+		props:    aprops.Props,
+	}
 	if contentDir == "" {
-		return skillsFS, factionsFS, mobsFS, nil
+		return c, nil
 	}
 	root := os.DirFS(contentDir)
 	for _, s := range []struct {
 		name string
 		dst  *fs.FS
 	}{
-		{"skills", &skillsFS}, {"factions", &factionsFS}, {"mobs", &mobsFS},
+		{"skills", &c.skills}, {"factions", &c.factions}, {"mobs", &c.mobs},
+		{"zones", &c.zones}, {"props", &c.props},
 	} {
 		sub, err := fs.Sub(root, s.name)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("content dir %q: %w", contentDir, err)
+			return contentDirs{}, fmt.Errorf("content dir %q: %w", contentDir, err)
 		}
 		if _, err := fs.Stat(sub, "."); err != nil {
-			return nil, nil, nil, fmt.Errorf("content dir %q: %w", contentDir, err)
+			return contentDirs{}, fmt.Errorf("content dir %q: %w", contentDir, err)
 		}
 		*s.dst = sub
 	}
-	return skillsFS, factionsFS, mobsFS, nil
+	return c, nil
 }
 
-// loadContent builds the real registries once and returns the authored mob
-// definitions (tier+baseline numbers derived against the working-lock curve —
-// curve.Default = what a conf without the keys boots with, so they match what
-// the live game would spawn) plus the skill registry.
-func loadContent(contentDir string) ([]*mobs.MobDefinition, skills.Registry, error) {
-	skillsFS, factionsFS, mobsFS, err := contentFS(contentDir)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	fr, err := factions.RegistryFromFS(factionsFS)
+// loadRegistries builds the real registries once (tier+baseline numbers derived
+// against the working-lock curve — curve.Default = what a conf without the keys
+// boots with, so they match what the live game would spawn).
+func loadRegistries(c contentDirs) (mobs.Registry, skills.Registry, error) {
+	fr, err := factions.RegistryFromFS(c.factions)
 	if err != nil {
 		return nil, nil, fmt.Errorf("loading factions: %w", err)
 	}
-	sr, err := skills.RegistryFromFS(skillsFS, fr)
+	sr, err := skills.RegistryFromFS(c.skills, fr)
 	if err != nil {
 		return nil, nil, fmt.Errorf("loading skills: %w", err)
 	}
-	mr, err := mobs.RegistryFromFS(sr, fr, curve.Default(), mobsFS)
+	mr, err := mobs.RegistryFromFS(sr, fr, curve.Default(), c.mobs)
 	if err != nil {
 		return nil, nil, fmt.Errorf("loading mobs: %w", err)
 	}
+	return mr, sr, nil
+}
+
+// loadContent returns the authored mob definitions plus the skill registry.
+func loadContent(contentDir string) ([]*mobs.MobDefinition, skills.Registry, error) {
+	c, err := contentFS(contentDir)
+	if err != nil {
+		return nil, nil, err
+	}
+	mr, sr, err := loadRegistries(c)
+	if err != nil {
+		return nil, nil, err
+	}
 	return mr.Mobs(), sr, nil
+}
+
+// placement is one authored world spawn a player can fight: the species that
+// stands there and the level it stands at (plan-xp-formula.md §13.3).
+type placement struct {
+	Def *mobs.MobDefinition
+	// Level is the RESOLVED level — the spawn's own override, else the
+	// species' curveLevel. That is Mob.Level()'s own precedence
+	// (spawnLevel ?? curveLevel, plan-mob-levels.md C1), which is the operand
+	// the kill-XP formula reads.
+	Level int
+}
+
+// loadPlacements enumerates one zone's combat spawns.
+//
+// ⚑ L7 — this does NOT parse world.json. world.LoadZoneFS is the loader aurad
+// boots with; it already validates `level` (non-positive hard-fails) and
+// resolves every spawn against the mob registry. A convenience re-parse here
+// would drift from the game, which is the one thing §7.1's 423-spawn assert
+// exists to catch.
+//
+// Non-combat spawns (NPCs, structures, totems, hazards) are dropped by the
+// catalog's own derivation, not by a hand-written filter — see
+// mobs.MobDefinition.IsCombatTarget.
+func loadPlacements(contentDir, zoneName string) ([]placement, error) {
+	c, err := contentFS(contentDir)
+	if err != nil {
+		return nil, err
+	}
+	mr, _, err := loadRegistries(c)
+	if err != nil {
+		return nil, err
+	}
+	pr, err := world.PropRegistryFromFS(c.props)
+	if err != nil {
+		return nil, fmt.Errorf("loading props: %w", err)
+	}
+	zone, err := world.LoadZoneFS(c.zones, zoneName, mr, pr)
+	if err != nil {
+		return nil, fmt.Errorf("loading zone %q: %w", zoneName, err)
+	}
+
+	placements := make([]placement, 0, len(zone.Spawns))
+	for i := range zone.Spawns {
+		s := &zone.Spawns[i]
+		if !s.Def.IsCombatTarget() {
+			continue
+		}
+		level := s.Def.CurveLevel
+		if s.Level != nil {
+			level = *s.Level
+		}
+		placements = append(placements, placement{Def: s.Def, Level: level})
+	}
+	if len(placements) == 0 {
+		return nil, fmt.Errorf("zone %q holds no combat spawns — a placement battery over it would report an empty table, which reads as \"nothing is placed\"", zoneName)
+	}
+	return placements, nil
 }
 
 // loadPresets builds both explorer rosters from the real content: every
 // authored mob, and every player-authored damage- or dot-aura skill at L1 +
 // max level (two entries — the baseline and the specialization ceiling).
-func loadPresets(contentDir string) ([]mobPreset, []playerAuraPreset, error) {
+//
+// mobLevel derives the whole mob roster at one level, so the explorer can ask
+// "what is this species like where it is PLACED" (C1.5); 0 = each species at
+// its own curveLevel, which is what the roster has always meant.
+func loadPresets(contentDir string, mobLevel int) ([]mobPreset, []playerAuraPreset, error) {
 	defs, sr, err := loadContent(contentDir)
 	if err != nil {
 		return nil, nil, err
@@ -110,11 +211,15 @@ func loadPresets(contentDir string) ([]mobPreset, []playerAuraPreset, error) {
 
 	var presets []mobPreset
 	for _, def := range defs {
-		spec, err := mobSpecOf(def)
+		level := mobLevel
+		if level < 1 {
+			level = def.CurveLevel
+		}
+		spec, err := mobSpecOf(def, level)
 		if err != nil {
 			return nil, nil, err
 		}
-		presets = append(presets, mobPreset{Name: def.Name, Spec: spec})
+		presets = append(presets, mobPreset{Name: def.Name, Level: level, Spec: spec})
 	}
 	sort.Slice(presets, func(i, j int) bool { return presets[i].Name < presets[j].Name })
 
@@ -160,15 +265,15 @@ func playerAuraSpecByName(contentDir, ref string) (sim.AuraSpec, error) {
 		}
 	}
 
-	skillsFS, factionsFS, _, err := contentFS(contentDir)
+	c, err := contentFS(contentDir)
 	if err != nil {
 		return sim.AuraSpec{}, err
 	}
-	fr, err := factions.RegistryFromFS(factionsFS)
+	fr, err := factions.RegistryFromFS(c.factions)
 	if err != nil {
 		return sim.AuraSpec{}, fmt.Errorf("loading factions: %w", err)
 	}
-	sr, err := skills.RegistryFromFS(skillsFS, fr)
+	sr, err := skills.RegistryFromFS(c.skills, fr)
 	if err != nil {
 		return sim.AuraSpec{}, fmt.Errorf("loading skills: %w", err)
 	}
@@ -184,6 +289,108 @@ func playerAuraSpecByName(contentDir, ref string) (sim.AuraSpec, error) {
 		return sim.AuraSpec{}, fmt.Errorf("-player-aura %q: %w", ref, err)
 	}
 	return spec, nil
+}
+
+// placementsInput is the -placements CLI surface, gathered so main.go stays a
+// flag table.
+type placementsInput struct {
+	contentDir  string
+	zone        string
+	player      sim.PlayerSpec // the LEVEL-1 baseline build
+	curve       sim.Curve
+	xp          sim.XPModel
+	playerLevel int
+	fights      int
+	downtime    float64
+	seed        int64
+	runs        int
+	maxSeconds  float64
+}
+
+// runPlacementsBattery turns the authored zone into the battery's (species,
+// rung) groups and runs it. Grouping happens HERE rather than in the sim so
+// the sim package keeps reading no content: what crosses the boundary is
+// already-derived numbers.
+func runPlacementsBattery(in placementsInput) (*sim.PlacementReport, error) {
+	placements, err := loadPlacements(in.contentDir, in.zone)
+	if err != nil {
+		return nil, err
+	}
+	economy := in.xp.KillEconomy()
+
+	type key struct {
+		species string
+		level   int
+	}
+	index := map[key]int{}
+	var specs []sim.PlacementSpec
+	for _, p := range placements {
+		k := key{p.Def.Name, p.Level}
+		if i, ok := index[k]; ok {
+			specs[i].Spawns++
+			continue
+		}
+		mob, err := mobSpecOf(p.Def, p.Level)
+		if err != nil {
+			return nil, fmt.Errorf("placement %s at level %d: %w", p.Def.Name, p.Level, err)
+		}
+		index[k] = len(specs)
+		specs = append(specs, sim.PlacementSpec{
+			Species: p.Def.Name,
+			Level:   p.Level,
+			Spawns:  1,
+			Tier:    p.Def.Tier,
+			// Both terms come off the definition, never off a table here:
+			// KillXPTierMultiplier is where the tier vocabulary lives, and
+			// XPFactor is the authored species knob.
+			TierMultiplier: p.Def.KillXPTierMultiplier(economy),
+			XPFactor:       float64(p.Def.Factors.XPFactor),
+			Mob:            mob,
+		})
+	}
+
+	return sim.RunPlacements(sim.PlacementConfig{
+		Zone:               in.zone,
+		Specs:              specs,
+		Player:             in.player,
+		Curve:              in.curve,
+		XP:                 in.xp,
+		PlayerLevel:        in.playerLevel,
+		ChainFights:        in.fights,
+		DowntimeSeconds:    in.downtime,
+		BaseSeed:           in.seed,
+		Runs:               in.runs,
+		MaxSecondsPerFight: in.maxSeconds,
+	}), nil
+}
+
+// mobSpecByName derives one authored species' numbers, standing at a level —
+// the CLI's -mob-preset path, mirroring -player-aura. level < 1 = the species'
+// own curveLevel.
+func mobSpecByName(contentDir, name string, level int) (sim.MobSpec, error) {
+	defs, _, err := loadContent(contentDir)
+	if err != nil {
+		return sim.MobSpec{}, err
+	}
+	for _, def := range defs {
+		if def.Name != name {
+			continue
+		}
+		if level < 1 {
+			level = def.CurveLevel
+		}
+		spec, err := mobSpecOf(def, level)
+		if err != nil {
+			return sim.MobSpec{}, fmt.Errorf("-mob-preset %q: %w", name, err)
+		}
+		return spec, nil
+	}
+	names := make([]string, 0, len(defs))
+	for _, def := range defs {
+		names = append(names, def.Name)
+	}
+	sort.Strings(names)
+	return sim.MobSpec{}, fmt.Errorf("-mob-preset %q: unknown species (available: %s)", name, strings.Join(names, ", "))
 }
 
 // hasDamageEffect reports whether the definition carries any payload the sim
@@ -318,17 +525,23 @@ func auraSpecOf(def *skills.SkillDefinition, level int, powerScale float32) (sim
 	return spec, nil
 }
 
-// mobSpecOf maps an authored definition onto the sim's synthetic MobSpec.
-// The aura is the first damage-dealing skill across the mob's aura loadout,
-// level-scaled at the declared skill level — the same numbers the live
-// SkillSystem would apply.
-func mobSpecOf(def *mobs.MobDefinition) (sim.MobSpec, error) {
-	// f(curveLevel) is applied HERE because a definition no longer carries a
+// mobSpecOf maps an authored definition, STANDING AT level, onto the sim's
+// synthetic MobSpec. The aura is the first damage-dealing skill across the
+// mob's aura loadout, level-scaled at the declared skill level — the same
+// numbers the live SkillSystem would apply.
+//
+// ⚑ The level parameter is the whole of what makes the harness see a placement
+// rather than only a species (C1.5, §13.3). Pass def.CurveLevel for the
+// species' home position — every caller that predates C1.5 does, which is what
+// makes the refactor byte-identical.
+func mobSpecOf(def *mobs.MobDefinition, level int) (sim.MobSpec, error) {
+	// f(level) is applied HERE because a definition no longer carries a
 	// pre-derived pool or power scale — the live mob evaluates the curve at
-	// its current level (plan-entity-model.md chunk 1b). A preset is a world
-	// mob, which stands at its authored curveLevel, so this is that same
-	// number: the sim keeps modelling exactly what the SkillSystem applies.
-	powerScale := float32(def.Curve.F(def.CurveLevel))
+	// its current level (plan-entity-model.md chunk 1b), which since
+	// plan-mob-levels.md C1 is the SPAWN's level where one is authored. So
+	// this is that same number: the sim keeps modelling exactly what the
+	// SkillSystem applies to the mob actually standing there.
+	powerScale := float32(def.Curve.F(level))
 	spec := sim.MobSpec{
 		// Rounded, because vitals.HP rounds the live pool: a preset that kept
 		// the fraction would model a mob the server cannot spawn.

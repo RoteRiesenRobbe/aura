@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
@@ -49,7 +50,7 @@ func (r *runRequest) validate() error {
 // report the CLI would save as its artifact, GET /mobs is the authored-mob
 // preset roster for the dropdown, GET /player-auras the player-skill one
 // (content pass C5).
-func serve(addr string, presets []mobPreset, playerPresets []playerAuraPreset) error {
+func serve(addr string, presets []mobPreset, playerPresets []playerAuraPreset, roster mobRoster) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -63,18 +64,44 @@ func serve(addr string, presets []mobPreset, playerPresets []playerAuraPreset) e
 	mux.HandleFunc("/curve", handleCurve)
 	mux.HandleFunc("/matrix", handleMatrix)
 	mux.HandleFunc("/chain", handleChain)
-	mux.HandleFunc("/mobs", handleMobs(presets))
+	mux.HandleFunc("/mobs", handleMobs(presets, roster))
 	mux.HandleFunc("/player-auras", handlePlayerAuras(playerPresets))
 
 	fmt.Printf("simharness explorer on http://%s (%d mob presets, %d player-aura presets)\n", addr, len(presets), len(playerPresets))
 	return http.ListenAndServe(addr, mux)
 }
 
-// handleMobs serves the preset roster loaded at startup.
-func handleMobs(presets []mobPreset) http.HandlerFunc {
+// mobRoster re-derives the whole mob roster at one level (0 = each species at
+// its own curveLevel). Nil disables the ?level= query — the startup roster is
+// then all the page can have.
+type mobRoster func(level int) ([]mobPreset, error)
+
+// handleMobs serves the preset roster loaded at startup, or — with ?level=N —
+// the same roster derived at a placed level (C1.5), so the explorer can ask
+// what a species is like where the world actually puts it.
+func handleMobs(presets []mobPreset, roster mobRoster) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		out := presets
+		if raw := r.URL.Query().Get("level"); raw != "" {
+			level, err := strconv.Atoi(raw)
+			// Bounded like every other input on this page; the upper bound is
+			// generous because a >30 mob is a legitimate authoring tool
+			// (world/zone.go's own note on spawn levels).
+			if err != nil || level < 0 || level > 60 {
+				http.Error(w, fmt.Sprintf("level must be an integer in [0, 60] (0 = each species' own curveLevel), got %q", raw), http.StatusBadRequest)
+				return
+			}
+			if roster == nil {
+				http.Error(w, "this explorer was started without a level-aware roster", http.StatusNotImplemented)
+				return
+			}
+			if out, err = roster(level); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(presets); err != nil {
+		if err := json.NewEncoder(w).Encode(out); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}

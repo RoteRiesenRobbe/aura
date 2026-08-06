@@ -19,16 +19,65 @@ type Curve = curve.Curve
 
 // XPModel carries the kills-per-level analytics. The level-up requirement
 // mirrors player.experienceForNextLevel (base × growth^(L-1), rounded,
-// min 1) — same rule, so the sim cannot drift from the game. Kill XP is the
-// authored-content model: a same-tier kill at tier T yields
-// killBase × killGrowth^(T-1); killGrowth = levelUpGrowth means flat
-// kills-per-level across the span.
+// min 1) — same rule, so the sim cannot drift from the game.
+//
+// The kill side is the WHOLE live economy since C1.5 (plan-xp-formula.md §13):
+// before it, this type carried four scalars and reached curve.KillXP.BaseAt
+// alone, so the tool that calibrates the economy could see base(P) and nothing
+// else — not the taper, not the gray boundary, not the up-bonus, not the tier
+// multipliers, not xpFactor (§13.1). The taper's shape IS the open D8 question,
+// so calibrating against that tool would have been choosing blind.
+//
+// ⚑ The FIELD LAYOUT is a compat surface, not a private detail (L6):
+// cmd/simharness/index.html builds its XP inputs from a table keyed on the four
+// literal names below and posts an object with exactly those keys. So the four
+// stay, and the six new knobs are flat siblings that an older poster simply
+// omits — see killXP for what an omission resolves to.
 type XPModel struct {
 	LevelUpBase   float64 `json:"levelUpBase"`
 	LevelUpGrowth float64 `json:"levelUpGrowth"`
 	KillBase      float64 `json:"killBase"`
 	KillGrowth    float64 `json:"killGrowth"`
+
+	// The rest of curve.KillXP, flattened. Absent (zero) means UNAUTHORED and
+	// resolves to the live default for that field — none of the six has a
+	// meaningful zero, and a zeroed GrayStep alone would mean every mob below
+	// your level pays nothing (curve.KillXP.Normalized's own record of L2).
+	KillUpBonus   float64 `json:"killUpBonusPerLevel,omitempty"`
+	KillUpCap     int     `json:"killUpBonusCapLevels,omitempty"`
+	KillGrayBase  int     `json:"killGrayBase,omitempty"`
+	KillGrayStep  int     `json:"killGrayStep,omitempty"`
+	KillTierElite float64 `json:"killTierElite,omitempty"`
+	KillTierBoss  float64 `json:"killTierBoss,omitempty"`
 }
+
+// killXP assembles the live kill-XP economy this model pays with.
+//
+// ⚑ The two halves are resolved DIFFERENTLY on purpose. The six new fields
+// normalize — a caller written before C1.5 omits them, and "omitted" can only
+// sensibly mean "the shipped economy". KillBase/KillGrowth do NOT: every caller
+// has always supplied them (the CLI flags default to curve.DefaultKillXP, the
+// explorer's inputs are pre-filled), so a zero there is an explicit "off" and
+// normalizing it would change what the -levels sweep reports for that input.
+// Overwriting them after Normalized keeps KillXP(tier) byte-identical to the
+// pre-C1.5 raw curve.KillXP{Base, Growth}.BaseAt path.
+func (x XPModel) killXP() curve.KillXP {
+	k := curve.KillXP{
+		UpBonus:   x.KillUpBonus,
+		UpCap:     x.KillUpCap,
+		GrayBase:  x.KillGrayBase,
+		GrayStep:  x.KillGrayStep,
+		TierElite: x.KillTierElite,
+		TierBoss:  x.KillTierBoss,
+	}.Normalized()
+	k.Base, k.Growth = x.KillBase, x.KillGrowth
+	return k
+}
+
+// KillEconomy is the resolved economy, for callers that need a term of it the
+// methods below do not expose — the placement battery reads tier multipliers
+// off it (mobs.MobDefinition.KillXPTierMultiplier takes the type).
+func (x XPModel) KillEconomy() curve.KillXP { return x.killXP() }
 
 // XPToNext is the XP required to go from level to level+1, exactly as the
 // game computes it.
@@ -43,21 +92,44 @@ func (x XPModel) XPToNext(level int) float64 {
 	return math.Round(required)
 }
 
-// KillXP is the modeled XP for killing one at-level normal mob at a tier.
+// KillXP is the modeled XP for killing one at-level normal mob at a tier —
+// the live formula's base(P).
 //
-// Since plan-xp-formula.md C1 this is the LIVE formula's base(P), not a model
-// of authored content: the game computes kill XP per participant from
-// curve.KillXP, and this delegates to it so the calibration battery cannot
-// model an economy the server does not pay. The two knobs stay XPModel's own
-// JSON fields — the -serve API and the preset files are keyed on them — and
-// the harness flag defaults read curve.DefaultKillXP().
+// ⚑ Δ = 0, tier normal, xpFactor 1 is BAKED IN here, and that is deliberate:
+// this is what the -levels sweep's kills-per-level column has meant since
+// chunk 2 (sweep.go), and silently widening its meaning would move a number
+// the PO has been reading for four chunks. Award/KillsPerLevelAt below are
+// where a placement is priced.
 func (x XPModel) KillXP(tier int) float64 {
-	return curve.KillXP{Base: x.KillBase, Growth: x.KillGrowth}.BaseAt(tier)
+	return x.killXP().BaseAt(tier)
 }
 
-// KillsPerLevel is how many same-tier kills advance one level.
+// KillsPerLevel is how many same-tier at-level kills advance one level.
 func (x XPModel) KillsPerLevel(level int) float64 {
 	return x.XPToNext(level) / x.KillXP(level)
+}
+
+// Award is what one kill pays one participant — the live curve.KillXP.Award,
+// passed straight through, so what the harness reports is what the server
+// hands out. tierMultiplier comes from the species' tier
+// (mobs.MobDefinition.KillXPTierMultiplier) and xpFactor from its factors.
+func (x XPModel) Award(playerLevel, mobLevel int, tierMultiplier, xpFactor float64) uint64 {
+	return x.killXP().Award(playerLevel, mobLevel, tierMultiplier, xpFactor)
+}
+
+// KillsPerLevelAt is KillsPerLevel's Δ-aware sibling: how many kills of a mob
+// standing at mobLevel advance a player at playerLevel by one level.
+//
+// ⚑ Returns +Inf when the kill pays nothing — a gray mob, or an xpFactor-0
+// species. That is the honest answer (no number of them ever levels you) but
+// it does NOT survive encoding/json, so a report field must branch on the
+// award being zero rather than storing this.
+func (x XPModel) KillsPerLevelAt(playerLevel, mobLevel int, tierMultiplier, xpFactor float64) float64 {
+	award := x.Award(playerLevel, mobLevel, tierMultiplier, xpFactor)
+	if award == 0 {
+		return math.Inf(1)
+	}
+	return x.XPToNext(playerLevel) / float64(award)
 }
 
 // Fixture is the level-typical combatant generator: level-1 baselines plus

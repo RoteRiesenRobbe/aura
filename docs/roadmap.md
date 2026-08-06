@@ -1077,15 +1077,29 @@ system ships blind.
 >
 > | # | session | count | plan |
 > | --- | --- | --- | --- |
-> | 1 | **C1.5 — sim-harness placement support** | 1 (2 if `XPModel`'s JSON compat surface fights back, L6) | `plan-xp-formula.md` **§13** — full: rulings, touch points with file:line, test legs |
+> | ~~1~~ | ✅ **C1.5 — sim-harness placement support** — **SHIPPED 2026-08-06, in one session** | ~~1 (2 if L6 fights back)~~ | `plan-xp-formula.md` **§13** + ledger **§13.6** |
 > | 2 | **The kite in-game pass** — closes `plan-world-replacement.md` | 1 (+1 if re-tuning is heavy) | that plan's **§3.11** + §12 C2; the deliverable is a verdict, then the archive wrap |
 > | 3 | **`xp C2` — the final pass** | **2–3** | `plan-xp-formula.md` **§6 C2** (a/b/c) + §8.1 + §8.2 + §11 + §12.1 |
 >
-> ⚑ **1 and 2 are independent** — either order, or interleaved. Only 3 needs both
-> in front of it. A post-placement `factors.speed` edit is safe (speed is not in
-> `PowerScale()`), which is *why* 2 can float. ⚑ **Doing 1 first keeps one door
-> open**: if the PO ever wants kiteability *measured* rather than eyeballed, the
-> approach-distance leg only fits inside the harness (§13.4).
+> ⚑ **L6 did not fight back, so C1.5 came in at the 1-session estimate** — but only
+> because the shape that *would* have cost the second session was rejected on
+> measurement: embedding `curve.KillXP` into `XPModel` looks DRY-er and turns any
+> missed caller into a **silently defaulted** economy (§13.6). ⛔ **The design
+> undercounted a different thing**: `contentFS` needed **`props` as well as
+> `zones`** (a zone does not resolve without a PropRegistry) and a `-zone` flag,
+> both inherited from obeying **L7** and reusing the real loader.
+>
+> ⚑ **2 and 3 are all that is left, and 3 still needs 2 in front of it** — the
+> original rule was "1 and 2 are independent, only 3 needs BOTH", and 1 landing
+> does not change 2's half of it. So the order is now forced: **kite pass → `xp
+> C2`.** ⚑ *Why 3 waits on 2 rather than merely preferring it:* the kite pass may
+> re-tune `factors.speed` on the seven species C1 reshaped, and while a speed edit
+> is safe for *placement* pricing (speed is not in `PowerScale()`), it moves
+> kills/hour — which is the exact quantity `-placements` reports and `xp C2`
+> calibrates against. Calibrating first would mean calibrating against rates the
+> next session changes. ⚑ **1 kept one door open**: if the PO ever wants kiteability
+> *measured* rather than eyeballed, the approach-distance leg only fits inside the
+> harness (§13.4) — still not built, still deliberately.
 > ⛔ **3 is the only one that cannot honestly be one session** — it bundles a
 > code-bearing ruling (**D8**, and its branch B costs a wire field, §12.1) with a
 > numbers pass and a two-ended feel pass.
@@ -1153,8 +1167,14 @@ system ships blind.
 >    `factors.speed`), **D11** ruled ArmySoldier stays `xpFactor: 0` as
 >    deliberate set-dressing, and **D14** ruled OrcGrunt unchanged with cause.
 >    See `plan-world-replacement.md` §3.3–§3.4 and §3.8.
-> 3. **Sim-harness placement support** — the harness balances *species at their
->    curve position* and is blind to placements. ⚑ This **reverses a deliberate
+> 3. ✅ **Sim-harness placement support — SHIPPED 2026-08-06** (`plan-xp-formula.md`
+>    C1.5, ledger **§13.6**). `XPModel` now pays the whole `curve.KillXP`, and
+>    `-placements` reports the authored world's **423 combat spawns** across 20
+>    rungs in ~8 s with the **player level as its own axis**. The refactor was
+>    proven byte-identical over all 65 species and the guardrail classification is
+>    identical to baseline. ⛔ Per **D9/§13.4** nothing was read off it — that is
+>    step 4's. *(What follows is the design record.)* The harness balanced *species
+>    at their curve position* and was blind to placements. ⚑ This **reverses a deliberate
 >    YAGNI deferral** (`plan-mob-levels.md` §8.3, which declined it and named its
 >    own trigger); the trigger arrived the same evening, because calibrating a
 >    re-placed world is exactly the case it declined. ✅ **DESIGNED 2026-08-06 as

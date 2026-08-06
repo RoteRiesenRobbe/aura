@@ -230,6 +230,108 @@ func (r *ChainReport) ChainTable() string {
 	return b.String()
 }
 
+// PlacementTable renders the C1.5 rung rows: what the authored world pays a
+// player at each placed level. Spawn-weighted over the measurable species.
+func (r *PlacementReport) PlacementTable() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "zone %q — %d combat spawns, player level %s\n",
+		r.Zone, r.TotalSpawns, playerLevelLabel(r.PlayerLevel))
+	fmt.Fprintf(&b, "%5s %5s %7s %8s %9s %10s %10s %10s  %s\n",
+		"RUNG", "P.LVL", "Δ", "SPAWNS", "XP/KILL", "KILLS/LVL", "KILLS/H", "XP/H", "SPECIES")
+	for _, row := range r.Rows {
+		spawns := fmt.Sprintf("%d", row.Spawns)
+		if row.MeasuredSpawns != row.Spawns {
+			spawns = fmt.Sprintf("%d/%d", row.MeasuredSpawns, row.Spawns)
+		}
+		// ⚑ A rung with NOTHING measurable is not a rung that pays nothing.
+		// Its aggregate award is 0 only because there is no sample behind it,
+		// and rendering that as "gray" would state the opposite of the truth
+		// (a Δ=+3 rung whose every species killed the bot).
+		if row.MeasuredSpawns == 0 {
+			fmt.Fprintf(&b, "%5d %5d %+7d %8s %9s %10s %10s %10s  %s\n",
+				row.Level, row.PlayerLevel, row.Delta, spawns,
+				"-", "-", "-", "-", placementSpeciesSummary(row.Cells))
+			continue
+		}
+		fmt.Fprintf(&b, "%5d %5d %+7d %8s %9s %10s %10.1f %10.0f  %s\n",
+			row.Level, row.PlayerLevel, row.Delta, spawns,
+			awardLabel(row.Award), killsPerLevelLabel(row.KillsPerLevel),
+			row.KillsPerHour, row.XPPerHour, placementSpeciesSummary(row.Cells))
+	}
+	if r.UnmeasuredSpawns > 0 {
+		fmt.Fprintf(&b, "‡ %d of %d spawns are not measurable by the stand-still bot "+
+			"(it fled, outran or killed the bot in every chain) and are excluded from the rates — "+
+			"the SPAWNS column shows measured/authored where they differ\n",
+			r.UnmeasuredSpawns, r.TotalSpawns)
+	}
+	return b.String()
+}
+
+// PlacementSpeciesTable is the detail behind the rungs: one line per placed
+// (species, level), so a rung's aggregate can be read back to the content that
+// produced it.
+func (r *PlacementReport) PlacementSpeciesTable() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "%5s %-22s %-6s %6s %7s %9s %10s %10s %10s  %s\n",
+		"RUNG", "SPECIES", "TIER", "SPAWNS", "Δ", "XP/KILL", "KILLS/LVL", "KILLS/H", "XP/H", "STANCE")
+	for _, row := range r.Rows {
+		for _, c := range row.Cells {
+			stance, kph, xph := string(c.Stance), fmt.Sprintf("%10.1f", c.KillsPerHour), fmt.Sprintf("%10.0f", c.XPPerHour)
+			if !c.Measurable {
+				stance, kph, xph = "‡ not measurable", fmt.Sprintf("%10s", "-"), fmt.Sprintf("%10s", "-")
+			}
+			// The cell's own award IS meaningful even when unmeasurable —
+			// what one kill pays does not depend on the bot managing it.
+			fmt.Fprintf(&b, "%5d %-22s %-6s %6d %+7d %9s %10s %s %s  %s\n",
+				c.Level, c.Species, c.Tier, c.Spawns, c.Delta,
+				awardLabel(float64(c.Award)), killsPerLevelLabel(c.KillsPerLevel),
+				kph, xph, stance)
+		}
+	}
+	return b.String()
+}
+
+// awardLabel renders a kill's pay; 0 is GRAY, not "zero XP by coincidence" —
+// the taper reached the boundary (or the species authors xpFactor 0).
+func awardLabel(award float64) string {
+	if award <= 0 {
+		return "gray"
+	}
+	return fmt.Sprintf("%.0f", award)
+}
+
+// killsPerLevelLabel renders kills-per-level; 0 means the kill pays nothing,
+// whose honest value is +Inf (XPModel.KillsPerLevelAt) and which no report
+// field can carry.
+func killsPerLevelLabel(kpl float64) string {
+	if kpl <= 0 {
+		return "∞"
+	}
+	return fmt.Sprintf("%.1f", kpl)
+}
+
+// playerLevelLabel names the player-level axis; 0 is the diagonal.
+func playerLevelLabel(level int) string {
+	if level < 1 {
+		return "= placed level (the diagonal)"
+	}
+	return fmt.Sprintf("%d (fixed)", level)
+}
+
+// placementSpeciesSummary lists a rung's species with their spawn counts,
+// marking the ones the bot could not measure.
+func placementSpeciesSummary(cells []PlacementCell) string {
+	parts := make([]string, 0, len(cells))
+	for _, c := range cells {
+		mark := ""
+		if !c.Measurable {
+			mark = "‡"
+		}
+		parts = append(parts, fmt.Sprintf("%s×%d%s", c.Species, c.Spawns, mark))
+	}
+	return strings.Join(parts, " ")
+}
+
 // efficiencyLabel renders the parking-lot verdict: the ratio, or why it is 0.
 func efficiencyLabel(row ChainRow) string {
 	if !row.Kite.Feasible {

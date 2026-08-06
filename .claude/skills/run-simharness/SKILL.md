@@ -40,10 +40,20 @@ make -C backend simharness.build   # runs cp-defs + gen, produces backend/simhar
 ```bash
 ./backend/simharness -levels -runs 50 -max-level 8 -out ''   # f(level) curve battery
 ./backend/simharness -runs 200 -out ''                       # 1v1 TTK/TTD battery
+./backend/simharness -placements -runs 8 -out ''             # the AUTHORED world, rung by rung (~8 s)
+./backend/simharness -placements -runs 8 -player-level 14 -out ''   # ...seen by ONE player (Δ ≠ 0)
 ```
 
 `-h` lists all knobs (player/mob baselines, curve growth/span, XP model,
 triple-table candidates).
+
+⚑ **`-placements` is the only battery that reads content placement** (C1.5,
+`plan-xp-formula.md` §13): rows are `world.json`'s placed levels, priced with the
+live `curve.KillXP`, reporting XP/kill, kills/level, kills/hour and XP/hour.
+`-player-level 0` is the diagonal (player level = placed level); any other value
+is the reading a calibration pass actually wants. `-mob-preset <Species>` +
+`-mob-level N` do the same thing for a single 1v1. A rung whose species all kill
+the stand-still bot shows `-`, not `gray` — the two are different claims.
 
 **Web explorer + browser drive** (the real UI check):
 
