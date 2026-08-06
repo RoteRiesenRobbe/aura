@@ -1,7 +1,7 @@
 # Plan: The world re-placement pass — sensible level bands across `world.json`
 
 > **Status: ✅ DESIGNED 2026-08-06 — D2–D5 ruled, THREE chunks decided. ⭐ C0 IS
-> BUILT (2026-08-06, headless-verified, `[uncommitted]`) — the next session is
+> BUILT (2026-08-06, headless-verified, `7055aad4`) — the next session is
 > C1, the decisions session, and it needs the PO in the loop for all four of its
 > items.** Ledger: §12 C0. Open items O2–O5 are
 > deferred *into* C1 rather than pre-ruled, because each needs the map in front
@@ -496,6 +496,39 @@ the reason the boundary is where it is.
 
 **Schema: content JSON YES** (`api/mobs/*.json`, ~4 files) · no `world.json` edit.
 
+#### ⭐ Starting C1 cold — what to load, and what NOT to do
+
+Written 2026-08-06, at the close of C0, for whoever opens this next.
+
+**Load, in this order:** §3.6 (the reconstructed region map + the proposed
+bands) · §3.1's difficulty grid and §3.2's by-level census · §5 (the
+constraints the bands must respect) · §6 (the four questions, all ruled — read
+what was ruled *and why*, since C1 executes them rather than re-opens them) ·
+§10's landmines, especially **L1** (two channels for one fact), **L2** (the
+stretched-kit illusion, which D3 deliberately left to judgement) and **L7**
+(the two gates are parallel routes, not a ramp).
+
+**⛔ C1 places nothing.** Its whole output is *decisions* plus the ~4-file
+catalog edit. If the session finds itself opening the zone editor, it has
+crossed into C2 — and L6 says that boundary exists precisely so the catalog
+moves before anything is authored against it.
+
+**The one deliverable that must be mechanical, not prose:** the region map has
+to come out of C1 as something a script can evaluate — a rule that assigns
+**each of the 423 combat spawns to exactly one region**. §9's coverage assert
+is written against that, and a map that only exists as a paragraph cannot be
+checked. §3.6's boxes leave 89 spawns unassigned; the fix is C1's, not C2's.
+
+**C0 gave C1 an instrument, and it is worth one minute at the start:** the
+nameplate now tells the truth about what a kill pays, so walking a region at a
+cheated level *reads* the band. `XP <n>` to the level under discussion, then
+look. ⚑ Confirm the boot log says `grayBase=5 grayStep=6` before trusting a
+plate — C0's own verification narrowed that knob in `backend/conf.json`, which
+is **gitignored** and therefore not restorable with `git checkout`.
+
+**Nothing is blocked.** C0 shipped `7055aad4` with DB/content untouched, and
+no `api/zones/*.json` or `api/mobs/*.json` has moved.
+
 ### C2 — the re-placement
 
 All ~423 combat spawns, one session, one loaded context: the ratified map and
@@ -621,7 +654,7 @@ the front re-tune. The walk survives as four walks inside one chunk.
 
 ## 12. Chunk ledger
 
-### C0 — the honest plate ✅ 2026-08-06, headless-verified, `[uncommitted]`
+### C0 — the honest plate ✅ 2026-08-06, headless-verified, `7055aad4`
 
 **What shipped.** The client's frozen copy of the gray rule is gone. `Welcome`
 carries `gray_base`/`gray_step` (slots 6 and 7, appended — nothing renumbered,
