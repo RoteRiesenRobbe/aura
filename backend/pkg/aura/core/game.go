@@ -19,6 +19,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/client"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/spectator"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/net"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
@@ -92,6 +93,18 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 		TotalDayCycleTicks: g.config.TotalDayCycleSeconds * constant.TicksPerSecond,
 		DayTimeTicks:       g.config.DayTimeSeconds * constant.TicksPerSecond,
 		ZoneName:           gc.ZoneName,
+		// The gray knobs come from the NORMALIZED economy, never from the conf
+		// block (plan-world-replacement.md C0). mob.SetKillXP falls each
+		// non-positive field back to the built-in default, so a conf that omits
+		// them — the live server's does — pays 5/6 while the raw block reads
+		// 0/0; shipping the raw pair would hand the client ZD = 0 and tint
+		// every mob below its level gray against a server still paying them.
+		// One source of truth for the number, on both sides of the wire.
+		//
+		// ⚑ Reads a value SetKillXP must already have installed: this message
+		// is marshalled once, here. See welcome_test.go.
+		GrayBase: int32(mob.KillXPConfig().GrayBase),
+		GrayStep: int32(mob.KillXPConfig().GrayStep),
 	}
 	builder := flatbuffers.NewBuilder(32)
 	welcomeMsg := codec.WelcomeMessageFlatbufMarshal(builder, msg)

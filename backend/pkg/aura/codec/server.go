@@ -23,6 +23,8 @@ func WelcomeMessageFlatbufMarshal(builder *flatbuffers.Builder, w *Welcome) flat
 	AuraApi.WelcomeAddTotalDaycycleTicks(builder, w.TotalDayCycleTicks)
 	AuraApi.WelcomeAddDayTimeTicks(builder, w.DayTimeTicks)
 	AuraApi.WelcomeAddZoneName(builder, zoneName)
+	AuraApi.WelcomeAddGrayBase(builder, w.GrayBase)
+	AuraApi.WelcomeAddGrayStep(builder, w.GrayStep)
 
 	welcome := AuraApi.WelcomeEnd(builder)
 
@@ -38,6 +40,15 @@ type Welcome struct {
 	// ZoneName is the active zone's identity (its file stem); the client uses
 	// it to render the matching bundled terrain (world foundation chunk 6).
 	ZoneName string
+
+	// GrayBase and GrayStep are the kill-XP gray knobs the client needs to
+	// derive the nameplate's difficulty colour from what a kill actually pays
+	// (plan-world-replacement.md C0). They must be filled from the NORMALIZED
+	// economy — mob.KillXPConfig(), not the raw conf block — or the client
+	// re-acquires a rule the server does not pay by; see the caller in
+	// core/game.go.
+	GrayBase int32
+	GrayStep int32
 }
 
 func AcceptMessageFlatbufMarshal(builder *flatbuffers.Builder, reconnectToken string) flatbuffers.UOffsetT {

@@ -105,8 +105,32 @@ func (rcv *Welcome) ZoneName() []byte {
 	return nil
 }
 
+func (rcv *Welcome) GrayBase() int32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Welcome) MutateGrayBase(n int32) bool {
+	return rcv._tab.MutateInt32Slot(16, n)
+}
+
+func (rcv *Welcome) GrayStep() int32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
+	if o != 0 {
+		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Welcome) MutateGrayStep(n int32) bool {
+	return rcv._tab.MutateInt32Slot(18, n)
+}
+
 func WelcomeStart(builder *flatbuffers.Builder) {
-	builder.StartObject(6)
+	builder.StartObject(8)
 }
 func WelcomeAddServerName(builder *flatbuffers.Builder, serverName flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(serverName), 0)
@@ -125,6 +149,12 @@ func WelcomeAddDayTimeTicks(builder *flatbuffers.Builder, dayTimeTicks uint64) {
 }
 func WelcomeAddZoneName(builder *flatbuffers.Builder, zoneName flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(zoneName), 0)
+}
+func WelcomeAddGrayBase(builder *flatbuffers.Builder, grayBase int32) {
+	builder.PrependInt32Slot(6, grayBase, 0)
+}
+func WelcomeAddGrayStep(builder *flatbuffers.Builder, grayStep int32) {
+	builder.PrependInt32Slot(7, grayStep, 0)
 }
 func WelcomeEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

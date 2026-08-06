@@ -56,8 +56,18 @@ zoneName(optionalEncoding?:any):string|Uint8Array|null {
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 }
 
+grayBase():number {
+  const offset = this.bb!.__offset(this.bb_pos, 16);
+  return offset ? this.bb!.readInt32(this.bb_pos + offset) : 0;
+}
+
+grayStep():number {
+  const offset = this.bb!.__offset(this.bb_pos, 18);
+  return offset ? this.bb!.readInt32(this.bb_pos + offset) : 0;
+}
+
 static startWelcome(builder:flatbuffers.Builder) {
-  builder.startObject(6);
+  builder.startObject(8);
 }
 
 static addServerName(builder:flatbuffers.Builder, serverNameOffset:flatbuffers.Offset) {
@@ -84,12 +94,20 @@ static addZoneName(builder:flatbuffers.Builder, zoneNameOffset:flatbuffers.Offse
   builder.addFieldOffset(5, zoneNameOffset, 0);
 }
 
+static addGrayBase(builder:flatbuffers.Builder, grayBase:number) {
+  builder.addFieldInt32(6, grayBase, 0);
+}
+
+static addGrayStep(builder:flatbuffers.Builder, grayStep:number) {
+  builder.addFieldInt32(7, grayStep, 0);
+}
+
 static endWelcome(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createWelcome(builder:flatbuffers.Builder, serverNameOffset:flatbuffers.Offset, mapWidth:number, mapHeight:number, totalDaycycleTicks:bigint, dayTimeTicks:bigint, zoneNameOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createWelcome(builder:flatbuffers.Builder, serverNameOffset:flatbuffers.Offset, mapWidth:number, mapHeight:number, totalDaycycleTicks:bigint, dayTimeTicks:bigint, zoneNameOffset:flatbuffers.Offset, grayBase:number, grayStep:number):flatbuffers.Offset {
   Welcome.startWelcome(builder);
   Welcome.addServerName(builder, serverNameOffset);
   Welcome.addMapWidth(builder, mapWidth);
@@ -97,6 +115,8 @@ static createWelcome(builder:flatbuffers.Builder, serverNameOffset:flatbuffers.O
   Welcome.addTotalDaycycleTicks(builder, totalDaycycleTicks);
   Welcome.addDayTimeTicks(builder, dayTimeTicks);
   Welcome.addZoneName(builder, zoneNameOffset);
+  Welcome.addGrayBase(builder, grayBase);
+  Welcome.addGrayStep(builder, grayStep);
   return Welcome.endWelcome(builder);
 }
 }

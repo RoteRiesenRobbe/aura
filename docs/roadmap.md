@@ -1081,8 +1081,9 @@ system ships blind.
 >    build work; the plan stays live only for that content half.**
 > 2. **The world re-placement pass — ⭐ THIS IS THE NEXT STEP. ✅ DESIGNED
 >    2026-08-06 → `docs/plan-world-replacement.md`** (D2–D5, **three** chunks —
->    C0 the honest plate · C1 the decisions · C2 the re-placement — nothing
->    built; the next session is **C0**). It no longer "owns no plan
+>    C0 the honest plate · C1 the decisions · C2 the re-placement. ⭐ **C0
+>    SHIPPED 2026-08-06** — see the ⚑ note below, which it discharges — so the
+>    next session is **C1**, the decisions session). It no longer "owns no plan
 >    doc" — that was true until the design session, and this file is the
 >    answer. Re-places and re-levels `world.json`'s **423 combat spawns** so
 >    difficulty tracks player level, with bands keyed to **regions** (D2) rather
@@ -1117,13 +1118,14 @@ system ships blind.
 >    concave, or redefine gray as "pays < ~15 %" rather than "pays exactly 0"),
 >    the §8.1 pacing call, and the kite list.
 >
-> ⚑ **Droppable anywhere before step 4: the plate derivation** (**D7**) — the
-> nameplate's difficulty colour must be a *function* of what the kill pays, not a
-> coincidence. The client owns a frozen second copy of the gray rule while the
-> server computes it; the copy is deleted and `grayBase`/`grayStep` ship in
-> `Welcome`. Mechanism-independent, so it forecloses nothing — and landing it
-> early gives the calibration pass honest visual feedback instead of plates that
-> lie further the more the band is tuned.
+> ✅ **The plate derivation** (**D7**) — *"the nameplate's difficulty colour must
+> be a function of what the kill pays, not a coincidence"* — **SHIPPED
+> 2026-08-06 as this step's C0**, having been droppable anywhere before step 4.
+> The client's frozen second copy of the gray rule is deleted and
+> `grayBase`/`grayStep` ride `Welcome`. It landed first on purpose: the pass is
+> walked and eyeballed, and the author's instrument is the plate in front of
+> them. Verified conf-only, no rebuild — narrowing `grayBase` moves the boundary
+> on screen, which is what proves the client holds no copy.
 >
 > ⚑ **Independent of the ascension loop.** Ascension is still the visibly-next
 > item after 8a and shares nothing with this chain — neither blocks the other, so

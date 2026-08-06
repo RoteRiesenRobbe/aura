@@ -22,6 +22,7 @@ import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import {GameState, IGame, IGameLayers} from './IGame';
 import {gameObjectId} from '../../common/logic/Types';
 import {GraphicsConfig} from '../../../client-data/Graphics';
+import {setGrayKnobs} from '../../../client-data/Mobs';
 import {IBackend} from '../../backend/logic/IBackend';
 import {
     BackendValidTokenEvent,
@@ -507,6 +508,10 @@ export class Game implements IGame {
         this.zoneName = gameInformation.zoneName;
         GroundTextureManager.loadZone(gameInformation.zoneName);
         DarknessOverlay.loadZone(gameInformation.zoneName);
+        // The server's gray knobs, before anything renders — a nameplate cannot
+        // exist before this point, which is why the tint needs no fallback pair
+        // (plan-world-replacement.md C0).
+        setGrayKnobs(gameInformation.grayBase, gameInformation.grayStep);
         const mapWidth = gameInformation.mapWidth;
         const mapHeight = gameInformation.mapHeight;
         // Shallow-water beach ring OUTSIDE the physical bounds (C2 fix: the

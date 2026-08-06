@@ -19,6 +19,8 @@ func TestWelcomeMarshalFlatbuf_RoundTrip(t *testing.T) {
 		TotalDayCycleTicks: 18000,
 		DayTimeTicks:       12000,
 		ZoneName:           "scaffold",
+		GrayBase:           5,
+		GrayStep:           6,
 	}
 
 	b := flatbuffers.NewBuilder(64)
@@ -42,4 +44,10 @@ func TestWelcomeMarshalFlatbuf_RoundTrip(t *testing.T) {
 	assert.EqualValues(t, 18000, welcome.TotalDaycycleTicks())
 	assert.EqualValues(t, 12000, welcome.DayTimeTicks())
 	assert.Equal(t, "scaffold", string(welcome.ZoneName()))
+	// The gray knobs (plan-world-replacement.md C0). This is the encoder's own
+	// contract only — that these carry the NORMALIZED economy rather than the
+	// raw conf block is asserted where the real Welcome is built,
+	// core/welcome_test.go.
+	assert.EqualValues(t, 5, welcome.GrayBase())
+	assert.EqualValues(t, 6, welcome.GrayStep())
 }

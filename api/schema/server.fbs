@@ -646,6 +646,29 @@ table Welcome {
   // Identity of the active zone (its file stem). The client uses it to render
   // the matching bundled terrain (world foundation chunk 6).
   zone_name:string;
+
+  // The two kill-XP gray knobs, so the nameplate's difficulty colour can be
+  // DERIVED from what a kill actually pays instead of guessed from a second,
+  // frozen copy of the rule (plan-world-replacement.md C0 / plan-xp-formula.md
+  // D7). The client reconstructs the server's own boundary:
+  //
+  //     ZD(P) = gray_base + P / gray_step   (integer division)
+  //     a mob pays nothing  <=>  mobLevel - P <= -ZD(P)
+  //
+  // ⚑ THE KNOBS, NOT THE RESOLVED DISTANCE. ZD depends on the recipient's
+  // level, so a resolved value would go stale on every ding — and Welcome is
+  // marshalled ONCE per server lifetime, not per level-up.
+  //
+  // ⚑ These carry the NORMALIZED economy (mob.KillXPConfig, after
+  // curve.Normalized), never the raw conf block. A conf that omits them — the
+  // live server's does — resolves field-by-field to the built-in defaults on
+  // the server, and shipping the raw 0/0 here would put the client back on a
+  // different rule than the one being paid, which is the exact divergence
+  // these two fields exist to delete.
+  //
+  // Appended at the table end so existing field IDs stay stable.
+  gray_base:int;
+  gray_step:int;
 }
 
 table Accept {

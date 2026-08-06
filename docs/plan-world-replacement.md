@@ -1,7 +1,9 @@
 # Plan: The world re-placement pass — sensible level bands across `world.json`
 
-> **Status: ✅ DESIGNED 2026-08-06 — D2–D5 ruled, THREE chunks decided, NOTHING
-> BUILT. The next session is C0, not another design pass.** Open items O2–O5 are
+> **Status: ✅ DESIGNED 2026-08-06 — D2–D5 ruled, THREE chunks decided. ⭐ C0 IS
+> BUILT (2026-08-06, headless-verified, `[uncommitted]`) — the next session is
+> C1, the decisions session, and it needs the PO in the loop for all four of its
+> items.** Ledger: §12 C0. Open items O2–O5 are
 > deferred *into* C1 rather than pre-ruled, because each needs the map in front
 > of it (§6). ⭐ **Two same-day corrections after the first pass:** **D5
 > supersedes D1** — the band is the roster's *current* ~1–20 and the top of
@@ -614,3 +616,120 @@ re-loaded the same region map, band table, editor workflow and walking method,
 which is exactly the case the standing rule says belongs in one session. C6 was
 bookkeeping with no context of its own, and C5 stopped existing when D5 removed
 the front re-tune. The walk survives as four walks inside one chunk.
+
+---
+
+## 12. Chunk ledger
+
+### C0 — the honest plate ✅ 2026-08-06, headless-verified, `[uncommitted]`
+
+**What shipped.** The client's frozen copy of the gray rule is gone. `Welcome`
+carries `gray_base`/`gray_step` (slots 6 and 7, appended — nothing renumbered,
+both binding sets regenerated together per `plan-mob-levels.md` C2's precedent),
+and `client-data/Mobs.ts` derives the boundary instead of owning a second one.
+*Gray ⟺ this kill pays nothing* is now structural.
+
+Measured at the real surface, one world, one run, player level 18
+(`ZD(18) = 5 + ⌊18/6⌋ = 8`, so the server pays for anything above level 10):
+the isolated **Marauder (cL12) plates GREEN and pays 222 XP**, while the **cL2
+Boar 3.8 units away plates gray and pays 0**. **The deleted −5 rule grayed
+both.**
+
+⛑ **The tempting wiring is the wrong one, and a codec round-trip cannot tell
+them apart.** `core.Config(config)` is already threaded into `NewGameWith`, so
+reading `conf.Game.Player.KillXP` is one field access away — but
+`curve.Normalized` falls each non-positive field back **per field**, so a conf
+that omits the block (the live server's does, §35/L5) pays 5/6 while the raw
+block reads **0/0**. Shipping the raw pair hands the client `ZD = 0` and grays
+every mob below its level against a server still paying them: the exact
+divergence C0 exists to delete, re-created inside the fix. The wire reads
+`mob.KillXPConfig()`, and the pin that discriminates had to go through
+`g.welcomeMsg` rather than through `codec` — a codec test passes identically
+either way. *General shape: when a value has a normalizing accessor and a raw
+source, a test that starts downstream of the choice cannot see the choice.*
+
+⛑ **That pin also holds the BOOT ORDERING, which nothing else would.**
+`g.welcomeMsg` is marshalled **once**, during construction, so the wiring is
+only correct because `mob.SetKillXP` runs at `aurad.go:119` before
+`NewGameWith` at `:148`. A reorder would ship defaults to every client while the
+server kept paying the configured economy — silently, and with the boot log
+still printing the right numbers.
+
+⛑ **The vitest table found a real off-by-one at `ZD = 0`.** The obvious
+condition `Δ <= -grayDistance(P)` reads `Δ <= 0` there and grays the *at-level*
+mob; the server only ever consults the gray distance on its **below-you**
+branch. Written as `difference < 0 && …`. The test found it because its oracle
+is an independent mirror of `curve.Modifier` (clamps and `gray < 1 → 0`
+included) asserting the **biconditional**, not a restatement of the client's own
+arithmetic — an implementation that drifts from the server goes red even when it
+is self-consistent.
+
+⛑ **Gray branches FIRST; it did not become green's lower edge.** Folding it into
+the ordered band list breaks at small `ZD`: `grayBase` is a conf knob the PO can
+turn without a rebuild, and a narrow band pushes the boundary up into what the
+list calls "even" — where a green lower edge would leave **yellow** plates
+paying nothing. Verified live: at `grayBase: 2` the boundary is 13 and the
+Marauder correctly plates gray.
+
+⛑ **No client-side fallback pair, deliberately.** Hardcoding "5 and 6" as a
+degrade path re-creates the frozen copy being deleted. The pre-Welcome window is
+structurally empty — `Backend.ts:222` calls `startRendering(welcome)` before any
+mob plate can exist.
+
+⛑ **The plate cache needed reasoning, not a change** (C2's "two derived views,
+two refresh disciplines" class). `Mobs.ts` early-returns on an unchanged
+`plateDifference`, and the colour now also depends on `ZD(P)` — but `ZD` moves
+only when P moves, and a ding changes `difference` for *every* mob, so the
+existing guard always fires. Benign here; recorded because the same shape
+shipped a half-fix in C2.
+
+⛑ **The harness derives its expectations from `backend/conf.json`** — a
+hardcoded table in the script would be a **third** frozen copy, and it would go
+green against a client that merely swapped one constant for another. An early
+draft hardcoded "the Marauder pays" and went red the instant the band was
+narrowed: *a frozen expectation about the gray rule, inside the script written
+to prove the client no longer holds one.* Both colour **and** pay are derived
+now, and scored as separate legs (a recolour-only fix passes a combined one).
+
+⚑ **The strongest evidence is the second run, and it is conf-only.**
+`grayBase: 2` + restart, **no rebuild**: the same Marauder at the same player
+level plates **gray and pays 0**. A boundary that tracks the server's conf
+cannot be a client-side constant. ⚑ `backend/conf.json` is **gitignored** —
+`git checkout` will not restore it; the 5 goes back by hand.
+
+⚑ **Nothing about the band was tuned.** D8's A-vs-B (taper shape vs boundary
+definition) stays with `xp C2`, per §12 of `plan-xp-formula.md`; the client now
+simply tells the truth about whatever the server is paying. The `gray` seam
+`plan-mob-levels.md` §8.2 opened is **closed by deletion, not by tuning**.
+
+**Files.** `api/schema/server.fbs` · both regenerated binding sets
+(`backend/pkg/api/AuraApi/Welcome.go`, `api/schema/js/aura-api/welcome.ts`) ·
+`codec/server.go` · `core/game.go` · `client-data/Mobs.ts` ·
+`WelcomeMessage.ts` · `core/logic/Game.ts`. New: `core/welcome_test.go`,
+`client-data/Mobs.test.ts`, `.claude/skills/verify/c0-honest-plate.mjs`.
+
+**Verified.** `tsc` clean · **vitest 235/235** (8 new; the ZD-0 case proven RED
+first) · `go build`/`go vet` clean · full Go suite **53 packages, 0 FAIL** ·
+`make -C backend db-test` green **uncached** against `aura_test` · boot
+`-content ../api`: 15 factions / 87 skills / 65 mobs / 3 milestones / 10 recipes
+/ 4 quests / 5 props / 777 props / 485 spawns / 5 campfires, **0 panics**, boot
+log `grayBase=5 grayStep=6` · **`hygiene-wire-prune` clean** (637 sprites
+decoded — the mandatory `.fbs` gate) · **`c0-honest-plate` 6/8, 0 FAIL, 0
+console errors** (NEW, registered in the coverage map; the 2 INCONCLUSIVE are
+wandering mobs missing from one sample frame — the venue's own tri-state) ·
+**`c0-honest-plate c0-narrow` 6/8, 0 FAIL** (the conf probe) ·
+**`npc-portraits` 4/4 plate-less, 0 console errors**.
+
+⚑ **Two pre-existing reds, both proven against HEAD and neither caused here.**
+`sys.TestDwell_TakeoffDropsAnInProgressCount` is **nondeterministic** —
+A/B'd five runs each way, clean HEAD failed 4/5 and this tree 1/5, so it is a
+flake in that test, not a regression (unowned; new). And **`c2-mob-level` scores
+4/7 whether or not C0 is applied**: its SUBJECT half is fully green (plate text
+and red tint both off the wire), while its CONTROL Stag — spawn 172, still an
+authored Stag at (−66.36, 22.55) — simply is not alive or in view at run time,
+with two Wolves 5 units away. **Venue rot in that script, not a product
+failure**; it belongs to whoever next touches that row.
+
+**Schema impact: DB NONE · FlatBuffers YES** (two appended scalars on `Welcome`)
+**· content JSON NONE.** No `world.json` and no `api/mobs/*.json` were touched —
+C1 owns the catalog and L6 requires it to precede any placement.
