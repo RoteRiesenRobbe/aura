@@ -7,9 +7,14 @@
 > level. Every number is [PLACEHOLDER] unless marked.
 >
 > ⚑ **C2 IS NOT "CALIBRATE NEXT" ANY MORE.** Per **D9** it is the *single final
-> pass*, and three things must land first: `plan-mob-levels.md` C3 (the tool),
-> a **world re-placement pass that no plan currently owns** (the content), and
-> **sim-harness placement support** (new plumbing). ⚑ **D7** adds a droppable,
+> pass*, and three things must land first: ✅ `plan-mob-levels.md` C3 (the tool,
+> archived 2026-08-05), ✅ the **world re-placement pass** (the content, built
+> 2026-08-06 — `plan-world-replacement.md`, live only for its in-game kite
+> verdict), and **sim-harness placement support**, which is now **C1.5 of this
+> plan — DESIGNED 2026-08-06, not yet built (§13)**. ⭐ **That design session
+> found the step is bigger than its name**: the harness consumes `BaseAt` alone,
+> so it **cannot see the taper** — the exact mechanism D8 exists to settle
+> (§13.1). Three rulings **D10–D12**. ⚑ **D7** adds a droppable,
 > mechanism-independent piece — the nameplate's difficulty colour must be
 > *derived* from the server's gray knobs instead of the client's frozen copy.
 > ⚑ **D8 ("green must pay meaningfully") is NOT answered by §11's candidate
@@ -215,7 +220,10 @@ harvest vegetables. So one relative knob survives:
 
 ## 6. Chunk breakdown
 
-Two chunks, buildable in one execution session each.
+Three chunks, buildable in one execution session each. **C1.5 was inserted
+2026-08-06** by D9's chain — it is the "sim-harness placement support" step the
+roadmap names, and it reverses `plan-mob-levels.md` §8.3's deliberate YAGNI
+deferral. Full design + rulings: **§13**.
 
 - **C1 — the formula, wired.** New shared package (proposal: extend
   `pkg/aura/curve` with a `KillXP` type, mirroring how `sim.Curve` aliases
@@ -225,12 +233,34 @@ Two chunks, buildable in one execution session each.
   replaces `experience` in the loader **with a hard-fail on the legacy key**
   (L2) + the ~36 JSON migrations; `CombatTarget` re-derivation (L1); the
   gray-kill pins (L3). Full Go suite + vitest + a headless verify pass.
-- **C2 — calibration + PO feel pass.** Run the simharness kills-per-level
-  battery against candidate `killXPBase`/`killXPGrowth`/tier values; decide
-  the pacing question §8.1 with the PO; curate the `xpFactor` exceptions
-  (harvest species, the kite list); in-game pass at both ends (fresh level-1
-  at spawn; SKILL/WARP-cheated high level farming grays and tagging an
-  endgame kill). Numbers may lose [PLACEHOLDER] here or stay tuning-open.
+- **C1.5 — the harness pays what the game pays, and it can see a placement**
+  (designed 2026-08-06, **§13**). Two halves in one session, ruled together by
+  **D10** because the second is near-useless without the first. **(a)** Wire the
+  *whole* `curve.KillXP` into `sim.XPModel` — today it consumes `BaseAt` alone,
+  so the harness cannot see the taper, the gray boundary, the up-bonus, the tier
+  multipliers or `xpFactor` (§13.1 is the measurement). **(b)** Give
+  `mobSpecOf` a level parameter, expose it as `-mob-level` + an explorer input,
+  read `api/zones/world.json` through the **existing** `world` loader, and add a
+  `-placements` battery that reports kills/hour, **XP/hour** and kills-per-level
+  per placed rung, with **player level as its own axis** (default: the diagonal).
+  Rows are grouped by **placed level, not region** (**D12**).
+  Explicitly NOT this chunk: §8.1, §8.2 and D8 A-vs-B are C2's by D9.
+- **C2 — the single final pass** (⚑ **entry refreshed 2026-08-06**; what stood
+  here was written before D7–D9 re-scoped C2 and before C1.5 existed, and it
+  named neither D8 nor the placement battery). **Realistically 2–3 sessions, not
+  one** — D9 calls it one *pass*, but it bundles a code-bearing ruling with a
+  numbers pass and a feel pass:
+  - **(a) the D8 ruling**, taken with `-placements` output in front of the PO.
+    ⚠️ **A and B are NOT the same size** — see §12.1's cost note.
+  - **(b) the numbers:** §8.1 pacing (`killXPGrowth` a notch below
+    `levelUpXPGrowth`?), the §8.2 kite list (`xpFactor 0.5`), `killXPBase` and
+    the tier multipliers, and the band candidates in §11. ⛔ Read
+    `plan-world-replacement.md` §12 C2 + §3.11 first: the high regions sit at
+    **1.8–2.1 ×** a standard at-level fight against **0.7–1.0 ×** in the low
+    half, and **no mob speed has ever been measured**.
+  - **(c) the two-ended in-game pass:** a fresh level-1 at spawn; a SKILL/WARP-
+    cheated high level farming grays and tagging an endgame kill.
+  Numbers may lose [PLACEHOLDER] here or stay tuning-open.
 
 ## 7. Test strategy
 
@@ -253,6 +283,39 @@ Two chunks, buildable in one execution session each.
 - **Simharness:** guardrail suite re-run (its asserts are TTK/boss-lethality
   shaped, not XP-shaped — expected untouched); the kills-per-level battery is
   C2's calibration instrument.
+
+### 7.1 C1.5's own legs (added 2026-08-06)
+
+- **The refactor is byte-identical, proven.** `mobSpecOf(def, level)` with every
+  existing caller passing `def.CurveLevel` must produce the *same* `MobSpec` as
+  today for all 65 species — a table over the whole catalog, not a spot check.
+  The guardrail suite is the second half of that proof: its classification must
+  come out identical to baseline, exactly as it did across C1 and C2. ⚑ **It is
+  identical *because* the callers still pass `def.CurveLevel`** — that identity
+  is precisely what proves the refactor byte-identical, and it is **not** an
+  endorsement of keying the band check off the species level (§13.4).
+- **The taper is visible in the harness** — the leg that would have caught
+  §13.1. Pin `XPModel`'s award against `curve.KillXP.Award` over a Δ sweep
+  including the gray zero, both tier multipliers and a fractional `xpFactor`.
+  It is the same biconditional discipline C0's vitest oracle used: an
+  independent mirror, not a restatement.
+- **One parser, pinned — and the combat filter is C1's, not a transcription.**
+  A test that the enumeration returns **423 of `world.json`'s 485** spawns, each
+  carrying a level. ⚑ **Checked 2026-08-06, because the number could have been a
+  third copy of a Python fact:** it is not. `world-regions.py` filters on
+  `xpFactor != 0`; Go already derives `CombatTarget = XPFactor > 0 &&
+  !FriendlyToPlayers` (`items/mobs/catalog.go:66`, the L1 re-derivation C1
+  shipped), and the two agree **exactly** — 423 both ways, because no species is
+  currently both `xpFactor > 0` and `friendlyToPlayers`. So the harness rides the
+  catalog's own flag and the assert is honest. **If a friendly species is ever
+  given a positive `xpFactor`, the two definitions diverge** and this leg is
+  where it surfaces — which is a feature, not a fragility.
+- **`-placements` is deterministic**: same seed → same rows, so a diff between
+  two calibration runs is a content or knob change, never luck (the guardrail
+  battery's standing property).
+- **No-content degrade:** the battery must fail loudly on a missing/unreadable
+  `zones` dir rather than reporting an empty table, which reads as "nothing is
+  placed" — the C2 walk's `^[A-Za-z]+ \d+$` lesson, one level up.
 
 ## 8. Open questions & deferred
 
@@ -293,6 +356,29 @@ Two chunks, buildable in one execution session each.
 - **L5 — five conf files** (§35): the new block must land in all of them
   including the live server's, and the Go defaults must be sane so a conf
   missing the block doesn't zero the economy.
+- **L6 — `XPModel`'s four JSON fields are a COMPAT SURFACE** (C1.5). They are
+  not private to the type: the `-serve` explorer posts an `xp` object keyed on
+  `levelUpBase`/`levelUpGrowth`/`killBase`/`killGrowth`. Embedding the full
+  `curve.KillXP` must either preserve those names or migrate the caller in the
+  same commit — a silently renamed field unmarshals to the zero value, and
+  `Normalized()`'s own doc comment already records what a zeroed `GrayStep` does
+  (gray distance 0 ⇒ every mob below you pays nothing). **This is L2's shape at
+  a third seam**, after the JSON key and the conf block.
+  ⚑ **Located precisely 2026-08-06, because the obvious guess is wrong and the
+  surface is SMALLER than it looks:** it is **`cmd/simharness/index.html`** —
+  `:395-398` build the explorer's input controls from a table keyed on those
+  four literal names, `:444-445` assemble the posted object — plus the request
+  pin at `serve_test.go:208`. **`serve.go` itself never names them** (it decodes
+  into `Fixture`), and there are **no saved preset files**: `loadPresets` builds
+  the dropdowns from content at startup and they carry `MobSpec`/`AuraSpec`, not
+  `XPModel`. The report artifact carries only `generatedAt`/`ticksPerSecond`/
+  `results`. ⚑ Do not grep-and-replace `killBase` blind — `quests/persist.go:60`
+  has an unrelated one (the quest kill counters).
+- **L7 — do not write a second `world.json` parser** (C1.5). `world.Spawn`
+  already parses and validates `level` (`world/zone.go:80`, non-positive
+  hard-fails). A convenience re-parse in the harness would drift from the loader
+  the game actually boots — the silent-wiring class, and the one thing §7.1's
+  423-spawn assert exists to catch.
 
 ## 10. Chunk ledger
 
@@ -497,3 +583,155 @@ satisfy it:
 between A and B does **not** block it. Decide A-vs-B in the final pass, with the
 sim harness in hand — it is a numbers question and this plan's numbers are all
 [PLACEHOLDER] until that pass says otherwise.
+
+⛔ **A and B are NOT the same size, and "at zero balance cost" hid it** (found
+2026-08-06, reading the shipped C0 code — it was recorded nowhere):
+
+| | what changes | cost |
+| --- | --- | --- |
+| **A — concave taper** | `curve.KillXP.Modifier` | **Go only.** The plate follows for free: gray still lands at the same `ZD`, which is all the client derives. |
+| **B — gray = "pays < ~15 %"** | the *boundary's definition* | **Go + wire + client.** The client's `grayDistance()` (`client-data/Mobs.ts:118`) mirrors `GrayBase`/`GrayStep`; a threshold-based boundary is a **third knob it does not have**, so B needs either another appended `Welcome` field or a hardcoded `0.15` — and a hardcoded one **re-creates the frozen second copy C0 existed to delete**. |
+
+So B's "zero balance cost" is real and its *implementation* cost is not. If the
+pass runs short, A is the branch that fits in the numbers session; B wants its
+own chunk.
+
+⛔ **"With the sim harness in hand" was an assumption, and §13.1 disproves it.**
+The harness models `base(P)` and nothing else, so as of today it cannot see the
+taper A and B are both about. That is what C1.5 is for.
+
+---
+
+## 13. C1.5 — sim-harness placement support (designed 2026-08-06)
+
+Roadmap step 3 of D9's chain. `plan-mob-levels.md` §8.3 declined this
+deliberately (*"the harness balances species at their curve position; placement
+is a zone-authoring concern… that is new plumbing and a new ask"*) and named its
+own trigger; the trigger arrived with D9, and §8.3 records the reversal. The
+step landed here rather than in a plan doc of its own because that same
+paragraph says it is **owned by this plan's final pass**.
+
+⚑ **The design session found the step is bigger than its name.** It is not "add
+a level axis" — it is *make the harness pay what the game pays*, and only then
+feed it placed levels.
+
+### 13.1 ⛔ The measurement: the harness consumes ONE method of the live economy
+
+`curve/killxp.go`'s own doc comment says *"the sim harness consumes this type
+(sim.XPModel.KillXP), so the tool that calibrates the economy is structurally
+incapable of modelling a different one than the game pays."* Measured against
+the source 2026-08-06, that is **half true, and the wrong half**:
+
+```go
+// sim/curve.go:54 — the whole of the harness's kill-XP model
+func (x XPModel) KillXP(tier int) float64 {
+    return curve.KillXP{Base: x.KillBase, Growth: x.KillGrowth}.BaseAt(tier)
+}
+```
+
+`XPModel` carries **four scalars** (`LevelUpBase`, `LevelUpGrowth`, `KillBase`,
+`KillGrowth`) and reaches `BaseAt` alone. Everything else the live `Award` does
+is absent from the tool:
+
+| live `curve.KillXP` term | in the harness? |
+| --- | --- |
+| `base(P)` — `BaseAt` | ✅ yes |
+| `mod(Δ)` — `Modifier`, the linear taper | ❌ **no** |
+| `GrayBase` / `GrayStep` — the boundary | ❌ no |
+| `UpBonus` / `UpCap` — killing above you | ❌ no |
+| `TierElite` / `TierBoss` | ❌ no |
+| per-species `xpFactor` | ❌ no |
+
+`KillsPerLevel(level)` therefore means *"at-level normal kills per level"* — Δ=0,
+tier 1, xpFactor 1 — which is exactly the reading that made "flat ~7.5
+kills/level" (§8.1) look like the whole pacing picture. And the **chain battery
+reports no XP at all**: `ChainCell` carries kills/hour, survival and fight
+seconds, no award.
+
+⛔ **The consequence for D8:** the taper's shape is the one thing the harness
+cannot currently see, and the taper's shape *is* D8. A calibration pass run
+against today's tool would be choosing between A and B blind.
+
+⚑ **Why the comment was not a lie when it was written:** at C1 the sim's job was
+kills-per-level analytics, and `BaseAt` is genuinely the shared source for that
+number. The claim only became misleading when D8 turned the *taper* into the
+open question. **A shared type is not a shared model** — delegating one method
+proves no drift in that method and nothing about the rest.
+
+### 13.2 Decision ledger — PO rulings 2026-08-06
+
+- **D10 — both halves, one chunk.** The economy wiring and the level axis ship
+  together. Rationale, from §13.1: a `-placements` battery over a harness that
+  cannot price Δ would report the *at-level* award for every rung regardless of
+  what the player's level is — the placement report would be silently
+  meaningless in exactly the dimension it was built to show.
+- **D11 — it is a chunk of this plan, not a plan of its own.** `plan-mob-levels.md`
+  §8.3 already assigned ownership here. A fresh `plan-*.md` would cost a README
+  index line, a status banner and an archive obligation for one chunk of
+  plumbing, and re-open a question that is already answered.
+- **D12 — group the report by placed level, NOT by region.** The sim does not
+  need to know what a region is: `world.json` carries `(species, level)`
+  directly. Region is a **reporting label**, not a sim input. ⛔ The rejected
+  option is the load-bearing part — `scripts/world-regions.py` opens with *"this
+  file and §3.7 are one fact in two places"*, so transcribing the rectangles
+  into Go would make three. If region-labelled rows are ever wanted, the shape
+  is `world-regions.py --emit-json` writing a sidecar both readers consume.
+
+### 13.3 The touch points, enumerated
+
+Sized honestly, so the chunk is not discovered mid-session:
+
+- **`sim/curve.go`** — `XPModel` consumes the whole `curve.KillXP`; add an
+  `Award(playerLevel, mobLevel, tier, xpFactor)` passthrough and a Δ-aware
+  `KillsPerLevel` sibling. ⚑ **Keep the at-level `KillsPerLevel`** — it is what
+  the `-levels` sweep column means (`sweep.go:65`), and silently changing its
+  meaning would move a number the PO has been reading since chunk 2. **L6** is
+  the field-naming trap.
+- **`cmd/simharness/content.go:325`** — `mobSpecOf(def)` → `mobSpecOf(def, level)`,
+  `powerScale := def.Curve.F(level)` instead of `F(def.CurveLevel)`. **That one
+  line is the whole of what makes the harness species-keyed.** Every existing
+  caller passes `def.CurveLevel`, so the refactor is byte-identical by
+  construction (§7.1 proves it over all 65).
+- **`cmd/simharness/content.go:53`** — `contentFS` resolves `skills`, `factions`
+  and `mobs`; `zones` is a fourth entry. `pkg/api/zones` is already embedded and
+  `cmd/aurad/loaders.go` has the pattern to copy.
+- **The placement source** — `world.Spawn.Level *int` already parses and
+  validates (`world/zone.go:80`). Reuse that loader; **L7**.
+- **`cmd/simharness/main.go`** — `-mob-level`, and `-placements` alongside
+  `-levels` / `-matrix` / `-chain`.
+- ⭐ **`-placements` needs a PLAYER-LEVEL AXIS, not just the diagonal.** Rows are
+  the placed rungs; the player level is its own flag, **defaulting to the
+  diagonal** (player level = placed level, the at-level reading). That default
+  answers "is each rung at level?", but the distortion C2 must actually read —
+  `plan-world-replacement.md` §12 C2's high regions at **1.8–2.1 ×** against a
+  low half at **0.7–1.0 ×** — is a statement about *one* player meeting content
+  placed all over the range, i.e. **Δ ≠ 0**. Without the axis, C1.5 would ship an
+  instrument that still cannot show the taper it just finished wiring in.
+- **`cmd/simharness/serve.go` + `index.html`** — a level input beside the mob
+  dropdown, so the explorer can ask the same question the CLI can.
+- **`sim/chain.go`** — `ChainCell` grows an XP/hour figure; kills/hour × the
+  real award is the number a calibration pass actually reads.
+
+### 13.4 Out of scope, deliberately
+
+- **§8.1 pacing, §8.2's kite list, and D8 A-vs-B are C2's**, per D9. The
+  temptation to answer one while the harness is warm is precisely what that
+  ruling forbids — C1.5 builds the instrument and reads nothing off it.
+- **`guardrailZone(curveLevel)` keys the band check off the SPECIES curve
+  level** (`guardrail_test.go`), which is arguably the wrong key once placements
+  are modellable — a Wolf placed at 16 is farm-band content the check still
+  files under Z1. Surfaced, not folded in: C2 shipped with the guardrails green
+  and classification identical to baseline, so this is a future question and not
+  a break. ⚑ It is also the natural home for the **kiteability leg** that
+  `plan-world-replacement.md` §3.11 says no battery owns — the facetank leg
+  starts at 0.5 units, so approach time never enters it. Only relevant if the
+  PO ever wants that measured rather than eyeballed.
+- **No conf, no wire, no content, no DB.** C1.5 is tooling.
+
+### 13.5 Schema impact (stated per the standing rule)
+
+- **DB: NONE** · **FlatBuffers: NONE** · **content JSON: NONE** ·
+  **conf.json: NONE.**
+- ⚑ The one compat surface is **`XPModel`'s JSON field names**, and it is one
+  file: **`cmd/simharness/index.html`** (plus the `serve_test.go` request pin).
+  **L6** has the line numbers and the two wrong guesses it rules out.

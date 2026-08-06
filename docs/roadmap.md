@@ -1069,6 +1069,27 @@ system ships blind.
 > spawn point may author its own `level`** with the nameplate to match
 > (`mob-levels C1` `975e5c4c` + `C2` `f1d6eebc`).
 >
+> ### ⭐ What is actually left — the work-through list (2026-08-06)
+>
+> The numbered chain below is the *design* sequence and its first two items are
+> shipped. **This is the executable version**: what a session actually picks up,
+> in order, with honest session counts. **4–6 sessions total.**
+>
+> | # | session | count | plan |
+> | --- | --- | --- | --- |
+> | 1 | **C1.5 — sim-harness placement support** | 1 (2 if `XPModel`'s JSON compat surface fights back, L6) | `plan-xp-formula.md` **§13** — full: rulings, touch points with file:line, test legs |
+> | 2 | **The kite in-game pass** — closes `plan-world-replacement.md` | 1 (+1 if re-tuning is heavy) | that plan's **§3.11** + §12 C2; the deliverable is a verdict, then the archive wrap |
+> | 3 | **`xp C2` — the final pass** | **2–3** | `plan-xp-formula.md` **§6 C2** (a/b/c) + §8.1 + §8.2 + §11 + §12.1 |
+>
+> ⚑ **1 and 2 are independent** — either order, or interleaved. Only 3 needs both
+> in front of it. A post-placement `factors.speed` edit is safe (speed is not in
+> `PowerScale()`), which is *why* 2 can float. ⚑ **Doing 1 first keeps one door
+> open**: if the PO ever wants kiteability *measured* rather than eyeballed, the
+> approach-distance leg only fits inside the harness (§13.4).
+> ⛔ **3 is the only one that cannot honestly be one session** — it bundles a
+> code-bearing ruling (**D8**, and its branch B costs a wire field, §12.1) with a
+> numbers pass and a two-ended feel pass.
+>
 > **The remaining chain, in order — each step is a precondition of the next:**
 >
 > 1. ✅ **`mob-levels` C3 — SHIPPED 2026-08-05** (`0c6eca22`). The
@@ -1136,7 +1157,19 @@ system ships blind.
 >    curve position* and is blind to placements. ⚑ This **reverses a deliberate
 >    YAGNI deferral** (`plan-mob-levels.md` §8.3, which declined it and named its
 >    own trigger); the trigger arrived the same evening, because calibrating a
->    re-placed world is exactly the case it declined.
+>    re-placed world is exactly the case it declined. ✅ **DESIGNED 2026-08-06 as
+>    `plan-xp-formula.md` C1.5** (§13, rulings **D10–D12**) — it lands as a chunk
+>    of that plan because §8.3 already assigned it there, **not** as a plan doc
+>    of its own. ⭐ **The design found the step is bigger than its name.** It is
+>    not "add a level axis": `sim.XPModel` carries four scalars and reaches
+>    `curve.KillXP.BaseAt` alone, so the harness models `base(P)` and is blind to
+>    the taper, the gray boundary, the up-bonus, the tier multipliers and
+>    `xpFactor` — **the taper's shape is exactly what D8 is a question about**, so
+>    a calibration pass run against today's tool would choose A-vs-B blind
+>    (§13.1). The chunk is therefore *make the harness pay what the game pays*
+>    (**D10**), and only then feed it placed levels. Rows group by **placed
+>    level, not region** (**D12** — the region map is already "one fact in two
+>    places"; a Go copy would make three).
 > 4. **`xp C2` — the single final calibration pass.** PO ruling **D9**: it is the
 >    LAST step, not the next one. It settles D8's open mechanism (make the taper
 >    concave, or redefine gray as "pays < ~15 %" rather than "pays exactly 0"),
