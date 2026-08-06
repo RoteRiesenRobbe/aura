@@ -2,7 +2,7 @@
 
 > **Status: COMPLETE — C1 `a03b95ff` 2026-08-05 · C1.5 2026-08-06 (§13.6) ·
 > C2 2026-08-06 (D13–D19, §12.2–§12.4 + §10 C2, PO-verified in-game: "feels
-> much better"), commit `[uncommitted]`. This plan is finished and archived;
+> much better"), commit `a5a7928b`. This plan is finished and archived;
 > it closes the mob/XP chain (roadmap step 2's work-through list, item 3 of 3).**
 > *(The paragraph below is the historical C1-era banner, kept as written.)*
 > C1 built 2026-08-05 (`a03b95ff`, headless-verified, §10) — C2
@@ -497,7 +497,7 @@ authored sentinel · **`npc-portraits` 4/4 NPCs plate-less with 8/7/7/2 mob
 plates as the control**, both directions of the L1 derivation at the real
 surface.
 
-### C2 — the single final pass ✅ 2026-08-06, PO-verified in-game ("feels much better"), `[uncommitted]`
+### C2 — the single final pass ✅ 2026-08-06, PO-verified in-game ("feels much better"), `a5a7928b`
 
 One session, seven rulings, three of them reversing earlier ones with
 measurements as the reason. The full ledgers are **§12.2 (D13)**, **§12.3
