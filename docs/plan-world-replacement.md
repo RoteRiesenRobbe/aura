@@ -938,6 +938,75 @@ honest starting point — including §3.3's standing 21–30 gap.
 **Schema: content JSON YES** (`api/zones/world.json`) · DB none · FlatBuffers
 none · **Go none** (D5 removed it).
 
+#### ⭐ Starting C2 cold — what to load, what to run, what NOT to do
+
+Written 2026-08-06 at the close of C1 (`3df461a8`), for whoever opens this next.
+**C2 is the last chunk of this plan.**
+
+**Run this FIRST — it is one command and it orients the whole session:**
+
+```
+python3 scripts/world-regions.py --grid --levels
+```
+
+It prints the ratified region map (§3.7), the D10 band per region, and — the
+number that IS C2's progress bar — **how many spawns in each region still carry
+no `level`**. At C1's close: **423/423 resolved, 0/423 levelled.** C2 is done
+when that second number is 423 and the coverage assert still exits 0.
+
+**Load, in this order:** **§3.7** (the ratified partition — the rectangle list
+is the same fact as the script, edit both or neither) · **D10 in §2** (the band
+table) · **§3.9** ⛔ *read this before placing anything* · **§3.8's tail** (what
+the catalog sweep did and, more importantly, what could not be measured) ·
+**§5** (the campfire constraint) · **§4** (what a `world.json`-only edit would
+miss — patrol routes, `respawnTicks`, the 62 non-combat spawns) · **§10's
+landmines**, especially **L2** and **L3**.
+
+**⛔ The three things most likely to go wrong, in order:**
+
+1. **East village + Gates is banded 14–18 and 26 of its 31 spawns are Boar
+   (cL2) and DireWolf (cL6)** — §3.9. A Boar at 18 is a 516 HP healthbar with a
+   level-2 moveset on the region a player reaches *last*. **Move species in;
+   do not stretch what is there.** C2 is a re-*placement* pass, and the Bandit
+   horde (10 distinct species, 44 spawns, directly north) is the donor. West
+   wildlife and the Dark forest are the same defect, milder.
+2. **Seven species are markedly more kiteable than the last time anyone played
+   this world**, and no battery in the project can see it (§3.8). DireWolf
+   0.88→0.55 is the big one — 42 spawns, the world's most common mid mob.
+   **The walk is the only instrument.** If they now feel like non-threats,
+   that is C2's finding to make and the speeds are `[PLACEHOLDER]`.
+3. **Four of the five bound campfires sit in mid or high bands** (§3.7's L3
+   note) — `spawnpoint-3` in the Kobold hideout, `-4` and `-5` in the Dark
+   Tunnel belt, `-2` in the village. §5 calls the death loop a hard constraint,
+   and §9 wants an actual assert, not a review pass.
+
+**The instrument, and check it before trusting it:** C0's nameplates are honest
+now, so walking a region at a cheated level *reads* the band (`XP <n>`, then
+look). ⚑ Confirm the boot log says **`grayBase=5 grayStep=6`** — verified in the
+right state at C1's close, but `backend/conf.json` is **gitignored**, so
+`git checkout` will not restore it if a probe moves it.
+
+**Two workflow facts inherited from `plan-mob-levels.md` C3, both of which cost
+that session time:** the zone editor is mounted by **`&textures`**, not
+`&develop` (a `&develop`-only URL leaves every `#zoneEditor_*` id out of the
+DOM, which reads exactly like "the field was never added"), and the editor's
+zone JSON is **webpack-bundled, not fetched** — a hand-authored change needs
+`npm run build`, the opposite of a server-restart probe.
+
+**⛔ Do not re-open C1's rulings.** D6–D11 are taken and the catalog has already
+moved (L6). If C2 finds a band genuinely unworkable, **amend D10 explicitly in
+§2** and say why — but note the table is **exactly at budget** (10 regions ×
+~4 rungs = 40 = 2 × 20), so every widening has to be paid for by a narrowing or
+some rung drops to a single home.
+
+**What C2 closes with:** §9's asserts (coverage + absent-stays-absent over the
+**62** non-combat spawns, which D11 kept at 62) · the roadmap's §3.4
+wrong-example correction (AngryMammoth / SaberToothCat / ProvingBoss are
+unplaced; the live offenders were D6's eight) · `plan-mob-levels.md` moved to
+`docs/archive/` · **this plan archived too** · and a ledger that states plainly
+what was **not** tuned, so `xp C2` inherits an honest starting point —
+including §3.3's standing 21–30 gap.
+
 ## 8. Schema impact (stated per the standing rule)
 
 - **DB: NONE.** No persisted state is touched by a spawn's level.
