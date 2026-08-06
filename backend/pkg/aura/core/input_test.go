@@ -26,7 +26,6 @@ import (
 type fakeInputPlayer struct {
 	model.PlayerEntity
 	sc          *skills.SkillComponent
-	hand        model.Hand
 	vitalSigns  model.PlayerVitalSigns
 	config      cfg.PlayerConfig
 	pos         phy.Vec2f
@@ -39,7 +38,6 @@ type fakeInputPlayer struct {
 func (f *fakeInputPlayer) Basic() ecs.BasicEntity    { return f.basic }
 func (f *fakeInputPlayer) SpeedCheatFactor() float32 { return f.speedCheat }
 
-func (f *fakeInputPlayer) Hand() *model.Hand                      { return &f.hand }
 func (f *fakeInputPlayer) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakeInputPlayer) LastMoveDir() phy.Vec2f                 { return f.lastMoveDir }
 func (f *fakeInputPlayer) MovementFactor() float32                { return f.buffs.MovementFactor() }
@@ -52,9 +50,7 @@ func newFakeInputPlayer() *fakeInputPlayer {
 	sc.EquipAura(2, def, 1)
 
 	return &fakeInputPlayer{
-		sc: sc,
-		// A real collider so the unconditional hand-mask reset works.
-		hand:  model.Hand{Collider: phy.NewCircle(phy.VEC2F_ZERO, 0.1)},
+		sc:    sc,
 		basic: ecs.NewBasic(),
 	}
 }

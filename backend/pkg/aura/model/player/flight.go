@@ -47,7 +47,7 @@ func (p *player) FlightArrivalTick() uint64 {
 }
 
 // BeginFlight arms the flight state and leaves the ground world (D13): the
-// body, hand and aura sensor are removed from the space — `Space.RemoveShape`
+// body and aura sensor are removed from the space — `Space.RemoveShape`
 // purges them from every other shape's collision set on the spot (the §54
 // invariant), so nothing can hold or re-acquire the flyer — and the viewport
 // grows to the flight scale. The viewport shape deliberately STAYS in the
@@ -129,9 +129,9 @@ func (p *player) Ground() {
 }
 
 // flightShapes are the shapes that leave the space at takeoff and return on
-// Ground(): body, hand, aura sensor — NOT the viewport.
+// Ground(): body, aura sensor — NOT the viewport.
 func (p *player) flightShapes() []phy.DynamicCollider {
-	return []phy.DynamicCollider{p.Body, p.hand.Collider, p.aura}
+	return []phy.DynamicCollider{p.Body, p.aura}
 }
 
 // flightViewportScale is how much the server-side AOI grows while flying

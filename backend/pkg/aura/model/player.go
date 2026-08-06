@@ -14,10 +14,6 @@ type PlayerVitalSigns struct {
 	Health vitals.VitalSign
 }
 
-type Hand struct {
-	Collider phy.DynamicCollider
-}
-
 type Stats struct {
 	BirthTick uint64
 }
@@ -62,7 +58,6 @@ type PlayerEntity interface {
 	Name() string
 	VitalSigns() *PlayerVitalSigns
 	Viewport() phy.DynamicCollider
-	Hand() *Hand
 	Client() Client
 	SetAngle(a float32)
 
