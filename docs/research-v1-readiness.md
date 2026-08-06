@@ -6,6 +6,12 @@
 > decision — that is made and has held up well (the TDD itself records that
 > the feared "Berryhunter blocks Aura features" risk never materialized).
 > This is a risk surface for us to weigh, not a work order.
+>
+> **§5 is a full re-check, 2026-08-06** — after step 8a (accounts +
+> persistence), the live server, and the world re-placement. Most of §1–§3's
+> structural items have since closed; §5 records item-by-item what shipped,
+> what is half-closed, and the short list still owed before "live without
+> caveats". Read §5 for current state; §1–§3 for the original reasoning.
 
 ---
 
@@ -151,3 +157,95 @@ observability, restart-only deploys). The gap to "live product" is mostly
 persistence-crash story designed with item 3 (part of that item), deploy/
 reload story (small design doc, later). No inherited-architecture rework is
 needed at v1 scale beyond what the roadmap already plans.
+
+---
+
+## 5. Re-check 2026-08-06 — after persistence, after the live server
+
+Companion pass to `research-code-quality.md` §11 (same day, which holds the
+current defect list and metrics). This section walks §1–§3 item by item.
+
+### 5.1 The §1 structural list
+
+- **CI builds but never tests** — ✅ closed 2026-07-22 and *held*: CI gates
+  `go vet` + `go test` + `npm run typecheck`. ⚑ The one asymmetry left is
+  **frontend tests**: 17 vitest files / 235 tests now exist and none run in
+  CI — including the client half of the cross-language shared-constants pin,
+  whose Go twin *does* gate. One line of YAML; §11.5 #1 there.
+- **No migration framework** — ✅ closed by step 8a exactly as this doc asked
+  ("from day one"): sequential embedded `.up/.down.sql` pairs, auto-applied at
+  boot, shipped-files-frozen discipline, dirty-state runbook
+  (`manual-db-migrations.md`), reversibility a *tested* property
+  (`store.Rollback`'s callers are the test suite). Exercised against real data
+  by `000002` on the live box.
+- **`go:embed` + no config reload** — **half-closed.** Dev iteration is solved
+  (`-content ../api` skips embed and rebuild; conf changes are restart-only,
+  no rebuild). Live is still restart-with-disconnects — but the restart is now
+  *survivable*: graceful shutdown flushes characters and sessions stash for
+  10 minutes, so a deploy costs a reconnect, not progress. A zero-disconnect
+  reload story remains future ops work, same as originally judged.
+- **Frontend `Skills.ts` duplication** — ✅ closed structurally (the catalog
+  pattern: `GET /skills` / `GET /mobs`, category on the wire). The *class*
+  recurred elsewhere, though — see §11.3 F1–F3 in the quality doc.
+
+### 5.2 The §2 test-coverage list
+
+1. Tests in CI — ✅ (backend); frontend residual above.
+2. **End-to-end protocol test** — closed in a different and stronger form than
+   asked: the Playwright verify harnesses drive connect → join → HUD → combat
+   against a real server and real browser per chunk, and boot-path tests cover
+   welcome/join. ⚑ Still manual per-chunk discipline, not CI — acceptable
+   while they need a running Postgres + browser, worth revisiting when CI
+   grows a service container.
+3. **Tick/perf measurement** — ✅ closed beyond the ask: always-on
+   `TickStats` ring buffer, the scaling-profile harness (density ceiling
+   measured ≈5.8×), the loadbot, and `*_alloc_test.go` pins that fail on any
+   new per-tick allocation. Exposure is flag-gated (see 5.3.3).
+4. Frontend lint — **ESLint is still the only item from the whole 2026-07-06
+   list that has not moved at all.** Vitest exists; strict mode still off
+   (`--noImplicitAny` would report 410 errors — the honest number, see §11.3
+   F4).
+5. Content-loading validation — was already judged "no gap"; the guard
+   coverage has since gotten *stronger* (zero-value guards, per-type key
+   allowlists).
+
+### 5.3 The §3 "would actively hurt" list
+
+1. **No panic isolation** — ✅ shipped (`6f1fc64c`): `runTick()` recovers,
+   counts (`core.RecoveredPanics`), logs with capped stacks; the tick aborts
+   rather than the process. The trade is documented in the code.
+2. **Crash = total state loss / no graceful shutdown** — ✅ shipped with 8a,
+   designed *as part of* it exactly as this doc asked: Postgres persistence,
+   periodic writer with per-character backoff (`persist.ErrGone` encodes a
+   real 37-minute outage as a type), SIGTERM → snapshot → flush → close with
+   bounded timeouts and named-character loss logging. ⚑ Residual: no HTTP
+   listener drain (clients get a hard close), and the **live DB is
+   deliberately unbackuped** (PO ruling 2026-08-04 — losable by decision, to
+   be revisited with ascension/bloodlines).
+3. **Zero operational visibility** — **half-closed, and now the largest
+   remaining §3 item.** Measurement is always on; *exposure* only exists
+   behind `-profile`, and there is still no health endpoint, no metrics, no
+   crash reporting. The only always-on signal is the overload print. The
+   minimal kit this doc named (tick histogram + player count + error counter,
+   reachable in production) is still the right next step for live.
+4. **Deploy story** — ✅ exists and is exercised: live server,
+   `devops/deploy.sh`, restarts softened by stash/reconnect + flush.
+   Planned-restart is the model; that is adequate at playtest scale.
+5. **Auth/abuse surface** — largely closed by 8a: real accounts, session
+   auth, login throttling with timing equalisation, CORS refusal, audit
+   trail. ⚑ Still owed and tracked in `plan-playtest-deploy.md` §Ops &
+   security posture: cloud firewall, DB bound to localhost, credential
+   handling, non-root deploy user. Plus two auth-adjacent defects found
+   2026-08-06 (quality doc §11.2 B1/B2).
+
+### 5.4 Bottom line, updated
+
+The 2026-07-06 sentence — *the gap is ops and process, not game code* — held,
+and most of the gap has since been paid down by shipped work rather than
+side-quests: persistence, migrations, shutdown, panic isolation and a live
+deploy all landed **without reworking any inherited foundation**, which is the
+strongest evidence yet for the no-rewrite answer. What separates today's repo
+from "live without caveats" is a short, known list: frontend gating (tests in
+CI, ESLint, strictness ratchet), production-reachable observability + a health
+endpoint, the security-posture items, listener drain, and a deliberate backup
+ruling to revisit. Current defects and grades: `research-code-quality.md` §11.
