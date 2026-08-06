@@ -4046,11 +4046,11 @@ that would be a tombstone for a decision not yet taken.
 > ✅ **CLOSED 2026-08-06 — TOOL AND CONTENT BOTH SHIPPED.** The tool:
 > `docs/archive/plan-mob-levels.md` C1–C3 (2026-08-05, `975e5c4c` + `f1d6eebc`
 > + `0c6eca22`) — server, wire + nameplate, zone editor. The content:
-> `docs/plan-world-replacement.md` C2 (2026-08-06) — **all 423 combat
+> `docs/archive/plan-world-replacement.md` C2 (2026-08-06) — **all 423 combat
 > spawns in `world.json` now carry a decided `level`**, so this entry's ask
 > (*"spawn the same wolf on level 1 and 30"*) is not merely possible but
-> exercised across the whole world. ⚑ `plan-mob-levels.md` is archived; the
-> re-placement plan stays live for one in-game pass (the kiteability verdict).
+> exercised across the whole world. ⚑ Both plans are archived — the kiteability
+> verdict landed the same day (PO walk 2026-08-06, "feels very good").
 >
 > ✅ **PLANNED 2026-08-05** — `docs/archive/plan-mob-levels.md` (4 PO rulings: absolute
 > `level` per spawn · XP priced by `plan-xp-formula.md`'s formula, no seam code

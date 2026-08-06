@@ -1,40 +1,36 @@
 # Plan: The world re-placement pass — sensible level bands across `world.json`
 
-> **Status: ⭐ BUILD WORK COMPLETE — C0 `7055aad4` + C1 `3df461a8` + C2, all
-> three 2026-08-06. ⛔ NOT ARCHIVED: ONE THING C2 OWED IS STILL OPEN.**
+> **Status: ✅ COMPLETE + ARCHIVED — C0 `7055aad4` + C1 `3df461a8` + C2, all
+> three 2026-08-06, and the PO in-game walk the SAME DAY closed the one open
+> item.** All 423 combat spawns carry a decided `level`, 27 stand under a
+> different species, every scripted check is green (§12 C2), and the kiteability
+> verdict C2 owed is now MADE.
 >
-> All 423 combat spawns carry a decided `level`, 27 stand under a different
-> species, and every scripted check is green (§12 C2). What is **not** done is
-> the item C2's own brief listed second among the three most likely to go wrong:
+> ⭐ **The PO walk, 2026-08-06 — verdict: "feels very good, I like it."** The
+> seven reshaped speeds (§3.8) are **accepted provisionally**: they stand as
+> shipped, remain `[PLACEHOLDER]`, and the PO expects deeper testing to surface
+> individual-species tuning of **damage, HP, XP paid and speed** on feel. The
+> cost asymmetry of those four knobs is recorded for whoever tunes next:
 >
-> > *"Seven species are markedly more kiteable than the last time anyone played
-> > this world, and no battery in the project can see it (§3.8). DireWolf
-> > 0.88 → 0.55 is the big one — 42 spawns, the world's most common mid mob.
-> > **The walk is the only instrument.** If they now feel like non-threats, that
-> > is **C2's finding to make** and the speeds are `[PLACEHOLDER]`."*
+> - **`factors.speed`** and **`factors.xpFactor`** are cheap, feel-driven JSON
+>   edits — speed is not in `PowerScale()` (§3.5) so it re-prices nothing, and
+>   `xpFactor` moves only what a kill pays (though after `xp C2` calibrates, a
+>   large xpFactor edit wants a calibration re-check).
+> - **HP or damage** edits re-price every placement this pass made — that is
+>   what **L6** protects — and can trip `TestGuardrails_ArchetypeTrade` (D6).
+>   Mechanically still just JSON + restart, but each one deserves a look at
+>   where the species stands, and ideally lands *before* `xp C2`'s calibration
+>   or triggers a re-run of it.
 >
-> C2's walk was **scripted** (`c2-world-walk.mjs`, 10 regions, 0 FAIL). It
-> proves the plate a player reads matches the placement authored where that mob
-> stands. It **cannot** judge whether a DireWolf at `speed` 0.55 still reads as
-> a threat — and **nobody has played the re-placed world.** A finding is owed,
-> not a tuning: the plan explicitly permitted closing with numbers untuned so
-> long as they were recorded (§3.11 records them), but the *judgement* on the
-> seven reshaped species was C2's to make.
+> The second finding the same walk could have contradicted — the high half at
+> **1.8–2.1 × a standard at-level fight** (low half 0.7–1.0 ×, §12 C2, part of
+> it bought by **D12**) — drew no complaint on first impressions; it stays
+> recorded as `xp C2`'s to read, not a defect.
 >
-> **To close this plan, one session is needed:** walk the world in-game, low to
-> high, and either accept the seven speeds or re-tune them. ⚑ A post-placement
-> `factors.speed` edit is **SAFE** — speed is not in `PowerScale()` (§3.5), so
-> it re-prices nothing. An HP or damage edit is **not**: it would re-price every
-> placement C2 just made, which is what **L6** protects. The second thing worth
-> a verdict on the same walk is §12 C2's fight-size finding — the high regions
-> now sit at **1.8–2.1 × a standard at-level fight** where the low half sits at
-> 0.7–1.0 ×, and **D12 bought part of that** by choosing the HP-heavy predator
-> family for the village.
->
-> ⚑ **`plan-mob-levels.md` IS archived** (`docs/archive/`) — its only open item
-> was the content half, and C2 placed it. This plan is the one with something
-> left. ⚑ It does **not** block the chain: roadmap step 3 (sim-harness placement
-> support) and `xp C2` can both proceed, and `xp C2` should read §12 C2 first.
+> ⚑ **`plan-mob-levels.md` was archived first** (`docs/archive/`) — its only
+> open item was the content half, and C2 placed it. With this walk, this plan
+> archives too. **`xp C2` is the chain's only remaining step**, and it should
+> read §12 C2 (the two recorded distortions) before calibrating anything.
 >
 > Design history, for context: designed 2026-08-06 (**D2–D5**, three chunks),
 > **D5 superseded D1** the same day — the band stays the roster's current ~1–20

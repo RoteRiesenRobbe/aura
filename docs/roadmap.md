@@ -1078,7 +1078,7 @@ system ships blind.
 > | # | session | count | plan |
 > | --- | --- | --- | --- |
 > | ~~1~~ | ✅ **C1.5 — sim-harness placement support** — **SHIPPED 2026-08-06, in one session** | ~~1 (2 if L6 fights back)~~ | `plan-xp-formula.md` **§13** + ledger **§13.6** |
-> | 2 | **The kite in-game pass** — closes `plan-world-replacement.md` | 1 (+1 if re-tuning is heavy) | that plan's **§3.11** + §12 C2; the deliverable is a verdict, then the archive wrap |
+> | ~~2~~ | ✅ **The kite in-game pass** — **RUN 2026-08-06, verdict "feels very good"; the seven speeds stand provisionally and `plan-world-replacement.md` is ARCHIVED** | ~~1~~ | `archive/plan-world-replacement.md` — verdict + the four-knob tuning cost table in its status banner |
 > | 3 | **`xp C2` — the final pass** | **2–3** | `plan-xp-formula.md` **§6 C2** (a/b/c) + §8.1 + §8.2 + §11 + §12.1 |
 >
 > ⚑ **L6 did not fight back, so C1.5 came in at the 1-session estimate** — but only
@@ -1089,17 +1089,17 @@ system ships blind.
 > `zones`** (a zone does not resolve without a PropRegistry) and a `-zone` flag,
 > both inherited from obeying **L7** and reusing the real loader.
 >
-> ⚑ **2 and 3 are all that is left, and 3 still needs 2 in front of it** — the
-> original rule was "1 and 2 are independent, only 3 needs BOTH", and 1 landing
-> does not change 2's half of it. So the order is now forced: **kite pass → `xp
-> C2`.** ⚑ *Why 3 waits on 2 rather than merely preferring it:* the kite pass may
-> re-tune `factors.speed` on the seven species C1 reshaped, and while a speed edit
-> is safe for *placement* pricing (speed is not in `PowerScale()`), it moves
-> kills/hour — which is the exact quantity `-placements` reports and `xp C2`
-> calibrates against. Calibrating first would mean calibrating against rates the
-> next session changes. ⚑ **1 kept one door open**: if the PO ever wants kiteability
-> *measured* rather than eyeballed, the approach-distance leg only fits inside the
-> harness (§13.4) — still not built, still deliberately.
+> ⚑ **3 — `xp C2` — is ALL that is left.** The kite pass ran 2026-08-06 and the
+> seven speeds stand (accepted provisionally, deeper testing expected), so the
+> rates `-placements` reports are the rates `xp C2` calibrates against — the
+> sequencing rule is satisfied, not waived. ⚑ **The PO expects later per-species
+> feel tuning** (damage, HP, xpFactor, speed): speed/xpFactor are cheap JSON
+> edits; an HP or damage edit re-prices placements (**L6**) and, once `xp C2`
+> has calibrated, wants a calibration re-check — the cost table is in
+> `archive/plan-world-replacement.md`'s status banner. ⚑ **1 kept one door open**:
+> if the PO ever wants kiteability *measured* rather than eyeballed, the
+> approach-distance leg only fits inside the harness (§13.4) — still not built,
+> still deliberately.
 > ⛔ **3 is the only one that cannot honestly be one session** — it bundles a
 > code-bearing ruling (**D8**, and its branch B costs a wire field, §12.1) with a
 > numbers pass and a two-ended feel pass.
@@ -1114,8 +1114,10 @@ system ships blind.
 >    placements" half was deliberately left to step 2** — no `api/zones/*.json`
 >    carries a level yet. **This closes backlog §38 and finishes the plan's
 >    build work; the plan stays live only for that content half.**
-> 2. **The world re-placement pass — ⭐ THIS IS THE NEXT STEP. ✅ DESIGNED
->    2026-08-06, ✅ **FULLY BUILT the same day (C0+C1+C2) — but NOT closed** → `docs/plan-world-replacement.md`, still live: C2's brief made the kiteability verdict *"C2's finding to make"* and C2's walk was scripted, so one in-game pass remains** (D2–D5, **three** chunks —
+> 2. ✅ **The world re-placement pass — COMPLETE + ARCHIVED 2026-08-06.** Designed,
+>    fully built (C0+C1+C2) **and closed by the PO in-game walk all the same day** —
+>    verdict *"feels very good, I like it"*, the seven reshaped speeds accepted
+>    provisionally → `docs/archive/plan-world-replacement.md` (D2–D5, **three** chunks —
 >    C0 the honest plate · C1 the decisions · C2 the re-placement. ⭐ **C0
 >    SHIPPED 2026-08-06** — see the ⚑ note below, which it discharges — **and
 >    C1 IS DONE the same day**, so the next session is **C2, the re-placement**,
@@ -1166,7 +1168,7 @@ system ships blind.
 >    EliteBandit are *shape* problems, and the archetype rule fixed 7 species by
 >    `factors.speed`), **D11** ruled ArmySoldier stays `xpFactor: 0` as
 >    deliberate set-dressing, and **D14** ruled OrcGrunt unchanged with cause.
->    See `plan-world-replacement.md` §3.3–§3.4 and §3.8.
+>    See `archive/plan-world-replacement.md` §3.3–§3.4 and §3.8.
 > 3. ✅ **Sim-harness placement support — SHIPPED 2026-08-06** (`plan-xp-formula.md`
 >    C1.5, ledger **§13.6**). `XPModel` now pays the whole `curve.KillXP`, and
 >    `-placements` reports the authored world's **423 combat spawns** across 20
