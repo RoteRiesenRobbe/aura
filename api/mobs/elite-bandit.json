@@ -9,7 +9,7 @@
   "factors": {
     "baseMaxHealth": 324,
     "maxHealthVariance": 0.1,
-    "speed": 0.65,
+    "speed": 0.52,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
     "wanderRadius": 3,

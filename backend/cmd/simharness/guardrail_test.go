@@ -33,6 +33,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -254,5 +255,112 @@ func TestGuardrails_TierThresholdsVsRealRoster(t *testing.T) {
 		assert.NotEmpty(t, hard[zone],
 			"%s must offer at least one hard (bot-killing) normal", zone)
 		t.Logf("%s band: soft=%v hard=%v", zone, soft[zone], hard[zone])
+	}
+}
+
+// ---------------------------------------------------------------------------
+// D6 — the archetype rule (plan-world-replacement.md §3.8, PO 2026-08-06)
+// ---------------------------------------------------------------------------
+//
+// A species' authored numbers are read as RATIOS to one reference mob, the
+// Wolf. The ratios are level-independent by construction: MaxHealth =
+// baseMaxHealth × F(level) and mob skill damage = damageHP × F(level), the same
+// F on both sides, so it cancels — base/55 is the shape at every level. That is
+// why this rule needs no engine change and never touches curveLevel.
+//
+// The rule itself is the PO's Bear spec generalised ("more tanky than a wolf,
+// hits about as strong as a wolf, but slower"):
+//
+//	a species above 1.5 × the unit's HP must PAY, with speed ≤ 0.8 × or
+//	damage ≤ 0.8 ×.
+//
+// Two other formulations were measured and rejected; §3.8 records both, because
+// each reads as correct until it meets the roster. `HPx × DPSx ≤ cap` with the
+// level derived from it is a statement about the LADDER, not about shape — it
+// pushed Orc to cL32, straight through D5's ~1-20 band. `min over every axis
+// ≤ 0.8` fails the Wolf itself (all axes exactly 1.00) and Kobold, a species
+// weaker than the unit whose mild glass-cannon trade is real.
+const (
+	archetypeUnitHP    = 55.0 // Wolf factors.baseMaxHealth
+	archetypeUnitDPS   = 7.5  // WolfBite: 6 damageHP / 24 ticks = 0.25/tick × 30
+	archetypeUnitSpeed = 0.7  // Wolf factors.speed
+
+	// archetypeHeavyHP is where "must pay" starts, and archetypePaid is what
+	// counts as payment. Both are [PLACEHOLDER] tuning knobs — at these values
+	// the rule flags exactly the 8 species §3.8 measured and passes Bear,
+	// DireBear, Troll, Orc, GreaterFireElemental, FireElemental,
+	// BanditPyromancer and RallyDrummer, every one of which already pays.
+	archetypeHeavyHP = 1.5
+	archetypePaid    = 0.8
+)
+
+// archetypeDPS is the species' level-1 sustained damage per second — the same
+// sustainedEVPerTick the ceiling assert uses, at powerScale 1 so the curve
+// cancels out and what is left is the shape. 0 for support and unarmed mobs,
+// which pay by construction.
+func archetypeDPS(t *testing.T, def *mobs.MobDefinition) float64 {
+	t.Helper()
+	for _, ms := range def.Skills {
+		if ms.Def.Category != skills.SkillCategoryActiveAura || !hasDamageEffect(ms.Def) {
+			continue
+		}
+		aura, err := auraSpecOf(ms.Def, ms.Level, 1)
+		require.NoError(t, err, "%s: archetype DPS", def.Name)
+		return sustainedEVPerTick(aura) * 30
+	}
+	return 0
+}
+
+// archetypeExempt is the curated scope decision for D6, and it holds exactly
+// one entry. Scope is otherwise the WHOLE catalog, deliberately: at the knobs
+// above nothing outside §3.8's eight fails, including hazards, props, summons
+// and encounter internals, so a new mob is asserted by DEFAULT and exempting it
+// has to be a decision someone writes down right here.
+var archetypeExempt = map[string]string{
+	// GiantSpider is a genuine conflict between D6 and a prior PO-directed
+	// pass, not an oversight — and every axis D6 could use is already spoken
+	// for:
+	//
+	//   speed  — pinned ABOVE 0.9 by TestMobSpecOf_GiantSpiderCarriesBiteAndVenom
+	//            ("it must out-walk the player to land any of it"): its whole
+	//            payload is a chase.
+	//   HP     — cutting baseMaxHealth 182 → 80 (HPx 1.45, just under the
+	//            threshold) was measured: facetank survival goes 0% → 100% and
+	//            it drops out of the farm band's hard normals entirely, undoing
+	//            the Z2/farm-hardening pass this guardrail's own band comment
+	//            credits it with.
+	//   damage — halving it to DPSx ≤ 0.8 lands in the same place, harder.
+	//
+	// So it is a deliberate outlier: fast, tanky AND hard-hitting, by ruling.
+	// Recorded rather than reshaped. plan-world-replacement.md §3.8.
+	"GiantSpider": "fast/tanky/hard-hitting by prior ruling — speed is pinned >0.9 " +
+		"and both other axes undo the farm-band hardening (measured)",
+}
+
+// TestGuardrails_ArchetypeTrade is D6. It is a pure function of the authored
+// JSON — no sim, no seed, no curve — so a failure means someone authored a
+// species that is simply BIGGER than the unit rather than differently shaped,
+// which is the drift that produced §3.8's eight.
+func TestGuardrails_ArchetypeTrade(t *testing.T) {
+	defs, _, err := loadContent("")
+	require.NoError(t, err)
+
+	for _, def := range defs {
+		if reason, exempt := archetypeExempt[def.Name]; exempt {
+			t.Logf("skip %-18s %s", def.Name, reason)
+			continue
+		}
+		hpX := float64(def.Factors.BaseMaxHealth) / archetypeUnitHP
+		if hpX <= archetypeHeavyHP {
+			continue // not heavy — nothing to pay for
+		}
+		dpsX := archetypeDPS(t, def) / archetypeUnitDPS
+		speedX := float64(def.Factors.Speed) / archetypeUnitSpeed
+
+		assert.True(t, speedX <= archetypePaid || dpsX <= archetypePaid,
+			"%s is %.2f× the unit's HP and pays for it nowhere "+
+				"(speed %.2f×, damage %.2f× — one must be ≤ %.2f×): "+
+				"a species may be differently shaped, not simply bigger (D6)",
+			def.Name, hpX, speedX, dpsX, archetypePaid)
 	}
 }

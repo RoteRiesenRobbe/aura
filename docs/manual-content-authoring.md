@@ -78,6 +78,33 @@ faction and skills without a schema append (see §5 and
      legal and neither is warned about — author the role you mean. Before
      chunk 2 this was inferred (`speed: 0` = structure, owner + moving =
      follower), which is why old defs carried a dummy `aggroRadius`.
+   - ⭐ **THE ARCHETYPE RULE — the Wolf is the unit, and strength must be paid
+     for** (D6, `plan-world-replacement.md` §3.8, PO 2026-08-06). Read every
+     species' numbers as **ratios to one reference mob**:
+
+     | axis | the unit (Wolf) | where it lives |
+     | --- | --- | --- |
+     | HP | **55** | `factors.baseMaxHealth` |
+     | damage | **7.5 dps** | its skill: 6 `damageHP` / 24 `tickInterval` |
+     | speed | **0.7** | `factors.speed` |
+     | aggro | **3.0** | `body.aggroRadius` |
+
+     > **A species above 1.5 × the unit's HP must pay with `speed` ≤ 0.8 × or
+     > damage ≤ 0.8 ×.**
+
+     A species may be *differently shaped*, never simply **bigger**. The Bear is
+     the worked example: 3.49 × HP, 1.07 × damage, **0.57 × speed** — tankier
+     than a wolf, hits about as hard, and slower. Enforced by
+     `TestGuardrails_ArchetypeTrade` (`cmd/simharness/guardrail_test.go`), which
+     asserts the **whole catalog** — a new mob is checked by default and
+     exempting one means writing the reason into `archetypeExempt` beside the
+     single entry already there.
+     ⚑ **The ratios are level-independent, which is why this is not a
+     `curveLevel` question.** `MaxHealth = baseMaxHealth × f(L)` and skill
+     damage = `damageHP × f(L)` — the same `f` on both sides, so it cancels and
+     `base / 55` is the shape at *every* level. `curveLevel` says only **where
+     the fight belongs**; these ratios say **what shape it is**. Keeping the two
+     apart is the whole point (it is landmine L1 in that plan).
    - `factors`: `baseMaxHealth`, `maxHealthVariance`, `xpFactor`, `speed`,
      `deltaPhi`, `turnRate`, optional `resistances` / `damageTags`
    - ⚑ **`xpFactor` is RELATIVE, and absolute `experience` hard-fails**

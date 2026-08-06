@@ -1082,8 +1082,23 @@ system ships blind.
 > 2. **The world re-placement pass — ⭐ THIS IS THE NEXT STEP. ✅ DESIGNED
 >    2026-08-06 → `docs/plan-world-replacement.md`** (D2–D5, **three** chunks —
 >    C0 the honest plate · C1 the decisions · C2 the re-placement. ⭐ **C0
->    SHIPPED 2026-08-06** — see the ⚑ note below, which it discharges — so the
->    next session is **C1**, the decisions session). It no longer "owns no plan
+>    SHIPPED 2026-08-06** — see the ⚑ note below, which it discharges — **and
+>    C1 IS DONE the same day**, so the next session is **C2, the re-placement**,
+>    the only chunk left. C1 took every decision it owed (**D6–D11**: the region
+>    map as a *total partition*, 423/423, `scripts/world-regions.py` · the band
+>    table · the two gates overlapping · the fire pocket stays · no South road ·
+>    ArmySoldier stays at `xpFactor: 0`) **and executed the catalog half**: D4's
+>    "re-author `curveLevel`" was **subsumed by D6, the archetype rule** — the
+>    Wolf is the unit and a species above 1.5 × its HP must pay with speed or
+>    damage ≤ 0.8 ×, enforced by `TestGuardrails_ArchetypeTrade` over the whole
+>    catalog. **7 species reshaped, GiantSpider exempted with cause.** ⛑ **The
+>    reshape is invisible to every battery the project has** — the facetank leg
+>    starts at 0.5 units, so approach time never enters it: seven species became
+>    markedly more kiteable and nothing measured it. **C2's walk is the
+>    instrument.** ⚑ **§3.4's wrong-example correction is now owed by C2 alone**
+>    — the roadmap's AngryMammoth / SaberToothCat / ProvingBoss are catalog-true
+>    but **unplaced**, and the live offenders were the eight D6 measured.). It
+>    no longer "owns no plan
 >    doc" — that was true until the design session, and this file is the
 >    answer. Re-places and re-levels `world.json`'s **423 combat spawns** so
 >    difficulty tracks player level, with bands keyed to **regions** (D2) rather

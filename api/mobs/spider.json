@@ -10,7 +10,7 @@
     "resistances": {"poison": 0.25},
     "baseMaxHealth": 84,
     "maxHealthVariance": 0.1,
-    "speed": 0.7,
+    "speed": 0.55,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
     "wanderRadius": 3,

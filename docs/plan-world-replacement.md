@@ -96,6 +96,69 @@ sibling plan for a reason stated there.
   mis-scaling HP, so leaving it makes `xp C2` calibrate against known-bad data —
   which is the exact noise D9 sequenced this chain to remove. ⚑ **The roadmap's
   three named examples are NOT these three** and are unplaced; §3.4 and L4.
+  ⭐ **SUBSUMED BY D6 (2026-08-06).** D4 framed the fix as "re-author
+  `curveLevel`", which measurement showed is not a relabel at all — see §3.8.
+  The three species are now fixed *as derivations from D6's rule*, which is what
+  the PO asked for when D4 came up in C1: *"different species should have
+  different strengths and weaknesses without needing an individual override."*
+- ⭐ **D6 — the archetype rule: the Wolf is the unit, and strengths must be
+  paid for.** Ruled in C1, 2026-08-06. Every species' authored numbers are read
+  as **ratios to a single reference mob** (Wolf: `baseMaxHealth` 55, 7.5 dps,
+  `speed` 0.7, `aggroRadius` 3.0), and the guardrail is:
+
+  > **A species above 1.5 × the unit's HP must pay with `speed` ≤ 0.8 × or
+  > damage ≤ 0.8 ×.**
+
+  Ratified **with a guardrail test** (`cmd/simharness/guardrail_test.go`), the
+  8 current failures carried as a named exception list so it lands green. ⚑
+  **Zero engine change, and that is a measured finding, not a scoping dodge** —
+  `MaxHealth = baseMaxHealth × F(level)` and mob skill damage = `damageHP ×
+  F(level)`, the same `F` on both sides, so a "level budget × species
+  multiplier" model is *arithmetically identical* to what is authored today:
+  `archetypeHP = baseMaxHealth / 55` exactly, at every level. Full derivation
+  and the measured shape table: **§3.8**.
+- **D7 — the two gates are level-equal-ish, group one band higher (O3).** Dark
+  Tunnel and Bandit Horde **overlap**; the horde sits one band above the tunnel
+  rather than after it. Rejected: §3.6's 9–13 / 13–17 ramp, which is L7 exactly
+  — it converts a player *choice* into a *sequence* and leaves level 14 with one
+  home. Rejected also: flat parity, which loses the nudge toward doing the solo
+  route first.
+- **D8 — the NE fire pocket STAYS, as the Zone-3 teaser (O4).** It keeps its
+  18–20 siting beside the City Gates, giving the top rungs three places to go
+  instead of one corridor. The tone exception (zones 1–2 carry no fire content)
+  is **accepted deliberately** and recorded here so its survival is a decision,
+  not an oversight. Rejected: deleting the 5 spawns, and re-skinning the pocket
+  (new placement authoring, not a level edit).
+- **D9 — the southern strip is NOT a region.** The 29 unassigned spawns at
+  y ≥ +24 between the farm and the front dissolve into their northern
+  neighbours; West wildlife, Kobold hideout and Mid road each run to y = +36.
+  Rejected: naming it "South road" with its own band — an eleventh region the
+  content pass never authored. ⚑ Consequence: `spawnpoint-3` lands in the
+  Kobold hideout, see §3.7's L3 note.
+- ⭐ **D10 — the ratified band table.** Ten regions, **≥ 2 homes at every rung
+  from 2 to 20**:
+
+  | region | band | | region | band |
+  | --- | --- | --- | --- | --- |
+  | Farm / start (SW) | **1–3** | | Dark Tunnel belt (N) | **10–14** ⟵ solo gate |
+  | West wildlife | **2–6** | | Bandit horde / NE | **12–16** ⟵ group gate |
+  | Dark forest (NW) | **4–8** | | East village + City Gates | **14–18** |
+  | Kobold hideout | **6–10** | | NE fire pocket | **17–20** |
+  | Mid road / centre | **8–12** | | The front (S) | **unchanged** (D5) |
+
+  ⚑ **The table is exactly at budget** — 10 regions × ~4 rungs = 40 = 2 × 20 —
+  so in C2 **every widening must be paid for by a narrowing.** Level 1 has one
+  home (the farm) deliberately: it is the start, not a choice. §3.6's original
+  proposal is superseded; it left levels 14, 16 and 17 (and 2 and 4) with a
+  single home even after D7.
+- **D11 — ArmySoldier stays at `xpFactor: 0` (O5).** The 18 cL18 spawns are the
+  friendly Human Army the content pass built to war with the orcs — deliberate
+  set-dressing, not an authoring miss. They remain in the **62 non-combat** set,
+  so §9's coverage assert keeps counting **423 / 62** and the
+  absent-stays-absent assert stands as written. Rejected: making them pay (it
+  would make farming your own allies profitable, and would have moved both
+  asserts), and a plate-without-XP split (a code change — `xpFactor: 0` is what
+  suppresses the nameplate today).
 
 ---
 
@@ -312,22 +375,23 @@ y = +24; the Orc front ("front S") sits at y = +27…+35; the dark forest "NW"
 is the `darkAreas` cluster at y = −25…−11. Nothing in the JSON says this — it
 is worth writing down once.
 
-| region | box (x, y) | spawns | cL today | **proposed band** |
-| --- | --- | --- | --- | --- |
-| Farm / start (SW) | −72…−44, +16…+36 | 25 | 1–2 | **1–3** |
-| West wildlife | −72…−30, −8…+16 | 56 | 1–6 | **3–6** |
-| Dark forest (NW) | −72…−38, −36…−8 | 21 | 2–5 | **5–8** |
-| Kobold hideout | −30…−4, −8…+28 | 46 | 1–6 | **6–9** |
-| Mid road / centre | −4…+24, −16…+28 | 54 | 1–6 | **8–12** |
-| **Dark Tunnel belt (N)** | −38…+24, −36…−16 | 40 | 1–11 | **9–13** ⟵ solo gate |
-| **Bandit horde / NE** | +24…+62, −28…−8 | 38 | 5–12 | **13–17** ⟵ group gate, **fills the hole** |
-| East village + City Gates | +30…+72, −8…+24 | 31 | 1–12 | **15–18** |
-| NE fire pocket | +60…+72, −36…−24 | 5 | 18–20 | **18–20** ⚑ see below |
-| **The front (S)** | +24…+72, +24…+36 | 18 | 11–20 | **18–20** — unchanged (D5) |
+⭐ **RATIFIED IN C1, 2026-08-06 — see §3.7 for the authoritative map.** The
+table below is the *original reconstruction* and is kept only because §3.7 is
+expressed as a diff against it. It assigned **334 of 423** combat spawns; the
+other 89 fell in the seams between the boxes.
 
-*(334 of 423 combat spawns fall inside these boxes; the remaining 89 sit in the
-gaps between them and are exactly why the boundaries need ratifying rather than
-scripting.)*
+| region | box (x, y) | spawns | cL today | proposed band |
+| --- | --- | --- | --- | --- |
+| Farm / start (SW) | −72…−44, +16…+36 | 25 | 1–2 | 1–3 |
+| West wildlife | −72…−30, −8…+16 | 56 | 1–6 | 3–6 |
+| Dark forest (NW) | −72…−38, −36…−8 | 21 | 2–5 | 5–8 |
+| Kobold hideout | −30…−4, −8…+28 | 46 | 1–6 | 6–9 |
+| Mid road / centre | −4…+24, −16…+28 | 54 | 1–6 | 8–12 |
+| **Dark Tunnel belt (N)** | −38…+24, −36…−16 | 40 | 1–11 | 9–13 ⟵ solo gate |
+| **Bandit horde / NE** | +24…+62, −28…−8 | 38 | 5–12 | 13–17 ⟵ group gate |
+| East village + City Gates | +30…+72, −8…+24 | 31 | 1–12 | 15–18 |
+| NE fire pocket | +60…+72, −36…−24 | 5 | 18–20 | 18–20 |
+| **The front (S)** | +24…+72, +24…+36 | 18 | 11–20 | 18–20 — unchanged (D5) |
 
 ⚑ **The top three regions deliberately overlap at 18–20** — that is D5's
 density argument made concrete. A player at 18 has the City Gates approach, the
@@ -355,7 +419,279 @@ level has exactly one place to be, the table is wrong.**
    explicit that zones 1–2 carry **no fire content** (*"NO magic / supernatural
    / elemental… NO `fire`"*). They read as a Zone-3 teaser like the City Gates,
    or as leftovers. **Open: does the fire pocket stay, move, or go?** (O4) Ruled
-   in **C1**.
+   in **C1** — ✅ **D8: it stays as the Zone-3 teaser.**
+
+### 3.7 ⭐ The ratified region map — a TOTAL PARTITION (C1, 2026-08-06)
+
+**This is the authoritative map. §9's coverage assert is written against it.**
+
+O2 asked for a rule a script can evaluate that assigns **each of the 423 combat
+spawns to exactly one region**. §3.6's boxes were not one. The fix keeps every
+shape the reconstruction got right and makes the boxes **tile**: a
+priority-ordered rectangle list over the full 144 × 72 bounds, **first match
+wins**. Measured: **423 / 423 assigned, 0 unresolved, 0 ambiguous.**
+
+```
+#   region                  x0    x1     y0    y1
+1   The front (S)           +24   +72    +24   +36
+2   NE fire pocket          +60   +72    −36   −24
+3   Dark forest (NW)        −72   −38    −36    −8
+4   Dark Tunnel belt (N)    −38   +40    −36   −16
+5   Bandit horde / NE       +40   +72    −36    −8
+6   Bandit horde / NE       +24   +40    −28    −8
+7   Farm / start (SW)       −72   −44    +16   +36
+8   West wildlife           −72   −30    −16   +36
+9   Kobold hideout          −30    −4    −16   +36
+10  Mid road / centre        −4   +30    −16   +36
+11  East village + Gates    +30   +72     −8   +24
+```
+
+Rendered at §3.1's cell size (3 × 4 units), one character per region:
+
+```
+       x=-72                                          x=+72
+ -34.0 DDDDDDDDDDDTTTTTTTTTTTTTTTTTTTTTTTTTTBBBBBBBPPPP
+ -30.0 DDDDDDDDDDDTTTTTTTTTTTTTTTTTTTTTTTTTTBBBBBBBPPPP
+ -26.0 DDDDDDDDDDDTTTTTTTTTTTTTTTTTTTTTTTTTTBBBBBBBPPPP
+ -22.0 DDDDDDDDDDDTTTTTTTTTTTTTTTTTTTTTTTTTTBBBBBBBBBBB
+ -18.0 DDDDDDDDDDDTTTTTTTTTTTTTTTTTTTTTTTTTTBBBBBBBBBBB
+ -14.0 DDDDDDDDDDDWWWKKKKKKKKKMMMMMMMMMBBBBBBBBBBBBBBBB
+ -10.0 DDDDDDDDDDDWWWKKKKKKKKKMMMMMMMMMBBBBBBBBBBBBBBBB
+  -6.0 WWWWWWWWWWWWWWKKKKKKKKKMMMMMMMMMMMVVVVVVVVVVVVVV
+  -2.0 WWWWWWWWWWWWWWKKKKKKKKKMMMMMMMMMMMVVVVVVVVVVVVVV
+   2.0 WWWWWWWWWWWWWWKKKKKKKKKMMMMMMMMMMMVVVVVVVVVVVVVV
+   6.0 WWWWWWWWWWWWWWKKKKKKKKKMMMMMMMMMMMVVVVVVVVVVVVVV
+  10.0 WWWWWWWWWWWWWWKKKKKKKKKMMMMMMMMMMMVVVVVVVVVVVVVV
+  14.0 WWWWWWWWWWWWWWKKKKKKKKKMMMMMMMMMMMVVVVVVVVVVVVVV
+  18.0 FFFFFFFFFWWWWWKKKKKKKKKMMMMMMMMMMMVVVVVVVVVVVVVV
+  22.0 FFFFFFFFFWWWWWKKKKKKKKKMMMMMMMMMMMVVVVVVVVVVVVVV
+  26.0 FFFFFFFFFWWWWWKKKKKKKKKMMMMMMMMMRRRRRRRRRRRRRRRR
+  30.0 FFFFFFFFFWWWWWKKKKKKKKKMMMMMMMMMRRRRRRRRRRRRRRRR
+  34.0 FFFFFFFFFWWWWWKKKKKKKKKMMMMMMMMMRRRRRRRRRRRRRRRR
+```
+
+| | region | spawns (Δ vs §3.6) | cL today |
+| --- | --- | --- | --- |
+| F | Farm / start (SW) | 25 (+0) | 1–2 |
+| W | West wildlife | 74 (+18) | 1–6 |
+| D | Dark forest (NW) | 21 (+0) | 2–5 |
+| K | Kobold hideout | 65 (+19) | 1–6 |
+| M | Mid road / centre | 90 (+36) | 1–11 |
+| T | Dark Tunnel belt (N) | 50 (+10) | 1–12 |
+| B | Bandit horde / NE | 44 (+6) | 5–12 |
+| V | East village + City Gates | 31 (+0) | 1–12 |
+| P | NE fire pocket | 5 (+0) | 18–20 |
+| R | The front (S) | 18 (+0) | 11–20 |
+
+**The 89 seam-dwellers decomposed into four pieces of edge arithmetic and one
+real design question** — which is why O2 was one decision, not eighty-nine:
+
+- **29 spawns** in y ≥ +24, x −44…+24 — a *genuinely unnamed* region between
+  the farm and the front, holding `spawnpoint-3` and the Wanderer NPC. ⭐ **D9:
+  it is NOT a region.** The strip dissolves into whatever borders it to the
+  north — West wildlife, Kobold hideout and Mid road each extend their south
+  edge to y = +36. Rejected: naming it "South road" with its own band, which
+  would have been an eleventh region the content pass never authored.
+- **21** in the x +24…+30 seam (Mid road's east edge 24 → 30).
+- **19** in the north strip y < −28, x ≥ +24 — split at x = +40: the 8 spiders
+  east of the Tunnel's mouth join the **Tunnel belt** (its east edge 24 → 40),
+  the 5 Marauders beyond join the **Bandit horde**.
+- **17** in the y −16…−8 seam (West wildlife and Kobold north edge −8 → −16).
+- **6** in the west y +16…+24 seam, and **1** stray AlphaWolf at (63.0, −20.1)
+  in the NE corner (Bandit horde's east edge 62 → 72).
+
+⚑ **L3 moved as a result.** §5 assessed the campfire constraint against
+*current* cL and treated `spawnpoint-3` (−16.47, +31.53) as safe. It was never
+in a region at all. Under the ratified map it lands in the **Kobold hideout**,
+and `spawnpoint-4` and `-5` both land in the **Dark Tunnel belt** — so **four of
+five bound fires are in mid or high bands**, not two. The death-loop check is a
+C2 walk item for all four, not a review-pass afterthought.
+
+### 3.8 ⭐ The archetype rule — measured (C1, 2026-08-06; the evidence for D6)
+
+D4 came into C1 as "re-author `curveLevel` on three species". It leaves as a
+different thing entirely, because the first measurement contradicted the
+premise.
+
+**The Bear is already exactly what the design wants.** The PO's spec, stated in
+C1 verbatim, was *"bears should be more tanky than a wolf, hit about as strong
+as a wolf, but should be slower"*:
+
+| | Wolf | Bear | ratio |
+| --- | --- | --- | --- |
+| `baseMaxHealth` | 55 | 192 | **3.49 ×** |
+| dps | 7.5 (6 dmg / 24 ticks) | 8.0 (16 dmg / 60 ticks) | **1.07 ×** |
+| `speed` | 0.7 | 0.4 | **0.57 ×** |
+| `aggroRadius` | 3.0 | 2.4 | 0.80 × |
+
+So the authoring model **already** expresses per-species strengths and
+weaknesses with no per-instance override. Nothing needed building.
+
+⚑ **And an explicit "budget × archetype" engine model would change nothing.**
+`MaxHealth = baseMaxHealth × PowerScale()` and the SkillSystem multiplies
+HP-valued skill output by the same `PowerScale() = F(level)`. The level factor
+therefore **cancels in the ratio**: `archetypeHP = base × F(L) / (55 × F(L)) =
+base / 55`, identically at every level. Storing budgets and multipliers would
+rename fields and produce the same numbers a player meets. *Verified in code,
+not assumed* — this is why D6 carries no engine change.
+
+**What was actually missing: a written reference unit.** Without one, nobody
+knew what 1.0 was, and species drifted into strengths with nothing paying for
+them. Measured across all 26 placed species, as ratios to the Wolf:
+
+```
+  HPx  DPSx  spdx aggro |  cL tier      n  species
+ 8.18  0.47  0.64   3.6 |  20 elite     1  GreaterFireElemental
+ 7.64  5.49  0.71   3.6 |  20 elite    12  Orc
+ 5.89  1.75  0.93   3.6 |   7 elite     1  EliteBandit    FAIL
+ 5.16  1.07  0.57   3.6 |   7 normal    6  DireBear
+ 4.80  1.12  1.07   3.6 |   5 elite     7  EliteWolf      FAIL
+ 3.55  1.80  1.31   3.0 |  12 normal   10  Marauder       FAIL
+ 3.49  1.07  0.57   2.4 |   4 normal    9  Bear
+ 3.31  1.90  1.36   3.0 |   9 normal    5  GiantSpider    FAIL
+ 3.31  1.76  0.64   3.6 |  11 elite     6  Troll
+ 3.00  0.47  0.79   3.6 |  18 normal    4  FireElemental
+ 2.95  1.00  1.36   3.6 |  10 normal    8  AlphaWolf      FAIL
+ 2.29  1.00  1.26   3.6 |   6 normal   42  DireWolf       FAIL
+ 1.96  1.80  0.93   3.0 |   5 normal   21  Bandit         FAIL
+ 1.75  0.60  0.79   3.6 |   6 normal    3  BanditPyromancer
+ 1.75  0.00  0.64   4.5 |   6 normal    1  RallyDrummer
+ 1.53  0.93  1.00   2.4 |   4 normal   15  Spider         FAIL
+ 1.36  1.33  0.86   5.4 |  20 normal    3  OrcGrunt
+ 1.31  0.40  0.86   2.4 |   4 normal    6  VenomSpider
+ 1.20  0.00  0.86   3.6 |   5 normal    3  BanditHealer
+ 1.09  0.80  0.79   1.5 |   2 normal   66  Boar
+ 1.09  0.67  0.86   3.6 |   5 normal    4  BanditRanged
+ 1.00  1.00  1.00   3.0 |   2 normal  121  Wolf   <- the unit
+ 0.82  1.07  0.86   3.0 |   3 normal   20  Kobold
+ 0.73  0.47  0.79   3.6 |   3 normal    6  KoboldRanged
+ 0.64  0.30  1.21   1.5 |   1 normal   37  Stag
+ 0.36  0.00  0.00   0.0 |   1 normal    6  Turnip
+```
+
+*(DPSx sums `damage_aura` + `dot_aura` `damageHP` per second and multiplies
+`maxTargets` in — which is why Orc's 3-target cleave reads 5.49 ×. Support mobs
+legitimately read 0.00. It is a dial, not a TTK.)*
+
+**DireWolf is the clearest failure: 2.29 × a Wolf's HP, the same damage, and
+*faster*.** That is not a different shape, it is a bigger Wolf — and there are
+42 of them.
+
+⛔ **Two rule formulations were tried and rejected; both are recorded because
+each looks right until it is measured.**
+
+1. **`HPx × DPSx ≤ a per-tier cap`, with `curveLevel` derived as the smallest
+   level at which a species fits its budget.** Attractive because it makes the
+   level a *formula* rather than a judgement — exactly what the PO asked for.
+   It **over-determines the system**: the product measures *how big is this
+   fight relative to a standard mob of the same level*, which is a statement
+   about the ladder, not about shape. Capping it forces the level up to shrink
+   it, and the derivation pushed **Orc → cL32 and GreaterFireElemental → cL33**,
+   straight through D5's ~1–20 band. *One rule was answering two questions —
+   which is **L1** in this plan's own landmine list.*
+2. **`min(HPx, DPSx, speedx) ≤ 0.8` over every axis.** Flags **the Wolf itself**
+   (all axes exactly 1.00) and **Kobold** (0.82 / 1.07 / 0.86 — a species
+   *weaker* than the unit overall, whose mild glass-cannon trade is real). A
+   rule that fails its own reference point is the wrong rule.
+
+⭐ **What survives is scoped to the strong axis**, which is the PO's Bear spec
+generalised: *above 1.5 × HP → pay with speed ≤ 0.8 × or damage ≤ 0.8 ×.* It
+flags the **8** species marked FAIL above and passes Bear, DireBear, Troll, Orc,
+GreaterFireElemental, FireElemental, BanditPyromancer and RallyDrummer — every
+one of which already pays. It is a pure function of the authored JSON and it
+**never touches `curveLevel`**, so D5's band is untouched by construction.
+
+⚑ **The 8 are a BALANCE change, not a relabel** — reshaping DireWolf (× 42) or
+Bandit (× 21) moves fights that the standing **TTK 6.67 s / TTD 8.70 s** locks
+and `cmd/simharness/guardrail_test.go` are measured against.
+
+#### ✅ The sweep, executed in C1 (PO: "do it now") — 7 reshaped, 1 exempted
+
+All seven pay with **speed**, which is the axis the PO named for the Bear and
+the only one that moves neither HP nor damage:
+
+| species | `speed` | spdx | n |
+| --- | --- | --- | --- |
+| DireWolf | 0.88 → **0.55** | 1.26 → 0.79 | 42 |
+| Bandit | 0.65 → **0.55** | 0.93 → 0.79 | 21 |
+| Spider | 0.70 → **0.55** | 1.00 → 0.79 | 15 |
+| Marauder | 0.92 → **0.50** | 1.31 → 0.71 | 10 |
+| AlphaWolf | 0.95 → **0.50** | 1.36 → 0.71 | 8 |
+| EliteWolf | 0.75 → **0.52** | 1.07 → 0.74 | 7 |
+| EliteBandit | 0.65 → **0.52** | 0.93 → 0.74 | 1 |
+
+⛑ **`WolfBite` is shared by Wolf, DireWolf and AlphaWolf, so damage was never
+available to two of them** — a damage payment would have moved **the unit
+itself**, and the unit has 121 spawns. (`BanditBlades` is likewise shared by
+Bandit and Marauder; both fail, so it would have been survivable there, but the
+wolves settled the choice for the whole set.)
+
+⛔ **GiantSpider could not pay on ANY axis and is exempted, with cause.** It is
+the one real conflict between D6 and a prior PO-directed pass:
+
+- **speed** is pinned **above 0.9** by `TestMobSpecOf_GiantSpiderCarriesBiteAndVenom`
+  — *"it must out-walk the player to land any of it"*. Its whole payload is a
+  chase.
+- **HP** was tried: `baseMaxHealth` 182 → 80 (HPx 1.45, under the threshold).
+  **Measured: facetank survival 0 % → 100 %**, and it dropped out of the farm
+  band's hard normals — undoing the Z2/farm-hardening pass that this very
+  guardrail's band comment credits it with. Reverted.
+- **damage** lands in the same place, harder.
+
+So it is a deliberate outlier — fast, tanky *and* hard-hitting, by ruling —
+recorded in `archetypeExempt` rather than reshaped.
+
+⛑ **The facetank battery is STRUCTURALLY BLIND to this change, and that is a
+finding, not a pass.** Baseline and post-change survival are **identical on all
+seven** (DireWolf 62 % → 62 %, Spider 100 % → 100 %, the other five 0 % → 0 %),
+because at the guardrail's 0.5-unit start distance the mob is already inside
+aura range — approach time never enters the model. So the locks are unmoved
+*structurally*, which proves the change is safe and proves nothing about whether
+it is good. **Speed's real effect is escapability**, and the only instrument for
+that is an in-game pass. ⚑ The `-levels` battery is likewise independent: it
+runs a synthetic reference mob, so TTK 6.67 s / TTD 8.70 s cannot move on a
+catalog edit at all.
+
+⚑ **OrcGrunt resolves differently under D6 and must not be a C2 surprise.**
+1.36 × HP, 1.33 × dps, 0.86 × speed, and the **widest `aggroRadius` in the world
+at 5.4** — a light, fast-aggroing add. It **passes** the rule: it is correctly
+*shaped*. What is wrong is its **placement** — a cL20 label on a light add
+standing in the front. That is a C2 question (per-spawn `level`), not a catalog
+one, and §3.4's framing of it as a catalog offender is superseded.
+
+### 3.9 ⚑ D10 is dense but not everywhere FEASIBLE — three thin regions (C1)
+
+Density (≥ 2 homes per rung) is a property of the *table*. Feasibility is a
+property of the **roster inside each region**, and D10 was checked for the first
+and not the second. Measured, band by band:
+
+| region | band | rungs | distinct species | spawns | worst stretch |
+| --- | --- | --- | --- | --- | --- |
+| Farm / start | 1–3 | 3 | 4 | 25 | +2 |
+| **West wildlife** | 2–6 | 5 | **4** | 74 | +5 |
+| **Dark forest** | 4–8 | 5 | **4** | 21 | +6 |
+| Kobold hideout | 6–10 | 5 | 6 | 65 | +9 |
+| Mid road / centre | 8–12 | 5 | 13 | 90 | +11 |
+| Dark Tunnel belt | 10–14 | 5 | 11 | 50 | +13 |
+| Bandit horde | 12–16 | 5 | 10 | 44 | +11 |
+| **East village + Gates** | 14–18 | 5 | **6** | 31 | **+17** |
+| NE fire pocket | 17–20 | 4 | 2 | 5 | +2 |
+| The front | unchanged | — | 3 | 18 | — |
+
+⛔ **East village + City Gates is the blocker: 26 of its 31 spawns are Boar
+(cL2) and DireWolf (cL6), asked to carry 14–18.** A Boar placed at 18 is a
+**516 HP** healthbar with a level-2 moveset, a level-2 aggro radius and a
+level-2 bite — **L2 firing at full strength**, on the region a player reaches
+last. West wildlife (73 of its 74 spawns are Wolf / Stag / Boar across 5 rungs)
+and the Dark forest (Wolf ×12 stretched to 8) are the same defect, milder.
+
+⭐ **This is a C2 instruction, not a D10 defect.** C2 is a re-**placement** pass,
+not only a re-levelling one (§1) — so the fix is to *move* species into the thin
+regions, not to stretch the ones already there. The bandit-camp roster is the
+obvious donor: the Bandit horde carries 10 distinct species across 44 spawns and
+sits directly north of the village. **Record the outcome either way** — if C2
+closes with a Boar standing at 18, this section is the evidence that it was
+known and chosen.
 
 ---
 
@@ -419,11 +755,14 @@ needs the map in front of it, not a paper answer:
 - **O1 — ⛔ DISSOLVED by D5.** It asked how the front carries ten levels on 18
   spawns; D5 removed the requirement, so the front is simply not re-tuned.
 - **O2 — the region boundaries themselves**, reconstructed in §3.6 and never
-  authored anywhere. → **C1**, before a single spawn moves
+  authored anywhere. → ✅ **RULED in C1, 2026-08-06: §3.7**, a total partition,
+  423 / 423 assigned. Plus **D9** on the southern strip.
 - **O3 — solo vs group gate parity**: should the Bandit Horde be flatly harder
   than the Dark Tunnel, or level-equal with a difficulty difference that comes
-  from the pack composition alone? → **C1**
-- **O4 — the NE fire pocket**: zone-3 teaser, relocation, or removal? → **C1**
+  from the pack composition alone? → ✅ **RULED: D7** — overlapping, group one
+  band higher.
+- **O4 — the NE fire pocket**: zone-3 teaser, relocation, or removal? → ✅
+  **RULED: D8** — it stays.
 - **O5 — what happens to ArmySoldier?** D4 puts it *in scope* but does not say
   what it becomes: 18 spawns at cL18 with `xpFactor: 0` pay nothing and carry no
   nameplate — the world's largest block of high-level placements, currently
@@ -468,6 +807,11 @@ content none. ⚑ **`hygiene-wire-prune` is MANDATORY here** — the project's
 *not* required for C1 or C2, which touch no schema.
 
 ### C1 — the decisions: the region map, the bands, the catalog
+
+⚑ **C1 ran 2026-08-06 and is PARTLY DONE — see the running note at the end of
+this entry before starting anything.** Items 1 and 4 are closed (§3.7, D7–D9),
+item 3 was replaced by **D6 + §3.8**, and item 2 (the band table) plus **O5**
+are still open.
 
 The session where every judgement is made and nothing is placed. Four open items
 close here, and it needs the PO in the loop for all of them:
@@ -528,6 +872,56 @@ is **gitignored** and therefore not restorable with `git checkout`.
 
 **Nothing is blocked.** C0 shipped `7055aad4` with DB/content untouched, and
 no `api/zones/*.json` or `api/mobs/*.json` has moved.
+
+#### ⭐ C1 running note — 2026-08-06, session 1 (decisions taken, no files but
+this one changed yet)
+
+**Closed:** O2 → **§3.7** (the ratified total partition, 423 / 423) ·
+**D9** (no South road) · **O3 → D7** · **O4 → D8** · and D4 was **subsumed by
+D6** after measurement, with the whole derivation in **§3.8**.
+
+Also closed: **item 2 → D10** (the band table, ratified — §3.6's version
+superseded because it left levels 14, 16 and 17 with one home even under D7) and
+**O5 → D11** (ArmySoldier stays at `xpFactor: 0`, so the 423 / 62 split and both
+§9 asserts stand unchanged).
+
+**Verified, not assumed:** the rectangle list **as transcribed into §3.7** was
+read back out of this file and re-run against `world.json` — **423 / 423, 0
+unassigned, 0 ambiguous**, and the per-region counts match §3.7's table exactly.
+A transcription slip there would be invisible and it is the input to §9's
+coverage assert.
+
+⚑ **One thing D10 does not cover, found after ratification: §3.9.** Three
+regions are **dense but not feasible** — East village + Gates is banded 14–18
+with 26 of its 31 spawns being Boar (cL2) and DireWolf (cL6). C2 must **move**
+species there, not stretch the ones present.
+
+⛔ **Every DECISION C1 owed is taken, and the execution half is DONE too** —
+the PO ruled *"do it now"* on the reshaping rather than deferring it:
+
+1. ✅ **The rule is written down and enforced.** The unit + trade rule are in
+   `manual-content-authoring.md` §1 (the mob-authoring checklist), and
+   **`TestGuardrails_ArchetypeTrade`** in `cmd/simharness/guardrail_test.go`
+   asserts the **whole 65-entry catalog** — proven RED first, naming exactly
+   §3.8's eight.
+2. ✅ **§3.7's partition is a runnable script**, `scripts/world-regions.py` —
+   §9's coverage assert half (a), exit 1 on any unresolved spawn. It also
+   renders §3.7's grid (so the doc and the rule cannot drift silently) and
+   carries half (b), `--levels`, which C2 has to drive to 0. Today: **423/423
+   resolved · 0/423 levelled**, which is exactly right — *C1 places nothing.*
+3. ✅ **The sweep: 7 reshaped, 1 exempted with cause.** Full table, the shared-
+   skill constraint that forced the choice of axis, and the GiantSpider
+   conflict: **§3.8**.
+
+⚑ **L6 is satisfied**: the catalog moved *before* any placement, so C2's band
+judgements will be made against numbers that no longer shift under them.
+
+⛑ **What C1 could NOT verify, stated so C2 does not inherit it as an
+assumption:** the reshape is invisible to every battery the project has — the
+facetank leg starts at 0.5 units (approach time never enters it) and the
+`-levels` battery runs a synthetic mob. **Seven species just became markedly
+more kiteable and nothing measured it.** That is an in-game pass, and it is the
+first thing C2's walk should be looking at.
 
 ### C2 — the re-placement
 
@@ -766,3 +1160,87 @@ failure**; it belongs to whoever next touches that row.
 **Schema impact: DB NONE · FlatBuffers YES** (two appended scalars on `Welcome`)
 **· content JSON NONE.** No `world.json` and no `api/mobs/*.json` were touched —
 C1 owns the catalog and L6 requires it to precede any placement.
+
+### C1 — the decisions, and the archetype rule ✅ 2026-08-06, verified, `[uncommitted]`
+
+**Every decision C1 owed is taken, and the catalog half is executed** (the PO
+ruled *"do it now"* rather than deferring the sweep). **C2 is the only chunk
+left.**
+
+**PO rulings — D6–D11** (full text in §2, evidence in §3.7–§3.9):
+
+- **D6 — the archetype rule.** The Wolf is the unit (55 HP / 7.5 dps / speed 0.7
+  / aggro 3.0) and **a species above 1.5 × the unit's HP must pay with speed
+  ≤ 0.8 × or damage ≤ 0.8 ×.** ⭐ **This SUBSUMED D4**, which had framed the fix
+  as "re-author `curveLevel`" — measurement showed that is not a relabel at all.
+- **D7** the two gates overlap, group one band higher (Tunnel 10–14 / Horde
+  12–16) · **D8** the NE fire pocket stays as the Zone-3 teaser · **D9** the
+  southern strip is not a region · **D10** the ratified band table · **D11**
+  ArmySoldier stays `xpFactor: 0`, so the 423 / 62 split and both §9 asserts
+  stand unchanged.
+
+**Content + code:**
+
+- `api/mobs/` × 7 — **`factors.speed` only**: DireWolf 0.88→0.55 · Bandit
+  0.65→0.55 · Spider 0.70→0.55 · Marauder 0.92→0.50 · AlphaWolf 0.95→0.50 ·
+  EliteWolf 0.75→0.52 · EliteBandit 0.65→0.52.
+- `cmd/simharness/guardrail_test.go` — **`TestGuardrails_ArchetypeTrade`** over
+  the whole 65-entry catalog, **proven RED first** naming exactly the eight,
+  plus `archetypeExempt` with its single entry.
+- `scripts/world-regions.py` — **NEW**, §9's coverage assert half (a). Exit 1 on
+  any unresolved spawn; also renders §3.7's grid, so the doc and the rule cannot
+  drift silently. `--levels` is half (b), C2's to drive to 0.
+- `docs/manual-content-authoring.md` §1 — the unit + rule in the mob-authoring
+  checklist, where the next author will actually meet it.
+
+⛑ **Three findings that outlive this chunk:**
+
+1. **A budget × archetype engine model would change NOTHING** —
+   `MaxHealth = baseMaxHealth × F(level)` and skill damage = `damageHP ×
+   F(level)`, the same `F` on both sides, so it cancels and `base / 55` is the
+   shape at every level. *Verified in code.* That is why D6 carries no engine
+   change, and it is a much stronger reason than "it would be a big diff".
+2. **`WolfBite` is shared by Wolf, DireWolf and AlphaWolf**, so damage was never
+   an available axis for two of the eight: paying with damage would have moved
+   **the unit itself**, which has 121 spawns. The shared skill chose the axis
+   for the whole set.
+3. ⛔ **GiantSpider could pay on NO axis and is exempted with cause.** Speed is
+   pinned **above 0.9** by `TestMobSpecOf_GiantSpiderCarriesBiteAndVenom` (*"it
+   must out-walk the player to land any of it"*); the HP route was **tried and
+   measured** — `baseMaxHealth` 182 → 80 sent facetank survival **0 % → 100 %**
+   and dropped it out of the farm band's hard normals, undoing the hardening
+   pass this guardrail's own comment credits it with. Reverted.
+
+⛑ **THE CAVEAT, and it is the top-line one: nothing in the project can measure
+what changed.** Baseline and post-change facetank survival are **identical on
+all seven** (DireWolf 62 %→62 %, Spider 100 %→100 %, the other five 0 %→0 %),
+because the guardrail's facetank leg starts at **0.5 units** — the mob is
+already inside aura range, so approach time never enters the model. The
+`-levels` battery is independent too: it runs a synthetic reference mob, so
+TTK 6.67 s / TTD 8.70 s cannot move on a catalog edit at all. **Seven species
+just became markedly more kiteable and no battery saw it.** So "verified" here
+means *verified safe against the asserts*, never *verified good* — escapability
+is an in-game judgement and it is the first thing C2's walk should look at.
+
+⚑ **Also NOT covered by any browser harness, and reasoned rather than run:** no
+row in the `verify` coverage map owns mob **chase speed**. `swift-cooldown`
+owns the *player* movement axis and the slow/burst buffs; `c0-honest-plate` and
+`c2-mob-level` own what a plate says and what its tint means, and neither reads
+`factors.speed`. A slower Marauder wanders *less* from its spawn, so if anything
+`c0-honest-plate`'s venue got more reliable. ⚑ `backend/conf.json` was checked
+and is in the right state — `grayBase: 5, grayStep: 6` — so C0's narrowed value
+was restored by hand as its ledger required.
+
+**Verified:** `go build` / `go vet` clean · full Go suite **53 packages (33 ok +
+20 no-test-files), 0 FAIL** · `db-test` green against real Postgres
+(`store` 29.1 s, `accounts` 16.6 s) · guardrail band classification **identical
+to baseline in every zone** (`farm band: soft=[] hard=[GiantSpider AlphaWolf
+Marauder]`) · `scripts/world-regions.py` **423/423 resolved, 0/423 levelled** ·
+boot `-content ../api` 15 factions / 87 skills / 65 mobs / 3 milestones / 10
+recipes / 4 quests / 5 props / 777 props / **485 spawns**, **0 panics, 0
+errors** · no frontend file changed and no `.fbs` touched, so `tsc`, vitest and
+**`hygiene-wire-prune` are not implicated**.
+
+**Schema impact: DB NONE · FlatBuffers NONE · content JSON YES** (7 `api/mobs/`
+files, `factors.speed` only — **no `world.json` change**: C1 places nothing, and
+L6 is satisfied because the catalog moved *before* any placement).
