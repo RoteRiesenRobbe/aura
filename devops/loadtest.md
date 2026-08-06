@@ -796,6 +796,66 @@ is the first time this file has had to state a memory figure in hundreds of MB.
 Track it: the ceiling here has always been CPU, and nothing says it stays that
 way.
 
+## Results — 2026-08-07 ⭐ MOST RECENT, the world-replacement + xp C2 build (measured 22:47–23:14 UTC 2026-08-06)
+
+Same live box, same spot `(38,31)`, clustered, same two ramps, 30 s hold (run B
+`-settle 15s`). Deployed binary built 2026-08-06 22:23 UTC — the first live
+capacity run carrying the re-placed world (all 423 combat spawns with decided
+levels), per-spawn mob levels, world map + flight, and the xp-formula C1+C2
+stack. **Server EMPTY** (`/players` 0), no restarts since the deploy.
+
+**⚑ The path was clean — no 0.91 correction.** A local control minutes before
+read a full 30.0, and live run A read 30.0 flat at 20–60. Both columns are raw.
+Names were `-name-prefix lb0807a_` / `lb0807b_` — **a distinct prefix per run
+instead of cleanup between runs**, because deleting rows under a running `aurad`
+is what broke save games on 08-02. The 280 bot rows are still in the live DB;
+clean them in the next restart/deploy window (`cleanup-loadbots.sql`, once per
+prefix).
+
+`auras CONFIRMED LIVE` N/N at every step of both runs; run B read back
+`points spent 18.0`, `passives 3.00`, `cooldowns equipped 3.00`,
+`on-cooldown 2.56–3.00` — the builds landed.
+
+| bots | A: run 3 (corrected) | **A: 08-07 (raw)** | B: run 3 (corrected) | **B: 08-07 (raw)** |
+|---|---|---|---|---|
+| 20 | 30.0 | **30.0** | 30.0 | **30.0** |
+| 40 | 30.0 | **30.0** | 29.0 | **30.0** |
+| 60 | 29.9 | **30.0** | 26.7 | **29.5** |
+| 80 | 28.7 | **29.1** | 23.8 | **28.9** |
+| 100 | 23.3 | **22.6** | 22.9 | **17.8** |
+| 140 | 11.1 | **11.1** | 10.0 | **8.6** |
+
+**The L1 ceiling is unchanged at ~60–70** — 60 holds a full 30 Hz, 80 is 3 %
+off. **Run 3's max-build mid-range dip is answered, and it was venue, not the
+build.** Run 3 flagged its own B column (sloping already at 40) as "worth one
+clean empty-server re-run before anyone treats the 40–80 dip as real"; this is
+that re-run — empty server, clean path — and the max build holds
+30.0 / 30.0 / 29.5 / 28.9 through 80, its best mid-range showing since 07-22.
+**Maxed ceiling reads ~60–80.**
+
+Past the knee the picture is mixed: B at 100 reads 17.8 against run 3's 22.9.
+The curve is near-vertical there, run 3 had 2–4 real players on, and B's mob
+field was again thin (aggroed 5.8–7.4 despite a 150 s respawn gap) — recorded,
+not treated as a regression signal against the mid-range improvement. The
+re-placed world also changed the field's composition at `(38,31)` since run 3,
+so the two tables are no longer strictly like-for-like content.
+
+⭐ **Run 3's "memory 3–5×" does not reproduce on a quiet box.** RSS today:
+**44 MB idle → 65 MB peak**, against run 3's 129 MB idle / 281 MB peak — i.e.
+back at run 2's pre-accounts level (49 MB). Run 3 was measured after a full day
+of loadbot + authbench runs had parked hundreds of accounts and stashed
+sessions in memory; today's box was 24 h past a restart with nobody on. So the
+accounts layer's *steady-state* cost is ≈ nothing, and run 3's figure was
+accumulated session/state residue. ⚑ That residue growth is now the thing to
+watch — stashed sessions and per-account state that nothing expires.
+
+Server-side during the ramps: peak **~143 % of one core** (20 s `/proc`
+samples) — never saturated, the usual signature. Worst tick
+`Systems at: 490%` ≈ 162 ms (run 3: 424 %). **0 panics, 0 restarts,
+0 dropped connections** (`connected` == requested at every step; the journal's
+`inputstats` lines show only single-digit per-player input-frame *evictions*,
+the input buffer shedding WAN jitter — `"dropped":0` throughout).
+
 ## Diagnosis — 2026-08-02, where the time actually goes
 
 The live table above is a single number per population with nothing inside it
