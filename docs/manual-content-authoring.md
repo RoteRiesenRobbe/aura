@@ -49,6 +49,15 @@ faction and skills without a schema append (see §5 and
 
 1. **`api/mobs/newmob.json`** — copy `api/mobs/dodo.json`:
    - `id`, `name` (must equal the enum name added in step 2), `type: "MOB"`
+   - ⚑ **A mob's `name` IS its player-facing name.** Unlike skills (§2), mobs
+     have **no `displayName` override**: `mobs.CatalogJSON` always derives the
+     label with `skills.DeriveDisplayName` (CamelCase→spaces), and nameplates,
+     quest objective prose and `GET /mobs` all read that derivation. So one
+     string does three jobs — enum member, content join key (`api/zones/`
+     spawns, quest targets, `spawn` effects) and the label on screen — and
+     re-flavouring a species means moving all three together. Adding an
+     override would be a small change mirroring the skill side; nothing has
+     wanted one yet.
    - optional `faction`: a faction name from `api/factions/` (see
      "Factions" below; absent = the built-in `hostile` default — attacks
      players, ignores all mobs)
@@ -204,6 +213,13 @@ Mob allegiances live in **`api/factions/*.json`**, one file per faction:
   damage. Use `[]` for a passive faction (retaliates and flees per its own
   rules when hit, like any mob). Asymmetry is legal: the wolf hunts the
   rabbit, the rabbit lists nobody.
+- ⚑ **Factions have a `displayName`, and its fallback rule differs from the
+  skill one.** `name` is the key mobs and skills reference; `displayName` is
+  what a tooltip prints. Absent, it falls back to `name` **verbatim** —
+  *not* CamelCase→spaces like skills and mobs — because faction keys are
+  snake_case (`wildlife_predator`), which that rule would not fix anyway.
+  Every faction file authors one today, so the fallback is effectively
+  untested by content; author it.
 - Two **built-in, undeclarable** names exist and may be referenced:
   `aligned` (players + summons) and `hostile` (the default of every mob
   without a `faction` key: attacks players, ignores all mobs). Declaring a
@@ -367,8 +383,27 @@ one that damages before it heals.
 
 ### Backend / data
 
-1. **`api/skills/newskill.json`** — copy `api/skills/damage-aura.json`:
+1. **`api/skills/newskill.json`** — copy `api/skills/damage.json`:
    - `id`, `name`, `category` (`active_aura` / `passive` / `cooldown`), `maxLevel`
+   - ⚑ **`name` is a KEY, not a label — `displayName` is what players read.**
+     `name` is what `api/recipes/` (`ingredients[].skill`, `result`),
+     `api/milestones/milestone-unlocks.json` (`skillName`), a mob's `skills[]`
+     and `unlocks[]` (`skillName`), NPC teach blocks, the `SKILL <name>` cheat
+     and a couple dozen Go test files all join on. The player-facing string is the
+     optional `displayName` override, else derived server-side by
+     CamelCase→spaces (`skills.DeriveDisplayName`) and served over
+     `GET /skills` — the client reads **only** that
+     (`Skills.ts` → `displayName ?? "Skill #<id>"`). Four skills author an
+     override today, for the cases where the split reads badly:
+     `HoldTheLine` → "Hold the Line" · `LongRangeStrike` → "Long-Range Strike"
+     · `CallForAid` → "Call for Aid" · `DamageBurst` → "Damage-Burst".
+   - ⇒ **Re-flavouring an ability is a one-line `displayName` edit in one
+     file.** Renaming `name` instead sweeps every join site listed above. That
+     path is safe — the derivation follows, and a missed reference **hard-fails
+     at registry load** rather than shipping something silently inert — but it
+     buys nothing a `displayName` does not. Keep `name` boring and frozen; a
+     structural key like `Damage` is *supposed* to survive the flavour pass
+     that renames it to something evocative on screen.
    - **`maxLevel` is drawn from a closed vocabulary: `{1, 5, 10}`**
      (plan-numbers-rewrite D2/D11, authored 2026-07-31). **10** = a
      build-defining core aura, the kind a build is named after — today Damage,
@@ -410,7 +445,9 @@ hand-synced edits; both are gone:
   now fetches the server's **parsed** registry once at startup over
   `GET /skills`, so name, maxLevel, category *and* the full effect numbers for
   tooltips stay correct through every retune and every `-content` iteration.
-  Display name is derived from the registry (with a handful of JSON overrides).
+  The name it renders is the catalog's `displayName` — the authored override if
+  present, else CamelCase→spaces off `name` (see the `displayName` note under
+  "Backend / data" above). There is no client-side name table to touch.
 - ~~`*_SKILL_ID` ring-style constants + `Character.setActiveSkill`~~ — **retired
   2026-07-21 (`e8b67289`)**: the aura ring is category-driven off the wire
   (`aura_category`, derived server-side from `EffectDef.Type`) and drawn by the
@@ -782,6 +819,8 @@ forget:
 | New mob (new art) | ✅ | — | ✅ | ✅ |
 | Mob variant (reused art via `entityType`) | ✅ | — | — | — |
 | New skill (existing effect types) | ✅ | — | — | — (served via `GET /skills`) |
+| Re-flavour an ability's on-screen name | ✅ (one `displayName` line) | — | — | — |
+| Rename a skill's registry `name` | ✅ (skill + every join site) | ⚠️ tests only | — | — |
 | New effect *type* | ✅ | ✅ | — | ✅ |
 | Scripted encounter (existing seams) | ✅ (mob defs) | ✅ (one struct + registration) | — | — |
 | New quest (existing verbs) | ✅ (quest + the conversants' rows) | — | — | — (prose served via `GET /quests`) |
