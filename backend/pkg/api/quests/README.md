@@ -20,7 +20,7 @@ duplicate-id boot guard. The C3 harness's probe quest therefore lives in
 traps, and `docs/content-npcs.md` § Quest roles for the current wiring.
 
 A quest is a stage graph: objective stages (`kill` / `harvest` / `talk_to`
-against lifetime counters, with a single `next`) and dialogue stages (advanced
+counted from stage entry, with a single `next`) and dialogue stages (advanced
 only by conversation rows authored in the NPCs' `interaction` blocks — the
 quest file never knows who offers or advances it). A stage with no outgoing
 edge is terminal; entering it completes the quest. Species and NPCs are
@@ -49,9 +49,13 @@ at boot.
 }
 ```
 
-Thresholds are **lifetime totals** (retroactive credit, D3/L7): `"count": 8`
-means "has ever killed 8", not "kills 8 more". A `repeatable` flag exists but
-nothing may author it yet (D6).
+Thresholds count **since stage entry** (N4/D4, `plan-feel-pass-2.md`,
+reversing D3's lifetime reading): `"count": 8` means "kill 8 more after this
+stage starts", and a `talk_to` target already spoken to needs a fresh talk.
+The counters underneath stay lifetime — entering an objective stage snapshots
+them as a baseline (`quests/ledger.go`), so abandoning and re-accepting starts
+the objectives over. A `repeatable` flag exists but nothing may author it yet
+(D6).
 
 `tracker` (conversation-journal Q2) overrides the server-derived journal
 objective line; `{n}/{m}` substitutes the stage's first countable objective and

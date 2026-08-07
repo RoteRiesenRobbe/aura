@@ -225,9 +225,9 @@ func (l *Ledger) Snapshot() []ProgressEntry {
 	return entries
 }
 
-// Accept moves a quest from not-started onto its first stage — and cascades
-// immediately, so a veteran whose lifetime counters already satisfy the
-// objectives auto-completes on the spot (D3, the accepted consequence).
+// Accept moves a quest from not-started onto its first stage. Entering it
+// snapshots the N4 baselines, so objectives start at zero — the old D3
+// veteran auto-complete at accept cannot happen any more (see enter).
 func (l *Ledger) Accept(questID string) error {
 	q, err := l.canAccept(questID)
 	if err != nil {

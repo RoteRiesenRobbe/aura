@@ -1,5 +1,5 @@
 {
-  "_comment": "plan-quests.md C4, quest 1 of 4 — the talk_to verb, and the quest that demonstrates D3's retroactive credit on purpose: a player who has already spoken to the farmer or the crier cascades straight to the report stage on accepting, and that is better met on a deliberately trivial errand than on a real one. Offered and turned in by the Hermit, who stands ~3 units from both targets. Reward: 150 XP (half of the level-1 requirement) and nothing else — this is the tutorial-shaped quest. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet — simple, direct wording only).",
+  "_comment": "plan-quests.md C4, quest 1 of 4 — the talk_to verb. (Originally also the showcase for D3's retroactive credit — a veteran cascaded straight to the report stage on accepting; N4/D4 reversed that, so a fresh talk after accepting is required even for targets already spoken to.) Offered and turned in by the Hermit, who stands ~3 units from both targets. Reward: 150 XP (half of the level-1 requirement) and nothing else — this is the tutorial-shaped quest. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet — simple, direct wording only).",
   "id": "village-welcome",
   "title": "Village Welcome",
   "stages": [
