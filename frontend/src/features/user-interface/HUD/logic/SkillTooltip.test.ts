@@ -454,7 +454,7 @@ describe('spawn mob name', () => {
     });
 
     it('renders the served displayName once the catalog is loaded', async () => {
-        await loadCatalog([{id: 5, name: 'SoldierCompanion', displayName: 'Soldier Companion', curveLevel: 1, tier: 0, combatTarget: false}]);
+        await loadCatalog([{id: 5, name: 'SoldierCompanion', displayName: 'Soldier Companion', curveLevel: 1, tier: 0, combatTarget: false, conversant: false}]);
         try {
             expect(lines(summon, 1, 1)).toContain('Summons Soldier Companion for 9.9s');
         } finally {

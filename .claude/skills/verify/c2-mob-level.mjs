@@ -175,8 +175,14 @@ const playerLevel = () => page.evaluate(() => {
 });
 
 const results = [];
+// ok: true = PASS · false = FAIL · 'inconclusive' = the subject was
+// unobservable (rule 4: evidence before observability — Stags wander up to 4
+// units at speed 0.85, and the two venues are only 8.5 apart, so the control
+// being out of frame is a wander roll, not a defect; it faked a regression on
+// 2026-08-07 and cost a stash-and-rebuild proof against HEAD).
 const record = (name, ok, detail) => { results.push({ name, ok, detail }); };
 
+const stagTextsSeen = new Set();
 for (const target of [SUBJECT, CONTROL]) {
   const role = target === SUBJECT ? 'SUBJECT (overridden)' : 'CONTROL (inherits species)';
   // Stand ~3 units "below" (larger y) so the mob frames above centre.
@@ -190,34 +196,52 @@ for (const target of [SUBJECT, CONTROL]) {
   await page.screenshot({ path: `/tmp/c2-mob-level-${label}-${target.level}.png` });
 
   const mine = seen.filter((p) => new RegExp(`^${target.mob} \\d+$`).test(p.text));
+  mine.forEach((p) => stagTextsSeen.add(p.text));
   const want = `${target.mob} ${target.level}`;
   const hit = mine.find((p) => p.text === want);
   const wantFill = target === SUBJECT ? RED : YELLOW;
 
-  record(`${role}: plate reads "${want}"`, !!hit,
-    hit ? 'text from the wire' : `saw ${JSON.stringify(mine.map((p) => p.text))}`);
-  record(`${role}: tint is ${wantFill.toString(16)}`, hit?.fill === wantFill,
+  // A plate that READS WRONG is a defect (the raw-override bug plates
+  // "Stag 0"); a plate that is merely ABSENT while wanderers cross the venue
+  // is unobservable, and only the SUBJECT — whose 25 no other spawn can carry
+  // — is unambiguous when seen. The control's "Stag 25" sighting is the
+  // subject having wandered in, not every Stag sharing one text.
+  const rawOverride = mine.find((p) => p.text === `${target.mob} 0`);
+  const verdict = hit ? true : rawOverride ? false : 'inconclusive';
+  record(`${role}: plate reads "${want}"`, verdict,
+    hit ? 'text from the wire'
+      : rawOverride ? `a plate reads "${target.mob} 0" — the raw override leaked`
+      : `not in view (wander); saw ${JSON.stringify(mine.map((p) => p.text))}`);
+  record(`${role}: tint is ${wantFill.toString(16)}`,
+    hit ? hit.fill === wantFill : 'inconclusive',
     hit ? `fill=${hit.fill?.toString(16)}` : 'no plate to read');
   record(`${role}: player still level 1 (the tint's other operand)`, lvl === 1, `level=${lvl}`);
 }
 
 // The pair, stated as one fact: the same species carried two different levels
-// in one world. This is what a catalog-fed plate cannot produce.
-const bothSeen = results.filter((r) => r.name.includes('plate reads') && r.ok).length === 2;
-record('one species, two levels — the plate is per-INSTANCE', bothSeen,
-  bothSeen ? `${SUBJECT.mob} 25 and ${CONTROL.mob} 1 both rendered` : 'at least one half missing');
+// in one world. This is what a catalog-fed plate cannot produce — and ANY
+// second level proves it, not just the control's 1 (nearby spawns 8 and 43
+// author level 2, and a wandering "Stag 2" is the same evidence). Only
+// inconclusive when a second level was never in view at all.
+const distinctLevels = stagTextsSeen.size >= 2 && stagTextsSeen.has(`${SUBJECT.mob} ${SUBJECT.level}`);
+record('one species, two levels — the plate is per-INSTANCE',
+  distinctLevels ? true : 'inconclusive',
+  distinctLevels ? `rendered together: ${JSON.stringify([...stagTextsSeen])}`
+    : `only ${JSON.stringify([...stagTextsSeen])} in view — a second level was never observable`);
 
 console.log('\nlabel:', label);
-let pass = 0;
+let pass = 0, inconclusive = 0;
 for (const r of results) {
-  console.log(`  ${r.ok ? 'PASS' : 'FAIL'}  ${r.name}  —  ${r.detail}`);
-  if (r.ok) pass++;
+  const mark = r.ok === true ? 'PASS' : r.ok === 'inconclusive' ? 'INCONCLUSIVE' : 'FAIL';
+  console.log(`  ${mark}  ${r.name}  —  ${r.detail}`);
+  if (r.ok === true) pass++;
+  if (r.ok === 'inconclusive') inconclusive++;
 }
-console.log(`\n${pass}/${results.length} passed`);
+console.log(`\n${pass}/${results.length} passed, ${inconclusive} inconclusive`);
 console.log(`console errors: ${consoleErrors.length}`);
 consoleErrors.slice(0, 8).forEach((e) => console.log('  ' + e));
 console.log(`screenshots: /tmp/c2-mob-level-${label}-25.png, /tmp/c2-mob-level-${label}-1.png`);
 console.log('\n⚑ revert the probe: git checkout api/zones/world.json');
 
 await browser.close();
-process.exit(pass === results.length && consoleErrors.length === 0 ? 0 : 1);
+process.exit(pass + inconclusive === results.length && consoleErrors.length === 0 ? 0 : 1);

@@ -2348,6 +2348,94 @@ inherit.
 feature.** The blur fix is small and self-contained; the *"unless auto-walk is
 enabled"* clause is one condition added to it later.
 
+## Intake — round 9 (2026-08-07): the PO's walk of the nine generic kill quests
+
+The PO played all nine kill quests the day they shipped (`f414b473`). Verdict:
+*"overall everything works and it feels good"* — which also **clears the
+standing watch item on `bandits-at-the-shrine`**: the game's first human-target
+kill quest has now been PO-seen in play and read fine, so the GiantSpider L14 ×5
+fallback (archived kill-quests plan §8) stays unused. Three items raised.
+
+### 1. NPCs need in-world names, like mobs → ✅ **SHIPPED same day, [uncommitted]**
+
+> *"We need to show the names of NPC, similar to mobs, so if you have a full
+> quest log, you can actually identify who you need to return to. 'lamplighter'
+> is not clear to the player if the name is only shown in the dialogue window."*
+
+**The trace.** Mob nameplates are gated server-side by `IsCombatTarget()`
+(`items/mobs/definitions.go` — pays XP *and* not friendly), which every
+conversant fails by authored design (`xpFactor 0`); the client's `Mob.setMobId`
+then renders nothing. The distinguishing signal already existed in the data:
+**a conversant is exactly a mob with an authored `interaction` block.**
+
+**The fix** (this file is the authoritative ledger; LIGHT tier, no plan doc):
+
+- `items/mobs/catalog.go`: `CatalogEntry.Conversant`, derived
+  `d.Interaction != nil`, served on `/mobs`. TDD'd
+  (`TestMobCatalogJSON_ConversantMeansAuthoredInteraction`); the projection pin
+  updated to admit exactly the one new key.
+- `client-data/Mobs.ts` + `game-objects/logic/Mobs.ts`: a conversant-only
+  species now plates its **displayName alone** — no level (a combat fact an
+  unattackable NPC must not speak), no difficulty tint, fixed plain white
+  `CONVERSANT_PLATE_COLOR = 0xffffff` [PLACEHOLDER] (outside both the
+  difficulty palette and the player-character lavender). A future species that
+  is both conversant *and* combat target plates the combat way.
+- 14 species now plate as conversants, the 13 placed NPCs **plus the
+  ForestSign** — an interaction-carrying prop-like actor whose named plate is
+  accepted, arguably helpful (it is a sign).
+
+**Schema impact: DB NONE · FlatBuffers NONE · conf NONE** — the catalog is
+sidecar HTTP JSON, and an old client ignores the extra key.
+
+**Verified:** mobs package green (new test red-first) · full Go suite 0 FAIL
+except one non-reproducing `sys` flake (passed `-count=1` twice; the known
+pre-existing flake) · `npm run typecheck` + vitest 235/235 ·
+**`npc-portraits.mjs` REWRITTEN with this change** (it asserted "NO nameplate"
+— the round-9 fix reverses that premise): all four subjects plate name-only,
+"Town Crier" proving the spaced displayName path, combat plates as control,
+0 console errors · **`c2-mob-level.mjs` 7/7** (combat text+tint intact) ·
+`c0-honest-plate.mjs` tint legs PASS ×2 (its pay leg failed in the documented
+patroller-sampling mode both runs — server pay untouched by this change and
+pinned by the Go suite).
+
+⚑ **Harness finding, worth the record:** `c2-mob-level`'s control leg faked a
+regression twice (control Stag out of view; wanderers from the level-2 pair at
+spawns 8/43 crossing the venue), and cost a stash-and-rebuild proof against
+HEAD — **identical 4/7 at HEAD**. The script is now tri-state: a missing
+control plate is INCONCLUSIVE (a `"Stag 0"` sighting — the raw-override defect
+— still fails red), and the per-instance pair leg accepts *any* second level as
+evidence.
+
+### 1b. Two text touches, same session (follow-up asks) → ✅ shipped
+
+- The bind confirmation floating text: **"Bound to campfire" → "Bound and
+  restocked"** — the dwell both binds and refills the Camp charges
+  (plan-downtime.md), so the confirmation names both. (`Player.ts`; the two
+  comments that quoted the old string updated with it.)
+- The flight map (`E` at a discovered fire) now titles itself **"Pick a
+  destination to fly to..."**; the read-only `M` map stays titled "Map". One
+  `setTitle` stamp on each open path in `MiniMap.ts` — stamped on every open,
+  so close needs no restore. Verified at the surface: bind text, both titles,
+  0 console errors.
+
+### 2. Better font, cleaner UI, cleaner dialogue UI → parked
+
+> *"we just need a better font and cleaner UI and dialogue UI."*
+
+Ordinary intake, deliberately not taken now (PO: *"that entire topic is for
+later anyways"*). It is a **presentation pass, not quest work** — it belongs
+beside the step-8b UI-polish rest-of-checklist when that reopens.
+
+### 3. Journal opened during dialogue overlaps it → parked with item 2
+
+> *"currently, opening the journal while in dialogue just weirdly overlaps."*
+
+Real but cosmetic: the journal and the conversation panel are independent DOM
+overlays with no exclusivity rule between them. Cheapest standalone fix, if it
+ever needs to ship before the UI pass: opening the journal closes the dialogue
+(or vice versa) — one exclusivity rule, no visual redesign. Recorded here so
+the UI pass finds it; nothing built.
+
 ## Rolling filler — blocks nothing, do any time
 
 > **4 of 6 ✅ DONE 2026-07-26** in one batch, committed `dab4dae0` —

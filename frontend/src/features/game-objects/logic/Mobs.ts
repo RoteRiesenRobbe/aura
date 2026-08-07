@@ -60,6 +60,11 @@ const TIER_FRAME_STYLES: { readonly [rank: number]: { color: number, width: numb
 // Nameplate offset below the overhead HP bar, in px. [PLACEHOLDER]
 const NAMEPLATE_GAP = 16;
 
+// Conversant (NPC) plate colour: plain white, deliberately outside both the
+// difficulty palette (red/orange/yellow/green/gray all mean "a fight") and the
+// player-character lavender. [PLACEHOLDER]
+const CONVERSANT_PLATE_COLOR = 0xffffff;
+
 export abstract class Mob extends GameObject {
 
     protected actualShape: PIXI.Container;
@@ -156,8 +161,10 @@ export abstract class Mob extends GameObject {
         // No plate for an unknown id (catalog still loading or fetch failed —
         // a nameless mob beats one labelled "undefined"), nor for the
         // fixtures/summons/obstacles that are MobDefinitions without being
-        // things you fight.
-        if (!definition || !definition.combatTarget) {
+        // things you fight. Conversants (intake round 9 item 1) DO plate:
+        // name-only, so the journal's "Return to the Lamplighter" has an
+        // in-world anchor.
+        if (!definition || !(definition.combatTarget || definition.conversant)) {
             this.nameElement?.destroy();
             this.nameElement = null;
             return;
@@ -220,7 +227,11 @@ export abstract class Mob extends GameObject {
         if (!definition) {
             return;
         }
-        this.nameElement.text = `${definition.displayName} ${this.effectiveLevel(definition)}`;
+        // A conversant-only plate carries no level: the number is a combat
+        // fact, and an unattackable NPC speaking one would imply a fight.
+        this.nameElement.text = definition.combatTarget
+            ? `${definition.displayName} ${this.effectiveLevel(definition)}`
+            : definition.displayName;
     }
 
     // Y offset of the plate text: under the overhead bar, whose own offset is
@@ -257,6 +268,18 @@ export abstract class Mob extends GameObject {
         }
         const definition = mobDefinition(this.plateMobId);
         if (!definition) {
+            return;
+        }
+        // Conversant-only plates never tint — the colour is a statement that
+        // this is not a fight, and it does not move with the player's level.
+        // plateDifference doubles as the "styled once" marker; setMobId resets
+        // it to null on a species change, which is exactly when a restyle is
+        // due.
+        if (!definition.combatTarget) {
+            if (this.plateDifference === null) {
+                this.plateDifference = 0;
+                this.nameElement.style.fill = CONVERSANT_PLATE_COLOR;
+            }
             return;
         }
         const level = this.effectiveLevel(definition);

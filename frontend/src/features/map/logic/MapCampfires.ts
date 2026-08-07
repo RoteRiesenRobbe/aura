@@ -48,7 +48,7 @@ const MARKER_SIZE = {
 
 /**
  * The bound fire's highlight ring, as a multiple of the marker size, and its
- * colour — the same orange the "Bound to campfire" floating text uses, so the
+ * colour — the same orange the "Bound and restocked" floating text uses, so the
  * two readings of one fact look like one fact.
  */
 const HOME_RING_FACTOR = 0.85;

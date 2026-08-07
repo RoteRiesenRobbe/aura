@@ -11,8 +11,11 @@
 //     (Mob.radius was in server.fbs from the beginning and the server never
 //     wrote it, so an NPC rendered as a valid texture at scale [0,0])
 //   · a health bar IS present — D3, the PO accepted bars on NPCs
-//   · NO nameplate — gated free by experience: 0, unlike the Boar/Wolf/Stag
-//     plates that DO appear in the same frames as the control
+//   · a NAME-ONLY nameplate IS present (intake round 9 item 1, 2026-08-07):
+//     conversants plate their displayName with no level — "Return to the
+//     Lamplighter" in a full journal needs an in-world anchor. Before that
+//     round this script asserted the opposite (no plate, gated by xpFactor 0);
+//     the combat plates in the same frames stay the control either way.
 //
 // ⚑ Screen-up is DECREASING world y. To put an NPC in the clear upper-middle
 // (away from the spellbook, the action bars and the dev panel) the player must
@@ -116,9 +119,14 @@ for (const npc of NPCS) {
   const pattern = new RegExp(npc.name.replace(/([a-z])([A-Z])/g, '$1 ?$2'), 'i');
   const plates = before.texts.filter((t) => pattern.test(t));
   const biggest = before.sprites.reduce((m, s) => Math.max(m, s.w), 0);
+  // Name-only means exactly the displayName — a trailing level number on a
+  // conversant plate is the combat branch leaking through.
+  const nameOnly = plates.length > 0 && plates.every((t) => !/\d/.test(t));
   results.push({
     npc: npc.name,
-    nameplate: plates.length === 0 ? 'absent (correct)' : `PRESENT: ${JSON.stringify(plates)}`,
+    nameplate: plates.length === 0 ? 'ABSENT (round-9 regression)'
+      : nameOnly ? `present, name-only (correct): ${JSON.stringify(plates)}`
+      : `PRESENT WITH LEVEL (wrong): ${JSON.stringify(plates)}`,
     otherPlates: before.texts.filter((t) => /\b(Boar|Wolf|Stag|Dire|Bear|Spider)\b/i.test(t)).length,
     widestSprite: biggest,
     shot: `/tmp/npc-${label}-${npc.name}.png`,

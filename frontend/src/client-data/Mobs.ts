@@ -33,6 +33,11 @@ export interface MobDefinition {
     // (brambles, rockfalls) and hazards — all of which are MobDefinitions but
     // must not carry a nameplate.
     combatTarget: boolean;
+    // Server-derived: the species authors an interaction block, i.e. you can
+    // talk to it. Conversants render a name-only plate — no level, no
+    // difficulty tint — so "Return to the Lamplighter" in a full journal is
+    // actionable in-world (intake round 9 item 1).
+    conversant: boolean;
 }
 
 const catalog = new Map<number, MobDefinition>();

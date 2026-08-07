@@ -117,6 +117,36 @@ func TestMobCatalogJSON_CombatTargetExcludesPropsAndAllies(t *testing.T) {
 	assert.Equal(t, false, entries[1]["combatTarget"], "a campfire authors xpFactor 0 — it is a fixture")
 }
 
+// A conversant — a mob that authors an interaction block — gets a name-only
+// plate on the client (intake round 9 item 1: "Return to the Lamplighter" in a
+// full journal is unactionable if the name only ever appears inside the
+// dialogue window). Fixtures and prey both author no interaction, so the flag
+// separates NPCs from campfires without a second authored knob.
+func TestMobCatalogJSON_ConversantMeansAuthoredInteraction(t *testing.T) {
+	r, err := RegistryFromFS(testSkillRegistry(t), nil, testCurve(), fstest.MapFS{
+		"wolf.json": {Data: []byte(`{
+		  "id": 12, "name": "Wolf", "type": "MOB", "curveLevel": 2,
+		  "factors": {"baseMaxHealth": 20},
+		  "body": {"radius": 0.3, "aggroRadius": 3}
+		}`)},
+		"lamplighter.json": {Data: []byte(`{
+		  "id": 53, "name": "Lamplighter", "type": "MOB", "entityType": "Hermit", "curveLevel": 1,
+		  "factors": {"baseMaxHealth": 50, "xpFactor": 0, "speed": 0},
+		  "body": {"radius": 0.35, "collisionLayer": 97, "aggroRadius": 1.0},
+		  "interaction": {"range": 2.0, "nodes": [{"id": "root", "lines": ["Hello."]}]}
+		}`)},
+	})
+	require.NoError(t, err)
+
+	data, err := CatalogJSON(r)
+	require.NoError(t, err)
+	entries := decodeMobCatalog(t, data)
+
+	assert.Equal(t, false, entries[0]["conversant"], "a wolf authors no interaction")
+	assert.Equal(t, true, entries[1]["conversant"], "the Lamplighter carries a conversation")
+	assert.Equal(t, false, entries[1]["combatTarget"], "conversant and combat target stay independent facts")
+}
+
 // The catalog is public and read-only. Anything beyond the nameplate fields
 // would hand players an out-of-game answer key for content the spellbook is
 // meant to make them discover (zero-hint policy), so the projection is pinned
@@ -130,7 +160,7 @@ func TestMobCatalogJSON_ExposesNothingBeyondNameplateFields(t *testing.T) {
 		for k := range entry {
 			keys = append(keys, k)
 		}
-		assert.ElementsMatch(t, []string{"id", "name", "displayName", "curveLevel", "tier", "combatTarget"}, keys,
+		assert.ElementsMatch(t, []string{"id", "name", "displayName", "curveLevel", "tier", "combatTarget", "conversant"}, keys,
 			"catalog must not leak drops/resistances/HP/skill loadouts")
 	}
 }

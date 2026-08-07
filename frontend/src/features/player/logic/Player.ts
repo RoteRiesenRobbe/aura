@@ -171,9 +171,11 @@ export class Player {
             this.character.showAuraHit(entity.auraHitStyle);
         }
         // Campfire became the respawn anchor (chunk 4): confirm the bind.
-        // Own player only — nobody else needs to see it.
+        // Own player only — nobody else needs to see it. "Restocked" because
+        // the same dwell also refills the Camp charges (plan-downtime.md) —
+        // the fire does both, so the confirmation names both (round 9).
         if (entity.campfireBound) {
-            this.character.showFloatingText('Bound to campfire', 0xE37313);
+            this.character.showFloatingText('Bound and restocked', 0xE37313);
         }
         // In-combat indicator: shown while the recent-combat window is open
         // (also the window during which loadout editing is locked server-side).

@@ -43,6 +43,13 @@ type CatalogEntry struct {
 	// today, but that was a rescope, not a law — the flag keeps a future
 	// XP-granting ally from sprouting a hostile nameplate).
 	CombatTarget bool `json:"combatTarget"`
+	// Conversant marks the species as one you can talk to — it authors an
+	// interaction block (intake round 9 item 1). The client renders these a
+	// name-only plate (no level, no difficulty tint): "Return to the
+	// Lamplighter" in a full journal is unactionable when the name only ever
+	// appears inside the dialogue window. Independent of CombatTarget on
+	// purpose — a future hostile that also talks would carry both.
+	Conversant bool `json:"conversant"`
 }
 
 // CatalogJSON marshals every loaded mob definition sorted by ID. Legacy
@@ -64,6 +71,7 @@ func CatalogJSON(r Registry) ([]byte, error) {
 			// experience value (plan-xp-formula.md L1): "pays kill XP at all"
 			// is still the test for "is prey", it is just spelled differently.
 			CombatTarget: d.IsCombatTarget(),
+			Conversant:   d.Interaction != nil,
 		})
 	}
 	return json.Marshal(entries)

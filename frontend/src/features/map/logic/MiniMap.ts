@@ -487,6 +487,7 @@ export class MiniMap {
      */
     public open() {
         this.flightMode = false;
+        this.setTitle('Map');
         this.setState(MapState.FULLSCREEN);
     }
 
@@ -507,7 +508,17 @@ export class MiniMap {
      */
     public openForFlight() {
         this.flightMode = true;
+        // The departure board says what it wants from you; the read-only map
+        // stays "Map". Stamped on every open, so no restore is needed on close.
+        this.setTitle('Pick a destination to fly to...');
         this.setState(MapState.FULLSCREEN);
+    }
+
+    private setTitle(text: string) {
+        const title = HUD.getWorldMapPanel()?.querySelector('.worldMapTitle');
+        if (title) {
+            title.textContent = text;
+        }
     }
 
     /** A no-op when already docked, like Journal.close(). */
