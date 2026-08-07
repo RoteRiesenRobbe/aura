@@ -2356,7 +2356,7 @@ standing watch item on `bandits-at-the-shrine`**: the game's first human-target
 kill quest has now been PO-seen in play and read fine, so the GiantSpider L14 ×5
 fallback (archived kill-quests plan §8) stays unused. Three items raised.
 
-### 1. NPCs need in-world names, like mobs → ✅ **SHIPPED same day, [uncommitted]**
+### 1. NPCs need in-world names, like mobs → ✅ **SHIPPED same day, `6de08b74`**
 
 > *"We need to show the names of NPC, similar to mobs, so if you have a full
 > quest log, you can actually identify who you need to return to. 'lamplighter'
