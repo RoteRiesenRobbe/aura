@@ -63,6 +63,11 @@ var (
 	// explicit activation does. Without this the equipped cooldown slots are
 	// dead weight in the measurement.
 	castEvery = flag.Duration("cast", 0, "request activation of every equipped cooldown slot this often; 0 = never")
+	// A RUNNING quest is re-encoded into its owner's GameState every tick
+	// (codec/gamestate.go, the quest-progress block), so held quests are
+	// steady-state encode load, not a one-shot event. Accepting rides the same
+	// cheat channel as SKILL — no dialogue walk, no giver proximity.
+	questIDs = flag.String("quests", "", "comma-separated quest ids to 'QUEST ACCEPT' on each bot; 'all' = every id in GET /quests")
 
 	// ---- demo mode: a legible formation instead of a load pattern. -orbit
 	// parks each bot on a concentric ring around a point and walks it round,
@@ -154,12 +159,14 @@ var (
 	cdsFilled      atomic.Int64
 	cdsOnCooldown  atomic.Int64 // >0 means the cooldown actually fired
 	levelsSpent    atomic.Int64 // sum of (level-1) over the spellbook
+	questsHeld     atomic.Int64 // ledger entries in the bot's own snapshot
 )
 
 // ---- resolved once in main, read-only for the bots
 
 var (
 	equipPlan    []loadout
+	questPlan    []string
 	warpX, warpY float64
 	// activateSlot is the aura slot the bots switch on after setup, or -1 when
 	// the loadout has no active aura.
@@ -348,6 +355,44 @@ func resolveLoadout(names []string) ([]loadout, error) {
 	return out, nil
 }
 
+// resolveQuests turns the -quests request into concrete quest ids. "all"
+// reads GET /quests — the journal's catalog endpoint — so the list tracks
+// content edits the same way -skills tracks the skill registry.
+func resolveQuests(req string) ([]string, error) {
+	if req != "all" {
+		var ids []string
+		for _, q := range strings.Split(req, ",") {
+			if q = strings.TrimSpace(q); q != "" {
+				ids = append(ids, q)
+			}
+		}
+		return ids, nil
+	}
+	base := "http://"
+	if *scheme == "wss" {
+		base = "https://"
+	}
+	resp, err := http.Get(base + *addr + "/quests")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var catalog []struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&catalog); err != nil {
+		return nil, err
+	}
+	var ids []string
+	for _, q := range catalog {
+		ids = append(ids, q.ID)
+	}
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("GET /quests returned an empty catalog")
+	}
+	return ids, nil
+}
+
 // targetLevel is the level this skill is driven to: the -skilllevel request
 // clamped to what the skill actually supports. Pass a big number to max out.
 func (l loadout) targetLevel() int {
@@ -385,6 +430,11 @@ func setupSeq(id int) [][]byte {
 	}
 	for _, l := range equipPlan {
 		msgs = append(msgs, buildEquip(l.id, l.slot))
+	}
+	// Before the warp like everything else: the ledger has no combat or range
+	// gate, but the whole spaced sequence should be done before mobs aggro.
+	for _, q := range questPlan {
+		msgs = append(msgs, buildCheat(*token, "QUEST ACCEPT "+q))
 	}
 	// WARP integer-divides by 120 before the float cast (sys/cmd/cmd.go:76),
 	// so both placements land on whole world units — jitter has to be >= 1 unit
@@ -607,6 +657,7 @@ func spawnBot(id int) (*bot, error) {
 					cdsFilled.Add(cf)
 					cdsOnCooldown.Add(cc)
 					levelsSpent.Add(spent)
+					questsHeld.Add(int64(gs.QuestProgressLength()))
 
 					live := gs.ActiveAuraSlot() >= 0 && gs.AuraSlotsLength() > 0 && gs.AuraSlots(0) != 0
 					if live != armed {
@@ -624,7 +675,7 @@ func spawnBot(id int) (*bot, error) {
 
 	// setup: grant + equip + warp, once snapshots confirm the bot has an entity.
 	// Spaced out because each one-shot channel is depth 2, drained once per tick.
-	if len(equipPlan) > 0 || *god || *warpTo != "" || *orbit != "" {
+	if len(equipPlan) > 0 || len(questPlan) > 0 || *god || *warpTo != "" || *orbit != "" {
 		go func() {
 			for lastTick.Load() == 0 {
 				select {
@@ -760,8 +811,15 @@ func main() {
 		steps = append(steps, n)
 	}
 
-	if (*skillList != "" || *warpTo != "" || *orbit != "" || *god) && *token == "" {
-		log.Fatal("-skills / -warp / -orbit / -god need -token (the server's tokens.list entry)")
+	if (*skillList != "" || *warpTo != "" || *orbit != "" || *god || *questIDs != "") && *token == "" {
+		log.Fatal("-skills / -warp / -orbit / -god / -quests need -token (the server's tokens.list entry)")
+	}
+	if *questIDs != "" {
+		var err error
+		if questPlan, err = resolveQuests(*questIDs); err != nil {
+			log.Fatalf("resolving -quests: %v", err)
+		}
+		fmt.Printf("quests: %d per bot (%s)\n", len(questPlan), strings.Join(questPlan, ", "))
 	}
 	if *skillList != "" {
 		var names []string
@@ -851,6 +909,7 @@ func main() {
 		cdsOnCooldown.Store(0)
 		levelsSpent.Store(0)
 		castsSent.Store(0)
+		questsHeld.Store(0)
 		start := time.Now()
 
 		time.Sleep(*hold)
@@ -881,7 +940,7 @@ func main() {
 		// radius in the snapshot is the real proof, checked separately.
 		// Printed for the no-loadout control too: comparing an aura run against a
 		// control is only valid if both saw a similar mob population.
-		if len(equipPlan) > 0 || *warpTo != "" || *orbit != "" {
+		if len(equipPlan) > 0 || len(questPlan) > 0 || *warpTo != "" || *orbit != "" {
 			n := math.Max(1, float64(mobSamples.Load()))
 			fmt.Fprintf(os.Stderr,
 				"   (setup sent %d/%d, activations %d, auras CONFIRMED LIVE %d/%d | mobs/viewport %.1f, aggroed %.1f)\n",
@@ -896,6 +955,13 @@ func main() {
 					float64(passivesFilled.Load())/n, float64(cdsFilled.Load())/n,
 					float64(cdsOnCooldown.Load())/n, float64(levelsSpent.Load())/n,
 					castsSent.Load())
+			}
+			// Same honesty rule as the aura gauge: a rejected QUEST cheat is
+			// silent, so only the ledger entries in the bot's own snapshot count.
+			if len(questPlan) > 0 {
+				fmt.Fprintf(os.Stderr,
+					"   (quests held per bot: %.2f of %d requested)\n",
+					float64(questsHeld.Load())/n, len(questPlan))
 			}
 		}
 	}

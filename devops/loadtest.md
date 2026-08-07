@@ -352,9 +352,15 @@ Everything a level-30 character can carry at once — 3 auras, 3 passives,
 go run ./cmd/loadbot -scheme wss -addr aura-game.duckdns.org:443 -stats "" \
   -steps 20,40,60,80,100,140 -hold 30s -settle 15s \
   -token "$TOKEN" -god -warp "38,31" \
-  -skills "Suppression,Damage,Wildfire,Swift,Strong,KeenEye,NovaBurst,DamageBurst,Barrier" \
+  -skills "Suppression,Damage,Wildfire,Discipline,Strong,KeenEye,NovaBurst,DamageBurst,Barrier" \
   -skilllevel 99 -cast 2s
 ```
+
+⚑ **The skill list must match the live catalog's categories, and those move.**
+The original list carried Swift as its third passive; Swift is a **cooldown**
+now, and `loadbot` refuses a 4-cooldown list at startup ("more than 3 cooldown
+skills requested" — cheap, no bots join). If this list ever errors again, read
+`GET /skills` off the live box and rebuild it to 3/3/3 before ramping.
 
 Two things bound how much build is reachable, and neither is the harness:
 **3 slots per category** and **29 skill points** at the level cap (this loadout
@@ -796,7 +802,76 @@ is the first time this file has had to state a memory figure in hundreds of MB.
 Track it: the ceiling here has always been CPU, and nothing says it stays that
 way.
 
-## Results — 2026-08-07 ⭐ MOST RECENT, the world-replacement + xp C2 build (measured 22:47–23:14 UTC 2026-08-06)
+## Quest-ledger encode cost — measured 2026-08-07 evening, local profiler
+
+A RUNNING quest re-encodes into its owner's per-tick GameState
+(`codec/gamestate.go`, the quest-progress block — a deliberate live-state
+re-send, decision L8), which puts held quests on the single-core encode wall.
+The `-quests` flag (added for this) has each bot `QUEST ACCEPT` a list over the
+cheat channel — `all` reads `GET /quests` — and reads the count back out of the
+bot's own snapshot (`quests held per bot: 13.00 of 13`), same honesty rule as
+the aura gauge. Accept/turn-in themselves are one-shot events with no
+per-action DB write (the ledger rides the character autosave JSONB) and are not
+worth load-testing; only the held state costs.
+
+A/B at fixed populations, local box, `-god`, no skills (so the delta is the
+quest block, not combat), **13 quests held = the full catalog, the worst case**:
+
+| bots | p50/p95 control (ms) | p50/p95 13 quests (ms) | kB/s/bot |
+|---|---|---|---|
+| 50 | 5.43 / 7.07 | 6.02 / 7.95 | 148.4 → 183.1 (+23 %) |
+| 100 | 12.76 / 15.57 | 13.80 / 16.65 | 218.4 → 267.1 (+22 %) |
+
+- **Wire: ~90–130 bytes per running quest per tick** (~3–4 kB/s per quest per
+  player; the 13-quest block is ~1.2–1.7 kB/tick, +22 % of snapshot bytes).
+- **CPU: ~+1 ms on the 100-player tick (+7–8 %)**. pprof attribution:
+  `QuestProgressMarshalFlatbuf` 2.2 % + `quests.(*Ledger).Snapshot` 1.5 %
+  ≈ 4 % of process CPU — ~14 % of the per-player encode path
+  (`CharacterGameState.MarshalFlatbuf`, 27 %) with all 13 held.
+- **Per held quest ≈ 0.3–0.6 % of tick time per 100 players.** A realistic
+  population holding ~3 quests each costs ~2 % tick and ~5 % bytes — the live
+  knee (~60–70) moves by a bot or two at most. All 13 on everyone ≈ one ramp
+  step. No action needed now; if it ever matters it rides the known encoding
+  fix path (pool builders → skip static re-encode → delta), not a quest change.
+
+Repro: `./loadbot -addr localhost:2000 -steps 50,100 -hold 45s -settle 8s
+-token plz -god [-quests all] -name-prefix hrnss_q…_` against
+`./aurad -dev -content ../api -profile localhost:6060`.
+
+## Results — 2026-08-07 evening ⭐ MOST RECENT, the steering-fix build (measured 20:06–20:30 UTC)
+
+Same live box, same spot `(38,31)`, clustered, the same two ramps as the run
+below. Deployed binary built 2026-08-07 19:53 UTC — first capacity run carrying
+the campfire-shuttle steering fix (`0ef519f1`, per-mob latch/hysteresis state)
+and the conversant nameplates (`6de08b74`). Server EMPTY after the PO logged
+off. Prefixes `lb0807c_` (A) / `lb0807d_` (B); rows left for the next
+restart-window sweep, per the standing rule.
+
+⚑ **The path was NOT clean this time**: A read 27.3 flat at 20–40 against last
+night's 30.0 — the documented WAN floor. Corrected columns divide by 0.91
+(27.3/30), same as run 3.
+
+`auras CONFIRMED LIVE` N/N at every step of both runs; B read back
+`passives 3.00 / cooldowns 3.00 / points spent 18.0`. ⚑ B's first launch died
+at startup on the stale Swift-as-passive skill list (see the Max build box
+above) — the retry cost the field nothing, but B's mob field was thin again
+(aggroed 6.0–7.9), matching the prior run's caveat.
+
+| bots | A raw | A corrected | B raw | B corrected | (prev night A / B, raw) |
+|---|---|---|---|---|---|
+| 20 | 27.3 | 30.0 | 27.3 | 30.0 | 30.0 / 30.0 |
+| 40 | 27.3 | 30.0 | 27.3 | 30.0 | 30.0 / 30.0 |
+| 60 | 26.5 | 29.1 | 27.2 | 29.9 | 30.0 / 29.5 |
+| 80 | 24.9 | 27.4 | 24.2 | 26.6 | 29.1 / 28.9 |
+| 100 | 19.8 | 21.8 | 16.5 | 18.1 | 22.6 / 17.8 |
+| 140 | 9.9 | 10.9 | 8.1 | 8.9 | 11.1 / 8.6 |
+
+**No capacity regression from the steering fix**: corrected, both curves sit on
+last night's within the known noise (~1.8 snap/s; the 80-bot B gap rides the
+thin field and the near-vertical knee). **L1 ceiling still ~60–70, maxed
+~60–80.**
+
+## Results — 2026-08-07, the world-replacement + xp C2 build (measured 22:47–23:14 UTC 2026-08-06)
 
 Same live box, same spot `(38,31)`, clustered, same two ramps, 30 s hold (run B
 `-settle 15s`). Deployed binary built 2026-08-06 22:23 UTC — the first live
