@@ -2443,8 +2443,8 @@ the UI pass finds it; nothing built.
 > extremely close points. the two boars in this screenshot are just walking up
 > and down the campfire for 1 or 2 meters and back."*
 
-One item, ✅ **SHIPPED same day** (this file is the authoritative ledger; LIGHT
-tier, no plan doc). This is the **third member of the steering-oscillation
+One item, ✅ **SHIPPED same day, `0ef519f1`** (this file is the authoritative
+ledger; LIGHT tier, no plan doc). This is the **third member of the steering-oscillation
 family** — after the 2026-07-11 side-flip (fixed by the side latch) and the
 2026-07-20 deflect/blend limit cycle at a notch (fixed by the detour-commit),
 each documented in `steering.go`'s comments.
