@@ -32,27 +32,57 @@ const steeringRepulsionWeight float32 = 1.5
 // reason to turn than a wall.
 const mobSeparationWeight float32 = 0.45
 
+// steerClearHoldTicks [PLACEHOLDER] ~⅓ s: how long repulsion must stay zero
+// before a committed detour releases. Prop clusters leave zero-repulsion
+// slivers between their fields — releasing on a single clear tick re-aimed the
+// mob mid-cluster, straight into the next prop (in-game finding, 2026-08-07:
+// boars pacing 1–2 u along the campfire camp forever).
+const steerClearHoldTicks = 10
+
+// steerSideMemoryTicks [PLACEHOLDER] ~1 s: after a detour releases, a fresh
+// head-on within this window reuses the released side instead of the momentary
+// lean. The lean is only trustworthy on a first encounter — right after a
+// detour it points back the way the mob came, which is the other half of the
+// same shuttle (see steerClearHoldTicks).
+const steerSideMemoryTicks = 30
+
 // steer bends the desired unit direction around nearby blockers. With no
 // space (direct construction, tests) or nothing in steering range it returns
 // desired unchanged — movement is then exactly the pre-steering straight line.
 //
 // Statics and mobs are kept apart on purpose: only statics feed the head-on
 // detour latch (see below). Mob separation is blended into the RESULT, so a
-// mob can neither set the latch nor hold it — the latch clears on "no static
-// repulsion", and a mob trailing this one would otherwise keep it alive
-// forever and walk it sideways.
+// mob can neither set the latch nor hold it — the latch clears on a sustained
+// stretch of "no static repulsion" (steerClearHoldTicks), and a mob trailing
+// this one would otherwise keep it alive forever and walk it sideways.
 func (m *Mob) steer(desired phy.Vec2f) phy.Vec2f {
 	if m.space == nil {
 		return desired
 	}
 	rep := m.blockerRepulsion()
 	sep := m.mobSeparation()
+	if m.steerPrevSideTicks > 0 {
+		m.steerPrevSideTicks--
+	}
+	left := desired.Rot90()
 	if rep.X == 0 && rep.Y == 0 {
-		m.steerSide = 0 // clear of everything: the next obstruction re-picks
+		if m.steerSide != 0 {
+			// Clear-pocket hysteresis: hold the detour through short
+			// zero-repulsion slivers inside a prop cluster; only a sustained
+			// clear stretch means the cluster is genuinely behind us.
+			m.steerClearTicks++
+			if m.steerClearTicks < steerClearHoldTicks {
+				return left.Mult(m.steerSide)
+			}
+			// Genuinely released: remember the side briefly, so an immediate
+			// next head-on continues the same way around (see the constants).
+			m.steerPrevSide = m.steerSide
+			m.steerPrevSideTicks = steerSideMemoryTicks
+			m.steerSide = 0
+		}
 		return blendSeparation(desired, sep)
 	}
-
-	left := desired.Rot90()
+	m.steerClearTicks = 0
 	// Detour-commit: while the head-on latch is set, hold the latched tangent
 	// EVERY tick until fully clear of repulsion (the rep==0 reset above) — not
 	// just on head-on ticks. Falling back to the blended direction the moment
@@ -75,11 +105,17 @@ func (m *Mob) steer(desired phy.Vec2f) phy.Vec2f {
 	// stable against a single blocker — between two blockers (or in a wall
 	// corner) each sideways step makes the other side's repulsion dominate
 	// and the mob jitters in place, flipping sides forever (in-game finding,
-	// 2026-07-11). First head-on tick: take the lean of the combined vector
-	// (it points toward the freer side); exactly on the line, always left.
-	if combined.Dot(left) < 0 {
+	// 2026-07-11). A side released moments ago wins over the lean: right after
+	// a detour the lean points back where the mob came from, and following it
+	// shuttles the mob through a prop cluster forever (2026-08-07). Otherwise,
+	// first head-on tick: take the lean of the combined vector (it points
+	// toward the freer side); exactly on the line, always left.
+	switch {
+	case m.steerPrevSideTicks > 0:
+		m.steerSide = m.steerPrevSide
+	case combined.Dot(left) < 0:
 		m.steerSide = -1
-	} else {
+	default:
 		m.steerSide = 1
 	}
 	return left.Mult(m.steerSide)

@@ -30,6 +30,13 @@ const (
 	// targets and the evade point — an exact-point arrival could orbit
 	// forever when steering deflects the last step near a blocker.
 	waypointArrivalRadius = 0.3
+	// idleWalkRetryDwellTicks [PLACEHOLDER] ~3 s: the stand-down between
+	// attempts when an idle walk's budget expires (steering pass 2026-08-07).
+	// Walk-home and the evade return were the only movement paths with no
+	// stuck protection at all — a blocked walk paced against its obstacle
+	// forever (chase camps, wander legs expire into a dwell; this is the same
+	// pattern for the two full-speed idle walks).
+	idleWalkRetryDwellTicks = 90
 )
 
 // SetWander configures local wander around anchor (chunk 5a). The anchor is
@@ -92,7 +99,7 @@ func (m *Mob) updateIdleMovement() {
 	}
 	if m.returnPosSet {
 		if !m.arrivedAt(m.returnPos) {
-			m.moveTowards(m.returnPos)
+			m.idleWalk(m.returnPos)
 			return
 		}
 		m.returnPosSet = false
@@ -103,14 +110,54 @@ func (m *Mob) updateIdleMovement() {
 	case m.wanderRadius > 0:
 		m.updateWander()
 	default:
-		m.moveTowards(m.spawnPosition)
+		m.idleWalk(m.spawnPosition)
 	}
+}
+
+// idleWalk is moveTowards under the wander-style stuck budget, for the two
+// full-speed idle walks (evade return, walk-home): the walk gets 2× the
+// straight-line ticks + slack; a budget that expires without arrival parks
+// the mob for a dwell, then re-arms from wherever it stands. A reachable
+// target is unaffected — the budget outlives any steering detour that makes
+// progress; only a genuinely blocked walk turns into pace-rest-retry.
+func (m *Mob) idleWalk(target phy.Vec2f) {
+	if m.idleWalkDwell > 0 {
+		m.idleWalkDwell--
+		return
+	}
+	dist := m.Position().Sub(target).Abs()
+	if dist < 1e-4 {
+		m.idleWalkSet = false // arrived exactly: nothing to walk or budget
+		return
+	}
+	if !m.idleWalkSet || target != m.idleWalkTarget {
+		step := m.stepLength()
+		if step <= 0 {
+			// Immobile mob: no movement expected, nothing to budget (matches
+			// moveTowards' own velocity guard).
+			return
+		}
+		m.idleWalkTarget = target
+		m.idleWalkSet = true
+		m.idleWalkTicks = int(2*dist/step) + 30
+	}
+	m.idleWalkTicks--
+	if m.idleWalkTicks <= 0 {
+		m.idleWalkSet = false
+		m.idleWalkDwell = idleWalkRetryDwellTicks
+		return
+	}
+	m.moveTowards(target)
 }
 
 // noteCombatEntry records the evade point on the idle→combat transition. A
 // re-aggro during the return walk keeps the original point, so the mob always
 // resumes from where it left its route/territory.
 func (m *Mob) noteCombatEntry() {
+	// Combat interrupts any idle walk: drop its budget state so the walk after
+	// combat re-arms from wherever the fight ends, not from a stale distance.
+	m.idleWalkSet = false
+	m.idleWalkDwell = 0
 	// Followers record no evade point — follow IS their return behavior
 	// (chunk 6; the chunk-5 handoff trap).
 	if m.isFollower() || m.returnPosSet || !m.spawnInitialized {

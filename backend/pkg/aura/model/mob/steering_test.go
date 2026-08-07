@@ -383,6 +383,66 @@ func TestMob_PropWallNotchRoundsTheWall(t *testing.T) {
 	t.Fatalf("mob never rounded the prop wall; final pos %v", m.Body.Position())
 }
 
+// A prop CLUSTER with zero-repulsion pockets between the fields (in-game
+// finding, 2026-08-07: two boars paced 1–2 u back and forth along the campfire
+// camp's prop cluster forever). The latch used to release on a SINGLE clear
+// tick — inside a cluster the mob releases in a pocket, re-aims, hits the next
+// prop head-on, and the fresh lean pick sends it back the way it came.
+func TestMob_DetourSurvivesBriefClearPocket(t *testing.T) {
+	space := phy.NewSpace()
+	blockingStatic(space, phy.Vec2f{X: 0.9, Y: -0.05}, 0.5)
+
+	m := NewMob(steeringMobDefinition(), 0, space)
+	m.SetPosition(phy.VEC2F_ZERO)
+	space.AddShape(m.Body)
+
+	desired := phy.Vec2f{X: 1, Y: 0}
+	m.steer(desired)
+	require.Equal(t, float32(1), m.steerSide,
+		"head-on against a blocker leaning -y must latch the left detour")
+
+	// One single repulsion-free tick — the sliver between two props' fields.
+	m.SetPosition(phy.Vec2f{X: 40, Y: 40})
+	m.steer(desired)
+	assert.NotZero(t, m.steerSide,
+		"a brief clear pocket must not release the committed detour")
+}
+
+func TestMob_ClearPocketKeepsDetourSide(t *testing.T) {
+	space := phy.NewSpace()
+	blockingStatic(space, phy.Vec2f{X: 0.9, Y: -0.05}, 0.5)  // first latch: left (+1)
+	blockingStatic(space, phy.Vec2f{X: 10.9, Y: 0.05}, 0.5) // fresh lean here: right (-1)
+
+	m := NewMob(steeringMobDefinition(), 0, space)
+	m.SetPosition(phy.VEC2F_ZERO)
+	space.AddShape(m.Body)
+
+	desired := phy.Vec2f{X: 1, Y: 0}
+	m.steer(desired)
+	require.Equal(t, float32(1), m.steerSide, "first head-on latches left")
+
+	// Walk a clear stretch until the detour genuinely releases (hysteresis may
+	// hold it for a while first).
+	m.SetPosition(phy.Vec2f{X: 40, Y: 40})
+	released := false
+	for i := 0; i < 50; i++ {
+		m.steer(desired)
+		if m.steerSide == 0 {
+			released = true
+			break
+		}
+	}
+	require.True(t, released, "a sustained clear stretch must release the detour")
+
+	// Immediately head-on again at the next prop of the cluster, whose lean
+	// says RIGHT. Re-picking from the lean is what shuttles a mob back and
+	// forth through a cluster — the recent side must win.
+	m.SetPosition(phy.Vec2f{X: 10, Y: 0})
+	m.steer(desired)
+	assert.Equal(t, float32(1), m.steerSide,
+		"a fresh head-on right after a detour must reuse the released side, not the lean")
+}
+
 func absf(v float32) float32 {
 	if v < 0 {
 		return -v

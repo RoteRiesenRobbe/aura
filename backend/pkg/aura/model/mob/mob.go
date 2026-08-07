@@ -372,7 +372,14 @@ type Mob struct {
 	// steerSide latches the head-on deflection side (+1 left / -1 right,
 	// 0 = unset) while the mob is continuously within repulsion range —
 	// re-picking per tick flip-flops between two blockers (see steer).
-	steerSide float32
+	// steerClearTicks counts consecutive zero-repulsion ticks toward the
+	// latch release, and steerPrevSide/steerPrevSideTicks remember a released
+	// side briefly so the next head-on continues the same way around a prop
+	// cluster (campfire-shuttle fix, 2026-08-07 — see steer).
+	steerSide          float32
+	steerClearTicks    int
+	steerPrevSide      float32
+	steerPrevSideTicks int
 
 	// steerProbe/steerHits/steerMobHits are the steering queries' reused
 	// scratch (see steeringProbe): the lookahead circle and one hit buffer per
@@ -447,6 +454,14 @@ type Mob struct {
 	waypointIdx  int
 	waypointDir  int
 	waypointLoop bool
+
+	// Idle-walk stuck budget (steering pass 2026-08-07, patrol.go idleWalk):
+	// walk-home and the evade return get the wander-style expire-dwell-retry
+	// treatment instead of pacing against a blocked target forever.
+	idleWalkTarget phy.Vec2f
+	idleWalkSet    bool
+	idleWalkTicks  int
+	idleWalkDwell  int
 
 	// Idle pacing (chunk-5 pacing rework): idleSpeedFactor scales wander legs
 	// AND patrol marching (evade return / walk-home stay full speed);

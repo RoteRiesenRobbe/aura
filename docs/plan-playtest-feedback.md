@@ -2436,6 +2436,89 @@ ever needs to ship before the UI pass: opening the journal closes the dialogue
 (or vice versa) — one exclusivity rule, no visual redesign. Recorded here so
 the UI pass finds it; nothing built.
 
+## Intake — round 10 (2026-08-07): mob pathfinding wonky in prop clusters
+
+> *"with more than two props close to each other, pathfinding gets very wonky.
+> add a campfire to the mix and mobs might get stuck walking between two
+> extremely close points. the two boars in this screenshot are just walking up
+> and down the campfire for 1 or 2 meters and back."*
+
+One item, ✅ **SHIPPED same day** (this file is the authoritative ledger; LIGHT
+tier, no plan doc). This is the **third member of the steering-oscillation
+family** — after the 2026-07-11 side-flip (fixed by the side latch) and the
+2026-07-20 deflect/blend limit cycle at a notch (fixed by the detour-commit),
+each documented in `steering.go`'s comments.
+
+### The trace — three interacting holes
+
+1. **The detour latch released on a single zero-repulsion tick** (`steer`,
+   `steering.go`). Prop clusters leave zero-repulsion slivers between their
+   0.6-u fields, so a mob sliding along prop A released mid-cluster, re-aimed,
+   and hit prop B head-on.
+2. **The fresh head-on side pick came from the momentary lean**, which right
+   after a detour points back the way the mob came — release + reversed
+   re-latch = the observed 1–2 u shuttle. (The red test caught exactly this:
+   expected side +1, HEAD picked −1.)
+3. **Walk-home and the evade return had no stuck protection at all** — the only
+   movement paths without one (chase camps, wander legs expire). A blocked walk
+   paced literally forever: the red pin measured a longest still-run of **0**
+   over 900 ticks.
+
+Also established in the diagnosis, no change made: **the campfire and
+conversant NPCs are separation peers, not steering obstacles** — actor-model
+mobs on the viewport-only layer, soft 0.45-weight push, invisible to the latch.
+PO ruling 2026-08-07: **campfires stay walkable, leave as is.**
+
+### The fix (`pkg/aura/model/mob`, Go only — TDD, all red-first)
+
+- **A — latch-clear hysteresis** (`steering.go`): a committed detour survives
+  short zero-repulsion pockets; only `steerClearHoldTicks = 10` [PLACEHOLDER]
+  (~⅓ s) consecutive clear ticks release it — a cluster reads as one wall.
+- **B — sticky side** (`steering.go`): a released side is remembered for
+  `steerSideMemoryTicks = 30` [PLACEHOLDER] (~1 s of movement); a fresh head-on
+  inside the window reuses it instead of the lean. Both A and B state are
+  cleared by the chase camp (`stuck.go`) so a failed detour still re-picks.
+- **C — idle-walk stuck budget** (`patrol.go` `idleWalk`): walk-home and the
+  evade return get the wander-style budget (2× straight-line ticks + 30);
+  expiry parks the mob for `idleWalkRetryDwellTicks = 90` [PLACEHOLDER] (~3 s),
+  then re-arms from where it stands. Combat entry drops the state. A blocked
+  walk is now pace-rest-retry, forever — mirroring the 2026-07-20 camp ruling
+  (a mob that gives up hands players an off-switch).
+
+**Schema impact: DB NONE · FlatBuffers NONE · content JSON NONE · conf NONE.**
+One revertible commit.
+
+### Recorded landmines (assessed on PO request, none acted on)
+
+- `steerPrevSide` is **relative to the desired direction** — if desired flips
+  inside the 30-tick window (re-roll behind the mob, opposite aggro), "same
+  side" is the opposite world-space side. Blast radius today: a suboptimal
+  detour. Breaks first if someone widens the window a lot.
+- `idleWalk` re-arms on **exact target inequality** — correct for its two
+  fixed-target callers; a future caller passing a per-tick-jittering target
+  silently disables the protection.
+- The three constants are **ticks at 30 TPS**, hardcoded Go like the rest of
+  the steering family (`steeringLookahead`, both weights) — a tick-rate change
+  or a tune-by-conf wish hits the whole family, not just these.
+- Perf: integer arithmetic only, no new queries/allocations
+  (`steering_alloc_test.go` green); the blocked case got *cheaper* (a stuck
+  walk now idles 90 of every ~budget ticks instead of querying forever).
+
+### Verified
+
+4 new Go tests red-first then green (`TestMob_DetourSurvivesBriefClearPocket` ·
+`TestMob_ClearPocketKeepsDetourSide` ·
+`TestMob_WalkHomeBlockedPausesInsteadOfPacingForever` ·
+`TestMob_EvadeReturnBlockedPausesBetweenAttempts`) · whole mob package green
+including every prior steering pin (both historical oscillation cases, flee/
+corner/notch, alloc pins) · full Go suite 0 FAIL except
+`sys.TestDwell_TakeoffDropsAnInProgressCount`, **proven pre-existing by
+stash-and-rerun against HEAD (fails identically)** — note it now fails
+deterministically, not as a flake · rebuilt binary booted clean (13 quests /
+777 props / 485 spawns / 5 campfires, 0 panics) and handed over. No browser
+harness owns idle steering (the Go pins are the owner); in-game feel check is
+the PO's, pending at commit time.
+
 ## Rolling filler — blocks nothing, do any time
 
 > **4 of 6 ✅ DONE 2026-07-26** in one batch, committed `dab4dae0` —

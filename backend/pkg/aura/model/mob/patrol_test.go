@@ -307,6 +307,73 @@ func TestMob_StationaryMobReturnFallsBackToWalkHome(t *testing.T) {
 		"classic mob ends up back home and stays")
 }
 
+// --- idle-walk stuck budget (steering pass 2026-08-07) ---
+// Walk-home and the evade return were the only movement paths with no stuck
+// protection at all (chase camps, wander legs expire): a blocked walk paced
+// against its obstacle forever — the two-boars-at-the-campfire report.
+
+// tickInSpace is the patrol twin of steering_test.go's tick: one full
+// mob+physics step, for idle tests that need real blockers.
+func tickInSpace(t *testing.T, m *Mob, space *phy.Space) {
+	t.Helper()
+	require.True(t, m.Update(0))
+	space.Update()
+}
+
+// longestStillRun ticks n times and returns the longest run of consecutive
+// ticks with zero displacement.
+func longestStillRun(t *testing.T, m *Mob, space *phy.Space, n int) int {
+	t.Helper()
+	longest, still := 0, 0
+	for i := 0; i < n; i++ {
+		before := m.Position()
+		tickInSpace(t, m, space)
+		if m.Position() == before {
+			still++
+			if still > longest {
+				longest = still
+			}
+		} else {
+			still = 0
+		}
+	}
+	return longest
+}
+
+func TestMob_WalkHomeBlockedPausesInsteadOfPacingForever(t *testing.T) {
+	space := phy.NewSpace()
+	// Home unreachable by construction (a house dropped on the spawn point):
+	// the walk can never arrive, so without a budget the mob paces forever.
+	home := phy.Vec2f{X: 3, Y: 0}
+	blockingRectStatic(space, home, 2.5, 1.5)
+
+	m := NewMob(steeringMobDefinition(), 0, space)
+	m.SetPosition(home) // records the authored spawn
+	m.SetPosition(phy.Vec2f{X: -1, Y: 0})
+	space.AddShape(m.Body)
+
+	assert.GreaterOrEqual(t, longestStillRun(t, m, space, 900), 60,
+		"a blocked walk-home must stand down between attempts, not pace forever")
+}
+
+func TestMob_EvadeReturnBlockedPausesBetweenAttempts(t *testing.T) {
+	space := phy.NewSpace()
+	point := phy.Vec2f{X: 3, Y: 0}
+	blockingRectStatic(space, point, 2.5, 1.5)
+
+	m := NewMob(steeringMobDefinition(), 0, space)
+	m.SetPosition(phy.Vec2f{X: -6, Y: 0})
+	space.AddShape(m.Body)
+	// Wander archetype plus a walled-off evade point (combat displacement can
+	// strand the point anywhere): the return leg runs first and can never end.
+	m.SetWander(phy.Vec2f{X: -6, Y: 0}, 2)
+	m.returnPos = point
+	m.returnPosSet = true
+
+	assert.GreaterOrEqual(t, longestStillRun(t, m, space, 900), 60,
+		"a blocked evade return must stand down between attempts, not pace forever")
+}
+
 // --- aggro sensor follows the body (chunk-5 decision) ---
 
 func TestMob_AggroSensorFollowsBody(t *testing.T) {

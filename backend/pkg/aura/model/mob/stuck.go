@@ -65,7 +65,12 @@ func (m *Mob) chaseTowards(target phy.Vec2f) {
 		m.camped = true
 		m.campTicks = 0
 		m.campTargetPos = target
-		m.steerSide = 0 // fresh side pick when the camp lifts
+		// Fresh side pick when the camp lifts: the committed detour is what
+		// failed to make progress, so neither the latch nor the side memory
+		// may survive into the retry.
+		m.steerSide = 0
+		m.steerClearTicks = 0
+		m.steerPrevSideTicks = 0
 	}
 }
 
