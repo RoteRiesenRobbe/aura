@@ -1,0 +1,23 @@
+{
+  "_comment": "plan-generic-kill-quests.md C1 — the Farmer's kill quest, filling the L2 gap between turnip-chore (harvest, L1) and wolves-on-the-road (kill, L3). Target measured: 10 Boar L2 spawns within 6-14 units of the Farmer at (-57.0, 28.6). Reward on the turn-in row (farmer.json): 180 XP = the L9 half-level rule at L2 (0.5 x 300 x 1.2^1). Second quest on the same giver — the first NPC to carry two offers. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet).",
+  "id": "boars-in-the-field",
+  "title": "Boars in the Field",
+  "stages": [
+    {
+      "id": "cull",
+      "journal": "Kill 6 boars in the fields around the farm.",
+      "tracker": "{n}/{m} boars killed",
+      "objectives": [{ "kind": "kill", "species": "Boar", "count": 6 }],
+      "next": "report"
+    },
+    {
+      "id": "report",
+      "journal": "The boars are dealt with; the Farmer waits by his field.",
+      "tracker": "Return to the Farmer"
+    },
+    {
+      "id": "done",
+      "journal": "Done. Reported back to the Farmer."
+    }
+  ]
+}

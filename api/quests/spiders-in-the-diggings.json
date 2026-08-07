@@ -1,0 +1,23 @@
+{
+  "_comment": "plan-generic-kill-quests.md C1 — the Miner's kill quest; his idle lore ('First the Kobolds, now the Spiders.') already points at exactly this. Target measured: 7 Spider L11 spawns within 3.6-17 units of the Miner at (-27.0, -26.4). Reward on the turn-in row (miner.json): 930 XP = the L9 half-level rule at L11 (0.5 x 300 x 1.2^10). Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet).",
+  "id": "spiders-in-the-diggings",
+  "title": "Spiders in the Diggings",
+  "stages": [
+    {
+      "id": "cull",
+      "journal": "Kill 6 spiders in the tunnel diggings.",
+      "tracker": "{n}/{m} spiders killed",
+      "objectives": [{ "kind": "kill", "species": "Spider", "count": 6 }],
+      "next": "report"
+    },
+    {
+      "id": "report",
+      "journal": "The spiders are dealt with; the Miner waits at the tunnel's west mouth.",
+      "tracker": "Return to the Miner"
+    },
+    {
+      "id": "done",
+      "journal": "Done. Reported back to the Miner."
+    }
+  ]
+}

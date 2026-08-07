@@ -1,0 +1,23 @@
+{
+  "_comment": "plan-generic-kill-quests.md C2 — the City Guard's kill quest, upgrading him from turn-in-only (the wolves militia leg) to giver. Target measured: 5 Bear L16 spawns within 3.9-17 units of the City Guard at (62.4, 9.6). Reward on the turn-in row (city-guard.json): 2300 XP = the L9 half-level rule at L16. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet).",
+  "id": "bears-at-the-walls",
+  "title": "Bears at the Walls",
+  "stages": [
+    {
+      "id": "cull",
+      "journal": "Kill 5 bears near the city walls.",
+      "tracker": "{n}/{m} bears killed",
+      "objectives": [{ "kind": "kill", "species": "Bear", "count": 5 }],
+      "next": "report"
+    },
+    {
+      "id": "report",
+      "journal": "The bears are dealt with; the City Guard waits at the gate.",
+      "tracker": "Return to the City Guard"
+    },
+    {
+      "id": "done",
+      "journal": "Done. Reported back to the City Guard."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "_comment": "plan-generic-kill-quests.md C2 — the VillageHealer's kill quest; 'fewer wolves, fewer wounded' is how a healer hands out a cull without breaking role. Target measured: 6 AlphaWolf L15 spawns within 7.9-14.5 units of the VillageHealer at (45.4, 11.0). Reward on the turn-in row (village-healer.json): 1900 XP = the L9 half-level rule at L15. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet).",
+  "id": "alpha-wolves-at-the-village",
+  "title": "Alpha Wolves at the Village",
+  "stages": [
+    {
+      "id": "cull",
+      "journal": "Kill 5 alpha wolves around the village.",
+      "tracker": "{n}/{m} alpha wolves killed",
+      "objectives": [{ "kind": "kill", "species": "AlphaWolf", "count": 5 }],
+      "next": "report"
+    },
+    {
+      "id": "report",
+      "journal": "The alpha wolves are dealt with; the Village Healer waits by the campfire.",
+      "tracker": "Return to the Village Healer"
+    },
+    {
+      "id": "done",
+      "journal": "Done. Reported back to the Village Healer."
+    }
+  ]
+}

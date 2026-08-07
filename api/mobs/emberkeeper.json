@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). xpFactor 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. ⚑ D23's TEACHING LIST (chunk 3b-ii): the fire line, four separate one-grant options — clicking a row teaches that row and nothing else (D17). The 1/7/12/15 walls make hidden-when-known and locked-with-the-level-named both visible in a single screen, which is why this is the NPC to look at first. It also carries the other two branch shapes the PO brief asks for: a hint leaf (news) and a WoW-guard directions list. Prose is authored HERE, in JSON — the zone editor cannot reach it. ⚑ TEXT SHAPE (PO 2026-08-02): teach text is deliberately plain — teachings behind the unified 'Teach me something.' row as rows that NAME the skill directly.",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). xpFactor 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. ⚑ D23's TEACHING LIST (chunk 3b-ii): the fire line, four separate one-grant options — clicking a row teaches that row and nothing else (D17). The 1/7/12/15 walls make hidden-when-known and locked-with-the-level-named both visible in a single screen, which is why this is the NPC to look at first. It also carries the other two branch shapes the PO brief asks for: a hint leaf (news) and a WoW-guard directions list. Prose is authored HERE, in JSON — the zone editor cannot reach it. ⚑ TEXT SHAPE (PO 2026-08-02): teach text is deliberately plain — teachings behind the unified 'Teach me something.' row as rows that NAME the skill directly. ⚑ QUESTS: offers and turns in `bandits-at-the-shrine` (plan-generic-kill-quests.md C2) behind its own root row — THE FIRST HUMAN-TARGET KILL QUEST, and the applied half of the bandit-camp news his `news` node already carries.",
   "id": 64,
   "name": "Emberkeeper",
   "type": "MOB",
@@ -29,9 +29,45 @@
           "You can rest at my fire."
         ],
         "options": [
+          {"text": "Do you have a task for me?", "next": "bandits"},
           {"text": "Teach me something.", "next": "teachings"},
           {"text": "Anything new around here?", "next": "news"},
           {"text": "Where can I find...", "next": "directions"}
+        ]
+      },
+      {
+        "id": "bandits",
+        "lines": [
+          "Kill 6 bandits from the camp east of here, then come back to me."
+        ],
+        "options": [
+          {
+            "text": "I'll do it.",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "bandits-at-the-shrine",
+                "line": "Good."
+              }
+            ]
+          },
+          {
+            "text": "I killed the 6 bandits.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "bandits-at-the-shrine",
+                "fromStage": "report",
+                "toStage": "done",
+                "line": "Good."
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 1250,
+                "line": "Here is your reward."
+              }
+            ]
+          }
         ]
       },
       {

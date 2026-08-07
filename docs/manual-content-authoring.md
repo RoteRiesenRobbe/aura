@@ -670,9 +670,13 @@ A stage nothing advances out of is **terminal**: entering it completes the quest
 That is *derived*, never authored — `quests.CrossValidate` learns it from the
 rows at boot.
 
-⚑ **Thresholds are lifetime totals** (D3/L7). `"count": 8` means *has ever killed
-eight*, not *kill eight more* — a veteran who accepts the quest completes the
-stage on the spot. There is no opt-out flag yet, deliberately.
+⚑ **Thresholds count since stage entry** (N4/D4, `plan-feel-pass-2.md`,
+reversing D3's original lifetime reading — this paragraph described the old
+behavior until 2026-08-07). `"count": 8` means *kill eight more after this
+stage starts*: the counters underneath stay lifetime, but entering an objective
+stage snapshots them as a baseline (`quests/ledger.go`), so a veteran gets no
+retroactive credit and abandoning + re-accepting starts the objectives over.
+A `talk_to` target already spoken to needs a fresh talk.
 
 ⚑ **Rewards can only ride a turn-in row**, so a quest that ends on an objective
 stage pays nothing. The shape every authored quest uses is

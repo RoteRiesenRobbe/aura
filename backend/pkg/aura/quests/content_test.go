@@ -66,6 +66,17 @@ var expectedQuests = map[string]string{
 	"turnip-chore":       "Turnip Chore",
 	"wolves-on-the-road": "Wolves on the Road",
 	"the-lost-lamp":      "The Lost Lamp", // retitled 2026-08-02 with the plain-text pass (no stylized quest text yet)
+
+	// The generic kill quests (plan-generic-kill-quests.md C1 + C2).
+	"boars-in-the-field":          "Boars in the Field",
+	"dire-wolves-in-the-forest":   "Dire Wolves in the Forest",
+	"kobolds-on-the-road":         "Kobolds on the Road",
+	"spiders-in-the-diggings":     "Spiders in the Diggings",
+	"dire-wolves-at-the-camp":     "Dire Wolves at the Camp",
+	"bandits-at-the-shrine":       "Bandits at the Shrine",
+	"alpha-wolves-at-the-village": "Alpha Wolves at the Village",
+	"bears-at-the-walls":          "Bears at the Walls",
+	"thin-the-orc-line":           "Thin the Orc Line",
 }
 
 func TestContent_QuestCensus(t *testing.T) {
@@ -298,6 +309,18 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		"turnip-chore":       150,
 		"wolves-on-the-road": 800, // 400 per leg, and a player can only ever walk one
 		"the-lost-lamp":      700,
+
+		// The generic kill quests (plan-generic-kill-quests.md C1 + C2): the L9
+		// half-level rule applied literally — ½ × 300 × 1.2^(targetLevel−1).
+		"boars-in-the-field":          180,  // L2 boars
+		"dire-wolves-in-the-forest":   370,  // L6 dire wolves
+		"kobolds-on-the-road":         450,  // L7 kobolds
+		"spiders-in-the-diggings":     930,  // L11 spiders
+		"dire-wolves-at-the-camp":     930,  // L11 dire wolves
+		"bandits-at-the-shrine":       1250, // L12–13 bandits (split the pair)
+		"alpha-wolves-at-the-village": 1900, // L15 alpha wolves
+		"bears-at-the-walls":          2300, // L16 bears
+		"thin-the-orc-line":           4800, // L20 elite orcs
 	}, total)
 }
 

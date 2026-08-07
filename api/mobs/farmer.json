@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. xpFactor 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Harvest at the Ruebenfeld, the peasant-onboarding chore gate (GDD 5). ⚑ QUESTS: offers and turns in `turnip-chore` — its target species is only damageable by the `harvest`-tagged aura he teaches, which is why the quest brief points back at his teaching row. ⚑ TEXT SHAPE (PO 2026-08-02, on top of the Q4/R1 tree shape): quest and teach text is deliberately plain — no lore or stylized wording yet. Teaching is behind a root 'Teach me something.' row leading to a teachings node whose row NAMES the skill directly. Quest rows carry NO quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule).",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. xpFactor 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Harvest at the Ruebenfeld, the peasant-onboarding chore gate (GDD 5). ⚑ QUESTS: offers and turns in `turnip-chore` — its target species is only damageable by the `harvest`-tagged aura he teaches, which is why the quest brief points back at his teaching row — and `boars-in-the-field` (plan-generic-kill-quests.md C1), the first second quest on one giver; each quest sits behind its own root row per the Q4 tree shape. ⚑ TEXT SHAPE (PO 2026-08-02, on top of the Q4/R1 tree shape): quest and teach text is deliberately plain — no lore or stylized wording yet. Teaching is behind a root 'Teach me something.' row leading to a teachings node whose row NAMES the skill directly. Quest rows carry NO quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule).",
   "id": 51,
   "name": "Farmer",
   "type": "MOB",
@@ -29,6 +29,7 @@
         ],
         "options": [
           { "text": "Do you have a task for me?", "next": "turnips" },
+          { "text": "Anything else that needs doing?", "next": "boars" },
           { "text": "Teach me something.", "next": "teachings" }
         ]
       },
@@ -62,6 +63,41 @@
               {
                 "kind": "grant_xp",
                 "xp": 150,
+                "line": "Here is your reward."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "boars",
+        "lines": [
+          "Kill 6 boars in the fields around the farm, then come back to me."
+        ],
+        "options": [
+          {
+            "text": "I'll do it.",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "boars-in-the-field",
+                "line": "Good."
+              }
+            ]
+          },
+          {
+            "text": "I killed the 6 boars.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "boars-in-the-field",
+                "fromStage": "report",
+                "toStage": "done",
+                "line": "Good."
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 180,
                 "line": "Here is your reward."
               }
             ]

@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. xpFactor 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Pickaxe, which is the only thing that clears a Rockfall (the gated 'smash' tag). ⚑ Q4 (conversation-journal §7 q3, PO 2026-07-30): his `the-lost-lamp` middle leg is GONE — the quest is the simple three-stage version and the game's only non-terminal advance_quest edge went with it (a mechanism should not keep content alive to satisfy a test). The kobold-nest lore he carried stays as an answer-node. ⚑ TEXT SHAPE (PO 2026-08-02): teaching behind the unified 'Teach me something.' row as a row that NAMES the skill directly.",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. xpFactor 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Pickaxe, which is the only thing that clears a Rockfall (the gated 'smash' tag). ⚑ Q4 (conversation-journal §7 q3, PO 2026-07-30): his `the-lost-lamp` middle leg is GONE — the quest is the simple three-stage version and the game's only non-terminal advance_quest edge went with it (a mechanism should not keep content alive to satisfy a test). The kobold-nest lore he carried stays as an answer-node. ⚑ TEXT SHAPE (PO 2026-08-02): teaching behind the unified 'Teach me something.' row as a row that NAMES the skill directly. ⚑ QUESTS: offers and turns in `spiders-in-the-diggings` (plan-generic-kill-quests.md C1) behind its own root row — the quest his tunnel lore was already pointing at.",
   "id": 55,
   "name": "Miner",
   "type": "MOB",
@@ -29,7 +29,43 @@
         ],
         "options": [
           { "text": "What happened down there?", "next": "tunnel" },
+          { "text": "Do you have a task for me?", "next": "spiders" },
           { "text": "Teach me something.", "next": "teachings" }
+        ]
+      },
+      {
+        "id": "spiders",
+        "lines": [
+          "Kill 6 spiders in the tunnel diggings, then come back to me."
+        ],
+        "options": [
+          {
+            "text": "I'll do it.",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "spiders-in-the-diggings",
+                "line": "Good."
+              }
+            ]
+          },
+          {
+            "text": "I killed the 6 spiders.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "spiders-in-the-diggings",
+                "fromStage": "report",
+                "toStage": "done",
+                "line": "Good."
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 930,
+                "line": "Here is your reward."
+              }
+            ]
+          }
         ]
       },
       {

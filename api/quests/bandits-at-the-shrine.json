@@ -1,0 +1,23 @@
+{
+  "_comment": "plan-generic-kill-quests.md C2 — the Emberkeeper's kill quest, and THE FIRST HUMAN-TARGET KILL QUEST in the game (a first the PO should see in play; GiantSpider L14 x5 at 12.6-15.4u is the recorded fallback in the plan's §8). Target measured: 11 plain Bandit spawns (L12 x6 + L13 x5) within 9.8-21 units of the Emberkeeper at (34.5, -19.6) — the objective counts the Bandit SPECIES only, so BanditRanged/BanditPyromancer/BanditHealer kills do not credit it. Reward on the turn-in row (emberkeeper.json): 1250 XP = the L9 half-level rule splitting the L12/L13 pair. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet).",
+  "id": "bandits-at-the-shrine",
+  "title": "Bandits at the Shrine",
+  "stages": [
+    {
+      "id": "cull",
+      "journal": "Kill 6 bandits at the camp east of the shrine.",
+      "tracker": "{n}/{m} bandits killed",
+      "objectives": [{ "kind": "kill", "species": "Bandit", "count": 6 }],
+      "next": "report"
+    },
+    {
+      "id": "report",
+      "journal": "The bandits are dealt with; the Emberkeeper waits at the shrine.",
+      "tracker": "Return to the Emberkeeper"
+    },
+    {
+      "id": "done",
+      "journal": "Done. Reported back to the Emberkeeper."
+    }
+  ]
+}

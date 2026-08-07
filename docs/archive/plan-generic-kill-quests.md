@@ -1,11 +1,15 @@
 # Plan: Generic kill quests — most NPCs offer one
 
-> **Status: PLANNED 2026-08-07, not started.** 4 PO rulings D1–D4 (same
-> session). Two chunks, C1 (zone-1 side, 4 quests) + C2 (zone-2 side, 5
-> quests). **Content-only: no Go, no `.fbs`, no frontend, no conf** — the quest
-> vocabulary shipped with plan-quests C1–C3 and nothing here needs a new verb.
-> **Schema impact: NONE** (content JSON + the quests package's content-pin
-> tests + docs). Every number below is [PLACEHOLDER] per the standing rule.
+> **Status: COMPLETE — C1 AND C2 BOTH BUILT AND VERIFIED 2026-08-07, the same
+> day the plan was written (`a66e6be5`).** All nine quests live;
+> 10 of 14 placed conversants offer a quest, 12 of 13 human-ish conversants
+> carry a quest role. 4 PO rulings D1–D4 (planning session). **Content-only:
+> no Go production code, no `.fbs`, no frontend, no conf.** **Schema impact:
+> NONE** (content JSON + the quests package's content-pin tests + three verify
+> harnesses + docs). Every number below is [PLACEHOLDER] per the standing
+> rule. Ledgers: §9 (C1) · §10 (C2). ⚑ Still open, but NOT this plan's: the
+> PO has not yet seen the Emberkeeper's human-target quest in play (flagged in
+> §10), and per-quest text/reward feel tuning is ordinary later content.
 
 ## 1. What this is
 
@@ -77,7 +81,7 @@ lamp 700), so treat the column as a floor-ish anchor, not an exact law.
 | Quest id (working) | Giver @ pos | Objective | Nearby | Player level there | Reward XP |
 |---|---|---|---|---|---|
 | `boars-in-the-field` | Farmer @ (−57.0, 28.6) | kill 6 Boar (L2) | ×10 @ 6–14u | 1–3 | ~180 |
-| `dark-between-the-lamps` | Lamplighter @ (−66.0, −27.6) | kill 4 DireWolf (L6) | ×3 @ 4–18u | 5–7 | ~370 |
+| `dire-wolves-in-the-forest` | Lamplighter @ (−66.0, −27.6) | kill 4 DireWolf (L6) | ×3 @ 4–18u | 5–7 | ~370 |
 | `kobolds-on-the-road` | Wanderer @ (−15.5, 30.7) | kill 8 Kobold (L7) | ×13 (+4 KoboldRanged L6) @ 7–21u | 6–8 | ~450 |
 | `spiders-in-the-diggings` | Miner @ (−27.0, −26.4) | kill 6 Spider (L11) | ×7 @ 3.6–17u | 9–11 | ~930 |
 
@@ -103,7 +107,7 @@ Notes:
 |---|---|---|---|---|---|
 | `dire-wolves-at-the-camp` | Shaman @ (18.0, 6.0) | kill 6 DireWolf (L11) | ×10 @ 6.8–18u | 10–12 | ~930 |
 | `bandits-at-the-shrine` | Emberkeeper @ (34.5, −19.6) | kill 6 Bandit (L12–13) | ×11 @ 9.8–21u | 12–14 | ~1250 |
-| `fewer-wounded` | VillageHealer @ (45.4, 11.0) | kill 5 AlphaWolf (L15) | ×6 @ 7.9–14.5u | 14–16 | ~1900 |
+| `alpha-wolves-at-the-village` | VillageHealer @ (45.4, 11.0) | kill 5 AlphaWolf (L15) | ×6 @ 7.9–14.5u | 14–16 | ~1900 |
 | `bears-at-the-walls` | CityGuard @ (62.4, 9.6) | kill 5 Bear (L16) | ×5 @ 3.9–17u | 16–18 | ~2300 |
 | `thin-the-orc-line` | FrontCaptain @ (58.9, 26.9) | kill 5 Orc (L20, **elite**) | ×8 @ 6.3–18.6u | 18–20 | ~4800 |
 
@@ -205,3 +209,125 @@ Each chunk is a session; no silent chaining.
   L10 no-faucet rule) have never been exercised and must be verified first.
 - **Hermit / TownCrier second quests**: not proposed; the village already
   holds three offers with the Farmer addition.
+
+## 9. C1 ledger — zone-1 side, BUILT AND VERIFIED 2026-08-07 `a66e6be5`
+
+**Shipped exactly as planned, TDD order** (pins extended first and seen red,
+then the content): `api/quests/` +4 (`boars-in-the-field` 6×Boar/180 XP ·
+`dire-wolves-in-the-forest` 4×DireWolf/370 · `kobolds-on-the-road` 8×Kobold/450 ·
+`spiders-in-the-diggings` 6×Spider/930 — the L9 half-level rule applied
+literally, ½ × 300 × 1.2^(L−1)); offer + turn-in rows behind an own root row on
+Farmer / Lamplighter / Wanderer / Miner (the Farmer's is
+`Anything else that needs doing?` — his second quest, the first two-offer
+giver); `content_test.go` census + XP-budget maps +4; `content-npcs.md` roster
++ quest-roles rows; the §7 `manual-content-authoring.md` §6 stale
+lifetime-thresholds paragraph rewritten to N4/D4.
+
+**Verified:** `cp-defs` + `go test ./pkg/aura/quests/` green (after red) · full
+suite `go build` + `go test ./...` **0 FAIL** · boot `-content ../api`
+15 factions/87 skills/65 mobs/3 milestones/10 recipes/**8 quests**/5 props/777
+props/485 spawns/5 campfires, **0 WARN/ERROR** (CrossValidate's
+nothing-unofferable warning silent) · **new harness `c1-kill-quests.mjs`
+20/20 PASS, 0 console errors** — boars-in-the-field walked END TO END (accept →
+`0/6 boars killed` tracker → six real kills → `Return to the Farmer` → turn-in
+pays **exactly 180, once** — `XP 2241 → 2421` — and the row seals shut) plus
+offer+accept on the other three givers · **`chunkC4-quests.mjs` all PASS
+(38 PASS + its 1 deliberate SKIP), 0 console errors** after the two repairs
+below · `hrnss_*` residue cleaned (39 accounts, server stopped first).
+
+**Findings / landmines:**
+
+- ⛑ **L1 — three of the five world campfires stand within ~1 unit of a
+  conversant, and `E` resolves to the NEAREST interactable — which flight C3
+  turned into a trap for every conversant harness.** `chunkC4-quests.mjs` leg D
+  warped to (−21,−24): campfire `spawnpoint-4` (−21.26,−23.51) is **0.55 u**
+  away, the traveller **0.57 u** — a coin-flip the fire wins, and since flight
+  C3 (2026-08-05) `E` at the nearest-fire opens the **flight map**, so the leg
+  read "the traveller never answers" (`actor=undefined`). Pre-existing rot, not
+  this chunk's content — C4's leg last ran before flight shipped. Venue moved
+  to (−20,−25) (traveller 0.85 u, fire 1.95 u); the same hazard at
+  `spawnpoint-3` (0.7 u from the Wanderer's authored point) is answered in
+  `c1-kill-quests.mjs` with an `Escape` before each `E`. **Pick conversant
+  warp points that break the fire tie decisively.**
+- ⚑ **The C4 harness's `catalog.length === 4` went red on the fifth quest** —
+  its own rule 1 (never assert a content count), enforced by reality. Replaced
+  with a by-name assert on the four C4 ids; the C1 ids are the new harness's.
+- ⚑ **The Wanderer's row-click races its resume-stroll**: the quest row click
+  landed and the panel re-read at ROOT (seen once live). The harness retries
+  the navigation; the row's *existence* is a separate, stable assert.
+- ⚑ Harness pattern worth keeping: **`XP 20000` (→L15) before the boar hunt
+  makes every mob near the farm gray**, so the only XP the bar can move by in
+  the whole leg is the turn-in's authored 180 — the payment assert cannot be
+  contaminated by hunt kills or a mid-window ding.
+- The hunt warps spawn-point-to-spawn-point (boars are retaliation-only prey
+  and never approach); a wander circuit is the wrong tool for prey culls —
+  relevant again for C2's bears.
+
+**Schema impact: DB NONE · FlatBuffers NONE · conf NONE · Go production code
+NONE** (tests + content + harnesses + docs only).
+
+## 10. C2 ledger — zone-2 side, BUILT AND VERIFIED 2026-08-07 `a66e6be5`
+
+**Shipped exactly as planned, same TDD order** (pins +5 seen red first):
+`api/quests/` +5 (`dire-wolves-at-the-camp` 6×DireWolf/930 ·
+`bandits-at-the-shrine` 6×Bandit/1250 — **the first human-target kill quest**,
+plain-Bandit species only · `alpha-wolves-at-the-village` 5×AlphaWolf/1900 ·
+`bears-at-the-walls` 5×Bear/2300 · `thin-the-orc-line` 5×elite Orc/4800);
+offer + turn-in rows behind own root rows on Shaman / Emberkeeper /
+VillageHealer / CityGuard / FrontCaptain — on the Shaman and the CityGuard the
+new giver role **coexists with their wolves-branch foreign turn-in on one
+root**, proven at the surface (chunkC4 C5/C6/C9 all green after). Direction
+facts checked against the world before shipping: the bandit camp is EAST of
+the keeper (the draft said south), the orc line is genuinely south of the
+captain. `content-npcs.md` roster + wiring +5 each.
+
+**Verified:** pins red→green · full suite `go build` + `go test ./...`
+**0 FAIL** · boot `-content ../api` **13 quests**, 0 WARN/ERROR · **new
+harness `c2-kill-quests.mjs` all PASS, 0 console errors** — bears-at-the-walls
+walked END TO END (accept → `0/5 bears killed` → five real kills → turn-in
+pays **exactly 2300, once** — `XP 2254 → 4554` — row seals) plus offer+accept
+on the other four givers · **`chunkC4-quests.mjs` all PASS** (the wolves
+branch intact on the modified roots) · **`c1-kill-quests.mjs` 20/20** after
+the helper hardening below · `hrnss_*` residue cleaned (7 accounts).
+
+**Findings / landmines:**
+
+- ⛑ **L2 — `Escape` closes the JOURNAL, not just the map — which makes C1's
+  L1 remedy ("press Escape before `E`") a TRAP, hereby superseded.** C2's
+  first harness run put an unconditional Escape in `talkTo`, and every journal
+  read in the whole run returned null while every panel assert stayed green —
+  20 minutes of green-looking FAILs from one keypress. Probed live: quick
+  `KeyJ` toggles the journal reliably (raw keydown listener — the rAF-throttle
+  theory was WRONG for J); a closed journal's hidden DOM **retains its
+  content**, which is why C1's leg D survived its own Escapes and the trap
+  stayed invisible for a day. Both harnesses now close the flight map
+  **conditionally** (`#worldMap` visibility check) and their journal readers
+  self-heal (`ensureJournalOpen`).
+- ⚑ **The accept row-click can miss once against a re-rendering panel**
+  (seen once at the Lamplighter, 1-in-2 runs): the harnesses retry the accept
+  only while the row is still offered — a landed accept removes it, so the
+  retry cannot double-fire.
+- ⚑ **The first browser join after a fresh `aurad` boot timed out twice in
+  two sessions** (creation screen never read as visible inside 120 s); the
+  identical retry passed immediately both times. Environment quirk, recorded —
+  not product, not content.
+- ⛔ **The PO has not seen the human-target quest in play.** The plan flagged
+  it as a first; the fallback (GiantSpider L14 ×5 @ 12.6–15.4 u) stays
+  recorded in §8 should it read badly.
+
+**Schema impact: DB NONE · FlatBuffers NONE · conf NONE · Go production code
+NONE** (tests + content + harnesses + docs only). This was the plan's last
+chunk — the doc is archived.
+
+**Same-day wording pass (PO 2026-08-07, "minimal and matter-of-fact"):** all
+nine briefs lost their flavor preamble and now state the bare task
+("Kill 6 boars in the fields around the farm, then come back to me." — the
+turnip-chore register), journal lines were trimmed to match, and the two
+stylized quests were renamed id+title: `dark-between-the-lamps` →
+**`dire-wolves-in-the-forest`**, `fewer-wounded` →
+**`alpha-wolves-at-the-village`** (safe pre-commit — no player ledger ever
+held the old ids). Pins, both harnesses and chunkC4 needles updated where
+they named ids (titles/prose are catalog-derived in the harnesses, so those
+adjusted themselves); re-verified: quests pins green · full suite 0 FAIL ·
+boot 13 quests 0 WARN · `c1-kill-quests.mjs` **20/20** · `c2-kill-quests.mjs`
+**23/23**, both fresh-server, 0 console errors.

@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. xpFactor 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Strong at the settlement gate. ⚑ QUESTS: the MILITIA leg of D9's branch — `wolves-on-the-road` carry_word → told_militia, rewarding Taunt + 400 XP; the Shaman carries the other leg to a different stage with a different reward, and no code knows there is a choice. ⚑ TEXT SHAPE (PO 2026-08-02, on top of the Q4/R1 tree shape): quest and teach text is deliberately plain — no lore or stylized wording yet. The turn-in is a row directly at root (the quest is not his, so there is no quest node; the Q1 show-rule keeps the row invisible except at carry_word); teaching behind a 'Teach me something.' row as a row that NAMES the skill directly; the front is a lore answer-node.",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. xpFactor 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Strong at the settlement gate. ⚑ QUESTS: the MILITIA leg of D9's branch — `wolves-on-the-road` carry_word → told_militia, rewarding Taunt + 400 XP; the Shaman carries the other leg to a different stage with a different reward, and no code knows there is a choice. ⚑ TEXT SHAPE (PO 2026-08-02, on top of the Q4/R1 tree shape): quest and teach text is deliberately plain — no lore or stylized wording yet. The turn-in is a row directly at root (the quest is not his, so there is no quest node; the Q1 show-rule keeps the row invisible except at carry_word); teaching behind a 'Teach me something.' row as a row that NAMES the skill directly; the front is a lore answer-node. Since plan-generic-kill-quests.md C2 he also OFFERS and turns in `bears-at-the-walls` behind its own root row — giver and foreign-turn-in coexist on one root.",
   "id": 56,
   "name": "CityGuard",
   "type": "MOB",
@@ -50,8 +50,44 @@
               }
             ]
           },
+          { "text": "Do you have a task for me?", "next": "bears" },
           { "text": "Teach me something.", "next": "teachings" },
           { "text": "Where can I make myself useful?", "next": "front" }
+        ]
+      },
+      {
+        "id": "bears",
+        "lines": [
+          "Kill 5 bears near the city walls, then come back to me."
+        ],
+        "options": [
+          {
+            "text": "I'll do it.",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "bears-at-the-walls",
+                "line": "Good."
+              }
+            ]
+          },
+          {
+            "text": "I killed the 5 bears.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "bears-at-the-walls",
+                "fromStage": "report",
+                "toStage": "done",
+                "line": "Good."
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 2300,
+                "line": "Here is your reward."
+              }
+            ]
+          }
         ]
       },
       {

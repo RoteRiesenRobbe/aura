@@ -1,0 +1,23 @@
+{
+  "_comment": "plan-generic-kill-quests.md C1 — the Wanderer's kill quest. The kobold nest (26 spawns, x -24..-9, y -5..25) actually sits by the WANDERER; the-lost-lamp's giver is 30+ units from it. Target measured: 13 Kobold L7 (+4 KoboldRanged L6) within 7-21 units of the Wanderer's authored point (-15.5, 30.7) — who wanders (spawn randomised up to 4 units + wanderRadius 4), which is fine: the nest is wide. The species overlap with the-lost-lamp is deliberate and mechanically clean — both objectives baseline independently at stage entry (N4/D4), so running both at once double-credits, which reads as generosity. The brief says 'the road', not the tunnel — the tunnel framing belongs to the lamp quest. Reward on the turn-in row (wanderer.json): 450 XP = the L9 half-level rule at L7. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet).",
+  "id": "kobolds-on-the-road",
+  "title": "Kobolds on the Road",
+  "stages": [
+    {
+      "id": "cull",
+      "journal": "Kill 8 kobolds near the road.",
+      "tracker": "{n}/{m} kobolds killed",
+      "objectives": [{ "kind": "kill", "species": "Kobold", "count": 8 }],
+      "next": "report"
+    },
+    {
+      "id": "report",
+      "journal": "The kobolds are thinned; the Wanderer is on the road nearby.",
+      "tracker": "Return to the Wanderer"
+    },
+    {
+      "id": "done",
+      "journal": "Done. Reported back to the Wanderer."
+    }
+  ]
+}

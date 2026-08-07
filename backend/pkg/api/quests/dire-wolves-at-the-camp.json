@@ -1,0 +1,23 @@
+{
+  "_comment": "plan-generic-kill-quests.md C2 — the Shaman's kill quest, upgrading him from turn-in-only (the wolves branch leg) to giver. Target measured: 10 DireWolf L11 spawns within 6.8-18 units of the Shaman's fire at (18.0, 6.0). The bandit camp nearby is deliberately NOT his — it is the Emberkeeper's target, so the two givers do not double-claim. Reward on the turn-in row (shaman.json): 930 XP = the L9 half-level rule at L11. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet).",
+  "id": "dire-wolves-at-the-camp",
+  "title": "Dire Wolves at the Camp",
+  "stages": [
+    {
+      "id": "cull",
+      "journal": "Kill 6 dire wolves around the Shaman's camp.",
+      "tracker": "{n}/{m} dire wolves killed",
+      "objectives": [{ "kind": "kill", "species": "DireWolf", "count": 6 }],
+      "next": "report"
+    },
+    {
+      "id": "report",
+      "journal": "The dire wolves are dealt with; the Shaman waits at his fire.",
+      "tracker": "Return to the Shaman"
+    },
+    {
+      "id": "done",
+      "journal": "Done. Reported back to the Shaman."
+    }
+  ]
+}

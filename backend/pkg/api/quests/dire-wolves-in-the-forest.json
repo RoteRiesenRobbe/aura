@@ -1,0 +1,23 @@
+{
+  "_comment": "plan-generic-kill-quests.md C1 — the Lamplighter's kill quest at the dark-forest edge. Target measured: 3 DireWolf L6 spawns within 4-18 units of the Lamplighter at (-66.0, -27.6); count 4 leans on the 1800-tick respawn, deliberately. The closer EliteWolf L8 x3 was considered and left a discovery (it is the ForestSign clue's mob — see the plan's §8). Reward on the turn-in row (lamplighter.json): 370 XP = the L9 half-level rule at L6. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet).",
+  "id": "dire-wolves-in-the-forest",
+  "title": "Dire Wolves in the Forest",
+  "stages": [
+    {
+      "id": "cull",
+      "journal": "Kill 4 dire wolves in the dark forest.",
+      "tracker": "{n}/{m} dire wolves killed",
+      "objectives": [{ "kind": "kill", "species": "DireWolf", "count": 4 }],
+      "next": "report"
+    },
+    {
+      "id": "report",
+      "journal": "The dire wolves are dealt with; the Lamplighter waits at the forest edge.",
+      "tracker": "Return to the Lamplighter"
+    },
+    {
+      "id": "done",
+      "journal": "Done. Reported back to the Lamplighter."
+    }
+  ]
+}

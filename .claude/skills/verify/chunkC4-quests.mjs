@@ -65,7 +65,12 @@ const AT = {
   Farmer: { x: -57, y: 29 },
   TownCrier: { x: -56, y: 22 },
   Turnips: { x: -57, y: 31 },
-  Traveller: { x: -21, y: -24 },
+  // ⚑ NOT (-21,-24): campfire spawnpoint-4 sits at (-21.26,-23.51), 0.55 units
+  // from that point vs the traveller's 0.57 — and since flight C3 (2026-08-05)
+  // E at the nearest-fire opens the FLIGHT MAP, so the whole lamp leg read as
+  // "the traveller never answers" (found 2026-08-07). From (-20,-25) the
+  // traveller (-20.6,-24.4) is 0.85u and the fire 1.95u — no coin-flip.
+  Traveller: { x: -20, y: -25 },
   Shaman: { x: 18, y: 6 },
   CityGuard: { x: 62, y: 10 },
   WolfCountry: { x: -60, y: 8 },
@@ -308,8 +313,12 @@ await cmd('GOD');  // this script stands still in aggro radii for minutes
 await page.keyboard.press('KeyJ'); // journal open for the whole run
 await page.waitForTimeout(600);
 
-check('the four authored quests are served (boot count 4)',
-  Array.isArray(catalog) && catalog.length === 4,
+// By NAME, not count (verify rule 1) — the count assert this replaces went red
+// the day plan-generic-kill-quests.md C1 authored a fifth quest (2026-08-07).
+// The generic kill quests have their own harness (c1-kill-quests.mjs).
+const c4Ids = ['village-welcome', 'turnip-chore', 'wolves-on-the-road', 'the-lost-lamp'];
+check('the four C4 quests are served',
+  Array.isArray(catalog) && c4Ids.every((id) => catalog.some((q) => q.id === id)),
   Array.isArray(catalog) ? catalog.map((q) => q.id).join(', ') : String(catalog));
 
 // --- leg A: village-welcome — talk_to + the R1 row lifecycle -----------------

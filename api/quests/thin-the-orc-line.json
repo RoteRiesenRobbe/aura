@@ -1,0 +1,23 @@
+{
+  "_comment": "plan-generic-kill-quests.md C2 — the Front Captain's kill quest, the punchy endgame one and the war-front beat his idle lore already points at. Target measured: 8 Orc L20 (ELITE tier, 2.5x kill XP) within 6.3-18.6 units of the FrontCaptain at (58.9, 26.9) — five elite kills pay ~12.5 at-level kills of kill XP before the reward, deliberately. Reward on the turn-in row (front-captain.json): 4800 XP = the L9 half-level rule at L20. Watch it against tuning. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet).",
+  "id": "thin-the-orc-line",
+  "title": "Thin the Orc Line",
+  "stages": [
+    {
+      "id": "cull",
+      "journal": "Kill 5 orcs on the front line to the south.",
+      "tracker": "{n}/{m} orcs killed",
+      "objectives": [{ "kind": "kill", "species": "Orc", "count": 5 }],
+      "next": "report"
+    },
+    {
+      "id": "report",
+      "journal": "The orc line is thinned; the Front Captain waits at the staging area.",
+      "tracker": "Return to the Front Captain"
+    },
+    {
+      "id": "done",
+      "journal": "Done. Reported back to the Front Captain."
+    }
+  ]
+}
