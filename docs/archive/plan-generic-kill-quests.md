@@ -1,7 +1,7 @@
 # Plan: Generic kill quests — most NPCs offer one
 
 > **Status: COMPLETE — C1 AND C2 BOTH BUILT AND VERIFIED 2026-08-07, the same
-> day the plan was written (`a66e6be5`).** All nine quests live;
+> day the plan was written (`f414b473`).** All nine quests live;
 > 10 of 14 placed conversants offer a quest, 12 of 13 human-ish conversants
 > carry a quest role. 4 PO rulings D1–D4 (planning session). **Content-only:
 > no Go production code, no `.fbs`, no frontend, no conf.** **Schema impact:
@@ -210,7 +210,7 @@ Each chunk is a session; no silent chaining.
 - **Hermit / TownCrier second quests**: not proposed; the village already
   holds three offers with the Farmer addition.
 
-## 9. C1 ledger — zone-1 side, BUILT AND VERIFIED 2026-08-07 `a66e6be5`
+## 9. C1 ledger — zone-1 side, BUILT AND VERIFIED 2026-08-07 `f414b473`
 
 **Shipped exactly as planned, TDD order** (pins extended first and seen red,
 then the content): `api/quests/` +4 (`boars-in-the-field` 6×Boar/180 XP ·
@@ -266,7 +266,7 @@ below · `hrnss_*` residue cleaned (39 accounts, server stopped first).
 **Schema impact: DB NONE · FlatBuffers NONE · conf NONE · Go production code
 NONE** (tests + content + harnesses + docs only).
 
-## 10. C2 ledger — zone-2 side, BUILT AND VERIFIED 2026-08-07 `a66e6be5`
+## 10. C2 ledger — zone-2 side, BUILT AND VERIFIED 2026-08-07 `f414b473`
 
 **Shipped exactly as planned, same TDD order** (pins +5 seen red first):
 `api/quests/` +5 (`dire-wolves-at-the-camp` 6×DireWolf/930 ·
