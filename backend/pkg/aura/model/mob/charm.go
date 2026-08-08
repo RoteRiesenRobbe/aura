@@ -29,7 +29,13 @@ import (
 // charmer is very likely the top-threat entity at cast time, and
 // updateEnemyTargeting reads threat FIRST — without the reset the new pet would
 // keep chasing the player it can no longer harm (L-A).
+//
+// CC-immune species refuse it (plan-cc-and-retaliation.md D1), before all
+// three of those: no link, no timer to expire later, no faction flip.
 func (m *Mob) Charm(by model.PlayerEntity, source skills.SkillID, ticks int) {
+	if m.ccImmune() {
+		return
+	}
 	m.charmer = by
 	m.buffs.ApplyCharm(source, ticks)
 	m.Align()

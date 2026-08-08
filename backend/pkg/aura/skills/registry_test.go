@@ -155,7 +155,11 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// + CampAura, the R4 C2 mini-campfire's heal + dim light (2026-08-03) —
 	// mob content, referenced only by camp.json, which applyCamp builds from
 	// Go rather than from a spawn effect.
-	assert.Len(t, r.All(), 87)
+	// + FrostShield, the retaliate_slow passive (plan-cc-and-retaliation.md C2,
+	// 2026-08-07) — the first passive with a runtime trigger; Troll drop.
+	// + Paralyze, the C3 stun cooldown (2026-08-08) — the game's first hard
+	// stun; GiantSpider drop.
+	assert.Len(t, r.All(), 89)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

@@ -179,6 +179,22 @@ type Factors struct {
 	// should mean "an ordinary mob", a missing Go value should fail loudly in
 	// the test that expected XP.
 	XPFactor float32
+
+	// CCImmune makes this species refuse every crowd-control effect — slow,
+	// calm, charm, and the stun (plan-cc-and-retaliation.md D1). Authored per
+	// mob and NOT derived from tier: `tier` stays the classification label
+	// this file's header promises, and an elite that should be CC-able has an
+	// escape hatch. The gate lives on the Mob doors, so anything added to the
+	// CC family inherits it.
+	//
+	// ⚑ Unrelated to SetInvulnerable (damage immunity) and to a Resistances
+	// entry of 0. This flag stops effects, not damage.
+	//
+	// ⚑ Absent → false, i.e. CC-able, which is what every mob was before this
+	// existed. A definition at tier ≥ elite may not leave it absent (A1): the
+	// loader refuses one, because the whole recorded risk of D1 is a future
+	// elite shipping CC-able by omission.
+	CCImmune bool
 }
 
 type Body struct {
@@ -320,6 +336,14 @@ type mobDefinition struct {
 		// "pays nothing", and the two must not collapse.
 		XPFactor *float32 `json:"xpFactor"`
 
+		// CCImmune is a POINTER for the same reason (A2), and here the
+		// distinction is the entire feature: at tier ≥ elite, "absent" is a
+		// boot error and "false" is a decision. It has to be checked while the
+		// pointer is still in hand — the resolved Factors.CCImmune is a plain
+		// bool, so no test walking LOADED definitions could ever tell
+		// "deliberately CC-able" from "nobody thought about it".
+		CCImmune *bool `json:"ccImmune"`
+
 		// Experience is a TOMBSTONE for the pre-formula absolute XP value
 		// (plan-xp-formula.md L2, the jsonInteraction.Trigger precedent). It
 		// is a pointer for the same reason DisallowUnknownFields is not enough
@@ -413,9 +437,21 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 	// tierRanks is the single source of valid tiers: a tier is authorable
 	// exactly when it has a wire encoding, so a new one cannot be accepted by
 	// the loader while rendering as an unmarked normal on the client.
-	if _, ok := tierRanks[tier]; !ok {
+	rank, ok := tierRanks[tier]
+	if !ok {
 		return nil, fmt.Errorf("mob %q: tier %q must be one of normal/elite/boss", m.Name, tier)
 	}
+
+	// CC immunity is authored, never derived (D1) — so the one thing that can
+	// go wrong is an elite nobody thought about. A1 makes that a boot error
+	// rather than a code default: at tier ≥ elite the key is required, and
+	// `false` is a perfectly good answer. The check must run HERE, while the
+	// pointer distinguishes absent from authored-false; the resolved value is
+	// a plain bool and cannot (A2).
+	if rank >= TierRankElite && m.Factors.CCImmune == nil {
+		return nil, fmt.Errorf("mob %q: tier %q must author factors.ccImmune (true or false) — the tier does not decide it", m.Name, tier)
+	}
+	ccImmune := m.Factors.CCImmune != nil && *m.Factors.CCImmune
 	curveLevel := m.CurveLevel
 	if curveLevel == 0 {
 		curveLevel = 1
@@ -554,6 +590,7 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 			DeltaPhi:             m.Factors.DeltaPhi,
 			TurnRate:             m.Factors.TurnRate,
 			XPFactor:             xpFactor,
+			CCImmune:             ccImmune,
 		},
 		Body: Body{
 			Radius:         m.Body.Radius,

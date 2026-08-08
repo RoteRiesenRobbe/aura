@@ -111,6 +111,20 @@ type shieldPayload struct {
 // aging and per-skill refresh.
 type calmPayload struct{}
 
+// stunPayload is the hard stun (plan-cc-and-retaliation.md C3, D6). Empty like
+// calm and charm — a stun has no strength axis, so the entry's remaining ticks
+// are the whole state.
+//
+// ⚑ It is deliberately NOT a slowPayload at fraction 1.0. That shape would put
+// the movement half and the cast half in two entries with two independently
+// aged timers, and one stun whose halves can expire a tick apart is a bug
+// waiting to be written. ONE payload answers both questions: MovementFactor
+// reads Stunned() for movement, SkillSystem.processEntity reads it for casting.
+//
+// ⚑ Which is also why SlowFraction must never see it — a stun is not competing
+// in "strongest slow wins", it short-circuits the whole movement axis.
+type stunPayload struct{}
+
 // charmPayload is the charm TIMER (plan-faction-flips chunk 3, D2/D6). Like
 // calm it is empty — charm has no strength axis — and for the same two reasons
 // it lives in the store rather than as a Mob field: the pip is derived from
@@ -141,6 +155,7 @@ func (*dotPayload) isBuffPayload()       {}
 func (*shieldPayload) isBuffPayload()    {}
 func (*hotPayload) isBuffPayload()       {}
 func (*calmPayload) isBuffPayload()      {}
+func (*stunPayload) isBuffPayload()      {}
 func (*charmPayload) isBuffPayload()     {}
 func (*lifestealPayload) isBuffPayload() {}
 
@@ -429,6 +444,26 @@ func (b *Buffs) ApplyCalm(source SkillID, ticks int) {
 	b.apply(source, &calmPayload{}, ticks)
 }
 
+// ApplyStun stuns the entity for ticks (plan-cc-and-retaliation.md C3, D6):
+// movement halts and casting is suppressed until it expires. One stream per
+// source skill, extend-never-shorten, like calm.
+func (b *Buffs) ApplyStun(source SkillID, ticks int) {
+	for _, e := range b.entries[source] {
+		if _, ok := e.payload.(*stunPayload); ok {
+			if ticks > e.ticks {
+				e.ticks = ticks
+			}
+			return
+		}
+	}
+	b.apply(source, &stunPayload{}, ticks)
+}
+
+// Stunned reports whether any stun application is live. THE read for both
+// halves of the mechanic — MovementFactor for movement, processEntity for
+// casting — so the two can never disagree about how long the stun lasted.
+func (b *Buffs) Stunned() bool { return hasPayload[*stunPayload](b) }
+
 // Calmed reports whether any calm application is live.
 func (b *Buffs) Calmed() bool { return hasPayload[*calmPayload](b) }
 
@@ -578,6 +613,12 @@ func (b *Buffs) SpeedFactor() float32 {
 // Floored at 0: a slow fraction above 1 would otherwise reverse the direction
 // of travel.
 func (b *Buffs) MovementFactor() float32 {
+	// A stun short-circuits the axis rather than composing with it (D6): it is
+	// not a very strong slow, it is "you do not move", and nothing — no sprint,
+	// no haste — buys any of it back.
+	if b.Stunned() {
+		return 0
+	}
 	f := b.SpeedFactor() * (1 - b.SlowFraction())
 	if f < 0 {
 		return 0

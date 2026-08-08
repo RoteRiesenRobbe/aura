@@ -64,5 +64,12 @@ func (*shieldPayload) appliedBit() AppliedEffect   { return AppliedEffectNone }
 // No bit left in the ubyte — see the ⚑ note above.
 func (*lifestealPayload) appliedBit() AppliedEffect { return AppliedEffectNone }
 
+// D6: the stun borrows the SLOW bit rather than widening the wire for one
+// buff — the lifestealPayload precedent above, applied where reuse at least
+// reads as movement impairment instead of as nothing at all. ⚑ The conflation
+// is real: a stunned mob is indistinguishable from a slowed one on the wire,
+// and a stun suppresses a weaker slow's pip. §39 owns splitting them.
+func (*stunPayload) appliedBit() AppliedEffect  { return AppliedEffectSlow }
+
 func (*calmPayload) appliedBit() AppliedEffect  { return AppliedEffectCalm }
 func (*charmPayload) appliedBit() AppliedEffect { return AppliedEffectCharm }

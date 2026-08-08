@@ -11,7 +11,8 @@
     "maxHealthVariance": 0.1,
     "speed": 0.2,
     "deltaPhi": 0.1,
-    "turnRate": 0.04
+    "turnRate": 0.04,
+    "ccImmune": true
   },
   "body": {
     "radius": 0.5,

@@ -1,0 +1,23 @@
+{
+  "_comment": "The game's FIRST HARD STUN (plan-cc-and-retaliation.md C3, PO rulings D6/D7/D8 2026-08-08). Holds the nearest eligible mob for 3 s at L1 → 3.8 s at L5: movement stops AND its cast path is suppressed. ⚑ That second half is what makes it a stun rather than a ROOT — movement and aura cadence run on independent paths, so a 100 % slow leaves a mob standing perfectly still and still swinging. Capped at maxTargets 1 / nearest, like CharmBeast: the GDD forbids target-clicking, so 'walk to the one you want' IS the targeting, and an uncapped hard stun would neutralise a whole pack off one button. ⚑ Damage does NOT break it (D8): in an aura game your own damage is always on, so break-on-damage would end the stun on the tick it landed. ⚑ It authors NO targetFactions allowlist, unlike Calm and CharmBeast — those need one because 'which mobs can be calmed/charmed' is a content question; for a stun the mob-side factors.ccImmune gate (C1) already answers it, so every elite and boss is immune and everything else is fair game. A stunned mob KEEPS its threat table and its target (A5): calm is the disengage tool, this is the control tool, and a stun that also wiped aggro would be a strictly better calm. Cost sits between Calm (0.015) and CharmBeast (0.05). GiantSpider drop at 0.2 — paralytic venom, and the spider is the fastest thing in the roster, so the counter it teaches is the one you wanted while fighting it. All values [PLACEHOLDER]",
+  "id": 140,
+  "name": "Paralyze",
+  "category": "cooldown",
+  "maxLevel": 5,
+  "cooldownTicks": 900,
+  "effects": [
+    {
+      "type": "stun",
+      "costFractionOfMax": 0.03,
+      "costFractionOfMaxPerLevel": 0.005,
+      "radius": 2.5,
+      "radiusPerLevel": 0.0,
+      "maxTargets": 1,
+      "selector": "nearest",
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "stunTicks": 90,
+      "stunTicksPerLevel": 6
+    }
+  ]
+}

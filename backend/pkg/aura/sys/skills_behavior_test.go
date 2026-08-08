@@ -1641,6 +1641,9 @@ type slowRecorder struct {
 	// §5.2) is the shipped one. A stub returning a constant would let a
 	// refresh-charges-nothing regression through silently.
 	buffs skills.Buffs
+	// ccImmune models what Mob.ApplySlow does for a CC-immune species
+	// (plan-cc-and-retaliation.md C1): refuse, and answer "not freshly slowed".
+	ccImmune bool
 }
 
 // newSlowTarget builds a hostile slowable — the ordinary target of a player's
@@ -1656,6 +1659,9 @@ func (r *slowRecorder) ApplySlow(source skills.SkillID, fraction float32, ticks 
 	r.sources = append(r.sources, source)
 	r.fractions = append(r.fractions, fraction)
 	r.ticks = append(r.ticks, ticks)
+	if r.ccImmune {
+		return false
+	}
 	return r.buffs.ApplySlow(source, fraction, ticks)
 }
 
@@ -1703,6 +1709,29 @@ func TestSlowAura_CasterEntersCombatOnSlow(t *testing.T) {
 
 	require.Len(t, target.fractions, 1, "the target was slowed")
 	assert.Equal(t, 1, caster.combatActions, "CC'ing a hostile enters combat")
+}
+
+// A3 (plan-cc-and-retaliation.md C1): the immunity gate sits on the Mob DOOR,
+// not on this eligibility layer, and the difference is visible right here. An
+// immune target still counts as slowedAny — you committed an act of hostility
+// against the elite, so combat entry stands — while freshAny stays false, so
+// the caster is refunded the R2/R3 entry price for a whiff. Gating at the
+// eligibility layer would have silently killed combat entry too.
+func TestSlowAura_ImmuneTargetEntersCombatButIsNotCharged(t *testing.T) {
+	caster := newFakePlayer()
+	target := newSlowTarget()
+	target.ccImmune = true
+	effect := skills.EffectDef{
+		Type:           skills.EffectTypeSlowAura,
+		TargetsEnemies: true,
+		TickInterval:   1,
+		Slow:           &skills.SlowParams{Fraction: 0.3},
+	}
+
+	fresh := applySlowAura(caster, 4, 1, effect, colliderSetOf(target))
+
+	assert.False(t, fresh, "nothing was freshly slowed — the beat is not charged")
+	assert.Equal(t, 1, caster.combatActions, "…but swinging at an elite is still swinging at it")
 }
 
 // --- slow_aura eligibility (backlog §25 C) ---

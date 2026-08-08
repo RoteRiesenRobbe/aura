@@ -60,6 +60,8 @@ const (
 	EffectTypeCharm
 	EffectTypeSpeedBurst
 	EffectTypeLifestealBurst
+	EffectTypeRetaliateSlow
+	EffectTypeStun
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -127,6 +129,8 @@ var effectTypeMap = map[string]EffectType{
 	"charm":           EffectTypeCharm,
 	"speed_burst":     EffectTypeSpeedBurst,
 	"lifesteal_burst": EffectTypeLifestealBurst,
+	"retaliate_slow":  EffectTypeRetaliateSlow,
+	"stun":            EffectTypeStun,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -339,6 +343,8 @@ type EffectDef struct {
 	Charm    *CharmParams    `json:"charm,omitempty"`    // charm
 
 	Lifesteal *LifestealParams `json:"lifesteal,omitempty"` // lifesteal_burst
+	Retaliate *RetaliateParams `json:"retaliate,omitempty"` // retaliate_slow
+	Stun      *StunParams      `json:"stun,omitempty"`      // stun
 }
 
 // CostFractionAt is the level-scaled share of the caster's max health one
@@ -734,6 +740,52 @@ func (p *LifestealParams) TicksAt(level int) int {
 	return ticks
 }
 
+// RetaliateParams is the retaliate_slow payload (plan-cc-and-retaliation.md
+// C2): while the passive is equipped, every mob that damages the wearer is
+// slowed by Fraction for DurationTicks.
+//
+// It is the lifesteal_burst shape read from the other side. That comment calls
+// lifesteal "a scalar leech fraction plus a lifetime; it projects nothing and
+// targets nobody; it changes what the caster's own hits do while it is up" —
+// swap "own hits" for "hits taken" and this is that. Which is also why the
+// duration is authored rather than derived: slow_aura takes its buff lifetime
+// from tickInterval + 1, and a passive has no cadence.
+//
+// ⚑ Its authored fraction is subject to the strongest-slow-wins rule like every
+// other slow, so a high-rank retaliate can mask a low-rank Slow aura the
+// wearer is also running. That is a build interaction, not a bug — but it is
+// what a playtester reports as "my Slow does nothing".
+type RetaliateParams struct {
+	Fraction              float32 `json:"fraction"`
+	FractionPerLevel      float32 `json:"fractionPerLevel"`
+	DurationTicks         int     `json:"durationTicks"`
+	DurationTicksPerLevel int     `json:"durationTicksPerLevel"`
+}
+
+// FractionAt is the level-scaled slow fraction, floored at 0 and capped at 1 —
+// the apply site's clamp brought here so both the tooltip and the trigger read
+// one rule.
+func (p *RetaliateParams) FractionAt(level int) float32 {
+	f := Scaled(p.Fraction, p.FractionPerLevel, level)
+	if f < 0 {
+		return 0
+	}
+	if f > 1 {
+		return 1
+	}
+	return f
+}
+
+// TicksAt is the level-scaled buff lifetime, floored at 1 — the SpeedParams /
+// LifestealParams firing-site rule, kept identical so the three cannot drift.
+func (p *RetaliateParams) TicksAt(level int) int {
+	ticks := Scaled(p.DurationTicks, p.DurationTicksPerLevel, level)
+	if ticks < 1 {
+		ticks = 1
+	}
+	return ticks
+}
+
 // CalmParams is the calm payload (plan-faction-flips chunk 2, D7): how long a
 // hit mob stays out of combat. There is no strength axis — a mob is calmed or
 // it is not — so duration is the whole payload, and the only thing skill level
@@ -912,6 +964,14 @@ type effectDef struct {
 
 	SlowFraction         float32 `json:"slowFraction"`
 	SlowFractionPerLevel float32 `json:"slowFractionPerLevel"`
+	// retaliate_slow authors its buff lifetime OUTRIGHT, unlike slow_aura,
+	// which derives it from tickInterval + 1. A passive has no cadence to
+	// derive from.
+	SlowDurationTicks         int `json:"slowDurationTicks"`
+	SlowDurationTicksPerLevel int `json:"slowDurationTicksPerLevel"`
+
+	StunTicks         int `json:"stunTicks"`         // stun: how long the target is held
+	StunTicksPerLevel int `json:"stunTicksPerLevel"` // stun: added per skill level
 
 	TickInterval         *int `json:"tickInterval"` // nil → default 1
 	TickIntervalPerLevel int  `json:"tickIntervalPerLevel"`
@@ -1106,6 +1166,15 @@ var effectKeys = map[EffectType][]string{
 	// nobody; it changes what the caster's own hits do while it is up.
 	EffectTypeLifestealBurst: {"lifestealFraction", "lifestealFractionPerLevel",
 		"lifestealDurationTicks", "lifestealDurationTicksPerLevel"},
+	// Retaliate slow (plan-cc-and-retaliation.md C2): the lifesteal_burst
+	// shape read from the OTHER side — a scalar fraction plus a lifetime that
+	// changes what happens when the wearer is HIT, rather than what the
+	// wearer's own hits do. It projects nothing and targets nobody, so it
+	// takes no geometry, no cadence and no target flags; a passive has no
+	// circle. The fraction keys are slow_aura's on purpose — same axis, same
+	// scaling, so content reads the same in both places.
+	EffectTypeRetaliateSlow: {"slowFraction", "slowFractionPerLevel",
+		"slowDurationTicks", "slowDurationTicksPerLevel"},
 	// Calm (plan-faction-flips chunk 2): a query circle of enemy mobs, each
 	// dropped out of combat for the authored duration. No cadence (it fires on
 	// cooldown activation) and no selector/cap on purpose — calm is a DISENGAGE
@@ -1121,6 +1190,13 @@ var effectKeys = map[EffectType][]string{
 	// deciding WHICH mobs are charmable is authored on the skill (D8).
 	EffectTypeCharm: mergeKeys(keysGeometry, keysCapped, keysTargetFlags,
 		[]string{"charmTicks", "charmTicksPerLevel"}),
+	// Stun (plan-cc-and-retaliation.md C3): charm's shape — a query circle,
+	// capped and selector-picked, because the GDD forbids target-clicking and
+	// "walk to the one you want" IS the targeting. ⚑ No slow keys: a stun is
+	// not a strong slow, and authoring slowFraction here would be exactly the
+	// root/stun conflation the effect exists to end.
+	EffectTypeStun: mergeKeys(keysGeometry, keysCapped, keysTargetFlags,
+		[]string{"stunTicks", "stunTicksPerLevel"}),
 }
 
 // factionScopedEffects are the effect types whose skill MUST author a
@@ -1433,6 +1509,10 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Speed, err = e.speedParams()
 	case EffectTypeLifestealBurst:
 		def.Lifesteal, err = e.lifestealParams()
+	case EffectTypeRetaliateSlow:
+		def.Retaliate, err = e.retaliateParams()
+	case EffectTypeStun:
+		def.Stun, err = e.stunParams()
 	case EffectTypeCalm:
 		def.Calm, err = e.calmParams()
 	case EffectTypeCharm:
@@ -1810,6 +1890,64 @@ func (e *effectDef) lifestealParams() (*LifestealParams, error) {
 		DurationTicks:         e.LifestealDurationTicks,
 		DurationTicksPerLevel: e.LifestealDurationPerLevel,
 	}, nil
+}
+
+// retaliateParams builds the retaliate_slow payload on the lifestealParams
+// rules: a fraction of 0 or below is a passive that does nothing, and a zero
+// lifetime is a slow that expires before a movement step can read it. There is
+// no no-op at the top end either — a fraction of 1 stops the attacker dead,
+// which is a legitimate (if strong) authoring choice and NOT a stun: movement
+// and aura cadence run on independent paths, so a fully-slowed mob keeps
+// swinging. Per-level scaling is unconstrained; the firing site floors both
+// scaled values (RetaliateParams.FractionAt/TicksAt).
+func (e *effectDef) retaliateParams() (*RetaliateParams, error) {
+	if e.SlowFraction <= 0 {
+		return nil, fmt.Errorf("slowFraction: must be > 0, got %v", e.SlowFraction)
+	}
+	if e.SlowDurationTicks <= 0 {
+		return nil, fmt.Errorf("slowDurationTicks: must be > 0, got %v", e.SlowDurationTicks)
+	}
+	return &RetaliateParams{
+		Fraction:              e.SlowFraction,
+		FractionPerLevel:      e.SlowFractionPerLevel,
+		DurationTicks:         e.SlowDurationTicks,
+		DurationTicksPerLevel: e.SlowDurationTicksPerLevel,
+	}, nil
+}
+
+// StunParams is the stun payload (plan-cc-and-retaliation.md C3, D6): how long
+// the target is held. Like calm and charm there is no strength axis — an entity
+// is stunned or it is not — so duration is the whole payload and the only thing
+// skill level scales.
+//
+// ⚑ A stun is NOT a 100 % slow. Movement and aura cadence run on independent
+// paths, so a fully-slowed mob stands still and keeps swinging — that is a
+// ROOT. The stun suppresses casting too, and both halves are answered by the
+// one Buffs.Stunned() read so they cannot expire apart.
+type StunParams struct {
+	DurationTicks         int `json:"durationTicks"`
+	DurationTicksPerLevel int `json:"durationTicksPerLevel"`
+}
+
+// TicksAt is the level-scaled hold, floored at 1 — the calm/charm rule: a
+// negative perLevel can scale the duration away entirely, and one tick of stun
+// is still a cast that did something, where 0 would be a buff entry that
+// expires before anything reads it.
+func (p *StunParams) TicksAt(level int) int {
+	ticks := Scaled(p.DurationTicks, p.DurationTicksPerLevel, level)
+	if ticks < 1 {
+		ticks = 1
+	}
+	return ticks
+}
+
+// stunParams builds the stun payload on the charmParams rule: a zero-tick stun
+// is a cast that applies nothing.
+func (e *effectDef) stunParams() (*StunParams, error) {
+	if e.StunTicks < 1 {
+		return nil, fmt.Errorf("stunTicks: must be >= 1, got %v", e.StunTicks)
+	}
+	return &StunParams{DurationTicks: e.StunTicks, DurationTicksPerLevel: e.StunTicksPerLevel}, nil
 }
 
 // calmParams builds the calm payload. A calm of zero ticks is a cast that

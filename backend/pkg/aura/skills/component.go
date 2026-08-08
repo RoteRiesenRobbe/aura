@@ -183,12 +183,32 @@ type DerivedStats struct {
 	// (direct hits and dots alike): base × (1 + bonus), applied at the
 	// damage base-composition sites in sys (Strong, triage 2026-07-21).
 	DamageDealtBonus float32
+	// RetaliateSlow is the resolved retaliate_slow payload — the first entry in
+	// DerivedStats that is not a scalar, because it is the first passive with a
+	// RUNTIME TRIGGER rather than an equip-time fold (plan-cc-and-retaliation.md
+	// C2). Read at player.MobTouches, the one site both mob→player damage paths
+	// funnel through. Zero value = no retaliate passive equipped.
+	RetaliateSlow RetaliateSlow
 	// Resistances aggregates resist_passive effects into one tag → multiplier
 	// source map (item 11 Phase 2): per tag, the product across equipped
 	// passives (each passive is a distinct resist source). nil when no resist
 	// passives are equipped. Fed to ResistMultiplier in takeDamage alongside
 	// the transient resist buffs in the entity's Buffs store.
 	Resistances map[string]float32
+}
+
+// RetaliateSlow is one retaliate_slow passive, resolved to what the trigger
+// site needs: how hard, how long, and from which skill.
+//
+// ⚑ Source is not decoration. Buffs.ApplySlow keys the buff stream by its
+// SOURCE skill — omit it and every retaliate rides SkillID(0), sharing a stream
+// with anything else that forgets. It is carried here because the trigger site
+// (player.MobTouches) has the attacker and the damage, and no idea which
+// passive granted the effect.
+type RetaliateSlow struct {
+	Source   SkillID
+	Fraction float32
+	Ticks    int
 }
 
 // The three factor methods below are THE application formula for the stat
@@ -537,6 +557,22 @@ func (sc *SkillComponent) recomputeDerived() {
 					d.DamageDealtBonus += bonus
 				case StatCostReduction:
 					d.CostReductionBonus += bonus
+				}
+			case EffectTypeRetaliateSlow:
+				// Strongest wins, and it wins WHOLESALE — fraction, duration
+				// and source all come from the same passive. Slows never stack
+				// (Buffs.SlowFraction takes the strongest across every stream),
+				// so picking a winner here rather than applying both is the
+				// same outcome with one buff instead of two; taking the
+				// strongest fraction but the longest duration would invent a
+				// third passive neither one authors.
+				fraction := e.Retaliate.FractionAt(es.Level)
+				if fraction > d.RetaliateSlow.Fraction {
+					d.RetaliateSlow = RetaliateSlow{
+						Source:   es.Def.ID,
+						Fraction: fraction,
+						Ticks:    e.Retaliate.TicksAt(es.Level),
+					}
 				}
 			case EffectTypeResistPassive:
 				// Level scaling mirrors the aura fields (FactorAt: base +

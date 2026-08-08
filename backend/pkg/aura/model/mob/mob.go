@@ -632,10 +632,28 @@ func (m *Mob) BurstRadius() float32 {
 // hand-synced damageAuraRadiusMeters frontend constant).
 func (m *Mob) AuraRadius() float32 {
 	slot := m.skills.ActiveAuraSlot
-	if slot < 0 || m.skills.AuraSlots[slot] == nil {
+	if slot < 0 || m.skills.AuraSlots[slot] == nil || m.auraSuppressed() {
 		return 0
 	}
 	return m.skills.AuraSlots[slot].EffectiveRadius()
+}
+
+// auraSuppressed reports whether the aura is held off THIS TICK even though a
+// slot is still active — today, only by a stun (plan-cc-and-retaliation.md C3).
+//
+// ⚑ It exists because the wire projections do not run through
+// SkillSystem.processEntity, where the suppression actually happens: they read
+// ActiveAuraSlot directly, so without this a stunned mob keeps drawing its ring
+// at full size while dealing no damage. The PO's first hand playtest read that
+// as "the damage is broken", which is exactly backwards — the ring is a promise
+// that the aura is running.
+//
+// ⚑ The slot itself is deliberately NOT cleared. Clearing it means
+// SetActiveAura, which zeroes TickAccumulator — that would break A6's cadence
+// freeze (the aura must resume on the beat it was interrupted) and is the same
+// landmine plan-mob-tether D5 records for the tether's evade.
+func (m *Mob) auraSuppressed() bool {
+	return m.buffs.Stunned()
 }
 
 // AuraTickInterval is the active aura's first-effect effective tick interval in
@@ -645,7 +663,7 @@ func (m *Mob) AuraRadius() float32 {
 // design-critical use case (skill-vocab chunk 6).
 func (m *Mob) AuraTickInterval() int {
 	slot := m.skills.ActiveAuraSlot
-	if slot < 0 || m.skills.AuraSlots[slot] == nil {
+	if slot < 0 || m.skills.AuraSlots[slot] == nil || m.auraSuppressed() {
 		return 0
 	}
 	equip := m.skills.AuraSlots[slot]
@@ -685,6 +703,9 @@ func (m *Mob) LightRadius() float32 {
 // active — mirrors player.AuraCategories. Serialized as Mob.aura_category, so a
 // mob's ring reads the same colour language as a player's (triage item 7).
 func (m *Mob) AuraCategories() skills.AuraCategory {
+	if m.auraSuppressed() {
+		return 0
+	}
 	return m.skills.AuraCategories()
 }
 
@@ -1151,8 +1172,52 @@ func (m *Mob) SetAngle(a float32) {
 // aura-convention lifetime of tick interval + 1 makes the debuff survive
 // exactly one movement step past its last re-application.
 // Reports whether the slow was genuinely new rather than a refresh (§5.2).
+//
+// CC-immune species refuse it outright (plan-cc-and-retaliation.md D1). "Not
+// freshly slowed" is the honest answer here, and it has a deliberate
+// consequence at the caller: applySlowAura still stamps combat entry (you did
+// commit an act of hostility against the elite) while refunding the R2/R3
+// entry price for a whiff.
 func (m *Mob) ApplySlow(source skills.SkillID, fraction float32, ticks int) bool {
+	if m.ccImmune() {
+		return false
+	}
 	return m.buffs.ApplySlow(source, fraction, ticks)
+}
+
+// ApplyStun holds the mob for ticks (plan-cc-and-retaliation.md C3, D6):
+// movement stops AND its cast path is suppressed, which is what makes this a
+// stun rather than a root — a 100 % slow would leave it swinging.
+//
+// ⚑ It does NOT touch aggro (A5). That is the deliberate opposite of ApplyCalm,
+// which calls resetAggro() inside its own door: calm is a disengage tool, a stun
+// is a control tool, and a stun that also wiped the threat table would be a
+// strictly better calm.
+//
+// The fourth CC door, and the one that cashes in C1's design: the gate lives
+// here rather than at the SkillSystem's eligibility layer precisely so a CC
+// invented later inherits immunity without the immunity code changing.
+func (m *Mob) ApplyStun(source skills.SkillID, ticks int) {
+	if m.ccImmune() {
+		return
+	}
+	m.buffs.ApplyStun(source, ticks)
+}
+
+// Stunned reports whether this mob is currently held. Read by the SkillSystem's
+// shared cast path for the suppression half; the movement half is already
+// handled inside Buffs.MovementFactor, which stepLength composes.
+func (m *Mob) Stunned() bool { return m.buffs.Stunned() }
+
+// ccImmune reports whether this species refuses crowd control — the authored
+// factor behind every CC door on this type (plan-cc-and-retaliation.md D1/A3).
+//
+// The gate sits on the doors rather than on the SkillSystem's eligibility
+// layer so that a CC added later inherits it by construction, and so each door
+// can refuse in its own shape: they differ in return type AND in side effects,
+// which is why they cannot share one early return.
+func (m *Mob) ccImmune() bool {
+	return m.definition.Factors.CCImmune
 }
 
 func (m *Mob) moveTowards(target phy.Vec2f) {
@@ -1913,7 +1978,16 @@ func (m *Mob) LifestealFraction() float32 {
 //
 // The countdown lives in the buff store, not in a Mob field, so it ages on the
 // existing Tick() and carries its own applied-effect pip.
+//
+// ⚑ CC immunity has to refuse BOTH halves, which is why the gate is the first
+// statement in the door and not a wrapper around the buff write: an immune
+// boss that resisted the debuff and dropped its target anyway would keep
+// calm's whole point — the disengage — and lose only the timer. That is the
+// exact failure the immunity exists to prevent.
 func (m *Mob) ApplyCalm(source skills.SkillID, ticks int) {
+	if m.ccImmune() {
+		return
+	}
 	m.buffs.ApplyCalm(source, ticks)
 	m.resetAggro()
 }

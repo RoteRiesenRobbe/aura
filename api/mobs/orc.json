@@ -15,7 +15,8 @@
     "wanderRadius": 2,
     "idleSpeedFactor": 0.3,
     "idleDwellMinTicks": 240,
-    "idleDwellMaxTicks": 900
+    "idleDwellMaxTicks": 900,
+    "ccImmune": true
   },
   "body": {
     "radius": 0.4,

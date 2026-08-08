@@ -54,7 +54,7 @@ const EFFECT_COLOR_KEYS: { [type: string]: keyof typeof AURA_CATEGORY_COLORS } =
     dot_aura: 'dot', instant_dot: 'dot',
     heal_aura: 'heal', self_heal: 'heal', hot_aura: 'heal', instant_hot: 'heal',
     shield_aura: 'shield', instant_shield: 'shield',
-    slow_aura: 'slow',
+    slow_aura: 'slow', retaliate_slow: 'slow', stun: 'slow',
     resist_aura: 'resist', resist_passive: 'resist',
     light_aura: 'light',
 };
@@ -520,6 +520,29 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const pace = prog(speed.factor, speed.factorPerLevel, level, maxLevel, n => `${fmt(n)}×`);
             const duration = prog(speed.durationTicks, speed.durationTicksPerLevel, level, maxLevel, ticksToSecs);
             lines.push(`Move ${pace} as fast for ${duration}`);
+            break;
+        }
+        case 'stun': {
+            // Both halves are spelled out on purpose. "Stuns for 3s" leaves a
+            // reader to guess whether the target can still attack — and the
+            // answer (no) is the entire difference between this and a root.
+            const stun = effect.stun;
+            const held = prog(stun.durationTicks, stun.durationTicksPerLevel, level, maxLevel, ticksToSecs);
+            lines.push(`Holds one enemy for ${held} — it cannot move, attack or use abilities`);
+            lines.push('Damage does not break it');
+            break;
+        }
+        case 'retaliate_slow': {
+            // Worded from the wearer's side, because that is who reads it: the
+            // trigger is being hit, and the effect lands on someone else. Both
+            // halves go through prog() even though the duration is authored
+            // flat today — a retune that gives it a curve should not need this
+            // line edited (the flat case renders as one value anyway).
+            const retaliate = effect.retaliate;
+            const share = prog(retaliate.fraction, retaliate.fractionPerLevel, level, maxLevel, pct);
+            const duration = prog(retaliate.durationTicks, retaliate.durationTicksPerLevel, level, maxLevel, ticksToSecs);
+            lines.push(`Slows anything that damages you by ${share} for ${duration}`);
+            lines.push('Being hit is enough — it fires even when the hit is fully absorbed');
             break;
         }
         case 'lifesteal_burst': {

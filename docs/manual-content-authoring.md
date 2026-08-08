@@ -115,7 +115,7 @@ faction and skills without a schema append (see §5 and
      the fight belongs**; these ratios say **what shape it is**. Keeping the two
      apart is the whole point (it is landmine L1 in that plan).
    - `factors`: `baseMaxHealth`, `maxHealthVariance`, `xpFactor`, `speed`,
-     `deltaPhi`, `turnRate`, optional `resistances` / `damageTags`
+     `deltaPhi`, `turnRate`, `ccImmune`, optional `resistances` / `damageTags`
    - ⚑ **`xpFactor` is RELATIVE, and absolute `experience` hard-fails**
      (`plan-xp-formula.md` C1, the `maxHealth` precedent): kill XP is computed
      from the *killer's* level, so a per-mob XP number is not a smaller balance
@@ -124,6 +124,18 @@ faction and skills without a schema append (see §5 and
      also takes it off the nameplate path; fractions for species whose fight is
      nothing like a normal one (the Turnip is 0.05, and the Session-⑥ kite rule
      now reads "kite mobs author `xpFactor` 0.5").
+   - ⚑ **`ccImmune` is REQUIRED at tier ≥ elite** (`plan-cc-and-retaliation.md`
+     C1, D1/A1): an elite or boss definition that omits the key does not boot.
+     `true` refuses every crowd-control effect — slow, calm, charm — at the
+     entity's own doors, so anything added to the CC family later inherits it.
+     Absent → `false` (CC-able), which is what every normal-tier mob is unless
+     it opts in; a deliberately CC-able elite authors `false` and boots fine —
+     that escape hatch is the reason the flag is authored per mob instead of
+     derived from `tier`, which stays a label that multiplies nothing.
+     ⚑ Unrelated to a `resistances` entry of `0`: this stops *effects*, not
+     damage. It is also invisible in-game — an immune mob simply shows no pip.
+     The nine elite/boss definitions all author `true` today, and the census pin
+     is `TestCCImmune_ContentCensus`.
    - **Chore/gate keys are opt-in (C1; the vocabulary split is D4):**
      gate-style damage (Harvest) carries `"gateKey": "harvest"` on its effect,
      and a mob opts in by listing that key in **`factors.gateKeys`**. Combat

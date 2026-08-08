@@ -75,6 +75,17 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	// Charm is cooldown-fired and leaves no ring either; its tell is the
 	// applied-effect pip on the charmed mob (D13, plan-faction-flips chunk 3).
 	EffectTypeCharm: AuraCategoryNone,
+	// Retaliate slow is a PASSIVE — it has no ring for the same reason
+	// stat_multiplier and resist_passive have none: nothing is projected, so
+	// there is no circle to colour. ⚑ Deliberately NOT AuraCategorySlow: that
+	// would be reading the effect it applies rather than the geometry it draws,
+	// and the tell is on the ATTACKER (the existing slow pip lights on the mob
+	// that hit you, for free), never on the wearer.
+	EffectTypeRetaliateSlow: AuraCategoryNone,
+	// A stun is cooldown-fired and projects no ring; its tell is the pip on
+	// the stunned mob — which is the SLOW pip, since the ubyte has no bit left
+	// (D6). The mob visibly stopping doing anything is the rest of the read.
+	EffectTypeStun: AuraCategoryNone,
 }
 
 // AuraCategoryOf is the ring category a single effect contributes.

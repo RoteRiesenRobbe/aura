@@ -10,7 +10,8 @@
     "baseMaxHealth": 400,
     "speed": 0.1,
     "deltaPhi": 0.05,
-    "turnRate": 0.008
+    "turnRate": 0.008,
+    "ccImmune": true
   },
   "body": {
     "radius": 1.7,

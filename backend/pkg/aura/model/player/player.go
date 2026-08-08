@@ -716,10 +716,51 @@ func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {
 		p.attacker = c
 		p.attackerTicks = combatSignalWindowTicks
 	}
+	p.retaliate(e)
 	dealt := p.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
 	// Mob-cast lifesteal (chunk 1): Factors carries no Source — the mob is
 	// always its own recipient.
 	model.ApplyLifesteal(dealt, factors.Lifesteal, nil, e)
+}
+
+// slowable is the CC door a mob exposes; players carry none (the get-CC'd
+// direction stays inert, plan-skill-vocab §3.1), so this is asserted rather
+// than required on model.MobEntity. sys/skills.go declares the same shape at
+// its own point of use — one method is not a type worth sharing across
+// packages.
+type slowable interface {
+	ApplySlow(source skills.SkillID, fraction float32, ticks int) bool
+}
+
+// retaliate is the retaliate_slow passive's trigger (plan-cc-and-retaliation.md
+// C2, A4): every mob that damages this player is slowed while the passive is
+// equipped. Called from MobTouches, the ONE site both mob→player damage paths
+// funnel through — direct damage-aura hits and mob DoT ticks alike, so "every
+// mob that hits you" has no hole.
+//
+// Two behaviour calls live here, both deliberate:
+//
+//   - It runs BEFORE takeDamage and ignores the result. A fully mitigated hit
+//     still retaliates — MobTouches already stamps the attacker for the
+//     companion defend signal "resisted or not", and the same reading applies:
+//     the mob attacked you, whether or not it got through.
+//   - A GOD player does not retaliate. IsGod() short-circuits INSIDE
+//     takeDamage, so without this check a cheat-mode player would walk the
+//     world slowing everything that brushed them — a playtest artifact, not a
+//     feature.
+//
+// ⚑ The attacker may be a mob that has already died or left the viewport: a DoT
+// tick carries its caster's ref, which stays valid by design. ApplySlow on such
+// a mob is a harmless no-op, and an attacker with no CC door at all is simply
+// skipped.
+func (p *player) retaliate(attacker model.MobEntity) {
+	r := p.skills.Derived.RetaliateSlow
+	if r.Fraction <= 0 || p.IsGod() {
+		return
+	}
+	if target, ok := attacker.(slowable); ok {
+		target.ApplySlow(r.Source, r.Fraction, r.Ticks)
+	}
 }
 
 func (p *player) PlayerTouches(other model.PlayerEntity, damage model.Damage) {

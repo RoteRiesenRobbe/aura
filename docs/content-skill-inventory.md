@@ -86,7 +86,7 @@ result · **NONE** = unobtainable without the `SKILL` cheat.
 | 58 | Wildfire | 5 | fire dot 10.5 +2.1/L ×2 tgt (4×60t) @20t, r1.4 + self-only fire resist ×0.6 −0.05/L + light r4 +1/L | Recipe: Ignite 3 + Immolate 5 |
 | 59 | Suppression | 5 | dmg 6.5 +1.4/L r2.6 +.1/L + slow 7% +7%/L | Recipe: Slow 5 + LongRangeStrike 5 |
 
-## Passives (7)
+## Passives (8)
 
 | ID | Name | MaxLv | Values | Source |
 |---|---|---|---|---|
@@ -97,8 +97,9 @@ result · **NONE** = unobtainable without the `SKILL` cheat.
 | 47 | Antivenom | 3 | poison resist ×0.7 −.1/L | Drop: VenomSpider .25 |
 | 60 | KeenEye | 5 | crit chance +2% +2%/L | Drop: EliteWolf .2 / AlphaWolf .12 / DireWolf .1 |
 | 136 | Strong | 5 | all outgoing damage +4% +2%/L (direct + dots) | NPC CityGuard @L3 |
+| 139 | FrostShield | 5 | retaliate slow 10% +5%/L for 150t on anything that damages you | Drop: Troll .2 |
 
-## Cooldowns (23)
+## Cooldowns (24)
 
 | ID | Name | MaxLv | Values (CD in ticks) | Source |
 |---|---|---|---|---|
@@ -123,6 +124,7 @@ result · **NONE** = unobtainable without the `SKILL` cheat.
 | 57 | FieldMedics | 3 | 2× SoldierCompanion + 1× MedicCompanion, TTL 1800 +300/L; CD 2400 | Recipe: CallForAid 3 + Heal 5 |
 | 61 | FireTotem | 3 | spawn FireTotem, TTL 300 +60/L; its aura = fire dot 6 +2/L (3×60t) r2.5 on **all** enemies + glow (light r3); CD 450 | Drop: GreaterFireElemental .5 |
 | 62 | Calm | 3 | calm 300t +60/L, r4.0, all targets; **scoped: prey + predators**; CD 600 | NPC Hermit @L10 |
+| 140 | Paralyze | 5 | stun 90t +6/L, r2.5, nearest 1; CD 900 | Drop: GiantSpider .2 |
 | 63 | CharmBeast | 3 | charm 1800t +300/L, r4.0, 1 tgt nearest; **scoped: prey + predators**; CD 3600 | NPC Hermit @L10 |
 | 64 | BindElemental | 3 | charm 1200t +200/L, r3.5, 1 tgt nearest; **scoped: elemental**; CD 4200 | NPC Emberkeeper @L15 |
 

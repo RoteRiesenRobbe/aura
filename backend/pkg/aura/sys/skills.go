@@ -175,6 +175,36 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 	// so it lands in the combat slice of the tick, before serialization.
 	s.tickBuffEvents(e)
 
+	// The stun gate (plan-cc-and-retaliation.md C3, D6). Everything that FIRES
+	// sits downstream of this line, so one early return suppresses the whole
+	// cast half: cooldowns (and their recovery timers with them), presence
+	// attribution, and the active aura including its accumulator.
+	//
+	// ⚑ Its position is four decisions, not a detail:
+	//
+	//   - AFTER tickBuffEvents (L2). Dots and hots already on a stunned entity
+	//     must keep ticking, or a stun would PROTECT its target — which
+	//     inverts the mechanic. Non-negotiable.
+	//   - BEFORE processCooldowns (A6). Cooldowns must not fire, and their
+	//     timers stop advancing on this path too, so a stunned entity emerges
+	//     with them exactly where they were. That is intended: a stun costs you
+	//     time. Do not "fix" it.
+	//   - BEFORE notePresence. A stunned entity is not offered as an aura
+	//     participant. Mobs-only content today and mobs are not XP
+	//     participants, so the visible consequence is nil — recorded because it
+	//     is the ordering that would matter first if a player-facing stun ships.
+	//   - BEFORE TickAccumulator++ (A6). The cadence freezes, so the aura
+	//     resumes on the beat it was interrupted rather than having silently
+	//     advanced through the stun and firing the instant it ends.
+	//
+	// ⚑ It asks a CAPABILITY, not an entity kind — free, and it avoids an
+	// entity-kind branch. It is NOT a promise that player stuns work: players
+	// carry no stun door at all (plan-skill-vocab §3.1), so nothing can put one
+	// on them.
+	if st, ok := e.(stunSuppressible); ok && st.Stunned() {
+		return
+	}
+
 	sc := e.SkillComponent()
 	s.processCooldowns(e, sc)
 
@@ -1709,6 +1739,11 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 				hitAny = true
 			}
 
+		case skills.EffectTypeStun:
+			if s.applyStun(e, es.Def.ID, es.Level, effect) {
+				hitAny = true
+			}
+
 		case skills.EffectTypeCharm:
 			if s.applyCharm(e, es.Def.ID, es.Level, effect) {
 				hitAny = true
@@ -2029,6 +2064,58 @@ func (s *SkillSystem) applyCalm(e skillEntity, source skills.SkillID, level int,
 		hitAny = true
 	}
 	return hitAny
+}
+
+// stunSuppressible is the cast-suppression read (plan-cc-and-retaliation.md
+// C3): an entity that can report being held. Only mobs implement it, which is
+// the whole players-are-never-stunned rule — no branch needed.
+type stunSuppressible interface {
+	Stunned() bool
+}
+
+// stunnable is the stun capability: an entity whose actions can be halted.
+// Like charmable, only Mob implements it, so the capability check inside
+// eligibleByTargetFlags IS the "a player is not a valid target" rule.
+type stunnable interface {
+	ApplyStun(source skills.SkillID, ticks int)
+}
+
+// applyStun fires a stun cooldown (plan-cc-and-retaliation.md C3): a query
+// circle whose NEAREST eligible mob is held for the authored duration —
+// movement AND casting. Shaped like applyCharm, the other capped CC cooldown,
+// with two differences:
+//
+//   - No player-caster requirement. Charm's payload is a PLAYER link, so a mob
+//     caster whiffs; a stun's payload is a timer on the target and works from
+//     either side. No content authors a mob stun today, and the D1 immunity
+//     gate on the Mob door is what decides who can be held.
+//   - Nothing is reverted on expiry. The buff store aging the entry out IS the
+//     end of the stun — there is no charm-style link to unwind, which is why
+//     this needs no polling anywhere.
+//
+// Whiffs when the circle is empty, like every other targeted cooldown.
+func (s *SkillSystem) applyStun(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
+	if effect.Stun == nil {
+		return false
+	}
+	ticks := effect.Stun.TicksAt(level)
+
+	radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, level)
+	query := phy.NewCircle(e.AuraCollider().Position(), radius)
+	query.Shape().Mask = model.InstantDamageMask(effect)
+
+	hits := s.space.QueryCircle(query)
+	candidates := make(phy.ColliderSet, len(hits))
+	for _, h := range hits {
+		candidates[h] = struct{}{}
+	}
+	eligible := eligibleByTargetFlags[stunnable](effect, e, e.Basic().ID(), true)
+	targets := selectTargets(candidates, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible)
+
+	for _, c := range targets {
+		c.Shape().UserData.(stunnable).ApplyStun(source, ticks)
+	}
+	return len(targets) > 0
 }
 
 // charmable is the charm capability (plan-faction-flips chunk 3): an entity

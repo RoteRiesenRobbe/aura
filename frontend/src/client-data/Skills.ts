@@ -146,7 +146,26 @@ export interface LifestealParams {
     durationTicksPerLevel: number;
 }
 
+// The retaliate_slow payload (FrostShield): while equipped, every mob that
+// damages the wearer is slowed by fraction for durationTicks. The LifestealParams
+// shape read from the other side — same scalar-plus-lifetime, triggered by being
+// hit rather than by hitting.
+export interface RetaliateParams {
+    fraction: number;
+    fractionPerLevel: number;
+    durationTicks: number;
+    durationTicksPerLevel: number;
+}
+
 export interface CalmParams {
+    durationTicks: number;
+    durationTicksPerLevel: number;
+}
+
+// The stun payload (Paralyze): how long the target is held — movement AND
+// casting. Shaped like CalmParams/CharmParams because a stun has no strength
+// axis: an entity is held or it is not.
+export interface StunParams {
     durationTicks: number;
     durationTicksPerLevel: number;
 }
@@ -190,8 +209,10 @@ export interface SkillEffect {
     tickRate?: TickRateParams;
     speed?: SpeedParams;
     lifesteal?: LifestealParams;
+    retaliate?: RetaliateParams;
     calm?: CalmParams;
     charm?: CharmParams;
+    stun?: StunParams;
 }
 
 export interface SkillDefinition {

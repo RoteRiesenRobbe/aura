@@ -1,0 +1,16 @@
+{
+  "_comment": "Troll kill-drop passive (plan-cc-and-retaliation.md C2, PO ask 2026-08-07: 'a passive that slows every mob that hits the player'). The FIRST passive in the game with a RUNTIME TRIGGER rather than an equip-time scalar fold — it fires at player.MobTouches, the one site both mob→player damage paths funnel through (direct hits AND mob DoT ticks), so 'every mob that hits you' has no hole. A fully mitigated hit still retaliates; a GOD player does not. No cost: charging the victim of a hit for retaliating is not a mechanic anyone asked for, and a passive has no trigger of its own to charge. Curve is the PO's (2026-08-07): 10% at L1 rising to 30% at L5 in even 5-point steps — which also keeps it at or under the Slow aura's own fraction at every matching rank (Slow is 0.1 → 0.5), so it does not silently outclass the aura a player runs beside it. Duration flat at 150 ticks = 5 s at 30 TPS. ⚑ Slows never stack, strongest wins, so a rank-5 FrostShield WILL mask a rank-1/2 Slow aura — a build interaction, not a bug. Hung on the Troll at 0.2: the elite bruiser at curveLevel 11, which had room (one unlock) and is itself CC-immune since C1 — the thing you cannot slow teaches you to slow everything that touches you. All values [PLACEHOLDER]",
+  "id": 139,
+  "name": "FrostShield",
+  "category": "passive",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "retaliate_slow",
+      "slowFraction": 0.1,
+      "slowFractionPerLevel": 0.05,
+      "slowDurationTicks": 150,
+      "slowDurationTicksPerLevel": 0
+    }
+  ]
+}

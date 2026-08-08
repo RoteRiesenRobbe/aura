@@ -420,6 +420,65 @@ describe('lifesteal burst', () => {
     });
 });
 
+// stun (Paralyze, plan-cc-and-retaliation.md C3). The tooltip has one job the
+// mechanic makes non-optional: say that the target cannot ACT, not just that it
+// cannot move. "Stuns for 3s" would leave a reader assuming a root — which is
+// exactly the effect this replaced in the design.
+describe('stun', () => {
+    const paralyze = skill({
+        displayName: 'Paralyze', category: 'cooldown', maxLevel: 5, cooldownTicks: 900,
+        effects: [effect({
+            type: 'stun',
+            stun: {durationTicks: 90, durationTicksPerLevel: 6},
+        })],
+    });
+
+    it('says the target cannot act, not merely that it cannot move', () => {
+        // 90 ticks at 33 ms = 2.97 s; 96 at rank 2.
+        const out = lines(paralyze, 1, 1);
+        expect(out).toContain('Holds one enemy for 2.97s → 3.17s — it cannot move, attack or use abilities');
+        expect(out).toContain('Damage does not break it');
+        expect(out.join('\n')).not.toContain('(stun)');
+    });
+
+    it('drops the preview at max level', () => {
+        expect(lines(paralyze, 5, 1)).toContain('Holds one enemy for 3.76s — it cannot move, attack or use abilities');
+    });
+});
+
+// retaliate_slow (FrostShield, plan-cc-and-retaliation.md C2) — the mirror of
+// the lifesteal case, and the tooltip has to say something lifesteal's does
+// not: the effect lands on somebody ELSE. A player reading "Slow: 10%" on a
+// passive would reasonably assume they are the one being slowed.
+describe('retaliate slow', () => {
+    const frostShield = skill({
+        displayName: 'Frost Shield', category: 'passive', maxLevel: 5,
+        effects: [effect({
+            type: 'retaliate_slow',
+            retaliate: {fraction: 0.1, fractionPerLevel: 0.05, durationTicks: 150, durationTicksPerLevel: 0},
+        })],
+    });
+
+    it('names the slow, its target and the window', () => {
+        // 150 ticks at 33 ms = 4.95 s. The window is authored flat, so it shows
+        // one figure while the fraction previews the next rank.
+        const out = lines(frostShield, 1, 1);
+        expect(out).toContain('Slows anything that damages you by 10% → 15% for 4.95s');
+        expect(out).toContain('Being hit is enough — it fires even when the hit is fully absorbed');
+        expect(out.join('\n')).not.toContain('(retaliate_slow)');
+    });
+
+    it('drops the preview at max level', () => {
+        expect(lines(frostShield, 5, 1)).toContain('Slows anything that damages you by 30% for 4.95s');
+    });
+
+    it('does not scale with character power', () => {
+        // A slow fraction is not an amount — the power curve has nothing to
+        // multiply here, and applying it would promise a slow that grows twice.
+        expect(lines(frostShield, 1, SCALE_AT_30)).toContain('Slows anything that damages you by 10% → 15% for 4.95s');
+    });
+});
+
 // The summon line's mob name (§35 C4a). The client used to re-derive the
 // display name with its own CamelCase-splitting rule — a copy of the server's
 // skills.DeriveDisplayName, and the exact drift class §35 exists to retire.
