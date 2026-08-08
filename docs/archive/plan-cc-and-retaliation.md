@@ -1,6 +1,6 @@
 # Plan: CC and retaliation — immunity, a retaliate passive, and the first hard stun
 
-> **Status: COMPLETE — C1 + C2 + C3 all built (§11), 2026-08-07/08.**
+> **Status: COMPLETE — C1 + C2 + C3 all built (§11), 2026-08-07/08, committed `9da1e0d4`.**
 > The immunity gate is live (C1): `factors.ccImmune` on all nine elite/boss
 > definitions, required at tier ≥ elite by a boot error, gating every CC door.
 > **FrostShield** is live (C2, D3–D5): a Troll drop that slows anything damaging
@@ -566,7 +566,7 @@ Order is C1 → C2 → C3. C1 and C2 are each a session; C3 is larger.
 
 ## 11. Chunk ledgers
 
-### C1 — the immunity gate ✅ 2026-08-07
+### C1 — the immunity gate ✅ 2026-08-07, committed `9da1e0d4`
 
 **Built TDD red-first, one session, no design drift.** Every C1 decision was
 already ruled (D1 + A1/A2/A3); nothing needed a new prompt.
@@ -638,7 +638,7 @@ sometimes and now fails always has *changed state*") pointed the next
 investigation at the wrong thing. The mechanism remains **unknown**; nothing
 here diagnoses it. CLAUDE.md's Open items is corrected.
 
-### C2 — the `retaliate_slow` passive ✅ 2026-08-08
+### C2 — the `retaliate_slow` passive ✅ 2026-08-08, committed `9da1e0d4`
 
 **Built TDD red-first, same session as C1** (the PO asked to continue; the plan
 had them as separate sessions, and they are still separate commits' worth of
@@ -722,7 +722,7 @@ still shows `MaxLv 3` for passives that are authored 5 — which its own header
 predicts ("regenerate rather than trust it"); a real regeneration is its own
 small job.
 
-### C3 — the hard stun ✅ 2026-08-08
+### C3 — the hard stun ✅ 2026-08-08, committed `9da1e0d4`
 
 **Built TDD red-first, with every `sys` pin mutation-verified.** Six PO rulings
 — **D6–D11**, §2. This chunk completes the plan.
