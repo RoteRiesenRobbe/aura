@@ -15,6 +15,7 @@ import {setLocalPlayerMaxHealth} from '../../../client-data/Skills';
 import {shieldBarSegments} from '../../game-objects/logic/ShieldBarMath';
 import * as Flight from '../../flight/logic/Flight';
 import * as FlightOrigin from '../../flight/logic/FlightOrigin';
+import * as AttackLines from '../../game-objects/logic/AttackLines';
 import './PlayerJuice';
 
 export class Player {
@@ -154,6 +155,12 @@ export class Player {
         }
         if (entity.damageTaken > critTaken) {
             this.character.showFloatingNumber(hpToDisplay(entity.damageTaken - critTaken), 'damage');
+        }
+        // PROTOTYPE (backlog §57): attack-attribution lines — the own player is
+        // the case the indicator exists for; remote characters go through the
+        // twin call in EntityManager.
+        if (entity.damageTaken > 0) {
+            AttackLines.noteHit(this.character);
         }
         if (entity.healReceived > 0) {
             this.character.showFloatingNumber(hpToDisplay(entity.healReceived), 'heal');

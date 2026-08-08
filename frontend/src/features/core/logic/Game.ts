@@ -19,6 +19,7 @@ import * as Console from '../../internal-tools/console/logic/Console';
 import {Camera} from '../../camera/logic/Camera';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
+import * as AttackLines from '../../game-objects/logic/AttackLines';
 import {GameState, IGame, IGameLayers} from './IGame';
 import {gameObjectId} from '../../common/logic/Types';
 import {GraphicsConfig} from '../../../client-data/Graphics';
@@ -333,6 +334,12 @@ export class Game implements IGame {
         // Above darkness would be wrong — a flyer crossing a dark region is
         // still in it — so this sits just below it.
         this.cameraGroup.addChild(this.layers.flyers);
+
+        // PROTOTYPE (backlog §57): attack-attribution lines, above the entities
+        // they connect but deliberately BELOW the darkness — a dark area stays
+        // fully dark, and an overlay drawn over it would be the first thing to
+        // break that rule. One addChild; delete this line to revert.
+        this.cameraGroup.addChild(AttackLines.container);
 
         // Darkness overlay above every entity
         this.cameraGroup.addChild(this.layers.darkness);

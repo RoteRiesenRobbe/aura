@@ -79,6 +79,14 @@ export abstract class Mob extends GameObject {
     private barInnerX: number = 0;
     private barInnerWidth: number = 0;
     private auraRings: AuraRingStack = null;
+    // PROTOTYPE (backlog §57, attack-attribution lines): the last aura reach in
+    // px (ring radius, i.e. INCLUDING the collider extension) and the last
+    // effect-category mask. Cached here only because AttackLines has to ask
+    // "which mobs currently reach this victim" from outside the ring stack.
+    // Plain initializers are safe — these are assigned by the wire setters,
+    // never by initShape (see tierFrame above for why that distinction exists).
+    attackReachPx: number = 0;
+    attackCategoryMask: number = 0;
     // Buff/debuff pips under the overhead bar (wire applied_effects). Created
     // in initHealthBar (constructor body, after field initializers), so the
     // initializer here is safe — unlike fields assigned in initShape.
@@ -344,6 +352,7 @@ export abstract class Mob extends GameObject {
      */
     setAuraRadius(radiusPx: number) {
         if (radiusPx <= 0) {
+            this.attackReachPx = 0;
             if (this.auraRings !== null) {
                 this.auraRings.setRadius(0);
             }
@@ -355,6 +364,11 @@ export abstract class Mob extends GameObject {
         // Like hit reach, the visual ring extends by the player collider
         // radius (collision is shape-vs-shape).
         const ringRadius = radiusPx + meter2px(GraphicsConfig.character.colliderRadiusMeters);
+        // PROTOTYPE (backlog §57): the attack-line overlay needs the same
+        // EXTENDED reach the ring draws, not the raw wire radius — mobs park
+        // at exact melee reach, so a containment test against the raw value
+        // misses precisely the mobs that are hitting.
+        this.attackReachPx = ringRadius;
         this.ensureAuraRings().setRadius(ringRadius);
         if (this.auraTickIndicator === null) {
             this.auraTickIndicator = new AuraTickIndicator(this.shape);
@@ -374,6 +388,7 @@ export abstract class Mob extends GameObject {
     // damage sprite regardless of what the aura actually did — a healer's and a
     // slower's aura were indistinguishable from a damage aura.
     setAuraCategories(mask: number) {
+        this.attackCategoryMask = mask;
         this.ensureAuraRings().setCategories(mask);
     }
 

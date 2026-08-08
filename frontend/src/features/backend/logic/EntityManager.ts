@@ -13,6 +13,7 @@ import {Vector} from '../../core/logic/Vector';
 import {IMiniMapRendered} from '../../map/logic/MiniMapInterfaces';
 import {MiniMap} from '../../map/logic/MiniMap';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
+import * as AttackLines from '../../game-objects/logic/AttackLines';
 
 
 export class EntityManager {
@@ -171,6 +172,12 @@ export class EntityManager {
         }
         if (entity.damageTaken > critTaken) {
             gameObject.showFloatingNumber(hpToDisplay(entity.damageTaken - critTaken), 'damage');
+        }
+        // PROTOTYPE (backlog §57): attack-attribution lines. Characters ONLY —
+        // this block also fires for mobs taking the player's aura damage, and
+        // without the guard every hit of yours would draw mob→mob lines.
+        if (entity.damageTaken > 0 && gameObject instanceof Character) {
+            AttackLines.noteHit(gameObject);
         }
         if (entity.healReceived > 0) {
             gameObject.showFloatingNumber(hpToDisplay(entity.healReceived), 'heal');
