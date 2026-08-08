@@ -5668,7 +5668,9 @@ there until abilities roll in.
 ## 57. Attack attribution — a hit line from the mob to its victim
 
 *(added 2026-08-08 from the marketing-assessment conversation; the PO wants an
-**early prototype**. Not scheduled.)*
+**early prototype**. ✅ **PROTOTYPE BUILT AND PO-PLAYED 2026-08-08** — see
+"The prototype" at the end of this section. The **shipped** version is still
+unscheduled and still belongs behind §39.)*
 
 The ask: an indicator showing **which mob is attacking which character** —
 imagined as a line (hit- or arrow-like) from the mob to the player that lingers
@@ -5702,3 +5704,71 @@ effect is literally already on §39's "not on the wire yet" list, and the line
 would otherwise be the **seventh** independently-anchored overlay on a sprite
 (`AuraRings`, `EffectPips`, `AuraTickIndicator`, `InteractBadge`, nameplate,
 health bar). Prototype freely, ship through §39.
+
+### The prototype — built 2026-08-08, PO-played, NOT merged
+
+Branch **`prototype/attack-lines`**, commit **`cf305284`**. Deliberately *not*
+on `main`: it is throwaway by construction (see "What it cannot do"), and the
+whole point of the branch is that `git checkout main` reverts it. ⚑ **`git
+checkout main` alone is NOT a full revert** — `frontend/dist` is untracked, so
+the server keeps serving the prototype bundle until `npm run build` runs again.
+That one-liner has already been mistaken for "the revert didn't work".
+
+**PO verdict: *"tested it, works for now, keep as is"*** — no visual changes
+requested, so the placeholder line (red, 3 px, 450 ms) stands unchanged.
+
+**What it does.** It takes the zero-wire path this section recommended above.
+On a damage tick, draw a line from every mob whose damage/dot aura currently
+reaches the victim, fading over 450 ms. 36 lines across four existing files
+plus two new self-contained ones:
+
+- `AttackLines.ts` (new) — the whole overlay: one `Graphics` in one world-space
+  container, driven off the existing `PrerenderEvent` rather than a second
+  `Ticker` hook.
+- `Game.ts` — one `addChild`, above the entities but **below `layers.darkness`**.
+  A line drawn over the darkness overlay would be the first thing to light a
+  dark area, and the §6.5 rule is that dark areas stay dark.
+- `Mobs.ts` — two fields cached by the setters that already receive them.
+  ⚑ `attackReachPx` caches the **extended** ring radius (`radiusPx +
+  meter2px(colliderRadiusMeters)`), not the raw wire radius: collision is
+  shape-vs-shape and **mobs park at exact melee reach**, so a containment test
+  against the raw value misses precisely the mobs that are hitting.
+- `EntityManager.ts` / `Player.ts` — one `noteHit` call each, at the two
+  existing damage-tick sites. ⚑ The `EntityManager` one is guarded on
+  `instanceof Character`: that block **also fires for mobs taking the player's
+  aura damage**, so without the guard every hit of yours draws mob→mob lines —
+  which is most damage on screen.
+
+**⚑ What the prototype actually answered — the finding.** It works, and it is
+weakest exactly where it fires. At melee range the line is only ~30 px and sits
+under the aura rings, the sprites and the floating damage numbers. That is
+structural, not a tuning miss: the mobs hitting you are by construction the
+mobs standing on top of you, so the geometry the indicator has to work with is
+shortest in the case it exists for. A shipped version needs to solve *that*,
+not merely get a line onto the screen — candidates floated and not taken:
+starting the line at the attacker's aura **edge** so it reads as a strike
+rather than a stub, or an arrowhead so overlapping short lines stay separable.
+
+**What it cannot do, by construction** (unchanged from the analysis above): the
+wire has no per-hit source, so with two mobs on you **both** get a line whether
+or not both hit — precisely the case attribution exists for. Also: a DoT still
+burning you after its caster walked away gets no line, and a mob whose aura
+reaches you but whose damage was resisted gets one anyway.
+
+**Verified**: `tsc` clean · vitest 240/240 · **new
+`.claude/skills/verify/p57-attack-lines.mjs` 6 PASS / 0 FAIL** — the layer sits
+below the darkness · nothing is drawn before an attack (the negative control) ·
+a mob hitting the player draws a line · the lines age out again. ⚑ **The
+harness runs WITHOUT GOD, and so must anyone testing by hand**: `IsGod()`
+short-circuits inside `takeDamage`, so a cheat-mode player never takes a damage
+tick and the overlay has nothing to draw — which reads as "the feature is
+broken". Its clearing leg learned the same lesson the hard way: a first draft
+warped away to stop the damage and still read a live line, because warping
+moves only the player, straight into whatever stands at the destination. GOD is
+what stops the damage; the warp was measuring a new fight. `r4-badge` 7/7 and
+`filler-batch` re-run as the neighbouring rows (the latter's one FAIL
+reproduces identically on `main` — pre-existing, and self-contradicting on its
+face: *"DAMAGE 100 did NOT empty the pool, got Focus 0/100"*).
+
+**Schema impact: DB NONE · FlatBuffers NONE · conf NONE · content NONE** —
+frontend-only, which is the whole reason the prototype was cheap.
