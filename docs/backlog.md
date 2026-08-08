@@ -5483,6 +5483,30 @@ re-faction players:
   field, regenerate both binding sets.
 - Team or PvP flag persisted per character → a migration.
 
+### PO idea 2026-08-08 — PvP as the ascended afterlife (NOT final, recorded only)
+
+From the marketing-assessment conversation: keep PvP **separate from the living
+world entirely** — it unlocks at a player's **first ascension**, and ascended
+characters fight each other **as the faction they ascended as** — "basically an
+'afterlife death'". Explicitly not final, and in any case **PvP is unlikely to
+be in at launch**, so the GDD's Not-in-v1.0 stance stands.
+
+- It defuses this section's landmines by construction: campfire spawn-camping,
+  the XP-loss-per-duel problem and the living world's safety promises never
+  come up, because the living world never hosts PvP — §55's four seams flip
+  only inside the afterlife venue.
+- The "faction they ascended as" leg lands on `plan-ascension.md`'s
+  already-sanctioned **per-faction ascension** layer (D8, unblocked by
+  `plan-camps.md`) — this idea would be that layer's first consumer.
+- ⚑ But **v1 ascension has no faction choice** — D13 cut ascension to "pick one
+  skill from a curated list", so the idea implies an ascension-faction
+  dimension that does not exist yet. It rides D8; it cannot ride v1.
+- ⚑ Honest cost, PO-named in the same breath: PvP behind a full climb plus a
+  sacrifice sits **far** from a PvP enthusiast's first session — as an
+  acquisition hook it is nearly invisible. As an endgame/retention hook for the
+  cooperative audience the game actually courts, that distance may be exactly
+  right.
+
 ## 56. Player ORIGINS — per-origin milestone tracks, starting kits, start locations
 
 *(added 2026-08-05 from a PO design conversation; three rulings taken the same day,
@@ -5577,3 +5601,65 @@ and §55 documents why re-factioning players breaks every mob aggro mask). Call 
 Not before ascension C1 — C1 builds the creation-seeding seam this rides on, and
 the creation *screen* belongs to `plan-avatar-system.md` (§8 there now points
 here). With both in place, an origin is authored content plus one migration.
+
+### PO addendum 2026-08-08 — the creation choice is also an ONBOARDING fix, and may want a thin slice
+
+From the marketing-assessment conversation (the "aura combat risks reading as
+passive in the first ten minutes" concern): character creation needs **an aura
+picker — an early choice of starting spell, at creation or through very quick
+first quests — another button to press** so a new player is not just standing
+there until abilities roll in.
+
+- The problem is **agency, not absence**: Damage@L1 is already seeded at
+  creation (standing lock), so a fresh character has an action. What is missing
+  is a *choice*, and a second button, early.
+- This is a **thin slice of this section**, not new scope: pick ONE starting
+  aura (at creation, or granted by a first-minutes quest) — no origin milestone
+  tracks, no start locations. It rides the same kit mechanism (level-1
+  milestone rows + the creation seeding seam) either way, and the GDD §3
+  free-aura landmine above applies to whatever is pickable.
+- ⚑ Sequencing tension, deliberately left unresolved here: "When to build"
+  above says not before ascension C1, and the creation screen belongs to
+  `plan-avatar-system.md` — but the PO's "we need a character creation anyways"
+  signals earlier priority. Whether the thin slice jumps the queue is a roadmap
+  call, not made in this note. The **quick-first-quest variant needs no
+  creation screen at all** (the quest layer shipped 2026-07-30), which makes it
+  the cheapest slice if the screen stays parked.
+
+## 57. Attack attribution — a hit line from the mob to its victim
+
+*(added 2026-08-08 from the marketing-assessment conversation; the PO wants an
+**early prototype**. Not scheduled.)*
+
+The ask: an indicator showing **which mob is attacking which character** —
+imagined as a line (hit- or arrow-like) from the mob to the player that lingers
+a moment, signifying the damage, so the source of an attack is readable in a
+multi-mob fight.
+
+### What is already true
+
+- **The server-side hook is singular and free.** `player.MobTouches` is the ONE
+  site both mob→player damage paths funnel through — direct hits AND mob DoT
+  ticks (established by cc-and-retaliation C2, which hung FrostShield there —
+  `docs/archive/plan-cc-and-retaliation.md`). Attribution has the attacker in
+  hand at that site today.
+- **The wire is the real cost.** `Character.damage_taken` is a per-tick
+  AGGREGATE with no source id (`server.fbs`) — a shipped indicator needs a
+  per-hit source-entity field or event, and regenerating both binding sets.
+- **A zero-wire prototype path exists.** The client already receives each mob's
+  projected `Mob.aura_category` (damage/heal/slow/light) and its ring radius —
+  "draw a line from every mob whose damage ring currently contains the victim,
+  pulsed on the victim's `damage_taken` tick" is client-only. Its one blind
+  spot is overlapping attackers… which is exactly the case attribution matters
+  for. Fine for feeling out the visual; disqualifying for shipping.
+
+### ⚑ The §39 boundary
+
+§39 (entity presentation rework) exists precisely because overlays grew one per
+feature, and CLAUDE.md's standing note is *"don't invest in per-effect overlay
+art before it."* A throwaway prototype is compatible with that rule; the
+**shipped** version should be a §39 consumer — the per-hit *source* of an
+effect is literally already on §39's "not on the wire yet" list, and the line
+would otherwise be the **seventh** independently-anchored overlay on a sprite
+(`AuraRings`, `EffectPips`, `AuraTickIndicator`, `InteractBadge`, nameplate,
+health bar). Prototype freely, ship through §39.
