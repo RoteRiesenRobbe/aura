@@ -1,10 +1,20 @@
 # Plan: Content tooling — editors, validation, and the authoring pipeline
 
-> **Status: DESIGNED 2026-08-05 — no chunk built.** Planning session opened by
-> the PO question *"do we have a plan to move all current content in an
-> editor?"* — the answer was "two thirds exists, no unified plan," and this
-> document is that plan. Six rulings D1–D6 taken the same day as choice
-> prompts (two rounds).
+> **Status: DESIGNED 2026-08-05 (D1–D6) — RE-SCOPED 2026-08-09 (D7–D10), no
+> chunk built.** Planning session opened by the PO question *"do we have a
+> plan to move all current content in an editor?"* — the answer was "two
+> thirds exists, no unified plan," and this document is that plan. Six rulings
+> D1–D6 taken the same day as choice prompts (two rounds).
+>
+> ⭐ **The 2026-08-09 review re-scoped the plan under one frame ruling (D7):
+> bulk placement and authoring are AI-side; the human editor exists for spot
+> edits and tuning.** That cut half the plan: JSON Schemas (old C1, D8), the
+> standalone map editor (old C3/C5, D9) and the full quest & dialogue editor
+> (old C4, D10) are gone. What remains: **C0** validation + the D5 rules ·
+> **C1** the dev save endpoint + zone-editor retrofit (was C2) · **C2**
+> in-game drag-to-move (new, the residue of backlog §22) · **C3** the
+> quest/dialogue text-and-rewards form (was C4, shrunk). D1–D3 are superseded
+> → §10.
 >
 > ⚑ **Execution is queued AFTER ascension C1 (D6).** CLAUDE.md's declared next
 > session stays the ascension sacrifice transaction; nothing here jumps that
@@ -36,18 +46,21 @@ an "editor project":
 - **`docs/manual-content-authoring.md`** (750 lines) already turned the
   authoring folklore into reference.
 
-What is genuinely missing, and what this plan builds:
+What is genuinely missing, and what this plan builds *(dispositions updated
+2026-08-09 per D7–D10)*:
 
 1. **Validation exists only at server boot** — no way to check content without
    starting the game, no CI gate, no ID discipline. (§4.1, chunk C0)
-2. **No schema assistance** while editing the definition JSON. (§4.2, C1)
+2. ~~**No schema assistance** while editing the definition JSON.~~ ⛔ **CUT
+   (D8)** — autocomplete served human hand-editing, which D7 moves away from.
 3. **The save loop is manual** — export → download → copy into `api/` →
-   restart, for every tool. (§4.3, C2)
-4. **The standalone browser map editor** the PO asked for at the density pass
-   (backlog §22) was parked; its blocker (content pass C8) has lapsed. (§4.4,
-   C3)
-5. **Quests and NPC dialogue have no editor at all** — the highest-frequency
-   prose content is raw two-file JSON. (§4.5, C4)
+   restart, for every tool. (§4.3, now chunk C1)
+4. ~~**The standalone browser map editor** (backlog §22)~~ ⛔ **CUT (D9)** —
+   its one spot-editing residue, drag-to-move, lands in the **in-game** editor
+   instead (§4.4, new chunk C2); §22 closes as superseded.
+5. **Quest and NPC dialogue *texts and reward numbers* have no editor** —
+   shrunk from the full editor by D10: structure stays AI-authored JSON.
+   (§4.5, chunk C3)
 
 Inputs read during this session: `docs/research-content-pipeline.md`
 (2026-07-06 — this plan absorbs its §3 "now" items, see §9),
@@ -58,23 +71,10 @@ order, `backend/conf.default.json`.
 
 ## 2. Decision ledger — the rulings that govern what gets built
 
-All six taken 2026-08-05 as choice prompts.
+D1–D6 taken 2026-08-05, D7–D10 taken 2026-08-09, all as choice prompts.
 
-- **D1 — Quests get a FULL editor, not a prose-only form.** Stage graph,
-  objectives, rewards per turn-in row, NPC row wiring, and a validation panel.
-  The cheap alternative (a form editing only texts + reward values) was
-  offered and declined. This is the plan's largest single item (§4.5).
-- **D2 — The editor owns the WHOLE dialogue tree.** Quest rows live inside the
-  same `interaction` block as greetings, teachings, lore lines, and node
-  conditions (`api/mobs/<name>.json`) — and the editor authors all of it, not
-  just the quest rows with the rest read-only. Consequence: NPC conversation
-  authoring leaves JSON entirely; the editor must give row *reordering* a
-  guard rail, because row order is a silent balance change
-  (`manual-content-authoring.md:317`).
-- **D3 — The standalone browser map editor (backlog §22) is IN, first cut in
-  this plan.** Render + place/move/delete + save, per the §22 sketch. The
-  scatter brush, no-go guides, and multi-select are a follow-up chunk (C5),
-  not the first cut.
+- ~~**D1**~~ · ~~**D2**~~ · ~~**D3**~~ — **SUPERSEDED 2026-08-09** by D10, D10
+  and D9 respectively; full original text in §10.
 - **D4 — The iteration loop is a DEV SAVE ENDPOINT, no hot reload.**
   `aurad -dev` grows a small endpoint that validates and writes edited JSON
   straight into the `-content` directory. A restart still applies changes —
@@ -94,6 +94,30 @@ All six taken 2026-08-05 as choice prompts.
   queues behind the declared next item. Chunks C0–C2 are small and
   independent enough to run as filler sessions if one has room, but they do
   not displace ascension as the main thread.
+- **D7 (2026-08-09) — The frame: bulk placement and authoring are AI-SIDE;
+  the human editor exists for spot edits and tuning.** Taken reviewing this
+  plan against the shipped world-replacement pass, which placed all 423
+  combat spawns via scripts (`world-place.py` / `world-regions.py`) and never
+  touched an editor. Consequences: region/band structure is the AI placement
+  pass's discipline, **not** an editor overlay; bulk tools (scatter brush,
+  multi-select) are scripts, not UI. This ruling drives D8–D10.
+- **D8 (2026-08-09) — JSON Schemas are CUT** (old C1). Their consumer was
+  human hand-editing of definition JSON, which D7 moves away from; the AI
+  needs no autocomplete and the Go loaders stay the single validator.
+  Revisit only if an external tool ever needs machine-readable shapes.
+- **D9 (2026-08-09) — The standalone map editor is CUT; drag-to-move lands
+  in the IN-GAME editor** (supersedes D3; closes backlog §22 as superseded).
+  Of §22's ask, the overview render and bulk placement went AI-side (D7);
+  the one residue a human spot-editor actually feels is that moving a placed
+  prop/spawn means delete + re-place. That ships as a small in-game editor
+  chunk (§4.4) — no second webpack entry, no new `GET /props` route.
+- **D10 (2026-08-09) — The quest & dialogue editor shrinks to the cheap form
+  D1 declined** (supersedes D1 + D2). A dev-only page editing **texts and
+  reward numbers only**, saving through the C1 endpoint with live loader
+  validation. Structure — stages, objectives, row order, grant kinds, node
+  conditions — stays AI-authored JSON per D7, which also dissolves the
+  reorder-guard-rail requirement (the form cannot reorder) and the batch
+  atomic-save endpoint (single-file edits only).
 
 ## 3. What this plan deliberately does NOT cover
 
@@ -114,6 +138,14 @@ All six taken 2026-08-05 as choice prompts.
   on respawn/re-equip, never in-place mutation.
 - **Balance telemetry** (research doc §3 "later") — real, still later, owned
   by the observability work in `research-v1-readiness.md` §3.
+- **Bulk placement & overview tooling** (D7, 2026-08-09) — scripts, not UI.
+  The world-replacement pass's `scripts/world-place.py` + `world-regions.py`
+  are the precedent and stay the pattern; their coverage/consistency checks
+  belong to the AI placement pass's own discipline, not to this plan's CI
+  gate or any editor.
+- **Content-structure authoring UIs** (D8/D10, 2026-08-09) — definition-JSON
+  schemas, quest stage graphs, dialogue-tree editing: all stay AI-authored
+  JSON validated by the loaders.
 
 ## 4. Design
 
@@ -142,19 +174,15 @@ one place — server boot. C0 exposes them without booting:
   path deferred until a currency exists to refund into). Small Go change +
   table-driven tests. ⚑ This is the only C0 piece that touches runtime code.
 
-### 4.2 C1 — JSON Schema for every `api/` content type
+### 4.2 ~~old C1 — JSON Schema for every `api/` content type~~ — ⛔ CUT (D8)
 
-One schema per content directory (mobs, skills, recipes, quests, zones,
-props, factions, milestones), **generated from or checked against the Go
-structs** so it can't drift — a CI step regenerates and diffs. Wire-up:
-`$schema` refs in the JSON files (or a committed VS Code
-`json.schemas` mapping) give any editor autocomplete + inline shape
-validation while typing. This is also load-bearing for C4: the quest/dialogue
-editor's forms are cheap to keep honest when the shape has a machine-readable
-source of truth. Semantic rules stay in the Go validators (C0) — the schema
-does shapes, the loaders do meaning.
+*(Kept for the record.)* One schema per content directory, generated from or
+checked against the Go structs, wired into editors for autocomplete. Cut
+2026-08-09: its consumer was human hand-editing, which D7 moves away from;
+the loaders stay the single validator, and nothing in the surviving plan
+depends on machine-readable shapes.
 
-### 4.3 C2 — the dev save endpoint (+ retrofit the zone editor)
+### 4.3 C1 — the dev save endpoint (+ retrofit the zone editor)
 
 `aurad -dev` (and only `-dev` — the handler is never registered otherwise)
 grows:
@@ -167,7 +195,7 @@ grows:
   On failure it returns the loader's errors — which is every future editor's
   validation panel for free, with zero validator logic duplicated into JS.
 - **`POST /dev/content/validate`** — same, without the write (powers live
-  validation in C4's panel).
+  validation in C3's form).
 - **The existing zone editor switches to it.** Export/download stays as a
   fallback; the primary loop becomes edit → Save → restart. The manual's §7
   shrinks accordingly.
@@ -177,80 +205,72 @@ plus the same token the game join uses; the live server runs without `-dev`
 and never has the route. Add a pin test asserting the route is absent
 without `-dev`.
 
-### 4.4 C3 — standalone map editor, first cut (backlog §22)
+### 4.4 C2 — in-game editor drag-to-move (D9; replaces the standalone editor)
 
-Per the §22 sketch, first cut = **render + place/move/delete + save**:
+The one spot-editing gap the in-game editor has that a human actually feels:
+repositioning a placed prop/spawn/campfire/dark-area today means delete +
+re-place, re-entering every knob. C2 adds **drag-to-move to the existing
+in-game editor modes** — select a placed entity, drag, all other fields
+(respawn, variance, wander, waypoints, level, …) carried unchanged.
 
-- Canvas render of the full zone exactly like the density-pass map: terrain,
-  props, spawns, dark areas, campfires, anchors, the 12-unit grid.
-- Palette of existing prop/mob types (from `GET /mobs` + the props catalog);
-  click-to-place, **drag-to-move** (the in-game editor's known gap),
-  delete; edit the same per-spawn fields the in-game editor exposes
-  (respawn, variance, wander, waypoints, traversal, idle pace).
-- Save through the C2 endpoint; the server's validators enforce the same
-  boot rules (wander⊕waypoints, speed-0 checks, anchor uniqueness).
-- *(§8 proposal)* It lives as a **second webpack entry in `frontend/`**
-  (`editor.html`, dev-build only) — it wants the served catalogs, the terrain
-  atlas, and the zone JSON shape, all of which the frontend already has;
-  `tools/` would re-import half the client.
-- **Deferred to C5:** scatter brush (the density-pass generator as a brush),
-  no-go guides, multi-select. ⚑ Whether the standalone editor eventually
-  *subsumes* in-game modes stays open (§8) — first cut runs alongside.
+- Pure editor-frontend UX; no new routes, no second webpack entry.
+- Saves through the C1 endpoint once the retrofit has landed (C1 first).
+- ⚑ Per-spawn `level` already ships in the in-game editor (`mob-levels` C3,
+  2026-08-05) — this plan adds no field work, and any future per-spawn knob
+  (e.g. the designed mob tether) lands in the in-game editor as part of its
+  own plan, not here.
 
-### 4.5 C4 — the quest & dialogue editor (D1 + D2, the big one)
+### 4.5 C3 — the quest & dialogue TEXT form (D10)
 
-A second dev-only page (same entry-point pattern as C3) with two coupled
-views, because the content is genuinely two-file (`plan-quests.md` D11: a
-quest does not know who talks about it — the wiring lives on the NPCs):
+A dev-only page (same dev-build entry pattern as the zone editor) that edits
+**prose and reward numbers, never structure**:
 
-- **Quest view** — the stage graph (stages, kill/talk objectives, the derived
-  terminality made *visible*: the editor labels which stages are terminal and
-  why, since that is computed, never authored), and rewards **on turn-in rows
-  where they live** — the editor must make "a quest ending on an objective
-  stage pays nothing" visible instead of letting it be authored silently
-  (`manual-content-authoring.md:642`).
-- **Dialogue view (D2)** — the full `interaction` block of any conversant:
-  greeting + node conditions, teachings, lore rows, quest rows
-  (offer/advance/turn-in grant kinds). Row **reorder ships with a guard
-  rail**: an explicit confirm naming the visible-order consequence, since
-  nothing validates ordering (`manual-content-authoring.md:317`).
-- **Validation panel** — live `POST /dev/content/validate` of the *pair*
-  (quest + touched NPCs), surfacing `quests.CrossValidate` and the show-rule
-  ("a row is shown iff its ledger op would succeed") against real loader
-  output, not a JS re-implementation.
-- Save writes both files atomically-ish (quest first, then NPCs; on any
-  failure nothing is written — the endpoint validates the whole batch before
-  the first write; the batch form `POST /dev/content/batch` is a C4 addition
-  to C2's endpoint).
+- **Editable:** quest titles/descriptions/stage prose · dialogue line texts
+  on any conversant (greetings, lore rows, teaching lines, quest-row prose) ·
+  **reward numbers on turn-in rows where they live**.
+- **Not editable:** stages, objectives, row order, grant kinds, node
+  conditions, NPC wiring — AI-authored JSON per D7. The form cannot reorder,
+  so `manual-content-authoring.md:317`'s silent-balance-change hazard needs
+  no guard rail here.
+- **Validation** — live `POST /dev/content/validate` before save, surfacing
+  `quests.CrossValidate` and the loaders' real errors, no JS
+  re-implementation.
+- Save is **single-file** through the C1 endpoint (a text/reward edit touches
+  one file at a time; the endpoint validates it against the full content set
+  anyway). No batch endpoint.
 
-⚑ Likely splits into **C4a** (data plumbing: batch endpoint, quest + dialogue
-forms, save round-trip) and **C4b** (graph rendering, validation panel,
-reorder guard rails) — decide at chunk start, not now.
+⚑ One visibility nicety survives from the old design because it is cheap in
+a form: label a reward row when its quest ends on an objective stage and
+therefore pays nothing (`manual-content-authoring.md:642`) — display logic,
+not structure editing.
 
 ## 5. Schema impact (stated per the standing rule)
 
 **NONE — no migration.** Verified by enumeration, not reasoned: C0 touches a
 new CLI flag, CI, a new checked-in JSON lock file, and one runtime load-path
 change (reconciliation, D5 rule 3) that only *reads* persisted rows and
-clamps in memory — no table, no column, no write-shape change. C1 is static
-schema files. C2–C4 are dev-only HTTP handlers writing to the `-content`
-directory and browser pages. The D5 rules constrain future *content* changes
-precisely so that they don't force data migrations.
+clamps in memory — no table, no column, no write-shape change. C1 is dev-only
+HTTP handlers writing to the `-content` directory (+ the zone-editor
+retrofit). C2 is editor-frontend UX. C3 is a dev-only browser page saving
+through C1. The D5 rules constrain future *content* changes precisely so
+that they don't force data migrations.
 
 ## 6. Chunk breakdown
 
-Order C0 → C1 → C2 → C3 → C4 (→ C5). C0–C2 are foundations; C3/C4 both ride
-on C2's endpoint and C0's validators. Per D6 all of it queues behind
-ascension C1; C0–C2 qualify as filler sessions.
+**Renumbered 2026-08-09** (D8/D9 cut old C1, C3 and C5; old C2 → C1, old C4
+→ C3 shrunk). Order C0 → C1 → C2 → C3; C2 and C3 both ride on C1's endpoint,
+C3 also on C0's validators. Per D6 all of it queues behind ascension C1, and
+every chunk now qualifies as a filler session.
 
 | Chunk | Contents | Size |
 |---|---|---|
 | **C0** | `-validate` CLI (no DB), CI gate on `api/` changes, registry lock + tombstones, reconciliation policy + tests | small (≤1 session) |
-| **C1** | JSON Schemas for all 8 content dirs, generated/checked against Go structs, CI drift check, editor wire-up | small |
-| **C2** | Dev save + validate endpoints (dev-only, pin-tested), zone editor retrofitted, manual §7 updated | small–medium |
-| **C3** | Standalone map editor first cut: render + palette + place/drag/delete + save (§22's ~1-session estimate) | medium |
-| **C4** | Quest & dialogue editor (D1+D2): both views, batch save, validation panel; likely split C4a/C4b | large (~2 sessions) |
-| **C5** | Map editor round 2: scatter brush, no-go guides, multi-select | medium, optional |
+| **C1** *(was C2)* | Dev save + validate endpoints (dev-only, pin-tested), zone editor retrofitted, manual §7 updated | small–medium |
+| **C2** *(new)* | In-game editor drag-to-move, fields carried unchanged | small |
+| **C3** *(was C4, shrunk by D10)* | Quest & dialogue text form: prose + reward numbers, live validation, single-file save | small–medium |
+
+⛔ Cut 2026-08-09: JSON Schemas (D8) · standalone map editor first cut +
+round 2 (D9 — drag-to-move moved into C2, everything else went AI-side).
 
 ## 7. Test strategy
 
@@ -260,16 +280,16 @@ ascension C1; C0–C2 qualify as filler sessions.
   reconciliation tests (unknown ID inert-preserved, over-level clamped) —
   these are `store`-adjacent and run under `AURA_TEST_DB_URL` where they
   touch persisted rows.
-- **C1:** CI regenerate-and-diff; a fixture that violates each schema and is
-  caught.
-- **C2:** handler tests — happy write, validation reject (nothing written),
-  embedded-content refusal, **route absent without `-dev`** (the pin), batch
-  atomicity (C4a).
-- **C3/C4:** the house Playwright pattern (`verify` skill) — a leg file per
-  editor: load zone → place/drag → save → server restart → assert the world
-  changed; quest editor: edit reward → save → `GET /quests` reflects it →
-  the in-game journal shows it. Round-trip stability: load → save without
-  edits is byte-stable (canonical marshal), so diffs stay reviewable.
+- **C1:** handler tests — happy write, validation reject (nothing written),
+  embedded-content refusal, **route absent without `-dev`** (the pin).
+- **C2/C3:** the house Playwright pattern (`verify` skill) — a leg file per
+  surface: zone editor: place → drag → save → server restart → assert the
+  entity moved with its knobs intact; text form: edit reward → save →
+  `GET /quests` reflects it → the in-game journal shows it. Round-trip
+  stability: load → save without edits is byte-stable (canonical marshal),
+  so diffs stay reviewable — this is also the guard against the
+  whitelist-serializer landmine (`plan-mob-levels.md` L7: a save path that
+  hand-picks fields silently drops any field it doesn't know).
 - Per the standing rule every chunk states schema impact (expected: none,
   every time) and runs the relevant Go/vitest suites.
 
@@ -278,35 +298,55 @@ ascension C1; C0–C2 qualify as filler sessions.
 1. **Registry-lock mechanism** (§4.1) — proposed as a checked-in lock file
    updated via `-validate -update-lock`. Alternative: derive floors from git
    history (rejected: fragile, invisible in review).
-2. **Editors live as dev-only webpack entries in `frontend/`** (§4.4) — not
-   `tools/`. Driven by catalog/terrain-atlas reuse.
-3. **Does the standalone editor eventually subsume in-game editor modes?**
-   §22's own open question — deliberately not answered by the first cut;
-   re-ask after C3 has been used for a real content session.
+2. **The C3 form lives as a dev-only webpack entry in `frontend/`** — not
+   `tools/`. Driven by catalog reuse.
+3. ~~Does the standalone editor eventually subsume in-game editor modes?~~
+   **Dissolved by D9** — there is no standalone editor; the in-game editor
+   is the only placement UI.
 4. **conf.json stays UI-less** (§3) — adopted as the "simple config" half of
    the target state.
 5. **Refund path on maxLevel decrease** (D5 rule 2) — deferred until there is
    a currency to refund into; until then a decrease is simply rejected.
-6. **Dialogue node-condition vocabulary in the C4 UI** — how much of the
-   condition system gets structured UI vs a validated raw field; decide at
-   C4 design time against the then-current condition list.
+6. ~~Dialogue node-condition vocabulary in the C4 UI~~ **Dissolved by D10** —
+   conditions are structure and stay AI-authored JSON.
 
 ## 9. What this plan absorbs or closes elsewhere
 
 - **`research-content-pipeline.md`** — §3 "now" items fully dispositioned:
   disk loading ✅ (shipped as `-content`), authoring guide ✅
   (`manual-content-authoring.md`), `Skills.ts` dual-write ✅ (retired
-  `ae51d8b5`/`5308c312`), validate CLI → **C0**, JSON Schema → **C1**, ID
-  convention → **C0 (D5)**. Its §2 rules → **ratified (D5)**. Telemetry
-  stays later (§3). The doc gets a status-line pointer here when this plan's
-  first chunk ships.
-- **Backlog §22** — absorbed as **C3+C5**; close it with a pointer when C3
-  ships.
+  `ae51d8b5`/`5308c312`), validate CLI → **C0**, JSON Schema → ⛔ **cut
+  (D8)**, ID convention → **C0 (D5)**. Its §2 rules → **ratified (D5)**.
+  Telemetry stays later (§3). The doc gets a status-line pointer here when
+  this plan's first chunk ships.
+- **Backlog §22** — **CLOSED 2026-08-09 as superseded (D9)**: bulk/overview
+  went AI-side (D7), the drag-to-move residue is this plan's C2. The §22
+  entry carries the pointer.
 - **Backlog §17** — explicitly NOT absorbed; unchanged.
 
 ## 10. Superseded rulings
 
-*(none yet)*
+All three superseded 2026-08-09 by the D7 re-scope (frame: bulk placement
+and authoring are AI-side; the human editor is for spot edits and tuning).
+
+- **D1 (2026-08-05) — Quests get a FULL editor, not a prose-only form.**
+  Stage graph, objectives, rewards per turn-in row, NPC row wiring, and a
+  validation panel. The cheap alternative (a form editing only texts +
+  reward values) was offered and declined. → **Superseded by D10**, which
+  adopts exactly that cheap form: the full editor's extra scope served
+  *authoring*, which D7 assigns to the AI (the nine generic kill quests were
+  authored that way without an editor).
+- **D2 (2026-08-05) — The editor owns the WHOLE dialogue tree.** Quest rows,
+  greetings, teachings, lore lines, and node conditions all authored in the
+  editor; row reordering gets a guard rail
+  (`manual-content-authoring.md:317`). → **Superseded by D10**: the form
+  edits line *texts* only; tree structure and conditions stay JSON, and a
+  form that cannot reorder needs no reorder guard rail.
+- **D3 (2026-08-05) — The standalone browser map editor (backlog §22) is IN,
+  first cut in this plan** (render + place/move/delete + save; brush/no-go/
+  multi-select as C5). → **Superseded by D9**: the world-replacement pass
+  demonstrated bulk placement lives in scripts; only drag-to-move survives,
+  in the in-game editor (new C2). §22 closed as superseded.
 
 ## 11. Chunk ledgers
 

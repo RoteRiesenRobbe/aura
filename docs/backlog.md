@@ -1368,7 +1368,16 @@ ingredient completes last pops everything already met). Pinned by
 `TestRecipes_C7Net` (warlord journey pops the trio, `NotContains` Warbanner;
 maxing Spearhead then unlocks it).
 
-## 22. Standalone browser map editor (bypass the in-game zone editor)
+## 22. Standalone browser map editor (bypass the in-game zone editor) — ⛔ CLOSED 2026-08-09, SUPERSEDED
+
+**⛔ SUPERSEDED 2026-08-09 — `plan-content-tooling.md` D7/D9.** The frame
+changed: bulk placement and overview work went **AI-side** (the world
+re-placement pass placed all 423 combat spawns via `scripts/world-place.py` /
+`world-regions.py` and never touched an editor), and the human editor exists
+for spot edits and tuning. Of this entry's ask, the one spot-editing residue
+— **drag-to-move** — lands in the **in-game** editor (that plan's C2); the
+standalone render/palette/brush tool is not built. Idea kept below for the
+record.
 
 **WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
 **Origin:** Session ④ density pass (2026-07-19). The pass rendered
