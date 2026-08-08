@@ -16,6 +16,9 @@ package sys
 import (
 	"testing"
 
+	"github.com/EngoEngine/ecs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -112,6 +115,81 @@ func TestStun_FreezesCooldownRecovery(t *testing.T) {
 
 	assert.Equal(t, fired, caster.sc.SlotCooldownRemaining(0),
 		"ten stunned ticks buy back none of the cooldown")
+}
+
+// stunRecorder is a stunnable target that records what landed on it.
+type stunRecorder struct {
+	basic   ecs.BasicEntity
+	faction model.Faction
+	ticks   []int
+}
+
+func (r *stunRecorder) Basic() ecs.BasicEntity { return r.basic }
+func (r *stunRecorder) Faction() model.Faction { return r.faction }
+func (r *stunRecorder) ApplyStun(source skills.SkillID, ticks int) {
+	r.ticks = append(r.ticks, ticks)
+}
+
+// friendlyStunTarget is a stunnable mob on a friendly-to-players faction — the
+// Human Army shape.
+type friendlyStunTarget struct{ stunRecorder }
+
+func (t *friendlyStunTarget) FriendlyToPlayers() bool { return true }
+
+var _ model.PlayerFriendly = (*friendlyStunTarget)(nil)
+
+// ⚑ A DELIBERATE DIVERGENCE FROM A RECORDED RULE, pinned here rather than left
+// implicit. backlog §40 item 1 states that an enemy-targeted control effect
+// "MUST join factionScopedEffects so the allowlist is mandatory" (L-O, today
+// calm + charm only). Paralyze does NOT: for calm and charm the allowlist
+// answers a CONTENT question — which wildlife you may pacify or tame — while
+// for a stun the mob-side factors.ccImmune gate (C1) already answers "which
+// mobs", and there is no content reason to restrict which hostile factions can
+// be held.
+//
+// What the rule was protecting is the SAFETY half, and that holds without it:
+// mayHarm refuses a player-aligned caster against any FriendlyToPlayers target,
+// before the allowlist is even consulted. This test is that claim, so the
+// divergence cannot rot into a bug where a player stuns a quest giver.
+func TestStun_CannotReachAFriendlyNPC(t *testing.T) {
+	// ⚑ The HOSTILE control is not optional here, and the first draft of this
+	// test proved why: without it, the assertion passed against an EMPTY query
+	// space (testSkillSystem() builds its own space, which the target fixture
+	// never joins) — green because nothing was reachable at all, not because
+	// the friendly target was refused. Mutating mayHarm to permit the harm did
+	// not redden it. The control is what makes the refusal mean something.
+	effect := skills.EffectDef{
+		Type: skills.EffectTypeStun, TargetsEnemies: true, TargetsAllies: false,
+		Radius: 2.5, MaxTargets: 1, Stun: &skills.StunParams{DurationTicks: 90},
+	}
+
+	place := func(space *phy.Space, at phy.Vec2f, userData any) {
+		c := phy.NewCircle(at, 0.25)
+		c.Shape().IsSensor = true
+		c.Shape().Layer = int(model.LayerActionCollision)
+		c.Shape().UserData = userData
+		space.AddShape(c)
+	}
+
+	space := phy.NewSpace()
+	army := &friendlyStunTarget{stunRecorder{basic: ecs.NewBasic(), faction: model.Faction(2)}}
+	hostile := &stunRecorder{basic: ecs.NewBasic(), faction: model.FactionHostile}
+	place(space, phy.VEC2F_ZERO, army)
+	place(space, phy.Vec2f{X: 0.5, Y: 0}, hostile)
+	space.Update()
+
+	caster := newFakePlayer()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	s := NewSkillSystem(space, nil)
+	s.rng = testRNG()
+
+	// maxTargets 1 + nearest: the friendly is the CLOSER of the two, so if it
+	// were eligible it would be the one picked — and the hostile would then go
+	// untouched. One cast separates both claims.
+	require.True(t, s.applyStun(caster, 4, 1, effect), "the cast found something to hold")
+
+	assert.Empty(t, army.ticks, "a friendly NPC is never a valid stun target, allowlist or no allowlist")
+	assert.Equal(t, []int{90}, hostile.ticks, "…and the hostile behind it is what the cast took instead")
 }
 
 // L2, and the one boundary that is non-negotiable: dots and hots ALREADY on a

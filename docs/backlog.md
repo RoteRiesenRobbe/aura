@@ -4269,6 +4269,43 @@ engine work.
 
 ### The two cross-cutting facts, before the per-item list
 
+> ⚑ **UPDATE 2026-08-08 — item 1 (the stun) IS BUILT** (`9da1e0d4`,
+> `archive/plan-cc-and-retaliation.md`), and it moved both cross-cutting facts
+> below. Read this box before trusting them:
+>
+> - **The pip budget has a THIRD option nobody had written down: reuse an
+>   existing bit.** The two recorded exits were `AppliedEffectNone` or wait for
+>   §39. `stunPayload` takes **`AppliedEffectSlow`** — a stun genuinely *is*
+>   movement impairment, so it reads as something rather than nothing. ⚑ The
+>   cost is real and is now live: **a stunned mob and a slowed one are
+>   indistinguishable on the wire**, and a stun suppresses a weaker slow's pip.
+>   §39 still owns splitting them, and there are now **two** buffs queued behind
+>   that widening (lifesteal, and this conflation).
+> - **"Nothing suppresses a live actor's own effects" is no longer true — the
+>   shared lever fact 2 asks for EXISTS.** `Buffs.Stunned()` plus one early
+>   return in `processEntity`, placed after `tickBuffEvents` and before
+>   `processCooldowns`/`notePresence`/`TickAccumulator++`. Item 3(a) (immunity
+>   that stops your own attacks) and invisibility-on-mobs can consume it as
+>   written; neither needs to build it.
+> - **Stun resistance shipped WIDER than item 1 asked**: not a `stunResistance`
+>   knob but **`factors.ccImmune`**, covering slow/calm/charm/stun alike, gated
+>   at the `Mob` doors so any future CC inherits it. Required at tier ≥ elite by
+>   a boot error. Neither of item 1's two proposed shapes was taken.
+> - ⛔ **Item 1's L-O clause was NOT followed, deliberately.** Paralyze does not
+>   join `factionScopedEffects`. For calm and charm the allowlist answers a
+>   *content* question (which wildlife you may pacify or tame); for a stun,
+>   `ccImmune` already answers "which mobs", and no content reason restricts
+>   which hostile factions can be held. The **safety** half the rule protects
+>   holds without it — `mayHarm` refuses a player-aligned caster against any
+>   `FriendlyToPlayers` target before the allowlist is consulted — and that is
+>   now pinned by `TestStun_CannotReachAFriendlyNPC`, with a hostile control,
+>   mutation-verified. Revisit only if a stun should be scoped by faction for
+>   content reasons.
+> - ⚑ **Scope difference:** item 1 wanted "stuns all enemies in range";
+>   Paralyze is **single target** (nearest, `maxTargets: 1`) per D11, because an
+>   uncapped hard stun neutralises a pack off one button. The AoE version
+>   remains authorable — it is a JSON change, not a code one.
+
 1. **⚑ The pip budget is spent.** Four of the six wanted items (stun, immunity,
    thorns-granting aura, ally-buff aura) put a **new kind into the closed
    `buffPayload` union** (`skills/buffs.go:44`), and the union compile-forces a
@@ -4291,7 +4328,9 @@ engine work.
 
 ### The rulings, validated
 
-1. **Hard CC — stun, wanted.** A cooldown that stuns all enemies in range, with
+1. ✅ **Hard CC — stun. BUILT 2026-08-08** (`9da1e0d4`; see the update box above
+   for the five ways it differed from this entry). Original entry, kept as the
+   prediction record: A cooldown that stuns all enemies in range, with
    an optional per-mob **stun resistance** authorable on bosses/elites/anything.
    *Validation:* the movement half is nearly free — `Buffs.MovementFactor()`
    is the single composition point both movement sites read (Swift session), so

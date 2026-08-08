@@ -839,6 +839,22 @@ torch does not go out because you are paralysed).
 tracked `cp-defs` twin and must ride the commit (see C2's ledger for why the
 mob copies do not). And `registry_test.go`'s skill census moved 88 → **89**.
 
+⛑ **A recorded rule diverged from, and a pin that was green for the wrong
+reason — found while closing out.** `backlog.md` §40 item 1 states that an
+enemy-targeted control effect **must** join `factionScopedEffects` so the
+allowlist is mandatory (L-O). Paralyze does not, on the reasoning below — but
+the *safety* half of that rule needed proving, so a pin went in for "a player
+cannot stun a friendly NPC". ⚑ **Its first draft passed against an EMPTY query
+space**: `testSkillSystem()` builds its own `phy.Space`, which the target
+fixture never joins, so nothing was reachable and mutating `mayHarm` to permit
+the harm did not redden it. Adding a **hostile control in the same space** —
+placed *behind* the friendly one, so a `maxTargets: 1` nearest pick separates
+both claims in one cast — made it real, and the mutation now reddens both
+assertions. **Second time this chunk that a pin was green because its subject
+was unreachable rather than because the code was right.** §40 has been updated
+with the divergence and the four other ways the shipped stun differs from what
+it predicted.
+
 ⚑ **Not built, deliberately:** the stun authors **no `targetFactions`
 allowlist**, unlike calm and charm. Those need one because "which mobs are
 eligible" is a content question for them; here `factors.ccImmune` (C1) is the
