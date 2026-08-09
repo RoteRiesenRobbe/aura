@@ -2426,6 +2426,17 @@ Ordinary intake, deliberately not taken now (PO: *"that entire topic is for
 later anyways"*). It is a **presentation pass, not quest work** — it belongs
 beside the step-8b UI-polish rest-of-checklist when that reopens.
 
+⚑ **Update 2026-08-09: the FONT half now has its own reference doc,
+`docs/plan-ui-font.md`.** Still not scheduled and still nothing built, but a
+screenshot pass ran against the live game (five candidate faces, three scenes,
+comparison artifact linked from the doc) and the PO's verdict was *"I don't want
+to go forward with any of them now but they give me a good starting spot."* Read
+that doc before touching the font: it records how the two font declarations
+actually work, and two traps that are not about taste (the current face is small
+enough that webpack **inlines** it and the candidates are not, while nothing in
+the client waits for a font and PixiJS bakes glyphs at `Text` creation). The
+*cleaner UI* and *dialogue UI* halves of this item stay here.
+
 ### 3. Journal opened during dialogue overlaps it → parked with item 2
 
 > *"currently, opening the journal while in dialogue just weirdly overlaps."*
