@@ -1,7 +1,7 @@
 # Plan: Ascension — the character-sacrifice loop
 
 > **Status: DESIGNED 2026-08-04, SCOPE CUT 2026-08-05 (D13), CODE-REVIEWED
-> 2026-08-05 (D15–D17) — no chunk built.**
+> 2026-08-05 (D15–D17), CONDITIONS ADDED 2026-08-09 (D18): no chunk built.**
 > The execution-order item "character-sacrifice loop" (GDD §5 meta-progression,
 > pulled into v1 by the 2026-07-19 intermission-triage ruling, item 10), opened
 > as persistence's first consumer. Every number is [PLACEHOLDER] unless marked.
@@ -10,6 +10,15 @@
 > 2026-08-04 design had a point economy; **D13 cut it.** Three rulings (D2, D5,
 > D6) were superseded and now live in §10 only — the body of this document
 > describes what gets built, nothing else.
+>
+> ⚑ **And D13 is itself partially superseded: D18 (2026-08-09) puts CONDITIONS
+> back in v1.** A catalog entry may carry a gate ("ascend 3 times", "slay 50
+> wolves this life"), and a gated entry renders **locked with the gate named and
+> its progress** rather than hidden. The economy stays cut: still one free pick,
+> no points, no prices, no random roll. **Schema impact is still NONE**, because
+> every v1 condition reads state that is already persisted or already derivable
+> at ticket time; the one class that would cost a migration (counters that
+> accumulate *across* lives) is explicitly not taken.
 >
 > ⚑ **Schema impact: NONE. No migration.** Verified against the shipped
 > `000001` DDL (§5), not reasoned.
@@ -23,8 +32,12 @@ that every future character in that slot starts with. The loop is the GDD's
 living-starting-zone engine: voluntary, rewarding restarts.
 
 **In v1 that is the entire reward mechanic.** Reach max level, walk to the
-stone, pick one, ascend. No points, no roll, no gates, no measure of how well
+stone, pick one, ascend. No points, no roll, no measure of how well
 the life went — those are §8 layers, deferred but explicitly not blocked.
+⚑ **Since D18 some entries carry a condition** ("ascend 3 times", "slay 50
+wolves this life"), shown locked with the gate named until it passes. That
+qualifies an individual *reward*; the price of ascending is still max level and
+nothing else, and an all-locked catalog still ascends (D14).
 
 Inputs, all read during the design session:
 
@@ -159,6 +172,75 @@ by D13, retained in §10. Numbering is not reused.
   spellbook keys by int id, so *some* string mapping had to be ruled; this one
   adds nothing to keep in sync. Future non-skill rewards (§8 cosmetics etc.)
   bring their own key strings — TEXT accommodates.
+- **⭐ D18, CONDITIONS ARE IN v1: a catalog entry may carry a gate, and gated
+  entries render LOCKED with the gate named.** Taken 2026-08-09 as a direct PO
+  instruction plus two choice prompts. **This partially supersedes D13**, which
+  cut feat gates along with the economy; the economy stays cut, the gates come
+  back. §10 records the superseded clause; D13's other three quarters (no
+  random roll, no points, no prices) are untouched, and the reward is still
+  exactly one pick from a list.
+  - **The gate is the §5 nullable field, now active rather than inert.** One
+    field, still shared with `plan-camps.md`'s faction condition, so the two
+    never become parallel systems.
+  - **Vocabulary is SHARED with the shipped node-condition engine**
+    (`mobs.ConditionKind`, `sys.conditionsPass`, AND semantics over a list,
+    unknown kind refused at boot). Two surfaces, one language: a node condition
+    gates a *dialogue node*, an entry gate rides a *catalog entry* and is
+    evaluated where C2 builds its dynamic rows. ⚑ The dividend is free: NPC
+    dialogue gains the new kinds the day they land, so "a hunter who only talks
+    to you after ten wolf kills" becomes authoring, not code.
+  - **Condition kinds NAME THEIR SCOPE**: `kills_this_life`,
+    `bloodline_ascensions`, never bare `kills` / `ascensions`. The per-life vs.
+    cross-life line is the entire cost model (see the tiers below), and an
+    ambiguous authored key is how a migration-costing gate gets authored by
+    accident.
+  - **Locked rows are SHOWN with the gate named and its progress**: "Requires:
+    slay 50 wolves this life (12/50)". Discoverability over secrecy: the
+    *recipes* stay secret, the *gates* do not. ⚑ **This is also what keeps D14
+    honest**: a hidden entry is indistinguishable from an exhausted catalog, so
+    a player would have no way to learn the condition exists. ⚑ **D14's empty
+    state therefore tightens**: "this bloodline has learned everything it can
+    teach" now means no pickable rows **and** no locked rows; with a locked row
+    on screen that sentence is a lie. ⚑ The progress counter is composed
+    **per-player at render**, never authored, exactly like the quest journal's
+    `Objectives []string` (which exists for the same reason: serving thresholds
+    for unreached content would reverse D14's sibling ruling).
+  - **A locked row is CLICKABLE AND REFUSES** in v1, at zero wire cost. A genuinely
+    disabled row means a new `ConversationOption` field, which is an `.fbs`
+    change plus a codec pin; the refusal reply costs nothing and says the same
+    thing. Revisit if it reads badly in C2's feel pass.
+  - **The three cost tiers, which is what the ruling actually buys:**
+    **A, free today**, O(1) reads off the `learner` surface that
+    `conditionsPass` already holds: level (`minLevel`, shipped), quest stage /
+    completion (`MatchesStage`, shipped), **kills of a species in this life**
+    (`Ledger.KillCount`), `HasTalkedTo`, spellbook membership. ⚑ §8's
+    "counter-based feats need a counter subsystem that does not exist" was
+    **too pessimistic for the per-life half**: the quest ledger shipped those
+    counters on 2026-07-30, four days before this plan was designed, persisted
+    as `character_flags` rows and moved onto `learner` by quests C2.
+    **B, one ticket addition, no migration**: anything derivable from the
+    account's `characters` rows, resolved once in the off-loop `/select` path
+    beside D16's unlocks: `bloodline_ascensions` (count of
+    `sacrificed_at IS NOT NULL` for that `(account, slot)`), "highest level ever
+    reached in this bloodline", "first life". ⚑ Session-constant by
+    construction: ascending ends the session, so nothing can invalidate it
+    mid-dialog.
+    **C, costs a migration, NOT taken**: cumulative *across* lives that is not
+    already a column (kills across the bloodline, steps walked, deaths).
+    Per-character counters die with the row, structurally, which is §4.8's whole
+    point. ⚑ **If it is ever built, the roll-up rides INSIDE the sacrifice
+    transaction**, carrying a live ledger snapshot the way that request already
+    carries the validated pick, never the save path, because §4.6's teardown
+    deliberately *skips* the final save (it zeroes `characterByClient`, the
+    save-skip kill switch). Later historical aggregation from the surviving
+    graveyard `character_flags` rows stays possible and would lose only each
+    life's final unsaved window.
+  - **Schema impact stays NONE.** Tiers A and B read state that is already
+    persisted or already derivable; only tier C would need a migration, and it
+    is not taken.
+  - ⚑ **P3's naming discipline holds**: these are **conditions** (the authored
+    kind) or **achievements** (the player-facing idea). "Milestones" stays
+    reserved for `api/milestones/` level unlocks.
 
 ## 3. GDD & backlog amendments this plan carries
 
@@ -203,9 +285,17 @@ Nothing else — no quest gate, and under D13 no measure of the life's quality.
    client art; C2 may reuse an existing EntityType until the world pass.
 2. **Interact → the ascension dialog.** Shows what ascension is (lore text) and
    **the list of skills this bloodline may still learn**: the catalog minus
-   what it already owns (P4). No prices, no locked rows. Below max level the
+   what it already owns (P4). No prices. Below max level the
    dialog still opens read-only as a preview [PLACEHOLDER — cheap, and answers
    "what am I working toward"].
+   ⚑ **Two row classes since D18**: pickable rows, then any **gated** entries
+   whose condition has not passed, rendered locked with the gate named and its
+   progress ("Requires: slay 50 wolves this life (12/50)"). A locked row is
+   clickable and refuses, at zero wire cost, versus an `.fbs` field for a truly
+   disabled row. The gate is evaluated in the same pass that builds the rows,
+   against the same `learner` surface the node-condition engine already reads,
+   which is why every v1 condition kind had to be an O(1) in-memory read (D18
+   tiers A and B).
    ⚑ **This list is the interaction container's first DYNAMIC row source.**
    `present()` rebuilds the conversation per tick per conversing player under a
    standing O(1)-in-memory-reads-only rule — so the unlocks must already be on
@@ -335,12 +425,17 @@ whole feature is first-writers for columns that shipped empty:
   the ninth entry — and the embed package must use `//go:embed *` (the
   `quests` precedent), because `api/ascension/` ships README-only from C1
   until C3 authors entries and `go:embed` rejects a pattern matching nothing.
-- ⚑ **One field exists purely for the deferred layers:** each catalog entry
-  carries a **nullable gate** — unset in every v1 entry. It is the single slot
-  for both future gate kinds (a feat gate, and `plan-camps.md`'s faction
-  condition, whose §3 item 5 asks for exactly this) so they never become
-  parallel systems. A price field can join it the day point buy is built; it is
-  content JSON, so that is an authoring change, not a migration.
+- ⚑ **The gate field is LIVE since D18, not inert:** each catalog entry carries
+  a **nullable gate**, a list of conditions in the shipped `mobs` vocabulary,
+  ANDed, unknown kind refused at boot. It stays the single slot for every gate
+  kind (achievement conditions now, `plan-camps.md`'s faction condition later,
+  whose §3 item 5 asks for exactly this) so they never become parallel systems.
+  A price field can join it the day point buy is built; it is content JSON, so
+  that is an authoring change, not a migration. ⚑ **Still no migration**: every
+  v1 condition kind reads state that is already persisted (`character_flags` for
+  per-life counters) or already derivable from `game.characters` at ticket time
+  (`bloodline_ascensions`). Only D18's tier C would need one, and it is not
+  taken.
 - Store tests need `AURA_TEST_DB_URL` (real Postgres) — an irreversible
   transaction is exactly the kind of code "green without Postgres" lies about.
 
@@ -360,6 +455,12 @@ whole feature is first-writers for columns that shipped empty:
   **unless ascension ships first, in which case camps' C1 inherits the
   standing assert** (§4.8). TDD against real Postgres; done when a test can
   ascend a character and its successor boots seeded.
+  ⚑ **D18 adds two things here, both small and both load-bearing for C2/C3:**
+  the catalog's **gate parse + boot validation** (a list of conditions in the
+  `mobs` vocabulary, unknown kind = boot error, following `conditionKinds`'
+  existing refuse-at-boot discipline), and **`bloodline_ascensions` resolved
+  onto the auth ticket** beside the unlocks, in the same off-loop `/select` query
+  that already reads the slot's rows, so it is a count, not a second round trip.
 - **C2 — the stone.** Site mob (`forest-sign` shape, §4.1; EntityType reuse or
   a new pinned enum value) + interaction dialog (preview, the pickable list,
   confirm) — which means the container's first **dynamic row source** (§4.2);
@@ -368,6 +469,12 @@ whole feature is first-writers for columns that shipped empty:
   empty-slot select screen (D15). No new wire *messages* — `Interact` +
   `Conversation` already carry list/pick/confirm; the wire cost is at most an
   EntityType value. Headless smoke via the `verify` skill.
+  ⚑ **D18 adds locked-row rendering** to the dynamic row source: the gate
+  evaluated against the same `learner`, its progress composed into a per-player
+  string, the row clickable and refusing. **Still no wire cost**, which is
+  exactly why the refusal was chosen over a disabled-row flag. ⚑ It also
+  tightens D14's empty state: "nothing left to teach" must now check pickable
+  **and** locked rows before it says that.
 - **C3 — memorial + catalog seed.** Monument (same interaction-mob shape) +
   names listing — the **first graveyard query ever written**, filtering
   `deleted_` names (D11), served through C2's dynamic row source; author the
@@ -375,6 +482,19 @@ whole feature is first-writers for columns that shipped empty:
   variant/template mechanism exists; `charm-beast`/`charm-elemental` is the
   precedent pair) with a fresh pinned id, through the add-content pipeline,
   plus one combination.
+  ⚑ **D18: three of those entries are GATED, one per mechanism** (PO choice,
+  2026-08-09), so each of the three data paths gets a real content consumer
+  rather than only a test:
+  1. `bloodline_ascensions >= 3`: a veteran-only variant; proves the **ticket
+     carriage** (tier B).
+  2. `kills_this_life: DireWolf >= 50` [PLACEHOLDER species + threshold]: a
+     directed hunt; proves the **ledger read** (tier A).
+  3. `quest_completed: the-lost-lamp`: proves the **shipped vocabulary** is
+     genuinely reused rather than re-implemented (tier A).
+  ⚑ Their power still obeys **D1 world-parity**: a gate buys *access*, never a
+  higher power level. A gated entry that outclassed world content would make
+  the condition the only road to that power, which is the SWG-Hologrind failure
+  D1 exists to prevent.
 
 Sequencing: C0 anytime; C1 → C2 → C3, each its own execution session.
 
@@ -427,7 +547,13 @@ field is what keeps them cheap:
   (`game.bloodlines`, materialized never derived), rarity/quest scoring, and
   the anti-inflation rule that must travel with it (§10). One cluster; revive
   it whole or not at all.
-- **Feat gates** — hidden or hard achievements unlocking specific entries,
+- ✅ **~~Feat gates~~, PULLED INTO v1 BY D18, no longer deferred.** Achievement
+  conditions on catalog entries, shown locked with the gate named. What stays
+  deferred is only the **cross-life counter half** (D18 tier C): counters that
+  accumulate across a bloodline's lives, which need either a bloodline-scoped
+  table or a roll-up written inside the sacrifice transaction, and are the one
+  part of this that costs a migration. Original entry, kept for the shape it
+  described: hidden or hard achievements unlocking specific entries,
   shown locked with the gate named (discoverability over secrecy: the
   *recipes* stay secret, the *gates* do not). Counter-based feats
   (kills-per-species, steps walked) are one layer further out and need a
@@ -440,8 +566,10 @@ field is what keeps them cheap:
 
 ## 9. Proposals adopted without a choice prompt (PO may veto any)
 
-- **P1** max level is the only prerequisite — and under D13 the only
-  qualification of any kind.
+- **P1** max level is the only prerequisite **to ascend**, and under D13 the
+  only qualification of any kind. ⚑ **D18 narrows the wording, not the rule**:
+  a gate qualifies an individual *reward*, never the ascension itself. Max level
+  remains the whole entry price, and a fully-gated catalog still ascends (D14).
 - **P3** naming: this plan says **achievements** for feat gates; "milestones"
   stays reserved for `api/milestones/` level unlocks.
 - **P4** no duplicate picks — a taken entry leaves that bloodline's catalog
@@ -458,6 +586,19 @@ field is what keeps them cheap:
 
 Kept so a future session can revive the economy deliberately instead of
 rediscovering it. **None of this is in scope; see §8 "deferred".**
+
+- **D13's gate clause, PARTIALLY SUPERSEDED by D18 (2026-08-09).** D13 read
+  "no random roll, no point economy, no feat gates"; the third of those is
+  reversed and conditions ship in v1. **The other two stand**, and so does the
+  sentence that matters: the reward is still exactly one pick from a list, with
+  no points, prices or scoring anywhere. ⚑ D13's own escape hatch is what made
+  the reversal cheap rather than a rework: it required the catalog to carry a
+  nullable gate field from day one *precisely so* adding gates would be data,
+  not rework, and that is exactly how it played out (schema impact still NONE).
+  ⚑ D18 also corrects one factual claim in §8's deferral: "counter-based feats
+  need a counter subsystem that does not exist" was true only for the
+  cross-life half. The per-life counters shipped with quests on 2026-07-30,
+  four days *before* this plan was designed.
 
 - **D2 — acquisition = point buy + achievement-gated specials.** Superseded by
   D13. It had amended GDD §5's "choose one reward" away; D13 restored it.
