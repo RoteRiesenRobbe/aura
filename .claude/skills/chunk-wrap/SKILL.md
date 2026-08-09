@@ -1,6 +1,6 @@
 ---
 name: chunk-wrap
-description: Session-end bookkeeping when a plan chunk / session is finished — TIERED by session size (full plan-chunk ritual · light bugfix wrap · docs-only). Use when the user says a chunk/session is done, verified, or ready to record. Encodes the tier rule, the CLAUDE.md Status cap, the banner format + the no-autonomous-commit guardrail.
+description: Session-end bookkeeping when a plan chunk / session is finished — TIERED by session size (full plan-chunk ritual · light bugfix wrap · docs-only). Use when the user says a chunk/session is done, verified, or ready to record. Encodes the tier rule, the CLAUDE.md Status cap, the archive checklist + the no-autonomous-commit guardrail.
 ---
 
 Ritual for recording a finished chunk/session so the status surfaces stay
@@ -31,41 +31,61 @@ When unsure between FULL and LIGHT, ask: did this session produce rulings or
 findings that a *different* future session must know? If only the diff matters,
 it's LIGHT.
 
-## Where status lives (single sources, keep in sync)
+## The three surfaces (single sources, keep in sync)
 
-1. **`CLAUDE.md` `## Status`** — the *current* state, under a **hard cap**:
-   `Last completed` + at most **two** `Prior` entries, each ≤10 lines ending in a
-   ledger pointer. Write the new `Last completed` entry *compressed* (what shipped,
-   the 1–2 findings that outlive the chunk, a one-line Verified tally, the
-   pointer) — the full banner goes in the plan doc, never here. Demote the
-   previous `Last completed` to a `Prior`, and **move the entry that falls off
-   the cap verbatim to the top of `docs/archive/status-history.md`'s entry list**.
-   Update `Next` / `Open items` / `Standing locks` if they changed — and prune
-   any Open-items line the finished chunk just closed.
-2. **The plan doc's chunk banner** — the authoritative full ledger
-   (`plan-content-zones12.md §13 C#`, `plan-intermission-triage.md §…`, etc.).
-   The complete retrospective prose belongs **here**, not in CLAUDE.md.
-3. **`MEMORY.md` index line** — a **one-line hook** for the relevant project
-   memory, **hard-capped at ~250 chars**. Update the hook's status words if they
-   changed; per-chunk detail goes in the memory file **body**, never the index.
-   ⚑ By 2026-08-03 one index line had grown to 5.5 KB — nearly the size of the
-   file it pointed at — which is why this is a cap, not a style note. And only
-   write to memory at all when there is a durable cross-session lesson (see the
-   tier rule above).
+1. **The plan doc's chunk banner** — the **authoritative** full ledger
+   (`plan-<name>.md §13 C#`). The complete retrospective prose belongs here and
+   nowhere else. Match the house style of the banners already in that doc; the
+   two non-obvious bits are that the hash stays `[uncommitted]` until the user
+   actually commits, and that dates are absolute, never relative.
+2. **`CLAUDE.md` `## Status`** — a *compressed* pointer to that banner: what
+   shipped, the 1–2 findings that outlive the chunk, a one-line Verified tally,
+   the ledger pointer. Under the cap below.
+3. **`MEMORY.md` index line** — a one-line hook for the relevant project memory,
+   hard-capped at **~250 chars**; per-chunk detail goes in the memory file
+   **body**, never the index. Only write to memory at all when there is a
+   durable cross-session lesson (see the tier rule).
 
-## Banner house style (match the existing entries)
+Before calling the wrap done: the three agree on chunk name, date and commit
+state, and Status's `Next` points at whatever actually comes next.
 
-- Lead with **what + when + verification state**:
-  `**<Chunk name> DONE (YYYY-MM-DD), <scope note> — PO-VERIFIED IN-GAME YYYY-MM-DD, committed \`<hash>\`**`.
-  Leave the hash as `[uncommitted]` until the user actually commits.
-- Then the ledger: **PO rulings**, **Content** (files/ids/pins), **Verified**
-  (suite + race + the boot-count line + browser smoke), and any **Watch item**
-  that recurred.
-- The boot-count line is the canonical shape, e.g.
-  `75 skills/12 factions/40 mobs/10 recipes/620 props/185 spawns/2 campfires/10 npcs, 0 panics`.
-  Pull the real numbers from the boot log (see the `verify` skill's Boot-count
-  section) — never guess them.
-- Convert relative dates to absolute (project rule).
+## The cap — count BYTES, and Status is not just `Recent`
+
+CLAUDE.md loads every session. Budget for the whole `## Status` section:
+**~12 KB**.
+
+- **Recent** — `Last completed` + at most **two** `Prior`, each **≤ ~1.5 KB**.
+  Demote the previous `Last completed`, and move the entry that falls off the
+  cap **verbatim** to the top of `docs/archive/status-history.md`'s entry list.
+- **Next / Open items** — no entry limit, but each bullet **≤ ~600 chars** and
+  the two sections together **≤ ~8 KB**. Prune every line the finished chunk
+  closed; a closed item is **deleted**, not annotated with "CLOSED".
+
+⚑ **Why bytes, and why the two halves.** The cap exists because by 2026-08-03
+Status had reached 136 KB / 87 % of the file — every session prepended a banner
+and nothing ever pruned. The line-based rule that replaced it ("≤10 lines") was
+then satisfied on a technicality: every entry complied by being one unwrapped
+4.7 KB bullet. As of 2026-08-09 Status is **27 KB** — Recent 9.7 KB, Next+Open
+**17 KB**, the half no rule governed. If the section is over when you arrive,
+collapsing it is part of *your* wrap, not a future someone's.
+
+## The harness gate — run it BEFORE writing the banner
+
+A chunk that changes behaviour a browser harness asserts **owns that harness**.
+Run every script whose row in the `verify` skill's **Coverage map** matches this
+chunk — that skill owns the operational detail (restart the server first, one
+script at a time, the `git stash` + rebuild settlement for a red run). Act on
+the result *in this chunk*:
+
+- **green** → record the tally in the banner (`14/14`, `29/29 + 1 SKIP`).
+- **red because the behaviour deliberately changed** → rewrite or delete the
+  script **now**. Never leave it red.
+- **red for an unrelated reason** → prove it against HEAD and say so in the
+  banner rather than silently ignoring it.
+
+⚑ The cheapest moment to fix a harness is the chunk that invalidates it; every
+later moment costs someone a false diagnosis (`chunk3b-interact.mjs` sat red at
+6/15 across two chunks and misled every session that ran it).
 
 ## Archive the plan doc when its LAST chunk lands
 
@@ -88,50 +108,3 @@ nothing left open, no deferred half anyone will resume:
 
 A doc with *any* open item (deferred checklist, unstarted workstream, live-ops
 reference) **stays in `docs/`**.
-
-## Docs-hygiene guard (keeps context from overflowing)
-
-CLAUDE.md and MEMORY.md load **every session**. By 2026-08-03 the Status section
-had accreted to **136 KB / 87 % of the file** because every session prepended a
-full banner and nothing ever pruned — that is why the cap in point 1 above is a
-hard rule, not a style note. The full prose history lives in the plan-doc
-banners; overflow entries live verbatim in `docs/archive/status-history.md`.
-When wrapping up, if Status holds more than 3 completed-work entries or any
-entry longer than ~10 lines, collapse/move them **as part of the wrap**.
-
-## The harness gate — run it BEFORE writing the banner
-
-A chunk that changes behaviour a browser harness asserts **owns that harness**.
-Consult the `verify` skill's **Coverage map** (harness → what it owns → re-run it
-when you touch X), run every script whose row matches this chunk, and act on the
-result *in this chunk*:
-
-- **green** → record the tally in the banner (`14/14`, `29/29 + 1 SKIP`).
-- **red because the behaviour deliberately changed** → rewrite or delete the
-  script **now**, as part of this chunk. Never leave it red.
-- **red for an unrelated reason** → prove it: `git stash` + rebuild + re-run
-  against HEAD. If it fails identically, it predates you — say so in the banner
-  rather than silently ignoring it.
-
-⚑ **Why this step exists.** 3b-ii moved teaching behind a conversation-panel row
-click and did not touch `chunk3b-interact.mjs`, which had been written for the
-world where `E` taught directly. It sat red at 6/15 across two chunks, and every
-later session that ran it read the failure as a regression in whatever *they* had
-just changed — it cost two runs to settle on 2026-07-29. `chunk3a-npc-merge.mjs`
-died the same way and had to be deleted outright, because 3b-i had reversed its
-entire premise. **The cheapest moment to fix a harness is the chunk that
-invalidates it; every later moment costs someone a false diagnosis.**
-
-⚑ **Restart the server before the run.** Mobs wander far from their authored
-spawns on a long-lived one, so a venue a script picked by reading `world.json`
-stops describing the world — three checks in one script were "failing" for this
-alone, and a restart fixed them with no code change.
-
-## Before declaring wrap-up done
-
-- The three surfaces above agree on chunk name, date, commit state, and next.
-- Sanity checks were actually run (`go build`, `go test`, `npm test`, in-game if
-  it has a runtime surface) — record their real output, don't claim green unseen.
-- The harness gate above was applied: every harness this chunk owns was run, and
-  any that went red was fixed, deleted, or proven pre-existing.
-- You did **not** commit unless explicitly asked.
