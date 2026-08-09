@@ -89,6 +89,16 @@ export interface SpawnParams {
     // derived from the OWNER's live level, and retired the key server-side — the
     // loader now hard-fails on it, so it can never appear in this payload again.
     powerPerOwnerLevel: number;
+    // The summon's authored skill loadout as catalog references, attached
+    // server-side at boot (skills.SpawnParams.SummonLoadout) — the tooltip's
+    // only way to say what the summon does. The levels are a floor: the spawn
+    // site raises them to the summon skill's level.
+    summonLoadout?: SummonSkillRef[];
+}
+
+export interface SummonSkillRef {
+    skillId: number;
+    level: number;
 }
 
 export interface ThreatParams {

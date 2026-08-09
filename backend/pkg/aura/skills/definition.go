@@ -827,6 +827,25 @@ type SpawnParams struct {
 	TTLTicksPerLevel int `json:"ttlTicksPerLevel"`
 
 	PowerPerOwnerLevel float32 `json:"powerPerOwnerLevel"`
+
+	// SummonLoadout is the summon's authored skill loadout as catalog
+	// references, attached by mobs.RegistryFromFS once the mob registry can
+	// resolve MobName (mobs load after skills). It exists for the /skills
+	// catalog: the tooltip cannot say what a totem DOES from the spawn effect
+	// alone, and the /mobs catalog deliberately omits loadouts (zero-hint
+	// policy). Exposing them HERE is the minimal carve-out — only mobs a
+	// spawn effect references, only through the summoning skill's entry. The
+	// authored levels are a floor: the spawn site raises them to the summon
+	// skill's level (RaiseLoadoutLevels).
+	SummonLoadout []SummonSkillRef `json:"summonLoadout,omitempty"`
+}
+
+// SummonSkillRef points a spawn payload at one of its summon's skills by
+// catalog id — the client resolves it against the same /skills payload it is
+// already holding.
+type SummonSkillRef struct {
+	SkillID SkillID `json:"skillId"`
+	Level   int     `json:"level"`
 }
 
 // TTLAt is the summon lifetime in ticks at the given SKILL level, floored at 1.

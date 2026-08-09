@@ -51,6 +51,22 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	assert.True(t, hasHunter, "repo content ships a mob-hunting faction")
 	assert.True(t, hasPassive, "repo content ships a passive faction")
 
+	// Round-7 item 3: after the mob registry resolves, every summoning skill's
+	// spawn payload carries the summon's loadout — the tooltip's only way to
+	// say what the totem/companion actually does.
+	var spawnEffects int
+	for _, sk := range skillsRegistry.All() {
+		for _, effect := range sk.Effects {
+			if effect.Spawn == nil {
+				continue
+			}
+			spawnEffects++
+			assert.NotEmpty(t, effect.Spawn.SummonLoadout,
+				"skill %q: spawn %q must carry the summon's loadout", sk.Name, effect.Spawn.MobName)
+		}
+	}
+	assert.NotZero(t, spawnEffects, "repo content ships summoning skills")
+
 	recipeRegistry, err := skills.RecipesFromFS(content.recipes, skillsRegistry)
 	require.NoError(t, err)
 	assert.NotEmpty(t, recipeRegistry.All())

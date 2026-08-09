@@ -105,6 +105,11 @@ func RegistryFromFS(sr skills.Registry, fr factions.Registry, c curve.Curve, fil
 // freshly built mob registry. Skills load before mobs (mob loadouts resolve
 // against the skill registry), so this is the earliest moment a spawnMob typo
 // can hard-fail at boot instead of at cast time.
+//
+// While it holds the resolved mob anyway, it attaches the summon's loadout to
+// the spawn payload as catalog references (round-7 item 3) — the /skills
+// catalog is where the tooltip learns what the summon does; see
+// skills.SpawnParams.SummonLoadout for why the carve-out lives there.
 func validateSpawnEffects(mobs *registry, sr skills.Registry) error {
 	if sr == nil {
 		return nil
@@ -114,9 +119,15 @@ func validateSpawnEffects(mobs *registry, sr skills.Registry) error {
 			if effect.Spawn == nil {
 				continue
 			}
-			if _, err := mobs.GetByName(effect.Spawn.MobName); err != nil {
+			summoned, err := mobs.GetByName(effect.Spawn.MobName)
+			if err != nil {
 				return fmt.Errorf("skill %q: spawnMob %q does not match any mob definition", skill.Name, effect.Spawn.MobName)
 			}
+			loadout := make([]skills.SummonSkillRef, 0, len(summoned.Skills))
+			for _, ms := range summoned.Skills {
+				loadout = append(loadout, skills.SummonSkillRef{SkillID: ms.Def.ID, Level: ms.Level})
+			}
+			effect.Spawn.SummonLoadout = loadout
 		}
 	}
 	return nil

@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 
-import {SkillDefinition, SkillEffect} from '../../../../client-data/Skills';
+import {SkillDefinition, SkillEffect, roundHP} from '../../../../client-data/Skills';
 import {loadMobCatalog} from '../../../../client-data/Mobs';
 import {formatSkillTooltip} from './SkillTooltip';
 
@@ -906,5 +906,118 @@ describe('next-level preview gating', () => {
             .lines.map(l => l.text).filter(t => t.startsWith('Costs you'));
         expect(cost(true)).toEqual(['Costs you: 6 → 8 Focus per cast']);
         expect(cost(false)).toEqual(['Costs you: 6 Focus per cast']);
+    });
+});
+
+// Round-7 item 3 (third raise): "Summons Totem for 9.9s" said WHO comes and
+// never WHAT it does. The spawn payload now carries the summon's loadout as
+// catalog references (skills.SpawnParams.SummonLoadout, attached at boot when
+// the mob registry resolves), and the tooltip renders each loadout skill's
+// effects beneath the Summons line — through the SAME per-effect renderer
+// every ability uses, so a retune of the totem's aura re-renders here for
+// free. The resolver is injected so the formatter stays pure; the app passes
+// the live catalog lookup.
+describe('summon loadout', () => {
+    const totemAura = skill({
+        id: 61, name: 'TotemAura', displayName: 'Totem Aura', maxLevel: 5,
+        effects: [effect({
+            type: 'damage_aura', radius: 3, tickInterval: 30, targetsEnemies: true,
+            selector: 'nearest', maxTargets: 1,
+            damage: damageParams(4, 2),
+        })],
+    });
+    const resolve = (id: number) => (id === 61 ? totemAura : undefined);
+
+    const summon = skill({
+        displayName: 'Summon Totem', category: 'cooldown', maxLevel: 5, cooldownTicks: 450,
+        effects: [effect({
+            type: 'spawn',
+            spawn: {
+                mobName: 'Totem', ttlTicks: 300, ttlTicksPerLevel: 30, powerPerOwnerLevel: 0.05,
+                summonLoadout: [{skillId: 61, level: 1}],
+            },
+        })],
+    });
+
+    function tooltipLines(def: SkillDefinition, skillLevel: number, powerScale: number,
+                          playerLevel: number): string[] {
+        return formatSkillTooltip(def, skillLevel, powerScale, 0, 1, true, 1, playerLevel, resolve)
+            .lines.map(line => line.text);
+    }
+
+    it('renders the summon\'s effects beneath the Summons line, at the raised loadout level', () => {
+        // The spawn site raises the loadout to the summon skill's level
+        // (RaiseLoadoutLevels): authored 1, skill 3 → the aura renders at 3.
+        expect(tooltipLines(summon, 3, 1, 1)).toEqual(expect.arrayContaining([
+            '↳ Damage: 8 every 0.99s',
+            '↳ Radius: 3',
+            '↳ Targets: nearest 1 enemies',
+        ]));
+    });
+
+    it('suppresses next-level previews inside the loadout block', () => {
+        // A "→" inside the block would claim the totem's aura levels when the
+        // player spends a point — it does, but only through the summon skill,
+        // whose own TTL line keeps its preview.
+        const rendered = tooltipLines(summon, 3, 1, 1);
+        for (const line of rendered.filter(l => l.startsWith('↳'))) {
+            expect(line).not.toContain('→');
+        }
+        expect(rendered).toContain('Summons Totem for 11.88s → 12.87s');
+    });
+
+    it('composes f(character level) and the summon power into the numbers', () => {
+        // The server's composition (casterPowerScale): a summon's HP output is
+        // f(owner level) × (1 + powerPerOwnerLevel × (L − 1)).
+        const expected = roundHP(4 * SCALE_AT_30 * (1 + 0.05 * 29));
+        expect(tooltipLines(summon, 1, SCALE_AT_30, 30))
+            .toContain(`↳ Damage: ${expected} every 0.99s`);
+    });
+
+    it('degrades to the bare Summons line when the loadout skill is not in the catalog', () => {
+        const unresolved = formatSkillTooltip(summon, 1, 1, 0, 1, true, 1, 1, () => undefined)
+            .lines.map(l => l.text);
+        expect(unresolved.filter(l => l.startsWith('↳'))).toEqual([]);
+        expect(unresolved).toContain('Summons Totem for 9.9s → 10.89s');
+    });
+});
+
+// Call for Aid authors three identical spawn effects — one per soldier — and
+// rendered "Summons Soldier Companion …" three times: technically true, not
+// pretty (PO 2026-07-30). Identical spawn effects collapse into one counted
+// line; the cost machinery keeps reading def.effects, so the per-cast sum
+// still counts every summon.
+describe('identical spawn dedupe', () => {
+    const squadSpawn = () => effect({
+        type: 'spawn', costFractionOfMax: 0.02, costFractionOfMaxPerLevel: 0.003,
+        spawn: {mobName: 'SoldierCompanion', ttlTicks: 300, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0},
+    });
+
+    it('collapses identical spawn effects into one counted line', () => {
+        const squad = skill({
+            category: 'cooldown', maxLevel: 5, cooldownTicks: 2400,
+            effects: [squadSpawn(), squadSpawn(), squadSpawn()],
+        });
+        const rendered = lines(squad, 1, 1);
+        expect(rendered.filter(l => l.startsWith('Summons'))).toEqual([
+            'Summons 3× SoldierCompanion for 9.9s',
+        ]);
+        expect(rendered.filter(l => l.startsWith('Costs you'))).toEqual([
+            'Costs you: 6% → 6.9% of max Focus per cast',
+        ]);
+    });
+
+    it('keeps distinct spawns separate', () => {
+        const mixed = skill({
+            category: 'cooldown', maxLevel: 1, cooldownTicks: 600,
+            effects: [
+                effect({type: 'spawn', spawn: {mobName: 'Totem', ttlTicks: 300, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0}}),
+                effect({type: 'spawn', spawn: {mobName: 'FireTotem', ttlTicks: 300, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0}}),
+            ],
+        });
+        expect(lines(mixed, 1, 1).filter(l => l.startsWith('Summons'))).toEqual([
+            'Summons Totem for 9.9s',
+            'Summons FireTotem for 9.9s',
+        ]);
     });
 });

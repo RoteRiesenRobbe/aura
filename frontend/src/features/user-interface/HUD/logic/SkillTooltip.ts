@@ -350,7 +350,7 @@ function selfTargetLine(effect: SkillEffect, verb: string): string {
 
 function effectBlock(effect: SkillEffect, level: number, maxLevel: number, powerScale: number,
                      isCosted: boolean, suppressCadence: boolean,
-                     damageFactor: number = 1): EffectBlock {
+                     damageFactor: number = 1, spawnCount: number = 1): EffectBlock {
     const lines: string[] = [];
 
     // Cadence folds into the main line instead of its own "Ticks every" line
@@ -437,7 +437,10 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const spawn = effect.spawn;
             // The mob catalog serves the display name (§35 C4a) — the client
             // does not re-derive it; before the catalog loads, the raw name.
-            lines.push(`Summons ${mobDisplayName(spawn.mobName)} for ${prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}`);
+            // spawnCount > 1 is the Call-for-Aid dedupe: three identical spawn
+            // effects read "Summons 3× Soldier Companion", not three lines.
+            const count = spawnCount > 1 ? `${spawnCount}× ` : '';
+            lines.push(`Summons ${count}${mobDisplayName(spawn.mobName)} for ${prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}`);
             if (spawn.powerPerOwnerLevel > 0) {
                 lines.push(`Summon power: +${pct(spawn.powerPerOwnerLevel)} per player level`);
             }
@@ -601,6 +604,45 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
 
 const GENERIC_KINDS: GenericKind[] = ['radius', 'targets'];
 
+// The summon's own effects, rendered beneath the Summons line (round-7 item 3):
+// each loadout skill runs through the SAME effectBlock every ability uses, so
+// a retune of the totem's aura re-renders here for free. Three mirrors of the
+// server, each pinned by test:
+//   · the level is the authored loadout level raised to the summon skill's
+//     level, clamped to the loadout skill's own max (RaiseLoadoutLevels);
+//   · HP output composes f(owner level) × (1 + powerPerOwnerLevel × (L − 1))
+//     (casterPowerScale × SummonPower) — effectBlock keeps that scale off
+//     radii, fractions and CC, exactly as the server does;
+//   · the player's damageFactor is NOT passed: Strong multiplies the PLAYER's
+//     output, and the caster here is the summon.
+// previewMax is pinned to the level so no nested "→" renders — the loadout
+// levels only move through the summon skill, whose own lines keep the preview.
+// An unresolvable ref (catalog gap) degrades to the bare Summons line.
+function summonLoadoutLines(spawn: SkillEffect['spawn'], skillLevel: number, powerScale: number,
+                            playerLevel: number,
+                            resolveSkill: (id: number) => SkillDefinition | undefined): TooltipLine[] {
+    const out: TooltipLine[] = [];
+    const summonPower = playerLevel > 0 ? scaled(1, spawn.powerPerOwnerLevel, playerLevel) : 1;
+    for (const ref of spawn.summonLoadout ?? []) {
+        const def = resolveSkill(ref.skillId);
+        if (!def) continue;
+        const level = Math.max(ref.level, Math.min(skillLevel, def.maxLevel));
+        for (const effect of def.effects) {
+            if (effect.type === 'spawn') continue; // a summon summoning: render one level deep only
+            const block = effectBlock(effect, level, level, powerScale * summonPower, false, false);
+            for (const line of block.lines) {
+                out.push({text: `↳ ${line.text}`, labelColor: line.labelColor});
+            }
+            for (const kind of GENERIC_KINDS) {
+                if (block.generics[kind] !== undefined) {
+                    out.push({text: `↳ ${block.generics[kind]}`});
+                }
+            }
+        }
+    }
+    return out;
+}
+
 // powerScale is f(character level), maxHealth is the live Focus pool and
 // costFactor the player's cost-reduction multiplier — all passed in rather than
 // read here so the whole formatter stays pure and DOM-free (and testable at
@@ -612,10 +654,16 @@ const GENERIC_KINDS: GenericKind[] = ['radius', 'targets'];
 // next-level preview answers exactly one question — "what does the point I am
 // about to spend get me?" — so with no point to spend it is noise, and a
 // tooltip is the wrong place to advertise numbers the player cannot reach yet.
+// playerLevel feeds the summon-power composition only (summonLoadoutLines); 0
+// means "no snapshot yet" and leaves the multiplier neutral. resolveSkill is
+// injected so the formatter stays pure — the app passes the catalog lookup,
+// tests pass fixtures, and the default keeps every existing call site working.
 export function formatSkillTooltip(def: SkillDefinition, level: number, powerScale: number,
                                    maxHealth: number = 0, costFactor: number = 1,
                                    showNextLevel: boolean = true,
-                                   damageFactor: number = 1): TooltipContent {
+                                   damageFactor: number = 1,
+                                   playerLevel: number = 0,
+                                   resolveSkill: (id: number) => SkillDefinition | undefined = skillDefinition): TooltipContent {
     const cost = costRenderer(maxHealth, costFactor);
     // One cap gates every "→" in the tooltip, because every level-scaled value
     // renders through prog() and prog() previews only while level < cap. Capping
@@ -643,10 +691,39 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
     // cooldown — three summon effects at 2 % each must not read as "2 %"
     // three times when the cast takes 6 %.
     const perEffectCost = def.category !== 'cooldown';
-    const blocks = def.effects.map(effect =>
-        effectBlock(effect, level, previewMax, powerScale,
+    // Identical spawn effects collapse into one counted "Summons 3× …" line
+    // (round-7 item 3's Call-for-Aid half). Only spawns dedupe — they are the
+    // one type authored as repeats-meaning-multiples — and the cost machinery
+    // is unaffected: every summon is a cooldown today, and the per-cast sum
+    // below reads def.effects, never this list.
+    const renderEffects: { effect: SkillEffect, count: number }[] = [];
+    const spawnGroups = new Map<string, { effect: SkillEffect, count: number }>();
+    for (const effect of def.effects) {
+        if (effect.type === 'spawn') {
+            const key = JSON.stringify([effect.spawn, effect.costFractionOfMax, effect.costFractionOfMaxPerLevel]);
+            const group = spawnGroups.get(key);
+            if (group) {
+                group.count++;
+                continue;
+            }
+            const entry = {effect, count: 1};
+            spawnGroups.set(key, entry);
+            renderEffects.push(entry);
+            continue;
+        }
+        renderEffects.push({effect, count: 1});
+    }
+    const blocks = renderEffects.map(({effect, count}) => {
+        const block = effectBlock(effect, level, previewMax, powerScale,
             perEffectCost && scaled(effect.costFractionOfMax, effect.costFractionOfMaxPerLevel, level) > 0,
-            sharedCadence !== null, damageFactor));
+            sharedCadence !== null, damageFactor, count);
+        if (effect.type === 'spawn') {
+            // Right after the Summons line, before the summon-power line.
+            block.lines.splice(1, 0,
+                ...summonLoadoutLines(effect.spawn, level, powerScale, playerLevel, resolveSkill));
+        }
+        return block;
+    });
 
     // A generic kind is shared when every effect that renders it renders it
     // identically — then it prints once at the bottom instead of per effect.
@@ -811,7 +888,7 @@ function showSkillTooltip(anchor: HTMLElement, skillId: number, level: number) {
     const canSpend = nextCost > 0 && availableSkillPoints >= nextCost;
     showTooltip(anchor, formatSkillTooltip(def, level, powerScaleAt(getLocalPlayerLevel()),
         getLocalPlayerMaxHealth(), getLocalPlayerCostFactor(), canSpend,
-        getLocalPlayerDamageFactor()));
+        getLocalPlayerDamageFactor(), getLocalPlayerLevel()));
 }
 
 // showTooltip renders any TooltipContent beside an anchor. Split out of the
