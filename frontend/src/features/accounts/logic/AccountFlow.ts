@@ -70,14 +70,17 @@ export function setup(): void {
         onLoginRequested: () => {
             showLogin();
         },
+        onStaleView: (message, ref) => {
+            void CharacterSelect.refreshWithMessage(message, ref);
+        },
     });
 
     CharacterSelect.setup({
         onPlay: (character) => {
             void enterWorld(character);
         },
-        onCreate: (characterCount) => {
-            CharacterCreation.show('select', characterCount);
+        onCreate: (characterCount, slotIndex) => {
+            CharacterCreation.show('select', characterCount, slotIndex);
         },
         onLoggedOut: () => {
             // A registered player never carries an anonymous secret, so after
@@ -317,7 +320,24 @@ export async function onWorldSessionEnded(): Promise<boolean> {
     playing = null;
     Session.reconnectToken = null;
     Session.playingCharacterId = null;
-    await start();
+
+    // ⛑ A RELOAD, not an in-client `start()`, and the reason is the same one
+    // AccountSettings.leave() already records: THE CLIENT IS BUILT TO BOOT ONCE
+    // AND HAS NO TEARDOWN PATH. Routing to character-select in-client puts the
+    // player on a correct-looking screen behind a dead socket — the server
+    // closed it — so the next Play mints a ticket, sends its JoinMessage into a
+    // closed WebSocket and nothing happens at all: no world, no error, no
+    // banner, until the page is reloaded by hand.
+    //
+    // ⚑ It was invisible until an ascension was followed by an ATTEMPT TO PLAY
+    // AGAIN, which is precisely the ascension loop's next step — create the heir
+    // and enter the world with it. Every earlier check stopped at "we landed on
+    // character select", and that part was always right.
+    //
+    // ⚑ The reconnect token is cleared above, which is what stops the reload
+    // from resuming anything; the account screens boot straight into
+    // character-select because the account still exists.
+    window.location.reload();
     return true;
 }
 

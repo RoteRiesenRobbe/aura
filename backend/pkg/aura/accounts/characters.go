@@ -75,6 +75,29 @@ type createCharacterResponse struct {
 type listCharactersResponse struct {
 	Characters         []characterView `json:"characters"`
 	MaxAliveCharacters int             `json:"maxAliveCharacters"`
+	// Slots is one entry per slot the account has, in slot order — what each
+	// slot's bloodline carries, whether or not anyone is living in it (D22/D23).
+	//
+	// ⚑ IT IS A SIBLING OF Characters, NOT A FIELD ON ONE, and that is structural
+	// rather than stylistic: a bloodline's history lives in the SACRIFICED rows,
+	// which Characters excludes by design, and the slot this matters most for has
+	// no character row at all because ascending is what emptied it.
+	Slots []slotBloodlineView `json:"slots"`
+}
+
+// slotBloodlineView is one slot card's worth of bloodline.
+type slotBloodlineView struct {
+	SlotIndex int `json:"slotIndex"`
+	// Unlocks are the skill names (D17) the slot's next life inherits. ⚑ NEVER
+	// null: see the normalisation below.
+	Unlocks    []string `json:"unlocks"`
+	Ascensions int      `json:"ascensions"`
+	// PredecessorName is the life an heir here would continue.
+	//
+	// ⛑ ABSENT rather than empty when the name was erased (D24) — the field is
+	// omitted, so a client cannot accidentally render a blank name as a real one.
+	// The erasure itself happens in the store; see store.SlotBloodline.
+	PredecessorName string `json:"predecessorName,omitempty"`
 }
 
 // handleCreateCharacter creates a character, minting an account behind it when
@@ -203,9 +226,40 @@ func (s *Server) handleListCharacters(w http.ResponseWriter, r *http.Request) {
 	for _, c := range characters {
 		views = append(views, viewOf(c))
 	}
+
+	// ⚑ ONE READ FOR THE WHOLE ACCOUNT, not one per slot. LoadBloodline answers
+	// a single slot and carries no predecessor, because it serves /select's
+	// ticket; this screen needs every slot and the name each one continues.
+	bloodlines, err := s.cfg.Store.SlotBloodlines(r.Context(), who.accountID)
+	if err != nil {
+		failStore(w, r, err, "reading bloodlines")
+		return
+	}
+	// ⚑ EVERY SLOT IS EMITTED, including ones nothing has ever happened in
+	// (D23). The store returns only the slots with a history, so the loop is over
+	// the CAP rather than over the map: the client draws a card per slot either
+	// way, and an absent entry would make it reconstruct what the server already
+	// knows.
+	slots := make([]slotBloodlineView, 0, s.cfg.MaxAliveCharacters)
+	for slot := 0; slot < s.cfg.MaxAliveCharacters; slot++ {
+		b := bloodlines[slot]
+		// A slot with no history is the zero value, whose nil slice marshals as
+		// JSON null — and the card maps over this list to name the gifts.
+		if b.Unlocks == nil {
+			b.Unlocks = []string{}
+		}
+		slots = append(slots, slotBloodlineView{
+			SlotIndex:       slot,
+			Unlocks:         b.Unlocks,
+			Ascensions:      b.Ascensions,
+			PredecessorName: b.PredecessorName,
+		})
+	}
+
 	writeJSON(w, http.StatusOK, listCharactersResponse{
 		Characters:         views,
 		MaxAliveCharacters: s.cfg.MaxAliveCharacters,
+		Slots:              slots,
 	})
 }
 

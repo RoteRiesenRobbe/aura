@@ -3,6 +3,7 @@ package store_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -558,6 +559,125 @@ func TestLoadBloodline_DoesNotCountDeletedCharactersAsAscensions(t *testing.T) {
 	require.NoError(t, err)
 	assert.Zero(t, bloodline.Ascensions, "neither the deleted life nor the living one has ascended")
 	_ = alive
+}
+
+//---------------------------------------------------------------------------
+// C2b — what CHARACTER SELECT needs, which is not what the ticket needs.
+//---------------------------------------------------------------------------
+
+// sacrificeInto spends one life in one slot and returns the row it retired, so
+// a test can name the predecessor it expects a card to advertise.
+//
+// ⚑ It goes through CreateCharacter, never a hand-written INSERT: the heir's
+// previous_character_id is derived INSIDE that transaction (C1/D15), and a slot
+// re-occupied by hand would chain to nothing and fight the column's UNIQUE.
+func sacrificeInto(t *testing.T, db *store.Store, accountID int64, slot int, name, key string) store.Character {
+	t.Helper()
+	c := character(name, accountID)
+	c.SlotIndex = &slot
+	created, err := db.CreateCharacter(context.Background(), c)
+	require.NoError(t, err)
+	_, err = db.AscendCharacter(context.Background(), accountID, created.ID, key)
+	require.NoError(t, err)
+	return created
+}
+
+// TestSlotBloodlines_ReportsEveryTouchedSlotOfOneAccount is the read the
+// character-select list handler makes: every slot the account has a history in,
+// in one round trip, with the name the newest card should say it continues.
+func TestSlotBloodlines_ReportsEveryTouchedSlotOfOneAccount(t *testing.T) {
+	db, ctx := freshSchema(t)
+	mine := newAccount(t, db, "secret-a")
+	theirs := newAccount(t, db, "secret-b")
+
+	sacrificeInto(t, db, mine, 1, "Barney", "Paralyze")
+	sacrificeInto(t, db, mine, 1, "Wilma", "FrostShield")
+	sacrificeInto(t, db, mine, 2, "Betty", "Slow")
+	sacrificeInto(t, db, theirs, 1, "Fred", "Haste")
+
+	slots, err := db.SlotBloodlines(ctx, mine)
+	require.NoError(t, err)
+
+	require.Len(t, slots, 2, "only the slots this account has spent a life in")
+	assert.Equal(t, []string{"FrostShield", "Paralyze"}, slots[1].Unlocks, "sorted, like LoadBloodline's")
+	assert.Equal(t, 2, slots[1].Ascensions)
+	// ⚑ The MOST RECENT life, not the founder (P16): "continue the bloodline of
+	// X" means the life the heir directly follows.
+	assert.Equal(t, "Wilma", slots[1].PredecessorName)
+
+	assert.Equal(t, []string{"Slow"}, slots[2].Unlocks)
+	assert.Equal(t, 1, slots[2].Ascensions)
+	assert.Equal(t, "Betty", slots[2].PredecessorName)
+
+	_, touched := slots[0]
+	assert.False(t, touched, "a slot with no history is absent, not a zeroed entry")
+}
+
+// ⛑ D11'S PRIVACY LANDMINE, and it bites the slot card BEFORE the memorial.
+// DiscardAnonymousAccount renames every row of the account to 'deleted_' || id,
+// sacrificed ones included, because names are player-authored free text and
+// erasure wins. D24: the name is simply absent — the bloodline still counts its
+// lives and still hands over its gifts.
+func TestSlotBloodlines_OmitsAnErasedPredecessorsName(t *testing.T) {
+	db, ctx := freshSchema(t)
+	accountID := newAccount(t, db, "secret")
+	sacrificeInto(t, db, accountID, 0, "Barney", "Paralyze")
+	require.NoError(t, db.DiscardAnonymousAccount(ctx, accountID))
+
+	slots, err := db.SlotBloodlines(ctx, accountID)
+	require.NoError(t, err)
+	assert.Empty(t, slots[0].PredecessorName, "an erased name never reaches a screen")
+	assert.Equal(t, []string{"Paralyze"}, slots[0].Unlocks, "what the bloodline learned is not personal data")
+	assert.Equal(t, 1, slots[0].Ascensions)
+}
+
+// ⚑ THE FILTER IS EXACT-MATCH, NOT A PREFIX TEST. The rename writes
+// 'deleted_' || id, and nothing in ValidateCharacterName forbids a player
+// calling themselves deleted_something — a LIKE 'deleted_%' filter would erase
+// them from their own bloodline's card.
+func TestSlotBloodlines_KeepsAPlayerAuthoredNameThatLooksErased(t *testing.T) {
+	db, ctx := freshSchema(t)
+	accountID := newAccount(t, db, "secret")
+	// ⚑ The decoy is load-bearing: character ids are BIGSERIAL and freshSchema
+	// resets the sequence, so without it the fixture's own row IS id 1 and the
+	// name it is named after matches — which would make a broken exact-match
+	// filter pass. Spending a life elsewhere first pushes the id off 1.
+	sacrificeInto(t, db, accountID, 1, "Decoy", "Slow")
+	created := sacrificeInto(t, db, accountID, 0, "deleted_1", "Paralyze")
+	require.NotEqual(t, "deleted_1", "deleted_"+fmt.Sprint(created.ID),
+		"the fixture only proves anything while the name and the row's own id differ")
+
+	slots, err := db.SlotBloodlines(ctx, accountID)
+	require.NoError(t, err)
+	assert.Equal(t, "deleted_1", slots[0].PredecessorName)
+}
+
+// A deleted life is character-select housekeeping, not a predecessor: it never
+// reached the stone, so there is nothing for an heir to continue. Same rule
+// LoadBloodline's ascension count already follows.
+func TestSlotBloodlines_ADeletedLifeIsNeitherAnAscensionNorAPredecessor(t *testing.T) {
+	db, ctx := freshSchema(t)
+	accountID := newAccount(t, db, "secret")
+
+	gone, err := db.CreateCharacter(ctx, character("Barney", accountID))
+	require.NoError(t, err)
+	require.NoError(t, db.SoftDeleteCharacter(ctx, accountID, gone.ID))
+
+	slots, err := db.SlotBloodlines(ctx, accountID)
+	require.NoError(t, err)
+	assert.Empty(t, slots, "deleting three characters must not read as three ascensions")
+}
+
+// An account that has never ascended is an empty map and no error — the
+// ordinary answer for everyone who has not reached the stone yet, which on any
+// given day is almost everyone.
+func TestSlotBloodlines_IsEmptyForAnAccountWithNoHistory(t *testing.T) {
+	db, ctx := freshSchema(t)
+	accountID := newAccount(t, db, "secret")
+
+	slots, err := db.SlotBloodlines(ctx, accountID)
+	require.NoError(t, err)
+	assert.Empty(t, slots)
 }
 
 // TestAscendCharacter_TheSuccessorInheritsNothingButTheBloodline is §4.8's loss

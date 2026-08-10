@@ -1026,6 +1026,80 @@ func TestCreateCharacterRefusesAnOutOfRangeChosenSlot(t *testing.T) {
 	}
 }
 
+// slotViews reads the per-slot bloodline array off a character-list response.
+func slotViews(t *testing.T, listed response) []map[string]any {
+	t.Helper()
+	raw, ok := listed.body["slots"].([]any)
+	require.True(t, ok, "response carries no slots: %v", listed.body)
+	out := make([]map[string]any, 0, len(raw))
+	for _, entry := range raw {
+		view, ok := entry.(map[string]any)
+		require.True(t, ok, "a slot entry is not an object: %v", entry)
+		out = append(out, view)
+	}
+	return out
+}
+
+// TestListCharactersCarriesEachSlotsBloodline is D22/D23 at the endpoint.
+//
+// ⚑ THE BLOODLINE CANNOT RIDE A CHARACTER ROW, and this test is shaped to prove
+// it rather than merely to exercise the field: the account's only ALIVE
+// character sits in slot 0 with no history at all, while the whole history lives
+// in slot 1 — whose character row is sacrificed and therefore excluded from
+// `characters` by design. A bloodline hung off characterView would report
+// nothing here, which is exactly the empty-slot card C2b exists to draw.
+func TestListCharactersCarriesEachSlotsBloodline(t *testing.T) {
+	h := newHarness(t)
+
+	spent := h.do(http.MethodPost, "/api/characters", map[string]any{"name": "Barney", "slotIndex": 1})
+	require.Equal(t, http.StatusCreated, spent.code, "%v", spent.body)
+	var accountID int64
+	require.NoError(t, h.db.Pool.QueryRow(context.Background(),
+		`SELECT account_id FROM game.characters WHERE id = $1`, h.characterID(spent)).Scan(&accountID))
+	_, err := h.db.AscendCharacter(context.Background(), accountID, h.characterID(spent), "FrostShield")
+	require.NoError(t, err)
+
+	require.Equal(t, http.StatusCreated, h.createCharacter("Wilma").code)
+
+	listed := h.do(http.MethodGet, "/api/characters", nil)
+	require.Equal(t, http.StatusOK, listed.code)
+
+	characters, _ := listed.body["characters"].([]any)
+	require.Len(t, characters, 1, "the sacrificed row is history, not a character")
+	assert.Equal(t, float64(0), characters[0].(map[string]any)["slotIndex"])
+
+	slots := slotViews(t, listed)
+	require.Len(t, slots, 3, "one entry per slot the account HAS, cap and all (D23)")
+
+	assert.Equal(t, float64(1), slots[1]["slotIndex"])
+	assert.Equal(t, []any{"FrostShield"}, slots[1]["unlocks"])
+	assert.Equal(t, float64(1), slots[1]["ascensions"])
+	assert.Equal(t, "Barney", slots[1]["predecessorName"])
+
+	// The slot the living character occupies has spent nothing — a first life is
+	// not a bloodline, and the card must not claim otherwise.
+	assert.Equal(t, float64(0), slots[0]["ascensions"])
+	assert.Empty(t, slots[0]["unlocks"])
+	assert.Nil(t, slots[0]["predecessorName"], "no name is ABSENT on the wire, never an empty string (D24)")
+}
+
+// ⚑ `unlocks` IS AN ARRAY ON EVERY ENTRY, INCLUDING THE UNTOUCHED ONES. The
+// store returns nothing at all for a slot with no history, so the zero value's
+// nil slice would marshal as JSON `null` — and the card renders the gift list by
+// mapping over it, which throws on null rather than drawing an empty slot.
+func TestListCharactersServesAnUntouchedSlotAsAnEmptyBloodline(t *testing.T) {
+	h := newHarness(t)
+	require.Equal(t, http.StatusCreated, h.createCharacter("Barney").code)
+
+	slots := slotViews(t, h.do(http.MethodGet, "/api/characters", nil))
+	require.Len(t, slots, 3)
+	for i, slot := range slots {
+		assert.Equal(t, float64(i), slot["slotIndex"], "slots are emitted in slot order")
+		assert.Equal(t, []any{}, slot["unlocks"], "slot %d", i)
+		assert.Equal(t, float64(0), slot["ascensions"], "slot %d", i)
+	}
+}
+
 // TestSelectCarriesTheBloodlineOntoTheTicket is D16: a successor is seeded from
 // its bloodline at JOIN, and the ticket is the only seam that can carry
 // per-character data to a loop that must never touch the database.

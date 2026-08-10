@@ -1449,3 +1449,390 @@ character and a `bloodline_unlocks` row `(account, slot 0, FrostShield)`.
   slot rather than the one whose bloodline you just fed.
 - The three-state probe (gated / ungated / absent) stays a manual switch; each
   state proves something the others cannot, and its header says how to move.
+
+### 12.12 C2b design pass - the bloodline on the select screen
+
+> **⭐ THIS IS THE PLAN FOR THE NEXT CHUNK.** Written 2026-08-10 against the
+> §12.5 handoff, after reading the four files it names. Schema impact, stated up
+> front and confirmed against the code: **DB NONE** (every fact the screen wants
+> is already a persisted column: `bloodline_unlocks` rows, `sacrificed_at`,
+> `characters.name`) · **FlatBuffers NONE** (nothing here touches the game wire;
+> this is the accounts HTTP/JSON surface and the account screens, both of which
+> live entirely outside the world) · **conf NONE** (`maxAliveCharacters: 3`
+> already governs the slot count and is already served on the list response).
+> The one new store read needs **no migration**.
+
+**What C2b is for, restated in one line.** Ascension frees a slot; the create
+card must be aimable at *that* slot, and the player must be able to see which
+slot is which. Without it the loop is complete only for a single-slot account
+(D19 recorded that gap deliberately).
+
+#### 12.12.1 What the plan-check found
+
+Five deltas between §12.5's handoff and the code as it stands. None of them
+changes the chunk's scope; three change how a step is built.
+
+1. **⚑ `LoadBloodline` cannot serve the card, and §12.5's "three calls is fine"
+   was written before the name requirement existed.** It returns
+   `{Unlocks, Ascensions}` and nothing else, so the predecessor's name (step 3)
+   is a second read on top of it - six round trips for three slots, and the
+   second one does not exist yet. **This is not the "wider query is an
+   optimisation" the handoff waved off; it is a different read.** So: a new
+   store method serving only the list handler, and `LoadBloodline`'s signature
+   is left alone because it rides the `/select` ticket path (`characters.go:319`)
+   where a name is dead weight.
+2. **⚑ The bloodline cannot hang off `characterView`.** The rows that carry a
+   bloodline's history are the **sacrificed** ones, which is exactly what
+   `AliveCharacters` excludes by design ("ALIVE ROWS ONLY", `characters.go:195`),
+   and an empty slot has no character row at all to hang it on. It is keyed by
+   **slot**, so it travels as its own per-slot array on `listCharactersResponse`.
+   That response's "character-select's data and NOTHING ELSE" comment is
+   satisfied rather than strained: this is select-screen data about slots, not a
+   fact about the session that wandered in.
+3. **⛑ The `deleted_` filter must be EXACT-MATCH, not a prefix test.** The
+   rename writes `name = 'deleted_' || id` (`characters.go:418`), so the filter
+   compares against that expression. A `LIKE 'deleted_%'` test would silently
+   erase any player-authored name beginning with those characters, and nothing
+   in `auth.ValidateCharacterName` forbids one.
+   ⚑ Note for whoever reads this later: after `DiscardAnonymousAccount` the
+   account's credentials row is gone, so those rows are hard to reach from a
+   logged-in select screen *today*. The filter still ships here, because §12.5
+   assigns it here and **C3's memorial inherits it** - and the memorial is a
+   shared, public list where the failure is a stranger reading `deleted_4711`.
+4. **⚑ D15's pointer semantics reach into the client.** `createCharacterRequest.SlotIndex`
+   is a `*int` precisely so "not sent" and "slot 0" stay different requests
+   (`characters.go:52`). The **home mount must keep omitting it** - a client
+   that starts sending `0` on the first-ever creation turns a server-assigned
+   slot into a client-chosen one and would 409 on a stale first slot. So
+   `AccountsApi.createCharacter` grows an **optional** parameter that is
+   serialized only when present.
+5. **⚑ Gift names need a name→displayName lookup that does not exist.** Unlock
+   keys are skill **names** (D17, `FrostShield`); `Skills.ts` keys its catalog by
+   **id** and offers only `skillDisplayName(id)`. Four skills override their
+   display name (`Call for Aid`, `Damage-Burst`, `Long-Range Strike`,
+   `Hold the Line`), so the CamelCase split is not sufficient on its own.
+   ⚑ And the catalog is fetched at *import* (`Skills.ts:293`) while character
+   select renders on cold boot, so a lookup that only consults the catalog can
+   lose the race and print a raw key. Both halves are handled in step 3.
+
+#### 12.12.2 Decisions taken in this pass
+
+- **⭐ D23 - EVERY slot card carries its bloodline line, not only the empty
+  ones.** PO, 2026-08-10, against a two-option prompt. D22 mandated the empty
+  card; this widens it to the occupied card as well, so a player can see at a
+  glance which of their three slots is the deep one and which is a fresh start.
+  ⚑ The consequence is that the per-slot payload is served for **every** slot
+  rather than only the empty ones, which is also the simpler server: one uniform
+  read, no "which slots are empty" logic on the write side of the response.
+  ⚑ The occupied card gets the **counts** (`2nd life · 1 gift`), not the gift
+  list - the living character's own spellbook already answers "what do I know",
+  and the card is the densest element on the screen.
+  ⚑ **A slot with NO history renders no bloodline line at all** (`ascensions > 0
+  || unlocks.length > 0`). This is the obvious reading of the ruling rather than
+  a second decision, and it is written down because without it a brand-new
+  account prints `1st life · 0 gifts` on every card in the game - noise on the
+  one screen every player sees first, and not the case the prompt showed.
+- **D24 - an erased predecessor DROPS THE NAME LINE; nothing is invented in its
+  place.** PO, 2026-08-10. The card still says it continues a bloodline, still
+  counts the lives spent and still lists the gifts; only the "of <name>"
+  sentence is absent. Rejected: a placeholder like "a forgotten life", because
+  this screen is otherwise strictly factual and C3's memorial would then have to
+  invent the same string a second time. ⚑ On the wire this is a
+  **`predecessorName` that is simply absent**, so the filter lives in one place
+  (the SQL) and the client renders whatever arrives.
+
+#### 12.12.3 Proposals adopted without a choice prompt (PO may veto any)
+
+- **P15 - the new read is `SlotBloodlines(ctx, accountID) (map[int]SlotBloodline, error)`,
+  ONE method, per account, keyed by slot.** Not a loop over `LoadBloodline`
+  (finding 1: it cannot answer the name anyway), and not a widening of
+  `LoadBloodline` (finding 1: the ticket path does not want a name). It is two
+  simple grouped queries merged in Go rather than one clever query - unlocks
+  grouped by slot, and history (count + newest sacrificed name) grouped by slot -
+  because each half is then readable on its own and neither needs a lateral.
+- **P16 - the predecessor is the MOST RECENTLY sacrificed row in that slot**
+  (`ORDER BY sacrificed_at DESC LIMIT 1`), i.e. the life the heir directly
+  continues, not the founder. That is what "continue the bloodline of X" means
+  to a player standing at the card.
+- **P17 - gift names resolve CLIENT-SIDE, falling back to the raw key.**
+  `Skills.ts` gains a by-name map built in `loadSkillCatalog` plus
+  `skillDisplayNameFor(name)` (finding 5). ⚑ **Server-side resolution was
+  considered and rejected**: `package accounts` "depends on store + auth +
+  origins AND NOTHING ELSE FROM AURA" (`server.go:5`, invariant ③), and
+  importing the skill catalog there to prettify four strings would spend that
+  invariant on cosmetics.
+  ⭐ **CORRECTED BEFORE STEP 3: the fallback is the RAW KEY, not a CamelCase
+  split.** The draft said "split the key when the catalog has not arrived", and
+  `skills.DeriveDisplayName`'s own comment forbids exactly that - the rule is
+  *"computed server-side so the client never re-implements the rule"*, and the
+  four skills that author an override (`Call for Aid`, `Damage-Burst`,
+  `Long-Range Strike`, `Hold the Line`) are precisely the cases a client-side
+  copy gets wrong. Degrading to the identifier is also the convention already in
+  the file: `skillDisplayName(id)` answers `Skill #<id>`. ⚑ The cost is a
+  transient `FrostShield` instead of `Frost Shield` if a cold boot renders before
+  the catalog lands - and the catalog fetch starts at bundle evaluation, two API
+  round trips before this screen can draw, with every later `refresh()`
+  re-rendering. If that flash is ever seen, the fix is awaiting the catalog, not
+  copying the rule.
+- **P18 - `slot_taken` routes through `refreshWithMessage`.** It is the
+  documented self-correcting answer to every stale-view case
+  (`CharacterSelect.ts:105`), and a create card aimed at a slot another tab just
+  filled is exactly that case. `slots_full` and a 400 out-of-range stay
+  unreachable from a fresh render and get no special handling beyond the generic
+  error already shown.
+
+#### 12.12.4 The steps
+
+Each step is TDD red-first, and each names the pin that must fail before the
+code exists.
+
+**Step 1 - `store.SlotBloodlines`, the per-account read** (P15, P16, finding 3).
+New `SlotBloodline{Unlocks []string, Ascensions int, PredecessorName string}`
+in `pkg/aura/store/ascension.go`, beside `Bloodline` and its comment. Two
+queries in one method: unlocks grouped by `slot_index`, and from
+`game.characters` the sacrificed count plus the newest sacrificed name per slot
+with the exact-match `deleted_` filter (`CASE WHEN name = 'deleted_' || id THEN
+NULL ELSE name END`, or the equivalent `NULLIF`).
+*Red first:* `ascension_test.go` pins - a slot with two sacrifices reports
+`Ascensions: 2` and the **newer** name; a slot whose predecessor was renamed by
+`DiscardAnonymousAccount` reports the unlocks and an **empty** name; an account
+with no history reports an empty map, not an error. ⚑ These are `db-test` pins
+(`AURA_TEST_DB_URL`), so "green without Postgres" is not a pass here.
+
+**Step 2 - `/characters` carries the per-slot array** (D22/D23, finding 2).
+`listCharactersResponse` gains `Slots []slotBloodlineView` with
+`{slotIndex, unlocks, ascensions, predecessorName}`; `handleListCharacters`
+calls the new read once and emits one entry per slot index `0..MaxAliveCharacters-1`,
+including slots with no history at all (uniform shape, D23).
+*Red first:* an `accounts_test.go` pin that a list response for an account with
+a sacrificed slot 1 carries that slot's unlocks and predecessor, and that a
+never-touched slot 0 is present with zeroes.
+
+**Step 3 - the cards render it** (D23, D24, P17).
+`AccountsApi` grows `SlotBloodline` and `CharacterList.slots`.
+`Skills.ts` grows the by-name map and `skillDisplayNameFor`.
+`CharacterSelect.render` renders, per slot: on an **occupied** card the counts
+line (only when the slot has a history, D23); on an **empty-with-history** card
+the "Continue the bloodline of X" label
+(name omitted per D24), the lives-spent count and the gift list as display
+names; on an **empty-no-history** card the plain "Create character" it shows
+today. New `.less` rules beside the existing `.slotCard` block.
+*Red first:* a new `CharacterSelect.test.ts` under jsdom - see §12.12.5.
+
+**Step 4 - the create card on every empty slot** (D15's client half, finding 4).
+`render` drops its `createOffered` latch so every empty slot below the cap gets
+a create card; `onCreate` carries the **slot index** alongside the character
+count; `CharacterCreation.show` holds it and passes it to
+`AccountsApi.createCharacter(name, slotIndex?)`, which serializes `slotIndex`
+only when it was given; `AccountFlow`'s two `show('home', 0)` call sites keep
+passing nothing. `slot_taken` routes per P18.
+*Red first:* a `CharacterSelect.test.ts` pin that an account holding slot 1 only
+renders create cards on **both** slot 0 and slot 2 and that each reports its own
+index; an `AccountsApi.test.ts` pin that `createCharacter(name)` sends a body
+**without** a `slotIndex` key while `createCharacter(name, 2)` sends `2`.
+
+**Step 5 - `c2b-bloodline-select.mjs`**, the in-browser proof, and the whole
+point of it is that **slot 0 is not involved in the ascension**:
+1. create A (lands slot 0), create B (lands slot 1) - two `hrnss_` names;
+2. delete A, so slot 0 is empty *and* has no history;
+3. play B, cheat it to max level, ascend it at the stone (reusing
+   `c2a-ascension-site.mjs`'s driving code and the probe reward, §12.12.6);
+4. on character select assert: slot 1 shows "Continue the bloodline of <B>" with
+   its gift as a **display name**, slot 0 shows a plain create card, and both
+   offer a create affordance;
+5. create the heir **on slot 1**, play it, and assert it boots holding the gift -
+   the same check `c1-bloodline-seed.mjs` makes, and the assertion that would
+   have caught the D15 bug: on slot 0 it is invisible.
+
+#### 12.12.5 Test strategy, and the one decision inside it
+
+**`CharacterSelect.render` is pinned directly, not extracted.** The tempting
+move was a pure `slotPlan()` module of the kind `SkillTooltip` and `MapScale`
+are, but `CharacterSelect` imports exactly two things (`AccountScreens` and
+`DeleteDialog`) and the runner is already jsdom, so a `vi.mock` of
+`AccountScreens` whose `element()` returns a fixture panel containing
+`.slotCards` and `.playingWarning` reaches the real `show()`. ⚑ **That matters
+here specifically**: the bug C2b exists to fix (`createOffered`) lives in the
+DOM-building loop, so a pure module extracted around it would be a lookalike
+that cannot fail the way the product did.
+⚑ `AccountFlow.test.ts` is not the model - it mocks the screens wholesale, which
+is right for what it tests and useless for this.
+
+⚑ The client must tolerate a **missing** `slots` field (`list.slots ?? []`), for
+the same reason `decodeBody` does not set `DisallowUnknownFields`: version skew
+between a deployed client and a deployed server is ordinary, and character
+select is the screen where failing it would be unrecoverable.
+
+Go side: `db-test` pins for step 1, `accounts_test.go` for step 2, and the
+standing sanity tail (`go build ./...`, full `go test`, both boot paths clean).
+Client side: `npm test` **and** `npm run typecheck`, and ⛑ **`npm run build`
+before step 5's harness run** - a stale `frontend/dist` is invisible to vitest,
+which is exactly how FrostShield's tooltip case was green in units and absent
+from the served bundle (`plan-cc-and-retaliation.md` C2).
+
+#### 12.12.6 Harness gotchas that already cost runs, carried forward from §12.5
+
+- The interact key needs a **~1.4 s hold**; the synthetic **"Leave." row** must
+  be filtered out of any row count; **the first browser run after a server
+  restart usually dies at join** - re-run once before diagnosing.
+- Leave the world **through the product** (settings → character select), never a
+  page reload: a reload inside the stash window resumes the live character.
+- ⚑ The reward probe `.claude/skills/verify/c2a-probe-reward.json` is **not
+  installed** - `api/ascension/` is README-only until C3. Copy it in, restart,
+  and **remove it afterwards** or `cp-defs` bakes it into the embedded copy.
+- ⚑ `sys.TestDwell_TakeoffDropsAnInProgressCount` is a known high-rate flake
+  (7-10/20 at HEAD). Measure before diagnosing; it is not C2b.
+
+#### 12.12.7 What C2b does NOT do
+
+The memorial, the authored catalog (`api/ascension/` stays README-only) and
+`kills_this_life` all remain C3's (P8, P9). No graveyard view is written here -
+step 1 reads one name per slot from the caller's **own** account, which is not
+the shared public list D11 describes.
+
+### 12.13 C2b step 5 as built - what the browser found
+
+**Built 2026-08-10. `c2b-bloodline-select.mjs`, 12/12, 0 console errors, and it
+found a real defect that is C2a's rather than C2b's.**
+
+**The script's shape is the assertion.** It builds an account whose LIVING
+character is in slot 1 and whose slot 0 is empty: create A (slot 0) → create B
+aimed at slot 1 → play B, cap it, ascend it → delete A → read the select screen
+→ create the heir on slot 1 → prove it boots holding the gift. ⚑ Every other
+harness in the suite puts its character in slot 0, which is exactly why the D15
+bug survived to be found by reading code rather than by playing.
+
+⛑ **The delete of A moved AFTER the ascension**, and the first run is why: the
+delete endpoint refuses a character the account is currently playing, and
+**leaving the world does not release the registry slot the moment the screen
+changes**. Deleting A seven seconds after leaving it was answered
+`character_playing`; the dialog closed, the list re-read, and A was still there
+while every later assertion quietly measured the wrong shape. The same window
+makes Play answer `already_logged_in`, so `enterWorldFrom` retries.
+
+#### ⛑ The defect: after an ascension the client cannot re-enter the world
+
+**Symptom.** Create the heir, press Play, and nothing happens: no world, no
+error, no banner. `/select` answers **200** every time - the ticket is minted -
+and no join ever reaches the server.
+
+**Cause.** `AccountSettings.leave()` has always recorded that **the client is
+built to boot once and has no teardown path**, which is why "leave the world" is
+a page reload. P13's ascension exit routed to character-select **in-client**,
+landing in exactly the state that comment says does not exist: the server has
+closed the socket, and the next `Play` sends its `JoinMessage` into a dead
+WebSocket.
+
+**Fix.** `onWorldSessionEnded` reloads instead of calling `start()`, after
+clearing the reconnect token exactly as `leave()` does. Pinned in
+`AccountFlow.test.ts` (mutation: restore `await start()` → red) and re-verified
+end to end: **`c2a-ascension-site.mjs` still 18/18**.
+
+**Why nothing caught it before.** Every earlier check stopped at *"we landed on
+character select"*, and that part was always right - C2a's ledger even records
+P13 being dead code with *"the screen was right either way"*. The state is only
+reachable by **playing again afterwards**, which is the ascension loop's literal
+next step and which no test took. ⚑ The generalisable form: **an exit path is not
+verified until something is done AFTER it.**
+
+#### Smaller findings
+
+- ⛑ **The running `aurad` was stale for the whole first debugging round.**
+  `go build ./...` type-checks and does not refresh `./aurad` (the standing
+  CLAUDE.md gotcha), so the server was serving step 1's code: no `slots` field,
+  and the client's version-skew guard rendered every slot as historyless. The
+  database was correct throughout. ⚑ The guard working as designed is what made
+  it look like a client bug.
+- ⚑ **`\b` after "gift" matched nothing.** A card's `textContent` glues its
+  children together - `"…2nd life · 1 giftPlayDelete"` - so there is no word
+  boundary there and the obvious regex fails while the screen is perfectly
+  correct. The verify skill records the same trap for `.slotLabel`.
+- ⚑ **`clickIn` now names what it actually hit** (`elementFromPoint`), because
+  "the click was delivered" and "the click reached the button" are different
+  facts and only the second one matters.
+- ⚑ The run's own database state is the strongest single artifact: slot 0
+  `deleted_<id>` (the erasure rule), slot 1 sacrificed at level 30, the heir in
+  slot 1 with `previous_character_id` chained to it, and one
+  `bloodline_unlocks` row on slot 1.
+
+### 12.14 C2b ledger - THE BLOODLINE ON THE SELECT SCREEN ✅ 2026-08-10, `[uncommitted]`
+
+**Five steps, TDD red-first, every load-bearing pin mutation-verified.
+Schema impact: DB NONE · FlatBuffers NONE · conf NONE.** No migration, no wire
+change, no new tuning value: every fact the screen shows was already a persisted
+column, and the whole chunk is the accounts HTTP/JSON surface plus the account
+screens, both of which live entirely outside the world.
+
+**What shipped.** The ascension loop is now complete for a **multi-slot**
+account, which is the one thing C2a deliberately left undone (D19):
+
+- **`store.SlotBloodlines`** - one per-account read, two grouped queries merged
+  in Go, serving only character-select. `LoadBloodline` is untouched: it rides
+  the `/select` ticket path, where a predecessor's name is dead weight.
+- **`/api/characters` carries `slots`** - a sibling of `characters`, one entry
+  per slot up to the cap, `{slotIndex, unlocks, ascensions, predecessorName?}`.
+- **Every slot card carries its bloodline** (D23): counts on an occupied card
+  (`2nd life · 1 gift`), the continued life plus its gifts on an empty one, and
+  **nothing at all** on a slot with no history.
+- **Every empty slot offers creation, aimed at its own slot** (D15's client
+  half), with `slot_taken` routed through the documented stale-view re-read.
+- **`c2b-bloodline-select.mjs`**, the first harness in the suite whose living
+  character is not in slot 0.
+
+**Two PO rulings, D23 and D24** (§12.2 carries them): the bloodline line went on
+*every* card rather than only the empty ones, and an erased predecessor drops
+its name line rather than inventing a placeholder.
+
+⛑ **THE CHUNK'S HEADLINE FINDING IS C2a's BUG, AND ONLY C2b's STEP 5 COULD SEE
+IT: after an ascension the client could not re-enter the world.** Press Play on
+the heir and nothing happened - `/select` answered 200, the ticket was minted,
+and no join ever reached the server. `AccountSettings.leave()` has always
+recorded that **the client is built to boot once and has no teardown path**,
+which is why leaving the world is a page reload; P13's ascension exit routed to
+character-select *in-client* and landed in exactly that unsupported state, with
+the server's socket already closed. **An exit path is not verified until
+something is done AFTER it** - every earlier check stopped at "we landed on
+character select", and that part was always right. Fixed, pinned, and C2a
+re-verified 18/18. §12.13 has the full account.
+
+⛑ **A pin was green because its subject was unreachable**, the class this
+project has now hit three times. "Three characters at a cap of three" never
+reaches the at-cap branch at all: every slot the loop visits holds a character,
+so the guard is never consulted and the test passes with it deleted (measured -
+the mutation survived). The only arrangement where an empty slot coexists with a
+full account is **a cap lowered under existing characters**, and that is the
+fixture now.
+
+⚑ **P17 was corrected before it was written.** The design said the display-name
+fallback splits the CamelCase key; `skills.DeriveDisplayName`'s own comment
+forbids it - the rule is *"computed server-side so the client never
+re-implements the rule"* - and the four skills authoring an override are exactly
+what a client-side copy gets wrong. The fallback is the raw key, matching
+`skillDisplayName`'s existing `Skill #<id>`.
+
+⚑ **The bloodline cannot hang off a character row**, and this is structural
+rather than stylistic: a bloodline's history lives in the SACRIFICED rows, which
+`AliveCharacters` excludes by design, and the slot it matters most for has no
+character row at all because ascending is what emptied it.
+
+⚑ Smaller: **`slot_taken` had never been added to the client's `ApiErrorCode`
+union** despite the server answering it since C1 · the **stale `aurad`** cost a
+full debugging round (`go build ./...` does not refresh the binary, and the
+client's version-skew guard then made a server problem look like a client one) ·
+**`\b` after "gift" matches nothing** in glued card text.
+
+**Verification.** ~19 new pins (5 `store` db-test · 2 `accounts` · 12 vitest
+across `CharacterSelect`/`Skills`/`AccountsApi`/`AccountFlow`), **15 mutations,
+14 red on exactly the intended pin and the fifteenth surviving** (the unreachable
+at-cap subject, refixtured). Go **0 FAIL** · `db-test` green · vitest
+**264/264** (was 246 at C2a) · typecheck clean · `npm run build` · boot
+**0 WARN / 0 ERROR**. Harnesses: ⭐ **`c2b-bloodline-select.mjs` 12/12** with
+0 console errors and the whole chain confirmed in the database (slot 0
+`deleted_<id>`, slot 1 sacrificed at 30, heir chained by
+`previous_character_id`, one `bloodline_unlocks` row) · **`c2a-ascension-site.mjs`
+18/18** re-run against the exit fix · **`chunk2-accounts.mjs` 24/24**, which owns
+the account screens this chunk changed.
+
+**What C2b does NOT close.** C3 still owns the memorial, the authored catalog
+(`api/ascension/` stays README-only) and `kills_this_life` beside its content
+(P8, P9). No graveyard view is written here.

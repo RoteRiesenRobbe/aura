@@ -263,6 +263,22 @@
 				text-decoration: underline;
 			}
 		}
+
+		// What the slot carries across the lives that occupy it. Quiet on
+		// purpose: it is context for the decision the card offers, never the
+		// thing being decided.
+		.slotBloodline {
+			font-size: 1rem;
+			opacity: 0.75;
+			margin-bottom: 0.5rem;
+		}
+
+		.slotBloodlineGifts {
+			font-size: 0.95rem;
+			color: #9fd4ff;
+			word-break: break-word;
+			margin-top: 0.35rem;
+		}
 	}
 
 	// The create-new affordance occupies the first empty slot, so the row keeps
@@ -289,6 +305,21 @@
 			margin-top: 0.5rem;
 			font-size: 0.9rem;
 			opacity: 0.85;
+		}
+	}
+
+	// An empty slot with a past. It is still the create affordance — the border
+	// stays dashed — but it is a continuation rather than a blank start, so it
+	// is lit rather than left to read as the least interesting card on screen.
+	.slotCard.empty.bloodline {
+		border-color: rgba(159, 212, 255, 0.45);
+
+		&:hover {
+			border-color: rgba(159, 212, 255, 0.8);
+		}
+
+		.slotCreateLabel {
+			opacity: 1;
 		}
 	}
 

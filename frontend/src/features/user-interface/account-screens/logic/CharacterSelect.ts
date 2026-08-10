@@ -1,6 +1,7 @@
 import {
-    AccountsApi, ApiError, Character, CharacterList, SessionState,
+    AccountsApi, ApiError, Character, CharacterList, SessionState, SlotBloodline,
 } from '../../../accounts/logic/AccountsApi';
+import {skillDisplayNameFor} from '../../../../client-data/Skills';
 import * as AccountScreens from './AccountScreens';
 import * as DeleteDialog from './DeleteDialog';
 
@@ -14,7 +15,7 @@ import * as DeleteDialog from './DeleteDialog';
  */
 
 let onPlay: (character: Character) => void = () => undefined;
-let onCreate: (characterCount: number) => void = () => undefined;
+let onCreate: (characterCount: number, slotIndex: number) => void = () => undefined;
 let onLoggedOut: () => void = () => undefined;
 let onLoginRequested: () => void = () => undefined;
 let currentState: SessionState | null = null;
@@ -25,7 +26,7 @@ let logoutConfirmed = false;
 
 export function setup(handlers: {
     onPlay: (character: Character) => void,
-    onCreate: (characterCount: number) => void,
+    onCreate: (characterCount: number, slotIndex: number) => void,
     onLoggedOut: () => void,
     onLoginRequested: () => void,
 }): void {
@@ -131,28 +132,73 @@ function render(list: CharacterList): void {
     const bySlot = new Map<number, Character>();
     list.characters.forEach((character) => bySlot.set(character.slotIndex, character));
 
+    // ⚑ `?? []` is version skew, not defensiveness: a client deployed ahead of
+    // its server would otherwise throw on the one screen with no way back.
+    const bloodlineBySlot = new Map<number, SlotBloodline>();
+    (list.slots ?? []).forEach((slot) => bloodlineBySlot.set(slot.slotIndex, slot));
+
     const atCap = list.characters.length >= list.maxAliveCharacters;
-    let createOffered = false;
 
     for (let slot = 0; slot < list.maxAliveCharacters; slot++) {
         const character = bySlot.get(slot);
+        const bloodline = bloodlineBySlot.get(slot);
         if (character) {
-            container.appendChild(characterCard(character));
+            container.appendChild(characterCard(character, bloodline));
             continue;
         }
-        // The create affordance goes in the FIRST empty slot only; later empty
-        // slots stay inert, so the row keeps its shape without offering the
-        // same action three times.
-        if (!createOffered && !atCap) {
-            container.appendChild(createCard(list.characters.length));
-            createOffered = true;
-        } else {
-            container.appendChild(emptyCard());
-        }
+        // ⛑ EVERY empty slot offers creation, and each card aims at ITS OWN slot
+        // (D15). The old render offered the first empty slot only: ascend the
+        // character in slot 1 while slot 0 sits empty and the single card on
+        // offer aimed at slot 0, so the heir landed with no history at all, cut
+        // off from the unlocks its predecessor had just bought. Invisible in
+        // every playtest, because the harness character always occupies slot 0.
+        //
+        // At the cap there is nothing to offer, and the card stays for layout.
+        container.appendChild(atCap
+            ? emptyCard()
+            : createCard(list.characters.length, slot, bloodline));
     }
 }
 
-function characterCard(character: Character): HTMLElement {
+/** Whether this slot has a past worth telling the player about. */
+function hasHistory(bloodline?: SlotBloodline): bloodline is SlotBloodline {
+    return !!bloodline && (bloodline.ascensions > 0 || bloodline.unlocks.length > 0);
+}
+
+/** "1 gift" / "3 gifts" — and nothing at all for a life that bought none (D14). */
+function giftCount(unlocks: string[]): string {
+    if (unlocks.length === 0) {
+        return '';
+    }
+    return `${unlocks.length} gift${unlocks.length === 1 ? '' : 's'}`;
+}
+
+function livesSpent(ascensions: number): string {
+    return `${ascensions} ${ascensions === 1 ? 'life' : 'lives'} spent`;
+}
+
+/** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th. */
+function ordinal(n: number): string {
+    const teens = n % 100;
+    if (teens >= 11 && teens <= 13) {
+        return `${n}th`;
+    }
+    switch (n % 10) {
+        case 1: return `${n}st`;
+        case 2: return `${n}nd`;
+        case 3: return `${n}rd`;
+        default: return `${n}th`;
+    }
+}
+
+function line(className: string, text: string): HTMLElement {
+    const element = document.createElement('div');
+    element.className = className;
+    element.textContent = text;
+    return element;
+}
+
+function characterCard(character: Character, bloodline?: SlotBloodline): HTMLElement {
     const card = document.createElement('div');
     card.className = 'slotCard';
     card.dataset.characterId = String(character.id);
@@ -172,6 +218,17 @@ function characterCard(character: Character): HTMLElement {
     level.className = 'slotCharacterLevel';
     level.textContent = `Level ${character.level}`;
     card.appendChild(level);
+
+    // ⚑ COUNTS ONLY, and only when there is a history (D23). This character's
+    // own spellbook already answers "what do I know", and a first life is not a
+    // bloodline — without the guard every card on every new account would read
+    // "1st life · 0 gifts".
+    if (hasHistory(bloodline)) {
+        card.appendChild(line('slotBloodline', [
+            `${ordinal(bloodline.ascensions + 1)} life`,
+            giftCount(bloodline.unlocks),
+        ].filter(Boolean).join(' · ')));
+    }
 
     // ⚑ The character in the world gets a LABEL, not controls. Both of the
     // controls below would be refused by the server for it — `/select` because
@@ -212,7 +269,7 @@ function characterCard(character: Character): HTMLElement {
     return card;
 }
 
-function createCard(characterCount: number): HTMLElement {
+function createCard(characterCount: number, slotIndex: number, bloodline?: SlotBloodline): HTMLElement {
     const card = document.createElement('div');
     card.className = 'slotCard empty';
 
@@ -221,14 +278,31 @@ function createCard(characterCount: number): HTMLElement {
     plus.textContent = '+';
     card.appendChild(plus);
 
-    const label = document.createElement('div');
-    label.className = 'slotCreateLabel';
-    label.textContent = 'Create character';
-    card.appendChild(label);
+    if (hasHistory(bloodline)) {
+        card.classList.add('bloodline');
+        // ⛑ The name is ABSENT, not blank, when it was erased (D24) — discarding
+        // an anonymous account renames every one of its rows. "Continue this
+        // bloodline" is what a card says when it may not say whose.
+        card.appendChild(line('slotCreateLabel', bloodline.predecessorName
+            ? `Continue the bloodline of ${bloodline.predecessorName}`
+            : 'Continue this bloodline'));
+        if (bloodline.ascensions > 0) {
+            card.appendChild(line('slotBloodline', livesSpent(bloodline.ascensions)));
+        }
+        if (bloodline.unlocks.length > 0) {
+            // ⚑ DISPLAY names. The unlock key is a registry id (D17) and no
+            // player has ever seen one.
+            card.appendChild(line('slotBloodlineGifts',
+                `Gifts: ${bloodline.unlocks.map(skillDisplayNameFor).join(', ')}`));
+        }
+    } else {
+        card.appendChild(line('slotCreateLabel', 'Create character'));
+    }
 
+    card.dataset.slotIndex = String(slotIndex);
     card.addEventListener('pointerdown', (event) => {
         event.preventDefault();
-        onCreate(characterCount);
+        onCreate(characterCount, slotIndex);
     });
 
     return card;

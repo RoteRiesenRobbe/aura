@@ -57,6 +57,112 @@ func (s *Store) LoadBloodline(ctx context.Context, accountID int64, slotIndex in
 	return b, nil
 }
 
+// SlotBloodline is one slot's bloodline as CHARACTER SELECT needs it, which is
+// deliberately not what the play ticket needs.
+//
+// ⚑ IT IS KEYED BY SLOT, NEVER BY CHARACTER, and that is structural rather than
+// stylistic: the rows carrying a bloodline's history are the SACRIFICED ones,
+// which is exactly what AliveCharacters excludes — and the slot this matters
+// most for has no character row at all, because ascending is what emptied it.
+type SlotBloodline struct {
+	// Unlocks are the slot's unlock keys, sorted, exactly as Bloodline's are.
+	// Never nil for a slot this read returns.
+	Unlocks []string
+	// Ascensions is how many lives this slot has spent. Sacrificed rows only,
+	// for Bloodline.Ascensions' reason: counting deletions would make the count
+	// farmable.
+	Ascensions int
+	// PredecessorName is the name of the MOST RECENTLY sacrificed life in this
+	// slot — the one an heir directly continues (P16), not the founder.
+	//
+	// ⛑ EMPTY MEANS ERASED, and empty is a state the caller must render rather
+	// than treat as impossible (D24). DiscardAnonymousAccount renames every row
+	// of an account to 'deleted_' || id, sacrificed ones included, because names
+	// are player-authored free text and erasure wins. The filter lives in the
+	// SQL below so there is exactly one of it, and C3's memorial inherits it.
+	PredecessorName string
+}
+
+// SlotBloodlines reads every bloodline an account has, keyed by slot.
+//
+// ⚑ A slot with no history is ABSENT, not a zeroed entry. "Never ascended" and
+// "ascended zero times" are the same fact, and the caller already knows how many
+// slots exist (game.player.maxAliveCharacters) — so the map answers "which slots
+// carry something" without this read having to know the cap.
+//
+// ⚑ It is NOT LoadBloodline in a loop, and LoadBloodline was not widened to
+// serve it. LoadBloodline rides the /select ticket path, where a predecessor's
+// name is dead weight; this one is character-select's and never touches a
+// ticket. Two reads, two callers, no shared field either of them has to ignore.
+func (s *Store) SlotBloodlines(ctx context.Context, accountID int64) (map[int]SlotBloodline, error) {
+	slots := map[int]SlotBloodline{}
+
+	// The history half: how many lives a slot has spent, and whose name the next
+	// card should say it continues.
+	//
+	// ⚑ The name filter is EXACT-MATCH against the expression the rename writes,
+	// never LIKE 'deleted_%'. Nothing in auth.ValidateCharacterName forbids a
+	// player calling themselves deleted_something, and a prefix test would cut
+	// them out of their own bloodline's card.
+	//
+	// ⚑ The array_agg ORDER BY carries a tie-break on id, so two lives spent in
+	// the same clock tick still resolve to the later one.
+	rows, err := s.Pool.Query(ctx,
+		`SELECT slot_index,
+		        count(*),
+		        coalesce((array_agg(NULLIF(name, 'deleted_' || id)
+		                            ORDER BY sacrificed_at DESC, id DESC))[1], '')
+		   FROM game.characters
+		  WHERE account_id = $1 AND sacrificed_at IS NOT NULL
+		  GROUP BY slot_index`, accountID)
+	if err != nil {
+		return nil, fmt.Errorf("reading a bloodline history: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var slot int
+		var b SlotBloodline
+		if err := rows.Scan(&slot, &b.Ascensions, &b.PredecessorName); err != nil {
+			return nil, fmt.Errorf("reading a bloodline history row: %w", err)
+		}
+		b.Unlocks = []string{}
+		slots[slot] = b
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("reading a bloodline history: %w", err)
+	}
+
+	unlocks, err := s.Pool.Query(ctx,
+		`SELECT slot_index, array_agg(unlock_key ORDER BY unlock_key)
+		   FROM game.bloodline_unlocks
+		  WHERE account_id = $1
+		  GROUP BY slot_index`, accountID)
+	if err != nil {
+		return nil, fmt.Errorf("reading bloodline unlocks: %w", err)
+	}
+	defer unlocks.Close()
+	for unlocks.Next() {
+		var slot int
+		var keys []string
+		if err := unlocks.Scan(&slot, &keys); err != nil {
+			return nil, fmt.Errorf("reading a bloodline unlock row: %w", err)
+		}
+		// ⚑ An unlock row whose slot the history half did not report cannot
+		// happen — AscendCharacter writes both or neither, and takes the unlock's
+		// slot from the sacrifice's own RETURNING. If it ever did, this shows the
+		// gift against a zero count rather than dropping it: a bloodline that
+		// visibly knows something is a better bug report than a silent one.
+		b := slots[slot]
+		b.Unlocks = keys
+		slots[slot] = b
+	}
+	if err := unlocks.Err(); err != nil {
+		return nil, fmt.Errorf("reading bloodline unlocks: %w", err)
+	}
+
+	return slots, nil
+}
+
 // AscendCharacter is the sacrifice transaction: it retires a character and
 // grants its bloodline one unlock, atomically.
 //

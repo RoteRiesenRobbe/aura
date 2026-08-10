@@ -231,3 +231,38 @@ describe('login discard', () => {
         expect(JSON.parse(fetchMock.mock.calls[0][1].body).discardAnonymous).toBe(true);
     });
 });
+
+/**
+ * D15: the heir of a sacrificed bloodline has to be aimable at ITS slot.
+ *
+ * ⛑ THE SERVER TELLS "not sent" FROM "slot 0" BY THE FIELD'S PRESENCE — its
+ * request struct uses a pointer for exactly that reason — and the whole
+ * succession path rests on the distinction. A client that starts sending 0 on
+ * the first-ever creation turns a server-assigned slot into a client-chosen one,
+ * and 409s the day slot 0 is the one slot already taken.
+ */
+describe('aiming a new character at a slot', () => {
+    const created = (slotIndex: number) => jsonResponse(201, {
+        character: {id: 1, slotIndex, name: 'Barney', avatar: 'default', faction: 'aligned', level: 1},
+    });
+
+    it('omits the field entirely when no slot was chosen', async () => {
+        fetchMock.mockResolvedValue(created(0));
+
+        await AccountsApi.createCharacter('Barney');
+
+        const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+        expect(body.name).toBe('Barney');
+        expect('slotIndex' in body).toBe(false);
+    });
+
+    it('sends the slot when one was chosen, including slot zero', async () => {
+        fetchMock.mockResolvedValue(created(2));
+        await AccountsApi.createCharacter('Barney', 2);
+        expect(JSON.parse(fetchMock.mock.calls[0][1].body).slotIndex).toBe(2);
+
+        fetchMock.mockResolvedValue(created(0));
+        await AccountsApi.createCharacter('Wilma', 0);
+        expect(JSON.parse(fetchMock.mock.calls[1][1].body).slotIndex).toBe(0);
+    });
+});

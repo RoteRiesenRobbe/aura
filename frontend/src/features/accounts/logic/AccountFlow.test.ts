@@ -48,6 +48,7 @@ vi.mock('../../core/logic/Events', () => ({
 import * as AccountFlow from './AccountFlow';
 import * as CharacterSelect from '../../user-interface/account-screens/logic/CharacterSelect';
 import {Identity} from './Identity';
+import {Session} from './Session';
 
 const jsonResponse = (status: number, body: unknown) => ({
     ok: status >= 200 && status < 300,
@@ -122,5 +123,65 @@ describe('a cold boot with a stored anonymous secret', () => {
         await AccountFlow.start();
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+});
+
+/**
+ * ⛑ THE END OF AN ASCENSION, and the hole C2b's browser harness found in C2a.
+ *
+ * The server closes the socket with no message when a character is spent, so
+ * this is where the client learns of it (plan-ascension.md P13). Landing on
+ * character-select was always right — and always insufficient: the CLIENT IS
+ * BUILT TO BOOT ONCE and has no teardown path, so an in-client route left the
+ * player on a correct-looking screen behind a dead WebSocket. The very next
+ * Play minted a ticket, sent its JoinMessage into a closed socket, and did
+ * nothing at all: no world, no error, no banner.
+ *
+ * ⚑ It was invisible to every earlier check because they all stopped at "we
+ * landed on character select". Only pressing Play afterwards — creating the
+ * heir, which is the ascension loop's literal next step — reaches it.
+ */
+describe('the end of a world session', () => {
+    let reload: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+        reload = vi.fn();
+        // jsdom refuses a real navigation, and the assertion is that one is
+        // ASKED FOR rather than that it happens.
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            value: {...window.location, reload},
+        });
+        sessionStorage.clear();
+    });
+
+    const listWithout = (id: number) => jsonResponse(200, {
+        characters: [{id, slotIndex: 0, name: 'Heir', avatar: 'default', faction: 'aligned', level: 1}],
+        maxAliveCharacters: 3,
+        slots: [],
+    });
+
+    it('reloads onto character-select when the played character is gone', async () => {
+        Session.playingCharacterId = 4711;
+        fetchMock.mockResolvedValueOnce(listWithout(9));   // 4711 is not in it
+
+        const ascended = await AccountFlow.onWorldSessionEnded();
+
+        expect(ascended).toBe(true);
+        expect(reload).toHaveBeenCalled();
+        // ⚑ Cleared BEFORE the reload, or the reload resumes the character the
+        // ceremony just spent.
+        expect(Session.reconnectToken).toBeNull();
+        expect(Session.playingCharacterId).toBeNull();
+    });
+
+    it('leaves an ordinary drop alone — that character still exists', async () => {
+        Session.playingCharacterId = 4711;
+        fetchMock.mockResolvedValueOnce(listWithout(4711));
+
+        const ascended = await AccountFlow.onWorldSessionEnded();
+
+        expect(ascended).toBe(false);
+        expect(reload).not.toHaveBeenCalled();
     });
 });

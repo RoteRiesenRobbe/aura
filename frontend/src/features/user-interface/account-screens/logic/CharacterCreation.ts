@@ -31,16 +31,28 @@ const SUGGESTION_REROLLS = 5;
 let onCreated: (character: Character, wasFirstCharacter: boolean) => void = () => undefined;
 let onCancel: () => void = () => undefined;
 let onLoginRequested: () => void = () => undefined;
+let onStaleView: (message: string, ref?: string) => void = () => undefined;
 let knownCharacterCount = 0;
+/**
+ * Which slot this creation aims at, or undefined for "the server decides".
+ *
+ * ⛑ UNDEFINED IS NOT SLOT 0. The server tells the two apart by whether the
+ * field arrives at all (D15), so this must never be defaulted to a number —
+ * the home mount genuinely has no slot to name.
+ */
+let chosenSlotIndex: number | undefined;
 
 export function setup(handlers: {
     onCreated: (character: Character, wasFirstCharacter: boolean) => void,
     onCancel: () => void,
     onLoginRequested: () => void,
+    /** The chosen slot was taken while this form was open — the list is stale. */
+    onStaleView: (message: string, ref?: string) => void,
 }): void {
     onCreated = handlers.onCreated;
     onCancel = handlers.onCancel;
     onLoginRequested = handlers.onLoginRequested;
+    onStaleView = handlers.onStaleView;
 
     AccountScreens.whenReady(() => {
         const panel = AccountScreens.element('characterCreation');
@@ -74,9 +86,13 @@ export function setup(handlers: {
  * @param characterCount how many characters the account already has — decides
  *                       whether a successful creation is the account's first,
  *                       which is what the auto-select is scoped to (§5.3)
+ * @param slotIndex      which slot to aim at, from the card that was clicked
+ *                       (D15). Omitted from the home mount, where there is no
+ *                       select screen and therefore no slot to have chosen.
  */
-export function show(mount: CreationMount, characterCount = 0): void {
+export function show(mount: CreationMount, characterCount = 0, slotIndex?: number): void {
     knownCharacterCount = characterCount;
+    chosenSlotIndex = slotIndex;
 
     const panel = AccountScreens.element('characterCreation');
     AccountScreens.clearError(panel);
@@ -133,7 +149,7 @@ async function submit(): Promise<void> {
     try {
         for (let attempt = 0; ; attempt++) {
             try {
-                const created = await AccountsApi.createCharacter(name);
+                const created = await AccountsApi.createCharacter(name, chosenSlotIndex);
                 onCreated(created.character, knownCharacterCount === 0);
                 return;
             } catch (error) {
@@ -147,6 +163,18 @@ async function submit(): Promise<void> {
             }
         }
     } catch (error) {
+        // ⚑ "That slot is taken" is not a rejection of this form — it means the
+        // screen behind it went out of date, most often a second tab. The
+        // re-read is character-select's documented answer to every stale-view
+        // case, and it is what makes the next thing the player sees agree with
+        // the message: the slot they aimed at is filled in now.
+        //
+        // ⚑ Unreachable from the home mount by construction: it sends no slot,
+        // so the server assigns one and can only ever answer slots_full.
+        if (error instanceof ApiError && error.code === 'slot_taken') {
+            onStaleView(error.message, error.ref);
+            return;
+        }
         if (error instanceof ApiError) {
             // ⚑ `rule` carries the specific rule that failed and is safe to show
             // verbatim — the server will only ever put an auth.RuleError there.

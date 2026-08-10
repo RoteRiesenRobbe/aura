@@ -259,6 +259,11 @@ export interface LevelCurve {
 // --- catalog state + fetch ---
 
 const catalog = new Map<number, SkillDefinition>();
+// ⚑ The SAME definitions, keyed the other way. Everything on the game wire
+// refers to a skill by id, but a bloodline unlock is stored and served as the
+// registry NAME (plan-ascension.md D17) — one durable string instead of an id
+// that only means anything next to a loaded catalog.
+const byName = new Map<string, SkillDefinition>();
 let levelCurve: LevelCurve = {growth: 0, maxLevel: 0};
 
 // The server's category vocabulary → the client's (the HUD panels and equip
@@ -280,11 +285,14 @@ export function loadSkillCatalog(): Promise<void> {
         .then((payload: { curve?: LevelCurve, skills: any[] }) => {
             levelCurve = payload.curve ?? {growth: 0, maxLevel: 0};
             catalog.clear();
+            byName.clear();
             for (const def of payload.skills) {
-                catalog.set(def.id, {
+                const resolved = {
                     ...def,
                     category: CATEGORY_MAP[def.category] ?? 'aura',
-                });
+                };
+                catalog.set(def.id, resolved);
+                byName.set(def.name, resolved);
             }
         })
         .catch(error => {
@@ -303,6 +311,21 @@ export function skillDefinition(id: number): SkillDefinition | undefined {
 
 export function skillDisplayName(id: number): string {
     return catalog.get(id)?.displayName ?? `Skill #${id}`;
+}
+
+/**
+ * The human-facing name for a skill named by its REGISTRY NAME rather than its
+ * id — which is how a bloodline unlock travels (D17).
+ *
+ * ⚑ THE FALLBACK IS THE RAW KEY, DELIBERATELY, and it must not become a
+ * CamelCase split. `skills.DeriveDisplayName` computes that rule server-side
+ * *"so the client never re-implements it"*, and the handful of skills that
+ * author an override — "Call for Aid", "Damage-Burst", "Long-Range Strike",
+ * "Hold the Line" — are exactly the ones a client-side copy would get wrong.
+ * Degrading to the identifier is what `skillDisplayName` above already does.
+ */
+export function skillDisplayNameFor(name: string): string {
+    return byName.get(name)?.displayName ?? name;
 }
 
 export function skillMaxLevel(id: number): number {

@@ -25,6 +25,11 @@ export type ApiErrorCode =
     | 'name_taken'
     | 'username_taken'
     | 'slots_full'
+    // ⚑ DISTINCT FROM slots_full: a CHOSEN slot is occupied, and the account may
+    // well have room elsewhere. It only exists because a slot can be chosen
+    // (D15), and it means the screen is stale rather than that the account is
+    // full — so it routes through the re-read, never through "you are at the cap".
+    | 'slot_taken'
     | 'invalid_credentials'
     | 'already_logged_in'
     | 'already_registered'
@@ -83,10 +88,43 @@ export interface Character {
     createdAt: string;
 }
 
+/**
+ * What one slot's bloodline carries across the lives that occupy it
+ * (plan-ascension.md D22/D23).
+ *
+ * ⚑ IT IS A SIBLING OF `Character`, NOT A FIELD ON ONE. A bloodline's history
+ * lives in the SACRIFICED rows, which `characters` excludes by design, and the
+ * slot it matters most for has no character at all — ascending is what emptied
+ * it.
+ */
+export interface SlotBloodline {
+    slotIndex: number;
+    /** The skill NAMES the next life here inherits (D17), sorted. */
+    unlocks: string[];
+    /** How many lives this slot has spent at the stone. */
+    ascensions: number;
+    /**
+     * The life an heir here would continue.
+     *
+     * ⛑ ABSENT WHEN THE NAME WAS ERASED, and that is a state to render rather
+     * than a state to assume away (D24): discarding an anonymous account renames
+     * every one of its rows, sacrificed ones included, because names are
+     * player-authored free text.
+     */
+    predecessorName?: string;
+}
+
 /** What the caller owns. ⚑ Who the caller IS lives on SessionState. */
 export interface CharacterList {
     characters: Character[];
     maxAliveCharacters: number;
+    /**
+     * One entry per slot, in slot order.
+     *
+     * ⚑ Optional because a client may be newer than the server it is talking
+     * to, and character-select is the one screen with no way back out.
+     */
+    slots?: SlotBloodline[];
 }
 
 /**
@@ -260,8 +298,15 @@ export const AccountsApi = {
      * ⚑ Stores the returned secret IMMEDIATELY when one comes back. It is
      * readable exactly once.
      */
-    async createCharacter(name: string): Promise<CreatedCharacter> {
-        const created = await request<CreatedCharacter>('POST', 'characters', {name});
+    async createCharacter(name: string, slotIndex?: number): Promise<CreatedCharacter> {
+        // ⛑ THE FIELD IS OMITTED, NOT SENT AS 0, when no slot was chosen. The
+        // server tells "not sent" from "slot 0" by the field's presence — its
+        // request struct uses a pointer for exactly that reason — and the whole
+        // succession path rests on the distinction (D15). Sending 0 by default
+        // would turn every first creation into a client-chosen slot, which
+        // 409s the day slot 0 is the one slot already taken.
+        const created = await request<CreatedCharacter>('POST', 'characters',
+            slotIndex === undefined ? {name} : {name, slotIndex});
         if (created.anonymousSecret) {
             Identity.anonymousSecret = created.anonymousSecret;
         }
