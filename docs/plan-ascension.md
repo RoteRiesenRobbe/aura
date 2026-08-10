@@ -2377,7 +2377,7 @@ them. Two caveats: the script ships the **working tree**, and all of C3 is
 uncommitted; and if item 3 lands first the answer changes to a both-sides
 deploy.
 
-### 13.8 C3 ledger - THE MEMORIAL AND THE CATALOG ✅ 2026-08-11, `[uncommitted]`
+### 13.8 C3 ledger - THE MEMORIAL AND THE CATALOG ✅ 2026-08-11, `b995061b`
 
 **Seven steps, TDD red-first, every load-bearing pin mutation-verified. Schema
 impact: DB NONE (no migration) · FlatBuffers NONE · conf NONE.** The plan's last
