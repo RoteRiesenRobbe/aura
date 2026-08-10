@@ -1755,7 +1755,7 @@ verified until something is done AFTER it.**
   slot 1 with `previous_character_id` chained to it, and one
   `bloodline_unlocks` row on slot 1.
 
-### 12.14 C2b ledger - THE BLOODLINE ON THE SELECT SCREEN ✅ 2026-08-10, `[uncommitted]`
+### 12.14 C2b ledger - THE BLOODLINE ON THE SELECT SCREEN ✅ 2026-08-10, `a64f5b96`
 
 **Five steps, TDD red-first, every load-bearing pin mutation-verified.
 Schema impact: DB NONE · FlatBuffers NONE · conf NONE.** No migration, no wire
