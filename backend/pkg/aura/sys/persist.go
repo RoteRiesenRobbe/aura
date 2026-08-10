@@ -41,10 +41,29 @@ type CharacterSaves interface {
 	Failing() bool
 }
 
+// CharacterAscensions is the sacrifice transaction, seen from the loop
+// (plan-ascension.md §4.6). Implemented by *persist.Ascender.
+//
+// ⚑ THE FIRST MID-SESSION GAME-WORLD→DB WRITE IN THE CODEBASE, and it is a
+// second seam rather than a method on CharacterSaves because the two have
+// opposite policies: a save is a fire-and-forget snapshot that may be retried
+// and may be dropped, this is a one-shot irreversible transaction whose OUTCOME
+// the loop must observe before it ends a session.
+//
+// ⚑ Completed() is drained on the loop, in the drainLogoutRequests style: the
+// transaction finishes on another goroutine, and the world belongs to this one.
+type CharacterAscensions interface {
+	// Ascend requests one sacrifice. It returns immediately.
+	Ascend(req persist.AscensionRequest)
+	// Completed hands over every attempt that has finished since the last call.
+	Completed() []persist.AscensionResult
+}
+
 // PersistenceSink is the game seen from cmd/aurad's wiring, following the
 // CampfireAnchorSink / IdentitySink precedent.
 type PersistenceSink interface {
 	SetCharacterSaves(saves CharacterSaves)
+	SetCharacterAscensions(ascensions CharacterAscensions)
 	FlushLiveCharacters(done chan<- struct{})
 }
 
@@ -76,6 +95,110 @@ type saveWatch struct {
 // project did until this chunk.
 func (s *ConnectionStateSystem) SetCharacterSaves(saves CharacterSaves) {
 	s.saves = saves
+}
+
+// SetCharacterAscensions installs the sacrifice seam. Nil is supported for the
+// same reason the writer's is: a build with no database behind it still runs a
+// world, it simply cannot ascend anybody.
+func (s *ConnectionStateSystem) SetCharacterAscensions(ascensions CharacterAscensions) {
+	s.ascensions = ascensions
+}
+
+// RequestAscension asks for a character to be sacrificed, reporting whether the
+// request was accepted. It is the loop-side entry point the ascension site's
+// grant will call (C2); C1 builds and proves the machinery behind it.
+//
+// ⚑ P1 IS CHECKED HERE, AGAINST THE LIVE LEVEL, and deliberately not in SQL.
+// The character row's level is eventually consistent — saves are periodic, and
+// the teardown below skips the final one on purpose — so a `level >= maxLevel`
+// clause in the transaction would refuse a player who just reached it. The live
+// character is the only trustworthy answer, and this is the only place holding
+// it.
+//
+// ⚑ Accepting is not committing. The session survives until the transaction is
+// observed to have succeeded; see drainAscensions.
+func (s *ConnectionStateSystem) RequestAscension(p model.PlayerEntity, unlockKey string) bool {
+	if s.ascensions == nil {
+		return false
+	}
+	maxLevel := uint32(s.game.Config().PlayerConfig.LevelCurve.MaxLevel)
+	if maxLevel == 0 || p.Progression().Level < maxLevel {
+		return false
+	}
+
+	clientUUID := p.Client().UUID()
+	accountID, characterID := s.accountByClient[clientUUID], s.characterByClient[clientUUID]
+	if accountID == 0 || characterID == 0 {
+		// No persisted identity behind this connection — a sim or test world.
+		// There is no row to sacrifice, so there is nothing to do but refuse.
+		return false
+	}
+
+	s.ascensions.Ascend(persist.AscensionRequest{
+		AccountID:   accountID,
+		CharacterID: characterID,
+		ClientUUID:  clientUUID,
+		UnlockKey:   unlockKey,
+	})
+	return true
+}
+
+// drainAscensions observes finished sacrifices and ends the sessions that
+// committed.
+//
+// ⚑ A FAILED ATTEMPT COMMITS NOTHING — the transaction is atomic — so the
+// character is still alive, still owns everything it owned, and simply keeps
+// playing. Tearing down here would end a life the database still holds.
+func (s *ConnectionStateSystem) drainAscensions() {
+	if s.ascensions == nil {
+		return
+	}
+	for _, done := range s.ascensions.Completed() {
+		if done.Err != nil {
+			continue
+		}
+		log.Printf("⚰️ character %d ascended (account %d)", done.CharacterID, done.AccountID)
+		s.endAscendedSession(done)
+	}
+}
+
+// endAscendedSession tears down the world session of a character that no longer
+// exists. Every line here is load-bearing and none of them is obvious.
+func (s *ConnectionStateSystem) endAscendedSession(done persist.AscensionResult) {
+	client := done.ClientUUID
+
+	// ① THE SAVE KILL SWITCH, FIRST. saveCharacter refuses a connection with no
+	// character id, and the disconnect that follows takes the ordinary save
+	// trigger with it — so this is what stops a pre-sacrifice snapshot being
+	// queued against a graveyard row.
+	delete(s.characterByClient, client)
+	s.forgetSaveWatch(client)
+
+	// ② No account on the connection either, so the disconnect fan-out neither
+	// stashes this account's session nor stamps the account onto anything. ⚑ It
+	// matters because the release below happens NOW while the fan-out happens
+	// whenever the socket actually goes: without this, that later Stash could
+	// land on the successor's freshly claimed session.
+	delete(s.accountByClient, client)
+
+	// ③ No reconnect stash, in both directions: dropping the token makes
+	// removeFromPlayers free the name instead of stashing (the stash is the one
+	// path that would re-queue a pre-sacrifice snapshot minutes later), and
+	// discardStashFor clears any stash this account already had.
+	delete(s.tokenByClient, client)
+	s.discardStashFor(done.AccountID)
+
+	// ④ The socket goes. The player's client falls back to character-select,
+	// which is exactly where the successor is created (§4.7).
+	s.closeClient(client)
+
+	// ⑤ RELEASED, not stashed — the difference between ascension and a dropped
+	// socket. The player's very next action is creating their heir, and that
+	// needs the account's one session slot free immediately rather than after
+	// the stash TTL.
+	if s.sessions != nil && done.AccountID != 0 {
+		s.sessions.Release(done.AccountID)
+	}
 }
 
 // FlushLiveCharacters queues a snapshot of every live character and closes done
@@ -269,6 +392,51 @@ func loadoutSlots(sc *skills.SkillComponent) []persist.LoadoutSlot {
 // fatal. Content is authored and can retire a skill, and refusing to load the
 // character would lock them out of the game over a slot they can re-fill in one
 // click.
+// seedBloodlineUnlocks discovers every skill this character's SLOT has unlocked
+// across its past ascensions (plan-ascension.md D16). The keys ride the play
+// ticket, resolved off-loop at /select, because the game loop must never query
+// the database to answer a Join.
+//
+// ⚑ IT DISCOVERS, IT DOES NOT EQUIP. The creation seed pre-equips its starting
+// aura because a brand-new character has empty slots to fill; a bloodline gift
+// arriving on an established character does not — equipping would put back, on
+// every single login, a skill the player deliberately took off.
+//
+// ⚑ Idempotent by construction, which is what makes "reapply on every join
+// until the first save persists them" harmless: Discover only writes level 1
+// into an entry that is 0, so a bloodline skill trained to 4 stays at 4.
+//
+// ⚑ A key naming a skill that no longer exists is DROPPED, not fatal — the same
+// stance restoreCharacterState takes for a retired spellbook entry. The
+// database holds what a bloodline picked historically and the catalog is free
+// to change under it.
+func seedBloodlineUnlocks(p model.PlayerEntity, keys []string, registry skills.Registry) {
+	if len(keys) == 0 {
+		return
+	}
+	sc := p.SkillComponent()
+	discovered := false
+	for _, key := range keys {
+		def, err := registry.GetByName(key)
+		if err != nil {
+			slog.Warn("dropping a bloodline unlock for a skill that no longer exists",
+				slog.String("player", p.Name()), slog.String("unlock_key", key))
+			continue
+		}
+		if sc.HasDiscovered(def.ID) {
+			continue
+		}
+		sc.Discover(def.ID)
+		discovered = true
+	}
+	// A bloodline skill can complete a combination recipe, exactly as any other
+	// discovery can. Skipped when nothing was new, so a returning character does
+	// not pay for a cascade that cannot change anything.
+	if discovered {
+		p.ApplyRecipeCascade()
+	}
+}
+
 func restoreCharacterState(p model.PlayerEntity, state persist.CharacterState, registry skills.Registry) {
 	if state.Level >= 1 {
 		p.SetProgression(model.PlayerProgression{

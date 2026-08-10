@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
@@ -86,6 +87,14 @@ func SkillRegistry(r skills.Registry) Configuration {
 func MilestoneUnlocks(unlocks []skills.MilestoneUnlock) Configuration {
 	return func(g *cfg.GameConfig) error {
 		g.MilestoneUnlocks = unlocks
+		return nil
+	}
+}
+
+// AscensionCatalog installs the ascension reward catalog (plan-ascension.md C1).
+func AscensionCatalog(c ascension.Catalog) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.AscensionCatalog = c
 		return nil
 	}
 }

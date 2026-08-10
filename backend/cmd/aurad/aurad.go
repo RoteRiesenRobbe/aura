@@ -86,6 +86,7 @@ func main() {
 	milestoneUnlocks := loadMilestoneUnlocks(content.milestones, skillsRegistry)
 	recipeRegistry := loadRecipes(content.recipes, skillsRegistry)
 	questsRegistry := loadQuests(content.quests, mobsRegistry)
+	ascensionCatalog := loadAscensionCatalog(content.ascension, skillsRegistry)
 	propsRegistry := loadProps(content.props)
 	// -zone flag overrides the game.zone config default.
 	if zoneName == "" {
@@ -154,6 +155,7 @@ func main() {
 		core.MilestoneUnlocks(milestoneUnlocks),
 		core.Recipes(recipeRegistry),
 		core.QuestRegistry(questsRegistry),
+		core.AscensionCatalog(ascensionCatalog),
 		core.Tokens(tokens),
 		core.Bounds(zone.Bounds.Width, zone.Bounds.Height),
 		core.ZoneName(zone.ID),
@@ -333,6 +335,10 @@ func main() {
 		panic("game does not accept a persistence seam")
 	}
 	persistence.SetCharacterSaves(characterWriter)
+	// The sacrifice transaction (plan-ascension.md C1) — a second seam beside the
+	// writer because it is a one-shot irreversible write whose outcome the loop
+	// has to observe, not a retryable snapshot.
+	persistence.SetCharacterAscensions(persist.NewAscender(db))
 	installShutdownFlush(persistence, characterWriter, db)
 
 	accountsServer, err := buildAccountsServer(db, originPolicy, config, dev, tickets, sessions, identity)

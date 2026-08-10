@@ -256,10 +256,10 @@ type jsonInteraction struct {
 }
 
 type jsonInteractionNode struct {
-	ID         string                     `json:"id"`
-	Conditions []jsonInteractionCondition `json:"conditions"`
-	Lines      []string                   `json:"lines"`
-	Options    []jsonInteractionOption    `json:"options"`
+	ID         string                  `json:"id"`
+	Conditions []JSONCondition         `json:"conditions"`
+	Lines      []string                `json:"lines"`
+	Options    []jsonInteractionOption `json:"options"`
 }
 
 type jsonInteractionOption struct {
@@ -297,11 +297,34 @@ type jsonInteractionGrant struct {
 	XP        uint64 `json:"xp"`
 }
 
-type jsonInteractionCondition struct {
+// JSONCondition is the AUTHORED shape of one condition, exported because a
+// dialogue node is no longer the only thing conditions gate: an ascension
+// catalog entry carries the same list (plan-ascension.md D18, "two surfaces,
+// one language"). Sharing the struct and ParseCondition below is what keeps
+// that literal rather than aspirational — a second authored shape would be a
+// second vocabulary the day either side gained a kind.
+type JSONCondition struct {
 	Kind  string `json:"kind"`
 	Value int    `json:"value"`
 	Quest string `json:"quest"`
 	Stage string `json:"stage"`
+}
+
+// ParseCondition resolves and validates one authored condition. The error names
+// the failure but not WHERE it was authored — callers add that, because "mob X
+// node Y condition 3" and "ascension entry FrostShield condition 0" are the
+// same mistake in two different files.
+func ParseCondition(jc JSONCondition) (InteractionCondition, error) {
+	kind, ok := ParseConditionKind(jc.Kind)
+	if !ok {
+		return InteractionCondition{}, fmt.Errorf("kind %q must be one of %s", jc.Kind, names(conditionKinds))
+	}
+	cond := InteractionCondition{Kind: kind, Value: jc.Value, Quest: jc.Quest, Stage: jc.Stage}
+	if kind == ConditionQuestAtStage && (cond.Quest == "" || cond.Stage == "") {
+		return InteractionCondition{}, fmt.Errorf("quest_at_stage needs a quest and a stage (a stage id, %q or %q)",
+			QuestStageNotStarted, QuestStageCompleted)
+	}
+	return cond, nil
 }
 
 type jsonInteractionCost struct {
@@ -352,15 +375,9 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 
 		node := InteractionNode{ID: jn.ID, Lines: jn.Lines}
 		for j, jc := range jn.Conditions {
-			kind, ok := ParseConditionKind(jc.Kind)
-			if !ok {
-				return nil, fmt.Errorf("mob %q: interaction node %q condition %d: kind %q must be one of %s",
-					m.Name, jn.ID, j, jc.Kind, names(conditionKinds))
-			}
-			cond := InteractionCondition{Kind: kind, Value: jc.Value, Quest: jc.Quest, Stage: jc.Stage}
-			if kind == ConditionQuestAtStage && (cond.Quest == "" || cond.Stage == "") {
-				return nil, fmt.Errorf("mob %q: interaction node %q condition %d: quest_at_stage needs a quest and a stage "+
-					"(a stage id, %q or %q)", m.Name, jn.ID, j, QuestStageNotStarted, QuestStageCompleted)
+			cond, err := ParseCondition(jc)
+			if err != nil {
+				return nil, fmt.Errorf("mob %q: interaction node %q condition %d: %w", m.Name, jn.ID, j, err)
 			}
 			node.Conditions = append(node.Conditions, cond)
 		}

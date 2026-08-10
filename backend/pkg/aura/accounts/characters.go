@@ -44,6 +44,12 @@ func viewOf(c store.Character) characterView {
 
 type createCharacterRequest struct {
 	Name string `json:"name"`
+	// SlotIndex aims the character at one slot; absent means server-assigned
+	// (the lowest free one), which is what an ordinary first character sends.
+	//
+	// ⚑ A pointer, so "not sent" and "slot 0" stay different requests — the
+	// distinction the whole succession path rests on (plan-ascension.md D15).
+	SlotIndex *int `json:"slotIndex"`
 }
 
 type createCharacterResponse struct {
@@ -113,6 +119,7 @@ func (s *Server) handleCreateCharacter(w http.ResponseWriter, r *http.Request) {
 
 	params := store.NewCharacter{
 		AccountID: who.accountID,
+		SlotIndex: body.SlotIndex,
 		Name:      body.Name,
 		Avatar:    s.cfg.DefaultAvatar,
 		Faction:   s.cfg.DefaultFaction,
@@ -135,6 +142,18 @@ func (s *Server) handleCreateCharacter(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.Is(err, store.ErrNameTaken):
 		refuse(w, http.StatusConflict, codeNameTaken, msgNameTaken)
+		return
+	case errors.Is(err, store.ErrSlotOccupied):
+		// ⚑ Distinct from slots_full: the account may have room elsewhere, and
+		// the client must not read this as "you are at the cap". It is reachable
+		// from a stale select screen — two tabs, one of them showing an empty
+		// slot that has since been filled.
+		refuse(w, http.StatusConflict, codeSlotTaken, msgSlotTaken)
+		return
+	case errors.Is(err, store.ErrSlotOutOfRange):
+		// The UI only ever offers slots that exist, so this is a malformed
+		// request rather than a state a player can reach.
+		refuse(w, http.StatusBadRequest, codeBadRequest, msgBadRequest)
 		return
 	case errors.Is(err, store.ErrSlotsFull):
 		// ⚑ Should be unreachable — the UI hides the create affordance at the cap —
@@ -294,13 +313,26 @@ func (s *Server) handleSelectCharacter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ⚑ The bloodline is resolved HERE for the same reason State is: this is the
+	// last place with database access before the single-goroutine game loop, and
+	// a successor has to boot already knowing what its slot has learned (D16).
+	bloodline, err := s.cfg.Store.LoadBloodline(r.Context(), who.accountID, character.SlotIndex)
+	if err != nil {
+		failStore(w, r, err, "reading a bloodline for selection")
+		return
+	}
+
 	ticket, err := s.cfg.Tickets.Mint(auth.Ticket{
 		AccountID:   who.accountID,
 		CharacterID: character.ID,
+		SlotIndex:   character.SlotIndex,
 		Name:        character.Name,
 		Avatar:      character.Avatar,
 		Faction:     character.Faction,
 		State:       state,
+
+		BloodlineUnlocks:    bloodline.Unlocks,
+		BloodlineAscensions: bloodline.Ascensions,
 	})
 	if err != nil {
 		fail(w, r, http.StatusInternalServerError, codeInternal, msgGeneric, err)

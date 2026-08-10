@@ -238,6 +238,9 @@ type ConnectionStateSystem struct {
 	// saves queues character snapshots for the writer goroutine; nil in tests
 	// and in any build without persistence wired (see SetCharacterSaves).
 	saves CharacterSaves
+	// ascensions runs the sacrifice transaction off the loop and hands its
+	// outcome back; nil wherever saves is nil.
+	ascensions CharacterAscensions
 	// saveWatch is what each live character's last save was taken against, so a
 	// forced-save event is three integer comparisons rather than a rebuild.
 	saveWatch map[uuid.UUID]saveWatch
@@ -461,6 +464,7 @@ func (s *ConnectionStateSystem) defaultSpawnPosition() phy.Vec2f {
 func (s *ConnectionStateSystem) Update(dt float32) {
 	s.sweepExpiredStashes()
 	s.drainLogoutRequests()
+	s.drainAscensions()
 	s.drainFlushRequests()
 
 	// Both loops iterate SNAPSHOT copies: RemoveEntity fans out synchronously
@@ -795,6 +799,18 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 		// "load-from-DB is for cold logins only" is exactly this branch.
 		restoreCharacterState(p, ticket.State, s.game.Skills())
 	}
+
+	// ⚑ AFTER the branch, not inside it, so all three join shapes get the same
+	// answer — a cold load, a dead player rejoining through character-select,
+	// and a brand-new successor. Seeding before the branch would be silently
+	// discarded by the dead path's SetSkillComponent, which replaces the whole
+	// component.
+	//
+	// ⚑ Order against the restore is deliberate but not delicate: Discover
+	// merges and never overwrites a level, so running last cannot undo anything
+	// restoreCharacterState just established — including the active aura slot,
+	// which nothing here touches.
+	seedBloodlineUnlocks(p, ticket.BloodlineUnlocks, s.game.Skills())
 
 	// Spawn at the bound campfire, or at a random starting fire when there is no
 	// usable bind.

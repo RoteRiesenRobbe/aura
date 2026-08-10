@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 
+	aascension "github.com/RoteRiesenRobbe/aura/pkg/api/ascension"
 	afactions "github.com/RoteRiesenRobbe/aura/pkg/api/factions"
 	amilestones "github.com/RoteRiesenRobbe/aura/pkg/api/milestones"
 	amobs "github.com/RoteRiesenRobbe/aura/pkg/api/mobs"
@@ -22,6 +23,7 @@ import (
 	arecipes "github.com/RoteRiesenRobbe/aura/pkg/api/recipes"
 	askills "github.com/RoteRiesenRobbe/aura/pkg/api/skills"
 	azones "github.com/RoteRiesenRobbe/aura/pkg/api/zones"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
@@ -47,6 +49,7 @@ type contentSources struct {
 	factions   fs.FS
 	milestones fs.FS
 	quests     fs.FS
+	ascension  fs.FS
 }
 
 func embeddedContent() contentSources {
@@ -59,11 +62,13 @@ func embeddedContent() contentSources {
 		factions:   afactions.Factions,
 		milestones: amilestones.Milestones,
 		quests:     aquests.Quests,
+		ascension:  aascension.Ascension,
 	}
 }
 
 // diskContent loads content from dir, which must have the repo api/ layout
-// (mobs/, skills/, recipes/, zones/, props/, factions/, milestones/, quests/).
+// (mobs/, skills/, recipes/, zones/, props/, factions/, milestones/, quests/,
+// ascension/).
 // Missing subdirectories hard-fail here — content errors are loud, matching
 // the registry ethos.
 func diskContent(dir string) (contentSources, error) {
@@ -99,6 +104,9 @@ func diskContent(dir string) (contentSources, error) {
 		return contentSources{}, err
 	}
 	if c.quests, err = sub("quests"); err != nil {
+		return contentSources{}, err
+	}
+	if c.ascension, err = sub("ascension"); err != nil {
 		return contentSources{}, err
 	}
 	return c, nil
@@ -255,6 +263,22 @@ func loadMilestoneUnlocks(fsys fs.FS, r skills.Registry) []skills.MilestoneUnloc
 	}
 	slog.Info("Loaded milestone unlocks", slog.Int("count", len(unlocks)))
 	return unlocks
+}
+
+// loadAscensionCatalog parses the ascension reward catalog and resolves every
+// unlockKey against the skill registry (plan-ascension.md C1). Curated content:
+// any validation failure aborts startup.
+//
+// ⚑ An EMPTY catalog is not a failure — the directory ships README-only until
+// C3 authors the seed, and an exhausted catalog is a designed end state (D14).
+func loadAscensionCatalog(fsys fs.FS, r skills.Registry) ascension.Catalog {
+	catalog, err := ascension.CatalogFromFS(fsys, r)
+	if err != nil {
+		slog.Error("failed to load the ascension catalog", slog.Any("err", err))
+		panic(err)
+	}
+	slog.Info("Loaded ascension rewards", slog.Int("count", len(catalog.All())))
+	return catalog
 }
 
 // loadConf parses the config file

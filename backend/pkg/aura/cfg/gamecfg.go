@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
@@ -30,6 +31,11 @@ type GameConfig struct {
 	MilestoneUnlocks []skills.MilestoneUnlock
 	Recipes          skills.RecipeRegistry
 	QuestRegistry    quests.Registry
+
+	// AscensionCatalog is the curated reward list an ascending bloodline picks
+	// one entry from (plan-ascension.md D13). Empty until C3 authors it, and
+	// empty is a legal world (D14).
+	AscensionCatalog ascension.Catalog
 
 	// Spawns are the authored mob spawn points from the zone (world foundation
 	// chunk 4). The MobSystem spawns one mob per point and respawns it at the

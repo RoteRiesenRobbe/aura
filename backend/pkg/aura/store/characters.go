@@ -10,11 +10,21 @@ import (
 )
 
 // The constraint names CreateCharacter maps conflicts through. Postgres
-// generates the second one, so both are pinned by TestUniqueConstraintNames —
+// generates two of the three, so all are pinned by TestUniqueConstraintNames —
 // a rename would otherwise turn "that name is taken" into a 500.
 const (
 	constraintSlotOccupied = "one_alive_character_per_slot"
 	constraintNameTaken    = "characters_name_key"
+	// constraintHeirTaken is previous_character_id's inline UNIQUE: one sacrifice
+	// seeds at most one heir, ever.
+	//
+	// ⚑ IT IS THE SAME RACE AS constraintSlotOccupied, wearing a different name.
+	// Two creates into a freed slot derive the same unclaimed predecessor, so the
+	// loser violates BOTH constraints at once — and Postgres reports this one,
+	// because it was created with the table while the slot index came after
+	// (verified, not assumed: TestCreateCharacter_LosesTheHeirRace...). Without
+	// it mapped, the retry that exists to absorb exactly this race never fires.
+	constraintHeirTaken = "characters_previous_character_id_key"
 )
 
 var (
@@ -31,6 +41,15 @@ var (
 	// ErrNotAnonymous guards the discard path from ever running on a registered
 	// account — see DiscardAnonymousAccount.
 	ErrNotAnonymous = errors.New("store: that account is registered")
+	// ErrSlotOccupied means the CHOSEN slot already holds an alive character
+	// (D15). Distinct from ErrSlotsFull, which is "no slot is free at all": one
+	// is a refusal of a specific request, the other a cap.
+	ErrSlotOccupied = errors.New("store: that character slot is taken")
+	// ErrSlotOutOfRange means the chosen slot is negative or at/above the
+	// configured cap. ⚑ Nothing in the DDL bounds slot_index — the cap is a
+	// config knob — so this check is the only thing standing between a client
+	// and a character in slot 7 of a three-slot account.
+	ErrSlotOutOfRange = errors.New("store: that character slot does not exist")
 )
 
 // Character is one life, as character-select and the game path read it.
@@ -51,11 +70,19 @@ type Character struct {
 }
 
 // NewCharacter is what creating one needs.
-//
-// ⚑ SlotIndex is absent on purpose: it is server-assigned (the lowest free
-// slot), never client-chosen. A caller that could pass one could put a character
-// in slot 7 of a three-slot account.
 type NewCharacter struct {
+	// SlotIndex chooses the slot. nil — the ordinary first-character case — means
+	// server-assigned: the lowest free slot.
+	//
+	// ⚑ IT USED TO BE ABSENT ON PURPOSE, and ascension is what changed that
+	// (plan-ascension.md D15). A slot is a bloodline, so an heir has to be able
+	// to aim: ascending slot 2 while slot 0 sits empty would otherwise put the
+	// successor in slot 0, cut off from the unlocks it was just granted, with no
+	// way to say otherwise. The old comment's fear is still real and is answered
+	// by validation instead of by absence — a chosen slot is bounds-checked
+	// against MaxAlive and refused when occupied.
+	SlotIndex *int
+
 	// AccountID is the account to create under, or 0 to mint a fresh anonymous
 	// account behind this character — the anonymous-first path.
 	AccountID int64
@@ -72,9 +99,10 @@ type NewCharacter struct {
 	MaxAlive int
 }
 
-// CreateCharacter assigns the lowest free slot and inserts the character,
-// enforcing the cap in the SAME transaction as the insert — and mints the
-// account first when there is none.
+// CreateCharacter inserts the character into the slot it names, or into the
+// lowest free one when it names none, enforcing the cap in the SAME transaction
+// as the insert — and mints the account first when there is none. It also
+// derives the succession link (see unclaimedPredecessor).
 //
 // ⚑ IT RETRIES ONCE, and the retry is not defensive coding. Two concurrent
 // creates both compute "lowest free slot", both aim at it, and one loses the
@@ -84,8 +112,20 @@ type NewCharacter struct {
 // it is scoped to the SLOT conflict only, because a name conflict is a decision
 // the player has to make, not a race to re-run.
 func (s *Store) CreateCharacter(ctx context.Context, params NewCharacter) (Character, error) {
+	if params.SlotIndex != nil && (*params.SlotIndex < 0 || *params.SlotIndex >= params.MaxAlive) {
+		return Character{}, ErrSlotOutOfRange
+	}
+
 	created, err := s.createCharacterOnce(ctx, params)
 	if errors.Is(err, errSlotRace) {
+		// ⚑ THE RETRY IS FOR THE ASSIGNED PATH ONLY. It exists because "lowest
+		// free slot" is a guess two callers can make at once — re-running it
+		// picks a different slot, which is the correct answer there. A CHOSEN
+		// slot has no second-best: retrying would silently drop an heir into a
+		// different bloodline than the one it was aimed at (D15).
+		if params.SlotIndex != nil {
+			return Character{}, ErrSlotOccupied
+		}
 		created, err = s.createCharacterOnce(ctx, params)
 		if errors.Is(err, errSlotRace) {
 			// Losing twice is no longer a race — treat it as the cap being full,
@@ -117,7 +157,18 @@ func (s *Store) createCharacterOnce(ctx context.Context, params NewCharacter) (C
 		}
 	}
 
-	slot, err := lowestFreeSlot(ctx, tx, accountID, params.MaxAlive)
+	slot := 0
+	if params.SlotIndex != nil {
+		slot = *params.SlotIndex
+	} else if slot, err = lowestFreeSlot(ctx, tx, accountID, params.MaxAlive); err != nil {
+		return Character{}, err
+	}
+
+	// ⚑ DERIVED HERE, never sent by the client, and unconditionally — succession
+	// is a property of the SLOT, not of how the slot was picked, so a
+	// server-assigned create into a slot whose life was sacrificed chains just
+	// the same (plan-ascension.md §4.7).
+	previous, err := unclaimedPredecessor(ctx, tx, accountID, slot)
 	if err != nil {
 		return Character{}, err
 	}
@@ -130,15 +181,15 @@ func (s *Store) createCharacterOnce(ctx context.Context, params NewCharacter) (C
 		Faction:   params.Faction,
 	}
 	err = tx.QueryRow(ctx,
-		`INSERT INTO game.characters (account_id, slot_index, name, avatar, faction)
-		 VALUES ($1, $2, $3, $4, $5)
+		`INSERT INTO game.characters (account_id, slot_index, name, avatar, faction, previous_character_id)
+		 VALUES ($1, $2, $3, $4, $5, $6)
 		 RETURNING id, level, experience, created_at`,
-		accountID, slot, params.Name, params.Avatar, params.Faction).
+		accountID, slot, params.Name, params.Avatar, params.Faction, previous).
 		Scan(&created.ID, &created.Level, &created.Experience, &created.CreatedAt)
 	switch {
 	case isUniqueViolation(err, constraintNameTaken):
 		return Character{}, ErrNameTaken
-	case isUniqueViolation(err, constraintSlotOccupied):
+	case isUniqueViolation(err, constraintSlotOccupied), isUniqueViolation(err, constraintHeirTaken):
 		return Character{}, errSlotRace
 	case err != nil:
 		return Character{}, fmt.Errorf("creating a character: %w", err)
@@ -148,6 +199,38 @@ func (s *Store) createCharacterOnce(ctx context.Context, params NewCharacter) (C
 		return Character{}, fmt.Errorf("committing the character creation: %w", err)
 	}
 	return created, nil
+}
+
+// unclaimedPredecessor finds the life this new character succeeds: the most
+// recently sacrificed character in that (account, slot) which no heir has
+// claimed yet. It returns nil when there is none — a first life, or a slot
+// whose last occupant was merely deleted.
+//
+// ⚑ ONE SACRIFICE SEEDS AT MOST ONE HEIR, EVER, and the NOT EXISTS is what says
+// so. previous_character_id is UNIQUE, so a second claim on the same
+// predecessor would be a raw constraint violation in a player's face; and
+// soft-deleting an heir does NOT release its claim, because the row and its
+// link survive deletion. That combination is what makes
+// delete-the-heir-then-recreate resolve to "chains to nothing" rather than to
+// an error (§7).
+//
+// ⚑ Sacrificed rows only. A deletion is character-select housekeeping, not a
+// chain event: it grants nothing and mints no successor.
+func unclaimedPredecessor(ctx context.Context, tx pgx.Tx, accountID int64, slot int) (*int64, error) {
+	var previous int64
+	err := tx.QueryRow(ctx,
+		`SELECT c.id FROM game.characters c
+		  WHERE c.account_id = $1 AND c.slot_index = $2 AND c.sacrificed_at IS NOT NULL
+		    AND NOT EXISTS (SELECT 1 FROM game.characters heir WHERE heir.previous_character_id = c.id)
+		  ORDER BY c.sacrificed_at DESC, c.id DESC
+		  LIMIT 1`, accountID, slot).Scan(&previous)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("reading the sacrificed predecessor: %w", err)
+	}
+	return &previous, nil
 }
 
 // lowestFreeSlot is the assignment rule: the lowest slot_index below the cap not

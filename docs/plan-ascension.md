@@ -1,7 +1,8 @@
 # Plan: Ascension — the character-sacrifice loop
 
 > **Status: DESIGNED 2026-08-04, SCOPE CUT 2026-08-05 (D13), CODE-REVIEWED
-> 2026-08-05 (D15–D17), CONDITIONS ADDED 2026-08-09 (D18): no chunk built.**
+> 2026-08-05 (D15–D17), CONDITIONS ADDED 2026-08-09 (D18).
+> ⭐ C1 BUILT 2026-08-10 (§11) — C2 and C3 remain.**
 > The execution-order item "character-sacrifice loop" (GDD §5 meta-progression,
 > pulled into v1 by the 2026-07-19 intermission-triage ruling, item 10), opened
 > as persistence's first consumer. Every number is [PLACEHOLDER] unless marked.
@@ -514,10 +515,17 @@ Sequencing: C0 anytime; C1 → C2 → C3, each its own execution session.
   regressions: **a late save against a sacrificed row is an `ErrGone` drop
   that does NOT count as a writer failure** (no false "cannot save" banner —
   the one place the existing design could have gone wrong and didn't); the
-  reconnect stash is discarded at ascension; `SaveCharacter`'s child-table
+  reconnect stash is discarded at ascension; ~~`SaveCharacter`'s child-table
   writes stay behind the early `ErrGone` return (they are protected by
   *statement order only* — a reorder would silently rewrite a sacrificed
-  character's children); D15 slot-choice validation (occupied / out-of-range
+  character's children)~~ ⚑ **CORRECTED IN C1 by mutating the pin this line
+  asked for: they are NOT protected by statement order.** The early return is an
+  *error* return, so it never reaches `Commit` and the deferred `Rollback` undoes
+  the child writes with everything else — moving the guard below them keeps the
+  test green. **The transaction is the protection; statement order is an
+  optimisation on top of it.** The pin stays for the contract it does hold (a
+  late save against a graveyard row changes nothing and is marked terminal) and
+  would go red if those writes ever left the transaction; D15 slot-choice validation (occupied / out-of-range
   refused); `previous_character_id` derivation edges (delete-heir-then-
   recreate chains correctly via the UNIQUE); and the D16 seed surviving a
   save→load cycle with the starting aura still *active*.
@@ -617,4 +625,133 @@ rediscovering it. **None of this is in scope; see §8 "deferred".**
 
 ## 11. Chunk ledgers
 
-*(appended per execution session — none yet)*
+### C1 — the transaction + the catalog ✅ 2026-08-10, `[uncommitted]`
+
+**Built TDD red-first across five steps, one session.** Every load-bearing pin
+was proven by mutation. No new PO ruling was needed: D13/D15–D18 already
+governed everything C1 touches.
+
+**Schema impact: DB NONE (no migration) · FlatBuffers NONE · conf NONE ·
+frontend NONE.** First writers only, for columns `000001` shipped empty.
+
+**What changed**
+
+| Layer | Change |
+| --- | --- |
+| `pkg/aura/ascension/` (new) | `Entry` (unlockKey + resolved skill + conditions) · `Catalog` · `CatalogFromFS` · `Remaining(taken)` — §6's "what can this bloodline still learn", catalog half |
+| `items/mobs/interaction.go` | `jsonInteractionCondition` → exported **`JSONCondition`** + **`ParseCondition`**; the mob loader now routes through it |
+| `api/ascension/` (new) | README only until C3 · `pkg/api/ascension` with `//go:embed *` |
+| `cmd/aurad/loaders.go` + `aurad.go` | ninth `contentSources` entry · `loadAscensionCatalog` + boot count · `core.AscensionCatalog` · `cfg.GameConfig.AscensionCatalog` |
+| `backend/Makefile` | `cp-defs` copies nine dirs (its `$(info)` string too) |
+| `store/ascension.go` (new) | **`AscendCharacter`** — the sacrifice transaction · **`Bloodline`** + `LoadBloodline` (unlocks + ascension count, one round trip) · `ErrUnlockAlreadyOwned` |
+| `store/characters.go` | `NewCharacter.SlotIndex *int` (D15) · `ErrSlotOccupied` / `ErrSlotOutOfRange` · the retry fork · **`unclaimedPredecessor`** derivation inside the create transaction · `constraintHeirTaken` mapped |
+| `accounts/characters.go` + `respond.go` | create API takes `slotIndex` (`slot_taken` 409 / 400) · `/select` resolves the bloodline onto the ticket |
+| `auth/ticket.go` | `BloodlineUnlocks` + `BloodlineAscensions` |
+| `persist/ascend.go` (new) | `AscensionRequest` / `AscensionResult` / `AscensionSink` / **`Ascender`** — off-loop, one attempt, drained by the loop |
+| `sys/persist.go` | `CharacterAscensions` seam · `RequestAscension` (P1) · `drainAscensions` · **`endAscendedSession`** · `seedBloodlineUnlocks` (D16) |
+| `sys/state.go` | `drainAscensions()` in `Update` · the seed call in `tryJoin`, after the restore branch |
+| `core/game.go` | `SetCharacterAscensions` + **compile-time assertions for all three seams `cmd/aurad` type-asserts** |
+
+**Findings — the four things a future session needs**
+
+1. ⛑ **§7's "protected by statement order only" was FALSE, and mutating the pin
+   written for it is what proved so.** Moving `SaveCharacter`'s `ErrGone` guard
+   *below* the child-table writes keeps the test green: it is an **error**
+   return, so `Commit` is never reached and the deferred `Rollback` undoes the
+   child writes with everything else. **The transaction is the protection.** §7
+   is corrected in place.
+2. ⛑ **The heir race surfaced an UNMAPPED constraint.** Two creates into a
+   freed slot derive the same unclaimed predecessor, so the loser violates
+   `one_alive_character_per_slot` **and** `previous_character_id`'s inline
+   UNIQUE — and Postgres reports **`characters_previous_character_id_key`
+   first** (created with the table; the slot index came later). Unmapped, that
+   is a raw 500 in exactly the race the shipped retry-once exists to absorb, and
+   the existing concurrency test could never see it because its slots have no
+   sacrificed predecessor. Reproduced **deterministically** (an uncommitted
+   rival heir holds the row lock, so the create under test loses for certain),
+   then mapped to `errSlotRace` and pinned by name.
+3. ⚑ **`PersistenceSink` is a RUNTIME type assertion.** Adding a method to it
+   without implementing it on `core.game` builds green and dies at boot with
+   *"game does not accept a persistence seam"*. Now a build failure for all
+   three seams — the silent-wiring class, caught by being about to commit it.
+4. ⚑ **`SlotIndex` on the ticket had no reader, so it was removed.** The
+   transaction reads the slot off the row it is already updating
+   (`UPDATE … RETURNING slot_index`), which is strictly safer than carrying it:
+   a carried value could drift from the row and file a reward under a bloodline
+   that did not earn it. §6's "account/slot identity rides the ticket" is
+   therefore **half-true by design** — the account rides, the slot is derived.
+
+**Decisions taken inside the chunk (no PO prompt needed)**
+
+- **P1 is checked on the LOOP, against the live level**, never in SQL: the row's
+  level is eventually consistent and the teardown deliberately skips the final
+  save, so a `level >= 30` clause would refuse a player who just dinged.
+- **Teardown order** (each line mutation-proven): zero `characterByClient`
+  (save kill switch) → zero `accountByClient` (so the LATE fan-out cannot stash
+  the **successor's** freshly claimed session) → drop the reconnect token (no
+  stash is ever created, the name is freed) + `discardStashFor` → close →
+  **Release**, not Stash.
+- **One attempt, never retried** — the opposite of the save path. Re-running an
+  irreversible transaction after an ambiguous timeout is how a sacrificed
+  character gets reported as never sacrificed.
+- **The seed DISCOVERS, it does not equip** (a gift that equipped itself would
+  put back, every login, a skill the player removed), and `Discover` only writes
+  into an entry that is 0, which is what makes D16's reapply-every-join
+  harmless.
+- **No `ASCEND` cheat command** — C1's done-condition is a test, C2 brings the
+  real trigger.
+- **The three new D18 condition kinds land in C2, beside their evaluation.**
+  `conditionsPass` fails **closed**, so a kind that parses with nothing
+  evaluating it is a permanently locked row: a silent content bug.
+- **No crash-injection machinery.** The duplicate-key path is a genuine abort
+  between the two writes through production code and goes red the moment they
+  stop sharing a transaction; a process-crash test would only re-prove
+  Postgres's own guarantee.
+
+**Verification**
+
+- **~70 new tests**: 14 `ascension` · 24 `store` · 5 `accounts` · 16 `sys` ·
+  4 `persist` · 1 loader-coverage pin. Every load-bearing one mutation-verified
+  (transaction split, retry fork, `NOT EXISTS`, level overwrite, retired key,
+  active-aura disturbance, each teardown line, multi-unlock seeding).
+- Full `go test ./...` **0 FAIL** · `make -C backend db-test` green (store +
+  accounts vs `aura_test`) · `go build ./...` clean.
+- ⚑ `sys.TestDwell_TakeoffDropsAnInProgressCount` fired once in a full run. At
+  n=8 it looked alarming (4/8 mine vs 1/8 HEAD); **at n=20 it is 7/20 with this
+  work vs 10/20 at HEAD** — the documented flake, unchanged. The small sample
+  was the trap the standing note names.
+- Boot **0 WARN / 0 ERROR** on both paths (embedded and `-content ../api`),
+  new line `Loaded ascension rewards count=0`.
+- **Sim batteries byte-identical**: TTK **6.67 s** / TTD **8.70 s**, the locked
+  values.
+- Browser gate: **`chunk2-accounts` 24/24** · **`chunk4-persistence` 16/16** ·
+  ⭐ **new `c1-bloodline-seed.mjs` 5/5**, all 0 console errors.
+- ⚑ New pin beyond the plan: **`TestContentSources_CoverEveryApiSubdirectory`**
+  — the "a content dir nobody wired silently no-ops" landmine had no test, and
+  C1 added the ninth directory. It enumerates `api/` by reading the filesystem,
+  so it cannot rot the way a hand-listed set would.
+
+**The new harness, and what its failures taught**
+
+`c1-bloodline-seed.mjs` is before/after on ONE character: prove it does not know
+`FrostShield`, insert one `bloodline_unlocks` row, return, find it. Two things
+cost a run each and are now in its header — it must leave through the product
+(**settings → character select**), because a page reload inside the stash window
+resumes the live character and discards the ticket, so the seed never runs; and
+the client renders **display names**, so `FrostShield` arrives as "Frost Shield"
+and a verbatim match scores a working seed as a failure.
+
+**Hand-forward to C2**
+
+- The seam is built and unused: **`RequestAscension(p, unlockKey)` is the entry
+  point** the stone's `ascend` grant calls. It refuses below max level, refuses
+  without an account/character binding, and accepts `""` as the empty pick.
+- `Catalog.Remaining(bloodline.Unlocks)` is the pickable list; **gates are not
+  applied there** — a locked entry is still unlearned, and C2 renders it locked.
+- The three D18 condition kinds (`kills_this_life`, `bloodline_ascensions`,
+  `quest_completed`) do not exist yet. `BloodlineAscensions` is already on the
+  ticket for the tier-B one.
+- The create card on every empty slot (D15's client half) is C2's; the API
+  already takes `slotIndex` and refuses occupied/out-of-range.
+- ⚑ **Camp standing:** ascension shipped first, so per §4.8 the standing-wipe
+  assert passes to **camps' own C1**, against the already-built transaction.

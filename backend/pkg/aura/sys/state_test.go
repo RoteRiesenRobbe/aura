@@ -35,6 +35,7 @@ type fakeClient struct {
 	unlocks   []capturedUnlock
 	journals  []string
 	abandons  []*model.AbandonQuest
+	closed    bool
 }
 
 // capturedUnlock records one SendUnlock call for the attribution tests.
@@ -116,7 +117,7 @@ func (c *fakeClient) SendJournal(text string) error {
 	c.journals = append(c.journals, text)
 	return nil
 }
-func (c *fakeClient) Close()          {}
+func (c *fakeClient) Close()          { c.closed = true }
 func (c *fakeClient) UUID() uuid.UUID { return c.uuid }
 
 // minimal skill content so the real player.New can initialize its component

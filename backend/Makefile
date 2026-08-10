@@ -11,9 +11,9 @@ fmt:
 	@gofumpt -l -w .
 
 cp-defs:
-	$(info "bundling all eight content dirs: mobs skills recipes zones props factions milestones quests")
+	$(info "bundling all nine content dirs: mobs skills recipes zones props factions milestones quests ascension")
 	@find ./pkg/api -type f -name '*.json' -delete
-	@cp -rf ../api/mobs ../api/skills ../api/recipes ../api/zones ../api/props ../api/factions ../api/milestones ../api/quests ./pkg/api
+	@cp -rf ../api/mobs ../api/skills ../api/recipes ../api/zones ../api/props ../api/factions ../api/milestones ../api/quests ../api/ascension ./pkg/api
 
 %.build: gen cp-defs
 	go build -o $* ./cmd/$*

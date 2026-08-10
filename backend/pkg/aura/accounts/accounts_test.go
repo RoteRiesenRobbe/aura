@@ -983,3 +983,96 @@ func scalarInt(t *testing.T, h *harness, sql string, args ...any) int {
 	require.NoError(t, h.db.Pool.QueryRow(context.Background(), sql, args...).Scan(&v), sql)
 	return v
 }
+
+// TestCreateCharacterHonoursAChosenSlot is D15 at the endpoint: the heir of a
+// sacrificed bloodline has to be able to aim at ITS slot, not at the lowest
+// free one — otherwise ascending slot 2 while slot 0 sits empty puts the
+// successor in slot 0, cut off from the unlocks it was just granted.
+func TestCreateCharacterHonoursAChosenSlot(t *testing.T) {
+	h := newHarness(t)
+
+	created := h.do(http.MethodPost, "/api/characters", map[string]any{"name": "Barney", "slotIndex": 2})
+	require.Equal(t, http.StatusCreated, created.code, "%v", created.body)
+	assert.Equal(t, float64(2), created.body["character"].(map[string]any)["slotIndex"])
+
+	// The next unaimed create still takes the LOWEST free slot — choosing is an
+	// option, not a new default.
+	next := h.createCharacter("Wilma")
+	require.Equal(t, http.StatusCreated, next.code)
+	assert.Equal(t, float64(0), next.body["character"].(map[string]any)["slotIndex"])
+}
+
+func TestCreateCharacterRefusesAnOccupiedChosenSlot(t *testing.T) {
+	h := newHarness(t)
+	require.Equal(t, http.StatusCreated, h.createCharacter("Barney").code)
+
+	got := h.do(http.MethodPost, "/api/characters", map[string]any{"name": "Wilma", "slotIndex": 0})
+	assert.Equal(t, http.StatusConflict, got.code)
+	assert.Equal(t, "slot_taken", got.errCode())
+
+	// ⚑ And it must NOT have quietly landed somewhere else: a refused aim is a
+	// refusal, never a redirect into another bloodline.
+	listed := h.do(http.MethodGet, "/api/characters", nil)
+	characters, _ := listed.body["characters"].([]any)
+	assert.Len(t, characters, 1, "%v", listed.body)
+}
+
+func TestCreateCharacterRefusesAnOutOfRangeChosenSlot(t *testing.T) {
+	h := newHarness(t)
+
+	for _, slot := range []int{-1, 3} {
+		got := h.do(http.MethodPost, "/api/characters", map[string]any{"name": "Barney", "slotIndex": slot})
+		assert.Equal(t, http.StatusBadRequest, got.code, "slot %d", slot)
+	}
+}
+
+// TestSelectCarriesTheBloodlineOntoTheTicket is D16: a successor is seeded from
+// its bloodline at JOIN, and the ticket is the only seam that can carry
+// per-character data to a loop that must never touch the database.
+//
+// ⚑ The ascension COUNT rides along for the same reason (D18 tier B): a gate
+// like "ascend 3 times" is answered where the rows already are, not by a query
+// at dialogue-render time. Both are session-constant by construction, because
+// ascending is what ends a session.
+func TestSelectCarriesTheBloodlineOntoTheTicket(t *testing.T) {
+	h := newHarness(t)
+	created := h.createCharacter("Barney")
+	require.Equal(t, http.StatusCreated, created.code)
+	first := h.characterID(created)
+
+	// Spend a life, then take the slot again with the heir.
+	var accountID int64
+	require.NoError(t, h.db.Pool.QueryRow(context.Background(),
+		`SELECT account_id FROM game.characters WHERE id = $1`, first).Scan(&accountID))
+	_, err := h.db.AscendCharacter(context.Background(), accountID, first, "FrostShield")
+	require.NoError(t, err)
+
+	heir := h.do(http.MethodPost, "/api/characters", map[string]any{"name": "Wilma", "slotIndex": 0})
+	require.Equal(t, http.StatusCreated, heir.code, "%v", heir.body)
+	heirID := h.characterID(heir)
+
+	got := h.do(http.MethodPost, fmt.Sprintf("/api/characters/%d/select", heirID), nil)
+	require.Equal(t, http.StatusOK, got.code, "%v", got.body)
+
+	ticket, err := h.tickets.Redeem(got.str("ticket"))
+	require.NoError(t, err)
+	assert.Equal(t, 0, ticket.SlotIndex, "the slot identifies the bloodline the loop will write back to")
+	assert.Equal(t, []string{"FrostShield"}, ticket.BloodlineUnlocks)
+	assert.Equal(t, 1, ticket.BloodlineAscensions)
+}
+
+// A first life carries an empty bloodline — the common case, and it must not
+// need a special branch anywhere downstream.
+func TestSelectCarriesAnEmptyBloodlineForAFirstLife(t *testing.T) {
+	h := newHarness(t)
+	created := h.createCharacter("Barney")
+	require.Equal(t, http.StatusCreated, created.code)
+
+	got := h.do(http.MethodPost, fmt.Sprintf("/api/characters/%d/select", h.characterID(created)), nil)
+	require.Equal(t, http.StatusOK, got.code)
+
+	ticket, err := h.tickets.Redeem(got.str("ticket"))
+	require.NoError(t, err)
+	assert.Empty(t, ticket.BloodlineUnlocks)
+	assert.Zero(t, ticket.BloodlineAscensions)
+}

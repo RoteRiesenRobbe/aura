@@ -228,12 +228,30 @@ func (g *game) EndSessionFor(accountID int64) {
 	g.connState.EndSessionFor(accountID)
 }
 
+// ⚑ THE SEAMS cmd/aurad TYPE-ASSERTS, PINNED AT COMPILE TIME. Every one of them
+// is checked at RUNTIME over there (`g.(sys.PersistenceSink)`, panicking with
+// "game does not accept a … seam"), so adding a method to one of these
+// interfaces without implementing it here builds green and dies at boot. These
+// three lines turn that into a build failure — found while adding the ascension
+// seam, which would otherwise have been exactly that bug.
+var (
+	_ sys.PersistenceSink    = (*game)(nil)
+	_ sys.IdentitySink       = (*game)(nil)
+	_ sys.CampfireAnchorSink = (*game)(nil)
+)
+
 // SetCharacterSaves gives the save triggers somewhere to queue snapshots
 // (step 8a chunk 4). Satisfies sys.PersistenceSink together with the flush
 // below, following the SetCampfireAnchors precedent: the interface lives in
 // sys, the game forwards, and cmd/aurad type-asserts.
 func (g *game) SetCharacterSaves(saves sys.CharacterSaves) {
 	g.connState.SetCharacterSaves(saves)
+}
+
+// SetCharacterAscensions gives the sacrifice request somewhere to go
+// (plan-ascension.md C1). Same seam, same reasoning as the saves above.
+func (g *game) SetCharacterAscensions(ascensions sys.CharacterAscensions) {
+	g.connState.SetCharacterAscensions(ascensions)
 }
 
 // FlushLiveCharacters queues a snapshot of every live character, for the

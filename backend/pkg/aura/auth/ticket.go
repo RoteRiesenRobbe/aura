@@ -81,6 +81,36 @@ type Ticket struct {
 	// only" (plan-accounts-implementation.md §5). The wasted read is the price
 	// of /select having one shape.
 	State persist.CharacterState
+
+	// SlotIndex is which of the account's slots this character occupies — and a
+	// slot IS a bloodline (D3). The loop needs it to name the bloodline the
+	// ascension transaction writes to; nothing else in the world cares.
+	SlotIndex int
+
+	// BloodlineUnlocks are the skills every character in this slot starts with,
+	// accumulated across all of its past ascensions (D16). Applied right after
+	// the creation milestones on a fresh join.
+	//
+	// ⚑ THEY RIDE THE TICKET BECAUSE THE SEEDING PATH THEY IMITATE CANNOT CARRY
+	// THEM. "The same path as Damage@L1" is a SHAPE, not a mechanism: milestone
+	// seeding reads a server-global config table, and `player.New` takes nothing
+	// character-specific. /select is already off-loop with database access and
+	// already bakes State, so it resolves these there too.
+	//
+	// ⚑ The alternative — writing spellbook rows at creation — has a verified
+	// trap: restoreCharacterState's empty-spellbook early return is the only
+	// thing protecting a new character's pre-equipped starting aura, so a
+	// non-empty spellbook would make a successor boot with Damage equipped and
+	// switched OFF. bloodline_unlocks stays the single durable truth.
+	BloodlineUnlocks []string
+
+	// BloodlineAscensions is how many lives this slot has already spent — the
+	// one D18 tier-B condition input, resolved here beside the unlocks because
+	// it is a count over rows /select is already reading.
+	//
+	// ⚑ Session-constant by construction: ascending ends the session, so nothing
+	// can invalidate it mid-dialogue.
+	BloodlineAscensions int
 }
 
 type ticketEntry struct {

@@ -2,6 +2,8 @@ package main
 
 import (
 	"io/fs"
+	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -185,6 +187,43 @@ func TestDiskContent_LegacyTagging(t *testing.T) {
 func TestDiskContent_MissingSubdirFails(t *testing.T) {
 	_, err := diskContent(t.TempDir())
 	assert.Error(t, err)
+}
+
+// TestContentSources_CoverEveryApiSubdirectory is the standing landmine as a
+// test: a new content directory that nobody adds to contentSources loads
+// nothing and SAYS NOTHING — every edit in it silently no-ops until someone
+// wonders why their JSON has no effect.
+//
+// ⚑ It enumerates api/ by reading the filesystem rather than listing the
+// directories by hand, because a hand-maintained list here would need the same
+// edit it exists to catch. contentSources' field names ARE the directory names,
+// which is what makes the comparison possible at all — keep it that way.
+func TestContentSources_CoverEveryApiSubdirectory(t *testing.T) {
+	// schema/ holds the .fbs protocol definitions, which are compiled into
+	// bindings at build time and never loaded as content.
+	const notContent = "schema"
+
+	dirEntries, err := os.ReadDir("../../../api")
+	require.NoError(t, err)
+	authored := []string{}
+	for _, e := range dirEntries {
+		if e.IsDir() && e.Name() != notContent {
+			authored = append(authored, e.Name())
+		}
+	}
+	require.NotEmpty(t, authored)
+
+	wired := map[string]bool{}
+	sourceType := reflect.TypeOf(contentSources{})
+	for i := 0; i < sourceType.NumField(); i++ {
+		wired[sourceType.Field(i).Name] = true
+	}
+
+	for _, dir := range authored {
+		assert.True(t, wired[dir],
+			"api/%s/ is not a contentSources field — every edit in it silently no-ops. "+
+				"Add it to contentSources, embeddedContent, diskContent and the Makefile's cp-defs", dir)
+	}
 }
 
 // The embedded milestone table must match the authored one in api/. They drift

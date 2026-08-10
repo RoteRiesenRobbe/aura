@@ -22,6 +22,7 @@ const (
 	codeNameTaken         = "name_taken"           //
 	codeUsernameTaken     = "username_taken"       // ⚑ the one accepted enumeration vector
 	codeSlotsFull         = "slots_full"           //
+	codeSlotTaken         = "slot_taken"           // a CHOSEN slot is occupied — not the cap
 	codeInvalidLogin      = "invalid_credentials"  // "no such user" AND "wrong password"
 	codeAlreadyLoggedIn   = "already_logged_in"    //
 	codeAlreadyRegistered = "already_registered"   //
@@ -45,6 +46,7 @@ const (
 	msgUsernameTaken     = "That username is already taken."
 	msgNameTaken         = "That character name is taken."
 	msgSlotsFull         = "All character slots are full."
+	msgSlotTaken         = "That character slot is taken."
 	msgAlreadyRegistered = "That account is already registered."
 	msgCharacterPlaying  = "That character is in the world right now. Leave the world first."
 	msgSignedOut         = "You are signed out. Please log in again."
