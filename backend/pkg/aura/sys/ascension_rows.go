@@ -89,8 +89,8 @@ func (a *ascensionRows) PresentRows(kind mobs.RowSourceKind, p learner) []model.
 		rows = append(rows, model.ConversationOption{
 			OptionIndex:    ascensionEmptyPickIndex,
 			GrantIndex:     0,
-			Text:           "Ascend, and take nothing with you.",
-			Reply:          "Then go. You will be remembered even so.",
+			Text:           "Spend this character, take no reward.",
+			Reply:          "Channelling now. Walk away to cancel.",
 			ConfirmSeconds: ascensionConfirmSeconds,
 		})
 	}
@@ -107,11 +107,19 @@ func (a *ascensionRows) PresentRows(kind mobs.RowSourceKind, p learner) []model.
 // its own. The wire carries `required_level` for the teach_skill level wall and
 // nothing else, and D18 chose deliberately not to buy a second field for this.
 func (a *ascensionRows) row(index int, entry ascension.Entry, locked bool, p learner) model.ConversationOption {
-	text := skills.DeriveDisplayName(entry.Skill.Name)
+	// ⛑ THE AUTHORED DISPLAY NAME, NEVER A FRESH DERIVATION. The registry
+	// already resolved the override into DisplayName at load (override, else
+	// CamelCase→spaces), and `DeriveDisplayName`'s own doc says the odd cases
+	// author one instead: "Long-Range Strike", "Call for Aid", "Damage-Burst",
+	// "Hold the Line". Deriving here re-implemented the rule and silently
+	// dropped the override, which is the same mistake C2b corrected in P21 on
+	// the client side. Found by c2a-ascension-site at C3 step 4, when RimeBurst
+	// became the first authored entry whose two spellings differ.
+	text := entry.Skill.Display()
 	// ⚑ A locked row rides with an EMPTY reply and is refused by ApplyRow, the
 	// same deliberate twin the teaching rows have: the greying and the named wall
 	// are the whole message, and the optimistic panel must have nothing to speak.
-	reply := fmt.Sprintf("Then let it be %s. Your line will carry it.", text)
+	reply := fmt.Sprintf("%s it is. Channelling now, walk away to cancel.", text)
 	if locked {
 		text = fmt.Sprintf("%s - locked: %s", text, describeConditions(entry.Conditions, p))
 		reply = ""
@@ -210,10 +218,30 @@ func (a *ascensionRows) stash(p learner, key string) (string, bool) {
 	sc.PendingAscension = &stored
 	sc.StartUtilityCast(skills.UtilityAscend)
 	if key == "" {
-		return "Then go. You will be remembered even so.", true
+		return "Channelling now. Walk away to cancel.", true
 	}
-	return fmt.Sprintf("Then let it be %s. Your line will carry it.",
-		skills.DeriveDisplayName(key)), true
+	return fmt.Sprintf("%s it is. Channelling now, walk away to cancel.",
+		a.displayNameOf(key)), true
+}
+
+// displayNameOf answers what a player should see this reward called.
+//
+// ⚑ It reads the catalog rather than deriving from the key, so BOTH ends of one
+// click agree: row() speaks this sentence optimistically in the panel and stash
+// returns it from the server, and a reward whose authored displayName differs
+// from its key ("RimeBurst" → "Rime-Burst") would otherwise be named one way on
+// screen and another way in the reply.
+//
+// ⚑ The fallback is the derivation rather than the raw key, because the only way
+// to reach it is a key the catalog no longer holds, and a retired reward should
+// still read as words.
+func (a *ascensionRows) displayNameOf(key string) string {
+	for _, entry := range a.catalog.All() {
+		if entry.UnlockKey == key && entry.Skill != nil {
+			return entry.Skill.Display()
+		}
+	}
+	return skills.DeriveDisplayName(key)
 }
 
 func (a *ascensionRows) anyPickable(p learner) bool {
@@ -266,6 +294,28 @@ func describeCondition(c mobs.InteractionCondition, p learner) string {
 			return fmt.Sprintf("complete %q", c.Quest)
 		}
 		return fmt.Sprintf("%q at %q", c.Quest, c.Stage)
+	case mobs.ConditionKillsThisLife:
+		// ⭐ "N × Species", because it DOES NOT PLURALISE (P21). English
+		// pluralisation of arbitrary authored names has no ceiling (Wolf →
+		// Wolves, Boar → Boars, Dodo → Dodos, and every species a content pass
+		// adds next), and this form is correct for all of them at once.
+		//
+		// ⚑ The species reads as its display name, through the same rule the
+		// nameplates and the actor line use. A player has never seen the
+		// CamelCase key and must not meet it here first.
+		//
+		// ⚑ The counter is read through the SAME unresolved-species guard
+		// conditionsPass applies, and not because the state is expected: an
+		// unresolved gate never opens, so without this the row could read
+		// "(50/20)" beside a wall that will never fall: kills of "mob 0" counted
+		// against a species nobody resolved. Refusing and misreporting have to
+		// agree about what they are talking about.
+		killed := uint64(0)
+		if c.SpeciesID != 0 {
+			killed = p.QuestLedger().KillCount(c.SpeciesID)
+		}
+		return fmt.Sprintf("slay %d × %s this life (%d/%d)",
+			c.Value, skills.DeriveDisplayName(c.Species), killed, c.Value)
 	default:
 		// Unreachable while the loader refuses an unknown kind at boot. It is
 		// spelled out rather than left to a bare default so a NEW kind lands here

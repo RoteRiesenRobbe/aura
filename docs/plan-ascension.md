@@ -507,6 +507,12 @@ whole feature is first-writers for columns that shipped empty:
   higher power level. A gated entry that outclassed world content would make
   the condition the only road to that power, which is the SWG-Hologrind failure
   D1 exists to prevent.
+  ⭐ **SUPERSEDED IN PART by the 2026-08-10 design pass: read §13 first.** The
+  memorial is one global list with the reader's own names marked (D25), the
+  catalog is eight entries of which three name skills that already exist (D26),
+  the hunt gate is `DireWolf >= 20` (D27), and `quest_completed` is **not**
+  built - the third gated entry authors the shipped `quest_at_stage` with the
+  `completed` sentinel (P8). §13 is the buildable version of this bullet.
 
 Sequencing: C0 anytime; C1 → C2 → C3, each its own execution session.
 
@@ -554,10 +560,15 @@ Sequencing: C0 anytime; C1 → C2 → C3, each its own execution session.
 
 - **Site location + environment art** — world/content pass (druid stones the
   candidate). The dialog *text* ("The Passing") needs a lore write.
-- **Memorial display scope** (D11) — one shared monument listing every ascended
-  name (GDD intent) vs. per-bloodline grouping. PO call at C3.
-- **Numbers** — catalog size, channel length, whether the below-max-level
-  preview ships. [PLACEHOLDER], tuning-open.
+- ✅ **~~Memorial display scope~~ (D11), CLOSED by D25** (PO, 2026-08-10): one
+  global list of every ascended name, newest first, with the reading account's
+  own names marked. The GDD's shared-monument intent wins; the per-bloodline
+  alternative was rejected because character select already tells a player their
+  own predecessor's name (C2b), so it would have been the second telling of a
+  fact they had been told.
+- **Numbers** — channel length and whether the below-max-level preview ships.
+  [PLACEHOLDER], tuning-open. ⚑ **Catalog size is settled at eight** (D26); the
+  hunt threshold is settled at twenty and knowingly placeholder (D27).
 
 **Deferred by ruling — not blocked.** D13 keeps these alive; §5's nullable gate
 field is what keeps them cheap:
@@ -1836,3 +1847,616 @@ the account screens this chunk changed.
 **What C2b does NOT close.** C3 still owns the memorial, the authored catalog
 (`api/ascension/` stays README-only) and `kills_this_life` beside its content
 (P8, P9). No graveyard view is written here.
+
+## 13. C3 design pass - 2026-08-10
+
+The last chunk of the plan. C2b closed the loop on 2026-08-10, so what is left
+is **content plus one query**: the seed catalog `api/ascension/` has never held
+(it is README-only, and C2a/C2b both verified against a throwaway probe),
+D11's memorial with the **first graveyard query anyone has written**, and
+`kills_this_life` beside the directed hunt that consumes it.
+
+**Schema impact, stated per layer: DB NONE (no migration) · FlatBuffers NONE ·
+conf NONE.** The graveyard query reads columns `game.characters` has carried
+since step 8a; the memorial reuses the `Signpost` EntityType exactly as the
+stone does (P12); the new condition kind is authored JSON on both its surfaces;
+the six new skills and one recipe are ordinary content. Two seams get wider
+(one `learner` method, one persistence interface) and neither is wire or schema.
+
+### 13.1 What the plan-check found
+
+Nine findings, read against the shipped code rather than against §6's bullet.
+
+**Finding 1 - `quest_completed` is not a kind and must not become one.**
+§6's third gated entry reads `quest_completed: the-lost-lamp`, which is
+shorthand, not an authoring instruction. P8 already ruled it: the entry authors
+`{"kind": "quest_at_stage", "quest": "the-lost-lamp", "stage": "completed"}`,
+using the shipped sentinel `mobs.QuestStageCompleted`. Verified end to end -
+`ParseCondition` accepts it, `conditionsPass` routes it to
+`Ledger.MatchesStage`, and `describeCondition` already renders it as
+`complete "the-lost-lamp"`. **Zero code for the third of D18's three
+mechanisms**, and that is the point: a new kind would have proved the opposite
+of what D18 wanted proved.
+
+**⭐ Finding 2 - THE CATALOG'S CONDITIONS ARE NOT CROSS-VALIDATED, and this is
+the chunk's real landmine.** `quests.CrossValidate(mr, registry)` walks
+`mr.Mobs()` and nothing else (`quests/interactions.go:38`), so a quest
+reference authored on a *catalog entry* is checked by nobody.
+`ascension.CatalogFromFS` calls `mobs.ParseCondition`, which validates SHAPE
+only: it holds no registry and cannot know whether `the-lost-lamp` exists. A
+typo'd id therefore parses green, `MatchesStage` answers false forever, and the
+entry renders **locked, unpickable, and indistinguishable from a hard gate** for
+the life of the build. This is CLAUDE.md's "`conditionsPass` fails CLOSED"
+warning in its exact form, and the same hole swallows an unresolvable species
+the moment finding 3 lands.
+⚑ **The boot order already makes the fix cheap**: `aurad.go:83-89` runs
+skills → mobs → quests (+CrossValidate) → ascension catalog, so by the time the
+catalog loads, both registries are complete. It is a **signature widening on
+`loadAscensionCatalog`**, not a new pass and not a reordering.
+
+**Finding 3 - `kills_this_life` needs a species field, and the species cannot be
+resolved where the condition is parsed.** `mobs.JSONCondition` carries
+Kind/Value/Quest/Stage and no species; `Ledger.KillCount` takes a `mobs.MobID`,
+not a name. Resolution cannot happen inside `ParseCondition` on either surface:
+for a **mob node** the registry is mid-construction (`mapToInteraction` runs per
+definition), and for a **catalog entry** `ParseCondition` is the shared
+function and holds nothing. So the authored name is carried through parse and
+resolved by a later pass that has the registry, which is precisely the shape
+`InteractionCondition`'s own comment already describes for the quest
+package's species refs (`interaction.go:130-133`). Two resolution sites, one
+per surface, because D18's dividend (NPC dialogue gains the kind for free) is
+only real if the node surface resolves too.
+
+**Finding 4 - `InteractionSystem` holds exactly ONE `RowSource`, and P10
+promised the memorial the identical machinery.** `SetRowSource(src RowSource)`
+is a single field (`sys/interaction.go:110-116`) and `core/game.go:143` fills
+it with the ascension source. The **interface was already built for two**: both
+methods take `mobs.RowSourceKind` first and `ascensionRows` returns nil/false
+for a kind that is not its own. What is missing is only the dispatch. This is
+the moment P10's claim gets tested: *"one hook, two consumers, or it is not the
+extension the plan said it was."*
+
+**⭐ Finding 5 - THE MEMORIAL BREAKS THE ROW SOURCE'S O(1) RULE, and it is the
+only thing in C3 that needs new architecture.** `RowSource`'s own contract:
+*"PresentRows runs per tick per conversing player ... No provider may query a
+database or walk the world to answer it"* (`sys/interaction.go:425-427`). The
+memorial's names live in Postgres. So the provider serves a **snapshot held in
+memory**, read off-loop and swapped in on the loop, following the
+`CharacterSaves` / `CharacterAscensions` seam precedent exactly.
+⛑ **The refresh policy is decided by the erasure landmine, not by taste.** The
+cheap-looking design (read once at boot, append whenever the loop drains
+`Completed()`) is wrong: `DiscardAnonymousAccount` renames rows **off the loop**,
+invisible to the drain, so an erased name would stay cut into the monument
+until the next restart. D11 says erasure wins. A **periodic re-read** bounds
+that staleness, needs no coupling to the ascension drain at all, and is correct
+for any future writer of that table.
+
+**Finding 6 - the monument's row count is capped by the wire, not by taste.**
+A generated row carries its position as a `ubyte OptionIndex`; index 255 is the
+no-grant sentinel and `ascension.MaxEntries` has already reserved 254. A
+monument with 300 names would alias into both. The listing is therefore the
+**newest N**, and N is authored nowhere near either sentinel.
+
+**Finding 7 - D25's "yours" marker is the only reason the account id must reach
+`learner`, and the game loop does not have it there today.** Account identity
+lives in `ConnectionStateSystem.accountByClient` (a client-UUID map,
+`sys/state.go:681`), not on the player and not on `learner`. Marking a player's
+own names needs one method, and it is the same shape as the two the ticket
+already carries (`BloodlineUnlocks`, `BloodlineAscensions`): a session-constant
+fact resolved at `/select` and seeded at join. ⚑ **The marker is composed
+server-side into the row's text**, like every gate progress string, so it costs
+no wire either.
+
+**Finding 8 - a catalog entry naming an already-shipped skill is a designed
+case, already pinned.** D26 puts three such entries in the seed, and the
+question "does knowing FrostShield from a Troll hide the reward?" is already
+answered in code: `ascensionRows.spent` reads **unlock keys, never the
+spellbook**, and its comment names FrostShield as the example. Zero code for
+D26's cheaper half.
+
+**Finding 9 - six new skills and one recipe leave `go test` RED at HEAD unless
+two pins move.** `skills/registry_test.go`'s `assert.Len(t, r.All(), N)` and
+`skills/recipe_test.go`'s `TestRecipes_C7Net` count.
+✅ **CORRECTED IN STEP 3: there is NO third pin.** The add-content skill's
+landmine list still names a hand-synced `Skills.ts` triple map
+(`SkillNames`/`SkillMaxLevels`/`SkillCategories`), and that map was **retired
+2026-07-21** (`ae51d8b5`): the client fetches the server's parsed registry over
+`GET /skills` and renders `displayName`, so a new ability is pure JSON with no
+frontend edit at all. `manual-content-authoring.md` §2 records the retirement;
+the skill's checklist did not follow, and the manual's own "trust the code over
+the manual" rule cuts the other way here. Verified against the running server:
+all six serve with the right id, display name, category and cap.
+`docs/content-skill-inventory.md` is **generated** and must be regenerated,
+reachability sweep included: ⚑ **an ascension-only skill has no world source by
+construction**, so the sweep will report six new exceptions unless the
+generator learns about the catalog. That is a real sub-task, not a footnote.
+
+### 13.2 Decisions taken in this pass
+
+Four PO calls, 2026-08-10, all four as choice prompts.
+
+- **⭐ D25 - the memorial is ONE GLOBAL LIST, and the reader's own names are
+  marked.** This closes §8's standing open question in favour of the GDD's
+  intent (one shared monument every player sees) without losing "where are
+  mine": the rows are every ascended name on the server, newest first, and a
+  name belonging to the reading **account** carries a marker. ⚑ It is what makes
+  the monument a *world* object rather than a private ledger - character select
+  already tells a player their own predecessor's name (C2b), so a
+  bloodline-scoped monument would have been the second telling of a fact they
+  had already been told.
+- **D26 - the seed catalog is EIGHT entries: five newly authored skills, three
+  pointing at skills that already exist, plus one combination.** The three reuse
+  entries (FrostShield, Lantern, KeenEye) are rare or line-specific world drops,
+  so offering them costs no new balance argument and finding 8 shows the code
+  already handles the double provenance. The combination is one recipe whose
+  result is a sixth new skill. ⚑ **D9's range is honoured** (~5-10) and D1's
+  parity rule governs every entry: `frost` and `nature` are damage types the
+  closed vocabulary declares and **no shipped skill claims**
+  (`skills/definition.go:204`), which is exactly the parity-safe hook a variant
+  wants - the same numbers on an axis the world already prices.
+- **D27 - the directed hunt is `kills_this_life: DireWolf >= 20`.** PO,
+  verbatim: *"lets make it 20 Direwolf for now, enough for placeholder content
+  we currently have."* ⚑ This is a knowing **[PLACEHOLDER]**, and the reason to
+  record the alternative is that it is the one a content pass will want: an
+  Orc gate (curveLevel 20, the front, the journey's final step) is the
+  at-level hunting ground for a character on its way to 30, while DireWolf is
+  curveLevel 6. Twenty is small on purpose, because C3 must be *testable by
+  hand* before it is tuned.
+- **D28 - memorial names ride the shipped `Locked` row style unchanged.** PO
+  chose no new CSS. A name renders at `fade(white, 35%)` with no hover and no
+  handler, and `Conversation.ts:239-245` draws **no wall element** because
+  `requiredLevel` is 0 - so an inert row with no requirement string is already
+  exactly "a line of text in a list nobody can click". ⚑ Revisit only if the
+  feel pass says faded names read as unavailable rather than as remembered.
+
+### 13.3 Proposals adopted without a choice prompt (PO may veto any)
+
+- **P19 - the catalog's cross-validation is a BOOT FAILURE, not a warning.**
+  Finding 2's hole is fixed at the loader's existing standard: `aurad` already
+  panics on a bad catalog (`loaders.go:277`), and unlike the quest-dialogue
+  warning there is no iteration workflow that legitimately authors a dangling
+  catalog reference. ⚑ The asymmetry is deliberate and worth its comment: quest
+  *dialogue* warns because the `QUEST` cheat drives a quest before its rows
+  exist; a catalog entry has no such half-built state.
+- **P20 - species names are resolved at LOAD, never at evaluation.** The
+  condition carries the authored name through parse and a resolved `MobID`
+  after it. The alternative (hold the name, resolve on the present path) would
+  put a registry lookup inside `conditionsPass`, which runs per tick per
+  conversing player, and L15 forbids it. Same rule the quest objectives follow.
+- **P21 - the progress string does not pluralise.** `describeCondition` must
+  render a species for a player, and English pluralisation of arbitrary
+  authored names is a trap with no ceiling (Wolf → Wolves, Boar → Boars,
+  Dodo → Dodos, and every mob a content pass adds next). The wording sidesteps
+  it: **`slay 20 × Dire Wolf this life (3/20)`**, with the display name from the
+  mob definition. ⚑ The same reasoning that keeps `DeriveDisplayName`
+  server-side keeps this server-side: one rule, one place.
+- **P22 - the row-source mux is a map keyed by `RowSourceKind`, wired in
+  `core/game.go`.** `SetRowSource` becomes `AddRowSource(kind, src)` or takes a
+  composite; either way the dispatch is by the kind the interface **already**
+  passes as its first argument. ⚑ The mux must refuse a **duplicate
+  registration** at wiring time rather than silently keeping the last writer:
+  two providers claiming one kind is a build-order bug that would otherwise
+  surface as a monument showing reward rows.
+- **P23 - the memorial snapshot refreshes on a timer, and its interval is
+  [PLACEHOLDER: 60 s].** Finding 5's reasoning. ⚑ It also reads **once at boot**,
+  synchronously in the wiring, so the first player to walk up to the monument in
+  the first minute of uptime does not meet an empty stone.
+- **P24 - the memorial lists `name` and the level it was laid down at, and
+  nothing else.** No date, no slot, no account. A date needs a formatting
+  decision and a timezone answer nobody has asked for; the level is already the
+  cap and reads as the epitaph it is. ⚑ Levels below 30 **can** appear on old
+  rows and that is honest: the row's level is the eventually-consistent saved
+  one, and C1 deliberately checks P1 against the live character, not the row.
+- **P25 - the memorial is a second `Signpost`, placed beside the ascension
+  stone.** P12's reasoning verbatim: a monument sprite is a new wire EntityType
+  plus client art, and D20 already deferred the ceremony's art to the world
+  pass. Coordinates are one line of `api/zones/world.json`
+  **[PLACEHOLDER: within sight of the stone, so a playtest reaches both in one
+  walk]**. ⚑ Two `Signpost`-shaped talkers standing together is a world-pass
+  problem, recorded rather than solved.
+- **P26 - the memorial node needs NO level gate**, unlike the stone's. Reading
+  the names of the dead is not a reward and P1 prices the ascension, not the
+  monument. Its `lines` carry the empty-graveyard case the same way the
+  `catalog` node's do (a generated list may legitimately come back empty, and
+  then the lines are all the node has to say) - and on a fresh database that
+  **is** the ordinary state.
+- **P27 - the "and N more" tail is a row, not a line.** Finding 6 caps the
+  listing at **[PLACEHOLDER: 25]** names; when the graveyard is larger, the
+  source emits one final inert row saying how many are not shown. A `lines`
+  entry cannot carry a number that changes.
+
+### 13.4 The steps
+
+Seven steps, TDD red-first, each with its own pins. Steps 1-2 are the
+vocabulary, 3-4 the content, 5-6 the memorial, 7 the browser.
+
+1. **`kills_this_life`: the kind and its evaluation, both surfaces.** Go only,
+   no content yet, and the kind and its evaluator ship in the same step for the
+   reason P9 records. `mobs.JSONCondition` gains `Species string`;
+   `InteractionCondition` gains the authored name plus a resolved `MobID`;
+   `ParseCondition` guards the shape (a species is required and the count must
+   be **positive**, mirroring the `bloodline_ascensions` guard and for the
+   identical reason: `>= 0` passes for every character alive, which is an
+   authored gate that does nothing). Resolution lands in a post-load pass on the
+   completed mob registry (P20). ✅ **SETTLED IN STEP 1, and the precedent was
+   already there**: `RegistryFromFS` ends with `validateSpawnEffects`, a
+   post-load pass resolving a `spawnMob` NAME against the finished registry for
+   the identical reason, so `resolveConditionSpecies` ships beside it in
+   `registry.go` and `loaders.go` is untouched. `conditionsPass` reads
+   `p.QuestLedger().KillCount(id) >= uint64(c.Value)` - **zero new `learner`
+   surface**, because `QuestLedger()` is already on it, `KillCount` is an O(1)
+   map read, and `NoteKill` counts **every** credited kill of every species
+   unconditionally, quest or no quest (`quests/ledger.go:110-116`).
+   `describeCondition` gains P21's wording. A nil ledger fails closed with
+   everything else.
+2. **Catalog cross-validation (finding 2).** `loadAscensionCatalog` widens to
+   take the mob and quest registries; every catalog condition's quest reference
+   is checked against the quest graph and every species name resolved, both
+   boot failures (P19). ⚑ Reuse `quests.CrossValidate`'s existing stage-reference
+   check rather than writing a second one - the failure being validated is the
+   same failure, and two checkers would drift the day a sentinel is added.
+3. **The six new skills and the recipe (content).** Five variants plus the
+   combination's result, fresh pinned ids from **141** (one shared monotonic id
+   space: `Strong` 136, `FrostShield` 139 and `Paralyze` 140 already sit above
+   the mob-skill band). Each carries its **D1 parity argument in its
+   `_comment`**: what world content it sits level with, and on which axis it
+   differs. Recipe id **11**. Then finding 9's whole tail: both registry pin
+   counts, the `Skills.ts` triple map, a regenerated
+   `docs/content-skill-inventory.md`, and the reachability sweep taught about
+   ascension-only sources.
+4. **The eight catalog entries (content).** `api/ascension/*.json`, five naming
+   the new skills and three naming shipped ones (D26), with exactly three gated,
+   one per D18 mechanism: `bloodline_ascensions >= 3` (tier B, the ticket),
+   `kills_this_life: DireWolf >= 20` (tier A, the ledger, D27), and
+   `quest_at_stage: the-lost-lamp / completed` (tier A, the shipped vocabulary,
+   P8). Boot count goes 0 → 8. ⚑ This is the first step at which `c2a`/`c2b`
+   stop running against a throwaway probe, so **both harnesses are re-run here**,
+   not at the end: the real catalog changes what the stone's list says.
+   ✅ **AS BUILT, and the re-run earned its place twice over.**
+   ⛑ **The row source was re-deriving display names and dropping the authored
+   override** (`skills.DeriveDisplayName(entry.Skill.Name)` at two sites), so the
+   stone showed `Rime Burst` for a skill authored `Rime-Burst`. A shipped C2a
+   defect with no visible subject until now: every earlier catalog was a stub or
+   the FrostShield probe, and FrostShield happens to derive correctly. Fixed
+   behind a new `SkillDefinition.Display()` accessor, because reading the field
+   is only safe on a registry-loaded definition and every Go-built stub leaves it
+   empty. ⚑ It is the SAME class C2b's P21 corrected on the client: the rule is
+   *computed once so nobody re-implements it*, and here the server re-implemented
+   its own rule.
+   ⛑ **Both harnesses clicked rows by bounding-box centre with no scroll**, which
+   was fine for a one-row catalog and silently wrong for eight: the list overflows
+   its scroll area, the click lands on whatever is painted at those coordinates,
+   and c2b then died 40 seconds later waiting for a character-select screen it
+   could no longer reach. Both now `scrollIntoView` and refuse to click unless
+   `elementFromPoint` confirms the intended row, which is C2b's own
+   *"the click was delivered and the click reached the row are different facts"*
+   applied one file over.
+   ⚑ **`c2a-probe-reward.json` was DELETED, not left**: it authored FrostShield
+   with the same gate the real entry now carries, so its documented `cp` setup
+   step would hard-fail the boot on a duplicate unlock key.
+5. **The graveyard query and its off-loop seam.** `store.AscendedNames(ctx,
+   limit)` - newest first, `sacrificed_at IS NOT NULL`, and ⛑ **the exact-match
+   `name <> 'deleted_' || id` filter, never `LIKE 'deleted_%'`**, which is the
+   filter `SlotBloodlines` already ships and which a prefix test would use to
+   erase a player who genuinely named themselves that. Behind it: a
+   `GraveyardNames` seam in `sys` (the third, beside `CharacterSaves` and
+   `CharacterAscensions`), a `persist`-side refresher on P23's timer, and the
+   snapshot swapped in on the loop in the `drain*` style.
+   ✅ **AS BUILT, with two deviations worth recording.**
+   ⚑ **The types live in `persist`, not `store`**, because `persist` may not
+   import `store` (that is the cycle the sink interfaces exist to avoid) while
+   `store` already imports `persist` for `CharacterState`. `AscendedNames`
+   therefore returns a `persist.Graveyard`, exactly as `SaveCharacter` takes a
+   `persist.CharacterState`.
+   ⚑ **It is an ATOMIC SWAP, not a drain.** The `drain*` style is for EVENTS,
+   which must be consumed exactly once; this is a value where the only thing
+   anyone wants is the most recent one, so `Latest()` is a single
+   `atomic.Pointer` load with no queue to invent and no backlog to manage.
+   ⛑ **A failed refresh keeps the last good listing** rather than clearing it,
+   and that is the one behaviour worth stating twice: an empty monument is a
+   MEANINGFUL sentence here (nobody has ascended yet), not an obvious error
+   state, so emptying it on a database hiccup would put a plausible lie on
+   screen instead of a visible fault. Pinned, and the mutation that wipes it is
+   caught.
+   ⚑ **Boot logs `Read the memorial's names`** beside the content counts, for
+   the same reason they are logged: the read is silent on success, so without
+   the line "the monument is empty" and "the read never happened" are
+   indistinguishable, and the first of those is legitimate.
+6. **The memorial: the row source, the mux, the monument.** A
+   `RowSourceMemorialNames` kind; a `memorialRows` source serving the snapshot
+   (P24's fields, P27's tail row, D28's `Locked` rows, D25's marker);
+   `learner.AccountID()` (finding 7) seeded from the ticket at join; P22's mux
+   in `core/game.go`; `api/mobs/memorial-stone.json` reusing `Signpost` (P25)
+   with P26's ungated node; one placement line in `api/zones/world.json`.
+   ⚑ `ApplyRow` for this kind **always refuses** - every row is inert, and the
+   refusal is the belt to `PresentRows`' braces exactly as a locked reward row's
+   is.
+   ✅ **AS BUILT, and P10's promise held: the mux cost almost nothing.** The
+   `RowSource` interface was already shaped for two consumers (both methods take
+   the kind first, and the one shipped provider already refused a kind that was
+   not its own), so the composite **is itself a `RowSource`** and no signature
+   changed anywhere. `SetRowSource` became `AddRowSource(kind, src)`.
+   ⚑ **The source holds a READER, not a listing** (`func() persist.Graveyard`),
+   because the seam is installed post-construction and re-read on a timer: a
+   source handed a value at build time would show an empty stone for the life of
+   the process. Pinned by a test that changes the snapshot between two renders.
+   ⛑ **Account 0 must mark nothing.** It is the zero value rather than an
+   identity, so an equality test alone marks the WHOLE monument as yours in any
+   build without a database. Both directions pinned, and the mutation that drops
+   the guard is caught.
+   ⚑ **Four content censuses went red and all four were right** to: the
+   conversant census, the role census, the xpFactor-0 census and
+   `TestAuthoredRowSources_AreAllServedByTheProvider` - which is precisely the
+   test that fires when a row-source kind is authored in content and never
+   wired, and it fired for exactly that reason. That last one now covers both
+   providers rather than assuming one.
+7. **Browser verification (`c3-memorial-catalog.mjs`).** §13.5.
+   ✅ **AS BUILT, 14/14, and its boundary is narrower than the plan drafted.**
+   §13.5 had it re-reading the stone's eight-entry list, but C3 step 4 gave that
+   to `c2a-ascension-site.mjs`, and two harnesses asserting one thing is how a
+   content edit breaks two files. So this owns the **monument** and the two
+   **tier-A gates**; c2a owns the stone, its rows and the ceremony.
+   ⛑ **It is the suite's sharpest conversant-cluster case**, because C3 itself
+   created it: the monument stands 3 units from the ascension stone and `E` goes
+   to the NEAREST actor, so every memorial leg asserts the actor NAME. A run that
+   measured the stone would go green proving nothing.
+   ⛑ **Three harness bugs found by running it, each of which looked like a
+   product defect.** The starting aura is **pre-equipped and deliberately NOT
+   active** ("the player's first press of 1 switches it on", `player.go`, PO
+   2026-08-02), so the first run stood in a wolf pack dealing nothing. `XP
+   200000` merely LOOKS large: the cheat adds a lump that levelling consumes, so
+   the character was short of 30 and the stone answered with its level-1
+   preview, whose empty row list read as a missing hunt row - the fix was to
+   assert the READY GREETING rather than only the actor, which is the
+   assert-the-precondition rule this suite already carries.
+   ⛑ **And one real gap in the SHARED join helper**, which 37 harnesses use:
+   `joinAsNewCharacter` handled two entry states and there are three. An
+   ASCENSION spends the last character and lands the client on a select screen
+   with **no characters at all**, where the helper waited 30 s for a name that
+   cannot exist. Fixed in `lib/join.mjs` rather than worked around in this
+   script, because every future harness that ascends would meet the same wall.
+   ⚑ The last leg **polls for up to 100 s** because the snapshot refreshes on a
+   60 s timer; that wait IS the staleness window P23 chose, measured rather than
+   guessed.
+
+### 13.5 Test strategy, and the one decision inside it
+
+**The decision, taken here so execution does not have to improvise it: the Go
+tests own the locked→unlocked FLIP, and the harness owns the COUNTER.** No
+cheat injects kills (the `KILL` command zeroes a *player's* health, and the
+vocabulary has nothing that writes the ledger), and grinding twenty dire wolves
+in Playwright would be a slow, flaky test of the wrong thing. Twenty
+`NoteKill` calls in a Go fixture is four lines and proves the threshold; the
+browser then proves the whole read path end to end by killing **one** dire wolf
+and watching the row move from `(0/20)` to `(1/20)`. ⚑ A counter that
+increments is the assertion that could not have passed with the wiring broken;
+the threshold arithmetic never needed a browser.
+
+- **Go, `mobs`:** parse accepts a species, refuses an empty one and a
+  non-positive count; an unknown species is a boot error; a resolved condition
+  carries the id.
+- **Go, `sys`:** `conditionsPass` for `kills_this_life` above, at and below the
+  threshold, and with a nil ledger (closed); `describeCondition`'s P21 wording;
+  the memorial source's rows, its marker, its cap, its tail row and its blanket
+  `ApplyRow` refusal; the mux dispatching two kinds and refusing a duplicate
+  registration.
+- **Go, `ascension` + `cmd/aurad`:** a catalog entry naming an unknown quest
+  fails boot; naming an unknown species fails boot; the eight authored entries
+  load and the three gated ones are `Gated()`.
+- **Go, `store` (vs. real Postgres, `make -C backend db-test`):**
+  `AscendedNames` returns sacrificed rows newest-first, **omits an erased name
+  and keeps a player literally named `deleted_something`** (the D11 landmine,
+  and the pin that a prefix filter would fail), respects the limit, and answers
+  empty on a fresh schema.
+- **⭐ Mutation-verify every load-bearing pin**, and specifically the three this
+  chunk is most likely to get green-for-free: the erasure filter (swap
+  exact-match for `LIKE` and the test must go red), the mux's duplicate refusal,
+  and the `kills_this_life` threshold comparison (`>` vs `>=`).
+- ⛑ **MUTATING CONTENT REQUIRES `go test -count=1`, and this was measured in
+  step 4 rather than assumed.** Go's test cache does not track files a test
+  reads from outside its own package directory, and every content pin in this
+  repo reads `../../../api` that way. So editing an `api/` file and re-running
+  `go test` returns the previous **cached PASS**: five deliberate content
+  mutations (a typo'd gate species, a lost `completed` sentinel, a dropped
+  entry, a fourth gate, a moved threshold) all reported as surviving, and all
+  five were caught the moment the cache was bypassed. ⚑ The dangerous direction
+  is the everyday one: **edit content, run the suite, see green, ship the
+  break.** It is not specific to this plan: it applies to every content chunk
+  in the repo, and nothing in the docs recorded it before now. Mutations against
+  `.go` files are unaffected, since a source edit invalidates the build cache by
+  itself, which is why steps 1-3's mutation runs were sound without the flag.
+- **Harness `c3-memorial-catalog.mjs`:** walk to the stone with a capped
+  character and read the **real** eight-entry list, with the three gated rows
+  greyed and each naming its own wall; kill one dire wolf and watch the hunt
+  row's counter move; walk to the monument and read the names, with the
+  reader's own predecessor marked; ascend, then come back and confirm the new
+  name is on the stone within one refresh interval. ⚑ **The last leg is the
+  chunk's real end-to-end assertion**, and it is exactly the shape C2b's
+  headline finding taught: *an exit path is not verified until something is
+  done after it.*
+- **Re-run `c2a-ascension-site.mjs` and `c2b-bloodline-select.mjs`** at step 4
+  and again at the end (step 4 is where the throwaway probe becomes real
+  content), plus `chunk2-accounts.mjs`.
+- **Boot 0 WARN / 0 ERROR**, with the three new `Loaded …` counts moving by
+  exactly what was added (add-content's boot-count check; ⚑ a stale `aurad`
+  silently masks new content, which cost C2b a full debugging round).
+- **Sim batteries byte-identical** (TTK 6.67 s / TTD 8.70 s). ⚑ **Not free
+  this time**, unlike C1 and C2: six new player skills reach the sim harness's
+  auto-derived preset list, so the batteries must be confirmed unchanged rather
+  than assumed - a new *preset* is expected, a moved *number* is a bug.
+- `npm test` (vitest) and `npm run typecheck` stay green; **no frontend change
+  is expected at all** beyond `Skills.ts`'s triple map, which is data.
+
+### 13.6 What C3 does NOT do
+
+- **No new wire, no migration, no conf key.** If any step reaches for one, the
+  design has drifted and this section is what says so.
+- **No art.** The monument is a `Signpost` (P25) and the ceremony is still the
+  bare channel (D20). Both are world-pass work.
+- **No tier-C counters.** Anything cumulative *across* lives stays deferred
+  (D18), and P20's per-life resolution is what keeps it that way by
+  construction.
+- **No lore write.** §8 still owes the site and the monument their text; both
+  ship [PLACEHOLDER] in the TownCrier convention.
+- **Nothing from §8's deferred cluster** returns: no points, no prices, no
+  rarity, no bloodline reset, no per-faction ascension.
+
+### 13.7 PO feedback pass, 2026-08-11
+
+The PO played C3 end to end and raised six items. Verdict on the whole: *"it
+works well, generally very well done."* Four are recorded here with their
+disposition; two are answers rather than work.
+
+**✅ 1 - The text is matter-of-fact now.** The PO asked for "very short and
+correct descriptions of what happens ... what the press does, what the
+consequences are, short and casual", with real lore to come later. Rewritten in
+four places, not two: both mob JSONs (lines and the option text),
+`ascension_rows.go` (both replies and the empty-pick row) and `memorial_rows.go`
+(the name format, the marker, the tail). ⚑ **Three harnesses pin these exact
+strings as needles** and `CATALOG_ROW` was pinned by all three, so the needles
+moved in the same change and all three were re-run. ⚑ A free dividend: the
+confirm modal composes its body from the node's lines plus the row text, so the
+scariest moment now reads *"Confirming ends this character. Its name goes on the
+memorial."*
+
+**✅ 4 - The memorial no longer lags a whole interval.** The PO saw the monument
+miss a name until a re-login. Not a defect: the snapshot refreshed on a 60 s
+timer and a logout took longer than the remainder. But the timer alone reads as
+a bug, because **an empty stone is also what a world with no dead looks like**,
+so a player cannot tell stale from broken. Fixed with a nudge:
+`GraveyardReader.RefreshSoon()` plus `Ascender.OnCommitted`, wired at boot.
+⚑ **The nudge lives on the PERSIST side, never the loop**: it triggers a
+database read, and the Ascender's per-request goroutine is already off-loop and
+is the only place that knows the transaction committed. ⚑ **The timer stays**:
+a name can also LEAVE the monument (erasure, off-loop, unannounced), so the
+nudge makes additions prompt while the timer keeps removals eventual.
+
+**📋 2 - "Is a reload after the ascension necessary?" No, but it is its own
+work.** ⚑ This is not ascension-specific: **leaving the world at all is a page
+reload today**, in both places that do it (`AccountSettings.leave()` and the
+ascension exit), for one recorded reason - *the client is built to boot once and
+has no teardown path*. It is **backlog §52** ("leaving-the-world-takes-time",
+filed `94fec351`), which **§48 is already blocked on**, and the PO's "we need
+that" is the ruling that unblocks scoping it. Two shapes, offered as a choice:
+**(A) a real teardown**, which `leave()`'s own comment prices as *"dismantling
+the PixiJS scene and every system that holds a reference into it ... a likely
+source of leaked state and lost GL contexts"*; **(B) reset, not teardown** -
+keep the booted Pixi app and its GL context, and make only the re-runnable parts
+re-runnable (a fresh socket at Play, a cleared `EntityManager`, the once-only
+`firstGameState` promise reset). B needs no server change and is plausibly one
+chunk; A is a plan. **Not started.**
+
+**📋 3 - The ascension rows should carry the real ability tooltip.** Adopted as
+the right thing and deferred to its own session. The design is settled: an
+appended `skill_id` on `ConversationOption`, following `confirm_seconds`'
+precedent exactly (appended at table end, codec pin), set by the row source on
+**pickable AND locked** rows - knowing what you would get is the whole point of
+a named gate - and the client feeding the existing by-id `SkillTooltip` on hover.
+⚑ Named generically so `teach_skill` rows adopt it later for free. ⚑ **It is a
+WIRE change**, which is its real cost: `.fbs` regen on both sides, both builds,
+`hygiene-wire-prune` re-run, and it converts the next deploy from a plain one
+into a both-sides-together one with a hard reload for connected players.
+**Not started.**
+
+**5 - Where the names live.** `game.characters`, the `name CITEXT` column, held
+forever and never rewritten for a sacrifice (`AscendCharacter` deliberately does
+not release the name, unlike `SoftDeleteCharacter`); the gifts are
+`game.bloodline_unlocks`. Locally that is the Docker volume `aura-dev-pgdata`;
+live it is the Postgres on the Hetzner box. ⚑ **The live database is deliberately
+NOT backed up** (PO ruling 2026-08-04), and CLAUDE.md records the trigger to
+revisit as *"a bloodline is by definition supposed to outlive the character"* -
+which the memorial makes literal. The documented `pg_dump` line exists; making
+it a cron before ascension goes live is the PO's call and is recommended.
+
+**6 - What a live deploy takes.** `devops/deploy.sh root@host`: build backend +
+frontend, bundle, rsync, `systemctl restart aurad`. **Not `--content-only`** -
+C3 changed Go. Low risk as C3 stands: **no migration ships** (schema NONE at
+every layer), boot validates all content and panics loudly rather than serving
+something half-loaded, and the restart flushes live characters before dropping
+them. Two caveats: the script ships the **working tree**, and all of C3 is
+uncommitted; and if item 3 lands first the answer changes to a both-sides
+deploy.
+
+### 13.8 C3 ledger - THE MEMORIAL AND THE CATALOG ✅ 2026-08-11, `[uncommitted]`
+
+**Seven steps, TDD red-first, every load-bearing pin mutation-verified. Schema
+impact: DB NONE (no migration) · FlatBuffers NONE · conf NONE.** The plan's last
+chunk, and the whole of it is content, one query and two seams: nothing about a
+memorial or a reward catalog needed the wire or the database to change shape.
+
+**What shipped.**
+
+- **`kills_this_life`**, the kind and its evaluation together (P9), on BOTH
+  surfaces: catalog gates and NPC dialogue nodes, which is D18's dividend made
+  real. Zero new `learner` surface, exactly as D18 tier A predicted.
+- **Gate cross-validation for the catalog**, the hole nothing covered.
+- **Six new skills** (ids 141-146) and a recipe, every one a verbatim re-type of
+  a named parity source, and **the eight-entry seed catalog**: `api/ascension/`
+  is no longer README-only.
+- **The graveyard**: `store.AscendedNames`, `persist.GraveyardReader` behind the
+  third persistence seam, and the memorial mob standing beside the stone.
+- **`c3-memorial-catalog.mjs`**, and a PO feedback pass the same day (§13.7).
+
+⛑ **THE CATALOG'S CONDITIONS WERE VALIDATED BY NOBODY, and that is the finding
+the chunk exists around.** `quests.CrossValidate` walks mob interaction nodes and
+stops; `mobs.ParseCondition` checks shape only, because it holds no registry. So
+a typo'd quest id or species name parsed green, `conditionsPass` answered false
+forever, and the entry rendered **locked, unpickable and indistinguishable from
+a gate that is merely hard** - discovered, if ever, by the player who spent a
+life chasing it. The fix is a constructor parameter rather than a later pass:
+an unvalidated catalog no longer compiles.
+
+⛑ **THE ROW SOURCE WAS DROPPING AUTHORED DISPLAY NAMES**, a shipped C2a defect
+with no visible subject until C3 authored one. It called `DeriveDisplayName` on
+the key at two sites, so a skill authored `Rime-Burst` rendered `Rime Burst`.
+⚑ The generalisable half: **the server re-implemented its own rule**, which is
+the same class C2b corrected on the client in P17. Fixed behind
+`SkillDefinition.Display()`, because reading the field is only safe on a
+registry-loaded definition and every Go-built stub leaves it empty.
+
+⛑ **CONTENT MUTATIONS NEED `go test -count=1`, MEASURED NOT ASSUMED.** Go's test
+cache does not track files a test reads from outside its own package directory,
+and every content pin here reads `../../../api` that way. Five deliberate content
+mutations all reported as surviving; all five were caught the moment the cache
+was bypassed. ⚑ **The dangerous direction is the everyday one**: edit content,
+run the suite, see a stale green, ship the break. It is not specific to this
+plan - it applies to every content chunk in the repo, and nothing recorded it
+before now.
+
+⚑ **P10's promise held, and cost almost nothing.** "One hook, two consumers, or
+it is not the extension the plan said it was" - the `RowSource` interface was
+already shaped for two (both methods take the kind first), so the mux **is
+itself a RowSource** and no signature changed anywhere.
+
+⚑ **Four content censuses went red and all four were right to**, including
+`TestAuthoredRowSources_AreAllServedByTheProvider`, which exists precisely to
+fire when a row-source kind is authored and never wired. It fired for exactly
+that reason.
+
+⚑ Smaller, all from running the browser: the **starting aura is pre-equipped and
+deliberately NOT active** (the first press of `1` switches it on) · `XP 200000`
+merely LOOKS large, so the character was short of the cap and the stone answered
+with its rowless preview · the **shared `joinAsNewCharacter` handled two entry
+states and there are three** - an ascension spends the last character and lands
+the client on a select screen with no characters at all, where it waited 30 s
+for a name that cannot exist · both ascension harnesses **clicked rows by
+bounding-box centre with no scroll**, fine for a one-row catalog and silently
+wrong for eight.
+
+**Verification.** ~90 new pins across `mobs`, `sys`, `ascension`, `quests`,
+`persist`, `store`, `core` and `cmd/aurad`. **36 mutations, 36 caught** on the
+intended pin (7 + 7 + 2 + 5 + 10 + 5 across the steps, plus 4 on the feedback
+pass). Go **0 FAIL** · `-race` clean on every touched package · `make db-test`
+green · boot **0 WARN / 0 ERROR** with 95 skills / 67 mobs / 11 recipes / 8
+ascension rewards / 487 spawns · sim batteries byte-identical (TTK 6.67 s /
+TTD 8.70 s) and the parity claims **measured** (Frostbite = Damage,
+Blight = Immolate, Hoarfrost = Suppression, identical TTK). Harnesses:
+⭐ **`c3-memorial-catalog.mjs` 14/14** · **`c2a-ascension-site.mjs` 23/23** ·
+**`c2b-bloodline-select.mjs` 12/12**, all re-run after the §13.7 text rewrite.
+
+**What C3 does NOT close.** §13.7 items 2 and 3 (the no-reload exit and the row
+tooltip) are scoped and unstarted, §8 still owes both stones a lore write, and
+`docs/content-skill-inventory.md` carries pre-existing drift this chunk measured
+(37 rows predating the 2026-07-31 cap pass) and deliberately did not sweep.
+⚑ **The plan therefore STAYS in `docs/`** rather than being archived: the tooltip
+is an unstarted workstream this doc owns.

@@ -1,0 +1,7 @@
+{
+  "_comment": "GATED, mechanism 2 of 3: kills_this_life, the directed hunt (D18 tier A, threshold from D27 and knowingly [PLACEHOLDER]). Paired with its gate on purpose: nature is the wildlife damage type D4 reserved for exactly this line ('the wildlife line as nature once later content fills them in'), so hunting the forest is how a bloodline learns the forest's own way of killing. ⚑ The count is PER LIFE and dies with the character, which is what makes this gate free (tier A); a cross-life version would cost a migration (tier C, not taken).",
+  "unlockKey": "Blight",
+  "conditions": [
+    { "kind": "kills_this_life", "species": "DireWolf", "value": 20 }
+  ]
+}

@@ -195,6 +195,7 @@ type player struct {
 	// ascensions, stamped from the auth ticket at join (plan-ascension.md D16).
 	bloodlineUnlocks    []string
 	bloodlineAscensions int
+	accountID           int64
 
 	// rejectedSkill/rejectedReason are stamped the tick a cooldown activation
 	// is refused by its precondition (plan-skill-vocab chunk 4, §3.5): the
@@ -503,6 +504,13 @@ func (p *player) SetBloodlineUnlocks(keys []string) { p.bloodlineUnlocks = keys 
 func (p *player) BloodlineAscensions() int { return p.bloodlineAscensions }
 
 func (p *player) SetBloodlineAscensions(n int) { p.bloodlineAscensions = n }
+
+// AccountID / SetAccountID carry which account owns this character, set once at
+// join from the ticket (plan-ascension.md C3 step 6). Server-side only: the
+// memorial uses it to mark the reader's own names.
+func (p *player) AccountID() int64 { return p.accountID }
+
+func (p *player) SetAccountID(id int64) { p.accountID = id }
 
 // SpendCampCharge consumes one charge, reporting whether there was one to
 // consume. Called at CHANNEL COMPLETION, never at the press (D4): an

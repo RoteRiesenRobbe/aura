@@ -43,6 +43,7 @@ type fakeLearner struct {
 	// many lives it has spent getting there (C2a step 4).
 	bloodline  []string
 	ascensions int
+	accountID  int64
 }
 
 func (f *fakeLearner) SkillComponent() *skills.SkillComponent { return f.sc }
@@ -54,6 +55,7 @@ func (f *fakeLearner) QuestLedger() *quests.Ledger     { return f.ledger }
 func (f *fakeLearner) AddExperience(experience uint64) { f.xp = append(f.xp, experience) }
 func (f *fakeLearner) BloodlineUnlocks() []string      { return f.bloodline }
 func (f *fakeLearner) BloodlineAscensions() int        { return f.ascensions }
+func (f *fakeLearner) AccountID() int64                { return f.accountID }
 
 var _ learner = (*fakeLearner)(nil)
 
@@ -2272,4 +2274,140 @@ func TestApplyGrant_CarriesASourcesRefusalThrough(t *testing.T) {
 
 	_, _, ok = applyGrant(sourceInteraction(), newLearner(30), src, "root", 0, 0)
 	assert.True(t, ok, "and the presented one still goes through")
+}
+
+// --- kills_this_life (plan-ascension.md §13 step 1, D18 tier A) ---
+
+// killGate is a resolved gate, the shape the mob loader hands over: the id is
+// what the ledger is keyed by, the name is what the player is shown.
+func killGate(species mobs.MobID, count int) []mobs.InteractionCondition {
+	return []mobs.InteractionCondition{
+		{Kind: mobs.ConditionKillsThisLife, Species: "DireWolf", SpeciesID: species, Value: count},
+	}
+}
+
+// The whole evaluation, and it costs NO new learner surface: QuestLedger() was
+// already on it for quest_at_stage, KillCount is an O(1) map read, and NoteKill
+// counts every credited kill of every species unconditionally, quest or no
+// quest (quests/ledger.go NoteKill). D18 tier A, free exactly as claimed.
+func TestConditionsPass_KillsThisLifeCountsTheLedger(t *testing.T) {
+	const wolf = mobs.MobID(12)
+	for _, tc := range []struct {
+		kills int
+		pass  bool
+	}{{0, false}, {19, false}, {20, true}, {21, true}} {
+		p := newQuestLearner(t, 30)
+		for i := 0; i < tc.kills; i++ {
+			p.ledger.NoteKill(wolf)
+		}
+		assert.Equal(t, tc.pass, conditionsPass(killGate(wolf, 20), p),
+			"%d kills against a threshold of 20", tc.kills)
+	}
+}
+
+// Kills of the WRONG species do not count toward the gate. Trivial-looking, and
+// it is the pin that would go red if the evaluation ever read a total instead of
+// a per-species count, which is exactly what a bare "kills" kind would have
+// invited (D18's naming discipline).
+func TestConditionsPass_KillsThisLifeIsPerSpecies(t *testing.T) {
+	p := newQuestLearner(t, 30)
+	for i := 0; i < 50; i++ {
+		p.ledger.NoteKill(mobs.MobID(99))
+	}
+	assert.False(t, conditionsPass(killGate(mobs.MobID(12), 20), p),
+		"fifty of something else is not twenty dire wolves")
+}
+
+// A nil ledger fails closed with everything else on this path: a conversation
+// is not the place to panic, and the unconditional fallback node still speaks.
+// ⚑ KillCount is read through a nil *Ledger here, which is the case MatchesStage
+// already guards for and the reason the guard belongs in the ledger.
+func TestConditionsPass_KillsThisLifeFailsClosedWithoutALedger(t *testing.T) {
+	assert.False(t, conditionsPass(killGate(mobs.MobID(12), 20), newLearner(30)),
+		"no ledger means no proof of the kills, not a free pass")
+}
+
+// ⭐ AN UNRESOLVED SPECIES FAILS CLOSED. A zero id is what a condition carries
+// when nothing resolved it, and counting kills of "mob 0" would be a gate
+// answering about the wrong species entirely. Until §13 step 2 cross-validates
+// the ascension catalog, this is the belt to that braces.
+func TestConditionsPass_KillsThisLifeFailsClosedOnAnUnresolvedSpecies(t *testing.T) {
+	p := newQuestLearner(t, 30)
+	for i := 0; i < 50; i++ {
+		p.ledger.NoteKill(0)
+	}
+	unresolved := []mobs.InteractionCondition{
+		{Kind: mobs.ConditionKillsThisLife, Species: "DireWolf", Value: 20},
+	}
+	assert.False(t, conditionsPass(unresolved, p),
+		"a gate nobody resolved must never pass")
+}
+
+// --- the row-source mux (plan-ascension.md C3 step 6, P22) ---
+
+// stubRows answers for exactly one kind, so the mux's dispatch is measurable.
+type stubRows struct {
+	kind mobs.RowSourceKind
+	text string
+}
+
+func (s stubRows) PresentRows(kind mobs.RowSourceKind, _ learner) []model.ConversationOption {
+	if kind != s.kind {
+		return nil
+	}
+	return []model.ConversationOption{{Text: s.text}}
+}
+
+func (s stubRows) ApplyRow(kind mobs.RowSourceKind, _ learner, _, _ int) (string, bool) {
+	if kind != s.kind {
+		return "", false
+	}
+	return s.text, true
+}
+
+// ⭐ TWO CONSUMERS, ONE HOOK. P10 chose a node-level row source over a grant
+// expansion precisely so the memorial could reuse it, and until C3 the system
+// held exactly ONE source, so the claim was untested. This is the test.
+func TestRowSourceMux_DispatchesByKind(t *testing.T) {
+	mux := newRowSourceMux()
+	mux.add(mobs.RowSourceAscensionCatalog, stubRows{mobs.RowSourceAscensionCatalog, "a reward"})
+	mux.add(mobs.RowSourceMemorialNames, stubRows{mobs.RowSourceMemorialNames, "a name"})
+	p := newLearner(30)
+
+	rewards := mux.PresentRows(mobs.RowSourceAscensionCatalog, p)
+	require.Len(t, rewards, 1)
+	assert.Equal(t, "a reward", rewards[0].Text)
+
+	names := mux.PresentRows(mobs.RowSourceMemorialNames, p)
+	require.Len(t, names, 1)
+	assert.Equal(t, "a name", names[0].Text)
+
+	reply, ok := mux.ApplyRow(mobs.RowSourceMemorialNames, p, 0, 0)
+	assert.True(t, ok)
+	assert.Equal(t, "a name", reply)
+}
+
+// A kind nobody registered answers with nothing rather than panicking: an
+// authored `rows` key the loader accepted but the wiring forgot is a bug, and
+// the honest symptom is an empty list, not a dead server.
+func TestRowSourceMux_AnUnregisteredKindServesNothing(t *testing.T) {
+	mux := newRowSourceMux()
+	mux.add(mobs.RowSourceAscensionCatalog, stubRows{mobs.RowSourceAscensionCatalog, "a reward"})
+
+	assert.Empty(t, mux.PresentRows(mobs.RowSourceMemorialNames, newLearner(30)))
+	_, ok := mux.ApplyRow(mobs.RowSourceMemorialNames, newLearner(30), 0, 0)
+	assert.False(t, ok)
+}
+
+// ⛑ A DUPLICATE REGISTRATION IS A BUILD-ORDER BUG, and it must not be absorbed
+// by silently keeping the last writer: two providers claiming one kind would
+// surface as the monument showing reward rows, or the stone showing names, with
+// nothing in any log to say why.
+func TestRowSourceMux_RefusesADuplicateRegistration(t *testing.T) {
+	mux := newRowSourceMux()
+	mux.add(mobs.RowSourceMemorialNames, stubRows{mobs.RowSourceMemorialNames, "first"})
+
+	assert.Panics(t, func() {
+		mux.add(mobs.RowSourceMemorialNames, stubRows{mobs.RowSourceMemorialNames, "second"})
+	})
 }

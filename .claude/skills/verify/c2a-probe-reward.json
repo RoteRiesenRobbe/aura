@@ -1,6 +1,0 @@
-{
-  "unlockKey": "FrostShield",
-  "conditions": [
-    { "kind": "bloodline_ascensions", "value": 3 }
-  ]
-}

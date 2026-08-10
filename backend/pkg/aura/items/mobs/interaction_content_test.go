@@ -44,6 +44,12 @@ var expectedConversants = []string{
 	// stone (§4.2). Its reward rows are generated, not authored, so it stays a
 	// two-node lore tree in the content until step 3.
 	"AscensionStone",
+	// The memorial (plan-ascension.md D11, C3 step 6). The second object that
+	// talks and the second consumer of the generated-row hook, and the only
+	// conversant in the world whose rows come from the DATABASE rather than from
+	// content. Deliberately UNGATED (P26): reading the names of the dead is not
+	// a reward, so unlike the stone beside it there is nothing to qualify for.
+	"MemorialStone",
 }
 
 func conversants(t *testing.T) map[string]*MobDefinition {

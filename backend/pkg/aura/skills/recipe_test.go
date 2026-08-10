@@ -152,15 +152,20 @@ func TestRecipes_LoadsRealContent(t *testing.T) {
 }
 
 // TestRecipes_C7Net pins the C7 recipe net (plan-content-zones12.md §13 C7):
-// 10 recipes total, and every net result unlocks from its maxed ingredients —
+// 11 recipes total, and every net result unlocks from its maxed ingredients —
 // including the Warbanner capstone and Barrier's recipe home (the pre-existing
 // skill as a result).
+//
+// ⚑ The eleventh is Hoarfrost (plan-ascension.md C3 step 3), the first recipe
+// whose ingredients are ascension-catalog entries. It is pinned here with the
+// rest deliberately: it is an ORDINARY recipe, and the day it stops cascading
+// like one is the day the meta-progression grew a second unlock path.
 func TestRecipes_C7Net(t *testing.T) {
 	sr, err := RegistryFromFS(os.DirFS("../../../../api/skills"), realFactions(t))
 	require.NoError(t, err)
 	rr, err := RecipesFromFS(os.DirFS("../../../../api/recipes"), sr)
 	require.NoError(t, err)
-	assert.Len(t, rr.All(), 10)
+	assert.Len(t, rr.All(), 11)
 
 	// ingredient set -> expected results, per the authored net.
 	cases := []struct {
@@ -176,6 +181,7 @@ func TestRecipes_C7Net(t *testing.T) {
 		{map[string]int{"Ignite": 3, "Immolate": 5}, []string{"Wildfire"}},
 		{map[string]int{"Slow": 5, "LongRangeStrike": 5}, []string{"Suppression"}},
 		{map[string]int{"Hardy": 3, "Tough": 3}, []string{"Barrier"}},
+		{map[string]int{"Frostbite": 5, "FrostShield": 5}, []string{"Hoarfrost"}},
 	}
 	for _, c := range cases {
 		sc := NewSkillComponent(true)

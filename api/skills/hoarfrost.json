@@ -1,0 +1,35 @@
+{
+  "_comment": "ASCENSION CATALOG (plan-ascension.md C3 step 3): D9's 'at least one unique combination', and the only skill in this batch that is NOT a re-type — it is a fusion, which is what a combination is for. Frostbite (the frost aura) + FrostShield (slow whatever touches you) → an aura that damages AND slows everything it damages. ⭐ D1 WORLD-PARITY, anchored on SUPPRESSION (id 59) rather than on the ceiling trio, and the anchor is the whole argument: Suppression is the shipped frost damage+slow combination, authored as a ~70% side-grade explicitly 'below the §A ceiling'. This sits at Suppression's damage numbers exactly and trades its two axes: Suppression is the LONG-range kite (radius 2.6→3.1, LRS-derived) with a weak slow (0.07+0.07/L, 0.35 at max); this is the CLOSE-range brawl (radius 1.0, Damage-derived) with the Slow aura's own full curve (0.1+0.1/L, 0.5 at max). Equal power, opposite range/control trade. It cannot be a strict upgrade of either parent or of Suppression, which is the SWG-Hologrind failure D1 exists to prevent. ⚑ Both effects share ONE tickInterval (40) per R3/F5, so they price against the same health in the same tick; the damage is authored FIRST because that is the effect the skill is for, and near the resource floor the first effect is the one that still fires (manual-content-authoring §2). The slow is unpriced, exactly as Suppression's is. ⚑ Secret, never documented in-game, like every recipe. All values [PLACEHOLDER].",
+  "id": 146,
+  "name": "Hoarfrost",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "costFractionOfMax": 0.0084,
+      "costFractionOfMaxPerLevel": 0.0018,
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "damageHP": 6.5,
+      "damageHPPerLevel": 3.375,
+      "damageTags": ["frost"],
+      "variance": 0.15,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 40
+    },
+    {
+      "type": "slow_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "slowFraction": 0.1,
+      "slowFractionPerLevel": 0.1,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "tickInterval": 40
+    }
+  ]
+}

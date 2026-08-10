@@ -75,8 +75,23 @@ type RowSourceKind string
 // and lands as one more entry here.
 const RowSourceAscensionCatalog RowSourceKind = "ascension_catalog"
 
+// RowSourceMemorialNames is the graveyard: every name any bloodline has laid
+// down, newest first (plan-ascension.md D11/D25, built in C3 step 6).
+//
+// ⭐ THE SECOND CONSUMER OF THIS HOOK, and the one P10 was designed against:
+// "one hook, two consumers, or it is not the extension the plan said it was".
+// It is also the one that proves the hook is not secretly grant-shaped, because
+// a memorial row GRANTS NOTHING and is inert on both ends.
+//
+// ⚑ Unlike the catalog's rows, these come from the DATABASE, which the per-tick
+// present path may never touch. The rows are served from an in-memory snapshot
+// that a timer refreshes on the other side of the persistence seam
+// (sys.GraveyardNames).
+const RowSourceMemorialNames RowSourceKind = "memorial_names"
+
 var rowSourceKinds = map[string]RowSourceKind{
 	string(RowSourceAscensionCatalog): RowSourceAscensionCatalog,
+	string(RowSourceMemorialNames):    RowSourceMemorialNames,
 }
 
 // ParseRowSourceKind resolves an authored row source.
@@ -147,6 +162,24 @@ type InteractionCondition struct {
 	// or one of the two sentinels; validated against the quest graph at boot.
 	Quest string
 	Stage string
+	// Species is ConditionKillsThisLife's authored species name, and SpeciesID is
+	// that name resolved against the mob registry (plan-ascension.md P20).
+	//
+	// ⭐ THE TWO-FIELD SHAPE IS FORCED, and the same forces the Quest field above
+	// records: ParseCondition holds no registry, and for a dialogue node the
+	// registry does not exist yet: mapToInteraction runs per definition, so a
+	// node gating on a species authored in another file has nothing to resolve
+	// against. The name therefore rides through the parse and a later pass fills
+	// in the id (resolveConditionSpecies for nodes; the catalog loader for
+	// ascension entries).
+	//
+	// ⚑ Resolution happens at LOAD and never at evaluation: conditionsPass runs
+	// per tick per conversing player (L15), so a registry lookup there would
+	// multiply into the render path. Species survives past resolution because the
+	// player-facing progress line names the species, and re-deriving a name from
+	// an id would be a second lookup on that same path.
+	Species   string
+	SpeciesID MobID
 }
 
 // maxAddressableIndex is the highest option/grant index a row can carry (L4,
@@ -237,6 +270,23 @@ const (
 	// condition (L2), which reaches rows through present()'s existing rule that an
 	// option pointing at a hidden node is itself hidden.
 	ConditionQuestAtStage ConditionKind = "quest_at_stage"
+
+	// ConditionKillsThisLife passes when the player has killed at least Value of
+	// Species since this CHARACTER was created (plan-ascension.md D18 tier A,
+	// built in §13 step 1). The counter is the quest ledger's: NoteKill counts
+	// every credited kill of every species unconditionally, quest or no quest,
+	// and KillCount reads one map entry, so this kind costs no new state and no
+	// new surface, only its own evaluation.
+	//
+	// ⭐ THE NAME CARRIES ITS SCOPE, and this is the kind that rule was written
+	// for (D18). "This life" is free precisely because the counters die with the
+	// character row, which is §4.8's whole point; the same question asked across
+	// a bloodline's lives is tier C and costs a migration. A bare "kills" would
+	// have left an author unable to tell which one they were buying.
+	//
+	// ⚑ Unlike every other kind here, it carries an authored NAME that must be
+	// resolved before it can be evaluated. See Species/SpeciesID below.
+	ConditionKillsThisLife ConditionKind = "kills_this_life"
 )
 
 // The two stage sentinels a quest_at_stage condition may name instead of a stage
@@ -253,6 +303,7 @@ var conditionKinds = map[string]ConditionKind{
 	string(ConditionMinLevel):            ConditionMinLevel,
 	string(ConditionQuestAtStage):        ConditionQuestAtStage,
 	string(ConditionBloodlineAscensions): ConditionBloodlineAscensions,
+	string(ConditionKillsThisLife):       ConditionKillsThisLife,
 }
 
 // ParseConditionKind resolves an authored condition kind.
@@ -357,10 +408,11 @@ type jsonInteractionGrant struct {
 // that literal rather than aspirational — a second authored shape would be a
 // second vocabulary the day either side gained a kind.
 type JSONCondition struct {
-	Kind  string `json:"kind"`
-	Value int    `json:"value"`
-	Quest string `json:"quest"`
-	Stage string `json:"stage"`
+	Kind    string `json:"kind"`
+	Value   int    `json:"value"`
+	Quest   string `json:"quest"`
+	Stage   string `json:"stage"`
+	Species string `json:"species"`
 }
 
 // ParseCondition resolves and validates one authored condition. The error names
@@ -372,7 +424,28 @@ func ParseCondition(jc JSONCondition) (InteractionCondition, error) {
 	if !ok {
 		return InteractionCondition{}, fmt.Errorf("kind %q must be one of %s", jc.Kind, names(conditionKinds))
 	}
-	cond := InteractionCondition{Kind: kind, Value: jc.Value, Quest: jc.Quest, Stage: jc.Stage}
+	cond := InteractionCondition{
+		Kind:    kind,
+		Value:   jc.Value,
+		Quest:   jc.Quest,
+		Stage:   jc.Stage,
+		Species: strings.TrimSpace(jc.Species),
+	}
+	if kind == ConditionKillsThisLife {
+		if cond.Species == "" {
+			return InteractionCondition{}, fmt.Errorf(
+				"kills_this_life needs a species to count: an unnamed one resolves to nothing and " +
+					"locks the gate forever")
+		}
+		// Same reasoning as the ascension count below, and one more: with a
+		// threshold of zero the gate would pass before anything was ever counted,
+		// so an unresolved species could never make itself known either.
+		if cond.Value <= 0 {
+			return InteractionCondition{}, fmt.Errorf(
+				"kills_this_life needs a positive count: %d passes for every character alive, "+
+					"which is an authored gate that does nothing", cond.Value)
+		}
+	}
 	if kind == ConditionBloodlineAscensions && cond.Value <= 0 {
 		return InteractionCondition{}, fmt.Errorf(
 			"bloodline_ascensions needs a positive count: %d passes for every character alive, "+

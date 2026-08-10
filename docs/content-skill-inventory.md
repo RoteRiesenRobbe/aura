@@ -8,6 +8,25 @@ design intent — *what an ability means and why it exists*. **This file is the
 source of truth for unlock sources and numbers**; the catalogs point here rather
 than repeating them. Regenerate after any content chunk.
 
+> ### ⛑ MEASURED STALE 2026-08-10: read this before trusting a row
+>
+> A regeneration is **owed and not done**. Adding the ascension catalog's six
+> skills (plan-ascension.md C3 step 3) meant checking this file against `api/`,
+> and the check found the table predates the numbers-rewrite **cap pass**
+> (D2/D11, 2026-07-31): **37 of the ~52 existing rows carry a MaxLv that no
+> longer matches the JSON** (Damage reads 5 and is 10; Recover reads 1 and is 5;
+> every `3` in the passive and cooldown sections is a `5`). The per-level slopes
+> in the Values column drifted with them: Damage's `+3.2/L` is `+0.2222/L` in
+> the file. Two skills are missing outright (**Bloodthirst**, **Discipline**).
+>
+> **What WAS updated on 2026-08-10:** the six new rows below are correct against
+> `api/` (marked ⭐), as are the counts, the legend's new **Ascension** source
+> kind and the reachability summary. **Nothing else was touched**, because fixing MaxLv
+> without re-deriving Values would have traded one wrong table for an
+> inconsistent one. Treat every unmarked row's MaxLv and slopes as pre-2026-07-31.
+> A full regeneration is unowned work, and it is bigger than the script at the
+> top implies because the Source column is hand-researched.
+
 > **⚑ The previous generation (2026-07-22) had drifted badly** — it was three
 > player skills short, still called `Lantern` by its old name `Light`, and
 > roughly half its drop chances and teacher gates no longer matched `api/`. If
@@ -42,14 +61,17 @@ for f in sorted(glob.glob('api/skills/*.json')):
 EOF
 ```
 
-Scope: the 50 **player** skills (`api/skills/*.json`). The 36 mob-only skills
+Scope: the 58 **player** skills (`api/skills/*.json`). The 37 mob-only skills
 in `api/skills/mobs/` are not listed (they're authoring details of their mobs).
-50 + 36 = the **86** registry count in the boot log.
+58 + 37 = the **95** registry count in the boot log (was 50 + 36 = 86 at the
+2026-07-29 generation; ⚑ two of the nine added since are still missing from the
+table, see the staleness banner).
 
 Scaling notation: `12 +6/L` = base 12, +6 per skill level. Ticks: 30 ticks =
 1 s. Source key: **MS Ln** = milestone · **Drop** = mob kill unlock (chance) ·
 **NPC** = taught (`@Ln` = required character level) · **Recipe** = combination
-result · **NONE** = unobtainable without the `SKILL` cheat.
+result · **Ascension** = the bloodline catalog, `api/ascension/`
+(plan-ascension.md C3) · **NONE** = unobtainable without the `SKILL` cheat.
 
 > **Players spawn with exactly the level-1 milestone in the spellbook:
 > Damage** (conversation-journal Q4, 2026-07-30 — seeded silently at character
@@ -61,7 +83,7 @@ result · **NONE** = unobtainable without the `SKILL` cheat.
 > Sources on **legacy** (`legacy: true`) proving-grounds mobs do not count as
 > world-reachable; they are marked *(legacy)* where they exist.
 
-## Active auras (20)
+## Active auras (24)
 
 | ID | Name | MaxLv | Values | Source |
 |---|---|---|---|---|
@@ -75,6 +97,10 @@ result · **NONE** = unobtainable without the `SKILL` cheat.
 | 29 | Rejuvenation | 3 | HoT 4 +2/L (6×60t) @60t, r2.5 +.2/L | Drop: OrcWarlord .25 (boss-rare) |
 | 30 | Paladin | 5 | dmg 10 +2.2/L @40t + heal 8 +4/L @120t (no self-cost), r1.0 | Recipe: Damage 5 + Heal 5 |
 | 40 | FireWard | 3 | fire resist ×0.6 −0.1/L, allies+self, r1.5 | Drop: FireElemental .35 |
+| 141 | Frostbite | 10 | ⭐ dmg 14 +0.22/L **frost** @40t, r1.0, 1 tgt nearest, var ±15%; **FREE** | **Ascension** (D1 parity: Damage id 1, verbatim but frost) |
+| 142 | Blight | 10 | ⭐ **nature** dot 10.5 +2.61/L (3×60t) @20t, r1.0 | **Ascension** (D1 parity: Immolate id 5, verbatim but nature) |
+| 145 | Venomward | 5 | ⭐ **poison** resist ×0.6 −0.05/L, allies+self, r1.5 @30t | **Ascension** (D1 parity: FireWard id 40, verbatim but poison) |
+| 146 | Hoarfrost | 5 | ⭐ dmg 6.5 +3.375/L **frost** @40t r1.0 + slow 10% +10%/L r1.0 | **Recipe: Frostbite 5 + FrostShield 5** (D1 parity: Suppression id 59, close-range trade) |
 | 41 | Harvest | 5 | gated dmg 14 +3.2/L, tag `harvest`, var ±15% | NPC Farmer @L1 |
 | 44 | Berserker | 5 | dmg 11 +2.6/L, var ±15%; up to +100% at low HP | Drop: DireBear .15 |
 | 45 | LongRangeStrike | 5 | dmg 9 +2/L, r2.6 +.1/L, var ±15% | Drop: DireWolf .2 |
@@ -99,7 +125,7 @@ result · **NONE** = unobtainable without the `SKILL` cheat.
 | 136 | Strong | 5 | all outgoing damage +4% +2%/L (direct + dots) | NPC CityGuard @L3 |
 | 139 | FrostShield | 5 | retaliate slow 10% +5%/L for 150t on anything that damages you | Drop: Troll .2 |
 
-## Cooldowns (24)
+## Cooldowns (26)
 
 | ID | Name | MaxLv | Values (CD in ticks) | Source |
 |---|---|---|---|---|
@@ -122,6 +148,8 @@ result · **NONE** = unobtainable without the `SKILL` cheat.
 | 54 | Shockwave | 3 | burst 44 +10/L phys+bleed, r2.0 +.1/L; CD 240 −20/L | Recipe: Vanguard 5 + DamageBurst 3 |
 | 56 | HoldTheLine | 3 | detaunt r2.0 + 3× ShieldbearerCompanion, TTL 1800 +300/L; CD 2400 | Recipe: CallForAid 3 + Taunt 3 |
 | 57 | FieldMedics | 3 | 2× SoldierCompanion + 1× MedicCompanion, TTL 1800 +300/L; CD 2400 | Recipe: CallForAid 3 + Heal 5 |
+| 143 | RimeBurst | 5 | ⭐ burst 22 +2.5/L **frost** (single tag), r1.5 +.05/L; CD 300 −10/L; displayName `Rime-Burst` | **Ascension** (D1 parity: DamageBurst id 49, verbatim but frost) |
+| 144 | Envenom | 5 | ⭐ **poison** dot 6.3 +0.8/L (3×30t), r1.5 +.05/L; CD 300 −10/L | **Ascension** (D1 parity: Ignite id 22, verbatim but poison) |
 | 61 | FireTotem | 3 | spawn FireTotem, TTL 300 +60/L; its aura = fire dot 6 +2/L (3×60t) r2.5 on **all** enemies + glow (light r3); CD 450 | Drop: GreaterFireElemental .5 |
 | 62 | Calm | 3 | calm 300t +60/L, r4.0, all targets; **scoped: prey + predators**; CD 600 | NPC Hermit @L10 |
 | 140 | Paralyze | 5 | stun 90t +6/L, r2.5, nearest 1; CD 900 | Drop: GiantSpider .2 |
@@ -133,12 +161,25 @@ result · **NONE** = unobtainable without the `SKILL` cheat.
 Swept 2026-07-29 across mob `unlocks[]`, mob `interaction` grants, recipes and
 the milestone table:
 
+- ⭐ **A FIFTH SOURCE KIND EXISTS since 2026-08-10: the ascension catalog**
+  (`api/ascension/`, plan-ascension.md C3). Five skills reach players ONLY
+  through it (Frostbite, Blight, RimeBurst, Envenom, Venomward), and a sixth,
+  Hoarfrost, through a recipe whose ingredients are a catalog entry and a Troll
+  drop. ⚑ They are therefore **not** unreachable and **not** cheat-only, but a
+  regeneration script that reads only `unlocks[]`, teachings, recipes and the
+  milestone table will report all six as unreachable and be wrong, exactly as
+  the quest-reward note below warns for its own three.
 - **Unreachable without the cheat: NONE.** All **50** player skills have a
   source, and **none is legacy-only** — every skill with a proving-grounds
   source (Wild, Slow, Tough) also has a live-world one. This is the step-7 A.5
   guarantee (`plan-rebrand-cleanup.md`) still holding.
-- **All 10 recipe results are craftable in the world zone** — every ingredient
-  has a world source.
+- **All 11 recipe results are craftable in the world zone** — every ingredient
+  has a world source. ⚑ Hoarfrost (the eleventh, 2026-08-10) qualifies on the
+  same rule and it is worth spelling out why, because it is the first recipe
+  with an ascension ingredient: FrostShield is a Troll drop at 0.2 and Frostbite
+  comes from the stone, so the recipe is reachable by a player who never
+  ascends twice, and D1 forbids the meta-progression being the sole road to a
+  power level.
 - **NPC-taught, 20 teachings across 12 NPCs:** Recall (TownCrier) ·
   Harvest (Farmer) · FirstAid, Heal, Calm, CharmBeast (Hermit) · Torch
   (Lamplighter) · SummonCompanion (Dog) · Pickaxe (Miner) · FirstAid, Revive

@@ -1,0 +1,24 @@
+{
+  "_comment": "ASCENSION CATALOG (plan-ascension.md C3 step 3, D9/D26): the frost nuke. ⭐ D1 WORLD-PARITY: every number is DamageBurst's (id 49) verbatim — cost, radius, damage, the negative cooldown slope. ⚑ THE ONE PLACE IT IS NOT A STRAIGHT RE-TYPE, recorded because it is a real balance difference rather than a flavour one: DamageBurst carries TWO tags (physical + bleed) and this carries ONE (frost), so against a target resisting neither they are identical, and against a mixed-resistance target they diverge in both directions. Single-tag was chosen over 'frost + bleed' because bleed is the elite-bandit line's identity and borrowing it would make this the strictly broader of the two. ⚑ displayName follows its parent's own convention (DamageBurst authors 'Damage-Burst'), which is the whole reason that override field exists. All values [PLACEHOLDER], and they move only if DamageBurst's move.",
+  "id": 143,
+  "name": "RimeBurst",
+  "displayName": "Rime-Burst",
+  "category": "cooldown",
+  "maxLevel": 5,
+  "cooldownTicks": 300,
+  "cooldownTicksPerLevel": -10,
+  "effects": [
+    {
+      "type": "instant_damage",
+      "costFractionOfMax": 0.0214,
+      "costFractionOfMaxPerLevel": 0.002425,
+      "radius": 1.5,
+      "radiusPerLevel": 0.05,
+      "damageHP": 22,
+      "damageHPPerLevel": 2.5,
+      "damageTags": ["frost"],
+      "targetsEnemies": true,
+      "targetsAllies": false
+    }
+  ]
+}

@@ -275,3 +275,70 @@ func TestDiskContent_CampDefinitionResolves(t *testing.T) {
 	require.Len(t, def.Skills, 1, "the camp carries exactly its heal + light aura")
 	assert.Equal(t, "CampAura", def.Skills[0].Def.Name)
 }
+
+// ⭐ THE REAL CONTENT, THROUGH THE REAL WIRING (plan-ascension.md §13 step 2).
+// The unit tests use stub gates; this one proves the boot sequence actually
+// hands the catalog the mob and quest registries, which is the half a stub can
+// never check. It is deliberately written to pass with today's EMPTY catalog and
+// to keep meaning something once C3's step 4 authors the seed: every gate the
+// repo ships must resolve, whatever it comes to gate on.
+//
+// ⛑ Without this the failure mode is exactly finding 2's: a catalog whose
+// conditions nothing validated, booting green, with entries no player can pick.
+func TestDiskContent_AscensionGatesResolveAgainstTheRealWorld(t *testing.T) {
+	content, err := diskContent("../../../api")
+	require.NoError(t, err)
+
+	skillsRegistry := loadSkills(content.skills, mustLoadFactions(t, content))
+	factionsRegistry, err := factions.RegistryFromFS(content.factions)
+	require.NoError(t, err)
+	mobsRegistry, err := mobs.RegistryFromFS(skillsRegistry, factionsRegistry, curve.Default(), content.mobs)
+	require.NoError(t, err)
+	questsRegistry := loadQuests(content.quests, mobsRegistry)
+
+	// panics on any unresolvable gate, which IS the assertion (curated content).
+	catalog := loadAscensionCatalog(content.ascension, skillsRegistry, mobsRegistry, questsRegistry)
+
+	for _, entry := range catalog.All() {
+		for _, cond := range entry.Conditions {
+			if cond.Kind == mobs.ConditionKillsThisLife {
+				assert.NotZero(t, cond.SpeciesID,
+					"entry %q gates on kills of %q and it never resolved", entry.UnlockKey, cond.Species)
+			}
+		}
+	}
+}
+
+// ⚑ catalogGates is exercised by nothing else while api/ascension/ is empty
+// (C3 step 4 authors the seed), and an adapter nobody runs is the shape that
+// shipped as dead code once already in this plan (C2a's P13). This runs both
+// halves against the real registries, so the wiring is proven before there is
+// content depending on it.
+func TestCatalogGates_ResolveAgainstTheRealRegistries(t *testing.T) {
+	content, err := diskContent("../../../api")
+	require.NoError(t, err)
+
+	skillsRegistry := loadSkills(content.skills, mustLoadFactions(t, content))
+	factionsRegistry, err := factions.RegistryFromFS(content.factions)
+	require.NoError(t, err)
+	mobsRegistry, err := mobs.RegistryFromFS(skillsRegistry, factionsRegistry, curve.Default(), content.mobs)
+	require.NoError(t, err)
+	gates := catalogGates{mobs: mobsRegistry, quests: loadQuests(content.quests, mobsRegistry)}
+
+	// The species half: D27's directed hunt names this one, and it must resolve
+	// to the id the kill ledger counts by.
+	id, err := gates.ResolveSpecies("DireWolf")
+	require.NoError(t, err)
+	assert.NotZero(t, id)
+	wolf, err := mobsRegistry.GetByName("DireWolf")
+	require.NoError(t, err)
+	assert.Equal(t, wolf.ID, id, "the gate must count the same species the world spawns")
+
+	_, err = gates.ResolveSpecies("DireWulf")
+	assert.Error(t, err, "a typo cannot resolve")
+
+	// The quest half: P8's gate, the SHIPPED vocabulary rather than a new kind.
+	assert.NoError(t, gates.CheckQuestStage("the-lost-lamp", "completed"))
+	assert.Error(t, gates.CheckQuestStage("the-lost-lantern", "completed"))
+	assert.Error(t, gates.CheckQuestStage("the-lost-lamp", "nosuchstage"))
+}

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -265,20 +266,67 @@ func loadMilestoneUnlocks(fsys fs.FS, r skills.Registry) []skills.MilestoneUnloc
 	return unlocks
 }
 
-// loadAscensionCatalog parses the ascension reward catalog and resolves every
-// unlockKey against the skill registry (plan-ascension.md C1). Curated content:
-// any validation failure aborts startup.
+// memorialNameLimit is how many names the memorial lists at once, and
+// memorialRefreshInterval how often the listing is re-read
+// (plan-ascension.md C3 step 5, P23/P27). Both [PLACEHOLDER].
+//
+// ⚑ The LIMIT is a wire constraint before it is a taste one: a generated
+// conversation row carries its position as a ubyte, and the ascension catalog
+// has already reserved 254 (the empty pick) and 255 (the no-grant sentinel), so
+// a monument listing hundreds of names would alias into both. 25 sits nowhere
+// near that ceiling on purpose: the cap exists to keep the panel readable, and
+// the wire limit is the backstop nobody should ever reach.
+//
+// ⚑ The INTERVAL bounds how stale the stone may be, and the number that matters
+// is not how fast a new name appears but how long an ERASED one lingers:
+// DiscardAnonymousAccount runs off the loop, so this is the window in which a
+// name a player asked to have removed is still readable.
+const (
+	memorialNameLimit       = 25
+	memorialRefreshInterval = 60 * time.Second
+)
+
+// loadAscensionCatalog parses the ascension reward catalog, resolving every
+// unlockKey against the skill registry (plan-ascension.md C1) and every authored
+// GATE against the mob and quest registries (§13 step 2). Curated content: any
+// validation failure aborts startup.
+//
+// ⚑ It runs LAST in the boot sequence, and that is what makes the gate half
+// cheap: skills → mobs → quests → this, so both registries a gate can reference
+// are already standing. No new pass and no reordering, only a wider signature.
 //
 // ⚑ An EMPTY catalog is not a failure — the directory ships README-only until
 // C3 authors the seed, and an exhausted catalog is a designed end state (D14).
-func loadAscensionCatalog(fsys fs.FS, r skills.Registry) ascension.Catalog {
-	catalog, err := ascension.CatalogFromFS(fsys, r)
+func loadAscensionCatalog(fsys fs.FS, r skills.Registry, mr mobs.Registry, qr quests.Registry) ascension.Catalog {
+	catalog, err := ascension.CatalogFromFS(fsys, r, catalogGates{mobs: mr, quests: qr})
 	if err != nil {
 		slog.Error("failed to load the ascension catalog", slog.Any("err", err))
 		panic(err)
 	}
 	slog.Info("Loaded ascension rewards", slog.Int("count", len(catalog.All())))
 	return catalog
+}
+
+// catalogGates lets a catalog entry's gates reach the rest of the world without
+// the ascension package importing the quest one: the species half resolves
+// against the mob registry, and the quest half runs the SAME check the dialogue
+// rows run (quests.CheckStageRef), which is the reuse §13 step 2 asked for
+// rather than a second implementation of the same rule.
+type catalogGates struct {
+	mobs   mobs.Registry
+	quests quests.Registry
+}
+
+func (g catalogGates) ResolveSpecies(name string) (mobs.MobID, error) {
+	def, err := g.mobs.GetByName(name)
+	if err != nil {
+		return 0, err
+	}
+	return def.ID, nil
+}
+
+func (g catalogGates) CheckQuestStage(questID, stage string) error {
+	return quests.CheckStageRef(g.quests, questID, stage)
 }
 
 // loadConf parses the config file

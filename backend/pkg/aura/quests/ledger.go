@@ -137,7 +137,17 @@ func (l *Ledger) NoteTalkedTo(conversant mobs.MobID) {
 	l.recheck()
 }
 
+// KillCount reports how many of species this character has credited kills for,
+// which is what a kills_this_life condition reads (plan-ascension.md D18 tier A).
+//
+// ⚑ Nil-guarded for the same reason MatchesStage is: it is read on the
+// conversation present path, per tick per conversing player, and a conversation
+// is not the place to panic. Zero is also the honest answer: no ledger is no
+// proof of any kill.
 func (l *Ledger) KillCount(species mobs.MobID) uint64 {
+	if l == nil {
+		return 0
+	}
 	return l.killCounts[species]
 }
 

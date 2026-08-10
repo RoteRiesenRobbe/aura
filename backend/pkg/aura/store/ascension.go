@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
+
 	"github.com/jackc/pgx/v5"
 )
 
@@ -234,3 +236,86 @@ func (s *Store) AscendCharacter(ctx context.Context, accountID, characterID int6
 	}
 	return slotIndex, nil
 }
+
+// AscendedNames reads the graveyard: every character any account has spent,
+// newest first, capped at limit.
+//
+// ⭐ THE FIRST GRAVEYARD QUERY IN THE CODEBASE. The data and the policy that
+// preserves it have existed since step 8a (AscendCharacter deliberately does
+// NOT rewrite the name, unlike SoftDeleteCharacter, "because deletion releases a
+// name while sacrifice holds one for the memorial"), but until now nothing read
+// it back.
+//
+// ⛑ THE NAME FILTER IS EXACT-MATCH, never LIKE 'deleted_%', and this is the D11
+// privacy landmine rather than a style choice. DiscardAnonymousAccount renames
+// EVERY row of an account to 'deleted_' || id, sacrificed ones included, because
+// names are player-authored free text and erasure wins; so those must not be
+// listed. But nothing in auth.ValidateCharacterName forbids a player calling
+// themselves deleted_something, and a prefix test would cut that real person off
+// their own monument. It is the same filter SlotBloodlines already ships, and
+// the two must stay identical.
+//
+// ⚑ CITEXT makes the comparison case-insensitive, which is inherited rather
+// than chosen: `name` is CITEXT so the whole column compares that way. The only
+// player it could over-filter is one named a case variant of their own row's
+// `deleted_<id>`, which is the same (accepted) edge SlotBloodlines carries.
+//
+// ⚑ Two plain queries rather than one clever one, following SlotBloodlines'
+// recorded preference: each half reads on its own and neither needs a window
+// function to explain itself.
+//
+// ⚑ It is a SEQUENTIAL SCAN today and that is deliberate: there is no index on
+// sacrificed_at, a graveyard is small by construction (one row per life ever
+// spent), and the read happens on a timer off the loop rather than per tick. The
+// day it is worth an index is the day this is slow, and that is a migration, not
+// a guess.
+func (s *Store) AscendedNames(ctx context.Context, limit int) (persist.Graveyard, error) {
+	var yard persist.Graveyard
+	if limit <= 0 {
+		return yard, fmt.Errorf("a graveyard listing needs a positive limit, got %d", limit)
+	}
+
+	rows, err := s.Pool.Query(ctx,
+		`SELECT name, level, account_id
+		   FROM game.characters
+		  WHERE sacrificed_at IS NOT NULL
+		    AND name <> 'deleted_' || id
+		  ORDER BY sacrificed_at DESC, id DESC
+		  LIMIT $1`, limit)
+	if err != nil {
+		return persist.Graveyard{}, fmt.Errorf("reading the graveyard: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var n persist.GraveyardName
+		if err := rows.Scan(&n.Name, &n.Level, &n.AccountID); err != nil {
+			return persist.Graveyard{}, fmt.Errorf("reading a graveyard row: %w", err)
+		}
+		yard.Names = append(yard.Names, n)
+	}
+	if err := rows.Err(); err != nil {
+		return persist.Graveyard{}, fmt.Errorf("reading the graveyard: %w", err)
+	}
+
+	// ⚑ The same WHERE, deliberately duplicated rather than derived: a count that
+	// filtered differently from the list would make "and N more" lie in the one
+	// direction nobody would notice, since the visible rows would still be right.
+	if err := s.Pool.QueryRow(ctx,
+		`SELECT count(*)
+		   FROM game.characters
+		  WHERE sacrificed_at IS NOT NULL
+		    AND name <> 'deleted_' || id`).Scan(&yard.Total); err != nil {
+		return persist.Graveyard{}, fmt.Errorf("counting the graveyard: %w", err)
+	}
+	return yard, nil
+}
+
+// ⚑ THE SINKS THIS STORE IMPLEMENTS, PINNED AT COMPILE TIME, for the same
+// reason core/game.go pins the seams cmd/aurad type-asserts: these interfaces
+// live in persist and are satisfied structurally, so a signature drifting on
+// either side would otherwise surface as a boot-time wiring failure in
+// cmd/aurad rather than as a build error here.
+var (
+	_ persist.AscensionSink = (*Store)(nil)
+	_ persist.GraveyardSink = (*Store)(nil)
+)

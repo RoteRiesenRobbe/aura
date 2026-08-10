@@ -18,6 +18,10 @@ import (
 
 	"github.com/EngoEngine/ecs"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
 )
 
 // prioritizedSystem is a minimal ecs.System + ecs.Prioritizer stub.
@@ -113,4 +117,46 @@ func TestUpdate_RecoversFromSystemPanic(t *testing.T) {
 	assert.Equal(t, before+1, RecoveredPanics(), "a healthy tick does not increment the counter")
 	assert.Equal(t, uint64(2), g.Tick)
 	assert.Equal(t, 1, after.calls, "the rest of the tick runs again once the fault clears")
+}
+
+// --- the memorial's seam (plan-ascension.md C3 step 5) ---
+
+// stubGraveyard is the loop-side seam, without a database behind it.
+type stubGraveyard struct{ yard persist.Graveyard }
+
+func (s stubGraveyard) Latest() persist.Graveyard { return s.yard }
+
+// ⚑ NIL IS A SUPPORTED WORLD, exactly as it is for the writer and the ascender:
+// every test here builds a bare game, and a build with no database must still
+// run: it simply has an empty monument, which is also what a world where nobody
+// has ascended looks like. Without this the memorial would panic the first time
+// a player walked up to the stone in any non-persistent build.
+func TestGame_GraveyardIsEmptyWithoutASeam(t *testing.T) {
+	g, err := NewGameWith(1)
+	require.NoError(t, err)
+
+	yard := g.(*game).Graveyard()
+	assert.Empty(t, yard.Names)
+	assert.Zero(t, yard.Total)
+}
+
+// The seam round-trips: what cmd/aurad installs is what the memorial reads.
+// ⚑ This is the pin that keeps the field from being dead code between step 5
+// and step 6, the class this plan has already shipped once (C2a's P13).
+func TestGame_GraveyardReadsThroughTheInstalledSeam(t *testing.T) {
+	g, err := NewGameWith(1)
+	require.NoError(t, err)
+
+	sink := stubGraveyard{yard: persist.Graveyard{
+		Names: []persist.GraveyardName{{Name: "Aelric", Level: 30, AccountID: 7}},
+		Total: 42,
+	}}
+	g.(sys.PersistenceSink).SetGraveyardNames(sink)
+
+	yard := g.(*game).Graveyard()
+	require.Len(t, yard.Names, 1)
+	assert.Equal(t, "Aelric", yard.Names[0].Name)
+	assert.Equal(t, 30, yard.Names[0].Level)
+	assert.Equal(t, int64(7), yard.Names[0].AccountID)
+	assert.Equal(t, 42, yard.Total, "the total rides along, so the stone can say what it omits")
 }

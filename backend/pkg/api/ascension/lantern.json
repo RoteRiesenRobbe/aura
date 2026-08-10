@@ -1,0 +1,7 @@
+{
+  "_comment": "GATED, mechanism 3 of 3: quest_at_stage with the `completed` sentinel. ⭐ IT IS THE SHIPPED VOCABULARY, NOT A NEW `quest_completed` KIND (P8) - proving D18's shared-language claim is the whole reason this gate exists. ⚑ It is NOT circular even though the quest itself grants Lantern: what the gate asks is proof of the deed, and what the entry sells is that the line never has to do it again. Lantern is the tunnel light and the-lost-lamp is its ONLY source in the world, so making it a bloodline unlock is the difference between one character owning the tunnel and a whole line owning it.",
+  "unlockKey": "Lantern",
+  "conditions": [
+    { "kind": "quest_at_stage", "quest": "the-lost-lamp", "stage": "completed" }
+  ]
+}

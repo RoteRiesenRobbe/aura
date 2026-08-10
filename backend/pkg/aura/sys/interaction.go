@@ -1,6 +1,7 @@
 package sys
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/EngoEngine/ecs"
@@ -107,18 +108,85 @@ type InteractionSystem struct {
 	// (P10). Nil is a supported state: a world with no provider wired shows
 	// such a node's lines and no rows, which is the same thing an empty list
 	// looks like.
-	rows RowSource
+	rows *rowSourceMux
 }
 
-// SetRowSource wires the generated-row provider. Called post-construction from
-// core/game.go, the SetConnState precedent, because the provider needs content
-// the game assembles after the systems are built.
-func (s *InteractionSystem) SetRowSource(src RowSource) {
-	s.rows = src
+// rowSourceMux dispatches a node's declared row source to whichever provider
+// registered for that kind (plan-ascension.md C3 step 6, P22).
+//
+// ⭐ IT IS ITSELF A RowSource, which is what keeps this cheap: present() and
+// applyGrant() already thread one provider through as an argument, so a
+// composite that dispatches by kind needs NO signature change anywhere. The
+// interface was already shaped for it: both methods take the kind first, and
+// the single shipped provider already refused a kind that was not its own.
+//
+// ⚑ The delegate is still handed the kind it was registered under, deliberately
+// redundant: a provider that checks its own kind cannot be mis-wired into
+// answering for someone else's node, and the check costs one comparison on a
+// path that already does several.
+type rowSourceMux struct {
+	byKind map[mobs.RowSourceKind]RowSource
+}
+
+func newRowSourceMux() *rowSourceMux {
+	return &rowSourceMux{byKind: map[mobs.RowSourceKind]RowSource{}}
+}
+
+var _ RowSource = (*rowSourceMux)(nil)
+
+// add registers a provider for one kind.
+//
+// ⛑ IT PANICS ON A DUPLICATE rather than keeping the last writer, because a
+// second provider claiming one kind is a build-order bug whose only symptom
+// would otherwise be the monument showing reward rows (or the stone showing
+// names) with nothing anywhere to say why. Boot wiring is curated code, so this
+// follows the loaders' refuse-at-boot discipline rather than a runtime shrug.
+func (m *rowSourceMux) add(kind mobs.RowSourceKind, src RowSource) {
+	if _, taken := m.byKind[kind]; taken {
+		panic(fmt.Sprintf("two row sources registered for %q: one kind, one provider", kind))
+	}
+	m.byKind[kind] = src
+}
+
+// PresentRows serves the rows for kind, or nothing when nobody registered.
+//
+// ⚑ An unregistered kind is EMPTY, not a panic: the loader accepts any kind in
+// its parse table, so a `rows` key the wiring forgot is a content/wiring
+// mismatch whose honest symptom is a node with no rows, not a dead server.
+func (m *rowSourceMux) PresentRows(kind mobs.RowSourceKind, p learner) []model.ConversationOption {
+	src, ok := m.byKind[kind]
+	if !ok {
+		return nil
+	}
+	return src.PresentRows(kind, p)
+}
+
+func (m *rowSourceMux) ApplyRow(kind mobs.RowSourceKind, p learner, option, grant int) (string, bool) {
+	src, ok := m.byKind[kind]
+	if !ok {
+		return "", false
+	}
+	return src.ApplyRow(kind, p, option, grant)
+}
+
+// AddRowSource registers a generated-row provider for one kind. Called
+// post-construction from core/game.go, the SetConnState precedent, because a
+// provider needs content (or a seam) the game assembles after the systems are
+// built.
+//
+// ⭐ IT REPLACED SetRowSource AT C3 STEP 6, when the memorial became the hook's
+// second consumer. The system held exactly one provider until then, which was
+// enough while only the ascension stone generated rows and would have quietly
+// made the two overwrite each other.
+func (s *InteractionSystem) AddRowSource(kind mobs.RowSourceKind, src RowSource) {
+	s.rows.add(kind, src)
 }
 
 func NewInteractionSystem() *InteractionSystem {
-	return &InteractionSystem{seen: map[uint64]map[uint64]bool{}}
+	return &InteractionSystem{
+		seen: map[uint64]map[uint64]bool{},
+		rows: newRowSourceMux(),
+	}
 }
 
 func (s *InteractionSystem) Priority() int {
@@ -409,6 +477,11 @@ type learner interface {
 	// (plan-ascension.md D18 tier B): what a `bloodline_ascensions` gate reads,
 	// and the first reader the ticket field has ever had.
 	BloodlineAscensions() int
+	// AccountID is which account is reading, and the memorial is its only
+	// consumer (D25: one global list with the reader's own names marked). Like
+	// the two above it is a session-constant fact resolved at /select, so it is a
+	// plain field read on the per-tick present path.
+	AccountID() int64
 }
 
 // RowSource supplies the rows a node's authored tree cannot carry
@@ -864,6 +937,21 @@ func conditionsPass(conditions []mobs.InteractionCondition, p learner) bool {
 			// else here — a conversation is not the place to panic, and the
 			// unconditional fallback node still speaks.
 			if !p.QuestLedger().MatchesStage(c.Quest, c.Stage) {
+				return false
+			}
+		case mobs.ConditionKillsThisLife:
+			// ⭐ AN UNRESOLVED SPECIES FAILS CLOSED. Zero is what SpeciesID holds
+			// when no load-time pass filled it in, and counting "kills of mob 0"
+			// would answer about the wrong species rather than refuse. The loaders
+			// make this unreachable; it is here because the cost of being wrong is
+			// a gate that opens for the wrong reason, which is worse than one that
+			// never opens.
+			if c.SpeciesID == 0 {
+				return false
+			}
+			// One O(1) map read, same as above, and a nil ledger fails closed the
+			// same way (the guard lives in KillCount).
+			if p.QuestLedger().KillCount(c.SpeciesID) < uint64(c.Value) {
 				return false
 			}
 		default:

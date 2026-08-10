@@ -2,6 +2,7 @@ package mobs
 
 import (
 	"encoding/json"
+	"strconv"
 	"testing"
 	"testing/fstest"
 
@@ -74,4 +75,70 @@ func TestRegistryFromFS_SpawnEffectCarriesSummonLoadout(t *testing.T) {
 	marshaled, err := json.Marshal(spawn)
 	require.NoError(t, err)
 	assert.Contains(t, string(marshaled), `"summonLoadout":[{"skillId":101,"level":2}]`)
+}
+
+// --- kills_this_life species resolution (plan-ascension.md §13 step 1, P20) ---
+
+// The species of a kills_this_life gate is resolved ONCE, against the finished
+// registry, exactly as validateSpawnEffects resolves a spawnMob name. It cannot
+// happen during mapToInteraction: that runs per definition, so a node gating on
+// a species authored in another file has nothing to resolve against yet.
+//
+// ⚑ Resolving at LOAD rather than at evaluation is the rule P20 fixes, and it
+// is not a style choice: conditionsPass runs per tick per conversing player
+// (L15), so a registry lookup there would multiply into the render path.
+func TestRegistryFromFS_ResolvesAKillsThisLifeSpecies(t *testing.T) {
+	registry, err := RegistryFromFS(testSkillRegistry(t), nil, testCurve(), fstest.MapFS{
+		"wolf.json": {Data: []byte(`{
+		  "id": 12,
+		  "name": "DireWolf",
+		  "type": "MOB",
+		  "curveLevel": 2,
+		  "factors": {"baseMaxHealth": 20},
+		  "body": {"radius": 0.3, "aggroRadius": 3}
+		}`)},
+		"hunter.json": {Data: []byte(killGateMobJSON("DireWolf", 20))},
+	})
+	require.NoError(t, err)
+
+	hunter, err := registry.GetByName("Hunter")
+	require.NoError(t, err)
+	cond := hunter.Interaction.Nodes[0].Conditions[0]
+	assert.Equal(t, "DireWolf", cond.Species)
+	assert.Equal(t, MobID(12), cond.SpeciesID, "the authored name resolves to the registry's id")
+}
+
+// An unresolvable species is a BOOT FAILURE, not a silently inert gate. Without
+// this the node parses green and conditionsPass answers false forever: a
+// dialogue node no player can ever reach, indistinguishable from one that is
+// merely hard. Same standard as a spawnMob typo.
+func TestRegistryFromFS_UnknownKillsThisLifeSpeciesHardFails(t *testing.T) {
+	_, err := RegistryFromFS(testSkillRegistry(t), nil, testCurve(), fstest.MapFS{
+		"hunter.json": {Data: []byte(killGateMobJSON("NoSuchBeast", 20))},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "NoSuchBeast")
+}
+
+// killGateMobJSON is the smallest legal conversant whose only node is gated on
+// a kill count. collisionLayer is mandatory once a mob carries an interaction
+// (H2), which is why the body is spelled out.
+func killGateMobJSON(species string, count int) string {
+	return `{
+	  "id": 13,
+	  "name": "Hunter",
+	  "type": "MOB",
+	  "entityType": "Signpost",
+	  "curveLevel": 2,
+	  "factors": {"baseMaxHealth": 20, "speed": 0},
+	  "body": {"radius": 0.3, "aggroRadius": 3, "collisionLayer": 97, "collisionMask": 16},
+	  "interaction": {
+	    "range": 2.0,
+	    "nodes": [{
+	      "id": "root",
+	      "conditions": [{"kind": "kills_this_life", "species": "` + species + `", "value": ` + strconv.Itoa(count) + `}],
+	      "lines": ["You have hunted well."]
+	    }]
+	  }
+	}`
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/spectator"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/net"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -46,6 +47,11 @@ type game struct {
 
 	encounters *encounter.System
 	connState  *sys.ConnectionStateSystem
+
+	// graveyard is the memorial's roster, installed post-construction by
+	// cmd/aurad (plan-ascension.md C3 step 5). nil until then, and nil forever in
+	// a build with no database, which is a supported world.
+	graveyard sys.GraveyardNames
 
 	welcomeMsg []byte
 
@@ -140,7 +146,13 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	// before it. ⚑ Forgetting this call shows an empty stone and fails no Go
 	// test: the harness leg that asserts rows appear is what catches it.
 	ascensionSource := sys.NewAscensionRows(gc.AscensionCatalog)
-	interactionSys.SetRowSource(ascensionSource)
+	interactionSys.AddRowSource(mobs.RowSourceAscensionCatalog, ascensionSource)
+	// The memorial's names, the hook's SECOND consumer (C3 step 6, P10/P22). It
+	// takes a READER rather than a listing: the graveyard seam is installed
+	// post-construction by cmd/aurad and re-read on a timer, so a source handed a
+	// value here would show an empty stone for the life of the process.
+	interactionSys.AddRowSource(mobs.RowSourceMemorialNames,
+		sys.NewMemorialRows(g.Graveyard))
 	g.AddSystem(interactionSys)
 
 	// The journal's one upstream verb (plan-quests.md chunk C3, D13): abandon.
@@ -263,6 +275,35 @@ func (g *game) SetCharacterSaves(saves sys.CharacterSaves) {
 // (plan-ascension.md C1). Same seam, same reasoning as the saves above.
 func (g *game) SetCharacterAscensions(ascensions sys.CharacterAscensions) {
 	g.connState.SetCharacterAscensions(ascensions)
+}
+
+// SetGraveyardNames installs the memorial's roster (plan-ascension.md C3 step 5,
+// D11). Third seam, same shape as the two above.
+//
+// ⚑ It is installed POST-CONSTRUCTION like its siblings, which is why the
+// memorial's row source reads it through the game rather than being handed a
+// listing at build time: the world is constructed before anything that talks SQL
+// exists, and a row source holding a nil snapshot forever is exactly the bug
+// this indirection avoids.
+func (g *game) SetGraveyardNames(names sys.GraveyardNames) {
+	g.graveyard = names
+}
+
+// Graveyard is the memorial's current listing, or an empty one when no seam is
+// installed.
+//
+// ⚑ NIL IS A SUPPORTED STATE, exactly as it is for the writer and the ascender:
+// every existing test builds a bare game, and a build with no database behind it
+// must still run a world: it simply has an empty monument, which is also what a
+// world where nobody has ascended looks like.
+//
+// ⚑ Read on the conversation present path, so it stays one interface call and
+// one atomic load underneath.
+func (g *game) Graveyard() persist.Graveyard {
+	if g.graveyard == nil {
+		return persist.Graveyard{}
+	}
+	return g.graveyard.Latest()
 }
 
 // FlushLiveCharacters queues a snapshot of every live character, for the

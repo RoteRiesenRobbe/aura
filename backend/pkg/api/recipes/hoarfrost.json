@@ -1,0 +1,9 @@
+{
+  "_comment": "ASCENSION CATALOG (plan-ascension.md C3 step 3, D9's one combination): Frostbite + FrostShield at the levels below → Hoarfrost. Secret — never documented in-game, like every recipe. ⭐ ITS INGREDIENTS ARE THE CATALOG'S OWN, which is the point: this is the first recipe a BLOODLINE unlocks rather than a character, so the reward for ascending twice is not a third skill but a combination neither life could have reached alone. ⚑ It is NOT ascension-only, and that is deliberate under D1: FrostShield is also a Troll kill-drop at 0.2, so a player who took Frostbite from the stone and FrostShield from the world reaches this exactly as fast. A recipe reachable only through the meta-progression would make ascension the sole road to a power level, which is what D1 forbids. ⚑ Ingredient levels are ABSOLUTE and follow the C2a convention (PO 2026-07-31): Frostbite 5 against a cap of 10 is HALF-way up its curve, not maxed, and FrostShield 5 against a cap of 5 is maxed — 8 + 7 = 15 points against a ~29-point level-30 budget, so both parents plus the result stay affordable. Re-pointing ingredient levels at their caps was rejected repo-wide for exactly that arithmetic.",
+  "id": 11,
+  "result": "Hoarfrost",
+  "ingredients": [
+    { "skill": "Frostbite", "level": 5 },
+    { "skill": "FrostShield", "level": 5 }
+  ]
+}

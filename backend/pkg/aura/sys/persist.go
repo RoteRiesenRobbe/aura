@@ -59,11 +59,35 @@ type CharacterAscensions interface {
 	Completed() []persist.AscensionResult
 }
 
+// GraveyardNames is the memorial's roster, seen from the loop
+// (plan-ascension.md C3 step 5, D11). Implemented by *persist.GraveyardReader.
+//
+// ⭐ THE THIRD SEAM, and it is a third one rather than a method on either
+// existing seam because its POLICY is different from both: a save is
+// fire-and-forget, an ascension is a one-shot transaction whose outcome the loop
+// must observe, and this is a value that is simply always available and always
+// slightly stale.
+//
+// ⚑ IT IS A READ, WHICH IS WHY IT IS A SNAPSHOT AT ALL. The memorial's rows come
+// from a RowSource, and that contract forbids a provider querying a database:
+// PresentRows runs per tick per conversing player (L15). So the database read
+// happens on a timer on the other side of this seam, and the loop only ever
+// takes what is already in memory.
+//
+// ⚑ Latest() must stay O(1) and allocation-free for that reason. The
+// implementation is one atomic load.
+type GraveyardNames interface {
+	// Latest is the most recent listing: the newest names, and how many there
+	// are in total so the memorial can say how many it is not showing.
+	Latest() persist.Graveyard
+}
+
 // PersistenceSink is the game seen from cmd/aurad's wiring, following the
 // CampfireAnchorSink / IdentitySink precedent.
 type PersistenceSink interface {
 	SetCharacterSaves(saves CharacterSaves)
 	SetCharacterAscensions(ascensions CharacterAscensions)
+	SetGraveyardNames(names GraveyardNames)
 	FlushLiveCharacters(done chan<- struct{})
 }
 

@@ -1,0 +1,25 @@
+{
+  "_comment": "ASCENSION CATALOG (plan-ascension.md C3 step 3, D9/D26): the poison bomb. ⭐ D1 WORLD-PARITY: every number is Ignite's (id 22) verbatim — cost, radius, the 3-event burn at 1/s, the PO 2026-07-20 dot uplift. The only difference is damageTags, fire → poison. ⚑ IT CLOSES A GAP THAT WAS OPEN IN ONE DIRECTION ONLY: poison already exists in the world as something done TO the player (the venom-spider dot and the tunnel pools) and Antivenom (id 47) is the authored counter — 'the first drop pair authored against its own source'. No player skill has ever dealt it. So this is the first time a player can be on the other end of a pairing the world already balances, which is a strictly better parity story than inventing an axis. ⚑ It also means Antivenom now resists a PLAYER source; that is deliberate and harmless while PvP is out of scope (GDD), and it is worth re-reading the day PvP is not. All values [PLACEHOLDER], and they move only if Ignite's move.",
+  "id": 144,
+  "name": "Envenom",
+  "category": "cooldown",
+  "maxLevel": 5,
+  "cooldownTicks": 300,
+  "cooldownTicksPerLevel": -10,
+  "effects": [
+    {
+      "type": "instant_dot",
+      "costFractionOfMax": 0.0184,
+      "costFractionOfMaxPerLevel": 0.002325,
+      "radius": 1.5,
+      "radiusPerLevel": 0.05,
+      "damageHP": 6.3,
+      "damageHPPerLevel": 0.8,
+      "damageTags": ["poison"],
+      "dotTicks": 3,
+      "dotTickInterval": 30,
+      "targetsEnemies": true,
+      "targetsAllies": false
+    }
+  ]
+}

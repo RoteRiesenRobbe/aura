@@ -1,0 +1,23 @@
+{
+  "_comment": "ASCENSION CATALOG (plan-ascension.md C3 step 3, D9/D26): the frost sustained aura. ⭐ D1 WORLD-PARITY, and it is literal here rather than argued: every number is Damage's (id 1) verbatim — radius, damageHP, the per-level slope, the variance, the 40-tick beat and the FREE floor (D6, GDD §3). The ONLY difference is damageTags, physical → frost. That is exactly the plan's own example of a parity-safe reward ('the same companion dealing a different damage type'), and it means this entry can never outclass world content: it IS world content, aimed at a different resistance. ⚑ Its identity is the resistance axis, which has teeth since the numbers rewrite C2d: the Troll shrugs off physical and fears fire, so a second free base aura on a third axis is a real build answer rather than a reskin. ⚑ frost shipped as a DECLARED but UNCLAIMED damage type (skills/definition.go DamageTypes, D4: 'the Slow/Calm line reads as frost ... once later content fills them in') — Suppression is the only other skill carrying it, and it is a combination. All values [PLACEHOLDER], and they move only if Damage's move.",
+  "id": 141,
+  "name": "Frostbite",
+  "category": "active_aura",
+  "maxLevel": 10,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "damageHP": 14,
+      "damageHPPerLevel": 0.2222,
+      "damageTags": ["frost"],
+      "variance": 0.15,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 40
+    }
+  ]
+}

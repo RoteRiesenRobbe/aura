@@ -27,19 +27,18 @@
 // `character_playing`; the dialog closed, the list re-read, and A was still
 // there while every later assertion measured the wrong shape.
 //
-// ⚑ THE PROBE, AND IT MUST BE UNGATED. api/ascension/ ships README-only until
-// C3, so with stock content the only row is D14's ascend-anyway one — which
-// spends the life and grants NOTHING, leaving the slot with a predecessor and no
-// gifts. That would still exercise most of this script, but never the gift list
-// or the seed. Install an ungated probe first:
+// ⭐ THE PROBE IS RETIRED (C3 step 4, 2026-08-10). api/ascension/ used to ship
+// README-only, so this script installed a throwaway UNGATED entry to have
+// something pickable. The seed catalog now ships eight real entries of which
+// five are ungated, so the gift legs run against real content with no setup
+// step at all.
 //
-//     jq 'del(.conditions)' .claude/skills/verify/c2a-probe-reward.json \
-//       > api/ascension/c2b-probe-reward.json
-//     # restart aurad, run this script, then:
-//     rm api/ascension/c2b-probe-reward.json
-//
-// Remove it afterwards, or `cp-defs` bakes it into the embedded copy. Without a
-// probe the gift legs report SKIP rather than red.
+// ⚑ The gift moved FrostShield -> RimeBurst, and not arbitrarily: the real
+// FrostShield entry is authored GATED (bloodline_ascensions >= 3), so a first
+// life cannot pick it and every gift leg would fail. RimeBurst is ungated and
+// carries a `displayName` override ("Rime-Burst"), which keeps the property the
+// old comment was written for: the client renders DISPLAY names, so matching
+// the authored key verbatim scores a working seed as a failure.
 //
 // ⚑ It writes to the DURABLE dev database: three characters and a
 // bloodline_unlocks row. Clear them with `backend/cmd/harnessdb -cleanup`, and
@@ -66,12 +65,12 @@ const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), pro
 
 // The stone stands at (-57.6, 17.1); WARP takes whole units (×120).
 const WARP_TO = 'WARP -7080 2040';
-const CATALOG_ROW = 'may still learn';
+const CATALOG_ROW = 'Show me the rewards';
 // The probe reward. The client renders DISPLAY names, so `FrostShield` arrives
 // spaced — matching the authored key verbatim scores a working seed as a
 // failure, which is exactly what c1-bloodline-seed's first run did.
-const GIFT = 'Frost Shield';
-const GIFT_KEY = 'FrostShield';
+const GIFT = 'Rime-Burst';
+const GIFT_KEY = 'RimeBurst';
 
 const results = [];
 const check = (name, pass, detail) => {
@@ -219,16 +218,37 @@ const pressInteract = async () => {
   await page.waitForTimeout(1200);
 };
 
+// ⛑ SCROLLS FIRST, AND NAMES WHAT IT ACTUALLY HIT, the same repair c2a's twin
+// needed at C3 step 4, and for the same reason: the seed catalog put EIGHT rows
+// in a panel that used to hold one, so the list overflows its scroll area and a
+// row's bounding box can sit outside the visible region. Clicking those
+// coordinates lands on whatever is painted there, the ceremony never starts, and
+// the run dies much later waiting for a character-select screen it can no longer
+// reach, which reads as a broken ascension rather than a missed click.
 const clickRow = async (needle) => {
   const handle = await page.evaluateHandle((n) => {
     const rows = [...document.querySelectorAll('#conversation .conversationRows li')];
-    return rows.find((li) => li.textContent.includes(n)) ?? null;
+    const row = rows.find((li) => li.textContent.includes(n)) ?? null;
+    row?.scrollIntoView({ block: 'center' });
+    return row;
   }, needle);
   const el = handle.asElement();
   if (!el) { missed.push(`row not found: ${needle}`); return false; }
+  await page.waitForTimeout(150);
   const box = await el.boundingBox();
   if (!box) { missed.push(`row detached: ${needle}`); return false; }
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  const hit = await page.evaluate(([px, py, n]) => {
+    const el = document.elementFromPoint(px, py);
+    const li = el?.closest('#conversation .conversationRows li');
+    return { onRow: !!li && li.textContent.includes(n), what: (el?.textContent ?? '(nothing)').slice(0, 60) };
+  }, [x, y, needle]);
+  if (!hit.onRow) {
+    missed.push(`click for "${needle}" would land on: ${hit.what}`);
+    return false;
+  }
+  await page.mouse.click(x, y);
   await page.waitForTimeout(900);
   return true;
 };
@@ -286,7 +306,7 @@ if (!reachedCatalog) {
     'the stone did not offer its catalog — see c2a-ascension-site.mjs');
 } else if (!giftRow) {
   check('the ceremony ran (the premise of every leg below)', null,
-    `SKIP: no ungated ${GIFT_KEY} row — install the UNGATED probe (see this file's header). rows: ${rows.map((r) => r.text).join(' | ') || '(none)'}`);
+    `no ungated ${GIFT_KEY} row. The seed catalog authors it ungated since C3 step 4, so this is a failure rather than a missing probe. rows: ${rows.map((r) => r.text).join(' | ') || '(none)'}`);
 } else {
   await clickRow(GIFT);
   await page.waitForTimeout(6200);           // D21's 5 s confirm countdown

@@ -198,6 +198,18 @@ type PlayerEntity interface {
 	// gate reads (plan-ascension.md D18 tier B).
 	BloodlineAscensions() int
 	SetBloodlineAscensions(n int)
+	// AccountID is which account this character belongs to, set once at join
+	// from the play ticket (plan-ascension.md C3 step 6, D25).
+	//
+	// ⚑ IT NEVER REACHES A CLIENT. The memorial marks the reading player's own
+	// names, and that marker is composed server-side into the row's text exactly
+	// as a gate's progress is, so the id stays on this side of the wire.
+	//
+	// ⚑ Until now the game loop had no account identity at all: it lives in
+	// ConnectionStateSystem.accountByClient, keyed by connection rather than by
+	// player, which the conversation path cannot reach.
+	AccountID() int64
+	SetAccountID(id int64)
 	// ActivationRejected / NoteActivationRejected carry the per-tick "a
 	// cooldown activation was refused by its precondition" stamp
 	// (plan-skill-vocab chunk 4, §3.5): the SkillSystem notes it, serialized

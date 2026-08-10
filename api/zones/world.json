@@ -14349,6 +14349,12 @@
       "angle": 0
     },
     {
+      "mob": "MemorialStone",
+      "x": -54.6,
+      "y": 17.1,
+      "angle": 0
+    },
+    {
       "mob": "ForestSign",
       "x": -53.61,
       "y": -1.18,

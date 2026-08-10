@@ -834,3 +834,73 @@ func TestParseCondition_RejectsANonPositiveAscensionCount(t *testing.T) {
 		assert.Contains(t, err.Error(), "positive")
 	}
 }
+
+// --- kills_this_life (plan-ascension.md §13 step 1, D18 tier A / P9) ---
+
+func TestParseConditionKind_ResolvesKillsThisLife(t *testing.T) {
+	kind, ok := ParseConditionKind("kills_this_life")
+	require.True(t, ok)
+	assert.Equal(t, ConditionKillsThisLife, kind)
+}
+
+// ⚑ D18's naming discipline again, and this is the kind it was written for: a
+// bare "kills" would leave per-life and cross-life ambiguous, and the per-life
+// half is free (the quest ledger already counts it) while the cross-life half
+// is the one that costs a migration (tier C, not taken).
+func TestParseCondition_RejectsTheUnscopedKillSpelling(t *testing.T) {
+	_, err := ParseCondition(JSONCondition{Kind: "kills", Species: "DireWolf", Value: 20})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "kills")
+}
+
+// The authored species rides through the parse UNRESOLVED: the mob registry is
+// mid-construction here (mapToInteraction runs per definition), so the name is
+// all this stage can hold. resolveConditionSpecies fills in the id (P20).
+func TestParseCondition_CarriesTheAuthoredSpecies(t *testing.T) {
+	cond, err := ParseCondition(JSONCondition{Kind: "kills_this_life", Species: "DireWolf", Value: 20})
+	require.NoError(t, err)
+	assert.Equal(t, ConditionKillsThisLife, cond.Kind)
+	assert.Equal(t, "DireWolf", cond.Species)
+	assert.Equal(t, 20, cond.Value)
+	assert.Zero(t, cond.SpeciesID, "the parse stage cannot resolve a name")
+}
+
+func TestParseCondition_RejectsAKillGateWithNoSpecies(t *testing.T) {
+	_, err := ParseCondition(JSONCondition{Kind: "kills_this_life", Value: 20})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "species")
+}
+
+// Same reasoning as the bloodline_ascensions guard directly above: a threshold
+// of zero passes for every character alive, which is an authored gate that does
+// nothing, and here it would ALSO make an unresolved species harmless-looking,
+// since nothing would ever be counted against it.
+func TestParseCondition_RejectsANonPositiveKillCount(t *testing.T) {
+	for _, value := range []int{0, -1} {
+		_, err := ParseCondition(JSONCondition{Kind: "kills_this_life", Species: "DireWolf", Value: value})
+		require.Error(t, err, "value %d", value)
+		assert.Contains(t, err.Error(), "positive")
+	}
+}
+
+// --- the memorial's row source (plan-ascension.md C3 step 6, D11) ---
+
+func TestParseRowSourceKind_ResolvesMemorialNames(t *testing.T) {
+	kind, ok := ParseRowSourceKind("memorial_names")
+	require.True(t, ok)
+	assert.Equal(t, RowSourceMemorialNames, kind)
+}
+
+// ⭐ The SECOND consumer of the dynamic-row hook, which is what P10 promised
+// when it chose a node-level hook over a grant expansion: "one hook, two
+// consumers, or it is not the extension the plan said it was". A memorial row
+// grants nothing at all, so a grant-shaped hook could never have served it.
+func TestMapMobDefinition_ResolvesAMemorialRowSource(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["Names, more than you can count."],
+	  "rows": "memorial_names"
+	}]}`)
+	require.NoError(t, err)
+	assert.Equal(t, RowSourceMemorialNames, def.Interaction.Nodes[0].Rows)
+}

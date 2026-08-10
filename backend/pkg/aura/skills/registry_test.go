@@ -159,7 +159,13 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// 2026-08-07) — the first passive with a runtime trigger; Troll drop.
 	// + Paralyze, the C3 stun cooldown (2026-08-08) — the game's first hard
 	// stun; GiantSpider drop.
-	assert.Len(t, r.All(), 89)
+	// + SIX ascension-catalog skills (plan-ascension.md C3 step 3, 2026-08-10),
+	// ids 141-146: Frostbite, Blight, RimeBurst, Envenom, Venomward and the
+	// Hoarfrost combination. ⚑ They are the first player skills whose ONLY
+	// source is the ascension catalog rather than a drop, a milestone, an NPC or
+	// a quest, so content-skill-inventory.md's reachability sweep gained a fifth
+	// source kind rather than six exceptions.
+	assert.Len(t, r.All(), 95)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

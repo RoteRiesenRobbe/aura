@@ -124,7 +124,37 @@ type skillResolver interface {
 	GetByName(name string) (*skills.SkillDefinition, error)
 }
 
+// gateResolver is what an entry's GATES need beyond the skill registry: a
+// species name turned into the id the kill ledger counts by, and a quest
+// reference checked against the quest graph (plan-ascension.md §13 step 2).
+//
+// ⛑ IT IS A CONSTRUCTOR PARAMETER, NOT A LATER PASS, and that is deliberate.
+// The catalog was the one surface carrying conditions that NOTHING validated:
+// quests.CrossValidate walks mob interaction nodes and stops there, and
+// mobs.ParseCondition checks shape only because it holds no registry. So a
+// typo'd quest id or species name parsed green, conditionsPass answered false
+// forever, and the entry rendered locked, unpickable and indistinguishable from
+// a gate that is merely hard, discovered (if ever) by the player who spent a
+// life chasing it. Taking the resolver here means a caller cannot construct an
+// unvalidated catalog at all: it does not compile without one.
+//
+// ⚑ Narrow on purpose, following skillResolver above. The quest half is phrased
+// as a CHECK rather than a lookup because the answer is thrown away: the
+// condition already carries what conditionsPass reads.
+type gateResolver interface {
+	ResolveSpecies(name string) (mobs.MobID, error)
+	CheckQuestStage(questID, stage string) error
+}
+
 type jsonEntry struct {
+	// Comment is parsed and discarded: the _comment key is the content
+	// convention for authoring notes, exactly as in the mob, skill, quest and
+	// faction definitions. ⚑ Without the field DisallowUnknownFields refuses it,
+	// so an author following the repo's own house style would meet a boot failure
+	// reading `unknown field "_comment"`, and the rationale that belongs beside
+	// a reward (which world content it sits level with, and on which axis it
+	// differs) is exactly what D1 asks every entry to be able to state.
+	Comment    string               `json:"_comment"`
 	UnlockKey  string               `json:"unlockKey"`
 	Conditions []mobs.JSONCondition `json:"conditions"`
 }
@@ -133,11 +163,11 @@ type jsonEntry struct {
 // every skill name resolved against r.
 //
 // ⚑ AN EMPTY DIRECTORY IS VALID, and that is not laziness: api/ascension/ ships
-// README-only from C1 until C3 authors the seed, and D14 makes "no entries a
+// README-only from C1 until C3 step 4 authored the seed, and D14 makes "no entries a
 // bloodline can still learn" an ordinary end state anyway — a catalog that
 // refused to be empty would turn the loop's designed exhaustion into a boot
 // failure the first time someone spent it.
-func CatalogFromFS(fsys fs.FS, r skillResolver) (Catalog, error) {
+func CatalogFromFS(fsys fs.FS, r skillResolver, g gateResolver) (Catalog, error) {
 	var entries []Entry
 	seen := map[string]string{} // unlock key → the file that claimed it
 
@@ -152,7 +182,7 @@ func CatalogFromFS(fsys fs.FS, r skillResolver) (Catalog, error) {
 		if err != nil {
 			return fmt.Errorf("cannot read %q: %w", p, err)
 		}
-		entry, err := parseEntry(data, r)
+		entry, err := parseEntry(data, r, g)
 		if err != nil {
 			return fmt.Errorf("ascension entry %q: %w", p, err)
 		}
@@ -180,7 +210,7 @@ func CatalogFromFS(fsys fs.FS, r skillResolver) (Catalog, error) {
 	return Catalog{entries: entries}, nil
 }
 
-func parseEntry(data []byte, r skillResolver) (Entry, error) {
+func parseEntry(data []byte, r skillResolver, g gateResolver) (Entry, error) {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	var je jsonEntry
@@ -202,7 +232,39 @@ func parseEntry(data []byte, r skillResolver) (Entry, error) {
 		if err != nil {
 			return Entry{}, fmt.Errorf("condition %d: %w", i, err)
 		}
+		if err := resolveGate(&cond, g); err != nil {
+			return Entry{}, fmt.Errorf("condition %d: %w", i, err)
+		}
 		entry.Conditions = append(entry.Conditions, cond)
 	}
 	return entry, nil
+}
+
+// resolveGate finishes one parsed condition against the world it refers to.
+//
+// ⚑ It takes a POINTER because the species half writes back: the id is what
+// conditionsPass reads, and a copy would be resolved and thrown away: the same
+// trap resolveConditionSpecies documents on the dialogue-node side.
+//
+// ⚑ The kinds not listed need nothing: minLevel and bloodline_ascensions are
+// self-contained integers. A new kind that referenced content would land in
+// this switch, and until it did it would simply go unresolved, which is why
+// conditionsPass keeps its own unresolved-species refusal rather than trusting
+// this to have run.
+func resolveGate(c *mobs.InteractionCondition, g gateResolver) error {
+	switch c.Kind {
+	case mobs.ConditionKillsThisLife:
+		id, err := g.ResolveSpecies(c.Species)
+		if err != nil {
+			return fmt.Errorf("kills_this_life names species %q, which no mob definition matches", c.Species)
+		}
+		c.SpeciesID = id
+	case mobs.ConditionQuestAtStage:
+		// ⭐ The SAME check the dialogue rows run, called rather than copied
+		// (§13 step 2). Two checkers would drift the day a third stage sentinel
+		// is added, and the drift would show up as content that boots on one
+		// surface and not the other.
+		return g.CheckQuestStage(c.Quest, c.Stage)
+	}
+	return nil
 }

@@ -1,0 +1,36 @@
+{
+  "_comment": "The memorial (plan-ascension.md D11, built in C3 step 6). An INTERACTION-CARRYING MOB for the same load-bearing reason the ascension stone is one: api/props/ definitions parse with DisallowUnknownFields, carry no sensor, and InteractionSystem registers only MobEntitys, so 'an object that talks' has exactly one supported shape. Copied knob-for-knob from ascension-stone.json (role creature + speed 0, faction townsfolk so player damage skips it, collisionLayer 97 and deliberately NOT Action(2) so no aura can target it, mask 16 = Border only, xpFactor 0 to keep it off the nameplate path, aggroRadius 1.0 required-but-inert since interaction.range is the wider of the two). All values [PLACEHOLDER]. ⚑ entityType Signpost is a DELIBERATE REUSE (P25, the same call P12 made for the stone): a monument sprite is a new wire EntityType plus client art, and D20 already deferred the ceremony's art to the world pass. ⭐ ITS ONE NODE IS UNGATED, AND THAT IS P26 RATHER THAN AN OVERSIGHT: reading the names of the dead is not a reward, and P1 prices the ascension rather than the monument, so a level gate here would hide the game's own history from the players who have not yet made any. It is also why this file has no second node — with nothing to gate against, L3's greeting rule has nothing to order. ⚑ THE `lines` ARE LOAD-BEARING, not flavour: the rows are GENERATED from the graveyard and may legitimately come back empty (a fresh world has no dead), and then the lines are all the node has to say — the same shape the ascension stone's catalog node uses for D14's exhausted bloodline. They are written to be true either way, which is why they describe the stone rather than announcing a list. ⚑ TEXT is plain and [PLACEHOLDER] (the TownCrier convention): §8 still owes both stones a lore write, and D4 fixed the tone as ASCENSION, positive — a life laid down, never a sacrifice extracted. ⚑ Placed beside the ascension stone (P25) so one playtest walk reaches both; two Signpost-shaped talkers standing together is a world-pass problem, recorded rather than solved.",
+  "id": 67,
+  "name": "MemorialStone",
+  "type": "MOB",
+  "entityType": "Signpost",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1.0
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2.0,
+    "nodes": [
+      {
+        "id": "root",
+        "rows": "memorial_names",
+        "lines": [
+          "Memorial stone.",
+          "Every character spent at the ascension stone, newest first."
+        ]
+      }
+    ]
+  }
+}

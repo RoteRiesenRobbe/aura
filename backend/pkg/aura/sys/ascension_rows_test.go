@@ -368,3 +368,133 @@ func TestPresentOptions_OrdinaryRowsAskForNoConfirmation(t *testing.T) {
 		assert.Zero(t, r.ConfirmSeconds, "row %q", r.Text)
 	}
 }
+
+// --- kills_this_life at the panel (D18 tier A, plan-ascension.md §13 step 1) ---
+
+// ⭐ THE PROGRESS STRING DOES NOT PLURALISE, and that is P21 rather than a
+// wording preference: English pluralisation of arbitrary authored names has no
+// ceiling (Wolf → Wolves, Boar → Boars, Dodo → Dodos, and every species a
+// content pass adds next). The "N ×" form sidesteps it for every mob at once.
+//
+// ⚑ The species reads as its DISPLAY name, through the same DeriveDisplayName
+// the nameplates and the actor line use. A player has never seen the CamelCase
+// key and should not meet it here first.
+func TestDescribeCondition_NamesTheHuntAndItsProgress(t *testing.T) {
+	const wolf = mobs.MobID(12)
+	p := newQuestLearner(t, 30)
+	for i := 0; i < 3; i++ {
+		p.ledger.NoteKill(wolf)
+	}
+
+	got := describeConditions(killGate(wolf, 20), p)
+
+	assert.Equal(t, "slay 20 × Dire Wolf this life (3/20)", got)
+}
+
+// The progress half is composed PER PLAYER at render, never authored (D18),
+// the same rule the quest journal's Objectives exists for. Two players reading
+// one catalog entry must see two different counters.
+func TestDescribeCondition_TheHuntCounterIsPerPlayer(t *testing.T) {
+	const wolf = mobs.MobID(12)
+	fresh := newQuestLearner(t, 30)
+	veteran := newQuestLearner(t, 30)
+	for i := 0; i < 17; i++ {
+		veteran.ledger.NoteKill(wolf)
+	}
+
+	assert.Contains(t, describeConditions(killGate(wolf, 20), fresh), "(0/20)")
+	assert.Contains(t, describeConditions(killGate(wolf, 20), veteran), "(17/20)")
+}
+
+// ⭐ THE TIER-A PATH END TO END AT THE PANEL, which is the shape C3's directed
+// hunt authors (D27: DireWolf ≥ 20): the row is locked with its wall named while
+// the hunt is unfinished, and pickable once it is done.
+func TestAscensionRows_AHuntGateLocksAndThenOpens(t *testing.T) {
+	const wolf = mobs.MobID(12)
+	gates := map[string][]mobs.InteractionCondition{"Paralyze": killGate(wolf, 20)}
+
+	hunting := newQuestLearner(t, 30)
+	rows := newAscensionRows(testCatalog(gates)).
+		PresentRows(mobs.RowSourceAscensionCatalog, hunting)
+	row, found := rowByText(rows, "Paralyze")
+	require.True(t, found)
+	assert.True(t, row.Locked, "the hunt is not done")
+	assert.Contains(t, row.Text, "slay 20 × Dire Wolf this life (0/20)")
+
+	done := newQuestLearner(t, 30)
+	for i := 0; i < 20; i++ {
+		done.ledger.NoteKill(wolf)
+	}
+	rows = newAscensionRows(testCatalog(gates)).
+		PresentRows(mobs.RowSourceAscensionCatalog, done)
+	row, found = rowByText(rows, "Paralyze")
+	require.True(t, found)
+	assert.False(t, row.Locked, "the hunt is done")
+	assert.NotEmpty(t, row.Reply, "a takeable row has something to speak")
+}
+
+// ⭐ AN UNRESOLVED GATE MUST NOT SHOW A LIVE COUNTER. A condition parsed but
+// never resolved carries SpeciesID 0, and reading the ledger with it counts
+// kills of "mob 0", so the row could read "(50/20)" beside a wall that can
+// never fall, since conditionsPass refuses the same condition outright. The
+// refusal and the explanation have to agree about what they are describing.
+//
+// ⚑ Unreachable once §13 step 2 cross-validates the catalog; it is pinned
+// because step 2 is exactly when an entry transits this state.
+func TestDescribeCondition_AnUnresolvedHuntShowsNoProgress(t *testing.T) {
+	p := newQuestLearner(t, 30)
+	for i := 0; i < 50; i++ {
+		p.ledger.NoteKill(0)
+	}
+	unresolved := []mobs.InteractionCondition{
+		{Kind: mobs.ConditionKillsThisLife, Species: "DireWolf", Value: 20},
+	}
+
+	assert.Equal(t, "slay 20 × Dire Wolf this life (0/20)", describeConditions(unresolved, p))
+}
+
+// --- the authored displayName override (found by c2a at C3 step 4) ---
+
+// ⛑ THE ROW MUST RENDER THE AUTHORED DISPLAY NAME, NOT RE-DERIVE ONE.
+// `DeriveDisplayName`'s own doc says the odd cases author an explicit override
+// instead ("Long-Range Strike", "Call for Aid", "Damage-Burst", "Hold the
+// Line"), and the registry already resolves that override into
+// SkillDefinition.DisplayName at load. Deriving here re-implements the rule and
+// loses the override, which is the exact mistake C2b's P21 was corrected for.
+//
+// ⚑ It had no visible subject until C3: every earlier catalog was a stub or the
+// throwaway probe, and FrostShield happens to derive correctly. RimeBurst is the
+// first authored entry whose two spellings differ.
+func TestAscensionRows_ARowRendersTheAuthoredDisplayName(t *testing.T) {
+	def := &skills.SkillDefinition{
+		ID: 143, Name: "RimeBurst", DisplayName: "Rime-Burst",
+		Category: skills.SkillCategoryCooldown, MaxLevel: 5,
+	}
+	source := newAscensionRows(ascension.CatalogOf(
+		ascension.Entry{UnlockKey: def.Name, Skill: def},
+	))
+
+	rows := source.PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(30))
+	require.Len(t, rows, 1)
+	assert.Equal(t, "Rime-Burst", rows[0].Text, "the authored override, not the derived spelling")
+	assert.Contains(t, rows[0].Reply, "Rime-Burst")
+}
+
+// The same rule on the OTHER end of the contract: the reply the panel speaks
+// when the pick is taken has to name the reward the same way the row did, or the
+// two halves of one click disagree in front of the player.
+func TestAscensionRows_TheStashedReplyUsesTheAuthoredDisplayName(t *testing.T) {
+	def := &skills.SkillDefinition{
+		ID: 143, Name: "RimeBurst", DisplayName: "Rime-Burst",
+		Category: skills.SkillCategoryCooldown, MaxLevel: 5,
+	}
+	source := newAscensionRows(ascension.CatalogOf(
+		ascension.Entry{UnlockKey: def.Name, Skill: def},
+	))
+	p := newAscensionLearner(30)
+
+	reply, ok := source.ApplyRow(mobs.RowSourceAscensionCatalog, p, 0, 0)
+	require.True(t, ok)
+	assert.Contains(t, reply, "Rime-Burst")
+	assert.NotContains(t, reply, "Rime Burst", "the derived spelling must not leak back in")
+}

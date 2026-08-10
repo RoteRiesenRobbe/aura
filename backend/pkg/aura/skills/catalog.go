@@ -109,3 +109,26 @@ func CatalogHandler(r Registry, c curve.Curve) (http.Handler, error) {
 		w.Write(payload)
 	}), nil
 }
+
+// Display is what a player should see this skill called: the authored
+// `displayName` override when there is one, else Name split CamelCase→spaces.
+//
+// ⚑ It exists because reading the FIELD is only safe on a registry-loaded
+// definition. RegistryFromFS fills DisplayName in at parse time, so the field is
+// "always non-empty after parsing" as its own doc says, but a definition built
+// in Go (every test stub, and any future non-registry path) leaves it empty, and
+// a caller reading the field directly then renders a blank name. Two shipped
+// call sites in the ascension row source did exactly that.
+//
+// ⚑ Callers must NOT re-implement this by calling DeriveDisplayName on the name:
+// that silently drops the override, which is the whole reason the override
+// exists ("Long-Range Strike", "Call for Aid", "Damage-Burst", "Hold the Line").
+func (s *SkillDefinition) Display() string {
+	if s == nil {
+		return ""
+	}
+	if s.DisplayName != "" {
+		return s.DisplayName
+	}
+	return DeriveDisplayName(s.Name)
+}

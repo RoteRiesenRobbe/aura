@@ -13,6 +13,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
@@ -195,9 +196,23 @@ func TestAuthoredRowSources_AreAllServedByTheProvider(t *testing.T) {
 
 	probe, err := skillsRegistry.GetByName("Damage")
 	require.NoError(t, err, "any real skill will do as the probe reward")
-	source := sys.NewAscensionRows(ascension.CatalogOf(
-		ascension.Entry{UnlockKey: probe.Name, Skill: probe},
-	))
+
+	// ⭐ EVERY registered provider, not just the catalog's (C3 step 6). This test
+	// walks the authored kinds and demands each be served, so it is precisely
+	// what goes red when a NEW row source is authored in content and never wired
+	// which is what it did the moment the memorial's node landed.
+	sources := map[mobs.RowSourceKind]sys.RowSource{
+		mobs.RowSourceAscensionCatalog: sys.NewAscensionRows(ascension.CatalogOf(
+			ascension.Entry{UnlockKey: probe.Name, Skill: probe},
+		)),
+		// One name is enough: this asserts WIRING, not content.
+		mobs.RowSourceMemorialNames: sys.NewMemorialRows(func() persist.Graveyard {
+			return persist.Graveyard{
+				Names: []persist.GraveyardName{{Name: "Aelric", Level: 30, AccountID: 1}},
+				Total: 1,
+			}
+		}),
+	}
 
 	authored := map[mobs.RowSourceKind]string{}
 	for _, def := range mobsRegistry.Mobs() {
@@ -213,6 +228,10 @@ func TestAuthoredRowSources_AreAllServedByTheProvider(t *testing.T) {
 	require.NotEmpty(t, authored, "the ascension stone authors one; if this is empty the walk is broken")
 
 	for kind, where := range authored {
+		source, wired := sources[kind]
+		if !assert.True(t, wired, "%s authors rows %q, and NOTHING is wired for that kind", where, kind) {
+			continue
+		}
 		assert.NotEmpty(t, source.PresentRows(kind, maxLevelLearner(t)),
 			"%s authors rows %q, but the wired provider serves nothing for it", where, kind)
 	}
@@ -240,3 +259,4 @@ func (l *contentLearner) QuestLedger() *quests.Ledger { return nil }
 func (l *contentLearner) AddExperience(uint64)        {}
 func (l *contentLearner) BloodlineUnlocks() []string  { return nil }
 func (l *contentLearner) BloodlineAscensions() int    { return 0 }
+func (l *contentLearner) AccountID() int64            { return 0 }

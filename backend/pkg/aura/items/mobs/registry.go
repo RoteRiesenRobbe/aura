@@ -98,7 +98,51 @@ func RegistryFromFS(sr skills.Registry, fr factions.Registry, c curve.Curve, fil
 		return mobs, err
 	}
 
+	if err := resolveConditionSpecies(mobs); err != nil {
+		return mobs, err
+	}
+
 	return mobs, validateSpawnEffects(mobs, sr)
+}
+
+// resolveConditionSpecies fills in the MobID behind every kills_this_life gate
+// authored on a dialogue node (plan-ascension.md D18 tier A, P20).
+//
+// ⚑ It has to run HERE rather than in mapToInteraction, for the same reason
+// validateSpawnEffects below does: that maps one definition at a time, so a node
+// gating on a species authored in another file has no registry to resolve
+// against yet. This is the earliest moment every name in the world is known.
+//
+// ⚑ An unknown species is a BOOT FAILURE, not a gate that quietly never opens.
+// conditionsPass fails closed, so an unresolved gate would render as a locked
+// row nobody can ever unlock, indistinguishable from one that is merely hard,
+// and discovered only by the player who spends a life chasing it.
+//
+// ⭐ It writes through the slice INDEX. Ranging over Conditions copies each
+// struct, and the resolved id would land on the copy: the whole pass would run
+// green and change nothing.
+func resolveConditionSpecies(mobs *registry) error {
+	for _, def := range mobs.mobs {
+		if def.Interaction == nil {
+			continue
+		}
+		for ni := range def.Interaction.Nodes {
+			node := &def.Interaction.Nodes[ni]
+			for ci := range node.Conditions {
+				cond := &node.Conditions[ci]
+				if cond.Kind != ConditionKillsThisLife {
+					continue
+				}
+				species, err := mobs.GetByName(cond.Species)
+				if err != nil {
+					return fmt.Errorf("mob %q: interaction node %q gates on kills of %q, "+
+						"which does not match any mob definition", def.Name, node.ID, cond.Species)
+				}
+				cond.SpeciesID = species.ID
+			}
+		}
+	}
+	return nil
 }
 
 // validateSpawnEffects resolves every spawn effect's mob name against the

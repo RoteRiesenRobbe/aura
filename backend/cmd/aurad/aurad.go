@@ -86,7 +86,7 @@ func main() {
 	milestoneUnlocks := loadMilestoneUnlocks(content.milestones, skillsRegistry)
 	recipeRegistry := loadRecipes(content.recipes, skillsRegistry)
 	questsRegistry := loadQuests(content.quests, mobsRegistry)
-	ascensionCatalog := loadAscensionCatalog(content.ascension, skillsRegistry)
+	ascensionCatalog := loadAscensionCatalog(content.ascension, skillsRegistry, mobsRegistry, questsRegistry)
 	propsRegistry := loadProps(content.props)
 	// -zone flag overrides the game.zone config default.
 	if zoneName == "" {
@@ -338,7 +338,32 @@ func main() {
 	// The sacrifice transaction (plan-ascension.md C1) — a second seam beside the
 	// writer because it is a one-shot irreversible write whose outcome the loop
 	// has to observe, not a retryable snapshot.
-	persistence.SetCharacterAscensions(persist.NewAscender(db))
+	ascender := persist.NewAscender(db)
+	persistence.SetCharacterAscensions(ascender)
+	// The memorial's names (plan-ascension.md C3 step 5, D11): a third seam, and
+	// the only one that READS. It exists because the memorial's rows are served on
+	// the per-tick conversation path, where no provider may query a database, so
+	// the read happens here on a timer and the loop only ever sees a snapshot.
+	//
+	// ⚑ It RE-READS rather than accumulating, because names can leave the
+	// monument: DiscardAnonymousAccount erases them off the loop, and D11 rules
+	// that erasure wins.
+	graveyard := persist.NewGraveyard(db, memorialNameLimit, memorialRefreshInterval)
+	defer graveyard.Stop()
+	persistence.SetGraveyardNames(graveyard)
+	// ⚑ Logged like the content counts above, and for the same reason: the boot
+	// read is silent on success, so without this line "the monument is empty"
+	// and "the read never happened" look identical in the log, and an empty
+	// monument is a legitimate state, which is exactly what makes the pair
+	// indistinguishable.
+	// ⚑ And tell the memorial when a name is added, so it does not lag a whole
+	// interval behind the one event that certainly changed it (PO feedback
+	// 2026-08-11). The hook fires on the Ascender's own goroutine, off the game
+	// loop, which is the only place a database read may be triggered from.
+	ascender.OnCommitted(graveyard.RefreshSoon)
+	slog.Info("Read the memorial's names",
+		slog.Int("listed", len(graveyard.Latest().Names)),
+		slog.Int("total", graveyard.Latest().Total))
 	installShutdownFlush(persistence, characterWriter, db)
 
 	accountsServer, err := buildAccountsServer(db, originPolicy, config, dev, tickets, sessions, identity)

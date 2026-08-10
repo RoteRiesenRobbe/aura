@@ -32,12 +32,12 @@
           }
         ],
         "lines": [
-          "Your road ends here, and that is not a small thing.",
-          "Lay this life down on the stone. What it learned, your line keeps."
+          "You are max level, so you can spend this character here.",
+          "You pick one reward. It stays unlocked for every future character in this slot."
         ],
         "options": [
           {
-            "text": "Show me what my line may still learn.",
+            "text": "Show me the rewards.",
             "next": "catalog"
           }
         ]
@@ -52,15 +52,15 @@
         ],
         "rows": "ascension_catalog",
         "lines": [
-          "The stone shows what your line has not yet been given.",
-          "Choose, and this life ends here. Everything but your name and your line ends with it."
+          "Pick one reward. It unlocks permanently for this character slot.",
+          "Confirming ends this character. Its name goes on the memorial."
         ]
       },
       {
         "id": "root",
         "lines": [
-          "A standing stone, older than the village. Names are cut into it, more than you can count.",
-          "There is nothing here for you yet. Come back when you have grown as far as you can."
+          "Ascension stone. Needs a max-level character.",
+          "Spending one here unlocks a permanent reward for its character slot."
         ]
       }
     ]

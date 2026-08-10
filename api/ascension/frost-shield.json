@@ -1,0 +1,7 @@
+{
+  "_comment": "GATED, mechanism 1 of 3: bloodline_ascensions, the veteran gate (D18 tier B, the count that rides the play ticket). It names an EXISTING skill (Troll kill-drop at 0.2), so no power is invented for it, which is what lets the gate buy access without buying a power level. Thematically the line that has laid down three lives learns to make the world flinch back. ⚑ It is also Hoarfrost's second ingredient, so this entry is the one that makes the catalog's combination reachable from inside the catalog.",
+  "unlockKey": "FrostShield",
+  "conditions": [
+    { "kind": "bloodline_ascensions", "value": 3 }
+  ]
+}

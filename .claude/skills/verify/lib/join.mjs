@@ -55,9 +55,24 @@ export async function joinAsNewCharacter(page, tag, { timeout = 120_000 } = {}) 
 
   let name;
   if (await select.isVisible()) {
-    // Returning profile: play the character already in slot 0.
-    name = await page.textContent('#characterSelect .slotCard .slotCharacterName');
-    await page.click('#characterSelect .slotCard .button');
+    const named = page.locator('#characterSelect .slotCard .slotCharacterName');
+    if (await named.count() > 0) {
+      // Returning profile: play the character already in slot 0.
+      name = await named.first().textContent();
+      await page.click('#characterSelect .slotCard .button');
+    } else {
+      // ⛑ AN ACCOUNT ON THE SELECT SCREEN WITH NO CHARACTERS AT ALL, which this
+      // helper did not handle until plan-ascension.md C3 step 7. It is not an
+      // exotic state: an ASCENSION spends the last character, and the client
+      // lands here with every slot empty, so a run that ascends and then wants
+      // an heir hit a 30 s timeout waiting for a name that cannot exist, which
+      // reads as a broken character-select rather than a missing branch.
+      name = harnessCharacterName(tag);
+      await page.click('#characterSelect .slotCard');
+      await page.waitForSelector('#characterCreation:not(.hidden)', { state: 'visible', timeout: 30_000 });
+      await page.fill('#characterCreation .characterNameInput', name);
+      await page.click('#characterCreation .characterCreateSubmit');
+    }
   } else {
     name = harnessCharacterName(tag);
     await page.fill('#characterCreation .characterNameInput', name);

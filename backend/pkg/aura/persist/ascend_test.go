@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -85,4 +87,42 @@ func TestAscenderCompletedDrains(t *testing.T) {
 func TestAscenderCompletedIsEmptyWhileNothingHasFinished(t *testing.T) {
 	a := NewAscender(&fakeAscensions{})
 	assert.Empty(t, a.Completed())
+}
+
+// ⭐ A COMMITTED ASCENSION NUDGES THE MEMORIAL (PO feedback 2026-08-11). The
+// hook runs on the Ascender's own goroutine, which is already off the game loop:
+// the loop must never trigger a database read, and this is the one place that
+// knows a name has just been added without being on it.
+func TestAscender_ACommittedAscensionNotifiesItsHook(t *testing.T) {
+	var nudges atomic.Int64
+	a := NewAscender(&fakeAscensions{})
+	a.OnCommitted(func() { nudges.Add(1) })
+
+	a.Ascend(AscensionRequest{AccountID: 1, CharacterID: 2, UnlockKey: "FrostShield"})
+
+	require.Eventually(t, func() bool { return nudges.Load() == 1 }, 2*time.Second, 10*time.Millisecond)
+}
+
+// ⚑ ...and a FAILED one does not. Nothing committed means nothing new to read,
+// and a re-read triggered by a failure would be a database round trip bought by
+// an error.
+func TestAscender_AFailedAscensionDoesNotNotify(t *testing.T) {
+	var nudges atomic.Int64
+	a := NewAscender(&fakeAscensions{err: errors.New("the database is having a moment")})
+	a.OnCommitted(func() { nudges.Add(1) })
+
+	a.Ascend(AscensionRequest{AccountID: 1, CharacterID: 2})
+
+	require.Eventually(t, func() bool { return len(a.Completed()) == 1 }, 2*time.Second, 10*time.Millisecond)
+	assert.Zero(t, nudges.Load(), "a failure commits nothing, so there is nothing to re-read")
+}
+
+// No hook installed is a supported build (every test above, and any server
+// without a memorial), so the Ascender must not assume one.
+func TestAscender_WorksWithNoHookInstalled(t *testing.T) {
+	a := NewAscender(&fakeAscensions{})
+
+	assert.NotPanics(t, func() {
+		a.Ascend(AscensionRequest{AccountID: 1, CharacterID: 2})
+	})
 }

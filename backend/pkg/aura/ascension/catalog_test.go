@@ -37,7 +37,7 @@ func TestCatalogFromFS_LoadsEntriesAndResolvesSkills(t *testing.T) {
 		"paralyze.json":     {Data: []byte(`{"unlockKey":"Paralyze"}`)},
 	}
 
-	catalog, err := CatalogFromFS(fsys, allSkills())
+	catalog, err := CatalogFromFS(fsys, allSkills(), allGates())
 	require.NoError(t, err)
 	require.Len(t, catalog.All(), 2)
 
@@ -56,7 +56,7 @@ func TestCatalogFromFS_LoadsEntriesAndResolvesSkills(t *testing.T) {
 func TestCatalogFromFS_EmptyDirectoryLoadsCleanly(t *testing.T) {
 	fsys := fstest.MapFS{"README.md": {Data: []byte("# ascension rewards")}}
 
-	catalog, err := CatalogFromFS(fsys, allSkills())
+	catalog, err := CatalogFromFS(fsys, allSkills(), allGates())
 	require.NoError(t, err)
 	assert.Empty(t, catalog.All())
 }
@@ -64,7 +64,7 @@ func TestCatalogFromFS_EmptyDirectoryLoadsCleanly(t *testing.T) {
 func TestCatalogFromFS_UnknownSkillIsABootError(t *testing.T) {
 	fsys := fstest.MapFS{"ghost.json": {Data: []byte(`{"unlockKey":"NoSuchSkill"}`)}}
 
-	_, err := CatalogFromFS(fsys, allSkills())
+	_, err := CatalogFromFS(fsys, allSkills(), allGates())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "NoSuchSkill")
 }
@@ -72,7 +72,7 @@ func TestCatalogFromFS_UnknownSkillIsABootError(t *testing.T) {
 func TestCatalogFromFS_MissingUnlockKeyIsABootError(t *testing.T) {
 	fsys := fstest.MapFS{"nameless.json": {Data: []byte(`{"conditions":[]}`)}}
 
-	_, err := CatalogFromFS(fsys, allSkills())
+	_, err := CatalogFromFS(fsys, allSkills(), allGates())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unlockKey")
 }
@@ -86,7 +86,7 @@ func TestCatalogFromFS_DuplicateUnlockKeyIsABootError(t *testing.T) {
 		"b.json": {Data: []byte(`{"unlockKey":"Paralyze"}`)},
 	}
 
-	_, err := CatalogFromFS(fsys, allSkills())
+	_, err := CatalogFromFS(fsys, allSkills(), allGates())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Paralyze")
 }
@@ -97,7 +97,7 @@ func TestCatalogFromFS_DuplicateUnlockKeyIsABootError(t *testing.T) {
 func TestCatalogFromFS_RejectsUnknownField(t *testing.T) {
 	fsys := fstest.MapFS{"priced.json": {Data: []byte(`{"unlockKey":"Paralyze","price":3}`)}}
 
-	_, err := CatalogFromFS(fsys, allSkills())
+	_, err := CatalogFromFS(fsys, allSkills(), allGates())
 	require.Error(t, err)
 }
 
@@ -107,7 +107,7 @@ func TestCatalogFromFS_ParsesConditions(t *testing.T) {
 		"gated.json": {Data: []byte(`{"unlockKey":"Paralyze","conditions":[{"kind":"minLevel","value":30}]}`)},
 	}
 
-	catalog, err := CatalogFromFS(fsys, allSkills())
+	catalog, err := CatalogFromFS(fsys, allSkills(), allGates())
 	require.NoError(t, err)
 	require.Len(t, catalog.All(), 1)
 	require.Len(t, catalog.All()[0].Conditions, 1)
@@ -122,7 +122,7 @@ func TestCatalogFromFS_UnknownConditionKindIsABootError(t *testing.T) {
 		"gated.json": {Data: []byte(`{"unlockKey":"Paralyze","conditions":[{"kind":"steps_walked","value":10}]}`)},
 	}
 
-	_, err := CatalogFromFS(fsys, allSkills())
+	_, err := CatalogFromFS(fsys, allSkills(), allGates())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "steps_walked")
 }
@@ -134,7 +134,7 @@ func TestCatalogFromFS_QuestConditionNeedsItsPayload(t *testing.T) {
 		"gated.json": {Data: []byte(`{"unlockKey":"Paralyze","conditions":[{"kind":"quest_at_stage"}]}`)},
 	}
 
-	_, err := CatalogFromFS(fsys, allSkills())
+	_, err := CatalogFromFS(fsys, allSkills(), allGates())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "quest_at_stage")
 }
@@ -177,7 +177,7 @@ func TestRemaining_KeepsGatedEntries(t *testing.T) {
 	fsys := fstest.MapFS{
 		"gated.json": {Data: []byte(`{"unlockKey":"Paralyze","conditions":[{"kind":"minLevel","value":30}]}`)},
 	}
-	catalog, err := CatalogFromFS(fsys, allSkills())
+	catalog, err := CatalogFromFS(fsys, allSkills(), allGates())
 	require.NoError(t, err)
 
 	assert.Len(t, catalog.Remaining(nil), 1)
@@ -189,7 +189,7 @@ func catalogOf(t *testing.T, keys ...string) Catalog {
 	for _, k := range keys {
 		fsys[k+".json"] = &fstest.MapFile{Data: []byte(fmt.Sprintf(`{"unlockKey":%q}`, k))}
 	}
-	catalog, err := CatalogFromFS(fsys, allSkills())
+	catalog, err := CatalogFromFS(fsys, allSkills(), allGates())
 	require.NoError(t, err)
 	return catalog
 }
@@ -210,7 +210,7 @@ func TestCatalogFromFS_RefusesMoreEntriesThanTheWireCanAddress(t *testing.T) {
 		}
 	}
 
-	_, err := CatalogFromFS(files, stub)
+	_, err := CatalogFromFS(files, stub, allGates())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "254", "the refusal names the reserved index")
 }
@@ -226,7 +226,141 @@ func TestCatalogFromFS_AcceptsExactlyTheAddressableMaximum(t *testing.T) {
 		}
 	}
 
-	c, err := CatalogFromFS(files, stub)
+	c, err := CatalogFromFS(files, stub, allGates())
 	require.NoError(t, err)
 	assert.Len(t, c.All(), MaxEntries)
+}
+
+// --- gate cross-validation (plan-ascension.md §13 step 2, finding 2) ---
+
+// stubGates is the narrow gate half: a species table and a quest table, both
+// explicit, so a test that resolves something says which content it resolved
+// against.
+type stubGates struct {
+	species map[string]mobs.MobID
+	stages  map[string][]string
+}
+
+func (g stubGates) ResolveSpecies(name string) (mobs.MobID, error) {
+	if id, ok := g.species[name]; ok {
+		return id, nil
+	}
+	return 0, fmt.Errorf("mob %q not found", name)
+}
+
+func (g stubGates) CheckQuestStage(questID, stage string) error {
+	stages, ok := g.stages[questID]
+	if !ok {
+		return fmt.Errorf("quest_at_stage names quest %q, which no quest file defines", questID)
+	}
+	switch stage {
+	case mobs.QuestStageNotStarted, mobs.QuestStageCompleted:
+		return nil
+	}
+	for _, s := range stages {
+		if s == stage {
+			return nil
+		}
+	}
+	return fmt.Errorf("quest_at_stage names stage %q, which quest %q does not define", stage, questID)
+}
+
+func allGates() stubGates {
+	return stubGates{
+		species: map[string]mobs.MobID{"DireWolf": 12},
+		stages:  map[string][]string{"the-lost-lamp": {"searching"}},
+	}
+}
+
+// ⭐ The directed hunt resolves at LOAD, which is the whole of finding 2's fix:
+// the catalog is the ONE surface whose conditions nothing checked, because
+// quests.CrossValidate walks mob nodes and stops there.
+func TestCatalogFromFS_ResolvesAHuntGatesSpecies(t *testing.T) {
+	fsys := fstest.MapFS{
+		"hunt.json": {Data: []byte(
+			`{"unlockKey":"Paralyze","conditions":[{"kind":"kills_this_life","species":"DireWolf","value":20}]}`)},
+	}
+
+	catalog, err := CatalogFromFS(fsys, allSkills(), allGates())
+	require.NoError(t, err)
+	require.Len(t, catalog.All(), 1)
+
+	cond := catalog.All()[0].Conditions[0]
+	assert.Equal(t, mobs.ConditionKillsThisLife, cond.Kind)
+	assert.Equal(t, "DireWolf", cond.Species)
+	assert.Equal(t, mobs.MobID(12), cond.SpeciesID,
+		"an unresolved species makes the entry permanently unpickable")
+}
+
+// ⛑ THE FAILURE THIS WHOLE STEP EXISTS FOR. Before it, a typo'd species parsed
+// green and conditionsPass answered false forever: the entry rendered locked,
+// unpickable, and indistinguishable from a gate that is merely hard.
+func TestCatalogFromFS_UnknownHuntSpeciesIsABootError(t *testing.T) {
+	fsys := fstest.MapFS{
+		"hunt.json": {Data: []byte(
+			`{"unlockKey":"Paralyze","conditions":[{"kind":"kills_this_life","species":"DireWulf","value":20}]}`)},
+	}
+
+	_, err := CatalogFromFS(fsys, allSkills(), allGates())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "DireWulf", "the error names the typo")
+	assert.Contains(t, err.Error(), "hunt.json", "and the file that made it")
+}
+
+// The same hole on the quest half, and this one is the gate C3 actually authors
+// (P8: the third mechanism reuses the SHIPPED vocabulary rather than a new kind).
+func TestCatalogFromFS_UnknownQuestIsABootError(t *testing.T) {
+	fsys := fstest.MapFS{
+		"lamp.json": {Data: []byte(
+			`{"unlockKey":"Paralyze","conditions":[{"kind":"quest_at_stage","quest":"the-lost-lantern","stage":"completed"}]}`)},
+	}
+
+	_, err := CatalogFromFS(fsys, allSkills(), allGates())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "the-lost-lantern")
+}
+
+func TestCatalogFromFS_UnknownQuestStageIsABootError(t *testing.T) {
+	fsys := fstest.MapFS{
+		"lamp.json": {Data: []byte(
+			`{"unlockKey":"Paralyze","conditions":[{"kind":"quest_at_stage","quest":"the-lost-lamp","stage":"nosuchstage"}]}`)},
+	}
+
+	_, err := CatalogFromFS(fsys, allSkills(), allGates())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "nosuchstage")
+}
+
+// ⭐ P8 PROVEN AT THE LOADER: C3's third gated entry is the shipped
+// quest_at_stage plus the `completed` sentinel, NOT a new `quest_completed`
+// kind. If this ever needed a new kind, D18's "the shipped vocabulary is
+// genuinely reused" claim was false.
+func TestCatalogFromFS_TheCompletedSentinelIsAValidGate(t *testing.T) {
+	fsys := fstest.MapFS{
+		"lamp.json": {Data: []byte(
+			`{"unlockKey":"Paralyze","conditions":[{"kind":"quest_at_stage","quest":"the-lost-lamp","stage":"completed"}]}`)},
+	}
+
+	catalog, err := CatalogFromFS(fsys, allSkills(), allGates())
+	require.NoError(t, err)
+	require.Len(t, catalog.All(), 1)
+	assert.True(t, catalog.All()[0].Gated())
+}
+
+// ⚑ `_comment` is the house convention in EVERY other content directory
+// (mobs, skills, quests, factions all parse and discard it), and this loader was
+// the one that would have refused it: DisallowUnknownFields plus a struct
+// without the field means an author following the repo's own style gets a boot
+// failure reading `unknown field "_comment"`. Authoring rationale belongs beside
+// the data here as much as anywhere else, and this catalog's entries carry the
+// D1 parity argument for the reward they name.
+func TestCatalogFromFS_AcceptsTheHouseCommentConvention(t *testing.T) {
+	fsys := fstest.MapFS{
+		"paralyze.json": {Data: []byte(`{"_comment":"why this reward exists","unlockKey":"Paralyze"}`)},
+	}
+
+	catalog, err := CatalogFromFS(fsys, allSkills(), allGates())
+	require.NoError(t, err)
+	require.Len(t, catalog.All(), 1)
+	assert.Equal(t, "Paralyze", catalog.All()[0].UnlockKey)
 }

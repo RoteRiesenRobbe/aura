@@ -60,6 +60,9 @@ type AscensionSink interface {
 // ask again.
 type Ascender struct {
 	sink AscensionSink
+	// onCommitted is told when a sacrifice has actually landed. Optional: a
+	// build with no memorial installs none.
+	onCommitted func()
 
 	mu   sync.Mutex
 	done []AscensionResult
@@ -70,6 +73,23 @@ type Ascender struct {
 
 func NewAscender(sink AscensionSink) *Ascender {
 	return &Ascender{sink: sink}
+}
+
+// OnCommitted registers a callback for a sacrifice that COMMITTED.
+//
+// ⭐ It exists so the memorial can be told a name was just added (PO feedback
+// 2026-08-11), and it lives here rather than on the loop side for one hard
+// reason: the callback triggers a DATABASE READ, and the game loop is a single
+// goroutine that must never do one. This runs on the per-request goroutine
+// below, which is already off the loop and is the only place that knows the
+// transaction succeeded.
+//
+// ⚑ Set once at boot, before any request is made, so it needs no lock.
+//
+// ⚑ SUCCESS ONLY. A failed attempt commits nothing, so re-reading after one
+// would be a round trip bought by an error.
+func (a *Ascender) OnCommitted(fn func()) {
+	a.onCommitted = fn
 }
 
 // Ascend starts one sacrifice and returns immediately. The outcome arrives via
@@ -83,6 +103,12 @@ func (a *Ascender) Ascend(req AscensionRequest) {
 	go func() {
 		defer a.live.Done()
 		_, err := a.sink.AscendCharacter(context.Background(), req.AccountID, req.CharacterID, req.UnlockKey)
+		if err == nil && a.onCommitted != nil {
+			// ⚑ AFTER the transaction returns, never before: the re-read has to
+			// see the committed row, and a nudge sent early would refresh the
+			// listing to exactly what it already held.
+			a.onCommitted()
+		}
 		if err != nil {
 			slog.Error("an ascension did not commit",
 				slog.Int64("account_id", req.AccountID),

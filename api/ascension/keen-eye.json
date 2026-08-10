@@ -1,0 +1,4 @@
+{
+  "_comment": "Ungated, and it names a skill that ALREADY EXISTS: KeenEye is a line-wide wolf kill-drop at 0.06. That is deliberate and the code is built for it (ascensionRows.spent reads unlock keys, never the spellbook, precisely so a skill known from the world is not mistaken for a reward already spent). What the catalog sells here is not the skill, it is PERMANENCE: a 6% roll becomes something every future life in this slot starts with.",
+  "unlockKey": "KeenEye"
+}

@@ -27,17 +27,24 @@
 // catalog is wired (core/game.go's SetRowSource), because forgetting that call
 // shows an empty stone and fails no Go test.
 //
-// ⚑ THE PROBE. api/ascension/ ships README-only until C3, so with stock content
-// the catalog is empty and the only row is the D14 ascend-anyway one. To see a
-// real reward row, install the probe entry and restart (the chunkC3-probe-quest
-// precedent):
+// ⭐ THE PROBE IS RETIRED (C3 step 4, 2026-08-10). api/ascension/ used to ship
+// README-only, so this script installed a throwaway entry and every reward leg
+// was conditional on it. The seed catalog now ships eight real entries, so the
+// legs run unconditionally against the content players actually meet, and BOTH
+// halves run in one pass instead of needing two runs with the probe's
+// `conditions` swapped:
 //
-//     cp .claude/skills/verify/c2a-probe-reward.json api/ascension/
-//     # restart aurad, run this script, then:
-//     rm api/ascension/c2a-probe-reward.json
+//   - FrostShield is authored GATED (bloodline_ascensions >= 3), which is the
+//     locked-row / tier-B leg.
+//   - RimeBurst is authored UNGATED, which is the pick-and-ceremony leg. It also
+//     carries a `displayName` override ("Rime-Burst"), so matching it proves the
+//     client renders the catalog's display name rather than the authored key.
 //
-// Without it the reward legs report SKIP rather than red, because "no reward
-// row" is the correct answer to an empty catalog.
+// ⚑ c2a-probe-reward.json was DELETED rather than left lying about: it authored
+// FrostShield with the same gate the real entry now carries, so copying it into
+// api/ascension/ as the old header instructed would hard-fail the boot on a
+// duplicate unlock key. A stale setup step that panics the server is worse than
+// no setup step.
 //
 // Boundary: this owns whether the SITE stands in the world and greets
 // correctly. What its rows do belongs to later steps of C2a; whether a
@@ -61,15 +68,17 @@ const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), pro
 // the two bodies' radii, which a warp onto the spawn itself would not be.
 const WARP_TO = 'WARP -7080 2040';
 const ACTOR = 'Ascension Stone';
-const PREVIEW_LINE = 'A standing stone';
-const READY_LINE = 'Lay this life down';
-const CATALOG_ROW = 'may still learn';
-const CATALOG_LINE = 'has not yet been given';
-const EMPTY_PICK = 'take nothing with you';
+const PREVIEW_LINE = 'Needs a max-level character';
+const READY_LINE = 'you can spend this character here';
+const CATALOG_ROW = 'Show me the rewards';
+const CATALOG_LINE = 'unlocks permanently for this character slot';
+const EMPTY_PICK = 'take no reward';
 // FrostShield is the probe reward on purpose: it is a Troll DROP, so it is also
 // the finding-4 case, a skill the spellbook can know without the bloodline ever
 // having bought it. The client renders DISPLAY names, so it arrives spaced.
-const PROBE_ROW = 'Frost Shield';
+// The two authored rows this script drives, one per state (C3 step 4).
+const GATED_ROW = 'Frost Shield';   // gated: bloodline_ascensions >= 3
+const UNGATED_ROW = 'Rime-Burst';   // ungated, and a displayName override
 
 const results = [];
 const check = (name, pass, detail) => {
@@ -169,21 +178,45 @@ const pressInteract = async () => {
 // dispatch is unreliable inside the SimpleBar-wrapped panel, and the row list is
 // rebuilt as the tree refreshes, so a handle can go stale between locating and
 // clicking.
+const missedClicks = [];
+
+// ⛑ SCROLLS FIRST, AND NAMES WHAT IT ACTUALLY HIT. Both halves were forced by
+// C3 step 4: the seed catalog put EIGHT rows in a panel that used to hold one,
+// so the list overflows its SimpleBar scroll area and a row's bounding box can
+// sit outside the visible region entirely. A mouse click at those coordinates
+// then lands on whatever is painted there, silently, and the run reports "the
+// pick opened no modal" against a perfectly healthy game.
+//
+// ⚑ This is C2b's lesson applied one file over: "the click was delivered" and
+// "the click reached the row" are different facts, and only the second one
+// matters. elementFromPoint is what tells them apart.
 const clickRow = async (needle) => {
   const handle = await page.evaluateHandle((n) => {
     const rows = [...document.querySelectorAll('#conversation .conversationRows li')];
-    return rows.find((li) => li.textContent.includes(n)) ?? null;
+    const row = rows.find((li) => li.textContent.includes(n)) ?? null;
+    row?.scrollIntoView({ block: 'center' });
+    return row;
   }, needle);
   const el = handle.asElement();
   if (!el) { missedClicks.push(`row not found: ${needle}`); return false; }
+  await page.waitForTimeout(150);
   const box = await el.boundingBox();
   if (!box) { missedClicks.push(`row detached before the click: ${needle}`); return false; }
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  const hit = await page.evaluate(([px, py, n]) => {
+    const el = document.elementFromPoint(px, py);
+    const li = el?.closest('#conversation .conversationRows li');
+    return { onRow: !!li && li.textContent.includes(n), what: (el?.textContent ?? '(nothing)').slice(0, 60) };
+  }, [x, y, needle]);
+  if (!hit.onRow) {
+    missedClicks.push(`click for "${needle}" would land on: ${hit.what}`);
+    return false;
+  }
+  await page.mouse.click(x, y);
   await page.waitForTimeout(900);
   return true;
 };
-
-const missedClicks = [];
 
 // The cast bar is the ceremony's only client surface until step 6: the utility
 // label plus a running countdown.
@@ -294,41 +327,44 @@ check('the catalog node opens', !!catalog && catalog.lines.includes(CATALOG_LINE
   catalog ? catalog.lines.replace(/\s+/g, ' ').slice(0, 80) : 'no panel');
 
 const rows = catalog ? catalog.rows : [];
-const probeRow = rows.find((r) => r.includes(PROBE_ROW));
+const ungatedRow = rows.find((r) => r.includes(UNGATED_ROW));
 const emptyRow = rows.find((r) => r.includes(EMPTY_PICK));
 
 const lockedRows = catalog ? catalog.locked : [];
-const probeLocked = lockedRows.find((r) => r.includes(PROBE_ROW));
+const gatedLocked = lockedRows.find((r) => r.includes(GATED_ROW));
 
-// ⚑ THREE probe states, and each proves something the others cannot. GATED (the
-// shipped probe) proves D18's locked row and the tier-B carriage; UNGATED proves
-// the pick is takeable and starts the ceremony; ABSENT proves D14's
-// ascend-anyway row. Swap the probe's `conditions` to move between the first two.
-if (probeLocked) {
-  check('a gated entry is SHOWN locked, never hidden (D18)', true, probeLocked);
-  check('...with the gate named and its progress composed for this player',
-    /0\s*\/\s*3/.test(probeLocked) && /ascension/i.test(probeLocked), probeLocked);
-  check('...and no bogus "level 0" wall is drawn beside it',
-    !/level\s*0/i.test(probeLocked), probeLocked);
-  check('...and the ascend-anyway row is offered beside it (P1: max level is the whole price)',
-    emptyRow !== undefined, `rows: ${rows.join(' | ')}`);
-  check('an UNGATED pick starts the ceremony channel', null,
-    'SKIP: the installed probe is gated (drop its `conditions` to run this leg)');
-} else if (probeRow) {
-  check('a gated entry is SHOWN locked, never hidden (D18)', null,
-    'SKIP: the installed probe is ungated (add a `conditions` block to run this leg)');
-  check('...with the gate named and its progress composed for this player', null, 'SKIP: needs a gated probe');
-  check('...and no bogus "level 0" wall is drawn beside it', null, 'SKIP: needs a gated probe');
-  check('...and the ascend-anyway row is offered beside it (P1: max level is the whole price)', null,
-    'SKIP: needs a gated probe');
+// ⭐ THE REAL SEED CATALOG, which is what changed at C3 step 4: a first life at
+// the cap meets five pickable rows and three locked ones, so the gated leg and
+// the ceremony leg both have a real subject in the same pass.
+check('a gated entry is SHOWN locked, never hidden (D18)', !!gatedLocked,
+  gatedLocked ?? `locked rows: ${lockedRows.join(' | ') || '(none)'}`);
+check('...with the gate named and its progress composed for this player',
+  !!gatedLocked && /0\s*\/\s*3/.test(gatedLocked) && /ascension/i.test(gatedLocked),
+  gatedLocked ?? '(no gated row)');
+check('...and no bogus "level 0" wall is drawn beside it',
+  !!gatedLocked && !/level\s*0/i.test(gatedLocked), gatedLocked ?? '(no gated row)');
+
+// ⭐ INVERTED AT C3 STEP 4, and the inversion is the D14 rule rather than a
+// tweak: the ascend-anyway row is offered ONLY when nothing is pickable, so
+// beside five real choices it must be ABSENT. Against the old one-entry probe
+// catalog nothing was pickable and this asserted the opposite: the same rule,
+// read against the content that now exists.
+check('the ascend-anyway row is NOT offered while real picks are on screen (D14)',
+  emptyRow === undefined, `rows: ${rows.join(' | ')}`);
+
+if (ungatedRow) {
+  // ⚑ Matching the DISPLAY name proves the client rendered what /skills served:
+  // this row is authored `RimeBurst` and must reach the panel as `Rime-Burst`.
+  check('an ungated entry renders under its authored displayName', true, ungatedRow);
+
   // ⭐ Taking a pick STARTS the ceremony rather than spending the character.
   // The ten-second channel is the last escape, and the cast bar is its only
   // client surface until step 6 adds the confirm modal.
   // ⭐ D21: the pick opens a COUNTDOWN and sends nothing until it is confirmed.
-  await clickRow(PROBE_ROW);
+  await clickRow(UNGATED_ROW);
   const modal = await confirmModal();
   check('an irreversible pick opens the countdown confirm (D21)',
-    modal !== null && /frost shield/i.test(modal.body), modal ? modal.body.slice(0, 70) : 'no modal');
+    modal !== null && /rime-burst/i.test(modal.body), modal ? modal.body.slice(0, 70) : 'no modal');
   check('...with the confirm button counting down and disabled',
     !!modal && modal.disabled && /\(\d\)/.test(modal.confirm), modal ? modal.confirm : 'no modal');
   check('...and nothing has started yet', (await castBar()) === null, 'no cast bar while it waits');
@@ -364,14 +400,19 @@ if (probeLocked) {
     !/connection lost/i.test(ended.banner), ended.banner || '(none)');
   await page.screenshot({ path: `.claude/skills/verify/c2a-ascended-${label}.png` });
 } else {
-  const why = 'SKIP: no probe (cp .claude/skills/verify/c2a-probe-reward.json api/ascension/ and restart)';
-  check('a gated entry is SHOWN locked, never hidden (D18)', null, why);
-  check('...with the gate named and its progress composed for this player', null, why);
-  check('...and no bogus "level 0" wall is drawn beside it', null, why);
-  check('...and the ascend-anyway row is offered beside it (P1: max level is the whole price)', null, why);
-  check('an UNGATED pick starts the ceremony channel', null, why);
-  check('an empty catalog still offers the ascend-anyway row (D14)',
-    emptyRow !== undefined, `rows: ${rows.join(' | ') || '(none)'}`);
+  // ⚑ RED, not SKIP. Before C3 step 4 an absent reward row was the correct
+  // answer to an empty catalog; now the seed ships and this row is authored, so
+  // its absence means the bloodline already spent it, the catalog stopped
+  // loading, or the row source came unwired. All three are failures.
+  const why = `no ungated ${UNGATED_ROW} row. rows: ${rows.join(' | ') || '(none)'}`;
+  check('an ungated entry renders under its authored displayName', false, why);
+  check('an irreversible pick opens the countdown confirm (D21)', false, why);
+  check('...with the confirm button counting down and disabled', false, why);
+  check('...and nothing has started yet', false, why);
+  check('...the button arms when the countdown runs out', false, why);
+  check('confirming starts the ceremony channel', false, why);
+  check('the completed ceremony lands on character select (P13)', false, why);
+  check('...and never shows the "Connection lost" banner', false, why);
 }
 
 await page.screenshot({ path: `.claude/skills/verify/c2a-catalog-${label}.png` });

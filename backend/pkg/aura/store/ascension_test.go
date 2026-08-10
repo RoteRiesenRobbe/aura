@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/store"
@@ -752,7 +753,7 @@ func TestBloodlineDrivesTheCatalogFilter(t *testing.T) {
 	catalog, err := ascension.CatalogFromFS(fstest.MapFS{
 		"frost-shield.json": {Data: []byte(`{"unlockKey":"FrostShield"}`)},
 		"paralyze.json":     {Data: []byte(`{"unlockKey":"Paralyze"}`)},
-	}, catalogTestSkills{})
+	}, catalogTestSkills{}, catalogTestGates{})
 	require.NoError(t, err)
 
 	before, err := db.LoadBloodline(ctx, accountID, 0)
@@ -777,4 +778,140 @@ type catalogTestSkills struct{}
 
 func (catalogTestSkills) GetByName(name string) (*skills.SkillDefinition, error) {
 	return &skills.SkillDefinition{Name: name}, nil
+}
+
+// catalogTestGates refuses every gate reference, which is the honest stub here:
+// neither entry above carries a condition, so a gate resolver that resolved
+// anything would be pretending this test says something about gates. If an
+// entry ever grows one, this fails loudly rather than quietly resolving it.
+type catalogTestGates struct{}
+
+func (catalogTestGates) ResolveSpecies(name string) (mobs.MobID, error) {
+	return 0, fmt.Errorf("this test authors no gates, but something asked for species %q", name)
+}
+
+func (catalogTestGates) CheckQuestStage(questID, stage string) error {
+	return fmt.Errorf("this test authors no gates, but something asked for quest %q at %q", questID, stage)
+}
+
+// --- the graveyard (plan-ascension.md C3 step 5, D11/D25) ---
+//
+// ⭐ THE FIRST GRAVEYARD QUERY ANYONE HAS WRITTEN. The data and the name policy
+// have existed since step 8a (AscendCharacter deliberately does NOT rewrite the
+// name, unlike SoftDeleteCharacter, precisely so the memorial can list it), but
+// nothing has ever read it back.
+
+// ascend retires a character at a level, which is what puts a name on the stone.
+func ascendAt(t *testing.T, db *store.Store, accountID int64, name string, level int) int64 {
+	t.Helper()
+	created, err := db.CreateCharacter(context.Background(), character(name, accountID))
+	require.NoError(t, err)
+	_, err = db.Pool.Exec(context.Background(),
+		`UPDATE game.characters SET level = $2 WHERE id = $1`, created.ID, level)
+	require.NoError(t, err)
+	_, err = db.AscendCharacter(context.Background(), accountID, created.ID, "")
+	require.NoError(t, err)
+	return created.ID
+}
+
+// D25: one global list, every account's names, newest first. P24: the name and
+// the level it was laid down at, and nothing else.
+func TestAscendedNames_ListsEveryAccountsNamesNewestFirst(t *testing.T) {
+	db, ctx := freshSchema(t)
+	a := newAccount(t, db, "secret-a")
+	b := newAccount(t, db, "secret-b")
+
+	ascendAt(t, db, a, "Aelric", 30)
+	ascendAt(t, db, b, "Maren", 30)
+	ascendAt(t, db, a, "Torv", 28)
+
+	yard, err := db.AscendedNames(ctx, 25)
+	require.NoError(t, err)
+
+	require.Len(t, yard.Names, 3, "the monument is not per-account (D25)")
+	assert.Equal(t, []string{"Torv", "Maren", "Aelric"},
+		[]string{yard.Names[0].Name, yard.Names[1].Name, yard.Names[2].Name},
+		"newest first")
+	assert.Equal(t, 28, yard.Names[0].Level, "the level it was laid down at (P24)")
+	assert.Equal(t, a, yard.Names[0].AccountID, "who owns it, for D25's marker")
+	assert.Equal(t, 3, yard.Total)
+}
+
+// ⛑ THE D11 PRIVACY LANDMINE, AND THE PIN THAT A PREFIX FILTER WOULD FAIL.
+// DiscardAnonymousAccount renames EVERY row of an account to 'deleted_' || id,
+// sacrificed ones included, because names are player-authored free text and
+// erasure wins. So the memorial must omit them, and it must do so by EXACT
+// MATCH against the expression the rename writes, never LIKE 'deleted_%':
+// nothing in ValidateCharacterName forbids a player calling themselves
+// deleted_something, and a prefix test would cut a real person off the stone.
+func TestAscendedNames_OmitsErasedNamesButKeepsARealDeletedSomething(t *testing.T) {
+	db, ctx := freshSchema(t)
+	erased := newAccount(t, db, "secret-erased")
+	real := newAccount(t, db, "secret-real")
+
+	ascendAt(t, db, erased, "Ghost", 30)
+	ascendAt(t, db, real, "deleted_something", 30)
+
+	require.NoError(t, db.DiscardAnonymousAccount(ctx, erased))
+
+	yard, err := db.AscendedNames(ctx, 25)
+	require.NoError(t, err)
+
+	names := []string{}
+	for _, n := range yard.Names {
+		names = append(names, n.Name)
+	}
+	assert.NotContains(t, names, "Ghost", "an erased name is not on the monument")
+	assert.Contains(t, names, "deleted_something",
+		"a player who genuinely named themselves that keeps their place")
+	assert.Equal(t, 1, yard.Total, "the count agrees with the list it describes")
+}
+
+// The living are not on the stone, and neither are the plainly deleted: only a
+// SACRIFICED row is a name the bloodline laid down.
+func TestAscendedNames_ListsOnlySacrificedRows(t *testing.T) {
+	db, ctx := freshSchema(t)
+	accountID := newAccount(t, db, "secret")
+
+	alive, err := db.CreateCharacter(ctx, character("Living", accountID))
+	require.NoError(t, err)
+	gone, err := db.CreateCharacter(ctx, character("Quitter", accountID))
+	require.NoError(t, err)
+	require.NoError(t, db.SoftDeleteCharacter(ctx, accountID, gone.ID))
+	ascendAt(t, db, accountID, "Spent", 30)
+	_ = alive
+
+	yard, err := db.AscendedNames(ctx, 25)
+	require.NoError(t, err)
+	require.Len(t, yard.Names, 1)
+	assert.Equal(t, "Spent", yard.Names[0].Name)
+}
+
+// ⚑ P27: the listing is CAPPED because a generated row carries its position as a
+// ubyte, so the query returns the newest N and the TOTAL: the count is what
+// lets the memorial say how many names it is not showing rather than quietly
+// pretending the stone is short.
+func TestAscendedNames_CapsTheListButCountsThemAll(t *testing.T) {
+	db, ctx := freshSchema(t)
+	accountID := newAccount(t, db, "secret")
+	for i := 0; i < 5; i++ {
+		ascendAt(t, db, accountID, fmt.Sprintf("Name%d", i), 30)
+	}
+
+	yard, err := db.AscendedNames(ctx, 2)
+	require.NoError(t, err)
+	assert.Len(t, yard.Names, 2, "capped")
+	assert.Equal(t, 5, yard.Total, "but the stone knows how many it carries")
+	assert.Equal(t, "Name4", yard.Names[0].Name, "and the cap keeps the NEWEST")
+}
+
+// An empty graveyard is the ordinary state of a fresh database, not an error:
+// every world starts here, exactly as an empty catalog does (D14's sibling).
+func TestAscendedNames_EmptyGraveyardIsAnAnswer(t *testing.T) {
+	db, ctx := freshSchema(t)
+
+	yard, err := db.AscendedNames(ctx, 25)
+	require.NoError(t, err)
+	assert.Empty(t, yard.Names)
+	assert.Zero(t, yard.Total)
 }

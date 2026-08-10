@@ -831,6 +831,12 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 	// durable rows resolved at /select, held in memory for a per-tick render.
 	p.SetBloodlineUnlocks(ticket.BloodlineUnlocks)
 	p.SetBloodlineAscensions(ticket.BloodlineAscensions)
+	// ⚑ And the account itself (C3 step 6, D25), from the same ticket and for the
+	// same reason: the memorial marks the reading player's own names, and the
+	// loop has never had account identity ON A PLAYER before, only in
+	// accountByClient, which is keyed by connection and unreachable from a
+	// conversation.
+	p.SetAccountID(ticket.AccountID)
 
 	// Spawn at the bound campfire, or at a random starting fire when there is no
 	// usable bind.

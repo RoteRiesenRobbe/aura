@@ -170,19 +170,40 @@ func checkXPIsTerminal(qr Registry, mob, nodeID string, oi int, opt *mobs.Intera
 
 // checkStageRef validates a quest_at_stage condition: the quest must exist and
 // Stage must name a real stage or one of the two sentinels.
-func checkStageRef(qr Registry, mob, nodeID, questID, stage string) error {
+// CheckStageRef validates one quest_at_stage reference against the quest graph:
+// the quest must exist, and the stage must be one that quest defines or one of
+// the two sentinels.
+//
+// ⭐ EXPORTED because a dialogue node is no longer the only surface carrying
+// these conditions: an ascension catalog entry carries the same list
+// (plan-ascension.md D18, "two surfaces, one language"), and the catalog's own
+// loader calls this rather than re-implementing it. A second checker would
+// drift the day a third sentinel is added, and the drift would surface as
+// content that boots on one surface and fails on the other.
+//
+// ⚑ The error names the failure but NOT where it was authored; callers add
+// that, exactly as mobs.ParseCondition's own comment requires. "Mob X node Y"
+// and "ascension entry FrostShield" are the same mistake in two different files.
+func CheckStageRef(qr Registry, questID, stage string) error {
 	q, err := qr.Get(questID)
 	if err != nil {
-		return fmt.Errorf("mob %q: interaction node %q: quest_at_stage names quest %q, which no quest file "+
-			"defines", mob, nodeID, questID)
+		return fmt.Errorf("quest_at_stage names quest %q, which no quest file defines", questID)
 	}
 	switch stage {
 	case mobs.QuestStageNotStarted, mobs.QuestStageCompleted:
 		return nil
 	}
 	if q.Stage(stage) == nil {
-		return fmt.Errorf("mob %q: interaction node %q: quest_at_stage names stage %q, which quest %q does not "+
-			"define (or use %q / %q)", mob, nodeID, stage, questID, mobs.QuestStageNotStarted, mobs.QuestStageCompleted)
+		return fmt.Errorf("quest_at_stage names stage %q, which quest %q does not define (or use %q / %q)",
+			stage, questID, mobs.QuestStageNotStarted, mobs.QuestStageCompleted)
+	}
+	return nil
+}
+
+// checkStageRef is CheckStageRef with the dialogue-node authoring site named.
+func checkStageRef(qr Registry, mob, nodeID, questID, stage string) error {
+	if err := CheckStageRef(qr, questID, stage); err != nil {
+		return fmt.Errorf("mob %q: interaction node %q: %w", mob, nodeID, err)
 	}
 	return nil
 }
