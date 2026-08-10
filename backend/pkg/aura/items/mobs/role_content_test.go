@@ -52,8 +52,10 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 
 	// 36 before chunk 3a, plus the 14 merged NPCs: D4 authors them as creatures
 	// that simply state speed 0, so that content can later give one a loadout
-	// and a walk without changing what it IS.
-	assert.Len(t, byRole[RoleCreature], 50, "everything else is a creature")
+	// and a walk without changing what it IS. +1 for the AscensionStone, which
+	// is the same case one more time (plan-ascension.md §4.1): a stone is not a
+	// structure, it is a creature that authors no movement.
+	assert.Len(t, byRole[RoleCreature], 51, "everything else is a creature")
 	assert.Len(t, byRole, 3, "no def carries a role outside the three")
 }
 

@@ -43,18 +43,28 @@ func joinWithBloodline(t *testing.T, s *ConnectionStateSystem, g *stateFakeGame,
 	name string, state persist.CharacterState, unlocks []string,
 ) model.PlayerEntity {
 	t.Helper()
+	return joinWithBloodlineCount(t, s, g, c, name, state, unlocks, 0)
+}
+
+// joinWithBloodlineCount adds D18's tier-B half: how many lives this slot has
+// already spent, resolved in the same /select query as the unlocks.
+func joinWithBloodlineCount(t *testing.T, s *ConnectionStateSystem, g *stateFakeGame, c *fakeClient,
+	name string, state persist.CharacterState, unlocks []string, ascensions int,
+) model.PlayerEntity {
+	t.Helper()
 	nextTestAccountID++
 	store, ok := s.tickets.(*auth.TicketStore)
 	require.True(t, ok, "the fixture installs a real TicketStore")
 	state.CharacterID = nextTestAccountID
 	token, err := store.Mint(auth.Ticket{
-		AccountID:        nextTestAccountID,
-		CharacterID:      nextTestAccountID,
-		Name:             name,
-		Avatar:           "default",
-		Faction:          "aligned",
-		State:            state,
-		BloodlineUnlocks: unlocks,
+		AccountID:           nextTestAccountID,
+		CharacterID:         nextTestAccountID,
+		Name:                name,
+		Avatar:              "default",
+		Faction:             "aligned",
+		State:               state,
+		BloodlineUnlocks:    unlocks,
+		BloodlineAscensions: ascensions,
 	})
 	require.NoError(t, err)
 
@@ -175,4 +185,29 @@ func TestJoinSeedsEveryAccumulatedUnlockNotJustTheNewest(t *testing.T) {
 	sc := p.SkillComponent()
 	assert.True(t, sc.HasDiscovered(41), "the first life's pick")
 	assert.True(t, sc.HasDiscovered(42), "and the second's")
+}
+
+// ⭐ THE TICKET FIELD'S FIRST READER. BloodlineAscensions has ridden the play
+// ticket since C1 with nothing on the other end, so until this pin it could have
+// been deleted without a test going red (§12.1 finding 5). It is what a
+// `bloodline_ascensions` gate evaluates, and the whole tier-B claim (a
+// cross-life count that costs no migration) rests on this one carriage.
+func TestJoinCarriesTheBloodlineAscensionCount(t *testing.T) {
+	s, g := newStateFixture(t)
+	withBloodlineSkills(t, g)
+
+	p := joinWithBloodlineCount(t, s, g, newFakeClient(), "Veteran", persist.CharacterState{}, nil, 4)
+
+	assert.Equal(t, 4, p.BloodlineAscensions())
+}
+
+// A first life carries zero, which is the value every gate is measured against
+// before anything has happened.
+func TestJoinOnAFirstLifeCarriesNoAscensions(t *testing.T) {
+	s, g := newStateFixture(t)
+	withBloodlineSkills(t, g)
+
+	p := joinWithBloodlineCount(t, s, g, newFakeClient(), "Firstborn", persist.CharacterState{}, nil, 0)
+
+	assert.Zero(t, p.BloodlineAscensions())
 }

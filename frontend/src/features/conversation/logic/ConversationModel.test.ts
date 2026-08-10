@@ -10,6 +10,7 @@ function row(partial: Partial<ConversationRow>): ConversationRow {
         locked: false,
         requiredLevel: 0,
         reply: '',
+        confirmSeconds: 0,
         ...partial,
     };
 }

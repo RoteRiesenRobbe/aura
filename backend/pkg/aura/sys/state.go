@@ -84,9 +84,9 @@ type reconnectStash struct {
 	// so an F5 keeps the charges, while death — which stashes through
 	// deadState, not here — zeroes them along with everything else the
 	// rebuilt player struct loses. Nothing about it reaches persist.
-	campCharges    int
-	position       phy.Vec2f // alive: last position; dead: the deathspot
-	anchor         string    // bound spawn-point id; "" for unbound
+	campCharges int
+	position    phy.Vec2f // alive: last position; dead: the deathspot
+	anchor      string    // bound spawn-point id; "" for unbound
 	// discovered is the anchor's twin — the whole discovered set, carried so a
 	// reload does not lose the fires found since the last save. Unlike
 	// campCharges above this is stashed on BOTH the alive and the dead path:
@@ -584,6 +584,18 @@ func (s *ConnectionStateSystem) drainLogoutRequests() {
 	})
 }
 
+// playerByClient finds the live player behind a connection; nil if the socket
+// has already gone. The same walk closeClient does, over the handful of players
+// on this server.
+func (s *ConnectionStateSystem) playerByClient(clientUUID uuid.UUID) model.PlayerEntity {
+	for _, p := range s.players {
+		if p.Client().UUID() == clientUUID {
+			return p
+		}
+	}
+	return nil
+}
+
 // closeClient drops a live connection by its client UUID.
 func (s *ConnectionStateSystem) closeClient(clientUUID uuid.UUID) {
 	for _, p := range s.players {
@@ -812,6 +824,14 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 	// which nothing here touches.
 	seedBloodlineUnlocks(p, ticket.BloodlineUnlocks, s.game.Skills())
 
+	// ⭐ And KEEP the keys, which is a different job from seeding the spellbook
+	// with them (§12.4 C2a step 3). The ascension stone's reward list filters on
+	// what this bloodline has SPENT, and the spellbook cannot answer that: a
+	// world drop discovers a skill the bloodline never bought. These are the
+	// durable rows resolved at /select, held in memory for a per-tick render.
+	p.SetBloodlineUnlocks(ticket.BloodlineUnlocks)
+	p.SetBloodlineAscensions(ticket.BloodlineAscensions)
+
 	// Spawn at the bound campfire, or at a random starting fire when there is no
 	// usable bind.
 	//
@@ -940,6 +960,14 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 // stays reserved until respawn or disconnect (chunk 4).
 func (s *ConnectionStateSystem) handleDeath(p model.PlayerEntity) {
 	log.Printf("💀 '%s' died.", p.Name())
+	// ⭐ A RUNNING CAST DIES WITH THE PLAYER. The component is STASHED and
+	// re-installed on respawn, cast state included, so a cast left running here
+	// resumes at the campfire and fires there: a Recall that teleports you after
+	// you already respawned, a Camp planted out of nowhere, or (the one that
+	// made this visible) an ascension completing from the respawn point with the
+	// corpse still on the field. CancelCast is also what drops the ascension
+	// pick, so this is one line for all three.
+	p.SkillComponent().CancelCast()
 	client := p.Client()
 	sendObituaryMessage(client)
 	deathspot := p.Position()

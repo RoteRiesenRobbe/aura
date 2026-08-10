@@ -74,4 +74,10 @@ type ConversationOption struct {
 	// same server from the same spellbook, and nothing but this player's own
 	// action changes it.
 	Reply string
+	// ConfirmSeconds makes the client hold a countdown modal in front of this
+	// row before sending it; 0 (every row today) means take it immediately
+	// (plan-ascension.md D21). ⚑ FRICTION AGAINST A MISCLICK, NOT A SECURITY
+	// CONTROL: the server applies the row whenever it arrives, exactly as the
+	// delete endpoint does.
+	ConfirmSeconds uint8
 }

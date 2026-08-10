@@ -135,6 +135,11 @@ func TestUtilityKind_GoConstantsMatchTheWireEnum(t *testing.T) {
 	assert.EqualValues(t, AuraApi.UtilityKindNone, skills.UtilityNone)
 	assert.EqualValues(t, AuraApi.UtilityKindRecall, skills.UtilityRecall)
 	assert.EqualValues(t, AuraApi.UtilityKindCamp, skills.UtilityCamp)
+	// ⚑ Ascend is on the enum for the CAST BAR, not for the press path: the
+	// client never sends it and the server drops it if it arrives. The pin is
+	// here anyway, because the value still travels (GameState.cast_utility) and
+	// a renumber would relabel somebody's ceremony.
+	assert.EqualValues(t, AuraApi.UtilityKindAscend, skills.UtilityAscend)
 }
 
 func buildUseUtilityClientMessage(kind AuraApi.UtilityKind) []byte {

@@ -38,6 +38,12 @@ var expectedConversants = []string{
 	"TownCrier",
 	"ForestSign", // a sign-post: lore only
 	"Emberkeeper",
+	// The ascension site (plan-ascension.md §12.4 step 1). An object that
+	// talks, on the ForestSign shape, and the ONLY conversant whose greeting is
+	// gated on a level: below the cap it is a preview, at the cap it is the
+	// stone (§4.2). Its reward rows are generated, not authored, so it stays a
+	// two-node lore tree in the content until step 3.
+	"AscensionStone",
 }
 
 func conversants(t *testing.T) map[string]*MobDefinition {

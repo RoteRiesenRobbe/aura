@@ -285,6 +285,19 @@
             <div class="conversationBack hidden">← Back</div>
         </div>
 
+        <!-- The irreversible-row confirmation (plan-ascension.md D21): the
+             delete dialog's pattern, drawn over the running game because the
+             row it guards is taken in the world. Shown only for a row whose
+             `confirm_seconds` is greater than zero, which today means an
+             ascension pick and nothing else. -->
+        <div id="confirmRow" class="hidden">
+            <div class="confirmRowBody"></div>
+            <div class="confirmRowControls">
+                <a href="#" class="confirmRowCancel">Cancel</a>
+                <a href="#" class="button confirmRowConfirm">Confirm</a>
+            </div>
+        </div>
+
         <!-- Cast bar (skill-vocab chunk 4, bare rendering): visible only while a
              cooldown skill winds up; fill + text set by HUD.updateCastBar. -->
         <div id="castBar">

@@ -85,6 +85,11 @@ type ConnState interface {
 	// dead marker (name, progression, skills restored). Reports false if no
 	// such corpse is waiting (a race with respawn/disconnect).
 	ReviveAtCorpse(corpseID uint64, healthFraction float32) bool
+	// RequestAscension spends a completed ceremony (plan-ascension.md §4.6): it
+	// enforces P1 against the LIVE level, runs the sacrifice transaction
+	// off-loop, and ends the session when it commits. Reports whether the
+	// request was accepted at all.
+	RequestAscension(p model.PlayerEntity, unlockKey string) bool
 }
 
 // SkillSystem applies active-aura effects and cooldown-skill bursts for every
@@ -102,6 +107,12 @@ type SkillSystem struct {
 	// connState serves recall's anchor precondition + destination (chunk 4);
 	// nil until wired, which reads as "nothing bound".
 	connState ConnState
+
+	// ascension re-judges the stashed pick when the ceremony's channel
+	// completes (C2a step 5). The SAME object the InteractionSystem renders
+	// rows from, so the panel and the channel cannot disagree about what is
+	// takeable. Nil is supported: a world with no catalog ascends nobody.
+	ascension AscensionSource
 
 	// rng feeds the per-hit variance rolls (item 11 Phase 3, decision C4) and
 	// the summon-placement direction. Free-running by design — reproducibility
@@ -131,6 +142,12 @@ type SkillSystem struct {
 // core/game.go after both systems exist.
 func (s *SkillSystem) SetConnState(cs ConnState) {
 	s.connState = cs
+}
+
+// SetAscensionSource wires the ceremony's completion check; called from
+// core/game.go with the same instance the InteractionSystem renders.
+func (s *SkillSystem) SetAscensionSource(src AscensionSource) {
+	s.ascension = src
 }
 
 func NewSkillSystem(space *phy.Space, g model.Game) *SkillSystem {
@@ -1393,6 +1410,17 @@ func (s *SkillSystem) processCooldowns(e skillEntity, sc *skills.SkillComponent)
 	// press cancels a running cast — but no cost and no cooldown (D7): the
 	// interruptible wind-up is the entire brake.
 	for _, kind := range sc.PendingUtilities {
+		// ⭐ ASCEND IS NOT PRESSABLE. The client never sends it, so one arriving
+		// is crafted, and an irreversible ceremony must not be startable by an
+		// argument-free global keypress: the channel begins only by taking a row
+		// at the stone, where the pick is validated in the same breath.
+		//
+		// ⚑ Dropped BEFORE the cancel-the-running-cast step below, so a crafted
+		// press cannot be used to disturb a cast either. Silent, like every
+		// other crafted or stale input on these paths.
+		if kind == skills.UtilityAscend {
+			continue
+		}
 		if sc.IsCasting() {
 			if kind == sc.CastingUtility {
 				continue
@@ -1426,7 +1454,9 @@ func (s *SkillSystem) advanceCast(e skillEntity, sc *skills.SkillComponent) {
 		if sc.CastTicksLeft > 0 {
 			return
 		}
-		sc.CancelCast()
+		// ⚑ COMPLETE, not cancel: the fire below still has to read what the cast
+		// was for, and a cancel throws that away (the ascension pick, C2a step 5).
+		sc.CompleteCast()
 		if reason := s.utilityPrecondition(e, ud.Kind); reason != model.ActivationRejectedNone {
 			noteActivationRejected(e, 0, reason)
 			return
@@ -1444,7 +1474,7 @@ func (s *SkillSystem) advanceCast(e skillEntity, sc *skills.SkillComponent) {
 	if sc.CastTicksLeft > 0 {
 		return
 	}
-	sc.CancelCast()
+	sc.CompleteCast()
 	if reason := s.activationPrecondition(e, es); reason != model.ActivationRejectedNone {
 		noteActivationRejected(e, es.Def.ID, reason)
 		return
@@ -1544,6 +1574,56 @@ func (s *SkillSystem) fireUtility(e skillEntity, kind skills.UtilityKind) {
 		s.applyRecall(e)
 	case skills.UtilityCamp:
 		s.applyCamp(e)
+	case skills.UtilityAscend:
+		s.applyAscension(e)
+	}
+}
+
+// ascensionRefusedLine is P14's surface, and the SAME words for every way the
+// ceremony can fail to land: the pick went stale, the request was refused, or
+// the transaction did not commit. ⚑ One line rather than a diagnosis, because
+// every variant means the same thing to the player, and it is the true one:
+// nothing happened and the character is untouched.
+const ascensionRefusedLine = "The stone is silent. Nothing has changed."
+
+// applyAscension spends a completed ceremony.
+//
+// ⭐ THE PICK IS RE-JUDGED HERE, not merely read. It was validated when the row
+// was clicked and it is being spent ten seconds later, and a `quest_at_stage`
+// gate can regress in between: the channel must ask again rather than trust
+// what it is holding. advanceCast re-checks preconditions at completion for
+// exactly this class of reason.
+//
+// ⚑ THE STASH IS CONSUMED WHATEVER HAPPENS, refusal included. Leaving a stale
+// pick behind would let the next channel spend a reward this one was refused.
+//
+// ⚑ A refusal is LOGGED and nothing else today. The character is untouched, so
+// nothing is lost; the player-facing line is P14's, which step 6 builds for the
+// transaction-failure case and which this shares.
+func (s *SkillSystem) applyAscension(e skillEntity) {
+	p, ok := e.(model.PlayerEntity)
+	if !ok {
+		return
+	}
+	sc := p.SkillComponent()
+	pick := sc.PendingAscension
+	sc.PendingAscension = nil
+	if pick == nil {
+		// A channel with nothing behind it: unreachable through the product,
+		// since the row source is the only thing that starts one.
+		return
+	}
+	if s.ascension != nil && !s.ascension.ValidatePick(p, *pick) {
+		log.Printf("⚰️ refusing '%s' the ascension pick %q: it is no longer legitimate", p.Name(), *pick)
+		sayToPlayer(p, ascensionRefusedLine)
+		return
+	}
+	if s.connState == nil {
+		return // no world to ascend into (a sim or a test)
+	}
+	if !s.connState.RequestAscension(p, *pick) {
+		log.Printf("⚰️ '%s' completed the ceremony but the request was refused", p.Name())
+		sayToPlayer(p, ascensionRefusedLine)
 	}
 }
 

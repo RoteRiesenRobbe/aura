@@ -141,6 +141,14 @@ type SkillComponent struct {
 	// cleared) by the SkillSystem in the same tick.
 	PendingUtilities []UtilityKind
 
+	// PendingAscension is the reward key the player picked at the ascension
+	// stone, stashed when the row is taken and read when the channel completes
+	// (plan-ascension.md §12.4 C2a steps 3 and 5). A POINTER because "" is a
+	// legitimate value: D14's empty pick ascends a bloodline that has learned
+	// everything it can, so "nothing stashed" and "stashed the empty pick" are
+	// different states. Cleared by CancelCast.
+	PendingAscension *string
+
 	// revision counts changes to the PERSISTED half of this component — the
 	// spellbook, the three slot arrays and the active aura index. Cast state,
 	// cooldown timers and tick accumulators deliberately do not bump it.
@@ -344,10 +352,29 @@ func (sc *SkillComponent) RequestUtilityCast(kind UtilityKind) {
 
 // CancelCast aborts a running cast — slot or utility: no fire, no cooldown
 // consumed — the risk window is the cost. No-op when idle.
-func (sc *SkillComponent) CancelCast() {
+// CompleteCast clears the cast STATE of a cast that finished, leaving anything
+// the completion still has to read.
+//
+// ⭐ COMPLETION IS NOT CANCELLATION, and conflating them cost the ascension pick
+// (C2a step 5): advanceCast ends a cast before firing it, and it used
+// CancelCast to do so, which by then also dropped the reward the fire was about
+// to spend. The two verbs differ by exactly that: what a cancel additionally
+// throws away.
+func (sc *SkillComponent) CompleteCast() {
 	sc.CastingSlot = -1
 	sc.CastingUtility = UtilityNone
 	sc.CastTicksLeft = 0
+}
+
+func (sc *SkillComponent) CancelCast() {
+	sc.CompleteCast()
+	// ⭐ THE ASCENSION PICK DIES WITH THE CAST, and that is a security property
+	// rather than housekeeping (plan-ascension.md §12.4 C2a step 5): the pick is
+	// validated when the row is taken and consumed when the channel completes,
+	// so anything that cancels the channel must also invalidate the pick.
+	// Otherwise a stashed pick outlives the ceremony it was chosen for and a
+	// bare utility press anywhere in the world could spend it.
+	sc.PendingAscension = nil
 }
 
 // CancelCastOnDamage aborts a running cast only if the casting skill or

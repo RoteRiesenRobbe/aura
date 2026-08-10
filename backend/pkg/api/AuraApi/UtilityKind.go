@@ -10,18 +10,21 @@ const (
 	UtilityKindNone   UtilityKind = 0
 	UtilityKindRecall UtilityKind = 1
 	UtilityKindCamp   UtilityKind = 2
+	UtilityKindAscend UtilityKind = 3
 )
 
 var EnumNamesUtilityKind = map[UtilityKind]string{
 	UtilityKindNone:   "None",
 	UtilityKindRecall: "Recall",
 	UtilityKindCamp:   "Camp",
+	UtilityKindAscend: "Ascend",
 }
 
 var EnumValuesUtilityKind = map[string]UtilityKind{
 	"None":   UtilityKindNone,
 	"Recall": UtilityKindRecall,
 	"Camp":   UtilityKindCamp,
+	"Ascend": UtilityKindAscend,
 }
 
 func (v UtilityKind) String() string {

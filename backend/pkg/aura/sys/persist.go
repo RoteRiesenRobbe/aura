@@ -155,6 +155,13 @@ func (s *ConnectionStateSystem) drainAscensions() {
 	}
 	for _, done := range s.ascensions.Completed() {
 		if done.Err != nil {
+			// P14: the character is untouched, so nothing is lost — but a player
+			// who just watched a ten-second ceremony is owed a word about why
+			// they are still standing there.
+			log.Printf("⚰️ ascension failed for character %d: %v", done.CharacterID, done.Err)
+			if p := s.playerByClient(done.ClientUUID); p != nil {
+				sayToPlayer(p, ascensionRefusedLine)
+			}
 			continue
 		}
 		log.Printf("⚰️ character %d ascended (account %d)", done.CharacterID, done.AccountID)
@@ -250,9 +257,9 @@ func (s *ConnectionStateSystem) trackCharacterSaves() {
 			continue // no row to write to (tests, and any pre-accounts join)
 		}
 		current := saveWatch{
-			level:    p.Progression().Level,
-			skillRev: p.SkillComponent().Revision(),
-			questRev: p.QuestLedger().Revision(),
+			level:      p.Progression().Level,
+			skillRev:   p.SkillComponent().Revision(),
+			questRev:   p.QuestLedger().Revision(),
 			anchor:     s.anchors[clientUUID],
 			discovered: len(s.discovered[clientUUID]),
 		}

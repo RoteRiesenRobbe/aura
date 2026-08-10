@@ -20,6 +20,13 @@ const (
 	UtilityNone   UtilityKind = 0
 	UtilityRecall UtilityKind = 1
 	UtilityCamp   UtilityKind = 2
+	// UtilityAscend is the ascension ceremony's channel (plan-ascension.md C2a
+	// step 5). ⚑ It is a UtilityKind for the CAST BAR and for advanceCast's
+	// completion re-check, NOT for the press path: the client never sends it and
+	// the server drops it if it arrives. An irreversible ceremony must not be
+	// startable by an argument-free global keypress, which is the same reasoning
+	// that keeps StartFlight off this enum.
+	UtilityAscend UtilityKind = 3
 )
 
 // UtilityDef is the Go-side twin of a SkillDefinition for the baseline class:
@@ -43,6 +50,11 @@ var utilityDefs = map[UtilityKind]*UtilityDef{
 	// has to be asked for. Shorter than Recall's on purpose: this is a
 	// mid-loop press, not a journey.
 	UtilityCamp: {Kind: UtilityCamp, Name: "Camp", CastTicks: 150, CastInterruptedByDamage: true},
+	// Ascend inherits Recall's ten seconds [PLACEHOLDER] and deliberately does
+	// NOT opt into the damage interrupt: P7 makes the ceremony interruptible by
+	// walking away and by nothing else, and that is expressed by leaving the
+	// flag alone rather than by any code. The site is meant to be safe ground.
+	UtilityAscend: {Kind: UtilityAscend, Name: "Ascend", CastTicks: 300},
 }
 
 // CampChargeCap is how many Camp charges a character of this level may hold

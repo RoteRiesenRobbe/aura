@@ -1,4 +1,5 @@
 import {AccountsApi, ApiError, Character} from '../../../accounts/logic/AccountsApi';
+import {Countdown, startConfirmCountdown} from '../../../common/logic/ConfirmCountdown';
 import * as AccountScreens from './AccountScreens';
 
 /**
@@ -9,20 +10,14 @@ import * as AccountScreens from './AccountScreens';
  * settings/credits/changelog panels already use rather than inventing one.
  */
 
-/**
- * ⚑ Hardcoded, not configurable (§10b ruling 4). Earlier drafts made this
- * `game.player.characterDeleteConfirmCooldownSeconds`; that knob was never
- * built and does not need to exist.
- *
- * ⚑ This is UI friction against a MISCLICK, not a security control — a direct
- * POST to the delete endpoint bypasses it entirely. It must never later be
- * mistaken for rate limiting or abuse protection.
- */
-const CONFIRM_COOLDOWN_MS = 5000;
+// ⚑ The countdown moved to common/logic/ConfirmCountdown when the ascension
+// ceremony needed the same treatment (plan-ascension.md D21). Its comments —
+// hardcoded on purpose, and friction against a misclick rather than a security
+// control — travelled with it.
 
 let target: Character | null = null;
 let onDeleted: (staleViewMessage?: string) => void = () => undefined;
-let countdownTimer: number | null = null;
+let countdown: Countdown | null = null;
 let isWired = false;
 
 function dialog(): HTMLElement {
@@ -75,37 +70,14 @@ export function close(): void {
     dialog().classList.add('hidden');
 }
 
-/**
- * ⚑ The countdown restarts on every open, deliberately. It is framed as "make
- * sure you read this", not as a rate limit, so there is no reason to carry
- * partial progress across a close/reopen.
- */
 function startCountdown(): void {
     stopCountdown();
-
-    const button = AccountScreens.element('deleteConfirmButton');
-    let remaining = Math.ceil(CONFIRM_COOLDOWN_MS / 1000);
-
-    const paint = () => {
-        button.textContent = remaining > 0 ? `Delete (${remaining})` : 'Delete';
-        button.classList.toggle('disabled', remaining > 0);
-    };
-    paint();
-
-    countdownTimer = window.setInterval(() => {
-        remaining--;
-        paint();
-        if (remaining <= 0) {
-            stopCountdown();
-        }
-    }, 1000);
+    countdown = startConfirmCountdown(AccountScreens.element('deleteConfirmButton'), 'Delete');
 }
 
 function stopCountdown(): void {
-    if (countdownTimer !== null) {
-        window.clearInterval(countdownTimer);
-        countdownTimer = null;
-    }
+    countdown?.stop();
+    countdown = null;
 }
 
 async function confirm(): Promise<void> {

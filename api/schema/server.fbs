@@ -437,6 +437,21 @@ table ConversationOption {
   // the tree so the panel can answer instantly, which makes it optimistic by
   // design — see L24.
   reply:string;
+  // Seconds of countdown confirmation before this row may be taken; 0 (every
+  // row that exists today) means take it immediately. Greater than zero makes
+  // the client open a modal naming what is about to happen, with the confirm
+  // button disabled until the countdown runs out — the delete-dialog pattern
+  // (plan-ascension.md D21).
+  //
+  // ⚑ FRICTION AGAINST A MISCLICK, NOT A SECURITY CONTROL. The server applies
+  // the row whenever it arrives, exactly as the delete endpoint does; this only
+  // decides whether the client makes the player wait before sending it.
+  //
+  // ⚑ General on purpose rather than ascension-specific: camps' faction
+  // consequences and the unlearn cost are the next two irreversible rows, and
+  // neither should invent this again. Appended at the table end so existing
+  // field ids stay stable.
+  confirm_seconds:ubyte = 0;
 }
 
 table ConversationNode {

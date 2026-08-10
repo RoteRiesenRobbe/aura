@@ -134,6 +134,13 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	// Conversations (plan-entity-model.md chunk 3a): actors carrying an
 	// interaction block, registered through the ordinary mob path.
 	interactionSys := sys.NewInteractionSystem()
+	// The ascension stone's reward list is GENERATED per player, so it cannot be
+	// authored in the mob's node tree (plan-ascension.md §4.2, P10). Wired here
+	// because the catalog is content the game assembles, and the system is built
+	// before it. ⚑ Forgetting this call shows an empty stone and fails no Go
+	// test: the harness leg that asserts rows appear is what catches it.
+	ascensionSource := sys.NewAscensionRows(gc.AscensionCatalog)
+	interactionSys.SetRowSource(ascensionSource)
 	g.AddSystem(interactionSys)
 
 	// The journal's one upstream verb (plan-quests.md chunk C3, D13): abandon.
@@ -173,6 +180,10 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	// constructed before the ConnectionStateSystem, so the reference is wired
 	// post-construction (the CampfireAnchorSink precedent).
 	sk.SetConnState(s)
+	// The ceremony's completion check reads the SAME catalog object the panel
+	// renders (C2a step 5), so what the stone offered and what the channel will
+	// accept cannot drift apart.
+	sk.SetAscensionSource(ascensionSource)
 	// The flight machine's seams (plan-flight-paths.md C2): validation
 	// answers from ConnState, takeoff leaves the physics space and sweeps
 	// the mobs' latches. Wired here for the same construction-order reason.

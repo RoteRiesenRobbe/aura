@@ -18,6 +18,7 @@
  */
 
 import {InteractMessage} from '../../backend/logic/messages/outgoing/InteractMessage';
+import {Countdown, startConfirmCountdown} from '../../common/logic/ConfirmCountdown';
 import {
     ConversationModel,
     ConversationRow,
@@ -104,6 +105,15 @@ function take(row: ConversationRow) {
     const id = model.entityId();
     const node = model.currentNodeId();
 
+    // ⭐ AN IRREVERSIBLE ROW IS HELD BEHIND A COUNTDOWN (D21). Nothing is
+    // navigated and nothing is sent until the player confirms, because both of
+    // those are how the panel normally says "done" — and this row is not done
+    // until they have read what it costs.
+    if (row.confirmSeconds > 0 && !row.locked) {
+        askToConfirm(row, id, node);
+        return;
+    }
+
     // Navigate locally first, so the panel answers on the frame of the click.
     model.take(row);
     render();
@@ -118,6 +128,62 @@ function take(row: ConversationRow) {
             grantIndex: row.grantIndex,
         }).send();
     }
+}
+
+let confirmCountdown: Countdown | null = null;
+
+/**
+ * Put the delete dialog's countdown in front of an irreversible row.
+ *
+ * ⚑ The body is composed from what the panel ALREADY holds: the node's lines
+ * are the loss list the author wrote, and the row's text is what is being
+ * chosen. Nothing extra travels for it, which is why the wire field is one byte
+ * rather than a second string.
+ */
+function askToConfirm(row: ConversationRow, id: number, node: string): void {
+    const root = document.getElementById('confirmRow');
+    if (!root) {
+        return;
+    }
+    const view = model.view();
+    const body = root.querySelector('.confirmRowBody') as HTMLElement;
+    body.textContent = `${(view?.lines ?? []).join(' ')}\n\n${row.text}`;
+
+    const confirm = root.querySelector('.confirmRowConfirm') as HTMLElement;
+    const cancel = root.querySelector('.confirmRowCancel') as HTMLElement;
+
+    const close = () => {
+        confirmCountdown?.stop();
+        confirmCountdown = null;
+        root.classList.add('hidden');
+        confirm.onpointerdown = null;
+        cancel.onpointerdown = null;
+    };
+
+    cancel.onpointerdown = (event) => {
+        event.preventDefault();
+        close();
+    };
+    confirm.onpointerdown = (event) => {
+        event.preventDefault();
+        // The countdown is still running: the button says so, and pressing it
+        // early does nothing rather than being swallowed silently later.
+        if (confirm.classList.contains('disabled')) {
+            return;
+        }
+        close();
+        model.take(row);
+        render();
+        new InteractMessage(id, {
+            nodeId: node,
+            optionIndex: row.optionIndex,
+            grantIndex: row.grantIndex,
+        }).send();
+    };
+
+    confirmCountdown?.stop();
+    confirmCountdown = startConfirmCountdown(confirm, 'Confirm');
+    root.classList.remove('hidden');
 }
 
 function render() {
@@ -161,11 +227,22 @@ function render() {
         // ("come back at 7") rather than as something broken. Q1/R1: that IS
         // the whole answer — a locked row gets no handler, so clicking it does
         // nothing (model.take() guards the same way, the belt to this braces).
+        //
+        // ⚑ THE WALL IS ONLY DRAWN FOR A LEVEL WALL. `requiredLevel` is the
+        // teach_skill gate and nothing else, so a row locked for any other
+        // reason carries 0 — and an unconditional wall then reads "level 0"
+        // beside a row that has already named its own requirement. That is what
+        // an ascension reward gated on `bloodline_ascensions` looks like
+        // (plan-ascension.md D18): the server composes "3 ascensions in this
+        // line (0/3)" into the row's own text, because the wire deliberately
+        // never bought a second field for it.
         if (row.locked) {
-            const wall = document.createElement('span');
-            wall.className = 'conversationWall';
-            wall.textContent = `level ${row.requiredLevel}`;
-            li.appendChild(wall);
+            if (row.requiredLevel > 0) {
+                const wall = document.createElement('span');
+                wall.className = 'conversationWall';
+                wall.textContent = `level ${row.requiredLevel}`;
+                li.appendChild(wall);
+            }
         } else {
             li.addEventListener('pointerdown', () => take(row));
         }

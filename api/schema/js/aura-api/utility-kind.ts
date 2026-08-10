@@ -5,5 +5,6 @@
 export enum UtilityKind {
   None = 0,
   Recall = 1,
-  Camp = 2
+  Camp = 2,
+  Ascend = 3
 }

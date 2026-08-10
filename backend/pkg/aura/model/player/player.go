@@ -191,6 +191,11 @@ type player struct {
 	// the stash.
 	campCharges int
 
+	// bloodlineUnlocks is what this character's SLOT has already spent on past
+	// ascensions, stamped from the auth ticket at join (plan-ascension.md D16).
+	bloodlineUnlocks    []string
+	bloodlineAscensions int
+
 	// rejectedSkill/rejectedReason are stamped the tick a cooldown activation
 	// is refused by its precondition (plan-skill-vocab chunk 4, §3.5): the
 	// SkillSystem notes it, the wire carries it once, reset each tick
@@ -488,6 +493,16 @@ func (p *player) NoteCampfireState(home string, discovered []string) {
 // CampCharges is how many Camp charges this player holds (C2); serialized as
 // the own-player camp_charges wire field.
 func (p *player) CampCharges() int { return p.campCharges }
+
+// BloodlineUnlocks / SetBloodlineUnlocks carry what this slot has already spent
+// (plan-ascension.md §12.4 C2a step 3). Set once at join from the ticket.
+func (p *player) BloodlineUnlocks() []string { return p.bloodlineUnlocks }
+
+func (p *player) SetBloodlineUnlocks(keys []string) { p.bloodlineUnlocks = keys }
+
+func (p *player) BloodlineAscensions() int { return p.bloodlineAscensions }
+
+func (p *player) SetBloodlineAscensions(n int) { p.bloodlineAscensions = n }
 
 // SpendCampCharge consumes one charge, reporting whether there was one to
 // consume. Called at CHANNEL COMPLETION, never at the press (D4): an

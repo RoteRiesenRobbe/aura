@@ -246,6 +246,7 @@ function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree
                 locked: o.locked(),
                 requiredLevel: o.requiredLevel(),
                 reply: o.reply() ?? '',
+                confirmSeconds: o.confirmSeconds(),
             });
         }
 

@@ -1798,3 +1798,48 @@
 		margin-right: 0.8rem;
 	}
 }
+
+
+// The irreversible-row confirmation (plan-ascension.md D21, C2a step 6). It
+// sits in the bottom-centre column beside the conversation panel it guards, so
+// the player's eye does not have to travel: the row they clicked is still on
+// screen behind it.
+#confirmRow {
+	pointer-events: auto;
+	max-width: 34em;
+	margin: 0 auto 0.4em auto;
+	padding: 0.8em 1em;
+	background: rgba(20, 12, 8, 0.94);
+	border: 2px solid rgba(200, 90, 60, 0.9);
+	border-radius: 4px;
+	color: #f0e6d8;
+
+	&.hidden {
+		display: none;
+	}
+
+	.confirmRowBody {
+		margin-bottom: 0.7em;
+		line-height: 1.35;
+	}
+
+	.confirmRowControls {
+		display: flex;
+		gap: 0.8em;
+		justify-content: flex-end;
+		align-items: center;
+	}
+
+	.confirmRowCancel {
+		color: #c8bba8;
+		text-decoration: none;
+	}
+
+	// ⚑ Pointer events stay ON while disabled, the loadout-slot precedent: the
+	// countdown is telling the player to read, and a button that cannot be
+	// pressed at all reads as broken rather than as waiting.
+	.confirmRowConfirm.disabled {
+		opacity: 0.55;
+		cursor: default;
+	}
+}

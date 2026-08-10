@@ -182,6 +182,22 @@ type PlayerEntity interface {
 	SpendCampCharge() bool
 	RefillCampCharges()
 	SetCampCharges(n int)
+
+	// The reward keys this character's SLOT has spent across its past
+	// ascensions (plan-ascension.md D16), stamped from the auth ticket at join
+	// beside the spellbook seed. In-memory only and deliberately so: the durable
+	// truth is game.bloodline_unlocks, and this is the copy the ascension row
+	// source filters on so that a per-tick render never queries a database.
+	//
+	// ⚑ NOT the same question as "does the spellbook know this skill". A world
+	// drop discovers a skill without the bloodline ever having bought it.
+	BloodlineUnlocks() []string
+	SetBloodlineUnlocks(keys []string)
+	// BloodlineAscensions is how many lives this slot has already spent, the
+	// same ticket carriage as the keys above and what a `bloodline_ascensions`
+	// gate reads (plan-ascension.md D18 tier B).
+	BloodlineAscensions() int
+	SetBloodlineAscensions(n int)
 	// ActivationRejected / NoteActivationRejected carry the per-tick "a
 	// cooldown activation was refused by its precondition" stamp
 	// (plan-skill-vocab chunk 4, §3.5): the SkillSystem notes it, serialized

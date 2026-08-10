@@ -1324,3 +1324,31 @@ func TestRespawn_ZeroesCampCharges(t *testing.T) {
 	require.NotSame(t, p, respawned, "the respawn rebuilds the player struct")
 	assert.Zero(t, respawned.CampCharges(), "death costs the charges (D3) — the fire you wake at refills them")
 }
+
+// ⭐ DEATH CANCELS A RUNNING CHANNEL, and nothing did that before C2a step 5.
+//
+// The ceremony deliberately survives damage (P7), and the dead player's whole
+// SkillComponent is STASHED and re-installed on respawn, cast state included.
+// So without this a player could die mid-ceremony, respawn at their campfire,
+// and have the channel finish there: an ascension from the respawn point with a
+// corpse still on the field.
+//
+// ⚑ It cancels every cast, not only the ascension one. A Recall or a Camp
+// completing after you died is wrong for the same reason; this is the single
+// funnel where that is true of all three.
+func TestDeath_CancelsARunningCastAndItsAscensionPick(t *testing.T) {
+	s, g := newStateFixture(t)
+	c := newFakeClient()
+	p := joinWithState(t, s, g, c, "Doomed", persist.CharacterState{})
+
+	pick := "FrostShield"
+	p.SkillComponent().PendingAscension = &pick
+	p.SkillComponent().StartUtilityCast(skills.UtilityAscend)
+	require.True(t, p.SkillComponent().IsCasting())
+
+	p.VitalSigns().Health = 0
+	s.Update(0)
+
+	assert.False(t, p.SkillComponent().IsCasting(), "dying ends the ceremony")
+	assert.Nil(t, p.SkillComponent().PendingAscension, "and takes the pick with it")
+}

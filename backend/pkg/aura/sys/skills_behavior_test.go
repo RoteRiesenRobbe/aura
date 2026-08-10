@@ -90,6 +90,12 @@ type fakePlayer struct {
 	level         uint32
 	xp            []uint64
 	healedBy      []model.PlayerEntity
+	// The bloodline this character continues (plan-ascension.md C2a steps 3-5).
+	// ⚑ Real fields, not the embedded nil interface: the ascension row source
+	// reads them on the render path, so an unimplemented accessor would panic
+	// rather than merely read empty.
+	bloodline     []string
+	ascensions    int
 	healReceived  vitals.VitalSign
 	resists       []appliedResist
 	shields       []appliedShield
@@ -3740,9 +3746,28 @@ type fakeConnState struct {
 	revivedCorpseID uint64
 	revivedFraction float32
 	reviveResult    bool
+
+	// ascension stubs (C2a step 5): what the completed channel asked for.
+	ascendCalls  int
+	ascendKey    string
+	ascendResult bool
 }
 
 func (f *fakeConnState) AnchorOf(id uuid.UUID) (phy.Vec2f, bool) { return f.anchor, f.bound }
+
+// A real player always has one, and the ascension refusal path logs it.
+func (p *fakePlayer) Name() string { return "Fake" }
+
+func (p *fakePlayer) BloodlineUnlocks() []string        { return p.bloodline }
+func (p *fakePlayer) SetBloodlineUnlocks(keys []string) { p.bloodline = keys }
+func (p *fakePlayer) BloodlineAscensions() int          { return p.ascensions }
+func (p *fakePlayer) SetBloodlineAscensions(n int)      { p.ascensions = n }
+
+func (f *fakeConnState) RequestAscension(p model.PlayerEntity, unlockKey string) bool {
+	f.ascendCalls++
+	f.ascendKey = unlockKey
+	return f.ascendResult
+}
 
 func (f *fakeConnState) ReviveAtCorpse(corpseID uint64, healthFraction float32) bool {
 	f.revivedCorpseID = corpseID

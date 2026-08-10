@@ -63,8 +63,13 @@ reply(optionalEncoding?:any):string|Uint8Array|null {
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 }
 
+confirmSeconds():number {
+  const offset = this.bb!.__offset(this.bb_pos, 18);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+}
+
 static startConversationOption(builder:flatbuffers.Builder) {
-  builder.startObject(7);
+  builder.startObject(8);
 }
 
 static addOptionIndex(builder:flatbuffers.Builder, optionIndex:number) {
@@ -95,12 +100,16 @@ static addReply(builder:flatbuffers.Builder, replyOffset:flatbuffers.Offset) {
   builder.addFieldOffset(6, replyOffset, 0);
 }
 
+static addConfirmSeconds(builder:flatbuffers.Builder, confirmSeconds:number) {
+  builder.addFieldInt8(7, confirmSeconds, 0);
+}
+
 static endConversationOption(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createConversationOption(builder:flatbuffers.Builder, optionIndex:number, grantIndex:number, textOffset:flatbuffers.Offset, nextOffset:flatbuffers.Offset, locked:boolean, requiredLevel:number, replyOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createConversationOption(builder:flatbuffers.Builder, optionIndex:number, grantIndex:number, textOffset:flatbuffers.Offset, nextOffset:flatbuffers.Offset, locked:boolean, requiredLevel:number, replyOffset:flatbuffers.Offset, confirmSeconds:number):flatbuffers.Offset {
   ConversationOption.startConversationOption(builder);
   ConversationOption.addOptionIndex(builder, optionIndex);
   ConversationOption.addGrantIndex(builder, grantIndex);
@@ -109,6 +118,7 @@ static createConversationOption(builder:flatbuffers.Builder, optionIndex:number,
   ConversationOption.addLocked(builder, locked);
   ConversationOption.addRequiredLevel(builder, requiredLevel);
   ConversationOption.addReply(builder, replyOffset);
+  ConversationOption.addConfirmSeconds(builder, confirmSeconds);
   return ConversationOption.endConversationOption(builder);
 }
 }

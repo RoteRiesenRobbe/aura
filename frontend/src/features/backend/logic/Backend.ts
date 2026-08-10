@@ -112,20 +112,42 @@ export class Backend implements IBackend {
             // It must be checked BEFORE the state is cleared, and it is
             // deliberately distinguished from a mid-game drop: a refused join
             // never became a session, so "Connection lost" would be wrong.
-            if (AccountFlow.isJoinInFlight()) {
-                this.setState(BackendState.DISCONNECTED);
-                void AccountFlow.onJoinRefused();
-                return;
-            }
-            // Only announce a drop of an established session — pre-join
-            // failures are handled by the onerror/start-screen path. The
-            // character is stashed server-side; a reload reconnects it.
-            let wasInGame = this.state === BackendState.PLAYING
+            const joinInFlight = AccountFlow.isJoinInFlight();
+            const wasInGame = this.state === BackendState.PLAYING
                 || this.state === BackendState.SPECTATING;
             this.setState(BackendState.DISCONNECTED);
-            if (wasInGame) {
-                AlertBanner.show('Connection lost — reload to reconnect');
-            }
+
+            // ⭐ ASK WHETHER THE CHARACTER STILL EXISTS FIRST, because a
+            // completed ascension looks exactly like a drop from here: the
+            // server ends the session and closes the socket with no message
+            // (plan-ascension.md P13).
+            //
+            // ⚑ It has to run BEFORE the join-refused branch, not beside it.
+            // `isJoinInFlight()` is `playing !== null`, which stays true for the
+            // whole session — so that branch swallows every close, and it
+            // answers an ascension by retrying `/select` against a character the
+            // server just retired: a 404 in the console, and an error message
+            // about a ticket, at the end of a ten-second ceremony.
+            //
+            // ⚑ It costs one `/characters` round trip on a genuine drop before
+            // the reconnect retry starts. That is the price of not guessing.
+            void AccountFlow.onWorldSessionEnded().then((ascended) => {
+                if (ascended) {
+                    return;
+                }
+                // A refused join never became a session, so "Connection lost"
+                // would be wrong; AccountFlow re-mints a ticket and retries
+                // exactly once, then falls back to character-select (§7b).
+                if (joinInFlight) {
+                    void AccountFlow.onJoinRefused();
+                    return;
+                }
+                // Only announce a drop of an established session. The character
+                // is stashed server-side; a reload reconnects it.
+                if (wasInGame) {
+                    AlertBanner.show('Connection lost — reload to reconnect');
+                }
+            });
         };
 
         this.webSocket.onmessage = this.receive.bind(this);

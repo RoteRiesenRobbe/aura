@@ -50,13 +50,39 @@ type Entry struct {
 // Gated reports whether this entry carries a condition at all.
 func (e Entry) Gated() bool { return len(e.Conditions) > 0 }
 
+// MaxEntries is how many rewards the catalog may hold, and it is a WIRE limit
+// rather than a design one (plan-ascension.md §12.4 C2a step 3). A generated
+// conversation row carries its position in All() as the `ubyte` OptionIndex, so
+// the addressable range is 0..255; **254 is reserved** for D14's empty-pick
+// "Ascend" row, which must stay at a fixed index precisely because it is the one
+// row whose position cannot depend on how much content exists, and 255 is the
+// wire's no-grant sentinel.
+//
+// ⚑ Refused at BOOT, not clamped. A 255th entry would alias the empty-pick row
+// and hand somebody the wrong reward for the one row nobody tested, which is
+// exactly the aliasing the interaction loader's own index cap exists to prevent.
+const MaxEntries = 254
+
 // Catalog is the authored reward list, in a stable order.
 type Catalog struct {
 	entries []Entry
 }
 
-// All returns every authored entry, gated ones included.
+// All returns every authored entry, gated ones included. ⚑ The ORDER IS THE
+// WIRE CONTRACT since C2a step 3: a generated conversation row carries an
+// entry's position here as its OptionIndex, so this must be the same sequence on
+// every boot. CatalogFromFS sorts by unlock key for exactly that reason.
 func (c Catalog) All() []Entry { return c.entries }
+
+// CatalogOf builds a catalog from entries already in hand, applying the same
+// stable ordering CatalogFromFS does. For tests and for callers that resolved
+// their entries some other way; content always arrives through the loader.
+func CatalogOf(entries ...Entry) Catalog {
+	sorted := make([]Entry, len(entries))
+	copy(sorted, entries)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].UnlockKey < sorted[j].UnlockKey })
+	return Catalog{entries: sorted}
+}
 
 // Remaining answers "what can this bloodline still learn": the catalog minus
 // the unlock keys it has already spent (P4 — a taken entry leaves that
@@ -141,6 +167,10 @@ func CatalogFromFS(fsys fs.FS, r skillResolver) (Catalog, error) {
 	})
 	if err != nil {
 		return Catalog{}, err
+	}
+	if len(entries) > MaxEntries {
+		return Catalog{}, fmt.Errorf("%d ascension entries, but only %d are addressable on the wire "+
+			"(index 254 is reserved for the empty pick, 255 is the no-grant sentinel)", len(entries), MaxEntries)
 	}
 
 	// Stable order, independent of the walk: the pick list is rendered to a

@@ -21,6 +21,11 @@ import * as AlertBanner from '../../user-interface/alert-banner/logic/AlertBanne
 const UTILITY_NAMES: { [kind: number]: string } = {
     [AuraApi.UtilityKind.Recall]: 'Recall',
     [AuraApi.UtilityKind.Camp]: 'Camp',
+    // The ascension ceremony's channel (plan-ascension.md C2a step 5). ⚑ There
+    // is no button for it and there never will be: it is started by taking a
+    // row at the stone, and this entry exists only so the cast bar has a label
+    // while it winds up.
+    [AuraApi.UtilityKind.Ascend]: 'Ascending',
 };
 
 export function utilityDisplayName(kind: number): string {

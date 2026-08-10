@@ -49,6 +49,40 @@ type InteractionNode struct {
 	// nothing (an all-learned sage, or a pure flavour NPC that never grants).
 	Lines   []string
 	Options []InteractionOption
+
+	// Rows names a GENERATED row source, empty for the overwhelming majority
+	// of nodes whose rows are authored above (plan-ascension.md §4.2, P10).
+	// Some lists cannot be authored at all because they are per-player and
+	// composed at render time: what a bloodline may still learn, and the names
+	// cut into the memorial. The node declares where its rows come from and the
+	// evaluator asks a provider for them.
+	//
+	// ⚑ A source node authors NO options, and that is the index space talking
+	// rather than tidiness: a generated row is addressed by its position in the
+	// source's list, so an authored option would claim the same numbers.
+	Rows RowSourceKind
+}
+
+// RowSourceKind names one generated row list. A closed vocabulary with the
+// refuse-at-boot discipline every other authored kind has: a typo must never
+// ship as a node that silently shows nothing, which is precisely the failure
+// mode a dynamic list has and an authored one does not.
+type RowSourceKind string
+
+// RowSourceAscensionCatalog is what a bloodline may still learn: the ascension
+// catalog minus the entries this slot has already spent, with gated entries
+// rendered locked (plan-ascension.md D18). C3's memorial is the second consumer
+// and lands as one more entry here.
+const RowSourceAscensionCatalog RowSourceKind = "ascension_catalog"
+
+var rowSourceKinds = map[string]RowSourceKind{
+	string(RowSourceAscensionCatalog): RowSourceAscensionCatalog,
+}
+
+// ParseRowSourceKind resolves an authored row source.
+func ParseRowSourceKind(name string) (RowSourceKind, bool) {
+	k, ok := rowSourceKinds[name]
+	return k, ok
 }
 
 // InteractionOption is one row of a node, and the ONLY interactive element in
@@ -179,6 +213,23 @@ const (
 	// ConditionMinLevel passes when the player's level is at least Value.
 	ConditionMinLevel ConditionKind = "minLevel"
 
+	// ConditionBloodlineAscensions passes when this character's SLOT has ascended
+	// at least Value times (plan-ascension.md D18, tier B). The count rides the
+	// play ticket, resolved once in the off-loop /select path from the account's
+	// own rows, so evaluating it is an O(1) read on the per-tick present path
+	// like every other kind here.
+	//
+	// ⭐ THE NAME CARRIES ITS SCOPE, and that is a rule rather than a style
+	// choice (D18). A bare "ascensions" would leave per-life and cross-life
+	// ambiguous, and that line is the entire cost model: this one is free
+	// because the count is derivable from game.characters at ticket time, while
+	// a counter that accumulates across lives would need a migration (tier C,
+	// not taken).
+	//
+	// ⚑ Session-constant by construction: ascending ENDS the session, so nothing
+	// can change this value while a player is looking at it.
+	ConditionBloodlineAscensions ConditionKind = "bloodline_ascensions"
+
 	// ConditionQuestAtStage passes when the player's ledger has Quest at Stage —
 	// a stage id, or the two sentinels below. This is what makes an NPC's dialogue
 	// change as a quest progresses: it hides the offer once the quest is running
@@ -199,8 +250,9 @@ const (
 )
 
 var conditionKinds = map[string]ConditionKind{
-	string(ConditionMinLevel):     ConditionMinLevel,
-	string(ConditionQuestAtStage): ConditionQuestAtStage,
+	string(ConditionMinLevel):            ConditionMinLevel,
+	string(ConditionQuestAtStage):        ConditionQuestAtStage,
+	string(ConditionBloodlineAscensions): ConditionBloodlineAscensions,
 }
 
 // ParseConditionKind resolves an authored condition kind.
@@ -259,6 +311,7 @@ type jsonInteractionNode struct {
 	ID         string                  `json:"id"`
 	Conditions []JSONCondition         `json:"conditions"`
 	Lines      []string                `json:"lines"`
+	Rows       string                  `json:"rows"`
 	Options    []jsonInteractionOption `json:"options"`
 }
 
@@ -320,6 +373,11 @@ func ParseCondition(jc JSONCondition) (InteractionCondition, error) {
 		return InteractionCondition{}, fmt.Errorf("kind %q must be one of %s", jc.Kind, names(conditionKinds))
 	}
 	cond := InteractionCondition{Kind: kind, Value: jc.Value, Quest: jc.Quest, Stage: jc.Stage}
+	if kind == ConditionBloodlineAscensions && cond.Value <= 0 {
+		return InteractionCondition{}, fmt.Errorf(
+			"bloodline_ascensions needs a positive count: %d passes for every character alive, "+
+				"which is an authored gate that does nothing", cond.Value)
+	}
 	if kind == ConditionQuestAtStage && (cond.Quest == "" || cond.Stage == "") {
 		return InteractionCondition{}, fmt.Errorf("quest_at_stage needs a quest and a stage (a stage id, %q or %q)",
 			QuestStageNotStarted, QuestStageCompleted)
@@ -374,6 +432,31 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 		ids[jn.ID] = true
 
 		node := InteractionNode{ID: jn.ID, Lines: jn.Lines}
+		if jn.Rows != "" {
+			kind, ok := ParseRowSourceKind(jn.Rows)
+			if !ok {
+				return nil, fmt.Errorf("mob %q: interaction node %q: rows %q must be one of %s",
+					m.Name, jn.ID, jn.Rows, names(rowSourceKinds))
+			}
+			// ⭐ The index space, not tidiness: a generated row is addressed by
+			// its position in the source's list, so an authored option on the
+			// same node claims the same numbers, and the collision surfaces
+			// only as a player clicking one row and being handed another.
+			if len(jn.Options) > 0 {
+				return nil, fmt.Errorf("mob %q: interaction node %q: a %q node generates its rows, so it must "+
+					"author none — the two would share one index space and a click would hand over the wrong row",
+					m.Name, jn.ID, jn.Rows)
+			}
+			// ⚑ A generated list may legitimately come back EMPTY (D14: a
+			// bloodline that has learned everything it can teach). The lines
+			// are what the node says then, so a source node without them is a
+			// blank panel exactly when the content most needs to explain itself.
+			if len(jn.Lines) == 0 {
+				return nil, fmt.Errorf("mob %q: interaction node %q: a %q node needs lines — its rows can come back "+
+					"empty, and then the lines are all it has to say", m.Name, jn.ID, jn.Rows)
+			}
+			node.Rows = kind
+		}
 		for j, jc := range jn.Conditions {
 			cond, err := ParseCondition(jc)
 			if err != nil {

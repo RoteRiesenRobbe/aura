@@ -193,3 +193,40 @@ func catalogOf(t *testing.T, keys ...string) Catalog {
 	require.NoError(t, err)
 	return catalog
 }
+
+// ⭐ The catalog is ADDRESSED ON THE WIRE (plan-ascension.md §12.4 C2a step 3):
+// a generated row carries its position in All() as a `ubyte` OptionIndex, and
+// index 254 is reserved for D14's empty-pick "Ascend" row. So a 255th entry
+// would alias index 254 and hand a player the wrong reward, silently, for the
+// one row nobody tested. Boot is where that has to be refused.
+func TestCatalogFromFS_RefusesMoreEntriesThanTheWireCanAddress(t *testing.T) {
+	files := fstest.MapFS{}
+	stub := stubSkills{}
+	for i := 0; i <= MaxEntries; i++ { // one too many
+		name := fmt.Sprintf("Reward%03d", i)
+		stub[name] = &skills.SkillDefinition{ID: skills.SkillID(500 + i), Name: name, MaxLevel: 1}
+		files[fmt.Sprintf("%s.json", name)] = &fstest.MapFile{
+			Data: []byte(fmt.Sprintf(`{"unlockKey": %q}`, name)),
+		}
+	}
+
+	_, err := CatalogFromFS(files, stub)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "254", "the refusal names the reserved index")
+}
+
+func TestCatalogFromFS_AcceptsExactlyTheAddressableMaximum(t *testing.T) {
+	files := fstest.MapFS{}
+	stub := stubSkills{}
+	for i := 0; i < MaxEntries; i++ {
+		name := fmt.Sprintf("Reward%03d", i)
+		stub[name] = &skills.SkillDefinition{ID: skills.SkillID(500 + i), Name: name, MaxLevel: 1}
+		files[fmt.Sprintf("%s.json", name)] = &fstest.MapFile{
+			Data: []byte(fmt.Sprintf(`{"unlockKey": %q}`, name)),
+		}
+	}
+
+	c, err := CatalogFromFS(files, stub)
+	require.NoError(t, err)
+	assert.Len(t, c.All(), MaxEntries)
+}

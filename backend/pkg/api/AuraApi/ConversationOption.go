@@ -113,8 +113,20 @@ func (rcv *ConversationOption) Reply() []byte {
 	return nil
 }
 
+func (rcv *ConversationOption) ConfirmSeconds() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ConversationOption) MutateConfirmSeconds(n byte) bool {
+	return rcv._tab.MutateByteSlot(18, n)
+}
+
 func ConversationOptionStart(builder *flatbuffers.Builder) {
-	builder.StartObject(7)
+	builder.StartObject(8)
 }
 func ConversationOptionAddOptionIndex(builder *flatbuffers.Builder, optionIndex byte) {
 	builder.PrependByteSlot(0, optionIndex, 0)
@@ -136,6 +148,9 @@ func ConversationOptionAddRequiredLevel(builder *flatbuffers.Builder, requiredLe
 }
 func ConversationOptionAddReply(builder *flatbuffers.Builder, reply flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(reply), 0)
+}
+func ConversationOptionAddConfirmSeconds(builder *flatbuffers.Builder, confirmSeconds byte) {
+	builder.PrependByteSlot(7, confirmSeconds, 0)
 }
 func ConversationOptionEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

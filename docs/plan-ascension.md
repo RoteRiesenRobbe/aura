@@ -2,7 +2,13 @@
 
 > **Status: DESIGNED 2026-08-04, SCOPE CUT 2026-08-05 (D13), CODE-REVIEWED
 > 2026-08-05 (D15–D17), CONDITIONS ADDED 2026-08-09 (D18).
-> ⭐ C1 BUILT 2026-08-10 (§11) — C2 and C3 remain.**
+> ⭐ C1 BUILT 2026-08-10 (§11).
+> ⭐ C2 DESIGN PASS 2026-08-10 (§12, D19–D22): C2 became **C2a + C2b**.
+> ⭐ **C2a BUILT 2026-08-10 across six steps (§12.7–§12.11), `[uncommitted]`** -
+> the loop runs end to end in the browser: walk to the stone, pick, confirm,
+> channel, and land on character select with the character spent and its
+> bloodline row written. **C2b is next and §12.5 is its handoff.**
+> Read §12 before §6's C2 bullet, which it supersedes in five places.**
 > The execution-order item "character-sacrifice loop" (GDD §5 meta-progression,
 > pulled into v1 by the 2026-07-19 intermission-triage ruling, item 10), opened
 > as persistence's first consumer. Every number is [PLACEHOLDER] unless marked.
@@ -476,6 +482,11 @@ whole feature is first-writers for columns that shipped empty:
   exactly why the refusal was chosen over a disabled-row flag. ⚑ It also
   tightens D14's empty state: "nothing left to teach" must now check pickable
   **and** locked rows before it says that.
+  ⭐ **SUPERSEDED IN PART by the 2026-08-10 design pass: read §12 first.** C2 is
+  **split into C2a and C2b** (D19), the ceremony is the channel alone (D20), the
+  confirm is the delete-dialog's countdown and it **does cost one wire field**
+  (D21), and the "clickable and refusing" locked row is already shipped as an
+  inert greyed one (P11). §12 is the buildable version of this bullet.
 - **C3 — memorial + catalog seed.** Monument (same interaction-mob shape) +
   names listing — the **first graveyard query ever written**, filtering
   `deleted_` names (D11), served through C2's dynamic row source; author the
@@ -755,3 +766,686 @@ and a verbatim match scores a working seed as a failure.
   already takes `slotIndex` and refuses occupied/out-of-range.
 - ⚑ **Camp standing:** ascension shipped first, so per §4.8 the standing-wipe
   assert passes to **camps' own C1**, against the already-built transaction.
+
+## 12. C2 design pass - 2026-08-10
+
+> **Status: DESIGNED, nothing built.** A planning session: §6's C2 bullet was
+> checked line by line against the shipped code, four PO calls were taken
+> (D19–D22), and the chunk is now **two chunks, C2a and C2b**. Everything below
+> supersedes §6's C2 bullet where the two disagree; §4 and the D-ledger are
+> untouched except where a decision says so.
+
+### 12.1 What the plan-check found
+
+Eleven findings. Six change what gets built.
+
+1. ⭐ **`quest_completed` ALREADY EXISTS, and D18's third kind must not be
+   built.** `Ledger.MatchesStage` handles the `completed` sentinel
+   (`quests/ledger.go:180`), so C3's third gated entry is authorable **today**
+   as `{kind: quest_at_stage, quest: "the-lost-lamp", stage: "completed"}`.
+   Adding a synonym kind would be the second vocabulary D18 exists to prevent.
+   **Two new kinds remain**, not three. See P8.
+2. ⭐ **D18's "a locked row is CLICKABLE AND REFUSES" is stale**, and the
+   shipped convention is better. `ConversationOption.Locked` +
+   `RequiredLevel` shipped with the quests work: the client greys the row,
+   names the wall, and **gives it no click handler at all** (`Conversation.ts:154`,
+   `ConversationModel.ts:181`, plan-conversation-journal.md Q1/R1). D18 was
+   written before that landed and priced a wire field it no longer needs. A
+   gated ascension row is an ordinary `Locked` row. See P11.
+3. ⚑ **The gate's wall text has nowhere to ride**, because the client renders
+   the wall as the literal string `level ${row.requiredLevel}`. A gated row
+   would read "level 0". The fix is two lines and costs no wire: the server
+   composes the requirement into the row's **`Text`**, and the client draws the
+   wall only when `requiredLevel > 0`.
+4. ⭐ **The bloodline's unlock KEYS are not retained anywhere on the player**,
+   and `HasDiscovered` is not a substitute. `seedBloodlineUnlocks` consumes the
+   ticket's keys straight into spellbook entries and drops them; a skill learned
+   from a Troll drop is discovered but is **not** a spent unlock. Filtering the
+   pick list by the spellbook would hide entries the bloodline has never bought.
+   C2a must carry the key set onto the player at join and read *that*.
+5. ⚑ **`BloodlineAscensions` rides the ticket and has NO reader** (`auth/ticket.go:113`,
+   written by `accounts/characters.go:335`, read by nothing). C2a is its first
+   consumer, and until then it is a field that could be deleted without a test
+   going red.
+6. ⭐ **Neither the success nor the failure surface exists.** On commit,
+   `endAscendedSession` closes the socket and nothing else, so today a
+   triumphant ten-second channel ends in the client's `Connection lost - reload
+   to reconnect` banner. On `done.Err != nil` the character simply keeps
+   playing with **no feedback whatsoever** after a completed channel. Both are
+   C2a work; §12.4 step 6 rules them.
+7. ⭐ **A sacrificed slot is indistinguishable from a never-used one**, and D15's
+   client half genuinely breaks the loop's last step. `listCharacters` returns
+   alive rows only, and `CharacterSelect.render` puts the create card on the
+   **first empty slot** and nothing on the rest (`CharacterSelect.ts:146`). Ascend
+   slot 2 while slot 0 is empty and the only create card offered aims at slot 0,
+   which is exactly the cut-off-from-its-bloodline case D15 was written to
+   prevent. ⚑ It is invisible in the common single-slot playtest, because there
+   the freed slot **is** the first empty one. This is C2b.
+8. ⚑ **`kills_this_life` needs two-phase species resolution on TWO surfaces.**
+   `ParseCondition` takes no registry, and it cannot: `mapToInteraction` runs
+   *during* the mob registry's construction. The precedents both exist and
+   disagree in shape: `validateSpawnEffects` is an in-package pass over the
+   finished registry (`items/mobs/registry.go:101`), `quests.CrossValidate` is a
+   cross-package one. A species named on a dialogue node needs the first; a
+   species named on an ascension entry can resolve at parse time, since the
+   catalog loads after mobs. One shared resolver, called from two places, or the
+   two surfaces drift the day either gains a kind. See P9 for why this moves.
+9. ⭐ **C2 DOES have a wire cost.** §6 says "the wire cost is at most an
+   EntityType value"; D21's countdown confirm needs one new
+   `ConversationOption` field. That is now the honest statement.
+10. ⚑ **Generated rows are addressed by `OptionIndex` into `Catalog.All()`**, the
+    boot-stable list, never into `Remaining()` (whose membership depends on
+    player state). `All()` is sorted by unlock key at load, so the index is
+    stable across a restart. ⭐ **CORRECTED DURING C2a STEP 2, and the earlier
+    version is now impossible**: this said *`GrantIndex`* into the catalog, with
+    the rows hung off an authored `ascend` option and `applyGrant`'s bounds check
+    bypassed. Step 2 built P10's node-owned source instead, and its loader
+    **refuses** authored options on a source node, so there is exactly one index
+    space and no bypass. See §12.7 for what moved.
+11. ⚑ **`present()` runs per tick per conversing player**, under a standing
+    O(1)-in-memory-reads-only rule (L15). A catalog scan is O(entries) with
+    entries capped at 254 and seeded at 5–10, evaluated only while a panel is
+    open at the one site in the world. That is the budget; it is fine, and it is
+    the reason every condition kind still has to be an O(1) read.
+
+### 12.2 Decisions taken in this pass
+
+- **⭐ D19 - C2 SPLITS INTO C2a AND C2b.** PO, 2026-08-10, against the size of
+  §6's bullet. **C2a is "the stone works end to end"**: walk up, pick, confirm,
+  channel, land on character select. **C2b is "the select screen knows about
+  bloodlines"**: the create card on every empty slot (D15's client half) and the
+  slot's bloodline on its card (D22). ⚑ The seam is not server/client, on
+  purpose: C2a includes its own confirm modal and exit routing, because a chunk
+  that ends at "the character is deleted and the client says Connection lost" is
+  not a chunk anyone can play. ⚑ Finding 7 is C2b's, so **between the two chunks
+  the loop is complete only for a single-slot account**. Acceptable across two
+  consecutive sessions, recorded so it is not rediscovered as a bug.
+- **D20 - the ceremony in C2a is THE CHANNEL AND NOTHING ELSE.** PO,
+  2026-08-10. The shipped utility cast bar renders it for free
+  (`codec/gamestate.go:458` already streams `CastingUtilityDef`), movement
+  already cancels it, and P7's no-damage-interrupt is expressed by not setting a
+  flag. No new client VFX, no swell, no dissolve, nothing to skip. D10's
+  sequence becomes a world/art-pass upgrade, alongside the stone's own sprite,
+  which C2a defers the same way by reusing the `Signpost` EntityType.
+- **⭐ D21 - the confirm is the DELETE DIALOG's pattern, countdown included, and
+  it costs ONE WIRE FIELD.** PO, 2026-08-10: *"use the same version we have in
+  the character deletion selection, with the 5 seconds countdown; reuse as much
+  from there as is feasible and sensible."*
+  - **What is feasibly reused:** the pattern (a modal naming what dies, Cancel,
+    and a confirm button labelled `Ascend (5)` and `.disabled` until zero), and
+    the countdown logic itself, extracted from `DeleteDialog.startCountdown`
+    into a shared helper both call. ⚑ **What is not:** the markup and styles.
+    `DeleteDialog` lives in `account-screens`, an HTML overlay that exists only
+    outside the world; the ascension confirm is drawn over the running game.
+    The extraction is the DRY win; a shared dialog element is not available.
+  - **⚑ Its own comment carries forward verbatim**: this is friction against a
+    misclick, not a security control. The server applies the row whenever it
+    arrives, exactly as the delete endpoint does.
+  - **The wire field: `ConversationOption.confirm_seconds: ubyte = 0`**,
+    appended at the table end. 0 is every row that exists today and means "take
+    it immediately"; greater than zero means "open the countdown modal first,
+    then send". General rather than ascension-specific on purpose:
+    `plan-camps.md`'s faction consequences and D8's unlearn cost are the next
+    two irreversible rows, and neither should invent this again. Codec pin test,
+    no DB migration.
+    ⭐ **CORRECTED AFTER STEP 2: it is NOT authored as `confirmSeconds` on the
+    option**, because a generated row has no authored option to carry it (§12.7).
+    The row source **sets it on the rows it emits**, hardcoded at 5, which is
+    exactly what `DeleteDialog`'s own countdown does and for the recorded reason
+    (`CONFIRM_COOLDOWN_MS`, §10b ruling 4: the knob was drafted, never built, and
+    does not need to exist). An authored key can join it the day a static row
+    wants one; the wire field is unchanged either way.
+  - **The modal's body is composed client-side** from what the panel already
+    holds: the node's `lines` are the loss list, the row's `text` is what the
+    line gains. Nothing new travels for it.
+  - ⚑ **This collapses the pick/confirm two-node shape §4 step 4 implied.** One
+    click on a reward row opens the modal; confirming sends that same row. There
+    is no `confirm` node, no stash-then-confirm dance, and no second GrantKind.
+    The channel remains the last escape, by walking away.
+- **D22 - an empty slot shows the bloodline it continues.** PO, 2026-08-10.
+  The `/characters` list gains per-slot bloodline data (`store.LoadBloodline`
+  already returns unlocks and the ascension count in one round trip), and an
+  empty slot with a history renders as the line it continues plus what the heir
+  would inherit, with a "continue this bloodline" create card. This is what makes
+  backlog §36's "three slots, three bloodlines" navigable rather than a fact only
+  the database knows. C2b.
+
+### 12.3 Proposals adopted without a choice prompt (PO may veto any)
+
+- **P8 - `quest_completed` is NOT built** (finding 1). C3's third gated entry
+  authors `quest_at_stage` with the `completed` sentinel, which is a stronger
+  proof of D18's "the shipped vocabulary is genuinely reused" than a new kind
+  would have been.
+- **P9 - `kills_this_life` MOVES TO C3, beside its content.** C1's ledger parked
+  all three kinds in C2 for a good reason (`conditionsPass` fails closed, so a
+  kind that parses with nothing evaluating it is a permanently locked row), and
+  that reason is honoured: **the kind and its evaluation still ship in the same
+  chunk**, just a later one. What moves is only *which* chunk. The case: it is
+  the most expensive of the three (finding 8: a species resolver, two loaders,
+  one new pass), it has **no consumer at all** until C3 authors the directed
+  hunt, and D19 split C2 for size. `bloodline_ascensions` stays in C2a because
+  the gate-rendering path needs at least one real kind to be built against, and
+  it is a field on the ticket that already exists.
+- **P10 - the dynamic row hook is NODE-LEVEL, not a grant expansion.** A node
+  declares a row source (`"rows": "ascension_catalog"`); `present()` asks a
+  provider for that node's extra rows and `applyGrant` routes the same source
+  for validation. ⚑ It is deliberately not "the `ascend` grant expands into N
+  rows", because §4.2 promises **C3's memorial the identical machinery** and a
+  memorial row grants nothing at all. One hook, two consumers, or it is not the
+  extension the plan said it was.
+- **P11 - a gated row is an ordinary `Locked` row** (finding 2): greyed, inert,
+  with its wall named. D18's clickable-and-refusing row is retired unbuilt.
+- **P12 - the site reuses the `Signpost` EntityType and a placeholder position.**
+  A distinct stone sprite is a new wire enum value plus client art, and D20 has
+  already deferred the art. Its coordinates are one line of `api/zones/world.json`
+  [PLACEHOLDER: near the starting campfire, so a playtest reaches it in seconds],
+  moved with `WARP` and a JSON edit, not a chunk.
+- **P13 - the success exit is a RE-READ, not a new message** (finding 6). On the
+  socket closing, the client re-reads `/characters`; a character that is gone
+  from its own account's list has ascended, and the client routes to character
+  select instead of the `Connection lost` banner. ⚑ This is `CharacterSelect`'s
+  own documented philosophy applied one screen earlier ("the server's rows are
+  the only authority", `CharacterSelect.ts:105`), it costs no wire, and it is
+  correct through a server restart mid-ceremony as well.
+- **P14 - the failure surface is a system chat line to that player.**
+  `drainAscensions` holds the `ClientUUID` on a failed result and nothing else,
+  so it cannot speak *as* the stone (an `EntityMessage` needs the actor's entity
+  id, which the drain never sees). One system line, and the character keeps
+  playing, unchanged, having lost nothing. No wire, no banner, no rejection enum
+  value.
+
+### 12.4 C2a - the stone, end to end
+
+Six steps, TDD red-first. Schema impact: **DB NONE (no migration) · FlatBuffers
+ONE appended field (D21) · conf NONE**.
+
+1. **The site and its dialog (content only).** `api/mobs/ascension-stone.json`
+   on the `forest-sign` shape (role `creature`, `speed 0`, faction `townsfolk`,
+   collision layer off Action, `interaction.range`), a `world.json` spawn entry
+   (P12), and the authored tree: a `ready` node gated `minLevel: 30` whose one
+   option carries the `ascend` grant and the catalog row source, and an
+   unconditional `not-yet` node below it as the below-max-level preview
+   (§4.2's "read-only preview" is **free**: it is L3's conditional-nodes-first
+   authoring rule doing its job). Done when the server boots with 0 warnings and
+   the stone talks.
+2. **The dynamic row source** (`sys/interaction.go`, P10). A node-level source,
+   one provider interface, wired into `present()`/`presentOptions` and into
+   `applyGrant`'s validation. ⚑ **Extend `TestPresentAndApplyGrant_CannotDisagree`
+   over generated rows** - that property test is the codebase's own discipline
+   for exactly this, and a generated row is the first thing it has never seen.
+3. **The ascension row source itself.** ⭐ **REWRITTEN AFTER STEP 2 (§12.7):
+   there is no `ascend` GrantKind.** Step 2's source is node-owned, so the thing
+   step 3 builds is a `RowSource` implementation serving
+   `mobs.RowSourceAscensionCatalog`, wired with `SetRowSource` in `core/game.go`.
+   It holds the catalog and answers two questions: what rows this player sees,
+   and what taking one does.
+   - **Addressing:** `OptionIndex` indexes `Catalog.All()`, the boot-stable
+     sorted list. `GrantIndex` is **0 on every generated row** and is not an
+     index space at all. Boot check: **`len(All()) <= 253`**, leaving **254** as
+     the fixed index of D14's empty-pick row (255 stays the wire's no-grant
+     sentinel and is never an option index).
+   - **The rows:** P4 filtering against the player's unlock keys (finding 4,
+     **not** the spellbook), gate evaluation into `Locked` plus the composed
+     requirement text (finding 3), and D14's tightened empty state, where the
+     "nothing left to teach" line is spoken only when there is neither a
+     pickable nor a locked row.
+   - ⚑ **D14's exhausted catalog still ascends, and something has to present
+     that row.** The empty-pick "Ascend" row sits at the fixed index 254 and
+     carries `""`, which `RequestAscension` already accepts (C1). It must be
+     offered whenever the player can ascend at all, **including when every
+     remaining entry is locked** (P1: max level is the whole entry price, and a
+     fully-gated catalog still ascends). Without it a spent bloodline reads its
+     farewell line and has no way to act on it.
+   - ⚑ **Every takeable row carries `GrantIndex` 0, never 255.** The client
+     sends a row only when `grantIndex !== NO_GRANT` (`Conversation.ts:114`), so
+     a pickable row emitted with the sentinel is walked locally and never
+     reaches the server. Nothing in Go can see that send, so the whole Go suite
+     would stay green with the feature dead-ended in the panel.
+4. **The player carries its bloodline.** Unlock keys and `BloodlineAscensions`
+   stamped onto the player at join from the ticket (findings 4 and 5), exposed
+   on the `learner` surface, plus the `bloodline_ascensions` condition kind and
+   its evaluation in `conditionsPass`. ⚑ Every `learner` fake in the test suite
+   grows with the interface; that is the mechanical cost of this step.
+5. **The channel.** `UtilityAscend` in `skills/utility.go` (`CastTicks: 300`
+   [PLACEHOLDER, Recall's value], `CastInterruptedByDamage: false` per P7), the
+   validated pick stashed on `SkillComponent` and **cleared by `CancelCast`**,
+   `utilityPrecondition` refusing an empty stash, and `fireUtility` calling
+   `ConnectionStateSystem.RequestAscension(p, key)`, the entry point C1 built
+   and left unused. ⚑ Clearing the stash in `CancelCast` is what closes the hole
+   a crafted `UseUtility{Ascend}` would otherwise open: pressed anywhere in the
+   world it starts a channel that fires with nothing picked, and an empty stash
+   must refuse rather than ascend for free. ⚑ The `UtilityKind` enum is
+   wire-pinned; its codec pin test is part of this step.
+   ⭐ **A NON-NIL STASH IS NOT A VALID PICK, and step 3 is what created that
+   gap.** `ascensionRows.ApplyRow` validates the pick at CLICK time (unspent,
+   gate passing) and stashes the key; nothing expires it, and the stash outlives
+   the conversation. So `fireUtility` must re-run the SAME judgement at fire
+   time, not merely check that something is stashed. `advanceCast` already
+   re-checks preconditions at completion for exactly this class of reason, and
+   a `quest_at_stage` gate is the concrete regressor: a player can pick a gated
+   reward, abandon the quest that unlocked it, and complete the channel. ⚑ It is
+   also why leaving the stash alive across a closed conversation is harmless:
+   the fire-time check, not the click, is what makes the pick legitimate.
+   ⚑ **DEATH MUST CANCEL THE CHANNEL, and nothing does that today.** P7 buys
+   `CastInterruptedByDamage: false`, so damage flows straight through a
+   ten-second cast and the site is not safe ground in any built sense (§4.5's
+   "the site is safe ground" is a design intent with no mechanism behind it). If
+   dying leaves the cast running, `advanceCast` fires at zero, P1 still passes
+   against the live level, and a player ascends from their respawn point with a
+   corpse behind them. Cancel the cast and clear the stash on death, pinned by a
+   test.
+6. **The confirm, and both ends of the outcome.** `confirm_seconds` on
+   `ConversationOption` (`.fbs` + both codecs + the pin test), the countdown
+   helper extracted from `DeleteDialog` and its modal drawn over the HUD (D21),
+   the success re-read routing to character select (P13), and the failure line
+   (P14).
+
+**Verification:** Go tests per step, mutation-verified for every load-bearing
+pin (the codebase's standing bar); vitest for the countdown helper and the
+pick-list filter including the empty case; a `verify`-skill harness
+`c2a-ascension.mjs` driving walk → dialog → pick → confirm → channel → character
+select on a real level-30 character; sim batteries byte-identical; boot
+0 WARN / 0 ERROR on both content paths. Named cases beyond the happy path:
+**an exhausted catalog still ascends** (D14, zero unlock rows written), **a
+gated entry renders locked and cannot be taken**, **death mid-channel ascends
+nobody**, and **the below-max-level preview opens read-only**.
+
+⚑ **Two harness gotchas ride forward from `c1-bloodline-seed.mjs`'s header**:
+leave the world **through the product** (a page reload inside the stash window
+resumes the live character), and the client renders **display names**, so
+`FrostShield` arrives as "Frost Shield".
+
+### 12.5 C2b - the bloodline on the select screen
+
+> **⭐ THIS IS THE NEXT CHUNK, and C2a left it everything it needs.** Written up
+> as a handoff on 2026-08-10, immediately after C2a closed. Schema impact,
+> expected: **DB NONE · FlatBuffers NONE · conf NONE**. Account API plus the
+> account screens; nothing in the world, nothing on the game wire.
+
+**Why it is not optional.** Ascension frees a slot, and the create card still
+goes to the FIRST empty slot rather than that one (§12.1 finding 7). So today
+the loop is complete only for a **single-slot account**: ascend slot 2 while
+slot 0 is empty and the only card offered aims at slot 0, which is exactly the
+cut-off-from-its-bloodline case D15 exists to prevent. It is invisible in every
+playtest so far because the harness character always occupies slot 0.
+
+**Step 1 - `/characters` carries per-slot bloodline data** (D22).
+`store.LoadBloodline(ctx, accountID, slotIndex)` already returns
+`Bloodline{Unlocks []string, Ascensions int}` in one round trip, and
+`accounts/characters.go`'s list handler is where it goes (it already serves
+`MaxAliveCharacters` from `s.cfg`). ⚑ It is **per slot**, so a three-slot
+account is three calls unless a per-account query is written; three is fine and
+a wider query is an optimisation, not a requirement.
+
+**Step 2 - the create card on every empty slot** (D15's client half).
+`CharacterSelect.render` (`frontend/src/features/user-interface/account-screens/logic/CharacterSelect.ts`)
+drops its `createOffered` latch, and `CharacterCreation` threads the chosen
+`slotIndex` through `AccountsApi.createCharacter`. ⚑ **The server half has been
+done since C1**: the create API takes `slotIndex` and already answers
+`slot_taken` (409) and out-of-range (400), so this is a client change plus
+handling those two refusals.
+
+**Step 3 - the slot card says what it continues** (D22): the bloodline's gifts,
+and the predecessor's name.
+⛑ **THE PREDECESSOR NAME CARRIES D11'S PRIVACY LANDMINE, and it bites here
+BEFORE the memorial.** `DiscardAnonymousAccount` renames **every** row of the
+account to `'deleted_' || id`, sacrificed ones included, because names are
+player-authored free text and erasure wins. A card that prints the graveyard
+name unfiltered will one day read "Bloodline of deleted_4711". §12.5 owns that
+filter now; C3's memorial inherits it.
+
+**Step 4 - `c2b-bloodline-select.mjs`**: ascend from a NON-ZERO slot, prove the
+heir can be aimed at that slot, and prove it boots holding the pick. ⚑ The
+non-zero slot is the whole point: on slot 0 the bug is invisible.
+
+**What C2a leaves in hand**
+
+- The loop works end to end and is harness-driven: `c2a-ascension-site.mjs`
+  drives pick → confirm → channel → character select (§12.11), so C2b can start
+  from a real ascended account rather than hand-built rows.
+- ⚑ Three harness gotchas that cost runs in C2a and will cost them again:
+  the interact key needs a **~1.4 s hold**; the synthetic **"Leave." row** must
+  be filtered out of any row count; and **the first browser run after a server
+  restart usually dies at join** (re-run once before diagnosing).
+- ⚑ `c1-bloodline-seed.mjs` must leave the world **through the product**
+  (settings → character select), because a page reload inside the stash window
+  resumes the live character; and the client renders **display names**, so
+  `FrostShield` arrives as "Frost Shield". Both apply to any C2b harness that
+  checks what an heir knows.
+- ⚑ The ascension probe entry is `.claude/skills/verify/c2a-probe-reward.json`
+  and is NOT installed: `api/ascension/` ships README-only until C3. Copy it in
+  and restart to get a reward row; **remove it afterwards**, or `cp-defs` bakes
+  it into the embedded copy.
+
+### 12.6 What this pass did not change
+
+§4's loop, §5's schema statement (still NONE at the database), D1–D18 except
+where D19–D22 say otherwise, and C3's scope apart from P8 and P9 moving two
+items into it. The catalog itself is still C3's; C2a is built and verified
+against a **test-only** entry, because `api/ascension/` stays README-only until
+C3 authors the seed (`CatalogFromFS` treats an empty directory as valid,
+deliberately).
+
+### 12.7 C2a step 2 as built - the row source is NODE-OWNED
+
+**Built 2026-08-10, TDD red-first, every load-bearing pin mutation-verified.
+Schema impact: DB NONE, FlatBuffers NONE, conf NONE, frontend NONE.**
+
+The design in §12.4 step 2 said "a node-level source, one provider interface"
+(P10) and §12.4 step 3 described rows hanging off an authored `ascend` option
+with a bounds-check bypass. **Those two are incompatible, and P10 won.** What is
+built:
+
+- **A node declares its rows** (`"rows": "ascension_catalog"` →
+  `mobs.RowSourceKind`, a closed parse table refused at boot). A source node
+  **authors no options**, enforced at load, so there is exactly ONE index space
+  and no bypass anywhere. It **must author lines**, because a generated list can
+  legitimately come back empty and the lines are all the node has left to say
+  (D14).
+- **`sys.RowSource`** has two halves that must agree: `PresentRows` and
+  `ApplyRow`, handed back the indices `PresentRows` put on the wire.
+- **It is threaded as an ARGUMENT** through `present`/`presentOptions`/`applyGrant`
+  rather than held on the system. Two reasons, both load-bearing: `present()`
+  stays **pure**, which its own doc calls the entire point of the
+  presentation/mutation split; and a new call site cannot silently forget the
+  source, because it does not compile without one. The 60-odd existing test call
+  sites pass a named `noRows`.
+- **`applyGrant` routes a source node WHOLE to its provider, after the node's
+  own conditions.** The gate has to stay above the branch: the provider judges
+  its rows on their merits and has no idea which node it speaks for, so a
+  skipped gate would let a crafted message walk past a condition the panel
+  enforces. Mutation-verified.
+
+**Why node-owned rather than option-hung:** one index space instead of two on
+one wire field; no bounds-check bypass; and it is the only version that serves
+**C3's memorial**, whose rows grant nothing at all. P10's "one hook, two
+consumers" is not rhetorical, and the option-hung design would have served one.
+
+**Findings**
+
+1. ⭐ **A takeable generated row must NOT carry `GrantIndex` 255.** The client
+   sends a row only when `grantIndex !== NO_GRANT` (`Conversation.ts:114`), so a
+   pickable row emitted with the sentinel is walked locally and **never reaches
+   the server**. Nothing in Go can observe that send, so the entire Go suite
+   stays green with the feature dead-ended inside the panel. The test fake
+   emitted 255 and was corrected; generated rows use 0.
+2. ⛑ **A permissive fake made the property test unable to fail.** Shifting the
+   index the machinery hands the provider (`option+1`) left
+   `TestPresentAndApplyGrant_CannotDisagree_OnGeneratedRows` green, because the
+   fake accepted every index. It now accepts **exactly what it presented**, and
+   the same mutation reddens it. A fake that cannot refuse cannot verify a
+   contract about refusal.
+3. ⚑ **The empty-source prune is correct by accident, so it is pinned.**
+   `pruneEmptyDestinations` keys on `len(node.Options) > 0`, which is false for a
+   source node, so a link to a currently-empty catalog survives as a lore leaf.
+   That is exactly D14's requirement, and one line of "tidying" reverses it.
+4. ⚑ **`chunk3b-ii-conversation.mjs` is RED AT HEAD, 25/31**, proven by
+   stash-build-rerun on 2026-08-10: the same six legs fail identically before and
+   after this work (the Leave-row click reports `control detached before the
+   click`, and the Wanderer legs never reach their actor). **Do not read it as a
+   regression in whatever you just changed.** Fixing the script is unowned.
+
+**Owed by step 3, both consequences of this design**
+
+- ⚑ **A `RowSourceKind` that parses with no provider behind it is a permanently
+  empty list** - the exact twin of C1's "a condition kind nothing evaluates is a
+  permanently locked row". Nothing today makes that loud. When step 3 wires the
+  provider in `core/game.go`, add the guard: a `cmd/aurad` content test tying
+  every authored row source to a kind the provider actually serves.
+- ⚑ **`SetRowSource` has no caller yet.** Forgetting it in step 3 shows no rows
+  and fails no Go test; the harness leg that asserts rows appear is what catches
+  it.
+
+**Verification:** 8 new `sys` pins + 4 new `mobs` loader pins, red first; **four
+mutations** (skip the node gate, count a source node as authored, shift the
+provider's index, drop the nil guard) each red, each reverted. Full Go suite
+**0 FAIL** apart from the documented `TestDwell` flake (9/20, inside its recorded
+HEAD range). Both boot paths **0 WARN / 0 ERROR**. `c2a-ascension-site.mjs`
+**9/9** unchanged.
+
+### 12.8 C2a step 3 as built - the ascension row source
+
+**Built 2026-08-10, TDD red-first, every load-bearing pin mutation-verified.
+Schema impact: DB NONE, FlatBuffers NONE, conf NONE, frontend NONE.**
+
+The step-2 design held: there is no `ascend` GrantKind, and the stone's rows come
+from `sys/ascension_rows.go` serving `mobs.RowSourceAscensionCatalog`, wired with
+`SetRowSource` in `core/game.go`.
+
+**What changed**
+
+| Layer | Change |
+| --- | --- |
+| `ascension/catalog.go` | `MaxEntries = 254` refused at boot (the wire index cap) · `CatalogOf` for entries already in hand · All()'s order is now documented as the WIRE CONTRACT |
+| `sys/ascension_rows.go` (new) | `ascensionRows`: the rows, their gates, the empty pick, and the pick's validation + stash |
+| `sys/interaction.go` | `learner` gains `BloodlineUnlocks()` |
+| `model/player.go` + `player/player.go` | `BloodlineUnlocks` / `SetBloodlineUnlocks`, in memory only |
+| `sys/state.go` | the ticket's keys are KEPT on the player at join, beside the spellbook seed |
+| `skills/component.go` | `PendingAscension *string`, cleared by `CancelCast` |
+| `core/game.go` | `interactionSys.SetRowSource(sys.NewAscensionRows(gc.AscensionCatalog))` |
+| `api/mobs/ascension-stone.json` | the gated `catalog` node and the row that leads to it |
+| `cmd/aurad` | the unserved-row-source guard §12.7 owed, and the gating pin below |
+
+**Findings**
+
+1. ⛑ **AN UNGATED ROW-SOURCE NODE BECAME THE LEVEL-1 GREETING**, so a fresh
+   character was shown the reward list and could take a row. Found by the
+   harness, not by a Go test. `present()` makes the FIRST node whose conditions
+   pass the greeting, and the `catalog` node was authored unconditional between
+   the gated `ready` and the unconditional `root`. ⚑ **L3's loader rule does not
+   cover this**: it refuses a conditional node sitting BELOW an unconditional
+   one, which is a different mistake. ⚑ And the same gate is load-bearing a
+   second time: `applyGrant` validates a row against its NODE's conditions
+   before the row source ever sees it, so an ungated node also let a crafted
+   message stash a pick below the cap. **The rule to carry: a node that is not
+   meant to be a greeting must be gated so it cannot be selected as one.**
+   Pinned, and the pin was mutation-verified against exactly this content.
+2. ⚑ **The filter reads SPENT KEYS, never the spellbook**, and the probe reward
+   is FrostShield precisely because it is a Troll drop: a player can know the
+   skill from the world without their bloodline ever having bought it, and
+   `HasDiscovered` would hide a reward they are still owed. Mutation-verified.
+3. ⚑ **The index is the position in `All()`, not in the filtered list.** A
+   filtered list renumbers itself every time the bloodline spends something, so
+   a row's index would name a different reward after every ascension.
+   Mutation-verified.
+
+**Decisions taken inside the step (PO may veto)**
+
+- ⭐ **The empty pick is offered ONLY when nothing is pickable**, which narrows
+  §12.4's "offered whenever the player can ascend at all". Ascending with no
+  gift while rewards sit on the same screen is strictly worse than taking one,
+  so offering it there is a misclick trap on an irreversible act. **D14 and P1
+  are both still satisfied**: an exhausted catalog offers it, and so does one
+  where every remaining entry is locked (max level stays the whole entry price).
+- **Taking a row STASHES, it does not ascend.** The channel spends the stash
+  (step 5), so a click is never the irreversible act. `CancelCast` clears it.
+- **The requirement text is composed into the row's `Text`**, since the wire
+  carries `required_level` for the teach_skill wall and D18 chose not to buy a
+  second field. ⚑ **Owed by step 6:** the client draws the wall as the literal
+  `level ${row.requiredLevel}`, so a gated ascension row currently reads
+  "level 0" beside its text. Unreachable in-game until C3 authors a gated entry.
+
+**Verification**
+
+- **13 `sys` pins + 2 `ascension` pins + 2 `cmd/aurad` pins**, red first.
+- **Seven mutations, each red, each reverted**: filter on the spellbook, index
+  the filtered list, emit the no-grant sentinel, suppress the empty pick
+  whenever any row exists, apply without re-checking the gate, author a row
+  source the provider does not serve, and un-gate the catalog node.
+- Full Go suite **0 FAIL** apart from the documented `TestDwell` flake. Both
+  boot paths **0 WARN / 0 ERROR**.
+- ⭐ **`c2a-ascension-site.mjs` 14/14 with the probe entry installed**
+  (the reward row renders, is the only row, and is takeable), and **12/12 with
+  3 skips** on stock content, where D14's ascend-anyway row is what appears.
+
+### 12.9 C2a step 4 as built - the bloodline count and its gate
+
+**Built 2026-08-10, TDD red-first, every load-bearing pin mutation-verified.
+Schema impact: DB NONE, FlatBuffers NONE, conf NONE, frontend ONE cosmetic fix.**
+
+Step 3 had already landed this step's unlock-keys half, so what remained was
+D18's tier B: the ascension COUNT, and the condition kind that reads it.
+
+| Layer | Change |
+| --- | --- |
+| `items/mobs/interaction.go` | `ConditionBloodlineAscensions` + parse table · a non-positive threshold is a boot error |
+| `sys/interaction.go` | `learner.BloodlineAscensions()` · the `conditionsPass` arm |
+| `sys/ascension_rows.go` | its progress line, "3 ascensions in this line (0/3)" |
+| `model/player.go` + `player/player.go` | `BloodlineAscensions` / `SetBloodlineAscensions` |
+| `sys/state.go` | stamped at join from the ticket, beside the keys |
+| `frontend/.../Conversation.ts` | the level wall is drawn only when `requiredLevel > 0` |
+
+**Findings**
+
+1. ⭐ **`BloodlineAscensions` finally has a reader.** It has ridden the play
+   ticket since C1 with nothing on the other end (§12.1 finding 5), so until
+   this step it could have been deleted without a test going red. The whole
+   tier-B claim, a cross-life count that costs no migration, rests on that one
+   carriage; it is now pinned at the join path and mutation-verified.
+2. ⛑ **The "level 0" wall was REACHABLE, not theoretical.** §12.8 recorded it as
+   unreachable until C3 authors a gated entry; the gated probe showed it
+   immediately, rendering `Frost Shield - locked: 3 ascensions in this line
+   (0/3)level 0`. `requiredLevel` is the teach_skill wall and nothing else, so a
+   row locked for any other reason carries 0 and the unconditional wall
+   contradicts the requirement the row already names. Fixed in `Conversation.ts`
+   rather than deferred to step 6, and the harness now asserts its absence.
+3. ⚑ **A threshold of zero or less is refused at boot.** It would pass for every
+   character alive, which is an authored gate that does nothing: the
+   silently-inert-content class the refuse-at-boot discipline exists for.
+4. ⚑ **The kind names its scope**, and that is D18's rule rather than a style
+   choice: `bloodline_ascensions`, never a bare `ascensions`. The per-life
+   vs. cross-life line is the entire cost model, and an ambiguous authored key
+   is how a migration-costing gate gets authored by accident. Pinned.
+
+**Verification:** 3 `mobs` pins + 3 `sys` evaluator pins + 2 join-path pins, red
+first. **Three mutations, each red, each reverted**: drop the ticket carriage,
+make the gate always pass, accept a non-positive threshold. Full Go suite
+**0 FAIL**; vitest **246/246**; typecheck clean; both boot paths
+**0 WARN / 0 ERROR**. ⭐ **`c2a-ascension-site.mjs` 15/15** with a
+veteran-gated probe: the count reaches the gate through /select, the ticket, the
+join stamp and the render path, and the row reads
+`Frost Shield - locked: 3 ascensions in this line (0/3)`.
+
+⚑ **`kills_this_life` is still C3's** (P9), unchanged by this step.
+
+### 12.10 C2a step 5 as built - the ceremony's channel
+
+**Built 2026-08-10, TDD red-first, every load-bearing pin mutation-verified.
+Schema impact: DB NONE · FlatBuffers ONE appended enum value · conf NONE ·
+frontend one label.**
+
+| Layer | Change |
+| --- | --- |
+| `api/schema/client.fbs` | `UtilityKind.Ascend = 3`, appended · regen (Go + TS) · codec pin |
+| `skills/utility.go` | `UtilityAscend`, `CastTicks: 300` [PLACEHOLDER], and NO damage interrupt (P7) |
+| `skills/component.go` | ⭐ `CompleteCast` split out of `CancelCast` |
+| `sys/ascension_rows.go` | `ValidatePick` · taking a row now STARTS the channel |
+| `sys/interaction.go` | `AscensionSource` = `RowSource` + `ValidatePick` |
+| `sys/skills.go` | `ConnState.RequestAscension` · the `ascension` seam · the press drop · `applyAscension` |
+| `sys/state.go` | `handleDeath` cancels the running cast |
+| `core/game.go` | ONE source object wired into both systems |
+| `frontend/.../Utilities.ts` | the cast bar's label, "Ascending" |
+
+**Findings**
+
+1. ⛑ **COMPLETION IS NOT CANCELLATION, and conflating them ate the pick.**
+   `advanceCast` ends a cast before firing it and used `CancelCast` to do so;
+   `CancelCast` also drops the ascension pick (the step-3 security property), so
+   by the time `fireUtility` ran the stash was already nil and every ceremony
+   completed as a no-op. Split into `CompleteCast` (clears cast state) and
+   `CancelCast` (that plus the pick). The two verbs differ by exactly what a
+   cancel additionally throws away.
+2. ⛑ **DEATH LEFT THE CHANNEL RUNNING**, and the plan's suspicion understated
+   it: the dead player's whole `SkillComponent` is STASHED and re-installed on
+   respawn, cast state included, so the ceremony would have resumed and fired at
+   the campfire. ⚑ The same hole exists for Recall and Camp; one line in
+   `handleDeath` closes all three.
+3. ⛑ **A PIN WAS GREEN WITH ITS SUBJECT DELETED.** The crafted-press test
+   asserted `IsCasting()` after the full 301 updates, by which time a
+   wrongly-started channel has finished anyway; deleting the press guard left it
+   green. It now asserts after the ONE update that processes the press, and its
+   sibling uses a RECALL cast as the vehicle, because re-pressing the utility
+   that is already casting is ignored by an older rule and so cannot distinguish
+   the guard's presence from its absence.
+4. ⚑ **The ceremony is NOT pressable**, and that is the design rather than an
+   oversight: `UseUtility` is an argument-free global keypress, and an
+   irreversible ceremony must not be startable by one (the same reasoning that
+   keeps `StartFlight` off the enum). The kind exists for the CAST BAR and for
+   `advanceCast`'s completion re-check. A crafted press is dropped silently,
+   above the queue's cancel step so it cannot disturb another cast either.
+
+**Verification:** 10 `sys` channel pins + 1 death pin + 1 codec pin, red first.
+**Five mutations, each red, each reverted**: allow the crafted press, skip the
+completion re-check, stop cancelling on death, stop clearing the pick on cancel,
+opt into the damage interrupt. Full Go suite **0 FAIL**; vitest **246/246**;
+typecheck clean; both boot paths **0 WARN / 0 ERROR**. ⭐ In-game, both probe
+states run: an ungated pick shows **`Ascending 9.1s`** on the cast bar
+(**12/12, 4 skipped**), and the gated probe still renders
+`Frost Shield - locked: 3 ascensions in this line (0/3)` (**15/15, 1 skipped**).
+
+**Owed by step 6**
+
+- The confirm modal, the success re-read routing (P13) and the failure line
+  (P14). ⚑ `applyAscension`'s refusals LOG and nothing else today; P14's system
+  line is the shared surface for them and for the transaction-failure case.
+- ⚑ The harness's probe now has THREE states (gated / ungated / absent) and its
+  header says how to switch. Each proves something the others cannot.
+
+### 12.11 C2a step 6 as built - the confirm, and both ends of the outcome
+
+**Built 2026-08-10. C2a IS COMPLETE: the loop runs end to end in the browser.
+Schema impact: DB NONE · FlatBuffers ONE appended field · conf NONE ·
+frontend the confirm modal, the routing, and one extracted helper.**
+
+| Layer | Change |
+| --- | --- |
+| `api/schema/server.fbs` | `ConversationOption.confirm_seconds:ubyte = 0`, appended · regen |
+| `model/conversation.go` + `codec/gamestate.go` | the field, carried |
+| `sys/ascension_rows.go` | 5 s on every TAKEABLE row, 0 on a locked one |
+| `sys/interaction.go` | `sayToPlayer`, the per-player line |
+| `sys/skills.go` + `sys/persist.go` | P14: one line for every way the ceremony fails to land |
+| `common/logic/ConfirmCountdown.ts` (new) | the countdown, extracted from `DeleteDialog` |
+| `HUD.html` / `HUD.less` / `Conversation.ts` | the in-world confirm modal |
+| `AccountFlow.ts` + `Backend.ts` | P13: the character-gone re-read, and the ORDER that makes it real |
+
+**Findings**
+
+1. ⛑ **P13 WAS DEAD CODE UNTIL THE ORDER WAS FIXED, and only a console listener
+   found it.** `Backend.onclose` checks `isJoinInFlight()` first, which is
+   `playing !== null` and therefore true for the whole session, so that branch
+   swallows every close. An ascension was being answered by retrying `/select`
+   against the character the server had just retired: **HTTP 404**, plus an
+   error about a ticket, at the end of a ten-second ceremony. ⚑ The screen was
+   RIGHT either way (the retry's own catch falls back to character-select),
+   which is exactly why nothing else could have caught it. The check now runs
+   first and costs one `/characters` round trip on a genuine drop.
+2. ⚑ **The bare "Failed to load resource" console line names no URL.** The
+   harness now records `HTTP <status> <url>` from a `response` listener, which is
+   what turned "a 404 somewhere" into a one-line diagnosis.
+3. ⚑ **Only a takeable row carries a countdown.** A locked row is inert on both
+   ends, so holding a player in front of one would be friction with nothing
+   behind it.
+4. ⚑ **What was shared with `DeleteDialog` is the LOGIC, not the dialog.** The
+   delete dialog lives in the account screens, which only exist outside the
+   world; this one is drawn over the running game. The countdown was the only
+   thing both could use, and its two comments (hardcoded on purpose, and
+   friction rather than a security control) travelled with it.
+
+**Verification:** 3 new `sys` pins for the confirm field · full Go suite
+**0 FAIL** apart from the documented `TestDwell` flake (measured **8/20**, inside
+its 7-10/20 HEAD range) · vitest **246/246** · typecheck clean · both boot paths
+**0 WARN / 0 ERROR**. ⭐ **`c2a-ascension-site.mjs` 18/18, 0 console errors**,
+driving the whole loop: pick → `Confirm (5)` disabled → nothing started → the
+button arms → confirm → `Ascending 9.1s` → the character is spent → character
+select, with no "Connection lost" anywhere. ⚑ **Confirmed in the DATABASE, not
+only on screen**: the run left `characters.sacrificed_at` set on the harness
+character and a `bloodline_unlocks` row `(account, slot 0, FrostShield)`.
+
+**What C2a does NOT close**
+
+- **C2b is still owed** (D19): the create card on every empty slot, and the
+  bloodline on the slot card. ⚑ Until then the loop is complete only for a
+  **single-slot account**, because the create card still goes to the first empty
+  slot rather than the one whose bloodline you just fed.
+- The three-state probe (gated / ungated / absent) stays a manual switch; each
+  state proves something the others cannot, and its header says how to move.

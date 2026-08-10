@@ -744,3 +744,93 @@ func TestSenseRadius_WithoutInteractionIsTheAggroRadius(t *testing.T) {
 	def := &MobDefinition{Body: Body{AggroRadius: 3}}
 	assert.InDelta(t, 3.0, def.SenseRadius(), 0.0001)
 }
+
+// --- the node-level row source (plan-ascension.md §12.4 C2a step 2, P10) ---
+//
+// A node may declare that its rows are GENERATED rather than authored. The
+// ascension catalog is the first consumer and C3's memorial is the second, so
+// the vocabulary is a parse table with the same refuse-at-boot discipline as
+// every other authored kind: a typo must never ship as a node that silently
+// shows nothing.
+
+func TestMapMobDefinition_ResolvesARowSource(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["nothing left to teach"],
+	  "rows": "ascension_catalog"
+	}]}`)
+	require.NoError(t, err)
+	assert.Equal(t, RowSourceAscensionCatalog, def.Interaction.Nodes[0].Rows)
+}
+
+func TestMapMobDefinition_RejectsUnknownRowSource(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["hi"],
+	  "rows": "the_vault_inventory"
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "the_vault_inventory")
+}
+
+// ⭐ The index space is the reason, not tidiness. A generated row is addressed
+// by its OptionIndex into the source's list, so an authored option on the same
+// node would claim the same numbers - and the collision only ever shows up as
+// a player clicking one row and being handed a different one.
+func TestMapMobDefinition_RejectsAuthoredOptionsOnARowSourceNode(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["hi"],
+	  "rows": "ascension_catalog",
+	  "options": [{"text": "bye", "next": "root"}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ascension_catalog")
+}
+
+// ⚑ A generated list can legitimately come back EMPTY (D14: a bloodline that
+// has learned everything it can). The lines are what the node says then, so a
+// source node without them is a blank panel exactly when the content most needs
+// to explain itself.
+func TestMapMobDefinition_RejectsARowSourceNodeWithNoLines(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "rows": "ascension_catalog"
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "lines")
+}
+
+// --- bloodline_ascensions (plan-ascension.md D18 tier B, C2a step 4) ---
+//
+// The one v1 condition kind that reads ACROSS a character's own life: how many
+// times this account/slot has ascended. It is tier B rather than tier C because
+// the count is derivable from the characters table at ticket time, so it costs
+// no migration.
+
+func TestParseCondition_ResolvesBloodlineAscensions(t *testing.T) {
+	cond, err := ParseCondition(JSONCondition{Kind: "bloodline_ascensions", Value: 3})
+	require.NoError(t, err)
+	assert.Equal(t, ConditionBloodlineAscensions, cond.Kind)
+	assert.Equal(t, 3, cond.Value)
+}
+
+// ⚑ D18's naming discipline, pinned: the kind NAMES ITS SCOPE. A bare
+// "ascensions" would leave per-life and cross-life ambiguous, and the whole cost
+// model hangs on that line (tier B is free, tier C needs a migration).
+func TestParseCondition_RejectsTheUnscopedSpelling(t *testing.T) {
+	_, err := ParseCondition(JSONCondition{Kind: "ascensions", Value: 3})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ascensions")
+}
+
+// A threshold of zero or less passes for every character alive, so authoring it
+// is a gate that does nothing: the silently-inert-content class the whole
+// refuse-at-boot discipline exists for.
+func TestParseCondition_RejectsANonPositiveAscensionCount(t *testing.T) {
+	for _, value := range []int{0, -1} {
+		_, err := ParseCondition(JSONCondition{Kind: "bloodline_ascensions", Value: value})
+		require.Error(t, err, "value %d", value)
+		assert.Contains(t, err.Error(), "positive")
+	}
+}

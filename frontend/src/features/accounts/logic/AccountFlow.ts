@@ -279,6 +279,48 @@ export async function reconnect(): Promise<void> {
     }
 }
 
+/**
+ * The world session ended. Report whether it ended because the CHARACTER is
+ * gone, which today means exactly one thing: they ascended
+ * (plan-ascension.md P13).
+ *
+ * ⭐ IT ASKS THE SERVER'S ROWS rather than waiting for a message, which is this
+ * screen's own documented philosophy applied one screen earlier ("the server's
+ * rows are the only authority", CharacterSelect). It costs no wire field, and
+ * it stays correct through a server restart mid-ceremony, where a message would
+ * simply never arrive.
+ *
+ * ⚑ A FAILED re-read reports false, so an ordinary network drop still gets the
+ * "Connection lost" banner. Only a successful listing that no longer contains
+ * this character routes to character-select.
+ */
+export async function onWorldSessionEnded(): Promise<boolean> {
+    const characterId = Session.playingCharacterId;
+    if (!characterId) {
+        return false;
+    }
+    let list;
+    try {
+        list = await AccountsApi.listCharacters();
+    } catch {
+        return false; // the socket AND the API are gone: an ordinary drop
+    }
+    if (list.characters.some((c) => c.id === characterId)) {
+        return false;
+    }
+    // ⚑ CLEAR `playing` TOO, not just the session ids. It is what the
+    // join-refused retry resumes from, and left set it fires a
+    // POST /characters/<id>/select at a character that no longer exists: a 404
+    // in the console at the end of an otherwise perfect ceremony. The screen
+    // was right either way, which is exactly why it needed a console listener
+    // to find.
+    playing = null;
+    Session.reconnectToken = null;
+    Session.playingCharacterId = null;
+    await start();
+    return true;
+}
+
 /** Take the server's answer to "who am I" as this session's identity. */
 function adoptIdentity(state: SessionState): void {
     hasAccount = state.hasAccount;

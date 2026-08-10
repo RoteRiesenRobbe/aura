@@ -83,7 +83,14 @@ table Respec {
 enum UtilityKind : ubyte {
     None = 0,
     Recall = 1,
-    Camp = 2
+    Camp = 2,
+    // The ascension ceremony's channel (plan-ascension.md C2a step 5). ⚑ It is
+    // a UtilityKind for the CAST BAR's sake and nothing else: the client never
+    // sends it, and the server refuses it if it arrives. A utility press is an
+    // argument-free global keypress, and an irreversible ceremony must not be
+    // startable by one — the channel begins only by taking a row at the stone,
+    // which is the same reasoning that keeps StartFlight off this enum.
+    Ascend = 3
 }
 
 // Press a baseline utility. Free, no cooldown — the server's interruptible

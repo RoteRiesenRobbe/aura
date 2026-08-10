@@ -39,6 +39,10 @@ type fakeLearner struct {
 	// than panic inside a per-tick render path.
 	ledger *quests.Ledger
 	xp     []uint64
+	// bloodline is what this slot has already spent (C2a step 3), ascensions how
+	// many lives it has spent getting there (C2a step 4).
+	bloodline  []string
+	ascensions int
 }
 
 func (f *fakeLearner) SkillComponent() *skills.SkillComponent { return f.sc }
@@ -48,6 +52,8 @@ func (f *fakeLearner) Progression() model.PlayerProgression {
 func (f *fakeLearner) ApplyRecipeCascade()             { f.cascadeCalls++ }
 func (f *fakeLearner) QuestLedger() *quests.Ledger     { return f.ledger }
 func (f *fakeLearner) AddExperience(experience uint64) { f.xp = append(f.xp, experience) }
+func (f *fakeLearner) BloodlineUnlocks() []string      { return f.bloodline }
+func (f *fakeLearner) BloodlineAscensions() int        { return f.ascensions }
 
 var _ learner = (*fakeLearner)(nil)
 
@@ -192,7 +198,7 @@ func TestPresent_MutatesNothing(t *testing.T) {
 		grant(1, 1, "learned heal"), grant(2, 5, "learned dash"))
 	p := newLearner(10) // qualifies for both
 
-	c := present(in, p)
+	c := present(in, p, noRows)
 
 	require.NotNil(t, c)
 	assert.False(t, p.sc.HasDiscovered(1), "presenting must never grant")
@@ -212,7 +218,7 @@ func TestPresent_EmitsEveryReachableNode(t *testing.T) {
 		{ID: "directions", Lines: []string{"Two hills east."}},
 	}}
 
-	c := present(in, newLearner(1))
+	c := present(in, newLearner(1), noRows)
 
 	assert.ElementsMatch(t, []string{"root", "news", "directions"}, nodeIDs(c))
 	assert.Equal(t, "root", c.EntryNode)
@@ -226,7 +232,7 @@ func TestPresent_AuthoredCycleIsHarmless(t *testing.T) {
 		{ID: "news", Lines: []string{"news"}, Options: []mobs.InteractionOption{{Text: "back", Next: "root"}}},
 	}}
 
-	c := present(in, newLearner(1))
+	c := present(in, newLearner(1), noRows)
 
 	assert.ElementsMatch(t, []string{"root", "news"}, nodeIDs(c))
 }
@@ -243,8 +249,8 @@ func TestPresent_EntryNodeIsTheFirstWhoseConditionsPass(t *testing.T) {
 		{ID: "root", Lines: []string{"Move along."}},
 	}}
 
-	assert.Equal(t, "root", present(in, newLearner(3)).EntryNode, "the gated node is skipped")
-	assert.Equal(t, "veteran", present(in, newLearner(10)).EntryNode, "the gate opens exactly at the value")
+	assert.Equal(t, "root", present(in, newLearner(3), noRows).EntryNode, "the gated node is skipped")
+	assert.Equal(t, "veteran", present(in, newLearner(10), noRows).EntryNode, "the gate opens exactly at the value")
 }
 
 // A condition-failed node is omitted AND the rows pointing at it disappear —
@@ -263,12 +269,12 @@ func TestPresent_OmitsConditionFailedNodeAndItsInboundRows(t *testing.T) {
 		{ID: "directions", Lines: []string{"Two hills east."}},
 	}}
 
-	low := present(in, newLearner(3))
+	low := present(in, newLearner(3), noRows)
 	assert.ElementsMatch(t, []string{"root", "directions"}, nodeIDs(low), "the gated node is not sent at all")
 	require.Len(t, rowsOf(t, low, "root"), 1, "and the row pointing at it is hidden")
 	assert.Equal(t, "Where is the mill?", rowsOf(t, low, "root")[0].Text)
 
-	high := present(in, newLearner(10))
+	high := present(in, newLearner(10), noRows)
 	assert.ElementsMatch(t, []string{"root", "secret", "directions"}, nodeIDs(high))
 	assert.Len(t, rowsOf(t, high, "root"), 2)
 }
@@ -280,7 +286,7 @@ func TestPresent_NoNodePassesMeansNoConversation(t *testing.T) {
 		Lines:      []string{"Well met."},
 	}}}
 
-	assert.Nil(t, present(in, newLearner(1)), "an actor with nothing to say opens no panel")
+	assert.Nil(t, present(in, newLearner(1), noRows), "an actor with nothing to say opens no panel")
 }
 
 // D17's cheap win: the 11 NPCs nobody re-authored need ZERO content work,
@@ -292,7 +298,7 @@ func TestPresent_ExpandsLegacyMultiGrantOptionToOneRowPerGrant(t *testing.T) {
 		namedGrant(2, "Ignite", 7, "a fire in your enemies"),
 		namedGrant(3, "Immolate", 12, "burn everything around you"))
 
-	rows := rowsOf(t, present(in, newLearner(1)), "root")
+	rows := rowsOf(t, present(in, newLearner(1), noRows), "root")
 
 	require.Len(t, rows, 3, "one row per grant, from a single authored option")
 	assert.Equal(t, []string{"Torch", "Ignite", "Immolate"},
@@ -315,7 +321,7 @@ func TestPresent_AuthoredTextLabelsTheRow(t *testing.T) {
 		}},
 	}}}
 
-	rows := rowsOf(t, present(in, newLearner(1)), "root")
+	rows := rowsOf(t, present(in, newLearner(1), noRows), "root")
 
 	require.Len(t, rows, 1)
 	assert.Equal(t, "Teach me the fire.", rows[0].Text)
@@ -331,7 +337,7 @@ func TestPresent_HidesKnownRows(t *testing.T) {
 	p := newLearner(10)
 	p.sc.Discover(1) // already knows Torch
 
-	rows := rowsOf(t, present(in, p), "root")
+	rows := rowsOf(t, present(in, p, noRows), "root")
 
 	require.Len(t, rows, 1, "the known row is gone")
 	assert.Equal(t, "Ignite", rows[0].Text)
@@ -348,7 +354,7 @@ func TestPresent_LocksTooLowRowsAndNamesTheWall(t *testing.T) {
 		namedGrant(2, "Ignite", 7, "fire"),
 		namedGrant(3, "Immolate", 12, "burn"))
 
-	rows := rowsOf(t, present(in, newLearner(2)), "root")
+	rows := rowsOf(t, present(in, newLearner(2), noRows), "root")
 
 	require.Len(t, rows, 3, "locked rows are shown, not hidden")
 	assert.False(t, rows[0].Locked, "Torch@1 is available at level 2")
@@ -366,7 +372,7 @@ func TestPresent_RowCarriesTheReplyForItsState(t *testing.T) {
 		namedGrant(1, "Torch", 1, "Let this be a light for you."),
 		namedGrant(2, "Ignite", 7, "Let me show you fire."))
 
-	rows := rowsOf(t, present(in, newLearner(2)), "root")
+	rows := rowsOf(t, present(in, newLearner(2), noRows), "root")
 
 	require.Len(t, rows, 2)
 	assert.Equal(t, "Let this be a light for you.", rows[0].Reply, "an available row replies with the grant line")
@@ -381,7 +387,7 @@ func TestPresent_NavigationRowCarriesNoGrant(t *testing.T) {
 		{ID: "news", Lines: []string{"They burned the forest."}},
 	}}
 
-	rows := rowsOf(t, present(in, newLearner(1)), "root")
+	rows := rowsOf(t, present(in, newLearner(1), noRows), "root")
 
 	require.Len(t, rows, 1)
 	assert.Equal(t, model.ConversationNoGrant, rows[0].GrantIndex)
@@ -394,7 +400,7 @@ func TestPresent_NavigationRowCarriesNoGrant(t *testing.T) {
 func TestPresent_LoreOnlyNodeHasNoRows(t *testing.T) {
 	in := teachingInteraction([]string{"No entry.", "Trolls up north."})
 
-	c := present(in, newLearner(10))
+	c := present(in, newLearner(10), noRows)
 
 	require.NotNil(t, c)
 	assert.Equal(t, []string{"No entry.", "Trolls up north."}, c.Nodes[0].Lines)
@@ -409,7 +415,7 @@ func TestPresent_AllKnownLeavesTheLinesStanding(t *testing.T) {
 	p := newLearner(10)
 	p.sc.Discover(1)
 
-	c := present(in, p)
+	c := present(in, p, noRows)
 
 	require.NotNil(t, c)
 	assert.Equal(t, []string{"You have learned all I can teach."}, c.Nodes[0].Lines)
@@ -429,7 +435,7 @@ func TestApplyGrant_TeachesExactlyOneSkill(t *testing.T) {
 		namedGrant(2, "Ignite", 1, "Let me show you fire."))
 	p := newLearner(10) // qualifies for BOTH — the walk would have taught both
 
-	reply, taught, ok := applyGrant(in, p, "root", 0, 0)
+	reply, taught, ok := applyGrant(in, p, noRows, "root", 0, 0)
 
 	require.True(t, ok)
 	assert.Equal(t, "Let this be a light.", reply)
@@ -448,7 +454,7 @@ func TestApplyGrant_TheOrderedWalkIsGone(t *testing.T) {
 		namedGrant(1, "Torch", 1, "a"), namedGrant(2, "Ignite", 5, "b"), namedGrant(3, "Immolate", 10, "c"))
 	p := newLearner(20) // qualifies for all three
 
-	_, _, ok := applyGrant(in, p, "root", 0, 2)
+	_, _, ok := applyGrant(in, p, noRows, "root", 0, 2)
 
 	require.True(t, ok)
 	assert.False(t, p.sc.HasDiscovered(1))
@@ -464,7 +470,7 @@ func TestApplyGrant_LockedRowIsSilentlyRefused(t *testing.T) {
 		namedGrant(1, "Ignite", 7, "Let me show you fire."))
 	p := newLearner(2)
 
-	reply, taught, ok := applyGrant(in, p, "root", 0, 0)
+	reply, taught, ok := applyGrant(in, p, noRows, "root", 0, 0)
 
 	assert.False(t, ok, "an ordinary silent refusal — the path a stale click already takes")
 	assert.Empty(t, reply)
@@ -512,7 +518,7 @@ func TestApplyGrant_Refusals(t *testing.T) {
 			}
 			before := p.cascadeCalls
 
-			reply, taught, ok := applyGrant(build(), p, tc.node, tc.option, tc.grant)
+			reply, taught, ok := applyGrant(build(), p, noRows, tc.node, tc.option, tc.grant)
 
 			assert.False(t, ok, "refused")
 			assert.Empty(t, reply, "silently — a stale click is ordinary, not an error")
@@ -535,7 +541,7 @@ func TestApplyGrant_ConditionPassedNodeGrants(t *testing.T) {
 		}},
 	})
 
-	_, taught, ok := applyGrant(in, newLearner(10), "secret", 0, 0)
+	_, taught, ok := applyGrant(in, newLearner(10), noRows, "secret", 0, 0)
 
 	require.True(t, ok)
 	require.NotNil(t, taught)
@@ -566,11 +572,11 @@ func TestApplyGrant_RefusesARowNavigatingToAHiddenNode(t *testing.T) {
 	}
 
 	// The row is invisible to a level-1 player: its destination is gated.
-	assert.Empty(t, rowsOf(t, present(build(), newLearner(1)), "root"),
+	assert.Empty(t, rowsOf(t, present(build(), newLearner(1), noRows), "root"),
 		"the row is hidden — its destination node is condition-failed")
 
 	p := newLearner(1)
-	reply, taught, ok := applyGrant(build(), p, "root", 0, 0)
+	reply, taught, ok := applyGrant(build(), p, noRows, "root", 0, 0)
 
 	assert.False(t, ok, "a hidden row is refused, not granted")
 	assert.Empty(t, reply)
@@ -580,7 +586,7 @@ func TestApplyGrant_RefusesARowNavigatingToAHiddenNode(t *testing.T) {
 	// ...and it discriminates: the same row is grantable once the destination is
 	// visible, or the fix would have disabled grant+navigate rows outright.
 	high := newLearner(10)
-	_, taught, ok = applyGrant(build(), high, "root", 0, 0)
+	_, taught, ok = applyGrant(build(), high, noRows, "root", 0, 0)
 	require.True(t, ok)
 	require.NotNil(t, taught)
 }
@@ -615,7 +621,7 @@ func TestApplyGrant_AcceptsOnlyWhatPresentEmitted(t *testing.T) {
 	for _, level := range []uint32{1, 7, 10, 30} {
 		in := build()
 		presented := map[[2]int]bool{}
-		for _, node := range present(in, newLearner(level)).Nodes {
+		for _, node := range present(in, newLearner(level), noRows).Nodes {
 			for _, row := range node.Options {
 				presented[[2]int{int(row.OptionIndex), int(row.GrantIndex)}] = true
 			}
@@ -625,7 +631,7 @@ func TestApplyGrant_AcceptsOnlyWhatPresentEmitted(t *testing.T) {
 			node := &in.Nodes[ni]
 			for oi := range node.Options {
 				for gi := range node.Options[oi].Grants {
-					_, _, ok := applyGrant(build(), newLearner(level), node.ID, oi, gi)
+					_, _, ok := applyGrant(build(), newLearner(level), noRows, node.ID, oi, gi)
 					if ok {
 						assert.True(t, presented[[2]int{oi, gi}],
 							"level %d: node %q option %d grant %d was accepted but never shown",
@@ -645,7 +651,7 @@ func TestApplyGrant_RefusesANavigationRow(t *testing.T) {
 		{ID: "news", Lines: []string{"news"}},
 	}}
 
-	_, _, ok := applyGrant(in, newLearner(10), "root", 0, int(model.ConversationNoGrant))
+	_, _, ok := applyGrant(in, newLearner(10), noRows, "root", 0, int(model.ConversationNoGrant))
 	assert.False(t, ok)
 }
 
@@ -668,7 +674,7 @@ func TestPresentAndApplyGrant_CannotDisagree(t *testing.T) {
 			if known != 0 {
 				seen.sc.Discover(known)
 			}
-			rows := rowsOf(t, present(newIn(), seen), "root")
+			rows := rowsOf(t, present(newIn(), seen, noRows), "root")
 
 			for i, row := range rows {
 				// A fresh learner in the same state, so each row is taken from
@@ -677,7 +683,7 @@ func TestPresentAndApplyGrant_CannotDisagree(t *testing.T) {
 				if known != 0 {
 					taker.sc.Discover(known)
 				}
-				reply, taught, ok := applyGrant(newIn(), taker, "root", int(row.OptionIndex), int(row.GrantIndex))
+				reply, taught, ok := applyGrant(newIn(), taker, noRows, "root", int(row.OptionIndex), int(row.GrantIndex))
 
 				// Q1/R1's deliberate twin: a LOCKED row is presented with an
 				// empty Reply and refused silently, so the panel's silence and
@@ -761,7 +767,7 @@ func TestPresent_QuestOptionIsOneRow(t *testing.T) {
 	require.NoError(t, p.ledger.Accept(questID))
 	p.ledger.NoteKill(3)
 	p.ledger.NoteKill(3) // waiting at turn_in, so the show-rule lets the row through
-	rows := rowsOf(t, present(in, p), "root")
+	rows := rowsOf(t, present(in, p, noRows), "root")
 
 	require.Len(t, rows, 1, "three grants, ONE row — the option is the atomic unit")
 	assert.Equal(t, "Here are the pelts.", rows[0].Text, "labelled by the authored text, never by a reward")
@@ -780,7 +786,7 @@ func TestPresent_QuestRowShownRegardlessOfRewardsAlreadyKnown(t *testing.T) {
 	p.ledger.NoteKill(3) // waiting at turn_in, so the edge is walkable
 	p.sc.Discover(1)     // already knows the reward skill
 
-	rows := rowsOf(t, present(in, p), "root")
+	rows := rowsOf(t, present(in, p, noRows), "root")
 	require.Len(t, rows, 1, "the quest op still needs taking")
 }
 
@@ -803,7 +809,7 @@ func TestPresent_QuestRowShownIffItsLedgerOpWouldSucceed(t *testing.T) {
 	}}
 	rowTexts := func(p *fakeLearner) []string {
 		var texts []string
-		for _, r := range rowsOf(t, present(in, p), "quest_node") {
+		for _, r := range rowsOf(t, present(in, p, noRows), "quest_node") {
 			texts = append(texts, r.Text)
 		}
 		return texts
@@ -822,7 +828,7 @@ func TestPresent_QuestRowShownIffItsLedgerOpWouldSucceed(t *testing.T) {
 	assert.Equal(t, []string{"How many?", "Here are the pelts."}, rowTexts(p),
 		"objective met: the turn-in appears exactly when it can be taken")
 
-	_, _, ok := applyGrant(in, p, "quest_node", 2, 0)
+	_, _, ok := applyGrant(in, p, noRows, "quest_node", 2, 0)
 	require.True(t, ok)
 	assert.Equal(t, []string{"How many?"}, rowTexts(p),
 		"completed: both quest rows are gone, the question survives")
@@ -832,7 +838,7 @@ func TestPresent_QuestRowShownIffItsLedgerOpWouldSucceed(t *testing.T) {
 // exactly like the apply-rule it mirrors.
 func TestPresent_QuestRowHiddenWithoutALedger(t *testing.T) {
 	in := oneOption("I'll help.", offerGrant())
-	assert.Empty(t, rowsOf(t, present(in, newLearner(1)), "root"))
+	assert.Empty(t, rowsOf(t, present(in, newLearner(1), noRows), "root"))
 }
 
 // --- the empty-destination prune (PO 2026-08-02): a row that leads to nothing
@@ -861,7 +867,7 @@ func hubInteraction() *mobs.Interaction {
 func rowTextsOf(t *testing.T, in *mobs.Interaction, p *fakeLearner, nodeID string) []string {
 	t.Helper()
 	var texts []string
-	for _, r := range rowsOf(t, present(in, p), nodeID) {
+	for _, r := range rowsOf(t, present(in, p, noRows), nodeID) {
 		texts = append(texts, r.Text)
 	}
 	return texts
@@ -940,7 +946,7 @@ func TestPresent_PruneCascadesThroughAPureSelectionNode(t *testing.T) {
 	p.ledger.NoteKill(3)
 	require.NoError(t, p.ledger.AdvanceDialogue(questID, stageTurn, stageDone))
 
-	assert.Empty(t, rowsOf(t, present(in, p), "root"),
+	assert.Empty(t, rowsOf(t, present(in, p, noRows), "root"),
 		"quest done: the quest node empties, the selection row goes with it, and root's row follows")
 }
 
@@ -948,7 +954,7 @@ func TestApplyGrant_OfferAcceptsTheQuest(t *testing.T) {
 	in := oneOption("I'll help.", offerGrant())
 	p := newQuestLearner(t, 1, peltsQuest())
 
-	reply, taught, ok := applyGrant(in, p, "root", 0, 0)
+	reply, taught, ok := applyGrant(in, p, noRows, "root", 0, 0)
 
 	require.True(t, ok)
 	assert.Equal(t, "Then go.", reply)
@@ -971,7 +977,7 @@ func TestApplyGrant_OfferDoesNotCreditOldKills(t *testing.T) {
 	p.ledger.NoteKill(3)
 	p.ledger.NoteKill(3)
 
-	_, _, ok := applyGrant(in, p, "root", 0, 0)
+	_, _, ok := applyGrant(in, p, noRows, "root", 0, 0)
 	require.True(t, ok)
 
 	path, running, _ := p.ledger.Progress(questID)
@@ -993,11 +999,11 @@ func TestApplyGrant_ReClickingAnOfferGrantsNothing(t *testing.T) {
 		mobs.InteractionGrant{Kind: mobs.GrantXP, XP: 100, Line: "a little something"})
 	p := newQuestLearner(t, 1, peltsQuest())
 
-	_, _, ok := applyGrant(in, p, "root", 0, 0)
+	_, _, ok := applyGrant(in, p, noRows, "root", 0, 0)
 	require.True(t, ok)
 	require.Equal(t, []uint64{100}, p.xp)
 
-	_, _, ok = applyGrant(in, p, "root", 0, 0)
+	_, _, ok = applyGrant(in, p, noRows, "root", 0, 0)
 
 	assert.False(t, ok, "the quest is already running, so the row is refused outright")
 	assert.Equal(t, []uint64{100}, p.xp, "and the reward is NOT paid a second time")
@@ -1014,7 +1020,7 @@ func TestApplyGrant_TurnInAdvancesAndPaysOut(t *testing.T) {
 	p.ledger.NoteKill(3)
 	p.ledger.NoteKill(3) // now waiting at turn_in
 
-	reply, taught, ok := applyGrant(in, p, "root", 0, 0)
+	reply, taught, ok := applyGrant(in, p, noRows, "root", 0, 0)
 
 	require.True(t, ok)
 	assert.Equal(t, "You have my thanks.", reply)
@@ -1039,7 +1045,7 @@ func TestApplyGrant_TurnInAtTheWrongStageGrantsNothing(t *testing.T) {
 	p := newQuestLearner(t, 1, peltsQuest())
 	require.NoError(t, p.ledger.Accept(questID)) // still on `hunt`, no kills
 
-	_, taught, ok := applyGrant(in, p, "root", 0, 0)
+	_, taught, ok := applyGrant(in, p, noRows, "root", 0, 0)
 
 	assert.False(t, ok)
 	assert.Nil(t, taught)
@@ -1059,7 +1065,7 @@ func TestApplyGrant_RefusesAQuestGrantAddressedByARewardIndex(t *testing.T) {
 	p.ledger.NoteKill(3)
 	p.ledger.NoteKill(3)
 
-	_, _, ok := applyGrant(in, p, "root", 0, 1) // the XP grant, addressed directly
+	_, _, ok := applyGrant(in, p, noRows, "root", 0, 1) // the XP grant, addressed directly
 
 	assert.False(t, ok, "a reward inside a bundle is not separately takeable")
 	assert.Empty(t, p.xp)
@@ -1069,7 +1075,7 @@ func TestApplyGrant_RefusesAQuestGrantAddressedByARewardIndex(t *testing.T) {
 func TestApplyGrant_QuestRowWithoutALedgerIsRefused(t *testing.T) {
 	in := oneOption("I'll help.", offerGrant())
 
-	_, _, ok := applyGrant(in, newLearner(1), "root", 0, 0)
+	_, _, ok := applyGrant(in, newLearner(1), noRows, "root", 0, 0)
 	assert.False(t, ok)
 }
 
@@ -1107,19 +1113,19 @@ func TestPresent_QuestStageSelectsTheGreeting(t *testing.T) {
 	in := questGatedInteraction()
 
 	p := newQuestLearner(t, 1, peltsQuest())
-	assert.Equal(t, "offer_node", present(in, p).EntryNode, "not started → the offer")
+	assert.Equal(t, "offer_node", present(in, p, noRows).EntryNode, "not started → the offer")
 
 	require.NoError(t, p.ledger.Accept(questID))
-	assert.Equal(t, "root", present(in, p).EntryNode,
+	assert.Equal(t, "root", present(in, p, noRows).EntryNode,
 		"running but mid-objective → neither the offer nor the turn-in, so the fallback")
 
 	p.ledger.NoteKill(3)
 	p.ledger.NoteKill(3)
-	assert.Equal(t, "turn_in_node", present(in, p).EntryNode, "objective met → the turn-in")
+	assert.Equal(t, "turn_in_node", present(in, p, noRows).EntryNode, "objective met → the turn-in")
 
-	_, _, ok := applyGrant(in, p, "turn_in_node", 0, 0)
+	_, _, ok := applyGrant(in, p, noRows, "turn_in_node", 0, 0)
 	require.True(t, ok)
-	assert.Equal(t, "thanks_node", present(in, p).EntryNode, "completed → the epilogue")
+	assert.Equal(t, "thanks_node", present(in, p, noRows).EntryNode, "completed → the epilogue")
 }
 
 // The offer row is not merely deprioritised once the quest is running — its node
@@ -1129,13 +1135,13 @@ func TestPresent_OfferNodeVanishesOnceRunning(t *testing.T) {
 	p := newQuestLearner(t, 1, peltsQuest())
 	require.NoError(t, p.ledger.Accept(questID))
 
-	assert.NotContains(t, nodeIDs(present(in, p)), "offer_node")
+	assert.NotContains(t, nodeIDs(present(in, p, noRows)), "offer_node")
 }
 
 // A quest condition with no ledger fails closed, like every unknown condition.
 func TestConditionsPass_QuestConditionWithoutALedgerFailsClosed(t *testing.T) {
 	in := questGatedInteraction()
-	c := present(in, newLearner(1))
+	c := present(in, newLearner(1), noRows)
 
 	require.NotNil(t, c, "the unconditional fallback still speaks")
 	assert.Equal(t, "root", c.EntryNode)
@@ -1166,12 +1172,12 @@ func TestPresentAndApplyGrant_CannotDisagreeOnQuestRows(t *testing.T) {
 		seen := newQuestLearner(t, 1, peltsQuest())
 		setup(seen)
 
-		for _, node := range present(in, seen).Nodes {
+		for _, node := range present(in, seen, noRows).Nodes {
 			for _, row := range node.Options {
 				taker := newQuestLearner(t, 1, peltsQuest())
 				setup(taker)
 
-				reply, _, ok := applyGrant(questGatedInteraction(), taker, node.ID, int(row.OptionIndex), int(row.GrantIndex))
+				reply, _, ok := applyGrant(questGatedInteraction(), taker, noRows, node.ID, int(row.OptionIndex), int(row.GrantIndex))
 
 				assert.True(t, ok, "state %d: presented row %q on node %q was refused", i, row.Text, node.ID)
 				assert.Equal(t, row.Reply, reply, "state %d: the panel already said this", i)
@@ -1220,7 +1226,7 @@ func TestApplyGrant_AcceptsOnlyWhatPresentEmitted_QuestRows(t *testing.T) {
 		seen := newQuestLearner(t, 1, peltsQuest())
 		setup(seen)
 		presented := map[[2]int]bool{}
-		for _, node := range present(in, seen).Nodes {
+		for _, node := range present(in, seen, noRows).Nodes {
 			for _, row := range node.Options {
 				presented[[2]int{int(row.OptionIndex), int(row.GrantIndex)}] = true
 			}
@@ -1232,7 +1238,7 @@ func TestApplyGrant_AcceptsOnlyWhatPresentEmitted_QuestRows(t *testing.T) {
 				for gi := range node.Options[oi].Grants {
 					taker := newQuestLearner(t, 1, peltsQuest())
 					setup(taker)
-					_, _, ok := applyGrant(build(), taker, node.ID, oi, gi)
+					_, _, ok := applyGrant(build(), taker, noRows, node.ID, oi, gi)
 					if ok {
 						assert.True(t, presented[[2]int{oi, gi}],
 							"state %d: node %q option %d grant %d was accepted but never shown", i, node.ID, oi, gi)
@@ -2074,4 +2080,196 @@ func TestSession_OpeningStampsTalkedTo(t *testing.T) {
 	pressInteract(p, m.Basic().ID())
 	step()
 	assert.True(t, p.ledger.HasTalkedTo(51), "opening the panel stamps the conversant")
+}
+
+// --- the node-level row source (plan-ascension.md §12.4 C2a step 2, P10) ---
+//
+// Some lists cannot be authored: what a bloodline may still learn is per-player
+// and composed at render time, and so are the names on C3's memorial. A node
+// declares where its rows come from and the evaluator asks a provider.
+//
+// ⚑ The provider is threaded as an ARGUMENT rather than held on the system,
+// which keeps present() pure - the property its own doc calls the entire point
+// of the presentation/mutation split. `noRows` is the nil provider every static
+// test passes, spelled out so a call site says what it means.
+
+var noRows RowSource
+
+// fakeRowSource records what it was asked, which is how the round-trip tests
+// prove the SAME kind and the SAME indices reach the provider that present()
+// put on the wire.
+type fakeRowSource struct {
+	rows      []model.ConversationOption
+	reply     string
+	accept    map[int]bool // option index -> may be taken; nil means all
+	presented []mobs.RowSourceKind
+	applied   [][3]any // kind, option, grant
+}
+
+func (f *fakeRowSource) PresentRows(kind mobs.RowSourceKind, _ learner) []model.ConversationOption {
+	f.presented = append(f.presented, kind)
+	return f.rows
+}
+
+func (f *fakeRowSource) ApplyRow(kind mobs.RowSourceKind, _ learner, option, grant int) (string, bool) {
+	f.applied = append(f.applied, [3]any{kind, option, grant})
+	if f.accept != nil && !f.accept[option] {
+		return "", false
+	}
+	return f.reply, true
+}
+
+// ⚑ GrantIndex 0, NEVER model.ConversationNoGrant. 255 means "navigation row"
+// to the client and Conversation.ts refuses to SEND such a row, so a takeable
+// generated row carrying the sentinel dead-ends in the panel while every Go
+// test here stays green. The fake models what a real provider must emit.
+func generatedRow(option int, text, reply string) model.ConversationOption {
+	return model.ConversationOption{
+		OptionIndex: uint8(option),
+		GrantIndex:  0,
+		Text:        text,
+		Reply:       reply,
+	}
+}
+
+func sourceInteraction() *mobs.Interaction {
+	return &mobs.Interaction{Nodes: []mobs.InteractionNode{{
+		ID:    "root",
+		Lines: []string{"your line has learned all it can"},
+		Rows:  mobs.RowSourceAscensionCatalog,
+	}}}
+}
+
+func TestPresent_RendersTheRowsItsSourceGenerates(t *testing.T) {
+	src := &fakeRowSource{rows: []model.ConversationOption{
+		generatedRow(0, "Frost Shield", "it is yours"),
+		generatedRow(1, "Paralyze", "it is yours"),
+	}}
+
+	rows := rowsOf(t, present(sourceInteraction(), newLearner(30), src), "root")
+
+	require.Len(t, rows, 2)
+	assert.Equal(t, "Frost Shield", rows[0].Text)
+	assert.Equal(t, "Paralyze", rows[1].Text)
+	assert.Equal(t, []mobs.RowSourceKind{mobs.RowSourceAscensionCatalog}, src.presented,
+		"the node's own kind is what the provider is asked for")
+}
+
+// ⚑ FAILS CLOSED, like every other unresolved thing on this path. A build with
+// no provider wired shows the node's lines and no rows rather than panicking -
+// and the lines are exactly what the empty case says anyway (D14).
+func TestPresent_ASourceNodeWithNoProviderStillSpeaks(t *testing.T) {
+	c := present(sourceInteraction(), newLearner(30), noRows)
+
+	require.NotNil(t, c)
+	require.Len(t, c.Nodes, 1)
+	assert.Equal(t, []string{"your line has learned all it can"}, c.Nodes[0].Lines)
+	assert.Empty(t, c.Nodes[0].Options)
+}
+
+// The round trip: the indices present() streamed are the indices the provider
+// is handed back, unchanged. L21's rule applied to a list nobody authored.
+func TestApplyGrant_RoutesASourceNodeToItsProvider(t *testing.T) {
+	src := &fakeRowSource{
+		rows:  []model.ConversationOption{generatedRow(0, "Frost Shield", "it is yours")},
+		reply: "it is yours",
+	}
+
+	reply, taught, ok := applyGrant(sourceInteraction(), newLearner(30), src, "root", 0, 0)
+
+	require.True(t, ok)
+	assert.Equal(t, "it is yours", reply)
+	assert.Nil(t, taught, "a generated row hands over no skill of its own")
+	require.Len(t, src.applied, 1)
+	assert.Equal(t, [3]any{mobs.RowSourceAscensionCatalog, 0, 0}, src.applied[0])
+}
+
+func TestApplyGrant_RefusesASourceNodeWithNoProvider(t *testing.T) {
+	_, _, ok := applyGrant(sourceInteraction(), newLearner(30), noRows, "root", 0, 0)
+	assert.False(t, ok)
+}
+
+// ⭐ A row on a node this player cannot SEE must never reach the provider. The
+// provider judges its own rows on their merits and has no idea which node it is
+// speaking for - so if the node gate were skipped here, a crafted message would
+// walk straight past a condition the panel enforces.
+func TestApplyGrant_ASourceNodeStillHonoursItsConditions(t *testing.T) {
+	in := sourceInteraction()
+	in.Nodes[0].Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 30}}
+	src := &fakeRowSource{rows: []model.ConversationOption{generatedRow(0, "Frost Shield", "yours")}, reply: "yours"}
+
+	_, _, ok := applyGrant(in, newLearner(29), src, "root", 0, 0)
+
+	assert.False(t, ok, "below the gate the node does not exist for this player")
+	assert.Empty(t, src.applied, "and the provider was never even asked")
+}
+
+// D14 at the panel: a source that comes back empty leaves a node with lines and
+// nothing else, and a row leading to it must SURVIVE the empty-destination
+// prune. The alternative is a player who is told nothing at all about why their
+// bloodline has run out.
+func TestPresent_ALinkToAnEmptySourceNodeSurvivesThePrune(t *testing.T) {
+	in := &mobs.Interaction{Nodes: []mobs.InteractionNode{
+		{ID: "root", Lines: []string{"hello"}, Options: []mobs.InteractionOption{
+			{Text: "what can my line still learn?", Next: "catalog"},
+		}},
+		{ID: "catalog", Lines: []string{"nothing left to teach"}, Rows: mobs.RowSourceAscensionCatalog},
+	}}
+
+	rows := rowsOf(t, present(in, newLearner(30), &fakeRowSource{}), "root")
+
+	require.Len(t, rows, 1, "the way to the empty catalog stays on screen")
+	assert.Equal(t, "catalog", rows[0].Next)
+}
+
+// The property test's whole point, extended over rows nobody authored: a
+// presented row must always be acceptable, and the reply the panel already
+// spoke must be the one the server produces. A provider that refused a row it
+// had just presented would make the optimistic panel lie.
+func TestPresentAndApplyGrant_CannotDisagree_OnGeneratedRows(t *testing.T) {
+	newSrc := func() *fakeRowSource {
+		return &fakeRowSource{
+			rows: []model.ConversationOption{
+				generatedRow(0, "Frost Shield", "it is yours"),
+				generatedRow(3, "Paralyze", "it is yours"), // a sparse index, as a filtered list produces
+			},
+			reply: "it is yours",
+			// ⚑ The fake accepts EXACTLY what it presented, and nothing else.
+			// A permissive fake cannot tell this test apart from one where the
+			// machinery shifts an index on the way through - which is precisely
+			// the mutation this pin has to catch.
+			accept: map[int]bool{0: true, 3: true},
+		}
+	}
+
+	rows := rowsOf(t, present(sourceInteraction(), newLearner(30), newSrc()), "root")
+	require.Len(t, rows, 2)
+
+	for i, row := range rows {
+		reply, _, ok := applyGrant(sourceInteraction(), newLearner(30), newSrc(), "root",
+			int(row.OptionIndex), int(row.GrantIndex))
+		require.True(t, ok, "row %d (%s): a presented row must always be accepted", i, row.Text)
+		assert.Equal(t, row.Reply, reply, "row %d (%s): the panel already said this", i, row.Text)
+	}
+}
+
+// ⭐ The converse direction, and the one that matters for a crafted message:
+// the machinery FORWARDS an index, it does not vouch for it. A provider is the
+// only thing that knows which rows it presented, so applyGrant must carry its
+// refusal through untouched rather than treating "the node exists" as consent.
+//
+// ⚑ This is the generated-row twin of TestApplyGrant_AcceptsOnlyWhatPresentEmitted,
+// which structurally cannot cover a list it did not author.
+func TestApplyGrant_CarriesASourcesRefusalThrough(t *testing.T) {
+	src := &fakeRowSource{
+		rows:   []model.ConversationOption{generatedRow(0, "Frost Shield", "yours")},
+		reply:  "yours",
+		accept: map[int]bool{0: true}, // every other index is refused
+	}
+
+	_, _, ok := applyGrant(sourceInteraction(), newLearner(30), src, "root", 7, 0)
+	assert.False(t, ok, "an index the source never presented is refused")
+
+	_, _, ok = applyGrant(sourceInteraction(), newLearner(30), src, "root", 0, 0)
+	assert.True(t, ok, "and the presented one still goes through")
 }

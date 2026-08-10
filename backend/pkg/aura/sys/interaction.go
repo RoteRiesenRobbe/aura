@@ -102,6 +102,19 @@ type InteractionSystem struct {
 	// player who leaves and returns re-triggers (already-known grants are
 	// simply skipped).
 	seen map[uint64]map[uint64]bool
+
+	// rows answers the nodes whose rows are generated rather than authored
+	// (P10). Nil is a supported state: a world with no provider wired shows
+	// such a node's lines and no rows, which is the same thing an empty list
+	// looks like.
+	rows RowSource
+}
+
+// SetRowSource wires the generated-row provider. Called post-construction from
+// core/game.go, the SetConnState precedent, because the provider needs content
+// the game assembles after the systems are built.
+func (s *InteractionSystem) SetRowSource(src RowSource) {
+	s.rows = src
 }
 
 func NewInteractionSystem() *InteractionSystem {
@@ -247,7 +260,7 @@ func (s *InteractionSystem) handleInteracts() {
 		// merits — in range, node exists, its conditions pass, index valid, level
 		// cleared, not already known — which is exactly what buys D16's
 		// bookkeeping-free session.
-		_, taught, ok := applyGrant(a.Interaction(), p, msg.NodeID, int(msg.OptionIndex), int(msg.GrantIndex))
+		_, taught, ok := applyGrant(a.Interaction(), p, s.rows, msg.NodeID, int(msg.OptionIndex), int(msg.GrantIndex))
 		if !ok || taught == nil {
 			continue
 		}
@@ -295,7 +308,7 @@ func (s *InteractionSystem) refreshConversations() {
 			continue
 		}
 
-		c := present(a.Interaction(), p)
+		c := present(a.Interaction(), p, s.rows)
 		if c == nil {
 			// Nothing left to say to this player right now — the same condition
 			// that would refuse to open one.
@@ -345,6 +358,21 @@ func speakToSensor(a Conversant, lines []string) {
 	}
 }
 
+// sayToPlayer speaks one line ABOVE THAT PLAYER, to that player alone: the
+// per-player half of the ambient fan-out above, and the ascension loop's
+// failure surface (plan-ascension.md P14).
+//
+// ⚑ Anchored on the player's OWN entity because the two callers have no actor
+// to speak as. The completed ceremony's refusal happens inside the SkillSystem,
+// and the transaction's failure is observed by a drain that holds a client
+// UUID and nothing else.
+func sayToPlayer(p model.PlayerEntity, line string) {
+	builder := flatbuffers.NewBuilder(64)
+	msg := codec.EntityMessageFlatbufMarshal(builder, p.Basic().ID(), line, AuraApi.EntityMessageKindChat)
+	builder.Finish(msg)
+	p.Client().SendMessage(builder.FinishedBytes())
+}
+
 func marshalSay(a Conversant, lines []string) []byte {
 	builder := flatbuffers.NewBuilder(64)
 	entityMessage := codec.EntityMessageFlatbufMarshal(builder, a.Basic().ID(), strings.Join(lines, "\n"), AuraApi.EntityMessageKindChat)
@@ -370,6 +398,72 @@ type learner interface {
 	// and the milestone-unlock cascade all live behind it, and a second XP path
 	// would be a second set of level-up bugs (L9).
 	AddExperience(experience uint64)
+	// BloodlineUnlocks are the reward keys this character's SLOT has already
+	// spent across its past ascensions, carried on the player since join
+	// (plan-ascension.md D16, §12.4 C2a step 3). The ascension row source filters
+	// on these and NOT on the spellbook: a skill learned from a world drop is not
+	// a spent unlock, and confusing the two hides a reward the bloodline is still
+	// owed. Read on the per-tick present path, so it stays a plain slice.
+	BloodlineUnlocks() []string
+	// BloodlineAscensions is how many lives this slot has already spent
+	// (plan-ascension.md D18 tier B): what a `bloodline_ascensions` gate reads,
+	// and the first reader the ticket field has ever had.
+	BloodlineAscensions() int
+}
+
+// RowSource supplies the rows a node's authored tree cannot carry
+// (plan-ascension.md §4.2, P10). Some lists are per-player and composed at
+// render time: what a bloodline may still learn, and the names cut into C3's
+// memorial. The node declares WHERE its rows come from (mobs.RowSourceKind) and
+// this answers with them.
+//
+// ⚑ It is threaded as an ARGUMENT through present/applyGrant rather than held
+// on the system, so present() stays PURE: the property its own doc calls the
+// entire point of the presentation/mutation split. It also means a new call
+// site cannot silently forget the source: it does not compile without one.
+//
+// ⚑ PresentRows runs per tick per conversing player, so it is under the same
+// O(1)-in-memory-reads-only rule as everything else on this path (L15). No
+// provider may query a database or walk the world to answer it.
+//
+// ⚑ The two halves must agree, exactly as presentOptions and applyGrant must:
+// ApplyRow is handed back the indices PresentRows put on the wire, and a
+// provider that refuses a row it just presented makes the optimistic panel lie
+// (L24). TestPresentAndApplyGrant_CannotDisagree_OnGeneratedRows is that pin.
+// ⭐ A TAKEABLE generated row must carry a GrantIndex other than
+// model.ConversationNoGrant (255). That value means "navigation row" to the
+// client, and `Conversation.ts` only sends a row whose grantIndex is NOT 255,
+// so a pickable row emitted with the sentinel is walked locally and never
+// reaches the server at all. The feature dead-ends inside the panel while every
+// Go test on this path stays green, because nothing in Go can see that send.
+// Generated rows use 0.
+//
+// ⚑ The machinery does NOT run destinationVisible over generated rows: a
+// provider that emits a `Next` owns that check itself. Neither known consumer
+// emits one (the catalog's rows take an action, the memorial's are inert), which
+// is why this is a documented contract rather than a branch.
+type RowSource interface {
+	// PresentRows builds this source's rows for p, right now. The rows carry
+	// their own OptionIndex, which is how a filtered list stays addressable.
+	PresentRows(kind mobs.RowSourceKind, p learner) []model.ConversationOption
+	// ApplyRow hands over the row at these indices, reporting whether it was
+	// taken. A refusal is silent and ordinary, like every other stale click.
+	ApplyRow(kind mobs.RowSourceKind, p learner, option, grant int) (reply string, ok bool)
+}
+
+// AscensionSource is the ascension catalog as its TWO consumers need it: the
+// InteractionSystem renders its rows, and the SkillSystem re-judges the stashed
+// pick when the ceremony's channel completes (§12.4 C2a step 5).
+//
+// ⚑ One object, wired twice, deliberately. The alternative is the SkillSystem
+// holding its own copy of the catalog, and then "what the panel offered" and
+// "what the channel will accept" become two answers that can drift.
+type AscensionSource interface {
+	RowSource
+	// ValidatePick reports whether key is still a legitimate pick for p right
+	// now. A non-nil stash is not a valid pick: gates can regress during the
+	// ten seconds a channel runs.
+	ValidatePick(p learner, key string) bool
 }
 
 // present builds the personalised conversation tree for p (chunk 3b-ii, D16).
@@ -384,7 +478,7 @@ type learner interface {
 // means the actor has nothing to say to this player right now.
 //
 // The caller stamps EntityID and ActorName — this function only knows content.
-func present(in *mobs.Interaction, p learner) *model.Conversation {
+func present(in *mobs.Interaction, p learner, src RowSource) *model.Conversation {
 	// Which nodes survive their conditions, so an option pointing at a hidden
 	// one can be hidden too. Built once per call rather than re-checked per
 	// option, and only while a panel is actually open.
@@ -409,15 +503,15 @@ func present(in *mobs.Interaction, p learner) *model.Conversation {
 		return nil // nothing to say to this player right now
 	}
 
-	rows := make(map[string][]model.ConversationOption, len(in.Nodes))
+	byNode := make(map[string][]model.ConversationOption, len(in.Nodes))
 	for i := range in.Nodes {
 		node := &in.Nodes[i]
 		if !visible[node.ID] {
 			continue
 		}
-		rows[node.ID] = presentOptions(node, p, visible)
+		byNode[node.ID] = presentOptions(node, p, visible, src)
 	}
-	pruneEmptyDestinations(in, rows)
+	pruneEmptyDestinations(in, byNode)
 
 	c := &model.Conversation{EntryNode: entry}
 	for i := range in.Nodes {
@@ -428,7 +522,7 @@ func present(in *mobs.Interaction, p learner) *model.Conversation {
 		c.Nodes = append(c.Nodes, model.ConversationNode{
 			ID:      node.ID,
 			Lines:   node.Lines,
-			Options: rows[node.ID],
+			Options: byNode[node.ID],
 		})
 	}
 	return c
@@ -473,7 +567,18 @@ func pruneEmptyDestinations(in *mobs.Interaction, rows map[string][]model.Conver
 // NPCs nobody re-authored into trees render correctly with zero content work
 // (D17): their single nameless multi-grant option shows up as one labelled row
 // per skill. An option with no grants is a navigation row.
-func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bool) []model.ConversationOption {
+func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bool, src RowSource) []model.ConversationOption {
+	// A source node's rows are GENERATED, and the loader guarantees it authored
+	// none: the two would share one index space (P10). ⚑ A missing provider
+	// fails CLOSED, like everything else on this path: the node keeps its lines,
+	// which are exactly what it says when the list is empty anyway (D14).
+	if node.Rows != "" {
+		if src == nil {
+			return nil
+		}
+		return src.PresentRows(node.Rows, p)
+	}
+
 	sc := p.SkillComponent()
 	level := p.Progression().Level
 
@@ -588,10 +693,24 @@ func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bo
 // The returned reply is deliberately NOT sent anywhere: the panel already said
 // it, straight out of the streamed row (D19/L24). It exists so a test can prove
 // the two cannot disagree.
-func applyGrant(in *mobs.Interaction, p learner, nodeID string, option, grant int) (reply string, taught *skills.SkillID, ok bool) {
+func applyGrant(in *mobs.Interaction, p learner, src RowSource, nodeID string, option, grant int) (reply string, taught *skills.SkillID, ok bool) {
 	node := nodeByID(in, nodeID)
 	if node == nil || !conditionsPass(node.Conditions, p) {
 		return "", nil, false
+	}
+	// ⭐ A source node routes WHOLE to its provider, and the node gate above is
+	// what makes that safe: the provider judges its own rows on their merits and
+	// has no idea which node it is speaking for, so a skipped gate here would let
+	// a crafted message walk straight past a condition the panel enforces.
+	//
+	// ⚑ A generated row hands over no skill of its own: nothing here goes into
+	// the spellbook, so there is no unlock banner and `taught` stays nil.
+	if node.Rows != "" {
+		if src == nil {
+			return "", nil, false
+		}
+		reply, ok := src.ApplyRow(node.Rows, p, option, grant)
+		return reply, nil, ok
 	}
 	if option < 0 || option >= len(node.Options) {
 		return "", nil, false
@@ -731,6 +850,13 @@ func conditionsPass(conditions []mobs.InteractionCondition, p learner) bool {
 		switch c.Kind {
 		case mobs.ConditionMinLevel:
 			if p.Progression().Level < uint32(c.Value) {
+				return false
+			}
+		case mobs.ConditionBloodlineAscensions:
+			// One int compare. It is session-constant by construction, since
+			// ascending ends the session, so nothing can invalidate it while a
+			// player is reading the row it gates.
+			if p.BloodlineAscensions() < c.Value {
 				return false
 			}
 		case mobs.ConditionQuestAtStage:

@@ -32,6 +32,15 @@ export interface ConversationRow {
     requiredLevel: number;
     /** What the actor says when this row is taken. */
     reply: string;
+    /**
+     * Seconds of countdown confirmation before this row may be SENT; 0 (every
+     * row but the ascension picks) means take it immediately.
+     *
+     * ⚑ Friction against a misclick, not a security control: the server applies
+     * the row whenever it arrives, exactly as the delete endpoint does. This
+     * only decides whether the panel makes the player wait first.
+     */
+    confirmSeconds: number;
 }
 
 export interface ConversationNode {
