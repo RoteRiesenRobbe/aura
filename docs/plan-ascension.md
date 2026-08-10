@@ -4,7 +4,7 @@
 > 2026-08-05 (D15–D17), CONDITIONS ADDED 2026-08-09 (D18).
 > ⭐ C1 BUILT 2026-08-10 (§11).
 > ⭐ C2 DESIGN PASS 2026-08-10 (§12, D19–D22): C2 became **C2a + C2b**.
-> ⭐ **C2a BUILT 2026-08-10 across six steps (§12.7–§12.11), `[uncommitted]`** -
+> ⭐ **C2a BUILT 2026-08-10 across six steps (§12.7–§12.11), `4674cf00`** -
 > the loop runs end to end in the browser: walk to the stone, pick, confirm,
 > channel, and land on character select with the character spent and its
 > bloodline row written. **C2b is next and §12.5 is its handoff.**
