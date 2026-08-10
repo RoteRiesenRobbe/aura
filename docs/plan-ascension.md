@@ -625,7 +625,7 @@ rediscovering it. **None of this is in scope; see §8 "deferred".**
 
 ## 11. Chunk ledgers
 
-### C1 — the transaction + the catalog ✅ 2026-08-10, `[uncommitted]`
+### C1 — the transaction + the catalog ✅ 2026-08-10, `dee6a9c0`
 
 **Built TDD red-first across five steps, one session.** Every load-bearing pin
 was proven by mutation. No new PO ruling was needed: D13/D15–D18 already
