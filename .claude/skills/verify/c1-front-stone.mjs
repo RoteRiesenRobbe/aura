@@ -1,5 +1,5 @@
 // The SECOND ascension site, and the price that belongs to it
-// (docs/plan-ascension-sites.md C1, D1).
+// (docs/archive/plan-ascension-sites.md C1, D1).
 //
 // What this owns that no Go test can:
 //

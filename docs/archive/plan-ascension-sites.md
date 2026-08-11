@@ -1,7 +1,9 @@
 # Plan: Ascension sites - many stones, each with its own price and its own rewards
 
 > **Status: COMPLETE — C1, C2, C3a and C3b all shipped 2026-08-11 (`509321e6`,
-> `d66ca9f3`, `350701c9`, C3b uncommitted).** Four PO rulings taken in the
+> `d66ca9f3`, `350701c9`, `f86420f5`). ⚑ The PO's own in-game check is still
+> PENDING**: every chunk is harness-verified, nobody has walked both stones by
+> hand yet. Four PO rulings taken in the
 > design session (D1-D4), three more at C1 (the second stone's price and place,
 > and P2 pulled forward), four more at C3's design pass (D5, D6, P7, P8 — and
 > D5 amends §5). Successor to
@@ -570,7 +572,7 @@ clicks: row not found"* diagnostic unchanged).
 once the two disagree — *not all sites offer the same list*, and `c2a`'s row
 order becoming an authored fact rather than an alphabetical accident.
 
-### C3b - the two stones offer different things ✅ 2026-08-11, uncommitted
+### C3b - the two stones offer different things ✅ 2026-08-11, `f86420f5`
 
 The content half, and the chunk that makes C3a visible: the village stone keeps
 all eight but authors its own order (five takeable, then the three walls), the

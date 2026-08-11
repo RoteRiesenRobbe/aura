@@ -1036,11 +1036,14 @@ system ships blind.
    first consumer and is COMPLETE 2026-08-11**: max-level detection, the retire
    flow, per-slot bloodline unlock storage (backlog §36) and the memorial all
    shipped, with **no schema change at any layer**. Record:
-   `docs/archive/plan-ascension.md`. ⚑ **Its successor is live work**:
-   `docs/plan-ascension-sites.md` turns the one stone into a content vocabulary —
-   many sites, each owning its price and its rewards. C1 shipped 2026-08-11
-   (**max level is no longer the entry rule**; a site names its own price), C2
-   and C3 open. Schema NONE there too.
+   `docs/archive/plan-ascension.md`. ⚑ **Its successor is COMPLETE too**:
+   `docs/archive/plan-ascension-sites.md` turned the one stone into a content
+   vocabulary — many sites, each owning its price and its rewards — and shipped
+   whole on 2026-08-11 (C1 `509321e6`: **max level is no longer the entry rule**,
+   a site names its own price · C2 `d66ca9f3`: an unmet gate renders locked and
+   named · C3 `350701c9` + `f86420f5`: a site authors the reward list it offers,
+   in the order it offers them). Schema NONE there too. ⚑ **The PO's in-game
+   check is still pending.**
 
    **8b — UI polish / avatar / audio** (item 8) — ⏸ **STILL OPEN**, and closing
    8a does not close it (that independence is exactly why the split exists).
