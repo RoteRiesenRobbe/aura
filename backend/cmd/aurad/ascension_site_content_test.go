@@ -344,12 +344,27 @@ func TestAuthoredRowSources_AreAllServedByTheProvider(t *testing.T) {
 	}
 }
 
-// catalogRowsNode is the ascension catalog's node as a provider needs it: the
-// `rows` key is what it dispatches on. Content tests that drive a provider
-// directly build one rather than digging the authored node out of the registry,
-// which is a different assertion (see the walk above).
-func catalogRowsNode() *mobs.InteractionNode {
-	return &mobs.InteractionNode{ID: "catalog", Rows: mobs.RowSourceAscensionCatalog}
+// catalogRowsNode digs one named site's catalog node out of the registry.
+//
+// ⛑ IT USED TO BUILD A SYNTHETIC NODE, and C3 is why it cannot any more: a site
+// now OWNS the list it offers (D3/D5), so a node built here would serve whatever
+// the fixture felt like rather than what the stone authored — and a content test
+// driving the provider against content nobody ships is measuring nothing. The
+// node carries the list, so the node has to be the real one.
+func catalogRowsNode(t *testing.T, mr mobs.Registry, mobName string) *mobs.InteractionNode {
+	t.Helper()
+	for _, def := range mr.Mobs() {
+		if def.Name != mobName || def.Interaction == nil {
+			continue
+		}
+		for i := range def.Interaction.Nodes {
+			if def.Interaction.Nodes[i].Rows == mobs.RowSourceAscensionCatalog {
+				return &def.Interaction.Nodes[i]
+			}
+		}
+	}
+	require.FailNow(t, "no catalog node authored", "mob %q", mobName)
+	return nil
 }
 
 // maxLevelLearner is the smallest thing the row source will talk to: a player

@@ -797,10 +797,87 @@ func TestMapMobDefinition_ResolvesARowSource(t *testing.T) {
 	def, err := mapInteraction(t, `{"nodes": [{
 	  "id": "root",
 	  "lines": ["nothing left to teach"],
-	  "rows": "ascension_catalog"
+	  "rows": "ascension_catalog",
+	  "rewards": []
 	}]}`)
 	require.NoError(t, err)
 	assert.Equal(t, RowSourceAscensionCatalog, def.Interaction.Nodes[0].Rows)
+}
+
+// --- a catalog node's own reward list (plan-ascension-sites.md C3, D3/D5) ---
+//
+// A site owns what it offers. The list is authored by unlock key, in the order a
+// player will see it, and it is the ONLY thing that node ever serves.
+
+func TestMapMobDefinition_ResolvesARewardListInItsAuthoredOrder(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["pick one"],
+	  "rows": "ascension_catalog",
+	  "rewards": ["RimeBurst", "Lantern", "KeenEye"]
+	}]}`)
+	require.NoError(t, err)
+	// ⭐ THE AUTHORED ORDER, NOT A SORTED ONE (D3). The order is the wire's index
+	// space for this node, and a loader that tidied it would silently renumber
+	// every row the moment content was re-authored.
+	assert.Equal(t, []string{"RimeBurst", "Lantern", "KeenEye"}, def.Interaction.Nodes[0].Rewards)
+}
+
+// D5: there is no catch-all. An absent list used to be expressible as "serve the
+// whole catalog", which is exactly the implicit global C1 took out of the price;
+// a site that does not say what it offers is a boot failure.
+func TestMapMobDefinition_RejectsACatalogNodeThatListsNoRewards(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["pick one"],
+	  "rows": "ascension_catalog"
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "rewards")
+}
+
+// ⚑ An authored EMPTY list is legitimate and distinct from an absent one: a
+// stone that ends lives and hands out nothing (D14's ascend-anyway row is all it
+// offers). That distinction is the whole reason the authored shape is a pointer.
+func TestMapMobDefinition_AcceptsAnEmptyRewardList(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["a life can be laid down here, and nothing is given back"],
+	  "rows": "ascension_catalog",
+	  "rewards": []
+	}]}`)
+	require.NoError(t, err)
+	assert.Empty(t, def.Interaction.Nodes[0].Rewards)
+}
+
+// P3: the same discipline the loader already applies to authored options on a
+// rows node. A `rewards` list anywhere else is a key that means nothing, and a
+// silently inert authored key is what DisallowUnknownFields catches one
+// keystroke earlier.
+func TestMapMobDefinition_RejectsARewardListOnANodeThatIsNotTheCatalog(t *testing.T) {
+	for _, node := range []string{
+		`{"id": "root", "lines": ["hi"], "rewards": ["RimeBurst"]}`,
+		`{"id": "root", "lines": ["the dead"], "rows": "memorial_names", "rewards": ["RimeBurst"]}`,
+	} {
+		_, err := mapInteraction(t, `{"nodes": [`+node+`]}`)
+		require.Error(t, err, node)
+		assert.Contains(t, err.Error(), "rewards", node)
+	}
+}
+
+// ⭐ The same argument the catalog's own duplicate check makes, one layer down:
+// two rows spending one bloodline_unlocks key leaves the second unpickable
+// forever, and it reaches the player as a row that greys out for no reason after
+// they clicked its twin.
+func TestMapMobDefinition_RejectsARewardListThatNamesOneKeyTwice(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["pick one"],
+	  "rows": "ascension_catalog",
+	  "rewards": ["RimeBurst", "Lantern", "RimeBurst"]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "RimeBurst")
 }
 
 func TestMapMobDefinition_RejectsUnknownRowSource(t *testing.T) {
@@ -822,6 +899,7 @@ func TestMapMobDefinition_RejectsAuthoredOptionsOnARowSourceNode(t *testing.T) {
 	  "id": "root",
 	  "lines": ["hi"],
 	  "rows": "ascension_catalog",
+	  "rewards": [],
 	  "options": [{"text": "bye", "next": "root"}]
 	}]}`)
 	require.Error(t, err)
@@ -835,7 +913,8 @@ func TestMapMobDefinition_RejectsAuthoredOptionsOnARowSourceNode(t *testing.T) {
 func TestMapMobDefinition_RejectsARowSourceNodeWithNoLines(t *testing.T) {
 	_, err := mapInteraction(t, `{"nodes": [{
 	  "id": "root",
-	  "rows": "ascension_catalog"
+	  "rows": "ascension_catalog",
+	  "rewards": []
 	}]}`)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "lines")

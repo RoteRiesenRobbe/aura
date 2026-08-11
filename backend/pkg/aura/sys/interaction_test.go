@@ -2311,7 +2311,22 @@ func rowsNode(kind mobs.RowSourceKind) *mobs.InteractionNode {
 	return &mobs.InteractionNode{ID: string(kind), Rows: kind}
 }
 
-func catalogNode() *mobs.InteractionNode  { return rowsNode(mobs.RowSourceAscensionCatalog) }
+// catalogNode is a site offering the whole test catalog, in the order All()
+// serves it. Since C3 a site OFFERS a list rather than inheriting the catalog
+// (D5), so every test that predates the list gets the list that reproduces its
+// old behaviour exactly, and its index assertions keep meaning what they meant.
+func catalogNode() *mobs.InteractionNode {
+	return catalogNodeOffering("EmberWard", "FrostShield", "Paralyze")
+}
+
+// catalogNodeOffering is a site with a list of its own: the shape C3 exists for,
+// and the only way to write a test where two stones differ.
+func catalogNodeOffering(rewards ...string) *mobs.InteractionNode {
+	node := rowsNode(mobs.RowSourceAscensionCatalog)
+	node.Rewards = rewards
+	return node
+}
+
 func memorialNode() *mobs.InteractionNode { return rowsNode(mobs.RowSourceMemorialNames) }
 
 // fakeRowSource records what it was asked, which is how the round-trip tests

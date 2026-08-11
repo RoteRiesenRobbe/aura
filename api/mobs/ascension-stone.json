@@ -51,6 +51,16 @@
           }
         ],
         "rows": "ascension_catalog",
+        "rewards": [
+          "Blight",
+          "Envenom",
+          "FrostShield",
+          "Frostbite",
+          "KeenEye",
+          "Lantern",
+          "RimeBurst",
+          "Venomward"
+        ],
         "lines": [
           "Pick one reward. It unlocks permanently for this character slot.",
           "Confirming ends this character. Its name goes on the memorial."

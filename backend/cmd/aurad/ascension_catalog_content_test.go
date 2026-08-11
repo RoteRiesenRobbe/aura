@@ -114,8 +114,29 @@ func TestAscensionCatalog_TheHuntGateResolvesToARealSpecies(t *testing.T) {
 	}
 }
 
-// ⭐ THE WHOLE CATALOG AS A PLAYER MEETS IT, which is the assertion the unit
-// tests cannot make: they stub the catalog, and this is the authored one.
+// ⭐ THE SHIPPED SITES AND THE SHIPPED CATALOG AGREE (plan-ascension-sites.md
+// C3, P4/P7), through the same call the boot sequence makes.
+//
+// ⛑ It is the ONLY thing standing between an authored typo and a row that is
+// locked forever, indistinguishable from a gate that is merely hard: `mobs`
+// cannot resolve a reward key (it holds no catalog, and the reverse import is a
+// cycle), so nothing else in the loader chain looks at these strings at all.
+//
+// ⚑ The warning half is asserted EMPTY rather than merely allowed: under D5 a
+// reward no site offers is content nobody can ever reach, and the boot log's
+// health check is 0 WARN / 0 ERROR.
+func TestAscensionSites_OfferExactlyWhatTheCatalogHolds(t *testing.T) {
+	catalog, mobsRegistry := loadedCatalog(t)
+
+	warnings, err := ascension.CrossValidate(mobsRegistry, catalog)
+
+	require.NoError(t, err, "a site offers a reward no entry claims")
+	assert.Empty(t, warnings, "an authored reward that no site offers can never be picked")
+}
+
+// ⭐ THE WHOLE CATALOG AS A PLAYER MEETS IT AT THE VILLAGE STONE, which is the
+// assertion the unit tests cannot make: they stub the catalog, and this is the
+// authored one served through the node that authored the list (C3).
 //
 // A first life at the cap sees five rows it can take and three it cannot, each
 // locked row naming its own wall with this player's progress in it. ⚑ And D14's
@@ -123,10 +144,10 @@ func TestAscensionCatalog_TheHuntGateResolvesToARealSpecies(t *testing.T) {
 // is pickable, so its presence beside five real choices would mean the filter
 // had come apart.
 func TestAscensionCatalog_AFirstLifeSeesFivePickableAndThreeLocked(t *testing.T) {
-	catalog, _ := loadedCatalog(t)
+	catalog, mobsRegistry := loadedCatalog(t)
 	source := sys.NewAscensionRows(catalog)
 
-	rows := source.PresentRows(catalogRowsNode(), newCatalogLearner())
+	rows := source.PresentRows(catalogRowsNode(t, mobsRegistry, "AscensionStone"), newCatalogLearner())
 	require.Len(t, rows, 8, "no empty-pick row while real choices are on screen (D14)")
 
 	var locked []string

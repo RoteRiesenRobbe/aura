@@ -18,8 +18,11 @@ import (
 // of those rows do, which is to STASH the validated pick. The channel that
 // spends the stash is step 5, and the split is deliberate: a click must never be
 // the irreversible act.
+// ⚑ It holds the catalog BY KEY and not in order, and that is C3: since a site
+// authors the list it offers (D3/D5), the only order that means anything is the
+// node's, and every question this type asks the catalog is "what is this key".
 type ascensionRows struct {
-	catalog ascension.Catalog
+	byKey map[string]ascension.Entry
 }
 
 // NewAscensionRows builds the stone's row source. Exported because core/game.go
@@ -29,7 +32,39 @@ func NewAscensionRows(catalog ascension.Catalog) AscensionSource {
 }
 
 func newAscensionRows(catalog ascension.Catalog) *ascensionRows {
-	return &ascensionRows{catalog: catalog}
+	byKey := make(map[string]ascension.Entry, len(catalog.All()))
+	for _, entry := range catalog.All() {
+		byKey[entry.UnlockKey] = entry
+	}
+	return &ascensionRows{byKey: byKey}
+}
+
+// entriesFor resolves the list THIS site offers, in the order it authored
+// (plan-ascension-sites.md C3, D3).
+//
+// ⭐ IT IS THE ONE PLACE THE ORDER IS DECIDED, and that is the whole safety
+// argument: present streams a row's position here as its OptionIndex and apply
+// resolves the click's index against the same call, so the two cannot name
+// different rewards. Deriving the order twice is precisely how a stale click
+// spends a reward the player never saw.
+//
+// ⚑ An unknown key is SKIPPED rather than rendered. ascension.CrossValidate
+// hard-fails the boot on one (P4), so shipped content cannot reach this; what it
+// answers for is a test catalog that does not hold every key a fixture names.
+//
+// ⚑ Runs per tick per conversing player, so the lookup is the map above rather
+// than a walk of the catalog per key (L15).
+func (a *ascensionRows) entriesFor(node *mobs.InteractionNode) []ascension.Entry {
+	if len(node.Rewards) == 0 {
+		return nil
+	}
+	entries := make([]ascension.Entry, 0, len(node.Rewards))
+	for _, key := range node.Rewards {
+		if entry, ok := a.byKey[key]; ok {
+			entries = append(entries, entry)
+		}
+	}
+	return entries
 }
 
 var _ AscensionSource = (*ascensionRows)(nil)
@@ -65,11 +100,10 @@ func (a *ascensionRows) PresentRows(node *mobs.InteractionNode, p learner) []mod
 
 	var rows []model.ConversationOption
 	pickable := 0
-	// ⭐ Indexed over All(), the boot-stable sorted list, NOT over the filtered
-	// remainder. A filtered list renumbers itself every time the bloodline spends
-	// something, so a row's index would name a different reward after every
-	// ascension.
-	for i, entry := range a.catalog.All() {
+	// ⭐ Indexed over THIS SITE'S authored list, NOT over the filtered remainder.
+	// A filtered list renumbers itself every time the bloodline spends something,
+	// so a row's index would name a different reward after every ascension.
+	for i, entry := range a.entriesFor(node) {
 		if a.spent(p, entry.UnlockKey) {
 			continue // P4: a taken entry leaves this bloodline's catalog forever
 		}
@@ -82,9 +116,13 @@ func (a *ascensionRows) PresentRows(node *mobs.InteractionNode, p learner) []mod
 
 	// D14: an exhausted catalog still ascends. The row is offered only when
 	// nothing is pickable, so it is never a costlier alternative to a reward
-	// sitting beside it on screen. ⚑ Locked rows do NOT suppress it: P1 makes max
-	// level the whole entry price, so a bloodline whose every remaining entry is
-	// gated must still be able to go.
+	// sitting beside it on screen. ⚑ Locked rows do NOT suppress it: a bloodline
+	// whose every remaining entry is gated must still be able to go, because the
+	// price of going is what the SITE charges (C1) and not what it offers.
+	//
+	// ⚑ "Nothing pickable" means AT THIS SITE, counted from the loop above rather
+	// than from the catalog — see anyPickable, which is the same question asked on
+	// the apply side and had to move with it.
 	if pickable == 0 {
 		rows = append(rows, model.ConversationOption{
 			OptionIndex:    ascensionEmptyPickIndex,
@@ -167,17 +205,17 @@ func (a *ascensionRows) ApplyRow(node *mobs.InteractionNode, p learner, option, 
 	if option == ascensionEmptyPickIndex {
 		// Offered only when nothing is pickable, so accepting it while a real
 		// choice is on screen would accept a row that was never presented.
-		if a.anyPickable(p) {
+		if a.anyPickable(node, p) {
 			return "", false
 		}
 		return a.stash(node, p, "")
 	}
 
-	all := a.catalog.All()
-	if option < 0 || option >= len(all) {
+	entries := a.entriesFor(node)
+	if option < 0 || option >= len(entries) {
 		return "", false
 	}
-	entry := all[option]
+	entry := entries[option]
 	if a.spent(p, entry.UnlockKey) || !conditionsPass(entry.Conditions, p) {
 		return "", false
 	}
@@ -196,17 +234,22 @@ func (a *ascensionRows) ApplyRow(node *mobs.InteractionNode, p learner, option, 
 // there is no reward left to re-judge. The SITE's price is judged separately, on
 // the pick itself, and the empty pick pays it like every other row
 // (plan-ascension-sites.md C1).
+// ⚑ IT JUDGES THE CATALOG, NOT THE SITE, and that is deliberate rather than an
+// oversight of C3. What can regress during the ten seconds a channel runs is the
+// entry's own gate (re-judged here) and the price the site charged (re-judged
+// from the pick's `Gate`, C1). Membership in a site's list is STATIC CONTENT,
+// already checked when the row was clicked and unable to change under a running
+// channel — and the pick carries a gate snapshot, not a node, so asking the
+// question here would need a second thing to carry for no property gained.
 func (a *ascensionRows) ValidatePick(p learner, key string) bool {
 	if key == "" {
 		return true
 	}
-	for _, entry := range a.catalog.All() {
-		if entry.UnlockKey != key {
-			continue
-		}
-		return !a.spent(p, key) && conditionsPass(entry.Conditions, p)
+	entry, known := a.byKey[key]
+	if !known {
+		return false // not in the catalog at all
 	}
-	return false // not in the catalog at all
+	return !a.spent(p, key) && conditionsPass(entry.Conditions, p)
 }
 
 // stash records the pick, starts the ceremony's channel, and returns the reply
@@ -249,16 +292,24 @@ func (a *ascensionRows) stash(node *mobs.InteractionNode, p learner, key string)
 // to reach it is a key the catalog no longer holds, and a retired reward should
 // still read as words.
 func (a *ascensionRows) displayNameOf(key string) string {
-	for _, entry := range a.catalog.All() {
-		if entry.UnlockKey == key && entry.Skill != nil {
-			return entry.Skill.Display()
-		}
+	if entry, known := a.byKey[key]; known && entry.Skill != nil {
+		return entry.Skill.Display()
 	}
 	return skills.DeriveDisplayName(key)
 }
 
-func (a *ascensionRows) anyPickable(p learner) bool {
-	for _, entry := range a.catalog.All() {
+// anyPickable answers whether THIS SITE has anything left to offer p, and the
+// scope is the whole point.
+//
+// ⛑ IT IS THE SECOND READER OF THE NODE'S INDEX SPACE, and the one easiest to
+// leave behind: it guards D14's ascend-anyway row, which PresentRows offers when
+// this site's list yields nothing pickable. Asked of the whole catalog instead,
+// it makes present and apply disagree the moment two stones differ — a stone
+// whose own entries are all spent or gated SHOWS the row (its list is empty of
+// picks) and then REFUSES the click (some other stone's entry is still
+// pickable), which the player sees as a row that does nothing.
+func (a *ascensionRows) anyPickable(node *mobs.InteractionNode, p learner) bool {
+	for _, entry := range a.entriesFor(node) {
 		if !a.spent(p, entry.UnlockKey) && conditionsPass(entry.Conditions, p) {
 			return true
 		}

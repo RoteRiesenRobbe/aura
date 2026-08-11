@@ -331,6 +331,178 @@ func TestAscensionRows_PresentAndApplyCannotDisagree(t *testing.T) {
 	}
 }
 
+// --- the site owns its rewards (plan-ascension-sites.md C3, D3/D5) ----------
+//
+// A stone serves the list IT authored, in the order it authored, and that list
+// is this node's whole index space. Everything below is the difference between
+// "the catalog" and "this site's catalog".
+
+func TestAscensionRows_ServesOnlyWhatThisSiteOffers(t *testing.T) {
+	src := newAscensionRows(testCatalog(nil))
+
+	rows := src.PresentRows(catalogNodeOffering("Paralyze"), newAscensionLearner(30))
+
+	require.Len(t, rows, 1)
+	assert.Contains(t, rows[0].Text, "Paralyze")
+}
+
+// ⭐ THE INDEX SPACE IS THE NODE'S, NOT THE CATALOG'S, and this is C3's central
+// hazard: All() is sorted by unlock key, so a site whose list happens to be
+// alphabetical leaves every index unchanged and hides the bug completely. This
+// list is deliberately out of catalog order, where the two answers differ at
+// EVERY row: Paralyze is All()[2] and this site's row 0.
+func TestAscensionRows_IndicesAreThisSitesPositionsNotTheCatalogs(t *testing.T) {
+	src := newAscensionRows(testCatalog(nil))
+
+	rows := src.PresentRows(catalogNodeOffering("Paralyze", "EmberWard"), newAscensionLearner(30))
+
+	require.Len(t, rows, 2)
+	paralyze, ok := rowByText(rows, "Paralyze")
+	require.True(t, ok)
+	assert.EqualValues(t, 0, paralyze.OptionIndex)
+	ember, ok := rowByText(rows, "Ember Ward")
+	require.True(t, ok)
+	assert.EqualValues(t, 1, ember.OptionIndex)
+}
+
+// The other half of the same hazard: a click carries the index the panel was
+// streamed, so apply must resolve it against the SAME list present did. Indexing
+// the catalog here hands over EmberWard for a row the player read as Paralyze.
+func TestAscensionRows_ApplyResolvesTheIndexAgainstThisSitesList(t *testing.T) {
+	src := newAscensionRows(testCatalog(nil))
+	p := newAscensionLearner(30)
+
+	_, ok := src.ApplyRow(catalogNodeOffering("Paralyze", "EmberWard"), p, 0, 0)
+
+	require.True(t, ok)
+	require.NotNil(t, p.sc.PendingAscension)
+	assert.Equal(t, "Paralyze", p.sc.PendingAscension.Key, "row 0 of THIS site is Paralyze; row 0 of the catalog is EmberWard")
+}
+
+// A key this site does not offer is not addressable at it, however it is
+// addressed: the catalog index of an entry offered elsewhere is an ordinary
+// out-of-range click here.
+func TestAscensionRows_RefusesAnIndexPastThisSitesList(t *testing.T) {
+	src := newAscensionRows(testCatalog(nil))
+	p := newAscensionLearner(30)
+
+	_, ok := src.ApplyRow(catalogNodeOffering("Paralyze"), p, 2, 0) // Paralyze's CATALOG index
+
+	assert.False(t, ok)
+	assert.Nil(t, p.sc.PendingAscension)
+}
+
+// ⛑ THE ASCEND-ANYWAY ROW IS JUDGED AGAINST THIS SITE'S LIST, and it is the
+// second index-space reader — the one the plan's own chunk table did not name.
+// `anyPickable` guards D14's empty pick, and left reading the whole catalog it
+// makes present and apply disagree the moment two sites differ: this stone has
+// nothing pickable so the row is SHOWN, while EmberWard is still pickable at the
+// other stone so the click is REFUSED. The player watches a row do nothing.
+func TestAscensionRows_TheAscendAnywayRowIsJudgedAgainstThisSitesList(t *testing.T) {
+	src := newAscensionRows(testCatalog(map[string][]mobs.InteractionCondition{
+		"Paralyze": {{Kind: mobs.ConditionMinLevel, Value: 99}},
+	}))
+	site := catalogNodeOffering("Paralyze") // gated here; EmberWard is pickable elsewhere
+	p := newAscensionLearner(30)
+
+	rows := src.PresentRows(site, p)
+	_, offered := rowByText(rows, "Spend this character")
+	require.True(t, offered, "this site has nothing pickable, so D14's row belongs on screen")
+
+	_, ok := src.ApplyRow(site, p, ascensionEmptyPickIndex, 0)
+
+	assert.True(t, ok, "a row this site presented must be acceptable at this site")
+	require.NotNil(t, p.sc.PendingAscension)
+	assert.Equal(t, "", p.sc.PendingAscension.Key)
+}
+
+// An authored empty list is legitimate (D5): a stone that ends lives and hands
+// nothing back. It is the same picture as an exhausted catalog, which is exactly
+// why D14's row is what it shows.
+func TestAscensionRows_ASiteOfferingNothingStillAscends(t *testing.T) {
+	src := newAscensionRows(testCatalog(nil))
+	site := catalogNodeOffering()
+	p := newAscensionLearner(30)
+
+	rows := src.PresentRows(site, p)
+
+	require.Len(t, rows, 1)
+	assert.Contains(t, rows[0].Text, "Spend this character")
+	_, ok := src.ApplyRow(site, p, ascensionEmptyPickIndex, 0)
+	assert.True(t, ok)
+}
+
+// ⭐ D4: reward lists MAY overlap, and spending a key at one site removes it from
+// every other. This is free rather than built — `bloodline_unlocks`' primary key
+// already enforces once-per-slot and the filter already reads spent keys — so
+// what this pins is that per-site lists did not quietly reintroduce a per-site
+// notion of "spent".
+func TestAscensionRows_SpendingAtOneSiteRemovesTheRowFromEveryOther(t *testing.T) {
+	src := newAscensionRows(testCatalog(nil))
+	village := catalogNodeOffering("EmberWard", "FrostShield", "Paralyze")
+	front := catalogNodeOffering("Paralyze", "EmberWard")
+
+	afterSpending := newAscensionLearner(30, "Paralyze")
+
+	_, atVillage := rowByText(src.PresentRows(village, afterSpending), "Paralyze")
+	assert.False(t, atVillage)
+	_, atFront := rowByText(src.PresentRows(front, afterSpending), "Paralyze")
+	assert.False(t, atFront, "one bloodline_unlocks row, not one per site")
+	_, ember := rowByText(src.PresentRows(front, afterSpending), "Ember Ward")
+	assert.True(t, ember, "and the site's other offer is untouched")
+}
+
+// ⚑ A key no catalog entry claims is skipped rather than rendered as a broken
+// row. ascension.CrossValidate makes this unreachable in shipped content (P4
+// hard-fails the boot), so this is the belt to that braces — and it states the
+// answer for a test catalog that simply does not hold every key a fixture names.
+func TestAscensionRows_SkipsAnOfferedKeyTheCatalogDoesNotHold(t *testing.T) {
+	src := newAscensionRows(testCatalog(nil))
+
+	rows := src.PresentRows(catalogNodeOffering("Paralyze", "NoSuchReward"), newAscensionLearner(30))
+
+	require.Len(t, rows, 1)
+	assert.Contains(t, rows[0].Text, "Paralyze")
+}
+
+// The optimistic-panel property again (L24), now over sites that DIFFER — which
+// is the configuration every per-site index bug lives in.
+func TestAscensionRows_PresentAndApplyCannotDisagree_AcrossSites(t *testing.T) {
+	gates := map[string][]mobs.InteractionCondition{
+		"EmberWard": {{Kind: mobs.ConditionMinLevel, Value: 20}},
+		"Paralyze":  {{Kind: mobs.ConditionMinLevel, Value: 99}},
+	}
+	sites := map[string][]string{
+		"the village stone": {"Paralyze", "EmberWard", "FrostShield"},
+		"the front stone":   {"FrostShield", "Paralyze"},
+		"a one-reward site": {"EmberWard"},
+		"a site of none":    {},
+	}
+
+	for name, rewards := range sites {
+		for _, level := range []uint32{1, 19, 20, 30} {
+			for _, spent := range [][]string{nil, {"FrostShield"}, {"EmberWard", "FrostShield", "Paralyze"}} {
+				rows := newAscensionRows(testCatalog(gates)).
+					PresentRows(catalogNodeOffering(rewards...), newAscensionLearner(level, spent...))
+
+				for _, row := range rows {
+					taker := newAscensionLearner(level, spent...)
+					reply, ok := newAscensionRows(testCatalog(gates)).
+						ApplyRow(catalogNodeOffering(rewards...), taker, int(row.OptionIndex), int(row.GrantIndex))
+
+					where := fmt.Sprintf("%s, level %d, spent %v, row %q", name, level, spent, row.Text)
+					if row.Locked {
+						assert.False(t, ok, "%s: a locked row is inert", where)
+						continue
+					}
+					require.True(t, ok, "%s: a presented row must always be acceptable", where)
+					assert.Equal(t, row.Reply, reply, "%s: the panel already said this", where)
+				}
+			}
+		}
+	}
+}
+
 // --- bloodline_ascensions at the evaluator (D18 tier B, C2a step 4) ---
 
 func ascensionGate(n int) []mobs.InteractionCondition {
@@ -567,7 +739,7 @@ func TestAscensionRows_ARowRendersTheAuthoredDisplayName(t *testing.T) {
 		ascension.Entry{UnlockKey: def.Name, Skill: def},
 	))
 
-	rows := source.PresentRows(catalogNode(), newAscensionLearner(30))
+	rows := source.PresentRows(catalogNodeOffering(def.Name), newAscensionLearner(30))
 	require.Len(t, rows, 1)
 	assert.Equal(t, "Rime-Burst", rows[0].Text, "the authored override, not the derived spelling")
 	assert.Contains(t, rows[0].Reply, "Rime-Burst")
@@ -586,7 +758,7 @@ func TestAscensionRows_TheStashedReplyUsesTheAuthoredDisplayName(t *testing.T) {
 	))
 	p := newAscensionLearner(30)
 
-	reply, ok := source.ApplyRow(catalogNode(), p, 0, 0)
+	reply, ok := source.ApplyRow(catalogNodeOffering(def.Name), p, 0, 0)
 	require.True(t, ok)
 	assert.Contains(t, reply, "Rime-Burst")
 	assert.NotContains(t, reply, "Rime Burst", "the derived spelling must not leak back in")

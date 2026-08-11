@@ -1,8 +1,10 @@
 # Plan: Ascension sites - many stones, each with its own price and its own rewards
 
-> **Status: C1 + C2 SHIPPED 2026-08-11 (`509321e6`, `d66ca9f3`); C3 open.** Four PO
-> rulings taken in the design session (D1-D4), three more at C1 (the second
-> stone's price and place, and P2 pulled forward). Successor to
+> **Status: C1 + C2 SHIPPED 2026-08-11 (`509321e6`, `d66ca9f3`); C3a built and
+> verified the same day (uncommitted); C3b open.** Four PO rulings taken in the
+> design session (D1-D4), three more at C1 (the second stone's price and place,
+> and P2 pulled forward), four more at C3's design pass (D5, D6, P7, P8 — and
+> D5 amends §5). Successor to
 > `docs/archive/plan-ascension.md`, which shipped the loop against exactly one
 > stone at exactly one price. Every number is **[PLACEHOLDER]** unless marked.
 > Ledger: §9.
@@ -88,6 +90,20 @@ C3's own principle one level up, and D2 rules it in scope.
   stones, and spending it at one removes it from every one of them. This is
   free: `bloodline_unlocks`' primary key already enforces once-per-slot, and P4
   ("a taken entry leaves that bloodline's catalog forever") already says it.
+- **D5 - a catalog node MUST author its list; there is no catch-all.** (PO
+  2026-08-11, at C3.) An absent `rewards` is a **boot failure**, an authored `[]`
+  is the legitimate empty list of §4, and only an authored list is ever served.
+  ⚑ This **overrides §5's "optional, backward-compatible"**, and for D1's own
+  reason one layer up: "absent means the whole catalog" is exactly the implicit
+  global that C1 took out of the price. It also keeps the resolved Go field a
+  plain `[]string` — absent is refused at the loader, so nil and `[]` may mean
+  the same thing everywhere below it. ⚑ The cost is paid once: twelve test
+  fixtures across three files must author a list.
+- **D6 - the front stone offers `KeenEye`, `FrostShield`, `RimeBurst`.** (PO
+  2026-08-11.) Three entries against the village's eight, so "the lists differ"
+  is unmistakable; `FrostShield` is gated, so a locked row differs per site too;
+  and `RimeBurst` is the **deliberate overlap** that lets one Go test pin D4 —
+  spend it at the village stone, it is gone from the front stone as well.
 
 ### Proposals adopted without a choice prompt (PO may veto any)
 
@@ -118,6 +134,20 @@ C3's own principle one level up, and D2 rules it in scope.
   destination is gated would leak hidden nodes across every quest tree in the
   game; `destinationVisible` hides them today and must keep hiding them by
   default.
+- **P7 - a catalog entry offered by NO site is a boot WARN** (PO 2026-08-11).
+  P4's mirror: under D5 nothing is served implicitly any more, so a reward file
+  nobody placed on a stone is dead content and today nothing says so. A warning
+  rather than a failure, following `quests.CrossValidate`'s own rule for content
+  that loads but cannot be reached: authoring the reward file and placing it are
+  two edits, and the order between them should stay free. It is visible because
+  the boot log's health check is *0 WARN / 0 ERROR*.
+- **P8 - the village stone authors all eight in a deliberately NON-catalog
+  order.** A test-strength decision, not a content one. `Catalog.All()` is sorted
+  by unlock key, so a stone whose list happens to be alphabetical leaves **every
+  index unchanged**, and the central mutation of this chunk — index the catalog
+  instead of this node's list — becomes invisible at every row. Reordered, that
+  mutation hands over the *wrong reward*, which `c2a-ascension-site`'s existing
+  ceremony leg already checks end to end.
 - **P6 - the ceremony itself does not vary by site.** Same channel length, same
   confirm countdown, same effect, same exit. A site prices the entry and pays
   the reward; it does not re-choreograph the ritual.
@@ -178,13 +208,25 @@ hand.
 
 ### C3 - the site owns its rewards
 
-| Layer | Change |
-| --- | --- |
-| `mobs/interaction.go` | `InteractionNode.Rewards []string`, refused elsewhere (P3) |
-| ~~`sys/interaction.go`~~ | ~~`RowSource` takes the node (P2)~~ — **done in C1a** |
-| `sys/ascension_rows.go` | rows come from the node's list, filtered as today |
-| `cmd/aurad/loaders.go` | cross-validation, boot hard-fails on an unknown key (P4) |
-| `api/mobs/` | the two stones author different lists |
+**Split C3a / C3b** (PO 2026-08-11), the C1a/C1b discipline reused because it
+worked: the plumbing and the content both move indices, and if they move in one
+commit a harness delta cannot be attributed to either without bisecting by hand.
+
+| | Layer | Change |
+| --- | --- | --- |
+| **C3a** | `mobs/interaction.go` | `InteractionNode.Rewards []string`; **required** on a catalog node (D5), refused elsewhere (P3), refused when it names one key twice |
+| **C3a** | `ascension/interactions.go` | `CrossValidate(mr, catalog)`: unknown key HARD-FAILS (P4), unoffered entry WARNS (P7) |
+| **C3a** | `cmd/aurad/loaders.go` | calls it, inside `loadAscensionCatalog`, which already holds `mr` |
+| **C3a** | `sys/ascension_rows.go` | one `entriesFor(node)` feeding present, apply **and `anyPickable`** |
+| **C3a** | `api/mobs/` | both stones author **the same eight, in catalog order** — behaviour-neutral by construction |
+| **C3b** | `api/mobs/` | the village list is reordered (P8); the front stone drops to its own three (D6) |
+| **C3b** | harnesses + content test | the new pins, and `c2a`'s new row order |
+| ~~C3~~ | ~~`sys/interaction.go`~~ | ~~`RowSource` takes the node (P2)~~ — **done in C1a** |
+
+⚑ **C3a's acceptance criterion is that NOTHING changes**: every Go test and all
+three harnesses at their exact baseline, because both stones serve the same eight
+entries in the same order they are served today. C3b is then a pure content diff
+with its pins.
 
 ⛑ **THE INDEX SPACE IS THE HAZARD.** `ApplyRow`'s `option` indexes the catalog
 today; it must index *that node's* list, and present and apply must derive it
@@ -193,9 +235,32 @@ saw. This is the same failure the loader already refuses authored options on a
 `rows` node to prevent, and it is what the "present and apply cannot disagree"
 pin exists for.
 
+⛑ **`anyPickable` IS THE SECOND INDEX-SPACE READER, and the table above is the
+first place this plan names it.** It guards D14's ascend-anyway row, and it asks
+today whether anything *in the whole catalog* is pickable. Left global under
+per-site lists, a stone whose own three entries are all spent or gated would
+**present** the ascend-anyway row (its list has nothing pickable) and then
+**refuse the click** (some other stone's entry still does), which is precisely
+the present/apply disagreement L24's pin exists to catch, arriving through a
+method nobody was looking at. It has to be node-scoped like the other two.
+
+⚑ **`ValidatePick` stays catalog-global, deliberately.** What can regress during
+the ten-second channel is the entry's own gate (re-judged there) and the site's
+price (re-judged through `Gate`, C1). Membership in a site's list is *static
+content*, already validated when the row was clicked, so re-checking it would add
+a lookup and no property — and the pick carries a gate snapshot, not a node.
+
 ⚑ **An empty list is legitimate** (D14's empty pick is a per-site question now),
 and a list every entry of which is spent or gated is the same picture C3 already
 handles.
+
+⛑ **THE FRONT STONE'S LIST IS NOT BROWSER-REACHABLE, and that is measured.**
+`QUEST ADVANCE` refuses `thin-the-orc-line`'s first stage outright (*"stage
+%q is an objective stage; it advances off its counters"*), so reaching that
+stone's catalog node still needs five real orc kills — the price C1 measured as
+unpayable and the PO ruled to leave. So the differing list is carried by Go, and
+**C3's browser proof is the village stone's authored ORDER** (P8), which `c2a`
+reads for free. Same shape as C1's recorded gap.
 
 **Order.** C1 → C2 → C3 is the recommendation: C1 unblocks the ask, C2 is small
 and makes C1 truthful, C3 is the largest and is the only one that touches an
@@ -213,8 +278,9 @@ legible prices.
 - **conf: NONE.** `game.player.levelCurve.maxLevel` keeps its other meanings and
   simply stops being ascension's price.
 - **Content: two new authored keys** (a node's `rewards`, and C2's per-row
-  opt-in flag), both optional, both backward-compatible with the eight shipped
-  entries and the one shipped stone.
+  opt-in flag). ⚑ **D5 overrode this line at C3**: the flag is optional, but
+  `rewards` is **required** on a catalog node, so the two shipped stones are both
+  edited rather than inheriting a default.
 - **Deploy: content plus backend, NOT a both-sides deploy.** No wire change, so
   no hard reload.
 
@@ -224,7 +290,11 @@ legible prices.
   ascension plan was. The specific mutations worth writing down in advance:
   delete the completion re-judge (a quest abandoned mid-channel must refuse);
   make `ValidatePick` accept the empty key unconditionally again; serve node A's
-  rows and apply against node B's list; drop the boot cross-validation.
+  rows and apply against node B's list; drop the boot cross-validation. **Added
+  at C3's design pass**: leave `anyPickable` reading the whole catalog (the
+  ascend-anyway row is presented at a stone and refused there) · accept `rewards`
+  on a `memorial_names` node · let one list name a key twice · let a catalog node
+  author no list at all (D5).
 - **The negative control that matters**: a player who qualifies at stone A but
   not at stone B must be refused at B. One player, two sites, in one test.
 - **Harness boundaries.** `c2a-ascension-site.mjs` owns the ORIGINAL stone and
@@ -434,3 +504,68 @@ click a row rather than taking one away).
 
 **Left for C3**: the site owns its rewards. C2 changed nothing about the reward
 list, and the index-space hazard §4 records is untouched.
+
+### C3a - a site authors what it offers (plumbing) ✅ 2026-08-11, uncommitted
+
+The whole of C3's machinery, shipped **behaviour-neutral by construction**: both
+stones author the same eight rewards in the order `Catalog.All()` already served
+them, so the acceptance criterion is that nothing changes anywhere. C3b is then a
+pure content diff. **Schema: DB NONE · FlatBuffers NONE · conf NONE** — one new
+authored content key, Go only, **client untouched**.
+
+⛑ **`anyPickable` WAS THE SECOND INDEX-SPACE READER, and no design document
+named it.** §4 called out `ApplyRow`'s `option`, which is the obvious half; the
+one that would have shipped is the guard on D14's ascend-anyway row. It asks
+"is anything pickable", and the answer has to mean *at this site*: left global,
+a stone whose own list is spent or gated **presents** the row (nothing pickable
+here) and then **refuses the click** (something is pickable elsewhere), which is
+an L24 present/apply disagreement arriving through a method that looks like a
+private helper. Found by reading the call sites for the index space, pinned
+red-first, and the mutation that restores the global scope reddens three tests.
+
+⚑ **D5 CHOSE THE STRICTER SHAPE AND `§5` HAD TO BE AMENDED FOR IT.** The plan as
+approved called `rewards` optional with an absent list meaning "the whole
+catalog". That is the implicit global C1 removed one layer up, so the PO ruled it
+required: absent hard-fails, `[]` is the authored empty list. It also collapses
+the runtime type — absent is refused at the loader, so nil and `[]` may mean the
+same thing everywhere below — at the cost of a `*[]string` in the authored shape
+and twelve fixtures across three files.
+
+⚑ **THE CROSS-VALIDATION HAS NOWHERE ELSE TO LIVE, and this is now recorded
+twice** (P4 predicted it, the build confirmed it): `mobs` holds no catalog and
+cannot import one (`ascension` imports `mobs`), and the catalog loader does not
+know who offers what. `ascension.CrossValidate(mr, catalog)` follows
+`quests.CrossValidate` exactly and is called from `loadAscensionCatalog`, which
+already takes the mob registry for the gate half.
+
+⚑ **THE THREE CONTENT CENSUSES BROKE AGAIN, exactly as the C1 ledger warned**,
+and this time from a content *edit* rather than a new mob: adding a required key
+made every `items/mobs` census that parses `api/` red until both stones authored
+it. They are supposed to break. `-count=1` and `cp-defs` are both mandatory.
+
+⛑ **A CONTENT TEST WAS DRIVING THE PROVIDER AGAINST CONTENT NOBODY SHIPS.**
+`catalogRowsNode()` built a synthetic node, which was harmless while the node was
+only a dispatch key — and became meaningless the moment the node carried the
+list. It now digs the named stone's real node out of the registry, so
+*"a first life sees five pickable and three locked"* is once again a statement
+about the village stone rather than about a fixture.
+
+**Verified.** TDD red-first at three surfaces (loader, cross-validation, row
+source); **8 of 8 mutations caught** — the global `anyPickable` · apply indexing
+a re-sorted list · an unknown key rendered as a blank row · the D5 refusal
+deleted · the P3 refusal deleted · a duplicated key tolerated · P4's hard-fail
+deleted · P7's warning deleted. `go test -count=1 ./...` **34 packages ok** bar
+the known `TestDwell` flake (measured 1/8 here, inside its recorded band);
+`-race` clean on the four touched packages. Boot **68 mobs / 13 quests / 8
+rewards / 488 spawns, 0 WARN / 0 ERROR** — the P7 warning is silent because every
+entry is offered. Harnesses, all three at their **exact** baselines, which is the
+whole acceptance criterion of a behaviour-neutral chunk: **`c2a-ascension-site`
+30/30** (its ceremony leg is the end-to-end path through the new `entriesFor` —
+Rime-Burst picked, channelled, spent), **`c1-front-stone` 13/16 + the same 3
+inconclusive**, **`c3-memorial-catalog` 14/14** (its trailing *"undelivered
+clicks: row not found"* diagnostic unchanged).
+
+**Left for C3b**: the content. The village list is reordered off catalog order
+(P8), the front stone drops to its own three (D6), and the pins that only differ
+once the two disagree — *not all sites offer the same list*, and `c2a`'s row
+order becoming an authored fact rather than an alphabetical accident.

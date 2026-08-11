@@ -61,6 +61,27 @@ type InteractionNode struct {
 	// rather than tidiness: a generated row is addressed by its position in the
 	// source's list, so an authored option would claim the same numbers.
 	Rows RowSourceKind
+
+	// Rewards is what an `ascension_catalog` node OFFERS: unlock keys, in the
+	// order a player will see them (plan-ascension-sites.md D3). A site owns its
+	// reward list the same way C1 made it own its price.
+	//
+	// ⭐ IT IS THIS NODE'S INDEX SPACE. A generated row carries its position in
+	// THIS list as its OptionIndex, so present and apply must both derive the
+	// order from here — indexing the global catalog instead would spend a reward
+	// the player never saw.
+	//
+	// ⚑ REQUIRED on a catalog node and refused on every other kind of node (D5 /
+	// P3). An absent list is a boot failure rather than "serve everything",
+	// because a catch-all is the implicit global this whole plan exists to
+	// remove; an authored empty list is legitimate and means a stone that ends
+	// lives and hands nothing back. Both therefore arrive here as nil, and
+	// nothing below this line needs to tell them apart.
+	//
+	// ⚑ The keys are NOT resolved here: `mobs` holds no catalog, and `ascension`
+	// imports `mobs`, so the reverse is a cycle. ascension.CrossValidate checks
+	// them at boot, where both registries stand (P4).
+	Rewards []string
 }
 
 // RowSourceKind names one generated row list. A closed vocabulary with the
@@ -391,6 +412,12 @@ type jsonInteractionNode struct {
 	Lines      []string                `json:"lines"`
 	Rows       string                  `json:"rows"`
 	Options    []jsonInteractionOption `json:"options"`
+
+	// ⚑ A POINTER, and that is D5 rather than style: absent and `[]` are
+	// different authored statements — "this site says nothing about what it
+	// offers", which is refused, and "this site offers nothing", which is
+	// legitimate — and a plain slice decodes both to nil.
+	Rewards *[]string `json:"rewards"`
 }
 
 type jsonInteractionOption struct {
@@ -559,6 +586,9 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 			}
 			node.Rows = kind
 		}
+		if err := mapRewards(m.Name, jn, &node); err != nil {
+			return nil, err
+		}
 		for j, jc := range jn.Conditions {
 			cond, err := ParseCondition(jc)
 			if err != nil {
@@ -719,6 +749,50 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 		}
 	}
 	return in, nil
+}
+
+// mapRewards resolves a catalog node's authored reward list, and refuses one
+// anywhere else (plan-ascension-sites.md C3, D3/D5/P3).
+//
+// ⚑ It validates SHAPE only. Whether a key names a real reward is
+// ascension.CrossValidate's question, because this package holds no catalog and
+// cannot import one without a cycle.
+func mapRewards(mobName string, jn *jsonInteractionNode, node *InteractionNode) error {
+	if node.Rows != RowSourceAscensionCatalog {
+		if jn.Rewards != nil {
+			return fmt.Errorf("mob %q: interaction node %q: rewards is what an %q node offers, and this node is "+
+				"not one — the key would be silently inert here",
+				mobName, jn.ID, RowSourceAscensionCatalog)
+		}
+		return nil
+	}
+	// ⭐ ABSENT IS A BOOT FAILURE, not "offer everything" (D5). A site owns its
+	// reward list exactly as C1 made it own its price, and a catch-all default is
+	// the implicit global this plan exists to remove. An authored `[]` is a
+	// different and legitimate statement, which is why the authored field is a
+	// pointer.
+	if jn.Rewards == nil {
+		return fmt.Errorf("mob %q: interaction node %q: an %q node must author the rewards it offers — "+
+			"there is no catch-all, and `\"rewards\": []` is how a site says it offers none (D5)",
+			mobName, jn.ID, RowSourceAscensionCatalog)
+	}
+	seen := make(map[string]bool, len(*jn.Rewards))
+	for i, key := range *jn.Rewards {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			return fmt.Errorf("mob %q: interaction node %q reward %d: must name an unlock key", mobName, jn.ID, i)
+		}
+		// The catalog's own duplicate check, one layer down: two rows spending one
+		// bloodline_unlocks key leaves the second unpickable forever, and it reaches
+		// the player as a row that greys out for no reason once they click its twin.
+		if seen[key] {
+			return fmt.Errorf("mob %q: interaction node %q reward %d: %q is already offered by this node — "+
+				"one unlock key spends once, so the second row could never be taken", mobName, jn.ID, i, key)
+		}
+		seen[key] = true
+		node.Rewards = append(node.Rewards, key)
+	}
+	return nil
 }
 
 // nodeByID finds a node in a parsed interaction. Load-time only: the render path

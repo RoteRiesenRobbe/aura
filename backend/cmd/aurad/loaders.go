@@ -304,6 +304,22 @@ func loadAscensionCatalog(fsys fs.FS, r skills.Registry, mr mobs.Registry, qr qu
 		panic(err)
 	}
 	slog.Info("Loaded ascension rewards", slog.Int("count", len(catalog.All())))
+
+	// The other direction: what the SITES authored (plan-ascension-sites.md C3).
+	// It rides here rather than in its own boot step for the reason above — this
+	// is already the point where both registries stand — and it is the only pass
+	// that can run it at all, since neither package may import the other.
+	warnings, err := ascension.CrossValidate(mr, catalog)
+	if err != nil {
+		slog.Error("failed to cross-validate the ascension sites", slog.Any("err", err))
+		panic(err)
+	}
+	// Content that loads and runs but that nobody offers — a warning rather than
+	// a boot failure (P7), following the unreachable-quest-content precedent
+	// twenty lines up: authoring a reward and placing it on a stone are two edits.
+	for _, w := range warnings {
+		slog.Warn("unreachable ascension reward", slog.String("detail", w))
+	}
 	return catalog
 }
 
