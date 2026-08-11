@@ -6,7 +6,7 @@
 > **C1** `dee6a9c0` (§11) · **C2a** `4674cf00` (§12.7–§12.11) ·
 > **C2b** `a64f5b96` (§12.14) · **C3** `b995061b` (§13.8) ·
 > **follow-up ① the row tooltip** `0497417a` (§13.9) ·
-> **follow-up ② the ceremony gets the stage** (§13.10).
+> **follow-up ② the ceremony gets the stage** `5b014c17` (§13.10).
 > The loop runs end to end: walk to the stone at max level, pick a reward,
 > confirm, channel it while the motes gather, and land on character select with
 > the character spent, its name on the memorial and its bloodline richer by one.
@@ -2583,7 +2583,7 @@ losses - the appended-field check that owns a renumber.
 a new tree is fine (it ignores the field), but a new client against an old server
 reads 0 everywhere, so the two halves must move together.
 
-### 13.10 Follow-up ledger ② - THE CEREMONY GETS THE STAGE ✅ 2026-08-11, `[uncommitted]`
+### 13.10 Follow-up ledger ② - THE CEREMONY GETS THE STAGE ✅ 2026-08-11, `5b014c17`
 
 The PO's last adjustment before the plan closes, and the one that makes the
 ten-second channel look like something rather than like a frozen character with
