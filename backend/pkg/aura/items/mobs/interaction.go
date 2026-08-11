@@ -289,14 +289,27 @@ const (
 	ConditionKillsThisLife ConditionKind = "kills_this_life"
 )
 
-// The two stage sentinels a quest_at_stage condition may name instead of a stage
+// The stage sentinels a quest_at_stage condition may name instead of a stage
 // id. ⚑ They live HERE, in the package that parses them, rather than with the
 // ledger that answers them: quests imports mobs (species names resolve to MobIDs
 // at load), so the reverse direction is an import cycle. The ledger's matcher
 // reads these constants.
+//
+// ⚑ A sentinel is named in FOUR places and all four must learn it together: this
+// block, the loader's error string below, quests.CheckStageRef (which would
+// otherwise refuse the name as an undefined stage id and fail boot), and
+// Ledger.MatchesStage. The ascension catalog needs no edit — it calls the same
+// checker rather than copying it.
 const (
 	QuestStageNotStarted = "not_started"
 	QuestStageCompleted  = "completed"
+	// QuestStageRunning is the whole in-progress band without naming a stage:
+	// accepted, not yet finished (intake round 8 item 2). It exists because
+	// conditions are AND-ed with no negation, so "while this quest is running"
+	// was otherwise inexpressible except by duplicating a node once per stage —
+	// and a row that answers a question only a running quest asks is exactly
+	// what should leave when the quest does.
+	QuestStageRunning = "running"
 )
 
 var conditionKinds = map[string]ConditionKind{
@@ -452,8 +465,8 @@ func ParseCondition(jc JSONCondition) (InteractionCondition, error) {
 				"which is an authored gate that does nothing", cond.Value)
 	}
 	if kind == ConditionQuestAtStage && (cond.Quest == "" || cond.Stage == "") {
-		return InteractionCondition{}, fmt.Errorf("quest_at_stage needs a quest and a stage (a stage id, %q or %q)",
-			QuestStageNotStarted, QuestStageCompleted)
+		return InteractionCondition{}, fmt.Errorf("quest_at_stage needs a quest and a stage (a stage id, %q, %q or %q)",
+			QuestStageNotStarted, QuestStageCompleted, QuestStageRunning)
 	}
 	return cond, nil
 }
@@ -608,14 +621,34 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 	//
 	// ⚑ A node below the fallback is not useless — options can still navigate to
 	// it. Only its use as a GREETING is dead, which is why the message names that.
+	//
+	// ⭐ And that is exactly why a NAVIGATION DESTINATION is exempt (intake round 8
+	// item 2): a node an option points at was never competing to be the greeting,
+	// so its position below the fallback is the author's intent rather than the
+	// mistake this rule catches. Hiding an info row REQUIRES the shape — options
+	// carry no conditions, so a row is gated by gating the node behind it, and
+	// hoisting that node above the fallback would make it the greeting the moment
+	// its condition passed. ⚑ The trade, stated: a node that is both a destination
+	// and a would-be conditional greeting now passes with its greeting use silently
+	// dead. Authoring an option to a node is a clear enough statement of intent to
+	// be worth that, and the alternative is a legal shape nobody can author.
+	destinations := make(map[string]bool, len(in.Nodes))
+	for _, node := range in.Nodes {
+		for _, opt := range node.Options {
+			if opt.Next != "" {
+				destinations[opt.Next] = true
+			}
+		}
+	}
 	for i := range in.Nodes {
 		if len(in.Nodes[i].Conditions) > 0 {
 			continue
 		}
 		for _, later := range in.Nodes[i+1:] {
-			if len(later.Conditions) > 0 {
+			if len(later.Conditions) > 0 && !destinations[later.ID] {
 				return nil, fmt.Errorf("mob %q: interaction node %q is conditional but sits below the unconditional "+
-					"node %q, so it can never be selected as the greeting — put conditional nodes first (L3)",
+					"node %q with nothing navigating to it, so it can never be selected as the greeting — "+
+					"put conditional nodes first (L3)",
 					m.Name, later.ID, in.Nodes[i].ID)
 			}
 		}

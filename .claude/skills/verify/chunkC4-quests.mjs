@@ -74,6 +74,11 @@ const AT = {
   Shaman: { x: 18, y: 6 },
   CityGuard: { x: 62, y: 10 },
   WolfCountry: { x: -60, y: 8 },
+  // The densest Kobold cluster with ≥2u of clearance from any blocking prop:
+  // 13 spawns within 8 units, clearance 2.46. Derived from api/zones/world.json,
+  // not eyeballed — an arbitrary warp target can land in a pocket a couple of
+  // units wide, and then every walk measures the pocket.
+  Kobolds: { x: -17, y: 14 },
 };
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
@@ -487,18 +492,16 @@ try {
 
   await clickRow('Do you have a task for me');
   const lampNode = await panel();
-  check('D2 the lamp node offers Accept + the nest question (turn-in hidden)',
+  // ⚑ INVERTED 2026-08-11 (intake round 8 item 2): the nest question is now
+  // gated `quest_at_stage / the-lost-lamp / running`, so it is absent BEFORE the
+  // quest is accepted as well as after it ends. That is the deliberate cost of
+  // the `running` sentinel over a `not_completed` one (PO call), and the brief
+  // already says "north of the tunnel" — this leg used to assert the opposite.
+  check('D2 the lamp node offers Accept; the nest question is NOT yet there (running-gated), turn-in hidden',
     lampNode?.rows.some((r) => r.includes("I'll do it"))
-    && lampNode.rows.some((r) => r.includes('Where do they nest'))
+    && !lampNode.rows.some((r) => r.includes('Where do they nest'))
     && !lampNode.rows.some((r) => r.includes('kobolds are dead')),
     `rows=${JSON.stringify(lampNode?.rows)}`);
-
-  await clickRow('Where do they nest');
-  const nest = await panel();
-  await clickBack();
-  check('D3 the nest question is an answer-node with Back (R1 follow-ups)',
-    /North of the tunnel/i.test(nest?.lines ?? '') && (await panel())?.rows.some((r) => r.includes("I'll do it")),
-    `lines="${nest?.lines}"`);
 
   await clickRow("I'll do it");
   await waitForJournal((j) => inList(j.running, titleOf('the-lost-lamp')));
@@ -507,12 +510,88 @@ try {
     lampDetail?.entries[0] === prose('the-lost-lamp', 'cull')
     && (lampDetail?.objectives ?? []).some((o) => /^\d+\/6 kobolds killed$/.test(o)),
     `entries=${JSON.stringify(lampDetail?.entries)} objectives=${JSON.stringify(lampDetail?.objectives)}`);
+
+  // D3 moved BELOW the accept, because that is now the only state it exists in.
+  await talkTo('Lampless Traveller');
+  await clickRow('Do you have a task for me');
+  const running = await panel();
+  check('D3 ⭐ accepting REVEALS the nest question — the row the `running` gate exists for',
+    running?.rows.some((r) => r.includes('Where do they nest')), `rows=${JSON.stringify(running?.rows)}`);
+
+  await clickRow('Where do they nest');
+  const nest = await panel();
+  await clickBack();
+  // ⚑ Back lands on `lamp`, whose ONLY row at this moment is the nest question
+  // itself: Accept is spent (CanApply) and the turn-in is not yet walkable.
+  check('D3b the nest question is an answer-node with Back (R1 follow-ups)',
+    /North of the tunnel/i.test(nest?.lines ?? '') && (await panel())?.rows.some((r) => r.includes('Where do they nest')),
+    `lines="${nest?.lines}"`);
   await leave();
 
-  skip('D5 the kobold cull and the lamp turn-in',
-    'not attempted on purpose — six real kobold kills cost what eight wolves cost (leg C), and the ' +
-    'counter → advance path is proven by B/C. The Lantern reward and its only-source status are pinned by ' +
-    'TestContent_LanternIsQuestOnlyAndHasASource.');
+  // --- D5: six real kobolds, then the reported bug itself ---------------------
+  //
+  // ⭐ This leg exists for intake round 8 item 2 and was a deliberate skip before
+  // it: the whole complaint is about the state AFTER the turn-in, which no cheat
+  // can reach. `QUEST ADVANCE` is refused out of an objective stage (it advances
+  // off its counters), so the kobolds have to actually die.
+  // ⚑ The venue is the densest kobold cluster with ≥2 units of clearance
+  // (13 spawns within 8 units of -17,14), computed from world.json rather than
+  // eyeballed — see the pace gotcha in SKILL.md.
+  await cmd('XP 400000');
+  const lampArmed = await equipAndActivateAura(/Damage/);
+  await warpTo(AT.Kobolds);
+  const culled = await (async () => {
+    const deadline = Date.now() + 180_000;
+    const keys = ['w', 'a', 's', 'd'];
+    let i = 0;
+    while (Date.now() < deadline) {
+      const d = await detailOf(titleOf('the-lost-lamp'));
+      if ((d?.entries.length ?? 0) >= 2) return d;
+      await page.evaluate(() => document.activeElement?.blur());
+      await page.keyboard.down(keys[i++ % keys.length]);
+      await page.waitForTimeout(1500);
+      await page.keyboard.up(keys[(i - 1) % keys.length]);
+      await page.waitForTimeout(500);
+    }
+    return null;
+  })();
+
+  if (!culled) {
+    skip('D5–D8 the turn-in and the round-8-item-2 gate',
+      `INCONCLUSIVE — six kobolds were not killed inside 180 s (aura armed: ${lampArmed.ok}). ` +
+      'Mobs wander, so this is not a red. Re-run alone on a freshly restarted server.');
+  } else {
+    check('D5 six real kobold kills advance the cull off the counters',
+      culled.entries.length >= 2, `entries=${JSON.stringify(culled.entries)}`);
+
+    await warpTo(AT.Traveller);
+    await talkTo('Lampless Traveller');
+    await clickRow('Do you have a task for me');
+    const before = await panel();
+    check('D6 at the turn-in stage the nest question is STILL there (running spans every stage)',
+      before?.rows.some((r) => r.includes('Where do they nest'))
+      && before.rows.some((r) => r.includes('kobolds are dead')),
+      `rows=${JSON.stringify(before?.rows)}`);
+
+    // ⭐ The reported bug, verbatim: the turn-in row carries no `next`, so the
+    // player is left standing on this very node. Do NOT leave the panel here —
+    // being parked on `lamp` at the moment the quest ends IS the case.
+    await clickRow('kobolds are dead');
+    const parked = await panel();
+    check('D7 ⭐ handing in on the spot removes the nest question — the reported bug, fixed',
+      parked !== null && !parked.rows.some((r) => r.includes('Where do they nest')),
+      `lines="${parked?.lines}" rows=${JSON.stringify(parked?.rows)}`);
+
+    await leave();
+    const after = await talkTo('Lampless Traveller');
+    // ⚑ "Leave." is SYNTHETIC — the client adds it on any entry node, so it must
+    // be filtered out of every row count in this suite, not asserted against.
+    const authored = (after?.rows ?? []).filter((r) => !/^Leave\.$/.test(r));
+    check('D8 ...and a fresh talk is the completed greeting with no authored rows (the prune cascaded)',
+      /You have the lamp now/i.test(after?.lines ?? '') && authored.length === 0,
+      `lines="${after?.lines}" rows=${JSON.stringify(after?.rows)}`);
+  }
+  await leave();
 } catch (e) {
   check('leg D (the-lost-lamp) ran to completion', false, `threw: ${e.message}`);
 }

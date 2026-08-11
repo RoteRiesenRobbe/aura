@@ -188,7 +188,9 @@ func conditionalConversant(name string, cond mobs.InteractionCondition) *mobs.Mo
 }
 
 func TestCrossValidate_AcceptsQuestConditions(t *testing.T) {
-	for _, stage := range []string{"turn_in", mobs.QuestStageNotStarted, mobs.QuestStageCompleted} {
+	for _, stage := range []string{
+		"turn_in", mobs.QuestStageNotStarted, mobs.QuestStageCompleted, mobs.QuestStageRunning,
+	} {
 		_, err := crossValidate(t, []*QuestDefinition{threeStage()},
 			conditionalConversant("Farmer", mobs.InteractionCondition{
 				Kind: mobs.ConditionQuestAtStage, Quest: "pelts", Stage: stage,

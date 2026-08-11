@@ -772,19 +772,34 @@ row appears exactly when its edge is walkable. So **quest rows need no
   leaves the counters standing, so anything else is a loopable faucet.
 - A quest grant takes no `requiredLevel` — the stage graph is its gate.
 
-### Node conditions — for greetings now, not for quest plumbing
+### Node conditions — greetings, and hiding a spent info row
 
 Gate nodes with `quest_at_stage` (`{"quest", "stage"}`, where `stage` is a stage
-id or `not_started` / `completed`). Options have no conditions of their own; an
-option pointing at a hidden node is hidden with it. Since the show-rule took
-over the rows, conditions are for **state-dependent greetings** only (the
-traveller greets differently once his quest is done).
+id or `not_started` / `completed` / `running`). Options have no conditions of
+their own; an option pointing at a hidden node is hidden with it. Two uses:
+**state-dependent greetings** (the traveller greets differently once his quest is
+done), and **hiding a row by gating its destination**.
+
+⭐ **`running` is the whole in-progress band** — accepted, not yet finished,
+across every stage. It exists because conditions are AND-ed with no negation, so
+"while this quest is running" otherwise meant duplicating a node once per stage.
+Its use is the rule *a row that answers a question only a RUNNING quest asks*:
+the traveller's *"Where do they nest?"* leaves when the lamp quest ends
+(intake round 8 item 2). ⚑ **Do NOT gate pure lore that merely sits near a
+quest** — directions, road advice and backstory are content a player may want to
+re-read forever, and every other info row in the cast is exactly that. ⚑ Note
+`running` also hides the row *before* the quest is accepted; if you need it
+readable then, the row is lore and should not be gated at all.
 
 1. ⚑ **Conditional nodes must sit ABOVE the unconditional root** — the loader
    hard-fails otherwise (L3), because the greeting is the first node whose
-   conditions pass. *(The C4-era corollary — quest-state nodes hijacking the
-   greeting, each needing a row back to `root` — is retired: quest nodes are
-   unconditional now and reached by a row, so Back covers the way out.)*
+   conditions pass. **Exception: a node an option navigates to**, which was never
+   competing to be the greeting and is exempt. That exception is what makes the
+   gated info row authorable at all: hoisting its node above the fallback would
+   make it the *greeting* the moment its condition passed. *(The C4-era corollary
+   — quest-state nodes hijacking the greeting, each needing a row back to `root`
+   — is retired: quest nodes are unconditional now and reached by a row, so Back
+   covers the way out.)*
 2. ⚑ **If a row authors a `next`, it must name a node that is visible BEFORE
    the row is taken.** The destination is checked against the pre-op state, so
    pointing a row at a node gated on the state the row is about to create hides
@@ -793,7 +808,7 @@ traveller greets differently once his quest is done).
 
 `api/mobs/hermit.json` (offer + turn-in + follow-up question on one quest node)
 and `api/mobs/lampless-traveller.json` (the same plus a conditional completed
-greeting) are the worked examples; `api/quests/README.md` documents the file
+greeting **and** the `running`-gated info row) are the worked examples; `api/quests/README.md` documents the file
 format itself.
 
 ### Verify

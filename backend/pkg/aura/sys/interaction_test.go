@@ -1000,6 +1000,88 @@ func TestPresent_PruneCascadesThroughAPureSelectionNode(t *testing.T) {
 		"quest done: the quest node empties, the selection row goes with it, and root's row follows")
 }
 
+// --- The `running` gate on an info row (intake round 8 item 2) ---
+//
+// The reported bug: a turn-in row carries no Next, so the player STAYS on the
+// quest node after handing in, both quest rows correctly gone — and the info row
+// beside them, which the vocabulary could not gate, stayed clickable. Gating is
+// a NODE condition (options carry none), and the row then dies in presentOptions'
+// invisible-destination skip rather than in the prune: pruneEmptyDestinations
+// deliberately keeps lore leaves, and lamp_where is one.
+func travellerInteraction() *mobs.Interaction {
+	return &mobs.Interaction{Nodes: []mobs.InteractionNode{
+		{ID: "root", Lines: []string{"What are you doing out here?"}, Options: []mobs.InteractionOption{
+			{Text: "Do you have a task for me?", Next: "lamp"},
+		}},
+		{ID: "lamp", Lines: []string{"The brief."}, Options: []mobs.InteractionOption{
+			{Text: "I'll do it.", Grants: []mobs.InteractionGrant{offerGrant()}},
+			{Text: "They are dead.", Grants: []mobs.InteractionGrant{advanceGrant()}},
+			{Text: "Where do they nest?", Next: "lamp_where"},
+		}},
+		{ID: "lamp_where", Lines: []string{"North of the tunnel."}, Conditions: []mobs.InteractionCondition{
+			{Kind: mobs.ConditionQuestAtStage, Quest: questID, Stage: mobs.QuestStageRunning},
+		}},
+	}}
+}
+
+func TestPresent_RunningGateHidesAnInfoRowWhenTheQuestEnds(t *testing.T) {
+	in := travellerInteraction()
+	p := newQuestLearner(t, 1, peltsQuest())
+
+	assert.NotContains(t, rowTextsOf(t, in, p, "lamp"), "Where do they nest?",
+		"not started: gated on running, so it is not readable before accepting either — "+
+			"the deliberate cost of this sentinel over a not_completed one")
+
+	require.NoError(t, p.ledger.Accept(questID))
+	assert.Contains(t, rowTextsOf(t, in, p, "lamp"), "Where do they nest?",
+		"on the job: the question is live")
+
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+	assert.Contains(t, rowTextsOf(t, in, p, "lamp"), "Where do they nest?",
+		"the counters walked it to the turn-in stage and the row SURVIVES — "+
+			"a per-stage gate would have gone dark here")
+
+	require.NoError(t, p.ledger.AdvanceDialogue(questID, stageTurn, stageDone))
+	assert.NotContains(t, rowTextsOf(t, in, p, "lamp"), "Where do they nest?",
+		"handed in: the reported bug, fixed")
+}
+
+// The cascade is what makes the fix complete rather than cosmetic: with its last
+// row gone the quest node is nothing but Back, so the way TO it goes as well —
+// the PO's own 2026-08-02 prune rule, collected for free.
+func TestPresent_RunningGateCascadesTheQuestRowOffRoot(t *testing.T) {
+	in := travellerInteraction()
+	p := newQuestLearner(t, 1, peltsQuest())
+
+	require.NoError(t, p.ledger.Accept(questID))
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+	require.Contains(t, rowTextsOf(t, in, p, "root"), "Do you have a task for me?",
+		"the turn-in is walkable, so the way to it stands")
+
+	require.NoError(t, p.ledger.AdvanceDialogue(questID, stageTurn, stageDone))
+	assert.Empty(t, rowsOf(t, present(in, p, noRows), "lamp"), "every row on the quest node is spent")
+	assert.Empty(t, rowsOf(t, present(in, p, noRows), "root"), "so root's row follows it")
+}
+
+// The negative-space pin: WITHOUT the gate the info row outlives the quest, which
+// is the bug as reported. It guards the gate itself — delete the condition from
+// the content and this is the test that notices.
+func TestPresent_UngatedInfoRowOutlivesTheQuest(t *testing.T) {
+	in := travellerInteraction()
+	in.Nodes[2].Conditions = nil
+	p := newQuestLearner(t, 1, peltsQuest())
+
+	require.NoError(t, p.ledger.Accept(questID))
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+	require.NoError(t, p.ledger.AdvanceDialogue(questID, stageTurn, stageDone))
+
+	assert.Contains(t, rowTextsOf(t, in, p, "lamp"), "Where do they nest?",
+		"ungated, the row survives the turn-in — the behaviour the gate exists to change")
+}
+
 func TestApplyGrant_OfferAcceptsTheQuest(t *testing.T) {
 	in := oneOption("I'll help.", offerGrant())
 	p := newQuestLearner(t, 1, peltsQuest())

@@ -40,6 +40,23 @@ func branchQuest() *QuestDefinition {
 	return q
 }
 
+// lampQuest is the-lost-lamp's shape: an objective stage that walks into a
+// dialogue turn-in stage, which is the only authored quest today that rests on
+// TWO running stages. The dialogue edge is what keeps bring_it_back from being
+// terminal, exactly as the interaction loader registers it at boot.
+func lampQuest() *QuestDefinition {
+	q := &QuestDefinition{
+		ID: "lamp", Title: "The Lost Lamp",
+		Stages: []*Stage{
+			{ID: "cull", Journal: "Kill wolves.", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, TargetName: "Wolf", Count: 3}}, Next: "bring_it_back"},
+			{ID: "bring_it_back", Journal: "Bring it back."},
+			{ID: "lit", Journal: "Lit."},
+		},
+	}
+	q.NoteDialogueEdgeFrom("bring_it_back")
+	return q
+}
+
 func testLedger(t *testing.T, defs ...*QuestDefinition) *Ledger {
 	t.Helper()
 	r, err := NewRegistry(defs...)
@@ -391,6 +408,61 @@ func TestLedger_MatchesStage_CompletedIsNotItsTerminalStage(t *testing.T) {
 	assert.False(t, l.MatchesStage("wolf-cull", mobs.QuestStageNotStarted))
 }
 
+// ⭐ `running` is the whole in-progress band without naming a stage — the
+// sentinel a row uses when it answers a question only a running quest asks
+// (intake round 8 item 2). It is deliberately NOT the union of the other two
+// negated: conditions are AND-ed with no negation, so a band that spans several
+// stages was previously inexpressible except by duplicating the node per stage.
+func TestLedger_MatchesStage_Running(t *testing.T) {
+	l := testLedger(t, cullQuest())
+
+	assert.False(t, l.MatchesStage("wolf-cull", mobs.QuestStageRunning),
+		"an untouched quest is not running")
+
+	require.NoError(t, l.Accept("wolf-cull"))
+	assert.True(t, l.MatchesStage("wolf-cull", mobs.QuestStageRunning), "accepted = running")
+
+	for i := 0; i < 3; i++ {
+		l.NoteKill(wolf)
+	}
+	assert.False(t, l.MatchesStage("wolf-cull", mobs.QuestStageRunning),
+		"...and stops the moment it completes — this is the whole point of the item")
+	assert.True(t, l.MatchesStage("wolf-cull", mobs.QuestStageCompleted))
+}
+
+// It spans EVERY running stage, which is the whole difference from naming one.
+// The fixture is the-lost-lamp's shape (kill, then walk back and hand it in),
+// the quest this item was reported against: a row gated on `running` must
+// survive the walk from the objective stage to the turn-in stage.
+func TestLedger_MatchesStage_RunningSpansEveryStage(t *testing.T) {
+	l := testLedger(t, lampQuest())
+	require.NoError(t, l.Accept("lamp"))
+	require.True(t, l.MatchesStage("lamp", "cull"))
+	assert.True(t, l.MatchesStage("lamp", mobs.QuestStageRunning), "at the objective stage")
+
+	for i := 0; i < 3; i++ {
+		l.NoteKill(wolf)
+	}
+	require.True(t, l.MatchesStage("lamp", "bring_it_back"), "the counters walked it forward")
+	assert.True(t, l.MatchesStage("lamp", mobs.QuestStageRunning),
+		"still running one stage later — a per-stage gate would have gone dark here")
+
+	require.NoError(t, l.AdvanceDialogue("lamp", "bring_it_back", "lit"))
+	assert.False(t, l.MatchesStage("lamp", mobs.QuestStageRunning), "the turn-in ends it")
+}
+
+// D13: abandoning returns the quest to not-started, so a row gated on `running`
+// goes with it — and comes back if the player re-accepts.
+func TestLedger_MatchesStage_AbandonedIsNotRunning(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	require.NoError(t, l.Accept("wolf-cull"))
+	require.NoError(t, l.Abandon("wolf-cull"))
+
+	assert.False(t, l.MatchesStage("wolf-cull", mobs.QuestStageRunning))
+	require.NoError(t, l.Accept("wolf-cull"))
+	assert.True(t, l.MatchesStage("wolf-cull", mobs.QuestStageRunning))
+}
+
 // The evaluator calls this per tick per conversing player, so it must tolerate
 // the states a fixture or a quest-less world can be in rather than panicking
 // somewhere inside a render path.
@@ -399,6 +471,8 @@ func TestLedger_MatchesStage_DegradesSafely(t *testing.T) {
 		"a nil ledger fails closed")
 	assert.True(t, NewLedger(nil).MatchesStage("wolf-cull", mobs.QuestStageNotStarted),
 		"a registry-less ledger has genuinely started nothing")
+	assert.False(t, (*Ledger)(nil).MatchesStage("wolf-cull", mobs.QuestStageRunning),
+		"a nil ledger fails closed for every sentinel, not just the first")
 	assert.False(t, testLedger(t, cullQuest()).MatchesStage("wolf-cull", "no-such-stage"),
 		"an unknown stage name matches nothing (the loader rejects one at boot)")
 }

@@ -612,6 +612,46 @@ func TestMapMobDefinition_AcceptsConditionalNodesAboveTheFallback(t *testing.T) 
 	assert.NoError(t, err, "the unconditional fallback last is the authoring shape quests need")
 }
 
+// ⭐ L3 asks about GREETINGS, so it must not fire on a node nothing greets with.
+// A conditional node that an option NAVIGATES to is a destination, not a greeting
+// candidate, and its position below the fallback is correct rather than a
+// mistake — the rule's own comment always said so ("a node below the fallback is
+// not useless"), it just failed it anyway. Intake round 8 item 2 is the first
+// content that needs the shape: an info row is hidden by gating the node behind
+// it, and hoisting that node above the fallback would make it the GREETING the
+// moment its condition passed, which is a worse bug than the one being fixed.
+func TestMapMobDefinition_AcceptsAConditionalNavigationDestinationBelowTheFallback(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [
+	  {"id": "root", "lines": ["Wolves again."], "options": [
+	    {"text": "Where do they nest?", "next": "nest"}
+	  ]},
+	  {
+	    "id": "nest",
+	    "conditions": [{"kind": "quest_at_stage", "quest": "pelts", "stage": "running"}],
+	    "lines": ["North of the tunnel."]
+	  }
+	]}`)
+	assert.NoError(t, err, "an option points at it, so it was never competing to be the greeting")
+}
+
+// The teeth stay exactly where they were: unreferenced AND conditional AND below
+// the fallback is still the silent dead greeting the rule was written for.
+func TestMapMobDefinition_StillRejectsAnUnreachableConditionalGreeting(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [
+	  {"id": "root", "lines": ["Wolves again."], "options": [
+	    {"text": "Where do they nest?", "next": "nest"}
+	  ]},
+	  {"id": "nest", "lines": ["North of the tunnel."]},
+	  {
+	    "id": "mid_quest",
+	    "conditions": [{"kind": "quest_at_stage", "quest": "pelts", "stage": "turn_in"}],
+	    "lines": ["Back already?"]
+	  }
+	]}`)
+	require.Error(t, err, "nothing navigates to mid_quest, so it could only ever have been a greeting")
+	assert.Contains(t, err.Error(), "mid_quest")
+}
+
 // --- the wire index ceiling (L4, plan-quests.md C0) ---
 
 // option_index and grant_index are ubyte on the wire, and present() truncates

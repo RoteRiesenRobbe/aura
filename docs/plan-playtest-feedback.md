@@ -1916,15 +1916,33 @@ If you haven't, then nowhere — stay put a while."* PO wording: head up north;
 east only with a strong group. Replaces the fatalistic line and folds the
 east-warning (currently line 1's bandit note) into the strong-group framing.
 
-### 3. Totem tooltips say nothing about what the totem does — WHERE IT LIVES
+### 3. Totem tooltips say nothing about what the totem does — ✅ SHIPPED 2026-08-09, `7e5233e2`
 
-Already recorded: **§Rolling filler, "Totem/companion tooltips don't describe
+> **✅ DONE — both halves, in one commit.** The `spawn` payload now carries the
+> summon's loadout as catalog refs (`summonLoadout`), attached in the existing
+> boot-time `spawnMob` resolution walk, and the tooltip renders the summon's own
+> effects beneath the Summons line through the same per-effect renderer every
+> ability uses: loadout raised to the skill level, HP composed as
+> f(player level) × SummonPower, no `damageFactor` (Strong is the player's, not
+> the summon's), no nested next-level previews. The second half landed with it:
+> identical spawn effects collapse into one counted line, so **Call for Aid reads
+> "Summons 3× Soldier Companion"** instead of three lines. An unresolvable ref
+> degrades to the bare Summons line. **Schema: DB NONE · FlatBuffers NONE · conf
+> NONE — catalog JSON only.**
+>
+> ⚑ **The data prerequisite was resolved by carve-out, not by a curated line.**
+> The two candidate shapes recorded below were "follow `spawn.mobName` into a
+> served mob loadout (the `/mobs` catalog deliberately omits skills — zero-hint
+> policy would need a carve-out)" or "serve a curated description line". The
+> first won, **minimally**: only mobs a `spawn` effect references, and only
+> through the summoning skill's own `/skills` entry. The zero-hint policy is
+> otherwise untouched — `/mobs` still serves no skills.
+
+Original record: **§Rolling filler, "Totem/companion tooltips don't describe
 the summon's effects"** (deferred 2026-07-26, re-raised by the PO 2026-07-30
 with the Call-for-Aid triple-line, **re-raised again 2026-08-02 — third time**).
-The data prerequisite recorded there still holds: the `/skills` catalog serves
-only the caster's `spawn` effect, so describing the totem means following
-`spawn.mobName` into a served loadout or serving a curated line. Third raise =
-it should stop being filler and get scheduled.
+Third raise = it should stop being filler and get scheduled; it was, and it
+shipped a week later.
 
 ### 4. OrcGrunt XP is still 5 — ✅ `3b415fa2` 2026-08-02 (experience 75)
 
@@ -2251,12 +2269,26 @@ the two NPC teachers, whether the 10 s cast and 5 min cooldown survive a free
 Recall, and whether the level scaling is charge count / charge strength /
 regen rate).
 
-### 2. Quest-related extra info stays readable after the quest is done
+### 2. Quest-related extra info stays readable after the quest is done — ✅ BUILT 2026-08-11
 
 > *"extra info related to tasks can still be read even after the quest is done.
 > that's probably something to fix in the dialogue tree. example: lampless
 > traveller, you can still ask where the kobolds are after completing the
 > quest"*
+
+> **✅ BUILT 2026-08-11 — the `running` sentinel + one content gate. Ledger: §Round-8
+> item 2 ledger below.** The recommended shape held. Two PO calls this session:
+> **`running` alone** (not also `not_completed`, which is the same one-arm edit
+> whenever a consumer appears, so nothing is foreclosed), and the Town Crier's
+> `news_who` **stays readable** (generic onboarding, not quest info).
+>
+> ⭐ **The audit below was mostly a false alarm, and the survey is the finding.**
+> A dump of all 16 authored trees says every other candidate — `news_who`,
+> `front`, `commander`, the three `dir_*`, `roads`, `tunnel` — hangs off `root`
+> as a **sibling** of *"Do you have a task for me?"*, i.e. standalone lore and
+> directions, which the ⚑ note below says must stay. **`lamp_where` is the only
+> node in the whole cast that hangs off a QUEST node**, which is what made it the
+> only one reachable in the stale window. Scope was one content line, not seven.
 
 **The PO's instinct is right — it is content, not engine** — but the reachable
 window is narrower and stranger than it looks, and there is a vocabulary gap
@@ -2542,7 +2574,10 @@ the PO's, pending at commit time.
   playtest-1 Pass C item 3 explicitly flagged floating damage numbers as
   *"the one most likely to be noticed next"*. It was.
 - ~~**Ctrl +/− still zooms the browser.**~~ ✅ 2026-07-26
-- **Totem/companion tooltips don't describe the summon's effects** — the
+- ~~**Totem/companion tooltips don't describe the summon's effects**~~ ✅ **DONE
+  2026-08-09, `7e5233e2`** — both halves, incl. the Call-for-Aid dedupe below.
+  Full record: **§Intake round 7 item 3**. *(What follows is the original entry.)*
+  The
   tooltip reads the caster's `spawn` effect, not the summoned mob's loadout.
   Needs the tooltip to follow the spawn into the mob's own skills.
   *(Originally deferred 2026-07-26 because `SkillTooltip.ts` was round-4
@@ -3306,3 +3341,81 @@ reads even though the server keeps moving the entity. ⚑ Also: measure pace
 from a sample taken **~700 ms after keydown**, not from the keydown — the
 input-startup latency folded into a 1.5 s window reads a healthy 1.5 u/s walk
 as 0.97 and lands it under the open-ground threshold.
+
+### Round-8 item 2 — a spent info row leaves with its quest ✅ DONE 2026-08-11
+
+**What shipped.** A third `quest_at_stage` sentinel, **`running`** (accepted, not
+yet finished, across every stage), and one content gate: the lampless traveller's
+`lamp_where` node now carries
+`{"kind": "quest_at_stage", "quest": "the-lost-lamp", "stage": "running"}`, so
+*"Where do they nest?"* leaves when the quest does.
+
+**Schema impact: DB NONE · FlatBuffers NONE · conf NONE.** Go + one content file.
+The client is untouched, so this is an ordinary deploy, not a both-sides one.
+
+**Two PO calls.** `running` **alone**, not also a `not_completed` twin: the two
+are genuinely different sentences (`not_completed` = `not_started` ∪ `running`,
+and with conditions AND-ed and no negation neither derives from the other), but
+only one has a consumer today and adding the second later is the identical
+one-arm edit with no schema, no migration and no lock-in. And the Town Crier's
+*"Who else should I speak to?"* **stays readable** — generic onboarding, not
+quest info.
+
+⭐ **The audit the design named was mostly a false alarm, and finding that out
+was most of the work.** A dump of all 16 authored trees showed six of the seven
+candidate nodes (`news_who`, `front`, `commander`, the three `dir_*`, `roads`,
+`tunnel`) hang off `root` as **siblings** of *"Do you have a task for me?"* —
+standalone lore and directions, the exact category the design said must stay
+readable forever. `lamp_where` is **the only node in the cast that hangs off a
+QUEST node**, which is why it was the only one reachable in the stale window.
+Scope: one content line, not seven. The authoring rule is now in
+`manual-content-authoring.md`: *gate a row that answers a question only a running
+quest asks*.
+
+⛑ **A SENTINEL IS NAMED IN FOUR PLACES, and the design found two.** It listed
+`items/mobs/interaction.go`'s constant block and `Ledger.MatchesStage`; the two
+it missed are both **error strings enumerating the legal names**, and one of them
+is load-bearing: **`quests.CheckStageRef` switches on the sentinels before
+falling through to "is this a real stage id?", so a sentinel it does not know is
+a BOOT FAILURE** the moment content names it — which is exactly how the first
+green run went red. The ascension catalog needed no edit at all: its C3 comment
+predicted *"the day a third stage sentinel is added"* and made it call the same
+checker rather than copy it. That prediction paid.
+
+⛑ **THE GUARD THAT MADE THE FIX UNAUTHORABLE — L3.** Options carry no
+conditions, so a row is hidden by gating **the node behind it**. But the loader
+hard-fails any conditional node sitting below the unconditional fallback (L3,
+because the greeting is the first node whose conditions pass) — and hoisting
+`lamp_where` above the fallback would have made it *the greeting* the moment the
+quest started. The rule's own comment already knew the case was legitimate
+(*"a node below the fallback is not useless — options can still navigate to
+it"*) and failed it anyway. **A navigation destination is now exempt**: a node an
+option points at was never competing to be the greeting. ⚑ The trade, stated in
+the code: a node that is *both* a destination and a would-be conditional greeting
+now passes with its greeting use silently dead. Authoring an option to a node is
+a clear enough statement of intent to be worth that, and the alternative is a
+legal shape nobody can author. The teeth are unchanged where they mattered —
+unreferenced **and** conditional **and** below the fallback is still refused, with
+its own negative-space test.
+
+⚑ **The residue is fine, and that was checked rather than assumed.** The player
+who hands in is left standing on `lamp` (the turn-in row carries no `next`), and
+what they see there is the **reply**, not the stale brief: a standing reply
+replaces the node's lines. Zero rows, Back and Leave.
+
+**Verified.** TDD red-first at both surfaces (compile-red, then behavioural red,
+then green) · **2 mutations, both caught** — `running` ignoring `p.Running` is
+caught by 5 tests across two packages, and L3 never firing is caught by the old
+test *and* the new negative-space one · Go **0 FAIL** (`-count=1`) bar the known
+`TestDwell` flake, re-measured 4/5 here · `-race` clean on both touched packages ·
+boot **0 WARN / 0 ERROR** · frontend untouched, so no vitest delta.
+
+⚑ **`chunkC4-quests.mjs` leg D2 asserted the OPPOSITE and was repaired with the
+change, not left red** (the suite's own rule 8): it pinned the nest question as
+visible *before* accepting, which the `running` gate reverses by design. Leg D
+was rewritten around the new lifecycle and its deliberate **D5 skip became a real
+leg** — six real kobold kills at the densest clear cluster (`-17, 14`, derived
+from `world.json`), because `QUEST ADVANCE` is refused out of an objective stage
+and the whole complaint is about the state *after* a turn-in that no cheat can
+reach. **The whole script is 42/42, 0 FAIL and — for the first time — 0 SKIP.** ⭐ **D7 is the reported bug, verbatim and green**: handing in while parked
+on the node leaves `lines="Good." rows=[]`.

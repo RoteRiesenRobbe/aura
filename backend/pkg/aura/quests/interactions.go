@@ -190,12 +190,12 @@ func CheckStageRef(qr Registry, questID, stage string) error {
 		return fmt.Errorf("quest_at_stage names quest %q, which no quest file defines", questID)
 	}
 	switch stage {
-	case mobs.QuestStageNotStarted, mobs.QuestStageCompleted:
+	case mobs.QuestStageNotStarted, mobs.QuestStageCompleted, mobs.QuestStageRunning:
 		return nil
 	}
 	if q.Stage(stage) == nil {
-		return fmt.Errorf("quest_at_stage names stage %q, which quest %q does not define (or use %q / %q)",
-			stage, questID, mobs.QuestStageNotStarted, mobs.QuestStageCompleted)
+		return fmt.Errorf("quest_at_stage names stage %q, which quest %q does not define (or use %q / %q / %q)",
+			stage, questID, mobs.QuestStageNotStarted, mobs.QuestStageCompleted, mobs.QuestStageRunning)
 	}
 	return nil
 }
