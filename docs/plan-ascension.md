@@ -2464,7 +2464,7 @@ is an unstarted workstream this doc owns. *(The tooltip landed the next day, §1
 the doc still stays, because item 2 is now its only open workstream and it has
 grown its own plan, `plan-leaving-the-world.md`.)*
 
-### 13.9 Follow-up ledger - THE ROW SAYS WHAT THE ABILITY DOES ✅ 2026-08-11, `[uncommitted]`
+### 13.9 Follow-up ledger - THE ROW SAYS WHAT THE ABILITY DOES ✅ 2026-08-11, `0497417a`
 
 §13.7 item 3, built as designed in one session. **Schema impact: DB NONE ·
 FlatBuffers ONE APPENDED (`ConversationOption.skill_id:ushort`, field id 8) ·
