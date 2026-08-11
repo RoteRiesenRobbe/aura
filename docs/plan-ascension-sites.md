@@ -1,6 +1,6 @@
 # Plan: Ascension sites - many stones, each with its own price and its own rewards
 
-> **Status: C1 + C2 SHIPPED 2026-08-11 (`509321e6`, C2 uncommitted); C3 open.** Four PO
+> **Status: C1 + C2 SHIPPED 2026-08-11 (`509321e6`, `d66ca9f3`); C3 open.** Four PO
 > rulings taken in the design session (D1-D4), three more at C1 (the second
 > stone's price and place, and P2 pulled forward). Successor to
 > `docs/archive/plan-ascension.md`, which shipped the loop against exactly one
@@ -350,7 +350,7 @@ touches the memorial's row source), **`c1-front-stone` 9/12 + 3 inconclusive**
 **Owed by C2**, and now visible in the world: the front stone's price is only as
 legible as the fallback line authored by hand for it.
 
-### C2 - the gate reads ✅ 2026-08-11, `[uncommitted]`
+### C2 - the gate reads ✅ 2026-08-11, `d66ca9f3`
 
 A navigation row whose destination is gated now renders **locked, with the gate
 named**, instead of vanishing, and **opt-in per row** (P5). **Schema: DB NONE ·
