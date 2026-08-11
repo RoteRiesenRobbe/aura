@@ -14,6 +14,15 @@ behind its own row with its brief as that node's text. Quest rows carry no
 `quest_at_stage` gate — a row is shown iff its ledger op would succeed (the Q1
 show-rule) — and the `tooLowLine`/`blockedLine` mechanism is GONE (Q1): a
 locked row greys inert with its level wall named, and says nothing.
+**Its partner rule, added by intake round 8 item 2 (2026-08-11):** an INFO row
+beside those quest rows has no show-rule of its own, so one that answers a
+question only a running quest asks is gated by putting
+`quest_at_stage / <quest> / running` on **the node behind it** (options carry no
+conditions). ⚑ **Only one row in the cast qualifies** — the traveller's *"Where
+do they nest?"*, the single info node hanging off a quest node. Every other one
+(`news_who`, `front`, `commander`, `dir_*`, `roads`, `tunnel`) hangs off `root`
+and is durable world knowledge — geography, the Warlord's banner mechanic, where
+campfires are — which a player may want to re-read forever. **Do not gate those.**
 **Since the plain-text pass (PO 2026-08-02) quest and teach text is deliberately
 plain — no lore or stylized wording yet:** teaching always sits behind a root
 `Teach me something.` row leading to a teachings node whose rows NAME the skill

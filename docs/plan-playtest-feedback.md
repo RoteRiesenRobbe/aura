@@ -2276,7 +2276,7 @@ regen rate).
 > traveller, you can still ask where the kobolds are after completing the
 > quest"*
 
-> **✅ BUILT 2026-08-11 — the `running` sentinel + one content gate. Ledger: §Round-8
+> **✅ BUILT 2026-08-11 `9eb9a431` — the `running` sentinel + one content gate. Ledger: §Round-8
 > item 2 ledger below.** The recommended shape held. Two PO calls this session:
 > **`running` alone** (not also `not_completed`, which is the same one-arm edit
 > whenever a consumer appears, so nothing is foreclosed), and the Town Crier's
@@ -3342,7 +3342,7 @@ from a sample taken **~700 ms after keydown**, not from the keydown — the
 input-startup latency folded into a 1.5 s window reads a healthy 1.5 u/s walk
 as 0.97 and lands it under the open-ground threshold.
 
-### Round-8 item 2 — a spent info row leaves with its quest ✅ DONE 2026-08-11
+### Round-8 item 2 — a spent info row leaves with its quest ✅ DONE 2026-08-11, committed `9eb9a431`
 
 **What shipped.** A third `quest_at_stage` sentinel, **`running`** (accepted, not
 yet finished, across every stage), and one content gate: the lampless traveller's

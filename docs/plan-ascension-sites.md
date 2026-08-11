@@ -33,7 +33,8 @@ vocabulary, which is what lets zones differ from each other.
 
 **The node condition vocabulary already does the interesting half.** A node's
 `conditions` is a list, evaluated by `conditionsPass`, and the vocabulary is
-`minLevel` · `quest_at_stage` (including the `completed` sentinel) ·
+`minLevel` · `quest_at_stage` (three sentinels since 2026-08-11 — `not_started`,
+`completed` and **`running`**, the whole in-progress band; intake round 8 item 2) ·
 `bloodline_ascensions` · `kills_this_life`. So *"level 25 and `the-lost-lamp`
 completed"* is a JSON edit today, and it already gates both the greeting and
 the reward list, because C2a step 3 learned the hard way that the row-source
