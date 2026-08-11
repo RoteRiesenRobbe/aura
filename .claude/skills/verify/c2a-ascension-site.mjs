@@ -407,6 +407,23 @@ check('...and no bogus "level 0" wall is drawn beside it',
 check('the ascend-anyway row is NOT offered while real picks are on screen (D14)',
   emptyRow === undefined, `rows: ${rows.join(' | ')}`);
 
+// ⭐ THE ORDER ON SCREEN IS THE ORDER THE STONE AUTHORED (sites C3 / D3, P8).
+// The catalog is sorted by unlock key, so until C3 the rows arrived
+// alphabetically whatever anyone wanted; now the site names its list and the
+// panel must follow it. The village stone authors its five takeable rewards
+// first and its three walls last, which is BOTH the design (a player who can
+// take something meets it before the locks) and the test: alphabetically
+// Blight, Frost Shield and Lantern would be interleaved at positions 1, 3 and 6.
+//
+// ⛑ This is the only place a browser can see C3 at all. The two stones' lists
+// differ, but the front stone's catalog sits behind an orc gate no harness can
+// pay (C1), so "a site owns its rewards" reaches the screen HERE or nowhere.
+const firstLocked = rows.findIndex((r) => lockedRows.some((l) => l === r));
+const lastPickable = rows.reduce((acc, r, i) => (lockedRows.some((l) => l === r) ? acc : i), -1);
+check('⭐ the rows arrive in the order the STONE authored, not alphabetically (C3)',
+  firstLocked > 0 && lastPickable >= 0 && firstLocked > lastPickable,
+  `rows: ${rows.join(' | ')}`);
+
 // --- leg 5b: the row says what the ability DOES (§13.7 item 3) --------------
 // The wire carries the row's `skill_id` and the client feeds the spellbook's own
 // by-id tooltip, so this leg is the whole feature end to end: a Go pin proves

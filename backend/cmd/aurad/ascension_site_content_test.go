@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"math"
+	"slices"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -264,6 +266,119 @@ func TestAscensionSites_DoNotAllChargeTheSamePrice(t *testing.T) {
 		"every site charges the same thing, so nothing proves a site owns its price")
 }
 
+// siteRewards is what each site OFFERS, keyed by mob name: the authored list
+// off the catalog node, in the order it will be served (C3).
+func siteRewards(t *testing.T, registry mobs.Registry) map[string][]string {
+	t.Helper()
+	rewards := map[string][]string{}
+	for name, def := range ascensionSiteDefs(t, registry) {
+		for _, node := range def.Interaction.Nodes {
+			if node.Rows == ascensionSiteRows {
+				rewards[name] = node.Rewards
+				break
+			}
+		}
+	}
+	return rewards
+}
+
+// ⭐ THE SITES DO NOT ALL OFFER THE SAME THING, the reward half of the price pin
+// above and the whole point of C3. Like that one it is deliberately weak about
+// WHAT they offer: reward lists are content and will be tuned, but "there is
+// more than one list in the world" is the property this chunk exists to create,
+// and it is exactly what a copy-pasted third stone would quietly undo.
+func TestAscensionSites_DoNotAllOfferTheSameRewards(t *testing.T) {
+	_, registry := ascensionSiteZone(t)
+	rewards := siteRewards(t, registry)
+	if len(rewards) < 2 {
+		t.Skip("one site in the world; nothing to compare")
+	}
+
+	lists := map[string]bool{}
+	for _, list := range rewards {
+		lists[fmt.Sprintf("%v", list)] = true
+	}
+	assert.Greater(t, len(lists), 1,
+		"every site offers the same list, so nothing proves a site owns its rewards")
+}
+
+// ⭐ D4 IS REAL IN THE CONTENT, not only in a unit test's fixture: at least one
+// unlock key sits on more than one stone. That overlap is what makes
+// "spending it at one removes it from every one of them" a statement about the
+// game rather than about `bloodline_unlocks`' primary key, and lists that
+// happened to be disjoint would leave the rule untested by anything a player
+// could reach.
+//
+// ⚑ TODAY IT CANNOT FAIL, and that is worth saying out loud rather than
+// discovering later: the village stone offers the whole catalog, so every other
+// site overlaps it by construction. It is a guard on the day some site's list
+// shrinks — which is exactly when two disjoint stones become authorable without
+// anyone noticing — and a mutation has to shrink the village to redden it.
+func TestAscensionSites_TheirRewardListsOverlap(t *testing.T) {
+	_, registry := ascensionSiteZone(t)
+	rewards := siteRewards(t, registry)
+	if len(rewards) < 2 {
+		t.Skip("one site in the world; nothing to overlap")
+	}
+
+	offeredBy := map[string]int{}
+	for _, list := range rewards {
+		for _, key := range list {
+			offeredBy[key]++
+		}
+	}
+	shared := []string{}
+	for key, n := range offeredBy {
+		if n > 1 {
+			shared = append(shared, key)
+		}
+	}
+	assert.NotEmpty(t, shared, "no reward is offered at two sites, so D4 is unreachable in play")
+}
+
+// ⛑ THE VILLAGE STONE'S ORDER IS ITS OWN, AND NOT THE CATALOG'S (P8).
+// `Catalog.All()` is sorted by unlock key, so a list left in alphabetical order
+// serves every row at the index the catalog would have given it — and then the
+// one bug this feature can have, resolving a click against the catalog instead
+// of against this node, is invisible at every single row.
+//
+// ⚑ IT NAMES THE STONE, against this file's own rule, and the reason is
+// reachability: the front stone's catalog sits behind an orc gate no harness can
+// pay (C1), so the village stone is the only site a browser can open, and
+// `c2a-ascension-site.mjs` reading its rows is the ONLY place C3 is observable
+// in the game. A generic "at least one site orders its own" walk was written
+// first and is what caught this: it passed happily on the FRONT stone's
+// three-key list while the village reverted to alphabetical, which is precisely
+// the state where the hazard stops being observable.
+//
+// ⚑ A test-strength pin, not a design rule. It says nothing about WHICH order
+// the village authors, only that it is not the sorted one.
+func TestAscensionSites_TheVillageStoneOrdersItsRewardsItself(t *testing.T) {
+	_, registry := ascensionSiteZone(t)
+	list := siteRewards(t, registry)["AscensionStone"]
+	require.Greater(t, len(list), 1, "a one-row list has no order to author")
+
+	sorted := append([]string(nil), list...)
+	sort.Strings(sorted)
+	assert.False(t, slices.Equal(list, sorted),
+		"the village stone offers its rewards in catalog order, so an index taken from the "+
+			"catalog instead of from the node would look correct at every row: %v", list)
+}
+
+// D6 (PO 2026-08-11): the front stone offers three where the village offers
+// eight, `FrostShield` among them so a locked row differs per site, and
+// `RimeBurst` deliberately shared with the village so the overlap pin above has
+// a subject. Pinned by name in the same spirit as the catalog's own seed pin: a
+// PO ruling about what content IS, which a later re-authoring should have to
+// disturb on purpose.
+func TestAscensionSites_TheFrontStoneOffersItsOwnShortList(t *testing.T) {
+	_, registry := ascensionSiteZone(t)
+	rewards := siteRewards(t, registry)
+
+	assert.Equal(t, []string{"KeenEye", "FrostShield", "RimeBurst"}, rewards["FrontAscensionStone"])
+	assert.Len(t, rewards["AscensionStone"], 8, "the village stone still offers the whole seed")
+}
+
 // ⚑ confMaxLevel WENT WITH D1. It read `game.player.maxLevel` out of
 // conf.default.json so the stone's authored gate could be compared against it,
 // and it was the only reason this file needed conf at all. No site is priced
@@ -279,9 +394,17 @@ func TestAscensionSites_DoNotAllChargeTheSamePrice(t *testing.T) {
 // serves that kind. A new RowSourceKind authored before its provider case exists
 // goes red here rather than shipping as a node nobody can get anything out of.
 //
-// ⚑ It drives the provider through a TEST-ONLY catalog with one entry, because
-// the shipped catalog is empty until C3 and an empty one answers with rows for
+// ⚑ It drives the provider through a TEST-ONLY catalog, because a catalog that
+// happened to be empty would answer with rows (D14's ascend-anyway row) for
 // reasons that have nothing to do with wiring.
+//
+// ⛑ THAT CATALOG IS BUILT FROM WHAT THE SITES ACTUALLY OFFER, and C3 is why: it
+// used to hold ONE arbitrary probe skill, which was a fine stand-in while a
+// node's rows were the whole catalog — and became a list no site names the
+// moment a site authored its own (D5). The walk still passed, because a site
+// offering nothing pickable is served D14's row, so it would have gone on
+// reporting "the provider serves this kind" while serving none of the content
+// under it.
 func TestAuthoredRowSources_AreAllServedByTheProvider(t *testing.T) {
 	content, err := diskContent("../../../api")
 	require.NoError(t, err)
@@ -292,17 +415,30 @@ func TestAuthoredRowSources_AreAllServedByTheProvider(t *testing.T) {
 	mobsRegistry, err := mobs.RegistryFromFS(skillsRegistry, factionsRegistry, curve.Default(), content.mobs)
 	require.NoError(t, err)
 
-	probe, err := skillsRegistry.GetByName("Damage")
-	require.NoError(t, err, "any real skill will do as the probe reward")
+	// Every key any site offers, resolved against the real skill registry. The
+	// entries are UNGATED whatever the shipped catalog says about them, because
+	// a gated one renders locked and this walk is about the list arriving at all.
+	var probes []ascension.Entry
+	seen := map[string]bool{} // D4 lets two sites offer one key; a catalog holds it once
+	for _, list := range siteRewards(t, mobsRegistry) {
+		for _, key := range list {
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			def, err := skillsRegistry.GetByName(key)
+			require.NoError(t, err, "a site offers %q, which names no skill", key)
+			probes = append(probes, ascension.Entry{UnlockKey: key, Skill: def})
+		}
+	}
+	require.NotEmpty(t, probes, "no site offers anything; the walk below would prove nothing")
 
 	// ⭐ EVERY registered provider, not just the catalog's (C3 step 6). This test
 	// walks the authored kinds and demands each be served, so it is precisely
 	// what goes red when a NEW row source is authored in content and never wired
 	// which is what it did the moment the memorial's node landed.
 	sources := map[mobs.RowSourceKind]sys.RowSource{
-		mobs.RowSourceAscensionCatalog: sys.NewAscensionRows(ascension.CatalogOf(
-			ascension.Entry{UnlockKey: probe.Name, Skill: probe},
-		)),
+		mobs.RowSourceAscensionCatalog: sys.NewAscensionRows(ascension.CatalogOf(probes...)),
 		// One name is enough: this asserts WIRING, not content.
 		mobs.RowSourceMemorialNames: sys.NewMemorialRows(func() persist.Graveyard {
 			return persist.Graveyard{

@@ -1,7 +1,7 @@
 # Plan: Ascension sites - many stones, each with its own price and its own rewards
 
-> **Status: C1, C2 and C3a SHIPPED 2026-08-11 (`509321e6`, `d66ca9f3`,
-> `350701c9`); C3b open.** Four PO rulings taken in the
+> **Status: COMPLETE — C1, C2, C3a and C3b all shipped 2026-08-11 (`509321e6`,
+> `d66ca9f3`, `350701c9`, C3b uncommitted).** Four PO rulings taken in the
 > design session (D1-D4), three more at C1 (the second stone's price and place,
 > and P2 pulled forward), four more at C3's design pass (D5, D6, P7, P8 — and
 > D5 amends §5). Successor to
@@ -569,3 +569,57 @@ clicks: row not found"* diagnostic unchanged).
 (P8), the front stone drops to its own three (D6), and the pins that only differ
 once the two disagree — *not all sites offer the same list*, and `c2a`'s row
 order becoming an authored fact rather than an alphabetical accident.
+
+### C3b - the two stones offer different things ✅ 2026-08-11, uncommitted
+
+The content half, and the chunk that makes C3a visible: the village stone keeps
+all eight but authors its own order (five takeable, then the three walls), the
+front stone drops to **KeenEye · FrostShield · RimeBurst** (D6). **Schema: DB
+NONE · FlatBuffers NONE · conf NONE** — two content files, three new Go pins and
+one harness leg, **no production Go at all**.
+
+⭐ **THE ORDER IS THE ONLY PLACE A BROWSER CAN SEE THIS CHUNK.** The two lists
+differ, but the front stone's catalog node sits behind an orc gate C1 measured as
+unpayable, so *"a site owns its rewards"* is unreachable in a harness at that
+stone. `c2a` reads the village's rows instead, and P8 is what makes that reading
+mean something: the panel now shows `Envenom | Frostbite | Keen Eye | Rime-Burst
+| Venomward | Blight… | Frost Shield… | Lantern…`, where the catalog's own sort
+would interleave the three locked rows at positions 1, 3 and 6. Scored as a new
+leg (**31/31**, was 30/30).
+
+⛑ **THE FIRST VERSION OF THE ORDER PIN WAS SATISFIED BY THE WRONG STONE, and the
+mutation is what said so.** It was written generically — *at least one site
+orders its rewards itself* — which is the shape this file prefers, and it stayed
+green when the village list was mutated back to alphabetical, because the FRONT
+stone's three keys happen not to be sorted either. That is exactly the state
+where the hazard stops being observable: the village is the only stone a browser
+can open. The pin now names it, with the reachability argument attached.
+
+⚑ **ONE NEW PIN CANNOT FAIL TODAY, and it says so in its own doc.** *The reward
+lists overlap* (D4 reachable in play) is implied by the village offering the
+whole catalog, so no edit to the front stone can redden it — only a shrinking
+village can, which is precisely the day two disjoint stones become authorable
+unnoticed. Recorded rather than dressed up.
+
+⛑ **THE ROW-SOURCE WIRING WALK HAD QUIETLY STOPPED TESTING CONTENT.** It drove
+the provider with one arbitrary probe skill, which was a fine stand-in while a
+node's rows were the whole catalog — and became a key no site names once sites
+authored their own. It kept passing, because a site with nothing pickable is
+served D14's ascend-anyway row, so *"the provider serves this kind"* stayed true
+while none of the content under it was reaching the panel. Its catalog is now
+built from what the sites actually offer.
+
+**Verified.** TDD red-first (three pins red before the content edit); **3 of 3
+content mutations caught** — the village list re-sorted · the front stone
+copy-pasted from the village · the two lists made genuinely disjoint (which also
+reddens P7's *offered by no site* pin, doing exactly its job). `go test -count=1
+./...` **0 FAIL** across 34 packages bar the known `TestDwell` flake; `-race`
+clean on the four packages; boot **68 mobs / 13 quests / 8 rewards, 0 WARN / 0
+ERROR** (P7 still silent — the village offers everything). Harnesses:
+**`c2a-ascension-site` 31/31** (was 30/30, the new order leg), **`c1-front-stone`
+13/16 + the same 3 inconclusive**, **`c3-memorial-catalog` 14/14** — the last two
+exact baselines, re-run because both read the village stone's catalog node.
+
+**C3 is complete, and with it the plan.** What is left is not chunk work: §7's
+open questions (a price visible from outside talking range; the lore write both
+stones still owe) and the deferred cluster.
