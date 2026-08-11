@@ -73,20 +73,31 @@ func ascendingFixture(t *testing.T) (*ConnectionStateSystem, *stateFakeGame,
 	return s, g, c, p, ascensions, saves
 }
 
-// ⚑ P1 LIVES HERE, NOT IN SQL. The character row's level is eventually
-// consistent — saves are periodic and the ascension teardown deliberately skips
-// the final one — so the only trustworthy level is the live one, and this is
-// the only place that holds it.
-func TestRequestAscensionRefusesBelowMaxLevel(t *testing.T) {
+// ⭐ P1 IS RETIRED HERE (plan-ascension-sites.md D1). This used to be
+// TestRequestAscensionRefusesBelowMaxLevel, and the level cap used to be the
+// entry price for every stone in the world: `p.Progression().Level <
+// levelCurve.MaxLevel` refused anybody below it, whatever the content said.
+// With several differently-priced sites that check is simply wrong — it would
+// let a stone advertise level 25, take the pick, channel for ten seconds and
+// then refuse — so the price moved to where a site can own it, and this entry
+// point enforces none of its own.
+//
+// ⚑ THE LIVE-PLAYER PROPERTY DID NOT MOVE WITH IT. The reason this check was
+// never in SQL is that the character row's level is eventually consistent, so a
+// `level >= maxLevel` clause would refuse somebody who just reached it. Its
+// replacement, the pick's gate re-judged in applyAscension, reads the live
+// player through the same conditionsPass the panel uses.
+func TestRequestAscensionDoesNotPriceTheAscensionItself(t *testing.T) {
 	s, g, _, p, ascensions, _ := ascendingFixture(t)
 	g.cfg.PlayerConfig.LevelCurve.MaxLevel = 30
 	progression := p.Progression()
 	progression.Level = 29
 	p.SetProgression(progression)
 
-	assert.False(t, s.RequestAscension(p, "FrostShield"), "one level short is short")
-	assert.Empty(t, ascensions.requested, "nothing may reach the database")
-	assert.Len(t, g.players, 1, "and the player keeps playing")
+	assert.True(t, s.RequestAscension(p, "FrostShield"),
+		"the entry price is the SITE's now, and this entry point holds no rule of its own")
+	assert.Len(t, ascensions.requested, 1)
+	assert.Len(t, g.players, 1, "the session lives until the transaction commits")
 }
 
 func TestRequestAscensionHandsTheTransactionOffTheLoop(t *testing.T) {

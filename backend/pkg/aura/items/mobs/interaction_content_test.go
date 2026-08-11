@@ -44,6 +44,13 @@ var expectedConversants = []string{
 	// stone (§4.2). Its reward rows are generated, not authored, so it stays a
 	// two-node lore tree in the content until step 3.
 	"AscensionStone",
+	// The SECOND ascension site (plan-ascension-sites.md C1). It exists to be
+	// priced differently from the one above — level 25 and a finished "Thin the
+	// Orc Line", where the village stone asks for level 30 — which is what D1
+	// made possible by retiring the global entry rule. ⚑ Its being a second
+	// conversant of the same shape is the point: sites are ordinary content now,
+	// so this list is expected to grow.
+	"FrontAscensionStone",
 	// The memorial (plan-ascension.md D11, C3 step 6). The second object that
 	// talks and the second consumer of the generated-row hook, and the only
 	// conversant in the world whose rows come from the DATABASE rather than from

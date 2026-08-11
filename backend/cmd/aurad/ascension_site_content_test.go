@@ -1,8 +1,8 @@
 package main
 
 import (
-	"encoding/json"
-	"os"
+	"fmt"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,21 +20,52 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
 
-// Content pins for the ascension site (plan-ascension.md §12.4, C2a step 1).
+// Content pins for the ascension SITES (plan-ascension.md §12.4 C2a step 1,
+// generalised to many stones by plan-ascension-sites.md C1).
 //
-// The site is an interaction-carrying mob rather than a prop (§4.1), placed as
-// a fixed zone spawn. Both facts are invisible to every other test: the mob
+// A site is an interaction-carrying mob rather than a prop (§4.1), placed as a
+// fixed zone spawn. Both facts are invisible to every other test: the mob
 // registry would happily hold a definition nobody places, and the zone loader
-// would happily place a second one.
+// would happily place one twice.
 //
-// ⚑ The level gate is the reason this file lives in cmd/aurad rather than
-// beside the other mob content tests: it is the one authored number in the
-// content that MUST equal a tuning value from conf, and this package is the
-// only one that sees both.
+// ⭐ NOTHING HERE NAMES A STONE ANY MORE. Until D1 there was exactly one site
+// and this file walked it by name; now a site IS "a def whose interaction
+// carries an ascension_catalog rows node", so every stone a content author adds
+// is pinned the day they add it, and a stone that stops offering the catalog
+// stops being one. That is the same shape the row-source walk below already had.
+//
+// ⚑ WHAT THIS FILE STOPPED ASSERTING, and why: the level gate used to have to
+// EQUAL `game.player.levelCurve.maxLevel`, because RequestAscension enforced
+// that number in Go and the stone authored it a second time. D1 retired that
+// rule — a site names its own price and the server enforces exactly what it
+// authored — so the duplication, and the test that policed it, are both gone.
+// What survives is the part that was never about the cap: every non-fallback
+// node is gated, the row-source node among them.
 
-const ascensionSiteMob = "AscensionStone"
+// ascensionSiteRows is what makes a def a site: it serves the reward catalog.
+const ascensionSiteRows = mobs.RowSourceAscensionCatalog
 
-func ascensionSiteZone(t *testing.T) *world.Zone {
+// ascensionSiteDefs is every def that offers the ascension catalog: the set the
+// pins below walk, derived from the content rather than from a list here.
+func ascensionSiteDefs(t *testing.T, registry mobs.Registry) map[string]*mobs.MobDefinition {
+	t.Helper()
+	sites := map[string]*mobs.MobDefinition{}
+	for _, def := range registry.Mobs() {
+		if def.Interaction == nil {
+			continue
+		}
+		for _, node := range def.Interaction.Nodes {
+			if node.Rows == ascensionSiteRows {
+				sites[def.Name] = def
+				break
+			}
+		}
+	}
+	require.NotEmpty(t, sites, "the world has at least one ascension site; if this is empty the walk is broken")
+	return sites
+}
+
+func ascensionSiteZone(t *testing.T) (*world.Zone, mobs.Registry) {
 	t.Helper()
 	content, err := diskContent("../../../api")
 	require.NoError(t, err)
@@ -49,127 +80,155 @@ func ascensionSiteZone(t *testing.T) *world.Zone {
 
 	zone, err := world.LoadZoneFS(content.zones, "world", mobsRegistry, propsRegistry)
 	require.NoError(t, err)
-	return zone
+	return zone, mobsRegistry
 }
 
-// The site has to STAND somewhere. A definition that resolves but is never
-// spawned is a feature no player can reach, and the loader has nothing to say
-// about it - the ascension loop's entire in-world surface is this one spawn.
+// EVERY site has to STAND somewhere, exactly once. A definition that resolves
+// but is never spawned is a feature no player can reach, and the loader has
+// nothing to say about it; a definition spawned twice is the same irreversible
+// act offered from two places with no way to tell them apart.
 //
-// ⚑ Exactly once, not at least once: D8 keeps a per-faction site possible as
-// later CONTENT, but v1 has one site (§4.1), and two stones would be two places
-// the same irreversible act can be started from with no way to tell them apart.
-func TestAscensionSite_StandsInTheWorldExactlyOnce(t *testing.T) {
-	zone := ascensionSiteZone(t)
+// ⚑ It is the SET that is pinned, not a count: D1 makes new stones ordinary
+// content, so this must welcome a fourth one and still refuse an unplaced or
+// duplicated one.
+func TestAscensionSites_EachStandsInTheWorldExactlyOnce(t *testing.T) {
+	zone, registry := ascensionSiteZone(t)
 
-	var found []*world.Spawn
+	authored := ascensionSiteDefs(t, registry)
+	placed := map[string][]*world.Spawn{}
 	for i := range zone.Spawns {
-		if zone.Spawns[i].Mob == ascensionSiteMob {
-			found = append(found, &zone.Spawns[i])
+		if _, isSite := authored[zone.Spawns[i].Mob]; isSite {
+			placed[zone.Spawns[i].Mob] = append(placed[zone.Spawns[i].Mob], &zone.Spawns[i])
 		}
 	}
-	require.Len(t, found, 1, "api/zones/world.json places the ascension site exactly once")
 
-	site := found[0]
-	require.NotNil(t, site.Def, "the spawn resolved against the mob registry")
-	require.NotNil(t, site.Def.Interaction, "the site is an object that TALKS — without an interaction block it is scenery")
+	for name, def := range authored {
+		spawns := placed[name]
+		require.Len(t, spawns, 1, "api/zones/world.json places %q exactly once", name)
+		require.NotNil(t, spawns[0].Def, "the spawn resolved against the mob registry")
 
-	// Off the Action collision layer, the same two authored knobs the sign and
-	// the crier use (plan-entity-model.md D5): no aura on either side can
-	// target it, so a damage-aura player standing at the stone cannot chip at
-	// the thing they came to talk to.
-	assert.Zero(t, site.Def.Body.CollisionLayer&2,
-		"the site must not sit on the Action layer, or auras can target it")
-	assert.Zero(t, site.Def.Factors.XPFactor,
-		"the site pays no XP and stays off the nameplate path")
-	assert.Zero(t, site.Def.Factors.Speed, "a standing stone does not walk")
+		// Off the Action collision layer, the same two authored knobs the sign
+		// and the crier use (plan-entity-model.md D5): no aura on either side
+		// can target it, so a damage-aura player standing at a stone cannot
+		// chip at the thing they came to talk to.
+		assert.Zero(t, def.Body.CollisionLayer&2,
+			"%q must not sit on the Action layer, or auras can target it", name)
+		assert.Zero(t, def.Factors.XPFactor,
+			"%q pays no XP and stays off the nameplate path", name)
+		assert.Zero(t, def.Factors.Speed, "%q is a standing stone and does not walk", name)
+	}
 }
 
-// ⭐ The greeting's level gate must equal the CONFIGURED level cap, because P1
-// makes max level the whole entry price and RequestAscension enforces it
-// against the live level from conf. Authoring the number in JSON duplicates it,
-// and a cap change would otherwise leave the stone either unreachable (gate
-// above the cap) or lying to a player it will refuse (gate below it).
-//
-// ⚑ This is the ONLY place the two are compared, and it is deliberately a
-// content test rather than a loader rule: a gated dialogue node is generic
-// machinery, and teaching the mob loader about the level curve to police one
-// stone would be the wrong shape.
-func TestAscensionSite_ReadyNodeIsGatedAtTheConfiguredMaxLevel(t *testing.T) {
-	zone := ascensionSiteZone(t)
+// ⛑ TWO SITES MUST NOT STAND WITHIN TALKING DISTANCE OF EACH OTHER, or of any
+// other conversant. `E` goes to the NEAREST interactable, and C3 paid for that
+// lesson with the memorial and the village stone 3 units apart: a run that
+// measured the wrong one went green proving nothing. A player walking up to a
+// stone priced at 25 must not open the one priced at 30.
+func TestAscensionSites_StandClearOfEveryOtherConversant(t *testing.T) {
+	zone, registry := ascensionSiteZone(t)
+	authored := ascensionSiteDefs(t, registry)
 
-	var def *mobs.MobDefinition
+	// Further apart than the wider of the two talk ranges, which is the rule the
+	// memorial pin already applies to the pair it owns. ⚑ It is NOT a comfortable
+	// margin: the village stone and the monument stand 3.0 units apart by design
+	// (P25 wanted them beside each other), so this is deliberately the weakest
+	// assertion that still makes "which one answers" a decision rather than a
+	// coin flip.
+
 	for i := range zone.Spawns {
-		if zone.Spawns[i].Mob == ascensionSiteMob {
-			def = zone.Spawns[i].Def
+		site := &zone.Spawns[i]
+		if _, isSite := authored[site.Mob]; !isSite {
+			continue
+		}
+		for j := range zone.Spawns {
+			other := &zone.Spawns[j]
+			if i == j || other.Def == nil || other.Def.Interaction == nil {
+				continue
+			}
+			clear := float64(site.Def.Interaction.Range)
+			if r := float64(other.Def.Interaction.Range); r > clear {
+				clear = r
+			}
+			apart := math.Hypot(float64(site.X-other.X), float64(site.Y-other.Y))
+			assert.Greater(t, apart, clear,
+				"%q stands %.1f units from %q, and E goes to the nearest one",
+				site.Mob, apart, other.Mob)
 		}
 	}
-	require.NotNil(t, def)
-	require.NotNil(t, def.Interaction)
+}
 
-	cap := confMaxLevel(t)
-	nodes := def.Interaction.Nodes
-	require.GreaterOrEqual(t, len(nodes), 2, "a gated greeting and the fallback preview at least")
+// ⭐ EVERY SITE PRICES ITSELF, AND EVERY SITE IS UNREACHABLE UNTIL IT IS PAID.
+// This is what survived D1: the cap comparison went (a site names its own
+// price, and Go enforces exactly that), but the STRUCTURE that makes a price
+// mean anything did not.
+//
+// present() makes the FIRST node whose conditions pass the greeting, so an
+// ungated node above the fallback becomes the greeting for everyone: an ungated
+// catalog node showed a fresh level-1 character the reward list, found by
+// c2a-ascension-site.mjs at C2a step 3. And applyGrant validates a row against
+// its NODE's conditions before it reaches the row source, so the same gate is
+// what stops a crafted message stashing a pick nobody paid for — the pick then
+// carries those conditions to the ceremony, so an ungated node would also be an
+// unpriced ascension.
+//
+// ⚑ L3's loader rule does NOT cover this. It refuses a conditional node sitting
+// BELOW an unconditional one, which is a different mistake.
+func TestAscensionSites_EveryNodeButTheFallbackIsGated(t *testing.T) {
+	_, registry := ascensionSiteZone(t)
 
-	// ⭐ EVERY node but the last carries the cap gate, and the row-source node
-	// carries it for TWO independent reasons rather than for symmetry.
-	//
-	// present() makes the FIRST node whose conditions pass the greeting, so an
-	// ungated node above the fallback becomes the greeting for everyone below the
-	// cap: an ungated catalog node showed a fresh level-1 character the reward
-	// list, found by c2a-ascension-site.mjs at C2a step 3. And applyGrant
-	// validates a row against its NODE's conditions before it reaches the row
-	// source, so the same gate is what stops a crafted message stashing a pick
-	// below the cap.
-	//
-	// ⚑ L3's loader rule does NOT cover this. It refuses a conditional node
-	// sitting BELOW an unconditional one, which is a different mistake.
-	gates := 0
-	for i, node := range nodes[:len(nodes)-1] {
-		require.NotEmpty(t, node.Conditions,
-			"node %q is not the fallback, so it must be gated or it becomes the greeting below the cap", node.ID)
-		for _, c := range node.Conditions {
-			if c.Kind == mobs.ConditionMinLevel {
-				gates++
-				assert.Equal(t, cap, c.Value,
-					"node %q (index %d): the gate has drifted from game.player.maxLevel", node.ID, i)
+	for name, def := range ascensionSiteDefs(t, registry) {
+		nodes := def.Interaction.Nodes
+		require.GreaterOrEqual(t, len(nodes), 2,
+			"%q needs a gated greeting and the fallback preview at least", name)
+
+		for _, node := range nodes[:len(nodes)-1] {
+			require.NotEmpty(t, node.Conditions,
+				"%q node %q is not the fallback, so it must be gated or it becomes the greeting for everybody",
+				name, node.ID)
+		}
+
+		var rowNode *mobs.InteractionNode
+		for i := range nodes {
+			if nodes[i].Rows == ascensionSiteRows {
+				rowNode = &nodes[i]
 			}
 		}
-	}
-	assert.GreaterOrEqual(t, gates, 2, "the greeting and the reward list are each gated at the cap")
+		require.NotNil(t, rowNode, "%q generates its reward rows (C2a step 2/3)", name)
+		assert.NotEmpty(t, rowNode.Conditions,
+			"%q's row-source node must be gated: applyGrant checks the NODE, and the pick carries that gate to the ceremony",
+			name)
 
-	var rowNode *mobs.InteractionNode
-	for i := range nodes {
-		if nodes[i].Rows != "" {
-			rowNode = &nodes[i]
-		}
+		// The unconditional fallback is LAST, so a player who cannot pay still
+		// gets a greeting instead of no panel at all.
+		assert.Empty(t, nodes[len(nodes)-1].Conditions,
+			"%q's preview is the final, unconditional node", name)
 	}
-	require.NotNil(t, rowNode, "the site generates its reward rows (C2a step 2/3)")
-	assert.NotEmpty(t, rowNode.Conditions,
-		"the row-source node must be gated: applyGrant checks the NODE before the row source sees the pick")
-
-	// The unconditional fallback is LAST, so a player below the cap still gets a
-	// greeting instead of no panel at all.
-	assert.Empty(t, nodes[len(nodes)-1].Conditions,
-		"the preview is the final, unconditional node")
 }
 
-func confMaxLevel(t *testing.T) int {
-	t.Helper()
-	raw, err := os.ReadFile("../../conf.default.json")
-	require.NoError(t, err)
-
-	var conf struct {
-		Game struct {
-			Player struct {
-				MaxLevel int `json:"maxLevel"`
-			} `json:"player"`
-		} `json:"game"`
+// ⭐ THE SITES DO NOT ALL ASK THE SAME THING, which is the whole point of this
+// plan and the one assertion that would go quietly green if a second stone were
+// added by copy-paste. It is deliberately weak about WHAT they ask: prices are
+// content and will be tuned, but "there is more than one price in the world"
+// is the property C1 exists to create.
+func TestAscensionSites_DoNotAllChargeTheSamePrice(t *testing.T) {
+	_, registry := ascensionSiteZone(t)
+	sites := ascensionSiteDefs(t, registry)
+	if len(sites) < 2 {
+		t.Skip("one site in the world; nothing to compare")
 	}
-	require.NoError(t, json.Unmarshal(raw, &conf))
-	require.NotZero(t, conf.Game.Player.MaxLevel, "conf.default.json carries a level cap")
-	return conf.Game.Player.MaxLevel
+
+	prices := map[string]bool{}
+	for _, def := range sites {
+		prices[fmt.Sprintf("%v", def.Interaction.Nodes[0].Conditions)] = true
+	}
+	assert.Greater(t, len(prices), 1,
+		"every site charges the same thing, so nothing proves a site owns its price")
 }
+
+// ⚑ confMaxLevel WENT WITH D1. It read `game.player.maxLevel` out of
+// conf.default.json so the stone's authored gate could be compared against it,
+// and it was the only reason this file needed conf at all. No site is priced
+// from conf any more.
 
 // ⭐ Owed by C2a step 2 (§12.7): a `rows` kind that PARSES but has no provider
 // case behind it is a permanently EMPTY list, which is the exact twin of C1's
@@ -214,27 +273,44 @@ func TestAuthoredRowSources_AreAllServedByTheProvider(t *testing.T) {
 		}),
 	}
 
-	authored := map[mobs.RowSourceKind]string{}
+	// ⚑ The REAL authored node is what the provider is handed, not a node built
+	// here to match: a provider takes the node since plan-ascension-sites.md P2,
+	// and this test is the one place that can prove the shipped content and the
+	// wired provider agree about it.
+	type authoredNode struct {
+		where string
+		node  *mobs.InteractionNode
+	}
+	authored := map[mobs.RowSourceKind]authoredNode{}
 	for _, def := range mobsRegistry.Mobs() {
 		if def.Interaction == nil {
 			continue
 		}
-		for _, node := range def.Interaction.Nodes {
+		for i := range def.Interaction.Nodes {
+			node := &def.Interaction.Nodes[i]
 			if node.Rows != "" {
-				authored[node.Rows] = def.Name + "/" + node.ID
+				authored[node.Rows] = authoredNode{where: def.Name + "/" + node.ID, node: node}
 			}
 		}
 	}
 	require.NotEmpty(t, authored, "the ascension stone authors one; if this is empty the walk is broken")
 
-	for kind, where := range authored {
+	for kind, a := range authored {
 		source, wired := sources[kind]
-		if !assert.True(t, wired, "%s authors rows %q, and NOTHING is wired for that kind", where, kind) {
+		if !assert.True(t, wired, "%s authors rows %q, and NOTHING is wired for that kind", a.where, kind) {
 			continue
 		}
-		assert.NotEmpty(t, source.PresentRows(kind, maxLevelLearner(t)),
-			"%s authors rows %q, but the wired provider serves nothing for it", where, kind)
+		assert.NotEmpty(t, source.PresentRows(a.node, maxLevelLearner(t)),
+			"%s authors rows %q, but the wired provider serves nothing for it", a.where, kind)
 	}
+}
+
+// catalogRowsNode is the ascension catalog's node as a provider needs it: the
+// `rows` key is what it dispatches on. Content tests that drive a provider
+// directly build one rather than digging the authored node out of the registry,
+// which is a different assertion (see the walk above).
+func catalogRowsNode() *mobs.InteractionNode {
+	return &mobs.InteractionNode{ID: "catalog", Rows: mobs.RowSourceAscensionCatalog}
 }
 
 // maxLevelLearner is the smallest thing the row source will talk to: a player

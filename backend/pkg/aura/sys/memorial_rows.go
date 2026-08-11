@@ -50,8 +50,8 @@ const memorialOwnMarker = "· yours"
 //
 // ⚑ Runs per tick per conversing player, so it reads a slice that is already in
 // memory and allocates only the rows it returns.
-func (m *memorialRows) PresentRows(kind mobs.RowSourceKind, p learner) []model.ConversationOption {
-	if kind != mobs.RowSourceMemorialNames || m.snapshot == nil {
+func (m *memorialRows) PresentRows(node *mobs.InteractionNode, p learner) []model.ConversationOption {
+	if node == nil || node.Rows != mobs.RowSourceMemorialNames || m.snapshot == nil {
 		return nil
 	}
 	yard := m.snapshot()
@@ -112,6 +112,6 @@ func (m *memorialRows) inert(index uint8, text string) model.ConversationOption 
 // exactly as a locked reward row's refusal is: the greying stops an honest
 // client from sending anything, and this stops a crafted message from being
 // answered. A refusal is silent and ordinary, like every other stale click.
-func (m *memorialRows) ApplyRow(mobs.RowSourceKind, learner, int, int) (string, bool) {
+func (m *memorialRows) ApplyRow(*mobs.InteractionNode, learner, int, int) (string, bool) {
 	return "", false
 }

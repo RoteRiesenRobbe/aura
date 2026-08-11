@@ -58,8 +58,8 @@ const ascensionEmptyPickIndex = ascension.MaxEntries
 // ⚑ Runs per tick per conversing player, so every read here is O(1) in memory:
 // the catalog is a slice held since boot, the spent keys ride the player, and a
 // gate is the same conditionsPass the dialogue nodes use.
-func (a *ascensionRows) PresentRows(kind mobs.RowSourceKind, p learner) []model.ConversationOption {
-	if kind != mobs.RowSourceAscensionCatalog {
+func (a *ascensionRows) PresentRows(node *mobs.InteractionNode, p learner) []model.ConversationOption {
+	if node == nil || node.Rows != mobs.RowSourceAscensionCatalog {
 		return nil
 	}
 
@@ -159,8 +159,8 @@ func confirmSecondsFor(locked bool) uint8 {
 // ⚑ Every check is on the row's OWN merits and re-run here rather than trusted
 // from presentation, which is what lets a crafted message be refused the same
 // way a stale click is: silently.
-func (a *ascensionRows) ApplyRow(kind mobs.RowSourceKind, p learner, option, _ int) (string, bool) {
-	if kind != mobs.RowSourceAscensionCatalog {
+func (a *ascensionRows) ApplyRow(node *mobs.InteractionNode, p learner, option, _ int) (string, bool) {
+	if node == nil || node.Rows != mobs.RowSourceAscensionCatalog {
 		return "", false
 	}
 
@@ -170,7 +170,7 @@ func (a *ascensionRows) ApplyRow(kind mobs.RowSourceKind, p learner, option, _ i
 		if a.anyPickable(p) {
 			return "", false
 		}
-		return a.stash(p, "")
+		return a.stash(node, p, "")
 	}
 
 	all := a.catalog.All()
@@ -181,7 +181,7 @@ func (a *ascensionRows) ApplyRow(kind mobs.RowSourceKind, p learner, option, _ i
 	if a.spent(p, entry.UnlockKey) || !conditionsPass(entry.Conditions, p) {
 		return "", false
 	}
-	return a.stash(p, entry.UnlockKey)
+	return a.stash(node, p, entry.UnlockKey)
 }
 
 // ValidatePick re-judges a stashed pick, and it is the completion half of the
@@ -191,8 +191,11 @@ func (a *ascensionRows) ApplyRow(kind mobs.RowSourceKind, p learner, option, _ i
 // clicked and spent ten seconds later; a `quest_at_stage` gate can regress in
 // between, so the channel must ask again rather than trust what it is holding.
 //
-// ⚑ The empty pick is always legitimate: D14 ascends a bloodline that has
-// learned everything it can, and P1 makes max level the whole entry price.
+// ⚑ The empty pick is always legitimate HERE, and that is a statement about the
+// CATALOG only: D14 ascends a bloodline that has learned everything it can, so
+// there is no reward left to re-judge. The SITE's price is judged separately, on
+// the pick itself, and the empty pick pays it like every other row
+// (plan-ascension-sites.md C1).
 func (a *ascensionRows) ValidatePick(p learner, key string) bool {
 	if key == "" {
 		return true
@@ -214,13 +217,18 @@ func (a *ascensionRows) ValidatePick(p learner, key string) bool {
 // behind it; starting it where the pick is validated keeps the two inseparable.
 // The channel remains the last escape: walking away cancels it, and CancelCast
 // takes the pick with it.
-func (a *ascensionRows) stash(p learner, key string) (string, bool) {
+//
+// ⭐ THE SITE'S PRICE RIDES ALONG (plan-ascension-sites.md P1), and both callers
+// pass it — the empty pick included, because D14's ascend-with-no-gift is still
+// something a player does AT A STONE and must cost what that stone asks.
+// `node.Conditions` is a slice into loaded content, immutable after boot, so the
+// snapshot is the slice header and there is nothing to copy or invalidate.
+func (a *ascensionRows) stash(node *mobs.InteractionNode, p learner, key string) (string, bool) {
 	sc := p.SkillComponent()
 	if sc == nil {
 		return "", false
 	}
-	stored := key
-	sc.PendingAscension = &stored
+	sc.PendingAscension = &skills.AscensionPick{Key: key, Gate: node.Conditions}
 	sc.StartUtilityCast(skills.UtilityAscend)
 	if key == "" {
 		return "Channelling now. Walk away to cancel.", true
@@ -328,4 +336,15 @@ func describeCondition(c mobs.InteractionCondition, p learner) string {
 		// a row locked for no reason at all.
 		return fmt.Sprintf("an unnamed requirement (%s)", c.Kind)
 	}
+}
+
+// siteGateHolds re-judges the price the site charged when the row was clicked.
+//
+// ⚑ It lives here rather than on the pick because `skills` cannot name
+// `[]mobs.InteractionCondition` — `mobs` imports `skills`, so the field is
+// carried as `any` and this is the one place that reads it, where both the
+// conditions and the live player are in scope.
+func siteGateHolds(pick *skills.AscensionPick, p learner) bool {
+	gate, priced := pick.Gate.([]mobs.InteractionCondition)
+	return priced && conditionsPass(gate, p)
 }

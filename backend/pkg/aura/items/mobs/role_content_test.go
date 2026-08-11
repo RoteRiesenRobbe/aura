@@ -58,7 +58,10 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// creature that authors no movement. ⚑ The distinction is load-bearing rather
 	// than pedantic: InteractionSystem registers MobEntitys, and a structure
 	// runs its aura always-on, which is not what an object that merely talks is.
-	assert.Len(t, byRole[RoleCreature], 52, "everything else is a creature")
+	// +1 again for the FrontAscensionStone (plan-ascension-sites.md C1), which
+	// is the third time the same case is authored — and now an expected-to-grow
+	// one, since D1 makes a differently-priced site ordinary content.
+	assert.Len(t, byRole[RoleCreature], 53, "everything else is a creature")
 	assert.Len(t, byRole, 3, "no def carries a role outside the three")
 }
 

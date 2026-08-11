@@ -121,7 +121,7 @@ func TestXPFactor_CombatTargetFollowsXPFactor(t *testing.T) {
 	assert.Equal(t, map[string]bool{"Wolf": true, "Turnip": true, "Campfire": false}, entries)
 }
 
-// Content census: the 31 defs that authored `experience: 0` are exactly the
+// Content census: the 32 defs that authored `experience: 0` are exactly the
 // ones that must still pay nothing after the migration — every NPC, structure,
 // totem, summon and sign. A new combat mob accidentally authoring xpFactor 0
 // would be invisible otherwise (no nameplate, no XP, no error).
@@ -129,6 +129,8 @@ func TestXPFactor_CombatTargetFollowsXPFactor(t *testing.T) {
 // ⚑ 30 → 31 at C3 step 6: the MemorialStone joins the AscensionStone, and for
 // the same reason both stones author it: an object that talks must stay off the
 // nameplate path entirely, or the monument would carry a health bar and a level.
+// ⚑ 31 → 32 with the FrontAscensionStone (plan-ascension-sites.md C1): a second
+// priced site, and the same rule a third time.
 func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 	var free []string
 	for _, def := range contentRegistry(t).Mobs() {
@@ -136,7 +138,7 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 			free = append(free, def.Name)
 		}
 	}
-	assert.Len(t, free, 31, "every xpFactor-0 species: %v", free)
+	assert.Len(t, free, 32, "every xpFactor-0 species: %v", free)
 
 	// ⚑ Exactly ONE structure pays anything, and it is the harvest chore's
 	// target: the Turnip at 0.05 (PO 2026-08-05, the one §3.4 curation pulled

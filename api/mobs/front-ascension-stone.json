@@ -1,0 +1,78 @@
+{
+  "_comment": "The SECOND ascension site (plan-ascension-sites.md C1), and the proof that a site owns its price: this stone asks for level 25 and a finished 'Thin the Orc Line', where the village stone asks for level 30. Nothing in Go compares the two numbers any more — D1 retired P1, so the only entry rule left is what a stone authors, snapshotted onto the pick when the row is clicked and re-judged when the ten-second channel lands (sys/ascension_rows.go stash → sys/skills.go applyAscension). ⚑ AUTHORED KNOB-FOR-KNOB FROM ascension-stone.json, which is where the reasoning for every body/factors value lives; only the gates, the id, the name and the lines differ. ⚑ PLACEMENT IS MEASURED, NOT EYEBALLED (55.2, 20.2): 7.65 units from the FrontCaptain and 5.50 from the nearest other spawn, because `E` goes to the NEAREST interactable and C3 already paid for that lesson with two conversants 3 units apart; 2.54 units clear of the nearest prop; and 6.08 from the nearest hostile spawn, so a player reading the panel is not pulled out of it by a wandering elite (combat closes a conversation, D21). ⚑ ITS GATE IS ONLY AS LEGIBLE AS THE FALLBACK LINE BELOW until C2 lands, which is what C2 is for: a locked navigation row will then name the price itself instead of vanishing. ⚑ TEXT IS PLAIN AND [PLACEHOLDER], the TownCrier convention — §8 of the archived ascension plan still owes both stones a lore write, and D4's tone stands: a life laid down, never a sacrifice extracted. ⭐ THE `catalog` NODE CARRIES THE SAME GATE AS THE GREETING, and it is not redundant: present() makes the FIRST node whose conditions pass the greeting, and applyGrant validates a row against its NODE, so an ungated catalog node would both show the reward list to a level-1 character and let a crafted message stash a pick below the price. The unconditional preview stays LAST (L3).",
+  "id": 68,
+  "name": "FrontAscensionStone",
+  "type": "MOB",
+  "entityType": "Signpost",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1.0
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2.0,
+    "nodes": [
+      {
+        "id": "ready",
+        "conditions": [
+          {
+            "kind": "minLevel",
+            "value": 25
+          },
+          {
+            "kind": "quest_at_stage",
+            "quest": "thin-the-orc-line",
+            "stage": "completed"
+          }
+        ],
+        "lines": [
+          "You held the line, and you are far enough along the road. You can spend this character here.",
+          "You pick one reward. It stays unlocked for every future character in this slot."
+        ],
+        "options": [
+          {
+            "text": "Show me the rewards.",
+            "next": "catalog"
+          }
+        ]
+      },
+      {
+        "id": "catalog",
+        "conditions": [
+          {
+            "kind": "minLevel",
+            "value": 25
+          },
+          {
+            "kind": "quest_at_stage",
+            "quest": "thin-the-orc-line",
+            "stage": "completed"
+          }
+        ],
+        "rows": "ascension_catalog",
+        "lines": [
+          "Pick one reward. It unlocks permanently for this character slot.",
+          "Confirming ends this character. Its name goes on the memorial."
+        ]
+      },
+      {
+        "id": "root",
+        "lines": [
+          "Front stone. It asks for level 25, and for the orc line to have been thinned.",
+          "Spending a character here unlocks a permanent reward for its character slot."
+        ]
+      }
+    ]
+  }
+}

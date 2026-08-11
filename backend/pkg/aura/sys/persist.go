@@ -132,21 +132,25 @@ func (s *ConnectionStateSystem) SetCharacterAscensions(ascensions CharacterAscen
 // request was accepted. It is the loop-side entry point the ascension site's
 // grant will call (C2); C1 builds and proves the machinery behind it.
 //
-// ⚑ P1 IS CHECKED HERE, AGAINST THE LIVE LEVEL, and deliberately not in SQL.
-// The character row's level is eventually consistent — saves are periodic, and
-// the teardown below skips the final one on purpose — so a `level >= maxLevel`
-// clause in the transaction would refuse a player who just reached it. The live
-// character is the only trustworthy answer, and this is the only place holding
-// it.
+// ⭐ IT PRICES NOTHING (plan-ascension-sites.md D1). This used to hold P1 — a
+// `p.Progression().Level < levelCurve.MaxLevel` refusal, the same number the
+// stone authored — and that duplication is exactly what a world of
+// differently-priced sites cannot have: a stone gated at 25 would show its rows,
+// take the pick, channel for ten seconds and then be refused here. The price is
+// the SITE's, snapshotted onto the pick when the row is clicked and re-judged by
+// applyAscension when the channel lands.
+//
+// ⚑ THE LIVE-PLAYER PROPERTY SURVIVED THE MOVE, and it is why neither check was
+// ever in SQL: the character row's level is eventually consistent — saves are
+// periodic, and the teardown below skips the final one on purpose — so a
+// `level >= maxLevel` clause in the transaction would refuse a player who just
+// reached it. Its replacement reads the live player through the same
+// conditionsPass the panel used.
 //
 // ⚑ Accepting is not committing. The session survives until the transaction is
 // observed to have succeeded; see drainAscensions.
 func (s *ConnectionStateSystem) RequestAscension(p model.PlayerEntity, unlockKey string) bool {
 	if s.ascensions == nil {
-		return false
-	}
-	maxLevel := uint32(s.game.Config().PlayerConfig.LevelCurve.MaxLevel)
-	if maxLevel == 0 || p.Progression().Level < maxLevel {
 		return false
 	}
 

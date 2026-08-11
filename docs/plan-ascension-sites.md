@@ -1,9 +1,11 @@
 # Plan: Ascension sites - many stones, each with its own price and its own rewards
 
-> **Status: DESIGNED 2026-08-11. Nothing built.** Four PO rulings taken in the
-> design session (D1-D4). Successor to `docs/archive/plan-ascension.md`, which
-> shipped the loop against exactly one stone at exactly one price.
-> Every number is **[PLACEHOLDER]** unless marked.
+> **Status: C1 SHIPPED 2026-08-11 (`[uncommitted]`) — C2 and C3 open.** Four PO
+> rulings taken in the design session (D1-D4), three more at C1 (the second
+> stone's price and place, and P2 pulled forward). Successor to
+> `docs/archive/plan-ascension.md`, which shipped the loop against exactly one
+> stone at exactly one price. Every number is **[PLACEHOLDER]** unless marked.
+> Ledger: §9.
 >
 > ⚑ **Schema impact: DB NONE · FlatBuffers NONE · conf NONE.** Verified against
 > the shipped `000001` DDL and `server.fbs`, not reasoned: `bloodline_unlocks`
@@ -124,12 +126,20 @@ C3's own principle one level up, and D2 rules it in scope.
 
 Three chunks, each independently shippable and verifiable.
 
-### C1 - the site owns its price
+### C1 - the site owns its price ✅ SHIPPED 2026-08-11 (§9)
 
 The blocker-1 change, and the one that unlocks the ask.
 
+⚑ **P2 MOVED HERE FROM C3**, which retires this section's own "C3 is the only
+one that touches an interface": the gate snapshot has to travel through the
+`ApplyRow` call, the row source is global, and there is no side channel that
+does not break the pick-dies-with-the-cast property. So C1 split into **C1a**
+(the interface, behaviour-neutral) and **C1b** (the price), and C3 inherits an
+interface that is already right.
+
 | Layer | Change |
 | --- | --- |
+| `sys/interaction.go` | **P2, pulled forward**: `RowSource` takes the NODE |
 | `skills/component.go` | `PendingAscension` carries key + gate snapshot (P1) |
 | `sys/ascension_rows.go` | `stash` records the gate; `ValidatePick` re-judges it |
 | `sys/persist.go` | `RequestAscension` drops the `maxLevel` comparison |
@@ -169,7 +179,7 @@ hand.
 | Layer | Change |
 | --- | --- |
 | `mobs/interaction.go` | `InteractionNode.Rewards []string`, refused elsewhere (P3) |
-| `sys/interaction.go` | `RowSource` takes the node (P2); the mux and the memorial follow |
+| ~~`sys/interaction.go`~~ | ~~`RowSource` takes the node (P2)~~ — **done in C1a** |
 | `sys/ascension_rows.go` | rows come from the node's list, filtered as today |
 | `cmd/aurad/loaders.go` | cross-validation, boot hard-fails on an unknown key (P4) |
 | `api/mobs/` | the two stones author different lists |
@@ -228,9 +238,10 @@ legible prices.
 
 **Open, and PO calls when the time comes:**
 
-- **Where the second stone stands, and what it asks for.** C1 needs one to prove
-  anything; the example in the ask (level 25 plus a completed quest) is a good
-  probe and probably not the shipped content.
+- ~~**Where the second stone stands, and what it asks for.**~~ **ANSWERED at C1
+  (PO 2026-08-11):** `FrontAscensionStone` stands at **(55.2, 20.2)**, inside
+  the army camp behind the front line, and asks for **level 25 + a completed
+  `thin-the-orc-line`**. The placement is measured rather than eyeballed (§9).
 - **Whether a site's price should be visible from outside talking range** (a
   map marker, a plate). Out of scope here.
 - **The lore write for both stones**, inherited unchanged from the archived
@@ -253,3 +264,86 @@ legible prices.
   Its §8 "Numbers" entry (the channel length) is unaffected.
 - **CLAUDE.md's "Ascension's leftovers" bullet** loses the tuning-open mention
   of the entry price once C1 lands, and keeps the rest.
+
+## 9. Chunk ledgers
+
+### C1 — the site owns its price ✅ 2026-08-11, `[uncommitted]`
+
+Shipped in two sessions in one chat, deliberately split so a behaviour-neutral
+refactor could be verified by *nothing changing*: **C1a** moved the row-source
+interface, **C1b** moved the price. **Schema: DB NONE · FlatBuffers NONE · conf
+NONE** — one Go pass plus one content file, client untouched, so an ordinary
+deploy (content **and** backend, but no wire change and therefore no hard
+reload).
+
+**Three PO calls:** the second stone asks **level 25 + a completed
+`thin-the-orc-line`** · it stands **at the front** (55.2, 20.2) · **P2 pulled
+forward** into C1a, which is why §4's "C3 is the only chunk that touches an
+interface" no longer holds.
+
+⛑ **THE GATE CANNOT BE A CLOSURE, AND THE REASON IS A LIFETIME.** P1 says the
+pick carries a snapshot of the site's conditions; the obvious Go shape is a
+`func() bool` capturing the player, since `skills` cannot name
+`[]mobs.InteractionCondition` (`mobs` imports `skills`, so the honest field is an
+import cycle). It is wrong: **`ConnectionStateSystem.reattach` installs the
+STASHED SkillComponent — cast state included — into a freshly built
+`player.New(...)`**, and nothing on that path cancels the cast, so a mid-channel
+disconnect/reconnect resumes the ceremony on a *different object*. A captured
+player would then be judged detached, losing the live-player property that is the
+entire reason the old check was in Go rather than in SQL. The shipped shape is
+`AscensionPick{Key string; Gate any}` — data, judged by `sys` against the live
+player — and one type assertion yields all three states: nil interface (nobody
+priced it) refuses, typed empty slice (ungated site, legitimate under D1) passes,
+wrong type refuses.
+
+⚑ **A SIGNATURE CHANGE WAS THE ONLY WAY IN.** The row source is global and
+`ApplyRow(kind, …)` never learned which node it spoke for, so P2 was not a
+tidy-up that could wait for C3 — the gate has to travel through that call. Doing
+it alone first (C1a) meant its acceptance criterion was *every existing test and
+both existing harnesses unchanged*, which is only cheap to check while it is
+alone in a diff.
+
+⚑ **THE PIN THAT SURVIVED IS NOT THE PIN THAT WENT.** The old content test
+required the stone's gate to EQUAL `game.player.levelCurve.maxLevel` — the
+duplication D1 exists to remove — and it also required *every non-fallback node
+to be gated*, which is about `present()` picking the first passing node as the
+greeting and has nothing to do with the cap. The first assert is gone with
+`confMaxLevel`; the second is now walked over **every def carrying an
+`ascension_catalog` rows node**, so stone three is pinned the day it is authored.
+Two new pins ride with it: sites stand clear of every other conversant (the
+threshold is derived from the two talk ranges, because the shipped village pair
+is 3.0 units apart *by design*), and not all sites charge the same price.
+
+⛑ **THE SECOND STONE'S PRICE IS NOT HARNESS-PAYABLE, and that is measured, not
+assumed.** `c1-front-stone.mjs` reports **9/12 with 3 inconclusive**: the journal
+read **0/5 orcs killed** after 30 s of standing in the pack with the aura on and
+four skill points spent, because an elite Orc carries ~3,617 HP (420 ×
+1.12¹⁹) against a Dire Wolf's ~222 — 16× what `c3-memorial-catalog` grinds
+through in the same window. **PO ruling 2026-08-11: leave the price, record the
+gap.** The three legs stay in the script and go green for free if anything ever
+makes it payable (a cheaper gate, a kill cheat, a stronger starting build); the
+positive half is carried by Go
+(`TestAscension_OnePlayerTwoSites_ThePriceThatCountsIsTheSitesOwn`,
+`TestRequestAscensionDoesNotPriceTheAscensionItself`), and what only a browser
+can show — the stone answers, it is the *right* stone, level 25 alone does not
+open it — passes.
+
+⚑ **THREE CONTENT-CENSUS PINS COUNT THE ROSTER** (`items/mobs`: conversants,
+roles, xpFactor-0 species) and a new authored mob breaks all three. They are
+cheap to update and are *supposed* to break; the trap is that they read `api/`
+from disk, so **`-count=1` is mandatory** — an earlier suite reading in this very
+session looked clean while they were already broken.
+
+**Verified.** TDD red-first at both surfaces: 7 Go tests red for the right
+reasons before the implementation, plus one for the mux's nil path. **6 mutations
+caught** — delete the completion re-judge · the empty pick skips the gate · an
+unpriced pick passes · the second stone is authored but never placed · both
+stones charge the same · the stone stands on the captain's toes. `go test
+-count=1 ./...` **34 packages ok**, `-race` clean, boot **68 mobs / 488 spawns,
+0 WARN / 0 ERROR**. Harnesses: **`c2a-ascension-site` 29/29** and
+**`c3-memorial-catalog` 14/14** (both exact baselines, re-run for C1a because P2
+touches the memorial's row source), **`c1-front-stone` 9/12 + 3 inconclusive**
+(new, owns the front stone only).
+
+**Owed by C2**, and now visible in the world: the front stone's price is only as
+legible as the fallback line authored by hand for it.

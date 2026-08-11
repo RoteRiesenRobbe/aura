@@ -62,7 +62,7 @@ func TestAscensionRows_FiltersOnSpentKeysNotTheSpellbook(t *testing.T) {
 	p := newAscensionLearner(30)
 	p.sc.Discover(rewardFrost.ID) // learned in the world, never bought
 
-	rows := src.PresentRows(mobs.RowSourceAscensionCatalog, p)
+	rows := src.PresentRows(catalogNode(), p)
 
 	_, found := rowByText(rows, "Frost Shield")
 	assert.True(t, found, "a skill learned in the world is not a spent unlock")
@@ -71,7 +71,7 @@ func TestAscensionRows_FiltersOnSpentKeysNotTheSpellbook(t *testing.T) {
 func TestAscensionRows_OmitsWhatThisBloodlineAlreadySpent(t *testing.T) {
 	src := newAscensionRows(testCatalog(nil))
 
-	rows := src.PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(30, "FrostShield"))
+	rows := src.PresentRows(catalogNode(), newAscensionLearner(30, "FrostShield"))
 
 	_, found := rowByText(rows, "Frost Shield")
 	assert.False(t, found, "P4: a taken entry leaves this bloodline's catalog forever")
@@ -86,7 +86,7 @@ func TestAscensionRows_OmitsWhatThisBloodlineAlreadySpent(t *testing.T) {
 func TestAscensionRows_IndicesAreCatalogPositionsAndSurviveFiltering(t *testing.T) {
 	src := newAscensionRows(testCatalog(nil))
 
-	rows := src.PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(30, "EmberWard"))
+	rows := src.PresentRows(catalogNode(), newAscensionLearner(30, "EmberWard"))
 
 	frost, ok := rowByText(rows, "Frost Shield")
 	require.True(t, ok)
@@ -104,7 +104,7 @@ func TestAscensionRows_NoRowCarriesTheNoGrantSentinel(t *testing.T) {
 	gates := map[string][]mobs.InteractionCondition{
 		"Paralyze": {{Kind: mobs.ConditionMinLevel, Value: 99}},
 	}
-	rows := newAscensionRows(testCatalog(gates)).PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(30))
+	rows := newAscensionRows(testCatalog(gates)).PresentRows(catalogNode(), newAscensionLearner(30))
 
 	require.NotEmpty(t, rows)
 	for _, r := range rows {
@@ -116,8 +116,8 @@ func TestAscensionRows_NoRowCarriesTheNoGrantSentinel(t *testing.T) {
 func TestAscensionRows_ServesNothingForAKindItDoesNotOwn(t *testing.T) {
 	src := newAscensionRows(testCatalog(nil))
 
-	assert.Nil(t, src.PresentRows(mobs.RowSourceKind("graveyard"), newAscensionLearner(30)))
-	_, ok := src.ApplyRow(mobs.RowSourceKind("graveyard"), newAscensionLearner(30), 0, 0)
+	assert.Nil(t, src.PresentRows(rowsNode(mobs.RowSourceKind("graveyard")), newAscensionLearner(30)))
+	_, ok := src.ApplyRow(rowsNode(mobs.RowSourceKind("graveyard")), newAscensionLearner(30), 0, 0)
 	assert.False(t, ok)
 }
 
@@ -127,7 +127,7 @@ func TestAscensionRows_AFailingGateLocksTheRowAndNamesIt(t *testing.T) {
 	gates := map[string][]mobs.InteractionCondition{
 		"Paralyze": {{Kind: mobs.ConditionMinLevel, Value: 25}},
 	}
-	rows := newAscensionRows(testCatalog(gates)).PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(12))
+	rows := newAscensionRows(testCatalog(gates)).PresentRows(catalogNode(), newAscensionLearner(12))
 
 	row, ok := rowByText(rows, "Paralyze")
 	require.True(t, ok, "a gated entry is SHOWN locked, never hidden (D18)")
@@ -141,7 +141,7 @@ func TestAscensionRows_APassingGateIsAnOrdinaryPickableRow(t *testing.T) {
 	gates := map[string][]mobs.InteractionCondition{
 		"Paralyze": {{Kind: mobs.ConditionMinLevel, Value: 25}},
 	}
-	rows := newAscensionRows(testCatalog(gates)).PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(30))
+	rows := newAscensionRows(testCatalog(gates)).PresentRows(catalogNode(), newAscensionLearner(30))
 
 	row, ok := rowByText(rows, "Paralyze")
 	require.True(t, ok)
@@ -157,7 +157,7 @@ func TestAscensionRows_APassingGateIsAnOrdinaryPickableRow(t *testing.T) {
 func TestAscensionRows_TheEmptyPickRowIsOfferedEvenWithNothingLeft(t *testing.T) {
 	src := newAscensionRows(ascension.CatalogOf())
 
-	rows := src.PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(30))
+	rows := src.PresentRows(catalogNode(), newAscensionLearner(30))
 
 	require.Len(t, rows, 1)
 	assert.EqualValues(t, ascensionEmptyPickIndex, rows[0].OptionIndex)
@@ -173,7 +173,7 @@ func TestAscensionRows_TheEmptyPickRowSurvivesAnAllLockedCatalog(t *testing.T) {
 		"FrostShield": {{Kind: mobs.ConditionMinLevel, Value: 99}},
 		"Paralyze":    {{Kind: mobs.ConditionMinLevel, Value: 99}},
 	}
-	rows := newAscensionRows(testCatalog(gates)).PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(30))
+	rows := newAscensionRows(testCatalog(gates)).PresentRows(catalogNode(), newAscensionLearner(30))
 
 	require.Len(t, rows, 4, "three locked rows plus the empty pick")
 	assert.EqualValues(t, ascensionEmptyPickIndex, rows[3].OptionIndex)
@@ -191,11 +191,11 @@ func TestAscensionRows_ApplyingTheEmptyPickStashesTheEmptyKey(t *testing.T) {
 	}))
 	p := newAscensionLearner(30)
 
-	_, ok := src.ApplyRow(mobs.RowSourceAscensionCatalog, p, ascensionEmptyPickIndex, 0)
+	_, ok := src.ApplyRow(catalogNode(), p, ascensionEmptyPickIndex, 0)
 
 	require.True(t, ok)
 	require.NotNil(t, p.sc.PendingAscension)
-	assert.Equal(t, "", *p.sc.PendingAscension, "RequestAscension takes \"\" as the empty pick (C1)")
+	assert.Equal(t, "", p.sc.PendingAscension.Key, "RequestAscension takes \"\" as the empty pick (C1)")
 }
 
 // --- apply ------------------------------------------------------------------
@@ -204,12 +204,72 @@ func TestAscensionRows_ApplyStashesTheValidatedPick(t *testing.T) {
 	src := newAscensionRows(testCatalog(nil))
 	p := newAscensionLearner(30)
 
-	reply, ok := src.ApplyRow(mobs.RowSourceAscensionCatalog, p, 1, 0) // FrostShield
+	reply, ok := src.ApplyRow(catalogNode(), p, 1, 0) // FrostShield
 
 	require.True(t, ok)
 	assert.NotEmpty(t, reply)
 	require.NotNil(t, p.sc.PendingAscension)
-	assert.Equal(t, "FrostShield", *p.sc.PendingAscension)
+	assert.Equal(t, "FrostShield", p.sc.PendingAscension.Key)
+}
+
+// ⭐ THE PICK CARRIES THE SITE'S PRICE (plan-ascension-sites.md C1/P1). Since D1
+// there is no global entry rule left: what a player must be to spend a life is
+// whatever the stone they are standing at authored, so the price has to travel
+// with the pick to the ceremony that lands ten seconds later.
+//
+// ⚑ Asserted as the node's OWN conditions rather than a copy, because that is
+// what a snapshot of loaded content is: the slice is immutable after boot, so
+// there is nothing to deep-copy and nothing to go stale.
+func TestAscensionRows_ThePickCarriesTheSitesPrice(t *testing.T) {
+	src := newAscensionRows(testCatalog(nil))
+	p := newAscensionLearner(30)
+	site := catalogNode()
+	site.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 25}}
+
+	_, ok := src.ApplyRow(site, p, 1, 0) // FrostShield
+
+	require.True(t, ok)
+	require.NotNil(t, p.sc.PendingAscension)
+	assert.Equal(t, site.Conditions, p.sc.PendingAscension.Gate,
+		"the ceremony must be able to re-judge the price of the site it was started at")
+}
+
+// ⚑ THE EMPTY PICK INHERITS THE PRICE TOO, and it is the branch most likely to
+// be forgotten: D14's ascend-with-no-gift is still offered AT A SITE, so a
+// bloodline with nothing left to learn does not get a cheaper entry than one
+// that is buying something.
+func TestAscensionRows_TheEmptyPickCarriesTheSitesPriceToo(t *testing.T) {
+	src := newAscensionRows(testCatalog(map[string][]mobs.InteractionCondition{
+		"EmberWard":   {{Kind: mobs.ConditionMinLevel, Value: 99}},
+		"FrostShield": {{Kind: mobs.ConditionMinLevel, Value: 99}},
+		"Paralyze":    {{Kind: mobs.ConditionMinLevel, Value: 99}},
+	}))
+	p := newAscensionLearner(30)
+	site := catalogNode()
+	site.Conditions = []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 25}}
+
+	_, ok := src.ApplyRow(site, p, ascensionEmptyPickIndex, 0)
+
+	require.True(t, ok)
+	require.NotNil(t, p.sc.PendingAscension)
+	assert.Equal(t, site.Conditions, p.sc.PendingAscension.Gate)
+}
+
+// An UNGATED site is legitimate content (D1 leaves the price entirely to the
+// author), and it must be distinguishable from a pick nobody priced at all: the
+// first carries an empty gate, the second carries none, and only the second is
+// refused at completion.
+func TestAscensionRows_AnUngatedSiteStillPricesThePick(t *testing.T) {
+	src := newAscensionRows(testCatalog(nil))
+	p := newAscensionLearner(30)
+
+	_, ok := src.ApplyRow(catalogNode(), p, 1, 0)
+
+	require.True(t, ok)
+	require.NotNil(t, p.sc.PendingAscension)
+	gate, isGate := p.sc.PendingAscension.Gate.([]mobs.InteractionCondition)
+	assert.True(t, isGate, "a priced-with-nothing pick still carries a gate of the right type")
+	assert.Empty(t, gate)
 }
 
 func TestAscensionRows_ApplyRefusalsLeaveNothingStashed(t *testing.T) {
@@ -230,7 +290,7 @@ func TestAscensionRows_ApplyRefusalsLeaveNothingStashed(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			src := newAscensionRows(testCatalog(gates))
 
-			_, ok := src.ApplyRow(mobs.RowSourceAscensionCatalog, tc.player, tc.option, 0)
+			_, ok := src.ApplyRow(catalogNode(), tc.player, tc.option, 0)
 
 			assert.False(t, ok)
 			assert.Nil(t, tc.player.sc.PendingAscension, "a refused pick must never be left stashed")
@@ -250,12 +310,12 @@ func TestAscensionRows_PresentAndApplyCannotDisagree(t *testing.T) {
 	for _, level := range []uint32{1, 19, 20, 30} {
 		for _, spent := range [][]string{nil, {"FrostShield"}, {"EmberWard", "FrostShield", "Paralyze"}} {
 			rows := newAscensionRows(testCatalog(gates)).
-				PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(level, spent...))
+				PresentRows(catalogNode(), newAscensionLearner(level, spent...))
 
 			for _, row := range rows {
 				taker := newAscensionLearner(level, spent...)
 				reply, ok := newAscensionRows(testCatalog(gates)).
-					ApplyRow(mobs.RowSourceAscensionCatalog, taker, int(row.OptionIndex), int(row.GrantIndex))
+					ApplyRow(catalogNode(), taker, int(row.OptionIndex), int(row.GrantIndex))
 
 				where := fmt.Sprintf("level %d, spent %v, row %q", level, spent, row.Text)
 				if row.Locked {
@@ -302,7 +362,7 @@ func TestAscensionRows_AVeteranGateLocksAndThenOpens(t *testing.T) {
 	first := newAscensionLearner(30)
 	first.ascensions = 1
 	row, ok := rowByText(newAscensionRows(testCatalog(gates)).
-		PresentRows(mobs.RowSourceAscensionCatalog, first), "Paralyze")
+		PresentRows(catalogNode(), first), "Paralyze")
 	require.True(t, ok, "a gated entry is shown locked, never hidden")
 	assert.True(t, row.Locked)
 	assert.Contains(t, row.Text, "1/3", "the gate names its progress for this bloodline")
@@ -310,7 +370,7 @@ func TestAscensionRows_AVeteranGateLocksAndThenOpens(t *testing.T) {
 	veteran := newAscensionLearner(30)
 	veteran.ascensions = 3
 	row, ok = rowByText(newAscensionRows(testCatalog(gates)).
-		PresentRows(mobs.RowSourceAscensionCatalog, veteran), "Paralyze")
+		PresentRows(catalogNode(), veteran), "Paralyze")
 	require.True(t, ok)
 	assert.False(t, row.Locked, "the third ascension opens it")
 	assert.NotEmpty(t, row.Reply)
@@ -323,7 +383,7 @@ func TestAscensionRows_AVeteranGateRefusesTheUntakeable(t *testing.T) {
 	p := newAscensionLearner(30)
 	p.ascensions = 1
 
-	_, ok := newAscensionRows(testCatalog(gates)).ApplyRow(mobs.RowSourceAscensionCatalog, p, 2, 0)
+	_, ok := newAscensionRows(testCatalog(gates)).ApplyRow(catalogNode(), p, 2, 0)
 
 	assert.False(t, ok)
 	assert.Nil(t, p.sc.PendingAscension)
@@ -336,7 +396,7 @@ func TestAscensionRows_AVeteranGateRefusesTheUntakeable(t *testing.T) {
 func TestAscensionRows_TakeableRowsCarryTheConfirmCountdown(t *testing.T) {
 	gates := map[string][]mobs.InteractionCondition{"Paralyze": ascensionGate(3)}
 	rows := newAscensionRows(testCatalog(gates)).
-		PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(30))
+		PresentRows(catalogNode(), newAscensionLearner(30))
 
 	pick, ok := rowByText(rows, "Frost Shield")
 	require.True(t, ok)
@@ -351,7 +411,7 @@ func TestAscensionRows_TakeableRowsCarryTheConfirmCountdown(t *testing.T) {
 // D14's row spends the character too, so it is held behind the same countdown.
 func TestAscensionRows_TheEmptyPickIsHeldBehindTheCountdownToo(t *testing.T) {
 	rows := newAscensionRows(ascension.CatalogOf()).
-		PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(30))
+		PresentRows(catalogNode(), newAscensionLearner(30))
 
 	require.Len(t, rows, 1)
 	assert.EqualValues(t, ascensionConfirmSeconds, rows[0].ConfirmSeconds)
@@ -366,7 +426,7 @@ func TestAscensionRows_TheEmptyPickIsHeldBehindTheCountdownToo(t *testing.T) {
 func TestAscensionRows_EveryRewardRowNamesItsSkill(t *testing.T) {
 	gates := map[string][]mobs.InteractionCondition{"Paralyze": ascensionGate(3)}
 	rows := newAscensionRows(testCatalog(gates)).
-		PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(30))
+		PresentRows(catalogNode(), newAscensionLearner(30))
 
 	pick, ok := rowByText(rows, "Frost Shield")
 	require.True(t, ok)
@@ -383,7 +443,7 @@ func TestAscensionRows_EveryRewardRowNamesItsSkill(t *testing.T) {
 // to describe, and 0 is what tells the client to attach no tooltip at all.
 func TestAscensionRows_TheEmptyPickNamesNoSkill(t *testing.T) {
 	rows := newAscensionRows(ascension.CatalogOf()).
-		PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(30))
+		PresentRows(catalogNode(), newAscensionLearner(30))
 
 	require.Len(t, rows, 1)
 	assert.Zero(t, rows[0].SkillID)
@@ -447,7 +507,7 @@ func TestAscensionRows_AHuntGateLocksAndThenOpens(t *testing.T) {
 
 	hunting := newQuestLearner(t, 30)
 	rows := newAscensionRows(testCatalog(gates)).
-		PresentRows(mobs.RowSourceAscensionCatalog, hunting)
+		PresentRows(catalogNode(), hunting)
 	row, found := rowByText(rows, "Paralyze")
 	require.True(t, found)
 	assert.True(t, row.Locked, "the hunt is not done")
@@ -458,7 +518,7 @@ func TestAscensionRows_AHuntGateLocksAndThenOpens(t *testing.T) {
 		done.ledger.NoteKill(wolf)
 	}
 	rows = newAscensionRows(testCatalog(gates)).
-		PresentRows(mobs.RowSourceAscensionCatalog, done)
+		PresentRows(catalogNode(), done)
 	row, found = rowByText(rows, "Paralyze")
 	require.True(t, found)
 	assert.False(t, row.Locked, "the hunt is done")
@@ -506,7 +566,7 @@ func TestAscensionRows_ARowRendersTheAuthoredDisplayName(t *testing.T) {
 		ascension.Entry{UnlockKey: def.Name, Skill: def},
 	))
 
-	rows := source.PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(30))
+	rows := source.PresentRows(catalogNode(), newAscensionLearner(30))
 	require.Len(t, rows, 1)
 	assert.Equal(t, "Rime-Burst", rows[0].Text, "the authored override, not the derived spelling")
 	assert.Contains(t, rows[0].Reply, "Rime-Burst")
@@ -525,7 +585,7 @@ func TestAscensionRows_TheStashedReplyUsesTheAuthoredDisplayName(t *testing.T) {
 	))
 	p := newAscensionLearner(30)
 
-	reply, ok := source.ApplyRow(mobs.RowSourceAscensionCatalog, p, 0, 0)
+	reply, ok := source.ApplyRow(catalogNode(), p, 0, 0)
 	require.True(t, ok)
 	assert.Contains(t, reply, "Rime-Burst")
 	assert.NotContains(t, reply, "Rime Burst", "the derived spelling must not leak back in")

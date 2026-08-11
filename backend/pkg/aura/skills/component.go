@@ -141,13 +141,13 @@ type SkillComponent struct {
 	// cleared) by the SkillSystem in the same tick.
 	PendingUtilities []UtilityKind
 
-	// PendingAscension is the reward key the player picked at the ascension
-	// stone, stashed when the row is taken and read when the channel completes
-	// (plan-ascension.md §12.4 C2a steps 3 and 5). A POINTER because "" is a
-	// legitimate value: D14's empty pick ascends a bloodline that has learned
-	// everything it can, so "nothing stashed" and "stashed the empty pick" are
-	// different states. Cleared by CancelCast.
-	PendingAscension *string
+	// PendingAscension is what the player picked at an ascension site, stashed
+	// when the row is taken and read when the channel completes
+	// (plan-ascension.md §12.4 C2a steps 3 and 5). A POINTER because the empty
+	// pick is a legitimate value: D14's ascend-with-no-gift ascends a bloodline
+	// that has learned everything it can, so "nothing stashed" and "stashed the
+	// empty pick" are different states. Cleared by CancelCast.
+	PendingAscension *AscensionPick
 
 	// revision counts changes to the PERSISTED half of this component — the
 	// spellbook, the three slot arrays and the active aura index. Cast state,
@@ -278,6 +278,30 @@ func (d DerivedStats) CostFactor() float32 {
 		r = 0
 	}
 	return 1 - r
+}
+
+// AscensionPick is one player's choice at one ascension site: the reward key,
+// and the site's own price as it stood when the row was clicked
+// (plan-ascension-sites.md C1, P1). Both halves are re-judged when the ten-second
+// channel completes, because either can lapse in between.
+//
+// ⭐ THE GATE IS DATA, NOT A CLOSURE, and the reason is a lifetime rather than
+// taste: `sys.ConnectionStateSystem.reattach` installs the STASHED
+// SkillComponent — cast state included — into a freshly built player entity, so
+// a mid-channel reconnect resumes the ceremony on a DIFFERENT object. A snapshot
+// that had captured the player would then be judged against the detached one,
+// losing the live-player property the whole check exists for. Carrying the
+// conditions and letting the caller supply the player keeps that property
+// exactly as the key-only stash had it.
+//
+// ⚑ Gate is `any` because it holds a `[]mobs.InteractionCondition` and this
+// package CANNOT name that type: `mobs` imports `skills`, so the honest
+// declaration is an import cycle. Only `sys` ever reads it, where both the
+// conditions and the live player are in scope, and it fails CLOSED — a pick with
+// no gate is a pick nobody priced, and is refused.
+type AscensionPick struct {
+	Key  string
+	Gate any
 }
 
 // NewSkillComponent creates a SkillComponent with no skills equipped.

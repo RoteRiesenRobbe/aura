@@ -14355,6 +14355,12 @@
       "angle": 0
     },
     {
+      "mob": "FrontAscensionStone",
+      "x": 55.2,
+      "y": 20.2,
+      "angle": 0
+    },
+    {
       "mob": "ForestSign",
       "x": -53.61,
       "y": -1.18,

@@ -126,7 +126,7 @@ func TestAscensionCatalog_AFirstLifeSeesFivePickableAndThreeLocked(t *testing.T)
 	catalog, _ := loadedCatalog(t)
 	source := sys.NewAscensionRows(catalog)
 
-	rows := source.PresentRows(mobs.RowSourceAscensionCatalog, newCatalogLearner())
+	rows := source.PresentRows(catalogRowsNode(), newCatalogLearner())
 	require.Len(t, rows, 8, "no empty-pick row while real choices are on screen (D14)")
 
 	var locked []string
@@ -196,8 +196,14 @@ func (l *catalogLearner) AccountID() int64            { return 0 }
 // NEAREST eligible actor, so two talkers inside each other's interaction range
 // would make which one answers a positional accident — the exact trap the
 // verify skill records for the zone-1 conversant cluster.
+//
+// ⚑ THE VILLAGE STONE BY NAME, deliberately, and it is the one place left that
+// names a site: P25 is about THAT pair standing together, not about ascension
+// sites in general. The generic pins moved to the sibling file when D1 made new
+// stones ordinary content, and a second site elsewhere in the world must not
+// make this test ambiguous.
 func TestMemorial_StandsBesideTheStoneAndIsReachable(t *testing.T) {
-	zone := ascensionSiteZone(t)
+	zone, _ := ascensionSiteZone(t)
 
 	var memorial, stone *world.Spawn
 	for i := range zone.Spawns {
@@ -205,7 +211,7 @@ func TestMemorial_StandsBesideTheStoneAndIsReachable(t *testing.T) {
 		case "MemorialStone":
 			require.Nil(t, memorial, "exactly one monument, or two places claim one history")
 			memorial = &zone.Spawns[i]
-		case ascensionSiteMob:
+		case "AscensionStone":
 			stone = &zone.Spawns[i]
 		}
 	}
@@ -226,7 +232,7 @@ func TestMemorial_StandsBesideTheStoneAndIsReachable(t *testing.T) {
 // ascension rather than the monument — a level gate here would hide the game's
 // own history from exactly the players who have not made any of it yet.
 func TestMemorial_ItsNodeIsUngatedAndServesTheGraveyard(t *testing.T) {
-	zone := ascensionSiteZone(t)
+	zone, _ := ascensionSiteZone(t)
 
 	var def *mobs.MobDefinition
 	for i := range zone.Spawns {

@@ -2056,8 +2056,7 @@ func TestSession_ClosingForTheCeremonyLeavesTheChannelRunning(t *testing.T) {
 	require.NotNil(t, p.conversation)
 
 	sc := p.SkillComponent()
-	key := "RimeBurst"
-	sc.PendingAscension = &key
+	sc.PendingAscension = &skills.AscensionPick{Key: "RimeBurst"}
 	sc.StartUtilityCast(skills.UtilityAscend)
 	step()
 
@@ -2065,7 +2064,7 @@ func TestSession_ClosingForTheCeremonyLeavesTheChannelRunning(t *testing.T) {
 	assert.True(t, sc.IsCasting(), "the channel survives the panel it closed")
 	assert.Equal(t, skills.UtilityAscend, sc.CastingUtility)
 	require.NotNil(t, sc.PendingAscension, "and so does the pick it is holding")
-	assert.Equal(t, "RimeBurst", *sc.PendingAscension)
+	assert.Equal(t, "RimeBurst", sc.PendingAscension.Key)
 }
 
 // The negative control, and the reason the rule names the ceremony rather than
@@ -2304,6 +2303,17 @@ func TestSession_OpeningStampsTalkedTo(t *testing.T) {
 
 var noRows RowSource
 
+// rowsNode is the smallest node a provider will answer for: one that declares
+// where its rows come from and nothing else. Providers take the NODE since
+// plan-ascension-sites.md P2, and every unit test that used to hand over a bare
+// kind hands over this instead.
+func rowsNode(kind mobs.RowSourceKind) *mobs.InteractionNode {
+	return &mobs.InteractionNode{ID: string(kind), Rows: kind}
+}
+
+func catalogNode() *mobs.InteractionNode  { return rowsNode(mobs.RowSourceAscensionCatalog) }
+func memorialNode() *mobs.InteractionNode { return rowsNode(mobs.RowSourceMemorialNames) }
+
 // fakeRowSource records what it was asked, which is how the round-trip tests
 // prove the SAME kind and the SAME indices reach the provider that present()
 // put on the wire.
@@ -2315,13 +2325,13 @@ type fakeRowSource struct {
 	applied   [][3]any // kind, option, grant
 }
 
-func (f *fakeRowSource) PresentRows(kind mobs.RowSourceKind, _ learner) []model.ConversationOption {
-	f.presented = append(f.presented, kind)
+func (f *fakeRowSource) PresentRows(node *mobs.InteractionNode, _ learner) []model.ConversationOption {
+	f.presented = append(f.presented, node.Rows)
 	return f.rows
 }
 
-func (f *fakeRowSource) ApplyRow(kind mobs.RowSourceKind, _ learner, option, grant int) (string, bool) {
-	f.applied = append(f.applied, [3]any{kind, option, grant})
+func (f *fakeRowSource) ApplyRow(node *mobs.InteractionNode, _ learner, option, grant int) (string, bool) {
+	f.applied = append(f.applied, [3]any{node.Rows, option, grant})
 	if f.accept != nil && !f.accept[option] {
 		return "", false
 	}
@@ -2558,15 +2568,15 @@ type stubRows struct {
 	text string
 }
 
-func (s stubRows) PresentRows(kind mobs.RowSourceKind, _ learner) []model.ConversationOption {
-	if kind != s.kind {
+func (s stubRows) PresentRows(node *mobs.InteractionNode, _ learner) []model.ConversationOption {
+	if node.Rows != s.kind {
 		return nil
 	}
 	return []model.ConversationOption{{Text: s.text}}
 }
 
-func (s stubRows) ApplyRow(kind mobs.RowSourceKind, _ learner, _, _ int) (string, bool) {
-	if kind != s.kind {
+func (s stubRows) ApplyRow(node *mobs.InteractionNode, _ learner, _, _ int) (string, bool) {
+	if node.Rows != s.kind {
 		return "", false
 	}
 	return s.text, true
@@ -2581,15 +2591,15 @@ func TestRowSourceMux_DispatchesByKind(t *testing.T) {
 	mux.add(mobs.RowSourceMemorialNames, stubRows{mobs.RowSourceMemorialNames, "a name"})
 	p := newLearner(30)
 
-	rewards := mux.PresentRows(mobs.RowSourceAscensionCatalog, p)
+	rewards := mux.PresentRows(catalogNode(), p)
 	require.Len(t, rewards, 1)
 	assert.Equal(t, "a reward", rewards[0].Text)
 
-	names := mux.PresentRows(mobs.RowSourceMemorialNames, p)
+	names := mux.PresentRows(memorialNode(), p)
 	require.Len(t, names, 1)
 	assert.Equal(t, "a name", names[0].Text)
 
-	reply, ok := mux.ApplyRow(mobs.RowSourceMemorialNames, p, 0, 0)
+	reply, ok := mux.ApplyRow(memorialNode(), p, 0, 0)
 	assert.True(t, ok)
 	assert.Equal(t, "a name", reply)
 }
@@ -2601,8 +2611,21 @@ func TestRowSourceMux_AnUnregisteredKindServesNothing(t *testing.T) {
 	mux := newRowSourceMux()
 	mux.add(mobs.RowSourceAscensionCatalog, stubRows{mobs.RowSourceAscensionCatalog, "a reward"})
 
-	assert.Empty(t, mux.PresentRows(mobs.RowSourceMemorialNames, newLearner(30)))
-	_, ok := mux.ApplyRow(mobs.RowSourceMemorialNames, newLearner(30), 0, 0)
+	assert.Empty(t, mux.PresentRows(memorialNode(), newLearner(30)))
+	_, ok := mux.ApplyRow(memorialNode(), newLearner(30), 0, 0)
+	assert.False(t, ok)
+}
+
+// A nil node is the same fail-closed answer as an unregistered kind. Both call
+// sites hold a real node, so this is unreachable through the product — it is
+// pinned because a dispatcher handed nothing must not take the world down with
+// it, which is the whole reason the branch exists.
+func TestRowSourceMux_ANilNodeServesNothing(t *testing.T) {
+	mux := newRowSourceMux()
+	mux.add(mobs.RowSourceAscensionCatalog, stubRows{mobs.RowSourceAscensionCatalog, "a reward"})
+
+	assert.Empty(t, mux.PresentRows(nil, newLearner(30)))
+	_, ok := mux.ApplyRow(nil, newLearner(30), 0, 0)
 	assert.False(t, ok)
 }
 

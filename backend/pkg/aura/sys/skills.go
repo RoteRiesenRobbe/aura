@@ -1613,15 +1613,32 @@ func (s *SkillSystem) applyAscension(e skillEntity) {
 		// since the row source is the only thing that starts one.
 		return
 	}
-	if s.ascension != nil && !s.ascension.ValidatePick(p, *pick) {
-		log.Printf("⚰️ refusing '%s' the ascension pick %q: it is no longer legitimate", p.Name(), *pick)
+	// ⭐ THE SITE'S PRICE, RE-JUDGED AGAINST THE LIVE PLAYER
+	// (plan-ascension-sites.md C1). D1 retired the global max-level rule, so what
+	// a life costs is whatever the stone the row was clicked at authored — and
+	// that gate can lapse in the ten seconds since, exactly as a reward's can.
+	//
+	// ⛑ IT FAILS CLOSED, and the type assertion is the whole check: a pick that
+	// carries no gate is not an ungated site but a pick NOBODY PRICED, which is
+	// what a stash branch that forgot the node would produce. An ungated site is
+	// a typed empty slice and passes; a nil interface does not.
+	//
+	// ⚑ Judged BEFORE and independently of the catalog seam below, so a build
+	// with no catalog wired still cannot ascend somebody who has not paid.
+	if !siteGateHolds(pick, p) {
+		log.Printf("⚰️ refusing '%s' the ascension: the site's price is no longer met", p.Name())
+		sayToPlayer(p, ascensionRefusedLine)
+		return
+	}
+	if s.ascension != nil && !s.ascension.ValidatePick(p, pick.Key) {
+		log.Printf("⚰️ refusing '%s' the ascension pick %q: it is no longer legitimate", p.Name(), pick.Key)
 		sayToPlayer(p, ascensionRefusedLine)
 		return
 	}
 	if s.connState == nil {
 		return // no world to ascend into (a sim or a test)
 	}
-	if !s.connState.RequestAscension(p, *pick) {
+	if !s.connState.RequestAscension(p, pick.Key) {
 		log.Printf("⚰️ '%s' completed the ceremony but the request was refused", p.Name())
 		sayToPlayer(p, ascensionRefusedLine)
 	}

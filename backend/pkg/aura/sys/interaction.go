@@ -116,14 +116,15 @@ type InteractionSystem struct {
 //
 // ⭐ IT IS ITSELF A RowSource, which is what keeps this cheap: present() and
 // applyGrant() already thread one provider through as an argument, so a
-// composite that dispatches by kind needs NO signature change anywhere. The
-// interface was already shaped for it: both methods take the kind first, and
-// the single shipped provider already refused a kind that was not its own.
+// composite that dispatches needs NO signature change anywhere. The interface
+// was already shaped for it: both methods take the node whose `rows` names the
+// kind, and the single shipped provider already refused a kind that was not its
+// own.
 //
-// ⚑ The delegate is still handed the kind it was registered under, deliberately
-// redundant: a provider that checks its own kind cannot be mis-wired into
-// answering for someone else's node, and the check costs one comparison on a
-// path that already does several.
+// ⚑ The delegate is still handed the whole node, deliberately redundant on the
+// kind: a provider that checks `node.Rows` against its own cannot be mis-wired
+// into answering for someone else's node, and the check costs one comparison on
+// a path that already does several.
 type rowSourceMux struct {
 	byKind map[mobs.RowSourceKind]RowSource
 }
@@ -148,25 +149,35 @@ func (m *rowSourceMux) add(kind mobs.RowSourceKind, src RowSource) {
 	m.byKind[kind] = src
 }
 
-// PresentRows serves the rows for kind, or nothing when nobody registered.
+// PresentRows serves the node's rows, or nothing when nobody registered for the
+// kind it names.
 //
 // ⚑ An unregistered kind is EMPTY, not a panic: the loader accepts any kind in
 // its parse table, so a `rows` key the wiring forgot is a content/wiring
-// mismatch whose honest symptom is a node with no rows, not a dead server.
-func (m *rowSourceMux) PresentRows(kind mobs.RowSourceKind, p learner) []model.ConversationOption {
-	src, ok := m.byKind[kind]
-	if !ok {
+// mismatch whose honest symptom is a node with no rows, not a dead server. A nil
+// node fails the same way, closed: both call sites hold a real one, and a
+// dispatcher is the wrong place to discover otherwise by crashing the world.
+func (m *rowSourceMux) PresentRows(node *mobs.InteractionNode, p learner) []model.ConversationOption {
+	src := m.sourceFor(node)
+	if src == nil {
 		return nil
 	}
-	return src.PresentRows(kind, p)
+	return src.PresentRows(node, p)
 }
 
-func (m *rowSourceMux) ApplyRow(kind mobs.RowSourceKind, p learner, option, grant int) (string, bool) {
-	src, ok := m.byKind[kind]
-	if !ok {
+func (m *rowSourceMux) ApplyRow(node *mobs.InteractionNode, p learner, option, grant int) (string, bool) {
+	src := m.sourceFor(node)
+	if src == nil {
 		return "", false
 	}
-	return src.ApplyRow(kind, p, option, grant)
+	return src.ApplyRow(node, p, option, grant)
+}
+
+func (m *rowSourceMux) sourceFor(node *mobs.InteractionNode) RowSource {
+	if node == nil {
+		return nil
+	}
+	return m.byKind[node.Rows]
 }
 
 // AddRowSource registers a generated-row provider for one kind. Called
@@ -508,8 +519,16 @@ type learner interface {
 // RowSource supplies the rows a node's authored tree cannot carry
 // (plan-ascension.md §4.2, P10). Some lists are per-player and composed at
 // render time: what a bloodline may still learn, and the names cut into C3's
-// memorial. The node declares WHERE its rows come from (mobs.RowSourceKind) and
-// this answers with them.
+// memorial. The node declares WHERE its rows come from (`node.Rows`, a
+// mobs.RowSourceKind) and this answers with them.
+//
+// ⭐ IT TAKES THE NODE, NOT THE KIND (plan-ascension-sites.md P2), and that is a
+// simplification rather than an addition: the kind is already `node.Rows`, both
+// call sites already hold the node, and the mux dispatches exactly as it did.
+// The reason it had to change is that a site OWNS things the kind cannot carry —
+// its price, which C1 snapshots onto the pick from `node.Conditions`, and its
+// reward list (C3) — so a provider serving a global catalog for a global kind
+// could never tell two stones apart.
 //
 // ⚑ It is threaded as an ARGUMENT through present/applyGrant rather than held
 // on the system, so present() stays PURE: the property its own doc calls the
@@ -537,12 +556,12 @@ type learner interface {
 // emits one (the catalog's rows take an action, the memorial's are inert), which
 // is why this is a documented contract rather than a branch.
 type RowSource interface {
-	// PresentRows builds this source's rows for p, right now. The rows carry
+	// PresentRows builds this node's rows for p, right now. The rows carry
 	// their own OptionIndex, which is how a filtered list stays addressable.
-	PresentRows(kind mobs.RowSourceKind, p learner) []model.ConversationOption
+	PresentRows(node *mobs.InteractionNode, p learner) []model.ConversationOption
 	// ApplyRow hands over the row at these indices, reporting whether it was
 	// taken. A refusal is silent and ordinary, like every other stale click.
-	ApplyRow(kind mobs.RowSourceKind, p learner, option, grant int) (reply string, ok bool)
+	ApplyRow(node *mobs.InteractionNode, p learner, option, grant int) (reply string, ok bool)
 }
 
 // AscensionSource is the ascension catalog as its TWO consumers need it: the
@@ -670,7 +689,7 @@ func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bo
 		if src == nil {
 			return nil
 		}
-		return src.PresentRows(node.Rows, p)
+		return src.PresentRows(node, p)
 	}
 
 	sc := p.SkillComponent()
@@ -805,9 +824,15 @@ func applyGrant(in *mobs.Interaction, p learner, src RowSource, nodeID string, o
 		return "", nil, false
 	}
 	// ⭐ A source node routes WHOLE to its provider, and the node gate above is
-	// what makes that safe: the provider judges its own rows on their merits and
-	// has no idea which node it is speaking for, so a skipped gate here would let
-	// a crafted message walk straight past a condition the panel enforces.
+	// what makes that safe: the provider judges its ROWS on their own merits, so
+	// a skipped gate here would let a crafted message walk straight past a
+	// condition the panel enforces.
+	//
+	// ⚑ THE PROVIDER SEEING THE NODE DOES NOT MOVE THAT CHECK (P2). It is handed
+	// the node so it can serve what the node OWNS — a site's price, a site's
+	// reward list — and it may read `node.Conditions` for its own purposes; but
+	// the gate that decides whether this player may speak to this node at all is
+	// evaluated here, once, for every kind of node alike.
 	//
 	// ⚑ A generated row hands over no skill of its own: nothing here goes into
 	// the spellbook, so there is no unlock banner and `taught` stays nil.
@@ -815,7 +840,7 @@ func applyGrant(in *mobs.Interaction, p learner, src RowSource, nodeID string, o
 		if src == nil {
 			return "", nil, false
 		}
-		reply, ok := src.ApplyRow(node.Rows, p, option, grant)
+		reply, ok := src.ApplyRow(node, p, option, grant)
 		return reply, nil, ok
 	}
 	if option < 0 || option >= len(node.Options) {

@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 )
 
@@ -29,7 +28,7 @@ func textsOf(rows []string) string { return fmt.Sprint(rows) }
 
 func rowTexts(src *memorialRows, p learner) []string {
 	out := []string{}
-	for _, r := range src.PresentRows(mobs.RowSourceMemorialNames, p) {
+	for _, r := range src.PresentRows(memorialNode(), p) {
 		out = append(out, r.Text)
 	}
 	return out
@@ -89,7 +88,7 @@ func TestMemorialRows_AccountZeroMarksNothing(t *testing.T) {
 func TestMemorialRows_EveryRowIsLockedAndSpeechless(t *testing.T) {
 	src := memorialFor(yard(2, laid("Aelric", 30, 1), laid("Maren", 30, 2)))
 
-	for _, row := range src.PresentRows(mobs.RowSourceMemorialNames, newLearner(5)) {
+	for _, row := range src.PresentRows(memorialNode(), newLearner(5)) {
 		assert.True(t, row.Locked, "%q must be inert", row.Text)
 		assert.Empty(t, row.Reply, "%q has nothing to speak", row.Text)
 		assert.Zero(t, row.ConfirmSeconds, "%q asks for no countdown", row.Text)
@@ -125,7 +124,7 @@ func TestMemorialRows_NoTailWhenNothingIsOmitted(t *testing.T) {
 func TestMemorialRows_AnEmptyGraveyardServesNothing(t *testing.T) {
 	src := memorialFor(persist.Graveyard{})
 
-	assert.Empty(t, src.PresentRows(mobs.RowSourceMemorialNames, newLearner(5)))
+	assert.Empty(t, src.PresentRows(memorialNode(), newLearner(5)))
 }
 
 // It answers for its own kind and nothing else, so the mux cannot mis-route a
@@ -133,7 +132,7 @@ func TestMemorialRows_AnEmptyGraveyardServesNothing(t *testing.T) {
 func TestMemorialRows_IgnoresAnotherSourcesKind(t *testing.T) {
 	src := memorialFor(yard(1, laid("Aelric", 30, 1)))
 
-	assert.Empty(t, src.PresentRows(mobs.RowSourceAscensionCatalog, newLearner(5)))
+	assert.Empty(t, src.PresentRows(catalogNode(), newLearner(5)))
 }
 
 // ⭐ ApplyRow ALWAYS REFUSES. Every row is inert, and this is the belt to
@@ -143,7 +142,7 @@ func TestMemorialRows_ApplyRowAlwaysRefuses(t *testing.T) {
 	src := memorialFor(yard(1, laid("Aelric", 30, 1)))
 
 	for _, option := range []int{0, 1, 254, 255, -1} {
-		reply, ok := src.ApplyRow(mobs.RowSourceMemorialNames, newLearner(5), option, 0)
+		reply, ok := src.ApplyRow(memorialNode(), newLearner(5), option, 0)
 		assert.False(t, ok, "option %d must be refused", option)
 		assert.Empty(t, reply)
 	}
@@ -156,10 +155,10 @@ func TestMemorialRows_ReadsTheSnapshotEveryTime(t *testing.T) {
 	current := persist.Graveyard{}
 	src := newMemorialRows(func() persist.Graveyard { return current })
 
-	require.Empty(t, src.PresentRows(mobs.RowSourceMemorialNames, newLearner(5)))
+	require.Empty(t, src.PresentRows(memorialNode(), newLearner(5)))
 
 	current = yard(1, laid("Aelric", 30, 1))
-	assert.Len(t, src.PresentRows(mobs.RowSourceMemorialNames, newLearner(5)), 1)
+	assert.Len(t, src.PresentRows(memorialNode(), newLearner(5)), 1)
 }
 
 // A nil reader of the snapshot is a supported world (no database), and it must
@@ -167,5 +166,5 @@ func TestMemorialRows_ReadsTheSnapshotEveryTime(t *testing.T) {
 func TestMemorialRows_ANilSnapshotReaderIsEmpty(t *testing.T) {
 	src := newMemorialRows(nil)
 
-	assert.Empty(t, src.PresentRows(mobs.RowSourceMemorialNames, newLearner(5)))
+	assert.Empty(t, src.PresentRows(memorialNode(), newLearner(5)))
 }

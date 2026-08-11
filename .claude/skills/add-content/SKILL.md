@@ -50,6 +50,15 @@ at HEAD (this bit C2 — "Part 1 never bumped the pinned count"). After adding:
 - **Recipes:** `backend/pkg/aura/skills/recipe_test.go` →
   `assert.Len(t, rr.All(), N)` (~line 163, `TestRecipes_C7Net`). Bump by recipes
   added, and extend the cascade assertions if the net changed.
+- **Mobs: THREE content censuses in `backend/pkg/aura/items/mobs`**, and a new
+  def trips every one it belongs to (measured, ascension-sites C1):
+  `interaction_content_test.go` (the named list of conversants — any def with an
+  `interaction` block), `role_content_test.go` (`assert.Len(byRole[RoleCreature],
+  N)` — an NPC or a talking object is a **creature that authors speed 0**, never a
+  structure), and `xpfactor_test.go` (`assert.Len(free, N)` — every `xpFactor: 0`
+  species). They are *supposed* to break; add the name and bump the counts with a
+  line saying what the def is. ⚑ They read `api/` from disk, so **`go test
+  -count=1`** or a stale green hides all three.
 - Keep `Skills.ts` counts consistent with the backend registry.
 - **Sim-harness presets** auto-derive player auras (§A "never a surprise") —
   if you added a player-facing aura/recipe result, confirm the preset appears
