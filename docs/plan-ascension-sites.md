@@ -1,6 +1,6 @@
 # Plan: Ascension sites - many stones, each with its own price and its own rewards
 
-> **Status: C1 SHIPPED 2026-08-11 (`[uncommitted]`) — C2 and C3 open.** Four PO
+> **Status: C1 SHIPPED 2026-08-11 (`509321e6`) — C2 and C3 open.** Four PO
 > rulings taken in the design session (D1-D4), three more at C1 (the second
 > stone's price and place, and P2 pulled forward). Successor to
 > `docs/archive/plan-ascension.md`, which shipped the loop against exactly one
@@ -267,7 +267,7 @@ legible prices.
 
 ## 9. Chunk ledgers
 
-### C1 — the site owns its price ✅ 2026-08-11, `[uncommitted]`
+### C1 — the site owns its price ✅ 2026-08-11, `509321e6`
 
 Shipped in two sessions in one chat, deliberately split so a behaviour-neutral
 refactor could be verified by *nothing changing*: **C1a** moved the row-source
