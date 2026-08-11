@@ -1,7 +1,7 @@
 # Plan: Ascension sites - many stones, each with its own price and its own rewards
 
-> **Status: C1 + C2 SHIPPED 2026-08-11 (`509321e6`, `d66ca9f3`); C3a built and
-> verified the same day (uncommitted); C3b open.** Four PO rulings taken in the
+> **Status: C1, C2 and C3a SHIPPED 2026-08-11 (`509321e6`, `d66ca9f3`,
+> `350701c9`); C3b open.** Four PO rulings taken in the
 > design session (D1-D4), three more at C1 (the second stone's price and place,
 > and P2 pulled forward), four more at C3's design pass (D5, D6, P7, P8 — and
 > D5 amends §5). Successor to
@@ -505,7 +505,7 @@ click a row rather than taking one away).
 **Left for C3**: the site owns its rewards. C2 changed nothing about the reward
 list, and the index-space hazard §4 records is untouched.
 
-### C3a - a site authors what it offers (plumbing) ✅ 2026-08-11, uncommitted
+### C3a - a site authors what it offers (plumbing) ✅ 2026-08-11, `350701c9`
 
 The whole of C3's machinery, shipped **behaviour-neutral by construction**: both
 stones author the same eight rewards in the order `Catalog.All()` already served
