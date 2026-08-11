@@ -1,4 +1,4 @@
-// The ascension site in the world (docs/plan-ascension.md §12.4, C2a step 1).
+// The ascension site in the world (docs/archive/plan-ascension.md §12.4, C2a step 1).
 //
 // What this owns that no Go test can: the site is a mob definition plus a zone
 // spawn plus a gated dialogue tree, and every one of those layers is pinned in
@@ -451,6 +451,29 @@ if (ungatedRow) {
   check('confirming starts the ceremony channel',
     bar !== null && /ascend/i.test(bar), bar ?? 'no cast bar');
 
+  // ⭐ FOLLOW-UP ②: the ceremony gets the stage to itself. The server ends the
+  // session the tick the channel starts (refreshConversations), so the panel is
+  // gone from the very next snapshot and the motes have the screen. ⚑ Asserted
+  // against the SERVER's close, not a client hide: a client that merely hid the
+  // panel would still be in a session the server believed was open.
+  const duringChannel = await panel();
+  check('...and the ceremony closes the panel that started it',
+    duringChannel === null, duringChannel ? `panel still open: ${duringChannel.rows.join(' | ')}` : 'closed');
+
+  // Mid-channel: the motes are collapsing, which is the only moment the effect
+  // can be seen at all. The E press costs 2.6 s of the ten and proves the
+  // second half of the rule — refreshConversations clears a session stamped by
+  // handleInteracts in the same Update, so a player cannot talk their way out
+  // of a ceremony they started.
+  await pressInteract();
+  check('...and E during the ceremony reopens nothing', (await panel()) === null,
+    'no panel mid-channel');
+  // ⚑ Shot at ~6 s of the 10, deliberately: the swarm's collapse is eased, so a
+  // frame grabbed at 1 s shows motes still parked three character-widths out
+  // and reads as "the effect barely exists". This is the frame to judge it on.
+  await page.waitForTimeout(3_000);
+  await page.screenshot({ path: `.claude/skills/verify/c2a-channelling-${label}.png` });
+
   // ⭐ THE WHOLE LOOP, and the only place it can be seen: stand still for the
   // channel and the character is spent. The server ends the session and closes
   // the socket with NO message, so a client that did not ask whose rows the
@@ -482,6 +505,8 @@ if (ungatedRow) {
   check('...and nothing has started yet', false, why);
   check('...the button arms when the countdown runs out', false, why);
   check('confirming starts the ceremony channel', false, why);
+  check('...and the ceremony closes the panel that started it', false, why);
+  check('...and E during the ceremony reopens nothing', false, why);
   check('the completed ceremony lands on character select (P13)', false, why);
   check('...and never shows the "Connection lost" banner', false, why);
 }

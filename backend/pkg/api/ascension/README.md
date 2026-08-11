@@ -1,7 +1,7 @@
 # Ascension rewards
 
 The curated catalog a bloodline picks ONE entry from when a max-level character
-is ascended (`docs/plan-ascension.md`). One `.json` file per entry; the
+is ascended (`docs/archive/plan-ascension.md`). One `.json` file per entry; the
 directory is loaded and fully validated at boot, like every other content
 registry.
 

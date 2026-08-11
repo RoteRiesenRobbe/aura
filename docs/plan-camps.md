@@ -23,7 +23,7 @@ Inputs, all read during the session:
 - **`backlog.md` §2** — its "composition" question asked whether camp checks
   could share the conditional-teaching seam instead of being a second
   mechanism. They can, and do.
-- **`docs/plan-ascension.md`** — D1 (the world-parity power rule, reused
+- **`docs/archive/plan-ascension.md`** — D1 (the world-parity power rule, reused
   verbatim here), D8 (per-faction ascension explicitly sanctioned as a later
   layer, *"the data model must not block it"* — this plan is what unblocks it),
   D9 (the catalog entries), §5 (the catalog lives in content JSON).

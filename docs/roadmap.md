@@ -1031,11 +1031,12 @@ system ships blind.
    (`archive/plan-accounts-implementation.md` §0 "MANUAL STEP") — was done in
    chunk 0 and is now routine dev setup (`make -C backend db-up`, CLAUDE.md
    §"Local database").
-   **The character-sacrifice loop (pulled into v1 scope, PO 2026-07-19 —
-   `plan-intermission-triage.md` item 10) slots directly after 8a as
-   persistence's first consumer** (max-level detection, retire flow, unlock
-   storage — now **per-slot bloodline**, backlog §36 — memorial; all cheap once
-   account identity + storage exist).
+   ✅ **The character-sacrifice loop (pulled into v1 scope, PO 2026-07-19 —
+   `plan-intermission-triage.md` item 10) ran directly after 8a as persistence's
+   first consumer and is COMPLETE 2026-08-11**: max-level detection, the retire
+   flow, per-slot bloodline unlock storage (backlog §36) and the memorial all
+   shipped, with **no schema change at any layer**. Record:
+   `docs/archive/plan-ascension.md`.
 
    **8b — UI polish / avatar / audio** (item 8) — ⏸ **STILL OPEN**, and closing
    8a does not close it (that independence is exactly why the split exists).
@@ -1206,9 +1207,11 @@ system ships blind.
 > them. Verified conf-only, no rebuild — narrowing `grayBase` moves the boundary
 > on screen, which is what proves the client holds no copy.
 >
-> ⚑ **Independent of the ascension loop.** Ascension is still the visibly-next
-> item after 8a and shares nothing with this chain — neither blocks the other, so
-> the two can interleave freely.
+> ⚑ **Independent of the ascension loop**, which shares nothing with this chain.
+> ✅ **Ascension is DONE**: built 2026-08-10/11 as C1 → C2a → C2b → C3 plus two
+> follow-ups, and `plan-ascension.md` is archived. What it handed forward is
+> `plan-leaving-the-world.md` (backlog §52), the camp-standing wipe assert (to
+> `plan-camps.md` C1), and §8's deferred cluster.
 
 9. **Ops & closed-alpha readiness** — CI tests, crash isolation, observability,
    DB / hosting decisions (`research-v1-readiness.md`; hosting phases + load

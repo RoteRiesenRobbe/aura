@@ -1,4 +1,4 @@
-// The bloodline seed at a real join (docs/plan-ascension.md C1, D16).
+// The bloodline seed at a real join (docs/archive/plan-ascension.md C1, D16).
 //
 // What this owns that no Go test can: the seed's ONLY runtime surface is a
 // player logging in and finding a skill they never learned. Every layer under

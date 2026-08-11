@@ -1,14 +1,24 @@
 # Plan: Ascension — the character-sacrifice loop
 
-> **Status: DESIGNED 2026-08-04, SCOPE CUT 2026-08-05 (D13), CODE-REVIEWED
-> 2026-08-05 (D15–D17), CONDITIONS ADDED 2026-08-09 (D18).
-> ⭐ C1 BUILT 2026-08-10 (§11).
-> ⭐ C2 DESIGN PASS 2026-08-10 (§12, D19–D22): C2 became **C2a + C2b**.
-> ⭐ **C2a BUILT 2026-08-10 across six steps (§12.7–§12.11), `4674cf00`** -
-> the loop runs end to end in the browser: walk to the stone, pick, confirm,
-> channel, and land on character select with the character spent and its
-> bloodline row written. **C2b is next and §12.5 is its handoff.**
-> Read §12 before §6's C2 bullet, which it supersedes in five places.**
+> **Status: ⭐ COMPLETE AND ARCHIVED 2026-08-11.** Designed 2026-08-04, scope
+> cut 2026-08-05 (D13), code-reviewed 2026-08-05 (D15–D17), conditions added
+> 2026-08-09 (D18), then built in four chunks and two follow-ups:
+> **C1** `dee6a9c0` (§11) · **C2a** `4674cf00` (§12.7–§12.11) ·
+> **C2b** `a64f5b96` (§12.14) · **C3** `b995061b` (§13.8) ·
+> **follow-up ① the row tooltip** `0497417a` (§13.9) ·
+> **follow-up ② the ceremony gets the stage** (§13.10).
+> The loop runs end to end: walk to the stone at max level, pick a reward,
+> confirm, channel it while the motes gather, and land on character select with
+> the character spent, its name on the memorial and its bloodline richer by one.
+>
+> ⚑ **Three threads outlived this plan and have homes elsewhere**, which is what
+> made archiving legitimate: **leaving the world without a reload** is
+> `docs/plan-leaving-the-world.md` (§13.7 item 2, never ascension-specific) ·
+> the **quest-row reward tooltip** is an open PO call (§13.9) · and **§8's
+> deferred cluster** (the point economy, cross-life counters, per-faction
+> ascensions, cosmetics) is deferred by ruling, revivable whole.
+>
+> ⚑ Read §12 before §6's C2 bullet, which it supersedes in five places.
 > The execution-order item "character-sacrifice loop" (GDD §5 meta-progression,
 > pulled into v1 by the 2026-07-19 intermission-triage ruling, item 10), opened
 > as persistence's first consumer. Every number is [PLACEHOLDER] unless marked.
@@ -2460,9 +2470,10 @@ tooltip) are scoped and unstarted, §8 still owes both stones a lore write, and
 `docs/content-skill-inventory.md` carries pre-existing drift this chunk measured
 (37 rows predating the 2026-07-31 cap pass) and deliberately did not sweep.
 ⚑ **The plan therefore STAYS in `docs/`** rather than being archived: the tooltip
-is an unstarted workstream this doc owns. *(The tooltip landed the next day, §13.9;
-the doc still stays, because item 2 is now its only open workstream and it has
-grown its own plan, `plan-leaving-the-world.md`.)*
+is an unstarted workstream this doc owns. *(The tooltip landed the next day,
+§13.9, and the ceremony's own effect the day after that, §13.10, at which point
+item 2 had grown its own plan (`plan-leaving-the-world.md`) and this doc owned
+nothing unstarted, so it was archived. See the header.)*
 
 ### 13.9 Follow-up ledger - THE ROW SAYS WHAT THE ABILITY DOES ✅ 2026-08-11, `0497417a`
 
@@ -2571,3 +2582,96 @@ losses - the appended-field check that owns a renumber.
 `--content-only`, and connected players need a hard reload: an old client reading
 a new tree is fine (it ignores the field), but a new client against an old server
 reads 0 everywhere, so the two halves must move together.
+
+### 13.10 Follow-up ledger ② - THE CEREMONY GETS THE STAGE ✅ 2026-08-11, `[uncommitted]`
+
+The PO's last adjustment before the plan closes, and the one that makes the
+ten-second channel look like something rather than like a frozen character with
+a progress bar. **Schema impact: DB NONE · FlatBuffers NONE · conf NONE ·
+content NONE** - the whole change reads fields that were already on the wire.
+
+**Three PO calls, all taken as choice prompts.**
+
+- **D29 - the effect is OWN PLAYER ONLY.** The alternative (an appended
+  `StatusEffect` value, the `BurstFired` precedent, so bystanders see the
+  ceremony too) was costed and declined: it is a wire change against backlog
+  §39's standing warning not to invest in per-effect overlay presentation before
+  the entity-presentation rework. ⚑ So a bystander sees a character stand still
+  for ten seconds and vanish. That is a **known** gap, not an oversight.
+- **D30 - gathering motes**, over rising rings and a pillar of light: ~12 motes
+  on a shrinking orbit that accelerates inward, then a flash.
+- **D31 - the reply line is dropped, the cast bar says enough.** "Channelling
+  now, walk away to cancel." was only ever spoken by the panel this change
+  closes. It could have moved to `sayToPlayer` (P14's surface); the PO chose the
+  bar's own `Ascending 9.1s` instead, so nothing in the code moved.
+
+**What shipped, in two halves that share no code.**
+
+| Layer | Change |
+| --- | --- |
+| `sys/interaction.go` | `refreshConversations` ends the session of a player channelling `UtilityAscend` |
+| `game-objects/AscensionChannelMath.ts` | the effect as pure numbers - orbit, spin, alpha, halo breath, flash |
+| `game-objects/AscensionChannelFx.ts` | the PixiJS half: `Graphics` motes on `Ticker.shared` |
+| `game-objects/Character.ts` | `setChannellingAscension`, lazily building the effect |
+| `backend/logic/Backend.ts` | one line beside `updateCastBar`, the same three fields |
+
+**Findings**
+
+1. ⭐ **THE PANEL CANNOT BE CLOSED BY THE CLIENT, and `Conversation.ts` says so
+   in a comment**: the tree leaves the next snapshot and *that* is what closes
+   the panel, "so the client can never believe a conversation is closed while
+   the server thinks otherwise". A client-side hide would have been the obvious
+   half-hour version of this feature and would have left exactly that lie.
+2. ⭐ **DERIVED EVERY TICK, not fired once at the pick.** The rule sits beside
+   the death / range / despawn cases in `refreshConversations`, which is already
+   "end the sessions that should end". Two things fall out for free: `E` during
+   the ceremony opens nothing (`handleInteracts` stamps a session that the same
+   `Update` clears - the order is load-bearing and now pinned), and the row
+   source stays ignorant of sessions, which it must be, since it only ever sees
+   a `learner`.
+3. ⚑ **It reads the cast and never touches it.** Walking away is the ceremony's
+   last escape (P7) and works by cancelling that cast; a close that reached into
+   the `SkillComponent` would have spent the pick the moment the panel shut.
+   Pinned red-first, with the stashed key asserted intact afterwards.
+4. ⚑ **The rule names the CEREMONY, not "a cast"** - Recall and Camp are
+   ordinary presses that must not tear down a panel somebody is reading. The
+   negative control was green from the start (the honest way to say a default is
+   the default) and the mutation to `IsCasting()` reddens it alone.
+5. ⛑ **A MUTATION FOUND DEAD CODE, and the dead code lost.** `castProgress`
+   guarded `ticksTotal > 0` before dividing; removing the guard changed nothing
+   any of the 20 pins could see, because `clamp01` is total and absorbs both
+   `NaN` and `-Infinity`. A surviving mutation is not always a missing test - it
+   is sometimes a line that was never load-bearing, and the honest fix is to
+   delete the line rather than write a test for it.
+6. ⛑ **THE FIRST PASS WAS INVISIBLE, and only the browser said so.** Motes were
+   drawn at `size * 0.1` - a 2 px core on a ~17 px character - which every test
+   and every typecheck passes and which reads on screen as dust on the lens. The
+   fix was cosmetic (bigger motes, a breathing halo underneath so the first
+   seconds read too), but the lesson is the harness screenshot's **timing**: the
+   collapse is eased, so a frame grabbed 1 s in shows motes still parked three
+   character-widths out and looks like a broken effect. The leg now shoots at
+   ~6 s of the 10, and its comment says why.
+7. ⚑ **The renderer holds no state the math can check.** Everything with a
+   number in it lives in `AscensionChannelMath` (the `AuraBeat` / `ShieldBarMath`
+   precedent), which is why an effect that cannot be unit-tested still has 23
+   pins. ⚑ Written before its tests, unlike the Go half - the evidence here is
+   the mutation run, not a red-first observation, and that is worth saying
+   plainly rather than implying a discipline that was not followed.
+
+**Verification.** Go: 4 session pins red-first (3 red, the negative control
+green from the start), **1 mutation caught**, whole tree `-count=1` **0 FAIL**
+bar the known `TestDwell` flake, `-race` clean on `sys`, `gofmt` clean.
+Frontend: **vitest 287/287** (+23 new), `npm run typecheck` clean, prod build
+clean. Mutation run on the math module: **6 mutations, 5 caught, 1 surviving and
+deleted as dead code** (finding 5). Boot **0 WARN / 0 ERROR**. Harnesses, one at
+a time on a freshly restarted server: ⭐ **`c2a-ascension-site.mjs` 29/29**
+(27 before, +2 legs: the panel is gone once the cast bar shows, and `E`
+mid-channel reopens nothing) · **`c3-memorial-catalog.mjs` 14/14** ·
+**`chunk3b-ii-conversation.mjs` 28/34**, its exact recorded baseline with the
+same six known failures. Harness residue cleaned (`harnessdb -cleanup`, server
+stopped first).
+
+**What it does not do.** Bystanders see nothing (D29). The ceremony's art is
+still placeholder `Graphics` - D20 deferred the real thing to the world/art
+pass, and §39 is what a durable version would be built on. And the quest-row
+reward tooltip from §13.9 is still a PO call, not an omission.

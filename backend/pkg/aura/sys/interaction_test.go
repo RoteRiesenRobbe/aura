@@ -1942,6 +1942,83 @@ func TestSession_ClosesWhenTheActorGoesAway(t *testing.T) {
 	assert.Nil(t, p.conversation)
 }
 
+// ⭐ The ceremony gets the stage to itself: once the ascension channel is
+// running the panel that started it is gone, and cannot be reopened until the
+// channel ends (plan-ascension.md follow-up ②). The rule is derived every tick
+// in refreshConversations rather than fired once at the pick, which is what
+// makes the reopen case free.
+func TestSession_TheCeremonyClosesThePanel(t *testing.T) {
+	s, space, m, p := interactFixture(t, teachingInteraction([]string{"hello"}, namedGrant(1, "Torch", 1, "light")))
+	step := stepper(s, space, p)
+
+	pressInteract(p, m.Basic().ID())
+	step()
+	require.NotNil(t, p.conversation)
+
+	p.SkillComponent().StartUtilityCast(skills.UtilityAscend)
+	step()
+
+	assert.Zero(t, p.ConversingWith(), "the ceremony ends the session")
+	assert.Nil(t, p.conversation, "and the tree goes with it")
+}
+
+// ⭐ THE CLOSE MUST NOT CANCEL THE CHANNEL. Walking away is the ceremony's last
+// escape (P7) and it works by cancelling the cast; a close that reached into the
+// SkillComponent would spend the pick the moment the panel shut.
+func TestSession_ClosingForTheCeremonyLeavesTheChannelRunning(t *testing.T) {
+	s, space, m, p := interactFixture(t, teachingInteraction([]string{"hello"}, namedGrant(1, "Torch", 1, "light")))
+	step := stepper(s, space, p)
+
+	pressInteract(p, m.Basic().ID())
+	step()
+	require.NotNil(t, p.conversation)
+
+	sc := p.SkillComponent()
+	key := "RimeBurst"
+	sc.PendingAscension = &key
+	sc.StartUtilityCast(skills.UtilityAscend)
+	step()
+
+	require.Zero(t, p.ConversingWith())
+	assert.True(t, sc.IsCasting(), "the channel survives the panel it closed")
+	assert.Equal(t, skills.UtilityAscend, sc.CastingUtility)
+	require.NotNil(t, sc.PendingAscension, "and so does the pick it is holding")
+	assert.Equal(t, "RimeBurst", *sc.PendingAscension)
+}
+
+// The negative control, and the reason the rule names the ceremony rather than
+// "a cast": Recall and Camp are ordinary presses that must not tear down a panel
+// somebody is reading.
+func TestSession_AnOrdinaryUtilityCastKeepsThePanel(t *testing.T) {
+	s, space, m, p := interactFixture(t, teachingInteraction([]string{"hello"}, namedGrant(1, "Torch", 1, "light")))
+	step := stepper(s, space, p)
+
+	pressInteract(p, m.Basic().ID())
+	step()
+	require.NotNil(t, p.conversation)
+
+	p.SkillComponent().StartUtilityCast(skills.UtilityRecall)
+	step()
+
+	assert.Equal(t, m.Basic().ID(), p.ConversingWith(), "recall is not a ceremony")
+	assert.NotNil(t, p.conversation)
+}
+
+// E during the ceremony opens nothing. handleInteracts stamps the session and
+// refreshConversations clears it in the same Update, so no snapshot ever carries
+// a panel over a channelling character.
+func TestSession_CannotBeReopenedDuringTheCeremony(t *testing.T) {
+	s, space, m, p := interactFixture(t, teachingInteraction([]string{"hello"}, namedGrant(1, "Torch", 1, "light")))
+	step := stepper(s, space, p)
+
+	p.SkillComponent().StartUtilityCast(skills.UtilityAscend)
+	pressInteract(p, m.Basic().ID())
+	step()
+
+	assert.Zero(t, p.ConversingWith(), "E while channelling opens nothing")
+	assert.Nil(t, p.conversation)
+}
+
 // A player who disconnects (or dies — RemoveEntity fans out the same way) is
 // dropped from the system, so nothing keeps rebuilding a tree for a dead client.
 func TestSession_DisconnectDropsThePlayerEntirely(t *testing.T) {

@@ -358,6 +358,27 @@ func (s *InteractionSystem) refreshConversations() {
 			continue
 		}
 
+		// ⭐ THE CEREMONY GETS THE STAGE TO ITSELF (plan-ascension.md follow-up
+		// ②). A running ascension channel ends the panel that started it, and
+		// keeps ending it: E during the ten seconds stamps a session in
+		// handleInteracts that this same Update clears, so no snapshot ever
+		// carries a panel over a channelling character.
+		//
+		// ⚑ Derived here rather than fired once at the pick, which is what makes
+		// the reopen case free — and it keeps the row source ignorant of
+		// sessions, which it must be: it only ever sees a `learner`.
+		//
+		// ⚑ It reads the cast and does not touch it. Walking away is the
+		// ceremony's last escape (P7) and works by cancelling that cast; a close
+		// that cancelled would spend the pick the moment the panel shut.
+		//
+		// ⚑ The ceremony, not "a cast": Recall and Camp are ordinary presses and
+		// must not tear down a panel somebody is reading.
+		if sc := p.SkillComponent(); sc != nil && sc.CastingUtility == skills.UtilityAscend {
+			p.SetConversingWith(0)
+			continue
+		}
+
 		a := s.actorByID(id)
 		switch {
 		// The actor died or despawned. (A dead or disconnected PLAYER never

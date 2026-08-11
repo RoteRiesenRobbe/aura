@@ -1,5 +1,5 @@
 // The memorial, and the two gates only a live world can move
-// (docs/plan-ascension.md C3 steps 5-7, D11/D25/D27).
+// (docs/archive/plan-ascension.md C3 steps 5-7, D11/D25/D27).
 //
 // What this owns that no Go test can:
 //

@@ -1,4 +1,4 @@
-// The bloodline on the character-select screen (docs/plan-ascension.md §12.12,
+// The bloodline on the character-select screen (docs/archive/plan-ascension.md §12.12,
 // C2b), and the only place the D15 bug is visible at all.
 //
 // ⭐ THE WHOLE POINT IS THAT SLOT 0 IS NOT INVOLVED IN THE ASCENSION. Until C2b

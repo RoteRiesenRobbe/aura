@@ -6,6 +6,7 @@ import * as Preloading from '../../core/logic/Preloading';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {meter2px} from "../../../client-data/BasicConfig";
 import {AuraTickIndicator} from './AuraTickIndicator';
+import {AscensionChannelFx} from './AscensionChannelFx';
 import {StatusEffect} from './StatusEffect';
 import {IGame} from '../../core/logic/IGame';
 import {
@@ -61,6 +62,10 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     // Bare tick indicator (skill-vocab chunk 6): a dot orbiting the aura ring
     // once per effective tick interval, so the beat is visible.
     private auraTickIndicator: AuraTickIndicator = null;
+    // The ascension ceremony's channel effect — see setChannellingAscension.
+    // Built on demand and dropped again, unlike the two above: it exists for
+    // ten seconds once in a character's life.
+    private ascensionFx: AscensionChannelFx = null;
     // Beat inference for the N5 ring pulse — see setAuraTick.
     private readonly auraBeat = new BeatDetector();
     // Name + level + HP/shield bar live on this world-space plate in the
@@ -271,6 +276,29 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         const landed = this.auraBeat.observe(activeSkillId, interval, phase);
         this.auraRings.beat(landed);
         return landed;
+    }
+
+    /**
+     * The ascension ceremony's channel effect (plan-ascension.md follow-up ②),
+     * driven from the same snapshot fan-out that feeds the cast bar.
+     *
+     * ⚑ Built only once a ceremony actually starts, and torn down at both of
+     * its endings (completed, or walked away from). The early return is what
+     * keeps this free on the ~every tick of ~every session where nobody is
+     * ascending: no object, no ticker callback, nothing added to the scene.
+     */
+    setChannellingAscension(active: boolean, progress: number) {
+        if (!active && this.ascensionFx === null) {
+            return;
+        }
+        this.ensureAscensionFx().update(active, progress, this.size);
+    }
+
+    private ensureAscensionFx(): AscensionChannelFx {
+        if (this.ascensionFx === null) {
+            this.ascensionFx = new AscensionChannelFx(this.shape);
+        }
+        return this.ascensionFx;
     }
 
     // Lazily create the indicator on this.shape (the container that holds the

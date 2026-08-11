@@ -37,6 +37,7 @@ import {Develop} from "../../internal-tools/develop/logic/_Develop";
 import * as Flight from "../../flight/logic/Flight";
 import * as FlightOrigin from "../../flight/logic/FlightOrigin";
 import {Campfire} from "../../game-objects/logic/Mobs";
+import {castProgress} from "../../game-objects/logic/AscensionChannelMath";
 import {meter2px} from "../../../client-data/BasicConfig";
 import {
     BackendConnectionFailureEvent,
@@ -442,6 +443,17 @@ export class Backend implements IBackend {
                 snapshot.castTicksLeft ?? 0,
                 snapshot.castTicksTotal ?? 0,
                 snapshot.castUtility ?? 0);
+
+            // The ascension ceremony's own effect (plan-ascension.md follow-up
+            // ②), from the same three fields the bar above reads. The server
+            // closes the conversation panel the tick this starts, so the motes
+            // and the bar are the whole of the ceremony on screen.
+            //
+            // ⚑ Own player only, and unavoidably so: casts are own-player-only
+            // on the wire by design, so nobody else sees a thing.
+            this.game.player?.character?.setChannellingAscension(
+                (snapshot.castUtility ?? 0) === AuraApi.UtilityKind.Ascend,
+                castProgress(snapshot.castTicksLeft ?? 0, snapshot.castTicksTotal ?? 0));
 
             // The Camp charge counter (downtime C2). Only the count is on the
             // wire; the cap comes from getLocalPlayerLevel, which Player has
