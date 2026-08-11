@@ -2346,8 +2346,9 @@ re-runnable (a fresh socket at Play, a cleared `EntityManager`, the once-only
 `firstGameState` promise reset). B needs no server change and is plausibly one
 chunk; A is a plan. **Not started.**
 
-**📋 3 - The ascension rows should carry the real ability tooltip.** Adopted as
-the right thing and deferred to its own session. The design is settled: an
+**✅ 3 - The ascension rows should carry the real ability tooltip.** Adopted as
+the right thing and deferred to its own session, which **ran 2026-08-11 →
+ledger §13.9**. The design below is what shipped, unchanged. The design is settled: an
 appended `skill_id` on `ConversationOption`, following `confirm_seconds`'
 precedent exactly (appended at table end, codec pin), set by the row source on
 **pickable AND locked** rows - knowing what you would get is the whole point of
@@ -2355,8 +2356,8 @@ a named gate - and the client feeding the existing by-id `SkillTooltip` on hover
 ⚑ Named generically so `teach_skill` rows adopt it later for free. ⚑ **It is a
 WIRE change**, which is its real cost: `.fbs` regen on both sides, both builds,
 `hygiene-wire-prune` re-run, and it converts the next deploy from a plain one
-into a both-sides-together one with a hard reload for connected players.
-**Not started.**
+into a both-sides-together one with a hard reload for connected players. **All
+of that held; the estimate was the whole of it.**
 
 **5 - Where the names live.** `game.characters`, the `name CITEXT` column, held
 forever and never rewritten for a sacrifice (`AscendCharacter` deliberately does
@@ -2459,4 +2460,114 @@ tooltip) are scoped and unstarted, §8 still owes both stones a lore write, and
 `docs/content-skill-inventory.md` carries pre-existing drift this chunk measured
 (37 rows predating the 2026-07-31 cap pass) and deliberately did not sweep.
 ⚑ **The plan therefore STAYS in `docs/`** rather than being archived: the tooltip
-is an unstarted workstream this doc owns.
+is an unstarted workstream this doc owns. *(The tooltip landed the next day, §13.9;
+the doc still stays, because item 2 is now its only open workstream and it has
+grown its own plan, `plan-leaving-the-world.md`.)*
+
+### 13.9 Follow-up ledger - THE ROW SAYS WHAT THE ABILITY DOES ✅ 2026-08-11, `[uncommitted]`
+
+§13.7 item 3, built as designed in one session. **Schema impact: DB NONE ·
+FlatBuffers ONE APPENDED (`ConversationOption.skill_id:ushort`, field id 8) ·
+conf NONE · content NONE.** No PO calls: the design was already taken.
+
+**What shipped.** A conversation row may now name the ability it is ABOUT, and
+the client feeds that id to the spellbook's own `SkillTooltip`. Hovering a
+reward at the stone reads exactly what hovering it in the spellbook would.
+
+- `skill_id` appended at the table end - the `confirm_seconds` precedent, so
+  every existing field id stayed where it was (verified in the generated diff:
+  `startObject(8)` → `9`, nothing renumbered).
+- **`ushort`, not `ubyte`.** "Following `confirm_seconds`' precedent" is about
+  *appending*, not about the scalar width: skill ids are `ushort` at every other
+  wire site and the catalog already reaches 146.
+- Set on **locked rows as well as pickable ones**, which is the entire point and
+  is also the row most likely to lose it by accident - the locked branch already
+  rewrites the text, empties the reply and binds no handler.
+- Client: one `attachSkillTooltips(rowsElement, () => 1)` in `Conversation.ts`'s
+  setup, delegated on the stable container so it survives the wholesale row
+  rebuild, plus a `data-skill-id` on rows that carry one.
+
+**⚑ ALWAYS THE LEVEL-1 PREVIEW, and deliberately not HUD's `skillLevelOf`.** A
+reward row answers *what would I get*, and what a pick hands over is the skill at
+level 1. Reaching into the HUD's live level map would buy an import (and a
+possible cycle) to produce the identical answer, because a skill the player
+already holds is never on one of these rows: an ascension entry the bloodline has
+spent is filtered out, and a `teach_skill` row for a known skill is omitted from
+the tree entirely rather than shown.
+
+**⚑ Named generically on purpose.** `skill_id`, not `reward_skill_id`, and it is
+**not** the grant - `grant_index` still decides what a click hands over, and the
+two are independent.
+
+**✅ The `teach_skill` half followed the same day, on a PO ask**, and the
+"adopt it later for free" estimate held exactly: `presentOptions` already carries
+the resolved `g.Skill`, so the teaching row gained one field beside the
+`RequiredLevel` it already sets, and nothing on the client, the wire or the codec
+changed a second time. Every NPC that teaches now answers a hover, **including
+rows locked behind a level wall**: *"come back at 7"* is only worth showing if
+the player can find out what waits at 7. ⚑ The level-1 preview is even safer
+here than at the stone, because `presentOptions` skips any row where
+`HasDiscovered` is true, so a teaching row exists only for a skill the player
+provably does not hold.
+
+⛑ **AND IT SURFACED THE C3 DISPLAY-NAME DEFECT IN ITS SECOND HOME.**
+`presentOptions` labelled a row with `skills.DeriveDisplayName(g.Skill.Name)`,
+which is precisely what `Display()`'s own doc forbids: it re-implements the
+registry's rule and silently drops the authored `displayName` override. Identical
+in shape to the C2a defect C3 fixed in `ascension_rows.go` (§13.8), living one
+package over, and **latent because no NPC yet teaches one of the five skills that
+author an override** (`Call for Aid` · `Hold the Line` · `Damage-Burst` ·
+`Long-Range Strike` · `Rime-Burst`), so the first teacher authored for any of them
+would have been the first to render it wrong. ⚑ **The general shape: a defect
+fixed at one call site is a defect CLASS until the other call sites are swept.**
+A grep for `DeriveDisplayName` over the tree found four more, and all four are
+correct: three derive a **mob** name (mobs carry no override; the mob catalog
+derives at load) and the fourth is `displayNameOf`'s fallback for a key the
+catalog no longer holds, which is documented as deliberate.
+
+**Verification of the teaching half.** Three pins written red-first
+(`TestPresent_TeachingRowNamesItsSkill` on an available AND a locked row ·
+`TestPresent_NavigationRowNamesNoSkill` as the negative control, which passed
+from the start and is the honest way to say the default is the default ·
+`TestPresent_RowUsesTheAuthoredDisplayName`, which failed with the literal
+`"Rime Burst"` vs `"Rime-Burst"` that names the bug). Go **0 FAIL** apart from
+the known `TestDwell` flake. ⭐ **`chunk3b-ii-conversation.mjs` 28/34** at the
+Emberkeeper's teaching list, **+3 over its recorded 25/31 HEAD baseline with the
+same six pre-existing failures** (the Wanderer legs and the Leave-row detach,
+both on the known-inconclusive list and neither touched here) ·
+**`chunkC4-quests.mjs` 37/37**, which is where the display-name change would have
+shown had it moved a needle. It moved none, exactly as predicted: every one of
+the nineteen skills an NPC currently teaches derives to the same string it
+already rendered.
+
+⚑ **Still unbuilt, and it is a design question rather than a line of code:**
+a QUEST row's reward. A quest bundle is reached through its own row
+(`opt.Grants[0].Kind.IsQuestKind()` returns early) and may carry several grants,
+so "does a turn-in row advertise the spell it pays, and what does it show when
+the bundle pays two things" is a PO call, not an omission.
+
+**⚑ The one thing worth checking before trusting a hover:** locked rows carry
+`cursor: default` and `&:hover { background: none }` from D20 - "no hover
+invitation" - but **not** `pointer-events: none`, which would have made the
+tooltip silently fail on exactly the rows the feature exists for. Left as it is:
+the row stays visually inert on click while still answering a hover. If the PO
+wants the tooltip *advertised* on locked rows, that is a `cursor: help` in
+`HUD.less` and nothing else.
+
+**Verification.** TDD red-first on both surfaces: the `sys` pins and the codec
+round-trip pin were written first and observed failing (`expected 137, actual
+0`), then made green. **One mutation, caught**: dropping the `data-skill-id` on
+locked rows only (`row.skillId > 0 && !row.locked`) - the Go suite stayed green,
+`c2a-ascension-site.mjs` went **25/27** with both locked legs red, and reverting
+restored 27/27. Go **0 FAIL** (`-count=1`, whole tree) · `gofmt` clean ·
+`npm run typecheck` clean · **vitest 264/264** · frontend prod build · boot
+**0 WARN / 0 ERROR**. Harnesses: ⭐ **`c2a-ascension-site.mjs` 27/27** (23 before,
++4 new hover legs, leg 5b) · **`c3-memorial-catalog.mjs` 14/14** ·
+**`chunkC4-quests.mjs` 37/37** (ordinary dialogue rows, the field's default) ·
+**`hygiene-wire-prune.mjs`** clean, 647 sprites / 0 console errors / 0 context
+losses - the appended-field check that owns a renumber.
+
+⚑ **The next deploy is a BOTH-SIDES one**, `devops/deploy.sh` without
+`--content-only`, and connected players need a hard reload: an old client reading
+a new tree is fine (it ignores the field), but a new client against an old server
+reads 0 everywhere, so the two halves must move together.

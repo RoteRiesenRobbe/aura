@@ -80,4 +80,13 @@ type ConversationOption struct {
 	// CONTROL: the server applies the row whenever it arrives, exactly as the
 	// delete endpoint does.
 	ConfirmSeconds uint8
+	// SkillID is the ability this row is ABOUT, so the client can hover it and
+	// read the same tooltip the spellbook shows; 0 = no particular skill
+	// (plan-ascension.md §13.7 item 3).
+	//
+	// ⚑ Carried on LOCKED rows too, deliberately: knowing what is behind a named
+	// gate is the entire point of showing the gate instead of hiding the row
+	// (D18). ⚑ It is NOT the grant: GrantIndex still says what a click hands
+	// over, and a row may legitimately name a skill it does not give.
+	SkillID uint16
 }

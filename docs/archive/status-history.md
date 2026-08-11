@@ -11,6 +11,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
 
+*(2026-08-11: the ascension row-tooltip follow-up took the cap slot, so C2a moved here verbatim: the chunk that made the stone spendable end to end in the browser.)*
+
+- **Prior: ASCENSION C2a — THE STONE, END TO END (`plan-ascension.md` §12.4)** ✅ 2026-08-10, `4674cf00` — **a player can spend a character in the browser**: walk to the stone, pick, confirm behind a 5 s countdown, channel, land on character select. Four PO calls (D19–D22). **DB NONE · FlatBuffers TWO appended · conf NONE.** ⛑ **An ungated row-source node became the LEVEL-1 GREETING** — `present()` makes the first node whose conditions pass the greeting. ⛑ **COMPLETION IS NOT CANCELLATION**: `advanceCast` ended a cast with `CancelCast`, dropping the pick, so every ceremony completed as a no-op. ⛑ Death left the channel running across respawn. Verified: 20 mutations all red · `c2a` 18/18. Ledger: §12.7–§12.11.
+
 *(2026-08-11: ascension C3 took the cap slot, so C1 moved here verbatim: the plan's first chunk, and the one that recorded that the TRANSACTION is the protection rather than statement order.)*
 
 *(2026-08-10: ascension C1 took the cap slot. All three cc-and-retaliation bullets moved here verbatim — the C1 immunity-gate one fell off the cap outright, and the C3/C2 pair was compressed in place to fit the byte budget, so these are their full original text. Their authoritative ledgers are `docs/archive/plan-cc-and-retaliation.md` §11.)*

@@ -452,6 +452,19 @@ table ConversationOption {
   // neither should invent this again. Appended at the table end so existing
   // field ids stay stable.
   confirm_seconds:ubyte = 0;
+  // The ability this row is ABOUT, so the client can hover it and read the same
+  // tooltip the spellbook shows; 0 = this row is about no particular skill.
+  //
+  // ⚑ Set on LOCKED rows as well as pickable ones, deliberately: knowing what
+  // is behind a named gate is the entire point of showing the gate instead of
+  // hiding the row (plan-ascension.md §13.7 item 3, D18).
+  //
+  // ⚑ It is NOT the grant. grant_index still says what a click hands over, and
+  // the two are independent: a row may name a skill it does not give. Named
+  // generically rather than reward_skill_id so the teach_skill rows can adopt it
+  // without a second field. Appended at the table end so existing field ids stay
+  // stable, the confirm_seconds precedent.
+  skill_id:ushort = 0;
 }
 
 table ConversationNode {

@@ -41,6 +41,16 @@ export interface ConversationRow {
      * only decides whether the panel makes the player wait first.
      */
     confirmSeconds: number;
+    /**
+     * The ability this row is ABOUT; 0 = none, and the row then gets no hover
+     * tooltip at all.
+     *
+     * ⚑ Carried on LOCKED rows too, on purpose: a named gate is only worth
+     * showing if the player can read what is behind it (plan-ascension.md §13.7
+     * item 3). ⚑ It is not the grant: `grantIndex` still decides what a click
+     * hands over.
+     */
+    skillId: number;
 }
 
 export interface ConversationNode {

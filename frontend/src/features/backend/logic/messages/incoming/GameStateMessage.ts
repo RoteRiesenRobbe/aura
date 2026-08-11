@@ -247,6 +247,7 @@ function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree
                 requiredLevel: o.requiredLevel(),
                 reply: o.reply() ?? '',
                 confirmSeconds: o.confirmSeconds(),
+                skillId: o.skillId(),
             });
         }
 

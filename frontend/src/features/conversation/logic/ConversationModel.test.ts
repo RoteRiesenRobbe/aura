@@ -11,6 +11,7 @@ function row(partial: Partial<ConversationRow>): ConversationRow {
         requiredLevel: 0,
         reply: '',
         confirmSeconds: 0,
+        skillId: 0,
         ...partial,
     };
 }

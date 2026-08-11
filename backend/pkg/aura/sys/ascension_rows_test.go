@@ -357,6 +357,38 @@ func TestAscensionRows_TheEmptyPickIsHeldBehindTheCountdownToo(t *testing.T) {
 	assert.EqualValues(t, ascensionConfirmSeconds, rows[0].ConfirmSeconds)
 }
 
+// --- the row names its ability (§13.7 item 3) -------------------------------
+
+// ⭐ A LOCKED ROW CARRIES THE SKILL ID TOO, and that is the whole point of the
+// field rather than an edge case: a named gate is only worth showing if the
+// player can find out what is behind it. The locked branch rewrites Text and
+// clears Reply; it must not clear this.
+func TestAscensionRows_EveryRewardRowNamesItsSkill(t *testing.T) {
+	gates := map[string][]mobs.InteractionCondition{"Paralyze": ascensionGate(3)}
+	rows := newAscensionRows(testCatalog(gates)).
+		PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(30))
+
+	pick, ok := rowByText(rows, "Frost Shield")
+	require.True(t, ok)
+	assert.EqualValues(t, rewardFrost.ID, pick.SkillID, "a pickable row names what it gives")
+
+	locked, ok := rowByText(rows, "Paralyze")
+	require.True(t, ok)
+	require.True(t, locked.Locked)
+	assert.EqualValues(t, rewardParalyze.ID, locked.SkillID,
+		"a gate is only informative if the reward behind it can still be read")
+}
+
+// D14's row spends the character and hands over nothing, so there is no ability
+// to describe, and 0 is what tells the client to attach no tooltip at all.
+func TestAscensionRows_TheEmptyPickNamesNoSkill(t *testing.T) {
+	rows := newAscensionRows(ascension.CatalogOf()).
+		PresentRows(mobs.RowSourceAscensionCatalog, newAscensionLearner(30))
+
+	require.Len(t, rows, 1)
+	assert.Zero(t, rows[0].SkillID)
+}
+
 // ⚑ Every OTHER row in the game stays at 0, which is what makes the field's
 // default the "take it immediately" every existing conversation relies on.
 func TestPresentOptions_OrdinaryRowsAskForNoConfirmation(t *testing.T) {

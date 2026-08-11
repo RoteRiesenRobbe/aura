@@ -125,8 +125,20 @@ func (rcv *ConversationOption) MutateConfirmSeconds(n byte) bool {
 	return rcv._tab.MutateByteSlot(18, n)
 }
 
+func (rcv *ConversationOption) SkillId() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ConversationOption) MutateSkillId(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(20, n)
+}
+
 func ConversationOptionStart(builder *flatbuffers.Builder) {
-	builder.StartObject(8)
+	builder.StartObject(9)
 }
 func ConversationOptionAddOptionIndex(builder *flatbuffers.Builder, optionIndex byte) {
 	builder.PrependByteSlot(0, optionIndex, 0)
@@ -151,6 +163,9 @@ func ConversationOptionAddReply(builder *flatbuffers.Builder, reply flatbuffers.
 }
 func ConversationOptionAddConfirmSeconds(builder *flatbuffers.Builder, confirmSeconds byte) {
 	builder.PrependByteSlot(7, confirmSeconds, 0)
+}
+func ConversationOptionAddSkillId(builder *flatbuffers.Builder, skillId uint16) {
+	builder.PrependUint16Slot(8, skillId, 0)
 }
 func ConversationOptionEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

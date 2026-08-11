@@ -182,6 +182,45 @@ const clickRow = async (needle) => {
   return true;
 };
 
+// hoverRow parks the pointer on a panel row and reads the shared skill tooltip
+// (plan-ascension.md §13.9, the teaching-row half).
+//
+// ⚑ A REAL pointer move, never a dispatched PointerEvent: the handler is
+// delegated off `pointerover` on the rows container, so a synthetic event would
+// prove the listener exists while saying nothing about whether the row is
+// reachable under the panel's own layout.
+//
+// ⚑ It parks the pointer OFF the panel afterwards, because `attachTooltips`
+// ignores a pointerover for the element it is already anchored to: two hovers in
+// a row without leaving in between would read the first tooltip twice.
+const hoverRow = async (needle) => {
+  const handle = await page.evaluateHandle((n) => {
+    const rows = [...document.querySelectorAll('#conversation .conversationRows li')];
+    const row = rows.find((li) => li.textContent.includes(n)) ?? null;
+    row?.scrollIntoView({ block: 'center' });
+    return row;
+  }, needle);
+  const el = handle.asElement();
+  if (!el) return null;
+  await page.waitForTimeout(150);
+  const b = await el.boundingBox();
+  if (!b) return null;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.waitForTimeout(400);
+  const tip = await page.evaluate(() => {
+    const el = document.getElementById('skillTooltip');
+    if (!el || el.classList.contains('hidden')) return null;
+    return {
+      title: el.querySelector('.tooltipTitle')?.textContent?.trim() ?? '',
+      subtitle: el.querySelector('.tooltipSubtitle')?.textContent?.trim() ?? '',
+      body: el.textContent.replace(/\s+/g, ' ').trim().slice(0, 140),
+    };
+  });
+  await page.mouse.move(4, 4);
+  await page.waitForTimeout(200);
+  return tip;
+};
+
 const clickPanelControl = async (selector) => {
   const el = await page.$(`#conversation ${selector}`);
   if (!el) { missedClicks.push(`control not found: ${selector}`); return false; }
@@ -297,6 +336,24 @@ check('Immolate is LOCKED and names level 12',
 const bindRow = list?.rows.find((r) => /Bind Elemental/i.test(r.text));
 check('BindElemental is LOCKED and names level 15',
   bindRow?.locked === true && /level 15/.test(bindRow.text), `${JSON.stringify(bindRow)}`);
+
+// ⭐ A TEACHING ROW CARRIES THE ABILITY TOOLTIP (plan-ascension.md §13.9's
+// second consumer). The panel is the same DOM and the same delegated handler the
+// ascension catalog uses, so what is genuinely new here is the SERVER half:
+// `presentOptions` setting `skill_id` on a teach_skill row. The locked leg is
+// the one that matters: "come back at 7" is only worth showing if the player
+// can find out what waits at 7.
+const torchTip = await hoverRow('Torch');
+check('Hovering an available teaching row shows the ability tooltip',
+  torchTip?.title === 'Torch',
+  torchTip ? `"${torchTip.title}" / ${torchTip.subtitle}` : 'no tooltip appeared');
+check('...as the LEVEL 1 preview, which is what learning it hands over',
+  !!torchTip && /Lv\s*1\s*\//.test(torchTip.subtitle), torchTip?.subtitle ?? '(no tooltip)');
+
+const igniteTip = await hoverRow('Ignite');
+check('⭐ ...and a row LOCKED behind a level wall carries it too',
+  igniteTip?.title === 'Ignite',
+  igniteTip ? `"${igniteTip.title}" / ${igniteTip.subtitle}` : 'no tooltip appeared');
 
 // ================= 3. a locked row is INERT (Q1/R1) =================
 // blockedLine is deleted: the greying and the named wall are the whole answer,

@@ -19,6 +19,7 @@
 
 import {InteractMessage} from '../../backend/logic/messages/outgoing/InteractMessage';
 import {Countdown, startConfirmCountdown} from '../../common/logic/ConfirmCountdown';
+import {attachSkillTooltips} from '../../user-interface/HUD/logic/SkillTooltip';
 import {
     ConversationModel,
     ConversationRow,
@@ -64,6 +65,17 @@ export function setup() {
         render();
     });
     leaveElement.addEventListener('pointerdown', leave);
+
+    // Hovering a row that names an ability shows the spellbook's own tooltip
+    // (plan-ascension.md §13.7 item 3). Delegated on the stable container, so it
+    // survives the wholesale row rebuild in render().
+    //
+    // ⚑ ALWAYS LEVEL 1, not the player's current level in it. A reward row
+    // answers "what would I get", and what a pick hands over is the skill at
+    // level 1. For an ascension reward the player provably does not hold it,
+    // and a teach_skill row for a skill they DO hold is omitted from the tree
+    // entirely rather than shown.
+    attachSkillTooltips(rowsElement, () => 1);
 }
 
 /**
@@ -218,6 +230,14 @@ function render() {
     const items = view.rows.map((row) => {
         const li = document.createElement('li');
         li.classList.toggle('locked', row.locked);
+
+        // The hover tooltip's anchor, read by the delegated handler wired in
+        // setup(). ⚑ Set on LOCKED rows too: knowing what is behind a named
+        // gate is the point of showing the gate at all (§13.7 item 3), and it is
+        // the one place where this row and the inert-on-click rule diverge.
+        if (row.skillId > 0) {
+            li.dataset.skillId = String(row.skillId);
+        }
 
         const label = document.createElement('span');
         label.textContent = row.text;

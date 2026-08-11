@@ -134,6 +134,11 @@ func (a *ascensionRows) row(index int, entry ascension.Entry, locked bool, p lea
 		Text:       text,
 		Locked:     locked,
 		Reply:      reply,
+		// ⚑ Set on the locked row as well, which is the whole point: the branch
+		// above rewrites the text and empties the reply, but a gate the player
+		// cannot read the reward behind is indistinguishable from one that is
+		// merely hard (§13.7 item 3).
+		SkillID: uint16(entry.Skill.ID),
 		// ⚑ Only a TAKEABLE row: a locked one is inert on both ends, and asking
 		// a player to sit through a countdown for a row that will be refused
 		// would be friction with nothing behind it.

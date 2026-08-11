@@ -284,6 +284,7 @@ func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Buil
 			AuraApi.ConversationOptionAddRequiredLevel(builder, opt.RequiredLevel)
 			AuraApi.ConversationOptionAddReply(builder, reply)
 			AuraApi.ConversationOptionAddConfirmSeconds(builder, opt.ConfirmSeconds)
+			AuraApi.ConversationOptionAddSkillId(builder, opt.SkillID)
 			optionOffsets = append(optionOffsets, AuraApi.ConversationOptionEnd(builder))
 		}
 		AuraApi.ConversationNodeStartOptionsVector(builder, len(optionOffsets))

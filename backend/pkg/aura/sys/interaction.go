@@ -729,10 +729,18 @@ func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bo
 			}
 			// An authored label wins; otherwise the skill names its own row.
 			// Several grants under one authored Text would all read alike, so
-			// the derived name is the honest fallback there.
+			// the skill's own name is the honest fallback there.
+			//
+			// ⛑ THROUGH Display(), NEVER DeriveDisplayName ON THE RAW NAME.
+			// Deriving re-implements the registry's rule and silently drops the
+			// authored `displayName` override, which is the whole reason the
+			// override exists (`Rime-Burst`, `Call for Aid`). This is the C3
+			// defect (plan-ascension.md §13.8) in its second home; it was latent
+			// only because no NPC yet teaches one of the five skills that
+			// author one.
 			text := opt.Text
 			if text == "" || len(opt.Grants) > 1 {
-				text = skills.DeriveDisplayName(g.Skill.Name)
+				text = g.Skill.Display()
 			}
 			rows = append(rows, model.ConversationOption{
 				OptionIndex:   uint8(oi),
@@ -742,6 +750,10 @@ func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bo
 				Locked:        locked,
 				RequiredLevel: uint8(min(g.RequiredLevel, 255)),
 				Reply:         reply,
+				// ⚑ Set on the LOCKED row too, the same rule the ascension
+				// catalog follows: a wall is only worth naming if the player can
+				// read what is behind it (plan-ascension.md §13.9).
+				SkillID: uint16(g.Skill.ID),
 			})
 		}
 	}

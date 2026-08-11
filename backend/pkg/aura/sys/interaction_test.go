@@ -366,6 +366,54 @@ func TestPresent_LocksTooLowRowsAndNamesTheWall(t *testing.T) {
 	assert.EqualValues(t, 12, rows[2].RequiredLevel)
 }
 
+// ⭐ A TEACHING ROW NAMES ITS SKILL, LOCKED OR NOT (plan-ascension.md §13.9's
+// second consumer). The client hangs the spellbook's own tooltip off this, and
+// the locked row is the one that needs it most: "come back at 7" is only worth
+// showing if the player can find out what waits at 7.
+func TestPresent_TeachingRowNamesItsSkill(t *testing.T) {
+	in := teachingInteraction([]string{"greetings"},
+		namedGrant(1, "Torch", 1, "light"),
+		namedGrant(2, "Ignite", 7, "fire"))
+
+	rows := rowsOf(t, present(in, newLearner(2), noRows), "root")
+
+	require.Len(t, rows, 2)
+	assert.EqualValues(t, 1, rows[0].SkillID, "an available row names what it teaches")
+	require.True(t, rows[1].Locked)
+	assert.EqualValues(t, 2, rows[1].SkillID, "and so does a row locked behind a level wall")
+}
+
+// A navigation row teaches nothing, so it is about no ability, and 0 is what
+// tells the client to attach no tooltip to it.
+func TestPresent_NavigationRowNamesNoSkill(t *testing.T) {
+	in := &mobs.Interaction{Nodes: []mobs.InteractionNode{
+		{ID: "root", Lines: []string{"hello"}, Options: []mobs.InteractionOption{{Text: "Anything new?", Next: "news"}}},
+		{ID: "news", Lines: []string{"They burned the forest."}},
+	}}
+
+	rows := rowsOf(t, present(in, newLearner(1), noRows), "root")
+
+	require.Len(t, rows, 1)
+	assert.Zero(t, rows[0].SkillID)
+}
+
+// ⛑ THE AUTHORED DISPLAY NAME, NEVER A FRESH DERIVATION: the C3 defect
+// (§13.8) in its second home. `Display()` resolves the override; deriving from
+// the raw name re-implements the rule and silently drops it, which is the whole
+// reason the override exists. Latent when written: none of the five skills with
+// an authored override is currently taught by an NPC, so the first teacher
+// authored for one would have been the first to render it wrong.
+func TestPresent_RowUsesTheAuthoredDisplayName(t *testing.T) {
+	g := namedGrant(1, "RimeBurst", 1, "cold")
+	g.Skill.DisplayName = "Rime-Burst"
+	in := teachingInteraction([]string{"greetings"}, g)
+
+	rows := rowsOf(t, present(in, newLearner(2), noRows), "root")
+
+	require.Len(t, rows, 1)
+	assert.Equal(t, "Rime-Burst", rows[0].Text, "the override wins over CamelCase→spaces")
+}
+
 // The row carries what the actor will say, chosen by the row's own state — which
 // is what lets the panel answer on click with no round-trip (L24). A locked row
 // carries NOTHING (Q1/R1): the greying and the named wall are the whole message.

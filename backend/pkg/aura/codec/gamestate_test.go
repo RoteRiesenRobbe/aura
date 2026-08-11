@@ -433,9 +433,10 @@ func TestGameStateConversation_RoundTrip(t *testing.T) {
 				Lines: []string{"Fire remembers who feeds it.", "What would you have?"},
 				Options: []model.ConversationOption{
 					{OptionIndex: 0, GrantIndex: model.ConversationNoGrant, Text: "Anything new?", Next: "news"},
-					{OptionIndex: 1, GrantIndex: 0, Text: "Torch", Reply: "a light in dark places"},
+					{OptionIndex: 1, GrantIndex: 0, Text: "Torch", Reply: "a light in dark places",
+						SkillID: 93},
 					{OptionIndex: 1, GrantIndex: 2, Text: "Immolate", Locked: true, RequiredLevel: 12,
-						Reply: "Fire doesn't suffer the careless."},
+						Reply: "Fire doesn't suffer the careless.", SkillID: 137},
 				},
 			},
 			{ID: "news", Lines: []string{"They burned this forest."}},
@@ -477,6 +478,7 @@ func TestGameStateConversation_RoundTrip(t *testing.T) {
 	assert.EqualValues(t, 0, torch.GrantIndex())
 	assert.Equal(t, "a light in dark places", string(torch.Reply()))
 	assert.False(t, torch.Locked())
+	assert.EqualValues(t, 93, torch.SkillId(), "the row's ability survives the wire")
 
 	// ⚑ L21 across the wire: two rows from the SAME authored option, telling
 	// themselves apart only by grant index. If the marshaller ever collapsed
@@ -486,6 +488,10 @@ func TestGameStateConversation_RoundTrip(t *testing.T) {
 	assert.True(t, immolate.Locked())
 	assert.EqualValues(t, 12, immolate.RequiredLevel())
 	assert.Equal(t, "Fire doesn't suffer the careless.", string(immolate.Reply()))
+	// ⚑ A LOCKED row keeps its skill id: the tooltip behind a named gate is
+	// exactly what the field exists for (plan-ascension.md §13.7 item 3).
+	assert.EqualValues(t, 137, immolate.SkillId())
+	assert.Zero(t, nav.SkillId(), "a navigation row is about no ability")
 
 	var news AuraApi.ConversationNode
 	require.True(t, got.Nodes(&news, 1))

@@ -218,6 +218,51 @@ const clickRow = async (needle) => {
   return true;
 };
 
+// hoverRow parks the pointer on a catalog row and reads the shared skill
+// tooltip (plan-ascension.md §13.7 item 3).
+//
+// ⚑ A REAL pointer move, never a synthetic PointerEvent: the hover is delegated
+// off `pointerover` on the rows container, and a dispatched event would prove
+// the listener exists while saying nothing about whether the row is reachable
+// under the panel's own layout, which is the half a tooltip can lose to a
+// z-index or an overflow container.
+//
+// ⚑ It parks the pointer OFF the panel afterwards. attachTooltips ignores a
+// pointerover for the element it is already anchored to, so two hovers in a row
+// without leaving in between would read the FIRST row's tooltip twice.
+const hoverRow = async (needle, shot) => {
+  const handle = await page.evaluateHandle((n) => {
+    const rows = [...document.querySelectorAll('#conversation .conversationRows li')];
+    const row = rows.find((li) => li.textContent.includes(n)) ?? null;
+    row?.scrollIntoView({ block: 'center' });
+    return row;
+  }, needle);
+  const el = handle.asElement();
+  if (!el) return null;
+  await page.waitForTimeout(150);
+  const box = await el.boundingBox();
+  if (!box) return null;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.waitForTimeout(400);
+  const tip = await page.evaluate(() => {
+    const el = document.getElementById('skillTooltip');
+    if (!el || el.classList.contains('hidden')) return null;
+    return {
+      title: el.querySelector('.tooltipTitle')?.textContent?.trim() ?? '',
+      subtitle: el.querySelector('.tooltipSubtitle')?.textContent?.trim() ?? '',
+      body: el.textContent.replace(/\s+/g, ' ').trim().slice(0, 140),
+    };
+  });
+  // ⚑ The screenshot is taken WHILE the pointer is still on the row: parking
+  // first hides the very thing the image is for.
+  if (shot) {
+    await page.screenshot({ path: shot });
+  }
+  await page.mouse.move(4, 4);
+  await page.waitForTimeout(200);
+  return tip;
+};
+
 // The cast bar is the ceremony's only client surface until step 6: the utility
 // label plus a running countdown.
 // ⚑ #castBar hides with `visibility` and NOT with `.hidden`, so it always keeps
@@ -351,6 +396,32 @@ check('...and no bogus "level 0" wall is drawn beside it',
 // read against the content that now exists.
 check('the ascend-anyway row is NOT offered while real picks are on screen (D14)',
   emptyRow === undefined, `rows: ${rows.join(' | ')}`);
+
+// --- leg 5b: the row says what the ability DOES (§13.7 item 3) --------------
+// The wire carries the row's `skill_id` and the client feeds the spellbook's own
+// by-id tooltip, so this leg is the whole feature end to end: a Go pin proves
+// the id rides the row, and nothing but a browser proves the id becomes words a
+// player can read beside the panel.
+const pickTip = await hoverRow(UNGATED_ROW);
+check('hovering a pickable reward shows the ability tooltip',
+  pickTip?.title === UNGATED_ROW,
+  pickTip ? `"${pickTip.title}" / ${pickTip.subtitle}` : 'no tooltip appeared');
+check('...as the LEVEL 1 preview, which is what a pick actually hands over',
+  !!pickTip && /Lv\s*1\s*\//.test(pickTip.subtitle),
+  pickTip?.subtitle ?? '(no tooltip)');
+
+// ⭐ THE LOCKED ROW IS THE POINT OF THE FEATURE. A gate is only worth showing
+// instead of hiding if the player can find out what is behind it: an
+// unreadable named wall is indistinguishable from one that is merely hard. It
+// is also the row most likely to lose the tooltip by accident: the locked
+// branch rewrites the text, empties the reply and binds no click handler.
+const lockedTip = await hoverRow(GATED_ROW, `.claude/skills/verify/c2a-catalog-tooltip-${label}.png`);
+check('⭐ ...and a LOCKED row carries its tooltip too',
+  lockedTip?.title === GATED_ROW,
+  lockedTip ? `"${lockedTip.title}" / ${lockedTip.subtitle}` : 'no tooltip appeared');
+check('...with real effect text, not just a name',
+  !!lockedTip && lockedTip.body.length > lockedTip.title.length + lockedTip.subtitle.length + 4,
+  lockedTip?.body ?? '(no tooltip)');
 
 if (ungatedRow) {
   // ⚑ Matching the DISPLAY name proves the client rendered what /skills served:
