@@ -1,6 +1,6 @@
 # Plan: Ascension sites - many stones, each with its own price and its own rewards
 
-> **Status: C1 SHIPPED 2026-08-11 (`509321e6`) — C2 and C3 open.** Four PO
+> **Status: C1 + C2 SHIPPED 2026-08-11 (`509321e6`, C2 uncommitted); C3 open.** Four PO
 > rulings taken in the design session (D1-D4), three more at C1 (the second
 > stone's price and place, and P2 pulled forward). Successor to
 > `docs/archive/plan-ascension.md`, which shipped the loop against exactly one
@@ -159,10 +159,12 @@ so it inherits that site's price like every other row.
 not stand near the existing stone or the memorial: `E` goes to the nearest
 actor, and C3 already paid for that lesson with two conversants 3 units apart.
 
-### C2 - the gate reads
+### C2 - the gate reads ✅ SHIPPED 2026-08-11 (§9)
 
 A navigation row whose destination node is gated renders **locked, with the
-gate named**, instead of vanishing. `describeConditions` already exists in
+gate named**, instead of vanishing. ⚑ **As built it was two halves, not one**:
+the flag, and the fallback-node row for it to apply to: the shipped stones had
+no such row at all (§9). `describeConditions` already exists in
 `sys`, already covers the whole vocabulary, and already produces
 *"3 ascensions in this line (0/3)"* for reward rows.
 
@@ -347,3 +349,88 @@ touches the memorial's row source), **`c1-front-stone` 9/12 + 3 inconclusive**
 
 **Owed by C2**, and now visible in the world: the front stone's price is only as
 legible as the fallback line authored by hand for it.
+
+### C2 - the gate reads ✅ 2026-08-11, `[uncommitted]`
+
+A navigation row whose destination is gated now renders **locked, with the gate
+named**, instead of vanishing, and **opt-in per row** (P5). **Schema: DB NONE ·
+FlatBuffers NONE · conf NONE**, verified against `model/conversation.go` rather
+than reasoned: `Locked` plus authored text has been on the wire since C2a/D18.
+Go plus two content files, **client untouched**, so an ordinary both-parts deploy
+with no hard reload. **One PO call:** both stones' fallback lines were rewritten
+to stop hand-typing the price, so each price is authored exactly once (in the
+node's conditions) and cannot go stale.
+
+⭐ **THE ROW HAD NOWHERE TO LIVE, AND FINDING THAT OUT WAS THE FIRST HALF OF THE
+CHUNK.** §4 describes C2 as a rendering change, and it is, but the shipped
+stones had **no row to render**: the price sat on `ready`, an unqualified player
+was bounced to `root`, and `root` authored **no options at all**. So the flag
+alone would have changed nothing on either stone; the chunk is the flag *plus*
+the row on the fallback node that the flag applies to. A design that stopped at
+"presentOptions renders it locked" would have shipped green with no visible
+difference in the game.
+
+⛑ **EVERY EMPTY FIELD ON THAT ROW IS LOAD-BEARING, and `Next` most of all.**
+`present()` serialises **only visible nodes**, so the destination is not in the
+streamed tree at all, so a locked row that kept its `Next` would be one render bug
+away from walking a player into a node their client does not have. Dropping it is
+also what carries the row past `pruneEmptyDestinations`, which exists to delete
+navigation rows whose target shows nothing, *precisely* what a gated target
+looks like from there. A locked row is not a dead end; it **is** the content.
+(`Reply` empty and `GrantIndex` = the navigation sentinel are Q1/R1's inert row,
+inherited unchanged.)
+
+⚑ **THE CLIENT NEEDED NOTHING, and that was checked rather than hoped.**
+`Conversation.ts` gives a locked row no `pointerdown` handler and `model.take`
+guards the same way, so the row is inert on both ends the day it appears. Zero
+frontend diff in a chunk whose entire subject is what a player sees.
+
+⛑ **THE GATE NAMED THE AUTHORING KEY.** `describeCondition` rendered a quest
+condition as `complete "thin-the-orc-line"`: a string no player has ever seen,
+in the one surface whose whole purpose is legibility, and it would have shipped
+that way because no *reward* gate had used a quest before. Fixed at the source
+with `quests.Ledger.Title`, which degrades to the id (nil registry in the sim, or
+an unknown quest): a gate naming **nothing** is worse than one naming a key. It
+lands on the reward rows too, where `Lantern - locked: complete "The Lost Lamp"`
+now reads as English.
+
+⚑ **THE LOADER REFUSES THE FLAG IN THREE PLACES**, all of them "this could never
+fire": no `next` (nothing to name), an **unconditional** destination (always
+visible, so the flag is inert), and a row that **grants** (it would be offered
+locked and refused by `applyGrant`, the present/apply disagreement L24's pin
+exists to prevent). Same discipline as the `rows`-node option refusal: a silently
+inert authored key is what `DisallowUnknownFields` catches one keystroke earlier.
+
+⚑ **THE HARNESS BASELINES ASSERTED THE ABSENCE OF THIS FEATURE**, in three legs
+across two scripts (`c2a` leg 2, `c1-front-stone` legs 1 and 4, all of the form
+*"the preview offers no rows"*), plus `c2a`'s `PREVIEW_LINE` constant, which
+quoted the very sentence the PO call deleted. Read **before** writing code, so
+they were rewritten as part of the chunk rather than discovered red inside it.
+
+⭐ **AND ONE OF THEM COULD BE MADE TO RUN.** C2's headline claim (one character,
+two stones, two different prices, both readable) sat in `c1-front-stone` leg 4,
+which **skips**, because C1 measured that the front stone's orc gate is not
+harness-payable. The same claim needs only the level cheat: at level 25 the
+village stone answers `level 30 (25/30)` while the front stone answers
+`level 25 (25/25), complete "Thin the Orc Line"`. Scored as a new leg 2b, green,
+with the unpayable form left in place. ⛑ Its assertion is that the two counters
+**disagree**: a row that rendered the node it stands *on* instead of the node it
+leads *to* would still look plausible at a glance, and only the numbers say
+otherwise.
+
+**Verified.** TDD red-first at three surfaces (loader, render, quest registry);
+**4 of 4 mutations caught**: the opt-in guard deleted (the P5 leak, caught by
+the negative-space pin *and* three pre-existing quest-tree tests) · the row not
+marked locked · the gate not named · the row keeping its destination and a real
+grant index. `go test -count=1 ./...` **0 FAIL** across 34 packages bar the known
+`TestDwell` flake, **proven at HEAD by stash-and-rerun**; `-race` clean on the
+four touched packages. Boot **68 mobs / 13 quests, 0 WARN / 0 ERROR**. Harnesses:
+**`c2a-ascension-site` 30/30** (was 29/29, the flipped leg became two),
+**`c1-front-stone` 13/16 + the same 3 inconclusive** (was 9/12 + 3),
+**`c3-memorial-catalog` 14/14** (exact baseline, re-run because the quest-title
+change lands on its catalog rows; its trailing *"undelivered clicks: row not
+found"* diagnostic is unchanged by C2, and if anything this chunk gives that
+click a row rather than taking one away).
+
+**Left for C3**: the site owns its rewards. C2 changed nothing about the reward
+list, and the index-space hazard §4 records is untouched.

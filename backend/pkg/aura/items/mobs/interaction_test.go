@@ -944,3 +944,86 @@ func TestMapMobDefinition_ResolvesAMemorialRowSource(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, RowSourceMemorialNames, def.Interaction.Nodes[0].Rows)
 }
+
+// --- lockedWhenGated: a row that names its destination's gate (C2, P5) ---
+
+// The shape the ascension sites author: an unconditional greeting whose row
+// points at a gated node, opted in to rendering LOCKED instead of vanishing.
+const lockedWhenGatedJSON = `{
+  "nodes": [
+    {
+      "id": "catalog",
+      "conditions": [{"kind": "minLevel", "value": 30}],
+      "lines": ["Pick one."]
+    },
+    {
+      "id": "root",
+      "lines": ["A stone."],
+      "options": [{"text": "Show me the rewards.", "next": "catalog", "lockedWhenGated": true}]
+    }
+  ]
+}`
+
+func TestMapMobDefinition_CarriesLockedWhenGated(t *testing.T) {
+	def, err := mapInteraction(t, lockedWhenGatedJSON)
+	require.NoError(t, err)
+
+	root := def.Interaction.Nodes[1]
+	require.Len(t, root.Options, 1)
+	assert.True(t, root.Options[0].LockedWhenGated)
+	assert.Equal(t, "catalog", root.Options[0].Next)
+}
+
+// ⚑ OPT-IN IS THE WHOLE POINT (P5), so the default must be provably off:
+// rendering every gated destination would leak hidden nodes out of every quest
+// tree in the game.
+func TestMapMobDefinition_LockedWhenGatedDefaultsOff(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [
+	  {"id": "catalog", "conditions": [{"kind": "minLevel", "value": 30}], "lines": ["Pick one."]},
+	  {"id": "root", "lines": ["A stone."], "options": [{"text": "Show me.", "next": "catalog"}]}
+	]}`)
+	require.NoError(t, err)
+	assert.False(t, def.Interaction.Nodes[1].Options[0].LockedWhenGated)
+}
+
+// The flag names a DESTINATION's gate, so a row with no destination has nothing
+// to name and would render locked forever with an empty requirement.
+func TestMapMobDefinition_RejectsLockedWhenGatedWithoutNext(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["hi"],
+	  "options": [{"text": "learn", "lockedWhenGated": true, "grants": [
+	    {"kind": "teach_skill", "skill": "DodoAura", "requiredLevel": 1, "line": "here"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "lockedWhenGated")
+}
+
+// An unconditional destination is always visible, so the flag can never fire:
+// silently inert authoring is exactly what DisallowUnknownFields exists to stop
+// one keystroke earlier.
+func TestMapMobDefinition_RejectsLockedWhenGatedOnAnUngatedDestination(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [
+	  {"id": "news", "lines": ["news"]},
+	  {"id": "root", "lines": ["hi"], "options": [{"text": "gossip", "next": "news", "lockedWhenGated": true}]}
+	]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "lockedWhenGated")
+	assert.Contains(t, err.Error(), "news")
+}
+
+// ⛑ A GRANT-BEARING ROW IS REFUSED. The locked row is inert by construction and
+// applyGrant refuses its indices, so a flagged row carrying a grant would be a
+// reward the panel offers and the server silently declines: the exact
+// present/apply disagreement L24's pin exists to prevent. P5's row is a pure
+// navigation row; nothing needs the other shape.
+func TestMapMobDefinition_RejectsLockedWhenGatedOnAGrantingRow(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [
+	  {"id": "vault", "conditions": [{"kind": "minLevel", "value": 10}], "lines": ["in"]},
+	  {"id": "root", "lines": ["hi"], "options": [{"text": "step inside", "next": "vault", "lockedWhenGated": true,
+	    "grants": [{"kind": "teach_skill", "skill": "DodoAura", "requiredLevel": 1, "line": "here"}]}]}
+	]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "lockedWhenGated")
+}

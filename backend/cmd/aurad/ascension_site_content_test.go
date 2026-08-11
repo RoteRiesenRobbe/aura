@@ -205,6 +205,45 @@ func TestAscensionSites_EveryNodeButTheFallbackIsGated(t *testing.T) {
 	}
 }
 
+// ⭐ EVERY SITE'S PRICE IS READABLE WHERE AN UNQUALIFIED PLAYER STANDS (C2/D2).
+// The gated nodes are invisible to them by construction, so the fallback is the
+// ONLY node they ever see, and until C2 it offered no rows at all, which left
+// the price surviving to them purely as prose an author had typed beside the
+// gate. The `lockedWhenGated` row is what replaces that: it names the gate live,
+// off the row-source node's own conditions.
+//
+// ⚑ Pinned as a property of every site rather than of the two stones that exist:
+// a third stone added by copy-paste from a pre-C2 file would otherwise ship with
+// an unreadable price and nothing would say so. This is the same derive-from-
+// content shape as its neighbours.
+func TestAscensionSites_TheirFallbackNamesThePrice(t *testing.T) {
+	_, registry := ascensionSiteZone(t)
+
+	for name, def := range ascensionSiteDefs(t, registry) {
+		nodes := def.Interaction.Nodes
+		fallback := nodes[len(nodes)-1]
+		require.Empty(t, fallback.Conditions, "%q: the fallback is the last, unconditional node", name)
+
+		var rowNodeID string
+		for i := range nodes {
+			if nodes[i].Rows == ascensionSiteRows {
+				rowNodeID = nodes[i].ID
+			}
+		}
+		require.NotEmpty(t, rowNodeID)
+
+		found := false
+		for _, opt := range fallback.Options {
+			if opt.LockedWhenGated && opt.Next == rowNodeID {
+				found = true
+			}
+		}
+		assert.True(t, found,
+			"%q's preview offers no lockedWhenGated row to %q, so a player who cannot pay is never told the price",
+			name, rowNodeID)
+	}
+}
+
 // ⭐ THE SITES DO NOT ALL ASK THE SAME THING, which is the whole point of this
 // plan and the one assertion that would go quietly green if a second stone were
 // added by copy-paste. It is deliberately weak about WHAT they ask: prices are

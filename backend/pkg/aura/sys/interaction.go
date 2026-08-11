@@ -622,7 +622,7 @@ func present(in *mobs.Interaction, p learner, src RowSource) *model.Conversation
 		if !visible[node.ID] {
 			continue
 		}
-		byNode[node.ID] = presentOptions(node, p, visible, src)
+		byNode[node.ID] = presentOptions(in, node, p, visible, src)
 	}
 	pruneEmptyDestinations(in, byNode)
 
@@ -680,7 +680,8 @@ func pruneEmptyDestinations(in *mobs.Interaction, rows map[string][]model.Conver
 // NPCs nobody re-authored into trees render correctly with zero content work
 // (D17): their single nameless multi-grant option shows up as one labelled row
 // per skill. An option with no grants is a navigation row.
-func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bool, src RowSource) []model.ConversationOption {
+func presentOptions(in *mobs.Interaction, node *mobs.InteractionNode, p learner,
+	visible map[string]bool, src RowSource) []model.ConversationOption {
 	// A source node's rows are GENERATED, and the loader guarantees it authored
 	// none: the two would share one index space (P10). ⚑ A missing provider
 	// fails CLOSED, like everything else on this path: the node keeps its lines,
@@ -703,6 +704,9 @@ func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bo
 		// are what make it conditionally absent. ⚑ applyGrant enforces the same
 		// rule via destinationVisible — the two ends disagreeing was N1.
 		if opt.Next != "" && !visible[opt.Next] {
+			if row, shown := lockedGateRow(in, oi, opt, p); shown {
+				rows = append(rows, row)
+			}
 			continue
 		}
 
@@ -798,6 +802,49 @@ func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bo
 		}
 	}
 	return rows
+}
+
+// lockedGateRow renders a row whose destination this player cannot reach yet,
+// with the destination's gate NAMED (plan-ascension-sites.md C2 / D2). shown is
+// false for every row that did not opt in, which is nearly all of them.
+//
+// ⭐ WHY THIS EXISTS: a site's price lives on the node it gates, and until this
+// row an unqualified player saw only the fallback greeting, so the price
+// survived to them solely as prose an author had typed alongside the gate. That
+// is the same duplication C1 took out of Go, one layer down, and it goes stale
+// the same way.
+//
+// ⛑ THE ROW LEADS NOWHERE, AND EVERY EMPTY FIELD IS LOAD-BEARING:
+//   - Next is dropped, because the destination is NOT in the streamed tree at
+//     all (present serialises visible nodes only). The client gives a locked row
+//     no handler, but this is the belt to that brace.
+//   - the empty Next is also what carries it past pruneEmptyDestinations, which
+//     drops navigation rows whose target shows nothing, precisely what a gated
+//     target looks like from here. This row IS its own content.
+//   - Reply is empty and GrantIndex is the navigation sentinel: Q1/R1's inert
+//     locked row, the same twin the teaching and catalog rows keep.
+//
+// ⚑ The gate is composed by describeConditions, shared with the ascension
+// catalog's own locked rows, so a site's price and a reward's price cannot drift
+// into two dialects.
+func lockedGateRow(in *mobs.Interaction, index int, opt *mobs.InteractionOption,
+	p learner) (model.ConversationOption, bool) {
+	if !opt.LockedWhenGated {
+		return model.ConversationOption{}, false
+	}
+	// The loader guarantees both (a real destination, carrying conditions); a
+	// nil here would render a row locked for no stated reason, which reads as
+	// broken rather than as a wall.
+	dest := nodeByID(in, opt.Next)
+	if dest == nil || len(dest.Conditions) == 0 {
+		return model.ConversationOption{}, false
+	}
+	return model.ConversationOption{
+		OptionIndex: uint8(index),
+		GrantIndex:  model.ConversationNoGrant,
+		Text:        fmt.Sprintf("%s - locked: %s", opt.Text, describeConditions(dest.Conditions, p)),
+		Locked:      true,
+	}, true
 }
 
 // applyGrant hands over exactly ONE grant — the row the player clicked, and

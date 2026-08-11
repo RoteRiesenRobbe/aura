@@ -303,10 +303,21 @@ func describeCondition(c mobs.InteractionCondition, p learner) string {
 		return fmt.Sprintf("%d ascensions in this line (%d/%d)",
 			c.Value, p.BloodlineAscensions(), c.Value)
 	case mobs.ConditionQuestAtStage:
+		// ⭐ THE TITLE, NEVER THE AUTHORING ID (C2 / D2). `thin-the-orc-line` is a
+		// key; the player has only ever read "Thin the Orc Line", in the journal,
+		// the offer and the completion banner. This is the same rule the species
+		// name below follows, and the ledger degrades to the id when it cannot
+		// answer: a gate naming nothing would be worse than one naming a key.
+		//
+		// ⚑ The STAGE keeps its authored id, because that is all a stage has: it
+		// carries a journal line, not a name. A stage-gated row is an authoring
+		// tool anyway (no shipped site uses one), where `completed` is the form
+		// content reaches for.
+		title := p.QuestLedger().Title(c.Quest)
 		if c.Stage == mobs.QuestStageCompleted {
-			return fmt.Sprintf("complete %q", c.Quest)
+			return fmt.Sprintf("complete %q", title)
 		}
-		return fmt.Sprintf("%q at %q", c.Quest, c.Stage)
+		return fmt.Sprintf("%q at %q", title, c.Stage)
 	case mobs.ConditionKillsThisLife:
 		// ⭐ "N × Species", because it DOES NOT PLURALISE (P21). English
 		// pluralisation of arbitrary authored names has no ceiling (Wolf →

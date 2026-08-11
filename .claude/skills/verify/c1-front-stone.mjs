@@ -137,6 +137,9 @@ const panel = () => page.evaluate(() => {
     actor: el.querySelector('.conversationActor')?.textContent?.trim() ?? '',
     lines: el.querySelector('.conversationLines')?.textContent?.trim() ?? '',
     rows: rows.map((li) => li.textContent.trim()),
+    // The greyed rows, by text (C2). Same view the c2a script keeps: a locked
+    // row is on screen like any other, and only the class tells them apart.
+    locked: rows.filter((li) => li.classList.contains('locked')).map((li) => li.textContent.trim()),
   };
 });
 
@@ -253,9 +256,17 @@ check('⛑ ...and it is the FRONT stone, not the village one 100 units away',
 check('a fresh character gets the preview, which names the price',
   !!fresh && fresh.lines.includes(FRONT_PREVIEW) && !fresh.lines.includes(FRONT_READY),
   fresh ? fresh.lines.replace(/\s+/g, ' ').slice(0, 90) : 'no panel');
-check('...and the preview offers no rows',
-  !!fresh && fresh.rows.length === 0,
-  fresh ? `rows: ${fresh.rows.join(' | ') || '(none)'}` : 'no panel');
+// ⭐ FLIPPED BY C2 (was: "the preview offers no rows"). The row vanishing is
+// exactly what made the price illegible: the fallback line had to name it by
+// hand, and did. The row is now on screen, greyed, naming both halves of a
+// price this character has paid neither of.
+check('⭐ the preview offers ONE locked row, and it names the price itself (C2)',
+  !!fresh && fresh.locked.length === 1 && fresh.locked[0].includes('level 25')
+    && fresh.locked[0].includes('Thin the Orc Line'),
+  fresh ? `locked: ${fresh.locked.join(' | ') || '(none)'}` : 'no panel');
+check('...and the price is NOT hand-typed in the lines beside it',
+  !!fresh && !fresh.lines.includes('25'),
+  fresh ? fresh.lines.replace(/\s+/g, ' ').slice(0, 90) : 'no panel');
 await leave();
 
 // ===========================================================================
@@ -273,6 +284,24 @@ check('⭐ level 25 alone does not open the stone: the quest half of the price i
     && levelledOnly.lines.includes(FRONT_PREVIEW)
     && !levelledOnly.lines.includes(FRONT_READY),
   levelledOnly ? levelledOnly.lines.replace(/\s+/g, ' ').slice(0, 90) : 'no panel');
+// ⭐ C2's headline, and it is scored HERE rather than in leg 4 on purpose: one
+// character, two stones, two prices, both readable, and this version of it
+// needs only the level cheat, so it runs green instead of skipping behind the
+// orc gate no harness can pay (leg 4 keeps the stronger, unpayable form).
+// ⛑ The two counters must DISAGREE. Both stones say "level N (25/N)" here, so a
+// row that somehow rendered the node it is standing ON rather than the node it
+// leads to would still look plausible at a glance; only the numbers differ.
+const villageAt25 = await openAt(WARP_VILLAGE);
+check('⛑ ...and it is the VILLAGE stone that answered there',
+  villageAt25?.actor === VILLAGE_ACTOR, `actor "${villageAt25?.actor ?? '(none)'}"`);
+check('⭐ the same character reads a DIFFERENT price at the other stone (C2)',
+  !!villageAt25 && villageAt25.locked.length === 1
+    && villageAt25.locked[0].includes('level 30 (25/30)'),
+  villageAt25 ? `locked: ${villageAt25.locked.join(' | ') || '(none)'}` : 'no panel');
+check('...and it names neither the front stone\'s level nor its quest',
+  !!villageAt25 && !(villageAt25.locked[0] ?? '').includes('25/25')
+    && !(villageAt25.locked[0] ?? '').includes('Orc Line'),
+  villageAt25 ? `locked: ${villageAt25.locked.join(' | ') || '(none)'}` : 'no panel');
 await leave();
 await page.screenshot({ path: `.claude/skills/verify/c1-front-preview-${label}.png` });
 
@@ -340,9 +369,16 @@ if (isReady) {
   const atVillage = await openAt(WARP_VILLAGE);
   check('⛑ ...and it is the VILLAGE stone that answered there',
     atVillage?.actor === VILLAGE_ACTOR, `actor "${atVillage?.actor ?? '(none)'}"`);
+  // ⭐ THE BEST PROOF C2 HAS, and it is this leg rather than leg 1: ONE
+  // character, TWO stones, and the second one says WHY it refuses: a number
+  // this player can act on, composed from that stone's own gate. Before C2 the
+  // same player got a panel that simply offered nothing.
   check('⭐ the same qualifying character is turned away by the stone priced at 30',
-    !!atVillage && atVillage.rows.length === 0,
-    atVillage ? `rows: ${atVillage.rows.join(' | ') || '(none)'}` : 'no panel');
+    !!atVillage && atVillage.locked.length === 1 && atVillage.locked[0].includes('level 30'),
+    atVillage ? `locked: ${atVillage.locked.join(' | ') || '(none)'}` : 'no panel');
+  check('...and its counter reads the character it is refusing',
+    !!atVillage && /\(2[5-9]\/30\)/.test(atVillage.locked[0] ?? ''),
+    atVillage ? `locked: ${atVillage.locked.join(' | ') || '(none)'}` : 'no panel');
   await leave();
 } else {
   check('⭐ the same qualifying character is turned away by the stone priced at 30', null,

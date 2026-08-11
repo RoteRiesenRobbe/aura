@@ -880,3 +880,17 @@ func TestLedger_CanApplyAgreesWithTheOps(t *testing.T) {
 		})
 	}
 }
+
+// A gate naming a quest is rendered for a player (plan-ascension-sites.md C2),
+// and a player has never seen the quest ID: the registry holds the only
+// spelling they know.
+func TestLedger_TitleIsTheSpellingAPlayerHasSeen(t *testing.T) {
+	l := testLedger(t, lampQuest())
+	assert.Equal(t, "The Lost Lamp", l.Title("lamp"))
+
+	// Both degrade paths hand back the id rather than an empty string: a gate
+	// reading `complete ""` names nothing at all, which is worse than naming the
+	// key.
+	assert.Equal(t, "unknown-quest", l.Title("unknown-quest"))
+	assert.Equal(t, "lamp", NewLedger(nil).Title("lamp"), "no registry at all (the sim)")
+}

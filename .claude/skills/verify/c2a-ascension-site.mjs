@@ -68,7 +68,10 @@ const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), pro
 // the two bodies' radii, which a warp onto the spawn itself would not be.
 const WARP_TO = 'WARP -7080 2040';
 const ACTOR = 'Ascension Stone';
-const PREVIEW_LINE = 'Needs a max-level character';
+// ⚑ RE-WORDED BY C2 (was 'Needs a max-level character'): the preview's lines
+// stopped naming the price, because the locked row below them composes it live
+// and prose beside a gate goes stale the moment the gate moves.
+const PREVIEW_LINE = 'A life can be laid down here';
 const READY_LINE = 'you can spend this character here';
 const CATALOG_ROW = 'Show me the rewards';
 const CATALOG_LINE = 'unlocks permanently for this character slot';
@@ -324,9 +327,16 @@ check('and it is the STONE that answered',
 check('below the cap the greeting is the preview',
   !!low && low.lines.includes(PREVIEW_LINE) && !low.lines.includes(READY_LINE),
   low ? low.lines.replace(/\s+/g, ' ').slice(0, 90) : 'no panel');
-check('the preview offers no rows (below the cap there is nothing to do here)',
-  !!low && low.rows.length === 0,
-  low ? `rows: ${low.rows.join(' | ') || '(none)'}` : 'no panel');
+// ⭐ FLIPPED BY plan-ascension-sites.md C2 (was: "the preview offers no rows").
+// Below the cap there is still nothing to DO here (the row is inert and clicking
+// it does nothing), but there is now something to READ: the price, composed live
+// from the catalog node's own gate instead of hand-typed into the lines beside it.
+check('⭐ the preview offers ONE locked row, and it names the cap (C2)',
+  !!low && low.locked.length === 1 && low.locked[0].includes('level 30'),
+  low ? `locked: ${low.locked.join(' | ') || '(none)'}` : 'no panel');
+check('...and the lines beside it no longer hand-type that number',
+  !!low && !low.lines.includes('30'),
+  low ? low.lines.replace(/\s+/g, ' ').slice(0, 90) : 'no panel');
 
 await page.screenshot({ path: `.claude/skills/verify/c2a-site-preview-${label}.png` });
 

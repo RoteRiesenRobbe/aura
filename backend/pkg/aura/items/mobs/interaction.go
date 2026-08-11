@@ -118,6 +118,20 @@ type InteractionOption struct {
 	// the entire navigation mechanism — Back and Leave are automatic, so no
 	// author can strand a player in a dead end.
 	Next string
+
+	// LockedWhenGated opts this row into rendering LOCKED, with the destination
+	// node's gate named for the player, when that destination's conditions do
+	// not pass, instead of vanishing (plan-ascension-sites.md C2 / D2).
+	//
+	// ⭐ OPT-IN, and that is P5 rather than caution: presentOptions hides a row
+	// whose destination this player cannot see, and every quest tree in the game
+	// depends on it. Flipping the default would leak hidden nodes out of all of
+	// them at once: the branch a player has not unlocked, the turn-in they
+	// cannot yet make. A site naming its own price is one authored row.
+	//
+	// The loader refuses it where it could not mean anything: with no Next, on
+	// an unconditional destination, and on a row that grants.
+	LockedWhenGated bool
 }
 
 // InteractionGrant is one typed thing an option hands the player. The list is
@@ -390,6 +404,8 @@ type jsonInteractionOption struct {
 	BlockedLine string                 `json:"blockedLine"`
 	Grants      []jsonInteractionGrant `json:"grants"`
 	Next        string                 `json:"next"`
+	// LockedWhenGated: see InteractionOption's field. Opt-in per row (P5).
+	LockedWhenGated bool `json:"lockedWhenGated"`
 
 	// Costs and Consequences are D8/D10 SCHEMA ROOM: the vocabulary is fixed here
 	// so the day un-learning is ruled (§9 question 1) and camps are designed, both
@@ -571,7 +587,7 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 			if err := m.checkSchemaRoom(jn.ID, j, jo); err != nil {
 				return nil, err
 			}
-			opt := InteractionOption{Text: jo.Text, Next: jo.Next}
+			opt := InteractionOption{Text: jo.Text, Next: jo.Next, LockedWhenGated: jo.LockedWhenGated}
 			for k, jg := range jo.Grants {
 				kind, ok := ParseGrantKind(jg.Kind)
 				if !ok {
@@ -598,6 +614,23 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 			if len(opt.Grants) == 0 && opt.Next == "" {
 				return nil, fmt.Errorf("mob %q: interaction node %q option %d: needs at least one grant or a next",
 					m.Name, jn.ID, j)
+			}
+			// The flag names a DESTINATION's gate, and it renders a row that is
+			// inert on both ends. Neither survives without a `next`, and a row
+			// that grants would be offered locked and then refused by applyGrant
+			// (the present/apply disagreement L24's pin exists to prevent).
+			// (The destination being gated at all is checked below, once every
+			// node is known.)
+			if opt.LockedWhenGated {
+				if opt.Next == "" {
+					return nil, fmt.Errorf("mob %q: interaction node %q option %d: lockedWhenGated names the gate on "+
+						"the node it leads to, so it needs a next", m.Name, jn.ID, j)
+				}
+				if len(opt.Grants) > 0 {
+					return nil, fmt.Errorf("mob %q: interaction node %q option %d: lockedWhenGated is for a pure "+
+						"navigation row — a locked row is inert and applyGrant refuses it, so a grant behind one "+
+						"could never be handed over (P5)", m.Name, jn.ID, j)
+				}
 			}
 			grants += len(opt.Grants)
 			node.Options = append(node.Options, opt)
@@ -666,7 +699,37 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 			}
 		}
 	}
+
+	// An unconditional destination is visible to everybody, so a lockedWhenGated
+	// row pointing at one can never fire. Refused rather than tolerated: a flag
+	// that silently does nothing is the same authoring failure DisallowUnknownFields
+	// catches one keystroke earlier, and the author's intent here (a gate the
+	// player can read) is stated clearly enough to be worth holding them to.
+	for _, node := range in.Nodes {
+		for j, opt := range node.Options {
+			if !opt.LockedWhenGated {
+				continue
+			}
+			dest := nodeByID(in, opt.Next)
+			if dest == nil || len(dest.Conditions) == 0 {
+				return nil, fmt.Errorf("mob %q: interaction node %q option %d: lockedWhenGated needs a GATED "+
+					"destination to name, but node %q carries no conditions and is visible to everybody",
+					m.Name, node.ID, j, opt.Next)
+			}
+		}
+	}
 	return in, nil
+}
+
+// nodeByID finds a node in a parsed interaction. Load-time only: the render path
+// has its own (sys.nodeByID), where the same walk is under L15's per-tick budget.
+func nodeByID(in *Interaction, id string) *InteractionNode {
+	for i := range in.Nodes {
+		if in.Nodes[i].ID == id {
+			return &in.Nodes[i]
+		}
+	}
+	return nil
 }
 
 // mapGrant resolves one grant's payload FOR ITS KIND (C2, §5). Before quests

@@ -15,6 +15,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -589,4 +590,41 @@ func TestAscensionRows_TheStashedReplyUsesTheAuthoredDisplayName(t *testing.T) {
 	require.True(t, ok)
 	assert.Contains(t, reply, "Rime-Burst")
 	assert.NotContains(t, reply, "Rime Burst", "the derived spelling must not leak back in")
+}
+
+// --- a quest gate names the quest a player has seen (C2 / D2) ---
+
+// ⭐ THE TITLE, NEVER THE ID. `thin-the-orc-line` is an authoring key; the
+// player has only ever read "Thin the Orc Line": in the journal, in the offer,
+// in the completion banner. Meeting the key for the first time inside a gate
+// that is supposed to be the legible half of the feature would defeat the
+// point of naming the gate at all. Same rule as the species display name
+// directly above, and as the authored displayName below.
+func TestDescribeCondition_NamesTheQuestByItsTitle(t *testing.T) {
+	p := newQuestLearner(t, 25, &quests.QuestDefinition{
+		ID: "thin-the-orc-line", Title: "Thin the Orc Line",
+		Stages: []*quests.Stage{{ID: "cull", Journal: "Cull them."}},
+	})
+
+	got := describeConditions([]mobs.InteractionCondition{
+		{Kind: mobs.ConditionQuestAtStage, Quest: "thin-the-orc-line", Stage: mobs.QuestStageCompleted},
+	}, p)
+
+	assert.Equal(t, `complete "Thin the Orc Line"`, got)
+}
+
+// A stage gate is the same rule: the quest reads as its title, the stage as the
+// authored id (which is all there is; a stage carries a journal line, not a
+// name). Pinned separately because it is a second format string.
+func TestDescribeCondition_AStageGateAlsoTitlesTheQuest(t *testing.T) {
+	p := newQuestLearner(t, 25, &quests.QuestDefinition{
+		ID: "lamp", Title: "The Lost Lamp",
+		Stages: []*quests.Stage{{ID: "bring_it_back", Journal: "Bring it back."}},
+	})
+
+	got := describeConditions([]mobs.InteractionCondition{
+		{Kind: mobs.ConditionQuestAtStage, Quest: "lamp", Stage: "bring_it_back"},
+	}, p)
+
+	assert.Equal(t, `"The Lost Lamp" at "bring_it_back"`, got)
 }

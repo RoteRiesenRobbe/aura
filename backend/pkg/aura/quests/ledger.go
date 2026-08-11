@@ -155,6 +155,29 @@ func (l *Ledger) HasTalkedTo(conversant mobs.MobID) bool {
 	return l.talkedTo[conversant]
 }
 
+// Title is the quest's name as a player has seen it, for a gate that names one
+// (plan-ascension-sites.md C2 / D2). The registry holds the only spelling they
+// know: the id is an authoring key, and `complete "thin-the-orc-line"` in a
+// panel is the same mistake as showing a CamelCase mob name on a nameplate.
+//
+// ⚑ It falls back to the ID rather than to an empty string. Both degrade paths
+// are real (the sim runs with no registry, and an unknown id can only reach
+// here through a gate the cross-validation somehow let past), and a gate reading
+// `complete ""` names nothing at all, which is strictly worse than naming a key.
+//
+// ⚑ Nil-guarded and O(1) like its neighbours: this is read on the per-tick
+// conversation present path (L15).
+func (l *Ledger) Title(questID string) string {
+	if l == nil || l.reg == nil {
+		return questID
+	}
+	q, err := l.reg.Get(questID)
+	if err != nil || q == nil || q.Title == "" {
+		return questID
+	}
+	return q.Title
+}
+
 // Progress reports one quest's walked stage path and state; an untouched quest
 // is all zero values.
 func (l *Ledger) Progress(questID string) (path []string, running, completed bool) {

@@ -2641,3 +2641,126 @@ func TestRowSourceMux_RefusesADuplicateRegistration(t *testing.T) {
 		mux.add(mobs.RowSourceMemorialNames, stubRows{mobs.RowSourceMemorialNames, "second"})
 	})
 }
+
+// --- C2: a gated destination READS instead of vanishing (D2, P5) ---
+
+// gatedDestination is the ascension sites' shape: an unconditional greeting
+// whose row leads to a gated node, flagged so the gate is named rather than
+// hidden.
+func gatedDestination(flagged bool, conditions ...mobs.InteractionCondition) *mobs.Interaction {
+	return &mobs.Interaction{Nodes: []mobs.InteractionNode{
+		{ID: "catalog", Conditions: conditions, Lines: []string{"Pick one."}},
+		{ID: "root", Lines: []string{"A stone."}, Options: []mobs.InteractionOption{
+			{Text: "Show me the rewards.", Next: "catalog", LockedWhenGated: flagged},
+		}},
+	}}
+}
+
+func minLevelGate(level int) mobs.InteractionCondition {
+	return mobs.InteractionCondition{Kind: mobs.ConditionMinLevel, Value: level}
+}
+
+// ⭐ THE CHUNK IN ONE TEST: below the price the row is THERE, greyed, naming
+// what it wants and how far along the player is. Before C2 the row simply
+// vanished and the price survived only as prose somebody typed by hand next to
+// the gate: the duplication C1 removed from Go, hiding in the content.
+func TestPresent_AGatedDestinationRendersLockedWithItsGateNamed(t *testing.T) {
+	in := gatedDestination(true, minLevelGate(30))
+
+	rows := rowsOf(t, present(in, newLearner(12), noRows), "root")
+
+	require.Len(t, rows, 1)
+	assert.True(t, rows[0].Locked)
+	assert.Equal(t, "Show me the rewards. - locked: level 30 (12/30)", rows[0].Text)
+}
+
+// ⛑ OPT-IN, AND THE NEGATIVE SPACE IS THE POINT (P5). Every quest tree in the
+// game hides rows this way (the branch not unlocked, the turn-in not yet
+// possible), so the unflagged row must keep vanishing. A default flip here
+// would leak hidden nodes out of all of them at once, and nothing in the
+// ascension content would notice.
+func TestPresent_AnUnflaggedGatedDestinationStillVanishes(t *testing.T) {
+	in := gatedDestination(false, minLevelGate(30))
+
+	rows := rowsOf(t, present(in, newLearner(12), noRows), "root")
+
+	assert.Empty(t, rows, "the row is hidden unless its author asked for the gate to read")
+}
+
+// Once the gate passes the row is an ordinary navigation row again: not locked,
+// no requirement glued to its text, and it goes where it says.
+func TestPresent_AGatedDestinationUnlocksWhenThePriceIsMet(t *testing.T) {
+	in := gatedDestination(true, minLevelGate(30))
+
+	rows := rowsOf(t, present(in, newLearner(30), noRows), "root")
+
+	require.Len(t, rows, 1)
+	assert.False(t, rows[0].Locked)
+	assert.Equal(t, "Show me the rewards.", rows[0].Text)
+	assert.Equal(t, "catalog", rows[0].Next)
+}
+
+// ⛑ THE LOCKED ROW LEADS NOWHERE, deliberately, and this is the belt to the
+// client's braces: a locked row gets no click handler in Conversation.ts, but
+// the node it names is NOT in the streamed tree at all (present serialises only
+// visible nodes), so a row still carrying its destination would be one render
+// bug away from walking a player into a node that does not exist on their
+// client.
+func TestPresent_ALockedGateRowLeadsNowhere(t *testing.T) {
+	in := gatedDestination(true, minLevelGate(30))
+
+	rows := rowsOf(t, present(in, newLearner(12), noRows), "root")
+
+	require.Len(t, rows, 1)
+	assert.Empty(t, rows[0].Next, "the destination is not even in the tree")
+	assert.Empty(t, rows[0].Reply, "a locked row has nothing to speak (Q1/R1)")
+	assert.Equal(t, model.ConversationNoGrant, rows[0].GrantIndex, "it hands nothing over")
+}
+
+// ⛑ AND IT SURVIVES THE DEAD-END PRUNE. pruneEmptyDestinations drops a
+// navigation row whose target has nothing to show, which is exactly what a
+// gated target looks like from here. The empty Next is what keeps this row out
+// of that sweep: a locked row IS its own content.
+func TestPresent_ALockedGateRowSurvivesTheDeadEndPrune(t *testing.T) {
+	in := gatedDestination(true, minLevelGate(30))
+	// A destination that AUTHORED options is the shape the prune hunts: it is
+	// pruned when it currently presents none of them.
+	in.Nodes[0].Options = []mobs.InteractionOption{
+		{Text: "learn", Grants: []mobs.InteractionGrant{namedGrant(1, "Torch", 1, "light")}},
+	}
+
+	rows := rowsOf(t, present(in, newLearner(12), noRows), "root")
+
+	require.Len(t, rows, 1, "the locked row is not a dead end, it is the message")
+	assert.True(t, rows[0].Locked)
+}
+
+// The converse pin (N1's direction): the row is on screen, so a click on it
+// must be refused rather than silently walking the gate. destinationVisible
+// already answers this; it is pinned because C2 is what puts a REAL row in
+// front of a player for an index that must stay refused.
+func TestApplyGrant_RefusesTheLockedGateRow(t *testing.T) {
+	_, _, ok := applyGrant(gatedDestination(true, minLevelGate(30)), newLearner(12), noRows, "root", 0, 0)
+	assert.False(t, ok, "a locked row is inert on the server too")
+}
+
+// A multi-condition gate reads as one sentence, which is the front stone's
+// actual price (level 25 AND a finished quest). The composition is
+// describeConditions', shared with the ascension catalog's own locked rows, so
+// the two surfaces cannot drift into two dialects.
+func TestPresent_AGatedDestinationNamesEveryConditionItHas(t *testing.T) {
+	in := gatedDestination(true,
+		minLevelGate(25),
+		mobs.InteractionCondition{Kind: mobs.ConditionQuestAtStage,
+			Quest: "thin-the-orc-line", Stage: mobs.QuestStageCompleted},
+	)
+	p := newQuestLearner(t, 12, &quests.QuestDefinition{
+		ID: "thin-the-orc-line", Title: "Thin the Orc Line",
+		Stages: []*quests.Stage{{ID: "cull", Journal: "Cull them."}},
+	})
+
+	rows := rowsOf(t, present(in, p, noRows), "root")
+
+	require.Len(t, rows, 1)
+	assert.Equal(t, `Show me the rewards. - locked: level 25 (12/25), complete "Thin the Orc Line"`, rows[0].Text)
+}
