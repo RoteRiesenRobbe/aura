@@ -296,6 +296,14 @@ actionable as one batch; that doc remains their home.
 
 Doing 1 and 3 first makes 2 (and everything after it) verifiable.
 
+> ⛔ **The CI half of this batch is MOOT by PO ruling 2026-08-12 - NO CI BY
+> CHOICE** (`plan-code-health.md` C1 ledger). The push that shipped C1's
+> `npm test` step revealed GitHub Actions has never run on this fork (zero
+> workflow runs ever), so every "runs in CI" claim in this doc describes an
+> inert file. The PO ruled CI stays off unless it becomes a necessity; the
+> step was rolled back. The per-chunk local verify tail is the gate; revisit
+> at roadmap step 9.
+
 ### 7.5 Metrics for the next pass to diff against
 
 | Measure | 2026-07-22 |

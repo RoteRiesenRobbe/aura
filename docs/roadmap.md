@@ -1225,6 +1225,11 @@ system ships blind.
    math + persistent-servers decision: `research-hosting.md` — Phase 0 "friends
    playtest" deploy may pull earlier, into the content pass; Phase 0 planned →
    `plan-phase0-deploy.md`).
+   ⚑ **The "CI tests" half carries a standing ruling — NO CI BY CHOICE (PO
+   2026-08-12,** `plan-code-health.md` C1 ledger**):** Actions has zero runs
+   ever on the fork and stays disabled unless CI becomes a necessity. This step
+   is the named revisit point; prerequisite if taken: fix the `TestDwell` flake
+   first, or the badge cries wolf from day one.
    ⚑ **This step inherits the durability debt 8a deferred** (PO 2026-08-04):
    backups with a proven restore + off-machine storage. It also inherits the
    *security* items that were never part of that ruling and are still unticked —

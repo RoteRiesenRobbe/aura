@@ -99,6 +99,13 @@ every pin later chunks add is defended by nothing until this lands.
 (`research-v1-readiness.md` §1/§2 lineage; called the highest-leverage line in
 `research-code-quality.md` §11.5 #1.)
 
+> ⛔ **REVERSED by PO ruling 2026-08-12 - NO CI BY CHOICE.** The step shipped,
+> and the push revealed Actions has never run on this fork (zero runs ever); the
+> PO ruled CI stays off unless it becomes a genuine necessity. The step was
+> rolled back the same day; see the C1 ledger below. The pins later chunks add
+> are defended by the **local** `npm test` / `go test` in every chunk's verify
+> tail, which is the project's actual gate.
+
 **Deletions** (verify zero importers with grep before each; typecheck is the net):
 
 - `frontend/src/features/rating/` whole: `Rating.ts`, `rating.less` (155 lines),
@@ -377,8 +384,10 @@ All re-verified still open 2026-08-12. Each test-first; effort per item is 1-2 h
   `chunk3-charm` 6-8/9, `filler-batch` leg 1, `chunk3b-ii` 28/34) is red at HEAD
   before this plan starts; measure before diagnosing, and do not burn sessions on
   them as if they were regressions from this work.
-- CI after C1 gates vet + go test + typecheck + **npm test** + builds; every later
-  chunk's pins are then actually defended.
+- ~~CI after C1 gates vet + go test + typecheck + **npm test** + builds~~ ⛔
+  **NO CI BY CHOICE (PO 2026-08-12)** - Actions is disabled on the fork and stays
+  so unless it becomes a necessity. Every chunk's pins are defended by the local
+  verify tail (`npm test`, `go test -count=1`), run before any banner is written.
 
 ## Chunk ledgers
 
@@ -386,7 +395,8 @@ All re-verified still open 2026-08-12. Each test-first; effort per item is 1-2 h
 
 **Shipped exactly the plan's list, plus three grep-proven extensions.** CI gained the
 `test-frontend` step (`npm test`, its own step after typecheck so a failure attributes
-cleanly; `npm install` persists from the typecheck step). Deleted: `features/rating/`
+cleanly; `npm install` persists from the typecheck step) - **then step 1 was REVERSED,
+see the ruling paragraph at the end of this banner.** Deleted: `features/rating/`
 whole (6 files incl. both star SVGs) · `UtilsTest.ts` · the 0-byte `EMiniMapLayer.ts` ·
 `BasicConfig.ts`'s unused `BACKEND` block · HUD.less lines 148-471 (324 lines,
 1845 → 1521) · `Urls.ts`'s localhost→`local.berryhunter.io` rewrite and
@@ -430,9 +440,21 @@ stale "keep Skills.ts counts consistent" line deleted.
   (95 skills / 68 mobs / 13 quests) · `ctxloss-warning.mjs clean` **PASS** (0 warnings,
   0 console errors - the boot-path harness, and Urls.ts is boot path) · repo-wide
   greps show zero references to every deleted symbol · harness residue cleaned
-  (`harnessdb -cleanup`, aurad stopped first). ⚑ **The one verify item that cannot
-  run pre-commit:** "CI green with the new test step" needs a push; confirm on the
-  first CI run after the PO commits.
+  (`harnessdb -cleanup`, aurad stopped first).
+
+⛔ **Step 1 REVERSED same day - NO CI BY CHOICE (PO ruling 2026-08-12).** The
+push after `ca34800b` revealed the repo has **ZERO workflow runs ever**:
+`build.yaml` is registered and "active", but Actions is disabled on the fork
+(GitHub's fork default), so the whole CI pipeline - vet, go test, typecheck,
+builds, the binding-drift check - has never executed once. Asked whether to
+enable it, the PO ruled the other way: **CI stays off unless it becomes a
+genuine necessity** (the natural revisit is roadmap step 9, ops readiness, or
+real pain from the second contributor's unverified pushes; the known
+`TestDwell` flake would also have to be fixed first or the badge cries wolf).
+The `test-frontend` step was removed again; `build.yaml` is back at its pre-C1
+state and remains inert. The 287 vitest tests are defended by the **local
+verify tail every chunk runs** - which is and remains the project's actual
+gate.
 
 ## Open questions
 
