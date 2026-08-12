@@ -1042,8 +1042,8 @@ system ships blind.
    whole on 2026-08-11 (C1 `509321e6`: **max level is no longer the entry rule**,
    a site names its own price · C2 `d66ca9f3`: an unmet gate renders locked and
    named · C3 `350701c9` + `f86420f5`: a site authors the reward list it offers,
-   in the order it offers them). Schema NONE there too. ⚑ **The PO's in-game
-   check is still pending.**
+   in the order it offers them). Schema NONE there too. ✅ **The PO's in-game
+   check passed 2026-08-12** — both stones walked by hand, no defects found.
 
    **8b — UI polish / avatar / audio** (item 8) — ⏸ **STILL OPEN**, and closing
    8a does not close it (that independence is exactly why the split exists).

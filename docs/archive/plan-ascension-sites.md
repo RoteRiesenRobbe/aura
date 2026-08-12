@@ -1,9 +1,9 @@
 # Plan: Ascension sites - many stones, each with its own price and its own rewards
 
 > **Status: COMPLETE — C1, C2, C3a and C3b all shipped 2026-08-11 (`509321e6`,
-> `d66ca9f3`, `350701c9`, `f86420f5`). ⚑ The PO's own in-game check is still
-> PENDING**: every chunk is harness-verified, nobody has walked both stones by
-> hand yet. Four PO rulings taken in the
+> `d66ca9f3`, `350701c9`, `f86420f5`), and the PO's own in-game check PASSED
+> 2026-08-12** — both stones walked by hand, verdict *"seems to work"*, no
+> defects found. Four PO rulings taken in the
 > design session (D1-D4), three more at C1 (the second stone's price and place,
 > and P2 pulled forward), four more at C3's design pass (D5, D6, P7, P8 — and
 > D5 amends §5). Successor to
@@ -625,3 +625,19 @@ exact baselines, re-run because both read the village stone's catalog node.
 **C3 is complete, and with it the plan.** What is left is not chunk work: §7's
 open questions (a price visible from outside talking range; the lore write both
 stones still owe) and the deferred cluster.
+
+### The PO walk ✅ 2026-08-12
+
+The one thing every chunk banner above was missing: a human standing at the
+stones. Walked on the local dev server (boot **68 mobs / 13 quests / 8 rewards,
+0 WARN / 0 ERROR**), verdict *"seems to work"* — **no defects found, nothing
+re-opened**, and the plan's status flag is cleared on all four surfaces
+(this header, `CLAUDE.md` Status, `docs/roadmap.md` step 8a, `docs/README.md`).
+
+⚑ **The walk cannot have covered the front stone's own reward list**, and that
+is C1's recorded gap rather than a gap in the walk: reaching it needs level 25
+*and* a finished *Thin the Orc Line*, which is the price C1 measured as unpayable
+by any harness and the PO ruled to leave standing. What a walk can see there is
+C2's locked-and-named row. The first thing that could honestly answer *"can a
+character get to that stone by playing?"* is the `-climb` mode deferred in
+`docs/plan-play-bot.md` §8, which names this exact blind spot.
