@@ -1,6 +1,6 @@
 # Plan: Code Health Pass - deletions, duplication closure, live defects, drift pins
 
-**Status: C1 BUILT 2026-08-12 (uncommitted) - C2-C7 open.** Sources: a three-sweep audit of this
+**Status: C1 SHIPPED 2026-08-12 (`ca34800b`) - C2-C7 open.** Sources: a three-sweep audit of this
 date (frontend magic numbers · cross-layer duplicated constants · frontend structural
 debt), `research-code-quality.md` §11.5 (whose recommended batch is absorbed here as C7,
 verified still fully open on 2026-08-12), and the standing gotchas in `CLAUDE.md`.
@@ -382,7 +382,7 @@ All re-verified still open 2026-08-12. Each test-first; effort per item is 1-2 h
 
 ## Chunk ledgers
 
-### C1 - Gates + the dead-code sweep ✅ 2026-08-12, `[uncommitted]`
+### C1 - Gates + the dead-code sweep ✅ 2026-08-12, `ca34800b`
 
 **Shipped exactly the plan's list, plus three grep-proven extensions.** CI gained the
 `test-frontend` step (`npm test`, its own step after typecheck so a failure attributes
