@@ -57,6 +57,8 @@ Everything else that ever had a plan doc lives in `archive/` (see the Archive se
 
 - **plan-play-bot.md** - **designed 2026-08-12, nothing built**: a headless character that actually *plays* (real kills, real XP, real dialogue, a real quest ledger, real deaths and respawns), as an on-demand **soak instrument** for the two blind spots nothing else covers: long-horizon accumulation bugs, and an empirical kills/hour to cross-check `simharness` against the real loop. 4 PO rulings (own binary `cmd/playbot` with the transport extracted out of `loadbot` · cheats for **transport and seeding only**, never inside the measured window · the first run answers soak + ledger integrity + economy, **reachability deliberately not selected** · **per-band sprints**, not one long climb). ⭐ Cheap because the wire already carries everything a bot needs to perceive *and* act - the **whole conversation tree** is streamed (`server.fbs:476`) and `Interact` echoes authored indices back, so questing needs no cheat and no browser. ⚑ **Schema NONE at every layer.** Its L1 is the tick-accumulator thrash `plan-mob-tether.md` D5 measured on mobs: a bot that re-asserts its aura slot every tick deals literally zero damage
 
+- **plan-zone-editor-structure.md** - **designed 2026-08-12, nothing built**: the zone editor places **five unlike things through one control set** (a wolf, a farmer, an ascension stone, a barricade and a proving-grounds Dodo all get the same flat picker, the same green diamond and the same seven inputs). Gives Spawns mode a **derived** category (Talker / Combat / Fixture / Companion, computed from `interaction` + `role`, no content field) and lets the picker, the marker colour and the shown controls read it. 4 PO rulings (derived not authored · all three surfaces · one Talkers group, stones with the villagers · **the legacy roster is retired, in its own chunk**). ⭐ Two finds: every field is **already bundled** (`require.context` over the raw `api/mobs`), and **the editor cannot round-trip a talker today** - `String(undefined)` in a number input makes Update refuse the village ascension stone, while the convention it is missing is already exact in the data (the 17 respawn-free spawns ARE the 17 that carry an interaction). ⚑ Schema **NONE** for C1+C2, but **C3 removes `EntityType` wire values**: retiring the ten legacy defs is really retiring `proving-grounds.json`, whose 395 spawns are legacy content end to end
+
 **The `plan-accounts-*` set has split**: roadmap **step 8a shipped and CLOSED 2026-08-04**, so schema + implementation + frontend moved to `archive/` (see the Archive section); 8b is `plan-ui-polish.md` + `plan-avatar-system.md` and is still open. Only the password-reset doc below is live.
 
 - **plan-accounts-password-reset.md** — **split out of the three archived docs (2026-07-29), runs after them and is still unscheduled**: optional recovery email, forgot/reset flow, session invalidation, real client-side routing, and the outbound-email infrastructure aura has none of. ⚑ Until it ships, a forgotten password is unrecoverable — an accepted interim state the register form states plainly
@@ -99,6 +101,11 @@ than patch. PDF renders of the first two sit in the repo root.
 
 - **developer-onboarding.html** — "Aura — Developer Onboarding" (2026-07-22)
 - **feature-inventory.html** — "Aura — Feature Inventory" (2026-07-22)
+- **process-overview.html** — "Aura: Process Overview" (2026-08-12). The work process
+  explained for an outside reader: the PO + AI-implementer arrangement, the four-layer
+  status model, the anatomy of a work item, how the process evolved, and what changed
+  from the initial plan. PDF render in the repo root (`aura-process-overview.pdf`).
+  ⚑ Same snapshot caveat as the two above — re-generate rather than patch.
 - **accounts/chunk-1a-summary.html** — "Step 8a, Chunk 1a: the database foundation"
   (2026-07-31). Plain-language summary of what shipped, what it deliberately does not do,
   the three defects found, and where the code lives. ⚑ A *snapshot*, not a source of truth —
