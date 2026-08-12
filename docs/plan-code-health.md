@@ -1,6 +1,6 @@
 # Plan: Code Health Pass - deletions, duplication closure, live defects, drift pins
 
-**Status: designed 2026-08-12, nothing built.** Sources: a three-sweep audit of this
+**Status: C1 BUILT 2026-08-12 (uncommitted) - C2-C7 open.** Sources: a three-sweep audit of this
 date (frontend magic numbers · cross-layer duplicated constants · frontend structural
 debt), `research-code-quality.md` §11.5 (whose recommended batch is absorbed here as C7,
 verified still fully open on 2026-08-12), and the standing gotchas in `CLAUDE.md`.
@@ -379,6 +379,60 @@ All re-verified still open 2026-08-12. Each test-first; effort per item is 1-2 h
   them as if they were regressions from this work.
 - CI after C1 gates vet + go test + typecheck + **npm test** + builds; every later
   chunk's pins are then actually defended.
+
+## Chunk ledgers
+
+### C1 - Gates + the dead-code sweep ✅ 2026-08-12, `[uncommitted]`
+
+**Shipped exactly the plan's list, plus three grep-proven extensions.** CI gained the
+`test-frontend` step (`npm test`, its own step after typecheck so a failure attributes
+cleanly; `npm install` persists from the typecheck step). Deleted: `features/rating/`
+whole (6 files incl. both star SVGs) · `UtilsTest.ts` · the 0-byte `EMiniMapLayer.ts` ·
+`BasicConfig.ts`'s unused `BACKEND` block · HUD.less lines 148-471 (324 lines,
+1845 → 1521) · `Urls.ts`'s localhost→`local.berryhunter.io` rewrite and
+`developmentPort` (branch-scoped as planned; `getUrl` and the wsUrl-derived
+`catalogUrl`/`apiUrl` stay). The vitest baseline was run BEFORE any deletion: 287/287
+green, so nothing red could be attributed to the sweep later.
+
+**The three extensions, each proven dead by grep before cutting:**
+
+- The HUD.less span is contiguous 148-471, slightly wider than the plan's literal
+  ranges: it includes the `.bounce` rule (:235-237, no DOM produces the class) and the
+  `#crafting, #inventory { display: none }` hider (:298-302, pointless once both IDs
+  are gone).
+- The three `hintedCraftMask*.svg` assets - referenced only from the deleted
+  `.craftableItem` block; orphaned by the cut, so they go with it.
+- `socialMedia.less`'s whole `&.horizontal` block: only rating's own HTML produced
+  that DOM, **and its `socialLink-rating-bounce` keyframe lived in the never-imported
+  `rating.less`**, so the animation was already a silent no-op in the shipped bundle.
+  (LESS keyframes are global only if the defining file reaches the bundle - a
+  cross-file animation reference is exactly the tier-4 drift class this plan hunts.)
+  The live `vertical` variant (start screen) keeps its keyframe in `startScreen.less`.
+
+**The Urls.ts reasoning pass the plan required** (deployed start-URL path, no
+`?wsUrl`): a deployed page has no port, so `port` is `''` before and after, and the
+hostname was never `localhost`, so the deleted rewrite never fired there -
+byte-identical. Dev with `?wsUrl` is unchanged (the override wins). The one behaviour
+change is strictly a fix: an `aurad -dev` boot on :2000 *without* `?wsUrl` used to
+derive the broken `ws://local.berryhunter.io:2015/game`; it now derives
+`ws://localhost:2000/game`, which is correct.
+
+**SKILL.md (add-content) refresh:** the `Skills.ts` triple-map bullet now says "no
+client-side edit, the catalog is fetched" (plan-ui-polish C1 reality);
+`gameObjectClasses`'s failure mode flipped from "silent desync" to "compile error"
+(it is an enum-keyed `Record`, tsc-enforced - that flip is the point of the fix); pin
+refs refreshed (`registry_test.go` :168, `recipe_test.go` :168, both verified); the
+stale "keep Skills.ts counts consistent" line deleted.
+
+- **Schema impact: NONE.** Backend untouched (`go build ./...` green anyway).
+- **Verified:** typecheck clean · vitest **287/287 before AND after** · prod build
+  compiles (the 3 standing bundle-size warnings only) · boot 0 WARN / 0 ERROR
+  (95 skills / 68 mobs / 13 quests) · `ctxloss-warning.mjs clean` **PASS** (0 warnings,
+  0 console errors - the boot-path harness, and Urls.ts is boot path) · repo-wide
+  greps show zero references to every deleted symbol · harness residue cleaned
+  (`harnessdb -cleanup`, aurad stopped first). ⚑ **The one verify item that cannot
+  run pre-commit:** "CI green with the new test step" needs a push; confirm on the
+  first CI run after the PO commits.
 
 ## Open questions
 

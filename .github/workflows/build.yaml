@@ -67,6 +67,10 @@ jobs:
         name: Typecheck frontend
         working-directory: frontend
         run: npm install && npm run typecheck
+      - id: test-frontend
+        name: Test frontend
+        working-directory: frontend
+        run: npm test
       - id: build-frontend
         working-directory: frontend
         run: npm run build

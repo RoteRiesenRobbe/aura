@@ -91,12 +91,6 @@ export const BasicConfig = {
         FIELDS_IN_QUADRANT: <number> 8,
     },
 
-    // TODO unused, can be deleted?
-    BACKEND: {
-        LOCAL_URL: <string> 'ws://localhost:2000/game',
-        REMOTE_URL: <string> 'wss://berryhunter.io/game',
-    },
-
     /**
      * Milliseconds between input sampling ticks. Must equal the backend tick
      * period exactly: the server ticks every `time.Second / 30` = 33.333 ms

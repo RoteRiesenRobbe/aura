@@ -1,27 +1,6 @@
 import {BasicConfig as Constants} from "../../../client-data/BasicConfig";
 import {QueryParameters} from '../../internal-tools/logic/QueryParameters';
 
-function isLocalhost(hostname: string) {
-    switch (hostname) {
-        case 'localhost':
-        case '127.0.0.1':
-            return true;
-    }
-
-    return false;
-}
-
-function getHostname() {
-    let hostname = window.location.hostname;
-    if (isLocalhost(hostname)) {
-        return 'local.berryhunter.io';
-    }
-
-    return hostname;
-}
-
-const developmentPort = '2015';
-
 /**
  *
  * @param protocol http or ws, the 's' for secure layer will be attached according to the current protocol
@@ -33,13 +12,9 @@ function getUrl(protocol: string, path: string) {
         security = 's';
     }
 
-    let currentPort = window.location.port;
-    let port = '';
-    if (currentPort !== '' && currentPort !== '80') {
-        port = ':' + developmentPort;
-    }
+    const port = window.location.port ? ':' + window.location.port : '';
 
-    return protocol + security + '://' + getHostname() + port + '/' + path;
+    return protocol + security + '://' + window.location.hostname + port + '/' + path;
 }
 
 let _gameServer: string;

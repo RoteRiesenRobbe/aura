@@ -20,17 +20,19 @@ the bottom. Trust the code over the manual if a path has drifted.
 
 - **New art = the 5-file wire path, in order:** append the enum entry at the
   **END** of `api/schema/server.fbs` `EntityType` → `cd api/schema && ./make.sh`
-  (regens Go **and** TS) → SVG → a render class → **a `gameObjectClasses` slot
-  at the enum ordinal** (`GameStateMessage.ts`; the array is positional). Miss
-  the slot and the entity is desynced/invisible. Reused art via an `entityType`
-  override needs **none** of this.
+  (regens Go **and** TS) → SVG → a render class → **a `gameObjectClasses` entry
+  for the new enum key** (`GameStateMessage.ts`; the map is an enum-keyed
+  `Record`, so a missing entry is a **compile error**, not a silent desync —
+  `npm run typecheck` catches it). Reused art via an `entityType` override
+  needs **none** of this.
 - **A new frontend layer is TWO edits in `core/logic/Game.ts`** —
   `createNamedContainer(...)` **and** `cameraGroup.addChild(...)`. Miss the
   second and the sprite renders off-stage (invisible but functional). Reusing a
   layer needs neither.
-- **New skill = the `Skills.ts` triple map** (`SkillNames` / `SkillMaxLevels` /
-  `SkillCategories`), hand-synced to the backend registry. Miss it → the skill
-  shows as "Skill #id" / wrong category. No `.fbs` regen for skills.
+- **New skill = NO client-side edit.** The old `Skills.ts` triple map is gone
+  (plan-ui-polish C1): the client fetches skill metadata from the aurad sidecar
+  (`GET /skills`) at startup, so the backend registry is the single source. No
+  `.fbs` regen for skills either.
 - **Mob health is tier+baseline** (`tier` + `curveLevel` + `factors.baseMaxHealth`);
   author skill damage/heal HP as curve-position-1 baselines too. Raw
   `factors.maxHealth` **hard-fails at load** — a review reject.
@@ -46,9 +48,9 @@ Adding skills/recipes without bumping their pinned counts makes `go test` fail
 at HEAD (this bit C2 — "Part 1 never bumped the pinned count"). After adding:
 
 - **Skills:** `backend/pkg/aura/skills/registry_test.go` →
-  `assert.Len(t, r.All(), N)` (~line 142). Bump `N` by skills added.
+  `assert.Len(t, r.All(), N)` (~line 168). Bump `N` by skills added.
 - **Recipes:** `backend/pkg/aura/skills/recipe_test.go` →
-  `assert.Len(t, rr.All(), N)` (~line 163, `TestRecipes_C7Net`). Bump by recipes
+  `assert.Len(t, rr.All(), N)` (~line 168, `TestRecipes_C7Net`). Bump by recipes
   added, and extend the cascade assertions if the net changed.
 - **Mobs: THREE content censuses in `backend/pkg/aura/items/mobs`**, and a new
   def trips every one it belongs to (measured, ascension-sites C1):
@@ -59,7 +61,6 @@ at HEAD (this bit C2 — "Part 1 never bumped the pinned count"). After adding:
   species). They are *supposed* to break; add the name and bump the counts with a
   line saying what the def is. ⚑ They read `api/` from disk, so **`go test
   -count=1`** or a stale green hides all three.
-- Keep `Skills.ts` counts consistent with the backend registry.
 - **Sim-harness presets** auto-derive player auras (§A "never a surprise") —
   if you added a player-facing aura/recipe result, confirm the preset appears
   (see the run-simharness skill).
