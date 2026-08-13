@@ -1,6 +1,6 @@
 # Plan: Code Health Pass - deletions, duplication closure, live defects, drift pins
 
-**Status: C1 SHIPPED 2026-08-12 (`ca34800b`) · C2 DONE 2026-08-13, PO-verified in-game 2026-08-14 (ledger below, hash `[uncommitted]`) - C3-C7 open.** Sources: a three-sweep audit of this
+**Status: C1 SHIPPED 2026-08-12 (`ca34800b`) · C2 DONE 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`, ledger below) - C3-C7 open.** Sources: a three-sweep audit of this
 date (frontend magic numbers · cross-layer duplicated constants · frontend structural
 debt), `research-code-quality.md` §11.5 (whose recommended batch is absorbed here as C7,
 verified still fully open on 2026-08-12), and the standing gotchas in `CLAUDE.md`.
@@ -456,7 +456,7 @@ state and remains inert. The 287 vitest tests are defended by the **local
 verify tail every chunk runs** - which is and remains the project's actual
 gate.
 
-### C2 - Already-wrong-today frontend fixes ✅ 2026-08-13, `[uncommitted]` · PO in-game pass 2026-08-14
+### C2 - Already-wrong-today frontend fixes ✅ 2026-08-13, `beeba7c0` · PO in-game pass 2026-08-14
 
 **All three items shipped, red-first where the plan asked.** Unlike the structure
 chunks, C2 is deliberately **not** behaviour-neutral: every tooltip duration string
