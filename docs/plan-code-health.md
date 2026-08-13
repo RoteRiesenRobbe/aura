@@ -1,6 +1,6 @@
 # Plan: Code Health Pass - deletions, duplication closure, live defects, drift pins
 
-**Status: C1 SHIPPED 2026-08-12 (`ca34800b`) - C2-C7 open.** Sources: a three-sweep audit of this
+**Status: C1 SHIPPED 2026-08-12 (`ca34800b`) · C2 DONE 2026-08-13, PO-verified in-game 2026-08-14 (ledger below, hash `[uncommitted]`) - C3-C7 open.** Sources: a three-sweep audit of this
 date (frontend magic numbers · cross-layer duplicated constants · frontend structural
 debt), `research-code-quality.md` §11.5 (whose recommended batch is absorbed here as C7,
 verified still fully open on 2026-08-12), and the standing gotchas in `CLAUDE.md`.
@@ -456,10 +456,84 @@ state and remains inert. The 287 vitest tests are defended by the **local
 verify tail every chunk runs** - which is and remains the project's actual
 gate.
 
+### C2 - Already-wrong-today frontend fixes ✅ 2026-08-13, `[uncommitted]` · PO in-game pass 2026-08-14
+
+**All three items shipped, red-first where the plan asked.** Unlike the structure
+chunks, C2 is deliberately **not** behaviour-neutral: every tooltip duration string
+getting ~1% longer IS the deliverable. Line refs below are the working tree of
+2026-08-13.
+
+**1 - TICK_MS.** `SkillTooltip.ts`'s private `TICK_MS = 33` now derives from
+`BasicConfig.SERVER_TICKRATE` (tier 1; that constant is itself pinned to
+`shared-constants.json`'s `ticksPerSecond`, so the tooltip joins the existing pin
+chain and the client is down from two copies to one). Red-first with three
+hand-computed guards (300 ticks = "10s", 90 = "3s", and 40 = "1.33s" for the
+non-multiple-of-30 case), which failed at "9.9s"/"2.97s"/"1.32s"; then the ~30 stale
+expectations across `SkillTooltip.test.ts` were **recomputed from their authored tick
+counts, never copied from the vitest diffs** (copying actual→expected would
+rubber-stamp whatever the code does). Most durations became round numbers - itself
+confirmation, since authored tick counts are multiples of 30. One survivor worth
+naming: "0.53s" (16 ticks) renders identically under both tick lengths.
+
+**2 - the utility twin tables.** `UTILITY_CAST_SECONDS` gained
+`Ascend: 10` (mirroring `utility.go`'s `CastTicks: 300`), and the new
+`Utilities.test.ts` pins the two tables to identical key sets - red-first, failing on
+the missing kind 3 - so the next utility cannot reopen the latent
+TypeError (`utilityTooltip` indexes the cast table guarded only by the names table).
+Both tables are now exported for the test. ⚑ **Ledger finding:** if an Ascend tooltip
+ever renders (today no button does), the hardcoded "(interrupted by damage or
+movement)" suffix is wrong for it - Ascend deliberately authors **no** damage
+interrupt (ascension P7: walking away is the only out). Recorded as a comment on the
+entry; not fixed, since the surface is unreachable.
+
+⚑ **Infra rider:** `Utilities.test.ts` is the first vitest whose module graph reaches
+the generated FlatBuffers bindings, which live in `../api/schema/js/` - outside
+`frontend/`, from where node resolution cannot find the `flatbuffers` package.
+`vitest.config.ts` now carries the same `flatbuffers` alias `webpack.common.js` has
+always carried for exactly this reason. Any future test importing AuraApi rides it
+for free.
+
+**3 - BASE_MOVEMENT_SPEED, and the flight-camera determination the plan deferred to
+this session: the value gets FIXED** (`meter2px(0.055)` → `meter2px(0.05)`), it was
+a stale copy, not deliberate headroom. The evidence, recorded per the plan:
+
+- **Flight cannot regress:** `Camera.update()` hard-follows while airborne
+  (`Camera.ts:85-99` snaps the Vehicle's position and zeroes its velocity), so the
+  `setMaxSpeed(movementSpeed × 2)` ceiling never engages in flight at all - the
+  plan-flight-paths C3 comment says exactly why.
+- **Walking has ~4× headroom:** on-screen walk is ~180 px/s (0.05 m/tick × 30 × 120)
+  against a ~720 px/s ceiling at the new value; the clamp never engages there either.
+  The only real effect is `setMaxSpeed`'s proportional scaling of `maxforce` and
+  `distanceBeforeStopping` (~9% tighter arrival easing) - imperceptible range, PO
+  walk check owed.
+- **Consumer inventory:** the constant's sole consumer is `Character.ts:81` →
+  `Camera.setMaxSpeed(× 2)`. Nothing else reads `movementSpeed` off a character
+  (`Spectator` derives its own).
+- **Provenance of the 0.055:** it is the MOB default
+  (`model/mob/mob.go:110`, deliberately NOT the player's 0.05 - entity-model L1)
+  sitting under a false "SYNCED WITH BACKEND" comment, the banned tier-4 class. The
+  replacement comment names the real source (conf `game.player.walkingSpeedPerTick`),
+  why it can be neither derived nor read (the server does not serve its conf), and
+  leaves the pin-vs-comment tier decision to C4 as planned.
+
+- **Schema impact: NONE.** No wire, no conf, no DB; backend untouched.
+- **Verified:** vitest **291/291** (was 287: +3 tick-length guards, +1 twin-table
+  pin), red-first proven at both new surfaces · typecheck clean · prod build compiles
+  (the 3 standing bundle-size warnings only) · boot 0 WARN / 0 ERROR (95 skills / 68
+  mobs / 13 quests) · **`round4-tooltip.mjs` PASS at the live surface** - the served
+  tooltip reads "× 6 over 12s, refreshed every 2s" where it read 11.88s/1.98s ·
+  `ctxloss-warning.mjs clean` **PASS** (0 warnings, 0 console errors) · harness
+  residue cleaned (`harnessdb -cleanup`, aurad stopped first). ✅ **The owed PO
+  in-game pass ran 2026-08-14**: cooldown tooltip durations read round, walk + fly
+  with the camera watched, no defects (the fly leg was confirmatory - the hard-follow
+  makes a flight regression impossible; the walk check covered the easing scale).
+
 ## Open questions
 
 None blocking. Two in-chunk determinations were deliberately left to their execution
-sessions rather than decided here: C2's flight-camera outcome (fix value vs document
-deliberate headroom) and C3's dt-consumer inventory (which decides whether the fix is
-two lines or a mini-retune). Both are findings-first, with the PO looped in if the
-guardrails move.
+sessions rather than decided here: ~~C2's flight-camera outcome (fix value vs document
+deliberate headroom)~~ **resolved in C2, 2026-08-13: fix the value** (the camera
+hard-follows in flight, the walking ceiling has ~4× headroom, and 0.055 was provably
+the mob default under a false comment - see the C2 ledger) and C3's dt-consumer
+inventory (which decides whether the fix is two lines or a mini-retune), still open,
+findings-first with the PO looped in if the guardrails move.

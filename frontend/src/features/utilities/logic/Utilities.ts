@@ -17,8 +17,9 @@ import * as AlertBanner from '../../user-interface/alert-banner/logic/AlertBanne
 
 // Display names for the pinned UtilityKind wire enum. Utilities are not
 // catalog skills, so the cast bar cannot resolve them through
-// skillDisplayName — this is its label source.
-const UTILITY_NAMES: { [kind: number]: string } = {
+// skillDisplayName — this is its label source. Exported for the twin-table
+// test only (Utilities.test.ts).
+export const UTILITY_NAMES: { [kind: number]: string } = {
     [AuraApi.UtilityKind.Recall]: 'Recall',
     [AuraApi.UtilityKind.Camp]: 'Camp',
     // The ascension ceremony's channel (plan-ascension.md C2a step 5). ⚑ There
@@ -35,11 +36,20 @@ export function utilityDisplayName(kind: number): string {
 // Cast lengths, in seconds. ⚑ A MIRROR of skills/utility.go's UtilityDef
 // literals — utilities are deliberately not catalog content (D1), so unlike a
 // skill there is no /skills entry to read these from and no wire field
-// carrying them. Two numbers, both [PLACEHOLDER], kept beside the names so a
-// retune touches one place on this side.
-const UTILITY_CAST_SECONDS: { [kind: number]: number } = {
+// carrying them. All [PLACEHOLDER], kept beside the names so a retune touches
+// one place on this side. Every UTILITY_NAMES kind must have an entry:
+// utilityTooltip indexes this table guarded only by the names table, so a gap
+// is a TypeError; Utilities.test.ts pins the key sets together.
+export const UTILITY_CAST_SECONDS: { [kind: number]: number } = {
     [AuraApi.UtilityKind.Recall]: 10,
     [AuraApi.UtilityKind.Camp]: 5,
+    // Mirrors UtilityAscend's CastTicks 300 (utility.go). No button renders
+    // this tooltip today; the entry closes the names/cast shape gap. ⚑ If an
+    // Ascend tooltip ever does render, the hardcoded "(interrupted by damage
+    // or movement)" suffix in utilityTooltip is wrong for it: Ascend
+    // deliberately authors no CastInterruptedByDamage (ascension P7, walking
+    // away is the only out; the site is safe ground).
+    [AuraApi.UtilityKind.Ascend]: 10,
 };
 
 // The live charge count and character level, pushed in by updateCampCharges

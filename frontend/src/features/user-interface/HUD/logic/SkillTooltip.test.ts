@@ -61,7 +61,7 @@ const rejuvenation = skill({
 describe('character power scale', () => {
     it('leaves every line at the authored value on a level-1 character', () => {
         expect(lines(rejuvenation, 1, 1)).toEqual([
-            'Heal over time: 4 → 6 × 6 over 11.88s, refreshed every 1.98s',
+            'Heal over time: 4 → 6 × 6 over 12s, refreshed every 2s',
             'Radius: 2.5 → 2.7',
             'Targets: all allies in range',
         ]);
@@ -70,7 +70,7 @@ describe('character power scale', () => {
     it('renders what a level-30 character actually heals for', () => {
         // 4 × 1.12²⁹ ≈ 107 — the reported bug read "4" here.
         expect(lines(rejuvenation, 1, SCALE_AT_30)).toEqual([
-            'Heal over time: 107 → 160 × 6 over 11.88s, refreshed every 1.98s',
+            'Heal over time: 107 → 160 × 6 over 12s, refreshed every 2s',
             'Radius: 2.5 → 2.7',
             'Targets: all allies in range',
         ]);
@@ -94,8 +94,8 @@ describe('character power scale', () => {
         // trigger at the skill level rather than closing each effect's block.)
         expect(lines(all, 1, 1)).toEqual([
             'Damage: 10',
-            'Damage over time: 12 × 3 hits over 2.97s',
-            'Shield: 6 Focus for 2.97s',
+            'Damage over time: 12 × 3 hits over 3s',
+            'Shield: 6 Focus for 3s',
             'Heal: 4 per tick',
             'Heal self: 8 Focus',
             'Targets: all allies in range',
@@ -103,8 +103,8 @@ describe('character power scale', () => {
         ]);
         expect(lines(all, 1, SCALE_AT_30)).toEqual([
             'Damage: 267',
-            'Damage over time: 321 × 3 hits over 2.97s',
-            'Shield: 169 Focus for 2.97s',
+            'Damage over time: 321 × 3 hits over 3s',
+            'Shield: 169 Focus for 3s',
             'Heal: 107 per tick',
             'Heal self: 225 Focus',
             'Targets: all allies in range',
@@ -131,8 +131,8 @@ describe('character power scale', () => {
 
         expect(lines(all, 1, 1, 0, 1, 1.2)).toEqual([
             'Damage: 12',
-            'Damage over time: 14 × 3 hits over 2.97s',
-            'Shield: 6 Focus for 2.97s',
+            'Damage over time: 14 × 3 hits over 3s',
+            'Shield: 6 Focus for 3s',
             'Heal: 4 per tick',
             'Heal self: 8 Focus',
             'Targets: all allies in range',
@@ -230,7 +230,7 @@ describe('character power scale', () => {
         });
 
         const at1 = lines(recover, 1, 1);
-        expect(at1).toContain('Heal over time: 3% of max Focus × 9 over 17.82s');
+        expect(at1).toContain('Heal over time: 3% of max Focus × 9 over 18s');
         expect(lines(recover, 1, SCALE_AT_30)).toEqual(at1);
     });
 
@@ -312,20 +312,20 @@ describe('calm', () => {
         const out = lines(calm, 1, 1);
         // 300 ticks at 33 ms = 9.9 s, with the next-level preview the other
         // progression lines already use.
-        expect(out).toContain('Calms enemies in range for 9.9s → 11.88s');
+        expect(out).toContain('Calms enemies in range for 10s → 12s');
         expect(out).toContain('Any damage breaks it — including your own aura');
         expect(out.join('\n')).not.toContain('(calm)');
     });
 
     it('scales the duration with skill level', () => {
         // At max level there is no next-level preview: 300 + 2 × 60 = 420.
-        expect(lines(calm, 3, 1)).toContain('Calms enemies in range for 13.86s');
+        expect(lines(calm, 3, 1)).toContain('Calms enemies in range for 14s');
     });
 
     it('does not scale the duration with character power', () => {
         // casterPowerScale touches HP values only. A duration that moved with
         // it would be the over-application the round-4 fix warns about.
-        expect(lines(calm, 1, SCALE_AT_30)).toContain('Calms enemies in range for 9.9s → 11.88s');
+        expect(lines(calm, 1, SCALE_AT_30)).toContain('Calms enemies in range for 10s → 12s');
     });
 });
 
@@ -344,18 +344,18 @@ describe('charm', () => {
     it('says what it does and for how long', () => {
         const out = lines(charm, 1, 1);
         // 1800 ticks at 33 ms = 59.4 s, with the next-level preview.
-        expect(out).toContain('Charms the nearest enemy to fight for you for 59.4s → 69.3s');
+        expect(out).toContain('Charms the nearest enemy to fight for you for 60s → 70s');
         expect(out).toContain('It keeps its own level, and turns on you when the charm ends');
         expect(out.join('\n')).not.toContain('(charm)');
     });
 
     it('scales the duration with skill level', () => {
         // At max level there is no next-level preview: 1800 + 2 × 300 = 2400.
-        expect(lines(charm, 3, 1)).toContain('Charms the nearest enemy to fight for you for 79.2s');
+        expect(lines(charm, 3, 1)).toContain('Charms the nearest enemy to fight for you for 80s');
     });
 
     it('does not scale the duration with character power', () => {
-        expect(lines(charm, 1, SCALE_AT_30)).toContain('Charms the nearest enemy to fight for you for 59.4s → 69.3s');
+        expect(lines(charm, 1, SCALE_AT_30)).toContain('Charms the nearest enemy to fight for you for 60s → 70s');
     });
 });
 
@@ -373,19 +373,19 @@ describe('speed burst', () => {
     it('names the pace and the window, both with a next-level preview', () => {
         // 150 ticks at 33 ms = 4.95 s; the next level is 180 → 5.94 s.
         const out = lines(swift, 1, 1);
-        expect(out).toContain('Move 1.5× → 1.6× as fast for 4.95s → 5.94s');
+        expect(out).toContain('Move 1.5× → 1.6× as fast for 5s → 6s');
         expect(out.join('\n')).not.toContain('(speed_burst)');
     });
 
     it('drops the preview at max level', () => {
         // 1.5 + 2 × 0.1 = 1.7; 150 + 2 × 30 = 210 ticks = 6.93 s.
-        expect(lines(swift, 3, 1)).toContain('Move 1.7× as fast for 6.93s');
+        expect(lines(swift, 3, 1)).toContain('Move 1.7× as fast for 7s');
     });
 
     it('does not scale with character power', () => {
         // Movement speed is not a damage number — the power curve must not
         // touch it, or the tooltip would promise a sprint that grows on level-up.
-        expect(lines(swift, 1, SCALE_AT_30)).toContain('Move 1.5× → 1.6× as fast for 4.95s → 5.94s');
+        expect(lines(swift, 1, SCALE_AT_30)).toContain('Move 1.5× → 1.6× as fast for 5s → 6s');
     });
 });
 
@@ -404,19 +404,19 @@ describe('lifesteal burst', () => {
         // 180 ticks at 33 ms = 5.94 s. The window does not scale, so it shows
         // one figure while the leech shows two.
         const out = lines(bloodthirst, 1, 1);
-        expect(out).toContain('Heals you for 30% → 35% of the damage you deal, for 5.94s');
+        expect(out).toContain('Heals you for 30% → 35% of the damage you deal, for 6s');
         expect(out).toContain('Works with whichever aura you have on');
         expect(out.join('\n')).not.toContain('(lifesteal_burst)');
     });
 
     it('drops the preview at max level', () => {
-        expect(lines(bloodthirst, 5, 1)).toContain('Heals you for 50% of the damage you deal, for 5.94s');
+        expect(lines(bloodthirst, 5, 1)).toContain('Heals you for 50% of the damage you deal, for 6s');
     });
 
     it('does not scale with character power', () => {
         // A share of damage dealt is already relative to the damage — applying
         // the power curve to it would promise a leech that grows twice.
-        expect(lines(bloodthirst, 1, SCALE_AT_30)).toContain('Heals you for 30% → 35% of the damage you deal, for 5.94s');
+        expect(lines(bloodthirst, 1, SCALE_AT_30)).toContain('Heals you for 30% → 35% of the damage you deal, for 6s');
     });
 });
 
@@ -436,13 +436,13 @@ describe('stun', () => {
     it('says the target cannot act, not merely that it cannot move', () => {
         // 90 ticks at 33 ms = 2.97 s; 96 at rank 2.
         const out = lines(paralyze, 1, 1);
-        expect(out).toContain('Holds one enemy for 2.97s → 3.17s — it cannot move, attack or use abilities');
+        expect(out).toContain('Holds one enemy for 3s → 3.2s — it cannot move, attack or use abilities');
         expect(out).toContain('Damage does not break it');
         expect(out.join('\n')).not.toContain('(stun)');
     });
 
     it('drops the preview at max level', () => {
-        expect(lines(paralyze, 5, 1)).toContain('Holds one enemy for 3.76s — it cannot move, attack or use abilities');
+        expect(lines(paralyze, 5, 1)).toContain('Holds one enemy for 3.8s — it cannot move, attack or use abilities');
     });
 });
 
@@ -463,19 +463,19 @@ describe('retaliate slow', () => {
         // 150 ticks at 33 ms = 4.95 s. The window is authored flat, so it shows
         // one figure while the fraction previews the next rank.
         const out = lines(frostShield, 1, 1);
-        expect(out).toContain('Slows anything that damages you by 10% → 15% for 4.95s');
+        expect(out).toContain('Slows anything that damages you by 10% → 15% for 5s');
         expect(out).toContain('Being hit is enough — it fires even when the hit is fully absorbed');
         expect(out.join('\n')).not.toContain('(retaliate_slow)');
     });
 
     it('drops the preview at max level', () => {
-        expect(lines(frostShield, 5, 1)).toContain('Slows anything that damages you by 30% for 4.95s');
+        expect(lines(frostShield, 5, 1)).toContain('Slows anything that damages you by 30% for 5s');
     });
 
     it('does not scale with character power', () => {
         // A slow fraction is not an amount — the power curve has nothing to
         // multiply here, and applying it would promise a slow that grows twice.
-        expect(lines(frostShield, 1, SCALE_AT_30)).toContain('Slows anything that damages you by 10% → 15% for 4.95s');
+        expect(lines(frostShield, 1, SCALE_AT_30)).toContain('Slows anything that damages you by 10% → 15% for 5s');
     });
 });
 
@@ -509,13 +509,13 @@ describe('spawn mob name', () => {
 
     it('falls back to the raw authored name while the catalog is unavailable', async () => {
         await loadCatalog([]); // pin the empty state; import-time fetch is stubbed to reject
-        expect(lines(summon, 1, 1)).toContain('Summons SoldierCompanion for 9.9s');
+        expect(lines(summon, 1, 1)).toContain('Summons SoldierCompanion for 10s');
     });
 
     it('renders the served displayName once the catalog is loaded', async () => {
         await loadCatalog([{id: 5, name: 'SoldierCompanion', displayName: 'Soldier Companion', curveLevel: 1, tier: 0, combatTarget: false, conversant: false}]);
         try {
-            expect(lines(summon, 1, 1)).toContain('Summons Soldier Companion for 9.9s');
+            expect(lines(summon, 1, 1)).toContain('Summons Soldier Companion for 10s');
         } finally {
             await loadCatalog([]); // other tests expect the degraded state
         }
@@ -634,7 +634,7 @@ describe('resource cost in absolute Focus', () => {
     // The R1/R2 discrepancy this pair exists to keep closed. R2 changed WHEN
     // five of the seven chargeable types are charged; R1's wording predated it
     // and kept printing the effect's tick cadence, so a shield billed per refill
-    // advertised itself as "every 1.32s". Damage and heal still pay on every
+    // advertised itself as "every 1.33s". Damage and heal still pay on every
     // application and must keep the cadence — that half is what makes this a
     // fix rather than a blanket rewording.
     //
@@ -659,7 +659,7 @@ describe('resource cost in absolute Focus', () => {
         // 0.0184 × 2600 = 47.84 → 48, 0.0106 × 2600 = 27.56 → 28; one line, 76.
         const costs = lines(warbanner, 1, 1, 2600).filter(l => l.startsWith('Costs you'));
         expect(costs).toEqual([
-            'Costs you: 76 Focus every 1.32s',
+            'Costs you: 76 Focus every 1.33s',
             'Costs you: 13 Focus when a shield goes up or is refilled',
         ]);
     });
@@ -674,7 +674,7 @@ describe('resource cost in absolute Focus', () => {
                 costFractionOfMax: 0.0049,
                 shield: {hp: 8, hpPerLevel: 0, durationTicks: 0, targetsSelf: true}})],
         });
-        expect(lines(shieldOnly, 1, 1, 2600)).toContain('Shield: 8 Focus, refreshed every 1.32s');
+        expect(lines(shieldOnly, 1, 1, 2600)).toContain('Shield: 8 Focus, refreshed every 1.33s');
     });
 
     it('falls back to the authored percentage when the pool is unknown', () => {
@@ -716,7 +716,7 @@ describe('resource cost in absolute Focus', () => {
 });
 
 // N2 (plan-feel-pass-2.md §5, D5): one cadence line, cost lines grouped by
-// charge trigger. Warbanner printed "every 1.32s" five times and four separate
+// charge trigger. Warbanner printed "every 1.33s" five times and four separate
 // Focus costs; a tooltip should say the beat once and price each trigger once.
 describe('N2: grouped costs and the shared cadence', () => {
     // Warbanner as authored post-R3 (api/skills/warbanner.json): four effects
@@ -746,18 +746,18 @@ describe('N2: grouped costs and the shared cadence', () => {
     // INVERSE of the cooldown path, which deducts once and rounds once; the
     // two must not be unified.
     it('sums the rounded per-effect amounts, never the rounded sum', () => {
-        expect(lines(warbanner, 1, 1, 100)).toContain('Costs you: 3 Focus every 1.32s');
+        expect(lines(warbanner, 1, 1, 100)).toContain('Costs you: 3 Focus every 1.33s');
     });
 
     it('collapses a shared beat to one cadence line', () => {
         const rendered = lines(warbanner, 1, 1, 100);
         // The beat prints once at the bottom...
-        expect(rendered).toContain('Ticks every 1.32s');
+        expect(rendered).toContain('Ticks every 1.33s');
         // ...and comes OFF the effect lines: the only other line allowed to
         // carry it is the beat-charged cost line, where it is the charge
         // trigger tied to the amount.
-        const carrying = rendered.filter(l => l.includes('every 1.32s'));
-        expect(carrying).toEqual(['Ticks every 1.32s', 'Costs you: 3 Focus every 1.32s']);
+        const carrying = rendered.filter(l => l.includes('every 1.33s'));
+        expect(carrying).toEqual(['Ticks every 1.33s', 'Costs you: 3 Focus every 1.33s']);
         expect(rendered).toContain('Slow: 10% → 11.33%');
         expect(rendered).toContain('Shield: 8 Focus');
     });
@@ -772,7 +772,7 @@ describe('N2: grouped costs and the shared cadence', () => {
             ],
         });
         const rendered = lines(mixed, 1, 1);
-        expect(rendered).toContain('Damage: 10 every 1.32s');
+        expect(rendered).toContain('Damage: 10 every 1.33s');
         expect(rendered.some(l => l.startsWith('Ticks every'))).toBe(false);
     });
 
@@ -790,11 +790,11 @@ describe('N2: grouped costs and the shared cadence', () => {
                     heal: {hp: 4.3333, hpPerLevel: 0, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0}}),
             ],
         });
-        expect(lines(scaling, 1, 1, 2600)).toContain('Costs you: 57 → 64 Focus every 1.32s');
+        expect(lines(scaling, 1, 1, 2600)).toContain('Costs you: 57 → 64 Focus every 1.33s');
     });
 
     it('sums the percentage fallback when the pool is unknown', () => {
-        expect(lines(warbanner, 1, 1, 0)).toContain('Costs you: 2.19% of max Focus every 1.32s');
+        expect(lines(warbanner, 1, 1, 0)).toContain('Costs you: 2.19% of max Focus every 1.33s');
     });
 });
 
@@ -863,23 +863,23 @@ describe('next-level preview gating', () => {
 
     it('previews every scaling line while a point can be spent', () => {
         expect(gated(true)).toEqual([
-            'Damage: 8 → 10 every 0.59s → 0.53s',
+            'Damage: 8 → 10 every 0.6s → 0.53s',
             'Radius: 3.5 → 4',
             'Targets: nearest 2 → 3 enemies',
-            'Costs you: 3 → 4 Focus every 0.59s → 0.53s',
-            'Cooldown: 8.91s → 7.92s',
-            'Cast time: 1.78s → 1.58s',
+            'Costs you: 3 → 4 Focus every 0.6s → 0.53s',
+            'Cooldown: 9s → 8s',
+            'Cast time: 1.8s → 1.6s',
         ]);
     });
 
     it('shows the current values alone when no point can be spent', () => {
         expect(gated(false)).toEqual([
-            'Damage: 8 every 0.59s',
+            'Damage: 8 every 0.6s',
             'Radius: 3.5',
             'Targets: nearest 2 enemies',
-            'Costs you: 3 Focus every 0.59s',
-            'Cooldown: 8.91s',
-            'Cast time: 1.78s',
+            'Costs you: 3 Focus every 0.6s',
+            'Cooldown: 9s',
+            'Cast time: 1.8s',
         ]);
     });
 
@@ -909,7 +909,7 @@ describe('next-level preview gating', () => {
     });
 });
 
-// Round-7 item 3 (third raise): "Summons Totem for 9.9s" said WHO comes and
+// Round-7 item 3 (third raise): "Summons Totem for 10s" said WHO comes and
 // never WHAT it does. The spawn payload now carries the summon's loadout as
 // catalog references (skills.SpawnParams.SummonLoadout, attached at boot when
 // the mob registry resolves), and the tooltip renders each loadout skill's
@@ -949,7 +949,7 @@ describe('summon loadout', () => {
         // The spawn site raises the loadout to the summon skill's level
         // (RaiseLoadoutLevels): authored 1, skill 3 → the aura renders at 3.
         expect(tooltipLines(summon, 3, 1, 1)).toEqual(expect.arrayContaining([
-            '↳ Damage: 8 every 0.99s',
+            '↳ Damage: 8 every 1s',
             '↳ Radius: 3',
             '↳ Targets: nearest 1 enemies',
         ]));
@@ -963,7 +963,7 @@ describe('summon loadout', () => {
         for (const line of rendered.filter(l => l.startsWith('↳'))) {
             expect(line).not.toContain('→');
         }
-        expect(rendered).toContain('Summons Totem for 11.88s → 12.87s');
+        expect(rendered).toContain('Summons Totem for 12s → 13s');
     });
 
     it('composes f(character level) and the summon power into the numbers', () => {
@@ -971,14 +971,14 @@ describe('summon loadout', () => {
         // f(owner level) × (1 + powerPerOwnerLevel × (L − 1)).
         const expected = roundHP(4 * SCALE_AT_30 * (1 + 0.05 * 29));
         expect(tooltipLines(summon, 1, SCALE_AT_30, 30))
-            .toContain(`↳ Damage: ${expected} every 0.99s`);
+            .toContain(`↳ Damage: ${expected} every 1s`);
     });
 
     it('degrades to the bare Summons line when the loadout skill is not in the catalog', () => {
         const unresolved = formatSkillTooltip(summon, 1, 1, 0, 1, true, 1, 1, () => undefined)
             .lines.map(l => l.text);
         expect(unresolved.filter(l => l.startsWith('↳'))).toEqual([]);
-        expect(unresolved).toContain('Summons Totem for 9.9s → 10.89s');
+        expect(unresolved).toContain('Summons Totem for 10s → 11s');
     });
 });
 
@@ -1000,7 +1000,7 @@ describe('identical spawn dedupe', () => {
         });
         const rendered = lines(squad, 1, 1);
         expect(rendered.filter(l => l.startsWith('Summons'))).toEqual([
-            'Summons 3× SoldierCompanion for 9.9s',
+            'Summons 3× SoldierCompanion for 10s',
         ]);
         expect(rendered.filter(l => l.startsWith('Costs you'))).toEqual([
             'Costs you: 6% → 6.9% of max Focus per cast',
@@ -1016,8 +1016,41 @@ describe('identical spawn dedupe', () => {
             ],
         });
         expect(lines(mixed, 1, 1).filter(l => l.startsWith('Summons'))).toEqual([
-            'Summons Totem for 9.9s',
-            'Summons FireTotem for 9.9s',
+            'Summons Totem for 10s',
+            'Summons FireTotem for 10s',
         ]);
+    });
+});
+
+// The tick length (plan-code-health.md C2 item 1). The server ticks every
+// 1000/30 = 33.333 ms; the tooltip's private TICK_MS = 33 made every duration
+// read ~1% short (300 authored ticks rendered "10s" for a cast the server
+// runs for 10 s). Values below are hand-computed from the true tick length,
+// NOT copied from the code's output; that is the red-first guard. Authored
+// tick counts are multiples of 30, so most durations come out round; 40 shows
+// the non-round case still lands on the exact 2-decimal value.
+describe('tick length', () => {
+    it('renders a 300-tick cooldown as the 10s the server runs it for', () => {
+        const one = skill({
+            category: 'cooldown', maxLevel: 1, cooldownTicks: 300,
+            effects: [effect({type: 'self_heal', selfHeal: {healHp: 1, healHpPerLevel: 0, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0}})],
+        });
+        expect(lines(one, 1, 1)).toContain('Cooldown: 10s');
+    });
+
+    it('renders a 90-tick shield duration as 3s', () => {
+        const shielded = skill({
+            maxLevel: 1,
+            effects: [effect({type: 'instant_shield', shield: {hp: 6, hpPerLevel: 0, durationTicks: 90, targetsSelf: false}})],
+        });
+        expect(lines(shielded, 1, 1)).toContain('Shield: 6 Focus for 3s');
+    });
+
+    it('renders a non-multiple-of-30 count exactly: 40 ticks = 1.33s', () => {
+        const quick = skill({
+            category: 'cooldown', maxLevel: 1, cooldownTicks: 40,
+            effects: [effect({type: 'self_heal', selfHeal: {healHp: 1, healHpPerLevel: 0, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0}})],
+        });
+        expect(lines(quick, 1, 1)).toContain('Cooldown: 1.33s');
     });
 });

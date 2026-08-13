@@ -28,8 +28,12 @@ import {
 } from '../../../../client-data/Skills';
 import {getLocalPlayerLevel, mobDisplayName} from '../../../../client-data/Mobs';
 import {AURA_CATEGORY_COLORS} from '../../../game-objects/logic/AuraRings';
+import {BasicConfig} from '../../../../client-data/BasicConfig';
 
-const TICK_MS = 33;
+// One server tick in ms, derived from the pinned tick rate (1000/30 = 33.333;
+// shared-constants.json ticksPerSecond). The private `33` this replaces made
+// every duration in the tooltip read ~1% short (plan-code-health.md C2).
+const TICK_MS = BasicConfig.SERVER_TICKRATE;
 
 // --- pure formatting (unit-testable, no DOM) ---
 

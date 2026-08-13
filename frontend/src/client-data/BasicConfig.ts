@@ -31,11 +31,18 @@ export const BasicConfig = {
     },
 
     /**
-     * Movement speed of characters in the game. Is use for camera tracking.
-     *
-     * SYNCED WITH BACKEND
+     * The player's walking speed in px per server tick - a restatement of
+     * conf `game.player.walkingSpeedPerTick` (0.05; the server does not serve
+     * its conf, so this cannot be derived or read). The old value here, 0.055
+     * under a "SYNCED WITH BACKEND" comment, was the MOB default
+     * (model/mob/mob.go, deliberately NOT the player's value - entity-model
+     * L1). Sole consumer: the camera's follow-speed ceiling
+     * (Character.ts → Camera.setMaxSpeed × 2), which sits ~4× above actual
+     * on-screen walk speed, so drift here costs camera feel, not correctness.
+     * Flight is unaffected - the camera hard-follows while airborne
+     * (Camera.ts). Tier decision (pin vs comment): plan-code-health.md C4.
      */
-    BASE_MOVEMENT_SPEED: <number> meter2px(0.055),
+    BASE_MOVEMENT_SPEED: <number> meter2px(0.05),
 
     /**
      * Area of interest as management by the backend.
