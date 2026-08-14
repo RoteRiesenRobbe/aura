@@ -170,17 +170,11 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	g.AddSystem(enc)
 	g.encounters = enc
 
-	preu := sys.NewPreUpdateSystem()
-	g.AddSystem(preu)
-
 	pl := sys.NewUpdateSystem()
 	g.AddSystem(pl)
 
 	sk := sys.NewSkillSystem(p.Space(), g)
 	g.AddSystem(sk)
-
-	postu := sys.NewPostUpdateSystem()
-	g.AddSystem(postu)
 
 	se := statuseffects.NewStatusEffectsSystem()
 	g.AddSystem(se)

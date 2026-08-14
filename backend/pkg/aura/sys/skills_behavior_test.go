@@ -2416,7 +2416,7 @@ func TestTickDots_ExpiredBurstStopsLeeching(t *testing.T) {
 	v.buffs.ApplyDot(5, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: model.PlayerEntity(caster)}, 4)
 
 	v.buffs.Tick()
-	caster.buffs.Tick() // the caster's own per-tick aging, as PreUpdate runs it
+	caster.buffs.Tick() // the caster's own per-tick aging, as ResetTickNumbers runs it
 	sk.tickBuffEvents(v)
 	v.buffs.Tick()
 	caster.buffs.Tick() // burst expires here; the burn does not

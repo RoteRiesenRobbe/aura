@@ -51,6 +51,23 @@ func parseInts(s string) ([]int, error) {
 	return out, nil
 }
 
+// visitedXPFlags returns the names of every xp-* flag the user typed
+// explicitly, via flag.Visit (which sees SET flags, defaults included when
+// typed out). It exists so -serve can refuse them: the explorer page owns its
+// numbers, and the seven kill-taper knobs are not even inputs there — an
+// ignored -xp-kill-gray-base is a calibration session exploring the wrong
+// economy with confidence (research-code-quality.md §11.5 B3, fixed in
+// plan-code-health.md C7).
+func visitedXPFlags(visit func(func(*flag.Flag))) []string {
+	var names []string
+	visit(func(f *flag.Flag) {
+		if strings.HasPrefix(f.Name, "xp-") {
+			names = append(names, f.Name)
+		}
+	})
+	return names
+}
+
 func main() {
 	// Every seeded run builds a fresh world, and the game systems announce
 	// themselves via the std logger on construction — hundreds of "nominal"
@@ -171,6 +188,22 @@ func main() {
 	}
 
 	if *serveAddr != "" {
+		// ⚑ REFUSED, NOT IGNORED (C7 B3, PO 2026-08-14): the page owns its
+		// numbers, so a typed XP flag would silently do nothing here — and the
+		// kill-taper knobs have no page input at all, so a session "exploring
+		// the taper" would in truth be exploring the live defaults. The other
+		// combatant flags stay silently page-owned as documented above; the XP
+		// set is singled out because it has no explorer surface to correct the
+		// misreading. A future xp pass that wants these knobs in the explorer
+		// builds the page inputs then (the rejected seeding alternative).
+		if set := visitedXPFlags(flag.Visit); len(set) > 0 {
+			fmt.Fprintf(os.Stderr,
+				"-serve ignores the XP flags; refusing to pretend otherwise: -%s\n"+
+					"The explorer page has no inputs for the kill-taper knobs — use the "+
+					"-levels/-placements CLI batteries, which honor them.\n",
+				strings.Join(set, ", -"))
+			os.Exit(2)
+		}
 		// The explorer re-derives its mob roster per requested level, so the
 		// dropdown can ask "what is this species like where it is PLACED".
 		roster := func(level int) ([]mobPreset, error) {

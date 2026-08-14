@@ -198,8 +198,20 @@ func (s *Server) handleCreateCharacter(w http.ResponseWriter, r *http.Request) {
 	//
 	// ⚑ Only on the minting branch. An existing caller already holds a session;
 	// re-issuing one would reset their expiry on an unrelated write.
-	if rawSecret != "" && !s.issueSession(w, r, created.AccountID, store.AuditAnonymousSession) {
-		return
+	//
+	// ⛑ THE 201 OUTRANKS THE SESSION (plan-code-health.md C7 B2). The
+	// transaction above has committed, and rawSecret is the ONLY readable key
+	// to the new account — the server stores its SHA-256 and nothing else. This
+	// used to return on a session failure, which orphaned the account forever:
+	// the player saw a generic error and created a second one. Now the secret
+	// is delivered regardless, and the client self-heals without the cookie —
+	// it stores the secret from this body and silently exchanges it on the next
+	// session_expired/no_identity refusal (AccountsApi.ts's request wrapper).
+	if rawSecret != "" {
+		if err := s.mintSession(w, r, created.AccountID, store.AuditAnonymousSession); err != nil {
+			slog.Warn("created an account but could not issue its session; delivering the secret anyway",
+				slog.Int64("account_id", created.AccountID), slog.Any("err", err))
+		}
 	}
 
 	writeJSON(w, http.StatusCreated, createCharacterResponse{

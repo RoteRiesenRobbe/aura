@@ -3,6 +3,7 @@ package accounts
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -306,32 +307,45 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{"loggedOut": true})
 }
 
-// issueSession mints the token, sets the cookie and records the audit row. It
-// writes NO body, so a handler with a response of its own can call it.
+// mintSession mints the token, sets the cookie and records the audit row. It
+// writes NO body and NO failure response — it reports the failure as an error
+// and touches nothing but the cookie header, so the caller decides what a
+// session failure means for its own response.
 //
-// ⚑ Character creation is that handler (backlog §46): it answers 201 with the
-// new character and the minted secret, and must not have a 200 session envelope
-// written over the top of it. Everything else goes through startSession.
-//
-// It reports whether the session was issued; false means a failure has already
-// been written, so the caller simply returns.
-func (s *Server) issueSession(w http.ResponseWriter, r *http.Request, accountID int64, event string) bool {
+// ⚑ That decision genuinely differs (plan-code-health.md C7 B2): everywhere
+// else a failed session fails the request, but character creation has already
+// COMMITTED the account by the time it gets here, and its response is the only
+// place the raw anonymous secret ever exists — so there it must answer 201
+// with the secret even when the session could not be issued.
+func (s *Server) mintSession(w http.ResponseWriter, r *http.Request, accountID int64, event string) error {
 	// The generation is re-read rather than assumed: it may have been bumped
 	// between this account's last logout and now, and a token stamped with a
 	// stale one would be rejected by the very next request that used it.
 	credentials, err := s.cfg.Store.CredentialsByAccount(r.Context(), accountID)
 	if err != nil {
-		failStore(w, r, err, "reading the token generation")
-		return false
+		return fmt.Errorf("reading the token generation: %w", err)
 	}
 	token, err := s.cfg.Keys.Issue(accountID, credentials.TokenGeneration)
 	if err != nil {
-		fail(w, r, http.StatusInternalServerError, codeInternal, msgGeneric, err)
-		return false
+		return fmt.Errorf("issuing the session token: %w", err)
 	}
 
 	s.setSessionCookie(w, token)
 	s.audit(r.Context(), accountID, event, clientIP(r))
+	return nil
+}
+
+// issueSession is mintSession plus the ordinary failure handling: on error a
+// failure response has already been written, so the caller simply returns. It
+// still writes no body of its own, so a handler with a response of its own can
+// call it (backlog §46).
+func (s *Server) issueSession(w http.ResponseWriter, r *http.Request, accountID int64, event string) bool {
+	if err := s.mintSession(w, r, accountID, event); err != nil {
+		// failStore keeps the old shape: a store outage answers 503, anything
+		// else (including a signing failure) the generic 500.
+		failStore(w, r, err, "issuing a session")
+		return false
+	}
 	return true
 }
 

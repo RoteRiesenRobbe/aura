@@ -97,6 +97,19 @@ func refuseRemoteDatabase(raw string) error {
 	if err != nil {
 		return fmt.Errorf("%s is not a parseable connection string", store.EnvURL)
 	}
+	// ⚑ NO SCHEME MEANS THE HOST WAS NEVER PARSED, not "no host". pgx also
+	// accepts the keyword/value DSN form ("host=prod-db user=…"), which
+	// url.Parse "succeeds" on with an empty Hostname() — exactly the answer the
+	// loopback branch below reads as safe. Refusing the form outright is the
+	// only honest option: this guard cannot see where such a string points
+	// (research-code-quality.md §11.5 B4). Localhost in URL form still passes.
+	if u.Scheme == "" {
+		return fmt.Errorf(
+			"%s has no URL scheme, so its host cannot be verified as loopback.\n"+
+				"Use the URL form (postgres://…@localhost/…) — this tool bulk-deletes "+
+				"accounts by name pattern and refuses any connection string it cannot "+
+				"prove local (plan-accounts-frontend.md §10b ruling 10)", store.EnvURL)
+	}
 	host := u.Hostname()
 	if host == "" || host == "localhost" {
 		return nil

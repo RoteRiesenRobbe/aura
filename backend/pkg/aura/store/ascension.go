@@ -103,9 +103,10 @@ func (s *Store) SlotBloodlines(ctx context.Context, accountID int64) (map[int]Sl
 	// card should say it continues.
 	//
 	// ⚑ The name filter is EXACT-MATCH against the expression the rename writes,
-	// never LIKE 'deleted_%'. Nothing in auth.ValidateCharacterName forbids a
-	// player calling themselves deleted_something, and a prefix test would cut
-	// them out of their own bloodline's card.
+	// never LIKE 'deleted_%'. auth.ValidateCharacterName reserves the deleted_
+	// prefix since plan-code-health.md C7 (2026-08-14), but rows named before
+	// that may still hold the shape on a live database, and a prefix test would
+	// cut such a player out of their own bloodline's card.
 	//
 	// ⚑ The array_agg ORDER BY carries a tie-break on id, so two lives spent in
 	// the same clock tick still resolve to the later one.
@@ -250,10 +251,11 @@ func (s *Store) AscendCharacter(ctx context.Context, accountID, characterID int6
 // privacy landmine rather than a style choice. DiscardAnonymousAccount renames
 // EVERY row of an account to 'deleted_' || id, sacrificed ones included, because
 // names are player-authored free text and erasure wins; so those must not be
-// listed. But nothing in auth.ValidateCharacterName forbids a player calling
-// themselves deleted_something, and a prefix test would cut that real person off
-// their own monument. It is the same filter SlotBloodlines already ships, and
-// the two must stay identical.
+// listed. auth.ValidateCharacterName reserves the deleted_ prefix since
+// plan-code-health.md C7 (2026-08-14), but a row named before that may still
+// hold the shape on a live database, and a prefix test would cut that real
+// person off their own monument. It is the same filter SlotBloodlines already
+// ships, and the two must stay identical.
 //
 // ⚑ CITEXT makes the comparison case-insensitive, which is inherited rather
 // than chosen: `name` is CITEXT so the whole column compares that way. The only

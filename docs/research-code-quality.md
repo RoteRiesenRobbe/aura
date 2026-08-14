@@ -532,7 +532,8 @@ at **~B−**. Grades by backend area: `store` **A** · `accounts` **A−** · `c
 **A** · `sim`/`simharness` **B+** · `cmd/harnessdb` **C+** (zero tests). Four
 new backend defects (§11.2), all in code younger than two weeks, all with the
 house signature: silent, or swallowed, or a guard that no-ops. The single
-highest-leverage fix in the whole pass is **one line of CI YAML** (§11.5 #1).
+highest-leverage fix in the whole pass is **one line of CI YAML** (§11.5 #1 -
+since shipped and REVERSED by the no-CI-by-choice ruling; see the table's row).
 
 ### 11.1 Everything previously open is closed — verified in code, not from banners
 
@@ -730,16 +731,22 @@ otherwise-heisenbug.
 
 ### 11.5 ⭐ Recommended batch — cheap, high leverage, ordered
 
+**Batch closed 2026-08-14 — executed by `plan-code-health.md`** (its D2 absorbed
+the backend half as chunk C7; the frontend items landed via its C1/C4/C5).
+Per-row outcome:
+
 | # | Fix | Effort |
 |---|---|---|
-| **1** | **Add `npm test` to `.github/workflows/build.yaml`.** 235 tests and the *client half* of the cross-language shared-constants pin run nowhere in CI — renumber a client enum today and CI stays green while the Go twin of the same pin gates. Nothing else on this list matters as much. | ~2 lines |
-| **2** | **B1 + B4:** reserve `deleted_` in `ValidateCharacterName` (one condition + test); two-line scheme check in `refuseRemoteDatabase` + the first test file in `cmd/harnessdb`. | ~2 h |
-| **3** | **F1 + F2:** narrow interface for the `EntityManager` dispatch; enum-key the status-effect table (the `gameObjectClasses` template). | ~2 h |
-| **4** | **B2:** return `anonymousSecret` in the body even when `issueSession` fails. | ~1 h |
-| **5** | **B3:** seed `-serve` from the `-xp-kill-*` flags or refuse the combination — **before `xp C2` drives the explorer**. | ~1–2 h |
+| **1** | ~~**Add `npm test` to `.github/workflows/build.yaml`.** 235 tests and the *client half* of the cross-language shared-constants pin run nowhere in CI — renumber a client enum today and CI stays green while the Go twin of the same pin gates. Nothing else on this list matters as much.~~ **Shipped in code-health C1, then REVERSED same day — NO CI BY CHOICE (PO 2026-08-12):** the push revealed Actions has never run on this fork; the local per-chunk verify tail is the project's actual gate. See the C1 ledger. | ~2 lines |
+| **2** | ~~**B1 + B4:** reserve `deleted_` in `ValidateCharacterName` (one condition + test); two-line scheme check in `refuseRemoteDatabase` + the first test file in `cmd/harnessdb`.~~ **✅ code-health C7, 2026-08-14** (B4's guard refuses schemeless DSNs outright; `cmd/harnessdb` has its test file). | ~2 h |
+| **3** | ~~**F1 + F2:** narrow interface for the `EntityManager` dispatch; enum-key the status-effect table (the `gameObjectClasses` template).~~ **✅ F1 in code-health C5** (`WireSetters.ts`, rename proven a compile error both directions) **· F2 in C4** (`BackendConstants.test.ts` pins the join both ways; the orphan `ResourceHit` was real drift, deleted). | ~2 h |
+| **4** | ~~**B2:** return `anonymousSecret` in the body even when `issueSession` fails.~~ **✅ code-health C7, 2026-08-14** (`mintSession` split out; the 201 outranks the session). | ~1 h |
+| **5** | ~~**B3:** seed `-serve` from the `-xp-kill-*` flags or refuse the combination — **before `xp C2` drives the explorer**.~~ **✅ code-health C7, 2026-08-14 — refuses** (PO call; seeding recorded as the rejected alternative at the guard). | ~1–2 h |
 
-Then opportunistic: F3 (pin `ApiErrorCode` into `api/shared-constants.json`),
-delete the `this.` at `SnapshotFactory.ts:44` and the 0-byte file, ESLint
+Then opportunistic: ~~F3 (pin `ApiErrorCode` into `api/shared-constants.json`)~~
+**✅ code-health C4** (16 codes pinned; `'network'` stays client-only) ·
+delete the `this.` at `SnapshotFactory.ts:44` ~~and the 0-byte file~~ (the
+0-byte file went in code-health C1; the `this.` is still open), ESLint
 (still the only §7-era item that has not moved at all), and per-directory
 `noImplicitAny` starting from the already-clean `features/map/` +
 `features/accounts/`.

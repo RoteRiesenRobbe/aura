@@ -633,9 +633,11 @@ func TestSlotBloodlines_OmitsAnErasedPredecessorsName(t *testing.T) {
 }
 
 // ⚑ THE FILTER IS EXACT-MATCH, NOT A PREFIX TEST. The rename writes
-// 'deleted_' || id, and nothing in ValidateCharacterName forbids a player
-// calling themselves deleted_something — a LIKE 'deleted_%' filter would erase
-// them from their own bloodline's card.
+// 'deleted_' || id; ValidateCharacterName reserves the prefix since
+// plan-code-health.md C7 (2026-08-14), but rows named before that are
+// grandfathered on a live database — a LIKE 'deleted_%' filter would erase
+// such a player from their own bloodline's card. The fixture seeds the name
+// through the store directly, which is also how a pre-C7 row exists.
 func TestSlotBloodlines_KeepsAPlayerAuthoredNameThatLooksErased(t *testing.T) {
 	db, ctx := freshSchema(t)
 	accountID := newAccount(t, db, "secret")
@@ -842,8 +844,9 @@ func TestAscendedNames_ListsEveryAccountsNamesNewestFirst(t *testing.T) {
 // sacrificed ones included, because names are player-authored free text and
 // erasure wins. So the memorial must omit them, and it must do so by EXACT
 // MATCH against the expression the rename writes, never LIKE 'deleted_%':
-// nothing in ValidateCharacterName forbids a player calling themselves
-// deleted_something, and a prefix test would cut a real person off the stone.
+// ValidateCharacterName reserves the prefix only since plan-code-health.md C7
+// (2026-08-14), so a pre-C7 row can genuinely carry such a name, and a prefix
+// test would cut that real person off the stone.
 func TestAscendedNames_OmitsErasedNamesButKeepsARealDeletedSomething(t *testing.T) {
 	db, ctx := freshSchema(t)
 	erased := newAccount(t, db, "secret-erased")

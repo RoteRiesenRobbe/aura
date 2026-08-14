@@ -1,6 +1,6 @@
 # Plan: Code Health Pass - deletions, duplication closure, live defects, drift pins
 
-**Status: C1-C6 SHIPPED - C1 2026-08-12 (`ca34800b`) · C2 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`) · C3 2026-08-14 (`6f0c08df`) · C4 2026-08-14 (`b5a88221`) · C5 2026-08-14 (`38e36153`) · C6 2026-08-14 (`a46b30a5`, ledgers below) - C7 open (independent).** Sources: a three-sweep audit of this
+**Status: COMPLETE - all seven chunks shipped, plan archived 2026-08-14.** C1 2026-08-12 (`ca34800b`) · C2 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`) · C3 2026-08-14 (`6f0c08df`) · C4 2026-08-14 (`b5a88221`) · C5 2026-08-14 (`38e36153`) · C6 2026-08-14 (`a46b30a5`) · C7 2026-08-14 ([uncommitted], ledgers below). Sources: a three-sweep audit of this
 date (frontend magic numbers · cross-layer duplicated constants · frontend structural
 debt), `research-code-quality.md` §11.5 (whose recommended batch is absorbed here as C7,
 verified still fully open on 2026-08-12), and the standing gotchas in `CLAUDE.md`.
@@ -852,6 +852,107 @@ uncommitted files by hand-editing back, or stash a copy first.
   ERROR (95 skills / 68 mobs / 13 quests) · harness residue cleaned (13
   accounts, aurad stopped first) · PO glance checklist handed over same day
   (tooltip placement + panel family named as the two mechanism changes).
+
+### C7 - The absorbed backend batch ✅ 2026-08-14, [uncommitted] — THE PLAN'S LAST CHUNK
+
+**All four §11.5 items shipped test-first, plus one PO-approved rider**, every
+line ref re-verified live at `df373ed5` first. Two PO calls this session, via
+choice prompts: **B3 refuses rather than seeds** (after a non-coder walk-through
+of the implications; the xp plan is archived and a future pass that wants the
+taper in the explorer builds the page inputs it needs then — recorded as the
+rejected alternative at the guard), and **the C3 ledger's dead-systems find
+rides as a rider** (C7 being the last chunk, deferring again left it homeless).
+
+**B1 - `deleted_` is reserved.** `auth.DeletedPrefix` refuses the prefix in
+`ValidateCharacterName` **unconditionally - no carve-out**, unlike `hrnss_`:
+the rename that mints these names is SQL inside the store and never passes
+validation, so nothing legitimate ever creates one (neither a harness caller
+nor `-dev` opens it, pinned). Case-insensitive via the shared `hasPrefixFold`;
+reuses `ErrCharacterNameReserved`; `deletedsoul`/`undeleted_1` stay legal. The
+swallow at `accounts/auth.go` (discard failure → warn) **stays** - it is
+documented design, B1 removes the collision, not the swallow. ⚑ **Comment
+rider the plan doc did not list**: both `store/ascension.go` exact-match-filter
+blocks (SlotBloodlines, AscendedNames) and two test comments cited "nothing in
+ValidateCharacterName forbids deleted_something" as their rationale - B1 makes
+that sentence false, so all four now say "reserved since C7; pre-C7 rows are
+grandfathered on a live DB, so the filter stays exact-match". The filters
+themselves are untouched.
+
+**B4 - the guard refuses what it cannot see.** `refuseRemoteDatabase` refuses
+`u.Scheme == ""`: the keyword/value DSN form parses "successfully" into an
+empty `Hostname()`, which the loopback branch read as safe - the exact repro
+(`host=prod-db user=…`) went red in the package's FIRST test file before the
+fix. `postgres:///db` (unix socket: scheme present, empty host) keeps passing.
+⚑ Deliberate side effect, stated in the message: keyword-form `host=localhost`
+is now also refused, pointing at the URL form (every dev config already uses
+URL form - Makefile, `.env.local.example`, the live `.env.local`). The
+never-echo-the-DSN property has its own pin. The session's own
+`harnessdb -cleanup` run exercised the pass path live.
+
+**B3 - `-serve` refuses the XP flags** (PO: refuse over seed). `visitedXPFlags`
+(pure, `flag.Visit`-fed, tested incl. the typed-out-default case) catches
+every explicitly set `-xp-*` flag - **all eleven, not just the seven
+kill-taper knobs**: `-xp-base`/`-xp-growth` ARE page-expressible but were
+still silently dropped. Exit 2 naming the flags, pointing at the
+`-levels`/`-placements` CLI batteries which honor them. Verified live both
+ways: `-serve` + `-xp-kill-gray-base 5` refuses; plain `-serve` boots and
+serves the page.
+
+**B2 - the 201 outranks the session.** The plan's required first step,
+re-derivation, confirmed the shape live at `characters.go:201`: a failed
+`issueSession` after the committed CreateCharacter returned without the body,
+so the raw secret (which exists nowhere else - the server stores its SHA-256)
+was never delivered and the account was orphaned forever. Fix: **`mintSession`
+split out of `issueSession`** - the non-writing half (mint, cookie, audit;
+error out, never a response), with `issueSession` wrapping it for every other
+caller (`failStore` keeps the old 503-outage/500-else mapping). The create
+path now warn-logs a mint failure and delivers the 201 with character AND
+secret; the client self-heals without the cookie (`AccountsApi.ts` stores the
+secret from this body and silently exchanges it on the next
+`session_expired`/`no_identity`, then retries). ⚑ **Red-first by falsification
+through the real endpoint harness, both directions** - no seam exists to
+automate a mint failure (concrete `*store.Store`/`*auth.Keys`, one pool) and a
+test-only hook fails KISS: a forced `mintSession` error under the OLD shape
+made `TestAnonymousFirstCreation` fail at **500, no secret** (the defect); the
+same forced error under the new shape passed the create asserts (**201 +
+secret + the new warn**) and failed only the authed follow-up (401, the state
+the exchange path heals). Restored by hand-edit per the C6 process note;
+automated coverage remains the healthy path.
+
+**Rider - the permanently-empty tick systems are gone** (C3's incidental
+find). Grep-gated re-verify first: `model.PreUpdater`/`PostUpdater` had zero
+implementors, `AddPreUpdater`/`AddPostUpdater` zero callers, no sim or test
+references. Deleted: `sys/preupdate.go`, `sys/postupdate.go`, both interfaces
+from `model/updater.go`, both registrations in `core/game.go`. ⚑ One
+already-false comment found by the sweep: `skills_behavior_test.go`'s "as
+PreUpdate runs it" - the caster's per-tick buff aging is actually run by
+`ResetTickNumbers` (StatusEffectsSystem); the comment now says so.
+
+**Docs:** `research-code-quality.md` §11.5 closed in its own style -
+strikethrough + pointer per row, **reflecting actuals**: item 1 shipped-then-
+REVERSED (no-CI ruling), F1/F2/F3 + the 0-byte file landed via C1/C4/C5, the
+`SnapshotFactory.ts` `this.` + ESLint + `noImplicitAny` remain open.
+
+- **Schema impact: NONE.** B1 is create-time validation, no migration; the
+  `deleted_` rename convention itself is unchanged. No wire, no conf. Frontend
+  untouched.
+- **Verified:** red-first at all five surfaces (B1's four refusal rows red ·
+  B4's keyword/empty rows red · B3 compile-red then the live refusal · B2 by
+  endpoint falsification both directions · the rider's net is
+  `go build ./...`) · `go test -count=1 ./...` **35 packages green, zero
+  failures** (`TestDwell` passed this run; measured anyway: **13/20 pass vs
+  the documented 7-10/20 band**, same coin-flip, no regression) ·
+  `make -C backend db-test` green (store + accounts vs `aura_test`) · `-race`
+  green on store/auth/harnessdb/simharness; ⚑ **accounts is red under `-race`
+  ONLY, at `TestRepeatedFailuresAreThrottled`** - proven pre-existing by
+  stash-rerun at HEAD (identical 1.40 s vs the <1 s timing assert; the race
+  detector's slowdown, green without `-race`), recorded not diagnosed, joins
+  the known-inconclusive list · `go vet` clean · `make -C backend build` ·
+  boot 0 WARN / 0 ERROR (95 skills / 68 mobs / 13 quests) · **harness gate:
+  `chunk2-accounts.mjs` 24/24 PASS, 0 console errors** (owns creation + the
+  anonymous secret, B2's live surface; the first run died at join - the
+  documented first-run-after-restart race - and the re-run was clean) ·
+  harness residue cleaned (1 account, aurad stopped first).
 
 ## Open questions
 

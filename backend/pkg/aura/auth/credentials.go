@@ -26,6 +26,21 @@ const (
 	// characters every run. Matched case-insensitively, like every other name
 	// check in this file.
 	HarnessPrefix = "hrnss_"
+
+	// DeletedPrefix is reserved because the store MINTS names under it:
+	// SoftDeleteCharacter and DiscardAnonymousAccount rename rows to
+	// 'deleted_' || id under the global, forever-held UNIQUE on
+	// characters.name (plan-code-health.md C7 B1). Ids are guessable
+	// BIGSERIAL, so without this rule "deleted_123" is a squattable name —
+	// the soft-delete of character 123 then 500s forever, and the same
+	// collision inside DiscardAnonymousAccount aborts a discard the player
+	// was told succeeded (that path deliberately swallows store errors to a
+	// warn so housekeeping cannot fail a login).
+	//
+	// ⚑ UNLIKE HarnessPrefix, THERE IS NO CARVE-OUT. The rename is SQL inside
+	// the store and never passes through validation, so nothing legitimate
+	// ever needs to create such a name; the harness flag does not open it.
+	DeletedPrefix = "deleted_"
 )
 
 // RuleError is a validation failure whose Message is safe to show a player
@@ -265,6 +280,9 @@ func ValidateCharacterName(name, callerUsername string, allowHarnessNames bool) 
 	if hasHarnessPrefix(name) && !hasHarnessPrefix(callerUsername) && !allowHarnessNames {
 		return ErrCharacterNameReserved
 	}
+	if hasPrefixFold(name, DeletedPrefix) {
+		return ErrCharacterNameReserved
+	}
 	return nil
 }
 
@@ -291,5 +309,11 @@ func isNameSeparatorRune(r rune) bool {
 // here. A case-sensitive check would leave the namespace open to anyone who
 // pressed shift.
 func hasHarnessPrefix(name string) bool {
-	return strings.HasPrefix(strings.ToLower(name), HarnessPrefix)
+	return hasPrefixFold(name, HarnessPrefix)
+}
+
+// hasPrefixFold is the case-insensitive prefix test both reserved namespaces
+// share; names are CITEXT, so a case variant is the same name.
+func hasPrefixFold(name, prefix string) bool {
+	return strings.HasPrefix(strings.ToLower(name), prefix)
 }

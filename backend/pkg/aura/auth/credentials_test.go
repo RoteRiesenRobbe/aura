@@ -159,6 +159,17 @@ func TestValidateCharacterName(t *testing.T) {
 		// rule is conditional rather than a flat rejection.
 		{"the prefix, from a harness account", "hrnss_01_a", "hrnss_01", nil},
 		{"the prefix, harness account cased differently", "hrnss_01_a", "HRNSS_01", nil},
+
+		// The deleted_ namespace (plan-code-health.md C7 B1): soft-delete and
+		// discard rename rows to 'deleted_' || id under the global UNIQUE on
+		// characters.name, so a squatted deleted_<id> makes that rename fail —
+		// a 500 on soft-delete, and a silently-surviving account on discard.
+		{"the deleted prefix", "deleted_123", "barney", auth.ErrCharacterNameReserved},
+		{"the deleted prefix, shouted", "DELETED_123", "barney", auth.ErrCharacterNameReserved},
+		{"the deleted prefix, from anonymous", "deleted_7", "", auth.ErrCharacterNameReserved},
+		// Only the prefix is reserved, not the word.
+		{"deleted without the underscore", "deletedsoul", "barney", nil},
+		{"deleted_ not at the start", "undeleted_1", "barney", nil},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -200,6 +211,18 @@ func TestHarnessNamesAreADevAffordance(t *testing.T) {
 		auth.ValidateCharacterName("hrnss_01__a", anonymous, true),
 		auth.ErrCharacterNameShape,
 		"the dev flag must not waive the shape rule")
+}
+
+// TestDeletedPrefixIsUnconditional pins the difference from the harness rule:
+// deleted_ has NO carve-out. The rename that mints these names is SQL inside
+// the store, which never passes through validation — so nothing legitimate
+// ever needs to CREATE one, and neither a harness username nor the -dev flag
+// may open the namespace.
+func TestDeletedPrefixIsUnconditional(t *testing.T) {
+	assert.ErrorIs(t,
+		auth.ValidateCharacterName("deleted_123", "hrnss_01", true),
+		auth.ErrCharacterNameReserved,
+		"neither a harness caller nor -dev may take a deleted_ name")
 }
 
 // TestRuleErrorsAreSafeToShow pins §5b's constraint on the messages themselves:
