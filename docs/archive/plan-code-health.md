@@ -1,6 +1,6 @@
 # Plan: Code Health Pass - deletions, duplication closure, live defects, drift pins
 
-**Status: COMPLETE - all seven chunks shipped, plan archived 2026-08-14.** C1 2026-08-12 (`ca34800b`) · C2 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`) · C3 2026-08-14 (`6f0c08df`) · C4 2026-08-14 (`b5a88221`) · C5 2026-08-14 (`38e36153`) · C6 2026-08-14 (`a46b30a5`) · C7 2026-08-14 ([uncommitted], ledgers below). Sources: a three-sweep audit of this
+**Status: COMPLETE - all seven chunks shipped, plan archived 2026-08-14.** C1 2026-08-12 (`ca34800b`) · C2 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`) · C3 2026-08-14 (`6f0c08df`) · C4 2026-08-14 (`b5a88221`) · C5 2026-08-14 (`38e36153`) · C6 2026-08-14 (`a46b30a5`) · C7 2026-08-14 (`36d638b0`, ledgers below). Sources: a three-sweep audit of this
 date (frontend magic numbers · cross-layer duplicated constants · frontend structural
 debt), `research-code-quality.md` §11.5 (whose recommended batch is absorbed here as C7,
 verified still fully open on 2026-08-12), and the standing gotchas in `CLAUDE.md`.
@@ -853,7 +853,7 @@ uncommitted files by hand-editing back, or stash a copy first.
   accounts, aurad stopped first) · PO glance checklist handed over same day
   (tooltip placement + panel family named as the two mechanism changes).
 
-### C7 - The absorbed backend batch ✅ 2026-08-14, [uncommitted] — THE PLAN'S LAST CHUNK
+### C7 - The absorbed backend batch ✅ 2026-08-14, `36d638b0` — THE PLAN'S LAST CHUNK
 
 **All four §11.5 items shipped test-first, plus one PO-approved rider**, every
 line ref re-verified live at `df373ed5` first. Two PO calls this session, via
