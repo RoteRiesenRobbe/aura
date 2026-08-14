@@ -1,5 +1,62 @@
 @import "../../assets/variables";
 
+// --- Panel vocabulary mixins (code-health C6) --------------------------------
+// The shared chrome/header treatments that were hand-pasted per panel. Leaf
+// mixins on purpose: each caller keeps its own selector names (the conversation
+// header's members are .conversationActor/.conversationLeave) and its own
+// padding line, the one axis the four headers genuinely differ on.
+
+// Panel body chrome: conversation, journal, help, spellbook and the loadout
+// group (the latter two add min-width caller-side).
+.panel-chrome(@padding: @panel-padding) {
+	background: @panel-bg;
+	border: 1px solid @panel-border;
+	border-radius: @panel-border-radius;
+	padding: @padding;
+	color: @panel-color;
+	font-size: @panel-font-size;
+}
+
+// The header bar (flex row, title left, close control right). Padding stays
+// caller-side: the centred panels use padding-bottom, the full-bleed map the
+// full @panel-padding.
+.panel-header-bar() {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 1rem;
+	border-bottom: 1px solid @panel-row-divider;
+}
+
+// The muted uppercase panel title. ⚑ NOT the spellbook/loadout title family;
+// that four is gold and larger, a different vocabulary (see .auraLoadoutTitle).
+.panel-title() {
+	color: @panel-title-color;
+	font-size: @panel-title-size;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+// The ✕ / Leave control. The centred panels pad it caller-side; the map's is bare.
+.panel-close() {
+	cursor: pointer;
+	color: @panel-title-color;
+
+	&:hover {
+		color: white;
+	}
+}
+
+// The journal/map HUD buttons: panel chrome at button padding.
+.hud-button-chrome() {
+	.panel-chrome(0.5rem 1.5rem);
+	cursor: pointer;
+
+	&:hover {
+		color: white;
+	}
+}
+
 #gameUI {
 	&.hidden {
 		display: block;
@@ -57,7 +114,7 @@
 
 	&.unlock,
 	&.levelup {
-		color: #ffd75e; // gold — a spellbook discovery or a level-up
+		color: @gold-levelup; // gold — a spellbook discovery or a level-up
 	}
 
 	// The unlock banner carries two lines (skill + source), so it reads ~20%
@@ -240,43 +297,25 @@
 	display: flex;
 	flex-direction: column;
 
-	background: @panel-bg;
-	border: 1px solid @panel-border;
-	border-radius: @panel-border-radius;
-	padding: @panel-padding;
-	color: @panel-color;
-	font-size: @panel-font-size;
+	.panel-chrome();
 
 	&.hidden {
 		display: none;
 	}
 
 	> .conversationHeader {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 1rem;
-
+		.panel-header-bar();
 		padding-bottom: 0.5rem;
-		border-bottom: 1px solid @panel-row-divider;
 
 		// The actor's name lives here, which is why NPCs still need no
 		// world-space nameplate (they stay gated off by experience: 0).
 		> .conversationActor {
-			color: @panel-title-color;
-			font-size: @panel-title-size;
-			text-transform: uppercase;
-			letter-spacing: 0.05em;
+			.panel-title();
 		}
 
 		> .conversationLeave {
-			cursor: pointer;
-			color: @panel-title-color;
+			.panel-close();
 			padding: 0 0.5rem;
-
-			&:hover {
-				color: white;
-			}
 		}
 	}
 
@@ -428,7 +467,7 @@
 		width: 100%;
 		scale: 0 1;
 		transform-origin: left center;
-		background-color: #E37313;
+		background-color: @brand;
 	}
 
 	> .barText {
@@ -462,26 +501,11 @@
 	filter: grayscale(70%);
 }
 
-@panel-bg:           fade(black, 50%);
-@panel-border:       fade(white, 15%);
-@panel-border-radius: 1rem;
-@panel-padding:      1rem 1.5rem;
-@panel-min-width:    18rem;
-@panel-color:        fade(white, 85%);
-@panel-font-size:    1.7rem;
-@panel-title-color:  fade(white, 60%);
-@panel-title-size:   1.5rem;
-@panel-row-divider:  fade(white, 8%);
+// The @panel-* vocabulary lives in ../../assets/variables.less since C6.
 
 #spellbook {
-	background: @panel-bg;
-	border: 1px solid @panel-border;
-	border-radius: @panel-border-radius;
-	padding: @panel-padding;
+	.panel-chrome();
 	min-width: @panel-min-width;
-
-	color: @panel-color;
-	font-size: @panel-font-size;
 
 	> #spellbookScroll {
 		// SimpleBar needs an explicit height/max-height ON THIS element — its
@@ -522,13 +546,13 @@
 		letter-spacing: 0.08em;
 		padding-bottom: 0.3rem;
 		margin-bottom: 0.6rem;
-		border-bottom: 2px solid fade(#ffd75e, 45%);
-		color: #ffd75e;
+		border-bottom: 2px solid fade(@gold-levelup, 45%);
+		color: @gold-levelup;
 		font-size: (@panel-title-size * 1.2);
 		text-transform: uppercase;
 
 		> #skillPointsBadge {
-			color: fade(gold, 90%);
+			color: fade(@gold-flash, 90%);
 			text-transform: none;
 			letter-spacing: normal;
 			font-size: @panel-font-size;
@@ -610,10 +634,10 @@
 				display: block;
 				margin: 1rem -0.6rem 0.2rem;
 				padding: 0.4rem 0.6rem;
-				background: fade(#ffd75e, 12%);
-				border-bottom: 2px solid fade(#ffd75e, 55%);
+				background: fade(@gold-levelup, 12%);
+				border-bottom: 2px solid fade(@gold-levelup, 55%);
 				border-radius: 0.4rem 0.4rem 0 0;
-				color: #ffd75e; // banner unlock/levelup gold — easier to spot while scrolling
+				color: @gold-levelup; // banner unlock/levelup gold — easier to spot while scrolling
 				font-size: 1.3em;
 				font-weight: 700;
 				text-transform: uppercase;
@@ -687,16 +711,16 @@
 // Double pulse: full-intensity gold flash, ebb, second flash, long fade-out.
 @keyframes skill-unlock-glow {
 	0% {
-		background: fade(gold, 100%);
+		background: fade(@gold-flash, 100%);
 		color: black;
 		text-shadow: 0 0 0.6rem white;
 	}
 	40% {
-		background: fade(gold, 15%);
+		background: fade(@gold-flash, 15%);
 		color: white;
 	}
 	55% {
-		background: fade(gold, 90%);
+		background: fade(@gold-flash, 90%);
 		color: black;
 	}
 	100% {
@@ -706,16 +730,16 @@
 
 @keyframes spellbook-unlock-pulse {
 	0% {
-		box-shadow: 0 0 0 0 fade(gold, 100%);
+		box-shadow: 0 0 0 0 fade(@gold-flash, 100%);
 	}
 	40% {
-		box-shadow: 0 0 2.6rem 1.4rem fade(gold, 0%);
+		box-shadow: 0 0 2.6rem 1.4rem fade(@gold-flash, 0%);
 	}
 	50% {
-		box-shadow: 0 0 0.4rem 0.2rem fade(gold, 95%);
+		box-shadow: 0 0 0.4rem 0.2rem fade(@gold-flash, 95%);
 	}
 	100% {
-		box-shadow: 0 0 2.6rem 1.4rem fade(gold, 0%);
+		box-shadow: 0 0 2.6rem 1.4rem fade(@gold-flash, 0%);
 	}
 }
 
@@ -723,14 +747,8 @@
 #passiveLoadout,
 #cooldownLoadout,
 #utilityBar {
-	background: @panel-bg;
-	border: 1px solid @panel-border;
-	border-radius: @panel-border-radius;
-	padding: @panel-padding;
+	.panel-chrome();
 	min-width: @panel-min-width;
-
-	color: @panel-color;
-	font-size: @panel-font-size;
 
 	// Panel titles ("Passives" / "Aura Slots" / "Cooldowns"). Feedback pass B
 	// item 8: these are what tells the player which panel holds what, and at
@@ -741,8 +759,8 @@
 		letter-spacing: 0.08em;
 		padding-bottom: 0.3rem;
 		margin-bottom: 0.6rem;
-		border-bottom: 2px solid fade(#ffd75e, 45%);
-		color: #ffd75e;
+		border-bottom: 2px solid fade(@gold-levelup, 45%);
+		color: @gold-levelup;
 		font-size: (@panel-title-size * 1.2);
 		text-transform: uppercase;
 	}
@@ -805,7 +823,7 @@
 
 		> .cdRemaining {
 			flex: none;
-			color: fade(gold, 90%);
+			color: fade(@gold-flash, 90%);
 			font-variant-numeric: tabular-nums;
 		}
 
@@ -870,7 +888,7 @@
 	// so it gets the same colour and the same tabular digits.
 	> .utilityCharges {
 		flex: none;
-		color: fade(gold, 90%);
+		color: fade(@gold-flash, 90%);
 		font-variant-numeric: tabular-nums;
 	}
 
@@ -1021,7 +1039,11 @@
 // re-rooted by any ancestor transform/filter.
 #skillTooltip {
 	position: fixed;
-	z-index: 100;
+	z-index: @z-tooltip;
+	// Placement knobs, read by SkillTooltip.ts per show (C6): the gap between
+	// anchor and tooltip, and the minimum distance to the viewport edge.
+	--tooltip-gap: 8px;
+	--tooltip-margin: 4px;
 	max-width: 26rem;
 	padding: 0.7rem 1rem;
 	background: fade(black, 85%);
@@ -1037,7 +1059,7 @@
 	}
 
 	> .tooltipTitle {
-		color: #ffd75e; // the spellbook section-header gold
+		color: @gold-levelup; // the spellbook section-header gold
 		font-size: 1.6rem;
 		font-weight: 700;
 	}
@@ -1084,41 +1106,23 @@
 	display: flex;
 	flex-direction: column;
 
-	background: @panel-bg;
-	border: 1px solid @panel-border;
-	border-radius: @panel-border-radius;
-	padding: @panel-padding;
-	color: @panel-color;
-	font-size: @panel-font-size;
+	.panel-chrome();
 
 	&.hidden {
 		display: none;
 	}
 
 	> .journalHeader {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 1rem;
-
+		.panel-header-bar();
 		padding-bottom: 0.5rem;
-		border-bottom: 1px solid @panel-row-divider;
 
 		> .journalTitle {
-			color: @panel-title-color;
-			font-size: @panel-title-size;
-			text-transform: uppercase;
-			letter-spacing: 0.05em;
+			.panel-title();
 		}
 
 		> .journalClose {
-			cursor: pointer;
-			color: @panel-title-color;
+			.panel-close();
 			padding: 0 0.5rem;
-
-			&:hover {
-				color: white;
-			}
 		}
 	}
 
@@ -1278,41 +1282,23 @@
 	display: flex;
 	flex-direction: column;
 
-	background: @panel-bg;
-	border: 1px solid @panel-border;
-	border-radius: @panel-border-radius;
-	padding: @panel-padding;
-	color: @panel-color;
-	font-size: @panel-font-size;
+	.panel-chrome();
 
 	&.hidden {
 		display: none;
 	}
 
 	> .helpHeader {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 1rem;
-
+		.panel-header-bar();
 		padding-bottom: 0.5rem;
-		border-bottom: 1px solid @panel-row-divider;
 
 		> .helpTitle {
-			color: @panel-title-color;
-			font-size: @panel-title-size;
-			text-transform: uppercase;
-			letter-spacing: 0.05em;
+			.panel-title();
 		}
 
 		> .helpClose {
-			cursor: pointer;
-			color: @panel-title-color;
+			.panel-close();
 			padding: 0 0.5rem;
-
-			&:hover {
-				color: white;
-			}
 		}
 	}
 
@@ -1349,18 +1335,7 @@
 // The D16 HUD button, sitting at the top of the left column above the
 // spellbook. Shares the panel vocabulary so it reads as part of the same HUD.
 #journalButton {
-	background: @panel-bg;
-	border: 1px solid @panel-border;
-	border-radius: @panel-border-radius;
-	padding: 0.5rem 1.5rem;
-
-	cursor: pointer;
-	color: @panel-color;
-	font-size: @panel-font-size;
-
-	&:hover {
-		color: white;
-	}
+	.hud-button-chrome();
 
 	> .journalButtonHotkey {
 		color: @panel-title-color;
@@ -1394,7 +1369,7 @@
 	// it is never open while they are up. The gear IS unreachable while the
 	// map is open — that is the trade a full-screen map makes, and M or Esc
 	// gets you back to it in one press.
-	z-index: 102;
+	z-index: @z-world-map;
 
 	// The PANEL does not scroll and does not shrink — .wrapper takes whatever
 	// is left after the header, which is what the pixi canvas sizes itself to.
@@ -1417,28 +1392,15 @@
 	}
 
 	> .worldMapHeader {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 1rem;
-
-		padding: @panel-padding;
-		border-bottom: 1px solid @panel-row-divider;
+		.panel-header-bar();
+		padding: @panel-padding; // full-bleed header on the full-screen overlay
 
 		> .worldMapTitle {
-			color: @panel-title-color;
-			font-size: @panel-title-size;
-			text-transform: uppercase;
-			letter-spacing: 0.05em;
+			.panel-title();
 		}
 
 		> .worldMapClose {
-			cursor: pointer;
-			color: @panel-title-color;
-
-			&:hover {
-				color: white;
-			}
+			.panel-close();
 		}
 	}
 
@@ -1464,18 +1426,7 @@
 	top: 15.6vw;
 	right: 0.3vw;
 
-	background: @panel-bg;
-	border: 1px solid @panel-border;
-	border-radius: @panel-border-radius;
-	padding: 0.5rem 1.5rem;
-
-	cursor: pointer;
-	color: @panel-color;
-	font-size: @panel-font-size;
-
-	&:hover {
-		color: white;
-	}
+	.hud-button-chrome();
 
 	> .mapButtonHotkey {
 		color: @panel-title-color;

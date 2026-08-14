@@ -72,7 +72,7 @@
   background-color: #840D25;
 
   > .indicator {
-    background-color: crimson;
+    background-color: @focus-color;
   }
 
   // Absorb segment (skill-vocab chunk 2, bare rendering): sized/positioned
@@ -85,7 +85,7 @@
     display: none;
 
     z-index: 1; // with the delta indicators, below the text
-    background-color: rgba(125, 195, 255, 0.75);
+    background-color: @shield-fill;
   }
 }
 

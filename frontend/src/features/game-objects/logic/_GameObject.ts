@@ -8,6 +8,7 @@ import {radians} from "../../common/logic/Types";
 import {GameSetupEvent, ISubscriptionToken, PrerenderEvent} from "../../core/logic/Events";
 import {IGame} from "../../core/logic/IGame";
 import * as TextDisplay from '../../../client-data/TextDisplay';
+import {BRAND, cssHex} from '../../../client-data/Theme';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 
 let movementInterpolatedObjects = new Set();
@@ -289,7 +290,7 @@ export abstract class GameObject {
         this.ensureMessagesGroup();
 
         const textStyle = TextDisplay.style({
-            fill: '#E37313',
+            fill: cssHex(BRAND),
             stroke: {color: '#000000', width: 3},
             wordWrap: true,
             wordWrapWidth: 14 * 16, // no idea why, but it fits the 14em in HTML

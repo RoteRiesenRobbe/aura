@@ -10,7 +10,7 @@
 
 	body.creditsVisible &,
 	body.changelogVisible & {
-		z-index: 105;
+		z-index: @z-start-screen;
 	}
 
 	> header {
@@ -21,7 +21,7 @@
 		margin-left: -12vh; // hälfte von 40% (image ration) von 60vh des #hunter
 		text-align: center;
 		letter-spacing: 0.04em;
-		color: #e37313;
+		color: @brand;
 		text-shadow: rgb(255, 255, 255) 5px 0 0, rgb(255, 255, 255) 4.9px 1px 0, rgb(255, 255, 255) 4.6px 1.95px 0, rgb(255, 255, 255) 4.13333px 2.81667px 0, rgb(255, 255, 255) 3.48333px 3.58333px 0, rgb(255, 255, 255) 2.7px 4.2px 0, rgb(255, 255, 255) 1.81667px 4.66667px 0, rgb(255, 255, 255) 0.85px 4.93333px 0, rgb(255, 255, 255) -0.15px 5px 0, rgb(255, 255, 255) -1.13333px 4.86667px 0, rgb(255, 255, 255) -2.08333px 4.55px 0, rgb(255, 255, 255) -2.95px 4.05px 0, rgb(255, 255, 255) -3.68333px 3.38333px 0, rgb(255, 255, 255) -4.28333px 2.58333px 0, rgb(255, 255, 255) -4.71667px 1.66667px 0, rgb(255, 255, 255) -4.95px 0.7px 0, rgb(255, 255, 255) -4.98333px -0.3px 0, rgb(255, 255, 255) -4.83333px -1.28333px 0, rgb(255, 255, 255) -4.48333px -2.21667px 0, rgb(255, 255, 255) -3.95px -3.06667px 0, rgb(255, 255, 255) -3.26667px -3.78333px 0, rgb(255, 255, 255) -2.45px -4.35px 0, rgb(255, 255, 255) -1.53333px -4.75px 0, rgb(255, 255, 255) -0.566667px -4.96667px 0, rgb(255, 255, 255) 0.433333px -4.98333px 0, rgb(255, 255, 255) 1.41667px -4.8px 0, rgb(255, 255, 255) 2.35px -4.41667px 0, rgb(255, 255, 255) 3.16667px -3.86667px 0, rgb(255, 255, 255) 3.88333px -3.15px 0, rgb(255, 255, 255) 4.43333px -2.31667px 0, rgb(255, 255, 255) 4.8px -1.4px 0, rgb(255, 255, 255) 4.98333px -0.416667px 0;
 
 		div {
@@ -56,7 +56,7 @@
 
 		&:hover {
 			> label {
-				color: #e37313;
+				color: @brand;
 			}
 		}
 	}
@@ -186,7 +186,7 @@
 			&:hover,
 			&:active,
 			&:focus {
-				color: #e37313;
+				color: @brand;
 			}
 		}
 	}
@@ -249,7 +249,7 @@
 
 	// Same style as .playerNameSubmit
 	.button {
-		background-color: #e37313;
+		background-color: @brand;
 		color: white;
 		border-radius: 0.7vh;
 		padding: 0.5rem;
@@ -284,7 +284,7 @@
 	bottom: 0;
 	width: 0;
 	//background-image: linear-gradient(to right, white, rgb(0, 96, 48));
-	background-color: #e37313;
+	background-color: @brand;
 	z-index: -1;
 	border-radius: 0.7vh;
 

@@ -29,6 +29,7 @@ import {
 import {getLocalPlayerLevel, mobDisplayName} from '../../../../client-data/Mobs';
 import {AURA_CATEGORY_COLORS} from '../../../game-objects/logic/AuraRings';
 import {BasicConfig} from '../../../../client-data/BasicConfig';
+import {cssHex, FOCUS_COLOR_CSS} from '../../../../client-data/Theme';
 
 // One server tick in ms, derived from the pinned tick rate (1000/30 = 33.333;
 // shared-constants.json ticksPerSecond). The private `33` this replaces made
@@ -63,18 +64,18 @@ const EFFECT_COLOR_KEYS: { [type: string]: keyof typeof AURA_CATEGORY_COLORS } =
     light_aura: 'light',
 };
 
-// The Focus color (F7): the health bar's own fill (vitalSigns.less #healthBar
-// > .indicator), so a cost line points at the bar it drains. The resource has a
+// The Focus color (F7): the health bar's own fill (vitalSigns.less
+// @focus-color), so a cost line points at the bar it drains. The resource has a
 // name AND a color code now — that was the whole ask; a tooltip saying "Costs
-// you" in neutral text made spending look like just another stat.
-const FOCUS_COLOR = 'crimson';
+// you" in neutral text made spending look like just another stat. Since C6 the
+// keyword lives in Theme.ts, pinned against the LESS side.
 
 function effectColor(type: string): string | undefined {
     const key = EFFECT_COLOR_KEYS[type];
     if (key === undefined) {
         return undefined;
     }
-    return '#' + AURA_CATEGORY_COLORS[key].toString(16).padStart(6, '0');
+    return cssHex(AURA_CATEGORY_COLORS[key]);
 }
 
 function scaled(base: number, perLevel: number, level: number): number {
@@ -786,7 +787,7 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
                 amount = `${current} → ${next}`;
             }
         }
-        lines.push({text: `Costs you: ${amount}${cost.unit}${when}`, labelColor: FOCUS_COLOR});
+        lines.push({text: `Costs you: ${amount}${cost.unit}${when}`, labelColor: FOCUS_COLOR_CSS});
     }
 
     // The faction scope is a property of the SKILL, not of any one effect
@@ -822,7 +823,7 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
             // that cost 1.
             lines.push({
                 text: `Costs you: ${prog(castCost(1), step, level, previewMax, cost.render)}${cost.unit} per cast`,
-                labelColor: FOCUS_COLOR,
+                labelColor: FOCUS_COLOR_CSS,
             });
         }
     }
@@ -937,18 +938,25 @@ export function showTooltip(anchor: HTMLElement, content: TooltipContent) {
     }
 
     // Anchored placement (PO pick): beside the element, flipped left when it
-    // would overflow, clamped to the viewport.
+    // would overflow, clamped to the viewport. The two spacing knobs live in
+    // the sheet (#skillTooltip --tooltip-gap/--tooltip-margin, C6) so they are
+    // tunable from CSS; the fallbacks cover jsdom and a missing sheet.
     element.classList.remove('hidden');
+    const style = getComputedStyle(element);
+    const gapRead = parseFloat(style.getPropertyValue('--tooltip-gap'));
+    const marginRead = parseFloat(style.getPropertyValue('--tooltip-margin'));
+    const gap = Number.isFinite(gapRead) ? gapRead : 8;
+    const margin = Number.isFinite(marginRead) ? marginRead : 4;
     const rect = anchor.getBoundingClientRect();
     const width = element.offsetWidth;
     const height = element.offsetHeight;
-    let x = rect.right + 8;
-    if (x + width > window.innerWidth - 4) {
-        x = rect.left - width - 8;
+    let x = rect.right + gap;
+    if (x + width > window.innerWidth - margin) {
+        x = rect.left - width - gap;
     }
-    x = Math.max(4, x);
-    let y = Math.min(rect.top, window.innerHeight - height - 4);
-    y = Math.max(4, y);
+    x = Math.max(margin, x);
+    let y = Math.min(rect.top, window.innerHeight - height - margin);
+    y = Math.max(margin, y);
     element.style.left = `${x}px`;
     element.style.top = `${y}px`;
 }

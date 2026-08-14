@@ -11,6 +11,7 @@ import {MiniMap} from '../../map/logic/MiniMap';
 import {PlayerCreatedEvent, PlayerDamagedEvent} from '../../core/logic/Events';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import {setLocalPlayerLevel} from '../../../client-data/Mobs';
+import {BRAND, LEVEL_UP_GOLD} from '../../../client-data/Theme';
 import {setLocalPlayerMaxHealth} from '../../../client-data/Skills';
 import {shieldBarSegments} from '../../game-objects/logic/ShieldBarMath';
 import * as Flight from '../../flight/logic/Flight';
@@ -175,7 +176,7 @@ export class Player {
         // the same dwell also refills the Camp charges (plan-downtime.md) —
         // the fire does both, so the confirmation names both (round 9).
         if (entity.campfireBound) {
-            this.character.showFloatingText('Bound and restocked', 0xE37313);
+            this.character.showFloatingText('Bound and restocked', BRAND);
         }
         // In-combat indicator: shown while the recent-combat window is open
         // (also the window during which loadout editing is locked server-side).
@@ -211,5 +212,5 @@ const MIN_SELF_LIGHT_PX = 40;
 
 // Level-up overhead flash: gold matching the banner's unlock/levelup color,
 // crit-sized so it pops over the simultaneous +XP number.
-const LEVEL_UP_COLOR = 0xffd75e;
+const LEVEL_UP_COLOR = LEVEL_UP_GOLD;
 const LEVEL_UP_SIZE_FACTOR = 1.6;

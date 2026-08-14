@@ -1,10 +1,68 @@
+// The shared theme vocabulary (code-health C6). There is no central LESS
+// entry and no less-loader injection: every sheet that wants a token must
+// @import this file itself. Importing it twice is harmless: variables emit
+// no CSS.
+//
+// ⚑ The cross-language tokens (brand, level-up gold, focus, shield fill, land)
+// have TS twins in `client-data/Theme.ts`, and `Theme.test.ts` PINS this file
+// against them: renaming or re-valuing a pinned variable here fails vitest.
+
 @uiElementHeight: 7vh;
 @slotSize: @uiElementHeight;
 
 @backgroundColor: rgba(0, 0, 0, 0.6);
-
-@backgroundColorDark: @backgroundColor;
 @backgroundColorMedium: rgba(64, 64, 64, 0.6);
-@backgroundColorLight: rgba(255, 255, 255, 0.6);
 
 @splashScreenAnimation: 1s;
+
+// --- Colors -----------------------------------------------------------------
+
+// The brand orange (buttons, highlights, ::selection, the cast/XP fill).
+@brand: #e37313;
+
+// ⚑ TWO golds, deliberately (PO 2026-08-14): the level-up/unlock text gold and
+// the keyframe flash gold are adjacent but different hues. Whether they should
+// be one is a recorded UI-pass follow-up; do not silently unify them, the
+// swap is visible.
+@gold-levelup: #ffd75e; // level-up floats, banner rows, spellbook section headers
+@gold-flash: gold;      // the unlock glow/pulse keyframes, skill-points badge
+
+// Focus: the resource bar's own fill; tooltips color cost lines with it so a
+// cost points at the bar it drains. The CSS KEYWORD, on both sides of the pin.
+@focus-color: crimson;
+
+// The shield/absorb segment, HUD Focus bar and overhead bar alike.
+@shield-fill: rgba(125, 195, 255, 0.75);
+
+// The page background behind the canvas IS the terrain color, so letterboxing
+// and overscroll are invisible (Theme.LAND_COLOR / Graphics landColor).
+@land-color: rgb(0, 96, 48);
+
+// --- Panel chrome (moved from HUD.less, C6) ---------------------------------
+
+@panel-bg:           fade(black, 50%);
+@panel-border:       fade(white, 15%);
+@panel-border-radius: 1rem;
+@panel-padding:      1rem 1.5rem;
+@panel-min-width:    18rem;
+@panel-color:        fade(white, 85%);
+@panel-font-size:    1.7rem;
+@panel-title-color:  fade(white, 60%);
+@panel-title-size:   1.5rem;
+@panel-row-divider:  fade(white, 8%);
+
+// --- z-index scale ----------------------------------------------------------
+// Only the layers that interact ACROSS files live here; file-local stacks
+// (vitalSigns, toggleSwitch internals, start-screen internals, dev panels)
+// stay where they are. Values unchanged by C6.
+//
+// ⚑ Observed 2026-08-14 (c6-theme.mjs, forced ?mobile): the registration nag
+// (90) covers the mobile #mapButton (53, via @mobile-menu-z + 3), the known
+// open PO item about the nag covering mobile UI. Tokenizing did not change it.
+
+@mobile-menu-z: 50;                       // the ☰ sheet; tiles sit at +2/+3, backdrop at -1
+@z-registration-nag: 90;
+@z-tooltip: 100;                          // #skillTooltip
+@z-settings: (@z-tooltip + 1);            // #gameSettings overlays start & end screen
+@z-world-map: (@z-settings + 1);          // #worldMap covers every HUD panel
+@z-start-screen: 105;

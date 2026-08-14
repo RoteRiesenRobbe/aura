@@ -294,10 +294,15 @@ So: restart `aurad`, run one script, read its result, then the next.
 
 **Report-style, not pass/fail** — they print counts and screenshots for a human
 to read, and "passing" means 0 console errors and sane numbers:
-`npc-portraits`, `mob-separation`, `hygiene-wire-prune`, and `c5-bars` (a
+`npc-portraits`, `mob-separation`, `hygiene-wire-prune`, `c5-bars` (a
 before/after geometry capture of the overhead/cast bars for behaviour-neutral
 bar refactors — run it at both trees and diff the JSON; built for code-health
-C5, reusable for C6's theme pass). **Diagnostic tools, not
+C5, reused by C6's theme pass), and `c6-theme` (the DOM-side twin: computed
+styles of every themed selector (account screens, HUD chrome, panel headers,
+buttons, the mobile nag stacking observation) as one JSON block plus eyeball
+screenshots; run at both trees, the JSON must byte-match modulo the label.
+Takes `[label] [url]`; built for code-health C6, reusable for any restyle
+that claims to be behaviour-neutral). **Diagnostic tools, not
 regressions** (never expect them green): `ctxloss-repro`, `hunt-null-split`.
 
 **Invocation is NOT uniform.** Most take `[label] [url]`, but `round4-tooltip`

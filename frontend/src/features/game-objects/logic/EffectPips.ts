@@ -1,5 +1,6 @@
 import {Container, Graphics} from 'pixi.js';
 import {AURA_CATEGORY_COLORS} from './AuraRings';
+import {OVERHEAD_BAR_BACKDROP} from '../../../client-data/Theme';
 
 /**
  * Client mirror of the backend `skills.AppliedEffect` bitmask, serialized as
@@ -98,7 +99,7 @@ export class EffectPips {
             const x = startX + i * PIP_SPACING;
             this.graphics
                 .circle(x, 0, PIP_RADIUS + RIM_WIDTH)
-                .fill({color: 0x000000, alpha: 0.6})
+                .fill(OVERHEAD_BAR_BACKDROP)
                 .circle(x, 0, PIP_RADIUS)
                 .fill({color: style.color, alpha: 0.95});
         });

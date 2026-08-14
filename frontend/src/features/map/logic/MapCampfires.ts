@@ -26,6 +26,7 @@ import {createNamedContainer} from '../../pixi-js/logic/CustomData';
 import {Campfire} from '../../game-objects/logic/Mobs';
 import {getZoneData} from '../../ground-textures/logic/GroundTextureManager';
 import {meter2px} from '../../../client-data/BasicConfig';
+import {BRAND} from '../../../client-data/Theme';
 import {
     CampfireMarker,
     campfireMarkers,
@@ -52,7 +53,7 @@ const MARKER_SIZE = {
  * two readings of one fact look like one fact.
  */
 const HOME_RING_FACTOR = 0.85;
-const HOME_RING_COLOR = 0xE37313;
+const HOME_RING_COLOR = BRAND;
 
 /**
  * The armed-destination ring (plan-flight-paths.md C3): the fire a first press

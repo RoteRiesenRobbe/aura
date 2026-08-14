@@ -44,8 +44,7 @@
 // buttons, so the map has somewhere to live that overlaps no content.
 @mobile-map:    6rem;
 @mobile-footer: (@mobile-map + 2 * @mobile-edge);
-// Above the HUD panels, below #skillTooltip (100) and #gameSettings (101).
-@mobile-menu-z: 50;
+// @mobile-menu-z lives in ../../assets/variables.less since C6 (the z scale).
 
 // ⚑ The one knob that scales the whole mobile layout. Everything below is
 // sized in rem, which is root-relative — so this single rule grows tiles,
@@ -215,9 +214,9 @@ html.mobile {
 		padding: 0.9rem;
 
 		background: fade(black, 65%);
-		border: 2px solid fade(#ffd75e, 80%);
+		border: 2px solid fade(@gold-levelup, 80%);
 		border-radius: 50%;
-		color: #ffd75e;
+		color: @gold-levelup;
 		cursor: pointer;
 
 		> svg {
@@ -330,8 +329,8 @@ html.mobile {
 
 		&.hasPendingSkill > ul > .auraSlot {
 			padding: 0.3rem;
-			border: 1px dashed fade(#ffd75e, 70%);
-			background: fade(#ffd75e, 10%);
+			border: 1px dashed fade(@gold-levelup, 70%);
+			background: fade(@gold-levelup, 10%);
 		}
 	}
 
@@ -451,11 +450,13 @@ html.mobile {
 		display: none;
 	}
 
-	// ⚑ No z-index override here on purpose. The desktop rule already sets 95,
-	// which beats both the ☰ stack (@mobile-menu-z + 3 = 53) and the
-	// registration nag (90). An override in this file would have to restate
-	// that ordering and would silently lose it the day either number moves —
-	// this file used to carry `@mobile-menu-z + 4`, which was BELOW the nag.
+	// ⚑ No extra z-index override here. The old comment claimed the desktop rule
+	// "sets 95", but no such rule ever existed (`git log -S 'z-index: 95'` is
+	// empty; the desktop #mapButton has no z-index at all). Observed C6
+	// (c6-theme.mjs, forced ?mobile): the button rides this file's ☰ stack at
+	// (@mobile-menu-z + 3) = 53, and the registration nag (@z-registration-nag,
+	// 90) COVERS it while both are visible, part of the open PO item about the
+	// nag covering mobile UI. C6 tokenized the numbers without changing them.
 
 	// Settings: the gear steps left of the minimap on desktop
 	// (right: calc(15vw + 1vw)), which on a phone parks it on top of the Focus
@@ -629,9 +630,9 @@ html.mobile {
 			}
 
 			background: fade(black, 65%);
-			border: 2px solid fade(#ffd75e, 80%);
+			border: 2px solid fade(@gold-levelup, 80%);
 			border-radius: 50%;
-			color: #ffd75e;
+			color: @gold-levelup;
 
 			font-size: 1.1rem;
 			text-align: center;

@@ -1,5 +1,9 @@
 @import "../../assets/variables";
 
+// File-local: the bright border shared by the portrait, slot cards and dialog
+// buttons (one file, one concept, deliberately not a variables.less token).
+@border-bright: rgba(255, 255, 255, 0.25);
+
 // The pre-game account screens (plan-accounts-frontend.md §4).
 //
 // Styling deliberately borrows the start screen's vocabulary — the same orange
@@ -81,7 +85,7 @@
 	.button,
 	input[type="submit"] {
 		display: inline-block;
-		background-color: #e37313;
+		background-color: @brand;
 		color: white;
 		border-radius: 0.7vh;
 		padding: 0.5rem;
@@ -189,7 +193,7 @@
 		}
 
 		&:hover > label {
-			color: #e37313;
+			color: @brand;
 		}
 	}
 
@@ -199,7 +203,7 @@
 		margin: 0 auto 1rem;
 		border-radius: 50%;
 		background-color: @backgroundColorMedium;
-		border: 2px solid rgba(255, 255, 255, 0.25);
+		border: 2px solid @border-bright;
 
 		// The default character graphic (plan-avatar-system.md will add a real
 		// picker; until then every portrait shows the same placeholder art —
@@ -226,7 +230,7 @@
 		width: 14rem;
 		padding: 1rem 0.75rem;
 		background-color: @backgroundColorMedium;
-		border: 2px solid rgba(255, 255, 255, 0.25);
+		border: 2px solid @border-bright;
 		border-radius: 0.7vh;
 		box-sizing: border-box;
 		font-size: 1.9rem;
@@ -351,7 +355,7 @@
 		left: 0;
 		width: 100%;
 		height: 100%;
-		background-color: rgba(0, 0, 0, 0.6);
+		background-color: @backgroundColor;
 
 		&.hidden {
 			display: none;
@@ -367,7 +371,7 @@
 		max-width: 90vw;
 		padding: 1.5rem 2rem;
 		background-color: rgba(0, 0, 0, 0.85);
-		border: 2px solid rgba(255, 255, 255, 0.25);
+		border: 2px solid @border-bright;
 		border-radius: 0.7vh;
 		text-align: center;
 
@@ -414,7 +418,7 @@
 	position: absolute;
 	top: 4.5rem;                    // clears the 3rem icon + its 0.5rem padding
 	right: calc(15vw + 1vw);
-	z-index: 90;
+	z-index: @z-registration-nag;
 
 	display: flex;
 	align-items: center;
@@ -423,7 +427,7 @@
 	// 20 % larger than the first pass — it was too easy to miss.
 	padding: 0.72rem 1.2rem;
 	background-color: rgba(0, 0, 0, 0.75);
-	border: 1px solid rgba(255, 255, 255, 0.25);
+	border: 1px solid @border-bright;
 	border-radius: 0.7vh;
 	color: white;
 
@@ -436,7 +440,7 @@
 	}
 
 	.button {
-		background-color: #e37313;
+		background-color: @brand;
 		color: white;
 		border-radius: 0.7vh;
 		padding: 0.42rem 0.9rem;
@@ -474,7 +478,7 @@
 
 	.button {
 		display: inline-block;
-		background-color: #e37313;
+		background-color: @brand;
 		color: white;
 		border-radius: 0.7vh;
 		padding: 0.4rem 0.75rem;

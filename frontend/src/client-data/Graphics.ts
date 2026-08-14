@@ -1,5 +1,6 @@
 import {meter2px} from './BasicConfig';
 import {color, integer} from '../features/common/logic/Types';
+import {LAND_COLOR} from './Theme';
 
 /**
  * Physical collider radius the backend uses for the player body, in meters.
@@ -13,7 +14,9 @@ export const GraphicsConfig = {
 
     deepWaterColor: <color> 0x1C57B5,
     shallowWaterColor: <color> 0x287aff,
-    landColor: <color> 0x006030,
+    // Derived from Theme so the page background (LESS @land-color) and the
+    // terrain stay one fact; the LESS side is pinned by Theme.test.ts.
+    landColor: <color> LAND_COLOR,
 
     hitAnimation: {
         /**

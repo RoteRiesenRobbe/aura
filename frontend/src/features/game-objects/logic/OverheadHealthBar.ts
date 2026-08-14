@@ -1,6 +1,12 @@
 import {Container, Graphics} from 'pixi.js';
 import {EffectPips} from './EffectPips';
 import {shieldBarSegments} from './ShieldBarMath';
+import {
+    OVERHEAD_BAR_BACKDROP,
+    OVERHEAD_BAR_BORDER,
+    OVERHEAD_BAR_HEALTH_FILL,
+    OVERHEAD_BAR_SHIELD_FILL,
+} from '../../../client-data/Theme';
 
 // OverheadHealthBar is the shared overhead health/shield bar (plan-code-health.md
 // C5): Character and Mob used to carry near-byte-identical private copies, so
@@ -9,15 +15,11 @@ import {shieldBarSegments} from './ShieldBarMath';
 // parent — Character adds the container to its unfiltered nameplate plate,
 // Mob adds it to `shape` so the bar inherits the night tint and corpse fade.
 //
-// The style constants are exported by name so the C6 theme pass can absorb
-// them into Theme.ts (EffectPips' backdrop is the same 0x000000/0.6 — not
-// imported from here because EffectPips is a child of this module).
+// The style constants live in client-data/Theme.ts since C6 (the leaf both
+// this module and EffectPips read; importing them from here was a cycle).
 
-export const OVERHEAD_BAR_BACKDROP = {color: 0x000000, alpha: 0.6};
-export const OVERHEAD_BAR_BORDER = {width: 1, color: 0xffffff, alpha: 0.35};
-export const OVERHEAD_BAR_HEALTH_FILL = {color: 0xaa3b3b, alpha: 0.9};
-export const OVERHEAD_BAR_SHIELD_FILL = {color: 0x7dc3ff, alpha: 0.75};
-// Gap between the bar's lower edge and the effect-pip strip, in px.
+// Gap between the bar's lower edge and the effect-pip strip, in px. Geometry,
+// not a color: stays with the bar rather than moving to Theme.
 export const OVERHEAD_BAR_PIP_GAP = 9;
 
 export interface OverheadBarDimensions {

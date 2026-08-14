@@ -1,6 +1,6 @@
 # Plan: Code Health Pass - deletions, duplication closure, live defects, drift pins
 
-**Status: C1-C5 SHIPPED - C1 2026-08-12 (`ca34800b`) · C2 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`) · C3 2026-08-14 (`6f0c08df`) · C4 2026-08-14 (`b5a88221`) · C5 2026-08-14 (`38e36153`, ledgers below) - C6-C7 open (C7 independent; C5's "before or with C6" ordering is satisfied).** Sources: a three-sweep audit of this
+**Status: C1-C6 SHIPPED - C1 2026-08-12 (`ca34800b`) · C2 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`) · C3 2026-08-14 (`6f0c08df`) · C4 2026-08-14 (`b5a88221`) · C5 2026-08-14 (`38e36153`) · C6 2026-08-14 (`[uncommitted]`, ledgers below) - C7 open (independent).** Sources: a three-sweep audit of this
 date (frontend magic numbers · cross-layer duplicated constants · frontend structural
 debt), `research-code-quality.md` §11.5 (whose recommended batch is absorbed here as C7,
 verified still fully open on 2026-08-12), and the standing gotchas in `CLAUDE.md`.
@@ -740,6 +740,118 @@ reusable for C6's theme pass.
   (same geometry/text/fill mechanism), differing only in fill color (gold vs
   campfire orange), the L25 show/hide rule, and the flight bar's client-inferred
   denominator.
+
+### C6 - Theme foundation: the pinned token pair ✅ 2026-08-14, `[uncommitted]` · PO glance checklist handed over + wrap called same day
+
+**All five plan items shipped, and behaviour-neutrality was proven THREE
+independent ways**: the minified prod CSS bundle diff contains **exactly one
+changed rule** (`#skillTooltip` gaining the two intended custom properties -
+every token substitution and mixin extraction compiled byte-identical, and the
+minifier's own hex-lowercasing swallowed the predicted case diff) · a new
+report-style capture (`c6-theme.mjs`, see harness riders) sampled computed
+styles of every themed selector (account screens, HUD chrome, all four panel
+headers, buttons, forced-mobile) and the JSON is **byte-identical** before/after
+· `c5-bars` geometry matches its C5-session baseline exactly (only diff: the
+cast bar's documented timing-dependent fill fraction, self-consistent in-run).
+Every plan line ref was re-verified at `8fd0e392` first; the drift corrections
+are recorded in the execution plan (`@panel-*` was at HUD.less:465 not :780, the
+stale z comment lives in HUD.**mobile**.less, "19 CSS sites" was 16 LESS + 3 TS,
+the ":829 four panel titles" comment is at :514 and about the OTHER four - the
+spellbook/loadout gold family, deliberately not conflated with the panel
+headers).
+
+**Item 1 - `variables.less` is real** (10 lines → the shared vocabulary):
+`@panel-*` moved there verbatim; `@brand` (16 LESS sites, one uppercase, swept
+case-insensitively; the 3 TS sites derive from Theme); ⚑ **PO ruling: TWO gold
+tokens** - the survey found `#ffd75e` (15 sites) and the CSS keyword `gold` =
+`#FFD700` (10 sites incl. every unlock keyframe) are DIFFERENT adjacent hues, so
+`@gold-levelup` + `@gold-flash` ship byte-identical and unification is a
+recorded UI-pass follow-up (comment at the definition says so) · `@focus-color`
+(the keyword `crimson`, both languages) · `@shield-fill` · `@land-color` · the
+cross-file z scale (`@mobile-menu-z` moved in; nag 90, tooltip 100, settings/map
+derived, start screen 105; file-local stacks untouched). Both `@backgroundColor`
+bypasses fixed; `console`/`changelog`/`credits.less` now import variables.
+**The doc's scrim list was deliberately narrowed**: the `.9` cluster is the
+alert banner's text-outline shadow stack and the two `.85` sites are one scrim +
+one shadow - different concepts, not deduplicated (DRY look-alike rule); only
+`accountScreens`' 0.25-white border family got a token, file-local
+`@border-bright`. ⚑ **The survey's "four dead variables" claim was WRONG for
+two**: `@uiElementHeight`/`@slotSize` have 24 live consumers; only
+`@backgroundColorDark`/`Light` died. The plan's fresh-grep-before-deleting
+clause is what caught it.
+
+**Item 2 - panel mixins** (HUD.less top): `.panel-chrome(@padding)` collapses
+the 5 body pastes (spellbook + loadout group keep `min-width` caller-side) and
+feeds `.hud-button-chrome()` for the byte-identical `#journalButton`/`#mapButton`
+pair; **leaf** header mixins (`.panel-header-bar()`/`.panel-title()`/
+`.panel-close()`) collapse the 4 headers while each caller keeps its own
+selector names (conversation's `Actor`/`Leave`) and its own padding line, the
+one axis the four genuinely differ on. The mobile tile partial (diverging
+radius) and `#worldMap`'s one-off `fade(black, 88%)` stay as-is, noted.
+
+**Items 3+4 - `client-data/Theme.ts` + the pin.** A deliberate leaf module (no
+imports): brand/gold/focus/land plus the four `OVERHEAD_BAR_*` constants moved
+from OverheadHealthBar, and one shared `cssHex()` (lifted from SkillTooltip's
+existing conversion, not written twice). EffectPips' pip rim now reads the same
+backdrop token - the module cycle C5 deferred, broken as planned. Two
+cross-language duplicates the plan doc didn't list were absorbed:
+`Graphics.landColor 0x006030` ≡ the page background (`userInterface.less:15`,
+`credits.less:42` - deliberate, letterboxing invisible) and
+`OVERHEAD_BAR_SHIELD_FILL {0x7dc3ff,.75}` ≡ `vitalSigns.less` exactly, alpha
+included. ⚑ **Recorded so nobody hunts a ghost: only 2 of the 5 bar constants
+are cross-language** - `HEALTH_FILL 0xaa3b3b` and the border have NO LESS twin
+(the HUD bar is `crimson`/`#840D25`), so the pin deliberately skips them.
+`Theme.test.ts` pins variables.less per token (readFileSync + regex, the
+SharedConstants/flight-test mechanism): match-exists asserted first, so a
+renamed LESS variable fails loudly, never passes zero checks. `@gold-flash` is
+LESS-only, no pin. `AURA_CATEGORY_COLORS` stays in AuraRings (plan ruling), no
+re-export.
+
+**Item 5 - tooltip spacing** (PO call: CSS custom properties as the doc says,
+despite the survey showing the literals feed clamp MATH): `--tooltip-gap: 8px` /
+`--tooltip-margin: 4px` on `#skillTooltip`, read once per show via
+getComputedStyle + parseFloat with `Number.isFinite` guards (`0` is a legal
+authored value; `|| 8` would have silently ignored it) and hardcoded fallbacks
+for jsdom/missing sheet.
+
+**Item 6 - comment truth, sharpened by observation.** The claimed desktop
+`z-index: 95` **never existed in any commit** (`git log -S` empty; `#mapButton`
+sets no z-index at all). The step-0 mobile capture observed the actual stacking:
+**the registration nag (90) COVERS the mobile map button (53, riding the ☰
+stack's `@mobile-menu-z + 3`)** while both are visible - the known open PO item
+about the nag covering mobile UI, NOT fixed here; every z value ships unchanged,
+and both the rewritten comment and the z-scale block in variables.less quote the
+observation with its date.
+
+**Harness riders:** new **`c6-theme.mjs`** kept in the verify dir with a
+SKILL.md row (the c5-bars pattern at the DOM: computed-style JSON + eyeball
+screenshots, `[label] [url]`, reusable for any claimed-neutral restyle) ·
+`mobile-layout`'s **3 CHECK FAILs are all three asserts inside leg 7**
+(journal-from-the-☰-sheet, script lines 301-305), matching the documented
+known-red open PO item - recorded as matching, not as measured-against-HEAD,
+since mobile-layout was not baselined at step 0; every other leg green. ⚑
+**Process note, honestly recorded**: the red-first restore was by REWRITE, not
+git-clean - a `git checkout --` aimed at un-falsifying variables.less restored
+HEAD and wiped the chunk's own uncommitted rewrite; value-identity was then
+proven by the pin suite (6/6) plus the one-rule bundle diff instead. Falsify
+uncommitted files by hand-editing back, or stash a copy first.
+
+- **Schema impact: NONE.** Frontend-only; backend untouched (`go build ./...`
+  green as the standing sanity check).
+- **Verified:** baselines captured at the untouched tree FIRST (CSS bundle,
+  c6-theme JSON + screenshots, the mobile stacking observation) · red-first at
+  C4's standard: **all five pinned tokens falsified in one edit → exactly 5
+  assertions red** (cssHex's stayed green), plus the rename case failing with
+  the loud not-found message; restored (see process note) and proven
+  value-identical · vitest **321/321** (was 315: +5 pins, +1 cssHex) · typecheck
+  · prod build (3 standing bundle warnings) · **minified bundle diff = the one
+  intended rule** · `c6-theme` JSON **byte-identical** · fresh-server harnesses:
+  `round4-tooltip` all checks passed · `n1-shield-bar` **4/4** · `c5-bars`
+  geometry matches the C5 baseline · `ctxloss-warning clean` **PASS** (Theme.ts
+  is boot path) · `mobile-layout` green bar the known leg 7 · boot 0 WARN / 0
+  ERROR (95 skills / 68 mobs / 13 quests) · harness residue cleaned (13
+  accounts, aurad stopped first) · PO glance checklist handed over same day
+  (tooltip placement + panel family named as the two mechanism changes).
 
 ## Open questions
 
