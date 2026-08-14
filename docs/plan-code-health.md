@@ -528,7 +528,7 @@ a stale copy, not deliberate headroom. The evidence, recorded per the plan:
   with the camera watched, no defects (the fly leg was confirmatory - the hard-follow
   makes a flight regression impossible; the walk check covered the easing scale).
 
-### C3 - The server's dt: `stepMillis` ✅ 2026-08-14 (commit pending)
+### C3 - The server's dt: `stepMillis` ✅ 2026-08-14, `6f0c08df`
 
 **The inventory came back empty, so this is the two-line-derive branch.** All 18
 `Update(dt float32)` implementations either ignore `dt` outright or forward it to
