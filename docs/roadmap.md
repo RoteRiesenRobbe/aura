@@ -1228,8 +1228,11 @@ system ships blind.
    ⚑ **The "CI tests" half carries a standing ruling — NO CI BY CHOICE (PO
    2026-08-12,** `plan-code-health.md` C1 ledger**):** Actions has zero runs
    ever on the fork and stays disabled unless CI becomes a necessity. This step
-   is the named revisit point; prerequisite if taken: fix the `TestDwell` flake
-   first, or the badge cries wolf from day one.
+   is the named revisit point; its named prerequisite (fix the `TestDwell`
+   flake first, or the badge cries wolf from day one) is **DISCHARGED
+   2026-08-14**: the flake was a test-fixture blind spot (a fresh join spawns
+   jittered inside a random fire's bind radius and the join tick counts as
+   dwell tick 1), fixed test-side, 0/100 after.
    ⚑ **This step inherits the durability debt 8a deferred** (PO 2026-08-04):
    backups with a proven restore + off-machine storage. It also inherits the
    *security* items that were never part of that ruling and are still unticked —

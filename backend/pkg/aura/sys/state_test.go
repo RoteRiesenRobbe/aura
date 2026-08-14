@@ -282,6 +282,13 @@ func reconnectTicket(t *testing.T, s *ConnectionStateSystem, token, name string)
 }
 
 // joinPlayer runs the full join flow for a fresh client and returns the player.
+//
+// ⚑ The join tick is a FULL Update: the new player spawns jittered INSIDE a
+// campfire's bind radius (defaultSpawnPosition) and trackCampfireDwell runs in
+// the same tick, so the returned player can already carry dwell tick 1 for a
+// RANDOM fire. A test that counts dwell ticks from here must first step off
+// the fires and tick once; skipping that made TestDwell_TakeoffDrops… a
+// 50/50 coin flip (fixed 2026-08-14).
 func joinPlayer(t *testing.T, s *ConnectionStateSystem, g *stateFakeGame, c *fakeClient, name string) model.PlayerEntity {
 	t.Helper()
 	sp := spectatorFor(c)

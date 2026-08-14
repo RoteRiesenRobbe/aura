@@ -2181,13 +2181,21 @@ func wanderingNpcDef(in *mobs.Interaction) *mobs.MobDefinition {
 	return def
 }
 
-// travelled runs n ticks of the actor's own Update and reports how far it moved.
+// travelled runs n ticks of the actor's own Update and reports the PATH LENGTH
+// it walked (sum of per-tick steps). Net start-to-end displacement is the wrong
+// instrument here: a wanderer re-picks random targets every arrival, so 60 ticks
+// of honest walking can loop back near the starting point by chance (measured
+// flaking both moving legs at ~5/100).
 func travelled(m *mob.Mob, n int) float32 {
-	from := m.Position()
+	var sum float32
+	prev := m.Position()
 	for i := 0; i < n; i++ {
 		m.Update(33.0)
+		pos := m.Position()
+		sum += pos.Sub(prev).Abs()
+		prev = pos
 	}
-	return m.Position().Sub(from).Abs()
+	return sum
 }
 
 func TestHold_ActorStopsWhileTalkedToAndResumesAfter(t *testing.T) {

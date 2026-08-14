@@ -109,6 +109,14 @@ func TestDwell_TakeoffDropsAnInProgressCount(t *testing.T) {
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 
+	// The join tick itself can count one dwell tick: a fresh join spawns
+	// jittered INSIDE a random fire's bind radius (defaultSpawnPosition), and
+	// trackCampfireDwell runs in the same Update as tryJoin. Step off the
+	// fires and tick once so the count below verifiably starts at zero;
+	// without this the test is a coin flip on which fire the join picked.
+	p.SetPosition(phy.Vec2f{X: 100, Y: 100})
+	s.Update(0)
+
 	// Almost-complete dwell at the first fire…
 	p.SetPosition(first.Pos)
 	for i := 0; i < campfireDwellTicks-1; i++ {
