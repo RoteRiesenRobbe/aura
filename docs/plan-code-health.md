@@ -1,6 +1,6 @@
 # Plan: Code Health Pass - deletions, duplication closure, live defects, drift pins
 
-**Status: C1-C4 SHIPPED - C1 2026-08-12 (`ca34800b`) · C2 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`) · C3 2026-08-14 (`6f0c08df`) · C4 2026-08-14 (`[uncommitted]`, ledgers below) - C5-C7 open (C5 before or with C6, C7 independent).** Sources: a three-sweep audit of this
+**Status: C1-C4 SHIPPED - C1 2026-08-12 (`ca34800b`) · C2 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`) · C3 2026-08-14 (`6f0c08df`) · C4 2026-08-14 (`b5a88221`, ledgers below) - C5-C7 open (C5 before or with C6, C7 independent).** Sources: a three-sweep audit of this
 date (frontend magic numbers · cross-layer duplicated constants · frontend structural
 debt), `research-code-quality.md` §11.5 (whose recommended batch is absorbed here as C7,
 verified still fully open on 2026-08-12), and the standing gotchas in `CLAUDE.md`.
@@ -585,7 +585,7 @@ nothing reads; mass-editing them is churn with zero behaviour delta).
   the change vs 10/20 at stashed HEAD**, same coin-flip · `-race` clean on
   core/sim/sys/simharness · `make -C backend build` · boot 0 WARN / 0 ERROR.
 
-### C4 - The pinning batch ✅ 2026-08-14, `[uncommitted]`
+### C4 - The pinning batch ✅ 2026-08-14, `b5a88221`
 
 **Everything the plan listed shipped, plus the re-verify deltas it required** (the
 doc's refs predated C2/C3; every one was re-verified at `ff83779e` first). The PO
