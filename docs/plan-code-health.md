@@ -1,6 +1,6 @@
 # Plan: Code Health Pass - deletions, duplication closure, live defects, drift pins
 
-**Status: C1-C6 SHIPPED - C1 2026-08-12 (`ca34800b`) · C2 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`) · C3 2026-08-14 (`6f0c08df`) · C4 2026-08-14 (`b5a88221`) · C5 2026-08-14 (`38e36153`) · C6 2026-08-14 (`[uncommitted]`, ledgers below) - C7 open (independent).** Sources: a three-sweep audit of this
+**Status: C1-C6 SHIPPED - C1 2026-08-12 (`ca34800b`) · C2 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`) · C3 2026-08-14 (`6f0c08df`) · C4 2026-08-14 (`b5a88221`) · C5 2026-08-14 (`38e36153`) · C6 2026-08-14 (`a46b30a5`, ledgers below) - C7 open (independent).** Sources: a three-sweep audit of this
 date (frontend magic numbers · cross-layer duplicated constants · frontend structural
 debt), `research-code-quality.md` §11.5 (whose recommended batch is absorbed here as C7,
 verified still fully open on 2026-08-12), and the standing gotchas in `CLAUDE.md`.
@@ -741,7 +741,7 @@ reusable for C6's theme pass.
   campfire orange), the L25 show/hide rule, and the flight bar's client-inferred
   denominator.
 
-### C6 - Theme foundation: the pinned token pair ✅ 2026-08-14, `[uncommitted]` · PO glance checklist handed over + wrap called same day
+### C6 - Theme foundation: the pinned token pair ✅ 2026-08-14, `a46b30a5` · PO glance checklist handed over + wrap called same day
 
 **All five plan items shipped, and behaviour-neutrality was proven THREE
 independent ways**: the minified prod CSS bundle diff contains **exactly one
