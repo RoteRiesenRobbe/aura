@@ -119,6 +119,21 @@ let campfireCountLabel: HTMLElement;
 let darkCountLabel: HTMLElement;
 let anchorCountLabel: HTMLElement;
 
+// " (cL2)" / " (cL11, elite)": the curve level, plus the tier when it
+// carries information (normal is the default). Only Combat and Legacy entries
+// get it (plan-zone-editor-structure.md P2): every talker and fixture authors
+// cL1 with xpFactor 0, so there the suffix says nothing and costs a reading.
+function mobOptionSuffix(mob: ZoneEditor.MobOption): string {
+    if (mob.kind !== 'combat' && mob.kind !== 'legacy') {
+        return '';
+    }
+    let suffix = 'cL' + mob.curveLevel;
+    if (mob.tier !== 'normal') {
+        suffix += ', ' + mob.tier;
+    }
+    return ' (' + suffix + ')';
+}
+
 /**
  * Wires the zone-editor sections of the shared panel. Called by
  * _GroundTexturesPanel after the panel partial is rendered.
@@ -193,19 +208,32 @@ export function setupPanel() {
     propTypeSelect.addEventListener('change', updatePropRadiusLabel);
     updatePropRadiusLabel();
 
-    ZoneEditor.mobOptions.forEach(mob => {
-        let option = document.createElement('option');
-        // The value stays the bare name — that is what the zone JSON stores and
-        // what populateSpawnControls() assigns back on selection.
-        option.value = mob.name;
-        // "Wolf (cL2)" / "Troll (cL11, elite)" — the curve level always, the
-        // tier only when it carries information (normal is the default).
-        let suffix = 'cL' + mob.curveLevel;
-        if (mob.tier !== 'normal') {
-            suffix += ', ' + mob.tier;
+    // One <optgroup> per derived category (plan-zone-editor-structure.md §4.3),
+    // in placement-frequency order; entries stay alphabetical within a group
+    // (mobOptions is pre-sorted). Labels [PLACEHOLDER].
+    const MOB_GROUPS: { kind: ZoneEditor.MobOption['kind']; label: string }[] = [
+        {kind: 'combat', label: 'Combat'},
+        {kind: 'talker', label: 'Talkers'},
+        {kind: 'fixture', label: 'Fixtures'},
+        {kind: 'companion', label: 'Companions'},
+        {kind: 'legacy', label: 'Legacy'},
+    ];
+    MOB_GROUPS.forEach(group => {
+        let mobs = ZoneEditor.mobOptions.filter(mob => mob.kind === group.kind);
+        if (mobs.length === 0) {
+            return;
         }
-        option.textContent = mob.name + ' (' + suffix + ')';
-        spawnMobSelect.appendChild(option);
+        let optgroup = document.createElement('optgroup');
+        optgroup.label = group.label;
+        mobs.forEach(mob => {
+            let option = document.createElement('option');
+            // The value stays the bare name: that is what the zone JSON stores
+            // and what populateSpawnControls() assigns back on selection.
+            option.value = mob.name;
+            option.textContent = mob.name + mobOptionSuffix(mob);
+            optgroup.appendChild(option);
+        });
+        spawnMobSelect.appendChild(optgroup);
     });
 
 

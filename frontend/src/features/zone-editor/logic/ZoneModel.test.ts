@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {ZoneData, ZoneModel, ZoneSpawn} from './ZoneModel';
+import {kindOf, ZoneData, ZoneModel, ZoneSpawn} from './ZoneModel';
 
 // A character's campfire bind is persisted as the spawn-point id, so these are
 // persistence tests wearing an editor's clothes: an id the editor drops or
@@ -97,6 +97,43 @@ describe('ZoneModel spawn points', () => {
         model.addCampfire({id: 'crossroads-fire', x: 5, y: 5});
 
         expect(model.campfires.map(c => c.id)).toEqual(['village-fire', 'crossroads-fire']);
+    });
+});
+
+// The derived spawn-editor category (plan-zone-editor-structure.md §4.1).
+// Fixture shapes mirror real defs: Wolf (bare), Wanderer (a talker that also
+// authors a role), AscensionStone (structure + interaction: talker wins),
+// Brazier (BOTH legacy and structure: legacy wins, deliberately, until C3
+// deletes the branch with the defs).
+describe('kindOf', () => {
+    it('classifies a def with neither role nor interaction as combat', () => {
+        expect(kindOf({})).toBe('combat');
+    });
+
+    it('classifies a non-structure role without interaction as combat', () => {
+        // role has values beyond structure/follower (Wanderer authors
+        // "creature"); anything unrecognized must fall through, never throw.
+        expect(kindOf({role: 'creature'})).toBe('combat');
+    });
+
+    it('classifies an interaction carrier as talker', () => {
+        expect(kindOf({interaction: {range: 2}})).toBe('talker');
+    });
+
+    it('lets interaction beat role', () => {
+        expect(kindOf({role: 'structure', interaction: {range: 2}})).toBe('talker');
+    });
+
+    it('classifies role structure as fixture', () => {
+        expect(kindOf({role: 'structure'})).toBe('fixture');
+    });
+
+    it('classifies role follower as companion', () => {
+        expect(kindOf({role: 'follower'})).toBe('companion');
+    });
+
+    it('lets legacy beat everything (the Brazier precedence)', () => {
+        expect(kindOf({legacy: true, role: 'structure'})).toBe('legacy');
     });
 });
 

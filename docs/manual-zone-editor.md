@@ -53,8 +53,11 @@ normally. You get:
 - GOD mode (auto-activated, so mobs can't interrupt your editing).
 - The server's current zone (default: `world`) already loaded: yellow
   rectangle = world bounds,
-  circles = props (red = blocks movement, blue = decorative), green diamonds =
-  spawn points. Labels show the prop type / mob name. These markers are
+  circles = props (red = blocks movement, blue = decorative), diamonds =
+  spawn points, coloured by what the placed species is (green = combat mob,
+  pink = talker/NPC, grey = fixture, brown = companion; legacy species draw
+  as a faded green until they are retired). Labels show the prop type / mob
+  name. These markers are
   editor-only overlays — the real props and mobs are still there underneath.
 
 > The markers show what's **authored**, not what's live: a mob wanders away
@@ -66,7 +69,7 @@ different sources:
 - **Real props & mobs** (solid Tree/Rock sprites, actual Dodos/etc.) are
   **streamed by the server** from whichever zone it booted with (`-zone <id>`).
   The editor **cannot** move these — only a server restart can.
-- **Editor markers** (red circles / green diamonds) and the **terrain** follow
+- **Editor markers** (circles and diamonds) and the **terrain** follow
   the **Load-zone dropdown** — i.e. the zone you're *authoring*.
 
 So if the dropdown ≠ the server's `-zone`, you'll see one zone's markers +
@@ -125,10 +128,14 @@ Notes:
 
 ## 5. Place and edit spawn points (Spawns mode)
 
-Works exactly like props: choose a *Mob* (list from `api/mobs/`), set *Respawn
+Works exactly like props: choose a *Mob* (list from `api/mobs/`, grouped by
+what the species is: **Combat, Talkers, Fixtures, Companions, Legacy**; the
+`cL<n>`/tier suffix shows only where strength is a real question, on Combat
+and Legacy entries), set *Respawn
 ticks* (30 ticks = 1 second; 900 = 30 s), *Respawn variance* (0.2 = ±20 % on
 the respawn delay), optionally *Angle* (initial facing), then **click** to
-place a green diamond — or press **"Place at my position"**. Click a diamond
+place a diamond, coloured by the group (§2), or press **"Place at my
+position"**. Click a diamond
 to select, **Update**/**Delete** as above.
 
 Each spawn point = exactly one mob alive at a time: it spawns there, and after
@@ -219,7 +226,8 @@ NPC is not a zone entity: it is an ordinary **mob definition carrying an
 What this means in practice:
 
 - **Placement** — use Spawns mode and pick the NPC's mob name from the same
-  dropdown as any other mob. Nothing NPC-specific to set here.
+  dropdown as any other mob (NPCs sit in its **Talkers** group and draw as
+  pink diamonds on the map). Nothing NPC-specific to set here.
 - **The conversation is JSON-only content**, authored in
   `api/mobs/<name>.json`, not in the editor. That was a deliberate call: a
   conversation tree is content that belongs with the actor, not with the

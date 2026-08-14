@@ -119,6 +119,42 @@ export interface ZoneData {
     anchors?: ZoneAnchor[];
 }
 
+// The spawn editor's derived category (plan-zone-editor-structure.md D1):
+// computed from fields every mob def already carries, never authored. It
+// drives three display surfaces (picker grouping, marker colour, and, from
+// C2, which controls show), and nothing else: no data behaviour reads it.
+export type MobKind = 'combat' | 'talker' | 'fixture' | 'companion' | 'legacy';
+
+// The minimal structural shape kindOf needs, decoupled from how the defs got
+// into the browser (ZoneEditor's require.context cannot be imported under
+// vitest, which is why this rule lives here).
+export interface MobKindDef {
+    role?: string;
+    legacy?: boolean;
+    interaction?: object;
+}
+
+export function kindOf(def: MobKindDef): MobKind {
+    // Legacy first is deliberate and temporary: Brazier is BOTH legacy and
+    // structure, and the ten legacy defs must read as one block until C3
+    // deletes them; this branch goes with them.
+    if (def.legacy === true) {
+        return 'legacy';
+    }
+    if (def.interaction != null) {
+        return 'talker';
+    }
+    if (def.role === 'structure') {
+        return 'fixture';
+    }
+    if (def.role === 'follower') {
+        return 'companion';
+    }
+    // The common case: 36 defs author no role at all, and unrecognized role
+    // values (e.g. "creature") fall through here rather than throw.
+    return 'combat';
+}
+
 // spawnPointNumber reads the <n> out of "spawnpoint-<n>", or 0 for any id that
 // is not in that shape — a hand-authored name is legal, it just does not
 // participate in the numbering.

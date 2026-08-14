@@ -1,8 +1,9 @@
 # Plan: structure in the spawn editor, and retiring the legacy roster
 
-> **Status: DESIGNED 2026-08-12 (design session) - no chunk built yet.** Four PO
-> rulings taken as choice prompts (D1-D4); everything in §9 is proposal,
-> vetoable. Line references are pinned to `f820777e`. Every colour and label is
+> **Status: C1 SHIPPED 2026-08-15 (PO-verified in-game; ledger §11) - C2, C3
+> open.** Designed 2026-08-12; four PO rulings taken as choice prompts (D1-D4);
+> everything in §9 is proposal, vetoable. Line references were pinned to
+> `f820777e` and verified unchanged at C1. Every colour and label is
 > [PLACEHOLDER].
 
 ## 1. What this is
@@ -384,4 +385,51 @@ Each chunk its own execution session, per working style.
 
 ## 11. Chunk ledgers
 
-*(appended per execution session - none yet)*
+### C1 - the structure ✅ SHIPPED 2026-08-15, `[uncommitted]`, PO-verified in-game same day (all 10 checklist points pass)
+
+**What shipped, exactly as designed.** `kindOf` + `MobKind` live in
+`ZoneModel.ts` per §4.2, taking a minimal structural `MobKindDef`
+(`{role?, legacy?, interaction?}` - `factors` deliberately left off; that is
+C2's capability predicate, YAGNI here). `MobDefJSON` gained the three optional
+fields; `mobOptions` carries `kind`; the picker is five `<optgroup>`s in §4.3's
+order with `mobOptionSuffix` showing `cL`/tier on Combat and Legacy only (P2);
+`drawSpawnMarker` reads a `SPAWN_KIND_STYLE` map (§4.4's colours, all
+[PLACEHOLDER]) with combat keeping the exact old green and legacy as green at a
+0.45 alpha fade; selection stroke stays full-strength yellow (P4). Unknown mob
+names fall back to combat green rather than crashing the overlay build.
+`manual-zone-editor.md` §2/§5 rewritten (the "green diamonds" sentences are
+gone). **Schema NONE at every layer** (plan §5).
+
+**Findings:**
+
+- **The census is exact.** Fresh-grepped before building: 68 defs =
+  27 combat / 17 talkers / 10 fixtures / 4 companions / 10 legacy, with
+  exactly one legacy+structure overlap (Brazier) and zero legacy+interaction
+  overlaps. §1's table held to the def.
+- **Red-first without an injection seam:** a `kindOf` stub returning
+  `'combat'` unconditionally left 5 of the 7 new vitest units red on
+  assertions (not compile errors), then the real rule went green. One extra
+  pin beyond the plan's list: `role: 'creature'` (Wanderer's actual value)
+  falls through to combat - `role` has values beyond structure/follower and
+  the fall-through is now a test, not an assumption.
+- **Byte-identity proven with a temp instrument, then deleted:** a throwaway
+  vitest read `api/zones/world.json` from disk, serialized it through
+  `fromJSON` → `getZoneAsJSON` before and after the chunk; the 266 KB outputs
+  diffed empty (P6 holds). Gotcha for the next such test: jsdom rewrites
+  `import.meta.url` to a non-file scheme, so the file read needs an absolute
+  path, not a `new URL(relative, import.meta.url)`.
+- **One small call the plan left open:** the wander-radius disc and patrol
+  route previews took the owner bucket's colour too (one marker, one colour) -
+  so the Wanderer's amble disc is pink. Reads better, PO did not object.
+
+**Verified:** vitest **328/328** (was 321) · typecheck · prod build ·
+`go build ./...` · export byte-identical · a scratchpad DOM harness all green
+(5 groups in order, census 27/17/10/4/10, suffix on 37/37 Combat+Legacy and
+0/31 elsewhere, the stone with the Talkers (D3), Brazier in Legacy (P1),
+0 console errors; screenshots: village pink talkers vs prop red, farm venue,
+proving-grounds faded legacy) · **`c3-zone-editor-level.mjs` 7/7** (it owns
+the spawn panel and `drawSpawnMarker`, both touched) · boot 0 WARN / 0 ERROR ·
+`harnessdb -cleanup` run (5 accounts over the session). **Next: C2** - the
+controls, the respawn tri-state, and the talker round-trip that fixes the
+uneditable ascension stones (the "Invalid respawn ticks" refusal was re-seen
+during the PO checklist and stays the known C2 target).

@@ -14,7 +14,7 @@ import * as TextDisplay from '../../../client-data/TextDisplay';
 import {requireAll} from '../../common/logic/Utils';
 import {IGame} from '../../core/logic/IGame';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
-import {ZoneAnchor, ZoneCampfire, ZoneDarkArea, ZoneData, ZoneModel, ZoneProp, ZoneSpawn} from './ZoneModel';
+import {kindOf, MobKind, ZoneAnchor, ZoneCampfire, ZoneDarkArea, ZoneData, ZoneModel, ZoneProp, ZoneSpawn} from './ZoneModel';
 
 export interface PropTypeDef {
     name: string;
@@ -36,6 +36,12 @@ interface MobDefJSON {
     name: string;
     tier?: string;
     curveLevel?: number;
+    // The kindOf inputs (plan-zone-editor-structure.md D1), all optional
+    // because absence is the common case (36 defs author no role) and must
+    // classify as combat, never throw.
+    role?: string;
+    legacy?: boolean;
+    interaction?: object;
     factors?: { wanderRadius?: number };
 }
 
@@ -69,14 +75,31 @@ export const propTypes: PropTypeDef[] = propDefJSONs
 // apart — curveLevel (the numeric strength axis, GDD §5) and tier (the
 // encounter-role label, which multiplies nothing). Defaults mirror the server
 // loader (mobs/definitions.go): absent tier -> normal, absent curveLevel -> 1.
-// Alphabetical — the suffix is a label, it does not group.
-export const mobOptions: { name: string; curveLevel: number; tier: string }[] = mobDefJSONs
+// kind is the derived category (plan-zone-editor-structure.md D1); the panel
+// groups by it. Alphabetical, so each optgroup comes out sorted.
+export interface MobOption {
+    name: string;
+    curveLevel: number;
+    tier: string;
+    kind: MobKind;
+}
+
+export const mobOptions: MobOption[] = mobDefJSONs
     .map(def => ({
         name: def.name,
         curveLevel: def.curveLevel || 1,
         tier: def.tier || 'normal',
+        kind: kindOf(def),
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
+
+// Category by mob name, for the marker pass: a spawn referencing a name not
+// in the registry (a hand-authored zone drifted from api/mobs/) falls back to
+// combat rather than crashing the overlay build.
+const spawnKindByName: { [name: string]: MobKind } = {};
+mobDefJSONs.forEach(def => {
+    spawnKindByName[def.name] = kindOf(def);
+});
 
 // Type-level default wander radii (factors.wanderRadius) — a spawn without
 // its own radius inherits these, so the marker previews the effective disc.
@@ -127,6 +150,19 @@ let selection: Selection = null;
 const COLOR_BLOCKING = 0xF44336;
 const COLOR_DECORATIVE = 0x03A9F4;
 const COLOR_SPAWN = 0x4CAF50;
+// Spawn-marker style per derived category (plan-zone-editor-structure.md
+// §4.4, every colour [PLACEHOLDER]): the diamond shape still says "spawn
+// point", the colour says what kind. Combat keeps the historical green (435
+// of 488 placements, so the map a designer knows stays the map they know);
+// talker pink and companion brown steer clear of the prop red and dark-area
+// purple. fade < 1 only on legacy, which C3 deletes together with the defs.
+const SPAWN_KIND_STYLE: { [kind in MobKind]: { color: number; fade: number } } = {
+    combat: {color: COLOR_SPAWN, fade: 1},
+    talker: {color: 0xE91E63, fade: 1},
+    fixture: {color: 0x9E9E9E, fade: 1},
+    companion: {color: 0x795548, fade: 1},
+    legacy: {color: COLOR_SPAWN, fade: 0.45},
+};
 const COLOR_CAMPFIRE = 0xFF9800;
 const COLOR_DARK = 0x673AB7;
 const COLOR_ANCHOR = 0x00BCD4;
@@ -549,6 +585,9 @@ function drawPropMarker(prop: ZoneProp, selected: boolean): Container {
 
 function drawSpawnMarker(spawn: ZoneSpawn, selected: boolean): Container {
     let radiusPx = meter2px(SPAWN_MARKER_RADIUS);
+    // Unknown names (a hand-authored zone drifted from api/mobs/) draw as
+    // combat rather than crashing the overlay build.
+    let {color, fade} = SPAWN_KIND_STYLE[spawnKindByName[spawn.mob]] || SPAWN_KIND_STYLE.combat;
 
     let marker = new Container();
 
@@ -559,8 +598,8 @@ function drawSpawnMarker(spawn: ZoneSpawn, selected: boolean): Container {
         let inherited = spawn.wanderRadius === undefined;
         marker.addChild(new Graphics()
             .circle(0, 0, meter2px(wanderRadius))
-            .fill({color: COLOR_SPAWN, alpha: inherited ? 0.03 : 0.06})
-            .stroke({width: 2, color: COLOR_SPAWN, alpha: inherited ? 0.35 : 0.6}));
+            .fill({color, alpha: (inherited ? 0.03 : 0.06) * fade})
+            .stroke({width: 2, color, alpha: (inherited ? 0.35 : 0.6) * fade}));
     }
 
     // Patrol-route preview: polyline from the spawn through the ordered
@@ -574,10 +613,10 @@ function drawSpawnMarker(spawn: ZoneSpawn, selected: boolean): Container {
         if (spawn.patrolMode === 'loop' && spawn.waypoints.length > 1) {
             route.lineTo(meter2px(spawn.waypoints[0].x - spawn.x), meter2px(spawn.waypoints[0].y - spawn.y));
         }
-        route.stroke({width: 3, color: COLOR_SPAWN, alpha: 0.6});
+        route.stroke({width: 3, color, alpha: 0.6 * fade});
         spawn.waypoints.forEach(w => {
             route.circle(meter2px(w.x - spawn.x), meter2px(w.y - spawn.y), 10)
-                .fill({color: COLOR_SPAWN, alpha: 0.8});
+                .fill({color, alpha: 0.8 * fade});
         });
         marker.addChild(route);
         spawn.waypoints.forEach((w, i) => {
@@ -587,13 +626,17 @@ function drawSpawnMarker(spawn: ZoneSpawn, selected: boolean): Container {
         });
     }
 
+    // Selection stays full-strength yellow on every category, so the selected
+    // marker is unambiguous even against a faded legacy diamond.
     let graphic = new Graphics()
         .poly([0, -radiusPx, radiusPx, 0, 0, radiusPx, -radiusPx, 0])
-        .fill({color: COLOR_SPAWN, alpha: 0.25})
-        .stroke({width: selected ? 6 : 3, color: selected ? COLOR_SELECTED : COLOR_SPAWN})
+        .fill({color, alpha: 0.25 * fade})
+        .stroke(selected
+            ? {width: 6, color: COLOR_SELECTED}
+            : {width: 3, color, alpha: fade})
         .moveTo(0, 0)
         .lineTo(radiusPx, 0)
-        .stroke({width: 2, color: COLOR_SPAWN});
+        .stroke({width: 2, color, alpha: fade});
     graphic.rotation = spawn.angle;
     marker.addChild(graphic);
     // "Wolf L15" ONLY when the placement overrides the species level — an
