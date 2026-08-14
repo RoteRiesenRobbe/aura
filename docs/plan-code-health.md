@@ -1,6 +1,6 @@
 # Plan: Code Health Pass - deletions, duplication closure, live defects, drift pins
 
-**Status: C1-C5 SHIPPED - C1 2026-08-12 (`ca34800b`) · C2 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`) · C3 2026-08-14 (`6f0c08df`) · C4 2026-08-14 (`b5a88221`) · C5 2026-08-14 (`[uncommitted]`, ledgers below) - C6-C7 open (C7 independent; C5's "before or with C6" ordering is satisfied).** Sources: a three-sweep audit of this
+**Status: C1-C5 SHIPPED - C1 2026-08-12 (`ca34800b`) · C2 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`) · C3 2026-08-14 (`6f0c08df`) · C4 2026-08-14 (`b5a88221`) · C5 2026-08-14 (`38e36153`, ledgers below) - C6-C7 open (C7 independent; C5's "before or with C6" ordering is satisfied).** Sources: a three-sweep audit of this
 date (frontend magic numbers · cross-layer duplicated constants · frontend structural
 debt), `research-code-quality.md` §11.5 (whose recommended batch is absorbed here as C7,
 verified still fully open on 2026-08-12), and the standing gotchas in `CLAUDE.md`.
@@ -665,7 +665,7 @@ identical old value - behaviour-neutral by construction.
   boot-path harness, and BasicConfig/Graphics/BackendConstants are boot path) ·
   harness residue cleaned (`harnessdb -cleanup`, aurad stopped first).
 
-### C5 - Frontend duplication closure ✅ 2026-08-14, `[uncommitted]` · PO in-game glance same day
+### C5 - Frontend duplication closure ✅ 2026-08-14, `38e36153` · PO in-game glance same day
 
 **All three items shipped, and the behaviour-neutral criterion held at the live
 surface**: a new report-style capture script (`c5-bars.mjs`, see the harness-rider
