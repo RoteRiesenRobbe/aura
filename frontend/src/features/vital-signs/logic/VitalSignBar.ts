@@ -1,15 +1,16 @@
 import {VitalSign} from './VitalSigns';
 import {VitalSignChangedEvent} from '../../core/logic/Events';
+import {ProgressFill} from './ProgressFill';
 
 export class VitalSignBar {
     private readonly vitalSign: VitalSign;
-    private readonly indicator: HTMLElement;
+    private readonly fill: ProgressFill;
     private readonly negativeDeltaIndicator: HTMLElement;
     private readonly positiveDeltaIndicator: HTMLElement;
 
     constructor(node: HTMLElement, vitalSign: VitalSign) {
         this.vitalSign = vitalSign;
-        this.indicator = node.querySelector('.indicator');
+        this.fill = new ProgressFill(node);
         this.negativeDeltaIndicator = node.querySelector('.negativeDeltaIndicator');
         this.positiveDeltaIndicator = node.querySelector('.positiveDeltaIndicator');
 
@@ -28,7 +29,7 @@ export class VitalSignBar {
      */
     setValue(value: number, minPreviousValue: number, maxPreviousValue: number) {
         const indicatorWidth = (value * 100).toFixed(2) + '%';
-        this.indicator.style.scale = indicatorWidth + ' 1';
+        this.fill.setFraction(value);
 
         if (value < maxPreviousValue) {
             this.negativeDeltaIndicator.classList.remove('hidden');

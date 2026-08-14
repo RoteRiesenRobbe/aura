@@ -1,6 +1,6 @@
 # Plan: Code Health Pass - deletions, duplication closure, live defects, drift pins
 
-**Status: C1-C4 SHIPPED - C1 2026-08-12 (`ca34800b`) · C2 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`) · C3 2026-08-14 (`6f0c08df`) · C4 2026-08-14 (`b5a88221`, ledgers below) - C5-C7 open (C5 before or with C6, C7 independent).** Sources: a three-sweep audit of this
+**Status: C1-C5 SHIPPED - C1 2026-08-12 (`ca34800b`) · C2 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`) · C3 2026-08-14 (`6f0c08df`) · C4 2026-08-14 (`b5a88221`) · C5 2026-08-14 (`[uncommitted]`, ledgers below) - C6-C7 open (C7 independent; C5's "before or with C6" ordering is satisfied).** Sources: a three-sweep audit of this
 date (frontend magic numbers · cross-layer duplicated constants · frontend structural
 debt), `research-code-quality.md` §11.5 (whose recommended batch is absorbed here as C7,
 verified still fully open on 2026-08-12), and the standing gotchas in `CLAUDE.md`.
@@ -664,6 +664,82 @@ identical old value - behaviour-neutral by construction.
   quests) · `ctxloss-warning clean` **PASS** (0 warnings, 0 console errors - the
   boot-path harness, and BasicConfig/Graphics/BackendConstants are boot path) ·
   harness residue cleaned (`harnessdb -cleanup`, aurad stopped first).
+
+### C5 - Frontend duplication closure ✅ 2026-08-14, `[uncommitted]` · PO in-game glance same day
+
+**All three items shipped, and the behaviour-neutral criterion held at the live
+surface**: a new report-style capture script (`c5-bars.mjs`, see the harness-rider
+paragraph) sampled the overhead-bar geometry off the scene graph before and after
+the refactor, and the JSON is **byte-identical** (anchor y, bounds, fill scales,
+shield anchor position, pip offset); the only diff was the cast bar's
+timing-dependent fill fraction, matching its own inline value exactly in both runs.
+Every line ref was re-verified at `8af71602` first; the plan's one path error
+(EntityManager lives in `features/backend/logic/`, not `core/`) is recorded above.
+
+**Item 1 - `OverheadHealthBar`.** ⚑ **Plan call, deviating from the doc's "shared
+builder" wording: a small component CLASS** - the twins' `setHealth`/`setShield`/
+`layoutBars` bodies and member sets were byte-identical too, so the class collapses
+~3x more duplication than a builder and gives C6 exactly one restyle seam. The two
+deliberate asymmetries stay caller-owned: anchor y (constructor param) and parent -
+Character's bar on the unfiltered plate, the mob's on `shape` so it keeps night
+tint/corpse fade/darkness hide. `Mobs.nameplateY()`'s drifted third copy of the
+anchor expression now reads `overheadBar.anchorY`, making its "one expression"
+comment true again. Style constants exported by name for C6; **EffectPips'
+backdrop deferred to C6 as planned** (importing it from OverheadHealthBar would be
+a module cycle - both read Theme.ts then). The retyped color/alpha literals were
+diffed against HEAD's `initHealthBar` bodies: exact match.
+
+**Item 3 - the typed dispatch.** New pure type leaf `WireSetters.ts` (six narrow
+interfaces: OverheadVitals · AuraDisplay · LevelDisplay · MobPlate · DwellRing ·
+Interactable); Character/Mob/Campfire carry `implements` clauses and EntityManager
+reaches members via typed dot access through a `Partial<...>` cast, guards
+unchanged (props/corpses implement none of this - `isFunction` stays load-bearing).
+**The rename property was proven in both directions**: renaming `setTier` in the
+interface produced TS2551 at both call sites AND TS2420 at Mob's clause. The
+`setAuraTick` arity mismatch needed no runtime change (interface declares the
+widest shape; Mob's 2-param method is assignable). The dev-only `updateAABB`
+monkey-patch got typed on BOTH sides (completed `hasAABB`, producer assignment
+routed through it). Compiler assumption verified first: tsconfig is non-strict, so
+the pattern compiles without predicate typing. Non-goals recorded: `entity` stays
+implicitly `any`, the `gameObjectClasses` registry stays `unknown`-constructing.
+
+**Item 2 - `ProgressFill`.** One class (vital-signs/logic) owns the `.indicator`
+scale write; `VitalSignBar` composes it, cast + flight bars instantiate it, and the
+two hand-rolled `style.width` writers died. Their LESS moved to `width: 100%;
+scale: 0 1; transform-origin: left center` with **deliberately no transition** (the
+33 ms smoothing stays the vital bars' own), so the per-tick jump renders as before;
+HUD keeps all text, the L25 visibility-vs-display rule, and the flight bar's
+client-inferred denominator. `HUD.html`/`HUD.mobile.less` untouched as planned.
+⚑ Ledger note: Chrome normalizes a percent `scale` back to a number on inline
+read-back (`"0.3333 1"` where jsdom returns `"33.33% 1"` verbatim) - same render,
+recorded so nobody chases it in harness output.
+
+**Harness riders, all moved WITH the chunk per the standing rule:** ⚑
+**`n1-shield-bar.mjs` had been silently UNRUNNABLE since step 8a chunk 2** - it
+still joined through the dead `#startForm` path and timed out before asserting
+anything; pre-existing rot found by this chunk's owed re-run, fixed here (join
+migrated to `joinAsNewCharacter`) because C5 owns the fills it asserts · n1's
+scene-graph reads now go through `character.overheadBar` · `c3-flight-client.mjs`'s
+`barFill` read moved width → scale · `chunk3-charm.mjs`'s pip-offset comment
+refreshed (its structural walk needed no change) · **new `c5-bars.mjs`** kept in
+the verify dir with a SKILL.md row as a report-style before/after geometry capture,
+reusable for C6's theme pass.
+
+- **Schema impact: NONE.** Backend untouched (`go build ./...` green anyway).
+- **Verified:** red-first proven at both new surfaces (falsified pip gap + width
+  clamp → exactly 3 component tests red, restore green; the `setTier` rename →
+  compile errors both directions) · vitest **315/315** (was 300: +12
+  OverheadHealthBar, +3 ProgressFill) · typecheck · prod build (3 standing bundle
+  warnings) · `c5-bars` geometry **byte-identical before/after** · owning
+  harnesses each on a fresh server: `r4-recall-utility` **13/13** ·
+  `n1-shield-bar` **4/4** · `c3-flight-client` **35/35** (fill growth green under
+  the scale mechanism) · `r4-badge` vanilla **7/7** · `ctxloss-warning clean`
+  **PASS** · boot 0 WARN / 0 ERROR · harness residue cleaned (`harnessdb
+  -cleanup`, aurad stopped first) · **PO in-game glance 2026-08-14**, with one
+  question answered in-session: cast and flight bar are ONE system by design
+  (same geometry/text/fill mechanism), differing only in fill color (gold vs
+  campfire orange), the L25 show/hide rule, and the flight bar's client-inferred
+  denominator.
 
 ## Open questions
 

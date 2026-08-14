@@ -13,6 +13,15 @@ import {Vector} from '../../core/logic/Vector';
 import {IMiniMapRendered} from '../../map/logic/MiniMapInterfaces';
 import {MiniMap} from '../../map/logic/MiniMap';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
+import type {
+    AuraDisplay,
+    DwellRing,
+    Interactable,
+    LevelDisplay,
+    MobPlate,
+    OverheadVitals,
+} from '../../game-objects/logic/WireSetters';
+import type {hasAABB} from '../../internal-tools/develop/logic/AABBs';
 
 
 export class EntityManager {
@@ -43,7 +52,7 @@ export class EntityManager {
                     gameObject.setRotation(entity.rotation);
                 }
                 if (Develop.isActive()) {
-                    gameObject['updateAABB'](entity.aabb);
+                    (gameObject as GameObject & hasAABB).updateAABB(entity.aabb);
                 }
             }
 
@@ -68,59 +77,66 @@ export class EntityManager {
             }
 
             if (Develop.isActive()) {
-                gameObject['updateAABB'](entity.aabb);
+                (gameObject as GameObject & hasAABB).updateAABB(entity.aabb);
             }
         }
+
+        // The wire-setter surface, typed (WireSetters.ts): the isFunction
+        // guards are load-bearing at runtime — props/corpses/DebugCircle
+        // implement none of these — while the dot access makes a rename a
+        // compile error instead of a silently-dead feature.
+        const go = gameObject as GameObject &
+            Partial<OverheadVitals & AuraDisplay & LevelDisplay & MobPlate & DwellRing>;
 
         if (entity.type === Character) {
             const character: Character = gameObject as Character;
 
-            if (isDefined(entity.level) && isFunction(character['setLevel'])) {
-                character['setLevel'](entity.level);
+            if (isDefined(entity.level) && isFunction(character.setLevel)) {
+                character.setLevel(entity.level);
             }
             // Ring colours come from the server-resolved effect-category
             // bitmask (0 = no aura → no rings); triage item 7 replaced the
             // client-side skill-ID mapping this used to do.
-            if (isDefined(entity.auraCategory) && isFunction(character['setAuraCategories'])) {
-                character['setAuraCategories'](entity.auraCategory);
+            if (isDefined(entity.auraCategory) && isFunction(character.setAuraCategories)) {
+                character.setAuraCategories(entity.auraCategory);
             }
-            if (isDefined(entity.auraRadius) && isFunction(character['setAuraRadius'])) {
-                character['setAuraRadius'](entity.auraRadius);
+            if (isDefined(entity.auraRadius) && isFunction(character.setAuraRadius)) {
+                character.setAuraRadius(entity.auraRadius);
             }
         } else {
             // Mob aura ring (mob-depth chunk 3c): wire-driven effective
             // radius in px, 0 while the aura is gated → ring hidden. Categories
             // colour it the same way as a player's (triage item 7).
-            if (isDefined(entity.auraCategory) && isFunction(gameObject['setAuraCategories'])) {
-                gameObject['setAuraCategories'](entity.auraCategory);
+            if (isDefined(entity.auraCategory) && isFunction(go.setAuraCategories)) {
+                go.setAuraCategories(entity.auraCategory);
             }
-            if (isDefined(entity.auraRadius) && isFunction(gameObject['setAuraRadius'])) {
-                gameObject['setAuraRadius'](entity.auraRadius);
+            if (isDefined(entity.auraRadius) && isFunction(go.setAuraRadius)) {
+                go.setAuraRadius(entity.auraRadius);
             }
             // Portrait frame ring by authored tier (triage item 15).
-            if (isDefined(entity.tier) && isFunction(gameObject['setTier'])) {
-                gameObject['setTier'](entity.tier);
+            if (isDefined(entity.tier) && isFunction(go.setTier)) {
+                go.setTier(entity.tier);
             }
             // Species id → the level-tinted nameplate, resolved against the
             // /mobs catalog (feedback pass C item 2). Sent every tick like the
             // rest; the mob rebuilds the plate only when the id actually
             // changes (i.e. once).
-            if (isDefined(entity.mobId) && isFunction(gameObject['setMobId'])) {
-                gameObject['setMobId'](entity.mobId);
+            if (isDefined(entity.mobId) && isFunction(go.setMobId)) {
+                go.setMobId(entity.mobId);
             }
             // Effective level of THIS instance (plan-mob-levels.md C2), fed
             // after setMobId so the species is known when the plate text is
             // built. Sent every tick like the rest; the mob re-renders the
             // plate only when the number actually changes.
-            if (isDefined(entity.mobLevel) && isFunction(gameObject['setLevel'])) {
-                gameObject['setLevel'](entity.mobLevel);
+            if (isDefined(entity.mobLevel) && isFunction(go.setLevel)) {
+                go.setLevel(entity.mobLevel);
             }
         }
 
         // Buff/debuff pips (applied_effects): the kinds currently applied TO
         // the entity — characters and mobs alike; 0 hides the strip.
-        if (isDefined(entity.appliedEffects) && isFunction(gameObject['setAppliedEffects'])) {
-            gameObject['setAppliedEffects'](entity.appliedEffects);
+        if (isDefined(entity.appliedEffects) && isFunction(go.setAppliedEffects)) {
+            go.setAppliedEffects(entity.appliedEffects);
         }
 
         // Bare aura tick indicator (skill-vocab chunk 6): the wire cadence +
@@ -129,14 +145,14 @@ export class EntityManager {
         // The active skill id keys the N5 beat detection on characters (an
         // aura switch resets the server accumulator, and the key is what stops
         // that reset reading as a beat); mobs carry none → 0.
-        if (isDefined(entity.auraTickInterval) && isFunction(gameObject['setAuraTick'])) {
-            gameObject['setAuraTick'](entity.auraTickInterval, entity.auraTickPhase, entity.activeSkillId ?? 0);
+        if (isDefined(entity.auraTickInterval) && isFunction(go.setAuraTick)) {
+            go.setAuraTick(entity.auraTickInterval, entity.auraTickPhase, entity.activeSkillId ?? 0);
         }
 
         // Campfire bind circle (chunk 4): wire-driven dwell radius in px,
         // 0 for everything that is not a respawn anchor.
-        if (isDefined(entity.dwellRadius) && isFunction(gameObject['setDwellRadius'])) {
-            gameObject['setDwellRadius'](entity.dwellRadius);
+        if (isDefined(entity.dwellRadius) && isFunction(go.setDwellRadius)) {
+            go.setDwellRadius(entity.dwellRadius);
         }
 
         // Light hole in the darkness overlay (chunk 3): characters and mobs
@@ -152,13 +168,13 @@ export class EntityManager {
             }
         }
 
-        if (isDefined(entity.health) && isFunction(gameObject['setHealth'])) {
-            gameObject['setHealth'](entity.health, entity.maxHealth);
+        if (isDefined(entity.health) && isFunction(go.setHealth)) {
+            go.setHealth(entity.health, entity.maxHealth);
         }
 
         // Shield segment on the overhead bar (skill-vocab chunk 2); 0 hides it.
-        if (isDefined(entity.shieldHp) && isFunction(gameObject['setShield'])) {
-            gameObject['setShield'](entity.shieldHp, entity.maxHealth);
+        if (isDefined(entity.shieldHp) && isFunction(go.setShield)) {
+            go.setShield(entity.shieldHp, entity.maxHealth);
         }
 
         // Floating combat numbers (item 11): damage on mobs + other players,
@@ -262,17 +278,18 @@ const MOB_FADE_DURATION_MS = 1500;
 // viewport a fresh game object is built; the fading shape is independent.
 function fadeOutAndHide(gameObject: GameObject) {
     const shape = gameObject.shape;
+    const go = gameObject as GameObject & Partial<AuraDisplay & Interactable>;
     // A fading corpse must read as harmless: hide the aura ring immediately
     // (its glow suggests damage is still ticking).
-    if (isFunction(gameObject['setAuraRadius'])) {
-        gameObject['setAuraRadius'](0);
+    if (isFunction(go.setAuraRadius)) {
+        go.setAuraRadius(0);
     }
     // Same reason, and it has to happen HERE (R4): the object is already out of
     // `this.objects`, so Backend's next retarget cannot resolve the id and its
     // setInteractable(false) never lands — the "press E" cap would ride the
     // corpse for the whole fade over something that can no longer be talked to.
-    if (isFunction(gameObject['setInteractable'])) {
-        gameObject['setInteractable'](false);
+    if (isFunction(go.setInteractable)) {
+        go.setInteractable(false);
     }
     const start = performance.now();
     const fade = () => {

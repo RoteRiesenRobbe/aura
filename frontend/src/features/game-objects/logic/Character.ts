@@ -23,8 +23,8 @@ import * as TextDisplay from '../../../client-data/TextDisplay';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
 import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../map/logic/MiniMapInterfaces';
 import {AuraRingStack} from './AuraRings';
-import {EffectPips} from './EffectPips';
-import {shieldBarSegments} from './ShieldBarMath';
+import {OverheadHealthBar} from './OverheadHealthBar';
+import type {AuraDisplay, LevelDisplay, OverheadVitals} from './WireSetters';
 import {BeatDetector} from './AuraBeat';
 
 let Game: IGame = null;
@@ -32,7 +32,8 @@ GameSetupEvent.subscribe((game: IGame) => {
     Game = game;
 });
 
-export class Character extends GameObject implements ICharacterLike, IMiniMapRendered {
+export class Character extends GameObject
+    implements ICharacterLike, IMiniMapRendered, OverheadVitals, AuraDisplay, LevelDisplay {
     static avatar: ISvgContainer = {svg: undefined};
     static readonly DOWNWARD_FACING_ROTATION = Math.PI / 2;
 
@@ -44,21 +45,11 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     movementSpeed: number;
 
     actualShape: Container;
-    private healthFillGroup: Container;
-    // Absorb segment on the overhead bar (skill-vocab chunk 2, bare).
-    private shieldFillGroup: Container;
-    // Raw wire values, kept so either setter can re-derive BOTH bar segments —
-    // the split depends on health + shield together (N1, shieldBarSegments).
-    private lastHealth: number = 1;
-    private lastMaxHealth: number = 1;
-    private lastShieldHp: number = 0;
-    private barInnerX: number = 0;
-    private barInnerWidth: number = 0;
     private auraRings: AuraRingStack;
-    // Buff/debuff pips under the overhead bar (wire applied_effects). Created
-    // in initHealthBar (constructor body), so an initializer here is safe —
-    // unlike fields assigned in initShape.
-    private effectPips: EffectPips = null;
+    // The overhead health/shield bar + effect pips (shared component since
+    // plan-code-health.md C5). Created in initHealthBar (constructor body),
+    // so an initializer here is safe — unlike fields assigned in initShape.
+    private overheadBar: OverheadHealthBar = null;
     // Bare tick indicator (skill-vocab chunk 6): a dot orbiting the aura ring
     // once per effective tick interval, so the beat is visible.
     private auraTickIndicator: AuraTickIndicator = null;
@@ -187,38 +178,18 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     }
 
     setHealth(health: number, maxHealth: number) {
-        this.lastHealth = health;
-        this.lastMaxHealth = maxHealth;
-        this.layoutBars();
+        this.overheadBar.setHealth(health, maxHealth);
     }
 
-    // setShield renders the absorb segment (skill-vocab chunk 2, bare);
-    // 0 hides it. Split maths shared with the HUD bar via shieldBarSegments
-    // (N1): the shield sits directly after the health fill and always fits,
-    // because the bar's denominator is total effective HP.
     setShield(shieldHp: number, maxHealth: number) {
-        this.lastShieldHp = shieldHp;
-        this.lastMaxHealth = maxHealth;
-        this.layoutBars();
-    }
-
-    private layoutBars() {
-        const {healthFraction, shieldFraction} =
-            shieldBarSegments(this.lastHealth, this.lastShieldHp, this.lastMaxHealth);
-        this.healthFillGroup.scale.x = healthFraction;
-        if (!this.shieldFillGroup) {
-            return;
-        }
-        this.shieldFillGroup.visible = shieldFraction > 0;
-        this.shieldFillGroup.scale.x = shieldFraction;
-        this.shieldFillGroup.position.x = this.barInnerX + healthFraction * this.barInnerWidth;
+        this.overheadBar.setShield(shieldHp, maxHealth);
     }
 
     // setAppliedEffects drives the buff/debuff pips from the wire
     // applied_effects bitmask: the kinds currently applied TO this character
     // (a dot no longer waits for its first damage tick to become visible).
     setAppliedEffects(mask: number) {
-        this.effectPips?.setMask(mask);
+        this.overheadBar?.setAppliedEffects(mask);
     }
 
     /**
@@ -327,54 +298,12 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     }
 
     private initHealthBar() {
-        const barWidth = Math.min(160, Math.max(30, this.size * 0.9));
-        const barHeight = Math.max(5, Math.min(10, barWidth * 0.12));
-        const borderWidth = 1;
-
-        const bar = new Container();
         // Below the avatar (positive y is down); item-11 VFX pass moved the
         // overhead bar under. The HUD health bar (bottom-right) is separate.
-        bar.y = Math.max(48, this.size * 1.7);
-
-        bar.addChild(
-            new Graphics()
-                .rect(-barWidth / 2, -barHeight / 2, barWidth, barHeight)
-                .fill({color: 0x000000, alpha: 0.6})
-                .stroke({width: borderWidth, color: 0xffffff, alpha: 0.35}),
-        );
-
-        const innerWidth = barWidth - 2 * borderWidth;
-        const innerHeight = barHeight - 2 * borderWidth;
-        this.healthFillGroup = new Container();
-        this.healthFillGroup.position.set(-innerWidth / 2, -innerHeight / 2);
-        this.healthFillGroup.addChild(
-            new Graphics()
-                .rect(0, 0, innerWidth, innerHeight)
-                .fill({color: 0xaa3b3b, alpha: 0.9}),
-        );
-        bar.addChild(this.healthFillGroup);
-
-        // Absorb segment (skill-vocab chunk 2); laid out by layoutShieldFill.
-        this.barInnerX = -innerWidth / 2;
-        this.barInnerWidth = innerWidth;
-        this.shieldFillGroup = new Container();
-        this.shieldFillGroup.position.set(-innerWidth / 2, -innerHeight / 2);
-        this.shieldFillGroup.addChild(
-            new Graphics()
-                .rect(0, 0, innerWidth, innerHeight)
-                .fill({color: 0x7dc3ff, alpha: 0.75}),
-        );
-        this.shieldFillGroup.visible = false;
-        bar.addChild(this.shieldFillGroup);
-
-        // Buff/debuff pips just under the bar; on the plate they stay readable
-        // under the night tint, like the bar itself.
-        this.effectPips = new EffectPips();
-        this.effectPips.container.y = barHeight / 2 + 9;
-        bar.addChild(this.effectPips.container);
-
-        this.plate.addChild(bar);
-        this.setHealth(1, 1); // full until the first snapshot
+        // On the plate, the bar and its pips stay readable under the night
+        // tint (unlike the mob bar, which deliberately rides `shape`).
+        this.overheadBar = new OverheadHealthBar(this.size, Math.max(48, this.size * 1.7));
+        this.plate.addChild(this.overheadBar.container);
     }
 
     // hide() is terminal for a Character (viewport removal / death both build

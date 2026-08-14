@@ -13,9 +13,9 @@ import * as PIXI from 'pixi.js';
 import {createInjectedSVG} from "../../core/logic/InjectedSVG";
 import {AuraTickIndicator} from './AuraTickIndicator';
 import {AuraRingStack} from './AuraRings';
-import {EffectPips} from './EffectPips';
+import {OverheadHealthBar} from './OverheadHealthBar';
+import type {AuraDisplay, DwellRing, Interactable, LevelDisplay, MobPlate, OverheadVitals} from './WireSetters';
 import {InteractBadge} from './InteractBadge';
-import {shieldBarSegments} from './ShieldBarMath';
 import {BeatDetector} from './AuraBeat';
 import {meter2px} from "../../../client-data/BasicConfig";
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
@@ -65,24 +65,16 @@ const NAMEPLATE_GAP = 16;
 // player-character lavender. [PLACEHOLDER]
 const CONVERSANT_PLATE_COLOR = 0xffffff;
 
-export abstract class Mob extends GameObject {
+export abstract class Mob extends GameObject
+    implements OverheadVitals, AuraDisplay, LevelDisplay, MobPlate, Interactable {
 
     protected actualShape: PIXI.Container;
-    private healthFillGroup: PIXI.Container;
-    // Absorb segment on the overhead bar (skill-vocab chunk 2, bare).
-    private shieldFillGroup: PIXI.Container;
-    // Raw wire values, kept so either setter can re-derive BOTH bar segments —
-    // the split depends on health + shield together (N1, shieldBarSegments).
-    private lastHealth: number = 1;
-    private lastMaxHealth: number = 1;
-    private lastShieldHp: number = 0;
-    private barInnerX: number = 0;
-    private barInnerWidth: number = 0;
     private auraRings: AuraRingStack = null;
-    // Buff/debuff pips under the overhead bar (wire applied_effects). Created
-    // in initHealthBar (constructor body, after field initializers), so the
-    // initializer here is safe — unlike fields assigned in initShape.
-    private effectPips: EffectPips = null;
+    // The overhead health/shield bar + effect pips (shared component since
+    // plan-code-health.md C5). Created in initHealthBar (constructor body,
+    // after field initializers), so the initializer here is safe — unlike
+    // fields assigned in initShape.
+    private overheadBar: OverheadHealthBar = null;
     // Tier frame ring (triage item 15); tierRank caches the last drawn rank so
     // the Graphics is only rebuilt when the tier actually changes, not per tick.
     //
@@ -234,11 +226,10 @@ export abstract class Mob extends GameObject {
             : definition.displayName;
     }
 
-    // Y offset of the plate text: under the overhead bar, whose own offset is
-    // derived from the mob size in initHealthBar — kept in one expression so
-    // the two cannot drift apart.
+    // Y offset of the plate text: under the overhead bar, read off the bar's
+    // own anchor so the two cannot drift apart.
     private nameplateY(): number {
-        return Math.max(30, this.size * 0.9) + NAMEPLATE_GAP;
+        return this.overheadBar.anchorY + NAMEPLATE_GAP;
     }
 
     /**
@@ -366,7 +357,7 @@ export abstract class Mob extends GameObject {
     // applied_effects bitmask: the kinds currently applied TO this mob — your
     // dot on it is visible between damage ticks, a slowed mob reads as slowed.
     setAppliedEffects(mask: number) {
-        this.effectPips?.setMask(mask);
+        this.overheadBar?.setAppliedEffects(mask);
     }
 
     // setAuraCategories drives the ring colours from the wire Mob.aura_category
@@ -463,32 +454,11 @@ export abstract class Mob extends GameObject {
     }
 
     setHealth(health: number, maxHealth: number) {
-        this.lastHealth = health;
-        this.lastMaxHealth = maxHealth;
-        this.layoutBars();
+        this.overheadBar.setHealth(health, maxHealth);
     }
 
-    // setShield renders the absorb segment (skill-vocab chunk 2, bare);
-    // 0 hides it. Mirrors Character.setShield (the two overhead bars share
-    // no base); split maths shared via shieldBarSegments (N1) — the shield
-    // sits directly after the health fill and always fits, because the bar's
-    // denominator is total effective HP.
     setShield(shieldHp: number, maxHealth: number) {
-        this.lastShieldHp = shieldHp;
-        this.lastMaxHealth = maxHealth;
-        this.layoutBars();
-    }
-
-    private layoutBars() {
-        const {healthFraction, shieldFraction} =
-            shieldBarSegments(this.lastHealth, this.lastShieldHp, this.lastMaxHealth);
-        this.healthFillGroup.scale.x = healthFraction;
-        if (!this.shieldFillGroup) {
-            return;
-        }
-        this.shieldFillGroup.visible = shieldFraction > 0;
-        this.shieldFillGroup.scale.x = shieldFraction;
-        this.shieldFillGroup.position.x = this.barInnerX + healthFraction * this.barInnerWidth;
+        this.overheadBar.setShield(shieldHp, maxHealth);
     }
 
     protected override createStatusEffects() {
@@ -498,53 +468,11 @@ export abstract class Mob extends GameObject {
     }
 
     private initHealthBar() {
-        const barWidth = Math.min(160, Math.max(30, this.size * 0.9));
-        const barHeight = Math.max(5, Math.min(10, barWidth * 0.12));
-        const borderWidth = 1;
-
-        const bar = new PIXI.Container();
         // Below the mob (positive y is down); item-11 VFX pass moved it under.
-        bar.y = Math.max(30, this.size * 0.9);
-
-        bar.addChild(
-            new PIXI.Graphics()
-                .rect(-barWidth / 2, -barHeight / 2, barWidth, barHeight)
-                .fill({color: 0x000000, alpha: 0.6})
-                .stroke({width: borderWidth, color: 0xffffff, alpha: 0.35}),
-        );
-
-        const innerWidth = barWidth - 2 * borderWidth;
-        const innerHeight = barHeight - 2 * borderWidth;
-        this.healthFillGroup = new PIXI.Container();
-        this.healthFillGroup.position.set(-innerWidth / 2, -innerHeight / 2);
-        this.healthFillGroup.addChild(
-            new PIXI.Graphics()
-                .rect(0, 0, innerWidth, innerHeight)
-                .fill({color: 0xaa3b3b, alpha: 0.9}),
-        );
-        bar.addChild(this.healthFillGroup);
-
-        // Absorb segment (skill-vocab chunk 2); laid out by layoutShieldFill.
-        this.barInnerX = -innerWidth / 2;
-        this.barInnerWidth = innerWidth;
-        this.shieldFillGroup = new PIXI.Container();
-        this.shieldFillGroup.position.set(-innerWidth / 2, -innerHeight / 2);
-        this.shieldFillGroup.addChild(
-            new PIXI.Graphics()
-                .rect(0, 0, innerWidth, innerHeight)
-                .fill({color: 0x7dc3ff, alpha: 0.75}),
-        );
-        this.shieldFillGroup.visible = false;
-        bar.addChild(this.shieldFillGroup);
-
-        // Buff/debuff pips just under the bar (mirrors Character.initHealthBar;
-        // the two overhead bars share no base).
-        this.effectPips = new EffectPips();
-        this.effectPips.container.y = barHeight / 2 + 9;
-        bar.addChild(this.effectPips.container);
-
-        this.shape.addChild(bar);
-        this.setHealth(1, 1); // full until the first snapshot
+        // On `shape` (not the plate) the bar inherits the night tint, the
+        // corpse fade and the darkness hide — deliberate, unlike Character's.
+        this.overheadBar = new OverheadHealthBar(this.size, Math.max(30, this.size * 0.9));
+        this.shape.addChild(this.overheadBar.container);
     }
 }
 
@@ -742,7 +670,7 @@ Preloading.registerGameObjectSVG(Healer, file('healer'), maxSize('healer'));
 // The fixed world campfire (atmosphere & recovery chunk 2): a permanent
 // aligned heal fixture. Brazier pattern — stationary, structurally unkillable
 // (Viewport-only body layer), pure aura carrier. Fixed size.
-export class Campfire extends Mob {
+export class Campfire extends Mob implements DwellRing {
     static svg: PIXI.Texture;
 
     private dwellRing: PIXI.Graphics = null;

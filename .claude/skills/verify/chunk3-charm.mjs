@@ -133,8 +133,8 @@ const gaps = () => page.evaluate(`
 `);
 
 // The pip strip is a Container holding exactly one Graphics, parked BELOW the
-// overhead bar at x=0, y>0 (Mobs.initHealthBar: effectPips.container.y =
-// barHeight/2 + 9). The bar's own fill groups are the other single-Graphics
+// overhead bar at x=0, y>0 (OverheadHealthBar: effectPips.container.y =
+// barHeight/2 + OVERHEAD_BAR_PIP_GAP). The bar's own fill groups are the other single-Graphics
 // containers in that subtree and both sit at a NEGATIVE-or-mirrored x, which is
 // what separates them; everything above the bar sits at y=0.
 //

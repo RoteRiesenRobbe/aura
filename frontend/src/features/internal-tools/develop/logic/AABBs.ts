@@ -8,7 +8,7 @@ let Develop: IDevelop = null;
 export interface hasAABB {
     aabb: Graphics;
     aabbConnector: Graphics;
-    // updateAABB: (aabb) => void;
+    updateAABB(aabb: { LowerX: number; LowerY: number; UpperX: number; UpperY: number }): void;
     hideAABB: () => void;
     showAABB: () => void;
 }
@@ -16,7 +16,9 @@ export interface hasAABB {
 export function setup(develop: IDevelop) {
     Develop = develop;
 
-    GameObject.prototype['updateAABB'] = function (aabb: { LowerX: number; LowerY: number; UpperX: number; UpperY: number; }) {
+    // Typed through hasAABB (not a bracket-string write), so a rename here or
+    // at EntityManager's call sites is a compile error, never a silent no-op.
+    (GameObject.prototype as GameObject & hasAABB).updateAABB = function (aabb: { LowerX: number; LowerY: number; UpperX: number; UpperY: number; }) {
         if (!(Develop.settings.showAABBs && //
             aabb && //
             !isUndefined(aabb.LowerX) && //

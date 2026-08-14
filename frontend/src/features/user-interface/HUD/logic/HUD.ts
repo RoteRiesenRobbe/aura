@@ -19,6 +19,7 @@ import {attachSkillTooltips, setAvailableSkillPoints} from './SkillTooltip';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
 import * as AlertBanner from '../../alert-banner/logic/AlertBanner';
 import {VitalSignBar} from '../../../vital-signs/logic/VitalSignBar';
+import {ProgressFill} from '../../../vital-signs/logic/ProgressFill';
 import {IGame} from "../../../core/logic/IGame";
 import {UserInteraceDomReadyEvent} from '../../../core/logic/Events';
 import {VitalSign} from '../../../vital-signs/logic/VitalSigns';
@@ -74,10 +75,10 @@ let healthBarTextElement: HTMLElement;
 let xpBarTextElement: HTMLElement;
 let shieldIndicatorElement: HTMLElement;
 let castBarElement: HTMLElement;
-let castBarIndicatorElement: HTMLElement;
+let castBarFill: ProgressFill;
 let castBarTextElement: HTMLElement;
 let flightBarElement: HTMLElement;
-let flightBarIndicatorElement: HTMLElement;
+let flightBarFill: ProgressFill;
 let flightBarTextElement: HTMLElement;
 
 Preloading.renderPartial(require('../assets/HUD.html'), () => {
@@ -153,10 +154,10 @@ function setupVitalSigns() {
     xpBarTextElement = document.querySelector('#xpBar .barText');
     shieldIndicatorElement = document.querySelector('#healthBar .shieldIndicator');
     castBarElement = document.getElementById('castBar');
-    castBarIndicatorElement = castBarElement?.querySelector('.indicator');
+    castBarFill = castBarElement ? new ProgressFill(castBarElement) : null;
     castBarTextElement = castBarElement?.querySelector('.barText');
     flightBarElement = document.getElementById('flightBar');
-    flightBarIndicatorElement = flightBarElement?.querySelector('.indicator');
+    flightBarFill = flightBarElement ? new ProgressFill(flightBarElement) : null;
     flightBarTextElement = flightBarElement?.querySelector('.barText');
 }
 
@@ -181,7 +182,7 @@ export function updateCastBar(skillId: number, ticksLeft: number, ticksTotal: nu
         return;
     }
     const progress = Math.min(Math.max(1 - ticksLeft / ticksTotal, 0), 1);
-    castBarIndicatorElement.style.width = `${progress * 100}%`;
+    castBarFill.setFraction(progress);
     const name = utilityKind > 0 ? Utilities.utilityDisplayName(utilityKind) : skillDisplayName(skillId);
     castBarTextElement.textContent =
         `${name} ${(ticksLeft * Constants.SERVER_TICKRATE / 1000).toFixed(1)}s`;
@@ -295,7 +296,7 @@ export function updateFlight(flying: boolean, ticksLeft: number) {
     const progress = flightTicksTotal > 0
         ? Math.min(Math.max(1 - ticksLeft / flightTicksTotal, 0), 1)
         : 0;
-    flightBarIndicatorElement.style.width = `${progress * 100}%`;
+    flightBarFill.setFraction(progress);
     flightBarTextElement.textContent =
         `Flying — ${(ticksLeft * Constants.SERVER_TICKRATE / 1000).toFixed(1)}s`;
 }

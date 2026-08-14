@@ -371,9 +371,15 @@
 		visibility: visible;
 	}
 
+	// Fill driven by ProgressFill via the scale property (code-health C5,
+	// the vital-sign bars' mechanism). Deliberately NO transition — a cast
+	// tick jumps, only the vital bars smooth. `scale: 0 1` keeps the fill
+	// invisible before the first update, like the old `width: 0` did.
 	> .indicator {
 		height: 100%;
-		width: 0;
+		width: 100%;
+		scale: 0 1;
+		transform-origin: left center;
 		background-color: #E0B23C;
 	}
 
@@ -416,9 +422,12 @@
 		display: block;
 	}
 
+	// Same ProgressFill mechanism and no-transition rule as the cast bar's.
 	> .indicator {
 		height: 100%;
-		width: 0;
+		width: 100%;
+		scale: 0 1;
+		transform-origin: left center;
 		background-color: #E37313;
 	}
 

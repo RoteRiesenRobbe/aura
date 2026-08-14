@@ -29,7 +29,7 @@
 // Usage: node .claude/skills/verify/n1-shield-bar.mjs [label] [url]
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
-import { botName } from './botname.mjs';
+import { joinAsNewCharacter } from './lib/join.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -52,17 +52,18 @@ const ctxLosses = [];
 const results = [];
 const check = (name, pass, detail) => results.push({ check: name, pass, detail });
 
-const newPlayer = async (name) => {
+// Joins through the account screens (lib/join.mjs) — the old #startForm name
+// field died with step 8a chunk 2, and this script rotted at the join until
+// the code-health C5 re-run caught it.
+const newPlayer = async (tag) => {
   const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
   page.on('console', (m) => {
-    if (m.type() === 'error') consoleErrors.push(`[${name}] ` + m.text());
-    if (/webgl.*context lost/i.test(m.text())) ctxLosses.push(name);
+    if (m.type() === 'error') consoleErrors.push(`[${tag}] ` + m.text());
+    if (/webgl.*context lost/i.test(m.text())) ctxLosses.push(tag);
   });
-  page.on('pageerror', (e) => consoleErrors.push(`[${name}] pageerror: ` + e.message));
+  page.on('pageerror', (e) => consoleErrors.push(`[${tag}] pageerror: ` + e.message));
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
-  await page.waitForSelector('#startForm .playerNameSubmit:not([disabled])', { timeout: 120_000 });
-  await page.fill('#startForm .playerNameInput', name);
-  await page.click('#startForm .playerNameSubmit');
+  await joinAsNewCharacter(page, tag);
   await page.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 });
   await page.waitForSelector('#console_command', { state: 'attached', timeout: 60_000 });
   await page.evaluate(() => { const p = document.getElementById('developPanel'); if (p) p.style.display = 'none'; });
@@ -123,12 +124,14 @@ const equipAndActivateAura = async (page, skillRe, slotIndex = 0) => {
 
 // One atomic sample of both bars on a page (one page.evaluate — the world
 // moves between round trips). TS `private` is compile-time only, so the
-// overhead bar's fill groups are readable off window.game.character.
+// overhead bar's fill groups are readable off window.game.character — since
+// code-health C5 they live on the extracted `overheadBar` component.
 const sampleBars = (page) => page.evaluate(() => {
   const el = document.querySelector('#healthBar .shieldIndicator');
   const t = document.querySelector('#healthBar .barText')?.textContent || '';
   const m = t.match(/(\d+)\s*\/\s*(\d+)/);
   const ch = window.game.character;
+  const ob = ch?.overheadBar;
   return {
     display: el?.style.display ?? 'missing',
     left: parseFloat(el?.style.left) || 0,
@@ -136,19 +139,19 @@ const sampleBars = (page) => page.evaluate(() => {
     cur: m ? +m[1] : null,
     max: m ? +m[2] : null,
     level: ch?.levelElement?.text ?? null,
-    overhead: ch ? {
-      healthScale: ch.healthFillGroup?.scale.x,
-      shieldScale: ch.shieldFillGroup?.scale.x,
-      shieldVisible: ch.shieldFillGroup?.visible,
-      shieldX: ch.shieldFillGroup?.position.x,
-      barInnerX: ch.barInnerX,
-      barInnerWidth: ch.barInnerWidth,
+    overhead: ob ? {
+      healthScale: ob.healthFillGroup?.scale.x,
+      shieldScale: ob.shieldFillGroup?.scale.x,
+      shieldVisible: ob.shieldFillGroup?.visible,
+      shieldX: ob.shieldFillGroup?.position.x,
+      barInnerX: ob.barInnerX,
+      barInnerWidth: ob.barInnerWidth,
     } : null,
   };
 });
 
-const caster = await newPlayer(botName('caster'));
-const ally = await newPlayer(botName('ally'));
+const caster = await newPlayer('caster');
+const ally = await newPlayer('ally');
 
 for (const p of [caster, ally]) await cmd(p, 'GOD');
 await cmd(caster, 'XP 99999999');

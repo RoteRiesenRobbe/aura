@@ -109,7 +109,9 @@ const readFlight = (page) => page.evaluate(() => {
     // The HUD's own claim about the flight.
     barShown: !!bar && getComputedStyle(bar).display !== 'none',
     barText: bar?.querySelector('.barText')?.textContent ?? '',
-    barFill: bar?.querySelector('.indicator')?.style.width ?? '',
+    // Inline scale since code-health C5 (ProgressFill): "38.33% 1" — the
+    // leading number is the fill percent, which is all the growth check reads.
+    barFill: bar?.querySelector('.indicator')?.style.scale ?? '',
     locked: !!document.getElementById('actionBars')?.classList.contains('flightLocked'),
     zoomInInactive: !!document.getElementById('zoomInButton')?.classList.contains('inactive'),
     zoomOutInactive: !!document.getElementById('zoomOutButton')?.classList.contains('inactive'),
