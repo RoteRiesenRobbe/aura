@@ -385,7 +385,7 @@ Each chunk its own execution session, per working style.
 
 ## 11. Chunk ledgers
 
-### C1 - the structure ✅ SHIPPED 2026-08-15, `[uncommitted]`, PO-verified in-game same day (all 10 checklist points pass)
+### C1 - the structure ✅ SHIPPED 2026-08-15, `327f3828`, PO-verified in-game same day (all 10 checklist points pass)
 
 **What shipped, exactly as designed.** `kindOf` + `MobKind` live in
 `ZoneModel.ts` per §4.2, taking a minimal structural `MobKindDef`
