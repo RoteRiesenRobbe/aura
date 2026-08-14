@@ -61,6 +61,40 @@
     "height": 12
   },
   "ticksPerSecond": 30,
+  "_pointsPerMeterComment": "The world-scale factor: meters (backend units) per pixel-point (client units). Go: codec.Points2px (codec/minions.go), applied to every wire position. Client: PIXEL_PER_METER / meter2px in client-data/BasicConfig.ts. If the two ever split, every entity renders at the wrong world scale with nothing failing (plan-code-health.md C4).",
+  "pointsPerMeter": 120,
+  "_utilityCastTicksComment": "Cast durations of the three baseline utilities, in ticks (plan-code-health.md C4 / D4: pinned, not served — a /utilities endpoint for three deliberately-outside-the-catalog entries fails KISS/YAGNI, recorded so nobody re-litigates). Go: skills/utility.go utilityDefs CastTicks. Client: UTILITY_CAST_SECONDS (Utilities.ts) derives its seconds from these ticks over ticksPerSecond, purely for the tooltip. All values [PLACEHOLDER].",
+  "utilityCastTicks": {
+    "recall": 300,
+    "camp": 150,
+    "ascend": 300
+  },
+  "_activeAuraSlotComment": "The active_aura_slot wire sentinels — one contract, two restatements. -1 is the FlatBuffers schema default ('no aura command this input'); -2 is the wire-only workaround for FlatBuffers omitting a scalar equal to its default, which makes an explicit -1 indistinguishable from an absent field. Drift makes aura deactivation a silent no-op. Go: model/input.go ActiveAuraSlotNoChange/ActiveAuraSlotDeactivate. Client: InputMessage.ts NO_ACTIVE_AURA_CHANGE/DEACTIVATE_AURA_SLOT. Collapse -2 onto -1 (here and on both sides) if the schema default is ever changed and regenerated.",
+  "activeAuraSlot": {
+    "noChange": -1,
+    "deactivate": -2
+  },
+  "_playerColliderRadiusComment": "The player body's physical collider radius in meters. Go: player.ColliderRadiusMeters (model/player/player.go). Client: Graphics.ts colliderRadiusMeters (aura-ring extension math) and the character sprite size derived from it. Not on the wire — the server never sends the player's own radius — so both sides own the number.",
+  "playerColliderRadius": 0.25,
+  "_apiErrorCodesComment": "The accounts API's refusal codes, verbatim string twins (plan-code-health.md C4, research-code-quality §11.3 F3). Go: the code* consts in accounts/respond.go (unexported, so the pin test lives in that package). Client: API_ERROR_CODES in AccountsApi.ts, which branches UI flow on them — a renamed code degrades every branch to the generic error path with nothing failing. The client-only 'network' (the request never got a reply) is deliberately NOT in this list.",
+  "apiErrorCodes": [
+    "rule",
+    "name_taken",
+    "username_taken",
+    "slots_full",
+    "slot_taken",
+    "invalid_credentials",
+    "already_logged_in",
+    "already_registered",
+    "character_playing",
+    "no_identity",
+    "session_expired",
+    "forbidden_origin",
+    "bad_request",
+    "busy",
+    "database_unavailable",
+    "internal"
+  ],
   "_campChargeCapComment": "How many Camp charges a character can hold (plan-downtime.md D9): `base` at level 1, one more every `perLevels` levels — cap = base + floor(level / perLevels). D9's reasoning: the camp's heal is %-of-max, so its strength already scales with the pool for free; COUNT is the axis that would otherwise be flat, and it is the one the player can see grow. Cross-language because the cap is deliberately NOT a wire field — the server sends the live charge count and the client derives the cap from the level it already knows (getLocalPlayerLevel), so the button can read `2/3` without a second field. Go: skills.CampChargeCap. Client: campChargeCap in client-data/Skills.ts. ⚑ Both values [PLACEHOLDER] — retuned 2026-08-03 after the PO's first hand pass, from 3 / +1-per-10 to 1 / +1-per-7: 1 charge at level 1, 2 from level 7, 3 from level 14, topping out at 5 by level 30. The first curve was generous enough that a level-1 character never ran out, which made the walk back to a fire optional and the whole loop invisible.",
   "campChargeCap": {
     "base": 1,

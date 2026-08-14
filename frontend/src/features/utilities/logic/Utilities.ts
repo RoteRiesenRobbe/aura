@@ -33,13 +33,16 @@ export function utilityDisplayName(kind: number): string {
     return UTILITY_NAMES[kind] ?? 'Utility';
 }
 
-// Cast lengths, in seconds. ⚑ A MIRROR of skills/utility.go's UtilityDef
+// Cast lengths, in seconds. A mirror of skills/utility.go's UtilityDef
 // literals — utilities are deliberately not catalog content (D1), so unlike a
 // skill there is no /skills entry to read these from and no wire field
-// carrying them. All [PLACEHOLDER], kept beside the names so a retune touches
-// one place on this side. Every UTILITY_NAMES kind must have an entry:
-// utilityTooltip indexes this table guarded only by the names table, so a gap
-// is a TypeError; Utilities.test.ts pins the key sets together.
+// carrying them. All [PLACEHOLDER]. Pinned: api/shared-constants.json
+// `utilityCastTicks` holds the authored ticks, SharedConstants.test.ts asserts
+// each entry here equals ticks/ticksPerSecond, and the Go twin asserts
+// utility.go, so a one-sided retune goes red (plan-code-health.md C4).
+// Every UTILITY_NAMES kind must have an entry: utilityTooltip indexes this
+// table guarded only by the names table, so a gap is a TypeError;
+// Utilities.test.ts pins the key sets together.
 export const UTILITY_CAST_SECONDS: { [kind: number]: number } = {
     [AuraApi.UtilityKind.Recall]: 10,
     [AuraApi.UtilityKind.Camp]: 5,

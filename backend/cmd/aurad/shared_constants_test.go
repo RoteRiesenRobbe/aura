@@ -9,8 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/player"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
@@ -46,6 +49,13 @@ type sharedConstants struct {
 		Base      int `json:"base"`
 		PerLevels int `json:"perLevels"`
 	} `json:"campChargeCap"`
+	PointsPerMeter   float64        `json:"pointsPerMeter"`
+	UtilityCastTicks map[string]int `json:"utilityCastTicks"`
+	ActiveAuraSlot   struct {
+		NoChange   int `json:"noChange"`
+		Deactivate int `json:"deactivate"`
+	} `json:"activeAuraSlot"`
+	PlayerColliderRadius float64 `json:"playerColliderRadius"`
 }
 
 // TestSharedConstants_CampChargeCap pins skills.CampChargeCap against the
@@ -166,4 +176,44 @@ func TestSharedConstants_MatchGoTables(t *testing.T) {
 		"constant.ViewPortHeight has drifted from api/shared-constants.json")
 	assert.Equal(t, constant.TicksPerSecond, fixture.TicksPerSecond,
 		"constant.TicksPerSecond has drifted from api/shared-constants.json")
+
+	// plan-code-health.md C4: the pinning batch.
+	assert.Equal(t, float64(codec.Points2px), fixture.PointsPerMeter,
+		"codec.Points2px has drifted from api/shared-constants.json — every wire position is scaled by this")
+	assert.Equal(t, model.ActiveAuraSlotNoChange, fixture.ActiveAuraSlot.NoChange,
+		"model.ActiveAuraSlotNoChange has drifted from api/shared-constants.json — one wire contract with InputMessage.ts")
+	assert.Equal(t, model.ActiveAuraSlotDeactivate, fixture.ActiveAuraSlot.Deactivate,
+		"model.ActiveAuraSlotDeactivate has drifted from api/shared-constants.json — drift makes aura deactivation a silent no-op")
+	assert.Equal(t, float64(player.ColliderRadiusMeters), fixture.PlayerColliderRadius,
+		"player.ColliderRadiusMeters has drifted from api/shared-constants.json — the client draws and extends rings off this radius")
+}
+
+// TestSharedConstants_UtilityCastTicks pins the three baseline-utility cast
+// durations against the fixture (plan-code-health.md C4 / D4: pinned, not
+// served). The client derives its tooltip seconds from the same fixture ticks,
+// so a retune that touches only one side goes red on both. Exhaustive both
+// ways: a fixture kind with no def and a def the fixture does not know both
+// fail (UtilityNone deliberately has no def and no fixture entry).
+func TestSharedConstants_UtilityCastTicks(t *testing.T) {
+	raw, err := os.ReadFile("../../../api/shared-constants.json")
+	require.NoError(t, err)
+	var fixture sharedConstants
+	require.NoError(t, json.Unmarshal(raw, &fixture))
+	require.NotEmpty(t, fixture.UtilityCastTicks, "the fixture must carry a utilityCastTicks block")
+
+	kinds := map[string]skills.UtilityKind{
+		"recall": skills.UtilityRecall,
+		"camp":   skills.UtilityCamp,
+		"ascend": skills.UtilityAscend,
+	}
+	require.Len(t, fixture.UtilityCastTicks, len(kinds),
+		"fixture utilityCastTicks and the utility kinds no longer enumerate the same set")
+	for name, ticks := range fixture.UtilityCastTicks {
+		kind, known := kinds[name]
+		require.True(t, known, "fixture utilityCastTicks names unknown utility %q", name)
+		def := skills.UtilityByKind(kind)
+		require.NotNil(t, def, "utility %q has a fixture entry but no def", name)
+		assert.Equal(t, ticks, def.CastTicks,
+			"utility %q CastTicks has drifted from api/shared-constants.json — the client's tooltip seconds derive from the fixture", name)
+	}
 }

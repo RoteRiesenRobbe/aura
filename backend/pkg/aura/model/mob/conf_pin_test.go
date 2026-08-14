@@ -1,10 +1,12 @@
 package mob
 
-// §35 C3 tier-3 pins (plan-conf-duplication.md §5): two constants in this
-// package deliberately mirror values owned elsewhere. Neither can assert
-// against its twin directly without dragging config into a model package or
-// exporting an internal (L11), so each is pinned here and drift shows up as
-// one red test naming the other side.
+// §35 C3 tier-3 pin (plan-conf-duplication.md §5): a constant in this package
+// deliberately mirrors a value owned elsewhere. It cannot assert against its
+// twin directly without dragging config into a model package (L11), so it is
+// pinned here and drift shows up as one red test naming the other side.
+// (The combatRegenGraceTicks twin pin that also lived here retired with the
+// mirror itself; the value is constant.CombatRegenGraceTicks since
+// plan-code-health.md C4.)
 
 import (
 	"encoding/json"
@@ -34,15 +36,4 @@ func TestDefaultChaseIntoAuraMargin_MatchesConfDefault(t *testing.T) {
 	assert.Equal(t, conf.Game.MobChaseIntoAuraMargin, defaultChaseIntoAuraMargin,
 		"model/mob's fallback chase margin has drifted from conf.default.json's "+
 			"game.mobChaseIntoAuraMargin — the H1a 4× split, reopened")
-}
-
-// combatRegenGraceTicks deliberately mirrors model/player's unexported
-// constant of the same name and value (the §31 vocabulary convergence —
-// mobs and players leave combat by the same rule). Not collapsed: the two
-// packages stay uncoupled on purpose; this pin makes the mirror drift-proof
-// instead of discipline-proof.
-func TestCombatRegenGraceTicks_MatchesPlayerTwin(t *testing.T) {
-	assert.EqualValues(t, 100, combatRegenGraceTicks,
-		"model/mob's combatRegenGraceTicks no longer matches the shared value 100 — "+
-			"its twin lives in model/player/player.go; move both or neither")
 }

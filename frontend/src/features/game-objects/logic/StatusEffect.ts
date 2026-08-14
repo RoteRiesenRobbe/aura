@@ -47,7 +47,6 @@ export interface TweenEffect {
 export class StatusEffect implements StatusEffectDefinition {
     static Damaged: StatusEffectDefinition = { id: 'Damaged', priority: 1 };
     static DamagedAmbient: StatusEffectDefinition = { id: 'DamagedAmbient', priority: 2 };
-    static ResourceHit: StatusEffectDefinition = { id: 'Hit', priority: 5 };
     static Regenerating: StatusEffectDefinition = { id: 'Regenerating', priority: 6 };
     // Not part of the one-at-a-time effect pipeline: rendered as a gold burst
     // ring via GameObject.showBurstRing, so it never competes with Damaged & co.

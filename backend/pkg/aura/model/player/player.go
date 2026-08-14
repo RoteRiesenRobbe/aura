@@ -21,8 +21,14 @@ import (
 var _ = model.PlayerEntity(&player{})
 var _ = model.Healable(&player{})
 
+// ColliderRadiusMeters is the player body's physical collider radius. The
+// client restates it (Graphics.ts colliderRadiusMeters, also its sprite size);
+// both sides are pinned by api/shared-constants.json `playerColliderRadius`
+// (cmd/aurad/shared_constants_test.go / SharedConstants.test.ts).
+const ColliderRadiusMeters = 0.25
+
 func New(g model.Game, c model.Client, name string) model.PlayerEntity {
-	e := minions.NewCircleEntity(0.25)
+	e := minions.NewCircleEntity(ColliderRadiusMeters)
 
 	e.EntityType = model.EntityType(AuraApi.EntityTypeCharacter)
 	p := &player{
@@ -254,7 +260,7 @@ type player struct {
 	attackerTicks     int
 
 	// inCombatTicks is the time-gated in-combat window (atmosphere & recovery
-	// chunk 1): stamped to combatRegenGraceTicks by any combat action — taking
+	// chunk 1): stamped to constant.CombatRegenGraceTicks by any combat action — taking
 	// harm (takeDamage), dealing a harmful effect, or supporting an in-combat
 	// ally (both via the SkillSystem's NoteCombatAction) — and aged one per tick
 	// in ResetTickNumbers. Passive regen is gated on it being zero. Exit is
@@ -262,13 +268,6 @@ type player struct {
 	// regen may resume while still chased). Dies with the entity.
 	inCombatTicks int
 }
-
-// combatRegenGraceTicks [PLACEHOLDER] is how long after its last combat action
-// a player stays in combat, gating passive regen and loadout editing
-// (~3.3 s @ 30 TPS; was 5 s, cut by a third — the equip lock felt too long).
-// Deliberately its own constant, not combatSignalWindowTicks (3 s) — a regen
-// grace that short would let regen flicker on between hits.
-const combatRegenGraceTicks = 100
 
 // combatSignalWindowTicks [PLACEHOLDER] is how long a combat signal stays
 // readable by a companion (~3 s) — long enough to bridge aura tick cadences,
@@ -306,7 +305,7 @@ func liveSignal(c model.Combatant, ticks int) model.Combatant {
 // taking harm, and from the SkillSystem when this player's harmful effect lands
 // or it supports an in-combat ally.
 func (p *player) NoteCombatAction() {
-	p.inCombatTicks = combatRegenGraceTicks
+	p.inCombatTicks = constant.CombatRegenGraceTicks
 }
 
 // InCombat reports whether the recent-action window is still open

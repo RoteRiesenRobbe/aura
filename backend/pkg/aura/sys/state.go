@@ -141,8 +141,9 @@ type IdentitySink interface {
 
 // CampfireDwellRadiusFactor scales a campfire's heal radius down to its bind
 // radius: standing within heal range alone must NOT bind (healing without
-// binding is deliberate). [PLACEHOLDER] Hand-synced with the client's inner
-// dwell-ring factor (frontend Campfire game object). (chunk 4)
+// binding is deliberate). [PLACEHOLDER] The client does not restate this: the
+// bind circle is drawn from the wire dwell_radius (Mobs.ts setDwellRadius),
+// so this factor is the single source. (chunk 4)
 const CampfireDwellRadiusFactor = 0.5
 
 // campfireDwellTicks is how long a player must stay inside a campfire's bind

@@ -31,7 +31,7 @@
  */
 
 import {Container, Graphics, Renderer, RenderTexture, Sprite} from 'pixi.js';
-import {BasicConfig} from '../../../client-data/BasicConfig';
+import {BasicConfig, meter2px} from '../../../client-data/BasicConfig';
 import {isMobile} from '../../user-interface/logic/Mobile';
 
 /**
@@ -49,7 +49,7 @@ function fogWidth(): number {
  * space. One world unit — small enough that walking reveals smoothly, large
  * enough that a stationary character stamps once and then stops.
  */
-const CELL_SIZE = 120;
+const CELL_SIZE = meter2px(1);
 
 export class MapFog {
     /** Use as the terrain sprite's `mask`. Must also be in the scene graph. */

@@ -5,13 +5,23 @@
  *
  * Used meter2px(meter) to calculate px length from configured meter lengths.
  *
- * SYNCED WITH BACKEND
+ * Pinned to api/shared-constants.json `pointsPerMeter` (SharedConstants.test.ts;
+ * Go twin: codec.Points2px, asserted by cmd/aurad/shared_constants_test.go).
  */
 const PIXEL_PER_METER: number = 120;
 
 export function meter2px(meter: number) {
     return meter * PIXEL_PER_METER;
 }
+
+/**
+ * Milliseconds per server tick, the single client-side source for both
+ * INPUT_TICKRATE and SERVER_TICKRATE (tier-1 derive, plan-code-health.md C4).
+ * Pinned to api/shared-constants.json `ticksPerSecond` via
+ * SharedConstants.test.ts, twin: backend/pkg/aura/model/constant/const.go
+ * TicksPerSecond.
+ */
+const SERVER_TICK_MS: number = 1000 / 30;
 
 export const BasicConfig = {
     /**
@@ -40,14 +50,17 @@ export const BasicConfig = {
      * (Character.ts → Camera.setMaxSpeed × 2), which sits ~4× above actual
      * on-screen walk speed, so drift here costs camera feel, not correctness.
      * Flight is unaffected - the camera hard-follows while airborne
-     * (Camera.ts). Tier decision (pin vs comment): plan-code-health.md C4.
+     * (Camera.ts). Pinned against conf.default.json's value by
+     * SharedConstants.test.ts (C4 tier decision, PO 2026-08-14); the live
+     * server's conf.json can still differ - the pin guards the default.
      */
     BASE_MOVEMENT_SPEED: <number> meter2px(0.05),
 
     /**
      * Area of interest as management by the backend.
      *
-     * SYNCED WITH BACKEND (backend/pkg/aura/model/constant/const.go:5)
+     * Pinned to api/shared-constants.json `viewportMeters` (SharedConstants.test.ts;
+     * Go twin: constant.ViewPortWidth/Height, asserted by cmd/aurad/shared_constants_test.go).
      */
     VIEWPORT: {
         WIDTH: <number>  meter2px(20),
@@ -107,9 +120,10 @@ export const BasicConfig = {
      * two rates. Move the CLIENT, never the server (a server tick-rate change
      * shifts every seconds→ticks conversion 1 %). (plan-render-jitter.md Lever A)
      *
-     * SYNCED WITH BACKEND (backend/pkg/aura/model/constant/const.go:7 = 30/s)
+     * Derived from the same SERVER_TICK_MS as SERVER_TICKRATE (the "must equal"
+     * above is now structural, not discipline).
      */
-    INPUT_TICKRATE: <number> 1000 / 30,
+    INPUT_TICKRATE: <number> SERVER_TICK_MS,
 
     /**
      * How many ticks to keep re-sending an explicit "stopped" (zero-movement)
@@ -130,9 +144,10 @@ export const BasicConfig = {
      * a constant per-tick micro-freeze. Used as the interval basis for the
      * buffered render delay. (plan-render-jitter.md Lever A/B)
      *
-     * SYNCED WITH BACKEND (backend/pkg/aura/model/constant/const.go:7 = 30/s)
+     * Pinned to api/shared-constants.json `ticksPerSecond` (SharedConstants.test.ts;
+     * Go twin: cmd/aurad/shared_constants_test.go against constant.TicksPerSecond).
      */
-    SERVER_TICKRATE: <number> 1000 / 30,
+    SERVER_TICKRATE: <number> SERVER_TICK_MS,
 
     /**
      * Whether movement of game objects should be smoothed.

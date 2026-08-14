@@ -8,18 +8,12 @@ import {isDefined} from "../../../../common/logic/Utils";
 import * as SnapshotFactory from "../../SnapshotFactory";
 import {Develop} from "../../../../internal-tools/develop/logic/_Develop";
 
-// Wire-only sentinel for "explicitly deactivate the active aura" (Nothing).
-// NOTE: -2 is a workaround for FlatBuffers omitting a scalar equal to its schema
-// default (-1), which makes an explicit -1 indistinguishable from an absent field.
-// Keep this in sync with the backend ActiveAuraSlotDeactivate constant
-// (model/input.go); together they form one wire contract. Collapse -2 onto -1 if the
-// schema default is ever changed and regenerated.
-export const DEACTIVATE_AURA_SLOT = -2;
+import {NO_ACTIVE_AURA_CHANGE} from './ActiveAuraSlot';
 
 export class InputMessage extends ClientMessage {
     rotation: radians = undefined;
     movement: Vector = null;
-    activeAuraSlot: number = -1;
+    activeAuraSlot: number = NO_ACTIVE_AURA_CHANGE;
     // cooldown slot indices to activate this tick (hotkey or panel click)
     cooldownActivations: number[] = [];
     tick: number;
@@ -44,7 +38,7 @@ export class InputMessage extends ClientMessage {
 
         // Marshal any real command: slot index (>= 0) or the -2 deactivate sentinel.
         // The default -1 ("no change") stays omitted so it reads as absent on the wire.
-        if (this.activeAuraSlot !== -1) {
+        if (this.activeAuraSlot !== NO_ACTIVE_AURA_CHANGE) {
             AuraApi.Input.addActiveAuraSlot(this.builder, this.activeAuraSlot);
         }
 

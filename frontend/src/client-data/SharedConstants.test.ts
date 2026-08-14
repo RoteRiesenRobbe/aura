@@ -5,8 +5,16 @@ import {AppliedEffectBit} from '../features/game-objects/logic/EffectPips';
 import {AuraCategoryBit} from '../features/game-objects/logic/AuraRings';
 import {TierRank} from './Mobs';
 import {BasicConfig, meter2px} from './BasicConfig';
+import {GraphicsConfig} from './Graphics';
 import {campChargeCap, SKILL_POINT_COST, roundHP, skillPointCost} from './Skills';
 import {COST_TRIGGER_TEXT} from '../features/user-interface/HUD/logic/SkillTooltip';
+import {UTILITY_CAST_SECONDS} from '../features/utilities/logic/Utilities';
+import {AuraApi} from '../features/backend/logic/AuraApi';
+import {
+    DEACTIVATE_AURA_SLOT,
+    NO_ACTIVE_AURA_CHANGE,
+} from '../features/backend/logic/messages/outgoing/ActiveAuraSlot';
+import {API_ERROR_CODES} from '../features/accounts/logic/AccountsApi';
 
 // §35 C4c (plan-conf-duplication.md D3): the client half of the
 // shared-constants contract. api/shared-constants.json is the one authored
@@ -56,6 +64,51 @@ describe('shared constants (api/shared-constants.json)', () => {
 
     it('pins the tick rate (fixture in ticks/s, config as ms/tick)', () => {
         expect(BasicConfig.SERVER_TICKRATE).toBe(1000 / shared.ticksPerSecond);
+    });
+
+    // plan-code-health.md C4: the pinning batch. Each of these values is
+    // restated by hand on both sides of the wire; the fixture is the one
+    // authored home and the Go twin asserts the server half.
+
+    it('pins the world scale (points per meter)', () => {
+        expect(meter2px(1)).toBe(shared.pointsPerMeter);
+    });
+
+    // Exhaustive both ways: a fixture kind with no seconds entry and a seconds
+    // entry the fixture does not know both fail. The seconds table stays
+    // authored (the fixture is a test file, never served); this pin is what
+    // keeps it honest against skills/utility.go's CastTicks.
+    it('pins the utility cast times (fixture in ticks, table in seconds)', () => {
+        const fixtureKinds = Object.entries(shared.utilityCastTicks as {[name: string]: number});
+        expect(fixtureKinds.length).toBeGreaterThan(0);
+        for (const [name, ticks] of fixtureKinds) {
+            const pascal = name.charAt(0).toUpperCase() + name.slice(1);
+            const kind = AuraApi.UtilityKind[pascal as keyof typeof AuraApi.UtilityKind];
+            expect(kind, `fixture utilityCastTicks names unknown utility "${name}"`).toBeDefined();
+            expect(UTILITY_CAST_SECONDS[kind],
+                `UTILITY_CAST_SECONDS[${pascal}] has drifted from api/shared-constants.json`)
+                .toBe(ticks / shared.ticksPerSecond);
+        }
+        expect(Object.keys(UTILITY_CAST_SECONDS).length,
+            'UTILITY_CAST_SECONDS carries an entry the fixture does not know')
+            .toBe(fixtureKinds.length);
+    });
+
+    it('pins the active-aura-slot wire sentinels', () => {
+        expect(NO_ACTIVE_AURA_CHANGE).toBe(shared.activeAuraSlot.noChange);
+        expect(DEACTIVATE_AURA_SLOT).toBe(shared.activeAuraSlot.deactivate);
+    });
+
+    it('pins the player collider radius (and the sprite size derived from it)', () => {
+        expect(GraphicsConfig.character.colliderRadiusMeters).toBe(shared.playerColliderRadius);
+        expect(GraphicsConfig.character.size).toBe(meter2px(shared.playerColliderRadius));
+    });
+
+    // Set equality both ways: a fixture code the client does not know and a
+    // client code the fixture does not know both fail. 'network' is deliberately
+    // outside the pinned list (client-only, the request never got a reply).
+    it('pins the accounts refusal codes', () => {
+        expect([...API_ERROR_CODES].sort()).toEqual([...shared.apiErrorCodes].sort());
     });
 
     // L2 (plan-numbers-rewrite): the D10 point curve became a cross-language
@@ -117,6 +170,20 @@ describe('shared constants (api/shared-constants.json)', () => {
         for (const [amount, want] of shared.hpRounding) {
             expect(roundHP(amount), `roundHP(${amount})`).toBe(want);
         }
+    });
+
+    // plan-code-health.md C4, PO call 2026-08-14: BASE_MOVEMENT_SPEED mirrors a
+    // CONF value (game.player.walkingSpeedPerTick), not a code constant, so its
+    // pin reads conf.default.json instead of the shared-constants fixture (the
+    // model/mob conf-pin precedent, client-side this time). Limitation, accepted:
+    // the live server's conf.json can still differ; this guards the default,
+    // which is the realistic drift path (a retune that forgets the client; the
+    // old 0.055 was exactly that class of stale copy).
+    it('pins BASE_MOVEMENT_SPEED to the default walking speed (conf.default.json)', () => {
+        const conf = JSON.parse(readFileSync('../backend/conf.default.json', 'utf-8'));
+        const walkingSpeedPerTick = conf.game.player.walkingSpeedPerTick;
+        expect(walkingSpeedPerTick).toBeGreaterThan(0);
+        expect(BasicConfig.BASE_MOVEMENT_SPEED).toBe(meter2px(walkingSpeedPerTick));
     });
 
     // plan-downtime.md D9. The cap is the one Camp value NOT on the wire — the

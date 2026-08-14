@@ -11,6 +11,7 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,7 +40,7 @@ func TestMob_HealerStillRegeneratesWhenLeftAlone(t *testing.T) {
 	m.health = m.MaxHealth() / 2
 	wounded := m.Health()
 
-	for i := 0; i < combatRegenGraceTicks+5; i++ {
+	for i := 0; i < constant.CombatRegenGraceTicks+5; i++ {
 		m.Update(0)
 	}
 
@@ -92,7 +93,7 @@ func TestMob_PacifistFleeEndsWithTheCombatWindow(t *testing.T) {
 	require.True(t, m.Update(0))
 	require.Equal(t, modeFlee, m.mode)
 
-	for i := 0; i < combatRegenGraceTicks+5; i++ {
+	for i := 0; i < constant.CombatRegenGraceTicks+5; i++ {
 		m.Update(0)
 	}
 

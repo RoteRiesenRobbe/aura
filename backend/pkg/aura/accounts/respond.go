@@ -11,7 +11,9 @@ import (
 )
 
 // The machine-readable error codes. The client branches on THESE; the messages
-// beside them are for the player and may be reworded freely.
+// beside them are for the player and may be reworded freely. Pinned to
+// api/shared-constants.json `apiErrorCodes` (shared_constants_pin_test.go here,
+// SharedConstants.test.ts on the client).
 //
 // ⚑ Several distinct internal causes share one message on purpose — §5b's rule
 // is that no response may reveal whether an account exists. codeInvalidLogin

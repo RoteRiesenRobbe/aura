@@ -35,7 +35,10 @@ const (
 type UtilityDef struct {
 	Kind                    UtilityKind
 	Name                    string
-	CastTicks               int // [PLACEHOLDER]
+	// CastTicks [PLACEHOLDER] is pinned to api/shared-constants.json
+	// `utilityCastTicks` (cmd/aurad/shared_constants_test.go); the client's
+	// tooltip seconds derive from the same fixture (SharedConstants.test.ts).
+	CastTicks               int
 	CastInterruptedByDamage bool
 }
 

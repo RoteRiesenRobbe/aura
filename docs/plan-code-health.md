@@ -1,6 +1,6 @@
 # Plan: Code Health Pass - deletions, duplication closure, live defects, drift pins
 
-**Status: C1 SHIPPED 2026-08-12 (`ca34800b`) · C2 DONE 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`, ledger below) - C3-C7 open.** Sources: a three-sweep audit of this
+**Status: C1-C4 SHIPPED - C1 2026-08-12 (`ca34800b`) · C2 2026-08-13, PO-verified in-game 2026-08-14 (`beeba7c0`) · C3 2026-08-14 (`6f0c08df`) · C4 2026-08-14 (`[uncommitted]`, ledgers below) - C5-C7 open (C5 before or with C6, C7 independent).** Sources: a three-sweep audit of this
 date (frontend magic numbers · cross-layer duplicated constants · frontend structural
 debt), `research-code-quality.md` §11.5 (whose recommended batch is absorbed here as C7,
 verified still fully open on 2026-08-12), and the standing gotchas in `CLAUDE.md`.
@@ -585,6 +585,86 @@ nothing reads; mass-editing them is churn with zero behaviour delta).
   the change vs 10/20 at stashed HEAD**, same coin-flip · `-race` clean on
   core/sim/sys/simharness · `make -C backend build` · boot 0 WARN / 0 ERROR.
 
+### C4 - The pinning batch ✅ 2026-08-14, `[uncommitted]`
+
+**Everything the plan listed shipped, plus the re-verify deltas it required** (the
+doc's refs predated C2/C3; every one was re-verified at `ff83779e` first). The PO
+call the C2 ledger deferred here got made this session, via choice prompt.
+
+**Tier-1 derives.** `INPUT_TICKRATE` and `SERVER_TICKRATE` now both read one
+hoisted `SERVER_TICK_MS` (D5 - the properties sit in one object literal, so the
+module const IS the derive, and the existing `ticksPerSecond` pin covers both
+transitively) · `MapFog.CELL_SIZE = meter2px(1)` · `TELEPORT_SNAP_DISTANCE_PX =
+meter2px(1.5)` · `Graphics.character.size = meter2px(0.25)` - the in-session
+determination: the sprite is drawn at the physical body's size (`Character.ts:78`)
+and `Mobs.ts:357` already derives collider px from the meters value, so the 30 was
+a restatement, not a coincidence.
+
+**The Go-internal constant.** The `combatRegenGraceTicks` name-and-value twin
+collapsed into `constant.CombatRegenGraceTicks` (both packages already imported
+`constant`). ⚑ **Delta vs the plan: the pair was ALREADY pinned** - twin tests
+shipped by plan-conf-duplication.md §35 C3 (`conf_pin_test.go` in both packages,
+each asserting a literal 100), so C4's value here was the derive, and those two
+pins retired WITH the mirror they guarded (player's file deleted whole; mob's
+keeps its chase-margin test).
+
+**Tier-3 pins, four new fixture keys** (`pointsPerMeter` 120 · `utilityCastTicks`
+300/150/300, D4 - the client's tooltip seconds now assert as ticks over the pinned
+tickrate · `activeAuraSlot` - **widened from the plan's single key to both
+sentinels** {-1, -2}, since `model/input.go` defines the pair as one wire contract;
+the client's bare `-1` initializer became the named `NO_ACTIVE_AURA_CHANGE` ·
+`playerColliderRadius` 0.25, hoisted to exported `player.ColliderRadiusMeters`).
+⚑ **Infra rider:** the sentinels live in a new leaf module `ActiveAuraSlot.ts`,
+because importing `InputMessage.ts` drags the client graph into webpack-only APIs
+(`require.context`, Pixi asset loads) that vitest cannot execute - same class as
+C2's flatbuffers-alias rider.
+
+**Exhaustive-test pins.** `BackendConstants.test.ts` pins the StatusEffect
+wire↔visual join in both directions; the reverse direction failed red on
+**`ResourceHit`** exactly as predicted (zero references anywhere - deleted, the
+plan's "evidence of one past drift" confirmed) · the production `for…in` join also
+iterated the enum's reverse mapping and wrote name-keyed undefined junk into the
+table - now filtered, pinned by a third test that counted the junk red-first ·
+`apiErrorCodes` pins the **16** refusal codes (not the plan's ~17: 16 server + the
+client-only `'network'`, which stays outside the list by design); the client union
+became a runtime `API_ERROR_CODES` list so it can be asserted, and the Go side is
+an in-package pin (`accounts/shared_constants_pin_test.go`) because the codes are
+unexported.
+
+**The sweep** (14 `/synced/i` hits inventoried): every live bare comment upgraded
+to name its pin or derive; two already-pinned sites (viewport, tickrate) got the
+one-line pointer · ⚑ `sys/state.go`'s `CampfireDwellRadiusFactor` "hand-synced
+with the client" claim was **STALE** - the client draws the bind circle from the
+wire `dwell_radius` (`Mobs.ts` names the server as single source), so the fix was
+the comment, not a pin · `Zoom.ts`/`EffectPips.ts`/`AuraRings.ts` already name
+their pins, untouched.
+
+**BASE_MOVEMENT_SPEED (PO 2026-08-14): pinned against `conf.default.json`** - the
+value mirrors conf (`game.player.walkingSpeedPerTick`), not a code constant, so
+the pin reads the conf file (the model/mob conf-pin precedent, client-side this
+time). Accepted limitation, documented at the pin: the live server's `conf.json`
+can still differ; the guard covers the default, which is the realistic drift path
+(the old 0.055 was exactly that class).
+
+**Deliberately behaviour-relevant, both fixes:** the junk lookup-table entries are
+gone and the dead `ResourceHit` visual is deleted. Everything else ships at its
+identical old value - behaviour-neutral by construction.
+
+- **Schema impact: NONE.** No DB, no wire, no conf key; the fixture stays a
+  test-only file (no cp-defs/embed entry).
+- **Verified:** **red-first for every new pin at once** - fixture falsified on six
+  values → `cmd/aurad` AND `accounts` Go suites FAIL, client shows exactly the six
+  pins red, restore confirmed byte-clean by git diff · the exhaustive tests went
+  red on the real defects (`ResourceHit`, the junk writes) before their fixes ·
+  vitest **300/300** (was 291: +4 fixture pins, +1 conf pin, +3 StatusEffect, +1
+  error codes) · typecheck · prod build (3 standing bundle warnings) ·
+  `go test -count=1 ./...` green bar the known `TestDwell` flake, **measured
+  11/20 vs the 10-12/20 baseline, same coin-flip** · `go vet` clean ·
+  `make -C backend build` · boot 0 WARN / 0 ERROR (95 skills / 68 mobs / 13
+  quests) · `ctxloss-warning clean` **PASS** (0 warnings, 0 console errors - the
+  boot-path harness, and BasicConfig/Graphics/BackendConstants are boot path) ·
+  harness residue cleaned (`harnessdb -cleanup`, aurad stopped first).
+
 ## Open questions
 
 None blocking. Two in-chunk determinations were deliberately left to their execution
@@ -594,4 +674,6 @@ hard-follows in flight, the walking ceiling has ~4× headroom, and 0.055 was pro
 the mob default under a false comment - see the C2 ledger) and ~~C3's dt-consumer
 inventory (which decides whether the fix is two lines or a mini-retune)~~ **resolved
 in C3, 2026-08-14: zero dt consumers, two-line-derive branch, guardrails
-byte-identical** (see the C3 ledger).
+byte-identical** (see the C3 ledger). The tier decision C2 deferred to C4
+(BASE_MOVEMENT_SPEED, pin vs comment) was **resolved in C4, PO 2026-08-14: pin
+against conf.default.json** (see the C4 ledger).

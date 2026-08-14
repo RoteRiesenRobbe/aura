@@ -821,7 +821,7 @@ func TestMob_FindAggroTarget_PicksNearestLivingPlayer(t *testing.T) {
 // healer never acquires one, so it sat permanently in the out-of-combat branch
 // and regenerated straight through incoming damage — live-unkillable by a solo
 // player. Combat state is now ALSO a damage-recency window, matching the
-// player's inCombatTicks/combatRegenGraceTicks in name, unit and default
+// player's inCombatTicks/constant.CombatRegenGraceTicks in name, unit and default
 // (backlog §31 vocabulary convergence).
 
 func TestMob_TakingDamageEntersCombatWithoutAnAggroTarget(t *testing.T) {
@@ -852,7 +852,7 @@ func TestMob_RegenResumesAfterTheCombatGraceExpires(t *testing.T) {
 	m.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
 	wounded := m.Health()
 
-	for i := 0; i < combatRegenGraceTicks; i++ {
+	for i := 0; i < constant.CombatRegenGraceTicks; i++ {
 		m.Update(0)
 	}
 	require.Equal(t, wounded, m.Health(), "the whole grace window stays gated")
@@ -874,13 +874,13 @@ func TestMob_EachHitRefreshesTheCombatWindow(t *testing.T) {
 	// Hit once, run most of the window down, hit again: the second hit must
 	// restamp, not top up a nearly-expired window.
 	m.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
-	for i := 0; i < combatRegenGraceTicks-1; i++ {
+	for i := 0; i < constant.CombatRegenGraceTicks-1; i++ {
 		m.Update(0)
 	}
 	m.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
 	wounded := m.Health()
 
-	for i := 0; i < combatRegenGraceTicks; i++ {
+	for i := 0; i < constant.CombatRegenGraceTicks; i++ {
 		m.Update(0)
 	}
 

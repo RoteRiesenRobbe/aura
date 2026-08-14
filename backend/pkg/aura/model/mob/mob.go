@@ -489,11 +489,11 @@ type Mob struct {
 	tookDamage bool
 
 	// inCombatTicks is the damage-recency in-combat window (playtest round 3):
-	// stamped to combatRegenGraceTicks by any real HP loss and aged one per
-	// Update. Deliberately the SAME name, unit and default as the player's
-	// (model/player/player.go) — the mob and player combat models are meant to
-	// converge (backlog §31), so matching vocabularies now makes that a rename
-	// rather than a redesign, exactly as game.mob.healthGainTick did for regen.
+	// stamped to constant.CombatRegenGraceTicks by any real HP loss and aged
+	// one per Update. Deliberately the SAME window as the player's, from the
+	// same shared constant (the §31 vocabulary convergence; the name-and-value
+	// twin the two packages used to carry collapsed into model/constant,
+	// plan-code-health.md C4).
 	//
 	// Unlike the player's, it is stamped only by damage TAKEN, not by damage
 	// dealt: a mob holding an aggro target is already in combat through the
@@ -1321,12 +1321,6 @@ func (m *Mob) SetFleeOverride(on bool) {
 // resets aggro, threat and the active aura.
 const leashCountdownTicks = 90 // ~3 s
 
-// combatRegenGraceTicks [PLACEHOLDER] is how long after its last taken damage a
-// mob stays in combat, gating out-of-combat regeneration (~3.3 s @ 30 TPS).
-// Deliberately the player's constant of the same name and value
-// (model/player/player.go) rather than a mob-specific one — see inCombatTicks.
-const combatRegenGraceTicks = 100
-
 // updateAggro drives acquisition, threat retention and the state-dependent
 // leash (mob-depth chunk 3). Retention: whenever the threat table holds a
 // living entry, the highest-threat entity IS the aggro target — the sensor
@@ -1859,7 +1853,7 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vital
 		// ...and the damage-recency window behind InCombat (round 3). The
 		// leash consumes tookDamage once per tick; this one outlives it, so a
 		// mob that never retaliates still counts as fighting.
-		m.inCombatTicks = combatRegenGraceTicks
+		m.inCombatTicks = constant.CombatRegenGraceTicks
 	}
 	m.StatusEffects().Add(s)
 	return dealt

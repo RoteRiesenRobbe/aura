@@ -1,6 +1,14 @@
 import {meter2px} from './BasicConfig';
 import {color, integer} from '../features/common/logic/Types';
 
+/**
+ * Physical collider radius the backend uses for the player body, in meters.
+ * Pinned to api/shared-constants.json `playerColliderRadius` via
+ * SharedConstants.test.ts; Go twin: player.ColliderRadiusMeters
+ * (model/player/player.go), asserted by cmd/aurad/shared_constants_test.go.
+ */
+const PLAYER_COLLIDER_RADIUS_METERS = 0.25;
+
 export const GraphicsConfig = {
 
     deepWaterColor: <color> 0x1C57B5,
@@ -17,18 +25,17 @@ export const GraphicsConfig = {
 
     character: {
         /**
-         * Pixel radius of the character graphic.
-         *
-         * SYNCED WITH BACKEND
+         * Pixel radius of the character graphic. The sprite is drawn at the
+         * physical body's size, so this derives from the collider radius
+         * (30 px today) instead of restating it.
          */
-        size: <number> 30,
+        size: <number> meter2px(PLAYER_COLLIDER_RADIUS_METERS),
         file: require('../features/game-objects/assets/characters/player.svg'),
         /**
-         * Physical collider radius used by backend for player body.
-         *
-         * SYNCED WITH BACKEND (backend/pkg/aura/model/player/player.go)
+         * Physical collider radius used by backend for player body; see the
+         * pinned constant above.
          */
-        colliderRadiusMeters: <number> 0.25,
+        colliderRadiusMeters: <number> PLAYER_COLLIDER_RADIUS_METERS,
 
         hands: {
             fillColor: <color> 0xf2a586,

@@ -10,6 +10,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
@@ -388,7 +389,7 @@ func TestPlayer_CombatWindow_ExpiresAndRegenResumes(t *testing.T) {
 	p.NoteCombatAction()
 	require.True(t, p.InCombat())
 
-	for i := 0; i < combatRegenGraceTicks; i++ {
+	for i := 0; i < constant.CombatRegenGraceTicks; i++ {
 		p.ResetTickNumbers()
 	}
 	assert.False(t, p.InCombat(), "combat drops after the grace window")

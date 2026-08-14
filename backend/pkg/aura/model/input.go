@@ -6,10 +6,11 @@ import (
 
 // active_aura_slot wire values. NOTE: -2 is a wire-only sentinel — a workaround for
 // FlatBuffers omitting a scalar equal to its schema default (-1), which makes an
-// explicit -1 indistinguishable from an absent field. Keep this name and comment in
-// sync with the frontend DEACTIVATE_AURA_SLOT constant (InputMessage.ts); together
-// they form one wire contract. Collapse -2 onto -1 if the schema default is ever
-// changed and regenerated.
+// explicit -1 indistinguishable from an absent field. Twins of the frontend's
+// NO_ACTIVE_AURA_CHANGE/DEACTIVATE_AURA_SLOT (ActiveAuraSlot.ts), one wire
+// contract pinned on both sides by api/shared-constants.json `activeAuraSlot`
+// (cmd/aurad/shared_constants_test.go / SharedConstants.test.ts). Collapse -2
+// onto -1 if the schema default is ever changed and regenerated.
 const (
 	ActiveAuraSlotNoChange   = -1 // client sent no active-aura command this input (wire default)
 	ActiveAuraSlotDeactivate = -2 // client explicitly requests Nothing (no active aura)

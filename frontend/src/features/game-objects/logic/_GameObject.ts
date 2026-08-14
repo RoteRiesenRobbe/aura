@@ -1,6 +1,6 @@
 import {Container, Graphics, Text, Texture, Ticker} from 'pixi.js';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
-import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
+import {BasicConfig as Constants, meter2px} from '../../../client-data/BasicConfig';
 import {IVector, Vector} from '../../core/logic/Vector';
 import {isDefined, isUndefined, nearlyEqual, TwoDimensional} from '../../common/logic/Utils';
 import {StatusEffect, StatusEffectDefinition} from './StatusEffect';
@@ -14,11 +14,11 @@ let movementInterpolatedObjects = new Set();
 let rotatingObjects = new Set();
 
 // Position deltas beyond this snap instead of interpolating (skill-vocab
-// chunk 4, lowered chunk 5): 1.5 world units × 120 px = 180 px. Above any
-// per-tick movement (~6 px, walk 0.05 units) but below the shortest dash
+// chunk 4, lowered chunk 5): 1.5 world units (180 px). Above any per-tick
+// movement (~6 px, walk 0.05 units) but below the shortest dash
 // (2.5 units / 300 px, chunk 5) so a dash snaps instead of smearing; a Recall
 // teleport is far larger still. [PLACEHOLDER]
-const TELEPORT_SNAP_DISTANCE_PX = 180;
+const TELEPORT_SNAP_DISTANCE_PX = meter2px(1.5);
 const TELEPORT_SNAP_DISTANCE_PX_SQUARED = TELEPORT_SNAP_DISTANCE_PX * TELEPORT_SNAP_DISTANCE_PX;
 
 // How far in the past the world is rendered (plan-render-jitter.md Lever B).

@@ -19,28 +19,38 @@
 import {apiUrl} from '../../backend/logic/Urls';
 import {Identity} from './Identity';
 
-/** Every refusal code the server can return (§3a). */
-export type ApiErrorCode =
-    | 'rule'
-    | 'name_taken'
-    | 'username_taken'
-    | 'slots_full'
+/**
+ * Every refusal code the server can return (§3a). A runtime list (not just a
+ * type) so it can be pinned: api/shared-constants.json `apiErrorCodes` holds
+ * the authored set, asserted here by SharedConstants.test.ts and on the Go
+ * side by accounts/shared_constants_pin_test.go against respond.go's consts.
+ * A renamed code used to degrade every branch to the generic error path with
+ * nothing failing (plan-code-health.md C4).
+ */
+export const API_ERROR_CODES = [
+    'rule',
+    'name_taken',
+    'username_taken',
+    'slots_full',
     // ⚑ DISTINCT FROM slots_full: a CHOSEN slot is occupied, and the account may
     // well have room elsewhere. It only exists because a slot can be chosen
     // (D15), and it means the screen is stale rather than that the account is
     // full — so it routes through the re-read, never through "you are at the cap".
-    | 'slot_taken'
-    | 'invalid_credentials'
-    | 'already_logged_in'
-    | 'already_registered'
-    | 'character_playing'
-    | 'no_identity'
-    | 'session_expired'
-    | 'forbidden_origin'
-    | 'bad_request'
-    | 'busy'
-    | 'database_unavailable'
-    | 'internal'
+    'slot_taken',
+    'invalid_credentials',
+    'already_logged_in',
+    'already_registered',
+    'character_playing',
+    'no_identity',
+    'session_expired',
+    'forbidden_origin',
+    'bad_request',
+    'busy',
+    'database_unavailable',
+    'internal',
+] as const;
+
+export type ApiErrorCode = typeof API_ERROR_CODES[number]
     // Not a server code: the request never got a reply at all.
     | 'network';
 
