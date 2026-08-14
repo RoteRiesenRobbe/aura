@@ -502,7 +502,9 @@ func (g *game) addPlayer(p model.PlayerEntity) {
 	}
 }
 
-const stepMillis = 33.0
+// stepMicros is the tick budget in whole microseconds (1e6/30 = 33333),
+// integer so the overload math below stays in integer division.
+const stepMicros = 1_000_000 / constant.TicksPerSecond
 
 // maxPanicStacks caps how many full stack traces the loop prints. A system
 // that panics deterministically would otherwise emit one 30×/s and bury every
@@ -556,11 +558,11 @@ func (g *game) runTick() {
 	default:
 	}
 
-	g.World.Update(stepMillis)
+	g.World.Update(constant.StepMillis)
 }
 
 func (g *game) update() {
-	// fixed 33ms steps
+	// fixed steps of constant.StepMillis
 	// monotonic clock — wall time jumps (e.g. WSL2 host-sleep resync) must
 	// not register as overload
 	before := time.Now()
@@ -568,20 +570,20 @@ func (g *game) update() {
 	g.runTick()
 
 	dt := time.Since(before)
-	TickStats.record(dt.Microseconds()) // load-test instrumentation, see devops/loadtest.md
-	dtMillis := dt.Milliseconds()
-	if dtMillis > stepMillis {
-		fmt.Printf("Overload! Systems at: %d%%\n", overloadPercent(dtMillis))
+	dtMicros := dt.Microseconds()
+	TickStats.record(dtMicros) // load-test instrumentation, see devops/loadtest.md
+	if dtMicros > stepMicros {
+		fmt.Printf("Overload! Systems at: %d%%\n", overloadPercent(dtMicros))
 	}
 
 	// needs to be atomic to prevent race conditions
 	atomic.AddUint64(&g.Tick, 1)
 }
 
-func overloadPercent(dtMillis int64) int64 {
+func overloadPercent(dtMicros int64) int64 {
 	// multiply before dividing — integer division first truncates any
 	// overload down to 100%
-	return dtMillis * 100 / stepMillis
+	return dtMicros * 100 / stepMicros
 }
 
 func (g *game) sendWelcomeMessage(c model.Client) {

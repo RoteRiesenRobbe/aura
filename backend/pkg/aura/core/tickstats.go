@@ -4,7 +4,7 @@ package core
 // Inert unless aurad is started with -profile; costs one atomic + one array
 // write per tick otherwise.
 //
-// The game loop only reports when a tick blows the 33 ms budget entirely
+// The game loop only reports when a tick blows the per-tick budget entirely
 // ("Overload! Systems at: N%"). For capacity testing we need the shape of the
 // distribution well below that line, so this records every tick's wall-clock
 // into a fixed ring and reports percentiles on demand.
@@ -65,7 +65,7 @@ func (t *tickStatsRecorder) Summarize() TickSummary {
 	s := TickSummary{
 		Samples:         n,
 		TotalTicks:      total,
-		BudgetUs:        stepMillis * 1000,
+		BudgetUs:        stepMicros,
 		RecoveredPanics: RecoveredPanics(),
 	}
 	if n == 0 {

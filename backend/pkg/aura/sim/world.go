@@ -26,9 +26,6 @@ import (
 // TicksPerSecond re-exports the game's tick rate for metric conversion.
 const TicksPerSecond = constant.TicksPerSecond
 
-// stepMillis is one fixed tick, mirroring core/game.go.
-const stepMillis = 33.0
-
 // World is one deterministic fight world: the real ECS systems in their
 // real priority order (StatusEffects → Mob → Physics → Update → Skill), a
 // real player and one or more real mobs, no net/websocket/scoreboard layer.
@@ -188,9 +185,9 @@ func NewWorld(sc Scenario, seed int64) *World {
 	return &World{game: g, Player: pl, Mob: pack[0], Mobs: pack}
 }
 
-// Step advances the world one fixed 33 ms tick.
+// Step advances the world one fixed tick, at the same dt the live loop uses.
 func (w *World) Step() {
-	w.game.World.Update(stepMillis)
+	w.game.World.Update(constant.StepMillis)
 	w.game.tick++
 }
 

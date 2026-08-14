@@ -528,12 +528,70 @@ a stale copy, not deliberate headroom. The evidence, recorded per the plan:
   with the camera watched, no defects (the fly leg was confirmatory - the hard-follow
   makes a flight regression impossible; the walk check covered the easing scale).
 
+### C3 - The server's dt: `stepMillis` ✅ 2026-08-14 (commit pending)
+
+**The inventory came back empty, so this is the two-line-derive branch.** All 18
+`Update(dt float32)` implementations either ignore `dt` outright or forward it to
+consumers that ignore it (the 19th grep hit, `phy.Space.Update()`, takes no dt and
+is not an ECS system):
+
+- `UpdateSystem` forwards to `player.Update(dt)` and `mob.Update(dt)`; the player's
+  `updateVitalSigns(dt)` never reads it (`HealthGainTick` is a per-tick fraction of
+  maxHealth), and `mob.Update`'s body uses it nowhere.
+- Every other system (skills, physics, mob AI, state, net, chat, cmd, quest, equip,
+  interaction, statuseffects, encounter, input) is tick-counted, as the plan
+  suspected. **Consumer list: zero.**
+- ⚑ **Incidental find, deferred:** `model.PreUpdater`/`PostUpdater` have **zero
+  implementors** in the codebase, so `PreUpdateSystem`/`PostUpdateSystem` iterate
+  permanently empty registries every tick. C1-flavored dead code; a C7 or
+  ledger-extension candidate, not touched here.
+
+**The fix is necessarily two constants, not one** - the old `stepMillis = 33.0` was
+an untyped constant read in three *integer* contexts (`dtMillis > stepMillis`,
+`overloadPercent`'s division, `BudgetUs: stepMillis * 1000`), where the true
+33.333... does not compile:
+
+- **`constant.StepMillis = 1000.0 / TicksPerSecond`** (tier-1 derive, next to
+  `TicksPerSecond` as the plan proposed), fed to `World.Update` in `core/game.go`
+  AND `sim/world.go` in the same change - the sim's mirror constant is deleted, so
+  the guardrail suite referees against the same dt the live loop uses.
+- **Core-local `stepMicros = 1_000_000 / constant.TicksPerSecond`** (= 33333, exact
+  integer division) for the telemetry sites. Overload detection and
+  `overloadPercent` moved from milliseconds to microseconds (`update()` already
+  computed `dt.Microseconds()` for TickStats; the separate `Milliseconds()` call is
+  gone). `BudgetUs` is now 33333 on the `/tickstats` wire; `cmd/loadbot` derives
+  utilization from the reported field, so it follows automatically
+  (`devops/loadtest.md`'s ~33000 note updated).
+
+**Telemetry side effect, deliberate:** overload detection got slightly more
+sensitive and more honest - `dt.Milliseconds() > 33.0` truncated sub-ms overshoot,
+so a 33.7 ms tick never warned; `33700 > 33333` now does.
+
+**Red-first:** new `TestTickBudget_DerivedFromTickrate` failed honestly at
+33000 ≠ 33333 (the exact bug), and `TestOverloadPercent_NoTruncationTo100`'s
+expectations were **recomputed from the new budget, not copied from diffs**
+(60000 µs = 180%, 33333 µs = 100%); both red before the fix, green after.
+
+**Not touched:** the ~140 test-file `Update(33.0)` literals (they feed a parameter
+nothing reads; mass-editing them is churn with zero behaviour delta).
+
+- **Schema impact: NONE.** No conf key, no wire change (`budget_us` is telemetry,
+  not game state), no DB. Frontend untouched.
+- **Verified:** guardrail suite (TTK/TTD/ev-tick/survival) **byte-identical before
+  and after** - the stronger criterion the empty inventory earns; the only diff
+  lines were the band-list *log ordering*, proven nondeterministic by two
+  identical-code runs disagreeing with each other · `go test -count=1 ./...` green
+  except the known `TestDwell` flake, **measured, not diagnosed: 12/20 fail with
+  the change vs 10/20 at stashed HEAD**, same coin-flip · `-race` clean on
+  core/sim/sys/simharness · `make -C backend build` · boot 0 WARN / 0 ERROR.
+
 ## Open questions
 
 None blocking. Two in-chunk determinations were deliberately left to their execution
 sessions rather than decided here: ~~C2's flight-camera outcome (fix value vs document
 deliberate headroom)~~ **resolved in C2, 2026-08-13: fix the value** (the camera
 hard-follows in flight, the walking ceiling has ~4× headroom, and 0.055 was provably
-the mob default under a false comment - see the C2 ledger) and C3's dt-consumer
-inventory (which decides whether the fix is two lines or a mini-retune), still open,
-findings-first with the PO looped in if the guardrails move.
+the mob default under a false comment - see the C2 ledger) and ~~C3's dt-consumer
+inventory (which decides whether the fix is two lines or a mini-retune)~~ **resolved
+in C3, 2026-08-14: zero dt consumers, two-line-derive branch, guardrails
+byte-identical** (see the C3 ledger).

@@ -28,8 +28,8 @@ keep 30 Hz".
 
 ## The break signal
 
-- **Local** (you control the server): watch `p95` in `/tickstats`. Past ~33000 µs
-  the loop is over budget.
+- **Local** (you control the server): watch `p95` in `/tickstats`. Past ~33333 µs
+  (the `budget_us` the endpoint reports) the loop is over budget.
 - **Live / remote** (no profiler on the deployed binary): watch `snap/s/bot`.
   A healthy loop delivers a full **30.0**. Below that = the loop is falling
   behind (25 ≈ −17 %, 14 ≈ half speed). `dropped` connections = clients evicted

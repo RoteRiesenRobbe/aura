@@ -9,7 +9,7 @@ package core
 //     reversed the tick execution order at boot (broke damage numbers and
 //     aura-hit VFX).
 //   - overloadPercent: tick-load percentage for the overload warning; must not
-//     truncate to 100% for any dt > stepMillis (integer division order).
+//     truncate to 100% for any tick over budget (integer division order).
 //
 // See docs/research-code-quality.md §2.
 
@@ -56,10 +56,18 @@ func TestPrintSystems_DoesNotChangeExecutionOrder(t *testing.T) {
 }
 
 func TestOverloadPercent_NoTruncationTo100(t *testing.T) {
-	// 60ms on a 33ms budget is ~181% load, not 100%.
-	assert.Equal(t, int64(181), overloadPercent(60))
+	// 60 ms on the 33333 µs budget is 180% load (60000·100/33333), not 100%.
+	assert.Equal(t, int64(180), overloadPercent(60000))
 	// Exactly on budget is 100%.
-	assert.Equal(t, int64(100), overloadPercent(33))
+	assert.Equal(t, int64(100), overloadPercent(33333))
+}
+
+// The tick budget must be derived from the tickrate, not restated: the loop
+// ticks at time.Second/TicksPerSecond = 33333 µs, and a hand-written 33 ms
+// twin understated it by 1% (plan-code-health.md C3).
+func TestTickBudget_DerivedFromTickrate(t *testing.T) {
+	r := &tickStatsRecorder{}
+	assert.Equal(t, int64(33333), r.Summarize().BudgetUs)
 }
 
 // panickingSystem panics on every Update until disarmed.
