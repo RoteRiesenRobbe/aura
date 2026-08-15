@@ -1,0 +1,285 @@
+# Plan: Projectile ability prototype (`prototype/projectile`)
+
+**Status: designed 2026-08-15, nothing built.**
+**Branch: its own branch off `main`, deliberately NOT stacked on
+`prototype/aura-los`** (that branch carries the LoS build and its uncommitted
+frontend work). Posture: prototype-to-answer-a-question, but unlike LoS it
+contravenes no standing ruling, so the PO verdict decides merge, park, or
+delete rather than defaulting to parked.
+
+## 1. What question this answers
+
+Can an ability *throw an aura*? A player (later a mob/boss) launches a
+short-lived entity in their last walking direction; the entity carries an
+ordinary aura with fast ticks and everything in range gets the effect. Three
+shapes to feel, layered onto one skeleton:
+
+- **(a) Flying bolt** - travels in a line, damage aura ticking, expires.
+- **(b) Bomb** - placed a few units ahead, arms, then detonates a burst
+  (proximity mine and timed variant both).
+- **(c) Frost ball** - travels, slow+damage aura active, parks while it
+  overlaps someone, rolls on when it no longer does.
+
+The deliverable is a PO verdict on whether throwing aura entities opens a
+real skill expression (placement, area denial, burst dodging) inside the
+no-targeting design, recorded in §11.
+
+## 2. Scope (PO answers, 2026-08-15)
+
+- **Layered build, bomb first**: the bomb needs no movement code, so P1 lands
+  the shared skeleton + bomb, P2 adds drift for ball and bolt, P3 adds the
+  mob/boss thrower.
+- **Both detonations**: proximity mine AND timed bang, both feelable (D5).
+- **Attackability split by caster side**: player-thrown projectiles are not
+  killable by mobs in practice; mob/boss-thrown bombs are killable so players
+  can burst them down before they pop. A first-class "defuse" mechanic
+  (the PO flagged it might be its own thing) is out of scope; authored
+  health carries the split at prototype fidelity (D6).
+- **Aim: last walking direction** (PO ruling 2026-08-15, chosen over the
+  cursor-facing option; the caveat and the prepared fallback live in D3 and
+  §10 item 7).
+
+## 3. Why this is cheap (survey 2026-08-15, verified at `663ae686`; re-verify line refs at execution)
+
+- **The projectile is a mob.** A `role: structure` mob has no AI, activates
+  its slot-0 aura at construction (`model/mob/mob.go:242`), and mobs are the
+  only entity kind registered with the SkillSystem, ticked via `Update`, and
+  cleanly removable (`PhysicsSystem.Remove` panics on statics,
+  `sys/physics.go:86`). No `game.AddEntity` or codec change needed.
+- **Lifetime exists**: `Mob.SetTTLTicks` (`model/mob/mob.go:899`), countdown
+  in `Update` (`:1023`) zeroes health and the MobSystem death sweep removes
+  after the loop; a mob without a spawn point never respawns.
+- **Fast ticks are authored, not coded**: `tickInterval` per *effect*
+  (`skills/definition.go:995`, `skills/scaling.go:20`), per-entity
+  accumulator - `"tickInterval": 2` on the projectile's aura is the knob.
+- **The spawn template exists**: `spawnSummon` (`sys/skills.go:2324`,
+  spot-verified this session) does def lookup → `EnlistUnder`/`Align` → TTL →
+  owner binding → placement → `AddEntity`. Two landmines it encodes carry
+  over verbatim: `SetOwner` must be followed by `RestoreToFullHealth()` (the
+  pool only widens once the owner is bound), and `EnlistUnder` vs `Align` is
+  faction AND reaction table together.
+- **Aiming exists**: `player.LastMoveDir()` (`model/player/player.go:840`,
+  set at `core/input.go:468`) is exactly "last walking direction";
+  `applyDash` (`sys/skills.go:1946`) is the precedent for probing along it
+  against statics+border.
+- **The mine trigger exists**: the mob cooldown path (`sys/skills.go:1372`,
+  spot-verified) fires every ready slot every tick and *consumes only on
+  hit* - "armed, waits, detonates when someone wanders in" is the shipped
+  semantics of a mob holding a burst cooldown.
+- **The explosion exists**: `api/skills/nova-burst.json` is an
+  `instant_damage` + `instant_dot` burst around self; `burst_radius` already
+  rides the wire for mobs, so the client draws the burst ring for free.
+- **The arming seam exists**: `sc.SetCooldownRemaining(id, ticks)`
+  (`skills/component.go:490`).
+- **Rendering is free at prototype fidelity**: author
+  `entityType: "NpcPlaceholder"` (the designed red-? placeholder) or reuse
+  `FireTotem`; aura ring, tick indicator, burst ring and pips all already
+  render for mobs. A NEW `EntityType` is deliberately not free (exhaustive
+  `Record` in `GameStateMessage.ts:486`, sprite + `GraphicsConfig` entry;
+  next free enum value is 76, gaps permanent) - only if this merges.
+- **Tick order works out**: a mover at priority ≥ 1 runs before Physics (0)
+  rebuilds collision sets, SkillSystem (-65) ticks auras on fresh overlaps,
+  NetSystem (-100) sends the moved position - all the same tick.
+- **`phy` velocity is vestigial**: `Space.Update` never integrates it and
+  `SetVelocity` has zero callers. Drift is a mob-side hook, not physics.
+- **Collision is polled, and despawn is safe**: no callbacks anywhere; shapes
+  read their rebuilt `Collisions()` set, sensors register without pushing,
+  and the §54 removal purge scrubs a despawned projectile from every other
+  shape's set on the spot.
+- **Slow is mob-only today**: players carry no `ApplySlow` (the inert
+  player-CC direction, standing §3.1 watch item). The slow pip reuses the
+  `AppliedEffectSlow` wire bit; the `applied_effects` byte is FULL, a
+  frost-specific pip is a §39 conversation.
+- **Recorded for the D3 fallback**: the client already sends the mouse-facing
+  angle in every input packet (`Controls.ts:264` →
+  `codec/client_message.go:29`), and the server currently drops it - nothing
+  applies `PlayerInput.Rotation` to the player. Cursor aim would be a small
+  `input.go` change, not a protocol change.
+
+## 4. Decisions
+
+- **D1 - The projectile is an authored mob def.** `role: structure`,
+  `tier: normal` (no `ccImmune` requirement), `factors.xpFactor: 0` (pays
+  nothing AND no nameplate, both wanted), `curveLevel: 1` (scaling comes from
+  owner binding, like summons), collision layer/mask copied from Totem
+  (non-blocking: nothing pushes it, it pushes nothing, hostile masks can
+  still hit it). `speed: 0` for the bomb; the travelling defs author a real
+  speed (P2).
+- **D2 - One new cooldown effect type, `projectile`**, a case in
+  `fireCooldown` modelled on `spawnSummon` (same enlist/TTL/owner sequence,
+  including the `RestoreToFullHealth` ordering). Params: `spawnMob`,
+  `forwardUnits` [PLACEHOLDER], `ttlTicks`, `armTicks`; P2 adds the travel
+  fields (D7). Placement: dash-style probe from the caster along the aim,
+  masked against statics + border; blocked early → place at the blocked
+  point (visible beats unplaceable, `summonPosition`'s philosophy).
+- **D3 - Aim is `LastMoveDir`** (PO ruling). Recorded caveat: kiting means
+  walking away from the enemy, so a retreating player throws *behind*
+  themselves and cannot hit a chaser - which reads perfectly for laying
+  mines and possibly badly for the frost ball. §10 item 7 judges exactly
+  this. Prepared fallback, built only on that verdict: apply the
+  already-transmitted cursor rotation server-side (see §3 last bullet);
+  mobile falls back to movement direction either way. For a mob caster see
+  D11.
+- **D4 - Detonation is the projectile's own loadout.** The projectile def
+  authors a burst cooldown (a nova-burst-shaped `instant_damage`, numbers
+  [PLACEHOLDER]) in a cooldown slot; the spawner arms it with
+  `SetCooldownRemaining(burstSkillID, armTicks)`. The existing mob auto-fire
+  path is then the entire trigger: ready + someone in the burst radius →
+  fires, consumes. No new detonation machinery.
+- **D5 - Mine vs timed is authoring, not a flag.** Mine: `ttlTicks` ≫
+  `armTicks` (armed, waits, detonates on entry, fizzles silently at TTL if
+  nobody comes). Timed: `ttlTicks = armTicks + 1`, giving exactly one fire
+  opportunity - the cooldown reaches ready at the SkillSystem (-65) pass of
+  tick N = armTicks, and TTL removes the mob at MobSystem (20) of tick N+1,
+  which runs *before* -65 of that tick. Both authored as separate skills so
+  the PO feels both; no code switch. ⚑ This ordering is the first thing the
+  red-first sys test pins. Accepted coarseness: an *empty* timed bang is
+  invisible (a burst with no targets applies nothing and shows nothing);
+  noted in §10 item 4.
+- **D6 - Attackability is authored health, no new mechanism.** Player-thrown
+  defs author `baseMaxHealth` big enough that nothing plausibly kills them
+  inside their few-second TTL [PLACEHOLDER]; the boss bomb def (P3) authors
+  a small pool so players can burst it down. Death before arming = defused,
+  through the normal death sweep (health zeroed, threat-safe, no respawn).
+  A real defuse mechanic (resistances, reward, VFX, maybe its own ability
+  vocabulary) is deferred per the PO note that it may be its own mechanic.
+- **D7 - Drift (P2) is a small `Mob` hook.** `SetDrift(dir)`; consumed in
+  `Mob.Update` for structure-role mobs: `moveTo(pos + dir·stepLength())`,
+  speed from authored `factors.speed`, routed through the existing
+  steer/safezone funnel. Accepted prototype coarseness: the ball *slides
+  around* props instead of stopping dead (might even read as rolling);
+  §10 item 10 judges it, and bypassing `steer()` for drift is the on-branch
+  tweak if it reads as guided. **Stop rule** (frost ball): while the body's
+  polled collision set contains any hostile-eligible entity (UserData
+  check), drift pauses; set empties → resumes. Authored flag
+  `stopsOnContact`; the flying bolt authors false. Static/border contact:
+  drift ends, the projectile parks until TTL. No bounce.
+- **D8 - The inert player-CC direction is NOT this prototype's to fix.**
+  A mob-thrown frost ball lands only its damage half on players (slow
+  no-ops, silently). Player-thrown vs mobs demonstrates the full mechanic.
+  Slow pip = the existing Slow bit; accepted.
+- **D9 - Schema NONE at every layer.** No wire change, no DB change, no
+  migration; content additions only. Placeholder `entityType`; real art and
+  an owned `EntityType` value only if this merges.
+- **D10 - The throw skills are ordinary player cooldowns** in `api/skills/`
+  (`throw-bomb`, `frost-ball`, `flying-bolt`; costs/cooldowns/cast 0, all
+  [PLACEHOLDER]), granted for testing via the SKILL cheat. All content edits
+  follow the add-content skill (census pins, `go test -count=1` after any
+  `api/` change).
+- **D11 - Mob thrower (P3).** A test boss def equips the throw cooldown; the
+  mob auto-fire path already fires equipped cooldowns (the spawn path is
+  explicitly kept mob-capable and pinned by test, per the comment in
+  `spawnSummon`). Aim for a mob caster: the vector to its current
+  chase/threat target - needs a small accessor on `Mob` (re-verify at
+  execution what it already exposes); fallback is its facing `Angle()`.
+  Placed in a corner of the world or via an encounter for the PO session.
+
+## 5. Feel artifacts to read correctly
+
+- **Mobs will aggro the player-side projectile** exactly as they aggro
+  totems (it is an enlisted structure with health). With D6 health that is
+  damage-cosmetic, but it can *pull* a mob onto the bomb - which is a decoy
+  mechanic arriving for free. Give it its own verdict, don't read it as a
+  bug.
+- **The kiting throw** (D3): throw-behind-while-fleeing is intended
+  mine-laying, not a bug; whether it kills the frost ball's feel is §10
+  item 7's question.
+- **Timed fizzles are invisible** (D5): an empty timed bang shows nothing.
+  Note whether it bothers; burst VFX for whiffed bursts would be new client
+  work, deliberately not pre-built.
+
+## 6. Build steps (layered; each layer its own execution session)
+
+**P1 - skeleton + bomb**
+1. **Params + parsing, red-first.** `projectile` effect type in
+   `skills/definition.go` (type enum, allowed-keys table, validation:
+   `armTicks ≥ 0`, `ttlTicks ≥ 1`, `forwardUnits > 0`, spawnMob resolution
+   hard-fails at boot like `spawnMob` today).
+2. **Spawn + placement, red-first in `sys`.** `fireCooldown` case: spawned
+   at `forwardUnits` along `LastMoveDir`; clamps at a blocking static;
+   enlisted under the caster; TTL armed; full health after owner bind.
+3. **Detonation, red-first in `sys`.** Mine: pre-arm entry → nothing; armed
+   entry → burst damage lands and the cooldown is consumed. Timed
+   authoring: fires at exactly the one opportunity tick with a target
+   present; despawns without firing when empty (pins the D5 ordering).
+4. **Content.** `projectile-bomb` mob def + `bomb-burst` skill +
+   `throw-bomb` and `throw-mine` player cooldowns (the two D5 authorings).
+5. **Verify tail (§9) + PO session** (bomb half of §10), verdict in §11.
+
+**P2 - drift: frost ball + flying bolt**
+6. **`SetDrift` + stop-on-contact, red-first in `model/mob`** (direct
+   construction with a real space, like the steering tests): straight-line
+   travel · pauses while the body overlaps a hostile · resumes when clear ·
+   parks on static contact · TTL cleanup · nil-space safe.
+7. **Travel params + content**: `frost-ball` (slow_aura + fast damage tick,
+   `damageTags: ["frost"]`, `stopsOnContact: true`) and `flying-bolt`
+   (damage_aura, `stopsOnContact: false`).
+8. **Verify + PO session** (ball half of §10).
+
+**P3 - the mob thrower**
+9. Mob aim accessor (D11) + boss def equipping the throw + a killable bomb
+   def (D6 small pool); PO burst-it-down session.
+
+## 7. Schema impact
+
+**NONE.** No wire change, no DB change, no migration. New content JSON only;
+runtime-spawned entities are never persisted.
+
+## 8. Test posture and expected fallout
+
+- TDD on every Go layer (parse, sys behavior, model/mob drift); frontend has
+  no code change until/unless real art lands.
+- ⚑ `go test -count=1` after every `api/` edit (content does not invalidate
+  the test cache); new skills appear in the catalog censuses the add-content
+  skill lists.
+- simharness guardrails should NOT shift - no existing skill, mob, or
+  formula is touched. A shift means the change bled; chase it, don't record
+  it.
+- The CLAUDE.md known-inconclusive list applies unchanged; measure before
+  diagnosing any flake as branch fallout.
+
+## 9. Verify tail
+
+`go build ./...` · `go test -count=1 ./...` (at minimum `skills`, `sys`,
+`model/mob`) · `npm run typecheck` · `npm test` · `make -C backend build`
+before booting (stale-binary gotcha) · boot 0 WARN / 0 ERROR · PO checklist.
+
+## 10. PO in-game checklist
+
+**P1 (bomb):**
+1. Throw while walking each of the eight directions: the bomb lands
+   `forwardUnits` ahead, ring visible, placeholder sprite fine.
+2. Mine: drop, back off, lure a mob over it - detonates on entry after the
+   arm delay, never before.
+3. Walk through it yourself pre-arm and post-arm: it never hurts its owner's
+   side.
+4. Timed variant: bang at the delay with a target present; silent fizzle
+   when empty - does the invisibility bother? (D5 accepted coarseness.)
+5. Throw against a wall/prop: clamps visibly short, never inside geometry.
+6. Mob aggro onto the bomb (§5): does the free decoy read as a feature?
+7. **The aim verdict (D3):** while fleeing a chaser, throw-behind - does it
+   read as mine-laying (good) or as cannot-fight-back (bad)? The cursor
+   fallback hangs on this answer.
+
+**P2 (ball + bolt):**
+8. Frost ball flies straight, aura ring visible while moving, fast ticks
+   land on pass-through.
+9. Hits a mob: parks on it, slow pip + damage visible; mob dies or steps
+   away → the ball rolls on; TTL expiry mid-flight is clean.
+10. Prop in the path: slides around it (D7) - guided-missile feel or fine?
+11. Flying bolt: are strafing shots aimable, or is walk-to-aim fighting the
+    controls in open combat?
+
+**P3 (boss):**
+12. The boss lobs bombs at you; burst one down before it arms - is defusing
+    legible and fun, and does it want to become its own mechanic (PO note in
+    §2)?
+
+13. **The actual question**, after 15+ minutes of normal play: does throwing
+    aura entities open a real skill expression (placement, denial, dodging
+    the burst) - and which of the three shapes earns a shipped version
+    first?
+
+## 11. Ledger
+
+*(filled in by the execution sessions and the PO verdicts)*
