@@ -1139,7 +1139,14 @@ func (m *Mob) shouldApproach(t model.Combatant) bool {
 	if stopDistance < 0 {
 		stopDistance = 0
 	}
-	return m.Position().Sub(t.Position()).Abs() > stopDistance
+	if m.Position().Sub(t.Position()).Abs() > stopDistance {
+		return true
+	}
+	// LoS prototype (D10, docs/plan-prototype-aura-los.md): in range but no
+	// sightline: keep closing. Steering rounds the prop on its own, and a
+	// genuinely trapped mob falls into the chase watchdog's camp. A nil
+	// space (tests, direct construction) keeps the pre-LoS stop rule.
+	return m.space != nil && m.space.LineBlockedByStatics(m.Position(), t.Position(), model.LoSOccluderMask)
 }
 
 func (m *Mob) SetPosition(p phy.Vec2f) {

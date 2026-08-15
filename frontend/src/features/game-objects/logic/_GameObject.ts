@@ -83,6 +83,11 @@ export abstract class GameObject {
     statusEffects: { [key: string]: StatusEffect };
     activeStatusEffect: StatusEffect = null;
 
+    // The raw wire body radius in px (LoS prototype): `size` is padded for
+    // visuals on several Resource subclasses, so the shadow overlay needs the
+    // unpadded value. Set by EntityManager on creation; 0 = unknown.
+    wireRadius: number = 0;
+
     // Floating speech-bubble state, hoisted from Character so ANY game object
     // (players, NPCs) can speak. Lazily initialized on the first say() call —
     // an object that never speaks pays nothing. The bubble renders in the

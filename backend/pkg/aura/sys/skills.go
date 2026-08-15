@@ -295,6 +295,11 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 // a cost kill its caster), and paid only after the applier reports it reached
 // something (D8 — an aura is a field, it pays for what it did).
 func (s *SkillSystem) applyAuraEffect(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, targets phy.ColliderSet) {
+	// LoS prototype: one filter here covers every aura effect type: the
+	// funnel runs before cost, so a fully-blocked tick is a no-target tick
+	// and stays unpaid (D8's "pays for what it did" is preserved).
+	targets = s.losFilter(e.AuraCollider().Position(), targets)
+
 	payer, charge, skip := auraEffectCost(e, effect, level)
 	if skip {
 		// The caster is at the never-kill floor: no effect emitted, no cost
@@ -1242,12 +1247,18 @@ func instantQueryCircle(e skillEntity, effect skills.EffectDef, level int) *phy.
 // cannot change which targets survive the cap.
 func (s *SkillSystem) queryInstantTargets(e skillEntity, effect skills.EffectDef, level int) phy.ColliderSet {
 	casterID := e.Basic().ID()
+	casterPos := e.AuraCollider().Position()
 	hits := s.space.QueryCircle(instantQueryCircle(e, effect, level))
 	targets := make(phy.ColliderSet, len(hits))
 	for _, h := range hits {
 		// Never hit the caster's own shapes (a self-targeting flag combo
 		// would otherwise burst the caster).
 		if usr, ok := h.Shape().UserData.(model.BasicEntity); ok && usr.Basic().ID() == casterID {
+			continue
+		}
+		// LoS prototype: a cooldown fired at a blocked target whiffs, and
+		// still pays, per D9 (a cooldown is a committed act).
+		if !s.losVisible(casterPos, h) {
 			continue
 		}
 		targets[h] = struct{}{}
@@ -2097,8 +2108,13 @@ func (s *SkillSystem) applyThreatEffect(e skillEntity, level int, effect skills.
 	// manipulation is per-target and order-independent, and the slice's order
 	// is deterministic where a map's is not.
 	hitAny := false
+	casterPos := e.AuraCollider().Position()
 	for _, h := range s.space.QueryCircle(instantQueryCircle(e, effect, level)) {
 		if !eligible(h) {
+			continue
+		}
+		// LoS prototype: threat manipulation needs a sightline too.
+		if !s.losVisible(casterPos, h) {
 			continue
 		}
 		target := h.Shape().UserData.(threatManipulable)
@@ -2153,8 +2169,13 @@ func (s *SkillSystem) applyCalm(e skillEntity, source skills.SkillID, level int,
 	eligible := eligibleByTargetFlags[calmable](effect, e, e.Basic().ID(), true)
 
 	hitAny := false
+	casterPos := e.AuraCollider().Position()
 	for _, h := range s.space.QueryCircle(query) {
 		if !eligible(h) {
+			continue
+		}
+		// LoS prototype: a calm needs a sightline too.
+		if !s.losVisible(casterPos, h) {
 			continue
 		}
 		h.Shape().UserData.(calmable).ApplyCalm(source, ticks)
@@ -2203,7 +2224,12 @@ func (s *SkillSystem) applyStun(e skillEntity, source skills.SkillID, level int,
 
 	hits := s.space.QueryCircle(query)
 	candidates := make(phy.ColliderSet, len(hits))
+	casterPos := e.AuraCollider().Position()
 	for _, h := range hits {
+		// LoS prototype: a blocked target never enters the candidate set.
+		if !s.losVisible(casterPos, h) {
+			continue
+		}
 		candidates[h] = struct{}{}
 	}
 	eligible := eligibleByTargetFlags[stunnable](effect, e, e.Basic().ID(), true)
@@ -2264,7 +2290,12 @@ func (s *SkillSystem) applyCharm(e skillEntity, source skills.SkillID, level int
 
 	hits := s.space.QueryCircle(query)
 	candidates := make(phy.ColliderSet, len(hits))
+	casterPos := e.AuraCollider().Position()
 	for _, h := range hits {
+		// LoS prototype: a blocked target never enters the candidate set.
+		if !s.losVisible(casterPos, h) {
+			continue
+		}
 		candidates[h] = struct{}{}
 	}
 	eligible := eligibleByTargetFlags[charmable](effect, e, e.Basic().ID(), true)

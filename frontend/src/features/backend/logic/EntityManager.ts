@@ -70,6 +70,10 @@ export class EntityManager {
                     gameObject = new entity.type(entity.id, entity.position.x, entity.position.y, entity.radius);
             }
 
+            // LoS prototype: the shadow overlay occludes at the unpadded wire
+            // body radius, not the visually padded `size`.
+            gameObject.wireRadius = entity.radius ?? 0;
+
             this.objects[entity.id] = gameObject;
 
             if (gameObject.visibleOnMinimap) {

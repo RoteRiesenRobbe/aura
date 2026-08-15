@@ -28,3 +28,10 @@ const (
 	LayerPlayerCollision    // layer with all players on
 	LayerPlaceableCollision // layer with all placeables on
 )
+
+// LoSOccluderMask is the one definition of "blocks a sightline" (LoS
+// prototype, docs/plan-prototype-aura-los.md): both static-collision bits a
+// blocksMovement prop authors. Shared by the effect funnel (sys) and mob AI
+// (model/mob). The border wall sits on LayerBorderCollision and is never
+// matched; walkable props carry only the viewport layer.
+const LoSOccluderMask = int(LayerPlayerStaticCollision | LayerMobStaticCollision)

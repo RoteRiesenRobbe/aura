@@ -110,6 +110,11 @@ export class Character extends GameObject
         return group;
     }
 
+    /** Active ring radius in px, 0 without one (LoS shadow overlay). */
+    get auraShadowRadius(): number {
+        return this.auraRings ? this.auraRings.activeRadiusPx : 0;
+    }
+
     createStatusEffects() {
         if (this.isPlayerCharacter) {
             super.createStatusEffects();

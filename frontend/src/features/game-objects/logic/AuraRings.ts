@@ -113,6 +113,14 @@ export class AuraRingStack {
         this.redraw();
     }
 
+    /**
+     * The ring's current outer radius in px, 0 while no aura is active; the
+     * LoS shadow overlay (AuraShadows.ts) reads this per frame.
+     */
+    get activeRadiusPx(): number {
+        return this.mask !== 0 ? this.radiusPx : 0;
+    }
+
     // Pulse energy for the N5 beat pulse: 1 at the beat, decayed per snapshot.
     private pulseEnergy = 0;
 

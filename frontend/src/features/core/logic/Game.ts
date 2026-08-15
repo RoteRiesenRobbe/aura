@@ -35,6 +35,10 @@ import {
     UserInteraceDomReadyEvent,
 } from './Events';
 import {createNamedContainer} from '../../pixi-js/logic/CustomData';
+import {AuraShadowLayer, ShadowCircle} from '../../game-objects/logic/AuraShadows';
+import {Character} from '../../game-objects/logic/Character';
+import {Mob} from '../../game-objects/logic/Mobs';
+import {Resource} from '../../game-objects/logic/Resources';
 import {registerPreload} from './Preloading';
 import {installContextLossWarning} from './ContextLossWarning';
 import {isMobile} from '../../user-interface/logic/Mobile';
@@ -75,6 +79,8 @@ export class Game implements IGame {
 
     public spectator: Spectator;
     public player: Player;
+    // LoS prototype: the shared occlusion-wedge layer (AuraShadows.ts).
+    private auraShadows: AuraShadowLayer;
     private backend: IBackend;
 
     public get width(): number {
@@ -334,6 +340,13 @@ export class Game implements IGame {
         // still in it — so this sits just below it.
         this.cameraGroup.addChild(this.layers.flyers);
 
+        // LoS prototype: occlusion wedges above every entity, below darkness:
+        // a wedge is "the aura does not reach here", which darkness must
+        // still be able to cover.
+        this.auraShadows = new AuraShadowLayer();
+        this.auraShadows.graphics.label = 'auraShadows';
+        this.cameraGroup.addChild(this.auraShadows.graphics);
+
         // Darkness overlay above every entity
         this.cameraGroup.addChild(this.layers.darkness);
 
@@ -439,7 +452,45 @@ export class Game implements IGame {
         }
 
         this.timeDelta = ticker.deltaMS;
+        this.updateAuraShadows();
         PrerenderEvent.trigger(this.timeDelta);
+    }
+
+    /**
+     * LoS prototype (docs/plan-prototype-aura-los.md D7/D8): collect every
+     * active aura ring (own character, streamed characters, mobs) and every
+     * prop occluder in view, and redraw the shared shadow layer. Per frame;
+     * shadows are a function of positions, which change every frame.
+     */
+    private updateAuraShadows(): void {
+        if (!isDefined(this.auraShadows)) {
+            return;
+        }
+        const rings: ShadowCircle[] = [];
+        const occluders: ShadowCircle[] = [];
+
+        const collectRing = (o: Character | Mob) => {
+            const radius = o.auraShadowRadius;
+            if (radius > 0) {
+                rings.push({x: o.getX(), y: o.getY(), radius: radius});
+            }
+        };
+
+        if (isDefined(this.player) && isDefined(this.player.character)) {
+            collectRing(this.player.character);
+        }
+        if (isDefined(this.map)) {
+            Object.values(this.map.objects).forEach((o: GameObject) => {
+                if (o instanceof Resource) {
+                    if (o.wireRadius > 0) {
+                        occluders.push({x: o.getX(), y: o.getY(), radius: o.wireRadius});
+                    }
+                } else if (o instanceof Character || o instanceof Mob) {
+                    collectRing(o);
+                }
+            });
+        }
+        this.auraShadows.update(rings, occluders);
     }
 
     play(): void {

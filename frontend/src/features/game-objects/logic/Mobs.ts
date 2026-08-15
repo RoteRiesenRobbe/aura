@@ -368,6 +368,11 @@ export abstract class Mob extends GameObject
         this.ensureAuraRings().setCategories(mask);
     }
 
+    /** Active ring radius in px, 0 without one (LoS shadow overlay). */
+    get auraShadowRadius(): number {
+        return this.auraRings !== null ? this.auraRings.activeRadiusPx : 0;
+    }
+
     private ensureAuraRings(): AuraRingStack {
         if (this.auraRings === null) {
             this.auraRings = new AuraRingStack();
