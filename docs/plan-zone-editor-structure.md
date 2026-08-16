@@ -434,7 +434,7 @@ controls, the respawn tri-state, and the talker round-trip that fixes the
 uneditable ascension stones (the "Invalid respawn ticks" refusal was re-seen
 during the PO checklist and stays the known C2 target).
 
-### C2 - the controls, and the talker round-trip ✅ SHIPPED 2026-08-16, `[uncommitted]`
+### C2 - the controls, and the talker round-trip ✅ SHIPPED 2026-08-16, `82ccbd4d`
 
 **What shipped, exactly as designed.** `capabilitiesOf` joins `kindOf` in
 `ZoneModel.ts` (the vitest-reachable home, L3):
