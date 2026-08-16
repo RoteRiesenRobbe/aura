@@ -19,6 +19,7 @@ import {saveAs} from 'file-saver';
 import * as Console from '../../internal-tools/console/logic/Console';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
 import * as ZoneEditor from './ZoneEditor';
+import {readSpawnValues, spawnControlValues} from './SpawnControls';
 import {ZoneProp, ZoneSpawn} from './ZoneModel';
 
 const NEW_ZONE_OPTION = '__new__';
@@ -97,6 +98,14 @@ let spawnSelectionGroup: HTMLElement;
 let spawnSelectedIndexLabel: HTMLElement;
 let waypointModeToggle: HTMLInputElement;
 let waypointCountLabel: HTMLElement;
+// The capability-gated rows (§4.5): hidden, not disabled (P3), when the
+// picked species cannot do the thing.
+let respawnTicksRow: HTMLElement;
+let respawnVarianceRow: HTMLElement;
+let wanderRadiusRow: HTMLElement;
+let idleSpeedRow: HTMLElement;
+let waypointRow: HTMLElement;
+let patrolModeRow: HTMLElement;
 
 let campfireControls: HTMLElement;
 let campfireSelectionGroup: HTMLElement;
@@ -173,6 +182,12 @@ export function setupPanel() {
     spawnSelectedIndexLabel = document.getElementById('zoneEditor_spawnSelectedIndex');
     waypointModeToggle = document.getElementById('zoneEditor_waypointMode') as HTMLInputElement;
     waypointCountLabel = document.getElementById('zoneEditor_waypointCount');
+    respawnTicksRow = document.getElementById('zoneEditor_respawnTicksRow');
+    respawnVarianceRow = document.getElementById('zoneEditor_respawnVarianceRow');
+    wanderRadiusRow = document.getElementById('zoneEditor_wanderRadiusRow');
+    idleSpeedRow = document.getElementById('zoneEditor_idleSpeedRow');
+    waypointRow = document.getElementById('zoneEditor_waypointRow');
+    patrolModeRow = document.getElementById('zoneEditor_patrolModeRow');
 
     campfireControls = document.getElementById('zoneEditor_campfireControls');
     campfireSelectionGroup = document.getElementById('zoneEditor_campfireSelection');
@@ -234,6 +249,12 @@ export function setupPanel() {
             optgroup.appendChild(option);
         });
         spawnMobSelect.appendChild(optgroup);
+    });
+    // Gating direction 1 of 2 (⚑ §4.5): picking a species gates the controls
+    // for placing. Direction 2 is populateSpawnControls, for selecting an
+    // existing marker.
+    spawnMobSelect.addEventListener('change', () => {
+        updateSpawnCapabilityRows(spawnMobSelect.value);
     });
 
 
@@ -600,61 +621,32 @@ function readPropControls(x: number, y: number): ZoneProp {
     };
 }
 
+// The parse/validation rules live in SpawnControls.ts (readSpawnValues), the
+// only vitest-reachable seam - this stays a DOM adapter that collects the
+// strings and voices the error.
 function readSpawnControls(x: number, y: number): ZoneSpawn {
     if (spawnMobSelect.value === '') {
         Game.player.character.say('No mob selected');
         return null;
     }
-    // The per-spawn level override: empty = inherit the species curveLevel
-    // (plan-mob-levels.md D1/L6 — the field is never pre-filled from the
-    // picked species, because a copied default is no longer inheritance).
-    // Mirrors the loader's ">= 1" hard-fail, and rejects fractions on top of
-    // it: world.Spawn.Level is a *int, so a 2.5 in the file fails
-    // json.Unmarshal at boot instead of reporting the friendly message.
-    let level: number = undefined;
-    if (spawnLevelInput.value.trim() !== '') {
-        let parsedLevel = parseFloat(spawnLevelInput.value);
-        if (!Number.isInteger(parsedLevel) || parsedLevel < 1) {
-            Game.player.character.say('Level must be a whole number >= 1');
-            return null;
-        }
-        level = parsedLevel;
-    }
-    let respawnTicks = parseInt(respawnTicksInput.value);
-    if (isNaN(respawnTicks) || respawnTicks < 0) {
-        Game.player.character.say('Invalid respawn ticks');
+    let result = readSpawnValues({
+        level: spawnLevelInput.value,
+        respawnTicks: respawnTicksInput.value,
+        respawnVariance: respawnVarianceInput.value,
+        angle: spawnAngleInput.value,
+        wanderRadius: wanderRadiusInput.value,
+        idleSpeed: idleSpeedInput.value,
+        patrolMode: patrolModeSelect.value === 'loop' ? 'loop' : 'pingpong',
+    }, ZoneEditor.mobCapabilities(spawnMobSelect.value));
+    if (result.ok === false) {
+        Game.player.character.say(result.error);
         return null;
-    }
-    let variance = parseFloat(respawnVarianceInput.value);
-    if (isNaN(variance) || variance < 0) {
-        variance = 0;
-    }
-    // Tri-state: empty input = inherit the mob type's default (undefined),
-    // 0 = explicit stationary, > 0 = explicit radius.
-    let wanderRadius: number = undefined;
-    if (wanderRadiusInput.value.trim() !== '') {
-        wanderRadius = Math.max(0, parseFloat(wanderRadiusInput.value) || 0);
-    }
-    let idleSpeedFactor: number = undefined;
-    if (idleSpeedInput.value.trim() !== '') {
-        let parsed = parseFloat(idleSpeedInput.value);
-        if (!isNaN(parsed) && parsed > 0 && parsed <= 1) {
-            idleSpeedFactor = parsed;
-        } else {
-            Game.player.character.say('Idle speed factor must be in (0, 1]');
-            return null;
-        }
     }
     return {
         mob: spawnMobSelect.value,
         x,
         y,
-        angle: deg2rad(parseFloat(spawnAngleInput.value) || 0),
-        respawnTicks,
-        respawnVariancePct: variance,
-        wanderRadius,
-        idleSpeedFactor,
-        level,
+        ...result.fields,
         waypoints: [],
     };
 }
@@ -668,13 +660,32 @@ function populatePropControls(prop: ZoneProp) {
 
 function populateSpawnControls(spawn: ZoneSpawn) {
     spawnMobSelect.value = spawn.mob;
-    spawnLevelInput.value = spawn.level !== undefined ? String(spawn.level) : '';
-    respawnTicksInput.value = String(spawn.respawnTicks);
-    respawnVarianceInput.value = String(spawn.respawnVariancePct);
-    spawnAngleInput.value = String(Math.round(spawn.angle * 180 / Math.PI));
-    wanderRadiusInput.value = spawn.wanderRadius !== undefined ? String(spawn.wanderRadius) : '';
-    idleSpeedInput.value = spawn.idleSpeedFactor !== undefined ? String(spawn.idleSpeedFactor) : '';
-    patrolModeSelect.value = spawn.patrolMode === 'loop' ? 'loop' : 'pingpong';
+    let values = spawnControlValues(spawn);
+    spawnLevelInput.value = values.level;
+    respawnTicksInput.value = values.respawnTicks;
+    respawnVarianceInput.value = values.respawnVariance;
+    spawnAngleInput.value = values.angle;
+    wanderRadiusInput.value = values.wanderRadius;
+    idleSpeedInput.value = values.idleSpeed;
+    patrolModeSelect.value = values.patrolMode;
+    // Gating direction 2 of 2 (⚑ §4.5): selecting an existing marker gates
+    // the controls too, not just picking in the dropdown.
+    updateSpawnCapabilityRows(spawn.mob);
+}
+
+// Hidden, not disabled (P3): a greyed row still costs a line of height in an
+// already-tall panel, and the fields are meaningless for the species rather
+// than temporarily unavailable. '' = nothing picked yet - show everything.
+function updateSpawnCapabilityRows(mobName: string) {
+    let capabilities = mobName !== ''
+        ? ZoneEditor.mobCapabilities(mobName)
+        : {moves: true, respawns: true};
+    respawnTicksRow.classList.toggle('hidden', !capabilities.respawns);
+    respawnVarianceRow.classList.toggle('hidden', !capabilities.respawns);
+    wanderRadiusRow.classList.toggle('hidden', !capabilities.moves);
+    idleSpeedRow.classList.toggle('hidden', !capabilities.moves);
+    waypointRow.classList.toggle('hidden', !capabilities.moves);
+    patrolModeRow.classList.toggle('hidden', !capabilities.moves);
 }
 
 function applyControlsToSelection() {

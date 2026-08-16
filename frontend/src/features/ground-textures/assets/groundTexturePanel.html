@@ -217,12 +217,17 @@
                     <input type="number" id="zoneEditor_spawnLevel" class="zoneEditor-inline" step="1" min="1" value=""/>
                 </div>
 
-                <div class="group">
+                <!-- Capability-gated rows (plan-zone-editor-structure.md §4.5):
+                     hidden, not disabled, when the picked species cannot do
+                     the thing: respawn rows for interaction carriers (a
+                     talker authors no respawn), movement rows for speed-0
+                     species. _ZoneEditorPanel toggles them by id. -->
+                <div class="group" id="zoneEditor_respawnTicksRow">
                     <label for="zoneEditor_respawnTicks">Respawn ticks</label>
                     <input type="number" id="zoneEditor_respawnTicks" class="zoneEditor-inline" step="100" min="0" value="900"/>
                 </div>
 
-                <div class="group">
+                <div class="group" id="zoneEditor_respawnVarianceRow">
                     <label for="zoneEditor_respawnVariance">Respawn variance (0..1)</label>
                     <input type="number" id="zoneEditor_respawnVariance" class="zoneEditor-inline" step="0.05" min="0" value="0.2"/>
                 </div>
@@ -232,12 +237,12 @@
                     <input type="number" id="zoneEditor_spawnAngle" class="zoneEditor-inline" step="1" value="0"/>
                 </div>
 
-                <div class="group">
+                <div class="group" id="zoneEditor_wanderRadiusRow">
                     <label for="zoneEditor_wanderRadius">Wander radius (empty = mob default, 0 = stationary)</label>
                     <input type="number" id="zoneEditor_wanderRadius" class="zoneEditor-inline" step="0.5" min="0" value=""/>
                 </div>
 
-                <div class="group">
+                <div class="group" id="zoneEditor_idleSpeedRow">
                     <label for="zoneEditor_idleSpeed">Idle speed factor (0..1, empty = mob default)</label>
                     <input type="number" id="zoneEditor_idleSpeed" class="zoneEditor-inline" step="0.05" min="0.05" max="1" value=""/>
                 </div>
@@ -251,7 +256,7 @@
                     <button id="zoneEditor_spawnUpdate" class="actionButton">Update</button>
                     <button id="zoneEditor_spawnDelete" class="secondaryButton">Delete</button>
                     <button id="zoneEditor_spawnDeselect">Deselect</button>
-                    <div>
+                    <div id="zoneEditor_waypointRow">
                         Waypoints: <span id="zoneEditor_waypointCount"></span>
                         <label>
                             <input type="checkbox" id="zoneEditor_waypointMode"/>
@@ -260,7 +265,7 @@
                         <button id="zoneEditor_waypointRemoveLast">Remove last</button>
                         <button id="zoneEditor_waypointClear" class="secondaryButton">Clear</button>
                     </div>
-                    <div>
+                    <div id="zoneEditor_patrolModeRow">
                         <label for="zoneEditor_patrolMode">Traversal</label>
                         <select id="zoneEditor_patrolMode">
                             <option value="pingpong" selected>Ping-pong (A→B→A)</option>

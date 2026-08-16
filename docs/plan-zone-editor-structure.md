@@ -1,6 +1,6 @@
 # Plan: structure in the spawn editor, and retiring the legacy roster
 
-> **Status: C1 SHIPPED 2026-08-15 (PO-verified in-game; ledger §11) - C2, C3
+> **Status: C1 SHIPPED 2026-08-15 · C2 SHIPPED 2026-08-16 (ledgers §11) - C3
 > open.** Designed 2026-08-12; four PO rulings taken as choice prompts (D1-D4);
 > everything in §9 is proposal, vetoable. Line references were pinned to
 > `f820777e` and verified unchanged at C1. Every colour and label is
@@ -433,3 +433,69 @@ the spawn panel and `drawSpawnMarker`, both touched) · boot 0 WARN / 0 ERROR ·
 controls, the respawn tri-state, and the talker round-trip that fixes the
 uneditable ascension stones (the "Invalid respawn ticks" refusal was re-seen
 during the PO checklist and stays the known C2 target).
+
+### C2 - the controls, and the talker round-trip ✅ SHIPPED 2026-08-16, `[uncommitted]`
+
+**What shipped, exactly as designed.** `capabilitiesOf` joins `kindOf` in
+`ZoneModel.ts` (the vitest-reachable home, L3):
+`{moves: factors.speed > 0, respawns: no interaction}` over a minimal
+structural `MobCapabilityDef` that never throws on `{}` (absent speed = the Go
+zero value = does not move). The panel's read/populate pair moved verbatim
+into a new pure module, **`SpawnControls.ts`** (`readSpawnValues` /
+`spawnControlValues`); `_ZoneEditorPanel.ts` is now a thin DOM adapter that
+collects strings and voices the error. `ZoneSpawn.respawnTicks` /
+`respawnVariancePct` went optional (§4.6); the serializer needed no code
+change - it already names both keys and `JSON.stringify` drops `undefined`.
+Six panel rows got ids and are gated **hidden, not disabled** (P3): the two
+respawn rows by `respawns`, wander / idle speed / waypoints / traversal by
+`moves` - in **both** directions (a picker `change` listener for placing, and
+`populateSpawnControls` for selecting a marker). `manual-zone-editor.md` §5
+documents the gating and the talker convention. **Schema NONE at every layer**
+(plan §5) - frontend only, ordinary frontend deploy.
+
+**Rulings and findings:**
+
+- ⭐ **§4.6's "hidden or empty" phrasing lost to its own bolded warning,
+  deliberately.** The omit predicate is interaction-presence ONLY. A combat
+  mob with a blanked input keeps the hard "Invalid respawn ticks" refusal,
+  because an absent key parses to 0 server-side and the spawn would respawn
+  every tick - a combat spawn must never silently lose its keys. Do not
+  re-litigate the "or empty" reading.
+- **Known rough edge, accepted:** selecting a talker blanks the (hidden)
+  respawn inputs; switching the picker straight to a combat species unhides
+  blank inputs, and the next place errors until values are typed. No re-seed
+  logic on purpose (YAGNI); the HTML defaults still serve a fresh panel.
+- **§7's claim verified before any change:** the world.json round-trip test
+  passes at HEAD - the serializer was already clean, the bug lived entirely
+  in the panel. The test is now PERMANENT in `ZoneModel.test.ts` as the L7
+  whitelist guard (deep-equal against the real 488-spawn zone, plus the 17
+  respawn-free spawns staying respawn-free).
+- **Red-first without an injection seam** (the C1 falsification style):
+  `capabilitiesOf` stubbed to `{true, true}` and the module ported verbatim
+  first - 10 of the 22 new units red on assertions, including the live stone
+  refusal AND the `String(undefined)` population (L2) reproduced at the
+  extracted seam; 26 verbatim pins (variance coerces to 0, level integer >= 1,
+  wander clamp, idle speed (0, 1]) proved the port before the fix landed.
+- **The census held again:** the 17 respawn-free spawns in `world.json` are
+  exactly the 17 interaction carriers, and all 68 defs author `factors.speed`
+  explicitly (movers > 0, everything stationary 0) - the predicate needed no
+  absent-speed judgment call in practice.
+- **Harness gotcha for the next zone-editor probe:** the post-WARP camera
+  settle measured **~40 s** at 1280×900 (the verify skill's "~20 s" is
+  optimistic for cross-map jumps) - wait for in-viewport plus two stable
+  samples, and map an arbitrary world point to its screen point via
+  `character.shape.parent.toGlobal({x: u*120, y: u*120})` instead of clicking
+  the character's own position.
+
+**Verified:** vitest **350/350** (was 328) · typecheck · prod build ·
+`go build ./...` · **`c3-zone-editor-level.mjs` 7/7** (owns the spawn panel) ·
+throwaway stone harness **9/9**, then deleted (picker gating at all four
+capability corners Wolf/Stone/Turnip/Wanderer · selecting spawn #483 populates
+`''` never `"undefined"` and hides the gated rows · **Update accepted with the
+266,071-byte export byte-identical, P6** · the stone still authors no respawn
+keys after Update · a fresh stone placed with stale 900/0.2 in the hidden
+inputs exports no keys · 0 console errors) · boot 0 WARN / 0 ERROR ·
+`harnessdb -cleanup` run (5 accounts). **PO in-game checklist open:** select
+the village ascension stone, press Update, see it accepted with no respawn
+keys added, then move it and re-export. **Next: C3** - retire the legacy
+roster (§4.7), the plan's one wire-touching chunk.

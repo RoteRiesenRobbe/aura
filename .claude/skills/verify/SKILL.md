@@ -378,7 +378,12 @@ for reasons unrelated to any recent change:
   error and a perfectly plausible-looking frame. A darkness measurement run
   (2026-07-22) was contaminated end-to-end by this and produced exactly
   inverted results. If the frame must be trustworthy, allow the settle or
-  confirm the position first.
+  confirm the position first. ⚑ A cross-map jump measured **~40 s** to settle
+  at 1280×900 (zone-editor C2, 2026-08-16): don't sleep a fixed 20 s, poll
+  until the character's `shape.getGlobalPosition()` is in-viewport AND stable
+  across two samples. To click an arbitrary WORLD point, map it with
+  `character.shape.parent.toGlobal({x: u*120, y: u*120})` rather than clicking
+  the character's own position.
 - **A dead player nulls the way into the scene graph.** `Character.destroy()`
   sets `plate = null`, and `character.plate.parent` is the documented entry
   point — so the moment the player dies, every scene-graph read throws

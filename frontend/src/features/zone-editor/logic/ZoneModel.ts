@@ -40,8 +40,16 @@ export interface ZoneSpawn {
     x: number;
     y: number;
     angle: number; // radians
-    respawnTicks: number;
-    respawnVariancePct: number;
+    // TRI-STATE since plan-zone-editor-structure.md C2: undefined = the file
+    // authors nothing and the serializer omits both keys. The authored
+    // convention is exact: the 17 respawn-free spawns in world.json are
+    // precisely the interaction carriers ("a talker authors no respawn").
+    // ⚠ An absent key parses to 0 on the server (world.Spawn carries plain
+    // int/float32), which means "respawn next tick" - inert for talkers, who
+    // never die, but a COMBAT spawn must never lose its keys. That is why the
+    // panel omits them by the def's interaction, never by an empty input.
+    respawnTicks?: number;
+    respawnVariancePct?: number;
     // Idle-movement archetype (mob-depth chunk 5 + pacing rework).
     // wanderRadius is TRI-STATE: undefined = inherit the mob type's default
     // (factors.wanderRadius), explicit 0 = stationary override, > 0 = wander
@@ -153,6 +161,33 @@ export function kindOf(def: MobKindDef): MobKind {
     // The common case: 36 defs author no role at all, and unrecognized role
     // values (e.g. "creature") fall through here rather than throw.
     return 'combat';
+}
+
+// What the picked species can DO, driving which spawn controls show
+// (plan-zone-editor-structure.md §4.5). Capability, never the kindOf bucket:
+// Wanderer is a talker that walks (interaction + speed 0.5) and Turnip is a
+// fixture that dies and respawns - two counterexamples are enough to say the
+// bucket must never gate a control (L4).
+export interface MobCapabilityDef {
+    interaction?: object;
+    factors?: { speed?: number };
+}
+
+export interface MobCapabilities {
+    // factors.speed > 0 - mirrors the server's own boot refusal for movement
+    // authoring on a speed-0 mob. All 68 defs author speed explicitly; an
+    // absent value is the Go zero value, 0, so absent = does not move.
+    moves: boolean;
+    // carries no interaction - the respawn keys apply (§4.6: talkers author
+    // none, and the editor must stop forcing them in).
+    respawns: boolean;
+}
+
+export function capabilitiesOf(def: MobCapabilityDef): MobCapabilities {
+    return {
+        moves: ((def.factors && def.factors.speed) || 0) > 0,
+        respawns: def.interaction == null,
+    };
 }
 
 // spawnPointNumber reads the <n> out of "spawnpoint-<n>", or 0 for any id that
@@ -317,6 +352,9 @@ export class ZoneModel {
                 x: round(s.x, 2),
                 y: round(s.y, 2),
                 angle: round(s.angle, 3),
+                // Named here (the L7 whitelist) but tri-state: undefined is
+                // dropped by JSON.stringify, so a talker's absent respawn
+                // keys stay absent on export.
                 respawnTicks: s.respawnTicks,
                 respawnVariancePct: s.respawnVariancePct,
                 // undefined keys are dropped by JSON.stringify — inheriting

@@ -138,6 +138,20 @@ place a diamond, coloured by the group (§2), or press **"Place at my
 position"**. Click a diamond
 to select, **Update**/**Delete** as above.
 
+**The visible controls follow what the picked species can do**, both when
+picking in the dropdown and when selecting an existing diamond:
+
+- The **respawn rows show only for species without a dialogue** (no
+  `interaction` in the def). A talker (every villager, both ascension
+  stones, the signs) authors **no respawn keys at all**: it never dies, the
+  editor writes nothing, and the exported JSON omits the keys, exactly how
+  `world.json`'s 17 talker spawns are hand-authored. (Before this, selecting
+  a stone and pressing Update was refused with "Invalid respawn ticks".)
+- The **movement rows** (*Wander radius*, *Idle speed factor*, waypoints,
+  *Traversal*) **show only for species that can walk** (`factors.speed > 0`).
+  The gate is capability, not the picker group: the Wanderer is a Talker
+  that wanders, the Turnip a Fixture that dies and respawns.
+
 Each spawn point = exactly one mob alive at a time: it spawns there, and after
 dying respawns at the same spot once the timer elapses.
 
@@ -194,7 +208,7 @@ a fraction of chase speed — so an aggroed mob visibly speeds up.
 Rules the editor enforces (the server refuses to boot otherwise): an
 explicit wander radius > 0 and waypoints never together, a traversal mode
 only with waypoints, and no wander/route on a mob that can't walk (speed 0,
-e.g. Totem). In every archetype a mob that aggros mid-route **runs back at
+e.g. Totem, whose movement rows are simply hidden, see §5). In every archetype a mob that aggros mid-route **runs back at
 full speed** to the exact point where it left its route once combat ends,
 then drops back into the amble.
 

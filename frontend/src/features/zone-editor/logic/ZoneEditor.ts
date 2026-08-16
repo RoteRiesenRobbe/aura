@@ -14,7 +14,7 @@ import * as TextDisplay from '../../../client-data/TextDisplay';
 import {requireAll} from '../../common/logic/Utils';
 import {IGame} from '../../core/logic/IGame';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
-import {kindOf, MobKind, ZoneAnchor, ZoneCampfire, ZoneDarkArea, ZoneData, ZoneModel, ZoneProp, ZoneSpawn} from './ZoneModel';
+import {capabilitiesOf, kindOf, MobCapabilities, MobKind, ZoneAnchor, ZoneCampfire, ZoneDarkArea, ZoneData, ZoneModel, ZoneProp, ZoneSpawn} from './ZoneModel';
 
 export interface PropTypeDef {
     name: string;
@@ -42,7 +42,7 @@ interface MobDefJSON {
     role?: string;
     legacy?: boolean;
     interaction?: object;
-    factors?: { wanderRadius?: number };
+    factors?: { wanderRadius?: number; speed?: number };
 }
 
 // Bundled straight from the repo api/ — the same files the server reads.
@@ -100,6 +100,19 @@ const spawnKindByName: { [name: string]: MobKind } = {};
 mobDefJSONs.forEach(def => {
     spawnKindByName[def.name] = kindOf(def);
 });
+
+// Capability by mob name, for the panel's control gating (§4.5: capability,
+// never the kindOf bucket: Wanderer talks AND walks, Turnip is a structure
+// that dies). An unknown name falls back to everything-shown, the same
+// don't-crash rationale as spawnKindByName above.
+const mobCapabilitiesByName: { [name: string]: MobCapabilities } = {};
+mobDefJSONs.forEach(def => {
+    mobCapabilitiesByName[def.name] = capabilitiesOf(def);
+});
+
+export function mobCapabilities(name: string): MobCapabilities {
+    return mobCapabilitiesByName[name] || {moves: true, respawns: true};
+}
 
 // Type-level default wander radii (factors.wanderRadius) — a spawn without
 // its own radius inherits these, so the marker previews the effective disc.

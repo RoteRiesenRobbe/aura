@@ -1,5 +1,7 @@
+import {readFileSync} from 'node:fs';
+import {resolve} from 'node:path';
 import {describe, expect, it} from 'vitest';
-import {kindOf, ZoneData, ZoneModel, ZoneSpawn} from './ZoneModel';
+import {capabilitiesOf, kindOf, ZoneData, ZoneModel, ZoneSpawn} from './ZoneModel';
 
 // A character's campfire bind is persisted as the spawn-point id, so these are
 // persistence tests wearing an editor's clothes: an id the editor drops or
@@ -134,6 +136,69 @@ describe('kindOf', () => {
 
     it('lets legacy beat everything (the Brazier precedence)', () => {
         expect(kindOf({legacy: true, role: 'structure'})).toBe('legacy');
+    });
+});
+
+// The control-gating capability (plan-zone-editor-structure.md §4.5) -
+// capability, never the kindOf bucket: Wanderer is a talker that walks,
+// Turnip a fixture that dies (L4). All 68 defs author factors.speed
+// explicitly (movers > 0, everything stationary 0); absence mirrors the Go
+// zero value, 0, and must classify as not-moving, never throw.
+describe('capabilitiesOf', () => {
+    it('gives a plain combat def both capabilities (Wolf)', () => {
+        expect(capabilitiesOf({factors: {speed: 0.7}}))
+            .toEqual({moves: true, respawns: true});
+    });
+
+    it('gives a stationary talker neither (AscensionStone)', () => {
+        expect(capabilitiesOf({interaction: {range: 2}, factors: {speed: 0}}))
+            .toEqual({moves: false, respawns: false});
+    });
+
+    it('lets the talker that walks keep its movement controls (Wanderer)', () => {
+        expect(capabilitiesOf({interaction: {range: 2}, factors: {speed: 0.5}}))
+            .toEqual({moves: true, respawns: false});
+    });
+
+    it('lets the fixture that dies keep its respawn controls (Turnip)', () => {
+        expect(capabilitiesOf({factors: {speed: 0}}))
+            .toEqual({moves: false, respawns: true});
+    });
+
+    it('treats absent factors or absent speed as not moving, without throwing', () => {
+        expect(capabilitiesOf({})).toEqual({moves: false, respawns: true});
+        expect(capabilitiesOf({factors: {}})).toEqual({moves: false, respawns: true});
+    });
+});
+
+// The L7 whitelist guard (plan-zone-editor-structure.md §7): the serializer is
+// a field whitelist that has silently eaten a field twice (spawn.level, the
+// campfire id class), and C2 edits it - so the REAL zone must round-trip
+// unchanged, and the 17 respawn-free spawns (exactly the talkers; the authored
+// convention "a talker authors no respawn") must stay respawn-free.
+// ⚑ Read from disk with an absolute path: jsdom rewrites import.meta.url to a
+// non-file scheme, so a new URL(relative, import.meta.url) does not work here.
+// process.cwd() is frontend/ under vitest.
+describe('world.json round-trip', () => {
+    const worldPath = resolve(process.cwd(), '../api/zones/world.json');
+    const worldRaw = JSON.parse(readFileSync(worldPath, 'utf-8')) as ZoneData;
+
+    it('round-trips the real world zone without changing a field', () => {
+        let model = ZoneModel.fromJSON(worldRaw);
+
+        let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
+
+        expect(exported).toEqual(worldRaw);
+    });
+
+    it('keeps the 17 talker spawns respawn-free', () => {
+        let model = ZoneModel.fromJSON(worldRaw);
+
+        let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
+
+        let respawnFree = exported.spawns.filter(s => !('respawnTicks' in s));
+        expect(respawnFree.length).toBe(17);
+        expect(respawnFree.every(s => !('respawnVariancePct' in s))).toBe(true);
     });
 });
 
