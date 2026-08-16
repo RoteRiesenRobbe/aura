@@ -499,7 +499,7 @@ the village ascension stone, press Update, see it accepted with no respawn
 keys added, then move it and re-export. **Next: C3** - retire the legacy
 roster (§4.7), the plan's one wire-touching chunk.
 
-### C3 - retire the legacy roster ✅ SHIPPED 2026-08-16, `[uncommitted]`
+### C3 - retire the legacy roster ✅ SHIPPED 2026-08-16, `e9a0894c`, PO-verified in-game same day (checklist passed, incl. C2's outstanding stone check)
 
 **What shipped, §4.7's whole table plus the strays the pre-flight sweeps
 found.** Deleted: the 10 legacy defs, `proving-grounds.json`, the 3 legacy
