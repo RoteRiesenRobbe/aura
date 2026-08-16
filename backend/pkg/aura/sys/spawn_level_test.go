@@ -68,12 +68,12 @@ func TestSpawnPoint_AuthoredZoneLevelReachesTheLiveMob(t *testing.T) {
 	def := curvedTestMobDef(1)
 	const doc = `{
 		"name": "X", "bounds": { "width": 60, "height": 40 },
-		"spawns": [ { "mob": "Dodo", "x": 0, "y": 0, "respawnTicks": 10, "level": 18 } ]
+		"spawns": [ { "mob": "Wolf", "x": 0, "y": 0, "respawnTicks": 10, "level": 18 } ]
 	}`
 
 	z, err := world.LoadZoneFS(
 		fstest.MapFS{"zone.json": {Data: []byte(doc)}}, "",
-		fakeMobRegistry{"Dodo": def}, spawnLevelPropRegistry{},
+		fakeMobRegistry{"Wolf": def}, spawnLevelPropRegistry{},
 	)
 	require.NoError(t, err)
 

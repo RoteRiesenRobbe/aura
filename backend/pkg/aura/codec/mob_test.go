@@ -19,7 +19,7 @@ import (
 func testMobDef(role mobs.Role) *mobs.MobDefinition {
 	return &mobs.MobDefinition{
 		ID:   1,
-		Name: "Dodo",
+		Name: "Wolf",
 		Role: role,
 		Factors: mobs.Factors{
 			Speed:         1,

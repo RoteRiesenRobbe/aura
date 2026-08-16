@@ -28,10 +28,10 @@ func (f *fakeMobs) GetByName(name string) (*mobs.MobDefinition, error) {
 
 func testMobs() *fakeMobs {
 	return &fakeMobs{
-		byName: map[string]mobs.MobID{"Wolf": 3, "Bramble": 7, "Farmer": 40, "Rabbit": 61, "TownCrier": 62},
-		// 10 defs are legacy: true — proving-grounds content the live world never
-		// spawns (L12).
-		legacy: map[string]bool{"Rabbit": true},
+		byName: map[string]mobs.MobID{"Wolf": 3, "Bramble": 7, "Farmer": 40, "Relic": 61, "TownCrier": 62},
+		// A legacy: true def is retired content the live world never spawns
+		// (L12) — nothing in api/ authors the tag since zone-editor C3.
+		legacy: map[string]bool{"Relic": true},
 	}
 }
 
@@ -151,13 +151,13 @@ func TestLoad_Rejections(t *testing.T) {
 			{"id": "s", "journal": "j", "objectives": [{"kind": "kill", "species": "Wolf", "count": 1}], "next": "nowhere"}]}`,
 		"next to self": `{"id": "q", "title": "Q", "stages": [
 			{"id": "s", "journal": "j", "objectives": [{"kind": "kill", "species": "Wolf", "count": 1}], "next": "s"}]}`,
-		// L12: 10 defs are legacy: true — proving-grounds content the live world
-		// never spawns. `kill Rabbit` would boot green and be uncompletable.
+		// L12: a legacy: true def is retired content the live world never
+		// spawns. `kill Relic` would boot green and be uncompletable.
 		"legacy species as a kill target": `{"id": "q", "title": "Q", "stages": [
-			{"id": "s", "journal": "j", "objectives": [{"kind": "kill", "species": "Rabbit", "count": 1}], "next": "t"},
+			{"id": "s", "journal": "j", "objectives": [{"kind": "kill", "species": "Relic", "count": 1}], "next": "t"},
 			{"id": "t", "journal": "done"}]}`,
 		"legacy npc as a talk_to target": `{"id": "q", "title": "Q", "stages": [
-			{"id": "s", "journal": "j", "objectives": [{"kind": "talk_to", "npc": "Rabbit"}], "next": "t"},
+			{"id": "s", "journal": "j", "objectives": [{"kind": "talk_to", "npc": "Relic"}], "next": "t"},
 			{"id": "t", "journal": "done"}]}`,
 		// Q2: {n}/{m} substitute from a countable (kill/harvest) objective; on a
 		// stage without one they would render literally forever.

@@ -80,8 +80,8 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 > first *taught* ability is the Farmer's Harvest @L1. The TownCrier no longer
 > teaches Damage.
 
-> Sources on **legacy** (`legacy: true`) proving-grounds mobs do not count as
-> world-reachable; they are marked *(legacy)* where they exist.
+> The legacy proving-grounds roster (and its five mob skills) was deleted at
+> zone-editor C3, 2026-08-16; the *(legacy)* source annotations are gone with it.
 
 ## Active auras (24)
 
@@ -89,8 +89,8 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 |---|---|---|---|---|
 | 1 | Damage | 5 | dmg 14 +3.2/L @40t, r1.0, 1 tgt nearest, var ±15% | **MS L1** — seeded at character creation (Q4) |
 | 2 | Heal | 5 | heal 12 +6/L @80t, r1.5 +.1/L, lowest_health 1 tgt, **self-cost 10 −2/L** (FINAL) | NPC Hermit @L3 |
-| 3 | Wild | 5 | dmg 10 +2.4/L @40t, r1.4 +.05/L | Drop: EliteWolf .5 (+ AngryMammoth 1.0 / SaberToothCat .2, legacy) |
-| 4 | Slow | 5 | slow 10% +10%/L, r1.5 | Drop: BanditRanged .2 (+ Mammoth .2, legacy) · **Quest: `wolves-on-the-road`, shaman leg** |
+| 3 | Wild | 5 | dmg 10 +2.4/L @40t, r1.4 +.05/L | Drop: EliteWolf .5 |
+| 4 | Slow | 5 | slow 10% +10%/L, r1.5 | Drop: BanditRanged .2 · **Quest: `wolves-on-the-road`, shaman leg** |
 | 5 | Immolate | 5 | fire dot 10.5 +2.1/L (3×60t) @20t, r1.0 | NPC Emberkeeper @L12 |
 | 6 | Lantern | 3 | light r4 +1/L | **Quest: `the-lost-lamp` — the ONLY source** (Q4/R3 deleted the .05 kobold drops; pinned by `TestContent_LanternIsQuestOnlyAndHasASource`) |
 | 7 | Reaper | 3 | dmg 12 +3/L @40t r2.0; execute <35% ×2; lifesteal 50%; berserker ×2 at low HP | Drop: AlphaWolf .35 |
@@ -116,7 +116,7 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 
 | ID | Name | MaxLv | Values | Source |
 |---|---|---|---|---|
-| 11 | Tough | 3 | damage reduction +10% +10%/L | Drop: Troll .4 / Orc .2 (+ Dodo .05, legacy) |
+| 11 | Tough | 3 | damage reduction +10% +10%/L | Drop: Troll .4 / Orc .2 |
 | 42 | Hardy | 3 | max health +8% +8%/L | Drop: EliteWolf .2 |
 | 43 | ThickHide | 3 | physical resist ×0.85 −.05/L | Drop: DireBear .2 |
 | 46 | Torch | 3 | light r2.5 +.5/L | NPC Lamplighter (no gate) + Emberkeeper @L1 |
@@ -170,9 +170,9 @@ the milestone table:
   milestone table will report all six as unreachable and be wrong, exactly as
   the quest-reward note below warns for its own three.
 - **Unreachable without the cheat: NONE.** All **50** player skills have a
-  source, and **none is legacy-only** — every skill with a proving-grounds
-  source (Wild, Slow, Tough) also has a live-world one. This is the step-7 A.5
-  guarantee (`plan-rebrand-cleanup.md`) still holding.
+  live-world source — the step-7 A.5 guarantee (`plan-rebrand-cleanup.md`)
+  still holding, and since zone-editor C3 there is no legacy source left to
+  discount (Wild, Slow and Tough lost only their redundant legacy drops).
 - **All 11 recipe results are craftable in the world zone** — every ingredient
   has a world source. ⚑ Hoarfrost (the eleventh, 2026-08-10) qualifies on the
   same rule and it is worth spelling out why, because it is the first recipe
@@ -225,7 +225,7 @@ any of it is new work:
   @L8 → @L12; Ignite @L3 → @L7; Vanguard @L20 → @L15; FirstAid and Recall and
   Recover each picked up a second teacher (VillageHealer, Wanderer, Shaman).
 - **The proving-grounds Sages teach nothing any more** — every `NPC-PG` source
-  in the old table is gone.
+  in the old table is gone (and the map itself since zone-editor C3).
 - **Many drop sources moved to a different mob or chance** — Berserker
   Bear → DireBear, ThickHide Bear → DireBear, Hardy Boar → EliteWolf, Dash
   Boar → EliteWolf, Fade Bandit → EliteBandit, Antivenom lost its Spider

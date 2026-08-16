@@ -22,7 +22,6 @@ export interface IGameLayers {
     characters: Container,
     mobs: Record<string, Container>,
     resources: Record<string, Container>,
-    bossMobs: Container,
     // A character in flight (C3): above props and boss mobs, below darkness.
     // Holds at most the local player, and only while airborne.
     flyers: Container,

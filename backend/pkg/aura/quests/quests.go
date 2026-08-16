@@ -355,8 +355,9 @@ func mapObjective(jo jsonObjective, mr speciesResolver) (Objective, error) {
 		return Objective{}, fmt.Errorf("objective %q: unknown target %q", jo.Kind, name)
 	}
 	displayName := skills.DeriveDisplayName(def.Name)
-	// L12: ten definitions are legacy: true — proving-grounds content the live
-	// world never spawns. Naming one boots green and produces a quest no player
+	// L12: a legacy: true definition is retired content the live world never
+	// spawns (none ship since zone-editor C3, 2026-08-16). Naming one boots
+	// green and produces a quest no player
 	// can ever finish, which is the worst class of content defect: it looks
 	// authored, it looks loaded, and it is unwinnable. Elsewhere a legacy
 	// reference is a warning (a live mob teaching a legacy skill still works);

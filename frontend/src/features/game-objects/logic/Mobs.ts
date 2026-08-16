@@ -476,118 +476,6 @@ export abstract class Mob extends GameObject
     }
 }
 
-export class Dodo extends Mob {
-    static svg: PIXI.Texture;
-
-    constructor(id: number, x: number, y: number) {
-        super(id, Game.layers.mobs.dodo, x, y,
-            randomInt(minSize('dodo'), maxSize('dodo')),
-            Dodo.svg);
-    }
-
-    protected override createStatusEffects() {
-        return {
-            Damaged: StatusEffect.forDamaged(this.actualShape,
-                [{
-                    soundId: 'dodoHit',
-                    options: {
-                        volume: random(0.4, 0.5),
-                        speed: random(1, 1.1),
-                    },
-                    chanceToPlay: 0.3,
-                }]),
-        };
-    }
-}
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Dodo, file('dodo'), maxSize('dodo'));
-
-export class SaberToothCat extends Mob {
-    static svg: PIXI.Texture;
-
-    constructor(id: number, x: number, y: number) {
-        super(id, Game.layers.mobs.saberToothCat, x, y,
-            randomInt(minSize('saberToothCat'), maxSize('saberToothCat')),
-            SaberToothCat.svg);
-
-    }
-
-    protected override createStatusEffects() {
-        return {
-            Damaged: StatusEffect.forDamaged(this.actualShape,
-                [{
-                    soundId: 'saberToothCatHit',
-                    options: {
-                        volume: random(0.4, 0.5),
-                        speed: random(0.9, 1),
-                    },
-                    chanceToPlay: 0.3,
-                }]),
-        };
-    }
-}
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(SaberToothCat, file('saberToothCat'), maxSize('saberToothCat'));
-
-
-export class Mammoth extends Mob {
-    static svg: PIXI.Texture;
-
-    constructor(id: number, x: number, y: number) {
-        super(id, Game.layers.mobs.mammoth, x, y,
-            randomInt(minSize('mammoth'), maxSize('mammoth')),
-            Mammoth.svg,
-            anchor('mammoth'));
-    }
-
-    protected override createStatusEffects() {
-        return {
-            Damaged: StatusEffect.forDamaged(this.actualShape,
-                [{
-                    soundId: 'mammothHit',
-                    options: {
-                        volume: random(0.4, 0.5),
-                        speed: random(1, 1.1),
-                    },
-                    chanceToPlay: 0.3,
-                }]),
-        };
-    }
-}
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Mammoth, file('mammoth'), maxSize('mammoth'));
-
-export class AngryMammoth extends Mob {
-    static svg: PIXI.Texture;
-
-    constructor(id: number, x: number, y: number) {
-        super(id, Game.layers.bossMobs, x, y,
-            randomInt(minSize('angryMammoth'), maxSize('angryMammoth')),
-            AngryMammoth.svg,
-            anchor('angryMammoth'));
-    }
-
-    protected override createStatusEffects() {
-        return {
-            Damaged: StatusEffect.forDamaged(this.actualShape,
-                [{
-                    soundId: 'mammothHit',
-                    options: {
-                        volume: random(0.6, 0.7),
-                        speed: random(0.4, 0.5),
-                    },
-                    chanceToPlay: 0.3,
-                }]),
-        };
-    }
-}
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(AngryMammoth, file('angryMammoth'), maxSize('angryMammoth'));
-
 // The player-summoned totem (mob-depth chunk 1): stationary, fixed size, no
 // hit sound — the base Damaged flash suffices for the placeholder art.
 export class Totem extends Mob {
@@ -602,22 +490,6 @@ export class Totem extends Mob {
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Totem, file('totem'), maxSize('totem'));
-
-// The cowardly critter (mob-depth chunk 2): chases like a Dodo while healthy,
-// flees below half health. No hit sound — base Damaged flash suffices for the
-// placeholder art.
-export class Rabbit extends Mob {
-    static svg: PIXI.Texture;
-
-    constructor(id: number, x: number, y: number) {
-        super(id, Game.layers.mobs.rabbit, x, y,
-            randomInt(minSize('rabbit'), maxSize('rabbit')),
-            Rabbit.svg);
-    }
-}
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Rabbit, file('rabbit'), maxSize('rabbit'));
 
 // The player-summoned companion (mob-depth chunk 6): follows its owner and
 // assists in combat. Fixed size, no hit sound — the base Damaged flash
@@ -635,40 +507,8 @@ export class Companion extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Companion, file('companion'), maxSize('companion'));
 
-// The world-spawned environmental fire hazard (hazard fix): stationary,
-// structurally unkillable (Viewport-only body layer), pure aura carrier.
-export class Brazier extends Mob {
-    static svg: PIXI.Texture;
-
-    constructor(id: number, x: number, y: number) {
-        super(id, Game.layers.mobs.brazier, x, y,
-            randomInt(minSize('brazier'), maxSize('brazier')),
-            Brazier.svg);
-    }
-}
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Brazier, file('brazier'), maxSize('brazier'));
-
-// The support mob (mob-depth chunk 8): a seek-healer that moves to and heals
-// the most-wounded ally of its faction. Its heal ring (aura_radius) shows only
-// while it is actively healing someone; floating green heal numbers appear on
-// the allies it tops up.
-export class Healer extends Mob {
-    static svg: PIXI.Texture;
-
-    constructor(id: number, x: number, y: number) {
-        super(id, Game.layers.mobs.healer, x, y,
-            randomInt(minSize('healer'), maxSize('healer')),
-            Healer.svg);
-    }
-}
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Healer, file('healer'), maxSize('healer'));
-
 // The fixed world campfire (atmosphere & recovery chunk 2): a permanent
-// aligned heal fixture. Brazier pattern — stationary, structurally unkillable
+// aligned heal fixture. Hazard-fixture pattern — stationary, structurally unkillable
 // (Viewport-only body layer), pure aura carrier. Fixed size.
 export class Campfire extends Mob implements DwellRing {
     static svg: PIXI.Texture;

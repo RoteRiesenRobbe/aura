@@ -230,10 +230,10 @@ the editor from there).
   props can wall off a region, and co-located equal-radius circles never
   separate (`backlog.md` §34) — a spawn inside a boulder is welded there. Hence
   C1's overlap and flood-fill checks.
-- **L5 — Legacy content warns at boot.** Rabbit, Dodo, Mammoth, SaberToothCat,
-  Healer, Brazier and the three Proving* mobs are `legacy: true`; a live zone
-  referencing them logs `live zone references legacy-tagged content`. The test
-  map uses none of them.
+- **L5 — Legacy content warns at boot.** ⚑ Stale since zone-editor C3
+  (2026-08-16): the ten `legacy: true` defs were deleted with the
+  proving-grounds map, so nothing legacy is left to reference; the boot
+  warning mechanism itself still exists.
 - **L6 — The zone loader runs `DisallowUnknownFields`.** The generator must
   emit exactly the schema keys of `world/zone.go` — a stray field aborts boot by
   name, which is the good case; the bad case is a *dropped* field that silently

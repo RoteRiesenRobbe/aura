@@ -8,21 +8,16 @@ namespace AuraApi;
 // list. Add new members at the next free value; never reuse a gap.
 // Gaps 1, 3, 6-8, 12-14, 16 = the Berryhunter resource/placeable types removed
 // in §28 Chunk 3 (Border, MarioTree, Bronze, Iron, BerryBush, Placeable,
-// Titanium, Flower, TitaniumShard).
+// Titanium, Flower, TitaniumShard). Gaps 9-11, 15, 18, 20, 21 = the legacy
+// proving-grounds roster removed at zone-editor C3 (Dodo, SaberToothCat,
+// Mammoth, AngryMammoth, Rabbit, Brazier, Healer).
 enum EntityType : ushort {
   DebugCircle = 0,
   RoundTree = 2,
   Character = 4,
   Stone = 5,
-  Dodo = 9,
-  SaberToothCat = 10,
-  Mammoth = 11,
-  AngryMammoth = 15,
   Totem = 17,
-  Rabbit = 18,
   Companion = 19,
-  Brazier = 20,
-  Healer = 21,
   Campfire = 22,
   Corpse = 23,
   Turnip = 24,

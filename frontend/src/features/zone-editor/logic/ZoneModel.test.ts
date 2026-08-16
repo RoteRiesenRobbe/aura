@@ -104,9 +104,7 @@ describe('ZoneModel spawn points', () => {
 
 // The derived spawn-editor category (plan-zone-editor-structure.md §4.1).
 // Fixture shapes mirror real defs: Wolf (bare), Wanderer (a talker that also
-// authors a role), AscensionStone (structure + interaction: talker wins),
-// Brazier (BOTH legacy and structure: legacy wins, deliberately, until C3
-// deletes the branch with the defs).
+// authors a role), AscensionStone (structure + interaction: talker wins).
 describe('kindOf', () => {
     it('classifies a def with neither role nor interaction as combat', () => {
         expect(kindOf({})).toBe('combat');
@@ -134,14 +132,11 @@ describe('kindOf', () => {
         expect(kindOf({role: 'follower'})).toBe('companion');
     });
 
-    it('lets legacy beat everything (the Brazier precedence)', () => {
-        expect(kindOf({legacy: true, role: 'structure'})).toBe('legacy');
-    });
 });
 
 // The control-gating capability (plan-zone-editor-structure.md §4.5) -
 // capability, never the kindOf bucket: Wanderer is a talker that walks,
-// Turnip a fixture that dies (L4). All 68 defs author factors.speed
+// Turnip a fixture that dies (L4). All 58 defs author factors.speed
 // explicitly (movers > 0, everything stationary 0); absence mirrors the Go
 // zero value, 0, and must classify as not-moving, never throw.
 describe('capabilitiesOf', () => {

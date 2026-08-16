@@ -157,9 +157,9 @@ Live elite/boss defs, all currently silent:
 
 `orc-warlord.json` (boss, spawned by the encounter controller) ·
 `orc.json` (elite, 12 zone spawns) · `elite-wolf.json` (7) · `troll.json` (6) ·
-`elite-bandit.json` (1) · `greater-fire-elemental.json` (1) ·
-`angry-mammoth.json` / `mammoth.json` (elite, legacy proving grounds) ·
-`proving-boss.json` (boss, legacy).
+`elite-bandit.json` (1) · `greater-fire-elemental.json` (1). (⚑ The legacy
+angry-mammoth / mammoth / proving-boss candidates were deleted at zone-editor
+C3, 2026-08-16 — the six live ones are the whole list now.)
 
 Proposal: **the six live ones**, one or two lines each, plus **`bandit.json`**
 as the one flavour normal-tier mob (21 spawns, humanoid, a shout reads

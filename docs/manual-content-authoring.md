@@ -39,15 +39,14 @@ name has no matching enum entry). So a **genuinely new mob type requires a new
 
 **Variant mobs reusing existing art need NO wire/frontend work (chunk 9):**
 give the def its own `name` plus an **`entityType`** key naming the sprite's
-enum entry (e.g. `"name": "ProvingBoss", "entityType": "AngryMammoth"`). The
+enum entry (e.g. `"name": "ScriptedBoss", "entityType": "OrcWarlord"`). The
 override is validated against the enum at load time; absent = the name
 resolves, as before. This is how encounter/boss variants get their own stats,
-faction and skills without a schema append (see §5 and
-`api/mobs/proving-boss.json`).
+faction and skills without a schema append (see §5).
 
 ### Backend / data
 
-1. **`api/mobs/newmob.json`** — copy `api/mobs/dodo.json`:
+1. **`api/mobs/newmob.json`** — copy `api/mobs/wolf.json`:
    - `id`, `name` (must equal the enum name added in step 2), `type: "MOB"`
    - ⚑ **A mob's `name` IS its player-facing name.** Unlike skills (§2), mobs
      have **no `displayName` override**: `mobs.CatalogJSON` always derives the
@@ -80,7 +79,7 @@ faction and skills without a schema append (see §5 and
    - **`role` — what the actor IS** (`creature` / `structure` / `follower`;
      absent = `creature`). `creature` chases what it aggros and its aura runs
      only while it has a target; `structure` does not chase and its aura is
-     **always on** (totems, braziers, campfires, gate obstacles); `follower`
+     **always on** (totems, campfires, gate obstacles); `follower`
      acquires from its owner's combat signals and trails the owner (the
      companion summons). ⚑ **Role is not a speed.** A stationary creature (a
      hazard that gates its aura on aggro) and a moving structure are both
@@ -163,15 +162,15 @@ faction and skills without a schema append (see §5 and
    - `body`: `radius`, `aggroRadius` (required and `> 0` for `creature` and
      `follower`; **omit it on a `structure`** — a structure acquires nothing,
      and requiring one is what produced the old `0.1` dummies)
-   - **Solid-obstacle mobs (brazier/bramble pattern):** optional
+   - **Solid-obstacle mobs (campfire/bramble pattern):** optional
      `body.collisionLayer` / `collisionMask` override the defaults (layer
-     34 = Viewport|Action, mask 80 = MobStatic|Border). Brazier `32/16` =
+     34 = Viewport|Action, mask 80 = MobStatic|Border). Campfire `32/16` =
      unhittable, non-blocking scenery hazard; Bramble `99/16` (PlayerStatic
      1 + Action 2 + Viewport 32 + MobStatic 64) = blocks players AND mobs
      while staying aura-hittable, and mask 16 (Border only) means nothing
      pushes it. Pair with `role: "structure"` + `speed: 0`, XP 0 and opt-in
      `resistances` for a destructible aura-gated wall (`api/mobs/bramble.json`,
-     `api/mobs/rockfall.json`); the brazier form reskins as any always-on
+     `api/mobs/rockfall.json`); the campfire form reskins as any always-on
      hazard (`api/mobs/poison-pool.json`).
    - `skills[]`: the mob's aura(s) by `skillName` (must exist in `api/skills/`)
    - optional `unlocks[]`: `{skillName, chance}` kill-drop payloads
@@ -182,8 +181,7 @@ faction and skills without a schema append (see §5 and
 4. If the mob uses a **new** aura, author that skill first (see §2).
 5. **Make it spawn:** mobs only spawn from `zone.spawns`. Add a spawn referencing
    the mob's name via the in-game zone editor (`docs/manual-zone-editor.md`) or
-   by hand-editing the zone file (`api/zones/world.json` for the live world;
-   `api/zones/proving-grounds.json` for the debug map).
+   by hand-editing the zone file (`api/zones/world.json`, the live world).
 6. **Build:** `make -C backend build`, or run `-content ../api` + restart.
 
 ### Frontend / art
@@ -195,8 +193,8 @@ faction and skills without a schema append (see §5 and
    via `Mob.aura_radius` — 0 while the aura is gated — and sized
    automatically.)
 9. **`frontend/src/features/game-objects/logic/Mobs.ts`** — a new `Mob`
-   subclass (constructor picks a `Game.layers.mobs.*` / `bossMobs` layer), plus a
-   `Preloading.registerGameObjectSVG(...)` line. Mirror `Dodo`.
+   subclass (constructor picks a `Game.layers.mobs.*` layer), plus a
+   `Preloading.registerGameObjectSVG(...)` line. Mirror `Wolf`.
    **⚠ A new layer is a TWO-step edit in `core/logic/Game.ts`:** the
    `createNamedContainer(...)` entry in the `layers.mobs` block AND the
    matching `this.cameraGroup.addChild(...)` in the "// Mobs" block below it.
@@ -218,13 +216,13 @@ faction and skills without a schema append (see §5 and
 Mob allegiances live in **`api/factions/*.json`**, one file per faction:
 
 ```json
-{ "name": "predator", "hostileTo": ["aligned", "prey", "tusker"] }
+{ "name": "wildlife_predator", "hostileTo": ["aligned", "wildlife_prey"] }
 ```
 
 - `hostileTo` is **required**: who this faction attacks on sight AND may
   damage. Use `[]` for a passive faction (retaliates and flees per its own
   rules when hit, like any mob). Asymmetry is legal: the wolf hunts the
-  rabbit, the rabbit lists nobody.
+  boar, the boar lists nobody.
 - ⚑ **Factions have a `displayName`, and its fallback rule differs from the
   skill one.** `name` is the key mobs and skills reference; `displayName` is
   what a tooltip prints. Absent, it falls back to `name` **verbatim** —
@@ -521,8 +519,8 @@ payload): `radius`, `radiusPerLevel`, `tickInterval`, `tickIntervalPerLevel`,
 | `charmTicks` / `charmTicksPerLevel` | `charm.durationTicks` / `charm.durationTicksPerLevel` | charm |
 
 **Skill level, not effect level:** `targetFactions` keeps its key but **changes
-its values** — you author faction *identifiers* (`["prey"]`), the catalog serves
-resolved *display names* (`["Prey"]`). The bitmask those names resolve to is
+its values** — you author faction *identifiers* (`["wildlife_prey"]`), the
+catalog serves resolved *display names* (`["Prey"]`). The bitmask those names resolve to is
 server-only and is **not** served at all (`json:"-"`, backlog §27.3.6).
 
 The authoritative lists are `effectKeys` (what each type accepts) and the
@@ -569,16 +567,15 @@ tick all of these:
   regardless of the entity's wire heading. Don't design art that relies on
   rotation.
 - **Reference files:** `frontend/src/features/game-objects/assets/mobs/`
-  `saberToothCat.svg`, `dodo.svg`, `mammoth.svg`.
+  `wolf.svg`, `wildboar.svg`, `bear.svg`.
 
-Inanimate props/hazards (pools, braziers, barricades) are exempt — no
+Inanimate props/hazards (pools, campfires, barricades) are exempt — no
 portrait applies there.
 
 Simplest case — **drop-in file replacement, frontend only.**
 
 - **A mob's art:** replace the SVG at the path in `Graphics.ts` `mobs.<mob>.file`
-  (e.g. `assets/mobs/mammoth.svg`; the boss `angryMammoth` currently points at
-  `demon.svg`). Keep the filename to change nothing else, or repoint the
+  (e.g. `assets/mobs/wolf.svg`). Keep the filename to change nothing else, or repoint the
   `require`. If proportions differ, adjust `minSize` / `maxSize` / `anchor` in the
   same entry.
 - **The player avatar:** replace
@@ -597,8 +594,8 @@ An encounter is **one Go struct behind the `Encounter` interface**
 data/DSL format (roadmap decision F3; revisit only with many encounters + a
 non-engineer author). The `encounter.System` runs every registered encounter's
 lifecycle hooks each tick; everything the script *does* goes through exported
-seams. **Reference implementation: `encounter/smoke.go`** (the proving-grounds
-arena) — copy it, don't start blank. Zero wire changes are needed unless your
+seams. **Reference implementation: `encounter/warlord.go`** (the Orc Warlord
+in the live world) — copy it, don't start blank. Zero wire changes are needed unless your
 encounter wants client-visible world state (bridges opening etc. — that wire
 work is deliberately deferred to the first real boss).
 
@@ -617,17 +614,17 @@ work is deliberately deferred to the first real boss).
 
 ### Step by step
 
-1. **Author the mobs** (`api/mobs/*.json`) as variant defs with the
-   `entityType` override (§1) — own `id` (keep ids unique by hand, the
-   registry silently overwrites duplicates), own stats/skills/faction. Two
-   deliberate choices in the smoke content worth copying:
-   - **No `faction` key** = built-in hostile default → the roaming faction
-     ecosystem (predators, tuskers) ignores your arena and your arena mobs
-     never fight each other.
+1. **Author the mobs** (`api/mobs/*.json`) — either full defs with their own
+   `EntityType` (the warlord roster) or variant defs with the `entityType`
+   override (§1) — own `id` (keep ids unique by hand, the registry silently
+   overwrites duplicates), own stats/skills/faction. Two deliberate choices
+   worth copying:
+   - **No `faction` key** = built-in hostile default → the roaming wildlife
+     factions ignore your arena and your arena mobs never fight each other.
    - **No `fleeBelowHealthRatio`** on the boss — flee should be *scripted*
      (the override), not autonomous, or the two will fight.
 2. **Write the encounter struct** in `backend/pkg/aura/encounter/`
-   (or a subpackage later, when there are many). Patterns from `smoke.go`:
+   (or a subpackage later, when there are many). Patterns from `warlord.go`:
    - **State is plain fields**: mob handles (`*mob.Mob`, nil = dead), per-slot
      respawn ticks, one-shot phase latches (`fled bool`), a reset tick.
      There is no timer/objective framework — deliberately (YAGNI; extract
@@ -654,8 +651,9 @@ work is deliberately deferred to the first real boss).
    }
    ```
    (Registration is Go-side by decision — no zone-JSON field yet.)
-4. **Test it** with the `encounter/smoke_test.go` pattern: the package
-   `fakeGame` + a `step` helper that replicates the MobSystem death loop
+4. **Test it** with the `encounter/warlord_test.go` pattern: the package
+   `fakeGame` + `encounterMobDef` helpers (`system_test.go`) and a `step`
+   helper that replicates the MobSystem death loop
    (`m.Update(0)` false → `g.RemoveEntity` → `System.Update(0)` → `tick++`),
    hand-built `mobs.MobDefinition`s in the `fakeRegistry` (tests never
    depend on the JSON), damage via `PlayerTouches`/`MobTouches`. Same-package
@@ -675,8 +673,7 @@ work is deliberately deferred to the first real boss).
   XP participants, and no threat accrues while immune (post-lift targeting
   starts from sensor acquisition). Fine for now; revisit at the real boss.
 - **Clearance-check your arena** against props/spawn traffic (zone editor
-  markers): the smoke arena deliberately sits in a low-traffic pocket so
-  wandering factions don't wander in.
+  markers): pick a low-traffic pocket so wandering factions don't wander in.
 - **9f is not built**: timed world-state (a bridge open for 20 min) and
   dwell-capture triggers have no machinery yet — they land with the first
   real boss (content pass), because both need wire fields.

@@ -79,12 +79,12 @@ func (g *fakeGame) Mobs() mobs.Registry {
 func (g *fakeGame) Skills() skills.Registry { panic("unused") }
 func (g *fakeGame) Quests() quests.Registry { return nil }
 
-// testMobDef is a minimal Dodo-shaped definition — enough for NewMob (a full HP
+// testMobDef is a minimal Wolf-shaped definition — enough for NewMob (a full HP
 // pool, a valid aggro radius, no skills).
 func testMobDef() *mobs.MobDefinition {
 	return &mobs.MobDefinition{
 		ID:      1,
-		Name:    "Dodo",
+		Name:    "Wolf",
 		Body:    mobs.Body{Radius: 0.3, AggroRadius: 2.0},
 		Factors: mobs.Factors{BaseMaxHealth: 40},
 	}
@@ -367,7 +367,7 @@ func TestSpawnPoint_WaypointSpawnPatrolsRoute(t *testing.T) {
 
 func TestSpawnPoint_TypeDefaultWanderApplies(t *testing.T) {
 	// A spawn without its own wanderRadius inherits the mob type's default
-	// (chunk-5 pacing rework: Dodos graze by default, no zone edits).
+	// (chunk-5 pacing rework: grazers wander by default, no zone edits).
 	def := testMobDef()
 	def.Factors.Speed = 1
 	def.Factors.WanderRadius = 2

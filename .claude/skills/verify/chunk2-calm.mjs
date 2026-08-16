@@ -70,7 +70,7 @@ await page.evaluate(() => {
 });
 
 // ⚑ Mob sprites are NOT under one "mob" layer — there is a layer PER SPECIES
-// (`wildlife`, `bossMobs`, `dodo`, `saberToothCat`, …), probed live. `wildlife`
+// (`wildlife`, `campfire`, `companion`, …), probed live. `wildlife`
 // is the right one here and conveniently the only one calm is scoped to.
 //
 // Measured in WORLD units off .position, never screen space — Cam Boundaries

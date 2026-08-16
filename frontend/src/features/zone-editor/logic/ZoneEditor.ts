@@ -37,10 +37,9 @@ interface MobDefJSON {
     tier?: string;
     curveLevel?: number;
     // The kindOf inputs (plan-zone-editor-structure.md D1), all optional
-    // because absence is the common case (36 defs author no role) and must
+    // because absence is the common case (27 defs author no role) and must
     // classify as combat, never throw.
     role?: string;
-    legacy?: boolean;
     interaction?: object;
     factors?: { wanderRadius?: number; speed?: number };
 }
@@ -137,8 +136,8 @@ export function effectiveWanderRadius(spawn: ZoneSpawn): number {
 }
 
 // Default to the live world zone if bundled (there is no 'zone' stem — that
-// was a vestigial default; the shipped zones are 'world' and 'proving-grounds'),
-// else the first available stem (triage item 3/9 DRIFT-A).
+// was a vestigial default; the one shipped zone is 'world'), else the first
+// available stem (triage item 3/9 DRIFT-A).
 const DEFAULT_STEM = zonesByStem['world'] ? 'world' : zoneStems[0];
 const NEW_ZONE_BOUNDS = {width: 60, height: 40};
 
@@ -163,18 +162,17 @@ let selection: Selection = null;
 const COLOR_BLOCKING = 0xF44336;
 const COLOR_DECORATIVE = 0x03A9F4;
 const COLOR_SPAWN = 0x4CAF50;
-// Spawn-marker style per derived category (plan-zone-editor-structure.md
+// Spawn-marker colour per derived category (plan-zone-editor-structure.md
 // §4.4, every colour [PLACEHOLDER]): the diamond shape still says "spawn
 // point", the colour says what kind. Combat keeps the historical green (435
 // of 488 placements, so the map a designer knows stays the map they know);
 // talker pink and companion brown steer clear of the prop red and dark-area
-// purple. fade < 1 only on legacy, which C3 deletes together with the defs.
-const SPAWN_KIND_STYLE: { [kind in MobKind]: { color: number; fade: number } } = {
-    combat: {color: COLOR_SPAWN, fade: 1},
-    talker: {color: 0xE91E63, fade: 1},
-    fixture: {color: 0x9E9E9E, fade: 1},
-    companion: {color: 0x795548, fade: 1},
-    legacy: {color: COLOR_SPAWN, fade: 0.45},
+// purple.
+const SPAWN_KIND_STYLE: { [kind in MobKind]: { color: number } } = {
+    combat: {color: COLOR_SPAWN},
+    talker: {color: 0xE91E63},
+    fixture: {color: 0x9E9E9E},
+    companion: {color: 0x795548},
 };
 const COLOR_CAMPFIRE = 0xFF9800;
 const COLOR_DARK = 0x673AB7;
@@ -600,7 +598,7 @@ function drawSpawnMarker(spawn: ZoneSpawn, selected: boolean): Container {
     let radiusPx = meter2px(SPAWN_MARKER_RADIUS);
     // Unknown names (a hand-authored zone drifted from api/mobs/) draw as
     // combat rather than crashing the overlay build.
-    let {color, fade} = SPAWN_KIND_STYLE[spawnKindByName[spawn.mob]] || SPAWN_KIND_STYLE.combat;
+    let {color} = SPAWN_KIND_STYLE[spawnKindByName[spawn.mob]] || SPAWN_KIND_STYLE.combat;
 
     let marker = new Container();
 
@@ -611,8 +609,8 @@ function drawSpawnMarker(spawn: ZoneSpawn, selected: boolean): Container {
         let inherited = spawn.wanderRadius === undefined;
         marker.addChild(new Graphics()
             .circle(0, 0, meter2px(wanderRadius))
-            .fill({color, alpha: (inherited ? 0.03 : 0.06) * fade})
-            .stroke({width: 2, color, alpha: (inherited ? 0.35 : 0.6) * fade}));
+            .fill({color, alpha: inherited ? 0.03 : 0.06})
+            .stroke({width: 2, color, alpha: inherited ? 0.35 : 0.6}));
     }
 
     // Patrol-route preview: polyline from the spawn through the ordered
@@ -626,10 +624,10 @@ function drawSpawnMarker(spawn: ZoneSpawn, selected: boolean): Container {
         if (spawn.patrolMode === 'loop' && spawn.waypoints.length > 1) {
             route.lineTo(meter2px(spawn.waypoints[0].x - spawn.x), meter2px(spawn.waypoints[0].y - spawn.y));
         }
-        route.stroke({width: 3, color, alpha: 0.6 * fade});
+        route.stroke({width: 3, color, alpha: 0.6});
         spawn.waypoints.forEach(w => {
             route.circle(meter2px(w.x - spawn.x), meter2px(w.y - spawn.y), 10)
-                .fill({color, alpha: 0.8 * fade});
+                .fill({color, alpha: 0.8});
         });
         marker.addChild(route);
         spawn.waypoints.forEach((w, i) => {
@@ -640,16 +638,16 @@ function drawSpawnMarker(spawn: ZoneSpawn, selected: boolean): Container {
     }
 
     // Selection stays full-strength yellow on every category, so the selected
-    // marker is unambiguous even against a faded legacy diamond.
+    // marker is unambiguous on every marker colour.
     let graphic = new Graphics()
         .poly([0, -radiusPx, radiusPx, 0, 0, radiusPx, -radiusPx, 0])
-        .fill({color, alpha: 0.25 * fade})
+        .fill({color, alpha: 0.25})
         .stroke(selected
             ? {width: 6, color: COLOR_SELECTED}
-            : {width: 3, color, alpha: fade})
+            : {width: 3, color})
         .moveTo(0, 0)
         .lineTo(radiusPx, 0)
-        .stroke({width: 2, color, alpha: fade});
+        .stroke({width: 2, color});
     graphic.rotation = spawn.angle;
     marker.addChild(graphic);
     // "Wolf L15" ONLY when the placement overrides the species level — an

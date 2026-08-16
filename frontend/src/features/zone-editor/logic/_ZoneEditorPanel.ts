@@ -129,11 +129,11 @@ let darkCountLabel: HTMLElement;
 let anchorCountLabel: HTMLElement;
 
 // " (cL2)" / " (cL11, elite)": the curve level, plus the tier when it
-// carries information (normal is the default). Only Combat and Legacy entries
-// get it (plan-zone-editor-structure.md P2): every talker and fixture authors
+// carries information (normal is the default). Only Combat entries get it
+// (plan-zone-editor-structure.md P2): every talker and fixture authors
 // cL1 with xpFactor 0, so there the suffix says nothing and costs a reading.
 function mobOptionSuffix(mob: ZoneEditor.MobOption): string {
-    if (mob.kind !== 'combat' && mob.kind !== 'legacy') {
+    if (mob.kind !== 'combat') {
         return '';
     }
     let suffix = 'cL' + mob.curveLevel;
@@ -231,7 +231,6 @@ export function setupPanel() {
         {kind: 'talker', label: 'Talkers'},
         {kind: 'fixture', label: 'Fixtures'},
         {kind: 'companion', label: 'Companions'},
-        {kind: 'legacy', label: 'Legacy'},
     ];
     MOB_GROUPS.forEach(group => {
         let mobs = ZoneEditor.mobOptions.filter(mob => mob.kind === group.kind);

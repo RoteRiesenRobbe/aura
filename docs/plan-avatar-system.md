@@ -68,7 +68,7 @@ authored the same way `milestone-unlocks.json` is (`skills/milestones.go`).
 [
   { "id": 1, "name": "Wanderer",  "file": "wanderer.svg",  "unlock": "default" },
   { "id": 2, "name": "Emberkin",  "file": "emberkin.svg",  "unlock": "milestone", "level": 5 },
-  { "id": 3, "name": "Tuskbane",  "file": "tuskbane.svg",  "unlock": "kill", "mob": "angryMammoth" }
+  { "id": 3, "name": "Tuskbane",  "file": "tuskbane.svg",  "unlock": "kill", "mob": "orcWarlord" }
 ]
 ```
 
@@ -154,7 +154,7 @@ it:
 **Same component, two mounts:**
 
 - **Join screen** — portrait grid; unlocked avatars selectable, locked ones
-  shown greyed with their unlock hint ("Reach level 5", "Defeat the Mammoth") so
+  shown greyed with their unlock hint ("Reach level 5", "Defeat the Warlord") so
   the collection is legible as a goal. Default avatar preselected.
 - **In-game** — the same grid reachable from a HUD/menu button. Selecting writes
   `ActiveAvatar` via the select-avatar action; the change is visible to everyone

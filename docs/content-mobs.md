@@ -3,9 +3,9 @@
 Mob roster + the category taxonomy. Conventions (status column, placement
 split) → `README.md` → Content. In-game entries: authoritative definition is
 `api/mobs/*.json`. The content pass (step 6, roadmap item 12) **completed
-2026-07-21** and replaced the legacy Berryhunter roster; what survives of it is
-`legacy: true`-tagged and confined to the proving grounds (see the last
-section).
+2026-07-21** and replaced the legacy Berryhunter roster; its `legacy: true`
+remnant (and the proving-grounds map that held it) was deleted outright at
+zone-editor C3, 2026-08-16.
 
 > **Drop chances live in `content-skill-inventory.md`**, which is generated
 > from the data files — *which* mob drops *what* is design intent and belongs
@@ -40,7 +40,7 @@ Loose grouping for the eventual full roster (from the 2026-07-09 capture,
 | Elite kobold | idea | Small Fantasy / elite | — |
 | Spider | in-game *(C3)* | Animal / normal | Dark Tunnel + lit staging area at the west mouth (players meet spiders in daylight first). SpiderBite carries **lifesteal** (drains prey — feeding). Drops Antivenom. `api/mobs/spider.json`. |
 | Venom spider | in-game *(C3)* | Animal / normal | Tunnel interior + rockfall nest. VenomSpit = first **`poison`** tag: dot_aura whose DoT keeps ticking after escaping the radius. Drops Antivenom (the drop pair's better source). `api/mobs/venom-spider.json`. |
-| Poison pool | in-game *(C3)* | Hazard fixture | Brazier pattern (`collisionLayer 32`/`mask 16`): unkillable, non-blocking, always-on poison damage aura. Hurts while stood in, **grants nothing** (XP 0). Tunnel corridor + nest. `api/mobs/poison-pool.json`. |
+| Poison pool | in-game *(C3)* | Hazard fixture | Unhittable-hazard pattern (`collisionLayer 32`/`mask 16`): unkillable, non-blocking, always-on poison damage aura. Hurts while stood in, **grants nothing** (XP 0). Tunnel corridor + nest. `api/mobs/poison-pool.json`. |
 | Rockfall | in-game *(C3)* | Obstacle / solid mob | Second aura-gated obstacle (bramble pattern, layer 99/mask 16): resists `{"*": 0, "smash": 1}` — **only the Miner-taught Pickaxe clears it** (PO 2026-07-17); Harvest and combat auras do 0. Seals the tunnel side passage hiding the venom-spider nest. `api/mobs/rockfall.json`. |
 | Bandit (melee) | in-game *(C4)* | Humanoid / normal | Z2 camp + horde blade fighter: BanditBlades carries **physical + bleed** (boar-gore multi-tag precedent). No flee — bandits stand and fight (contrast to the kobold swarm). `bandit` faction (hostile to players only, ignores wildlife). No drop (§11 open since the Rally cut). `api/mobs/bandit.json`. |
 | Bandit (ranged) | in-game *(C4)* | Humanoid / normal | Crossbow volley: large radius, slow tick, `selector: "all"` uncapped (kobold-volley precedent), harder per hit for the higher band. Drop deliberately empty — §11 stays open (PO 2026-07-18). `api/mobs/bandit-ranged.json`. |
@@ -50,7 +50,7 @@ Loose grouping for the eventual full roster (from the 2026-07-09 capture,
 | Wild boars | in-game *(C2)* | Animal / prey | `wildlife_prey`: passive until hit, then gores back (physical + **bleed**, first bleed tag). Drops Hardy + Dash. `api/mobs/boar.json`. |
 | Army soldier | in-game *(C5)* | Humanoid / normal / allied | The Human Army's rank and file: `human_army` faction — never aggros players, **harm-proof to the aligned side** (§9 lift 6 `friendlyToPlayers`, first user), wars with the orcs for the unattended front ambience. **XP 0** (locked: no XP-via-army). Fast respawn — the line refills. curveLevel 18 (front band, re-anchored to the L20 Vanguard ruling). `api/mobs/army-soldier.json`. |
 | Orc | in-game *(C5)* | Humanoid / elite | The front's wall: `orc` faction, hostile to players AND the army. Very strong and tanky (elite baseline 280), OrcCleave hits up to 3 targets — but **XP 15, deliberately very low** (the front is a spectacle, not a grind spot). curveLevel 20 = the Vanguard anchor. The C6 Ork World Boss joins this faction. `api/mobs/orc.json`. |
-| Spike barricade | in-game *(C5)* | Hazard fixture | Brazier pattern (32/16): unkillable, non-blocking, always-on **physical+bleed** scraping, XP 0. Default-hostile faction on purpose — hurts only players, so it can't bleed the army and tilt the war. No-man's land + the funnel toward the C6 boss arena (west end of the front). `api/mobs/spike-barricade.json`. |
+| Spike barricade | in-game *(C5)* | Hazard fixture | Unhittable-hazard pattern (32/16): unkillable, non-blocking, always-on **physical+bleed** scraping, XP 0. Default-hostile faction on purpose — hurts only players, so it can't bleed the army and tilt the war. No-man's land + the funnel toward the C6 boss arena (west end of the front). `api/mobs/spike-barricade.json`. |
 | Orc Warlord | in-game *(C6)* | Humanoid / boss | **The Ork World Boss (§B) — the v1 completion beat.** `orc` faction, boss baseline 900 @ cL23, XP 600 (the "large XP" beat vs the starved Orc 15). Kit: WarlordCleave (multi-effect: 3-target cleave + physical+bleed dot — one active aura, Vanguard precedent) + WarlordFrenzy (tick_rate cooldown the mob AI fires on rotation → recurring frenzy windows). Encounter-spawned ONLY (OrcWarlordEncounter, zone anchors); drops **Call for Aid** to all participants + recent healers. `api/mobs/orc-warlord.json`. |
 | Warbanner totem | in-game *(C6)* | Encounter object | The Warlord's invuln gate: killable stationary (bramble body 99/16, NO gate resist — anything fells it), XP 0, `orc` faction. WarbannerShield = RallyDrum-class shield on nearby orcs, allies-only (the banner stays soft). Replanted once per cycle at 33% (the re-gate) and on wipe/respawn. `api/mobs/warbanner-totem.json`. |
 | Orc grunt | in-game *(C6)* | Humanoid | Wave add: normal tier @ cL20, XP 5 trickle, GruntSlash single-target melee, big aggro sensor (spawned waves find the fight while charging from the wave-mouth anchor). Encounter-spawned only. `api/mobs/orc-grunt.json`. |
@@ -68,14 +68,3 @@ Loose grouping for the eventual full roster (from the 2026-07-09 capture,
 | Trolls | idea | Fantasy | "Well versed in heal magic" — enable the Heal cooldown unlock (troll territory). |
 | Necromancer | idea | Evil / caster | Caster-mob archetype (2026-07-09 seed). |
 | Guardian golem | idea | Fantasy / boss | Boss before the mountain range (2026-07-09 seed). |
-
-## Legacy roster (replaced — proving grounds only)
-
-Legacy Berryhunter roster (dodo, rabbit, mammoth, saber-tooth cat,
-angry mammoth) — placeholder combat content, **replaced by the step-6 content
-pass**. Since step-7 A.5 (`d1acf28d`) these carry `"legacy": true` and live
-only in the proving-grounds zone; their skill drops do **not** count as
-world-reachable unlock sources, and `Zone.LegacyRefs`/`MobDefinition.LegacyRefs`
-warn if live content references them. System/
-harness entities in `api/mobs/` (companion, totem, healer, brazier,
-proving-* set) belong to their systems' plan docs, not this roster.

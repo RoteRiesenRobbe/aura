@@ -46,7 +46,8 @@ func TestHandleRun_RunsBatteryAndReturnsReport(t *testing.T) {
 }
 
 // The preset roster maps authored mobs onto MobSpecs — pinned against the
-// embedded SaberToothCat (60 HP, aura 8 HP / 20 ticks / r1.0 at level 1).
+// embedded Wolf (baseMaxHealth 55 / WolfBite 6 HP per 24 ticks / r1.0,
+// authored at curve position 1 and derived at its own curveLevel 2).
 func TestLoadMobPresets_EmbeddedContent(t *testing.T) {
 	presets, _, err := loadPresets("", 0)
 	require.NoError(t, err)
@@ -56,13 +57,13 @@ func TestLoadMobPresets_EmbeddedContent(t *testing.T) {
 	for _, p := range presets {
 		byName[p.Name] = p.Spec
 	}
-	cat, ok := byName["SaberToothCat"]
-	require.True(t, ok, "embedded roster must contain SaberToothCat")
-	assert.EqualValues(t, 60, cat.MaxHealth)
-	assert.InDelta(t, 0.5, cat.Speed, 1e-6)
-	assert.InDelta(t, 8, cat.Aura.DamageHP, 1e-6)
-	assert.Equal(t, 20, cat.Aura.TickInterval)
-	assert.InDelta(t, 1.0, cat.Aura.Radius, 1e-6)
+	wolf, ok := byName["Wolf"]
+	require.True(t, ok, "embedded roster must contain Wolf")
+	assert.EqualValues(t, 62, wolf.MaxHealth) // 55 × growth 1.12 (curve position 1 → level 2)
+	assert.InDelta(t, 0.7, wolf.Speed, 1e-6)
+	assert.InDelta(t, 6.72, wolf.Aura.DamageHP, 1e-4) // 6 × 1.12
+	assert.Equal(t, 24, wolf.Aura.TickInterval)
+	assert.InDelta(t, 1.0, wolf.Aura.Radius, 1e-6)
 }
 
 // Player-aura presets (content pass C5, §A "never a surprise"): every

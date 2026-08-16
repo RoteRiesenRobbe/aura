@@ -56,58 +56,16 @@ export const GraphicsConfig = {
                 anchor?: {x: number, y: number}
             }
     }>{
-        dodo: {
-            file: require('../features/game-objects/assets/mobs/boar.svg'),
-            minSize: <number> 35,
-            maxSize: <number> 45,
-        },
-
-        saberToothCat: {
-            file: require('../features/game-objects/assets/mobs/lion.svg'),
-            minSize: <number> 45,
-            maxSize: <number> 60,
-        },
-
-        mammoth: {
-            file: require('../features/game-objects/assets/mobs/skeleton.svg'),
-            minSize: <number> 60,
-            maxSize: <number> 80,
-        },
-
-        angryMammoth: {
-            file: require('../features/game-objects/assets/mobs/angryMammoth.svg'),
-            minSize: <number> 180,
-            maxSize: <number> 220,
-        },
-
         totem: {
             file: require('../features/game-objects/assets/mobs/totem.svg'),
             minSize: <number> 50,
             maxSize: <number> 50,
         },
 
-        rabbit: {
-            file: require('../features/game-objects/assets/mobs/rabbit.svg'),
-            minSize: <number> 22,
-            maxSize: <number> 30,
-        },
-
         companion: {
             file: require('../features/game-objects/assets/mobs/companion.svg'),
             minSize: <number> 40,
             maxSize: <number> 40,
-        },
-
-        brazier: {
-            file: require('../features/game-objects/assets/mobs/brazier.svg'),
-            minSize: <number> 50,
-            maxSize: <number> 50,
-        },
-
-        healer: {
-            file: require('../features/game-objects/assets/mobs/healer.svg'),
-            minSize: <number> 44,
-            maxSize: <number> 44,
         },
 
         campfire: {
@@ -132,8 +90,7 @@ export const GraphicsConfig = {
             maxSize: <number> 26,
         },
 
-        // Z1 wildlife + brambles (content pass C2). wildboar.svg because
-        // boar.svg is taken by the legacy Dodo skin.
+        // Z1 wildlife + brambles (content pass C2).
         wolf: {
             file: require('../features/game-objects/assets/mobs/wolf.svg'),
             minSize: <number> 38,

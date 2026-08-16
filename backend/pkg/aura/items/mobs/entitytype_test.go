@@ -9,19 +9,19 @@ import (
 
 func TestResolveEntityType(t *testing.T) {
 	// Override wins over name.
-	got, ok := ResolveEntityType("Dodo", "ProvingBoss")
+	got, ok := ResolveEntityType("Wolf", "ScriptedBoss")
 	assert.True(t, ok)
-	assert.Equal(t, AuraApi.EntityTypeDodo, got, "the override resolves, not the name")
+	assert.Equal(t, AuraApi.EntityTypeWolf, got, "the override resolves, not the name")
 
 	// Empty override falls back to the name.
-	got, ok = ResolveEntityType("", "Dodo")
+	got, ok = ResolveEntityType("", "Wolf")
 	assert.True(t, ok)
-	assert.Equal(t, AuraApi.EntityTypeDodo, got, "empty override → resolve the def name")
+	assert.Equal(t, AuraApi.EntityTypeWolf, got, "empty override → resolve the def name")
 
 	// Unknown key → not ok.
 	_, ok = ResolveEntityType("", "NoSuchWireType")
 	assert.False(t, ok, "a name that is no EntityType is unresolvable")
 
-	_, ok = ResolveEntityType("NoSuchWireType", "Dodo")
+	_, ok = ResolveEntityType("NoSuchWireType", "Wolf")
 	assert.False(t, ok, "a bad override is unresolvable even when the name would resolve")
 }

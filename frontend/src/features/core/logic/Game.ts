@@ -223,14 +223,8 @@ export class Game implements IGame {
             corpses: createNamedContainer('corpses'),
             characters: createNamedContainer('characters'),
             mobs: {
-                dodo: createNamedContainer('dodo'),
-                saberToothCat: createNamedContainer('saberToothCat'),
-                mammoth: createNamedContainer('mammoth'),
                 totem: createNamedContainer('totem'),
-                rabbit: createNamedContainer('rabbit'),
                 companion: createNamedContainer('companion'),
-                brazier: createNamedContainer('brazier'),
-                healer: createNamedContainer('healer'),
                 campfire: createNamedContainer('campfireMob'),
                 turnip: createNamedContainer('turnip'),
                 // Z1 wildlife + brambles share one layer (content pass C2).
@@ -240,8 +234,7 @@ export class Game implements IGame {
                 minerals: createNamedContainer('minerals'),
                 trees: createNamedContainer('trees'),
             },
-            bossMobs: createNamedContainer('bossMobs'),
-            // A character in FLIGHT, above props and boss mobs (flight C3, PO
+            // A character in FLIGHT, above the props (flight C3, PO
             // pass 2026-08-05). Every other character stays on `characters`,
             // deliberately BELOW the trees and rocks it walks behind — this
             // layer exists only for the one entity that is meant to be over
@@ -302,14 +295,8 @@ export class Game implements IGame {
         // standing in it. Building the world to match the map was tried in this
         // chunk and bounced back by the PO from a screenshot.
         this.cameraGroup.addChild(
-            this.layers.mobs.dodo,
-            this.layers.mobs.saberToothCat,
-            this.layers.mobs.mammoth,
             this.layers.mobs.totem,
-            this.layers.mobs.rabbit,
             this.layers.mobs.companion,
-            this.layers.mobs.brazier,
-            this.layers.mobs.healer,
             this.layers.mobs.campfire,
             this.layers.mobs.turnip,
             this.layers.mobs.wildlife,
@@ -323,9 +310,6 @@ export class Game implements IGame {
             this.layers.resources.minerals,
             this.layers.resources.trees,
         );
-
-        // Boss mobs overlaying resources
-        this.cameraGroup.addChild(this.layers.bossMobs);
 
         // …and a flyer above even those. Walking behind a tree is correct;
         // flying behind one breaks the only thing selling the flight, since
@@ -539,15 +523,14 @@ export class Game implements IGame {
         //
         // Night-tinted layers are DERIVED (every layer minus the exempt set)
         // instead of hand-listed: the old include-list predated the content
-        // pass, so every newer mob layer (wildlife, healer, companion, …)
+        // pass, so every newer mob layer (wildlife, companion, …)
         // silently skipped the night tint — the world stayed bright while the
         // characters layer went near-black, which read as "my character turned
         // invisible at night". A new layer is now night-correct by default.
-        // Exempt: light sources (campfires, braziers), the darkness overlay
+        // Exempt: light sources (campfires), the darkness overlay
         // (dark areas are dark independent of the cycle, §6.5), and the
         // readability overlays (name plates, chat, floating numbers, vitals).
         const nightExempt = new Set<Container>([
-            this.layers.mobs.brazier,
             this.layers.mobs.campfire,
             this.layers.darkness,
             this.layers.characterAdditions.namePlates,

@@ -183,7 +183,7 @@ func threatTestMob(t *testing.T) *mob.Mob {
 	t.Helper()
 	return mob.NewMob(&mobs.MobDefinition{
 		ID:      1,
-		Name:    "Dodo",
+		Name:    "Wolf",
 		Body:    mobs.Body{Radius: 0.3, AggroRadius: 2.0},
 		Factors: mobs.Factors{BaseMaxHealth: 40},
 	}, 0, nil)
@@ -197,7 +197,7 @@ func TestThreatCommand_FormatContainsTableAndState(t *testing.T) {
 
 	report := formatThreatReport(m)
 
-	assert.Contains(t, report, "Dodo", "the def name identifies the mob")
+	assert.Contains(t, report, "Wolf", "the def name identifies the mob")
 	assert.Contains(t, report, "invulnerable=true")
 	assert.Contains(t, report, fmt.Sprintf("%d", src.basic.ID()), "the threat holder's entity ID")
 	assert.Contains(t, report, "12.5", "the threat value")

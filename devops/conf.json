@@ -1,5 +1,5 @@
 {
-  "_comment": "The live server's conf, copied verbatim by deploy.sh (§35 L4). Only genuine per-environment deltas live here (§35 C1, D1); every absent game key resolves to the Go defaults, documented in full in conf.default.json. zone stays authored: its Go default is empty, which aborts the boot when more than one zone exists.",
+  "_comment": "The live server's conf, copied verbatim by deploy.sh (§35 L4). Only genuine per-environment deltas live here (§35 C1, D1); every absent game key resolves to the Go defaults, documented in full in conf.default.json. zone stays authored: its Go default is empty, which aborts the boot when more than one zone exists (moot with world as the only shipped zone since zone-editor C3, but kept explicit).",
   "server": {
     "tlsHost": "aura-game.duckdns.org",
     "frontendDir": "./frontend"

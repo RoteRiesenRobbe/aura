@@ -19,7 +19,8 @@ type fakeAnnouncer struct {
 
 func (f *fakeAnnouncer) Broadcast(text string) { f.messages = append(f.messages, text) }
 
-// warlordArena drives the Orc Warlord encounter like the smoke arena does.
+// warlordArena drives the Orc Warlord encounter through the fakeGame,
+// replicating the MobSystem death loop.
 type warlordArena struct {
 	t         *testing.T
 	s         *System
@@ -38,9 +39,9 @@ var (
 func newWarlordArena(t *testing.T) *warlordArena {
 	g := newFakeGame()
 	g.mobReg = &fakeRegistry{defs: map[string]*mobs.MobDefinition{
-		warlordMobName:   smokeDef(35, warlordMobName, "AngryMammoth", 900, 0.6),
-		warbannerMobName: smokeDef(36, warbannerMobName, "SaberToothCat", 160, 0.4),
-		gruntMobName:     smokeDef(37, gruntMobName, "Rabbit", 75, 0.35),
+		warlordMobName:   encounterMobDef(35, warlordMobName, "OrcWarlord", 900, 0.6),
+		warbannerMobName: encounterMobDef(36, warbannerMobName, "WarbannerTotem", 160, 0.4),
+		gruntMobName:     encounterMobDef(37, gruntMobName, "OrcGrunt", 75, 0.35),
 	}}
 	s := NewSystem(g, nil)
 	g.es = s

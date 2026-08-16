@@ -42,7 +42,7 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	}
 
 	assert.ElementsMatch(t, []string{
-		"Bramble", "Brazier", "Camp", "Campfire", "FireTotem", "PoisonPool",
+		"Bramble", "Camp", "Campfire", "FireTotem", "PoisonPool",
 		"Rockfall", "SpikeBarricade", "Totem", "Turnip", "WarbannerTotem",
 	}, byRole[RoleStructure], "the authored structures")
 
@@ -61,7 +61,7 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// +1 again for the FrontAscensionStone (plan-ascension-sites.md C1), which
 	// is the third time the same case is authored — and now an expected-to-grow
 	// one, since D1 makes a differently-priced site ordinary content.
-	assert.Len(t, byRole[RoleCreature], 53, "everything else is a creature")
+	assert.Len(t, byRole[RoleCreature], 44, "everything else is a creature")
 	assert.Len(t, byRole, 3, "no def carries a role outside the three")
 }
 

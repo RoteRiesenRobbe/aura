@@ -39,9 +39,9 @@ func testCurve() curve.Curve {
 func TestMapMobDefinition_EntityTypeOverrideParsed(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 10,
-	  "name": "ProvingBoss",
+	  "name": "ScriptedBoss",
 	  "type": "MOB",
-	  "entityType": "AngryMammoth",
+	  "entityType": "OrcWarlord",
 	  "body": {"radius": 1.7, "aggroRadius": 10}
 	}`))
 	require.NoError(t, err)
@@ -49,14 +49,14 @@ func TestMapMobDefinition_EntityTypeOverrideParsed(t *testing.T) {
 	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 
-	assert.Equal(t, "AngryMammoth", def.EntityType,
+	assert.Equal(t, "OrcWarlord", def.EntityType,
 		"the override decouples the def name from the wire EntityType")
 }
 
 func TestMapMobDefinition_AbsentEntityTypeStaysEmpty(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
 	}`))
@@ -72,7 +72,7 @@ func TestMapMobDefinition_AbsentEntityTypeStaysEmpty(t *testing.T) {
 func TestMapMobDefinition_UnknownEntityTypeFails(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 10,
-	  "name": "ProvingBoss",
+	  "name": "ScriptedBoss",
 	  "type": "MOB",
 	  "entityType": "NoSuchWireType",
 	  "body": {"radius": 1.7, "aggroRadius": 10}
@@ -104,7 +104,7 @@ func TestMapMobDefinition_UnknownNameFallbackFails(t *testing.T) {
 func TestMapMobDefinition_ResolvesSkills(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "skills": [{"skillName": "DodoAura", "level": 1}],
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -122,7 +122,7 @@ func TestMapMobDefinition_ResolvesSkills(t *testing.T) {
 func TestMapMobDefinition_SkillLevelDefaultsToOne(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "skills": [{"skillName": "DodoAura"}],
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -139,7 +139,7 @@ func TestMapMobDefinition_SkillLevelDefaultsToOne(t *testing.T) {
 func TestMapMobDefinition_ResolvesUnlocks(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "unlocks": [{"skillName": "DodoAura", "chance": 0.2}],
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -157,7 +157,7 @@ func TestMapMobDefinition_ResolvesUnlocks(t *testing.T) {
 func TestMapMobDefinition_UnlockChanceDefaultsToGuaranteed(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "unlocks": [{"skillName": "DodoAura"}],
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -174,7 +174,7 @@ func TestMapMobDefinition_UnlockChanceDefaultsToGuaranteed(t *testing.T) {
 func TestMapMobDefinition_UnknownUnlockSkillFails(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "unlocks": [{"skillName": "NoSuchAura"}],
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -189,7 +189,7 @@ func TestMapMobDefinition_InvalidUnlockChanceFails(t *testing.T) {
 	for _, chance := range []string{"0", "-0.5", "1.5"} {
 		raw, err := parseMobDefinition([]byte(`{
 		  "id": 1,
-		  "name": "Dodo",
+		  "name": "Wolf",
 		  "type": "MOB",
 		  "unlocks": [{"skillName": "DodoAura", "chance": ` + chance + `}],
 		  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -204,7 +204,7 @@ func TestMapMobDefinition_InvalidUnlockChanceFails(t *testing.T) {
 func TestMapMobDefinition_UnknownSkillFails(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "skills": [{"skillName": "NoSuchAura"}],
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -220,7 +220,7 @@ func TestMapMobDefinition_UnknownSkillFails(t *testing.T) {
 func TestMapMobDefinition_ParsesResistances(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "factors": {"baseMaxHealth": 40, "resistances": {"fire": 0.5, "physical": 0.8}},
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -238,7 +238,7 @@ func TestMapMobDefinition_ParsesResistances(t *testing.T) {
 func TestMapMobDefinition_NoResistancesIsNil(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
 	}`))
@@ -252,7 +252,7 @@ func TestMapMobDefinition_NoResistancesIsNil(t *testing.T) {
 func TestMapMobDefinition_NegativeResistanceFails(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "factors": {"resistances": {"fire": -0.1}},
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -266,7 +266,7 @@ func TestMapMobDefinition_NegativeResistanceFails(t *testing.T) {
 func TestMapMobDefinition_ParsesMaxHealthVariance(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "factors": {"baseMaxHealth": 40, "maxHealthVariance": 0.1},
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -281,7 +281,7 @@ func TestMapMobDefinition_ParsesMaxHealthVariance(t *testing.T) {
 func TestMapMobDefinition_MaxHealthVarianceDefaultsToZero(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "factors": {"baseMaxHealth": 40},
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -297,7 +297,7 @@ func TestMapMobDefinition_MaxHealthVarianceOutOfBoundsFails(t *testing.T) {
 	for _, variance := range []string{"-0.1", "1", "1.5"} {
 		raw, err := parseMobDefinition([]byte(`{
 		  "id": 1,
-		  "name": "Dodo",
+		  "name": "Wolf",
 		  "type": "MOB",
 		  "factors": {"baseMaxHealth": 40, "maxHealthVariance": ` + variance + `},
 		  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -312,7 +312,7 @@ func TestMapMobDefinition_MaxHealthVarianceOutOfBoundsFails(t *testing.T) {
 func TestMapMobDefinition_EmptyResistanceTagFails(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "factors": {"resistances": {"": 0.5}},
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -328,7 +328,7 @@ func TestMapMobDefinition_EmptyResistanceTagFails(t *testing.T) {
 func TestMapMobDefinition_ParsesFleeBelowHealthRatio(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 6,
-	  "name": "Rabbit",
+	  "name": "Boar",
 	  "type": "MOB",
 	  "factors": {"baseMaxHealth": 20, "fleeBelowHealthRatio": 0.5},
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -343,7 +343,7 @@ func TestMapMobDefinition_ParsesFleeBelowHealthRatio(t *testing.T) {
 func TestMapMobDefinition_FleeBelowHealthRatioDefaultsToZero(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "factors": {"baseMaxHealth": 40},
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -360,7 +360,7 @@ func TestMapMobDefinition_FleeBelowHealthRatioOutOfBoundsFails(t *testing.T) {
 	for _, ratio := range []string{"-0.1", "1.5"} {
 		raw, err := parseMobDefinition([]byte(`{
 		  "id": 1,
-		  "name": "Dodo",
+		  "name": "Wolf",
 		  "type": "MOB",
 		  "factors": {"fleeBelowHealthRatio": ` + ratio + `},
 		  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -377,7 +377,7 @@ func TestMapMobDefinition_FleeBelowHealthRatioOutOfBoundsFails(t *testing.T) {
 func TestMapMobDefinition_ParsesSupportThreshold(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 6,
-	  "name": "Rabbit",
+	  "name": "Boar",
 	  "type": "MOB",
 	  "factors": {"baseMaxHealth": 20, "supportThreshold": 0.5},
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -392,7 +392,7 @@ func TestMapMobDefinition_ParsesSupportThreshold(t *testing.T) {
 func TestMapMobDefinition_SupportThresholdDefaultsToZeroAndResolvesLater(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "factors": {"baseMaxHealth": 40},
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -411,7 +411,7 @@ func TestMapMobDefinition_SupportThresholdOutOfBoundsFails(t *testing.T) {
 	for _, ratio := range []string{"-0.1", "1.5"} {
 		raw, err := parseMobDefinition([]byte(`{
 		  "id": 1,
-		  "name": "Dodo",
+		  "name": "Wolf",
 		  "type": "MOB",
 		  "factors": {"supportThreshold": ` + ratio + `},
 		  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -426,7 +426,7 @@ func TestMapMobDefinition_SupportThresholdOutOfBoundsFails(t *testing.T) {
 func TestMapMobDefinition_ParsesIdleFields(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "factors": {"baseMaxHealth": 40, "speed": 0.4, "wanderRadius": 2.5,
 	              "idleSpeedFactor": 0.25,
@@ -445,7 +445,7 @@ func TestMapMobDefinition_ParsesIdleFields(t *testing.T) {
 
 func TestMapMobDefinition_IdleFieldsDefaultToZero(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
-	  "id": 1, "name": "Dodo", "type": "MOB",
+	  "id": 1, "name": "Wolf", "type": "MOB",
 	  "factors": {"baseMaxHealth": 40, "speed": 0.4},
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
 	}`))
@@ -469,7 +469,7 @@ func TestMapMobDefinition_InvalidIdleFieldsFail(t *testing.T) {
 		`{"baseMaxHealth": 40, "speed": 0, "wanderRadius": 2}`,
 	} {
 		raw, err := parseMobDefinition([]byte(`{
-		  "id": 1, "name": "Dodo", "type": "MOB",
+		  "id": 1, "name": "Wolf", "type": "MOB",
 		  "factors": ` + factors + `,
 		  "body": {"radius": 0.2, "aggroRadius": 2.4}
 		}`))
@@ -497,7 +497,7 @@ func TestRegistry_SpawnEffectUnknownMobFails(t *testing.T) {
 	  "body": {"radius": 0.25, "aggroRadius": 0.1}
 	}`)
 	otherMobJSON := []byte(`{
-	  "id": 1, "name": "Dodo", "type": "MOB",
+	  "id": 1, "name": "Wolf", "type": "MOB",
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
 	}`)
 
@@ -533,7 +533,7 @@ func testFactionRegistry(t *testing.T) factions.Registry {
 func TestMapMobDefinition_LegacyTagParsed(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "legacy": true,
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -608,7 +608,7 @@ func TestMapMobDefinition_LegacyMobMayReferenceLegacyContent(t *testing.T) {
 	sr, fr := legacyLeakFixtures(t)
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "legacy": true,
 	  "faction": "predator",
@@ -642,7 +642,7 @@ func TestMapMobDefinition_LiveRefsCollectNothing(t *testing.T) {
 func TestMapMobDefinition_ResolvesFaction(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "SaberToothCat",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "faction": "predator",
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -662,7 +662,7 @@ func TestMapMobDefinition_ResolvesFaction(t *testing.T) {
 func TestMapMobDefinition_AbsentFactionDefaultsToHostileVsAligned(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
 	}`))
@@ -680,7 +680,7 @@ func TestMapMobDefinition_AbsentFactionDefaultsToHostileVsAligned(t *testing.T) 
 func TestMapMobDefinition_ExplicitHostileFactionEqualsDefault(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "faction": "hostile",
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -725,7 +725,7 @@ func TestMapMobDefinition_FriendlyToPlayersFollowsFaction(t *testing.T) {
 func TestMapMobDefinition_UnknownFactionFails(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "faction": "pradator",
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -740,7 +740,7 @@ func TestMapMobDefinition_AlignedFactionFails(t *testing.T) {
 	// Mobs never author "aligned" — summons get it via mob.Align() at spawn.
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "faction": "aligned",
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -754,7 +754,7 @@ func TestMapMobDefinition_AlignedFactionFails(t *testing.T) {
 func TestMapMobDefinition_FactionWithoutRegistryFails(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "faction": "predator",
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
@@ -802,7 +802,7 @@ func TestMapMobDefinition_TierAndCurveLevelDefaultToBaseline(t *testing.T) {
 	// numbers pass through unchanged. Synthetic/test defs stay minimal.
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 21,
-	  "name": "Dodo",
+	  "name": "Wolf",
 	  "type": "MOB",
 	  "factors": {"baseMaxHealth": 40},
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}

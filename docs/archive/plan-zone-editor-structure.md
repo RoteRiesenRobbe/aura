@@ -1,10 +1,9 @@
 # Plan: structure in the spawn editor, and retiring the legacy roster
 
-> **Status: C1 SHIPPED 2026-08-15 · C2 SHIPPED 2026-08-16 (ledgers §11) - C3
-> open.** Designed 2026-08-12; four PO rulings taken as choice prompts (D1-D4);
-> everything in §9 is proposal, vetoable. Line references were pinned to
-> `f820777e` and verified unchanged at C1. Every colour and label is
-> [PLACEHOLDER].
+> **Status: COMPLETE - C1 SHIPPED 2026-08-15 · C2 SHIPPED 2026-08-16 · C3
+> SHIPPED 2026-08-16 (ledgers §11). All chunks landed; archived.** Designed
+> 2026-08-12; four PO rulings taken as choice prompts (D1-D4); everything in
+> §9 was proposal, vetoable. Every colour and label is [PLACEHOLDER].
 
 ## 1. What this is
 
@@ -499,3 +498,82 @@ inputs exports no keys · 0 console errors) · boot 0 WARN / 0 ERROR ·
 the village ascension stone, press Update, see it accepted with no respawn
 keys added, then move it and re-export. **Next: C3** - retire the legacy
 roster (§4.7), the plan's one wire-touching chunk.
+
+### C3 - retire the legacy roster ✅ SHIPPED 2026-08-16, `[uncommitted]`
+
+**What shipped, §4.7's whole table plus the strays the pre-flight sweeps
+found.** Deleted: the 10 legacy defs, `proving-grounds.json`, the 3 legacy
+factions, **the 5 legacy mob skills** (PO choice prompt - not on §4.7's list,
+but orphans the moment the roster left), `encounter/smoke.go` + its
+`aurad.go` registration, the 7 `EntityType` wire values (Dodo 9,
+SaberToothCat 10, Mammoth 11, AngryMammoth 15, Rabbit 18, Brazier 20,
+Healer 21 - gap comment extended, survivors keep their numbers), the 7 sprite
+classes/rows/layers (+ `bossMobs`, orphaned by AngryMammoth, P8/YAGNI), 3 hit
+mp3s, 10 svg assets (3 were already orphaned), and the frontend legacy
+retirement §4.7 promised: `kindOf`'s legacy branch, the Legacy optgroup, the
+marker `fade` field (P10). **Schema: `EntityType` values REMOVED - the one
+wire change; DB none, conf none. Both-parts deploy.**
+
+**Rulings (PO, choice prompts):** the 5 legacy skills die with the roster;
+the Go legacy plumbing (Legacy/LegacyRefs fields, the boot warning) **stays**
+and `TestDiskContent_LegacyTagging` is deleted outright - plumbing removal is
+a recorded follow-up dead-code item, keeping C3 the scoped wire-touching
+chunk.
+
+**Findings:**
+
+- ⚑ **`smoke_test.go` was the encounter package's shared fixture file**:
+  `fakePlayer` + `smokeDef` fed `warlord_test.go`. Relocated into
+  `system_test.go` (renamed `encounterMobDef`/`encounterAuraSkill`), warlord
+  fixtures remapped to their natural wire types (OrcWarlord/WarbannerTotem/
+  OrcGrunt). Deleting the file blind would have broken the package.
+- ⚑ **§4.7's "ProvingBoss exemption key" premise was off**: `guardrail_test.go`
+  has no such key - line 21 only *names* the ruling. Five dead keys pruned
+  (Rabbit, Dodo, Brazier, ProvingAdd, ProvingGuard).
+- ⚑ **`wiki-generator/` was a straggler no §4.7 row listed**: its entire
+  `animals` array hard-required dodo/mammoth/saber-tooth-cat. Re-aimed at
+  wolf/boar/stag (P7; "wiki generator kept" is the standing PO call). ⚑ Found
+  **broken at HEAD independently**: `app.ts` requires `client-data/Items`,
+  deleted in §28 chunk 2 - pre-existing, recorded, not C3's to fix.
+- ⚑ **The tracked-mirror trap**: `backend/pkg/api/zones/` and `factions/`
+  (and `skills/mobs/`) have no `.gitignore`, so the embedded copies are IN
+  git - `make cp-defs` + `git status` staged the deletions; only `mobs/` is
+  ignored.
+- **Census arithmetic held**: 58 defs = 27/17/10/4 (Brazier counted under
+  Legacy by P1 precedence, so Fixtures KEEP 10 - a sweep initially reported
+  9); structures 11 → 10, creatures 53 → 44, xpFactor-0 32 → 31 (only Brazier
+  authored 0), skills 95 → 90. The picker's extra 59th option is the static
+  "Choose one" placeholder, pre-existing.
+- **`-zone` behaviour note**: with one zone left an empty `-zone` loads world
+  instead of erroring "multiple zones found"; both conf files already pin
+  `"zone": "world"`. `devops/conf.json`'s comment updated.
+- ⚑ **A piped `go test` verdict is `head`'s exit code, not the suite's.**
+  The first post-deletion "full suite green" was false: the pipeline's tail
+  (`| grep -v ok | head -20`) swallowed real failures in
+  `items/mobs/definitions_test.go` and `encounter/system_test.go` (fixture
+  files the sweeps' line inventory had missed or shifted past). Caught by
+  re-running with the exit code captured directly; both fixture sets re-aimed
+  at survivors. Verify a full suite by `$?` of `go test` itself, never
+  through a pipe.
+- The proving-grounds terrain/wander/patrol pin re-aimed at world (which
+  exercises both movement archetypes); the hunter/passive faction assertion
+  survived on the wildlife pair as §8 predicted (comment updated, "verify,
+  do not assume" held).
+
+**Verified:** stage 1 re-aims green at HEAD content first, then the deletion:
+`go build ./...` · **`go test -count=1 ./...` all green** (incl. store/accounts
+against `aura_test`) · vitest **349/349** (350 − the Brazier precedence unit,
+its fixture coverage kept) · typecheck · prod build · boot `world` **0 WARN /
+0 ERROR** (58 mobs / 90 skills / 12 factions / 488 spawns) · boot
+`-zone proving-grounds` **fails cleanly** (`zone "proving-grounds" not found
+(available: world)`) · **`c3-zone-editor-level.mjs` 7/7**, 0 console errors ·
+**`hygiene-wire-prune.mjs` clean** (the wire-change join smoke: 641 sprites
+decoded, 0 console errors, 0 ctx losses) · throwaway census probe (4 groups, 27/17/10/4, suffix on Combat only, no
+Legacy group), then deleted · `harnessdb -cleanup`. Docs swept: both manuals,
+the four content catalogs (skill inventory patched under its own MEASURED
+STALE banner - the full regen stays unowned), roadmap items closed
+(:328 smoke encounter, :766 legacy-roster removal marked DONE), P11 stale
+flags in `plan-mob-voicelines.md` / `plan-avatar-system.md` / backlog §8's
+angry-mammoth citation. **Follow-ups recorded, not built:** Go legacy
+plumbing removal (dead code now) · wiki-generator's pre-existing Items
+breakage · the verify skill's `-zone world` note simplification.

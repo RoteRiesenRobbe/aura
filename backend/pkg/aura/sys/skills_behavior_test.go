@@ -1070,7 +1070,7 @@ func TestProcessEntity_DerivesSensorMaskFromActiveSkill(t *testing.T) {
 func TestSkillSystem_EndToEnd_RealMobDamagesPlayerTarget(t *testing.T) {
 	def := &mobs.MobDefinition{
 		ID:   1,
-		Name: "Dodo",
+		Name: "Wolf",
 		// A structure so the aura runs without an aggro target — the test is
 		// about aura application, not acquisition.
 		Role: mobs.RoleStructure,
@@ -1340,7 +1340,7 @@ func TestApplyDamageAura_VarianceComposesWithResistance(t *testing.T) {
 	// resist lands in the halved band.
 	def := &mobs.MobDefinition{
 		ID:   1,
-		Name: "Dodo",
+		Name: "Wolf",
 		Factors: mobs.Factors{
 			BaseMaxHealth: 1000,
 			Resistances:   map[string]float32{"fire": 0.5},
@@ -2522,7 +2522,7 @@ func fadeDef() *skills.SkillDefinition {
 
 func hostileMobDef() *mobs.MobDefinition {
 	return &mobs.MobDefinition{
-		ID: 1, Name: "SaberToothCat", // valid AuraApi entity type name
+		ID: 1, Name: "Wolf", // valid AuraApi entity type name
 		Body:    mobs.Body{Radius: 0.25, AggroRadius: 4},
 		Factors: mobs.Factors{BaseMaxHealth: 60, Speed: 1},
 	}
@@ -3042,12 +3042,11 @@ func campfireAuraDef() *skills.SkillDefinition {
 }
 
 // campfireMobDef mirrors the Campfire content def: speed 0 (aura always-on)
-// with a Viewport-only body — structurally untargetable, the brazier layer
-// trick. Name reuses the Brazier entity type; the real def switches to the
-// Campfire EntityType with the wire step.
+// with a Viewport-only body — structurally untargetable, the hazard-fixture
+// layer trick. Name uses the Campfire entity type, matching the real def.
 func campfireMobDef() *mobs.MobDefinition {
 	return &mobs.MobDefinition{
-		ID: 13, Name: "Brazier",
+		ID: 13, Name: "Campfire",
 		Role: mobs.RoleStructure,
 		Body: mobs.Body{
 			Radius:         0.25,
@@ -3218,7 +3217,7 @@ func TestApplyMobDamageAura_NeutralFactionNeverSplashed(t *testing.T) {
 	// splash land, and the retaliation locked two neutral factions into a
 	// fight neither could have started. Harm now needs declared hostility
 	// or an active combat link.
-	mammoth := mob.NewMob(harmGateMobDef("Mammoth", 4, model.FactionAligned.Bit()), 0, nil)
+	mammoth := mob.NewMob(harmGateMobDef("Bear", 4, model.FactionAligned.Bit()), 0, nil)
 	dodo := &factionedMobTouchRecorder{faction: 5} // neutral to the mammoth
 	player := &factionedMobTouchRecorder{faction: model.FactionAligned}
 
@@ -3231,8 +3230,8 @@ func TestApplyMobDamageAura_NeutralFactionNeverSplashed(t *testing.T) {
 func TestApplyMobDamageAura_ThreatTableAttackerIsFairGame(t *testing.T) {
 	// The dynamic layer: an attacker outside the aggro set (rabbit's set is
 	// empty) lands on the threat table and may be hit back — retaliation.
-	rabbit := mob.NewMob(harmGateMobDef("Rabbit", 5, 0), 0, nil)
-	wolf := mob.NewMob(harmGateMobDef("SaberToothCat", 6, model.FactionAligned.Bit()|uint64(1)<<5), 0, nil)
+	rabbit := mob.NewMob(harmGateMobDef("Boar", 5, 0), 0, nil)
+	wolf := mob.NewMob(harmGateMobDef("Wolf", 6, model.FactionAligned.Bit()|uint64(1)<<5), 0, nil)
 
 	rabbit.MobTouches(wolf, mobs.Factors{Damage: 5}) // wolf hurts the rabbit
 
@@ -3264,7 +3263,7 @@ func TestApplyDotEffect_MobCasterRespectsHostility(t *testing.T) {
 	// damage mask can reach and burned to death in its aura. The brazier's
 	// set is {aligned}: players still burn, the cat is never touched — so it
 	// never builds threat and never suicides.
-	brazier := mob.NewMob(harmGateMobDef("Brazier", 0, 0), 0, nil) // zero-value → hostile default, set {aligned}
+	brazier := mob.NewMob(harmGateMobDef("Campfire", 0, 0), 0, nil) // zero-value → hostile default, set {aligned}
 	cat := &factionedDotRecorder{faction: 6}
 	player := &factionedDotRecorder{faction: model.FactionAligned}
 

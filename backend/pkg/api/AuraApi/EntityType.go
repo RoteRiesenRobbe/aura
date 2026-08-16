@@ -11,15 +11,8 @@ const (
 	EntityTypeRoundTree             EntityType = 2
 	EntityTypeCharacter             EntityType = 4
 	EntityTypeStone                 EntityType = 5
-	EntityTypeDodo                  EntityType = 9
-	EntityTypeSaberToothCat         EntityType = 10
-	EntityTypeMammoth               EntityType = 11
-	EntityTypeAngryMammoth          EntityType = 15
 	EntityTypeTotem                 EntityType = 17
-	EntityTypeRabbit                EntityType = 18
 	EntityTypeCompanion             EntityType = 19
-	EntityTypeBrazier               EntityType = 20
-	EntityTypeHealer                EntityType = 21
 	EntityTypeCampfire              EntityType = 22
 	EntityTypeCorpse                EntityType = 23
 	EntityTypeTurnip                EntityType = 24
@@ -81,15 +74,8 @@ var EnumNamesEntityType = map[EntityType]string{
 	EntityTypeRoundTree:             "RoundTree",
 	EntityTypeCharacter:             "Character",
 	EntityTypeStone:                 "Stone",
-	EntityTypeDodo:                  "Dodo",
-	EntityTypeSaberToothCat:         "SaberToothCat",
-	EntityTypeMammoth:               "Mammoth",
-	EntityTypeAngryMammoth:          "AngryMammoth",
 	EntityTypeTotem:                 "Totem",
-	EntityTypeRabbit:                "Rabbit",
 	EntityTypeCompanion:             "Companion",
-	EntityTypeBrazier:               "Brazier",
-	EntityTypeHealer:                "Healer",
 	EntityTypeCampfire:              "Campfire",
 	EntityTypeCorpse:                "Corpse",
 	EntityTypeTurnip:                "Turnip",
@@ -151,15 +137,8 @@ var EnumValuesEntityType = map[string]EntityType{
 	"RoundTree":             EntityTypeRoundTree,
 	"Character":             EntityTypeCharacter,
 	"Stone":                 EntityTypeStone,
-	"Dodo":                  EntityTypeDodo,
-	"SaberToothCat":         EntityTypeSaberToothCat,
-	"Mammoth":               EntityTypeMammoth,
-	"AngryMammoth":          EntityTypeAngryMammoth,
 	"Totem":                 EntityTypeTotem,
-	"Rabbit":                EntityTypeRabbit,
 	"Companion":             EntityTypeCompanion,
-	"Brazier":               EntityTypeBrazier,
-	"Healer":                EntityTypeHealer,
 	"Campfire":              EntityTypeCampfire,
 	"Corpse":                EntityTypeCorpse,
 	"Turnip":                EntityTypeTurnip,

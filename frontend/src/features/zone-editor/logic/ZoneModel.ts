@@ -131,24 +131,17 @@ export interface ZoneData {
 // computed from fields every mob def already carries, never authored. It
 // drives three display surfaces (picker grouping, marker colour, and, from
 // C2, which controls show), and nothing else: no data behaviour reads it.
-export type MobKind = 'combat' | 'talker' | 'fixture' | 'companion' | 'legacy';
+export type MobKind = 'combat' | 'talker' | 'fixture' | 'companion';
 
 // The minimal structural shape kindOf needs, decoupled from how the defs got
 // into the browser (ZoneEditor's require.context cannot be imported under
 // vitest, which is why this rule lives here).
 export interface MobKindDef {
     role?: string;
-    legacy?: boolean;
     interaction?: object;
 }
 
 export function kindOf(def: MobKindDef): MobKind {
-    // Legacy first is deliberate and temporary: Brazier is BOTH legacy and
-    // structure, and the ten legacy defs must read as one block until C3
-    // deletes them; this branch goes with them.
-    if (def.legacy === true) {
-        return 'legacy';
-    }
     if (def.interaction != null) {
         return 'talker';
     }
@@ -158,7 +151,7 @@ export function kindOf(def: MobKindDef): MobKind {
     if (def.role === 'follower') {
         return 'companion';
     }
-    // The common case: 36 defs author no role at all, and unrecognized role
+    // The common case: 27 defs author no role at all, and unrecognized role
     // values (e.g. "creature") fall through here rather than throw.
     return 'combat';
 }
@@ -175,7 +168,7 @@ export interface MobCapabilityDef {
 
 export interface MobCapabilities {
     // factors.speed > 0 - mirrors the server's own boot refusal for movement
-    // authoring on a speed-0 mob. All 68 defs author speed explicitly; an
+    // authoring on a speed-0 mob. All 58 defs author speed explicitly; an
     // absent value is the Go zero value, 0, so absent = does not move.
     moves: boolean;
     // carries no interaction - the respawn keys apply (§4.6: talkers author

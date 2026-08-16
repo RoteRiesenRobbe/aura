@@ -53,8 +53,8 @@ type CatalogEntry struct {
 }
 
 // CatalogJSON marshals every loaded mob definition sorted by ID. Legacy
-// (proving-grounds) species are included — harmless, since the client only
-// looks up ids it actually receives in a snapshot.
+// species (none ship since zone-editor C3) would be included — harmless,
+// since the client only looks up ids it actually receives in a snapshot.
 func CatalogJSON(r Registry) ([]byte, error) {
 	defs := r.Mobs()
 	sort.Slice(defs, func(i, j int) bool { return defs[i].ID < defs[j].ID })

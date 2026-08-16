@@ -4,8 +4,7 @@ How to author a zone file (`api/zones/<id>.json` — world bounds, terrain,
 props, mob spawns, campfires, dark areas, anchors) directly in-game, and
 how to make the server load your result. No coding required. Current as of
 2026-07-19. Two zones ship today: `world.json` (the live game world — the
-default via conf `game.zone`) and `proving-grounds.json` (the debug/test map,
-loaded with `-zone proving-grounds`).
+default via conf `game.zone`).
 
 This manual is the **placement half**; mob/skill/prop *definitions* and art
 live in `docs/manual-content-authoring.md`.
@@ -55,9 +54,8 @@ normally. You get:
   rectangle = world bounds,
   circles = props (red = blocks movement, blue = decorative), diamonds =
   spawn points, coloured by what the placed species is (green = combat mob,
-  pink = talker/NPC, grey = fixture, brown = companion; legacy species draw
-  as a faded green until they are retired). Labels show the prop type / mob
-  name. These markers are
+  pink = talker/NPC, grey = fixture, brown = companion). Labels show the
+  prop type / mob name. These markers are
   editor-only overlays — the real props and mobs are still there underneath.
 
 > The markers show what's **authored**, not what's live: a mob wanders away
@@ -66,7 +64,7 @@ normally. You get:
 **Markers vs. the real world — important.** Three things render, from two
 different sources:
 
-- **Real props & mobs** (solid Tree/Rock sprites, actual Dodos/etc.) are
+- **Real props & mobs** (solid Tree/Rock sprites, actual Wolves/etc.) are
   **streamed by the server** from whichever zone it booted with (`-zone <id>`).
   The editor **cannot** move these — only a server restart can.
 - **Editor markers** (circles and diamonds) and the **terrain** follow
@@ -129,9 +127,9 @@ Notes:
 ## 5. Place and edit spawn points (Spawns mode)
 
 Works exactly like props: choose a *Mob* (list from `api/mobs/`, grouped by
-what the species is: **Combat, Talkers, Fixtures, Companions, Legacy**; the
+what the species is: **Combat, Talkers, Fixtures, Companions**; the
 `cL<n>`/tier suffix shows only where strength is a real question, on Combat
-and Legacy entries), set *Respawn
+entries), set *Respawn
 ticks* (30 ticks = 1 second; 900 = 30 s), *Respawn variance* (0.2 = ±20 % on
 the respawn delay), optionally *Angle* (initial facing), then **click** to
 place a diamond, coloured by the group (§2), or press **"Place at my
@@ -185,7 +183,7 @@ beats stationary. Idle movement always runs at the mob's **idle pace** —
 a fraction of chase speed — so an aggroed mob visibly speeds up.
 
 - **Local wander** — the *Wander radius* input is tri-state: **empty =
-  inherit the mob type's default** (Dodos graze out of the box —
+  inherit the mob type's default** (Wolves graze out of the box —
   `factors.wanderRadius` in `api/mobs/`), **0 = force stationary** (a
   "bridge guard" of a wandering species), **> 0 = this radius**. The marker
   shows the effective disc (fainter when inherited); the mob ambles between
@@ -260,10 +258,10 @@ Everything about authoring one now lives in
 ## 6. Choose a zone, or start a new one
 
 A world can have several zones — one file each in `api/zones/`, named by its
-**file stem** (`proving-grounds.json` → the id `proving-grounds`). Two ship
-today: **`world.json`** (the live game world — what the server loads by
-default via conf `game.zone`) and **`proving-grounds.json`** (the canonical
-debug/test map, loaded with `-zone proving-grounds`).
+**file stem** (`world.json` → the id `world`). One ships today:
+**`world.json`**, the live game world — what the server loads by default via
+conf `game.zone`. (`testworld.json`, the planned debug map, is designed in
+`plan-test-world.md` and not yet built.)
 
 - **Load zone** dropdown — pick any existing zone to open it for editing, or
   **＋ New zone** to start a blank one (default bounds, no terrain/props/spawns).

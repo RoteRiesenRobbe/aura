@@ -165,9 +165,12 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// source is the ascension catalog rather than a drop, a milestone, an NPC or
 	// a quest, so content-skill-inventory.md's reachability sweep gained a fifth
 	// source kind rather than six exceptions.
-	assert.Len(t, r.All(), 95)
+	// − the FIVE legacy mob skills (zone-editor C3, 2026-08-16): the legacy
+	// roster retired and its auras with it (Dodo/SaberToothCat/Mammoth/
+	// AngryMammoth auras + AngryMammothStomp), 95 → 90.
+	assert.Len(t, r.All(), 90)
 
-	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
+	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)
 		assert.NoError(t, err, name)
 	}

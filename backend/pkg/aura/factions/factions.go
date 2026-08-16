@@ -61,8 +61,8 @@ type Definition struct {
 	AggroMask         uint64
 	FriendlyToPlayers bool
 
-	// Legacy marks proving-grounds-only factions (step-7 A.5): kept for the
-	// legacy zone and tests, never used by live-world species.
+	// Legacy marks retired factions (step-7 A.5). Nothing in api/ authors it
+	// since zone-editor C3 (2026-08-16); the mechanism stays.
 	Legacy bool
 }
 

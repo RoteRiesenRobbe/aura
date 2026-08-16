@@ -172,7 +172,7 @@ type Anchor struct {
 // actor merge they are ordinary spawns (plan-entity-model.md chunk 3a).
 type Zone struct {
 	Name      string           `json:"name"`
-	Legacy    bool             `json:"legacy"` // proving-grounds-style legacy zone (step-7 A.5)
+	Legacy    bool             `json:"legacy"` // retired-content zone tag (step-7 A.5); no shipped zone authors it since zone-editor C3
 	Bounds    Bounds           `json:"bounds"`
 	Terrain   []TerrainTexture `json:"terrain"`
 	Props     []Prop           `json:"props"`

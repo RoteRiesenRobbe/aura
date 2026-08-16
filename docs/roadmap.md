@@ -221,7 +221,9 @@ trade-offs (light aura vs. damage aura).
 > encounter-controller spine (verified 2026-07-12: `pkg/aura/encounter`
 > lifecycle hooks, conditional immunity, scripted spawns, encounter-owned
 > timers, scripted flee with retained threat, THREAT cheat; smoke arena in
-> proving-grounds; authoring guide `manual-content-authoring.md` §5)**. Key
+> proving-grounds, retired with that map at zone-editor C3 2026-08-16 — the
+> live reference is the Orc Warlord; authoring guide
+> `manual-content-authoring.md` §5)**. Key
 > decisions: mobs aggro summons (faction-aware acquisition), entity-keyed
 > threat diverging from owner-XP attribution, route validity = level-designer
 > responsibility, encounters = Go structs registered per zone (no DSL, no
@@ -325,7 +327,9 @@ trade-offs (light aura vs. damage aura).
 > mob-depth chunk 9 shipped the encounter controller (lifecycle hooks,
 > conditional immunity, event-driven scripted spawns, sub-objective state via
 > encounter-owned timers, scripted flee with retained threat), verified by a
-> throwaway smoke encounter in proving-grounds. Still open, deliberately with
+> throwaway smoke encounter in proving-grounds (deleted with that map at
+> zone-editor C3, 2026-08-16; the Orc Warlord is the live implementation).
+> Still open, deliberately with
 > the real boss (content pass): **timed world-state** (the 20-min bridge) and
 > **dwell-capture** — the two wire-visible pieces (§6.5 in
 > `plan-mob-depth.md`). Authoring guide: `manual-content-authoring.md` §5.
@@ -763,13 +767,12 @@ needs real design time:
   the targets × damage multiplier.
 - First combination recipes (secret, curated).
 - Mob skill loadouts and kill-unlock/drop tables.
-- **Full mob roster (design + replace legacy).** Design the actual Aura
-  creature list (name, art, aura loadout, tier). **Remove the legacy
-  Berryhunter mobs** (`Dodo`/`SaberToothCat`/`Mammoth`/`AngryMammoth` — whose
-  names already don't match their art: dodo→boar, mammoth→skeleton,
-  saberToothCat→lion, angryMammoth→demon) and replace with the new roster.
-  Rename once, here — touches the `MobType` enum (`server.fbs`) + generated
-  bindings + `api/mobs/*.json` + frontend `Mobs.ts`/`Graphics.ts`.
+- ~~**Full mob roster (design + replace legacy).**~~ **DONE in two halves**:
+  the step-6 content pass (2026-07-21) designed and shipped the real roster,
+  and zone-editor C3 (2026-08-16) removed the legacy Berryhunter mobs
+  outright (`Dodo`/`SaberToothCat`/`Mammoth`/`AngryMammoth`/`Rabbit`/
+  `Brazier`/`Healer` + the Proving* variants, their `EntityType` values,
+  sprites and the proving-grounds map).
 - First real-values balancing pass over the placeholder numbers.
 - **Peasant onboarding (decided 2026-07-09, `gdd.md §5`).** Flip the starting
   loadout from Damage Aura to a **utility aura** (Harvest, né Turnip-Pull),

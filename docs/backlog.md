@@ -614,7 +614,8 @@ Context from current state *(added during capture)*:
   state — so an aura-hittable obstacle is *not* a prop without growing one.
 - **The closest existing shape is a stationary mob.** Mob JSON can already
   override `collisionLayer` to include `LayerPlayerStaticCollision` so players
-  physically collide with it (`api/mobs/angry-mammoth.json` does this today),
+  physically collide with it (the deleted `angry-mammoth.json` did this;
+  `api/mobs/bramble.json` is the live example),
   and mobs carry `maxHealth`, full tag `resistances`, and the world-chunk-4
   spawn-point respawn timer. A "sealed door" ≈ a movement-blocking harvest-mob
   whose death removes the blocker and whose respawn timer is the reseal —

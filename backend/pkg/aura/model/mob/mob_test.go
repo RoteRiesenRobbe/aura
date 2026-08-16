@@ -47,7 +47,7 @@ var atLevelNormalAward = curve.DefaultKillXP().Award(1, 1, 1, 1)
 func testMobDefinition() *mobs.MobDefinition {
 	return &mobs.MobDefinition{
 		ID:   1,
-		Name: "Dodo", // must be a valid AuraApi entity type name
+		Name: "Wolf", // must be a valid AuraApi entity type name
 		Factors: mobs.Factors{
 			Speed:    1.0,
 			XPFactor: 1, // an ordinary mob: a full at-level kill for its tier
@@ -303,12 +303,12 @@ func TestMob_PlayerTouches_NamedGateKeyTakesDamage(t *testing.T) {
 
 func TestNewMob_EntityTypeOverride(t *testing.T) {
 	def := testMobDefinition()
-	def.Name = "ProvingBoss" // no such wire type — would fatal without the override
-	def.EntityType = "Dodo"
+	def.Name = "ScriptedBoss" // no such wire type — would fatal without the override
+	def.EntityType = "Wolf"
 
 	m := NewMob(def, 0, nil)
 
-	assert.Equal(t, model.EntityType(AuraApi.EntityTypeDodo), m.Type(),
+	assert.Equal(t, model.EntityType(AuraApi.EntityTypeWolf), m.Type(),
 		"the wire EntityType comes from the override, not the def name")
 }
 

@@ -2,13 +2,13 @@ import {GraphicsConfig} from "../../../frontend/src/client-data/Graphics";
 
 export const animals = [
     {
-        graphic: GraphicsConfig.mobs.dodo.file,
-        definition: require('../../../api/mobs/dodo.json'),
+        graphic: GraphicsConfig.mobs.wolf.file,
+        definition: require('../../../api/mobs/wolf.json'),
     }, {
-        graphic: GraphicsConfig.mobs.mammoth.file,
-        definition: require('../../../api/mobs/mammoth.json'),
+        graphic: GraphicsConfig.mobs.boar.file,
+        definition: require('../../../api/mobs/boar.json'),
     }, {
-        graphic: GraphicsConfig.mobs.saberToothCat.file,
-        definition: require('../../../api/mobs/saber-tooth-cat.json'),
+        graphic: GraphicsConfig.mobs.stag.file,
+        definition: require('../../../api/mobs/stag.json'),
     }
 ];

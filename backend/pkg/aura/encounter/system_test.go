@@ -17,6 +17,69 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
+// fakePlayer implements the slices of model.PlayerEntity the mob hit path
+// touches; unimplemented methods panic via the embedded nil interface.
+type fakePlayer struct {
+	model.PlayerEntity
+	basic  ecs.BasicEntity
+	name   string
+	pos    phy.Vec2f
+	ledger *quests.Ledger
+	level  uint32
+}
+
+func (f *fakePlayer) Basic() ecs.BasicEntity  { return f.basic }
+func (f *fakePlayer) Name() string            { return f.name }
+func (f *fakePlayer) ApplyRecipeCascade()     {}
+func (f *fakePlayer) Position() phy.Vec2f     { return f.pos }
+func (f *fakePlayer) Radius() float32         { return 0.25 }
+func (f *fakePlayer) Faction() model.Faction  { return model.FactionAligned }
+func (f *fakePlayer) HealthRatio() float32    { return 1 }
+func (f *fakePlayer) InCombat() bool          { return false }
+func (f *fakePlayer) AddExperience(xp uint64) {}
+
+// Progression ANSWERS rather than panics: since plan-xp-formula.md C1 the kill
+// award is priced at the recipient's level, so every death in the encounter
+// path reads this. A double that panicked here would report a nil dereference
+// inside the reward fan-out instead of "this test needs a level".
+func (f *fakePlayer) Progression() model.PlayerProgression {
+	level := f.level
+	if level < 1 {
+		level = 1
+	}
+	return model.PlayerProgression{Level: level}
+}
+func (f *fakePlayer) RecentHealers() []model.PlayerEntity { return nil }
+func (f *fakePlayer) QuestLedger() *quests.Ledger         { return f.ledger }
+
+func newFakePlayer(pos phy.Vec2f) *fakePlayer {
+	return &fakePlayer{basic: ecs.NewBasic(), pos: pos, ledger: quests.NewLedger(nil)}
+}
+
+func encounterAuraSkill() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 198, Name: "TestEncounterAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 3,
+		Effects: []skills.EffectDef{{
+			Type:           skills.EffectTypeDamageAura,
+			Radius:         0.5,
+			TargetsEnemies: true,
+			TickInterval:   1,
+			Damage:         &skills.DamageParams{HP: 1},
+		}},
+	}
+}
+
+func encounterMobDef(id mobs.MobID, name, entityType string, maxHealth uint32, radius float32) *mobs.MobDefinition {
+	return &mobs.MobDefinition{
+		ID:         id,
+		Name:       name,
+		EntityType: entityType,
+		Body:       mobs.Body{Radius: radius, AggroRadius: 5},
+		Factors:    mobs.Factors{BaseMaxHealth: maxHealth, Speed: 1.0, XPFactor: 1},
+		Skills:     []mobs.MobSkill{{Def: encounterAuraSkill(), Level: 1}},
+	}
+}
+
 // fakeGame is the minimal model.Game the encounter System needs: it records
 // add/remove and forwards them to the system under test (mirroring the real
 // game's addMobEntity routing + World.RemoveEntity fan-out), exposes a
@@ -85,7 +148,7 @@ func (r *fakeRegistry) Mobs() []*mobs.MobDefinition { panic("unused") }
 func testMobDef() *mobs.MobDefinition {
 	return &mobs.MobDefinition{
 		ID:      1,
-		Name:    "Dodo",
+		Name:    "Wolf",
 		Body:    mobs.Body{Radius: 0.3, AggroRadius: 2.0},
 		Factors: mobs.Factors{BaseMaxHealth: 40},
 	}
@@ -182,10 +245,10 @@ func TestSystem_NonMobRemoveIgnored(t *testing.T) {
 
 func TestSystem_SpawnMob_PlacesAndRegisters(t *testing.T) {
 	s, g := newSystemWith(nil)
-	g.mobReg = &fakeRegistry{defs: map[string]*mobs.MobDefinition{"Dodo": testMobDef()}}
+	g.mobReg = &fakeRegistry{defs: map[string]*mobs.MobDefinition{"Wolf": testMobDef()}}
 
 	pos := phy.Vec2f{X: 12, Y: -5}
-	m, err := s.SpawnMob("Dodo", pos)
+	m, err := s.SpawnMob("Wolf", pos)
 
 	require.NoError(t, err)
 	require.NotNil(t, m)
@@ -208,9 +271,9 @@ func TestSystem_SpawnMob_UnknownDefErrors(t *testing.T) {
 func TestSystem_SpawnMob_DeathDispatches(t *testing.T) {
 	enc := &fakeEncounter{}
 	s, g := newSystemWith(enc)
-	g.mobReg = &fakeRegistry{defs: map[string]*mobs.MobDefinition{"Dodo": testMobDef()}}
+	g.mobReg = &fakeRegistry{defs: map[string]*mobs.MobDefinition{"Wolf": testMobDef()}}
 
-	m, err := s.SpawnMob("Dodo", phy.Vec2f{X: 1, Y: 1})
+	m, err := s.SpawnMob("Wolf", phy.Vec2f{X: 1, Y: 1})
 	require.NoError(t, err)
 
 	// Replicate the MobSystem death loop: overwhelming damage, Update reports

@@ -141,7 +141,7 @@ func NewWorld(sc Scenario, seed int64) *World {
 
 	// The real mobs, from synthetic definitions (one per mob — each def
 	// carries that mob's rolled spawn-HP pool and variance 0). EntityType
-	// "Dodo" only satisfies the wire-type lookup — nothing in a headless run
+	// "Wolf" only satisfies the wire-type lookup — nothing in a headless run
 	// reads it. The pack spawns on an evenly-spaced ring of radius
 	// StartDistance; mob 0 lands at (d, 0), exactly the 1v1 spawn. Mobs still
 	// have no mob-vs-mob collision, so the ring mainly synchronizes arrival —
@@ -162,7 +162,7 @@ func NewWorld(sc Scenario, seed int64) *World {
 			ID:         mobs.MobID(1000 + i),
 			Role:       role,
 			Name:       "SimMob",
-			EntityType: "Dodo",
+			EntityType: "Wolf",
 			Factors: mobs.Factors{
 				BaseMaxHealth:        uint32(mobHPs[i]),
 				Speed:                sc.Mob.Speed,

@@ -38,9 +38,10 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, mobsRegistry.Mobs())
 
-	// The chunk-6.6 smoke content must actually exercise mob factions: at
-	// least one predator (non-empty mob-faction aggro set) and one passive
-	// prey species ship in the repo roster.
+	// The repo roster must actually exercise mob factions: at least one
+	// predator (non-empty mob-faction aggro set) and one passive prey species
+	// ship (wildlife_predator / wildlife_prey since zone-editor C3 retired the
+	// legacy pair).
 	var hasHunter, hasPassive bool
 	for _, m := range mobsRegistry.Mobs() {
 		if m.AggroMask&^uint64(1<<factions.Aligned) != 0 {
@@ -104,12 +105,13 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 		}
 	}
 
-	// The proving-grounds zone (the default debug/test map since 2026-07-11)
-	// carries authored terrain and both chunk-5 movement archetypes — keep the
-	// terrain + wander/waypoint parsing pipelines pinned against real content.
-	zone, err := world.LoadZoneFS(content.zones, "proving-grounds", mobsRegistry, propsRegistry)
+	// The live world carries authored terrain and both chunk-5 movement
+	// archetypes — keep the terrain + wander/waypoint parsing pipelines pinned
+	// against real content. (This pin sat on proving-grounds until zone-editor
+	// C3 retired that map.)
+	zone, err := world.LoadZoneFS(content.zones, "world", mobsRegistry, propsRegistry)
 	require.NoError(t, err)
-	assert.NotEmpty(t, zone.Terrain, "proving-grounds should carry authored terrain")
+	assert.NotEmpty(t, zone.Terrain, "the world should carry authored terrain")
 	var wanderers, patrollers int
 	for _, s := range zone.Spawns {
 		if s.EffectiveWanderRadius() > 0 {
@@ -119,66 +121,8 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 			patrollers++
 		}
 	}
-	assert.NotZero(t, wanderers, "proving-grounds should exercise local wander")
-	assert.NotZero(t, patrollers, "proving-grounds should exercise route patrol")
-}
-
-// TestDiskContent_LegacyTagging pins the step-7 A.5 legacy separation against
-// the real repo content: the proving-grounds-only set is tagged (re-traced
-// 2026-07-21 — the item-12 audit's "5 player skills / 6 mob skills" was stale;
-// all 5 player skills and HealerAura are world-reachable via drops/teachings/
-// summons and stay live), and no live content references a legacy def.
-func TestDiskContent_LegacyTagging(t *testing.T) {
-	content, err := diskContent("../../../api")
-	require.NoError(t, err)
-
-	skillsRegistry, err := skills.RegistryFromFS(content.skills, mustLoadFactions(t, content))
-	require.NoError(t, err)
-	factionsRegistry, err := factions.RegistryFromFS(content.factions)
-	require.NoError(t, err)
-	mobsRegistry, err := mobs.RegistryFromFS(skillsRegistry, factionsRegistry, curve.Default(), content.mobs)
-	require.NoError(t, err)
-	propsRegistry, err := world.PropRegistryFromFS(content.props)
-	require.NoError(t, err)
-
-	var legacySkills, legacyFactions, legacyMobs []string
-	for _, s := range skillsRegistry.All() {
-		if s.Legacy {
-			legacySkills = append(legacySkills, s.Name)
-		}
-	}
-	for _, f := range factionsRegistry.All() {
-		if f.Legacy {
-			legacyFactions = append(legacyFactions, f.Name)
-		}
-	}
-	for _, m := range mobsRegistry.Mobs() {
-		if m.Legacy {
-			legacyMobs = append(legacyMobs, m.Name)
-		}
-		assert.Empty(t, m.LegacyRefs, "live mob %q must not reference legacy content", m.Name)
-	}
-
-	assert.ElementsMatch(t, []string{
-		"MammothAura", "AngryMammothAura", "AngryMammothStomp", "SaberToothCatAura", "DodoAura",
-	}, legacySkills)
-	assert.ElementsMatch(t, []string{"predator", "prey", "tusker"}, legacyFactions)
-	assert.ElementsMatch(t, []string{
-		"Mammoth", "AngryMammoth", "SaberToothCat", "Dodo", "Rabbit",
-		"Healer", "Brazier", "ProvingAdd", "ProvingBoss", "ProvingGuard",
-	}, legacyMobs)
-
-	// The live world must stay legacy-free; proving-grounds is the tagged
-	// legacy home and therefore warns about nothing.
-	worldZone, err := world.LoadZoneFS(content.zones, "world", mobsRegistry, propsRegistry)
-	require.NoError(t, err)
-	assert.False(t, worldZone.Legacy)
-	assert.Empty(t, worldZone.LegacyRefs, "the live world must not reference legacy content")
-
-	pgZone, err := world.LoadZoneFS(content.zones, "proving-grounds", mobsRegistry, propsRegistry)
-	require.NoError(t, err)
-	assert.True(t, pgZone.Legacy)
-	assert.Empty(t, pgZone.LegacyRefs)
+	assert.NotZero(t, wanderers, "the world should exercise local wander")
+	assert.NotZero(t, patrollers, "the world should exercise route patrol")
 }
 
 // TestDiskContent_MissingSubdirFails pins the loud-failure contract: a

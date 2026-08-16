@@ -27,7 +27,7 @@ const (
 // predatorDefinition hunts players and the prey faction.
 func predatorDefinition() *mobs.MobDefinition {
 	def := testMobDefinition()
-	def.Name = "SaberToothCat"
+	def.Name = "Wolf"
 	def.Faction = 2 // testFactionPredator, as factions.Faction via the def
 	def.AggroMask = model.FactionAligned.Bit() | testFactionPrey.Bit()
 	return def
@@ -36,7 +36,7 @@ func predatorDefinition() *mobs.MobDefinition {
 // preyDefinition is passive (empty aggro set) and cowardly.
 func preyDefinition() *mobs.MobDefinition {
 	def := testMobDefinition()
-	def.Name = "Rabbit"
+	def.Name = "Boar"
 	def.Faction = 3 // testFactionPrey
 	def.AggroMask = 0
 	def.Factors.FleeBelowHealthRatio = 0.5

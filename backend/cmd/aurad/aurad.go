@@ -230,16 +230,7 @@ func main() {
 	}
 
 	// Encounters are Go-registered per zone (chunk 9 decision: no zone-schema
-	// field until the content pass needs designer-authored bindings). The
-	// smoke encounter is throwaway spine-verification content.
-	if zone.ID == "proving-grounds" {
-		r, ok := g.(encounter.Registrar)
-		if !ok {
-			panic("game does not accept encounters")
-		}
-		r.RegisterEncounter(encounter.NewSmokeEncounter())
-		slog.Info("registered smoke encounter", slog.String("zone", zone.ID))
-	}
+	// field until the content pass needs designer-authored bindings).
 
 	// The Orc Warlord (content pass C6, §B): WHERE it plays out comes from
 	// the zone's anchors (editor-movable), WHAT happens is the Go script. A

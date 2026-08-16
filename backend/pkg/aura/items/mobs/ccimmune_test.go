@@ -99,11 +99,5 @@ func TestCCImmune_ContentCensus(t *testing.T) {
 		"Orc":                  true,
 		"GreaterFireElemental": true,
 		"OrcWarlord":           true,
-		// legacy: true — proving-grounds content, not the live world. They
-		// carry the key because the loader validates by tier; nothing a player
-		// meets depends on their value.
-		"Mammoth":      true,
-		"AngryMammoth": true,
-		"ProvingBoss":  true,
 	}, immune, "every elite/boss names its CC stance; adding one is fine, adding it AND this line is the ceremony")
 }

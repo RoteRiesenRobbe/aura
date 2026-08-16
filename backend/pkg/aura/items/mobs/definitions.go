@@ -79,7 +79,7 @@ func (d *MobDefinition) KillXPTierMultiplier(k curve.KillXP) float64 {
 
 //{
 //"id": 1,
-//"name": "Dodo",
+//"name": "Wolf",
 //"type": "MOB",
 //"factors": {
 //"vulnerability": 5.0
@@ -256,8 +256,9 @@ type MobDefinition struct {
 	// which is what hand-built definitions in tests and the sim harness get.
 	Curve curve.Curve
 
-	// Legacy marks proving-grounds-only species (step-7 A.5): kept for the
-	// legacy zone, sim presets and tests, never spawned by the live world.
+	// Legacy marks retired species (step-7 A.5). Nothing in api/ authors it
+	// since zone-editor C3 deleted the proving-grounds roster (2026-08-16);
+	// the mechanism stays so re-added legacy content still warns.
 	// LegacyRefs lists legacy-tagged content a LIVE mob references (skills,
 	// unlocks, faction) — an authoring smell the boot loader warns about;
 	// always empty on legacy mobs (legacy referencing legacy is expected).

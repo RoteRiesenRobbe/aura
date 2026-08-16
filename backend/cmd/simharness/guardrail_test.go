@@ -53,21 +53,15 @@ const (
 // guardrailExempt is the curated scope decision (PO 2026-07-19). Keys are
 // mob names; values document why — shown when skipping.
 var guardrailExempt = map[string]string{
-	"Rabbit": "flee-critter/prey — flees, the stand-still bot cannot finish it",
-	"Stag":   "flee-critter/prey — flees, the stand-still bot cannot finish it",
-	"Dodo":   "prey critter (PO scope ruling)",
+	"Stag": "flee-critter/prey — flees, the stand-still bot cannot finish it",
 
 	"Companion":        "ally summon (CallForAid)",
 	"SoldierCompanion": "ally summon (CallForAid)",
 	"ArmySoldier":      "allied faction (human_army, friendlyToPlayers)",
 
-	"Brazier":        "hazard prop",
 	"PoisonPool":     "hazard prop",
 	"SpikeBarricade": "gate hazard",
 	"Totem":          "summon (SummonTotem)",
-
-	"ProvingAdd":   "encounter internal (warlord proving)",
-	"ProvingGuard": "encounter internal (warlord proving)",
 }
 
 // guardrailZone maps a normal mob's home bracket onto the band-check zone;

@@ -187,7 +187,7 @@ func (e *OrcWarlordEncounter) OnTick(s *System) {
 		e.replantBanners(s)
 	}
 
-	// The gate, re-derived every tick (idempotent flag write, smoke pattern)
+	// The gate, re-derived every tick (idempotent flag write)
 	// — AFTER the replants above, so a re-gate protects the same tick it
 	// lands rather than leaving a one-tick vulnerability window.
 	e.boss.SetInvulnerable(e.anyBannerAlive())
