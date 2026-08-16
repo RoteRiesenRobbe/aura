@@ -261,7 +261,7 @@ in-game check of the chunk's skill(s).
 
 ## 9. Ledger
 
-### C1 - Vulnerability: verify + fix + pin ✅ 2026-08-16, `[uncommitted]`
+### C1 - Vulnerability: verify + fix + pin ✅ 2026-08-16, `e2261f6f`
 
 **D1 held: vulnerability is pure content.** No new effect type, no new
 authoring key, no dispatch case. `resist_aura` with `resistFactor > 1` and
