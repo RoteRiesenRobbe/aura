@@ -83,7 +83,7 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 > The legacy proving-grounds roster (and its five mob skills) was deleted at
 > zone-editor C3, 2026-08-16; the *(legacy)* source annotations are gone with it.
 
-## Active auras (24)
+## Active auras (25)
 
 | ID | Name | MaxLv | Values | Source |
 |---|---|---|---|---|
@@ -97,6 +97,7 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 29 | Rejuvenation | 3 | HoT 4 +2/L (6×60t) @60t, r2.5 +.2/L | Drop: OrcWarlord .25 (boss-rare) |
 | 30 | Paladin | 5 | dmg 10 +2.2/L @40t + heal 8 +4/L @120t (no self-cost), r1.0 | Recipe: Damage 5 + Heal 5 |
 | 40 | FireWard | 3 | fire resist ×0.6 −0.1/L, allies+self, r1.5 | Drop: FireElemental .35 |
+| 66 | FireVulnerability | 5 | ⭐ fire resist **×1.2 +0.05/L** (a CURSE: enemies take more), enemies only, r1.5 @30t | **Cheat only (`SKILL FireVulnerability`)** — no unlock source yet (plan-effect-types.md C1) |
 | 141 | Frostbite | 10 | ⭐ dmg 14 +0.22/L **frost** @40t, r1.0, 1 tgt nearest, var ±15%; **FREE** | **Ascension** (D1 parity: Damage id 1, verbatim but frost) |
 | 142 | Blight | 10 | ⭐ **nature** dot 10.5 +2.61/L (3×60t) @20t, r1.0 | **Ascension** (D1 parity: Immolate id 5, verbatim but nature) |
 | 145 | Venomward | 5 | ⭐ **poison** resist ×0.6 −0.05/L, allies+self, r1.5 @30t | **Ascension** (D1 parity: FireWard id 40, verbatim but poison) |
@@ -169,10 +170,15 @@ the milestone table:
   regeneration script that reads only `unlocks[]`, teachings, recipes and the
   milestone table will report all six as unreachable and be wrong, exactly as
   the quest-reward note below warns for its own three.
-- **Unreachable without the cheat: NONE.** All **50** player skills have a
-  live-world source — the step-7 A.5 guarantee (`plan-rebrand-cleanup.md`)
-  still holding, and since zone-editor C3 there is no legacy source left to
-  discount (Wild, Slow and Tough lost only their redundant legacy drops).
+- **Unreachable without the cheat: ONE, and it is deliberate.** ⭐
+  **FireVulnerability** (id 66, plan-effect-types.md C1, 2026-08-16) is the
+  vocabulary-hole closer for the curse half of the resist axis, authored as the
+  worked example of `resistFactor > 1`. It ships with no unlock source on
+  purpose: placement is the content pass's call, not C1's. Every OTHER player
+  skill has a live-world source — the step-7 A.5 guarantee
+  (`plan-rebrand-cleanup.md`) still holding, and since zone-editor C3 there is
+  no legacy source left to discount (Wild, Slow and Tough lost only their
+  redundant legacy drops).
 - **All 11 recipe results are craftable in the world zone** — every ingredient
   has a world source. ⚑ Hoarfrost (the eleventh, 2026-08-10) qualifies on the
   same rule and it is worth spelling out why, because it is the first recipe

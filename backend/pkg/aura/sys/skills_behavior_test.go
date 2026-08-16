@@ -1891,6 +1891,66 @@ func TestApplyResistAura_RespectsTargetCap(t *testing.T) {
 	assert.Equal(t, 1, len(a.resists)+len(b.resists), "the cap limits buffed allies")
 }
 
+// --- vulnerability: resist_aura aimed at enemies (plan-effect-types.md C1) ---
+
+// hostileResistTarget is an enemy-faction recipient of a resist buff: the
+// target a vulnerability curse is aimed at. Its buff store is REAL, so the
+// test reads the shipped multiplier the damage path would read, not a stub.
+type hostileResistTarget struct {
+	model.MobEntity
+	basic   ecs.BasicEntity
+	resists []appliedResist
+	buffs   skills.Buffs
+}
+
+func (r *hostileResistTarget) Basic() ecs.BasicEntity { return r.basic }
+func (r *hostileResistTarget) Faction() model.Faction { return model.FactionHostile }
+func (r *hostileResistTarget) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) bool {
+	r.resists = append(r.resists, appliedResist{source, tags, factor, ticks})
+	return r.buffs.ApplyResist(source, tags, factor, ticks)
+}
+
+// vulnerabilityEffect is the curse shape: the FireWard payload with the target
+// flags flipped and a factor above 1. Pure content, no new effect type (D1).
+func vulnerabilityEffect() skills.EffectDef {
+	return skills.EffectDef{
+		Type:           skills.EffectTypeResistAura,
+		TargetsEnemies: true,
+		TargetsAllies:  false,
+		TickInterval:   20,
+		Resist:         &skills.ResistParams{Tags: []string{"fire"}, Factor: 1.25, FactorPerLevel: 0.15},
+	}
+}
+
+func TestApplyResistAura_VulnerabilityLandsOnEnemiesAndAmplifies(t *testing.T) {
+	caster := newFakePlayer() // FactionAligned
+	enemy := &hostileResistTarget{basic: ecs.NewBasic()}
+
+	applyResistAura(caster, 66, 2, vulnerabilityEffect(), colliderSetOf(enemy))
+
+	require.Len(t, enemy.resists, 1, "targetsEnemies reaches an opposing-faction target")
+	assert.InDelta(t, 1.4, enemy.resists[0].factor, 1e-6, "level 2 = 1.25 + 1×0.15")
+	assert.InDelta(t, 1.4, enemy.buffs.ResistMultiplier([]string{"fire"}), 1e-6,
+		"the store hands the damage path an amplifying multiplier: bigger hits")
+	assert.InDelta(t, 1.0, enemy.buffs.ResistMultiplier([]string{"frost"}), 1e-6,
+		"only the authored tag is amplified")
+}
+
+func TestApplyResistAura_VulnerabilityLeavesAlliesAlone(t *testing.T) {
+	// The half that makes the curse safe to cast in a group: with
+	// targetsAllies false, a same-faction character standing in the same circle
+	// is never cursed.
+	caster := newFakePlayer()
+	enemy := &hostileResistTarget{basic: ecs.NewBasic()}
+	ally := &resistTargetRecorder{basic: ecs.NewBasic()} // FactionAligned
+
+	applyResistAura(caster, 66, 1, vulnerabilityEffect(), colliderSetOf(enemy, ally))
+
+	require.Len(t, enemy.resists, 1)
+	assert.Empty(t, ally.resists, "a same-faction ally is not eligible without targetsAllies")
+	assert.Empty(t, caster.resists, "and neither is the caster without targetsSelf")
+}
+
 // --- applyShieldAura / instant_shield (plan-skill-vocab chunk 2) ---
 
 // shieldTargetRecorder is a PlayerEntity ally that records ApplyShield calls.

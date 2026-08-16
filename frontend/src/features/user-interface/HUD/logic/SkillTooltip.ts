@@ -414,10 +414,18 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
         case 'resist_aura':
         case 'resist_passive': {
             const resist = effect.resist;
-            // Factor is the incoming-damage multiplier (0.5 = takes half);
-            // render as the reduction players think in.
-            const renderReduction = (factor: number) => pct(1 - Math.max(0, factor));
-            lines.push(`Resist ${resist.tags.join(', ')}: −${prog(resist.factor, resist.factorPerLevel, level, maxLevel, renderReduction)} damage taken${refresh}`);
+            // Factor is the incoming-damage multiplier (0.5 = takes half,
+            // 1.2 = takes a fifth more); render as the delta players think
+            // in. A skill authors one side of 1 across its whole level range
+            // (skills/resist.go semantics), so the current level's factor
+            // picks the phrasing. Sign-on-first-value mirrors the ward shape.
+            if (scaled(resist.factor, resist.factorPerLevel, level) > 1) {
+                const renderAmplification = (factor: number) => pct(factor - 1);
+                lines.push(`Vulnerable to ${resist.tags.join(', ')}: +${prog(resist.factor, resist.factorPerLevel, level, maxLevel, renderAmplification)} damage taken${refresh}`);
+            } else {
+                const renderReduction = (factor: number) => pct(1 - Math.max(0, factor));
+                lines.push(`Resist ${resist.tags.join(', ')}: −${prog(resist.factor, resist.factorPerLevel, level, maxLevel, renderReduction)} damage taken${refresh}`);
+            }
             if (resist.targetsSelf) lines.push(selfTargetLine(effect, 'applies to'));
             break;
         }

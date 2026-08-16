@@ -1008,6 +1008,23 @@ func TestMob_ResistBuff_ComposesWithBaseAndExpires(t *testing.T) {
 	assert.Equal(t, m.MaxHealth()-30, m.Health(), "expired buff: 40 × base 0.5 = 20 more")
 }
 
+func TestMob_VulnerabilityBuff_Amplifies(t *testing.T) {
+	// The shipped scenario for a vulnerability aura (plan-effect-types.md C1):
+	// a player curses a MOB, so this is the read seam that decides whether the
+	// hits actually get bigger. Same composition as the ward above, other side
+	// of unity.
+	def := testMobDefinition()
+	def.Factors.Resistances = map[string]float32{"fire": 0.5}
+	m := NewMob(def, 0, nil)
+
+	m.ApplyResist(66, []string{"fire"}, 1.5, 2)
+
+	m.ResetTickNumbers()
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 40, Tags: []string{"fire"}})
+	assert.Equal(t, m.MaxHealth()-30, m.Health(),
+		"base 0.5 × curse 1.5 → a 40 HP hit lands as 30: the curse eats into the resistance")
+}
+
 func TestNewMob_SpawnsHostile(t *testing.T) {
 	// FactionHostile is not the zero value — a missed initialization would
 	// silently spawn player-aligned mobs (effect foundations Step 1).

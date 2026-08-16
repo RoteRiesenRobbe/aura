@@ -698,6 +698,25 @@ func TestPlayer_TakeDamage_ResistBuffAndPassiveStack(t *testing.T) {
 	assert.Equal(t, vitals.VitalSign(20), before-p.VitalSigns().Health)
 }
 
+func TestPlayer_TakeDamage_VulnerabilityBuffAmplifies(t *testing.T) {
+	// The other side of the resist axis (plan-effect-types.md C1): a resist
+	// buff with a factor above 1 is a vulnerability, and the read seam is the
+	// same one wards use, so a cursed target simply takes bigger hits.
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+
+	p.ApplyResist(40, []string{"fire"}, 1.5, 2)
+
+	before := p.VitalSigns().Health
+	p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, model.StatusEffectDamagedAmbient)
+	assert.Equal(t, vitals.VitalSign(60), before-p.VitalSigns().Health, "40 × 1.5")
+
+	// Untagged half of the hit vocabulary is untouched: the curse covers fire.
+	before = p.VitalSigns().Health
+	p.takeDamage(model.Damage{HP: 20, Tags: []string{"frost"}}, model.StatusEffectDamagedAmbient)
+	assert.Equal(t, vitals.VitalSign(20), before-p.VitalSigns().Health, "uncovered tag is unamplified")
+}
+
 func TestPlayer_TakeDamage_ImmuneIsANonEvent(t *testing.T) {
 	p := newTestPlayer(nil)
 	p.statusEffects = model.NewStatusEffects()

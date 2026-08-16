@@ -243,13 +243,27 @@ uses it: `fire-elemental.json` and `greater-fire-elemental.json` author
 `{"fire": 0.25, "frost": 1.5}`, so a fire elemental takes 150% from frost.
 Bears author `{"frost": 0.5}`. The mechanic works and is live.
 
-What does **not** exist is a player ability that *inflicts* it. `resist_aura`
+What did **not** exist is a player ability that *inflicts* it. `resist_aura`
 takes the same factor and a target-flag set, so a factor above 1 aimed at
 enemies should read as "this target takes more fire damage", but nothing in the
-content does this and nothing pins it. That is the unverified half. If it works,
-it doubles the resist block into a *ward* half and a *curse* half (*Fire
-Vulnerability*, *Sunder*), and it is the cleanest support role the game does not
-have.
+content did this and nothing pinned it. That was the unverified half.
+
+⭐ **VERIFIED AND CLOSED 2026-08-16 (plan-effect-types.md C1, D1).** It works,
+it is pinned at three layers (the buff store, `applyResistAura`'s eligibility,
+and the `takeDamage` read seam), and the first curse ships:
+**FireVulnerability** (id 66), `resist_aura` + `resistFactor: 1.2 +0.05/L` +
+`targetsEnemies`, with `targetsAllies` and `targetsSelf` off so a group can
+stand inside it. Zero new effect types. ⚑ One real defect was in the way and is
+fixed (D2): the buff store's per-source "strongest" pick was lowest-factor
+outright, correct for wards and inverted for curses, so two casters of one
+vulnerability skill at different levels landed the *weakest* of the pair.
+"Strongest" is now the factor furthest from 1 in either direction.
+
+So the resist block does double into a *ward* half and a *curse* half (*Fire
+Vulnerability* is authored; *Sunder*, the physical twin, is still an empty
+cell), and it is the cleanest support role the game did not have. **Every
+remaining curse cell is now pure content**: a vulnerability aura per damage
+type, and the same payload on `resist_passive` for a permanent version.
 
 ### 3.3 Control, threat, movement, tempo, light
 
@@ -460,7 +474,7 @@ Go work, and each is a genuine design question rather than an omission:
 | **Silence on its own** | `stun` bundles movement plus cast suppression. A cast-only lock is one gate away but does not exist. |
 | **Cleanse / dispel** | No effect removes a buff or debuff. There is no counter to a dot except outlasting it. |
 | **Ally buffs of any kind** | `stat_multiplier` is equip-time and self-only, `speed_burst` and `tick_rate` and `lifesteal_burst` are all self-only. The "Fly, You Fools!" idea (speed up allies, not yourself) is not authorable. **This is the biggest single gap for the group-support pillar.** |
-| **Vulnerability debuffs** | Possibly already authorable via `resist_aura` factor > 1 aimed at enemies. Unverified, unused, unpinned. |
+| ~~**Vulnerability debuffs**~~ **RESOLVED 2026-08-16** | It WAS already authorable: `resist_aura` with `resistFactor > 1` and `targetsEnemies` (plan-effect-types.md C1, D1). Verified, pinned and shipped as content (*FireVulnerability*, id 66). One real defect fell out and was fixed: the buff store picked the *lowest* factor per source as "strongest", which is right for wards and inverted for curses, so two casters of one vuln skill at different levels landed the weakest (D2 — "strongest" is now furthest from 1 in both directions). No new effect type, no wire or DB change. See §3.2. |
 | **Stealth / invisibility** | `detaunt` is the nearest thing. |
 | **Conditional triggers generally** | `retaliate_slow` is the only runtime trigger in the game. No on-kill, on-crit, below-X%-HP, or on-dodge hooks. Every "when X happens, do Y" ability is blocked on this, and it is the single highest-leverage addition on this list. |
 | **Ground-targeted placement** | `spawn` drops at a caster offset. Area denial only exists where a totem stands. |

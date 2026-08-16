@@ -168,7 +168,11 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// − the FIVE legacy mob skills (zone-editor C3, 2026-08-16): the legacy
 	// roster retired and its auras with it (Dodo/SaberToothCat/Mammoth/
 	// AngryMammoth auras + AngryMammothStomp), 95 → 90.
-	assert.Len(t, r.All(), 90)
+	// + FireVulnerability, the first vulnerability aura (plan-effect-types.md
+	// C1, 2026-08-16), id 66: resist_aura with a factor above 1 aimed at
+	// enemies. Pure content on an existing effect type; SKILL cheat only, no
+	// unlock source yet (the FireWard precedent), 90 → 91.
+	assert.Len(t, r.All(), 91)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

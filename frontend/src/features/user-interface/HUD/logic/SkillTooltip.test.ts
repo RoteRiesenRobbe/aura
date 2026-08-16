@@ -1054,3 +1054,40 @@ describe('tick length', () => {
         expect(lines(quick, 1, 1)).toContain('Cooldown: 1.33s');
     });
 });
+
+describe('vulnerability rendering (plan-effect-types C1)', () => {
+    // FireVulnerability as authored (api/skills/fire-vulnerability.json): a
+    // resist_aura with factor > 1 aimed at enemies. The reduction formatter
+    // predates vulnerabilities and rendered it "Resist fire: −-20%".
+    const fireVulnerability = skill({
+        displayName: 'Fire Vulnerability', maxLevel: 5,
+        effects: [effect({
+            type: 'resist_aura',
+            radius: 1.5, tickInterval: 30, targetsEnemies: true,
+            resist: {tags: ['fire'], factor: 1.2, factorPerLevel: 0.05, targetsSelf: false},
+        })],
+    });
+
+    it('reads as a vulnerability, not a double-negative resist', () => {
+        expect(lines(fireVulnerability, 1, 1)).toEqual([
+            'Vulnerable to fire: +20% → 25% damage taken, refreshed every 1s',
+            'Radius: 1.5',
+            'Targets: all enemies in range',
+        ]);
+    });
+
+    it('keeps the ward rendering byte-identical', () => {
+        // FireWard as authored: 0.6 with −0.05 per level. The shipped shape
+        // puts the − on the first value only; byte-identical means keeping
+        // that, not beautifying it.
+        const fireWard = skill({
+            displayName: 'FireWard', maxLevel: 5,
+            effects: [effect({
+                type: 'resist_aura',
+                radius: 1.5, tickInterval: 30, targetsAllies: true,
+                resist: {tags: ['fire'], factor: 0.6, factorPerLevel: -0.05, targetsSelf: true},
+            })],
+        });
+        expect(lines(fireWard, 1, 1)).toContain('Resist fire: −40% → 45% damage taken, refreshed every 1s');
+    });
+});

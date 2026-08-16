@@ -261,4 +261,99 @@ in-game check of the chunk's skill(s).
 
 ## 9. Ledger
 
-*(filled in by the execution sessions)*
+### C1 - Vulnerability: verify + fix + pin ✅ 2026-08-16, `[uncommitted]`
+
+**D1 held: vulnerability is pure content.** No new effect type, no new
+authoring key, no dispatch case. `resist_aura` with `resistFactor > 1` and
+`targetsEnemies: true` loads, applies and amplifies, exactly as §2 predicted.
+
+**The one defect was real and is fixed (D2).** `Buffs.ResistMultiplier` picked
+the per-source "strongest" application with `p.factor < strongest.factor`, i.e.
+lowest-wins outright. Right for wards, inverted for curses: two casters of one
+vulnerability skill at different levels landed the *weakest* of the pair. It now
+picks the factor **furthest from 1** through the existing `unityDistance`
+helper (the rule speed and tick_rate already use), with an explicit tie-break to
+the **lower** factor so a hypothetical equal-distance pair can never turn a
+protection into a punishment. Extracted as `strongerResist`; the doc comment on
+`ResistMultiplier` now states the rule in both directions.
+
+**Red-first, confirmed.** `TestBuffs_VulnerabilitySameSkillStrongestWins` failed
+at HEAD on both application orders ("Max difference between 1.5 and 1.2 allowed
+is 1e-06, but difference was 0.2999999523162842") and passes after the fix. Two
+companions ride with it: the resist-direction regression guard (0.8/0.6 still
+picks 0.6, both orders) and the defensive tie-break (1.5/0.5 picks 0.5, applied
+vulnerability-first on purpose so a naive unity-distance-only fix fails it).
+Every pre-existing resist test is untouched and green: all shipped resist
+content is below 1, where furthest-from-unity and lowest agree.
+
+**Pinned at three layers, so "hits get bigger" is not a claim.** Buff store
+(above) · `applyResistAura` eligibility in `sys`
+(`TestApplyResistAura_VulnerabilityLandsOnEnemiesAndAmplifies` +
+`..._VulnerabilityLeavesAlliesAlone`: the curse lands on an opposing-faction
+target, the target's REAL buff store then answers 1.4 for fire and 1.0 for
+frost, while a same-faction ally in the same collider set and the caster both
+stay clean) · the read seam in `model/player`
+(`TestPlayer_TakeDamage_VulnerabilityBuffAmplifies`: a 40 HP fire hit under a
+×1.5 curse removes 60, an untagged hit is unamplified) plus the mob half of
+that seam, which is the shipped scenario
+(`TestMob_VulnerabilityBuff_Amplifies`: base fire resistance 0.5 × curse 1.5
+lands a 40 HP hit as 30, so the curse eats into the resistance). The `sys` and
+both model pins passed at HEAD by design: step 3 is a pin, not a fix.
+
+**Content: FireVulnerability, id 66** (`api/skills/fire-vulnerability.json`),
+active_aura, maxLevel 5, `resist_aura` · `resistTags: ["fire"]` ·
+`resistFactor: 1.2 +0.05/L` (×1.2 → ×1.4) · `targetsEnemies: true` ·
+`targetsAllies`/`targetsSelf` absent · r1.5 · tickInterval 30 · cost 0.018
++0.00225/L, mirroring FireWard's entry price for the same R2/R3 reason. All
+numbers **[PLACEHOLDER]**. SKILL-cheat only, no unlock source yet (the FireWard
+precedent) - placement belongs to the content pass. Registry pin bumped 90 → 91
+with its reason line.
+
+**Schema: NONE.** Transient buffs plus one content JSON file. No wire change,
+no DB change, no migration, no conf change.
+
+**Doc ripple.** `content-ability-matrix.md` §7's vulnerability row struck
+through and marked RESOLVED, and §3.2's "unverified half" block rewritten as
+verified-and-closed with the defect named. ⚑ The plan's C1 step 5 says "§3.1
+note"; the vulnerability block actually lives in **§3.2** (§3.1 is damage by
+type and delivery), so the note went where the subject is. Also updated:
+`content-skill-inventory.md` (new row, aura count 24 → 25, and the reachability
+summary now reads "unreachable without the cheat: ONE, deliberate" instead of
+NONE) and `content-auras.md` (design-intent row; FireWard's neighbouring row
+carried a stale "the one player skill with no world unlock source" claim that
+the inventory has contradicted for a while, corrected in passing).
+
+**PO-found follow-up, same day: the tooltip double minus.** The PO's in-game
+look surfaced "Resist fire: −-20% damage taken" on FireVulnerability.
+`SkillTooltip.ts`'s resist case predates vulnerabilities: it renders the factor
+as a reduction (`pct(1 - factor)`) behind a hard-coded − prefix, so a factor
+above 1 produced a negative reduction with a second sign. Fixed red-first
+(vitest, `SkillTooltip.test.ts`): the case now branches on the current level's
+factor, and above 1 renders `Vulnerable to fire: +20% → 25% damage taken`,
+mirroring the shipped ward shape (sign on the first value only). A second test
+pins the ward rendering byte-identical, INCLUDING that shipped shape: FireWard
+reads `−40% → 45%`, and the guard's first draft expected `−45%` and failed,
+which is the pin proving "byte-identical" means the shape that ships, not the
+shape one would design. Server side untouched; the Go pins already owned the
+math. The same lesson twice in one chunk: widening a value's domain past 1
+broke every consumer that assumed one side of it, and the survey caught the
+buff store but not the renderer.
+
+**Verified.** `go build ./...` OK · `go test -count=1 ./...` **all packages
+green**, run twice, before and after `cp-defs` (simharness guardrails did not
+shift, as predicted: sub-1 factors pick the same winner under both rules) ·
+`npm run typecheck` clean · vitest **351/351** (349 + the two tooltip pins) ·
+`make -C backend build` · `npm run build` (prod dist for the harness) ·
+`round4-tooltip.mjs` **green** (⚑ its first run failed at join against a stale
+`frontend/dist` - the c2-frost-shield lesson; the harness drives port 2000,
+which serves dist, never the HMR dev server) · boot **0 WARN / 0 ERROR**,
+census `Loaded skill definitions count=91` (was 90), 58 mobs / 12 factions /
+488 spawns. No `-race` run (the `accounts.TestRepeatedFailuresAreThrottled`
+known-inconclusive).
+
+**PO in-game check: passed 2026-08-16.** The PO played it the same day; the
+one finding was the tooltip double minus above, fixed in-session. The
+ally-untouched case stays test-pinned only (nothing in-game aims fire at an
+ally; no PvP).
+
+**Next in this plan:** C2, `retaliate_damage`.

@@ -61,6 +61,60 @@ func TestBuffs_ResistStrongerApplicationFadesBackToWeaker(t *testing.T) {
 		"the stronger application expired after its own lifetime")
 }
 
+// --- vulnerability direction (plan-effect-types.md C1, D2) ---
+
+func TestBuffs_VulnerabilitySameSkillStrongestWins(t *testing.T) {
+	// A resist factor above 1 is a vulnerability: the target takes MORE.
+	// Two casters of the same vuln skill at different levels do not stack, and
+	// the one that wins is the strongest DEBUFF, which on this side of unity is
+	// the HIGHEST factor. The pre-C1 rule picked the lowest outright, so two
+	// casters landed the weakest of the pair.
+	var b Buffs
+	b.ApplyResist(40, []string{"fire"}, 1.2, 2) // L1 curse
+	b.ApplyResist(40, []string{"fire"}, 1.5, 2) // L3 curse
+	assert.InDelta(t, 1.5, b.ResistMultiplier([]string{"fire"}), 1e-6,
+		"strongest vulnerability wins, whichever caster applied first")
+
+	// Order must not decide it either.
+	var reversed Buffs
+	reversed.ApplyResist(40, []string{"fire"}, 1.5, 2)
+	reversed.ApplyResist(40, []string{"fire"}, 1.2, 2)
+	assert.InDelta(t, 1.5, reversed.ResistMultiplier([]string{"fire"}), 1e-6,
+		"application order does not change the winner")
+}
+
+func TestBuffs_ResistDirectionStillPicksTheLowest(t *testing.T) {
+	// The regression guard for the D2 fix: on the protective side of unity,
+	// "furthest from 1" must still mean the lowest factor.
+	var b Buffs
+	b.ApplyResist(40, []string{"fire"}, 0.8, 2)
+	b.ApplyResist(40, []string{"fire"}, 0.6, 2)
+	assert.InDelta(t, 0.6, b.ResistMultiplier([]string{"fire"}), 1e-6)
+
+	var reversed Buffs
+	reversed.ApplyResist(40, []string{"fire"}, 0.6, 2)
+	reversed.ApplyResist(40, []string{"fire"}, 0.8, 2)
+	assert.InDelta(t, 0.6, reversed.ResistMultiplier([]string{"fire"}), 1e-6)
+}
+
+func TestBuffs_ResistEqualUnityDistanceBreaksToTheLowerFactor(t *testing.T) {
+	// One source landing both a ward and a curse of equal magnitude cannot
+	// happen in practice (one skill authors one factor per level), so the
+	// tie-break is defensive, not a mechanic: it resolves to the LOWER factor,
+	// which is the reading that never turns a protection into a punishment.
+	// ⚑ Applied vulnerability-first, so a fix that only compares unity distance
+	// with a strict > keeps 1.5 and fails here.
+	var b Buffs
+	b.ApplyResist(40, []string{"fire"}, 1.5, 2)
+	b.ApplyResist(40, []string{"fire"}, 0.5, 2)
+	assert.InDelta(t, 0.5, b.ResistMultiplier([]string{"fire"}), 1e-6)
+
+	var reversed Buffs
+	reversed.ApplyResist(40, []string{"fire"}, 0.5, 2)
+	reversed.ApplyResist(40, []string{"fire"}, 1.5, 2)
+	assert.InDelta(t, 0.5, reversed.ResistMultiplier([]string{"fire"}), 1e-6)
+}
+
 func TestBuffs_ResistDifferentSkillsStack(t *testing.T) {
 	// Distinct source skills stack multiplicatively.
 	var b Buffs

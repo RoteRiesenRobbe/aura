@@ -537,12 +537,26 @@ func dropPayload[T buffPayload](b *Buffs) {
 // application counts; within it, each covered hit tag multiplies once; across
 // skills the factors multiply — same semantics as one ResistMultiplier source
 // per skill.
+//
+// "Strongest" is the factor FURTHEST FROM 1, in both directions (the
+// unityDistance rule shared with speed and tick_rate). Below 1 that is the
+// lowest factor, the hardest ward; above 1 it is the highest, the deepest
+// vulnerability. It used to be lowest-wins outright, which was right for wards
+// and inverted for curses: two casters of the same vulnerability skill at
+// different levels landed the WEAKEST of the pair (plan-effect-types.md D2).
+// A source carrying both directions at equal distance cannot occur in content
+// (one skill authors one factor per level); the defensive tie-break is the
+// lower factor, so a tie never turns a protection into a punishment.
 func (b *Buffs) ResistMultiplier(hitTags []string) float32 {
 	multiplier := float32(1)
 	for _, list := range b.entries {
 		var strongest *resistPayload
 		for _, e := range list {
-			if p, ok := e.payload.(*resistPayload); ok && (strongest == nil || p.factor < strongest.factor) {
+			p, ok := e.payload.(*resistPayload)
+			if !ok {
+				continue
+			}
+			if strongest == nil || strongerResist(p.factor, strongest.factor) {
 				strongest = p
 			}
 		}
@@ -649,6 +663,17 @@ func (b *Buffs) TickRateFactor() float32 {
 		}
 	}
 	return factor
+}
+
+// strongerResist reports whether candidate beats incumbent as the one active
+// resist application of a source: further from unity wins, and an exact tie
+// (a ward and a curse of the same magnitude) resolves to the lower factor.
+func strongerResist(candidate, incumbent float32) bool {
+	cd, id := unityDistance(candidate), unityDistance(incumbent)
+	if cd != id {
+		return cd > id
+	}
+	return candidate < incumbent
 }
 
 // unityDistance ranks multiplicative factors by how far they pull from unity,
