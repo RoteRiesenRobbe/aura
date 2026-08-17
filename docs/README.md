@@ -90,6 +90,28 @@ go to `backlog.md`; this section is content only.
 - **content-zone1.md** — Zone 1 (village + forest) design intent
 - **content-zone2.md** — Zone 2 (village + City Gates + the front) design intent
 
+## Art (`docs/art/` — inventory for the art overhaul)
+
+Generated 2026-08-15 from `api/` + the client, not hand-maintained prose. Regenerate
+(or spot-fix) after any chunk that adds a mob, prop, ground texture or in-world VFX.
+
+- **art/README.md** — the art brief **and** the worklist in one file, 108 tickable rows
+  (`☐` → `☑`). Brief: **the Portrait Rule** (entities are front-facing busts, never
+  rotated — GDD §10 + `manual-content-authoring.md` §4), the Gothic tone register, the
+  120 px/meter scale rule, the ×2 renderer gotcha, rendering constraints (darkness
+  overlay, damage flash, tier rings, rotation), and where the placement volume is
+  concentrated. Lists: 58 live mobs/NPCs/summons/fixtures grouped by the `content-mobs.md`
+  taxonomy · 29 environment (props, the 16 ground decals, terrain colours, lighting,
+  world scale) · 21 player + code-drawn VFX + overlays + deferred UI. Legacy Berryhunter
+  content is excluded to an appendix.
+- **art/pipeline.md** — how art gets *into* the game: the bake-once/square-sprite
+  mechanics and the `maxSize` resolution knob, drop-in file replacement (frontend-only,
+  plus the shared-sprite and lying-filename traps), **SVG vs PNG** (webpack already
+  handles raster; the Pixi game-object path is unverified — includes the 10-minute test
+  that settles it), and the **four-layer medallion** (background/portrait/decor/border,
+  which replaces the runtime tier ring) with per-layer selector availability and the
+  open zone-selector question
+
 ## Manuals (how-to)
 
 - **manual-zone-editor.md** — step-by-step user manual for the in-game zone editor: setup, modes, placing/editing props+spawns, export→server round-trip

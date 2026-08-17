@@ -54,8 +54,14 @@ export abstract class Tree extends Resource {
     static resourceSpot: ISvgContainer = {svg: undefined};
     resourceSpotTexture: Sprite;
 
+    // ⚑ This factor absorbs the art's own padding, so it is tied to the asset.
+    // The old SVG drew its crown at 65% of the canvas (circle r=32.491 of 100)
+    // and 1.8 compensated for that; the PNG fills 95.5%, so the same factor
+    // rendered the tree ~1.47× too big. 1.15 restores the previous on-screen
+    // crown (~320 px). Retune whenever the art's fill fraction changes:
+    //   factor = (targetCrownPx / fillFraction - character.size) / 120
     protected constructor(id: number, x: number, y: number, size: number, svg: Texture) {
-        super(id, Game.layers.resources.trees, x, y, size * 1.8 + GraphicsConfig.character.size, 0, svg);
+        super(id, Game.layers.resources.trees, x, y, size * 1.15 + GraphicsConfig.character.size, 0, svg);
 
         this.resourceSpotTexture = createInjectedSVG(Tree.resourceSpot.svg, x, y, this.size * 0.7, randomRotation());
         Game.layers.terrain.resourceSpots.addChild(this.resourceSpotTexture);
