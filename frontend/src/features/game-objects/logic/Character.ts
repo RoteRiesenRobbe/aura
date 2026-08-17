@@ -35,7 +35,21 @@ GameSetupEvent.subscribe((game: IGame) => {
 export class Character extends GameObject
     implements ICharacterLike, IMiniMapRendered, OverheadVitals, AuraDisplay, LevelDisplay {
     static avatar: ISvgContainer = {svg: undefined};
-    static readonly DOWNWARD_FACING_ROTATION = Math.PI / 2;
+    // Medallion frame, in its own holder because registerGameObjectSVG writes
+    // exactly one `.svg` per target and `avatar` already holds the portrait.
+    static border: ISvgContainer = {svg: undefined};
+    /**
+     * Portrait rule (triage item 16): avatars never rotate, so the held facing
+     * is zero.
+     *
+     * ⚑ It was `Math.PI / 2`, and that value was applied TWICE — once as the
+     * constructor's `rotation` (rotating the sprite inside `actualShape`) and
+     * again by setRotation (rotating `actualShape` itself). The two summed to
+     * 180°, and the old placeholder `player.svg` was drawn upside-down to
+     * cancel it out, which hid the bug until the first correctly-drawn
+     * portrait landed. Keep this at 0; art is authored upright.
+     */
+    static readonly PORTRAIT_ROTATION = 0;
 
 
     name: string;
@@ -66,7 +80,7 @@ export class Character extends GameObject
     private plateSubToken: ISubscriptionToken = null;
 
     constructor(id: number, x: number, y: number, name: string, isPlayerCharacter: boolean) {
-        super(id, Game.layers.characters, x, y, GraphicsConfig.character.size, Character.DOWNWARD_FACING_ROTATION, Character.avatar.svg);
+        super(id, Game.layers.characters, x, y, GraphicsConfig.character.size, Character.PORTRAIT_ROTATION, Character.avatar.svg);
         this.name = name;
         this.isPlayerCharacter = isPlayerCharacter;
         this.movementSpeed = Constants.BASE_MOVEMENT_SPEED;
@@ -74,8 +88,8 @@ export class Character extends GameObject
         this.visibleOnMinimap = false;
         this.turnRate = 0;
 
-        // Keep a fixed default facing (down) until explicit rotation is applied.
-        this.setRotation(Character.DOWNWARD_FACING_ROTATION);
+        // Keep the fixed portrait facing; the wire heading is discarded.
+        this.setRotation(Character.PORTRAIT_ROTATION);
         // No rings until the first server state arrives (aura_category drives them).
         this.setAuraCategories(0);
 
@@ -107,6 +121,14 @@ export class Character extends GameObject
         this.actualShape.addChild(super.initShape(svg, 0, 0, size, rotation));
         group.addChild(this.actualShape);
 
+        // On `group`, deliberately NOT on `actualShape`: the damage flash is
+        // bound to actualShape (see createStatusEffects), so a frame inside it
+        // would flash red with the portrait. Added last so it draws on top.
+        // Truthiness, not isDefined — the preload may not have resolved yet.
+        if (Character.border.svg) {
+            group.addChild(createInjectedSVG(Character.border.svg, 0, 0, size, 0));
+        }
+
         return group;
     }
 
@@ -127,7 +149,7 @@ export class Character extends GameObject
     setRotation(rotation: number) {
         // Portrait rule (triage item 16): avatars are portraits and never
         // rotate — the local player included, per PO ruling.
-        super.setRotation(Character.DOWNWARD_FACING_ROTATION);
+        super.setRotation(Character.PORTRAIT_ROTATION);
     }
 
     createName() {
@@ -332,4 +354,6 @@ export class Character extends GameObject
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Character.avatar, GraphicsConfig.character.file, GraphicsConfig.character.size);
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Character.border, GraphicsConfig.character.borderFile, GraphicsConfig.character.size);
 

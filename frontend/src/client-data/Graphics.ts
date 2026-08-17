@@ -33,7 +33,11 @@ export const GraphicsConfig = {
          * (30 px today) instead of restating it.
          */
         size: <number> meter2px(PLAYER_COLLIDER_RADIUS_METERS),
-        file: require('../features/game-objects/assets/characters/player.svg'),
+        file: require('../features/game-objects/assets/characters/player.png'),
+        // Medallion frame over the avatar portrait — same two-layer shape as the
+        // farmer/hermit/stag, but drawn in Character.initShape because the
+        // avatar has its own group (aura rings + actualShape) to sit inside.
+        borderFile: require('../features/game-objects/assets/border/playerBorder_01.png'),
         /**
          * Physical collider radius used by backend for player body; see the
          * pinned constant above.
@@ -51,6 +55,9 @@ export const GraphicsConfig = {
         [key: string]:
             {
                 file: string,
+                // Optional medallion frame drawn over the portrait — see the
+                // `farmer` entry below and docs/art/pipeline.md §4.
+                borderFile?: string,
                 minSize: number,
                 maxSize: number,
                 anchor?: {x: number, y: number}
@@ -92,7 +99,8 @@ export const GraphicsConfig = {
 
         // Z1 wildlife + brambles (content pass C2).
         wolf: {
-            file: require('../features/game-objects/assets/mobs/wolf.svg'),
+            file: require('../features/game-objects/assets/mobs/wolf.png'),
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
             minSize: <number> 38,
             maxSize: <number> 46,
         },
@@ -109,14 +117,19 @@ export const GraphicsConfig = {
             maxSize: <number> 56,
         },
 
+        // First medallion-layered COMBAT mob. Unlike the NPCs it rolls its size
+        // per instance (randomInt(minSize, maxSize)), and the border rides that
+        // same roll, so frame and portrait stay registered at any size.
         stag: {
-            file: require('../features/game-objects/assets/mobs/stag.svg'),
+            file: require('../features/game-objects/assets/mobs/stag.png'),
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
             minSize: <number> 42,
             maxSize: <number> 50,
         },
 
         eliteWolf: {
-            file: require('../features/game-objects/assets/mobs/eliteWolf.svg'),
+            file: require('../features/game-objects/assets/mobs/eliteWolf.png'),
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
             minSize: <number> 56,
             maxSize: <number> 64,
         },
@@ -166,7 +179,8 @@ export const GraphicsConfig = {
 
         // C4 Z2 village + bandit gate (content pass C4).
         bandit: {
-            file: require('../features/game-objects/assets/mobs/bandit.svg'),
+            file: require('../features/game-objects/assets/mobs/bandit.png'),
+            borderFile: require('../features/game-objects/assets/border/leatherBorder_01.png'),
             minSize: <number> 36,
             maxSize: <number> 42,
         },
@@ -265,7 +279,8 @@ export const GraphicsConfig = {
         // sprites (were Wolf/Bear reskins via entityType), sized between
         // their base kin and the elites/apex of their line.
         direWolf: {
-            file: require('../features/game-objects/assets/mobs/direWolf.svg'),
+            file: require('../features/game-objects/assets/mobs/direWolf.png'),
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
             minSize: <number> 48,
             maxSize: <number> 56,
         },
@@ -289,7 +304,8 @@ export const GraphicsConfig = {
         },
 
         marauder: {
-            file: require('../features/game-objects/assets/mobs/marauder.svg'),
+            file: require('../features/game-objects/assets/mobs/marauder.png'),
+            borderFile: require('../features/game-objects/assets/border/leatherBorder_02.png'),
             minSize: <number> 44,
             maxSize: <number> 52,
         },
@@ -332,11 +348,21 @@ export const GraphicsConfig = {
             maxSize: <number> 55,
         },
         hermit: {
-            file: require('../features/game-objects/assets/resources/hermit.svg'),
+            file: require('../features/game-objects/assets/resources/hermit.png'),
+            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             maxSize: <number> 60,
         },
+        // ⭐ First medallion-layered NPC (art overhaul spike, 2026-08-15).
+        // `file` is the PORTRAIT (background baked in for now); `borderFile` is
+        // the frame drawn over it. Both are 256×256 PNGs — a shared square canvas
+        // is what makes them line up — see docs/art/pipeline.md §4.
+        // PNG, not SVG: the art is painted, so an SVG export only ever wrapped
+        // embedded rasters (98% of the old files). 256 px covers a 4K display at
+        // the nearest zoom level; `maxSize` no longer sizes the texture, only
+        // `size` from the entity scales it (Preloading.ts:55 is SVG-only).
         farmer: {
-            file: require('../features/game-objects/assets/resources/farmer.svg'),
+            file: require('../features/game-objects/assets/resources/farmer.png'),
+            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             maxSize: <number> 60,
         },
         wanderer: {
@@ -396,9 +422,16 @@ export const GraphicsConfig = {
     resources: {
         tree: {
             spotFile: require('../features/game-objects/assets/resources/treeSpot.svg'),
+            // ⚑ Shared by both files below, and it now means different things to
+            // each: the spot is still SVG and rasterises at 2 × this, while the
+            // PNG ignores it entirely (Preloading.ts). Don't tune it for the tree.
             maxSize: <number> 210,
 
-            roundTreeFile: require('../features/game-objects/assets/resources/roundTree.svg'),
+            // Painted art ships as PNG — see the `farmer` entry above and
+            // docs/art/pipeline.md §3. 512×512 because a tree draws at 492 px
+            // (radius 1.0 m → size × 1.8 + character.size, Resources.ts), the
+            // largest common asset in the world.
+            roundTreeFile: require('../features/game-objects/assets/resources/roundTree.png'),
         },
 
         mineral: {

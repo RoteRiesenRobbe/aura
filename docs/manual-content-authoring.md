@@ -585,9 +585,14 @@ portrait applies there.
 Simplest case — **drop-in file replacement, frontend only.**
 
 - **A mob's art:** replace the SVG at the path in `Graphics.ts` `mobs.<mob>.file`
-  (e.g. `assets/mobs/wolf.svg`). Keep the filename to change nothing else, or repoint the
-  `require`. If proportions differ, adjust `minSize` / `maxSize` / `anchor` in the
-  same entry.
+  (e.g. `assets/mobs/wolf.svg`). Keep the filename to change nothing else, or
+  repoint the `require`. If proportions differ, adjust `minSize` / `maxSize` /
+  `anchor` in the same entry. ⚑ **Check the entry, never the filename** — the
+  name and the mob don't always match (the live Boar draws `wildboar.svg`), and
+  several files are shared by more than one entity, so one swap can change four
+  NPCs at once. The full map of which file serves what is `art/README.md`; the
+  pipeline mechanics (bake resolution, the square-sprite rule, PNG support, the
+  four-layer medallion) are `art/pipeline.md`.
 - **The player avatar:** replace
   `frontend/src/features/game-objects/assets/characters/player.svg` (referenced by
   `Graphics.ts` `character.file`). There is exactly one avatar file today (the old

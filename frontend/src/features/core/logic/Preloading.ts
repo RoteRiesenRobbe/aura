@@ -54,19 +54,30 @@ export function registerGameObjectSVG(
     svgPath: string | { default: string; },
     maxSize: number,
 ) {
+    const src = htmlModuleToString(svgPath);
     let sourceScale = Constants.GRAPHICS_RESOLUTION * (2 * Constants.GRAPHIC_BASE_SIZE);
     if (isNumber(maxSize)) {
         // Scale sourceScale according to the maximum required graphic size
         sourceScale = Constants.GRAPHICS_RESOLUTION * (2 * maxSize);
     }
+    /*
+     * `data` is spread verbatim into Pixi's ImageSource options
+     * (assets/loader/parsers/textures/loadTextures.mjs). For an SVG the
+     * width/height pair is the RASTERISATION size — the whole point of
+     * passing it. For a raster it OVERRIDES the file's real pixel
+     * dimensions instead, so a 256×256 PNG announced as `sourceScale`
+     * square renders as a top-left crop scaled up. Vectors only.
+     *
+     * Painted art therefore ships as PNG (see Graphics.ts `farmer`) and
+     * `maxSize` stops meaning anything for it: the texture is whatever the
+     * file holds, and only the entity's `size` scales the sprite.
+     */
+    const isVector = src.startsWith('data:image/svg') || /\.svg(\?|$)/i.test(src);
     return registerPreload(
-        Assets.load({
-            src: htmlModuleToString(svgPath),
-            data: {
-                width: sourceScale,
-                height: sourceScale,
-            },
-        }).then((texture: Texture) => {
+        Assets.load(isVector
+            ? {src, data: {width: sourceScale, height: sourceScale}}
+            : {src},
+        ).then((texture: Texture) => {
             gameObjectClass.svg = texture;
         }),
     );
