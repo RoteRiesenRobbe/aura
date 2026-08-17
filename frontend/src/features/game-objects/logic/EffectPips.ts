@@ -55,7 +55,10 @@ const PIP_STYLES: readonly PipStyle[] = [
     {bit: AppliedEffectBit.TickRate, color: 0xe0812e},
     // Distinct from tick_rate's orange: both are self-buffs on the same actor
     // and telling "faster auras" from "faster feet" apart matters. [PLACEHOLDER]
-    {bit: AppliedEffectBit.Speed, color: 0x6ee06e},
+    // ⚑ The literal moved into AURA_CATEGORY_COLORS with the speed_aura ring
+    // (plan-effect-types.md C4): the ring and this pip must stay one colour, so
+    // there is one place to change it.
+    {bit: AppliedEffectBit.Speed, color: AURA_CATEGORY_COLORS.speed},
 ];
 
 /** Pip radius in px. [PLACEHOLDER] */

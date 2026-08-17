@@ -67,6 +67,11 @@ const EFFECT_COLOR_KEYS: { [type: string]: keyof typeof AURA_CATEGORY_COLORS } =
     retaliate_damage: 'damage', retaliate_burst: 'damage',
     resist_aura: 'resist', resist_passive: 'resist', instant_resist: 'resist',
     light_aura: 'light',
+    // Both speed forms, on the same green as the haste RING and the hastened
+    // ally's PIP (C4). ⚑ speed_burst is coloured here for the first time: it had
+    // no key while no `speed` colour existed, and leaving it out now would have
+    // rendered the aura green and its own cooldown twin in neutral text.
+    speed_aura: 'speed', speed_burst: 'speed',
 };
 
 // The Focus color (F7): the health bar's own fill (vitalSigns.less
@@ -174,9 +179,13 @@ function gatedLine(key: string): string {
 
 // Aura-form effects with a real tick cadence; every other type's
 // tickInterval is just the parse default and means nothing.
+// ⚑ Hand-maintained, and nothing fails when it is short: an aura type missing
+// here simply renders no cadence at all, so "refreshed every 1s" quietly stops
+// being said. speed_aura joined it with the type itself (plan-effect-types.md
+// C4) — the aura's line looked finished without it.
 const TICKING_TYPES = new Set([
     'damage_aura', 'heal_aura', 'dot_aura', 'hot_aura',
-    'slow_aura', 'resist_aura', 'shield_aura',
+    'slow_aura', 'resist_aura', 'shield_aura', 'speed_aura',
 ]);
 
 // The rendered tick cadence of an aura-form effect, with its next-level
@@ -219,6 +228,10 @@ export const COST_TRIGGER_TEXT: { [type: string]: string } = {
     resist_aura: 'when it reaches someone new',
     slow_aura: 'when it catches someone new',
     shield_aura: 'when a shield goes up or is refilled',
+    // Byte-identical to hot_aura/resist_aura's line, and deliberately so: the
+    // three share one rule (a fresh buff on somebody is work, a refresh at the
+    // same value is not), so they should share one sentence.
+    speed_aura: 'when it reaches someone new',
 };
 
 // The cost trigger for ONE effect: the type's wording, unless the effect
@@ -579,9 +592,27 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // next-level preview reads "1.5 → 1.6×" with only one unit.
             const pace = prog(speed.factor, speed.factorPerLevel, level, maxLevel, n => `${fmt(n)}×`);
             const duration = prog(speed.durationTicks, speed.durationTicksPerLevel, level, maxLevel, ticksToSecs);
-            lines.push(`Move ${pace} as fast for ${duration}`);
+            // Who moves is authored since C4, and saying it is not decoration:
+            // the caster of an ally-facing burst does NOT move faster, so the
+            // shipped "Move …" sentence would have been a plain lie on it. The
+            // self-only branch renders Swift byte-identically.
+            const mover = speed.targetsSelf
+                ? (effect.targetsAllies ? 'You and allies in range move' : 'Move')
+                : 'Allies in range move';
+            lines.push(`${mover} ${pace} as fast for ${duration}`);
             break;
         }
+        case 'speed_aura':
+            // The field form (plan-effect-types.md C4). Rendered on the
+            // slow_aura pattern rather than the burst's sentence: an aura has no
+            // lifetime of its own to name, so the cadence it re-applies at is
+            // the second fact, and `refresh` carries it. Who it reaches rides
+            // the shared targets line, which reads it off targetsAllies for
+            // free — and the caster's exclusion (D9) is invisible here on
+            // purpose, being a property of eligibility rather than of the
+            // authored numbers.
+            lines.push(`Speed: ${prog(effect.speed.factor, effect.speed.factorPerLevel, level, maxLevel, n => `${fmt(n)}×`)}${refresh}`);
+            break;
         case 'stun': {
             // Both halves are spelled out on purpose. "Stuns for 3s" leaves a
             // reader to guess whether the target can still attack — and the

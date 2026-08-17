@@ -1,6 +1,6 @@
 package player
 
-// The retaliate_damage trigger (docs/plan-effect-types.md C2, D4): while the
+// The retaliate_damage trigger (docs/archive/plan-effect-types.md C2, D4): while the
 // passive is equipped, every mob that damages the wearer takes HP back.
 //
 // ⚑ The reflect is ATTRIBUTED (D4, PO ruling): it goes out through the

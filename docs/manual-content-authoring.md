@@ -335,13 +335,14 @@ error. If the type also puts a buff on an entity, it needs a pip decision in
 `applied_effects.go` (compile-enforced) and a matching entry in `EffectPips.ts`.
 
 Existing effect `type`s to compose (the authoritative list is `effectTypeMap` in
-`backend/pkg/aura/skills/definition.go`, 31 as of 2026-08-17):
+`backend/pkg/aura/skills/definition.go`, 32 as of 2026-08-17):
 `damage_aura`, `instant_damage`, `heal_aura`, `self_heal`, `hot_aura`,
 `instant_hot`, `dot_aura`, `instant_dot`, `shield_aura`, `instant_shield`,
 `slow_aura`, `resist_aura`, `resist_passive`, `instant_resist`,
 `stat_multiplier`, `light_aura`, `taunt`, `detaunt`, `spawn`, `recall`,
-`revive`, `dash`, `tick_rate`, `calm`, `charm`, `stun`, `speed_burst`,
-`lifesteal_burst`, `retaliate_slow`, `retaliate_damage`, `retaliate_burst`.
+`revive`, `dash`, `tick_rate`, `calm`, `charm`, `stun`, `speed_aura`,
+`speed_burst`, `lifesteal_burst`, `retaliate_slow`, `retaliate_damage`,
+`retaliate_burst`.
 
 ⚑ This list had drifted: `retaliate_slow` and `stun` were missing since their
 own chunks (recorded at effect-types C2), and `retaliate_damage` /
@@ -522,7 +523,7 @@ payload): `radius`, `radiusPerLevel`, `tickInterval`, `tickIntervalPerLevel`,
 | `reviveHealthFraction` | `revive.healthFraction` | revive |
 | `dashDistance` / `dashDistancePerLevel` | `dash.distance` / `dash.distancePerLevel` | dash |
 | `tickRateFactor` / `tickRateDurationTicks` | `tickRate.factor` / `tickRate.durationTicks` | tick_rate |
-| `speedFactor` / `speedDurationTicks` (+`PerLevel`) | `speed.factor` / `speed.durationTicks` | ⚑ speed_burst — the payload is `speed`, not `speedBurst` |
+| `speedFactor` / `speedDurationTicks` (+`PerLevel`) | `speed.factor` / `speed.durationTicks` | ⚑ speed_burst — the payload is `speed`, not `speedBurst`. `speed_aura` shares `speedFactor`/`speedFactorPerLevel` but takes NO duration keys (its lifetime is the cadence, interval + 1) and its factor must be > 1 (slow_aura owns the other direction). ⚑ A speed_burst must author `targetsSelf: true` and/or `targetsAllies: true` (neither = a cast that reaches nobody, hard-fail), and radius is required exactly when `targetsAllies` is (effect-types C4) |
 | `lifestealFraction` / `lifestealDurationTicks` (+`PerLevel`) | `lifesteal.fraction` / `lifesteal.durationTicks` | ⚑ lifesteal_burst — `lifestealFraction` is **shared with the damage payload**; on `damage_aura` / `instant_damage` it is a permanent rider on that effect and lands at `damage.lifestealFraction` instead |
 | `calmTicks` / `calmTicksPerLevel` | `calm.durationTicks` / `calm.durationTicksPerLevel` | calm |
 | `charmTicks` / `charmTicksPerLevel` | `charm.durationTicks` / `charm.durationTicksPerLevel` | charm |

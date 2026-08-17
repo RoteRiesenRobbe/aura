@@ -319,6 +319,8 @@ func (s *SkillSystem) applyAuraEffect(e skillEntity, source skills.SkillID, leve
 		landed = applyShieldAura(e, source, level, effect, targets)
 	case skills.EffectTypeHotAura:
 		landed = applyHotAura(e, source, level, effect, targets)
+	case skills.EffectTypeSpeedAura:
+		landed = applySpeedAura(e, source, level, effect, targets)
 	}
 
 	if landed && payer != nil {
@@ -2072,22 +2074,39 @@ func (s *SkillSystem) applyTickRate(e skillEntity, source skills.SkillID, effect
 	return true
 }
 
-// speedApplier is the self-buff capability for the movement burst (Swift as a
-// cooldown), the tickRateApplier twin. Players and mobs both implement it via
-// their Buffs store, so mob content can carry a sprint too.
+// speedApplier is the movement-buff capability behind both speed forms — the
+// burst (Swift as a cooldown) and, since C4, the ally-facing speed_aura.
+// Players and mobs both implement it via their Buffs store, so mob content can
+// carry a sprint too, and a mob can be hastened by an allied field.
+//
+// Reports whether the application was genuinely new (§5.2) — the answer the
+// AURA's cost is charged off. The burst discards it (D9: a cast pays on
+// activation).
 type speedApplier interface {
-	ApplySpeed(source skills.SkillID, factor float32, ticks int)
+	ApplySpeed(source skills.SkillID, factor float32, ticks int) bool
 }
 
-// applySpeedBurst fires a speed_burst cooldown: a self-targeted movement-speed
-// change. Like tick_rate there is no query circle — the buff scales the
-// CASTER's own movement — but both halves scale with skill level, so they are
-// floored here: a factor at or below unity would be a cast that did nothing (or
-// slowed the caster it was meant to speed up), and a sub-1-tick duration would
-// expire before the movement site ever read it.
+// applySpeedBurst fires a speed_burst cooldown: a movement-speed change on the
+// caster (targetsSelf), on allies in a one-shot query circle (targetsAllies),
+// or on both — the applyInstantResist shape, with SpeedParams in place of the
+// resist payload. Both scaled halves are floored here: a factor at or below
+// unity would be a cast that did nothing (or dragged whoever it was meant to
+// speed up), and a sub-1-tick duration would expire before the movement site
+// ever read it.
+//
+// ⚑ The ally half adds +1 tick to the authored lifetime and the SELF half does
+// not, and that asymmetry is deliberate. The self path is Swift's, shipped and
+// pinned byte-identical; the +1 on the ally path is the instant_resist/dot
+// convention, which exists so a buff granted mid-tick survives the tick boundary
+// it was granted on. Swift has never needed it (nothing re-applies it), so it
+// does not get it retroactively.
+//
+// ⚑ The bool is a CONTRACT, the applyInstantResist rule: processCooldowns
+// consumes a MOB's cooldown only on true, so an ally-only burst with nobody in
+// range stays ready rather than burning itself on an empty field. A PLAYER pays
+// on cast either way (D9) — the cost path does not read this answer.
 func (s *SkillSystem) applySpeedBurst(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
-	self, ok := e.(speedApplier)
-	if !ok || effect.Speed == nil {
+	if effect.Speed == nil {
 		return false
 	}
 	factor := skills.Scaled(effect.Speed.Factor, effect.Speed.FactorPerLevel, level)
@@ -2098,8 +2117,66 @@ func (s *SkillSystem) applySpeedBurst(e skillEntity, source skills.SkillID, leve
 	if ticks < 1 {
 		ticks = 1
 	}
-	self.ApplySpeed(source, factor, ticks)
-	return true
+
+	hitAny := false
+	if effect.Speed.TargetsSelf {
+		if self, ok := e.(speedApplier); ok {
+			self.ApplySpeed(source, factor, ticks)
+			hitAny = true
+		}
+	}
+
+	if !effect.TargetsAllies {
+		return hitAny
+	}
+
+	casterPos := e.AuraCollider().Position()
+	eligible := eligibleByTargetFlags[speedApplier](effect, e, e.Basic().ID(), true)
+
+	candidates := s.queryInstantTargets(e, effect, level)
+	targets := selectTargets(candidates, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		c.Shape().UserData.(speedApplier).ApplySpeed(source, factor, ticks+1)
+		hitAny = true
+	}
+	return hitAny
+}
+
+// applySpeedAura grants the effect's movement-speed buff to eligible allies in
+// range — the applyResistAura template, with the speed payload (C4/D8). The
+// buff lifetime is the effect's tick interval + 1, the standard aura convention,
+// so it always survives to the next re-application and fades roughly one cycle
+// after an ally leaves the field.
+//
+// ⚑ No targetsSelf path and no D7 lifetime lever, both by ruling. The caster is
+// never in its own in-range set (D9) — running the field is the cost, being
+// carried by it is the reward, and that asymmetry IS the skill. And
+// buffLifetimeMatchesInterval is resist_aura-only (D7): the invulnerability aura
+// needed a per-cycle price because a permanent grant of immunity is worth any
+// price; a haste field is priced honestly by the standard rule.
+//
+// Reports whether the application did WORK (§5.2): a genuinely new buff on at
+// least one ally. Refreshing the same group at the same factor is free, so the
+// field costs when it reaches somebody new and costs nothing while the group
+// around the caster is not changing.
+func applySpeedAura(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) bool {
+	factor := skills.Scaled(effect.Speed.Factor, effect.Speed.FactorPerLevel, level)
+	if factor <= 0 {
+		return false
+	}
+	ticks := effectiveTickInterval(effect, level) + 1
+
+	casterPos := e.AuraCollider().Position()
+	eligible := eligibleByTargetFlags[speedApplier](effect, e, e.Basic().ID(), true)
+
+	freshAny := false
+	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		if c.Shape().UserData.(speedApplier).ApplySpeed(source, factor, ticks) {
+			freshAny = true
+		}
+	}
+	return freshAny
 }
 
 // lifestealApplier is the self-buff capability for the damage-leech burst (R3 /

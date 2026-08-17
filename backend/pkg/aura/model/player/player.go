@@ -636,10 +636,12 @@ func (p *player) ApplyShield(source skills.SkillID, hp float32, ticks int) bool 
 	return p.buffs.ApplyShield(source, hp, ticks)
 }
 
-// ApplySpeed grants a movement-speed buff from a speed_burst cooldown (Swift);
-// the movement site reads the composed value each tick via MovementFactor.
-func (p *player) ApplySpeed(source skills.SkillID, factor float32, ticks int) {
-	p.buffs.ApplySpeed(source, factor, ticks)
+// ApplySpeed grants a movement-speed buff from a speed_burst cooldown (Swift)
+// or a speed_aura field; the movement site reads the composed value each tick
+// via MovementFactor. Reports whether the application was genuinely new, which
+// is what the aura form's cost is charged off (§5.2).
+func (p *player) ApplySpeed(source skills.SkillID, factor float32, ticks int) bool {
+	return p.buffs.ApplySpeed(source, factor, ticks)
 }
 
 // MovementFactor is this player's transient movement-speed multiplier: speed
@@ -782,7 +784,7 @@ type reflectable interface {
 }
 
 // retaliate is the trigger every retaliation shape shares
-// (plan-cc-and-retaliation.md C2, A4 for the slow; docs/plan-effect-types.md C2
+// (plan-cc-and-retaliation.md C2, A4 for the slow; docs/archive/plan-effect-types.md C2
 // for the flat reflect; PO 2026-08-17 for the percentage reflect): every mob
 // that damages this player is slowed by retaliate_slow, takes flat HP back from
 // retaliate_damage, and takes a SHARE of its own swing back from a live

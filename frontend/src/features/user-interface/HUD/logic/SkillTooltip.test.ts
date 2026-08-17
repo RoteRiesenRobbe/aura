@@ -366,7 +366,7 @@ describe('speed burst', () => {
         displayName: 'Swift', category: 'cooldown', maxLevel: 3, cooldownTicks: 600,
         effects: [effect({
             type: 'speed_burst',
-            speed: {factor: 1.5, factorPerLevel: 0.1, durationTicks: 150, durationTicksPerLevel: 30},
+            speed: {factor: 1.5, factorPerLevel: 0.1, durationTicks: 150, durationTicksPerLevel: 30, targetsSelf: true},
         })],
     });
 
@@ -386,6 +386,79 @@ describe('speed burst', () => {
         // Movement speed is not a damage number — the power curve must not
         // touch it, or the tooltip would promise a sprint that grows on level-up.
         expect(lines(swift, 1, SCALE_AT_30)).toContain('Move 1.5× → 1.6× as fast for 5s → 6s');
+    });
+});
+
+// plan-effect-types.md C4. speed_burst learned who it reaches, so the line that
+// only ever described a self-sprint would now LIE for an ally-facing cast: the
+// caster of Onward does not move faster at all.
+describe('speed burst, ally form', () => {
+    const onward = skill({
+        displayName: 'Onward', category: 'cooldown', maxLevel: 3, cooldownTicks: 900,
+        effects: [effect({
+            type: 'speed_burst',
+            radius: 3, targetsAllies: true,
+            speed: {factor: 1.4, factorPerLevel: 0.05, durationTicks: 150, durationTicksPerLevel: 15, targetsSelf: false},
+        })],
+    });
+
+    it('says the ALLIES move, not the caster', () => {
+        // 150 ticks = 5s, the next level 165 = 5.5s (ticksToSecs does not round
+        // to whole seconds — Swift's "5s → 6s" is 150 → 180, exact by accident).
+        expect(lines(onward, 1, 1)).toContain('Allies in range move 1.4× → 1.45× as fast for 5s → 5.5s');
+    });
+
+    it('names both when a burst carries the caster too', () => {
+        const both = skill({
+            displayName: 'Both', category: 'cooldown', maxLevel: 3, cooldownTicks: 900,
+            effects: [effect({
+                type: 'speed_burst',
+                radius: 3, targetsAllies: true,
+                speed: {factor: 1.4, factorPerLevel: 0, durationTicks: 150, durationTicksPerLevel: 0, targetsSelf: true},
+            })],
+        });
+        expect(lines(both, 1, 1)).toContain('You and allies in range move 1.4× as fast for 5s');
+    });
+});
+
+// plan-effect-types.md C4 / D8: Fly, You Fools!, the field form. Rendered on the
+// slow_aura pattern (label, value, refresh cadence) rather than the burst's
+// sentence, because an aura has no lifetime of its own to name.
+describe('speed aura', () => {
+    const flyYouFools = skill({
+        displayName: 'Fly, You Fools!', category: 'aura', maxLevel: 5,
+        effects: [effect({
+            type: 'speed_aura',
+            radius: 2.5, tickInterval: 30, targetsAllies: true,
+            costFractionOfMax: 0.03, costFractionOfMaxPerLevel: 0.004,
+            speed: {factor: 1.3, factorPerLevel: 0.05, durationTicks: 0, durationTicksPerLevel: 0, targetsSelf: false},
+        })],
+    });
+
+    it('names the pace with a next-level preview and the re-apply cadence', () => {
+        const out = lines(flyYouFools, 1, 1);
+        expect(out).toContain('Speed: 1.3× → 1.35×, refreshed every 1s');
+        expect(out.join('\n')).not.toContain('(speed_aura)');
+    });
+
+    it('drops the preview at max level', () => {
+        expect(lines(flyYouFools, 5, 1)).toContain('Speed: 1.5×, refreshed every 1s');
+    });
+
+    it('does not scale with character power', () => {
+        // Movement speed is not a damage number, the Swift rule.
+        expect(lines(flyYouFools, 1, SCALE_AT_30)).toContain('Speed: 1.3× → 1.35×, refreshed every 1s');
+    });
+
+    it('prices it as work-gated, not on the tick cadence', () => {
+        // §5.2 / R2: a haste field pays when it reaches somebody new, not every
+        // time it re-applies. The wording is the resist_aura one byte for byte,
+        // and COST_TRIGGER_TEXT is pinned exhaustively against the shared
+        // fixture, so the two cannot drift apart.
+        const cost = formatSkillTooltip(flyYouFools, 1, 1, 100, 1, true, 1)
+            .lines.map(line => line.text).join('\n');
+        expect(cost).toContain('when it reaches someone new');
+        expect(cost).not.toContain('Costs you: 3 Focus every 1s');
     });
 });
 

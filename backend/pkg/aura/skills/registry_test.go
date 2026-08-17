@@ -187,7 +187,14 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// + Aegis, its aura half (same chunk, D6+D7), id 70: the same wildcard
 	// immunity held on a cadence, paid for every cycle through the new
 	// buffLifetimeMatchesInterval lever. SKILL cheat only, 94 → 95.
-	assert.Len(t, r.All(), 95)
+	// + FlyYouFools, the first speed_aura (plan-effect-types.md C4, 2026-08-17),
+	// id 71: an uncapped ally haste field that never carries its own caster
+	// (D9). SKILL cheat only, no unlock source yet (the Aegis precedent),
+	// 95 → 96.
+	// + Onward, its cooldown half (same chunk, D8), id 72: the same haste as a
+	// one-shot shout, on speed_burst's newly ally-capable delivery. SKILL cheat
+	// only, 96 → 97.
+	assert.Len(t, r.All(), 97)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

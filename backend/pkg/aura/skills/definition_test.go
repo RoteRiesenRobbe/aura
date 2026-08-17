@@ -782,7 +782,7 @@ func TestMap_TickRateKeyOnOtherEffectFails(t *testing.T) {
 func TestParse_SpeedBurst(t *testing.T) {
 	data := []byte(`{
       "id": 10, "name": "Swift", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 600,
-      "effects": [{"type": "speed_burst", "speedFactor": 1.5, "speedFactorPerLevel": 0.1,
+      "effects": [{"type": "speed_burst", "targetsSelf": true, "speedFactor": 1.5, "speedFactorPerLevel": 0.1,
                    "speedDurationTicks": 150, "speedDurationTicksPerLevel": 30}]
     }`)
 	def := mustParse(t, data)
@@ -791,10 +791,130 @@ func TestParse_SpeedBurst(t *testing.T) {
 	e := def.Effects[0]
 	assert.Equal(t, EffectTypeSpeedBurst, e.Type)
 	require.NotNil(t, e.Speed)
+	assert.True(t, e.Speed.TargetsSelf)
+	assert.False(t, e.TargetsAllies)
 	assert.InDelta(t, 1.5, e.Speed.Factor, 1e-6)
 	assert.InDelta(t, 0.1, e.Speed.FactorPerLevel, 1e-6)
 	assert.Equal(t, 150, e.Speed.DurationTicks)
 	assert.Equal(t, 30, e.Speed.DurationTicksPerLevel)
+}
+
+// ⚑ Landmine C, direction 1 (plan-effect-types.md C4): opening speed_burst's
+// allowlist to "radius" puts it under the generic zero-radius gate, which would
+// hard-fail the SHIPPED Swift authoring at boot. A self-only burst reaches only
+// the caster and projects no query circle, so it must keep parsing radius-less.
+func TestMap_SpeedBurstSelfOnlyNeedsNoRadius(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":10,"name":"Swift","category":"cooldown","maxLevel":1,"cooldownTicks":600,"effects":[{"type":"speed_burst","targetsSelf":true,"speedFactor":1.5,"speedDurationTicks":150}]}`))
+	require.NoError(t, err)
+	def, err := raw.mapToSkillDefinition(nil)
+	require.NoError(t, err)
+	assert.InDelta(t, 0, def.Effects[0].Radius, 1e-6)
+}
+
+// ⚑ Landmine C, direction 2: the ALLY form does project a query circle, and a
+// circle with no radius reaches nobody — the silent no-op the generic gate
+// exists to stop. Same rule, conditioned on the flag that turns the circle on.
+func TestMap_SpeedBurstAlliesWithoutRadiusFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":10,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":600,"effects":[{"type":"speed_burst","targetsAllies":true,"speedFactor":1.5,"speedDurationTicks":150}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.ErrorContains(t, err, "radius")
+}
+
+// A burst that targets neither the caster nor allies is a cast that reaches
+// nobody — the no-silent-no-op posture, and the reason targetsSelf had to become
+// authored rather than implicit (D8).
+func TestMap_SpeedBurstWithNoTargetFlagFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":10,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":600,"effects":[{"type":"speed_burst","speedFactor":1.5,"speedDurationTicks":150}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.ErrorContains(t, err, "targetsSelf")
+}
+
+func TestParse_SpeedBurstAllyForm(t *testing.T) {
+	data := []byte(`{
+      "id": 72, "name": "Onward", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 900,
+      "effects": [{"type": "speed_burst", "targetsAllies": true, "radius": 3, "selector": "nearest",
+                   "maxTargets": 2, "maxTargetsPerLevel": 1,
+                   "speedFactor": 1.4, "speedDurationTicks": 150}]
+    }`)
+	def := mustParse(t, data)
+
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeSpeedBurst, e.Type)
+	assert.True(t, e.TargetsAllies)
+	assert.False(t, e.Speed.TargetsSelf, "the caster stays behind (D9) unless it authors targetsSelf")
+	assert.InDelta(t, 3, e.Radius, 1e-6)
+	assert.Equal(t, SelectorNearest, e.Selector)
+	assert.Equal(t, 2, e.MaxTargets)
+}
+
+// speed_burst never learned targetsEnemies: dragging an enemy is slow_aura's
+// axis, and a speed BUFF on an enemy is content nobody asked for.
+func TestMap_SpeedBurstRejectsTargetsEnemies(t *testing.T) {
+	mustFailMapCooldown(t, `{"type":"speed_burst","targetsEnemies":true,"radius":3,"speedFactor":1.5,"speedDurationTicks":150}`, "not valid on this effect type")
+}
+
+func TestParse_SpeedAura(t *testing.T) {
+	data := []byte(`{
+      "id": 71, "name": "FlyYouFools", "category": "active_aura", "maxLevel": 3,
+      "effects": [{"type": "speed_aura", "targetsAllies": true, "radius": 2.5,
+                   "tickInterval": 30, "costFractionOfMax": 0.02,
+                   "speedFactor": 1.3, "speedFactorPerLevel": 0.05}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeSpeedAura, e.Type)
+	require.NotNil(t, e.Speed)
+	assert.True(t, e.TargetsAllies)
+	assert.False(t, e.Speed.TargetsSelf, "D9: the caster is never in its own in-range set")
+	assert.InDelta(t, 1.3, e.Speed.Factor, 1e-6)
+	assert.InDelta(t, 0.05, e.Speed.FactorPerLevel, 1e-6)
+	assert.Equal(t, 0, e.Speed.DurationTicks, "the aura form derives its lifetime from the cadence")
+	assert.InDelta(t, 2.5, e.Radius, 1e-6)
+	assert.Equal(t, 30, e.TickInterval)
+}
+
+// The aura form is a HASTE field: a factor at or below 1 would be a "speed"
+// aura that drags its own allies, which is slow_aura's job and the opposite of
+// what the type is named for.
+func TestMap_SpeedAuraFactorNotAboveUnityFails(t *testing.T) {
+	for _, factor := range []string{"0.8", "1"} {
+		raw, err := parseSkillDefinition([]byte(`{"id":71,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"speed_aura","targetsAllies":true,"radius":2,"tickInterval":30,"speedFactor":` + factor + `}]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition(nil)
+		assert.ErrorContains(t, err, "speedFactor", "factor %s", factor)
+	}
+}
+
+// targetsAllies is the aura's ONLY delivery: no targetsSelf (D9 excludes the
+// caster) and no targetsEnemies (slow_aura owns that axis), so without the flag
+// the aura ticks, charges and reaches nobody.
+func TestMap_SpeedAuraWithoutTargetsAlliesFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":71,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"speed_aura","radius":2,"tickInterval":30,"speedFactor":1.3}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.ErrorContains(t, err, "targetsAllies")
+}
+
+// The keys the aura form deliberately does NOT take: a duration (its lifetime
+// comes from the cadence, computed not authored), targetsEnemies and
+// targetsSelf. Each would be a silent no-op the allowlist turns into a boot
+// failure.
+func TestMap_SpeedAuraRejectsDurationAndTheOtherTargetFlags(t *testing.T) {
+	for _, extra := range []string{
+		`"speedDurationTicks": 150`,
+		`"speedDurationTicksPerLevel": 15`,
+		`"targetsEnemies": true`,
+		`"targetsSelf": true`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":71,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"speed_aura","targetsAllies":true,"radius":2,"tickInterval":30,"speedFactor":1.3,` + extra + `}]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition(nil)
+		assert.ErrorContains(t, err, "not valid on this effect type", "extra: %s", extra)
+	}
 }
 
 func TestParse_LifestealBurst(t *testing.T) {

@@ -71,7 +71,7 @@ Grouped by what a player would call them:
 | **Mitigation** | `resist_aura` · `resist_passive` · `instant_resist` |
 | **Control** | `slow_aura` · `stun` · `calm` · `charm` |
 | **Threat** | `taunt` · `detaunt` |
-| **Movement / tempo** | `dash` · `speed_burst` · `tick_rate` |
+| **Movement / tempo** | `dash` · `speed_burst` · `speed_aura` · `tick_rate` |
 | **Triggered riders** | `lifesteal_burst` · `retaliate_slow` · `retaliate_damage` · `retaliate_burst` |
 | **Scalars** | `stat_multiplier` (6 stats) |
 | **Other** | `light_aura` · `spawn` · `revive` · `recall` |
@@ -159,6 +159,7 @@ exists is the **runtime dispatch**, in three places:
 | `charm` | ✗ | ✗ | ✅ |
 | `taunt` / `detaunt` | ✗ | ✗ | ✅ |
 | `dash` | ✗ | ✗ | ✅ |
+| `speed_aura` | ✅ | ✗ | ✗ |
 | `speed_burst` | ✗ | ✗ | ✅ |
 | `tick_rate` | ✗ | ✗ | ✅ |
 | `lifesteal_burst` | ✗ | ✗ | ✅ |
@@ -315,7 +316,7 @@ otherwise reads as damage numbers that stop appearing (D10).
 | charm | n/a | n/a | ✅ CharmBeast · ✅ BindElemental · ◻ *Enthrall* (per faction, one per allowlist) |
 | taunt | ◻ (needs code) | n/a | ✅ Taunt |
 | detaunt | ◻ (needs code) | n/a | ✅ Fade · ✅ HoldTheLine |
-| move speed | n/a | ◻ *Fleetfoot* (`movementSpeed` is the one unused stat) | ✅ Swift |
+| move speed | ✅ FlyYouFools (allies only, caster excluded) | ◻ *Fleetfoot* (`movementSpeed` is the one unused stat) | ✅ Swift (self) · ✅ Onward (allies, caster stays behind) |
 | blink | n/a | n/a | ✅ Dash · ◻ *Retreat* (backwards), ◻ *Leap* (longer, longer CD) |
 | aura cadence | n/a | n/a | ✅ Haste · ◻ *Focus* (longer and weaker) |
 | light | ✅ Lantern | ✅ Torch | ◻ *Flare* (needs code) |
@@ -521,7 +522,7 @@ Go work, and each is a genuine design question rather than an omission:
 | **Player-targeted CC** | Deliberately inert (`plan-skill-vocab` §3.1); the cc-and-retaliation plan's open question 3 scoped "can a mob stun a player" out of v1. |
 | **Silence on its own** | `stun` bundles movement plus cast suppression. A cast-only lock is one gate away but does not exist. |
 | **Cleanse / dispel** | No effect removes a buff or debuff. There is no counter to a dot except outlasting it. |
-| **Ally buffs of any kind** | `stat_multiplier` is equip-time and self-only, `speed_burst` and `tick_rate` and `lifesteal_burst` are all self-only. The "Fly, You Fools!" idea (speed up allies, not yourself) is not authorable. **This is the biggest single gap for the group-support pillar.** |
+| ~~**Ally buffs of any kind**~~ **RESOLVED 2026-08-17 (for the speed axis)** | The ally-delivery path exists now (plan-effect-types.md C4, D8/D9): new `speed_aura` (timed ally move-speed field, caster structurally excluded — the type has no `targetsSelf` at all) and `speed_burst` extended with the standard target flags (`swift.json` authors `targetsSelf: true`, runtime behavior pinned unchanged; a burst authoring neither flag hard-fails). Shipped as content: *Fly, You Fools!* (id 71, aura) and *Onward* (id 72, cooldown burst). ⚑ Scope honesty: this resolves the row for MOVE SPEED only — `tick_rate` and `lifesteal_burst` remain self-only by construction, and ally versions of those are new (small) extensions on the same pattern when content wants them. The ring got the last free `aura_category` bit (`speed`, pip-green by PO ruling), so the NEXT new aura category is a wire conversation (§39-adjacent). No wire or DB change. |
 | ~~**Vulnerability debuffs**~~ **RESOLVED 2026-08-16** | It WAS already authorable: `resist_aura` with `resistFactor > 1` and `targetsEnemies` (plan-effect-types.md C1, D1). Verified, pinned and shipped as content (*FireVulnerability*, id 66). One real defect fell out and was fixed: the buff store picked the *lowest* factor per source as "strongest", which is right for wards and inverted for curses, so two casters of one vuln skill at different levels landed the weakest (D2 — "strongest" is now furthest from 1 in both directions). No new effect type, no wire or DB change. See §3.2. |
 | **Stealth / invisibility** | `detaunt` is the nearest thing. |
 | **Conditional triggers generally** | `retaliate_slow` and `retaliate_damage` are the only runtime triggers in the game, and they share one site. No on-kill, on-crit, below-X%-HP, or on-dodge hooks. Every "when X happens, do Y" ability is blocked on this, and it is the single highest-leverage addition on this list. |
@@ -558,7 +559,10 @@ If this becomes work, the cheapest order by value:
 5. **Then, and only then, the two code additions worth their price:** ally-
    targeted buffs (the group-support pillar has no ability that buffs another
    player) and a general conditional-trigger hook (which unlocks a whole class
-   of ability rather than one ability).
+   of ability rather than one ability). *(The first of the two landed
+   2026-08-17: effect-types C4 shipped the ally speed pair, and its delivery
+   pattern is the template for ally `tick_rate`/`lifesteal` variants. The
+   conditional-trigger hook remains open.)*
 
 Everything in §7 beyond those two is a v2 conversation.
 

@@ -1936,11 +1936,13 @@ func (m *Mob) ApplyShield(source skills.SkillID, hp float32, ticks int) bool {
 	return m.buffs.ApplyShield(source, hp, ticks)
 }
 
-// ApplySpeed grants a movement-speed buff from a speed_burst cooldown; read
-// each tick by stepLength via the composed MovementFactor. Mob content can
-// carry a sprint of its own, the same way it can carry a self-haste.
-func (m *Mob) ApplySpeed(source skills.SkillID, factor float32, ticks int) {
-	m.buffs.ApplySpeed(source, factor, ticks)
+// ApplySpeed grants a movement-speed buff from a speed_burst cooldown or a
+// speed_aura field; read each tick by stepLength via the composed
+// MovementFactor. Mob content can carry a sprint of its own, the same way it
+// can carry a self-haste — and since C4 a mob can be hastened by an ALLY's
+// field too. Reports whether the application was genuinely new (§5.2).
+func (m *Mob) ApplySpeed(source skills.SkillID, factor float32, ticks int) bool {
+	return m.buffs.ApplySpeed(source, factor, ticks)
 }
 
 // ApplyTickRate grants a haste / tick-slow buff scaling this mob's own aura

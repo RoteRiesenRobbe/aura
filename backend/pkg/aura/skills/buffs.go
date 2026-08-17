@@ -267,19 +267,26 @@ func (b *Buffs) ApplySlow(source SkillID, fraction float32, ticks int) bool {
 }
 
 // ApplySpeed grants (or refreshes) a movement-speed buff from the given source
-// skill (Swift as a cooldown): factor > 1 sprints, < 1 drags. Same stream rules
-// as slow and tick_rate, keyed by factor — an identical factor refreshes that
-// stream, a different factor opens its own.
-func (b *Buffs) ApplySpeed(source SkillID, factor float32, ticks int) {
+// skill (Swift as a cooldown, and since C4 the speed_aura field too): factor > 1
+// sprints, < 1 drags. Same stream rules as slow and tick_rate, keyed by factor —
+// an identical factor refreshes that stream, a different factor opens its own.
+//
+// Reports whether the application was genuinely NEW, the ApplyResist/ApplySlow
+// rule (§5.2): it is what a speed AURA's cost is charged off, so holding one on
+// a group that is not changing is free while every new ally entering the field
+// costs. ⚑ The cooldown site discards the answer on purpose — a cast pays on
+// activation, hit or whiff (D9).
+func (b *Buffs) ApplySpeed(source SkillID, factor float32, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*speedPayload); ok && p.factor == factor {
 			if ticks > e.ticks {
 				e.ticks = ticks
 			}
-			return
+			return false
 		}
 	}
 	b.apply(source, &speedPayload{factor: factor}, ticks)
+	return true
 }
 
 // ApplyLifesteal grants (or refreshes) a damage-leech buff from the given source

@@ -19,6 +19,10 @@ const (
 	AuraCategorySlow   AuraCategory = 1 << 4
 	AuraCategoryLight  AuraCategory = 1 << 5
 	AuraCategoryResist AuraCategory = 1 << 6
+	// ⚑ The LAST free bit in the aura_category ubyte (C4, PO ruling
+	// 2026-08-17). A ninth category needs a wider wire field, which is a §39
+	// conversation — do not add one here without it.
+	AuraCategorySpeed AuraCategory = 1 << 7
 )
 
 // Has reports whether c carries the given category bit.
@@ -45,6 +49,13 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	// Teal on the client, matching the applied-resist pip — projected and
 	// received resist share one colour (PO pick 2026-07-21).
 	EffectTypeResistAura: AuraCategoryResist,
+
+	// Green on the client, matching the applied-SPEED pip for the resist
+	// reason: the ring says "this field hastens" and the pip on an ally says
+	// "I am hastened", and one colour has to mean one thing (PO ruling
+	// 2026-08-17). The colour is the pip's existing green, moved into the
+	// shared table rather than duplicated.
+	EffectTypeSpeedAura: AuraCategorySpeed,
 
 	// No persistent aura radius — nothing to outline.
 	EffectTypeNone:           AuraCategoryNone,

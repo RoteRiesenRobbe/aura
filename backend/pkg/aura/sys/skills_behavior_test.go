@@ -196,8 +196,8 @@ func (f *fakePlayer) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks i
 	f.hots = append(f.hots, appliedHot{source, hot, ticks})
 	return f.buffs.ApplyHot(source, hot, ticks)
 }
-func (f *fakePlayer) ApplySpeed(source skills.SkillID, factor float32, ticks int) {
-	f.buffs.ApplySpeed(source, factor, ticks)
+func (f *fakePlayer) ApplySpeed(source skills.SkillID, factor float32, ticks int) bool {
+	return f.buffs.ApplySpeed(source, factor, ticks)
 }
 func (f *fakePlayer) MovementFactor() float32 { return f.buffs.MovementFactor() }
 func (f *fakePlayer) ApplyTickRate(source skills.SkillID, factor float32, ticks int) {
@@ -4829,9 +4829,12 @@ func TestCooldown_CharmDurationScalesWithLevel(t *testing.T) {
 	assert.NotEqual(t, model.FactionAligned, m.Faction(), "…and reverts the tick it runs out")
 }
 
-// --- speed_burst: Swift as a cooldown. Self-targeted, so unlike the burst
-// cooldowns there is no query circle and no target — the assertions are on the
-// caster's own composed movement factor. ---
+// --- speed_burst: Swift as a cooldown. Self-targeted, so for THIS shape there
+// is no query circle and no target — the assertions are on the caster's own
+// composed movement factor. ⚑ Since C4 the self-targeting is AUTHORED
+// (Speed.TargetsSelf) rather than implicit, and the four tests below are what
+// keeps Swift's runtime behavior pinned across that change: they went red on
+// the flag alone before swift.json and this fixture gained it. ---
 
 func speedBurstDef() *skills.SkillDefinition {
 	return &skills.SkillDefinition{
@@ -4842,6 +4845,7 @@ func speedBurstDef() *skills.SkillDefinition {
 			Speed: &skills.SpeedParams{
 				Factor: 1.5, FactorPerLevel: 0.1,
 				DurationTicks: 150, DurationTicksPerLevel: 30,
+				TargetsSelf: true,
 			},
 		}},
 	}
@@ -4912,6 +4916,223 @@ func TestCooldown_SpeedBurstSetsThePip(t *testing.T) {
 
 	assert.NotZero(t, caster.buffs.AppliedEffects()&skills.AppliedEffectSpeed,
 		"a sprinting caster carries the speed pip")
+}
+
+// --- speed_aura + the speed_burst ALLY form (plan-effect-types.md C4 / D8+D9):
+// Fly, You Fools!. The two shapes share SpeedParams and differ only in
+// delivery — a field that re-applies on a cadence, and a cast that reaches once.
+// ---
+
+type appliedSpeed struct {
+	source skills.SkillID
+	factor float32
+	ticks  int
+}
+
+// speedTargetRecorder is a PlayerEntity ally that records ApplySpeed calls.
+// Like the resist and shield recorders it keeps the REAL buff store behind the
+// recording, so the new-vs-refresh answer the aura's cost is charged off (§5.2)
+// is the shipped one rather than a constant.
+type speedTargetRecorder struct {
+	model.PlayerEntity
+	basic  ecs.BasicEntity
+	speeds []appliedSpeed
+	buffs  skills.Buffs
+}
+
+func (r *speedTargetRecorder) Basic() ecs.BasicEntity { return r.basic }
+func (r *speedTargetRecorder) Faction() model.Faction { return model.FactionAligned }
+func (r *speedTargetRecorder) ApplySpeed(source skills.SkillID, factor float32, ticks int) bool {
+	r.speeds = append(r.speeds, appliedSpeed{source, factor, ticks})
+	return r.buffs.ApplySpeed(source, factor, ticks)
+}
+
+// hostileSpeedTarget is the same recorder on the opposing faction — the proof
+// that a haste field cannot leak onto an enemy even standing in the circle.
+type hostileSpeedTarget struct {
+	model.MobEntity
+	basic  ecs.BasicEntity
+	speeds []appliedSpeed
+	buffs  skills.Buffs
+}
+
+func (r *hostileSpeedTarget) Basic() ecs.BasicEntity { return r.basic }
+func (r *hostileSpeedTarget) Faction() model.Faction { return model.FactionHostile }
+func (r *hostileSpeedTarget) ApplySpeed(source skills.SkillID, factor float32, ticks int) bool {
+	r.speeds = append(r.speeds, appliedSpeed{source, factor, ticks})
+	return r.buffs.ApplySpeed(source, factor, ticks)
+}
+
+// flyYouFoolsEffect is the aura shape: uncapped (all allies in radius, the
+// design row), no selector, no maxTargets, and no targetsSelf key at all.
+func flyYouFoolsEffect() skills.EffectDef {
+	return skills.EffectDef{
+		Type:          skills.EffectTypeSpeedAura,
+		Radius:        2.5,
+		TargetsAllies: true,
+		TickInterval:  30,
+		Speed:         &skills.SpeedParams{Factor: 1.3, FactorPerLevel: 0.05},
+	}
+}
+
+func TestApplySpeedAura_HastensEveryAllyInRange(t *testing.T) {
+	caster := newFakePlayer()
+	a := &speedTargetRecorder{basic: ecs.NewBasic()}
+	b := &speedTargetRecorder{basic: ecs.NewBasic()}
+
+	applySpeedAura(caster, 71, 1, flyYouFoolsEffect(), colliderSetOf(a, b))
+
+	for _, ally := range []*speedTargetRecorder{a, b} {
+		require.Len(t, ally.speeds, 1, "uncapped: everybody in the circle is carried")
+		assert.Equal(t, skills.SkillID(71), ally.speeds[0].source)
+		assert.InDelta(t, 1.3, ally.speeds[0].factor, 1e-6)
+		assert.Equal(t, 30+1, ally.speeds[0].ticks,
+			"aura lifetime = tick interval + 1, the standard convention (no D7 lever here)")
+		assert.InDelta(t, 1.3, ally.buffs.MovementFactor(), 1e-6,
+			"the ally's own store hands the movement site a faster pace")
+	}
+}
+
+func TestApplySpeedAura_ExcludesTheCasterAndEveryEnemy(t *testing.T) {
+	// D9 is the whole risk/reward of the skill: you run the field, you do not
+	// ride it. And a haste aura must never leak onto the thing chasing you.
+	caster := newFakePlayer()
+	ally := &speedTargetRecorder{basic: ecs.NewBasic()}
+	enemy := &hostileSpeedTarget{basic: ecs.NewBasic()}
+
+	applySpeedAura(caster, 71, 1, flyYouFoolsEffect(), colliderSetOf(ally, enemy, caster))
+
+	require.Len(t, ally.speeds, 1)
+	assert.Empty(t, enemy.speeds, "targetsEnemies does not exist on this type, and eligibility agrees")
+	assert.InDelta(t, 1.0, caster.buffs.MovementFactor(), 1e-6,
+		"the caster is never in its own in-range set (D9)")
+}
+
+func TestApplySpeedAura_ScalesWithLevel(t *testing.T) {
+	caster := newFakePlayer()
+	ally := &speedTargetRecorder{basic: ecs.NewBasic()}
+
+	applySpeedAura(caster, 71, 3, flyYouFoolsEffect(), colliderSetOf(ally))
+
+	require.Len(t, ally.speeds, 1)
+	assert.InDelta(t, 1.4, ally.speeds[0].factor, 1e-6, "1.3 + 2×0.05")
+}
+
+func TestApplySpeedAura_ChargesForWorkNotForProximity(t *testing.T) {
+	// §5.2, the standard aura rule and the reason ApplySpeed learned a return
+	// value: reaching a new ally is work and is charged; holding the same group
+	// at the same factor is a refresh and is free. Without it a haste field
+	// would pay once and carry a party forever — the hole D7 had to close by
+	// hand for the invulnerability aura, closed here by the ordinary rule.
+	caster := newFakePlayer()
+	ally := &speedTargetRecorder{basic: ecs.NewBasic()}
+	effect := flyYouFoolsEffect()
+	set := colliderSetOf(ally)
+
+	assert.True(t, applySpeedAura(caster, 71, 1, effect, set), "the first ally reached is work")
+	assert.False(t, applySpeedAura(caster, 71, 1, effect, set), "the same ally at the same factor is a refresh")
+	assert.False(t, applySpeedAura(caster, 71, 1, effect, colliderSetOf()), "an empty field is not work")
+
+	newcomer := &speedTargetRecorder{basic: ecs.NewBasic()}
+	assert.True(t, applySpeedAura(caster, 71, 1, effect, colliderSetOf(ally, newcomer)),
+		"somebody new walking in IS work, even though the old ally is only refreshed")
+}
+
+func TestAuraCost_SpeedAuraPaysOnlyForWork(t *testing.T) {
+	// The same rule read end to end through applyAuraEffect, which is where the
+	// charge actually happens: the tick that reaches somebody new costs, the
+	// tick that only refreshes does not.
+	caster := newFakePlayer()
+	ally := &speedTargetRecorder{basic: ecs.NewBasic()}
+	effect := costed(flyYouFoolsEffect(), 0.1)
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+
+	sk.applyAuraEffect(caster, 71, 1, effect, colliderSetOf(ally))
+	require.Equal(t, vitals.VitalSign(90), caster.vitalSigns.Health, "reaching the ally costs 10%")
+
+	sk.applyAuraEffect(caster, 71, 1, effect, colliderSetOf(ally))
+	assert.Equal(t, vitals.VitalSign(90), caster.vitalSigns.Health, "the refresh is free")
+}
+
+// onwardDef is the ally-burst cooldown's shape: the caster stays behind (D9),
+// the nearest allies are carried.
+func onwardDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 72, Name: "Onward", Category: skills.SkillCategoryCooldown, MaxLevel: 3,
+		CooldownTicks: 900,
+		Effects: []skills.EffectDef{{
+			Type:               skills.EffectTypeSpeedBurst,
+			Radius:             3,
+			TargetsAllies:      true,
+			MaxTargets:         2,
+			MaxTargetsPerLevel: 1,
+			Speed:              &skills.SpeedParams{Factor: 1.4, DurationTicks: 150},
+		}},
+	}
+}
+
+func TestCooldown_SpeedBurstAllyFormCarriesAlliesNotTheCaster(t *testing.T) {
+	ally := &speedTargetRecorder{basic: ecs.NewBasic()}
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerPlayerCollision), ally))
+	caster.sc.EquipCooldown(0, onwardDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	require.Len(t, ally.speeds, 1, "the ally in the circle is carried")
+	assert.Equal(t, skills.SkillID(72), ally.speeds[0].source)
+	assert.InDelta(t, 1.4, ally.speeds[0].factor, 1e-6)
+	assert.Equal(t, 150+1, ally.speeds[0].ticks,
+		"ally lifetime = authored duration + 1 (the instant_resist convention)")
+	assert.InDelta(t, 1.0, caster.buffs.MovementFactor(), 1e-6, "no self-buff without targetsSelf")
+	assert.Equal(t, 900, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
+}
+
+func TestApplySpeedBurst_HitBoolIsTheMobConsumeContract(t *testing.T) {
+	// The applyInstantResist contract, one type later: processCooldowns
+	// consumes a MOB's cooldown only on true, so an ally-only burst with nobody
+	// in range must stay ready. A player pays on cast either way (D9).
+	t.Run("ally-only cast with nobody in range whiffs", func(t *testing.T) {
+		s := NewSkillSystem(phy.NewSpace(), nil)
+		assert.False(t, s.applySpeedBurst(newFakePlayer(), 72, 1, onwardDef().Effects[0]))
+	})
+
+	t.Run("ally-only cast reaching somebody hits", func(t *testing.T) {
+		ally := &speedTargetRecorder{basic: ecs.NewBasic()}
+		s := NewSkillSystem(spaceWithBurstTarget(int(model.LayerPlayerCollision), ally), nil)
+		assert.True(t, s.applySpeedBurst(newFakePlayer(), 72, 1, onwardDef().Effects[0]))
+	})
+
+	t.Run("Swift alone in an empty field still hits", func(t *testing.T) {
+		caster := newFakePlayer()
+		s := NewSkillSystem(phy.NewSpace(), nil)
+		assert.True(t, s.applySpeedBurst(caster, 10, 1, speedBurstDef().Effects[0]),
+			"the self-apply is a hit, not a whiff — Swift's shipped behavior")
+		assert.InDelta(t, 1.5, caster.buffs.MovementFactor(), 1e-6)
+	})
+}
+
+func TestApplySpeedBurst_AllyTargetCapScalesWithLevel(t *testing.T) {
+	a := &speedTargetRecorder{basic: ecs.NewBasic()}
+	b := &speedTargetRecorder{basic: ecs.NewBasic()}
+	space := spaceWithBurstTarget(int(model.LayerPlayerCollision), a)
+	second := phy.NewCircle(phy.VEC2F_ZERO, 0.25)
+	second.Shape().IsSensor = true
+	second.Shape().Layer = int(model.LayerPlayerCollision)
+	second.Shape().UserData = b
+	space.AddShape(second)
+	space.Update()
+
+	s := NewSkillSystem(space, nil)
+	effect := onwardDef().Effects[0]
+	effect.MaxTargets = 1
+
+	s.applySpeedBurst(newFakePlayer(), 72, 1, effect)
+	assert.Equal(t, 1, len(a.speeds)+len(b.speeds), "level 1 carries one")
+
+	a.speeds, b.speeds = nil, nil
+	s.applySpeedBurst(newFakePlayer(), 72, 2, effect)
+	assert.Equal(t, 2, len(a.speeds)+len(b.speeds), "level 2 carries two")
 }
 
 // --- lifesteal_burst: Bloodthirst, the rider Reaper lost (R3 / §5.6). The

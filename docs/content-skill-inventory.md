@@ -63,9 +63,9 @@ for f in sorted(glob.glob('api/skills/*.json')):
 EOF
 ```
 
-Scope: the 63 **player** skills (`api/skills/*.json`). The 32 mob-only skills
+Scope: the 65 **player** skills (`api/skills/*.json`). The 32 mob-only skills
 in `api/skills/mobs/` are not listed (they're authoring details of their mobs).
-63 + 32 = the **95** registry count in the boot log (was 50 + 36 = 86 at the
+65 + 32 = the **97** registry count in the boot log (was 50 + 36 = 86 at the
 2026-07-29 generation).
 
 > ⭐ **ROSTER REPAIRED 2026-08-17 (PO ruling), by re-deriving every count from
@@ -98,7 +98,7 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 > The legacy proving-grounds roster (and its five mob skills) was deleted at
 > zone-editor C3, 2026-08-16; the *(legacy)* source annotations are gone with it.
 
-## Active auras (25)
+## Active auras (26)
 
 | ID | Name | MaxLv | Values | Source |
 |---|---|---|---|---|
@@ -113,6 +113,7 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 40 | FireWard | 3 | fire resist ×0.6 −0.1/L, allies+self, r1.5 | Drop: FireElemental .35 |
 | 66 | FireVulnerability | 5 | ⭐ fire resist **×1.2 +0.05/L** (a CURSE: enemies take more), enemies only, r1.5 @30t | **Cheat only (`SKILL FireVulnerability`)** — no unlock source yet (plan-effect-types.md C1) |
 | 70 | Aegis | 3 | ⭐ resist **`*` ×0** = IMMUNITY to all damage, nearest 1 +1/L allies (not self), r1.5 @90t; cost 0.08 +0.01/L **charged every cycle** (`buffLifetimeMatchesInterval`) | **Cheat only (`SKILL Aegis`)**: no unlock source yet (plan-effect-types.md C3) |
+| 71 | FlyYouFools | 5 | ⭐ "Fly, You Fools!" — ally move speed **×1.3 +0.05/L**, ALL allies in radius (uncapped, caster never buffed), r2.5 @30t; cost 0.03 +0.004/L charged when it reaches someone new | **Cheat only (`SKILL FlyYouFools`)** — no unlock source yet (plan-effect-types.md C4) |
 | 141 | Frostbite | 10 | ⭐ dmg 14 +0.22/L **frost** @40t, r1.0, 1 tgt nearest, var ±15%; **FREE** | **Ascension** (D1 parity: Damage id 1, verbatim but frost) |
 | 142 | Blight | 10 | ⭐ **nature** dot 10.5 +2.61/L (3×60t) @20t, r1.0 | **Ascension** (D1 parity: Immolate id 5, verbatim but nature) |
 | 145 | Venomward | 5 | ⭐ **poison** resist ×0.6 −0.05/L, allies+self, r1.5 @30t | **Ascension** (D1 parity: FireWard id 40, verbatim but poison) |
@@ -143,7 +144,7 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 139 | FrostShield | 5 | retaliate slow 10% +5%/L for 150t on anything that damages you | Drop: Troll .2 |
 | 67 | FireShield | 5 | ⭐ retaliate **damage 3 +1/L fire** at anything that damages you (attributed: it credits XP and kill credit) | **Cheat only (`SKILL FireShield`)** — no unlock source yet (plan-effect-types.md C2) |
 
-## Cooldowns (28)
+## Cooldowns (29)
 
 | ID | Name | MaxLv | Values (CD in ticks) | Source |
 |---|---|---|---|---|
@@ -175,6 +176,7 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 64 | BindElemental | 3 | charm 1200t +200/L, r3.5, 1 tgt nearest; **scoped: elemental**; CD 4200 | NPC Emberkeeper @L15 |
 | 68 | Retribution | 5 | ⭐ for 300t (10 s), reflects **20% +5%/L of every hit taken** back as **fire** (attributed: it credits XP and kill credit); CD 900 −60/L, cost 0.02 +0.0025/L | **Cheat only (`SKILL Retribution`)** — no unlock source yet (plan-effect-types.md follow-up) |
 | 69 | Sanctuary | 3 | ⭐ grants resist **`*` ×0** = IMMUNITY to all damage for 150t (5 s) to the nearest 1 +1/L allies (not self), r1.5; CD 900, cost 0.04 +0.005/L | **Cheat only (`SKILL Sanctuary`)**: no unlock source yet (plan-effect-types.md C3) |
+| 72 | Onward | 5 | ⭐ ally move speed **×1.4 +0.05/L** for 150t +15/L, all allies in r3 (uncapped, `targetsSelf` absent — the caster stays behind); CD 900 −60/L, cost 0.03 +0.004/L | **Cheat only (`SKILL Onward`)** — no unlock source yet (plan-effect-types.md C4) |
 
 ## Reachability summary (live world zone)
 
@@ -192,7 +194,7 @@ ascension catalog).
   regeneration script that reads only `unlocks[]`, teachings, recipes and the
   milestone table will report all six as unreachable and be wrong, exactly as
   the quest-reward note below warns for its own three.
-- **Unreachable without the cheat: SIX, and all six are deliberate.**
+- **Unreachable without the cheat: EIGHT, and all eight are deliberate.**
   ⭐ **Bloodthirst** (id 8) is the oldest of them and was never counted here:
   its ROW was missing from the table, so the sweep could not see it (R3,
   2026-08-01, "no unlock source yet ... the obvious home is the wolf line
@@ -210,9 +212,11 @@ ascension catalog).
   ⭐ **Sanctuary** (id 69) and **Aegis** (id 70, both C3, 2026-08-17) are the
   newest pair, following that convention: the two halves of invulnerability,
   the cooldown grant on the new `instant_resist` type and the aura that holds
-  it.
+  it. ⭐ **FlyYouFools** (id 71) and **Onward** (id 72, both C4, 2026-08-17)
+  close out the effect-types round the same way: the two shapes of ally speed,
+  the new `speed_aura` and the ally-capable `speed_burst`.
   ⚑ Each new one costs the reachability sweep a line, and the sweep must not
-  start reading six cheat-only skills as drift. ⚑ And a skill missing from the
+  start reading eight cheat-only skills as drift. ⚑ And a skill missing from the
   TABLE is invisible to this list, which is how Bloodthirst went four chunks
   uncounted: re-derive from `api/skills/`, never from the rows below. Every OTHER player
   skill has a live-world source — the step-7 A.5 guarantee

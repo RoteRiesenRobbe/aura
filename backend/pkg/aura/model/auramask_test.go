@@ -59,6 +59,18 @@ func TestAuraMaskFor_ResistAura(t *testing.T) {
 	assert.Equal(t, int(LayerCombatants), AuraMaskFor(enemies))
 }
 
+// The same landmine one type later (plan-effect-types.md C4): a speed aura with
+// no case here senses nothing, so the applier is never called and the field is
+// silently dead. Pinned DIRECTLY because no sys test can catch it — the
+// behaviour tests hand the applier a collider set the sensor never had to build.
+func TestAuraMaskFor_SpeedAura(t *testing.T) {
+	allies := &skills.SkillDefinition{Effects: []skills.EffectDef{
+		{Type: skills.EffectTypeSpeedAura, TargetsAllies: true, Speed: &skills.SpeedParams{Factor: 1.3}},
+	}}
+	assert.Equal(t, int(LayerCombatants), AuraMaskFor(allies),
+		"a speed aura must sense both combatant layers — a hastened ally can be a player or a mob")
+}
+
 func TestInstantDamageMask_SpansBothCombatantLayers(t *testing.T) {
 	e := skills.EffectDef{Type: skills.EffectTypeInstantDamage, TargetsEnemies: true, Damage: &skills.DamageParams{}}
 

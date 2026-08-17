@@ -1,6 +1,6 @@
 # Plan: New effect types, round 1 (vulnerability · retaliate damage · invulnerability · ally speed)
 
-**Status: designed 2026-08-15, nothing built.**
+**Status: COMPLETE 2026-08-17 - all four chunks shipped (C1 `e2261f6f` · C2 `6d79c40c` · C3 `1846dfe6` · C4 `[uncommitted]`), archived. Ledger in §9.**
 **Source list:** `content-ability-matrix.md` §7 (the vocabulary-hole list the
 PO ruled must close before the content pass), picks + rulings PO 2026-08-15.
 **Survey verified at `3b2892ed`; re-verify line refs at execution.**
@@ -540,3 +540,116 @@ item was the check's one finding and is fixed above).
 the inventory's MaxLv/slope value drift still owes a full regeneration.
 
 **Next in this plan:** C4, ally speed - the last chunk.
+
+### C4 - Ally speed buffs ✅ 2026-08-17, `[uncommitted]` — THE LAST CHUNK
+
+**D8 held: extending beat adding.** `speed_aura` is a new effect type but not a
+new payload - both forms carry `SpeedParams`, and the only difference is
+delivery (a field on a cadence vs. a cast that reaches once). **D9 held
+structurally**: the aura form has no `targetsSelf` key at all, so the caster's
+exclusion is not authored, it is unauthorable. The aura charges on the §5.2
+did-work rule (`Buffs.ApplySpeed` gained the ApplyResist-shaped fresh-vs-refresh
+bool; the cooldown site discards it, D9), lifetime = tickInterval + 1, NO D7
+lever - exactly as scoped.
+
+**The D8 targetsSelf wrinkle went the pre-blessed JSON route** (settled in the
+execution session as the plan allowed): `SpeedParams` gained default-false
+`TargetsSelf` (the Resist/Hot/Shield convention) and `swift.json` authors
+`"targetsSelf": true` - a byte change, behavior identical. The pin is Swift's
+RUNTIME behavior and the evidence is strong: adding the new
+neither-flags-hard-fails guard turned four shipped Swift behavior tests red on
+the flag alone (`TestCooldown_SpeedBurstBuffsTheCaster` and siblings), green
+again once the JSON authors it. `swift-cooldown.mjs` re-measured the game
+surface after: 1.52× against the authored 1.5×, pip lifecycle intact.
+
+**Ring: the PO ruled a NEW category in the pip's green** ("match the color we
+use on the character pip when the swift cooldown is active"). `AuraCategorySpeed
+= 1<<7` - ⚑ the LAST free bit in the `aura_category` wire ubyte, recorded in
+both const blocks - colored the existing speed-pip green `0x6ee06e`, which moved
+into `AURA_CATEGORY_COLORS.speed` with `EffectPips.ts` now referencing it (the
+duplicated literal killed). Ripple pinned both ways via
+`api/shared-constants.json` `auraCategoryBits` (7 → 8 entries; both
+SharedConstants pins were genuinely red). ⚑ This contradicts §6's "no frontend
+code change expected" - that line was a prediction, and the survey behind it had
+not noticed no speed color existed in the ring language. No pip work was needed:
+the pip rides the buff PAYLOAD, not the effect type, so a hastened ally lights
+the existing green pip for free (D10 intact).
+
+**All three surveyed landmines were real, plus one new.** (1) `AuraMaskFor`
+gained the `EffectTypeSpeedAura` case and is pinned DIRECTLY
+(`TestAuraMaskFor_SpeedAura`) - sys tests inject collider sets, so a missing
+mask case survives every unit test and fails only in-game. (2) The
+`aura_category` completeness test supplied its red for free. (3) The zero-radius
+gate (`definition.go`, allowlist-keyed) would have hard-failed radius-less Swift
+at boot the moment `radius` joined speed_burst's allowlist; speed_burst is
+carved out and `speedParams` requires radius iff `targetsAllies`, red-first in
+both directions. (4) ⭐ NEW: `TICKING_TYPES` in `SkillTooltip.ts` is a
+hand-maintained set with no completeness test that fails SILENT - an aura type
+missing from it just never prints its cadence line. speed_aura joined;
+**a completeness pin for the set is recorded-not-built** (backlog-class find).
+⚑ The `speedApplier` widening also confirmed its own trap: the interface is a
+runtime assertion, so the bool-returning `ApplySpeed` silently degraded the
+burst to a whiff until all three implementations moved - the four Swift tests
+were the net.
+
+**Execution calls, each with its reason recorded at the site:** allowlists
+narrow (no `targetsEnemies` on either form - a speed buff on an enemy is
+nobody's content and slow_aura owns that axis; no duration keys and no
+`targetsSelf` on the aura) · aura factor must be > 1 · aura without
+`targetsAllies` hard-fails (it is the type's only delivery) · new guards run
+AFTER the payload checks so the more specific error wins (§27.3.2 - the three
+pre-existing speed_burst failure tests stayed green untouched) · the burst's
+ally half grants duration + 1 (the instant_resist tick-boundary convention)
+while the self half deliberately does not (Swift's shipped path, nothing
+re-applies it), pinned both ways · extended `applySpeedBurst` carries the C3
+whiff CONTRACT: self-apply counts as hit, ally-only cast reaching nobody
+returns false (a mob keeps its cooldown; a player still pays, D9) ·
+`EFFECT_COLOR_KEYS` gained `speed_burst: 'speed'` so Swift's tooltip label goes
+green alongside the aura's (PO-revertable one-liner) · Onward is UNCAPPED on
+the calm precedent (a shout reaches whoever hears it; Sanctuary levels by
+breadth only because factor 0 cannot deepen, this one deepens).
+
+**Content: FlyYouFools id 71** ("Fly, You Fools!", active_aura, maxLevel 5,
+`speed_aura` ×1.3 +0.05/L, r2.5, @30t, `targetsAllies`, uncapped, cost 0.03
++0.004/L - under Swift's 1.5 because it reaches a party for no cooldown) and
+**Onward id 72** (cooldown, maxLevel 5, `speed_burst` ×1.4 +0.05/L for 150t
++15/L, r3, `targetsAllies` with `targetsSelf` absent - the caster stays behind,
+CD 900 −60/L, cost 0.03 +0.004/L). All [PLACEHOLDER], SKILL-cheat only, no
+unlock source (the established worked-example convention; placement belongs to
+the content pass). Registry pin 95 → 97 with reason lines; cheat-only rises to
+EIGHT.
+
+**19 new Go tests + 6 vitest, red-first throughout**, plus a five-mutation
+falsification sweep on the appliers (caster-not-skipped, always-reports-work,
+ally +1 dropped, dispatch case removed, ally half removed - all killed by the
+specific test that claims each). ⚑ Two EXPECTATIONS were wrong, not the code
+(the C2 "9.9s" class again): 165 ticks is "5.5s" (Swift's "5s → 6s" is exact
+by accident), and the cadence suffix is suppressed for a single-shared-beat
+skill (slow_aura proved the house behavior). Tests corrected, renderer
+untouched. De-staled in passing: five "seven chargeable types" comments in
+`skill_cost_content_test.go` (now eight - `costChargeTrigger` gained
+`"speed_aura": "work"` on both pinned sides).
+
+**Schema: NONE.** Transient buffs + two content JSON files + one
+shared-constants fixture entry. No wire change (the new AuraCategory bit is a
+new VALUE in an existing ubyte), no DB change, no migration, no conf change.
+
+**Verified.** `go build ./...` · `go test -count=1 ./...` all green - agent
+before AND after cp-defs, coordinator once more post-cp-defs (35 packages; DB
+tests skipped cleanly without `AURA_TEST_DB_URL`, acceptable for schema NONE) ·
+`go test -race` green on skills/sys/model/cmd/aurad/simharness (guardrails did
+NOT shift) · `npm run typecheck` · vitest **369/369** (363 + 6) · `npm run
+build` + `make -C backend build` · boot **0 WARN / 0 ERROR**, census `Loaded
+skill definitions count=97` (was 95), 58 mobs / 12 factions / 488 spawns ·
+harnesses: new **`c4-ally-speed`** green · `round4-tooltip` green (⚑ first run
+timed out at join against a long-lived server session, the recorded flake
+class - probed, zero client errors, green on rerun after restart; so did
+`swift-cooldown` for the coordinator, same class, same fix) ·
+**`swift-cooldown` 4/4** · **`r1-focus-cost`** green (the cost-wording surface
+gained the speed_aura entry) · `harnessdb -cleanup` with aurad stopped.
+
+**PO in-game check: passed 2026-08-17.**
+
+**This closes the plan.** All four chunks shipped; the remaining §7 holes
+(silence, cleanse, knockback, ground-targeting, conditional triggers, stealth)
+and §8's recorded-not-built items stay where they are recorded.

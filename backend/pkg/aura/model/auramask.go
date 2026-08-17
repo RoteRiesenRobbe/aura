@@ -21,7 +21,12 @@ func AuraMaskFor(def *skills.SkillDefinition) int {
 	mask := LayerNoneCollision
 	for _, e := range def.Effects {
 		switch e.Type {
-		case skills.EffectTypeDamageAura, skills.EffectTypeSlowAura, skills.EffectTypeResistAura, skills.EffectTypeDotAura, skills.EffectTypeShieldAura:
+		// ⚑ Every AURA effect type belongs in one of these two cases, and a
+		// missing one is silent: the applier is never reached because the
+		// sensor senses nothing, and no sys test catches it (they inject
+		// collider sets directly). speed_aura is here because it reaches only
+		// allies — the flag check below is what makes that true.
+		case skills.EffectTypeDamageAura, skills.EffectTypeSlowAura, skills.EffectTypeResistAura, skills.EffectTypeDotAura, skills.EffectTypeShieldAura, skills.EffectTypeSpeedAura:
 			if e.TargetsEnemies || e.TargetsAllies {
 				mask |= LayerCombatants
 			}

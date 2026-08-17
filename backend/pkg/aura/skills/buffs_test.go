@@ -933,6 +933,21 @@ func TestBuffs_ApplySlowReportsNewOnly(t *testing.T) {
 	assert.True(t, b.ApplySlow(4, 0.3, 2), "a different fraction opens its own stream")
 }
 
+// The speed store learned the did-work answer with speed_aura (C4): an aura is
+// charged for work done (§5.2), and without it a haste field would pay once and
+// then hold its allies fast forever for free — the same hole D7 closed for the
+// invulnerability aura, here closed by the standard rule instead of a lever.
+func TestBuffs_ApplySpeedReportsNewOnly(t *testing.T) {
+	var b Buffs
+	assert.True(t, b.ApplySpeed(4, 1.3, 2))
+	assert.False(t, b.ApplySpeed(4, 1.3, 2), "same factor is a refresh")
+	assert.True(t, b.ApplySpeed(4, 1.5, 2), "a different factor opens its own stream")
+
+	b.Tick()
+	b.Tick()
+	assert.True(t, b.ApplySpeed(4, 1.3, 2), "lapsed, so new again")
+}
+
 func TestBuffs_ApplyDotReportsNewOnly(t *testing.T) {
 	var b Buffs
 	dot := DotBuff{HP: 10, Interval: 2}

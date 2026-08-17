@@ -65,6 +65,7 @@ const (
 	EffectTypeRetaliateBurst
 	EffectTypeStun
 	EffectTypeInstantResist
+	EffectTypeSpeedAura
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -145,6 +146,11 @@ var effectTypeMap = map[string]EffectType{
 	// resist cooldowns as free content too, which is why it beat a bespoke
 	// invulnerability type.
 	"instant_resist": EffectTypeInstantResist,
+	// The speed row's AURA cell (plan-effect-types.md C4/D8): the same
+	// SpeedParams payload speed_burst carries, delivered as a field instead of
+	// as a cast. Ally-facing only — the caster is excluded by construction (D9)
+	// and dragging an enemy is slow_aura's axis, not this one.
+	"speed_aura": EffectTypeSpeedAura,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -723,17 +729,30 @@ type TickRateParams struct {
 	DurationTicks int     `json:"durationTicks"`
 }
 
-// SpeedParams is the speed_burst payload (Swift as a cooldown): a
-// cooldown-fired, self-targeted movement-speed change. Factor scales the
-// caster's OWN movement for DurationTicks game ticks — > 1 sprints, < 1 drags.
-// Self-only: no target flags, no radius, exactly like tick_rate, which it is
-// the movement twin of. Unlike tick_rate both halves scale per level, because
-// this one is authored at maxLevel 3 rather than 1.
+// SpeedParams is the payload BOTH speed forms carry — speed_burst (a cast) and
+// speed_aura (a field). Factor scales movement for the buff's lifetime; > 1
+// sprints, < 1 drags.
+//
+// The two forms read it differently, which is the whole of D8's "extend, don't
+// add a type" ruling:
+//   - speed_burst authors its own lifetime (DurationTicks, level-scaled) and
+//     delivers to TargetsSelf, to allies in a query circle (EffectDef.
+//     TargetsAllies), or to both.
+//   - speed_aura leaves the duration at 0: an aura's buff lifetime comes from
+//     its tick cadence (interval + 1, the standard convention), computed rather
+//     than authored, and it delivers to allies only.
+//
+// ⚑ TargetsSelf lives HERE rather than on EffectDef beside TargetsAllies, and
+// that is the shipped convention, not an accident: every payload that can reach
+// its own caster (Resist, Shield, Hot) carries its own flag, because "the
+// caster" is not a faction and the eligibility predicate that reads the EffectDef
+// flags never sees them (D8's execution wrinkle).
 type SpeedParams struct {
 	Factor                float32 `json:"factor"`
 	FactorPerLevel        float32 `json:"factorPerLevel"`
 	DurationTicks         int     `json:"durationTicks"`
 	DurationTicksPerLevel int     `json:"durationTicksPerLevel"`
+	TargetsSelf           bool    `json:"targetsSelf"`
 }
 
 // LifestealParams is the lifesteal_burst payload (plan-resource-costs-feedback
@@ -1276,11 +1295,29 @@ var effectKeys = map[EffectType][]string{
 	// factor plus a lifetime. No geometry, no targeting, no cadence (it MODIFIES
 	// cadence rather than having one).
 	EffectTypeTickRate: {"tickRateFactor", "tickRateDurationTicks"},
-	// Speed burst (Swift as a cooldown): the movement twin of tick_rate — a
-	// scalar factor plus a lifetime, both level-scaled. No geometry, no
-	// targeting, no cadence; it modifies movement, it does not project.
-	EffectTypeSpeedBurst: {"speedFactor", "speedFactorPerLevel",
-		"speedDurationTicks", "speedDurationTicksPerLevel"},
+	// Speed burst (Swift as a cooldown): a scalar factor plus a lifetime, both
+	// level-scaled. Since C4 it also carries the geometry, cap and target flags
+	// the ALLY form needs — a one-shot query circle on the instant_hot
+	// template. Still no cadence: it fires on cooldown activation.
+	//
+	// ⚑ targetsEnemies is deliberately absent. A speed BUFF aimed at an enemy is
+	// content nobody asked for, and the drag direction is slow_aura's axis; the
+	// pair kept narrow means no eligibility question about who "mayHarm" here.
+	// ⚑ "radius" in this list puts the type under the generic zero-radius gate,
+	// which the shipped radius-less Swift would fail — see the carve-out at the
+	// bottom of mapEffect and speedParams' own conditional gate.
+	EffectTypeSpeedBurst: mergeKeys(keysGeometry, keysCapped,
+		[]string{"speedFactor", "speedFactorPerLevel",
+			"speedDurationTicks", "speedDurationTicksPerLevel",
+			"targetsAllies", "targetsSelf"}),
+	// Speed aura (plan-effect-types.md C4): the burst's field form. Geometry +
+	// cadence + cap + the one target flag it honors, and NO duration keys — an
+	// aura's buff lifetime is its tick interval + 1, computed rather than
+	// authored (the resist_aura/shield_aura convention). No targetsSelf either:
+	// D9 keeps the caster out of its own in-range set, which is the risk/reward
+	// the design note asked for.
+	EffectTypeSpeedAura: mergeKeys(keysGeometry, keysCadence, keysCapped,
+		[]string{"targetsAllies", "speedFactor", "speedFactorPerLevel"}),
 	// Lifesteal burst (R3 / §5.6): the damage-side twin of speed_burst — a
 	// scalar leech fraction plus a lifetime. It projects nothing and targets
 	// nobody; it changes what the caster's own hits do while it is up.
@@ -1644,8 +1681,8 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Dash, err = e.dashParams()
 	case EffectTypeTickRate:
 		def.TickRate, err = e.tickRateParams()
-	case EffectTypeSpeedBurst:
-		def.Speed, err = e.speedParams()
+	case EffectTypeSpeedBurst, EffectTypeSpeedAura:
+		def.Speed, err = e.speedParams(effectType)
 	case EffectTypeLifestealBurst:
 		def.Lifesteal, err = e.lifestealParams()
 	case EffectTypeRetaliateSlow:
@@ -1680,7 +1717,14 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 	// on the allowlist so only radius-reading types are checked (passives,
 	// spawns, dashes, recall carry no geometry). Placed after the switch so a
 	// more specific payload error wins (§27.3.2).
-	if slices.Contains(effectKeys[effectType], "radius") && def.Radius <= 0 {
+	//
+	// ⚑ speed_burst is the one carve-out (C4): it reads "radius" because its
+	// ALLY form projects a query circle, but the shipped self-only form (Swift)
+	// reaches only the caster and authors no radius at all. Gating it here would
+	// hard-fail Swift at boot the moment the key joined its allowlist — the
+	// landmine C4 was warned about. Its conditional gate lives in speedParams,
+	// where the flag that turns the circle on is in scope.
+	if effectType != EffectTypeSpeedBurst && slices.Contains(effectKeys[effectType], "radius") && def.Radius <= 0 {
 		return EffectDef{}, fmt.Errorf("effect type %v: radius must be > 0 (an aura with no radius reaches nothing)", effectType)
 	}
 
@@ -2006,27 +2050,64 @@ func (e *effectDef) tickRateParams() (*TickRateParams, error) {
 	return &TickRateParams{Factor: e.TickRateFactor, DurationTicks: e.TickRateDurationTicks}, nil
 }
 
-// speedParams builds the speed_burst payload, validated on the tickRateParams
-// rules: a factor of 0 or below is nonsense (it would stop or reverse the
-// caster), exactly 1 is a silent no-op cooldown, and a zero lifetime is a buff
-// that expires before it is ever read. Per-level scaling is unconstrained here
-// — a negative perLevel is a legitimate authoring choice (a burst that trades
-// speed for duration), and the firing site floors the scaled values.
-func (e *effectDef) speedParams() (*SpeedParams, error) {
-	if e.SpeedFactor <= 0 {
-		return nil, fmt.Errorf("speedFactor: must be > 0, got %v", e.SpeedFactor)
-	}
-	if e.SpeedFactor == 1 {
-		return nil, fmt.Errorf("speedFactor: 1 is a no-op (neither faster nor slower)")
-	}
-	if e.SpeedDurationTicks <= 0 {
-		return nil, fmt.Errorf("speedDurationTicks: must be > 0, got %v", e.SpeedDurationTicks)
+// speedParams builds the payload both speed forms share, branching on the form
+// like resistParams and shieldParams do (C4/D8).
+//
+// The BURST is validated on the tickRateParams rules: a factor of 0 or below is
+// nonsense (it would stop or reverse its target), exactly 1 is a silent no-op
+// cast, and a zero lifetime is a buff that expires before it is ever read. It
+// must also name somebody — a cast that reaches neither the caster nor any ally
+// is the no-op the allowlist posture forbids — and, once it names allies, it
+// must carry the circle those allies are found in.
+//
+// The AURA is stricter in one place and looser in another. Stricter: its factor
+// must be ABOVE 1. A sub-1 "speed" aura would drag the allies it is pointed at,
+// which is slow_aura's axis and the opposite of what this type means; there is
+// no content reading for it, so it hard-fails rather than shipping as a trap.
+// Looser: it authors no lifetime at all (the allowlist has no duration key), so
+// the zero-duration check is skipped — the cadence supplies the lifetime.
+//
+// Per-level scaling stays unconstrained on both: a negative perLevel is a
+// legitimate authoring choice (a burst that trades speed for duration), and the
+// firing sites floor the scaled values.
+func (e *effectDef) speedParams(effectType EffectType) (*SpeedParams, error) {
+	if effectType == EffectTypeSpeedAura {
+		if e.SpeedFactor <= 1 {
+			return nil, fmt.Errorf("speedFactor: must be > 1 on a speed_aura (a sub-1 factor drags the allies it is pointed at — author slow_aura instead), got %v", e.SpeedFactor)
+		}
+		if !e.TargetsAllies {
+			return nil, fmt.Errorf("targetsAllies: a speed_aura reaches allies or nobody (the caster is excluded by construction)")
+		}
+	} else {
+		if e.SpeedFactor <= 0 {
+			return nil, fmt.Errorf("speedFactor: must be > 0, got %v", e.SpeedFactor)
+		}
+		if e.SpeedFactor == 1 {
+			return nil, fmt.Errorf("speedFactor: 1 is a no-op (neither faster nor slower)")
+		}
+		if e.SpeedDurationTicks <= 0 {
+			return nil, fmt.Errorf("speedDurationTicks: must be > 0, got %v", e.SpeedDurationTicks)
+		}
+		// Checked AFTER the payload rules so the more specific error still wins
+		// (§27.3.2), and before the radius gate below because "who does this
+		// reach" is the question the radius only then answers.
+		if !e.TargetsSelf && !e.TargetsAllies {
+			return nil, fmt.Errorf("targetsSelf: a speed_burst must name somebody — author targetsSelf, targetsAllies, or both (a cast that reaches nobody is a no-op)")
+		}
+		// The ally half projects a one-shot query circle; a circle with no
+		// radius reaches nobody. The self half projects nothing, so the generic
+		// zero-radius gate is carved out for this type and the condition lives
+		// here instead — see the gate at the bottom of mapEffect.
+		if e.TargetsAllies && e.Radius <= 0 {
+			return nil, fmt.Errorf("radius: must be > 0 when a speed_burst targets allies (a query circle with no radius reaches nobody)")
+		}
 	}
 	return &SpeedParams{
 		Factor:                e.SpeedFactor,
 		FactorPerLevel:        e.SpeedFactorPerLevel,
 		DurationTicks:         e.SpeedDurationTicks,
 		DurationTicksPerLevel: e.SpeedDurationTicksPerLevel,
+		TargetsSelf:           e.TargetsSelf,
 	}, nil
 }
 

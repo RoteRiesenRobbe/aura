@@ -19,6 +19,9 @@ export enum AuraCategoryBit {
     Slow = 1 << 4,
     Light = 1 << 5,
     Resist = 1 << 6,
+    // ⚑ The LAST free bit in the aura_category ubyte (plan-effect-types.md C4).
+    // A ninth category needs a wider wire field — a backlog §39 conversation.
+    Speed = 1 << 7,
 }
 
 /**
@@ -34,6 +37,10 @@ export const AURA_CATEGORY_COLORS = {
     slow: 0x4a9ae0,
     light: 0xf0dfa0,
     resist: 0x5fbfb0,
+    // The speed pip's own green, moved here from EffectPips.ts rather than
+    // duplicated (PO ruling 2026-08-17): a haste RING and a hastened ally's PIP
+    // are the same colour because they are the same fact seen from two sides.
+    speed: 0x6ee06e,
 } as const;
 
 interface AuraCategoryStyle {
@@ -53,6 +60,10 @@ const AURA_CATEGORY_STYLES: readonly AuraCategoryStyle[] = [
     {bit: AuraCategoryBit.Shield, color: AURA_CATEGORY_COLORS.shield},
     {bit: AuraCategoryBit.Slow, color: AURA_CATEGORY_COLORS.slow},
     {bit: AuraCategoryBit.Resist, color: AURA_CATEGORY_COLORS.resist},
+    // Beside the other support categories and inside them, so a hypothetical
+    // ward-plus-haste aura reads outward as resist-then-speed. Light stays
+    // innermost: it is the one category that is not a combat effect at all.
+    {bit: AuraCategoryBit.Speed, color: AURA_CATEGORY_COLORS.speed},
     {bit: AuraCategoryBit.Light, color: AURA_CATEGORY_COLORS.light},
 ];
 

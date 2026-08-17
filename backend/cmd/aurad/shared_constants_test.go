@@ -160,6 +160,7 @@ func TestSharedConstants_MatchGoTables(t *testing.T) {
 		"slow":   uint8(skills.AuraCategorySlow),
 		"light":  uint8(skills.AuraCategoryLight),
 		"resist": uint8(skills.AuraCategoryResist),
+		"speed":  uint8(skills.AuraCategorySpeed),
 	}, fixture.AuraCategoryBits,
 		"skills.AuraCategory has drifted from api/shared-constants.json — the client colors aura rings off these bits")
 

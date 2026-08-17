@@ -150,11 +150,22 @@ export interface TickRateParams {
     durationTicks: number;
 }
 
+// The payload BOTH speed forms carry (plan-effect-types.md C4): speed_burst
+// (a cast) and speed_aura (a field).
 export interface SpeedParams {
     factor: number;
     factorPerLevel: number;
+    // speed_burst only: the granted buff's own lifetime, the ShieldParams
+    // convention. 0 on the aura form, which derives its lifetime from the
+    // tick cadence.
     durationTicks: number;
     durationTicksPerLevel: number;
+    // speed_burst only: the cast also carries the CASTER. Required rather than
+    // optional (the ResistParams/ShieldParams convention) — Go marshals the
+    // field on both forms, and it is false on every speed_aura by construction:
+    // that type has no such key, because D9 keeps a haste field's caster out of
+    // its own in-range set.
+    targetsSelf: boolean;
 }
 
 // The lifesteal_burst payload (Bloodthirst): for a window, a share of the damage

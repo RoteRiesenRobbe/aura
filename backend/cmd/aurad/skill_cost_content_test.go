@@ -12,7 +12,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
-// chargeableAuraTypes are the SEVEN effect types applyAuraEffect's switch
+// chargeableAuraTypes are the EIGHT effect types applyAuraEffect's switch
 // dispatches, and therefore the only ones an active aura can ever be charged
 // for. A second list, deliberately: it fails LOUD (a new chargeable type trips
 // the asserts that read it) rather than escaping them.
@@ -24,13 +24,16 @@ var chargeableAuraTypes = map[skills.EffectType]bool{
 	skills.EffectTypeDotAura:    true,
 	skills.EffectTypeShieldAura: true,
 	skills.EffectTypeHotAura:    true,
+	// The eighth, plan-effect-types.md C4: an ally haste field, work-gated like
+	// the other five state auras (§5.2).
+	skills.EffectTypeSpeedAura: true,
 }
 
-// workGatedCharge is the R2 split of the seven chargeable types: which of them
+// workGatedCharge is the R2 split of the chargeable types: which of them
 // charge only for a genuinely NEW application rather than for every application.
 //
 // damage_aura and heal_aura pay every time they land, so their cost recurs at
-// the aura's cadence and haste really does multiply it. The other five report
+// the aura's cadence and haste really does multiply it. All the others report
 // new-from-refresh out of the buff store (skills.Buffs) and are charged off that
 // answer, so holding one on a target set that is not changing is free — the
 // charge recurs at most once per target ENTRY, which is a property of the world,
@@ -38,7 +41,7 @@ var chargeableAuraTypes = map[skills.EffectType]bool{
 //
 // ⚑ It is DERIVED from api/shared-constants.json rather than spelled out here,
 // because the client needs the same split and got it wrong: R1's cost line
-// printed the tick cadence for all seven, so after R2 a shield billed per refill
+// printed the tick cadence for every one of them, so after R2 a shield billed per refill
 // advertised itself as "every 1.32s". Two restatements of one taxonomy is the
 // §35 class exactly, so there is now one authored home and both sides read it —
 // the client picks its cost wording from it (SkillTooltip.ts COST_TRIGGER_TEXT,
@@ -155,7 +158,7 @@ func playerSkillDefs(t *testing.T) []*skills.SkillDefinition {
 // under Haste's authored 0.5, Heal drains 7.5 %/s at skill level 1 and Spearhead
 // 7.8 %/s at 10 — both over this bound, with the guard green.
 //
-// ⚑ The haste term applies to TWO of the seven types, not all seven (R3, after
+// ⚑ The haste term applies to TWO types only — damage_aura and heal_aura (R3, after
 // R2 changed what "landed" means). A work-gated applier charges only for a
 // genuinely new application, and the number of those over a window is bounded by
 // how many target ENTRIES happen — not by how often the aura scans for them. A
@@ -259,7 +262,7 @@ func worstSustainableHaste(defs []*skills.SkillDefinition) (factor float32, duty
 }
 
 // TestNoCostOnAnEffectThatCanNeverBeCharged — an aura pays through
-// applyAuraEffect, which only charges when one of its SEVEN dispatched appliers
+// applyAuraEffect, which only charges when one of its dispatched appliers
 // reports that the effect landed. An active aura's light_aura has no case in
 // that switch, so it can never report landing; a passive never reaches the
 // dispatch at all (its effects are aggregated into DerivedStats once).

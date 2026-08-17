@@ -17,7 +17,8 @@
     "dot": 8,
     "slow": 16,
     "light": 32,
-    "resist": 64
+    "resist": 64,
+    "speed": 128
   },
   "tierRanks": {
     "normal": 0,
@@ -54,7 +55,8 @@
     "hot_aura": "work",
     "resist_aura": "work",
     "slow_aura": "work",
-    "shield_aura": "work"
+    "shield_aura": "work",
+    "speed_aura": "work"
   },
   "viewportMeters": {
     "width": 20,
