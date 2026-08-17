@@ -356,7 +356,7 @@ one finding was the tooltip double minus above, fixed in-session. The
 ally-untouched case stays test-pinned only (nothing in-game aims fire at an
 ally; no PvP).
 
-### C2 - `retaliate_damage` + the percentage follow-up ✅ 2026-08-17, `[uncommitted]`
+### C2 - `retaliate_damage` + the percentage follow-up ✅ 2026-08-17, `6d79c40c`
 
 **D3 and D4 held.** `retaliate_damage` reuses the retaliate spine: enum + params
 (`damageHP`/`damageHPPerLevel`/`damageTags`, a deliberately narrow 3-key
