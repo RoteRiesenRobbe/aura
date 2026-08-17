@@ -1,6 +1,6 @@
 # Plan: New effect types, round 1 (vulnerability · retaliate damage · invulnerability · ally speed)
 
-**Status: COMPLETE 2026-08-17 - all four chunks shipped (C1 `e2261f6f` · C2 `6d79c40c` · C3 `1846dfe6` · C4 `[uncommitted]`), archived. Ledger in §9.**
+**Status: COMPLETE 2026-08-17 - all four chunks shipped (C1 `e2261f6f` · C2 `6d79c40c` · C3 `1846dfe6` · C4 `dfdd7281`), archived. Ledger in §9.**
 **Source list:** `content-ability-matrix.md` §7 (the vocabulary-hole list the
 PO ruled must close before the content pass), picks + rulings PO 2026-08-15.
 **Survey verified at `3b2892ed`; re-verify line refs at execution.**
@@ -541,7 +541,7 @@ the inventory's MaxLv/slope value drift still owes a full regeneration.
 
 **Next in this plan:** C4, ally speed - the last chunk.
 
-### C4 - Ally speed buffs ✅ 2026-08-17, `[uncommitted]` — THE LAST CHUNK
+### C4 - Ally speed buffs ✅ 2026-08-17, `dfdd7281` — THE LAST CHUNK
 
 **D8 held: extending beat adding.** `speed_aura` is a new effect type but not a
 new payload - both forms carry `SpeedParams`, and the only difference is
