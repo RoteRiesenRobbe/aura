@@ -149,6 +149,10 @@ Context from current state:
   progression/spellbook (already server-side), or also world/quest state,
   faction, time-of-day, prior choices with *this* NPC (→ needs per-player
   per-NPC persistent memory → depends on accounts, item 3)?
+  ⚑ Partially answered since: node conditions branch on level, quest stage,
+  lifetime kills and bloodline ascensions (shipped), faction standing is
+  `plan-camps.md` C1's, and `plan-npc-hails.md` (planned 2026-08-17) adds
+  talked-to memory plus conditional walk-by greetings.
 - **Statefulness / memory:** are NPCs stateless (same reaction every time) or do
   they remember a given player across visits/sessions? Memory is the dividing
   line between "flavor entity" and "persistent quest-giver" and pulls in the
