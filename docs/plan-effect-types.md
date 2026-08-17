@@ -435,7 +435,7 @@ bite. The observed "-12 instead of 4 + 6" was the wearer's own damage aura
 ticking in the same tick, PO-confirmed by re-testing with the aura off.
 Per-hit numbers would need per-hit wire events: §39 / backlog §57 territory.
 
-### C3 - Invulnerability + the cost-line and inventory follow-ups ✅ 2026-08-17, `[uncommitted]`
+### C3 - Invulnerability + the cost-line and inventory follow-ups ✅ 2026-08-17, `1846dfe6`
 
 **D5 and D6 held: invulnerability is the resist system, asked to cover
 everything.** The wildcard learned the buff store in exactly the §4.1 one-liner
