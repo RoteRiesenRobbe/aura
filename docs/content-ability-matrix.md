@@ -55,7 +55,11 @@ Seven independent axes. Read against `backend/pkg/aura/skills/definition.go`
 | `passive` | folded once at equip time into `DerivedStats` | several run in parallel |
 | `cooldown` | fires once per activation, then a timer | several equipped, triggered individually |
 
-### 1.2 Effect types (28 in the enum, 27 reachable)
+### 1.2 Effect types (31 authorable)
+
+⚑ Re-counted 2026-08-17 off `effectTypeMap`: the 2026-08-10 figure (28 in the
+enum, 27 reachable) predates `stun`, the three retaliate types and
+`instant_resist`. Re-derive it rather than incrementing it.
 
 Grouped by what a player would call them:
 
@@ -64,7 +68,7 @@ Grouped by what a player would call them:
 | **Direct output** | `damage_aura` · `instant_damage` · `heal_aura` · `self_heal` |
 | **Over time** | `dot_aura` · `instant_dot` · `hot_aura` · `instant_hot` |
 | **Absorb** | `shield_aura` · `instant_shield` |
-| **Mitigation** | `resist_aura` · `resist_passive` |
+| **Mitigation** | `resist_aura` · `resist_passive` · `instant_resist` |
 | **Control** | `slow_aura` · `stun` · `calm` · `charm` |
 | **Threat** | `taunt` · `detaunt` |
 | **Movement / tempo** | `dash` · `speed_burst` · `tick_rate` |
@@ -132,7 +136,7 @@ exists is the **runtime dispatch**, in three places:
   rather than ticked
 - passive fold: `skills/component.go recomputeDerived` (4 types) plus
   `light_aura`, read by the light scan
-- cooldown fire: `sys/skills.go fireCooldown` (17 types)
+- cooldown fire: `sys/skills.go fireCooldown` (18 types)
 
 | Effect type | active_aura | passive | cooldown |
 |---|:--:|:--:|:--:|
@@ -148,6 +152,7 @@ exists is the **runtime dispatch**, in three places:
 | `instant_shield` | ✗ | ✗ | ✅ |
 | `resist_aura` | ✅ | ✗ | ✗ |
 | `resist_passive` | ✗ | ✅ | ✗ |
+| `instant_resist` | ✗ | ✗ | ✅ |
 | `slow_aura` | ✅ | ✗ | ✗ |
 | `stun` | ✗ | ✗ | ✅ |
 | `calm` | ✗ | ✗ | ✅ |
@@ -166,7 +171,13 @@ exists is the **runtime dispatch**, in three places:
 | `revive` | ✗ | ✗ | ✅ |
 | `recall` | ✗ | ✗ | ✅ (orphaned) |
 
-**31 live (category × effect) cells.** Everything below is built on this grid.
+**32 live (category × effect) cells.** Everything below is built on this grid.
+
+⭐ **The resist row's cooldown cell went live 2026-08-17** (plan-effect-types.md
+C3, D5): `instant_resist`, the `instant_shield` twin, delivering a timed
+resistance buff to allies in a one-shot query circle. Invulnerability is its
+first content, but the type is generic on purpose - an ordinary five-second
+fire ward on a cooldown is now content with no code.
 
 The obvious structural holes it shows, each cheap in code and each a real design
 question rather than an oversight:
@@ -227,14 +238,19 @@ had. That is worth deciding before more of the frost line is authored.
 | direct heal | ✅ Heal / Lifewarden / Paladin / Vanguard-line | n/a | ✅ FirstAid (self) · ◻ *Mend* (ally instant heal) |
 | heal over time | ✅ Rejuvenation | n/a | ✅ Recover (self) · ◻ *Renew* (ally HoT) |
 | absorb | ✅ Vanguard / Warbanner | n/a | ✅ Barrier |
-| resist `physical` | ◻ *Bulwark Aura* | ✅ ThickHide | n/a |
-| resist `fire` | ✅ FireWard / Wildfire | ◻ *Fireproof* | n/a |
-| resist `frost` | ◻ *Warmth Aura* | ◻ *Coldblood* | n/a |
-| resist `nature` | ◻ *Verdant Ward* | ◻ *Barkskin* | n/a |
-| resist `poison` | ◻ *Cleansing Aura* | ✅ Antivenom | n/a |
-| resist `bleed` | ◻ *Staunch Aura* | ◻ *Clotting* | n/a |
+| resist `physical` | ◻ *Bulwark Aura* | ✅ ThickHide | ◻ *Brace* |
+| resist `fire` | ✅ FireWard / Wildfire | ◻ *Fireproof* | ◻ *Flameguard* (timed) |
+| resist `frost` | ◻ *Warmth Aura* | ◻ *Coldblood* | ◻ *Thaw* |
+| resist `nature` | ◻ *Verdant Ward* | ◻ *Barkskin* | ◻ *Purge* |
+| resist `poison` | ◻ *Cleansing Aura* | ✅ Antivenom | ◻ *Antitoxin* |
+| resist `bleed` | ◻ *Staunch Aura* | ◻ *Clotting* | ◻ *Field Dressing* |
+| resist **all** (`*`) | ✅ Aegis | ◻ *Aegis Sigil* | ✅ Sanctuary |
 
-**3 of 12 resist cells filled.** Resistances are the thing that makes a damage
+**5 of 21 resist cells filled.** ⚑ The block grew twice in one week: the
+cooldown column stopped being `n/a` when `instant_resist` shipped (C3, D5), and
+the wildcard row is new with it - `resistTags: ["*"]` covers every damage tag
+at once, which at factor 0 is invulnerability and above 0 is a blanket ward.
+Every empty cell in the block is pure content. Resistances are the thing that makes a damage
 type mechanical rather than cosmetic, so §3.1 and this block have to be filled
 in step with each other: a frost line with no frost resistance anywhere is a
 colour, not a build axis.
@@ -266,6 +282,28 @@ Vulnerability* is authored; *Sunder*, the physical twin, is still an empty
 cell), and it is the cleanest support role the game did not have. **Every
 remaining curse cell is now pure content**: a vulnerability aura per damage
 type, and the same payload on `resist_passive` for a permanent version.
+
+⭐ **INVULNERABILITY CLOSED 2026-08-17 (plan-effect-types.md C3, D5/D6/D7),
+and it needed no immunity mechanic of its own.** Factor 0 has always meant
+immune; what was missing was a tag list that covers *everything* and a
+cooldown delivery for a resist buff. Both landed as one small chunk: the
+reserved wildcard `"*"` (map-shaped resistances understood it since item 11;
+the tag-list resist BUFFS now do too, per hit tag) and the generic
+`instant_resist` type. Two skills ship: **Sanctuary** (id 69, cooldown, 5 s of
+immunity on the nearest ally, +1 ally per level) and **Aegis** (id 70, aura,
+the same immunity held on a 3 s cadence). ⚑ The aura half needed one new
+authoring lever, and it is a PRICING lever, not a duration knob:
+`buffLifetimeMatchesInterval` drops the standard interval + 1 lifetime so the
+buff expires exactly as re-application arrives. Without it an invulnerability
+aura would pay once (a refresh is not work, R2 / §5.2) and hold somebody
+immortal for free. With it, every cycle at base cadence is a fresh application
+and is charged, while a `tick_rate` haste arrives early enough to refresh for
+nothing - so tick speed is the investment that makes holding one affordable.
+The known cost is an accepted once-per-cycle ordering window where an enemy
+aura processed earlier in the same pass lands one hit unprotected (explicit PO
+ruling: counterplay texture, documented, not fixed). Neither skill has any new
+visibility: an immune target lights the ordinary teal resist pip, and immunity
+otherwise reads as damage numbers that stop appearing (D10).
 
 ### 3.3 Control, threat, movement, tempo, light
 
@@ -387,17 +425,24 @@ Three tiers, each with the formula visible. All of it [PLACEHOLDER]-class.
 ```
   typed damage      4 cells × 6 damage types      = 24
   gated damage      2 deliveries × 2 gate keys    =  4
-  resistance        2 cells × 6 damage types      = 12
+  resistance        3 cells × 6 damage types      = 18
+  wildcard resist   3 cells × 1 ("all damage")    =  3
   stat multiplier   1 cell  × 6 stats             =  6
   everything else   22 cells × 1                  = 22
                                                    ---
-                                                    68
+                                                    77
 ```
 
-**68 mechanically distinct abilities are authorable today with zero code.**
+**77 mechanically distinct abilities are authorable today with zero code.**
 
-Measured against `api/skills/*.json` on 2026-08-10: **39 filled, 29 empty.**
-The empties are not scattered; they cluster:
+⚑ The resistance block grew by 9 on 2026-08-17 (C3): `instant_resist` added a
+third delivery to all six damage types, and the wildcard tag added an
+"all damage" subject across the three.
+
+Measured against `api/skills/*.json` on 2026-08-10: **39 filled, 29 empty** of
+the 68 cells that existed then. The 9 new cells add 2 filled (Sanctuary, Aegis)
+and 7 empty; a full re-measure is owed at the next content pass. The empties are
+not scattered; they cluster:
 
 | Empty block | Cells | What is missing |
 |---|---|---|

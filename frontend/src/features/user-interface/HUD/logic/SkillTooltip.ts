@@ -65,7 +65,7 @@ const EFFECT_COLOR_KEYS: { [type: string]: keyof typeof AURA_CATEGORY_COLORS } =
     // the in-world rings and pips. (The server's aura_category map answers a
     // different question — what ring to draw — and a reflect draws none.)
     retaliate_damage: 'damage', retaliate_burst: 'damage',
-    resist_aura: 'resist', resist_passive: 'resist',
+    resist_aura: 'resist', resist_passive: 'resist', instant_resist: 'resist',
     light_aura: 'light',
 };
 
@@ -221,6 +221,30 @@ export const COST_TRIGGER_TEXT: { [type: string]: string } = {
     shield_aura: 'when a shield goes up or is refilled',
 };
 
+// The cost trigger for ONE effect: the type's wording, unless the effect
+// authors a variant that charges at a different moment than its type normally
+// does.
+//
+// There is exactly one such variant (plan-effect-types.md D7): a resist_aura
+// with `buffLifetimeMatchesInterval` drops the standard interval + 1 buff
+// lifetime, so the buff lapses just before every re-application and each cycle
+// is genuinely new work. The type's default line ("when it reaches someone
+// new") is precisely the sentence that stops being true: such an aura keeps
+// charging for the same target, forever, as long as it is held.
+//
+// ⚑ Read off the SERVED payload, never off a skill id or a name: the flag rides
+// the catalog with the rest of the resist params, so the next skill authored
+// this way gets the right line with no second edit here. And the branch lives
+// here rather than in COST_TRIGGER_TEXT because that table is keyed by type and
+// pinned exhaustively against api/shared-constants.json; this is an authoring
+// variant WITHIN a type, which the shared taxonomy has no way to express.
+function costTriggerText(effect: SkillEffect): string | undefined {
+    if (effect.type === 'resist_aura' && effect.resist?.buffLifetimeMatchesInterval) {
+        return 'every time it re-applies';
+    }
+    return COST_TRIGGER_TEXT[effect.type];
+}
+
 function targetsLine(effect: SkillEffect, level: number, maxLevel: number): string | null {
     const groups: string[] = [];
     if (effect.targetsEnemies) groups.push('enemies');
@@ -375,7 +399,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
     const interval = effectIntervalString(effect, level, maxLevel);
     const cadence = interval !== null ? ` every ${interval}`
         : (TICKING_TYPES.has(effect.type) ? ' per tick' : '');
-    const trigger = COST_TRIGGER_TEXT[effect.type];
+    const trigger = costTriggerText(effect);
     const when = trigger ? ` ${trigger}` : cadence;
     const suppressed = suppressCadence && interval !== null;
     const perTick = suppressed ? '' : cadence;
@@ -417,19 +441,34 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             lines.push(`Slow: ${prog(effect.slow.fraction, effect.slow.fractionPerLevel, level, maxLevel, pct)}${refresh}`);
             break;
         case 'resist_aura':
-        case 'resist_passive': {
+        case 'resist_passive':
+        case 'instant_resist': {
             const resist = effect.resist;
+            // "*" is the reserved wildcard tag (skills/resist.go), not a damage
+            // type: it covers every tag there is, so it must never reach the
+            // player as the literal symbol.
+            const subject = resist.tags.length === 1 && resist.tags[0] === '*'
+                ? 'all damage' : resist.tags.join(', ');
+            // Only the instant form carries its own lifetime, the instant_shield
+            // shape; the aura form's cadence rides `refresh` instead.
+            const duration = effect.type === 'instant_resist' ? ` for ${ticksToSecs(resist.durationTicks)}` : '';
             // Factor is the incoming-damage multiplier (0.5 = takes half,
-            // 1.2 = takes a fifth more); render as the delta players think
-            // in. A skill authors one side of 1 across its whole level range
-            // (skills/resist.go semantics), so the current level's factor
-            // picks the phrasing. Sign-on-first-value mirrors the ward shape.
-            if (scaled(resist.factor, resist.factorPerLevel, level) > 1) {
-                const renderAmplification = (factor: number) => pct(factor - 1);
-                lines.push(`Vulnerable to ${resist.tags.join(', ')}: +${prog(resist.factor, resist.factorPerLevel, level, maxLevel, renderAmplification)} damage taken${refresh}`);
+            // 0 = immune, 1.2 = takes a fifth more); render as the delta
+            // players think in. A skill authors one side of 1 across its whole
+            // level range (skills/resist.go semantics), so the current level's
+            // factor picks the phrasing. Sign-on-first-value mirrors the ward
+            // shape.
+            const factor = scaled(resist.factor, resist.factorPerLevel, level);
+            if (factor > 1) {
+                const renderAmplification = (value: number) => pct(value - 1);
+                lines.push(`Vulnerable to ${subject}: +${prog(resist.factor, resist.factorPerLevel, level, maxLevel, renderAmplification)} damage taken${duration}${refresh}`);
+            } else if (factor <= 0) {
+                // Immunity says what it is. "−100% damage taken" is arithmetic;
+                // nothing landing is the thing the player is buying.
+                lines.push(`Immune to ${subject}${duration}${refresh}`);
             } else {
-                const renderReduction = (factor: number) => pct(1 - Math.max(0, factor));
-                lines.push(`Resist ${resist.tags.join(', ')}: −${prog(resist.factor, resist.factorPerLevel, level, maxLevel, renderReduction)} damage taken${refresh}`);
+                const renderReduction = (value: number) => pct(1 - Math.max(0, value));
+                lines.push(`Resist ${subject}: −${prog(resist.factor, resist.factorPerLevel, level, maxLevel, renderReduction)} damage taken${duration}${refresh}`);
             }
             if (resist.targetsSelf) lines.push(selfTargetLine(effect, 'applies to'));
             break;

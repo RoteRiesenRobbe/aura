@@ -1869,6 +1869,72 @@ func TestApplyResistAura_BuffsAlliesWithLevelScaledFactor(t *testing.T) {
 	assert.Empty(t, caster.resists, "no self-buff without targetsSelf")
 }
 
+func TestApplyResistAura_BuffLifetimeMatchesIntervalDropsThePlusOne(t *testing.T) {
+	// D7's lever, one authored bool. The default lifetime is interval + 1 so a
+	// buff always survives to its own re-application (the pin above); with the
+	// override it expires exactly as the next application arrives, which is
+	// what turns every cycle into fresh work the aura has to pay for.
+	caster := newFakePlayer()
+	ally := &resistTargetRecorder{basic: ecs.NewBasic()}
+	effect := resistEffect()
+	effect.Resist.BuffLifetimeMatchesInterval = true
+
+	applyResistAura(caster, 70, 1, effect, colliderSetOf(ally))
+
+	require.Len(t, ally.resists, 1)
+	assert.Equal(t, 20, ally.resists[0].ticks, "lifetime = tick interval, no +1")
+}
+
+func TestApplyResistAura_LifetimeOverrideChargesEveryCycleAndIsFreeUnderHaste(t *testing.T) {
+	// The D7 economy, end to end and in both directions. The store ages at the
+	// start of every tick (StatusEffectsSystem, priority 101) and the aura fires
+	// later in the same tick (SkillSystem, −65), so a lifetime equal to the
+	// interval has run out by the moment re-application arrives at BASE cadence:
+	// fresh stream, work done, charged. Under a tick_rate haste the application
+	// arrives early, finds the buff still live, refreshes it at the same factor
+	// and is free. That is the ruled economy: immortality is expensive unless
+	// you invest in tick speed.
+	effect := costed(resistEffect(), 0.1)
+	effect.Resist.BuffLifetimeMatchesInterval = true
+	base := skills.EffectiveTickInterval(effect, 1, 1.0)
+	hasted := skills.EffectiveTickInterval(effect, 1, 0.5)
+	require.Less(t, hasted, base, "the haste has to actually arrive early")
+
+	age := func(target *resistTargetRecorder, ticks int) {
+		for i := 0; i < ticks; i++ {
+			target.buffs.Tick()
+		}
+	}
+
+	t.Run("base cadence charges every cycle", func(t *testing.T) {
+		caster := newFakePlayer()
+		ally := &resistTargetRecorder{basic: ecs.NewBasic()}
+		s := testSkillSystem()
+
+		s.applyAuraEffect(caster, 70, 1, effect, colliderSetOf(ally))
+		require.Equal(t, vitals.VitalSign(90), caster.vitalSigns.Health, "putting it up costs")
+
+		age(ally, base)
+		s.applyAuraEffect(caster, 70, 1, effect, colliderSetOf(ally))
+		assert.Equal(t, vitals.VitalSign(80), caster.vitalSigns.Health,
+			"the buff lapsed, so holding it is a fresh application and costs again")
+	})
+
+	t.Run("under haste the early application is free", func(t *testing.T) {
+		caster := newFakePlayer()
+		ally := &resistTargetRecorder{basic: ecs.NewBasic()}
+		s := testSkillSystem()
+
+		s.applyAuraEffect(caster, 70, 1, effect, colliderSetOf(ally))
+		require.Equal(t, vitals.VitalSign(90), caster.vitalSigns.Health)
+
+		age(ally, hasted)
+		s.applyAuraEffect(caster, 70, 1, effect, colliderSetOf(ally))
+		assert.Equal(t, vitals.VitalSign(90), caster.vitalSigns.Health,
+			"the buff is still live, so this is a refresh: not work, not charged")
+	})
+}
+
 func TestApplyResistAura_TargetsSelfIncludesCaster(t *testing.T) {
 	caster := newFakePlayer()
 	ally := &resistTargetRecorder{basic: ecs.NewBasic()}
@@ -2065,6 +2131,114 @@ func TestCooldown_InstantShieldSelfOnlyStillFires(t *testing.T) {
 
 	require.Len(t, caster.shields, 1)
 	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0))
+}
+
+// --- instant_resist (plan-effect-types.md C3 / D5) ---
+
+// sanctuaryDef is the invulnerability cooldown's shape: a wildcard resist buff
+// at factor 0, granted to the nearest ally for its own authored lifetime.
+func sanctuaryDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 69, Name: "Sanctuary", Category: skills.SkillCategoryCooldown, MaxLevel: 3,
+		CooldownTicks: 900,
+		Effects: []skills.EffectDef{{
+			Type:               skills.EffectTypeInstantResist,
+			Radius:             1.5,
+			TargetsAllies:      true,
+			MaxTargets:         1,
+			MaxTargetsPerLevel: 1,
+			Resist: &skills.ResistParams{
+				Tags: []string{skills.ResistWildcard}, Factor: 0, DurationTicks: 150,
+			},
+		}},
+	}
+}
+
+func TestCooldown_InstantResistBuffsTheNearestAlly(t *testing.T) {
+	ally := &resistTargetRecorder{basic: ecs.NewBasic()}
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerPlayerCollision), ally))
+	caster.sc.EquipCooldown(0, sanctuaryDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	require.Len(t, ally.resists, 1, "the ally in the circle is made immune")
+	got := ally.resists[0]
+	assert.Equal(t, skills.SkillID(69), got.source)
+	assert.Equal(t, []string{skills.ResistWildcard}, got.tags, "every damage tag")
+	assert.InDelta(t, 0.0, got.factor, 1e-6)
+	assert.Equal(t, 150+1, got.ticks,
+		"instant lifetime = authored duration + 1 (the dot convention)")
+	assert.Empty(t, caster.resists, "no self-buff without targetsSelf")
+	assert.Equal(t, 900, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
+}
+
+func TestApplyInstantResist_HitBoolIsTheMobConsumeContract(t *testing.T) {
+	// The bool is not decoration: processCooldowns consumes a MOB's cooldown
+	// only on a true return, so it keeps Sanctuary ready until somebody is in
+	// range. A whiff must therefore answer false, and both ways of reaching
+	// somebody must answer true.
+	effect := sanctuaryDef().Effects[0]
+
+	t.Run("whiff with nobody eligible", func(t *testing.T) {
+		s := NewSkillSystem(phy.NewSpace(), nil)
+		assert.False(t, s.applyInstantResist(newFakePlayer(), 69, 1, effect))
+	})
+
+	t.Run("an ally in the circle", func(t *testing.T) {
+		ally := &resistTargetRecorder{basic: ecs.NewBasic()}
+		s := NewSkillSystem(spaceWithBurstTarget(int(model.LayerPlayerCollision), ally), nil)
+		assert.True(t, s.applyInstantResist(newFakePlayer(), 69, 1, effect))
+	})
+
+	t.Run("targetsSelf alone in an empty field", func(t *testing.T) {
+		selfEffect := effect
+		selfEffect.Resist = &skills.ResistParams{
+			Tags: []string{skills.ResistWildcard}, Factor: 0, DurationTicks: 150, TargetsSelf: true,
+		}
+		caster := newFakePlayer()
+		s := NewSkillSystem(phy.NewSpace(), nil)
+		assert.True(t, s.applyInstantResist(caster, 69, 1, selfEffect),
+			"a self-cast with nobody around is not a whiff")
+		require.Len(t, caster.resists, 1)
+	})
+}
+
+func TestApplyInstantResist_TargetCapScalesWithLevel(t *testing.T) {
+	// maxTargets 1 + maxTargetsPerLevel 1 is the authored leveling axis: factor
+	// 0 cannot deepen, so a level buys another protected ally.
+	a := &resistTargetRecorder{basic: ecs.NewBasic()}
+	b := &resistTargetRecorder{basic: ecs.NewBasic()}
+	space := spaceWithBurstTarget(int(model.LayerPlayerCollision), a)
+	second := phy.NewCircle(phy.VEC2F_ZERO, 0.25)
+	second.Shape().IsSensor = true
+	second.Shape().Layer = int(model.LayerPlayerCollision)
+	second.Shape().UserData = b
+	space.AddShape(second)
+	space.Update()
+
+	s := NewSkillSystem(space, nil)
+	effect := sanctuaryDef().Effects[0]
+
+	s.applyInstantResist(newFakePlayer(), 69, 1, effect)
+	assert.Equal(t, 1, len(a.resists)+len(b.resists), "level 1 protects one")
+
+	a.resists, b.resists = nil, nil
+	s.applyInstantResist(newFakePlayer(), 69, 2, effect)
+	assert.Equal(t, 2, len(a.resists)+len(b.resists), "level 2 protects two")
+}
+
+func TestCooldownCost_InstantResistPaysOnAWhiff(t *testing.T) {
+	// D9: the R2 work-done rule is about AURAS. A cooldown is a committed act,
+	// so Sanctuary cast at nobody still costs; ApplyResist's new-vs-refresh
+	// answer is deliberately discarded on this path.
+	effect := costed(sanctuaryDef().Effects[0], 0.1)
+	caster := newFakePlayer()
+	s := NewSkillSystem(phy.NewSpace(), nil)
+
+	s.fireAndCharge(caster, equippedCooldown(effect))
+
+	assert.Equal(t, vitals.VitalSign(90), caster.vitalSigns.Health)
 }
 
 // --- hot_aura / instant_hot + tickHotEvents (plan-skill-vocab chunk 3) ---

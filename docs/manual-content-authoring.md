@@ -335,12 +335,19 @@ error. If the type also puts a buff on an entity, it needs a pip decision in
 `applied_effects.go` (compile-enforced) and a matching entry in `EffectPips.ts`.
 
 Existing effect `type`s to compose (the authoritative list is `effectTypeMap` in
-`backend/pkg/aura/skills/definition.go` — 26 as of 2026-08-01):
+`backend/pkg/aura/skills/definition.go`, 31 as of 2026-08-17):
 `damage_aura`, `instant_damage`, `heal_aura`, `self_heal`, `hot_aura`,
 `instant_hot`, `dot_aura`, `instant_dot`, `shield_aura`, `instant_shield`,
-`slow_aura`, `resist_aura`, `resist_passive`, `stat_multiplier`, `light_aura`,
-`taunt`, `detaunt`, `spawn`, `recall`, `revive`, `dash`, `tick_rate`, `calm`,
-`charm`, `speed_burst`, `lifesteal_burst`.
+`slow_aura`, `resist_aura`, `resist_passive`, `instant_resist`,
+`stat_multiplier`, `light_aura`, `taunt`, `detaunt`, `spawn`, `recall`,
+`revive`, `dash`, `tick_rate`, `calm`, `charm`, `stun`, `speed_burst`,
+`lifesteal_burst`, `retaliate_slow`, `retaliate_damage`, `retaliate_burst`.
+
+⚑ This list had drifted: `retaliate_slow` and `stun` were missing since their
+own chunks (recorded at effect-types C2), and `retaliate_damage` /
+`retaliate_burst` never arrived either. All five are added here with
+`instant_resist` (2026-08-17). The count is the count of `effectTypeMap`
+entries, so re-derive it rather than incrementing it.
 
 Each type has its **own allowlist of legal fields** (`effectKeys`), enforced at
 load: an unknown or renamed key hard-fails the boot naming the field and its
@@ -505,7 +512,9 @@ payload): `radius`, `radiusPerLevel`, `tickInterval`, `tickIntervalPerLevel`,
 | `shieldHP` / `shieldHPPerLevel` | `shield.hp` / `shield.hpPerLevel` | shield_aura, instant_shield |
 | `shieldDurationTicks` | `shield.durationTicks` | instant_shield only |
 | `slowFraction` / `slowFractionPerLevel` | `slow.fraction` / `slow.fractionPerLevel` | slow_aura |
-| `resistTags` / `resistFactor` / `resistFactorPerLevel` | `resist.tags` / `resist.factor` / `resist.factorPerLevel` | resist_aura, resist_passive |
+| `resistTags` / `resistFactor` / `resistFactorPerLevel` | `resist.tags` / `resist.factor` / `resist.factorPerLevel` | resist_aura, resist_passive, instant_resist. ⚑ `resistTags` is NOT the closed damage vocabulary: it also accepts the reserved wildcard `"*"`, which covers every hit tag (factor 0 with it = invulnerability). A wildcard must be the ONLY entry - mixed with named tags it would apply twice to those tags, and that hard-fails |
+| `resistDurationTicks` | `resist.durationTicks` | instant_resist only (the `shieldDurationTicks` twin; the aura form derives its lifetime from the cadence) |
+| `buffLifetimeMatchesInterval` | `resist.buffLifetimeMatchesInterval` | ⚑ resist_aura only, and it is a PRICING lever, not a duration knob: it drops the standard interval + 1 buff lifetime so every application at base cadence is fresh work and is charged (plan-effect-types.md D7). Default false = the shipped behaviour |
 | `stat` / `statBonus` / `statBonusPerLevel` | `stat.name` / `stat.bonus` / `stat.bonusPerLevel` | stat_multiplier |
 | `targetsSelf` | `<payload>.targetsSelf` | ⚑ resist / shield / hot — inside the payload, unlike the other target flags |
 | `spawnMob` / `ttlTicks` / `ttlTicksPerLevel` / `powerPerOwnerLevel` | `spawn.mobName` / `spawn.ttlTicks` / … | spawn |

@@ -1,0 +1,23 @@
+{
+  "_comment": "The invulnerability AURA (plan-effect-types.md C3 / D6+D7): Sanctuary's sustained half, holding the nearest ally immune for as long as you can afford it. Pure `resist_aura` content - the same reserved wildcard tag at factor 0 as Sanctuary, no new effect type - plus the one new authoring lever this chunk built. ⚑ `buffLifetimeMatchesInterval` IS THE PRICE, and without it this skill would be broken content: a resist aura charges only when an application does WORK (a refresh at the same factor is not work, plan-resource-costs-feedback R2 / §5.2), and the standard buff lifetime is tickInterval + 1 precisely so a target in range never lapses - so an untouched invulnerability aura would pay once and then hold somebody immortal for free, forever. The flag drops that +1: the buff expires exactly as the next application arrives, so at BASE cadence every cycle opens a new stream and is charged, one payment per 3 s of immunity per ally. Under a tick_rate haste the application arrives EARLY, finds the buff alive, refreshes it and pays nothing - which is the ruled economy: immortality is expensive unless you invest in tick speed. ⚑ ACCEPTED FLICKER (explicit PO ruling): giving up the +1 means that once per cycle there is an ordering window where an enemy aura processed earlier in the same server pass lands one hit on an unprotected target. Entity order decides whether it happens, so it is not deterministic. Kept as counterplay texture rather than fixed. Like Sanctuary it excludes the caster (`targetsSelf` absent) and levels by BREADTH - factor 0 cannot deepen, so `maxTargets` 1 +1/L protects the nearest one/two/three allies. All values [PLACEHOLDER]: tickInterval 90 = 3 s, the payment cadence rather than a hit cadence; cost 0.08 +0.01/L, deliberately far above FireWard's 0.018 entry price because this one is a recurring bill and not an activation charge (at L3 that is ~3.3 % of the pool per second against ~1 %/s regen - holdable only in bursts, which is the point). Obtainable in dev via the SKILL Aegis cheat; no unlock source yet (the FireVulnerability precedent), real placement comes with the content pass.",
+  "id": 70,
+  "name": "Aegis",
+  "category": "active_aura",
+  "maxLevel": 3,
+  "effects": [
+    {
+      "type": "resist_aura",
+      "costFractionOfMax": 0.08,
+      "costFractionOfMaxPerLevel": 0.01,
+      "radius": 1.5,
+      "resistTags": ["*"],
+      "resistFactor": 0,
+      "selector": "nearest",
+      "targetsAllies": true,
+      "maxTargets": 1,
+      "maxTargetsPerLevel": 1,
+      "tickInterval": 90,
+      "buffLifetimeMatchesInterval": true
+    }
+  ]
+}

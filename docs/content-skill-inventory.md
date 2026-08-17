@@ -17,7 +17,9 @@ than repeating them. Regenerate after any content chunk.
 > longer matches the JSON** (Damage reads 5 and is 10; Recover reads 1 and is 5;
 > every `3` in the passive and cooldown sections is a `5`). The per-level slopes
 > in the Values column drifted with them: Damage's `+3.2/L` is `+0.2222/L` in
-> the file. Two skills are missing outright (**Bloodthirst**, **Discipline**).
+> the file. ⚑ Two skills were also missing outright (**Bloodthirst**,
+> **Discipline**); that half is FIXED 2026-08-17, see the roster-repair note
+> below. The MaxLv and slope drift is not.
 >
 > **What WAS updated on 2026-08-10:** the six new rows below are correct against
 > `api/` (marked ⭐), as are the counts, the legend's new **Ascension** source
@@ -61,11 +63,24 @@ for f in sorted(glob.glob('api/skills/*.json')):
 EOF
 ```
 
-Scope: the 58 **player** skills (`api/skills/*.json`). The 37 mob-only skills
+Scope: the 63 **player** skills (`api/skills/*.json`). The 32 mob-only skills
 in `api/skills/mobs/` are not listed (they're authoring details of their mobs).
-58 + 37 = the **95** registry count in the boot log (was 50 + 36 = 86 at the
-2026-07-29 generation; ⚑ two of the nine added since are still missing from the
-table, see the staleness banner).
+63 + 32 = the **95** registry count in the boot log (was 50 + 36 = 86 at the
+2026-07-29 generation).
+
+> ⭐ **ROSTER REPAIRED 2026-08-17 (PO ruling), by re-deriving every count from
+> `api/` rather than incrementing the old ones, which is what let them drift
+> in the first place.** Four rows were wrong: **Wild** (id 3) and **Recall**
+> (id 28) were listed but no longer exist as skills (Recall became one of the
+> three baseline UTILITIES, `skills/utility.go`, which live outside the catalog
+> by ruling and so are outside this table too), while **Bloodthirst** (id 8)
+> and **Discipline** (id 65) existed and were missing. The two errors had been
+> cancelling in the totals, which is why the counts looked plausible. ⚑ The
+> missing Bloodthirst row was also hiding an unreachable skill: the
+> reachability summary read THREE cheat-only skills when the true answer was
+> four even before this chunk added two. **Every row now corresponds 1:1 to a
+> file in `api/skills/`, and the per-category counts are that correspondence.**
+> Row VALUES are untouched, so the MaxLv/slope staleness above still stands.
 
 Scaling notation: `12 +6/L` = base 12, +6 per skill level. Ticks: 30 ticks =
 1 s. Source key: **MS Ln** = milestone · **Drop** = mob kill unlock (chance) ·
@@ -89,7 +104,6 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 |---|---|---|---|---|
 | 1 | Damage | 5 | dmg 14 +3.2/L @40t, r1.0, 1 tgt nearest, var ±15% | **MS L1** — seeded at character creation (Q4) |
 | 2 | Heal | 5 | heal 12 +6/L @80t, r1.5 +.1/L, lowest_health 1 tgt, **self-cost 10 −2/L** (FINAL) | NPC Hermit @L3 |
-| 3 | Wild | 5 | dmg 10 +2.4/L @40t, r1.4 +.05/L | Drop: EliteWolf .5 |
 | 4 | Slow | 5 | slow 10% +10%/L, r1.5 | Drop: BanditRanged .2 · **Quest: `wolves-on-the-road`, shaman leg** |
 | 5 | Immolate | 5 | fire dot 10.5 +2.1/L (3×60t) @20t, r1.0 | NPC Emberkeeper @L12 |
 | 6 | Lantern | 3 | light r4 +1/L | **Quest: `the-lost-lamp` — the ONLY source** (Q4/R3 deleted the .05 kobold drops; pinned by `TestContent_LanternIsQuestOnlyAndHasASource`) |
@@ -98,6 +112,7 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 30 | Paladin | 5 | dmg 10 +2.2/L @40t + heal 8 +4/L @120t (no self-cost), r1.0 | Recipe: Damage 5 + Heal 5 |
 | 40 | FireWard | 3 | fire resist ×0.6 −0.1/L, allies+self, r1.5 | Drop: FireElemental .35 |
 | 66 | FireVulnerability | 5 | ⭐ fire resist **×1.2 +0.05/L** (a CURSE: enemies take more), enemies only, r1.5 @30t | **Cheat only (`SKILL FireVulnerability`)** — no unlock source yet (plan-effect-types.md C1) |
+| 70 | Aegis | 3 | ⭐ resist **`*` ×0** = IMMUNITY to all damage, nearest 1 +1/L allies (not self), r1.5 @90t; cost 0.08 +0.01/L **charged every cycle** (`buffLifetimeMatchesInterval`) | **Cheat only (`SKILL Aegis`)**: no unlock source yet (plan-effect-types.md C3) |
 | 141 | Frostbite | 10 | ⭐ dmg 14 +0.22/L **frost** @40t, r1.0, 1 tgt nearest, var ±15%; **FREE** | **Ascension** (D1 parity: Damage id 1, verbatim but frost) |
 | 142 | Blight | 10 | ⭐ **nature** dot 10.5 +2.61/L (3×60t) @20t, r1.0 | **Ascension** (D1 parity: Immolate id 5, verbatim but nature) |
 | 145 | Venomward | 5 | ⭐ **poison** resist ×0.6 −0.05/L, allies+self, r1.5 @30t | **Ascension** (D1 parity: FireWard id 40, verbatim but poison) |
@@ -113,7 +128,7 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 58 | Wildfire | 5 | fire dot 10.5 +2.1/L ×2 tgt (4×60t) @20t, r1.4 + self-only fire resist ×0.6 −0.05/L + light r4 +1/L | Recipe: Ignite 3 + Immolate 5 |
 | 59 | Suppression | 5 | dmg 6.5 +1.4/L r2.6 +.1/L + slow 7% +7%/L | Recipe: Slow 5 + LongRangeStrike 5 |
 
-## Passives (9)
+## Passives (10)
 
 | ID | Name | MaxLv | Values | Source |
 |---|---|---|---|---|
@@ -122,16 +137,18 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 43 | ThickHide | 3 | physical resist ×0.85 −.05/L | Drop: DireBear .2 |
 | 46 | Torch | 3 | light r2.5 +.5/L | NPC Lamplighter (no gate) + Emberkeeper @L1 |
 | 47 | Antivenom | 3 | poison resist ×0.7 −.1/L | Drop: VenomSpider .25 |
+| 65 | Discipline | 5 | ⭐ resource-cost reduction +6% +3%/L (clamped to free, never a refund); the one stat that scales an INPUT | **MS L5** |
 | 60 | KeenEye | 5 | crit chance +2% +2%/L | Drop: EliteWolf .2 / AlphaWolf .12 / DireWolf .1 |
 | 136 | Strong | 5 | all outgoing damage +4% +2%/L (direct + dots) | NPC CityGuard @L3 |
 | 139 | FrostShield | 5 | retaliate slow 10% +5%/L for 150t on anything that damages you | Drop: Troll .2 |
 | 67 | FireShield | 5 | ⭐ retaliate **damage 3 +1/L fire** at anything that damages you (attributed: it credits XP and kill credit) | **Cheat only (`SKILL FireShield`)** — no unlock source yet (plan-effect-types.md C2) |
 
-## Cooldowns (27)
+## Cooldowns (28)
 
 | ID | Name | MaxLv | Values (CD in ticks) | Source |
 |---|---|---|---|---|
 | 10 | Swift | 3 | move speed ×1.5 +0.1/L for 150t +30/L; CD 600 −60/L | Drop: every wolf — Wolf .04 / DireWolf .12 / AlphaWolf .15 / EliteWolf .25 |
+| 8 | Bloodthirst | 5 | ⭐ for 180t (6 s), a share of the damage your hits deal comes back as healing: 30% +5%/L; CD 900 −60/L, cost 0.02 +0.0025/L | **Cheat only (`SKILL Bloodthirst`)**: no unlock source yet (R3, plan-resource-costs-feedback §5.6) |
 | 20 | NovaBurst | 3 | burst 18 +4/L **fire** r2.0 +.1/L **+ fire dot 5 +1.2/L** (3×30t); CD 300 −20/L | Drop: BanditPyromancer .3 |
 | 21 | FirstAid | 3 | self-heal 20% +5%/L of max; CD 900 | NPC Hermit @L2 + VillageHealer @L2 |
 | 22 | Ignite | 3 | fire dot 6.3 +1.6/L (3×30t), r1.5 +.1/L; CD 300 −20/L | NPC Emberkeeper @L7 |
@@ -140,7 +157,6 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 25 | Taunt | 3 | taunt r2.0, threat +50; CD 300 −20/L | Drop: RallyDrummer 1.0 · **Quest: `wolves-on-the-road`, militia leg** |
 | 26 | Fade | 3 | detaunt r2.0; CD 300 −20/L | Drop: EliteBandit .35 |
 | 27 | Barrier | 3 | shield 20 +5/L (300t) allies+self, r1.5 +.1/L; CD 300 −20/L | Recipe: Hardy 3 + Tough 3 |
-| 28 | Recall | 1 | teleport, cast 300t interruptible; CD 9000 | NPC TownCrier @L3 + Wanderer @L3 |
 | 31 | Recover | 1 | instant HoT 4 (9×60t) **self only**, r2; CD 1200 | Drop: DireBear .25 · NPC Shaman @L4 |
 | 32 | Revive | 1 | revive @30% max, r3, cast 150t interruptible; CD 600 | NPC VillageHealer @L8 |
 | 33 | Dash | 3 | dash 2.5 +0.5/L; CD 300 | Drop: EliteWolf .2 |
@@ -158,11 +174,15 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 63 | CharmBeast | 3 | charm 1800t +300/L, r4.0, 1 tgt nearest; **scoped: prey + predators**; CD 3600 | NPC Hermit @L10 |
 | 64 | BindElemental | 3 | charm 1200t +200/L, r3.5, 1 tgt nearest; **scoped: elemental**; CD 4200 | NPC Emberkeeper @L15 |
 | 68 | Retribution | 5 | ⭐ for 300t (10 s), reflects **20% +5%/L of every hit taken** back as **fire** (attributed: it credits XP and kill credit); CD 900 −60/L, cost 0.02 +0.0025/L | **Cheat only (`SKILL Retribution`)** — no unlock source yet (plan-effect-types.md follow-up) |
+| 69 | Sanctuary | 3 | ⭐ grants resist **`*` ×0** = IMMUNITY to all damage for 150t (5 s) to the nearest 1 +1/L allies (not self), r1.5; CD 900, cost 0.04 +0.005/L | **Cheat only (`SKILL Sanctuary`)**: no unlock source yet (plan-effect-types.md C3) |
 
 ## Reachability summary (live world zone)
 
 Swept 2026-07-29 across mob `unlocks[]`, mob `interaction` grants, recipes and
-the milestone table:
+the milestone table; the cheat-only list **re-derived 2026-08-17** from
+`api/skills/` against all five source kinds (kill drops, `teach_skill` grants
+anywhere in an NPC dialogue tree, recipe results, the milestone table and the
+ascension catalog).
 
 - ⭐ **A FIFTH SOURCE KIND EXISTS since 2026-08-10: the ascension catalog**
   (`api/ascension/`, plan-ascension.md C3). Five skills reach players ONLY
@@ -172,7 +192,12 @@ the milestone table:
   regeneration script that reads only `unlocks[]`, teachings, recipes and the
   milestone table will report all six as unreachable and be wrong, exactly as
   the quest-reward note below warns for its own three.
-- **Unreachable without the cheat: THREE, and all three are deliberate.** ⭐
+- **Unreachable without the cheat: SIX, and all six are deliberate.**
+  ⭐ **Bloodthirst** (id 8) is the oldest of them and was never counted here:
+  its ROW was missing from the table, so the sweep could not see it (R3,
+  2026-08-01, "no unlock source yet ... the obvious home is the wolf line
+  Reaper already drops from"). It is the reason this list said THREE while the
+  data said four. ⭐
   **FireVulnerability** (id 66, plan-effect-types.md C1, 2026-08-16) is the
   vocabulary-hole closer for the curse half of the resist axis, authored as the
   worked example of `resistFactor > 1`. ⭐ **FireShield** (id 67, C2,
@@ -182,8 +207,14 @@ the milestone table:
   chunks'. ⭐ **Retribution** (id 68, the percentage-reflect follow-up,
   2026-08-17) is the third and settles it as a convention: an effect-type chunk
   ships its worked example unplaced, and the content pass places it.
+  ⭐ **Sanctuary** (id 69) and **Aegis** (id 70, both C3, 2026-08-17) are the
+  newest pair, following that convention: the two halves of invulnerability,
+  the cooldown grant on the new `instant_resist` type and the aura that holds
+  it.
   ⚑ Each new one costs the reachability sweep a line, and the sweep must not
-  start reading three cheat-only skills as drift. Every OTHER player
+  start reading six cheat-only skills as drift. ⚑ And a skill missing from the
+  TABLE is invisible to this list, which is how Bloodthirst went four chunks
+  uncounted: re-derive from `api/skills/`, never from the rows below. Every OTHER player
   skill has a live-world source — the step-7 A.5 guarantee
   (`plan-rebrand-cleanup.md`) still holding, and since zone-editor C3 there is
   no legacy source left to discount (Wild, Slow and Tough lost only their

@@ -131,6 +131,30 @@ func TestBuffs_ResistMultipleMatchingTagsMultiply(t *testing.T) {
 	assert.InDelta(t, 0.25, b.ResistMultiplier([]string{"fire", "boss_x_lava"}), 1e-6)
 }
 
+func TestBuffs_ResistWildcardCoversEveryTag(t *testing.T) {
+	// The seam resist.go recorded and never built: a tag-LIST resist buff of
+	// ["*"] covers every hit tag, the map-shaped ResistMultiplier semantics
+	// (plan-effect-types.md C3 / §4.1). This is what makes an invulnerability
+	// bubble authorable as ordinary resist content.
+	var b Buffs
+	b.ApplyResist(40, []string{ResistWildcard}, 0, 2)
+	assert.InDelta(t, 0.0, b.ResistMultiplier([]string{"fire"}), 1e-6, "immune to fire")
+	assert.InDelta(t, 0.0, b.ResistMultiplier([]string{"physical"}), 1e-6, "and to everything else")
+	assert.InDelta(t, 1.0, b.ResistMultiplier(nil), 1e-6, "an untagged hit matches no tag at all")
+}
+
+func TestBuffs_ResistWildcardAppliesPerHitTag(t *testing.T) {
+	// The wildcard is a per-TAG cover, not a once-per-hit fallback: a two-tag
+	// hit multiplies the factor twice, exactly as a {"*": 0.5} resistance map
+	// would. Factor 0 cannot tell the two readings apart, so the pin is a
+	// non-zero one.
+	var b Buffs
+	b.ApplyResist(40, []string{ResistWildcard}, 0.5, 2)
+	assert.InDelta(t, 0.5, b.ResistMultiplier([]string{"fire"}), 1e-6)
+	assert.InDelta(t, 0.25, b.ResistMultiplier([]string{"fire", "frost"}), 1e-6,
+		"two covered tags, two multiplications")
+}
+
 func TestBuffs_ResistTickExpiry(t *testing.T) {
 	var b Buffs
 	b.ApplyResist(40, []string{"fire"}, 0.5, 2)

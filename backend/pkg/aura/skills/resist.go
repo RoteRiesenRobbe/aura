@@ -74,5 +74,8 @@ func GateOpensFor(key string, gateKeys []string) bool {
 // The transient per-entity resist buffs live in the generic Buffs store
 // (buffs.go, effect foundations Step 2), which inherited ResistBuffs'
 // source-keying, stream and stacking semantics. The tag-LIST-shaped resist
-// BUFFS deliberately do not learn "*" — no consumer; one line when content
-// wants a resist-everything bubble (§4.1, recorded not built).
+// BUFFS understand "*" too since plan-effect-types.md C3: invulnerability is a
+// resist buff covering every tag at factor 0, and it is that consumer §4.1
+// waited for. The semantics are this file's, per hit tag rather than per hit,
+// and the loader rejects a wildcard authored beside named tags so no tag can
+// match twice.

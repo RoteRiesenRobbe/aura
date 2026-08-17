@@ -64,6 +64,7 @@ const (
 	EffectTypeRetaliateDamage
 	EffectTypeRetaliateBurst
 	EffectTypeStun
+	EffectTypeInstantResist
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -138,6 +139,12 @@ var effectTypeMap = map[string]EffectType{
 	"retaliate_damage": EffectTypeRetaliateDamage,
 	"retaliate_burst":  EffectTypeRetaliateBurst,
 	"stun":             EffectTypeStun,
+	// The resist row's cooldown cell (plan-effect-types.md D5): the generic
+	// instant twin of resist_aura, filling the dispatch grid's one empty resist
+	// slot. Invulnerability is its first content, but it opens ordinary timed
+	// resist cooldowns as free content too, which is why it beat a bespoke
+	// invulnerability type.
+	"instant_resist": EffectTypeInstantResist,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -554,6 +561,22 @@ type ResistParams struct {
 	Factor         float32  `json:"factor"`
 	FactorPerLevel float32  `json:"factorPerLevel"`
 	TargetsSelf    bool     `json:"targetsSelf"`
+
+	// DurationTicks is the buff lifetime one application grants, the
+	// ShieldParams convention: authored on instant_resist only, 0 on the aura
+	// and passive forms, which derive theirs from the cadence (or, with
+	// BuffLifetimeMatchesInterval, from the cadence exactly).
+	DurationTicks int `json:"durationTicks"`
+
+	// BuffLifetimeMatchesInterval drops the aura form's +1 (plan-effect-types.md
+	// D7, resist_aura only): the buff then expires exactly as re-application
+	// arrives, so at base cadence every cycle opens a NEW stream and the aura
+	// pays for it, while a tick_rate haste arrives early enough to refresh a
+	// live buff for free. It is a pricing lever, not a duration knob: the one
+	// way to make a permanent grant cost per cycle without inventing a second
+	// cost model. Default false keeps every skill authored before it
+	// byte-identical.
+	BuffLifetimeMatchesInterval bool `json:"buffLifetimeMatchesInterval"`
 }
 
 // FactorAt is the level-scaled resistance multiplier, floored at 0.
@@ -1034,6 +1057,13 @@ type effectDef struct {
 	ResistFactor         float32  `json:"resistFactor"`
 	ResistFactorPerLevel float32  `json:"resistFactorPerLevel"`
 	TargetsSelf          bool     `json:"targetsSelf"`
+	// instant_resist authors its buff lifetime outright, the
+	// shieldDurationTicks convention: a cooldown has no cadence to derive one
+	// from. The key allowlist keeps it off the aura and passive forms.
+	ResistDurationTicks int `json:"resistDurationTicks"`
+	// resist_aura only (D7): drop the +1 so the buff expires as re-application
+	// arrives. See ResistParams.BuffLifetimeMatchesInterval.
+	BuffLifetimeMatchesInterval bool `json:"buffLifetimeMatchesInterval"`
 
 	SlowFraction         float32 `json:"slowFraction"`
 	SlowFractionPerLevel float32 `json:"slowFractionPerLevel"`
@@ -1188,8 +1218,16 @@ var effectKeys = map[EffectType][]string{
 	// No selector/cap: a slow aura is a zone — it slows everything in range.
 	EffectTypeSlowAura: mergeKeys(keysGeometry, keysCadence, keysTargetFlags,
 		[]string{"slowFraction", "slowFractionPerLevel"}),
+	// buffLifetimeMatchesInterval rides the AURA form alone (D7): it is a
+	// cadence lever, and the passive has no cadence while the instant form
+	// authors its lifetime outright, so on either it would be a silent no-op.
 	EffectTypeResistAura: mergeKeys(keysGeometry, keysCadence, keysCapped, keysTargetFlags,
-		keysResistPayload, []string{"targetsSelf"}),
+		keysResistPayload, []string{"targetsSelf", "buffLifetimeMatchesInterval"}),
+	// The resist pair's instant twin (plan-effect-types.md D5), mirroring
+	// instant_shield exactly: no cadence, its own authored buff lifetime, and
+	// the target flags plus targetsSelf.
+	EffectTypeInstantResist: mergeKeys(keysGeometry, keysCapped, keysTargetFlags,
+		keysResistPayload, []string{"resistDurationTicks", "targetsSelf"}),
 	// Equip-time folds into DerivedStats — no geometry, cadence, or targeting.
 	EffectTypeResistPassive:  keysResistPayload,
 	EffectTypeStatMultiplier: {"stat", "statBonus", "statBonusPerLevel"},
@@ -1584,8 +1622,8 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.SelfHeal, err = e.selfHealParams()
 	case EffectTypeSlowAura:
 		def.Slow = &SlowParams{Fraction: e.SlowFraction, FractionPerLevel: e.SlowFractionPerLevel}
-	case EffectTypeResistAura, EffectTypeResistPassive:
-		def.Resist, err = e.resistParams()
+	case EffectTypeResistAura, EffectTypeResistPassive, EffectTypeInstantResist:
+		def.Resist, err = e.resistParams(effectType)
 	case EffectTypeStatMultiplier:
 		def.Stat, err = e.statParams()
 	case EffectTypeDotAura, EffectTypeInstantDot:
@@ -1783,21 +1821,37 @@ func (e *effectDef) selfHealParams() (*SelfHealParams, error) {
 	}, nil
 }
 
-func (e *effectDef) resistParams() (*ResistParams, error) {
+func (e *effectDef) resistParams(effectType EffectType) (*ResistParams, error) {
 	if len(e.ResistTags) == 0 {
 		return nil, fmt.Errorf("resistTags: required on resist effects")
 	}
 	if err := validateTags("resistTags", e.ResistTags); err != nil {
 		return nil, err
 	}
+	// The wildcard is the whole list or nothing. Mixed with named tags it would
+	// double-apply on those tags' own hits (the buff store multiplies once per
+	// matching entry), so ["*", "fire"] at 0.5 would take a pure fire hit down
+	// to 0.25 while every other hit halved: an asymmetry nobody authors on
+	// purpose and nothing would report.
+	if len(e.ResistTags) > 1 && slices.Contains(e.ResistTags, ResistWildcard) {
+		return nil, fmt.Errorf("resistTags: %q must be the only entry (a wildcard beside named tags applies twice to those tags)", ResistWildcard)
+	}
 	if e.ResistFactor < 0 {
 		return nil, fmt.Errorf("resistFactor: must be >= 0, got %v", e.ResistFactor)
 	}
+	// The instant form requires its authored buff lifetime (the shieldParams
+	// rule); the aura and passive forms derive theirs, and the allowlist
+	// already rejects the key there.
+	if effectType == EffectTypeInstantResist && e.ResistDurationTicks < 1 {
+		return nil, fmt.Errorf("resistDurationTicks: must be >= 1, got %v", e.ResistDurationTicks)
+	}
 	return &ResistParams{
-		Tags:           e.ResistTags,
-		Factor:         e.ResistFactor,
-		FactorPerLevel: e.ResistFactorPerLevel,
-		TargetsSelf:    e.TargetsSelf,
+		Tags:                        e.ResistTags,
+		Factor:                      e.ResistFactor,
+		FactorPerLevel:              e.ResistFactorPerLevel,
+		TargetsSelf:                 e.TargetsSelf,
+		DurationTicks:               e.ResistDurationTicks,
+		BuffLifetimeMatchesInterval: e.BuffLifetimeMatchesInterval,
 	}, nil
 }
 

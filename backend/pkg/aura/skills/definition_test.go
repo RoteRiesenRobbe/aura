@@ -499,6 +499,115 @@ func TestMap_NegativeResistFactorFails(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestParse_ResistWildcardTag(t *testing.T) {
+	// The invulnerability shape (plan-effect-types.md D6): one wildcard tag at
+	// factor 0 loads as ordinary resist content.
+	data := []byte(`{
+      "id": 70, "name": "Aegis", "category": "active_aura", "maxLevel": 3,
+      "effects": [{"type": "resist_aura", "radius": 1.5, "resistTags": ["*"],
+                   "resistFactor": 0, "targetsAllies": true, "tickInterval": 90}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	assert.Equal(t, []string{ResistWildcard}, def.Effects[0].Resist.Tags)
+	assert.InDelta(t, 0.0, def.Effects[0].Resist.Factor, 1e-6)
+}
+
+func TestMap_ResistWildcardMixedWithNamedTagsFails(t *testing.T) {
+	// A wildcard alongside named tags would double-apply on the named tags'
+	// own hits: the buff covers each hit tag once per matching entry, so
+	// ["*", "fire"] at 0.5 would land a pure fire hit at 0.25 while every other
+	// hit takes 0.5. Unauthorable rather than a silent asymmetry.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"resist_aura","radius":1,"resistTags":["*","fire"],"resistFactor":0.5,"targetsAllies":true}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.Error(t, err)
+}
+
+// --- the resist_aura buff-lifetime override (plan-effect-types.md D7) ---
+
+func TestParse_ResistAuraBuffLifetimeMatchesInterval(t *testing.T) {
+	data := []byte(`{
+      "id": 70, "name": "Aegis", "category": "active_aura", "maxLevel": 3,
+      "effects": [{"type": "resist_aura", "radius": 1.5, "resistTags": ["*"], "resistFactor": 0,
+                   "targetsAllies": true, "tickInterval": 90, "buffLifetimeMatchesInterval": true}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	assert.True(t, def.Effects[0].Resist.BuffLifetimeMatchesInterval)
+}
+
+func TestParse_ResistAuraDefaultsToTheIntervalPlusOneConvention(t *testing.T) {
+	// Absent means the shipped behavior, for every skill authored before D7.
+	data := []byte(`{
+      "id": 40, "name": "FireWard", "category": "active_aura", "maxLevel": 3,
+      "effects": [{"type": "resist_aura", "radius": 1.5, "resistTags": ["fire"],
+                   "resistFactor": 0.6, "targetsAllies": true, "tickInterval": 30}]
+    }`)
+	def := mustParse(t, data)
+	assert.False(t, def.Effects[0].Resist.BuffLifetimeMatchesInterval)
+}
+
+func TestMap_BuffLifetimeMatchesIntervalOnNonAuraResistFormsFails(t *testing.T) {
+	// The lever is a CADENCE lever: it only means anything where a lifetime is
+	// derived from a tick interval. The passive has no cadence and the instant
+	// form authors its lifetime outright, so the key is a silent no-op on both
+	// and the allowlist rejects it.
+	for _, body := range []string{
+		`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[{"type":"resist_passive","resistTags":["fire"],"resistFactor":0.5,"buffLifetimeMatchesInterval":true}]}`,
+		`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":10,"effects":[{"type":"instant_resist","radius":1,"resistTags":["*"],"resistFactor":0,"resistDurationTicks":150,"targetsAllies":true,"buffLifetimeMatchesInterval":true}]}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(body))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition(nil)
+		assert.ErrorContains(t, err, "buffLifetimeMatchesInterval")
+	}
+}
+
+// --- instant_resist (plan-effect-types.md C3 / D5) ---
+
+func TestParse_InstantResist(t *testing.T) {
+	// The resist row's cooldown cell: the resist payload plus its own authored
+	// buff lifetime, the instant_shield shape.
+	data := []byte(`{
+      "id": 69, "name": "Sanctuary", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 900,
+      "effects": [{"type": "instant_resist", "radius": 1.5, "resistTags": ["*"],
+                   "resistFactor": 0, "resistDurationTicks": 150,
+                   "targetsAllies": true, "maxTargets": 1, "maxTargetsPerLevel": 1}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeInstantResist, e.Type)
+	require.NotNil(t, e.Resist)
+	assert.Equal(t, []string{ResistWildcard}, e.Resist.Tags)
+	assert.InDelta(t, 0.0, e.Resist.Factor, 1e-6)
+	assert.Equal(t, 150, e.Resist.DurationTicks)
+	assert.True(t, e.TargetsAllies)
+	assert.False(t, e.Resist.TargetsSelf)
+}
+
+func TestMap_InstantResistWithoutDurationFails(t *testing.T) {
+	// The instant form carries its own buff lifetime, the instant_shield rule:
+	// an absent duration would expire on application.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":10,"effects":[{"type":"instant_resist","radius":1,"resistTags":["*"],"resistFactor":0,"targetsAllies":true}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.ErrorContains(t, err, "resistDurationTicks")
+}
+
+func TestMap_ResistDurationOnResistAuraFails(t *testing.T) {
+	// The aura form derives its buff lifetime from the tick cadence, so the key
+	// is not in its allowlist; authoring it there is a silent no-op otherwise.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"resist_aura","radius":1,"resistTags":["fire"],"resistFactor":0.5,"resistDurationTicks":150,"targetsAllies":true}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.Error(t, err)
+}
+
 func TestMap_ResistTagsOnNonResistEffectFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"resistTags":["fire"]}]}`))
 	require.NoError(t, err)

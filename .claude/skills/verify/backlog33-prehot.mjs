@@ -32,7 +32,7 @@
 // Usage: node .claude/skills/verify/backlog33-prehot.mjs [label] [url]
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
-import { botName } from './botname.mjs';
+import { joinAsNewCharacter } from './lib/join.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -66,9 +66,10 @@ const newPlayer = async (name) => {
   });
   page.on('pageerror', (e) => consoleErrors.push(`[${name}] pageerror: ` + e.message));
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
-  await page.waitForSelector('#startForm .playerNameSubmit:not([disabled])', { timeout: 120_000 });
-  await page.fill('#startForm .playerNameInput', name);
-  await page.click('#startForm .playerNameSubmit');
+  // The account screens replaced #startForm (step 8a chunk 2); joins go
+  // through lib/join.mjs since 2026-08-17 (this script was red at join before).
+  // `name` is a tag here; join.mjs mints the actual hrnss_ character name.
+  await joinAsNewCharacter(page, name, { timeout: 120_000 });
   await page.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 });
   await page.waitForSelector('#console_command', { state: 'attached', timeout: 60_000 });
   await page.evaluate(() => { const p = document.getElementById('developPanel'); if (p) p.style.display = 'none'; });
@@ -172,9 +173,9 @@ const equipAndActivateAura = async (page, skillRe, slotIndex = 0) => {
   return { ok: false, why: `slot ${slotIndex} never lit as active after 5 attempts` };
 };
 
-const healer = await newPlayer(botName('healer'));
-const ally = await newPlayer(botName('patient'));
-const control = await newPlayer(botName('control'));
+const healer = await newPlayer('healer');
+const ally = await newPlayer('patient');
+const control = await newPlayer('control');
 
 for (const p of [healer, ally, control]) await cmd(p, 'GOD');
 await cmd(healer, 'WARP ' + wire(HEALER));

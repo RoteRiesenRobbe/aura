@@ -1025,6 +1025,28 @@ func TestMob_VulnerabilityBuff_Amplifies(t *testing.T) {
 		"base 0.5 × curse 1.5 → a 40 HP hit lands as 30: the curse eats into the resistance")
 }
 
+func TestMob_WildcardImmunityBuff_DominatesBaseResistances(t *testing.T) {
+	// The invulnerability shape from the other side (plan-effect-types.md C3):
+	// a wildcard resist buff at factor 0 covers every hit tag, and ×0 dominates
+	// whatever the mob's own resistance map says, including a vulnerability
+	// the map itself authors.
+	def := testMobDefinition()
+	def.Factors.Resistances = map[string]float32{"fire": 2.0}
+	m := NewMob(def, 0, nil)
+
+	// Lifetime well past the two ResetTickNumbers calls below: that hook ages
+	// the buff store, so a 2-tick buff would be gone by the second hit.
+	m.ApplyResist(69, []string{skills.ResistWildcard}, 0, 10)
+
+	m.ResetTickNumbers()
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 40, Tags: []string{"fire"}})
+	assert.Equal(t, m.MaxHealth(), m.Health(), "immune to fire despite taking double normally")
+
+	m.ResetTickNumbers()
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 40, Tags: []string{"physical"}})
+	assert.Equal(t, m.MaxHealth(), m.Health(), "and to a tag no resistance mentions at all")
+}
+
 func TestNewMob_SpawnsHostile(t *testing.T) {
 	// FactionHostile is not the zero value — a missed initialization would
 	// silently spawn player-aligned mobs (effect foundations Step 1).

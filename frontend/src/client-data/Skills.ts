@@ -60,10 +60,21 @@ export interface SlowParams {
 }
 
 export interface ResistParams {
+    // A single "*" entry is the reserved wildcard: it covers every damage tag,
+    // which at factor 0 is invulnerability (plan-effect-types.md C3).
     tags: string[];
     factor: number;
     factorPerLevel: number;
     targetsSelf: boolean;
+    // instant_resist only: the granted buff's own lifetime, the ShieldParams
+    // convention. 0 on the aura and passive forms, which derive theirs from
+    // the tick cadence.
+    durationTicks: number;
+    // resist_aura only (plan-effect-types.md D7): the buff lives exactly one
+    // tick interval instead of interval + 1, so it lapses before every
+    // re-application and the aura is charged each cycle rather than once per
+    // new target. The tooltip's cost-trigger wording branches on it.
+    buffLifetimeMatchesInterval: boolean;
 }
 
 export interface StatParams {

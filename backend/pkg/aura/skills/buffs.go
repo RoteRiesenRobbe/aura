@@ -607,6 +607,13 @@ func dropPayload[T buffPayload](b *Buffs) {
 // skills the factors multiply — same semantics as one ResistMultiplier source
 // per skill.
 //
+// A buff whose tag list is [ResistWildcard] covers EVERY hit tag, the map-shaped
+// source's "*" semantics: per tag, so a wildcard 0.5 lands a two-tag hit at
+// 0.25. That is what makes an invulnerability bubble authorable as ordinary
+// resist content at factor 0 (plan-effect-types.md D5/D6). Authoring "*"
+// alongside named tags is rejected at load, so the wildcard is either the whole
+// list or absent and a tag can never match twice.
+//
 // "Strongest" is the factor FURTHEST FROM 1, in both directions (the
 // unityDistance rule shared with speed and tick_rate). Below 1 that is the
 // lowest factor, the hardest ward; above 1 it is the highest, the deepest
@@ -634,7 +641,7 @@ func (b *Buffs) ResistMultiplier(hitTags []string) float32 {
 		}
 		for _, hitTag := range hitTags {
 			for _, covered := range strongest.tags {
-				if hitTag == covered {
+				if hitTag == covered || covered == ResistWildcard {
 					multiplier *= strongest.factor
 					break
 				}

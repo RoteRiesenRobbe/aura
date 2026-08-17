@@ -161,7 +161,7 @@ describe('character power scale', () => {
                     damage: {...damageParams(10), variance: 0.2, critChance: 0.05, critChancePerLevel: 0.02, critFactor: 2},
                 }),
                 effect({type: 'slow_aura', tickInterval: 20, slow: {fraction: 0.3, fractionPerLevel: 0.05}}),
-                effect({type: 'resist_passive', resist: {tags: ['fire'], factor: 0.8, factorPerLevel: -0.05, targetsSelf: true}}),
+                effect({type: 'resist_passive', resist: {tags: ['fire'], factor: 0.8, factorPerLevel: -0.05, targetsSelf: true, durationTicks: 0, buffLifetimeMatchesInterval: false}}),
                 effect({type: 'stat_multiplier', stat: {name: 'maxHealth', bonus: 0.08, bonusPerLevel: 0.08}}),
             ],
         });
@@ -912,7 +912,7 @@ describe('self-targeting lines', () => {
                 effect({type: 'shield_aura', tickInterval: 90,
                     shield: {hp: 10, hpPerLevel: 0, durationTicks: 120, targetsSelf: true}}),
                 effect({type: 'resist_aura', tickInterval: 90,
-                    resist: {tags: ['fire'], factor: 0.8, factorPerLevel: 0, targetsSelf: true}}),
+                    resist: {tags: ['fire'], factor: 0.8, factorPerLevel: 0, targetsSelf: true, durationTicks: 0, buffLifetimeMatchesInterval: false}}),
             ],
         });
         expect(lines(ward, 1, 1)).toContain('Shields you');
@@ -1147,7 +1147,7 @@ describe('vulnerability rendering (plan-effect-types C1)', () => {
         effects: [effect({
             type: 'resist_aura',
             radius: 1.5, tickInterval: 30, targetsEnemies: true,
-            resist: {tags: ['fire'], factor: 1.2, factorPerLevel: 0.05, targetsSelf: false},
+            resist: {tags: ['fire'], factor: 1.2, factorPerLevel: 0.05, targetsSelf: false, durationTicks: 0, buffLifetimeMatchesInterval: false},
         })],
     });
 
@@ -1168,9 +1168,96 @@ describe('vulnerability rendering (plan-effect-types C1)', () => {
             effects: [effect({
                 type: 'resist_aura',
                 radius: 1.5, tickInterval: 30, targetsAllies: true,
-                resist: {tags: ['fire'], factor: 0.6, factorPerLevel: -0.05, targetsSelf: true},
+                resist: {tags: ['fire'], factor: 0.6, factorPerLevel: -0.05, targetsSelf: true, durationTicks: 0, buffLifetimeMatchesInterval: false},
             })],
         });
         expect(lines(fireWard, 1, 1)).toContain('Resist fire: −40% → 45% damage taken, refreshed every 1s');
+    });
+});
+
+describe('invulnerability rendering (plan-effect-types C3)', () => {
+    // Aegis as authored (api/skills/aegis.json): the wildcard resist tag at
+    // factor 0. Rendered through the ordinary reduction formatter it would read
+    // "Resist *: −100% damage taken". The tag list is a reserved symbol, not a
+    // damage type, and −100% is not how a player thinks about being immune.
+    const aegis = skill({
+        displayName: 'Aegis', maxLevel: 3,
+        effects: [effect({
+            type: 'resist_aura',
+            radius: 1.5, tickInterval: 90, targetsAllies: true,
+            maxTargets: 1, maxTargetsPerLevel: 1, selector: 'nearest',
+            resist: {tags: ['*'], factor: 0, factorPerLevel: 0, targetsSelf: false, durationTicks: 0, buffLifetimeMatchesInterval: false},
+        })],
+    });
+
+    it('reads as immunity, not as a −100% resist of a tag called *', () => {
+        expect(lines(aegis, 1, 1)).toEqual([
+            'Immune to all damage, refreshed every 3s',
+            'Radius: 1.5',
+            'Targets: nearest 1 → 2 allies',
+        ]);
+    });
+
+    it('renders a partial wildcard ward as all damage, not as a tag', () => {
+        // The type is generic: a wildcard above 0 is an ordinary ward against
+        // everything, and it must not print the reserved symbol either.
+        const blanket = skill({
+            displayName: 'Blanket', maxLevel: 3,
+            effects: [effect({
+                type: 'resist_aura',
+                radius: 1.5, tickInterval: 30, targetsAllies: true,
+                resist: {tags: ['*'], factor: 0.5, factorPerLevel: -0.1, targetsSelf: false, durationTicks: 0, buffLifetimeMatchesInterval: false},
+            })],
+        });
+        expect(lines(blanket, 1, 1)).toContain('Resist all damage: −50% → 60% damage taken, refreshed every 1s');
+    });
+
+    it('renders the instant_resist cooldown with its duration', () => {
+        // Sanctuary as authored (api/skills/sanctuary.json), the instant_shield
+        // shape: the grant plus how long it lasts.
+        const sanctuary = skill({
+            displayName: 'Sanctuary', category: 'cooldown', maxLevel: 3,
+            cooldownTicks: 900,
+            effects: [effect({
+                type: 'instant_resist',
+                radius: 1.5, targetsAllies: true,
+                maxTargets: 1, maxTargetsPerLevel: 1, selector: 'nearest',
+                resist: {tags: ['*'], factor: 0, factorPerLevel: 0, targetsSelf: false, durationTicks: 150, buffLifetimeMatchesInterval: false},
+            })],
+        });
+        expect(lines(sanctuary, 1, 1)).toEqual([
+            'Immune to all damage for 5s',
+            'Radius: 1.5',
+            'Targets: nearest 1 → 2 allies',
+            'Cooldown: 30s',
+        ]);
+    });
+});
+
+describe('the D7 cost trigger (plan-effect-types C3, PO follow-up)', () => {
+    // The cost-trigger wording is per effect TYPE, and for resist_aura it says
+    // "when it reaches someone new": true of every ward, and false of the one
+    // authoring shape that drops its buff lifetime to the cadence. Aegis is
+    // charged once per cycle for as long as it protects anybody, so the shipped
+    // line promised a price the server does not charge.
+    //
+    // ⚑ Detected from the SERVED payload, never from a skill id: the flag rides
+    // the catalog for free, so any future D7 skill gets the right line with no
+    // second edit.
+    const resistEffect = (extra: object) => effect({
+        type: 'resist_aura',
+        radius: 1.5, tickInterval: 90, targetsAllies: true,
+        costFractionOfMax: 0.08, costFractionOfMaxPerLevel: 0,
+        resist: {tags: ['*'], factor: 0, factorPerLevel: 0, targetsSelf: false, durationTicks: 0, buffLifetimeMatchesInterval: false, ...extra},
+    });
+
+    it('says the D7 economy when the aura re-buys its buff every cycle', () => {
+        const aegis = skill({displayName: 'Aegis', maxLevel: 3, effects: [resistEffect({buffLifetimeMatchesInterval: true})]});
+        expect(lines(aegis, 1, 1, 100)).toContain('Costs you: 8 Focus every time it re-applies');
+    });
+
+    it('leaves an ordinary ward on the reach-someone-new line', () => {
+        const ward = skill({displayName: 'Ward', maxLevel: 3, effects: [resistEffect({buffLifetimeMatchesInterval: false})]});
+        expect(lines(ward, 1, 1, 100)).toContain('Costs you: 8 Focus when it reaches someone new');
     });
 });

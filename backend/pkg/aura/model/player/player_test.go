@@ -728,6 +728,23 @@ func TestPlayer_TakeDamage_ImmuneIsANonEvent(t *testing.T) {
 	assert.Zero(t, p.DamageTaken(), "no floating number for a fully resisted hit")
 }
 
+func TestPlayer_TakeDamage_WildcardImmunityCoversEveryTag(t *testing.T) {
+	// Invulnerability (plan-effect-types.md C3): one wildcard buff at factor 0
+	// and nothing lands, whatever it is tagged. ⚑ Including a dot already
+	// burning on the player, because a running dot's events go through this
+	// same tagged path, so the bubble blocks in-flight damage for free.
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+
+	p.ApplyResist(69, []string{skills.ResistWildcard}, 0, 2)
+
+	for _, tags := range [][]string{{"fire"}, {"frost"}, {"physical"}, {"fire", "physical"}} {
+		p.takeDamage(model.Damage{HP: 40, Tags: tags}, model.StatusEffectDamagedAmbient)
+	}
+	assert.Equal(t, vitals.Max, p.VitalSigns().Health)
+	assert.Zero(t, p.DamageTaken())
+}
+
 // --- companion combat signals (mob-depth chunk 6, §3.6) ---
 
 // fakeAttackerMob is the minimal MobEntity+Combatant shape a companion's

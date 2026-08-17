@@ -62,6 +62,11 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	EffectTypeRevive:         AuraCategoryNone,
 	EffectTypeDash:           AuraCategoryNone,
 	EffectTypeTickRate:       AuraCategoryNone,
+	// The resist cooldown draws no ring for its instant twin's reason: the
+	// query circle exists for one cast and is gone, so there is nothing
+	// persistent to outline. The buff it grants shows on the TARGET as the
+	// resist pip, which is the read the resist_aura ring points at anyway.
+	EffectTypeInstantResist: AuraCategoryNone,
 	// A speed burst is self-targeted and projects nothing; its tell is the
 	// applied-effect pip on the caster (plus visibly moving faster).
 	EffectTypeSpeedBurst: AuraCategoryNone,

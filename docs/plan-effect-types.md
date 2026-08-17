@@ -435,4 +435,108 @@ bite. The observed "-12 instead of 4 + 6" was the wearer's own damage aura
 ticking in the same tick, PO-confirmed by re-testing with the aura off.
 Per-hit numbers would need per-hit wire events: §39 / backlog §57 territory.
 
-**Next in this plan:** C3, invulnerability.
+### C3 - Invulnerability + the cost-line and inventory follow-ups ✅ 2026-08-17, `[uncommitted]`
+
+**D5 and D6 held: invulnerability is the resist system, asked to cover
+everything.** The wildcard learned the buff store in exactly the §4.1 one-liner
+(`hitTag == covered || covered == ResistWildcard` in `Buffs.ResistMultiplier`),
+with the map source's per-hit-tag semantics pinned by a non-zero case (a
+wildcard 0.5 lands a two-tag hit at 0.25, which is what distinguishes per-tag
+from once-per-hit). ⭐ Survey find: `resistTags: ["*"]` already PARSED at HEAD.
+Resist tags were never vocabulary-closed (only damageTags validate against
+`DamageTypes`), so the §2 prediction "one line when content wants a bubble" was
+optimistic only about where the line count would land, not the shape. One
+deliberate guard added: a `"*"` beside named tags hard-fails (it would apply
+twice to those tags' hits).
+
+**`instant_resist` fills the dispatch grid's empty resist/cooldown cell** as a
+generic type: enum + parse (resist payload + a required `resistDurationTicks`,
+the instant_shield duration-guard twin) + effectKeys row + `AuraCategoryNone`
+entry (the completeness test supplied the red for free) + `applyInstantResist`
+on the `applyInstantShield` template. ⚑ The hit-bool is a CONTRACT, not a
+convenience, and is pinned as one: players pay on cast hit or whiff (D9, the
+committed-act rule; `ApplyResist`'s new-vs-refresh answer deliberately
+discarded), while MOBS consume the cooldown only on `true`, so whiff → false is
+what keeps a mob's bubble ready until an ally wanders into range.
+
+**D7 shipped as the boolean `buffLifetimeMatchesInterval`** (resist_aura only;
+passive and instant forms hard-fail the key). A numeric lifetime was considered
+and rejected: it only produces the ruled economy while exactly equal to the
+tick interval and desyncs silently on a retune. The mechanism rides an existing
+split: buff lifetimes were already computed at BASE cadence
+(`sys/targeting.go`) while the firing loop applies the caster's tick_rate, so
+dropping the +1 makes the buff expire exactly as re-application arrives at base
+cadence (fresh stream, did work, CHARGED) and survive under Haste (refresh,
+free). The economy pin was genuinely red against the +1 default (80 vs 90 HP
+after two cycles); the once-per-cycle flicker window is documented at the read
+site, not pinned, per the explicit ruling. Aging-before-firing (StatusEffects
+101 vs SkillSystem −65) confirms the +1 convention's claim.
+
+**Content: Sanctuary id 69** (cooldown, `instant_resist`, wildcard factor 0,
+150 ticks = 5 s, nearest ally, `maxTargets` 1 +1/L, maxLevel 3, CD 900 FLAT so
+a level buys protected allies, never uptime, cost 0.04 +0.005/L) and **Aegis
+id 70** (active_aura, `resist_aura`, same wildcard shape, tickInterval 90,
+`buffLifetimeMatchesInterval: true`, cost 0.08 +0.01/L: 3.33 %/s at L3 against
+the 6 % drain bound, exact-or-conservative under D7 since hasted applications
+are free). All [PLACEHOLDER], SKILL-cheat only, placement belongs to the
+content pass. Registry pin 93 → 95. An immune target lights the EXISTING teal
+resist pip (D10: no new visibility work).
+
+**Frontend.** The tooltip would have rendered "Resist *: −100% damage taken";
+the resist case now renders `Immune to all damage` (factor ≤ 0) and "all
+damage" for the wildcard in every branch, plus an `instant_resist` case with
+the duration (instant_shield shape). The C1 FireWard byte-identical guard
+stayed green untouched. TS `durationTicks` added as REQUIRED (the ShieldParams
+convention); six fixtures gained the field, every assertion string
+byte-identical.
+
+**PO follow-ups, same day (in-game check passed first).** (1) **The Aegis cost
+line is now data-driven**: a `costTriggerText(effect)` helper reads
+`buffLifetimeMatchesInterval` off the served catalog (the flag rides `/skills`
+for free, verified by curl) and renders `every time it re-applies`; every plain
+resist aura keeps `when it reaches someone new` byte-identical. ⚑ Deliberately
+NOT a `COST_TRIGGER_TEXT` key: that table is pinned exhaustively in BOTH
+directions against `api/shared-constants.json`, and this is an authoring
+variant within a type that the cross-language taxonomy cannot express. The next
+D7-authored skill gets the right line with no edit. (2) **The skill inventory
+was repaired by re-derivation, and re-deriving found more rot than scoped**: a
+second ghost (Recall id 28, retired into the baseline utilities) beyond the
+briefed Wild id 3, and the missing Bloodthirst row had been HIDING a fourth
+cheat-only skill from the reachability sweep; the two error classes cancelled
+in the cooldown total, which is why increments looked plausible. Now 25 auras /
+10 passives / 28 cooldowns, cheat-only SIX, scope 63 + 32 = 95, every row
+verified 1:1 against `api/skills/`. Lesson written into the file: re-derive
+from disk, never increment. Smell sweep rode along: `content-auras.md`'s Wild
+row → cut (numbers rewrite Pass 1, `40d9b204`), `bloodthirst.json`'s stale
+"like FireWard" precedent → FireVulnerability.
+
+**⚑ Harness-estate find, fixed in-chunk: five scripts were red at join at
+HEAD** (`r1-focus-cost`, `r3-lifesteal-burst`, `r7-strong`, `r7-respec-cost`,
+`backlog33-prehot`) - all still drove the pre-accounts `#startForm` join that
+step 8a chunk 2 deleted, and none had been run since. Repaired to the shared
+`lib/join.mjs` and ALL FIVE are green again (r3 7/7, backlog33 4/4), so the
+cost-wording gate this chunk owed (`r1-focus-cost`) actually ran. None of them
+was on the known-inconclusive list, which is the miss: a harness nobody runs
+rots silently until someone needs it.
+
+**Schema: NONE.** Transient buffs + two content JSON files. No wire change, no
+DB change, no migration, no conf change.
+
+**Verified.** `go build ./...` · `go test -count=1 ./...` all green four times
+(agent before/after cp-defs, coordinator twice more, DB tests fresh against
+`aura_test`: store 26.1 s, accounts 20.5 s) · `npm run typecheck` · vitest
+**363/363** (358 + 3 + 2) · `make -C backend build` · `npm run build` · boot
+**0 WARN / 0 ERROR**, census `count=95` (was 93) · harnesses: new
+`c3-invulnerability` green · `round4-tooltip` green · `c2-frost-shield` 7/7 ·
+the five join-repaired scripts all green · `harnessdb -cleanup` (18 accounts)
+with aurad stopped. No `-race` run (the known-inconclusive accounts throttle
+test).
+
+**PO in-game check: passed 2026-08-17** (before the follow-ups; the cost-line
+item was the check's one finding and is fixed above).
+
+**Left open, recorded:** the OTHER design catalogs were not swept for ghosts
+(only the inventory was re-derived and only Wild fixed in `content-auras.md`);
+the inventory's MaxLv/slope value drift still owes a full regeneration.
+
+**Next in this plan:** C4, ally speed - the last chunk.

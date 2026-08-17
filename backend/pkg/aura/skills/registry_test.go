@@ -180,7 +180,14 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// the PERCENTAGE reflect, a timed self-buff that bounces a share of every
 	// hit taken back at the attacker. SKILL cheat only, no unlock source yet
 	// (the FireShield precedent), 92 → 93.
-	assert.Len(t, r.All(), 93)
+	// + Sanctuary, the first instant_resist cooldown (plan-effect-types.md C3,
+	// 2026-08-17), id 69: the invulnerability grant, a wildcard resist buff at
+	// factor 0 on the nearest ally. SKILL cheat only, no unlock source yet
+	// (the Retribution precedent), 93 → 94.
+	// + Aegis, its aura half (same chunk, D6+D7), id 70: the same wildcard
+	// immunity held on a cadence, paid for every cycle through the new
+	// buffLifetimeMatchesInterval lever. SKILL cheat only, 94 → 95.
+	assert.Len(t, r.All(), 95)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

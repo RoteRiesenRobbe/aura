@@ -1147,6 +1147,25 @@ type resistBuffable interface {
 func applyResistAura(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) bool {
 	factor := effect.Resist.FactorAt(level)
 	ticks := effectiveTickInterval(effect, level) + 1
+	if effect.Resist.BuffLifetimeMatchesInterval {
+		// D7's pricing lever, authored per skill and off by default. Dropping
+		// the +1 makes the buff expire exactly as re-application arrives, so at
+		// BASE cadence every cycle opens a new stream, counts as work, and is
+		// charged, which is how a permanent grant gets a per-cycle price
+		// without a second cost model. Under a tick_rate haste the application
+		// arrives before the expiry, refreshes at the same factor and is free:
+		// the ruled economy, where tick speed is the investment that makes
+		// holding one cheap.
+		//
+		// ⚑ The +1 exists so a buff always survives to its own re-application,
+		// and giving that up has a known price: once per cycle there is an
+		// ordering window where an enemy aura processed earlier in the same
+		// SkillSystem pass lands one hit on an unprotected target. Entity order
+		// decides whether it happens, so it is not deterministic. Accepted by
+		// explicit PO ruling as counterplay texture rather than fixed: it is
+		// documented here and deliberately not pinned by a test.
+		ticks = effectiveTickInterval(effect, level)
+	}
 
 	freshAny := false
 	if effect.Resist.TargetsSelf {
@@ -1286,6 +1305,49 @@ func (s *SkillSystem) applyInstantShield(e skillEntity, source skills.SkillID, l
 	targets := selectTargets(candidates, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
 		c.Shape().UserData.(shieldBuffable).ApplyShield(source, hp, ticks)
+		hitAny = true
+	}
+	return hitAny
+}
+
+// applyInstantResist fires an instant_resist cooldown (plan-effect-types.md
+// D5), the applyInstantShield twin: the caster's own resistance buff on
+// targetsSelf plus a one-shot query circle of eligible targets, each granted
+// the buff with the effect's own authored lifetime (+1 to survive the tick
+// boundary, the dot convention). The self-apply counts as a hit: a cast with
+// nobody around is not a whiff.
+//
+// Invulnerability is this type's first content (a wildcard tag list at factor
+// 0), but nothing here knows that: it delivers whatever resistance the skill
+// authored, so an ordinary timed ward cooldown is free content on it.
+//
+// ⚑ Deliberately NOT swept up in R2's "pay for work done" rule (§5.2), which is
+// a ruling about AURAS: a cooldown is a committed act and pays on cast, hit or
+// whiff (D9). So ApplyResist's new-vs-refresh answer is discarded here on
+// purpose, so re-casting onto somebody already immune still costs.
+//
+// The bool it returns is the whiff answer, and it carries weight beyond the
+// cost: processCooldowns consumes a MOB's cooldown only on true, so a mob
+// keeps this ready until a target is in range.
+func (s *SkillSystem) applyInstantResist(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
+	factor := effect.Resist.FactorAt(level)
+	ticks := effect.Resist.DurationTicks + 1
+
+	hitAny := false
+	if effect.Resist.TargetsSelf {
+		if self, ok := e.(resistBuffable); ok {
+			self.ApplyResist(source, effect.Resist.Tags, factor, ticks)
+			hitAny = true
+		}
+	}
+
+	casterPos := e.AuraCollider().Position()
+	eligible := eligibleByTargetFlags[resistBuffable](effect, e, e.Basic().ID(), true)
+
+	candidates := s.queryInstantTargets(e, effect, level)
+	targets := selectTargets(candidates, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		c.Shape().UserData.(resistBuffable).ApplyResist(source, effect.Resist.Tags, factor, ticks)
 		hitAny = true
 	}
 	return hitAny
@@ -1828,6 +1890,11 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 
 		case skills.EffectTypeInstantShield:
 			if s.applyInstantShield(e, es.Def.ID, es.Level, effect) {
+				hitAny = true
+			}
+
+		case skills.EffectTypeInstantResist:
+			if s.applyInstantResist(e, es.Def.ID, es.Level, effect) {
 				hitAny = true
 			}
 
