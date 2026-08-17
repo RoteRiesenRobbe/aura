@@ -82,6 +82,18 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	// and the tell is on the ATTACKER (the existing slow pip lights on the mob
 	// that hit you, for free), never on the wearer.
 	EffectTypeRetaliateSlow: AuraCategoryNone,
+	// Retaliate damage is a PASSIVE too, and none for the same reason: the
+	// wearer projects no circle. ⚑ Deliberately NOT AuraCategoryDamage — the
+	// map answers "what ring does this draw", not "what does this do", and a
+	// damage ring on a player wearing a fire shield would promise a hit zone
+	// that does not exist. The tell is on the ATTACKER: it takes a damage
+	// number, which is the read.
+	EffectTypeRetaliateDamage: AuraCategoryNone,
+	// The percentage reflect is a self-buff fired on cooldown, so it draws no
+	// ring for the lifesteal_burst reason rather than the passive one: nothing
+	// is projected, the caster's own state changed. Its tell is the damage
+	// numbers coming off whatever hits you.
+	EffectTypeRetaliateBurst: AuraCategoryNone,
 	// A stun is cooldown-fired and projects no ring; its tell is the pip on
 	// the stunned mob — which is the SLOW pip, since the ubyte has no bit left
 	// (D6). The mob visibly stopping doing anything is the rest of the read.

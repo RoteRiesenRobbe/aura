@@ -479,6 +479,89 @@ describe('retaliate slow', () => {
     });
 });
 
+// retaliate_damage (FireShield, plan-effect-types.md C2) — the retaliate_slow
+// twin, and it needs the same wording care for the same reason: the effect
+// lands on somebody ELSE. It also has to say the damage type, because that is
+// what decides whether the attacker resists the whole thing.
+describe('retaliate damage', () => {
+    const fireShield = skill({
+        displayName: 'Fire Shield', category: 'passive', maxLevel: 5,
+        effects: [effect({
+            type: 'retaliate_damage',
+            retaliateDamage: {hp: 3, hpPerLevel: 1, tags: ['fire']},
+        })],
+    });
+
+    it('names the reflect, its target and its damage type', () => {
+        const out = lines(fireShield, 1, 1);
+        expect(out).toContain('Reflects 3 → 4 damage onto anything that damages you');
+        expect(out).toContain('Damage type: fire');
+        expect(out).toContain('Being hit is enough — it fires even when the hit is fully absorbed');
+        expect(out.join('\n')).not.toContain('(retaliate_damage)');
+    });
+
+    it('drops the preview at max level', () => {
+        expect(lines(fireShield, 5, 1)).toContain('Reflects 7 damage onto anything that damages you');
+    });
+
+    // The physical default is the silent case, exactly as on damage_aura: an
+    // untagged reflect is physical and saying so would be noise on every
+    // ordinary skill.
+    it('says nothing about the type when the reflect is plain physical', () => {
+        const plain = skill({
+            displayName: 'Thorns', category: 'passive', maxLevel: 3,
+            effects: [effect({type: 'retaliate_damage', retaliateDamage: {hp: 2, hpPerLevel: 0, tags: ['physical']}})],
+        });
+        expect(lines(plain, 1, 1)).toEqual(['Reflects 2 damage onto anything that damages you',
+            'Being hit is enough — it fires even when the hit is fully absorbed']);
+    });
+
+    // ⚑ The reflect is RAW AUTHORED DAMAGE server-side: it leaves through
+    // model.Damage without passing the damage base-composition sites, so it
+    // rides neither casterPowerScale nor the damage factor. Printing it scaled
+    // would promise a number the server never deals.
+    it('does not scale with character power', () => {
+        expect(lines(fireShield, 1, SCALE_AT_30, 0, 1, 2))
+            .toContain('Reflects 3 → 4 damage onto anything that damages you');
+    });
+});
+
+// retaliate_burst (Retribution, PO 2026-08-17) — the percentage reflect. Its
+// tooltip has to carry three things the flat FireShield line does not: a window,
+// a share rather than an amount, and the fact that the share is of the hit as
+// thrown rather than of the damage that got through.
+describe('retaliate burst', () => {
+    const retribution = skill({
+        displayName: 'Retribution', category: 'cooldown', maxLevel: 5,
+        cooldownTicks: 900, cooldownTicksPerLevel: -60,
+        effects: [effect({
+            type: 'retaliate_burst',
+            retaliateBurst: {fraction: 0.2, fractionPerLevel: 0.05, durationTicks: 300, durationTicksPerLevel: 0, tags: ['fire']},
+        })],
+    });
+
+    it('names the window, the share and the damage type', () => {
+        // 300 ticks at 1000/30 ms = 10 s. The window is authored flat, so it shows
+        // one figure while the share previews the next rank.
+        const out = lines(retribution, 1, 1);
+        expect(out).toContain('For 10s, reflects 20% → 25% of damage taken');
+        expect(out).toContain('Damage type: fire');
+        expect(out).toContain('The share is of the hit as thrown, before your own mitigation');
+        expect(out.join('\n')).not.toContain('(retaliate_burst)');
+    });
+
+    it('drops the preview at max level', () => {
+        expect(lines(retribution, 5, 1)).toContain('For 10s, reflects 40% of damage taken');
+    });
+
+    // A share is not an amount: the character power curve has nothing to
+    // multiply, and the server never scales it either.
+    it('does not scale with character power', () => {
+        expect(lines(retribution, 1, SCALE_AT_30, 0, 1, 2))
+            .toContain('For 10s, reflects 20% → 25% of damage taken');
+    });
+});
+
 // The summon line's mob name (§35 C4a). The client used to re-derive the
 // display name with its own CamelCase-splitting rule — a copy of the server's
 // skills.DeriveDisplayName, and the exact drift class §35 exists to retire.

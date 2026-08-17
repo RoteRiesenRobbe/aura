@@ -208,6 +208,9 @@ func (f *fakePlayer) ApplyLifesteal(source skills.SkillID, fraction float32, tic
 	f.buffs.ApplyLifesteal(source, fraction, ticks)
 }
 func (f *fakePlayer) LifestealFraction() float32 { return f.buffs.LifestealFraction() }
+func (f *fakePlayer) ApplyReflect(source skills.SkillID, fraction float32, tags []string, ticks int) {
+	f.buffs.ApplyReflect(source, fraction, tags, ticks)
+}
 func (f *fakePlayer) InCombat() bool             { return f.inCombat }
 func (f *fakePlayer) NoteCombatAction()          { f.combatActions++ }
 
@@ -5405,4 +5408,68 @@ func TestApplyHealAura_APlacedCampHealsASecondPlayer(t *testing.T) {
 		"a camp heals whoever stands in it — no owner check anywhere in the heal path")
 	require.Len(t, stranger.healedBy, 0,
 		"but the healer credit is player-only; a structure is not a participant")
+}
+
+// --- retaliate_burst: Retribution, the PERCENTAGE reflect (PO 2026-08-17).
+// The lifesteal_burst twin read from the hit side — self-targeted, no query
+// circle — so the dispatch assertions are the same three: the buff goes up, it
+// scales with level, and the cooldown starts. What the buff DOES is the trigger
+// site's business (model/player), pinned there. ---
+
+func retaliateBurstDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 203, Name: "Retribution", Category: skills.SkillCategoryCooldown, MaxLevel: 5,
+		CooldownTicks: 900, CooldownTicksPerLevel: -60,
+		Effects: []skills.EffectDef{{
+			Type: skills.EffectTypeRetaliateBurst,
+			RetaliateBurst: &skills.RetaliateBurstParams{
+				Fraction: 0.2, FractionPerLevel: 0.05, DurationTicks: 300,
+				Tags: []string{"fire"},
+			},
+		}},
+	}
+}
+
+func fireRetaliateBurst(t *testing.T, caster *fakePlayer, level int) {
+	t.Helper()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.sc.EquipCooldown(0, retaliateBurstDef(), level)
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.AddEntity(caster)
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+}
+
+func TestCooldown_RetaliateBurstBuffsTheCaster(t *testing.T) {
+	caster := newFakePlayer()
+	fraction, _ := caster.buffs.ReflectBurst()
+	require.Zero(t, fraction, "nothing bounces back before firing")
+
+	fireRetaliateBurst(t, caster, 1)
+
+	fraction, tags := caster.buffs.ReflectBurst()
+	assert.InDelta(t, 0.2, fraction, 1e-6, "the reflect is live")
+	assert.Equal(t, []string{"fire"}, tags, "PO ruling 2: the skill's authored damage type rides along")
+	assert.Equal(t, 900, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
+}
+
+func TestCooldown_RetaliateBurstScalesTheShareOnly(t *testing.T) {
+	caster := newFakePlayer()
+	fireRetaliateBurst(t, caster, 5)
+
+	fraction, _ := caster.buffs.ReflectBurst()
+	assert.InDelta(t, 0.4, fraction, 1e-6, "0.2 + 4×0.05")
+	assert.Equal(t, 660, caster.sc.SlotCooldownRemaining(0), "900 − 4×60")
+}
+
+// D9, whiff-still-pays, inherited from the lifesteal template: a cooldown that
+// changes only the caster's own state has no targets to miss, so it fires and
+// charges with nothing in sight.
+func TestCooldown_RetaliateBurstFiresWithNoEnemyInSight(t *testing.T) {
+	caster := newFakePlayer()
+	fireRetaliateBurst(t, caster, 1)
+
+	fraction, _ := caster.buffs.ReflectBurst()
+	assert.NotZero(t, fraction, "an empty field is not a whiff for a self-buff")
+	assert.NotZero(t, caster.sc.SlotCooldownRemaining(0), "and it still costs the cooldown")
 }

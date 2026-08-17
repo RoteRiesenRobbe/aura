@@ -64,6 +64,13 @@ func (*shieldPayload) appliedBit() AppliedEffect   { return AppliedEffectNone }
 // No bit left in the ubyte — see the ⚑ note above.
 func (*lifestealPayload) appliedBit() AppliedEffect { return AppliedEffectNone }
 
+// The reflect burst joins lifesteal in the no-bit-left queue, and it wants one
+// more than lifesteal does: a leech announces itself through the heal numbers
+// floating off the caster, while a reflect's numbers float off the ATTACKER,
+// where they are hard to tell from any other source of damage. Until backlog
+// §39 widens the byte, the cooldown icon's own timer is the honest tell.
+func (*reflectPayload) appliedBit() AppliedEffect { return AppliedEffectNone }
+
 // D6: the stun borrows the SLOW bit rather than widening the wire for one
 // buff — the lifestealPayload precedent above, applied where reuse at least
 // reads as movement impairment instead of as nothing at all. ⚑ The conflation

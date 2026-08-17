@@ -172,7 +172,15 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// C1, 2026-08-16), id 66: resist_aura with a factor above 1 aimed at
 	// enemies. Pure content on an existing effect type; SKILL cheat only, no
 	// unlock source yet (the FireWard precedent), 90 → 91.
-	assert.Len(t, r.All(), 91)
+	// + FireShield, the first retaliate_damage passive (plan-effect-types.md
+	// C2, 2026-08-17), id 67: FrostShield's twin, reflecting attributed fire
+	// damage at whatever hits you. SKILL cheat only, no unlock source yet
+	// (the FireVulnerability precedent), 91 → 92.
+	// + Retribution, the first retaliate_burst cooldown (PO 2026-08-17), id 68:
+	// the PERCENTAGE reflect, a timed self-buff that bounces a share of every
+	// hit taken back at the attacker. SKILL cheat only, no unlock source yet
+	// (the FireShield precedent), 92 → 93.
+	assert.Len(t, r.All(), 93)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

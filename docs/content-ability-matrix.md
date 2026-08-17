@@ -68,7 +68,7 @@ Grouped by what a player would call them:
 | **Control** | `slow_aura` · `stun` · `calm` · `charm` |
 | **Threat** | `taunt` · `detaunt` |
 | **Movement / tempo** | `dash` · `speed_burst` · `tick_rate` |
-| **Triggered riders** | `lifesteal_burst` · `retaliate_slow` |
+| **Triggered riders** | `lifesteal_burst` · `retaliate_slow` · `retaliate_damage` · `retaliate_burst` |
 | **Scalars** | `stat_multiplier` (6 stats) |
 | **Other** | `light_aura` · `spawn` · `revive` · `recall` |
 
@@ -125,12 +125,12 @@ becoming fiction.
 
 ⚑ **The loader does not validate category against effect type.** A `dot_aura`
 authored on a passive loads clean and then does nothing, because
-`recomputeDerived` only reads three effect types. What decides whether a cell
+`recomputeDerived` only reads four effect types. What decides whether a cell
 exists is the **runtime dispatch**, in three places:
 
 - aura tick: `sys/skills.go` (7 types) plus `light_aura`, which is projected
   rather than ticked
-- passive fold: `skills/component.go recomputeDerived` (3 types) plus
+- passive fold: `skills/component.go recomputeDerived` (4 types) plus
   `light_aura`, read by the light scan
 - cooldown fire: `sys/skills.go fireCooldown` (17 types)
 
@@ -158,13 +158,15 @@ exists is the **runtime dispatch**, in three places:
 | `tick_rate` | ✗ | ✗ | ✅ |
 | `lifesteal_burst` | ✗ | ✗ | ✅ |
 | `retaliate_slow` | ✗ | ✅ | ✗ |
+| `retaliate_damage` | ✗ | ✅ | ✗ |
+| `retaliate_burst` | ✗ | ✗ | ✅ |
 | `stat_multiplier` | ✗ | ✅ | ✗ |
 | `light_aura` | ✅ | ✅ | ✗ |
 | `spawn` | ✗ | ✗ | ✅ |
 | `revive` | ✗ | ✗ | ✅ |
 | `recall` | ✗ | ✗ | ✅ (orphaned) |
 
-**29 live (category × effect) cells.** Everything below is built on this grid.
+**31 live (category × effect) cells.** Everything below is built on this grid.
 
 The obvious structural holes it shows, each cheap in code and each a real design
 question rather than an oversight:
@@ -281,6 +283,7 @@ type, and the same payload on `resist_passive` for a permanent version.
 | light | ✅ Lantern | ✅ Torch | ◻ *Flare* (needs code) |
 | revive | n/a | n/a | ✅ Revive |
 | lifesteal | n/a | n/a | ✅ Bloodthirst |
+| reflect | n/a | ✅ FireShield (flat amount) | ✅ Retribution (timed % of the hit) |
 | scalars | n/a | ✅ Hardy · Tough · KeenEye · Strong · Discipline | n/a |
 
 The `targetFactions` allowlist is a **content** multiplier on the control row:
@@ -468,7 +471,7 @@ Go work, and each is a genuine design question rather than an omission:
 
 | Missing | Notes |
 |---|---|
-| **Reflect / damage return** | The *Fire Shield* idea in `content-cooldowns.md`. `retaliate_slow` is the only retaliation shape that exists; a `retaliate_damage` twin is a small, obvious addition and it is the one that makes tanking feel active. |
+| ~~**Reflect / damage return**~~ **RESOLVED 2026-08-17** | Built as predicted (plan-effect-types.md C2, D3/D4): `retaliate_damage`, the `retaliate_slow` twin, on the same passive spine and the same trigger site. The one decision that was not obvious is PO ruling D4 — the reflect leaves through the mob's ORDINARY player-damage entry with the wearer as toucher, so it takes the attacker's resistances, builds threat, makes the wearer a participant, and a reflect-only kill pays XP and kill credit. A bare health deduction was explicitly rejected; without it, a shield would have been the one damage source in the game that cannot finish a fight. Shipped as content (*FireShield*, id 67). No wire or DB change. ⭐ **The percentage half followed on 2026-08-17** (PO ruling): `retaliate_burst`, a cooldown that puts a timed self-buff up, structurally a `lifesteal_burst` read from the hit side rather than a second FireShield. Its share is of the PRE-MITIGATION swing (so a tanky build does not weaken its own reflect), its damage type is authored on the skill rather than mirrored from the incoming hit, and level buys share rather than uptime. The two reflects compose as TWO separate attributed deliveries, never one summed hit, because each carries its own damage type. Shipped as *Retribution*, id 68. |
 | **Knockback / displacement of others** | `dash` moves only the caster. No effect moves a target. |
 | **Player-targeted CC** | Deliberately inert (`plan-skill-vocab` §3.1); the cc-and-retaliation plan's open question 3 scoped "can a mob stun a player" out of v1. |
 | **Silence on its own** | `stun` bundles movement plus cast suppression. A cast-only lock is one gate away but does not exist. |
@@ -476,7 +479,7 @@ Go work, and each is a genuine design question rather than an omission:
 | **Ally buffs of any kind** | `stat_multiplier` is equip-time and self-only, `speed_burst` and `tick_rate` and `lifesteal_burst` are all self-only. The "Fly, You Fools!" idea (speed up allies, not yourself) is not authorable. **This is the biggest single gap for the group-support pillar.** |
 | ~~**Vulnerability debuffs**~~ **RESOLVED 2026-08-16** | It WAS already authorable: `resist_aura` with `resistFactor > 1` and `targetsEnemies` (plan-effect-types.md C1, D1). Verified, pinned and shipped as content (*FireVulnerability*, id 66). One real defect fell out and was fixed: the buff store picked the *lowest* factor per source as "strongest", which is right for wards and inverted for curses, so two casters of one vuln skill at different levels landed the weakest (D2 — "strongest" is now furthest from 1 in both directions). No new effect type, no wire or DB change. See §3.2. |
 | **Stealth / invisibility** | `detaunt` is the nearest thing. |
-| **Conditional triggers generally** | `retaliate_slow` is the only runtime trigger in the game. No on-kill, on-crit, below-X%-HP, or on-dodge hooks. Every "when X happens, do Y" ability is blocked on this, and it is the single highest-leverage addition on this list. |
+| **Conditional triggers generally** | `retaliate_slow` and `retaliate_damage` are the only runtime triggers in the game, and they share one site. No on-kill, on-crit, below-X%-HP, or on-dodge hooks. Every "when X happens, do Y" ability is blocked on this, and it is the single highest-leverage addition on this list. |
 | **Ground-targeted placement** | `spawn` drops at a caster offset. Area denial only exists where a totem stands. |
 | **Resource drain** | There is one resource, so a drain is just damage. Correct by design, listed so nobody proposes it twice. |
 

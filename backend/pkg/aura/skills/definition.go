@@ -61,6 +61,8 @@ const (
 	EffectTypeSpeedBurst
 	EffectTypeLifestealBurst
 	EffectTypeRetaliateSlow
+	EffectTypeRetaliateDamage
+	EffectTypeRetaliateBurst
 	EffectTypeStun
 )
 
@@ -130,7 +132,12 @@ var effectTypeMap = map[string]EffectType{
 	"speed_burst":     EffectTypeSpeedBurst,
 	"lifesteal_burst": EffectTypeLifestealBurst,
 	"retaliate_slow":  EffectTypeRetaliateSlow,
-	"stun":            EffectTypeStun,
+	// The catalog's wire name comes from this table by reversal
+	// (catalog.go reverseNames), so the client's tooltip switch reads
+	// "retaliate_damage" the moment this entry exists. No generated code.
+	"retaliate_damage": EffectTypeRetaliateDamage,
+	"retaliate_burst":  EffectTypeRetaliateBurst,
+	"stun":             EffectTypeStun,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -345,6 +352,12 @@ type EffectDef struct {
 	Lifesteal *LifestealParams `json:"lifesteal,omitempty"` // lifesteal_burst
 	Retaliate *RetaliateParams `json:"retaliate,omitempty"` // retaliate_slow
 	Stun      *StunParams      `json:"stun,omitempty"`      // stun
+
+	// Its own field, never folded into Retaliate: the two payloads share a
+	// trigger and nothing else, and one nullable field answering "which
+	// retaliate is this" would be a type tag the Type already carries.
+	RetaliateDamage *RetaliateDamageParams `json:"retaliateDamage,omitempty"` // retaliate_damage
+	RetaliateBurst  *RetaliateBurstParams  `json:"retaliateBurst,omitempty"`  // retaliate_burst
 }
 
 // CostFractionAt is the level-scaled share of the caster's max health one
@@ -786,6 +799,47 @@ func (p *RetaliateParams) TicksAt(level int) int {
 	return ticks
 }
 
+// RetaliateDamageParams is the retaliate_damage payload (plan-effect-types.md
+// C2, D3): while the passive is equipped, every mob that damages the wearer
+// takes HP back, tagged for the target's own mitigation.
+//
+// It is RetaliateParams with the CC axis swapped for a damage one, and the
+// swap is the whole design: a slow is a state you push onto an attacker, a
+// reflect is a hit you deal it. D4 makes that literal — the reflect goes out
+// through the ordinary player-to-mob damage entry, so it builds threat, makes
+// the wearer a participant, and a reflect-only kill pays XP and kill credit
+// like any other kill. A bare health deduction was explicitly rejected.
+//
+// ⚑ There is no lifetime here, and the missing field is the difference between
+// the twins. A slow has to say how long it lasts; damage lands and is over.
+//
+// ⚑ The reflect is RAW AUTHORED DAMAGE: no crit roll, no lifesteal, and it does
+// NOT compose the wearer's DamageDealtBonus (see DerivedStats.DamageDealtBonus).
+// A passive reflecting a passive is not the entity acting, so the stats that
+// scale what the wearer DOES stay out of it. Whether the Strong passive ought
+// to scale a reflect is an open PO tuning question, recorded, not decided.
+type RetaliateDamageParams struct {
+	HP         float32 `json:"hp"`
+	HPPerLevel float32 `json:"hpPerLevel"`
+
+	// Damage tags for the ATTACKER's resistances: a fire-immune mob takes
+	// nothing from a fire shield. Always non-empty after parsing (absent →
+	// [DamageTagPhysical]), the damage_aura rule, because a reflect is
+	// ordinary damage and "matches nothing" is not a damage type.
+	Tags []string `json:"tags"`
+}
+
+// DamageAt is the level-scaled reflect, floored at 0 — the RetaliateParams
+// FractionAt rule, kept here so the trigger site and the tooltip read one
+// formula (a negative perLevel may scale the reflect away, never invert it).
+func (p *RetaliateDamageParams) DamageAt(level int) float32 {
+	hp := Scaled(p.HP, p.HPPerLevel, level)
+	if hp < 0 {
+		return 0
+	}
+	return hp
+}
+
 // CalmParams is the calm payload (plan-faction-flips chunk 2, D7): how long a
 // hit mob stays out of combat. There is no strength axis — a mob is calmed or
 // it is not — so duration is the whole payload, and the only thing skill level
@@ -988,6 +1042,15 @@ type effectDef struct {
 	// derive from.
 	SlowDurationTicks         int `json:"slowDurationTicks"`
 	SlowDurationTicksPerLevel int `json:"slowDurationTicksPerLevel"`
+
+	// retaliate_burst authors its own share + lifetime rather than reusing the
+	// slow keys: this one is a share of a HIT, not a share of a movement rate,
+	// and spelling them alike would invite authoring one where the other is
+	// read. Its damage type rides the shared damageTags key (PO ruling 2).
+	ReflectFraction              float32 `json:"reflectFraction"`
+	ReflectFractionPerLevel      float32 `json:"reflectFractionPerLevel"`
+	ReflectDurationTicks         int     `json:"reflectDurationTicks"`
+	ReflectDurationTicksPerLevel int     `json:"reflectDurationTicksPerLevel"`
 
 	StunTicks         int `json:"stunTicks"`         // stun: how long the target is held
 	StunTicksPerLevel int `json:"stunTicksPerLevel"` // stun: added per skill level
@@ -1194,6 +1257,25 @@ var effectKeys = map[EffectType][]string{
 	// scaling, so content reads the same in both places.
 	EffectTypeRetaliateSlow: {"slowFraction", "slowFractionPerLevel",
 		"slowDurationTicks", "slowDurationTicksPerLevel"},
+	// Retaliate damage (plan-effect-types.md C2): the twin above with a damage
+	// payload. Its list is NARROWER than keysDamagePayload by three
+	// deliberate omissions, not by oversight. No gateKey: a lock-and-key hit
+	// names the targets it may touch, and a reflect never chooses — it answers
+	// whoever hit you. No variance/hitStyle: both are properties of a swing
+	// the wearer takes, and the reflect has no swing of its own to roll or
+	// draw. No structure keys: a wall cannot damage you, so it can never be
+	// the attacker. What is left is the amount, its slope and its damage type.
+	EffectTypeRetaliateDamage: {"damageHP", "damageHPPerLevel", "damageTags"},
+	// Retaliate burst (PO 2026-08-17): the PERCENTAGE reflect, and structurally
+	// a lifesteal_burst rather than a second FireShield — activation puts a
+	// timed SELF-buff up, and the buff is what the hit site reads. So it takes
+	// no geometry, no cadence and no target flags for lifesteal_burst's reason
+	// (it projects nothing and reaches nobody), and no damageHP for its own: it
+	// authors a SHARE of the incoming hit, never an amount. damageTags rides
+	// along because PO ruling 2 puts the reflect's damage type on the SKILL
+	// rather than mirroring whatever hit you.
+	EffectTypeRetaliateBurst: {"reflectFraction", "reflectFractionPerLevel",
+		"reflectDurationTicks", "reflectDurationTicksPerLevel", "damageTags"},
 	// Calm (plan-faction-flips chunk 2): a query circle of enemy mobs, each
 	// dropped out of combat for the authored duration. No cadence (it fires on
 	// cooldown activation) and no selector/cap on purpose — calm is a DISENGAGE
@@ -1530,6 +1612,10 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Lifesteal, err = e.lifestealParams()
 	case EffectTypeRetaliateSlow:
 		def.Retaliate, err = e.retaliateParams()
+	case EffectTypeRetaliateDamage:
+		def.RetaliateDamage, err = e.retaliateDamageParams()
+	case EffectTypeRetaliateBurst:
+		def.RetaliateBurst, err = e.retaliateBurstParams()
 	case EffectTypeStun:
 		def.Stun, err = e.stunParams()
 	case EffectTypeCalm:
@@ -1931,6 +2017,117 @@ func (e *effectDef) retaliateParams() (*RetaliateParams, error) {
 		FractionPerLevel:      e.SlowFractionPerLevel,
 		DurationTicks:         e.SlowDurationTicks,
 		DurationTicksPerLevel: e.SlowDurationTicksPerLevel,
+	}, nil
+}
+
+// retaliateDamageParams builds the retaliate_damage payload on the
+// retaliateParams rule at the amount end (a reflect of 0 or below is a passive
+// that does nothing) and on the damageParams rule at the tag end: the closed
+// damage-type vocabulary is validated, and absent tags normalize to
+// [DamageTagPhysical] rather than reaching a resistance map that answers
+// nothing. Per-level scaling is unconstrained; DamageAt floors the result.
+func (e *effectDef) retaliateDamageParams() (*RetaliateDamageParams, error) {
+	if e.DamageHP <= 0 {
+		return nil, fmt.Errorf("damageHP: must be > 0, got %v", e.DamageHP)
+	}
+	tags := e.DamageTags
+	if len(tags) == 0 {
+		tags = []string{DamageTagPhysical}
+	} else if err := validateTags("damageTags", tags); err != nil {
+		return nil, err
+	} else if err := validateDamageTypes(tags); err != nil {
+		return nil, err
+	}
+	return &RetaliateDamageParams{
+		HP:         e.DamageHP,
+		HPPerLevel: e.DamageHPPerLevel,
+		Tags:       tags,
+	}, nil
+}
+
+// RetaliateBurstParams is the retaliate_burst payload (PO 2026-08-17): for
+// DurationTicks, every hit taken bounces Fraction of the incoming damage back
+// at whoever landed it.
+//
+// It is LifestealParams read from the other side, and the symmetry is exact:
+// lifesteal is a share of the damage you deal coming back as healing, this is a
+// share of the damage you take going back out as damage. Both are scalar plus
+// lifetime, both are self-buffs a cooldown puts up, both leave through a store
+// the hit site reads rather than through the effect that authored them.
+//
+// Three PO rulings are baked in here and at the trigger site:
+//
+//   - The share applies to the PRE-MITIGATION incoming hit, the damage as the
+//     mob authored it. That keeps the mitigated-hit-still-retaliates convention
+//     the passive already had, and it stops a tanky build from weakening its own
+//     reflect by being hard to hurt.
+//   - Tags are AUTHORED HERE, never mirrored from the incoming hit (the
+//     FireShield convention), so the attacker's own resistances answer a damage
+//     type the skill chose. Always non-empty after parsing.
+//   - Level scales the share only. The window is flat, the Bloodthirst rule:
+//     level buys strength, not uptime.
+//
+// ⚑ Like the flat reflect, what goes out is RAW: no crit, no lifesteal, no
+// DamageDealtBonus (see DerivedStats.DamageDealtBonus). The share is of the
+// INCOMING hit, and scaling that by the wearer's own damage stats would price
+// one hit by two entities' numbers.
+type RetaliateBurstParams struct {
+	Fraction              float32  `json:"fraction"`
+	FractionPerLevel      float32  `json:"fractionPerLevel"`
+	DurationTicks         int      `json:"durationTicks"`
+	DurationTicksPerLevel int      `json:"durationTicksPerLevel"`
+	Tags                  []string `json:"tags"`
+}
+
+// FractionAt is the level-scaled share, floored at 0 with NO upper cap — the
+// LifestealParams rule, not the slow one. A reflect above 1 returns more than
+// it took: strong, but coherent authored content, where a slow above 1 would be
+// meaningless.
+func (p *RetaliateBurstParams) FractionAt(level int) float32 {
+	f := Scaled(p.Fraction, p.FractionPerLevel, level)
+	if f < 0 {
+		return 0
+	}
+	return f
+}
+
+// TicksAt is the level-scaled window, floored at 1 — the SpeedParams /
+// LifestealParams / RetaliateParams rule, kept identical so the four cannot
+// drift.
+func (p *RetaliateBurstParams) TicksAt(level int) int {
+	ticks := Scaled(p.DurationTicks, p.DurationTicksPerLevel, level)
+	if ticks < 1 {
+		ticks = 1
+	}
+	return ticks
+}
+
+// retaliateBurstParams builds the retaliate_burst payload on the lifestealParams
+// rules at the scalar end (a zero share is a cast that does nothing, a zero
+// window is a buff that expires before a hit can read it) and on the
+// retaliateDamageParams rule at the tag end (closed vocabulary, absent
+// normalizes to physical).
+func (e *effectDef) retaliateBurstParams() (*RetaliateBurstParams, error) {
+	if e.ReflectFraction <= 0 {
+		return nil, fmt.Errorf("reflectFraction: must be > 0, got %v", e.ReflectFraction)
+	}
+	if e.ReflectDurationTicks <= 0 {
+		return nil, fmt.Errorf("reflectDurationTicks: must be > 0, got %v", e.ReflectDurationTicks)
+	}
+	tags := e.DamageTags
+	if len(tags) == 0 {
+		tags = []string{DamageTagPhysical}
+	} else if err := validateTags("damageTags", tags); err != nil {
+		return nil, err
+	} else if err := validateDamageTypes(tags); err != nil {
+		return nil, err
+	}
+	return &RetaliateBurstParams{
+		Fraction:              e.ReflectFraction,
+		FractionPerLevel:      e.ReflectFractionPerLevel,
+		DurationTicks:         e.ReflectDurationTicks,
+		DurationTicksPerLevel: e.ReflectDurationTicksPerLevel,
+		Tags:                  tags,
 	}, nil
 }
 

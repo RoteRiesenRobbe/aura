@@ -113,7 +113,7 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 58 | Wildfire | 5 | fire dot 10.5 +2.1/L ×2 tgt (4×60t) @20t, r1.4 + self-only fire resist ×0.6 −0.05/L + light r4 +1/L | Recipe: Ignite 3 + Immolate 5 |
 | 59 | Suppression | 5 | dmg 6.5 +1.4/L r2.6 +.1/L + slow 7% +7%/L | Recipe: Slow 5 + LongRangeStrike 5 |
 
-## Passives (8)
+## Passives (9)
 
 | ID | Name | MaxLv | Values | Source |
 |---|---|---|---|---|
@@ -125,8 +125,9 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 60 | KeenEye | 5 | crit chance +2% +2%/L | Drop: EliteWolf .2 / AlphaWolf .12 / DireWolf .1 |
 | 136 | Strong | 5 | all outgoing damage +4% +2%/L (direct + dots) | NPC CityGuard @L3 |
 | 139 | FrostShield | 5 | retaliate slow 10% +5%/L for 150t on anything that damages you | Drop: Troll .2 |
+| 67 | FireShield | 5 | ⭐ retaliate **damage 3 +1/L fire** at anything that damages you (attributed: it credits XP and kill credit) | **Cheat only (`SKILL FireShield`)** — no unlock source yet (plan-effect-types.md C2) |
 
-## Cooldowns (26)
+## Cooldowns (27)
 
 | ID | Name | MaxLv | Values (CD in ticks) | Source |
 |---|---|---|---|---|
@@ -156,6 +157,7 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 140 | Paralyze | 5 | stun 90t +6/L, r2.5, nearest 1; CD 900 | Drop: GiantSpider .2 |
 | 63 | CharmBeast | 3 | charm 1800t +300/L, r4.0, 1 tgt nearest; **scoped: prey + predators**; CD 3600 | NPC Hermit @L10 |
 | 64 | BindElemental | 3 | charm 1200t +200/L, r3.5, 1 tgt nearest; **scoped: elemental**; CD 4200 | NPC Emberkeeper @L15 |
+| 68 | Retribution | 5 | ⭐ for 300t (10 s), reflects **20% +5%/L of every hit taken** back as **fire** (attributed: it credits XP and kill credit); CD 900 −60/L, cost 0.02 +0.0025/L | **Cheat only (`SKILL Retribution`)** — no unlock source yet (plan-effect-types.md follow-up) |
 
 ## Reachability summary (live world zone)
 
@@ -170,11 +172,18 @@ the milestone table:
   regeneration script that reads only `unlocks[]`, teachings, recipes and the
   milestone table will report all six as unreachable and be wrong, exactly as
   the quest-reward note below warns for its own three.
-- **Unreachable without the cheat: ONE, and it is deliberate.** ⭐
+- **Unreachable without the cheat: THREE, and all three are deliberate.** ⭐
   **FireVulnerability** (id 66, plan-effect-types.md C1, 2026-08-16) is the
   vocabulary-hole closer for the curse half of the resist axis, authored as the
-  worked example of `resistFactor > 1`. It ships with no unlock source on
-  purpose: placement is the content pass's call, not C1's. Every OTHER player
+  worked example of `resistFactor > 1`. ⭐ **FireShield** (id 67, C2,
+  2026-08-17) is the same shape one chunk later: the worked example of the new
+  `retaliate_damage` type, FrostShield's twin. Both ship with no unlock source
+  on purpose: placement is the content pass's call, not the effect-type
+  chunks'. ⭐ **Retribution** (id 68, the percentage-reflect follow-up,
+  2026-08-17) is the third and settles it as a convention: an effect-type chunk
+  ships its worked example unplaced, and the content pass places it.
+  ⚑ Each new one costs the reachability sweep a line, and the sweep must not
+  start reading three cheat-only skills as drift. Every OTHER player
   skill has a live-world source — the step-7 A.5 guarantee
   (`plan-rebrand-cleanup.md`) still holding, and since zone-editor C3 there is
   no legacy source left to discount (Wild, Slow and Tough lost only their

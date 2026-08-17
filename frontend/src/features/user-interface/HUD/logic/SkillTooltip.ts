@@ -60,6 +60,11 @@ const EFFECT_COLOR_KEYS: { [type: string]: keyof typeof AURA_CATEGORY_COLORS } =
     heal_aura: 'heal', self_heal: 'heal', hot_aura: 'heal', instant_hot: 'heal',
     shield_aura: 'shield', instant_shield: 'shield',
     slow_aura: 'slow', retaliate_slow: 'slow', stun: 'slow',
+    // Coloured as damage, not as a passive's absence of colour: this table
+    // tints the line by WHAT THE EFFECT DOES, so the tooltip vocabulary matches
+    // the in-world rings and pips. (The server's aura_category map answers a
+    // different question — what ring to draw — and a reflect draws none.)
+    retaliate_damage: 'damage', retaliate_burst: 'damage',
     resist_aura: 'resist', resist_passive: 'resist',
     light_aura: 'light',
 };
@@ -559,6 +564,44 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const duration = prog(retaliate.durationTicks, retaliate.durationTicksPerLevel, level, maxLevel, ticksToSecs);
             lines.push(`Slows anything that damages you by ${share} for ${duration}`);
             lines.push('Being hit is enough — it fires even when the hit is fully absorbed');
+            break;
+        }
+        case 'retaliate_damage': {
+            // The retaliate_slow line with an amount instead of a fraction, and
+            // one line it does not need: the damage TYPE, which is what decides
+            // whether the attacker shrugs the whole thing off. Physical stays
+            // silent, the damage_aura rule.
+            //
+            // ⚑ No powerScale and no damageFactor here, unlike every other
+            // damage line. The server reflects RAW AUTHORED DAMAGE — it never
+            // passes the damage base-composition sites — so scaling it would
+            // print a number that is never dealt.
+            const reflect = effect.retaliateDamage;
+            const amount = prog(reflect.hp, reflect.hpPerLevel, level, maxLevel, hpFmt);
+            lines.push(`Reflects ${amount} damage onto anything that damages you`);
+            if (reflect.tags.length > 1 || reflect.tags[0] !== 'physical') {
+                lines.push(`Damage type: ${reflect.tags.join(', ')}`);
+            }
+            lines.push('Being hit is enough — it fires even when the hit is fully absorbed');
+            break;
+        }
+        case 'retaliate_burst': {
+            // The lifesteal_burst line inverted, and it carries one sentence
+            // neither burst needs: WHICH damage the share is taken from. The
+            // server takes it from the hit as the mob threw it, before this
+            // player's own mitigation, and a reader who assumes otherwise will
+            // mis-price the skill against a tanky build.
+            //
+            // ⚑ No powerScale and no damageFactor, like every reflect line: a
+            // share is not an amount, and the server scales neither.
+            const burst = effect.retaliateBurst;
+            const share = prog(burst.fraction, burst.fractionPerLevel, level, maxLevel, pct);
+            const window = prog(burst.durationTicks, burst.durationTicksPerLevel, level, maxLevel, ticksToSecs);
+            lines.push(`For ${window}, reflects ${share} of damage taken`);
+            if (burst.tags.length > 1 || burst.tags[0] !== 'physical') {
+                lines.push(`Damage type: ${burst.tags.join(', ')}`);
+            }
+            lines.push('The share is of the hit as thrown, before your own mitigation');
             break;
         }
         case 'lifesteal_burst': {

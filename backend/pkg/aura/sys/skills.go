@@ -1881,6 +1881,11 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 				hitAny = true
 			}
 
+		case skills.EffectTypeRetaliateBurst:
+			if s.applyRetaliateBurst(e, es.Def.ID, es.Level, effect) {
+				hitAny = true
+			}
+
 		// The two instant damage paths share a query but not a dispatch. A
 		// non-empty set counts as a hit BEFORE eligibility runs — the aura
 		// appliers do their own target-flag filtering, and a cooldown that
@@ -2056,6 +2061,44 @@ func (s *SkillSystem) applyLifestealBurst(e skillEntity, source skills.SkillID, 
 		return false
 	}
 	self.ApplyLifesteal(source, fraction, effect.Lifesteal.TicksAt(level))
+	return true
+}
+
+// reflectApplier is the reflect-buff door, declared at its point of use like
+// lifestealApplier and asserted rather than required on the entity interfaces.
+//
+// ⚑ Unlike lifesteal, that assertion is currently PLAYER-ONLY in practice, and
+// the reason is worth recording: the trigger that reads this buff lives in
+// player.retaliate, off player.MobTouches. Mob.PlayerTouches has no retaliate
+// call at all, so a mob authoring retaliate_burst would carry a buff nothing
+// reads. Giving mobs a reflect means writing that trigger first, not just
+// adding an ApplyReflect accessor.
+type reflectApplier interface {
+	ApplyReflect(source skills.SkillID, fraction float32, tags []string, ticks int)
+}
+
+// applyRetaliateBurst fires a retaliate_burst cooldown: for a while, a share of
+// every hit the caster TAKES goes back at whoever landed it. The
+// applyLifestealBurst twin in every respect — no query circle (it changes what
+// happens to the caster rather than reaching anyone), scaled values floored in
+// the payload, and true reported unconditionally once the entity can carry the
+// buff, because a cooldown pays on cast (D9).
+//
+// ⚑ The tags go into the buff store here rather than being read from the
+// incoming hit later. That is PO ruling 2, and putting it at the application
+// site is what makes it structural: the trigger site has no way to reach the
+// skill's authored type, so if it were not carried by the buff it could only
+// mirror the attacker's damage type.
+func (s *SkillSystem) applyRetaliateBurst(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
+	self, ok := e.(reflectApplier)
+	if !ok || effect.RetaliateBurst == nil {
+		return false
+	}
+	fraction := effect.RetaliateBurst.FractionAt(level)
+	if fraction <= 0 {
+		return false
+	}
+	self.ApplyReflect(source, fraction, effect.RetaliateBurst.Tags, effect.RetaliateBurst.TicksAt(level))
 	return true
 }
 

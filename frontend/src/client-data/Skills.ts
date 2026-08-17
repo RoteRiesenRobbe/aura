@@ -167,6 +167,31 @@ export interface RetaliateParams {
     durationTicksPerLevel: number;
 }
 
+// The retaliate_damage payload (FireShield): while equipped, every mob that
+// damages the wearer takes hp back, tagged for its own resistances. The
+// RetaliateParams twin with the CC axis swapped for a damage one — and with no
+// lifetime, because damage lands and is over.
+//
+// ⚑ Its own field rather than a second shape on `retaliate`: the two payloads
+// share a trigger and nothing else.
+export interface RetaliateDamageParams {
+    hp: number;
+    hpPerLevel: number;
+    tags: string[];
+}
+
+// The retaliate_burst payload (Retribution): for durationTicks, a share of every
+// hit taken bounces back at the attacker as damage of the authored type. The
+// LifestealParams twin read from the hit side — same scalar-plus-lifetime shape,
+// plus the tags, because what comes back is damage somebody has to resist.
+export interface RetaliateBurstParams {
+    fraction: number;
+    fractionPerLevel: number;
+    durationTicks: number;
+    durationTicksPerLevel: number;
+    tags: string[];
+}
+
 export interface CalmParams {
     durationTicks: number;
     durationTicksPerLevel: number;
@@ -220,6 +245,8 @@ export interface SkillEffect {
     speed?: SpeedParams;
     lifesteal?: LifestealParams;
     retaliate?: RetaliateParams;
+    retaliateDamage?: RetaliateDamageParams;
+    retaliateBurst?: RetaliateBurstParams;
     calm?: CalmParams;
     charm?: CharmParams;
     stun?: StunParams;

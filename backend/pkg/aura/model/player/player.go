@@ -679,6 +679,19 @@ func (p *player) LifestealFraction() float32 {
 	return p.buffs.LifestealFraction()
 }
 
+// ApplyReflect grants a damage-reflect buff from a retaliate_burst cooldown
+// (Retribution, PO 2026-08-17); the retaliate trigger reads it on every hit
+// taken, via ReflectBurst.
+func (p *player) ApplyReflect(source skills.SkillID, fraction float32, tags []string, ticks int) {
+	p.buffs.ApplyReflect(source, fraction, tags, ticks)
+}
+
+// ReflectBurst is the share of an incoming hit this player currently bounces
+// back and the damage type it bounces back as; 0 and nil with no burst up.
+func (p *player) ReflectBurst() (float32, []string) {
+	return p.buffs.ReflectBurst()
+}
+
 // ShieldHP is the current total absorb capacity across all active pools;
 // serialized as the shield_hp wire field. A live value, not a per-tick
 // accumulator — no ResetTickNumbers involvement.
@@ -738,7 +751,10 @@ func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {
 		p.attacker = c
 		p.attackerTicks = combatSignalWindowTicks
 	}
-	p.retaliate(e)
+	// ⚑ factors.Damage is passed RAW and BEFORE takeDamage on purpose: the
+	// percentage reflect takes its share of the swing as the mob authored it
+	// (PO ruling 1), not of whatever survives this player's mitigation.
+	p.retaliate(e, factors.Damage)
 	dealt := p.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
 	// Mob-cast lifesteal (chunk 1): Factors carries no Source — the mob is
 	// always its own recipient.
@@ -754,11 +770,49 @@ type slowable interface {
 	ApplySlow(source skills.SkillID, fraction float32, ticks int) bool
 }
 
-// retaliate is the retaliate_slow passive's trigger (plan-cc-and-retaliation.md
-// C2, A4): every mob that damages this player is slowed while the passive is
-// equipped. Called from MobTouches, the ONE site both mob→player damage paths
-// funnel through — direct damage-aura hits and mob DoT ticks alike, so "every
-// mob that hits you" has no hole.
+// reflectable is the ordinary player-damage entry plus the liveness read that
+// decides whether entering it is safe, asserted here for the same reason
+// slowable is: model.MobEntity declares neither (they live on model.Interacter
+// and model.Combatant), and a two-method door is not a type worth sharing
+// across packages. An attacker missing either half is skipped, which is the
+// safe answer in both directions.
+type reflectable interface {
+	PlayerTouches(p model.PlayerEntity, damage model.Damage)
+	HealthRatio() float32
+}
+
+// retaliate is the trigger every retaliation shape shares
+// (plan-cc-and-retaliation.md C2, A4 for the slow; docs/plan-effect-types.md C2
+// for the flat reflect; PO 2026-08-17 for the percentage reflect): every mob
+// that damages this player is slowed by retaliate_slow, takes flat HP back from
+// retaliate_damage, and takes a SHARE of its own swing back from a live
+// retaliate_burst. Called from MobTouches, the ONE site both mob→player damage
+// paths funnel through — direct damage-aura hits and mob DoT ticks alike, so
+// "every mob that hits you" has no hole.
+//
+// The three halves are independent: a wearer may run any combination, each
+// zero-checks itself, and the two damage halves deliver SEPARATELY rather than
+// summing (each carries its own authored damage type). Only the GOD
+// short-circuit and the dead-attacker guard are shared.
+//
+// ⚑ `incoming` is the attacker's swing BEFORE this player's mitigation, which
+// is PO ruling 1 for the percentage reflect: the share is of the hit as the mob
+// authored it, so a tanky build does not weaken its own reflect by being hard
+// to hurt. It is also why the parameter exists at all rather than the trigger
+// reading the damage it caused.
+//
+// ⚑ The reflect is ATTRIBUTED (D4, PO ruling): it leaves through the attacker's
+// ordinary player-damage entry with this player as the toucher, so it makes the
+// wearer a participant, builds threat, takes the attacker's mitigation, and a
+// reflect-only kill pays XP and kill credit like any other. A bare health
+// deduction was explicitly rejected. It is RAW AUTHORED DAMAGE though: no crit
+// roll, no lifesteal, and it does not compose DamageDealtBonus (the wearer
+// never swung — see skills.DerivedStats.DamageDealtBonus).
+//
+// ⚑ The reflect deals that damage from INSIDE the attacker's own damage
+// delivery, and it can kill the attacker mid-call. That is pinned rather than
+// assumed (retaliate_damage_test.go): the death settles once, the rewards grant
+// once, and the mob's own hit still lands afterwards — it attacked while alive.
 //
 // Two behaviour calls live here, both deliberate:
 //
@@ -766,22 +820,59 @@ type slowable interface {
 //     still retaliates — MobTouches already stamps the attacker for the
 //     companion defend signal "resisted or not", and the same reading applies:
 //     the mob attacked you, whether or not it got through.
-//   - A GOD player does not retaliate. IsGod() short-circuits INSIDE
-//     takeDamage, so without this check a cheat-mode player would walk the
-//     world slowing everything that brushed them — a playtest artifact, not a
-//     feature.
+//   - A GOD player does not retaliate, in either half. IsGod() short-circuits
+//     INSIDE takeDamage, so without this check a cheat-mode player would walk
+//     the world slowing and burning everything that brushed them — a playtest
+//     artifact, not a feature.
 //
 // ⚑ The attacker may be a mob that has already died or left the viewport: a DoT
 // tick carries its caster's ref, which stays valid by design. ApplySlow on such
-// a mob is a harmless no-op, and an attacker with no CC door at all is simply
-// skipped.
-func (p *player) retaliate(attacker model.MobEntity) {
-	r := p.skills.Derived.RetaliateSlow
-	if r.Fraction <= 0 || p.IsGod() {
+// a mob is a harmless no-op, PlayerTouches is NOT (see the guard below), and an
+// attacker with neither door is simply skipped.
+func (p *player) retaliate(attacker model.MobEntity, incoming float32) {
+	if p.IsGod() {
 		return
 	}
-	if target, ok := attacker.(slowable); ok {
-		target.ApplySlow(r.Source, r.Fraction, r.Ticks)
+	if r := p.skills.Derived.RetaliateSlow; r.Fraction > 0 {
+		if target, ok := attacker.(slowable); ok {
+			target.ApplySlow(r.Source, r.Fraction, r.Ticks)
+		}
+	}
+	if d := p.skills.Derived.RetaliateDamage; d.Damage > 0 {
+		// ⚑ The dead-attacker guard is NEW here, not inherited from the slow
+		// half. ApplySlow on a corpse is a natural no-op; PlayerTouches is not
+		// (noteParticipant, noteThreat, tryGrantKillRewards). A dead mob's DoT
+		// tick carries its caster's ref by design, so without this the burn
+		// from a mob you already killed re-enters that mob's reward path once
+		// per tick, forever.
+		if target, ok := attacker.(reflectable); ok && target.HealthRatio() > 0 {
+			// Source stays nil: the wearer is the toucher, not a summon acting
+			// on their behalf. That is what carries XP, kill credit and threat
+			// (D4) — and it also trips the companion ASSIST signal in
+			// Mob.PlayerTouches, which is kept deliberately. MobTouches has
+			// already stamped this mob for the DEFEND signal a few lines up;
+			// the reflect is the player fighting back, and a companion reading
+			// it as "my owner attacked that" is correct.
+			target.PlayerTouches(p, model.Damage{HP: d.Damage, Tags: d.Tags})
+		}
+	}
+	// The percentage reflect (retaliate_burst / Retribution), an INDEPENDENT
+	// half: a player may run the flat passive and the burst together, and each
+	// delivers separately. They are deliberately not summed into one hit —
+	// each carries its own authored damage type, so one combined delivery would
+	// have to bill one skill's damage under the other skill's type. Two hits is
+	// the honest model, and the attacker mitigates each on its own merits.
+	//
+	// ⚑ `incoming` is the PRE-MITIGATION swing (PO ruling 1). A share of 0 is
+	// nothing to deal, which is the one place this half legitimately parts from
+	// the flat passive: that one fires on being swung at, this one needs an
+	// amount to take a percentage of.
+	if incoming > 0 {
+		if fraction, tags := p.buffs.ReflectBurst(); fraction > 0 {
+			if target, ok := attacker.(reflectable); ok && target.HealthRatio() > 0 {
+				target.PlayerTouches(p, model.Damage{HP: fraction * incoming, Tags: tags})
+			}
+		}
 	}
 }
 

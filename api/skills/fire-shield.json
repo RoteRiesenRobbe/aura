@@ -1,0 +1,15 @@
+{
+  "_comment": "The retaliate_damage twin of FrostShield (plan-effect-types.md C2, D3/D4): where FrostShield slows everything that hits you, this burns it. Same passive spine, same trigger site (player.retaliate, off MobTouches, so direct hits AND mob DoT ticks both count), same two inherited rules: a fully mitigated hit still reflects, and a GOD player does not. ⭐ PO ruling D4 is what makes it a real damage source rather than a chip effect: the reflect leaves through the mob's ORDINARY player-damage entry with the wearer as toucher, so it takes the attacker's resistances, builds threat, makes the wearer a participant, and a kill scored entirely by reflect pays XP and kill credit like any other. A bare health deduction was explicitly rejected. Fire on purpose: it is the flavour the idea was proposed under, and it gives fire-resistant mobs a real answer (a fire-immune attacker shrugs the whole shield off, which is the counterplay). ⚑ TUNING-OPEN, and the sharpest edge here: the reflect is RAW AUTHORED DAMAGE. It skips the crit roll, skips lifesteal, and does NOT ride casterPowerScale or the Strong passive's DamageDealtBonus, because a passive answering a passive is not the wearer acting. So 3 HP at character level 1 is still 3 HP at level 30, while every aura around it has grown with f(level) — whether a reflect should scale with the character (or with Strong) is an open PO call, recorded here, not decided. All values [PLACEHOLDER]: 3 HP at L1 rising to 7 at L5 in even 1-point steps, which sits well under the permanently-free Damage aura's output at every rank, as a supporting passive should. No cost: a passive has no trigger of its own to charge, and charging the victim of a hit for hitting back is not a mechanic anyone asked for (the FrostShield rule). Obtainable in dev via the SKILL FireShield cheat; no unlock source yet (the FireVulnerability precedent), real placement comes with the content pass.",
+  "id": 67,
+  "name": "FireShield",
+  "category": "passive",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "retaliate_damage",
+      "damageHP": 3,
+      "damageHPPerLevel": 1,
+      "damageTags": ["fire"]
+    }
+  ]
+}

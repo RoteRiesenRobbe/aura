@@ -356,4 +356,83 @@ one finding was the tooltip double minus above, fixed in-session. The
 ally-untouched case stays test-pinned only (nothing in-game aims fire at an
 ally; no PvP).
 
-**Next in this plan:** C2, `retaliate_damage`.
+### C2 - `retaliate_damage` + the percentage follow-up ✅ 2026-08-17, `[uncommitted]`
+
+**D3 and D4 held.** `retaliate_damage` reuses the retaliate spine: enum + params
+(`damageHP`/`damageHPPerLevel`/`damageTags`, a deliberately narrow 3-key
+allowlist, absent tags normalize to physical like every damage payload), folded
+in `recomputeDerived` strongest-wins-wholesale beside RetaliateSlow, triggered
+from `player.retaliate`. The reflect takes the ATTRIBUTED path (D4): it leaves
+through `Mob.PlayerTouches` with the wearer as toucher, so participants, threat,
+XP and kill credit all work and are pinned; mob-side mitigation applies for free
+and is asserted (a fire-resistant mob takes half the fire reflect).
+
+**The dead-attacker guard is NEW code, not inherited.** ApplySlow on a corpse is
+a natural no-op; `PlayerTouches` is not (noteParticipant, noteThreat,
+tryGrantKillRewards), so a dead DoT caster's tick would re-enter its own reward
+path once per tick, forever. The reflect skips attackers at health 0, pinned
+red-first (`TestRetaliateDamage_ADeadAttackerIsNotTouched`).
+
+**The flagged re-entrancy risk is pinned SAFE, no fix needed.** A reflect
+killing blow lands from inside the attacker's own delivery
+(`TestRetaliateDamage/Burst_AReflectKillingMidDeliveryIsSafe`): health floors at
+0, `deathRewardGiven` latches on the stack, XP grants exactly once, and the
+mob's own hit still lands afterwards - it attacked while alive.
+
+**Two named decisions, documented not silent.** (1) The reflect is RAW AUTHORED
+DAMAGE: no crit, no lifesteal, no DamageDealtBonus (the `component.go` comment
+now names the exclusion). ⚑ Consequence, tuning-open: the flat reflect rides
+neither f(level) nor Strong, so FireShield's 3 HP at L1 is still 3 HP at level
+30 - recorded in the JSON and `content-passives.md`, an open PO call. (2) The
+Source-nil reflect trips the companion `NoteAttackDealt` assist signal, kept
+deliberately (the reflect is the player fighting back).
+
+**Same-day PO follow-up: `retaliate_burst` / Retribution (rulings 2026-08-17).**
+The percentage tier as a cooldown: a timed SELF-buff (lifesteal_burst template:
+`reflectFraction`/`PerLevel`/`reflectDurationTicks`/`PerLevel`/`damageTags`),
+read at the same trigger. Three PO rulings, each test-pinned: the share applies
+to the PRE-MITIGATION swing (a tanky build does not weaken its own reflect; a
+fully shielded hit still reflects) · reflected damage carries tags AUTHORED ON
+THE SKILL, never mirrored from the hit · level scales the FRACTION only,
+duration flat. The flat and percentage halves fire independently as TWO
+deliveries, deliberately not summed (each bills its own damage type). ⚑
+`Buffs.ReflectBurst` reads strongest-wins-wholesale where `LifestealFraction`
+sums - forced, since each application carries its own tags. ⚑ A mob-authored
+`retaliate_burst` would be silently dead content (`Mob.PlayerTouches` has no
+retaliate call); the `reflectApplier` comment says so. `appliedBit` → None
+(no pip, §39 / D10). ⚑ First tooltip draft expected "9.9s" for 300 ticks;
+TICK_MS is 1000/30, so 10s - the test was wrong, not the code.
+
+**Content.** FireShield id 67 (passive, 3 HP +1/L, fire, no cost) and
+Retribution id 68 (cooldown, 0.2 +0.05/L of the swing for 300 ticks, fire,
+CD 900 −60/L, cost 0.02 +0.0025/L). All numbers [PLACEHOLDER], SKILL-cheat
+only, placement belongs to the content pass. Registry pin 91 → 92 → 93.
+
+**Schema: NONE.** Transient buffs + two content JSON files.
+
+**Doc ripple.** `content-ability-matrix.md`: reflect family row, §7 row
+RESOLVED, burst cell filled (30 → 31). `content-skill-inventory.md`: two rows,
+reachability ONE → THREE. `content-cooldowns.md`: the old "Fire Shield cooldown
+idea" row RESOLVED by Retribution. `content-passives.md`: FireShield row.
+Stale-at-HEAD finds, both pre-existing and unowned: `manual-content-authoring.md`
+§2's effect-type list was already missing `retaliate_slow` and `stun`;
+Bloodthirst is missing from the inventory's own Cooldowns table.
+
+**Verified.** `go build ./...` · `go test -count=1 ./...` all green, before and
+after cp-defs, twice re-run by the coordinating session (simharness guardrails
+unshifted) · `npm run typecheck` · vitest **358/358** (351 + 3 + 4) ·
+`make -C backend build` · `npm run build` (prod dist for the harnesses) ·
+`round4-tooltip` green (⚑ first run timed out at join against a long-lived
+server session; restart fixed it - dist was already fresh) · `c2-frost-shield`
+**7/7** (the retaliate_slow surface this chunk's trigger rewrite could have
+broken) · boot **0 WARN / 0 ERROR**, census `count=93` (was 91).
+
+**PO in-game check: passed 2026-08-17.** One finding, resolved as
+not-a-defect: with both reflects equipped the on-screen numbers merge, because
+damage numbers ride the per-tick `damageTaken` accumulator (one number per
+entity per tick, `EntityManager.ts:189`) and both reflects trigger on the same
+bite. The observed "-12 instead of 4 + 6" was the wearer's own damage aura
+ticking in the same tick, PO-confirmed by re-testing with the aura off.
+Per-hit numbers would need per-hit wire events: §39 / backlog §57 territory.
+
+**Next in this plan:** C3, invulnerability.

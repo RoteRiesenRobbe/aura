@@ -190,6 +190,17 @@ type DerivedStats struct {
 	// DamageDealtBonus multiplies ALL outgoing damage of the acting entity
 	// (direct hits and dots alike): base × (1 + bonus), applied at the
 	// damage base-composition sites in sys (Strong, triage 2026-07-21).
+	//
+	// ⚑ One deliberate exclusion, added with retaliate_damage
+	// (plan-effect-types.md C2) and holding for retaliate_burst (PO
+	// 2026-08-17): NEITHER REFLECT composes it. "All outgoing damage" means
+	// damage the entity DEALS by acting, and a reflect answers a hit rather
+	// than throwing one, so the wearer never swung. Both are raw for the same
+	// reason they skip the crit roll and lifesteal, and the percentage reflect
+	// has a second reason of its own: its amount is a share of the ATTACKER's
+	// swing, so scaling it here would price one hit by two entities' numbers.
+	// Whether Strong ought to scale the flat reflect is an open PO tuning
+	// question, recorded, not decided here.
 	DamageDealtBonus float32
 	// RetaliateSlow is the resolved retaliate_slow payload — the first entry in
 	// DerivedStats that is not a scalar, because it is the first passive with a
@@ -197,6 +208,10 @@ type DerivedStats struct {
 	// C2). Read at player.MobTouches, the one site both mob→player damage paths
 	// funnel through. Zero value = no retaliate passive equipped.
 	RetaliateSlow RetaliateSlow
+	// RetaliateDamage is the resolved retaliate_damage payload, RetaliateSlow's
+	// twin at the same trigger site (plan-effect-types.md C2). Zero value = no
+	// reflect passive equipped.
+	RetaliateDamage RetaliateDamage
 	// Resistances aggregates resist_passive effects into one tag → multiplier
 	// source map (item 11 Phase 2): per tag, the product across equipped
 	// passives (each passive is a distinct resist source). nil when no resist
@@ -217,6 +232,21 @@ type RetaliateSlow struct {
 	Source   SkillID
 	Fraction float32
 	Ticks    int
+}
+
+// RetaliateDamage is one retaliate_damage passive, resolved to what the trigger
+// site needs: how much, of what type, and from which skill.
+//
+// ⚑ Source is carried for a different reason than RetaliateSlow's. A slow needs
+// it because Buffs.ApplySlow keys the buff stream by source; a reflect opens no
+// stream. It is here because the reflect goes out through the attacker's
+// ordinary player-damage entry (D4), where the wearer is the toucher, and the
+// SOURCE of a hit is a live entity there, never a skill. Keeping the id makes
+// the fold's wholesale winner provable and gives any later attribution a name.
+type RetaliateDamage struct {
+	Source SkillID
+	Damage float32
+	Tags   []string
 }
 
 // The three factor methods below are THE application formula for the stat
@@ -623,6 +653,21 @@ func (sc *SkillComponent) recomputeDerived() {
 						Source:   es.Def.ID,
 						Fraction: fraction,
 						Ticks:    e.Retaliate.TicksAt(es.Level),
+					}
+				}
+			case EffectTypeRetaliateDamage:
+				// Strongest wins WHOLESALE, the RetaliateSlow rule read the
+				// other way round. Two reflects would both land, so picking a
+				// winner is a real choice rather than a de-duplication — and
+				// taking the bigger number with the loser's damage type would
+				// invent a passive neither author wrote, which is the exact
+				// failure the slow's comment warns about.
+				damage := e.RetaliateDamage.DamageAt(es.Level)
+				if damage > d.RetaliateDamage.Damage {
+					d.RetaliateDamage = RetaliateDamage{
+						Source: es.Def.ID,
+						Damage: damage,
+						Tags:   e.RetaliateDamage.Tags,
 					}
 				}
 			case EffectTypeResistPassive:

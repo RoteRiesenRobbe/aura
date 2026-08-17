@@ -941,3 +941,81 @@ func TestBuffs_ApplyShieldReportsNewOrRestoredPool(t *testing.T) {
 	assert.InDelta(t, 20.0, b.AbsorbShield(20), 1e-6)
 	assert.True(t, b.ApplyShield(50, 20, 3), "broken shields are gone, not empty")
 }
+
+// --- reflect payload (Retribution): the percentage reflect's timed self-buff.
+//
+// ⚑ It reads STRONGEST-WINS-WHOLESALE across every source, where lifesteal sums
+// across skills. That divergence is deliberate and it is forced by the tags: a
+// reflect carries an authored damage type, so two live bursts cannot be added
+// into one number without silently picking one skill's damage type for the
+// other skill's share. One winner brings its own fraction, tags and source. ---
+
+func TestBuffs_ReflectDefaultIsZero(t *testing.T) {
+	var b Buffs
+	fraction, tags := b.ReflectBurst()
+	assert.Zero(t, fraction, "no burst up = nothing bounces back")
+	assert.Nil(t, tags)
+}
+
+func TestBuffs_ReflectCarriesItsAuthoredTags(t *testing.T) {
+	var b Buffs
+	b.ApplyReflect(8, 0.2, []string{"fire"}, 2)
+
+	fraction, tags := b.ReflectBurst()
+	assert.InDelta(t, 0.2, fraction, 1e-6)
+	assert.Equal(t, []string{"fire"}, tags, "PO ruling 2: the SKILL's damage type, not the incoming hit's")
+}
+
+// Two different skills up at once: the stronger one answers, whole. Summing
+// them would have to invent a damage type for the combined share.
+func TestBuffs_ReflectStrongestWinsWholesaleAcrossSkills(t *testing.T) {
+	var b Buffs
+	b.ApplyReflect(8, 0.2, []string{"fire"}, 2)
+	b.ApplyReflect(9, 0.5, []string{"frost"}, 2)
+
+	fraction, tags := b.ReflectBurst()
+	assert.InDelta(t, 0.5, fraction, 1e-6, "the bigger share wins")
+	assert.Equal(t, []string{"frost"}, tags, "…and brings ITS OWN damage type")
+}
+
+// The same skill never stacks with itself — re-firing after a level-up applies
+// a different fraction, which opens a second stream (the lifesteal rule).
+func TestBuffs_ReflectSameSkillStrongestWins(t *testing.T) {
+	var b Buffs
+	b.ApplyReflect(8, 0.2, []string{"fire"}, 2)
+	b.ApplyReflect(8, 0.4, []string{"fire"}, 2)
+	fraction, _ := b.ReflectBurst()
+	assert.InDelta(t, 0.4, fraction, 1e-6)
+
+	b.ApplyReflect(8, 0.1, []string{"fire"}, 3)
+	fraction, _ = b.ReflectBurst()
+	assert.InDelta(t, 0.4, fraction, 1e-6)
+	b.Tick()
+	b.Tick()
+	fraction, _ = b.ReflectBurst()
+	assert.InDelta(t, 0.1, fraction, 1e-6, "0.2/0.4 expired; the 3-tick 0.1 remains")
+}
+
+func TestBuffs_ReflectRefreshExtends(t *testing.T) {
+	var b Buffs
+	b.ApplyReflect(8, 0.2, []string{"fire"}, 2)
+	b.Tick()
+	b.ApplyReflect(8, 0.2, []string{"fire"}, 2) // same fraction: refreshes in place
+	b.Tick()
+	fraction, _ := b.ReflectBurst()
+	assert.InDelta(t, 0.2, fraction, 1e-6, "re-firing extends rather than stacking")
+}
+
+func TestBuffs_ReflectExpiry(t *testing.T) {
+	var b Buffs
+	b.ApplyReflect(8, 0.2, []string{"fire"}, 2)
+
+	b.Tick()
+	fraction, _ := b.ReflectBurst()
+	assert.InDelta(t, 0.2, fraction, 1e-6, "survives one tick boundary")
+
+	b.Tick()
+	fraction, tags := b.ReflectBurst()
+	assert.Zero(t, fraction, "expired without re-application")
+	assert.Nil(t, tags, "and takes its damage type with it")
+}

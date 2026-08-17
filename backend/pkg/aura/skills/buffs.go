@@ -78,6 +78,20 @@ type lifestealPayload struct {
 	fraction float32
 }
 
+// reflectPayload is the hit-side burst (PO 2026-08-17): while it is alive, this
+// share of every incoming hit goes back at whoever landed it, as damage of the
+// authored type. The lifestealPayload read from the other side, and it carries
+// one thing lifesteal does not: its tags, because the share it returns is
+// damage that something else has to resist, where a leech is healing that
+// nobody mitigates.
+//
+// ⚑ tags travel WITH the fraction, and that is what forces the read side to
+// pick a single winner instead of summing (see ReflectBurst).
+type reflectPayload struct {
+	fraction float32
+	tags     []string
+}
+
 type tickRatePayload struct {
 	// factor scales the caster's own aura tick interval: < 1 = haste (faster
 	// ticks), > 1 = tick-slow. Streams are keyed by factor, like slow. The
@@ -158,6 +172,7 @@ func (*calmPayload) isBuffPayload()      {}
 func (*stunPayload) isBuffPayload()      {}
 func (*charmPayload) isBuffPayload()     {}
 func (*lifestealPayload) isBuffPayload() {}
+func (*reflectPayload) isBuffPayload()   {}
 
 // DotBuff is one damage-over-time application: HP dealt per dot event, every
 // Interval game ticks, mitigated per event by the target's CURRENT
@@ -313,6 +328,60 @@ func (b *Buffs) LifestealFraction() float32 {
 		}
 	}
 	return total
+}
+
+// ApplyReflect grants (or refreshes) a damage-reflect buff from the given
+// source skill; the ApplyLifesteal stream rules exactly, keyed by fraction — an
+// identical share refreshes that stream, a different one opens its own (which
+// is what re-firing after a level-up produces).
+//
+// It reports nothing, like ApplyLifesteal and unlike ApplyResist: the did-work
+// bool exists so an AURA can charge only for real work, and a cooldown pays on
+// activation regardless (D9, whiff-still-pays).
+//
+// ⚑ A same-fraction refresh re-stamps the tags, the ApplyResist behaviour: the
+// live entry must not keep a damage type its skill no longer authors.
+func (b *Buffs) ApplyReflect(source SkillID, fraction float32, tags []string, ticks int) {
+	for _, e := range b.entries[source] {
+		if p, ok := e.payload.(*reflectPayload); ok && p.fraction == fraction {
+			if ticks > e.ticks {
+				e.ticks = ticks
+			}
+			p.tags = tags
+			return
+		}
+	}
+	b.apply(source, &reflectPayload{fraction: fraction, tags: tags}, ticks)
+}
+
+// ReflectBurst is the share of an incoming hit that bounces back right now, and
+// the damage type it bounces back as: the single strongest live application
+// across every source. Zero fraction and nil tags when nothing is up.
+//
+// ⚑ STRONGEST WINS WHOLESALE, and this is the one place the reflect burst
+// deliberately parts from its lifesteal twin, which sums across skills. It
+// cannot sum: each application carries its own authored damage type, so adding
+// two shares would produce one number with no honest tag list — silently
+// picking one skill's damage type to carry the other skill's damage. One
+// winner, bringing its own fraction and its own tags, is the same rule the
+// derived retaliate_damage fold uses and for the same reason.
+func (b *Buffs) ReflectBurst() (float32, []string) {
+	var strongest *reflectPayload
+	for _, list := range b.entries {
+		for _, e := range list {
+			p, ok := e.payload.(*reflectPayload)
+			if !ok {
+				continue
+			}
+			if strongest == nil || p.fraction > strongest.fraction {
+				strongest = p
+			}
+		}
+	}
+	if strongest == nil {
+		return 0, nil
+	}
+	return strongest.fraction, strongest.tags
 }
 
 // ApplyTickRate grants (or refreshes) a tick-rate buff from the given source
