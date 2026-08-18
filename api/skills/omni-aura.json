@@ -1,0 +1,117 @@
+{
+  "_comment": "LIMIT-TEST CONTENT (2026-08-18): the kitchen-sink AURA - one effect of every type the aura tick path dispatches (sys.applyAuraEffect: damage/dot/slow/heal/hot/shield/resist/speed) plus the rendering-only light_aura, with every damage rider authored at once (crit, execute, berserker, lifesteal, structures, variance, hitStyle). Cheat-only, godlike on purpose: SKILL OmniAura; NO unlock source, and none is ever planned - this skill exists to stress the multi-effect machinery and to teach authoring, not to be played. Deliberate choices: ONE shared beat (tickInterval 40 on all eight, the R3/F5 rule) so every effect prices against the same health in the same tick; damage first (the near-floor ordering rule: the LAST effect is the one an almost-dead caster skips); gateKey absent because it is mutually exclusive with damageTags on one effect - a gated hit declares no damage type, so one effect can never author both; resist wildcard '*' must be the ONLY resistTags entry (factor 0.5 here = halve everything, not invulnerability); speed_aura is structurally ally-only (no targetsSelf key exists) and its factor must be > 1. Small real costs on four effects exercise sequential per-tick charging and the 1 HP never-kill clamp. All values [PLACEHOLDER] and irrelevant - this is a test rig, not balance.",
+  "id": 73,
+  "name": "OmniAura",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "costFractionOfMax": 0.002,
+      "costFractionOfMaxPerLevel": 0.0005,
+      "radius": 2.5,
+      "radiusPerLevel": 0.1,
+      "damageHP": 10,
+      "damageHPPerLevel": 1.0,
+      "damageTags": ["fire"],
+      "variance": 0.15,
+      "hitStyle": "fire",
+      "critChance": 0.1,
+      "critChancePerLevel": 0.02,
+      "critFactor": 2.0,
+      "executeBelowFraction": 0.2,
+      "executeBonusFactor": 1.5,
+      "berserkerMaxBonusFactor": 0.5,
+      "lifestealFraction": 0.1,
+      "targetsStructures": true,
+      "structureDamageFraction": 0.5,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "nearest",
+      "maxTargets": 3,
+      "maxTargetsPerLevel": 1,
+      "tickInterval": 40
+    },
+    {
+      "type": "dot_aura",
+      "costFractionOfMax": 0.002,
+      "radius": 2.5,
+      "damageHP": 4,
+      "damageHPPerLevel": 0.5,
+      "damageTags": ["poison"],
+      "variance": 0.1,
+      "dotTicks": 3,
+      "dotTickInterval": 30,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "nearest",
+      "maxTargets": 2,
+      "tickInterval": 40
+    },
+    {
+      "type": "slow_aura",
+      "radius": 2.5,
+      "slowFraction": 0.3,
+      "slowFractionPerLevel": 0.02,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "tickInterval": 40
+    },
+    {
+      "type": "heal_aura",
+      "costFractionOfMax": 0.002,
+      "radius": 2.5,
+      "healHP": 5,
+      "healHPPerLevel": 0.5,
+      "variance": 0.1,
+      "selector": "lowest_health",
+      "maxTargets": 1,
+      "tickInterval": 40
+    },
+    {
+      "type": "hot_aura",
+      "radius": 2.5,
+      "healHP": 3,
+      "healHPPerLevel": 0.3,
+      "hotTicks": 3,
+      "hotTickInterval": 30,
+      "selector": "nearest",
+      "maxTargets": 2,
+      "tickInterval": 40
+    },
+    {
+      "type": "shield_aura",
+      "costFractionOfMax": 0.002,
+      "radius": 2.5,
+      "shieldHP": 10,
+      "shieldHPPerLevel": 1.0,
+      "targetsAllies": true,
+      "targetsSelf": true,
+      "targetsEnemies": false,
+      "tickInterval": 40
+    },
+    {
+      "type": "resist_aura",
+      "radius": 2.5,
+      "resistTags": ["*"],
+      "resistFactor": 0.5,
+      "targetsAllies": true,
+      "targetsSelf": true,
+      "targetsEnemies": false,
+      "tickInterval": 40
+    },
+    {
+      "type": "speed_aura",
+      "radius": 2.5,
+      "speedFactor": 1.3,
+      "speedFactorPerLevel": 0.05,
+      "targetsAllies": true,
+      "tickInterval": 40
+    },
+    {
+      "type": "light_aura",
+      "radius": 3.0,
+      "radiusPerLevel": 0.25
+    }
+  ]
+}

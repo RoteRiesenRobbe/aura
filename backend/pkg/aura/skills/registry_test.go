@@ -194,7 +194,12 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// + Onward, its cooldown half (same chunk, D8), id 72: the same haste as a
 	// one-shot shout, on speed_burst's newly ally-capable delivery. SKILL cheat
 	// only, 96 → 97.
-	assert.Len(t, r.All(), 97)
+	// + the three kitchen-sink limit-test skills (2026-08-18), SKILL cheat
+	// only, no unlock source EVER - test rigs, not content: OmniAura id 73
+	// (every aura-path type at once), OmniPassive id 74 (the full passive
+	// fold), OmniStrike id 75 (every precondition-free cooldown type),
+	// 97 → 100.
+	assert.Len(t, r.All(), 100)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

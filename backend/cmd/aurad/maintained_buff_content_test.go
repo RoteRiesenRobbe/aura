@@ -120,6 +120,7 @@ func TestSlowAuraResponsivenessIsWithinTheRuledBound(t *testing.T) {
 			}
 		}
 	}
-	require.Equal(t, 3, seen, "the authored slow auras are Slow, Suppression and Warbanner — "+
+	require.Equal(t, 4, seen, "the authored slow auras are Slow, Suppression, Warbanner and the "+
+		"limit-test OmniAura (interval 40, exactly on the bound) — "+
 		"a new one must be looked at through this bound, and a removed one is worth noticing")
 }

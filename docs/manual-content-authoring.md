@@ -355,6 +355,74 @@ load: an unknown or renamed key hard-fails the boot naming the field and its
 replacement, rather than silently reading as zero. Authoring against the wrong
 type is therefore a boot error, not a mystery in play.
 
+### Which category consumes which types (limit-test pass, 2026-08-18)
+
+⚑ **Category-vs-type pairing is validated NOWHERE.** The parser accepts any
+effect type on any category; whether it *does* anything is decided by three
+separate dispatch sites, and an effect authored on the wrong category is a
+**silent no-op** (the cooldown switch has no default arm, the passive fold
+ignores unknown types, the aura switch likewise). The authoritative lists are
+the dispatch sites themselves:
+
+- **`active_aura`** (`sys.applyAuraEffect`): `damage_aura`, `heal_aura`,
+  `dot_aura`, `hot_aura`, `shield_aura`, `slow_aura`, `resist_aura`,
+  `speed_aura` - plus `light_aura`, which never ticks (rendering-only, streams
+  as the wire `light_radius`).
+- **`cooldown`** (`sys.fireCooldown`): `instant_damage`, `instant_dot`,
+  `instant_hot`, `instant_shield`, `instant_resist`, `self_heal`, `spawn`,
+  `taunt`, `detaunt`, `calm`, `stun`, `charm`, `dash`, `tick_rate`,
+  `speed_burst`, `lifesteal_burst`, `retaliate_burst`, `recall`, `revive`.
+- **`passive`** (`SkillComponent.recomputeDerived`): `stat_multiplier` (closed
+  six-stat vocabulary: `movementSpeed`, `maxHealth`, `damageReduction`,
+  `critChance`, `damageDealt`, `costReduction`), `resist_passive`,
+  `retaliate_slow`, `retaliate_damage` - plus `light_aura` (the Torch pattern;
+  light is read per equipped skill, so passives glow too). Passives have no
+  cadence and no fire: a `costFractionOfMax` on a passive effect parses but can
+  never charge (pinned by `TestNoCostOnAnEffectThatCanNeverBeCharged`).
+
+**Living reference content:** the three cheat-only kitchen-sink skills author
+every one of these at once and carry the landmine notes in their `_comment`s -
+`api/skills/omni-aura.json` (all 9 aura types, every damage rider),
+`api/skills/omni-passive.json` (the full passive fold),
+`api/skills/omni-strike.json` (16 cooldown types in one cast). `SKILL OmniAura`
+/ `OmniPassive` / `OmniStrike`; no unlock source, ever.
+
+Multi-effect gotchas the limit-test pass hit, beyond the ordering rule below:
+
+- ⚑ **`recall` and `revive` gate the WHOLE cast.** `activationPrecondition`
+  rejects the entire activation when any effect's requirement is unmet (recall:
+  bound campfire anchor; revive: corpse in range) - nothing fires, including
+  the other 15 effects. A multi-effect skill containing either only ever works
+  when the precondition holds; that is why OmniStrike excludes both.
+- ⚑ **`targetFactions` scopes the ENTIRE skill, not just calm/charm.** The two
+  faction-scoped types force the skill to author the allowlist, but the
+  resolved mask is stamped onto EVERY effect and checked in the shared
+  eligibility predicate. A skill with ally-targeted effects must therefore
+  include `"aligned"` (the player faction, resolvable by name) or those effects
+  silently reach nobody.
+- ⚑ **A new player `tick_rate` is guardrail-frozen in BOTH directions.** A
+  second haste (factor < 1) is modeled STACKED with Haste by
+  `TestAuraCostDrainIsSurvivableAtLevelOne` (factors multiply, worst duty
+  wins), re-pricing the drain bound for every shipped aura. A tick-slow
+  (factor > 1) trips `TestMaintainedBuffsNeverExpireOnATargetInRange`, the
+  deliberate tombstone for a real engine gap: maintained buffs (resist / slow /
+  shield auras) live `interval + 1` derived at factor 1, so a slowed caster
+  re-applies later than the buff lives and every such buff in the game
+  flickers. Authoring either direction is a design conversation, not content.
+- ⚑ **New content can shift guardrails that never mention it.** Both cases
+  above fail on SHIPPED skills (Heal first), not on the new one - the guards
+  derive their worst case from ALL authored content. A slow-carrying aura also
+  joins the pinned census in `TestSlowAuraResponsivenessIsWithinTheRuledBound`
+  (interval ≤ 40 ruled bound).
+- `gateKey` and `damageTags` are mutually exclusive on one effect (a gated hit
+  declares no damage type), so no single effect can author the full damage
+  payload - the omni skills author `damageTags` and leave gating to the
+  harvest/smash content.
+- Effects resolve **sequentially in authored order** at fire time too, not just
+  for cost: OmniStrike authors `detaunt` before `taunt` so the net state is
+  taunted, and `dash` LAST so every query circle centers on the cast position
+  (the spawned totem also lands there, not at the dash destination).
+
 ⚑ **The two healing types do NOT target alike, and it is not authorable.**
 `heal_aura` only ever affects a **wounded** ally (`HealthRatio() < 1`, hardcoded
 in `applyHealAura`); `hot_aura`, `instant_hot` and every other type affect

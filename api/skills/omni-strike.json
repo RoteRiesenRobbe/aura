@@ -1,0 +1,176 @@
+{
+  "_comment": "LIMIT-TEST CONTENT (2026-08-18): the kitchen-sink COOLDOWN - one effect of every type the cooldown fire path dispatches (sys.fireCooldown), EXCEPT recall, revive and tick_rate. Recall/revive carry activation preconditions (bound campfire anchor / corpse in range) that reject the WHOLE cast when unmet, which would make this skill refuse to fire in almost every test situation (PO ruling 2026-08-18; both stay covered by the shipped Recall/Revive). tick_rate is guardrail-frozen in BOTH directions for new player content (see landmine 5; covered by the shipped Haste). Cheat-only, godlike on purpose: SKILL OmniStrike; NO unlock source, ever - a test rig. LANDMINES this skill deliberately walks: (1) targetFactions is FORCED by calm+charm (factionScopedEffects) but the resolved mask is stamped on EVERY effect of the skill and gated in the one eligibility predicate all targeted effects share - so the list here names ALL ten mob factions PLUS 'aligned' (the player faction), or ally-targeted effects like instant_shield would silently reach nobody. (2) Effects resolve SEQUENTIALLY in authored order: detaunt is authored before taunt so the observable net state is taunted; dash is LAST so every query circle centers on where the cast happened, and the spawned Totem lands there too. (3) castTicks 30 makes this the second JSON skill with a cast (Revive is the other): cost + cooldown are consumed at cast COMPLETION, movement cancels for free, and castInterruptedByDamage stays false so combat testing does not interrupt it. (4) The up-front price is the SUM of all effects' costs (D8), rejected as one when unaffordable (D9). (5) tick_rate is ABSENT because both directions shift a cmd/aurad guardrail: a second haste (factor < 1) is modeled STACKED with Haste by TestAuraCostDrainIsSurvivableAtLevelOne (worstSustainableHaste multiplies factors, takes the worst duty), re-pricing the drain bound for every shipped aura - Heal fails first; a tick-slow (factor > 1) trips TestMaintainedBuffsNeverExpireOnATargetInRange, the deliberate tombstone for a real engine gap - maintained buffs (resist/slow/shield auras) live interval+1 at factor 1 while a slowed caster re-applies later than that, so every such buff in the game would flicker. Any new player tick_rate needs that design conversation first. All values [PLACEHOLDER] and irrelevant.",
+  "id": 75,
+  "name": "OmniStrike",
+  "category": "cooldown",
+  "maxLevel": 5,
+  "cooldownTicks": 300,
+  "cooldownTicksPerLevel": -10,
+  "castTicks": 30,
+  "castInterruptedByDamage": false,
+  "targetFactions": [
+    "aligned",
+    "bandit",
+    "elemental",
+    "human_army",
+    "kobold",
+    "orc",
+    "spider",
+    "townsfolk",
+    "troll",
+    "wildlife_predator",
+    "wildlife_prey"
+  ],
+  "effects": [
+    {
+      "type": "instant_damage",
+      "costFractionOfMax": 0.01,
+      "costFractionOfMaxPerLevel": 0.001,
+      "radius": 2.5,
+      "radiusPerLevel": 0.1,
+      "damageHP": 15,
+      "damageHPPerLevel": 2,
+      "damageTags": ["fire"],
+      "variance": 0.15,
+      "hitStyle": "slash",
+      "critChance": 0.15,
+      "critFactor": 2.0,
+      "executeBelowFraction": 0.25,
+      "executeBonusFactor": 1.5,
+      "berserkerMaxBonusFactor": 0.5,
+      "lifestealFraction": 0.2,
+      "targetsStructures": true,
+      "structureDamageFraction": 0.5,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "nearest",
+      "maxTargets": 3,
+      "maxTargetsPerLevel": 1
+    },
+    {
+      "type": "instant_dot",
+      "costFractionOfMax": 0.005,
+      "radius": 2.5,
+      "damageHP": 4,
+      "damageHPPerLevel": 0.5,
+      "damageTags": ["poison"],
+      "dotTicks": 4,
+      "dotTickInterval": 30,
+      "targetsEnemies": true,
+      "targetsAllies": false
+    },
+    {
+      "type": "stun",
+      "radius": 2.5,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "maxTargetsPerLevel": 1,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "stunTicks": 60,
+      "stunTicksPerLevel": 6
+    },
+    {
+      "type": "calm",
+      "radius": 4.0,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "calmTicks": 300,
+      "calmTicksPerLevel": 30
+    },
+    {
+      "type": "charm",
+      "radius": 4.0,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "charmTicks": 600,
+      "charmTicksPerLevel": 60
+    },
+    {
+      "type": "detaunt",
+      "radius": 3.0,
+      "targetsEnemies": true,
+      "targetsAllies": false
+    },
+    {
+      "type": "taunt",
+      "radius": 3.0,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "threatMargin": 50
+    },
+    {
+      "type": "self_heal",
+      "healFractionOfMax": 0.08,
+      "healFractionOfMaxPerLevel": 0.01,
+      "variance": 0.1
+    },
+    {
+      "type": "instant_hot",
+      "radius": 2.5,
+      "healHP": 3,
+      "healHPPerLevel": 0.3,
+      "hotTicks": 4,
+      "hotTickInterval": 30,
+      "targetsAllies": true,
+      "targetsSelf": true
+    },
+    {
+      "type": "instant_shield",
+      "costFractionOfMax": 0.005,
+      "radius": 2.5,
+      "shieldHP": 15,
+      "shieldHPPerLevel": 2,
+      "shieldDurationTicks": 300,
+      "targetsAllies": true,
+      "targetsSelf": true
+    },
+    {
+      "type": "instant_resist",
+      "radius": 2.5,
+      "resistTags": ["*"],
+      "resistFactor": 0,
+      "resistDurationTicks": 90,
+      "targetsAllies": true,
+      "targetsSelf": true
+    },
+    {
+      "type": "speed_burst",
+      "radius": 2.5,
+      "speedFactor": 1.5,
+      "speedFactorPerLevel": 0.05,
+      "speedDurationTicks": 150,
+      "speedDurationTicksPerLevel": 15,
+      "targetsAllies": true,
+      "targetsSelf": true
+    },
+    {
+      "type": "lifesteal_burst",
+      "lifestealFraction": 0.3,
+      "lifestealFractionPerLevel": 0.05,
+      "lifestealDurationTicks": 150
+    },
+    {
+      "type": "retaliate_burst",
+      "reflectFraction": 0.25,
+      "reflectFractionPerLevel": 0.05,
+      "reflectDurationTicks": 300,
+      "damageTags": ["fire"]
+    },
+    {
+      "type": "spawn",
+      "costFractionOfMax": 0.01,
+      "spawnMob": "Totem",
+      "ttlTicks": 300,
+      "ttlTicksPerLevel": 30,
+      "powerPerOwnerLevel": 0.05
+    },
+    {
+      "type": "dash",
+      "dashDistance": 2.0,
+      "dashDistancePerLevel": 0.25
+    }
+  ]
+}

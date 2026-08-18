@@ -63,9 +63,9 @@ for f in sorted(glob.glob('api/skills/*.json')):
 EOF
 ```
 
-Scope: the 65 **player** skills (`api/skills/*.json`). The 32 mob-only skills
+Scope: the 68 **player** skills (`api/skills/*.json`). The 32 mob-only skills
 in `api/skills/mobs/` are not listed (they're authoring details of their mobs).
-65 + 32 = the **97** registry count in the boot log (was 50 + 36 = 86 at the
+68 + 32 = the **100** registry count in the boot log (was 50 + 36 = 86 at the
 2026-07-29 generation).
 
 > ⭐ **ROSTER REPAIRED 2026-08-17 (PO ruling), by re-deriving every count from
@@ -98,7 +98,7 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 > The legacy proving-grounds roster (and its five mob skills) was deleted at
 > zone-editor C3, 2026-08-16; the *(legacy)* source annotations are gone with it.
 
-## Active auras (26)
+## Active auras (27)
 
 | ID | Name | MaxLv | Values | Source |
 |---|---|---|---|---|
@@ -128,8 +128,9 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 55 | Warbanner | 5 | dmg 15 +3.4/L ×2 + heal 13 +6.5/L + shield 6 +2.5/L @30t + slow 10% +3%/L, r1.2 | Recipe: Vanguard 5 + Spearhead 5 + CallForAid 3 |
 | 58 | Wildfire | 5 | fire dot 10.5 +2.1/L ×2 tgt (4×60t) @20t, r1.4 + self-only fire resist ×0.6 −0.05/L + light r4 +1/L | Recipe: Ignite 3 + Immolate 5 |
 | 59 | Suppression | 5 | dmg 6.5 +1.4/L r2.6 +.1/L + slow 7% +7%/L | Recipe: Slow 5 + LongRangeStrike 5 |
+| 73 | OmniAura | 5 | ⭐ **LIMIT-TEST RIG** (2026-08-18): every aura-path type at once, one beat @40t r2.5 - dmg 10 +1/L fire with ALL riders (crit/execute/berserker/lifesteal/structures/variance/hitStyle) ×3 +1/L tgt + poison dot 4 +.5/L + slow 30% +2%/L + heal 5 +.5/L + HoT 3 +.3/L + shield 10 +1/L + resist `*` ×0.5 allies+self + ally speed ×1.3 +.05/L + light r3 +.25/L | **Cheat only (`SKILL OmniAura`) - a test rig, NEVER to gain a source** |
 
-## Passives (10)
+## Passives (11)
 
 | ID | Name | MaxLv | Values | Source |
 |---|---|---|---|---|
@@ -143,8 +144,9 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 136 | Strong | 5 | all outgoing damage +4% +2%/L (direct + dots) | NPC CityGuard @L3 |
 | 139 | FrostShield | 5 | retaliate slow 10% +5%/L for 150t on anything that damages you | Drop: Troll .2 |
 | 67 | FireShield | 5 | ⭐ retaliate **damage 3 +1/L fire** at anything that damages you (attributed: it credits XP and kill credit) | **Cheat only (`SKILL FireShield`)** — no unlock source yet (plan-effect-types.md C2) |
+| 74 | OmniPassive | 5 | ⭐ **LIMIT-TEST RIG** (2026-08-18): the full passive fold at once - all six stats (move +15%, maxHP +20%, DR +15%, crit +10%, dmg +25%, cost −25%, each +2%/L) + fire/poison resist ×0.7 −.05/L + retaliate slow 30% +5%/L (150t) + retaliate dmg 5 +1/L frost + light r2 +.25/L | **Cheat only (`SKILL OmniPassive`) - a test rig, NEVER to gain a source** |
 
-## Cooldowns (29)
+## Cooldowns (30)
 
 | ID | Name | MaxLv | Values (CD in ticks) | Source |
 |---|---|---|---|---|
@@ -177,6 +179,7 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 68 | Retribution | 5 | ⭐ for 300t (10 s), reflects **20% +5%/L of every hit taken** back as **fire** (attributed: it credits XP and kill credit); CD 900 −60/L, cost 0.02 +0.0025/L | **Cheat only (`SKILL Retribution`)** — no unlock source yet (plan-effect-types.md follow-up) |
 | 69 | Sanctuary | 3 | ⭐ grants resist **`*` ×0** = IMMUNITY to all damage for 150t (5 s) to the nearest 1 +1/L allies (not self), r1.5; CD 900, cost 0.04 +0.005/L | **Cheat only (`SKILL Sanctuary`)**: no unlock source yet (plan-effect-types.md C3) |
 | 72 | Onward | 5 | ⭐ ally move speed **×1.4 +0.05/L** for 150t +15/L, all allies in r3 (uncapped, `targetsSelf` absent — the caster stays behind); CD 900 −60/L, cost 0.03 +0.004/L | **Cheat only (`SKILL Onward`)** — no unlock source yet (plan-effect-types.md C4) |
+| 75 | OmniStrike | 5 | ⭐ **LIMIT-TEST RIG** (2026-08-18): **16 cooldown types in ONE cast** (all but recall / revive / tick_rate - preconditions gate the whole cast, tick_rate is guardrail-frozen both ways; see the `_comment`); cast 30t not damage-interruptible, CD 300 −10/L, `targetFactions` = all ten factions + `aligned`; dash authored LAST so queries center on the cast position | **Cheat only (`SKILL OmniStrike`) - a test rig, NEVER to gain a source** |
 
 ## Reachability summary (live world zone)
 
@@ -194,7 +197,12 @@ ascension catalog).
   regeneration script that reads only `unlocks[]`, teachings, recipes and the
   milestone table will report all six as unreachable and be wrong, exactly as
   the quest-reward note below warns for its own three.
-- **Unreachable without the cheat: EIGHT, and all eight are deliberate.**
+- **Unreachable without the cheat: ELEVEN, and all eleven are deliberate —
+  in TWO distinct conventions.** Eight are worked examples awaiting the content
+  pass; ⭐ the three **Omni** skills (ids 73–75, 2026-08-18) are the SECOND
+  convention: kitchen-sink **limit-test rigs** that exercise every effect type
+  their category dispatches, and unlike the eight they must **never** gain a
+  source - they are test tooling, not unplaced content.
   ⭐ **Bloodthirst** (id 8) is the oldest of them and was never counted here:
   its ROW was missing from the table, so the sweep could not see it (R3,
   2026-08-01, "no unlock source yet ... the obvious home is the wolf line
