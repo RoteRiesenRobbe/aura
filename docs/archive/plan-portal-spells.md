@@ -1,7 +1,10 @@
 # Plan: Portal spells (Open Portal + Pull Through)
 
-**Status: C1 built + verified 2026-08-18 (`564f62c8`, PO check pending) -
-C2 Pull Through open.** Survey at `2689175e` (four parallel sweeps: cast
+**Status: COMPLETE + ARCHIVED 2026-08-18.** C1 shipped `564f62c8`, C2 shipped
+the same day; **PO in-game check passed 2026-08-18 on the pair, played
+together** ("tested works"). Only §10 item 13 outlives the plan, and it is a
+pricing call rather than a chunk: it rides forward in `CLAUDE.md` Open items.
+Survey at `2689175e` (four parallel sweeps: cast
 machinery, teleport seams, interaction system, spawn path); ⚑ line refs below
 are pinned to that commit, re-verified for C1 at execution 2026-08-18 (all
 seams held); C2 should spot-check its own (§6 steps 5-8).
@@ -271,7 +274,97 @@ PO checklist · `harnessdb -cleanup` after Playwright runs.
 
 ## 11. Ledger
 
-### C1 - Open Portal ✅ 2026-08-18, `564f62c8` - ⚠ PENDING PO in-game check (§10 items 1-9)
+### C2 - Pull Through ✅ 2026-08-18 - PO in-game check PASSED 2026-08-18
+
+**Shipped.** New effect type **`spawn_at_anchor`** (33rd entry in `effectTypeMap`) - the same
+`SpawnParams` payload as `spawn`, placed on a ring around the caster's bound campfire ·
+**`caster` destination mode** on the `travel_to` grant (owner's LIVE position, resolved at
+step-through per D5) · content: **PortalSummon mob id 70** (PortalHome's body verbatim,
+`caster` row) + **PullThrough skill id 148** (cast 75t, TTL 900, CD 1200, cost 0.10,
+maxLevel 1 - Open Portal's numbers, so the pair reads as one thing) · D11 tooltip case.
+Skill registry 102, mobs 60, cheat-only THIRTEEN. Schema **NONE** (D9 held).
+
+**Decisions landed in-chunk.**
+- ⭐ **The anchor gate is the TYPE's here, not the content's** - the opposite call from C1's,
+  and the two together are the rule: `spawn`'s `requiresAnchor` is an opt-in because
+  anchor-free content shares that type (FireTotem) and the anchor is only its DESTINATION;
+  for `spawn_at_anchor` the anchor is the PLACEMENT, so no anchor-free semantics exist. The
+  key is therefore OFF the type's allowlist (`powerPerOwnerLevel` too - nothing placed at a
+  campfire fights), so authoring either - even `requiresAnchor: false` - hard-fails at boot
+  rather than suggesting the gate were optional.
+- **One payload, two placements**: `def.Spawn` is shared, which is what makes the type nearly
+  free - `items/mobs validateSpawnEffects` resolves `spawnMob` at boot off `Spawn != nil`, the
+  catalog emits it under the same `spawn` key the client already reads, and `loaders_test`'s
+  reshaped loadout assert passes legitimately (PortalSummon is the SECOND skill-less summon:
+  0 == 0, and FireTotem still feeds the non-vacuity arm). `spawnSummon` split into
+  `buildSummon` + placement; the two effect types differ in exactly the placement call.
+- **D8 placement**: `sys.anchorSpawnOffset` = **2.5 u** [PLACEHOLDER], probed like
+  `summonPosition` with ONE extra rejection - a candidate inside any fire's bind circle is
+  skipped, asked via a new `ConnState.CampfireAt` rather than compared against a constant
+  (bind radii are per-fire runtime data; a compile-time "the offset clears every fire" pin
+  would be a second copy of that derivation). ⚑ The fallback is never the anchor itself:
+  covered-but-blocked beats unblocked-but-covered, because a portal clipping a rock is
+  cosmetic while a portal in the bind circle eats every press. ⚑ **What 2.5 does NOT buy**:
+  a player anywhere inside the bind circle is still within the portal's 2.0 talk range from
+  the near edge; the client's campfire offer owns that annulus by design. What it does buy is
+  that standing ON the fire there is no portal in range at all.
+- **Caster-mode refusal set** = owner nil · owner not in the world · owner flying. ⭐ "Not in
+  the world" is **membership in the InteractionSystem's player list**, not a flag: logging out
+  and dying both run ONE fan-out (`handleDeath` calls `game.RemoveEntity` too) that drops the
+  player from every system - the mirror of C1's one-AnchorOf-miss covering two refusals.
+  Flying is separate and not a liveness question (D3): a flyer is in the world, but flight
+  removes the body from the space. Refusal SHAPE is C1's verbatim - present-time locked row
+  reusing the single `travelClosedReason` ("its far end is gone" reads correctly for a
+  vanished caster; a mode-specific reason would thread mode into `travelRow` for no
+  player-facing gain), apply-time silent refusal for the race.
+- ⚑ The anchor is **not consulted at all** in caster mode: Pull Through's portal is PLACED at
+  the fire, but where it LEADS is the caster.
+- Tooltip: one shared `spawn`/`spawn_at_anchor` case differing in four words
+  (" at your campfire"); the loadout-lines splice covers both (an anchored summon with skills
+  would otherwise lose them silently), while the Call-for-Aid **dedupe stays `spawn`-only** -
+  its key is the payload, which both types share, so folding the twin in would collapse two
+  different lines into one. Verified NOT needed: `TICKING_TYPES` (no cadence) and
+  `COST_TRIGGER_TEXT` / `shared-constants.json` (pays on cast, not per application).
+
+**Verified.** `go build ./...` · `go test -count=1 ./...` all green (simharness guardrails
+UNSHIFTED; `-race` green on `sys`/`skills`/`items/mobs`/`core`) · vitest **372/372** (+3, and
+the tooltip case proven red-first by disabling it: the unknown-type path rendered
+`(spawn_at_anchor)`) · typecheck · `make -C backend build` + `npm run build` · boot **0 WARN /
+0 ERROR, census 102 skills / 60 mobs**. Census pins moved as designed and all four went red
+first: skills registry 101 → 102 · role census 45 → 46 · xpFactor-0 census 32 → 33 ·
+conversant census + PortalSummon. ⚑ The three mob content censuses read the EMBEDDED mirror,
+so they stayed green until `cp-defs` - C1's escaped-defect trap, hit and cleared in-chunk.
+
+**Verified at the game surface.** New **`c2-pull-through.mjs`**, final run **22 PASS / 0 FAIL /
+1 INCONCLUSIVE**: remote placement (portal on the 2.5 u ring at the caster's bound fire,
+Δ0.00, nothing within 4 u of the caster standing 7.9 u away) · cast bar named, pool untouched
+mid-cast, 9.0-9.2 % charged on completion · **D8 both presses** (E inside the bind circle
+opens the flight map and no conversation; E outside the bind edge opens "Portal Summon") ·
+decline drift 0.00 u · **the walked-away caster** (A casts, moves 17 u, B steps through and
+lands 0.04 u from A's CURRENT position - §10 item 11) · **owner DEAD and owner DISCONNECTED
+both render "Step through. - locked: its far end is gone"** (§10 item 12; owner-FLYING is
+Go-pinned only, `TestPortalTravel_CasterModeRefusesAFlyingOwner` +
+`TestInteractionSystem_PullThroughLocksForAFlyingCaster`) · TTL 27.0-31.9 s, an open panel
+closes with the portal and the next E opens nothing · tooltip verbatim. The one INCONCLUSIVE
+is the unbound-press leg, C1 leg J's spawn-dwell race (it PASSED in the previous run; the
+property is Go-pinned at press and completion). Coverage re-runs all at baseline:
+`c1-open-portal` **18/18** · `chunk3b-interact` **14/14** · `c2a-ascension-site` **31/31** ·
+`chunk3b-ii-conversation` **28/34, exactly the recorded six** (Leave-row click, walk-out
+close, the Wanderer trio, the stale TownCrier leg) · `round4-tooltip` green. `harnessdb
+-cleanup` (34 accounts) with aurad stopped.
+
+⚑ **Zero product defects, and every red was the harness measuring itself** - worth carrying
+because three of the four recur in any portal-shaped script: (1) **`IsGod` short-circuits the
+pricing site**, so "the pool dropped" scores a god-mode cast as an interrupt - completion is
+read off the OBSERVER seeing the portal, never the caster's pool (and never the caster's
+surroundings: at 7.9 u the portal is outside their view); (2) **an E press gets swallowed** by
+the rAF-throttled edge trigger, so one hold is not evidence - press up to three times;
+(3) **a leg block can outlive the 30 s TTL** (measured 90.2 s and 35.3 s), which presents as a
+broken refusal - each block now gets its own cast and reports portal age plus how many
+portals stand; (4) an equip-slot label read once, 900 ms after the click, caught "— Empty —"
+on a run whose server log recorded the equip in the same second.
+
+### C1 - Open Portal ✅ 2026-08-18, `564f62c8` - PO in-game check PASSED 2026-08-18 (with C2)
 
 **Shipped.** `travel_to` grant kind (required `mode`, only `home_campfire` legal until C2;
 unknown or missing mode hard-fails at boot) · `requiresAnchor` opt-in on the `spawn`

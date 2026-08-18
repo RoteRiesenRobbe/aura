@@ -199,7 +199,13 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// (every aura-path type at once), OmniPassive id 74 (the full passive
 	// fold), OmniStrike id 75 (every precondition-free cooldown type),
 	// 97 → 100.
-	assert.Len(t, r.All(), 101)
+	// + the portal pair, SKILL cheat only, no unlock source yet (D10, the
+	// FireVulnerability convention): OpenPortal id 147 (plan-portal-spells.md
+	// C1, 2026-08-18) spawns a doorway beside its caster leading to the
+	// caster's bound fire, 100 → 101; PullThrough id 148 (C2) places the same
+	// doorway AT that fire, leading back to wherever the caster now stands,
+	// 101 → 102. Both maxLevel 1 - a binary utility has nothing to scale.
+	assert.Len(t, r.All(), 102)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

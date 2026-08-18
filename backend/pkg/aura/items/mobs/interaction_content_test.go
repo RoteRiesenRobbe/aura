@@ -65,6 +65,12 @@ var expectedConversants = []string{
 	// conversant whose rows can be locked by something outside the content: its
 	// travel row needs the OWNER's campfire anchor to resolve.
 	"PortalHome",
+	// The second one, and the pair's other direction (plan-portal-spells.md C2):
+	// PullThrough places this at the caster's bound fire and its row delivers to
+	// the caster's LIVE position. Its travel row is locked by something outside
+	// the content too, but a different something - not an anchor lookup, but
+	// whether the owner is still a player in the world at all.
+	"PortalSummon",
 }
 
 func conversants(t *testing.T) map[string]*MobDefinition {

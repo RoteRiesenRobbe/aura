@@ -1338,6 +1338,62 @@ func TestMap_SpawnEffectRequiresAnchorIsOptIn(t *testing.T) {
 		"absent = ungated, so every shipped summon keeps firing unbound")
 }
 
+// spawn_at_anchor is spawn's remote twin (plan-portal-spells.md D4, C2): the
+// same SpawnParams payload, placed at the caster's bound campfire instead of
+// beside the caster. Sharing the payload is what buys the boot-time spawnMob
+// resolution (items/mobs validateSpawnEffects keys on Spawn != nil) and the
+// client's existing tooltip payload for free.
+func TestMap_SpawnAtAnchorEffect(t *testing.T) {
+	def := mustParse(t, []byte(`{
+      "id": 25, "name": "PullThrough", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 1200,
+      "effects": [{"type": "spawn_at_anchor", "spawnMob": "PortalSummon", "ttlTicks": 900, "ttlTicksPerLevel": 30}]
+    }`))
+	require.Len(t, def.Effects, 1)
+	assert.Equal(t, EffectTypeSpawnAtAnchor, def.Effects[0].Type)
+	require.NotNil(t, def.Effects[0].Spawn, "the payload rides SpawnParams, so no new struct and no new nil case")
+	assert.Equal(t, "PortalSummon", def.Effects[0].Spawn.MobName)
+	assert.Equal(t, 900, def.Effects[0].Spawn.TTLTicks)
+	assert.Equal(t, 30, def.Effects[0].Spawn.TTLTicksPerLevel)
+	assert.False(t, def.Effects[0].Spawn.RequiresAnchor,
+		"the flag is never authored here - the gate is the TYPE's, and the precondition ignores this field")
+}
+
+// ⭐ THE ANCHOR REQUIREMENT IS INHERENT TO THIS TYPE, so `requiresAnchor` is NOT
+// on its key row and authoring it hard-fails at boot (plan-portal-spells.md C2).
+// The opt-in exists on plain `spawn` only because anchor-free content shares that
+// type (FireTotem); no anchor-free spawn_at_anchor can exist - without an anchor
+// there is no place to put the summon at all - so an authored flag could only
+// ever suggest the gate were optional. Same reasoning for powerPerOwnerLevel:
+// nothing placed at a campfire fights, and an ignored key is the silent no-op
+// effectKeys exists to prevent.
+func TestMap_SpawnAtAnchorRefusesTheOptInAndPowerKeys(t *testing.T) {
+	for _, effect := range []string{
+		`{"type": "spawn_at_anchor", "spawnMob": "PortalSummon", "ttlTicks": 900, "requiresAnchor": true}`,
+		`{"type": "spawn_at_anchor", "spawnMob": "PortalSummon", "ttlTicks": 900, "requiresAnchor": false}`,
+		`{"type": "spawn_at_anchor", "spawnMob": "PortalSummon", "ttlTicks": 900, "powerPerOwnerLevel": 0.1}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":25,"name":"X","category":"cooldown","maxLevel":1,"effects":[` + effect + `]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition(nil)
+		assert.Error(t, err, "key must be refused on spawn_at_anchor: %s", effect)
+	}
+}
+
+// The payload validation is spawn's, shared: a nameless or instantly-expiring
+// portal is as unauthorable remotely as it is beside the caster.
+func TestMap_SpawnAtAnchorEffectInvalid(t *testing.T) {
+	for _, effect := range []string{
+		`{"type": "spawn_at_anchor", "ttlTicks": 900}`,
+		`{"type": "spawn_at_anchor", "spawnMob": "PortalSummon"}`,
+		`{"type": "spawn_at_anchor", "spawnMob": "PortalSummon", "ttlTicks": 0}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":25,"name":"X","category":"cooldown","maxLevel":1,"effects":[` + effect + `]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition(nil)
+		assert.Error(t, err, "invalid spawn_at_anchor must be rejected: %s", effect)
+	}
+}
+
 // The allowlist's other half: the key is spawn's alone, so authoring it on a
 // type with no anchor arm is a boot failure rather than a silent no-op.
 func TestMap_RequiresAnchorOnAnotherEffectFails(t *testing.T) {

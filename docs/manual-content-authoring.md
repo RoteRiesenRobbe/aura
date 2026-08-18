@@ -335,14 +335,14 @@ error. If the type also puts a buff on an entity, it needs a pip decision in
 `applied_effects.go` (compile-enforced) and a matching entry in `EffectPips.ts`.
 
 Existing effect `type`s to compose (the authoritative list is `effectTypeMap` in
-`backend/pkg/aura/skills/definition.go`, 32 as of 2026-08-17):
+`backend/pkg/aura/skills/definition.go`, 33 as of 2026-08-18):
 `damage_aura`, `instant_damage`, `heal_aura`, `self_heal`, `hot_aura`,
 `instant_hot`, `dot_aura`, `instant_dot`, `shield_aura`, `instant_shield`,
 `slow_aura`, `resist_aura`, `resist_passive`, `instant_resist`,
-`stat_multiplier`, `light_aura`, `taunt`, `detaunt`, `spawn`, `recall`,
-`revive`, `dash`, `tick_rate`, `calm`, `charm`, `stun`, `speed_aura`,
-`speed_burst`, `lifesteal_burst`, `retaliate_slow`, `retaliate_damage`,
-`retaliate_burst`.
+`stat_multiplier`, `light_aura`, `taunt`, `detaunt`, `spawn`,
+`spawn_at_anchor`, `recall`, `revive`, `dash`, `tick_rate`, `calm`, `charm`,
+`stun`, `speed_aura`, `speed_burst`, `lifesteal_burst`, `retaliate_slow`,
+`retaliate_damage`, `retaliate_burst`.
 
 ⚑ This list had drifted: `retaliate_slow` and `stun` were missing since their
 own chunks (recorded at effect-types C2), and `retaliate_damage` /
@@ -370,8 +370,9 @@ the dispatch sites themselves:
   as the wire `light_radius`).
 - **`cooldown`** (`sys.fireCooldown`): `instant_damage`, `instant_dot`,
   `instant_hot`, `instant_shield`, `instant_resist`, `self_heal`, `spawn`,
-  `taunt`, `detaunt`, `calm`, `stun`, `charm`, `dash`, `tick_rate`,
-  `speed_burst`, `lifesteal_burst`, `retaliate_burst`, `recall`, `revive`.
+  `spawn_at_anchor`, `taunt`, `detaunt`, `calm`, `stun`, `charm`, `dash`,
+  `tick_rate`, `speed_burst`, `lifesteal_burst`, `retaliate_burst`, `recall`,
+  `revive`.
 - **`passive`** (`SkillComponent.recomputeDerived`): `stat_multiplier` (closed
   six-stat vocabulary: `movementSpeed`, `maxHealth`, `damageReduction`,
   `critChance`, `damageDealt`, `costReduction`), `resist_passive`,
@@ -586,7 +587,7 @@ payload): `radius`, `radiusPerLevel`, `tickInterval`, `tickIntervalPerLevel`,
 | `buffLifetimeMatchesInterval` | `resist.buffLifetimeMatchesInterval` | ⚑ resist_aura only, and it is a PRICING lever, not a duration knob: it drops the standard interval + 1 buff lifetime so every application at base cadence is fresh work and is charged (plan-effect-types.md D7). Default false = the shipped behaviour |
 | `stat` / `statBonus` / `statBonusPerLevel` | `stat.name` / `stat.bonus` / `stat.bonusPerLevel` | stat_multiplier |
 | `targetsSelf` | `<payload>.targetsSelf` | ⚑ resist / shield / hot — inside the payload, unlike the other target flags |
-| `spawnMob` / `ttlTicks` / `ttlTicksPerLevel` / `powerPerOwnerLevel` | `spawn.mobName` / `spawn.ttlTicks` / … | spawn |
+| `spawnMob` / `ttlTicks` / `ttlTicksPerLevel` / `powerPerOwnerLevel` / `requiresAnchor` | `spawn.mobName` / `spawn.ttlTicks` / … | ⚑ spawn AND spawn_at_anchor share the `spawn` payload, but NOT the key row. `spawn` takes all five: `requiresAnchor` is its OPT-IN campfire gate (the portal's destination is the caster's fire, while FireTotem must keep casting unbound). `spawn_at_anchor` takes only the first three - it places its summon AT the anchor, so the gate is inherent to the TYPE and authoring `requiresAnchor` (either value) hard-fails, as does `powerPerOwnerLevel` (nothing placed at a campfire fights). Its placement is a 2.5 u ring around the fire that never overlaps a bind circle (`sys.anchorSpawnOffset`, plan-portal-spells.md D8) |
 | `threatMargin` | `threat.margin` | taunt (detaunt ignores it) |
 | `reviveHealthFraction` | `revive.healthFraction` | revive |
 | `dashDistance` / `dashDistancePerLevel` | `dash.distance` / `dash.distancePerLevel` | dash |

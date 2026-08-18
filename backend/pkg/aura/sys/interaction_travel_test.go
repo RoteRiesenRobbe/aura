@@ -185,8 +185,156 @@ func TestPortalTravel_RefusesWithoutAnOwner(t *testing.T) {
 }
 
 func TestPortalTravel_RefusesAnUnknownMode(t *testing.T) {
-	tr := portalTravel{anchors: &fakeConnState{anchor: phy.Vec2f{X: 1}, bound: true}, owner: newFakePlayer(), rider: newFakePlayer()}
-	assert.False(t, tr.CanReach("caster"), "C2's mode is not implemented, so it delivers nobody")
+	tr := portalTravel{anchors: &fakeConnState{anchor: phy.Vec2f{X: 1}, bound: true},
+		owner: newFakePlayer(), ownerLive: true, rider: newFakePlayer()}
+	assert.False(t, tr.CanReach("somewhere_else"),
+		"the seam fails closed on a mode it has no arm for, the loader's twin")
+}
+
+// --- caster mode: Pull Through's destination (plan-portal-spells.md D3/D5, C2) ---
+
+// summonPortalInteraction is portalInteraction's twin with the other mode - the
+// shape api/mobs/portal-summon.json authors.
+func summonPortalInteraction() *mobs.Interaction {
+	in := portalInteraction()
+	in.Nodes[0].Options[0].Grants[0].Travel = mobs.TravelCaster
+	return in
+}
+
+// ⭐ THE OWNER'S LIVE POSITION, read now rather than remembered from the cast
+// (D5). A caster who walked on since opening the portal is not a stale
+// destination - pulling the group to where the caster IS is the spell.
+func TestPortalTravel_CasterModeDeliversToTheOwnersLivePosition(t *testing.T) {
+	owner := newFakePlayer()
+	owner.SetPosition(phy.Vec2f{X: 3, Y: 3})
+	rider := newFakePlayer()
+	tr := portalTravel{anchors: &fakeConnState{bound: false}, owner: owner, ownerLive: true, rider: rider}
+	rider.SetConversingWith(7)
+
+	// The caster keeps moving between the cast and the step-through.
+	owner.SetPosition(phy.Vec2f{X: -18, Y: 42})
+
+	require.True(t, tr.CanReach(mobs.TravelCaster))
+	require.True(t, tr.Travel(mobs.TravelCaster))
+
+	dist := rider.Position().DistanceToSquared(phy.Vec2f{X: -18, Y: 42})
+	assert.LessOrEqual(t, dist, float32(respawnJitterRadius*respawnJitterRadius),
+		"delivered into the jitter disc around where the caster stands NOW")
+	assert.Equal(t, 1, rider.grounded, "the same Recall/WARP recipe")
+	assert.Zero(t, rider.ConversingWith(), "and the session closes with the move")
+}
+
+// ⚑ The anchor is not consulted at all in this mode. Pull Through's portal is
+// PLACED at the fire, but where it LEADS is the caster - an owner whose bind
+// went away still delivers.
+func TestPortalTravel_CasterModeIgnoresTheAnchor(t *testing.T) {
+	owner := newFakePlayer()
+	owner.SetPosition(phy.Vec2f{X: 5, Y: 5})
+	tr := portalTravel{anchors: nil, owner: owner, ownerLive: true, rider: newFakePlayer()}
+	assert.True(t, tr.CanReach(mobs.TravelCaster))
+}
+
+// PO checklist item 12, half one: the caster died or logged out. Both leave the
+// world through the SAME removal fan-out (handleDeath calls RemoveEntity too),
+// so one liveness answer covers both - the mirror of C1's one-AnchorOf-miss.
+func TestPortalTravel_CasterModeRefusesAnOwnerWhoLeftTheWorld(t *testing.T) {
+	owner := newFakePlayer()
+	owner.SetPosition(phy.Vec2f{X: 5, Y: 5})
+	rider := newFakePlayer()
+	tr := portalTravel{owner: owner, ownerLive: false, rider: rider}
+
+	assert.False(t, tr.CanReach(mobs.TravelCaster))
+	assert.False(t, tr.Travel(mobs.TravelCaster))
+	assert.Equal(t, phy.VEC2F_ZERO, rider.Position(), "nothing moved")
+	assert.Zero(t, rider.grounded)
+}
+
+// PO checklist item 12, half two: the caster took off. Flight removes the body
+// from the space (D3), so the flyer's coordinates are a map animation rather
+// than a place a player can be put down.
+func TestPortalTravel_CasterModeRefusesAFlyingOwner(t *testing.T) {
+	owner := newFakePlayer()
+	owner.SetPosition(phy.Vec2f{X: 5, Y: 5})
+	owner.flying = true
+	rider := newFakePlayer()
+	tr := portalTravel{owner: owner, ownerLive: true, rider: rider}
+
+	assert.False(t, tr.CanReach(mobs.TravelCaster))
+	assert.False(t, tr.Travel(mobs.TravelCaster))
+	assert.Equal(t, phy.VEC2F_ZERO, rider.Position())
+}
+
+func TestPortalTravel_CasterModeRefusesWithoutAnOwner(t *testing.T) {
+	tr := portalTravel{ownerLive: true, rider: newFakePlayer()}
+	assert.False(t, tr.CanReach(mobs.TravelCaster))
+	assert.False(t, tr.Travel(mobs.TravelCaster))
+}
+
+// --- caster mode end to end, through the system ---
+
+func TestInteractionSystem_PullThroughDeliversToTheCaster(t *testing.T) {
+	owner := newFakePlayer()
+	owner.SetPosition(phy.Vec2f{X: 80, Y: -30})
+	s, space, m, p, _ := pullThroughFixture(t, owner, &fakeConnState{bound: false})
+	step := stepper(s, space, p)
+
+	// The caster walks on while the group reads the prompt (D5).
+	owner.SetPosition(phy.Vec2f{X: 84, Y: -26})
+
+	takeRow(p, m.Basic().ID(), "root", 0, 0)
+	step()
+
+	dist := p.Position().DistanceToSquared(phy.Vec2f{X: 84, Y: -26})
+	assert.LessOrEqual(t, dist, float32(respawnJitterRadius*respawnJitterRadius),
+		"delivered to where the caster stands at step-through time")
+	assert.Zero(t, p.ConversingWith())
+}
+
+// The owner leaves the world (logged out or died) with the portal standing: the
+// row goes LOCKED at present time and stays inert if clicked anyway - C1's
+// refusal shape, on the other mode's wall.
+func TestInteractionSystem_PullThroughLocksWhenTheCasterIsGone(t *testing.T) {
+	owner := newFakePlayer()
+	owner.SetPosition(phy.Vec2f{X: 80, Y: -30})
+	s, space, m, p, _ := pullThroughFixture(t, owner, &fakeConnState{bound: false})
+	step := stepper(s, space, p)
+
+	// The removal fan-out, verbatim: death and disconnect both run it.
+	s.Remove(owner.Basic())
+
+	pressInteract(p, m.Basic().ID())
+	step()
+
+	require.NotNil(t, p.conversation)
+	rows := rowsOf(t, p.conversation, "root")
+	require.Len(t, rows, 1)
+	assert.True(t, rows[0].Locked, "the prompt names the wall instead of pretending to work")
+	assert.Contains(t, rows[0].Text, travelClosedReason)
+
+	takeRow(p, m.Basic().ID(), "root", 0, 0)
+	step()
+	assert.Equal(t, phy.Vec2f{X: 1, Y: 0}, p.Position(), "and clicking it anyway moves nobody")
+}
+
+// A caster who takes off mid-conversation: the same wall, and the one the
+// present/apply pin (L24) has to agree on.
+func TestInteractionSystem_PullThroughLocksForAFlyingCaster(t *testing.T) {
+	owner := newFakePlayer()
+	owner.SetPosition(phy.Vec2f{X: 80, Y: -30})
+	s, space, m, p, _ := pullThroughFixture(t, owner, &fakeConnState{bound: false})
+	step := stepper(s, space, p)
+
+	owner.flying = true
+	pressInteract(p, m.Basic().ID())
+	step()
+
+	rows := rowsOf(t, p.conversation, "root")
+	require.Len(t, rows, 1)
+	assert.True(t, rows[0].Locked)
+
+	takeRow(p, m.Basic().ID(), "root", 0, 0)
+	step()
+	assert.Equal(t, phy.Vec2f{X: 1, Y: 0}, p.Position())
 }
 
 // --- end to end, through the system ---
@@ -196,9 +344,25 @@ func TestPortalTravel_RefusesAnUnknownMode(t *testing.T) {
 func portalFixture(t *testing.T, owner *fakePlayer, cs *fakeConnState) (
 	*InteractionSystem, *phy.Space, *mob.Mob, *fakePlayer, *phy.Circle) {
 	t.Helper()
+	return travelFixture(t, portalInteraction(), owner, cs, false)
+}
+
+// pullThroughFixture is the caster-mode twin, and it registers the OWNER as a
+// live player: membership in the system's player list is what "the caster is
+// still in the world" means, because death and disconnect both remove a player
+// through the same fan-out.
+func pullThroughFixture(t *testing.T, owner *fakePlayer, cs *fakeConnState) (
+	*InteractionSystem, *phy.Space, *mob.Mob, *fakePlayer, *phy.Circle) {
+	t.Helper()
+	return travelFixture(t, summonPortalInteraction(), owner, cs, true)
+}
+
+func travelFixture(t *testing.T, in *mobs.Interaction, owner *fakePlayer, cs *fakeConnState, ownerLive bool) (
+	*InteractionSystem, *phy.Space, *mob.Mob, *fakePlayer, *phy.Circle) {
+	t.Helper()
 	space := phy.NewSpace()
 
-	m := mob.NewMob(npcDef("Portal", portalInteraction()), 0, nil)
+	m := mob.NewMob(npcDef("Portal", in), 0, nil)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 	m.SetOwner(owner)
 	addNpcToSpace(t, space, m)
@@ -212,6 +376,9 @@ func portalFixture(t *testing.T, owner *fakePlayer, cs *fakeConnState) (
 	s.SetAnchors(cs)
 	s.AddEntity(m)
 	s.AddPlayer(p)
+	if ownerLive {
+		s.AddPlayer(owner)
+	}
 	// ⚑ The BODY comes back too: the fake's SetPosition moves only its aura
 	// circle, while the sensor reads the body, so walking out of range means
 	// moving both (the TestSession_EndsOnWalkingAway precedent).

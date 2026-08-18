@@ -278,13 +278,28 @@ type portalTravel struct {
 	// does not (removeFromPlayers deletes it), so a dropped owner arrives here as
 	// an ordinary AnchorOf miss.
 	owner model.PlayerEntity
-	rider interactor
+	// ownerLive reports whether the owner is still a player IN THE WORLD, which
+	// is what caster mode needs and home_campfire mode does not (C2).
+	//
+	// ⚑ IT IS SYSTEM MEMBERSHIP, not a flag on the player: leaving the world -
+	// by logging out or by dying - runs one fan-out (game.RemoveEntity, which
+	// handleDeath calls too) that drops the player from every system including
+	// this one. So the two refusals the PO checklist splits are one answer here,
+	// the same way one AnchorOf miss covers two in the mode above. A stale
+	// pointer to a removed player still reads a position; it just is not a place
+	// anybody is standing any more.
+	ownerLive bool
+	rider     interactor
 }
 
 func (t portalTravel) destination(mode mobs.TravelMode) (phy.Vec2f, bool) {
+	if t.owner == nil {
+		// A zone-placed conversant has no owner, so neither mode leads anywhere.
+		return phy.Vec2f{}, false
+	}
 	switch mode {
 	case mobs.TravelHomeCampfire:
-		if t.anchors == nil || t.owner == nil {
+		if t.anchors == nil {
 			return phy.Vec2f{}, false
 		}
 		// ⚑ ONE LOOKUP COVERS BOTH REFUSALS the PO checklist names. The anchor is
@@ -292,9 +307,24 @@ func (t portalTravel) destination(mode mobs.TravelMode) (phy.Vec2f, bool) {
 		// logged out" are the same false here - and that is not a shortcut, it is
 		// what the player sees either way: a door with nothing behind it.
 		return t.anchors.AnchorOf(t.owner.Client().UUID())
+
+	case mobs.TravelCaster:
+		// ⭐ RESOLVED NOW (D5): the caster may have walked on since the cast, and
+		// pulling the group to where they ARE is the spell. The anchor is not
+		// consulted at all - Pull Through's portal is PLACED at the fire, but
+		// where it LEADS is the caster.
+		//
+		// ⚑ Flying is its own refusal (D3) and not a liveness question: a flyer
+		// is still in the world, but flight removes their body from the space, so
+		// their coordinates are a map animation rather than ground anybody can be
+		// put down on.
+		if !t.ownerLive || t.owner.Flying() {
+			return phy.Vec2f{}, false
+		}
+		return t.owner.Position(), true
 	}
 	// An unimplemented mode delivers nobody. The loader refuses one at boot; this
-	// is the fail-closed twin, and it is what keeps C2's `caster` inert until C2.
+	// is the fail-closed twin.
 	return phy.Vec2f{}, false
 }
 
@@ -324,7 +354,25 @@ func (t portalTravel) Travel(mode mobs.TravelMode) bool {
 // travelFor binds the seam for one conversation. Built per call rather than
 // cached: it is two pointers, and it is only ever built while a panel is open.
 func (s *InteractionSystem) travelFor(a Conversant, p interactor) travelSeam {
-	return portalTravel{anchors: s.anchors, owner: a.Owner(), rider: p}
+	owner := a.Owner()
+	return portalTravel{anchors: s.anchors, owner: owner, ownerLive: s.isLivePlayer(owner), rider: p}
+}
+
+// isLivePlayer reports whether the entity is still one of this system's
+// registered players, which is the caster-mode liveness answer (C2). A linear scan is
+// the right shape here: the list is the players in the world, and this runs only
+// while somebody has a portal's panel open.
+func (s *InteractionSystem) isLivePlayer(e model.PlayerEntity) bool {
+	if e == nil {
+		return false
+	}
+	id := e.Basic().ID()
+	for _, p := range s.players {
+		if p.Basic().ID() == id {
+			return true
+		}
+	}
+	return false
 }
 
 func NewInteractionSystem() *InteractionSystem {

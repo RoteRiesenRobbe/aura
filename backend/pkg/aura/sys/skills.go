@@ -80,6 +80,18 @@ type costPayer interface {
 // no model interface bloat).
 type ConnState interface {
 	AnchorOf(id uuid.UUID) (phy.Vec2f, bool)
+	// CampfireAt reports which authored fire's BIND circle contains pos, if any
+	// - the same geometry the dwell tracker and flight validation share. The
+	// spawn_at_anchor placement probe consults it to keep its portal OUT of
+	// every bind circle (plan-portal-spells.md D8): the client synthesizes a
+	// campfire interact offer that overrides the server's, so a portal inside
+	// one would lose every E press to the flight map.
+	//
+	// ⚑ Asked rather than derived from a constant on purpose. Bind radii are
+	// per-fire runtime data (aurad.go scales each fire's aura radius), so a
+	// compile-time "the offset clears every fire" pin would be a second copy of
+	// that derivation, the duplication class this repo keeps losing to.
+	CampfireAt(pos phy.Vec2f) (string, bool)
 	// ReviveAtCorpse rebuilds the dead player whose corpse has the given
 	// entity ID at that corpse with healthFraction of max HP, consuming the
 	// dead marker (name, progression, skills restored). Reports false if no
@@ -1606,6 +1618,22 @@ func (s *SkillSystem) activationPrecondition(e skillEntity, es *skills.EquippedS
 			if _, bound := s.connState.AnchorOf(p.Client().UUID()); !bound {
 				return model.ActivationRejectedNoAnchor
 			}
+		case skills.EffectTypeSpawnAtAnchor:
+			// ⭐ THE GATE IS THE TYPE'S HERE, not the content's, and the two arms
+			// differ for a reason worth keeping straight (plan-portal-spells.md
+			// C2). `spawn` above is opt-in because anchor-free content shares that
+			// type and the anchor is only its DESTINATION; for this type the anchor
+			// is the PLACEMENT, so an unbound caster has nowhere to put anything.
+			// No flag is read, and none is authorable: `requiresAnchor` is off
+			// this type's allowlist, so writing it hard-fails at boot.
+			p, ok := e.(model.PlayerEntity)
+			if !ok || s.connState == nil {
+				// Mobs bind no campfire; an unwired seam reads as nothing bound.
+				return model.ActivationRejectedNoAnchor
+			}
+			if _, bound := s.connState.AnchorOf(p.Client().UUID()); !bound {
+				return model.ActivationRejectedNoAnchor
+			}
 		case skills.EffectTypeRevive:
 			// A revive with no corpse in range is a rejected activation, not a
 			// whiff-consume (§3.6): no cooldown burned, feedback on the wire.
@@ -1900,6 +1928,11 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 
 		case skills.EffectTypeSpawn:
 			if s.spawnSummon(e, es, effect.Spawn) {
+				hitAny = true
+			}
+
+		case skills.EffectTypeSpawnAtAnchor:
+			if s.spawnAtAnchor(e, es, effect.Spawn) {
 				hitAny = true
 			}
 
@@ -2490,18 +2523,58 @@ const (
 	summonPlacementTries         = 8
 )
 
-// spawnSummon fires a spawn effect: builds the referenced mob, aligns it with
-// its caster, arms the TTL, applies the two scaling sources (summon-skill
-// level → TTL + loadout level; owner player level → bonus HP + power), places
-// it offset from the caster and hands it to the game. A spawn always counts
-// as a hit — it has no whiff.
+// spawnSummon fires a spawn effect: builds the referenced mob and places it
+// offset from the caster. A spawn always counts as a hit — it has no whiff.
 func (s *SkillSystem) spawnSummon(e skillEntity, es *skills.EquippedSkill, p *skills.SpawnParams) bool {
+	m, ok := s.buildSummon(e, es, p)
+	if !ok {
+		return false
+	}
+	m.SetPosition(s.summonPosition(e, m.Radius()))
+	s.game.AddEntity(m)
+	return true
+}
+
+// spawnAtAnchor fires a spawn_at_anchor effect (plan-portal-spells.md D4): the
+// same summon, placed at the CASTER'S BOUND CAMPFIRE instead of beside the
+// caster, so a group waiting at the fire can step through to wherever the
+// caster now is.
+//
+// ⚑ The anchor is resolved BEFORE anything is built, and a miss is a plain
+// false rather than a placement fallback: activationPrecondition has already
+// refused this cast at the press and again at completion, so reaching here
+// unbound is the disconnect race, and a portal placed anywhere else would be a
+// door standing somewhere nobody asked for.
+func (s *SkillSystem) spawnAtAnchor(e skillEntity, es *skills.EquippedSkill, p *skills.SpawnParams) bool {
+	caster, ok := e.(model.PlayerEntity)
+	if !ok || s.connState == nil {
+		return false
+	}
+	anchor, bound := s.connState.AnchorOf(caster.Client().UUID())
+	if !bound {
+		return false
+	}
+	m, ok := s.buildSummon(e, es, p)
+	if !ok {
+		return false
+	}
+	m.SetPosition(s.anchorSpawnPosition(anchor, m.Radius()))
+	s.game.AddEntity(m)
+	return true
+}
+
+// buildSummon is the part both spawn placements share: it builds the referenced
+// mob, aligns it with its caster, arms the TTL and applies the two scaling
+// sources (summon-skill level → TTL + loadout level; owner player level → pool
+// + power). The caller owns placement and the hand-off to the game, which is
+// the entire difference between the two effect types.
+func (s *SkillSystem) buildSummon(e skillEntity, es *skills.EquippedSkill, p *skills.SpawnParams) (*mob.Mob, bool) {
 	def, err := s.game.Mobs().GetByName(p.MobName)
 	if err != nil {
 		// Unreachable for loaded content — mobs.RegistryFromFS hard-fails
 		// unresolved spawnMob names at boot. Guards direct construction.
 		log.Printf("spawn effect: mob %q not found", p.MobName)
-		return false
+		return nil, false
 	}
 
 	m := mob.NewMob(def, s.game.Config().MobChaseIntoAuraMargin, s.space)
@@ -2533,9 +2606,7 @@ func (s *SkillSystem) spawnSummon(e skillEntity, es *skills.EquippedSkill, p *sk
 		// frozen at this instant.
 		m.SetSummonPowerPerLevel(p.PowerPerOwnerLevel)
 	}
-	m.SetPosition(s.summonPosition(e, m.Radius()))
-	s.game.AddEntity(m)
-	return true
+	return m, true
 }
 
 // summonPosition picks the summon's spawn point: up to summonPlacementTries
@@ -2562,6 +2633,71 @@ func (s *SkillSystem) summonPosition(e skillEntity, summonRadius float32) phy.Ve
 		}
 	}
 	return casterPos
+}
+
+// anchorSpawnOffset is how far from the bound campfire a spawn_at_anchor summon
+// stands, in world units [PLACEHOLDER, plan-portal-spells.md D8].
+//
+// ⚑ It is a CLEARANCE, not the rule. The rule is "outside every fire's bind
+// circle", and anchorSpawnPosition enforces that by asking CampfireAt about each
+// candidate; this constant only decides how far out to look first. It is sized
+// above the portal's own interaction range (2.0 in content) so that a player
+// standing ON the fire has no portal in talk range at all, which keeps §10 item
+// 10's first press unambiguous.
+//
+// ⚑ What it does NOT buy: a player anywhere inside the bind circle is still
+// within the portal's 2.0 range from the near edge. The client's campfire offer
+// OVERRIDES the server's there, so that annulus belongs to the fire by design:
+// step off the bind circle to press E on the portal.
+const anchorSpawnOffset float32 = 2.5
+
+// anchorSpawnPosition picks the anchored summon's spot: up to
+// summonPlacementTries random directions on the anchorSpawnOffset ring around
+// the fire, skipping any candidate a bind circle covers (D8) or a blocking
+// static/border would swallow. summonPosition's probe, one extra rejection.
+//
+// ⚑ THE FALLBACK IS NEVER THE ANCHOR ITSELF, which is the one position D8
+// forbids: an unblocked-but-covered candidate loses to a covered-but-blocked
+// one, because a portal clipping a rock is cosmetic (its body collides with the
+// border alone) while a portal inside the bind circle silently eats every press.
+func (s *SkillSystem) anchorSpawnPosition(anchor phy.Vec2f, summonRadius float32) phy.Vec2f {
+	probe := phy.NewCircle(phy.VEC2F_ZERO, summonRadius)
+	probe.Shape().Mask = int(model.LayerPlayerStaticCollision | model.LayerBorderCollision)
+
+	fallback, haveFallback := phy.Vec2f{}, false
+	for try := 0; try < summonPlacementTries; try++ {
+		angle := s.rng.Float64() * 2 * math.Pi
+		offset := phy.Vec2f{X: float32(math.Cos(angle)), Y: float32(math.Sin(angle))}.Mult(anchorSpawnOffset)
+		candidate := anchor.Add(offset)
+		if s.connState != nil {
+			if _, covered := s.connState.CampfireAt(candidate); covered {
+				continue
+			}
+		}
+		if !haveFallback {
+			fallback, haveFallback = candidate, true
+		}
+		probe.SetPosition(candidate)
+		if len(s.space.QueryCircleStatics(probe)) == 0 {
+			return candidate
+		}
+	}
+	if haveFallback {
+		return fallback
+	}
+	// Every direction sampled was inside somebody's bind circle. Walk the ring
+	// deterministically rather than giving up onto the anchor.
+	for i := 0; i < 8; i++ {
+		angle := float64(i) * math.Pi / 4
+		candidate := anchor.Add(phy.Vec2f{X: float32(math.Cos(angle)), Y: float32(math.Sin(angle))}.Mult(anchorSpawnOffset))
+		if s.connState != nil {
+			if _, covered := s.connState.CampfireAt(candidate); covered {
+				continue
+			}
+		}
+		return candidate
+	}
+	return anchor.Add(phy.Vec2f{X: anchorSpawnOffset})
 }
 
 // applySlowAura slows every eligible slowable target in range. Eligibility

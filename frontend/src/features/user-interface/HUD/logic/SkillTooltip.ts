@@ -503,14 +503,20 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             if (dot.variance > 0) lines.push(`Variance: ±${pct(dot.variance)}`);
             break;
         }
-        case 'spawn': {
+        case 'spawn':
+        case 'spawn_at_anchor': {
             const spawn = effect.spawn;
             // The mob catalog serves the display name (§35 C4a) — the client
             // does not re-derive it; before the catalog loads, the raw name.
             // spawnCount > 1 is the Call-for-Aid dedupe: three identical spawn
             // effects read "Summons 3× Soldier Companion", not three lines.
             const count = spawnCount > 1 ? `${spawnCount}× ` : '';
-            lines.push(`Summons ${count}${mobDisplayName(spawn.mobName)} for ${prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}`);
+            // ⭐ The ONE thing the remote twin says differently
+            // (plan-portal-spells.md D11): where it puts what it summons.
+            // Everything else about the line is shared, because everything else
+            // about the effect is: it is the same SpawnParams payload.
+            const where = effect.type === 'spawn_at_anchor' ? ' at your campfire' : '';
+            lines.push(`Summons ${count}${mobDisplayName(spawn.mobName)}${where} for ${prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}`);
             if (spawn.powerPerOwnerLevel > 0) {
                 lines.push(`Summon power: +${pct(spawn.powerPerOwnerLevel)} per player level`);
             }
@@ -825,6 +831,11 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
     const renderEffects: { effect: SkillEffect, count: number }[] = [];
     const spawnGroups = new Map<string, { effect: SkillEffect, count: number }>();
     for (const effect of def.effects) {
+        // ⚑ Deliberately 'spawn' ALONE, not its remote twin: the dedupe exists
+        // for Call-for-Aid's three identical squad members, and the key is the
+        // PAYLOAD, which both types share, so folding spawn_at_anchor in here
+        // would let a skill authoring both placements of one mob collapse two
+        // different lines into one.
         if (effect.type === 'spawn') {
             const key = JSON.stringify([effect.spawn, effect.costFractionOfMax, effect.costFractionOfMaxPerLevel]);
             const group = spawnGroups.get(key);
@@ -843,7 +854,10 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
         const block = effectBlock(effect, level, previewMax, powerScale,
             perEffectCost && scaled(effect.costFractionOfMax, effect.costFractionOfMaxPerLevel, level) > 0,
             sharedCadence !== null, damageFactor, count);
-        if (effect.type === 'spawn') {
+        // Both placements carry the same payload, so both get the loadout
+        // lines. Omitting the remote one would lose an anchored summon's
+        // abilities silently the day one has any (plan-portal-spells.md D11).
+        if (effect.type === 'spawn' || effect.type === 'spawn_at_anchor') {
             // Right after the Summons line, before the summon-power line.
             block.lines.splice(1, 0,
                 ...summonLoadoutLines(effect.spawn, level, powerScale, playerLevel, resolveSkill));

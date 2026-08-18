@@ -1148,11 +1148,27 @@ func TestMapMobDefinition_RejectsATravelToWithoutAMode(t *testing.T) {
 	assert.Contains(t, err.Error(), "mode")
 }
 
-// ⭐ And an UNKNOWN mode hard-fails, which is what keeps C2's `caster` mode
-// safely unauthorable until the effect that places its portal ships: a mode
-// parsed and ignored is content that silently does nothing.
+// Pull Through's mode (plan-portal-spells.md D3/D5, C2): the portal stands at
+// the caster's fire and delivers to wherever the caster NOW is, which is the
+// whole point of a summon - they may keep walking.
+func TestMapMobDefinition_ParsesTheCasterTravelMode(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["A doorway hangs in the air."],
+	  "options": [{"text": "Step through.", "grants": [
+	    {"kind": "travel_to", "mode": "caster", "line": "You step through."}
+	  ]}]
+	}]}`)
+	require.NoError(t, err)
+	assert.Equal(t, TravelCaster, def.Interaction.Nodes[0].Options[0].Grants[0].Travel)
+}
+
+// ⭐ And an UNKNOWN mode still hard-fails: a mode parsed and ignored is content
+// that silently does nothing. (Before C2 this list held "caster" too - the
+// closed set is what kept it unauthorable until the effect placing its portal
+// shipped.)
 func TestMapMobDefinition_RejectsAnUnknownTravelMode(t *testing.T) {
-	for _, mode := range []string{"caster", "home-campfire", "anywhere"} {
+	for _, mode := range []string{"home-campfire", "anywhere", "owner"} {
 		_, err := mapInteraction(t, `{"nodes": [{
 		  "id": "root", "lines": ["hi"],
 		  "options": [{"text": "Step through.", "grants": [

@@ -121,7 +121,10 @@ type fakePlayer struct {
 	conversingWith uint64
 	// grounded counts Ground() calls - the travel_to grant's half of the
 	// Recall/WARP recipe (plan-portal-spells.md C1).
-	grounded     int
+	grounded int
+	// flying is the caster-mode travel refusal (plan-portal-spells.md D3, C2):
+	// a flyer's body is out of the space, so there is no place to deliver to.
+	flying       bool
 	conversation *model.Conversation
 	conf         cfg.PlayerConfig // zero value = no base crit (§4.3 v2); tests set CritChance explicitly
 }
@@ -220,6 +223,7 @@ func (f *fakePlayer) NoteCombatAction() { f.combatActions++ }
 func (f *fakePlayer) Client() model.Client    { return f.client }
 func (f *fakePlayer) SetPosition(v phy.Vec2f) { f.aura.SetPosition(v) }
 func (f *fakePlayer) Ground()                 { f.grounded++ }
+func (f *fakePlayer) Flying() bool            { return f.flying }
 func (f *fakePlayer) NoteActivationRejected(id skills.SkillID, reason model.ActivationRejection) {
 	f.rejections = append(f.rejections, rejectedActivation{id, reason})
 }
@@ -3991,9 +3995,22 @@ type fakeConnState struct {
 	ascendCalls  int
 	ascendKey    string
 	ascendResult bool
+
+	// fires are the authored campfires CampfireAt answers from - the D8 gate
+	// spawn_at_anchor's placement probe consults (plan-portal-spells.md C2).
+	fires []CampfireAnchor
 }
 
 func (f *fakeConnState) AnchorOf(id uuid.UUID) (phy.Vec2f, bool) { return f.anchor, f.bound }
+
+func (f *fakeConnState) CampfireAt(pos phy.Vec2f) (string, bool) {
+	for _, c := range f.fires {
+		if pos.DistanceToSquared(c.Pos) <= c.DwellRadius*c.DwellRadius {
+			return c.ID, true
+		}
+	}
+	return "", false
+}
 
 // A real player always has one, and the ascension refusal path logs it.
 func (p *fakePlayer) Name() string { return "Fake" }
@@ -5952,4 +5969,148 @@ func TestSpawn_WithoutTheFlagIsUngated(t *testing.T) {
 
 	assert.True(t, caster.sc.IsCasting(), "no flag, no gate - the totem casts unbound")
 	assert.Empty(t, caster.rejections)
+}
+
+// --- spawn_at_anchor: the remote placement (plan-portal-spells.md D4/D8, C2) ---
+//
+// Pull Through's portal stands at the CASTER's bound campfire rather than beside
+// the caster, so the group waiting at the fire can step through to wherever the
+// caster now is. Everything below is spawnSummon's behaviour with one thing
+// moved: where the summon lands.
+
+func portalSummonMobDef() *mobs.MobDefinition {
+	return &mobs.MobDefinition{
+		ID: 11, Name: "Portal", EntityType: "FireTotem", // placeholder art, as the content authors it
+		Role:       mobs.RoleCreature,
+		Body:       mobs.Body{Radius: 0.35},
+		Factors:    mobs.Factors{BaseMaxHealth: 100, Speed: 0},
+		CurveLevel: 1,
+		Curve:      curve.Curve{Growth: 1.12, MaxLevel: 30},
+	}
+}
+
+func pullThroughDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 77, Name: "PullThrough", Category: skills.SkillCategoryCooldown, MaxLevel: 1,
+		CooldownTicks: 1200, CastTicks: 3, CastInterruptedByDamage: true,
+		Effects: []skills.EffectDef{{
+			Type:  skills.EffectTypeSpawnAtAnchor,
+			Spawn: &skills.SpawnParams{MobName: "Portal", TTLTicks: 900},
+		}},
+	}
+}
+
+// anchoredSpawnSetup is spawnTestSetup's twin for the anchored placement: the
+// caster stands far from the fire so "at the anchor" and "beside the caster"
+// can never be confused.
+func anchoredSpawnSetup(fire CampfireAnchor) (*fakePlayer, *fakeGame, *SkillSystem, *fakeConnState) {
+	g := newFakeGame()
+	g.mobReg = fakeMobRegistry{"Portal": portalSummonMobDef()}
+	caster := newFakePlayer()
+	caster.level = 5
+	caster.aura = phy.NewCircle(phy.Vec2f{X: -25, Y: 12}, 1.0)
+	caster.sc.EquipCooldown(0, pullThroughDef(), 1)
+
+	space := phy.NewSpace()
+	space.Update()
+	sk := NewSkillSystem(space, g)
+	sk.rng = testRNG()
+	sk.AddEntity(caster)
+	cs := &fakeConnState{anchor: fire.Pos, bound: true, fires: []CampfireAnchor{fire}}
+	sk.SetConnState(cs)
+	return caster, g, sk, cs
+}
+
+// ⭐ THE D8 ASSERT, and the reason this effect type exists at all rather than a
+// placement key on `spawn`: the client SYNTHESIZES a campfire interact offer and
+// it OVERRIDES the server's (Backend.ts, flightOrigin || offered), so a portal
+// standing inside the bind circle would lose every E press to the flight map.
+func TestSpawnAtAnchor_PlacesAtTheFireAndOutsideItsDwellCircle(t *testing.T) {
+	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	caster, g, sk, _ := anchoredSpawnSetup(fire)
+	caster.sc.RequestCooldownActivation(0)
+	for i := 0; i < 4; i++ {
+		sk.Update(33.0)
+	}
+
+	require.Len(t, g.added, 1, "an anchored spawn never whiffs once the anchor resolves")
+	m := g.added[0].(*mob.Mob)
+	dist := m.Position().Sub(fire.Pos).Abs()
+	assert.Greater(t, dist, fire.DwellRadius,
+		"the portal must stand OUTSIDE the bind circle or E on it opens the flight map")
+	assert.InDelta(t, anchorSpawnOffset, dist, 1e-3, "and on the authored offset ring")
+	assert.Greater(t, m.Position().Sub(caster.aura.Position()).Abs(), float32(20),
+		"placed at the fire, not beside the caster")
+	assert.Same(t, model.PlayerEntity(caster), m.Owner(), "the portal still knows who opened it")
+}
+
+// The probe walks candidate directions and skips any that a fire's bind circle
+// covers. Overlapping fires are what makes this a live rule rather than a
+// constant comparison: the offset ring is not enough on its own.
+func TestSpawnAtAnchor_SkipsCandidatesCoveredByASecondFire(t *testing.T) {
+	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	caster, g, sk, cs := anchoredSpawnSetup(fire)
+	// A huge neighbouring fire swallowing most of the offset ring.
+	cs.fires = append(cs.fires, CampfireAnchor{
+		ID: "spawnpoint-2", Pos: phy.Vec2f{X: 10 + anchorSpawnOffset, Y: 10}, DwellRadius: anchorSpawnOffset,
+	})
+	caster.sc.RequestCooldownActivation(0)
+	for i := 0; i < 4; i++ {
+		sk.Update(33.0)
+	}
+
+	require.Len(t, g.added, 1)
+	pos := g.added[0].(*mob.Mob).Position()
+	_, inside := cs.CampfireAt(pos)
+	assert.False(t, inside, "no candidate inside ANY bind circle may be taken")
+}
+
+func TestSpawnAtAnchor_RejectsThePressUnbound(t *testing.T) {
+	caster, g, sk, cs := anchoredSpawnSetup(CampfireAnchor{ID: "f", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75})
+	cs.bound = false
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.False(t, caster.sc.IsCasting(), "no anchor, no place to put the portal → no cast starts")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "no cooldown consumed")
+	assert.Empty(t, g.added)
+	require.Len(t, caster.rejections, 1)
+	assert.Equal(t, model.ActivationRejectedNoAnchor, caster.rejections[0].reason)
+}
+
+// ⭐ THE GATE IS THE TYPE'S, NOT THE CONTENT'S: unlike plain `spawn`'s opt-in,
+// no authored flag is consulted and none is authorable (the key is off the
+// allowlist). An anchored spawn with no anchor has nowhere to place anything.
+func TestSpawnAtAnchor_GateIgnoresTheOptInFlag(t *testing.T) {
+	caster, _, sk, cs := anchoredSpawnSetup(CampfireAnchor{ID: "f", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75})
+	cs.bound = false
+	caster.sc.CooldownSlots[0].Def.Effects[0].Spawn.RequiresAnchor = false
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.False(t, caster.sc.IsCasting(), "requiresAnchor false changes nothing here")
+	require.Len(t, caster.rejections, 1)
+	assert.Equal(t, model.ActivationRejectedNoAnchor, caster.rejections[0].reason)
+}
+
+// The completion re-check, recall's rule again: the anchor went away during the
+// wind-up, so nothing is placed and nothing is charged.
+func TestSpawnAtAnchor_RejectsAtCompletionWhenTheAnchorIsLost(t *testing.T) {
+	caster, g, sk, cs := anchoredSpawnSetup(CampfireAnchor{ID: "f", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75})
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+	require.True(t, caster.sc.IsCasting(), "bound at the press, so the cast runs")
+
+	cs.bound = false
+	for i := 0; i < 3; i++ {
+		sk.Update(33.0)
+	}
+
+	assert.False(t, caster.sc.IsCasting())
+	assert.Empty(t, g.added, "no portal placed")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "cooldown never consumed")
+	require.Len(t, caster.rejections, 1)
+	assert.Equal(t, model.ActivationRejectedNoAnchor, caster.rejections[0].reason)
 }

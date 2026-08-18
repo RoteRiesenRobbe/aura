@@ -65,14 +65,17 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	EffectTypeResistPassive:  AuraCategoryNone,
 	EffectTypeInstantDot:     AuraCategoryNone,
 	EffectTypeSpawn:          AuraCategoryNone,
-	EffectTypeTaunt:          AuraCategoryNone,
-	EffectTypeDetaunt:        AuraCategoryNone,
-	EffectTypeInstantShield:  AuraCategoryNone,
-	EffectTypeRecall:         AuraCategoryNone,
-	EffectTypeInstantHot:     AuraCategoryNone,
-	EffectTypeRevive:         AuraCategoryNone,
-	EffectTypeDash:           AuraCategoryNone,
-	EffectTypeTickRate:       AuraCategoryNone,
+	// Both spawns draw nothing on the CASTER's ring: what they produce is a
+	// separate entity with a ring of its own (plan-portal-spells.md D4).
+	EffectTypeSpawnAtAnchor: AuraCategoryNone,
+	EffectTypeTaunt:         AuraCategoryNone,
+	EffectTypeDetaunt:       AuraCategoryNone,
+	EffectTypeInstantShield: AuraCategoryNone,
+	EffectTypeRecall:        AuraCategoryNone,
+	EffectTypeInstantHot:    AuraCategoryNone,
+	EffectTypeRevive:        AuraCategoryNone,
+	EffectTypeDash:          AuraCategoryNone,
+	EffectTypeTickRate:      AuraCategoryNone,
 	// The resist cooldown draws no ring for its instant twin's reason: the
 	// query circle exists for one cast and is gone, so there is nothing
 	// persistent to outline. The buff it grants shows on the TARGET as the

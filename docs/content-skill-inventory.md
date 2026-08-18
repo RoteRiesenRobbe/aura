@@ -146,7 +146,7 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 67 | FireShield | 5 | ⭐ retaliate **damage 3 +1/L fire** at anything that damages you (attributed: it credits XP and kill credit) | **Cheat only (`SKILL FireShield`)** — no unlock source yet (plan-effect-types.md C2) |
 | 74 | OmniPassive | 5 | ⭐ **LIMIT-TEST RIG** (2026-08-18): the full passive fold at once - all six stats (move +15%, maxHP +20%, DR +15%, crit +10%, dmg +25%, cost −25%, each +2%/L) + fire/poison resist ×0.7 −.05/L + retaliate slow 30% +5%/L (150t) + retaliate dmg 5 +1/L frost + light r2 +.25/L | **Cheat only (`SKILL OmniPassive`) - a test rig, NEVER to gain a source** |
 
-## Cooldowns (31)
+## Cooldowns (32)
 
 | ID | Name | MaxLv | Values (CD in ticks) | Source |
 |---|---|---|---|---|
@@ -180,6 +180,7 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 69 | Sanctuary | 3 | ⭐ grants resist **`*` ×0** = IMMUNITY to all damage for 150t (5 s) to the nearest 1 +1/L allies (not self), r1.5; CD 900, cost 0.04 +0.005/L | **Cheat only (`SKILL Sanctuary`)**: no unlock source yet (plan-effect-types.md C3) |
 | 72 | Onward | 5 | ⭐ ally move speed **×1.4 +0.05/L** for 150t +15/L, all allies in r3 (uncapped, `targetsSelf` absent — the caster stays behind); CD 900 −60/L, cost 0.03 +0.004/L | **Cheat only (`SKILL Onward`)** — no unlock source yet (plan-effect-types.md C4) |
 | 147 | OpenPortal | 1 | ⭐ spawn PortalHome, TTL 900 (30 s, no per-level slope); cast 75t damage-interruptible, `requiresAnchor`; CD 1200 ≥ cast + TTL (D7, one portal at a time), cost 0.10 | **Cheat only (`SKILL OpenPortal`)** - no unlock source yet (plan-portal-spells.md C1, the worked-example convention) |
+| 148 | PullThrough | 1 | ⭐ **spawn_at_anchor** PortalSummon (the FIRST use of the type), TTL 900 (30 s, no per-level slope), placed on the 2.5 u ring around the caster's bound fire and never inside a bind circle (D8); cast 75t damage-interruptible, anchor gate inherent to the type (no `requiresAnchor` key, and authoring one hard-fails); CD 1200 ≥ cast + TTL (D7), cost 0.10 | **Cheat only (`SKILL PullThrough`)** - no unlock source yet (plan-portal-spells.md C2, the worked-example convention) |
 | 75 | OmniStrike | 5 | ⭐ **LIMIT-TEST RIG** (2026-08-18): **16 cooldown types in ONE cast** (all but recall / revive / tick_rate - preconditions gate the whole cast, tick_rate is guardrail-frozen both ways; see the `_comment`); cast 30t not damage-interruptible, CD 300 −10/L, `targetFactions` = all ten factions + `aligned`; dash authored LAST so queries center on the cast position | **Cheat only (`SKILL OmniStrike`) - a test rig, NEVER to gain a source** |
 
 ## Reachability summary (live world zone)
@@ -198,8 +199,8 @@ ascension catalog).
   regeneration script that reads only `unlocks[]`, teachings, recipes and the
   milestone table will report all six as unreachable and be wrong, exactly as
   the quest-reward note below warns for its own three.
-- **Unreachable without the cheat: TWELVE, and all twelve are deliberate —
-  in TWO distinct conventions.** Nine are worked examples awaiting the content
+- **Unreachable without the cheat: THIRTEEN, and all thirteen are deliberate —
+  in TWO distinct conventions.** Ten are worked examples awaiting the content
   pass; ⭐ the three **Omni** skills (ids 73–75, 2026-08-18) are the SECOND
   convention: kitchen-sink **limit-test rigs** that exercise every effect type
   their category dispatches, and unlike the eight they must **never** gain a
@@ -234,8 +235,14 @@ ascension catalog).
   are living under. ⚑ It is a worked example awaiting placement, NOT one of the
   three test rigs: unlike the Omni skills it is meant to end up in somebody's
   spellbook.
+  ⭐ **PullThrough** (id 148, C2, 2026-08-18) is the tenth and OpenPortal's
+  other half: the same spell family aimed the other way. Unlike its twin it does
+  ship new machinery (the `spawn_at_anchor` effect type), so it is a worked
+  example in the effect-types sense too - and it waits for placement beside the
+  spell it pairs with, because a portal pair placed one half at a time would
+  read as a broken feature rather than an unfinished one.
   ⚑ Each new one costs the reachability sweep a line, and the sweep must not
-  start reading nine cheat-only skills as drift. ⚑ And a skill missing from the
+  start reading ten cheat-only skills as drift. ⚑ And a skill missing from the
   TABLE is invisible to this list, which is how Bloodthirst went four chunks
   uncounted: re-derive from `api/skills/`, never from the rows below. Every OTHER player
   skill has a live-world source — the step-7 A.5 guarantee

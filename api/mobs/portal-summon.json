@@ -1,0 +1,47 @@
+{
+  "_comment": "The Pull Through portal (plan-portal-spells.md D2/D4, C2 step 7): the doorway the PullThrough cooldown places AT ITS CASTER'S BOUND CAMPFIRE, standing for its TTL and then dying with the summon sweep. Never referenced by any zone spawn, the FireTotem precedent. BODY IS PORTALHOME'S RECIPE VERBATIM, which is the memorial stone's, knob for knob - see api/mobs/portal-home.json for why each knob is load-bearing: collisionLayer 97 (PlayerStatic 1 + Viewport 32 + MobStatic 64) is deliberately NOT on Action(2), so no aura mask on either side can reach it, and mask 16 (Border only) means nothing pushes it; that is what makes EnlistUnder harmless on the spawn path and the health pool below decorative (pinned by TestPortalRecipe_IsUnreachableByAurasAndAggro in sys). role creature + speed 0 is the same call every talking object makes; aggroRadius 1.0 is required-but-inert; interaction.range 2.0 is the wider of the two and sizes the sensor the player actually meets. ⭐ THE RANGE IS ALSO A PLACEMENT CONSTRAINT HERE, unlike PortalHome's: sys.anchorSpawnOffset (2.5) is chosen ABOVE this 2.0 so that a player standing on the fire has no portal in talk range at all. Widening this range without raising that constant would re-introduce exactly the D8 ambiguity the offset exists to remove - the client synthesizes a campfire interact offer that OVERRIDES the server's, so a press that could mean either thing means the fire. faction townsfolk so player damage skips it too, belt to the layer's brace; the spawn path calls EnlistUnder and overrides it at runtime anyway. xpFactor 0 keeps it off the nameplate and the XP path. ALL VALUES [PLACEHOLDER], per the GDD rule. ⛑ entityType FireTotem is a DELIBERATE REUSE and placeholder art (D2): a bespoke portal EntityType costs a wire enum value that can never be reclaimed plus an exhaustive client Record entry, and D2 rules that the spell earns its own sprite later. ⭐ ONE NODE, ONE ROW, shape enforced by the loader rather than by convention: a travel_to grant must be alone on its option, must author its own text, and must carry no `next`. The decline is the automatic 'Leave.' row, which is why none is authored. ⚑ The ONLY difference from PortalHome is the destination mode - `caster` instead of `home_campfire` - and the mode resolves at STEP-THROUGH time (D5), so the caster who walked away since casting is not a stale destination but the whole point of a summon. Its refusals are the states with no live position to hand out: the caster gone from the world (logged out or dead, one removal fan-out), or flying. Text is plain and [PLACEHOLDER], the TownCrier convention.",
+  "id": 70,
+  "name": "PortalSummon",
+  "type": "MOB",
+  "entityType": "FireTotem",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 100,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1.0
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2.0,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          "A portal stands open.",
+          "It leads to whoever opened it."
+        ],
+        "options": [
+          {
+            "text": "Step through.",
+            "grants": [
+              {
+                "kind": "travel_to",
+                "mode": "caster",
+                "line": "You step through."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

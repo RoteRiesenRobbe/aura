@@ -11,6 +11,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
 
+*(2026-08-18: the portal-spells C2 wrap took the cap slot, so EFFECT TYPES C4 moved here verbatim.)*
+
+- **Prior: EFFECT TYPES C4 - ALLY SPEED, THE PLAN'S LAST CHUNK** ✅ 2026-08-17, `dfdd7281` (`docs/archive/plan-effect-types.md` §9 - plan COMPLETE + archived): both D8 shapes. New **`speed_aura`** (timed ally move-speed field; caster exclusion STRUCTURAL - the type has no `targetsSelf`; §5.2 work-charged, `ApplySpeed` gained the fresh-vs-refresh bool) · **`speed_burst`** learned target flags on C3's whiff contract (ally-only miss → false; a neither-flags burst hard-fails; `swift.json` authors `targetsSelf: true`, runtime pinned identical, `swift-cooldown.mjs` 4/4). Ring: **`AuraCategorySpeed` 1<<7, the LAST free `aura_category` bit**, pip-green by PO ruling. All three surveyed landmines real (auramask pinned DIRECTLY - sys tests inject collider sets · aura_category's free red · the zero-radius gate carved out, radius iff `targetsAllies`) ⭐ plus NEW: `TICKING_TYPES` (`SkillTooltip.ts`) fails SILENT; joined, completeness pin recorded-not-built. Content: **FlyYouFools id 71** (×1.3 +0.05/L, r2.5, uncapped allies) + **Onward id 72** (×1.4 +0.05/L, 5 s +0.5/L, caster stays behind); registry 95 → 97, cheat-only EIGHT. **Schema: NONE.** Verified: `go test -count=1` ×3 · `-race` touched pkgs, guardrails unshifted · vitest **369/369** · typecheck · prod builds · boot 0 WARN/0 ERROR census 97 · `c4-ally-speed` + `round4-tooltip` + `swift-cooldown` + `r1-focus-cost` green · `harnessdb -cleanup`. **PO in-game check passed 2026-08-17.** **Next: nothing in flight - `plan-portal-spells.md` queued.**
+
 
 *(2026-08-18: the portal-spells C1 wrap took the cap slot, so EFFECT TYPES C3 moved here verbatim.)*
 

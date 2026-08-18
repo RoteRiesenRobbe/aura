@@ -66,7 +66,9 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// rather than placed in a zone. ⚑ It is a creature for the reason spelled out
 	// above and NOT because of the sprite it borrows: it reuses the FireTotem
 	// entityType, which is a structure, so role and art disagree here on purpose.
-	assert.Len(t, byRole[RoleCreature], 45, "everything else is a creature")
+	// 45 → 46 with the PortalSummon (plan-portal-spells.md C2): the same recipe
+	// a fifth time, for the pair's other portal.
+	assert.Len(t, byRole[RoleCreature], 46, "everything else is a creature")
 	assert.Len(t, byRole, 3, "no def carries a role outside the three")
 }
 

@@ -678,6 +678,45 @@ describe('spawn mob name', () => {
     });
 });
 
+// spawn_at_anchor is spawn's remote twin (plan-portal-spells.md D4/D11): the
+// same payload, placed at the caster's bound campfire instead of beside them.
+// The tooltip's whole job is to say that ONE difference, because everything
+// else about the line (the mob name, the TTL, the level preview) is shared.
+//
+// ⚑ The type is on TICKING_TYPES' opposite side and stays off it: a spawn has
+// no cadence to advertise, so there is nothing to add there.
+describe('spawn_at_anchor', () => {
+    const pullThrough = skill({
+        displayName: 'Pull Through', category: 'cooldown', maxLevel: 1, cooldownTicks: 1200,
+        castTicks: 75, castInterruptedByDamage: true,
+        effects: [effect({
+            type: 'spawn_at_anchor', costFractionOfMax: 0.1,
+            spawn: {mobName: 'PortalSummon', ttlTicks: 900, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0},
+        })],
+    });
+
+    it('says where the summon lands', () => {
+        expect(lines(pullThrough, 1, 1)).toContain('Summons PortalSummon at your campfire for 30s');
+    });
+
+    it('leaves the plain spawn line alone', () => {
+        const openPortal = skill({
+            displayName: 'Open Portal', category: 'cooldown', maxLevel: 1, cooldownTicks: 1200,
+            effects: [effect({
+                type: 'spawn', costFractionOfMax: 0.1,
+                spawn: {mobName: 'PortalHome', ttlTicks: 900, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0},
+            })],
+        });
+        expect(lines(openPortal, 1, 1)).toContain('Summons PortalHome for 30s');
+    });
+
+    // The unknown-type degrade is what a missing case looks like, so pin that
+    // the case exists rather than only that the string is right.
+    it('is not rendered as an unhandled effect type', () => {
+        expect(lines(pullThrough, 1, 1).join('\n')).not.toContain('spawn_at_anchor');
+    });
+});
+
 // The faction scope line (plan-faction-flips D8). It renders from the SKILL's
 // data in the shared section, never from a per-effect case — so these tests use
 // invented faction names and an invented effect type on purpose: if either had

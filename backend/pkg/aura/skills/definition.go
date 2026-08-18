@@ -66,6 +66,7 @@ const (
 	EffectTypeStun
 	EffectTypeInstantResist
 	EffectTypeSpeedAura
+	EffectTypeSpawnAtAnchor
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -151,6 +152,13 @@ var effectTypeMap = map[string]EffectType{
 	// as a cast. Ally-facing only — the caster is excluded by construction (D9)
 	// and dragging an enemy is slow_aura's axis, not this one.
 	"speed_aura": EffectTypeSpeedAura,
+	// spawn's remote twin (plan-portal-spells.md D4): the same SpawnParams
+	// payload, placed at the caster's BOUND CAMPFIRE instead of beside the
+	// caster. It is a second type rather than a placement key on `spawn`
+	// because the placement decides the precondition too - an anchored spawn
+	// cannot fire at all without a bound fire, while FireTotem must keep
+	// firing for a character who has never seen one.
+	"spawn_at_anchor": EffectTypeSpawnAtAnchor,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -1269,6 +1277,18 @@ var effectKeys = map[EffectType][]string{
 	// No geometry/cadence/targeting: a spawn fires at the caster's position on
 	// cooldown activation — placement is the spawn site's business.
 	EffectTypeSpawn: {"spawnMob", "ttlTicks", "ttlTicksPerLevel", "powerPerOwnerLevel", "requiresAnchor"},
+	// The remote twin (plan-portal-spells.md D4/C2). ⭐ TWO KEYS ARE
+	// DELIBERATELY MISSING from spawn's row above, and their absence is the
+	// documentation:
+	//   - `requiresAnchor`: the anchor gate is this TYPE's, not the content's.
+	//     Without a bound fire there is nowhere to place the summon at all, so
+	//     an authored flag could only suggest the gate were optional. The opt-in
+	//     exists on plain `spawn` solely because anchor-free content shares that
+	//     type; here it would be a lie, and the allowlist turns it into a boot
+	//     failure instead of a silent no-op.
+	//   - `powerPerOwnerLevel`: nothing placed at a campfire fights. Add it the
+	//     day an anchored summon does, and re-derive its scaling then.
+	EffectTypeSpawnAtAnchor: {"spawnMob", "ttlTicks", "ttlTicksPerLevel"},
 	// Threat ops (chunk 7): a query circle (geometry) of enemy mobs; taunt
 	// carries a threatMargin, detaunt is a bare single-entry removal.
 	EffectTypeTaunt:   mergeKeys(keysGeometry, keysTargetFlags, []string{"threatMargin"}),
@@ -1678,7 +1698,11 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Stat, err = e.statParams()
 	case EffectTypeDotAura, EffectTypeInstantDot:
 		def.Dot, err = e.dotParams()
-	case EffectTypeSpawn:
+	case EffectTypeSpawn, EffectTypeSpawnAtAnchor:
+		// One payload for both placements (D4). The shared struct is what makes
+		// the remote twin nearly free: items/mobs validateSpawnEffects resolves
+		// spawnMob (and attaches the summon loadout) off `Spawn != nil`, and the
+		// /skills catalog emits it under the same key the client tooltip reads.
 		def.Spawn, err = e.spawnParams()
 	case EffectTypeTaunt:
 		def.Threat, err = e.tauntParams()

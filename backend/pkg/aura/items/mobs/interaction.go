@@ -193,20 +193,34 @@ type InteractionGrant struct {
 }
 
 // TravelMode names where a travel_to grant delivers. A closed vocabulary with
-// the refuse-at-boot discipline every other authored kind has, and here it earns
-// its keep twice: an unknown mode is a portal that swallows a keypress and moves
-// nobody, and the closed set is also what keeps C2's own mode unauthorable until
-// the effect that places its portal exists.
+// the refuse-at-boot discipline every other authored kind has, and it earns its
+// keep the same way ParseGrantKind does: an unknown mode is a portal that
+// swallows a keypress and moves nobody.
+//
+// ⚑ BOTH MODES RESOLVE AT STEP-THROUGH TIME, never at cast time (D5). That is
+// what makes the pair readable as one spell family: the door leads wherever its
+// opener is anchored, or wherever its opener now stands.
 type TravelMode string
 
-// TravelHomeCampfire delivers to the campfire the portal's OWNER is bound to,
-// resolved when the row is taken rather than when the portal was cast (D5). One
-// AnchorOf miss covers both refusals it can hit: an owner who never bound, and
-// an owner whose connection state went with their connection.
-const TravelHomeCampfire TravelMode = "home_campfire"
+const (
+	// TravelHomeCampfire delivers to the campfire the portal's OWNER is bound to
+	// (Open Portal, C1). One AnchorOf miss covers both refusals it can hit: an
+	// owner who never bound, and an owner whose connection state went with their
+	// connection.
+	TravelHomeCampfire TravelMode = "home_campfire"
+
+	// TravelCaster delivers to the portal owner's LIVE position (Pull Through,
+	// C2) - the caster may have walked on since the cast, and that is the point
+	// of a summon rather than a defect. Its refusals are the states in which the
+	// owner has no live position to hand out: gone from the world (logged out or
+	// dead - both leave the game the same way), or flying (D3: flight removes the
+	// body from the space, so the "position" is a map animation, not a place).
+	TravelCaster TravelMode = "caster"
+)
 
 var travelModes = map[string]TravelMode{
 	string(TravelHomeCampfire): TravelHomeCampfire,
+	string(TravelCaster):       TravelCaster,
 }
 
 // ParseTravelMode resolves an authored destination mode.

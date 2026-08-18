@@ -137,6 +137,8 @@ func TestXPFactor_CombatTargetFollowsXPFactor(t *testing.T) {
 // buys something the stones did not need: a portal is a doorway with a duration,
 // so a nameplate and a level on it would advertise a fight that cannot happen
 // (nothing can reach its collision layer at all).
+// ⚑ 32 → 33 with the PortalSummon (plan-portal-spells.md C2): the same doorway
+// placed at the fire instead of beside the caster, and the same reason.
 func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 	var free []string
 	for _, def := range contentRegistry(t).Mobs() {
@@ -144,7 +146,7 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 			free = append(free, def.Name)
 		}
 	}
-	assert.Len(t, free, 32, "every xpFactor-0 species: %v", free)
+	assert.Len(t, free, 33, "every xpFactor-0 species: %v", free)
 
 	// ⚑ Exactly ONE structure pays anything, and it is the harvest chore's
 	// target: the Turnip at 0.05 (PO 2026-08-05, the one §3.4 curation pulled
