@@ -91,7 +91,59 @@ kill_port() {
 	done
 }
 
+# aurad's boot is FATAL without a reachable database, so bring one up first.
+#
+# This is a no-op for most setups: if anything already answers on the
+# AURA_DB_URL port - Docker's container, a service left on Automatic, a remote
+# database - it returns before touching any service, so a stray local service
+# is never started underneath a Docker user. It acts only when nothing is
+# serving AND a local Postgres service exists, which is the case on a Windows
+# box that deliberately keeps Postgres on StartType=Manual because it is only
+# ever needed for aurad. Starting one without elevation needs start/stop rights
+# on that single service, granted by an ACE in its SDDL. Override the service
+# name with AURA_PG_SERVICE.
+ensure_db() {
+	local port
+	port="$(printf '%s' "${AURA_DB_URL:-}" | sed -nE 's#.*:([0-9]+)/.*#\1#p')"
+	[ -z "$port" ] && port=5432
+
+	if netstat -ano 2>/dev/null | grep -qE ":${port}[[:space:]].*LISTENING"; then
+		return 0
+	fi
+
+	local svc="${AURA_PG_SERVICE:-postgresql-x64-16}"
+	local status
+	status="$(powershell.exe -NoProfile -Command "(Get-Service $svc -ErrorAction SilentlyContinue).Status" 2>/dev/null | tr -d '\r\n')"
+	if [ -z "$status" ]; then
+		echo -e "${YELLOW}  ⚠ [db]${RESET} nothing on port ${port} and no '${svc}' service - start your database first"
+		return 0
+	fi
+
+	echo -e "${BLUE}  ▶ [db]${RESET} starting Postgres service (${svc})..."
+	powershell.exe -NoProfile -Command "Start-Service $svc" >/dev/null 2>&1 || true
+
+	local pg_isready="/c/Program Files/PostgreSQL/16/bin/pg_isready.exe"
+	local i=0
+	while [ "$i" -lt 20 ]; do
+		if [ -x "$pg_isready" ]; then
+			if "$pg_isready" -h 127.0.0.1 -p "$port" >/dev/null 2>&1; then
+				echo -e "${GREEN}  ✓ [db]${RESET} Postgres accepting connections on ${port}"
+				return 0
+			fi
+		elif netstat -ano 2>/dev/null | grep -qE ":${port}[[:space:]].*LISTENING"; then
+			echo -e "${GREEN}  ✓ [db]${RESET} Postgres listening on ${port}"
+			return 0
+		fi
+		sleep 1
+		i=$((i + 1))
+	done
+
+	echo -e "${RED}  ✖ [db]${RESET} '${svc}' did not start (rights? port ${port} in use?) - aurad cannot boot without a database" >&2
+	return 1
+}
+
 restart_server() {
+	ensure_db
 	echo -e "${CYAN}⚡ [aurad]${RESET} ${BOLD}Building backend (go build -o aurad.exe)...${RESET}"
 	( cd "$REPO/backend" && go build -o aurad.exe ./cmd/aurad )
 
