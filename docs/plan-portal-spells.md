@@ -1,6 +1,6 @@
 # Plan: Portal spells (Open Portal + Pull Through)
 
-**Status: C1 built + verified 2026-08-18 (`[uncommitted]`, PO check pending) -
+**Status: C1 built + verified 2026-08-18 (`564f62c8`, PO check pending) -
 C2 Pull Through open.** Survey at `2689175e` (four parallel sweeps: cast
 machinery, teleport seams, interaction system, spawn path); ⚑ line refs below
 are pinned to that commit, re-verified for C1 at execution 2026-08-18 (all
@@ -271,7 +271,7 @@ PO checklist · `harnessdb -cleanup` after Playwright runs.
 
 ## 11. Ledger
 
-### C1 - Open Portal ✅ 2026-08-18, `[uncommitted]` - ⚠ PENDING PO in-game check (§10 items 1-9)
+### C1 - Open Portal ✅ 2026-08-18, `564f62c8` - ⚠ PENDING PO in-game check (§10 items 1-9)
 
 **Shipped.** `travel_to` grant kind (required `mode`, only `home_campfire` legal until C2;
 unknown or missing mode hard-fails at boot) · `requiresAnchor` opt-in on the `spawn`
