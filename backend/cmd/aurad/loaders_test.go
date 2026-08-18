@@ -57,18 +57,37 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	// Round-7 item 3: after the mob registry resolves, every summoning skill's
 	// spawn payload carries the summon's loadout — the tooltip's only way to
 	// say what the totem/companion actually does.
-	var spawnEffects int
+	//
+	// ⭐ ASSERTED AGAINST THE MOB DEFINITION rather than as a blanket NotEmpty
+	// (plan-portal-spells.md C1). PortalHome is the first summon that authors NO
+	// skills, and that is structural rather than an oversight twice over: a
+	// portal is a doorway, so "Summons Portal for 30s" is already the whole
+	// tooltip, AND the D2 recipe could not run an aura even if one were authored
+	// (role creature gates its aura on a target, and nothing can reach the
+	// portal's collision layer to become one). Satisfying the old form would
+	// have meant inventing content to feed a test. The pin still catches exactly
+	// what it was written for: an attach that silently stops running leaves a
+	// real totem's loadout empty while its definition still lists skills.
+	var spawnEffects, withLoadout int
 	for _, sk := range skillsRegistry.All() {
 		for _, effect := range sk.Effects {
 			if effect.Spawn == nil {
 				continue
 			}
 			spawnEffects++
-			assert.NotEmpty(t, effect.Spawn.SummonLoadout,
+			summoned, err := mobsRegistry.GetByName(effect.Spawn.MobName)
+			require.NoError(t, err, "skill %q: spawnMob %q", sk.Name, effect.Spawn.MobName)
+			assert.Len(t, effect.Spawn.SummonLoadout, len(summoned.Skills),
 				"skill %q: spawn %q must carry the summon's loadout", sk.Name, effect.Spawn.MobName)
+			if len(effect.Spawn.SummonLoadout) > 0 {
+				withLoadout++
+			}
 		}
 	}
 	assert.NotZero(t, spawnEffects, "repo content ships summoning skills")
+	// Keeps the check above from going vacuous the day every summon loses its
+	// skills: at least one shipped summon must still have something to say.
+	assert.NotZero(t, withLoadout, "repo content ships a summon with a loadout")
 
 	recipeRegistry, err := skills.RecipesFromFS(content.recipes, skillsRegistry)
 	require.NoError(t, err)

@@ -199,7 +199,7 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// (every aura-path type at once), OmniPassive id 74 (the full passive
 	// fold), OmniStrike id 75 (every precondition-free cooldown type),
 	// 97 → 100.
-	assert.Len(t, r.All(), 100)
+	assert.Len(t, r.All(), 101)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

@@ -1,0 +1,47 @@
+{
+  "_comment": "The Open Portal's portal (plan-portal-spells.md D2, C1 step 3): the doorway the OpenPortal cooldown spawns beside its caster, standing for its TTL and then dying with the summon sweep. Never referenced by any zone spawn, the FireTotem precedent. BODY IS THE MEMORIAL-STONE RECIPE VERBATIM, knob for knob, and that recipe is load-bearing rather than cosmetic: collisionLayer 97 (PlayerStatic 1 + Viewport 32 + MobStatic 64) is deliberately NOT on Action(2), so no aura mask on either side can reach it, and mask 16 (Border only) means nothing pushes it. That is what settled C1 step 2's combat-gate question: nothing can put a portal in combat, so EnlistUnder on the spawn path is harmless and the health pool below is decorative. Pinned by TestPortalRecipe_IsUnreachableByAurasAndAggro (sys). role creature + speed 0 is the same call every talking object makes (D4, ascension-stone precedent): a structure runs its aura always-on and registers nothing with the InteractionSystem, while an object that merely talks is a creature that authors no movement. aggroRadius 1.0 is required-but-inert (a creature must author one); interaction.range 2.0 is the wider of the two and is what sizes the sensor the player actually meets. faction townsfolk so player damage skips it too, belt to the layer's brace; note the spawn path calls EnlistUnder and overrides it at runtime anyway. xpFactor 0 keeps it off the nameplate and the XP path. ALL VALUES [PLACEHOLDER], per the GDD rule. ⛑ entityType FireTotem is a DELIBERATE REUSE and placeholder art (D2, the same call the ascension stone and the memorial made with Signpost): a bespoke portal EntityType costs a wire enum value that can never be reclaimed plus an exhaustive client Record entry, and D2 rules that the spell earns its own sprite later. A summoned temporary object reads closer than a signpost does. ⭐ ONE NODE, ONE ROW, and the row's shape is enforced by the loader rather than by convention: a travel_to grant must be alone on its option, must author its own text (it has no skill name to borrow), and must carry no `next` (stepping through ends the conversation, so the node it named could never be shown). The decline is the automatic 'Leave.' row, which is why none is authored here. Text is plain and [PLACEHOLDER], the TownCrier convention.",
+  "id": 69,
+  "name": "PortalHome",
+  "type": "MOB",
+  "entityType": "FireTotem",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 100,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1.0
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2.0,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          "A portal stands open.",
+          "It leads to the campfire the caster is bound to."
+        ],
+        "options": [
+          {
+            "text": "Step through.",
+            "grants": [
+              {
+                "kind": "travel_to",
+                "mode": "home_campfire",
+                "line": "You step through."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

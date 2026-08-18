@@ -133,6 +133,10 @@ func TestXPFactor_CombatTargetFollowsXPFactor(t *testing.T) {
 // priced site, and the same rule a third time.
 // ⚑ 32 → 31 at zone-editor C3: the legacy roster left, and the Brazier was its
 // only xpFactor-0 author (the other nine legacy defs defaulted to 1).
+// ⚑ 31 → 32 with the PortalHome (plan-portal-spells.md C1), and here the rule
+// buys something the stones did not need: a portal is a doorway with a duration,
+// so a nameplate and a level on it would advertise a fight that cannot happen
+// (nothing can reach its collision layer at all).
 func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 	var free []string
 	for _, def := range contentRegistry(t).Mobs() {
@@ -140,7 +144,7 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 			free = append(free, def.Name)
 		}
 	}
-	assert.Len(t, free, 31, "every xpFactor-0 species: %v", free)
+	assert.Len(t, free, 32, "every xpFactor-0 species: %v", free)
 
 	// ⚑ Exactly ONE structure pays anything, and it is the harvest chore's
 	// target: the Turnip at 0.05 (PO 2026-08-05, the one §3.4 curation pulled

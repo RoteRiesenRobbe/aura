@@ -1588,6 +1588,24 @@ func (s *SkillSystem) activationPrecondition(e skillEntity, es *skills.EquippedS
 			if _, bound := s.connState.AnchorOf(p.Client().UUID()); !bound {
 				return model.ActivationRejectedNoAnchor
 			}
+		case skills.EffectTypeSpawn:
+			// ⭐ OPT-IN, unlike recall's arm above (plan-portal-spells.md §10
+			// item 6). A portal's destination IS the caster's bound campfire, so
+			// casting one unbound opens a door to nowhere; FireTotem fires this
+			// same effect type and authors no flag, so it stays ungated. The gate
+			// belongs to the content, which is why it is read off the params
+			// rather than off the type.
+			if effect.Spawn == nil || !effect.Spawn.RequiresAnchor {
+				continue
+			}
+			p, ok := e.(model.PlayerEntity)
+			if !ok || s.connState == nil {
+				// Mobs bind no campfire; an unwired seam reads as nothing bound.
+				return model.ActivationRejectedNoAnchor
+			}
+			if _, bound := s.connState.AnchorOf(p.Client().UUID()); !bound {
+				return model.ActivationRejectedNoAnchor
+			}
 		case skills.EffectTypeRevive:
 			// A revive with no corpse in range is a rejected activation, not a
 			// whiff-consume (§3.6): no cooldown burned, feedback on the wire.

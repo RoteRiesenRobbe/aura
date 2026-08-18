@@ -1,0 +1,69 @@
+{
+  "_comment": "LIMIT-TEST CONTENT (2026-08-18): the kitchen-sink PASSIVE - everything the passive fold (SkillComponent.recomputeDerived) consumes at once: one stat_multiplier per stat in the closed six-stat vocabulary (movementSpeed / maxHealth / damageReduction / critChance / damageDealt / costReduction), resist_passive, retaliate_slow, retaliate_damage, plus light_aura (the Torch pattern - light is read per equipped skill, not per category). Cheat-only, godlike on purpose: SKILL OmniPassive; NO unlock source, ever - a test rig, not content. What this deliberately exercises: BOTH retaliates are strongest-wins WHOLESALE against other equipped passives (equip FireShield/FrostShield beside it and only the stronger of each pair fires - fraction/damage, duration and tags all come from the winner); resist_passive factors MULTIPLY per tag across distinct passives (0.7 here x ThickHide's physical would compound if tags overlapped); passives have no cadence and no fire, so costFractionOfMax would parse but never charge - none is authored. resistTags here are NAMED tags; the '*' wildcard is buff-store semantics (resist_aura/instant_resist) and deliberately not exercised on the passive fold. All values [PLACEHOLDER] and irrelevant.",
+  "id": 74,
+  "name": "OmniPassive",
+  "category": "passive",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "stat_multiplier",
+      "stat": "movementSpeed",
+      "statBonus": 0.15,
+      "statBonusPerLevel": 0.02
+    },
+    {
+      "type": "stat_multiplier",
+      "stat": "maxHealth",
+      "statBonus": 0.2,
+      "statBonusPerLevel": 0.02
+    },
+    {
+      "type": "stat_multiplier",
+      "stat": "damageReduction",
+      "statBonus": 0.15,
+      "statBonusPerLevel": 0.02
+    },
+    {
+      "type": "stat_multiplier",
+      "stat": "critChance",
+      "statBonus": 0.1,
+      "statBonusPerLevel": 0.02
+    },
+    {
+      "type": "stat_multiplier",
+      "stat": "damageDealt",
+      "statBonus": 0.25,
+      "statBonusPerLevel": 0.02
+    },
+    {
+      "type": "stat_multiplier",
+      "stat": "costReduction",
+      "statBonus": 0.25,
+      "statBonusPerLevel": 0.02
+    },
+    {
+      "type": "resist_passive",
+      "resistTags": ["fire", "poison"],
+      "resistFactor": 0.7,
+      "resistFactorPerLevel": -0.05
+    },
+    {
+      "type": "retaliate_slow",
+      "slowFraction": 0.3,
+      "slowFractionPerLevel": 0.05,
+      "slowDurationTicks": 150,
+      "slowDurationTicksPerLevel": 0
+    },
+    {
+      "type": "retaliate_damage",
+      "damageHP": 5,
+      "damageHPPerLevel": 1,
+      "damageTags": ["frost"]
+    },
+    {
+      "type": "light_aura",
+      "radius": 2.0,
+      "radiusPerLevel": 0.25
+    }
+  ]
+}

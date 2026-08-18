@@ -1106,3 +1106,142 @@ func TestMapMobDefinition_RejectsLockedWhenGatedOnAGrantingRow(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "lockedWhenGated")
 }
+
+// --- travel_to: the grant kind that MOVES a player (plan-portal-spells.md D3) ---
+//
+// It is the first grant that hands over nothing at all: no skill, no quest edge,
+// no XP. What it authors is a DESTINATION MODE, and the mode is required for the
+// same reason a grant kind is (ParseGrantKind's doc): an untyped destination is a
+// mistake, not a shorthand.
+
+func TestMapMobDefinition_ParsesATravelToGrant(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["A doorway hangs in the air."],
+	  "options": [{"text": "Step through.", "grants": [
+	    {"kind": "travel_to", "mode": "home_campfire", "line": "You step through."}
+	  ]}]
+	}]}`)
+	require.NoError(t, err)
+
+	g := def.Interaction.Nodes[0].Options[0].Grants[0]
+	assert.Equal(t, GrantTravelTo, g.Kind)
+	assert.Equal(t, TravelHomeCampfire, g.Travel)
+	assert.Nil(t, g.Skill, "a travel grant resolves no skill")
+	assert.Equal(t, "You step through.", g.Line)
+}
+
+func TestParseGrantKind_KnowsTravelTo(t *testing.T) {
+	kind, ok := ParseGrantKind("travel_to")
+	require.True(t, ok)
+	assert.Equal(t, GrantTravelTo, kind)
+}
+
+// ⚑ The mode is REQUIRED. A travel grant with no destination has nowhere to
+// deliver, and defaulting one would pick a destination the author never wrote.
+func TestMapMobDefinition_RejectsATravelToWithoutAMode(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "Step through.", "grants": [{"kind": "travel_to", "line": "go"}]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "mode")
+}
+
+// ⭐ And an UNKNOWN mode hard-fails, which is what keeps C2's `caster` mode
+// safely unauthorable until the effect that places its portal ships: a mode
+// parsed and ignored is content that silently does nothing.
+func TestMapMobDefinition_RejectsAnUnknownTravelMode(t *testing.T) {
+	for _, mode := range []string{"caster", "home-campfire", "anywhere"} {
+		_, err := mapInteraction(t, `{"nodes": [{
+		  "id": "root", "lines": ["hi"],
+		  "options": [{"text": "Step through.", "grants": [
+		    {"kind": "travel_to", "mode": "`+mode+`", "line": "go"}
+		  ]}]
+		}]}`)
+		require.Error(t, err, mode)
+		assert.Contains(t, err.Error(), "mode", mode)
+	}
+}
+
+// The other half of the per-kind payload rule: a key that means nothing for the
+// kind it sits on is refused, not ignored.
+func TestMapMobDefinition_RejectsAModeOnAnotherKind(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "yes", "grants": [
+	    {"kind": "offer_quest", "quest": "pelts", "mode": "home_campfire", "line": "go"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "mode")
+}
+
+func TestMapMobDefinition_RejectsATravelToCarryingQuestOrXPKeys(t *testing.T) {
+	for _, grant := range []string{
+		`{"kind": "travel_to", "mode": "home_campfire", "quest": "pelts", "line": "go"}`,
+		`{"kind": "travel_to", "mode": "home_campfire", "xp": 50, "line": "go"}`,
+	} {
+		_, err := mapInteraction(t, `{"nodes": [{
+		  "id": "root", "lines": ["hi"],
+		  "options": [{"text": "Step through.", "grants": [`+grant+`]}]
+		}]}`)
+		assert.Error(t, err, grant)
+	}
+}
+
+// A travel row renders from its authored text alone - unlike a teaching row it
+// has no skill name to fall back on, so a blank one is an unlabelled button.
+func TestMapMobDefinition_RejectsATravelRowWithoutText(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"grants": [{"kind": "travel_to", "mode": "home_campfire", "line": "go"}]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "text")
+}
+
+// ⛑ TWO TRAVEL GRANTS ON ONE OPTION ARE REFUSED. Each renders its own row and
+// both would be labelled from the one `opt.Text`, so the player sees the same
+// row twice and cannot tell which destination they are picking.
+func TestMapMobDefinition_RejectsTwoTravelGrantsOnOneOption(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "Step through.", "grants": [
+	    {"kind": "travel_to", "mode": "home_campfire", "line": "go"},
+	    {"kind": "travel_to", "mode": "home_campfire", "line": "go again"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "travel_to")
+}
+
+// ⛑ A TRAVEL GRANT INSIDE A QUEST BUNDLE IS REFUSED. applyQuestRow hands over
+// only XP and skills, and a quest option renders as ONE row, so a travel grant
+// behind one would be invisible AND skipped - the silently-inert authoring the
+// reserved-vocabulary refusals exist to prevent.
+func TestMapMobDefinition_RejectsATravelGrantInsideAQuestBundle(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "Accept.", "grants": [
+	    {"kind": "offer_quest", "quest": "pelts", "line": "go"},
+	    {"kind": "travel_to", "mode": "home_campfire", "line": "and away"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "travel_to")
+}
+
+// Stepping through ends the conversation (the portal is out of range the moment
+// the player lands), so a `next` on the same row names a node nobody can ever
+// reach.
+func TestMapMobDefinition_RejectsANextOnATravelRow(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [
+	  {"id": "more", "lines": ["more"]},
+	  {"id": "root", "lines": ["hi"], "options": [{"text": "Step through.", "next": "more", "grants": [
+	    {"kind": "travel_to", "mode": "home_campfire", "line": "go"}
+	  ]}]}
+	]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "travel_to")
+}

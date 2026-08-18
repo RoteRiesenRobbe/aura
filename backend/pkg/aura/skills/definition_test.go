@@ -1317,6 +1317,37 @@ func TestMap_SpawnEffectInvalid(t *testing.T) {
 	}
 }
 
+// requiresAnchor is spawn's OPT-IN anchor gate (plan-portal-spells.md §10 item
+// 6): a portal spell must refuse to start without a bound campfire, because its
+// destination is that campfire, while FireTotem uses the same effect type and
+// must stay ungated. An authored bool is the whole mechanism - the arm in
+// activationPrecondition reads it.
+func TestMap_SpawnEffectRequiresAnchorIsOptIn(t *testing.T) {
+	gated := mustParse(t, []byte(`{
+      "id": 23, "name": "OpenPortal", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 450,
+      "effects": [{"type": "spawn", "spawnMob": "Totem", "ttlTicks": 900, "requiresAnchor": true}]
+    }`))
+	require.NotNil(t, gated.Effects[0].Spawn)
+	assert.True(t, gated.Effects[0].Spawn.RequiresAnchor)
+
+	plain := mustParse(t, []byte(`{
+      "id": 24, "name": "SummonTotem", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 450,
+      "effects": [{"type": "spawn", "spawnMob": "Totem", "ttlTicks": 300}]
+    }`))
+	assert.False(t, plain.Effects[0].Spawn.RequiresAnchor,
+		"absent = ungated, so every shipped summon keeps firing unbound")
+}
+
+// The allowlist's other half: the key is spawn's alone, so authoring it on a
+// type with no anchor arm is a boot failure rather than a silent no-op.
+func TestMap_RequiresAnchorOnAnotherEffectFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"effects":[` +
+		`{"type":"recall","requiresAnchor":true}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.ErrorContains(t, err, "requiresAnchor")
+}
+
 func TestMap_SpawnKeysOnOtherEffectsFail(t *testing.T) {
 	// spawnMob/ttlTicks on a non-spawn effect would be silently ignored.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"damageHP":7,"spawnMob":"Totem"}]}`))

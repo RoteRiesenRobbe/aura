@@ -61,7 +61,12 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// +1 again for the FrontAscensionStone (plan-ascension-sites.md C1), which
 	// is the third time the same case is authored — and now an expected-to-grow
 	// one, since D1 makes a differently-priced site ordinary content.
-	assert.Len(t, byRole[RoleCreature], 44, "everything else is a creature")
+	// 44 → 45 with the PortalHome (plan-portal-spells.md C1): a fourth object that
+	// talks and authors no movement, and the first that is spawned at runtime
+	// rather than placed in a zone. ⚑ It is a creature for the reason spelled out
+	// above and NOT because of the sprite it borrows: it reuses the FireTotem
+	// entityType, which is a structure, so role and art disagree here on purpose.
+	assert.Len(t, byRole[RoleCreature], 45, "everything else is a creature")
 	assert.Len(t, byRole, 3, "no def carries a role outside the three")
 }
 

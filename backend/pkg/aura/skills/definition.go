@@ -924,6 +924,18 @@ type SpawnParams struct {
 
 	PowerPerOwnerLevel float32 `json:"powerPerOwnerLevel"`
 
+	// RequiresAnchor joins this spawn to the anchor-required set: the press is
+	// refused with ActivationRejectedNoAnchor unless the caster is bound to a
+	// campfire, checked at the press AND again at cast completion like recall's
+	// (plan-portal-spells.md §10 item 6).
+	//
+	// ⭐ AN OPT-IN, not a property of the effect type, and that is the whole
+	// reason it is authored at all: a portal's DESTINATION is the caster's bound
+	// fire, so casting one unbound produces a door to nowhere - while FireTotem
+	// fires the same effect type and must keep working for a character who has
+	// never seen a campfire. The gate belongs to the content, not to `spawn`.
+	RequiresAnchor bool `json:"requiresAnchor,omitempty"`
+
 	// SummonLoadout is the summon's authored skill loadout as catalog
 	// references, attached by mobs.RegistryFromFS once the mob registry can
 	// resolve MobName (mobs load after skills). It exists for the /skills
@@ -1128,6 +1140,7 @@ type effectDef struct {
 	TTLTicks           int     `json:"ttlTicks"`
 	TTLTicksPerLevel   int     `json:"ttlTicksPerLevel"`
 	PowerPerOwnerLevel float32 `json:"powerPerOwnerLevel"`
+	RequiresAnchor     bool    `json:"requiresAnchor"`
 
 	ThreatMargin float32 `json:"threatMargin"` // taunt: head start above the current top
 
@@ -1255,7 +1268,7 @@ var effectKeys = map[EffectType][]string{
 	EffectTypeInstantDot: mergeKeys(keysGeometry, keysCapped, keysTargetFlags, keysDotPayload),
 	// No geometry/cadence/targeting: a spawn fires at the caster's position on
 	// cooldown activation — placement is the spawn site's business.
-	EffectTypeSpawn: {"spawnMob", "ttlTicks", "ttlTicksPerLevel", "powerPerOwnerLevel"},
+	EffectTypeSpawn: {"spawnMob", "ttlTicks", "ttlTicksPerLevel", "powerPerOwnerLevel", "requiresAnchor"},
 	// Threat ops (chunk 7): a query circle (geometry) of enemy mobs; taunt
 	// carries a threatMargin, detaunt is a bare single-entry removal.
 	EffectTypeTaunt:   mergeKeys(keysGeometry, keysTargetFlags, []string{"threatMargin"}),
@@ -1952,6 +1965,7 @@ func (e *effectDef) spawnParams() (*SpawnParams, error) {
 		TTLTicks:           e.TTLTicks,
 		TTLTicksPerLevel:   e.TTLTicksPerLevel,
 		PowerPerOwnerLevel: e.PowerPerOwnerLevel,
+		RequiresAnchor:     e.RequiresAnchor,
 	}, nil
 }
 

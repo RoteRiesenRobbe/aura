@@ -57,6 +57,14 @@ var expectedConversants = []string{
 	// content. Deliberately UNGATED (P26): reading the names of the dead is not
 	// a reward, so unlike the stone beside it there is nothing to qualify for.
 	"MemorialStone",
+	// ⭐ THE FIRST CONVERSANT THAT IS NEVER PLACED IN A ZONE (plan-portal-spells.md
+	// C1): every name above it stands somewhere in `api/zones/`, while the portal
+	// is spawned at runtime by the OpenPortal cooldown and dies with its TTL. It
+	// is here because this census asks who CAN talk, which is a property of the
+	// definition and not of where the world puts it - and it is also the only
+	// conversant whose rows can be locked by something outside the content: its
+	// travel row needs the OWNER's campfire anchor to resolve.
+	"PortalHome",
 }
 
 func conversants(t *testing.T) map[string]*MobDefinition {
@@ -112,6 +120,17 @@ func TestContent_EveryGrantIsResolvedForItsKind(t *testing.T) {
 						assert.NotEmpty(t, g.ToStage, "%s: the edge is the row", name)
 					case GrantXP:
 						assert.NotZero(t, g.XP, "%s", name)
+					case GrantTravelTo:
+						// ⭐ THE ONE KIND THAT HANDS OVER NOTHING
+						// (plan-portal-spells.md D3), so the invariant is the
+						// mirror image of the four above: a resolved destination
+						// and every payload field empty. An unresolved mode is
+						// the defect this catches - a portal that swallows the
+						// keypress and moves nobody.
+						assert.NotEmpty(t, g.Travel, "%s: the destination mode must resolve at load", name)
+						assert.Nil(t, g.Skill, "%s: travel teaches nothing", name)
+						assert.Empty(t, g.Quest, "%s: travel drives no quest", name)
+						assert.Zero(t, g.XP, "%s: travel pays nothing", name)
 					default:
 						t.Errorf("%s: grant kind %q has no content invariant — add one here", name, g.Kind)
 					}

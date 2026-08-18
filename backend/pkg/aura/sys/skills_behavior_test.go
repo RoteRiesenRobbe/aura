@@ -119,8 +119,11 @@ type fakePlayer struct {
 	// two above: a session survives ticks and is ended only by an explicit
 	// condition, which is precisely what the end-condition tests assert on.
 	conversingWith uint64
-	conversation   *model.Conversation
-	conf           cfg.PlayerConfig // zero value = no base crit (§4.3 v2); tests set CritChance explicitly
+	// grounded counts Ground() calls - the travel_to grant's half of the
+	// Recall/WARP recipe (plan-portal-spells.md C1).
+	grounded     int
+	conversation *model.Conversation
+	conf         cfg.PlayerConfig // zero value = no base crit (§4.3 v2); tests set CritChance explicitly
 }
 
 // appliedResist records one ApplyResist call on a test double.
@@ -211,11 +214,12 @@ func (f *fakePlayer) LifestealFraction() float32 { return f.buffs.LifestealFract
 func (f *fakePlayer) ApplyReflect(source skills.SkillID, fraction float32, tags []string, ticks int) {
 	f.buffs.ApplyReflect(source, fraction, tags, ticks)
 }
-func (f *fakePlayer) InCombat() bool             { return f.inCombat }
-func (f *fakePlayer) NoteCombatAction()          { f.combatActions++ }
+func (f *fakePlayer) InCombat() bool    { return f.inCombat }
+func (f *fakePlayer) NoteCombatAction() { f.combatActions++ }
 
 func (f *fakePlayer) Client() model.Client    { return f.client }
 func (f *fakePlayer) SetPosition(v phy.Vec2f) { f.aura.SetPosition(v) }
+func (f *fakePlayer) Ground()                 { f.grounded++ }
 func (f *fakePlayer) NoteActivationRejected(id skills.SkillID, reason model.ActivationRejection) {
 	f.rejections = append(f.rejections, rejectedActivation{id, reason})
 }
@@ -5867,4 +5871,85 @@ func TestCooldown_RetaliateBurstFiresWithNoEnemyInSight(t *testing.T) {
 	fraction, _ := caster.buffs.ReflectBurst()
 	assert.NotZero(t, fraction, "an empty field is not a whiff for a self-buff")
 	assert.NotZero(t, caster.sc.SlotCooldownRemaining(0), "and it still costs the cooldown")
+}
+
+// --- spawn's opt-in anchor gate (plan-portal-spells.md §10 item 6) ---
+//
+// A portal's DESTINATION is the caster's bound campfire, so casting one unbound
+// opens a door to nowhere. The gate is authored per skill rather than being a
+// property of `spawn`, because FireTotem fires the same effect type and must
+// keep working for a character who has never seen a fire.
+
+func anchoredSpawnDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 76, Name: "OpenPortal", Category: skills.SkillCategoryCooldown, MaxLevel: 1,
+		CooldownTicks: 9000, CastTicks: 3, CastInterruptedByDamage: true,
+		Effects: []skills.EffectDef{{
+			Type:  skills.EffectTypeSpawn,
+			Spawn: &skills.SpawnParams{MobName: "Portal", TTLTicks: 900, RequiresAnchor: true},
+		}},
+	}
+}
+
+func TestSpawn_RequiresAnchorRejectsThePress(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+	caster, sk := cooldownCaster(empty)
+	caster.sc.EquipCooldown(0, anchoredSpawnDef(), 1)
+	sk.SetConnState(&fakeConnState{bound: false})
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.False(t, caster.sc.IsCasting(), "precondition fails → no cast starts")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "no cooldown consumed")
+	require.Len(t, caster.rejections, 1)
+	assert.Equal(t, skills.SkillID(76), caster.rejections[0].skill)
+	assert.Equal(t, model.ActivationRejectedNoAnchor, caster.rejections[0].reason)
+}
+
+// The completion re-check, recall's rule on a second effect type: the world
+// moved during the wind-up, so the portal must not be placed either.
+func TestSpawn_RequiresAnchorRejectsAtCompletionWhenTheAnchorIsLost(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+	caster, sk := cooldownCaster(empty)
+	caster.sc.EquipCooldown(0, anchoredSpawnDef(), 1)
+	cs := &fakeConnState{anchor: phy.Vec2f{X: 4, Y: 4}, bound: true}
+	sk.SetConnState(cs)
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+	require.True(t, caster.sc.IsCasting(), "bound at the press, so the cast runs")
+
+	cs.bound = false
+	for i := 0; i < 3; i++ {
+		sk.Update(33.0)
+	}
+
+	assert.False(t, caster.sc.IsCasting())
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "cooldown refunded (never consumed)")
+	require.Len(t, caster.rejections, 1)
+	assert.Equal(t, model.ActivationRejectedNoAnchor, caster.rejections[0].reason)
+}
+
+// ⚑ THE OTHER HALF, and the one that would break shipped content: an unflagged
+// spawn is ungated. FireTotem authors no `requiresAnchor`, so an unbound caster
+// still plants it.
+func TestSpawn_WithoutTheFlagIsUngated(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+	caster, sk := cooldownCaster(empty)
+	def := anchoredSpawnDef()
+	def.Effects[0].Spawn.RequiresAnchor = false
+	caster.sc.EquipCooldown(0, def, 1)
+	sk.SetConnState(&fakeConnState{bound: false})
+	caster.sc.RequestCooldownActivation(0)
+
+	// One tick only: the cast STARTS, which is the whole assertion. Letting it
+	// complete would reach the spawn site and its mob registry, which this
+	// fixture has no game for.
+	sk.Update(33.0)
+
+	assert.True(t, caster.sc.IsCasting(), "no flag, no gate - the totem casts unbound")
+	assert.Empty(t, caster.rejections)
 }

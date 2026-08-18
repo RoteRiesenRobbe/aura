@@ -1,9 +1,10 @@
 # Plan: Portal spells (Open Portal + Pull Through)
 
-**Status: designed 2026-08-17, nothing built.** Survey at `2689175e` (four
-parallel sweeps: cast machinery, teleport seams, interaction system, spawn
-path); ⚑ line refs below are pinned to that commit, re-verify at execution.
-**Queue: after effect-types C4** (the plan in flight; Status pins C4 as next).
+**Status: C1 built + verified 2026-08-18 (`[uncommitted]`, PO check pending) -
+C2 Pull Through open.** Survey at `2689175e` (four parallel sweeps: cast
+machinery, teleport seams, interaction system, spawn path); ⚑ line refs below
+are pinned to that commit, re-verified for C1 at execution 2026-08-18 (all
+seams held); C2 should spot-check its own (§6 steps 5-8).
 
 ## 1. What this builds
 
@@ -270,4 +271,72 @@ PO checklist · `harnessdb -cleanup` after Playwright runs.
 
 ## 11. Ledger
 
-*(filled in by the execution sessions and the PO verdicts)*
+### C1 - Open Portal ✅ 2026-08-18, `[uncommitted]` - ⚠ PENDING PO in-game check (§10 items 1-9)
+
+**Shipped.** `travel_to` grant kind (required `mode`, only `home_campfire` legal until C2;
+unknown or missing mode hard-fails at boot) · `requiresAnchor` opt-in on the `spawn`
+effect (press AND completion refuse `ActivationRejectedNoAnchor`; FireTotem stays
+ungated - the anchor gate was per-effect-TYPE, a §10-item-6 gap the plan text missed) ·
+runtime-spawned conversants register mid-run and unregister at TTL death with an open
+conversation closing · content: **PortalHome mob id 69** (memorial-stone body verbatim,
+FireTotem sprite [PLACEHOLDER] art) + **OpenPortal skill id 147** (cast 75t, TTL 900t,
+CD 1200 ≥ cast+TTL per D7, cost 0.10, **maxLevel 1**: the closed {1,5,10} vocabulary
+defines 1 as "binary ability, nothing to scale" - Recall's company, and it collapses D7
+to one line). Skill registry 101, mobs 59. Schema **NONE** (D9 held).
+
+**Decisions landed in-chunk.**
+- **The §6-step-2 combat gate cuts NEITHER way**, two independent reasons, both pinned:
+  the InteractionSystem no longer consults `InCombat()` anywhere (the Q1 §4.2 inversion
+  already shipped), and the layer-97/mask-16 body carries neither combatant bit, so no
+  aura can damage and no aggro sensor can see the portal
+  (`TestPortalRecipe_IsUnreachableByAurasAndAggro`). `EnlistUnder` on the spawn path is
+  therefore harmless; D2's big-health fallback does not apply.
+- **Refusal shape**: present-time LOCKED row ("… - locked: its far end is gone") when
+  `AnchorOf(owner)` misses (one miss covers disconnected AND unbound - it is connection
+  state; the player struct outlives the connection, `removeFromPlayers` deletes the
+  anchor entry), apply-time silent refusal for the race. Owner exposed via an explicit
+  `Conversant.Owner()` accessor, never a type assert. New narrow `AnchorSource` seam
+  threaded as an argument (the RowSource precedent), wired in `core/game.go`.
+- **Travel row loader rules** (violations hard-fail at boot): authored `text`, no
+  `next`, the ONLY grant on its option, refused inside a quest bundle, `mode` refused on
+  every other kind. `Travel()` closes the session explicitly, tightening §5's noted
+  one-tick panel linger.
+- ⚑ **A gap beyond the two the plan named**: `presentOptions` rendered ONLY teach rows,
+  so a travel grant would have presented no row at all; now its own branch with a locked
+  variant.
+- ⚑ **Id spaces are per-registry, not shared** (id 61 is a skill AND a mob); derive each
+  from its own directory.
+
+**⚑ Escaped defect from the omni trio (`9ee8cdb4`), found and fixed in-chunk**: this
+chunk's mandatory `cp-defs` was the FIRST since the trio landed (`backend/pkg/api/` is
+gitignored, so embedded-content tests run against a stale mirror until someone builds -
+the trio's "all green" was true only against a mirror predating it). Six `cmd/simharness`
+tests went red: OmniAura's damage effect authored a `radiusPerLevel` its dot lacked (the
+shared-sensor radius rule), and its stacked riders put it at 3.29 ev/tick, above every §A
+ceiling ref - **the ceiling guardrail has no cheat-only concept**. Fix: slope dropped,
+damage numbers cut (damage 3+0.25/L, dot 1+0.25/L → strongest non-ceiling is Wildfire
+1.267 again); the rig's `_comment` now records the bound (godlike in BREADTH, not
+throughput). Also reshaped: `loaders_test.go`'s every-summon-has-a-loadout assert
+(PortalHome is the first summon authoring no skills, structurally - nothing can reach its
+collision layer to become an aura target) now checks the loadout against the mob def plus
+a non-vacuity arm.
+
+**Verified.** `go build ./...` · `go test -count=1 ./...` all green ×3 (incl. simharness
+guardrails after the omni fix; `-race` green on `sys`/`skills`/`items/mobs`/`core`) ·
+vitest 369/369 · typecheck · `make -C backend build` + `npm run build` · boot 0 WARN /
+0 ERROR, census 101 skills / 59 mobs · new **`c1-open-portal.mjs` 18/18** (bind→walk-out
+→cast bar→cost-on-completion 9.8 %→portal 0.9 u→decline drift 0.00→accept lands 0.98 u
+from the bound fire→panel closes→**two-window step-through** (B lands at A's fire, 0.54 u)
+→TTL expiry 29.1 s→owner-gone locked row→unbound press refused, no cast bar→tooltip
+"Summons Portal Home for 30s") · `round4-tooltip` green · coverage-map re-runs:
+**`chunk3b-interact` 14/14** · **`c2a-ascension-site` 31/31** (the generated rows exist
+in no file, so this is the strongest proof the `travelSeam` threading left the RowSource
+path intact) · **`chunk3b-ii-conversation` 28/34, EXACTLY the recorded baseline** - the
+six failures are the two known-fragile clusters (the Leave-row click race, legs 43/45
+prove closing works; the Wanderer drift pin, stationary in the window) plus leg 67's
+stale assert against the TownCrier `teachings` node that died with Recall (downtime D8);
+settled by evidence, not stash-rerun (untracked content files made a stash risky - a
+differential settlement can run post-commit if wanted) · `harnessdb -cleanup` with aurad
+stopped. Harness notes for §10: the leg-J unbound state needs an in-page `addInitScript`
+WARP to beat the ~1.7 s spawn-fire dwell; arrivals at `spawnpoint-5` stand ~1.1 u from
+the Emberkeeper, so their next E goes to HIM (conversant-cluster trap, not a defect).

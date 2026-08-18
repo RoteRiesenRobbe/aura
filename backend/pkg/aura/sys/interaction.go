@@ -6,6 +6,7 @@ import (
 
 	"github.com/EngoEngine/ecs"
 	flatbuffers "github.com/google/flatbuffers/go"
+	"github.com/google/uuid"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
@@ -31,7 +32,22 @@ type Conversant interface {
 	// InCombat ends any conversation this actor is in (D21). ⚑ It lives on
 	// model.Combatant, which MobEntity does NOT embed, so it has to be named
 	// here — both concrete types satisfy it for free.
+	//
+	// ⚑ NOTHING IN THIS FILE READS IT ANY MORE (Q1 §4.2 overruled D21; see the
+	// sense() and refreshConversations comments). It stays on the capability
+	// because a mob that talks is still a mob that can fight, and the answer is
+	// free - but do not read it as a live gate.
 	InCombat() bool
+	// Owner is the player who summoned a runtime-spawned actor, nil for every
+	// zone-placed one (plan-portal-spells.md D3/D5). It is what a travel_to row
+	// resolves its destination against: the portal delivers to the CASTER's
+	// campfire, not the clicker's.
+	//
+	// ⛑ AN EXPLICIT ACCESSOR, never a runtime model.Owned assertion at the
+	// handler. A `x.(Iface)` check degrades SILENTLY the day the interface is
+	// widened - the effect-types C1 lesson - and the symptom here would be a
+	// portal that quietly delivers nobody.
+	Owner() model.PlayerEntity
 	// SetConversing holds the actor's idle movement while somebody is talking to
 	// it (D22), so a patrolling NPC can be stopped on a road.
 	SetConversing(v bool)
@@ -68,6 +84,26 @@ type interactor interface {
 	// panel safe, because a player cannot be trapped reading dialogue while
 	// something eats them.
 	InCombat() bool
+
+	// Ground and SetPosition are the travel_to grant's move, and they are the
+	// Recall/WARP recipe verbatim (sys/skills.go applyRecall, sys/cmd WARP):
+	// Ground() is the one flight re-entry - shapes back, viewport restored - and
+	// without it the next tick's lerp would snap the jump away. A flyer cannot
+	// press the interact key at all (flight removes the body from the space), so
+	// this is belt to that brace rather than a live case.
+	Ground()
+	SetPosition(pos phy.Vec2f)
+}
+
+// AnchorSource is the ConnectionStateSystem capability the travel_to grant needs:
+// the campfire a client is bound to (sys/state.go AnchorOf). Wired
+// post-construction from core/game.go - the SkillSystem's SetConnState
+// precedent, for the same construction-order reason.
+//
+// ⚑ Deliberately narrower than ConnState: this system has no business reviving
+// anybody or spending an ascension. *ConnectionStateSystem satisfies both.
+type AnchorSource interface {
+	AnchorOf(id uuid.UUID) (phy.Vec2f, bool)
 }
 
 // InteractionSystem drives conversations (chunk 3a; it replaced NpcSystem and
@@ -109,6 +145,12 @@ type InteractionSystem struct {
 	// such a node's lines and no rows, which is the same thing an empty list
 	// looks like.
 	rows *rowSourceMux
+
+	// anchors resolves a travel_to row's destination. Nil is a supported state
+	// with the same posture as `rows`: a world with no seam wired renders every
+	// travel row LOCKED rather than crashing, because a portal that cannot say
+	// where it goes is exactly what an unbound owner produces anyway.
+	anchors AnchorSource
 }
 
 // rowSourceMux dispatches a node's declared row source to whichever provider
@@ -191,6 +233,98 @@ func (m *rowSourceMux) sourceFor(node *mobs.InteractionNode) RowSource {
 // made the two overwrite each other.
 func (s *InteractionSystem) AddRowSource(kind mobs.RowSourceKind, src RowSource) {
 	s.rows.add(kind, src)
+}
+
+// SetAnchors wires the campfire-anchor lookup a travel_to row resolves against.
+// Called post-construction from core/game.go, the AddRowSource precedent: the
+// InteractionSystem is built before the ConnectionStateSystem exists.
+func (s *InteractionSystem) SetAnchors(a AnchorSource) {
+	s.anchors = a
+}
+
+// travelSeam is everything a travel_to row may touch: whether it has a
+// destination at all, and the move itself (plan-portal-spells.md D3/D5).
+//
+// ⚑ THREADED AS AN ARGUMENT, the RowSource precedent, and bound at the one call
+// site that holds both halves - the conversant, whose OWNER names the
+// destination, and the player who clicked, who is the one that moves. That is
+// also what makes present/apply agreement structural rather than a convention:
+// both ends consult the same seam in the same state, so a row cannot be offered
+// unlocked and then refused.
+//
+// ⚑ present() only ever asks CanReach, which is a read, so it stays PURE.
+type travelSeam interface {
+	// CanReach reports whether a row in this mode could deliver right now. The
+	// present side renders the row LOCKED when it cannot.
+	CanReach(mode mobs.TravelMode) bool
+	// Travel delivers the clicking player, reporting whether it happened. A
+	// refusal is the same silent, ordinary refusal every stale click gets - and
+	// it covers the real race: the owner may drop between the panel and the press.
+	Travel(mode mobs.TravelMode) bool
+}
+
+// portalTravel is the shipped seam: one conversation's owner-side destination
+// and its player-side move.
+//
+// ⚑ THE DESTINATION IS RESOLVED NOW, not when the portal was cast (D5), which is
+// the whole reason this holds the owner rather than a position: a caster who
+// re-binds during the portal's 30 s changes where it leads.
+type portalTravel struct {
+	anchors AnchorSource
+	// owner is the conversant's summoner, nil for a zone-placed actor.
+	//
+	// ⚑ Reading Client().UUID() off a DISCONNECTED owner is safe and is the
+	// design: the player struct outlives the connection, while the anchor entry
+	// does not (removeFromPlayers deletes it), so a dropped owner arrives here as
+	// an ordinary AnchorOf miss.
+	owner model.PlayerEntity
+	rider interactor
+}
+
+func (t portalTravel) destination(mode mobs.TravelMode) (phy.Vec2f, bool) {
+	switch mode {
+	case mobs.TravelHomeCampfire:
+		if t.anchors == nil || t.owner == nil {
+			return phy.Vec2f{}, false
+		}
+		// ⚑ ONE LOOKUP COVERS BOTH REFUSALS the PO checklist names. The anchor is
+		// CONNECTION state, so "the caster never bound a fire" and "the caster
+		// logged out" are the same false here - and that is not a shortcut, it is
+		// what the player sees either way: a door with nothing behind it.
+		return t.anchors.AnchorOf(t.owner.Client().UUID())
+	}
+	// An unimplemented mode delivers nobody. The loader refuses one at boot; this
+	// is the fail-closed twin, and it is what keeps C2's `caster` inert until C2.
+	return phy.Vec2f{}, false
+}
+
+func (t portalTravel) CanReach(mode mobs.TravelMode) bool {
+	_, ok := t.destination(mode)
+	return ok
+}
+
+func (t portalTravel) Travel(mode mobs.TravelMode) bool {
+	dest, ok := t.destination(mode)
+	if !ok || t.rider == nil {
+		return false
+	}
+	t.rider.Ground()
+	t.rider.SetPosition(JitterAround(dest, respawnJitterRadius))
+	// ⭐ THE SESSION CLOSES WITH THE MOVE, and it belongs here rather than in
+	// handleInteracts because this is the only place that knows a travel actually
+	// landed (applyGrant reports a taught skill, and travel teaches nothing).
+	// Left to range alone the panel would survive one more tick - sense() has
+	// already stamped the portal earlier in THIS Update, so refreshConversations
+	// would rebuild the tree once over a player who is no longer there (§5's last
+	// bullet, the pin the plan asked to tighten).
+	t.rider.SetConversingWith(0)
+	return true
+}
+
+// travelFor binds the seam for one conversation. Built per call rather than
+// cached: it is two pointers, and it is only ever built while a panel is open.
+func (s *InteractionSystem) travelFor(a Conversant, p interactor) travelSeam {
+	return portalTravel{anchors: s.anchors, owner: a.Owner(), rider: p}
 }
 
 func NewInteractionSystem() *InteractionSystem {
@@ -339,7 +473,8 @@ func (s *InteractionSystem) handleInteracts() {
 		// merits — in range, node exists, its conditions pass, index valid, level
 		// cleared, not already known — which is exactly what buys D16's
 		// bookkeeping-free session.
-		_, taught, ok := applyGrant(a.Interaction(), p, s.rows, msg.NodeID, int(msg.OptionIndex), int(msg.GrantIndex))
+		_, taught, ok := applyGrant(a.Interaction(), p, s.rows, s.travelFor(a, p),
+			msg.NodeID, int(msg.OptionIndex), int(msg.GrantIndex))
 		if !ok || taught == nil {
 			continue
 		}
@@ -408,7 +543,7 @@ func (s *InteractionSystem) refreshConversations() {
 			continue
 		}
 
-		c := present(a.Interaction(), p, s.rows)
+		c := present(a.Interaction(), p, s.rows, s.travelFor(a, p))
 		if c == nil {
 			// Nothing left to say to this player right now — the same condition
 			// that would refuse to open one.
@@ -591,7 +726,7 @@ type AscensionSource interface {
 // means the actor has nothing to say to this player right now.
 //
 // The caller stamps EntityID and ActorName — this function only knows content.
-func present(in *mobs.Interaction, p learner, src RowSource) *model.Conversation {
+func present(in *mobs.Interaction, p learner, src RowSource, travel travelSeam) *model.Conversation {
 	// Which nodes survive their conditions, so an option pointing at a hidden
 	// one can be hidden too. Built once per call rather than re-checked per
 	// option, and only while a panel is actually open.
@@ -622,7 +757,7 @@ func present(in *mobs.Interaction, p learner, src RowSource) *model.Conversation
 		if !visible[node.ID] {
 			continue
 		}
-		byNode[node.ID] = presentOptions(in, node, p, visible, src)
+		byNode[node.ID] = presentOptions(in, node, p, visible, src, travel)
 	}
 	pruneEmptyDestinations(in, byNode)
 
@@ -681,7 +816,7 @@ func pruneEmptyDestinations(in *mobs.Interaction, rows map[string][]model.Conver
 // (D17): their single nameless multi-grant option shows up as one labelled row
 // per skill. An option with no grants is a navigation row.
 func presentOptions(in *mobs.Interaction, node *mobs.InteractionNode, p learner,
-	visible map[string]bool, src RowSource) []model.ConversationOption {
+	visible map[string]bool, src RowSource, travel travelSeam) []model.ConversationOption {
 	// A source node's rows are GENERATED, and the loader guarantees it authored
 	// none: the two would share one index space (P10). ⚑ A missing provider
 	// fails CLOSED, like everything else on this path: the node keeps its lines,
@@ -747,10 +882,15 @@ func presentOptions(in *mobs.Interaction, node *mobs.InteractionNode, p learner,
 
 		for gi := range opt.Grants {
 			g := &opt.Grants[gi]
+			if g.Kind == mobs.GrantTravelTo {
+				rows = append(rows, travelRow(oi, gi, opt, g, travel))
+				continue
+			}
 			if g.Kind != mobs.GrantTeachSkill {
 				// A reward inside a quest bundle is reached through its row, above;
 				// it is never separately takeable. Nothing else can appear here — the
-				// loader refuses a grant_xp with no quest op on the same option.
+				// loader refuses a grant_xp with no quest op on the same option, and
+				// refuses a travel_to sharing an option with anything at all.
 				continue
 			}
 			// "Things already learned are not shown in that list" — the PO brief
@@ -802,6 +942,40 @@ func presentOptions(in *mobs.Interaction, node *mobs.InteractionNode, p learner,
 		}
 	}
 	return rows
+}
+
+// travelClosedReason is the wall a travel_to row names when it has no
+// destination (plan-portal-spells.md C1). ONE line for every way the far end can
+// be missing - the owner never bound a fire, or their connection took the anchor
+// with it - because all of them mean the same thing to the player standing in
+// front of the portal, and it is the true statement: this leads nowhere.
+// [PLACEHOLDER] wording.
+const travelClosedReason = "its far end is gone"
+
+// travelRow renders one travel_to grant, locked when the destination cannot
+// resolve.
+//
+// ⚑ The locked shape is the teaching row's, not lockedGateRow's: it keeps its
+// real GrantIndex (so a crafted click lands on applyTravel, which refuses it in
+// the same breath) and rides with an empty Reply, which is Q1/R1's inert locked
+// row. `Next` is dropped - the loader refuses one on a travel row anyway, and a
+// locked row leads nowhere by construction.
+func travelRow(oi, gi int, opt *mobs.InteractionOption, g *mobs.InteractionGrant,
+	travel travelSeam) model.ConversationOption {
+	if travel == nil || !travel.CanReach(g.Travel) {
+		return model.ConversationOption{
+			OptionIndex: uint8(oi),
+			GrantIndex:  uint8(gi),
+			Text:        fmt.Sprintf("%s - locked: %s", opt.Text, travelClosedReason),
+			Locked:      true,
+		}
+	}
+	return model.ConversationOption{
+		OptionIndex: uint8(oi),
+		GrantIndex:  uint8(gi),
+		Text:        opt.Text,
+		Reply:       g.Line,
+	}
 }
 
 // lockedGateRow renders a row whose destination this player cannot reach yet,
@@ -865,7 +1039,8 @@ func lockedGateRow(in *mobs.Interaction, index int, opt *mobs.InteractionOption,
 // The returned reply is deliberately NOT sent anywhere: the panel already said
 // it, straight out of the streamed row (D19/L24). It exists so a test can prove
 // the two cannot disagree.
-func applyGrant(in *mobs.Interaction, p learner, src RowSource, nodeID string, option, grant int) (reply string, taught *skills.SkillID, ok bool) {
+func applyGrant(in *mobs.Interaction, p learner, src RowSource, travel travelSeam,
+	nodeID string, option, grant int) (reply string, taught *skills.SkillID, ok bool) {
 	node := nodeByID(in, nodeID)
 	if node == nil || !conditionsPass(node.Conditions, p) {
 		return "", nil, false
@@ -911,6 +1086,8 @@ func applyGrant(in *mobs.Interaction, p learner, src RowSource, nodeID string, o
 	switch {
 	case g.Kind == mobs.GrantTeachSkill:
 		return applyTeach(g, p)
+	case g.Kind == mobs.GrantTravelTo:
+		return applyTravel(g, travel)
 	case grant == 0 && g.Kind.IsQuestKind():
 		return applyQuestRow(opt, p)
 	default:
@@ -937,6 +1114,21 @@ func applyTeach(g *mobs.InteractionGrant, p learner) (string, *skills.SkillID, b
 	p.ApplyRecipeCascade()
 	id := g.Skill.ID
 	return g.Line, &id, true
+}
+
+// applyTravel moves the player through a portal (plan-portal-spells.md D3). It
+// is the one grant that puts nothing in the spellbook, so `taught` stays nil and
+// no unlock banner follows it.
+//
+// ⚑ The refusal is the LOCKED row's twin, exactly as applyTeach's level check is:
+// present() rendered this row greyed with the wall named and an empty Reply, and
+// this refuses it silently. It also covers what the panel could not: the owner
+// dropping between the render and the click.
+func applyTravel(g *mobs.InteractionGrant, travel travelSeam) (string, *skills.SkillID, bool) {
+	if travel == nil || !travel.Travel(g.Travel) {
+		return "", nil, false
+	}
+	return g.Line, nil, true
 }
 
 // applyQuestRow applies a whole quest row: the quest op that leads it, then every

@@ -626,7 +626,7 @@ func TestAscensionRows_TheEmptyPickNamesNoSkill(t *testing.T) {
 // default the "take it immediately" every existing conversation relies on.
 func TestPresentOptions_OrdinaryRowsAskForNoConfirmation(t *testing.T) {
 	rows := rowsOf(t, present(teachingInteraction([]string{"hi"},
-		namedGrant(1, "Torch", 1, "light")), newLearner(10), noRows), "root")
+		namedGrant(1, "Torch", 1, "light")), newLearner(10), noRows, noTravel), "root")
 
 	require.NotEmpty(t, rows)
 	for _, r := range rows {

@@ -186,6 +186,33 @@ type InteractionGrant struct {
 	ToStage   string
 	// XP is the amount GrantXP awards.
 	XP uint64
+
+	// Travel is where a GrantTravelTo row delivers its clicker
+	// (plan-portal-spells.md D3). Empty for every other kind.
+	Travel TravelMode
+}
+
+// TravelMode names where a travel_to grant delivers. A closed vocabulary with
+// the refuse-at-boot discipline every other authored kind has, and here it earns
+// its keep twice: an unknown mode is a portal that swallows a keypress and moves
+// nobody, and the closed set is also what keeps C2's own mode unauthorable until
+// the effect that places its portal exists.
+type TravelMode string
+
+// TravelHomeCampfire delivers to the campfire the portal's OWNER is bound to,
+// resolved when the row is taken rather than when the portal was cast (D5). One
+// AnchorOf miss covers both refusals it can hit: an owner who never bound, and
+// an owner whose connection state went with their connection.
+const TravelHomeCampfire TravelMode = "home_campfire"
+
+var travelModes = map[string]TravelMode{
+	string(TravelHomeCampfire): TravelHomeCampfire,
+}
+
+// ParseTravelMode resolves an authored destination mode.
+func ParseTravelMode(name string) (TravelMode, bool) {
+	m, ok := travelModes[name]
+	return m, ok
 }
 
 // InteractionCondition gates a node — minLevel, or a quest's position in the
@@ -250,6 +277,14 @@ const (
 	// unlocks — because a second XP path would be a second set of level-up bugs
 	// (L9). ⚑ Amounts are an offline authoring budget with no runtime clamp.
 	GrantXP GrantKind = "grant_xp"
+
+	// GrantTravelTo moves the player who takes the row to the destination its
+	// `mode` names (plan-portal-spells.md D3) - the portal spells' whole verb.
+	//
+	// ⭐ IT IS THE FIRST KIND THAT HANDS OVER NOTHING. Nothing enters the
+	// spellbook, the ledger or the XP curve, so it produces no unlock banner and
+	// no attribution: what it changes is where the player is standing.
+	GrantTravelTo GrantKind = "travel_to"
 )
 
 var grantKinds = map[string]GrantKind{
@@ -257,6 +292,7 @@ var grantKinds = map[string]GrantKind{
 	string(GrantOfferQuest):   GrantOfferQuest,
 	string(GrantAdvanceQuest): GrantAdvanceQuest,
 	string(GrantXP):           GrantXP,
+	string(GrantTravelTo):     GrantTravelTo,
 }
 
 // IsQuestKind reports whether the kind drives the quest ledger. Such a grant
@@ -455,6 +491,8 @@ type jsonInteractionGrant struct {
 	FromStage string `json:"fromStage"`
 	ToStage   string `json:"toStage"`
 	XP        uint64 `json:"xp"`
+	// Mode is travel_to's destination, required there and refused everywhere else.
+	Mode string `json:"mode"`
 }
 
 // JSONCondition is the AUTHORED shape of one condition, exported because a
@@ -636,6 +674,9 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 				opt.Grants = append(opt.Grants, g)
 			}
 			if err := m.checkQuestRowShape(jn.ID, j, &opt); err != nil {
+				return nil, err
+			}
+			if err := m.checkTravelRowShape(jn.ID, j, &opt); err != nil {
 				return nil, err
 			}
 			// An option is a clickable row now (D15), so one that neither
@@ -830,6 +871,9 @@ func (m *mobDefinition) mapGrant(where string, kind GrantKind, jg jsonInteractio
 	if kind != GrantTeachSkill && jg.RequiredLevel != 0 {
 		return g, fmt.Errorf("%s: a %s grant takes no requiredLevel — the quest's own stage graph is its gate", where, kind)
 	}
+	if kind != GrantTravelTo && jg.Mode != "" {
+		return g, fmt.Errorf("%s: a %s grant goes nowhere - drop the `mode` key", where, kind)
+	}
 
 	switch kind {
 	case GrantTeachSkill:
@@ -873,8 +917,67 @@ func (m *mobDefinition) mapGrant(where string, kind GrantKind, jg jsonInteractio
 				"quest/stage keys", where)
 		}
 		g.XP = jg.XP
+
+	case GrantTravelTo:
+		if jg.Quest != "" || jg.FromStage != "" || jg.ToStage != "" || jg.XP != 0 {
+			return g, fmt.Errorf("%s: travel_to moves a player and hands over nothing - it takes no quest/stage/xp keys", where)
+		}
+		if jg.Mode == "" {
+			return g, fmt.Errorf("%s: travel_to needs a mode - a destination is one of %s and never a default, "+
+				"because defaulting one would deliver somewhere nobody authored", where, names(travelModes))
+		}
+		mode, ok := ParseTravelMode(jg.Mode)
+		if !ok {
+			return g, fmt.Errorf("%s: mode %q must be one of %s", where, jg.Mode, names(travelModes))
+		}
+		g.Travel = mode
 	}
 	return g, nil
+}
+
+// checkTravelRowShape enforces what a travel_to row must be, the quest row's
+// twin below (plan-portal-spells.md C1). All three rules exist because the
+// alternative is authored content that silently does nothing, which is the
+// failure mode the whole loader is written against.
+func (m *mobDefinition) checkTravelRowShape(nodeID string, j int, opt *InteractionOption) error {
+	where := fmt.Sprintf("mob %q: interaction node %q option %d", m.Name, nodeID, j)
+
+	travels, others := 0, 0
+	for i := range opt.Grants {
+		if opt.Grants[i].Kind == GrantTravelTo {
+			travels++
+		} else {
+			others++
+		}
+	}
+	if travels == 0 {
+		return nil
+	}
+	if travels > 1 {
+		return fmt.Errorf("%s: one travel_to per row - each renders its own row from the same text, so the "+
+			"player would see one label twice and could not tell the destinations apart", where)
+	}
+	// ⛑ A BUNDLE IS REFUSED, and not for tidiness: a quest-bearing option renders
+	// as ONE row and applyQuestRow hands over only XP and skills, so a travel_to
+	// riding behind one would be invisible AND skipped. Teaching and travelling on
+	// one option is the same mismatch one step milder - the row is labelled once
+	// and would show up twice.
+	if others > 0 {
+		return fmt.Errorf("%s: travel_to is a row of its own - an option that also teaches or drives a quest "+
+			"either renders it twice or swallows it entirely", where)
+	}
+	// The session ends the moment the player lands out of range, so a `next` names
+	// a node nobody can reach.
+	if opt.Next != "" {
+		return fmt.Errorf("%s: a travel_to row takes no next - stepping through ends the conversation, so the "+
+			"node it names could never be shown", where)
+	}
+	// Nothing to fall back on: a teaching row borrows its skill's display name,
+	// and this row hands over no skill.
+	if strings.TrimSpace(opt.Text) == "" {
+		return fmt.Errorf("%s: a travel_to row needs an authored text - it has no skill name to label itself with", where)
+	}
+	return nil
 }
 
 // checkQuestRowShape enforces what makes an atomic turn-in row safe (§5, the
