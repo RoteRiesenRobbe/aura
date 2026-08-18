@@ -1,5 +1,13 @@
 package model
 
+// Regenerating this enum needs Go 1.22/1.23 (go.mod's version). On Go 1.26 the
+// directive below FAILS - the pinned golang.org/x/tools v0.21.1 does not compile
+// there ("invalid array length -delta * delta" in tokeninternal.go) and enumer is
+// built from it, so `go generate ./...` and `make -C backend gen` die here. Only
+// this enum is blocked; the flatbuffers half of gen still succeeds. It stays
+// invisible day to day because collisionlayer_enumer.go is committed - you only
+// meet it when you edit CollisionLayer and try to regenerate. Fix with an older
+// Go or by bumping x/tools. Hit on two separate machines as of 2026-08-18.
 //go:generate go run github.com/dmarkham/enumer -type=CollisionLayer
 type CollisionLayer int
 
