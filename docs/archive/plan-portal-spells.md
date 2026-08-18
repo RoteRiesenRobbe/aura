@@ -1,6 +1,6 @@
 # Plan: Portal spells (Open Portal + Pull Through)
 
-**Status: COMPLETE + ARCHIVED 2026-08-18.** C1 shipped `564f62c8`, C2 shipped
+**Status: COMPLETE + ARCHIVED 2026-08-18.** C1 shipped `564f62c8`, C2 `a0bbc80e`
 the same day; **PO in-game check passed 2026-08-18 on the pair, played
 together** ("tested works"). Only §10 item 13 outlives the plan, and it is a
 pricing call rather than a chunk: it rides forward in `CLAUDE.md` Open items.
@@ -274,7 +274,7 @@ PO checklist · `harnessdb -cleanup` after Playwright runs.
 
 ## 11. Ledger
 
-### C2 - Pull Through ✅ 2026-08-18 - PO in-game check PASSED 2026-08-18
+### C2 - Pull Through ✅ 2026-08-18, `a0bbc80e` - PO in-game check PASSED 2026-08-18
 
 **Shipped.** New effect type **`spawn_at_anchor`** (33rd entry in `effectTypeMap`) - the same
 `SpawnParams` payload as `spawn`, placed on a ring around the caster's bound campfire ·
