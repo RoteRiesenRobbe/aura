@@ -259,6 +259,16 @@ and stay acceptable only while the URL is unlisted:
 - **Agent access narrowed 2026-07-22** — blanket `Bash(ssh *)` replaced by
   three runbook-shaped allow rules + 8 ssh deny rules; deploys unaffected, ad-hoc
   remote commands now prompt. Rules are per-machine (file is gitignored).
+- **DEPLOYED 2026-08-18, `f5949100` (baseline was `9c3d1c5b`, 2026-08-07):** the
+  ascension + CC/retaliation + effect-types C1–C4 + portal-spells + code-health
+  stack, both-sides deploy (FlatBuffers changed: `ConversationOption.skill_id`
+  added, legacy `EntityType` values removed → hard refresh required; nobody was
+  connected). **No new DB migrations** (000001/000002 already live; `store.Migrate`
+  no-op). Pre-deploy `pg_dump` taken with aurad stopped (flush confirmed, 0 live)
+  and pulled off-box to `devops/aura-backup-predeploy-20260818.sql` (397 KB;
+  restore test skipped — zero schema delta, decision recorded). Verified: boot
+  0 WARN/0 ERROR, census 102 skills/60 mobs, new client bundle
+  `main.eb1f8f84…js` served. **PO smoke check on live passed 2026-08-18.**
 - **DEPLOYED + LIVE + PO-VERIFIED 2026-07-21, `a7a2267d`:** `https://aura-game.duckdns.org/`
   (Hetzner CX23 `159.69.148.73`, systemd `aurad`, LE cert, `-content ./api`).
   §A–§D complete: machine checks green incl. live Playwright join smoke, PO
