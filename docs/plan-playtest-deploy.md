@@ -266,7 +266,12 @@ and stay acceptable only while the URL is unlisted:
   connected). **No new DB migrations** (000001/000002 already live; `store.Migrate`
   no-op). Pre-deploy `pg_dump` taken with aurad stopped (flush confirmed, 0 live)
   and pulled off-box to `devops/aura-backup-predeploy-20260818.sql` (397 KB;
-  restore test skipped — zero schema delta, decision recorded). Verified: boot
+  restore test skipped — zero schema delta, decision recorded). ⚑ **That dump was
+  DELETED 2026-08-19 (PO: "live works fine, I'd prefer to just remove it") and was
+  never committed** — it held real accounts and password hashes, so git was the
+  wrong home for it. Its only job was rolling this deploy back; the deploy is live
+  and PO-verified, and the standing ruling is that the live DB is losable. Nothing
+  now exists to restore from, which is the deliberate posture, not an oversight. Verified: boot
   0 WARN/0 ERROR, census 102 skills/60 mobs, new client bundle
   `main.eb1f8f84…js` served. **PO smoke check on live passed 2026-08-18.**
 - **DEPLOYED + LIVE + PO-VERIFIED 2026-07-21, `a7a2267d`:** `https://aura-game.duckdns.org/`
