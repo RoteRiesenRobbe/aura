@@ -285,7 +285,7 @@ before booting (stale-binary gotcha) · boot 0 WARN / 0 ERROR · PO checklist.
 
 ## 11. Ledger
 
-### P1 - skeleton + bomb ✅ 2026-08-19, `[uncommitted]` - ⚠ PO in-game check PENDING
+### P1 - skeleton + bomb ✅ 2026-08-19, `cced090a` - ⚠ PO in-game check PENDING
 
 **Shipped.** New cooldown effect type **`projectile`** (34th entry in `effectTypeMap`,
 `AuraCategoryNone` - the exhaustive-table pin caught the missing row red-first) -
