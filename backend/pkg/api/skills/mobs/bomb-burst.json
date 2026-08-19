@@ -1,0 +1,33 @@
+{
+  "_comment": "The thrown bomb's detonation (docs/plan-prototype-projectile.md D4, P1): the cooldown ProjectileBomb carries, held down for the throw's armTicks and then fired by the ordinary mob auto-fire path the moment a body is in the radius. NUMBERS ARE api/skills/nova-burst.json's, VERBATIM - the same instant_damage + instant_dot pair, the same radius, the same 18 + 5×3 fire shape - so the bomb reads as a thrown Nova rather than as a new balance opinion nobody has tuned. ⚑ ONE DEVIATION from verbatim, and it is the mob-skill convention rather than a tuning call: NovaBurst's two costFractionOfMax entries are dropped. Nothing in api/skills/mobs/ authors a cost, because the mob cooldown path never charges - it fires and consumes, full stop - so a copied cost would read as a price the bomb pays to explode while costing nothing at all. ⭐ TARGETING IS FLAGS, NOT FACTIONS, and that is what makes the copy safe on a caster NovaBurst was never authored for: this burst is fired by a structure enlisted UNDER A PLAYER, so its caster faction is `aligned`; targetsEnemies + targetsAllies false is then the whole owner-safety rule, and no targetFactions allowlist is authored (an allowlist is stamped onto every effect of its skill, so authoring one here is how the bomb would silently stop reaching anything). Pinned by TestProjectile_BurstSparesTheOwnersSide. ⚑ Accepted prototype coarseness, also pinned: the mob fire path counts a non-empty query set as a HIT before eligibility runs, so ANY combatant-layer body in the radius trips an armed bomb - including the owner and their own structures, who take nothing but consume the placement. Fixing that would be the projectile-specific trigger D4 exists to avoid. Curve-position-1 baselines. All values [PLACEHOLDER].",
+  "id": 149,
+  "name": "BombBurst",
+  "category": "cooldown",
+  "maxLevel": 5,
+  "cooldownTicks": 300,
+  "cooldownTicksPerLevel": -10,
+  "effects": [
+    {
+      "type": "instant_damage",
+      "radius": 2.0,
+      "radiusPerLevel": 0.05,
+      "damageHP": 18,
+      "damageHPPerLevel": 2,
+      "damageTags": ["fire"],
+      "targetsEnemies": true,
+      "targetsAllies": false
+    },
+    {
+      "type": "instant_dot",
+      "radius": 2.0,
+      "radiusPerLevel": 0.05,
+      "damageHP": 5,
+      "damageHPPerLevel": 0.6,
+      "damageTags": ["fire"],
+      "dotTicks": 3,
+      "dotTickInterval": 30,
+      "targetsEnemies": true,
+      "targetsAllies": false
+    }
+  ]
+}

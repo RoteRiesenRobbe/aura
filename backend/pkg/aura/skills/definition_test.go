@@ -1404,6 +1404,91 @@ func TestMap_RequiresAnchorOnAnotherEffectFails(t *testing.T) {
 	assert.ErrorContains(t, err, "requiresAnchor")
 }
 
+// projectile is spawn's THROWN twin (plan-prototype-projectile.md D2, P1): the
+// same SpawnParams payload, placed forwardUnits ahead of the caster along their
+// last walking direction, with the spawned entity's own burst cooldown armed to
+// armTicks. Sharing the payload buys the boot-time spawnMob resolution
+// (items/mobs validateSpawnEffects keys on Spawn != nil) exactly as the anchored
+// twin does, so neither a new struct nor a new nil case appears anywhere.
+func TestMap_ProjectileEffect(t *testing.T) {
+	def := mustParse(t, []byte(`{
+      "id": 26, "name": "ThrowMine", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 300,
+      "effects": [{"type": "projectile", "spawnMob": "ProjectileBomb", "forwardUnits": 3.0, "ttlTicks": 900, "armTicks": 45}]
+    }`))
+	require.Len(t, def.Effects, 1)
+	assert.Equal(t, EffectTypeProjectile, def.Effects[0].Type)
+	require.NotNil(t, def.Effects[0].Spawn, "the payload rides SpawnParams, so no new struct and no new nil case")
+	assert.Equal(t, "ProjectileBomb", def.Effects[0].Spawn.MobName)
+	assert.InDelta(t, 3.0, def.Effects[0].Spawn.ForwardUnits, 1e-6)
+	assert.Equal(t, 900, def.Effects[0].Spawn.TTLTicks)
+	assert.Equal(t, 45, def.Effects[0].Spawn.ArmTicks)
+}
+
+// armTicks 0 is authorable and means "armed on arrival": the projectile can
+// detonate on the very first tick it is asked. It is the boundary of the
+// validation, not a mistake, so it parses.
+func TestMap_ProjectileArmTicksZeroIsAuthorable(t *testing.T) {
+	def := mustParse(t, []byte(`{
+      "id": 26, "name": "ThrowMine", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 300,
+      "effects": [{"type": "projectile", "spawnMob": "ProjectileBomb", "forwardUnits": 3.0, "ttlTicks": 46, "armTicks": 0}]
+    }`))
+	require.NotNil(t, def.Effects[0].Spawn)
+	assert.Equal(t, 0, def.Effects[0].Spawn.ArmTicks)
+}
+
+// The payload validation is spawn's, shared, plus the two throw-only bounds: a
+// nameless or instantly-expiring projectile is as unauthorable as a summon, a
+// throw with no distance would land under the caster's feet by authoring rather
+// than by the aim fallback, and a negative arming delay is not a delay.
+func TestMap_ProjectileEffectInvalid(t *testing.T) {
+	for _, effect := range []string{
+		`{"type": "projectile", "forwardUnits": 3.0, "ttlTicks": 900, "armTicks": 45}`,
+		`{"type": "projectile", "spawnMob": "ProjectileBomb", "forwardUnits": 3.0, "armTicks": 45}`,
+		`{"type": "projectile", "spawnMob": "ProjectileBomb", "forwardUnits": 3.0, "ttlTicks": 0, "armTicks": 45}`,
+		`{"type": "projectile", "spawnMob": "ProjectileBomb", "ttlTicks": 900, "armTicks": 45}`,
+		`{"type": "projectile", "spawnMob": "ProjectileBomb", "forwardUnits": -1, "ttlTicks": 900, "armTicks": 45}`,
+		`{"type": "projectile", "spawnMob": "ProjectileBomb", "forwardUnits": 3.0, "ttlTicks": 900, "armTicks": -1}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":26,"name":"X","category":"cooldown","maxLevel":1,"effects":[` + effect + `]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition(nil)
+		assert.Error(t, err, "invalid projectile must be rejected: %s", effect)
+	}
+}
+
+// ⭐ THREE OF SPAWN'S KEYS ARE DELIBERATELY MISSING from projectile's row, and
+// the allowlist turns each into a boot failure rather than a silent no-op:
+// requiresAnchor (a throw needs no campfire, it needs a direction),
+// powerPerOwnerLevel (the thrown thing's damage is its own authored burst, not a
+// scaled aura) and ttlTicksPerLevel (the throw skills are maxLevel 1 in the
+// prototype, so a per-level slope could only ever read as dead authoring).
+func TestMap_ProjectileRefusesTheSummonOnlyKeys(t *testing.T) {
+	for _, effect := range []string{
+		`{"type": "projectile", "spawnMob": "ProjectileBomb", "forwardUnits": 3.0, "ttlTicks": 900, "armTicks": 45, "requiresAnchor": true}`,
+		`{"type": "projectile", "spawnMob": "ProjectileBomb", "forwardUnits": 3.0, "ttlTicks": 900, "armTicks": 45, "powerPerOwnerLevel": 0.1}`,
+		`{"type": "projectile", "spawnMob": "ProjectileBomb", "forwardUnits": 3.0, "ttlTicks": 900, "armTicks": 45, "ttlTicksPerLevel": 30}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":26,"name":"X","category":"cooldown","maxLevel":1,"effects":[` + effect + `]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition(nil)
+		assert.Error(t, err, "key must be refused on projectile: %s", effect)
+	}
+}
+
+// The allowlist's other half: forwardUnits/armTicks are projectile's alone, so
+// authoring either on a type that never throws is a boot failure.
+func TestMap_ProjectileKeysOnOtherEffectsFail(t *testing.T) {
+	for _, effect := range []string{
+		`{"type": "spawn", "spawnMob": "Totem", "ttlTicks": 300, "forwardUnits": 3.0}`,
+		`{"type": "spawn", "spawnMob": "Totem", "ttlTicks": 300, "armTicks": 45}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":26,"name":"X","category":"cooldown","maxLevel":1,"effects":[` + effect + `]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition(nil)
+		assert.Error(t, err, "key must be refused off projectile: %s", effect)
+	}
+}
+
 func TestMap_SpawnKeysOnOtherEffectsFail(t *testing.T) {
 	// spawnMob/ttlTicks on a non-spawn effect would be silently ignored.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"damageHP":7,"spawnMob":"Totem"}]}`))

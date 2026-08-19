@@ -105,6 +105,12 @@ export interface SpawnParams {
     // only way to say what the summon does. The levels are a floor: the spawn
     // site raises them to the summon skill's level.
     summonLoadout?: SummonSkillRef[];
+    // The PROJECTILE placement's two extra knobs (plan-prototype-projectile.md
+    // D2), absent on both spawn forms: how far ahead of the caster the thrown
+    // entity lands, and how long its own burst is held down before it may fire.
+    // Optional here because the server omits them on a plain summon.
+    forwardUnits?: number;
+    armTicks?: number;
 }
 
 export interface SummonSkillRef {

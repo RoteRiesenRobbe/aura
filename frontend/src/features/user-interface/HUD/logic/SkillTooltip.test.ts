@@ -717,6 +717,38 @@ describe('spawn_at_anchor', () => {
     });
 });
 
+// projectile is spawn's THROWN twin (plan-prototype-projectile.md D2/P1): the
+// same payload, placed a few units ahead of the caster along their last walking
+// direction, with a fuse. The tooltip says the two things the placement adds -
+// how far it goes and how long before it goes off - because everything else
+// about the line is the shared spawn payload.
+describe('projectile', () => {
+    const throwMine = skill({
+        displayName: 'Throw Mine', category: 'cooldown', maxLevel: 1, cooldownTicks: 300,
+        effects: [effect({
+            type: 'projectile',
+            spawn: {
+                mobName: 'ProjectileBomb', ttlTicks: 900, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0,
+                forwardUnits: 3, armTicks: 45,
+            },
+        })],
+    });
+
+    it('says how far it is thrown and how long it lasts', () => {
+        expect(lines(throwMine, 1, 1)).toContain('Throws ProjectileBomb 3u ahead for 30s');
+    });
+
+    it('says how long the fuse is', () => {
+        expect(lines(throwMine, 1, 1)).toContain('Arms after 1.5s');
+    });
+
+    // The unknown-type degrade is what a missing case looks like, so pin that
+    // the case exists rather than only that the string is right.
+    it('is not rendered as an unhandled effect type', () => {
+        expect(lines(throwMine, 1, 1).join('\n')).not.toContain('projectile');
+    });
+});
+
 // The faction scope line (plan-faction-flips D8). It renders from the SKILL's
 // data in the shared section, never from a per-effect case — so these tests use
 // invented faction names and an invented effect type on purpose: if either had

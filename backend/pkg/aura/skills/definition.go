@@ -67,6 +67,7 @@ const (
 	EffectTypeInstantResist
 	EffectTypeSpeedAura
 	EffectTypeSpawnAtAnchor
+	EffectTypeProjectile
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -159,6 +160,14 @@ var effectTypeMap = map[string]EffectType{
 	// cannot fire at all without a bound fire, while FireTotem must keep
 	// firing for a character who has never seen one.
 	"spawn_at_anchor": EffectTypeSpawnAtAnchor,
+	// spawn's THROWN twin (plan-prototype-projectile.md D2): the same
+	// SpawnParams payload, placed forwardUnits ahead of the caster along their
+	// last walking direction instead of beside them, with the spawned entity's
+	// own cooldown loadout armed to armTicks so it detonates on its own. A third
+	// type rather than a placement key for spawn_at_anchor's reason: the
+	// placement decides the payload (a throw needs a distance and an arming
+	// delay, a summon beside you needs neither).
+	"projectile": EffectTypeProjectile,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -944,6 +953,16 @@ type SpawnParams struct {
 	// never seen a campfire. The gate belongs to the content, not to `spawn`.
 	RequiresAnchor bool `json:"requiresAnchor,omitempty"`
 
+	// ForwardUnits and ArmTicks are the PROJECTILE placement's two extra knobs
+	// (plan-prototype-projectile.md D2), unauthorable on either spawn form: how
+	// far ahead of the caster the thrown entity lands, and how long its own
+	// burst cooldown is held down before it can fire. Both live here rather than
+	// in a struct of their own so the thrown twin shares spawn's payload whole -
+	// which is what buys it the boot-time spawnMob resolution and the catalog
+	// entry for free (the spawn_at_anchor precedent). All values [PLACEHOLDER].
+	ForwardUnits float32 `json:"forwardUnits,omitempty"`
+	ArmTicks     int     `json:"armTicks,omitempty"`
+
 	// SummonLoadout is the summon's authored skill loadout as catalog
 	// references, attached by mobs.RegistryFromFS once the mob registry can
 	// resolve MobName (mobs load after skills). It exists for the /skills
@@ -1149,6 +1168,8 @@ type effectDef struct {
 	TTLTicksPerLevel   int     `json:"ttlTicksPerLevel"`
 	PowerPerOwnerLevel float32 `json:"powerPerOwnerLevel"`
 	RequiresAnchor     bool    `json:"requiresAnchor"`
+	ForwardUnits       float32 `json:"forwardUnits"` // projectile: throw distance ahead of the caster
+	ArmTicks           int     `json:"armTicks"`     // projectile: ticks before the carried burst may fire
 
 	ThreatMargin float32 `json:"threatMargin"` // taunt: head start above the current top
 
@@ -1289,6 +1310,17 @@ var effectKeys = map[EffectType][]string{
 	//   - `powerPerOwnerLevel`: nothing placed at a campfire fights. Add it the
 	//     day an anchored summon does, and re-derive its scaling then.
 	EffectTypeSpawnAtAnchor: {"spawnMob", "ttlTicks", "ttlTicksPerLevel"},
+	// The THROWN twin (plan-prototype-projectile.md D2). Its two own keys are
+	// the placement (`forwardUnits`) and the fuse (`armTicks`); THREE of spawn's
+	// are deliberately missing, each for a reason the allowlist turns into a
+	// boot failure instead of a silent no-op:
+	//   - `requiresAnchor`: a throw needs a direction, never a campfire.
+	//   - `powerPerOwnerLevel`: what the thrown thing does is its OWN authored
+	//     burst, fired from its own loadout - the summon-output knob reaches
+	//     nothing here. Add it the day a projectile carries a scaled aura.
+	//   - `ttlTicksPerLevel`: the throw skills are maxLevel 1 in the prototype,
+	//     so a per-level slope could only ever read as dead authoring.
+	EffectTypeProjectile: {"spawnMob", "forwardUnits", "ttlTicks", "armTicks"},
 	// Threat ops (chunk 7): a query circle (geometry) of enemy mobs; taunt
 	// carries a threatMargin, detaunt is a bare single-entry removal.
 	EffectTypeTaunt:   mergeKeys(keysGeometry, keysTargetFlags, []string{"threatMargin"}),
@@ -1704,6 +1736,10 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		// spawnMob (and attaches the summon loadout) off `Spawn != nil`, and the
 		// /skills catalog emits it under the same key the client tooltip reads.
 		def.Spawn, err = e.spawnParams()
+	case EffectTypeProjectile:
+		// Same payload again (plan-prototype-projectile.md D2), so the thrown
+		// twin inherits the boot-time spawnMob resolution with it.
+		def.Spawn, err = e.projectileParams()
 	case EffectTypeTaunt:
 		def.Threat, err = e.tauntParams()
 	case EffectTypeDetaunt:
@@ -1991,6 +2027,27 @@ func (e *effectDef) spawnParams() (*SpawnParams, error) {
 		PowerPerOwnerLevel: e.PowerPerOwnerLevel,
 		RequiresAnchor:     e.RequiresAnchor,
 	}, nil
+}
+
+// projectileParams builds the thrown payload: spawn's validation plus the two
+// throw-only bounds. A zero forwardUnits would author the aim fallback (the
+// projectile at the caster's feet) as if it were a choice, which is the one
+// placement the throw exists to avoid; a negative arming delay is not a delay.
+// armTicks 0 is legal and means "armed on arrival".
+func (e *effectDef) projectileParams() (*SpawnParams, error) {
+	p, err := e.spawnParams()
+	if err != nil {
+		return nil, err
+	}
+	if e.ForwardUnits <= 0 {
+		return nil, fmt.Errorf("forwardUnits: must be > 0, got %v", e.ForwardUnits)
+	}
+	if e.ArmTicks < 0 {
+		return nil, fmt.Errorf("armTicks: must be >= 0, got %v", e.ArmTicks)
+	}
+	p.ForwardUnits = e.ForwardUnits
+	p.ArmTicks = e.ArmTicks
+	return p, nil
 }
 
 // shieldParams builds the shield payload. A both-zero pool is a do-nothing

@@ -41,8 +41,13 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 		byRole[def.Role] = append(byRole[def.Role], def.Name)
 	}
 
+	// ⚑ ProjectileBomb (docs/plan-prototype-projectile.md D1, P1) is the first
+	// structure that is THROWN rather than placed or summoned beside its caster,
+	// and it is a structure for the same reason the totems are: no AI, no chase,
+	// no aggro sensor, and its loadout is its entire behaviour. Unlike the two
+	// portals it is not a creature - it does not talk, it detonates.
 	assert.ElementsMatch(t, []string{
-		"Bramble", "Camp", "Campfire", "FireTotem", "PoisonPool",
+		"Bramble", "Camp", "Campfire", "FireTotem", "PoisonPool", "ProjectileBomb",
 		"Rockfall", "SpikeBarricade", "Totem", "Turnip", "WarbannerTotem",
 	}, byRole[RoleStructure], "the authored structures")
 

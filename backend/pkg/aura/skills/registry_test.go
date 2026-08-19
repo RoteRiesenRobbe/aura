@@ -205,7 +205,14 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// caster's bound fire, 100 → 101; PullThrough id 148 (C2) places the same
 	// doorway AT that fire, leading back to wherever the caster now stands,
 	// 101 → 102. Both maxLevel 1 - a binary utility has nothing to scale.
-	assert.Len(t, r.All(), 102)
+	// + the projectile prototype's three (docs/plan-prototype-projectile.md P1,
+	// 2026-08-19), 102 → 105: BombBurst id 149, which is the thrown bomb's OWN
+	// detonation and therefore a mob-loadout skill (api/skills/mobs/), plus the
+	// two player throws ThrowMine id 150 and ThrowBomb id 151 - the same
+	// `projectile` effect authored twice, differing only in the TTL that makes
+	// one a waiting mine and the other a timed bang (D5). All three are SKILL
+	// cheat only and stay that way for as long as the prototype is unmerged.
+	assert.Len(t, r.All(), 105)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

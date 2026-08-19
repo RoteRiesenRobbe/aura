@@ -522,6 +522,18 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             }
             break;
         }
+        case 'projectile': {
+            // The THROWN twin (plan-prototype-projectile.md D2). It says the
+            // two things the placement adds and nothing else: everything about
+            // WHAT lands is the shared spawn payload, rendered by the loadout
+            // lines below the block exactly as a summon's are.
+            const spawn = effect.spawn;
+            lines.push(`Throws ${mobDisplayName(spawn.mobName)} ${spawn.forwardUnits ?? 0}u ahead for ${prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}`);
+            // The fuse is the whole feel of the ability - "drop it and back
+            // off" only reads if the player knows how long they have.
+            lines.push(`Arms after ${ticksToSecs(spawn.armTicks ?? 0)}`);
+            break;
+        }
         case 'taunt':
             lines.push('Taunts enemies in range into attacking you');
             break;
@@ -857,7 +869,7 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
         // Both placements carry the same payload, so both get the loadout
         // lines. Omitting the remote one would lose an anchored summon's
         // abilities silently the day one has any (plan-portal-spells.md D11).
-        if (effect.type === 'spawn' || effect.type === 'spawn_at_anchor') {
+        if (effect.type === 'spawn' || effect.type === 'spawn_at_anchor' || effect.type === 'projectile') {
             // Right after the Summons line, before the summon-power line.
             block.lines.splice(1, 0,
                 ...summonLoadoutLines(effect.spawn, level, powerScale, playerLevel, resolveSkill));

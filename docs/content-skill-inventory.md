@@ -181,6 +181,8 @@ result · **Ascension** = the bloodline catalog, `api/ascension/`
 | 72 | Onward | 5 | ⭐ ally move speed **×1.4 +0.05/L** for 150t +15/L, all allies in r3 (uncapped, `targetsSelf` absent — the caster stays behind); CD 900 −60/L, cost 0.03 +0.004/L | **Cheat only (`SKILL Onward`)** — no unlock source yet (plan-effect-types.md C4) |
 | 147 | OpenPortal | 1 | ⭐ spawn PortalHome, TTL 900 (30 s, no per-level slope); cast 75t damage-interruptible, `requiresAnchor`; CD 1200 ≥ cast + TTL (D7, one portal at a time), cost 0.10 | **Cheat only (`SKILL OpenPortal`)** - no unlock source yet (plan-portal-spells.md C1, the worked-example convention) |
 | 148 | PullThrough | 1 | ⭐ **spawn_at_anchor** PortalSummon (the FIRST use of the type), TTL 900 (30 s, no per-level slope), placed on the 2.5 u ring around the caster's bound fire and never inside a bind circle (D8); cast 75t damage-interruptible, anchor gate inherent to the type (no `requiresAnchor` key, and authoring one hard-fails); CD 1200 ≥ cast + TTL (D7), cost 0.10 | **Cheat only (`SKILL PullThrough`)** - no unlock source yet (plan-portal-spells.md C2, the worked-example convention) |
+| 150 | ThrowMine | 1 | ⭐ **projectile** ProjectileBomb (the FIRST use of the type), thrown 3 u ahead along the caster's LAST WALKING DIRECTION (D3), TTL 900 (30 s) ≫ armTicks 45 (1.5 s) = the MINE authoring: arms, waits, detonates on entry, fizzles quietly at TTL. Detonation is the bomb's own BombBurst cooldown (D4), and the bomb is consumed by its own bang; cast 0, CD 300, cost 0 | **Cheat only (`SKILL ThrowMine`)** - no unlock source, a PROTOTYPE whose verdict may be delete (plan-prototype-projectile.md P1) |
+| 151 | ThrowBomb | 1 | ⭐ ThrowMine verbatim except TTL 46 = armTicks 45 + 1 = the TIMED authoring: exactly one fire opportunity, because MobSystem (20) removes at the mob pass of tick 46 while the burst came ready at the skill pass (-65) of tick 45. An empty bang is invisible (accepted, D5); cast 0, CD 300, cost 0 | **Cheat only (`SKILL ThrowBomb`)** - same prototype, same reason |
 | 75 | OmniStrike | 5 | ⭐ **LIMIT-TEST RIG** (2026-08-18): **16 cooldown types in ONE cast** (all but recall / revive / tick_rate - preconditions gate the whole cast, tick_rate is guardrail-frozen both ways; see the `_comment`); cast 30t not damage-interruptible, CD 300 −10/L, `targetFactions` = all ten factions + `aligned`; dash authored LAST so queries center on the cast position | **Cheat only (`SKILL OmniStrike`) - a test rig, NEVER to gain a source** |
 
 ## Reachability summary (live world zone)
@@ -199,12 +201,23 @@ ascension catalog).
   regeneration script that reads only `unlocks[]`, teachings, recipes and the
   milestone table will report all six as unreachable and be wrong, exactly as
   the quest-reward note below warns for its own three.
-- **Unreachable without the cheat: THIRTEEN, and all thirteen are deliberate —
-  in TWO distinct conventions.** Ten are worked examples awaiting the content
+- **Unreachable without the cheat: FIFTEEN, and all fifteen are deliberate —
+  in THREE distinct conventions.** Ten are worked examples awaiting the content
   pass; ⭐ the three **Omni** skills (ids 73–75, 2026-08-18) are the SECOND
   convention: kitchen-sink **limit-test rigs** that exercise every effect type
   their category dispatches, and unlike the eight they must **never** gain a
   source - they are test tooling, not unplaced content.
+  ⭐ **ThrowMine** (id 150) and **ThrowBomb** (id 151, both
+  plan-prototype-projectile.md P1, 2026-08-19) are the THIRD convention and the
+  first entries in it: **PROTOTYPE** content, cheat-only because the whole build
+  exists to be judged and one of the verdicts on offer is `delete`. That is a
+  different reason from the ten (which are finished abilities waiting for a
+  placement call) and from the three rigs (which are permanent tooling), and it
+  is worth keeping separate: nobody should place a prototype, and nobody should
+  keep one forever either. ⚑ Their mob-side burst, **BombBurst** (id 149), is
+  deliberately absent from this list and from the table: it lives in
+  `api/skills/mobs/`, it is a mob loadout entry rather than a player skill, and
+  no player ever holds it.
   ⭐ **Bloodthirst** (id 8) is the oldest of them and was never counted here:
   its ROW was missing from the table, so the sweep could not see it (R3,
   2026-08-01, "no unlock source yet ... the obvious home is the wolf line

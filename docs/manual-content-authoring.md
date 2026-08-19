@@ -335,14 +335,14 @@ error. If the type also puts a buff on an entity, it needs a pip decision in
 `applied_effects.go` (compile-enforced) and a matching entry in `EffectPips.ts`.
 
 Existing effect `type`s to compose (the authoritative list is `effectTypeMap` in
-`backend/pkg/aura/skills/definition.go`, 33 as of 2026-08-18):
+`backend/pkg/aura/skills/definition.go`, 34 as of 2026-08-19):
 `damage_aura`, `instant_damage`, `heal_aura`, `self_heal`, `hot_aura`,
 `instant_hot`, `dot_aura`, `instant_dot`, `shield_aura`, `instant_shield`,
 `slow_aura`, `resist_aura`, `resist_passive`, `instant_resist`,
 `stat_multiplier`, `light_aura`, `taunt`, `detaunt`, `spawn`,
 `spawn_at_anchor`, `recall`, `revive`, `dash`, `tick_rate`, `calm`, `charm`,
 `stun`, `speed_aura`, `speed_burst`, `lifesteal_burst`, `retaliate_slow`,
-`retaliate_damage`, `retaliate_burst`.
+`retaliate_damage`, `retaliate_burst`, `projectile`.
 
 ⚑ This list had drifted: `retaliate_slow` and `stun` were missing since their
 own chunks (recorded at effect-types C2), and `retaliate_damage` /
@@ -370,9 +370,9 @@ the dispatch sites themselves:
   as the wire `light_radius`).
 - **`cooldown`** (`sys.fireCooldown`): `instant_damage`, `instant_dot`,
   `instant_hot`, `instant_shield`, `instant_resist`, `self_heal`, `spawn`,
-  `spawn_at_anchor`, `taunt`, `detaunt`, `calm`, `stun`, `charm`, `dash`,
-  `tick_rate`, `speed_burst`, `lifesteal_burst`, `retaliate_burst`, `recall`,
-  `revive`.
+  `spawn_at_anchor`, `projectile`, `taunt`, `detaunt`, `calm`, `stun`, `charm`,
+  `dash`, `tick_rate`, `speed_burst`, `lifesteal_burst`, `retaliate_burst`,
+  `recall`, `revive`.
 - **`passive`** (`SkillComponent.recomputeDerived`): `stat_multiplier` (closed
   six-stat vocabulary: `movementSpeed`, `maxHealth`, `damageReduction`,
   `critChance`, `damageDealt`, `costReduction`), `resist_passive`,
