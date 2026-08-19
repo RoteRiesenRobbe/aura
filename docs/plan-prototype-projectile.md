@@ -356,7 +356,7 @@ fallout · `harnessdb -cleanup` (9) with aurad stopped.
 Setup: `SKILL ThrowMine` / `SKILL ThrowBomb`, equip in cooldown slots. §10 item 7 (the aim
 verdict) still decides whether the prepared cursor-aim fallback gets built.
 
-### P1 PO session 1 - 2026-08-19: four rulings, four fixes, re-check pending
+### P1 PO session 1 ✅ 2026-08-19, `04d07968` - five rulings, five fixes, re-check pending
 
 **The PO played P1 and ruled on §10 items 6 and 7 plus three things the checklist
 did not ask about. Uncommitted at time of writing; the second in-game pass is the
