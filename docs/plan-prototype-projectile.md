@@ -355,3 +355,77 @@ fallout · `harnessdb -cleanup` (9) with aurad stopped.
 
 Setup: `SKILL ThrowMine` / `SKILL ThrowBomb`, equip in cooldown slots. §10 item 7 (the aim
 verdict) still decides whether the prepared cursor-aim fallback gets built.
+
+### P1 PO session 1 - 2026-08-19: four rulings, four fixes, re-check pending
+
+**The PO played P1 and ruled on §10 items 6 and 7 plus three things the checklist
+did not ask about. Uncommitted at time of writing; the second in-game pass is the
+gate.**
+
+- ⭐ **§10 item 6 - the free decoy is a BUG, not a feature.** "A mine should not be
+  something mobs go towards." §5 had offered the aggro-magnet as a possible feature; it
+  is not one. **Config only, one value**: `projectile-bomb.json` `collisionLayer`
+  160 → **32**, the totem recipe swapped for the **poison-pool** one. The Player bit is
+  what puts a body in every mob's aggro sensor (`aggroSensorMask` adds
+  `LayerPlayerCollision` for anything hunting Aligned), so dropping it makes the bomb
+  unseeable AND unreachable in a single edit - poison-pool has always been exactly this:
+  a placed hazard that damages and is never a target. What the burst can HIT is
+  untouched (it builds its own query circle; reach never depended on the bomb's own
+  layer). ⚠ **P3's killable boss bomb now differs in TWO authored values**, layer and
+  health, and needs the Player bit back on its own def.
+- ⭐ **§10 item 3 revisited - the owner must not consume their own mine.** P1 pinned
+  "any body in radius trips it" as accepted coarseness; the PO rejected it. **Code, and
+  narrow**: `fireCooldown`'s two instant-damage cases counted a non-empty query set as a
+  hit BEFORE eligibility, and both appliers already return the honest post-eligibility
+  answer, so the fix is using it - gated on the **despawn-on-fire flag**, because a
+  projectile is consumed by the hit it reports while every other mob keeps
+  "found bodies, not a whiff" (that pre-eligibility rule paces ordinary mob bursts and
+  nothing asked for it to change; §8 says guardrails must not shift). The old pin
+  `TestProjectile_AnyBodyInRangeTripsTheArmedMine` is REPLACED red-first by
+  `_OwnSideDoesNotTripTheArmedMine` + `_EnemyStillTripsAMineTheOwnerIsStandingOn`.
+  ⚑ The dot applier reports IGNITED rather than eligible, so a projectile authoring a
+  dot ALONE would not trip on an already-burning target; the shipped burst pairs damage
+  with its dot and the damage answer carries the trigger.
+- **Cost: NovaBurst's, totalled** (PO call, answering the question throw-mine.json said
+  the prototype existed to inform). **Config only**: `costFractionOfMax` **0.0365** on
+  the one projectile effect of both throws = that burst's 0.0199 + 0.0166, since a
+  cooldown charges the SUM of its effects. The bomb copies NovaBurst's damage verbatim,
+  so it now costs what it copies. Priced on the THROW, never on `bomb-burst.json` - the
+  mob fire path charges nothing, so a cost there would be silently free. ⚑ Cost is
+  allowed on EVERY effect type by the numbers-rewrite D5 ruling, which is why this was
+  never a code change.
+- ⭐ **The mine is PLACED, not thrown: `forwardUnits` 3.0 → 1.0** ("it should read as
+  placing it directly before you"). **Config only.** Caster collider 0.25 + bomb collider
+  0.25 means 1 unit leaves a half-body gap in front of the feet, which is what makes
+  drop-and-back-off read as a single motion. ⭐ **This makes reach the pair's SECOND
+  authoring axis**: `throw-bomb.json` deliberately keeps 3.0, because a bomb is lobbed and
+  P2's travel wants the distance to show. D5's rule survives intact - one mob def, no code
+  branching on which is which, the engine still only ever sees numbers - it is just two
+  numbers now instead of one. ⛑ The burst radius is 2.0, so a mine at 1 unit blankets the
+  ground its own caster stands on; harmless only because of the eligibility fix above,
+  which is why these two rulings had to land together.
+- **Distance reads in metres** (PO: "3u is technically correct but not understandable").
+  **Frontend only, and it was a three-place inconsistency rather than one bad string**:
+  the throw said `3u`, the dash said `5 units`, the radius generic printed a bare number.
+  All three now spell `" m"`, documented as the rule at the radius generic. A humanoid
+  body is radius 0.3 (the player's own collider 0.25), so a unit is about a person wide and
+  the metre is the right lie. ⚑ Corroborating find: the constant behind the player's body is
+  ALREADY called `ColliderRadiusMeters` - the codebase has quietly thought in metres since
+  the Berryhunter inheritance, and only the UI was speaking units.
+  10 vitest expectations updated; the `round4-tooltip` gate is unaffected (its
+  `Radius: ([\d.]+)` regex still matches).
+
+**⭐ §10 item 7 ANSWERED - the aim stays `LastMoveDir`.** Throw-behind-while-fleeing
+reads as mine-laying, which was D3's bet. **The prepared cursor-aim fallback is dropped**;
+P2's flying bolt inherits walk-direction aim and item 11 becomes its real test.
+
+**Item 3 of the PO's list is DEFERRED to P2, by PO choice**: both throws should TRAVEL to
+their landing spot instead of appearing there. The destination is already probed as a free
+path, so a straight position lerp over ~8 ticks would render as real motion on the client's
+existing buffered interpolation - but it is a strict subset of P2's `SetDrift` (step 6) and
+lands there rather than as a P1.5.
+
+**Verified after the fixes (all five):** `go test -count=1 ./...` full suite green (after `cp-defs`) ·
+vitest **375/375** · typecheck · `make -C backend build` · boot **0 WARN / 0 ERROR**,
+census **105/61**. ⚠ **Second PO in-game pass pending**: the four fixes, then the §10
+items the first session did not reach (1, 2, 4, 5) and item 13's actual question.

@@ -359,27 +359,48 @@ func TestProjectile_BurstSparesTheOwnersSide(t *testing.T) {
 	assert.Empty(t, ally.touches, "no friendly fire: same faction + targetsAllies false")
 }
 
-// ⚑ ACCEPTED PROTOTYPE COARSENESS, pinned so it is a known shape rather than a
-// surprise: fireCooldown counts a non-empty query set as a HIT before
-// eligibility runs (its own comment says so), and the query only excludes the
-// caster's own shapes. So ANY combatant-layer body in the burst radius trips an
-// armed mine - including the owner and their own structures, which sit on the
-// player layer by the 160-layer trick. The bang is harmless to them, but it
-// consumes the mine. Fixing it would mean a projectile-specific trigger, which
-// is exactly the new detonation machinery D4 and the despawn ruling forbid.
-func TestProjectile_AnyBodyInRangeTripsTheArmedMine(t *testing.T) {
+// ⭐ THE MINE IS TRIPPED BY ENEMIES ONLY (PO ruling 2026-08-19, reversing the
+// coarseness P1 accepted). fireCooldown counts a non-empty query set as a HIT
+// before eligibility runs, so the owner's own body used to consume a placement
+// it could never be hurt by; a mine is a single-use placement, so for a
+// projectile that hit answer has to be the honest post-eligibility one. The
+// narrow gate is the despawn-on-fire flag - ordinary mobs keep the old
+// "found bodies, not a whiff" semantics, which is a combat-pacing fact nothing
+// asked to change.
+func TestProjectile_OwnSideDoesNotTripTheArmedMine(t *testing.T) {
 	ally := &alignedTouchRecorder{}
 	space, _ := spaceWithBodyAt(phy.Vec2f{X: 3, Y: 0}, int(model.LayerPlayerCollision), ally)
 
 	caster, g, sk := throwTestSetup(space, throwMineTestDef())
 	m := throwOnce(t, caster, g, sk)
 
-	for tick := 1; tick <= 45; tick++ {
-		if !stepWorld(m, sk) {
-			break
-		}
+	for tick := 1; tick <= 60; tick++ {
+		require.True(t, stepWorld(m, sk), "tick %d: the mine outlives its own side standing on it", tick)
 	}
 
 	assert.Empty(t, ally.touches, "nothing landed on the friendly body")
-	assert.False(t, m.Update(0), "but the mine is spent all the same")
+	burst := m.SkillComponent().CooldownSlots[0]
+	assert.Equal(t, 0, m.SkillComponent().CooldownRemaining(burst.Def.ID),
+		"and it is still armed, waiting for something it can actually hurt")
+}
+
+// The other half of the same ruling: an enemy walking onto a mine the owner has
+// been standing on all along still sets it off.
+func TestProjectile_EnemyStillTripsAMineTheOwnerIsStandingOn(t *testing.T) {
+	ally := &alignedTouchRecorder{}
+	enemy := &touchRecorder{}
+	space, _ := spaceWithBodyAt(phy.Vec2f{X: 3, Y: 0}, int(model.LayerPlayerCollision), ally)
+
+	caster, g, sk := throwTestSetup(space, throwMineTestDef())
+	m := throwOnce(t, caster, g, sk)
+	for tick := 1; tick <= 60; tick++ {
+		require.True(t, stepWorld(m, sk), "tick %d: still waiting", tick)
+	}
+
+	addBodyAt(space, phy.Vec2f{X: 3.1, Y: 0}, int(model.LayerActionCollision), enemy)
+	space.Update()
+	stepWorld(m, sk)
+
+	require.Len(t, enemy.touches, 1, "the enemy eats the burst")
+	assert.False(t, m.Update(0), "and the mine is spent")
 }

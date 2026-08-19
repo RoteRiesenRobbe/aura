@@ -528,7 +528,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // WHAT lands is the shared spawn payload, rendered by the loadout
             // lines below the block exactly as a summon's are.
             const spawn = effect.spawn;
-            lines.push(`Throws ${mobDisplayName(spawn.mobName)} ${spawn.forwardUnits ?? 0}u ahead for ${prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}`);
+            lines.push(`Throws ${mobDisplayName(spawn.mobName)} ${spawn.forwardUnits ?? 0} m ahead for ${prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}`);
             // The fuse is the whole feel of the ability - "drop it and back
             // off" only reads if the player knows how long they have.
             lines.push(`Arms after ${ticksToSecs(spawn.armTicks ?? 0)}`);
@@ -579,7 +579,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             lines.push(`Revives the nearest fallen player at ${pct(effect.revive.healthFraction)} Focus`);
             break;
         case 'dash':
-            lines.push(`Dash ${prog(effect.dash.distance, effect.dash.distancePerLevel, level, maxLevel)} units in your movement direction`);
+            lines.push(`Dash ${prog(effect.dash.distance, effect.dash.distancePerLevel, level, maxLevel)} m in your movement direction`);
             break;
         case 'calm': {
             // Say what it is FOR, like light_aura: "calms enemies" reads as a
@@ -720,8 +720,14 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
     }
 
     const generics: EffectBlock['generics'] = {};
+    // ⭐ DISTANCE IS SPELLED " m" EVERYWHERE (PO ruling 2026-08-19). World units
+    // are what the server thinks in; "3u" is correct and unreadable, and the
+    // three places that print a distance each said something different - "3u"
+    // on the throw, "5 units" on the dash, a bare number here. A metre is the
+    // right lie: a humanoid body is radius 0.3, so a unit is about a person
+    // wide. Keep any new distance line on this spelling.
     if (effect.radius > 0) {
-        generics.radius = `Radius: ${prog(effect.radius, effect.radiusPerLevel, level, maxLevel)}`;
+        generics.radius = `Radius: ${prog(effect.radius, effect.radiusPerLevel, level, maxLevel)} m`;
     }
     const targets = targetsLine(effect, level, maxLevel);
     if (targets) {

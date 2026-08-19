@@ -62,7 +62,7 @@ describe('character power scale', () => {
     it('leaves every line at the authored value on a level-1 character', () => {
         expect(lines(rejuvenation, 1, 1)).toEqual([
             'Heal over time: 4 → 6 × 6 over 12s, refreshed every 2s',
-            'Radius: 2.5 → 2.7',
+            'Radius: 2.5 → 2.7 m',
             'Targets: all allies in range',
         ]);
     });
@@ -71,7 +71,7 @@ describe('character power scale', () => {
         // 4 × 1.12²⁹ ≈ 107 — the reported bug read "4" here.
         expect(lines(rejuvenation, 1, SCALE_AT_30)).toEqual([
             'Heal over time: 107 → 160 × 6 over 12s, refreshed every 2s',
-            'Radius: 2.5 → 2.7',
+            'Radius: 2.5 → 2.7 m',
             'Targets: all allies in range',
         ]);
     });
@@ -171,7 +171,7 @@ describe('character power scale', () => {
         // The one damage line is expected to move; everything else must not.
         expect(unscaled.filter(l => !l.startsWith('Damage:')))
             .toEqual(scaled.filter(l => !l.startsWith('Damage:')));
-        expect(unscaled).toContain('Radius: 3.5 → 4');
+        expect(unscaled).toContain('Radius: 3.5 → 4 m');
         expect(unscaled).toContain('Crit: 7% → 9% (×2)');
         expect(unscaled).toContain('Variance: ±20%');
     });
@@ -735,7 +735,7 @@ describe('projectile', () => {
     });
 
     it('says how far it is thrown and how long it lasts', () => {
-        expect(lines(throwMine, 1, 1)).toContain('Throws ProjectileBomb 3u ahead for 30s');
+        expect(lines(throwMine, 1, 1)).toContain('Throws ProjectileBomb 3 m ahead for 30s');
     });
 
     it('says how long the fuse is', () => {
@@ -1091,7 +1091,7 @@ describe('next-level preview gating', () => {
     it('previews every scaling line while a point can be spent', () => {
         expect(gated(true)).toEqual([
             'Damage: 8 → 10 every 0.6s → 0.53s',
-            'Radius: 3.5 → 4',
+            'Radius: 3.5 → 4 m',
             'Targets: nearest 2 → 3 enemies',
             'Costs you: 3 → 4 Focus every 0.6s → 0.53s',
             'Cooldown: 9s → 8s',
@@ -1102,7 +1102,7 @@ describe('next-level preview gating', () => {
     it('shows the current values alone when no point can be spent', () => {
         expect(gated(false)).toEqual([
             'Damage: 8 every 0.6s',
-            'Radius: 3.5',
+            'Radius: 3.5 m',
             'Targets: nearest 2 enemies',
             'Costs you: 3 Focus every 0.6s',
             'Cooldown: 9s',
@@ -1177,7 +1177,7 @@ describe('summon loadout', () => {
         // (RaiseLoadoutLevels): authored 1, skill 3 → the aura renders at 3.
         expect(tooltipLines(summon, 3, 1, 1)).toEqual(expect.arrayContaining([
             '↳ Damage: 8 every 1s',
-            '↳ Radius: 3',
+            '↳ Radius: 3 m',
             '↳ Targets: nearest 1 enemies',
         ]));
     });
@@ -1298,7 +1298,7 @@ describe('vulnerability rendering (plan-effect-types C1)', () => {
     it('reads as a vulnerability, not a double-negative resist', () => {
         expect(lines(fireVulnerability, 1, 1)).toEqual([
             'Vulnerable to fire: +20% → 25% damage taken, refreshed every 1s',
-            'Radius: 1.5',
+            'Radius: 1.5 m',
             'Targets: all enemies in range',
         ]);
     });
@@ -1337,7 +1337,7 @@ describe('invulnerability rendering (plan-effect-types C3)', () => {
     it('reads as immunity, not as a −100% resist of a tag called *', () => {
         expect(lines(aegis, 1, 1)).toEqual([
             'Immune to all damage, refreshed every 3s',
-            'Radius: 1.5',
+            'Radius: 1.5 m',
             'Targets: nearest 1 → 2 allies',
         ]);
     });
@@ -1371,7 +1371,7 @@ describe('invulnerability rendering (plan-effect-types C3)', () => {
         });
         expect(lines(sanctuary, 1, 1)).toEqual([
             'Immune to all damage for 5s',
-            'Radius: 1.5',
+            'Radius: 1.5 m',
             'Targets: nearest 1 → 2 allies',
             'Cooldown: 30s',
         ]);

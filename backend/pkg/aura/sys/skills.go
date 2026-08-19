@@ -1926,6 +1926,19 @@ func noteActivationRejected(e skillEntity, id skills.SkillID, reason model.Activ
 // caster. Reports whether anything was affected.
 func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool {
 	hitAny := false
+	// ⭐ A THROWN PROJECTILE COUNTS ONLY REAL HITS (PO ruling 2026-08-19). It is
+	// consumed by the hit it reports (despawn-on-fire), so the pre-eligibility
+	// answer below would let the thrower's own body - which the burst can never
+	// harm - eat a placement. Every other caster keeps the old semantics on
+	// purpose: "found bodies, not a whiff" paces mob bursts, and nothing asked
+	// for that to change. ⚑ The dot path reports IGNITED rather than eligible,
+	// so a projectile authoring a dot ALONE would not trip on an already-burning
+	// target; the shipped burst pairs damage with its dot, and the damage answer
+	// carries the trigger.
+	strictHits := false
+	if d, ok := e.(despawnOnCooldownFire); ok && d.DespawnOnCooldownFire() {
+		strictHits = true
+	}
 	for _, effect := range es.Def.Effects {
 		switch effect.Type {
 		case skills.EffectTypeSelfHeal:
@@ -2036,19 +2049,25 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 		// non-empty set counts as a hit BEFORE eligibility runs — the aura
 		// appliers do their own target-flag filtering, and a cooldown that
 		// found bodies is not a whiff even if none of them turn out eligible.
+		// strictHits (above) is the one exception: a projectile pays for its
+		// report with its life, so it waits for the applier's own answer.
 		case skills.EffectTypeInstantDamage:
 			// Same dispatch and target-flag filtering as the per-tick auras —
 			// PlayerTouches feeds participation XP, MobTouches the double
 			// dispatch.
 			if targets := s.queryInstantTargets(e, effect, es.Level); len(targets) > 0 {
-				applyDamageAura(e, es.Level, effect, targets, s.rng)
-				hitAny = true
+				landed := applyDamageAura(e, es.Level, effect, targets, s.rng)
+				if landed || !strictHits {
+					hitAny = true
+				}
 			}
 
 		case skills.EffectTypeInstantDot:
 			if targets := s.queryInstantTargets(e, effect, es.Level); len(targets) > 0 {
-				applyDotEffect(e, es.Def.ID, es.Level, effect, targets)
-				hitAny = true
+				ignited := applyDotEffect(e, es.Def.ID, es.Level, effect, targets)
+				if ignited || !strictHits {
+					hitAny = true
+				}
 			}
 		}
 	}
