@@ -284,6 +284,13 @@ equally available:
 | **Background** | type | ⚠️ Small backend job | The client catalog (`GET /mobs`) ships `curveLevel`, `tier`, `combatTarget`, `conversant` — **no faction or category**. Both exist in `api/mobs/*.json`; adding one server-derived field to the catalog follows the existing `combatTarget` precedent. |
 | **Border** | zone + level | ❌ `level` yes, **`zone` does not exist client-side** | See below. |
 
+> ⚑ **Superseded 2026-08-20 (PO):** the border layer keys on **faction art
+> family**, not zone+level, which dissolves the zone problem below. The full
+> revised layer stack (six token layers incl. subtype additions and species
+> decoration) lives in `../plan-entity-medallions.md` §3; the artist delivery
+> contract in `medallion-asset-spec.md`. The zone discussion is kept for the
+> record only.
+
 ### ⚑ The zone problem
 
 `level` is fine — it's on the wire per instance. **Zone is not, anywhere.**

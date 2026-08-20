@@ -111,7 +111,14 @@ Generated 2026-08-15 from `api/` + the client, not hand-maintained prose. Regene
   handles raster; the Pixi game-object path is unverified — includes the 10-minute test
   that settles it), and the **four-layer medallion** (background/portrait/decor/border,
   which replaces the runtime tier ring) with per-layer selector availability and the
-  open zone-selector question
+  open zone-selector question (⚑ superseded 2026-08-20: the border keys on faction
+  family, not zone+level; `plan-entity-medallions.md` D9)
+- **art/medallion-asset-spec.md** — the **artist-facing delivery contract** for the
+  medallion layer set (2026-08-20): 512×512 shared canvas, the three frozen circles,
+  per-layer rules (greyscale disc, per-family rings+rims, universal additions/
+  decorations), naming, self-check list, and the pilot that locks the fractions.
+  Written so art starts before implementation; design rationale lives in
+  `plan-entity-medallions.md`
 
 ## Manuals (how-to)
 

@@ -12,6 +12,13 @@ two zone docs, and the portrait checklist in `manual-content-authoring.md` §4.
 Berryhunter content is excluded from the lists and parked in an appendix at the
 bottom — don't draw it.
 
+> ⭐ **New 2026-08-20: the medallion layer set has its own delivery contract,
+> `medallion-asset-spec.md`** (512×512 shared canvas, per-family rings and rims,
+> universal overlays, the greyscale disc, and the pilot that locks the ring
+> fractions). It is designed to be drawable NOW, before any implementation;
+> start there if you are working on medallions. Design rationale:
+> `../plan-entity-medallions.md`.
+
 ---
 
 ## ⭐ The Portrait Rule — governs every creature
@@ -80,7 +87,9 @@ The world is in **meters**; the client draws at **120 px per meter**.
 - **The damage flash** — every sprite gets flooded with `#BF153A` on hit. Art
   already sitting near that red loses its hit feedback.
 - **Tier rings** — silver on elites, gold on the boss, drawn *over* the sprite.
-  Don't build those colours into an outline.
+  Don't build those colours into an outline. (⚑ Scheduled for replacement by the
+  medallion rim layer, `medallion-asset-spec.md` §4.3; the constraint stands
+  until that ships.)
 - **Rotation — almost nothing rotates.** Creatures never do. Trees, rocks and
   buildings all sit at rotation 0, so each is only ever seen at one angle (a rock's
   shadow can safely be baked in). Only the **ground decals** (authored rotation +
@@ -326,7 +335,7 @@ far more road than meadow.*
 | ☐ | **Aura tick indicator** | `AuraTickIndicator.ts` | The pulse when an aura fires — the beat that says damage landed. |
 | ☐ | **Effect pips** | `EffectPips.ts` | 4 px dots over the head, one per applied effect. Shares the aura colour language on purpose. Known gap: a stun is indistinguishable from a slow on the wire. |
 | ☐ | **Overhead health bar** | `OverheadHealthBar.ts` | Health + shield under every mob. Health `#aa3b3b`, shield `#7dc3ff`. |
-| ☐ | **Tier frame ring** | `Mobs.ts` | Silver `#c8ccd4` elite / gold `#e8c04a` boss. Normal gets none — a frame always means "above baseline". |
+| ☐ | **Tier frame ring** | `Mobs.ts` | Silver `#c8ccd4` elite / gold `#e8c04a` boss. Normal gets none — a frame always means "above baseline". ⚑ Do not draw: replaced by the medallion rim layer (`medallion-asset-spec.md` §4.3); the normal-stays-bare rule survives the replacement. |
 | ☐ | **Nameplate & level** | `Mobs.ts` | Difficulty-coloured text. Sits on top of every mob and eats the space under it. |
 | ☐ | **Interact badge** | `InteractBadge.ts` | The "you can talk to this" marker over an NPC in range. |
 | ☐ | **Damage flash** | `StatusEffect.ts` | Colour flood `#BF153A` over the whole sprite on hit, plus a gold burst ring for cooldowns. Applies to *everything*. |
