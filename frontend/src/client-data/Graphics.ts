@@ -76,7 +76,8 @@ export const GraphicsConfig = {
         },
 
         campfire: {
-            file: require('../features/game-objects/assets/mobs/campfire.svg'),
+            file: require('../features/game-objects/assets/mobs/campfire.png'),
+            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             minSize: <number> 60,
             maxSize: <number> 60,
         },
@@ -86,7 +87,8 @@ export const GraphicsConfig = {
         // artwork for now, so SIZE is the only thing telling a player that the
         // thing they put down is temporary and personal rather than a landmark.
         camp: {
-            file: require('../features/game-objects/assets/mobs/campfire.svg'),
+            file: require('../features/game-objects/assets/mobs/campfire.png'),
+            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             minSize: <number> 30,
             maxSize: <number> 30,
         },
@@ -106,13 +108,15 @@ export const GraphicsConfig = {
         },
 
         bear: {
-            file: require('../features/game-objects/assets/mobs/bear.svg'),
+            file: require('../features/game-objects/assets/mobs/bear.png'),
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
             minSize: <number> 70,
             maxSize: <number> 82,
         },
 
         boar: {
-            file: require('../features/game-objects/assets/mobs/wildboar.svg'),
+            file: require('../features/game-objects/assets/mobs/wildboar.png'),
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
             minSize: <number> 46,
             maxSize: <number> 56,
         },
@@ -142,13 +146,15 @@ export const GraphicsConfig = {
 
         // C3 kobold hideout + Dark Tunnel (content pass C3).
         kobold: {
-            file: require('../features/game-objects/assets/mobs/kobold.svg'),
+            file: require('../features/game-objects/assets/mobs/kobold.png'),
+            borderFile: require('../features/game-objects/assets/border/leatherBorder_01.png'),
             minSize: <number> 30,
             maxSize: <number> 36,
         },
 
         koboldRanged: {
-            file: require('../features/game-objects/assets/mobs/koboldRanged.svg'),
+            file: require('../features/game-objects/assets/mobs/koboldRanged.png'),
+            borderFile: require('../features/game-objects/assets/border/leatherBorder_02.png'),
             minSize: <number> 30,
             maxSize: <number> 36,
         },
@@ -216,7 +222,8 @@ export const GraphicsConfig = {
         },
 
         orc: {
-            file: require('../features/game-objects/assets/mobs/orc.svg'),
+            file: require('../features/game-objects/assets/mobs/orc.png'),
+            borderFile: require('../features/game-objects/assets/border/leatherBorder_02.png'),
             minSize: <number> 52,
             maxSize: <number> 60,
         },
@@ -286,7 +293,8 @@ export const GraphicsConfig = {
         },
 
         direBear: {
-            file: require('../features/game-objects/assets/mobs/direBear.svg'),
+            file: require('../features/game-objects/assets/mobs/direBear.png'),
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
             minSize: <number> 78,
             maxSize: <number> 90,
         },
@@ -298,7 +306,8 @@ export const GraphicsConfig = {
         },
 
         alphaWolf: {
-            file: require('../features/game-objects/assets/mobs/alphaWolf.svg'),
+            file: require('../features/game-objects/assets/mobs/alphaWolf.png'),
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
             minSize: <number> 58,
             maxSize: <number> 68,
         },
@@ -374,7 +383,8 @@ export const GraphicsConfig = {
             maxSize: <number> 60,
         },
         townCrier: {
-            file: require('../features/game-objects/assets/resources/townCrier.svg'),
+            file: require('../features/game-objects/assets/resources/townCrier.png'),
+            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             maxSize: <number> 60,
         },
         dogNpc: {
@@ -386,7 +396,8 @@ export const GraphicsConfig = {
             maxSize: <number> 60,
         },
         cityGuard: {
-            file: require('../features/game-objects/assets/resources/cityGuard.svg'),
+            file: require('../features/game-objects/assets/resources/cityGuard.png'),
+            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             maxSize: <number> 60,
         },
         villageHealer: {
@@ -438,7 +449,7 @@ export const GraphicsConfig = {
             spotFile: require('../features/game-objects/assets/resources/stoneSpot.svg'),
             maxSize: <number> 142,
 
-            stoneFile: require('../features/game-objects/assets/resources/stone.svg'),
+            stoneFile: require('../features/game-objects/assets/resources/stone.png'),
         },
     },
 
@@ -565,7 +576,7 @@ export const GraphicsConfig = {
         },
         'Flowers': {
             displayName: 'Pinks - Flowers, white outlined',
-            file: require('../features/ground-textures/assets/textures/flowers.svg'),
+            file: require('../features/ground-textures/assets/textures/flowers.png'),
             minSize: 70,
             maxSize: 100,
         },
@@ -577,7 +588,7 @@ export const GraphicsConfig = {
         },
         'Sand': {
             displayName: 'Yellows - Sand',
-            file: require('../features/ground-textures/assets/textures/sand1.svg'),
+            file: require('../features/ground-textures/assets/textures/sand1.png'),
             minSize: 150,
             maxSize: 200,
         },

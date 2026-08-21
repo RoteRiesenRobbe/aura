@@ -5786,3 +5786,61 @@ face: *"DAMAGE 100 did NOT empty the pool, got Focus 0/100"*).
 
 **Schema impact: DB NONE · FlatBuffers NONE · conf NONE · content NONE** —
 frontend-only, which is the whole reason the prototype was cheap.
+
+---
+
+## 58. Terrain editor — no select, move or rotate on a placed ground texture
+
+*(added 2026-08-21, PO-raised while wiring the painted `sand1.png` / `flowers.png`
+into the world. The PO's words: "I need replacement and rotation control — not
+yet there it's ok". **Parked on the spot, recorded so it does not have to be
+re-derived.** Nothing scheduled.)*
+
+The ask: adjust a ground texture that is **already placed** — drag it somewhere
+else, spin it, resize it, delete just that one. Painting new art into the world
+is the art pass's normal ending move, and every stamp is currently final.
+
+### What is already true
+
+- **The editor opens on `&textures`** (`BasicConfig.MODE_PARAMETERS
+  .GROUND_TEXTURE_EDITOR`), which activates the shared zone-editor panel with the
+  ground-texture palette attached.
+- **Terrain is the ONE mode of seven with no selection.** `EditorMode` is
+  `'off' | 'terrain' | 'prop' | 'spawn' | 'campfire' | 'dark' | 'anchor'`, and
+  prop / spawn / campfire / dark / anchor each carry a Select + Update + Delete +
+  Deselect group in `groundTexturePanel.html`. Terrain has **Place** and
+  **Undo** — and Undo is `GroundTextureManager.removeLatestTexture()`, which pops
+  `latestTextureIndex` and then clears it, so it is strictly one step, only for
+  the patch placed this session.
+- **The store has no addressing.** `GroundTextureManager` keeps a flat
+  `GroundTexture[]`; every exported mutator is whole-list or last-placed
+  (`placeTexture`, `removeLatestTexture`, `clear`). Nothing maps a world point
+  back to an entry, and `GroundTexture` holds its `PIXI.Sprite` but is never
+  asked to hit-test.
+- **The file is the current workaround.** Terrain lives in the `terrain` array of
+  `api/zones/world.json` as `{type, x, y, size, rotation, flipped}` — server
+  units and radians. The client bundles the zone directory through
+  `require.context`, so hand-edits hot-reload in the browser with no server
+  restart. Today that array is 537 entries (372 Sand, 15 Flowers).
+
+### ⚑ The hard part is picking, not editing
+
+Once an entry is addressable, Update/Delete is the same shape the other five
+modes already ship. Picking is where the design work is:
+
+- **Ground textures overlap on purpose and heavily** — hundreds of blobs layered
+  into a field. A click lands on several at once, so the rule for *which* one is
+  a real decision (topmost-drawn is the obvious default, and matches how the
+  painter thinks; nearest-centre would fight the visual).
+- **The art is an irregular blob in a square canvas.** Sprite-bounds hit-testing
+  picks empty corner where nothing is drawn — `sand1.png` covers about 51 % of
+  its canvas. Alpha-accurate picking is the honest version and costs more.
+- **`stacking: 'bottom'` unshifts**, so list order is not paint order and an
+  index is not a z-position. Any selection UI that shows "patch 214 of 537" has
+  to say which ordering it means.
+
+### Schema impact
+
+**DB NONE · FlatBuffers NONE · conf NONE · content NONE** — editor-only, and the
+zone JSON format already carries every field a move/rotate would write. Same
+reason §57's prototype was cheap: nothing leaves the client.

@@ -546,6 +546,8 @@ Preloading.registerGameObjectSVG(Companion, file('companion'), maxSize('companio
 // The fixed world campfire (atmosphere & recovery chunk 2): a permanent
 // aligned heal fixture. Hazard-fixture pattern — stationary, structurally unkillable
 // (Viewport-only body layer), pure aura carrier. Fixed size.
+const campfireBorder = registerBorder(GraphicsConfig.mobs.campfire.borderFile, maxSize('campfire'));
+
 export class Campfire extends Mob implements DwellRing {
     static svg: PIXI.Texture;
 
@@ -605,6 +607,11 @@ export class Campfire extends Mob implements DwellRing {
     dwellRadius(): number {
         return this.dwellRingRadius;
     }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), campfireBorder, size);
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
@@ -614,6 +621,8 @@ Preloading.registerGameObjectSVG(Campfire, file('campfire'), maxSize('campfire')
 // half the size, on the same layer, and deliberately NOT a subclass of
 // Campfire — a camp can never be bound to, so it must never grow the dwell
 // bind circle. Its own wire EntityType is what lets it size independently.
+const campBorder = registerBorder(GraphicsConfig.mobs.camp.borderFile, maxSize('camp'));
+
 export class Camp extends Mob {
     static svg: PIXI.Texture;
 
@@ -621,6 +630,11 @@ export class Camp extends Mob {
         super(id, Game.layers.mobs.campfire, x, y,
             randomInt(minSize('camp'), maxSize('camp')),
             Camp.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), campBorder, size);
     }
 }
 
@@ -665,6 +679,8 @@ export class Wolf extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Wolf, file('wolf'), maxSize('wolf'));
 
+const bearBorder = registerBorder(GraphicsConfig.mobs.bear.borderFile, maxSize('bear'));
+
 export class Bear extends Mob {
     static svg: PIXI.Texture;
 
@@ -673,10 +689,17 @@ export class Bear extends Mob {
             randomInt(minSize('bear'), maxSize('bear')),
             Bear.svg);
     }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), bearBorder, size);
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Bear, file('bear'), maxSize('bear'));
+
+const boarBorder = registerBorder(GraphicsConfig.mobs.boar.borderFile, maxSize('boar'));
 
 export class Boar extends Mob {
     static svg: PIXI.Texture;
@@ -685,6 +708,11 @@ export class Boar extends Mob {
         super(id, Game.layers.mobs.wildlife, x, y,
             randomInt(minSize('boar'), maxSize('boar')),
             Boar.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), boarBorder, size);
     }
 }
 
@@ -748,6 +776,8 @@ Preloading.registerGameObjectSVG(Bramble, file('bramble'), maxSize('bramble'));
 
 // --- C3 kobold hideout + Dark Tunnel (content pass C3) ---
 
+const koboldBorder = registerBorder(GraphicsConfig.mobs.kobold.borderFile, maxSize('kobold'));
+
 export class Kobold extends Mob {
     static svg: PIXI.Texture;
 
@@ -756,10 +786,17 @@ export class Kobold extends Mob {
             randomInt(minSize('kobold'), maxSize('kobold')),
             Kobold.svg);
     }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), koboldBorder, size);
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Kobold, file('kobold'), maxSize('kobold'));
+
+const koboldRangedBorder = registerBorder(GraphicsConfig.mobs.koboldRanged.borderFile, maxSize('koboldRanged'));
 
 export class KoboldRanged extends Mob {
     static svg: PIXI.Texture;
@@ -768,6 +805,11 @@ export class KoboldRanged extends Mob {
         super(id, Game.layers.mobs.wildlife, x, y,
             randomInt(minSize('koboldRanged'), maxSize('koboldRanged')),
             KoboldRanged.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), koboldRangedBorder, size);
     }
 }
 
@@ -919,6 +961,8 @@ export class ArmySoldier extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(ArmySoldier, file('armySoldier'), maxSize('armySoldier'));
 
+const orcBorder = registerBorder(GraphicsConfig.mobs.orc.borderFile, maxSize('orc'));
+
 export class Orc extends Mob {
     static svg: PIXI.Texture;
 
@@ -926,6 +970,11 @@ export class Orc extends Mob {
         super(id, Game.layers.mobs.wildlife, x, y,
             randomInt(minSize('orc'), maxSize('orc')),
             Orc.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), orcBorder, size);
     }
 }
 
@@ -1068,6 +1117,8 @@ export class GiantSpider extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(GiantSpider, file('giantSpider'), maxSize('giantSpider'));
 
+const alphaWolfBorder = registerBorder(GraphicsConfig.mobs.alphaWolf.borderFile, maxSize('alphaWolf'));
+
 export class AlphaWolf extends Mob {
     static svg: PIXI.Texture;
 
@@ -1075,6 +1126,11 @@ export class AlphaWolf extends Mob {
         super(id, Game.layers.mobs.wildlife, x, y,
             randomInt(minSize('alphaWolf'), maxSize('alphaWolf')),
             AlphaWolf.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), alphaWolfBorder, size);
     }
 }
 
@@ -1121,6 +1177,8 @@ export class DireWolf extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(DireWolf, file('direWolf'), maxSize('direWolf'));
 
+const direBearBorder = registerBorder(GraphicsConfig.mobs.direBear.borderFile, maxSize('direBear'));
+
 export class DireBear extends Mob {
     static svg: PIXI.Texture;
 
@@ -1128,6 +1186,11 @@ export class DireBear extends Mob {
         super(id, Game.layers.mobs.wildlife, x, y,
             randomInt(minSize('direBear'), maxSize('direBear')),
             DireBear.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), direBearBorder, size);
     }
 }
 
@@ -1291,11 +1354,19 @@ export class Traveller extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Traveller, npcCfg('traveller').file, npcCfg('traveller').maxSize);
 
+const townCrierBorder = registerBorder(
+    GraphicsConfig.npcs.townCrier.borderFile, GraphicsConfig.npcs.townCrier.maxSize);
+
 export class TownCrier extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
         super(id, Game.layers.resources.trees, x, y, size, TownCrier.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), townCrierBorder, size);
     }
 }
 
@@ -1324,11 +1395,19 @@ export class Miner extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Miner, npcCfg('miner').file, npcCfg('miner').maxSize);
 
+const cityGuardBorder = registerBorder(
+    GraphicsConfig.npcs.cityGuard.borderFile, GraphicsConfig.npcs.cityGuard.maxSize);
+
 export class CityGuard extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
         super(id, Game.layers.resources.trees, x, y, size, CityGuard.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), cityGuardBorder, size);
     }
 }
 
