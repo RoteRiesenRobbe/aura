@@ -60,7 +60,7 @@ Everything else that ever had a plan doc lives in `archive/` (see the Archive se
 - **plan-play-bot.md** - **designed 2026-08-12, nothing built**: a headless character that actually *plays* (real kills, real XP, real dialogue, a real quest ledger, real deaths and respawns), as an on-demand **soak instrument** for the two blind spots nothing else covers: long-horizon accumulation bugs, and an empirical kills/hour to cross-check `simharness` against the real loop. 4 PO rulings (own binary `cmd/playbot` with the transport extracted out of `loadbot` · cheats for **transport and seeding only**, never inside the measured window · the first run answers soak + ledger integrity + economy, **reachability deliberately not selected** · **per-band sprints**, not one long climb). ⭐ Cheap because the wire already carries everything a bot needs to perceive *and* act - the **whole conversation tree** is streamed (`server.fbs:476`) and `Interact` echoes authored indices back, so questing needs no cheat and no browser. ⚑ **Schema NONE at every layer.** Its L1 is the tick-accumulator thrash `plan-mob-tether.md` D5 measured on mobs: a bot that re-asserts its aura slot every tick deals literally zero damage
 
 
-- **plan-prototype-projectile.md** - **designed 2026-08-15, nothing built, own branch `prototype/projectile` when it builds**: throw an aura - a cooldown spawns a short-lived aura-carrying entity in the caster's last walking direction, in three feelable shapes (flying bolt · bomb with proximity-mine AND timed variants · frost ball that parks while overlapping someone). ⭐ Cheap because the projectile is an authored `role: structure` mob riding summon TTL, the dash aim, placeholder rendering, and the mob auto-fire path (consume-on-hit = a free proximity mine); mine vs timed is two authored numbers, not a flag; attackability (boss bombs burstable, player bombs not) is authored health. ⚑ **Schema NONE at every layer.** 11 decisions, 4 PO rulings; the recorded risk is D3's kiting caveat (last-walk aim throws *behind* a fleeing player - the cursor angle is already on the wire and server-dropped, the prepared fallback)
+- **plan-prototype-projectile.md** - **P1 (skeleton + bomb) BUILT 2026-08-19 on `main` (PO overrode the own-branch posture), PO in-game check PENDING; P2 drift + P3 mob thrower hang on the verdict (ledger: §11)**: throw an aura - a cooldown spawns a short-lived aura-carrying entity in the caster's last walking direction, in three feelable shapes (flying bolt · bomb with proximity-mine AND timed variants · frost ball that parks while overlapping someone). ⭐ Cheap because the projectile is an authored `role: structure` mob riding summon TTL, the dash aim, placeholder rendering, and the mob auto-fire path (consume-on-hit = a free proximity mine); mine vs timed is two authored numbers, not a flag; attackability (boss bombs burstable, player bombs not) is authored health. ⚑ **Schema NONE at every layer.** 11 decisions, 4 PO rulings; the recorded risk is D3's kiting caveat (last-walk aim throws *behind* a fleeing player - the cursor angle is already on the wire and server-dropped, the prepared fallback)
 
 **The `plan-accounts-*` set has split**: roadmap **step 8a shipped and CLOSED 2026-08-04**, so schema + implementation + frontend moved to `archive/` (see the Archive section); 8b is `plan-ui-polish.md` + `plan-avatar-system.md` and is still open. Only the password-reset doc below is live.
 
@@ -111,7 +111,14 @@ Generated 2026-08-15 from `api/` + the client, not hand-maintained prose. Regene
   handles raster; the Pixi game-object path is unverified — includes the 10-minute test
   that settles it), and the **four-layer medallion** (background/portrait/decor/border,
   which replaces the runtime tier ring) with per-layer selector availability and the
-  open zone-selector question
+  open zone-selector question (⚑ superseded 2026-08-20: the border keys on faction
+  family, not zone+level; `plan-entity-medallions.md` D9)
+- **art/medallion-asset-spec.md** — the **artist-facing delivery contract** for the
+  medallion layer set (2026-08-20): 512×512 shared canvas, the three frozen circles,
+  per-layer rules (greyscale disc, per-family rings+rims, universal additions/
+  decorations), naming, self-check list, and the pilot that locks the fractions.
+  Written so art starts before implementation; design rationale lives in
+  `plan-entity-medallions.md`
 
 ## Manuals (how-to)
 

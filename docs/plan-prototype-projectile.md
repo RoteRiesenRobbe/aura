@@ -1,9 +1,12 @@
 # Plan: Projectile ability prototype (`prototype/projectile`)
 
-**Status: designed 2026-08-15, nothing built.**
-**Branch: its own branch off `main`, deliberately NOT stacked on
-`prototype/aura-los`** (that branch carries the LoS build and its uncommitted
-frontend work). Posture: prototype-to-answer-a-question, but unlike LoS it
+**Status: P1 (skeleton + bomb) ✅ BUILT 2026-08-19 - ⚠ PO in-game check
+PENDING (§10 items 1-7). P2 + P3 not started; both hang on the P1 verdict.**
+Ledger: §11.
+**Branch: ON `main`, by PO ruling 2026-08-19** - the original posture (its own
+branch off `main`, deliberately NOT stacked on `prototype/aura-los`, which
+carries the LoS build and its uncommitted frontend work) was overridden at
+execution. Posture: prototype-to-answer-a-question, but unlike LoS it
 contravenes no standing ruling, so the PO verdict decides merge, park, or
 delete rather than defaulting to parked.
 
@@ -282,4 +285,147 @@ before booting (stale-binary gotcha) · boot 0 WARN / 0 ERROR · PO checklist.
 
 ## 11. Ledger
 
-*(filled in by the execution sessions and the PO verdicts)*
+### P1 - skeleton + bomb ✅ 2026-08-19, `cced090a` - ⚠ PO in-game check PENDING
+
+**Shipped.** New cooldown effect type **`projectile`** (34th entry in `effectTypeMap`,
+`AuraCategoryNone` - the exhaustive-table pin caught the missing row red-first) -
+`spawnProjectile` reuses `buildSummon` (now the part all THREE spawn placements share) plus
+`projectilePosition`, applyDash's stepped probe pointed at the spawn: forwardUnits along
+`LastMoveDir`, masked against statics + border, keeping the last free point. The fuse holds
+EVERY cooldown in the projectile's loadout down for armTicks (naming one skill would be a
+second copy of D4's fact). Content: **ProjectileBomb mob id 71** (Totem body verbatim,
+`NpcPlaceholder`, health 9999, speed 0) + **BombBurst id 149** (NovaBurst's damage verbatim)
++ **ThrowMine id 150** (ttl 900 ≫ arm 45: the mine) + **ThrowBomb id 151** (ttl 46 = arm+1:
+the timed bang; ONE mob def serves both since TTL lives on the throw's params). Registry
+102 → **105**, mobs 60 → **61**, cheat-only **FIFTEEN** - recorded as a THIRD convention in
+the inventory: prototype skills that may be deleted (vs. worked examples and test rigs).
+**Schema: NONE at every layer** (D9 held).
+
+**Execution rulings (PO 2026-08-19).** Work directly on `main` (the branch posture above,
+overridden) · numbers: forward 3 u, arm 45t, mine TTL 900t, burst = NovaBurst verbatim,
+health 9999, throws cost 0 / cast 0 / **CD 300t**, all [PLACEHOLDER] · ⭐ **the mine
+DESPAWNS ON FIRE** - the plan gap found at execution review: D4 consumed the burst cooldown
+but nothing removed the mob, so a mine husk lingered its full TTL and could re-fire once the
+burst's own CD refreshed. Ruled: consumed by its own bang.
+
+**Decisions landed in-chunk.**
+- **Despawn mechanism = a `Mob` flag + `SetTTLTicks(1)`**, not a new death call: MobSystem
+  (20) has already run when SkillSystem (-65) fires, so TTL-1 removes on the same tick a
+  direct health-zero would have. Set at the spawn site, never authored - it belongs to the
+  throw, not the mob def. Timed variant: belt-and-suspenders with its own TTL.
+- **Zero-vector aim lands at the caster's feet** (fresh spawn, never walked - and a mob
+  caster, which has no `LastMoveDir` seam until P3/D11). The SPAWN rule, not the dash rule:
+  a dash to nowhere is nothing, a throw to your own feet is still a bomb. Pinned by test.
+- **`bomb-burst` authors no `targetFactions`** - the omni-trio worry did not apply: NovaBurst
+  never had one, it gates by `targetsEnemies`/`targetsAllies`. Test proves a structure
+  enlisted under a player hits hostiles and spares the aligned side.
+- ⚑ **Any combatant-layer body trips an armed mine, including the owner's own side**
+  (harmlessly, but it is consumed): `fireCooldown` counts a non-empty query set as a hit
+  BEFORE eligibility. Pinned as accepted coarseness - a projectile-specific trigger is
+  exactly the machinery D4 forbids.
+- **`costFractionOfMax` dropped from the burst copy** (mob cooldowns never charge; a copied
+  cost would read as a price the bomb pays to explode while costing nothing). Damage verbatim.
+- **`ttlTicksPerLevel` excluded from `projectile`'s allowlist** though `spawn` has it: the
+  throws are maxLevel 1, a slope could only be dead authoring. Pinned by test.
+- **Three frontend files changed against §8's "no frontend code"**: §8 meant ART. The
+  manual's two hand-syncs for a new effect type stand (`Skills.ts` typing + the
+  `SkillTooltip.ts` case), and red-first showed the degrade path rendering a literal
+  `(projectile)` on every hover. The tooltip reuses the shared summon-loadout lines
+  (condition widened to `projectile`).
+
+**Verified.** `go test -count=1 ./...` (after `cp-defs` - the embedded-census gotcha bit
+once, pre-`cp-defs` reds were the two mob censuses reading `backend/pkg/api/`) + an
+independent re-run · `-race` on skills/sys/model-mob/items-mobs · simharness guardrails
+unshifted · vitest **375/375** (+3) · typecheck · both prod builds · boot 0 WARN / 0 ERROR
+census **105/61** · **harness gate** (coverage-map matches: `SkillTooltip.ts`, the shared
+spawn tooltip case, the mob cooldown-fire branch): `round4-tooltip` **green** ·
+`c1-open-portal` **18/18** · `chunk2-follower` **5/5 deterministic legs ×3** with the engage
+leg INCONCLUSIVE all three - **REPRODUCED AT HEAD** (stash-rerun: one pass, one
+INCONCLUSIVE), so it is fight-outcome variance in a deliberately tri-state leg, not P1
+fallout · `harnessdb -cleanup` (9) with aurad stopped.
+
+**⚠ PO in-game check PENDING** - §10 items 1-7 plus two new items found at execution:
+- ⚑ **The bang is roughly a single-frame flash**: the burst ring is a child of the bomb's
+  display object, and despawn-on-fire destroys it with the entity (the timed variant always
+  had this via TTL). Damage numbers detach to world space and the dot keeps ticking; what is
+  lost is the area-read. If it bothers: detach the ring to world space (new client work) or
+  soften the despawn with a short delay - both out of P1 scope, PO picks.
+- ⚑ Walking over your own ARMED mine detonates it harmlessly and consumes it (the
+  coarseness pinned above) - judge whether it needs better before P2.
+
+Setup: `SKILL ThrowMine` / `SKILL ThrowBomb`, equip in cooldown slots. §10 item 7 (the aim
+verdict) still decides whether the prepared cursor-aim fallback gets built.
+
+### P1 PO session 1 ✅ 2026-08-19, `04d07968` - five rulings, five fixes, re-check pending
+
+**The PO played P1 and ruled on §10 items 6 and 7 plus three things the checklist
+did not ask about. Uncommitted at time of writing; the second in-game pass is the
+gate.**
+
+- ⭐ **§10 item 6 - the free decoy is a BUG, not a feature.** "A mine should not be
+  something mobs go towards." §5 had offered the aggro-magnet as a possible feature; it
+  is not one. **Config only, one value**: `projectile-bomb.json` `collisionLayer`
+  160 → **32**, the totem recipe swapped for the **poison-pool** one. The Player bit is
+  what puts a body in every mob's aggro sensor (`aggroSensorMask` adds
+  `LayerPlayerCollision` for anything hunting Aligned), so dropping it makes the bomb
+  unseeable AND unreachable in a single edit - poison-pool has always been exactly this:
+  a placed hazard that damages and is never a target. What the burst can HIT is
+  untouched (it builds its own query circle; reach never depended on the bomb's own
+  layer). ⚠ **P3's killable boss bomb now differs in TWO authored values**, layer and
+  health, and needs the Player bit back on its own def.
+- ⭐ **§10 item 3 revisited - the owner must not consume their own mine.** P1 pinned
+  "any body in radius trips it" as accepted coarseness; the PO rejected it. **Code, and
+  narrow**: `fireCooldown`'s two instant-damage cases counted a non-empty query set as a
+  hit BEFORE eligibility, and both appliers already return the honest post-eligibility
+  answer, so the fix is using it - gated on the **despawn-on-fire flag**, because a
+  projectile is consumed by the hit it reports while every other mob keeps
+  "found bodies, not a whiff" (that pre-eligibility rule paces ordinary mob bursts and
+  nothing asked for it to change; §8 says guardrails must not shift). The old pin
+  `TestProjectile_AnyBodyInRangeTripsTheArmedMine` is REPLACED red-first by
+  `_OwnSideDoesNotTripTheArmedMine` + `_EnemyStillTripsAMineTheOwnerIsStandingOn`.
+  ⚑ The dot applier reports IGNITED rather than eligible, so a projectile authoring a
+  dot ALONE would not trip on an already-burning target; the shipped burst pairs damage
+  with its dot and the damage answer carries the trigger.
+- **Cost: NovaBurst's, totalled** (PO call, answering the question throw-mine.json said
+  the prototype existed to inform). **Config only**: `costFractionOfMax` **0.0365** on
+  the one projectile effect of both throws = that burst's 0.0199 + 0.0166, since a
+  cooldown charges the SUM of its effects. The bomb copies NovaBurst's damage verbatim,
+  so it now costs what it copies. Priced on the THROW, never on `bomb-burst.json` - the
+  mob fire path charges nothing, so a cost there would be silently free. ⚑ Cost is
+  allowed on EVERY effect type by the numbers-rewrite D5 ruling, which is why this was
+  never a code change.
+- ⭐ **The mine is PLACED, not thrown: `forwardUnits` 3.0 → 1.0** ("it should read as
+  placing it directly before you"). **Config only.** Caster collider 0.25 + bomb collider
+  0.25 means 1 unit leaves a half-body gap in front of the feet, which is what makes
+  drop-and-back-off read as a single motion. ⭐ **This makes reach the pair's SECOND
+  authoring axis**: `throw-bomb.json` deliberately keeps 3.0, because a bomb is lobbed and
+  P2's travel wants the distance to show. D5's rule survives intact - one mob def, no code
+  branching on which is which, the engine still only ever sees numbers - it is just two
+  numbers now instead of one. ⛑ The burst radius is 2.0, so a mine at 1 unit blankets the
+  ground its own caster stands on; harmless only because of the eligibility fix above,
+  which is why these two rulings had to land together.
+- **Distance reads in metres** (PO: "3u is technically correct but not understandable").
+  **Frontend only, and it was a three-place inconsistency rather than one bad string**:
+  the throw said `3u`, the dash said `5 units`, the radius generic printed a bare number.
+  All three now spell `" m"`, documented as the rule at the radius generic. A humanoid
+  body is radius 0.3 (the player's own collider 0.25), so a unit is about a person wide and
+  the metre is the right lie. ⚑ Corroborating find: the constant behind the player's body is
+  ALREADY called `ColliderRadiusMeters` - the codebase has quietly thought in metres since
+  the Berryhunter inheritance, and only the UI was speaking units.
+  10 vitest expectations updated; the `round4-tooltip` gate is unaffected (its
+  `Radius: ([\d.]+)` regex still matches).
+
+**⭐ §10 item 7 ANSWERED - the aim stays `LastMoveDir`.** Throw-behind-while-fleeing
+reads as mine-laying, which was D3's bet. **The prepared cursor-aim fallback is dropped**;
+P2's flying bolt inherits walk-direction aim and item 11 becomes its real test.
+
+**Item 3 of the PO's list is DEFERRED to P2, by PO choice**: both throws should TRAVEL to
+their landing spot instead of appearing there. The destination is already probed as a free
+path, so a straight position lerp over ~8 ticks would render as real motion on the client's
+existing buffered interpolation - but it is a strict subset of P2's `SetDrift` (step 6) and
+lands there rather than as a P1.5.
+
+**Verified after the fixes (all five):** `go test -count=1 ./...` full suite green (after `cp-defs`) ·
+vitest **375/375** · typecheck · `make -C backend build` · boot **0 WARN / 0 ERROR**,
+census **105/61**. ⚠ **Second PO in-game pass pending**: the four fixes, then the §10
+items the first session did not reach (1, 2, 4, 5) and item 13's actual question.

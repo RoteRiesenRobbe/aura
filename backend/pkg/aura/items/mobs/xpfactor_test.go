@@ -139,6 +139,10 @@ func TestXPFactor_CombatTargetFollowsXPFactor(t *testing.T) {
 // (nothing can reach its collision layer at all).
 // ⚑ 32 → 33 with the PortalSummon (plan-portal-spells.md C2): the same doorway
 // placed at the fire instead of beside the caster, and the same reason.
+// ⚑ 33 → 34 with the ProjectileBomb (plan-prototype-projectile.md P1): a thrown
+// bomb is not prey. Its authored 9999 pool is the D6 "player-thrown things
+// survive their own few seconds" split, not a fight, so a nameplate and a level
+// on it would advertise the most misleading health bar in the game.
 func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 	var free []string
 	for _, def := range contentRegistry(t).Mobs() {
@@ -146,7 +150,7 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 			free = append(free, def.Name)
 		}
 	}
-	assert.Len(t, free, 33, "every xpFactor-0 species: %v", free)
+	assert.Len(t, free, 34, "every xpFactor-0 species: %v", free)
 
 	// ⚑ Exactly ONE structure pays anything, and it is the harvest chore's
 	// target: the Turnip at 0.05 (PO 2026-08-05, the one §3.4 curation pulled

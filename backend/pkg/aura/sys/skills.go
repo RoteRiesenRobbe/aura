@@ -1409,6 +1409,15 @@ type slowable interface {
 	ApplySlow(source skills.SkillID, fraction float32, ticks int) bool
 }
 
+// despawnOnCooldownFire is the single-use-placement capability: an entity that
+// dies the moment one of its own cooldowns lands (plan-prototype-projectile.md,
+// PO ruling 2026-08-19). Only thrown projectiles set the flag; every other mob
+// keeps firing its cooldowns for as long as it lives.
+type despawnOnCooldownFire interface {
+	DespawnOnCooldownFire() bool
+	SetTTLTicks(int)
+}
+
 // processCooldowns ticks all cooldown slots down and fires cooldown skills:
 // players fire on explicit activation requests (input path), mobs fire as
 // soon as a cooldown is ready and a valid target is in range (decided 8.2 —
@@ -1443,6 +1452,18 @@ func (s *SkillSystem) processCooldowns(e skillEntity, sc *skills.SkillComponent)
 			// so the mob keeps it ready until a target wanders into range.
 			if s.fireCooldown(e, es) {
 				sc.StartCooldown(es)
+				// A thrown projectile is CONSUMED by its own detonation (PO
+				// ruling 2026-08-19). TTL 1 is the mechanism rather than a new
+				// death call: the next MobSystem pass zeroes the health and the
+				// ordinary sweep removes it, which is the same tick a direct
+				// health-zero here would have been removed on - MobSystem (20)
+				// has already run by the time this fires. For the timed
+				// authoring, whose TTL was about to expire anyway, it is belt
+				// and suspenders; for a mine it is the whole point.
+				if d, ok := e.(despawnOnCooldownFire); ok && d.DespawnOnCooldownFire() {
+					d.SetTTLTicks(1)
+					return
+				}
 			}
 		}
 		return
@@ -1905,6 +1926,19 @@ func noteActivationRejected(e skillEntity, id skills.SkillID, reason model.Activ
 // caster. Reports whether anything was affected.
 func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool {
 	hitAny := false
+	// ⭐ A THROWN PROJECTILE COUNTS ONLY REAL HITS (PO ruling 2026-08-19). It is
+	// consumed by the hit it reports (despawn-on-fire), so the pre-eligibility
+	// answer below would let the thrower's own body - which the burst can never
+	// harm - eat a placement. Every other caster keeps the old semantics on
+	// purpose: "found bodies, not a whiff" paces mob bursts, and nothing asked
+	// for that to change. ⚑ The dot path reports IGNITED rather than eligible,
+	// so a projectile authoring a dot ALONE would not trip on an already-burning
+	// target; the shipped burst pairs damage with its dot, and the damage answer
+	// carries the trigger.
+	strictHits := false
+	if d, ok := e.(despawnOnCooldownFire); ok && d.DespawnOnCooldownFire() {
+		strictHits = true
+	}
 	for _, effect := range es.Def.Effects {
 		switch effect.Type {
 		case skills.EffectTypeSelfHeal:
@@ -1933,6 +1967,11 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 
 		case skills.EffectTypeSpawnAtAnchor:
 			if s.spawnAtAnchor(e, es, effect.Spawn) {
+				hitAny = true
+			}
+
+		case skills.EffectTypeProjectile:
+			if s.spawnProjectile(e, es, effect.Spawn) {
 				hitAny = true
 			}
 
@@ -2010,19 +2049,25 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 		// non-empty set counts as a hit BEFORE eligibility runs — the aura
 		// appliers do their own target-flag filtering, and a cooldown that
 		// found bodies is not a whiff even if none of them turn out eligible.
+		// strictHits (above) is the one exception: a projectile pays for its
+		// report with its life, so it waits for the applier's own answer.
 		case skills.EffectTypeInstantDamage:
 			// Same dispatch and target-flag filtering as the per-tick auras —
 			// PlayerTouches feeds participation XP, MobTouches the double
 			// dispatch.
 			if targets := s.queryInstantTargets(e, effect, es.Level); len(targets) > 0 {
-				applyDamageAura(e, es.Level, effect, targets, s.rng)
-				hitAny = true
+				landed := applyDamageAura(e, es.Level, effect, targets, s.rng)
+				if landed || !strictHits {
+					hitAny = true
+				}
 			}
 
 		case skills.EffectTypeInstantDot:
 			if targets := s.queryInstantTargets(e, effect, es.Level); len(targets) > 0 {
-				applyDotEffect(e, es.Def.ID, es.Level, effect, targets)
-				hitAny = true
+				ignited := applyDotEffect(e, es.Def.ID, es.Level, effect, targets)
+				if ignited || !strictHits {
+					hitAny = true
+				}
 			}
 		}
 	}
@@ -2563,11 +2608,90 @@ func (s *SkillSystem) spawnAtAnchor(e skillEntity, es *skills.EquippedSkill, p *
 	return true
 }
 
-// buildSummon is the part both spawn placements share: it builds the referenced
-// mob, aligns it with its caster, arms the TTL and applies the two scaling
-// sources (summon-skill level → TTL + loadout level; owner player level → pool
-// + power). The caller owns placement and the hand-off to the game, which is
-// the entire difference between the two effect types.
+// spawnProjectile fires a projectile effect (plan-prototype-projectile.md D2,
+// P1): the same summon, THROWN - placed forwardUnits ahead of the caster along
+// their last walking direction, with its own cooldown loadout held down for
+// armTicks so it detonates on its own some time after it lands.
+//
+// ⭐ Everything after placement is authored, not coded. The detonation is the
+// mob auto-fire path reading the projectile's own burst cooldown (D4), and
+// mine-vs-timed is nothing but the TTL the throw skill hands it (D5) - a mine
+// outlasts its fuse and waits, a timed bomb expires one tick after arming and
+// so gets exactly one opportunity. There is no projectile state machine.
+//
+// A throw never whiffs, exactly like a spawn.
+func (s *SkillSystem) spawnProjectile(e skillEntity, es *skills.EquippedSkill, p *skills.SpawnParams) bool {
+	m, ok := s.buildSummon(e, es, p)
+	if !ok {
+		return false
+	}
+	m.SetPosition(s.projectilePosition(e, m.Radius(), p.ForwardUnits))
+
+	// The fuse. Every cooldown the projectile carries is held down together:
+	// what it detonates with is its LOADOUT (D4), so naming one burst skill
+	// here would be a second place to author the same fact.
+	sc := m.SkillComponent()
+	for _, cd := range sc.CooldownSlots {
+		if cd == nil {
+			continue
+		}
+		sc.SetCooldownRemaining(cd.Def.ID, p.ArmTicks)
+	}
+	// Consumed by its own bang (PO ruling 2026-08-19), or a mine's 30 s TTL
+	// would leave a spent bomb standing.
+	m.SetDespawnOnCooldownFire(true)
+
+	s.game.AddEntity(m)
+	return true
+}
+
+// projectilePosition is applyDash's stepped probe pointed at the SPAWN instead
+// of the caster: march forwardUnits along the caster's last walking direction in
+// body-radius steps, masked against blocking statics and the border, and keep
+// the last free point. It cannot tunnel a prop or poke past the world wall, and
+// a blocked throw clamps visibly short rather than refusing.
+//
+// ⭐ TWO FALLBACKS, both landing at the caster's feet, and both are the SPAWN
+// rule rather than the dash rule: a caster who has never walked has no aim, and
+// a mob caster has no last-movement seam at all (D11 gives it one in P3). Dash
+// answers "no aim" with a no-op because a dash to nowhere IS nothing; a throw to
+// your own feet is still a bomb, so visible beats unplaceable (summonPosition).
+func (s *SkillSystem) projectilePosition(e skillEntity, projectileRadius, forward float32) phy.Vec2f {
+	start := e.AuraCollider().Position()
+	p, ok := e.(model.PlayerEntity)
+	if !ok {
+		return start
+	}
+	dir := p.LastMoveDir()
+	if dir == (phy.Vec2f{}) || projectileRadius <= 0 {
+		return start
+	}
+
+	probe := phy.NewCircle(phy.VEC2F_ZERO, projectileRadius)
+	probe.Shape().Mask = int(model.LayerPlayerStaticCollision | model.LayerBorderCollision)
+
+	landing := start
+	for travelled := projectileRadius; ; travelled += projectileRadius {
+		if travelled > forward {
+			travelled = forward
+		}
+		probe.SetPosition(start.Add(dir.Mult(travelled)))
+		if len(s.space.QueryCircleStatics(probe)) != 0 {
+			break // blocked: keep the last free point
+		}
+		landing = probe.Position()
+		if travelled >= forward {
+			break
+		}
+	}
+	return landing
+}
+
+// buildSummon is the part all three spawn placements share: it builds the
+// referenced mob, aligns it with its caster, arms the TTL and applies the two
+// scaling sources (summon-skill level → TTL + loadout level; owner player level
+// → pool + power). The caller owns placement and the hand-off to the game, which
+// is the entire difference between the effect types.
 func (s *SkillSystem) buildSummon(e skillEntity, es *skills.EquippedSkill, p *skills.SpawnParams) (*mob.Mob, bool) {
 	def, err := s.game.Mobs().GetByName(p.MobName)
 	if err != nil {

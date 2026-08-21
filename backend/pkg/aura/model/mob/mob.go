@@ -561,6 +561,15 @@ type Mob struct {
 	ttlTicks            int
 	summonPowerPerLevel float32
 
+	// despawnOnCooldownFire marks a THROWN projectile
+	// (plan-prototype-projectile.md, PO ruling 2026-08-19): a placement consumed
+	// by its own detonation, so the SkillSystem retires it the moment one of its
+	// cooldowns lands instead of leaving a spent bomb standing for the rest of
+	// its TTL. Set at the spawn site, never authored - it belongs to the throw,
+	// not to the mob definition, and the same body could later be placed by
+	// something that should stay.
+	despawnOnCooldownFire bool
+
 	// spawnLevel is the zone spawn point's authored level override
 	// (plan-mob-levels.md C1): this placement's level, beating the species
 	// curveLevel but losing to an owner. 0 = none.
@@ -899,6 +908,18 @@ func (m *Mob) Owner() model.PlayerEntity {
 // SetTTLTicks arms the spawned-entity lifetime (spawn site only; 0 = none).
 func (m *Mob) SetTTLTicks(t int) {
 	m.ttlTicks = t
+}
+
+// SetDespawnOnCooldownFire marks this mob as consumed by its own detonation
+// (spawn site only) - see the field's note. The projectile spawn path is its
+// only caller.
+func (m *Mob) SetDespawnOnCooldownFire(v bool) {
+	m.despawnOnCooldownFire = v
+}
+
+// DespawnOnCooldownFire reports whether a landed cooldown retires this mob.
+func (m *Mob) DespawnOnCooldownFire() bool {
+	return m.despawnOnCooldownFire
 }
 
 // SetSpawnLevel applies the zone spawn point's authored level (spawn site

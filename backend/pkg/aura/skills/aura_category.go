@@ -68,7 +68,11 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	// Both spawns draw nothing on the CASTER's ring: what they produce is a
 	// separate entity with a ring of its own (plan-portal-spells.md D4).
 	EffectTypeSpawnAtAnchor: AuraCategoryNone,
-	EffectTypeTaunt:         AuraCategoryNone,
+	// The thrown twin is a third spawn, and the same answer: the ring belongs to
+	// the projectile that lands, never to the arm that threw it
+	// (plan-prototype-projectile.md D2).
+	EffectTypeProjectile: AuraCategoryNone,
+	EffectTypeTaunt:      AuraCategoryNone,
 	EffectTypeDetaunt:       AuraCategoryNone,
 	EffectTypeInstantShield: AuraCategoryNone,
 	EffectTypeRecall:        AuraCategoryNone,

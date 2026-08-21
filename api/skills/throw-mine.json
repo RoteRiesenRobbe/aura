@@ -1,0 +1,19 @@
+{
+  "_comment": "Throw Mine (docs/plan-prototype-projectile.md D5, P1): the MINE half of the D5 pair. It plants a ProjectileBomb 1 unit ahead along the caster's LAST WALKING DIRECTION (D3, PO ruling 2026-08-15 over cursor aim), the bomb arms over 45 ticks and then simply waits, detonating the moment anything wanders into its burst - and fizzling silently at the end of its 30 s life if nobody ever does. ⭐ MINE VS TIMED IS AUTHORING, NOT A FLAG, and this file plus throw-bomb.json ARE the difference: a mine authors ttlTicks far above armTicks so it outlives its fuse and waits, while the timed bomb authors ttlTicks = armTicks + 1 for exactly one fire opportunity. No code branches on which one this is; the engine only ever sees a number. ⚑ THE AIM CAVEAT IS THE POINT OF THE PO SESSION (§10 item 7): kiting means walking AWAY from the enemy, so a fleeing player throws behind themselves and cannot hit a chaser. For mine-laying that reads perfectly - drop, back off, lure - which is why the mine is the throw the prototype leads with. The cursor-aim fallback is prepared and hangs on that verdict. A caster who has never walked has no aim at all and gets the bomb at their own feet: a throw never whiffs (TestProjectile_ZeroAimLandsAtTheCastersFeet). Thrown against a wall it clamps visibly short rather than landing inside geometry. CHEAT-ONLY, deliberately and for now: no unlock source anywhere, granted with `SKILL ThrowMine` for the PO session, because a prototype whose verdict may be `delete` must not enter the progression. cast 0 makes the feel readable. ⭐ FORWARDUNITS 1.0 IS THE MINE's READ, AND IT IS THE PAIR's SECOND AUTHORING AXIS (PO ruling 2026-08-19, revising P1's 3.0): a mine is PLACED rather than thrown, and directly-before-you is the fantasy - at 1 unit, with the caster's collider at 0.25 and the bomb's at 0.25, it lands a half-body gap in front of the feet, which is what makes drop-and-back-off read as one motion. throw-bomb.json deliberately KEEPS 3.0: a bomb is lobbed, and P2's travel will have something to show. So D5's one-mob-def rule is now that the throws differ in TTL AND in reach, still with no code branching on which is which - the engine only ever sees two numbers. ⛑ The burst radius is 2.0, so a mine at 1 unit blankets the ground the caster stands on; harmless since the same session's fix made only an ENEMY able to trip it. ⭐ COST IS NOVABURST's, TOTALLED (PO ruling 2026-08-19, answering the question this file said the prototype existed to inform): 0.0365 of max Focus is that burst's 0.0199 damage + 0.0166 dot summed onto the one projectile effect, because a cooldown charges the SUM of its effects' costs and a throw has only one. The bomb already copies NovaBurst's damage verbatim, so it now costs what it copies - a thrown Nova in price as well as in damage - rather than carrying a number nobody has a reason for. Priced on the THROW, never on bomb-burst.json: the mob fire path charges nothing, so a cost authored on the detonation would be silently free. maxLevel 1: binary-utility vocabulary, nothing here scales. ALL VALUES [PLACEHOLDER].",
+  "id": 150,
+  "name": "ThrowMine",
+  "category": "cooldown",
+  "maxLevel": 1,
+  "cooldownTicks": 300,
+  "castTicks": 0,
+  "effects": [
+    {
+      "type": "projectile",
+      "spawnMob": "ProjectileBomb",
+      "costFractionOfMax": 0.0365,
+      "forwardUnits": 1.0,
+      "ttlTicks": 900,
+      "armTicks": 45
+    }
+  ]
+}

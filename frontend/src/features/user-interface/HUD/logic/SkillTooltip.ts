@@ -522,6 +522,18 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             }
             break;
         }
+        case 'projectile': {
+            // The THROWN twin (plan-prototype-projectile.md D2). It says the
+            // two things the placement adds and nothing else: everything about
+            // WHAT lands is the shared spawn payload, rendered by the loadout
+            // lines below the block exactly as a summon's are.
+            const spawn = effect.spawn;
+            lines.push(`Throws ${mobDisplayName(spawn.mobName)} ${spawn.forwardUnits ?? 0} m ahead for ${prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}`);
+            // The fuse is the whole feel of the ability - "drop it and back
+            // off" only reads if the player knows how long they have.
+            lines.push(`Arms after ${ticksToSecs(spawn.armTicks ?? 0)}`);
+            break;
+        }
         case 'taunt':
             lines.push('Taunts enemies in range into attacking you');
             break;
@@ -567,7 +579,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             lines.push(`Revives the nearest fallen player at ${pct(effect.revive.healthFraction)} Focus`);
             break;
         case 'dash':
-            lines.push(`Dash ${prog(effect.dash.distance, effect.dash.distancePerLevel, level, maxLevel)} units in your movement direction`);
+            lines.push(`Dash ${prog(effect.dash.distance, effect.dash.distancePerLevel, level, maxLevel)} m in your movement direction`);
             break;
         case 'calm': {
             // Say what it is FOR, like light_aura: "calms enemies" reads as a
@@ -708,8 +720,14 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
     }
 
     const generics: EffectBlock['generics'] = {};
+    // ⭐ DISTANCE IS SPELLED " m" EVERYWHERE (PO ruling 2026-08-19). World units
+    // are what the server thinks in; "3u" is correct and unreadable, and the
+    // three places that print a distance each said something different - "3u"
+    // on the throw, "5 units" on the dash, a bare number here. A metre is the
+    // right lie: a humanoid body is radius 0.3, so a unit is about a person
+    // wide. Keep any new distance line on this spelling.
     if (effect.radius > 0) {
-        generics.radius = `Radius: ${prog(effect.radius, effect.radiusPerLevel, level, maxLevel)}`;
+        generics.radius = `Radius: ${prog(effect.radius, effect.radiusPerLevel, level, maxLevel)} m`;
     }
     const targets = targetsLine(effect, level, maxLevel);
     if (targets) {
@@ -857,7 +875,7 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
         // Both placements carry the same payload, so both get the loadout
         // lines. Omitting the remote one would lose an anchored summon's
         // abilities silently the day one has any (plan-portal-spells.md D11).
-        if (effect.type === 'spawn' || effect.type === 'spawn_at_anchor') {
+        if (effect.type === 'spawn' || effect.type === 'spawn_at_anchor' || effect.type === 'projectile') {
             // Right after the Summons line, before the summon-power line.
             block.lines.splice(1, 0,
                 ...summonLoadoutLines(effect.spawn, level, powerScale, playerLevel, resolveSkill));

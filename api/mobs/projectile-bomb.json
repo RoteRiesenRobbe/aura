@@ -1,0 +1,23 @@
+{
+  "_comment": "The thrown bomb (docs/plan-prototype-projectile.md D1/D6, P1): the entity a `projectile` cooldown places a few units ahead of its caster. It is a MOB because a mob is already everything a projectile needs to be - it registers with the SkillSystem, it carries a loadout, it has a TTL and it removes cleanly - so the prototype adds no entity kind. role structure = no AI, no chase, no aggro sensor; it lands where it is thrown and stays. ⭐ BODY IS THE POISON-POOL RECIPE, NOT THE TOTEM'S, AND THAT IS THE PO's §10 item 6 VERDICT (2026-08-19): collisionLayer 32 (Viewport only) instead of the totem's 160 (Player 128 + Viewport 32). P1 shipped the player-layer trick and §5 offered the free decoy as a FEATURE to be judged - it was judged a BUG, because a mine mobs walk toward is not a mine. The Player bit is exactly what puts a body into every mob's aggro sensor (aggroSensorMask adds LayerPlayerCollision for anything that hunts the Aligned faction), so dropping it makes the bomb unseeable and unreachable in one edit, the way api/mobs/poison-pool.json has always been: a placed hazard that damages and is never a target. ⛑ What the bomb can HIT is unaffected - its burst builds its own query circle, so its reach never depended on its own layer. ⚠ P3's killable boss bomb (D6) needs the Player bit BACK on its own def; that split is now a layer difference, not just a health one. collisionMask 16 (Border only) is unchanged: nothing pushes it and it pushes nothing. ⭐ ITS DETONATION IS ITS OWN LOADOUT (D4): BombBurst sits in a cooldown slot, the spawn site holds that cooldown down for the throw's armTicks, and the SHIPPED mob auto-fire path - which fires a ready cooldown every tick and consumes it only on a hit - is then the entire trigger. Armed, waits, bangs when someone wanders in. No detonation machinery was written. baseMaxHealth 9999 is D6's authored split at prototype fidelity, not a pool anybody is meant to read: a player-thrown bomb must survive its own few seconds, and the P3 boss bomb will author a small pool so players can burst it down before it pops. Since the layer change above it is belt and braces - nothing can reach the pool at all - and it stays because the P3 def will differ in BOTH values and one of them alone would read as the whole rule. It costs nothing to make it unkillable and a defuse mechanic is deferred. It pays for the pool with speed 0, which is what keeps it inside the archetype guardrail. ⛑ entityType NpcPlaceholder is DELIBERATE placeholder art, the PortalHome call again: a bespoke EntityType costs a wire enum value that can never be reclaimed plus an exhaustive client Record entry, and the prototype earns its own sprite only if it merges. xpFactor 0 keeps it off the nameplate and the XP path - a thrown bomb is not prey. curveLevel 1 because the scaling comes from owner binding, like every summon. ALL VALUES [PLACEHOLDER], per the GDD rule.",
+  "id": 71,
+  "name": "ProjectileBomb",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "role": "structure",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 9999,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.25,
+    "collisionLayer": 32,
+    "collisionMask": 16
+  },
+  "skills": [
+    { "skillName": "BombBurst", "level": 1 }
+  ]
+}
