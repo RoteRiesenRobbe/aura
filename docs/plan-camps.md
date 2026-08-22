@@ -1,5 +1,35 @@
 # Plan: Camps — allegiance, exclusive teaching, and the doors it closes
 
+> **⏸ STATUS: DEFERRED 2026-08-22 (PO ruling), not cancelled.** Camps ship as
+> **quest content** instead: membership is a completed quest, exclusivity is a
+> `quest_at_stage` gate on the nodes that offer, teach and turn in. No new
+> condition kind, no new consequence kind, no new state, no schema. The design
+> and the full mechanism live in **`docs/plan-release-map.md`** §3, which is now
+> the owner of camp content.
+>
+> **What this plan still buys, and what would revive it** - three things quest
+> gating cannot express:
+>
+> 1. a genuinely **hostile** standing (quests only accumulate; nothing can anger
+>    a camp),
+> 2. **losing standing without joining anyone**,
+> 3. **permanence enforced by the server** rather than by authoring discipline
+>    (§4.3 L4). Under the quest design that invariant is a content pattern
+>    guarded by a test pin, which is a real downgrade - see
+>    `plan-release-map.md` §3.4.
+>
+> Nothing below is retracted. **C1 was always designed to land unused** (P6), so
+> the primitive can still ship later underneath content already authored against
+> the quest design. **D1's world-parity power rule survives the deferral** and
+> governs camp abilities either way.
+>
+> ⛑ **§4.1's standing wipe and L0's cross-doc hazard defer with the primitive**:
+> no standing state exists, so there is nothing to wipe and nothing to assert.
+> ⭐ The structural wipe now matters in the *opposite* direction - the quest
+> ledger is keyed `character_id`, and that is precisely what reopens every camp
+> after ascension. The change to guard is moving the **quest ledger**
+> per-account or per-slot, not moving standing. See `plan-release-map.md` D3.
+
 > **Status: DESIGNED 2026-08-04 (design session) — no chunk built yet.** This is
 > the design pass `backlog.md` §15 has been parked for since 2026-07-09, and the
 > session `mobs/interaction.go` names in the boot error it raises today

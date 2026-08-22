@@ -427,5 +427,17 @@ lands there rather than as a P1.5.
 
 **Verified after the fixes (all five):** `go test -count=1 ./...` full suite green (after `cp-defs`) ·
 vitest **375/375** · typecheck · `make -C backend build` · boot **0 WARN / 0 ERROR**,
-census **105/61**. ⚠ **Second PO in-game pass pending**: the four fixes, then the §10
+census **105/61**. ⚠ **Second PO in-game pass pending**: the five fixes, then the §10
 items the first session did not reach (1, 2, 4, 5) and item 13's actual question.
+
+⏸ **PARKED 2026-08-20 by PO choice - paused, not dropped.** The second pass wants
+15+ minutes of uninterrupted normal play (item 13 is the point of the whole prototype),
+and other topics come first. Nothing decays while it waits: no milestone, mob drop or
+quest grants either throw, so the content is unreachable outside `SKILL ThrowMine` /
+`SKILL ThrowBomb`, and the §10 checklist is prose rather than line-pinned refs. Two
+things to carry forward when it reopens - **GOD makes a cooldown free**, so the 0.0365
+cost is only feelable with god mode OFF, and the bang is still a ~single-frame flash
+(the burst ring dies with the despawned entity), deliberately out of scope until the
+shape verdict. The standing price of the pause: the prototype lives on main by the
+2026-08-19 ruling, so it stays in the boot census (105/61) and the verify tail, and
+every chunk touching skills, mobs or the cooldown path has to keep it green.
