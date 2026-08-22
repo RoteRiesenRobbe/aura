@@ -101,7 +101,15 @@ export abstract class Mineral extends Resource {
 
     protected constructor(id: number, x: number, y: number, size: number, svg: Texture, applyVisualPadding: boolean = true) {
         super(id, Game.layers.resources.minerals, x, y,
-            applyVisualPadding ? size * 1.1 + GraphicsConfig.character.size : size, // Add some space so the character can get visually close to the collider
+            // Painted PNG art fills 94.9% of its canvas where the placeholder
+            // SVG's rock filled only 70% (the rest was margin plus a baked
+            // drop-shadow raster), so the old `size * 1.1 + character.size`
+            // rendered the new art 1.35x too big — and unevenly, because a flat
+            // +30px is half a Rock but a sixth of a Boulder: 1.52x vs 1.20x of
+            // their colliders. A single multiplier lands both on ~1.10x, the
+            // 1.07 pairing with art that fills 93.4% of its canvas. Same fix the tree took
+            // (1.8 -> 1.15) when its PNG landed.
+            applyVisualPadding ? size * 1.07 : size,
             0, // Due to the shadow in the mineral graphics, those should not be randomly rotated
             svg);
 
