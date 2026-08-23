@@ -33,14 +33,40 @@ const campResumeTargetMove float32 = 1.0
 // a static target, so camps self-heal (moving props, knockback, despawns).
 const campRetryTicks = 150
 
+// campForceLeashTicks [PLACEHOLDER] ~30 s: cumulative camped time in one
+// engagement after which the mob force-leashes even though the target is
+// still inside the aggro sensor (PO ruling 2026-08-23, softening 2026-07-20's
+// eternal camp: the sensor sees through walls since the LoS cut, so a
+// wolf-vs-cornered-prey standoff otherwise never ends and mobs pile up).
+// Real fights never accumulate this - progress, damage taken or aura reach
+// all reset the clock - so "the stuck mob glares" stays true for any player
+// actually fighting it.
+const campForceLeashTicks = 900
+
+// forceLeashIgnoreTicks [PLACEHOLDER] ~30 s: how long a force-leashed target
+// stays unacquirable. Without it the sensor re-latches the same target on the
+// next tick and the standoff restarts; retaliation (threat) still overrides.
+const forceLeashIgnoreTicks = 900
+
 // chaseTowards is moveTowards wrapped in the watchdog: it tracks net progress
 // per window, freezes into a camp when progress collapses, and lifts the camp
 // on target movement or after the retry interval.
 func (m *Mob) chaseTowards(target phy.Vec2f) {
 	if m.camped {
 		m.campTicks++
-		if target.Sub(m.campTargetPos).Abs() > campResumeTargetMove ||
-			m.campTicks >= campRetryTicks {
+		m.campEngagementTicks++
+		if target.Sub(m.campTargetPos).Abs() > campResumeTargetMove {
+			// The target repositioned: a genuinely new approach line, so the
+			// standoff clock starts over - a moving fight never force-leashes.
+			// A retry-interval lift keeps the clock: the standoff's shape is
+			// camp → slide a little on retry → re-camp, and resetting here
+			// (or on the retry's progress window) is what let it run forever.
+			m.camped = false
+			m.progressTicks = 0
+			m.campEngagementTicks = 0
+			return
+		}
+		if m.campTicks >= campRetryTicks {
 			m.camped = false
 			m.progressTicks = 0
 		}
@@ -68,9 +94,7 @@ func (m *Mob) chaseTowards(target phy.Vec2f) {
 		// Fresh side pick when the camp lifts: the committed detour is what
 		// failed to make progress, so neither the latch nor the side memory
 		// may survive into the retry.
-		m.steerSide = 0
-		m.steerClearTicks = 0
-		m.steerPrevSideTicks = 0
+		m.resetSteeringLatch()
 	}
 }
 
@@ -79,4 +103,5 @@ func (m *Mob) chaseTowards(target phy.Vec2f) {
 func (m *Mob) resetChaseWatchdog() {
 	m.progressTicks = 0
 	m.camped = false
+	m.campEngagementTicks = 0
 }

@@ -46,6 +46,33 @@ const steerClearHoldTicks = 10
 // same shuttle (see steerClearHoldTicks).
 const steerSideMemoryTicks = 30
 
+// Clearance probing (pathfinding pass 2026-08-23). The repulsion field is
+// blind to passability: it reads distance, never "does my body fit", so a
+// latched detour marched a mob along a whole prop chain past every body-sized
+// opening - repulsion never stays zero for steerClearHoldTicks inside a chain,
+// and the release re-test was the only way out. pathClearAlong answers the
+// passability question directly, and the latch consults it two ways: a head-on
+// with a provably clear line never latches, and a committed detour re-tests
+// every gapRetestTicks and releases at the first opening the body fits
+// through. The impassable-notch behavior is untouched - a notch fails the
+// clearance test, a real gap passes it (the three historical oscillations:
+// 2026-07-11 side flip-flop, 2026-07-20 notch jiggle, 2026-08-07 boar shuttle).
+
+// gapClearanceMargin [PLACEHOLDER]: extra body radius the clearance samples
+// demand, so a gap the body only just grazes through still reads as blocked -
+// squeezing an exact fit against the physics resolution jitters.
+const gapClearanceMargin float32 = 0.05
+
+// gapProbeReach [PLACEHOLDER] how far ahead (server units) the clearance
+// samples extend. Covers the throat distance at which realistic prop sizes
+// first produce a head-on; beyond it the per-tick repulsion takes over anyway.
+const gapProbeReach float32 = 3.0
+
+// gapRetestTicks [PLACEHOLDER] ~⅓ s: cadence of the committed detour's
+// clearance re-test. Matches steerClearHoldTicks - the latch was already
+// tuned to hold at least this long through zero-repulsion slivers.
+const gapRetestTicks = 10
+
 // steer bends the desired unit direction around nearby blockers. With no
 // space (direct construction, tests) or nothing in steering range it returns
 // desired unchanged — movement is then exactly the pre-steering straight line.
@@ -91,13 +118,34 @@ func (m *Mob) steer(desired phy.Vec2f) phy.Vec2f {
 	// jiggling in place at the notch forever (in-game finding, 2026-07-20).
 	if m.steerSide != 0 {
 		// Committed detour: separation stays out of it, so the tangent is
-		// exactly the one the latch was tuned to hold.
+		// exactly the one the latch was tuned to hold. Every gapRetestTicks
+		// the detour re-asks whether the body now fits straight along desired
+		// - that is what lets a wall-follower take the first passable opening
+		// in the row instead of rounding the far end.
+		m.steerGapRetestIn--
+		if m.steerGapRetestIn <= 0 {
+			m.steerGapRetestIn = gapRetestTicks
+			if m.pathClearAlong(desired) {
+				m.steerPrevSide = m.steerSide
+				m.steerPrevSideTicks = steerSideMemoryTicks
+				m.steerSide = 0
+				m.steerClearTicks = 0
+				return blendSeparation(desired, sep)
+			}
+		}
 		return left.Mult(m.steerSide)
 	}
 
 	combined := desired.Add(rep.Mult(steeringRepulsionWeight))
 	if combined.Dot(desired) > 0 {
 		return blendSeparation(combined.Normalize(), sep)
+	}
+	// Head-on by field arithmetic - but if the body provably fits straight
+	// along desired (flanking props whose repulsion sums backward across a
+	// passable gap), walk in and let the physics resolution stay the hard
+	// non-penetration guarantee. No latch is set, so the next tick re-decides.
+	if m.pathClearAlong(desired) {
+		return blendSeparation(desired, sep)
 	}
 	// Head-on: repulsion cancels the pull or points backward — deflect across
 	// the desired line. The side is LATCHED until the mob is fully clear of
@@ -118,7 +166,41 @@ func (m *Mob) steer(desired phy.Vec2f) phy.Vec2f {
 	default:
 		m.steerSide = 1
 	}
+	m.steerGapRetestIn = gapRetestTicks
 	return left.Mult(m.steerSide)
+}
+
+// resetSteeringLatch drops the committed detour AND the side memory - the
+// full fresh-side-pick reset shared by the chase camp trip and a failed idle
+// walk's retry (the latch that froze one attempt otherwise survives into the
+// next and replays it move for move).
+func (m *Mob) resetSteeringLatch() {
+	m.steerSide = 0
+	m.steerClearTicks = 0
+	m.steerPrevSide = 0
+	m.steerPrevSideTicks = 0
+}
+
+// pathClearAlong reports whether the mob's body fits along the desired line:
+// body-sized samples (plus gapClearanceMargin) every body-radius step out to
+// gapProbeReach, against the same statics mask the repulsion probe carries.
+// Runs only on would-latch ticks and the committed detour's retest cadence,
+// reusing the steering probe and hit buffer - nothing allocates.
+func (m *Mob) pathClearAlong(dir phy.Vec2f) bool {
+	r := m.Radius()
+	if r <= 0 {
+		return false
+	}
+	probe := m.steeringProbe(m.Body.Shape().Mask)
+	probe.SetRadius(r + gapClearanceMargin)
+	for d := r; d <= gapProbeReach; d += r {
+		probe.SetPosition(m.Position().Add(dir.Mult(d)))
+		m.steerHits = m.space.AppendCircleStatics(m.steerHits[:0], probe)
+		if len(m.steerHits) > 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // blockerRepulsion sums the repulsion from every blocking static within the

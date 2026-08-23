@@ -37,6 +37,14 @@ const (
 	// forever (chase camps, wander legs expire into a dwell; this is the same
 	// pattern for the two full-speed idle walks).
 	idleWalkRetryDwellTicks = 90
+	// idleWalkWarpAfterFails [PLACEHOLDER]: consecutive expired walk budgets
+	// after which the mob evade-warps to its target (pathfinding pass
+	// 2026-08-23). Pace-rest-retry alone replays a jammed walk move for move -
+	// measured on the live map, ~20% of 12-unit walk-home runs never arrived,
+	// piling mobs into prop pockets. Each failed budget first retries honestly
+	// with a fresh steering side pick; the warp is the backstop that
+	// guarantees no mob is lost to geometry forever (WoW-style evade reset).
+	idleWalkWarpAfterFails = 3
 )
 
 // SetWander configures local wander around anchor (chunk 5a). The anchor is
@@ -128,7 +136,13 @@ func (m *Mob) idleWalk(target phy.Vec2f) {
 	dist := m.Position().Sub(target).Abs()
 	if dist < 1e-4 {
 		m.idleWalkSet = false // arrived exactly: nothing to walk or budget
+		m.idleWalkFails = 0
 		return
+	}
+	if dist <= waypointArrivalRadius {
+		// Close enough to count as arrived for the failure ledger - the
+		// caller's own arrival band ends the walk on its next dispatch.
+		m.idleWalkFails = 0
 	}
 	if !m.idleWalkSet || target != m.idleWalkTarget {
 		step := m.stepLength()
@@ -144,6 +158,21 @@ func (m *Mob) idleWalk(target phy.Vec2f) {
 	m.idleWalkTicks--
 	if m.idleWalkTicks <= 0 {
 		m.idleWalkSet = false
+		// The steering latch that jammed this attempt must not survive into
+		// the retry, or the retry replays the identical walk (same fresh-side
+		// rule as the chase camp's lift).
+		m.resetSteeringLatch()
+		m.idleWalkFails++
+		if m.idleWalkFails >= idleWalkWarpAfterFails {
+			// Repeatedly failed walk: evade-warp to the target. The target is
+			// always a place the mob has legitimately stood (spawn point or
+			// its own combat-entry position), so this never lands in a wall
+			// for authored content - and physics resolves the odd overlap.
+			m.idleWalkFails = 0
+			m.idleWalkDwell = 0
+			m.SetPosition(target)
+			return
+		}
 		m.idleWalkDwell = idleWalkRetryDwellTicks
 		return
 	}
@@ -156,8 +185,11 @@ func (m *Mob) idleWalk(target phy.Vec2f) {
 func (m *Mob) noteCombatEntry() {
 	// Combat interrupts any idle walk: drop its budget state so the walk after
 	// combat re-arms from wherever the fight ends, not from a stale distance.
+	// The failure ledger resets with it - a fight moved the mob, so the next
+	// failed walk is a new situation, not attempt N of the old one.
 	m.idleWalkSet = false
 	m.idleWalkDwell = 0
+	m.idleWalkFails = 0
 	// Followers record no evade point — follow IS their return behavior
 	// (chunk 6; the chunk-5 handoff trap).
 	if m.isFollower() || m.returnPosSet || !m.spawnInitialized {

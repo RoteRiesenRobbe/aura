@@ -384,3 +384,33 @@ func TestMob_AggroSensorFollowsBody(t *testing.T) {
 	assert.Equal(t, m.Position(), m.aggroAura.Position(),
 		"the acquisition sensor travels with the mob (patrollers aggro mid-route)")
 }
+
+// A walk home that keeps failing must eventually WARP home (pathfinding pass
+// 2026-08-23, the wolf-pile fix): pace-rest-retry alone replays the identical
+// jammed walk forever - measured on the live map, ~20% of 12-unit walk-home
+// runs never arrived, piling mobs into prop pockets. Each failed budget now
+// resets the steering latch (a fresh side pick, like the chase camp's lift),
+// and after idleWalkWarpAfterFails failures the mob evade-warps to its target.
+func TestMob_BlockedWalkHomeWarpsHomeAfterRepeatedFailures(t *testing.T) {
+	space := phy.NewSpace()
+	home := phy.VEC2F_ZERO
+
+	// A sealed pen far from home: no honest walk can succeed.
+	blockingRectStatic(space, phy.Vec2f{X: 6, Y: 1.5}, 3, 1)
+	blockingRectStatic(space, phy.Vec2f{X: 6, Y: -1.5}, 3, 1)
+	blockingRectStatic(space, phy.Vec2f{X: 4.5, Y: 0}, 1, 4)
+	blockingRectStatic(space, phy.Vec2f{X: 7.5, Y: 0}, 1, 4)
+
+	m := NewMob(steeringMobDefinition(), 0, space)
+	m.SetPosition(home)                  // records the spawn = walk-home target
+	m.SetPosition(phy.Vec2f{X: 6, Y: 0}) // trapped in the pen
+	space.AddShape(m.Body)
+
+	for i := 0; i < 2500; i++ {
+		tickInSpace(t, m, space)
+		if m.Position().Sub(home).Abs() <= waypointArrivalRadius {
+			return // warped (or escaped) home
+		}
+	}
+	t.Fatalf("mob never made it home from the sealed pen; final pos %v", m.Position())
+}
