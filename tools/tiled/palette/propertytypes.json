@@ -1,0 +1,397 @@
+{
+  "propertyTypes": [
+    {
+      "id": 1,
+      "name": "AuraTerrainType",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "Dark Green Grass 1",
+        "Dark Green Grass 2",
+        "Green Grass 1",
+        "Green Grass 2",
+        "Dark Stone Patch",
+        "Stone Patch",
+        "Pebble",
+        "Dark Pebble",
+        "Rubble",
+        "Dark Rubble",
+        "Puddle",
+        "Dark Puddle",
+        "Flowers",
+        "Leaves",
+        "Sand",
+        "Land"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 2,
+      "name": "AuraPropType",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "Boulder",
+        "GateWall",
+        "House",
+        "Rock",
+        "Tree"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 3,
+      "name": "AuraMobName",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "(pick a mob)",
+        "AlphaWolf",
+        "ArmySoldier",
+        "AscensionStone",
+        "Bandit",
+        "BanditHealer",
+        "BanditPyromancer",
+        "BanditRanged",
+        "Bear",
+        "Boar",
+        "Bramble",
+        "Camp",
+        "Campfire",
+        "CityGuard",
+        "Companion",
+        "DireBear",
+        "DireWolf",
+        "Dog",
+        "EliteBandit",
+        "EliteWolf",
+        "Emberkeeper",
+        "Farmer",
+        "FireElemental",
+        "FireTotem",
+        "ForestSign",
+        "FrontAscensionStone",
+        "FrontCaptain",
+        "GiantSpider",
+        "GreaterFireElemental",
+        "Hermit",
+        "Kobold",
+        "KoboldRanged",
+        "LamplessTraveller",
+        "Lamplighter",
+        "Marauder",
+        "MedicCompanion",
+        "MemorialStone",
+        "Miner",
+        "Orc",
+        "OrcGrunt",
+        "OrcWarlord",
+        "PoisonPool",
+        "PortalHome",
+        "PortalSummon",
+        "ProjectileBomb",
+        "RallyDrummer",
+        "Rockfall",
+        "Shaman",
+        "ShieldbearerCompanion",
+        "SoldierCompanion",
+        "Spider",
+        "SpikeBarricade",
+        "Stag",
+        "Totem",
+        "TownCrier",
+        "Troll",
+        "Turnip",
+        "VenomSpider",
+        "VillageHealer",
+        "Wanderer",
+        "WarbannerTotem",
+        "Wolf"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 4,
+      "name": "AuraPatrolMode",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "pingpong",
+        "loop"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 5,
+      "name": "AuraFlipped",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "none",
+        "horizontal",
+        "vertical"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 6,
+      "name": "AuraTerrain",
+      "type": "class",
+      "color": "#ff8bc34a",
+      "drawFill": true,
+      "useAs": [
+        "property",
+        "object"
+      ],
+      "members": []
+    },
+    {
+      "id": 7,
+      "name": "AuraProp",
+      "type": "class",
+      "color": "#fff44336",
+      "drawFill": true,
+      "useAs": [
+        "property",
+        "object"
+      ],
+      "members": []
+    },
+    {
+      "id": 8,
+      "name": "AuraCampfire",
+      "type": "class",
+      "color": "#ffff9800",
+      "drawFill": true,
+      "useAs": [
+        "property",
+        "object"
+      ],
+      "members": []
+    },
+    {
+      "id": 9,
+      "name": "AuraDarkArea",
+      "type": "class",
+      "color": "#ff673ab7",
+      "drawFill": true,
+      "useAs": [
+        "property",
+        "object"
+      ],
+      "members": []
+    },
+    {
+      "id": 10,
+      "name": "AuraAnchor",
+      "type": "class",
+      "color": "#ff00bcd4",
+      "drawFill": true,
+      "useAs": [
+        "property",
+        "object"
+      ],
+      "members": []
+    },
+    {
+      "id": 11,
+      "name": "AuraSpawnCombat",
+      "type": "class",
+      "color": "#ff4caf50",
+      "drawFill": true,
+      "useAs": [
+        "property",
+        "object"
+      ],
+      "members": [
+        {
+          "name": "mob",
+          "type": "string",
+          "propertyType": "AuraMobName",
+          "value": "(pick a mob)"
+        },
+        {
+          "name": "respawnTicks",
+          "type": "int",
+          "value": -1
+        },
+        {
+          "name": "respawnVariancePct",
+          "type": "float",
+          "value": -1
+        },
+        {
+          "name": "wanderRadius",
+          "type": "float",
+          "value": -1
+        },
+        {
+          "name": "idleSpeedFactor",
+          "type": "float",
+          "value": 0
+        },
+        {
+          "name": "level",
+          "type": "int",
+          "value": 0
+        },
+        {
+          "name": "patrolMode",
+          "type": "string",
+          "propertyType": "AuraPatrolMode",
+          "value": "pingpong"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "AuraSpawnTalker",
+      "type": "class",
+      "color": "#ffe91e63",
+      "drawFill": true,
+      "useAs": [
+        "property",
+        "object"
+      ],
+      "members": [
+        {
+          "name": "mob",
+          "type": "string",
+          "propertyType": "AuraMobName",
+          "value": "(pick a mob)"
+        },
+        {
+          "name": "respawnTicks",
+          "type": "int",
+          "value": -1
+        },
+        {
+          "name": "respawnVariancePct",
+          "type": "float",
+          "value": -1
+        },
+        {
+          "name": "wanderRadius",
+          "type": "float",
+          "value": -1
+        },
+        {
+          "name": "idleSpeedFactor",
+          "type": "float",
+          "value": 0
+        },
+        {
+          "name": "level",
+          "type": "int",
+          "value": 0
+        },
+        {
+          "name": "patrolMode",
+          "type": "string",
+          "propertyType": "AuraPatrolMode",
+          "value": "pingpong"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "AuraSpawnFixture",
+      "type": "class",
+      "color": "#ff9e9e9e",
+      "drawFill": true,
+      "useAs": [
+        "property",
+        "object"
+      ],
+      "members": [
+        {
+          "name": "mob",
+          "type": "string",
+          "propertyType": "AuraMobName",
+          "value": "(pick a mob)"
+        },
+        {
+          "name": "respawnTicks",
+          "type": "int",
+          "value": -1
+        },
+        {
+          "name": "respawnVariancePct",
+          "type": "float",
+          "value": -1
+        },
+        {
+          "name": "wanderRadius",
+          "type": "float",
+          "value": -1
+        },
+        {
+          "name": "idleSpeedFactor",
+          "type": "float",
+          "value": 0
+        },
+        {
+          "name": "level",
+          "type": "int",
+          "value": 0
+        },
+        {
+          "name": "patrolMode",
+          "type": "string",
+          "propertyType": "AuraPatrolMode",
+          "value": "pingpong"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "AuraSpawnCompanion",
+      "type": "class",
+      "color": "#ff795548",
+      "drawFill": true,
+      "useAs": [
+        "property",
+        "object"
+      ],
+      "members": [
+        {
+          "name": "mob",
+          "type": "string",
+          "propertyType": "AuraMobName",
+          "value": "(pick a mob)"
+        },
+        {
+          "name": "respawnTicks",
+          "type": "int",
+          "value": -1
+        },
+        {
+          "name": "respawnVariancePct",
+          "type": "float",
+          "value": -1
+        },
+        {
+          "name": "wanderRadius",
+          "type": "float",
+          "value": -1
+        },
+        {
+          "name": "idleSpeedFactor",
+          "type": "float",
+          "value": 0
+        },
+        {
+          "name": "level",
+          "type": "int",
+          "value": 0
+        },
+        {
+          "name": "patrolMode",
+          "type": "string",
+          "propertyType": "AuraPatrolMode",
+          "value": "pingpong"
+        }
+      ]
+    }
+  ]
+}
