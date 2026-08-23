@@ -177,6 +177,10 @@ now.
 - Zone chat: one channel per zone (broadcast filtered by sender zone — decided, roadmap item 8); global chat stays until zones exist
 - Zone transitions (e.g. the tunnel between zone 1 and 2) — how?
 - **Named sub-regions (known-future, build nothing now):** three later features — per-area music (forest vs. cave *within* one zone), darkness patches (caves, the zone-1→2 tunnel, see 4.2), and per-area terrain/biome — all reduce to the same primitive: *a named region inside a zone carrying its own properties*. Today `zone.json` is `bounds` / `props` / `spawns` only. **Decision (2026-07-09):** don't build regions yet, but don't design them out — world-foundation chunk 6 authors terrain as the zone's **default** floor (not "the zone has *exactly one* floor"), and the loader's `DisallowUnknownFields` makes a later `regions: [...]` a one-line additive change. One shared region primitive then underpins music + darkness + terrain.
+  **2026-08-23:** this is now the recorded goal - `plan-release-map.md` D6 / §8
+  (one contiguous map, zones as coordinate regions), including the surveyed
+  touch points (Go zone struct + editor serializer whitelist) and the day-cycle
+  filter landmine per-zone tint must avoid.
 
 ### 4.7 Client Rendering: Fixed Field of View & Zoom Levels (decided 2026-07-11)
 
