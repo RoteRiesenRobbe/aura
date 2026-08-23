@@ -619,9 +619,9 @@ not the observed behaviour.
 **Verified:** vitest **442/442** (3 new: the override-only-what-is-authored
 shape, the enum marker map, and the index→string decode including the
 pingpong-index-0 → inherit case) · `tsc --noEmit` clean · round-trip still
-byte-identical · `tools/tiled/verify.sh` green. ⚑ **Re-check in the GUI**: a
-spawn should now show the mob dropdown immediately, with the untouched knobs
-displayed as inherited.
+byte-identical · `tools/tiled/verify.sh` green. ✅ **PO re-check PASSED 2026-08-23** ("dropdown works"). With that the plan has
+no open item left: every chunk shipped, and the one thing headless could not
+cover has been confirmed by hand.
 
 #### C6 follow-up 2 — adding a spawn from scratch ✅ 2026-08-23
 
