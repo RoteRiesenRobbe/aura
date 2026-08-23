@@ -1,5 +1,24 @@
 # Plan — the big test world
 
+> **⛔ STATUS: DROPPED 2026-08-22 (PO ruling), superseded by
+> `docs/plan-release-map.md`.** This plan will never run. The next map we build
+> is the **release iteration**, not a throwaway opt-in test map whose job was to
+> show every feature at once, so its premise is gone.
+>
+> **Archived rather than deleted, because §1 transfers.** F1-F4 and the measured
+> `world.json` densities are the only survey anyone has done of what bounds a
+> map, and `plan-release-map.md` §5.1 inherits them. ⚑ Two caveats there: the
+> line references were pinned 2026-08-02 and need re-verifying, and **F2 has
+> moved** - a zone spawn point may author its own `level` since
+> `plan-mob-levels.md` C1/C2, so the 13-17 rung hole is no longer a hard cliff.
+>
+> ⛔ **The rulings below do NOT transfer.** D1-D8 were ruled for a throwaway
+> test map: D5 (opt-in file, live world untouched) is dead by definition and D3
+> (existing roster only) conflicts with release-ready content. The other six are
+> plausible and all need re-ruling. §3.1's area table and §3.2's feature
+> checklist are useful *inputs* to the release map's design session, never
+> decisions it inherits. See `plan-release-map.md` §5.2.
+
 **Status: planned 2026-08-02 (docs only, no code). Not started.**
 
 A second playable map — `api/zones/testworld.json` — built as large as the

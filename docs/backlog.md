@@ -988,6 +988,31 @@ cooldown, not a new category). Doesn't block anything.
 
 ## 15. Camp/faction membership with exclusive teaching (Gothic-style)
 
+> **⭐ RESOLVED 2026-08-22 - AND THE ANSWER IS THAT NO SYSTEM IS NEEDED.**
+> This entry was ratified into `plan-camps.md` (designed 2026-08-04, nine
+> questions answered). That plan is now **⏸ DEFERRED**: camps ship as **quest
+> content** in the vocabulary already shipped. Membership is a *completed
+> quest*; exclusivity is a `quest_at_stage` gate on the nodes that offer, teach
+> and turn in. No camp field, no standing map, no new condition kind, no
+> migration.
+>
+> The design and the full mechanism live in **`docs/plan-release-map.md`** §3;
+> the authoring rules it rests on are in `manual-content-authoring.md` §6.
+> Every open question below stays answered as `plan-camps.md` answered it - the
+> **pillar carve-out** (§3.2 there: exclusivity sits at unlock *access*, never at
+> point spending), **everything-findable** (accept + document the exception),
+> **sequencing** (ascension exists now, so "see the other camp" is a real
+> reward), **recipes** (D7's silent dead ends, unchanged), and **permanence**
+> (D2). ⭐ The dependency this entry recorded in 2026-07-09 - *"hard-depends on
+> accounts/persistence"* - is satisfied twice over: the quest ledger is
+> persisted per character, and its `character_id` keying is exactly what makes
+> the post-ascension reroll reopen every camp with nothing authored.
+>
+> What deferring the plan actually costs, and what would revive it: a genuinely
+> **hostile** standing, **losing standing without joining anyone**, and
+> **permanence enforced by the server** rather than by a content pattern plus a
+> test pin. See `plan-release-map.md` §4.
+
 **WoW/Gothic fit: high** *(ranked 2026-07-29, PO-confirmed)*
 *(Captured 2026-07-09.)* A character joins one of several **camps**; joining
 is **per-character and permanent**. Exclusivity lives at the **unlock level,

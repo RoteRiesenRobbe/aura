@@ -10,6 +10,7 @@ package mob
 import (
 	"testing"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -103,4 +104,56 @@ func TestMob_CampRetriesAfterInterval(t *testing.T) {
 	m.campTicks = campRetryTicks - 1
 	tick(t, m, space)
 	assert.False(t, m.camped, "camp must lift for a retry after campRetryTicks")
+}
+
+// A camp that never progresses must eventually FORCE-LEASH even though the
+// target sits inside the aggro sensor (pathfinding pass 2026-08-23, PO ruling:
+// the 30 s+ standoff timeout softens 2026-07-20's eternal camp). Without it a
+// wolf whose cornered prey stays in sensor range camps forever - the sensor
+// ignores walls since the LoS cut, so the leash countdown never starts. The
+// force-leashed target is also ignored for re-acquisition for a while, or the
+// sensor would re-latch it on the next tick and restart the standoff.
+func TestMob_EternalCampForceLeashesAndIgnoresTarget(t *testing.T) {
+	space := phy.NewSpace()
+	campPocket(space)
+
+	m := NewMob(steeringMobDefinition(), 0, space)
+	m.SetPosition(phy.VEC2F_ZERO)
+	space.AddShape(m.Body)
+	space.AddShape(m.aggroAura)
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: 4, Y: 0} // in sensor (radius 10), unreachable
+	body := phy.NewCircle(p.pos, p.radius)
+	body.Shape().IsSensor = true
+	body.Shape().Layer = int(model.LayerPlayerCollision)
+	body.Shape().UserData = p
+	space.AddShape(body)
+	m.aggroTarget = p
+
+	released := -1
+	for i := 0; i < campForceLeashTicks*3; i++ {
+		tick(t, m, space)
+		if m.aggroTarget == nil {
+			released = i
+			break
+		}
+	}
+	require.GreaterOrEqual(t, released, 0,
+		"a permanently blocked camp must force-leash eventually")
+	require.Greater(t, released, campForceLeashTicks-1,
+		"the standoff timeout must not fire before campForceLeashTicks of camping")
+
+	// The ignore window: the target is still in the sensor, but must not be
+	// re-acquired on the following ticks.
+	for i := 0; i < 120; i++ {
+		tick(t, m, space)
+		assert.Nil(t, m.aggroTarget, "force-leashed target must stay ignored (tick %d)", i)
+	}
+
+	// Window over: the target becomes acquirable again.
+	m.ignoreAcquireTicks = 1
+	for i := 0; i < 30; i++ {
+		tick(t, m, space)
+	}
+	assert.NotNil(t, m.aggroTarget, "after the ignore window the target is fair game again")
 }

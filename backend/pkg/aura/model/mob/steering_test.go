@@ -410,7 +410,7 @@ func TestMob_DetourSurvivesBriefClearPocket(t *testing.T) {
 
 func TestMob_ClearPocketKeepsDetourSide(t *testing.T) {
 	space := phy.NewSpace()
-	blockingStatic(space, phy.Vec2f{X: 0.9, Y: -0.05}, 0.5)  // first latch: left (+1)
+	blockingStatic(space, phy.Vec2f{X: 0.9, Y: -0.05}, 0.5) // first latch: left (+1)
 	blockingStatic(space, phy.Vec2f{X: 10.9, Y: 0.05}, 0.5) // fresh lean here: right (-1)
 
 	m := NewMob(steeringMobDefinition(), 0, space)
@@ -458,4 +458,67 @@ func clampf(v, lo, hi float32) float32 {
 		return hi
 	}
 	return v
+}
+
+// A committed detour must release at a passable opening even while the wall
+// still repels (pathfinding pass 2026-08-23): the latch used to hold until 10
+// consecutive repulsion-free ticks, which never happens along a prop chain -
+// a latched mob marched past every body-sized gap in the row and rounded the
+// far end instead (in-game finding: wolves detouring around whole boulder
+// chains they could walk through).
+func TestMob_LatchedDetourReleasesAtPassableOpening(t *testing.T) {
+	space := phy.NewSpace()
+	blockingStatic(space, phy.Vec2f{X: 0.9, Y: -0.05}, 0.5) // latch former, dead ahead
+	// The wall neighbor at the opening: close enough to keep repulsion alive
+	// (edge gap 0.25 < lookahead), but the desired line east of it is clear.
+	blockingStatic(space, phy.Vec2f{X: 20, Y: 1.05}, 0.5)
+
+	m := NewMob(steeringMobDefinition(), 0, space)
+	m.SetPosition(phy.VEC2F_ZERO)
+	space.AddShape(m.Body)
+
+	desired := phy.Vec2f{X: 1, Y: 0}
+	m.steer(desired)
+	require.Equal(t, float32(1), m.steerSide, "precondition: head-on latches the detour")
+
+	// Relocate to the opening: still repelled sideways by the wall neighbor,
+	// but the body fits along desired - the clearance retest must release.
+	m.SetPosition(phy.Vec2f{X: 20, Y: 0})
+	released := false
+	for i := 0; i < gapRetestTicks+2; i++ {
+		m.steer(desired)
+		if m.steerSide == 0 {
+			released = true
+			break
+		}
+	}
+	assert.True(t, released,
+		"a latched detour must release at a passable opening instead of marching the whole wall")
+}
+
+// The counterpart: an opening whose passage is too narrow for the body must
+// NOT release the latch - the impassable-notch behavior survives the
+// clearance retest (regression guard for the 2026-07-20 notch jiggle).
+func TestMob_LatchedDetourHoldsWhenOpeningTooNarrow(t *testing.T) {
+	space := phy.NewSpace()
+	blockingStatic(space, phy.Vec2f{X: 0.9, Y: -0.05}, 0.5)
+	// A notch at the relocation point: neighbors above AND below the desired
+	// line, passage between their edges narrower than the body.
+	blockingStatic(space, phy.Vec2f{X: 21, Y: 0.7}, 0.5)
+	blockingStatic(space, phy.Vec2f{X: 21, Y: -0.7}, 0.5)
+
+	m := NewMob(steeringMobDefinition(), 0, space)
+	m.SetPosition(phy.VEC2F_ZERO)
+	space.AddShape(m.Body)
+
+	desired := phy.Vec2f{X: 1, Y: 0}
+	m.steer(desired)
+	require.Equal(t, float32(1), m.steerSide, "precondition: head-on latches the detour")
+
+	m.SetPosition(phy.Vec2f{X: 20, Y: 0})
+	for i := 0; i < gapRetestTicks*3; i++ {
+		m.steer(desired)
+		require.NotZero(t, m.steerSide,
+			"an impassable notch ahead must keep the committed detour (tick %d)", i)
+	}
 }

@@ -54,6 +54,7 @@ const HUD_SELECTORS = [
   '#worldMap', '#worldMap .worldMapHeader', '#worldMap .worldMapTitle', '#worldMap .worldMapClose',
   '#conversation', '#conversation .conversationHeader', '#conversation .conversationActor', '#conversation .conversationLeave',
   '#journalButton', '#mapButton', '#helpButton',
+  '#questTracker', '#questTrackerJournal',
   '#gameSettings', '#alertBanner', '#combatIndicator', '#minimap',
 ];
 
@@ -118,7 +119,7 @@ const openVia = async (sel) => {
   await page.waitForTimeout(800);
   return true;
 };
-if (await openVia('#journalButton')) { await shot(page, 'c-journal'); await page.keyboard.press('Escape'); await page.waitForTimeout(500); }
+if (await openVia('#questTrackerJournal')) { await shot(page, 'c-journal'); await page.keyboard.press('Escape'); await page.waitForTimeout(500); }
 if (await openVia('#helpButton')) { await shot(page, 'd-help'); await page.keyboard.press('Escape'); await page.waitForTimeout(500); }
 if (await openVia('#mapButton')) { await shot(page, 'e-map'); await page.keyboard.press('Escape'); await page.waitForTimeout(500); }
 

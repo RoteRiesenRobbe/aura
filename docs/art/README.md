@@ -12,12 +12,14 @@ two zone docs, and the portrait checklist in `manual-content-authoring.md` §4.
 Berryhunter content is excluded from the lists and parked in an appendix at the
 bottom — don't draw it.
 
-> ⭐ **New 2026-08-20: the medallion layer set has its own delivery contract,
-> `medallion-asset-spec.md`** (512×512 shared canvas, per-family rings and rims,
-> universal overlays, the greyscale disc, and the pilot that locks the ring
-> fractions). It is designed to be drawable NOW, before any implementation;
-> start there if you are working on medallions. Design rationale:
-> `../plan-entity-medallions.md`.
+> ⭐ **New 2026-08-20, rev 2026-08-22: the medallion layer set has its own
+> delivery contract, `medallion-asset-spec.md`** (512×512 shared canvas,
+> per-family rings and rims with the rim at the bottom of the stack,
+> universal overlays, the greyscale disc, and the pilot whose measured
+> proportions become the frozen circle numbers; the artist commits assets
+> directly into the repo). It is designed to be drawable NOW, before any
+> implementation; start there if you are working on medallions. Design
+> rationale: `../plan-entity-medallions.md`.
 
 ---
 

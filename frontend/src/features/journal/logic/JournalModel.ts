@@ -74,6 +74,38 @@ export interface JournalView {
     detail: JournalDetailView | null;
 }
 
+/** One row of the quest tracker: a running quest and its last objective line. */
+export interface QuestTrackerRow {
+    questId: string;
+    title: string;
+    /**
+     * The LAST of the current stage's server-composed objective lines
+     * ("the last current line", PO mockup 2026-08-23), verbatim like the
+     * journal's - or null when the stage has none, and the title stands alone.
+     */
+    line: string | null;
+}
+
+/**
+ * The quest tracker's view (2026-08-23): the always-on strip under the map
+ * button, rendered by QuestTracker.ts. A pure function rather than a second
+ * stateful model - the tracker holds no selection, so there is nothing for a
+ * per-tick re-send to reset. Running quests only; a catalog that is not ready
+ * yields nothing, because the tracker has no room to explain itself and the
+ * journal panel already owns saying why.
+ */
+export function questTrackerRows(progress: QuestProgress[], catalog: JournalCatalog): QuestTrackerRow[] {
+    if (catalog.state() !== 'ready') {
+        return [];
+    }
+    return (progress ?? []).filter(p => !p.completed).map(p => ({
+        questId: p.questId,
+        // The id as a last-resort title, same rule as the journal list.
+        title: catalog.title(p.questId) ?? p.questId,
+        line: p.objectives.length > 0 ? p.objectives[p.objectives.length - 1] : null,
+    }));
+}
+
 export class JournalModel {
     private progress: QuestProgress[] = [];
     private selectedQuestId: string | null = null;

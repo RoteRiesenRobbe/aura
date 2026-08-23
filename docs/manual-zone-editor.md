@@ -260,8 +260,9 @@ Everything about authoring one now lives in
 A world can have several zones — one file each in `api/zones/`, named by its
 **file stem** (`world.json` → the id `world`). One ships today:
 **`world.json`**, the live game world — what the server loads by default via
-conf `game.zone`. (`testworld.json`, the planned debug map, is designed in
-`plan-test-world.md` and not yet built.)
+conf `game.zone`. (`testworld.json`, the planned debug map, was **dropped 2026-08-22** and
+never built: `archive/plan-test-world.md`. The next map is the release
+iteration, `plan-release-map.md`.)
 
 - **Load zone** dropdown — pick any existing zone to open it for editing, or
   **＋ New zone** to start a blank one (default bounds, no terrain/props/spawns).

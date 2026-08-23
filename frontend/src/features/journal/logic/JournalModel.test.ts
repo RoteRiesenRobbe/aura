@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {JournalCatalog, JournalCatalogState, JournalModel, QuestProgress} from './JournalModel';
+import {JournalCatalog, JournalCatalogState, JournalModel, QuestProgress, questTrackerRows} from './JournalModel';
 
 function catalogOf(state: JournalCatalogState = 'ready'): JournalCatalog {
     const quests: { [id: string]: { title: string, stages: { [id: string]: string } } } = {
@@ -183,6 +183,38 @@ describe('JournalModel', () => {
         const view = model.view();
         expect(view.running).toEqual([{questId: 'ghost-quest', title: 'ghost-quest', selected: true}]);
         expect(view.detail).toEqual({questId: 'ghost-quest', title: 'ghost-quest', entries: [], objectives: [], running: true});
+    });
+
+    // The tracker (2026-08-23): the always-on right-side strip under the map
+    // button. One row per RUNNING quest, carrying the LAST of the current
+    // stage's server-composed lines - "the last current line", PO mockup.
+    describe('questTrackerRows', () => {
+        it('tracks running quests only', () => {
+            const rows = questTrackerRows([choiceRunning, cullDone], catalogOf());
+            expect(rows.map(r => r.questId)).toEqual(['choice']);
+        });
+
+        it('picks the last objective line of the current stage, verbatim', () => {
+            const rows = questTrackerRows([{questId: 'wolf-cull', stages: ['cull'], completed: false,
+                objectives: ['2/3 Wolf slain', 'Talk to the Farmer ✓']}], catalogOf());
+            expect(rows).toEqual([{questId: 'wolf-cull', title: 'The Wolf Cull', line: 'Talk to the Farmer ✓'}]);
+        });
+
+        it('carries null for a stage with no objective lines - the title stands alone', () => {
+            const rows = questTrackerRows([choiceRunning], catalogOf());
+            expect(rows).toEqual([{questId: 'choice', title: 'The Choice', line: null}]);
+        });
+
+        it('keeps an unknown quest visible under its id, like the journal list', () => {
+            const rows = questTrackerRows([{questId: 'ghost-quest', stages: ['gone'], completed: false, objectives: []}], catalogOf());
+            expect(rows).toEqual([{questId: 'ghost-quest', title: 'ghost-quest', line: null}]);
+        });
+
+        it('shows nothing while the catalog is not ready - the journal panel owns saying why', () => {
+            for (const state of ['loading', 'unavailable'] as JournalCatalogState[]) {
+                expect(questTrackerRows([cullRunning], catalogOf(state))).toEqual([]);
+            }
+        });
     });
 
     // The panel diffs on a signature of the view, which is only sound if an

@@ -892,6 +892,63 @@ and `api/mobs/lampless-traveller.json` (the same plus a conditional completed
 greeting **and** the `running`-gated info row) are the worked examples; `api/quests/README.md` documents the file
 format itself.
 
+### Recording a choice, and gating one quest on another
+
+Two engine facts you cannot see from the authoring surface. Both were confirmed
+by reading the ledger (2026-08-22) and both change what is authorable.
+
+⚑ **A terminal stage id is unreadable once the quest completes.**
+`Ledger.MatchesStage` (`quests/ledger.go`) answers a bare stage id through
+`ok && p.Running && lastPath == want`, and entering a terminal stage sets
+`Completed` while clearing `Running`. So a `quest_at_stage` naming a terminal
+stage matches **never**. The consequence is a rule: **a choice that has to stay
+readable must be its own quest id.** One quest with three terminal endings
+records nothing; three quests record three facts. Branch stages inside a quest
+are still fine for branching that is read *while the quest runs* (the
+`wolves-on-the-road` two-NPC shape), just not after it ends.
+
+⚑ **`not_started` matches again after an abandon.** It is
+`!Running && !Completed`, and abandoning clears `Running` without setting
+`Completed`. So an exclusion gated on `not_started` is only sealed when the
+other quest **completes**, not when it is accepted. If the exclusion has to be
+permanent, make the gating quest short enough that the reversible window is one
+conversation: no objective stage, accepted and turned in on the same node (the
+panel re-presents every tick, so the turn-in row appears as soon as the accept
+row is taken).
+
+**Gating one quest behind another** is then a node condition, not a field on the
+quest file - a quest never knows who offers it (D11), and there is no
+"complete quest X" objective kind:
+
+```json
+{ "id": "second_chain",
+  "conditions": [
+    { "kind": "quest_at_stage", "quest": "first-chain", "stage": "completed" }
+  ],
+  "options": [ { "text": "...", "grants": [ { "kind": "offer_quest", "quest": "second-chain" } ] } ] }
+```
+
+Conditions are AND-ed with no negation, so several prerequisites are just
+several entries. The root row that navigates to the node is hidden with it.
+
+⚑ **Gate on `completed`, not on `not_started`, whenever the row should read as
+a locked door.** `describeConditions` renders `completed` as
+`complete "The Title"` and `not_started` as the unusable
+`"The Title" at "not_started"`. So: a prerequisite that should be *visible and
+named* gets `completed` plus `lockedWhenGated: true` on its navigation row (the
+`front-ascension-stone.json` shape); an exclusion that should simply vanish gets
+`not_started` and no locked row.
+
+⚑ **Server-enforced per click, but the invariant is yours.** `applyGrant`
+re-checks the destination node's conditions on every click, so a crafted message
+cannot walk a gate. What no code checks is whether you authored the *full* set
+of conditions on every node that needs them - a mutually exclusive set of
+offers is a content pattern, and one missing condition reopens a door silently.
+Pin it in `quests/content_test.go` if the exclusivity matters.
+
+The worked design that uses all of this is `docs/plan-release-map.md` §3
+(camps expressed entirely as quest content).
+
 ### Verify
 
 `go test ./pkg/aura/quests/` (the content pins: census, cross-validation,

@@ -380,6 +380,7 @@ type Mob struct {
 	steerClearTicks    int
 	steerPrevSide      float32
 	steerPrevSideTicks int
+	steerGapRetestIn   int
 
 	// steerProbe/steerHits/steerMobHits are the steering queries' reused
 	// scratch (see steeringProbe): the lookahead circle and one hit buffer per
@@ -396,6 +397,18 @@ type Mob struct {
 	camped            bool
 	campTicks         int
 	campTargetPos     phy.Vec2f
+
+	// Camped-standoff force-leash (pathfinding pass 2026-08-23, stuck.go):
+	// campEngagementTicks accumulates camped time across one engagement; past
+	// campForceLeashTicks the mob resets even with the target still in sensor
+	// range (the sensor ignores walls since the LoS cut, so the ordinary leash
+	// countdown never starts against a cornered-but-visible target). The
+	// force-leashed target is then ignored for acquisition for a while, or the
+	// sensor would re-latch it on the next tick and restart the standoff;
+	// retaliation through the threat table deliberately still overrides it.
+	campEngagementTicks int
+	ignoreAcquireID     uint64
+	ignoreAcquireTicks  int
 
 	health vitals.VitalSign
 	// baseMaxHealth is the mob's pool at the BASELINE curve position, with its
@@ -462,6 +475,7 @@ type Mob struct {
 	idleWalkSet    bool
 	idleWalkTicks  int
 	idleWalkDwell  int
+	idleWalkFails  int
 
 	// Idle pacing (chunk-5 pacing rework): idleSpeedFactor scales wander legs
 	// AND patrol marching (evade return / walk-home stay full speed);
@@ -1420,6 +1434,10 @@ func (m *Mob) updateEnemyTargeting() {
 	tookDamage := m.tookDamage
 	m.tookDamage = false
 
+	if m.ignoreAcquireTicks > 0 {
+		m.ignoreAcquireTicks--
+	}
+
 	// Campfire hard safe-zone (Pass A, decision 4): a target that reaches the
 	// fire breaks the chase outright — threat cleared, aura off, walk home.
 	// Checked BEFORE retention, so the cleared table cannot re-latch the same
@@ -1448,7 +1466,29 @@ func (m *Mob) updateEnemyTargeting() {
 	// re-acquire next tick (visible as a 1-tick aura flicker every ~3 s).
 	// A scripted flee (9e) counts as in combat for its whole duration — the
 	// encounter owns the disengage, see SetFleeOverride.
-	if tookDamage || m.fleeOverride || m.targetWithinAuraReach() || m.targetWithinSensor() {
+	if tookDamage || m.fleeOverride || m.targetWithinAuraReach() {
+		m.leashTicks = 0
+		// Genuine combat: the camped-standoff clock starts over too - the
+		// force-leash below is only for a camp nothing ever touches.
+		m.campEngagementTicks = 0
+		return
+	}
+	// Camped-standoff force-leash (pathfinding pass 2026-08-23, PO ruling):
+	// a camp that accumulated campForceLeashTicks without progress, damage or
+	// aura reach resets even though the sensor still sees the target - the
+	// sensor ignores walls, so this countdown is the ONLY leash a cornered but
+	// visible target ever trips. The target is then ignored for acquisition
+	// for a while (see ignoreAcquireID), or it would re-latch next tick.
+	if m.campEngagementTicks >= campForceLeashTicks {
+		if m.aggroTarget != nil {
+			m.ignoreAcquireID = m.aggroTarget.Basic().ID()
+			m.ignoreAcquireTicks = forceLeashIgnoreTicks
+		}
+		m.resetAggro()
+		m.resetChaseWatchdog()
+		return
+	}
+	if m.targetWithinSensor() {
 		m.leashTicks = 0
 		return
 	}
@@ -1525,6 +1565,12 @@ func (m *Mob) findAggroTarget() model.Combatant {
 			continue
 		}
 		if m.aggroMask&target.Faction().Bit() == 0 {
+			continue
+		}
+		if m.ignoreAcquireTicks > 0 && target.Basic().ID() == m.ignoreAcquireID {
+			// Force-leashed standoff target: not proactively re-acquired until
+			// the window lapses. Only this path is gated - threat-table
+			// retaliation deliberately still pulls the mob back in.
 			continue
 		}
 		if m.blockedBySafeZone(target.Position()) {

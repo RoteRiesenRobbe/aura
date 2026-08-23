@@ -1,16 +1,22 @@
 # Medallion asset spec - what the artist delivers
 
-> **Status: CONTRACT DRAFT 2026-08-20, ready for the pilot.** Companion to
-> `pipeline.md` (how art gets on screen) and the design doc
-> `../plan-entity-medallions.md` (why the layers exist and what each one
-> means). This file is the **artist-facing contract**: if a delivered file
-> follows every rule here, it will composite correctly in-game with zero
-> code negotiation. Written before implementation on purpose, so art can
-> start first.
+> **Status: CONTRACT DRAFT 2026-08-20 · REVISED 2026-08-22 (artist feedback
+> round 1).** Companion to `pipeline.md` (how art gets on screen) and the
+> design doc `../plan-entity-medallions.md` (why the layers exist and what
+> each one means; the feedback decisions are D16-D18 there). This file is
+> the **artist-facing contract**: if a committed file follows every rule
+> here, it will composite correctly in-game with zero code negotiation.
+> Written before implementation on purpose, so art can start first.
 >
-> The fraction numbers in §3 are [PLACEHOLDER] until the pilot (§8) locks
-> them. **Everything else is decided.** After pilot sign-off the fractions
-> freeze too, and from then on no file may deviate from them.
+> 2026-08-22 changes, from the artist's read of the draft: the **rim moved
+> to the very bottom of the stack** (§1) · the circle **proportions are now
+> artist-led**, measured from the pilot and only then frozen (§3) · the
+> artist **works directly in this repo**, no file hand-off (§5) · **no
+> per-family source files**, the artist keeps one master file (§5).
+>
+> §3's circle numbers stay open until the pilot (§8) locks them.
+> **Everything else is decided.** After pilot sign-off the measured numbers
+> are recorded in §3, and from then on no file may deviate from them.
 
 ---
 
@@ -34,12 +40,18 @@ plan doc §3):
 
 | # | File role | Meaning | Varies by |
 | --- | --- | --- | --- |
-| 1 | disc | allegiance background, tinted by code | one file total |
-| 2 | portrait | the creature | existing art, NOT part of this delivery |
-| 3 | ring | border material (faction family) | per family |
-| 4 | rim | tier ornamentation (elite / boss) | per family × 2 |
+| 1 | rim | tier ornamentation (elite / boss) | per family × 2 |
+| 2 | disc | allegiance background, tinted by code | one file total |
+| 3 | portrait | the creature | existing art, NOT part of this delivery |
+| 4 | ring | border material (faction family) | per family |
 | 5 | addition | subtype marks, e.g. beast horns | universal, per subtype |
 | 6 | decoration | species dressing, e.g. spider webs | universal, per species that has one |
+
+**The rim sits at the very BOTTOM of the stack** (artist call, 2026-08-22):
+its ornaments emerge from behind the medallion. Anything a rim draws inside
+the medallion's own area is hidden by the opaque disc and ring above it, so
+inward overlap is harmless (just wasted pixels); the visible mass lives
+outside the ring.
 
 Decisions behind this table (PO 2026-08-20): rims are drawn **per family**
 (the ornaments grow out of the ring's material, wood ring gets leaf rims);
@@ -63,18 +75,25 @@ a bare ring means a normal mob, ornamentation means elite or boss.
 
 ---
 
-## 3. The three frozen circles [numbers PLACEHOLDER until pilot]
+## 3. The three shared circles [artist-led; numbers recorded after the pilot]
 
-Three concentric circles on the shared canvas govern every file. Proposed
-starting values, to be tuned once in the pilot and then frozen forever:
+Three concentric circles on the shared canvas govern every file:
 
-| Circle | Proposed diameter | Purpose |
+| Circle | Diameter | Purpose |
 | --- | --- | --- |
-| **Outer ring edge** | 72 % of canvas (~369 px) | where the ring band ends; the scaling reference for the whole set |
-| **Inner ring edge = portrait window** | 56 % of canvas (~287 px) | the disc's size and the area the portrait is scaled into |
-| **Canvas edge** | 100 % (512 px) | hard limit; the ~14 % band between outer edge and canvas is the **overflow zone** for rims, horns and webs |
+| **Outer ring edge** | *artist's call in the pilot* | where the ring band ends; the scaling reference for the whole set |
+| **Inner ring edge = portrait window** | *artist's call in the pilot* | the disc's size and the area the portrait is scaled into |
+| **Canvas edge** | 512 px, fixed | hard limit; everything between the outer ring edge and the canvas edge is the **overflow zone** for rims, horns and webs |
 
-Rules that hang off them:
+The contract prescribes **no proportions** (rev 2026-08-22; the draft's
+percentage table confused more than it fixed). Draw the pilot so it looks
+right. After PO sign-off we measure the two circles in the delivered set,
+record the pixel values in this table, and from then on they are frozen:
+every later family must use the same two circles. Leave enough overflow
+zone for the biggest ornament you ever want to draw; the canvas edge is a
+hard cut.
+
+Rules that hang off the circles (these hold regardless of the numbers):
 
 - **Identical across every family and every variant.** If two family rings
   disagree on the outer fraction, tiers stop lining up between species and
@@ -110,12 +129,14 @@ Rules that hang off them:
   (wood, leather, ...). Texture detail free within the band.
 - Opaque inner edge (§3). Small material irregularities crossing the outer
   edge into the overflow zone are fine (bark chips, stitching); the band's
-  *nominal* circles stay on the frozen fractions.
+  *nominal* circles stay on the shared §3 geometry.
 
 ### 4.3 `rim_<family>_elite.png` / `rim_<family>_boss.png`
 
 - Tier ornamentation grown from that family's ring material (wood: leaves).
-- Anchored visually on the ring band, extending into the overflow zone.
+- Renders at the very bottom of the stack (§1): draw it to read as emerging
+  from **behind** the medallion. Its visible mass lives in the overflow
+  zone; inward overlap disappears behind the disc and ring.
 - Boss must read as strictly "more" than elite at 80 px on-screen size, not
   just different. Squint test: if elite and boss are indistinguishable at
   thumbnail size, the layer fails its purpose.
@@ -146,33 +167,39 @@ keep the existing portrait contract (square canvas, transparent, art filling
 
 ---
 
-## 5. Naming and delivery
+## 5. Naming and repo placement
 
 - Files named exactly as in §4: `disc.png`, `ring_wood.png`,
   `rim_wood_elite.png`, `rim_wood_boss.png`, `addition_beast.png`,
   `decoration_webs.png`. Lowercase, underscores, family/key names agreed
   before drawing (family list is still open, plan doc D10; only the pilot
   family's name needs agreement now).
-- **Deliver the layered source file alongside the PNGs** (Krita / PSD /
-  whatever the artist uses), one source file per family plus one for the
-  universal overlays. The source stack is the ground truth for the frozen
-  circles; every later family starts from a copy of it.
-- A template file with the three circles as guides ships with the pilot
-  sign-off and becomes part of the deliverable set.
-- Destination: hand the files to the dev side; repo placement is the
-  implementer's job (planned home:
-  `frontend/src/features/game-objects/assets/medallion/`, but the artist
-  never needs to touch the repo).
+- **The artist works directly in this repo** (rev 2026-08-22; the draft's
+  hand-the-files-to-devs posture was wrong). Exported PNGs are committed
+  straight to `frontend/src/features/game-objects/assets/medallion/`.
+  The §6 checklist is the pre-commit gate. The renderer-side wiring
+  (resolver, bake, config keys) lands via the plan's C-chunks; until C1
+  exists, committed assets simply wait in that directory.
+- **Source files are NOT a deliverable.** The artist keeps their own
+  master file (one file covering all mobs/NPCs, their existing workflow);
+  the repo never sees it, and nothing is duplicated per family. The circle
+  guides live in that master file.
+- Because no source lives in the repo, **this spec is the repo-side ground
+  truth**: once the pilot locks the circle numbers they are recorded in §3,
+  and every later delivery is checked against §3, not against a source
+  file.
 
 ---
 
-## 6. Self-check before sending (the artist's checklist)
+## 6. Self-check before committing (the artist's checklist)
 
 1. Every PNG is 512 × 512, RGBA, transparent background.
-2. The three circles sit on the frozen fractions, centered (source guides).
+2. The three circles are centered and match the master file's guides
+   (after the pilot: the recorded numbers in §3).
 3. Ring inner edge opaque all the way around.
-4. Composite test A: disc + a portrait + ring + each rim + addition +
-   decoration, all stacked. Nothing misaligned, face unobscured.
+4. Composite test A: each rim (bottom) + disc + a portrait + ring +
+   addition + decoration, stacked in that order. Nothing misaligned, face
+   unobscured.
 5. Composite test B: each universal overlay on **every** delivered family
    ring, not just the one it was designed against.
 6. Composite test C: ring alone over the disc (a normal-tier mob with no
@@ -187,7 +214,7 @@ keep the existing portrait contract (square canvas, transparent, art filling
 Recorded so nobody blocks on the wrong thing:
 
 - **On-screen sizing** (plan doc D15, open): changes how big medallions draw,
-  never how they are authored. The fractions decouple the two.
+  never how they are authored. The shared circles decouple the two.
 - **Allegiance colors**: the disc is greyscale; colors are a code-side tint
   decision, changeable any time without a redraw.
 - **Family membership** (which factions share which family, D10): affects
@@ -208,12 +235,12 @@ One family of the **artist's choice** (PO 2026-08-20), full layer coverage:
 - `ring_<family>.png`, `rim_<family>_elite.png`, `rim_<family>_boss.png`
 - `addition_beast.png`, `decoration_webs.png` (the two universal overlays)
 - `disc.png`
-- the layered source file(s) and the circle-guide template
-- two composite mockups against real existing portraits (e.g. wolf and
-  giant spider, artist's pick) at full size and at ~80 px
+- two composites against real existing portraits (e.g. wolf and giant
+  spider, artist's pick) at full size and at ~80 px; exported mockups are
+  fine, in-game once C1's renderer exists is even better
 
-The pilot's job is to **lock the §3 fractions and the §4.4 clock-position
-convention**. PO signs off on the composites; after sign-off the numbers
-freeze, the template becomes canonical, and further families are mechanical.
-Expect exactly one revision loop on the fractions; that is what the pilot is
-for.
+The pilot's job is to **lock the §3 circle numbers and the §4.4
+clock-position convention**. PO signs off on the composites; after sign-off
+the delivered set is measured, the numbers are recorded in §3 and frozen,
+and further families are mechanical. Expect exactly one revision loop on
+the proportions; that is what the pilot is for.

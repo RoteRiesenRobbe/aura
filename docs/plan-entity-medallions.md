@@ -1,14 +1,18 @@
 # Entity Medallions: the token as the base presentation of every actor
 
-> **Status: DESIGN SKETCH 2026-08-10 · REVISED 2026-08-20 (PO mockup session),
-> nothing scheduled, nothing built beyond the shipped border pattern.**
+> **Status: DESIGN SKETCH 2026-08-10 · REVISED 2026-08-20 (PO mockup session)
+> · REVISED 2026-08-22 (artist feedback round 1, D16-D18), nothing scheduled,
+> nothing built beyond the shipped border pattern.**
 > Opened from PO concept art (a wooden ring in three ornamentation steps) and a
 > PO statement of art direction: *"mobs are represented in the world, as
 > currently, in medallions or similar to how tokens would be represented in 2d
 > pen and paper games. that is a fundamental part of the visual identity."*
 > The 2026-08-20 session added a PO mockup that decomposes the token into named
 > layers (the `Token_*` vocabulary in §3) and settled six of the open design
-> questions; the revised decisions are D9–D15. All numbers are [PLACEHOLDER].
+> questions; the revised decisions are D9–D15. The artist's 2026-08-22 read of
+> the delivery contract settled three more (D16-D18: rim at the bottom of the
+> stack, artist-led proportions, in-repo delivery). All numbers are
+> [PLACEHOLDER].
 >
 > ⚑ This is an **art-direction** doc as much as a technical one. If it is
 > ratified, `gdd.md` gains a line: the entity presentation is a token in a
@@ -128,17 +132,18 @@ of this plan (see §6.2 for the one §39 slice this plan does pull forward).
 
 ---
 
-## 3. The layer stack (revised 2026-08-20, PO mockup)
+## 3. The layer stack (revised 2026-08-20 PO mockup · order revised 2026-08-22 artist feedback)
 
 The PO mockup names six token layers plus the three outside elements. This
-vocabulary is now the plan's vocabulary. Draw order bottom → top:
+vocabulary is now the plan's vocabulary. Draw order bottom → top (the rim
+moved to the bottom 2026-08-22, D16):
 
 | # | Mockup name | What it is | Selector | Data source | Available? |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `Token_Background` | coloured disc behind the portrait | **runtime allegiance**: hostile / neutral-passive / friendly (mockup example: red / green / blue, [PLACEHOLDER]) | **NEW wire field**, the §39 allegiance slice (D11, §6.2) | ❌ needs one appended FlatBuffers field |
-| 2 | `Token_Portrait` | the species art | species | `entityType` → sprite class, works today | ✅ |
-| 3 | `Token_BorderStyle` | the ring itself, material/style | **faction art family** (e.g. Wildlife = wood) (D9/D10) | faction via one catalog field + a client family map (§6.1) | ⚠️ small backend job |
-| 4 | `Token_BorderTier` | rim ornamentation, counted leaves | tier: **Normal bare · Elite · Boss** (D12) | `tier` on the wire, works today | ✅ |
+| 1 | `Token_BorderTier` | rim ornamentation, counted leaves, emerging from behind the medallion | tier: **Normal bare · Elite · Boss** (D12) | `tier` on the wire, works today | ✅ |
+| 2 | `Token_Background` | coloured disc behind the portrait | **runtime allegiance**: hostile / neutral-passive / friendly (mockup example: red / green / blue, [PLACEHOLDER]) | **NEW wire field**, the §39 allegiance slice (D11, §6.2) | ❌ needs one appended FlatBuffers field |
+| 3 | `Token_Portrait` | the species art | species | `entityType` → sprite class, works today | ✅ |
+| 4 | `Token_BorderStyle` | the ring itself, material/style | **faction art family** (e.g. Wildlife = wood) (D9/D10) | faction via one catalog field + a client family map (§6.1) | ⚠️ small backend job |
 | 5 | `Token_BorderAdditions` | subtype marks on the ring (e.g. Beast = horns) | subtype, **visual-only** (D13) | client-local key in `Graphics.ts` | ✅ (new config key) |
 | 6 | `Token_BorderDecoration` | species-specific dressing (e.g. Spider = webs on the ring) | species, **visual-only** (D13) | client-local key in `Graphics.ts` | ✅ (new config key) |
 
@@ -146,11 +151,14 @@ Outside the token, unchanged and already in the mockup's position:
 `Token_HealthBar` (shipped), `Token_Status_Effects` pips (shipped),
 `Token_Name + Level` nameplate (shipped).
 
-⚑ Layer-order contract detail: everything in layers 3–6 must sit **above the
-portrait**. The mockup is compatible (leaves and horns tuck behind the ring
-but outside the portrait circle; webs sit on top of the ring). If some future
-decoration must slip *under* the portrait, the frame bake (§7) splits into a
-below/above pair; avoid authoring that.
+⚑ Layer-order contract detail: ring, additions and decoration must sit
+**above the portrait** (horns tuck behind the ring but outside the portrait
+circle; webs sit on top of the ring). The rim sits **below everything**
+(D16) and pays nothing for it: it is a standalone sprite, not part of the
+frame bake (§7.2), and whatever it draws inward self-masks behind the
+opaque disc and ring. If some *future* decoration must slip under the
+portrait, the frame bake splits into a below/above pair; still avoid
+authoring that.
 
 ---
 
@@ -212,6 +220,32 @@ below/above pair; avoid authoring that.
   can be picked until we know how far current visual sizes sit from the
   authored colliders. See §5.3 for what this changes.
 
+### From the 2026-08-22 artist feedback (D16–D18)
+
+The artist read the delivery contract (`art/medallion-asset-spec.md`) and
+pushed back on four points; all four are accepted and folded in.
+
+- **D16. The tier rim renders at the very BOTTOM of the stack** (artist
+  call): the ornaments emerge from *behind* the medallion instead of
+  sitting on the ring. Render consequence (§7.2): the rim leaves the frame
+  bake and becomes its own sprite below the disc, the bake key drops
+  `tier`, and elite/boss entities cost ~4 quads instead of ~3 (normal tier
+  has no rim sprite at all).
+- **D17. The ring proportions are ARTIST-LED.** The contract's prescriptive
+  72 %/56 % fractions confused more than they fixed; they are deleted. The
+  artist draws the pilot to look right, the delivered set is measured, and
+  the measured numbers are recorded in the spec §3 and frozen. The hard
+  rule survives untouched: identical circles across every family and
+  variant.
+- **D18. The artist works IN THE REPO; there is no hand-off and no source
+  deliverable.** The contract's "send files to the dev side, never touch
+  the repo" posture was wrong: the artist is the second committer on main
+  and runs their own Claude sessions in this project, and commits exported
+  PNGs directly to the assets directory. Per-family source files and the
+  circle-guide template are dropped; the artist keeps ONE master file for
+  all mobs/NPCs (their existing workflow), and the spec's recorded numbers
+  are the repo-side ground truth instead.
+
 ---
 
 ## 5. Constraints and landmines
@@ -235,8 +269,9 @@ lazily · dwell ring `addChildAt(ring, min(1, len))` · health bar plain
 `actualShape`. `Character` does it differently again (rings eager).
 
 Adding a disc that must sit **above the aura ring and below the portrait**
-breaks those assumptions silently: wrong order, only in combinations where the
-other consumer is present.
+(plus, since D16, a rim below even the disc) breaks those assumptions
+silently: wrong order, only in combinations where the other consumer is
+present.
 
 **Recommendation (unchanged, now first chunk): replace the index arithmetic
 with named sub-containers** (`belowArt`, `art`, `aboveArt`) before any
@@ -281,7 +316,8 @@ Naively, six token layers are six full-size alpha quads per entity. The mobile
 regression was **fill rate**, not CPU. Mitigations are designed in from the
 start (§7): the frame stack bakes to **one** shared texture per species, the
 disc is one tinted greyscale sprite, the portrait stays live. Target: **~3
-quads per entity** (disc, portrait, baked frame) instead of six.
+quads per normal entity** (disc, portrait, baked frame) instead of six;
+elite/boss pay a fourth for the D16 rim sprite.
 
 **A headless framerate number does not settle this.** Headless perf transfers
 only as ratios. A real-phone check is an exit criterion, not a nice-to-have.
@@ -406,49 +442,55 @@ per-class `withBorder` boilerplate; the existing six medallion mobs migrate
 onto it. Species without a `medallion` entry and entities failing the D14
 predicate get bare art, exactly as today.
 
-### 7.2 Bake the frame, tint the disc, keep the portrait live
+### 7.2 Bake the frame, tint the disc, keep the portrait live (rev 2026-08-22, D16)
 
-- **Frame bake**: border family ring + tier rim + additions + decoration are
-  all species constants (tier is authored per species), so the composed frame
-  is baked **once per species** into a `RenderTexture` at first use and cached
-  (keyed by the resolved layer tuple, so species sharing identical tuples
-  share one texture). All instances share it, same as portraits today.
-  Resolution is change-driven, not once-at-init: a wire `tier` change
-  re-resolves the tuple and swaps the cached texture, the same caching
-  discipline `setTier` follows today.
+- **Frame bake**: border family ring + additions + decoration are all
+  species constants, so the composed frame is baked **once per species**
+  into a `RenderTexture` at first use and cached (keyed by the resolved
+  layer tuple, so species sharing identical tuples share one texture). All
+  instances share it, same as portraits today. Since D16 moved the rim out
+  of the bake, `tier` is no longer part of the tuple, which makes the bake
+  fully static per species and lets more species share one texture.
+- **Rim** (D16): NOT baked. One PNG per family × tier is a texture already;
+  it renders as its own `Sprite` in `belowArt`, *under* the disc. Only
+  elite/boss entities carry one. A wire `tier` change swaps the rim texture
+  (the same change-driven caching discipline `setTier` follows today); the
+  frame bake is untouched by tier.
 - **Disc**: one shared greyscale disc asset, one `Sprite` per entity, tinted
   at runtime by stance (`sprite.tint` multiplies; greyscale tints correctly).
-  Tint change on a stance flip is free. Sits in `belowArt`.
+  Tint change on a stance flip is free. Sits in `belowArt`, above the rim.
 - **Portrait**: stays a live, separate display object in `art`, because the
-  damage flash must squash it inside the stable frame (§5.1). Frame bake and
-  disc sit in `aboveArt`/`belowArt` respectively.
+  damage flash must squash it inside the stable frame (§5.1). Frame bake
+  sits in `aboveArt`; rim and disc in `belowArt`.
 
-Result: ~3 quads per entity, one bake per species (amortized), zero per-frame
-cost (stance tint and tier are change-driven, same caching discipline as
-`setTier` today).
+Result: ~3 quads per normal entity, ~4 for elite/boss (the rim sprite), one
+bake per species tuple (amortized), zero per-frame cost (stance tint and
+tier are change-driven, same caching discipline as `setTier` today).
 
-### 7.3 Asset contract (unchanged from 2026-08-10, still the load-bearing part)
+### 7.3 Asset contract (still the load-bearing part)
 
 > **→ The artist-facing contract now lives in `docs/art/medallion-asset-spec.md`
-> (2026-08-20)**, written so art can start before implementation. It fixes:
-> 512 × 512 canvas per layer · rims drawn per family, additions/decorations
-> universal · existing portraits untouched (code fits them into the window) ·
-> a pilot set in a family of the artist's choice that locks the ring
-> fractions before further families are drawn. The bullets below are the
-> design rationale; the spec is the deliverable definition. Keep the two in
-> sync.
+> (2026-08-20, rev 2026-08-22 after the artist's feedback)**, written so art
+> can start before implementation. It fixes: 512 × 512 canvas per layer ·
+> rim at the bottom of the stack (D16) · rims drawn per family,
+> additions/decorations universal · existing portraits untouched (code fits
+> them into the window) · a pilot set in a family of the artist's choice
+> whose measured proportions become the frozen circle numbers (D17) ·
+> in-repo delivery by the artist, no source-file deliverable (D18). The
+> bullets below are the design rationale; the spec is the deliverable
+> definition. Keep the two in sync.
 
 - Square canvas, ring centred, transparent background, no baked backdrop.
 - **Every layer of a medallion exports at the same canvas size with the same
   centre.** The renderer anchors 0.5/0.5 and scales all layers to the same
   box; layers line up only if they share a canvas. Draw as a stack, export the
   stack.
-- **The ring's OUTER circle sits at a fixed, documented fraction of the
+- **The ring's OUTER circle sits at a fixed, documented diameter on the
   canvas, identical across every family and variant** (decorations overflow
-  the ring, so the canvas edge is not the reference). Pick one number and hold
-  it. **The INNER circle is likewise fixed and identical**: it is the
-  portrait's usable area; if it varies per variant, art silently changes size
-  relative to its own species.
+  the ring, so the canvas edge is not the reference). The number comes from
+  measuring the pilot (D17); once recorded, hold it. **The INNER circle is
+  likewise fixed and identical**: it is the portrait's usable area; if it
+  varies per variant, art silently changes size relative to its own species.
 - The disc ships greyscale (tinting, §7.2). Padding is a cost, not free space
   (transparent margin still rasterizes; decorations tight to the edge).
 - Test all layers composited *and* the portrait alone; a portrait must still
@@ -484,8 +526,10 @@ Still provisional; D15 (sizing) can move the order. The §39 slice is its own
 chunk so the pure-client work never blocks on wire/codec review.
 
 - **C0 - contract, plumbing, and the sizing table.** The asset contract (§7.3)
-  written down + one commissioned test frame set (one family, three tier
-  states, one addition, one decoration). The named sub-container refactor
+  written down ✅ + the pilot frame set (one family, three tier states, one
+  addition, one decoration), which the artist commits directly per D18 and
+  the spec §8; C0 measures it and records the circle numbers in the spec
+  (D17). The named sub-container refactor
   (§5.2). The **D15 measurement table** (visual roll vs `body.radius` per
   species, §5.3) for the PO's sizing ruling. One prototype species wearing the
   full stack (background disc statically tinted for now) for the PO to eyeball
@@ -536,7 +580,9 @@ chunk so the pure-client work never blocks on wire/codec review.
 Settled 2026-08-20 (for the record): disc axis → **allegiance** (D11) · leaf
 axis → **tier** (D12) · fixtures → **D14 predicate** · frame-selection route →
 **catalog faction + client family map** (§6.1) · border selector → **faction,
-not zone+level** (D9).
+not zone+level** (D9). Settled 2026-08-22 (artist feedback): rim at the
+**bottom** of the stack (D16) · proportions **artist-led, measured at the
+pilot** (D17) · delivery **in-repo by the artist, no source files** (D18).
 
 Still open:
 

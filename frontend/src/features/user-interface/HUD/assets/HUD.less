@@ -1332,10 +1332,15 @@
 	}
 }
 
-// The D16 HUD button, sitting at the top of the left column above the
-// spellbook. Shares the panel vocabulary so it reads as part of the same HUD.
+// The D16 HUD button. Mobile-only since 2026-08-23: desktop's journal button
+// is the #questTracker header on the right, but the ☰ sheet is #leftColumn
+// restyled with nothing reparented, so this row must keep existing for phones.
+// ⚑ Kept a single-id selector on purpose: HUD.mobile.less re-shows it as
+// `html.mobile #journalButton { display: flex }` (the tap-target rule), which
+// out-ranks this hide - nesting it under #leftColumn would flip that.
 #journalButton {
 	.hud-button-chrome();
+	display: none;
 
 	> .journalButtonHotkey {
 		color: @panel-title-color;
@@ -1432,6 +1437,80 @@
 		color: @panel-title-color;
 		font-size: @panel-title-size;
 		margin-right: 0.8rem;
+	}
+}
+
+// The quest tracker (2026-08-23): journal button + running-quest objectives,
+// stacked under #mapButton in the minimap's column. Desktop only - the phone
+// keeps its #journalButton row in the ☰ sheet instead (HUD.mobile.less).
+// ⚑ The geometry is coupled to its neighbours by hand, like #mapButton's
+// 15.6vw: the top clears the map button (15.6vw + its ~3rem height), the
+// width is the minimap's 15vw ("as big as the map"), and the max-height stops
+// the list above the #zoomControl column (bottom 13vh + ~17vh of column, so
+// its top edge sits near 70vh) - the list scrolls once it would reach it.
+#questTracker {
+	position: absolute;
+	top: calc(15.6vw + 3.6rem);
+	right: 0.3vw;
+	width: 15vw;
+	max-height: calc(69vh - 15.6vw - 3.6rem);
+
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 0.4rem;
+
+	> #questTrackerJournal {
+		flex: none;
+		.hud-button-chrome();
+
+		> .journalButtonHotkey {
+			color: @panel-title-color;
+			font-size: @panel-title-size;
+			margin-right: 0.8rem;
+		}
+	}
+
+	> #questTrackerList {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.4rem;
+
+		max-width: 100%;
+		min-height: 0;
+		overflow-y: auto;
+
+		&.hidden {
+			display: none;
+		}
+
+		// One chrome box per quest: the title, then the last objective line.
+		// The whole box opens the journal turned to that quest.
+		> .questTrackerQuest {
+			flex: none;
+			.panel-chrome(0.5rem 1rem);
+			max-width: 100%;
+			cursor: pointer;
+			text-align: right;
+
+			&:hover {
+				color: white;
+			}
+
+			> .questTrackerLine {
+				color: white;
+				font-size: @panel-title-size;
+
+				&::before {
+					content: '- ';
+				}
+			}
+		}
 	}
 }
 

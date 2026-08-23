@@ -33,6 +33,7 @@ import * as Interact from "../../interact/logic/Interact";
 import {isMobile} from "../../user-interface/logic/Mobile";
 import * as Conversation from "../../conversation/logic/Conversation";
 import * as Journal from "../../journal/logic/Journal";
+import * as QuestTracker from "../../journal/logic/QuestTracker";
 import {Develop} from "../../internal-tools/develop/logic/_Develop";
 import * as Flight from "../../flight/logic/Flight";
 import * as FlightOrigin from "../../flight/logic/FlightOrigin";
@@ -489,8 +490,10 @@ export class Backend implements IBackend {
 
         // The quest ledger (plan-quests.md chunk C3): live state, re-sent every
         // tick like the tree above. The panel's own visibility is the client's;
-        // only its CONTENT comes from here.
+        // only its CONTENT comes from here. The tracker is a second reader of
+        // the same ledger (2026-08-23), always visible, so it feeds directly.
         Journal.update(snapshot.questProgress ?? []);
+        QuestTracker.update(snapshot.questProgress ?? []);
 
         // Interact badge (chunk 3b-i). After addOrUpdate, so an actor that
         // entered the viewport this same tick already has a game object to

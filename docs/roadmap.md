@@ -1229,6 +1229,35 @@ system ships blind.
 > `plan-leaving-the-world.md` (backlog §52), the camp-standing wipe assert (to
 > `plan-camps.md` C1), and §8's deferred cluster.
 
+> **Next content milestone: THE FIRST RELEASE MAP** (direction set 2026-08-22 →
+> `docs/plan-release-map.md`; nothing built, the map itself not yet designed).
+> **The next map we build is the release iteration**, not another prototype map.
+> Two PO rulings put it here:
+>
+> - **Camps are content, not a system.** Camp membership is a *completed quest*
+>   and exclusivity is a `quest_at_stage` gate on the nodes that offer, teach and
+>   turn in. The whole Gothic arc is authorable in shipped vocabulary today:
+>   proving quests for every camp, a pledge that closes the rivals, a camp-only
+>   finale that renders *locked: complete "Pledge to the Ashfolk"* on the doors
+>   you shut, camp-exclusive teaching, camp-gated ascension rewards, and a
+>   post-ascension reroll that reopens all of it for free (the quest ledger is
+>   keyed `character_id`). **No new vocabulary, no Go, schema NONE.**
+>   ⏸ **`plan-camps.md` is therefore DEFERRED**, not cancelled: its standing
+>   primitive buys hostile standing, losing standing without joining, and
+>   server-enforced permanence, none of which this design needs. Its C1 was
+>   always meant to land unused (P6), so it can still ship underneath content
+>   authored against the quest design. ⛑ **Its standing-wipe assert (L0) defers
+>   with it** - no standing exists, so nothing to wipe.
+> - **⛔ `plan-test-world.md` is DROPPED** (archived, never executed): a
+>   throwaway opt-in map built to show every feature at once is the wrong next
+>   thing. Its §1 transfers whole (F1-F4 map bounds + measured `world.json`
+>   densities); its D1-D8 do not.
+>
+> ⚑ **Where this sits is an open PO call** (`plan-release-map.md` §7): before,
+> beside or after 8b, and how it relates to step 9. So is whether it replaces
+> `world.json`. It is recorded here because *the next map* is decided even
+> though its slot is not.
+
 9. **Ops & closed-alpha readiness** — CI tests, crash isolation, observability,
    DB / hosting decisions (`research-v1-readiness.md`; hosting phases + load
    math + persistent-servers decision: `research-hosting.md` — Phase 0 "friends
