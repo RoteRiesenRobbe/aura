@@ -109,6 +109,26 @@
         return sets;
     }
 
+    /* A property that a custom ENUM types must be set as a TYPED value, not as
+     * a bare string: a plain string property SHADOWS the class member that
+     * declares the enum, and the Properties panel degrades from a dropdown to a
+     * free-text box. Measured in the GUI — the dropdown came back only after
+     * resetting the field, which is the panel falling back to the member.
+     *
+     * ⚑ Falls back to the bare string when the type is unknown, which is what
+     * happens with no project loaded: tiled.propertyValue THROWS on an
+     * unregistered type. Opening the zone without the project is a supported
+     * (if less pleasant) flow, so it must not fail. */
+    function typedValue(src, key) {
+        var enumType = src.enums && src.enums[key];
+        if (!enumType) { return src.properties[key]; }
+        try {
+            return tiled.propertyValue(enumType, src.properties[key]);
+        } catch (e) {
+            return src.properties[key];
+        }
+    }
+
     /* ---- read: world.json -> TileMap --------------------------------------- */
     function read(fileName) {
         var file = new TextFile(fileName, TextFile.ReadOnly);
@@ -172,7 +192,7 @@
                 if (src.cls) { obj.className = src.cls; }
                 for (var key in src.properties) {
                     if (Object.prototype.hasOwnProperty.call(src.properties, key)) {
-                        obj.setProperty(key, src.properties[key]);
+                        obj.setProperty(key, typedValue(src, key));
                     }
                 }
                 group.addObject(obj);

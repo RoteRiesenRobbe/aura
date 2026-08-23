@@ -229,15 +229,22 @@ function propertyTypes(terrain, props, mobs) {
 // the extension carries no content at all and is installed once per machine and
 // never again; being JSON means the extension parses it with JSON.parse rather
 // than eval'ing a script it read off disk.
-function contentJson(terrain, props, mobs) {
+function contentJson(terrain, props, mobs, types) {
     const sizes = {};
     props.forEach(p => { sizes[p.type] = {w: p.wUnits, h: p.hUnits}; });
     const kinds = {};
     mobs.forEach(m => { kinds[m.name] = m.kind; });
     const speeds = {};
     mobs.forEach(m => { speeds[m.name] = m.speed; });
+    // ⚑ Tiled hands a typed enum property back as an INDEX into the type's
+    // values array, never as the string, so the converter cannot decode one
+    // without the exact list the palette declared. Taken from the emitted
+    // types rather than rebuilt, or the two orderings could drift apart.
+    const enums = {};
+    types.filter(t => t.type === 'enum').forEach(t => { enums[t.name] = t.values; });
     return JSON.stringify({
         _generated: 'tools/tiled/generate-palette.mjs — do not hand-edit',
+        ENUM_VALUES: enums,
         TERRAIN_TYPES: terrain.map(t => t.type),
         PROP_SIZE: sizes,
         MOB_KIND: kinds,
@@ -269,7 +276,7 @@ const types = propertyTypes(terrain, props, mobs);
 mkdirSync(PALETTE, {recursive: true});
 writeFileSync(path.join(PALETTE, 'terrain.tsx'), tileset('aura-terrain', 'AuraTerrain', terrain));
 writeFileSync(path.join(PALETTE, 'props.tsx'), tileset('aura-props', 'AuraProp', props));
-writeFileSync(path.join(PALETTE, 'content.json'), contentJson(terrain, props, mobs));
+writeFileSync(path.join(PALETTE, 'content.json'), contentJson(terrain, props, mobs, types));
 writeFileSync(path.join(TOOLS, 'aura.tiled-project'), patchProject(path.join(TOOLS, 'aura.tiled-project'), types));
 // ⚑ Kept as well as the project copy, and deliberately: project-embedded types
 // apply only while the PROJECT is open. Opening api/zones/world.json on its own

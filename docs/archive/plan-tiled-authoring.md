@@ -577,6 +577,52 @@ C2) · `tsc --noEmit` clean · generator idempotent · Tiled round-trip
 byte-identical in both trailing-newline conventions · zero tile layers, zero
 gids outside the two palettes.
 
+#### C6 follow-up — the GUI pass found the one thing headless could not ✅ 2026-08-23
+
+**PO report:** the mob dropdown renders when the project is open — but *"only
+when the string field is empty (eg after resetting it)"*. (The other half of
+the report, that opening `world.json` without the project shows no dropdown,
+is the intended workflow and not a defect: `install.sh` and manual §2 both lead
+with opening `aura.tiled-project`.)
+
+**⭐ The cause, measured rather than guessed.** `setProperty('mob', 'Wolf')`
+creates an **untyped string** property, and an object-level property
+**shadows** the class member that declares its enum. So the panel fell back to
+a free-text box; resetting the field removed the shadow and the member's
+dropdown reappeared. Exactly what the PO described.
+
+**The fix is two changes, and the second was worth making anyway:**
+
+- **Enum properties are set as TYPED values** via `tiled.propertyValue(type,
+  string)`. ⚑ That call **throws** on an unregistered type — which is what
+  happens with no project loaded — so it falls back to the bare string, keeping
+  the no-project flow working.
+- **Only authored knobs are set on the object at all.** An inheriting spawn now
+  carries just `mob`; the other six render as the class's typed defaults. ⚑
+  Setting the sentinel and omitting it are identical to `readSpawn` by design,
+  and the test that pins that equivalence is what made this safe to change.
+
+**⚑ A typed enum property reads back as an INDEX**, never as the string —
+`{value: 61, typeId: 3, typeName: "AuraMobName"}`. Decoding it needs the exact
+values array the palette declared, so the generator now publishes
+**`ENUM_VALUES`** into `content.json`, taken from the emitted `propertyTypes`
+rather than rebuilt (two orderings could drift). An index that cannot be
+decoded becomes `(unknown AuraMobName #N)` — deliberately a string validation
+rejects, never a silent number.
+
+⭐ **Worth recording for any future Tiled scripting here:**
+`tiled.propertyValue` resolved a project type *even headlessly* in this session,
+which is not something to rely on — the project had been opened in the GUI
+first, so the types were in the user's config. The try/catch is the contract,
+not the observed behaviour.
+
+**Verified:** vitest **442/442** (3 new: the override-only-what-is-authored
+shape, the enum marker map, and the index→string decode including the
+pingpong-index-0 → inherit case) · `tsc --noEmit` clean · round-trip still
+byte-identical · `tools/tiled/verify.sh` green. ⚑ **Re-check in the GUI**: a
+spawn should now show the mob dropdown immediately, with the untouched knobs
+displayed as inherited.
+
 ### C3 — the manual, the verify leg, the bookkeeping ✅ SHIPPED 2026-08-23 (uncommitted)
 
 The plan is complete. Seven chunks, all shipped.

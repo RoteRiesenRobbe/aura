@@ -29,3 +29,7 @@ frontend/package-lock.json
 # Ignored rather than swept, so `git status` after a harness run stays readable.
 /.claude/skills/verify/*.png
 scripts/__pycache__/
+
+# Tiled writes a per-user session file next to the project (open files, zoom,
+# last-used tool). Local state, never shared.
+tools/tiled/*.tiled-session

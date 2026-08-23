@@ -74,14 +74,36 @@ var AuraConvert = (function () {
      * Absent is survivable — props fall back to a 1-unit box, every spawn reads
      * as combat, and the vocabulary CHECKS skip themselves (see validateModel) —
      * so the converter stays testable on its own. */
-    var content = {TERRAIN_TYPES: [], PROP_SIZE: {}, MOB_KIND: {}, MOB_SPEED: {}};
+    var content = {TERRAIN_TYPES: [], PROP_SIZE: {}, MOB_KIND: {}, MOB_SPEED: {}, ENUM_VALUES: {}};
     function useContent(c) {
         content = {
             TERRAIN_TYPES: (c && c.TERRAIN_TYPES) || [],
             PROP_SIZE: (c && c.PROP_SIZE) || {},
             MOB_KIND: (c && c.MOB_KIND) || {},
             MOB_SPEED: (c && c.MOB_SPEED) || {},
+            ENUM_VALUES: (c && c.ENUM_VALUES) || {},
         };
+    }
+
+    /* Tiled hands an ENUM-typed property back as {value, typeId, typeName},
+     * where value is an INDEX into the type's declared values — never the
+     * string. Decode it here so nothing downstream has to know.
+     *
+     * ⚑ Why typed values at all, when a plain string round-trips fine: a plain
+     * string property SHADOWS the class member that declares the enum, so the
+     * Properties panel degrades to a free-text box. Measured — the dropdown
+     * reappeared only after resetting the field, which is the panel falling
+     * back to the (typed) member. */
+    function plainValue(v) {
+        if (v === null || typeof v !== 'object') { return v; }
+        if (typeof v.typeName !== 'string') { return v; }
+        var values = content.ENUM_VALUES[v.typeName];
+        if (values && typeof v.value === 'number' && v.value >= 0 && v.value < values.length) {
+            return values[v.value];
+        }
+        // An index we cannot decode must not silently become a number that
+        // then reads as a mob name. Surface it instead: validation rejects it.
+        return values ? '(unknown ' + v.typeName + ' #' + v.value + ')' : v.value;
     }
     function propSize(type) {
         return content.PROP_SIZE[type] || {w: 1, h: 1};
@@ -125,10 +147,15 @@ var AuraConvert = (function () {
 
     /* Read a spawn object's authored values, with every sentinel resolved back
      * to "absent". The single source of truth for the table above. */
+    // Which spawn properties carry a custom enum type. aura-world-format.js
+    // reads this to set them as TYPED values, which is what keeps the dropdown.
+    var SPAWN_ENUMS = {mob: 'AuraMobName', patrolMode: 'AuraPatrolMode'};
+
     function readSpawn(o) {
         function raw(k) {
-            return o.properties && o.properties[k] !== undefined && o.properties[k] !== null
+            var v = o.properties && o.properties[k] !== undefined && o.properties[k] !== null
                 ? o.properties[k] : undefined;
+            return plainValue(v);
         }
         // ⚑ The typed property wins over the object's Name, which is kept only
         // as a readable label and is refreshed from the property on reopen.
@@ -292,17 +319,27 @@ var AuraConvert = (function () {
                 width: 0, height: 0, rotation: rad2deg(s.angle || 0),
                 flipH: false, flipV: false, properties: {},
             };
-            // C6: every knob is ALWAYS present, carrying its inherit sentinel
-            // where the file omits it, so Tiled shows one complete typed form
-            // instead of an "Add Property" hunt. readSpawn maps them back.
+            // C6: the whole form is visible on every spawn because the CLASS
+            // declares all seven members. Only the ones actually authored are
+            // set on the object, so the rest render as inherited defaults —
+            // which is also what keeps them typed (an object-level property
+            // shadows the member that gives it its type).
+            //
+            // ⚑ Setting the sentinel explicitly and omitting it are the same
+            // thing to readSpawn, by design and by test. Omitting is chosen
+            // only because it reads better in the panel.
             o.properties.mob = s.mob;
+            o.enums = {mob: SPAWN_ENUMS.mob};
             for (var k in SPAWN_INHERIT) {
-                if (Object.prototype.hasOwnProperty.call(SPAWN_INHERIT, k)) {
-                    o.properties[k] = s[k] !== undefined && s[k] !== null
-                        ? s[k] : SPAWN_INHERIT[k];
+                if (Object.prototype.hasOwnProperty.call(SPAWN_INHERIT, k)
+                    && s[k] !== undefined && s[k] !== null && s[k] !== SPAWN_INHERIT[k]) {
+                    o.properties[k] = s[k];
                 }
             }
-            o.properties.patrolMode = s.patrolMode === 'loop' ? 'loop' : PATROL_INHERIT;
+            if (s.patrolMode === 'loop') {
+                o.properties.patrolMode = 'loop';
+                o.enums.patrolMode = SPAWN_ENUMS.patrolMode;
+            }
             // A patrolling spawn IS its route: a polyline whose origin is the
             // spawn point and whose first vertex is that origin. Editing the
             // route is then dragging vertices, which is the whole point.
@@ -696,6 +733,8 @@ var AuraConvert = (function () {
         validateModel: validateModel,
         formatErrors: formatErrors,
         SPAWN_INHERIT: SPAWN_INHERIT,
+        SPAWN_ENUMS: SPAWN_ENUMS,
+        plainValue: plainValue,
         PATROL_INHERIT: PATROL_INHERIT,
         MOB_UNSET: MOB_UNSET,
         readSpawn: readSpawn,

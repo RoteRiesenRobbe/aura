@@ -563,7 +563,7 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
     function spawnObj(z: unknown, i = 0) {
         const m = C.zoneToModel(z) as {layers: {name: string; objects: Record<string, never>[]}[]};
         return m.layers.filter(l => l.name === 'spawns')[0].objects[i] as unknown as
-            {name: string; properties: Record<string, unknown>};
+            {name: string; properties: Record<string, unknown>; enums: Record<string, string>};
     }
     const oneSpawn = (over: Record<string, unknown> = {}) =>
         zone({spawns: [{mob: 'Wolf', x: 0, y: 0, angle: 0, ...over}]});
@@ -600,15 +600,49 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
         expect(values).toContain('TownCrier');
     });
 
-    it('presents the full form on every spawn, sentinels included', () => {
-        const props = spawnObj(oneSpawn()).properties;
-        expect(Object.keys(props).sort()).toEqual(
-            ['idleSpeedFactor', 'level', 'mob', 'patrolMode',
-                'respawnTicks', 'respawnVariancePct', 'wanderRadius']);
-        expect(props.wanderRadius).toBe(-1);       // inherit
-        expect(props.level).toBe(0);               // inherit
-        expect(props.patrolMode).toBe('pingpong'); // inherit
-        expect(props.mob).toBe('Wolf');
+    /**
+     * ⭐ Only the AUTHORED knobs are set on the object; the rest are left to the
+     * class, which is what makes them render as typed, inherited defaults. An
+     * object-level property SHADOWS the member that gives it its type — that is
+     * the GUI bug this replaced: the mob dropdown appeared only after resetting
+     * the field, i.e. only once the shadow was gone.
+     */
+    it('overrides only what the file actually authored', () => {
+        expect(Object.keys(spawnObj(oneSpawn()).properties)).toEqual(['mob']);
+        const authored = spawnObj(oneSpawn({wanderRadius: 4, level: 9})).properties;
+        expect(Object.keys(authored).sort()).toEqual(['level', 'mob', 'wanderRadius']);
+        expect(authored.wanderRadius).toBe(4);
+    });
+
+    it('marks the enum-typed properties so Tiled can set them as typed values', () => {
+        expect(spawnObj(oneSpawn()).enums).toEqual({mob: 'AuraMobName'});
+        expect(spawnObj(oneSpawn({waypoints: [{x: 1, y: 1}, {x: 2, y: 2}], patrolMode: 'loop'}))
+            .enums).toEqual({mob: 'AuraMobName', patrolMode: 'AuraPatrolMode'});
+    });
+
+    /**
+     * ⚑ Tiled hands a typed enum property back as an INDEX into the type's
+     * values array, never as the string. Decoding it needs the exact list the
+     * palette declared, which is why the generator publishes ENUM_VALUES.
+     */
+    it('decodes a typed enum value back to its string', () => {
+        const values = content.ENUM_VALUES.AuraMobName as string[];
+        const at = (n: string) => values.indexOf(n);
+        const typed = (t: string, i: number) => ({value: i, typeId: 0, typeName: t});
+        expect(C.readSpawn({name: '', properties: {mob: typed('AuraMobName', at('Bear'))}}).mob)
+            .toBe('Bear');
+        expect(C.readSpawn({name: '', properties: {patrolMode: typed('AuraPatrolMode', 1)}}).patrolMode)
+            .toBe('loop');
+        // index 0 is the pingpong sentinel, so it must resolve to "inherit"
+        expect(C.readSpawn({name: '', properties: {patrolMode: typed('AuraPatrolMode', 0)}}).patrolMode)
+            .toBeUndefined();
+        // a plain string still works — that is the no-project fallback path
+        expect(C.readSpawn({name: '', properties: {mob: 'Bear'}}).mob).toBe('Bear');
+    });
+
+    it('refuses to guess when an enum index cannot be decoded', () => {
+        const bogus = {value: 9999, typeId: 3, typeName: 'AuraMobName'};
+        expect(C.plainValue(bogus)).toContain('unknown AuraMobName');
     });
 
     it('⭐ round-trips each sentinel row: authored survives, inherited stays absent', () => {

@@ -120,6 +120,11 @@ Properties panel. Every field is a dropdown or a typed box:
 | `respawnTicks`, `respawnVariancePct` | `-1` = *not authored* (what the NPCs use) |
 | `patrolMode` | `pingpong` is the default; `loop` circles the route |
 
+A knob you have not touched shows as the class default — Tiled displays it in
+the panel without it being an override on the object. Typing a value makes it
+an override; clearing it hands the field back to the default. Both read as
+*inherit the species value* in the saved file.
+
 ⭐ **The odd-looking numbers are deliberate.** The zone format distinguishes
 "not authored" from "authored as zero", and Tiled has no way to show an empty
 number — so each field borrows a value the server already rejects to mean
