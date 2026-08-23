@@ -207,6 +207,16 @@ without `-dev`.
 
 ### 4.4 C2 — in-game editor drag-to-move (D9; replaces the standalone editor)
 
+> **⭐ RE-SCOPED 2026-08-23, not cancelled** — `docs/plan-tiled-authoring.md`
+> shipped, and Tiled now does select / move / rotate / scale / multi-select /
+> undo over the same `world.json`. That covers **terrain and props** better
+> than this chunk ever would, and terrain is the half the in-game editor cannot
+> address at all. What survives here is the case Tiled cannot serve: moving a
+> spawn, campfire, dark area or anchor **while standing in the live world**,
+> which is the whole reason the in-game editor is not retired (D4 of that plan).
+> Whether that is still worth building is a PO call; the chunk is no longer
+> load-bearing for anything.
+
 The one spot-editing gap the in-game editor has that a human actually feels:
 repositioning a placed prop/spawn/campfire/dark-area today means delete +
 re-place, re-entering every knob. C2 adds **drag-to-move to the existing

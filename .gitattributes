@@ -1,0 +1,19 @@
+# Line endings.
+#
+# This repo has core.autocrlf=true on at least one machine, which hands the
+# working tree CRLF on checkout. Git itself copes — it normalises back to LF
+# when staging, so a CRLF working copy and an LF one are the same commit
+# (measured: identical blob hashes). Two things do NOT cope, and only those are
+# pinned here rather than renormalising the whole repo.
+
+# 1. Shell scripts. A CRLF shebang line fails on Linux and macOS, so a checkout
+#    on either would ship a broken tools/tiled/install.sh and scripts/*.sh.
+*.sh text eol=lf
+
+# 2. Zone files. Both zone editors write LF by design — Tiled through BinaryFile
+#    (its TextFile writes CRLF on Windows, +14602 bytes on world.json), and the
+#    in-game editor through a browser download of a \n string. The byte-for-byte
+#    round-trip that guards the two against each other (plan-tiled-authoring.md
+#    D6) compares against the file on disk, so a CRLF checkout would report
+#    ~14600 differences with nothing edited.
+api/zones/*.json text eol=lf

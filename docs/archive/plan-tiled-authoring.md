@@ -1,8 +1,14 @@
 # Plan: Authoring `world.json` in Tiled
 
-> **Status: DESIGNED 2026-08-22 (D1–D8). ✅ C0 + ✅ C1 + ✅ C2 SHIPPED 2026-08-22,
-> uncommitted — world.json opens in Tiled with the real game art and saves back
-> byte-identical; only C3 (manual + verify leg) is left.** Planning session opened
+> **Status: ✅ COMPLETE 2026-08-23 — all seven chunks shipped, plan archived.**
+> Designed 2026-08-22 (D1–D8); C0 + C1 + C2 the same day, then C4, C5, C6 and C3
+> on 2026-08-23. `api/zones/world.json` opens in Tiled with the real game art
+> and saves back byte-identical; per-chunk ledgers in §11, and
+> `bash tools/tiled/verify.sh` re-runs the acceptance check against the real
+> binary at any time. ⚑ **One thing is deliberately NOT verified and cannot
+> be**: project state does not load headlessly, so whether the custom types
+> render as a form in the Properties panel is a human GUI check.
+> Planning session opened
 > by the PO question *"how feasible is an external level editor like LDtk or
 > Tiled, and which one?"* Three rulings were taken as choice prompts in the
 > same session (tool · integration shape · scope) and are recorded as D1–D3;
@@ -199,7 +205,7 @@ byte-stability test is what proves it was not re-minted.
 | **C0** | Spike: three go/no-go checks (below). Deliverable is a throwaway read-only extension drawing terrain + props as plain rectangles | half a session |
 | **C1** | The format extension, `read` + `write`, all six arrays, shapes only — no art | medium |
 | **C2** | Generated palette: tilesets + custom types, from `api/` and the frontend assets | small–medium |
-| **C3** | `manual-tiled-editor.md`, the verify leg, and the bookkeeping in §9 | small |
+| **C3** | `manual-tiled-editor.md`, the verify leg, and the bookkeeping in §9 ✅ SHIPPED | small |
 | **C4** | Save-time validation: mirror zone.go's rules in the writer, refuse with an object id (§12.1) ✅ SHIPPED | small |
 | **C5** | Keeping the editor in step with the game: one-command content refresh, **plus a completeness pin against zone.go's json tags** so a new FIELD cannot be silently dropped (§12.2) ✅ SHIPPED | small |
 | **C6** | Dropdowns + typed spawn fields via out-of-range inherit sentinels (§12.3) ✅ SHIPPED | medium |
@@ -571,9 +577,85 @@ C2) · `tsc --noEmit` clean · generator idempotent · Tiled round-trip
 byte-identical in both trailing-newline conventions · zero tile layers, zero
 gids outside the two palettes.
 
-### C3
+### C3 — the manual, the verify leg, the bookkeeping ✅ SHIPPED 2026-08-23 (uncommitted)
 
-*(filled per chunk at execution time)*
+The plan is complete. Seven chunks, all shipped.
+
+**`docs/manual-tiled-editor.md`.** Opens with a *which-one-to-reach-for* table
+rather than an install step, because the honest first question is not "how do I
+use Tiled" but "why would I, when there is already an editor". Both write the
+file byte-identically and neither is retired, so the answer is a table, not a
+paragraph.
+
+Its two live traps get their own callouts, because both are silent:
+
+- **The spawn form's inherit sentinels.** `-1` / `0` / `pingpong` look like
+  junk data until you know the format distinguishes "not authored" from
+  "authored as zero" — and the manual leads with the two fields where `0` is a
+  *real* setting (`wanderRadius: 0` stands still, `respawnTicks: 0` respawns
+  immediately), since those are the ones that bite.
+- **Patrol routes.** The first polyline click *is* the spawn, and ⚑ dragging
+  node 0 moves the drawn line while changing nothing in the file — measured
+  during the session, not inferred.
+
+**`tools/tiled/verify.sh`** — four legs, all against the real Tiled binary:
+the `world.json` round-trip, the *other* trailing-newline convention, a
+deliberately-broken zone that must be refused, and the palette being in step
+with `api/`. It finds Tiled on PATH or in the usual install locations and
+prints what it cannot cover.
+
+⭐ **The newline leg guards itself against a vacuous pass.** It flips the
+convention and asserts the flipped copy is a different size first — otherwise a
+bug that failed to flip would leave the leg silently re-testing leg 1 and
+reporting green. ⚑ Worth having: `world.json` currently ends **without** a
+newline, so this leg is the only thing exercising the other writer's shape.
+
+⚑ **The script says out loud what it cannot check.** A project does not load
+headlessly (`tiled.project` is null under `--export-map`), so whether the
+custom types render as a form in the Properties panel is a human GUI check, and
+the run prints that on success rather than implying full cover.
+
+**Bookkeeping (§9), all four closed:**
+
+- **backlog §58** — answered, and the entry says *"by a different editor, not
+  by fixing this one"*. The in-game editor is unchanged, so everything §58
+  documents about it is still accurate; the analysis stays for the day terrain
+  selection is wanted in-world too. Not marked closed until the PO has moved a
+  real texture.
+- **`plan-content-tooling.md` C2** — re-scoped, not cancelled. Tiled covers
+  terrain and props better than that chunk would; what survives is the case it
+  cannot serve, moving a spawn/campfire/anchor **while standing in the world**.
+  Whether that is still worth building is a PO call.
+- **`roadmap.md` §4's open flag** (*"external editor vs custom JSON — biggest
+  unknown in this item … decide when this item starts"*) — answered **both**:
+  the custom JSON stays the format, Tiled becomes a second editor on it. ⭐ The
+  Tiled spike that note asks for is literally this plan's C0, and it passed.
+- **`plan-world-zones.md` §1.3** (*"not Tiled"*, 2026-07-09) — superseded on
+  the editor question only, with the format ruling explicitly untouched.
+
+**Also in this chunk, from a PO question about line endings:** a narrow
+**`.gitattributes`** pinning `*.sh` and `api/zones/*.json` to LF.
+
+⚑ **The scope is narrow on purpose.** Git itself copes with CRLF — measured:
+an LF file and a CRLF file hash to the *same blob*, because the smudge filter
+runs both ways. Only two things do not: a CRLF shebang breaks
+`tools/tiled/install.sh` on Linux and macOS, and a CRLF checkout would make the
+byte-for-byte round-trip report ~14600 differences with nothing edited. Those
+two are pinned; renormalising the whole repo stays a PO call. Adding the file
+caused **zero** renormalisation churn, since both patterns were already LF in
+the index.
+
+⚑ **Encountered while writing this chunk, worth knowing:** several docs
+(`roadmap.md`, `backlog.md`, `CLAUDE.md`, `README.md`) are *already* checked out
+with CRLF, so any scripted edit against them must match in LF space and write
+back the convention it found.
+
+**Verified:** `bash tools/tiled/verify.sh` all green · vitest 439/439 unchanged
+(C3 adds no code) · `git status` clean of renormalisation after `.gitattributes`
+· the plan `git mv`d into `docs/archive/` with its README line re-filed, per the
+repo's own convention that a plan moves when its last chunk lands.
+
+**Schema: NONE.**
 
 ### C4 — save-time validation ✅ SHIPPED 2026-08-23 (uncommitted)
 
