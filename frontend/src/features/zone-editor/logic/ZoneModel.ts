@@ -28,6 +28,11 @@ export interface ZoneProp {
     y: number;
     rotation: number; // radians
     blocksMovement: boolean;
+    // Tri-state per-placement size multiplier on the prop TYPE's body
+    // (plan-prop-scale.md C1): undefined = inherit the body verbatim. The
+    // in-game editor never authors it — Tiled and the placement scripts do —
+    // but it MUST survive a round-trip through here (see getZoneAsJSON).
+    scale?: number;
 }
 
 export interface ZoneWaypoint {
@@ -339,6 +344,14 @@ export class ZoneModel {
                 y: round(p.y, 2),
                 rotation: round(p.rotation, 3),
                 blocksMovement: p.blocksMovement,
+                // ⚑ L1. Named here or the whitelist eats it: the backend has
+                // accepted prop.scale since plan-prop-scale.md C1, and this
+                // editor cannot author it — so a scale set in Tiled would
+                // survive the load (fromJSON's spread) and vanish on the next
+                // in-game save. Exactly how spawn.level was lost once already.
+                // undefined is dropped by JSON.stringify, so inheriting props
+                // serialize byte-for-byte as before.
+                scale: p.scale !== undefined ? round(p.scale, 3) : undefined,
             })),
             spawns: this.spawns.map(s => ({
                 mob: s.mob,

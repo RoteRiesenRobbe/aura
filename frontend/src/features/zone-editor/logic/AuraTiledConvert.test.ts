@@ -182,9 +182,13 @@ describe('AuraConvert — the generated palette (C2)', () => {
             ],
         }));
         const [house, tree] = model.layers[1].objects;
-        // house.json body 4x3 units; tree.json radius 1.0 -> 2x2 units
+        // house.json body 4x3 units; tree.json radius 1.4 -> 2.8x2.8 units.
+        // ⚑ The tree's 1.4 is its VISUAL radius since C1b — the authored body
+        // is now what the sprite is drawn at, and the 1.0 trunk collider is
+        // body.collisionFactor. That is precisely what makes this box match
+        // the game: before C1b it drew the collider and was 29% too small.
         expect({w: house.width, h: house.height}).toEqual({w: 4 * 120, h: 3 * 120});
-        expect({w: tree.width, h: tree.height}).toEqual({w: 2 * 120, h: 2 * 120});
+        expect({w: tree.width, h: tree.height}).toEqual({w: 2.8 * 120, h: 2.8 * 120});
     });
 
     it('every prop type in world.json has a palette size', () => {
@@ -208,24 +212,70 @@ describe('AuraConvert — the generated palette (C2)', () => {
             .toEqual(['AuraSpawnCombat', 'AuraSpawnTalker']);
     });
 
-    it('prop size is display-only — resizing in Tiled is discarded', () => {
+    // ⭐ INVERTED by plan-prop-scale.md C1. Before C1 the writer read a prop's
+    // box only to recover its centre and threw the size away, so this test
+    // asserted the discard. Resizing a prop IS authoring scale now — that is
+    // the whole chunk, opened by a PO scaling a tree in Tiled to no effect.
+    it('resizing a prop authors scale, and the centre still comes back', () => {
         const src = zone({props: [{type: 'House', x: 3, y: -4, rotation: 0, blocksMovement: true}]});
         const model = C.zoneToModel(src);
         const o = model.layers[1].objects[0];
-        // Grow the box about its centre, as a Tiled resize would. ⚑ A tile
-        // object anchors BOTTOM-left, so the bottom edge moves DOWN (+y) while
-        // the left edge moves left — getting this backwards is exactly the
-        // mistake the anchor convention invites.
-        o.x -= 60; o.y += 60; o.width += 120; o.height += 120;
+        // House is 4×3 units = 480×360 px. Double it, about its centre.
+        // ⚑ A tile object anchors BOTTOM-left, so the bottom edge moves DOWN
+        // (+y) while the left edge moves left — getting this backwards is
+        // exactly the mistake the anchor convention invites.
+        o.x -= 240; o.y += 180; o.width = 960; o.height = 720;
         const out = C.modelToZone(model).props[0];
+        // Still no absolute size key — the multiplier is the whole format.
         expect('size' in out).toBe(false);
-        expect('scale' in out).toBe(false);
+        expect(out.scale).toBe(2);
         expect({x: C.round(out.x, 2), y: C.round(out.y, 2)}).toEqual({x: 3, y: -4});
+    });
+
+    // The case that protects all 807 existing placements: an untouched box must
+    // derive EXACTLY 1, which normalises back to absent.
+    it('an untouched prop authors no scale at all', () => {
+        for (const type of ['Tree', 'Boulder', 'Rock', 'House', 'GateWall']) {
+            const src = zone({props: [{type, x: 1.5, y: -2.5, rotation: 0.3, blocksMovement: true}]});
+            const out = roundTrip(src).props[0];
+            expect(out, type).not.toHaveProperty('scale');
+        }
+    });
+
+    it('scale round-trips through the box for both body shapes', () => {
+        // Tree is a circle (visual r 1.4 → a 2.8×2.8-unit box), House a 4×3
+        // rect. One multiplier has to serve both, which is why it is not
+        // terrain's absolute size.
+        const src = zone({props: [
+            {type: 'Tree', x: 0, y: 0, rotation: 0, blocksMovement: true, scale: 2.5},
+            {type: 'House', x: 4, y: 1, rotation: 0, blocksMovement: true, scale: 0.5},
+        ]});
+        const model = C.zoneToModel(src);
+        // The box really is the scaled physics footprint — what you see is
+        // what blocks, at the size it blocks.
+        expect(model.layers[1].objects.map((o: {width: number; height: number}) =>
+            [o.width, o.height])).toEqual([[840, 840], [240, 180]]);
+        expect(roundTrip(src).props.map((p: {scale?: number}) => p.scale)).toEqual([2.5, 0.5]);
+    });
+
+    // An explicit 1 means exactly what absent means, so it normalises away —
+    // the C6 sentinel call, applied to a value rather than to a member default.
+    it('an explicit scale of 1 normalises back to absent', () => {
+        const src = zone({props: [{type: 'Tree', x: 0, y: 0, rotation: 0, blocksMovement: true, scale: 1}]});
+        expect(roundTrip(src).props[0]).not.toHaveProperty('scale');
+    });
+
+    // A prop whose type the palette does not know falls back to a 1×1 box in
+    // BOTH directions, so the round-trip is still lossless — the validator is
+    // what refuses the save, not a silently mangled scale.
+    it('an unknown prop type still round-trips its scale', () => {
+        const src = zone({props: [{type: 'Nonesuch', x: 0, y: 0, rotation: 0, blocksMovement: false, scale: 3}]});
+        expect(roundTrip(src).props[0].scale).toBe(3);
     });
 });
 
 describe('AuraConvert — patrol routes and the remaining arrays', () => {
-    it('waypoints become a polyline anchored on the spawn, and come back', () => {
+    it('every polyline vertex is a waypoint, node 0 included, and comes back', () => {
         const s = {
             mob: 'GiantSpider', x: 35.18, y: -32.29, angle: 1.309,
             respawnTicks: 1800, respawnVariancePct: 0.2, wanderRadius: 0, level: 14,
@@ -235,11 +285,31 @@ describe('AuraConvert — patrol routes and the remaining arrays', () => {
         const model = C.zoneToModel(zone({bounds: {width: 188, height: 144}, spawns: [s]}));
         const o = model.layers[2].objects[0];
         expect(o.shape).toBe('polyline');
-        // first vertex is the origin itself, so the route starts at the spawn
-        expect(o.polygon[0]).toEqual({x: 0, y: 0});
-        expect(o.polygon).toHaveLength(3);
+        // One vertex per waypoint — no prepended origin. This spawn's route does
+        // not start at its own spawn point (5 of the 7 in world.json don't), so
+        // vertex 0 is deliberately NOT {0, 0): the origin is where the mob spawns,
+        // the vertices are where it walks. Under the old rule node 0 was dropped
+        // as "the origin", which cost every route one click and made the node-0
+        // handle a no-op.
+        expect(o.polygon).toHaveLength(2);
+        expect(o.polygon[0]).not.toEqual({x: 0, y: 0});
         expect(roundTrip(zone({bounds: {width: 188, height: 144}, spawns: [s]})).spawns[0])
             .toEqual(s);
+    });
+
+    it('a route drawn from the spawn keeps its first waypoint on the spawn', () => {
+        // What Tiled produces when you DRAW: node 0 sits at the object origin.
+        // It is a real waypoint now, so the mob starts (and in loop mode returns)
+        // at home — the shape 2 of the 7 hand-authored routes already have.
+        const s = {
+            mob: 'Wolf', x: -42.37, y: 26.86, angle: 0,
+            waypoints: [{x: -42.37, y: 26.86}, {x: -42.05, y: 21.18}],
+        };
+        const model = C.zoneToModel(zone({spawns: [s]}));
+        const o = model.layers[2].objects[0];
+        expect(o.polygon).toHaveLength(2);
+        expect(o.polygon[0]).toEqual({x: 0, y: 0});
+        expect(roundTrip(zone({spawns: [s]})).spawns[0]).toEqual(s);
     });
 
     it('patrolMode is omitted unless it is "loop"', () => {
@@ -415,6 +485,50 @@ describe('AuraConvert — save-time validation (C4)', () => {
         expect(C.validateModel(m).join(' ')).toContain('must stay a circle');
     });
 
+    // plan-prop-scale.md C1. Scale is authored by RESIZING, so an out-of-range
+    // scale is an out-of-range box — refused while the author is still looking
+    // at the object, rather than at boot hours later.
+    it('rejects a prop resized past the scale rail', () => {
+        const m = modelOf(zone({props: [{type: 'Tree', x: 0, y: 0, rotation: 0, blocksMovement: true}]}));
+        expect(C.validateModel(m)).toEqual([]);
+        const o = (m as unknown as {layers: {name: string; objects: {width: number; height: number}[]}[]})
+            .layers.filter(l => l.name === 'props')[0].objects[0];
+        // Tree's visual body is r 1.4 → a 2.8-unit (336 px) box. 11× is past
+        // the rail of 10.
+        o.width = 336 * 11; o.height = 336 * 11;
+        const msg = C.validateModel(m).join(' ');
+        expect(msg).toContain('scale 11 must be in (0, 10]');
+    });
+
+    // world.json carries ONE uniform multiplier, so a box dragged out of
+    // proportion would silently lose an axis — the dark-area call again.
+    it('rejects a prop dragged out of proportion', () => {
+        const m = modelOf(zone({props: [{type: 'House', x: 0, y: 0, rotation: 0, blocksMovement: true}]}));
+        expect(C.validateModel(m)).toEqual([]);
+        const o = (m as unknown as {layers: {name: string; objects: {width: number; height: number}[]}[]})
+            .layers.filter(l => l.name === 'props')[0].objects[0];
+        o.width = 960;   // 2× on x only; height stays at 3 units
+        const msg = C.validateModel(m).join(' ');
+        expect(msg).toContain('must keep its proportions');
+        expect(msg).toContain('hold Shift');
+    });
+
+    it('accepts a uniformly scaled prop', () => {
+        expect(errs(zone({props: [
+            {type: 'House', x: 0, y: 0, rotation: 0, blocksMovement: true, scale: 2},
+            {type: 'Tree', x: 4, y: 0, rotation: 0, blocksMovement: true, scale: 10},
+            {type: 'Rock', x: -4, y: 0, rotation: 0, blocksMovement: true, scale: 0.25},
+        ]}))).toEqual([]);
+    });
+
+    // The scale checks divide by the type's footprint, so an unresolvable name
+    // must not also produce a nonsense multiplier on top of its real complaint.
+    it('an unknown prop type reports only that, not a bogus scale', () => {
+        const e = errs(zone({props: [{type: 'Nonesuch', x: 0, y: 0, rotation: 0, blocksMovement: true}]}));
+        expect(e).toHaveLength(1);
+        expect(e[0]).toContain('unknown prop type');
+    });
+
     it('rejects an empty zone name and non-positive bounds', () => {
         expect(errs(zone({name: '  '})).join(' ')).toContain('zone name');
         expect(errs(zone({bounds: {width: 0, height: 10}})).join(' ')).toContain('bounds must be positive');
@@ -473,7 +587,7 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             name: 'T',
             bounds: {width: 20, height: 10},
             terrain: [{type: 'Green Grass 1', x: 0, y: 0, size: 1, rotation: 0.5, flipped: 'horizontal'}],
-            props: [{type: 'Tree', x: 1, y: 1, rotation: 0.25, blocksMovement: true}],
+            props: [{type: 'Tree', x: 1, y: 1, rotation: 0.25, blocksMovement: true, scale: 2.5}],
             spawns: [{
                 mob: 'Wolf', x: 2, y: 2, angle: 0.75,
                 respawnTicks: 300, respawnVariancePct: 10,

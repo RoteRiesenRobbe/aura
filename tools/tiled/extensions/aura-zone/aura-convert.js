@@ -109,6 +109,35 @@ var AuraConvert = (function () {
         return content.PROP_SIZE[type] || {w: 1, h: 1};
     }
 
+    /* ---- per-placement prop scale (plan-prop-scale.md C1) -------------------
+     * world.json carries an optional `scale`, a multiplier on the prop TYPE's
+     * body. Tiled has no scale concept for an object — it has a BOX — so the
+     * multiplier lives in the box the object is drawn at, and resizing a prop
+     * in Tiled IS authoring scale. (Before C1 the writer read the box only to
+     * recover the centre and threw the size away.)
+     *
+     * ⚑ The upper rail (MAX_PROP_SCALE) mirrors world/zone.go's MaxPropScale.
+     *
+     * ⚑ ONE function, consumed by both modelToZone and validateModel — the C6
+     * lesson: two copies of a derivation are two chances to rewrite the file.
+     *
+     * ⚑ An unscaled prop must derive EXACTLY 1 or all 807 existing placements
+     * would grow a `scale` key and the file would stop being byte-stable. It
+     * does: zoneToModel writes `sz.w * PX * 1` and this divides by the same
+     * `sz.w * PX`, and x/x is exactly 1 in IEEE-754 for any finite non-zero x.
+     * The fallback size ({w:1,h:1}, used when the generated content is absent)
+     * is symmetric between the two directions, so it round-trips too. */
+    var MAX_PROP_SCALE = 10;
+
+    function readPropScale(o) {
+        var sz = propSize(o.name);
+        var s = round(o.width / (sz.w * PX), 3);
+        // 1 IS "inherit the type's body", so it normalises back to absent —
+        // the same call C6 made for its sentinels, and what keeps an untouched
+        // prop serializing exactly as it was authored.
+        return s === 1 ? undefined : s;
+    }
+
     /* ---- C6: the inherit sentinels ------------------------------------------
      * Four of the spawn knobs are tri-state — absent means "inherit the species
      * value", and for wanderRadius an explicit 0 means the opposite ("forced
@@ -169,7 +198,7 @@ var AuraConvert = (function () {
         }
         var pm = raw('patrolMode');
         out.patrolMode = (pm === undefined || pm === PATROL_INHERIT) ? undefined : pm;
-        out.waypointCount = (o.shape === 'polyline' && o.polygon) ? o.polygon.length - 1 : 0;
+        out.waypointCount = (o.shape === 'polyline' && o.polygon) ? o.polygon.length : 0;
         return out;
     }
     function spawnClass(mob) {
@@ -221,6 +250,9 @@ var AuraConvert = (function () {
                     y: round(p.y, 2),
                     rotation: round(p.rotation, 3),
                     blocksMovement: p.blocksMovement,
+                    // undefined = inherit the type's body; JSON.stringify drops
+                    // it, so an unscaled prop is byte-identical to before C1.
+                    scale: p.scale !== undefined ? round(p.scale, 3) : undefined,
                 };
             }),
             spawns: z.spawns.map(function (s) {
@@ -292,15 +324,15 @@ var AuraConvert = (function () {
             };
         });
 
-        // ⚑ Props carry no size in world.json — it belongs to the TYPE
-        // (api/props/*.json body), so the box here is the type's true physics
-        // footprint and is DISPLAY ONLY: the writer recovers the centre from
-        // whatever box Tiled reports and never emits a size, so resizing a prop
-        // in Tiled is discarded. Per-placement scale is its own plan
-        // (docs/plan-prop-scale.md).
+        // ⚑ The box a prop is drawn at is the TYPE's true physics footprint
+        // (api/props/*.json body) times the placement's optional scale — so
+        // what you see is what blocks movement, at the size it really blocks.
+        // Resizing the box IS authoring scale (C1); the writer derives the
+        // multiplier straight back out of it.
         var props = (z.props || []).map(function (p2) {
             var sz = propSize(p2.type);
-            var w = sz.w * PX, h = sz.h * PX;
+            var sc = (typeof p2.scale === 'number' && p2.scale > 0) ? p2.scale : 1;
+            var w = sz.w * PX * sc, h = sz.h * PX * sc;
             var a = anchorOf(px(p2.x, hw), px(p2.y, hh), w, h, rad2deg(p2.rotation || 0));
             return {
                 shape: 'tile', layer: 'props', name: p2.type,
@@ -340,14 +372,28 @@ var AuraConvert = (function () {
                 o.properties.patrolMode = 'loop';
                 o.enums.patrolMode = SPAWN_ENUMS.patrolMode;
             }
-            // A patrolling spawn IS its route: a polyline whose origin is the
-            // spawn point and whose first vertex is that origin. Editing the
-            // route is then dragging vertices, which is the whole point.
+            // A patrolling spawn IS its route: a polyline drawn from the spawn
+            // point, one vertex per waypoint. Editing the route is then dragging
+            // vertices, which is the whole point.
+            //
+            // ⭐ EVERY vertex is a waypoint, node 0 included (PO ruling
+            // 2026-08-23, plan-prop-scale.md-era Tiled follow-up). Tiled puts
+            // node 0 at the object origin when you DRAW, so a fresh route's
+            // first waypoint lands on the spawn — a mob starts, and in loop mode
+            // returns, home. It used to be dropped as "the origin, not a
+            // waypoint", which made N clicks give N-1 waypoints and left the
+            // node-0 handle a silent no-op. The engine never had that notion:
+            // patrol.go marches the waypoint list and treats the spawn purely as
+            // where the mob starts, so both readings were legal — this one is
+            // WYSIWYG. ⚑ Nothing forces node 0 to stay on the origin: a route
+            // whose first waypoint is elsewhere (5 of the 7 in world.json,
+            // hand-authored in the in-game editor) simply serialises with a
+            // non-zero first vertex, and round-trips.
             if (s.waypoints && s.waypoints.length > 0) {
                 o.shape = 'polyline';
-                o.polygon = [{x: 0, y: 0}].concat(s.waypoints.map(function (w) {
+                o.polygon = s.waypoints.map(function (w) {
                     return {x: px(w.x, hw) - o.x, y: px(w.y, hh) - o.y};
-                }));
+                });
             }
             return o;
         });
@@ -440,6 +486,7 @@ var AuraConvert = (function () {
                     x: u(c.x, hw), y: u(c.y, hh),
                     rotation: deg2rad(o.rotation || 0),
                     blocksMovement: !!get(o, 'blocksMovement'),
+                    scale: readPropScale(o),
                 };
             }),
             spawns: layer('spawns').map(function (o) {
@@ -458,8 +505,8 @@ var AuraConvert = (function () {
                     level: p.level,
                     patrolMode: p.patrolMode,
                 };
-                if (o.shape === 'polyline' && o.polygon && o.polygon.length > 1) {
-                    s.waypoints = o.polygon.slice(1).map(function (v) {
+                if (o.shape === 'polyline' && o.polygon && o.polygon.length > 0) {
+                    s.waypoints = o.polygon.map(function (v) {
                         return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
                     });
                 }
@@ -585,10 +632,35 @@ var AuraConvert = (function () {
 
         var propsKnown = Object.keys(content.PROP_SIZE).length > 0;
         layer('props').forEach(function (o, i) {
+            var known = true;
             if (!o.name) {
                 fromTileset(o, i, 'prop', 'aura-props');
+                known = false;
             } else if (propsKnown && !has(content.PROP_SIZE, o.name)) {
                 bad(o, i, unknownName('props', o.name, 'prop type'));
+                known = false;
+            }
+            // The scale checks need the type's real footprint to divide by, so
+            // they only run once the name resolves — otherwise propSize's
+            // {w:1,h:1} fallback would turn every box into a nonsense multiple.
+            if (!known || !propsKnown) { return; }
+
+            var sc = readPropScale(o);
+            if (sc !== undefined && (!(sc > 0) || sc > MAX_PROP_SCALE)) {
+                bad(o, i, 'scale ' + sc + ' must be in (0, ' + MAX_PROP_SCALE + '] —'
+                    + ' a prop is sized by resizing its box, and this one is '
+                    + (sc > MAX_PROP_SCALE ? sc + '× the body of its type' : 'not a positive size'));
+            }
+            // world.json carries ONE multiplier, so a box dragged out of
+            // proportion would silently lose an axis. Same call as the dark
+            // area's circle check, and the same fix: hold Shift.
+            var sz = propSize(o.name);
+            var expectedH = sz.h * PX * (sc === undefined ? 1 : sc);
+            if (Math.abs(o.height - expectedH) > 0.5) {
+                bad(o, i, 'must keep its proportions (' + Math.round(o.width) + '×'
+                    + Math.round(o.height) + ' px, expected ' + Math.round(o.width) + '×'
+                    + Math.round(expectedH) + ') — world.json has one uniform scale,'
+                    + ' so hold Shift while resizing');
             }
         });
 
@@ -617,8 +689,7 @@ var AuraConvert = (function () {
 
             var waypoints = p.waypointCount;
             if (waypoints === 1) {
-                bad(o, i, 'a route needs at least 2 waypoints (the polyline needs a third point'
-                    + ' — its first vertex is the spawn itself)');
+                bad(o, i, 'a route needs at least 2 waypoints — the polyline needs a second point');
             }
 
             var wr = p.wanderRadius;

@@ -298,14 +298,8 @@ func runScale(t *testing.T, config *cfg.Config,
 		t.Fatal(err)
 	}
 
-	for _, p := range props {
-		pos := phy.Vec2f{X: p.X, Y: p.Y}
-		entityType := model.EntityType(p.Def.EntityType)
-		if p.Def.Body.IsRect() {
-			g.AddEntity(prop.NewRect(entityType, pos, p.Def.Body.Width, p.Def.Body.Height, p.BlocksMovement))
-		} else {
-			g.AddEntity(prop.New(entityType, pos, p.Def.Body.Radius, p.BlocksMovement))
-		}
+	for i := range props {
+		g.AddEntity(prop.FromZone(&props[i]))
 	}
 
 	// Campfires: originals only (tile 0 in area mode), exactly like main().

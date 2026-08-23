@@ -95,16 +95,29 @@ Rotate and scale freely. Horizontal and vertical flip (X / Y) both work.
 
 ### Props
 
-Drag from the **aura-props** tileset. Each prop draws at its **true physics
-footprint** — a House really is 4×3 units — so what you see is what blocks
-movement.
+Drag from the **aura-props** tileset. Each prop draws at its **visual
+footprint** — the same size it is in game, to the pixel — so the editor is
+WYSIWYG.
 
-- ⚑ **Resizing a prop does nothing.** Size belongs to the prop *type*
-  (`api/props/*.json`), not to the placement, so Tiled discards it on save.
-  Per-placement scale is designed but unbuilt (`docs/plan-prop-scale.md`).
-- ⚑ **Rotating a prop does nothing either** — the field is authored but never
-  rendered. Same plan.
-- `blocksMovement` is a checkbox in the Properties panel.
+- ⭐ **Resize a prop to scale it.** The box *is* the size: drag a corner handle
+  and the placement gets a `scale` multiplier on its type's body. That is how
+  you get one big old tree among saplings, without touching `api/props/`.
+  - ⚑ **Hold Shift** so the box keeps its proportions. `world.json` carries one
+    uniform multiplier, so a box dragged out of proportion is refused on save.
+  - The rail is **0 < scale ≤ 10**; past it the save is refused.
+  - A prop you have not resized authors no `scale` key at all, so untouched
+    props stay diff-clean.
+- ⚑ **The box is what you SEE, not what blocks.** A tree crown overhangs its
+  trunk: the drawn box is the crown, and the collider is `body.collisionFactor`
+  of it (`api/props/tree.json`, ~0.714 — so a tree blocks about 71% of what you
+  see). Houses and walls block their whole box. Keep that in mind when spacing a
+  path or a doorway.
+- ⚑ **Rotating a prop still does nothing** — the field is authored but never
+  rendered (`docs/plan-prop-scale.md` C2, unbuilt).
+- `blocksMovement` is a checkbox in the Properties panel. ⚑ A **newly dragged**
+  prop has no such property yet, so it saves as `false` — non-blocking. Add it
+  (Properties panel ▸ **+** ▸ bool ▸ `blocksMovement`) on anything meant to be
+  solid, or you get a tree you can walk through.
 
 ### Spawns
 
@@ -163,17 +176,26 @@ A spawn you drew but never assigned shows `(pick a mob)` and refuses the save.
 **A patrolling spawn *is* its route** — there is no separate route object.
 
 1. Take **Insert Polyline** on the `spawns` layer.
-2. **First click = where the mob spawns.**
-3. Each further click is a waypoint, in order. Right-click to finish.
-4. Set `mob`, and `patrolMode: loop` if it should circle rather than
+2. **Click each waypoint, in order.** The first click also sets where the mob
+   spawns. Right-click to finish.
+3. Set `mob`, and `patrolMode: loop` if it should circle rather than
    ping-pong.
 
-You need at least three clicks: the first is the spawn, and a route needs two
-or more waypoints.
+⭐ **Every vertex you draw is a waypoint** — what you see is the route, node 0
+included. Two clicks give a two-point route; three give three. Because the mob
+spawns on node 0, a route drawn this way starts at home and, in `loop` mode,
+comes back to it.
 
-- ⚑ **Do not drag the first node.** The spawn position is the object's origin,
-  not that vertex — dragging node 0 moves the drawn line and changes nothing in
-  the file. To move a patrolling spawn, move the whole object.
+- ⚑ **With only two waypoints, `loop` and `pingpong` walk identically.** Loop
+  wraps last→first and ping-pong reverses; over two points both are
+  `A → B → A → B`. If toggling the mode seems to do nothing, you need a third
+  waypoint.
+- Node 0 is not *pinned* to the spawn: drag it away and the mob keeps spawning
+  where the object sits, then walks to the route. That is how the routes
+  authored in the in-game editor look (5 of the 7 in `world.json` never return
+  to their spawn point).
+- ⚑ To move a patrolling spawn *and* its route together, move the whole object,
+  not the vertices.
 - ⚑ A mob cannot both patrol and wander; the save refuses if you set both.
 - ⚑ A speed-0 species (TownCrier, Hermit, the totems and stones) cannot patrol
   at all, and the save says so by name.
@@ -233,10 +255,23 @@ No reinstall, no hand-import. The generator reads `api/` and the client's
 `Graphics.ts` — the same sources the game loads — and **fails loudly** rather
 than shipping a gap.
 
+⛑ **Close the zone before you regenerate, and reopen it after.** If a prop
+type's body changes size, every prop of that type in an already-open document
+keeps its old box — and because the box IS the scale, saving writes a `scale`
+multiplier onto *every one of them*. That is how 574 trees once picked up
+`"scale": 0.714` in a single Ctrl+S. The file stays valid and byte-stable, so
+nothing catches it; you just find the whole world resized in game.
+
 ⚑ Adding a new *field* to the zone format is a different job: it must be taught
 to `aura-convert.js` and to `ZoneModel.getZoneAsJSON` in the same change, or
 one editor silently deletes what the other wrote. `npm test` goes red by design
 if you forget (the completeness pin in `AuraTiledConvert.test.ts`).
+
+⚑ And if you edit the extension's **own code**, re-run `bash tools/tiled/install.sh`
+and restart Tiled. The installer *copies*, so Tiled keeps running the version it
+was given — this bites hardest in `verify.sh`, which drives the same installed
+copy and would otherwise pass against code you have already changed. Its first
+leg now refuses to run when the two differ.
 
 ## 7. Checking the tooling without opening Tiled
 
@@ -255,8 +290,9 @@ after touching anything under `tools/tiled/`.
 | Install | `bash tools/tiled/install.sh`, once ever |
 | Open | `tools/tiled/aura.tiled-project`, then `world.json` from the folder list |
 | Move / rotate / scale a texture | Select Objects (S), drag or use the handles |
+| Scale a prop | Select Objects (S), drag a corner handle with **Shift** held |
 | Place a mob | Insert Point on `spawns`, set `mob` in the Properties panel |
-| Make it patrol | Insert Polyline on `spawns` — **first click is the spawn** |
+| Make it patrol | Insert Polyline on `spawns` — every vertex is a waypoint, the first is also the spawn |
 | Make it wander | `wanderRadius` above 0, and no route |
 | Make it stand still | `wanderRadius` **0** — not `-1`, which means inherit |
 | Use the species defaults | leave the sentinels alone (`-1` / `0` / `pingpong`) |

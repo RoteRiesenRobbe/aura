@@ -10,15 +10,74 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 )
 
-// PropBody describes the physical body of a prop type: either a circle
-// (radius) or an axis-aligned rectangle (width + height) — exactly one form,
-// enforced at parse. Rectangles never rotate (a zone prop's rotation stays
-// visual-only, and the server doesn't even apply it yet — see zone.Prop).
+// PropBody describes the body of a prop type: either a circle (radius) or an
+// axis-aligned rectangle (width + height) — exactly one form, enforced at
+// parse. Rectangles never rotate (a zone prop's rotation stays visual-only,
+// and the server doesn't even apply it yet — see zone.Prop).
 // [PLACEHOLDER] sizes live in api/props/, tuned in-game.
+//
+// ⭐ The body is the VISUAL footprint, and collision is a fraction of it
+// (plan-prop-scale.md C1b, D6). The sprite is drawn at exactly this size — the
+// client applies no per-class factor of its own — so the authored number is
+// what you see, in the game AND in the Tiled box. That is what makes the
+// editor WYSIWYG.
+//
+// ⚑ It used to be the other way round: the body was the COLLIDER and the
+// client inflated the sprite by a hardcoded per-class constant
+// (`size * 1.15 + character.size` for trees, `* 1.07` for minerals). Two
+// things were wrong with that. The editor drew the collider and so disagreed
+// with the game by 40% on trees and 0% on houses; and the flat `+ 30px` addend
+// did not scale, so a prop shrunk to 0.294 rendered at 2.00× its collider
+// while one grown to 2.045 rendered at 1.27× — per-placement scale was
+// non-linear on screen exactly where it was least forgiving. The mineral art
+// pass had already made this argument and fixed it for Rock and Boulder; the
+// tree kept the addend until now.
 type PropBody struct {
 	Radius float32 `json:"radius"`
 	Width  float32 `json:"width"`
 	Height float32 `json:"height"`
+
+	// CollisionFactor shrinks the collision body relative to the visual one:
+	// nil = 1.0, the body collides at exactly its own size (House, GateWall).
+	// A tree crown is meant to overhang its trunk, so Tree authors ~0.714 —
+	// the same 120 px collider it has always had, under a 168 px sprite.
+	//
+	// ⚑ A multiplier rather than a second absolute size, for the same reason
+	// Prop.Scale is (D1): one scalar serves both body forms and keeps the
+	// authored aspect. It composes with Scale by plain multiplication.
+	CollisionFactor *float32 `json:"collisionFactor"`
+}
+
+// EffectiveCollisionFactor resolves the tri-state factor. nil = 1.0.
+func (b PropBody) EffectiveCollisionFactor() float32 {
+	if b.CollisionFactor == nil {
+		return 1
+	}
+	return *b.CollisionFactor
+}
+
+// Collision returns the body the physics engine gets: the visual body times
+// the collision factor. Exactly one form is ever set, so scaling all three
+// fields keeps the zeroes zero and a circle can never become a rect.
+func (b PropBody) Collision() PropBody {
+	f := b.EffectiveCollisionFactor()
+	if f == 1 {
+		return b
+	}
+	return PropBody{Radius: b.Radius * f, Width: b.Width * f, Height: b.Height * f}
+}
+
+// VisualRadius is the single size scalar the wire carries (codec:
+// ResourceAddRadius), which the client draws the sprite at. For a rect it is
+// the max half-extent; the client recovers the aspect from the prop JSON.
+func (b PropBody) VisualRadius() float32 {
+	if !b.IsRect() {
+		return b.Radius
+	}
+	if b.Width > b.Height {
+		return b.Width / 2
+	}
+	return b.Height / 2
 }
 
 // IsRect reports whether the body is the rectangle form.
@@ -132,6 +191,11 @@ func parsePropDefinition(data []byte) (*PropDefinition, error) {
 		}
 	} else if doc.Body.Radius <= 0 {
 		return nil, fmt.Errorf("body radius must be positive, got %g", doc.Body.Radius)
+	}
+	// Absent means 1.0; an authored 0 or negative would give a prop no body at
+	// all, which is never what anyone means.
+	if f := doc.Body.CollisionFactor; f != nil && *f <= 0 {
+		return nil, fmt.Errorf("body collisionFactor must be positive, got %g", *f)
 	}
 	return &PropDefinition{
 		Name:       doc.Name,

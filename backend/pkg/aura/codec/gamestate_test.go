@@ -536,9 +536,9 @@ func TestEntitiesMarshalFlatbuf_LengthAndOrder(t *testing.T) {
 	// It must carry exactly len(entities) elements, in input order (the
 	// prepend-in-reverse rule every other vector in this file follows).
 	entities := []model.Entity{
-		prop.New(model.EntityType(1), phy.Vec2f{X: 1, Y: 2}, 0.5, false),
-		prop.New(model.EntityType(2), phy.Vec2f{X: 3, Y: 4}, 0.5, false),
-		prop.New(model.EntityType(3), phy.Vec2f{X: 5, Y: 6}, 0.5, true),
+		prop.New(model.EntityType(1), phy.Vec2f{X: 1, Y: 2}, 0.5, 0.5, false),
+		prop.New(model.EntityType(2), phy.Vec2f{X: 3, Y: 4}, 0.5, 0.5, false),
+		prop.New(model.EntityType(3), phy.Vec2f{X: 5, Y: 6}, 0.5, 0.5, true),
 	}
 
 	b := flatbuffers.NewBuilder(256)
@@ -565,7 +565,10 @@ func TestEntitiesMarshalFlatbuf_LengthAndOrder(t *testing.T) {
 // its reader shows up as a wrong value here instead of as a misplaced collider
 // in-game.
 func TestPropEntityFlatbufMarshal_FieldsSurviveTheRenumber(t *testing.T) {
-	p := prop.New(model.EntityType(26), phy.Vec2f{X: 3, Y: -4}, 0.75, true)
+	// ⚑ Collider 0.75, VISUAL 1.05 — deliberately different since C1b, so this
+	// pins that the wire carries the visual radius while the AABB below still
+	// reports the collider. Equal numbers would let a swap pass unnoticed.
+	p := prop.New(model.EntityType(26), phy.Vec2f{X: 3, Y: -4}, 0.75, 1.05, true)
 
 	b := flatbuffers.NewBuilder(256)
 	b.Finish(PropEntityFlatbufMarshal(p, b))
@@ -576,6 +579,7 @@ func TestPropEntityFlatbufMarshal_FieldsSurviveTheRenumber(t *testing.T) {
 	assert.Equal(t, p.Basic().ID(), res.Id())
 	assert.Equal(t, AuraApi.EntityType(26), res.EntityType())
 	assert.Equal(t, f32ToU16Px(p.Radius()), res.Radius())
+	assert.Equal(t, f32ToU16Px(1.05), res.Radius(), "the wire radius is the VISUAL one")
 	assert.Zero(t, res.StatusEffectsLength())
 
 	var pos AuraApi.Vec2f
@@ -590,6 +594,8 @@ func TestPropEntityFlatbufMarshal_FieldsSurviveTheRenumber(t *testing.T) {
 	require.NotNil(t, aabb.Lower(&lower))
 	require.NotNil(t, aabb.Upper(&upper))
 	box := p.AABB()
+	// The collider's box, not the sprite's: 0.75 radius spans 1.5 units.
+	assert.InDelta(t, 1.5, float64(box.Right-box.Left), 0.0001)
 	assert.InDelta(t, float64(f32ToPx(box.Left)), lower.X(), 0.0001)
 	assert.InDelta(t, float64(f32ToPx(box.Bottom)), lower.Y(), 0.0001)
 	assert.InDelta(t, float64(f32ToPx(box.Right)), upper.X(), 0.0001)
