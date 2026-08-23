@@ -1,6 +1,7 @@
 import '../assets/HUD.less';
 import * as Conversation from '../../../conversation/logic/Conversation';
 import * as Journal from '../../../journal/logic/Journal';
+import * as QuestTracker from '../../../journal/logic/QuestTracker';
 import * as Help from '../../../help/logic/Help';
 import * as MobileMenu from './MobileMenu';
 import * as Interact from '../../../interact/logic/Interact';
@@ -102,6 +103,7 @@ export function setup(game) {
     Utilities.setup();
     Conversation.setup();
     Journal.setup();
+    QuestTracker.setup();
     Help.setup();
     // After Journal/Help: it adds a second pointerdown listener to their
     // buttons, and both handlers should run in the order they were added.

@@ -25,7 +25,7 @@
 //   C. The Q2 counter leg, guarded on the shipped wolves quest: accept
 //      wolves-on-the-road by cheat, select it (the Q3 row-click leg), verify the
 //      selection survives close/reopen (PO ruling 2026-07-30), read the derived
-//      "n/8 Wolf slain" line, then kill real wolves and assert the LINE MOVES.
+//      "n/8 wolves killed" line, then kill real wolves and assert the LINE MOVES.
 //      Tri-state: no kill inside the deadline is INCONCLUSIVE, not red.
 //   D. The Q3 sizing invariant: with the panel open, #journal's rect intersects
 //      neither #bottomCenter, #vitalSigns nor #leftColumn — asserted at the
@@ -286,14 +286,16 @@ await page.keyboard.press('KeyJ');
 await page.waitForTimeout(600);
 check('a second J closes it', (await journal())?.open === false, 'closed');
 
-const button = await page.$('#journalButton');
+// Since 2026-08-23 the desktop journal button is the quest tracker's header
+// (#questTrackerJournal, right column); #journalButton is the mobile sheet's.
+const button = await page.$('#questTrackerJournal');
 if (button) {
   const box = await button.boundingBox();
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await page.waitForTimeout(600);
   check('the HUD button opens it too (D16)', (await journal())?.open === true, 'opened by click');
 } else {
-  check('the HUD button exists (D16)', false, '#journalButton not in the DOM');
+  check('the HUD button exists (D16)', false, '#questTrackerJournal not in the DOM');
 }
 
 await page.keyboard.press('Escape');
@@ -422,11 +424,13 @@ if (!probeLoaded) {
   }
 }
 
-// --- half C: the Q2 counter — "n/8 wolves slain" moves on real kills --------
+// --- half C: the Q2 counter — "n/8 wolves killed" moves on real kills -------
 //
 // Independent of the probe quest: rides the SHIPPED wolves-on-the-road. ⚑
-// Since Q4 its kill stage authors the tracker "{n}/{m} wolves slain" (the
-// plural fix), so the line on screen is the AUTHORED override with the {n}/{m}
+// Since Q4 its kill stage authors the tracker (the plural fix); ac0f8a11
+// (2026-08-02, "quest text goes plain") re-worded it to "{n}/{m} wolves
+// killed" and this script rode the old "slain" until 2026-08-23. The line on
+// screen is the AUTHORED override with the {n}/{m}
 // substitution live — which is exactly the half of Q2 the derived path could
 // not show. The count is read as a pattern, never as a fixed number (verify
 // rule 1/3) — and since N4 (plan-feel-pass-2.md) it counts kills SINCE this
@@ -478,8 +482,8 @@ if (!wolvesLoaded) {
     `detail after reopen: "${(await journal())?.detail.title}"`);
 
   const startLine = lineOf(await journal());
-  const startCount = Number(/^(\d+)\/8 wolves slain$/.exec(startLine)?.[1] ?? NaN);
-  check('the kill stage shows the authored "{n}/{m} wolves slain" tracker, substituted (Q2/Q4)',
+  const startCount = Number(/^(\d+)\/8 wolves killed$/.exec(startLine)?.[1] ?? NaN);
+  check('the kill stage shows the authored "{n}/{m} wolves killed" tracker, substituted (Q2/Q4)',
     Number.isInteger(startCount),
     `line "${startLine}"`);
 
@@ -502,7 +506,7 @@ if (!wolvesLoaded) {
       while (Date.now() < deadline) {
         const j = await journal();
         const line = lineOf(j);
-        const n = Number(/^(\d+)\/8 wolves slain$/.exec(line)?.[1] ?? NaN);
+        const n = Number(/^(\d+)\/8 wolves killed$/.exec(line)?.[1] ?? NaN);
         if (Number.isInteger(n) && n > startCount) return { line, n };
         // 8/8 advances the stage: the counter line gives way to carry_word's
         // authored tracker (Q4), and the second diary entry is the proof.

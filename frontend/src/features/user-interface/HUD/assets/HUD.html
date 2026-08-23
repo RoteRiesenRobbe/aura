@@ -35,6 +35,21 @@
         <span class="mapButtonHotkey">M</span>Map
     </div>
 
+    <!-- Quest tracker (2026-08-23): the journal button's desktop home, stacked
+         under the map button, plus one box per running quest showing its last
+         objective line (rendered by QuestTracker.ts from the same per-tick
+         ledger the journal reads). A sibling of #mapButton for the same phone
+         reason: the tracker is hidden on mobile, where the ☰ sheet keeps the
+         old #journalButton row below - which is why that element still exists
+         even though desktop hides it. Two "J Journal" affordances on purpose,
+         one per layout, both wired to Journal.toggle. -->
+    <div id="questTracker">
+        <div id="questTrackerJournal" title="Journal (J)">
+            <span class="journalButtonHotkey">J</span>Journal
+        </div>
+        <ul id="questTrackerList" class="hidden"></ul>
+    </div>
+
     <div id="vitalSigns" class="layout-column">
         <div id="healthBar" class="bar flex" title="Focus — your health and everything you spend to act">
             <div class="indicator"></div>
@@ -238,6 +253,10 @@
     </div>
 
     <div id="leftColumn">
+        <!-- Mobile-only since 2026-08-23 (desktop hides it): the ☰ sheet is
+             this #leftColumn restyled, nothing is reparented, so the sheet
+             needs this row here. The desktop journal button lives in
+             #questTracker above. -->
         <div id="journalButton" title="Journal (J)">
             <span class="journalButtonHotkey">J</span>Journal
         </div>

@@ -30,14 +30,15 @@ import {catalogState, questDefinition, stageJournal} from '../../../client-data/
 import {JournalCatalog, JournalModel, QuestProgress, JournalListRow, JournalDetailView} from './JournalModel';
 
 // The real catalog, adapted to the model's narrow port. The model takes this
-// injected so it stays fetch-free and unit-testable.
-const catalog: JournalCatalog = {
+// injected so it stays fetch-free and unit-testable. Exported for the quest
+// tracker next door, which reads the same words - one adapter, not two.
+export const journalCatalog: JournalCatalog = {
     state: () => catalogState(),
     title: (questId) => questDefinition(questId)?.title,
     stageJournal,
 };
 
-const model = new JournalModel(catalog);
+const model = new JournalModel(journalCatalog);
 
 let panelElement: HTMLElement;
 let statusElement: HTMLElement;
@@ -95,6 +96,13 @@ export function close() {
 
 export function isOpen(): boolean {
     return open;
+}
+
+/** A quest tracker row: open the panel already turned to that quest. */
+export function openQuest(questId: string) {
+    model.select(questId);
+    open = true;
+    render();
 }
 
 function select(questId: string) {

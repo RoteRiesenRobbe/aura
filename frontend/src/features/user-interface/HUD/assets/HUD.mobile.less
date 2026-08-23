@@ -407,6 +407,14 @@ html.mobile {
 		z-index: (@mobile-menu-z + 3);
 	}
 
+	// The quest tracker is desktop-only (PO 2026-08-23): the right edge
+	// already carries the minimap, the map button and the zoom column, and
+	// the ☰ sheet keeps its own #journalButton row as the phone's way into
+	// the journal. The full mobile UI pass owns anything better.
+	#questTracker {
+		display: none;
+	}
+
 	/* --- always on: the map button ------------------------------------ */
 	// Stacked under the ☰, and permanently on screen because it is the
 	// phone's ONLY way into the map: #minimap is inside the sheet here, so
