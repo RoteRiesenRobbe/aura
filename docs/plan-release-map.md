@@ -286,7 +286,14 @@ settled; the map is not. What a design session owes:
 
 ## 8. One map, zones as coordinate regions (direction, D6)
 
-> **Status: direction set 2026-08-23 (PO session). Nothing built.** The ask:
+> **Status: direction set 2026-08-23 (PO session). Nothing built. ⭐ The
+> MECHANISM is now owned by `docs/plan-region-primitive.md`** (designed later
+> the same day, out of a ground-color question, before either session knew of
+> the other) — read that for the field, the resolution rule, the chunks and the
+> landmines; D6 below stays the ruling and the direction. Reconciliation table:
+> that plan's §2. Nothing in D6 was overturned: it asked for coordinate
+> squares, the mechanism plan authors polygons, and **a square is a 4-point
+> polygon**.** The ask:
 > instead of multiple `world.json`s with a server change between them, ONE
 > giant map where zones are coordinate squares - different background look,
 > the player's position resolvable to a zone for per-zone music, and per-zone
@@ -315,12 +322,18 @@ settled; the map is not. What a design session owes:
 ⚑ Line refs pinned 2026-08-23; re-verify before relying on them.
 
 - **The JSON field.** `regions: [...]` is additive in `api/zones/<id>.json`,
-  but TWO touch points are mandatory, not optional: the Go zone struct
-  (`world/zone.go` parses with `DisallowUnknownFields`, so an unknown key
-  hard-fails boot even if the server never consumes it) and the zone editor's
-  serializer (`ZoneModel.ts:getZoneAsJSON` is a strict field whitelist with a
-  guard test - an unlisted field survives a load and silently vanishes on the
-  next editor save).
+  but ⚑ **THREE touch points are mandatory, not two** (this line said two when
+  written on 2026-08-23; the Tiled extension shipped the same day and added the
+  third): the Go zone struct (`world/zone.go` parses with
+  `DisallowUnknownFields`, so an unknown key hard-fails boot even if the server
+  never consumes it) · the zone editor's serializer
+  (`ZoneModel.ts:getZoneAsJSON`, a strict field whitelist - an unlisted field
+  survives a load and silently vanishes on the next editor save) · and
+  `tools/tiled/extensions/aura-zone/aura-convert.js`'s `serializeZone`, which
+  drops unknown keys the same way. ⭐ Only the Tiled one is guarded: the
+  **completeness pin** (tiled C5) scrapes `zone.go`'s json tags and goes red
+  the moment the format grows a field the converter would drop. `ZoneModel` has
+  no such pin - see `plan-region-primitive.md` §5 and its L1.
 - **Per-zone background.** Placing different ground-texture types per area is
   authorable TODAY with zero code (terrain entries are individually placed
   sprites). A true per-region base color means drawing one land rect per
@@ -333,7 +346,11 @@ settled; the map is not. What a design session owes:
 - **Music.** `@pixi/sound` is wired (master/music volume, spatial SFX), but
   `Music.ts` is 32 lines: ONE hardcoded looping mp3 started at boot. The
   extension is a track table + region-entered crossfade. ⚑ The real cost is
-  content: the repo owns exactly one music track.
+  content: the repo owns exactly one music track. **Owned by
+  `docs/plan-region-audio.md`** (C3), together with per-region footsteps;
+  ⚑ that doc carries the blocker this line does not mention - backlog §19's
+  ~160 MB of eagerly decoded audio, for which long music tracks are the named
+  HTML5-streaming candidate.
 - **Atmosphere / lighting.** ⛔ Do NOT build per-zone tint on the day/night
   machinery: it was disabled precisely because its ~25 per-layer filter
   passes, reassigned at 30 Hz, made avatars invisible at the transition
