@@ -9,6 +9,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -556,6 +557,54 @@ func TestEntitiesMarshalFlatbuf_LengthAndOrder(t *testing.T) {
 		assert.Equal(t, e.Basic().ID(), resourceIDAt(t, result, i),
 			"entity at index %d is not the one that was marshalled there", i)
 	}
+}
+
+// C2: the authored orientation reaches the client. Built through
+// prop.FromZone rather than prop.New so this covers the whole authored → wire
+// path, which is where the field is actually assigned.
+func TestPropEntityFlatbufMarshal_CarriesRotation(t *testing.T) {
+	def := &world.PropDefinition{Body: world.PropBody{Radius: 1}}
+	p := prop.FromZone(&world.Prop{X: 1, Y: 2, Rotation: 2.03, BlocksMovement: true, Def: def})
+
+	b := flatbuffers.NewBuilder(256)
+	b.Finish(PropEntityFlatbufMarshal(p, b))
+
+	var res AuraApi.Resource
+	res.Init(b.FinishedBytes(), flatbuffers.UOffsetT(flatbuffers.GetUOffsetT(b.FinishedBytes())))
+	assert.Equal(t, float32(2.03), res.Rotation())
+}
+
+// ⭐ The performance property, pinned structurally rather than as a byte count.
+//
+// rotation is the LAST field in table Resource, and 0 is its default. The
+// builder therefore skips the value AND WriteVtable trims the now-trailing zero
+// vtable slot, so an unrotated prop encodes to exactly what it encoded before
+// the field existed — which matters because props are re-serialized for every
+// player at 30 Hz and are the bulk of a snapshot (~68 bytes each, ~17 in view).
+//
+// Moving rotation into the middle of the table would keep every test above
+// green while silently adding two vtable bytes to all 807 props. This is the
+// only thing that would notice.
+func TestPropEntityFlatbufMarshal_UnrotatedCostsNothing(t *testing.T) {
+	encode := func(withRotation bool) int {
+		b := flatbuffers.NewBuilder(256)
+		b.StartVector(1, 0, 0)
+		se := b.EndVector(0)
+		AuraApi.ResourceStart(b)
+		AuraApi.ResourceAddId(b, 1)
+		AuraApi.ResourceAddStatusEffects(b, se)
+		AuraApi.ResourceAddPos(b, Vec2fMarshalFlatbuf(b, phy.Vec2f{X: 1, Y: 2}))
+		AuraApi.ResourceAddRadius(b, 120)
+		AuraApi.ResourceAddEntityType(b, AuraApi.EntityType(2))
+		if withRotation {
+			AuraApi.ResourceAddRotation(b, 0)
+		}
+		b.Finish(AuraApi.ResourceEnd(b))
+		return len(b.FinishedBytes())
+	}
+	assert.Equal(t, encode(false), encode(true),
+		"writing rotation=0 must add zero bytes; if this diverges, rotation is no "+
+			"longer the last field and every prop in every snapshot just got bigger")
 }
 
 // L-H5: deleting Resource.capacity/stock RENUMBERED aabb, which is the one

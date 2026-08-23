@@ -112,8 +112,24 @@ WYSIWYG.
   of it (`api/props/tree.json`, ~0.714 — so a tree blocks about 71% of what you
   see). Houses and walls block their whole box. Keep that in mind when spacing a
   path or a doorway.
-- ⚑ **Rotating a prop still does nothing** — the field is authored but never
-  rendered (`docs/plan-prop-scale.md` C2, unbuilt).
+- ⭐ **Rotate a prop and it turns in the game.** Grab the rotation handle (or
+  set `Rotation` in the Object properties); the angle is streamed and the sprite
+  is drawn at it. Shipped 2026-08-23, `plan-prop-scale.md` C2 — before that the
+  field was authored and rendered nowhere.
+  - ⭐ **Houses and walls collide at the angle you drew them**, since C2b. For
+    the few hours between C2 and C2b they rendered turned and blocked upright,
+    which the PO caught in-game; that is fixed, and pinned by a test that walks
+    a player-sized body into a 45° house from two directions.
+  - ⚑ **Rotating a rock or boulder turns its baked shadow with it**, so a field
+    of rotated minerals reads as lit from several directions at once. The art
+    has one light angle; this is a look call, not a bug.
+  - All 798 pre-existing prop rotations were **zeroed** when C2 shipped. They
+    were script noise — nothing had ever drawn them — so orientation is now
+    something you author deliberately, starting from a world where every prop
+    stands upright.
+  - The in-game editor has its own prop rotation box and always had; it now
+    means something there too. ⚑ It reads and writes **whole degrees**, so
+    opening a Tiled-rotated prop in it and saving quantises the angle to 1°.
 - `blocksMovement` is a checkbox in the Properties panel. ⚑ A **newly dragged**
   prop has no such property yet, so it saves as `false` — non-blocking. Add it
   (Properties panel ▸ **+** ▸ bool ▸ `blocksMovement`) on anything meant to be

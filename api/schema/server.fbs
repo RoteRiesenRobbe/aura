@@ -145,6 +145,15 @@ table Resource {
   // the only thing left on this wire path since NPCs moved to the Mob path,
   // and a prop's stock had been a hardcoded 1/1 since the §26 prune.
   aabb:AABB;
+
+  // Authored orientation in radians (plan-prop-scale.md C2). Appended at the
+  // table END on purpose, and not only for field-id stability: the Go builder
+  // omits a field equal to its default AND trims trailing zero vtable slots,
+  // so an UNROTATED prop costs exactly zero bytes here — vtable included.
+  // After the D3 content pass that is every prop in the world, which is why
+  // turning rotation on does not grow the 30 Hz snapshot until something is
+  // actually rotated.
+  rotation:float = 0;
 }
 
 table Mob {

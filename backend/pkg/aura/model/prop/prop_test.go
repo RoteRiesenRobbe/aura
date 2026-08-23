@@ -38,7 +38,7 @@ func TestNew_SetsUserDataForViewportStreaming(t *testing.T) {
 }
 
 func TestNewRect_BuildsSolidAABBBody(t *testing.T) {
-	p := NewRect(5, phy.Vec2f{X: 3, Y: -2}, 4, 3, 2, true)
+	p := NewRect(5, phy.Vec2f{X: 3, Y: -2}, 4, 3, 0, 2, true)
 
 	body, ok := p.Bodies()[0].(*phy.SolidAABB)
 	require.True(t, ok, "rect prop body must be a SolidAABB")
@@ -83,7 +83,7 @@ func TestNew_WireRadiusIsVisualWhileTheBodyStaysTheCollider(t *testing.T) {
 
 func TestNewRect_WireRadiusIsVisualWhileTheBodyStaysTheCollider(t *testing.T) {
 	// A rect with a smaller collider: visual 4×3 (max half-extent 2), solid 2×1.5.
-	p := NewRect(5, phy.VEC2F_ZERO, 2, 1.5, 2, true)
+	p := NewRect(5, phy.VEC2F_ZERO, 2, 1.5, 0, 2, true)
 
 	assert.EqualValues(t, 2, p.Radius(), "the wire carries the VISUAL max half-extent")
 
@@ -93,7 +93,7 @@ func TestNewRect_WireRadiusIsVisualWhileTheBodyStaysTheCollider(t *testing.T) {
 }
 
 func TestNewRect_DecorativeKeepsOnlyViewportLayer(t *testing.T) {
-	p := NewRect(5, phy.VEC2F_ZERO, 4, 3, 2, false)
+	p := NewRect(5, phy.VEC2F_ZERO, 4, 3, 0, 2, false)
 
 	layer := p.Bodies()[0].Shape().Layer
 	assert.Equal(t, int(model.LayerViewportCollision), layer,
@@ -105,7 +105,7 @@ func TestNewRect_DecorativeKeepsOnlyViewportLayer(t *testing.T) {
 func TestProp_BlockingRectPropStopsCircleThroughSpace(t *testing.T) {
 	s := phy.NewSpace()
 
-	house := NewRect(5, phy.VEC2F_ZERO, 4, 3, 2, true)
+	house := NewRect(5, phy.VEC2F_ZERO, 4, 3, 0, 2, true)
 	s.AddStaticShape(house.Bodies()[0].(phy.Collider))
 
 	circle := phy.NewCircle(phy.Vec2f{X: 2.2, Y: 0}, 0.5)

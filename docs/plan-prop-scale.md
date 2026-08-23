@@ -1,7 +1,7 @@
 # Plan: Per-placement prop transform — scale, then rotation
 
-> **Status: C1 SHIPPED 2026-08-23 (ledger: §10). C2 designed, not started —
-> and now unblocked by the D3 ruling, with one sub-question left (§9.1).**
+> **Status: ⭐ COMPLETE 2026-08-23 — C1, C1b, C1c, C1d, C2 and C2b all shipped
+> (ledgers: §10). Nothing open but the PO's in-game pass on C2b.**
 > Originally **DESIGNED 2026-08-22**, broadened the same day from
 > scale-only to *"rotation and scale should work on all objects"* (PO). Opened
 > by a PO observation during Tiled authoring (`plan-tiled-authoring.md` C1):
@@ -133,8 +133,13 @@ Three options, one recommended:
   saying why. **Recommended**: it ships the 741 props people actually want to
   rotate and refuses the 36 it would lie about.
 - **(B) Render rotated, collide axis-aligned.** Cheapest, and dishonest.
-- **(C) Rotated rect collision.** This is backlog §34 territory (hard
-  collision) and far beyond this plan.
+- **(C) Rotated rect collision.** ⛔ **This bullet was WRONG, and it is the
+  reason the honest fix went unpriced for a day — see C2b.** Backlog §34 is
+  *entity-vs-entity* collision (mobs and players shoving each other), which was
+  **decided against** on 2026-07-26 in favour of soft separation. It says
+  nothing about a rotated static rect. The actual price was one chunk: props are
+  static so the trig resolves once, only circles ever hit the shape so there is
+  no separating-axis test, and all its geometry funnels through one `clamp()`.
 
 ⚑ Under (A), Tiled must mirror the rule, or a rotation you can apply in the
 editor fails only at boot — exactly the class of problem
@@ -160,26 +165,38 @@ So C2 is now:
    the extra body-shape field after all — that whole sub-task is dropped.
 4. A one-off content pass zeroing the pre-existing junk rotations.
 
-⚑ **Which rotations step 4 covers is the one open question — §9.1.** It is the
+⚑ **Which rotations step 4 covers was the one open question — §9.1.** It was the
 difference between "nothing changes on the commit" and "734 trees gain
-orientation variety overnight".
+orientation variety overnight". ✅ **ANSWERED and executed**: reading (a), all
+798 zeroed (D7, then the C2 ledger).
 
 ⚑ **What (B) still costs, stated plainly so nobody rediscovers it as a bug:** a
 rotated House renders at an angle and blocks an upright box. With step 4 taking
 the existing 63 rect rotations to zero, that only bites when somebody
-deliberately rotates a House afterwards — which the PO has accepted. Backlog
-§34 (hard collision) is where it would be fixed honestly.
+deliberately rotates a House afterwards — which the PO has accepted.
+
+> ⭐ **SUPERSEDED by C2b, 2026-08-23.** "Only bites when somebody deliberately
+> rotates a House" turned out to mean *within the hour*: the PO's first act on
+> the new control was to turn two houses a quarter turn, and the lie was the
+> first thing they reported. The paragraph above also sent the fix to backlog
+> §34, which does not cover it (§4.2). Rect props now collide at their drawn
+> angle and nothing here is outstanding.
 
 ## 5. Chunks
 
 | Chunk | Contents | Wire | Size |
 |---|---|---|---|
 | **C1** ✅ | `Prop.Scale *float32` + validation + apply at `aurad.go:171-179`; the `getZoneAsJSON` whitelist line (L1); Tiled emit/read | **none** | small |
-| **C2** | `Resource.rotation` on the wire + both binding regens; render it; the §9.1 content cleanup. ⚑ NO validation rule — D3 dropped it | **yes** | medium |
+| **C2** ✅ | `Resource.rotation` on the wire + both binding regens; render it; the §9.1 content cleanup. ⚑ NO validation rule — D3 dropped it | **yes** | medium |
 
-C1 stood alone and shipped alone 2026-08-23 — the Python placement scripts and
-Tiled can author `scale` now. C2 is unblocked (D3) but wants §9.1 answered
-first, because that call decides what the world looks like after the commit.
+Both shipped 2026-08-23, in that order, plus four unplanned chunks: **C1b** (the
+body becomes the visual footprint, D6), **C1c** (the two content incidents C1b
+caused, and D8), **C1d** (the census pins) and **C2b** (the rect collider turns
+too). ⭐ C2 came in smaller than "medium" priced it: the client seam and the
+server accessor both already existed (`GameObject`'s ctor rotation,
+`model.Entity.Angle()`), so the work was unhardcoding four `0`s and one
+override. ⚑ C2b is the one the plan got wrong in the other direction — priced
+as out of scope on a §34 citation that did not cover it, actually one chunk.
 
 ## 6. Schema impact
 
@@ -308,7 +325,7 @@ at x = 64.8 reads `3.71, 5.87, 4.37, 2.47, 3.83`. Nothing renders them today
 ⚑ **C2 must not start without picking one.** Both are one script run; the
 difference is what the world looks like the morning after.
 
-### 9.3 D7 — ⏸ C2 is DEFERRED, and §9.1 answers itself when it resumes (PO, 2026-08-23)
+### 9.3 D7 — C2 was deferred, and §9.1 answered itself when it resumed (PO, 2026-08-23) ✅
 
 > *"For C2 we can do nothing and zero when it becomes a problem."*
 
@@ -321,6 +338,13 @@ trigger is the first time a rotated prop is actually wanted, not a calendar. A
 resuming session runs the one-line script then, against whatever `world.json`
 looks like by then, which is strictly better than zeroing numbers now and
 re-measuring later. Nothing else in this plan depends on it.
+
+⭐ **RESUMED the same day, PO: *"lets continue with C2: rotation."*** The defer
+cost nothing and the "zero when it becomes a problem" instinct was right twice
+over: the count had moved (797 → **798**, of 810 props) in the hours between the
+ruling and the work, so a pass run at D7 time would have missed the props the PO
+placed in between. §9.1 was answered by the ruling and confirmed by measurement
+— see the C2 ledger for why intent could not have been lost.
 
 ### 9.4 D8 — ⭐ every polyline vertex is a waypoint (PO, 2026-08-23)
 
@@ -672,3 +696,252 @@ warns about.
 Files: `cmd/simharness/placements_test.go` (derived census + the copy helper) ·
 `ZoneModel.test.ts`. **Schema NONE.** Verified: Go **35 ok / 0 red** · vitest
 **460/460** · `tsc --noEmit` clean.
+
+### C2 — prop rotation ✅ SHIPPED 2026-08-23 (uncommitted)
+
+The last authored field that was **parsed and stored since the world-foundation
+chunk and rendered nowhere** now reaches the screen. Every authoring surface has
+offered a rotation control for months; all of them were no-ops.
+
+**Schema: DB NONE · wire YES** — one appended `rotation:float = 0` on
+`table Resource`, both binding sets regenerated. Content JSON gains nothing: the
+key already existed in every placement.
+
+**⭐ The performance question the PO asked before a line was written, answered
+by measurement rather than by argument.** Props are re-serialized for every
+player at 30 Hz and are the bulk of a snapshot, so "one more float per prop"
+was worth pricing:
+
+| props in one snapshot | unrotated | all rotated, distinct angles | delta |
+|---|---|---|---|
+| 1 | 104 B | 112 B | +8 |
+| 17 (the p50 viewport) | 1,192 B | 1,200 B | +8 |
+| 60 (the measured max) | 4,112 B | 4,128 B | +16 |
+| 200 | 13,632 B | 13,648 B | **+16** |
+
+⭐ **Flat, not per-prop** — the per-prop cost stays 68 B whether it rotates or
+not. Two mechanisms, both of which depend on the field being appended **last**:
+
+1. **The float lands in existing padding.** `Resource`'s written fields sum to
+   44 B including the vtable soffset, which pads to 48 for 8-byte alignment.
+   `rotation` fills 4 of the 4 wasted bytes. The residual 16 is the vtable
+   growing 2 B — **once**, because flatbuffers deduplicates vtables across every
+   prop in the message — plus buffer alignment.
+2. ⭐ **An unrotated prop costs literally zero.** `PrependFloat32Slot` skips a
+   default value, and `WriteVtable` **trims trailing zero vtable slots**. Slot 6
+   is the last, so the vtable does not even grow. After the content pass below
+   that is every prop in the world, so the snapshot is byte-for-byte what it was
+   before this chunk.
+
+That property is pinned by `TestPropEntityFlatbufMarshal_UnrotatedCostsNothing`,
+which encodes a Resource with and without `rotation=0` and asserts equal length
+— **proven red on purpose** (56 vs 64 B) by writing a non-zero angle. Moving
+`rotation` into the middle of the table would keep every other test green while
+silently adding two vtable bytes to all 810 props; this is the only thing that
+would notice. Server CPU and allocation are unchanged (14 allocs / 7,088 B/op
+either way, ~12.8 µs for 17 props — the difference is below the noise floor).
+
+**Viewport census, measured for the denominator** (13,860 grid samples of the
+real `world.json` against the 20 × 12 viewport): mean **16.8** props, p90 30,
+p99 44, max **60**.
+
+**⭐ The client seam was already there — the classes were hardcoding `0` into
+it.** `GameObject`'s constructor takes a rotation and hands it to
+`createInjectedSVG`; `Tree`, `Mineral`, `House` and `GateWall` each passed a
+literal `0`. C2 unhardcodes that and threads the wire value through, which is
+also **the only cheap place to put it**:
+
+⚑ **`setRotation` would have been the expensive path, and it is the obvious
+one.** It honours `LIMIT_TURN_RATE` (on) and `DEFAULT_TURN_RATE` (non-zero), so
+every prop entering the viewport would be enrolled in the module-level
+`rotatingObjects` set and **animated every frame** until it reached its angle —
+a permanent working set of spinning trees as you walk, and visually absurd
+besides. A static object is simply built at its angle; nothing runs per frame.
+Existence proof for the render cost: the client already draws **548 rotated
+ground-texture pieces** every frame.
+
+**⚑ The deliberate lie, now pinned so nobody quietly fixes it.** D3 chose option
+(B): everything rotates, nothing is rejected. `phy.NewSolidAABB` is
+axis-aligned, so a rotated House renders turned and blocks an upright box.
+`TestRotatedRectProp_ColliderStaysAxisAligned` asserts exactly that, with a
+comment saying that if it ever fails somebody made rect collision honest — good
+news, and a reason to replace the pin rather than delete it. Backlog §34 is
+where the honest fix lives. Circle bodies (746 of 810 props) have no orientation
+and nothing to lie about.
+
+**The content pass: 798 of 810 rotations zeroed** (reading (a), D7). ⭐ **Intent
+could not have been lost, and that was checked rather than assumed**: 86
+rotation lines had moved in the PO's uncommitted pass, all of them props added
+or duplicated in Tiled (`5.812` five times in a row is a Ctrl+D signature) — and
+since nothing rendered rotation, **no angle on disk had ever been seen by
+anyone**. Terrain's 548 rotations are untouched; they always rendered. C1c's four
+`scale` keys survive intact.
+
+⚑ **The count had moved since D7 was taken** — 797 → 798, of 807 → 810 props —
+which is the small vindication of deferring: a pass run at ruling time would
+have missed the props placed in the hours between.
+
+⚑ **The in-game editor's prop rotation box always existed** and is in
+`getZoneAsJSON`'s whitelist, so C1's L1 hazard does not apply here. But it reads
+and writes **whole degrees**, so nudging a Tiled-rotated prop there quantises the
+angle to 1° — noted in the manual.
+
+⚑ **The mineral shadow is baked into the art.** Rotating a Rock or Boulder turns
+its shadow, so a field of rotated minerals reads as lit from several directions.
+The classes still never apply a *random* rotation for exactly this reason; only
+the authored one gets through. A look call under D3, not a bug — flagged to the
+PO before the work, accepted.
+
+**⭐ The binding regen has a mechanical check now, which §4.1 wanted and could
+not have.** `plan-immune-feedback.md`'s failure mode is a Go-only regen that
+boots fine while the client reads `undefined` forever. Before touching the
+schema, the vendored `backend/pkg/api/flatc_Windows_v24_3_25.exe` was run
+against the unmodified `.fbs` files and **reproduced both checked-in binding
+sets byte-identically, offline** — so a drifted or half-applied regen is now a
+one-command diff rather than a runtime mystery. (It also sidesteps
+`flatcgen.go`, which re-downloads the compiler from GitHub on every
+`go generate`.) Each regen came out a **single-file diff**: `Resource.go` and
+`resource.ts`.
+
+**Verified:** `go build ./...` clean · `go vet` clean · `go test -count=1 ./...`
+**35 packages ok, ZERO red** · vitest **460/460** · `tsc --noEmit` clean ·
+`bash tools/tiled/verify.sh` **7/7**, with `world.json` byte-identical through
+the real Tiled binary in both trailing-newline conventions after the zeroing
+pass (269,994 bytes). Both new Go pins proven red first — the world ones by
+stubbing `Angle()` back to 0, the codec one by writing a non-zero angle.
+
+**⚑ Not verified: the in-game pass.** That a rotated tree actually renders
+turned, and that the world still looks right with all 798 noise rotations gone,
+is a PO check.
+
+**Files:** `api/schema/server.fbs` · regenerated `backend/pkg/api/AuraApi/Resource.go`
+and `api/schema/js/aura-api/resource.ts` · `model/prop/prop.go` (`rotation`,
+`Angle()`, set in `FromZone`) · `codec/gamestate.go` · `GameStateMessage.ts` ·
+`Resources.ts` (four prop classes) · `EntityManager.ts` ·
+`world/zone_body_test.go` + `codec/gamestate_test.go` (4 new pins) ·
+`api/zones/world.json` + its embedded mirror · `manual-tiled-editor.md`.
+
+### C2b — the rect collider turns too ✅ SHIPPED 2026-08-23 (uncommitted)
+
+PO, hours after C2: *"bad news: the colliders of rotated houses (rects) are not
+correct and behave as if unrotated."* That is D3's option-(B) lie, working
+exactly as designed — and it survived about one hour of contact with an author.
+
+**Schema: NONE at every layer.** No `.fbs`, no binding regen, no DB, no content
+key. Pure engine.
+
+**⛔ The reason it was priced as out of scope was a WRONG CITATION.** §4.2 sent
+rotated rect collision to *"backlog §34 territory (hard collision), far beyond
+this plan"*, and the C2 ledger, the manual and CLAUDE.md all repeated it.
+**Backlog §34 is entity-vs-entity collision** — mobs and players shoving each
+other — and it was **decided against** on 2026-07-26 in favour of soft
+separation. It has nothing to say about a rotated static rect. So the one thing
+standing between the world and an honest collider was a pointer to a closed
+decision about a different problem. ⚑ Worth generalising: a citation is not a
+cost estimate, and this one was load-bearing for a whole design ruling.
+
+**⭐ Three properties of THIS shape collapse general OBB collision to ~60 lines**,
+and none of them is true of boxes in general:
+
+1. **Props are static.** `cos`/`sin` resolve once in the constructor; the hot
+   path is two multiply-adds and never a trig call.
+2. **Only circles ever hit it.** There is no rect-vs-rect separating-axis test —
+   the expensive part of OBB collision is simply absent.
+3. ⭐ **All the geometry funnels through `clamp()`** (the closest point).
+   `intersectWithCircle`, the outside half of `resolveSolidAABB` and the
+   exported `ClosestPoint` all call it, so orienting **one function** fixed
+   overlap, push-out **and mob steering** — `boxRepulsion` is written in terms
+   of `ClosestPoint`, so it needed no edit at all. Verified the half-extents do
+   not leak: the only `HalfWidth` reads outside `phy` are in `wallRepulsion`,
+   which takes the border `InvAABB`.
+
+What actually changed: `clamp` rotates in and back out; the inside-ejection picks
+the cheapest **local** axis and rotates the result (a world axis would shove the
+circle sideways along a face it is nowhere near); `updateBB` widens to
+`|cos|·hw + |sin|·hh`.
+
+**⚑ Angle 0 is the EXACT identity, and that is the whole safety argument** —
+every prop in the world but three is unrotated, so any drift would be a
+world-wide navigation change rather than a local one. `cos=1, sin=0` makes every transform an identity, and
+`NewSolidRotatedAABB` **short-circuits on `angle == 0`** rather than trusting
+`cos32f(0)`/`sin32f(0)` to round exactly. Pinned by
+`TestSolidAABB_UnrotatedIsBitIdentical`, which asserts with `==`, not a delta.
+
+**⚑ The broadphase bound had to grow, and forgetting it fails silently in the
+worst way.** The grid pairs shapes by `shape.bb`; a 4×3 house at 45° spans
+4.9497, so an un-widened bound means the narrowphase is never even offered the
+pair — the collider would vanish at exactly the corners the rotation just swung
+out. `intersectWithBox` (viewport streaming) rides the same widened bound and is
+therefore conservative, which is the right way to be wrong for a sensor.
+
+**⭐ The old pin instructed its own replacement, and that worked.**
+`TestRotatedRectProp_ColliderStaysAxisAligned` asserted the lie and said in its
+comment: *"This test failing means somebody made rect collision honest — which
+is good news, and means this pin should be replaced, not deleted."* It is now
+`TestRotatedRectProp_ColliderTurnsWithTheSprite`, plus
+`TestRotatedRectProp_BlocksWhereItIsDrawn`, which walks a player-sized body
+(0.25) into a 45° house at two spots where upright and turned give **opposite**
+verdicts, so the pair cannot pass by accident:
+
+| point | upright house | turned house |
+|---|---|---|
+| (2.4, 0.0) | gap 0.400 — clear | gap 0.197 — **blocked** |
+| (1.9, 1.4) | inside — **blocked** | gap 0.333 — clear |
+
+**⚑ The PO's own two houses are quarter turns** (90.7° and 270.5°, freehand),
+which is why `TestSolidAABB_QuarterTurnSwapsTheExtents` exists: at 90° a rect is
+exactly an axis-aligned rect with width and height swapped, so it is the one
+rotation whose answer is checkable without trigonometry. ⭐ It is also why
+**snapping rect rotation to 90° was considered and rejected** — it would have
+covered every angle authored so far at a tenth of the cost, but a freehand 90.7°
+then has to be either refused (irritating) or silently rewritten on save, and
+"the file changed under me on save" is the failure mode that already cost 742
+props once (C1c).
+
+**⚑ Two copies of one angle now exist** — `Prop.rotation` (the sprite) and the
+body's `cos`/`sin`. They are set from a single authored value in `FromZone` and
+nothing ever moves a prop, so they cannot drift; the angle goes **into**
+`NewRect` rather than being applied afterwards, because a construct-then-orient
+step is forgettable and forgetting it reproduces this exact bug silently.
+
+⏭ **Named follow-up, deliberately not taken here: the type is still called
+`SolidAABB`** and it is no longer axis-aligned in world space — sitting next to
+a real `AABB` struct that is. A rename to `SolidRect` is compiler-checked and
+mechanical, but bundling ~20 identifier edits into a geometry change under every
+rect prop in the world would have made the diff that matters harder to read. The
+doc comment carries the truth in the meantime.
+
+⚑ **The PO was authoring live while this was written** — `world.json` went from
+810 to 884 props mid-chunk. The zeroing survived (still exactly 3 rotated), so
+their Tiled document was in sync, but it is worth knowing that any prop COUNT in
+these ledgers is a snapshot of the minute it was written, not a fact about the
+world.
+
+**Verified:** `go build` + `go vet ./...` clean · `go test -count=1 ./...`
+**35 packages ok, ZERO red** — including `model/mob` (the steering and
+oscillation pins, which route through the changed `ClosestPoint`), its alloc
+pin, and `cmd/simharness`'s guardrails, which did not shift. The whole `phy`
+suite is green with its pre-existing axis-aligned cases untouched.
+
+**`-race`: ZERO data races**, whole repo (`go test -race -count=1 ./...`,
+34 ok). The single red is `accounts.TestRepeatedFailuresAreThrottled`, which
+CLAUDE.md already carries as **red under `-race` only** — and this run shows the
+mechanism plainly: the package takes **149 s** under the detector against
+sub-second timing asserts. Unrelated to this chunk and green in the plain run.
+
+⚑ **`-race` needs a PATH fix on this machine, and it fails in the least
+diagnosable way without it.** `gcc` resolves via the MSYS alias `/mingw64/bin`,
+but the Windows loader that starts the spawned `cc1.exe` does not, so cc1 dies
+with **exit 127 and not one byte on stderr** — which surfaces four levels up as a
+bare `cgo.exe: exit status 2`, then as `[build failed]`, with nothing anywhere
+naming a missing DLL. `ldd` is no help: it resolves every dependency, because it
+resolves them through the same alias. Prepend the native path:
+`export PATH="/c/msys64/mingw64/bin:$PATH"`.
+
+**⚑ Not verified: the in-game pass.** Walking into a rotated house is a PO check.
+
+**Files:** `phy/solid_aabb.go` (`cos`/`sin`, `toLocal`/`toWorldDir`, oriented
+`clamp`, local-frame ejection, widened `updateBB`, `NewSolidRotatedAABB`) ·
+`phy/solid_aabb_test.go` (5 new pins) · `model/prop/prop.go` (`NewRect` takes an
+angle) · `model/prop/prop_test.go` (call sites) · `world/zone_body_test.go` (the
+replaced pin + the behavioural one) · `world/zone.go` · `manual-tiled-editor.md`.

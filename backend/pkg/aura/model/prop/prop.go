@@ -30,10 +30,20 @@ func FromZone(p *world.Prop) *Prop {
 	pos := phy.Vec2f{X: p.X, Y: p.Y}
 	entityType := model.EntityType(p.Def.EntityType)
 	visual, solid := p.VisualBody(), p.CollisionBody()
+	var e *Prop
 	if solid.IsRect() {
-		return NewRect(entityType, pos, solid.Width, solid.Height, visual.VisualRadius(), p.BlocksMovement)
+		// ⚑ The angle goes INTO the constructor for a rect, because it is part
+		// of what the collision body is (C2b) — a construct-then-orient step
+		// would be forgettable, and forgetting it is silent: the prop would
+		// render turned and block upright, which is the exact bug C2b fixes.
+		e = NewRect(entityType, pos, solid.Width, solid.Height, p.Rotation, visual.VisualRadius(), p.BlocksMovement)
+	} else {
+		// A circle has no orientation, so the body needs nothing; only the
+		// sprite angle below applies.
+		e = New(entityType, pos, solid.Radius, visual.VisualRadius(), p.BlocksMovement)
 	}
-	return New(entityType, pos, solid.Radius, visual.VisualRadius(), p.BlocksMovement)
+	e.rotation = p.Rotation
+	return e
 }
 
 type Prop struct {
@@ -54,6 +64,20 @@ type Prop struct {
 	// steering takes the phy.Circle directly and the streamed AABB feeds the
 	// dev overlay, so both correctly keep reporting the collider.
 	visualRadius float32
+
+	// rotation is the authored orientation in radians (plan-prop-scale.md C2),
+	// surfaced through Angle() like every other entity's — this is the SPRITE
+	// angle, which is all a circle-bodied prop needs.
+	//
+	// ⚑ A rect prop's collision body carries the same angle independently
+	// (phy.NewSolidRotatedAABB, passed in NewRect). The two are set from one
+	// authored value in FromZone and nothing moves a prop afterwards, so they
+	// cannot drift — but they ARE two copies, and TestRotatedRectProp_
+	// ColliderTurnsWithTheSprite is what keeps them honest. C2 shipped with the
+	// rect body deliberately unrotated (D3 option B) and the PO hit the
+	// resulting "renders turned, blocks upright" lie in-game the same day;
+	// C2b closed it.
+	rotation float32
 }
 
 var _ = model.PropEntity(&Prop{})
@@ -78,12 +102,12 @@ func New(entityType model.EntityType, pos phy.Vec2f, radius, visualRadius float3
 	return p
 }
 
-// NewRect builds a static axis-aligned rectangle prop entity at pos (the
-// rect's center), width x height — the COLLIDER. visualRadius is the max
-// half-extent of the VISUAL body, which is what the wire carries. Layer rules
-// match New.
-func NewRect(entityType model.EntityType, pos phy.Vec2f, width, height, visualRadius float32, blocksMovement bool) *Prop {
-	body := phy.NewSolidAABB(pos, width, height)
+// NewRect builds a static rectangle prop entity at pos (the rect's center),
+// width x height — the COLLIDER — turned by angle radians. visualRadius is the
+// max half-extent of the VISUAL body, which is what the wire carries. Layer
+// rules match New.
+func NewRect(entityType model.EntityType, pos phy.Vec2f, width, height, angle, visualRadius float32, blocksMovement bool) *Prop {
+	body := phy.NewSolidRotatedAABB(pos, width, height, angle)
 	body.Shape().Layer = propLayer(blocksMovement)
 
 	p := &Prop{
@@ -139,4 +163,12 @@ func (p *Prop) AABB() model.AABB {
 // the client scale a sprite whose aspect matches the authored body.
 func (p *Prop) Radius() float32 {
 	return p.visualRadius
+}
+
+// Angle is the authored orientation in radians. BaseEntity returns a constant
+// 0, so overriding it here is the whole server side of prop rotation: the
+// codec already marshals Angle() for characters and mobs and now does the same
+// for props.
+func (p *Prop) Angle() float32 {
+	return p.rotation
 }

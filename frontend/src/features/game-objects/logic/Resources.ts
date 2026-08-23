@@ -65,9 +65,12 @@ export abstract class Tree extends Resource {
     // 0.294, 1.27× at 2.045). The mineral art pass had already made this exact
     // argument and dropped its own addend; the tree kept one until now.
     // ⚑ Retuning a tree's on-screen size is now an api/props/tree.json edit.
-    protected constructor(id: number, x: number, y: number, size: number, svg: Texture) {
-        super(id, Game.layers.resources.trees, x, y, size, 0, svg);
+    protected constructor(id: number, x: number, y: number, size: number, rotation: number, svg: Texture) {
+        super(id, Game.layers.resources.trees, x, y, size, rotation, svg);
 
+        // The spot decal keeps its own random angle: it is ground scuffing, not
+        // part of the tree, and turning with the crown would read as a decal
+        // glued to the trunk.
         this.resourceSpotTexture = createInjectedSVG(Tree.resourceSpot.svg, x, y, this.size * 0.7, randomRotation());
         Game.layers.terrain.resourceSpots.addChild(this.resourceSpotTexture);
     }
@@ -92,8 +95,8 @@ Preloading.registerGameObjectSVG(Tree.resourceSpot, treeCfg.spotFile, treeCfg.ma
 export class RoundTree extends Tree {
     static svg: Texture;
 
-    constructor(id: number, x: number, y: number, size: number) {
-        super(id, x, y, size, RoundTree.svg);
+    constructor(id: number, x: number, y: number, size: number, rotation: number) {
+        super(id, x, y, size, rotation, RoundTree.svg);
     }
 }
 
@@ -104,7 +107,7 @@ export abstract class Mineral extends Resource {
     static resourceSpot: ISvgContainer = {svg: undefined};
     resourceSpotTexture: Sprite;
 
-    protected constructor(id: number, x: number, y: number, size: number, svg: Texture) {
+    protected constructor(id: number, x: number, y: number, size: number, rotation: number, svg: Texture) {
         super(id, Game.layers.resources.minerals, x, y,
             // ⭐ The 1.07 padding this used to apply now lives in the authored
             // body (api/props/rock.json, boulder.json) with a matching
@@ -114,7 +117,12 @@ export abstract class Mineral extends Resource {
             // `applyVisualPadding` opt-out went with it: nothing ever passed
             // false.
             size,
-            0, // Due to the shadow in the mineral graphics, those should not be randomly rotated
+            // ⚑ The authored angle only (plan-prop-scale.md C2) — minerals are
+            // still never given a RANDOM one, because the shadow is baked into
+            // the art and scattering it would light every rock differently.
+            // Deliberately rotating one in the editor turns its shadow with it;
+            // that is the D3 trade, taken knowingly.
+            rotation,
             svg);
 
         this.resourceSpotTexture = this.createResourceSpotTexture(x, y);
@@ -138,8 +146,8 @@ Preloading.registerGameObjectSVG(Mineral.resourceSpot, mineralCfg.spotFile, mine
 export class Stone extends Mineral {
     static svg: Texture;
 
-    constructor(id: number, x: number, y: number, size: number) {
-        super(id, x, y, size, Stone.svg);
+    constructor(id: number, x: number, y: number, size: number, rotation: number) {
+        super(id, x, y, size, rotation, Stone.svg);
     }
 
     createMinimapIcon() {
@@ -165,8 +173,8 @@ const houseDef = require('../../../../../api/props/house.json') as {
 export class House extends Resource {
     static svg: Texture;
 
-    constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.trees, x, y, size, 0, House.svg);
+    constructor(id: number, x: number, y: number, size: number, rotation: number) {
+        super(id, Game.layers.resources.trees, x, y, size, rotation, House.svg);
         this.visibleOnMinimap = false;
     }
 
@@ -199,8 +207,8 @@ Preloading.registerGameObjectSVG(House, houseCfg.file, houseCfg.maxSize);
 export class GateWall extends Resource {
     static svg: Texture;
 
-    constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.trees, x, y, size, 0, GateWall.svg);
+    constructor(id: number, x: number, y: number, size: number, rotation: number) {
+        super(id, Game.layers.resources.trees, x, y, size, rotation, GateWall.svg);
         this.visibleOnMinimap = false;
     }
 

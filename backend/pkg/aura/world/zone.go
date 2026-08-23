@@ -27,11 +27,19 @@ type Bounds struct {
 }
 
 // Prop is a hand-placed static object. blocksMovement puts the body on the
-// static-collision layers. Rotation is parsed and stored, but not yet
-// rendered — the Resource wire table has no rotation field and circle-bodied
-// props don't need one yet (revisit when the editor places rotated props,
-// chunk 5/6). Def is resolved at load time so an unknown prop type fails
-// loudly at boot.
+// static-collision layers. Def is resolved at load time so an unknown prop type
+// fails loudly at boot.
+//
+// Rotation is the orientation in radians. It was parsed and stored but rendered
+// NOWHERE from the world-foundation chunk until plan-prop-scale.md C2 gave
+// table Resource a rotation field; prop.Prop surfaces it through Angle() and
+// the client draws the sprite at it.
+//
+// ⚑ It is NOT cosmetic: a rect body is built turned (phy.NewSolidRotatedAABB),
+// so a rotated House blocks at its drawn angle. C2 shipped without that — the
+// D3 option-(B) trade — and the PO hit the "renders turned, blocks upright" lie
+// in-game within the hour; C2b closed it. Circle bodies have no orientation and
+// never needed anything.
 //
 // Scale is the per-placement size multiplier on the TYPE's body
 // (plan-prop-scale.md C1, D1): nil = inherit the body verbatim, which is what

@@ -467,6 +467,13 @@ function unmarshalEntity(entity, eType) {
         result.flightArrivalTick = Number(entity.flightArrivalTick());
     }
 
+    if (eType === AuraApi.AnyEntity.Resource) {
+        // The prop's authored orientation (plan-prop-scale.md C2). Props are
+        // static, so unlike a mob's this is read once — EntityManager passes it
+        // to the constructor and never touches it again.
+        result.rotation = entity.rotation();
+    }
+
     if (isFunction(entity.statusEffectsLength) &&
         isFunction(entity.statusEffects)) {
         result.statusEffects = unmarshalStatusEffects(entity.statusEffectsLength(), entity.statusEffects.bind(entity));
