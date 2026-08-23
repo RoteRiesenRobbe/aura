@@ -629,8 +629,46 @@ Tiled binary — with five off-origin first vertices in it, which is the empiric
 proof Tiled does not normalise them · `AuraTiledConvert.test.ts` 77/77 ·
 `tsc --noEmit` clean.
 
-⚑ **One census pin is legitimately red and deliberately left so:**
-`ZoneModel.test.ts` "keeps the 17 talker spawns respawn-free" now counts **18**
-(17 at HEAD) — the PO's new Wanderer. Same family as `cmd/simharness`'s
-423-combat-of-485. Both are counts over an authoring pass still in flight;
-reconcile them in one sweep when it lands, not per placement.
+### C1d — the census pins go away ✅ 2026-08-23 (uncommitted)
+
+C1c left two legs red and proposed reconciling the numbers later. ⭐ **The PO
+rejected the premise**: *"it just hardcodes a certain number of objects on the
+map? that is a bad pattern, any map changes will break it. why does it need
+it?"* It does not.
+
+Each pin's own comment states an invariant about the **pipeline**, and each
+asserted a **census** instead:
+
+| leg | asserted | actually guards |
+|---|---|---|
+| `ZoneModel.test.ts` | `respawnFree.length === 17` | the whitelist serializer must not ADD a respawn to a spawn that had none |
+| `placements_test.go` ×3 | `423` of `485` | every combat spawn reaches a placement row, and every row reaches the report |
+
+Both now measure the input and reconcile the output against it, which holds at
+any world size. ⭐ The ZoneModel one came out **strictly stronger**: it compares
+the SET of respawn-free indices, so swapping *which* spawns are respawn-free no
+longer passes, where the count did. ⚑ Each keeps a floor (`> 0`, `> 100`) —
+a derived expectation of 0 would be satisfied by a loader returning nothing.
+
+⚑ **The useful half of the old comment survives**: `IsCombatTarget`
+(`XPFactor > 0 && !FriendlyToPlayers`) is a *different* derivation from
+`scripts/world-regions.py`'s `xpFactor != 0`, and they diverge the day a species
+is authored both XP-paying and friendly. That is caught by the per-placement
+`IsCombatTarget` assert — **never by the count**, which is the point.
+
+⚑ **The third `cmd/simharness` red was not a census.**
+`TestLoadPlacements_ZoneWithoutCombatSpawnsFailsLoudly` used `os.Symlink`, which
+needs a privilege Windows withholds unless Developer Mode is on — red on the
+PO's machine and green everywhere else, which is **worse than red everywhere**:
+it trains people to skim past a failing package. Replaced with a plain recursive
+copy of a few hundred KB of JSON.
+
+⭐ **`go test -count=1 ./...` is now 35 ok with ZERO red** — `cmd/simharness` was
+red at HEAD before this work, and had been carried in the "known-inconclusive"
+list. A pin that goes red on every content edit stops being a signal, which is
+exactly what CLAUDE.md's own ⚑ *"measure the rate before diagnosing a flake"*
+warns about.
+
+Files: `cmd/simharness/placements_test.go` (derived census + the copy helper) ·
+`ZoneModel.test.ts`. **Schema NONE.** Verified: Go **35 ok / 0 red** · vitest
+**460/460** · `tsc --noEmit` clean.

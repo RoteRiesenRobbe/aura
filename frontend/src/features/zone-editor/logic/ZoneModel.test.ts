@@ -183,8 +183,14 @@ describe('capabilitiesOf', () => {
 // The L7 whitelist guard (plan-zone-editor-structure.md §7): the serializer is
 // a field whitelist that has silently eaten a field twice (spawn.level, the
 // campfire id class), and C2 edits it - so the REAL zone must round-trip
-// unchanged, and the 17 respawn-free spawns (exactly the talkers; the authored
-// convention "a talker authors no respawn") must stay respawn-free.
+// unchanged, and the respawn-free spawns (the talkers; the authored convention
+// "a talker authors no respawn") must stay respawn-free.
+//
+// ⭐ The second leg measures the INPUT and reconciles the output against it.
+// It used to assert a hardcoded 17, which made placing one talker in Tiled turn
+// it red - a census pin over content nobody promised to freeze. What the
+// serializer must not do is ADD a respawn to a spawn that had none, and that
+// holds at any world size.
 // ⚑ Read from disk with an absolute path: jsdom rewrites import.meta.url to a
 // non-file scheme, so a new URL(relative, import.meta.url) does not work here.
 // process.cwd() is frontend/ under vitest.
@@ -200,14 +206,22 @@ describe('world.json round-trip', () => {
         expect(exported).toEqual(worldRaw);
     });
 
-    it('keeps the 17 talker spawns respawn-free', () => {
+    it('keeps every respawn-free spawn respawn-free', () => {
+        let authored = worldRaw.spawns
+            .map((s, i) => ('respawnTicks' in s ? -1 : i))
+            .filter(i => i >= 0);
+        // A world with no talkers at all would make the leg vacuous.
+        expect(authored.length).toBeGreaterThan(0);
+
         let model = ZoneModel.fromJSON(worldRaw);
 
         let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
 
-        let respawnFree = exported.spawns.filter(s => !('respawnTicks' in s));
-        expect(respawnFree.length).toBe(17);
-        expect(respawnFree.every(s => !('respawnVariancePct' in s))).toBe(true);
+        let survived = exported.spawns
+            .map((s, i) => ('respawnTicks' in s ? -1 : i))
+            .filter(i => i >= 0);
+        expect(survived).toEqual(authored);
+        expect(authored.every(i => !('respawnVariancePct' in exported.spawns[i]))).toBe(true);
     });
 });
 

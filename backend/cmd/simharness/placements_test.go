@@ -6,6 +6,7 @@ package main
 // world.
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,22 +17,57 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
 
-// The enumeration is pinned against the authored world: 423 of world.json's
-// 485 spawns are combat targets, and every one of them resolves to a level.
+// authoredCombatSpawns counts the combat targets in the authored zone, read
+// through the same content source the loader uses.
 //
-// ⚑ The 423 is NOT a transcription of a Python fact. scripts/world-regions.py
-// filters on `xpFactor != 0`; this rides mobs.MobDefinition.IsCombatTarget,
-// which is `XPFactor > 0 && !FriendlyToPlayers` — the same derivation the
-// nameplate catalog uses. The two agree exactly today because no species is
-// both XP-paying and friendly. If one is ever authored, they diverge and this
-// leg is where it surfaces. That is a feature.
+// ⭐ It is DERIVED, not hardcoded, and that is the point: this file used to
+// assert `Len(placements, 423)` against world.json's 485 spawns, so placing one
+// mob in the editor turned three legs red and taught everyone to ignore them. A
+// census pin measures the CONTENT; the invariant worth guarding is that the
+// PIPELINE loses nothing — every combat spawn reaches a placement row, and
+// every row reaches the report. Those hold at any world size.
+//
+// ⚑ The floor below is what a bare count cannot do without: a derived
+// expectation of 0 would match a broken loader returning nothing. The world has
+// hundreds of combat spawns and dropping under 100 means something collapsed,
+// not that somebody deleted a wolf.
+func authoredCombatSpawns(t *testing.T) int {
+	t.Helper()
+	c, err := contentFS("")
+	require.NoError(t, err)
+	mr, _, err := loadRegistries(c)
+	require.NoError(t, err)
+	pr, err := world.PropRegistryFromFS(c.props)
+	require.NoError(t, err)
+	zone, err := world.LoadZoneFS(c.zones, "world", mr, pr)
+	require.NoError(t, err)
+
+	n := 0
+	for i := range zone.Spawns {
+		if zone.Spawns[i].Def.IsCombatTarget() {
+			n++
+		}
+	}
+	require.Greater(t, n, 100, "the authored world holds hundreds of combat spawns; %d means the load collapsed, not that content shrank", n)
+	return n
+}
+
+// Every combat spawn in the authored world becomes a placement that resolves to
+// a level, and the level rungs 1-20 all have a tenant.
+//
+// ⚑ IsCombatTarget is `XPFactor > 0 && !FriendlyToPlayers` — the same derivation
+// the nameplate catalog uses, and NOT what scripts/world-regions.py filters on
+// (`xpFactor != 0`). The two agree today because no species is both XP-paying
+// and friendly; if one is ever authored they diverge, and the per-placement
+// IsCombatTarget assert below is where it surfaces.
 func TestLoadPlacements_EnumeratesTheAuthoredWorld(t *testing.T) {
 	placements, err := loadPlacements("", "world")
 	require.NoError(t, err)
 
-	assert.Len(t, placements, 423, "combat spawns in world.json (of 485 total)")
+	assert.Len(t, placements, authoredCombatSpawns(t), "every combat spawn in world.json becomes a placement")
 
 	rungs := map[int]int{}
 	for _, p := range placements {
@@ -102,6 +138,35 @@ func TestContentFS_MissingSubdirectoriesFailLoudly(t *testing.T) {
 	require.Error(t, err, "an empty zones dir is not an empty world")
 }
 
+// copyContentDir mirrors one api/ subdirectory into a temp content dir.
+//
+// ⚑ It used to be os.Symlink, which needs a privilege Windows does not grant by
+// default (Developer Mode off) — so this leg was red on the PO's machine and
+// nowhere else, which is worse than red everywhere: it trains people to skim
+// past a failing package. A copy of a few hundred KB of JSON costs nothing and
+// runs the same on every platform.
+func copyContentDir(t *testing.T, src, dst string) {
+	t.Helper()
+	require.NoError(t, filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dst, rel)
+		if info.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, data, 0o644)
+	}))
+}
+
 // The sharper half of the same rule, and the one the guard above is actually
 // for: a zone that PARSES but holds nothing a player can fight. LoadZoneFS is
 // happy with it, so without the explicit refusal the battery would print a
@@ -110,7 +175,7 @@ func TestContentFS_MissingSubdirectoriesFailLoudly(t *testing.T) {
 func TestLoadPlacements_ZoneWithoutCombatSpawnsFailsLoudly(t *testing.T) {
 	dir := t.TempDir()
 	for _, name := range []string{"skills", "factions", "mobs", "props"} {
-		require.NoError(t, os.Symlink(filepath.Join(repoAPIDir(t), name), filepath.Join(dir, name)))
+		copyContentDir(t, filepath.Join(repoAPIDir(t), name), filepath.Join(dir, name))
 	}
 	require.NoError(t, os.Mkdir(filepath.Join(dir, "zones"), 0o755))
 	// Farmer is xpFactor 0 (an NPC), so this zone is valid and has zero prey.
@@ -234,7 +299,7 @@ func TestRunPlacementsBattery_ReconcilesAgainstTheAuthoredWorld(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	assert.Equal(t, 423, report.TotalSpawns, "every combat spawn reaches a row")
+	assert.Equal(t, authoredCombatSpawns(t), report.TotalSpawns, "every combat spawn reaches a row")
 	assert.Len(t, report.Rows, 20, "rungs 1-20 (D5 leaves 21-30 empty)")
 
 	for _, row := range report.Rows {
@@ -249,6 +314,6 @@ func TestRunPlacementsBattery_ReconcilesAgainstTheAuthoredWorld(t *testing.T) {
 	}
 
 	// The tables render without a panic on the real, ragged content.
-	assert.Contains(t, report.PlacementTable(), "423 combat spawns")
+	assert.Contains(t, report.PlacementTable(), fmt.Sprintf("%d combat spawns", authoredCombatSpawns(t)))
 	assert.NotEmpty(t, report.PlacementSpeciesTable())
 }
