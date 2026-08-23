@@ -623,6 +623,43 @@ byte-identical · `tools/tiled/verify.sh` green. ⚑ **Re-check in the GUI**: a
 spawn should now show the mob dropdown immediately, with the untouched knobs
 displayed as inherited.
 
+#### C6 follow-up 2 — adding a spawn from scratch ✅ 2026-08-23
+
+**PO question:** *"how should I manually add new spawns from scratch in Tiled?
+there are only tiles for props"* — which is correct, and the manual had skipped
+the step that matters.
+
+⚑ **There is no mob tileset by design** (C2's scope cut): only 12 of 61 mob
+defs carry an `entityType`, and a mob's sprite is otherwise chosen by a
+hand-written class in `Mobs.ts`, so a palette of them would be the
+hand-maintained drift D7 forbids. Spawns are point objects and the species is a
+dropdown instead.
+
+⭐ **The missing step is the object's Class.** All seven spawn fields belong to
+`AuraSpawnCombat` / `Talker` / `Fixture` / `Companion`, so a freshly drawn
+point shows *nothing* until its Class is set — no form, no dropdown. Objects
+the reader creates get their class assigned, which is why this never showed up
+until someone drew one by hand.
+
+**Fixed in the two places it can be fixed:**
+
+- **The manual now leads the Spawns section with it** — Insert Point, set
+  Class, pick the mob — plus the faster route nobody had written down: copy an
+  existing spawn, which arrives with class, mob and overrides intact.
+- **The validator teaches the workflow instead of diagnosing.** A bare point
+  used to fail with `unknown mob ""`, which is true and useless. It now names
+  the Class step and the four classes. The same applies to a plain rectangle
+  drawn on `terrain` or `props`, which has no identity because a boxed object
+  takes its type from the **tile it carries** — those now say to drag from the
+  tileset rather than draw a shape.
+
+⚑ The spawn *kind* is derived from the mob def and is never saved, so picking
+the "wrong" class is purely cosmetic — it only colours the marker. Worth saying
+in the manual, because the four-way choice otherwise looks load-bearing.
+
+**Verified:** vitest **448/448** (1 new, covering all three bare-object cases) ·
+`tsc --noEmit` clean · `tools/tiled/verify.sh` green.
+
 ### C3 — the manual, the verify leg, the bookkeeping ✅ SHIPPED 2026-08-23 (uncommitted)
 
 The plan is complete. Seven chunks, all shipped.

@@ -687,6 +687,27 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
         expect(C.readSpawn({name: 'Bear', properties: {}}).mob).toBe('Bear');
     });
 
+    /**
+     * ⭐ A freshly drawn object has no name, no class and no properties, so the
+     * form never appeared and the old message was `unknown mob ""`. These three
+     * are the only place the tool can teach the workflow, so they carry the
+     * setup step rather than a diagnosis.
+     */
+    it('tells you how to set up an object drawn from scratch', () => {
+        const at = (layer: string, shape: string, w = 0) => {
+            const m = C.zoneToModel(zone()) as {layers: {name: string; objects: unknown[]}[]};
+            m.layers.filter(l => l.name === layer)[0].objects.push({
+                shape, layer, id: 42, name: '', x: 1200, y: 600,
+                width: w, height: w, rotation: 0, properties: {},
+            });
+            return (C.validateModel(m) as string[])[0];
+        };
+        expect(at('spawns', 'point')).toContain('Set its Class');
+        expect(at('spawns', 'point')).toContain('AuraSpawnCombat');
+        expect(at('props', 'rect', 120)).toContain('aura-props tileset');
+        expect(at('terrain', 'rect', 120)).toContain('aura-terrain tileset');
+    });
+
     it('refuses a spawn nobody has assigned a mob to', () => {
         const o = spawnObj(oneSpawn());
         o.properties.mob = C.MOB_UNSET;

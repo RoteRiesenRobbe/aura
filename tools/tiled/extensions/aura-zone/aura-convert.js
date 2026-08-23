@@ -561,9 +561,20 @@ var AuraConvert = (function () {
         // ignores it (zone.go has no terrain checks at all) and the client
         // dereferences undefined at render time, so a typo shows up as a broken
         // browser rather than a failed boot. Free to close here.
+        // A boxed object gets its identity from the TILE it carries, so one
+        // drawn with the rectangle tool has no identity at all. Same confusion
+        // as a bare point on the spawns layer, same kind of answer.
+        function fromTileset(o, i, which, set) {
+            bad(o, i, 'this has no type — it was drawn as a plain shape rather than dragged'
+                + ' from the ' + set + ' tileset. Delete it and drag a ' + which + ' from the'
+                + ' tileset panel instead; the tile is what says what it is');
+        }
+
         var terrainKnown = content.TERRAIN_TYPES.length > 0;
         layer('terrain').forEach(function (o, i) {
-            if (terrainKnown && whereElse(o.name) !== 'ground texture') {
+            if (!o.name) {
+                fromTileset(o, i, 'texture', 'aura-terrain');
+            } else if (terrainKnown && whereElse(o.name) !== 'ground texture') {
                 bad(o, i, unknownName('terrain', o.name, 'ground texture'));
             }
             if (!(o.width > 0)) { bad(o, i, 'size must be positive'); }
@@ -574,7 +585,9 @@ var AuraConvert = (function () {
 
         var propsKnown = Object.keys(content.PROP_SIZE).length > 0;
         layer('props').forEach(function (o, i) {
-            if (propsKnown && !has(content.PROP_SIZE, o.name)) {
+            if (!o.name) {
+                fromTileset(o, i, 'prop', 'aura-props');
+            } else if (propsKnown && !has(content.PROP_SIZE, o.name)) {
                 bad(o, i, unknownName('props', o.name, 'prop type'));
             }
         });
@@ -588,6 +601,15 @@ var AuraConvert = (function () {
             var known = !mobsKnown || has(content.MOB_KIND, p.mob);
             if (p.mob === MOB_UNSET) {
                 bad(o, i, 'no mob chosen yet — pick one in the Properties panel ("mob")');
+                known = false;
+            } else if (!p.mob) {
+                // A freshly drawn point has no name, no class and no properties,
+                // so the form never appeared. Say how to make it appear rather
+                // than reporting an unknown mob named "".
+                bad(o, i, 'this spawn has no mob. Set its Class (Properties panel, top row) to'
+                    + ' AuraSpawnCombat / AuraSpawnTalker / AuraSpawnFixture /'
+                    + ' AuraSpawnCompanion — that is what brings up the spawn form — then'
+                    + ' pick a "mob" from the dropdown');
                 known = false;
             } else if (!known) {
                 bad(o, i, unknownName('spawns', p.mob, 'mob'));

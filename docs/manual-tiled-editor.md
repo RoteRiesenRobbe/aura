@@ -108,8 +108,32 @@ movement.
 
 ### Spawns
 
-Click with **Insert Point** on the `spawns` layer, then fill in the form in the
-Properties panel. Every field is a dropdown or a typed box:
+⚑ **Spawns are not tiles.** There is no mob tileset to drag from — a mob's
+sprite is picked by hand-written client code, not by anything in `api/mobs`, so
+a palette of them would be a hand-maintained list that drifts. Spawns are point
+objects instead, and the species is a dropdown.
+
+**Adding one from scratch, in three steps:**
+
+1. Select the `spawns` layer and click once with **Insert Point** (I).
+2. In the Properties panel, set **Class** (the top row, above the custom
+   properties) to the kind of thing it is: `AuraSpawnCombat`,
+   `AuraSpawnTalker`, `AuraSpawnFixture` or `AuraSpawnCompanion`.
+   ⭐ **This is the step that brings up the form** — all seven spawn fields
+   belong to that class, so a classless point shows nothing. It also gives the
+   marker the same colour the in-game editor uses for that kind.
+3. Pick the species from the **`mob`** dropdown, and set anything else you want
+   to override.
+
+The kind only decides the colour and is not saved to the file, so picking the
+"wrong" one is cosmetic — but the save tells you if you forget the Class
+entirely, and names the four options.
+
+**Faster than all of that:** copy an existing spawn of the same species
+(Ctrl+C / Ctrl+V) and drag the copy where you want it. It arrives with the
+class, the mob and every override already set.
+
+Each field is a dropdown or a typed box:
 
 | Field | Meaning |
 |---|---|
