@@ -135,6 +135,18 @@ Collected 2026-08-24 from the docs; input inventory for the design session.
 9. **The six wanted effect archetypes** (backlog §40 complexity ranking):
    "presentation for all six rides §39; none of them justifies a seventh
    independently-anchored overlay before it."
+10. **Per-skill hit/field dressings** (PO animation mockups 2026-08-24;
+    PROTOTYPE built and PO-played "works", branch `prototype/skill-visuals`
+    `f2e4083c`, deliberately unmerged - the attack-lines pattern): ambient
+    particle field / strike-at-victim / projectile-with-impact-timed-number,
+    own player only, attribution by the item-3 inference (same blind spot).
+    The ship version needs: the visual style as an AUTHORED skill-JSON
+    property instead of the prototype's client-side skill-id table; item 3's
+    per-hit source for honest strikes in multiplayer; item 4's per-hit events
+    for honest impact-timed numbers; and the item-7 wire widening before any
+    OTHER entity's aura can carry its flavor. Perf notes for the design
+    session live in the prototype's module header (ParticleContainer + one
+    FX manager are the two known upgrades at world scale).
 
 ## 7. Open questions for the design session
 
