@@ -474,8 +474,20 @@ func (rcv *Character) MutateFlightArrivalTick(n uint64) bool {
 	return rcv._tab.MutateUint64Slot(72, n)
 }
 
+func (rcv *Character) ImmuneHit() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(74))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *Character) MutateImmuneHit(n bool) bool {
+	return rcv._tab.MutateBoolSlot(74, n)
+}
+
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(35)
+	builder.StartObject(36)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -584,6 +596,9 @@ func CharacterAddFlightDest(builder *flatbuffers.Builder, flightDest flatbuffers
 }
 func CharacterAddFlightArrivalTick(builder *flatbuffers.Builder, flightArrivalTick uint64) {
 	builder.PrependUint64Slot(34, flightArrivalTick, 0)
+}
+func CharacterAddImmuneHit(builder *flatbuffers.Builder, immuneHit bool) {
+	builder.PrependBoolSlot(35, immuneHit, false)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

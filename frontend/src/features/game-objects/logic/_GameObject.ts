@@ -63,6 +63,12 @@ const FLOATING_NUMBER_COLORS: Record<FloatingNumberKind, number> = {
 // (bare styling — the step-8 UI pass polishes it).
 const CRIT_SIZE_FACTOR = 1.8;
 
+// The floating "Immune" label (plan-immune-feedback.md, D3): grey and
+// normal-sized, so a fully mitigated hit reads as a non-event where a red
+// number would have been. Not a FloatingNumberKind - the label is not a
+// number and must not pass showFloatingNumber's value <= 0 guard.
+export const IMMUNE_COLOR = 0xB0B0B0;
+
 // Damage/heal arrive in absolute HP (item 11 Phase 1) — the floating number is
 // the literal HP dealt. Kept as a helper so a tiny hit still shows at least 1.
 export function hpToDisplay(hp: number): number {

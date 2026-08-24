@@ -43,6 +43,8 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 	AuraApi.MobAddDamageTaken(builder, m.DamageTaken().UInt32())
 	// Crit-flagged share of damage taken (skill-vocab chunk 1, §4.3).
 	AuraApi.MobAddCritTaken(builder, m.CritTaken().UInt32())
+	// A fully mitigated hit this tick - the floating "Immune" label.
+	AuraApi.MobAddImmuneHit(builder, m.ImmuneHit())
 	// Current total absorb capacity — a live value (skill-vocab chunk 2).
 	AuraApi.MobAddShieldHp(builder, m.ShieldHP().UInt32())
 	AuraApi.MobAddHealReceived(builder, m.HealReceived().UInt32())

@@ -1,5 +1,5 @@
 import {Character} from '../../game-objects/logic/Character';
-import {hpToDisplay} from '../../game-objects/logic/_GameObject';
+import {hpToDisplay, IMMUNE_COLOR} from '../../game-objects/logic/_GameObject';
 import {StatusEffect} from '../../game-objects/logic/StatusEffect';
 import {Controls} from '../../controls/logic/Controls';
 import {Camera} from '../../camera/logic/Camera';
@@ -155,6 +155,13 @@ export class Player {
         }
         if (entity.damageTaken > critTaken) {
             this.character.showFloatingNumber(hpToDisplay(entity.damageTaken - critTaken), 'damage');
+        }
+        // A hit was fully mitigated this tick (plan-immune-feedback.md):
+        // grey "Immune" where the number would have been. Only when nothing
+        // landed (D9) - the word explains why nothing is happening, so when
+        // damage IS showing, the question does not arise.
+        if (entity.immuneHit && !(entity.damageTaken > 0)) {
+            this.character.showFloatingText('Immune', IMMUNE_COLOR);
         }
         if (entity.healReceived > 0) {
             this.character.showFloatingNumber(hpToDisplay(entity.healReceived), 'heal');

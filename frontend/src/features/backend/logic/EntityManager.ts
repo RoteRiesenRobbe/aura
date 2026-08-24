@@ -2,7 +2,7 @@ import _clone = require('lodash/clone');
 import {Ticker} from 'pixi.js';
 import {isDefined, isFunction} from '../../common/logic/Utils';
 import {DebugCircle} from '../../internal-tools/develop/logic/DebugCircle';
-import {GameObject, hpToDisplay} from '../../game-objects/logic/_GameObject';
+import {GameObject, hpToDisplay, IMMUNE_COLOR} from '../../game-objects/logic/_GameObject';
 import {StatusEffect} from '../../game-objects/logic/StatusEffect';
 import {Character} from '../../game-objects/logic/Character';
 import {Mob} from '../../game-objects/logic/Mobs';
@@ -187,6 +187,13 @@ export class EntityManager {
         }
         if (entity.damageTaken > critTaken) {
             gameObject.showFloatingNumber(hpToDisplay(entity.damageTaken - critTaken), 'damage');
+        }
+        // A hit was fully mitigated this tick (plan-immune-feedback.md):
+        // grey "Immune" where the number would have been. Only when nothing
+        // landed (D9) - the word explains why nothing is happening, so when
+        // damage IS showing, the question does not arise.
+        if (entity.immuneHit && !(entity.damageTaken > 0)) {
+            gameObject.showFloatingText('Immune', IMMUNE_COLOR);
         }
         if (entity.healReceived > 0) {
             gameObject.showFloatingNumber(hpToDisplay(entity.healReceived), 'heal');

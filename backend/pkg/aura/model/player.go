@@ -129,6 +129,10 @@ type PlayerEntity interface {
 	// CritTaken is the crit-flagged share of DamageTaken (plan-skill-vocab
 	// chunk 1, §4.3), serialized as crit_taken so the client pops it big.
 	CritTaken() vitals.VitalSign
+	// ImmuneHit reports a fully mitigated hit this tick
+	// (plan-immune-feedback.md), serialized as immune_hit - drives the
+	// floating "Immune" label; per-tick one-shot like DamageTaken.
+	ImmuneHit() bool
 	// CostPaid is the resource cost charged this tick (round-7 item 7),
 	// serialized as cost_paid so the client pops it blue — the spend's own
 	// accumulator, deliberately separate from DamageTaken.

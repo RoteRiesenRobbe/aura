@@ -127,6 +127,11 @@ type MobEntity interface {
 	// chunk 1, §4.3), serialized as crit_taken so the client pops it big.
 	CritTaken() vitals.VitalSign
 
+	// ImmuneHit reports a fully mitigated hit this tick
+	// (plan-immune-feedback.md), serialized as immune_hit - drives the
+	// floating "Immune" label; per-tick one-shot like DamageTaken.
+	ImmuneHit() bool
+
 	// ShieldHP is the current total absorb capacity (plan-skill-vocab
 	// chunk 2), serialized as shield_hp — a live value, not a per-tick
 	// accumulator.

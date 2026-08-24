@@ -215,8 +215,13 @@ flightArrivalTick():bigint {
   return offset ? this.bb!.readUint64(this.bb_pos + offset) : BigInt('0');
 }
 
+immuneHit():boolean {
+  const offset = this.bb!.__offset(this.bb_pos, 74);
+  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
+}
+
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(35);
+  builder.startObject(36);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -369,6 +374,10 @@ static addFlightDest(builder:flatbuffers.Builder, flightDestOffset:flatbuffers.O
 
 static addFlightArrivalTick(builder:flatbuffers.Builder, flightArrivalTick:bigint) {
   builder.addFieldInt64(34, flightArrivalTick, BigInt('0'));
+}
+
+static addImmuneHit(builder:flatbuffers.Builder, immuneHit:boolean) {
+  builder.addFieldInt8(35, +immuneHit, +false);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

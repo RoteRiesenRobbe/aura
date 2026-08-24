@@ -326,6 +326,7 @@ function unmarshalEntity(entity, eType) {
         burstRadius: undefined,
         damageTaken: undefined,
         critTaken: undefined,
+        immuneHit: undefined,
         costPaid: undefined,
         shieldHp: undefined,
         healReceived: undefined,
@@ -366,6 +367,8 @@ function unmarshalEntity(entity, eType) {
         result.damageTaken = entity.damageTaken();
         // crit-flagged share of damageTaken — rendered big (skill-vocab chunk 1)
         result.critTaken = entity.critTaken();
+        // a hit was fully mitigated this tick - the floating "Immune" label
+        result.immuneHit = entity.immuneHit();
         // current absorb capacity, 0 = unshielded (skill-vocab chunk 2)
         result.shieldHp = entity.shieldHp();
         result.healReceived = entity.healReceived();
@@ -423,6 +426,8 @@ function unmarshalEntity(entity, eType) {
         result.damageTaken = entity.damageTaken();
         // crit-flagged share of damageTaken — rendered big (skill-vocab chunk 1)
         result.critTaken = entity.critTaken();
+        // a hit was fully mitigated this tick - the floating "Immune" label
+        result.immuneHit = entity.immuneHit();
         // resource cost paid this tick — the blue number (round-7 item 7)
         result.costPaid = entity.costPaid();
         // current absorb capacity, 0 = unshielded (skill-vocab chunk 2)

@@ -616,6 +616,14 @@ type Mob struct {
 	// chunk 1, §4.3), wire crit_taken; reset every tick alongside it.
 	critTaken vitals.VitalSign
 
+	// immuneHit records that a hit landed this tick and was fully mitigated -
+	// scripted invulnerability or resistances multiplied out to zero - for the
+	// floating "Immune" label (plan-immune-feedback.md); wire immune_hit,
+	// reset every tick alongside damageTaken. A gate-key miss does NOT set it
+	// (D1: a gated skill's non-target was never immune), nor does a hit whose
+	// authored damage is already 0 (a no-op, not immunity).
+	immuneHit bool
+
 	// healReceived accumulates health restored this tick (VitalSign units) for
 	// the floating heal number of a mob-cast heal (mob-depth chunk 8); mirrors
 	// damageTaken and resets every tick alongside it.
@@ -1874,6 +1882,9 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vital
 	// participate). Zero threat accrues while immune — post-lift targeting
 	// starts at sensor acquisition; revisit for the real boss content.
 	if m.invulnerable {
+		if damage.HP > 0 {
+			m.immuneHit = true // a real hit bounced; a 0-HP touch is a no-op
+		}
 		return 0
 	}
 	// A gated hit (content pass C1) is opt-in: a mob that does not name the key
@@ -1894,7 +1905,13 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vital
 	// passive are distinct sources and stack multiplicatively.
 	hp32 := damage.HP * multiplier * m.skills.Derived.DamageReductionFactor()
 	// A fully resisted hit stays a non-event: no combat signal, no absorb.
+	// vitals.HP floors any positive amount to at least 1 (§2 of the plan), so
+	// this branch is reachable with damage.HP > 0 only when mitigation
+	// genuinely zeroed the hit - that, and only that, stamps "Immune".
 	if vitals.HP(hp32) <= 0 {
+		if damage.HP > 0 {
+			m.immuneHit = true
+		}
 		return 0
 	}
 	// Shield absorb (chunk 2, F6 §3.1/8): post-mitigation damage drains the
@@ -1936,6 +1953,13 @@ func (m *Mob) DamageTaken() vitals.VitalSign {
 // §4.3); serialized as the crit_taken wire field so the client pops it big.
 func (m *Mob) CritTaken() vitals.VitalSign {
 	return m.critTaken
+}
+
+// ImmuneHit reports that a hit was fully mitigated this tick
+// (plan-immune-feedback.md); serialized as the immune_hit wire field, drives
+// the floating "Immune" label.
+func (m *Mob) ImmuneHit() bool {
+	return m.immuneHit
 }
 
 // Heal restores up to hp absolute HP, capped at maxHealth, records the
@@ -2086,6 +2110,7 @@ func (m *Mob) DueBuffEvents() ([]skills.DotHit, []skills.HotEvent) {
 func (m *Mob) ResetTickNumbers() {
 	m.damageTaken = 0
 	m.critTaken = 0
+	m.immuneHit = false
 	m.healReceived = 0
 	m.auraHitStyle = model.AuraHitStyleNone
 	m.buffs.Tick()

@@ -163,8 +163,13 @@ level():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
+immuneHit():boolean {
+  const offset = this.bb!.__offset(this.bb_pos, 54);
+  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
+}
+
 static startMob(builder:flatbuffers.Builder) {
-  builder.startObject(25);
+  builder.startObject(26);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -277,6 +282,10 @@ static addAppliedEffects(builder:flatbuffers.Builder, appliedEffects:number) {
 
 static addLevel(builder:flatbuffers.Builder, level:number) {
   builder.addFieldInt16(24, level, 0);
+}
+
+static addImmuneHit(builder:flatbuffers.Builder, immuneHit:boolean) {
+  builder.addFieldInt8(25, +immuneHit, +false);
 }
 
 static endMob(builder:flatbuffers.Builder):flatbuffers.Offset {

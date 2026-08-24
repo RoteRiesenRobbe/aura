@@ -255,6 +255,13 @@ table Mob {
   //
   // Appended at table end so existing field IDs stay stable.
   level:ushort = 0;
+
+  // A hit landed this tick and was fully mitigated: scripted invulnerability
+  // or resistances multiplied out to zero. Drives the floating "Immune"
+  // label. Per-tick one-shot like damage_taken; a gate-key miss does NOT
+  // set it (a gated skill's non-target was never immune). Appended at the
+  // table end so existing field IDs stay stable.
+  immune_hit:bool = false;
 }
 
 table Character {
@@ -384,6 +391,13 @@ table Character {
   flying:bool = false;
   flight_dest:Vec2f;
   flight_arrival_tick:ulong = 0;
+
+  // A hit landed this tick and was fully mitigated: resistances multiplied
+  // out to zero (god mode deliberately writes nothing). Drives the floating
+  // "Immune" label. Per-tick one-shot like campfire_bound; mirrors
+  // Mob.immune_hit. Appended at the table end so existing field IDs stay
+  // stable.
+  immune_hit:bool = false;
 }
 
 table Spectator {

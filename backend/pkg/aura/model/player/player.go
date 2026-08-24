@@ -162,6 +162,11 @@ type player struct {
 	// tick by ResetTickNumbers.
 	damageTaken  vitals.VitalSign
 	critTaken    vitals.VitalSign // crit-flagged share of damageTaken (chunk 1)
+	// immuneHit records a fully mitigated hit this tick for the floating
+	// "Immune" label (plan-immune-feedback.md); wire immune_hit. God mode
+	// short-circuits earlier and never sets it (D6); a gate-key miss and a
+	// 0-HP hit stay silent (non-target / no-op, not immunity).
+	immuneHit bool
 	costPaid     vitals.VitalSign // resource cost paid this tick (round-7 item 7)
 	healReceived vitals.VitalSign
 	xpGained     uint64
@@ -384,7 +389,13 @@ func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vi
 		return 0
 	}
 	// A fully resisted hit stays a non-event: no combat stamp, no absorb.
+	// vitals.HP floors any positive amount to at least 1, so with
+	// damage.HP > 0 this branch means mitigation genuinely zeroed the hit -
+	// that, and only that, stamps "Immune" (plan-immune-feedback.md §2).
 	if vitals.HP(hp32) <= 0 {
+		if damage.HP > 0 {
+			p.immuneHit = true
+		}
 		return 0
 	}
 
@@ -426,6 +437,11 @@ func (p *player) DamageTaken() vitals.VitalSign { return p.damageTaken }
 // CritTaken is the crit-flagged share of this tick's damage taken (chunk 1,
 // §4.3); serialized as the crit_taken wire field so the client pops it big.
 func (p *player) CritTaken() vitals.VitalSign    { return p.critTaken }
+
+// ImmuneHit reports that a hit was fully mitigated this tick
+// (plan-immune-feedback.md); serialized as the immune_hit wire field, drives
+// the floating "Immune" label.
+func (p *player) ImmuneHit() bool { return p.immuneHit }
 func (p *player) HealReceived() vitals.VitalSign { return p.healReceived }
 func (p *player) XpGained() uint64               { return p.xpGained }
 
@@ -720,6 +736,7 @@ func (p *player) DueBuffEvents() ([]skills.DotHit, []skills.HotEvent) {
 func (p *player) ResetTickNumbers() {
 	p.damageTaken = 0
 	p.critTaken = 0
+	p.immuneHit = false
 	p.costPaid = 0
 	p.healReceived = 0
 	p.xpGained = 0

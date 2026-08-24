@@ -357,8 +357,20 @@ func (rcv *Mob) MutateLevel(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(52, n)
 }
 
+func (rcv *Mob) ImmuneHit() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(54))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *Mob) MutateImmuneHit(n bool) bool {
+	return rcv._tab.MutateBoolSlot(54, n)
+}
+
 func MobStart(builder *flatbuffers.Builder) {
-	builder.StartObject(25)
+	builder.StartObject(26)
 }
 func MobAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -437,6 +449,9 @@ func MobAddAppliedEffects(builder *flatbuffers.Builder, appliedEffects byte) {
 }
 func MobAddLevel(builder *flatbuffers.Builder, level uint16) {
 	builder.PrependUint16Slot(24, level, 0)
+}
+func MobAddImmuneHit(builder *flatbuffers.Builder, immuneHit bool) {
+	builder.PrependBoolSlot(25, immuneHit, false)
 }
 func MobEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

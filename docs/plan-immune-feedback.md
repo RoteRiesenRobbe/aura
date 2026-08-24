@@ -1,8 +1,11 @@
 # Plan - "Immune" over the head of a fully mitigated target
 
-**Status:** 📋 PLANNED 2026-08-18, not started. One chunk, backend + wire +
-frontend, **DB schema NONE, wire schema YES** (one appended bool on two
-tables, both regenerations required).
+**Status:** ✅ COMPLETE 2026-08-24 - PO in-game pass same day ("tested
+works"), which also settles the §9 cadence call: the measured one label per
+~1.2 s at aura beat stands, no client-side cooldown built. One chunk,
+backend + wire + frontend, **DB schema NONE, wire schema YES** (one appended
+bool on two tables, both regenerations done). Ledger: §10. The CC-immunity
+follow-up (§9) stays a CLAUDE.md watch item.
 
 **PO ask 2026-08-18:** when something immune gets hit, the word "Immune" should
 rise over its head where a damage number would have been. The trigger is
@@ -213,3 +216,38 @@ edit in it to copy from.
 - **CC immunity.** Once this exists, "Immune" over a ccImmune mob refusing a
   stun is a small follow-up on the same rails, and it closes a standing watch
   item. It needs its own signal, since no damage path runs there.
+
+---
+
+## 10. Chunk ledger (BUILT 2026-08-24)
+
+Built exactly as planned, §5's file list held, plus three findings:
+
+- **A build-order gap the plan missed, closed while building:** `hp32 <= 0`
+  is also true when the *authored* damage is 0 (the shipped `Damage: 0`
+  MobTouches path) - a no-op hit, not immunity. Both stamps are gated on
+  `damage.HP > 0`, and the no-op case is pinned in both packages'
+  `immune_hit_test.go`.
+- **One path correction:** the client dispatch is
+  `features/backend/logic/EntityManager.ts`, not `features/core/` (§1's
+  table had the pre-art-overhaul path).
+- **D6 verified at HEAD:** `IsGod()` at `player.go:383` still precedes the
+  mitigation check, so god writes no flag with zero code.
+
+**Verified:** 13 red-first Go tests (both packages; D1 gate pin, floor pin,
+D9 coexistence pin, reset pins, god pin, 0-HP pin) · full `go test -count=1
+./...` green · `-race` on model/mob, model/player, codec · vitest 380/380 ·
+typecheck · both prod builds · boot 0 WARN/0 ERROR (105 skills / 61 mobs) ·
+**new harness `immune-feedback.mjs` PASS** (venue moved to the Bramble wall -
+the Rockfall sits in the Dark Tunnel, where darkness suppression would
+swallow the label; 10/10 grey labels over the wall, 0 damage numbers, 0
+console errors) · `hygiene-wire-prune.mjs` clean · `harnessdb -cleanup` run.
+
+**Cadence measurement for §9:** one label per ~1.2 s at the starting aura's
+beat - the client-side cooldown stays unbuilt pending the PO's look.
+
+**Schema impact: DB NONE, wire YES** - `immune_hit:bool` appended to `Mob`
+and `Character`, both binding sets regenerated and committed together.
+
+**PO in-game pass 2026-08-24: "tested works"** - the cadence stands as
+measured (§9's cheap cooldown fix stays unbuilt, YAGNI held).

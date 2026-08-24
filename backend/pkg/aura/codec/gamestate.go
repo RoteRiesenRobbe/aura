@@ -54,6 +54,8 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	AuraApi.CharacterAddDamageTaken(builder, p.DamageTaken().UInt32())
 	// Crit-flagged share of damage taken (skill-vocab chunk 1, §4.3).
 	AuraApi.CharacterAddCritTaken(builder, p.CritTaken().UInt32())
+	// A fully mitigated hit this tick - the floating "Immune" label.
+	AuraApi.CharacterAddImmuneHit(builder, p.ImmuneHit())
 	// Resource cost paid this tick (round-7 item 7) — the blue number.
 	AuraApi.CharacterAddCostPaid(builder, p.CostPaid().UInt32())
 	// Current total absorb capacity — a live value (skill-vocab chunk 2).
