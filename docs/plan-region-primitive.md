@@ -419,6 +419,14 @@ Audio consumers are `plan-region-audio.md`. Atmosphere is release-map's.
 - **Should `darkAreas` eventually fold into `regions`?** (§4.4) Tidiness versus
   a content migration and an overlay rewrite. Not now.
 - **C3's palette**: how many profiles, and which colors. A PO call.
+- **Quest-readable regions — a possibility, not a requirement** (PO 2026-08-24,
+  quest-gap conversation): a future "entered region" quest objective would ride
+  this primitive and is the natural substitute for a location-objective verb
+  ("reach the shrine"). To be taken into the plan or explicitly left out at its
+  planning session — it is NOT a precondition of any chunk. The one thing to
+  decide then: whether regions get stable, nameable ids the quest ledger could
+  reference (a pure presentation feature has no reason to guarantee that on its
+  own). Nothing else about the design changes either way.
 
 ## 12. Chunk ledgers
 
