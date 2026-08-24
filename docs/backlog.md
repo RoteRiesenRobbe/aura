@@ -4250,55 +4250,15 @@ schema regen; the open questions — especially XP — need a PO design pass fir
 ## 39. Entity presentation rework — one frame that says what is happening to an actor
 
 **WoW/Gothic fit: low** *(ranked 2026-07-29, PO-confirmed)*
-**Origin:** PO ruling 2026-07-29, in the open-questions sweep. Raised by
-`plan-faction-flips.md` §8 question 3 (*does the charm pip show duration?*) and
-deliberately answered **wider than the question asked**: *"we will need a full
-design of mob and player frontend presentation that includes information like
-currently active buffs, debuffs, durations, allegiance, faction, cast bars etc.
-So for now, the pip can stay, but this will need a full and comprehensive
-rework."*
 
-**What the pip question exposed.** A calmed or charmed wolf currently shows **a
-dot, and nothing else**. `AppliedEffect*` bits ride the wire and `EffectPips`
-draws one coloured mark per bit — which is enough to answer *"something is on
-this mob"* and nothing else. With a 59.4 s charm, *time remaining* is the single
-most useful fact about the mob and there is nowhere to put it. Bolting a
-countdown onto the pip would be the third overlay invented per-feature, after
-the nameplate/tier frame and the health bar.
-
-**Scope named by the PO** — one design pass covering, for both mobs and the
-player:
-
-- active **buffs and debuffs**, with **durations** (the charm/calm case)
-- **allegiance** — is this thing on my side right now? (charm made this a
-  runtime property, not a species fact)
-- **faction** — the skill tooltip already names factions since `2fffe9ee`; the
-  entity itself does not
-- **cast bars** — nothing in the engine has one today
-- and by implication the existing overlays it would absorb: nameplate, tier
-  frame, health bar, aura rings, the interact badge, the effect pips
-
-**⚑ Why it is a design pass and not a UI ticket:**
-
-1. **Most of this is not on the wire.** Effect *bits* are; remaining ticks,
-   stack counts, the source of an effect and cast progress are not. The
-   schema cost is the real cost, and it wants doing **once**, bundled — the same
-   argument §38 makes for the per-spawn level field.
-2. **The overlays grew one per feature.** `AuraRings`, `EffectPips`,
-   `AuraTickIndicator`, `InteractBadge`, the nameplate and the health bar are
-   six independently-anchored things over one sprite; R4 already found that the
-   interact badge's anchor breaks the moment a conversant carries an aura
-   (`plan-entity-model.md` §10b). A frame is the thing that makes anchoring one
-   decision instead of six.
-3. **It is the natural consumer of the Actor model.** Role and capabilities are
-   authored now; the presentation layer still infers what to draw from whichever
-   fields happen to be non-zero — the same defect the entity model fixed on the
-   server side.
-
-**Not scheduled**, and deliberately not sized here. Sequencing note: it wants to
-come **after** the persistence/step-8 stretch (it touches the wire, and step 8's
-schema work is the other thing that does), and it **supersedes** rather than
-extends D13's pip — do not invest further in per-effect overlay art before it.
+**→ Folded into `docs/plan-entity-presentation.md` 2026-08-24.** Scope, the
+PO origin ruling (2026-07-29, out of the charm-pip duration question), the
+why-a-design-pass rationale, the consumer queue, and the PO-ruled ordering
+(**`plan-entity-medallions.md` executes FIRST**; this plan's design session
+runs against the ratified token) all live there now. This number stays the
+citation anchor: every existing "§39" reference resolves here and means that
+plan. Still not scheduled; the standing moratorium (no per-effect overlay art
+before it) rides in the plan's §3.
 
 ## 40. Wanted effect-type archetypes — the WoW-Classic gap review, PO-ruled
 

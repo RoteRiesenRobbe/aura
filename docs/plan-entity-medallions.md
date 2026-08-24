@@ -129,6 +129,10 @@ pips and name/level *below* the token, which is where they already are:
 
 Absorbing these *into* one frame is exactly backlog §39's scope and stays out
 of this plan (see §6.2 for the one §39 slice this plan does pull forward).
+§39 is owned by **`docs/plan-entity-presentation.md`** since 2026-08-24, with
+the ordering PO-ruled the same day: **this plan executes first**; that plan's
+design session needs D15's sizing ruling and C0's named sub-container refactor
+settled, because the token is the anchor its state layer attaches to.
 
 ---
 
