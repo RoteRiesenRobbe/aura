@@ -19,6 +19,7 @@ import * as Console from '../../internal-tools/console/logic/Console';
 import {Camera} from '../../camera/logic/Camera';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
+import * as Regions from '../../regions/logic/Regions';
 import {GameState, IGame, IGameLayers} from './IGame';
 import {gameObjectId} from '../../common/logic/Types';
 import {GraphicsConfig} from '../../../client-data/Graphics';
@@ -213,6 +214,11 @@ export class Game implements IGame {
             terrain: {
                 water: createNamedContainer('water'),
                 ground: createNamedContainer('ground'),
+                // Biome/zone ground colour (plan-region-primitive.md C1):
+                // OVER the base land fill, UNDER the texture blobs — which is
+                // what lets the shipped blobs keep doing edge treatment where
+                // a region meets the land (D5: hard edges, no soft fade).
+                regions: createNamedContainer('regions'),
                 textures: createNamedContainer('textures'),
                 resourceSpots: createNamedContainer('resourceSpots'),
             },
@@ -273,6 +279,7 @@ export class Game implements IGame {
         // Terrain Textures moving with the camera
         this.cameraGroup.addChild(
             this.layers.terrain.ground,
+            this.layers.terrain.regions,
             this.layers.terrain.textures,
             this.layers.terrain.resourceSpots,
         );
@@ -510,6 +517,22 @@ export class Game implements IGame {
         this.layers.terrain.ground.addChild(new Graphics()
             .rect(-mapWidth / 2, -mapHeight / 2, mapWidth, mapHeight)
             .fill(GraphicsConfig.landColor));
+
+        // Region ground colour, painted over the base fill in AUTHORED ORDER —
+        // the same order the resolution rule reads (D0), so what you see on top
+        // is what a lookup at that point answers. Static Graphics drawn once,
+        // like the fill above: no per-frame cost.
+        Regions.loadRegions(GroundTextureManager.getZoneData(gameInformation.zoneName)?.regions);
+        Regions.loadedRegions().forEach((region) => {
+            const color = Regions.regionColor(region);
+            // null = the author asked for no paint here, letting the base fill
+            // (or an outer region) show through. Distinct from "no opinion",
+            // which resolves to the default and paints it.
+            if (color === null) { return; }
+            this.layers.terrain.regions.addChild(new Graphics()
+                .poly(region.points)
+                .fill(color));
+        });
 
         // The zone name reaches the map for the same reason it reaches the
         // ground textures above: the full-screen state bakes that zone's

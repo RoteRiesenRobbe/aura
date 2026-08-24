@@ -215,6 +215,36 @@ type DarkArea struct {
 	Radius float32 `json:"radius"`
 }
 
+// Point is a vertex in server units — the shape a Region polygon is built from.
+// Deliberately its own named type rather than reusing Waypoint: a patrol route
+// and a region outline are different concepts that happen to be a list of
+// coordinates today (DRY's "don't deduplicate what merely looks alike").
+type Point struct {
+	X float32 `json:"x"`
+	Y float32 `json:"y"`
+}
+
+// Region is a polygon naming a client-side presentation PROFILE — ground
+// colour today, footsteps/music/atmosphere later (plan-region-primitive.md).
+// Purely client-visual like TerrainTexture and DarkArea: the server parses and
+// validates it (so DisallowUnknownFields accepts the key and typos fail by
+// name) but never uses it.
+//
+// ⚑ Profile is NOT validated against a known set here, deliberately (D8): the
+// profile table lives in the client, Tiled catches an unknown name at save time
+// with the object id, and D11 resolves a miss to the default profile — so a
+// typo costs one region's look, never a broken client. `terrain.type` has
+// always had that same posture.
+//
+// Regions carry no identity: array order is the only ordering (D0 — the last
+// containing region that declares a property wins) and nothing outside the
+// zone file references one. A stable id is what a quest-readable region would
+// need, and it is an open question, not a shipped requirement (§11).
+type Region struct {
+	Profile string  `json:"profile"`
+	Points  []Point `json:"points"`
+}
+
 // Anchor is a named point encounter scripts look up at registration (content
 // pass C6): the zone owns WHERE an encounter plays out (boss home, totem
 // spots, wave mouth — editor-movable), the Go script owns WHAT happens.
@@ -239,6 +269,7 @@ type Zone struct {
 	Spawns    []Spawn          `json:"spawns"`
 	Campfires []Campfire       `json:"campfires"`
 	DarkAreas []DarkArea       `json:"darkAreas"`
+	Regions   []Region         `json:"regions"`
 	Anchors   []Anchor         `json:"anchors"`
 
 	// ID is the file stem the zone was loaded from — the -zone selection key
@@ -385,6 +416,17 @@ func (z *Zone) validate() error {
 	for i := range z.DarkAreas {
 		if z.DarkAreas[i].Radius <= 0 {
 			return fmt.Errorf("darkArea %d: radius must be positive, got %g", i, z.DarkAreas[i].Radius)
+		}
+	}
+	// Both messages name the INDEX: a region has no id and no unique name, so
+	// the position in the array is the only thing the author can search for.
+	for i := range z.Regions {
+		if strings.TrimSpace(z.Regions[i].Profile) == "" {
+			return fmt.Errorf("region %d: profile must not be empty", i)
+		}
+		if len(z.Regions[i].Points) < 3 {
+			return fmt.Errorf("region %d: needs at least 3 points to enclose an area, got %d",
+				i, len(z.Regions[i].Points))
 		}
 	}
 	// A zone that places campfires must flag at least one as a starting spawn

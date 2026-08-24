@@ -284,3 +284,58 @@ describe('ZoneModel spawn levels', () => {
         expect(exported.spawns[0]).not.toHaveProperty('level');
     });
 });
+
+// ⚑ L1 — regions (plan-region-primitive.md C1). The THIRD customer of the
+// whitelist that ate spawn.level and then prop scale, and the most dangerous
+// one yet: by D9 this editor deliberately has no region tool at all, so every
+// region in the world is somebody else's work, made in Tiled. Ship the field
+// without teaching getZoneAsJSON and the first in-game save deletes all of
+// them — silently, with every other test green.
+describe('ZoneModel regions', () => {
+    function zoneData(overrides: Partial<ZoneData>): ZoneData {
+        return {
+            name: 'X',
+            bounds: {width: 60, height: 40},
+            terrain: [],
+            props: [],
+            spawns: [],
+            ...overrides,
+        };
+    }
+
+    const swamp = {
+        profile: 'swamp',
+        points: [{x: -62.4, y: -25.2}, {x: -40, y: -25.2}, {x: -40, y: 3.5}, {x: -62.4, y: 3.5}],
+    };
+
+    it('carries regions through an export round-trip untouched', () => {
+        let model = ZoneModel.fromJSON(zoneData({regions: [swamp]}));
+
+        let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
+
+        expect(exported.regions).toEqual([swamp]);
+    });
+
+    // Array order is resolution order (D0): the last containing region that
+    // declares a property wins, so a reorder silently repaints the world.
+    it('keeps region order', () => {
+        const tri = (n: number) => [{x: n, y: 0}, {x: n + 1, y: 0}, {x: n + 1, y: 1}];
+        let model = ZoneModel.fromJSON(zoneData({
+            regions: [
+                {profile: 'swamp', points: tri(0)},
+                {profile: 'bog', points: tri(2)},
+                {profile: 'ash', points: tri(4)},
+            ],
+        }));
+
+        let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
+
+        expect(exported.regions?.map(r => r.profile)).toEqual(['swamp', 'bog', 'ash']);
+    });
+
+    it('omits the key entirely when there are none, so every shipped zone stays diff-clean', () => {
+        let model = ZoneModel.fromJSON(zoneData({}));
+
+        expect(model.getZoneAsJSON()).not.toContain('regions');
+    });
+});

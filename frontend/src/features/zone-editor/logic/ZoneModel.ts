@@ -118,6 +118,17 @@ export interface ZoneAnchor {
     y: number;
 }
 
+// A polygon naming a client-side presentation profile — ground colour today,
+// footsteps/music/atmosphere later (plan-region-primitive.md).
+//
+// ⚑ This editor deliberately cannot author one (D9): regions are placed in
+// Tiled, and everything here exists purely so a save carries them through
+// untouched (D3/L1). Nothing in the panel reads it.
+export interface ZoneRegion {
+    profile: string;
+    points: { x: number, y: number }[];
+}
+
 export interface ZoneData {
     name: string;
     bounds: ZoneBounds;
@@ -128,6 +139,7 @@ export interface ZoneData {
     campfires?: ZoneCampfire[];
     darkAreas?: ZoneDarkArea[];
     // Omitted when empty so pre-step-5 zones round-trip diff-clean.
+    regions?: ZoneRegion[];
     // Omitted when empty so pre-C6 zones round-trip diff-clean.
     anchors?: ZoneAnchor[];
 }
@@ -213,6 +225,12 @@ export class ZoneModel {
     campfires: ZoneCampfire[];
     darkAreas: ZoneDarkArea[];
     anchors: ZoneAnchor[];
+    // ⚑ Carried, never edited (D9), which is why it is not a constructor
+    // parameter like every collection above: there is no region tool here and
+    // no panel control, so the only thing this field must do is survive
+    // fromJSON → getZoneAsJSON so a save does not delete Tiled's work (L1).
+    // A model built any other way simply has none.
+    regions: ZoneRegion[] = [];
     // 0 until the first mint, which seeds it from the loaded zone.
     private nextSpawnPointNumber: number = 0;
 
@@ -228,7 +246,7 @@ export class ZoneModel {
     }
 
     static fromJSON(data: ZoneData): ZoneModel {
-        return new ZoneModel(
+        const model = new ZoneModel(
             data.name,
             {width: data.bounds.width, height: data.bounds.height},
             (data.terrain || []).map(t => ({...t})),
@@ -243,6 +261,13 @@ export class ZoneModel {
             (data.darkAreas || []).map(d => ({...d})),
             (data.anchors || []).map(a => ({...a})),
         );
+        // Deep-copied like every other array, so an edit here could never reach
+        // the caller's data — even though nothing edits it.
+        model.regions = (data.regions || []).map(r => ({
+            profile: r.profile,
+            points: (r.points || []).map(p => ({...p})),
+        }));
+        return model;
     }
 
     addProp(prop: ZoneProp): number {
@@ -396,6 +421,18 @@ export class ZoneModel {
                 : undefined,
             darkAreas: this.darkAreas.length > 0
                 ? this.darkAreas.map(d => ({x: round(d.x, 2), y: round(d.y, 2), radius: round(d.radius, 2)}))
+                : undefined,
+            // ⚑ Named here or the whitelist eats it (L1). This editor cannot
+            // author a region (D9), so what it would delete is entirely
+            // somebody else's work in Tiled — the spawn.level and prop.scale
+            // failure, a third time. Coordinates are rounded exactly like every
+            // other array so a Tiled save and an in-game save agree byte for
+            // byte; the profile name is kept verbatim.
+            regions: this.regions.length > 0
+                ? this.regions.map(r => ({
+                    profile: r.profile,
+                    points: r.points.map(p => ({x: round(p.x, 2), y: round(p.y, 2)})),
+                }))
                 : undefined,
             // Omitted (undefined key) while empty, so pre-C6 zones round-trip
             // diff-clean. Names are script-lookup keys kept verbatim.

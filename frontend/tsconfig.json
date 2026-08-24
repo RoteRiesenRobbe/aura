@@ -11,6 +11,12 @@
 		// files is the standard fix and costs nothing here — every .d.ts in
 		// node_modules is third-party, already-checked code.
 		"skipLibCheck": true,
+		// client-data/profiles.json is imported directly (region profiles,
+		// plan-region-primitive.md D12): ONE file the client and the Tiled
+		// palette generator both read, so a profile cannot exist in one and not
+		// the other. webpack 5 and vitest both handle a .json import natively;
+		// this is what lets tsc type it too.
+		"resolveJsonModule": true,
 		"downlevelIteration": true,
 		"alwaysStrict": true,
 		"lib": [

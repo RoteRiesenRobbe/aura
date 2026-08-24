@@ -119,6 +119,11 @@ interface DarkAreaDefinition {
     radius: number;
 }
 
+interface RegionDefinition {
+    profile: string;
+    points: { x: number, y: number }[];
+}
+
 interface CampfireDefinition {
     x: number;
     y: number;
@@ -133,6 +138,9 @@ interface CampfireDefinition {
 interface ZoneJSON {
     terrain?: GroundTextureDefinition[];
     darkAreas?: DarkAreaDefinition[];
+    // Ground-colour/presentation polygons, read by Regions.loadZone
+    // (plan-region-primitive.md). Server units, like everything in the file.
+    regions?: RegionDefinition[];
     // World campfires (chunk 2): read by the darkness overlay for their
     // static glow (chunk 4 follow-up).
     campfires?: CampfireDefinition[];

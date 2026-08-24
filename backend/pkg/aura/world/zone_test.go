@@ -670,3 +670,92 @@ func TestZone_RejectsOutOfBoundsAnchor(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "bounds")
 }
+
+// --- regions (plan-region-primitive.md C1) -----------------------------------
+//
+// Regions are purely client-visual, like darkAreas: the server parses and
+// validates them so a typo fails by name at boot, and never reads them again.
+
+func TestZone_ParsesRegions(t *testing.T) {
+	const doc = `{
+		"name": "X",
+		"bounds": { "width": 60, "height": 40 },
+		"regions": [ { "profile": "swamp", "points": [
+			{ "x": -6, "y": 1 }, { "x": -1, "y": 1 }, { "x": -1, "y": 4.5 } ] } ]
+	}`
+
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
+	require.NoError(t, err)
+	require.Len(t, z.Regions, 1)
+	assert.Equal(t, "swamp", z.Regions[0].Profile)
+	require.Len(t, z.Regions[0].Points, 3)
+	assert.EqualValues(t, -6, z.Regions[0].Points[0].X)
+	assert.EqualValues(t, 1, z.Regions[0].Points[0].Y)
+	assert.EqualValues(t, 4.5, z.Regions[0].Points[2].Y)
+}
+
+// A zone that authors no regions is the world as it ships today; the key is
+// omitted, not empty (§4.1), so this is the case every existing zone takes.
+func TestZone_LoadsWithoutRegions(t *testing.T) {
+	const doc = `{ "name": "X", "bounds": { "width": 60, "height": 40 } }`
+
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
+	require.NoError(t, err)
+	assert.Empty(t, z.Regions)
+}
+
+// A polygon needs an area. Both errors name the region INDEX, because the
+// region has no other identity the author could search for (§4.6).
+func TestZone_RejectsRegionWithFewerThanThreePoints(t *testing.T) {
+	for _, points := range []string{
+		`[]`,
+		`[ { "x": 0, "y": 0 } ]`,
+		`[ { "x": 0, "y": 0 }, { "x": 1, "y": 1 } ]`,
+	} {
+		doc := `{
+			"name": "X",
+			"bounds": { "width": 60, "height": 40 },
+			"regions": [ { "profile": "swamp", "points": ` + points + ` } ]
+		}`
+
+		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
+		require.Error(t, err, "points %s must be rejected", points)
+		assert.Contains(t, err.Error(), "region 0")
+		assert.Contains(t, err.Error(), "at least 3 points")
+	}
+}
+
+func TestZone_RejectsRegionWithoutProfile(t *testing.T) {
+	for _, profile := range []string{`""`, `"   "`} {
+		doc := `{
+			"name": "X",
+			"bounds": { "width": 60, "height": 40 },
+			"regions": [
+				{ "profile": "swamp", "points": [
+					{ "x": 0, "y": 0 }, { "x": 1, "y": 0 }, { "x": 1, "y": 1 } ] },
+				{ "profile": ` + profile + `, "points": [
+					{ "x": 0, "y": 0 }, { "x": 1, "y": 0 }, { "x": 1, "y": 1 } ] } ]
+		}`
+
+		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
+		require.Error(t, err, "profile %s must be rejected", profile)
+		assert.Contains(t, err.Error(), "region 1")
+		assert.Contains(t, err.Error(), "profile")
+	}
+}
+
+// D8/§4.6: an UNKNOWN profile name is deliberately not a boot error — the
+// table lives in the client, and D11 resolves a miss to the default profile.
+// Tiled catches typos at save time, with the object id.
+func TestZone_AcceptsUnknownRegionProfile(t *testing.T) {
+	const doc = `{
+		"name": "X",
+		"bounds": { "width": 60, "height": 40 },
+		"regions": [ { "profile": "no-such-profile", "points": [
+			{ "x": 0, "y": 0 }, { "x": 1, "y": 0 }, { "x": 1, "y": 1 } ] } ]
+	}`
+
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
+	require.NoError(t, err)
+	assert.Equal(t, "no-such-profile", z.Regions[0].Profile)
+}
