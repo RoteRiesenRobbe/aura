@@ -1,6 +1,8 @@
 # Plan — Mob aggro voicelines ("You should not have come here")
 
-**Status:** 📋 PLANNED 2026-08-02, not started. One chunk, backend-only,
+**Status:** ⏸ DEFERRED 2026-08-24 (PO choice, together with
+`plan-npc-hails.md`): tackle only if play-feel makes it necessary again.
+Previously: 📋 PLANNED 2026-08-02, not started. One chunk, backend-only,
 frontend zero-change. PO idea, WoW-Classic reference (only *some* mobs shout,
 and the shout is the pull's punctuation).
 

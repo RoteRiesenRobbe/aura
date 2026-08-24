@@ -1,6 +1,8 @@
 # Plan - Conditional NPC hails ("Well met, {name}")
 
-**Status:** 📋 PLANNED 2026-08-17, not started. One chunk, backend + content,
+**Status:** ⏸ DEFERRED 2026-08-24 (PO choice, together with
+`plan-mob-voicelines.md`): tackle only if play-feel makes it necessary again.
+Previously: 📋 PLANNED 2026-08-17, not started. One chunk, backend + content,
 **frontend zero-change, schema NONE.** PO ask from the conditional-NPC
 conversation 2026-08-17: NPCs greet a passing player differently depending on
 what that character has done (met the NPC before, finished their quest, killed
