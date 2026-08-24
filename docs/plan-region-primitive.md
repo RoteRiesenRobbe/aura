@@ -1,7 +1,29 @@
 # Plan: the region primitive — named areas that carry their own properties
 
-> **Status: DESIGNED 2026-08-23 (D0–D3 + D11 PO-ruled; D4–D10 are §9
-> proposals the PO may veto). No chunk built.** Opened by the PO question
+> **Status 2026-08-25: C1 SHIPPED (code-complete, in-game look owed) · C2 next
+> · C3 = the look sitting (D16) · C4 SPECCED AND RULED (D13–D16, §4.9).**
+> Ground textures are adopted: texture or colour per profile, colour as the
+> fallback under a texture, hard edges, and one sitting deciding the palette
+> and the texture/colour split together. §4.9 is the implementation spec,
+> written against the shipped code. ⚑ Nothing about the **zone file** changes
+> for textures — a region still just names a profile — so no whitelist and no
+> Tiled work rides on C4.
+>
+> *(Earlier banner, kept for the trail:)*
+> **READY TO IMPLEMENT 2026-08-24 — C1 next, colour only.** (Designed
+> 2026-08-23; D0–D3 + D11 PO-ruled, D4–D10 are §9 proposals the PO may veto.
+> No chunk built.) ⭐ **A readiness pass on 2026-08-24 re-checked every claim
+> this doc makes about the code and found them all still true** — the layer
+> seam, the map bake, the three whitelists, the polyline precedent. It found
+> **one gap the design had not noticed** (D12: the palette generator cannot
+> read a `.ts` profile table) and **one landmine** (L8: the obvious home for
+> that table hard-fails boot). Both are settled below; nothing else blocks C1.
+> PO scoping the same day: **authoring in Tiled + rendered colours first, all
+> audio consumers later** — which is C1 then C2 exactly as §7 already splits
+> them, since C1 is specified as `color` only. `plan-region-audio.md` is
+> untouched and unscheduled.
+>
+> Opened by the PO question
 > *"could it be possible to have different ground colors on the map"* during
 > the zone-outline pass, then twice widened in the same session: first by
 > *"can this also be used for different footstep sounds per biome?"*, then by
@@ -13,6 +35,11 @@
 > ⚑ **Schema impact: NONE. No migration.** One new client-visual zone array,
 > parsed-and-ignored server-side exactly like `darkAreas`; not one byte of
 > persisted state moves (§6).
+>
+> **Widened 2026-08-24** by the ground-texture spike (thrown away the same
+> day, nothing committed): §4.8 designs `texture` as an optional profile
+> property, D5 gained spike evidence, and §11 gained the adoption + blend
+> questions. No new ruling; textures are a designed option, not a decision.
 
 ## 1. What this is
 
@@ -96,6 +123,8 @@ without either knowing about the other. The reconciliation, agreed 2026-08-23:
 ## 3. Decision ledger
 
 D0–D3 and D11 taken 2026-08-23 as PO rulings. D4–D10 are §9 proposals.
+⚑ The ledger continues in §9: D12 (2026-08-24) and D13–D16 (2026-08-25) are
+also PO rulings — see the note there.
 
 - **D0 — ONE array, one resolution rule, applied per property.** Zone-regions
   (music, atmosphere) and biome-regions (color, footsteps) are the **same
@@ -291,6 +320,178 @@ mobile perf ceiling that file exists to pay once). Regions must be baked into
 the same texture, between the land rect and the pieces. Skipping this does not
 degrade — it produces a **map that is a wrong drawing of the world**.
 
+### 4.8 Ground texture: the profile's optional `texture` property (spike-informed, 2026-08-24)
+
+**Status: RULED 2026-08-25 — adopted (D13–D16). C4 is a real chunk.** A
+one-day throwaway spike (2026-08-24, fully deleted, nothing committed) put
+tiled seamless textures and a two-texture cross-fade in front of the PO
+in-game. It ended at "insightful" with no verdict; the 2026-08-25 spec session
+ruled it in, and §4.9 is the implementation spec. The four rulings, in one
+place:
+
+| | ruling |
+|---|---|
+| **D13** | adopted — **texture OR colour, per profile**; flat colour stays first-class |
+| **D14** | a profile's `color` under a texture is the **fallback only**, never a tint |
+| **D15** | **hard edges** in C4; the blend band is specced, not built |
+| **D16** | C3 and C4's look decisions are **one sitting**, not two |
+
+**The authored shape does not change.** `texture` is one more optional profile
+property beside `color`, resolved by the same `resolve()` (D0) with the same
+D11 chain: a profile declaring neither paints nothing (the base fill shows), a
+`texture` naming a missing asset falls back to the profile's `color`, then to
+the default profile. Authoring in Tiled is identical to color regions: draw
+the polygon, pick the profile. Nothing new to teach any of the three
+whitelists beyond what §5 already requires.
+
+**The asset source that makes this cheap to try:** opengameart.org's
+"100 Seamless Textures" pack (`pdtextures.zip`, 15.5 MB), CC0, 750×750 JPGs,
+painterly rather than photographic, so it sits closer to the flat top-down art
+direction than feared. Spike shortlist by role: 185 / 135 / 186 (green ground,
+185 nearest today's `LAND_COLOR` feel), 131 / 162 (dirt), 104–106 (sand),
+156 / 141 (stone). ⚑ Tile **scale is the sensitive knob**: the raw 750 px tile
+reads as either ground or wallpaper depending on world scale, so the profile
+table should carry a per-texture scale, tuned by eye once.
+
+**Rendering shape, and the one wrong way to build it.** The spike drew each
+texture as a full-map `TilingSprite` plus a full-map alpha mask. That is the
+throwaway shape: generalized to N textures it stacks N full-screen layers and
+this client is measurably **fill-bound** (the mobile lesson pinned in
+`Game.ts renderResolution()`: frame time ≈ linear in pixels painted). The
+shipped shape is the same as §4.5's color regions: **one polygon-clipped fill
+per region** (`Graphics().poly(points).fill({texture, matrix})`), so every
+ground pixel is painted once, exactly like today's flat rect with a texture
+sample instead of a solid color. Pixi 8.4 supports both forms; neither is used
+anywhere in the client yet, so either way it is a new (small) pattern.
+
+**Soft borders, if wanted (the D5 question).** The spike's fluent cross-fade
+technique carries over without its overdraw problem: generate an
+alpha-gradient band (smoothstep across the border, optionally wobbled so it
+does not read as a ruler edge) into a canvas **once at zone load**, and mask
+only a border-band sprite with it. Cost: a second texture sample only inside
+the bands, which are a small fraction of any viewport; zero per-frame
+generation. Who owns the blend width (global constant / per profile / per
+region) is an open question; lean: per profile with a shipped default.
+
+**Performance at target scale** (asked 2026-08-24: 12 zones × 6 textures):
+
+- **Zone count is free at runtime.** The client renders exactly one zone
+  (`Welcome.zoneName`); other zones' textures are never decoded or uploaded.
+  Zone count only affects assets: 6 shared textures ≈ 1–1.5 MB; even 6 unique
+  per zone × 12 zones ≈ 15 MB of per-zone lazily-loaded files. ⚑ But see L3:
+  today the client **eagerly bundles every zone JSON**, and textures must NOT
+  join an eager bundle: load the active zone's set at `startRendering`.
+- **VRAM is trivial**: a 750×750 texture ≈ 2.25 MB, ×6 ≈ 14 MB (~18 MB with
+  mipmaps). Phone-safe.
+- **The only real axis is overdraw**, and the polygon-clipped shape holds it
+  at ~1× (blend bands locally 2×), i.e. steady-state delta versus today's
+  flat rect ≈ zero by construction. Draw calls: 6–12 region polygons are
+  noise next to the 537 blob sprites already drawn above them.
+- **Map parity costs once**: §4.7's bake gains the same polygon fills, paid at
+  bake time, not per frame.
+
+**Two client traps the spike hit, recorded so C-whatever does not re-find
+them:**
+
+- `Preloading.registerGameObjectSVG`'s `data:{width,height}` pair **crops a
+  raster top-left instead of scaling it** (the documented vectors-only caveat
+  at `Preloading.ts:63-75`); tile JPGs/PNGs must load through the `{src}`-only
+  branch.
+- The 74 `Land` terrain blobs are filled with the exact `LAND_COLOR` green.
+  Invisible over the flat fill, they become solid green patches over any
+  texture. A textured profile rollout must re-judge (or re-tint / delete)
+  them; the sand blobs read differently over texture too.
+  ⚑ **Corrected 2026-08-25: this is NOT texture-specific and it is already
+  live.** Any region paint — flat colour included — puts those blobs on a
+  background that is no longer their own green. 75 `Land` blobs exist, and
+  **12 of them overlap C1's single worked-example region**, so the first
+  in-game look at C1 will show green patches inside the swamp. The
+  re-judgement is owed by the D16 sitting, not by C4.
+
+### 4.9 C4 — the implementation spec (2026-08-25)
+
+Written against the shipped code, not from memory. C1's renderer already emits
+`Graphics().poly(points).fill(…)` at both draw sites, which **is** §4.8's
+polygon-clipped shape — so adoption is a fill argument, not a new renderer.
+
+**The authored shape.** One more optional profile property beside `color`:
+
+```jsonc
+"swamp": { "texture": "pd185", "scale": 0.5, "color": "#2c4028" },
+"ash":   { "color": "#4a4a4a" }
+```
+
+`texture` names a file in the texture set; `scale` is the per-texture tile
+scale (§4.8: the sensitive knob), tuned by eye once and shipped in the table;
+`color` is the D14 fallback. **The zone file does not change at all** — a
+region still names a profile, so no whitelist, no `zone.go` field, no Tiled
+change. C2's authoring surface covers textured profiles the day it ships.
+
+**The resolution rule does not change either**, with one thing to get right:
+
+- `Profile` gains `texture?: string | null` and `scale?: number`. `resolveIn`
+  is already generic over `keyof Profile` and needs no edit.
+- `buildProfiles` gains a `texture` branch under **the same rule that keeps
+  D11 true**: declare the key only when the value is usable (D12's fix, C1) —
+  a texture naming a file that is not in the set must leave the key ABSENT, or
+  `resolve()` hands back `undefined` and the chain is broken.
+- ⚑ **D14's fallback is WITHIN one profile, not across regions.** D0 resolves
+  each property independently, so `resolve('texture') ?? resolve('color')`
+  would happily take the texture from an outer region and the colour from an
+  inner one — two different authors' intent, blended by accident. The fallback
+  therefore lives in the **per-region paint lookup** (`regionColor`'s sibling,
+  which already reads ONE profile), not in a chain of `resolve()` calls.
+  Consumers that ask per-point (audio) are unaffected: they ask for one
+  property and take D11's answer.
+
+**Rendering.** Both existing draw sites gain the same three lines:
+
+```ts
+const paint = regionPaint(region);          // {texture, matrix} | {color} | null
+if (paint === null) { return; }             // authored "nothing here" (C1)
+container.addChild(new Graphics().poly(region.points).fill(paint));
+```
+
+`regionPaint` replaces `regionColor` and owns D14: texture if its asset
+loaded, else the profile's colour, else the default profile's (D11). The
+`matrix` is a `Matrix().scale(s, s)` from the profile's `scale`. Pixi **8.4.1**
+is installed and its `FillStyle` takes `{texture, matrix}` (verified in
+`node_modules/pixi.js/lib/scene/graphics/shared/FillTypes.d.ts`), so this needs
+no new dependency and no `TilingSprite`.
+
+⚑ Map parity (§4.7/L2) is the same edit in `MapTerrain.bakeTerrain`, and it
+is **not optional**: a textured world with a flat-coloured map is the "wrong
+drawing of the world" failure, one chunk later.
+
+**Asset pipeline — the part with the real traps.**
+
+- **Tiles ship as PNG/JPG. NEVER SVG.** `webpack.common.js:86` inlines every
+  `.svg` as a base64 data URI *into the JS bundle*; `.png/.jpg` go through
+  `type: 'asset'`, which emits a separate file above webpack's 8 KB threshold.
+  A 750×750 SVG texture would be pasted into `main.js` as text. (This is a
+  sharper statement of §4.8's L3 note: for rasters the URL is bundled, the
+  bytes are not.)
+- ⛔ **Do NOT register tiles in `GraphicsConfig.groundTextureTypes`.**
+  `GroundTextureTypes.ts` preloads every entry through `Preloading`, which
+  **blocks boot** until all of them resolve. That is fine for 18 small blobs
+  and wrong for 72 tiles (12 zones × 6): a player would stare at the loader
+  while zones they are not in download. Load the ACTIVE zone's set in
+  `startRendering`, beside `Regions.loadRegions`, via `Assets.load(url)`.
+- The spike's `registerGameObjectSVG` crop trap (§4.8) is avoided for free by
+  not using that helper at all.
+- Source: opengameart's CC0 "100 Seamless Textures" (`pdtextures.zip`).
+  ⚑ **The licence file ships with the assets** — CC0 needs no attribution, but
+  the pack's provenance belongs in the repo beside the files, not in a commit
+  message that nobody reads later.
+
+**Degrade path.** A texture that fails to load is not an error state: the
+region paints its `color` (D14) and the world is merely flatter. Nothing
+throws, nothing is blank — the same posture D11 sets for every other miss.
+
+**Out of scope for C4, deliberately:** blend bands (D15 — specced in §4.8,
+built only if the seam reads badly in-game), the minimap (§11's standing
+question), and any per-region texture override (the profile is the unit, D2).
+
 ## 5. The whitelist problem — now THREE, and one is guarded
 
 There are **three parallel whitelists** for the zone format, and only the first
@@ -334,9 +535,23 @@ byte-stability gate (tiled D6) is what proves the round-trip did not re-mint it.
   §4.6, naming the object id (tiled C4's pattern) · extend the completeness pin
   to `ZoneModel` · fix `plan-release-map.md` §8.2's "TWO touch points" ·
   `manual-zone-editor.md` + `manual-tiled-editor.md` notes.
-- **C3 — the color palette** (optional, content-adjacent). The biome color set
-  for the zones in the outline — swamp, desert, ash, dead forest, stone. A
-  taste decision; its own sitting.
+- **C3 — the look sitting** (content-adjacent; **D16: one sitting, not two**).
+  The profile set for the zones in the outline — swamp, desert, ash, dead
+  forest, stone — and **per profile, whether it is a colour or a texture**
+  (D13). Merged with what used to be C4's adoption call because deciding a
+  palette twice is exactly the waste D16 exists to avoid: a colour chosen
+  without knowing whether that profile ends up textured is a colour chosen for
+  nothing. Also owns the **`Land`-blob re-judgement** (§4.8) — re-tint, delete,
+  or leave — which C1 already makes visible. A taste decision; needs the PO in
+  front of the game, not a document.
+- **C4 — ground texture, end to end** (D13; spec in §4.9). `texture` + `scale`
+  in the profile table and `buildProfiles` (declaring only usable values, D12's
+  rule) · `regionPaint` replacing `regionColor`, owning D14's within-profile
+  fallback · the fill argument at BOTH draw sites (`Game.ts` + the
+  `MapTerrain` bake — §4.7 is not optional) · per-zone `Assets.load` at
+  `startRendering`, ⛔ never through `GroundTextureTypes`' boot-blocking
+  preload · the CC0 pack + its licence file in the repo. Hard edges (D15);
+  no blend bands. Authoring surface is C2's, unchanged.
 
 Audio consumers are `plan-region-audio.md`. Atmosphere is release-map's.
 
@@ -369,22 +584,102 @@ Audio consumers are `plan-region-audio.md`. Atmosphere is release-map's.
 
 ## 9. Proposals adopted without a choice prompt (PO may veto any)
 
+⚑ **The title applies to D4–D10 only.** D12 (2026-08-24) and D13–D16
+(2026-08-25) are **PO rulings**, taken with an explicit choice prompt, and are
+appended here to keep the D-numbers one running sequence rather than splitting
+the ledger across two sections. Nothing from D12 on is a proposal to be vetoed
+in passing — each would have to be re-opened as the ruling it is.
+
 - **D4 — the key is `profile`, not `biome`.** A ruined fortress carrying music
   and gloom is not a biome; `zone` would collide with the zone *file*. If the
   PO prefers `biome`, it is a find-and-replace in an unshipped field.
 - **D5 — hard edges, no soft fade.** The ground-texture blobs are the edge
   treatment, as `Sand` meets land today. A radial fade drags in the alpha-seam
   problem `DarknessOverlay` solves with its own render texture — cost with no
-  evidence it is needed.
+  evidence it is needed. ⚑ **New evidence 2026-08-24**: the ground-texture
+  spike (§4.8) showed a fluent texture-to-texture cross-fade via a one-off
+  alpha-gradient mask, generated once at load, no per-frame cost and no
+  alpha-seam class (one mask per border, not overlapping radial sprites). D5
+  stands as written for **color** regions; whether *textured* regions get soft
+  borders is §11's blend question, decided if and when textures are adopted.
 - **D6 — the base `LAND_COLOR` fill stays.** Regions paint over it; a zone need
   not be fully covered.
 - **D7 — the profile table lives in `Theme.ts`**, not `Graphics.ts` (which owns
-  *assets*; these are tokens).
+  *assets*; these are tokens). ⚑ **SUPERSEDED by D12 (2026-08-24)** — the
+  *client* half is unchanged (the table is client-owned, `Graphics.ts` is still
+  wrong), but the table itself is now JSON beside `Theme.ts` rather than TS
+  inside it, because a `.ts` table is unreadable to the palette generator.
 - **D8 — unknown profile names are a Tiled-side error, not a boot error.**
 - **D9 — no `regions` support in the in-game editor panel**, not even read-only.
   Round-trip only (D3/L1).
 - **D10 — one profile table, not one per consumer.** Color, steps and music
   live on the same object even though different plans build them.
+
+- **D12 (2026-08-24, PO) — the profile table is ONE JSON file, at
+  `frontend/src/client-data/profiles.json`.** The client imports it; the Tiled
+  palette generator `readFileSync`s it and emits the `AuraProfile` enum from it.
+
+  ⚑ **The gap this closes was not visible in the design.** D2 says the profile
+  table lives once in the client and D7 put it in `Theme.ts`; C2 wants a
+  *generated* `Profile` enum (tiled D7: palettes are generated, never
+  hand-maintained). But `tools/tiled/generate-palette.mjs` is a Node ESM script
+  that reads `api/` JSON and `require()`s `aura-convert.js` — **it cannot read a
+  `.ts` file at all**. Left unnoticed, C2 would have quietly hand-listed the
+  profile names in the generator, which is the exact drift that script's own
+  header exists to forbid.
+
+  Rejected alternatives: **`aura-convert.js` owns it** (the generator already
+  `require()`s it, but then a *rendering token* would live in an ES5 file under
+  `tools/` and the client would import upward out of the app — backwards); **a
+  hand-kept enum in the generator** (cheapest to write, and it drifts the first
+  time somebody adds a profile: it renders in game and is unofferable in Tiled).
+
+  ⛔ **NOT `api/zones/profiles.json`** — see L8. It was the first choice and it
+  hard-fails boot.
+
+  ⚑ Consequence worth stating: **profile colours become a data edit, not a code
+  edit**, which is what C3 (the palette sitting) actually wants. `Theme.ts` keeps
+  `LAND_COLOR` — that is still the *default* profile's colour (§4.2 step 2) and
+  it has a LESS twin the profile colours do not (§4.5).
+
+  ⭐ **This ruling is what makes D13's textures nearly free**, the same way D2
+  made audio free: `texture` and `scale` are two more keys in a file that is
+  already the single source for both the client and Tiled.
+
+- **D13 (2026-08-25, PO) — ground textures are ADOPTED: texture OR colour, per
+  profile.** A profile declares `color`, or `texture`, or both (D14). Flat
+  colour stays **first-class**, not a stepping stone — "ash" can be a flat grey
+  forever while "swamp" is painted. Chosen over *textures everywhere* (which
+  makes the flat path dead code and forces an art decision for every profile
+  before any can ship) and over *spec-but-don't-rule* (which is what forces the
+  palette to be chosen twice — D16). ⚑ The authored zone shape does not change
+  at all: a region names a profile, so **no whitelist, no `zone.go` field, no
+  Tiled change**, and C2 covers textured profiles the day it ships. Spec: §4.9.
+
+- **D14 (2026-08-25, PO) — a profile's `color` under a `texture` is the
+  FALLBACK, never a tint.** Texture loads → paint texture; texture missing →
+  paint the profile's colour; neither → the default profile (D11, unchanged).
+  Chosen over *tint* (one grey tile serving as ash/slate/granite is real
+  economy, but it gives one key two meanings and leaves "tinted but missing"
+  undefined) and over *mutually exclusive* (which throws away the safety net
+  D11 exists to provide). ⚑ **The fallback is WITHIN one profile.** D0 resolves
+  each property independently, so a naïve `resolve('texture') ?? resolve('color')`
+  can take the texture from an outer region and the colour from an inner one —
+  see §4.9, where the fallback lives in the per-region paint lookup instead.
+
+- **D15 (2026-08-25, PO) — C4 ships HARD EDGES; the blend band is specced, not
+  built.** D5 stands for colour AND texture through C4. The terrain blobs keep
+  doing edge treatment, as `Sand` meets land today. The spike's one-off
+  alpha-gradient band (§4.8, D5's evidence note) is written down and stays
+  unbuilt until the seam actually reads badly in-game — which is a judgement
+  nobody can make from a document. Keeps C4 small and leaves the blend-width
+  ownership question (§11) genuinely open rather than answered on spec.
+
+- **D16 (2026-08-25, PO) — C3 and C4's look decisions are ONE sitting.** The
+  profile set, each profile's colour-or-texture, and the `Land`-blob
+  re-judgement are decided together in front of the running game. A palette
+  chosen before knowing which profiles end up textured is a palette chosen
+  twice. C4's *implementation* is still its own execution chunk afterwards.
 
 ## 10. Landmines
 
@@ -407,6 +702,36 @@ Audio consumers are `plan-region-audio.md`. Atmosphere is release-map's.
   decoded mp3s). Owned by `plan-region-audio.md`; **no chunk in this plan adds
   a byte of audio.**
 - **L7 — ⛔ never build atmosphere on the day/night filter machinery** (§4.4).
+- **L8 — ⛔ `api/zones/` is a directory of ZONES, and every `.json` in it is
+  one.** Dropping a non-zone JSON there (the obvious home for D12's profile
+  table) breaks the game two ways, one of them instantly:
+  - `world.LoadZoneFS` walks the directory and treats **every** `.json` stem as
+    a candidate zone. Today there is exactly one, so `-zone` is never passed;
+    add a second stem and boot dies with *"multiple zones found (profiles,
+    world); select one with -zone"* on every dev machine and the server.
+  - `GroundTextureManager.ts:144`'s `require.context('…/api/zones', …)` bundles
+    it into `zonesByStem` as a zone named `profiles`.
+
+  Found on the 2026-08-24 readiness pass, before anything was written. Hence
+  D12's path outside `api/`. ⚑ The same trap catches any future
+  "small data file about zones" — it belongs beside its consumer, not beside
+  the zone.
+- **L9 — ⛔ a ground texture must never be an SVG** (C4). `webpack.common.js:86`
+  matches `/\.svg$/` with `type: 'asset/inline'` and inlines it as a base64
+  data URI **into the JS bundle**; `.png/.jpg` fall to `type: 'asset'`, which
+  emits a separate file above webpack's 8 KB threshold. Every existing ground
+  blob is an SVG *because they are tiny vectors*; a 750×750 painterly tile is
+  neither. Ship tiles as PNG/JPG.
+- **L10 — ⛔ do NOT register C4's tiles in `GraphicsConfig.groundTextureTypes`.**
+  `GroundTextureTypes.ts` walks that map at import and preloads every entry
+  through `Preloading`, which **blocks boot** until all resolve. Correct for 18
+  small blobs; at 12 zones × 6 tiles it means staring at a loader while zones
+  you are not in download. The active zone's set loads in `startRendering`,
+  beside `Regions.loadRegions`.
+- **L11 — the `Land` blobs are already a live problem, not a C4 one.** 75
+  terrain pieces are filled with the exact `LAND_COLOR`; over any region paint
+  they read as flat green patches, and **12 overlap C1's worked example**. See
+  §4.8's corrected note. Owned by the D16 sitting.
 
 ## 11. Open questions
 
@@ -419,6 +744,18 @@ Audio consumers are `plan-region-audio.md`. Atmosphere is release-map's.
 - **Should `darkAreas` eventually fold into `regions`?** (§4.4) Tidiness versus
   a content migration and an overlay rewrite. Not now.
 - **C3's palette**: how many profiles, and which colors. A PO call.
+- ~~**Textured profiles at all?**~~ **ANSWERED 2026-08-25 — D13/D14.** Adopted:
+  texture or colour per profile; `color` under a texture is the fallback, not a
+  tint.
+- **If textures get soft borders** (the D5 evidence note): who owns the blend
+  width (global constant, per profile, or per region)? Lean per profile with a
+  shipped default. ⚑ Deliberately still open — **D15 rules hard edges for C4**,
+  so this is only answered if the seam reads badly in-game. Answering it now
+  would be answering it on spec.
+- **Which textures, and at what tile scale?** The D16 sitting picks from the
+  CC0 pack (§4.8's shortlist by role) and tunes `scale` by eye. ⚑ Scale is the
+  knob that decides whether a tile reads as *ground* or as *wallpaper*; it
+  cannot be chosen from a document.
 - **Quest-readable regions — a possibility, not a requirement** (PO 2026-08-24,
   quest-gap conversation): a future "entered region" quest objective would ride
   this primitive and is the natural substitute for a location-objective verb
