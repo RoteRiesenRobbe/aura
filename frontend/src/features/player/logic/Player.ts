@@ -15,6 +15,7 @@ import {BRAND, LEVEL_UP_GOLD} from '../../../client-data/Theme';
 import {setLocalPlayerMaxHealth} from '../../../client-data/Skills';
 import {shieldBarSegments} from '../../game-objects/logic/ShieldBarMath';
 import * as Flight from '../../flight/logic/Flight';
+import * as SkillVisuals from '../../game-objects/logic/SkillVisuals';
 import * as FlightOrigin from '../../flight/logic/FlightOrigin';
 import './PlayerJuice';
 
@@ -112,13 +113,20 @@ export class Player {
         // ring. Fed after setAuraRadius so the ring radius is set. Since N5 the
         // landed beat also drives the HUD metronome on the active aura slot —
         // the rhythm stays readable where the eyes are while switching loadout.
+        let beatLanded = false;
         if (isDefined(entity.auraTickInterval)) {
-            const beatLanded = this.character.setAuraTick(
+            beatLanded = this.character.setAuraTick(
                 entity.auraTickInterval, entity.auraTickPhase, entity.activeSkillId ?? 0);
             if (beatLanded) {
                 HUD.pulseAuraMetronome();
             }
         }
+        // Per-skill visuals prototype (prototype/skill-visuals): arm the
+        // outbound-hit inference for the entity loop of this SAME snapshot
+        // (Backend.receiveSnapshot updates the player first), and drive the
+        // ambient field off the active skill + projected radius.
+        SkillVisuals.noteOwnAura(
+            this.character, entity.activeSkillId ?? 0, entity.auraRadius ?? 0, beatLanded);
         // Own light hole in the darkness overlay (chunk 3). Floored at a TINY
         // self-glow (PO ruling 2026-07-17: darkness stays fully dark — the
         // hole may cover the avatar itself and nothing more). Other entities
@@ -191,6 +199,9 @@ export class Player {
     }
 
     remove() {
+        // Skill-visuals prototype: disarm the hit inference and drop the
+        // ambient field with the character - see SkillVisuals.reset().
+        SkillVisuals.reset();
         // Leaving the world grounds the client (plan-flight-paths.md C3): death
         // and disconnect both come through here, and the server resolves a
         // dropped flight to arrival (D14) rather than replaying it. Without

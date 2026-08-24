@@ -19,6 +19,7 @@ import * as Console from '../../internal-tools/console/logic/Console';
 import {Camera} from '../../camera/logic/Camera';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
+import * as SkillVisuals from '../../game-objects/logic/SkillVisuals';
 import {GameState, IGame, IGameLayers} from './IGame';
 import {gameObjectId} from '../../common/logic/Types';
 import {GraphicsConfig} from '../../../client-data/Graphics';
@@ -242,6 +243,10 @@ export class Game implements IGame {
             // at most the local player: a flyer is removed from everyone
             // else's snapshot (D13), so no remote character can ever reach it.
             flyers: createNamedContainer('flyers'),
+            // Per-skill strike/projectile FX (prototype/skill-visuals): above
+            // every entity, below darkness - a fireball must not be the first
+            // thing to light a dark area (§6.5, the attack-lines precedent).
+            skillFx: createNamedContainer('skillFx'),
             // Darkness overlay (chunk 3): above all entities, below the
             // floating numbers; deliberately NOT in the DayCycle filtered
             // set — dark areas are dark independent of the cycle (§6.5).
@@ -318,6 +323,9 @@ export class Game implements IGame {
         // still in it — so this sits just below it.
         this.cameraGroup.addChild(this.layers.flyers);
 
+        // Strike/projectile FX above the entities they connect, below darkness.
+        this.cameraGroup.addChild(this.layers.skillFx);
+
         // Darkness overlay above every entity
         this.cameraGroup.addChild(this.layers.darkness);
 
@@ -337,6 +345,7 @@ export class Game implements IGame {
         Camera.setup(this);
         GroundTextureManager.setup(this);
         DarknessOverlay.setup(this.layers.darkness);
+        SkillVisuals.setup(this.layers.skillFx);
 
         GameObject.setup();
 

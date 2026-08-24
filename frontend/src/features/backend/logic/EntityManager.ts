@@ -13,6 +13,7 @@ import {Vector} from '../../core/logic/Vector';
 import {IMiniMapRendered} from '../../map/logic/MiniMapInterfaces';
 import {MiniMap} from '../../map/logic/MiniMap';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
+import * as SkillVisuals from '../../game-objects/logic/SkillVisuals';
 import type {
     AuraDisplay,
     DwellRing,
@@ -195,11 +196,23 @@ export class EntityManager {
         // The crit-flagged share pops big (skill-vocab chunk 1); the
         // remainder shows as a regular damage number.
         const critTaken = entity.critTaken > 0 ? entity.critTaken : 0;
-        if (critTaken > 0) {
-            gameObject.showFloatingNumber(hpToDisplay(critTaken), 'crit');
-        }
-        if (entity.damageTaken > critTaken) {
-            gameObject.showFloatingNumber(hpToDisplay(entity.damageTaken - critTaken), 'damage');
+        // Per-skill visuals prototype (prototype/skill-visuals): a hit read as
+        // the own player's draws a strike/projectile; a projectile defers the
+        // damage number to visual impact (the HP bar still drops at the tick).
+        const hitFx = SkillVisuals.noteEntityDamaged(gameObject, entity.damageTaken ?? 0);
+        const showDamageNumbers = () => {
+            if (gameObject.shape?.destroyed) return; // deferred past a teardown
+            if (critTaken > 0) {
+                gameObject.showFloatingNumber(hpToDisplay(critTaken), 'crit');
+            }
+            if (entity.damageTaken > critTaken) {
+                gameObject.showFloatingNumber(hpToDisplay(entity.damageTaken - critTaken), 'damage');
+            }
+        };
+        if (hitFx.delayMs > 0) {
+            setTimeout(showDamageNumbers, hitFx.delayMs);
+        } else {
+            showDamageNumbers();
         }
         // A hit was fully mitigated this tick (plan-immune-feedback.md):
         // grey "Immune" where the number would have been. Only when nothing
@@ -220,7 +233,9 @@ export class EntityManager {
             gameObject.showFloatingNumber(entity.xpGained, 'xp');
         }
         // Aura-hit VFX (item 11 Step 4): slash / fire stamped by a damage aura.
-        if (entity.auraHitStyle > 0) {
+        // A hit claimed by the skill-visuals prototype drew its own strike or
+        // projectile - the default slash would double with it.
+        if (entity.auraHitStyle > 0 && !hitFx.claimed) {
             gameObject.showAuraHit(entity.auraHitStyle);
         }
     };
