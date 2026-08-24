@@ -9,7 +9,42 @@ package prop
 import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
+
+// FromZone builds the entity for one resolved zone placement — the SINGLE
+// definition of how an authored prop becomes a thing in the world.
+//
+// ⚑ It exists because there were three copies of this eight-line loop (the
+// boot seam, the scaling profile's world builder, and a test) and
+// plan-prop-scale.md C1b had to change all three at once. A fourth would drift.
+//
+// The two footprints are the whole point: VisualBody is what the client draws
+// and the Tiled box shows, CollisionBody is what blocks. Both already carry the
+// placement's optional scale multiplier.
+//
+// ⚑ world imports nothing from model, so this direction is the only one
+// available: model imports world, which is why the zone package cannot build
+// entities itself.
+func FromZone(p *world.Prop) *Prop {
+	pos := phy.Vec2f{X: p.X, Y: p.Y}
+	entityType := model.EntityType(p.Def.EntityType)
+	visual, solid := p.VisualBody(), p.CollisionBody()
+	var e *Prop
+	if solid.IsRect() {
+		// ⚑ The angle goes INTO the constructor for a rect, because it is part
+		// of what the collision body is (C2b) — a construct-then-orient step
+		// would be forgettable, and forgetting it is silent: the prop would
+		// render turned and block upright, which is the exact bug C2b fixes.
+		e = NewRect(entityType, pos, solid.Width, solid.Height, p.Rotation, visual.VisualRadius(), p.BlocksMovement)
+	} else {
+		// A circle has no orientation, so the body needs nothing; only the
+		// sprite angle below applies.
+		e = New(entityType, pos, solid.Radius, visual.VisualRadius(), p.BlocksMovement)
+	}
+	e.rotation = p.Rotation
+	return e
+}
 
 type Prop struct {
 	model.BaseEntity
@@ -18,20 +53,48 @@ type Prop struct {
 	// lift); BaseEntity.Body stays nil then and every body access below is
 	// overridden. Circle props keep the BaseEntity path untouched.
 	rect *phy.SolidAABB
+
+	// visualRadius is what the wire carries, and it is deliberately NOT the
+	// body's (plan-prop-scale.md C1b): a tree crown overhangs its trunk, so the
+	// sprite is larger than the collider. The client draws at exactly this
+	// number and applies no factor of its own, which is what lets the Tiled box
+	// — sized from the same authored body — match the game.
+	//
+	// ⚑ Radius() is the ONLY consumer that must see the visual size. Mob
+	// steering takes the phy.Circle directly and the streamed AABB feeds the
+	// dev overlay, so both correctly keep reporting the collider.
+	visualRadius float32
+
+	// rotation is the authored orientation in radians (plan-prop-scale.md C2),
+	// surfaced through Angle() like every other entity's — this is the SPRITE
+	// angle, which is all a circle-bodied prop needs.
+	//
+	// ⚑ A rect prop's collision body carries the same angle independently
+	// (phy.NewSolidRotatedAABB, passed in NewRect). The two are set from one
+	// authored value in FromZone and nothing moves a prop afterwards, so they
+	// cannot drift — but they ARE two copies, and TestRotatedRectProp_
+	// ColliderTurnsWithTheSprite is what keeps them honest. C2 shipped with the
+	// rect body deliberately unrotated (D3 option B) and the PO hit the
+	// resulting "renders turned, blocks upright" lie in-game the same day;
+	// C2b closed it.
+	rotation float32
 }
 
 var _ = model.PropEntity(&Prop{})
 
-// New builds a static circle prop entity at pos. blocksMovement puts the body
-// on the player/mob static-collision layers (the same bits solid resources
-// use); a decorative prop keeps only the viewport layer, so it streams to
-// clients but never collides.
-func New(entityType model.EntityType, pos phy.Vec2f, radius float32, blocksMovement bool) *Prop {
+// New builds a static circle prop entity at pos. radius is the COLLIDER;
+// visualRadius is what the client draws the sprite at and is usually larger
+// (see Prop.visualRadius). blocksMovement puts the body on the player/mob
+// static-collision layers (the same bits solid resources use); a decorative
+// prop keeps only the viewport layer, so it streams to clients but never
+// collides.
+func New(entityType model.EntityType, pos phy.Vec2f, radius, visualRadius float32, blocksMovement bool) *Prop {
 	body := phy.NewCircle(pos, radius)
 	body.Shape().Layer = propLayer(blocksMovement)
 
 	p := &Prop{
-		BaseEntity: model.NewBaseEntity(body, entityType),
+		BaseEntity:   model.NewBaseEntity(body, entityType),
+		visualRadius: visualRadius,
 	}
 	// UserData is how viewport queries find the entity behind a shape — without
 	// it the prop would never be streamed (core/net.go).
@@ -39,15 +102,18 @@ func New(entityType model.EntityType, pos phy.Vec2f, radius float32, blocksMovem
 	return p
 }
 
-// NewRect builds a static axis-aligned rectangle prop entity at pos (the
-// rect's center), width x height. Layer rules match New.
-func NewRect(entityType model.EntityType, pos phy.Vec2f, width, height float32, blocksMovement bool) *Prop {
-	body := phy.NewSolidAABB(pos, width, height)
+// NewRect builds a static rectangle prop entity at pos (the rect's center),
+// width x height — the COLLIDER — turned by angle radians. visualRadius is the
+// max half-extent of the VISUAL body, which is what the wire carries. Layer
+// rules match New.
+func NewRect(entityType model.EntityType, pos phy.Vec2f, width, height, angle, visualRadius float32, blocksMovement bool) *Prop {
+	body := phy.NewSolidRotatedAABB(pos, width, height, angle)
 	body.Shape().Layer = propLayer(blocksMovement)
 
 	p := &Prop{
-		BaseEntity: model.NewBaseEntity(nil, entityType),
-		rect:       body,
+		BaseEntity:   model.NewBaseEntity(nil, entityType),
+		rect:         body,
+		visualRadius: visualRadius,
 	}
 	body.Shape().UserData = p
 	return p
@@ -92,15 +158,17 @@ func (p *Prop) AABB() model.AABB {
 	return model.AABB(p.rect.BoundingBox())
 }
 
-// Radius is the single size scalar on the Resource wire table; for a rect the
-// max half-extent lets the client scale a sprite whose aspect matches the
-// authored body.
+// Radius is the single size scalar on the Resource wire table — the VISUAL
+// radius, not the collider's. For a rect it is the max half-extent, which lets
+// the client scale a sprite whose aspect matches the authored body.
 func (p *Prop) Radius() float32 {
-	if p.rect == nil {
-		return p.BaseEntity.Radius()
-	}
-	if p.rect.HalfWidth > p.rect.HalfHeight {
-		return p.rect.HalfWidth
-	}
-	return p.rect.HalfHeight
+	return p.visualRadius
+}
+
+// Angle is the authored orientation in radians. BaseEntity returns a constant
+// 0, so overriding it here is the whole server side of prop rotation: the
+// codec already marshals Angle() for characters and mobs and now does the same
+// for props.
+func (p *Prop) Angle() float32 {
+	return p.rotation
 }

@@ -65,7 +65,11 @@ Replace the procedural world with a **hand-authored single zone**, authored in a
 - **Full authoring pipeline now** (not a throwaway minimum), but content scoped
   to **one zone**, **single Space**.
 - **In-game editor** (extend the existing MysticWand tool) — not Tiled, not
-  hand-written JSON.
+  hand-written JSON. *(Superseded on the EDITOR question 2026-08-23,
+  `docs/plan-tiled-authoring.md`: Tiled now edits the same file as a second
+  surface. The zone **format** this ruling chose is untouched, and the in-game
+  editor is not retired — it keeps the one thing Tiled cannot do, editing while
+  standing in the live world.)*
 - **Occluders: data flags now, movement-blocking implemented, LoS/darkness
   deferred.** *(Since superseded: aura LoS was cut 2026-07-10 — `blocksAura`
   is pending deletion; darkness (item 5) unaffected.)*

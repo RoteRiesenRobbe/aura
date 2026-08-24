@@ -612,6 +612,13 @@ func PropEntityFlatbufMarshal(e model.PropEntity, builder *flatbuffers.Builder) 
 	AuraApi.ResourceAddRadius(builder, f32ToU16Px(e.Radius()))
 	AuraApi.ResourceAddEntityType(builder, AuraApi.EntityType(e.Type()))
 
+	// The authored orientation (plan-prop-scale.md C2) — the same line
+	// Character and Mob already have. ⚑ Free when it is 0: the field is last
+	// in the table, so the builder both skips the value and trims the vtable
+	// slot, and an unrotated world streams byte-for-byte what it streamed
+	// before this chunk.
+	AuraApi.ResourceAddRotation(builder, e.Angle())
+
 	return AuraApi.ResourceEnd(builder)
 }
 

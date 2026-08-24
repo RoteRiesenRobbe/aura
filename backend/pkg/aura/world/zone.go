@@ -27,20 +27,80 @@ type Bounds struct {
 }
 
 // Prop is a hand-placed static object. blocksMovement puts the body on the
-// static-collision layers. Rotation is parsed and stored, but not yet
-// rendered — the Resource wire table has no rotation field and circle-bodied
-// props don't need one yet (revisit when the editor places rotated props,
-// chunk 5/6). Def is resolved at load time so an unknown prop type fails
-// loudly at boot.
+// static-collision layers. Def is resolved at load time so an unknown prop type
+// fails loudly at boot.
+//
+// Rotation is the orientation in radians. It was parsed and stored but rendered
+// NOWHERE from the world-foundation chunk until plan-prop-scale.md C2 gave
+// table Resource a rotation field; prop.Prop surfaces it through Angle() and
+// the client draws the sprite at it.
+//
+// ⚑ It is NOT cosmetic: a rect body is built turned (phy.NewSolidRotatedAABB),
+// so a rotated House blocks at its drawn angle. C2 shipped without that — the
+// D3 option-(B) trade — and the PO hit the "renders turned, blocks upright" lie
+// in-game within the hour; C2b closed it. Circle bodies have no orientation and
+// never needed anything.
+//
+// Scale is the per-placement size multiplier on the TYPE's body
+// (plan-prop-scale.md C1, D1): nil = inherit the body verbatim, which is what
+// keeps every prop authored before this field byte-identical. Deliberately a
+// multiplier rather than terrain's absolute size — one scalar cannot express a
+// rect body, while a multiplier scales both axes and keeps the authored aspect,
+// and rescaling the type still moves every placement of it.
+//
+// ⚑ The body IS the collision shape, so scale is a GAMEPLAY quantity, not a
+// cosmetic one: a 2.5× tree blocks 2.5× the radius (D5). That is deliberate —
+// a prop that looks big and walks small is the worse lie.
 type Prop struct {
-	Type           string  `json:"type"`
-	X              float32 `json:"x"`
-	Y              float32 `json:"y"`
-	Rotation       float32 `json:"rotation"`
-	BlocksMovement bool    `json:"blocksMovement"`
+	Type           string   `json:"type"`
+	X              float32  `json:"x"`
+	Y              float32  `json:"y"`
+	Rotation       float32  `json:"rotation"`
+	BlocksMovement bool     `json:"blocksMovement"`
+	Scale          *float32 `json:"scale"`
 
 	// Def is the prop definition resolved from Type; not part of the JSON.
 	Def *PropDefinition `json:"-"`
+}
+
+// MaxPropScale is the upper rail on Prop.Scale — [PLACEHOLDER] (D2), a sanity
+// guard against a fat-fingered drag in the editor rather than a design
+// statement. The hard ceiling is far above it: the wire radius is u16 px, so a
+// body past ~546 units would wrap.
+const MaxPropScale = 10
+
+// VisualBody resolves the placement's tri-state scale against the type's
+// authored body — the ONE place the multiplier is applied, so every present and
+// future prop type gets it without a per-type list anywhere. Only meaningful
+// once Def is resolved.
+//
+// This is the VISUAL footprint (PropBody): what the sprite is drawn at, what
+// the wire carries, and what the Tiled box shows. CollisionBody is what
+// actually blocks.
+//
+// A rect scales on both axes, which preserves its aspect; a circle scales its
+// radius. Exactly one form is ever set (parsePropDefinition enforces it), so
+// multiplying all three fields is safe — the zeroes stay zero. CollisionFactor
+// is carried through untouched: it is a ratio, and scaling a prop must not
+// change how much of it is solid.
+func (p *Prop) VisualBody() PropBody {
+	b := p.Def.Body
+	if p.Scale == nil {
+		return b
+	}
+	s := *p.Scale
+	return PropBody{
+		Radius: b.Radius * s, Width: b.Width * s, Height: b.Height * s,
+		CollisionFactor: b.CollisionFactor,
+	}
+}
+
+// CollisionBody is the body the physics engine gets: the scaled visual body
+// times the type's collision factor. Scale therefore still moves the collider
+// (D5) — a 2.5× tree blocks 2.5× — while the crown keeps overhanging the trunk
+// by the same ratio at every size.
+func (p *Prop) CollisionBody() PropBody {
+	return p.VisualBody().Collision()
 }
 
 // Waypoint is one point of a spawn's patrol route, in server units.
@@ -280,6 +340,14 @@ func (z *Zone) validate() error {
 	}
 	if z.Bounds.Width <= 0 || z.Bounds.Height <= 0 {
 		return fmt.Errorf("bounds must be positive, got %gx%g", z.Bounds.Width, z.Bounds.Height)
+	}
+	for i := range z.Props {
+		// Tri-state like the spawn knobs: absent inherits the type's body. Zero
+		// and negative are nonsense rather than "inherit" — an inheriting prop
+		// authors no key at all.
+		if sc := z.Props[i].Scale; sc != nil && (*sc <= 0 || *sc > MaxPropScale) {
+			return fmt.Errorf("prop %d: scale %g must be in (0, %d]", i, *sc, MaxPropScale)
+		}
 	}
 	for i := range z.Spawns {
 		s := &z.Spawns[i]

@@ -67,7 +67,20 @@ export class EntityManager {
                     }
                 // Fallthrough
                 default:
-                    gameObject = new entity.type(entity.id, entity.position.x, entity.position.y, entity.radius);
+                    // ⚑ The 5th argument is the prop's authored rotation
+                    // (plan-prop-scale.md C2), and it is passed to the
+                    // CONSTRUCTOR rather than through setRotation on purpose.
+                    // setRotation honours LIMIT_TURN_RATE, which would enrol
+                    // every prop entering the viewport in the per-frame
+                    // rotatingObjects set and spin it into place — a permanent
+                    // working set of turning trees as you walk. A static object
+                    // is simply built at its angle.
+                    //
+                    // Mobs and corpses reaching this same line take 3 args and
+                    // DebugCircle 4, so the extra one is ignored there; their
+                    // rotation still rides the isMovable branch above.
+                    gameObject = new entity.type(
+                        entity.id, entity.position.x, entity.position.y, entity.radius, entity.rotation);
             }
 
             this.objects[entity.id] = gameObject;

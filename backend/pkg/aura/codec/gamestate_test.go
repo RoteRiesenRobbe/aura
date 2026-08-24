@@ -9,6 +9,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -536,9 +537,9 @@ func TestEntitiesMarshalFlatbuf_LengthAndOrder(t *testing.T) {
 	// It must carry exactly len(entities) elements, in input order (the
 	// prepend-in-reverse rule every other vector in this file follows).
 	entities := []model.Entity{
-		prop.New(model.EntityType(1), phy.Vec2f{X: 1, Y: 2}, 0.5, false),
-		prop.New(model.EntityType(2), phy.Vec2f{X: 3, Y: 4}, 0.5, false),
-		prop.New(model.EntityType(3), phy.Vec2f{X: 5, Y: 6}, 0.5, true),
+		prop.New(model.EntityType(1), phy.Vec2f{X: 1, Y: 2}, 0.5, 0.5, false),
+		prop.New(model.EntityType(2), phy.Vec2f{X: 3, Y: 4}, 0.5, 0.5, false),
+		prop.New(model.EntityType(3), phy.Vec2f{X: 5, Y: 6}, 0.5, 0.5, true),
 	}
 
 	b := flatbuffers.NewBuilder(256)
@@ -558,6 +559,54 @@ func TestEntitiesMarshalFlatbuf_LengthAndOrder(t *testing.T) {
 	}
 }
 
+// C2: the authored orientation reaches the client. Built through
+// prop.FromZone rather than prop.New so this covers the whole authored → wire
+// path, which is where the field is actually assigned.
+func TestPropEntityFlatbufMarshal_CarriesRotation(t *testing.T) {
+	def := &world.PropDefinition{Body: world.PropBody{Radius: 1}}
+	p := prop.FromZone(&world.Prop{X: 1, Y: 2, Rotation: 2.03, BlocksMovement: true, Def: def})
+
+	b := flatbuffers.NewBuilder(256)
+	b.Finish(PropEntityFlatbufMarshal(p, b))
+
+	var res AuraApi.Resource
+	res.Init(b.FinishedBytes(), flatbuffers.UOffsetT(flatbuffers.GetUOffsetT(b.FinishedBytes())))
+	assert.Equal(t, float32(2.03), res.Rotation())
+}
+
+// ⭐ The performance property, pinned structurally rather than as a byte count.
+//
+// rotation is the LAST field in table Resource, and 0 is its default. The
+// builder therefore skips the value AND WriteVtable trims the now-trailing zero
+// vtable slot, so an unrotated prop encodes to exactly what it encoded before
+// the field existed — which matters because props are re-serialized for every
+// player at 30 Hz and are the bulk of a snapshot (~68 bytes each, ~17 in view).
+//
+// Moving rotation into the middle of the table would keep every test above
+// green while silently adding two vtable bytes to all 807 props. This is the
+// only thing that would notice.
+func TestPropEntityFlatbufMarshal_UnrotatedCostsNothing(t *testing.T) {
+	encode := func(withRotation bool) int {
+		b := flatbuffers.NewBuilder(256)
+		b.StartVector(1, 0, 0)
+		se := b.EndVector(0)
+		AuraApi.ResourceStart(b)
+		AuraApi.ResourceAddId(b, 1)
+		AuraApi.ResourceAddStatusEffects(b, se)
+		AuraApi.ResourceAddPos(b, Vec2fMarshalFlatbuf(b, phy.Vec2f{X: 1, Y: 2}))
+		AuraApi.ResourceAddRadius(b, 120)
+		AuraApi.ResourceAddEntityType(b, AuraApi.EntityType(2))
+		if withRotation {
+			AuraApi.ResourceAddRotation(b, 0)
+		}
+		b.Finish(AuraApi.ResourceEnd(b))
+		return len(b.FinishedBytes())
+	}
+	assert.Equal(t, encode(false), encode(true),
+		"writing rotation=0 must add zero bytes; if this diverges, rotation is no "+
+			"longer the last field and every prop in every snapshot just got bigger")
+}
+
 // L-H5: deleting Resource.capacity/stock RENUMBERED aabb, which is the one
 // field that sits after them — and a mid-table renumber is the failure mode
 // that decodes as garbage rather than as an error. This reads every field a
@@ -565,7 +614,10 @@ func TestEntitiesMarshalFlatbuf_LengthAndOrder(t *testing.T) {
 // its reader shows up as a wrong value here instead of as a misplaced collider
 // in-game.
 func TestPropEntityFlatbufMarshal_FieldsSurviveTheRenumber(t *testing.T) {
-	p := prop.New(model.EntityType(26), phy.Vec2f{X: 3, Y: -4}, 0.75, true)
+	// ⚑ Collider 0.75, VISUAL 1.05 — deliberately different since C1b, so this
+	// pins that the wire carries the visual radius while the AABB below still
+	// reports the collider. Equal numbers would let a swap pass unnoticed.
+	p := prop.New(model.EntityType(26), phy.Vec2f{X: 3, Y: -4}, 0.75, 1.05, true)
 
 	b := flatbuffers.NewBuilder(256)
 	b.Finish(PropEntityFlatbufMarshal(p, b))
@@ -576,6 +628,7 @@ func TestPropEntityFlatbufMarshal_FieldsSurviveTheRenumber(t *testing.T) {
 	assert.Equal(t, p.Basic().ID(), res.Id())
 	assert.Equal(t, AuraApi.EntityType(26), res.EntityType())
 	assert.Equal(t, f32ToU16Px(p.Radius()), res.Radius())
+	assert.Equal(t, f32ToU16Px(1.05), res.Radius(), "the wire radius is the VISUAL one")
 	assert.Zero(t, res.StatusEffectsLength())
 
 	var pos AuraApi.Vec2f
@@ -590,6 +643,8 @@ func TestPropEntityFlatbufMarshal_FieldsSurviveTheRenumber(t *testing.T) {
 	require.NotNil(t, aabb.Lower(&lower))
 	require.NotNil(t, aabb.Upper(&upper))
 	box := p.AABB()
+	// The collider's box, not the sprite's: 0.75 radius spans 1.5 units.
+	assert.InDelta(t, 1.5, float64(box.Right-box.Left), 0.0001)
 	assert.InDelta(t, float64(f32ToPx(box.Left)), lower.X(), 0.0001)
 	assert.InDelta(t, float64(f32ToPx(box.Bottom)), lower.Y(), 0.0001)
 	assert.InDelta(t, float64(f32ToPx(box.Right)), upper.X(), 0.0001)

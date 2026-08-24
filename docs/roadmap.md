@@ -133,9 +133,15 @@ storytelling.
   only `blocks-movement` remains meaningful; the shipped-but-inert
   `blocksAura` flag was deleted 2026-07-11 (see item 6).
 - ⚑ Authoring tooling: external editor (e.g. Tiled) vs. custom JSON — biggest
-  unknown in this item. *Deliberately left open (2026-07); decide when this
-  item starts. Suggested first step: a Tiled spike (build one test zone, load
-  it through the existing entity pipeline).*
+  unknown in this item. ~~*Deliberately left open (2026-07); decide when this
+  item starts.*~~ **ANSWERED 2026-08-23** (`docs/plan-tiled-authoring.md`,
+  shipped): it is **both, and neither replaces the other**. The custom JSON
+  stays the format; Tiled becomes a second *editor* on top of it via a
+  checked-in extension that reads and writes `api/zones/*.json` natively — no
+  intermediate .tmj, no converter step. ⭐ The spike this note asks for was run
+  as that plan's C0 and passed. ⚑ The deciding fact: **none of Aura's world is
+  a tilemap** — every array is freeform floats — so only object layers matter,
+  and there LDtk supports neither entity rotation (#841) nor flipping (#978).
 
 ### Zones as runtime physics Spaces & fluid transitions
 

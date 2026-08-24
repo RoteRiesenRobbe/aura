@@ -1,5 +1,5 @@
 {
   "name": "Boulder",
   "entityType": "Stone",
-  "body": { "radius": 1.5 }
+  "body": { "radius": 1.605, "collisionFactor": 0.934579 }
 }

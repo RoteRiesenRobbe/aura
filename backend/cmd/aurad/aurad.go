@@ -16,7 +16,6 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/core"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/encounter"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/prop"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
@@ -168,14 +167,8 @@ func main() {
 	// The world is populated from the authored zone: mob spawn points flow to
 	// the MobSystem via core.Spawns (chunk 4); props are placed once here as
 	// static entities (chunk 3). Procedural generation is gone.
-	for _, p := range zone.Props {
-		pos := phy.Vec2f{X: p.X, Y: p.Y}
-		entityType := model.EntityType(p.Def.EntityType)
-		if p.Def.Body.IsRect() {
-			g.AddEntity(prop.NewRect(entityType, pos, p.Def.Body.Width, p.Def.Body.Height, p.BlocksMovement))
-		} else {
-			g.AddEntity(prop.New(entityType, pos, p.Def.Body.Radius, p.BlocksMovement))
-		}
+	for i := range zone.Props {
+		g.AddEntity(prop.FromZone(&zone.Props[i]))
 	}
 
 	// Fixed world campfires (atmosphere & recovery chunk 2): permanent aligned

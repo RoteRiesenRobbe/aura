@@ -5816,6 +5816,21 @@ frontend-only, which is the whole reason the prototype was cheap.
 
 ## 58. Terrain editor — no select, move or rotate on a placed ground texture
 
+> **✅ ANSWERED 2026-08-23 — by a different editor, not by fixing this one.**
+> `docs/plan-tiled-authoring.md` shipped: `api/zones/world.json` opens in
+> **Tiled**, where every one of the 549 terrain blobs can be selected, moved,
+> rotated, scaled, flipped, multi-selected, copy-pasted and undone — and saved
+> back byte-identically. The PO's ask is served in full.
+>
+> ⚑ **The in-game editor is unchanged**, so everything below still describes it
+> accurately. That is deliberate (D4 of that plan): the two editors write the
+> same file, and the in-game one keeps the thing Tiled cannot do — editing
+> while standing in the live world. If terrain selection is ever wanted
+> *in-world* as well, the analysis below is still the analysis.
+>
+> ⚑ **Not closed until the PO has moved a real texture in Tiled** and is
+> satisfied. Manual: `docs/manual-tiled-editor.md`.
+
 *(added 2026-08-21, PO-raised while wiring the painted `sand1.png` / `flowers.png`
 into the world. The PO's words: "I need replacement and rotation control — not
 yet there it's ok". **Parked on the spot, recorded so it does not have to be

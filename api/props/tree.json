@@ -1,5 +1,5 @@
 {
   "name": "Tree",
   "entityType": "RoundTree",
-  "body": { "radius": 1.0 }
+  "body": { "radius": 1.4, "collisionFactor": 0.714286 }
 }

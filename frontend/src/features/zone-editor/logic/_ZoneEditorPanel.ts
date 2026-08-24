@@ -697,6 +697,12 @@ function applyControlsToSelection() {
         let current = ZoneEditor.model.props[selection.index];
         let updated = readPropControls(current.x, current.y);
         if (updated !== null) {
+            // ⚑ L1, second face. readPropControls rebuilds the prop from the
+            // panel, and this editor has no scale control — so without this
+            // line, nudging a prop that Tiled scaled silently resets it to its
+            // type's size. Naming scale in getZoneAsJSON is not enough on its
+            // own. Same carry-over the spawn branch does for waypoints below.
+            updated.scale = current.scale;
             ZoneEditor.updateProp(selection.index, updated);
         }
     } else if (selection.kind === 'spawn') {

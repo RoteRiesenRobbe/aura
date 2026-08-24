@@ -68,8 +68,13 @@ aabb(obj?:AABB):AABB|null {
   return offset ? (obj || new AABB()).__init(this.bb_pos + offset, this.bb!) : null;
 }
 
+rotation():number {
+  const offset = this.bb!.__offset(this.bb_pos, 16);
+  return offset ? this.bb!.readFloat32(this.bb_pos + offset) : 0.0;
+}
+
 static startResource(builder:flatbuffers.Builder) {
-  builder.startObject(6);
+  builder.startObject(7);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -106,6 +111,10 @@ static addRadius(builder:flatbuffers.Builder, radius:number) {
 
 static addAabb(builder:flatbuffers.Builder, aabbOffset:flatbuffers.Offset) {
   builder.addFieldStruct(5, aabbOffset, 0);
+}
+
+static addRotation(builder:flatbuffers.Builder, rotation:number) {
+  builder.addFieldFloat32(6, rotation, 0.0);
 }
 
 static endResource(builder:flatbuffers.Builder):flatbuffers.Offset {

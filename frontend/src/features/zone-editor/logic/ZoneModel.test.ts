@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {describe, expect, it} from 'vitest';
-import {capabilitiesOf, kindOf, ZoneData, ZoneModel, ZoneSpawn} from './ZoneModel';
+import {capabilitiesOf, kindOf, ZoneData, ZoneModel, ZoneProp, ZoneSpawn} from './ZoneModel';
 
 // A character's campfire bind is persisted as the spawn-point id, so these are
 // persistence tests wearing an editor's clothes: an id the editor drops or
@@ -27,6 +27,20 @@ function zoneWithSpawns(spawns: ZoneSpawn[]): ZoneModel {
         props: [],
         spawns,
     });
+}
+
+function zoneWithProps(props: ZoneProp[]): ZoneModel {
+    return ZoneModel.fromJSON({
+        name: 'X',
+        bounds: {width: 60, height: 40},
+        terrain: [],
+        props,
+        spawns: [],
+    });
+}
+
+function prop(overrides: Partial<ZoneProp> = {}): ZoneProp {
+    return {type: 'Tree', x: 1, y: 2, rotation: 0.5, blocksMovement: true, ...overrides};
 }
 
 function spawn(overrides: Partial<ZoneSpawn> = {}): ZoneSpawn {
@@ -169,8 +183,14 @@ describe('capabilitiesOf', () => {
 // The L7 whitelist guard (plan-zone-editor-structure.md §7): the serializer is
 // a field whitelist that has silently eaten a field twice (spawn.level, the
 // campfire id class), and C2 edits it - so the REAL zone must round-trip
-// unchanged, and the 17 respawn-free spawns (exactly the talkers; the authored
-// convention "a talker authors no respawn") must stay respawn-free.
+// unchanged, and the respawn-free spawns (the talkers; the authored convention
+// "a talker authors no respawn") must stay respawn-free.
+//
+// ⭐ The second leg measures the INPUT and reconciles the output against it.
+// It used to assert a hardcoded 17, which made placing one talker in Tiled turn
+// it red - a census pin over content nobody promised to freeze. What the
+// serializer must not do is ADD a respawn to a spawn that had none, and that
+// holds at any world size.
 // ⚑ Read from disk with an absolute path: jsdom rewrites import.meta.url to a
 // non-file scheme, so a new URL(relative, import.meta.url) does not work here.
 // process.cwd() is frontend/ under vitest.
@@ -186,14 +206,56 @@ describe('world.json round-trip', () => {
         expect(exported).toEqual(worldRaw);
     });
 
-    it('keeps the 17 talker spawns respawn-free', () => {
+    it('keeps every respawn-free spawn respawn-free', () => {
+        let authored = worldRaw.spawns
+            .map((s, i) => ('respawnTicks' in s ? -1 : i))
+            .filter(i => i >= 0);
+        // A world with no talkers at all would make the leg vacuous.
+        expect(authored.length).toBeGreaterThan(0);
+
         let model = ZoneModel.fromJSON(worldRaw);
 
         let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
 
-        let respawnFree = exported.spawns.filter(s => !('respawnTicks' in s));
-        expect(respawnFree.length).toBe(17);
-        expect(respawnFree.every(s => !('respawnVariancePct' in s))).toBe(true);
+        let survived = exported.spawns
+            .map((s, i) => ('respawnTicks' in s ? -1 : i))
+            .filter(i => i >= 0);
+        expect(survived).toEqual(authored);
+        expect(authored.every(i => !('respawnVariancePct' in exported.spawns[i]))).toBe(true);
+    });
+});
+
+// ⚑ L1 — the per-placement prop scale (plan-prop-scale.md C1). THE SAME
+// WHITELIST that ate spawn.level, and the same failure shape, with one twist
+// that makes it likelier: this editor does not author scale at all, Tiled and
+// the placement scripts do. So the loss would happen to somebody ELSE'S work —
+// open the zone in the in-game editor to nudge one campfire, save, and every
+// scaled prop in the world quietly returns to its type's size.
+describe('ZoneModel prop scale', () => {
+    it('keeps a per-placement scale through an export round-trip', () => {
+        let model = zoneWithProps([prop({scale: 2.5})]);
+
+        let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
+
+        expect(exported.props[0].scale).toBe(2.5);
+    });
+
+    it('emits no scale key for a prop that inherits its type body', () => {
+        // Absent must stay absent, or a one-prop edit turns world.json's 807
+        // props into an 807-line diff.
+        let model = zoneWithProps([prop()]);
+
+        let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
+
+        expect(exported.props[0]).not.toHaveProperty('scale');
+    });
+
+    it('rounds scale to 3 decimals, like rotation', () => {
+        let model = zoneWithProps([prop({scale: 1.23456789})]);
+
+        let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
+
+        expect(exported.props[0].scale).toBe(1.235);
     });
 });
 

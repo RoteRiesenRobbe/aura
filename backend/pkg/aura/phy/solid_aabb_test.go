@@ -1,6 +1,7 @@
 package phy
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -156,4 +157,108 @@ func TestSolidAABB_BlocksDynamicCircleThroughSpace(t *testing.T) {
 				o.center, circle.Position())
 		})
 	}
+}
+
+// --- rotation (plan-prop-scale.md C2b) -------------------------------------
+//
+// A rotated rect prop used to render turned and collide upright — the D3
+// option-(B) lie, reported in-game by the PO after C2 shipped rotation to the
+// client ("the colliders of rotated houses are not correct and behave as if
+// unrotated"). These pin the box actually turning.
+//
+// The reference box below is 4 x 3 (a House) at 45°, where the two readings
+// disagree by a lot and the numbers are checkable by hand:
+//
+//   p = (2.4, 0)  local (rot -45°) = ( 1.697, -1.697) -> clamped (1.697, -1.5)
+//                 gap 0.197  =>  a radius-0.3 circle OVERLAPS
+//                 unrotated gap would be 0.4  =>  it would NOT
+//
+//   p = (2.1, 1.4) local = ( 2.475, -0.495) -> clamped (2, -0.495)
+//                 gap 0.475  =>  a radius-0.3 circle is CLEAR
+//                 unrotated gap would be 0.1  =>  it would overlap
+
+func newTestHouse(deg float64) *SolidAABB {
+	return NewSolidRotatedAABB(VEC2F_ZERO, 4, 3, float32(deg*math.Pi/180))
+}
+
+func TestSolidAABB_RotatedIntersectWithCircle(t *testing.T) {
+	house := newTestHouse(45)
+
+	// The corner the unrotated box could never reach.
+	assert.True(t, house.intersectWithCircle(NewCircle(Vec2f{2.4, 0}, 0.3)),
+		"the rotated box reaches out along its diagonal and must block here")
+	// ...and the corner it no longer occupies.
+	assert.False(t, house.intersectWithCircle(NewCircle(Vec2f{2.1, 1.4}, 0.3)),
+		"the rotated box has moved out of this corner and must not block here")
+
+	// Same two points against the unrotated box: exactly the opposite verdicts,
+	// which is what makes the pair a real test rather than two magic numbers.
+	flat := newTestHouse(0)
+	assert.False(t, flat.intersectWithCircle(NewCircle(Vec2f{2.4, 0}, 0.3)))
+	assert.True(t, flat.intersectWithCircle(NewCircle(Vec2f{2.1, 1.4}, 0.3)))
+}
+
+func TestSolidAABB_RotatedResolvePushesAlongTheTurnedFace(t *testing.T) {
+	house := newTestHouse(45)
+
+	// Straddling the long face, which at 45° faces up-right: the push must come
+	// out along that diagonal, not along a world axis.
+	f := resolveSolidAABB(NewCircle(Vec2f{2.4, 0}, 0.3), house)
+	assert.InDelta(t, 0.103, float64(f.Abs()), 1e-3, "pushed clear by exactly the overlap")
+	// The nearest face is the box's LOCAL -Y (the 4-unit long side), whose
+	// outward normal at 45° points right and DOWN — not along any world axis,
+	// which is the whole point.
+	dir := f.Div(f.Abs())
+	assert.InDelta(t, 0.7071, float64(dir.X), 1e-3)
+	assert.InDelta(t, -0.7071, float64(dir.Y), 1e-3)
+
+	// And the invariant behind the numbers, checkable without knowing any of
+	// them: applying the force leaves the circle touching the face and no
+	// deeper. ⚑ Asserted as a gap rather than as !intersect, because the push
+	// lands ON the boundary and intersectWithCircle's strict < then turns a
+	// one-ulp rounding either way into a coin flip.
+	landed := Vec2f{2.4, 0}.Add(f)
+	assert.InDelta(t, 0.3, float64(landed.Sub(house.clamp(landed)).Abs()), 1e-4)
+}
+
+// ⭐ 0° must be EXACTLY the old behaviour, not approximately: cos=1, sin=0
+// makes every transform below an identity, so no unrotated prop in the world
+// moves by a float ulp. Asserted with == on purpose.
+func TestSolidAABB_UnrotatedIsBitIdentical(t *testing.T) {
+	flat := NewSolidAABB(Vec2f{3, -4}, 20, 10)
+	turned := NewSolidRotatedAABB(Vec2f{3, -4}, 20, 10, 0)
+
+
+	for _, p := range []Vec2f{{0, 0}, {13.5, -4}, {3, 1.4}, {-8, -9}, {3.5, -4.5}} {
+		assert.Equal(t, flat.clamp(p), turned.clamp(p), "clamp at %v", p)
+		assert.Equal(t,
+			resolveSolidAABB(NewCircle(p, 1), flat),
+			resolveSolidAABB(NewCircle(p, 1), turned), "resolve at %v", p)
+	}
+	assert.Equal(t, flat.Shape().bb, turned.Shape().bb)
+}
+
+// A quarter turn is the case the PO actually authored (two houses at 90.7° and
+// 270.5°), and it is exactly a width/height swap — worth its own pin because it
+// is the one rotation whose answer can be checked without trigonometry.
+func TestSolidAABB_QuarterTurnSwapsTheExtents(t *testing.T) {
+	turned := newTestHouse(90)
+	swapped := NewSolidAABB(VEC2F_ZERO, 3, 4)
+
+	for _, p := range []Vec2f{{0, 0}, {1.6, 0}, {0, 2.1}, {1.4, 1.9}, {-1.6, -2.1}} {
+		c, s := turned.clamp(p), swapped.clamp(p)
+		assert.InDelta(t, float64(s.X), float64(c.X), 1e-5, "clamp X at %v", p)
+		assert.InDelta(t, float64(s.Y), float64(c.Y), 1e-5, "clamp Y at %v", p)
+	}
+}
+
+// The broadphase bound must cover the turned box, or the grid never even offers
+// the pair to the narrowphase and the collider silently stops existing at the
+// corners. A 4x3 at 45° spans (4+3)/sqrt(2) = 4.9497 on both axes.
+func TestSolidAABB_RotatedBoundingBoxCoversTheCorners(t *testing.T) {
+	bb := newTestHouse(45).Shape().bb
+	assert.InDelta(t, 2.4749, float64(bb.Right), 1e-3)
+	assert.InDelta(t, -2.4749, float64(bb.Left), 1e-3)
+	assert.InDelta(t, 2.4749, float64(bb.Upper), 1e-3)
+	assert.InDelta(t, -2.4749, float64(bb.Bottom), 1e-3)
 }
