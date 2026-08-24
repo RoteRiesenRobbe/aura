@@ -1,6 +1,36 @@
 # Plan: Playtest Feedback (rolling collection)
 
-**Status:** **Collection doc.** Latest: **chunk P — presence-counts XP
+> **⛔ CLOSED AND ARCHIVED 2026-08-24 (collection-doc restructuring).** This
+> doc no longer takes intake - **new feedback lands in `docs/feedback.md`**
+> (the pipeline lives in its header). Every item still open here on closing
+> day was redistributed:
+>
+> - **Auto-walk** (round 8 item 3 feature half, 4+1 design questions) →
+>   `backlog.md` §59.
+> - **Cleaner UI / dialogue UI + journal-over-dialogue** (round 9 items 2+3)
+>   → `docs/plan-ui-pass.md` (the consolidated UI pass).
+> - **Pass 2** (pulsing auras · directional ability · pulse-damage passive ·
+>   patrolling wide-aura mobs) → `backlog.md` §40. **Pass 3 item 2**
+>   (CallForAid combos) → DROPPED (PO 2026-08-24; nothing owned triggering
+>   the multiplayer playtest it waited for).
+> - **Environmental hints + story thread** → `backlog.md` §60.
+> - **Open question 8** (pacifist-healer threat consumer) → an open row in
+>   `docs/feedback.md`. The **Warlord anchor move** (round 6 item 2) and the
+>   **Haste naming nit** → DROPPED (PO 2026-08-24).
+> - **Owed feel checks** (Warlord cleave duck-feel · chunk-P checklist) →
+>   **DISCHARGED by PO ruling 2026-08-24**: a month of real play without
+>   complaint is the feel pass; anything still wrong re-enters as new
+>   feedback.
+> - **Open question 5** (placeholder residue) → closed as duplicate of the
+>   project-wide "numbers are ALWAYS placeholders" rule.
+> - **Round 6 item 4** (target stickiness, re-opens on measured cost) →
+>   already tracked in CLAUDE.md's backlog watch line; unchanged.
+> - The `DAMAGE`-cheat floating-number gap stays known-unfixed dev tooling,
+>   recorded only here.
+>
+> Everything below is the historical record as it stood.
+
+**Status (historical):** **Collection doc.** Latest: **chunk P — presence-counts XP
 attribution (Pass 3 item 1) — ✅ DONE 2026-07-30** `d45ba07c` (§Chunk P
 ledger at the end; plan at §Chunk P plan, 3 PO rulings P1–P3, 5 landmines).
 It is quest prerequisite **chunk P** (`plan-quests.md` D15); quest C1 is

@@ -1,6 +1,31 @@
 # Intermission Triage — 2026-07-18 (between C7 and C8)
 
-**Status: DECIDED 2026-07-19, LARGELY EXECUTED — partially open.** Sessions ①
+> **⛔ CLOSED AND ARCHIVED 2026-08-24 (collection-doc restructuring).** All 22
+> triage items are now accounted for; the banner below was stale on two
+> counts (items 7+15 combat readability shipped `e8b67289` 2026-07-21;
+> item 10 became ascension, complete + archived 2026-08-11). The residue was
+> redistributed:
+>
+> - **Item 21 `null.split` first-run repro** → DROPPED (PO 2026-08-24): it
+>   fired once on 2026-07-21 and never since, and `backlog.md` §29's
+>   lost-WebGL-context diagnosis already explains the symptom family.
+> - **band-width watch** → `docs/plan-ui-pass.md` (combat-readability
+>   residue). The **resist_aura ring colour** → DROPPED (PO 2026-08-24;
+>   FireWard is ruled Post-v1, nothing in the live world exercises it -
+>   re-enters as feedback if FireWard ever gets a source).
+> - **Wildfire feel pass owed** → DISCHARGED by PO ruling 2026-08-24 (a month
+>   of play is the feel pass); its values stay [PLACEHOLDER] under the global
+>   rule, and "mob burns can't be dodged - revisit if unfair" re-enters via
+>   `docs/feedback.md` if it ever bites.
+> - **Day/night deactivation-not-a-fix** → already a CLAUDE.md standing lock
+>   (don't re-enable without collapsing the ~25 per-layer filter passes);
+>   no second home needed.
+> - Remaining tuning placeholders (spider radius, Strong, pips) → covered by
+>   the global placeholder rule.
+>
+> Everything below is the historical record as it stood.
+
+**Status (historical): DECIDED 2026-07-19, LARGELY EXECUTED — partially open.** Sessions ①
 and ② landed 2026-07-19 (`2c155a68`, `dad7c42d`), followed by the crit rework
 v2, the night-readability fix (`6afbee84`), and the wolf-line drop reshuffle
 (`f9a64db5`) — see §Execution sequence for the per-item state. **Still open:**

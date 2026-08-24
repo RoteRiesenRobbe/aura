@@ -1,6 +1,13 @@
 # Plan: The Numbers Rewrite (Pass 1)
 
-> **Status: BUILT 2026-07-31, committed 2026-08-01 `40d9b204` — C1 ✅ + C2 ✅.
+> **⛔ CLOSED AND ARCHIVED 2026-08-24 (collection-doc restructuring).** The
+> one item that kept this doc live - open question 4, "does the free floor
+> stay free under §37?" - moved to `backlog.md` §37, together with the
+> standing every-number-is-[PLACEHOLDER] caveat. All build work had been
+> complete since 2026-08-03 (C1+C2 `40d9b204`, retunes R1-R4). Everything
+> below is the historical record as it stood.
+
+> **Status (historical): BUILT 2026-07-31, committed 2026-08-01 `40d9b204` — C1 ✅ + C2 ✅.
 > The PO feel pass has RUN (2026-08-01) and the premise landed** — *"resource
 > cost changes feel good actually"*. Its checklist is `archive/plan-numbers-feel-pass.md`
 > and its findings — 11 PO items plus a 9-finding technical review of the cost

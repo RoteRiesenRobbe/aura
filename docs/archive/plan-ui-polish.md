@@ -1,6 +1,13 @@
 # Plan: UI Polish Pass — Rough First Pass (step 8, item-8 slice)
 
-**Status:** **CHUNK 1 DONE 2026-07-21 — PO-VERIFIED IN-GAME 2026-07-21 ×2
+> **⛔ CLOSED AND ARCHIVED 2026-08-24 (collection-doc restructuring).** The
+> whole §Deferred checklist (9 items) and the tooltip maintenance debt moved
+> to **`docs/plan-ui-pass.md`**, the consolidated UI pass - that doc is now
+> the single home for UI work. Chunk 1's ledger below stays the record of the
+> tooltip conventions already ruled (full detail lines, anchored placement,
+> colored labels) and is named as a design-session input there.
+
+**Status (historical):** **CHUNK 1 DONE 2026-07-21 — PO-VERIFIED IN-GAME 2026-07-21 ×2
 ("it works and is correct" + text-size/color follow-up "it's great"),
 committed `ae51d8b5`.** This pass's single chunk is complete; the rest of the
 item-8 checklist stays deferred (see §Deferred). Full ledger below.

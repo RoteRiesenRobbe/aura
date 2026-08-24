@@ -1,6 +1,16 @@
 # Plan: Documentation & repo cleanup for human onboarding
 
-> **Status:** LIVE plan — created 2026-07-23. **Workstream B is partially done (2026-07-24):**
+> **⏸ Status: DEFERRED 2026-08-24 (PO ruling, collection-doc restructuring).
+> Trigger: pick this up when a human coworker is actually about to join.**
+> The open PO calls inside it (work-tracking model, the art + audio capture
+> sessions, HTML/PDF fate, `cmd/bhclient` + `wiki-generator/` keep-or-delete)
+> wait for that trigger too. Two bookkeeping notes taken at deferral:
+> workstream B's "status banners on live docs" leftover is read as CLOSED by
+> its own PO ruling ③ (banners belong on archived docs only), and the §Open
+> "confirm the archive-move list" item is struck as stale (the move shipped
+> 2026-07-24).
+>
+> Original banner: LIVE plan — created 2026-07-23. **Workstream B is partially done (2026-07-24):**
 > `docs/archive/` exists and the archive sweep + cross-reference fix + `docs/README.md`
 > rewrite have landed (26 docs moved; see §Workstream B ledger). The status-banner half is
 > done for archived docs only. Workstreams A, C, D, E, F, G are untouched.

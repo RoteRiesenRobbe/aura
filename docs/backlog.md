@@ -2896,6 +2896,7 @@ identical content hashes). A source map's `sourcesContent` is also enough to map
 a bundled line back to its npm source file by substring search, without decoding
 any VLQ mappings.
 
+
 ---
 
 ## 30. Berryhunter render/asset vestiges surfaced by the §28 Chunk 3 audit
@@ -4078,6 +4079,16 @@ this finding, but it goes **red on Damage the moment it is written**, so it can
 only ship alongside the content answer, or with an explicit Damage exemption
 that would be a tombstone for a decision not yet taken.
 
+**2026-08-24, folded in from `plan-numbers-rewrite.md` at its archive (its
+open question 4, the one item that kept that doc live):** ⚑ **does the free
+floor stay free under augmentation?** If augmentation lands on `Damage` at
+level 10, a free skill gains a costed effect - the first place the numbers
+rewrite's D6 ("the base damage aura stays FREE at every resource level",
+round-6 ruling, GDD §3) and this section collide. Whoever designs §37 must
+answer it explicitly. The same doc's standing caveat rides along: every number
+the numbers rewrite authored is [PLACEHOLDER], including the caps (D2 expects
+§37 to move them) and the whole C2c damage ladder.
+
 ---
 
 ## 38. One species, many levels — a per-SPAWN level override
@@ -4474,6 +4485,21 @@ only. On record so it is not re-proposed as a "missing archetype".
 
 Presentation for all six rides §39; none of them justifies a seventh
 independently-anchored overlay before it.
+
+**2026-08-24, folded in from `plan-playtest-feedback.md` Pass 2 + Pass 3 at
+its archive - four deferred feature asks that fit this section's frame:**
+
+- **Pulsing auras** (`pulseAmplitude`/`pulsePeriodTicks`): the ring render
+  must track the oscillation exactly; author as ONE shape with the
+  pulse-damage passive below.
+- **Forward/directional ability** - was "the heaviest single item" in the
+  feedback doc: the first non-radial geometry, needing a new targeting shape,
+  facing on the wire, and a new render.
+- **Pulse-damage passive** - ⚑ engine-new: the first passive that EMITS an
+  effect rather than modifying a stat. Scope before committing.
+- **Patrolling wide-aura mobs** (anti-AFK) - check first whether the
+  mob-depth patrol behaviour (`archive/plan-mob-depth.md` chunk 5) already
+  covers waypoints; this may be mostly content.
 
 ---
 
@@ -5884,3 +5910,40 @@ modes already ship. Picking is where the design work is:
 **DB NONE · FlatBuffers NONE · conf NONE · content NONE** — editor-only, and the
 zone JSON format already carries every field a move/rotate would write. Same
 reason §57's prototype was cheap: nothing leaves the client.
+
+---
+
+## 59. Auto-walk - a held-direction toggle
+
+**Folded in 2026-08-24 from `plan-playtest-feedback.md` round 8 item 3 (the
+feature half; the stuck-key BUG half shipped 2026-08-03).** PO-asked: a way to
+keep walking without holding the key. Four open design questions, verbatim
+from the archived doc:
+
+1. **The keybinding** - no free letter is obvious; see the §35 C4 hotkey audit.
+2. **Vector vs facing** - does it hold the last movement vector or a facing?
+3. **What cancels it** - any movement key? damage? a menu?
+4. **Blur survival** - whether it survives the blur/focus round trip at all.
+
+⚑ Plus a fifth: it needs a **mobile answer or an explicit desktop-only
+ruling** - the joystick has no held state to inherit.
+
+### Schema impact
+
+Expected **DB NONE · FlatBuffers NONE** - the client already streams held
+movement; this is an input-layer latch. Verify at design time.
+
+---
+
+## 60. Environmental hints + one overarching story thread
+
+**Folded in 2026-08-24 from `plan-playtest-feedback.md` §Own planning session.**
+Playtest 1 raised the same wish three times, so "soon" is likely. Not one task
+but a content SYSTEM, in two halves:
+
+1. decide the hint DELIVERY mechanism (signposts? ambient lines? props?);
+2. author the overarching thread itself.
+
+Natural successor context since 2026-08-22: the first release map
+(`docs/plan-release-map.md`) is quested throughout - its planning session (§7)
+should decide whether this system lands there or after it.
