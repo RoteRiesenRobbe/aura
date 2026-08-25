@@ -40,6 +40,19 @@ export interface Profile {
     // tile reads as either ground or wallpaper depending on world scale. Data,
     // tuned by eye, per profile.
     scale?: number;
+    // Width of the soft border, in WORLD UNITS (C5/D20). `0` is a hard edge - 
+    // the world C4 shipped, and the reason D5's look stays expressible per
+    // profile instead of becoming unreachable.
+    //
+    // ⭐ The authored polygon is the band's MIDDLE (D22): the ramp is symmetric,
+    // so a region spills half a band past the line drawn in Tiled. Chosen over
+    // insetting because two regions that ABUT then crossfade instead of opening
+    // a band-wide gutter of base fill between them.
+    //
+    // ⚑ Per PROFILE, never per region (D2), and it feathers the region's OWN
+    // edge with no knowledge of its neighbours - which is what makes "region
+    // meets region" and "region meets bare land" the same code path.
+    blend?: number;
 }
 
 /** What the world looks like today, and what every miss falls back to (D11).
@@ -54,6 +67,10 @@ export const DEFAULT_PROFILE: Required<Profile> = {
     // 1 = the tile at its own pixel size. Only reached by a profile that
     // declares a texture and omits its scale; every shipped one authors it.
     scale: 1,
+    // The world before C5: hard edges. ⚑ A non-zero default would put a mask
+    // and a blur pass under every region in every zone that never asked for
+    // one - the feature has to cost exactly zero until it is authored.
+    blend: 0,
 };
 
 /** `"#2c4028"` → `0x2c4028`. The JSON is written in the notation an artist
@@ -92,6 +109,24 @@ function parseScale(raw: unknown): number | undefined {
     return raw;
 }
 
+/** A blend width is a finite NON-NEGATIVE number of world units.
+ *
+ *  ⛔ Do NOT copy {@link parseScale}'s `<= 0` rejection here, however alike the
+ *  two keys look. `0` is a VALID authored value - it is how a profile says
+ *  "hard edge", the C4 world and D5's look - and dropping it would leave the
+ *  key absent, which under D0 means the next containing region answers instead.
+ *  A profile authored `blend: 0` inside one authored `blend: 3` would then
+ *  feather anyway, which is the exact opposite of what was written down.
+ *
+ *  A negative width is meaningless (there is no inward-only band; D22 ruled the
+ *  ramp symmetric) and is dropped like an unparseable colour. */
+function parseBlend(raw: unknown): number | undefined {
+    if (typeof raw !== 'number' || !isFinite(raw) || raw < 0) {
+        return undefined;
+    }
+    return raw;
+}
+
 /**
  * Builds the profile table from authored JSON.
  *
@@ -114,7 +149,9 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
     const out: { [name: string]: Profile } = {};
     Object.keys(raw).forEach((name) => {
         if (name.charAt(0) === '_') { return; }
-        const entry = raw[name] as { color?: unknown, texture?: unknown, scale?: unknown };
+        const entry = raw[name] as {
+            color?: unknown, texture?: unknown, scale?: unknown, blend?: unknown,
+        };
         const profile: Profile = {};
         if (entry && 'color' in entry) {
             if (entry.color === null) {
@@ -135,6 +172,10 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
         if (entry && 'scale' in entry) {
             const parsed = parseScale(entry.scale);
             if (parsed !== undefined) { profile.scale = parsed; }
+        }
+        if (entry && 'blend' in entry) {
+            const parsed = parseBlend(entry.blend);
+            if (parsed !== undefined) { profile.blend = parsed; }
         }
         out[name] = profile;
     });
@@ -286,6 +327,29 @@ export function regionPaintSpec(
     }
     const color = profile && 'color' in profile ? profile.color : DEFAULT_PROFILE.color;
     return color === null || color === undefined ? null : {color};
+}
+
+/**
+ * How wide this region's soft border is, in WORLD UNITS (C5). `0` means a hard
+ * edge and costs the renderer nothing at all - no mask, no blur pass.
+ *
+ * ⚑ Its OWN profile's `blend`, else the shipped default - deliberately NOT a
+ * `resolve()` call, for the same reason {@link regionPaintSpec} is not one:
+ * D0 answers each property at a point, so a region drawn inside another would
+ * inherit the outer one's band width and feather an edge its author wrote as
+ * hard. The edge belongs to the shape being drawn, so the width does too.
+ *
+ * ⚑ Per-region, not per-point: the renderer builds one mask per polygon.
+ */
+export function regionBlend(
+    region: Region,
+    profiles: { [name: string]: Profile } = PROFILES,
+): number {
+    const profile = profiles[region.profile];
+    const blend = profile && 'blend' in profile ? profile.blend : DEFAULT_PROFILE.blend;
+    // An unknown profile, or one transparent to `blend`, ends at the default - 
+    // D11's totality, restated at the one layer that can hand a number to Pixi.
+    return typeof blend === 'number' ? blend : DEFAULT_PROFILE.blend;
 }
 
 /** The texture names the given regions' profiles ask for, deduplicated — what

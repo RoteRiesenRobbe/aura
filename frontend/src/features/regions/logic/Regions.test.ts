@@ -5,6 +5,7 @@ import {
     neededTextures,
     Profile,
     Region,
+    regionBlend,
     regionPaintSpec,
     resolveIn,
 } from './Regions';
@@ -222,6 +223,75 @@ describe('regionPaintSpec — what the renderer actually paints (D14)', () => {
     it('never borrows a texture from a region it happens to sit inside', () => {
         expect(regionPaintSpec({profile: 'flat', points: []}, usable, PAINT))
             .toEqual({color: 0x333333});
+    });
+});
+
+// C5's key, and the ONE way it differs from `scale`: `0` is an authored VALUE
+// here (a hard edge, D5's world) and must survive the parser. Dropping it would
+// leave the key absent, and under D0 an absent key means the next containing
+// region answers - so a `blend: 0` blob drawn inside a feathered region would
+// feather anyway, the exact opposite of what was written down.
+describe('PROFILES — the blend key (C5)', () => {
+    it('KEEPS an authored 0, which is the hard edge and not a missing value', () => {
+        const profiles = buildProfiles({hard: {blend: 0}});
+        expect('blend' in profiles.hard).toBe(true);
+        expect(profiles.hard.blend).toBe(0);
+    });
+
+    it('keeps a positive width', () => {
+        expect(buildProfiles({soft: {blend: 1.5}}).soft.blend).toBe(1.5);
+    });
+
+    it('drops a negative width — there is no inward-only band (D22)', () => {
+        expect('blend' in buildProfiles({backwards: {blend: -1}}).backwards).toBe(false);
+    });
+
+    it('drops a non-number and a non-finite width', () => {
+        const profiles = buildProfiles({
+            texty: {blend: '1.5'},
+            nully: {blend: null},
+            broken: {blend: Number.POSITIVE_INFINITY},
+        });
+        expect('blend' in profiles.texty).toBe(false);
+        expect('blend' in profiles.nully).toBe(false);
+        expect('blend' in profiles.broken).toBe(false);
+    });
+
+    it('defaults to hard edges — the feature costs nothing until authored', () => {
+        expect(DEFAULT_PROFILE.blend).toBe(0);
+    });
+});
+
+// ⚑ Its OWN profile's width, never a resolve() chain: a region drawn inside
+// another must not inherit the outer one's band and feather an edge its author
+// wrote as hard. Same rule regionPaintSpec obeys for the D14 fallback.
+describe('regionBlend — how wide this region feathers its own edge (C5)', () => {
+    const BLEND = buildProfiles({
+        soft: {blend: 2},
+        hard: {blend: 0},
+        quiet: {color: '#111111'},
+    });
+
+    it('returns the width the profile declares', () => {
+        expect(regionBlend({profile: 'soft', points: []}, BLEND)).toBe(2);
+    });
+
+    it('returns 0 for a profile that declares a hard edge', () => {
+        expect(regionBlend({profile: 'hard', points: []}, BLEND)).toBe(0);
+    });
+
+    it.each([
+        ['a profile transparent to blend', 'quiet'],
+        ['an unknown profile name', 'no-such-profile'],
+    ])('falls back to the default (0) for %s', (_label, profile) => {
+        expect(regionBlend({profile, points: []}, BLEND)).toBe(DEFAULT_PROFILE.blend);
+    });
+
+    it('never borrows the band width of a region it happens to sit inside', () => {
+        // The lookup takes ONE region, not a point - which is what makes the
+        // borrow structurally impossible rather than merely avoided.
+        expect(regionBlend({profile: 'hard', points: []}, BLEND)).toBe(0);
+        expect(regionBlend({profile: 'quiet', points: []}, BLEND)).toBe(0);
     });
 });
 

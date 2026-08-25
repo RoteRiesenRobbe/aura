@@ -1,11 +1,13 @@
 // plan-region-primitive.md C4 — region ground TEXTURES at the real game surface.
+// plan-region-primitive.md C5 - and the BLEND BAND's world-vs-map parity (leg 5).
 //
 // Owns: that a textured profile paints its tile in the world, that the tile
 // loaded as a separate file (never inlined), that the paint spec the renderer
-// used is a texture and not the fallback colour (D14), and that the full-screen
+// used is a texture and not the fallback colour (D14), that the full-screen
 // map bakes the SAME thing (§4.7/L2 — a map that disagrees is a wrong drawing
-// of the world). Does NOT own the region lookup (vitest) or the map's states
-// (c1-world-map).
+// of the world), and that a feathered region's edge is a RAMP in both drawings
+// rather than a band in one and a step in the other. Does NOT own the region
+// lookup (vitest) or the map's states (c1-world-map).
 //
 // ⚑ The tiles load AFTER the first paint, on purpose (⛔ never through the
 // boot-blocking preload), so every read here waits for that repaint. A run that
@@ -75,7 +77,196 @@ function expectations() {
     regions,
     textured,
     tiles: [...new Set(textured.map(r => r.texture))],
+    edge: softEdge(zone, table),
+    bounds: zone.bounds,
   };
+}
+
+/**
+ * One polygon edge worth sampling the C5 band across, or `null`.
+ *
+ * ⚑ Derived from the content, never typed in - same rule as `expectations()`
+ * above, and it is why this returns `null` today: `world.json` currently draws
+ * ONE region covering the whole map, so its only edges ARE the world border.
+ * ⛔ Sampling there would false-fail by construction: the map bakes a frame of
+ * exactly mapWidth × mapHeight, so it CROPS the outward half of the band that
+ * the world view happily draws over the shallow-water ring. The leg reports
+ * INCONCLUSIVE instead, and turns into a real assertion the day a second region
+ * is authored.
+ *
+ * Wants an INTERIOR edge (both ends well inside the bounds), long enough to
+ * have a clean middle, on a profile whose `blend` is actually non-zero.
+ */
+function softEdge(zone, table) {
+  const halfW = (zone.bounds ? zone.bounds.width : 0) / 2;
+  const halfH = (zone.bounds ? zone.bounds.height : 0) / 2;
+  const INSET = 6;          // world units clear of the border, on both ends
+  const MIN_LENGTH = 6;     // world units, so the midpoint is away from corners
+  for (const r of (zone.regions || [])) {
+    const profile = table[r.profile] || {};
+    // Same rule as buildProfiles: 0 is a hard edge and a valid authored value.
+    const blend = typeof profile.blend === 'number' && isFinite(profile.blend) && profile.blend > 0
+      ? profile.blend : 0;
+    if (!blend) { continue; }
+    const pts = r.points || [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length];
+      const inside = p => Math.abs(p.x) < halfW - INSET && Math.abs(p.y) < halfH - INSET;
+      if (!inside(a) || !inside(b)) { continue; }
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const length = Math.hypot(dx, dy);
+      if (length < MIN_LENGTH) { continue; }
+      return {
+        profile: r.profile,
+        blend,
+        // Midpoint in world units, and the edge's unit NORMAL - the direction a
+        // run has to travel to cross the band rather than ride along it.
+        mid: {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2},
+        normal: {x: -dy / length, y: dx / length},
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * World px → page CSS px, read off the LIVE scene graph rather than recomputed.
+ *
+ * ⚑ Recomputing it here would be a second copy of the camera's maths (and of
+ * MapScale's), free to drift from the one the renderer actually used - which is
+ * exactly the class of bug this file exists to catch. A region Graphics' own
+ * `worldTransform` is the answer the renderer arrived at, so a run placed with
+ * it lands where the pixels are however the camera is clamped or scaled.
+ */
+async function worldToPage(page) {
+  return page.evaluate(() => {
+    const root = window.game?.character?.plate?.parent?.parent;
+    if (!root) { return null; }
+    const stage = (function top(c) { return c.parent ? top(c.parent) : c; })(root);
+    let node = null;
+    (function walk(n) {
+      if (!node && n.context && n.context.fillStyle) { node = n; }
+      (n.children || []).forEach(walk);
+    })(stage);
+    if (!node) { return null; }
+    const m = node.worldTransform;
+    // The biggest canvas on the page is the game's; the docked minimap is a
+    // thumbnail and the full-screen map is hidden while the world is sampled.
+    const canvas = [...document.querySelectorAll('canvas')]
+      .sort((p, q) => q.clientWidth * q.clientHeight - p.clientWidth * p.clientHeight)[0];
+    const box = canvas.getBoundingClientRect();
+    return {a: m.a, d: m.d, tx: m.tx + box.left, ty: m.ty + box.top};
+  });
+}
+
+/** World px → page CSS px for the OPEN full-screen map. Origin-centred on its
+ *  own canvas and fitted to both axes - MapScale's two facts, and nothing else
+ *  is needed because there is no translation term. */
+async function mapToPage(page, mapWidthPx, mapHeightPx) {
+  return page.evaluate(([mw, mh]) => {
+    const canvas = document.querySelector('#worldMap canvas');
+    if (!canvas) { return null; }
+    const box = canvas.getBoundingClientRect();
+    const scale = Math.min(box.width / mw, box.height / mh);
+    if (!(scale > 0)) { return null; }
+    return {a: scale, d: scale, tx: box.left + box.width / 2, ty: box.top + box.height / 2};
+  }, [mapWidthPx, mapHeightPx]);
+}
+
+/**
+ * Samples a straight run of pixels across the rendered page.
+ *
+ * The screenshot goes back INTO the page as a data URI and is decoded by the
+ * browser's own 2D canvas - a WebGL canvas cannot be read back directly (Pixi
+ * does not keep the drawing buffer) and Node has no PNG decoder to hand.
+ */
+async function sampleRun(page, from, to, samples) {
+  // A projected run that leaves the viewport makes page.screenshot throw, which
+  // would turn an unreadable sample into a FAIL of the whole script. An
+  // unreadable sample is not evidence either way, so it degrades to `null` and
+  // the classifier reports 'unread'.
+  try {
+    return await sampleRunUnsafe(page, from, to, samples);
+  } catch {
+    return null;
+  }
+}
+
+async function sampleRunUnsafe(page, from, to, samples) {
+  const pad = 2;
+  const clip = {
+    x: Math.max(0, Math.floor(Math.min(from.x, to.x) - pad)),
+    y: Math.max(0, Math.floor(Math.min(from.y, to.y) - pad)),
+    width: Math.ceil(Math.abs(to.x - from.x)) + 2 * pad,
+    height: Math.ceil(Math.abs(to.y - from.y)) + 2 * pad,
+  };
+  const png = (await page.screenshot({clip})).toString('base64');
+  return page.evaluate(async ([b64, c, a, b, n]) => {
+    const img = new Image();
+    img.src = 'data:image/png;base64,' + b64;
+    await img.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, img.width, img.height).data;
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const t = i / (n - 1);
+      const x = Math.round(a.x + (b.x - a.x) * t - c.x);
+      const y = Math.round(a.y + (b.y - a.y) * t - c.y);
+      if (x < 0 || y < 0 || x >= img.width || y >= img.height) { return null; }
+      const o = (y * img.width + x) * 4;
+      out.push([data[o], data[o + 1], data[o + 2]]);
+    }
+    return out;
+  }, [png, clip, from, to, samples]);
+}
+
+/**
+ * Is this run a RAMP or a STEP?
+ *
+ * ⚑ Not a measurement of band WIDTH in world units, on purpose: the camera
+ * scale, the map's fit and the tile detail all move that number, and a leg that
+ * pinned it would go red for the wrong reason the first time a profile's
+ * `blend` is tuned. What is compared across the two drawings is the SHAPE of
+ * the transition, which is scale-free.
+ *
+ * ⚑ The first draft scored "share of the run's total colour change carried by
+ * one adjacent pair" and was defeated by ground-tile grain: per-pixel noise
+ * inflates the total, drives the share down and reports every hard edge as a
+ * ramp - a false PASS, the worst kind for a parity leg. Projecting each sample
+ * onto the axis between the run's two ENDS discards everything that is not
+ * movement from one side to the other, noise very much included.
+ */
+function classifyRun(run) {
+  if (!run || run.length < 16) { return {verdict: 'unread'}; }
+  const n = run.length;
+  const ends = Math.max(2, Math.round(n * 0.15));
+  const mean = a => [0, 1, 2].map(c => a.reduce((s, p) => s + p[c], 0) / a.length);
+  const A = mean(run.slice(0, ends));
+  const B = mean(run.slice(n - ends));
+  const v = [B[0] - A[0], B[1] - A[1], B[2] - A[2]];
+  const len2 = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+  // The two ends look the same: the run never crossed a visible boundary, so
+  // there is nothing to classify and calling it a gradient would be a free pass.
+  if (Math.sqrt(len2) < 18) { return {verdict: 'flat', width: 0}; }
+  const raw = run.map(p =>
+    ((p[0] - A[0]) * v[0] + (p[1] - A[1]) * v[1] + (p[2] - A[2]) * v[2]) / len2);
+  // A 3-tap smooth on the PROJECTION (never on the colours - that widens a step
+  // as much as it calms the grain) before counting how far the crossing takes.
+  const t = raw.map((_, i) => {
+    let sum = 0, count = 0;
+    for (let j = i - 1; j <= i + 1; j++) {
+      if (j < 0 || j >= n) { continue; }
+      sum += raw[j];
+      count++;
+    }
+    return sum / count;
+  });
+  const width = t.filter(x => x > 0.1 && x < 0.9).length / n;
+  return {verdict: width <= 0.08 ? 'step' : width >= 0.15 ? 'ramp' : 'mixed', width};
 }
 
 (async () => {
@@ -218,6 +409,73 @@ function expectations() {
       pass('full-screen map captured for parity', `${label}-map.png`);
     } else {
       inconclusive('the map did not open', 'parity unread');
+    }
+
+    // --- 5. C5 BLEND-BAND PARITY -----------------------------------------
+    // ⛔ The divergence no single screenshot catches, the C5 shape of §4.7's
+    // trap: bands in the world and hard edges on the map (or the reverse). Each
+    // picture looks plausible alone, so the two are sampled across the SAME
+    // authored edge and classified the same way, and the leg only passes when
+    // they agree. A blend of 0 everywhere is not a failure - it is the C4 world,
+    // and softEdge() returns null for it.
+    if (!want.edge) {
+      inconclusive('no interior region edge with a non-zero blend in this zone',
+        'C5 band parity unread — author a second region, or a blend > 0');
+    } else if (!mapOpen) {
+      inconclusive('the map never opened', 'C5 band parity unread');
+    } else {
+      const e = want.edge;
+      const bandPx = e.blend * 120;
+      const midPx = {x: e.mid.x * 120, y: e.mid.y * 120};
+      const runAcross = (t) => {
+        // 1.5 bands each way: enough to hold the whole ramp AND some of the
+        // flat ground on both sides, which is what makes the classifier's
+        // "share of total change" mean anything.
+        const reach = bandPx * 1.5;
+        const project = (k) => ({
+          x: t.tx + t.a * (midPx.x + e.normal.x * k),
+          y: t.ty + t.d * (midPx.y + e.normal.y * k),
+        });
+        return [project(-reach), project(reach)];
+      };
+
+      // The world half: close the map, stand ON the edge so the camera cannot
+      // put it off screen, and read the transform the renderer actually used.
+      await page.keyboard.press('m');
+      await sleep(1200);
+      await cmd(`WARP ${Math.round(midPx.x)} ${Math.round(midPx.y)}`);
+      await sleep(22000);
+      const worldT = await worldToPage(page);
+      const worldRun = worldT && await sampleRun(page, ...runAcross(worldT), 64);
+      const world = classifyRun(worldRun);
+      await page.screenshot({ path: join(outDir, `${label}-band-world.png`) });
+
+      // The map half: the same world edge, through MapScale's fit.
+      await page.keyboard.press('m');
+      await sleep(2500);
+      const mapT = await mapToPage(page, want.bounds.width * 120, want.bounds.height * 120);
+      // ⚑ The SAME sample count as the world run, although the map's run spans
+      // far fewer pixels: the verdict is a fraction of the run, so the two are
+      // only comparable if both runs are cut into the same number of pieces.
+      const mapRun = mapT && await sampleRun(page, ...runAcross(mapT), 64);
+      const map = classifyRun(mapRun);
+      await page.screenshot({ path: join(outDir, `${label}-band-map.png`) });
+
+      const shape = v => `${v.verdict}${v.width !== undefined ? ` (crossing ${(v.width * 100).toFixed(0)}% of the run)` : ''}`;
+      const detail = `${e.profile} blend ${e.blend}u — world: ${shape(world)}, map: ${shape(map)}`;
+      if (world.verdict === 'ramp' && map.verdict === 'ramp') {
+        pass('the region edge is a RAMP in both drawings of the world', detail);
+      } else if (world.verdict === 'step' && map.verdict === 'step') {
+        fail('both drawings show a HARD STEP where a band is authored', detail);
+      } else if ((world.verdict === 'ramp') !== (map.verdict === 'ramp')
+        && world.verdict !== 'unread' && map.verdict !== 'unread') {
+        fail('WORLD AND MAP DISAGREE about the region edge — one feathers, one does not', detail);
+      } else {
+        // 'flat' (the run crossed nothing visible), 'mixed', or 'unread'. Terrain
+        // blobs and props sit on this ground, so an unreadable run is a bad
+        // sample and not evidence either way.
+        inconclusive('the band runs did not read cleanly', detail);
+      }
     }
   } catch (e) {
     fail('run threw', e.message);

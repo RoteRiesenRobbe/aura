@@ -91,7 +91,13 @@ export function bakeTerrain(
     // Converted from the zone data this function already holds rather than read
     // out of Regions' loaded state, so the bake can never depend on whether the
     // world renderer got there first.
-    paintRegions(scratch, Regions.toRegions(zone.regions));
+    // ⚑ The renderer goes in because C5's blend masks are rasterised at paint
+    // time: a draw site that could not build them would quietly be the
+    // hard-edged one, which is precisely the divergence this call exists to
+    // prevent. The masked containers bake fine through generateTexture below,
+    // and at 2048 texels across the world the map's ramp is coarser than the
+    // world's and still a ramp.
+    const regionMasks = paintRegions(scratch, Regions.toRegions(zone.regions), renderer);
 
     let unknownTypes = 0;
     (zone.terrain || []).forEach((piece) => {
@@ -139,10 +145,18 @@ export function bakeTerrain(
     });
 
     // The scratch container has served its purpose; the texture is on the GPU.
-    // Its children are Sprites over SHARED, preloaded SVG textures, so they are
-    // destroyed without their textures — destroying those would blank the
-    // terrain in the actual world, which draws from the same ones.
+    // Most of its children are Sprites over SHARED, preloaded SVG textures (and
+    // Graphics over shared ground tiles), so they are destroyed without their
+    // textures - destroying those would blank the terrain in the actual world,
+    // which draws from the same ones.
     scratch.destroy({children: true, texture: false});
+    // ⚑ …which leaves the C5 blend masks, and they are the exception: one
+    // RenderTexture per feathered region, built for THIS bake and referenced by
+    // nothing else once the bake has run. `texture: false` above is right for
+    // every other child and would strand these forever - and setupTerrain
+    // re-bakes on a second join and again when the ground tiles land, so it
+    // would strand a fresh set each time.
+    regionMasks.forEach(mask => mask.destroy(true));
 
     const terrain = new Sprite(texture);
     terrain.anchor.set(0.5, 0.5);

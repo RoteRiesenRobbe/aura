@@ -504,7 +504,10 @@ question), and any per-region texture override (the profile is the unit, D2).
 
 ### 4.10 C5 — soft borders, the blend band (designed 2026-08-25)
 
-**Status: DESIGNED, nothing built, three PO calls open** (listed at the end).
+**Status: RULED 2026-08-25 (D20–D22), scheduled for execution.** All three PO
+calls listed at the end are answered: build now (D20), colour regions too
+(D21, reversing D5), symmetric band with the authored line as its middle
+(D22, no inset).
 This is §4.8's *"Soft borders, if wanted"* paragraph turned into a chunk. It
 **reopens D15** (which shipped hard edges for C4, deliberately, until the seam
 was looked at in game) and **proposes reversing D5** (which ruled hard edges for
@@ -578,6 +581,15 @@ Build (a) first because it is smaller, then **measure on a phone-shaped
 viewport** before choosing. The trade genuinely inverts with region count and
 size, and no document can settle it.
 
+⭐ **MEASURED at execution (2026-08-25, `c5-mask-cost.mjs`)**: at HEAD the one
+shipped Fields region spans the whole map, so blend 1.5 makes every frame pay
+a FULL-SCREEN AlphaMaskPipe pass - the maximal form of the cost above. On a
+phone-shaped viewport (390x844 at DPR 3, headless SwiftShader, ratios only):
+median frame 266.7 ms masked vs 250.0 ms unmasked over two runs each, a
+**1.07-1.09x ratio for the worst case**. Live masks (shape a) stand; the
+flatten (shape b) is a named follow-up with this script as its re-measure,
+worth re-running when zones author MANY feathered regions rather than one.
+
 #### Three things to get right
 
 - ⚑ **The blur bleeds OUTWARD as well as inward.** A symmetric blur puts the 50 %
@@ -585,7 +597,13 @@ size, and no document can settle it.
   polygon someone drew in Tiled. Either accept that (softest), or **inset the
   silhouette by half the band before blurring**, making the authored polygon the
   region's outer limit. Lean: inset — C2's whole point is that what you draw is
-  what you get.
+  what you get. ⭐ **RULED AGAINST the lean: D22 chose symmetric** (2026-08-25).
+  The tiebreaker was abutting borders: with inset, two regions sharing an edge
+  are both near 0 % alpha exactly there, opening a band-wide gutter of base
+  fill; symmetric degrades to a mostly-crossfade (roughly 50 % later region,
+  25 % earlier, 25 % base bleed). Overlap authoring gives a perfect crossfade
+  in either mode, but symmetric is the one that fails soft when an author
+  abuts instead. No inset code exists.
 - ⚑ **The visual band and LOGICAL membership diverge, on purpose.** `resolve()`
   (D0) is a hard point-in-polygon test and stays one, so a footstep or a music
   cue flips at the exact edge while the ground fades across the band. Nobody can
@@ -626,13 +644,18 @@ The authored shape does not move; this is one more presentation property.
 1. **Build it at all?** D15 shipped hard edges *until the seam reads badly in
    game*, and that look has not happened yet — C4's tiles landed the same day.
    Designing it now is free; building it before looking is the thing D15 refused.
+   ✅ **ANSWERED (D20, 2026-08-25): build now, by PO direction** - D15 reopened
+   by choice, not by a seam observation.
 2. **Colour regions too, reversing D5?** Free in code, a taste reversal in
    design. Recommended **yes**: with all 16 profiles textured, colour is now the
    fallback path (D14/D18), and having the fallback change the EDGE TREATMENT as
    well as the fill would make a missing file look like a different world rather
    than a flatter one.
+   ✅ **ANSWERED (D21, 2026-08-25): yes, colour too. D5 is REVERSED.**
 3. **Does the authored polygon mean the OUTER edge of the band, or its middle?**
    Lean outer, i.e. inset before blurring.
+   ✅ **ANSWERED (D22, 2026-08-25): its MIDDLE - symmetric, against the lean.**
+   Rationale in the bullet above (the abutting-border gutter).
 
 ## 5. The whitelist problem — now THREE, and one is guarded
 
@@ -705,14 +728,15 @@ byte-stability gate (tiled D6) is what proves the round-trip did not re-mint it.
   no blend bands. Authoring surface is C2's, unchanged.
 
 - **C5 — soft borders, the blend band** (designed 2026-08-25; spec in §4.10;
-  **not scheduled — three PO calls open**). A per-region alpha ramp at the
+  **RULED + SCHEDULED same day: D20 build, D21 colour too, D22 symmetric**).
+  A per-region alpha ramp at the
   polygon edge, so a region blends into whatever is under it: a blurred
   silhouette in a low-res RenderTexture used as that region's mask · a `blend`
   width per profile beside `texture`/`scale`, `0` meaning hard edges · the same
   masks in the `MapTerrain` bake, because §4.7 does not stop being true for
-  edges · a measurement deciding live masks vs flattening once. ⭐ Covering
-  COLOUR regions as well costs nothing extra — one draw path since C4 — but it
-  **reverses D5**, so it is the PO's call and not a consequence. Reopens D15.
+  edges · a measurement deciding live masks vs flattening once. Covers colour
+  AND textured regions through the one draw path (D21 reversed D5); the
+  authored line is the band's middle, no inset (D22).
   The wobble is deliberately not in it. Schema NONE.
 Audio consumers are `plan-region-audio.md`. Atmosphere is release-map's.
 
@@ -763,6 +787,9 @@ in passing — each would have to be re-opened as the ruling it is.
   alpha-seam class (one mask per border, not overlapping radial sprites). D5
   stands as written for **color** regions; whether *textured* regions get soft
   borders is §11's blend question, decided if and when textures are adopted.
+  ⭐ **REVERSED by D21 (2026-08-25, PO ruling, the C5 calls):** colour regions
+  feather like textured ones; `blend: 0` per profile is how a hard edge is
+  still authored.
 - **D6 — the base `LAND_COLOR` fill stays.** Regions paint over it; a zone need
   not be fully covered.
 - **D7 — the profile table lives in `Theme.ts`**, not `Graphics.ts` (which owns
@@ -882,6 +909,29 @@ in passing — each would have to be re-opened as the ruling it is.
   is answered: "doesn't matter". No re-tint, no deletion. ⚑ Measured correction
   while closing it: there are **74**, not the 75 L11 claimed (§4.8 said 74; the
   file says 74).
+
+- **D20 (2026-08-25, PO) — C5 is BUILT, by direction.** D15's trigger ("until
+  the seam reads badly in game") never fired; the PO scheduled the chunk
+  anyway. D15's hard-edge world stays expressible per profile via `blend: 0`.
+
+- **D21 (2026-08-25, PO) — colour regions feather too; D5 is REVERSED.** One
+  rule for every region: any profile with `blend > 0` feathers, textured or
+  not. The deciding argument: with all 16 profiles textured (D18), colour is
+  the fallback path (D14), and a fallback that changed the edge treatment as
+  well as the fill would make a missing file look like a different world
+  rather than a flatter one.
+
+- **D22 (2026-08-25, PO) — the authored polygon is the band's MIDDLE.**
+  Symmetric blur, no inset; a region visually spills half a band past the
+  drawn line, accepted. Chosen against §4.10's inset lean because of abutting
+  borders: inset puts both neighbours near 0 % alpha exactly at a shared
+  edge, opening a band-wide gutter of base fill, while symmetric degrades to
+  a mostly-crossfade with roughly a quarter of base bleed. ⭐ The clean
+  region-to-region border in EITHER mode is authored by OVERLAP, the
+  system's native idiom (D0 last-wins): the later region's band then ramps
+  over the earlier one at full opacity, a perfect crossfade with zero base
+  bleed. Abutment is the degraded case, and symmetric is the mode that
+  fails soft there.
 
 ## 10. Landmines
 

@@ -1,4 +1,4 @@
-import {Application, Container, Graphics, Ticker} from 'pixi.js';
+import {Application, Container, Graphics, RenderTexture, Ticker} from 'pixi.js';
 
 import {Backend} from '../../backend/logic/Backend';
 import {EntityManager} from '../../backend/logic/EntityManager';
@@ -78,6 +78,10 @@ export class Game implements IGame {
     public spectator: Spectator;
     public player: Player;
     private backend: IBackend;
+
+    /** The blend-mask textures the last region paint created (C5) - GPU memory
+     *  nothing else references, freed by the next paint. See {@link paintRegions}. */
+    private regionMasks: RenderTexture[] = [];
 
     public get width(): number {
         return this.application.renderer.screen.width;
@@ -218,7 +222,9 @@ export class Game implements IGame {
                 // Biome/zone ground colour (plan-region-primitive.md C1):
                 // OVER the base land fill, UNDER the texture blobs — which is
                 // what lets the shipped blobs keep doing edge treatment where
-                // a region meets the land (D5: hard edges, no soft fade).
+                // a region meets the land. (D5 ruled hard edges here; C5's D21
+                // REVERSED that - a profile's `blend` now feathers the region's
+                // own edge, colour and texture alike. `blend: 0` is D5's world.)
                 regions: createNamedContainer('regions'),
                 textures: createNamedContainer('textures'),
                 resourceSpots: createNamedContainer('resourceSpots'),
@@ -601,11 +607,19 @@ export class Game implements IGame {
         const layer = this.layers.terrain.regions;
         // ⚑ Bare `destroy()`, deliberately: with no options Pixi frees the
         // Graphics' OWN context (its geometry) and leaves textures alone, which
-        // is exactly right — a tile is shared by every region using that
+        // is exactly right for a GROUND TILE - shared by every region using that
         // profile and by the map's bake. Passing `{texture: false}` would read
         // as the safer call and actually leak the context instead.
         layer.removeChildren().forEach(child => child.destroy());
-        RegionPaint.paintRegions(layer, Regions.loadedRegions());
+        // ⚑ …but a C5 blend mask is NOT shared, and the line above deliberately
+        // does not free it. One RenderTexture per feathered region per paint,
+        // and this method runs a second time the moment the zone's tiles land,
+        // so without this the second pass strands the first pass's masks on the
+        // GPU for the life of the session. They are ours because paintRegions
+        // handed them back; nothing else holds a reference.
+        this.regionMasks.forEach(texture => texture.destroy(true));
+        this.regionMasks = RegionPaint.paintRegions(
+            layer, Regions.loadedRegions(), this.application.renderer);
     }
 
     private createBackground() {
