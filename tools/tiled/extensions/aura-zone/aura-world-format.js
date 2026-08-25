@@ -27,6 +27,11 @@
         point: MapObject.Point,
         ellipse: MapObject.Ellipse,
         polyline: MapObject.Polyline,
+        // A region is a closed outline (plan-region-primitive.md D1). Before
+        // regions existed the only vertex shape was a patrol ROUTE, so a
+        // polygon was folded into 'polyline' below; the two are now distinct
+        // and the fold would silently close every route into a loop.
+        polygon: MapObject.Polygon,
     };
 
     function shapeFromTiled(o) {
@@ -34,7 +39,7 @@
             case MapObject.Point: return 'point';
             case MapObject.Ellipse: return 'ellipse';
             case MapObject.Polyline: return 'polyline';
-            case MapObject.Polygon: return 'polyline';
+            case MapObject.Polygon: return 'polygon';
             default: return o.tile ? 'tile' : 'rect';
         }
     }
@@ -238,7 +243,11 @@
                     flipV: !!o.tileFlippedVertically,
                     properties: o.properties(),
                 };
-                if (out.shape === 'polyline') { out.polygon = o.polygon; }
+                // Both vertex shapes carry their nodes: a route (polyline) and
+                // a region outline (polygon).
+                if (out.shape === 'polyline' || out.shape === 'polygon') {
+                    out.polygon = o.polygon;
+                }
                 objects.push(out);
             }
             layers.push({name: layer.name, objects: objects});

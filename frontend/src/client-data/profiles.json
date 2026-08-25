@@ -1,0 +1,6 @@
+{
+  "_comment": "Region profiles (plan-region-primitive.md D2/D12). A profile is a named bag of CLIENT-SIDE presentation properties a zone region points at by name; the server never reads any of it. This file is the single source of truth: the client imports it, and tools/tiled/generate-palette.mjs reads it to build Tiled's AuraProfile dropdown, so a profile added here is offerable in the editor without anyone maintaining a second list. Colours are ground fill, drawn under the terrain blobs. A profile that omits a property is TRANSPARENT to it (D0): the next containing region answers, and failing that the shipped default. ⚑ These values are [PLACEHOLDER] — C3 is the palette sitting that decides the real set and their colours.",
+  "swamp": { "color": "#2c4028" },
+  "sand": { "color": "#b8a06a" },
+  "ash": { "color": "#4a4a4a" }
+}

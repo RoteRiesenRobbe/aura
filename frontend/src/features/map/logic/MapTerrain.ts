@@ -28,6 +28,7 @@ import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import {meter2px} from '../../../client-data/BasicConfig';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {isMobile} from '../../user-interface/logic/Mobile';
+import * as Regions from '../../regions/logic/Regions';
 import {resizeTerrain} from './MapScale';
 
 /**
@@ -77,6 +78,23 @@ export function bakeTerrain(
     scratch.addChild(new Graphics()
         .rect(-mapWidth / 2, -mapHeight / 2, mapWidth, mapHeight)
         .fill(GraphicsConfig.landColor));
+
+    // Region ground colour, between the land fill and the pieces — the same
+    // sandwich the world renderer builds (Game.startRendering), because the map
+    // is the same world drawn twice. ⚑ Skipping this does not degrade
+    // gracefully: it produces a map that is a WRONG DRAWING of the world, with
+    // the biome simply absent (L2).
+    //
+    // Converted from the zone data this function already holds rather than read
+    // out of Regions' loaded state, so the bake can never depend on whether the
+    // world renderer got there first.
+    Regions.toRegions(zone.regions).forEach((region) => {
+        const color = Regions.regionColor(region);
+        if (color === null) { return; }   // "paint nothing", same as the world
+        scratch.addChild(new Graphics()
+            .poly(region.points)
+            .fill(color));
+    });
 
     let unknownTypes = 0;
     (zone.terrain || []).forEach((piece) => {

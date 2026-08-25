@@ -337,10 +337,51 @@ describe('AuraConvert — patrol routes and the remaining arrays', () => {
         expect(roundTrip(zone({darkAreas: [d]})).darkAreas[0]).toEqual(d);
     });
 
+    // --- regions (plan-region-primitive.md C1) -------------------------------
+
+    it('a region survives as a polygon, vertex for vertex', () => {
+        const r = {
+            profile: 'swamp',
+            points: [{x: -62.4, y: -25.2}, {x: -40, y: -25.2}, {x: -40, y: 3.5}, {x: -62.4, y: 3.5}],
+        };
+        expect(roundTrip(zone({regions: [r]})).regions[0]).toEqual(r);
+    });
+
+    // The origin sits on vertex 0, exactly as Tiled produces when you draw a
+    // polygon — so a hand-authored region and a drawn one serialise the same.
+    it('anchors the polygon on its first vertex', () => {
+        const m = C.zoneToModel(zone({
+            regions: [{profile: 'bog', points: [{x: 2, y: 1}, {x: 4, y: 1}, {x: 4, y: 3}]}],
+        }));
+        const o = m.layers.filter(l => l.name === 'regions')[0].objects[0];
+        expect(o.shape).toBe('polygon');
+        expect(o.polygon[0]).toEqual({x: 0, y: 0});
+        expect(o.polygon.length).toBe(3);
+        // Profile is both the label and the typed property (readSpawn's rule).
+        expect(o.name).toBe('bog');
+        expect(o.properties.profile).toBe('bog');
+    });
+
+    // Several regions in one zone keep their authored ORDER: array order is
+    // resolution order (D0, last containing region wins), so a converter that
+    // reordered them would silently change which profile paints on top.
+    it('keeps region order', () => {
+        const tri = (n: number) => [{x: n, y: 0}, {x: n + 1, y: 0}, {x: n + 1, y: 1}];
+        const out = roundTrip(zone({
+            regions: [
+                {profile: 'swamp', points: tri(0)},
+                {profile: 'bog', points: tri(2)},
+                {profile: 'ash', points: tri(4)},
+            ],
+        }));
+        expect(out.regions.map((r: {profile: string}) => r.profile)).toEqual(['swamp', 'bog', 'ash']);
+    });
+
     it('empty optional arrays stay omitted', () => {
         const out = JSON.stringify(roundTrip(zone()));
         expect(out).not.toContain('campfires');
         expect(out).not.toContain('darkAreas');
+        expect(out).not.toContain('regions');
         expect(out).not.toContain('anchors');
     });
 });
@@ -449,6 +490,55 @@ describe('AuraConvert — save-time validation (C4)', () => {
 
     it('rejects patrolMode without a route', () => {
         expect(only(spawn({patrolMode: 'loop'}))).toContain('patrolMode without waypoints');
+    });
+
+    // --- regions (plan-region-primitive.md C1) -------------------------------
+    //
+    // ⚑ These two are a PAIR, and the second one only became possible when the
+    // first arrived: the Tiled glue used to fold a polygon into a polyline
+    // because a patrol route was the only vertex shape in the format. Now that
+    // regions are polygons, the fold is gone — and a route accidentally drawn
+    // as a polygon would lose its waypoints in silence. Both shapes therefore
+    // refuse to be each other, loudly, at save time.
+
+    function region(over: Record<string, unknown> = {}) {
+        return zone({
+            regions: [{
+                profile: 'swamp',
+                points: [{x: 0, y: 0}, {x: 2, y: 0}, {x: 2, y: 2}],
+                ...over,
+            }],
+        });
+    }
+
+    it('accepts a well-formed region', () => {
+        expect(errs(region())).toEqual([]);
+    });
+
+    it('rejects a region with an empty profile', () => {
+        expect(only(region({profile: ''}))).toContain('profile must not be empty');
+    });
+
+    it('rejects a region with fewer than 3 points', () => {
+        expect(only(region({points: [{x: 0, y: 0}, {x: 2, y: 0}]})))
+            .toContain('at least 3 points');
+    });
+
+    it('an unknown profile name is NOT a save-time error while the palette is free text', () => {
+        expect(errs(region({profile: 'no-such-profile'}))).toEqual([]);
+    });
+
+    it('refuses a patrol route drawn as a closed polygon instead of dropping its waypoints', () => {
+        const m = C.zoneToModel(spawn({waypoints: [{x: 1, y: 1}, {x: 2, y: 2}]})) as
+            {layers: {name: string, objects: {id: number, shape: string}[]}[]};
+        let id = 100;
+        m.layers.forEach(l => l.objects.forEach(o => { o.id = ++id; }));
+        // What Tiled hands back when someone drew the route with the polygon tool.
+        m.layers.filter(l => l.name === 'spawns')[0].objects[0].shape = 'polygon';
+
+        const e = C.validateModel(m) as string[];
+        expect(e).toHaveLength(1);
+        expect(e[0]).toContain('must be a POLYLINE');
     });
 
     // zone.go makes this check in resolve(), after the species is bound — which
@@ -600,6 +690,7 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             }],
             campfires: [{id: 'spawnpoint-1', x: 6, y: 6, startingSpawn: true}],
             darkAreas: [{x: 7, y: 7, radius: 2}],
+            regions: [{profile: 'swamp', points: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 2}]}],
             anchors: [{name: 'a', x: 8, y: 8}],
         };
         // The full path, not just the serializer: this also catches a key that

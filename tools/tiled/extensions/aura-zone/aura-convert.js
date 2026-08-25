@@ -22,7 +22,7 @@ var AuraConvert = (function () {
     var PX = 120;
 
     // Layer name selects the world.json array (D5).
-    var LAYERS = ['terrain', 'props', 'spawns', 'campfires', 'darkAreas', 'anchors'];
+    var LAYERS = ['terrain', 'props', 'spawns', 'campfires', 'darkAreas', 'regions', 'anchors'];
 
     // ZoneModel's rounding helper, verbatim.
     function round(value, digits) {
@@ -292,6 +292,18 @@ var AuraConvert = (function () {
                     return {x: round(d.x, 2), y: round(d.y, 2), radius: round(d.radius, 2)};
                 })
                 : undefined,
+            // Key order follows zone.go's struct order, and the whole object
+            // must match ZoneModel.getZoneAsJSON byte for byte.
+            regions: z.regions && z.regions.length > 0
+                ? z.regions.map(function (r) {
+                    return {
+                        profile: r.profile,
+                        points: r.points.map(function (p2) {
+                            return {x: round(p2.x, 2), y: round(p2.y, 2)};
+                        }),
+                    };
+                })
+                : undefined,
             anchors: z.anchors && z.anchors.length > 0
                 ? z.anchors.map(function (a) { return {name: a.name, x: round(a.x, 2), y: round(a.y, 2)}; })
                 : undefined,
@@ -419,6 +431,29 @@ var AuraConvert = (function () {
             };
         });
 
+        // A region IS its outline: a polygon object whose origin sits on the
+        // first vertex, so node 0 is {0,0} exactly as Tiled produces when you
+        // draw one. Same relative-vertex convention as a patrol polyline.
+        //
+        // ⚑ The PROFILE is both the object's Name (a readable label in the
+        // layer list) and a typed property; readRegion lets the property win,
+        // mirroring how a spawn's mob works. C2 turns that property into a
+        // generated AuraProfile enum — here it is still free text.
+        var regions = (z.regions || []).map(function (r) {
+            var pts = r.points || [];
+            var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
+            var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
+            return {
+                shape: 'polygon', layer: 'regions', name: r.profile, cls: 'AuraRegion',
+                x: ox, y: oy, width: 0, height: 0, rotation: 0,
+                flipH: false, flipV: false,
+                polygon: pts.map(function (p2) {
+                    return {x: px(p2.x, hw) - ox, y: px(p2.y, hh) - oy};
+                }),
+                properties: {profile: r.profile},
+            };
+        });
+
         var anchors = (z.anchors || []).map(function (a) {
             return {
                 shape: 'point', layer: 'anchors', name: a.name, cls: 'AuraAnchor',
@@ -441,6 +476,10 @@ var AuraConvert = (function () {
                 {name: 'spawns', drawOrder: 'index', objects: spawns},
                 {name: 'campfires', drawOrder: 'index', objects: campfires},
                 {name: 'darkAreas', drawOrder: 'index', objects: darkAreas},
+                // Region array order is resolution order (D0: the LAST
+                // containing region that declares a property wins), so this
+                // layer draws by index for the same reason terrain does.
+                {name: 'regions', drawOrder: 'index', objects: regions},
                 {name: 'anchors', drawOrder: 'index', objects: anchors},
             ],
         };
@@ -526,10 +565,28 @@ var AuraConvert = (function () {
                     radius: o.width / (2 * PX),
                 };
             }),
+            regions: layer('regions').map(function (o) {
+                return {
+                    profile: readRegionProfile(o),
+                    points: (o.polygon || []).map(function (v) {
+                        return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
+                    }),
+                };
+            }),
             anchors: layer('anchors').map(function (o) {
                 return {name: o.name, x: u(o.x, hw), y: u(o.y, hh)};
             }),
         };
+    }
+
+    // ⚑ The typed property wins over the object's Name, which is only a
+    // readable label — the same rule readSpawn applies to a spawn's mob, and
+    // the same GUI defect it exists for: a plain-string property SHADOWS a
+    // typed class member, and a typed enum reads back as an INDEX.
+    function readRegionProfile(o) {
+        var v = o.properties && o.properties.profile !== undefined && o.properties.profile !== null
+            ? plainValue(o.properties.profile) : undefined;
+        return v !== undefined ? v : o.name;
     }
 
     /* ---- save-time validation (C4) -----------------------------------------
@@ -666,6 +723,14 @@ var AuraConvert = (function () {
 
         var mobsKnown = Object.keys(content.MOB_KIND).length > 0;
         layer('spawns').forEach(function (o, i) {
+            // ⚑ A route is a POLYLINE. Until regions existed a polygon drawn
+            // here was quietly read as one; now that the two shapes are
+            // distinct, an unrefused polygon would drop its waypoints in
+            // silence. Refusing the save is the whole point of this pass.
+            if (o.shape === 'polygon') {
+                bad(o, i, 'a patrol route must be a POLYLINE, not a closed polygon — redraw it'
+                    + ' with the polyline tool, or its waypoints are lost on save');
+            }
             // ⚑ Through readSpawn, never off the raw properties: every
             // inheriting spawn carries `level: 0` and `wanderRadius: -1`, and
             // range-checking those raw would flag ~226 healthy spawns.
@@ -748,6 +813,24 @@ var AuraConvert = (function () {
             else if (Math.abs(o.width - o.height) > 0.5) {
                 bad(o, i, 'must stay a circle (' + Math.round(o.width) + '×' + Math.round(o.height)
                     + ' px) — world.json has one radius, so hold Shift while resizing');
+            }
+        });
+
+        // Mirrors zone.go's region checks (§4.6). ⚑ An UNKNOWN profile name is
+        // deliberately NOT rejected here while the palette is still free text;
+        // C2 adds the generated AuraProfile enum, which is where a typo gets
+        // caught with an object id. D11 keeps the cost of a miss to one
+        // region's look — never a broken client.
+        layer('regions').forEach(function (o, i) {
+            if (!String(readRegionProfile(o) || '').replace(/^\s+|\s+$/g, '')) {
+                bad(o, i, 'profile must not be empty');
+            }
+            var n = (o.polygon || []).length;
+            if (o.shape !== 'polygon') {
+                bad(o, i, 'must be a POLYGON — the regions layer holds outlines, and any'
+                    + ' other shape is dropped on save');
+            } else if (n < 3) {
+                bad(o, i, 'needs at least 3 points to enclose an area, has ' + n);
             }
         });
 
