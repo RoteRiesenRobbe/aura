@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-08-25: the region-primitive wrap took the cap slot, so TILED ZONE AUTHORING moved here verbatim.)*
+
+- **Prior: TILED ZONE AUTHORING - ALL SEVEN CHUNKS** ✅ 2026-08-23, first commit `0b8ba13f` (ledger: `docs/archive/plan-tiled-authoring.md` §11 - plan COMPLETE + archived): `api/zones/world.json` opens in **Tiled**, edits visually, Ctrl+S writes back **byte-identical**. ⭐ Feasibility: none of Aura's world is a tilemap, only OBJECT layers matter - and there LDtk lacks rotation + flipping, which would have left the 549-piece `terrain` array (backlog §58) uneditable. `registerMapFormat` with read+write means no intermediate format: `world.json` stays the single source, both editors write it identically (D4: the in-game editor keeps live-world editing). New vocab: byte-stability as acceptance criterion (D6) · the layer IS the meaning (D5) · inherit sentinels (C6: Tiled cannot express "absent"; ⚑ `wanderRadius`/`respawnTicks` cannot sentinel on 0, it is a real authored value for both; AuraProp gets NO members - a bool has no spare value) · the completeness pin (C5 scrapes `zone.go`'s json tags, proven red first). C4 validates at save-time with the Tiled object id in the message. ⭐ GUI-only defect: a plain-string property SHADOWS the typed class member (set enums via `tiled.propertyValue`; a typed enum reads back as an INDEX). Also new: `.gitattributes` LF pins for `*.sh` + `api/zones/*.json`. **Schema NONE at every layer.** Verified: vitest 439/439 · tsc clean · generator idempotent · real-Tiled round-trip byte-identical, re-runnable via `bash tools/tiled/verify.sh`. PO GUI re-check PASSED 2026-08-23 - nothing outstanding.
+
 
 *(2026-08-24: the immune-feedback wrap (merged with the prop-transform wrap) took the cap slots, so MOB PATHFINDING PASS moved here verbatim.)*
 

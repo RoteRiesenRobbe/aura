@@ -14,6 +14,9 @@
 import {createRequire} from 'node:module';
 import {readFileSync} from 'node:fs';
 import {describe, expect, it} from 'vitest';
+// The third whitelist. C2 brought it under the same pin: two of the three
+// serializers being complete is not the invariant — all three are.
+import {ZoneData, ZoneModel} from './ZoneModel';
 
 // NOT named 'require': TypeScript reserves that identifier at module top level
 // (TS2441), and webpack type-checks this file as part of the app build.
@@ -377,6 +380,35 @@ describe('AuraConvert — patrol routes and the remaining arrays', () => {
         expect(out.regions.map((r: {profile: string}) => r.profile)).toEqual(['swamp', 'bog', 'ash']);
     });
 
+    // --- the typed profile dropdown (C2) ------------------------------------
+
+    // ⚑ The GUI defect this exists for: a PLAIN-STRING property shadows the
+    // class member that declares the enum, and the Properties panel degrades
+    // from a dropdown to a free-text box. The spawn's mob carries the same
+    // marker for the same reason.
+    it('marks profile as an AuraProfile enum so the panel keeps the dropdown', () => {
+        const m = C.zoneToModel(zone({
+            regions: [{profile: 'swamp', points: [{x: 0, y: 0}, {x: 2, y: 0}, {x: 2, y: 2}]}],
+        }));
+        const o = m.layers.filter(l => l.name === 'regions')[0].objects[0];
+        expect(o.enums).toEqual({profile: 'AuraProfile'});
+    });
+
+    // ⚑ And the other half of that defect: Tiled hands a typed enum property
+    // back as an INDEX into the declared values, never as the string. A reader
+    // that took the raw value would write the number 2 into the zone file as a
+    // profile name — which zone.go accepts (D8) and the client cannot resolve.
+    it('decodes a profile handed back as an enum index', () => {
+        const values = (content.ENUM_VALUES as Record<string, string[]>).AuraProfile;
+        const wanted = values[values.length - 1];
+        const m = C.zoneToModel(zone({
+            regions: [{profile: 'swamp', points: [{x: 0, y: 0}, {x: 2, y: 0}, {x: 2, y: 2}]}],
+        })) as {layers: {name: string, objects: {properties: Record<string, unknown>}[]}[]};
+        m.layers.filter(l => l.name === 'regions')[0].objects[0].properties.profile =
+            {typeName: 'AuraProfile', typeId: 1, value: values.indexOf(wanted)};
+        expect(C.modelToZone(m).regions[0].profile).toBe(wanted);
+    });
+
     it('empty optional arrays stay omitted', () => {
         const out = JSON.stringify(roundTrip(zone()));
         expect(out).not.toContain('campfires');
@@ -501,10 +533,15 @@ describe('AuraConvert — save-time validation (C4)', () => {
     // as a polygon would lose its waypoints in silence. Both shapes therefore
     // refuse to be each other, loudly, at save time.
 
+    // ⚑ Derived, not a literal: since C2 an unknown profile is a save-time
+    // ERROR, so a hand-typed name here would go red the next time somebody
+    // renames a profile — and the failure would look like a converter bug.
+    const A_REAL_PROFILE = (content.PROFILE_NAMES as string[])[0];
+
     function region(over: Record<string, unknown> = {}) {
         return zone({
             regions: [{
-                profile: 'swamp',
+                profile: A_REAL_PROFILE,
                 points: [{x: 0, y: 0}, {x: 2, y: 0}, {x: 2, y: 2}],
                 ...over,
             }],
@@ -524,8 +561,37 @@ describe('AuraConvert — save-time validation (C4)', () => {
             .toContain('at least 3 points');
     });
 
-    it('an unknown profile name is NOT a save-time error while the palette is free text', () => {
-        expect(errs(region({profile: 'no-such-profile'}))).toEqual([]);
+    // ⭐ C2 inverts C1's posture here, deliberately: while the palette was free
+    // text there was no vocabulary to check a name against, so an unknown one
+    // could only be absorbed by the client (D11 — it costs that region's look
+    // and nothing else). The generated AuraProfile enum IS that vocabulary, so
+    // the typo is now caught where it was written, with the object id.
+    it('rejects an unknown profile name, now that the palette carries the vocabulary', () => {
+        const msg = only(region({profile: 'no-such-profile'}));
+        expect(msg).toContain('unknown profile "no-such-profile"');
+        expect(msg).toContain('profiles.json');
+    });
+
+    // The dropdown the generator emits, exercised end to end: every name it
+    // offers must pass the check that reads its output back. Derived from the
+    // content, never a second list — the terrain-type test's posture above.
+    it('accepts every profile the palette actually offers', () => {
+        const names = content.PROFILE_NAMES as string[];
+        expect(names.length).toBeGreaterThan(0);
+        names.forEach(profile => expect(errs(region({profile})), profile).toEqual([]));
+    });
+
+    // The AuraProfile default, mirroring AuraMobName's: a class member cannot
+    // be empty, so a freshly drawn region would otherwise silently become
+    // whichever profile happens to sort first.
+    it('refuses to save a region nobody assigned a profile to', () => {
+        expect(only(region({profile: C.PROFILE_UNSET as string}))).toContain('pick a profile');
+    });
+
+    // ⚑ Two different mistakes with two different fixes: "you left it unset"
+    // must never be reported as "unknown profile", and neither as "empty".
+    it('an unknown profile is not reported as an empty one', () => {
+        expect(only(region({profile: 'no-such-profile'}))).not.toContain('must not be empty');
     });
 
     it('refuses a patrol route drawn as a closed polygon instead of dropping its waypoints', () => {
@@ -642,10 +708,17 @@ describe('AuraConvert — save-time validation (C4)', () => {
  * backend/pkg/aura/world/zone.go (authoritative), ZoneModel.getZoneAsJSON, and
  * aura-convert.js's serializeZone. Only the first is enforced by anything —
  * DisallowUnknownFields hard-fails a boot on a key the server does not know.
- * The reverse direction has no guard at all: a key the CONVERTER has never
- * heard of is silently dropped on the first Tiled save, and D6's byte-stability
- * test only notices once the field is actually authored somewhere. This closes
- * that window.
+ * The reverse direction has no guard at all: a key a WRITER has never heard of
+ * is silently dropped on that editor's first save, and D6's byte-stability test
+ * only notices once the field is actually authored somewhere. This closes that
+ * window.
+ *
+ * ⭐ C2 of plan-region-primitive.md extended it to the SECOND writer. The pin
+ * shipped guarding Tiled only, which left the worse half open: the in-game
+ * editor has eaten an unlisted field twice already (spawn.level, prop.scale)
+ * and each time the loss was silent, green and somebody else's work. The two
+ * writers land in the same file, so anything short of all three agreeing is a
+ * data-loss bug waiting for the next save.
  */
 describe('AuraConvert — the format completeness pin (C5)', () => {
     const zoneGo = readFileSync(
@@ -670,32 +743,31 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         return keys;
     }
 
-    // Derived from BEHAVIOUR, not a second hand-written list: a fourth list
-    // would be exactly the thing this pin exists to prevent.
-    function keysConverterEmits(): Set<string> {
-        const everyKey = {
-            name: 'T',
-            bounds: {width: 20, height: 10},
-            terrain: [{type: 'Green Grass 1', x: 0, y: 0, size: 1, rotation: 0.5, flipped: 'horizontal'}],
-            props: [{type: 'Tree', x: 1, y: 1, rotation: 0.25, blocksMovement: true, scale: 2.5}],
-            spawns: [{
-                mob: 'Wolf', x: 2, y: 2, angle: 0.75,
-                respawnTicks: 300, respawnVariancePct: 10,
-                idleSpeedFactor: 0.5, level: 7,
-                waypoints: [{x: 3, y: 3}, {x: 4, y: 4}], patrolMode: 'loop',
-            }, {
-                // wanderRadius is mutually exclusive with waypoints, so it needs
-                // a spawn of its own to appear at all.
-                mob: 'Wolf', x: 5, y: 5, angle: 0, wanderRadius: 4,
-            }],
-            campfires: [{id: 'spawnpoint-1', x: 6, y: 6, startingSpawn: true}],
-            darkAreas: [{x: 7, y: 7, radius: 2}],
-            regions: [{profile: 'swamp', points: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 2}]}],
-            anchors: [{name: 'a', x: 8, y: 8}],
-        };
-        // The full path, not just the serializer: this also catches a key that
-        // survives serialization but is lost in the Tiled model.
-        const out = JSON.parse(C.serializeZone(C.modelToZone(C.zoneToModel(everyKey))));
+    // ⚑ ONE fixture for both writers. Two would drift, and a key exercised
+    // against only one of them is exactly the hole this pin exists to close.
+    const EVERY_KEY = {
+        name: 'T',
+        bounds: {width: 20, height: 10},
+        terrain: [{type: 'Green Grass 1', x: 0, y: 0, size: 1, rotation: 0.5, flipped: 'horizontal'}],
+        props: [{type: 'Tree', x: 1, y: 1, rotation: 0.25, blocksMovement: true, scale: 2.5}],
+        spawns: [{
+            mob: 'Wolf', x: 2, y: 2, angle: 0.75,
+            respawnTicks: 300, respawnVariancePct: 10,
+            idleSpeedFactor: 0.5, level: 7,
+            waypoints: [{x: 3, y: 3}, {x: 4, y: 4}], patrolMode: 'loop',
+        }, {
+            // wanderRadius is mutually exclusive with waypoints, so it needs
+            // a spawn of its own to appear at all.
+            mob: 'Wolf', x: 5, y: 5, angle: 0, wanderRadius: 4,
+        }],
+        campfires: [{id: 'spawnpoint-1', x: 6, y: 6, startingSpawn: true}],
+        darkAreas: [{x: 7, y: 7, radius: 2}],
+        regions: [{profile: 'swamp', points: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 2}]}],
+        anchors: [{name: 'a', x: 8, y: 8}],
+    };
+
+    // Every key present anywhere in a serialized zone, at any depth.
+    function keysIn(json: string): Set<string> {
         const keys = new Set<string>();
         (function walk(v: unknown) {
             if (Array.isArray(v)) { v.forEach(walk); return; }
@@ -705,8 +777,23 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
                     walk((v as Record<string, unknown>)[k]);
                 });
             }
-        })(out);
+        })(JSON.parse(json));
         return keys;
+    }
+
+    // Derived from BEHAVIOUR, not a second hand-written list: a fourth list
+    // would be exactly the thing this pin exists to prevent.
+    //
+    // ⚑ The full path, not just the serializer: this also catches a key that
+    // survives serialization but is lost in the Tiled model.
+    function keysConverterEmits(): Set<string> {
+        return keysIn(C.serializeZone(C.modelToZone(C.zoneToModel(EVERY_KEY))));
+    }
+
+    // The same fixture through the OTHER writer, by the same rule: what
+    // ZoneModel emits, not what a list claims it emits.
+    function keysZoneModelEmits(): Set<string> {
+        return keysIn(ZoneModel.fromJSON(EVERY_KEY as unknown as ZoneData).getZoneAsJSON());
     }
 
     // Guards the scrape itself: a refactor that moves the structs out of
@@ -719,9 +806,10 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
     });
 
     it('the fixture really does exercise every key it can', () => {
-        // If this drops, the pin below starts passing for the wrong reason.
-        expect(keysConverterEmits().size).toBe(goJsonKeys().size
-            - Object.keys(NOT_AUTHORED_IN_TILED).length);
+        // If this drops, the pins below start passing for the wrong reason.
+        const expected = goJsonKeys().size - Object.keys(NOT_AUTHORED_IN_TILED).length;
+        expect(keysConverterEmits().size).toBe(expected);
+        expect(keysZoneModelEmits().size).toBe(expected);
     });
 
     it('⭐ every key zone.go accepts survives a Tiled round-trip', () => {
@@ -736,17 +824,46 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             + ' its reason.').toEqual([]);
     });
 
+    // ⭐ The half the pin was missing until C2, and the worse half: this editor
+    // has silently eaten an unlisted field twice (spawn.level, prop.scale), and
+    // both times what it deleted was work done in the OTHER editor.
+    it('⭐ every key zone.go accepts survives an in-game editor save', () => {
+        const emitted = keysZoneModelEmits();
+        const missing = [...goJsonKeys()]
+            .filter(k => !emitted.has(k) && !(k in NOT_AUTHORED_IN_TILED));
+        expect(missing, `zone.go declares ${missing.join(', ')}, which ZoneModel.getZoneAsJSON`
+            + ' would SILENTLY DROP on the next in-game editor save — deleting whatever Tiled or'
+            + ' a placement script wrote there. Name it in getZoneAsJSON (and keep fromJSON'
+            + ' carrying it), even if this editor has no tool for it: round-tripping a field it'
+            + ' cannot author is the whole job.').toEqual([]);
+    });
+
+    // ⚑ Both writers land in the same file, so agreeing with zone.go is not
+    // enough on its own — they must agree with EACH OTHER, or a Tiled save and
+    // an in-game save produce two different files from one world.
+    it('⭐ the two writers emit the same key set', () => {
+        expect([...keysZoneModelEmits()].sort()).toEqual([...keysConverterEmits()].sort());
+    });
+
     it('emits nothing zone.go would reject — DisallowUnknownFields is unforgiving', () => {
         const known = goJsonKeys();
-        const extra = [...keysConverterEmits()].filter(k => !known.has(k));
-        expect(extra, `the writer emits ${extra.join(', ')}, which would hard-fail the boot`)
-            .toEqual([]);
+        [['Tiled', keysConverterEmits()], ['the in-game editor', keysZoneModelEmits()]]
+            .forEach(([who, emitted]) => {
+                const extra = [...emitted as Set<string>].filter(k => !known.has(k));
+                expect(extra, `${who} emits ${extra.join(', ')}, which would hard-fail the boot`)
+                    .toEqual([]);
+            });
     });
 
     it('records why each exception is an exception', () => {
         Object.keys(NOT_AUTHORED_IN_TILED).forEach(k => {
             expect(goJsonKeys(), `${k} is no longer in zone.go — drop the exception`).toContain(k);
             expect(NOT_AUTHORED_IN_TILED[k].length).toBeGreaterThan(10);
+            // The exceptions are shared, so each must really be absent from
+            // BOTH writers — an exception that only one of them honours would
+            // hide a real gap in the other.
+            expect(keysConverterEmits().has(k)).toBe(false);
+            expect(keysZoneModelEmits().has(k)).toBe(false);
         });
     });
 });

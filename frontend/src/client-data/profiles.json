@@ -1,6 +1,22 @@
 {
-  "_comment": "Region profiles (plan-region-primitive.md D2/D12). A profile is a named bag of CLIENT-SIDE presentation properties a zone region points at by name; the server never reads any of it. This file is the single source of truth: the client imports it, and tools/tiled/generate-palette.mjs reads it to build Tiled's AuraProfile dropdown, so a profile added here is offerable in the editor without anyone maintaining a second list. Colours are ground fill, drawn under the terrain blobs. A profile that omits a property is TRANSPARENT to it (D0): the next containing region answers, and failing that the shipped default. ⚑ These values are [PLACEHOLDER] — C3 is the palette sitting that decides the real set and their colours.",
-  "swamp": { "color": "#2c4028" },
-  "sand": { "color": "#b8a06a" },
-  "ash": { "color": "#4a4a4a" }
+  "_comment": "Region profiles (plan-region-primitive.md D2/D12/C3). A profile is a named bag of CLIENT-SIDE presentation properties a zone region points at by name; the server never reads any of it. This file is the single source of truth: the client imports it, and tools/tiled/generate-palette.mjs reads it to build Tiled's AuraProfile dropdown, so a profile added here is offerable in the editor without anyone maintaining a second list. A profile that omits a property is TRANSPARENT to it (D0): the next containing region answers, and failing that the shipped default.",
+  "_comment_colors": "Colours are ground fill, drawn under the terrain blobs. ⚑ Every value here is [PLACEHOLDER] and safe to change forever - it is data, not code, and no test pins any of it. NAMES are the only mildly sticky part: a region in api/zones/*.json names its profile, so a rename means fixing every region that names it.",
+  "_comment_c3": "The set was ruled 2026-08-25 (C3, the D16 look sitting): 8 families x 2, base + variation, in authored order because that is the order the Tiled dropdown offers. ⭐ EVERY profile is intended to carry a TEXTURE eventually (C3 ruling) - these colours are then D14's fallback and D11's default, not the shipped look. ⚑ A profile is a MATERIAL, not a place: many separate forests share `Forest`, which is why a quest-addressable area cannot be a profile name (§11).",
+
+  "Fields":             { "color": "#4e6b2f" },
+  "Suburbs":            { "color": "#3b5226" },
+  "Forest":             { "color": "#2c4a26" },
+  "Swamp":              { "color": "#1f3320" },
+  "Coastal Cliff":      { "color": "#7a7361" },
+  "Coast":              { "color": "#a89873" },
+  "Magic Forest":       { "color": "#27474a" },
+  "Dead Magic Forest":  { "color": "#1a2e31" },
+  "Ashen Fields":       { "color": "#4d4a45" },
+  "Volcano":            { "color": "#332723" },
+  "City":               { "color": "#5a5750" },
+  "Derelict Fortress":  { "color": "#3e3b35" },
+  "Desert":             { "color": "#b8a06a" },
+  "Wasteland":          { "color": "#8a7550" },
+  "Mountains":          { "color": "#6e6a66" },
+  "Ice":                { "color": "#b9cad3" }
 }

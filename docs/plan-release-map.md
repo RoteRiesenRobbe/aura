@@ -248,9 +248,10 @@ Go type. §3 is authored JSON under `api/quests/` and `api/mobs/` plus a content
 test; §5's map work is `api/zones/`. The only Go touched by this plan as it
 stands is a test pin (§3.4).
 
-§8's region primitive keeps this: no DB, no `.fbs`, no wire field. Its two Go /
-TS touch points (the zone struct field and the editor serializer) are code, not
-schema - see §8.2.
+§8's region primitive keeps this: no DB, no `.fbs`, no wire field. Its **three**
+Go / TS touch points (the zone struct field and the *two* editor serializers -
+this line said two until plan-region-primitive C2 corrected it, matching §8.2)
+are code, not schema - see §8.2.
 
 ## 7. Open questions - the map's own planning session
 
@@ -330,10 +331,14 @@ settled; the map is not. What a design session owes:
   (`ZoneModel.ts:getZoneAsJSON`, a strict field whitelist - an unlisted field
   survives a load and silently vanishes on the next editor save) · and
   `tools/tiled/extensions/aura-zone/aura-convert.js`'s `serializeZone`, which
-  drops unknown keys the same way. ⭐ Only the Tiled one is guarded: the
-  **completeness pin** (tiled C5) scrapes `zone.go`'s json tags and goes red
-  the moment the format grows a field the converter would drop. `ZoneModel` has
-  no such pin - see `plan-region-primitive.md` §5 and its L1.
+  drops unknown keys the same way. ⭐ **All three are now guarded**: the
+  **completeness pin** (tiled C5) scrapes `zone.go`'s json tags and goes red the
+  moment the format grows a field a writer would drop, and
+  plan-region-primitive **C2** (2026-08-25) extended it from Tiled alone to
+  `ZoneModel` as well - plus a check that the two writers emit the *same* key
+  set, since both land in the same file. ⚑ The pin does not make the third
+  touch point optional; it makes forgetting it loud. See
+  `plan-region-primitive.md` §5 and its L1.
 - **Per-zone background.** Placing different ground-texture types per area is
   authorable TODAY with zero code (terrain entries are individually placed
   sprites). A true per-region base color means drawing one land rect per

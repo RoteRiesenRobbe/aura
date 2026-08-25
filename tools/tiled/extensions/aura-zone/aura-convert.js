@@ -74,13 +74,21 @@ var AuraConvert = (function () {
      * Absent is survivable — props fall back to a 1-unit box, every spawn reads
      * as combat, and the vocabulary CHECKS skip themselves (see validateModel) —
      * so the converter stays testable on its own. */
-    var content = {TERRAIN_TYPES: [], PROP_SIZE: {}, MOB_KIND: {}, MOB_SPEED: {}, ENUM_VALUES: {}};
+    var content = {
+        TERRAIN_TYPES: [], PROP_SIZE: {}, MOB_KIND: {}, MOB_SPEED: {},
+        PROFILE_NAMES: [], ENUM_VALUES: {},
+    };
     function useContent(c) {
         content = {
             TERRAIN_TYPES: (c && c.TERRAIN_TYPES) || [],
             PROP_SIZE: (c && c.PROP_SIZE) || {},
             MOB_KIND: (c && c.MOB_KIND) || {},
             MOB_SPEED: (c && c.MOB_SPEED) || {},
+            // The region profiles the client can actually resolve, straight out
+            // of frontend/src/client-data/profiles.json (D12). Absent means "no
+            // vocabulary loaded", and the unknown-profile check skips itself —
+            // the same posture every other content check here takes.
+            PROFILE_NAMES: (c && c.PROFILE_NAMES) || [],
             ENUM_VALUES: (c && c.ENUM_VALUES) || {},
         };
     }
@@ -173,6 +181,13 @@ var AuraConvert = (function () {
     // spawn would otherwise silently become whichever mob sorted first. This is
     // not a mob name, so validation refuses the save until one is picked.
     var MOB_UNSET = '(pick a mob)';
+
+    // The AuraProfile default, for exactly the same reason (C2): a region drawn
+    // on the canvas and never assigned would otherwise take whichever profile
+    // leads the table and repaint that ground silently. Not a profile name, so
+    // validation refuses the save until one is picked.
+    var PROFILE_UNSET = '(pick a profile)';
+    var REGION_ENUMS = {profile: 'AuraProfile'};
 
     /* Read a spawn object's authored values, with every sentinel resolved back
      * to "absent". The single source of truth for the table above. */
@@ -451,6 +466,11 @@ var AuraConvert = (function () {
                     return {x: px(p2.x, hw) - ox, y: px(p2.y, hh) - oy};
                 }),
                 properties: {profile: r.profile},
+                // C2: typed, or the Properties panel degrades to a free-text
+                // box — an object-level PLAIN string shadows the class member
+                // that declares the enum. Same marker, same reason, as a
+                // spawn's mob.
+                enums: {profile: REGION_ENUMS.profile},
             };
         });
 
@@ -605,6 +625,12 @@ var AuraConvert = (function () {
      * so the converter stays usable (and testable) without aura-content.js. */
 
     function has(map, key) { return Object.prototype.hasOwnProperty.call(map, key); }
+    // ⚑ A loop, not Array.prototype.indexOf: Tiled runs QJSEngine and the rest
+    // of this file already takes that posture (see whereElse below).
+    function hasValue(list, value) {
+        for (var i = 0; i < list.length; i++) { if (list[i] === value) { return true; } }
+        return false;
+    }
 
     // "Tree" on the spawns layer is not a typo, it is a layer mistake — and the
     // vocabularies already to hand can say so. This is the whole reason the
@@ -612,9 +638,7 @@ var AuraConvert = (function () {
     function whereElse(name) {
         if (has(content.PROP_SIZE, name)) { return 'prop type'; }
         if (has(content.MOB_KIND, name)) { return 'mob'; }
-        for (var i = 0; i < content.TERRAIN_TYPES.length; i++) {
-            if (content.TERRAIN_TYPES[i] === name) { return 'ground texture'; }
-        }
+        if (hasValue(content.TERRAIN_TYPES, name)) { return 'ground texture'; }
         return null;
     }
     var LAYER_OF_KIND = {'prop type': 'props', 'mob': 'spawns', 'ground texture': 'terrain'};
@@ -816,14 +840,33 @@ var AuraConvert = (function () {
             }
         });
 
-        // Mirrors zone.go's region checks (§4.6). ⚑ An UNKNOWN profile name is
-        // deliberately NOT rejected here while the palette is still free text;
-        // C2 adds the generated AuraProfile enum, which is where a typo gets
-        // caught with an object id. D11 keeps the cost of a miss to one
-        // region's look — never a broken client.
+        // Mirrors zone.go's region checks (§4.6), plus the one check the server
+        // deliberately does not make (D8): the profile NAME.
+        //
+        // ⭐ C2 is what makes that possible. zone.go accepts any non-empty name
+        // because the profile table lives in the client, so a typo reaches the
+        // browser and resolves to the default (D11) — the region simply does
+        // not paint, at load, with nothing said anywhere. The generated
+        // AuraProfile enum is that vocabulary, so the typo becomes an error
+        // where it was written, naming the object id.
+        //
+        // ⚑ Skipped when no palette is loaded, exactly like every other content
+        // check here: the converter stays usable (and testable) without one.
+        var profilesKnown = content.PROFILE_NAMES.length > 0;
         layer('regions').forEach(function (o, i) {
-            if (!String(readRegionProfile(o) || '').replace(/^\s+|\s+$/g, '')) {
+            var profile = String(readRegionProfile(o) || '').replace(/^\s+|\s+$/g, '');
+            if (!profile) {
                 bad(o, i, 'profile must not be empty');
+            } else if (profile === PROFILE_UNSET) {
+                // Its own message: "you have not picked one yet" and "that name
+                // does not exist" are different mistakes with different fixes.
+                bad(o, i, 'no profile chosen — "' + PROFILE_UNSET + '" is the placeholder,'
+                    + ' not a profile. Pick one in the Properties panel');
+            } else if (profilesKnown && !hasValue(content.PROFILE_NAMES, profile)) {
+                bad(o, i, 'unknown profile "' + profile + '" — the profiles are: '
+                    + content.PROFILE_NAMES.join(', ') + '. Add it to'
+                    + ' frontend/src/client-data/profiles.json and re-run'
+                    + ' node tools/tiled/generate-palette.mjs, or pick an existing one');
             }
             var n = (o.polygon || []).length;
             if (o.shape !== 'polygon') {
@@ -913,6 +956,8 @@ var AuraConvert = (function () {
         plainValue: plainValue,
         PATROL_INHERIT: PATROL_INHERIT,
         MOB_UNSET: MOB_UNSET,
+        PROFILE_UNSET: PROFILE_UNSET,
+        REGION_ENUMS: REGION_ENUMS,
         readSpawn: readSpawn,
     };
 })();

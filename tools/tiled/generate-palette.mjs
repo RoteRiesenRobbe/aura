@@ -11,7 +11,8 @@
  *   tools/tiled/palette/propertytypes.json the same custom types, for hand-import when
  *                                          working WITHOUT the project
  *   tools/tiled/palette/content.json        the converter's content vocabulary
- *                                          (terrain types, prop bodies, mob kinds + speeds)
+ *                                          (terrain types, prop bodies, mob kinds + speeds,
+ *                                           region profiles)
  *   tools/tiled/aura.tiled-project          its propertyTypes array, patched in place
  *
  * ⚑ Why generated: the in-game editor bundles api/ straight in with
@@ -38,6 +39,7 @@ const TOOLS = path.join(ROOT, 'tools', 'tiled');
 const C = createRequire(import.meta.url)(
     path.join(TOOLS, 'extensions', 'aura-zone', 'aura-convert.js'));
 const MOB_UNSET = C.MOB_UNSET;
+const PROFILE_UNSET = C.PROFILE_UNSET;
 
 function fail(msg) {
     console.error('generate-palette: ' + msg);
@@ -135,6 +137,28 @@ function readMobs() {
     }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// Region profiles (plan-region-primitive.md D12). ⚑ The ONE reason that table
+// is JSON and not TypeScript: the client imports it and this Node script reads
+// it, so the Tiled dropdown and what the client can actually resolve are the
+// same list by construction. A .ts table would have forced a hand-kept enum
+// here — the exact drift this generator's header forbids.
+//
+// ⚑ Authored order, not sorted: profiles.json is a hand-written table and its
+// order is the author's grouping. content.json's ENUM_VALUES is derived from
+// what is emitted here, so the two orderings cannot drift — which matters,
+// because Tiled hands an enum property back as an INDEX into this list.
+//
+// ⚑ '_'-prefixed keys are documentation (the repo's _comment convention),
+// skipped here exactly as Regions.buildProfiles skips them client-side.
+function readProfiles() {
+    const file = path.join(ROOT, 'frontend/src/client-data/profiles.json');
+    if (!existsSync(file)) { fail('profile table not found: ' + path.relative(ROOT, file)); }
+    const table = JSON.parse(readFileSync(file, 'utf8'));
+    const out = Object.keys(table).filter(k => k.charAt(0) !== '_');
+    if (out.length === 0) { fail('parsed zero region profiles from ' + path.relative(ROOT, file)); }
+    return out;
+}
+
 /* ---- emitters ------------------------------------------------------------ */
 
 const xmlEscape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -177,7 +201,7 @@ const KIND_COLOUR = {
     companion: '#ff795548',
 };
 
-function propertyTypes(terrain, props, mobs) {
+function propertyTypes(terrain, props, mobs, profiles) {
     let id = 0;
     const enumType = (name, values) => ({
         id: ++id, name, type: 'enum', storageType: 'string',
@@ -209,11 +233,23 @@ function propertyTypes(terrain, props, mobs) {
         enumType('AuraMobName', [MOB_UNSET].concat(mobs.map(m => m.name))),
         enumType('AuraPatrolMode', ['pingpong', 'loop']),
         enumType('AuraFlipped', ['none', 'horizontal', 'vertical']),
+        // Same sentinel-leads rule as AuraMobName, for the same reason: an
+        // unassigned region would otherwise repaint that ground in whichever
+        // profile happens to lead the table.
+        enumType('AuraProfile', [PROFILE_UNSET].concat(profiles)),
         classType('AuraTerrain', '#ff8bc34a'),
         classType('AuraProp', '#fff44336'),
         classType('AuraCampfire', '#ffff9800'),
         classType('AuraDarkArea', '#ff673ab7'),
         classType('AuraAnchor', '#ff00bcd4'),
+        // ⚑ AuraRegion DOES carry a member where AuraProp deliberately does
+        // not, and the rule is the one C6 settled: a member is safe exactly
+        // when its default is a value the converter maps back to "not
+        // authored". PROFILE_UNSET is that value — it is not a profile name and
+        // the save refuses it — so a Tiled that drops a default-valued property
+        // and a Tiled that keeps it reach the same answer.
+        classType('AuraRegion', '#ffcddc39',
+            [member('profile', 'string', PROFILE_UNSET, 'AuraProfile')]),
     ];
     for (const kind of Object.keys(KIND_COLOUR)) {
         types.push(classType('AuraSpawn' + kind[0].toUpperCase() + kind.slice(1),
@@ -229,7 +265,7 @@ function propertyTypes(terrain, props, mobs) {
 // the extension carries no content at all and is installed once per machine and
 // never again; being JSON means the extension parses it with JSON.parse rather
 // than eval'ing a script it read off disk.
-function contentJson(terrain, props, mobs, types) {
+function contentJson(terrain, props, mobs, profiles, types) {
     const sizes = {};
     props.forEach(p => { sizes[p.type] = {w: p.wUnits, h: p.hUnits}; });
     const kinds = {};
@@ -249,6 +285,10 @@ function contentJson(terrain, props, mobs, types) {
         PROP_SIZE: sizes,
         MOB_KIND: kinds,
         MOB_SPEED: speeds,
+        // ⚑ The profile names WITHOUT the sentinel, which ENUM_VALUES carries
+        // at index 0. The converter checks membership against this: the
+        // placeholder is not a profile, and earns its own message.
+        PROFILE_NAMES: profiles,
     }, null, 2) + '\n';
 }
 
@@ -270,13 +310,14 @@ function patchProject(file, types) {
 const terrain = readTerrainTypes();
 const props = readProps();
 const mobs = readMobs();
+const profiles = readProfiles();
 
-const types = propertyTypes(terrain, props, mobs);
+const types = propertyTypes(terrain, props, mobs, profiles);
 
 mkdirSync(PALETTE, {recursive: true});
 writeFileSync(path.join(PALETTE, 'terrain.tsx'), tileset('aura-terrain', 'AuraTerrain', terrain));
 writeFileSync(path.join(PALETTE, 'props.tsx'), tileset('aura-props', 'AuraProp', props));
-writeFileSync(path.join(PALETTE, 'content.json'), contentJson(terrain, props, mobs, types));
+writeFileSync(path.join(PALETTE, 'content.json'), contentJson(terrain, props, mobs, profiles, types));
 writeFileSync(path.join(TOOLS, 'aura.tiled-project'), patchProject(path.join(TOOLS, 'aura.tiled-project'), types));
 // ⚑ Kept as well as the project copy, and deliberately: project-embedded types
 // apply only while the PROJECT is open. Opening api/zones/world.json on its own
@@ -289,3 +330,4 @@ console.log(`props.tsx          ${props.length} props (${props.map(p => p.type).
 const nEnum = types.filter(t => t.type === 'enum').length;
 console.log(`custom types       ${types.length} (${nEnum} enums + ${types.length - nEnum} classes) → aura.tiled-project + palette/propertytypes.json`);
 console.log(`content.json       ${terrain.length} textures, ${props.length} props, ${mobs.length} mobs ${JSON.stringify(kindCounts)}`);
+console.log(`region profiles    ${profiles.length} (${profiles.join(', ')}) → AuraProfile + AuraRegion`);

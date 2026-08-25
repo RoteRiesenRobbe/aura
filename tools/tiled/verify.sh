@@ -175,6 +175,68 @@ else
     ok "refused, nothing written"
 fi
 
+# ---- 2c. a region survives Tiled's own property handling --------------------
+# ⚑ vitest cannot cover this leg either: the profile is a TYPED enum property,
+# and Tiled hands a typed enum back as an INDEX into the declared values, never
+# as the string (plan-region-primitive.md C2). The pure converter is tested
+# against a hand-built index; only the real binary proves the index Tiled
+# actually returns is the one the palette declared.
+echo
+echo "a zone with regions round-trips"
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+const content = require("./tools/tiled/palette/content.json");
+C.useContent(content);
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+// Every profile the palette offers, so a wrong index lands on a DIFFERENT
+// name rather than accidentally on the right one.
+const regions = content.PROFILE_NAMES.map(function (profile, i) {
+    const x = -60 + i * 12;
+    return {profile: profile, points: [
+        {x: x, y: 0}, {x: x + 8, y: 0}, {x: x + 8, y: 9}, {x: x, y: 9},
+    ]};
+});
+fs.writeFileSync("tools/tiled/.verify/regions.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, regions: regions, anchors: z.anchors,
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/regions.json \
+        "$(native "$ROOT/tools/tiled/.verify/regions-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/regions.json tools/tiled/.verify/regions-out.json; then
+    ok "byte-identical — every profile came back as its own name, not an index"
+else
+    bad "regions did not survive: $(cmp tools/tiled/.verify/regions.json \
+        tools/tiled/.verify/regions-out.json 2>&1 | head -1)"
+fi
+
+echo
+echo "a region naming a profile that does not exist"
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/badprofile.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    // ⚑ zone.go ACCEPTS this (D8) and the client absorbs it (D11), so Tiled is
+    // the only place it can be caught at all.
+    regions: [{profile: "no-such-profile", points: [
+        {x: 0, y: 0}, {x: 8, y: 0}, {x: 8, y: 8},
+    ]}],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/badprofile.json \
+        "$(native "$ROOT/tools/tiled/.verify/badprofile-out.json")" >/dev/null 2>&1; then
+    bad "the save was ACCEPTED — the profile vocabulary is not enforced"
+elif [ -e tools/tiled/.verify/badprofile-out.json ]; then
+    bad "refused, but a file was written anyway"
+else
+    ok "refused, nothing written"
+fi
+
 # ---- 3. the generated palette is in step with api/ --------------------------
 echo
 echo "generated palette matches the content it is generated from"

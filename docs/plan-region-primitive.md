@@ -1,7 +1,17 @@
 # Plan: the region primitive — named areas that carry their own properties
 
-> **Status 2026-08-25: C1 SHIPPED (code-complete, in-game look owed) · C2 next
-> · C3 = the look sitting (D16) · C4 SPECCED AND RULED (D13–D16, §4.9).**
+> **Status 2026-08-25: C1 + C2 + C3 ALL DONE, nothing outstanding on any of
+> them · C4 IS NEXT and is fully specced (§4.9).**
+> ⭐ Regions render in game (PO-confirmed), are drawable in Tiled off a
+> generated `AuraProfile` dropdown (PO-confirmed), an unknown profile is
+> refused at save time with its object id, and **all three zone-format
+> whitelists are pinned** — §5's table has no ❌ row left. C3 ruled the
+> **16-profile set (D17)**, that **every profile ends up textured (D18)**, and
+> that the `Land` blobs are **left alone (D19)**. ⏸ Colour tuning deferred by
+> the PO ("much later") and blocks nothing.
+> ⚑ **Settle D18's fork before C4 spends 16 art picks**: sixteen independent
+> textures, or a new `tint` key.
+>
 > Ground textures are adopted: texture or colour per profile, colour as the
 > fallback under a texture, hard edges, and one sitting deciding the palette
 > and the texture/colour split together. §4.9 is the implementation spec,
@@ -501,17 +511,26 @@ is authoritative (`AuraTiledConvert.test.ts:434`):
 |---|---|---|
 | `backend/pkg/aura/world/zone.go` | hard-fails boot | `DisallowUnknownFields` |
 | `aura-convert.js` `serializeZone` (Tiled) | drops it silently | ✅ **the completeness pin** |
-| `ZoneModel.getZoneAsJSON()` (in-game editor) | drops it silently | ❌ **nothing** |
+| `ZoneModel.getZoneAsJSON()` (in-game editor) | drops it silently | ✅ **since C2** |
 
-⚑ **`plan-release-map.md` §8.2 says "TWO touch points are mandatory" and that
-is now wrong** — the Tiled extension shipped 2026-08-22/23, adding a third.
-Correcting that line is part of C2.
+⭐ **C2 closed the third row** (2026-08-25). The pin now derives the key set
+from BOTH writers over ONE shared fixture, and additionally asserts that the two
+emit the *same* set — agreeing with `zone.go` separately is not enough when both
+land in the same file. Reproduced red first by deleting `regions` from
+`getZoneAsJSON`: it named all three lost keys and pointed at the fix.
+
+⚑ **`plan-release-map.md` said "TWO touch points are mandatory" and that was
+wrong** — the Tiled extension shipped 2026-08-22/23, adding a third. Corrected
+in C2 in **both** places that carried the claim (§8.2 and §6, in different
+words), along with §8.2's "only the Tiled one is guarded".
 
 This is the failure that ate `spawn.level` once already. Adding `Regions` to
-`zone.go` will turn the **tiled C5 completeness pin red** — by design; the pin
+`zone.go` turned the **tiled C5 completeness pin red** — by design; the pin
 scrapes `zone.go`'s `json:` tags and asserts the converter round-trips exactly
-that key set. This plan is its first customer. `ZoneModel` has no such pin, so
-C1 must teach it `regions` and C2 should extend the pin to cover it.
+that key set. This plan was its first customer. C1 taught `ZoneModel`
+`regions`; **C2 brought `ZoneModel` under the pin itself**, so the next field
+cannot be taught to one writer only. ⚑ The pin makes forgetting a touch point
+loud; it does not make one optional.
 
 ## 6. Schema impact
 
@@ -681,6 +700,47 @@ in passing — each would have to be re-opened as the ruling it is.
   chosen before knowing which profiles end up textured is a palette chosen
   twice. C4's *implementation* is still its own execution chunk afterwards.
 
+- **D17 (2026-08-25, PO, the C3 sitting) — the profile set is SIXTEEN: eight
+  families x two.** `Fields`/`Suburbs` · `Forest`/`Swamp` · `Coastal Cliff`/`Coast`
+  · `Magic Forest`/`Dead Magic Forest` · `Ashen Fields`/`Volcano` ·
+  `City`/`Derelict Fortress` · `Desert`/`Wasteland` · `Mountains`/`Ice`. Named in
+  **Title Case with spaces**, matching the shipped `terrain.type` convention
+  ("Dark Green Grass 1") — these names are read by a human in a dropdown.
+  Authored order is the dropdown order, base then variation.
+
+  ⚑ **Names are the only sticky part of this file.** Values are free forever
+  (data, not code, nothing pins them); a rename means fixing every region that
+  names the profile. Proven the same session: renaming the three placeholders
+  turned the save-time check red on the PO's own three drawn regions, by name,
+  with the object index — which is the check working, and is why the cost is
+  worth stating rather than hiding.
+
+  ⭐ **A profile is a MATERIAL, not a PLACE.** Many separate forests share
+  `Forest`. This kills the idea (floated and withdrawn the same session) that a
+  profile name could serve as the quest-addressable identity — see §11.
+
+- **D18 (2026-08-25, PO) — EVERY profile is intended to carry a texture
+  eventually.** So D13's colour-or-texture split stays in the *code* but not in
+  the *content*: the 16 shipped colours are D14's fallback and D11's default,
+  never a deliberate final look. ⚑ This does **not** make the colour path dead
+  code — it is still what paints when a texture fails to load, and still what
+  an unknown profile resolves to.
+
+  ⚑ **The fork this opens, to settle before C4**: the PO's set is 8 families x
+  2, and nearly every variation was described as *"a darker variation of"* its
+  base — which is a **tint** relationship, and D14 ruled colour-under-texture is
+  a fallback, NEVER a tint. Two ways: sixteen independent textures (works
+  today, no design change, chosen for now), or a **new `tint` key** later —
+  which sidesteps D14's actual objection, since that objection was to giving
+  ONE key two meanings, not to tinting as such. ⚑ Note the variations are not
+  uniform anyway (`Ice` is *brighter*, `Coast` is a *variant*), so one tint
+  knob would not cover the set. Deliberately not decided on spec.
+
+- **D19 (2026-08-25, PO) — the `Land` blobs are LEFT ALONE.** L11's re-judgement
+  is answered: "doesn't matter". No re-tint, no deletion. ⚑ Measured correction
+  while closing it: there are **74**, not the 75 L11 claimed (§4.8 said 74; the
+  file says 74).
+
 ## 10. Landmines
 
 - **L1 — `ZoneModel.getZoneAsJSON()` drops what it has never heard of.**
@@ -728,10 +788,11 @@ in passing — each would have to be re-opened as the ruling it is.
   small blobs; at 12 zones × 6 tiles it means staring at a loader while zones
   you are not in download. The active zone's set loads in `startRendering`,
   beside `Regions.loadRegions`.
-- **L11 — the `Land` blobs are already a live problem, not a C4 one.** 75
-  terrain pieces are filled with the exact `LAND_COLOR`; over any region paint
-  they read as flat green patches, and **12 overlap C1's worked example**. See
-  §4.8's corrected note. Owned by the D16 sitting.
+- **L11 — the `Land` blobs.** ✅ **ANSWERED by D19 (2026-08-25): left alone.**
+  **74** terrain pieces (not 75) are filled with the exact `LAND_COLOR`, so over
+  any region paint they read as flat green patches. The D16 sitting looked and
+  ruled it does not matter. Kept as a landmine only so the next person to
+  notice the patches knows it was seen and accepted, not missed.
 
 ## 11. Open questions
 
@@ -765,6 +826,138 @@ in passing — each would have to be re-opened as the ruling it is.
   reference (a pure presentation feature has no reason to guarantee that on its
   own). Nothing else about the design changes either way.
 
+  ⭐ **Sharpened by the C3 sitting (2026-08-25), and one wrong answer ruled
+  out.** The PO asked directly: *does a quest-named region need a unique
+  profile?* **No — and it must not.** That would force a throwaway profile per
+  quest location, inverting what a profile is. D17 settles why: a profile is a
+  **material**, many places share one, so the profile name can never be the
+  identity. An id (or an area name) is therefore genuinely needed once quests
+  want locations — it is only the SHAPE that is still open, and it is a real
+  fork: **is the addressable thing one polygon, or a NAMED AREA that several
+  polygons make up?** A swamp drawn as four overlapping blobs is one place, not
+  four. Picking the wrong one means migrating authored content later.
+  ⚑ Timing is genuinely free: the field is additive, and since C2 all three
+  whitelists are pinned, so adding it later costs exactly what adding it now
+  costs. There is no pre-build argument — only the quest design can answer the
+  fork.
+
 ## 12. Chunk ledgers
 
-*(appended per execution session — none yet)*
+### C2 — the authoring surface ✅ 2026-08-25
+
+**What shipped.** Drawing a region in Tiled is now a normal authoring action:
+the `regions` layer takes a polygon, the Properties panel offers a **generated
+`AuraProfile` dropdown**, and the save refuses a name the client could not
+resolve. Plus the pin work C1 left owed.
+
+- **`generate-palette.mjs` reads `profiles.json`.** `readProfiles()` skips
+  `_`-prefixed documentation keys exactly as `Regions.buildProfiles` does
+  client-side, and emits `enumType('AuraProfile', [PROFILE_UNSET, …])` plus
+  `classType('AuraRegion', …, [member('profile', …)])`. ⭐ **D12 is the whole
+  reason this is four lines**: the profile table is JSON, so the generator can
+  read the same file the client imports. Had it stayed in `Theme.ts`, this
+  chunk would have hand-listed the names in the generator — the exact drift
+  that script's header forbids.
+- **`AuraRegion` carries a member; `AuraProp` still must not.** Same rule C6
+  settled, restated in the generator: a class member is safe exactly when its
+  default is a value the converter maps back to "not authored".
+  `PROFILE_UNSET = '(pick a profile)'` is that value — not a profile name, and
+  refused at save — so a Tiled that drops a default-valued property and a Tiled
+  that keeps it reach the same answer. `blocksMovement` has no such spare
+  value, which is why `AuraProp` is still memberless.
+- **Three save-time messages, not one.** "profile must not be empty", "no
+  profile chosen" and `unknown profile "x" — the profiles are: …` are different
+  mistakes with different fixes; the unknown-name message names the file to edit
+  and the command to re-run. Pinned that none is reported as another.
+- **The unknown-profile check is C2's, and only C2 could have it.** `zone.go`
+  accepts any non-empty name (D8) and the client absorbs a miss (D11), so
+  before the generated enum existed there was no vocabulary anywhere to check
+  against. C1's test asserting an unknown name is *accepted* is inverted here,
+  deliberately, with the reasoning kept in place.
+- **⭐ The completeness pin now covers BOTH writers** (the item C1 deferred).
+  One shared `EVERY_KEY` fixture, both key sets derived from behaviour, and a
+  third assertion the plan did not ask for but the failure mode demands: **the
+  two writers must emit the same key set**, since both land in the same file.
+  Proven red first by deleting `regions` from `getZoneAsJSON` — three tests
+  went red naming `profile, points, regions`.
+- **Two new `verify.sh` legs, 9/9 green against the real binary.** A zone
+  carrying **every** profile the palette offers round-trips byte-identically —
+  which is the only way to prove the enum INDEX Tiled hands back decodes to the
+  right *name* (a wrong index would land on a different profile, not an error).
+  And an unknown profile is refused with nothing written. ⚑ vitest cannot cover
+  either: it drives the pure converter, which never meets Tiled's `MapObject`.
+- **Docs.** `manual-tiled-editor.md` gains a **Regions** section (seven layers
+  now, not six), quick-reference rows and the profiles.json half of §6;
+  `manual-zone-editor.md` gains §5d "carried, not edited here" with the
+  `spawn.level`/`prop.scale` history and the pin that now prevents a third.
+  `plan-release-map.md`'s touch-point count corrected in both places it
+  appeared (§8.2 *and* §6, which said it in different words), along with
+  §8.2's now-false "only the Tiled one is guarded".
+
+**Schema impact: NONE**, at every layer — no migration, no wire field, no table,
+and **not one byte of the zone format changed**: C2 is authoring surface and
+tests over C1's shipped field.
+
+⚑ **Not in this chunk, and not a gap**: the C1 worked-example region was
+reverted out of `world.json` with the playground edits (`993b714a`), so the
+committed world carries **no region** today. Nothing is broken by that — the
+verify legs author their own — but the first thing the D16 sitting will want is
+a region back in the file.
+
+✅ **The one human check PASSED, PO 2026-08-25: "the dropdown renders".**
+A project's custom types do not load headlessly (`tiled.project` is null under
+`--export-map`), so *"the profile dropdown renders in the Properties panel"*
+was the one claim no test could make. It was checked by hand and holds — the
+generated `AuraProfile` enum reaches the Properties panel as a real dropdown.
+**C2 has nothing outstanding.**
+
+**Verified:** vitest **494/494** (27 files, +7 over C1's 487) · `tsc --noEmit` clean ·
+`bash tools/tiled/verify.sh` **9/9** against the real Tiled binary, incl. the
+two new region legs and world.json still byte-identical · palette regenerated
+and idempotent · `go build ./...` + `go test -count=1 ./...` green (untouched
+by this chunk, run to confirm exactly that).
+
+**Next:** **C3 — the look sitting** (D16), which needs the PO in front of the
+running game, not a document.
+
+### C3 — the look sitting (D16) ✅ 2026-08-25, RULED
+
+Held in front of the running game, as D16 required. The PO had already drawn
+three regions into `world.json` and confirmed **"areas render in game as I
+would expect"** — so C1's renderer needed no verdict, and the sitting was purely
+the look decisions. Output is **D17 (the set) · D18 (all textured) · D19 (Land
+blobs left)**; the reasoning for each is in §9 beside the other rulings.
+
+- **`profiles.json` now carries the 16.** Placeholder colours, chosen as a
+  starting palette to be judged in game and tuned in one file. ⚑ Every value is
+  free forever; only the NAMES are sticky (D17).
+- **The rename cost was paid, and demonstrated the check.** The three drawn
+  regions named `sand`/`ash`/`swamp`; C2's save-time check turned them red by
+  name the instant the palette changed under them. Migrated
+  `sand → Desert`, `ash → Ashen Fields`, `swamp → Swamp` **through
+  `serializeZone` itself**, so the file stayed canonical rather than
+  hand-edited. Nothing was lost - the whole `regions` array is still
+  uncommitted work, and the diff is +109/-0.
+- **One test stopped hand-typing a profile.** The save-time validation fixture
+  took `'swamp'` as a literal, which since C2 means *"go red when somebody
+  renames a profile, and look like a converter bug"*. It now derives from
+  `content.PROFILE_NAMES` — the same derive-from-behaviour rule the pin uses.
+- **Incidentally proven**: the 16 include names WITH SPACES ("Coastal Cliff",
+  "Dead Magic Forest"), and `verify.sh`'s region leg round-trips **every**
+  profile through the real Tiled binary, so the enum-INDEX decode survives them.
+
+**Schema impact: NONE.** A content + data change; the only code touched is one
+test fixture.
+
+**Verified:** vitest **494/494** · tsc clean · `verify.sh` **9/9**, world.json
+byte-identical through real Tiled at its new size (264,949 bytes).
+
+⏸ **Colour tuning DEFERRED by PO choice 2026-08-25** ("much later"). The 16
+placeholder colours ship as they are. ⚑ This blocks nothing: under D18 every
+profile is meant to end up textured, so these values are D14's fallback and
+D11's default rather than the shipped look — and tuning them is a one-file
+edit whenever it happens, frontend rebuild only. **C3 has nothing outstanding.**
+
+**Next:** **C4 — ground texture** (§4.9, a complete spec). ⚑ Settle D18's
+tint-vs-sixteen-textures fork first; it is cheap either way but it decides how
+many textures get picked.

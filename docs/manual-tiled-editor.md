@@ -48,7 +48,7 @@ double-click `world.json` in the project's folder list on the left.
 > but you get plain text fields instead of dropdowns. If you prefer that flow,
 > import `tools/tiled/palette/propertytypes.json` once via View ▸ Custom Types.
 
-You should see six object layers, and no tile layers:
+You should see seven object layers, and no tile layers:
 
 | Layer | What it holds | Shape |
 |---|---|---|
@@ -57,6 +57,7 @@ You should see six object layers, and no tile layers:
 | `spawns` | every mob and NPC | point, or a **polyline** if it patrols |
 | `campfires` | bind points / starting spawns | point |
 | `darkAreas` | the unlit circles | ellipse |
+| `regions` | named areas that carry their own look | **polygon** |
 | `anchors` | named positions the content refers to | point |
 
 ## 3. Edit
@@ -216,6 +217,34 @@ comes back to it.
 - ⚑ A speed-0 species (TownCrier, Hermit, the totems and stones) cannot patrol
   at all, and the save says so by name.
 
+### Regions
+
+A region is a **polygon** naming a **profile** — a named bag of presentation
+properties. Today a profile carries the ground colour under that area; music,
+footsteps and atmosphere are later consumers of the same region.
+
+1. Take **Insert Polygon** on the `regions` layer.
+2. Click the outline, right-click to close it.
+3. Pick `profile` in the Properties panel.
+
+- ⚑ **Polygon, not polyline.** A polyline on this layer is refused — an open
+  shape has no inside, so there would be nothing to paint.
+- ⚑ **A fresh region says `(pick a profile)`.** That is the placeholder, not a
+  profile: the save refuses until you choose one, rather than silently painting
+  the ground in whichever profile happens to come first.
+- ⚑ **Layer order is resolution order.** The **last** region containing a point
+  decides — the same "later covers earlier" rule the `terrain` layer follows.
+  A small blob drawn after the zone-sized area paints on top of it.
+- ⚑ A profile only overrides what it *declares*. A blob that sets a colour and
+  nothing else still takes the surrounding region's music once music exists —
+  that is the point of profiles, and why regions may overlap freely.
+- **A profile is not a Tiled thing.** The dropdown is generated from
+  `frontend/src/client-data/profiles.json`; adding a profile means editing that
+  file and re-running the generator (§6). The save refuses a name that is not
+  in it, because the client would silently paint nothing.
+- The in-game zone editor has **no region tool** — it carries regions through
+  untouched, so a region drawn here survives an in-game save.
+
 ### Campfires, dark areas, anchors
 
 - **Campfire**: a point whose **Name** is the campfire id, which must be
@@ -233,7 +262,7 @@ What needs rebuilding depends on what you touched:
 | You changed | What is needed |
 |---|---|
 | `props`, `spawns`, `anchors`, bounds | **backend restart** |
-| `terrain`, `darkAreas` | **frontend rebuild** (the client bundles zone terrain) |
+| `terrain`, `darkAreas`, `regions` | **frontend rebuild** (the client bundles zone terrain) |
 | `campfires` | **both** |
 
 ```bash
@@ -267,9 +296,14 @@ command:
 node tools/tiled/generate-palette.mjs   # then reopen the zone
 ```
 
-No reinstall, no hand-import. The generator reads `api/` and the client's
-`Graphics.ts` — the same sources the game loads — and **fails loudly** rather
-than shipping a gap.
+No reinstall, no hand-import. The generator reads `api/`, the client's
+`Graphics.ts` and `client-data/profiles.json` — the same sources the game loads
+— and **fails loudly** rather than shipping a gap.
+
+⚑ A **region profile** is the same job: add it to
+`frontend/src/client-data/profiles.json`, regenerate, reopen. Until you do, the
+name is not in the dropdown and the save refuses it — deliberately, because a
+profile the client cannot resolve paints nothing and says nothing.
 
 ⛑ **Close the zone before you regenerate, and reopen it after.** If a prop
 type's body changes size, every prop of that type in an already-open document
@@ -311,6 +345,8 @@ after touching anything under `tools/tiled/`.
 | Make it patrol | Insert Polyline on `spawns` — every vertex is a waypoint, the first is also the spawn |
 | Make it wander | `wanderRadius` above 0, and no route |
 | Make it stand still | `wanderRadius` **0** — not `-1`, which means inherit |
+| Paint an area's ground | Insert Polygon on `regions`, then pick `profile` |
+| Add a new profile | edit `frontend/src/client-data/profiles.json`, then regenerate the palette |
 | Use the species defaults | leave the sentinels alone (`-1` / `0` / `pingpong`) |
 | Find the object an error names | Edit ▸ Select Object by Id |
 | Save | Ctrl+S — it writes `api/zones/world.json` in place |

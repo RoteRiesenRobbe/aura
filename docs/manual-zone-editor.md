@@ -255,6 +255,27 @@ What this means in practice:
 Everything about authoring one now lives in
 `docs/manual-content-authoring.md` §1c.
 
+## 5d. Regions — carried, not edited here
+
+⚑ **This editor has no region tool, and that is deliberate**
+(`plan-region-primitive.md` D9). A zone can carry `regions`: polygons naming a
+**profile** that decides the ground colour under them (and, later, footsteps,
+music and atmosphere). They are drawn in **Tiled** — `docs/manual-tiled-editor.md`
+§3 "Regions".
+
+What matters here is the one thing this editor *does* do with them: a region
+**survives the load → Download round-trip untouched**. You will not see it in
+any panel and you cannot move it, but downloading a zone you opened does not
+delete it.
+
+⛑ That is not a nicety, it is the failure this editor has already caused twice.
+Its serializer is a strict whitelist: a field it has never been taught survives
+the load, is dropped on export, and the loss is silent, green and somebody
+else's work — `spawn.level` and `prop.scale` each went that way once. Since
+plan-region-primitive C2 a test pins **all three** zone-format whitelists
+against `zone.go` (the completeness pin in `AuraTiledConvert.test.ts`), so
+`npm test` goes red the next time a new field is only taught to one of them.
+
 ## 6. Choose a zone, or start a new one
 
 A world can have several zones — one file each in `api/zones/`, named by its
@@ -328,6 +349,7 @@ else: the zone editor's **Download** (§7).
 | Move one                         | **Delete**, then click the new spot                |
 | Remove one                       | Click its marker, **Delete**                       |
 | Open a different zone            | **Load zone** dropdown → pick it                   |
+| Paint an area's ground           | not here — Tiled's `regions` layer (§5d)           |
 | Start a fresh zone               | **Load zone** → **＋ New zone**, then set *Zone id* |
 | Paint terrain                    | Terrain mode, click the ground (exports with the zone) |
 | See just the real world          | Tick **"Hide editor markers"**                     |
