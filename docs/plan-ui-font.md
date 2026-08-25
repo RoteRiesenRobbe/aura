@@ -205,6 +205,28 @@ the job is honest.
 
 ## 6. Open questions
 
+> ⭐ **RULED 2026-08-25 (PO, UI-pass Phase 0 session; supersedes the same-day
+> two-tier interim): STONE-AGE IS OUT - one readable neutral sans
+> everywhere.** The path there, for the record: the PO singled out a
+> direction board's value text as *"easy to read - I like it"* (it was the
+> Segoe UI system fallback, which cannot ship - proprietary, Windows-only),
+> reaffirmed knowing that, briefly held a two-tier system (display face on
+> titles, readable sans on values), then ruled *"I want to see the tooltip
+> font everywhere, no stone-age font anymore."* - and **confirmed it on the
+> re-rendered boards**: *"that's better, we go for that one."* The ratified
+> C boards on the
+> Phase 0 canvas (`plan-ui-pass.md` §4) now render EVERYTHING in **Inter**
+> as the shippable Segoe-class stand-in; hierarchy comes from weight
+> (600 labels / 400 values), size and color - no small-caps.
+> **What this settles**: §6 Q2 - the direction is READABILITY, not tone; the
+> shipped `font-variant: small-caps` + `letterSpacing: 2` machinery goes
+> (F5's seven sites). **Still open**: the FAMILY (Inter is the working
+> default; screen the §3 class for umlaut/ß per localization D4) · §6 Q1
+> in-world Pixi text ("everywhere" strongly leans yes, but the boards only
+> showed DOM - confirm nameplates/speech bubbles at implementation, where
+> F1/F2's inline-or-race rule applies) · §6 Q3 the Capture Smallz logo
+> (untouched by this ruling - it is a different face).
+
 1. **In-world text as well, or HUD only?** Nameplates and speech bubbles are
    arguably art direction in a way a quest journal is not. Every card on the
    comparison page changes both at once, so the *World & HUD* scene is where
