@@ -14,6 +14,7 @@
 //   node .claude/skills/verify/c4-region-texture.mjs [label] [url]
 
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { joinAsNewCharacter } from './lib/join.mjs';
@@ -38,12 +39,56 @@ const fail = (n, d = '') => { results.push(['FAIL', n, d]); console.log(`  ❌ $
 const inconclusive = (n, d = '') => { results.push(['INCONCLUSIVE', n, d]); console.log(`  ⚠️  ${n}${d ? ' — ' + d : ''}`); };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-// The three regions drawn into world.json, and the tiles their profiles name.
-const REGIONS = [
-  { profile: 'Swamp', texture: 'pd135', warp: [-5560, 1592] },
-];
+/**
+ * What this zone SHOULD paint, derived from the content rather than typed in.
+ *
+ * ⚑ An earlier draft hardcoded "three regions, warp to the Swamp" and was stale
+ * within a day: the look pass rewrote `world.json` down to one full-map region
+ * and re-pointed half the profiles at different tiles. A harness that encodes
+ * how much content existed the week it was written goes red for the wrong
+ * reason (verify SKILL.md, rule 1) — so every expectation below comes out of
+ * the two files that actually decide it.
+ *
+ * ⚑ Warp targets are BBOX CENTRES, which for a concave polygon can land outside
+ * its own region. That is tolerable only because the warp legs are screenshots
+ * for a human, never assertions; the counted legs read the scene graph.
+ */
+function expectations() {
+  const root = join(outDir, '../../..');
+  const zone = JSON.parse(readFileSync(join(root, 'api/zones/world.json'), 'utf8'));
+  const table = JSON.parse(readFileSync(join(root, 'frontend/src/client-data/profiles.json'), 'utf8'));
+  const regions = (zone.regions || []).map((r) => {
+    const xs = r.points.map(p => p.x), ys = r.points.map(p => p.y);
+    const texture = table[r.profile] && table[r.profile].texture;
+    return {
+      profile: r.profile,
+      // Same rule as buildProfiles: only a well-formed stem counts as a tile.
+      texture: typeof texture === 'string' && /^[A-Za-z0-9_-]+$/.test(texture) ? texture : null,
+      warp: [
+        Math.round(((Math.min(...xs) + Math.max(...xs)) / 2) * 120),
+        Math.round(((Math.min(...ys) + Math.max(...ys)) / 2) * 120),
+      ],
+    };
+  });
+  const textured = regions.filter(r => r.texture);
+  return {
+    regions,
+    textured,
+    tiles: [...new Set(textured.map(r => r.texture))],
+  };
+}
 
 (async () => {
+  const want = expectations();
+  console.log(`\nworld.json draws ${want.regions.length} region(s), `
+    + `${want.textured.length} of them textured, needing ${want.tiles.length} tile(s): `
+    + `${want.tiles.join(', ') || '(none)'}`);
+  if (want.textured.length === 0) {
+    console.log('\n⚠️  No region in this zone names a usable texture — this script '
+      + 'has nothing to measure. Author a `texture` on a profile a region uses.\n');
+    process.exit(0);
+  }
+
   const browser = await chromium.launch({ args: ['--no-sandbox'], env });
   const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   const page = await context.newPage();
@@ -87,10 +132,12 @@ const REGIONS = [
     // --- 1. the zone's tiles were fetched as FILES ------------------------
     // A tile inlined into the bundle (the SVG trap) would produce no request at
     // all, and a tile nobody asked for would mean the zone's set was not loaded.
-    if (requested.length >= 3) {
-      pass('the zone fetched its ground tiles as separate files', `${requested.length} .jpg request(s)`);
+    if (requested.length >= want.tiles.length) {
+      pass('the zone fetched its ground tiles as separate files',
+        `${requested.length} .jpg request(s) for ${want.tiles.length} tile(s)`);
     } else if (requested.length > 0) {
-      inconclusive('fewer .jpg requests than the three regions imply', String(requested.length));
+      inconclusive('fewer .jpg requests than this zone\'s tiles imply',
+        `${requested.length} of ${want.tiles.length}`);
     } else {
       fail('no tile file was ever requested', 'inlined, or the load never ran');
     }
@@ -127,20 +174,35 @@ const REGIONS = [
       } else {
         fail("a texture painted although every tile request was aborted", JSON.stringify(textured));
       }
-    } else if (textured.length >= 3) {
-      pass('the world painted textured region fills', textured.map(t => `${t.label}@${t.width}`).join(', '));
+    } else if (textured.length === want.textured.length) {
+      pass('the world painted a textured fill for every textured region',
+        `${textured.length}/${want.textured.length}: `
+        + textured.map(t => `${t.label}@${t.width}`).join(', '));
     } else if (textured.length > 0) {
-      inconclusive('fewer textured fills than regions drawn', JSON.stringify(textured));
+      // ⚑ MORE fills than the zone file has regions means a STALE `dist`, not a
+      // renderer bug: the client draws the zone data webpack BUNDLED, while
+      // these expectations come off the file on disk. Same trap SKILL.md
+      // records for c2-frost-shield — a content edit is invisible in game until
+      // `npm run build`. Reported, never passed over: a "≥" here would have
+      // gone green with six fills against one region.
+      inconclusive(
+        textured.length > want.textured.length
+          ? 'MORE textured fills than the zone file draws — rebuild frontend/dist'
+          : 'fewer textured fills than this zone\'s textured regions',
+        `${textured.length} painted vs ${want.textured.length} authored`);
     } else {
       fail('every region fill is flat colour', 'the D14 fallback, i.e. the tiles never landed');
     }
 
     // --- 3. a look at the ground itself -----------------------------------
-    for (const r of REGIONS) {
+    // Screenshots for a human, not assertions. Capped at three so a zone that
+    // grows to twenty regions does not turn this into a ten-minute run.
+    for (const r of want.textured.slice(0, 3)) {
       await cmd(`WARP ${r.warp[0]} ${r.warp[1]}`);
       await sleep(22000);   // the camera interpolates slowly across a big jump
-      await page.screenshot({ path: join(outDir, `${label}-world-${r.profile.replace(/ /g, '-')}.png`) });
-      pass(`screenshot of the ${r.profile} region`, `${label}-world-${r.profile.replace(/ /g, '-')}.png`);
+      const shot = `${label}-world-${r.profile.replace(/ /g, '-')}.png`;
+      await page.screenshot({ path: join(outDir, shot) });
+      pass(`screenshot of the ${r.profile} region (${r.texture})`, shot);
     }
 
     // --- 4. MAP PARITY (§4.7/L2) ------------------------------------------
