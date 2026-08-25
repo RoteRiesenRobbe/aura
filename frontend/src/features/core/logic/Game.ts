@@ -20,6 +20,7 @@ import {Camera} from '../../camera/logic/Camera';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import * as Regions from '../../regions/logic/Regions';
+import * as RegionPaint from '../../regions/logic/RegionPaint';
 import {GameState, IGame, IGameLayers} from './IGame';
 import {gameObjectId} from '../../common/logic/Types';
 import {GraphicsConfig} from '../../../client-data/Graphics';
@@ -518,20 +519,25 @@ export class Game implements IGame {
             .rect(-mapWidth / 2, -mapHeight / 2, mapWidth, mapHeight)
             .fill(GraphicsConfig.landColor));
 
-        // Region ground colour, painted over the base fill in AUTHORED ORDER —
-        // the same order the resolution rule reads (D0), so what you see on top
-        // is what a lookup at that point answers. Static Graphics drawn once,
-        // like the fill above: no per-frame cost.
+        // Region ground, painted over the base fill in AUTHORED ORDER — the
+        // same order the resolution rule reads (D0), so what you see on top is
+        // what a lookup at that point answers. Static Graphics drawn once, like
+        // the fill above: no per-frame cost.
         Regions.loadRegions(GroundTextureManager.getZoneData(gameInformation.zoneName)?.regions);
-        Regions.loadedRegions().forEach((region) => {
-            const color = Regions.regionColor(region);
-            // null = the author asked for no paint here, letting the base fill
-            // (or an outer region) show through. Distinct from "no opinion",
-            // which resolves to the default and paints it.
-            if (color === null) { return; }
-            this.layers.terrain.regions.addChild(new Graphics()
-                .poly(region.points)
-                .fill(color));
+        this.paintRegions();
+        // The zone's ground tiles (C4). Loaded HERE and not through Preloading:
+        // the preload gate blocks boot, and by the time a zone is known it has
+        // long since passed (§4.9). Until they land — and forever, if a file is
+        // missing — every region paints its fallback colour (D14), so this is a
+        // repaint of something already correct, never a blank world.
+        RegionPaint.loadZoneTextures(Regions.loadedRegions()).then((landed) => {
+            if (!landed) { return; }
+            this.paintRegions();
+            // ⚑ Map parity is NOT optional (§4.7/L2): the bake below has
+            // already run by now, with the fallback colours. One re-bake — the
+            // path setupTerrain was written for — is what keeps the map from
+            // being a wrong drawing of the world for the rest of the session.
+            this.miniMap?.rebakeTerrain();
         });
 
         // The zone name reaches the map for the same reason it reaches the
@@ -581,6 +587,25 @@ export class Game implements IGame {
         );
         this.play();
         this.state = GameState.RENDERING;
+    }
+
+    /**
+     * (Re)draws the loaded zone's regions into their own layer. Runs twice per
+     * zone at most: once at load with whatever paint is available, and once
+     * more if the zone's ground tiles land afterwards (C4).
+     *
+     * Empties the layer first — it holds nothing else, and the second pass must
+     * replace the first rather than stack a textured polygon on a coloured one.
+     */
+    private paintRegions(): void {
+        const layer = this.layers.terrain.regions;
+        // ⚑ Bare `destroy()`, deliberately: with no options Pixi frees the
+        // Graphics' OWN context (its geometry) and leaves textures alone, which
+        // is exactly right — a tile is shared by every region using that
+        // profile and by the map's bake. Passing `{texture: false}` would read
+        // as the safer call and actually leak the context instead.
+        layer.removeChildren().forEach(child => child.destroy());
+        RegionPaint.paintRegions(layer, Regions.loadedRegions());
     }
 
     private createBackground() {

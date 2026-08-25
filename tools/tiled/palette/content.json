@@ -98,6 +98,25 @@
       "none",
       "horizontal",
       "vertical"
+    ],
+    "AuraProfile": [
+      "(pick a profile)",
+      "Fields",
+      "Suburbs",
+      "Forest",
+      "Swamp",
+      "Coastal Cliff",
+      "Coast",
+      "Magic Forest",
+      "Dead Magic Forest",
+      "Ashen Fields",
+      "Volcano",
+      "City",
+      "Derelict Fortress",
+      "Desert",
+      "Wasteland",
+      "Mountains",
+      "Ice"
     ]
   },
   "TERRAIN_TYPES": [
@@ -265,5 +284,23 @@
     "Wanderer": 0.5,
     "WarbannerTotem": 0,
     "Wolf": 0.7
-  }
+  },
+  "PROFILE_NAMES": [
+    "Fields",
+    "Suburbs",
+    "Forest",
+    "Swamp",
+    "Coastal Cliff",
+    "Coast",
+    "Magic Forest",
+    "Dead Magic Forest",
+    "Ashen Fields",
+    "Volcano",
+    "City",
+    "Derelict Fortress",
+    "Desert",
+    "Wasteland",
+    "Mountains",
+    "Ice"
+  ]
 }

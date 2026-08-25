@@ -1,6 +1,23 @@
 {
-  "_comment": "Region profiles (plan-region-primitive.md D2/D12). A profile is a named bag of CLIENT-SIDE presentation properties a zone region points at by name; the server never reads any of it. This file is the single source of truth: the client imports it, and tools/tiled/generate-palette.mjs reads it to build Tiled's AuraProfile dropdown, so a profile added here is offerable in the editor without anyone maintaining a second list. Colours are ground fill, drawn under the terrain blobs. A profile that omits a property is TRANSPARENT to it (D0): the next containing region answers, and failing that the shipped default. ⚑ These values are [PLACEHOLDER] — C3 is the palette sitting that decides the real set and their colours.",
-  "swamp": { "color": "#2c4028" },
-  "sand": { "color": "#b8a06a" },
-  "ash": { "color": "#4a4a4a" }
+  "_comment": "Region profiles (plan-region-primitive.md D2/D12/C3). A profile is a named bag of CLIENT-SIDE presentation properties a zone region points at by name; the server never reads any of it. This file is the single source of truth: the client imports it, and tools/tiled/generate-palette.mjs reads it to build Tiled's AuraProfile dropdown, so a profile added here is offerable in the editor without anyone maintaining a second list. A profile that omits a property is TRANSPARENT to it (D0): the next containing region answers, and failing that the shipped default.",
+  "_comment_colors": "Colours are ground fill, drawn under the terrain blobs. ⚑ Every value here is [PLACEHOLDER] and safe to change forever - it is data, not code, and no test pins any of it. NAMES are the only mildly sticky part: a region in api/zones/*.json names its profile, so a rename means fixing every region that names it.",
+  "_comment_c3": "The set was ruled 2026-08-25 (C3, the D16 look sitting): 8 families x 2, base + variation, in authored order because that is the order the Tiled dropdown offers. ⭐ EVERY profile is intended to carry a TEXTURE eventually (C3 ruling, D18) - since C4 every one does. ⚑ A profile is a MATERIAL, not a place: many separate forests share `Forest`, which is why a quest-addressable area cannot be a profile name (§11).",
+  "_comment_texture": "C4: `texture` names a seamless tile BY FILE STEM in frontend/src/features/regions/assets/ground (see the README there for provenance and what each pick is); `scale` is texture->world, so 0.35 draws a 750px tile over 262 world px - the SENSITIVE knob (§4.8), tuned per profile by eye. ⚑ D14: `color` under a `texture` is the FALLBACK and NEVER a tint - it is what paints if the file is missing or still loading, which is why every profile keeps one. A texture naming a file that is not there costs that region its tile and nothing else.",
+
+  "Fields":             { "texture": "Grass6", "scale": 0.35, "color": "#66a83c" },
+  "Suburbs":            { "texture": "Grass6", "scale": 0.35, "color": "#4a7c2c" },
+  "Forest":             { "texture": null, "scale": 0.35, "color": "#2d6b33" },
+  "Swamp":              { "texture": "pd161", "scale": 0.35, "color": "#585044" },
+  "Coastal Cliff":      { "texture": "sand", "scale": 0.35, "color": "#9c8f74" },
+  "Coast":              { "texture": "sand", "scale": 0.35, "color": "#dfc78d" },
+  "Magic Forest":       { "texture": "pd184", "scale": 0.35, "color": "#6a52d4" },
+  "Dead Magic Forest":  { "texture": "pd153", "scale": 0.35, "color": "#3b2d78" },
+  "Ashen Fields":       { "texture": "pd163", "scale": 0.35, "color": "#8a2e1c" },
+  "Volcano":            { "texture": "pd163", "scale": 0.35, "color": "#551a10" },
+  "City":               { "texture": "pd141", "scale": 0.35, "color": "#7d7d80" },
+  "Derelict Fortress":  { "texture": "pd143", "scale": 0.35, "color": "#4f4f53" },
+  "Desert":             { "texture": "pd106", "scale": 0.35, "color": "#dd9a4e" },
+  "Wasteland":          { "texture": "pd119", "scale": 0.35, "color": "#9a682f" },
+  "Mountains":          { "texture": "pd196", "scale": 0.35, "color": "#736d66" },
+  "Ice":                { "texture": null, "scale": 0.35, "color": "#dfeaf2" }
 }

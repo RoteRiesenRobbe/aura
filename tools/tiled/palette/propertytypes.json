@@ -135,6 +135,32 @@
     },
     {
       "id": 6,
+      "name": "AuraProfile",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "(pick a profile)",
+        "Fields",
+        "Suburbs",
+        "Forest",
+        "Swamp",
+        "Coastal Cliff",
+        "Coast",
+        "Magic Forest",
+        "Dead Magic Forest",
+        "Ashen Fields",
+        "Volcano",
+        "City",
+        "Derelict Fortress",
+        "Desert",
+        "Wasteland",
+        "Mountains",
+        "Ice"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 7,
       "name": "AuraTerrain",
       "type": "class",
       "color": "#ff8bc34a",
@@ -146,7 +172,7 @@
       "members": []
     },
     {
-      "id": 7,
+      "id": 8,
       "name": "AuraProp",
       "type": "class",
       "color": "#fff44336",
@@ -158,7 +184,7 @@
       "members": []
     },
     {
-      "id": 8,
+      "id": 9,
       "name": "AuraCampfire",
       "type": "class",
       "color": "#ffff9800",
@@ -170,7 +196,7 @@
       "members": []
     },
     {
-      "id": 9,
+      "id": 10,
       "name": "AuraDarkArea",
       "type": "class",
       "color": "#ff673ab7",
@@ -182,7 +208,7 @@
       "members": []
     },
     {
-      "id": 10,
+      "id": 11,
       "name": "AuraAnchor",
       "type": "class",
       "color": "#ff00bcd4",
@@ -194,7 +220,26 @@
       "members": []
     },
     {
-      "id": 11,
+      "id": 12,
+      "name": "AuraRegion",
+      "type": "class",
+      "color": "#ffcddc39",
+      "drawFill": true,
+      "useAs": [
+        "property",
+        "object"
+      ],
+      "members": [
+        {
+          "name": "profile",
+          "type": "string",
+          "propertyType": "AuraProfile",
+          "value": "(pick a profile)"
+        }
+      ]
+    },
+    {
+      "id": 13,
       "name": "AuraSpawnCombat",
       "type": "class",
       "color": "#ff4caf50",
@@ -244,7 +289,7 @@
       ]
     },
     {
-      "id": 12,
+      "id": 14,
       "name": "AuraSpawnTalker",
       "type": "class",
       "color": "#ffe91e63",
@@ -294,7 +339,7 @@
       ]
     },
     {
-      "id": 13,
+      "id": 15,
       "name": "AuraSpawnFixture",
       "type": "class",
       "color": "#ff9e9e9e",
@@ -344,7 +389,7 @@
       ]
     },
     {
-      "id": 14,
+      "id": 16,
       "name": "AuraSpawnCompanion",
       "type": "class",
       "color": "#ff795548",

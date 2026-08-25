@@ -31,6 +31,15 @@ export interface Profile {
     // region". Only reachable for a property where nothing is a sensible
     // answer — silence, once audio lands.
     color?: number | null;
+    // The ground tile this profile paints (C4/D13), named by file stem in
+    // features/regions/assets/ground. Under a texture, `color` is the FALLBACK
+    // and NEVER a tint (D14) — see {@link regionPaintSpec}, which is where that
+    // ruling lives.
+    texture?: string | null;
+    // Tile scale for that texture, the sensitive knob (§4.8): the raw 750 px
+    // tile reads as either ground or wallpaper depending on world scale. Data,
+    // tuned by eye, per profile.
+    scale?: number;
 }
 
 /** What the world looks like today, and what every miss falls back to (D11).
@@ -39,6 +48,12 @@ export interface Profile {
  *  no LESS twin, which is why they live in JSON instead. */
 export const DEFAULT_PROFILE: Required<Profile> = {
     color: LAND_COLOR,
+    // The world before C4: flat land, no tile. A textured default would make
+    // every unpainted corner of every zone depend on an asset load.
+    texture: null,
+    // 1 = the tile at its own pixel size. Only reached by a profile that
+    // declares a texture and omits its scale; every shipped one authors it.
+    scale: 1,
 };
 
 /** `"#2c4028"` → `0x2c4028`. The JSON is written in the notation an artist
@@ -49,6 +64,32 @@ function parseColor(raw: unknown): number | undefined {
         return undefined;
     }
     return parseInt(raw.slice(1), 16);
+}
+
+/** A texture name is a FILE STEM in `features/regions/assets/ground` — the
+ *  loader turns it into a URL by lookup, so anything that is not a plain stem
+ *  cannot name a file and is dropped like an unparseable colour.
+ *
+ *  ⚑ This validates the NOTATION, not the world: whether the file actually
+ *  exists is unknowable here (the asset set is a webpack `require.context`,
+ *  and this module deliberately stays free of both). A stem naming a file that
+ *  is not in the set is caught one layer out, by {@link regionPaintSpec}'s D14
+ *  fallback — which is the same answer the spec asks for (paint the colour),
+ *  reached at the only layer that can know. */
+function parseTextureName(raw: unknown): string | undefined {
+    if (typeof raw !== 'string' || !/^[A-Za-z0-9_-]+$/.test(raw)) {
+        return undefined;
+    }
+    return raw;
+}
+
+/** A tile scale is a finite positive number. `0` would paint a degenerate
+ *  matrix, a negative one mirrors the tile for no reason anyone authored. */
+function parseScale(raw: unknown): number | undefined {
+    if (typeof raw !== 'number' || !isFinite(raw) || raw <= 0) {
+        return undefined;
+    }
+    return raw;
 }
 
 /**
@@ -73,7 +114,7 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
     const out: { [name: string]: Profile } = {};
     Object.keys(raw).forEach((name) => {
         if (name.charAt(0) === '_') { return; }
-        const entry = raw[name] as { color?: unknown };
+        const entry = raw[name] as { color?: unknown, texture?: unknown, scale?: unknown };
         const profile: Profile = {};
         if (entry && 'color' in entry) {
             if (entry.color === null) {
@@ -82,6 +123,18 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
                 const parsed = parseColor(entry.color);
                 if (parsed !== undefined) { profile.color = parsed; }
             }
+        }
+        if (entry && 'texture' in entry) {
+            if (entry.texture === null) {
+                profile.texture = null;
+            } else {
+                const parsed = parseTextureName(entry.texture);
+                if (parsed !== undefined) { profile.texture = parsed; }
+            }
+        }
+        if (entry && 'scale' in entry) {
+            const parsed = parseScale(entry.scale);
+            if (parsed !== undefined) { profile.scale = parsed; }
         }
         out[name] = profile;
     });
@@ -185,24 +238,69 @@ export function loadRegions(defs: RegionDefinition[] | undefined) {
     regions = toRegions(defs);
 }
 
+/** What a region paints, as data — a tile, a flat colour, or nothing.
+ *  Turned into a PixiJS fill by RegionPaint; kept pixi-free here so the D14
+ *  ruling below can be pinned by a unit test. */
+export type RegionPaintSpec =
+    { texture: string, scale: number }
+    | { color: number }
+    | null;
+
 /**
- * The colour a region paints, or `null` for "paint nothing here".
+ * What a region paints (C4), and where **D14** lives: a profile's `color`
+ * under a `texture` is the FALLBACK, never a tint. Texture usable → paint the
+ * texture; texture missing → paint that same profile's colour; neither → the
+ * default (D11), which is the base land fill and therefore invisible rather
+ * than wrong.
  *
- * An unknown profile, or one that declares no colour, falls back to the
- * default (D11) — which is the base land fill, so it is invisible rather than
- * wrong. An authored `null` is the deliberate opposite: the author asking for
- * no region paint at all, letting whatever is underneath show through (D6's
- * base fill, or an outer region). Callers must SKIP a null rather than hand it
- * to `.fill()`.
+ * ⚑ **The fallback is WITHIN ONE PROFILE.** It deliberately does NOT go
+ * through `resolve()`: D0 answers each property independently, so
+ * `resolve('texture') ?? resolve('color')` would happily take the tile from an
+ * outer region and the colour from an inner one — two authors' intent blended
+ * by accident. Per-point consumers (audio) are unaffected: they ask for one
+ * property and take D11's answer.
  *
- * ⚑ Per-region, not per-point: colour is resolved once per polygon at load
- * (§4.3), because the renderer draws each region in its own colour rather than
- * asking a question per pixel.
+ * `isTextureUsable` is what the pure module cannot know: whether the named file
+ * exists AND finished loading. Injected rather than imported, because the asset
+ * set is a webpack `require.context` this module must stay clear of.
+ *
+ * `null` means "paint nothing here" — an authored `color: null`, the author
+ * letting the base fill (D6) or an outer region show through. Callers must SKIP
+ * it rather than hand it to `.fill()`.
+ *
+ * ⚑ Per-region, not per-point (§4.3): the renderer draws each polygon once, it
+ * does not ask a question per pixel.
  */
-export function regionColor(region: Region): number | null {
-    const profile = PROFILES[region.profile];
-    if (profile && 'color' in profile) {
-        return profile.color;
+export function regionPaintSpec(
+    region: Region,
+    isTextureUsable: (name: string) => boolean,
+    profiles: { [name: string]: Profile } = PROFILES,
+): RegionPaintSpec {
+    const profile = profiles[region.profile];
+    const texture = profile && 'texture' in profile ? profile.texture : DEFAULT_PROFILE.texture;
+    if (typeof texture === 'string' && isTextureUsable(texture)) {
+        const scale = profile && 'scale' in profile && profile.scale !== undefined
+            ? profile.scale
+            : DEFAULT_PROFILE.scale;
+        return {texture, scale};
     }
-    return DEFAULT_PROFILE.color;
+    const color = profile && 'color' in profile ? profile.color : DEFAULT_PROFILE.color;
+    return color === null || color === undefined ? null : {color};
+}
+
+/** The texture names the given regions' profiles ask for, deduplicated — what
+ *  the loader has to fetch for this zone, and nothing else (⛔ never every
+ *  zone's set: §4.9's boot-blocking trap). */
+export function neededTextures(
+    inRegions: Region[],
+    profiles: { [name: string]: Profile } = PROFILES,
+): string[] {
+    const seen: { [name: string]: true } = {};
+    inRegions.forEach((region) => {
+        const profile = profiles[region.profile];
+        if (profile && typeof profile.texture === 'string') {
+            seen[profile.texture] = true;
+        }
+    });
+    return Object.keys(seen);
 }
