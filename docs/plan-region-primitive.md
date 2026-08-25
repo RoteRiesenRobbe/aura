@@ -1169,3 +1169,89 @@ edit whenever it happens, frontend rebuild only. **C3 has nothing outstanding.**
 **Next:** **C4 — ground texture** (§4.9, a complete spec). ⚑ Settle D18's
 tint-vs-sixteen-textures fork first; it is cheap either way but it decides how
 many textures get picked.
+
+### C5 — soft borders, the blend band ✅ 2026-08-25, `4937a977`
+
+**What shipped.** A region's paint now ramps to zero across a band at its own
+edge, blending into whatever is beneath (an earlier region, or D6's base
+fill): a blurred-silhouette alpha mask in a low-res RenderTexture, built per
+region at paint time inside the ONE shared draw path, so the world and the
+full-map bake feather identically (§4.7). Executed the same day the spec was
+ruled; the three §4.10 calls landed as **D20** (build now, D15 reopened by PO
+direction, not by a seam observation), **D21** (colour regions feather too,
+**D5 REVERSED**; `blend: 0` keeps a hard edge authorable per profile) and
+**D22** (the authored polygon is the band's MIDDLE - symmetric, no inset,
+chosen for how abutting borders degrade).
+
+- **`blend` is one more optional profile key** (world units) beside
+  `texture`/`scale`; `DEFAULT_PROFILE.blend = 0`, so the feature costs exactly
+  nothing until authored. ⛔ `parseBlend` deliberately does NOT copy
+  `parseScale`'s `<= 0` rejection: **0 is a VALID authored value** - dropping
+  it would leave the key absent and an inner `blend: 0` region inside an outer
+  feathered one would feather anyway. `regionBlend()` is the pure per-region
+  lookup (own profile, never a `resolve()` chain), and `resolve()` itself is
+  untouched: logical membership stays a hard point-in-polygon test, exactly as
+  §4.10's second "get right" demands.
+- **⭐ The one real implementation finding: a masked polygon cannot feather its
+  own boundary outward.** Masked alpha is content × mask, and the content is 0
+  outside the polygon, so the outward half of D22's symmetric ramp multiplies
+  nothing and the edge ends in a 50 %-opacity STEP on the authored line. A
+  feathered region therefore paints a RECT over the mask's footprint and takes
+  its shape from the mask alone; `blend: 0` keeps the exact C4 `poly().fill()`
+  path. Tile phase is unchanged (the fill matrix is texture→local).
+- **Mask RT lifetime is explicit at both sites**, because the shipped destroy
+  discipline pointed the wrong way for them: the callers' bare
+  `child.destroy()` / `texture: false` is right for SHARED tiles and would
+  strand a per-pass mask forever. `paintRegions` returns the RTs it created;
+  `Game.regionMasks` frees the previous pass's on every repaint (the
+  tiles-landed second pass is the leak that would have shipped), and
+  `bakeTerrain` frees its set right after `scratch.destroy`.
+- **The numbers**: 6 mask texels per world unit (3 on mobile, the
+  `fogWidth`/`bakeWidth` halving), texture capped at 2048 with ONE density
+  variable feeding both RT size and blur strength (a capped region gets a
+  coarser band, never a wider one); strength = half the band in texels;
+  footprint margin 1.5 × band (half a band of real outward bleed + the
+  BlurFilter's own 2×strength padding). Shipped Fields mask: 891 × 459 texels
+  over a 17820 × 9180 px footprint.
+- **⭐ §4.10's cost measurement RAN** (`c5-mask-cost.mjs`, kept in the verify
+  suite): at HEAD the one shipped region spans the whole map, so blend 1.5 is
+  the WORST case - a full-screen AlphaMaskPipe pass every frame. Phone-shaped
+  viewport (390×844 @ DPR 3, ratios only): median 266.7 ms masked vs 250.0 ms
+  unmasked, **1.07-1.09x**. Live masks (shape a) stand; the flatten (shape b)
+  is a named follow-up with this script as its re-measure, worth re-running
+  when zones author MANY feathered regions.
+- **Harness**: `c4-region-texture.mjs` gained leg 5 - it derives an interior
+  edge with non-zero blend from `world.json` + `profiles.json`, samples a
+  pixel run across it in the world AND the open map, and classifies transition
+  width; it fails loudly on world-vs-map divergence. ⚑ **INCONCLUSIVE at HEAD
+  by construction**: the one shipped region has no interior edge to sample. It
+  arms itself the moment a second region (or any interior feathered edge)
+  exists - do not read that row as a flake. The band itself was proven at
+  blend 20 by eye in the world AND by decoding the map bake's pixel ramp
+  (~10.8 world units of inward ramp at fit scale = the inward half of a
+  20-unit band), plus a structural in-page check (exactly one masked region
+  Graphics, mask sprite in the scene graph).
+- **Camera-clamp finding**: the client clamps the camera to world bounds, so
+  for a full-map region the outward half of the band is never on screen; the
+  spill-past-the-line question is real only for interior regions.
+
+**Schema impact: NONE** at every layer - no zone-file field, no whitelist, no
+Tiled change, no Go change, no migration.
+
+**Verified:** vitest **515/515** (27 files, +10; ⚑ CLAUDE.md's recorded 494
+was stale - the pre-chunk baseline measured 505) · `tsc --noEmit` clean · prod
+build clean (3 pre-existing size warnings) · `c4-region-texture.mjs` green
+(4 PASS + the designed INCONCLUSIVE) · `c1-world-map.mjs` **12/12** ·
+`go test` untouched (no backend change). Implementation by an Opus 5 agent,
+reviewed line-by-line in-session; harness residue cleaned (10 accounts,
+server stopped first).
+
+⏸ **Open, deliberately**: the look knobs (1.5 width, texel density) are
+placeholders for the look sitting; `Forest`/`Ice` still author no tile; the
+wobble stays out of scope (its own decision, addable inside the same mask
+generation).
+
+**Next:** the look sitting in front of the running game - ⚑ at HEAD the PO
+sees almost nothing (no interior seam exists in shipped content; the only
+visible effect at blend 1.5 is a subtle fade at the world border). Draw a
+second region in Tiled or bump one profile's `blend` to judge the band.
