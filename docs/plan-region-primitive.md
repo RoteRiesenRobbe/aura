@@ -843,7 +843,7 @@ in passing — each would have to be re-opened as the ruling it is.
 
 ## 12. Chunk ledgers
 
-### C2 — the authoring surface ✅ 2026-08-25
+### C2 — the authoring surface ✅ 2026-08-25, `97b27099`
 
 **What shipped.** Drawing a region in Tiled is now a normal authoring action:
 the `regions` layer takes a polygon, the Properties panel offers a **generated
@@ -920,7 +920,7 @@ by this chunk, run to confirm exactly that).
 **Next:** **C3 — the look sitting** (D16), which needs the PO in front of the
 running game, not a document.
 
-### C3 — the look sitting (D16) ✅ 2026-08-25, RULED
+### C3 — the look sitting (D16) ✅ 2026-08-25, RULED, `97b27099`
 
 Held in front of the running game, as D16 required. The PO had already drawn
 three regions into `world.json` and confirmed **"areas render in game as I
