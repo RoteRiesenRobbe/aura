@@ -75,6 +75,9 @@ export class MiniMap {
      *  zone is loaded, and on any zone the client has no bundled data for. */
     private terrain: Sprite = null;
     private terrainLayer: Container = null;
+    /** The zone the terrain above was baked from — kept so {@link rebakeTerrain}
+     *  needs no argument nobody else holds. Empty until setup() runs. */
+    private zoneName = '';
     /** Session-only fog over the terrain — see MapFog's header. */
     private fog: MapFog = null;
     /** Discovered-campfire markers, drawn in BOTH states — see MapCampfires. */
@@ -174,6 +177,7 @@ export class MiniMap {
         this.stage.addChild(this.layerContainers[Layer.CHARACTER]);
         this.setupCampfires(zoneName);
 
+        this.zoneName = zoneName;
         this.setupTerrain(zoneName);
 
         this.updateScaling();
@@ -262,6 +266,23 @@ export class MiniMap {
         if (this.campfires?.update(discovered, home)) {
             this.campfires.draw(this.state, this.scale);
         }
+    }
+
+    /**
+     * Re-bakes the current zone's terrain. The ONE caller is the region ground
+     * tiles landing after the first bake (plan-region-primitive.md C4): the map
+     * would otherwise show the fallback colours for the rest of the session,
+     * which §4.7 calls what it is — a map that is a wrong drawing of the world.
+     *
+     * ⚑ MapTerrain's header warns that a re-bake path re-introduces the cost
+     * that file exists to pay once. This is not that: it is a SECOND one-shot,
+     * at zone load, only when the zone has tiles, and it goes through the exact
+     * destroy-and-rebuild setupTerrain already runs on a second join.
+     */
+    public rebakeTerrain() {
+        if (!this.stage) { return; }   // setup() has not run; nothing to re-bake
+        this.setupTerrain(this.zoneName);
+        this.updateScaling();
     }
 
     /**

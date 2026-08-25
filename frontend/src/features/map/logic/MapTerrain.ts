@@ -29,6 +29,7 @@ import {meter2px} from '../../../client-data/BasicConfig';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {isMobile} from '../../user-interface/logic/Mobile';
 import * as Regions from '../../regions/logic/Regions';
+import {paintRegions} from '../../regions/logic/RegionPaint';
 import {resizeTerrain} from './MapScale';
 
 /**
@@ -79,22 +80,18 @@ export function bakeTerrain(
         .rect(-mapWidth / 2, -mapHeight / 2, mapWidth, mapHeight)
         .fill(GraphicsConfig.landColor));
 
-    // Region ground colour, between the land fill and the pieces — the same
-    // sandwich the world renderer builds (Game.startRendering), because the map
-    // is the same world drawn twice. ⚑ Skipping this does not degrade
-    // gracefully: it produces a map that is a WRONG DRAWING of the world, with
-    // the biome simply absent (L2).
+    // Region ground, between the land fill and the pieces — the same sandwich
+    // the world renderer builds (Game.startRendering), through the same one
+    // function, because the map is the same world drawn twice. ⚑ Skipping this
+    // does not degrade gracefully: it produces a map that is a WRONG DRAWING of
+    // the world, with the region simply absent (L2). ⚑ Which is also why the
+    // ground tiles landing after this bake (C4) trigger exactly one re-bake —
+    // see Game.startRendering.
     //
     // Converted from the zone data this function already holds rather than read
     // out of Regions' loaded state, so the bake can never depend on whether the
     // world renderer got there first.
-    Regions.toRegions(zone.regions).forEach((region) => {
-        const color = Regions.regionColor(region);
-        if (color === null) { return; }   // "paint nothing", same as the world
-        scratch.addChild(new Graphics()
-            .poly(region.points)
-            .fill(color));
-    });
+    paintRegions(scratch, Regions.toRegions(zone.regions));
 
     let unknownTypes = 0;
     (zone.terrain || []).forEach((piece) => {

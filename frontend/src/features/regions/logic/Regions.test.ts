@@ -1,5 +1,13 @@
 import {describe, expect, it} from 'vitest';
-import {buildProfiles, DEFAULT_PROFILE, Profile, Region, regionColor, resolveIn} from './Regions';
+import {
+    buildProfiles,
+    DEFAULT_PROFILE,
+    neededTextures,
+    Profile,
+    Region,
+    regionPaintSpec,
+    resolveIn,
+} from './Regions';
 
 // The resolution rule (D0) and the fallback chain (D11), pinned against a
 // hand-written table so the palette (C3, a taste decision) can change freely
@@ -127,15 +135,113 @@ describe('PROFILES — a malformed authored value cannot break totality (D11)', 
     });
 });
 
-describe('regionColor — what the renderer actually paints', () => {
-    it('returns null for an authored null, so the caller can skip the region', () => {
-        // Proven through buildProfiles rather than the shipped table, so the
-        // C3 palette sitting can change every colour without touching this.
-        const profiles = buildProfiles({hole: {color: null}});
-        expect(profiles.hole.color).toBeNull();
+// The same rule, one chunk later, for C4's two keys (§4.9). A texture name is
+// a FILE STEM, so anything that cannot name a file is dropped exactly like an
+// unparseable colour — and the profile stays transparent to texture rather
+// than declaring one nothing can paint.
+describe('PROFILES — the texture and scale keys (C4)', () => {
+    it('keeps a well-formed texture stem', () => {
+        expect(buildProfiles({swamp: {texture: 'pd185'}}).swamp.texture).toBe('pd185');
     });
 
-    it('falls back to the default colour for an unknown profile', () => {
-        expect(regionColor({profile: 'no-such-profile', points: []})).toBe(DEFAULT_PROFILE.color);
+    it('drops a texture value that cannot name a file', () => {
+        const profiles = buildProfiles({
+            typed: {texture: 42},
+            empty: {texture: ''},
+            pathy: {texture: '../secrets/pd185.jpg'},
+        });
+        expect('texture' in profiles.typed).toBe(false);
+        expect('texture' in profiles.empty).toBe(false);
+        expect('texture' in profiles.pathy).toBe(false);
+    });
+
+    it('keeps an authored null texture, the "no tile here" value', () => {
+        const profiles = buildProfiles({flat: {texture: null}});
+        expect('texture' in profiles.flat).toBe(true);
+        expect(profiles.flat.texture).toBeNull();
+    });
+
+    it('keeps a positive scale and drops every unusable one', () => {
+        const profiles = buildProfiles({
+            good: {scale: 0.35},
+            zero: {scale: 0},
+            negative: {scale: -1},
+            texty: {scale: '0.35'},
+        });
+        expect(profiles.good.scale).toBe(0.35);
+        expect('scale' in profiles.zero).toBe(false);
+        expect('scale' in profiles.negative).toBe(false);
+        expect('scale' in profiles.texty).toBe(false);
+    });
+});
+
+// D14: a profile's colour under a texture is the FALLBACK, never a tint —
+// and the fallback is WITHIN ONE PROFILE.
+describe('regionPaintSpec — what the renderer actually paints (D14)', () => {
+    const PAINT = buildProfiles({
+        tiled: {texture: 'pd185', scale: 0.35, color: '#111111'},
+        unscaled: {texture: 'pd186', color: '#222222'},
+        flat: {color: '#333333'},
+        hole: {color: null},
+    });
+    const usable = (name: string) => name === 'pd185' || name === 'pd186';
+
+    it('paints the texture when it is usable', () => {
+        expect(regionPaintSpec({profile: 'tiled', points: []}, usable, PAINT))
+            .toEqual({texture: 'pd185', scale: 0.35});
+    });
+
+    it('carries NO colour beside a texture — the fallback is not a tint', () => {
+        const spec = regionPaintSpec({profile: 'tiled', points: []}, usable, PAINT);
+        expect('color' in spec).toBe(false);
+    });
+
+    it("falls back to the profile's own colour when the tile is not usable", () => {
+        expect(regionPaintSpec({profile: 'tiled', points: []}, () => false, PAINT))
+            .toEqual({color: 0x111111});
+    });
+
+    it('defaults the scale for a texture authored without one', () => {
+        expect(regionPaintSpec({profile: 'unscaled', points: []}, usable, PAINT))
+            .toEqual({texture: 'pd186', scale: DEFAULT_PROFILE.scale});
+    });
+
+    it('falls back to the DEFAULT colour for an unknown profile', () => {
+        expect(regionPaintSpec({profile: 'no-such-profile', points: []}, usable, PAINT))
+            .toEqual({color: DEFAULT_PROFILE.color});
+    });
+
+    it('returns null for an authored null, so the caller can skip the region', () => {
+        expect(regionPaintSpec({profile: 'hole', points: []}, usable, PAINT)).toBeNull();
+    });
+
+    // ⚑ The trap §4.9 names: `resolve('texture') ?? resolve('color')` would
+    // take the tile from the OUTER region and the colour from the inner one —
+    // two authors' intent blended by accident. A colour-only region inside a
+    // textured one paints flat, full stop.
+    it('never borrows a texture from a region it happens to sit inside', () => {
+        expect(regionPaintSpec({profile: 'flat', points: []}, usable, PAINT))
+            .toEqual({color: 0x333333});
+    });
+});
+
+describe('neededTextures — what the zone has to load, and nothing more', () => {
+    const PAINT = buildProfiles({
+        tiled: {texture: 'pd185'},
+        alsoTiled: {texture: 'pd185'},
+        other: {texture: 'pd186'},
+        flat: {color: '#333333'},
+    });
+
+    it('deduplicates, and ignores flat and unknown profiles', () => {
+        const regions = [
+            square('tiled', 0, 0), square('alsoTiled', 20, 0), square('other', 40, 0),
+            square('flat', 60, 0), square('no-such-profile', 80, 0),
+        ];
+        expect(neededTextures(regions, PAINT).sort()).toEqual(['pd185', 'pd186']);
+    });
+
+    it('asks for nothing when no region is textured', () => {
+        expect(neededTextures([square('flat', 0, 0)], PAINT)).toEqual([]);
     });
 });
