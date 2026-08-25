@@ -502,6 +502,138 @@ throws, nothing is blank — the same posture D11 sets for every other miss.
 built only if the seam reads badly in-game), the minimap (§11's standing
 question), and any per-region texture override (the profile is the unit, D2).
 
+### 4.10 C5 — soft borders, the blend band (designed 2026-08-25)
+
+**Status: DESIGNED, nothing built, three PO calls open** (listed at the end).
+This is §4.8's *"Soft borders, if wanted"* paragraph turned into a chunk. It
+**reopens D15** (which shipped hard edges for C4, deliberately, until the seam
+was looked at in game) and **proposes reversing D5** (which ruled hard edges for
+colour regions). Neither is a technical question; both are taste, and the design
+below is what they are choosing between.
+
+**What it is, in one rule.** A region's own paint ramps to zero across a band at
+its edge, so what is beneath — an earlier region in authored order, or D6's base
+fill — blends through. ⭐ **A region feathers ITS OWN edge and knows nothing
+about its neighbours.** That is the whole economy of this design: a border
+between two regions and a border against bare land are the same code, the
+blend-width owner question (§11) answers itself (the region being drawn owns
+it), and nothing has to compute adjacency — which, for overlapping authored
+polygons, would be a genuine geometry problem.
+
+⭐ **Colour regions come free — that is a fact about the code, not a favour.**
+Since C4 there is ONE draw path (`RegionPaint.paintRegions` → `regionPaint` →
+`Graphics().poly().fill(paint)`), and the ramp lives on the SHAPE's alpha, never
+in the fill. A texture fill and a flat colour feather identically; making the
+band texture-only would cost an extra branch and buy nothing. ⚑ **It is not free
+as a DECISION.** D5 ruled hard edges for colour on the argument that the terrain
+blobs already do the edge treatment, the way `Sand` meets land today. Soft
+colour borders reverse that argument, and the reversal belongs to the PO.
+
+#### The mechanism
+
+Regions are **arbitrary polygons**, which rules out both techniques already
+shipped in this client: `DarknessOverlay`'s cached radial-gradient textures work
+because a dark area is a CIRCLE, and `MapFog`'s stamps are axis-aligned
+rectangles. Neither generalises to a concave 11-vertex blob.
+
+| shape | how the ramp is made | verdict |
+| --- | --- | --- |
+| **blurred silhouette** (recommended) | rasterise the polygon white into a low-res RenderTexture, blur it, use it as that region's alpha mask | works for texture AND colour, no geometry maths, arbitrary polygons |
+| per-edge gradient quads | one `FillGradient` quad per polygon edge, alpha 1 → 0 across the band | nearly free per frame, but **colour only** — Pixi cannot put a gradient and a texture in one fill — and it seams at every corner where two ramps overlap |
+| inset polygon + band ring | offset the polygon inward by the band width, fill the ring with a per-vertex alpha ramp | needs polygon offsetting (self-intersection at reflex vertices) and a custom mesh shader: a dependency and a shader, for a cosmetic band |
+| bake the whole layer once | render every region into one world-space texture | ⛔ impossible: the world is 17280 px wide, and any resolution that fits destroys the C4 tile detail this chunk exists to keep |
+
+**The recommended build, against the installed Pixi 8.4.1:**
+
+1. Per region at zone load: `RenderTexture.create({width, height})` over the
+   region's bounding box at a **low resolution** — the ramp is low-frequency, so
+   this is where the cost goes away. `MapFog` states the same economy for the
+   same reason (1024 texels across a 144-unit world).
+2. Render the polygon in white into it. ⚑ **A fresh RenderTexture's contents are
+   UNDEFINED, not blank** — `MapFog.ts:78-86` documents this trap and clears
+   explicitly with `clearColor: [0,0,0,0]`. Skipping it shows GPU garbage.
+3. `BlurFilter` over that texture. Blur strength ↔ band width: texels =
+   world-unit width × `meter2px` × the texture's resolution.
+4. `regionGraphics.mask = new Sprite(rt)`. ⚑ **The mask sprite must be IN the
+   scene graph** to have a world transform — `MiniMap.setupTerrain` already
+   carries this note for the fog: *"a detached mask silently masks nothing"*.
+
+⚑ **The one real cost question is a MEASUREMENT, not a design call.** Pixi's
+`AlphaMaskPipe` is a `FilterEffect`: a live alpha mask costs a render-target
+switch plus a filter pass **per masked object, per frame**, sized to that
+object's bounds. N regions = N passes. This client is measurably fill-bound
+(`Game.renderResolution()`: ~16 ms fixed + ~204 ms/Mpx on a phone), so N
+full-region passes is exactly the axis that hurts. Two shapes:
+
+- **(a) live masks** — simplest, N passes per frame, cost scaling with how much
+  of the screen the regions cover.
+- **(b) flattened once** — render each masked region into a second RenderTexture
+  at load and draw a plain Sprite thereafter: zero passes per frame, VRAM
+  proportional to region bbox × resolution. ⛔ **`cacheAsTexture` is NOT
+  available** — it postdates the installed 8.4.1, so the flatten is hand-rolled
+  with `renderer.render({target})`, exactly as `MapFog` and `MapTerrain` already
+  do.
+
+Build (a) first because it is smaller, then **measure on a phone-shaped
+viewport** before choosing. The trade genuinely inverts with region count and
+size, and no document can settle it.
+
+#### Three things to get right
+
+- ⚑ **The blur bleeds OUTWARD as well as inward.** A symmetric blur puts the 50 %
+  line ON the authored edge, so a region visually spills half a band past the
+  polygon someone drew in Tiled. Either accept that (softest), or **inset the
+  silhouette by half the band before blurring**, making the authored polygon the
+  region's outer limit. Lean: inset — C2's whole point is that what you draw is
+  what you get.
+- ⚑ **The visual band and LOGICAL membership diverge, on purpose.** `resolve()`
+  (D0) is a hard point-in-polygon test and stays one, so a footstep or a music
+  cue flips at the exact edge while the ground fades across the band. Nobody can
+  hear a half-blended footstep. The alternative — feathering the lookup — would
+  make `resolve()` return a blend rather than a value and break D11's totality,
+  which is the one guarantee everything else rests on.
+- ⚑ **Map parity (§4.7) is not optional, and it is the cheap half.**
+  `bakeTerrain` already renders through a RenderTexture, so masked containers
+  bake correctly and are paid once, at a resolution (2048 across the world) far
+  coarser than any band. ⛔ What must not happen is the world getting bands while
+  the map keeps hard edges — §4.7's "wrong drawing of the world", in a form no
+  single screenshot catches because each looks plausible alone. Extend the C4
+  harness's A/B (`c4-region-texture.mjs`, `AURA_C4_BLOCK_TILES=1`), which exists
+  precisely to make that class of divergence visible.
+
+#### The knob
+
+`blend`, in world units, as one more optional profile key beside `texture` and
+`scale`, with a shipped default. Per **profile**, not per region — D2 makes the
+profile the unit, and a per-region override would be the first thing in this
+design to break that. `0` means hard edges, so D5's world stays expressible per
+profile instead of becoming unreachable. This is what §11 leaned toward, and
+`scale` set the precedent in C4: a look knob is a data edit.
+
+#### Deliberately out of scope
+
+The **wobble** — §4.8's *"optionally wobbled so it does not read as a ruler
+edge"*. A blur alone gives a mathematically clean ramp, and whether that reads
+as natural or as a soft ruler is exactly the judgement to make in front of the
+game, once. Noise displacement is a second decision with its own knob, and it
+can be added inside the same mask generation without touching a line of the rest.
+
+**Schema NONE, no zone-file field, no whitelist, no Tiled change** — same as C4.
+The authored shape does not move; this is one more presentation property.
+
+#### The three calls this chunk needs
+
+1. **Build it at all?** D15 shipped hard edges *until the seam reads badly in
+   game*, and that look has not happened yet — C4's tiles landed the same day.
+   Designing it now is free; building it before looking is the thing D15 refused.
+2. **Colour regions too, reversing D5?** Free in code, a taste reversal in
+   design. Recommended **yes**: with all 16 profiles textured, colour is now the
+   fallback path (D14/D18), and having the fallback change the EDGE TREATMENT as
+   well as the fill would make a missing file look like a different world rather
+   than a flatter one.
+3. **Does the authored polygon mean the OUTER edge of the band, or its middle?**
+   Lean outer, i.e. inset before blurring.
+
 ## 5. The whitelist problem — now THREE, and one is guarded
 
 There are **three parallel whitelists** for the zone format, and only the first
@@ -572,6 +704,16 @@ byte-stability gate (tiled D6) is what proves the round-trip did not re-mint it.
   preload · the CC0 pack + its licence file in the repo. Hard edges (D15);
   no blend bands. Authoring surface is C2's, unchanged.
 
+- **C5 — soft borders, the blend band** (designed 2026-08-25; spec in §4.10;
+  **not scheduled — three PO calls open**). A per-region alpha ramp at the
+  polygon edge, so a region blends into whatever is under it: a blurred
+  silhouette in a low-res RenderTexture used as that region's mask · a `blend`
+  width per profile beside `texture`/`scale`, `0` meaning hard edges · the same
+  masks in the `MapTerrain` bake, because §4.7 does not stop being true for
+  edges · a measurement deciding live masks vs flattening once. ⭐ Covering
+  COLOUR regions as well costs nothing extra — one draw path since C4 — but it
+  **reverses D5**, so it is the PO's call and not a consequence. Reopens D15.
+  The wobble is deliberately not in it. Schema NONE.
 Audio consumers are `plan-region-audio.md`. Atmosphere is release-map's.
 
 ## 8. Test strategy
@@ -794,6 +936,19 @@ in passing — each would have to be re-opened as the ruling it is.
   ruled it does not matter. Kept as a landmine only so the next person to
   notice the patches knows it was seen and accepted, not missed.
 
+- **L12 — an alpha mask is a FILTER PASS, per object, per frame** (C5). Pixi's
+  `AlphaMaskPipe` extends `FilterEffect`, so N masked regions are N
+  render-target switches every frame, each sized to its region's bounds — on a
+  client whose measured frame time is ~204 ms/Mpx on a phone. It is why §4.10
+  makes live-mask-vs-flatten a measurement rather than a preference. ⛔ And
+  `cacheAsTexture` is **not** in the installed 8.4.1: flattening is hand-rolled
+  with `renderer.render({target})`, as `MapFog` and `MapTerrain` already do.
+- **L13 — a fresh `RenderTexture`'s contents are UNDEFINED, not blank.**
+  Documented at `MapFog.ts:78-86` and re-found by every new consumer: clear it
+  explicitly with `clearColor: [0,0,0,0]` or the first frame shows GPU garbage.
+  ⚑ And a mask sprite must be IN the scene graph to have a world transform —
+  a detached mask silently masks nothing (`MiniMap.setupTerrain`).
+
 ## 11. Open questions
 
 - **Do regions belong in the minimap too?** `MiniMap` is a second per-frame GL
@@ -808,11 +963,14 @@ in passing — each would have to be re-opened as the ruling it is.
 - ~~**Textured profiles at all?**~~ **ANSWERED 2026-08-25 — D13/D14.** Adopted:
   texture or colour per profile; `color` under a texture is the fallback, not a
   tint.
-- **If textures get soft borders** (the D5 evidence note): who owns the blend
-  width (global constant, per profile, or per region)? Lean per profile with a
-  shipped default. ⚑ Deliberately still open — **D15 rules hard edges for C4**,
-  so this is only answered if the seam reads badly in-game. Answering it now
-  would be answering it on spec.
+- ~~**If textures get soft borders: who owns the blend width?**~~ **DESIGNED
+  2026-08-25 — §4.10 / C5.** Per profile: `blend` in world units beside
+  `texture` and `scale`, `0` meaning hard edges. It falls out of the design
+  rather than being chosen, because a region feathers its OWN edge and never
+  consults a neighbour. ⚑ Still **unscheduled**: D15 shipped hard edges until
+  the seam reads badly in game, and that look has not happened yet. §4.10 lists
+  the three calls it needs, the sharpest being whether COLOUR regions get bands
+  too — free in code, a reversal of D5 in design.
 - **Which textures, and at what tile scale?** The D16 sitting picks from the
   CC0 pack (§4.8's shortlist by role) and tunes `scale` by eye. ⚑ Scale is the
   knob that decides whether a tile reads as *ground* or as *wallpaper*; it
