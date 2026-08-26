@@ -38,12 +38,25 @@
 // and overscroll are invisible (Theme.LAND_COLOR / Graphics landColor).
 @land-color: rgb(0, 96, 48);
 
+// --- Direction C "Inked Panel" (UI pass C1) ---------------------------------
+// The four ratified tokens of the design language (plan-ui-pass.md §4). Only
+// the ink treatment consumes them so far; the rollout is C6.
+
+@moss:      #10261a; // the panel field
+@ink:       #14100b; // the border's brush edge
+@wood:      #7c4f22; // the inlay line, and later the header strips
+@parchment: #ecdcb8; // glyphs and labels on ink
+
 // --- Panel chrome (moved from HUD.less, C6) ---------------------------------
 
 @panel-bg:           fade(black, 50%);
 @panel-border:       fade(white, 15%);
 @panel-border-radius: 1rem;
-@panel-padding:      1rem 1.5rem;
+// Split so the ink header strip can bleed through the same numbers via
+// negative margins (C1). @panel-padding itself is unchanged.
+@panel-padding-y:    1rem;
+@panel-padding-x:    1.5rem;
+@panel-padding:      @panel-padding-y @panel-padding-x;
 @panel-min-width:    18rem;
 @panel-color:        fade(white, 85%);
 @panel-font-size:    1.7rem;

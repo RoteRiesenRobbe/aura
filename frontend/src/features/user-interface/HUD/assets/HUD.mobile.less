@@ -544,9 +544,34 @@ html.mobile {
 
 		border: none;
 		border-radius: 0;
+		// Also drops the ink chrome's wood-inlay inset ring (UI pass C1).
+		box-shadow: none;
 		background: fade(black, 95%);
 		padding: (@mobile-button + 2 * @mobile-edge) @mobile-edge @mobile-edge @mobile-edge;
 		z-index: (@mobile-menu-z + 2);
+	}
+
+	// The ink header strip (UI pass C1) bleeds via negative margins sized to
+	// the DESKTOP panel padding; against the full-screen padding above they
+	// would misplace the strip, so the phone reverts to the plain divider
+	// header the panel had before C1.
+	#journal > .journalHeader {
+		margin: 0;
+		padding: 0 0 0.5rem;
+		background: none;
+		border-radius: 0;
+		border-bottom: 1px solid @panel-row-divider;
+
+		// With the wood strip gone, the gold/parchment header colors revert
+		// too - the phone keeps its pre-C1 look wholesale.
+		> .journalTitle {
+			color: @panel-title-color;
+			font-weight: normal;
+		}
+
+		> .journalClose {
+			color: @panel-title-color;
+		}
 	}
 
 	// The two journal panes stack instead of sitting side by side — 20rem of

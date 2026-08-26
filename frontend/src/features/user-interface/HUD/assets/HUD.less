@@ -17,6 +17,45 @@
 	font-size: @panel-font-size;
 }
 
+// Direction C "Inked Panel" body chrome (UI pass C1, redone 2026-08-26). The
+// spec is the RENDERED mockup CSS (`.panelC` on the ratified board), not the
+// board prose (PO 2026-08-26: no wiggly forms, no irregular band): a straight
+// 3px ink border with a thin wood ring inset just inside it. The one
+// hand-drawn cue is the corner motif - wider at top-left/bottom-right,
+// tighter at top-right/bottom-left. Rollout onto the rest of the panels is
+// C6; for now only #journal calls it.
+.ink-panel-chrome() {
+	background: fade(@moss, 90%);
+	border: 3px solid @ink;
+	border-radius: 13px 7px 15px 9px;
+	// The wood inlay sits INSIDE the ink line (paints over the background,
+	// under content - a header strip covering it at the top is the mockup's
+	// own rendering), plus the mockup's soft drop shadow.
+	box-shadow: inset 0 0 0 2px fade(@wood, 45%), 0 3px 9px fade(black, 40%);
+	padding: @panel-padding;
+	color: @panel-color;
+	font-size: @panel-font-size;
+}
+
+// The wood header strip (the mockup's `.hdrC`): full-bleed to the ink border,
+// so it negates the panel padding it sits inside - a caller with non-default
+// padding passes its own. The top radii nest inside the panel's 13/7 corners.
+// ⚑ Desktop-sized margins: HUD.mobile.less resets this on its full-screen
+// panels, whose padding is different.
+.ink-panel-header(@pad-y: @panel-padding-y, @pad-x: @panel-padding-x) {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+
+	margin: (-@pad-y) (-@pad-x) 0;
+	padding: 0.8rem @pad-x 0.7rem;
+	// #5f3b18 is the mockup's gradient end - darkened wood, not a fifth token.
+	background: linear-gradient(172deg, @wood, #5f3b18);
+	border-bottom: 2px solid @ink;
+	border-radius: 10px 4px 0 0;
+}
+
 // The header bar (flex row, title left, close control right). Padding stays
 // caller-side: the centred panels use padding-bottom, the full-bleed map the
 // full @panel-padding.
@@ -1106,22 +1145,28 @@
 	display: flex;
 	flex-direction: column;
 
-	.panel-chrome();
+	// The direction-C pilot (UI pass C1). Every other caller stays on
+	// .panel-chrome() until C6 rolls the treatment out.
+	.ink-panel-chrome();
 
 	&.hidden {
 		display: none;
 	}
 
 	> .journalHeader {
-		.panel-header-bar();
-		padding-bottom: 0.5rem;
+		// The direction-C wood strip (UI pass C1); the other headers stay on
+		// .panel-header-bar() until C6.
+		.ink-panel-header();
 
 		> .journalTitle {
 			.panel-title();
+			color: @gold-levelup;
+			font-weight: 600;
 		}
 
 		> .journalClose {
 			.panel-close();
+			color: fade(@parchment, 80%);
 			padding: 0 0.5rem;
 		}
 	}
