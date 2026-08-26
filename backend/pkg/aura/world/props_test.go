@@ -20,8 +20,8 @@ func propFS(files map[string]string) fstest.MapFS {
 
 func TestPropRegistry_LoadsValid(t *testing.T) {
 	fsys := propFS(map[string]string{
-		"rock.json": `{ "name": "Rock", "entityType": "Stone", "body": { "radius": 0.5 } }`,
-		"tree.json": `{ "name": "Tree", "entityType": "RoundTree", "body": { "radius": 1.0 } }`,
+		"rock.json": `{ "name": "Rock", "entityType": "Stone", "sprite": "stone.png", "body": { "radius": 0.5 } }`,
+		"tree.json": `{ "name": "Tree", "entityType": "RoundTree", "sprite": "roundTree.png", "body": { "radius": 1.0 } }`,
 	})
 
 	r, err := PropRegistryFromFS(fsys)
@@ -54,7 +54,7 @@ func TestPropRegistry_RejectsUnknownKey(t *testing.T) {
 
 func TestPropRegistry_RejectsUnknownEntityType(t *testing.T) {
 	fsys := propFS(map[string]string{
-		"rock.json": `{ "name": "Rock", "entityType": "Bolder", "body": { "radius": 0.5 } }`,
+		"rock.json": `{ "name": "Rock", "entityType": "Bolder", "sprite": "stone.png", "body": { "radius": 0.5 } }`,
 	})
 
 	_, err := PropRegistryFromFS(fsys)
@@ -62,11 +62,21 @@ func TestPropRegistry_RejectsUnknownEntityType(t *testing.T) {
 	assert.Contains(t, err.Error(), "Bolder")
 }
 
+func TestPropRegistry_RejectsMissingSprite(t *testing.T) {
+	fsys := propFS(map[string]string{
+		"rock.json": `{ "name": "Rock", "entityType": "Stone", "body": { "radius": 0.5 } }`,
+	})
+
+	_, err := PropRegistryFromFS(fsys)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "sprite")
+}
+
 func TestPropRegistry_RejectsNonPositiveRadius(t *testing.T) {
 	for _, doc := range []string{
-		`{ "name": "Rock", "entityType": "Stone", "body": { "radius": 0 } }`,
-		`{ "name": "Rock", "entityType": "Stone", "body": { "radius": -1 } }`,
-		`{ "name": "Rock", "entityType": "Stone" }`,
+		`{ "name": "Rock", "entityType": "Stone", "sprite": "stone.png", "body": { "radius": 0 } }`,
+		`{ "name": "Rock", "entityType": "Stone", "sprite": "stone.png", "body": { "radius": -1 } }`,
+		`{ "name": "Rock", "entityType": "Stone", "sprite": "stone.png" }`,
 	} {
 		_, err := PropRegistryFromFS(propFS(map[string]string{"rock.json": doc}))
 		require.Error(t, err)
@@ -76,7 +86,7 @@ func TestPropRegistry_RejectsNonPositiveRadius(t *testing.T) {
 
 func TestPropRegistry_LoadsRectBody(t *testing.T) {
 	fsys := propFS(map[string]string{
-		"house.json": `{ "name": "House", "entityType": "Stone", "body": { "width": 4, "height": 3 } }`,
+		"house.json": `{ "name": "House", "entityType": "Stone", "sprite": "stone.png", "body": { "width": 4, "height": 3 } }`,
 	})
 
 	r, err := PropRegistryFromFS(fsys)
@@ -92,7 +102,7 @@ func TestPropRegistry_LoadsRectBody(t *testing.T) {
 
 func TestPropRegistry_CircleBodyIsNotRect(t *testing.T) {
 	fsys := propFS(map[string]string{
-		"rock.json": `{ "name": "Rock", "entityType": "Stone", "body": { "radius": 0.5 } }`,
+		"rock.json": `{ "name": "Rock", "entityType": "Stone", "sprite": "stone.png", "body": { "radius": 0.5 } }`,
 	})
 
 	r, err := PropRegistryFromFS(fsys)
@@ -105,12 +115,12 @@ func TestPropRegistry_CircleBodyIsNotRect(t *testing.T) {
 
 func TestPropRegistry_RejectsInvalidRectBodies(t *testing.T) {
 	for name, doc := range map[string]string{
-		"radius and rect":  `{ "name": "House", "entityType": "Stone", "body": { "radius": 1, "width": 4, "height": 3 } }`,
-		"width only":       `{ "name": "House", "entityType": "Stone", "body": { "width": 4 } }`,
-		"height only":      `{ "name": "House", "entityType": "Stone", "body": { "height": 3 } }`,
-		"negative width":   `{ "name": "House", "entityType": "Stone", "body": { "width": -4, "height": 3 } }`,
-		"zero height":      `{ "name": "House", "entityType": "Stone", "body": { "width": 4, "height": 0 } }`,
-		"radius and width": `{ "name": "House", "entityType": "Stone", "body": { "radius": 1, "width": 4 } }`,
+		"radius and rect":  `{ "name": "House", "entityType": "Stone", "sprite": "stone.png", "body": { "radius": 1, "width": 4, "height": 3 } }`,
+		"width only":       `{ "name": "House", "entityType": "Stone", "sprite": "stone.png", "body": { "width": 4 } }`,
+		"height only":      `{ "name": "House", "entityType": "Stone", "sprite": "stone.png", "body": { "height": 3 } }`,
+		"negative width":   `{ "name": "House", "entityType": "Stone", "sprite": "stone.png", "body": { "width": -4, "height": 3 } }`,
+		"zero height":      `{ "name": "House", "entityType": "Stone", "sprite": "stone.png", "body": { "width": 4, "height": 0 } }`,
+		"radius and width": `{ "name": "House", "entityType": "Stone", "sprite": "stone.png", "body": { "radius": 1, "width": 4 } }`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			_, err := PropRegistryFromFS(propFS(map[string]string{"house.json": doc}))
@@ -131,8 +141,8 @@ func TestPropRegistry_RejectsMissingName(t *testing.T) {
 
 func TestPropRegistry_RejectsDuplicateName(t *testing.T) {
 	fsys := propFS(map[string]string{
-		"rock.json":  `{ "name": "Rock", "entityType": "Stone", "body": { "radius": 0.5 } }`,
-		"rock2.json": `{ "name": "Rock", "entityType": "RoundTree", "body": { "radius": 1.0 } }`,
+		"rock.json":  `{ "name": "Rock", "entityType": "Stone", "sprite": "stone.png", "body": { "radius": 0.5 } }`,
+		"rock2.json": `{ "name": "Rock", "entityType": "RoundTree", "sprite": "roundTree.png", "body": { "radius": 1.0 } }`,
 	})
 
 	_, err := PropRegistryFromFS(fsys)

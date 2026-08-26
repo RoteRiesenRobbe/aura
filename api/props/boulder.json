@@ -1,5 +1,6 @@
 {
   "name": "Boulder",
   "entityType": "Stone",
+  "sprite": "stone.png",
   "body": { "radius": 1.605, "collisionFactor": 0.934579 }
 }

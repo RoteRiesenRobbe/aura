@@ -83,7 +83,10 @@ enum EntityType : ushort {
   // on a physics value, the "role inferred from an incidental number" defect
   // chunk 2 of the actor model spent itself removing. It also leaves room for
   // real Camp art later with no second wire change.
-  Camp = 75
+  Camp = 75,
+  // Decorative graveyard prop (content: tombstone). Circle body, blocks
+  // movement like Rock/Boulder; no gameplay behaviour of its own.
+  Tombstone = 76
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

@@ -161,9 +161,15 @@ func PropRegistryFromFS(fileSystem fs.FS) (PropRegistry, error) {
 
 // propDefinitionDoc is the JSON shape; EntityType is a name resolved against
 // the FlatBuffers enum so typos fail at boot rather than render nothing.
+//
+// Sprite names the art file (frontend/src/features/game-objects/assets/resources/)
+// the client and the Tiled palette generator resolve directly — it is parsed
+// here only to fail boot fast on a missing value; nothing server-side reads
+// it, so it does not appear on the exported PropDefinition.
 type propDefinitionDoc struct {
 	Name       string   `json:"name"`
 	EntityType string   `json:"entityType"`
+	Sprite     string   `json:"sprite"`
 	Body       PropBody `json:"body"`
 }
 
@@ -177,6 +183,9 @@ func parsePropDefinition(data []byte) (*PropDefinition, error) {
 	}
 	if strings.TrimSpace(doc.Name) == "" {
 		return nil, fmt.Errorf("name must not be empty")
+	}
+	if strings.TrimSpace(doc.Sprite) == "" {
+		return nil, fmt.Errorf("sprite must not be empty")
 	}
 	entityType, ok := AuraApi.EnumValuesEntityType[doc.EntityType]
 	if !ok {

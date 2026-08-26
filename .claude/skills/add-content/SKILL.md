@@ -18,13 +18,22 @@ the bottom. Trust the code over the manual if a path has drifted.
 
 ## Silent-break landmines (the stuff the manual warns about, collected)
 
-- **New art = the 5-file wire path, in order:** append the enum entry at the
-  **END** of `api/schema/server.fbs` `EntityType` → `cd api/schema && ./make.sh`
-  (regens Go **and** TS) → SVG → a render class → **a `gameObjectClasses` entry
-  for the new enum key** (`GameStateMessage.ts`; the map is an enum-keyed
-  `Record`, so a missing entry is a **compile error**, not a silent desync —
-  `npm run typecheck` catches it). Reused art via an `entityType` override
-  needs **none** of this.
+- **New mob art = the 5-file wire path, in order:** append the enum entry at
+  the **END** of `api/schema/server.fbs` `EntityType` → `cd api/schema &&
+  ./make.sh` (regens Go **and** TS) → SVG → a render class → **a
+  `gameObjectClasses` entry for the new enum key** (`GameStateMessage.ts`; the
+  map is an enum-keyed `Record`, so a missing entry is a **compile error**, not
+  a silent desync — `npm run typecheck` catches it). Reused art via an
+  `entityType` override needs **none** of this.
+- **A prop with no special behavior skips the render-class step entirely**
+  (`Props.ts`'s generic `SimpleProp`, `docs/manual-content-authoring.md` §1b):
+  name the art file in the prop's own `sprite` JSON field, and — for genuinely
+  new art — enum append + regen + **one** `gameObjectClasses` line pointing at
+  `Props.genericPropClasses.<EntityType>`. Reusing an existing entityType is
+  pure JSON, no frontend touch at all. A prop needing real behavior (decal,
+  custom rotation policy, anything stateful) still gets a hand-written
+  `Resources.ts` class, excluded from the generic path via `Props.ts`'s
+  `BESPOKE_ENTITY_TYPES` set.
 - **A new frontend layer is TWO edits in `core/logic/Game.ts`** —
   `createNamedContainer(...)` **and** `cameraGroup.addChild(...)`. Miss the
   second and the sprite renders off-stage (invisible but functional). Reusing a
@@ -41,6 +50,12 @@ the bottom. Trust the code over the manual if a path has drifted.
   `smash`). The `"*"` wildcard does not opt in.
 - **`milestone-unlocks.json` is embedded** → needs a **rebuild even with
   `-content`**. Plain `api/` JSON does not.
+- **A new `api/props/*.json` file needs the Tiled palette regenerated too**,
+  separately from the game-side wiring above: `node
+  tools/tiled/generate-palette.mjs` then `bash tools/tiled/verify.sh`
+  (`docs/manual-tiled-editor.md` §6). It reads the prop's own `sprite` field —
+  no separate map to maintain any more, but a missing/empty `sprite` hard-fails
+  at server boot (`world/props.go`), before this script would ever see it.
 
 ## Registry pins — the thing that leaves the suite RED at HEAD
 

@@ -410,20 +410,6 @@ export const GraphicsConfig = {
         },
     },
 
-    // Static zone props with dedicated art (content pass C1). Rect props are
-    // sized from the wire radius (= max half-extent) — the SVG aspect must
-    // match the prop body in api/props/.
-    props: {
-        house: {
-            file: require('../features/game-objects/assets/resources/house.svg'),
-            maxSize: <number> 480,
-        },
-        gateWall: {
-            file: require('../features/game-objects/assets/resources/gateWall.svg'),
-            maxSize: <number> 288,
-        },
-    },
-
     // Player corpse (chunk 4): gravestone placeholder at the deathspot.
     corpse: {
         file: require('../features/game-objects/assets/corpse.svg'),

@@ -300,6 +300,13 @@ No reinstall, no hand-import. The generator reads `api/`, the client's
 `Graphics.ts` and `client-data/profiles.json` — the same sources the game loads
 — and **fails loudly** rather than shipping a gap.
 
+⚑ **This also runs automatically** as a `prebuild`/`pretest` npm hook
+(`frontend/package.json`), so `npm run build` and `npm test` regenerate the
+palette before doing anything else — a stale palette can't survive a normal
+frontend build. It does NOT run `tools/tiled/verify.sh`'s full round-trip
+(that needs the real Tiled binary installed and stays a manual step); it only
+guarantees the generated files are never behind what `api/` currently says.
+
 ⚑ A **region profile** is the same job: add it to
 `frontend/src/client-data/profiles.json`, regenerate, reopen. Until you do, the
 name is not in the dropdown and the save refuses it — deliberately, because a

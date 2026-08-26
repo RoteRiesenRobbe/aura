@@ -1,6 +1,7 @@
 {
   "name": "GateWall",
   "entityType": "GateWall",
+  "sprite": "gateWall.svg",
   "body": {
     "width": 2.4,
     "height": 2.4

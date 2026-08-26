@@ -3,8 +3,10 @@
   "version": "0.0.1",
   "description": "Frontend for the Aura game",
   "scripts": {
+    "prebuild": "node ../tools/tiled/generate-palette.mjs",
     "build": "webpack --config webpack.prod.js",
     "typecheck": "tsc --noEmit",
+    "pretest": "node ../tools/tiled/generate-palette.mjs",
     "test": "vitest run",
     "start": "webpack serve --config webpack.dev.js",
     "analyze": "webpack --config webpack.analysis.js",
