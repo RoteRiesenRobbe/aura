@@ -9,8 +9,8 @@
 > three PO rulings) and §2's boot-to-game surface inventory. The 2026-08-26
 > session added §5: **C1 (the ink chrome) is detailed there and was executed
 > the same session - then REDONE that day after the PO's look rejected the
-> first build's wiggly band (§4 CORRECTION block, §6 ledger); the C2+ order
-> is PROPOSED, not PO-ratified.**
+> first build's wiggly band (§4 CORRECTION block, §6 ledger). The C2+ order
+> was RATIFIED 2026-08-26 at the C2 session (choice prompt).**
 > The PO's font investigation (`plan-ui-font.md`) is still running (PO-owned;
 > design work does not block on it, ruling R3).
 
@@ -121,6 +121,15 @@ different panel structures. The equip/spend interactions the harnesses drive
 the scripts that use the spellbook as a fixture break in a body
 (`chunk2-follower`, `r1-focus-cost`, `c1-front-stone`, …) - budget the
 harness sweep into the chunk.
+
+### Quest-tracker consolidation (PO 2026-08-26, via `feedback.md`)
+
+The right-side tracker (M Map / J Journal buttons + per-quest entries) should
+read as ONE piece of the journal, not a stack of same-looking individual
+boxes: one panel that holds the journal header and all tracked quests, grows
+with the quest count, and scrolls when it runs out of room. Today every quest
+row is its own bordered box. Lands with **C7** (the journal restyle) - it is
+tracker structure + chrome, and C7 already owns the journal family's look.
 
 ### Layering & exclusivity policy (PO 2026-08-25, via `feedback.md`)
 
@@ -367,8 +376,8 @@ Rough dependency order; the chunking session owns the real one:
 
 ## 5. Phase 1 - the chunk plan (session 2026-08-26)
 
-### Proposed chunk order (⚑ PROPOSED, not PO-ratified - only C1 was
-### PO-named in advance; the PO may reorder C2+ at any session touch)
+### Chunk order (⭐ RATIFIED as proposed, PO 2026-08-26, choice prompt at
+### the C2 session; the PO may still reorder at any session touch)
 
 Derived from §4 Phase 2's dependency shape plus the two §2 sequencing rules
 (structure before chrome; icons before the icon-only bar):
@@ -378,6 +387,7 @@ Derived from §4 Phase 2's dependency shape plus the two §2 sequencing rules
 - **C2 - the layering & exclusivity policy** (§2): the matrix designed once,
   at the FRONT of the panel group so every later panel chunk executes
   against it; re-rules or names the four harness-pinned exceptions.
+  (Detailed + ruled below, 2026-08-26.)
 - **C3 - spellbook structural rework** (§2): openable/pagination/categories,
   tags separable; structure before chrome; harness sweep budgeted.
 - **C4 - skill icons, shipped-ability subset** (§2 item 1 pulled forward):
@@ -390,7 +400,9 @@ Derived from §4 Phase 2's dependency shape plus the two §2 sequencing rules
   one-off panels (tooltip, `#confirmRow`) onto the C1 treatment; the C1
   header strip onto every open-state UI; resource/XP bars ink-outlined;
   minimap chrome.
-- **C7 - dialogue + journal restyle** (round-9 item 2's non-font half).
+- **C7 - dialogue + journal restyle** (round-9 item 2's non-font half),
+  incl. the §2 quest-tracker consolidation (one tracker panel, not
+  per-quest boxes; PO 2026-08-26).
 - **C8 - tooltip maintenance debt** (the three §2 shapes).
 - **C9 - mobile** (☰-sheet nag, the two "J Journal" nodes, marker sizing,
   `MOBILE_MAX_RESOLUTION` if perf asks).
@@ -443,7 +455,130 @@ Scope as redone, all in `frontend/`:
 the `chunkC3-journal` harness · desktop + mobile screenshots. **Schema
 NONE** (pure client CSS).
 
+### C2 - the layering & exclusivity policy (detailed + ruled 2026-08-26)
+
+**Deliverable:** the ruled open-combination matrix (recorded here, every
+later panel chunk executes against it) plus ONE tiny central exclusivity
+registry that enforces it, replacing today's ad-hoc cross-module close
+calls. Behavior only: no chrome, no z-index changes (the `variables.less`
+scale stays; `c1-world-map` check 9 - the map covers every HUD surface -
+must stay green untouched). **Schema NONE** (pure client).
+
+**Rulings (PO 2026-08-26, choice prompts):**
+
+- **D1 - FULL MUTUAL EXCLUSION.** Journal, Help, Conversation, Settings and
+  the Spellbook (once C3 makes it openable) form one exclusive family:
+  opening any one closes the others. The mobile ☰ sheet joined as a FULL
+  family member: its old one-sheet rule (PO 2026-08-02, journal/help only)
+  is subsumed, and two cross-closes are NEW under D1 - opening the sheet
+  now also closes settings (and vice versa) and leaves an active
+  conversation. ⚑ Both are consequences of D1, not separately ratified;
+  the sheet↔conversation direction (opening the menu sends Leave to the
+  NPC) is the game-feel question to confirm at the PO look, and neither
+  new cross-close has a harness leg yet (`c2-layering` leg D covers
+  sheet↔journal/help). If the PO narrows, the change is a filter in
+  `notifyOpened`; if confirmed, the legs get added.
+- **D2 - Escape stays the BLANKET close-all** (no stack pop; with D1 at
+  most one family panel is open anyway). **Settings joins**: it gains an
+  Escape close it never had and enters the family. Its forced close on
+  entering the world (`BackendStateChangedEvent` → PLAYING) stays.
+- **D3 - the no-transparency rule's tooltip application is DEFERRED to
+  C6.** The rule stands (a panel in a stacking position gets a fully
+  opaque body); the tooltip - the only real stacking survivor under D1 -
+  keeps its translucency until its C6 restyle.
+- **D4 - the §5 chunk order C2-C11 is RATIFIED as proposed.**
+
+**The matrix:**
+
+| Surface | Rule |
+| --- | --- |
+| Journal · Help · Conversation · Settings · Spellbook (from C3) · ☰ sheet | ONE exclusive family - at most one open; opening one closes the rest |
+| World map | Covers EVERYTHING, closes nothing - the named exception (`c1-world-map` pin) |
+| Tooltip | Transient hover overlay, outside the matrix; opacity rule lands at C6 |
+| Chat / dev console | Unchanged (they suppress Escape while open; not panels) |
+| Pre-game screens, death overlay, registration nag | Unchanged, outside the matrix |
+
+**Named consequences, ruled on purpose (not defects):**
+
+- Opening journal/help/settings mid-dialogue sends Leave to the NPC, and
+  talking to an NPC closes whatever family panel is open.
+- A QuestTracker row click (`Journal.openQuest()`) mid-conversation now
+  leaves the NPC too.
+- ⚑ The conversation's close is SERVER-CONFIRMED (`leave()` waits for the
+  tree to drop): a both-visible window of roughly a tick plus RTT exists
+  and is ACCEPTED. Harness assertions must poll for eventual close - an
+  instant-close assert is a flake by construction.
+- ⚑ The conversation's exclusivity trigger on OPEN is the `render()`
+  closed→open transition (the panel is server-driven; E is not the event).
+- Pre-game surfaces are untouched by the Escape change: the blanket
+  handler attaches in the `Controls` constructor, which exists only
+  in-world (built on join, removed on teardown).
+
+**Implementation shape (all `frontend/`):**
+
+1. A tiny registry module (e.g. `user-interface/logic/PanelExclusivity.ts`):
+   `register(id, closeFn)` + `notifyOpened(id)` closes every other
+   registrant. The registry is the seam - panel modules must NOT grow new
+   cross-imports of each other. TDD it first (vitest, fake registrants).
+2. Wire the registrants: Journal (`open`/`toggle`/`openQuest`), Help,
+   Conversation (the render transition), `GameSettingsUI.show()`, and
+   `MobileMenu.setOpen(true)` - the sheet's direct `Journal.close()`/
+   `Help.close()` calls move into the registry.
+3. Escape: add `GameSettingsUI.hide()` to the `Controls.ts` blanket list.
+4. ⛔ The spellbook is in the MATRIX but not in C2's enforcement - it is
+   always-on at HEAD and registers at C3. Do not make it closable now.
+
+**Harness plan (the §2 "never left red" rule):**
+
+- `chunkC3-journal.mjs` is a REWRITE, not a re-run: it deliberately pins
+  journal + conversation open together (the exact combination D1 outlaws).
+- `chunk3b-ii-conversation.mjs`: record its pre-existing 28/34 baseline
+  BEFORE the change, compare after - do not chase its known reds.
+- `c1-world-map.mjs` must stay green untouched.
+- A new `c2-layering.mjs` asserts the matrix cells (polling for the
+  conversation's eventual close) and the sheet's unchanged one-sheet rule.
+
+**Verification tail:** `npm test` · `npm run typecheck` · `npm run build` ·
+the four harnesses above · a mobile probe/screenshot (the sheet's
+exclusivity is rerouted through the registry).
+
 ## 6. Chunk ledger
+
+### C2 - the layering & exclusivity policy ✅ 2026-08-26 `a284ff00`
+
+Rulings D1-D4 and the full spec live in the §5 C2 section (PO choice
+prompts, same session). Shipped, all `frontend/` + harness, built by an
+Opus 5 agent and reviewed line-by-line:
+
+- **`PanelExclusivity.ts`** (~20 lines): `register(id, closeFn)` +
+  `notifyOpened(id)` closes every other registrant; the `PanelId` union
+  makes a typo'd id a compile error (spellbook joins the union at C3). The
+  registry is the only copy of the matrix - MobileMenu's direct
+  `Journal.close()`/`Help.close()` calls and cross-imports are gone. TDD'd
+  red-first (6 vitest specs, fake registrants).
+- Wired: Journal (`toggle`/`openQuest`), Help, Conversation (the
+  server-driven `render()` closed→open transition; close is `leave()`),
+  Settings (`show()` notifies; `hide()` gained an already-shut guard so
+  `resetFocus()` stops firing on every blanket call), MobileMenu.
+  `GameSettingsUI.hide()` joined the `Controls.ts` blanket Escape list -
+  in-world only (the handler attaches in the `Controls` constructor).
+- ⚑ **The ☰ sheet is a FULL family member** - broader than the 2026-08-02
+  one-sheet rule: opening the sheet now also closes settings (and vice
+  versa) and leaves an active conversation. Consequences of D1, flagged at
+  the PO look ("works"); ⚑ those two cross-closes have no harness legs yet
+  (`c2-layering` leg D covers sheet↔journal/help) - narrow = a filter in
+  `notifyOpened`, confirm = add the legs.
+- ⚑ Registered close functions MUST be no-ops when already shut (they run
+  on EVERY family open); all five are.
+
+Verified: vitest **521/521** (515 + 6) · tsc · prod build · `c1-world-map`
+**12/12** untouched · `chunkC3-journal` REWRITTEN (it pinned the outlawed
+journal+conversation pair) - green + a new D1 leg · `chunk3b-ii-conversation`
+**28/34 before AND after**, the six reds byte-identical to the pre-change
+baseline (all pre-existing) · new `c2-layering` **11/11** (polls the
+conversation close per the accepted round-trip window) · `mobile-layout`
+unchanged. ⭐ **PO clicked through in-game same day: "works".** **Schema
+NONE.**
 
 ### C1 - the ink chrome ✅ 2026-08-26 `ed9a9f4a` (REDONE same day)
 
