@@ -20,6 +20,7 @@
 import {InteractMessage} from '../../backend/logic/messages/outgoing/InteractMessage';
 import {Countdown, startConfirmCountdown} from '../../common/logic/ConfirmCountdown';
 import {attachSkillTooltips} from '../../user-interface/HUD/logic/SkillTooltip';
+import * as PanelExclusivity from '../../user-interface/logic/PanelExclusivity';
 import {
     ConversationModel,
     ConversationRow,
@@ -76,6 +77,13 @@ export function setup() {
     // and a teach_skill row for a skill they DO hold is omitted from the tree
     // entirely rather than shown.
     attachSkillTooltips(rowsElement, () => 1);
+
+    // ⚑ The family's close for this panel is leave(), which only ASKS: the
+    // panel goes away when the server drops the tree, so another panel opening
+    // over it stays visible for about a tick plus the round trip. Accepted by
+    // ruling (plan-ui-pass.md C2): hiding it client-side would let the client
+    // believe a conversation is over while the server thinks otherwise.
+    PanelExclusivity.register('conversation', leave);
 }
 
 /**
@@ -212,6 +220,11 @@ function render() {
         return;
     }
 
+    // ⚑ This transition IS the panel's open event (plan-ui-pass.md C2): the
+    // panel is server-driven, so E is not the event. An empty signature means
+    // nothing is on screen, which is the closed state the branch above writes.
+    const wasClosed = renderedSignature === '';
+
     // Nothing visible changed — leave the DOM (and the row the player's cursor
     // is currently over) exactly where it is. See renderedSignature.
     const signature = JSON.stringify(view);
@@ -219,6 +232,10 @@ function render() {
         return;
     }
     renderedSignature = signature;
+
+    if (wasClosed) {
+        PanelExclusivity.notifyOpened('conversation');
+    }
 
     panelElement.classList.remove('hidden');
     actorElement.textContent = view.actorName;

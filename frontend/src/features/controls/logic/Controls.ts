@@ -15,6 +15,7 @@ import {InputMessage} from '../../backend/logic/messages/outgoing/InputMessage';
 import * as Conversation from '../../conversation/logic/Conversation';
 import * as Journal from '../../journal/logic/Journal';
 import * as Help from '../../help/logic/Help';
+import * as GameSettingsUI from '../../game-settings/logic/GameSettingsUI';
 import * as Interact from '../../interact/logic/Interact';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {Vector} from '../../core/logic/Vector';
@@ -156,6 +157,10 @@ export class Controls {
             Journal.close();
             // ...and the help panel — purely client-side, same rule.
             Help.close();
+            // ...and the settings panel, which joined the exclusive family at
+            // plan-ui-pass.md C2 (D2) and had no Escape close before that.
+            // Escape stays a blanket close-all, never a stack pop.
+            GameSettingsUI.hide();
             // ...and the full-screen map, same rule again (C1).
             Game?.miniMap?.close();
             // ...and dismisses an open conversation (chunk 3b-ii, D21). Also a

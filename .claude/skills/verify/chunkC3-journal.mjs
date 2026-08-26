@@ -22,6 +22,11 @@
 //      again → re-accept → talk to the Emberkeeper → the objective
 //      auto-advances, a second entry appears, the quest moves to Completed AND
 //      the selection follows it there (Q3: selection is by id).
+//      ⚑ Rewritten at plan-ui-pass.md C2 (ruling D1): this half used to hold the
+//      journal open THROUGH the talk, which is the exact combination the
+//      exclusivity policy now outlaws. It asserts the new behaviour instead (the
+//      conversation's open closes the journal) and reopens the panel with J to
+//      read the ledger the talk moved. Nothing about the ledger changed.
 //   C. The Q2 counter leg, guarded on the shipped wolves quest: accept
 //      wolves-on-the-road by cheat, select it (the Q3 row-click leg), verify the
 //      selection survives close/reopen (PO ruling 2026-07-30), read the derived
@@ -313,7 +318,9 @@ if (!probeLoaded) {
   const probeTitle = catalog.body.find((q) => q.id === PROBE_QUEST).title;
   const [seekProse, spokenProse] = catalog.body.find((q) => q.id === PROBE_QUEST).stages.map((s) => s.journal);
 
-  await page.keyboard.press('KeyJ'); // open and leave it open for the rest
+  // Open it and leave it open for the accept/abandon legs. The talk at the end
+  // of this half shuts it again (D1), and it is reopened there.
+  await page.keyboard.press('KeyJ');
   await page.waitForTimeout(400);
 
   await cmd(`QUEST ACCEPT ${PROBE_QUEST}`);
@@ -388,13 +395,31 @@ if (!probeLoaded) {
     !document.getElementById('conversation')?.classList.contains('hidden'));
   void inRange;
 
-  const afterTalk = talked ? await waitForJournal((j) => j.completed.quests.length > 0, 20_000) : null;
   if (!talked) {
     skip('the objective auto-advances off the talk and completes the quest',
       'INCONCLUSIVE — the conversation never opened, so no talk event was produced. ' +
       'Restart the server (conversants wander) and re-run this script alone.');
   } else {
+  // ⭐ plan-ui-pass.md C2, D1: the conversation joined the exclusive family, so
+  // its open shut the journal that was standing behind it. This script used to
+  // be the one place pinning the two open together.
+  const journalAfterTalk = await journal();
+  check('a conversation opening closes the open journal (plan-ui-pass.md C2, D1)',
+    journalAfterTalk?.open === false,
+    `journal open=${journalAfterTalk?.open}`);
+
+  // ⚑ Read the banner BEFORE reopening the panel: the reopen below costs a
+  // second or two, and the banner is transient.
   const completeBanner = await banner();
+
+  // Visibility is the client's, so J puts the panel back to read the ledger the
+  // talk moved. The same policy runs the other way here - J sends Leave to the
+  // NPC - which costs this half nothing: the objective advanced when the panel
+  // opened, several seconds ago.
+  await page.keyboard.press('KeyJ');
+  await page.waitForTimeout(600);
+  const afterTalk = await waitForJournal((j) => j.completed.quests.length > 0, 20_000);
+
   check('the objective auto-advances off the talk and completes the quest',
     afterTalk?.completed.quests.length === 1 && afterTalk?.running.quests.length === 0,
     `completed=${afterTalk?.completed.quests.length}, running=${afterTalk?.running.quests.length}`);

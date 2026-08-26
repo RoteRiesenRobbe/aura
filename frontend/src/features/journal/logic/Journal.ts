@@ -18,6 +18,9 @@
  *     locally, exactly like the conversation panel's close. SELECTION is the
  *     client's too, and it lives in the model — so it survives the panel
  *     closing (PO ruling 2026-07-30: reopening lands on the quest last read).
+ *   · ⚑ EVERY path that opens the panel notifies PanelExclusivity, which shuts
+ *     the rest of the family (plan-ui-pass.md C2, D1). The close paths do not:
+ *     closing pushes nothing aside.
  *   · ⚑ The signature check is load-bearing, not an optimisation: the ledger is
  *     re-sent every tick, so without it the panel is torn down and rebuilt
  *     ~30×/second and a click can land in the gap between the old row being
@@ -25,6 +28,7 @@
  *     selecting re-renders and an unchanged tick does not.
  */
 
+import * as PanelExclusivity from '../../user-interface/logic/PanelExclusivity';
 import {AbandonQuestMessage} from '../../backend/logic/messages/outgoing/AbandonQuestMessage';
 import {catalogState, questDefinition, stageJournal} from '../../../client-data/Quests';
 import {JournalCatalog, JournalModel, QuestProgress, JournalListRow, JournalDetailView} from './JournalModel';
@@ -70,6 +74,8 @@ export function setup() {
     buttonElement = document.getElementById('journalButton');
     buttonElement?.addEventListener('pointerdown', toggle);
 
+    PanelExclusivity.register('journal', close);
+
     render();
 }
 
@@ -82,6 +88,9 @@ export function update(progress: QuestProgress[]) {
 /** J, and the HUD button (D16). */
 export function toggle() {
     open = !open;
+    if (open) {
+        PanelExclusivity.notifyOpened('journal');
+    }
     render();
 }
 
@@ -102,6 +111,7 @@ export function isOpen(): boolean {
 export function openQuest(questId: string) {
     model.select(questId);
     open = true;
+    PanelExclusivity.notifyOpened('journal');
     render();
 }
 

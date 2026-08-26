@@ -5,6 +5,7 @@ import {BackendStateChangedEvent, DevelopSetupEvent} from '../../core/logic/Even
 import {parseInt} from 'lodash';
 import {preventShortcutPropagation, resetFocus} from '../../common/logic/Utils';
 import * as AccountSettings from './AccountSettings';
+import * as PanelExclusivity from '../../user-interface/logic/PanelExclusivity';
 import {BackendState} from '../../backend/logic/IBackend';
 
 const gameSettings = GameSettings.get();
@@ -21,6 +22,7 @@ function onDomReady() {
     setupButtons();
     setupPanel();
 
+    PanelExclusivity.register('settings', hide);
 }
 
 function setupButtons() {
@@ -116,6 +118,8 @@ function setupRange(
 
 
 function show() {
+    // Settings is one of the exclusive family (plan-ui-pass.md C2, D1).
+    PanelExclusivity.notifyOpened('settings');
     showButton.classList.add('hidden');
     panelElement.classList.remove('hidden');
     // Registering mid-session changes what belongs in the Account group, so it
@@ -125,10 +129,15 @@ function show() {
 
 /**
  * Close the settings panel. Exported so other modules can force-close it when
- * a higher-priority screen takes over (account creation, entering the world).
+ * a higher-priority screen takes over (account creation, entering the world),
+ * and it is the panel's close function in the exclusivity family.
+ *
+ * ⚑ A no-op when the panel is already shut, like Journal.close()/Help.close():
+ * Escape's blanket close and every family open call it unconditionally, and
+ * resetFocus() would otherwise pull focus to <body> on every one of them.
  */
 export function hide() {
-    if (!panelElement) return;
+    if (!isOpen()) return;
     showButton.classList.remove('hidden');
     panelElement.classList.add('hidden');
 

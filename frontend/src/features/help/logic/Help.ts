@@ -7,7 +7,12 @@
  *
  * ⚑ `pointerdown`, never `click` — MouseManager preventDefaults `mousedown` on
  * the document element, which suppresses the synthetic click (see Journal.ts).
+ *
+ * ⚑ Opening notifies PanelExclusivity, which shuts the rest of the family
+ * (plan-ui-pass.md C2, D1); closing notifies nothing.
  */
+
+import * as PanelExclusivity from '../../user-interface/logic/PanelExclusivity';
 
 let panelElement: HTMLElement;
 let open = false;
@@ -22,6 +27,8 @@ export function setup() {
 
     document.getElementById('helpButton')
         ?.addEventListener('pointerdown', toggle);
+
+    PanelExclusivity.register('help', close);
 }
 
 export function toggle() {
@@ -29,6 +36,9 @@ export function toggle() {
         return;
     }
     open = !open;
+    if (open) {
+        PanelExclusivity.notifyOpened('help');
+    }
     panelElement.classList.toggle('hidden', !open);
 }
 

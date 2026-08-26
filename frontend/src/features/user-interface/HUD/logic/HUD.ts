@@ -105,8 +105,6 @@ export function setup(game) {
     Journal.setup();
     QuestTracker.setup();
     Help.setup();
-    // After Journal/Help: it adds a second pointerdown listener to their
-    // buttons, and both handlers should run in the order they were added.
     MobileMenu.setup();
     Interact.setupButton();
 }

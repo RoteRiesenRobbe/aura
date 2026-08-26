@@ -8,15 +8,16 @@
 // re-parented, so the desktop DOM and every existing handler are untouched.
 //
 // One sheet at a time (PO ruling 2026-08-02): opening the menu closes the
-// journal and the help panel, and the two buttons that live inside the sheet
-// close the menu on their way to opening their own panel.
+// journal and the help panel, and either of them opening closes the menu.
+// Since plan-ui-pass.md C2 (ruling D1) both directions run through the shared
+// PanelExclusivity registry rather than through direct calls between the
+// panels - the sheet is simply one member of the exclusive family.
 //
 // ⚑ pointerdown, never click — MouseManager preventDefaults mousedown on the
 // document element, which suppresses the synthetic click (the same rule the
 // rest of the HUD follows).
 
-import * as Journal from '../../../journal/logic/Journal';
-import * as Help from '../../../help/logic/Help';
+import * as PanelExclusivity from '../../logic/PanelExclusivity';
 import {isMobile} from '../../logic/Mobile';
 
 let buttonElement: HTMLElement;
@@ -24,8 +25,8 @@ let open = false;
 
 export function setup() {
     // Nothing to wire on a desktop page: the button is display:none there and
-    // the sheet can never open, so it registers no listeners at all rather
-    // than three that would run on every HUD click to decide to do nothing.
+    // the sheet can never open, so it neither listens nor joins the exclusive
+    // family rather than sitting in both to decide to do nothing.
     if (!isMobile()) {
         return;
     }
@@ -36,11 +37,11 @@ export function setup() {
     }
     buttonElement.addEventListener('pointerdown', toggle);
 
-    // Both live inside the sheet; each opens a full-screen panel of its own,
-    // so the sheet has to get out of the way. Their own handlers still run —
-    // these listeners only add the dismissal.
-    document.getElementById('journalButton')?.addEventListener('pointerdown', close);
-    document.getElementById('helpButton')?.addEventListener('pointerdown', close);
+    // The journal and help buttons live inside the sheet and each opens a
+    // full-screen panel of its own, so the sheet has to get out of the way.
+    // That used to be two extra pointerdown listeners here; the registry now
+    // does it, because those panels announce their own opens.
+    PanelExclusivity.register('mobileMenu', close);
 }
 
 export function toggle() {
@@ -64,7 +65,6 @@ function setOpen(next: boolean) {
     // On <html>, beside the `mobile` class it composes with — see Mobile.apply.
     document.documentElement.classList.toggle('menuOpen', open);
     if (open) {
-        Journal.close();
-        Help.close();
+        PanelExclusivity.notifyOpened('mobileMenu');
     }
 }
