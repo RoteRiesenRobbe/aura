@@ -35,6 +35,7 @@
         "GateWall",
         "House",
         "Rock",
+        "Tombstone",
         "Tree"
       ],
       "valuesAsFlags": false

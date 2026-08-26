@@ -86,27 +86,16 @@ function readTerrainTypes() {
     return out;
 }
 
-// ⚑ Irregular by nature: a prop's sprite is chosen by a hand-written class in
-// Resources.ts keyed off entityType, not by any field in api/props. Two props
-// (Boulder, Rock) share the Stone sprite at different radii. So the mapping is
-// declared here — and an unknown entityType is a hard failure, never a silent
-// gap, because a missing tile would make that prop invisible in the editor.
-const PROP_SPRITE_BY_ENTITY_TYPE = {
-    RoundTree: 'frontend/src/features/game-objects/assets/resources/roundTree.png',
-    Stone: 'frontend/src/features/game-objects/assets/resources/stone.png',
-    House: 'frontend/src/features/game-objects/assets/resources/house.svg',
-    GateWall: 'frontend/src/features/game-objects/assets/resources/gateWall.svg',
-};
-
+// Each prop names its own sprite file directly (relative to
+// frontend/src/features/game-objects/assets/resources/) via `sprite` in its
+// api/props/*.json — the single source of truth the client's generic prop
+// class (Props.ts) also reads. A missing/empty `sprite` is a boot-time
+// hard-fail server-side (world/props.go), so it can never reach this script.
 function readProps() {
     const dir = path.join(ROOT, 'api', 'props');
     return readdirSync(dir).filter(f => f.endsWith('.json')).map(f => {
         const def = JSON.parse(readFileSync(path.join(dir, f), 'utf8'));
-        const rel = PROP_SPRITE_BY_ENTITY_TYPE[def.entityType];
-        if (!rel) {
-            fail(`prop "${def.name}" has entityType "${def.entityType}", which has no sprite in`
-                + ` PROP_SPRITE_BY_ENTITY_TYPE. Add it (tools/tiled/generate-palette.mjs).`);
-        }
+        const rel = 'frontend/src/features/game-objects/assets/resources/' + def.sprite;
         const abs = path.resolve(ROOT, rel);
         const body = def.body || {};
         // Units, matching the physics body: a circle spans 2*radius, a rect its

@@ -1,0 +1,31 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder tombstone art: TRUE top-down. A headstone is a thin
+       standing slab, so straight overhead shows only its narrow top edge —
+       a slim capsule, not a wide face — sitting on a small dirt mound. -->
+
+  <!-- ground shadow -->
+  <ellipse cx="51" cy="53" rx="28" ry="18" fill="#000000" opacity="0.22"/>
+
+  <!-- dirt mound + grass tufts -->
+  <ellipse cx="50" cy="51" rx="29" ry="19" fill="#5a4632"/>
+  <path d="M18,48 Q24,42 30,47 Q25,45 20,50 Z" fill="#3f6b2f"/>
+  <path d="M70,46 Q76,40 82,45 Q77,43 71,48 Z" fill="#3f6b2f"/>
+  <path d="M62,66 Q68,61 74,65 Q69,63 63,68 Z" fill="#3a6229"/>
+  <path d="M28,66 Q33,62 38,66 Q34,64 29,68 Z" fill="#3a6229"/>
+
+  <!-- the slab's thin top edge, seen straight down: a slim capsule -->
+  <rect x="21" y="41" width="58" height="19" rx="9.5"
+        fill="#8d8a82" stroke="#4a483f" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- centre ridge highlight (evenly top-lit, rounds off toward both long edges) -->
+  <rect x="26" y="45" width="48" height="6" rx="3" fill="#b7b4a9" opacity="0.5"/>
+
+  <!-- small carved cross, inscribed into the ridge -->
+  <line x1="50" y1="44" x2="50" y2="57" stroke="#5b5949" stroke-width="2.4" stroke-linecap="round" opacity="0.75"/>
+  <line x1="45" y1="48" x2="55" y2="48" stroke="#5b5949" stroke-width="2.4" stroke-linecap="round" opacity="0.75"/>
+
+  <!-- weathering: a crack and a couple of moss flecks along the edge -->
+  <path d="M30,44 L33,50 L31,57" fill="none" stroke="#4a483f" stroke-width="1.3" stroke-linecap="round" opacity="0.6"/>
+  <ellipse cx="68" cy="46" rx="4" ry="2.4" fill="#5f7a3d" opacity="0.5" transform="rotate(-8 68 46)"/>
+  <ellipse cx="24" cy="55" rx="3" ry="2" fill="#5f7a3d" opacity="0.45"/>
+</svg>

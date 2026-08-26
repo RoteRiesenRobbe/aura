@@ -161,61 +161,10 @@ export class Stone extends Mineral {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Stone, mineralCfg.stoneFile, mineralCfg.maxSize);
 
-// The rect-bodied house prop (content pass C1). Props ride the Resource wire
-// table, whose single size scalar is the max half-extent of the rect body —
-// the true aspect comes from the prop def itself (the same JSON the server
-// derives its body from), because SVG preloading rasterizes to a square
-// texture and loses the source proportions.
-const houseDef = require('../../../../../api/props/house.json') as {
-    body: { width: number; height: number };
-};
-
-export class House extends Resource {
-    static svg: Texture;
-
-    constructor(id: number, x: number, y: number, size: number, rotation: number) {
-        super(id, Game.layers.resources.trees, x, y, size, rotation, House.svg);
-        this.visibleOnMinimap = false;
-    }
-
-    initShape(svg: Texture, x: number, y: number, size: number, rotation: number): Container {
-        const sprite = createInjectedSVG(svg, x, y, size, rotation);
-        // createInjectedSVG scales square from the max half-extent; shrink the
-        // shorter body axis back to the authored proportions.
-        const {width, height} = houseDef.body;
-        const max = Math.max(width, height);
-        sprite.width = size * 2 * (width / max);
-        sprite.height = size * 2 * (height / max);
-        return sprite;
-    }
-
-    createMinimapIcon(): ViewContainer {
-        throw new Error('Method not implemented.');
-    }
-}
-
-const houseCfg = GraphicsConfig.props.house;
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(House, houseCfg.file, houseCfg.maxSize);
-
 // The NPC sprites that used to live here moved to Mobs.ts with the actor
 // merge (plan-entity-model.md chunk 3a) — NPCs ride the Mob wire path now.
 
-// The square rampart block prop (content pass C4): City Gates flanks + the
-// blocked roads. Square body, so the plain square SVG scaling is already
-// correct — no aspect correction needed (unlike House).
-export class GateWall extends Resource {
-    static svg: Texture;
-
-    constructor(id: number, x: number, y: number, size: number, rotation: number) {
-        super(id, Game.layers.resources.trees, x, y, size, rotation, GateWall.svg);
-        this.visibleOnMinimap = false;
-    }
-
-    createMinimapIcon(): ViewContainer {
-        throw new Error('Method not implemented.');
-    }
-}
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(GateWall, GraphicsConfig.props.gateWall.file, GraphicsConfig.props.gateWall.maxSize);
+// House, GateWall, and Tombstone moved to the generic, JSON-driven prop path
+// (Props.ts) — they had no behavior beyond drawing their sprite at their
+// authored size/aspect, exactly what SimpleProp now derives from each prop's
+// api/props/*.json entry.

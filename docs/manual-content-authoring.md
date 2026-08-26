@@ -263,8 +263,8 @@ Props are static world objects from the authored zone (no HP, no gameplay
 behavior — movement blockers + visuals). One JSON per type in `api/props/`:
 
 ```json
-{ "name": "Rock",  "entityType": "Stone", "body": { "radius": 0.5 } }
-{ "name": "House", "entityType": "House", "body": { "width": 4, "height": 3 } }
+{ "name": "Rock",  "entityType": "Stone", "sprite": "stone.png", "body": { "radius": 0.5 } }
+{ "name": "House", "entityType": "House", "sprite": "house.svg", "body": { "width": 4, "height": 3 } }
 ```
 
 - **Body is exactly one form** (validated at boot): a circle (`radius`) or an
@@ -272,16 +272,41 @@ behavior — movement blockers + visuals). One JSON per type in `api/props/`:
   `phy.SolidAABB` pushes players AND mobs out, and mob steering paths around
   it). **Rect bodies never rotate** — a zone prop's `rotation` is ignored for
   them (it isn't applied server-side for circles either, yet).
-- `entityType` picks the sprite. Reusing an existing enum entry (the scaffold
-  Tree/Rock way) needs no wire work; a **new** sprite is the same 5-file path
-  as a new mob: enum append in `server.fbs` → `./make.sh` → SVG → a render
-  class (`Resources.ts` — mirror `House`, which scales the sprite non-square
-  from the prop def's aspect) → `gameObjectClasses` slot.
-- The wire carries a single size scalar (max half-extent for rects); the
-  `House` render class reads `api/props/house.json` directly for the aspect,
-  so body edits keep the sprite in sync without a schema change.
+- `entityType` picks the sprite **on the wire** — it's the only thing a prop
+  instance sends, so it's what a client build resolves back to art. `sprite`
+  names the actual art file (bare filename, relative to
+  `frontend/src/features/game-objects/assets/resources/`) — required,
+  boot-fails if empty.
+- **Reusing an existing entityType is pure JSON** — drop a new `api/props/*.json`
+  file naming an entityType that already has a render class (the scaffold
+  Tree/Rock way) and nothing else changes; no client code, no `gameObjectClasses`
+  edit.
+- **A genuinely new entityType** (art nothing existing prop uses) is: append it
+  at the **end** of `server.fbs`'s `EntityType` → `cd api/schema && ./make.sh`
+  → drop the SVG/PNG in `assets/resources/` → name it in the new prop's
+  `sprite` → **one line** in `gameObjectClasses`
+  (`GameStateMessage.ts`) pointing at `Props.genericPropClasses.<EntityType>`.
+  That's it for a prop with no special behavior — `Props.ts`'s generic
+  `SimpleProp` class discovers the def (via `require.context` over
+  `api/props/`) and derives everything else: the render class, the preload
+  call, and the `maxSize` it rasterises at (`body units × 120`, the same
+  px/unit the WARP cheat uses). **No `Resources.ts` class to write.**
+- A prop needing actual behavior beyond drawing its sprite (à la `Tree`'s
+  resource-spot decal, `Mineral`'s authored-not-random rotation) still gets a
+  hand-written class in `Resources.ts`, added to `Props.ts`'s
+  `BESPOKE_ENTITY_TYPES` exclusion set, and its own `gameObjectClasses` line —
+  the generic path is additive, never a ceiling.
+- The wire carries a single size scalar (max half-extent for rects); a
+  non-square rect prop's aspect comes from its own `body` in `api/props/`,
+  read at build time — no schema change needed to retune it.
 - Placement: `zone.props` entries (`type`, `x`, `y`, `blocksMovement`) via the
   zone editor — rect props draw and hit-test as rectangles there.
+- **Every new `api/props/*.json` file needs the Tiled palette regenerated**,
+  regardless of whether the entityType is new or reused: `node
+  tools/tiled/generate-palette.mjs` (`docs/manual-tiled-editor.md` §6), then
+  `bash tools/tiled/verify.sh`. It reads each prop's `sprite` field directly —
+  a missing `sprite` boot-fails server-side long before this script could run
+  against it.
 
 ## 1c. NPC sprite & size
 

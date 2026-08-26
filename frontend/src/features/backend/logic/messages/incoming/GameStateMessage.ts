@@ -1,5 +1,6 @@
 import * as BackendConstants from '../../BackendConstants';
 import * as Resources from '../../../../game-objects/logic/Resources';
+import * as Props from '../../../../game-objects/logic/Props';
 import * as Mobs from '../../../../game-objects/logic/Mobs';
 import {DebugCircle} from '../../../../internal-tools/develop/logic/DebugCircle';
 import {Character} from '../../../../game-objects/logic/Character';
@@ -506,7 +507,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Camp]: Mobs.Camp,
     [AuraApi.EntityType.Corpse]: Corpse,
     [AuraApi.EntityType.Turnip]: Mobs.Turnip,
-    [AuraApi.EntityType.House]: Resources.House,
+    [AuraApi.EntityType.House]: Props.genericPropClasses.House,
     [AuraApi.EntityType.Wolf]: Mobs.Wolf,
     [AuraApi.EntityType.Bear]: Mobs.Bear,
     [AuraApi.EntityType.Boar]: Mobs.Boar,
@@ -530,7 +531,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.RallyDrummer]: Mobs.RallyDrummer,
     [AuraApi.EntityType.CityGuard]: Mobs.CityGuard,
     [AuraApi.EntityType.VillageHealer]: Mobs.VillageHealer,
-    [AuraApi.EntityType.GateWall]: Resources.GateWall,
+    [AuraApi.EntityType.GateWall]: Props.genericPropClasses.GateWall,
     [AuraApi.EntityType.ArmySoldier]: Mobs.ArmySoldier,
     [AuraApi.EntityType.Orc]: Mobs.Orc,
     [AuraApi.EntityType.SpikeBarricade]: Mobs.SpikeBarricade,
@@ -556,6 +557,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.GreaterFireElemental]: Mobs.GreaterFireElemental,
     [AuraApi.EntityType.FireTotem]: Mobs.FireTotem,
     [AuraApi.EntityType.NpcPlaceholder]: Mobs.NpcPlaceholder,
+    [AuraApi.EntityType.Tombstone]: Props.genericPropClasses.Tombstone,
 };
 
 function unmarshalEntityType(entityType: AuraApi.EntityType) {

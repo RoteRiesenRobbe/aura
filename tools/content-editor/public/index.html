@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Aura Content Editor</title>
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<header id="top-bar">
+  <h1>Aura Content Editor</h1>
+  <div id="top-actions">
+    <button id="revalidate-btn" title="Re-run validation across all content">Validate all</button>
+    <span id="global-status"></span>
+  </div>
+</header>
+
+<div id="layout">
+  <nav id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-head">
+        <h2 id="npc-toggle" class="collapsible"><span class="chevron">▾</span> NPCs</h2>
+        <input type="search" id="npc-filter" placeholder="filter…" />
+        <button id="npc-new-btn" class="new-btn" title="Create a new NPC">+ New</button>
+      </div>
+      <ul id="npc-list" class="item-list"></ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-head">
+        <h2 id="quest-toggle" class="collapsible"><span class="chevron">▾</span> Quests</h2>
+        <input type="search" id="quest-filter" placeholder="filter…" />
+        <button id="quest-new-btn" class="new-btn" title="Create a new quest">+ New</button>
+      </div>
+      <ul id="quest-list" class="item-list"></ul>
+    </div>
+  </nav>
+
+  <main id="editor-pane">
+    <div id="empty-state">Select an NPC or a quest on the left.</div>
+    <div id="editor-root" hidden></div>
+  </main>
+
+  <aside id="validation-panel">
+    <h2>Validation</h2>
+    <div id="validation-summary"></div>
+    <ul id="validation-list"></ul>
+  </aside>
+</div>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

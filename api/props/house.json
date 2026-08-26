@@ -1,5 +1,6 @@
 {
   "name": "House",
   "entityType": "House",
+  "sprite": "house.svg",
   "body": { "width": 4, "height": 3 }
 }

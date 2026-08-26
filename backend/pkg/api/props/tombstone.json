@@ -1,0 +1,6 @@
+{
+  "name": "Tombstone",
+  "entityType": "Tombstone",
+  "sprite": "tombstone.svg",
+  "body": { "radius": 0.4, "collisionFactor": 0.8 }
+}

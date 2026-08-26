@@ -24,6 +24,7 @@
       "GateWall",
       "House",
       "Rock",
+      "Tombstone",
       "Tree"
     ],
     "AuraMobName": [
@@ -153,6 +154,10 @@
     "Rock": {
       "w": 1.07,
       "h": 1.07
+    },
+    "Tombstone": {
+      "w": 0.8,
+      "h": 0.8
     },
     "Tree": {
       "w": 2.8,
