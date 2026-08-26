@@ -1,15 +1,18 @@
 # Plan: the UI pass - one consolidated pass over HUD, panels, dialogue and mobile
 
-> **Status: ROADMAP SET 2026-08-25 (PO session), not chunked.** Created
+> **Status: ROADMAP SET 2026-08-25 · Phase 0 RATIFIED 2026-08-25 (direction
+> C "Inked Panel", §4) · PHASE 1 CHUNKED 2026-08-26 (§5).** Created
 > 2026-08-24 to end the scatter: UI work used to live in four places
 > (`plan-ui-polish.md` §Deferred, `plan-playtest-feedback.md` round 9,
 > CLAUDE.md's mobile open items, `plan-ui-font.md`). This doc is now the
 > single home. The 2026-08-25 session added §4 (the phased path to done, with
-> three PO rulings) and §2's boot-to-game surface inventory. **The next
-> concrete session is the §4 Phase 0 design-language mockup session.**
-> Nothing below is chunked yet, and the PO's font investigation
-> (`plan-ui-font.md`) is still running (PO-owned; design work does not block
-> on it, ruling R3).
+> three PO rulings) and §2's boot-to-game surface inventory. The 2026-08-26
+> session added §5: **C1 (the ink chrome) is detailed there and was executed
+> the same session - then REDONE that day after the PO's look rejected the
+> first build's wiggly band (§4 CORRECTION block, §6 ledger); the C2+ order
+> is PROPOSED, not PO-ratified.**
+> The PO's font investigation (`plan-ui-font.md`) is still running (PO-owned;
+> design work does not block on it, ruling R3).
 
 ## 1. Scope: what this pass owns
 
@@ -270,6 +273,31 @@ never screenshot in the font pass):
    #14100b, wood #7c4f22, parchment #ecdcb8; both shipped golds and all
    semantic hues stay.
 
+   ⚑ **CORRECTED (PO 2026-08-26, choice prompts): the SPEC is the RENDERED
+   mockup CSS, not the board prose.** The prose above ("thick irregular ink
+   edges", "border-image or 9-slice") produced a 14px wobbly 9-slice band in
+   C1's first build; the PO rejected it on sight: *"I don't want this type of
+   wiggly form around the UIs at all. we will make simple clean and slightly
+   stylized UIs for now that work, look better than the current placeholder
+   but might not be artistically finalized."* What board C actually renders
+   (`.panelC`/`.hdrC` in the canvas artboards) and what is now ratified:
+   - a STRAIGHT `3px solid @ink` border - no wobble, no band, no SVG asset;
+   - a thin wood ring INSET inside it (`inset 0 0 0 2px fade(@wood, 45%)`)
+     plus a soft drop shadow - PO confirmed this ink+inlay pair over a solid
+     brown border;
+   - the moss body at 90% stays (it is the mockup's panel field);
+   - the one hand-drawn cue is the CORNER MOTIF: per-corner radii
+     `13px 7px 15px 9px` - wider top-left/bottom-right, tighter
+     top-right/bottom-left, repeated at smaller scale on buttons (9/5/10/6)
+     and key chips (5/3/6/4). PO: keep exactly what the mockup uses;
+   - the wood header strip (`linear-gradient(172deg, @wood, #5f3b18)`, gold
+     title, 2px ink bottom edge, top radii 10px/4px) goes on OPEN-STATE UIs
+     (journal, spellbook, ...) - it is part of the base treatment since the
+     C1 redo, not a C6 extra;
+   - the ability bar is the "C - Icon Bar" board verbatim (icon-only slots).
+   ⛔ C6 and every later chunk style against THIS list; do not resurrect the
+   band from the prose or from `git log`.
+
    ⭐ **Font RULED the same day** (full record + what stays open:
    `plan-ui-font.md` §6 banner): **stone-age is out of the HUD - one
    readable neutral sans everywhere**, hierarchy by weight/size/color, no
@@ -336,3 +364,142 @@ Rough dependency order; the chunking session owns the real one:
   extraction and this pass both touch every HUD surface; whichever runs
   second inherits merge friction, worth a sequencing word at the Phase 1
   session.
+
+## 5. Phase 1 - the chunk plan (session 2026-08-26)
+
+### Proposed chunk order (⚑ PROPOSED, not PO-ratified - only C1 was
+### PO-named in advance; the PO may reorder C2+ at any session touch)
+
+Derived from §4 Phase 2's dependency shape plus the two §2 sequencing rules
+(structure before chrome; icons before the icon-only bar):
+
+- **C1 - the ink chrome** (the ratified prerequisite; built this session,
+  redone same day after the PO's look, detail below).
+- **C2 - the layering & exclusivity policy** (§2): the matrix designed once,
+  at the FRONT of the panel group so every later panel chunk executes
+  against it; re-rules or names the four harness-pinned exceptions.
+- **C3 - spellbook structural rework** (§2): openable/pagination/categories,
+  tags separable; structure before chrome; harness sweep budgeted.
+- **C4 - skill icons, shipped-ability subset** (§2 item 1 pulled forward):
+  game-icons.net sourcing in the ink-ringed-token treatment; prerequisite of
+  C5.
+- **C5 - the ONE ability bar**: the §2 consolidation (icon-only, wood
+  divider, utility island) + direction-C restyle; `.slotLabel` DOM contract
+  kept, harness sweep budgeted.
+- **C6 - panel chrome rollout**: every `.panel-chrome()` caller plus the
+  one-off panels (tooltip, `#confirmRow`) onto the C1 treatment; the C1
+  header strip onto every open-state UI; resource/XP bars ink-outlined;
+  minimap chrome.
+- **C7 - dialogue + journal restyle** (round-9 item 2's non-font half).
+- **C8 - tooltip maintenance debt** (the three §2 shapes).
+- **C9 - mobile** (☰-sheet nag, the two "J Journal" nodes, marker sizing,
+  `MOBILE_MAX_RESOLUTION` if perf asks).
+- **C10 - boot-to-game surfaces** (§2's list).
+- **C11 - icon long tail + flavor descriptions**.
+- **Font swap floats** (R3): its own chunk whenever the family pick exists;
+  accepts a possible second size retune over already-styled panels.
+
+### C1 - the ink chrome (detailed + executed 2026-08-26; REDONE same day)
+
+**Deliverable:** the ONE reusable direction-C panel treatment (§4's named
+prerequisite) as plain-CSS LESS mixins, proven on one pilot panel. NOT a
+restyle of the HUD - the rollout is C6.
+
+⚑ **History, kept so C6 does not repeat it:** the first build read §4's
+prose ("thick irregular ink edges", "border-image or 9-slice") literally and
+shipped a 14px wobbly 9-slice `ink-border.svg` band. The PO's look at the
+pilot rejected the wiggly form outright; the §4 CORRECTION above records the
+ruling and the real spec (the mockup's rendered `.panelC`/`.hdrC` CSS). The
+SVG, its mixin and the whole border-image mechanism were deleted - none of
+the band-era findings (shorthand ordering, background-clip, periodic edge
+authoring, negative-padding subtraction) apply to the shipped treatment.
+
+Scope as redone, all in `frontend/`:
+
+1. **Four ratified palette tokens** in `variables.less`: `@moss #10261a`,
+   `@ink #14100b`, `@wood #7c4f22`, `@parchment #ecdcb8`. ⚑ All four are
+   OUTSIDE the `Theme.test.ts` pin set (`@brand`/`@gold-levelup`/
+   `@focus-color`/`@shield-fill`/`@land-color`); the five pinned tokens stay
+   untouched. The header's gold is the EXISTING `@gold-levelup #ffd75e` -
+   the mockup uses that exact value, no fifth token.
+2. **`.ink-panel-chrome()`** beside `.panel-chrome()` in `HUD.less`: moss
+   body at 90%, straight 3px ink border, the 2px wood inset ring, corner
+   motif `13px 7px 15px 9px`, soft drop shadow, unchanged @panel-padding.
+   ⛔ NOT a rework of `.panel-chrome()` - flipping the shared mixin restyles
+   every HUD panel at once, which is C6's job, not C1's.
+3. **`.ink-panel-header(@pad-y, @pad-x)`**: the wood strip (gradient @wood →
+   #5f3b18, 2px ink bottom edge, nested top radii 10px/4px), full-bleed to
+   the border via NEGATIVE MARGINS sized to the panel padding (defaults to
+   the @panel-padding split; a caller with custom padding passes its own).
+4. **Pilot: `#journal`** - chrome + header strip (gold 600 title, parchment
+   ✕). ⚑ Mobile is NOT untouched-by-construction any more: the fullscreen
+   sheet resets `border`/`background`/`padding` but not `box-shadow`, and
+   the header's negative margins are desktop-sized - `HUD.mobile.less` now
+   explicitly resets box-shadow + the whole header treatment (incl. title/✕
+   colors), keeping the phone's pre-C1 look wholesale. Verified by computed-
+   style probe + screenshot.
+
+**Verification tail:** `npm test` · `npm run typecheck` · `npm run build` ·
+the `chunkC3-journal` harness · desktop + mobile screenshots. **Schema
+NONE** (pure client CSS).
+
+## 6. Chunk ledger
+
+### C1 - the ink chrome ✅ 2026-08-26 `ed9a9f4a` (REDONE same day)
+
+**The first build (a 14px wobbly 9-slice `ink-border.svg` band) was REJECTED
+at the PO's look and deleted the same day** - "no wiggly forms around the
+UIs"; the ruling + the real spec (the rendered mockup CSS) live in the §4
+CORRECTION block. Nothing of the band survives: no SVG, no border-image, no
+padding subtraction, none of the band-era findings.
+
+Shipped instead (the mockup's `.panelC`/`.hdrC` translated 1:1):
+
+- the four ratified tokens in `variables.less` (all outside the
+  `Theme.test.ts` pin set; the header gold is the EXISTING `@gold-levelup`,
+  which the mockup uses verbatim) · `@panel-padding` split into `-y`/`-x`
+  with the composite unchanged (the header's negative margins read it);
+- **`.ink-panel-chrome()`**: `fade(@moss, 90%)` body · straight
+  `3px solid @ink` · wood inlay `inset 0 0 0 2px fade(@wood, 45%)` + soft
+  drop shadow · corner motif `13px 7px 15px 9px` (wider TL/BR, tighter
+  TR/BL - the mockup repeats it on buttons 9/5/10/6 and key chips 5/3/6/4,
+  ready for C5/C6) · unchanged @panel-padding (`.panel-chrome()` untouched);
+- **`.ink-panel-header(@pad-y, @pad-x)`**: the wood strip, full-bleed via
+  negative margins sized to the panel padding; gradient ends at the
+  mockup-literal `#5f3b18`, `align-items: center` per the mockup (the old
+  header bar was `baseline`);
+- **`#journal` pilot**: chrome + header, gold 600 title, parchment ✕.
+
+Findings the C6 rollout must know:
+
+- ⚑ **Mobile needs EXPLICIT resets now** (the old "untouched by
+  construction" died with the band): the fullscreen sheet's `border: none` /
+  `background:` do NOT clear `box-shadow` (the inlay ring), and the header's
+  negative margins are desktop-sized. `HUD.mobile.less` resets box-shadow +
+  the full header treatment incl. title/✕ colors; any C6/C9 panel flip on a
+  mobile-restyled surface needs the same audit.
+- ⚑ **Negative margins in LESS want parens**: `(-@panel-padding-y)` - a bare
+  `-@var` in a value list can parse as subtraction.
+- The wood inlay paints above the background but UNDER content, so the
+  header strip covering it at the top is the mockup's own rendering, not a
+  defect to fix.
+- Tight callers are a non-issue now (the 3px border replaces a 1px one; no
+  padding subtraction exists to go negative).
+
+Verified after the redo: vitest **515/515** · tsc · prod build (3
+pre-existing asset-size warnings) · `chunkC3-journal` **15 PASS + 1 SKIP**
+(probe quest not installed - skip-by-construction for a frontend-only chunk)
+at both 1280x800 and 2560x1440, 0 console errors · mobile computed-style
+probe (border 0, shadow none, plain header) + screenshot: the phone matches
+its pre-C1 look. **Schema NONE.**
+
+⭐ **PO looked at the redone pilot in-game same day: "looks much better
+now"** - the look is APPROVED as shipped; none of the offered knobs (edge
+weight, corner motif, moss 90%, moss-vs-no-green body) drew a change
+request, so all stay at the mockup literals. They remain available at the
+C6 rollout if the treatment reads differently on other panels: the edge is
+a two-number thickening (the 3px/2px pair was authored against 13-16px
+board type vs the game's 1.7rem), the body opacity/green are one-token
+changes, and §2's layering policy still wants 100% on stacking panels (a
+token variant, not a new look). The §5 C2+ order still wants PO
+ratification.
