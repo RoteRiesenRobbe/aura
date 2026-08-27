@@ -14578,6 +14578,29 @@
       "radius": 4
     }
   ],
+  "regions": [
+    {
+      "profile": "Fields",
+      "points": [
+        {
+          "x": -72,
+          "y": -36
+        },
+        {
+          "x": -72,
+          "y": 36
+        },
+        {
+          "x": 72,
+          "y": 36
+        },
+        {
+          "x": 72,
+          "y": -36
+        }
+      ]
+    }
+  ],
   "anchors": [
     {
       "name": "warlord-home",
