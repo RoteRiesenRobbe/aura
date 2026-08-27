@@ -390,6 +390,7 @@ Derived from §4 Phase 2's dependency shape plus the two §2 sequencing rules
   (Detailed + ruled below, 2026-08-26.)
 - **C3 - spellbook structural rework** (§2): openable/pagination/categories,
   tags separable; structure before chrome; harness sweep budgeted.
+  (Detailed + ruled below, 2026-08-27.)
 - **C4 - skill icons, shipped-ability subset** (§2 item 1 pulled forward):
   game-icons.net sourcing in the ink-ringed-token treatment; prerequisite of
   C5.
@@ -542,7 +543,169 @@ must stay green untouched). **Schema NONE** (pure client).
 the four harnesses above · a mobile probe/screenshot (the sheet's
 exclusivity is rerouted through the registry).
 
+### C3 - spellbook structural rework (detailed + ruled 2026-08-27)
+
+**Deliverable:** the §2 rework - the spellbook stops being always-on and
+becomes an openable, category-tabbed, paginated panel on desktop AND mobile.
+Structure only: no direction-C chrome (that is C6), no restyle beyond what
+the tabs/pager physically require. **Schema NONE** (pure client - the
+utility-category data was deferred, see D3).
+
+**Rulings (PO 2026-08-27, choice prompts):**
+
+- **D1 - IN-PLACE TOGGLE.** The opened book lives in the spellbook's
+  current side-column spot with the same footprint; the loadout slots stay
+  visible, and the click-row-then-click-slot equip flow (plus
+  hotkey-bind-while-pending) survives untouched. Placement may still move
+  at the C6 restyle - that is chrome, not structure.
+- **D2 - CATEGORY TABS + PAGES WITHIN.** Tabs Auras / Passives / Cooldowns
+  (the §2 grouping ask), page flipping within a tab (the §2 pagination
+  ask). Page size **~8 entries, a PLACEHOLDER** per the standing numbers
+  rule. Page count derives from **discovered entries only** and an empty
+  category hides its tab - both are the existing zero-hint policy, kept.
+- **D3 - UTILITY CATEGORY DEFERRED.** The three shipped categories section
+  the book; new sections ride with the later tag axis (§2's separability
+  finding). No `api/skills` field, no catalog rider, no Go.
+- **D4 - MOBILE IN SCOPE.** The ☰ sheet gets a Spellbook button (like
+  Journal/Help) opening the same panel full-screen; the embedded spellbook
+  leaves the sheet. The spellbook is a real C2-D1 family member on both
+  platforms - no platform divergence.
+- **D5 - HOTKEY B.** Verified free in `Controls.ts` 2026-08-27; sits
+  behind the same chat/console guard chain as J and M (typing "b" in chat
+  can never open it).
+
+**Plan defaults (stated, not asked):**
+
+- Closed by default on join; the panel is a panel now.
+- The `hasPoints` glow and the skill-points badge migrate to the open
+  button (desktop) and the sheet's Spellbook button (mobile). Unlocks
+  while closed are already covered by the server-authored discovery
+  banner; the lingering state is the button badge. ⭐ AMENDED at the PO
+  look (2026-08-28): the badge shows in BOTH places - the open buttons
+  AND the panel title between "Spellbook" and Reset - so the count stays
+  visible while spending. One update path feeds every `.skillPointsBadge`.
+- Opening and spending in combat stay allowed (as today); only equips
+  keep the existing combat lock, untouched.
+
+**Implementation shape (all `frontend/`):**
+
+1. A Spellbook open/close module on the Journal pattern: `toggle`/`close`
+   (close a no-op when already shut - the registry ⚑), `'spellbook'`
+   joins the `PanelId` union and registers in `PanelExclusivity`, every
+   open path calls `notifyOpened('spellbook')`.
+2. `Controls.ts`: a `KeyB` branch in `handleFunctionKeys` (J/M comment
+   style incl. the verified-free date) + `Spellbook.close()` joins the
+   blanket Escape list.
+3. A desktop open button (the `#mapButton` pattern, "B Spellbook") plus
+   the mobile sheet entry; both carry the points badge/glow.
+4. Tabs + pager inside the panel. Tab and page state survive
+   `updateSpellbook`'s per-tick rebuilds (the `selectedSkillId`
+   discipline); the page index clamps when the discovered list changes;
+   an unlock lands on whatever page it lands on - no auto-flip.
+5. ⚑ **Harness-compat rule, load-bearing:** the spellbook DOM stays
+   RENDERED at all times - open/close toggles a class, and tab/page
+   filtering hides entries via class, never removes them from the DOM.
+   `page.evaluate` queries and dispatched pointerdowns against
+   `#spellbookList` then keep working with the book closed; only
+   visibility assertions and Playwright locator clicks need an
+   open-the-book step.
+6. SimpleBar on `#spellbookScroll`: pages replace scrolling; drop it or
+   keep it as overflow safety - builder's call, record it in the ledger.
+7. ⚑ **Mobile passive equip is the one open flow question.** Passive
+   slots live in the ☰ sheet; with the book its own panel, a pending
+   passive needs the sheet. Default: selecting a passive on mobile closes
+   the book and opens the sheet (the mirror of today's
+   `MobileMenu.close()` on non-passive select, which becomes
+   Spellbook-close). Flag it at the PO look.
+
+**Harness plan (the §2 budgeted sweep):**
+
+- **32 of the 61 verify scripts query spellbook selectors directly**
+  (`#spellbookList` / `.spendBtn` / `.unspendBtn` / `#skillPointsBadge`;
+  no shared helper exists): backlog33-prehot · c0-honest-plate ·
+  c1-bloodline-seed · c1-front-stone · c1-kill-quests · c1-open-portal ·
+  c2-frost-shield · c2-kill-quests · c2-pull-through ·
+  c2b-bloodline-select · c3-invulnerability · c3-paralyze · c4-ally-speed
+  · c5-bars · c6-theme · chunk2-calm · chunk2-follower · chunk3-charm ·
+  chunk3b-interact · chunk3b-ii-conversation · chunk4-persistence ·
+  chunkC3-journal · chunkC4-quests · chunkP-presence · mobile-layout ·
+  n1-shield-bar · r1-focus-cost · r3-lifesteal-burst · r7-respec-cost ·
+  r7-strong · round4-tooltip · swift-cooldown. Under the DOM-stays-
+  rendered rule most survive unchanged; the sweep = run all 32, add an
+  open step (B) only where a script asserts visibility or locator-clicks.
+- Known-red baselines stand: `chunk3-charm` 6-8/9 and
+  `chunk3b-ii-conversation` 28/34 are compared against their baselines,
+  not chased.
+- `mobile-layout.mjs` changes on purpose (sheet loses the embedded
+  spellbook, gains the button) - update, don't preserve.
+- A new `c3-spellbook.mjs`: open/close via B + button + Escape · the five
+  exclusivity legs (spellbook ↔ journal / help / settings / conversation
+  / sheet; poll the conversation close per the accepted window) · tab
+  switching · discovered-only page count · pending-equip flow with the
+  book open · tab/page state surviving a tick rebuild.
+- `c1-world-map` (map covers everything) and `c2-layering` stay green
+  untouched; the new family legs live in `c3-spellbook.mjs`.
+
+**Verification tail:** `npm test` · `npm run typecheck` · `npm run build` ·
+the 32-script sweep + `c3-spellbook` · mobile probe/screenshots at both
+resolutions.
+
+**Execution:** delegated to an Opus 5 agent, reviewed line-by-line (the
+C1/C2 discipline).
+
 ## 6. Chunk ledger
+
+### C3 - the spellbook structural rework ✅ 2026-08-28 `9cc6cd74`
+
+Rulings D1-D5 and the full spec live in the §5 C3 section (PO choice
+prompts 2026-08-27). Shipped, all `frontend/` + harness, built by an Opus
+5 agent and reviewed line-by-line (the agent died to a session limit in
+its closing pass; every remaining step was re-run and settled first-hand):
+
+- **`Spellbook.ts`** (~200 lines) owns visibility, tab and page, nothing
+  else: rows and their interactions stay HUD.ts's, which stamps each row
+  `data-category` so the module is catalog-free (17 TDD'd vitest specs on
+  a jsdom fixture). `'spellbook'` joined the `PanelId` union; every open
+  path notifies, `close()` no-ops when shut. `KeyB` + the blanket Escape
+  in `Controls.ts` (J/M pattern); in-place toggle per D1 - desktop equip
+  flow untouched.
+- ⚑ **The harness-compat rule is load-bearing:** the whole panel DOM stays
+  RENDERED - open/close and tab/page filtering toggle classes
+  (`hidden`/`offPage`), never remove nodes. `page.evaluate` queries survive
+  a shut book; only boundingBox/locator access needs the book open, via the
+  new `lib/spellbook.mjs` (`showSkillRow`/`showSkillRowAt`) - 27 scripts
+  retrofitted through it, no hand-rolled variants.
+- ⭐ Badge in BOTH places (PO look 2026-08-28): the unspent-points count
+  rides the open buttons (desktop "B Spellbook" under #mapButton, the ☰
+  sheet row) AND the panel title; `updateSkillPointsDisplay` feeds every
+  `.skillPointsBadge` so they cannot disagree. `hasPoints` glow on the
+  buttons.
+- Mobile (D4): the book is a full-screen panel; the sheet keeps only a
+  Spellbook row. ⚑ Selecting a PASSIVE closes the book and opens the sheet
+  (its slots live there) via `MobileMenu.openSheet()`; aura/cooldown just
+  close the book. Confirmed at the PO look.
+- ⭐ Two product defects the new legs caught, fixed in-chunk:
+  `#bottomCenter`'s transparent strip swallowed pager clicks (new
+  `@z-left-column` token) · the `.offPage` rule lost a same-specificity
+  source-order tie to `.sectionHeader`'s `display: block` - the rule sits
+  AFTER it on purpose, do not reorder.
+- SimpleBar KEPT as overflow backstop only - pages are the reading
+  mechanism (`#spellbookScroll` clamp grew 24rem → 30rem for the tab row +
+  pager).
+
+Verified: vitest **538/538** (521 + 17) · tsc · prod build ·
+new `c3-spellbook` **26/26** (incl. the five exclusivity legs + D4 flows) ·
+`c1-world-map` **12/12** and `c2-layering` **11/11** untouched · **full
+32-script sweep**, every red settled: `chunk3-charm` 6/9 +
+`chunk3b-ii-conversation` 28/34 baseline-identical · `mobile-layout`
+(rewritten) red only in leg 7's three checks = the documented
+registration-nag cover, screenshot-confirmed · `r7-respec-cost`,
+`c0-honest-plate`, `chunkC4-quests` fail IDENTICALLY at HEAD
+(stash-and-rerun settlement), pre-existing · `c2-pull-through` 22/22 + 1
+known-inconclusive after one dwell-window flake · `harnessdb -cleanup` ran
+(72 accounts). ⭐ **PO clicked through 2026-08-28**; the look routed one
+wish - the badge in both places - applied and re-verified same session.
+**Schema NONE.**
 
 ### C2 - the layering & exclusivity policy ✅ 2026-08-26 `a284ff00`
 
