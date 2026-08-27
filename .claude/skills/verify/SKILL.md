@@ -321,7 +321,9 @@ should DERIVE it:
 
 ```bash
 grep -qE "^const (url|base) = process\.argv\[2\]" "$script" && first="$URL" || first="label"
-``` `ctxloss-warning` takes `clean|forced`. `r4-badge`'s `aura` leg needs
+```
+
+`ctxloss-warning` takes `clean|forced`. `r4-badge`'s `aura` leg needs
 a throwaway content edit (documented in its header); its `vanilla` leg runs as-is.
 
 ## Writing or repairing a harness
