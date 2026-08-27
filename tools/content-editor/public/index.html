@@ -16,26 +16,59 @@
 
 <div id="layout">
   <nav id="sidebar">
-    <div class="sidebar-section">
+    <div id="sidebar-tabs">
+      <button class="tab-btn active" data-tab="npc">NPCs</button>
+      <button class="tab-btn" data-tab="quest">Quests</button>
+      <button class="tab-btn" data-tab="mob">Mobs</button>
+      <button class="tab-btn" data-tab="faction">Factions</button>
+      <button class="tab-btn" data-tab="recipe">Recipes</button>
+      <button class="tab-btn" data-tab="milestones">Milestones</button>
+    </div>
+    <div class="sidebar-section" data-section="npc">
       <div class="sidebar-head">
-        <h2 id="npc-toggle" class="collapsible"><span class="chevron">▾</span> NPCs</h2>
         <input type="search" id="npc-filter" placeholder="filter…" />
         <button id="npc-new-btn" class="new-btn" title="Create a new NPC">+ New</button>
       </div>
       <ul id="npc-list" class="item-list"></ul>
     </div>
-    <div class="sidebar-section">
+    <div class="sidebar-section" data-section="quest" hidden>
       <div class="sidebar-head">
-        <h2 id="quest-toggle" class="collapsible"><span class="chevron">▾</span> Quests</h2>
         <input type="search" id="quest-filter" placeholder="filter…" />
         <button id="quest-new-btn" class="new-btn" title="Create a new quest">+ New</button>
       </div>
       <ul id="quest-list" class="item-list"></ul>
     </div>
+    <div class="sidebar-section" data-section="mob" hidden>
+      <div class="sidebar-head">
+        <input type="search" id="mob-filter" placeholder="filter…" />
+        <button id="mob-new-btn" class="new-btn" title="Create a new mob">+ New</button>
+      </div>
+      <ul id="mob-list" class="item-list"></ul>
+    </div>
+    <div class="sidebar-section" data-section="faction" hidden>
+      <div class="sidebar-head">
+        <input type="search" id="faction-filter" placeholder="filter…" />
+        <button id="faction-new-btn" class="new-btn" title="Create a new faction">+ New</button>
+      </div>
+      <ul id="faction-list" class="item-list"></ul>
+    </div>
+    <div class="sidebar-section" data-section="recipe" hidden>
+      <div class="sidebar-head">
+        <input type="search" id="recipe-filter" placeholder="filter…" />
+        <button id="recipe-new-btn" class="new-btn" title="Create a new recipe">+ New</button>
+      </div>
+      <ul id="recipe-list" class="item-list"></ul>
+    </div>
+    <div class="sidebar-section" data-section="milestones" hidden>
+      <div class="sidebar-head">
+        <span class="sidebar-hint">One shared file — every level unlock</span>
+      </div>
+      <ul id="milestones-list" class="item-list"></ul>
+    </div>
   </nav>
 
   <main id="editor-pane">
-    <div id="empty-state">Select an NPC or a quest on the left.</div>
+    <div id="empty-state">Select an NPC, a quest, a mob, a faction, a recipe, or the milestone table on the left.</div>
     <div id="editor-root" hidden></div>
   </main>
 

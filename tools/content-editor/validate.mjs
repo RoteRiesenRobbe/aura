@@ -18,12 +18,61 @@ const TRAVEL_MODES = ['home_campfire', 'caster'];
 const ROW_SOURCE_KINDS = ['ascension_catalog', 'memorial_names'];
 const OBJECTIVE_KINDS = ['kill', 'harvest', 'talk_to'];
 
+// Mob-definition vocabulary, ported from the Go single sources of truth:
+// backend/pkg/aura/items/mobs/role.go, definitions.go's tierRanks, and
+// backend/pkg/aura/skills/definition.go's DamageTypes/GateKeys.
+export const ROLES = ['creature', 'structure', 'follower'];
+export const TIERS = ['normal', 'elite', 'boss'];
+const TIER_RANK = { normal: 0, elite: 1, boss: 2 };
+export const DAMAGE_TYPES = ['physical', 'fire', 'frost', 'nature', 'poison', 'bleed'];
+export const RESIST_WILDCARD = '*';
+export const GATE_KEYS = ['harvest', 'smash'];
+// backend/pkg/aura/model/layers.go: CollisionLayer is `0x1 << iota` from
+// LayerPlayerStaticCollision, with one reserved gap bit (8) that must never
+// be offered — see that file's comment on why the gap cannot be filled.
+export const COLLISION_LAYER_BITS = [
+  { bit: 1, name: 'PlayerStatic' },
+  { bit: 2, name: 'Action' },
+  { bit: 4, name: 'Weapon' },
+  { bit: 16, name: 'Border' },
+  { bit: 32, name: 'Viewport' },
+  { bit: 64, name: 'MobStatic' },
+  { bit: 128, name: 'Player' },
+  { bit: 256, name: 'Placeable' },
+];
+
+// Faction vocabulary, ported from backend/pkg/aura/factions/factions.go.
+// "aligned"/"hostile" are the two built-in factions (player/summon, and the
+// default a mob gets with no faction key) — never declarable as a NEW
+// faction's own name, but always valid hostileTo targets (every faction
+// that fights players declares hostileTo: ["aligned"]).
+export const RESERVED_FACTION_NAMES = ['aligned', 'hostile'];
+// MaxFactions(64) - firstContentID(2): the aggro bitmask is a uint64, and
+// the two built-ins occupy bits 0-1.
+export const MAX_FACTIONS = 62;
+
 /** Builds the cross-file index every check needs: mob/quest/skill name sets
- * plus the dialogue-edge set that decides whether a stage is terminal. */
-export function buildIndex(mobs, quests, skillNames) {
+ * plus the dialogue-edge set that decides whether a stage is terminal.
+ * `extra.factionNames`/`extra.entityTypes` (arrays) feed mob-stat validation;
+ * `extra.skillMaxLevels` ({name: maxLevel}) and `extra.recipes` ([{file,raw}])
+ * feed recipe validation. Omit what doesn't apply at a given call site. */
+export function buildIndex(mobs, quests, skillNames, extra = {}) {
   const mobNames = new Set(mobs.map((m) => m.raw.name));
   const questsById = new Map(quests.map((q) => [q.raw.id, q.raw]));
   const skills = new Set(skillNames);
+  const factionNames = new Set(extra.factionNames || []);
+  const entityTypes = new Set(extra.entityTypes || []);
+  const skillMaxLevels = new Map(Object.entries(extra.skillMaxLevels || {}));
+
+  // recipe id -> [{file, result}] sharing it, so a recipe can be checked
+  // against every OTHER recipe's id (including a freshly-created one that
+  // hasn't saved yet) without a separate cross-file pass.
+  const recipeIdOwners = new Map();
+  for (const { file, raw } of extra.recipes || []) {
+    if (raw.id == null) continue;
+    if (!recipeIdOwners.has(raw.id)) recipeIdOwners.set(raw.id, []);
+    recipeIdOwners.get(raw.id).push({ file, result: raw.result });
+  }
 
   // questId -> Set(stageId) that some NPC's advance_quest walks OUT of.
   const dialogueEdgeFrom = new Map();
@@ -41,7 +90,10 @@ export function buildIndex(mobs, quests, skillNames) {
       }
     }
   }
-  return { mobNames, questsById, skills, dialogueEdgeFrom, offeredQuests };
+  return {
+    mobNames, questsById, skills, dialogueEdgeFrom, offeredQuests, factionNames, entityTypes,
+    skillMaxLevels, recipeIdOwners,
+  };
 }
 
 function stageById(quest, id) {
@@ -315,6 +367,207 @@ export function validateInteraction(mob, idx) {
   return errors;
 }
 
+/** Ports mapToMobDefinition's error-returning checks (backend/pkg/aura/items/
+ * mobs/definitions.go). Runs for EVERY mob, interaction or not — an NPC is
+ * just a mob that also carries one (docs/manual-content-authoring.md §1c),
+ * and these are mob-level rules, not interaction-level ones. Order mirrors
+ * the Go function so a fix here is easy to cross-check against it. */
+export function validateMob(mob, idx) {
+  const errors = [];
+  const err = (m) => errors.push({ message: m });
+  const who = `mob "${mob.name}"`;
+  const factors = mob.factors || {};
+  const body = mob.body || {};
+
+  const role = mob.role || 'creature';
+  if (mob.role && !ROLES.includes(mob.role)) {
+    err(`${who}: role "${mob.role}" must be one of ${ROLES.join('/')}`);
+  }
+  if (!(body.aggroRadius > 0) && role !== 'structure') {
+    err(`${who}: body.aggroRadius is required and must be > 0 for role "${role}"`);
+  }
+
+  if (factors.maxHealth) {
+    err(`${who}: factors.maxHealth is raw authoring — author factors.baseMaxHealth + tier + curveLevel instead (C0 tier+baseline rule)`);
+  }
+  if ('experience' in factors) {
+    err(`${who}: factors.experience was replaced by the kill-XP formula — author factors.xpFactor instead (0 stays 0; any other value: drop the key, the default 1 is a full at-level kill)`);
+  }
+  const xpFactor = factors.xpFactor ?? 1;
+  if (xpFactor < 0) err(`${who}: factors.xpFactor ${xpFactor} must be >= 0`);
+
+  const tier = mob.tier || 'normal';
+  if (mob.tier && !TIERS.includes(mob.tier)) {
+    err(`${who}: tier "${mob.tier}" must be one of ${TIERS.join('/')}`);
+  }
+  const rank = TIER_RANK[tier] ?? 0;
+  if (rank >= TIER_RANK.elite && !('ccImmune' in factors)) {
+    err(`${who}: tier "${tier}" must author factors.ccImmune (true or false) — the tier does not decide it`);
+  }
+
+  if (mob.curveLevel != null && mob.curveLevel < 0) {
+    err(`${who}: curveLevel ${mob.curveLevel} must be >= 1`);
+  }
+  const variance = factors.maxHealthVariance ?? 0;
+  if (variance < 0 || variance >= 1) err(`${who}: factors.maxHealthVariance ${variance} must be in [0, 1)`);
+  const fleeRatio = factors.fleeBelowHealthRatio ?? 0;
+  if (fleeRatio < 0 || fleeRatio > 1) err(`${who}: factors.fleeBelowHealthRatio ${fleeRatio} must be in [0, 1]`);
+  const supportThreshold = factors.supportThreshold ?? 0;
+  if (supportThreshold < 0 || supportThreshold > 1) err(`${who}: factors.supportThreshold ${supportThreshold} must be in [0, 1] (or absent for 1.0)`);
+
+  const wanderRadius = factors.wanderRadius ?? 0;
+  if (wanderRadius < 0) err(`${who}: factors.wanderRadius ${wanderRadius} must not be negative`);
+  if (wanderRadius > 0 && !(factors.speed > 0)) err(`${who}: stationary mob (speed 0) cannot carry a default wanderRadius`);
+  const idleSpeedFactor = factors.idleSpeedFactor ?? 0;
+  if (idleSpeedFactor < 0 || idleSpeedFactor > 1) err(`${who}: factors.idleSpeedFactor ${idleSpeedFactor} must be in (0, 1] (or absent)`);
+  const dwellMin = factors.idleDwellMinTicks ?? 0;
+  const dwellMax = factors.idleDwellMaxTicks ?? 0;
+  if (dwellMin < 0 || dwellMax < 0) err(`${who}: idle dwell ticks must not be negative`);
+  if (dwellMax > 0 && dwellMin > dwellMax) err(`${who}: idleDwellMinTicks ${dwellMin} exceeds idleDwellMaxTicks ${dwellMax}`);
+
+  for (const [tag, multiplier] of Object.entries(factors.resistances || {})) {
+    if (!tag) { err(`${who}: resistances: empty tag`); continue; }
+    if (tag !== RESIST_WILDCARD && !DAMAGE_TYPES.includes(tag)) {
+      if (GATE_KEYS.includes(tag)) err(`${who}: resistances["${tag}"]: that is a GATE KEY, not a damage type — author it in factors.gateKeys`);
+      else err(`${who}: resistances["${tag}"]: unknown damage type`);
+      continue;
+    }
+    if (multiplier < 0) err(`${who}: resistances["${tag}"]: must be >= 0, got ${multiplier}`);
+  }
+  for (const key of factors.gateKeys || []) {
+    if (!GATE_KEYS.includes(key)) {
+      if (DAMAGE_TYPES.includes(key)) err(`${who}: gateKeys: "${key}" is a DAMAGE TYPE, not a gate key — author it in factors.resistances`);
+      else err(`${who}: gateKeys: unknown gate key "${key}"`);
+    }
+  }
+
+  const wireKey = mob.entityType || mob.name;
+  if (!idx.entityTypes.has(wireKey)) {
+    if (mob.entityType) err(`${who}: entityType "${mob.entityType}" is not a known EntityType`);
+    else err(`${who}: name is not a known EntityType and no entityType override is set`);
+  }
+
+  if (mob.faction) {
+    if (mob.faction === 'aligned') err(`${who}: faction "aligned" is summon-only and cannot be authored`);
+    else if (!idx.factionNames.has(mob.faction)) err(`${who}: faction "${mob.faction}" not found`);
+  }
+
+  for (const s of mob.skills || []) {
+    if (!s.skillName || !idx.skills.has(s.skillName)) err(`${who}: skill "${s.skillName}" not found`);
+  }
+  for (const u of mob.unlocks || []) {
+    if (!u.skillName || !idx.skills.has(u.skillName)) err(`${who}: unlock skill "${u.skillName}" not found`);
+    const chance = u.chance ?? 1.0;
+    if (chance <= 0 || chance > 1) err(`${who}: unlock "${u.skillName}" chance ${chance} must be in (0, 1]`);
+  }
+
+  // The two cross-field checks from mapToMobDefinition that fire only once
+  // an interaction is attached — a conversant with no sensor, or one riding
+  // the dangerous unset-collisionLayer default (aura-targetable by nothing
+  // stopping it).
+  if (mob.interaction) {
+    const senseRadius = Math.max(body.aggroRadius || 0, mob.interaction.range || 0);
+    if (!(senseRadius > 0)) err(`${who}: an interaction needs a sensor — author interaction.range or body.aggroRadius`);
+    if (!(body.collisionLayer > 0)) err(`${who}: a mob carrying an interaction must author body.collisionLayer explicitly — the unset default is aura-targetable`);
+  }
+
+  return errors;
+}
+
+/** Ports RegistryFromFS's per-faction checks (backend/pkg/aura/factions/
+ * factions.go): a required (possibly empty) hostileTo list, each entry
+ * resolving to a known faction (a declared one, or the two reserved
+ * built-ins), no self-reference, and the friendlyToPlayers/hostileTo
+ * "aligned" contradiction. Duplicate-name-across-files and the total
+ * MAX_FACTIONS cap are cross-file checks — see validateAll. */
+export function validateFaction(faction, idx) {
+  const errors = [];
+  const err = (m) => errors.push({ message: m });
+  const name = faction.name;
+  if (!name || !name.trim()) { err('faction without a name'); return errors; }
+  const who = `faction "${name}"`;
+  if (RESERVED_FACTION_NAMES.includes(name)) err(`${who}: name is reserved (built-in) and cannot be declared`);
+
+  if (!Array.isArray(faction.hostileTo)) {
+    err(`${who}: hostileTo is required (use [] for a passive, retaliation-only faction)`);
+    return errors;
+  }
+  let hostileToAligned = false;
+  for (const ref of faction.hostileTo) {
+    if (ref === name) { err(`${who}: hostileTo must not reference itself`); continue; }
+    if (!RESERVED_FACTION_NAMES.includes(ref) && !idx.factionNames.has(ref)) {
+      err(`${who}: hostileTo references unknown faction "${ref}"`);
+      continue;
+    }
+    if (ref === 'aligned') hostileToAligned = true;
+  }
+  if (faction.friendlyToPlayers && hostileToAligned) {
+    err(`${who}: friendlyToPlayers contradicts hostileTo "aligned"`);
+  }
+  return errors;
+}
+
+/** Ports recipe.go's load-time checks (backend/pkg/aura/skills/recipe.go):
+ * `id` is required and must be globally unique (author-picked, not
+ * auto-incremented by Go); `result` must resolve to an ALREADY-authored
+ * skill — a recipe cannot create one, only unlock an existing definition via
+ * a second path; ingredients must be non-empty, and each one's skill must
+ * resolve with its level in [1, that skill's maxLevel]. Cross-recipe
+ * chaining (one recipe's result named as another's ingredient), two recipes
+ * sharing an ingredient set, and a skill repeated within one ingredient list
+ * are all legal by design (recipe.go's own doc comment + the shipped
+ * Warbanner/Spearhead chain) — none of that is flagged here. */
+export function validateRecipe(recipe, idx) {
+  const errors = [];
+  const err = (m) => errors.push({ message: m });
+  const who = recipe.result ? `recipe "${recipe.result}"` : `recipe id ${recipe.id ?? '?'}`;
+
+  if (typeof recipe.id !== 'number') {
+    err(`${who}: id is required and must be a number`);
+  } else {
+    const owners = idx.recipeIdOwners.get(recipe.id) || [];
+    if (owners.length > 1) {
+      const others = owners.map((o) => `"${o.result || o.file}"`).join(', ');
+      err(`${who}: id ${recipe.id} is not unique — shared by ${others}`);
+    }
+  }
+
+  if (!recipe.result) err(`${who}: result is required`);
+  else if (!idx.skills.has(recipe.result)) {
+    err(`${who}: unknown result skill "${recipe.result}" — the result must already be authored under api/skills/`);
+  }
+
+  const ingredients = recipe.ingredients || [];
+  if (ingredients.length === 0) { err(`${who}: empty ingredient list`); return errors; }
+  ingredients.forEach((ing, i) => {
+    const iWho = `${who} ingredient ${i}`;
+    if (!ing.skill) { err(`${iWho}: needs a skill`); return; }
+    if (!idx.skills.has(ing.skill)) { err(`${iWho}: unknown skill "${ing.skill}"`); return; }
+    const maxLevel = idx.skillMaxLevels.get(ing.skill);
+    if (!(ing.level >= 1) || (maxLevel != null && ing.level > maxLevel)) {
+      err(`${iWho}: "${ing.skill}" level ${ing.level} must be in [1, ${maxLevel ?? '?'}]`);
+    }
+  });
+  return errors;
+}
+
+/** Ports skills/milestones.go: every entry's `skillName` must resolve
+ * against the skill registry; `level` must be a non-negative integer. Go
+ * enforces neither uniqueness nor sort order — two skills at the same level,
+ * or the same skill twice, are both legal — so neither is flagged here. */
+export function validateMilestones(list, idx) {
+  const errors = [];
+  const err = (m) => errors.push({ message: m });
+  if (!Array.isArray(list)) { err('milestone-unlocks.json must be a JSON array'); return errors; }
+  list.forEach((entry, i) => {
+    const who = `milestone entry ${i} (level ${entry.level})`;
+    if (!Number.isInteger(entry.level) || entry.level < 0) err(`${who}: level must be a non-negative integer`);
+    if (!entry.skillName) err(`${who}: skillName is required`);
+    else if (!idx.skills.has(entry.skillName)) err(`${who}: skill "${entry.skillName}" not found`);
+  });
+  return errors;
+}
+
 /** grant_xp is only safe on an edge that ends the quest (otherwise abandon
  * + re-accept loops the reward). Needs the full cross-file edge index. */
 function validateXpTerminal(mob, idx) {
@@ -338,19 +591,42 @@ function validateXpTerminal(mob, idx) {
 }
 
 /** Runs every check over the whole content set. `mobs`/`quests` are arrays
- * of {file, raw}; `skillNames` is a flat array of skill name strings. */
-export function validateAll(mobs, quests, skillNames) {
-  const idx = buildIndex(mobs, quests, skillNames);
+ * of {file, raw}; `skillNames` is a flat array of skill name strings; `extra`
+ * is buildIndex's optional {factionNames, entityTypes, skillMaxLevels}, plus
+ * `extra.factions`/`extra.recipes` ([{file, raw}]) so those files themselves
+ * get validated here too, and `extra.milestones` ({file, raw} — raw is the
+ * whole array, it's one shared file) — the per-mob loops above only ever
+ * read faction/skill NAMES as a reference target, never validate those
+ * definitions on their own. */
+export function validateAll(mobs, quests, skillNames, extra = {}) {
+  const idx = buildIndex(mobs, quests, skillNames, extra);
   const errors = [];
   const warnings = [];
+  const factions = extra.factions || [];
+  const recipes = extra.recipes || [];
 
   for (const { file, raw } of quests) {
     for (const e of validateQuest(raw, idx)) errors.push({ file, kind: 'quest', ...e });
   }
   for (const { file, raw } of mobs) {
+    for (const e of validateMob(raw, idx)) errors.push({ file, kind: 'mob', ...e });
     if (!raw.interaction) continue;
     for (const e of validateInteraction(raw, idx)) errors.push({ file, kind: 'npc', ...e });
     for (const e of validateXpTerminal(raw, idx)) errors.push({ file, kind: 'npc', ...e });
+  }
+  for (const { file, raw } of factions) {
+    for (const e of validateFaction(raw, idx)) errors.push({ file, kind: 'faction', ...e });
+  }
+  if (factions.length > MAX_FACTIONS) {
+    errors.push({ file: null, kind: 'faction', message: `${factions.length} factions declared, at most ${MAX_FACTIONS} are supported` });
+  }
+  for (const { file, raw } of recipes) {
+    for (const e of validateRecipe(raw, idx)) errors.push({ file, kind: 'recipe', ...e });
+  }
+  if (extra.milestones) {
+    for (const e of validateMilestones(extra.milestones.raw, idx)) {
+      errors.push({ file: extra.milestones.file, kind: 'milestones', ...e });
+    }
   }
   for (const q of idx.questsById.values()) {
     if (!idx.offeredQuests.has(q.id)) {

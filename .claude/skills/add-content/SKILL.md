@@ -48,14 +48,25 @@ the bottom. Trust the code over the manual if a path has drifted.
 - **Gated damage tags:** combat mobs need **no** harvest/resistance entry; only
   gate obstacles opt in (`{"*":0,"<tag>":1}`, e.g. turnip `harvest`, rockfall
   `smash`). The `"*"` wildcard does not opt in.
-- **`milestone-unlocks.json` is embedded** → needs a **rebuild even with
-  `-content`**. Plain `api/` JSON does not.
+- ~~**`milestone-unlocks.json` is embedded**~~ **stale since 2026-07-21
+  (`d7460462`):** it moved from `backend/pkg/aura/skills/` into ordinary
+  `api/milestones/`, so it now loads exactly like every other `api/` content
+  kind — `-content ../api` + restart picks it up, no rebuild needed. It's
+  still one shared file (a JSON array), not one file per entry like mobs/
+  quests/recipes/factions.
 - **A new `api/props/*.json` file needs the Tiled palette regenerated too**,
   separately from the game-side wiring above: `node
   tools/tiled/generate-palette.mjs` then `bash tools/tiled/verify.sh`
   (`docs/manual-tiled-editor.md` §6). It reads the prop's own `sprite` field —
   no separate map to maintain any more, but a missing/empty `sprite` hard-fails
   at server boot (`world/props.go`), before this script would ever see it.
+- **A new/changed mob, quest, faction, recipe, or milestone field or
+  validation rule needs `tools/content-editor/` updated by hand** (`docs/manual-content-authoring.md`
+  "Known hand-sync points"): `validate.mjs` (the JS port of the Go rule),
+  `public/app.js` (the form field), and the README's scope section. The editor
+  reads `api/` fresh off disk, so it never crashes on an unrecognized field —
+  it just silently can't author or validate it, which only surfaces as "why
+  didn't the editor warn me about this."
 
 ## Registry pins — the thing that leaves the suite RED at HEAD
 
@@ -66,7 +77,13 @@ at HEAD (this bit C2 — "Part 1 never bumped the pinned count"). After adding:
   `assert.Len(t, r.All(), N)` (~line 168). Bump `N` by skills added.
 - **Recipes:** `backend/pkg/aura/skills/recipe_test.go` →
   `assert.Len(t, rr.All(), N)` (~line 168, `TestRecipes_C7Net`). Bump by recipes
-  added, and extend the cascade assertions if the net changed.
+  added, and extend the cascade assertions if the net changed. Recipe `id`s
+  are author-picked and must be globally unique — the loader hard-fails on a
+  collision, it does not auto-assign one.
+- **Milestones:** `backend/pkg/aura/skills/milestones_test.go` →
+  `TestMilestoneUnlocksFromFS_PinnedTable` asserts the exact resolved
+  `{skillName: level}` map. Adding, removing, or re-leveling any entry in
+  `api/milestones/milestone-unlocks.json` breaks it until hand-updated.
 - **Mobs: THREE content censuses in `backend/pkg/aura/items/mobs`**, and a new
   def trips every one it belongs to (measured, ascension-sites C1):
   `interaction_content_test.go` (the named list of conversants — any def with an

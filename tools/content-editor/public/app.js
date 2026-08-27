@@ -1,4 +1,8 @@
-import { buildIndex, validateInteraction, validateQuest, validateAll } from '/validate.mjs';
+import {
+  buildIndex, validateInteraction, validateQuest, validateAll, validateMob, validateFaction,
+  validateRecipe, validateMilestones,
+  ROLES, TIERS, DAMAGE_TYPES, RESIST_WILDCARD, GATE_KEYS, COLLISION_LAYER_BITS, RESERVED_FACTION_NAMES,
+} from '/validate.mjs';
 
 /* ---- tiny DOM helper ------------------------------------------------- */
 function el(tag, props = {}, children = []) {
@@ -30,29 +34,68 @@ const state = {
   mobs: [],       // [{file, raw}]
   quests: [],     // [{file, raw}]
   skillNames: [],
+  skillMaxLevels: {}, // {name: maxLevel}, for recipe ingredient range checks
+  factions: [],   // [{file, raw}]
+  recipes: [],    // [{file, raw}]
+  milestones: null, // {file, raw} — raw is the WHOLE array; one shared file, not one per entry
+  entityTypes: [],
   pristine: new Map(), // file -> JSON string at load/save time
-  selected: null, // {kind:'npc'|'quest', file}
+  selected: null, // {kind:'mob'|'quest'|'faction'|'recipe'|'milestones', file} — an NPC IS a mob (one w/ interaction), so one editor covers both
   npcFilter: '',
   questFilter: '',
+  mobFilter: '',
+  factionFilter: '',
+  recipeFilter: '',
+  // Faction names (or 'hostile', the built-in default for an unauthored
+  // faction) collapsed in each sidebar tab — separate per tab so browsing
+  // Mobs and NPCs can be folded differently. Session-only, like every other
+  // UI-state field here; not persisted across a reload.
+  npcFactionCollapsed: new Set(),
+  mobFactionCollapsed: new Set(),
+  // stat-section titles ('Identity', 'Factors', ...) collapsed in the mob
+  // editor — shared across every mob you open, since it's "I don't care
+  // about Factors right now" rather than a per-mob preference.
+  mobSectionCollapsed: new Set(),
 };
 
 const $ = (sel) => document.querySelector(sel);
 const npcListEl = $('#npc-list');
 const questListEl = $('#quest-list');
+const mobListEl = $('#mob-list');
+const factionListEl = $('#faction-list');
+const recipeListEl = $('#recipe-list');
+const milestonesListEl = $('#milestones-list');
 const editorRoot = $('#editor-root');
 const emptyState = $('#empty-state');
 const globalStatus = $('#global-status');
 const validationSummary = $('#validation-summary');
 const validationList = $('#validation-list');
 
-function idx() { return buildIndex(state.mobs, state.quests, state.skillNames); }
+function idx() {
+  return buildIndex(state.mobs, state.quests, state.skillNames, {
+    factionNames: state.factions.map((f) => f.raw.name),
+    entityTypes: state.entityTypes,
+    skillMaxLevels: state.skillMaxLevels,
+    recipes: state.recipes,
+  });
+}
+function factionDisplayName(name) {
+  if (!name) return 'Hostile';
+  const f = state.factions.find((f) => f.raw.name === name);
+  return f ? (f.raw.displayName || f.raw.name) : name;
+}
 function mobsWithInteraction() { return state.mobs.filter((m) => m.raw.interaction); }
 function findMob(file) { return state.mobs.find((m) => m.file === file); }
 function findQuest(file) { return state.quests.find((q) => q.file === file); }
+function findFaction(file) { return state.factions.find((f) => f.file === file); }
+function findRecipe(file) { return state.recipes.find((r) => r.file === file); }
 function isDirty(file) { return state.pristine.get(file) !== JSON.stringify(stateRawFor(file)); }
 function stateRawFor(file) {
   const m = findMob(file); if (m) return m.raw;
   const q = findQuest(file); if (q) return q.raw;
+  const f = findFaction(file); if (f) return f.raw;
+  const r = findRecipe(file); if (r) return r.raw;
+  if (state.milestones && state.milestones.file === file) return state.milestones.raw;
   return null;
 }
 function markPristine(file) { state.pristine.set(file, JSON.stringify(stateRawFor(file))); }
@@ -61,12 +104,18 @@ function markPristine(file) { state.pristine.set(file, JSON.stringify(stateRawFo
 // loaded or saved (not a fetch — the pristine snapshot already held in
 // state.pristine). Confirms only when there's actually something to lose.
 // A never-saved draft (entry.isNew) has no pristine snapshot to restore —
-// "reset" for it means dropping the draft entirely.
+// "reset" for it means dropping the draft entirely. `kind` is 'mob',
+// 'quest', or 'faction'; renderMobEditor already handles a mob with/without
+// `interaction` uniformly, so resetting one that had a dialogue tree added
+// and then reverted just re-renders the same editor with that section
+// collapsed away.
 function resetEntry(entry, kind) {
   if (entry.isNew) {
     if (!confirm(`Discard the new, unsaved "${entry.file}"?`)) return;
-    if (kind === 'npc') state.mobs = state.mobs.filter((m) => m !== entry);
-    else state.quests = state.quests.filter((q) => q !== entry);
+    if (kind === 'mob') state.mobs = state.mobs.filter((m) => m !== entry);
+    else if (kind === 'quest') state.quests = state.quests.filter((q) => q !== entry);
+    else if (kind === 'faction') state.factions = state.factions.filter((f) => f !== entry);
+    else if (kind === 'recipe') state.recipes = state.recipes.filter((r) => r !== entry);
     state.selected = null;
     renderSidebar();
     renderEditor();
@@ -125,7 +174,46 @@ function createNewNpc() {
   };
   const entry = { file, raw, isNew: true };
   state.mobs.push(entry);
-  state.selected = { kind: 'npc', file };
+  state.selected = { kind: 'mob', file };
+  renderSidebar();
+  renderEditor();
+}
+
+// The Wolf-shaped combat-mob template (CLAUDE.md's ARCHETYPE RULE — HP 55 /
+// speed 0.7 / aggro 3.0 is the reference unit every other species' numbers
+// are a RATIO to, TestGuardrails_ArchetypeTrade enforces it catalog-wide).
+// No `entityType` and no `faction` are set: a new mob resolves by NAME
+// against the EntityType enum, and for a genuinely new species that
+// legitimately fails validation immediately — which is deliberate. This
+// editor never pretends a species with no sprite is ready to ship; the error
+// box is what tells you to either author an `entityType` override reusing
+// existing art, or walk the manual 5-file wire path first.
+function createNewMob() {
+  const display = prompt('New mob name (e.g. "Cave Troll"):');
+  if (!display) return;
+  const name = toCamelName(display);
+  const slug = slugify(display);
+  if (!name || !slug) { alert('That name needs at least one letter or number.'); return; }
+  const file = `api/mobs/${slug}.json`;
+  if (findMob(file) || state.mobs.some((m) => m.raw.name === name)) {
+    alert(`A mob already resolves to "${file}" (name "${name}"). Pick a different name.`);
+    return;
+  }
+  const nextId = state.mobs.reduce((max, m) => Math.max(max, m.raw.id || 0), 0) + 1;
+  const raw = {
+    id: nextId,
+    name,
+    type: 'MOB',
+    tier: 'normal',
+    curveLevel: 1,
+    factors: { baseMaxHealth: 55, speed: 0.7 },
+    body: { radius: 0.3, aggroRadius: 3 },
+    skills: [],
+    unlocks: [],
+  };
+  const entry = { file, raw, isNew: true };
+  state.mobs.push(entry);
+  state.selected = { kind: 'mob', file };
   renderSidebar();
   renderEditor();
 }
@@ -152,6 +240,54 @@ function createNewQuest() {
   renderEditor();
 }
 
+// Faction filenames are snake_case matching their `name` field verbatim
+// (wildlife_predator.json) — a different convention from mobs/quests'
+// kebab-case slugs, so this gets its own slugifier rather than reusing
+// slugify().
+function snakeSlugify(s) {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+function createNewFaction() {
+  const display = prompt('New faction name (e.g. "Sea Raiders"):');
+  if (!display) return;
+  const name = snakeSlugify(display);
+  if (!name) { alert('That name needs at least one letter or number.'); return; }
+  if (RESERVED_FACTION_NAMES.includes(name)) { alert(`"${name}" is a reserved built-in faction and can't be declared.`); return; }
+  const file = `api/factions/${name}.json`;
+  if (findFaction(file) || state.factions.some((f) => f.raw.name === name)) {
+    alert(`A faction already resolves to "${file}" (name "${name}"). Pick a different name.`);
+    return;
+  }
+  const raw = { name, displayName: display, hostileTo: [], friendlyToPlayers: false };
+  const entry = { file, raw, isNew: true };
+  state.factions.push(entry);
+  state.selected = { kind: 'faction', file };
+  renderSidebar();
+  renderEditor();
+}
+
+// A recipe's filename has no fixed relationship to its `result` field
+// (`barrier-home.json` results in "Barrier") — it's just a descriptive slug
+// — so this prompts for a filename-ish title separately from picking the
+// result skill, which happens in the editor form itself (left blank here,
+// so validation immediately flags it as the one thing left to fill in).
+function createNewRecipe() {
+  const title = prompt('New recipe name, for the filename (e.g. "Ice Wall"; you\'ll pick the result skill next, in the form):');
+  if (!title) return;
+  const slug = slugify(title);
+  if (!slug) { alert('That name needs at least one letter or number.'); return; }
+  const file = `api/recipes/${slug}.json`;
+  if (findRecipe(file)) { alert(`A recipe already resolves to "${file}". Pick a different name.`); return; }
+  const nextId = state.recipes.reduce((max, r) => Math.max(max, r.raw.id ?? 0), 0) + 1;
+  const raw = { id: nextId, result: '', ingredients: [] };
+  const entry = { file, raw, isNew: true };
+  state.recipes.push(entry);
+  state.selected = { kind: 'recipe', file };
+  renderSidebar();
+  renderEditor();
+}
+
 /* ---- load -------------------------------------------------------------- */
 async function loadAll() {
   const res = await fetch('/api/data');
@@ -159,8 +295,16 @@ async function loadAll() {
   state.mobs = data.mobs;
   state.quests = data.quests;
   state.skillNames = data.skillNames;
+  state.skillMaxLevels = data.skillMaxLevels;
+  state.factions = data.factions;
+  state.recipes = data.recipes;
+  state.milestones = data.milestones;
+  state.entityTypes = data.entityTypes;
   for (const m of state.mobs) markPristine(m.file);
   for (const q of state.quests) markPristine(q.file);
+  for (const f of state.factions) markPristine(f.file);
+  for (const r of state.recipes) markPristine(r.file);
+  if (state.milestones) markPristine(state.milestones.file);
   renderSidebar();
   await runGlobalValidation();
   if (state.selected) renderEditor();
@@ -196,27 +340,96 @@ function validationRow(item, cls) {
 
 function selectByFile(file) {
   const m = findMob(file);
-  if (m) { state.selected = { kind: 'npc', file }; renderSidebar(); renderEditor(); return; }
+  if (m) { state.selected = { kind: 'mob', file }; renderSidebar(); renderEditor(); return; }
   const q = findQuest(file);
   if (q) { state.selected = { kind: 'quest', file }; renderSidebar(); renderEditor(); return; }
+  const f = findFaction(file);
+  if (f) { state.selected = { kind: 'faction', file }; renderSidebar(); renderEditor(); return; }
+  const r = findRecipe(file);
+  if (r) { state.selected = { kind: 'recipe', file }; renderSidebar(); renderEditor(); return; }
+  if (state.milestones && state.milestones.file === file) {
+    state.selected = { kind: 'milestones', file }; renderSidebar(); renderEditor(); return;
+  }
 }
 
 /* ---- sidebar ------------------------------------------------------------ */
+// NPCs/Mobs are the SAME editor now (renderMobEditor) — an NPC is just a mob
+// that carries an interaction block (docs/manual-content-authoring.md §1c) —
+// so both tabs use kind:'mob' throughout; they differ only in which slice of
+// the roster they filter to, as a browsing convenience.
 function renderSidebar() {
   const npcs = mobsWithInteraction().filter((m) => matchesFilter(m.raw.name, state.npcFilter));
-  npcListEl.innerHTML = '';
-  for (const m of npcs.sort((a, b) => a.raw.name.localeCompare(b.raw.name))) {
-    npcListEl.appendChild(sidebarItem(m.raw.name, m.file, 'npc'));
-  }
+  renderFactionGroupedList(npcListEl, npcs, state.npcFactionCollapsed);
+
   const quests = state.quests.filter((q) => matchesFilter(q.raw.title || q.raw.id, state.questFilter));
   questListEl.innerHTML = '';
   for (const q of quests.sort((a, b) => (a.raw.title || a.raw.id).localeCompare(b.raw.title || b.raw.id))) {
     questListEl.appendChild(sidebarItem(q.raw.title || q.raw.id, q.file, 'quest'));
   }
+
+  const mobs = state.mobs.filter((m) => matchesFilter(m.raw.name, state.mobFilter));
+  renderFactionGroupedList(mobListEl, mobs, state.mobFactionCollapsed);
+
+  const factions = state.factions.filter((f) => matchesFilter(f.raw.displayName || f.raw.name, state.factionFilter));
+  factionListEl.innerHTML = '';
+  for (const f of factions.sort((a, b) => (a.raw.displayName || a.raw.name).localeCompare(b.raw.displayName || b.raw.name))) {
+    factionListEl.appendChild(sidebarItem(f.raw.displayName || f.raw.name, f.file, 'faction'));
+  }
+
+  const recipes = state.recipes.filter((r) => matchesFilter(r.raw.result, state.recipeFilter));
+  recipeListEl.innerHTML = '';
+  for (const r of recipes.sort((a, b) => (a.raw.result || '').localeCompare(b.raw.result || ''))) {
+    recipeListEl.appendChild(sidebarItem(r.raw.result || '(no result set)', r.file, 'recipe'));
+  }
+
+  milestonesListEl.innerHTML = '';
+  if (state.milestones) {
+    milestonesListEl.appendChild(sidebarItem(`Milestone unlocks (${state.milestones.raw.length})`, state.milestones.file, 'milestones'));
+  }
 }
 
 function matchesFilter(name, filter) {
   return !filter || (name || '').toLowerCase().includes(filter.toLowerCase());
+}
+
+// Groups entries by mob.faction (absent = the built-in 'hostile' default),
+// alphabetically by DISPLAY name, each group a collapsible <li><ul> nested
+// inside the outer .item-list — collapsedSet tracks which faction NAMES
+// (the raw key, not the display label) are folded, shared across a re-render
+// so re-selecting an item doesn't reset what the user folded.
+function renderFactionGroupedList(container, entries, collapsedSet) {
+  container.innerHTML = '';
+  const groups = new Map();
+  for (const m of entries) {
+    const faction = m.raw.faction || '';
+    if (!groups.has(faction)) groups.set(faction, []);
+    groups.get(faction).push(m);
+  }
+  const factions = [...groups.keys()].sort((a, b) => factionDisplayName(a).localeCompare(factionDisplayName(b)));
+  for (const faction of factions) {
+    const items = groups.get(faction).sort((a, b) => a.raw.name.localeCompare(b.raw.name));
+    container.appendChild(factionGroup(faction, items, collapsedSet));
+  }
+}
+
+function factionGroup(faction, items, collapsedSet) {
+  const collapsed = collapsedSet.has(faction);
+  const itemsList = el('ul', { class: 'faction-items' }, items.map((m) => sidebarItem(m.raw.name, m.file, 'mob')));
+  const li = el('li', { class: 'faction-group' + (collapsed ? ' collapsed' : '') }, [
+    el('div', {
+      class: 'faction-header',
+      onclick: () => {
+        if (collapsedSet.has(faction)) collapsedSet.delete(faction); else collapsedSet.add(faction);
+        renderSidebar();
+      },
+    }, [
+      el('span', { class: 'chevron', text: '▾' }),
+      el('span', { class: 'faction-name', text: factionDisplayName(faction) }),
+      el('span', { class: 'faction-count', text: String(items.length) }),
+    ]),
+    itemsList,
+  ]);
+  return li;
 }
 
 function sidebarItem(label, file, kind) {
@@ -233,15 +446,25 @@ function sidebarItem(label, file, kind) {
 
 $('#npc-filter').addEventListener('input', (e) => { state.npcFilter = e.target.value; renderSidebar(); });
 $('#quest-filter').addEventListener('input', (e) => { state.questFilter = e.target.value; renderSidebar(); });
+$('#mob-filter').addEventListener('input', (e) => { state.mobFilter = e.target.value; renderSidebar(); });
+$('#faction-filter').addEventListener('input', (e) => { state.factionFilter = e.target.value; renderSidebar(); });
+$('#recipe-filter').addEventListener('input', (e) => { state.recipeFilter = e.target.value; renderSidebar(); });
 $('#revalidate-btn').addEventListener('click', runGlobalValidation);
 $('#npc-new-btn').addEventListener('click', createNewNpc);
 $('#quest-new-btn').addEventListener('click', createNewQuest);
+$('#mob-new-btn').addEventListener('click', createNewMob);
+$('#faction-new-btn').addEventListener('click', createNewFaction);
+$('#recipe-new-btn').addEventListener('click', createNewRecipe);
 
-$('#npc-toggle').addEventListener('click', () => { state.npcCollapsed = !state.npcCollapsed; applyCollapsedState(); });
-$('#quest-toggle').addEventListener('click', () => { state.questCollapsed = !state.questCollapsed; applyCollapsedState(); });
-function applyCollapsedState() {
-  $('#npc-toggle').closest('.sidebar-section').classList.toggle('collapsed', !!state.npcCollapsed);
-  $('#quest-toggle').closest('.sidebar-section').classList.toggle('collapsed', !!state.questCollapsed);
+const tabButtons = document.querySelectorAll('#sidebar-tabs .tab-btn');
+for (const btn of tabButtons) {
+  btn.addEventListener('click', () => switchSidebarTab(btn.dataset.tab));
+}
+function switchSidebarTab(tab) {
+  for (const btn of tabButtons) btn.classList.toggle('active', btn.dataset.tab === tab);
+  for (const sec of document.querySelectorAll('.sidebar-section')) {
+    sec.hidden = sec.dataset.section !== tab;
+  }
 }
 
 /* ---- arrow overlay ------------------------------------------------------ */
@@ -286,17 +509,22 @@ function renderEditor() {
   emptyState.hidden = true;
   editorRoot.hidden = false;
   editorRoot.innerHTML = '';
-  if (state.selected.kind === 'npc') renderNpcEditor(findMob(state.selected.file));
-  else renderQuestEditor(findQuest(state.selected.file));
+  if (state.selected.kind === 'quest') renderQuestEditor(findQuest(state.selected.file));
+  else if (state.selected.kind === 'faction') renderFactionEditor(findFaction(state.selected.file));
+  else if (state.selected.kind === 'recipe') renderRecipeEditor(findRecipe(state.selected.file));
+  else if (state.selected.kind === 'milestones') renderMilestonesEditor(state.milestones);
+  else renderMobEditor(findMob(state.selected.file));
 }
 
 /* ======================================================================
- * NPC / dialogue-tree editor
+ * Mob editor — full stat fields PLUS the dialogue tree when the mob carries
+ * one. An NPC is not a separate schema: it's an ordinary mob definition with
+ * an `interaction` block (docs/manual-content-authoring.md §1c), so one
+ * editor covers both — the dialogue-tree section just doesn't render (a
+ * "+ Add dialogue tree" button stands in) when there's no interaction yet.
  * ==================================================================== */
-function renderNpcEditor(entry) {
+function renderMobEditor(entry) {
   const mob = entry.raw;
-  mob.interaction = mob.interaction || { range: 2, ambient: [], nodes: [] };
-  const inter = mob.interaction;
 
   const header = el('div', { class: 'editor-header' }, [
     el('div', {}, [
@@ -308,22 +536,271 @@ function renderNpcEditor(entry) {
     ]),
     el('div', { class: 'editor-actions' }, [
       el('span', { class: 'save-feedback', id: 'save-feedback' }),
-      el('button', { onclick: () => resetEntry(entry, 'npc') }, 'Reset'),
-      el('button', { class: 'primary', onclick: () => saveNpc(entry) }, 'Save'),
+      el('button', { onclick: () => resetEntry(entry, 'mob') }, 'Reset'),
+      el('button', { class: 'primary', onclick: () => saveMob(entry) }, 'Save'),
     ]),
   ]);
   editorRoot.appendChild(header);
 
-  const topFields = el('div', { class: 'top-fields' }, [
-    field('Range', numberInput(inter.range ?? 0, (v) => { inter.range = v; refreshDirtyAndErrors(); })),
-    field('Ambient (one hail per line)', textArea((inter.ambient || []).join('\n'), (v) => {
-      inter.ambient = splitLines(v); refreshDirtyAndErrors();
-    }, 'lines-textarea')),
-  ]);
-  editorRoot.appendChild(topFields);
-
-  const errBox = el('div', { class: 'errors-inline', id: 'npc-errors' });
+  const errBox = el('div', { class: 'errors-inline', id: 'mob-errors' });
   editorRoot.appendChild(errBox);
+
+  // One combined validation pass — mob-level rules always, interaction-level
+  // ones only when this mob actually carries a dialogue tree — shown in one
+  // place rather than split across sections; each message already names its
+  // own node/option, so it's still easy to place.
+  function refreshErrors() {
+    const errors = [...validateMob(mob, idx()), ...(mob.interaction ? validateInteraction(mob, idx()) : [])];
+    errBox.innerHTML = '';
+    for (const e of errors) errBox.appendChild(el('div', { class: 'err-line', text: e.message }));
+    sidebarBumpDirty();
+  }
+
+  editorRoot.appendChild(identitySection(mob, refreshErrors));
+  editorRoot.appendChild(factorsSection(mob, refreshErrors));
+  editorRoot.appendChild(bodySection(mob, refreshErrors));
+  editorRoot.appendChild(skillsSection(mob, refreshErrors));
+  editorRoot.appendChild(unlocksSection(mob, refreshErrors));
+  editorRoot.appendChild(dialogueTreeSection(mob, refreshErrors));
+
+  refreshErrors();
+}
+
+// A collapsible section: click the header to fold/unfold the body, state
+// tracked in state.mobSectionCollapsed (shared across every mob you open —
+// "hide Factors while I work on dialogue" is a standing preference, not a
+// per-mob one). Callers append their content into the RETURNED `.body`, not
+// the section itself, and return `.section` up to renderMobEditor.
+function statSection(title) {
+  const collapsed = state.mobSectionCollapsed.has(title);
+  const body = el('div', { class: 'stat-section-body' });
+  const section = el('div', { class: 'stat-section' + (collapsed ? ' collapsed' : '') }, [
+    el('div', {
+      class: 'stat-section-head',
+      onclick: () => {
+        if (state.mobSectionCollapsed.has(title)) state.mobSectionCollapsed.delete(title); else state.mobSectionCollapsed.add(title);
+        renderEditor();
+      },
+    }, [
+      el('span', { class: 'chevron', text: '▾' }),
+      el('h3', { text: title }),
+    ]),
+    body,
+  ]);
+  return { section, body };
+}
+
+function identitySection(mob, onChange) {
+  const col = statSection('Identity');
+  col.body.appendChild(el('div', { class: 'stat-grid' }, [
+    field('Faction (blank = hostile)', select(['', ...state.factions.map((f) => f.raw.name)], mob.faction || '', (v) => { mob.faction = v; onChange(); }, (v) => v ? factionDisplayName(v) : '— hostile —')),
+    field('Tier', select(TIERS, mob.tier || 'normal', (v) => { mob.tier = v; onChange(); })),
+    field('Role', select(ROLES, mob.role || 'creature', (v) => { mob.role = v; onChange(); })),
+    field('Curve level', numberInput(mob.curveLevel ?? 1, (v) => { mob.curveLevel = v; onChange(); })),
+    field('Entity type override (blank = name resolves)', select(['', ...state.entityTypes], mob.entityType || '', (v) => { mob.entityType = v; onChange(); }, (v) => v || '— use name —')),
+    field('Legacy', checkboxInput(!!mob.legacy, (v) => { mob.legacy = v; onChange(); })),
+  ]));
+  return col.section;
+}
+
+function factorsSection(mob, onChange) {
+  const factors = mob.factors || {};
+  const setFactor = (key) => (v) => { mob.factors = mob.factors || {}; mob.factors[key] = v; onChange(); };
+  const col = statSection('Factors');
+  col.body.appendChild(el('div', { class: 'stat-grid' }, [
+    field('Base max health', numberInput(factors.baseMaxHealth ?? 0, setFactor('baseMaxHealth'))),
+    field('XP factor (blank = 1, ordinary; 0 = no XP)', nullableNumberInput(factors.xpFactor, (v) => {
+      mob.factors = mob.factors || {};
+      if (v === undefined) delete mob.factors.xpFactor; else mob.factors.xpFactor = v;
+      onChange();
+    })),
+    field('CC immune (required at tier elite/boss)', triStateSelect(factors.ccImmune, (v) => {
+      mob.factors = mob.factors || {};
+      if (v === undefined) delete mob.factors.ccImmune; else mob.factors.ccImmune = v;
+      onChange();
+    })),
+    field('Speed', numberInput(factors.speed ?? 0, setFactor('speed'))),
+    field('Delta phi', numberInput(factors.deltaPhi ?? 0, setFactor('deltaPhi'))),
+    field('Turn rate', numberInput(factors.turnRate ?? 0, setFactor('turnRate'))),
+    field('Max health variance [0,1)', numberInput(factors.maxHealthVariance ?? 0, setFactor('maxHealthVariance'))),
+    field('Flee below health ratio [0,1]', numberInput(factors.fleeBelowHealthRatio ?? 0, setFactor('fleeBelowHealthRatio'))),
+    field('Support threshold [0,1] (blank = 1.0)', numberInput(factors.supportThreshold ?? 0, setFactor('supportThreshold'))),
+    field('Wander radius (needs speed > 0)', numberInput(factors.wanderRadius ?? 0, setFactor('wanderRadius'))),
+    field('Idle speed factor [0,1]', numberInput(factors.idleSpeedFactor ?? 0, setFactor('idleSpeedFactor'))),
+    field('Idle dwell min ticks', numberInput(factors.idleDwellMinTicks ?? 0, setFactor('idleDwellMinTicks'))),
+    field('Idle dwell max ticks', numberInput(factors.idleDwellMaxTicks ?? 0, setFactor('idleDwellMaxTicks'))),
+  ]));
+  col.body.appendChild(el('div', { class: 'subsection' }, [
+    el('div', { class: 'subsection-title', text: 'Resistances (blank = no entry; 0 = immune)' }),
+    resistancesGrid(mob, onChange),
+  ]));
+  col.body.appendChild(el('div', { class: 'subsection' }, [
+    el('div', { class: 'subsection-title', text: 'Gate keys (chore-only damage; opts this mob into being hit by it)' }),
+    gateKeysCheckboxes(mob, onChange),
+  ]));
+  return col.section;
+}
+
+function bodySection(mob, onChange) {
+  const body = mob.body || {};
+  const setBody = (key) => (v) => { mob.body = mob.body || {}; mob.body[key] = v; onChange(); };
+  const col = statSection('Body');
+  col.body.appendChild(el('div', { class: 'stat-grid' }, [
+    field('Radius', numberInput(body.radius ?? 0, setBody('radius'))),
+    field('Aggro radius (required unless role = structure)', numberInput(body.aggroRadius ?? 0, setBody('aggroRadius'))),
+  ]));
+  col.body.appendChild(el('div', { class: 'subsection' }, [
+    el('div', { class: 'subsection-title', text: 'Collision layer — what this body IS' }),
+    bodyBitmask(mob, 'collisionLayer', onChange),
+  ]));
+  col.body.appendChild(el('div', { class: 'subsection' }, [
+    el('div', { class: 'subsection-title', text: 'Collision mask — what this body COLLIDES WITH' }),
+    bodyBitmask(mob, 'collisionMask', onChange),
+  ]));
+  return col.section;
+}
+
+function resistancesGrid(mob, onChange) {
+  const wrap = el('div', { class: 'resist-grid' });
+  const resistances = (mob.factors && mob.factors.resistances) || {};
+  for (const tag of [...DAMAGE_TYPES, RESIST_WILDCARD]) {
+    const current = resistances[tag];
+    wrap.appendChild(el('div', { class: 'resist-cell' }, [
+      el('label', { text: tag === RESIST_WILDCARD ? '* (all)' : tag }),
+      el('input', {
+        type: 'number', value: current ?? '', placeholder: '—',
+        oninput: (e) => {
+          const v = e.target.value;
+          mob.factors = mob.factors || {};
+          if (v === '') {
+            if (mob.factors.resistances) delete mob.factors.resistances[tag];
+          } else {
+            mob.factors.resistances = mob.factors.resistances || {};
+            mob.factors.resistances[tag] = Number(v);
+          }
+          onChange();
+        },
+      }),
+    ]));
+  }
+  return wrap;
+}
+
+function gateKeysCheckboxes(mob, onChange) {
+  const wrap = el('div', { class: 'bitmask-group' });
+  const keys = (mob.factors && mob.factors.gateKeys) || [];
+  for (const key of GATE_KEYS) {
+    wrap.appendChild(el('label', { class: 'bitmask-bit' }, [
+      el('input', {
+        type: 'checkbox', checked: keys.includes(key),
+        onchange: (e) => {
+          mob.factors = mob.factors || {};
+          const list = mob.factors.gateKeys || [];
+          if (e.target.checked) { if (!list.includes(key)) list.push(key); }
+          else { const i = list.indexOf(key); if (i >= 0) list.splice(i, 1); }
+          mob.factors.gateKeys = list;
+          onChange();
+        },
+      }),
+      key,
+    ]));
+  }
+  return wrap;
+}
+
+function bodyBitmask(mob, key, onChange) {
+  const wrap = el('div', { class: 'bitmask-group' });
+  let mask = (mob.body && mob.body[key]) || 0;
+  for (const { bit, name } of COLLISION_LAYER_BITS) {
+    wrap.appendChild(el('label', { class: 'bitmask-bit' }, [
+      el('input', {
+        type: 'checkbox', checked: (mask & bit) !== 0,
+        onchange: (e) => {
+          mask = e.target.checked ? (mask | bit) : (mask & ~bit);
+          mob.body = mob.body || {};
+          mob.body[key] = mask;
+          onChange();
+        },
+      }),
+      name,
+    ]));
+  }
+  return wrap;
+}
+
+function skillsSection(mob, onChange) {
+  const col = statSection('Skills');
+  const rowsWrap = el('div');
+  function rerender() {
+    const skills = mob.skills || [];
+    rowsWrap.innerHTML = '';
+    if (skills.length) rowsWrap.appendChild(colHeaders([{ label: 'Skill', cls: 'col-flex' }, { label: 'Level', cls: 'col-fixed-sm' }]));
+    skills.forEach((s, i) => rowsWrap.appendChild(skillRow(mob, s, i, () => { rerender(); onChange(); })));
+  }
+  rerender();
+  col.body.appendChild(rowsWrap);
+  col.body.appendChild(el('button', { class: 'add-row', onclick: () => { mob.skills = mob.skills || []; mob.skills.push({ skillName: '', level: 1 }); rerender(); onChange(); } }, '+ Add skill'));
+  return col.section;
+}
+
+function skillRow(mob, s, i, onChange) {
+  const wrap = el('div', { class: 'condition-row' });
+  wrap.appendChild(select(['', ...state.skillNames], s.skillName || '', (v) => { s.skillName = v; onChange(); }, (v) => v || '— skill —', 'col-flex'));
+  wrap.appendChild(numberInput(s.level ?? 1, (v) => { s.level = v; onChange(); }, 'level', 'col-fixed-sm'));
+  wrap.appendChild(el('button', { class: 'danger', onclick: () => { mob.skills.splice(i, 1); onChange(); } }, '×'));
+  return wrap;
+}
+
+function unlocksSection(mob, onChange) {
+  const col = statSection('Unlocks (kill-drop skill grants)');
+  const rowsWrap = el('div');
+  function rerender() {
+    const unlocks = mob.unlocks || [];
+    rowsWrap.innerHTML = '';
+    if (unlocks.length) rowsWrap.appendChild(colHeaders([{ label: 'Skill', cls: 'col-flex' }, { label: 'Chance (blank = guaranteed)', cls: 'col-fixed-md' }]));
+    unlocks.forEach((u, i) => rowsWrap.appendChild(unlockRow(mob, u, i, () => { rerender(); onChange(); })));
+  }
+  rerender();
+  col.body.appendChild(rowsWrap);
+  col.body.appendChild(el('button', { class: 'add-row', onclick: () => { mob.unlocks = mob.unlocks || []; mob.unlocks.push({ skillName: '' }); rerender(); onChange(); } }, '+ Add unlock'));
+  return col.section;
+}
+
+function unlockRow(mob, u, i, onChange) {
+  const wrap = el('div', { class: 'condition-row' });
+  wrap.appendChild(select(['', ...state.skillNames], u.skillName || '', (v) => { u.skillName = v; onChange(); }, (v) => v || '— skill —', 'col-flex'));
+  wrap.appendChild(nullableNumberInput(u.chance, (v) => { if (v === undefined) delete u.chance; else u.chance = v; onChange(); }, 'chance', 'col-fixed-md'));
+  wrap.appendChild(el('button', { class: 'danger', onclick: () => { mob.unlocks.splice(i, 1); onChange(); } }, '×'));
+  return wrap;
+}
+
+// The dialogue-tree UI, unchanged from the earlier NPC-only editor except
+// that it now returns a container to slot under the stat sections instead
+// of appending straight to editorRoot, and reports edits through `onChange`
+// (renderMobEditor's combined validator) instead of keeping its own error
+// box. "+ Add dialogue tree" triggers a full renderEditor() since adding the
+// block changes what this whole function needs to show.
+function dialogueTreeSection(mob, onChange) {
+  const col = statSection('Dialogue tree');
+  if (!mob.interaction) {
+    col.body.appendChild(el('div', { class: 'mob-readonly-note' }, 'This mob has no interaction block — it is not an NPC.'));
+    col.body.appendChild(el('button', {
+      class: 'primary',
+      onclick: () => {
+        mob.interaction = { range: 2, ambient: [], nodes: [{ id: 'root', lines: ["TODO: write this NPC's opening line."], options: [] }] };
+        renderEditor();
+      },
+    }, '+ Add dialogue tree'));
+    return col.section;
+  }
+
+  const inter = mob.interaction;
+  col.body.appendChild(el('div', { class: 'top-fields' }, [
+    field('Range', numberInput(inter.range ?? 0, (v) => { inter.range = v; onChange(); })),
+    field('Ambient (one hail per line)', textArea((inter.ambient || []).join('\n'), (v) => {
+      inter.ambient = splitLines(v); onChange();
+    }, 'lines-textarea')),
+  ]));
 
   const graphWrap = el('div', { class: 'graph-wrap' });
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -331,17 +808,17 @@ function renderNpcEditor(entry) {
   const nodeCol = el('div', { class: 'node-col' });
   graphWrap.appendChild(svg);
   graphWrap.appendChild(nodeCol);
-  editorRoot.appendChild(graphWrap);
+  col.body.appendChild(graphWrap);
 
   function rerenderNodes() {
     nodeCol.innerHTML = '';
     inter.nodes.forEach((node, i) => nodeCol.appendChild(nodeCard(mob, inter, node, i)));
     scheduleRedraw(graphWrap, svg);
-    refreshDirtyAndErrors();
+    onChange();
   }
   window.__ceRedraw = () => scheduleRedraw(graphWrap, svg);
 
-  editorRoot.appendChild(el('div', { class: 'add-row' }, [
+  col.body.appendChild(el('div', { class: 'add-row' }, [
     el('button', {
       onclick: () => {
         inter.nodes.push({ id: '', lines: [], options: [] });
@@ -349,13 +826,6 @@ function renderNpcEditor(entry) {
       },
     }, '+ Add node'),
   ]));
-
-  function refreshDirtyAndErrors() {
-    const errors = validateInteraction(mob, idx());
-    errBox.innerHTML = '';
-    for (const e of errors) errBox.appendChild(el('div', { class: 'err-line', text: e.message }));
-    sidebarBumpDirty();
-  }
 
   function nodeCard(mob, inter, node, i) {
     const nodeIds = inter.nodes.map((n) => n.id).filter(Boolean);
@@ -365,7 +835,7 @@ function renderNpcEditor(entry) {
       el('span', { class: 'idx', text: '#' + i }),
       el('input', {
         class: 'node-id', type: 'text', value: node.id, placeholder: 'node id',
-        oninput: (e) => { node.id = e.target.value; card.dataset.anchorIn = node.id || `__idx${i}`; scheduleRedraw(graphWrap, svg); refreshDirtyAndErrors(); },
+        oninput: (e) => { node.id = e.target.value; card.dataset.anchorIn = node.id || `__idx${i}`; scheduleRedraw(graphWrap, svg); onChange(); },
       }),
       select(ROW_KINDS, node.rows || '', (v) => {
         if (v) { node.rows = v; node.options = []; if (v === 'ascension_catalog' && !node.rewards) node.rewards = []; }
@@ -380,29 +850,29 @@ function renderNpcEditor(entry) {
     ]);
     card.appendChild(head);
 
-    card.appendChild(conditionsSection(node, refreshDirtyAndErrors));
+    card.appendChild(conditionsSection(node, onChange));
 
     card.appendChild(el('div', { class: 'subsection' }, [
       el('label', { text: 'Lines' }),
-      textArea((node.lines || []).join('\n'), (v) => { node.lines = splitLines(v); refreshDirtyAndErrors(); }, 'lines-textarea'),
+      textArea((node.lines || []).join('\n'), (v) => { node.lines = splitLines(v); onChange(); }, 'lines-textarea'),
     ]));
 
     if (node.rows === 'ascension_catalog') {
       card.appendChild(el('div', { class: 'subsection' }, [
         el('label', { text: 'Rewards (one unlock key per line)' }),
-        textArea((node.rewards || []).join('\n'), (v) => { node.rewards = splitLines(v); refreshDirtyAndErrors(); }, 'rewards-textarea'),
+        textArea((node.rewards || []).join('\n'), (v) => { node.rewards = splitLines(v); onChange(); }, 'rewards-textarea'),
       ]));
     }
 
     if (!node.rows) {
       const optsCol = el('div', { class: 'options-col' });
-      node.options = node.options || [];
-      node.options.forEach((opt, oi) => optsCol.appendChild(optionCard(mob, inter, node, opt, i, oi, nodeIds, refreshDirtyAndErrors, () => { rerenderNodes(); })));
+      const options = node.options || [];
+      options.forEach((opt, oi) => optsCol.appendChild(optionCard(mob, inter, node, opt, i, oi, nodeIds, onChange, () => { rerenderNodes(); })));
       card.appendChild(el('div', { class: 'subsection' }, [
         el('div', { class: 'subsection-title', text: 'Options' }),
-        node.options.length ? colHeaders([{ label: 'Text', cls: 'col-flex' }, { label: 'Next', cls: 'col-fixed-lg' }]) : null,
+        options.length ? colHeaders([{ label: 'Text', cls: 'col-flex' }, { label: 'Next', cls: 'col-fixed-lg' }]) : null,
         optsCol,
-        el('button', { class: 'add-row', onclick: () => { node.options.push({ text: '', next: '', grants: [] }); rerenderNodes(); } }, '+ Add option'),
+        el('button', { class: 'add-row', onclick: () => { node.options = node.options || []; node.options.push({ text: '', next: '', grants: [] }); rerenderNodes(); } }, '+ Add option'),
       ]));
     }
 
@@ -410,6 +880,7 @@ function renderNpcEditor(entry) {
   }
 
   rerenderNodes();
+  return col.section;
 }
 
 function optionCard(mob, inter, node, opt, ni, oi, nodeIds, onChange, onStructuralChange) {
@@ -429,13 +900,13 @@ function optionCard(mob, inter, node, opt, ni, oi, nodeIds, onChange, onStructur
   card.appendChild(row1);
 
   const grantsCol = el('div', { class: 'grants-col' });
-  opt.grants = opt.grants || [];
-  opt.grants.forEach((g, gi) => grantsCol.appendChild(grantRow(mob, opt, g, gi, onChange, onStructuralChange)));
+  const grants = opt.grants || [];
+  grants.forEach((g, gi) => grantsCol.appendChild(grantRow(mob, opt, g, gi, onChange, onStructuralChange)));
   card.appendChild(grantsCol);
-  if (opt.grants.length) {
+  if (grants.length) {
     grantsCol.before(colHeaders([{ label: 'Kind', cls: 'col-fixed-md' }, { label: 'Line', cls: 'col-flex' }]));
   }
-  card.appendChild(el('button', { class: 'add-row', onclick: () => { opt.grants.push({ kind: 'teach_skill', line: '' }); onStructuralChange(); } }, '+ Add grant'));
+  card.appendChild(el('button', { class: 'add-row', onclick: () => { opt.grants = opt.grants || []; opt.grants.push({ kind: 'teach_skill', line: '' }); onStructuralChange(); } }, '+ Add grant'));
   return card;
 }
 
@@ -498,19 +969,19 @@ function conditionsSection(node, onChange) {
     text: 'Conditions (all must pass)',
     title: 'Gates whether a player can reach THIS NODE at all. This is separate from a quest row\'s own visibility below — an offer_quest/advance_quest row shows or hides itself automatically from the player\'s live quest progress, with no condition authored anywhere.',
   })]);
-  node.conditions = node.conditions || [];
   const headerSlot = el('div');
   const rowsWrap = el('div');
   function rerender() {
+    const conditions = node.conditions || [];
     headerSlot.innerHTML = '';
-    if (node.conditions.length) headerSlot.appendChild(colHeaders([{ label: 'Kind', cls: 'col-fixed-md' }]));
+    if (conditions.length) headerSlot.appendChild(colHeaders([{ label: 'Kind', cls: 'col-fixed-md' }]));
     rowsWrap.innerHTML = '';
-    node.conditions.forEach((c, ci) => rowsWrap.appendChild(conditionRow(node, c, ci, () => { rerender(); onChange(); })));
+    conditions.forEach((c, ci) => rowsWrap.appendChild(conditionRow(node, c, ci, () => { rerender(); onChange(); })));
   }
   rerender();
   col.appendChild(headerSlot);
   col.appendChild(rowsWrap);
-  col.appendChild(el('button', { class: 'add-row', onclick: () => { node.conditions.push({ kind: 'minLevel', value: 1 }); rerender(); onChange(); } }, '+ Add condition'));
+  col.appendChild(el('button', { class: 'add-row', onclick: () => { node.conditions = node.conditions || []; node.conditions.push({ kind: 'minLevel', value: 1 }); rerender(); onChange(); } }, '+ Add condition'));
   return col;
 }
 
@@ -536,7 +1007,7 @@ function conditionRow(node, c, ci, onChange) {
   return wrap;
 }
 
-async function saveNpc(entry) {
+async function saveMob(entry) {
   const fb = $('#save-feedback');
   fb.textContent = 'saving…'; fb.className = 'save-feedback';
   const res = await fetch('/api/save/mob', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: entry.file, raw: entry.raw, isNew: !!entry.isNew }) });
@@ -636,13 +1107,13 @@ function renderQuestEditor(entry) {
     card.appendChild(field('Tracker (supports {n}/{m})', textInput(s.tracker || '', (v) => { s.tracker = v; refresh(); })));
 
     const objCol = el('div', { class: 'options-col' });
-    s.objectives = s.objectives || [];
-    s.objectives.forEach((o, oi) => objCol.appendChild(objectiveRow(s, o, oi, refresh, rerender)));
+    const objectives = s.objectives || [];
+    objectives.forEach((o, oi) => objCol.appendChild(objectiveRow(s, o, oi, refresh, rerender)));
     card.appendChild(el('div', { class: 'subsection' }, [
       el('div', { class: 'subsection-title', text: 'Objectives (leave empty for a dialogue stage)' }),
-      s.objectives.length ? colHeaders([{ label: 'Kind', cls: 'col-fixed-md' }, { label: 'Target', cls: 'col-flex' }, { label: 'Count', cls: 'col-fixed-sm' }]) : null,
+      objectives.length ? colHeaders([{ label: 'Kind', cls: 'col-fixed-md' }, { label: 'Target', cls: 'col-flex' }, { label: 'Count', cls: 'col-fixed-sm' }]) : null,
       objCol,
-      el('button', { class: 'add-row', onclick: () => { s.objectives.push({ kind: 'kill', species: '', count: 1 }); rerender(); } }, '+ Add objective'),
+      el('button', { class: 'add-row', onclick: () => { s.objectives = s.objectives || []; s.objectives.push({ kind: 'kill', species: '', count: 1 }); rerender(); } }, '+ Add objective'),
     ]));
 
     if (!isDialogue) {
@@ -716,7 +1187,7 @@ function grantedByPanel(quest, stageId) {
 }
 
 // Switches the editor to the referenced NPC and scrolls/flashes the node
-// that grants/turns in this stage — renderNpcEditor builds its DOM
+// that grants/turns in this stage — renderMobEditor builds its DOM
 // synchronously, so the target card already exists once selectByFile
 // returns; only the flash needs a frame to land after layout.
 function jumpToNode(mobFile, nodeId) {
@@ -749,6 +1220,268 @@ async function saveQuest(entry) {
   runGlobalValidation();
 }
 
+/* ======================================================================
+ * Faction editor
+ * ==================================================================== */
+function renderFactionEditor(entry) {
+  const faction = entry.raw;
+
+  const header = el('div', { class: 'editor-header' }, [
+    el('div', {}, [
+      el('h2', { text: faction.displayName || faction.name }),
+      el('div', { class: 'file-path' }, [
+        document.createTextNode(entry.file),
+        entry.isNew ? el('span', { class: 'new-badge', text: 'not yet saved' }) : null,
+      ]),
+    ]),
+    el('div', { class: 'editor-actions' }, [
+      el('span', { class: 'save-feedback', id: 'save-feedback' }),
+      el('button', { onclick: () => resetEntry(entry, 'faction') }, 'Reset'),
+      el('button', { class: 'primary', onclick: () => saveFaction(entry) }, 'Save'),
+    ]),
+  ]);
+  editorRoot.appendChild(header);
+
+  const errBox = el('div', { class: 'errors-inline', id: 'faction-errors' });
+  editorRoot.appendChild(errBox);
+
+  function refreshErrors() {
+    const errors = validateFaction(faction, idx());
+    errBox.innerHTML = '';
+    for (const e of errors) errBox.appendChild(el('div', { class: 'err-line', text: e.message }));
+    sidebarBumpDirty();
+  }
+
+  editorRoot.appendChild(el('div', { class: 'top-fields' }, [
+    field('Display name (blank = internal name)', textInput(faction.displayName || '', (v) => { faction.displayName = v; refreshErrors(); })),
+    field('Friendly to players (harm-proof to player/summon damage)', checkboxInput(!!faction.friendlyToPlayers, (v) => { faction.friendlyToPlayers = v; refreshErrors(); })),
+  ]));
+
+  editorRoot.appendChild(el('div', { class: 'subsection' }, [
+    el('div', {
+      class: 'subsection-title',
+      text: 'Hostile to (proactively aggros)',
+      title: 'Every faction that fights players declares hostileTo: ["aligned"] — retaliation (fighting back when hit) is automatic and separate from this list, which only drives PROACTIVE aggro.',
+    }),
+    hostileToCheckboxes(faction, refreshErrors),
+  ]));
+
+  refreshErrors();
+}
+
+function hostileToCheckboxes(faction, onChange) {
+  const wrap = el('div', { class: 'bitmask-group' });
+  const targets = [...RESERVED_FACTION_NAMES, ...state.factions.map((f) => f.raw.name).filter((n) => n !== faction.name)].sort();
+  const list = faction.hostileTo || [];
+  for (const target of targets) {
+    const label = target === 'aligned' ? 'aligned (players)' : target === 'hostile' ? 'hostile (the unauthored default)' : factionDisplayName(target);
+    wrap.appendChild(el('label', { class: 'bitmask-bit' }, [
+      el('input', {
+        type: 'checkbox', checked: list.includes(target),
+        onchange: (e) => {
+          faction.hostileTo = faction.hostileTo || [];
+          if (e.target.checked) { if (!faction.hostileTo.includes(target)) faction.hostileTo.push(target); }
+          else { const i = faction.hostileTo.indexOf(target); if (i >= 0) faction.hostileTo.splice(i, 1); }
+          onChange();
+        },
+      }),
+      label,
+    ]));
+  }
+  return wrap;
+}
+
+async function saveFaction(entry) {
+  const fb = $('#save-feedback');
+  fb.textContent = 'saving…'; fb.className = 'save-feedback';
+  const res = await fetch('/api/save/faction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: entry.file, raw: entry.raw, isNew: !!entry.isNew }) });
+  const body = await res.json();
+  if (!body.ok) {
+    fb.className = 'save-feedback err';
+    fb.textContent = body.errors.join(' · ');
+    return;
+  }
+  entry.isNew = false;
+  editorRoot.querySelector('.new-badge')?.remove();
+  markPristine(entry.file);
+  fb.className = 'save-feedback ok';
+  fb.textContent = body.warnings.length ? 'saved — ' + body.warnings.join(' · ') : 'saved';
+  renderSidebar();
+  runGlobalValidation();
+}
+
+/* ======================================================================
+ * Recipe editor — a combination unlock: `result` (an already-authored skill)
+ * plus an `ingredients[]` threshold (each own skill's level, checked, never
+ * spent). Flat schema, same top-fields/subsection shape as the faction
+ * editor rather than the mob editor's collapsible stat sections.
+ * ==================================================================== */
+function renderRecipeEditor(entry) {
+  const recipe = entry.raw;
+
+  const header = el('div', { class: 'editor-header' }, [
+    el('div', {}, [
+      el('h2', { text: recipe.result || '(no result set)' }),
+      el('div', { class: 'file-path' }, [
+        document.createTextNode(entry.file),
+        entry.isNew ? el('span', { class: 'new-badge', text: 'not yet saved' }) : null,
+      ]),
+    ]),
+    el('div', { class: 'editor-actions' }, [
+      el('span', { class: 'save-feedback', id: 'save-feedback' }),
+      el('button', { onclick: () => resetEntry(entry, 'recipe') }, 'Reset'),
+      el('button', { class: 'primary', onclick: () => saveRecipe(entry) }, 'Save'),
+    ]),
+  ]);
+  editorRoot.appendChild(header);
+
+  const errBox = el('div', { class: 'errors-inline', id: 'recipe-errors' });
+  editorRoot.appendChild(errBox);
+
+  function refreshErrors() {
+    const errors = validateRecipe(recipe, idx());
+    errBox.innerHTML = '';
+    for (const e of errors) errBox.appendChild(el('div', { class: 'err-line', text: e.message }));
+    sidebarBumpDirty();
+  }
+
+  editorRoot.appendChild(el('div', { class: 'top-fields' }, [
+    field('Id (author-picked, must be unique)', numberInput(recipe.id ?? 0, (v) => { recipe.id = v; refreshErrors(); })),
+    field('Result skill (must already exist under api/skills/)', select(['', ...state.skillNames], recipe.result || '', (v) => { recipe.result = v; refreshErrors(); }, (v) => v || '— pick a skill —')),
+  ]));
+
+  editorRoot.appendChild(el('div', { class: 'subsection' }, [
+    el('div', {
+      class: 'subsection-title',
+      text: 'Ingredients',
+      title: 'Each ingredient is a THRESHOLD, not a cost — the player\'s spellbook level for that skill must be at or above the given level, and nothing is spent when the recipe fires. A recipe result can itself be named as another recipe\'s ingredient (chaining is legal and expected).',
+    }),
+    ingredientsEditor(recipe, refreshErrors),
+  ]));
+
+  refreshErrors();
+}
+
+function ingredientsEditor(recipe, onChange) {
+  const container = el('div');
+  const rowsWrap = el('div');
+  function rerender() {
+    const ingredients = recipe.ingredients || [];
+    rowsWrap.innerHTML = '';
+    if (ingredients.length) rowsWrap.appendChild(colHeaders([{ label: 'Skill', cls: 'col-flex' }, { label: 'Level', cls: 'col-fixed-sm' }]));
+    ingredients.forEach((ing, i) => rowsWrap.appendChild(ingredientRow(recipe, ing, i, () => { rerender(); onChange(); })));
+  }
+  rerender();
+  container.appendChild(rowsWrap);
+  container.appendChild(el('button', {
+    class: 'add-row',
+    onclick: () => { recipe.ingredients = recipe.ingredients || []; recipe.ingredients.push({ skill: '', level: 1 }); rerender(); onChange(); },
+  }, '+ Add ingredient'));
+  return container;
+}
+
+function ingredientRow(recipe, ing, i, onChange) {
+  const wrap = el('div', { class: 'condition-row' });
+  wrap.appendChild(select(['', ...state.skillNames], ing.skill || '', (v) => { ing.skill = v; onChange(); }, (v) => v || '— skill —', 'col-flex'));
+  wrap.appendChild(numberInput(ing.level ?? 1, (v) => { ing.level = v; onChange(); }, 'level', 'col-fixed-sm'));
+  wrap.appendChild(el('button', { class: 'danger', onclick: () => { recipe.ingredients.splice(i, 1); onChange(); } }, '×'));
+  return wrap;
+}
+
+async function saveRecipe(entry) {
+  const fb = $('#save-feedback');
+  fb.textContent = 'saving…'; fb.className = 'save-feedback';
+  const res = await fetch('/api/save/recipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: entry.file, raw: entry.raw, isNew: !!entry.isNew }) });
+  const body = await res.json();
+  if (!body.ok) {
+    fb.className = 'save-feedback err';
+    fb.textContent = body.errors.join(' · ');
+    return;
+  }
+  entry.isNew = false;
+  editorRoot.querySelector('.new-badge')?.remove();
+  markPristine(entry.file);
+  fb.className = 'save-feedback ok';
+  fb.textContent = body.warnings.length ? 'saved — ' + body.warnings.join(' · ') : 'saved';
+  renderSidebar();
+  runGlobalValidation();
+}
+
+/* ======================================================================
+ * Milestones editor — ONE shared file (api/milestones/milestone-unlocks.json)
+ * holding a flat array, not one file per entry like every other kind here.
+ * `entry` is state.milestones itself: {file, raw}, raw the whole array.
+ * ==================================================================== */
+function renderMilestonesEditor(entry) {
+  const list = entry.raw;
+
+  const header = el('div', { class: 'editor-header' }, [
+    el('div', {}, [
+      el('h2', { text: 'Milestone unlocks' }),
+      el('div', { class: 'file-path' }, [document.createTextNode(entry.file)]),
+    ]),
+    el('div', { class: 'editor-actions' }, [
+      el('span', { class: 'save-feedback', id: 'save-feedback' }),
+      el('button', { onclick: () => resetEntry(entry, 'milestones') }, 'Reset'),
+      el('button', { class: 'primary', onclick: () => saveMilestones(entry) }, 'Save'),
+    ]),
+  ]);
+  editorRoot.appendChild(header);
+
+  editorRoot.appendChild(el('div', { class: 'mob-readonly-note' },
+    'Every entry grants that skill automatically: at character creation for level ≤ 1, and again on every level-up through the new level. Duplicate levels and duplicate skills are both legal (nothing here or in Go dedupes them). No other content references this file.'));
+
+  const errBox = el('div', { class: 'errors-inline', id: 'milestones-errors' });
+  editorRoot.appendChild(errBox);
+
+  function refreshErrors() {
+    const errors = validateMilestones(list, idx());
+    errBox.innerHTML = '';
+    for (const e of errors) errBox.appendChild(el('div', { class: 'err-line', text: e.message }));
+    sidebarBumpDirty();
+  }
+
+  const rowsWrap = el('div');
+  function rerender() {
+    rowsWrap.innerHTML = '';
+    if (list.length) rowsWrap.appendChild(colHeaders([{ label: 'Level', cls: 'col-fixed-sm' }, { label: 'Skill', cls: 'col-flex' }]));
+    list.forEach((m, i) => rowsWrap.appendChild(milestoneRow(list, m, i, () => { rerender(); refreshErrors(); })));
+  }
+  rerender();
+  editorRoot.appendChild(rowsWrap);
+  editorRoot.appendChild(el('button', {
+    class: 'add-row',
+    onclick: () => { list.push({ level: 1, skillName: '' }); rerender(); refreshErrors(); },
+  }, '+ Add milestone'));
+
+  refreshErrors();
+}
+
+function milestoneRow(list, m, i, onChange) {
+  const wrap = el('div', { class: 'condition-row' });
+  wrap.appendChild(numberInput(m.level ?? 1, (v) => { m.level = v; onChange(); }, 'level', 'col-fixed-sm'));
+  wrap.appendChild(select(['', ...state.skillNames], m.skillName || '', (v) => { m.skillName = v; onChange(); }, (v) => v || '— skill —', 'col-flex'));
+  wrap.appendChild(el('button', { class: 'danger', onclick: () => { list.splice(i, 1); onChange(); } }, '×'));
+  return wrap;
+}
+
+async function saveMilestones(entry) {
+  const fb = $('#save-feedback');
+  fb.textContent = 'saving…'; fb.className = 'save-feedback';
+  const res = await fetch('/api/save/milestones', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ raw: entry.raw }) });
+  const body = await res.json();
+  if (!body.ok) {
+    fb.className = 'save-feedback err';
+    fb.textContent = body.errors.join(' · ');
+    return;
+  }
+  markPristine(entry.file);
+  fb.className = 'save-feedback ok';
+  fb.textContent = body.warnings.length ? 'saved — ' + body.warnings.join(' · ') : 'saved';
+  renderSidebar();
+  runGlobalValidation();
+}
+
 /* ---- small field builders ------------------------------------------------ */
 function field(label, control) { return el('div', { class: 'field' }, [el('label', { text: label }), control]); }
 function textInput(value, onChange) { return el('input', { type: 'text', value, oninput: (e) => onChange(e.target.value) }); }
@@ -762,6 +1495,26 @@ function textArea(value, onChange, cls) {
 }
 function numberInput(value, onChange, placeholder, cls) {
   return el('input', { type: 'number', class: cls || '', value, placeholder: placeholder || '', oninput: (e) => onChange(e.target.value === '' ? 0 : Number(e.target.value)) });
+}
+// Blank means "delete the key", not 0 — for the handful of fields where Go
+// distinguishes absent from an authored falsy value via a pointer
+// (factors.xpFactor/ccImmune, unlocks[].chance). `value` is a number or
+// undefined; onChange receives a Number or undefined, never ''.
+function nullableNumberInput(value, onChange, placeholder, cls) {
+  return el('input', {
+    type: 'number', class: cls || '', value: value ?? '', placeholder: placeholder || '',
+    oninput: (e) => onChange(e.target.value === '' ? undefined : Number(e.target.value)),
+  });
+}
+// unset / true / false — the same pointer-semantics need as above, for
+// factors.ccImmune (required, and the tier does not decide it).
+function triStateSelect(value, onChange) {
+  const current = value === true ? 'true' : value === false ? 'false' : '';
+  const sel = el('select', { onchange: (e) => onChange(e.target.value === '' ? undefined : e.target.value === 'true') });
+  for (const [v, label] of [['', '— unset —'], ['true', 'true'], ['false', 'false']]) {
+    sel.appendChild(el('option', { value: v, selected: v === current }, label));
+  }
+  return sel;
 }
 function checkboxInput(checked, onChange) {
   return el('input', { type: 'checkbox', checked, onchange: (e) => onChange(e.target.checked) });
