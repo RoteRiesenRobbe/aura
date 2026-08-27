@@ -1001,6 +1001,23 @@ forget:
 - ~~`Graphics.ts` `damageAuraRadiusMeters`~~ **retired 2026-07-10 (mob-depth
   chunk 3c):** mob ring size is wire-driven (`Mob.aura_radius`, 0 = aura
   gated/off) — no hand-sync remains.
+- ⚑ **`tools/content-editor/` mirrors this manual's vocabulary and does NOT
+  auto-discover it.** A new mob/quest/faction field, a new closed vocabulary
+  (roles, tiers, damage types, gate keys, collision-layer bits, reserved
+  faction names), or a new Go-side validation rule in
+  `backend/pkg/aura/items/mobs/{definitions,interaction}.go`,
+  `backend/pkg/aura/quests/quests.go`, or `backend/pkg/aura/factions/factions.go`
+  has no effect on the editor until three things are hand-updated to match:
+  `tools/content-editor/validate.mjs` (the JS port of the Go rule — a
+  desync here either false-blocks valid content or, worse, silently lets
+  invalid content save), the form fields in `tools/content-editor/public/app.js`
+  (a field the editor doesn't render can't be authored or edited there, and a
+  round-tripped save otherwise preserves it untouched, which is safe but
+  invisible), and `tools/content-editor/README.md`'s scope section. The
+  editor's own smoke-test discipline (a standalone script importing
+  `validate.mjs` and asserting zero false positives against every real
+  `api/*/*.json` file) is the way to confirm a rule port is still accurate —
+  see its README.
 
 ## Quick reference: what touches the wire?
 
