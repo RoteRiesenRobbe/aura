@@ -6,9 +6,11 @@
  * The shape, PO-ruled 2026-08-02:
  *   · permanently on screen — the Focus/XP bars, the six action tiles, the
  *     combat indicator and the alert banner. Nothing else.
- *   · everything else (spellbook, passives, journal, help, minimap, zoom)
- *     lives behind the ☰ button, which turns #leftColumn into a full-screen
- *     sheet.
+ *   · everything else (passives, journal, help, minimap, zoom, and the row
+ *     that opens the spellbook) lives behind the ☰ button, which turns
+ *     #leftColumn into a full-screen sheet. ⚑ Since UI pass C3 the spellbook
+ *     itself is NOT sheet content: it is a full-screen panel of its own,
+ *     exclusive with the sheet like the journal and help are.
  *   · one sheet at a time — MobileMenu.ts enforces that half.
  *
  * ⚑ Every absolutely-positioned HUD child resolves against the VIEWPORT, not
@@ -363,14 +365,25 @@ html.mobile {
 			min-width: 0;
 		}
 
-		// ⚑ The sheet is the ONE scroll surface. The desktop panel clamps
-		// #spellbookScroll to calc(100vh - 24rem) — on a landscape phone that
-		// resolves to roughly nothing, and nesting a second scroller inside a
-		// scrolling sheet is miserable on touch. SimpleBar tolerates this: with
-		// no max-height its wrapper lays out at content height and simply never
-		// overflows, so no internal scrollbar appears.
-		#spellbookScroll {
-			max-height: none;
+	}
+
+	// ⚑ The spellbook is a CHILD of #leftColumn but stopped being sheet
+	// content at UI pass C3: it opens full-screen over the sheet, and the two
+	// are mutually exclusive, so the sheet is shut whenever the book is up. A
+	// fixed child of a display:none parent renders nothing, so the container
+	// comes back for the open book - and carries nothing else with it. Keyed
+	// off the panel's own `hidden` class rather than a second state flag on
+	// <html>: one source of truth for "the book is open".
+	#leftColumn:has(> #spellbook:not(.hidden)) {
+		display: flex;
+		// The sheet's own layer, restated: the desktop rule gives this column a
+		// stacking context at @z-left-column, and inside one the book's own
+		// (@mobile-menu-z + 2) can no longer out-rank the utility buttons at
+		// (@mobile-menu-z - 1). The context has to sit where the sheet's does.
+		z-index: @mobile-menu-z;
+
+		> *:not(#spellbook) {
+			display: none;
 		}
 	}
 
@@ -411,7 +424,12 @@ html.mobile {
 	// already carries the minimap, the map button and the zoom column, and
 	// the ☰ sheet keeps its own #journalButton row as the phone's way into
 	// the journal. The full mobile UI pass owns anything better.
-	#questTracker {
+	//
+	// The desktop spellbook button is hidden for the same reason and lands in
+	// the same place: the sheet's own #spellbookSheetButton row (C3, D4). One
+	// entry point per layout, never two.
+	#questTracker,
+	#spellbookButton {
 		display: none;
 	}
 
@@ -455,6 +473,15 @@ html.mobile {
 	// One sheet at a time: the ☰ doubles as the sheet's close control and
 	// nothing else may float over it.
 	&.menuOpen #mapButton {
+		display: none;
+	}
+
+	// ...and the same over the open spellbook (C3), which is full-screen for
+	// the same reason the sheet is. The button sits at (@mobile-menu-z + 3),
+	// above every panel, and it landed squarely on the book's tab row.
+	// ⚑ The journal and help have the same overlap and keep it - that is
+	// mobile-layout leg 7's territory, not this chunk's.
+	&:has(#spellbook:not(.hidden)) #mapButton {
 		display: none;
 	}
 
@@ -526,11 +553,13 @@ html.mobile {
 	}
 
 	/* --- full-screen panels ------------------------------------------- */
-	// Journal and Help drop their centred-panel geometry entirely: no
-	// transform, no width, no max-height. The top padding clears the ☰, which
-	// stays on top and switches the sheet in (closing the panel behind it).
+	// Journal, Help and (since UI pass C3) the Spellbook drop their
+	// centred-panel geometry entirely: no transform, no width, no max-height.
+	// The top padding clears the ☰, which stays on top and switches the sheet
+	// in (closing the panel behind it) - that is also the book's close.
 	#journal,
-	#help {
+	#help,
+	#spellbook {
 		position: fixed;
 		top: 0;
 		left: 0;
@@ -590,8 +619,30 @@ html.mobile {
 		border-bottom: 1px solid @panel-row-divider;
 	}
 
+	// The full-screen book scrolls itself now. It used to ride the sheet, the
+	// ONE scroll surface, which is why the desktop clamp on #spellbookScroll
+	// (calc(100vh - 24rem), roughly nothing on a landscape phone) had to go;
+	// with the panel filling the screen the clamp is still wrong, and the
+	// pages keep the list short enough that the panel's own scroll is a
+	// backstop rather than the way to read it.
+	#spellbook {
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+
+		#spellbookScroll {
+			max-height: none;
+		}
+	}
+
+	// The sheet's spellbook row, beside the journal's (C3, D4).
+	#spellbookSheetButton {
+		display: flex;
+	}
+
 	// Comfortable tap targets on the rows that are tapped, not hovered.
 	#journalButton,
+	#spellbookSheetButton,
+	.spellbookTab,
 	#spellbookList > li,
 	#passiveSlotList > .auraSlot,
 	#journal .journalQuests > li {

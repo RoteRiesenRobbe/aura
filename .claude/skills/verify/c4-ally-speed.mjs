@@ -5,7 +5,7 @@
 // -categorised on the new speed bit.
 //
 // What it actually proves, and why each check is here:
-//   · the catalog parses at 97 skills (the census, over the wire);
+//   · the catalog parses over the wire (a lower bound, never a census);
 //   · FlyYouFools and Onward render their names, not "Skill #71" — which is the
 //     tell that a new skill's catalog entry did NOT parse;
 //   · the speed_aura tooltip renders its OWN case, not the "(speed_aura)"
@@ -24,6 +24,7 @@ const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurah
 const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { showSkillRow } from './lib/spellbook.mjs';
 
 const url = process.argv[2] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
 const outdir = process.argv[3] || '/tmp/c4-ally-speed-shots';
@@ -62,7 +63,12 @@ const catalog = await page.evaluate(async () => {
   };
 });
 console.log('GET /skills →', JSON.stringify(catalog));
-if (catalog.skillCount !== 97) fail('expected 97 skills, got ' + catalog.skillCount);
+// ⚑ A LOWER BOUND, not a census: this read `!== 97` and went red the day a
+// 98th skill was authored (105 at the C3 sweep, 2026-08-27) - the suite's own
+// rule 1, "never assert a content COUNT". What matters here is that the
+// catalog parsed at all; the three skills this script is about are asserted
+// by name below.
+if (!(catalog.skillCount >= 97)) fail('the skills catalog did not parse: ' + catalog.skillCount);
 if (catalog.speedAuraType !== 'speed_aura') fail('FlyYouFools is not a speed_aura: ' + catalog.speedAuraType);
 if (catalog.speedAuraTargetsAllies !== true) fail('FlyYouFools does not target allies');
 if (catalog.burstType !== 'speed_burst') fail('Onward is not a speed_burst: ' + catalog.burstType);
@@ -95,6 +101,7 @@ if (spellbook.some(e => /Skill #\d+/.test(e.text))) {
 }
 
 async function hoverTooltip(skillId) {
+  await showSkillRow(page, skillId); // the book is a closable, paged panel since UI pass C3
   const entry = page.locator(`#spellbookList [data-skill-id="${skillId}"]`).first();
   await entry.scrollIntoViewIfNeeded();
   await entry.hover();

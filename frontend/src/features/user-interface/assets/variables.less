@@ -73,6 +73,12 @@
 // (90) covers the mobile #mapButton (53, via @mobile-menu-z + 3), the known
 // open PO item about the nag covering mobile UI. Tokenizing did not change it.
 
+// ⚑ #bottomCenter is a full-width transparent strip that PAINTS AFTER
+// #leftColumn (document order) and takes pointer events on desktop, so
+// anything low in the left column is unclickable where the two overlap. That
+// bit the spellbook's pager the day the book grew one (UI pass C3): the click
+// landed on #bottomCenter, silently. The left column outranks the strip.
+@z-left-column: 10;                       // #leftColumn over #bottomCenter's dead strip
 @mobile-menu-z: 50;                       // the ☰ sheet; tiles sit at +2/+3, backdrop at -1
 @z-registration-nag: 90;
 @z-tooltip: 100;                          // #skillTooltip

@@ -18,6 +18,7 @@ import * as Help from '../../help/logic/Help';
 import * as GameSettingsUI from '../../game-settings/logic/GameSettingsUI';
 import * as Interact from '../../interact/logic/Interact';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
+import * as Spellbook from '../../user-interface/HUD/logic/Spellbook';
 import {Vector} from '../../core/logic/Vector';
 import {Develop} from '../../internal-tools/develop/logic/_Develop';
 import * as Flight from '../../flight/logic/Flight';
@@ -150,6 +151,15 @@ export class Controls {
             return;
         }
 
+        // The spellbook (plan-ui-pass.md C3, D5). B was free - verified against
+        // this file 2026-08-27 - and sits behind the same chat/console guards
+        // as J and M above, so typing "b" in chat cannot open the book.
+        if (event.code === 'KeyB') {
+            Spellbook.toggle();
+            event.preventDefault();
+            return;
+        }
+
         if (event.code === 'Escape') {
             HUD.cancelEquipSelection();
             // ...and closes the journal, which is client-owned visibility (C3)
@@ -157,6 +167,9 @@ export class Controls {
             Journal.close();
             // ...and the help panel — purely client-side, same rule.
             Help.close();
+            // ...and the spellbook, which became closable at C3 and joined the
+            // family with it. Same rule: client-owned visibility, no-op shut.
+            Spellbook.close();
             // ...and the settings panel, which joined the exclusive family at
             // plan-ui-pass.md C2 (D2) and had no Escape close before that.
             // Escape stays a blanket close-all, never a stack pop.

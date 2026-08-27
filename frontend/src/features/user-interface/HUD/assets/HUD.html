@@ -7,7 +7,8 @@
 
     <!-- Mobile menu button (2026-08-02): hidden unless <body> carries the
          `mobile` class. Owns everything the phone layout takes off screen —
-         spellbook, passives, journal, help, minimap, zoom — by turning
+         passives, journal, help, minimap, zoom, and the row that opens the
+         spellbook (the book itself left the sheet at UI pass C3) - by turning
          #leftColumn into a full-screen sheet. Glyph (☰ / ✕) comes from CSS,
          wiring from MobileMenu.ts. -->
     <div id="mobileMenuButton" title="Menu"></div>
@@ -33,6 +34,18 @@
          in). PO ruling 2026-08-04. -->
     <div id="mapButton" title="Map (M)">
         <span class="mapButtonHotkey">M</span>Map
+    </div>
+
+    <!-- The spellbook's desktop way in (UI pass C3): the book is a panel now,
+         so it needs a button, and it carries the unspent-points badge that used
+         to sit in the panel's own title (the panel can be shut when the point
+         arrives). Stacked under #mapButton rather than inside #leftColumn, so
+         the button does not disappear with the panel it opens; the phone's
+         entry is the ☰ sheet's own row further down, and this one is hidden
+         there. Both share .spellbookOpenButton, which is what Spellbook.ts
+         wires. -->
+    <div id="spellbookButton" class="spellbookOpenButton" title="Spellbook (B)">
+        <span class="spellbookButtonHotkey">B</span>Spellbook<span id="skillPointsBadge" class="skillPointsBadge hidden"></span>
     </div>
 
     <!-- Quest tracker (2026-08-23): the journal button's desktop home, stacked
@@ -198,8 +211,8 @@
             <section>
                 <h3>Levels and skill points</h3>
                 <p>Leveling up grants skill points. Spend them in the spellbook
-                    with +. Higher levels cost more points; each skill has its
-                    own cap.</p>
+                    (B) with +. Higher levels cost more points; each skill has
+                    its own cap.</p>
             </section>
             <section>
                 <h3>The three kinds of skills</h3>
@@ -223,8 +236,8 @@
             </section>
             <section>
                 <h3>Equipping</h3>
-                <p>Click a skill in the spellbook, then a slot or its hotkey.
-                    Not while in combat.</p>
+                <p>Open the spellbook (B), click a skill, then a slot or its
+                    hotkey. Not while in combat.</p>
             </section>
             <section>
                 <h3>Costs</h3>
@@ -261,10 +274,33 @@
             <span class="journalButtonHotkey">J</span>Journal
         </div>
 
-        <div id="spellbook">
-            <div class="spellbookTitle">Spellbook<span id="skillPointsBadge" class="hidden"></span><span id="respecButton" title="Reset every skill to level 1 and refund all points">Reset</span></div>
+        <!-- The phone's way into the spellbook (UI pass C3, D4), beside the
+             journal's row and mobile-only for the same reason: the desktop
+             button lives up in the map column. The book itself is no longer
+             sheet content - it opens full-screen over it, and the two are
+             mutually exclusive like every other family member. -->
+        <div id="spellbookSheetButton" class="spellbookOpenButton" title="Spellbook (B)">
+            <span class="spellbookButtonHotkey">B</span>Spellbook<span class="skillPointsBadge hidden"></span>
+        </div>
+
+        <!-- ⚑ The list stays RENDERED whether the book is open or shut, and the
+             tab/page filter hides rows with a class instead of removing them:
+             32 verify scripts read #spellbookList straight out of the DOM.
+             Structure is Spellbook.ts's; the rows are HUD.updateSpellbook's. -->
+        <div id="spellbook" class="hidden">
+            <div class="spellbookTitle">Spellbook<span class="skillPointsBadge hidden"></span><span id="respecButton" title="Reset every skill to level 1 and refund all points">Reset</span></div>
+            <ul id="spellbookTabs">
+                <li class="spellbookTab hidden" data-category="aura">Auras</li>
+                <li class="spellbookTab hidden" data-category="passive">Passives</li>
+                <li class="spellbookTab hidden" data-category="cooldown">Cooldowns</li>
+            </ul>
             <div id="spellbookScroll">
                 <ul id="spellbookList"></ul>
+            </div>
+            <div id="spellbookPager" class="hidden">
+                <span class="spellbookPageStep" data-step="-1">&lsaquo;</span>
+                <span id="spellbookPageLabel"></span>
+                <span class="spellbookPageStep" data-step="1">&rsaquo;</span>
             </div>
         </div>
 

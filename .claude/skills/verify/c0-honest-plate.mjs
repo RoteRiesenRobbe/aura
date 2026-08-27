@@ -60,6 +60,7 @@ const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurah
 const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { showSkillRowAt } from './lib/spellbook.mjs';
 
 const label = process.argv[2] || 'run';
 const url = process.argv[3] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
@@ -246,6 +247,7 @@ const equipAndActivate = async (skillRe) => {
   if (!rowAppeared) return { ok: false, why: `no spellbook row matches ${skillRe}` };
   const rowIndex = await page.evaluate((re) =>
     [...document.querySelectorAll('#spellbookList li')].findIndex((li) => new RegExp(re, 'i').test(li.textContent)), skillRe);
+  await showSkillRowAt(page, rowIndex); // the book is a closable, paged panel since UI pass C3
   const rows = await page.$$('#spellbookList li');
   const box = await rows[rowIndex].boundingBox();
   await page.mouse.click(box.x + 25, box.y + box.height / 2); // the NAME, not the row centre

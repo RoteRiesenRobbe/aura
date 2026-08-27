@@ -37,6 +37,7 @@ const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurah
 const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { showSkillRowAt } from './lib/spellbook.mjs';
 
 const label = process.argv[2] || 'run';
 const url = process.argv[3] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
@@ -222,6 +223,7 @@ const equipAndActivateAura = async (skillRe) => {
   const rowIndex = await page.evaluate((re) =>
     [...document.querySelectorAll('#spellbookList li')].findIndex((li) => new RegExp(re, 'i').test(li.textContent)),
   skillRe.source);
+  await showSkillRowAt(page, rowIndex); // the book is a closable, paged panel since UI pass C3
   const rows = await page.$$('#spellbookList li');
   const box = await rows[rowIndex].boundingBox();
   await page.mouse.click(box.x + 25, box.y + box.height / 2);
@@ -295,7 +297,12 @@ try {
     && (accepted?.objectives ?? []).some((o) => /^0\/6 boars killed$/.test(o)),
     `entries=${JSON.stringify(accepted?.entries)} objectives=${JSON.stringify(accepted?.objectives)}`);
 
-  const reOpened = await panel();
+  // ⚑ The journal read above LEFT the conversation: since the UI pass C2
+  // exclusivity policy (D1), opening the journal shuts every other family panel
+  // and sends Leave to the NPC. So the panel has to be re-opened before it can
+  // be read - sampling here used to return null and score the show-rule red.
+  await page.keyboard.press('KeyJ');
+  const reOpened = await talkTo('Farmer');
   check('A4 the Accept row VANISHED the moment the quest started (Q1 show-rule)',
     reOpened !== null && !reOpened.rows.some((r) => r.includes("I'll do it")),
     `rows=${JSON.stringify(reOpened?.rows)}`);
@@ -346,7 +353,9 @@ try {
       inList(done?.completed ?? [], titleOf('boars-in-the-field')) && xpAfter - xpBefore === 180,
       `XP ${xpBefore} → ${xpAfter}, completed=${JSON.stringify((done?.completed ?? []).map((q) => q.title))}`);
 
-    const after = await panel();
+    // Same C2 D1 consequence as A4: the journal read above left the Farmer.
+    await page.keyboard.press('KeyJ');
+    const after = await talkTo('Farmer');
     check('A10 the row is CLOSED after completion — no re-accept, no second payment (show-rule)',
       after !== null
       && !after.rows.some((r) => r.includes('I killed the 6 boars'))

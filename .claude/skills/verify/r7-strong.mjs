@@ -24,6 +24,7 @@ import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { showSkillRow } from './lib/spellbook.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -82,6 +83,7 @@ const damageId = (spellbook.find(e => /^Damage/i.test(e.name)) || {}).id;
 if (!damageId) fail('the seeded Damage aura is not in the spellbook');
 
 async function tooltipText(skillId, shot) {
+  await showSkillRow(page, skillId); // the book is a closable, paged panel since UI pass C3
   const entry = page.locator(`#spellbookList [data-skill-id="${skillId}"]`).first();
   await entry.scrollIntoViewIfNeeded();
   await entry.hover();
@@ -122,6 +124,7 @@ const strongId = await page.evaluate(() =>
 if (!strongId) fail('Strong not in the spellbook after the cheat');
 
 if (strongId) {
+  await showSkillRow(page, strongId);
   const row = page.locator(`#spellbookList [data-skill-id="${strongId}"]`).first();
   await row.scrollIntoViewIfNeeded();
   const box = await row.boundingBox();

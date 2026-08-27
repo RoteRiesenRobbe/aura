@@ -23,6 +23,7 @@
 import { createRequire } from 'module';
 import { join } from 'path';
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { showSkillRow } from './lib/spellbook.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -86,6 +87,7 @@ check('Paralyze reaches the spellbook', skillId !== null, `data-skill-id ${skill
 // "Holds for 3s" would read as a root. The word that matters is "attack".
 let tip = '';
 if (skillId) {
+  await showSkillRow(page, skillId); // the book is a closable, paged panel since UI pass C3
   const row = page.locator(`#spellbookList [data-skill-id="${skillId}"]`).first();
   await row.scrollIntoViewIfNeeded();
   await row.hover();
@@ -99,6 +101,7 @@ check('Its tooltip says the target cannot move, attack OR use abilities',
 
 // --- leg 3: equip into a cooldown slot --------------------------------------
 if (skillId) {
+  await showSkillRow(page, skillId);
   const row = page.locator(`#spellbookList [data-skill-id="${skillId}"]`).first();
   const box = await row.boundingBox();
   await page.mouse.click(box.x + 25, box.y + box.height / 2); // the NAME, not the row centre

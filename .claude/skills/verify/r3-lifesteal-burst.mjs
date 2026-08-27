@@ -28,6 +28,7 @@ import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { showSkillRow } from './lib/spellbook.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -98,6 +99,7 @@ const idOf = (re) => (spellbook.find(e => re.test(e.name)) || {}).id;
 console.log('spellbook:', JSON.stringify(spellbook.map(s => s.name)));
 
 async function tooltipOf(skillId, shot) {
+  await showSkillRow(page, skillId); // the book is a closable, paged panel since UI pass C3
   const entry = page.locator(`#spellbookList [data-skill-id="${skillId}"]`).first();
   await entry.scrollIntoViewIfNeeded();
   await entry.hover();
@@ -159,6 +161,7 @@ for (const [label, re, shot] of [['Immolate', /Immolate/i, 'immolate-tooltip.png
 // Equip the seeded Damage aura and Bloodthirst, go somewhere hostile, open a
 // wound, then compare a control window against the burst window.
 const equipFromSpellbook = async (re, slotSel) => {
+  await showSkillRow(page, re);
   const rows = await page.$$('#spellbookList li[data-skill-id]');
   for (const row of rows) {
     const text = await row.evaluate(el => el.textContent);

@@ -44,6 +44,7 @@ const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurah
 const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { showSkillRowAt } from './lib/spellbook.mjs';
 
 const label = process.argv[2] || 'run';
 const url = process.argv[3] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
@@ -296,6 +297,7 @@ const slot2Busy = async () => /\d+(\.\d+)?s/.test(await slot2Text());
 const row = await page.evaluate(() =>
   [...document.querySelectorAll('#spellbookList li')].findIndex((li) => /Companion/i.test(li.textContent)));
 if (row >= 0) {
+  await showSkillRowAt(page, row); // the book is a closable, paged panel since UI pass C3
   const rows = await page.$$('#spellbookList li');
   const box = await rows[row].boundingBox();
   // ⚑ Click the NAME, not the row centre — mid-row is the spend button.

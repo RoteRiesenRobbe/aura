@@ -4,6 +4,7 @@ import * as Journal from '../../../journal/logic/Journal';
 import * as QuestTracker from '../../../journal/logic/QuestTracker';
 import * as Help from '../../../help/logic/Help';
 import * as MobileMenu from './MobileMenu';
+import * as Spellbook from './Spellbook';
 import * as Interact from '../../../interact/logic/Interact';
 import * as Utilities from '../../../utilities/logic/Utilities';
 import * as Mobile from '../../logic/Mobile';
@@ -60,7 +61,11 @@ function skillLevelOf(skillId: number): number {
 }
 
 let selectedSkillId: number | null = null;
-let skillPointsBadgeElement: HTMLElement;
+// The unspent-points badge and the glow live on the OPEN BUTTONS since C3:
+// one per layout (the desktop button under the map, the ☰ sheet's row), because
+// the panel they used to sit in can be shut when the point arrives.
+let skillPointsBadgeElements: HTMLElement[] = [];
+let spellbookButtonElements: HTMLElement[] = [];
 // Latest unspent-skill-point count from the server; gates the spend buttons.
 let currentSkillPoints = 0;
 
@@ -436,11 +441,19 @@ export function getChat(): HTMLElement {
 
 function setupSpellbook() {
     spellbookListElement = document.getElementById('spellbookList');
-    skillPointsBadgeElement = document.getElementById('skillPointsBadge');
+    // Queried here rather than owned by Spellbook.ts: that module owns the
+    // book's structure, this one owns what the points count SAYS, and the
+    // badge is the second half of that sentence.
+    skillPointsBadgeElements = [...document.querySelectorAll('.skillPointsBadge')] as HTMLElement[];
+    spellbookButtonElements = [...document.querySelectorAll('.spellbookOpenButton')] as HTMLElement[];
     setupRespecButton(document.getElementById('respecButton'));
     // Explicit init: the HUD partial lands after DOMContentLoaded, so
     // simplebar's data-attribute auto-init never sees it. SimpleBar's own
     // MutationObserver tracks the list re-renders in updateSpellbook.
+    // ⚑ KEPT at C3 although pages replaced scrolling as the way to read a long
+    // book: a page still has to fit a short viewport, and the alternative was
+    // a list that silently overflows its panel. It is overflow safety now, not
+    // the reading mechanism.
     new SimpleBar(document.getElementById('spellbookScroll'), { autoHide: false });
     attachSkillTooltips(spellbookListElement, skillLevelOf);
     spellbookListElement.addEventListener('pointerdown', (e) => {
@@ -477,15 +490,24 @@ function setupSpellbook() {
             passiveLoadoutElement.classList.toggle('hasPendingSkill', skillCategory(id) === 'passive');
             cooldownLoadoutElement.classList.toggle('hasPendingSkill', skillCategory(id) === 'cooldown');
 
-            // Mobile: the spellbook lives inside the menu sheet, but the aura
-            // and cooldown slots it equips into are TILES BEHIND it — leaving
-            // the sheet open makes those two categories unequippable. Passives
-            // keep the sheet open, because their slots are in it.
-            if (skillCategory(id) !== 'passive') {
-                MobileMenu.close();
+            // Mobile: the book is full-screen, and the slots it equips into
+            // are behind it, so a selection has to hand the screen to
+            // wherever the matching slots live (C3, D4). Aura and cooldown
+            // tiles are on the world screen, so the book simply closes; the
+            // PASSIVE slots are in the ☰ sheet, so the sheet comes up instead
+            // (opening it closes the book through the registry). Desktop needs
+            // neither - the loadout panels sit beside the open book there.
+            if (Mobile.isMobile()) {
+                if (skillCategory(id) === 'passive') {
+                    MobileMenu.openSheet();
+                } else {
+                    Spellbook.close();
+                }
             }
         }
     });
+
+    Spellbook.setup();
 }
 
 // tryEquipPending installs a pending spellbook selection into `slot`, and is
@@ -719,17 +741,22 @@ function sameIds(a: number[], b: number[]) {
     return a.length === b.length && a.every((id, i) => id === b[i]);
 }
 
-// updateSkillPointsDisplay keeps the header badge and the panel's hasPoints
-// class (which lights up the spend buttons) in sync with the server count.
+// updateSkillPointsDisplay keeps the open buttons' badges and the panel's
+// hasPoints class (which lights up the spend buttons) in sync with the server
+// count. Since C3 the buttons carry the class too, for the glow that says there
+// is something to spend while the book is shut.
 function updateSkillPointsDisplay(points: number) {
     currentSkillPoints = points;
     // The hover tooltips show their next-level preview only while the point is
     // there to spend, so they need the same live count the + buttons grey on.
     // Pushed rather than pulled: SkillTooltip cannot import this module back.
     setAvailableSkillPoints(points);
-    if (skillPointsBadgeElement) {
-        skillPointsBadgeElement.textContent = points === 1 ? '1 Point' : `${points} Points`;
-        skillPointsBadgeElement.classList.toggle('hidden', points <= 0);
+    for (const badge of skillPointsBadgeElements) {
+        badge.textContent = points === 1 ? '1 Point' : `${points} Points`;
+        badge.classList.toggle('hidden', points <= 0);
+    }
+    for (const button of spellbookButtonElements) {
+        button.classList.toggle('hasPoints', points > 0);
     }
     document.getElementById('spellbook').classList.toggle('hasPoints', points > 0);
 }
@@ -778,6 +805,9 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
 
             const li = document.createElement('li');
             li.dataset.skillId = String(id);
+            // The row's own category, stamped so Spellbook.ts can tab and page
+            // the list without a second lookup into the skills catalog.
+            li.dataset.category = section.category;
 
             const name = document.createElement('span');
             name.className = 'skillName';
@@ -836,6 +866,11 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
     if (anyUnlock) {
         playCssAnimation(document.getElementById('spellbook'), 'unlockPulse');
     }
+
+    // The rows are new objects, so the tab and the page have to be re-applied
+    // to them (the selectedSkillId discipline above, one level up). The page
+    // index clamps in there - a respec can shorten the list under the reader.
+    Spellbook.refresh();
 
     knownSpellbookIds = ids.slice();
     knownSpellbookLevels = levels.slice();

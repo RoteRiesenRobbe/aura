@@ -62,6 +62,7 @@ const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurah
 const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { showSkillRow, showSkillRowAt } from './lib/spellbook.mjs';
 
 const url = process.argv[2] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
 const outdir = process.argv[3] || '/tmp/c1-open-portal-shots';
@@ -275,6 +276,7 @@ async function equipCooldown(r, nameRe) {
     const re = new RegExp(src, 'i');
     return [...document.querySelectorAll('#spellbookList li')].findIndex(li => re.test(li.textContent));
   }, nameRe.source);
+  await showSkillRowAt(page, idx); // the book is a closable, paged panel since UI pass C3
   const rows = await page.$$('#spellbookList li');
   const box = await rows[idx].boundingBox();
   await page.mouse.click(box.x + 25, box.y + box.height / 2);
@@ -460,6 +462,7 @@ try {
   if (tip.err) {
     fail('F · tooltip', tip.err);
   } else {
+    await showSkillRow(A.page, 147);
     const loc = A.page.locator('#spellbookList [data-skill-id="147"]').first();
     await loc.hover();
     await A.page.waitForTimeout(500);

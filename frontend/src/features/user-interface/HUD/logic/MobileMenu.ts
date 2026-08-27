@@ -1,6 +1,7 @@
 // The mobile menu button (2026-08-02): the ☰ that owns everything the phone
-// layout takes off the screen — spellbook, passives, journal, help, minimap
-// and zoom.
+// layout takes off the screen - passives, journal, help, minimap, zoom, and
+// (since UI pass C3) the row that opens the spellbook rather than the book
+// itself, which is now a full-screen panel of its own.
 //
 // There is no menu markup. The button toggles a `menuOpen` class on <body>
 // and HUD.mobile.less turns the EXISTING #leftColumn into a full-screen
@@ -46,6 +47,19 @@ export function setup() {
 
 export function toggle() {
     setOpen(!open);
+}
+
+/**
+ * Bring the sheet up from outside. One caller: selecting a PASSIVE in the
+ * full-screen spellbook on a phone, whose slots live in here (UI pass C3, D4).
+ * Guarded on isMobile because setup() never ran on a desktop page: the class
+ * would land on <html> with no rule to answer it and no way back out.
+ */
+export function openSheet() {
+    if (!isMobile()) {
+        return;
+    }
+    setOpen(true);
 }
 
 /** close is a no-op when the sheet is already shut, like Help.close(). */

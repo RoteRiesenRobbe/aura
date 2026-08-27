@@ -33,6 +33,7 @@
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { showSkillRowAt } from './lib/spellbook.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -135,6 +136,7 @@ const equipAndActivateAura = async (page, skillRe, slotIndex = 0) => {
   const rowIndex = await page.evaluate((re) =>
     [...document.querySelectorAll('#spellbookList li')].findIndex((li) => new RegExp(re, 'i').test(li.textContent)),
     skillRe.source);
+  await showSkillRowAt(page, rowIndex); // the book is a closable, paged panel since UI pass C3
   const rows = await page.$$('#spellbookList li');
   const box = await rows[rowIndex].boundingBox();
   await page.mouse.click(box.x + 25, box.y + box.height / 2);

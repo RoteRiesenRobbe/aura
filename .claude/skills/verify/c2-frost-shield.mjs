@@ -20,6 +20,7 @@
 import { createRequire } from 'module';
 import { join } from 'path';
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { showSkillRow } from './lib/spellbook.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -91,6 +92,7 @@ check('FrostShield reaches the spellbook', skillId !== null, `data-skill-id ${sk
 // slowed", which is the opposite of the mechanic.
 let tip = '';
 if (skillId) {
+  await showSkillRow(page, skillId); // the book is a closable, paged panel since UI pass C3
   const row = page.locator(`#spellbookList [data-skill-id="${skillId}"]`).first();
   await row.scrollIntoViewIfNeeded();
   await row.hover();
@@ -104,6 +106,7 @@ check('Its tooltip names the slow, its target and the window',
 
 // --- leg 3: equip it --------------------------------------------------------
 if (skillId) {
+  await showSkillRow(page, skillId);
   const row = page.locator(`#spellbookList [data-skill-id="${skillId}"]`).first();
   const box = await row.boundingBox();
   await page.mouse.click(box.x + 25, box.y + box.height / 2);

@@ -58,6 +58,7 @@ const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurah
 const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { showSkillRow, showSkillRowAt } from './lib/spellbook.mjs';
 
 const url = process.argv[2] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
 const outdir = process.argv[3] || '/tmp/c2-pull-through-shots';
@@ -330,6 +331,7 @@ async function equipCooldown(r, nameRe) {
     const re = new RegExp(src, 'i');
     return [...document.querySelectorAll('#spellbookList li')].findIndex(li => re.test(li.textContent));
   }, nameRe.source);
+  await showSkillRowAt(page, idx); // the book is a closable, paged panel since UI pass C3
   const rows = await page.$$('#spellbookList li');
   const box = await rows[idx].boundingBox();
   await page.mouse.click(box.x + 25, box.y + box.height / 2);
@@ -505,6 +507,7 @@ try {
   if (entry.err) {
     fail('T · tooltip', entry.err);
   } else {
+    await showSkillRow(A.page, SKILL_ID);
     await A.page.locator(`#spellbookList [data-skill-id="${SKILL_ID}"]`).first().hover();
     await A.page.waitForTimeout(600);
     const tipText = await A.page.evaluate(() => {

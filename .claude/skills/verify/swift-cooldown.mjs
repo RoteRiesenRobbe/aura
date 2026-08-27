@@ -45,6 +45,7 @@ const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurah
 const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { showSkillRowAt } from './lib/spellbook.mjs';
 
 const label = process.argv[2] || 'run';
 const url = process.argv[3] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
@@ -112,6 +113,7 @@ check('Swift is in the spellbook', rowInfo.i >= 0, `row ${rowInfo.i}: ${JSON.str
 // --- 2. the tooltip: hover the row and read the rendered lines ---
 let tooltipText = '';
 if (rowInfo.i >= 0) {
+  await showSkillRowAt(page, rowInfo.i); // the book is a closable, paged panel since UI pass C3
   const rows = await page.$$('#spellbookList li');
   const box = await rows[rowInfo.i].boundingBox();
   await page.mouse.move(box.x + 25, box.y + box.height / 2);
@@ -130,6 +132,7 @@ check('The tooltip calls it a Cooldown, not a Passive',
 
 // --- 3. bind it to a COOLDOWN slot (a passive would not fit one) ---
 if (rowInfo.i >= 0) {
+  await showSkillRowAt(page, rowInfo.i);
   const rows = await page.$$('#spellbookList li');
   const box = await rows[rowInfo.i].boundingBox();
   // Click the NAME, not the row centre — mid-row sits the skill-point spender.

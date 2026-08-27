@@ -23,8 +23,10 @@
 // Legs:
 //   1. ?desktop at 844×390 — baseline occupancy (the "before" picture)
 //   2. ?mobile  at 844×390 — html.mobile lands; occupancy must drop hard
-//   3. menu closed — spellbook/passives/zoom off screen, minimap inert
-//   4. ☰ opens the sheet — spellbook reachable and inside the viewport
+//   3. menu closed - the sheet column and zoom off screen, minimap inert
+//   4. ☰ opens the sheet - its rows reachable and inside the viewport, and the
+//      Spellbook row opens the book FULL-SCREEN (UI pass C3, D4: the book left
+//      the sheet; the two are exclusive now)
 //   5. the six action tiles — one row, ≥44px targets, all on screen
 //   6. tapping an aura tile activates it (touch-only play works)
 //   7. the journal opens full-screen from inside the sheet, and closes it
@@ -170,7 +172,10 @@ const closed = await page.evaluate(() => {
 });
 if (closed.button.display === 'none') fail('the ☰ button is not shown on mobile');
 else pass('the ☰ button is on screen');
-for (const [name, key] of [['spellbook/passives column', 'leftColumn'], ['zoom + help column', 'zoom']]) {
+// ⚑ Since C3 the column is off screen for TWO independent reasons - the sheet
+// is shut AND the book inside it is - so leg 4 below asserts the sheet's
+// contents positively rather than leaning on this absence.
+for (const [name, key] of [['the sheet column (passives, journal + spellbook rows)', 'leftColumn'], ['zoom + help column', 'zoom']]) {
   if (closed[key].display !== 'none') fail(`${name} is still on screen with the menu closed`);
   else pass(`${name} is off screen`);
 }
@@ -198,7 +203,11 @@ const open = await page.evaluate(() => {
   };
   return {
     menuOpen: document.documentElement.classList.contains('menuOpen'),
-    sheet: r('leftColumn'), zoom: r('zoomControl'), spellbook: r('spellbook'),
+    sheet: r('leftColumn'), zoom: r('zoomControl'),
+    // The row that opens the book, which since C3 is what the sheet carries
+    // instead of the book itself.
+    spellbookRow: r('spellbookSheetButton'),
+    bookShown: !document.getElementById('spellbook').classList.contains('hidden'),
     minimapOpacity: Number(getComputedStyle(document.getElementById('minimap')).opacity),
     vh: window.innerHeight, vw: window.innerWidth,
     // What actually receives a tap in the middle of the sheet.
@@ -215,17 +224,48 @@ if (open.zoom.display === 'none') fail('the zoom + help row is missing from the 
 else pass('the zoom + help row is in the sheet');
 if (open.minimapOpacity !== 1) fail('the minimap did not appear in the sheet');
 else pass('the minimap appears in the sheet');
-// The spellbook is the whole reason the sheet exists — it must be readable,
-// not clipped to the ~16px the desktop clamp leaves at this height.
-if (open.spellbook.right > open.vw + 1 || open.spellbook.left < -1) {
-  fail(`the spellbook is not inside the viewport (${Math.round(open.spellbook.left)}..${Math.round(open.spellbook.right)} of ${open.vw})`);
+// The spellbook is the whole reason the sheet exists - but since UI pass C3 the
+// sheet carries the ROW that opens it, and the book itself is a full-screen
+// panel exclusive with the sheet. Both halves are asserted: the row is here and
+// fits, and the book is NOT sitting in the sheet behind it.
+if (open.spellbookRow.display === 'none'
+  || open.spellbookRow.right > open.vw + 1 || open.spellbookRow.left < -1) {
+  fail(`the Spellbook row is not usable in the sheet (${JSON.stringify(open.spellbookRow)} of ${open.vw})`);
 } else {
-  pass(`the spellbook fits the width (${Math.round(open.spellbook.right - open.spellbook.left)}px of ${open.vw})`);
+  pass(`the Spellbook row fits the sheet (${Math.round(open.spellbookRow.right - open.spellbookRow.left)}px of ${open.vw})`);
 }
-const rows = await page.locator('#spellbookList li').count();
-if (rows < 1) fail('the spellbook has no rows to scroll');
-else pass(`the spellbook lists ${rows} skill row(s)`);
+if (open.bookShown) fail('the spellbook panel is still embedded in the sheet (C3 D4 moved it out)');
+else pass('the book itself is no longer sheet content');
 await page.screenshot({ path: join(outdir, '3-mobile-menu-open.png') });
+
+// The row opens the book full-screen, and the sheet gets out of the way.
+await tap('#spellbookSheetButton');
+const book = await page.evaluate(() => {
+  const el = document.getElementById('spellbook');
+  const b = el.getBoundingClientRect();
+  return {
+    shown: !el.classList.contains('hidden'),
+    menuOpen: document.documentElement.classList.contains('menuOpen'),
+    width: b.width, vw: window.innerWidth,
+    rows: document.querySelectorAll('#spellbookList li').length,
+    atCentre: document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)?.closest('#spellbook') !== null,
+  };
+});
+if (!book.shown) fail('the Spellbook row did not open the book');
+else pass('the Spellbook row opens the book');
+if (book.menuOpen) fail('the sheet stayed open under the book (they are exclusive)');
+else pass('opening the book closed the sheet');
+if (!book.atCentre || book.width < book.vw - 1) {
+  fail(`the book is not full-screen (${Math.round(book.width)}px of ${book.vw}, centre=${book.atCentre})`);
+} else {
+  pass(`the book fills the phone (${Math.round(book.width)}px of ${book.vw})`);
+}
+if (book.rows < 1) fail('the spellbook has no rows to read');
+else pass(`the spellbook lists ${book.rows} skill row(s)`);
+await page.screenshot({ path: join(outdir, '3b-mobile-spellbook-open.png') });
+
+// ☰ takes the screen back, which is also the book's close.
+await tap('#mobileMenuButton');
 
 // ☰ again closes it.
 await tap('#mobileMenuButton');

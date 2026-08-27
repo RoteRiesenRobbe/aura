@@ -14,6 +14,7 @@ import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { openSpellbook, showSkillRow } from './lib/spellbook.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -67,6 +68,7 @@ async function equipFromSpellbook(name, slotSelector) {
   const id = await page.evaluate((n) =>
     [...document.querySelectorAll('#spellbookList [data-skill-id]')]
       .find(e => new RegExp(n, 'i').test(e.textContent))?.dataset.skillId, name);
+  await showSkillRow(page, id); // the book is a closable, paged panel since UI pass C3
   const row = page.locator(`#spellbookList [data-skill-id="${id}"]`).first();
   await row.scrollIntoViewIfNeeded();
   const box = await row.boundingBox();
@@ -150,6 +152,7 @@ const plusOnSwift = async () => {
   const id = await page.evaluate(() =>
     [...document.querySelectorAll('#spellbookList [data-skill-id]')]
       .find(e => /Swift/i.test(e.textContent))?.dataset.skillId);
+  await showSkillRow(page, id);
   const btn = page.locator(`#spellbookList [data-skill-id="${id}"] .spendBtn`).first();
   const box = await btn.boundingBox();
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
@@ -164,6 +167,7 @@ if (raised === null || raised < 2) fail('could not raise Swift above 1 to set up
 const badgeBefore = await page.evaluate(() => document.querySelector('#skillPointsBadge')?.textContent);
 
 // Arm, then confirm.
+await openSpellbook(page);
 const respecBtn = page.locator('#respecButton');
 let box = await respecBtn.boundingBox();
 if (!box) fail('no #respecButton in the spellbook title');

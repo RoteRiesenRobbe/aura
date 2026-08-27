@@ -18,6 +18,7 @@ import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { joinAsNewCharacter } from './lib/join.mjs';
+import { openSpellbook, showSkillRow } from './lib/spellbook.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -85,6 +86,9 @@ if (!disciplineId) fail('Discipline not in the spellbook');
 // the point of a presentation chunk's shot is the tooltip, and moving the mouse
 // away first yields a perfectly plausible frame with nothing in it.
 async function costLine(skillId, shot) {
+  // The book is a closable, tabbed, paged panel since UI pass C3 - a row that
+  // is not on the open page has no box to hover.
+  await showSkillRow(page, skillId);
   const entry = page.locator(`#spellbookList [data-skill-id="${skillId}"]`).first();
   await entry.scrollIntoViewIfNeeded();
   await entry.hover();
@@ -135,9 +139,13 @@ if (!/^Focus \d+\/\d+$/.test(barText || '')) {
 }
 
 // --- leg 3: the spellbook row clears the scrollbar (F3) ---------------------
+// A geometry leg, so it needs the book actually open (C3), and it must measure
+// a row on the CURRENT page: an off-page row is display:none and reports a
+// zero-size rect, which reads as a spend button flush against the scrollbar.
+await openSpellbook(page);
 const rowGeometry = await page.evaluate(() => {
   // Skip the section headers — only skill rows carry the spend buttons.
-  const li = document.querySelector('#spellbookList > li[data-skill-id]');
+  const li = document.querySelector('#spellbookList > li[data-skill-id]:not(.offPage)');
   const btn = li?.querySelector('.spendBtn');
   if (!li || !btn) return null;
   return {
@@ -176,6 +184,7 @@ if (cl30Cost === null) {
 // Equip it into a passive slot: click the skill NAME (a centre click hits the
 // spend buttons), assert the selection, then click the slot.
 if (disciplineId) {
+  await showSkillRow(page, disciplineId);
   const row = page.locator(`#spellbookList [data-skill-id="${disciplineId}"]`).first();
   await row.scrollIntoViewIfNeeded();
   const box = await row.boundingBox();

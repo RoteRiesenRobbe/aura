@@ -1,9 +1,9 @@
 /**
  * The panel exclusivity registry (plan-ui-pass.md C2, ruling D1).
  *
- * Journal, help, conversation, settings and the mobile ☰ sheet are ONE
- * exclusive family: at most one is open, and opening any of them closes the
- * rest. The spellbook joins the family at C3, once it is openable at all.
+ * Journal, help, conversation, settings, the spellbook and the mobile ☰ sheet
+ * are ONE exclusive family: at most one is open, and opening any of them closes
+ * the rest. The spellbook joined at C3, when it stopped being always-on.
  *
  * Each panel registers its own close function once, at setup, and calls
  * notifyOpened() on every path that puts it on screen. The indirection is the
@@ -15,8 +15,8 @@
  * to be showing.
  */
 
-/** The family. Spellbook joins at C3. */
-export type PanelId = 'journal' | 'help' | 'conversation' | 'settings' | 'mobileMenu';
+/** The family. */
+export type PanelId = 'journal' | 'help' | 'conversation' | 'settings' | 'spellbook' | 'mobileMenu';
 
 const closers = new Map<PanelId, () => void>();
 

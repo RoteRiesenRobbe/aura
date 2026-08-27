@@ -32,6 +32,7 @@ const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurah
 const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
 import { harnessCharacterName } from './lib/join.mjs';
+import { showSkillRowAt } from './lib/spellbook.mjs';
 
 const url = process.argv[3] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
 const libDir = join(workdir, 'libs/usr/lib/x86_64-linux-gnu');
@@ -98,6 +99,7 @@ const equipAura = async (pattern) => {
     [...document.querySelectorAll('#spellbookList li')].findIndex((li) => new RegExp(p, 'i').test(li.textContent)),
   pattern);
   if (row < 0) return false;
+  await showSkillRowAt(page, row); // the book is a closable, paged panel since UI pass C3
   const rows = await page.$$('#spellbookList li');
   const box = await rows[row].boundingBox();
   await page.mouse.click(box.x + 25, box.y + box.height / 2);

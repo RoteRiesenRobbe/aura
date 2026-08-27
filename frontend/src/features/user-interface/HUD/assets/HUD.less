@@ -288,6 +288,12 @@
 	top: 1rem;
 	left: 1rem;
 
+	// ⚑ Load-bearing since the spellbook became a panel with a pager at its
+	// bottom edge (C3): without it #bottomCenter's transparent full-width
+	// strip, which paints later, eats every click on the lower part of this
+	// column. See the token's note in variables.less.
+	z-index: @z-left-column;
+
 	display: flex;
 	flex-direction: column;
 	gap: 1rem;
@@ -546,6 +552,88 @@
 	.panel-chrome();
 	min-width: @panel-min-width;
 
+	// ⚑ Explicit, not inherited from the bare `.hidden` class: an id selector
+	// beats it, so the moment any rule here (or in HUD.mobile.less) sets a
+	// display on #spellbook, a closed book would stay on screen. That is the
+	// documented #interactButton trap, pre-empted.
+	&.hidden {
+		display: none;
+	}
+
+	// The category tabs (C3, D2) - three of them, and a category that has
+	// discovered nothing hides its own (the zero-hint policy the section
+	// bands used to carry). Outside #spellbookScroll on purpose: SimpleBar's
+	// capture-phase pointerdown handler eats untrusted events, and the tabs
+	// are exactly what a harness clicks.
+	> #spellbookTabs {
+		display: flex;
+		gap: 0.4rem;
+		margin: 0 0 0.6rem;
+		padding: 0;
+		list-style: none;
+
+		> .spellbookTab {
+			padding: 0.3rem 0.8rem;
+			border: 1px solid @panel-border;
+			border-radius: 0.4rem 0.4rem 0 0;
+			border-bottom: 2px solid fade(@gold-levelup, 25%);
+			color: @panel-title-color;
+			cursor: pointer;
+
+			&:hover {
+				color: white;
+			}
+
+			&.active {
+				background: fade(@gold-levelup, 12%);
+				border-bottom-color: fade(@gold-levelup, 75%);
+				color: @gold-levelup;
+				font-weight: 700;
+			}
+
+			&.hidden {
+				display: none;
+			}
+		}
+	}
+
+	// Page flipping (C3, D2). Hidden whenever one page holds the tab, so a
+	// small collection never grows controls it cannot use.
+	> #spellbookPager {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 1rem;
+		margin-top: 0.6rem;
+		padding-top: 0.4rem;
+		border-top: 1px solid @panel-row-divider;
+		color: @panel-title-color;
+
+		&.hidden {
+			display: none;
+		}
+
+		> .spellbookPageStep {
+			padding: 0 0.6rem;
+			font-size: 1.4em;
+			line-height: 1;
+			cursor: pointer;
+
+			&:hover {
+				color: white;
+			}
+
+			&.inactive {
+				opacity: 0.25;
+				cursor: default;
+
+				&:hover {
+					color: @panel-title-color;
+				}
+			}
+		}
+	}
+
 	> #spellbookScroll {
 		// SimpleBar needs an explicit height/max-height ON THIS element — its
 		// .simplebar-wrapper sizes via `max-height: inherit`, so a flex-derived
@@ -553,8 +641,12 @@
 		// height and hang below the panel as an invisible hit-target that
 		// swallows clicks on the passives panel (PO bug 2026-07-18). The
 		// subtrahend ≈ HUD margins + spellbook chrome + the passives panel, so
-		// both panels fit the viewport.
-		max-height: calc(100vh - 24rem);
+		// both panels fit the viewport. ⚑ Grown from 24rem at C3: the panel
+		// gained an open button above it plus a tab row and a pager inside it,
+		// and the passives below have to stay on screen. Pages are what keeps
+		// the list short now - this clamp is the backstop, not the reading
+		// mechanism (see the SimpleBar note in HUD.ts).
+		max-height: calc(100vh - 30rem);
 		// Disables SimpleBar's horizontal axis (its recalculate() reads the
 		// host overflow-x) — its scrollbar-hiding trick otherwise fakes ~20px
 		// of x-overflow and renders a pointless horizontal bar. overflow-y
@@ -590,7 +682,12 @@
 		font-size: (@panel-title-size * 1.2);
 		text-transform: uppercase;
 
-		> #skillPointsBadge {
+		// The points badge shows in BOTH places since the C3 PO look: on the
+		// open buttons (.spellbookOpenButton below) because the book can be
+		// shut when the point arrives, and here in the title so the count
+		// stays in view while spending. HUD.ts feeds every .skillPointsBadge
+		// the same text, so the two can never disagree.
+		> .skillPointsBadge {
 			color: fade(@gold-flash, 90%);
 			text-transform: none;
 			letter-spacing: normal;
@@ -686,6 +783,19 @@
 				&:first-child {
 					margin-top: 0;
 				}
+			}
+
+			// Not on the current tab or the current page (C3). ⚑ HIDDEN, never
+			// removed - the verify suite reads this list straight out of the DOM
+			// and does not know the book has tabs.
+			//
+			// ⚑ AFTER `.sectionHeader` on purpose: that block sets
+			// `display: block` at exactly the same specificity, so an earlier
+			// `display: none` loses the tie and every category band stays on screen
+			// (observed on the phone at C3). Source order is doing real work here -
+			// do not move this rule up.
+			&.offPage {
+				display: none;
 			}
 
 			> .skillControls {
@@ -1485,20 +1595,73 @@
 	}
 }
 
+// The two spellbook open buttons (UI pass C3). Same HUD vocabulary as the map
+// and journal buttons; what differs is the badge they carry and where each one
+// lives - the desktop button is placed by hand in the minimap's column, the
+// sheet row rides #leftColumn's flow like #journalButton (and is desktop-hidden
+// for the same reason: one entry point per layout).
+.spellbookOpenButton {
+	.hud-button-chrome();
+
+	display: flex;
+	align-items: baseline;
+	gap: 0.6rem;
+
+	> .spellbookButtonHotkey {
+		color: @panel-title-color;
+		font-size: @panel-title-size;
+		margin-right: 0.2rem;
+	}
+
+	// The unspent-points badge, moved off the panel title at C3 - the panel can
+	// be shut when the point arrives, the button cannot.
+	> .skillPointsBadge {
+		color: fade(@gold-flash, 90%);
+		font-size: @panel-font-size;
+		white-space: nowrap;
+
+		&.hidden {
+			display: none;
+		}
+	}
+
+	// The glow: something is waiting to be spent in there.
+	&.hasPoints {
+		border-color: fade(@gold-levelup, 80%);
+		color: @gold-levelup;
+	}
+}
+
+// Under #mapButton, one button height down - the same hand-placed column, see
+// #mapButton's note for why these are siblings of #minimap rather than members
+// of #leftColumn.
+#spellbookButton {
+	position: absolute;
+	top: calc(15.6vw + 3.6rem);
+	right: 0.3vw;
+}
+
+// Mobile-only, exactly like #journalButton above it in the sheet.
+// ⚑ Single-id selector for the same reason: HUD.mobile.less re-shows it.
+#spellbookSheetButton {
+	display: none;
+}
+
 // The quest tracker (2026-08-23): journal button + running-quest objectives,
 // stacked under #mapButton in the minimap's column. Desktop only - the phone
 // keeps its #journalButton row in the ☰ sheet instead (HUD.mobile.less).
 // ⚑ The geometry is coupled to its neighbours by hand, like #mapButton's
-// 15.6vw: the top clears the map button (15.6vw + its ~3rem height), the
-// width is the minimap's 15vw ("as big as the map"), and the max-height stops
-// the list above the #zoomControl column (bottom 13vh + ~17vh of column, so
-// its top edge sits near 70vh) - the list scrolls once it would reach it.
+// 15.6vw: the top clears the map button AND the spellbook button below it
+// (15.6vw + 2 × ~3.6rem), the width is the minimap's 15vw ("as big as the
+// map"), and the max-height stops the list above the #zoomControl column
+// (bottom 13vh + ~17vh of column, so its top edge sits near 70vh) - the list
+// scrolls once it would reach it.
 #questTracker {
 	position: absolute;
-	top: calc(15.6vw + 3.6rem);
+	top: calc(15.6vw + 7.2rem);
 	right: 0.3vw;
 	width: 15vw;
-	max-height: calc(69vh - 15.6vw - 3.6rem);
+	max-height: calc(69vh - 15.6vw - 7.2rem);
 
 	display: flex;
 	flex-direction: column;

@@ -309,10 +309,19 @@ Takes `[label] [url]`; built for code-health C6, reusable for any restyle
 that claims to be behaviour-neutral). **Diagnostic tools, not
 regressions** (never expect them green): `ctxloss-repro`, `hunt-null-split`.
 
-**Invocation is NOT uniform.** Most take `[label] [url]`, but `round4-tooltip`
-and `filler-batch` take the **URL as the first argument** — passing a label makes
-them die on `Cannot navigate to invalid URL`, which looks like a product failure
-in a sweep. `ctxloss-warning` takes `clean|forced`. `r4-badge`'s `aura` leg needs
+**Invocation is NOT uniform, and the split is bigger than it looks.** Most take
+`[label] [url]`, but **ten scripts take the URL as the first argument** and die
+on `Cannot navigate to invalid URL` when handed a label — which looks like a
+product failure in a sweep, and cost three wasted runs in the C3 sweep
+(2026-08-27) before anyone counted: `c1-open-portal`, `c2-pull-through`,
+`c3-invulnerability`, `c4-ally-speed`, `mobile-layout`, `r1-focus-cost`,
+`r3-lifesteal-burst`, `r7-respec-cost`, `r7-strong`, `round4-tooltip` (plus
+`filler-batch`). Don't trust this list against a growing suite — a sweep runner
+should DERIVE it:
+
+```bash
+grep -qE "^const (url|base) = process\.argv\[2\]" "$script" && first="$URL" || first="label"
+``` `ctxloss-warning` takes `clean|forced`. `r4-badge`'s `aura` leg needs
 a throwaway content edit (documented in its header); its `vanilla` leg runs as-is.
 
 ## Writing or repairing a harness
@@ -434,6 +443,24 @@ for reasons unrelated to any recent change:
   unbuffed baseline is near 1.5 u/s** — a slow baseline means obstruction, and
   the run should say INCONCLUSIVE rather than print a ratio. Worked example:
   `swift-cooldown.mjs`.
+- **⚑ The spellbook is a CLOSABLE, TABBED, PAGED panel since UI pass C3
+  (2026-08-27), and it is CLOSED on join.** The rows stay in the DOM at all
+  times, so every `page.evaluate` query still works untouched — but a row that
+  is shut away, on another tab, or on another page is `display: none` and has
+  **no box**, so `boundingBox()` returns null and the next line throws. Anything
+  that touches a row for real (`mouse.click`, `hover`, `scrollIntoViewIfNeeded`,
+  a geometry read) goes through the shared helper first:
+
+  ```js
+  import { showSkillRow, showSkillRowAt } from './lib/spellbook.mjs';
+  await showSkillRow(page, skillId);        // or a /RegExp/ against the row text
+  await showSkillRowAt(page, rowIndex);     // when you already have the index
+  ```
+
+  It presses `B` (a raw window keydown — no long hold), switches to the row's
+  own category tab and pages to it. `openSpellbook(page)` alone is enough for
+  `#respecButton` and other panel chrome. Twenty-five scripts carry these calls;
+  `c3-spellbook.mjs` owns the panel's own behaviour.
 - **Equipping from the spellbook: click the skill NAME, not the row centre.**
   Each row is `<name> [−] <lvl>/<max> [+]`, and the spend/unspend buttons sit
   mid-row with explicit precedence in the `pointerdown` handler — a centre click
