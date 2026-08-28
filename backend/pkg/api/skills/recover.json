@@ -2,6 +2,7 @@
   "_comment": "Personal recovery cooldown (GDD: recovery, not combat sustain — the instant Heal covers that): self-only HoT over ~18 s, made self-only in the C8 milestone settlement per plan-content-zones12.md §5. World source: DireBear kill-drop (same settlement — was cheat-only). ⚑ NUMBERS REWRITE C2c (D14): this was the pass's headline dead-content case — a FLAT 4 HP × 9 ticks = 36 HP total at maxLevel 1, worth 36 % of a level-1 pool and 1.4 % of a level-30 one, because the pool grows ~26× over 30 levels while the number did not. It now heals a FRACTION of max per tick (healFractionOfMax, the field HotParams gained in C1), so it is worth the same share of the pool forever — the same fix FirstAid already had. ⚑ healFractionOfMax and flat healHP are MUTUALLY EXCLUSIVE and authoring both hard-fails at load (L11), so healHP is gone rather than left at 0. Cap moved 1 → 5 now that there is something to scale; it was 1 in C2a precisely because there was not. All values [PLACEHOLDER].",
   "id": 31,
   "name": "Recover",
+  "icon": "delapouite/healing",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 1200,

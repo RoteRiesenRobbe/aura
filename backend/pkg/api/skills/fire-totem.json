@@ -2,6 +2,7 @@
   "_comment": "Fire Totem (2026-07-21): the greater fire elemental's payload — a stationary totem that burns everything around it. Mechanically the SummonTotem pattern (spawn effect, skill level scales TTL + the totem's loadout level, owner level adds HP/power), but the totem's aura hits ALL enemies in range rather than the nearest one: SummonTotem is a single-target poke, FireTotem is area denial. cooldownTicks 450 ≥ the max-level TTL (420) keeps it one-totem-at-a-time by content convention (§8.3, no cap system). All values [PLACEHOLDER]",
   "id": 61,
   "name": "FireTotem",
+  "icon": "lorc/totem-head",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 450,

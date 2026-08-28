@@ -2,6 +2,7 @@
   "_comment": "Skill-vocab chunk 2 smoke content: cooldown that grants an absorb pool to the caster and nearby allies for ~10 s. Cheat-granted (SKILL Barrier), no milestone. All values [PLACEHOLDER].",
   "id": 27,
   "name": "Barrier",
+  "icon": "lorc/energy-shield",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,

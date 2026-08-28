@@ -2,6 +2,7 @@
   "_comment": "Shockwave (content pass C7, plan-content-zones12.md §13): Vanguard L5 + DamageBurst L3 combo — the BEST COOLDOWN in the game (§A ceiling trio, specialist shape): ~2x DamageBurst damage, wider ring, shorter cooldown; keeps the physical+bleed identity. Secret recipe. All values [PLACEHOLDER] pending C8",
   "id": 54,
   "name": "Shockwave",
+  "icon": "lorc/broadsword",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 240,

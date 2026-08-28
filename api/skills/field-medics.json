@@ -2,6 +2,7 @@
   "_comment": "FieldMedics (content pass C7, plan-content-zones12.md §13): CallForAid L3 + Heal L5 combo (PO pick 2026-07-18: Heal as the medic partner) — the support squad: two soldiers and a MedicCompanion (HealerAura, heals the squad and its owner). CallForAid conventions verbatim: 3 spawn effects in one cast, cooldownTicks >= max TTL = one-squad-at-a-time by content. Below the §A ceiling. Secret recipe. All values [PLACEHOLDER] pending C8",
   "id": 57,
   "name": "FieldMedics",
+  "icon": "lorc/totem-head",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 2400,

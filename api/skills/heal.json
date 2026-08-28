@@ -2,6 +2,7 @@
   "_comment": "Values copied from backend/conf.json as of migration start — all [PLACEHOLDER] pending balance pass. Playtest-1 Pass A item 7 (PO 2026-07-22): the heal read as unusable at L1 — cadence 120→80 ticks and radius 1.0→1.5 (+0.1/level) so it lands often enough to feel like support and reaches an ally who is not standing on top of you. Per-tick heal AND self-cost are unchanged, so the FINAL 10−2/level cost curve now bills 1.5× per second as well — deliberate, revisit at the feel pass.",
   "id": 2,
   "name": "Heal",
+  "icon": "delapouite/healing",
   "category": "active_aura",
   "maxLevel": 10,
   "effects": [

@@ -2,6 +2,7 @@
   "_comment": "Swift, re-roled from a passive to a movement cooldown (PO ruling 2026-07-29, plan-playtest-feedback.md §Open questions 4). The movement space held only Dash (a blink) and Haste (which is aura cadence, not movement), so the sustained-speed slot was empty and a flat stat_multiplier passive was the weakest possible occupant of it. Shape picked by the PO: a steerable sprint rather than a short escape burst — at L1 that is 11.25 units of travel across the 5 s window against 7.5 walking. Keeps id 10 and its wolf-line drops (Wolf 0.04 / EliteWolf 0.25 / DireWolf 0.12 / AlphaWolf 0.15), so the first-drop moment is unchanged; only what it drops changed. All values [PLACEHOLDER]. ⚑ `targetsSelf: true` is authored since plan-effect-types.md C4 (D8): speed_burst gained ally delivery there, so who a burst reaches became authored rather than implicit, and a burst naming nobody now hard-fails. Swift's RUNTIME BEHAVIOR is unchanged — this is a byte change only, pinned by test.",
   "id": 10,
   "name": "Swift",
+  "icon": "lorc/wingfoot",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 600,

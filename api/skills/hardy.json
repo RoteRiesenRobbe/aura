@@ -2,6 +2,7 @@
   "_comment": "Boar kill-drop passive (content pass C2, plan-content-zones12.md §5): +max HP, the tough grazer's gift. Composes multiplicatively with f(L) per C0 (MaxHealth = base × f(L) × (1+bonus)). All values [PLACEHOLDER]",
   "id": 42,
   "name": "Hardy",
+  "icon": "sbed/health-increase",
   "category": "passive",
   "maxLevel": 5,
   "effects": [

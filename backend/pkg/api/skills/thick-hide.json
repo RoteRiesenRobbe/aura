@@ -2,6 +2,7 @@
   "_comment": "Bear kill-drop passive (content pass C2): first authored resist_passive. Multiplies incoming physical-tagged damage (0.85 = take 85%, stronger per level). physical is the implicit default tag, so this resists most of the zone — deliberate (plan-content-zones12.md §5). All values [PLACEHOLDER]",
   "id": 43,
   "name": "ThickHide",
+  "icon": "lorc/bordered-shield",
   "category": "passive",
   "maxLevel": 5,
   "effects": [

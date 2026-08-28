@@ -393,7 +393,17 @@ Derived from §4 Phase 2's dependency shape plus the two §2 sequencing rules
   (Detailed + ruled below, 2026-08-27.)
 - **C4 - skill icons, shipped-ability subset** (§2 item 1 pulled forward):
   game-icons.net sourcing in the ink-ringed-token treatment; prerequisite of
-  C5.
+  C5. (Detailed + ruled below, 2026-08-28.)
+- **C4b - the unlock breadcrumb trail** (PO-asked + slotted before C5 at the
+  C4 wrap, 2026-08-28 - an amendment to the D4-ratified order): an UNSEEN
+  new spell pulses the spellbook's open buttons lightly; opening the book
+  moves the pulse to the spell's category tab; within that tab the pager
+  pulses while the spell is off the current page; the row itself pulses in
+  view. Every pulse stops only once ALL unseen spells have been seen. Owes
+  its own detailing session before build: the "seen" semantics (in view on
+  the open page? for how long?) and whether unseen state survives a reload -
+  a client-only set dies with the tab, persistence would be this pass's
+  FIRST schema touch.
 - **C5 - the ONE ability bar**: the §2 consolidation (icon-only, wood
   divider, utility island) + direction-C restyle; `.slotLabel` DOM contract
   kept, harness sweep budgeted.
@@ -653,7 +663,174 @@ resolutions.
 **Execution:** delegated to an Opus 5 agent, reviewed line-by-line (the
 C1/C2 discipline).
 
+### C4 - skill icons (detailed + ruled 2026-08-28)
+
+**Deliverable:** every authored player skill gets an icon, rendered as the
+ratified ink-ringed token (solid parchment glyph in an ink ring, the §4
+board-C treatment) on the spellbook rows, plus the reusable token component
+and the asset/mapping pipeline C5's icon-only bar consumes. Prerequisite of
+C5. **Schema NONE** (no DB) - but ⚑ the first UI-pass chunk that is NOT pure
+client: content JSON (`api/skills`) + a one-field Go catalog rider + client.
+
+**Rulings (PO 2026-08-28, choice prompts):**
+
+- **D1 - ALL 72 authored player skills.** Not just the ~57 obtainable at
+  HEAD: cheat rigs (Omni trio), prototypes (ThrowMine/ThrowBomb,
+  OpenPortal) and the unwired few included, so no surface ever shows a
+  blank token. C11's icon half shrinks to future skills + the flavor
+  descriptions. Mob-embedded skills (BearSwipe etc. - in the 105-entry
+  catalog but not in `api/skills/`) author NO icon and never render one.
+- **D2 - SPELLBOOK ROWS are C4's visible surface.** The token sits before
+  `.skillName` in each row. Loadout slots, ability bars and `#utilityBar`
+  DOM stay untouched - those are C5's surface (the 32-script
+  `li[data-slot] .slotLabel` contract is not touched at all here).
+- **D3 - FUNCTIONAL PLACEHOLDER VOCABULARY.** PO verbatim: "find common
+  geometric or iconic forms to use for for example damage types, ability
+  type, range or similar ... full expectation is that all of them will be
+  replaced, they should for now just refer to their spell and be not
+  creative, only functional." So: a SMALL shared glyph set (roughly 15-25
+  game-icons.net picks) keyed to what a skill does - damage type (physical
+  / fire / frost / poison / nature), role (heal, shield, speed, slow/CC,
+  summon, light, harvest, ...) - reused across skills; two skills with the
+  same role sharing a glyph is correct, not a collision. No per-skill
+  creative picks, no contact-sheet gate; review happens in-game at the PO
+  look. Category (aura/passive/cooldown) is NOT encoded in the glyph - the
+  C3 tabs and C5's wood divider already carry it.
+
+**Plan defaults (stated, not asked):**
+
+- **The mapping is CONTENT**: an `icon` string on each `api/skills/*.json`
+  definition, carried through the Go definition struct and served by the
+  `/skills` catalog - the `displayName` precedent exactly. ⛔ Not a
+  frontend name→icon table: that is the §2 "content-keyed label tables
+  degrade silently" landmine by construction.
+- **The value is the game-icons.net path `author/name`** (e.g.
+  `lorc/flame`), so CC BY attribution and re-download stay derivable from
+  content alone. Duplicated values across same-role skills are the D3
+  point.
+- **Assets are VENDORED**: the used glyph SVGs are downloaded once by a
+  fetch script in `scripts/` (never a build step), stripped (background
+  rect and hardcoded fills removed so `currentColor` tints the glyph
+  parchment), and checked in under `frontend/`. No runtime fetches to
+  game-icons.net, no per-icon HTTP requests in prod; exact bundling
+  mechanism (inline symbol sprite vs generated module) is builder's call,
+  recorded in the ledger.
+- **Attribution**: game-icons.net is CC BY 3.0. A NOTICE entry listing the
+  glyph authors used rides with the vendored assets; player-facing credits
+  can join the Help panel at C6+ if wanted.
+- **Completeness is pinned twice**: a Go content test asserts every
+  `api/skills` definition authors a non-empty `icon` (new skills hard-fail
+  the suite, not the boot), and a vitest test asserts every authored icon
+  value exists in the bundled glyph set (a typo'd path cannot ship
+  silently). ⚑ Content edits do not invalidate the Go test cache - the
+  tail runs `go test -count=1`.
+- **The client accessor degrades**: `skillIcon(id)` falls back to an
+  initial-letter token when the catalog fetch failed or a skill has no
+  icon (mob skills, future gaps) - same degrade discipline as every other
+  catalog accessor.
+- **The utility island rides along**: Recall and Camp get icons via a tiny
+  mapped table beside `UTILITY_NAMES` in `Utilities.ts` (utilities are
+  deliberately not catalog content, D1 of plan-downtime), pinned by the
+  existing twin-table test pattern. Ascend renders no button, gets no
+  icon. This closes C5's utility-island icon dependency now.
+- **Mobile inherits the rows** (the C3 full-screen book renders the same
+  DOM). ⚑ The C1 lesson stands: check whether `HUD.mobile.less` needs an
+  explicit token reset/size, probe before shipping.
+
+**Implementation shape:**
+
+1. `scripts/` fetch script: vocabulary list in, stripped SVGs +
+   generated manifest out. One-time tool, committed output.
+2. Go: `Icon string` on the skill definition struct + catalog
+   passthrough + the content completeness test. `make -C backend build`
+   once for the struct; icon-pick iteration then rides
+   `-content ../api` restarts.
+3. `api/skills/*.json`: author `icon` on all 72 (the vocabulary
+   assignment - the judgment half).
+4. Client: token component CSS (`.ink-token`: parchment glyph, ink ring,
+   sized for a list row; C5 re-sizes it for slots), `skillIcon(id)`
+   accessor + fallback, the token span prepended in `updateSpellbook`'s
+   row builder before `.skillName`.
+5. `Utilities.ts` twin table + the two utility icons (asset only at C4 -
+   no utility DOM changes).
+
+**Harness plan:**
+
+- The 32-script sweep should survive UNTOUCHED - a span prepended before
+  `.skillName` changes no selector any script uses. Budget: re-run
+  `c3-spellbook` (26/26 baseline) in full plus spot-check 2-3 sweep
+  scripts (e.g. `backlog33-prehot`, `chunk2-follower`); do not re-run all
+  32 unless a spot-check goes red.
+- One new leg (extend `c3-spellbook.mjs` or a tiny `c4-skill-icons.mjs`,
+  builder's call): every visible spellbook row carries a token that is
+  NOT the letter fallback.
+- Mobile probe/screenshot: the full-screen book's rows at phone
+  resolution.
+- Known-red baselines stand (`chunk3-charm` 6-8/9,
+  `chunk3b-ii-conversation` 28/34, and the three HEAD-identical reds
+  recorded at C3).
+
+**Verification tail:** `npm test` · `npm run typecheck` · `npm run build` ·
+`cd backend && go test -count=1 ./...` (content + catalog tests) ·
+`c3-spellbook` + spot-checks + the new icon leg · mobile probe · PO look
+in-game (the D3 review venue).
+
 ## 6. Chunk ledger
+
+### C4 - skill icons ✅ 2026-08-28 `[uncommitted]`
+
+Rulings D1-D3 and the full spec live in the §5 C4 section (PO choice
+prompts same day). Shipped: content + a one-field Go rider + client +
+harness (⚑ the first UI-pass chunk that is NOT pure client), built by an
+Opus 5 agent and reviewed line-by-line:
+
+- **All 72 `api/skills` definitions author `icon: "author/name"`** (a
+  game-icons.net path); Go carries it as `Icon` on the definition struct +
+  catalog passthrough (the `displayName` precedent exactly), mob-embedded
+  skills serve `""`. Completeness pinned twice:
+  `skill_icon_content_test.go` (every top-level api/skills entry authors a
+  shape-valid icon; `api/skills/mobs` authors none - both directions
+  asserted) and `SkillIcons.test.ts` (every authored value is bundled, no
+  hardcoded fill; reads api/ from disk under jsdom).
+- **Vocabulary: D3's functional placeholders landed at 33 glyphs** (⚑
+  above the ruled "roughly 15-25": each damage tag and stat axis carries a
+  genuinely different function - flagged as a deviation, PO approved as
+  shipped). Reuse heavy where it matters: broadsword 6 skills, ward-shield
+  7, totem 6, healing 5. Judgment calls flagged + approved: HoldTheLine
+  reads summon, FireVulnerability reads fire.
+- **Pipeline:** `scripts/fetch-skill-icons.mjs` (one-time tool, never a
+  build step; `--force`/`--offline`; the strip HARD-FAILS if a fill/rect/
+  style survives, so an un-tintable glyph cannot ship) vendors stripped
+  SVGs under `client-data/icons/vendor/`, generates
+  `SkillIcons.generated.ts` (~42 KB inline viewBox+body: tint via
+  `currentColor`, no runtime HTTP, no webpack rule change) and `NOTICE.md`
+  (CC BY 3.0, per-author). Utility glyphs ride its EXTRAS list.
+- **`.ink-token`** (HUD.less, `@ink-token-size` 2.2rem): the direction-C
+  glyph treatment as ONE reusable class - parchment glyph, ink ring, wood
+  inset, corner motif at button scale; C5 re-sizes it for slots.
+  `IconToken.ts` builds glyph or `.letterFallback` initial. Prepended
+  before `.skillName` in `updateSpellbook`; `.skillName` gained `flex: 1`
+  (the row is three flex children now). ⚑ Zero extra row height (the row
+  pitch is set by its text line) and mobile needed NO reset (probed).
+- **Utilities:** `UTILITY_ICONS` = Recall + Camp only, Ascend deliberately
+  absent, pinned as an EXACT key set (not equality with `UTILITY_NAMES`).
+  Asset only - C5 renders them.
+- ⚑ **Pre-existing red SURFACED, not caused:** 3 census tests in
+  `pkg/aura/items/mobs` fail at HEAD on the collaborator's Martin NPC
+  (`6c2e6d5c`) - `backend/pkg/api/mobs/` is gitignored and was STALE, so
+  the suite was green by accident until this chunk's `make build` ran
+  cp-defs. Proven by remove/restore of the embedded file. NOT fixed here;
+  the hardcoded censuses belong to whoever added Martin (CLAUDE.md open
+  item).
+
+Verified: vitest **543/543** (538 + 5) · tsc · prod build ·
+`go test -count=1` green in `skills` + `cmd/aurad` (store/accounts skip
+without `AURA_TEST_DB_URL`, expected for schema-NONE) · `c3-spellbook`
+**26/26** held (run twice) · new `c4-skill-icons` **6/6** ·
+spot-checks `backlog33-prehot` 4/4 + `chunk2-follower` 6/6 · desktop +
+mobile + portrait screenshots. ⭐ PO approved 2026-08-28, same session;
+the look also routed C4b (the unlock breadcrumb trail, §5).
+**Schema NONE.**
 
 ### C3 - the spellbook structural rework ✅ 2026-08-28 `9cc6cd74`
 

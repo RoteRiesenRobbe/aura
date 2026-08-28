@@ -2,6 +2,7 @@
   "_comment": "Effect foundations Step 2 placeholder content: NovaBurst-shaped cooldown that applies a 3-second fire dot (3 events, 1/s) to everyone hostile in range. damageHP +~5% (§4.3 v2 base-crit rework, PO 2026-07-20: dots never crit, so dot skills missed the direct-hit EV lift). All values [PLACEHOLDER].",
   "id": 22,
   "name": "Ignite",
+  "icon": "carl-olsen/flame",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,

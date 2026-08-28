@@ -56,6 +56,55 @@
 	border-radius: 10px 4px 0 0;
 }
 
+// The ink-ringed icon token (UI pass C4) - the third piece of the direction-C
+// vocabulary, beside the panel chrome and its header strip: a solid parchment
+// glyph on the moss field inside an ink ring, wearing the corner motif at the
+// button scale (9/5/10/6, the C1 ruling's smaller repeat).
+//
+// A real class, not a mixin: it is one component reused verbatim wherever an
+// ability is shown. C4 puts it on the spellbook rows only; C5's icon-only
+// ability bar re-sizes it through @ink-token-size rather than restating it.
+// ⚑ The glyph tints from `color`, so a state that recolours the token (a
+// selected row, a dimmed one) needs no second asset.
+//
+// ⚑ The SIZE is the spellbook row's, and it is FREE: the row's height is set by
+// its text line, not by its tallest child, so 2.2rem fits inside the height a
+// row already had at C3 and a page of eight still occupies exactly the space it
+// did (measured both ways at 1280x900 - the row pitch does not move). Smaller
+// only costs legibility. C5 re-sizes this for the slots.
+@ink-token-size: 2.2rem;
+
+.ink-token {
+	flex: 0 0 auto;
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: @ink-token-size;
+	height: @ink-token-size;
+
+	background: fade(@moss, 90%);
+	border: 2px solid @ink;
+	border-radius: 9px 5px 10px 6px;
+	box-shadow: inset 0 0 0 1px fade(@wood, 45%);
+	color: @parchment;
+	line-height: 1;
+
+	> svg {
+		display: block;
+		width: 68%;
+		height: 68%;
+		fill: currentColor;
+	}
+
+	// No bundled glyph: the skill's initial in the same token, so a row is
+	// never blank while the catalog is still in flight (Skills.skillIcon).
+	&.letterFallback {
+		font-size: (@ink-token-size * 0.5);
+		font-weight: 700;
+	}
+}
+
 // The header bar (flex row, title left, close control right). Padding stays
 // caller-side: the centred panels use padding-bottom, the full-bleed map the
 // full @panel-padding.
@@ -796,6 +845,15 @@
 			// do not move this rule up.
 			&.offPage {
 				display: none;
+			}
+
+			// Since C4 the row is a flex row of THREE (token, name, controls),
+			// and space-between would push the name into the middle. The name
+			// takes the slack instead, so the +/- controls stay pinned right
+			// and the token stays glued to the row's left edge.
+			> .skillName {
+				flex: 1;
+				min-width: 0;
 			}
 
 			> .skillControls {

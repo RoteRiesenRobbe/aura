@@ -1,6 +1,7 @@
 {
   "id": 11,
   "name": "Tough",
+  "icon": "lorc/bordered-shield",
   "category": "passive",
   "maxLevel": 5,
   "effects": [

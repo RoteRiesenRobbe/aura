@@ -2,6 +2,7 @@
   "_comment": "Atmosphere & recovery chunk 3: the early light aura (GDD §7). Renamed Light → Lantern in the playtest-1 feedback pass B (PO pick 2026-07-22): 'Light' did not read as a light source, and Lantern pairs with the dimmer Torch passive as an object-name family. light_aura is rendering-only — the radius streams as light_radius and punches a hole into the client darkness overlay. As an active aura it occupies the one active slot: light OR damage, the tunnel trade-off. All values [PLACEHOLDER].",
   "id": 6,
   "name": "Lantern",
+  "icon": "lorc/lantern-flame",
   "category": "active_aura",
   "maxLevel": 5,
   "effects": [

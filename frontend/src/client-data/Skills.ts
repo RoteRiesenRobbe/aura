@@ -284,6 +284,11 @@ export interface SkillDefinition {
     id: number;
     name: string;
     displayName: string;
+    // The game-icons.net path ("author/name") of this skill's glyph, authored in
+    // api/skills and served verbatim (UI pass C4). EMPTY on mob-embedded skills,
+    // which are in the catalog but never render a row - skillIcon treats "" and
+    // a missing catalog entry the same way.
+    icon: string;
     category: SkillCategory;
     maxLevel: number;
     legacy: boolean;
@@ -381,6 +386,19 @@ export function skillDisplayName(id: number): string {
  */
 export function skillDisplayNameFor(name: string): string {
     return byName.get(name)?.displayName ?? name;
+}
+
+/**
+ * The glyph path for a skill's icon token (UI pass C4), or null when there is
+ * none to draw: the catalog fetch has not landed or failed, the id is unknown,
+ * or the definition authors no icon (every mob-embedded skill, by ruling D1).
+ *
+ * Null is the caller's cue to fall back to the initial-letter token, the same
+ * degrade discipline `skillDisplayName` uses - a missing catalog never blanks a
+ * row, it just makes it plainer.
+ */
+export function skillIcon(id: number): string | null {
+    return catalog.get(id)?.icon || null;
 }
 
 export function skillMaxLevel(id: number): number {

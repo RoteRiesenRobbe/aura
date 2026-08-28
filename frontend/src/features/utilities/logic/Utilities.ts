@@ -33,6 +33,28 @@ export function utilityDisplayName(kind: number): string {
     return UTILITY_NAMES[kind] ?? 'Utility';
 }
 
+// The utilities' icon glyphs (UI pass C4). Utilities are deliberately not
+// catalog content (D1), so unlike a skill there is no `icon` field on the wire
+// to read - this table is their mapping, in the same game-icons.net "author/name"
+// vocabulary, and scripts/fetch-skill-icons.mjs carries the same two paths in its
+// EXTRAS list so the vendored set stays re-derivable.
+//
+// ⚑ Deliberately a SUBSET of UTILITY_NAMES: Ascend renders no button and never
+// will (it is started by taking a row at the stone), so it gets no glyph.
+// Utilities.test.ts pins the exact key set rather than equality with the names
+// table, so that absence stays a decision instead of drift.
+//
+// ⚑ ASSET ONLY at C4 - nothing in the utility bar renders these yet; the
+// icon-only bar is C5's surface.
+export const UTILITY_ICONS: { [kind: number]: string } = {
+    [AuraApi.UtilityKind.Recall]: 'lorc/return-arrow',
+    [AuraApi.UtilityKind.Camp]: 'lorc/campfire',
+};
+
+export function utilityIcon(kind: number): string | null {
+    return UTILITY_ICONS[kind] ?? null;
+}
+
 // Cast lengths, in seconds. A mirror of skills/utility.go's UtilityDef
 // literals — utilities are deliberately not catalog content (D1), so unlike a
 // skill there is no /skills entry to read these from and no wire field

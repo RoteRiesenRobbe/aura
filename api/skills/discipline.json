@@ -2,6 +2,7 @@
   "_comment": "The cost-reduction passive (plan-numbers-rewrite D13, C2b): the first stat that modifies an INPUT rather than an output — every other validStat scales something the skill produces, this one scales what it takes out of you. It is the build's answer to the resource economy other than avoiding it: a costed aura you could not sustain becomes sustainable, which is the point of putting costs on everything in the first place. Clamped to [0, 1] at DerivedStats.CostFactor(), so a stacked build can reach free but never a refund. ⚑ Deliberately does NOT make the free floor cheaper — Damage is already 0 and 0 × anything is 0 (D6/D16b). Milestone unlock at level 5, which is roughly where costs start to bite. Player-only by construction and that is fine: mobs are not costPayers, so they pay nothing to reduce. All values [PLACEHOLDER].",
   "id": 65,
   "name": "Discipline",
+  "icon": "lorc/meditation",
   "category": "passive",
   "maxLevel": 5,
   "effects": [

@@ -1,6 +1,7 @@
 {
   "id": 33,
   "name": "Dash",
+  "icon": "lorc/wingfoot",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,

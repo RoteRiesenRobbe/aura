@@ -2,6 +2,7 @@
   "_comment": "plan-faction-flips chunk 3 (D8/L-L): the SECOND charm, and the acceptance test for the faction-scope seam — it exists so that reaching a different faction is a JSON file rather than a Go change. Mechanically identical to charm-beast.json; only the allowlist and the tuning differ. An elemental pet is deliberately the shorter, costlier one: the elemental faction contains the game's other charmable elite (greater-fire-elemental, D12) and elementals hit harder than wildlife, so the same enslave fantasy is priced higher. All values [PLACEHOLDER].",
   "id": 64,
   "name": "BindElemental",
+  "icon": "lorc/charm",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 4200,

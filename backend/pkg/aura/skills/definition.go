@@ -1020,6 +1020,17 @@ type SkillDefinition struct {
 	// Always non-empty after parsing.
 	DisplayName string `json:"displayName"`
 
+	// Icon is the game-icons.net path ("author/name", e.g. "lorc/broadsword")
+	// of the glyph the client renders for this skill (UI pass C4). Authored on
+	// every api/skills definition and served verbatim; the vendored SVG set and
+	// the CC BY attribution are both derivable from these values alone, which is
+	// why the path travels rather than a client-side name-to-icon table.
+	//
+	// ⚑ EMPTY on mob-embedded skills (api/skills/mobs) by ruling D1: they are in
+	// the catalog but never render a spellbook row, so they author no icon. The
+	// client accessor treats "" exactly like a missing entry.
+	Icon string `json:"icon"`
+
 	Category SkillCategory `json:"category"`
 	MaxLevel int           `json:"maxLevel"`
 
@@ -1212,6 +1223,7 @@ type skillDefinition struct {
 	ID          int    `json:"id"`
 	Name        string `json:"name"`
 	DisplayName string `json:"displayName"` // absent → derived CamelCase→spaces
+	Icon        string `json:"icon"`        // absent → no glyph (mob-embedded skills, UI pass C4)
 	Category    string `json:"category"`
 	MaxLevel    int    `json:"maxLevel"`
 	Legacy      bool   `json:"legacy"` // absent → live content (step-7 A.5)
@@ -1582,6 +1594,7 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		ID:                      SkillID(s.ID),
 		Name:                    s.Name,
 		DisplayName:             displayName,
+		Icon:                    s.Icon,
 		Category:                category,
 		MaxLevel:                s.MaxLevel,
 		Legacy:                  s.Legacy,

@@ -2,6 +2,7 @@
   "_comment": "Phase 9 combination result (Damage L5 + Heal L5). Damages the nearest enemy and heals the lowest-HP ally in range, both on ONE beat. Values are a constant 70% of Damage/Heal at every level; no heal self-cost. All [PLACEHOLDER] pending balance pass. ⚑ R3/F5 (plan-resource-costs-feedback §5.5): the heal moved 120 -> 40 to share the damage beat, with its per-application magnitude AND its cost divided by the same 3, so HP/s and price/s are unchanged at a large pool. NOT at a small one (§3.10): the 1-HP floor means a level-1 caster still pays 1 HP per charge, so tripling the cadence triples the real price — 0.25 -> 0.75 %/s. Accepted under §5.3; the price list is coarse below character level ~12 by construction.",
   "id": 30,
   "name": "Paladin",
+  "icon": "delapouite/knight-banner",
   "category": "active_aura",
   "maxLevel": 5,
   "effects": [

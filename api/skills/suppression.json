@@ -2,6 +2,7 @@
   "_comment": "Suppression (content pass C7, plan-content-zones12.md §13): Slow L5 + LongRangeStrike L5 combo — the kiter-identity gap fill at the Paladin ~70% side-grade calibration: LRS-range damage AND a slow at the same long radius, each ~70% of its parent. Below the §A ceiling. Secret recipe. All values [PLACEHOLDER] pending C8. ⚑ R3/F5 (plan-resource-costs-feedback §5.5): the slow moved from the absent default interval of 1 to the damage beat of 40. Nothing rescales with it — a slow fraction is a STATE the buff holds, not a per-application magnitude, and this slow is unpriced — but the responsiveness does change: the debuff is up to 40 ticks (~1.3 s) late on a mob entering the ring and lingers ~41 ticks on one leaving. On a long-range kiting aura the lingering half is a buff to the build.",
   "id": 59,
   "name": "Suppression",
+  "icon": "lorc/snowflake-1",
   "category": "active_aura",
   "maxLevel": 5,
   "effects": [

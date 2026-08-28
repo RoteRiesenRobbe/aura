@@ -12,11 +12,13 @@ import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
 import {
     skillDisplayName,
+    skillIcon,
     skillMaxLevel,
     skillCategory,
     skillPointCost,
     SkillCategory,
 } from '../../../../client-data/Skills';
+import {createIconToken} from './IconToken';
 import {attachSkillTooltips, setAvailableSkillPoints} from './SkillTooltip';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
 import * as AlertBanner from '../../alert-banner/logic/AlertBanner';
@@ -809,9 +811,16 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
             // the list without a second lookup into the skills catalog.
             li.dataset.category = section.category;
 
+            // The icon token (UI pass C4) sits BEFORE the name. Prepending a
+            // span changes no selector the verify suite uses - `.skillName`,
+            // `.spendBtn` and the row's own dataset all stay where they were -
+            // which is why the 32-script sweep survives this chunk untouched.
+            const displayName = skillDisplayName(id);
+            li.appendChild(createIconToken(skillIcon(id), displayName));
+
             const name = document.createElement('span');
             name.className = 'skillName';
-            name.textContent = skillDisplayName(id);
+            name.textContent = displayName;
             li.appendChild(name);
 
             const controls = document.createElement('span');

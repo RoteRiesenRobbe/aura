@@ -2,6 +2,7 @@
   "_comment": "ASCENSION CATALOG (plan-ascension.md C3 step 3, D9/D26): the poison ward, and the catalog's one SUPPORT entry — the five variants deliberately spread across roles (sustained aura, burn, nuke, dot-bomb, ward) rather than being five ways to deal damage. ⭐ D1 WORLD-PARITY: every number is FireWard's (id 40) verbatim, including R2/R3's entry-price shape (a ward never expires on someone standing inside it, so the caster pays once when it goes on and once per new ally who walks in). The only difference is resistTags, fire → poison. ⚑ It is the party-wide half of a pairing the world only has a self-only passive for: Antivenom (id 47) is a resist_passive on the wearer, this is a resist_aura over the group, which is exactly the role-support-matters line the GDD calls essential rather than optional. ⚑ Its parity parent is ALSO the one skill content-skill-inventory.md lists as having no world source — a tracked exception, not a precedent to copy: this entry has a source, the catalog. All values [PLACEHOLDER], and they move only if FireWard's move.",
   "id": 145,
   "name": "Venomward",
+  "icon": "lorc/bordered-shield",
   "category": "active_aura",
   "maxLevel": 5,
   "effects": [

@@ -2,6 +2,7 @@
   "_comment": "LIMIT-TEST CONTENT (2026-08-18): the kitchen-sink PASSIVE - everything the passive fold (SkillComponent.recomputeDerived) consumes at once: one stat_multiplier per stat in the closed six-stat vocabulary (movementSpeed / maxHealth / damageReduction / critChance / damageDealt / costReduction), resist_passive, retaliate_slow, retaliate_damage, plus light_aura (the Torch pattern - light is read per equipped skill, not per category). Cheat-only, godlike on purpose: SKILL OmniPassive; NO unlock source, ever - a test rig, not content. What this deliberately exercises: BOTH retaliates are strongest-wins WHOLESALE against other equipped passives (equip FireShield/FrostShield beside it and only the stronger of each pair fires - fraction/damage, duration and tags all come from the winner); resist_passive factors MULTIPLY per tag across distinct passives (0.7 here x ThickHide's physical would compound if tags overlapped); passives have no cadence and no fire, so costFractionOfMax would parse but never charge - none is authored. resistTags here are NAMED tags; the '*' wildcard is buff-store semantics (resist_aura/instant_resist) and deliberately not exercised on the passive fold. All values [PLACEHOLDER] and irrelevant.",
   "id": 74,
   "name": "OmniPassive",
+  "icon": "lorc/star-swirl",
   "category": "passive",
   "maxLevel": 5,
   "effects": [

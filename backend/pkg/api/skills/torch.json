@@ -2,6 +2,7 @@
   "_comment": "Content pass C2 Part 2 (lift 2, GDD §7): the Hermit-taught light PASSIVE — light from a passive slot resolves the light-vs-damage trade-off for solo traversal without giving up the active aura. Deliberately dimmer than the Light aura (PO 2026-07-17: ~60% — Light keeps the group-support role with the bigger hole). light_aura is rendering-only; the component-level max fold streams it as light_radius. All values [PLACEHOLDER].",
   "id": 46,
   "name": "Torch",
+  "icon": "lorc/lantern-flame",
   "category": "passive",
   "maxLevel": 5,
   "effects": [

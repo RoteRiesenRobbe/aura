@@ -1,6 +1,7 @@
 {
   "id": 34,
   "name": "Haste",
+  "icon": "lorc/stopwatch",
   "category": "cooldown",
   "maxLevel": 1,
   "cooldownTicks": 300,

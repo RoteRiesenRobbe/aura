@@ -32,6 +32,7 @@ var catalogTestFS = fstest.MapFS{
 		"id": 45,
 		"name": "LongRangeStrike",
 		"displayName": "Long-Range Strike",
+		"icon": "lorc/broadsword",
 		"category": "active_aura",
 		"maxLevel": 5,
 		"effects": [{
@@ -145,6 +146,27 @@ func TestCatalogJSON_DisplayNames(t *testing.T) {
 	// Authored override wins over derivation.
 	if got := entries[2]["displayName"]; got != "Long-Range Strike" {
 		t.Errorf("LongRangeStrike displayName = %v, want %q", got, "Long-Range Strike")
+	}
+}
+
+// The icon rides the catalog the way displayName does (UI pass C4): authored
+// on the definition, served verbatim, absent as the empty string. The client
+// reads nothing else - a name-to-icon table there would be the silently
+// degrading twin this field exists to avoid.
+func TestCatalogJSON_Icons(t *testing.T) {
+	data, err := CatalogJSON(catalogTestRegistry(t), catalogTestCurve)
+	if err != nil {
+		t.Fatalf("CatalogJSON: %v", err)
+	}
+	entries := decodeCatalog(t, data)
+
+	if got := entries[2]["icon"]; got != "lorc/broadsword" {
+		t.Errorf("LongRangeStrike icon = %v, want %q", got, "lorc/broadsword")
+	}
+	// Unauthored is the empty string, not a missing key: a mob-embedded skill
+	// (D1) serves one, and the client treats it as "no glyph".
+	if got, ok := entries[1]["icon"]; !ok || got != "" {
+		t.Errorf("NovaBurst icon = %v (present %v), want empty string", got, ok)
 	}
 }
 

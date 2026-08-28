@@ -2,6 +2,7 @@
   "_comment": "Spider kill-drop passive (content pass C3, plan-content-zones12.md §5): the first drop pair authored against its own source — spiders deal the zone's only poison, spiders drop the counter. Multiplies incoming poison-tagged damage (0.7 = take 70%, stronger per level); poison rides the venom-spider DoT and the tunnel pools. All values [PLACEHOLDER]",
   "id": 47,
   "name": "Antivenom",
+  "icon": "lorc/bordered-shield",
   "category": "passive",
   "maxLevel": 5,
   "effects": [

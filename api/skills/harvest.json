@@ -2,6 +2,7 @@
   "_comment": "The peasant-start utility aura (content pass C1, GDD §5 peasant onboarding; renamed TurnipPull → Harvest in C2 Part 2 — general plant-interaction, more opt-in flora later): mechanically a damage aura with the unique 'harvest' GATE KEY — a gated hit only damages mobs that name that key in factors.gateKeys (the turnip mob, the bramble walls) and does nothing to any combat mob without per-mob authoring. Numbers mirror Damage's shape. All values [PLACEHOLDER] ⚑ NUMBERS REWRITE C2d (D4): the gate moved OFF damageTags and off the resistance map onto its own `gateKey` field, against a closed vocabulary. A lock-and-key ('a turnip resists everything except harvest') and a resistance ('takes half damage from fire') were being written in the same words, which made a mistyped key a silently inert skill. A gated hit now declares NO damage type — its targets are an explicit list, so mitigation has nothing to say about it — and authoring both hard-fails.",
   "id": 41,
   "name": "Harvest",
+  "icon": "lorc/scythe",
   "category": "active_aura",
   "maxLevel": 5,
   "effects": [
