@@ -777,7 +777,7 @@ in-game (the D3 review venue).
 
 ## 6. Chunk ledger
 
-### C4 - skill icons ✅ 2026-08-28 `[uncommitted]`
+### C4 - skill icons ✅ 2026-08-28 `1400e4fc`
 
 Rulings D1-D3 and the full spec live in the §5 C4 section (PO choice
 prompts same day). Shipped: content + a one-field Go rider + client +
