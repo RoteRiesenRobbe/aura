@@ -404,7 +404,7 @@ Derived from §4 Phase 2's dependency shape plus the two §2 sequencing rules
   reload-persistence question resolved to "does not survive, on purpose".)
 - **C5 - the ONE ability bar**: the §2 consolidation (icon-only, wood
   divider, utility island) + direction-C restyle; `.slotLabel` DOM contract
-  kept, harness sweep budgeted.
+  kept, harness sweep budgeted. (Detailed + ruled below, 2026-08-29.)
 - **C6 - panel chrome rollout**: every `.panel-chrome()` caller plus the
   one-off panels (tooltip, `#confirmRow`) onto the C1 treatment; the C1
   header strip onto every open-state UI; resource/XP bars ink-outlined;
@@ -883,7 +883,265 @@ spells have been seen. **Schema NONE** - pure client by D1.
 `c3-spellbook` + the new `c4b-breadcrumb` + spot-checks · mobile
 probe/screenshot · PO look in-game. **Schema NONE.**
 
+### C5 - the ONE ability bar (detailed + ruled 2026-08-29)
+
+**Deliverable:** the §2 ability-bar consolidation in the ratified direction-C
+language: ONE bottom bar (aura slots | wood divider | cooldown slots) with the
+utility island beside it, all slots icon-only in the "C - Icon Bar" board's
+slot anatomy; the passive panel goes icon-only too and anchors bottom-left
+(D1). ⛔ **The spec is the board's RENDERED CSS** (`.slotI`/`.keyC`/`.panelC`
+in the `IconBar.dc.html` artboard on the §4 canvas), the §4 CORRECTION rule -
+not the board prose. **Schema NONE** - pure client.
+
+**Rulings (PO 2026-08-29, choice prompts):**
+
+- **D1 - PASSIVES: ICON SLOTS, BOTTOM-ANCHORED LEFT COLUMN.** PO verbatim:
+  "They stay in the left column but are anchored to the bottom of the
+  screen", and the follow-up ruled they take the same 52px token anatomy as
+  the bar (no hotkeys, click only for pending-equip). Consequence: the
+  passive DOM contract is NORMALIZED - each passive `li` gains the
+  `.slotLabel` span (bare `textContent` today), and the 3-4 harness scripts
+  that match the `li` text move onto the standard selector in the sweep.
+  ⚑ Side effect: `c1-bloodline-seed.mjs:137`'s pre-existing DEAD selector
+  (`.passiveSlot .slotLabel`, matched nothing at HEAD) starts matching -
+  that leg is re-checked, not "fixed" silently.
+- **D2 - MOBILE: ICONS INHERIT, LAYOUT STAYS.** Slots become icon tiles
+  through the shared markup; the mobile layout itself is untouched: tile
+  row, hidden hotkeys, utility as the fixed right-edge thumb column. C9
+  owns any real mobile rework. ⚑ Not zero mobile work: `HUD.mobile.less`
+  RESTATES the whole tile box for `.activeSlot`/`.hasPendingSkill` (built
+  against the old desktop padding-shift) - those restatements are
+  reconciled against the new circular anatomy, and the probe is mandatory.
+
+**Plan defaults (stated, not asked):**
+
+- **The board anatomy verbatim** (from the extracted `IconBar.dc.html`):
+  52px circular slot, 3px `@ink` border, `#0e1811` well; ACTIVE aura =
+  wooden rim `box-shadow: 0 0 0 4px #8a5a2b, 0 0 0 6px @ink,
+  0 0 10px rgba(227,115,19,0.45)` (the D12 rule) + the ember dot below;
+  EMPTY = opacity 0.55; ON COOLDOWN = conic-gradient ink sweep overlay +
+  centered seconds; hotkey chip 17px at the slot's top-left (-6px), corner
+  radii 5/3/6/4; divider 2×42px `fade(@wood, 55%)`; both bar and island
+  are `.panelC`-treated containers (the C1 mixins), island gap 22px,
+  Camp's charge count as the bottom-right chip badge.
+- **The ember dot IS the metronome.** `.beatPip` keeps its element, class
+  and the `HUD.ts:376` query (`.auraSlot.activeSlot .beatPip`); it is
+  restyled/repositioned as the mockup's ember dot under the active slot
+  and keeps pulsing via `hudBeatPulse`. Zero TS changes; flag at the PO
+  look.
+- **DOM strategy: wrap, never rename.** `#auraLoadout` and
+  `#cooldownLoadout` (and their `ul#auraSlotList`/`ul#cooldownSlotList`)
+  survive inside a new shared bar container; they lose their own
+  `.panel-chrome()` and titles, the chrome moves to the wrapper, the
+  divider is a new element between them. Every existing selector keeps
+  matching. Titles ("Aura Slots" etc.) disappear from the whole bar
+  family - the hover tooltip carries the names (already wired,
+  `attachSkillTooltips`).
+- **Contract pins, all load-bearing:** `.slotLabel` stays RENDERED (may be
+  visually hidden) in every slot AND in the utility `li`s
+  (`r4-camp`/`r4-recall-utility` read it there) · `.activeSlot` is
+  contract BY NAME (`mobile-layout.mjs:320`) · keep stamping
+  `li.dataset.skillId` on every update or all bar tooltips die silently ·
+  `#actionBars.flightLocked` (opacity/grayscale, pointer-events kept)
+  survives the restyle · utility markup order Recall-then-Camp is
+  load-bearing for the mobile thumb column - never reorder.
+- **Icons ride C4's rails**: `createIconToken`/`skillIcon(id)` with the
+  letter fallback; utility icons from the C4 `UTILITY_ICONS` table. ⛔ The
+  `.ink-token` treatment gets a SIZE VARIANT for the 52px slot, never a
+  restated treatment (the C4 rule: C5 re-sizes it, never restates it).
+- **`.hasPendingSkill` re-stated for the circular anatomy** (the pending
+  equip target highlight must read on a circle); the click-row-then-
+  click-slot equip flow itself is untouched.
+- ⚑ **Hotkey chips stay two independent literals** (labels in `HUD.html`,
+  bindings in `Controls.ts:69-70`) - do NOT unify them into a shared
+  constant this chunk (YAGNI).
+- **Cooldown sweep is NEW work** (today: text seconds + `.onCooldown`
+  dim). `.cdRemaining` is free to restyle - only `.slotLabel` is
+  harness-read in cooldown slots. Sweep progress may ride the existing
+  per-tick `updateCooldownLoadout` data (no rAF requirement; it updates
+  ~30/s already).
+- **Passive island placement**: the passive panel anchors to the bottom
+  of the left column; the open spellbook's in-place spot (C3 D1) sits
+  above it - both visible at once is REQUIRED (the equip flow needs book
+  row + passive slot clickable together). Probe for overlap at small
+  viewport heights.
+
+**Implementation shape (all `frontend/`):**
+
+1. `HUD.html`: the shared bar wrapper + divider element; `.slotLabel`
+   spans added to passive `li`s; titles removed from the bar family.
+2. `HUD.less`: the slot anatomy (`.slotI`-equivalent on `.auraSlot`
+   within the bars), the wrapper chrome via the C1 mixins, divider,
+   ember-dot `.beatPip` restyle, `.hasPendingSkill`/`.activeSlot` on
+   circles, cooldown sweep + seconds, utility island + charge badge,
+   bottom-anchored passive panel.
+3. `HUD.ts`: token rendering into slots on the three update paths
+   (`updateAuraLoadout`/`updatePassiveLoadout`/`updateCooldownLoadout` -
+   passives move onto the `.slotLabel` write), sweep progress hook in
+   `updateCooldownLoadout`. Interactions untouched.
+4. `HUD.mobile.less`: reconcile the `.activeSlot`/`.hasPendingSkill` tile
+   restatements with the circular anatomy; everything else stays.
+
+**Harness plan:**
+
+- New `c5-ability-bar.mjs` (⚑ NOT `c5-bars.mjs` - that name is taken by
+  an earlier pass): one-bar structure (both families + divider in one
+  container) · icon tokens in filled slots, letter fallback never shown
+  for shipped skills · active-aura rim + `.activeSlot` · cooldown press
+  shows sweep + seconds then clears · pending-equip highlight on circles
+  · utility island with Camp charges · passive slots carry tokens +
+  `.slotLabel` · flightLocked still applied when flying.
+- The sweep: re-run the slot-reading scripts from the §survey
+  (`backlog33-prehot`, `c3-spellbook` 26/26, `c5-bars`, `n1-shield-bar`,
+  `r3-lifesteal-burst`, `mobile-layout`, `c1-open-portal`,
+  `c2-pull-through`, `c3-flight-client`, `r7-respec-cost`) plus the
+  passive-contract movers (`r1-focus-cost`, `c2-frost-shield`,
+  `r7-strong`, `c1-bloodline-seed`). ⚑ `#bottomCenter` geometry changes
+  (three 18rem panels → two compact islands) - exactly where C3's
+  dead-strip-eats-clicks defect lived; watch for click interception.
+- Known-red baselines stand (`chunk3-charm` 6-8/9,
+  `chunk3b-ii-conversation` 28/34, the three HEAD-identical reds).
+- Mobile probe/screenshots at phone resolution: tiles, thumb column,
+  ☰ sheet's passive rows with tokens.
+
+**Verification tail:** `npm test` · `npm run typecheck` · `npm run build` ·
+the sweep above + the new `c5-ability-bar` · mobile probe · PO look
+in-game. **Schema NONE.**
+
+**Execution:** delegated to an Opus 5 agent, reviewed line-by-line (the
+C1-C4b discipline).
+
+**⭐ AMENDED at the PO look (2026-08-29, same session).** The bar itself was
+approved as shipped; two changes were asked and applied, both root-caused
+before they were fixed:
+
+1. **The metronome pip barely read.** Root cause PRE-EXISTING, only
+   SURFACED by C5's bigger ember dot: the detector layer was proven correct
+   first (45/45 beats over 60 s on the PO's exact Reaper path), which put
+   the fault in the shared `Utils.ts playCssAnimation` helper (written at
+   `b457cc06`, wired to the pip by numbers-rewrite N5 `14b35f98`). Two real
+   defects there: (a) the restart idiom was `remove` → rAF → re-add, which
+   is ENGINE-DEPENDENT - Chromium happens to restart the animation, an
+   engine that runs frame callbacks before the style flush does not, so the
+   pulse worked by luck; (b) the `.beatPulse` class was never removed, so
+   re-displaying the element replayed a spurious pulse on every aura
+   switch. Fixed in the shared helper (both consumers audited): synchronous
+   forced-reflow restart (`remove` → `void offsetWidth` → `add`), the class
+   removed on `animationend`/`animationcancel`, and the WeakMap drops a
+   superseded call's cleanup first. ⚑ **Load-bearing addition caught by the
+   line-by-line review, fixed red-first: animation events BUBBLE.** Without
+   an `event.target !== element` guard, `#spellbook`'s `unlockPulse` is
+   stripped mid-glow the moment a child row's `.breadcrumb` (C4b) cancels.
+   A Web-Animations migration was considered and declined - the keyframes
+   live in LESS. New `Utils.test.ts`, 7 specs, red-first proven.
+2. **The cooldown seconds were too small to read** against the new 52px
+   circle. New `@slot-glyph: 26px` is now the single source for BOTH the
+   in-slot token and the digits; `.cdRemaining` went 14px → 26px at weight
+   700 with a stronger ink halo, and `.longCd` steps down (17.68px) so a
+   four-character string ("140s") still fits. Mobile needed NO override -
+   measured, both lengths fit the 56px tile.
+
+Consequence for the tail: the harness script grew from 27 to **30 legs**
+(pip pulses repeatedly, wall-clock-counted via `animationstart` · the class
+returns OFF between beats · digits render at glyph scale) and vitest went
+554 → **569** (+8 CooldownSweep, +7 Utils, all red-first).
+
 ## 6. Chunk ledger
+
+### C5 - the ONE ability bar ✅ 2026-08-29 `cc5ebe8f`
+
+Rulings D1-D2, the full spec and the ⭐ AMENDED block (the two PO-look
+changes) live in the §5 C5 section - detailed, ruled, built, played and
+amended in one day. Shipped, all `frontend/` + one new harness script + 3
+retrofitted ones, built by two Opus 5 agents (build wave, then fix wave)
+and reviewed line-by-line between them:
+
+- **`HUD.html` - wrap, never rename.** A new `#abilityBar` holds the
+  surviving `#auraLoadout` and `#cooldownLoadout` around a `.barDivider`
+  (wood, 2×42px); `#utilityBar` sits beside it as its own island. Every
+  existing harness selector keeps matching. ⚑ Passive `li`s gained the
+  standard `.slotLabel` span (bare `textContent` before, D1's normalization)
+  and cooldown `li`s a `.cdSweep`; every slot `li` now authors
+  `data-skill-id="0"` so "empty" is a CSS-readable fact.
+- **`HUD.less` - ONE `.auraSlot` anatomy serves all four lists** (aura,
+  cooldown, utility, passive), board-verbatim: 52px circle, 3px ink ring,
+  `#0e1811` well, 17px corner-motif hotkey chip at -6px, empty =
+  `opacity .55` via `[data-skill-id="0"]`, active = the D12 wooden-rim
+  box-shadow. `.ink-panel-chrome()` moved onto the three islands.
+  `.ink-token` is **re-sized** to 26px with the ring drawn by the slot -
+  the C4 rule (C5 re-sizes it, never restates it) held.
+- ⚑ **Pending vs active compose because they use DIFFERENT properties:**
+  `.hasPendingSkill` is a gold BORDER, `.activeSlot` a box-shadow rim - the
+  C4b animation lesson applied in reverse (one property, one winner; two
+  properties, both render).
+- **`#leftColumn` is bottom-anchored with `pointer-events: none` and
+  `auto` on its children** - the C3 dead-strip-eats-clicks defect one level
+  up, pre-empted rather than rediscovered. The open spellbook sits above the
+  passive island, both clickable, as the equip flow requires.
+- **Titles are hidden, NOT removed** (the standing rendered-DOM rule);
+  `.auraLoadoutTitle` was re-homed standalone because the mobile ☰ sheet
+  un-hides the passive one. `.outOfCharges` moved off the now-hidden label
+  onto the glyph, and Camp's charge count is the bottom-right chip.
+- **`HUD.ts`**: `renderSlotToken` rides the existing diff, owns
+  `data-skill-id`, and rebuilds a letter fallback once the catalog lands
+  late; `updatePassiveLoadout` writes `.slotLabel`; cooldown seconds are
+  whole (`4s`, ceil) and feed `--cd-sweep` plus a `.longCd` class for
+  >3-char strings. New pure **`CooldownSweep.ts`** (8 red-first specs)
+  keeps peak-remaining memory with no catalog coupling.
+- **`Utilities.ts`** renders the C4 `UTILITY_ICONS` glyphs once at wiring,
+  double-setup guarded. ⚑ The Recall-then-Camp markup order stays
+  load-bearing for the mobile thumb column - never reorder it.
+- **`HUD.mobile.less` (D2)**: bar chrome off, divider hidden, the
+  `.activeSlot`/`.hasPendingSkill` tile restatements reconciled against the
+  circular anatomy, `overflow: visible` for the ember dot, the passive
+  island restated as a labelled list inside the ☰ sheet. Thumb order
+  untouched. ⚑ Mobile overrides the shared anatomy BY ID SCOPE - a change
+  to `.auraSlot` now lands on four lists and two layouts at once.
+- ⚑ **The PO-look pip fix is the durable finding** (details in §5): a
+  bubbled animation event. `playCssAnimation` is shared, and without its
+  new `event.target !== element` guard a child row's `.breadcrumb` cancel
+  strips `#spellbook`'s `unlockPulse` mid-glow. The review caught the gap
+  after the fix agent had already landed the rest; fixed red-first.
+- **Deviations flagged at the look, no change asked:** the desktop passive
+  island carries no label at all (titles hidden) · seconds read `4s`, not
+  `4.0s` · token chrome is stripped inside slots.
+- ⚑ **Surfaced, not caused** (all unowned, none blocking): this host's wall
+  clock is **NON-MONOTONIC** (a ~66 s backwards jump measured) and it
+  explained all three transient sweep reds - it will bite any elapsed-time
+  harness leg again · `r7-respec-cost` screenshots BETWEEN its two Reset
+  presses, which on a loaded box overruns the 4 s confirm window (4335 ms
+  measured); the one-line fix (screenshot after the confirm) is a PO call,
+  deliberately NOT applied · on mobile the `.cdSweep` circle (inset -3px)
+  overhangs the rounded-square tile's corners - candidate
+  `border-radius: inherit`, left to C6 · the pip's rhythm carries snapshot
+  jitter (817-1740 ms against a true 1333 ms cadence, ±35%) and its
+  scale-up phase is 70 ms of 0.28 s - enlarging or lengthening it is a
+  design call, deliberately not taken.
+- Harness idioms reconfirmed for the next author: 7+ verify scripts read
+  `argv[2]` as the URL, not a label · spellbook rows must be clicked at
+  **x+25**, never centre · `c1-bloodline-seed.mjs:137`'s previously DEAD
+  `.passiveSlot .slotLabel` selector now matches for the right reason
+  (5/5), it was re-checked rather than silently "fixed".
+
+Verified on the final tree: vitest **569/569** (554 + 15 new, red-first:
+8 CooldownSweep + 7 Utils) · tsc · prod build · new `c5-ability-bar`
+**30/30** (27 at the build wave, 3 added at the fix wave), 0 console
+errors · sweep green: `c3-spellbook` 26/26 · `c4b-breadcrumb` 17/17 ·
+`backlog33-prehot` 4/4 · `n1-shield-bar` 4/4 · `r3-lifesteal-burst` 7/7 ·
+`c2-frost-shield` 7/7 · `r1-focus-cost` · `r7-strong` ·
+`c1-bloodline-seed` 5/5 · `c5-bars` exit 0 · `c1-open-portal` 17/0/1 and
+`c2-pull-through` 22/0/1 (each script's own dwell race, settled on retry) ·
+`c3-flight-client` 35/35 with `flightLocked` proven in a real flight ·
+`r7-respec-cost` settled by probe (the timing flag above) ·
+`mobile-layout` green except leg 7 = the documented HEAD baseline · mobile
+probe + screenshots at both waves. Known-red baselines stood throughout.
+⚑ **First-hand split, stated for honesty:** the coordinator re-ran
+vitest/tsc/build/`c5-ability-bar` (27/27 pre-fix) and eyeballed the
+screenshots; the full sweep tallies are the build agent's; the fix agent
+re-ran `c5-ability-bar` 30/30 plus `c3-spellbook` and `c4b-breadcrumb`
+first-hand after the target guard. ⭐ **PO played 2026-08-29**; the bar
+approved as shipped, the two look changes applied and re-verified the same
+session. **Schema NONE** - pure client.
 
 ### C4b - the unlock breadcrumb trail ✅ 2026-08-29 `c22eadc0`
 
