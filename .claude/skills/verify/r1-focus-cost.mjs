@@ -193,9 +193,11 @@ if (disciplineId) {
   const slot = page.locator('#passiveSlotList .passiveSlot[data-slot="0"]').first();
   const slotBox = await slot.boundingBox();
   await page.mouse.click(slotBox.x + slotBox.width / 2, slotBox.y + slotBox.height / 2);
-  // A passive slot renders its skill name as bare textContent (no .slotLabel).
+  // ⚑ Match .slotLabel, never the li: since UI pass C5 D1 a passive slot is an
+  // icon slot whose li ALSO holds a glyph token, and the label span is the one
+  // element that holds the name alone (the suite's standing slot-text rule).
   await page.waitForFunction(
-    () => /Discipline/i.test(document.querySelector('#passiveSlotList .passiveSlot[data-slot="0"]')?.textContent ?? ''),
+    () => /Discipline/i.test(document.querySelector('#passiveSlotList .passiveSlot[data-slot="0"] .slotLabel')?.textContent ?? ''),
     null, { timeout: 15_000 }).catch(() => fail('Discipline never landed in the passive slot'));
 }
 

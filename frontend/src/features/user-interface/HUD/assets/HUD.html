@@ -304,12 +304,19 @@
             </div>
         </div>
 
+        <!-- The passive island (UI pass C5, D1): icon slots in the bar's own
+             52px anatomy, anchored to the BOTTOM of the left column so the open
+             spellbook still sits above it — the equip flow needs a book row and
+             a passive slot clickable at the same time.
+             ⚑ Each slot carries a .slotLabel like every other slot in the
+             family since C5; the name used to be the li's bare textContent. The
+             span stays RENDERED (visually hidden) and keeps holding the name. -->
         <div id="passiveLoadout">
             <div class="auraLoadoutTitle">Passives</div>
             <ul id="passiveSlotList">
-                <li class="auraSlot passiveSlot" data-slot="0">— Empty —</li>
-                <li class="auraSlot passiveSlot" data-slot="1">— Empty —</li>
-                <li class="auraSlot passiveSlot" data-slot="2">— Empty —</li>
+                <li class="auraSlot passiveSlot" data-slot="0" data-skill-id="0"><span class="slotLabel">— Empty —</span></li>
+                <li class="auraSlot passiveSlot" data-slot="1" data-skill-id="0"><span class="slotLabel">— Empty —</span></li>
+                <li class="auraSlot passiveSlot" data-slot="2" data-skill-id="0"><span class="slotLabel">— Empty —</span></li>
             </ul>
         </div>
     </div>
@@ -371,17 +378,39 @@
             <span class="barText"></span>
         </div>
 
-        <!-- Action bars: aura slots left, utilities middle, cooldowns right. -->
+        <!-- Action bars (UI pass C5): ONE bar holding both slot families with a
+             wood divider between them, and the utility island beside it.
+             ⚑ WRAP, NEVER RENAME: #auraLoadout / #cooldownLoadout and their
+             lists survive inside #abilityBar exactly as they were — they only
+             lose their own panel chrome and title, which moved to the wrapper.
+             Every selector the verify suite reads keeps matching. -->
         <div id="actionBars">
-            <div id="auraLoadout">
-                <div class="auraLoadoutTitle">Aura Slots</div>
-                <ul id="auraSlotList">
-                    <!-- .beatPip: the N5 HUD metronome — visible on the active slot only,
-                         pulsed by HUD.pulseAuraMetronome each time the aura's tick lands. -->
-                    <li class="auraSlot hotkeySlot" data-slot="0"><span class="hotkey">1</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
-                    <li class="auraSlot hotkeySlot" data-slot="1"><span class="hotkey">2</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
-                    <li class="auraSlot hotkeySlot" data-slot="2"><span class="hotkey">3</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
-                </ul>
+            <div id="abilityBar">
+                <div id="auraLoadout">
+                    <div class="auraLoadoutTitle">Aura Slots</div>
+                    <ul id="auraSlotList">
+                        <!-- .beatPip: the N5 HUD metronome — visible on the active slot only,
+                             pulsed by HUD.pulseAuraMetronome each time the aura's tick lands.
+                             Since C5 it renders as the mockup's ember dot under the active
+                             slot; same element, same class, same query. -->
+                        <li class="auraSlot hotkeySlot" data-slot="0" data-skill-id="0"><span class="hotkey">1</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
+                        <li class="auraSlot hotkeySlot" data-slot="1" data-skill-id="0"><span class="hotkey">2</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
+                        <li class="auraSlot hotkeySlot" data-slot="2" data-skill-id="0"><span class="hotkey">3</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
+                    </ul>
+                </div>
+
+                <!-- The wood divider (the board's 2×42px rule): it is what keeps
+                     the two families readable inside one bar. -->
+                <span class="barDivider" aria-hidden="true"></span>
+
+                <div id="cooldownLoadout">
+                    <div class="auraLoadoutTitle">Cooldowns</div>
+                    <ul id="cooldownSlotList">
+                        <li class="auraSlot hotkeySlot cooldownSlot" data-slot="0" data-skill-id="0"><span class="hotkey">Q</span><span class="slotLabel">— Empty —</span><span class="cdSweep" aria-hidden="true"></span><span class="cdRemaining"></span></li>
+                        <li class="auraSlot hotkeySlot cooldownSlot" data-slot="1" data-skill-id="0"><span class="hotkey">R</span><span class="slotLabel">— Empty —</span><span class="cdSweep" aria-hidden="true"></span><span class="cdRemaining"></span></li>
+                        <li class="auraSlot hotkeySlot cooldownSlot" data-slot="2" data-skill-id="0"><span class="hotkey">F</span><span class="slotLabel">— Empty —</span><span class="cdSweep" aria-hidden="true"></span><span class="cdRemaining"></span></li>
+                    </ul>
+                </div>
             </div>
 
             <!-- Baseline utilities (plan-downtime.md D1): always-present, outside
@@ -405,15 +434,6 @@
                         ><span class="slotLabel">Recall</span></li>
                     <li class="auraSlot utilityButton" data-utility="2"
                         ><span class="slotLabel">Camp</span><span class="utilityCharges"></span></li>
-                </ul>
-            </div>
-
-            <div id="cooldownLoadout">
-                <div class="auraLoadoutTitle">Cooldowns</div>
-                <ul id="cooldownSlotList">
-                    <li class="auraSlot hotkeySlot cooldownSlot" data-slot="0"><span class="hotkey">Q</span><span class="slotLabel">— Empty —</span><span class="cdRemaining"></span></li>
-                    <li class="auraSlot hotkeySlot cooldownSlot" data-slot="1"><span class="hotkey">R</span><span class="slotLabel">— Empty —</span><span class="cdRemaining"></span></li>
-                    <li class="auraSlot hotkeySlot cooldownSlot" data-slot="2"><span class="hotkey">F</span><span class="slotLabel">— Empty —</span><span class="cdRemaining"></span></li>
                 </ul>
             </div>
         </div>

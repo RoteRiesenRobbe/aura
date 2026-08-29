@@ -461,17 +461,78 @@ export function dateDiff(a, b, unit?) {
     return (a - b) / unit;
 }
 
+// One in-flight cleanup per element (see playCssAnimation). ⚑ Keyed by ELEMENT,
+// not by element+class: both callers play exactly one animation class on their
+// own element. A second class on the same element would leave the first one's
+// class stranded - split the key if a third caller ever needs that.
+const animationCleanups = new WeakMap<HTMLElement, (event: Event) => void>();
+
 /**
- * @deprecated Should not be used - instead use Web Animation API
+ * Restart a CSS animation by taking its class off the element and putting it
+ * straight back on.
+ *
+ * ⚑ The removal and the re-add MUST be separated by a style recalc, or the
+ * engine never sees the animation-name change, keeps the existing (already
+ * finished) animation, and nothing replays. Reading `offsetWidth` forces that
+ * recalc synchronously. This used to defer the re-add to a
+ * `requestAnimationFrame` on the theory that a frame boundary implies a recalc;
+ * whether it does is engine-dependent (Chromium happens to restart reliably,
+ * engines that run frame callbacks before the style flush do not), so the pulse
+ * worked for some players and died after the first beat for others. UI-pass
+ * C5's metronome pip is where that surfaced - plan-ui-pass.md §5 C5.
+ *
+ * ⚑ The class comes back OFF once the animation is over, so the element rests
+ * in the class-absent state. A retained class replays all by itself the next
+ * time the element is shown again (`display: none` cancels a running animation,
+ * and re-displaying an element whose animation-name still applies creates a
+ * fresh one) - on the beat pip that is a pulse on the aura switch that no beat
+ * asked for, which is exactly the "a spurious one reads as broken" the
+ * BeatDetector's switch guard exists to prevent.
+ *
+ * ⚑ NOT migrated to the Web Animations API (what the old `@deprecated` note
+ * asked for): considered and declined. The keyframes are authored in LESS and
+ * both callers want exactly "replay that rule" - two lines here, a duplicated
+ * keyframe table there.
+ *
  * @param element
  * @param animationClass
  */
 export function playCssAnimation(element: HTMLElement, animationClass: string) {
+    // Drop the previous call's cleanup FIRST. Restarting cancels the running
+    // animation and `animationcancel` is delivered asynchronously, so a
+    // listener left over from the superseded pulse would arrive after the new
+    // class is already on and strip it right back off - killing the replay it
+    // was meant to enable. Reachable in the wild: two spellbook unlocks inside
+    // one 5 s glow.
+    const stale = animationCleanups.get(element);
+    if (stale) {
+        element.removeEventListener('animationend', stale);
+        element.removeEventListener('animationcancel', stale);
+    }
+
     element.classList.remove(animationClass);
-    // Use 1 render cycle delay to ensure the animation is restarted
-    requestAnimationFrame(function () {
-        element.classList.add(animationClass);
-    });
+    void element.offsetWidth; // the style recalc that makes the restart real
+    element.classList.add(animationClass);
+
+    const done = (event: Event) => {
+        // ⚑ Animation events BUBBLE, so only this element's own count. The
+        // spellbook panel plays `unlockPulse` on itself while its children run
+        // animations of their own - the `.unlocked` row glow and the C4b
+        // `.breadcrumb` pulse. Marking a row seen removes `.breadcrumb`, which
+        // CANCELS an infinite animation on a still-attached row; without this
+        // guard that cancel would reach the panel, strip the 5 s glow mid-flight
+        // and tear the cleanup down with it.
+        if (event.target !== element) {
+            return;
+        }
+        element.classList.remove(animationClass);
+        element.removeEventListener('animationend', done);
+        element.removeEventListener('animationcancel', done);
+        animationCleanups.delete(element);
+    };
+    animationCleanups.set(element, done);
+    element.addEventListener('animationend', done);
+    element.addEventListener('animationcancel', done);
 }
 
 /**

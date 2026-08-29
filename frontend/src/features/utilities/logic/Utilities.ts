@@ -12,6 +12,7 @@ import {UseUtilityMessage} from '../../backend/logic/messages/outgoing/UseUtilit
 import {AuraApi} from '../../backend/logic/AuraApi';
 import {campChargeCap} from '../../../client-data/Skills';
 import {attachTooltips, showTooltip, TooltipContent} from '../../user-interface/HUD/logic/SkillTooltip';
+import {createIconToken} from '../../user-interface/HUD/logic/IconToken';
 import * as Flight from '../../flight/logic/Flight';
 import * as AlertBanner from '../../user-interface/alert-banner/logic/AlertBanner';
 
@@ -168,6 +169,22 @@ export function updateCampCharges(charges: number, level: number) {
 
 export function setup() {
     const bar = document.getElementById('utilityList');
+
+    // The glyphs (UI pass C5). Rendered ONCE at wiring time, not per tick: a
+    // utility button never changes what it is, unlike a loadout slot. The paths
+    // come from the C4 UTILITY_ICONS table — utilities are not catalog content,
+    // so there is no wire field to read them from.
+    // ⚑ Guarded against a second setup() (nothing calls it twice today, but a
+    // re-wire without a reload would otherwise stack a second glyph per button).
+    bar?.querySelectorAll<HTMLElement>('li[data-utility]').forEach((button) => {
+        if (button.querySelector(':scope > .ink-token')) {
+            return;
+        }
+        const kind = Number(button.dataset.utility);
+        button.insertBefore(
+            createIconToken(utilityIcon(kind), utilityDisplayName(kind)), button.firstChild);
+    });
+
     // pointerdown, not click — MouseManager preventDefaults mousedown on the
     // document element, which suppresses the synthetic click.
     bar?.addEventListener('pointerdown', (event) => {

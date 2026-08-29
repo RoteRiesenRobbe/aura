@@ -336,6 +336,12 @@
 	position: absolute;
 	top: 1rem;
 	left: 1rem;
+	// C5 D1: the passive island is ANCHORED TO THE BOTTOM of the screen, so the
+	// column spans the viewport and the island takes the slack above it
+	// (margin-top: auto). The open spellbook keeps its place at the top and the
+	// two are visible at once - which the equip flow needs, since it wants a
+	// book row and a passive slot clickable together.
+	bottom: 1rem;
 
 	// ⚑ Load-bearing since the spellbook became a panel with a pager at its
 	// bottom edge (C3): without it #bottomCenter's transparent full-width
@@ -345,7 +351,26 @@
 
 	display: flex;
 	flex-direction: column;
+	// Intrinsic-width children: without it the passive island would stretch to
+	// the shut spellbook's 18rem min-width and read as an empty panel.
+	align-items: flex-start;
 	gap: 1rem;
+
+	// ⚑ The C5 stretch turns this into a full-height column over the world, and
+	// an opaque-to-the-mouse one would be the C3 dead-strip defect a level up -
+	// this time eating world clicks between the book and the island. The column
+	// itself takes no pointer events; its panels opt back in.
+	pointer-events: none;
+
+	> * {
+		pointer-events: auto;
+	}
+
+	// The bottom anchor itself (D1). ⚑ HUD.mobile.less resets it: in the ☰ sheet
+	// this island is a scrolled list member, not a floating one.
+	> #passiveLoadout {
+		margin-top: auto;
+	}
 }
 
 // Bottom-center stack (triage 2026-07-21): cast bar directly above the
@@ -363,10 +388,13 @@
 	gap: 1rem;
 }
 
+// The bar and its utility island, side by side (C5). The board's 22px gap; the
+// two are centred against each other rather than baseline-aligned, because both
+// are now one row of equal-height circles.
 #actionBars {
 	display: flex;
-	align-items: flex-end;
-	gap: 1rem;
+	align-items: center;
+	gap: 22px;
 }
 
 // Conversation panel (plan-entity-model.md chunk 3b-ii, D21): non-blocking and
@@ -977,175 +1005,361 @@
 	}
 }
 
-#auraLoadout,
-#passiveLoadout,
-#cooldownLoadout,
-#utilityBar {
-	.panel-chrome();
-	min-width: @panel-min-width;
+/* ============================================================================
+ * The ONE ability bar (UI pass C5)
+ *
+ * The §2 consolidation in the ratified direction-C language: ONE bottom bar
+ * holding both slot families with a wood divider between them, the utility
+ * island beside it, and the passive island at the bottom of the left column
+ * (D1). Every slot is ICON-ONLY - the names live in the hover tooltip that was
+ * already wired on all four lists.
+ *
+ * ⛔ The spec is the RENDERED "C - Icon Bar" board CSS (`.slotI` / `.keyC` /
+ * `.panelC`), the §4 CORRECTION rule - not the board prose. The numbers below
+ * are the board's literals, translated onto the direction-C tokens wherever
+ * they match (@ink / @wood / @parchment / @brand) and kept as literals where
+ * they do not: the slot well is a darkened moss and the active rim a lit wood,
+ * neither of which is a fifth token (the #5f3b18 precedent from the header
+ * strip).
+ */
 
-	// Panel titles ("Passives" / "Aura Slots" / "Cooldowns"). Feedback pass B
-	// item 8: these are what tells the player which panel holds what, and at
-	// 60%-white they read as decoration. Gold + a rule, matching the
-	// spellbook's section bands so the two vocabularies agree.
-	> .auraLoadoutTitle {
-		font-weight: 700;
-		letter-spacing: 0.08em;
-		padding-bottom: 0.3rem;
-		margin-bottom: 0.6rem;
-		border-bottom: 2px solid fade(@gold-levelup, 45%);
-		color: @gold-levelup;
-		font-size: (@panel-title-size * 1.2);
-		text-transform: uppercase;
+// The panel title of the loadout family (feedback pass B item 8: gold + a rule,
+// matching the spellbook's section bands, so the two vocabularies agree).
+// ⚑ Kept as a STANDALONE rule even though C5 hides all four on the desktop: the
+// ☰ sheet un-hides the passive one, and without this the sheet's heading would
+// come back as unstyled body text. Do not fold it back into the container block.
+.auraLoadoutTitle {
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	padding-bottom: 0.3rem;
+	margin-bottom: 0.6rem;
+	border-bottom: 2px solid fade(@gold-levelup, 45%);
+	color: @gold-levelup;
+	font-size: (@panel-title-size * 1.2);
+	text-transform: uppercase;
+}
+
+@slot-size:   52px;
+@slot-well:   #0e1811; // the board's slot interior
+@slot-rim:    #8a5a2b; // the ACTIVE aura's wooden rim (the medallions' D12 rule)
+@slot-gap:    12px;
+@slot-hotkey: 17px;
+// The glyph inside a slot - C4's `.ink-token` RE-SIZED, per the C4 rule. Named
+// because the cooldown digits are sized off it: the PO's ask at the C5 look was
+// that they read "as big as the icon".
+@slot-glyph:  26px;
+
+// The three icon-slot containers: the ability bar (both families + divider),
+// the utility island beside it, and the passive island. One chrome, one gap,
+// one slot anatomy - the bar family reads as one system.
+#abilityBar,
+#utilityBar,
+#passiveLoadout {
+	.ink-panel-chrome();
+	// The board's bar padding, tighter than the panel default a text panel
+	// wants: a row of 52px circles needs a rim, not a margin.
+	padding: 12px 16px;
+	min-width: 0;
+
+	display: flex;
+	align-items: center;
+	gap: @slot-gap;
+
+	// Icon-only: the four panel titles are gone from the whole bar family.
+	// ⚑ The NODES stay (the C3 rendered-DOM rule; c6-theme.mjs samples one of
+	// them), they are only hidden - and HUD.mobile.less brings the passive one
+	// back, because the ☰ sheet still renders that island as a labelled list.
+	// ⚑ DESCENDANT, not `>`: inside #abilityBar the titles sit one level deeper,
+	// in #auraLoadout / #cooldownLoadout. A child combinator here matched
+	// nothing and both titles rendered inside the bar (caught by the C5 look).
+	.auraLoadoutTitle {
+		display: none;
 	}
 
-	> ul {
+	ul {
 		list-style: none;
 		margin: 0;
 		padding: 0;
 
-		> .auraSlot {
-			padding: 0.4rem 0;
-			border-bottom: 1px solid @panel-row-divider;
-			color: fade(white, 35%);
-
-			&:last-child {
-				border-bottom: none;
-			}
-		}
-	}
-
-	&.hasPendingSkill > ul > .auraSlot {
-		cursor: pointer;
-		color: @panel-color;
-		background: fade(white, 5%);
-		border-radius: 0.4rem;
-		padding-left: 0.4rem;
-	}
-
-	> ul > .auraSlot.activeSlot {
-		color: white;
-		font-weight: 700;
-		background: fade(white, 12%);
-		border-left: 3px solid fade(white, 70%);
-		border-radius: 0.4rem;
-		padding-left: 0.4rem;
-	}
-
-	// Slot rows with a hotkey badge (aura slots + cooldowns).
-	> ul > .hotkeySlot {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: @slot-gap;
+	}
+}
 
-		> .hotkey {
-			flex: none;
-			width: 1.4em;
-			height: 1.4em;
-			line-height: 1.4em;
-			text-align: center;
-			background: fade(white, 10%);
-			border: 1px solid @panel-border;
-			border-radius: 0.3rem;
-			font-size: 0.85em;
-			color: @panel-title-color;
+// The two families inside the one bar: bare flex rows now, no chrome and no
+// min-width of their own - both moved to #abilityBar. The elements themselves
+// survive untouched (wrap, never rename), so every #auraLoadout /
+// #cooldownLoadout selector in the verify suite keeps matching.
+#auraLoadout,
+#cooldownLoadout {
+	display: flex;
+	align-items: center;
+	min-width: 0;
+}
+
+// The wood divider (the board's 2×42px rule) - what keeps the two families
+// readable inside one container.
+#abilityBar > .barDivider {
+	flex: 0 0 auto;
+	width: 2px;
+	height: 42px;
+	border-radius: 1px;
+	background: fade(@wood, 55%);
+}
+
+// The slot itself (`.slotI`): a 52px ink-ringed circle over a dark well. Every
+// member of the family wears it - aura, cooldown, utility, passive - which is
+// what makes `.auraSlot` the right place to put it once.
+// ⚑ Top-level on purpose: HUD.mobile.less overrides it through id-scoped
+// selectors, which out-rank this and keep the phone's tile row (D2).
+.auraSlot {
+	position: relative;
+	box-sizing: border-box;
+	flex: 0 0 auto;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	width: @slot-size;
+	height: @slot-size;
+	padding: 0;
+
+	background: @slot-well;
+	border: 3px solid @ink;
+	border-radius: 50%;
+	color: @parchment;
+
+	// Icon-only, but the label is CONTRACT: a dozen verify scripts read
+	// `.slotLabel` textContent, and it is the slot's accessible name. It stays
+	// rendered and keeps its text; it just takes no space.
+	> .slotLabel {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	// An empty slot keeps its ring and its key chip and dims (the board's 0.55).
+	// Driven by the attribute every update path already stamps - no extra class,
+	// no extra TS.
+	&[data-skill-id="0"] {
+		opacity: 0.55;
+	}
+
+	// The glyph is C4's token RE-SIZED, per the C4 rule - the treatment is not
+	// restated. The two properties dropped are the ones the slot now draws
+	// itself: the token's own ring and well would sit as a second ring inside
+	// this one.
+	> .ink-token {
+		width: @slot-glyph;
+		height: @slot-glyph;
+		background: none;
+		border: none;
+		border-radius: 0;
+		box-shadow: none;
+
+		> svg {
+			width: 100%;
+			height: 100%;
 		}
 
-		> .slotLabel {
-			flex: 1;
+		&.letterFallback {
+			font-size: 18px;
 		}
+	}
 
-		> .cdRemaining {
-			flex: none;
-			color: fade(@gold-flash, 90%);
-			font-variant-numeric: tabular-nums;
+	// The hotkey chip (`.keyC`) at the slot's top-left corner, wearing the
+	// corner motif at key-chip scale (5/3/6/4, the C1 ruling's smallest repeat).
+	// ⚑ The label and the binding stay two independent literals (HUD.html here,
+	// Controls.ts there) - deliberately NOT unified this chunk.
+	> .hotkey {
+		position: absolute;
+		top: -6px;
+		left: -6px;
+
+		width: @slot-hotkey;
+		height: @slot-hotkey;
+		line-height: @slot-hotkey;
+
+		background: @ink;
+		border: none;
+		border-radius: 5px 3px 6px 4px;
+		color: @parchment;
+		font-size: 11px;
+		text-align: center;
+	}
+
+	// The ACTIVE aura: the wooden rim, the D12 rule the medallions set and the
+	// board applies here. Double ring plus an ember halo, all in box-shadow so
+	// the slot's own geometry does not move.
+	&.activeSlot {
+		box-shadow: 0 0 0 4px @slot-rim, 0 0 0 6px @ink, 0 0 10px fade(@brand, 45%);
+	}
+
+	// N5 HUD metronome, restyled as the board's EMBER DOT under the active slot
+	// (C5). ⚑ Same element, same class, same `.auraSlot.activeSlot .beatPip`
+	// query in HUD.ts - zero TS changed for it.
+	> .beatPip {
+		position: absolute;
+		bottom: -9px;
+		left: 50%;
+		transform: translateX(-50%);
+
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: @brand;
+		box-shadow: 0 0 6px @brand;
+		display: none;
+	}
+
+	&.activeSlot > .beatPip {
+		display: block;
+	}
+
+	> .beatPip.beatPulse {
+		animation: hudBeatPulse 0.28s ease-out;
+	}
+}
+
+// The pending-equip target highlight, restated for the circle. ⚑ It recolours
+// the BORDER rather than adding a box-shadow on purpose: the active slot owns
+// box-shadow, and CSS never merges a property across rules (the C4b lesson), so
+// a pending highlight drawn there would blank the active rim while a skill is
+// selected. Border and shadow compose, and both states read at once.
+#auraLoadout.hasPendingSkill > ul > .auraSlot,
+#passiveLoadout.hasPendingSkill > ul > .auraSlot,
+#cooldownLoadout.hasPendingSkill > ul > .auraSlot {
+	cursor: pointer;
+	border-color: fade(@gold-levelup, 85%);
+	// An EMPTY slot is the most interesting target while a skill is pending, so
+	// it stops being the dim one.
+	opacity: 1;
+}
+
+// A slot on cooldown: the board's conic ink sweep over the glyph with the
+// seconds centred on top. The wedge angle rides `--cd-sweep`, set per tick by
+// HUD.updateCooldownLoadout from the pure CooldownSweep memory.
+.cooldownSlot {
+	> .cdSweep {
+		position: absolute;
+		inset: -3px; // covers the ink ring too, the board's own inset
+		border-radius: 50%;
+		background: conic-gradient(fade(#0a0805, 75%) 0deg var(--cd-sweep, 0deg),
+			transparent var(--cd-sweep, 0deg));
+		pointer-events: none;
+		display: none;
+	}
+
+	// ⚑ The digits read at GLYPH SCALE (@slot-glyph, the same size as the token
+	// under them), not at label scale - PO at the C5 look: "as big as the icon
+	// so they are easily readable". The slot's inner diameter is 46px, so three
+	// tabular characters ("12s") is what fits at that size; `.longCd` steps down
+	// for the four-character values the longest cooldowns in the catalog reach
+	// (Call for Aid is 4200 ticks = "140s"). The step is keyed off the rendered
+	// LENGTH in updateCooldownLoadout - see the note there.
+	> .cdRemaining {
+		position: absolute;
+		inset: 0;
+		display: none;
+		align-items: center;
+		justify-content: center;
+
+		color: #f6ecd8;
+		font-size: @slot-glyph;
+		font-weight: 700;
+		line-height: 1;
+		font-variant-numeric: tabular-nums;
+		// The wedge under the digits is dark but not opaque, and the glyph
+		// behind it still shows at 0.5 - the ink halo is what keeps the number
+		// readable over both.
+		text-shadow: 0 1px 2px fade(black, 90%), 0 0 4px fade(black, 90%);
+
+		&.longCd {
+			font-size: (@slot-glyph * 0.68);
 		}
+	}
 
-		&.onCooldown > .slotLabel {
-			opacity: 0.45;
-		}
-
-		// N5 HUD metronome: a small pip on the ACTIVE aura slot that pops on
-		// every landed tick (HUD.pulseAuraMetronome), so the beat is readable
-		// on the ability bar — where the eyes are while switching auras.
-		// Faintly present between beats rather than blinking from nothing:
-		// the same no-on/off-stutter rule as the ring's baseline alpha.
-		> .beatPip {
-			flex: none;
-			width: 0.55em;
-			height: 0.55em;
-			border-radius: 50%;
-			background: fade(white, 45%);
-			display: none;
-		}
-
-		&.activeSlot > .beatPip {
+	&.onCooldown {
+		> .cdSweep {
 			display: block;
 		}
 
-		> .beatPip.beatPulse {
-			animation: hudBeatPulse 0.28s ease-out;
+		> .cdRemaining {
+			display: flex;
+		}
+
+		// The board dims the GLYPH under the sweep. ⚑ The old rule dimmed
+		// `.slotLabel`, which is now visually hidden - it would have become a
+		// silent no-op.
+		> .ink-token {
+			opacity: 0.5;
 		}
 	}
 }
 
 // Baseline utilities (plan-downtime.md D1): always-present and always
-// pressable, so the row never wears the faded "empty slot" look and always
-// carries a pointer cursor — unlike the loadout slots, whose affordance is
+// pressable, so a utility slot never wears the empty-slot dim and always
+// carries a pointer cursor - unlike a loadout slot, whose affordance is
 // state-dependent.
 #utilityBar > ul > .utilityButton {
 	cursor: pointer;
-	color: @panel-color;
-
-	// Flex so the charge counter sits at the right edge, the cooldown-slot
-	// layout. The hotkeySlot rules next door cannot be reused wholesale — a
-	// utility has no hotkey badge (D1: buttons, no keys).
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-
-	> .slotLabel {
-		flex: 1;
-	}
 
 	&:hover {
-		background: fade(white, 8%);
-		border-radius: 0.4rem;
+		border-color: fade(@parchment, 45%);
 	}
 
 	&:active {
-		background: fade(white, 14%);
+		background: lighten(@slot-well, 8%);
 	}
 
-	// Camp's charge counter (C2). The cooldown-remaining treatment verbatim —
-	// it answers the same question ("can I press this yet") in the same corner,
-	// so it gets the same colour and the same tabular digits.
+	// Camp's charge counter (C2), as the board's bottom-right chip badge: the
+	// key chip's corner motif and the gold that answers "can I press this yet".
 	> .utilityCharges {
-		flex: none;
-		color: fade(@gold-flash, 90%);
+		position: absolute;
+		right: -8px;
+		bottom: -8px;
+		padding: 1px 5px;
+
+		background: @ink;
+		border-radius: 6px 4px 7px 5px;
+		color: @gold-levelup;
+		font-size: 10px;
+		font-weight: 600;
 		font-variant-numeric: tabular-nums;
+		line-height: 1.4;
 	}
 
-	// An empty store greys the LABEL, not the button: the button stays
-	// pressable (pressing it is how you learn why it is grey), and the counter
-	// stays at full contrast because it is the explanation.
-	&.outOfCharges > .slotLabel {
+	// An empty store greys the GLYPH, not the chip: the button stays pressable
+	// (pressing it is how you learn why it is grey) and the count stays at full
+	// contrast because it is the explanation. ⚑ The C2 rule, moved off the
+	// now-hidden label onto the icon so it does not silently stop showing.
+	&.outOfCharges > .ink-token {
 		opacity: 0.45;
 	}
 }
 
+// ⚑ The pip is CENTRED with translateX(-50%) since C5, and a keyframe's
+// `transform` replaces the rule's outright - dropping the translate here would
+// slide the ember dot to the slot's right edge for the length of every beat.
 @keyframes hudBeatPulse {
 	0% {
-		transform: scale(1);
-		background-color: fade(white, 45%);
+		transform: translateX(-50%) scale(1);
+		background-color: @brand;
 	}
 	25% {
-		transform: scale(1.7);
-		background-color: fade(white, 95%);
+		transform: translateX(-50%) scale(1.7);
+		background-color: #ffc27a;
 	}
 	100% {
-		transform: scale(1);
-		background-color: fade(white, 45%);
+		transform: translateX(-50%) scale(1);
+		background-color: @brand;
 	}
 }
 

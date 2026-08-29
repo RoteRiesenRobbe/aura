@@ -261,6 +261,26 @@ html.mobile {
 		align-items: center;
 	}
 
+	// UI pass C5 D2 — ICONS INHERIT, LAYOUT STAYS. The desktop bar became one
+	// panel wrapping both families (#abilityBar); on the phone that wrapper is
+	// as invisible as the two loadouts already were, and it carries the gap
+	// that used to come from #actionBars. The wood divider is a desktop cue for
+	// one shared panel — with no panel here, the gap alone separates the two
+	// triplets, exactly as it did before C5.
+	#abilityBar {
+		min-width: 0;
+		padding: 0;
+		gap: 1.2rem;
+		background: none;
+		border: none;
+		border-radius: 0;
+		box-shadow: none;
+
+		> .barDivider {
+			display: none;
+		}
+	}
+
 	// The two loadouts stop being panels and become a single row of tap
 	// targets: 3 auras, a gap, 3 cooldowns. Panel chrome and the titles go —
 	// the tile IS the affordance.
@@ -294,11 +314,18 @@ html.mobile {
 				background: @panel-bg;
 				border: 1px solid @panel-border;
 				border-radius: 0.8rem;
+				// ⚑ The desktop circle's rim and ember dot are box-shadow and a
+				// negatively-offset child; both would leak onto a tile.
+				box-shadow: none;
 
 				font-size: 1.1rem;
 				line-height: 1.15;
 				text-align: center;
-				overflow: hidden;
+				// ⚑ Was `hidden`, to clip a long skill NAME. The tile is
+				// icon-only since C5 (D2: the icons inherit), and the thing that
+				// now overflows is the metronome's ember dot under the active
+				// slot — clipping it made the beat invisible on the phone.
+				overflow: visible;
 				overflow-wrap: anywhere;
 
 				// The desktop rows separate with a bottom divider and drop it
@@ -312,20 +339,25 @@ html.mobile {
 					display: none;
 				}
 
+				// ⚑ The label is visually hidden by the shared C5 slot rule and
+				// stays that way here — a tile this size fits a glyph OR a word,
+				// and D2 picked the glyph. The text itself stays in the DOM
+				// (mobile-layout.mjs reads it).
 				> .slotLabel {
 					flex: 0 1 auto;
 					overflow: hidden;
 				}
 			}
 
-			// The desktop active/pending states shift padding to make room for
-			// a left border; on a fixed-size tile that would push the label
-			// off-centre, so both restate the whole box.
+			// The desktop active/pending states are a box-shadow rim and a
+			// recoloured border on a circle; on a fixed-size tile both restate
+			// the whole box instead.
 			> .auraSlot.activeSlot {
 				padding: 0.3rem;
 				border: 1px solid fade(white, 70%);
 				border-left: 1px solid fade(white, 70%);
 				background: fade(white, 20%);
+				box-shadow: none;
 			}
 		}
 
@@ -333,6 +365,7 @@ html.mobile {
 			padding: 0.3rem;
 			border: 1px dashed fade(@gold-levelup, 70%);
 			background: fade(@gold-levelup, 10%);
+			box-shadow: none;
 		}
 	}
 
@@ -350,6 +383,11 @@ html.mobile {
 		right: 0;
 		bottom: 0;
 		z-index: @mobile-menu-z;
+		// ⚑ Restated: the desktop rule made this column transparent to the
+		// mouse at C5 (its bottom-anchored stretch would otherwise eat world
+		// clicks). The sheet is the opposite — an opaque overlay that MUST
+		// swallow the taps its own background receives.
+		pointer-events: auto;
 
 		// Room for the ☰ above and the footer bar below.
 		padding: (@mobile-button + 2 * @mobile-edge) @mobile-edge (@mobile-footer + @mobile-edge) @mobile-edge;
@@ -651,6 +689,58 @@ html.mobile {
 		align-items: center;
 	}
 
+	// The passive island (UI pass C5 D1) is a horizontal row of icon circles on
+	// the desktop, anchored to the bottom of the left column. In the ☰ sheet it
+	// stays a LIST: the sheet scrolls, and a stack of nameless circles is
+	// unreadable where there is no hover to name them. D2 asks only that the
+	// icons inherit — so a row here is the C4 spellbook shape, token + name.
+	// ⚑ Everything below undoes one desktop C5 declaration each; nothing is
+	// invented. Keeping this in sync with the shared .auraSlot rule is the price
+	// of one anatomy for four lists.
+	// ⚑ Scoped through #leftColumn on purpose: the desktop bottom anchor is
+	// `#leftColumn > #passiveLoadout` (two ids), which a bare `#passiveLoadout`
+	// here would lose to — the island would sink to the bottom of the sheet.
+	#leftColumn > #passiveLoadout {
+		min-width: 0;
+		// The bottom anchor is a desktop-only idea: here the island is just
+		// another member of the scrolled sheet.
+		margin-top: 0;
+		display: block;
+
+		> .auraLoadoutTitle {
+			display: block;
+		}
+
+		> ul {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0.4rem;
+		}
+
+		> ul > .auraSlot {
+			width: auto;
+			height: auto;
+			padding: 0.4rem 0.6rem;
+			gap: 0.6rem;
+			justify-content: flex-start;
+
+			border-width: 2px;
+			border-radius: 0.8rem;
+
+			// The name comes back — this is the one place in the family where a
+			// slot is read rather than aimed at.
+			> .slotLabel {
+				position: static;
+				width: auto;
+				height: auto;
+				margin: 0;
+				overflow: visible;
+				clip-path: none;
+				white-space: normal;
+			}
+		}
+	}
+
 	/* --- baseline utilities (plan-downtime.md D1, L7) ------------------- */
 	// The six-tile row is width-saturated in portrait (the 13vw cap above is
 	// what keeps it on screen), so the Recall button does NOT join it as a
@@ -676,6 +766,10 @@ html.mobile {
 		padding: 0;
 		background: none;
 		border: none;
+		// The desktop island wears the C5 ink chrome; the phone's thumb column
+		// is a bare stack of round buttons.
+		border-radius: 0;
+		box-shadow: none;
 
 		> .auraLoadoutTitle {
 			display: none;
@@ -708,7 +802,17 @@ html.mobile {
 				flex: none;
 			}
 
+			// ⚑ Back into the FLOW. The desktop C5 bar parks this as a chip on
+			// the slot's bottom-right corner; on the phone the button is round
+			// and clips its overflow, so a corner chip would be sliced in half.
+			// Stacked under the glyph is also today's mobile look, which D2
+			// keeps.
 			> .utilityCharges {
+				position: static;
+				padding: 0;
+				background: none;
+				border-radius: 0;
+				color: @gold-levelup;
 				font-size: 0.85em;
 				line-height: 1.1;
 			}

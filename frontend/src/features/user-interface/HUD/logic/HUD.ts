@@ -18,7 +18,8 @@ import {
     skillPointCost,
     SkillCategory,
 } from '../../../../client-data/Skills';
-import {createIconToken} from './IconToken';
+import {createIconToken, hasGlyph} from './IconToken';
+import {createSweepMemory, sweepFraction} from './CooldownSweep';
 import {attachSkillTooltips, setAvailableSkillPoints} from './SkillTooltip';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
 import * as AlertBanner from '../../alert-banner/logic/AlertBanner';
@@ -52,6 +53,11 @@ let cooldownSlotListElement: HTMLElement;
 // Latest cooldown slot state from the server; gates the activate-on-click.
 let currentCooldownSlots: number[] = [];
 let currentCooldownRemaining: number[] = [];
+
+// The icon bar's cooldown wedge needs a fraction, and the wire carries only the
+// ticks left — this remembers the length each running cooldown started at
+// (CooldownSweep, UI pass C5).
+const cooldownSweep = createSweepMemory();
 
 // Current level of every spellbook-known skill, kept by updateSpellbook.
 // Feeds the hover tooltips (spellbook entries AND loadout slots — a slotted
@@ -917,6 +923,32 @@ export function updateActiveAuraSlot(slot: number) {
     }
 }
 
+// renderSlotToken keeps a slot's glyph (UI pass C5) in sync with the skill it
+// holds, and owns `data-skill-id` — the attribute the tooltips resolve against
+// and the one the empty-slot dim is keyed off in CSS.
+//
+// ⚑ It RIDES A DIFF. All three loadout paths run once per snapshot (~30/s), and
+// rebuilding an inline SVG that often is pure churn: the token is replaced only
+// when the slot actually changes hands. The one extra trigger is the catalog
+// arriving late — a token built before /skills answered is a letter fallback,
+// and without the second condition it would stay a letter for the session.
+function renderSlotToken(li: HTMLElement, skillId: number) {
+    const next = String(skillId);
+    const existing = li.querySelector(':scope > .ink-token');
+    const stale = !!existing
+        && existing.classList.contains('letterFallback')
+        && hasGlyph(skillIcon(skillId));
+    if (li.dataset.skillId === next && !stale) {
+        return;
+    }
+    li.dataset.skillId = next;
+    existing?.remove();
+    if (skillId !== 0) {
+        li.insertBefore(createIconToken(skillIcon(skillId), skillDisplayName(skillId)),
+            li.firstChild);
+    }
+}
+
 export function updateAuraLoadout(slots: number[]) {
     if (!auraSlotListElement) return;
     currentAuraSlots = slots;
@@ -925,7 +957,7 @@ export function updateAuraLoadout(slots: number[]) {
         if (!li) continue;
         const label = li.querySelector('.slotLabel') as HTMLElement;
         label.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : '— Empty —';
-        li.dataset.skillId = String(slots[i]);
+        renderSlotToken(li, slots[i]);
         // Re-apply the optimistic highlight after the per-tick text re-render.
         // Never highlight an empty slot (guards against a slot emptied while active).
         li.classList.toggle('activeSlot', activeSlotIndex === i && slots[i] !== 0);
@@ -934,13 +966,18 @@ export function updateAuraLoadout(slots: number[]) {
 
 // updatePassiveLoadout renders the server-authoritative passive slot contents.
 // No active state — all equipped passives are always on.
+//
+// ⚑ Since C5 the name goes on `.slotLabel`, not the li's bare textContent (D1
+// normalised the passive slots onto the family's contract). Writing textContent
+// on the li would ALSO wipe the icon token out of it once per snapshot.
 export function updatePassiveLoadout(slots: number[]) {
     if (!passiveSlotListElement) return;
     for (let i = 0; i < slots.length; i++) {
         const li = passiveSlotListElement.querySelector(`.passiveSlot[data-slot="${i}"]`) as HTMLElement;
         if (!li) continue;
-        li.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : '— Empty —';
-        li.dataset.skillId = String(slots[i]);
+        const label = li.querySelector('.slotLabel') as HTMLElement;
+        label.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : '— Empty —';
+        renderSlotToken(li, slots[i]);
     }
 }
 
@@ -957,10 +994,24 @@ export function updateCooldownLoadout(slots: number[], remainingTicks: number[])
         const label = li.querySelector('.slotLabel') as HTMLElement;
         const cd = li.querySelector('.cdRemaining') as HTMLElement;
         label.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : '— Empty —';
-        li.dataset.skillId = String(slots[i]);
+        renderSlotToken(li, slots[i]);
         const remaining = remainingTicks[i] ?? 0;
-        cd.textContent = remaining > 0 ? `${(remaining * Constants.SERVER_TICKRATE / 1000).toFixed(1)}s` : '';
+        // Whole seconds, the board's "4s": the digits sit INSIDE a 52px circle
+        // now, where a tenths place is noise the player cannot act on.
+        cd.textContent = remaining > 0
+            ? `${Math.ceil(remaining * Constants.SERVER_TICKRATE / 1000)}s` : '';
+        // The digits render at glyph scale, where three tabular characters is
+        // what a 46px inner circle holds. The catalog's longest cooldowns run to
+        // four ("140s" for Call for Aid), so those step down a size. Keyed off
+        // the string that was just written rather than off the tick count: the
+        // thing that has to fit is the rendered text.
+        cd.classList.toggle('longCd', cd.textContent.length > 3);
         li.classList.toggle('onCooldown', remaining > 0);
+        // The conic wedge (C5). No rAF and no second clock: this path already
+        // runs on every snapshot, and the fraction comes from the pure
+        // CooldownSweep memory rather than a catalog-derived duration.
+        li.style.setProperty('--cd-sweep',
+            `${(sweepFraction(cooldownSweep, i, slots[i], remaining) * 360).toFixed(1)}deg`);
     }
 }
 

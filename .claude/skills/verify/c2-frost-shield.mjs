@@ -114,12 +114,14 @@ if (skillId) {
   const slot = page.locator('#passiveSlotList .passiveSlot[data-slot="0"]').first();
   const slotBox = await slot.boundingBox();
   await page.mouse.click(slotBox.x + slotBox.width / 2, slotBox.y + slotBox.height / 2);
+  // ⚑ .slotLabel, not the li: a passive slot carries an icon token beside the
+  // name since UI pass C5 D1.
   await page.waitForFunction(
-    () => /Frost/i.test(document.querySelector('#passiveSlotList .passiveSlot[data-slot="0"]')?.textContent ?? ''),
+    () => /Frost/i.test(document.querySelector('#passiveSlotList .passiveSlot[data-slot="0"] .slotLabel')?.textContent ?? ''),
     null, { timeout: 15_000 }).catch(() => {});
 }
 const equipped = await page.evaluate(() =>
-  /Frost/i.test(document.querySelector('#passiveSlotList .passiveSlot[data-slot="0"]')?.textContent ?? ''));
+  /Frost/i.test(document.querySelector('#passiveSlotList .passiveSlot[data-slot="0"] .slotLabel')?.textContent ?? ''));
 check('It equips into a passive slot', equipped);
 
 // --- leg 4: a mob that hits you slows down ----------------------------------

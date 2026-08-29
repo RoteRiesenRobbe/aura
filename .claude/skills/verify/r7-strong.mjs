@@ -133,8 +133,10 @@ if (strongId) {
   const slot = page.locator('#passiveSlotList .passiveSlot[data-slot="0"]').first();
   const slotBox = await slot.boundingBox();
   await page.mouse.click(slotBox.x + slotBox.width / 2, slotBox.y + slotBox.height / 2);
+  // ⚑ .slotLabel, not the li: a passive slot carries an icon token beside the
+  // name since UI pass C5 D1.
   await page.waitForFunction(
-    () => /Strong/i.test(document.querySelector('#passiveSlotList .passiveSlot[data-slot="0"]')?.textContent ?? ''),
+    () => /Strong/i.test(document.querySelector('#passiveSlotList .passiveSlot[data-slot="0"] .slotLabel')?.textContent ?? ''),
     null, { timeout: 15_000 }).catch(() => fail('Strong never landed in the passive slot'));
 }
 
