@@ -885,6 +885,60 @@ probe/screenshot · PO look in-game. **Schema NONE.**
 
 ## 6. Chunk ledger
 
+### C4b - the unlock breadcrumb trail ✅ 2026-08-29 `c22eadc0`
+
+Rulings D1-D4 and the full spec live in the §5 C4b section (detailed + PO
+choice prompts same day, one session before the build). Shipped, all
+`frontend/` + one harness script, built by an Opus 5 agent and reviewed
+line-by-line:
+
+- **`Spellbook.ts`** owns the unseen set and the whole trail: record-only
+  `noteUnlocked(ids)` (⚑ it is called mid-rebuild before every row exists -
+  rendering there would let the prune eat ids whose rows are not appended
+  yet; the trailing `Spellbook.refresh()` is the render), one `applyTrail()`
+  at the end of `render()`, one wall-clock dwell timer cancelled at the top
+  of every pass, the stale-id prune SKIPPED against an empty list
+  (updateSpellbook clears the list before refilling it). All class
+  applications are `toggle(..., bool)` - the trail moves and clears with no
+  bookkeeping of its own.
+- **`HUD.ts`**: one array push inside the existing `.unlocked` diff + one
+  `noteUnlocked` call before `Spellbook.refresh()`. ⚑ LOAD-BEARING: the
+  trail rides the SAME diff as the `.unlocked` stamp, which is what makes
+  the join/respawn baseline all-seen (D4) - a second diff computed anywhere
+  else silently breaks it the first time the two disagree.
+- **`.breadcrumb`** (HUD.less, top-level): animates BOX-SHADOW ONLY so it
+  composes with `.hasPoints` (which owns border-color/color on the same
+  buttons - a fresh unlock always grants a point too; screenshot-proven
+  both classes at once). Mobile needed NO reset - probed (box, keyframe,
+  iteration-count read back at 390x844), not assumed.
+- ⚑ **Known composition limit, flagged + shown at the PO look, no change
+  requested:** a row that still carries the one-shot `.unlocked` shows the
+  5 s gold unlock glow instead of the breadcrumb pulse - the id-scoped
+  `.unlocked` rule wins the `animation` property outright (CSS animations
+  do not merge across rules). Deliberately not fought: the spec keeps the
+  one-shot untouched, the louder glow plays during exactly that window, and
+  the JS seen-marking is unaffected. C6 settles it if the pulse should win.
+- **`SEEN_DWELL_MS` 1000 → 500** at the PO look (the one change request);
+  still ⚑ PLACEHOLDER. The harness mirrors it (`DWELL`) and waits ~2×, so a
+  retune does not turn the script red.
+- Harness preamble (construction, not a leg): `XP 20000` buys the points
+  leg 2's composition claim needs; its milestone unlocks are themselves
+  unseen, so `dwellBookClean()` walks the book clean once and the run
+  hard-exits if it cannot.
+- ⚑ `chunk2-follower` leg 6 (companion XP) reported INCONCLUSIVE during the
+  sweep - settled by stash-and-rerun: IDENTICAL at HEAD (companion focused
+  and killed in ~8 s, the documented D9 fragility the script is tri-state
+  for). Pre-existing, not this chunk's.
+
+Verified first-hand after line-by-line review (agent green not taken on
+faith): vitest **554/554** (543 + 11 trail specs, red-first) · tsc · prod
+build · new `c4b-breadcrumb` **17/17** twice (at 1000 ms and re-run at
+500 ms), 0 console errors · `c3-spellbook` **26/26** held · spot-checks
+`backlog33-prehot` 4/4 + `c4-skill-icons` 6/6 · mobile probe + screenshots
+(⚑ `verify/*.png` is gitignored - they do not ride the commit). ⭐ **PO
+played 2026-08-29**; the look approved the trail and asked the one halving,
+applied + re-verified same session. **Schema NONE.**
+
 ### C4 - skill icons ✅ 2026-08-28 `1400e4fc`
 
 Rulings D1-D3 and the full spec live in the §5 C4 section (PO choice
