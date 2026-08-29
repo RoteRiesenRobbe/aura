@@ -25,6 +25,11 @@
  *     built rows. The page index is CLAMPED rather than remembered blindly (a
  *     shorter list must not leave the reader on a page that no longer exists),
  *     and an unlock never flips the page - it lands where it lands.
+ *
+ * Since C4b this file also owns the UNSEEN SET behind the breadcrumb trail. It
+ * lives here because the trail's whole question - where is the reader, and how
+ * do they get from there to the new spell - is answered by the visibility, tab
+ * and page state above, and nowhere else.
  */
 
 import * as PanelExclusivity from '../../logic/PanelExclusivity';
@@ -43,6 +48,16 @@ export const PAGE_SIZE = 8;
 export function pageCount(count: number): number {
     return Math.max(1, Math.ceil(count / PAGE_SIZE));
 }
+
+/**
+ * How long a page has to stand open before the unseen rows on it count as read
+ * (C4b, D2). ⚑ PLACEHOLDER, like PAGE_SIZE above - an example for thinking.
+ *
+ * ⚑ It is spent on a WALL-CLOCK setTimeout and must stay one: a hidden or
+ * backgrounded page throttles rAF to ~6 fps ([[project-input-jitter]]), so a
+ * frame-counted dwell would flake every headless leg by construction.
+ */
+export const SEEN_DWELL_MS = 500;
 
 /** Hold a page index inside the list it indexes - the list moves under it. */
 export function clampPage(page: number, count: number): number {
@@ -64,6 +79,14 @@ let page = 0;
 // per page load today (leaving the world reloads it), but backlog §52 is a live
 // plan to change exactly that, so the guard is cheaper than the bug.
 let wired = false;
+
+// The breadcrumb trail's memory (C4b): skill ids discovered THIS SESSION that
+// the player has not looked at yet. Ids are the row's own `data-skillId`
+// strings, so the module stays catalog-free. Session-only by ruling D1 - a
+// reload starts with an empty set, and the join baseline never enters it
+// because HUD.ts only ever calls noteUnlocked from its post-baseline diff.
+const unseen = new Set<string>();
+let dwellTimer: ReturnType<typeof setTimeout> | undefined;
 
 export function setup() {
     panelElement = document.getElementById('spellbook');
@@ -123,6 +146,18 @@ export function close() {
 
 export function isOpen(): boolean {
     return open;
+}
+
+/**
+ * HUD.updateSpellbook found these ids in its post-baseline diff - the same diff
+ * that stamps `.unlocked` on the row. Recording only, deliberately: it is
+ * called mid-rebuild, before every row exists, and the `Spellbook.refresh()`
+ * that closes updateSpellbook is what renders the trail.
+ */
+export function noteUnlocked(ids: number[]) {
+    for (const id of ids) {
+        unseen.add(String(id));
+    }
 }
 
 /** HUD.updateSpellbook rebuilt the rows: re-apply the tab and the page. */
@@ -192,5 +227,100 @@ function render() {
     for (const step of panelElement.querySelectorAll('.spellbookPageStep')) {
         const delta = Number((step as HTMLElement).dataset.step);
         step.classList.toggle('inactive', clampPage(page + delta, inTab.length) === page);
+    }
+
+    applyTrail(entries, inTab, onPage);
+}
+
+/**
+ * The breadcrumb trail (C4b): while anything is unseen, one light pulse marks
+ * the single next step from wherever the reader is - the open buttons and the
+ * ☰ while the book is shut (D3), then the category tab, then the pager, then
+ * the row itself. Everything here is a `toggle` against the state as it stands
+ * this render, so the trail moves and clears without any bookkeeping of its
+ * own, and a family close mid-dwell needs no special case.
+ */
+function applyTrail(entries: HTMLElement[], inTab: HTMLElement[], onPage: Set<HTMLElement>) {
+    // Any re-render re-arms the dwell from scratch: flipping a page before it
+    // fires must not credit the page being left.
+    if (dwellTimer !== undefined) {
+        clearTimeout(dwellTimer);
+        dwellTimer = undefined;
+    }
+
+    // Self-healing against ids that no longer have a row (a reroll can do it),
+    // but ⚑ NEVER against an empty list: updateSpellbook clears #spellbookList
+    // before it refills it, and a prune in that window would wipe the whole set
+    // for reasons that have nothing to do with what the player has read.
+    if (unseen.size > 0 && entries.length > 0) {
+        const present = new Set(entries.map((entry) => entry.dataset.skillId));
+        for (const id of unseen) {
+            if (!present.has(id)) {
+                unseen.delete(id);
+            }
+        }
+    }
+
+    const trailing = unseen.size > 0;
+
+    // Both open buttons plus the ☰ toggle, which is the phone's extra hop: the
+    // sheet's Spellbook row is invisible until the sheet itself is open (D3).
+    for (const button of document.querySelectorAll('.spellbookOpenButton')) {
+        button.classList.toggle('breadcrumb', trailing && !open);
+    }
+    const menuButton = document.getElementById('mobileMenuButton');
+    if (menuButton) {
+        menuButton.classList.toggle('breadcrumb', trailing && !open);
+    }
+
+    const unseenCategories = new Set(entries
+        .filter((entry) => unseen.has(entry.dataset.skillId))
+        .map((entry) => entry.dataset.category));
+    for (const element of tabElements) {
+        // The active tab never pulses - the trail continues inside it instead.
+        element.classList.toggle('breadcrumb', open
+            && element.dataset.category !== tab
+            && unseenCategories.has(element.dataset.category));
+    }
+
+    // Which way to walk, from the page the reader is on. Both steps can pulse
+    // at once, and the index is taken within the TAB's list - `entries` would
+    // count the other categories' rows into the page arithmetic.
+    let back = false;
+    let forward = false;
+    for (let i = 0; i < inTab.length; i++) {
+        if (!unseen.has(inTab[i].dataset.skillId)) {
+            continue;
+        }
+        const where = Math.floor(i / PAGE_SIZE);
+        if (where < page) {
+            back = true;
+        } else if (where > page) {
+            forward = true;
+        }
+    }
+    for (const step of panelElement.querySelectorAll('.spellbookPageStep')) {
+        const delta = Number((step as HTMLElement).dataset.step);
+        step.classList.toggle('breadcrumb', open && (delta < 0 ? back : forward));
+    }
+
+    const arrived: string[] = [];
+    for (const row of entries) {
+        const lit = open && onPage.has(row) && unseen.has(row.dataset.skillId);
+        row.classList.toggle('breadcrumb', lit);
+        if (lit) {
+            arrived.push(row.dataset.skillId);
+        }
+    }
+    if (arrived.length > 0) {
+        // One timer for everything unseen on the displayed page: they are all
+        // in front of the same pair of eyes for the same length of time.
+        dwellTimer = setTimeout(() => {
+            dwellTimer = undefined;
+            for (const id of arrived) {
+                unseen.delete(id);
+            }
+            render();
+        }, SEEN_DWELL_MS);
     }
 }

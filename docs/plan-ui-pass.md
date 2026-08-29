@@ -399,11 +399,9 @@ Derived from §4 Phase 2's dependency shape plus the two §2 sequencing rules
   new spell pulses the spellbook's open buttons lightly; opening the book
   moves the pulse to the spell's category tab; within that tab the pager
   pulses while the spell is off the current page; the row itself pulses in
-  view. Every pulse stops only once ALL unseen spells have been seen. Owes
-  its own detailing session before build: the "seen" semantics (in view on
-  the open page? for how long?) and whether unseen state survives a reload -
-  a client-only set dies with the tab, persistence would be this pass's
-  FIRST schema touch.
+  view. Every pulse stops only once ALL unseen spells have been seen.
+  (Detailed + ruled below, 2026-08-29 - session-only by D1, so the
+  reload-persistence question resolved to "does not survive, on purpose".)
 - **C5 - the ONE ability bar**: the §2 consolidation (icon-only, wood
   divider, utility island) + direction-C restyle; `.slotLabel` DOM contract
   kept, harness sweep budgeted.
@@ -774,6 +772,116 @@ client: content JSON (`api/skills`) + a one-field Go catalog rider + client.
 `cd backend && go test -count=1 ./...` (content + catalog tests) ·
 `c3-spellbook` + spot-checks + the new icon leg · mobile probe · PO look
 in-game (the D3 review venue).
+
+### C4b - the unlock breadcrumb trail (detailed + ruled 2026-08-29)
+
+**Deliverable:** the C4-wrap ask as a working trail - while any spell
+discovered THIS SESSION has not been seen, a light pulse leads to it: the
+spellbook open buttons pulse while the book is shut; opening it moves the
+pulse to the unseen spell's category tab; within that tab the pager pulses
+while the spell is off the displayed page; the row itself pulses in view,
+and a short dwell marks it seen. Every pulse stops only once ALL unseen
+spells have been seen. **Schema NONE** - pure client by D1.
+
+**Rulings (PO 2026-08-29, choice prompts):**
+
+- **D1 - SESSION-ONLY, FULLY FRONTEND.** "Session only sounds good, ideally
+  fully frontend." The unseen set is client memory; a reload clears it. No
+  wire field, no Go, no persistence. The server option was priced at the
+  session and declined: it would NOT have been a migration
+  (`game.character_flags` was designed insert-not-migration, and
+  `quests.DecodeFlags` explicitly ignores foreign keys - "the table is
+  shared"), but it would have needed a GameState append + a new client
+  message + a second tenant beside the quest encode in
+  `sys/persist.go:characterState()`. That pricing stands recorded here in
+  case a later pass revives it. Consequence of D1: the join baseline is
+  all-seen BY CONSTRUCTION - exactly `updateSpellbook`'s existing
+  `isBaseline` discipline, reused.
+- **D2 - SEEN = ON-PAGE + SHORT DWELL.** A row counts as seen once its page
+  has been displayed in the open book for **0.5 s (⚑ PLACEHOLDER; built at
+  1 s, halved at the PO look 2026-08-29)**. Flipping
+  past at speed does not mark; landing on the page does. ⚑ The dwell runs on
+  WALL-CLOCK timers (`setTimeout`), never rAF - a hidden Playwright page
+  throttles rAF to 6 fps ([[project-input-jitter]]), so an rAF dwell would
+  flake every headless leg by construction.
+- **D3 - THE ☰ TOGGLE PULSES TOO.** On mobile the trail has one extra hop:
+  `#mobileMenuButton` pulses (the sheet's Spellbook row is invisible until
+  the sheet opens) → the sheet's `.spellbookOpenButton` row → tab → pager
+  → row.
+- **D4 - NO TUTORIAL PULSE.** PO: "only on new discoveries that are not
+  already there from the start of the session." D1's baseline rule gives
+  this for free; a fresh character's starting skills never pulse, and the
+  creation-path variant (an empty seen-set written at CreateCharacter) is
+  dead with the server option.
+
+**Plan defaults (stated, not asked):**
+
+- **The unseen set lives in `Spellbook.ts`** - the module already owns
+  visibility, tab and page, so it is the only place that knows what is
+  actually displayed. `HUD.ts` calls a new `Spellbook.noteUnlocked(ids)`
+  exactly where it stamps `.unlocked` today (the post-baseline diff in
+  `updateSpellbook`); the module stays CATALOG-FREE - unseen ids are matched
+  against rows by `data-skillId`/`data-category`, so the jsdom fixture keeps
+  working untouched.
+- **The trail is computed in `render()`**, which already runs on every
+  open/close/tab/page change and after every rebuild (never per tick -
+  `updateSpellbook` early-returns on no change): book shut → `.breadcrumb`
+  on both `.spellbookOpenButton`s + `#mobileMenuButton`; book open → every
+  NON-ACTIVE tab holding unseen pulses; in the active tab the pager step(s)
+  TOWARD a page holding unseen pulse (both may); unseen rows on the
+  displayed page pulse and arm the dwell.
+- **One dwell timer per render pass**, covering all unseen rows on the
+  displayed page together; any re-render cancels and re-arms it; firing
+  marks those ids seen and re-renders. `document.hidden` is deliberately NOT
+  consulted (KISS) - alt-tabbing away with the book open on the page counts
+  as seen, accepted.
+- **Stale ids self-heal**: render() prunes unseen ids that match no row, so
+  a retired skill cannot pulse forever.
+- The existing one-shot `.unlocked` row marker and the panel `unlockPulse`
+  stay untouched - C4b is the lingering layer on top of them, not a
+  replacement.
+- **Pulse look is a functional placeholder** (the C4 D3 stance): one
+  `.breadcrumb` class + keyframe, light per the ask, and it MUST compose
+  with `.hasPoints`' glow - both can sit on the same button at once. The
+  chrome-final look belongs to C6.
+- A family close mid-dwell needs no special case: timers cancel, the set
+  stands, the buttons resume pulsing - it all falls out of render().
+- Respec/unspend never removes a discovery, so ids do not vanish mid-trail.
+
+**Implementation shape (all `frontend/`):**
+
+1. `Spellbook.ts`: the set, `noteUnlocked(ids)`, trail classes + dwell in
+   `render()`. ⚑ Respect the `wired` guard discipline for anything bound in
+   `setup()`.
+2. `HUD.ts`: one call beside the `.unlocked` stamp; nothing else.
+3. `HUD.less`: the `.breadcrumb` keyframe on buttons/tabs/pager/rows. ⚑ The
+   C1 lesson: probe whether `HUD.mobile.less` needs a reset (expected no -
+   it is a glow, not a box - but probe, never assume).
+4. `Spellbook.test.ts`: trail specs on the jsdom fixture, fake timers for
+   the dwell (TDD - the module is pure enough to red-first).
+
+**Harness plan:**
+
+- New `c4b-breadcrumb.mjs`: baseline never pulses · SKILL-cheat unlock with
+  the book shut → open buttons pulse · open the book → the pulse MOVES to
+  the category tab (buttons stop) · tab active but off-page → pager pulses ·
+  flip to the page → row pulses → dwell clears every pulse · two unseen in
+  different categories → seeing one leaves the other tab pulsing (the ALL
+  rule) · close with unseen remaining → buttons resume · mobile probe: ☰
+  pulses. Legs that wait on the dwell wait wall-clock ~2× the placeholder.
+  ⚑ Leg construction: the tab-pulse leg needs the cheat-unlocked skill in a
+  NON-active category (the book opens on `aura` - unlock a passive or
+  cooldown), and the pager leg needs >8 discovered in the active category
+  (PAGE_SIZE 8) before the unlock lands off-page.
+- `c3-spellbook` 26/26 must hold. The 32-script sweep should survive
+  UNTOUCHED (pure class additions; the DOM-stays-rendered rule is
+  unaffected) - spot-check 2-3 (e.g. `backlog33-prehot`,
+  `chunk2-follower`), full sweep only if a spot-check goes red. Known-red
+  baselines stand.
+
+**Verification tail:** `npm test` · `npm run typecheck` · `npm run build` ·
+`c3-spellbook` + the new `c4b-breadcrumb` + spot-checks · mobile
+probe/screenshot · PO look in-game. **Schema NONE.**
 
 ## 6. Chunk ledger
 

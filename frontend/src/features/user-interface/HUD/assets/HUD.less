@@ -950,6 +950,33 @@
 	}
 }
 
+// The unlock breadcrumb trail (UI pass C4b): the ONE marker that says "the new
+// spell is this way" - on the open buttons and the ☰ while the book is shut,
+// then the category tab, the pager step, and the row itself. It LINGERS (the
+// unlock pulse above is a one-shot) and stops only once every unseen spell has
+// been looked at, so it is deliberately quiet: the ask was "lightly".
+//
+// ⚑ It animates BOX-SHADOW ONLY. `.hasPoints` owns border-color and color on
+// the same buttons, and a fresh unlock always grants a point too, so the two
+// classes are on the same element more often than not - a keyframe touching
+// either property would fight it rather than compose with it.
+//
+// ⚑ Top-level, not nested under #spellbook: two of the four things it lands on
+// (the open buttons, #mobileMenuButton) live outside the panel. Look is a
+// functional placeholder, the C4 D3 stance - C6 owns the final chrome.
+.breadcrumb {
+	animation: hud-breadcrumb-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes hud-breadcrumb-pulse {
+	0%, 100% {
+		box-shadow: 0 0 0 0 fade(@gold-levelup, 0%);
+	}
+	50% {
+		box-shadow: 0 0 0.5rem 0.15rem fade(@gold-levelup, 45%);
+	}
+}
+
 #auraLoadout,
 #passiveLoadout,
 #cooldownLoadout,

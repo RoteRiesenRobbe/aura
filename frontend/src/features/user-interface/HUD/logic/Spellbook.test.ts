@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 // The spellbook's structure (plan-ui-pass.md C3): the paging arithmetic, the
 // tab derivation and the filter that hides everything off the current
@@ -13,7 +13,9 @@ let spellbook: typeof import('./Spellbook');
 // The markup HUD.html ships, minus everything the filter does not read.
 function fixture(rows: { id: number, category: string }[]) {
     document.body.innerHTML = `
+        <div id="mobileMenuButton"></div>
         <div id="spellbookButton" class="spellbookOpenButton"></div>
+        <div id="spellbookSheetButton" class="spellbookOpenButton"></div>
         <div id="spellbook" class="hidden">
             <ul id="spellbookTabs">
                 <li class="spellbookTab" data-category="aura">Auras</li>
@@ -256,5 +258,207 @@ describe('pages', () => {
         setRows(many('aura', spellbook.PAGE_SIZE + 2));
         spellbook.refresh();
         expect(document.getElementById('spellbookPageLabel').textContent).toBe('1 / 2');
+    });
+});
+
+// The unlock breadcrumb trail (plan-ui-pass.md C4b): a lingering pulse that
+// leads from wherever the reader is to a spell discovered THIS SESSION and not
+// yet looked at. The trail is entirely derived in render(), so every one of
+// these drives it the way the game does - noteUnlocked, then a refresh/open/
+// tab/page change - and reads the classes back off the DOM.
+//
+// ⚑ The dwell is a wall-clock setTimeout (D2), never rAF, so fake timers can
+// drive it. They are installed per test rather than globally: an armed timer
+// surviving vi.resetModules() would fire into a dead module instance.
+describe('the unlock breadcrumb trail', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => {
+        vi.clearAllTimers();
+        vi.useRealTimers();
+    });
+
+    const marked = (selector: string) => [...document.querySelectorAll(selector)]
+        .filter((element) => element.classList.contains('breadcrumb'));
+
+    const buttonsPulse = () => marked('.spellbookOpenButton').length === 2
+        && marked('#mobileMenuButton').length === 1;
+    const anyPulse = () => marked('.breadcrumb, .spellbookOpenButton, #mobileMenuButton, ' +
+        '.spellbookTab, .spellbookPageStep, #spellbookList > li').length;
+    const pulsingTabs = () => marked('.spellbookTab')
+        .map((t) => (t as HTMLElement).dataset.category);
+    const pulsingSteps = () => marked('.spellbookPageStep')
+        .map((s) => (s as HTMLElement).dataset.step);
+    const pulsingRows = () => marked('#spellbookList > li')
+        .map((r) => (r as HTMLElement).dataset.skillId);
+
+    it('never pulses for the join baseline - nothing is unseen until noteUnlocked says so', () => {
+        fixture([...many('aura', 2), ...many('passive', 2, 50)]);
+        spellbook.setup();
+        expect(anyPulse()).toBe(0);
+
+        // A per-tick rebuild, an open and a tab change: still nothing (D4).
+        spellbook.refresh();
+        spellbook.toggle();
+        press('.spellbookTab[data-category="passive"]');
+        expect(anyPulse()).toBe(0);
+    });
+
+    it('pulses both open buttons and the ☰ toggle while the book is shut', () => {
+        fixture([...many('aura', 2), ...many('passive', 1, 50)]);
+        spellbook.setup();
+        spellbook.noteUnlocked([50]);
+        spellbook.refresh();
+
+        expect(buttonsPulse()).toBe(true);
+        // Nothing inside the shut book pulses - there is nobody to read it.
+        expect(pulsingTabs()).toEqual([]);
+        expect(pulsingRows()).toEqual([]);
+    });
+
+    it('noteUnlocked alone renders nothing - the refresh after it does', () => {
+        fixture([...many('aura', 2), ...many('passive', 1, 50)]);
+        spellbook.setup();
+        spellbook.noteUnlocked([50]);
+        expect(buttonsPulse()).toBe(false);
+    });
+
+    it('moves the pulse from the buttons to the unseen skill\'s tab when the book opens', () => {
+        fixture([...many('aura', 2), ...many('passive', 1, 50)]);
+        spellbook.setup();
+        spellbook.noteUnlocked([50]);
+        spellbook.refresh();
+
+        spellbook.toggle();
+        expect(buttonsPulse()).toBe(false);
+        expect(pulsingTabs()).toEqual(['passive']);
+        // The active tab holds nothing unseen, so no row and no pager pulse.
+        expect(pulsingRows()).toEqual([]);
+        expect(pulsingSteps()).toEqual([]);
+    });
+
+    it('pulses the pager step that points at the unseen page, and not the active tab', () => {
+        fixture(many('aura', spellbook.PAGE_SIZE + 1));
+        spellbook.setup();
+        // The last entry sits alone on page 2.
+        spellbook.noteUnlocked([spellbook.PAGE_SIZE + 1]);
+        spellbook.refresh();
+        spellbook.toggle();
+
+        expect(pulsingSteps()).toEqual(['1']);
+        expect(pulsingTabs()).toEqual([]);
+        expect(pulsingRows()).toEqual([]);
+
+        // ...and backwards from the far side.
+        press('.spellbookPageStep[data-step="1"]');
+        expect(pulsingRows()).toEqual([String(spellbook.PAGE_SIZE + 1)]);
+        expect(pulsingSteps()).toEqual([]);
+    });
+
+    it('pulses both pager steps when unseen entries sit on either side', () => {
+        fixture(many('aura', 3 * spellbook.PAGE_SIZE));
+        spellbook.setup();
+        spellbook.noteUnlocked([1, 3 * spellbook.PAGE_SIZE]);
+        spellbook.refresh();
+        spellbook.toggle();
+
+        press('.spellbookPageStep[data-step="1"]');
+        expect(pulsingSteps().sort()).toEqual(['-1', '1']);
+    });
+
+    it('marks a displayed row seen after the dwell, and every pulse stops with it', () => {
+        fixture([...many('aura', 2), ...many('passive', 1, 50)]);
+        spellbook.setup();
+        spellbook.noteUnlocked([50]);
+        spellbook.refresh();
+        spellbook.toggle();
+        press('.spellbookTab[data-category="passive"]');
+
+        expect(pulsingRows()).toEqual(['50']);
+        vi.advanceTimersByTime(spellbook.SEEN_DWELL_MS - 1);
+        expect(pulsingRows()).toEqual(['50']);
+
+        vi.advanceTimersByTime(2);
+        expect(anyPulse()).toBe(0);
+        spellbook.close();
+        expect(buttonsPulse()).toBe(false);
+    });
+
+    it('does not mark a row seen when the reader flips past it before the dwell', () => {
+        fixture(many('aura', spellbook.PAGE_SIZE + 1));
+        spellbook.setup();
+        const late = spellbook.PAGE_SIZE + 1;
+        spellbook.noteUnlocked([late]);
+        spellbook.refresh();
+        spellbook.toggle();
+        press('.spellbookPageStep[data-step="1"]');
+        expect(pulsingRows()).toEqual([String(late)]);
+
+        vi.advanceTimersByTime(spellbook.SEEN_DWELL_MS / 2);
+        press('.spellbookPageStep[data-step="-1"]');
+        // The old timer must be dead: letting the rest of it run must not mark.
+        vi.advanceTimersByTime(spellbook.SEEN_DWELL_MS);
+        expect(pulsingSteps()).toEqual(['1']);
+
+        // ...and the trail is still there to be followed a second time.
+        press('.spellbookPageStep[data-step="1"]');
+        vi.advanceTimersByTime(spellbook.SEEN_DWELL_MS + 1);
+        expect(anyPulse()).toBe(0);
+    });
+
+    it('closing the book mid-dwell keeps the unseen entry and resumes the buttons', () => {
+        fixture([...many('aura', 2), ...many('passive', 1, 50)]);
+        spellbook.setup();
+        spellbook.noteUnlocked([50]);
+        spellbook.refresh();
+        spellbook.toggle();
+        press('.spellbookTab[data-category="passive"]');
+        vi.advanceTimersByTime(spellbook.SEEN_DWELL_MS / 2);
+
+        spellbook.close();
+        vi.advanceTimersByTime(spellbook.SEEN_DWELL_MS * 2);
+        expect(buttonsPulse()).toBe(true);
+    });
+
+    it('stops only once ALL unseen entries are seen, tab by tab', () => {
+        fixture([...many('aura', 2), ...many('passive', 1, 50), ...many('cooldown', 1, 90)]);
+        spellbook.setup();
+        spellbook.noteUnlocked([50, 90]);
+        spellbook.refresh();
+        spellbook.toggle();
+        expect(pulsingTabs().sort()).toEqual(['cooldown', 'passive']);
+
+        press('.spellbookTab[data-category="passive"]');
+        vi.advanceTimersByTime(spellbook.SEEN_DWELL_MS + 1);
+        expect(pulsingTabs()).toEqual(['cooldown']);
+
+        press('.spellbookTab[data-category="cooldown"]');
+        vi.advanceTimersByTime(spellbook.SEEN_DWELL_MS + 1);
+        expect(anyPulse()).toBe(0);
+        spellbook.close();
+        expect(buttonsPulse()).toBe(false);
+    });
+
+    it('forgets an unseen id whose row is gone, but never against an empty list', () => {
+        fixture([...many('aura', 2), ...many('passive', 1, 50)]);
+        spellbook.setup();
+        spellbook.noteUnlocked([50]);
+        spellbook.refresh();
+        expect(buttonsPulse()).toBe(true);
+
+        // updateSpellbook clears the list before it rebuilds it; a prune there
+        // would wipe the whole set for reasons that have nothing to do with
+        // what the player has read.
+        setRows([]);
+        spellbook.refresh();
+        expect(buttonsPulse()).toBe(true);
+
+        setRows([...many('aura', 2), ...many('passive', 1, 50)]);
+        spellbook.refresh();
+        expect(buttonsPulse()).toBe(true);
+
+        // A rebuild that really no longer holds the skill retires it.
+        setRows(many('aura', 2));
+        spellbook.refresh();
+        expect(anyPulse()).toBe(0);
     });
 });
