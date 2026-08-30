@@ -504,6 +504,22 @@ func (b *Buffs) Cleanse() {
 	b.entries = nil
 }
 
+// Empty reports whether nothing at all is applied — no dot, slow, shield,
+// resist, charm, stun, lifesteal or reflect (plan-world-scale.md S3 / D3, the
+// "no status effects" half of the dormancy predicate).
+//
+// ⚑ Deliberately NOT `AppliedEffects() == AppliedEffectNone`: shields,
+// lifesteal and reflect all carry AppliedEffectNone because the wire ubyte has
+// no bit left for them (see applied_effects.go), so that comparison reads
+// "empty" for a shielded mob and would let dormancy freeze a live shield
+// mid-drain. This asks the store, not the wire projection.
+//
+// Exact because Tick() deletes a source's slice the moment its last entry
+// expires, so a surviving key always means a surviving application.
+func (b *Buffs) Empty() bool {
+	return len(b.entries) == 0
+}
+
 // ApplyCalm puts the holder out of combat for ticks (plan-faction-flips chunk
 // 2). One stream per source skill — calm carries no strength to key on, so a
 // recast from the same skill refreshes rather than stacking. A LONGER remaining

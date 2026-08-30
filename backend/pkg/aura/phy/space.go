@@ -331,6 +331,46 @@ func (s *Space) RemoveShape(c DynamicCollider) {
 	c.resetCollisions()
 }
 
+// SleepShape drops a shape out of the space WITHOUT RemoveShape's global purge
+// sweep — the mob-dormancy transition (plan-world-scale.md S3 / D5), and the
+// ONLY sanctioned caller. A departure (death, disconnect, flight takeoff) must
+// still use RemoveShape.
+//
+// ⚑ WHY THE PURGE CANNOT BE REUSED HERE. RemoveShape walks every shape in the
+// space per removed shape, which its own doc prices as affordable "because
+// removal is rare". Dormancy makes it per-tick, and a mob carries three shapes:
+// at the 30× world that is ~44 000 map deletes × 3 ≈ 2.6 ms for ONE mob falling
+// asleep. That cost is O(total mobs) — area-linear, i.e. precisely the shape of
+// the cost S3 exists to remove — so purging on sleep would hand the win back.
+//
+// ⚑ WHY SKIPPING IT IS SAFE, in three independent layers:
+//
+//  1. ORDER. Sleep happens in MobSystem.Update (priority 20). PhysicsSystem
+//     (priority 0) runs LATER IN THE SAME TICK and opens Space.Update by calling
+//     resetCollisions() on every shape still in s.shapes, then rebuilds every set
+//     from the grid — which no longer contains the slept shape. So a stale
+//     reference cannot outlive the tick that created it. This is categorically
+//     unlike the bug the purge was written for: a player removed at NetSystem
+//     (priority −100) is stale across the tick BOUNDARY, and the next tick's mob
+//     aggro (priority 20) reads it before any Space.Update intervenes.
+//  2. READERS. The only systems between priority 20 and 0 are encounter (15) and
+//     ConnectionState (10), and neither reads Collisions(). Every production
+//     reader — viewports (NetSystem, −100), chat (0), aura strikes (SkillSystem,
+//     −65), mob aggro and the interaction sensor (20, but the same tick's physics
+//     has already rebuilt for them by the next one) — is downstream of the
+//     rebuild in 1.
+//  3. SEPARATION. A mob only sleeps when nothing player-controlled is inside the
+//     sleep box (2.2 × the AOI ⇒ ≥22 u away), so no viewport, aggro sensor or
+//     aura of any wake source overlaps it to hold a reference in the first place.
+//
+// The shape's own set is still cleared, so the sleeping mob holds no reference
+// to anything it overlapped — the half that would otherwise pin a departed
+// entity alive through this mob.
+func (s *Space) SleepShape(c DynamicCollider) {
+	delete(s.shapes, c)
+	c.resetCollisions()
+}
+
 // AddStaticShape adds a static shape
 // Important: static dynamicShapes cannot be moved nor removed
 func (s *Space) AddStaticShape(c Collider) {

@@ -16,6 +16,8 @@ func Config(conf *cfg.Config) Configuration {
 		g.TotalDayCycleSeconds = conf.Game.TotalDayCycleSeconds
 		g.DayTimeSeconds = conf.Game.DayTimeSeconds
 		g.MobChaseIntoAuraMargin = conf.Game.MobChaseIntoAuraMargin
+		g.MobWakeMargin = conf.Game.Mob.WakeMargin
+		g.MobSleepMargin = conf.Game.Mob.SleepMargin
 
 		g.PlayerConfig.HealthGainTick = conf.Game.Player.HealthGainTick
 		g.PlayerConfig.WalkingSpeedPerTick = conf.Game.Player.WalkingSpeedPerTick
@@ -64,6 +66,21 @@ func Config(conf *cfg.Config) Configuration {
 		}
 		if g.MobChaseIntoAuraMargin <= 0 {
 			g.MobChaseIntoAuraMargin = 0.2
+		}
+		// Dormancy's wake volume (plan-world-scale.md D6). Defaulted here for
+		// the same total-defaulting reason as everything above: the environment
+		// confs omit the whole mob block by design.
+		//
+		// ⚑ These two must satisfy L8's invariants — wake > 1 (the wake volume
+		// strictly contains the AOI, so nothing pops in on screen) and sleep >
+		// wake (hysteresis is a band, not an inversion). Both are asserted in
+		// cmd/simharness/guardrail_test.go; a config that violates them is a
+		// mob fading in in front of the player, or a sleep/wake thrash.
+		if g.MobWakeMargin <= 1 {
+			g.MobWakeMargin = 1.7
+		}
+		if g.MobSleepMargin <= g.MobWakeMargin {
+			g.MobSleepMargin = g.MobWakeMargin + 0.5
 		}
 
 		return nil

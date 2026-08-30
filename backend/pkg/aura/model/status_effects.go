@@ -46,6 +46,13 @@ func (s *StatusEffects) Remove(e StatusEffect) {
 	delete(s.effects, e)
 }
 
+// Empty reports whether no effect is set. Allocation-free, unlike
+// len(Effects()) — it runs per mob per tick on the dormancy predicate
+// (plan-world-scale.md S3), and Effects() builds a fresh slice every call.
+func (s *StatusEffects) Empty() bool {
+	return len(s.effects) == 0
+}
+
 func (s *StatusEffects) Effects() []StatusEffect {
 	e := make([]StatusEffect, 0, len(s.effects))
 	for k := range s.effects {

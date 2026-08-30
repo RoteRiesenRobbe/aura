@@ -46,6 +46,22 @@ type GameConfig struct {
 	DayTimeSeconds         uint64
 	MobChaseIntoAuraMargin float32
 
+	// Mob dormancy's wake volume (plan-world-scale.md D6), as DIMENSIONLESS
+	// multiples of the AOI box rather than distances in units: the volume is
+	// derived from constant.ViewPortWidth/Height at the read site, so it tracks
+	// the viewport automatically and inherits its api/shared-constants.json pin.
+	//
+	// A mob wakes inside MobWakeMargin × AOI and sleeps only outside
+	// MobSleepMargin × AOI; the gap between them is the anti-thrash hysteresis
+	// band. Both are [PLACEHOLDER] and TUNING-OPEN.
+	//
+	// ⚑ MobWakeMargin is the single highest-leverage number in the plan: awake
+	// mob count scales with its SQUARE, so every doubling costs 4×. The first
+	// draft's hand-set "wake 40 units" covered 21× the AOI box and would have
+	// left 91 % of mobs awake — the chunk was not worth building at that value.
+	MobWakeMargin  float32
+	MobSleepMargin float32
+
 	PlayerConfig PlayerConfig
 	CombatConfig CombatConfig
 }

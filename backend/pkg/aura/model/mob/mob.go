@@ -641,6 +641,12 @@ type Mob struct {
 	// keyed by entity ID; cleared when the mob fully regenerates out of
 	// combat (combat reset). Lazily initialized by noteParticipant.
 	participants map[uint64]model.PlayerEntity
+
+	// dormant marks a mob that is asleep (plan-world-scale.md S3, dormancy.go):
+	// its Update is skipped and its shapes are out of the physics space. Owned
+	// by sys.MobSystem, which flips it together with the space surgery — never
+	// written from inside the mob's own behaviour.
+	dormant bool
 }
 
 func (m *Mob) StatusEffects() *model.StatusEffects {

@@ -30,6 +30,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/core"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
@@ -357,4 +359,37 @@ func TestGuardrails_ArchetypeTrade(t *testing.T) {
 				"a species may be differently shaped, not simply bigger (D6)",
 			def.Name, hpX, speedX, dpsX, archetypePaid)
 	}
+}
+
+// TestGuardrails_DormancyWakeVolume is plan-world-scale.md L8, collapsed to the
+// only two things that can still drift once D6 made the wake volume a MULTIPLE
+// of the AOI box rather than a distance in units.
+//
+// The original landmine asked for a hand-checked relationship between two
+// independent numbers ("if the radius ever drops below ViewPortWidth, mobs pop
+// into existence on screen"). Deriving the volume from
+// constant.ViewPortWidth/Height retired that: the AOI cannot outgrow its own
+// multiple, so what is left to assert is only that the multiples are sane.
+//
+// ⚑ Zoom deliberately does not enter this. camera/logic/Zoom.ts is a FIXED
+// field of view hard-capped at MAX_VISIBLE_WIDTH = 18 m, strictly inside the
+// 20 m AOI, so anything containing the AOI contains every zoom level by
+// construction. But both zoom values are [PLACEHOLDER] and the cap sits only
+// 2 m under ViewPortWidth: a fourth, wider zoom level would eat that margin and
+// silently invalidate the wake volume. Deriving from the AOI is what keeps that
+// to ONE number to check, and this is where it is checked.
+func TestGuardrails_DormancyWakeVolume(t *testing.T) {
+	var g cfg.GameConfig
+	require.NoError(t, core.Config(&cfg.Config{})(&g),
+		"the defaulting path must produce a usable dormancy config from an empty conf")
+
+	assert.Greater(t, g.MobWakeMargin, float32(1),
+		"the wake volume must STRICTLY contain the AOI box (%.2f×): at or below 1× a mob "+
+			"is streamed to the client before it is woken, i.e. it fades in on screen",
+		g.MobWakeMargin)
+
+	assert.Greater(t, g.MobSleepMargin, g.MobWakeMargin,
+		"hysteresis is a band, not an inversion: sleep (%.2f×) must sit outside wake (%.2f×), "+
+			"or a mob at the boundary thrashes in and out of the physics space every tick",
+		g.MobSleepMargin, g.MobWakeMargin)
 }
