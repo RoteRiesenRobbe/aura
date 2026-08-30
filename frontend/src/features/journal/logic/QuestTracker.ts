@@ -1,9 +1,14 @@
 /**
  * The quest tracker (2026-08-23): the always-on strip on the right edge, under
- * the map button - the journal button's new desktop home plus one chrome box
- * per running quest showing its last objective line. Thin like Journal.ts: the
- * view lives in questTrackerRows (JournalModel.ts, vitest-covered), this file
- * renders it and turns clicks into journal openings.
+ * the map button - the journal button's new desktop home plus, since UI pass
+ * C7 D2, one plain scrim listing every running quest as a title over its last
+ * objective line. Thin like Journal.ts: the view lives in questTrackerRows
+ * (JournalModel.ts, vitest-covered), this file renders it and turns clicks
+ * into journal openings.
+ *
+ * ⚑ The C7 consolidation was CSS-only: this render already emits the list the
+ * WoW-classic reference asks for (a title div and a line div per quest), so
+ * the per-quest box died in the stylesheet and nothing here moved.
  *
  * Three rules inherited from the journal, still load-bearing here:
  *

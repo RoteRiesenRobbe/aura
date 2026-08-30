@@ -131,6 +131,11 @@ with the quest count, and scrolls when it runs out of room. Today every quest
 row is its own bordered box. Lands with **C7** (the journal restyle) - it is
 tracker structure + chrome, and C7 already owns the journal family's look.
 
+⚑ **Superseded at the C7 detailing session (2026-08-30): the shape is NOT
+"one panel holding the journal header" any more** - see §5 C7 D2: a
+WoW-classic text list on a plain scrim, buttons untouched. Execute from §5,
+not from this paragraph.
+
 ### Layering & exclusivity policy (PO 2026-08-25, via `feedback.md`)
 
 The biggest wish besides sizes: **what closes what, what may overlay what.**
@@ -411,7 +416,9 @@ Derived from §4 Phase 2's dependency shape plus the two §2 sequencing rules
   minimap chrome. (Detailed + ruled below, 2026-08-30.)
 - **C7 - dialogue + journal restyle** (round-9 item 2's non-font half),
   incl. the §2 quest-tracker consolidation (one tracker panel, not
-  per-quest boxes; PO 2026-08-26).
+  per-quest boxes; PO 2026-08-26). (Detailed + ruled below, 2026-08-30 -
+  the tracker shape re-ruled at the session: a WoW-classic text list on a
+  plain scrim, superseding the §2 "holds the journal header" wording.)
 - **C8 - tooltip maintenance debt** (the three §2 shapes).
 - **C9 - mobile** (☰-sheet nag, the two "J Journal" nodes, marker sizing,
   `MOBILE_MAX_RESOLUTION` if perf asks).
@@ -1178,6 +1185,156 @@ archived `plan-code-health.md`). This chunk is ui-pass C6.
 **Verification tail:** `npm test` · `npm run typecheck` · `npm run build` ·
 the harness set above · desktop + mobile screenshots (every re-chromed
 surface eyeballed) · PO look. **Schema NONE** - pure client.
+
+### C7 - dialogue + journal restyle (detailed + ruled 2026-08-30)
+
+**Deliverable:** direction-C interiors for the two prose surfaces C6
+deliberately left alone - the conversation panel (round-9 item 2's "cleaner
+dialogue UI", the non-font half) and the journal - plus the §2 quest-tracker
+consolidation, rebuilt to the PO's WoW-classic reference (D2 below, which
+SUPERSEDES the §2 "holds the journal header" wording). ⛔ The spec discipline
+is the §4 CORRECTION rule, with one twist verified first-hand against the
+canvas artboards: **the board renders NEITHER open-state interior** (no
+journal-open, no dialogue-open scene exists on board C), so C7 extends the
+board's own vocabulary - the `.hdrC` wood strip, gold `sa` labels, parchment
+`rd` text, the `rgba(20,16,11,0.7)` ink row dividers - rather than inventing
+new forms. **Schema NONE** - but ⚑ **NOT a CSS-only chunk, unlike C6**: the
+tracker consolidation rewrites `QuestTracker.ts`'s render and the
+`#questTracker` markup in `HUD.html` (small TS + HTML; `questTrackerRows` in
+`JournalModel.ts` stays untouched, so the vitest surface does not move).
+
+**Rulings (PO 2026-08-30, choice prompts):**
+
+- **D1 - THE CONVERSATION GETS THE WOOD HEADER STRIP.** Full
+  `.ink-panel-header()`: actor name gold on wood, ✕ in the strip. The family
+  precedent was split (journal/spellbook/help wear it, settings was ruled
+  plain at C6 D3); ruled with the tradeoff named - the strip appears and
+  vanishes over live gameplay with every conversation.
+- **D2 - THE TRACKER IS A WOW-CLASSIC TEXT LIST, NOT A PANEL** (the PO
+  showed a WoW-classic tracker screenshot as the reference; supersedes both
+  the §2 wording and the board's own per-quest `.panelC` render, and this
+  prose is the durable record of it). The M/J buttons stay exactly as
+  C6 styled them; below them ONE rectangular semi-transparent scrim wraps
+  the whole tracking space, denoting its edges in all directions; inside,
+  LEFT-ALIGNED text - each quest a small gold title with its objective line
+  beneath ("- " prefix), one quest after the other, **no per-quest boxes**;
+  the inside scrolls when out of room.
+- **D3 - THE SCRIM IS PLAIN, NOT INK.** No `.ink-panel-chrome()`, no wood
+  inlay: a borderless (or at most hairline-edged) dark translucent
+  rectangle - the lightest permanent footprint. The ruled exception to the
+  C6 family look, on purpose: the tracker sits on screen at all times over
+  the world.
+- **D4 - THE GOLD IS PER-QUEST.** "Write a small gold title over each of
+  the quests, similar to the wow classic reference" - each quest's title is
+  the small gold line. (Whether a box-level "Quests (n)" header line also
+  exists was NOT explicitly ruled - see the plan default below; the PO look
+  judges it.)
+
+**Plan defaults (stated, not asked):**
+
+- **Tracker behavior** - grows with content up to today's max-height cap and
+  scrolls beyond (the §2 feedback's "grows... and scrolls" survives D2);
+  zero running quests hides the scrim wholesale (today's rule). Title in
+  `@gold-levelup`, small; objective line parchment-bright, indented, the
+  existing `::before` "- " prefix survives. Left-aligned - today's
+  `text-align: right` / `flex-end` alignment FLIPS by ruling. A row click
+  keeps opening the journal at that quest. ⚑ **ONE objective line per quest
+  is what the ledger carries** (the server-composed current-stage line); the
+  WoW reference's multi-line quests would be a data change and are out of
+  scope. **No box-level title line** [DEFAULT, not ruled - flagged for the
+  PO look]: the quests start at the top of the scrim; the J Journal button
+  directly above labels the area (the reference image does carry a
+  "Quests (9/15)" line, so the look may add one back).
+- ⚑ **Wrap, never rename:** `#questTrackerJournal` survives on the button
+  element - three scripts pin it (`c6-panel-chrome` clicks it, `c6-theme`
+  opens the journal via it, `chunkC3-journal` asserts its existence). The
+  tracker INTERNALS are provably unpinned - no script reads
+  `.questTrackerQuest`, `#questTrackerList`, `.questTrackerTitle` or
+  `.questTrackerLine` - which is what makes the structure free to change;
+  keep the class names anyway wherever the element survives.
+- **Conversation interior** - lines stay italic, go parchment; the row list
+  keeps every selector and swaps `@panel-row-divider` for the board's ink
+  divider inside the panel; hover stays a light lift; locked rows greyed
+  as today with the named wall; the Leave./Back exit affordances keep
+  today's muted treatment restated in the C vocabulary (muted gold - the
+  board's accent for interactive labels; the PO look judges it).
+- **Journal interior** - section titles ("Running"/"Completed") take the
+  board's gold uppercase small-label treatment (the spellbook board's
+  "Auras" line: `@gold-levelup`, uppercase, letterspaced); quest rows keep
+  hover/selected with a parchment lift; ink dividers replace
+  `@panel-row-divider`; the detail title parchment-bright; diary prose
+  stays italic and muted; the objective line bright; Abandon muted with
+  hover. All selectors survive.
+- **`.panel-chrome()` DIES with its last caller** (`.questTrackerQuest`).
+  Check for newly orphaned tokens once it goes - `@panel-bg`,
+  `@panel-border`, `@panel-border-radius` - and remove any left
+  caller-less. ⚑ `.panel-header-bar()` SURVIVES via `.worldMapHeader`: the
+  world map is out of C7's scope, named here so nobody "finishes the
+  cleanup" by mistake.
+- **Mobile** - the tracker is hidden at the `#questTracker` level on
+  mobile, so its internals are exempt. But the conversation/journal
+  interior rules land on mobile too, and ⚑ the C6 durable finding applies
+  with teeth: `HUD.mobile.less` holds id-scoped journal-interior rules
+  (e.g. `#journal .journalQuests > li`) - check every new desktop rule
+  against that sheet's specificity, and remember the C6 lesson that a
+  style probe can read the wrong twin. ⚑ Specifically for D1:
+  `.ink-panel-header()`'s negative margins must match the caller's
+  padding, and `variables.less` itself warns that `HUD.mobile.less`
+  resets this on panels whose mobile padding differs - `#conversation`
+  HAS mobile rules (HUD.mobile.less ~267), so the strip needs its mobile
+  counterpart or it overflows the panel there. Probe + both-layout
+  screenshots mandatory.
+
+**Harness plan (the §2 "never left red" rule):**
+
+- NEW `c7-tracker.mjs` (the one-script-per-chunk pattern): the
+  consolidation has zero existing pins - assert one scrim around N quests
+  (no per-quest boxes), left alignment, row click opens the journal at the
+  quest, scrolling at overflow, scrim hidden at zero quests.
+- `chunkC3-journal` - expected green (it reads `#questTrackerJournal`
+  existence plus journal interior classes, all surviving); budgeted
+  retrofit only if tripped.
+- `chunk3b-ii-conversation` - the C2 precedent verbatim: record its
+  pre-existing 28/34 baseline BEFORE the change, compare after; do not
+  chase its known reds.
+- Stay green untouched: `c2-layering` · `c6-panel-chrome` · `c6-theme` ·
+  `c4b-breadcrumb` 17/17 · `chunkC4-quests` · `round4-tooltip`.
+- `mobile-layout.mjs` green except leg 7 (the documented HEAD baseline).
+- Known-red baselines stand (the CLAUDE.md list); ⚑ measure before
+  diagnosing any flake, and suspect the non-monotonic wall clock first on
+  any elapsed-time red.
+
+**Verification tail:** `npm test` · `npm run typecheck` · `npm run build` ·
+the harness set above · desktop + mobile screenshots (conversation open
+with the strip, journal open, tracker with 2+ quests) · PO look.
+**Schema NONE.**
+
+**⭐ AMENDED at the build and the PO look (2026-08-30, same day).** The spec
+above stands as ruled; two things it predicted turned out otherwise, recorded
+here rather than rewritten (the C4b/C5 precedent - annotate, never silently
+edit a ruled block):
+
+1. ⭐ **"NOT a CSS-only chunk" was WRONG - C7 landed CSS-only after all.**
+   The prediction assumed the D2 consolidation needed a new render, and it
+   did not: `QuestTracker.ts` **already** emitted exactly the shape the
+   WoW-classic reference asks for - one `li` per quest holding a
+   `.questTrackerTitle` div over a `.questTrackerLine` div - because the
+   2026-08-23 tracker put the box around that same markup. So the per-quest
+   box died in the stylesheet (`.panel-chrome()`'s last caller went with
+   it), `#questTrackerList` itself became the one scrim, and the only edits
+   to `QuestTracker.ts` and `HUD.html` were comments. ⚑ **The durable
+   lesson, worth a check before any future structural chunk: read what the
+   render already emits before planning a rewrite of it.** Both landmines
+   the spec budgeted for survive by construction, since nothing in the
+   render moved - `renderedSignature`'s early-out still guards the per-tick
+   rebuild, and the row handler is still `pointerdown`.
+2. **The PO look added the global scrollbar restyle** (PO 2026-08-30, the
+   one ask of the session; everything built was approved with zero change
+   requests). Slim 8px, transparent track, rounded `fade(@wood, 50%)` thumb
+   brightening to 80% on hover, authored once as a global rule in
+   `HUD.less` so every scroll region - the conversation body, both journal
+   panes, the new tracker scrim - shares it. ⚑ Its gotcha is in the code
+   comment and the §6 banner: **WebKit pseudo-elements ONLY.**
 
 ## 6. Chunk ledger
 

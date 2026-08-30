@@ -277,6 +277,28 @@ html.mobile {
 		box-shadow: none;
 	}
 
+	// C7 D1 gave the desktop panel the wood header strip; with the ink chrome
+	// undone above, the phone reverts it too - exactly what #journal, #help and
+	// the spellbook already do further down. ⚑ Both selectors carry the id, so
+	// they OUT-RANK the desktop rules they revert: a bare-class revert loses to
+	// an id-scoped desktop rule silently (the C6 finding).
+	#conversation > .conversationHeader {
+		margin: 0;
+		padding: 0 0 0.5rem;
+		background: none;
+		border-radius: 0;
+		border-bottom: 1px solid @panel-row-divider;
+
+		> .conversationActor {
+			color: @panel-title-color;
+			font-weight: normal;
+		}
+
+		> .conversationLeave {
+			color: @panel-title-color;
+		}
+	}
+
 	#castBar,
 	// Same treatment for the flight bar (plan-flight-paths.md C3) — it shares
 	// the cast bar's geometry, so it needs the cast bar's phone override too or
@@ -709,6 +731,17 @@ html.mobile {
 		padding-bottom: 0.3rem;
 		margin-bottom: 0.6rem;
 		border-bottom: 2px solid fade(@gold-levelup, 45%);
+	}
+
+	// C7 swapped the journal's interior hairlines for the board's ink divider,
+	// which reads as a drawn rule on the desktop panel's moss field and as
+	// NOTHING on the phone's 95%-black one (measured on the C7 mobile
+	// screenshot: darker than the background it sits on). The phone keeps the
+	// divider it had, the same "pre-ink look wholesale" rule as the header
+	// strip above. ⚑ id-scoped so it out-ranks the desktop rules it reverts.
+	#journal > .journalBody .journalSectionTitle,
+	#journal > .journalBody .journalDetail > .journalDetailTitle {
+		border-bottom: 1px solid @panel-row-divider;
 	}
 
 	// The two journal panes stack instead of sitting side by side — 20rem of

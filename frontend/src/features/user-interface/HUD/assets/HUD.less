@@ -6,21 +6,46 @@
 // header's members are .conversationActor/.conversationLeave) and its own
 // padding line, the one axis the four headers genuinely differ on.
 
-// Panel body chrome: conversation, journal, help, spellbook and the loadout
-// group (the latter two add min-width caller-side).
-.panel-chrome(@padding: @panel-padding) {
-	background: @panel-bg;
-	border: 1px solid @panel-border;
-	border-radius: @panel-border-radius;
-	padding: @padding;
-	color: @panel-color;
-	font-size: @panel-font-size;
-}
-
+// ⚑ `.panel-chrome()` is GONE (UI pass C7): the ink treatment took every panel
+// at C6, and its last caller - the tracker's per-quest box - died with the D2
+// consolidation. Its three tokens (@panel-bg, @panel-border,
+// @panel-border-radius) stay: HUD.mobile.less reverts several panels to the
+// pre-ink look with them, and the tracker's plain scrim uses @panel-bg.
+//
 // ⚑ `.ink-panel-chrome()` and `.ink-panel-header()` moved to
 // ../../assets/variables.less at UI pass C6: #gameSettingsPanel is in a sheet
 // of its own that imports the variables file and not this one. They are called
 // from here exactly as before.
+
+// The scrollbar (C7 look feedback, PO 2026-08-30: "cooler and less invasive,
+// rounded edges, subtle"): a slim rounded wood thumb on a transparent track,
+// everywhere - the panels' scroll regions (conversation body, journal panes,
+// the tracker scrim) are the visible cases, and one global rule keeps every
+// future scroll container on the same look. Global on purpose: this file is
+// in the always-loaded bundle, so the rule reaches elements styled by other
+// sheets too.
+// ⚑ WebKit pseudo-elements ONLY - do not add `scrollbar-width`/
+// `scrollbar-color` beside them: a non-auto value for either makes Chrome
+// (121+) ignore the ::-webkit-scrollbar styling entirely, and Chromium is the
+// shipped target (Firefox keeps its default scrollbar, accepted).
+*::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+*::-webkit-scrollbar-track {
+	background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+	background: fade(@wood, 50%);
+	border-radius: 4px;
+
+	&:hover {
+		background: fade(@wood, 80%);
+	}
+}
+*::-webkit-scrollbar-corner {
+	background: transparent;
+}
 
 // The ink-ringed icon token (UI pass C4) - the third piece of the direction-C
 // vocabulary, beside the panel chrome and its header strip: a solid parchment
@@ -434,27 +459,35 @@
 	display: flex;
 	flex-direction: column;
 
-	// UI pass C6 D2 - INK BODY ONLY: the mechanical swap so the C2 exclusivity
-	// family reads coherent, and no header strip. C7 (the dialogue restyle) owns
-	// this panel's real look, so nothing inside it is touched here.
+	// The ink body landed at C6 D2; C7 D1 adds the wood header strip and the
+	// direction-C interior below it.
 	.ink-panel-chrome();
 
 	&.hidden {
 		display: none;
 	}
 
+	// UI pass C7 D1 - THE CONVERSATION GETS THE STRIP. The journal's header
+	// block verbatim (the family precedent), ruled with the tradeoff named:
+	// unlike the other wearers this strip appears and vanishes over live play
+	// with every conversation. ⚑ The mixin bleeds to the ink border with
+	// negative margins sized to the DESKTOP padding - HUD.mobile.less reverts
+	// it there, where #conversation's padding is different.
 	> .conversationHeader {
-		.panel-header-bar();
-		padding-bottom: 0.5rem;
+		.ink-panel-header();
+		margin-bottom: 0.2rem;
 
 		// The actor's name lives here, which is why NPCs still need no
 		// world-space nameplate (they stay gated off by experience: 0).
 		> .conversationActor {
 			.panel-title();
+			color: @gold-levelup;
+			font-weight: 600;
 		}
 
 		> .conversationLeave {
 			.panel-close();
+			color: fade(@parchment, 80%);
 			padding: 0 0.5rem;
 		}
 	}
@@ -470,10 +503,13 @@
 		padding-right: 0.8rem;
 	}
 
+	// What the actor SAYS: italic as it always was, on the board's parchment
+	// so the spoken lines read as the panel's prose against the row list.
 	.conversationLines {
 		padding: 1rem 0;
 		font-style: italic;
 		white-space: pre-line;
+		color: @parchment;
 	}
 
 	.conversationRows {
@@ -483,11 +519,14 @@
 
 		> li {
 			padding: 0.6rem 0.8rem;
-			border-top: 1px solid @panel-row-divider;
+			// The board's ink row divider (C7): the moss field is dark enough
+			// that a light hairline reads as a scratch on it, an ink one as a
+			// drawn rule.
+			border-top: 1px solid fade(@ink, 70%);
 			cursor: pointer;
 
 			&:hover {
-				background: fade(white, 8%);
+				background: fade(@parchment, 8%);
 			}
 
 			// D20: a row the player is too low for is SHOWN, greyed, with the
@@ -510,9 +549,14 @@
 
 			// The synthetic "Leave." row (Q1 §4.3): rendered last, only at the
 			// root, doing exactly what ✕ does. Styled like the Back footer so it
-			// reads as an exit, not as one of the actor's offers.
+			// reads as an exit, not as one of the actor's offers - muted gold
+			// since C7, the board's accent for an interactive label.
 			&.conversationLeaveRow {
-				color: @panel-title-color;
+				color: fade(@gold-levelup, 55%);
+
+				&:hover {
+					color: @gold-levelup;
+				}
 			}
 		}
 	}
@@ -520,13 +564,13 @@
 	> .conversationBack {
 		margin-top: 0.8rem;
 		padding-top: 0.6rem;
-		border-top: 1px solid @panel-row-divider;
-		color: @panel-title-color;
+		border-top: 1px solid fade(@ink, 70%);
+		color: fade(@gold-levelup, 55%);
 		font-size: @panel-title-size;
 		cursor: pointer;
 
 		&:hover {
-			color: white;
+			color: @gold-levelup;
 		}
 
 		&.hidden {
@@ -1602,8 +1646,8 @@
 	flex-direction: column;
 
 	// The direction-C pilot (UI pass C1); C6 rolled the same treatment onto the
-	// rest of the family. `.panel-chrome()` survives with ONE caller,
-	// `.questTrackerQuest` - C7 replaces that structure, so C6 left it alone.
+	// rest of the family, and C7's tracker consolidation retired the last
+	// `.panel-chrome()` caller with it.
 	.ink-panel-chrome();
 
 	&.hidden {
@@ -1668,7 +1712,9 @@
 			overflow-y: auto;
 			// Q1 ⑤: keeps text off the scrollbar the moment one appears.
 			padding-right: 0.8rem;
-			border-right: 1px solid @panel-row-divider;
+			// The board's ink rule (C7), like every other divider inside the
+			// panel now.
+			border-right: 1px solid fade(@ink, 70%);
 		}
 
 		.journalRunning,
@@ -1682,12 +1728,16 @@
 			}
 		}
 
+		// "Running" / "Completed" take the board's gold uppercase small label
+		// (C7) - the same vocabulary as the spellbook's section bands, so the
+		// two lists read as one family.
 		.journalSectionTitle {
-			color: @panel-title-color;
+			color: @gold-levelup;
 			font-size: @panel-title-size;
+			font-weight: 600;
 			text-transform: uppercase;
-			letter-spacing: 0.05em;
-			border-bottom: 1px solid @panel-row-divider;
+			letter-spacing: 0.08em;
+			border-bottom: 1px solid fade(@ink, 70%);
 			padding-bottom: 0.3rem;
 		}
 
@@ -1698,18 +1748,20 @@
 		}
 
 		// A list row is a title to click; the words live in the detail pane.
+		// Hover and selection are a parchment lift (C7), the panel's own ink
+		// field brightened rather than a grey wash.
 		.journalQuest {
 			padding: 0.5rem 0.8rem;
 			cursor: pointer;
 			border-radius: 0.5rem;
 
 			&:hover {
-				color: white;
+				color: @parchment;
 			}
 
 			&.selected {
-				background: fade(white, 10%);
-				color: white;
+				background: fade(@parchment, 12%);
+				color: @parchment;
 			}
 		}
 
@@ -1721,9 +1773,9 @@
 			flex-direction: column;
 
 			> .journalDetailTitle {
-				color: white;
+				color: @parchment;
 				padding-bottom: 0.3rem;
-				border-bottom: 1px solid @panel-row-divider;
+				border-bottom: 1px solid fade(@ink, 70%);
 			}
 
 			// The detail pane's own scrolling region.
@@ -1742,7 +1794,7 @@
 			margin: 0.6rem 0 0;
 			font-size: @panel-title-size;
 			font-style: italic;
-			color: @panel-color;
+			color: fade(@parchment, 70%);
 		}
 
 		// The current stage's server-composed objective line ("3/8 Wolf
@@ -1751,18 +1803,18 @@
 		.journalObjective {
 			margin: 0.6rem 0 0;
 			font-size: @panel-title-size;
-			color: white;
+			color: @parchment;
 		}
 
 		.journalAbandon {
 			display: inline-block;
 			margin: 0.8rem 0 0;
 			cursor: pointer;
-			color: @panel-title-color;
+			color: fade(@parchment, 55%);
 			font-size: @panel-title-size;
 
 			&:hover {
-				color: white;
+				color: @parchment;
 			}
 		}
 	}
@@ -2026,17 +2078,28 @@
 		}
 	}
 
+	// UI pass C7 D2/D3: ONE plain scrim around the whole tracking space, and
+	// the list IS that scrim - it already spans every quest, already hides at
+	// zero of them, and is already the element the max-height cap scrolls.
+	// ⚑ D3 rules it PLAIN on purpose: no `.ink-panel-chrome()`, no wood inlay.
+	// This is the one panel that sits on screen over live play at all times,
+	// so it keeps the lightest permanent footprint of the family.
+	// `align-self` stretches it to the tracker's width while the J button
+	// above keeps the column's flex-end alignment (C6 styled that button; D2
+	// leaves it exactly as it was).
 	> #questTrackerList {
+		align-self: stretch;
 		margin: 0;
-		padding: 0;
+		padding: 0.6rem 0.9rem;
 		list-style: none;
+
+		background: @panel-bg;
+		border-radius: 0.4rem;
 
 		display: flex;
 		flex-direction: column;
-		align-items: flex-end;
-		gap: 0.4rem;
+		gap: 0.9rem;
 
-		max-width: 100%;
 		min-height: 0;
 		overflow-y: auto;
 
@@ -2044,26 +2107,34 @@
 			display: none;
 		}
 
-		// One chrome box per quest: the title, then the last objective line.
-		// The whole box opens the journal turned to that quest.
+		// The WoW-classic text list (D2/D4): a small gold title per quest with
+		// its one objective line beneath it, one quest after the other, left
+		// aligned, with NO per-quest box. The whole entry opens the journal
+		// turned to that quest.
 		> .questTrackerQuest {
 			flex: none;
-			.panel-chrome(0.5rem 1rem);
-			max-width: 100%;
 			cursor: pointer;
-			text-align: right;
+			text-align: left;
 
-			&:hover {
-				color: white;
+			> .questTrackerTitle {
+				color: @gold-levelup;
+				font-size: @panel-title-size;
+				font-weight: 600;
 			}
 
 			> .questTrackerLine {
-				color: white;
+				color: @parchment;
 				font-size: @panel-title-size;
+				padding-left: 0.6rem;
 
 				&::before {
 					content: '- ';
 				}
+			}
+
+			&:hover > .questTrackerTitle,
+			&:hover > .questTrackerLine {
+				color: white;
 			}
 		}
 	}
