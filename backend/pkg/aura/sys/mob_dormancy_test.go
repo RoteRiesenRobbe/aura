@@ -23,7 +23,7 @@ import (
 
 const (
 	testWakeMargin  = 1.7
-	testSleepMargin = 2.2
+	testSleepMargin = 1.9
 )
 
 // fakeWakeSources is the WakeSources seam: a settable list of positions.

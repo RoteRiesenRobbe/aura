@@ -113,12 +113,16 @@ culling has no evidence of costing anything today (§10 B).
   invisible to every query. Only leaving `s.shapes` drops a mob from all four
   per-shape loops.
 - **D6 (PO, after M0) — The wake volume is the AOI box scaled, not a radius.**
-  Wake `1.7 ×`, sleep `2.2 ×` [PLACEHOLDER]; the *volume* is derived from
+  Wake `1.7 ×`, sleep `1.9 ×` [PLACEHOLDER; sleep retuned from 2.2 by the §11 tuning pass 2026-08-30]; the *volume* is derived from
   `constant.ViewPortWidth/Height` rather than authored in units. Replaces the
   first draft's "wake 40 / sleep 50", which M0's arithmetic showed would have
-  left 91 % of mobs awake and made the chunk pointless (§4 S3, §11). ⚑ **This is
-  the single highest-leverage number in the plan** — awake mob count scales with
-  the *square* of the margin, so every doubling costs 4 ×.
+  left 91 % of mobs awake and made the chunk pointless (§4 S3, §11). ⚑ Awake mob
+  count scales with the *square* of the margin, so every doubling costs 4 ×.
+  ⭐ **CORRECTED by the §11 tuning pass 2026-08-30: the highest-leverage number
+  is `sleepMargin`, not `wakeMargin`.** Hysteresis puts the steady state at the
+  SLEEP box, so that one sets the awake population while the wake margin only
+  buys warning time — and the wake margin's floor is
+  `player.FlightViewportScale`, not 1.
 
 ## 4. Chunks
 
@@ -796,6 +800,66 @@ narrow the band from the sleep side first. Both are conf knobs
   regenerate. **PO preference confirmed 2026-08-29: regen-before-dormancy is the
   wanted behaviour, and it is guaranteed structurally.** ⚑ Anyone relaxing D3's
   full-health clause re-opens L3 for real.
+
+#### ⭐ TUNING PASS 2026-08-30 — sleepMargin 2.2 → 1.9, and a floor L8 missed
+
+**`sleepMargin` is the perf knob; `wakeMargin` is the safety knob.** That is the
+direct consequence of the hysteresis correction above, and it inverts D6's own
+advice ("wakeMargin is the single highest-leverage number in the plan"). Swept
+at 14 640 mobs with `wakeMargin` held at 1.7:
+
+| sleep | band | awake/player | vs 2.2 |
+| --- | --- | --- | --- |
+| 2.2 | 5.0 u | 49.5 | — |
+| **1.9 (shipped)** | **2.0 u** | **36.8** | **−26 %** |
+| 1.8 | 1.0 u | 32.6 | −34 % |
+| 1.7 | 0 u | 29.3 | −41 % |
+
+It holds as population rises — a consistent ~17 % of tick time, growing in
+absolute terms: 10 players 5.77 → 4.80 ms · 40 players 11.04 → 8.96 · 80 players
+17.25 → 14.41 · 150 players 27.15 → 22.66. Against M0's half-budget break
+criterion that moves the mob subsystem's dispersed-player ceiling from **~75 to
+~100**.
+
+⚑ Read those player counts narrowly: they measure `MobSystem.Update` +
+`Space.Update` ONLY. The real tick also pays encoding (57 % of it pre-S3),
+skills and networking, so this is the **mob subsystem's own** ceiling, not the
+server's.
+
+⚑ And note what the sweep says about the margins as a *tick-time* lever at
+today's scale: at 10 players the whole 2.2 → 1.9 move is 0.97 ms. It is a
+CEILING lever, not a tick-time one — if tick time is the target,
+`plan-server-performance.md` chunk 1 is the bigger item.
+
+Stopped at 1.9 rather than 1.8: the marginal gain shrinks while the band
+collapses, and 2 u is still ~1.3 s of walking to toggle a mob. ⭐ Narrowing is
+safe at all because `phy.SleepShape` made the transition **O(1)** — the band no
+longer has to protect an expensive purge, which is what the original 0.5 was
+sized for.
+
+#### ⚑ L8 CORRECTED — the wake floor is `player.FlightViewportScale`, not 1
+
+L8 argued containment from `Zoom.ts`'s fixed **ground** field of view (18 × 9.5,
+strictly inside the 20 × 12 AOI) and concluded `wakeMargin > 1` was the
+invariant. It missed a second, larger viewport: **a flying player's server-side
+AOI is itself scaled up** (`player.setViewportScale(FlightViewportScale)`, 1.2),
+so the box the wake volume actually has to contain is bigger than the ground
+AOI. Flight is the binding case, and it is where the margin is thinnest:
+
+| | margin to the streamed edge | warning |
+| --- | --- | --- |
+| on foot (1.5 u/s) | 8.0 u / 5.4 u | 5.3 s / 3.6 s |
+| **in flight (4.2 u/s)** | **5.0 u / 3.0 u** | **1.2 s / 0.7 s** |
+
+Today's 1.7 vs 1.2 has headroom, but `FlightViewportScale` is a [PLACEHOLDER]
+that has **already been retuned twice** (2.5 → 1.75 → 1.2) — precisely the drift
+L8 exists to catch, in the one viewport it did not look at. Now enforced in code
+(`core/gameconf.go` clamps the wake margin against it, not against 1) and
+asserted in `cmd/simharness/guardrail_test.go`; the const is exported for that
+reason and carries the coupling in its doc.
+
+⚑ **The §8 in-game pass now owes a FLIGHT leg**, not just the zoom levels: fly a
+route over a dormant region and confirm nothing fades in at the screen edge.
 
 #### Verification
 

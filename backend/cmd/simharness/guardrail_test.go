@@ -34,6 +34,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/core"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/player"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/stretchr/testify/assert"
@@ -383,10 +384,19 @@ func TestGuardrails_DormancyWakeVolume(t *testing.T) {
 	require.NoError(t, core.Config(&cfg.Config{})(&g),
 		"the defaulting path must produce a usable dormancy config from an empty conf")
 
-	assert.Greater(t, g.MobWakeMargin, float32(1),
-		"the wake volume must STRICTLY contain the AOI box (%.2f×): at or below 1× a mob "+
-			"is streamed to the client before it is woken, i.e. it fades in on screen",
-		g.MobWakeMargin)
+	// ⚑ The floor is FlightViewportScale, NOT 1 — corrected 2026-08-30 while
+	// tuning the margins. L8 argued containment from Zoom.ts's fixed GROUND
+	// field of view and concluded the widest obtainable view sits inside the
+	// 20 × 12 AOI. It missed that a FLYING player's server-side AOI is itself
+	// scaled up (player.setViewportScale), so the box the wake volume actually
+	// has to contain is bigger than the ground one. Flight is the binding case,
+	// and FlightViewportScale is a [PLACEHOLDER] that has already been retuned
+	// twice (2.5 → 1.75 → 1.2) — exactly the drift L8 exists to catch.
+	assert.Greater(t, g.MobWakeMargin, float32(player.FlightViewportScale),
+		"the wake volume (%.2f×) must STRICTLY contain the FLIGHT AOI (%.2f×): at or below "+
+			"it, a mob is streamed to a flying client before it is woken — it fades in at "+
+			"the screen edge, mid-flight, which is the one place nobody looks",
+		g.MobWakeMargin, float32(player.FlightViewportScale))
 
 	assert.Greater(t, g.MobSleepMargin, g.MobWakeMargin,
 		"hysteresis is a band, not an inversion: sleep (%.2f×) must sit outside wake (%.2f×), "+
