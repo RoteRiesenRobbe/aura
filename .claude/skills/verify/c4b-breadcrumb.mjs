@@ -331,9 +331,12 @@ check('7 ⭐ closing the book with an unseen spell left resumes the button pulse
     && reshut.tabs.length === 0,
   JSON.stringify({ open: reshut.open, buttons: reshut.buttons, menu: reshut.menu }));
 
+// ⚑ Retrofitted at UI pass C6: the pulse moved onto `.breadcrumb::after` so it
+// composes with the button's own wood-inlay box-shadow. The class-based legs are
+// unaffected; the two probes that read animation STATE have to name the pseudo.
 const keyframe = await page.evaluate(() => {
   const el = document.querySelector('.spellbookOpenButton.breadcrumb');
-  return el ? getComputedStyle(el).animationName : null;
+  return el ? getComputedStyle(el, '::after').animationName : null;
 });
 check('7b the pulse is a real running animation, not just a class nobody styled',
   keyframe === 'hud-breadcrumb-pulse', `animationName=${keyframe}`);
@@ -381,7 +384,9 @@ const mobMenu = await mob.evaluate(() => {
   const el = document.getElementById('mobileMenuButton');
   if (!el) return null;
   const box = el.getBoundingClientRect();
-  const style = getComputedStyle(el);
+  // The pulse lives on ::after since C6 (see the desktop probe above); the box
+  // is still the element's own.
+  const style = getComputedStyle(el, '::after');
   return {
     breadcrumb: el.classList.contains('breadcrumb'),
     w: box.width, h: box.height,

@@ -156,14 +156,36 @@ html.mobile {
 			}
 		}
 
+		// The desktop bars took the ink well at UI pass C6; the phone keeps its
+		// pre-C6 look wholesale (C9 owns real mobile work). ⚑ Not cosmetic
+		// here: the XP strip is min(1.1rem, 3vh) tall — under 12px in landscape
+		// — and a 3px rim plus a 1.5px inlay would eat most of it.
+		> #healthBar,
+		> #xpBar {
+			border: none;
+			border-radius: 0;
+			box-shadow: none;
+			overflow: visible;
+		}
+
 		> #healthBar {
 			height: @mobile-health;
+			background-color: #840D25;
+
+			> .indicator {
+				background: @focus-color;
+			}
 		}
 
 		// XP is the least urgent number on the screen; it gets the thinner
 		// strip so the pair costs ~7vh of a landscape phone rather than 20.
 		> #xpBar {
 			height: @mobile-xp;
+			background-color: #4A1D8A;
+
+			> .indicator {
+				background: #A855F7;
+			}
 
 			> .barText {
 				font-size: 0.9rem;
@@ -246,6 +268,13 @@ html.mobile {
 		width: 100%;
 		max-width: none;
 		max-height: 45vh;
+
+		// D2 inked this panel on the desktop at UI pass C6; the phone keeps the
+		// pre-ink chrome, the C1 pattern.
+		background: @panel-bg;
+		border: 1px solid @panel-border;
+		border-radius: @panel-border-radius;
+		box-shadow: none;
 	}
 
 	#castBar,
@@ -337,6 +366,14 @@ html.mobile {
 				// Hotkeys are meaningless without a keyboard.
 				> .hotkey {
 					display: none;
+				}
+
+				// C5 rider, taken at C6: the desktop sweep is a circle (inset
+				// -3px, border-radius 50%) and the phone's slot is a rounded
+				// SQUARE, so the wedge overhung all four corners. Inheriting the
+				// tile's radius is the whole fix.
+				> .cdSweep {
+					border-radius: inherit;
 				}
 
 				// ⚑ The label is visually hidden by the shared C5 slot rule and
@@ -442,9 +479,14 @@ html.mobile {
 		opacity: 0;
 		pointer-events: none;
 
-		// Opaque rather than the desktop 50% — nothing shows through it now,
+		// Opaque rather than the desktop ink rim — nothing shows through it now,
 		// but a translucent map disc reads as a rendering fault regardless.
 		background-color: Cornsilk;
+
+		// The desktop double ink ring (UI pass C6) would sit as a 9px halo on a
+		// 6rem disc inside the sheet's footer bar; the phone keeps the bare disc.
+		border: none;
+		box-shadow: none;
 
 		// Four cardinals around a 96px disc are clutter, and the sheet is not
 		// where navigation happens.
@@ -547,6 +589,16 @@ html.mobile {
 		z-index: (@mobile-menu-z + 3);
 	}
 
+	// D3 inked the settings panel on the desktop at UI pass C6; inside the ☰
+	// sheet the phone keeps its pre-ink box, the C1 pattern.
+	#gameSettingsPanel {
+		background: @backgroundColor;
+		border: none;
+		border-radius: 0.7vh;
+		box-shadow: none;
+		padding: 1rem;
+	}
+
 	// The zoom column (and the ? that opens Help) is a sibling of the sheet,
 	// so it is placed INTO it: a horizontal row along the sheet's bottom edge.
 	#zoomControl {
@@ -618,27 +670,45 @@ html.mobile {
 		z-index: (@mobile-menu-z + 2);
 	}
 
-	// The ink header strip (UI pass C1) bleeds via negative margins sized to
-	// the DESKTOP panel padding; against the full-screen padding above they
-	// would misplace the strip, so the phone reverts to the plain divider
-	// header the panel had before C1.
-	#journal > .journalHeader {
+	// The ink header strip (UI pass C1, rolled onto Help and the Spellbook at
+	// C6) bleeds via negative margins sized to the DESKTOP panel padding;
+	// against the full-screen padding above they would misplace the strip, so
+	// the phone reverts to the plain divider header each panel had before.
+	#journal > .journalHeader,
+	#help > .helpHeader,
+	#spellbook > .spellbookTitle {
 		margin: 0;
 		padding: 0 0 0.5rem;
 		background: none;
 		border-radius: 0;
 		border-bottom: 1px solid @panel-row-divider;
+	}
 
-		// With the wood strip gone, the gold/parchment header colors revert
-		// too - the phone keeps its pre-C1 look wholesale.
-		> .journalTitle {
+	// With the wood strip gone, the gold/parchment header colors revert too -
+	// the phone keeps its pre-ink look wholesale.
+	#journal > .journalHeader,
+	#help > .helpHeader {
+		> .journalTitle,
+		> .helpTitle {
 			color: @panel-title-color;
 			font-weight: normal;
 		}
 
-		> .journalClose {
+		> .journalClose,
+		> .helpClose {
 			color: @panel-title-color;
 		}
+	}
+
+	// ⚑ The book's title is NOT one of those: it was always the gold panel
+	// title with a gold rule under it (feedback pass B item 8), so only the
+	// strip is undone and the rule comes back.
+	#spellbook > .spellbookTitle {
+		align-items: baseline;
+		gap: 0.6rem;
+		padding-bottom: 0.3rem;
+		margin-bottom: 0.6rem;
+		border-bottom: 2px solid fade(@gold-levelup, 45%);
 	}
 
 	// The two journal panes stack instead of sitting side by side — 20rem of
@@ -675,6 +745,38 @@ html.mobile {
 	// The sheet's spellbook row, beside the journal's (C3, D4).
 	#spellbookSheetButton {
 		display: flex;
+	}
+
+	// The HUD buttons took the board's `.btnC` body and `.keyC` hotkey chips at
+	// UI pass C6; the phone keeps its pre-C6 chrome, the C1 pattern. Only the
+	// three that exist here are listed - #spellbookButton and #questTracker are
+	// display:none above. ⚑ `.hasPoints` still recolours this border, back at
+	// 1px, exactly as it did before C6.
+	#journalButton,
+	#spellbookSheetButton,
+	#mapButton {
+		background: @panel-bg;
+		border: 1px solid @panel-border;
+		border-radius: @panel-border-radius;
+		box-shadow: none;
+		color: @panel-color;
+	}
+
+	// The key chip is a keyboard cue on a device with no keyboard: back to the
+	// plain muted letter it was. (.mapButtonHotkey is hidden outright above.)
+	// ⚑ The journal one must carry the id: the desktop chip rule is
+	// `#journalButton > .journalButtonHotkey` and an id outranks any pile of
+	// classes - the bare-class revert silently loses to it.
+	#journalButton > .journalButtonHotkey,
+	.spellbookButtonHotkey {
+		display: inline;
+		width: auto;
+		height: auto;
+		line-height: normal;
+		background: none;
+		border-radius: 0;
+		color: @panel-title-color;
+		font-size: @panel-title-size;
 	}
 
 	// Comfortable tap targets on the rows that are tapped, not hovered.

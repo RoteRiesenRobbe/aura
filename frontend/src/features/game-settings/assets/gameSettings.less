@@ -34,11 +34,21 @@
     }
 }
 
+// UI pass C6 D3: the settings panel joins the ink treatment now rather than at
+// C10 - it is a C2 exclusivity-family member and would otherwise be the only
+// in-game family member left in the old look. NO header strip (board-silent,
+// the same minimal-coherence stance as the conversation panel): the h2 below
+// stays plain. ⚑ The panel keeps overlaying the start/end screens
+// (@z-settings); appearing inked there is accepted.
+// ⚑ The mixin comes from variables.less, not HUD.less - this sheet is its own
+// LESS entry and sees only what it imports.
 #gameSettingsPanel {
-    background-color: @backgroundColor;
+    .ink-panel-chrome();
+    // Both restated so C6 stays CHROME ONLY here: the panel's text is white
+    // rather than the panels' 85%, and it is sized off the document rather than
+    // at @panel-font-size - the mixin would have grown every control in it.
     color: white;
-    padding: 1rem;
-    border-radius: 0.7vh;
+    font-size: inherit;
 
     h2 {
         margin: 0;

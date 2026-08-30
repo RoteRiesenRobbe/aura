@@ -4,6 +4,24 @@
  * Vital Sign Bars in UI
  */
 
+// CHROME ONLY (UI pass C6): the board's ink-outlined bar. Layout, sizes and
+// placement are untouched - this is a well, a rim and a gradient, nothing that
+// moves a box.
+// ⚑ The pill radius is a large clamped value rather than a literal height/2:
+// neither bar authors a height here (the flex column sets it on desktop, the ☰
+// sheet re-heights both on the phone), and 999px is the same pill at every one.
+// ⚑ `overflow: hidden` is what makes the rounded well clip the JS-scaled fill.
+// The four children that must survive it (.indicator, both delta indicators,
+// .shieldIndicator) live inside the box, and .barText is centred - the clip
+// costs none of them anything.
+.ink-bar-well() {
+  border: 3px solid @ink;
+  border-radius: 999px;
+  background: rgba(10, 8, 5, 0.72);
+  box-shadow: inset 0 0 0 1.5px fade(@wood, 40%);
+  overflow: hidden;
+}
+
 #vitalSigns {
   position: absolute;
   right: 0;
@@ -69,10 +87,14 @@
 }
 
 #healthBar {
-  background-color: #840D25;
+  .ink-bar-well();
 
+  // The board's vertical gradient SHADING the shipped hue: @focus-color is the
+  // centre stop, the ends are a lit and a darkened crimson. ⚑ Not new semantic
+  // tokens - the Theme.test.ts pin on @focus-color is untouched, and 180deg
+  // means the JS x-scale on .indicator cannot distort it.
   > .indicator {
-    background-color: @focus-color;
+    background: linear-gradient(180deg, #de4560, @focus-color 55%, #a01030);
   }
 
   // Absorb segment (skill-vocab chunk 2, bare rendering): sized/positioned
@@ -90,10 +112,10 @@
 }
 
 #xpBar {
-  background-color: #4A1D8A;
+  .ink-bar-well();
 
   > .indicator {
-    background-color: #A855F7;
+    background: linear-gradient(180deg, #7b4bb5, #5b2f91);
   }
 }
 

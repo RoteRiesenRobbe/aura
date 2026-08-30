@@ -17,44 +17,10 @@
 	font-size: @panel-font-size;
 }
 
-// Direction C "Inked Panel" body chrome (UI pass C1, redone 2026-08-26). The
-// spec is the RENDERED mockup CSS (`.panelC` on the ratified board), not the
-// board prose (PO 2026-08-26: no wiggly forms, no irregular band): a straight
-// 3px ink border with a thin wood ring inset just inside it. The one
-// hand-drawn cue is the corner motif - wider at top-left/bottom-right,
-// tighter at top-right/bottom-left. Rollout onto the rest of the panels is
-// C6; for now only #journal calls it.
-.ink-panel-chrome() {
-	background: fade(@moss, 90%);
-	border: 3px solid @ink;
-	border-radius: 13px 7px 15px 9px;
-	// The wood inlay sits INSIDE the ink line (paints over the background,
-	// under content - a header strip covering it at the top is the mockup's
-	// own rendering), plus the mockup's soft drop shadow.
-	box-shadow: inset 0 0 0 2px fade(@wood, 45%), 0 3px 9px fade(black, 40%);
-	padding: @panel-padding;
-	color: @panel-color;
-	font-size: @panel-font-size;
-}
-
-// The wood header strip (the mockup's `.hdrC`): full-bleed to the ink border,
-// so it negates the panel padding it sits inside - a caller with non-default
-// padding passes its own. The top radii nest inside the panel's 13/7 corners.
-// ⚑ Desktop-sized margins: HUD.mobile.less resets this on its full-screen
-// panels, whose padding is different.
-.ink-panel-header(@pad-y: @panel-padding-y, @pad-x: @panel-padding-x) {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-
-	margin: (-@pad-y) (-@pad-x) 0;
-	padding: 0.8rem @pad-x 0.7rem;
-	// #5f3b18 is the mockup's gradient end - darkened wood, not a fifth token.
-	background: linear-gradient(172deg, @wood, #5f3b18);
-	border-bottom: 2px solid @ink;
-	border-radius: 10px 4px 0 0;
-}
+// ⚑ `.ink-panel-chrome()` and `.ink-panel-header()` moved to
+// ../../assets/variables.less at UI pass C6: #gameSettingsPanel is in a sheet
+// of its own that imports the variables file and not this one. They are called
+// from here exactly as before.
 
 // The ink-ringed icon token (UI pass C4) - the third piece of the direction-C
 // vocabulary, beside the panel chrome and its header strip: a solid parchment
@@ -135,14 +101,47 @@
 	}
 }
 
-// The journal/map HUD buttons: panel chrome at button padding.
+// The journal/map/spellbook HUD buttons: the board's `.btnC` (UI pass C6) -
+// the panel treatment at button scale. Border and inlay step down (2.5px /
+// 2px) and the corner motif takes its smaller repeat (9/5/10/6, the C1
+// ruling); the padding and font size are the button's own and are unchanged.
+// ⚑ `.spellbookOpenButton.hasPoints` recolours THIS border, which is 2.5px now
+// instead of 1px - louder on purpose (C6 plan default).
 .hud-button-chrome() {
-	.panel-chrome(0.5rem 1.5rem);
+	background: fade(@moss, 90%);
+	border: 2.5px solid @ink;
+	border-radius: 9px 5px 10px 6px;
+	box-shadow: inset 0 0 0 2px fade(@wood, 40%);
+	padding: 0.5rem 1.5rem;
+	color: @parchment;
+	font-size: @panel-font-size;
 	cursor: pointer;
 
 	&:hover {
 		color: white;
 	}
+}
+
+// The hotkey chip (the board's `.keyC`): the key's letter as a small ink block,
+// wearing the corner motif at its smallest repeat (5/3/6/4, the C1 ruling).
+// ⚑ ONE treatment, two scales: the ability bar's slot chip (C5) calls this at
+// @slot-hotkey and the HUD buttons at the default - the C4 `.ink-token` rule
+// (re-size it, never restate it) applied to the second reused component.
+// ⚑ inline-block, not a bare inline: on #mapButton and #questTrackerJournal the
+// span sits in normal flow (only the flex buttons blockify it for free), and an
+// inline box ignores width/height.
+.hud-key-chip(@size: 19px, @font: 12px) {
+	display: inline-block;
+	width: @size;
+	height: @size;
+	line-height: @size;
+
+	background: @ink;
+	border: none;
+	border-radius: 5px 3px 6px 4px;
+	color: @parchment;
+	font-size: @font;
+	text-align: center;
 }
 
 #gameUI {
@@ -227,12 +226,28 @@
 	top: 0;
 	right: 0;
 
-	background-color: fade(Cornsilk, 50%);
+	// ⚑ The disc inside `.wrapper` is inset by 0.3vw, so this fills the rim the
+	// compass labels sit on. It was a Cornsilk fade; with the ring treatment
+	// below a light rim reads as a gap, so the rim joins the ink edge.
+	background-color: @ink;
 
-	margin-top: 0.3vw;
-	margin-right: 0.3vw;
-
+	// The board's "double ink ring with a wood band" (UI pass C6), replacing the
+	// Cornsilk fade: the corner motif is meaningless on a circle, so the rings
+	// ARE the treatment. Drawn as one border plus three spread-only shadows, so
+	// the disc's own geometry never moves.
+	border: 3px solid @ink;
 	border-radius: 50%;
+	box-shadow:
+		0 0 0 6px fade(@wood, 60%),
+		0 0 0 9px @ink,
+		0 4px 10px fade(black, 40%);
+
+	// The outer ring reaches 9px past the border box; the old 0.3vw margins are
+	// narrower than that at every viewport, so the top and right rings would be
+	// clipped at the screen edge. ⚑ DEVIATION, flagged for the PO look: this is
+	// the smallest margin that clears them, not a placement change.
+	margin-top: ~"calc(0.3vw + 9px)";
+	margin-right: ~"calc(0.3vw + 9px)";
 
 	> .wrapper {
 		position: absolute;
@@ -419,7 +434,10 @@
 	display: flex;
 	flex-direction: column;
 
-	.panel-chrome();
+	// UI pass C6 D2 - INK BODY ONLY: the mechanical swap so the C2 exclusivity
+	// family reads coherent, and no header strip. C7 (the dialogue restyle) owns
+	// this panel's real look, so nothing inside it is touched here.
+	.ink-panel-chrome();
 
 	&.hidden {
 		display: none;
@@ -626,7 +644,7 @@
 // The @panel-* vocabulary lives in ../../assets/variables.less since C6.
 
 #spellbook {
-	.panel-chrome();
+	.ink-panel-chrome();
 	min-width: @panel-min-width;
 
 	// ⚑ Explicit, not inherited from the bare `.hidden` class: an id selector
@@ -743,18 +761,19 @@
 		}
 	}
 
-	// Same treatment as .auraLoadoutTitle — the four panel titles are one
-	// vocabulary and must not diverge (feedback pass B item 8).
+	// The direction-C wood strip (UI pass C6), same overlay pattern as the
+	// journal's. ⚑ WRAP, NEVER RENAME: the badge and #respecButton ride INSIDE
+	// the strip as they were - nothing is re-parented and every selector still
+	// matches. The strip's own 2px ink edge replaces the gold rule this title
+	// carried; the gold TITLE stays, it is the one thing the mockup renders.
 	> .spellbookTitle {
-		display: flex;
-		justify-content: space-between;
-		align-items: baseline;
-		gap: 0.6rem;
+		.ink-panel-header();
+		// The mixin bleeds to the border and ends there; the rest of the panel
+		// still needs the gap this title always had under it.
+		margin-bottom: 0.6rem;
+
 		font-weight: 700;
 		letter-spacing: 0.08em;
-		padding-bottom: 0.3rem;
-		margin-bottom: 0.6rem;
-		border-bottom: 2px solid fade(@gold-levelup, 45%);
 		color: @gold-levelup;
 		font-size: (@panel-title-size * 1.2);
 		text-transform: uppercase;
@@ -990,10 +1009,40 @@
 // either property would fight it rather than compose with it.
 //
 // ⚑ Top-level, not nested under #spellbook: two of the four things it lands on
-// (the open buttons, #mobileMenuButton) live outside the panel. Look is a
-// functional placeholder, the C4 D3 stance - C6 owns the final chrome.
-.breadcrumb {
+// (the open buttons, #mobileMenuButton) live outside the panel.
+//
+// ⚑ The pulse runs on an ::after OVERLAY since UI pass C6, not on the element.
+// The buttons it lands on wear the `.btnC` wood inlay in their own box-shadow
+// now, and an element-level keyframe animating box-shadow from a zero-spread
+// base strips that inlay every cycle. A pseudo-element composes with ANY base
+// box-shadow, on all four landing spots at once. ⚑ Every spot therefore needs a
+// positioning context - the four `position: relative` lines below are load-
+// bearing, not tidiness.
+.breadcrumb::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	pointer-events: none;
 	animation: hud-breadcrumb-pulse 1.8s ease-in-out infinite;
+}
+
+// C6 D4 - a fresh row shows the GLOW ALONE. The `.unlocked` one-shot and the
+// trail used to be mutually exclusive by accident (one `animation` property,
+// one winner, the C4b flagged limit); the ::after move would let both play, so
+// the one-signal-at-a-time read is made explicit instead.
+#spellbook #spellbookList > li.unlocked.breadcrumb::after {
+	animation: none;
+}
+
+// The trail's landing spots that are not positioned already (#spellbookButton is
+// absolute, #mobileMenuButton fixed): without a containing block the overlay
+// escapes to the nearest positioned ancestor and pulses the wrong box.
+.spellbookOpenButton,
+#spellbookTabs > .spellbookTab,
+#spellbookPager > .spellbookPageStep,
+#spellbookList > li {
+	position: relative;
 }
 
 @keyframes hud-breadcrumb-pulse {
@@ -1174,8 +1223,9 @@
 		}
 	}
 
-	// The hotkey chip (`.keyC`) at the slot's top-left corner, wearing the
-	// corner motif at key-chip scale (5/3/6/4, the C1 ruling's smallest repeat).
+	// The hotkey chip (`.keyC`) at the slot's top-left corner - the shared chip
+	// treatment RE-SIZED to the slot, per the C4 rule (C6 lifted it into
+	// `.hud-key-chip()` when the HUD buttons grew the same chip).
 	// ⚑ The label and the binding stay two independent literals (HUD.html here,
 	// Controls.ts there) - deliberately NOT unified this chunk.
 	> .hotkey {
@@ -1183,16 +1233,7 @@
 		top: -6px;
 		left: -6px;
 
-		width: @slot-hotkey;
-		height: @slot-hotkey;
-		line-height: @slot-hotkey;
-
-		background: @ink;
-		border: none;
-		border-radius: 5px 3px 6px 4px;
-		color: @parchment;
-		font-size: 11px;
-		text-align: center;
+		.hud-key-chip(@slot-hotkey, 11px);
 	}
 
 	// The ACTIVE aura: the wooden rim, the D12 rule the medallions set and the
@@ -1493,10 +1534,16 @@
 	--tooltip-gap: 8px;
 	--tooltip-margin: 4px;
 	max-width: 26rem;
-	padding: 0.7rem 1rem;
-	background: fade(black, 85%);
-	border: 1px solid @panel-border;
-	border-radius: 0.5rem;
+
+	// The board's panelC variant (UI pass C6). ⚑ FULLY OPAQUE, unlike every
+	// other panel: this is the one surface that still STACKS over another
+	// (C2 D3's leftover), so the moss field goes to 100% rather than 90% - a
+	// spellbook row read through a tooltip is exactly what C2 ruled out.
+	padding: 10px 14px 12px;
+	background: @moss;
+	border: 3px solid @ink;
+	border-radius: 9px 14px 8px 12px;
+	box-shadow: inset 0 0 0 2px fade(@wood, 45%), 0 3px 9px fade(black, 40%);
 	color: @panel-color;
 	font-size: 1.5rem; // bumped with the shared-line dedupe (PO 2026-07-21) [PLACEHOLDER]
 	line-height: 1.45;
@@ -1554,8 +1601,9 @@
 	display: flex;
 	flex-direction: column;
 
-	// The direction-C pilot (UI pass C1). Every other caller stays on
-	// .panel-chrome() until C6 rolls the treatment out.
+	// The direction-C pilot (UI pass C1); C6 rolled the same treatment onto the
+	// rest of the family. `.panel-chrome()` survives with ONE caller,
+	// `.questTrackerQuest` - C7 replaces that structure, so C6 left it alone.
 	.ink-panel-chrome();
 
 	&.hidden {
@@ -1563,8 +1611,8 @@
 	}
 
 	> .journalHeader {
-		// The direction-C wood strip (UI pass C1); the other headers stay on
-		// .panel-header-bar() until C6.
+		// The direction-C wood strip (UI pass C1); Help and the Spellbook copy
+		// this block verbatim since C6, conversation stays plain (D2).
 		.ink-panel-header();
 
 		> .journalTitle {
@@ -1736,22 +1784,26 @@
 	display: flex;
 	flex-direction: column;
 
-	.panel-chrome();
+	.ink-panel-chrome();
 
 	&.hidden {
 		display: none;
 	}
 
+	// The journal's treatment verbatim (UI pass C6) - the two panels share their
+	// geometry above, and the header is the same overlay pattern.
 	> .helpHeader {
-		.panel-header-bar();
-		padding-bottom: 0.5rem;
+		.ink-panel-header();
 
 		> .helpTitle {
 			.panel-title();
+			color: @gold-levelup;
+			font-weight: 600;
 		}
 
 		> .helpClose {
 			.panel-close();
+			color: fade(@parchment, 80%);
 			padding: 0 0.5rem;
 		}
 	}
@@ -1797,8 +1849,7 @@
 	display: none;
 
 	> .journalButtonHotkey {
-		color: @panel-title-color;
-		font-size: @panel-title-size;
+		.hud-key-chip();
 		margin-right: 0.8rem;
 	}
 }
@@ -1888,8 +1939,7 @@
 	.hud-button-chrome();
 
 	> .mapButtonHotkey {
-		color: @panel-title-color;
-		font-size: @panel-title-size;
+		.hud-key-chip();
 		margin-right: 0.8rem;
 	}
 }
@@ -1907,8 +1957,7 @@
 	gap: 0.6rem;
 
 	> .spellbookButtonHotkey {
-		color: @panel-title-color;
-		font-size: @panel-title-size;
+		.hud-key-chip();
 		margin-right: 0.2rem;
 	}
 
@@ -1972,8 +2021,7 @@
 		.hud-button-chrome();
 
 		> .journalButtonHotkey {
-			color: @panel-title-color;
-			font-size: @panel-title-size;
+			.hud-key-chip();
 			margin-right: 0.8rem;
 		}
 	}
@@ -2031,9 +2079,14 @@
 	max-width: 34em;
 	margin: 0 auto 0.4em auto;
 	padding: 0.8em 1em;
-	background: rgba(20, 12, 8, 0.94);
+	// The ink treatment supplies body, corners and inlay (UI pass C6) - but the
+	// warning-red border SURVIVES as the danger accent. It is a semantic hue,
+	// not chrome, the same rule that keeps the focus bar crimson, so this row
+	// deliberately does not call `.ink-panel-chrome()`.
+	background: fade(@moss, 90%);
 	border: 2px solid rgba(200, 90, 60, 0.9);
-	border-radius: 4px;
+	border-radius: 13px 7px 15px 9px;
+	box-shadow: inset 0 0 0 2px fade(@wood, 45%), 0 3px 9px fade(black, 40%);
 	color: #f0e6d8;
 
 	&.hidden {

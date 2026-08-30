@@ -408,7 +408,7 @@ Derived from §4 Phase 2's dependency shape plus the two §2 sequencing rules
 - **C6 - panel chrome rollout**: every `.panel-chrome()` caller plus the
   one-off panels (tooltip, `#confirmRow`) onto the C1 treatment; the C1
   header strip onto every open-state UI; resource/XP bars ink-outlined;
-  minimap chrome.
+  minimap chrome. (Detailed + ruled below, 2026-08-30.)
 - **C7 - dialogue + journal restyle** (round-9 item 2's non-font half),
   incl. the §2 quest-tracker consolidation (one tracker panel, not
   per-quest boxes; PO 2026-08-26).
@@ -1045,6 +1045,139 @@ Consequence for the tail: the harness script grew from 27 to **30 legs**
 (pip pulses repeatedly, wall-clock-counted via `animationstart` · the class
 returns OFF between beats · digits render at glyph scale) and vitest went
 554 → **569** (+8 CooldownSweep, +7 Utils, all red-first).
+
+### C6 - panel chrome rollout (detailed + ruled 2026-08-30)
+
+**Deliverable:** the direction-C treatment rolled out across the remaining
+HUD - the `.panel-chrome()` callers, the HUD buttons, the one-off panels
+(tooltip, `#confirmRow`, settings), the resource/XP bars and the minimap -
+plus the wood header strip on the remaining open-state UIs. ⛔ **The spec is
+the board's RENDERED CSS** (`.panelC`/`.hdrC`/`.btnC`/`.keyC` plus the
+board's bar/minimap/tooltip markup on the §4 canvas), the §4 CORRECTION
+rule - not the board prose. **Schema NONE** - pure client CSS (no TS
+expected; the breadcrumb rework is CSS-only).
+
+⚑ **Name collision, for the commit message and the reader:** HUD.less's
+"panel vocabulary mixins (code-health C6)" comment is a DIFFERENT C6 (the
+archived `plan-code-health.md`). This chunk is ui-pass C6.
+
+**Rulings (PO 2026-08-30, choice prompts):**
+
+- **D1 - THE QUEST TRACKER STAYS LEGACY UNTIL C7.** The per-quest
+  `.questTrackerQuest` boxes keep `.panel-chrome()` although the scope line
+  reads "every caller": C7 owns the tracker consolidation into ONE panel
+  (structure before chrome, the ruled precedent), so C6 does not style a
+  structure C7 replaces. Consequence: `.panel-chrome()` SURVIVES C6 with
+  the tracker as its last caller - migrate call sites one by one, ⛔ never
+  flip the shared mixin. The tracker is knowingly the one dark-glass
+  remnant for exactly one chunk.
+- **D2 - CONVERSATION: INK BODY ONLY.** `#conversation` gets the mechanical
+  `.panel-chrome()` → `.ink-panel-chrome()` swap so the C2 family reads
+  coherent after C6; NO header strip, interior untouched - C7 (dialogue
+  restyle) owns the real look. The board is silent on this panel; this is
+  the minimal coherence move, ruled as such.
+- **D3 - SETTINGS JOINS C6.** `#gameSettingsPanel` (not a `.panel-chrome()`
+  caller - it sits on bare `@backgroundColor`) is inked now rather than at
+  C10: it is a C2 exclusivity-family member and would otherwise be the only
+  in-game family member left in the old look. It keeps overlaying start/end
+  screens (`@z-settings`); appearing inked there is accepted.
+- **D4 - FRESH-UNLOCK ROWS: GLOW ONLY.** The C4b flagged limit is settled:
+  during `.unlocked`'s 5 s one-shot window the row shows the loud glow
+  alone. The breadcrumb pulse moves onto an `::after` pseudo-element in C6
+  (forced by the wood-inset collision below), which would otherwise let
+  both render at once - ONE explicit suppression rule
+  (`.unlocked.breadcrumb::after { animation: none; }`) keeps today's
+  one-signal-at-a-time read on purpose. The deeper unification (glow driven
+  from the C4b unseen set) was presented and declined for C6 - it is a
+  behavior redesign, not a cleanup.
+- **D5 - THE TICK PIP STAYS AS-IS.** The C5-flagged rhythm/duration call is
+  taken: no retune. Its jitter is snapshot cadence, not CSS; revisit only
+  if it still bothers in play.
+
+**Plan defaults (stated, not asked) - the board-ratified treatments:**
+
+- **Panels** - `.ink-panel-chrome()` replaces `.panel-chrome()` on
+  `#conversation` (D2), `#spellbook` and `#help`; the journal already wears
+  it (C1). `#gameSettingsPanel` (D3) gets `.ink-panel-chrome()` fresh (it
+  had no shared mixin), NO header strip - board-silent, the same
+  minimal-coherence stance as D2; its `h2` stays plain. The C2 D3 leftover
+  lands: any panel in a STACKING position gets a fully opaque body - in
+  practice the tooltip (below); the family panels are mutually exclusive
+  since C2 and keep the 90% moss.
+- **Header strips** - `.ink-panel-header()` onto `.spellbookTitle` (the
+  board renders "Spellbook | Reset" as an `.hdrC`; badge + `#respecButton`
+  ride inside the strip, wrap-never-rename) and `.helpHeader` (same
+  overlay pattern as the journal, same treatment). Journal keeps its C1
+  strip; conversation none (D2); the bar family stays icon-only (C5).
+- **Buttons** - `.hud-button-chrome()` re-bodies onto the board's `.btnC`:
+  moss 90%, 2.5px ink border, corner motif 9/5/10/6, 2px wood inset ring
+  (`inset 0 0 0 2px fade(@wood, 40%)`), parchment text; the hotkey spans
+  become the board's `.keyC` chip (ink block, radii 5/3/6/4). Callers:
+  `#journalButton`, `#mapButton`, both `.spellbookOpenButton`s,
+  `#questTrackerJournal`. ⚑ `.hasPoints` now recolors a 2.5px border
+  instead of 1px - louder on purpose, the PO look judges it.
+- **Tooltip** - `#skillTooltip` takes the board's panelC variant: radii
+  `9px 14px 8px 12px`, padding 10px 14px 12px, 3px ink border + wood
+  inset - with the body at FULL opacity (C2 D3: the tooltip is the one
+  stacking survivor; the 90% moss becomes 100%). The `--tooltip-gap`/
+  `--tooltip-margin` knobs and the title/subtitle structure stay;
+  `round4-tooltip.mjs` is the layout gate.
+- **`#confirmRow`** - ink chrome, but its warning-red border SURVIVES as
+  the danger accent (a semantic hue, not chrome - the same rule that keeps
+  focus crimson).
+- **Bars** (`vitalSigns.less`) - the board verbatim: pill radius
+  (height/2), 3px ink border, dark well `rgba(10,8,5,0.72)`, thin wood
+  inset (`inset 0 0 0 1.5px fade(@wood, 40%)`), `overflow: hidden`. Fills
+  become the board's vertical gradients SHADING the shipped hues - focus
+  `#de4560 → crimson 55% → #a01030` (center stays `@focus-color`), XP
+  `#7b4bb5 → #5b2f91`. ⚑ The five `Theme.test.ts` pins stay untouched;
+  gradient endpoints are shading, not new semantic tokens. ⚑ The
+  `shieldIndicator`, both delta indicators and `.barText` must survive
+  inside the new well - they are positioned children of the bar and the
+  overflow clip must not eat the text shadow.
+- **Minimap** - the board's "double ink ring with a wood band":
+  `border: 3px solid @ink` +
+  `box-shadow: 0 0 0 6px fade(@wood, 60%), 0 0 0 9px @ink,
+  0 4px 10px fade(black, 40%)`, replacing the Cornsilk fade. The corner
+  motif is meaningless on a circle - the double ring IS the treatment.
+  Compass labels stay above the clip wrapper, untouched.
+- **The breadcrumb rework** (forced, then D4): `.btnC` keeps its wood
+  inset in `box-shadow`, and `.breadcrumb`'s keyframes animate box-shadow
+  from a zero-spread base - the pulse would strip the inlay every cycle.
+  The pulse moves onto `::after` (absolute inset 0,
+  `border-radius: inherit`, `pointer-events: none`, the existing
+  keyframes), which composes with ANY base box-shadow on any of its four
+  landing spots. ⚑ Each landing spot needs a positioning context - verify
+  buttons/tabs/pager-steps/rows are (or become) `position: relative`.
+  ⚑ The `c4b-breadcrumb` harness reads animation state off the ELEMENT -
+  it gets a retrofit to probe `::after`, budgeted, never left red.
+- **Mobile** - the C1 pattern extends: every newly inked surface gets its
+  `HUD.mobile.less` reset so phones keep the pre-ink look wholesale (C9
+  owns real mobile work). Rider from C5: the mobile `.cdSweep` corner
+  overhang gets its one-line `border-radius: inherit` candidate fix here.
+  Probe + screenshot mandatory.
+
+**Harness plan (the §2 "never left red" rule):**
+
+- `round4-tooltip.mjs` - the tooltip layout gate for the padding/chrome
+  change.
+- `c4b-breadcrumb` 17/17 - RETROFIT for the pseudo-element move (the one
+  script whose probes the chunk breaks by design).
+- Stay green untouched: `c3-spellbook` 26/26 · `chunkC3-journal` ·
+  `c2-layering` · `c1-world-map` (the z-scale is untouched; the map still
+  covers every - now inked - panel) · `c5-ability-bar` 30/30.
+- ⚑ The two scripts that probe the RESTYLED bars: `n1-shield-bar` 4/4 (it
+  asserts the exact `shieldIndicator` the bars bullet flags as
+  must-survive) and `c5-bars` - stay green, or get a budgeted retrofit if
+  the `overflow: hidden` well changes what they can read.
+- `mobile-layout.mjs` green except leg 7 (the documented HEAD baseline).
+- Known-red baselines stand (the CLAUDE.md list); ⚑ measure before
+  diagnosing any flake, and suspect the non-monotonic wall clock first on
+  any elapsed-time red.
+
+**Verification tail:** `npm test` · `npm run typecheck` · `npm run build` ·
+the harness set above · desktop + mobile screenshots (every re-chromed
+surface eyeballed) · PO look. **Schema NONE** - pure client.
 
 ## 6. Chunk ledger
 
