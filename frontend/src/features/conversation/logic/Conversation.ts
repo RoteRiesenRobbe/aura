@@ -153,6 +153,27 @@ function take(row: ConversationRow) {
 let confirmCountdown: Countdown | null = null;
 
 /**
+ * Disarm and hide the confirm row wherever it currently stands.
+ *
+ * ⚑ Called from TWO places, and the second is the point: askToConfirm's own
+ * Cancel/Confirm, and render()'s closed branch - the conversation closes
+ * because the server dropped the tree (range, combat, death, disconnect), and
+ * an armed countdown must not outlive the panel it belongs to (feedback
+ * 2026-08-30, ruled fix-now).
+ */
+function closeConfirmRow(): void {
+    confirmCountdown?.stop();
+    confirmCountdown = null;
+    const root = document.getElementById('confirmRow');
+    if (!root) {
+        return;
+    }
+    root.classList.add('hidden');
+    (root.querySelector('.confirmRowConfirm') as HTMLElement).onpointerdown = null;
+    (root.querySelector('.confirmRowCancel') as HTMLElement).onpointerdown = null;
+}
+
+/**
  * Put the delete dialog's countdown in front of an irreversible row.
  *
  * ⚑ The body is composed from what the panel ALREADY holds: the node's lines
@@ -172,17 +193,9 @@ function askToConfirm(row: ConversationRow, id: number, node: string): void {
     const confirm = root.querySelector('.confirmRowConfirm') as HTMLElement;
     const cancel = root.querySelector('.confirmRowCancel') as HTMLElement;
 
-    const close = () => {
-        confirmCountdown?.stop();
-        confirmCountdown = null;
-        root.classList.add('hidden');
-        confirm.onpointerdown = null;
-        cancel.onpointerdown = null;
-    };
-
     cancel.onpointerdown = (event) => {
         event.preventDefault();
-        close();
+        closeConfirmRow();
     };
     confirm.onpointerdown = (event) => {
         event.preventDefault();
@@ -191,7 +204,7 @@ function askToConfirm(row: ConversationRow, id: number, node: string): void {
         if (confirm.classList.contains('disabled')) {
             return;
         }
-        close();
+        closeConfirmRow();
         model.take(row);
         render();
         new InteractMessage(id, {
@@ -216,6 +229,8 @@ function render() {
             panelElement.classList.add('hidden');
             rowsElement.replaceChildren();
             renderedSignature = '';
+            // An armed countdown belongs to the conversation that armed it.
+            closeConfirmRow();
         }
         return;
     }
