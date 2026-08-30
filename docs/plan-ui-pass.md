@@ -1338,6 +1338,107 @@ edit a ruled block):
 
 ## 6. Chunk ledger
 
+### C7 - dialogue + journal restyle ✅ 2026-08-30 `70486cc0`
+
+Rulings D1-D4, the full spec and the ⭐ AMENDED block (the CSS-only finding
+plus the PO-look scrollbar) live in the §5 C7 section - detailed, ruled,
+built and played in one day. Shipped, all `frontend/` + one new harness
+script, built by an Opus 5 agent and reviewed line-by-line. Schema NONE,
+pure client.
+
+- **The conversation (D1)** wears the full `.ink-panel-header()`: the actor
+  name in `@gold-levelup` at weight 600, ✕ inside the strip, C6's ink body
+  below it. The interior extends the board's own vocabulary rather than
+  inventing forms - spoken lines italic on `@parchment`, `fade(@ink, 70%)`
+  row dividers where `@panel-row-divider` was, a parchment hover lift, and
+  Leave./Back as muted gold brightening to full gold on hover (the board's
+  accent for an interactive label). Every selector survived, the greyed
+  level-walled rows included.
+- **The journal interior** took the same swap: "Running"/"Completed" as the
+  spellbook's gold uppercase letterspaced label, ink dividers throughout,
+  hover and `.selected` as a parchment lift instead of a white wash, a
+  parchment detail title and objective line, the diary italic at 70 %
+  parchment, Abandon muted with a bright hover.
+- ⭐ **The tracker consolidation was CSS-ONLY, and that is the finding.**
+  The §5 block predicted a `QuestTracker.ts` render rewrite; the render
+  already emitted the D2 shape - a `.questTrackerTitle` div over a
+  `.questTrackerLine` div per `li` - because the 2026-08-23 tracker drew its
+  box around that same markup. So `#questTrackerList` itself BECAME the one
+  scrim (it already spans every quest, already hides at zero, and is already
+  the element the max-height cap scrolls), the per-quest `.panel-chrome()`
+  box died in the stylesheet, `align-self: stretch` gave the scrim the
+  tracker's width while the J button keeps the column's flex-end alignment,
+  and `text-align` flipped right → left. Only comments moved in
+  `QuestTracker.ts` and `HUD.html`. ⚑ Both budgeted landmines survive by
+  construction: `renderedSignature`'s early-out still guards the per-tick
+  rebuild, and the row handler is still `pointerdown`. **The durable lesson,
+  cheap to apply next time: read what the render already emits before
+  planning a rewrite of it.**
+- **D3 held - the scrim is PLAIN**: `@panel-bg`, 0.4rem radius, no ink
+  chrome and no wood inlay. The one panel that sits over live play at all
+  times keeps the lightest permanent footprint of the family, the ruled
+  exception to C6. D4's gold is per-quest, as ruled.
+- **`.panel-chrome()` is GONE** with its last caller - the mixin the pass has
+  been retiring since C1, so C7 is the chunk that closes it. Its three tokens
+  were re-checked rather than removed on reflex: `@panel-bg` feeds the new
+  scrim, and all three feed `HUD.mobile.less`'s pre-ink reverts. ⚑
+  `.panel-header-bar()` SURVIVES via `.worldMapHeader` - the world map is out
+  of scope, named in the spec so nobody "finishes the cleanup" by mistake.
+- **Mobile, two id-scoped reverts, both the C6 finding applied**: the header
+  strip goes back to its hairline-under-plain-title form
+  (`#conversation > .conversationHeader`), and the journal keeps
+  `@panel-row-divider` on its section and detail titles - the ink rule reads
+  as a drawn line on the desktop panel's moss field and as NOTHING on the
+  phone's 95 %-black one (measured on the C7 mobile screenshot: darker than
+  what it sits on). Both selectors carry the id, because a bare-class revert
+  loses to an id-scoped desktop rule silently.
+- ⭐ **The one PO-look change: the global scrollbar** (PO 2026-08-30,
+  "cooler and less invasive, rounded edges, subtle"). 8px wide, transparent
+  track and corner, a `fade(@wood, 50%)` thumb at 4px radius going to 80 % on
+  hover - authored once as a global `*::-webkit-scrollbar…` rule in the
+  always-loaded sheet, so the conversation body, both journal panes, the new
+  scrim and every future scroll region share it. ⚑ **Durable gotcha, kept in
+  the code comment: WebKit pseudo-elements ONLY.** In Chrome 121+ a non-auto
+  `scrollbar-width` OR `scrollbar-color` disables ALL `::-webkit-scrollbar`
+  styling, so the standards properties must never be added beside the
+  pseudos; Firefox keeps its default bar, accepted.
+- **Flagged at the look, all accepted by the play with no change asked**:
+  the scrim's 0.4rem radius against D2's "rectangular" · a mid-line clip
+  when the list hits the scroll cap · no box-level "Quests (n)" line (the
+  plan default, which the WoW reference image does carry).
+
+Verified, first-hand split stated: the build agent ran the sweep at its
+tree - vitest **571/571** (the 569 of C6 plus the two red-first `confirmRow`
+specs from `b3283a2f`; C7 adds none, since `questTrackerRows` never moved) ·
+tsc · prod build · the new **`c7-tracker` 10/10** (⚑ "boxless" is asserted as
+COMPUTED STYLE, not DOM structure - the list still renders one `li` per
+quest, so the claim that survives a re-render is that the entries paint no
+background and no border while the ul around them does; the click leg uses
+the SECOND quest deliberately, because the journal's own fallback selects the
+first) · `chunkC3-journal` 29 PASS + 1 documented SKIP · `c2-layering` 11/11 ·
+`c4b-breadcrumb` 17/17 · `round4-tooltip` all passed · the `c6-panel-chrome`
+and `c6-theme` look probes clean · `mobile-layout` green except the
+documented leg 7 · desktop + mobile screenshots of every touched surface.
+⚑ `chunk3b-ii-conversation` was run BEFORE the change on a clean tree (the C2
+discipline, baseline recorded first): **28/34 before and 28/34 after,
+identical FAIL set**, and its ✕ leg still passes on `SPAN.conversationLeave`
+now that the button lives inside the strip. ⚑ `chunkC4-quests`' 20/6/3 was
+SETTLED as pre-existing rather than chased - the §6 C3 ledger's
+stash-and-rerun line plus the mechanism: the script opens the journal once
+with KeyJ and C2's exclusivity closes it at the first `talkTo`, so every
+later detail read hits a closed panel; `chunkC3-journal` green proves the
+render itself healthy.
+
+⚑ **The wrap re-ran two scripts against a FRESH prod build**, because the
+scrollbar landed via HMR at the look and a 15px → 8px scrollbar changes every
+scroll container's client width: `c7-tracker` **10/10** and `round4-tooltip`
+**all passed**, both first-hand at the wrap, 0 console errors and 0 WebGL
+context losses. (The only `scrollbar-width` left in the bundle is SimpleBar's
+own vendor rule, scoped to the wrappers whose native bar it deliberately
+hides - not a conflict with the global pseudos.) ⭐ **PO played 2026-08-30,
+"all good" - ZERO change requests on the built surfaces**; the scrollbar was
+the session's single addition, applied and re-verified the same day.
+
 ### C6 - panel chrome rollout ✅ 2026-08-30 `a2a1595b`
 
 Rulings D1-D5 and the full board-ratified spec live in the §5 C6 section
