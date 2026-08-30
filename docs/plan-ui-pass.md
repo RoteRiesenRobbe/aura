@@ -1181,6 +1181,70 @@ surface eyeballed) · PO look. **Schema NONE** - pure client.
 
 ## 6. Chunk ledger
 
+### C6 - panel chrome rollout ✅ 2026-08-30 `a2a1595b`
+
+Rulings D1-D5 and the full board-ratified spec live in the §5 C6 section
+(detailed + ruled in its own session, same day). Shipped, all `frontend/` +
+one harness retrofit + one new look probe, built by an Opus 5 agent and
+reviewed line-by-line - ⭐ **the review caught a real bug** (below). Schema
+NONE, pure client CSS.
+
+- **The rollout as ruled:** `.ink-panel-chrome()` onto `#conversation`
+  (body only, D2), `#spellbook` + `#help` (both with the wood header strip,
+  wrap-never-rename - badge and `#respecButton` ride inside the spellbook's
+  strip untouched) and `#gameSettingsPanel` (D3, no header); the tooltip as
+  the opaque panelC variant (C2 D3 landed); `#confirmRow` inked by hand so
+  its warning-red danger border survives; the four HUD buttons on the
+  board's `.btnC` with 19px `.keyC` hotkey chips; both bars as ink-outlined
+  pills (999px radius - neither bar authors a height, and 180deg gradients
+  mean the JS x-scale cannot distort them); the minimap's double ink ring.
+  **D1 held**: `.panel-chrome()` survives with exactly ONE caller,
+  `.questTrackerQuest`, until C7 replaces that structure.
+- **Structural moves, both reversible:** the two ink mixins live in
+  `variables.less` now - every feature sheet is its own LESS entry
+  (`gameSettings.less` imports variables, not HUD.less), and parametric
+  mixins emit no CSS so the double-import rule holds. New
+  `.hud-key-chip(@size, @font)` = the board's `.keyC`; C5's slot chip now
+  CALLS it at `@slot-hotkey`/11px (the C4 re-size-never-restate rule
+  applied to the second reused component).
+- **The breadcrumb pulse rides `::after` now** (forced: `.btnC` keeps its
+  wood inlay in box-shadow, and the old element-level keyframe stripped it
+  every cycle - probe-proven both ways: inlay intact mid-pulse under the
+  overlay, and the D4 4-state matrix shows glow-only on a fresh row). Four
+  `position: relative` landing spots are load-bearing;
+  `c4b-breadcrumb.mjs`'s two animation-state probes read the pseudo now.
+- ⭐ **The review-caught bug - a mobile reset must OUT-RANK what it
+  reverts:** the phone's hotkey-chip revert was authored as a bare class
+  under `html.mobile` (0,2,1), and the desktop chip rule is id-scoped
+  `#journalButton > .journalButtonHotkey` (1,1,0) - an id beats any pile of
+  classes, so the ink chip silently persisted in the ☰ sheet. Fixed with
+  the id in the revert selector, probe-proven on both twins. ⚑ The trap has
+  a second face: `querySelector('.journalButtonHotkey')` reads the FIRST
+  match in DOM order, which is the tracker's HIDDEN copy - a style dump can
+  green-light the wrong twin, so the settle was a targeted probe of both.
+- **Deviations flagged at the look, ALL PO-approved with zero change
+  requests** (the pass's first such chunk): minimap margins +9px so the
+  outer ring clears the viewport · its rim ink-filled (the spec left a
+  hole) · the ring passing ~13px behind `#mapButton` · the 19px chips ·
+  `.hasPoints` recoloring a 2.5px border · the darker XP gradient (board
+  literals) · settings padding via the mixin · the mobile `.cdSweep` rider
+  as a partial fix (~3px residual spill, `inset: -3px` kept).
+- ⚑ **Surfaced at the look, not caused** (new intake → `docs/feedback.md`,
+  PO-ruled fix-now same session): an armed `#confirmRow` outlives the
+  conversation - `render()`'s closed branch hides the panel but never
+  touches the confirm row or its countdown.
+
+Verified, first-hand split stated: the build agent ran the sweep at its
+tree - `c2-layering` 11/11 · `c1-world-map` 12/12 · `c5-ability-bar` 30/30
+· `chunkC3-journal` · `c5-bars` · `round4-tooltip` · `c3-spellbook` 26/26 ·
+stash-proof that `mobile-layout` leg 7's 3 reds are byte-identical at HEAD.
+The coordinator re-ran post-fix: vitest **569/569** · tsc · prod build ·
+`c4b-breadcrumb` **17/17** · `n1-shield-bar` **4/4** · `mobile-layout`
+green except the documented leg 7 · the `c6-panel-chrome` look probe ×2 +
+a targeted chip probe · desktop + mobile screenshots eyeballed (the
+desktop sweep carries over: the one post-sweep change is `html.mobile`-
+scoped). ⭐ **PO played 2026-08-30, everything checked out.**
+
 ### C5 - the ONE ability bar ✅ 2026-08-29 `cc5ebe8f`
 
 Rulings D1-D2, the full spec and the ⭐ AMENDED block (the two PO-look

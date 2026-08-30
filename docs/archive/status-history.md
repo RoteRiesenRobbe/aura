@@ -10,6 +10,8 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+- **Prior: UI PASS C4 - SKILL ICONS** ✅ 2026-08-28, `1400e4fc` (ledger: `docs/plan-ui-pass.md` §6 C4; spec + rulings §5 C4): all 72 `api/skills` definitions author `icon: "author/name"` (game-icons.net), served through the `/skills` catalog via a one-field Go rider (the `displayName` precedent; mob-embedded skills serve `""`) - ⭐ **D1 all 72** incl. cheat rigs · **D2 spellbook rows** the visible surface · **D3 functional placeholder VOCABULARY** (33 glyphs vs the ruled ~15-25, deviation flagged + PO-approved; all to be replaced). New **`.ink-token`** is the ONE direction-C glyph treatment - C5 re-sizes it, never restates it; `IconToken.ts` falls back to an initial letter. Pipeline: `scripts/fetch-skill-icons.mjs` vendors stripped SVGs (`currentColor` tint, no runtime HTTP, CC BY NOTICE); completeness pinned twice (Go content test + `SkillIcons.test.ts`). Recall/Camp ride `UTILITY_ICONS` (exact-set pin, Ascend absent by design). ⚑ SURFACED pre-existing: 3 census tests in `items/mobs` red at HEAD (Martin NPC) - unowned, see Open items. **Schema NONE** (⚑ first non-pure-client UI chunk: content + Go + client). Verified: vitest 543/543 · tsc · prod build · `go test -count=1` (skills, cmd/aurad) · `c3-spellbook` 26/26 held · new `c4-skill-icons` 6/6 · mobile probe. Opus-built, reviewed line-by-line; ⭐ PO approved 2026-08-28.
+
 
 *(2026-08-29, later: UI-pass C5's wrap rotated the cap, so UI PASS C3 moved here verbatim.)*
 
