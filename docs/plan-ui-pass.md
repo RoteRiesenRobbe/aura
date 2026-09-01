@@ -419,7 +419,9 @@ Derived from §4 Phase 2's dependency shape plus the two §2 sequencing rules
   per-quest boxes; PO 2026-08-26). (Detailed + ruled below, 2026-08-30 -
   the tracker shape re-ruled at the session: a WoW-classic text list on a
   plain scrim, superseding the §2 "holds the journal header" wording.)
-- **C8 - tooltip maintenance debt** (the three §2 shapes).
+- **C8 - tooltip maintenance debt** (the three §2 shapes). (Detailed +
+  ruled below, 2026-09-01 - the survey reframed it: no live gaps at HEAD,
+  so pins + the served `description` field, not gap-filling.)
 - **C9 - mobile** (☰-sheet nag, the two "J Journal" nodes, marker sizing,
   `MOBILE_MAX_RESOLUTION` if perf asks).
 - **C10 - boot-to-game surfaces** (§2's list).
@@ -1335,6 +1337,136 @@ edit a ruled block):
    `HUD.less` so every scroll region - the conversation body, both journal
    panes, the new tracker scrim - shares it. ⚑ Its gotcha is in the code
    comment and the §6 banner: **WebKit pseudo-elements ONLY.**
+
+### C8 - tooltip maintenance debt (detailed + ruled 2026-09-01)
+
+**Deliverable:** close the three §2 tooltip-debt shapes. ⭐ **The survey
+REFRAMED the chunk before ruling: shapes 2 and 3 have NO live gaps at
+HEAD** - every count re-derived from disk this session, because the §2
+write-up (2026-07-29) has drifted and stays as-written per the
+annotate-never-edit rule:
+
+- The client `effectBlock()` switch carries **34 cases == the server
+  `effectTypeMap`'s 34 names** (§2 says 24; 33 are authored across
+  `api/skills/**`, plus the utility-only `recall`).
+- `STAT_LABELS` covers **all 6** `validStats` (the costReduction gap §2
+  names was closed at round 7).
+- `GATE_KEY_LINES` (§2's stale name `GATED_TAG_LINES`) covers both members
+  of the CLOSED `GateKeys` set (`smash`, `harvest`).
+- `SELECTOR_LABELS`' raw-enum fallback is **unreachable for served data**:
+  `catalog.go`'s `reverseNames()` derives wire strings from the same parse
+  maps, so only valid names ever leave the server.
+- `TICKING_TYPES` (8 members) == the `costChargeTrigger` key set in
+  `api/shared-constants.json` exactly - this closes the CLAUDE.md unowned
+  leftover "`TICKING_TYPES` silent-failure set" (wrap job: retire that
+  line).
+
+So shapes 2/3 need **pins, not fixes**: the drift class is real (the §2
+counts themselves drifted), the defense is the ratified §35-C4c
+shared-constants contract pattern, extended. Shape 1's §2 direction
+("data the server already resolved, rendered generically, the `2fffe9ee`
+shape") is **unexecutable as written**: the faction-scope line worked
+because an authored datum existed; the ruling sentences (calm, charm,
+stun, retaliate, lifesteal) describe hardcoded type semantics with no
+authored datum behind them, and inventing parameters to carry them is
+YAGNI. The ruled fix is §2's own named partial fix: **author the prose as
+skill content**. **Schema NONE** - the `description` field rides the
+existing HTTP catalog JSON; no FlatBuffers change, no DB.
+
+**Rulings (PO 2026-09-01, choice prompts):**
+
+- **D1 - THE RULING PROSE BECOMES A SERVED `description` FIELD**, an
+  optional per-skill string in the skill JSON, catalog-served, rendered
+  as one prose block per skill. **Prose-only by the same ruling**: the
+  field cannot carry live or scaled numbers (no placeholder/template
+  system in C8 - explicitly out of scope); every number-bearing line
+  stays auto-generated so retune survival (the chunk-1 thesis) is
+  untouched. Ruled with the tradeoff named: duplication across skills
+  sharing a mechanic (the charm pair) is normal content duplication.
+- **D2 - THE DESCRIPTION RENDERS UNDER THE SUBTITLE**, before the effect
+  blocks: plain-language "what does this do" first, then the numbers
+  (the reverse of the WoW flavor-text-at-bottom convention, chosen
+  deliberately for a game whose mechanics are undocumented in-game).
+- **D3 - ONE FIELD, SHARED WITH C11.** The C11 "flavor descriptions"
+  line item and this field are the same thing; C11 authors more of them,
+  it does not add a second field.
+- **D4 - OWN EXECUTION SESSION.** C8 is one chunk, planned here, built
+  in its own session.
+
+**Plan defaults (stated, not asked):**
+
+- **The pin design** (the §35-C4c pattern verbatim, no new machinery):
+  `api/shared-constants.json` gains `effectTypes`, `selectors`,
+  `gateKeys` and `statNames` lists. The Go twin
+  (`shared_constants_test.go`) pins each against `effectTypeMap` /
+  `selectorMap` / `GateKeys` / `validStats`, exhaustive BOTH directions.
+  The client twin (`SharedConstants.test.ts`) pins `STAT_LABELS`,
+  `GATE_KEY_LINES` and `SELECTOR_LABELS` against the same lists, plus a
+  fixture-per-type render sweep through `formatSkillTooltip`: every
+  effect type in the list renders WITHOUT the `default:` fallback line
+  (no `(type)` output, no console.warn). `TICKING_TYPES` is pinned ==
+  the `costChargeTrigger` key set. `EFFECT_COLOR_KEYS` is partial BY
+  DESIGN, so it gets a **partition pin**: colored keys plus a named
+  deliberately-neutral list must equal all effect types, disjoint - a
+  new type then fails vitest until someone decides its tint.
+- **Per-sentence disposition** - ⚑ only STANDALONE prose moves;
+  number-bearing lines stay generated even when they sit adjacent:
+  - calm: `'Any damage breaks it — including your own aura'` moves.
+  - charm: `'It keeps its own level, and turns on you when the charm
+    ends'` moves.
+  - stun: the duration line ("Holds one enemy for X…") is
+    number-bearing and **STAYS generated**; only `'Damage does not
+    break it'` moves.
+  - retaliate_slow / retaliate_damage: `'Being hit is enough — it fires
+    even when the hit is fully absorbed'` moves (both call sites).
+  - retaliate_burst: `'The share is of the hit as thrown, before your
+    own mitigation'` moves.
+  - lifesteal_burst: `'Works with whichever aura you have on'` moves.
+- ⚑ **The per-TYPE → per-SKILL shift is a real coverage step, not a
+  refactor detail.** Today the switch prints the sentence for EVERY
+  skill carrying the type; after the move, a skill without an authored
+  description silently loses its explanation. The census at spec time:
+  **10 authored skills** carry an affected type (`bloodthirst`, `calm`,
+  `charm-beast`, `charm-elemental`, `fire-shield`, `frost-shield`,
+  `omni-passive`, `omni-strike`, `paralyze`, `retribution`), none under
+  `mobs/`. The build re-derives this census from disk and authors every
+  one (the omni test rigs and the mob-cast `paralyze` included - cheap,
+  and it keeps the invariant simple: affected type ⇒ description).
+- **Rendering** - one block, once per skill regardless of effect count,
+  directly under the `Category · Lv X/Y` subtitle; styling default is
+  the journal's diary treatment (italic, slightly muted parchment), the
+  PO look judges it. Line-wraps within today's tooltip width.
+- **Test updates** - the per-type describes in `SkillTooltip.test.ts`
+  assert the moving sentences verbatim; those assertions follow the
+  sentences (fixture skills gain a `description`, the assertion checks
+  the description block renders where D2 says). Red-first where a seam
+  exists.
+- **Content pipeline** - the field lands in `definition.go`'s skill
+  struct + the 10 JSONs; `make -C backend cp-defs` (or `-content
+  ../api`) after JSON edits, and ⚑ `go test -count=1` - a content edit
+  does not invalidate the Go test cache.
+
+**Harness plan (the §2 "never left red" rule):**
+
+- `round4-tooltip.mjs` is the layout gate - expected green; budgeted
+  retrofit if the new description block shifts an asserted line.
+- The pins themselves are vitest + `go test` surfaces, no new Playwright
+  script - C8's runtime change (one prose block) is too small to earn
+  one; `round4-tooltip` covers the composition.
+- Stay green untouched: `c6-panel-chrome` · `c6-theme` · `c7-tracker` ·
+  `chunkC4-quests` baseline.
+- Known-red baselines stand (the CLAUDE.md list) - ⚑ including the
+  **3 census tests in `pkg/aura/items/mobs` RED at HEAD** (the Martin
+  NPC counts): the Go tail will not be fully green and that is NOT a C8
+  regression. Measure before diagnosing any flake.
+
+**Verification tail:** `npm test` (both pin twins green) · `npm run
+typecheck` · `npm run build` · `cd backend && go test -count=1 ./...`
+(modulo the census-red baseline) · `round4-tooltip` · in-game PO look at
+a described tooltip (Calm or FrostShield) for the D2 placement.
+**Schema NONE** (wire = the HTTP catalog JSON only). **Wrap jobs:**
+retire the CLAUDE.md "`TICKING_TYPES` silent-failure set" leftover line;
+note in the §2 debt block that C8 closed it.
 
 ## 6. Chunk ledger
 
