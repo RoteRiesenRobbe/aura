@@ -8,6 +8,7 @@
   "maxLevel": 5,
   "cooldownTicks": 900,
   "cooldownTicksPerLevel": -60,
+  "description": "The share is of the hit as thrown, before your own mitigation.",
   "effects": [
     {
       "type": "retaliate_burst",

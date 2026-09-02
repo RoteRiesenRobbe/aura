@@ -6,6 +6,7 @@
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 3600,
+  "description": "It keeps its own level, and turns on you when the charm ends.",
   "targetFactions": ["wildlife_prey", "wildlife_predator"],
   "effects": [
     {

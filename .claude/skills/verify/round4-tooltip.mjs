@@ -5,6 +5,13 @@
 //
 // Drives: join → SKILL Rejuvenation → hover in the spellbook (level 1) →
 // XP to the cap → hover again. The two tooltip texts must differ by the curve.
+//
+// UI pass C8 leg (2026-09-02): a DESCRIBED skill (Frost Shield) renders its
+// served `description` as ONE `.tooltipDescription` child directly under the
+// subtitle (ruling D2), with the sentence absent from the generated lines, and
+// an undescribed skill (Rejuvenation, the hovers above) grows no such child.
+// This is the only durable browser eye on the block: the formatter's unit
+// tests see `content.description`, never the DOM.
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -152,6 +159,60 @@ if (atLevel1 && atLevel30) {
   }
   if (!/→/.test(atLevel30)) {
     fail('29 unspent points and still no next-level preview: ' + atLevel30);
+  }
+}
+
+// --- C8: the served description block (plan-ui-pass.md §5 C8, D1/D2) ---------
+if (atLevel30 && /tooltipDescription/.test(await page.evaluate(() =>
+    [...document.querySelectorAll('#skillTooltip > *')].map(c => c.className).join(' ')))) {
+  fail('Rejuvenation authors no description, yet its tooltip carries a .tooltipDescription child');
+}
+await page.mouse.move(10, 10);
+await runCommand('SKILL FrostShield');
+await page.waitForTimeout(800);
+const frostId = (await page.evaluate(() =>
+  [...document.querySelectorAll('#spellbookList [data-skill-id]')]
+    .map(e => ({ id: e.dataset.skillId, text: e.textContent }))
+    .find(e => /Frost Shield/i.test(e.text)) || {})).id;
+if (!frostId) {
+  fail('Frost Shield not in the spellbook after SKILL FrostShield');
+} else {
+  await showSkillRow(page, frostId);
+  const row = page.locator(`#spellbookList [data-skill-id="${frostId}"]`).first();
+  await row.scrollIntoViewIfNeeded();
+  await row.hover();
+  await page.waitForTimeout(400);
+  const described = await page.evaluate(() => {
+    const tip = document.querySelector('#skillTooltip');
+    if (!tip || tip.classList.contains('hidden')) return null;
+    return [...tip.children].map(c => ({ cls: c.className, text: c.textContent }));
+  });
+  console.log('Frost Shield tooltip children:', JSON.stringify(described));
+  await page.screenshot({ path: join(outdir, 'tooltip-described.png') });
+  // The served text, read off the catalog rather than typed here, so a
+  // re-authored sentence does not turn this leg red.
+  const served = await page.evaluate(async () => {
+    const payload = await (await fetch('http://localhost:2000/skills')).json();
+    return payload.skills.find(s => s.name === 'FrostShield')?.description ?? null;
+  });
+  if (!served) {
+    fail('GET /skills serves no description for FrostShield');
+  } else if (!described) {
+    fail('no tooltip rendered on the Frost Shield hover');
+  } else {
+    // D2: title, subtitle, THEN the prose, then the numbers.
+    if (described[2]?.cls !== 'tooltipDescription') {
+      fail('the description is not the third tooltip child (D2): ' + described.map(c => c.cls).join(' > '));
+    }
+    if (described[2]?.text !== served) {
+      fail(`description text "${described[2]?.text}" ≠ served "${served}"`);
+    }
+    if (described.slice(3).some(c => c.text === served)) {
+      fail('the description sentence ALSO renders as a generated line');
+    }
+    if (described.filter(c => c.cls === 'tooltipDescription').length !== 1) {
+      fail('expected exactly one .tooltipDescription child');
+    }
   }
 }
 

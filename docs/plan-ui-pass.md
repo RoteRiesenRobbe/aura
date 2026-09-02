@@ -57,6 +57,15 @@ numbers, not for words. Three shapes, worst first:
 3. **24 `case` clauses vs 24 authored effect types** - the `default:` tripwire
    fires in a browser at runtime, not at build.
 
+⭐ **CLOSED by C8 (2026-09-02, §5 C8 + §6 C8).** The counts above had drifted
+by the time C8 surveyed them (34 cases == 34 types; `STAT_LABELS` complete
+since round 7; `GATE_KEY_LINES` is the current name), and no live gap
+existed - so shapes 2 and 3 got PINS (four vocabulary lists in
+`api/shared-constants.json`, Go + vitest twins, a per-type render sweep, two
+partition pins), and shape 1 got its own named partial fix: the seven
+ruling sentences now ride a served per-skill `description` field. The
+`TICKING_TYPES` set is pinned == the `costChargeTrigger` key set.
+
 ### From playtest round 9 (was `plan-playtest-feedback.md` §Intake)
 
 - **Cleaner UI + cleaner dialogue UI** (round 9 item 2; the font half is
@@ -421,7 +430,8 @@ Derived from §4 Phase 2's dependency shape plus the two §2 sequencing rules
   plain scrim, superseding the §2 "holds the journal header" wording.)
 - **C8 - tooltip maintenance debt** (the three §2 shapes). (Detailed +
   ruled below, 2026-09-01 - the survey reframed it: no live gaps at HEAD,
-  so pins + the served `description` field, not gap-filling.)
+  so pins + the served `description` field, not gap-filling. Built
+  2026-09-02, ledger §6.)
 - **C9 - mobile** (☰-sheet nag, the two "J Journal" nodes, marker sizing,
   `MOBILE_MAX_RESOLUTION` if perf asks).
 - **C10 - boot-to-game surfaces** (§2's list).
@@ -1469,6 +1479,114 @@ retire the CLAUDE.md "`TICKING_TYPES` silent-failure set" leftover line;
 note in the §2 debt block that C8 closed it.
 
 ## 6. Chunk ledger
+
+### C8 - tooltip maintenance debt ✅ 2026-09-02 `[uncommitted]`
+
+Rulings D1-D4 and the full spec live in the §5 C8 section (detailed + ruled
+2026-09-01, built the next day in its own session per D4). Two Opus 5 agents
+in parallel on a strict file partition (server + content · client), the
+shared-constants lists written first by the orchestrating session so neither
+agent touched the file both read; every line reviewed. **Schema NONE**: the
+`description` field rides the existing HTTP catalog JSON, no FlatBuffers
+change, no DB.
+
+- **The spec held at HEAD, count for count**: `effectTypeMap` 34 == 34
+  client `case` clauses · `validStats` 6 == `STAT_LABELS` 6 ·
+  `GateKeys` 2 == `GATE_KEY_LINES` 2 · `TICKING_TYPES` 8 ==
+  `costChargeTrigger` keys 8 · the census of skills carrying an affected
+  type re-derived from disk = exactly the spec's 10 (`bloodthirst`, `calm`,
+  `charm-beast`, `charm-elemental`, `fire-shield`, `frost-shield`,
+  `omni-passive`, `omni-strike`, `paralyze`, `retribution`; none under
+  `mobs/`). Two refinements the spec did not name, both applied: the
+  `SELECTOR_LABELS` table deliberately lacks `all` (that selector is phrased
+  by `targetsLine`'s "all X in range" branch), so it is a PARTITION pin like
+  `EFFECT_COLOR_KEYS`, not an equality; and the Go pin for the UNEXPORTED
+  `effectTypeMap` / `selectorMap` / `validStats` lives in
+  `pkg/aura/skills/shared_constants_test.go` (the accounts-codes precedent),
+  not in `cmd/aurad`'s twin.
+- **D1 - the served field.** `Description` on both Go structs (⚑ the private
+  parse struct too: skill-level JSON is parsed without
+  `DisallowUnknownFields`, so a missing field there silently drops the
+  authored text), `omitempty` on the served one so an undescribed skill
+  carries NO key (pinned in `catalog_test.go` as the deliberate contrast
+  with `icon`, which serves `""`). Client: `SkillDefinition.description?`,
+  `TooltipContent.description?` (optional so `Utilities.ts`' own producer
+  stays untouched), `formatSkillTooltip` passes it straight through.
+- **D2 - rendered under the subtitle**, one `.tooltipDescription` div
+  between `.tooltipSubtitle` and the first `.tooltipLine`, only when
+  authored; italic `fade(@parchment, 70%)` at the body size (the diary
+  treatment, deliberately NOT the journal's own font size - the prose and
+  the numbers under it are one size), `margin-bottom: 0.4rem` groups the
+  lines away from it. `#skillTooltip`'s existing `max-width: 26rem` wraps
+  it (Frost Shield's sentence = two lines at 1600×900). No mobile twin
+  needed: `HUD.mobile.less` never scopes `#skillTooltip` children.
+- **The seven sentences left `effectBlock()`** (retaliate's fires from two
+  sites): calm, charm, stun's "Damage does not break it" (⚑ its
+  number-bearing duration line STAYS generated), both retaliates,
+  retaliate_burst, lifesteal_burst. `git diff`'s non-comment removals are
+  exactly those seven `lines.push` calls plus five `const` → `export const`
+  declarations. The ten JSONs author the prose (derived from each file's
+  own `_comment`, no digits, no em dashes; the omni rigs get a "Cheat-only
+  test rig." lead-in, OmniStrike's covering all five of its rulings at 211
+  chars - a rig, accepted).
+- **The pins (shapes 2 + 3), the §35-C4c pattern extended**:
+  `api/shared-constants.json` gains `effectTypes`, `selectors`, `gateKeys`,
+  `statNames` (+ `_skillVocabularyComment`). Go: five tests, `ElementsMatch`
+  both directions, `costChargeTrigger` ⊂ `effectTypes` as the tie. Client
+  (`SharedConstants.test.ts`, seven tests): `STAT_LABELS` ==, `GATE_KEY_LINES`
+  ==, `SELECTOR_LABELS` ∪ `SELECTORS_PHRASED_ELSEWHERE` (`['all']`) ==
+  disjoint, `TICKING_TYPES` == `costChargeTrigger` keys, `EFFECT_COLOR_KEYS` ∪
+  `NEUTRAL_EFFECT_TYPES` (13, derived from disk; ⚑ `stun` is tinted `slow` on
+  purpose) == disjoint, a fixture-table key-set pin, and the RENDER SWEEP:
+  every type through `formatSkillTooltip` with a `console.warn` spy, no
+  `(type)` line. ⚑ The sweep needs payload-COMPLETE fixtures - the cases
+  dereference `effect.calm`, `effect.stun`, `effect.damage`…, so a bare
+  `{type}` throws instead of reaching `default:`; the table is pinned first
+  so a new type fails by NAME. Mutation-proven both sides (an
+  `effectTypeMap` key rename → both-direction red; `case 'revive'` →
+  `'revivex'` → "revive fell through to the unknown-type branch").
+- **Verified**: vitest **580/580** (571 + 9, the description tests red-first)
+  · `tsc` silent · prod build · `go test -count=1 ./...` 34 packages ok, the
+  ONLY reds the 3 known Martin-census baselines in `pkg/aura/items/mobs`
+  (each names `Martin` as its single extra element; unchanged from HEAD) ·
+  `make -C backend build` + restart (PID moved), `GET /skills` serves the 10
+  descriptions verbatim and Rejuvenation carries no key · `round4-tooltip`
+  ALL CHECKS PASSED on the fresh `dist`, first as shipped (its Rejuvenation
+  hover is undescribed, so no line shifted) and again WITH the new C8 leg
+  below (Frost Shield: title · subtitle · description · one line) · a session probe hovered Frost Shield,
+  Calm and Rejuvenation: `.tooltipDescription` is the THIRD child on the two
+  described skills, italic, `rgba(236,220,182,0.7)`, the sentence absent from
+  the lines below, and absent entirely on Rejuvenation; screenshots taken ·
+  `r3-lifesteal-burst` 7/7 (the ONE harness script that asserts a moved
+  sentence, at its line 133 - it reads all `#skillTooltip` children joined,
+  so the description block satisfies it unchanged; no other verify script
+  names any of the seven) · `c2-frost-shield` 7/7 and `c3-paralyze` 6/6
+  (the two scripts that hover a now-DESCRIBED skill; both read the tooltip's
+  whole `textContent`, so the extra child is invisible to them;
+  `c2a-ascension-site` leg 5b reads title/subtitle by class + total length,
+  unaffected by construction). ⚑ A first `round4-tooltip` attempt died at
+  `#characterCreation` while the probe was joining concurrently; re-run
+  alone it passed - run the tooltip scripts one at a time.
+- ⭐ **The spec's "`round4-tooltip` covers the composition" was FALSE as
+  written**: that script hovers Rejuvenation, which authors no description,
+  so the block had zero durable browser coverage (the session probe above
+  dies with the scratchpad). Fixed in-chunk, the budgeted retrofit: the
+  session probe became a C8 LEG of `round4-tooltip.mjs` - `SKILL
+  FrostShield`, hover, `.tooltipDescription` is the THIRD child, its text ==
+  the catalog's served `description` (read off `GET /skills` in the leg, so
+  a re-authored sentence stays green), the sentence absent from the lines,
+  exactly one such child; and the undescribed Rejuvenation hover asserts NO
+  such child. Coverage-map row updated in the `verify` skill. The fixture's
+  top-level `_comment` now names BOTH Go pin homes.
+- **Wrap jobs done**: the CLAUDE.md "`TICKING_TYPES` silent-failure set"
+  leftover RETIRED · the §2 debt block annotated CLOSED (its stale counts
+  left as written) · the §5 order list ticked · [[project-ui-pass]] gained
+  the C8 lessons. ⭐ **PO played 2026-09-02 on the new build: "everything
+  works", ZERO change requests** - the D2 placement and the italic weight
+  both accepted as built. Two unrelated bug reports came out of the same
+  play (orphaned tooltip on the last teaching row; the shut book's unlock
+  breadcrumb reading as no VFX) - captured in `docs/feedback.md`, fix
+  options presented, the rulings are the PO's.
 
 ### C7 - dialogue + journal restyle ✅ 2026-08-30 `70486cc0`
 

@@ -9,6 +9,7 @@
   "cooldownTicksPerLevel": -10,
   "castTicks": 30,
   "castInterruptedByDamage": false,
+  "description": "Cheat-only test rig. Its calm breaks on any damage, its stun does not, a charm keeps the mob's own level and ends by turning on you, its leech follows whatever aura is on, and its reflect shares the hit as thrown.",
   "targetFactions": [
     "aligned",
     "bandit",

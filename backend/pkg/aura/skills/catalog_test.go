@@ -33,6 +33,7 @@ var catalogTestFS = fstest.MapFS{
 		"name": "LongRangeStrike",
 		"displayName": "Long-Range Strike",
 		"icon": "lorc/broadsword",
+		"description": "Reaches further than it looks.",
 		"category": "active_aura",
 		"maxLevel": 5,
 		"effects": [{
@@ -167,6 +168,26 @@ func TestCatalogJSON_Icons(t *testing.T) {
 	// (D1) serves one, and the client treats it as "no glyph".
 	if got, ok := entries[1]["icon"]; !ok || got != "" {
 		t.Errorf("NovaBurst icon = %v (present %v), want empty string", got, ok)
+	}
+}
+
+// The description rides the catalog the way displayName and icon do (UI pass
+// C8, D1): standalone design-ruling prose, authored per skill, served verbatim.
+// ⚑ The contrast with the icon test above is the point of `omitempty`: an
+// unauthored icon serves as the empty string, an unauthored description serves
+// NO KEY at all, so the client renders no block rather than an empty one.
+func TestCatalogJSON_Descriptions(t *testing.T) {
+	data, err := CatalogJSON(catalogTestRegistry(t), catalogTestCurve)
+	if err != nil {
+		t.Fatalf("CatalogJSON: %v", err)
+	}
+	entries := decodeCatalog(t, data)
+
+	if got := entries[2]["description"]; got != "Reaches further than it looks." {
+		t.Errorf("LongRangeStrike description = %v, want %q", got, "Reaches further than it looks.")
+	}
+	if got, ok := entries[1]["description"]; ok {
+		t.Errorf("NovaBurst description = %v, want the key to be absent entirely", got)
 	}
 }
 

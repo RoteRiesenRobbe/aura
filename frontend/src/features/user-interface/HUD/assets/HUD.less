@@ -1608,6 +1608,18 @@
 		font-size: 1.25rem;
 		margin-bottom: 0.35rem;
 	}
+
+	// The served per-skill prose (UI pass C8, D1/D2), between the subtitle and
+	// the effect lines. Styled as the journal's diary treatment - italic,
+	// muted parchment - so it reads as authored voice rather than as another
+	// generated stat line. Body font size (inherited), not the journal's own:
+	// this is the tooltip's prose, and the numbers below it are the same size.
+	// The bottom margin is what groups the effect lines away from it.
+	> .tooltipDescription {
+		font-style: italic;
+		color: fade(@parchment, 70%);
+		margin-bottom: 0.4rem;
+	}
 }
 
 // Journal panel (plan-quests.md chunk C3, D7/D16; two-pane since

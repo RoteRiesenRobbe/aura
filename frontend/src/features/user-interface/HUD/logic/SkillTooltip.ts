@@ -49,12 +49,23 @@ export interface TooltipLine {
 export interface TooltipContent {
     title: string;
     subtitle: string;
+    // The skill's authored prose block (C8 D1), rendered under the subtitle and
+    // above the numbers (D2). Optional because it is authored per skill and
+    // absent on most of them - and because the utility tooltips build a
+    // TooltipContent of their own that has no such field to fill.
+    description?: string;
     lines: TooltipLine[];
 }
 
 // Effect type → the shared ring/pip color table (AuraRings.ts). Types without
 // an entry (spawn, taunt, recall, dash, …) stay in the neutral text color.
-const EFFECT_COLOR_KEYS: { [type: string]: keyof typeof AURA_CATEGORY_COLORS } = {
+//
+// Partial BY DESIGN, so C8 pins it as a PARTITION: these keys plus
+// NEUTRAL_EFFECT_TYPES below must together be exactly the authored effect-type
+// list in api/shared-constants.json (SharedConstants.test.ts). A new type then
+// fails vitest until somebody has decided its tint - including the decision to
+// leave it neutral.
+export const EFFECT_COLOR_KEYS: { [type: string]: keyof typeof AURA_CATEGORY_COLORS } = {
     damage_aura: 'damage', instant_damage: 'damage',
     dot_aura: 'dot', instant_dot: 'dot',
     heal_aura: 'heal', self_heal: 'heal', hot_aura: 'heal', instant_hot: 'heal',
@@ -73,6 +84,20 @@ const EFFECT_COLOR_KEYS: { [type: string]: keyof typeof AURA_CATEGORY_COLORS } =
     // rendered the aura green and its own cooldown twin in neutral text.
     speed_aura: 'speed', speed_burst: 'speed',
 };
+
+// The other half of the partition: effect types deliberately left in the
+// neutral text colour, because there is no ring or pip whose vocabulary they
+// would be matching. Two kinds of member - placements and movement (spawn,
+// spawn_at_anchor, projectile, recall, dash, revive), and effects whose subject
+// is the player's own bookkeeping rather than a field in the world
+// (stat_multiplier, tick_rate, taunt, detaunt, calm, charm, lifesteal_burst).
+//
+// ⚑ `stun` is NOT here: it is tinted `slow` on purpose, the CC vocabulary.
+export const NEUTRAL_EFFECT_TYPES: string[] = [
+    'stat_multiplier', 'spawn', 'spawn_at_anchor', 'projectile',
+    'taunt', 'detaunt', 'recall', 'revive', 'dash', 'tick_rate',
+    'calm', 'charm', 'lifesteal_burst',
+];
 
 // The Focus color (F7): the health bar's own fill (vitalSigns.less
 // @focus-color), so a cost line points at the bar it drains. The resource has a
@@ -144,7 +169,10 @@ const CATEGORY_LABELS: { [category: string]: string } = {
 // One entry per stat the server dispatches in recomputeDerived — a stat
 // missing here renders its raw JSON key on screen (how Discipline shipped
 // reading "costReduction: +6%", round-7 item 10).
-const STAT_LABELS: { [stat: string]: string } = {
+// Pinned exhaustively against api/shared-constants.json's statNames
+// (SharedConstants.test.ts, C8), which the Go twin asserts against
+// skills.validStats - so a new stat cannot land label-less.
+export const STAT_LABELS: { [stat: string]: string } = {
     movementSpeed: 'Movement speed',
     maxHealth: 'Max Focus',
     damageReduction: 'Damage taken',
@@ -158,17 +186,28 @@ const STAT_LABELS: { [stat: string]: string } = {
 // reduction vocabulary across passives and resists (PO 2026-08-02, item 10).
 const REDUCTION_STATS = new Set(['damageReduction', 'costReduction']);
 
-const SELECTOR_LABELS: { [selector: string]: string } = {
+// Pinned as a PARTITION against api/shared-constants.json's selectors (C8):
+// this table plus SELECTORS_PHRASED_ELSEWHERE must be the whole set.
+export const SELECTOR_LABELS: { [selector: string]: string } = {
     nearest: 'nearest',
     lowest_health: 'most wounded',
 };
+
+// The selectors this table deliberately has no label for: `all` takes the
+// "Targets: all X in range" branch in targetsLine, which phrases it as a
+// sentence rather than as a count's adjective, so it must never reach the
+// table.
+export const SELECTORS_PHRASED_ELSEWHERE: string[] = ['all'];
 
 // A gate key (D4: the aura damages ONLY mobs that name the key) rendered as
 // what the player DOES with it. Feedback pass B item 5: "Only affects targets
 // vulnerable to: smash" left the playtester with no idea Pickaxe is the key to
 // the tunnel's boulders. An unmapped key falls back to the passive phrasing
 // rather than inventing a verb.
-const GATE_KEY_LINES: { [key: string]: string } = {
+// Pinned exhaustively against api/shared-constants.json's gateKeys (C8) -
+// the CLOSED set skills.GateKeys, so the fallback below is unreachable for
+// served data and stays only as the degrade path.
+export const GATE_KEY_LINES: { [key: string]: string } = {
     smash: 'Smashes boulders and rockfalls — nothing else',
     harvest: 'Harvests plants and brambles — nothing else',
 };
@@ -183,7 +222,11 @@ function gatedLine(key: string): string {
 // here simply renders no cadence at all, so "refreshed every 1s" quietly stops
 // being said. speed_aura joined it with the type itself (plan-effect-types.md
 // C4) — the aura's line looked finished without it.
-const TICKING_TYPES = new Set([
+// ⚑ No longer silently short: C8 pins this set == the costChargeTrigger key
+// set in api/shared-constants.json, exhaustive both ways. The aura-form types
+// with a real cadence are exactly the chargeable ones, and a new one now fails
+// vitest here instead of quietly rendering no cadence.
+export const TICKING_TYPES = new Set([
     'damage_aura', 'heal_aura', 'dot_aura', 'hot_aura',
     'slow_aura', 'resist_aura', 'shield_aura', 'speed_aura',
 ]);
@@ -583,22 +626,21 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             break;
         case 'calm': {
             // Say what it is FOR, like light_aura: "calms enemies" reads as a
-            // damage-free nothing, and the one thing a player must know is that
-            // their own aura will break it (PO 2026-07-28 — calm is a disengage
-            // tool, and any damage ends it).
+            // damage-free nothing. The break condition (any damage ends it,
+            // your own aura included) is standalone ruling prose and rides the
+            // skill's authored description since C8 (D1).
             const calm = effect.calm;
             lines.push(`Calms enemies in range for ${prog(calm.durationTicks, calm.durationTicksPerLevel, level, maxLevel, ticksToSecs)}`);
-            lines.push('Any damage breaks it — including your own aura');
             break;
         }
         case 'charm': {
-            // Two things a player cannot see anywhere else: a charmed mob is a
-            // pet at ITS OWN level (which is why charming an elite is worth a
-            // two-minute cooldown), and it is temporary — it turns on you when
-            // the timer runs out, with no way to extend it (D11/L-F).
+            // The duration is the generated half. The two things a player
+            // cannot see anywhere else - a charmed mob is a pet at ITS OWN
+            // level (which is why charming an elite is worth a two-minute
+            // cooldown), and it turns on you when the timer runs out (D11/L-F)
+            // - are ruling prose and ride the skill's description since C8 (D1).
             const charm = effect.charm;
             lines.push(`Charms the nearest enemy to fight for you for ${prog(charm.durationTicks, charm.durationTicksPerLevel, level, maxLevel, ticksToSecs)}`);
-            lines.push('It keeps its own level, and turns on you when the charm ends');
             break;
         }
         case 'speed_burst': {
@@ -632,13 +674,15 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             lines.push(`Speed: ${prog(effect.speed.factor, effect.speed.factorPerLevel, level, maxLevel, n => `${fmt(n)}×`)}${refresh}`);
             break;
         case 'stun': {
-            // Both halves are spelled out on purpose. "Stuns for 3s" leaves a
-            // reader to guess whether the target can still attack — and the
-            // answer (no) is the entire difference between this and a root.
+            // The duration line spells out that the target cannot ACT on
+            // purpose: "Stuns for 3s" leaves a reader to guess whether it can
+            // still attack, and the answer (no) is the entire difference
+            // between this and a root. It is number-bearing, so it stays
+            // generated; that damage does not break the hold is ruling prose
+            // and rides the skill's description since C8 (D1).
             const stun = effect.stun;
             const held = prog(stun.durationTicks, stun.durationTicksPerLevel, level, maxLevel, ticksToSecs);
             lines.push(`Holds one enemy for ${held} — it cannot move, attack or use abilities`);
-            lines.push('Damage does not break it');
             break;
         }
         case 'retaliate_slow': {
@@ -650,8 +694,9 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const retaliate = effect.retaliate;
             const share = prog(retaliate.fraction, retaliate.fractionPerLevel, level, maxLevel, pct);
             const duration = prog(retaliate.durationTicks, retaliate.durationTicksPerLevel, level, maxLevel, ticksToSecs);
+            // That being hit is enough (it fires even off a fully absorbed
+            // hit) is ruling prose and rides the description since C8 (D1).
             lines.push(`Slows anything that damages you by ${share} for ${duration}`);
-            lines.push('Being hit is enough — it fires even when the hit is fully absorbed');
             break;
         }
         case 'retaliate_damage': {
@@ -666,19 +711,20 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // print a number that is never dealt.
             const reflect = effect.retaliateDamage;
             const amount = prog(reflect.hp, reflect.hpPerLevel, level, maxLevel, hpFmt);
+            // Same trigger sentence as retaliate_slow, and same disposition:
+            // ruling prose, on the description since C8 (D1).
             lines.push(`Reflects ${amount} damage onto anything that damages you`);
             if (reflect.tags.length > 1 || reflect.tags[0] !== 'physical') {
                 lines.push(`Damage type: ${reflect.tags.join(', ')}`);
             }
-            lines.push('Being hit is enough — it fires even when the hit is fully absorbed');
             break;
         }
         case 'retaliate_burst': {
-            // The lifesteal_burst line inverted, and it carries one sentence
-            // neither burst needs: WHICH damage the share is taken from. The
-            // server takes it from the hit as the mob threw it, before this
-            // player's own mitigation, and a reader who assumes otherwise will
-            // mis-price the skill against a tanky build.
+            // The lifesteal_burst line inverted. WHICH damage the share is
+            // taken from - the hit as the mob threw it, before this player's
+            // own mitigation - is the fact a reader must have to price the
+            // skill against a tanky build; it is ruling prose and rides the
+            // skill's description since C8 (D1).
             //
             // ⚑ No powerScale and no damageFactor, like every reflect line: a
             // share is not an amount, and the server scales neither.
@@ -689,7 +735,6 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             if (burst.tags.length > 1 || burst.tags[0] !== 'physical') {
                 lines.push(`Damage type: ${burst.tags.join(', ')}`);
             }
-            lines.push('The share is of the hit as thrown, before your own mitigation');
             break;
         }
         case 'lifesteal_burst': {
@@ -700,8 +745,9 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // is a share of.
             const lifesteal = effect.lifesteal;
             const share = prog(lifesteal.fraction, lifesteal.fractionPerLevel, level, maxLevel, pct);
+            // That it rides whichever aura is on is ruling prose and lives on
+            // the skill's description since C8 (D1).
             lines.push(`Heals you for ${share} of the damage you deal, for ${ticksToSecs(lifesteal.durationTicks)}`);
-            lines.push('Works with whichever aura you have on');
             break;
         }
         case 'tick_rate': {
@@ -990,6 +1036,9 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
     return {
         title: def.displayName,
         subtitle: `${CATEGORY_LABELS[def.category] ?? def.category} · Lv ${level}/${def.maxLevel}`,
+        // Straight through: the field is prose by ruling, so nothing here
+        // scales, formats or level-previews it.
+        description: def.description,
         lines,
     };
 }
@@ -1067,6 +1116,17 @@ export function showTooltip(anchor: HTMLElement, content: TooltipContent) {
     subtitle.className = 'tooltipSubtitle';
     subtitle.textContent = content.subtitle;
     element.appendChild(subtitle);
+    // D2: the plain-language "what does this do" sits between the subtitle and
+    // the numbers - the reverse of the WoW flavour-text-at-the-bottom
+    // convention, chosen because this game documents no mechanic anywhere else.
+    // Rendered only when authored, so an undescribed skill keeps today's
+    // spacing exactly.
+    if (content.description) {
+        const description = document.createElement('div');
+        description.className = 'tooltipDescription';
+        description.textContent = content.description;
+        element.appendChild(description);
+    }
     for (const {text, labelColor} of content.lines) {
         const line = document.createElement('div');
         line.className = 'tooltipLine';

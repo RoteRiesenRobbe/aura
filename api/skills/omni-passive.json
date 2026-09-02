@@ -5,6 +5,7 @@
   "icon": "lorc/star-swirl",
   "category": "passive",
   "maxLevel": 5,
+  "description": "Cheat-only test rig. Its retaliates fire on any hit, even one that is fully absorbed.",
   "effects": [
     {
       "type": "stat_multiplier",
