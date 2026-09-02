@@ -1480,7 +1480,7 @@ note in the §2 debt block that C8 closed it.
 
 ## 6. Chunk ledger
 
-### C8 - tooltip maintenance debt ✅ 2026-09-02 `[uncommitted]`
+### C8 - tooltip maintenance debt ✅ 2026-09-02 `c57f2442`
 
 Rulings D1-D4 and the full spec live in the §5 C8 section (detailed + ruled
 2026-09-01, built the next day in its own session per D4). Two Opus 5 agents
