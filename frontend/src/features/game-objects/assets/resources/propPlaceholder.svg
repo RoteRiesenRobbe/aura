@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- PROP "missing art" placeholder (plan-prop-placeholders.md C2), the
+       counterpart to npcPlaceholder.svg beside it. Same loud purple/red
+       language, squared off rather than round so a placeholder PROP and a
+       placeholder NPC are told apart at a glance.
+
+       ⚑ THIS FILE IS NEVER DRAWN IN-GAME. A PropPlaceholder prop is rendered
+       procedurally by Props.ts — the authored footprint's outline with the
+       prop's name auto-fit inside it — because one sprite cannot be a circle
+       AND a 4:3 rect AND a 2:0.6 bench. It exists for the Tiled palette
+       generator, which builds props.tsx as an image-collection tileset with
+       one tile per prop type and resolves each type's `sprite` to a real file
+       (tools/tiled/generate-palette.mjs). It is what you click to place one. -->
+  <rect x="24" y="24" width="464" height="464" rx="40" style="fill:#5b2a86;"/>
+  <rect x="24" y="24" width="464" height="464" rx="40" style="fill:none;stroke:#ff3b30;stroke-width:24px;"/>
+  <path d="M256,120c-52,0 -92,36 -92,86l60,0c0,-20 13,-33 32,-33c19,0 32,12 32,29c0,14 -8,23 -25,34c-24,16 -35,31 -35,58l0,20l58,0l0,-14c0,-17 8,-27 27,-39c25,-16 37,-34 37,-61c0,-48 -40,-80 -94,-80Z" style="fill:#ffffff;"/>
+  <circle cx="256" cy="379" r="34" style="fill:#ffffff;"/>
+</svg>

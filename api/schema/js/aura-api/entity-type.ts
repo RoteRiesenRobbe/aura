@@ -63,5 +63,6 @@ export enum EntityType {
   FireTotem = 73,
   NpcPlaceholder = 74,
   Camp = 75,
-  Tombstone = 76
+  Tombstone = 76,
+  PropPlaceholder = 77
 }

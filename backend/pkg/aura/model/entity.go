@@ -48,6 +48,19 @@ type Entity interface {
 // (world foundation chunk 3): a static body + sprite, no gameplay behavior.
 type PropEntity interface {
 	Entity
+
+	// PropName is the prop DEFINITION name (world.PropDefinition.Name), which
+	// for a prop is its identity: zone placements name it and the registry
+	// refuses duplicates. It rides the wire only for the PropPlaceholder
+	// entityType, the one type a client cannot draw from EntityType alone
+	// (plan-prop-placeholders.md §4.1) — every placeholder shares that value and
+	// they differ only in name and body.
+	//
+	// ⚑ Deliberately NOT a numeric id like MobEntity.MobID below. mob_id buys
+	// its compactness by riding every mob every tick; this rides a handful of
+	// development-time stand-ins, and a second identity for a thing that already
+	// has one is pure upkeep.
+	PropName() string
 }
 
 // CorpseEntity is a dead player's corpse (atmosphere & recovery chunk 4): a

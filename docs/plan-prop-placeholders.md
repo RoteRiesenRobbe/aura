@@ -1,8 +1,21 @@
 # Plan: Prop placeholders — a named, correctly-shaped stand-in for an unarted prop
 
-**Status: designed 2026-08-30, nothing built.** Three PO calls answered the same
-day (§9). 2 chunks. **DB schema NONE**; FlatBuffers one appended field + one
-enum value; content: every `api/props/*.json` gains an `id`.
+**Status: BUILT 2026-09-05 — C1 + C2 both shipped in one session (§10).** Three
+PO calls answered 2026-08-30 (§9). **DB schema NONE, content NONE**; FlatBuffers
+one appended field + one enum value.
+
+⛔ **READ §4.2’s AMENDED BLOCK BEFORE ANYTHING ELSE IN §§4-9.** The design below
+reached for an authored `id` on every prop JSON, and it shipped keyed on the
+prop’s existing **name** instead (PO objection during the build, sustained). So
+every `prop_id` in §4.2 item 2, §5, §8 and §9’s D2 reads `prop_name` in the
+built code, and the `id` those sections ask authors to add **does not exist** —
+`api/props/*.json` is untouched by this feature. Those sections are kept as the
+record of what was designed; §4.2’s amendment and §10 are the record of what is.
+
+⚑ **This doc stays live for the PO's in-game pass (§8)**, which settles §9's one
+open question (does the label rotate with the prop — it currently does) and the
+§10 tuning notes. Nothing placeholder-shaped ships as content yet; §10 ends with
+the five-line JSON that authors the first one.
 
 ## 1. The gap
 
@@ -64,7 +77,38 @@ could not have given a second rect placeholder its own aspect anyway, because
 `bodyAspect` is a **static per-class** field taken from the first rect def in
 the group (`Props.ts:126-131`).
 
-### 4.2 Mechanism
+### 4.2 ⭐ AMENDED AT BUILD (2026-09-05) — the discriminator is the NAME, not an id
+
+Items 2 and 3 below shipped differently, on the PO's objection during the build,
+and the objection was right. The wire field is **`prop_name:string`**, and
+**no `id` is authored anywhere** — `api/props/*.json` is untouched by this
+feature.
+
+The design below reached for a numeric id by analogy with `Mob.mob_id`. The
+analogy does not hold:
+
+- **A prop is ALREADY keyed by its name.** Every placement in `world.json` says
+  `{"type": "House"}`, `PropRegistry.GetByName` resolves it, and duplicate
+  names are already refused at boot. The name *is* the prop's identity, so an id
+  would be a **second identity for the same thing** — arbitrary, hand-sequenced,
+  and one more field for every author and editor to keep in step.
+- **`mob_id` earns its compactness; this cannot.** It rides every mob every
+  tick, where 2 bytes beat a string 30×/s per mob. A prop's identity rides a
+  handful of development-time stand-ins, behind the same entityType guard — so
+  the byte argument that justifies a numeric key simply is not there.
+- **The name is strictly more useful at the far end.** The label needs no lookup
+  at all, and a placeholder whose def this client build cannot resolve (a prop
+  added since the last `npm run build`) still draws a **labelled** square
+  instead of an anonymous one — which is exactly the failure that cost a
+  debugging cycle during C2's verification.
+
+⚑ What does NOT change: one reserved `PropPlaceholder` enum value is still
+needed. "No matching class or sprite" cannot stand in for it, because the server
+hard-fails on an unknown `entityType`; and giving each placeholder its own enum
+value would make every unarted prop a `.fbs` edit plus a regen of both binding
+sets — the exact friction this feature exists to remove.
+
+### 4.2 Mechanism (as designed — read with the amendment above)
 
 1. **`PropPlaceholder = 77`** in the `EntityType` enum — the next free value
    (76 = `Tombstone` is the current tail). ⛔ Never reuse a gap.
@@ -130,8 +174,9 @@ tail, not a dependency.
   not character state.
 - **FlatBuffers:** one appended field, one appended enum value. Both binding
   sets regenerate and deploy together.
-- **Content:** every `api/props/*.json` gains `id`. Hard-fails at boot if
-  missed.
+- **Content: NONE** (⭐ amended, §4.2) — the wire carries the prop's existing
+  `name`, so no prop JSON changes at all. As designed this said "every
+  `api/props/*.json` gains `id`"; it does not.
 
 ## 7. Deliberately NOT in scope
 
@@ -174,4 +219,118 @@ picks "yes" as the default; the in-game pass decides).
 
 ## 10. Chunk ledgers
 
-*(none yet — nothing built)*
+### C1 + C2 — SHIPPED 2026-09-05 (built together)
+
+The split was along the Go/TS verify tail rather than a dependency (§5 said so),
+and building both in one session kept the wire field from sitting unread.
+
+**What landed.** `PropPlaceholder = 77` and `Resource.prop_name:string`
+appended last; both binding sets regenerated from the checked-in flatc 24.3.25
+(only the two expected files moved). The codec writes `prop_name` behind an
+entityType guard. Client: `PropPlaceholderLayout.ts` (pure geometry), the
+bespoke `PropPlaceholder` class in `Props.ts`, the `BESPOKE_ENTITY_TYPES` +
+`gameObjectClasses` entries, `propName` on the unmarshal and a 6th argument on
+`EntityManager`'s shared constructor line, `propPlaceholder.svg` for the Tiled
+palette.
+
+⭐ **The design's authored `id` was DROPPED mid-build on the PO's objection —
+see the §4.2 amendment.** A prop is already keyed by its name, so an id was a
+second identity for the same thing. **`api/props/*.json` is untouched by this
+feature**, and `world/props.go`'s whole diff is one comment.
+
+**Schema: DB NONE, content NONE.** FlatBuffers: one appended enum value, one
+appended field.
+
+⭐ **The zero-cost claim is pinned at the BYTE level and mutation-checked.**
+`TestPropEntityFlatbufMarshal_RealPropCostsNothing` compares a real prop's
+encoding against a hand-built table with no `prop_name` slot at all — i.e. what
+the codec emitted before this chunk. Flipping the guard to always-true makes it
+fail (verified, both before and after the id → name change); every other test in
+the file stays green either way, which is exactly the point.
+
+⚑ **A string forces the guard to be ONE decision spent twice**, and that is why
+`isPlaceholder` is a variable: a flatbuffers string is a separate object that
+must be created BEFORE the table starts, so the `CreateString` and the
+`AddPropName` sit on opposite sides of `ResourceStart`. An earlier draft tested
+`propName != 0` at the add site, which works but reads as two guards that could
+drift.
+
+⭐ **The label fits against the largest INSCRIBED RECTANGLE of the text's own
+aspect, not the bounding square.** For a chord of aspect `a` in radius `r` that
+is `2ra/√(a²+1)` by `2r/√(a²+1)`. Names are far wider than they are tall, so the
+inscribed square would have thrown away ~40 % of the usable width and dropped
+labels that fit comfortably. The containment guarantee is tested geometrically
+(the fitted label's corners stay inside the radius) rather than by restating the
+formula, so a wrong formula cannot pass by agreeing with itself.
+
+⚑ **The shape is built in the CONSTRUCTOR BODY, not `initShape`, and that is
+forced.** `initShape` runs inside the `GameObject` constructor's `super()`
+chain, before any subclass field initializer — so the `propId` argument is not
+reachable from `this` there. `SimpleProp` hits the same wall and solves it with
+a `static bodyAspect`, which cannot work here: one class serves every
+definition. `initShape` therefore returns an empty positioned+rotated
+`Container` and the drawing is added to it a moment later. Everything lives in
+that one rotated container, which is what makes §4.3's "the label cannot leave
+the bounds" true by construction rather than by arithmetic.
+
+⚑ **`FromZone` is the only place the name reaches the entity.** `New`/`NewRect`
+take resolved geometry and know nothing about the definition, so a prop built
+outside `FromZone` reports `""` — which is exactly the wire's "absent" value, so
+the two agree instead of one inventing a plausible wrong label. Tested for both
+body forms, because `FromZone` branches on circle-vs-rect and the assignment
+sits after the branch precisely so neither can be forgotten.
+
+⭐ **The unresolvable case degrades BETTER than the id design would have.** The
+shape needs the compiled-in def; the label does not, because the wire carries
+the name itself. So a placeholder whose def this build has never seen draws a
+**labelled** square at the streamed size. With an id it drew an anonymous one —
+and that is precisely what C2's first verification run hit (see the harness trap
+below), where it read as a broken wire field.
+
+**Verified.** `go build` · `go vet` · full `go test -count=1` **fully green**
+(the three long-standing `items/mobs` census reds went with `martin.json`, PO
+call the same session — see `docs/feedback.md` 2026-09-05) · `tsc` · vitest
+**586/586** (571 + 15 new) · prod build · palette regen (no prop change; it did
+pick up the Martin deletion). New legs: world 3 · codec 3 · model/prop 2 ·
+vitest 15.
+
+⭐ **In-game, headless, 16/16** — all five §8 cases, against THROWAWAY content
+(three placeholder defs + five placements) reverted afterwards, so the shipped
+diff is the mechanism only: a round Well at its authored radius, a Bench at
+2:0.6, a rotated placement whose label turns with it, a 2.5× scaled placement
+measured as exactly 2.5× its unscaled twin, and a 26-character name in a
+0.35-unit circle whose label is DROPPED rather than spilled. Negative control:
+real props in the same layer still render as unlabelled sprites.
+
+⚑ **Two harness traps cost a debugging cycle each, both now in the `verify`
+skill.** A stale `backend/aurad.exe` shadowed the freshly-built extensionless
+`aurad` (Windows PATHEXT), so the server panicked on a field that had been in
+the source for an hour. And `-content ../api` is SERVER-only: `Props.ts`
+compiles the prop defs in at webpack build time, so a placeholder added after
+the last `npm run build` renders as an unlabelled square — which looks exactly
+like a broken wire field, and sent the first debugging pass at the codec.
+
+**OWED: the PO's in-game pass** (§8), and with it §9's open question — the label
+currently rotates with the prop, which read fine at 0.6 rad in the verification
+shot; the alternative is one line. Three things to look at while there, all
+[PLACEHOLDER]: `LABEL_MAX_FONT_SIZE` (26) leaves a 5-unit prop's name looking
+small against its footprint; the 0.85 fill alpha lets the ground read through,
+which may or may not be wanted; and a dropped label leaves a small placeholder
+with no identity at all, where a truncated name might serve better.
+
+⚑ **Nothing placeholder-shaped ships as content.** The mechanism is complete and
+the Tiled palette will carry a tile for the first one authored — but there is no
+placeholder prop type in `api/props/` today, so the PO's pass needs one. The
+whole of it is five lines:
+
+```json
+{
+  "name": "Bench",
+  "entityType": "PropPlaceholder",
+  "sprite": "propPlaceholder.svg",
+  "body": { "width": 2, "height": 0.6 }
+}
+```
+
+then `node tools/tiled/generate-palette.mjs` and `npm run build` (see the second
+harness trap above), and it is clickable in Tiled.

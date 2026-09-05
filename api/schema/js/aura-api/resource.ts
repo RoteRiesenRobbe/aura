@@ -73,8 +73,15 @@ rotation():number {
   return offset ? this.bb!.readFloat32(this.bb_pos + offset) : 0.0;
 }
 
+propName():string|null
+propName(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+propName(optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 18);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+}
+
 static startResource(builder:flatbuffers.Builder) {
-  builder.startObject(7);
+  builder.startObject(8);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -115,6 +122,10 @@ static addAabb(builder:flatbuffers.Builder, aabbOffset:flatbuffers.Offset) {
 
 static addRotation(builder:flatbuffers.Builder, rotation:number) {
   builder.addFieldFloat32(6, rotation, 0.0);
+}
+
+static addPropName(builder:flatbuffers.Builder, propNameOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(7, propNameOffset, 0);
 }
 
 static endResource(builder:flatbuffers.Builder):flatbuffers.Offset {

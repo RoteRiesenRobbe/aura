@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-09-05, later: the prop-placeholders wrap rotated the cap, so UI PASS C6 moved here verbatim.)*
+
+- **Prior: UI PASS C6 - PANEL CHROME ROLLOUT** ✅ 2026-08-30, `a2a1595b` (ledger: `docs/plan-ui-pass.md` §6 C6; spec + rulings §5 C6, D1-D5): the ink treatment on the REST of the HUD - conversation body-only (**D2**), spellbook + help incl. the wood header strip, settings (**D3**), the tooltip OPAQUE, `#confirmRow` keeping its danger border, `.btnC` buttons + 19px `.keyC` chips, ink-outlined pill bars, the minimap double ink ring; **D4** a fresh-unlock row shows the glow ALONE · **D5** pip untouched. ⚑ The breadcrumb pulse rides **`::after`** now (`.btnC` keeps its wood inlay in box-shadow and the old element-level keyframe stripped it every cycle). ⭐ **Durable finding, review-caught: a mobile RESET must OUT-RANK what it reverts** - a bare-class revert under `html.mobile` (0,2,1) silently loses to an id-scoped desktop rule (1,1,0), and a `querySelector` style dump can green-light the WRONG TWIN. Ink mixins moved to `variables.less` (feature sheets are their own LESS entries). **Schema NONE**, pure client. Verified: vitest 569/569 · tsc · prod build · 11-script sweep green (`mobile-layout` leg 7 = stash-proven HEAD baseline) · look probe + both-layout screenshots. Opus-built, reviewed line-by-line; ⭐ PO played 2026-08-30 with ZERO change requests; the one look-surfaced intake (armed `#confirmRow` outlives the conversation) ruled FIX-NOW, own commit `b3283a2f`.
+
 *(2026-09-05: merging `plan-world-scale` into main brought WORLD SCALE S3 into
 the cap, so UI PASS C5 moved here verbatim.)*
 
