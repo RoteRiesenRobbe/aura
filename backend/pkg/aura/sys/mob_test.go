@@ -24,10 +24,15 @@ import (
 // entities), and exposes a settable tick. Everything else panics — the MobSystem
 // touches none of it.
 type fakeGame struct {
-	ms      *MobSystem
-	tick    uint64
-	cfg     *cfg.GameConfig
-	mobReg  mobs.Registry
+	ms     *MobSystem
+	tick   uint64
+	cfg    *cfg.GameConfig
+	mobReg mobs.Registry
+	// space, when set, makes AddEntity mirror PhysicsSystem.AddEntity — the
+	// spawned mob's bodies land in the space, which is what the dormancy tests
+	// need in order to watch them leave and come back. nil keeps every older
+	// test on the space-free path it was written for.
+	space   *phy.Space
 	added   []model.MobEntity
 	removed []uint64
 }
@@ -44,6 +49,13 @@ func (g *fakeGame) AddEntity(e model.BasicEntity) {
 	g.added = append(g.added, m)
 	if g.ms != nil {
 		g.ms.AddEntity(m) // the real game routes mobs to MobSystem.AddEntity
+	}
+	if g.space != nil {
+		for _, b := range m.Bodies() { // …and to PhysicsSystem.AddEntity
+			if b != nil {
+				g.space.AddShape(b)
+			}
+		}
 	}
 }
 

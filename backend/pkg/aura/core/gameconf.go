@@ -4,6 +4,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/player"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
@@ -16,6 +17,8 @@ func Config(conf *cfg.Config) Configuration {
 		g.TotalDayCycleSeconds = conf.Game.TotalDayCycleSeconds
 		g.DayTimeSeconds = conf.Game.DayTimeSeconds
 		g.MobChaseIntoAuraMargin = conf.Game.MobChaseIntoAuraMargin
+		g.MobWakeMargin = conf.Game.Mob.WakeMargin
+		g.MobSleepMargin = conf.Game.Mob.SleepMargin
 
 		g.PlayerConfig.HealthGainTick = conf.Game.Player.HealthGainTick
 		g.PlayerConfig.WalkingSpeedPerTick = conf.Game.Player.WalkingSpeedPerTick
@@ -64,6 +67,30 @@ func Config(conf *cfg.Config) Configuration {
 		}
 		if g.MobChaseIntoAuraMargin <= 0 {
 			g.MobChaseIntoAuraMargin = 0.2
+		}
+		// Dormancy's wake volume (plan-world-scale.md D6). Defaulted here for
+		// the same total-defaulting reason as everything above: the environment
+		// confs omit the whole mob block by design.
+		//
+		// ⚑ The wake floor is player.FlightViewportScale, NOT 1. L8's original
+		// containment argument reasoned about Zoom.ts's fixed ground field of
+		// view and concluded the widest obtainable view sits inside the 20 × 12
+		// AOI — but a FLYING player's server-side AOI is itself scaled, so the
+		// thing the wake volume has to contain is bigger than the ground AOI.
+		// Flight is the binding case, and it is a [PLACEHOLDER] that has already
+		// been retuned twice (2.5 → 1.75 → 1.2).
+		if g.MobWakeMargin <= player.FlightViewportScale {
+			g.MobWakeMargin = 1.7
+		}
+		// Hysteresis is a band, not an inversion. ⚑ The SLEEP margin is what
+		// sets the steady-state awake population — a woken mob does not sleep
+		// again until it leaves THIS box — so it, not wakeMargin, is the
+		// perf knob (measured 2026-08-30: 2.2 → 1.9 is −26 % awake and −17 %
+		// tick across 10…150 players). The band it leaves is what a player must
+		// walk to toggle a mob; 0.2 ≈ 2 u ≈ 1.3 s on foot, and thrash is cheap
+		// since phy.SleepShape made the transition O(1).
+		if g.MobSleepMargin <= g.MobWakeMargin {
+			g.MobSleepMargin = g.MobWakeMargin + 0.2
 		}
 
 		return nil

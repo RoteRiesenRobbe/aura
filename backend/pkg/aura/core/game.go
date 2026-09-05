@@ -200,6 +200,14 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	// answers from ConnState, takeoff leaves the physics space and sweeps
 	// the mobs' latches. Wired here for the same construction-order reason.
 	i.SetFlightSeams(s, p.Space(), m)
+	// Mob dormancy's wake sources (plan-world-scale.md S3/D4). Same seam shape,
+	// same construction-order reason as the three above.
+	//
+	// ⚑ THIS CALL IS THE ON-SWITCH. MobSystem runs every mob every tick while
+	// the seam is nil, which is exactly what the sim harness and the unit tests
+	// want (L6 — the sim battery must stay byte-identical). Deleting this line
+	// silently restores the pre-S3 cost rather than failing anything.
+	m.SetWakeSources(s)
 
 	c := cmd.NewCommandSystem(g, gc.Tokens, p.Space(), chatSys)
 	g.AddSystem(c)

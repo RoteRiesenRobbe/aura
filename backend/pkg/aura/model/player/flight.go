@@ -88,7 +88,7 @@ func (p *player) BeginFlight(space *phy.Space, fromID, toID string, dest phy.Vec
 			space.RemoveShape(s)
 		}
 	}
-	p.setViewportScale(flightViewportScale)
+	p.setViewportScale(FlightViewportScale)
 }
 
 // FlightPosition is the lerp: where the flyer is at the given tick, and
@@ -134,9 +134,18 @@ func (p *player) flightShapes() []phy.DynamicCollider {
 	return []phy.DynamicCollider{p.Body, p.aura}
 }
 
-// flightViewportScale is how much the server-side AOI grows while flying
+// FlightViewportScale is how much the server-side AOI grows while flying
 // (§4.3, D3) — ~2.5× linear is ~6.25× streamed area, so this is a perf knob
 // as much as a feel knob.
+//
+// ⚑ EXPORTED because mob dormancy's wake volume must CONTAIN it
+// (plan-world-scale.md D6/L8). A flying player streams a scaled AOI, so the
+// floor on game.mob.wakeMargin is this value, not 1 — core/gameconf.go clamps
+// against it and cmd/simharness/guardrail_test.go asserts it. L8's original
+// containment argument reasoned only about Zoom.ts's fixed GROUND field of
+// view and missed this second, larger viewport entirely; raising this constant
+// without the wake margin following makes mobs fade in at the edges of a
+// flight, which is landmine 3 in a place nobody was looking.
 //
 // ⚑ RETUNING THIS ALONE IS A BUG. The client's zoom-out must move with it or
 // entities pop in at the screen edges (landmine 3), and the client's copy is a
@@ -150,7 +159,7 @@ func (p *player) flightShapes() []phy.DynamicCollider {
 // time "still too far out". The two cuts together take the streamed area from
 // ~6.25× the ground viewport to ~1.4×, so what began as the flight feature's
 // biggest mobile-perf cost is now nearly free. [PLACEHOLDER]
-const flightViewportScale = 1.2
+const FlightViewportScale = 1.2
 
 // setViewportScale resizes the AOI box around the default viewport extent.
 func (p *player) setViewportScale(factor float32) {

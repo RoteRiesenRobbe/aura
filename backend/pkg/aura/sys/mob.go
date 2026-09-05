@@ -9,6 +9,7 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
@@ -53,7 +54,78 @@ type MobSystem struct {
 	points []spawnPoint
 	space  *phy.Space // handed to every spawned mob for obstacle steering (chunk 4)
 
+	// pointByMob indexes n.points by the id of the mob currently living at it —
+	// a CACHE of spawnPoint.liveMobID, not a second source of truth. It exists
+	// because both of its readers were linear scans over every authored spawn:
+	// onMobDeath ran one per death (14 640 iterations at the 30× world), and
+	// dormancy needs the same answer per candidate mob per evaluation, which no
+	// scan can afford. Written only where liveMobID is.
+	pointByMob map[uint64]int
+
+	// Dormancy (plan-world-scale.md S3). wakeSources is the seam that yields
+	// every player-controlled position; NIL DISABLES DORMANCY ENTIRELY, which
+	// is what keeps the sim harness and every unit test on the old code path
+	// (L6 — the sim battery must come out byte-identical).
+	wakeSources WakeSources
+	// wakePositions is the per-tick scratch the seam appends into, reused so the
+	// collection allocates nothing (the idle loop is allocation-audited,
+	// fe0044d0).
+	wakePositions []phy.Vec2f
+
 	initialized bool
+}
+
+// WakeSources yields the position of everything a dormant mob must wake for
+// (plan-world-scale.md D4): the players and spectators in the world.
+//
+// ⚑ SPECTATORS ARE NOT OPTIONAL, and the plan did not record this. A spectator
+// — the pre-join start screen, and every dead player's death overlay — streams
+// the world through Viewport().Collisions() exactly like a player does
+// (core/net.go). A dormant mob is out of the space and therefore in no
+// viewport, so leaving spectators out of this set renders the start screen as
+// an empty world. The pre-join spectator sits at the origin, where world.json
+// authors ~24 props, which is precisely where it would have been noticed.
+//
+// The other half of D4 — totems, summons, companions and charmed mobs — is NOT
+// here: those are mobs, so MobSystem already holds them and collects them
+// itself (see collectWakePositions).
+//
+// Implemented by sys.ConnectionStateSystem, wired post-construction in
+// core.NewGameWith (the SetConnState / SetAnchors precedent).
+type WakeSources interface {
+	// AppendWakePositions appends to dst and returns it, so the caller can
+	// reuse one scratch slice forever.
+	AppendWakePositions(dst []phy.Vec2f) []phy.Vec2f
+}
+
+// SetWakeSources installs the dormancy seam and turns dormancy ON. Leaving it
+// unset is a supported, and deliberately common, state: the sim harness and the
+// unit tests run every mob every tick, exactly as before S3.
+func (n *MobSystem) SetWakeSources(w WakeSources) { n.wakeSources = w }
+
+// dormancyCheckInterval staggers the sleep/wake re-evaluation across ticks:
+// each mob is judged every N ticks, spread by entity id so the work is flat
+// rather than spiking on one tick. [PLACEHOLDER 5]
+//
+// It is safe because of the hysteresis band, not by luck: wake and sleep sit
+// 0.5 × AOI apart (5 × 3 u), and the wake box already clears the widest
+// obtainable view by 8 u — 160 ticks of walking at 0.05 u/tick, or 38 ticks
+// even in flight. Judging 5 ticks late spends 0.25 u of that budget.
+//
+// It matters because the evaluation is the one part of dormancy that stays
+// O(mobs × sources): at the 30× world with 50 connected that is ~732 000 pairs
+// a tick, and the stagger divides it by N.
+const dormancyCheckInterval = 5
+
+// dormantMob is dormancy as MobSystem sees it: the flag, the D3 predicate, and
+// the D4 "am I myself a wake source" question. A capability rather than a
+// MobEntity method, like charmBreaker and targetForgetter below — a mob
+// implementation that does not offer it simply never sleeps.
+type dormantMob interface {
+	Dormant() bool
+	SetDormant(bool)
+	Pristine() bool
+	PlayerControlled() bool
 }
 
 func NewMobSystem(g model.Game, seed int64, spawns []world.Spawn, space *phy.Space) *MobSystem {
@@ -77,7 +149,13 @@ func NewMobSystem(g model.Game, seed int64, spawns []world.Spawn, space *phy.Spa
 			level:           s.Level,
 		})
 	}
-	return &MobSystem{game: g, rnd: rnd, points: points, space: space}
+	return &MobSystem{
+		game:       g,
+		rnd:        rnd,
+		points:     points,
+		space:      space,
+		pointByMob: make(map[uint64]int, len(points)),
+	}
 }
 
 func (n *MobSystem) Priority() int {
@@ -98,10 +176,15 @@ func (n *MobSystem) Update(dt float32) {
 	// system in core.NewGameWith. By the first Update the world is fully wired.
 	if !n.initialized {
 		for i := range n.points {
-			n.spawnAt(&n.points[i])
+			n.spawnAt(i)
 		}
 		n.initialized = true
 	}
+
+	// Dormancy (plan-world-scale.md S3): collect every player-controlled
+	// position ONCE, then let each mob judge itself against it below. Inert
+	// while no seam is installed.
+	n.wakePositions = n.collectWakePositions(n.wakePositions[:0])
 
 	// Update every mob, collecting the dead. Removal is deferred until after the
 	// loop: game.RemoveEntity → MobSystem.Remove shifts n.mobs' backing array
@@ -109,6 +192,12 @@ func (n *MobSystem) Update(dt float32) {
 	// that slides into the freed slot and double-update the next one (backlog §27.1).
 	var dead []model.MobEntity
 	for _, mob := range n.mobs {
+		// A dormant mob is skipped ENTIRELY — no AI, and its shapes are already
+		// out of the space, so Space.Update no longer walks them either. That is
+		// both halves of F3.
+		if n.dormantThisTick(mob) {
+			continue
+		}
 		if !mob.Update(dt) {
 			dead = append(dead, mob)
 		}
@@ -123,9 +212,156 @@ func (n *MobSystem) Update(dt float32) {
 	// and stays dead — the totem lifecycle guard falls out for free.
 	tick := n.game.Ticks()
 	for i := range n.points {
-		p := &n.points[i]
-		if p.liveMobID == 0 && tick >= p.respawnAt {
-			n.spawnAt(p)
+		if p := &n.points[i]; p.liveMobID == 0 && tick >= p.respawnAt {
+			n.spawnAt(i)
+		}
+	}
+}
+
+// collectWakePositions gathers every player-controlled position for this tick
+// (D4): the players and spectators from the seam, plus the owned and charmed
+// mobs MobSystem already holds. Returns dst so the caller keeps one scratch.
+//
+// Returns nil when no seam is installed, which is how dormancy stays off for
+// the sim harness and the unit tests.
+func (n *MobSystem) collectWakePositions(dst []phy.Vec2f) []phy.Vec2f {
+	if n.wakeSources == nil {
+		return dst
+	}
+	dst = n.wakeSources.AppendWakePositions(dst)
+	// The mob half of D4. A dormant mob can never be player-controlled (D3
+	// refuses owned and charmed outright), so the flag check skips the whole
+	// sleeping population for free.
+	for _, m := range n.mobs {
+		d, ok := m.(dormantMob)
+		if !ok || d.Dormant() || !d.PlayerControlled() {
+			continue
+		}
+		dst = append(dst, m.Position())
+	}
+	return dst
+}
+
+// nearWakeSource reports whether any wake source lies inside the AOI box scaled
+// by margin (D6). The volume is DERIVED from the viewport rather than authored
+// in units, which is what collapses L8's guardrail to two invariants that
+// cannot drift — and what makes it move automatically if the viewport ever
+// does. constant.ViewPortWidth/Height are already pinned to
+// api/shared-constants.json (cmd/aurad/shared_constants_test.go), so the wake
+// volume inherits that cross-language guarantee for free.
+//
+// A box, not a circle: the AOI already is one (phy.NewBox, player.go), a box of
+// the same linear margin covers ~45 % less area than the enclosing circle, and
+// the test is two compares with no sqrt on a per-mob-per-source path.
+func (n *MobSystem) nearWakeSource(pos phy.Vec2f, margin float32) bool {
+	hx := constant.ViewPortWidth / 2 * margin
+	hy := constant.ViewPortHeight / 2 * margin
+	for _, s := range n.wakePositions {
+		dx := s.X - pos.X
+		if dx < 0 {
+			dx = -dx
+		}
+		if dx > hx {
+			continue
+		}
+		dy := s.Y - pos.Y
+		if dy < 0 {
+			dy = -dy
+		}
+		if dy <= hy {
+			return true
+		}
+	}
+	return false
+}
+
+// dormantThisTick judges one mob's sleep state and reports whether its Update
+// should be skipped. It owns the space surgery, so the flag and the shapes can
+// never disagree.
+//
+// Hysteresis (D6): a sleeping mob wakes on the SMALLER wake box, an awake one
+// sleeps only outside the LARGER sleep box. Between the two it keeps whatever
+// state it has, so a player pacing a boundary cannot thrash it.
+func (n *MobSystem) dormantThisTick(m model.MobEntity) bool {
+	if n.wakeSources == nil {
+		return false
+	}
+	d, ok := m.(dormantMob)
+	if !ok {
+		return false
+	}
+	asleep := d.Dormant()
+
+	// Stagger the re-evaluation, spread by entity id. An unjudged mob simply
+	// keeps its current state — safe by the hysteresis band, see the const.
+	if (n.game.Ticks()+m.Basic().ID())%dormancyCheckInterval != 0 {
+		return asleep
+	}
+
+	cfg := n.game.Config()
+	if asleep {
+		// Proximity is the ordinary wake, but NOT the only one: anything that
+		// stopped this mob being pristine has to wake it too.
+		//
+		// ⚑ Without this a sleeping mob is unreachable by everything that finds
+		// mobs by walking MobSystem.mobs rather than the physics space — an
+		// encounter script's ForceThreatToTop, the THREAT cheat, any future
+		// list-walking caller. It would take the threat, stay asleep, and never
+		// act on it. Found by a test that only failed when an earlier test had
+		// shifted entity ids enough to change which tick the stagger judged it
+		// on, which is exactly how this would have reached production: rare,
+		// ordering-dependent, and silent.
+		if n.nearWakeSource(m.Position(), cfg.MobWakeMargin) || !d.Pristine() {
+			n.setDormant(m, d, false)
+			return false
+		}
+		return true
+	}
+	// Cheapest rejections first: the box scan is O(wake sources), the predicate
+	// is a handful of field reads, and only a point-owned mob may sleep at all.
+	if !n.pointOwned(m) || !d.Pristine() {
+		return false
+	}
+	if n.nearWakeSource(m.Position(), cfg.MobSleepMargin) {
+		return false
+	}
+	n.setDormant(m, d, true)
+	return true
+}
+
+// pointOwned reports whether an authored spawn point owns this mob (D3). It is
+// what keeps encounter adds, thrown projectiles and anything else the world
+// does not itself respawn out of dormancy.
+func (n *MobSystem) pointOwned(m model.MobEntity) bool {
+	_, ok := n.pointByMob[m.Basic().ID()]
+	return ok
+}
+
+// setDormant flips the flag and moves the mob's shapes in or out of the physics
+// space (D5). Leaving the space is what lifts the SECOND half of F3: skipping
+// mob.Update alone would leave Space.Update resetting, re-bounding and
+// re-inserting all ~3 shapes of every sleeping mob, every tick, forever.
+//
+// ⚑ Sleep uses SleepShape, not RemoveShape — see the essay on SleepShape for
+// why the purge sweep must not run here and why skipping it is safe.
+//
+// ⚑ A woken mob's shapes are back in s.shapes but not yet in the grid; the next
+// Space.Update (priority 0, later this same tick) re-derives their bounding
+// boxes and inserts them. The one-tick lag is invisible against the wake box's
+// 8 u of margin.
+func (n *MobSystem) setDormant(m model.MobEntity, d dormantMob, asleep bool) {
+	d.SetDormant(asleep)
+	if n.space == nil {
+		return
+	}
+	for _, b := range m.Bodies() {
+		if b == nil {
+			continue
+		}
+		if asleep {
+			n.space.SleepShape(b)
+		} else {
+			n.space.AddShape(b)
 		}
 	}
 }
@@ -134,14 +370,14 @@ func (n *MobSystem) Update(dt float32) {
 // its respawn at the same spot after respawnTicks ± variance.
 func (n *MobSystem) onMobDeath(m model.MobEntity) {
 	id := m.Basic().ID()
-	for i := range n.points {
-		p := &n.points[i]
-		if p.liveMobID == id {
-			p.liveMobID = 0
-			p.respawnAt = n.game.Ticks() + uint64(n.rollDelay(p))
-			return
-		}
+	i, ok := n.pointByMob[id]
+	if !ok {
+		return
 	}
+	delete(n.pointByMob, id)
+	p := &n.points[i]
+	p.liveMobID = 0
+	p.respawnAt = n.game.Ticks() + uint64(n.rollDelay(p))
 }
 
 // rollDelay is the respawn delay in ticks: respawnTicks rolled within the
@@ -162,7 +398,8 @@ func (n *MobSystem) rollDelay(p *spawnPoint) int {
 // within its radius (chunk 5a); the wander anchor stays the AUTHORED point —
 // anchoring on the roll would drift the territory (gotcha #7). Waypoint and
 // stationary mobs spawn exactly at the authored spot.
-func (n *MobSystem) spawnAt(p *spawnPoint) {
+func (n *MobSystem) spawnAt(idx int) {
+	p := &n.points[idx]
 	m := mob.NewMob(p.def, n.game.Config().MobChaseIntoAuraMargin, n.space)
 	pos := p.pos
 	if p.wanderRadius > 0 {
@@ -188,6 +425,10 @@ func (n *MobSystem) spawnAt(p *spawnPoint) {
 	m.SetPosition(pos)
 	m.SetAngle(p.angle)
 	p.liveMobID = m.Basic().ID()
+	// The two writes belong together: pointByMob is liveMobID's index, so a
+	// spawn that set one without the other would make the mob un-respawnable
+	// (onMobDeath) or ineligible for dormancy (pointOwned).
+	n.pointByMob[p.liveMobID] = idx
 	n.game.AddEntity(m)
 }
 
@@ -199,16 +440,23 @@ func randomInDisc(rnd *rand.Rand, radius float32) phy.Vec2f {
 }
 
 func (n *MobSystem) Remove(b ecs.BasicEntity) {
-	var delete int = -1
+	// `found` rather than `delete`: the old name shadowed the builtin for the
+	// rest of the function, which the pointByMob cleanup below needs.
+	found := -1
 	for index, entity := range n.mobs {
 		if entity.Basic().ID() == b.ID() {
-			delete = index
+			found = index
 			break
 		}
 	}
-	if delete >= 0 {
-		n.mobs = append(n.mobs[:delete], n.mobs[delete+1:]...)
+	if found >= 0 {
+		n.mobs = append(n.mobs[:found], n.mobs[found+1:]...)
 	}
+	// Keep the spawn-point index from outliving the mob. onMobDeath has
+	// normally cleared it already (this is a no-op then); the case that matters
+	// is a removal that never went through a death — doFuneral on disconnect —
+	// which would otherwise leave a dead id owning a point forever.
+	delete(n.pointByMob, b.ID())
 	// ⚑ Runs for EVERY removal, mobs included. Skipping the mob branch looks
 	// free — a dying mob is removed at 0 HP, which the per-tick HealthRatio
 	// reset already catches — but a player's placed entities are mobs too, and
