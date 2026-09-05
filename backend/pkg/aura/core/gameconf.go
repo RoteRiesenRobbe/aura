@@ -89,6 +89,16 @@ func Config(conf *cfg.Config) Configuration {
 		// tick across 10…150 players). The band it leaves is what a player must
 		// walk to toggle a mob; 0.2 ≈ 2 u ≈ 1.3 s on foot, and thrash is cheap
 		// since phy.SleepShape made the transition O(1).
+		// Absent → the built-in default, which is what both conf.default.json
+		// files restate. ⚑ It must be a LITERAL, not wakeMargin + the band:
+		// float32(1.7) + 0.2 is 1.9000001, not the authored 1.9, and
+		// TestTrackedConfs_ResolveToIdenticalGameTuning compares the resolved
+		// tuning bit-for-bit — the same trap healthGainTick documents above.
+		if g.MobSleepMargin == 0 {
+			g.MobSleepMargin = 1.9
+		}
+		// Hysteresis is a band, not an inversion: an authored value at or below
+		// the wake margin is repaired to a band above it.
 		if g.MobSleepMargin <= g.MobWakeMargin {
 			g.MobSleepMargin = g.MobWakeMargin + 0.2
 		}
