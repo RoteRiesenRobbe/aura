@@ -345,6 +345,11 @@ function unmarshalEntity(entity, eType) {
         tier: undefined,
         // mob definition id — the key into the /mobs catalog (nameplates)
         mobId: undefined,
+        // PROP definition NAME — a prop's identity, and the key into the
+        // client's compiled-in prop defs. Sent for the PropPlaceholder
+        // entityType only, which is the only prop whose shape and label are not
+        // implied by its entityType (plan-prop-placeholders.md §4.2).
+        propName: undefined,
         // effective combat level of a MOB instance (plan-mob-levels.md C2).
         // Deliberately NOT the `level` slot above: that one is character-only,
         // and reusing it would make isDefined(entity.level) newly true for
@@ -478,6 +483,12 @@ function unmarshalEntity(entity, eType) {
         // static, so unlike a mob's this is read once — EntityManager passes it
         // to the constructor and never touches it again.
         result.rotation = entity.rotation();
+        // null for every real prop — the server writes the field only for a
+        // placeholder, and an absent string reads as null. Normalised to ''
+        // because PropPlaceholder is the only reader and it treats an empty
+        // name as "unlabelled", which is exactly right for a prop that streamed
+        // no name.
+        result.propName = entity.propName() ?? '';
     }
 
     if (isFunction(entity.statusEffectsLength) &&
@@ -558,6 +569,9 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.FireTotem]: Mobs.FireTotem,
     [AuraApi.EntityType.NpcPlaceholder]: Mobs.NpcPlaceholder,
     [AuraApi.EntityType.Tombstone]: Props.genericPropClasses.Tombstone,
+    // Bespoke, and the only prop class that takes a 6th constructor argument
+    // (the prop name) — see EntityManager's default branch.
+    [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,
 };
 
 function unmarshalEntityType(entityType: AuraApi.EntityType) {

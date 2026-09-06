@@ -141,8 +141,16 @@ func (rcv *Resource) MutateRotation(n float32) bool {
 	return rcv._tab.MutateFloat32Slot(16, n)
 }
 
+func (rcv *Resource) PropName() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
 func ResourceStart(builder *flatbuffers.Builder) {
-	builder.StartObject(7)
+	builder.StartObject(8)
 }
 func ResourceAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -167,6 +175,9 @@ func ResourceAddAabb(builder *flatbuffers.Builder, aabb flatbuffers.UOffsetT) {
 }
 func ResourceAddRotation(builder *flatbuffers.Builder, rotation float32) {
 	builder.PrependFloat32Slot(6, rotation, 0.0)
+}
+func ResourceAddPropName(builder *flatbuffers.Builder, propName flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(propName), 0)
 }
 func ResourceEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

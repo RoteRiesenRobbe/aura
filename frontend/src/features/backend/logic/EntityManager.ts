@@ -79,8 +79,19 @@ export class EntityManager {
                     // Mobs and corpses reaching this same line take 3 args and
                     // DebugCircle 4, so the extra one is ignored there; their
                     // rotation still rides the isMovable branch above.
+                    //
+                    // ⚑ The 6th argument is the PROP DEFINITION name
+                    // (plan-prop-placeholders.md §4.2), and PropPlaceholder is
+                    // the only class that reads it — it is the label, and the
+                    // key to the body shape, neither of which its entityType
+                    // implies. It is `undefined` for every non-prop entity and
+                    // '' for every non-placeholder prop, and it is ignored by
+                    // the classes that take fewer arguments, by exactly the
+                    // rule stated above. This line is the one seam every entity
+                    // type passes through, so widening it is deliberate.
                     gameObject = new entity.type(
-                        entity.id, entity.position.x, entity.position.y, entity.radius, entity.rotation);
+                        entity.id, entity.position.x, entity.position.y, entity.radius, entity.rotation,
+                        entity.propName);
             }
 
             this.objects[entity.id] = gameObject;

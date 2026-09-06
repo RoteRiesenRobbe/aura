@@ -596,6 +596,15 @@ func EntitiesMarshalFlatbuf(entities []model.Entity, builder *flatbuffers.Builde
 // a constant 1/1 for every prop — a ratio that could only ever be 1 once the
 // §26 prune emptied the resource system.)
 func PropEntityFlatbufMarshal(e model.PropEntity, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	// ⚑ A string is a separate object and must exist BEFORE the table starts —
+	// unlike Vec2f/AABB below, which are structs written inline. Hence the one
+	// decision, taken here and spent twice.
+	isPlaceholder := e.Type() == model.EntityType(AuraApi.EntityTypePropPlaceholder)
+	var propName flatbuffers.UOffsetT
+	if isPlaceholder {
+		propName = builder.CreateString(e.PropName())
+	}
+
 	builder.StartVector(1, 0, 0)
 	statusEffects := builder.EndVector(0)
 
@@ -618,6 +627,20 @@ func PropEntityFlatbufMarshal(e model.PropEntity, builder *flatbuffers.Builder) 
 	// slot, and an unrotated world streams byte-for-byte what it streamed
 	// before this chunk.
 	AuraApi.ResourceAddRotation(builder, e.Angle())
+
+	// The prop DEFINITION name, for the placeholder entityType ONLY
+	// (plan-prop-placeholders.md §4.2). A placeholder is the one prop whose
+	// shape and label the client has to look up rather than read off the wire;
+	// every other prop type maps 1:1 to a sprite and needs nothing here.
+	//
+	// ⚑ The guard is the whole point, not an optimisation: prop_name is the last
+	// field in the table, so writing it unconditionally would add a vtable slot
+	// AND a whole string to all ~777 props in every snapshot, 30 times a second,
+	// for a value nothing reads. TestPropEntityFlatbufMarshal_RealPropCostsNothing
+	// pins it.
+	if isPlaceholder {
+		AuraApi.ResourceAddPropName(builder, propName)
+	}
 
 	return AuraApi.ResourceEnd(builder)
 }

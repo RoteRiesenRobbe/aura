@@ -99,6 +99,12 @@ type Config struct {
 			// (0.055 vs 0.05; every authored factors.speed is tuned against
 			// it). Absent → the built-in default. [PLACEHOLDER]
 			WalkingSpeedPerTick float32 `json:"walkingSpeedPerTick"`
+			// WakeMargin / SleepMargin size mob dormancy's wake volume as
+			// multiples of the AOI box (plan-world-scale.md D6) — see
+			// cfg.GameConfig for the full note. Absent → the built-in
+			// defaults. [PLACEHOLDER]
+			WakeMargin  float32 `json:"wakeMargin"`
+			SleepMargin float32 `json:"sleepMargin"`
 		} `json:"mob"`
 
 		// Combat holds factors that apply to every acting entity (player, mob,

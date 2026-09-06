@@ -93,6 +93,10 @@ func (b PropBody) IsRect() bool {
 // FlatBuffers enum here — world can't import model (cfg → world → model would
 // cycle); the boot seam converts, like gen's trees/resources tables do.
 type PropDefinition struct {
+	// Name is the prop's IDENTITY, not a label: zone placements name it
+	// ({"type": "House"}), GetByName resolves it, duplicates are refused at
+	// boot, and it is what rides the wire for a PropPlaceholder so the client
+	// can recover the body shape and draw the name (plan-prop-placeholders.md).
 	Name       string
 	EntityType AuraApi.EntityType
 	Body       PropBody

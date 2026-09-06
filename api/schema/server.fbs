@@ -86,7 +86,18 @@ enum EntityType : ushort {
   Camp = 75,
   // Decorative graveyard prop (content: tombstone). Circle body, blocks
   // movement like Rock/Boulder; no gameplay behaviour of its own.
-  Tombstone = 76
+  Tombstone = 76,
+  // The "missing art" marker for a PROP — the counterpart to NpcPlaceholder
+  // above (plan-prop-placeholders.md). Authored as
+  // `"entityType": "PropPlaceholder"` on a prop definition; the client draws
+  // it procedurally, as the authored footprint (circle or rect, at the
+  // authored aspect) with the prop's NAME auto-fit inside it.
+  //
+  // ⚑ It is the ONE entityType that cannot render from this wire alone: every
+  // other prop type maps 1:1 to a sprite, but EVERY placeholder shares this
+  // value while differing in shape and label. That is what Resource.prop_name
+  // is for, and the only reason that field exists.
+  PropPlaceholder = 77
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the
@@ -157,6 +168,27 @@ table Resource {
   // turning rotation on does not grow the 30 Hz snapshot until something is
   // actually rotated.
   rotation:float = 0;
+
+  // The prop definition NAME (the "name" in api/props/*.json) — the key the
+  // client resolves against its compiled-in prop defs to recover the BODY
+  // SHAPE, and the label itself, neither of which this table otherwise carries
+  // (plan-prop-placeholders.md §3).
+  //
+  // ⭐ The NAME rather than a numeric id, unlike Mob.mob_id below, and the
+  // difference is not cosmetic. A prop is ALREADY keyed by name: every
+  // placement in a zone says {"type": "House"}, PropRegistry.GetByName
+  // resolves it, and duplicate names are refused at boot. An id would be a
+  // SECOND identity for the same thing — arbitrary, hand-sequenced, and one
+  // more field for every editor and author to keep. mob_id earns its
+  // compactness by riding every mob every tick; this rides a handful of
+  // development-time stand-ins.
+  //
+  // ⚑ Written ONLY for entity_type == PropPlaceholder, and appended AFTER
+  // rotation for the same reason rotation was appended last: the builder omits
+  // a field equal to its default and trims trailing zero vtable slots, so every
+  // REAL prop still encodes exactly the bytes it encoded before this field
+  // existed — rotated or not.
+  prop_name:string;
 }
 
 table Mob {

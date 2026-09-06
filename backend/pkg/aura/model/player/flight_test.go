@@ -152,7 +152,7 @@ func TestBeginFlight_ViewportGrowsAndLandingRestores(t *testing.T) {
 	require.Equal(t, base, p.viewport.Extent(), "fixture: default extent")
 
 	p.BeginFlight(space, "spawnpoint-1", "spawnpoint-2", phy.Vec2f{X: 20, Y: 0}, 100)
-	assert.Equal(t, base.Mult(flightViewportScale), p.viewport.Extent(),
+	assert.Equal(t, base.Mult(FlightViewportScale), p.viewport.Extent(),
 		"takeoff grows the server AOI to the flight scale (D3)")
 
 	p.Ground()
@@ -279,7 +279,7 @@ var flightViewportScaleTS = regexp.MustCompile(
 // and this is the only thing that can fail when they stop agreeing.
 //
 // ⚑ The failure it guards is silent by construction: retuning
-// flightViewportScale alone leaves the whole Go suite AND the whole vitest
+// FlightViewportScale alone leaves the whole Go suite AND the whole vitest
 // suite green — Zoom.test.ts pins that both client bounds derive from the
 // client's copy, which stays internally consistent while it drifts away from
 // what the server actually streams. What you then see in the air is entities
@@ -296,7 +296,7 @@ func TestFlightViewportScale_MatchesTheClient(t *testing.T) {
 	match := flightViewportScaleTS.FindSubmatch(source)
 	require.NotNil(t, match,
 		"FLIGHT_VIEWPORT_SCALE is gone from %s: either flight's client half was removed "+
-			"(then remove flightViewportScale too) or the const was renamed", zoomTSPath)
+			"(then remove FlightViewportScale too) or the const was renamed", zoomTSPath)
 
 	// ⚑ Parsed at float64 and compared with a delta, NOT for equality at
 	// float32. The claim is about the two written LITERALS agreeing, and an
@@ -307,7 +307,7 @@ func TestFlightViewportScale_MatchesTheClient(t *testing.T) {
 	// retune could be and far looser than the representation error.
 	client, err := strconv.ParseFloat(string(match[1]), 64)
 	require.NoError(t, err)
-	assert.InDelta(t, float64(flightViewportScale), client, 1e-9,
+	assert.InDelta(t, float64(FlightViewportScale), client, 1e-9,
 		"the client zoom cap and the server AOI must be retuned TOGETHER "+
-			"(flight.go's flightViewportScale ↔ Zoom.ts's FLIGHT_VIEWPORT_SCALE)")
+			"(flight.go's FlightViewportScale ↔ Zoom.ts's FLIGHT_VIEWPORT_SCALE)")
 }

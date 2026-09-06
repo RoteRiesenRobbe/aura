@@ -1,6 +1,11 @@
 # plan-server-performance.md — raising the concurrent-player ceiling
 
 **Status: chunk 0 built (uncommitted), chunks 1–5 not started. 2026-08-02.**
+⭐ **Chunk 3 rewritten and PROMOTED 2026-08-30** (PO-asked design session): it
+now owns the *bytes* half as well as the CPU half, after measuring **784 B per
+player per tick of slow-changing state and a 4 264-byte conversation tree
+re-sent 30×/s**. It is the only chunk that can touch owner-only fields, which
+chunk 1 cannot help by construction. Still not started.
 
 The measurements this plan is built on live in `devops/loadtest.md`
 (§Diagnosis — 2026-08-02 and §The wall). This doc is only the **execution
@@ -25,6 +30,12 @@ Three facts set it:
 Cheapest first, but note that **chunk 1 is both the cheapest big win and the
 one that changes the most about how snapshots are built** — it is first because
 its payoff dominates, not because it is trivial.
+
+⚑ **A fourth fact, added 2026-08-30:** those three are all about *tick time*, and
+they all concern data shared between viewers. **Owner-only fields are a separate
+axis** — chunk 1 cannot share what only one viewer receives — so chunk 3 is not
+competing with chunk 1 for the same win and does not have to wait behind it.
+Take chunk 1 for the tick, chunk 3 for the bytes and the per-player floor.
 
 ## Measuring any of this
 
@@ -107,17 +118,143 @@ built eagerly in `New`, with the lazy path kept only for struct-literal players
 (sim, tests). Look for the same shape elsewhere, and run the race detector
 under load, not just the unit suite.
 
-## Chunk 3 — stop re-encoding static data
+## Chunk 3 — stop re-encoding **and re-sending** owner-only state
 
-**Cheap, low-risk, modest win. Good filler chunk.**
+> **Rewritten 2026-08-30 (PO-asked design session), and PROMOTED.** It used to
+> read "cheap, low-risk, modest win, good filler chunk" and cover only the CPU
+> half — cache the encoded form. Measuring it for the PO's question *"is there
+> data in the per-tick message that doesn't need to be in every tick?"* turned
+> up **784 bytes per player per tick of slow-changing state, and a 4 264-byte
+> conversation tree re-sent 30×/s while a dialogue is open**. The bytes half is
+> worth more than the CPU half, and both ride the same dirty flag, so they are
+> ONE chunk — splitting them would duplicate the only risky part.
 
-Spellbook, spellbook levels, and all three slot vectors are rebuilt into the
-message every tick and change only on equip/unlock/level-up. Cache the encoded
-form per player and rebuild on a dirty flag.
+### What is actually on the wire
 
-⚑ The dirty flag is the whole risk: a missed invalidation is a UI that silently
-stops updating. Every mutation site must set it, and a test should assert that
-each mutating path does.
+Measured by building the real `AuraApi` vectors and reading the finished buffer
+(throwaway probes in `pkg/aura/codec`, 2026-08-30; reproduce by marshalling the
+vectors alone and differencing against an empty `GameState` shell):
+
+| field group | bytes/tick | changes on |
+| --- | --- | --- |
+| `spellbook`(40) + `spellbook_levels` + aura/passive/cooldown slots + `skill_points` + `cost_factor` + `damage_factor` | 256 | equip, unlock, level-up |
+| `quest_progress` (3 quests, stages + objective strings) | 528 | quest events |
+| **slow-changing total** | **784** | |
+| `conversation` (6 nodes × 4 options) | **4 264** | opening/advancing a dialogue |
+| *(context)* one `Mob` entity | 120 | every tick, legitimately |
+
+- **784 B/tick/player = 23 KB/s/player, 1.1 MB/s at 50 players.** Against a
+  quiet screen (12 entities in view) that block is **35 % of the whole frame**;
+  in a busy fight (30 entities) it is still **18 %**.
+- ⭐ **The conversation tree is the standout: 125 KB/s for ONE player standing
+  still, talking to an NPC.** Nothing in it changes between ticks. The schema
+  comment already concedes the point — *"Sent as STATE every tick, for
+  consistency with interactable_entity_id above; a change-only send is a later
+  optimisation, not a design requirement."*
+
+⭐ **Why this cannot wait for chunk 1, and is not made redundant by it:** chunk 1
+shares one encoding across viewers. Every field above is **owner-only** — there
+is no second viewer to share it with, by construction. The dirty flag is the
+*only* lever these fields have, which is what promotes this chunk above its
+old "filler" billing.
+
+### D1 — send-on-change, NOT a second slower message
+
+The PO's framing was a frequent tick plus a less frequent one, on the
+`sendRoster()` precedent (~1 Hz, `rosterIntervalTicks`). **Declined for this
+data, deliberately**, and the reason is gameplay rather than engineering:
+switching auras mid-fight is a stated GDD skill expression, and `active_aura_slot`,
+the slot vectors and `cooldown_remaining_ticks` are exactly what a switch moves.
+A fixed slow cadence would add **up to a second of latency to every equip,
+unlock and aura switch** — paying UX for bytes when send-on-change gets both:
+**zero bytes in the steady state AND instant response**.
+
+A fixed slow message stays the right shape for genuinely ambient data — which is
+why the roster already uses it, and that precedent is untouched.
+
+### D2 — a heartbeat resend, because the dirty flag WILL be missed
+
+The old text named the risk correctly (*a missed invalidation is a UI that
+silently stops updating*) and then relied on discipline. Instead: resend the
+full owner-only block every **N seconds regardless of the flag** [PLACEHOLDER
+~5 s]. A forgotten invalidation then self-heals within seconds instead of
+persisting for the whole session, and it still keeps ~97 % of the saving.
+⚑ This is a mitigation, not a licence — every mutation site still sets the flag,
+and §Test strategy still asserts each one does.
+
+### ⚑ L1 — ABSENT ALREADY MEANS SOMETHING, and not the same thing twice
+
+The blocking landmine, and the reason this is not a two-line change. Today:
+
+| field | absent means |
+| --- | --- |
+| `conversation` | **close the panel** — "the client's only close signal" |
+| `quest_progress` | an **empty** journal |
+| `discovered_campfires` | **no change** |
+
+So "stop sending it when it hasn't changed" is, for two of those three, already
+a live command with a different meaning. Three of them, three conventions. Any
+implementation must pick one per field and say so, or **closing a dialogue
+silently stops working**.
+
+### D3 — the conversation keeps an explicit open/closed scalar
+
+Because `conversation`-absent cannot become "unchanged" (L1), split the two
+questions the field answers today:
+
+- a cheap always-sent scalar — **`conversation_entity_id:ulong`**, 0 = closed —
+  carries open/closed at 8 bytes, and costs **nothing** when closed since 0 is
+  the field default;
+- the expensive tree rides change-only underneath it.
+
+Absent tree + nonzero id = unchanged; id 0 = closed. This mirrors the
+`interactable_entity_id` pattern already in the schema rather than inventing a
+convention. ⚑ **This is the chunk's one wire-schema change** — one appended
+field, both binding sets regenerate together (the immune-feedback landmine).
+
+### ⚑ L2 — a new viewer must start dirty
+
+`quest_progress` and the spellbook flipping to absent-means-unchanged is only
+safe if every client is guaranteed a full send before it can miss one. Force the
+flag dirty when the player entity is created — join, respawn AND reconnect —
+or a reconnecting client renders an empty journal and an empty spellbook until
+its next unlock. ⚑ The reconnect stash path is the one that will be forgotten:
+it rebuilds a player without going through a fresh join.
+
+### ⚑ L3 — `cooldown_remaining_ticks` is NOT slow-changing
+
+It sits inside the 256-byte block but genuinely changes every tick while a
+cooldown runs. It stays in the fast lane; only the *slot* vectors beside it are
+cacheable. Gating it by the same flag would freeze every cooldown sweep on the
+client at the value it had when the loadout last changed.
+
+### Expected win, stated honestly
+
+**Bandwidth: ~780 B/tick/player of steady-state traffic removed, plus the
+conversation tree's 125 KB/s while talking.** CPU: the vector builds and their
+allocations, per player per tick — real but second-order against chunk 1.
+
+⚑ **The measured bottleneck is CPU in encoding, not bandwidth** (§Why the order
+is what it is), so this is not the tick-time lever chunk 1 is. It is the right
+chunk when the target is **bandwidth, mobile data, or the per-player floor that
+chunk 1 structurally cannot touch** — and the conversation finding is a real
+defect independent of any ceiling.
+
+### Test strategy
+
+- One leg **per mutation site** asserting the flag is set (the old text's ask,
+  kept — it is what makes D2 a safety net rather than the mechanism).
+- A leg asserting the heartbeat resends with **no** mutation at all.
+- ⭐ The L1 leg, which is the one that would catch a shipped regression:
+  **open a conversation, advance it, close it** — and assert the panel closes.
+  The close path is the one that breaks silently.
+- L2: a **reconnecting** client receives a full spellbook and journal on its
+  first tick, not an empty one.
+- Bytes before/after on a steady-state tick, which is the number this chunk is
+  bought for.
+
+**Schema impact: WIRE YES** (one appended `conversation_entity_id`, both
+bindings regenerate), **DB NONE**.
 
 ## Chunk 4 — the broadphase
 

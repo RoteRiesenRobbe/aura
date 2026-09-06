@@ -52,8 +52,21 @@ scripts. ⚑ **`-dev` also unlocks the reserved `hrnss_` name prefix**
 (`AllowHarnessNames`), without which every script fails at character creation
 with *"That character name is not available."*
 
-⚑ **`taskkill //F //IM aurad.exe` MATCHES NOTHING.** The binary is built as
-`aurad` with no extension, so the old process survives, keeps port 2000, and
+⚑ **There are TWO binary names on this box, and each has its own trap.**
+
+⚑ **Launching `.\aurad` can run a STALE `aurad.exe`.** Windows applies PATHEXT
+to an extensionless target, so `Start-Process .\aurad` (and a bare `aurad` in
+PowerShell) resolves to `backend/aurad.exe` when one exists — and one does here,
+left from an older build. `make -C backend build` writes the EXTENSIONLESS
+`aurad`, so a fresh build and a launch can disagree by weeks while the server
+runs code you did not build. Observed 2026-09-05: a boot panicked on `unknown
+field "id"` for a field that had been in the source for an hour, which reads as
+a broken parser rather than a stale binary. Build to the name you will launch
+(`go build -o aurad.exe ./cmd/aurad`), or launch the full path and check the
+log's timestamps against your build.
+
+⚑ **`taskkill //F //IM aurad.exe` MATCHES NOTHING** when the built binary is
+the extensionless `aurad`, so the old process survives, keeps port 2000, and
 serves **stale code** — which presents as "my change did nothing", not as a
 stale server. It cost three debugging cycles in chunk 2. Use
 `taskkill //F //IM aurad` and check for more than one:
@@ -114,6 +127,19 @@ Two Windows-specific gotchas, both of which look like a broken harness:
   through `join(process.env.HOME, '.cache/aurahunter-run')`, and `HOME` is set by
   Git Bash but usually *not* by PowerShell — where the join throws before
   anything else happens. Setting `AURA_RUN_DIR` explicitly also works.
+
+### ⚑ New CONTENT under `-content ../api` does not reach the CLIENT
+
+`-content ../api` is a **server-side** shortcut. Several client-side catalogs
+are compiled in at webpack BUILD time via `require.context` — `api/props`
+(`Props.ts`) and the zone editor's bundle among them — so a prop added after the
+last `npm run build` exists for the server and not for the browser. It fails
+SILENTLY and plausibly: with plan-prop-placeholders.md's placeholder props
+(2026-09-05) every one rendered as a shapeless square, because
+`propDefsByName.get(name)` missed and the class took its own "this build has
+never seen that definition" fallback — which looks exactly like a broken wire
+field, and sent the first debugging pass at the codec. **After adding or renaming anything under
+`api/props/`, rebuild the FRONTEND**, not just the server.
 
 ## Boot-count sanity check
 

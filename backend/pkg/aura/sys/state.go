@@ -419,6 +419,25 @@ func (*ConnectionStateSystem) Priority() int {
 	return 10
 }
 
+// AppendWakePositions implements MobSystem's WakeSources seam
+// (plan-world-scale.md D4): every player and spectator position, appended to
+// the caller's reused scratch so the per-tick collection allocates nothing.
+//
+// ⚑ Spectators are in here deliberately, and the plan did not anticipate them.
+// A spectator streams the world through its viewport exactly as a player does
+// (core/net.go spectatorSendState), so omitting them would render the pre-join
+// start screen and every death overlay as an empty world — dormant mobs are out
+// of the space and therefore in no viewport at all.
+func (s *ConnectionStateSystem) AppendWakePositions(dst []phy.Vec2f) []phy.Vec2f {
+	for _, p := range s.players {
+		dst = append(dst, p.Position())
+	}
+	for _, sp := range s.spectators {
+		dst = append(dst, sp.Position())
+	}
+	return dst
+}
+
 func (s *ConnectionStateSystem) AddSpectator(spectator model.Spectator) {
 	s.spectators = append(s.spectators, spectator)
 }

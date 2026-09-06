@@ -8,6 +8,8 @@
 /backend/loadbot.exe
 /backend/conf.json
 /backend/simharness
+/backend/harnessdb
+/backend/harnessdb.exe
 # ⚑ Windows leaves these behind: `go build -o aurad` while the server is RUNNING
 # cannot overwrite the locked file, so it renames the old one to `aurad~` and
 # writes a fresh binary beside it. Covers every binary built into this directory.

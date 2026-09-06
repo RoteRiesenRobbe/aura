@@ -43,6 +43,11 @@ func FromZone(p *world.Prop) *Prop {
 		e = New(entityType, pos, solid.Radius, visual.VisualRadius(), p.BlocksMovement)
 	}
 	e.rotation = p.Rotation
+	// ⚑ THE definition name reaches the entity only here. New/NewRect take the
+	// resolved geometry and know nothing about the definition it came from, and
+	// FromZone is the single authored-prop → entity seam (see the header), so
+	// this is the one assignment that has to exist.
+	e.propName = p.Def.Name
 	return e
 }
 
@@ -78,6 +83,13 @@ type Prop struct {
 	// resulting "renders turned, blocks upright" lie in-game the same day;
 	// C2b closed it.
 	rotation float32
+
+	// propName is the authored prop DEFINITION name, carried purely so the
+	// codec can put it on the wire for a PropPlaceholder — the one entityType
+	// whose shape and label live in the definition rather than in a sprite
+	// (plan-prop-placeholders.md §4.1). Empty for a prop built outside FromZone
+	// (tests, ad-hoc props), which is exactly the wire's "absent" value.
+	propName string
 }
 
 var _ = model.PropEntity(&Prop{})
@@ -163,6 +175,11 @@ func (p *Prop) AABB() model.AABB {
 // the client scale a sprite whose aspect matches the authored body.
 func (p *Prop) Radius() float32 {
 	return p.visualRadius
+}
+
+// PropName is the authored prop definition name — see Prop.propName.
+func (p *Prop) PropName() string {
+	return p.propName
 }
 
 // Angle is the authored orientation in radians. BaseEntity returns a constant

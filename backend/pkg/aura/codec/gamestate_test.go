@@ -718,3 +718,86 @@ func TestGameStateQuestProgress_EmptyWritesNothing(t *testing.T) {
 
 	assert.Zero(t, AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).QuestProgressLength())
 }
+
+// ⭐ prop_name rides the wire for the PLACEHOLDER entityType only
+// (plan-prop-placeholders.md §4.2). Built through prop.FromZone because that
+// is the only seam that puts the definition name on the entity at all.
+func TestPropEntityFlatbufMarshal_CarriesPropNameForPlaceholder(t *testing.T) {
+	def := &world.PropDefinition{
+		Name:       "Bench",
+		EntityType: AuraApi.EntityTypePropPlaceholder,
+		Body:       world.PropBody{Width: 2, Height: 0.6},
+	}
+	p := prop.FromZone(&world.Prop{X: 1, Y: 2, Rotation: 0.4, BlocksMovement: true, Def: def})
+
+	b := flatbuffers.NewBuilder(256)
+	b.Finish(PropEntityFlatbufMarshal(p, b))
+
+	var res AuraApi.Resource
+	res.Init(b.FinishedBytes(), flatbuffers.UOffsetT(flatbuffers.GetUOffsetT(b.FinishedBytes())))
+	assert.Equal(t, AuraApi.EntityTypePropPlaceholder, res.EntityType())
+	assert.Equal(t, "Bench", string(res.PropName()),
+		"a placeholder that streams no prop_name has no shape and no label — it is the whole feature")
+}
+
+// The other half of the same guard: a real prop carries a name on the ENTITY
+// (every definition has one) and must still leave it off the wire.
+func TestPropEntityFlatbufMarshal_OmitsPropNameForRealProp(t *testing.T) {
+	def := &world.PropDefinition{
+		Name:       "Rock",
+		EntityType: AuraApi.EntityTypeStone,
+		Body:       world.PropBody{Radius: 1},
+	}
+	p := prop.FromZone(&world.Prop{X: 1, Y: 2, Def: def})
+	require.Equal(t, "Rock", p.PropName(), "the entity does carry the name")
+
+	b := flatbuffers.NewBuilder(256)
+	b.Finish(PropEntityFlatbufMarshal(p, b))
+
+	var res AuraApi.Resource
+	res.Init(b.FinishedBytes(), flatbuffers.UOffsetT(flatbuffers.GetUOffsetT(b.FinishedBytes())))
+	assert.Empty(t, res.PropName(), "prop_name must be absent for anything but a placeholder")
+}
+
+// ⭐ The performance property, pinned at the BYTE level — the same argument
+// TestPropEntityFlatbufMarshal_UnrotatedCostsNothing makes for rotation, but
+// stronger, because here it is a branch rather than a default that keeps the
+// field off the wire.
+//
+// prop_name is the last field in table Resource, so as long as the codec's
+// entityType guard holds, a real prop encodes to exactly the bytes it encoded
+// before this field existed. Dropping the guard (or moving prop_name ahead of
+// rotation) would add a vtable slot AND a whole string to every one of the ~777
+// props in every snapshot, 30 times a second, for a value nothing reads.
+// Nothing else would notice: every functional test above stays green either way.
+func TestPropEntityFlatbufMarshal_RealPropCostsNothing(t *testing.T) {
+	def := &world.PropDefinition{
+		Name:       "Rock",
+		EntityType: AuraApi.EntityTypeStone,
+		Body:       world.PropBody{Radius: 1},
+	}
+	p := prop.FromZone(&world.Prop{X: 1, Y: 2, Rotation: 2.03, BlocksMovement: true, Def: def})
+
+	b := flatbuffers.NewBuilder(256)
+	b.Finish(PropEntityFlatbufMarshal(p, b))
+	got := b.FinishedBytes()
+
+	// The identical table, hand-built with no prop_name slot at all — i.e. what
+	// PropEntityFlatbufMarshal emitted before this chunk.
+	ref := flatbuffers.NewBuilder(256)
+	ref.StartVector(1, 0, 0)
+	se := ref.EndVector(0)
+	AuraApi.ResourceStart(ref)
+	AuraApi.ResourceAddId(ref, p.Basic().ID())
+	AuraApi.ResourceAddStatusEffects(ref, se)
+	AuraApi.ResourceAddPos(ref, Vec2fMarshalFlatbuf(ref, p.Position()))
+	AuraApi.ResourceAddAabb(ref, AabbMarshalFlatbuf(p.AABB(), ref))
+	AuraApi.ResourceAddRadius(ref, f32ToU16Px(p.Radius()))
+	AuraApi.ResourceAddEntityType(ref, AuraApi.EntityType(p.Type()))
+	AuraApi.ResourceAddRotation(ref, p.Angle())
+	ref.Finish(AuraApi.ResourceEnd(ref))
+
+	assert.Equal(t, ref.FinishedBytes(), got,
+		"a non-placeholder prop must encode byte-for-byte what it encoded before prop_name existed; "+
+			"if this diverges, every prop in every snapshot just got bigger")
+}

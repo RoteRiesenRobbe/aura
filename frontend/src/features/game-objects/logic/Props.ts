@@ -12,14 +12,25 @@
  * Resources.ts, excluded here by entityType. A future prop needing its own
  * behavior follows the same path: write a class, add its entityType to
  * BESPOKE_ENTITY_TYPES below, give it its own `gameObjectClasses` line.
+ *
+ * PropPlaceholder is the one bespoke class that lives HERE rather than in
+ * Resources.ts (plan-prop-placeholders.md C2), because it is the only render
+ * class that needs the prop DEFINITIONS this module already compiles in.
  */
-import {Container, Texture, ViewContainer} from 'pixi.js';
+import {Container, Graphics, Text, Texture, ViewContainer} from 'pixi.js';
 import * as Preloading from '../../core/logic/Preloading';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import {requireAll} from '../../common/logic/Utils';
 import {GameSetupEvent} from '../../core/logic/Events';
 import {IGame} from '../../core/logic/IGame';
 import {Resource} from './Resources';
+import * as TextDisplay from '../../../client-data/TextDisplay';
+import {
+    LABEL_REFERENCE_FONT_SIZE,
+    PropFootprint,
+    propFootprint,
+    propLabelFontSize,
+} from './PropPlaceholderLayout';
 
 let Game: IGame = null;
 GameSetupEvent.subscribe((game: IGame) => {
@@ -38,7 +49,7 @@ type GameObjectClass = new (...args: any[]) => unknown;
 // Tree/RoundTree and Mineral/Stone have real behavior (resource-spot decal,
 // authored-not-random rotation) and keep their hand-written Resources.ts
 // classes — never routed through the generic path.
-const BESPOKE_ENTITY_TYPES = new Set(['RoundTree', 'Stone']);
+const BESPOKE_ENTITY_TYPES = new Set(['RoundTree', 'Stone', 'PropPlaceholder']);
 
 // Escape hatch for a future prop whose SVG needs extra rasterisation
 // crispness beyond the derived (body units × PX_PER_UNIT). Empty today.
@@ -147,3 +158,149 @@ defsByEntityType.forEach((defs, entityType) => {
     Preloading.registerGameObjectSVG(GeneratedProp, spriteFile, maxSize);
     genericPropClasses[entityType] = GeneratedProp;
 });
+
+// ---------------------------------------------------------------------------
+// PropPlaceholder — the "missing art" stand-in for a prop
+// (plan-prop-placeholders.md C2).
+// ---------------------------------------------------------------------------
+
+// Every definition, keyed by its name — which for a prop IS its identity:
+// zone placements name it and the server refuses duplicates. This is the whole
+// reason Resource.prop_name rides the wire: the wire says PropPlaceholder for
+// every placeholder alike, and the name is what recovers WHICH one, and with it
+// the body shape. The label needs no lookup at all — it is the name.
+//
+// Built over ALL defs, not just the placeholder ones: it costs nothing (there
+// are six), and a def that stops being a placeholder must not silently drop out
+// of a map whose whole job is to answer "which prop is this".
+const propDefsByName = new Map<string, PropDefJSON>();
+for (const def of propDefs) {
+    propDefsByName.set(def.name, def);
+}
+
+// The loud, deliberately un-gamelike palette, shared with npcPlaceholder.svg so
+// "unfinished" reads the same everywhere. The prop is SQUARED where the NPC is
+// round, and outlined in red rather than in dark purple, so the two are told
+// apart at a glance. [PLACEHOLDER]
+const PLACEHOLDER_FILL = 0x5b2a86;
+const PLACEHOLDER_FILL_ALPHA = 0.85;
+const PLACEHOLDER_STROKE = 0xff3b30;
+const PLACEHOLDER_LABEL = 0xffffff;
+// Outline width as a fraction of the footprint's smaller half-extent, clamped
+// so a tombstone-sized prop is not all border and a house is not hairlined.
+const STROKE_FACTOR = 0.06;
+const STROKE_MIN = 1.5;
+const STROKE_MAX = 5;
+
+/**
+ * A prop authored with `"entityType": "PropPlaceholder"`: drawn procedurally,
+ * at the authored footprint, with the prop's NAME auto-fit inside it.
+ *
+ * ⭐ Procedural and not a sprite, because one image cannot be a circle AND a
+ * 4:3 house AND a 2:0.6 bench — and `bodyAspect` on the generic path is a
+ * STATIC per-class field taken from the first rect def in the group, so a
+ * second rect placeholder could never have got its own aspect (§4.1). Drawing
+ * it means no art file, no `maxSize` rasterisation and no Preloading entry.
+ *
+ * ⚑ The shape is built in the CONSTRUCTOR BODY, not in initShape, and that is
+ * forced rather than stylistic: initShape runs inside the GameObject
+ * constructor's super() chain, before any subclass field initializer and
+ * before the propName argument could be stored anywhere `this` can see. So
+ * initShape returns an empty positioned container and the drawing is added to
+ * it a moment later. (SimpleProp above hits the same wall and solves it with a
+ * static field — which cannot work here, where every instance may be a
+ * different definition.)
+ */
+export class PropPlaceholder extends Resource {
+    constructor(id: number, x: number, y: number, size: number, rotation: number, propName: string) {
+        super(id, Game.layers.resources.trees, x, y, size, rotation, null);
+        this.visibleOnMinimap = false;
+
+        // ⚑ The SHAPE needs the definition; the LABEL does not — the wire
+        // carries the name itself. So a name this build cannot resolve (a prop
+        // def added to the server since the last webpack build, or deleted from
+        // under a running client) still draws a labelled square at the streamed
+        // size rather than nothing. An invisible prop that nonetheless blocks
+        // movement is the worse lie, and a labelled square says which prop it
+        // is even when its body is unknown.
+        const def = propDefsByName.get(propName);
+        const footprint = propFootprint(def ? def.body : {}, size);
+        this.shape.addChild(drawFootprint(footprint));
+
+        const label = propName ? buildLabel(propName, footprint) : null;
+        if (label !== null) {
+            this.shape.addChild(label);
+        }
+    }
+
+    /**
+     * An empty container at the placement's position and angle; the drawing is
+     * added by the constructor body (see the class comment).
+     *
+     * Everything lives inside this ONE rotated container, so the label turns
+     * with the prop and therefore cannot leave the bounds it was fitted to
+     * (§4.3). An axis-aligned label would read better on a steeply rotated
+     * prop but is able to spill — the in-game pass decides, and swapping is a
+     * one-line change here.
+     */
+    initShape(_svg: Texture, x: number, y: number, _size: number, rotation: number): Container {
+        const container = new Container();
+        container.position.set(x, y);
+        container.rotation = rotation;
+        return container;
+    }
+
+    createMinimapIcon(): ViewContainer {
+        throw new Error('Method not implemented.');
+    }
+}
+
+function drawFootprint(footprint: PropFootprint): Graphics {
+    const width = Math.min(STROKE_MAX,
+        Math.max(STROKE_MIN, Math.min(footprint.halfWidth, footprint.halfHeight) * STROKE_FACTOR));
+
+    const g = new Graphics();
+    if (footprint.isRect) {
+        g.rect(-footprint.halfWidth, -footprint.halfHeight,
+            footprint.halfWidth * 2, footprint.halfHeight * 2);
+    } else {
+        g.circle(0, 0, footprint.halfWidth);
+    }
+    return g
+        .fill({color: PLACEHOLDER_FILL, alpha: PLACEHOLDER_FILL_ALPHA})
+        .stroke({width, color: PLACEHOLDER_STROKE});
+}
+
+/**
+ * The auto-fit name (D3), or null when it cannot be drawn legibly at this size.
+ *
+ * ⚑ Measured at the reference size and then RE-STYLED to the fitted one rather
+ * than scaled: a prop is built once and never moves, so the crisper
+ * re-rasterisation costs nothing, where `text.scale` would leave every label in
+ * the world slightly soft.
+ */
+function buildLabel(name: string, footprint: PropFootprint): Text | null {
+    const text = new Text({
+        text: name,
+        style: TextDisplay.style({
+            fontSize: LABEL_REFERENCE_FONT_SIZE,
+            fontWeight: '700',
+            fill: PLACEHOLDER_LABEL,
+            stroke: {color: '#2d1443', width: 3},
+        }),
+    });
+
+    const fontSize = propLabelFontSize(footprint, text.width, text.height);
+    if (fontSize === null) {
+        text.destroy();
+        return null;
+    }
+
+    text.style.fontSize = fontSize;
+    // Stroke width is in px and does not follow fontSize, so a label shrunk to
+    // the floor would otherwise be mostly outline.
+    text.style.stroke = {color: '#2d1443', width: Math.max(1, fontSize / 10)};
+    text.anchor.set(0.5, 0.5);
+    text.position.set(0, 0);
+    return text;
+}

@@ -30,8 +30,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/core"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/player"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/stretchr/testify/assert"
@@ -357,4 +360,46 @@ func TestGuardrails_ArchetypeTrade(t *testing.T) {
 				"a species may be differently shaped, not simply bigger (D6)",
 			def.Name, hpX, speedX, dpsX, archetypePaid)
 	}
+}
+
+// TestGuardrails_DormancyWakeVolume is plan-world-scale.md L8, collapsed to the
+// only two things that can still drift once D6 made the wake volume a MULTIPLE
+// of the AOI box rather than a distance in units.
+//
+// The original landmine asked for a hand-checked relationship between two
+// independent numbers ("if the radius ever drops below ViewPortWidth, mobs pop
+// into existence on screen"). Deriving the volume from
+// constant.ViewPortWidth/Height retired that: the AOI cannot outgrow its own
+// multiple, so what is left to assert is only that the multiples are sane.
+//
+// ⚑ Zoom deliberately does not enter this. camera/logic/Zoom.ts is a FIXED
+// field of view hard-capped at MAX_VISIBLE_WIDTH = 18 m, strictly inside the
+// 20 m AOI, so anything containing the AOI contains every zoom level by
+// construction. But both zoom values are [PLACEHOLDER] and the cap sits only
+// 2 m under ViewPortWidth: a fourth, wider zoom level would eat that margin and
+// silently invalidate the wake volume. Deriving from the AOI is what keeps that
+// to ONE number to check, and this is where it is checked.
+func TestGuardrails_DormancyWakeVolume(t *testing.T) {
+	var g cfg.GameConfig
+	require.NoError(t, core.Config(&cfg.Config{})(&g),
+		"the defaulting path must produce a usable dormancy config from an empty conf")
+
+	// ⚑ The floor is FlightViewportScale, NOT 1 — corrected 2026-08-30 while
+	// tuning the margins. L8 argued containment from Zoom.ts's fixed GROUND
+	// field of view and concluded the widest obtainable view sits inside the
+	// 20 × 12 AOI. It missed that a FLYING player's server-side AOI is itself
+	// scaled up (player.setViewportScale), so the box the wake volume actually
+	// has to contain is bigger than the ground one. Flight is the binding case,
+	// and FlightViewportScale is a [PLACEHOLDER] that has already been retuned
+	// twice (2.5 → 1.75 → 1.2) — exactly the drift L8 exists to catch.
+	assert.Greater(t, g.MobWakeMargin, float32(player.FlightViewportScale),
+		"the wake volume (%.2f×) must STRICTLY contain the FLIGHT AOI (%.2f×): at or below "+
+			"it, a mob is streamed to a flying client before it is woken — it fades in at "+
+			"the screen edge, mid-flight, which is the one place nobody looks",
+		g.MobWakeMargin, float32(player.FlightViewportScale))
+
+	assert.Greater(t, g.MobSleepMargin, g.MobWakeMargin,
+		"hysteresis is a band, not an inversion: sleep (%.2f×) must sit outside wake (%.2f×), "+
+			"or a mob at the boundary thrashes in and out of the physics space every tick",
+		g.MobSleepMargin, g.MobWakeMargin)
 }

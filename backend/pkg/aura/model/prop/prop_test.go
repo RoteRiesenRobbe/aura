@@ -8,6 +8,7 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
 
 func TestNew_BlocksMovementSetsStaticCollisionLayers(t *testing.T) {
@@ -160,4 +161,29 @@ func TestProp_DecorativePropDoesNotCollideThroughSpace(t *testing.T) {
 
 	assert.Equal(t, start, circle.Position(),
 		"a decorative prop must not push the circle anywhere")
+}
+
+// The definition name reaches the entity, for BOTH body forms — FromZone
+// builds a circle and a rect down two separate branches, and the assignment
+// sits after them precisely so neither can be forgotten
+// (plan-prop-placeholders.md §4.2 item 1).
+func TestFromZone_CarriesThePropDefinitionName(t *testing.T) {
+	for name, body := range map[string]world.PropBody{
+		"circle": {Radius: 1},
+		"rect":   {Width: 2, Height: 0.6},
+	} {
+		t.Run(name, func(t *testing.T) {
+			def := &world.PropDefinition{Name: "Bench", Body: body}
+			p := FromZone(&world.Prop{X: 1, Y: 2, Rotation: 0.4, Def: def})
+			assert.Equal(t, "Bench", p.PropName())
+		})
+	}
+}
+
+// A prop built outside FromZone (New/NewRect take geometry, not a definition)
+// reports "" — which is exactly the wire's "absent" value, so the two agree
+// rather than one of them inventing a plausible-looking wrong label.
+func TestNew_PropNameDefaultsToTheWireAbsentValue(t *testing.T) {
+	assert.Empty(t, New(5, phy.VEC2F_ZERO, 0.5, 0.5, false).PropName())
+	assert.Empty(t, NewRect(5, phy.VEC2F_ZERO, 1, 1, 0, 0.5, false).PropName())
 }
