@@ -1,7 +1,7 @@
 # plan-server-performance.md — raising the concurrent-player ceiling
 
 **Status: chunks 0 and 3 SHIPPED; chunks 1, 2, 4, 5 not started. 2026-09-06.**
-⭐ **Chunk 3 SHIPPED 2026-09-06 `[uncommitted]`** — send-on-change for the
+⭐ **Chunk 3 SHIPPED 2026-09-06 `68946f78`** — send-on-change for the
 owner-only block and the conversation tree, measured at **39.3 % of
 steady-state bytes** (and **59.1 %** with a dialogue open) on the real encoder.
 Its ledger is on the chunk heading below, including the **four defects a code
@@ -123,7 +123,7 @@ built eagerly in `New`, with the lazy path kept only for struct-literal players
 (sim, tests). Look for the same shape elsewhere, and run the race detector
 under load, not just the unit suite.
 
-## Chunk 3 — stop re-encoding **and re-sending** owner-only state ✅ SHIPPED `[uncommitted]` 2026-09-06
+## Chunk 3 — stop re-encoding **and re-sending** owner-only state ✅ SHIPPED `68946f78` 2026-09-06
 
 **Bought, measured on the real encoder over a 150-tick steady-state run
 (`core/net_ownerstate_bytes_test.go`, before-arm = the same binary with both

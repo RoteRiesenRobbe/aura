@@ -328,8 +328,8 @@ widening a core interface by reflex.
   `f09d99d0`, C2 `6c0888ff` shipped; C3 open). S2 is a follow-up in its territory,
   cross-referenced from its §9 rather than forked. ⚑ The README's index line still
   calls it "not started" — stale, worth a one-line fix.
-- **`plan-server-performance.md`** owns the tick budget (chunk 0 built and
-  uncommitted; 1–5 not started, headed by the O(players × entities) encode
+- **`plan-server-performance.md`** owns the tick budget (chunks
+  0 and 3 SHIPPED; 1, 2, 4, 5 not started, headed by the O(players × entities) encode
   sharing). **S3 is naturally a chunk of that plan** and is filed here only because
   the motivation is area rather than player count. Land it under whichever plan is
   executing — but **not concurrently with that plan's chunk 1**, since both change
@@ -958,7 +958,7 @@ M1 was a measurement chunk, so it logged this and stopped. ⭐ **The follow-up c
 below fixed it the same day**; everything above this line describes the broken state
 as measured.
 
-##### ✅ FIXED 2026-09-06 (follow-up chunk, `[uncommitted]`)
+##### ✅ FIXED 2026-09-06 (follow-up chunk, `8b7de2a3`)
 
 ⭐ **The gameplay question the feedback row asked — *does the client render corpses
 at all today?* — answers itself: it always could.** `Corpse.ts` exists, the
