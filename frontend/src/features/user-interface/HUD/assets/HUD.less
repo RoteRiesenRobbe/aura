@@ -896,6 +896,10 @@
 				padding-left: 0.4rem;
 			}
 
+			// PLAYED by Spellbook.applyTrail (playCssAnimation) when an unseen
+			// row comes on screen, never a static stamp: the class is gone at
+			// the animation's end or cancel, so hiding the row cannot leave a
+			// glow behind to replay on the next display (feedback 2026-09-06).
 			&.unlocked {
 				animation: skill-unlock-glow 5s ease-out;
 				border-radius: 0.4rem;
@@ -1041,8 +1045,9 @@
 	}
 }
 
-// The unlock breadcrumb trail (UI pass C4b): the ONE marker that says "the new
-// spell is this way" - on the open buttons and the ☰ while the book is shut,
+// The unlock breadcrumb trail (UI pass C4b): the ONE LINGERING marker that says
+// "the new spell is this way" (the one-shot flash below precedes it since
+// 2026-09-06) - on the open buttons and the ☰ while the book is shut,
 // then the category tab, the pager step, and the row itself. It LINGERS (the
 // unlock pulse above is a one-shot) and stops only once every unseen spell has
 // been looked at, so it is deliberately quiet: the ask was "lightly".
@@ -1074,7 +1079,10 @@
 // C6 D4 - a fresh row shows the GLOW ALONE. The `.unlocked` one-shot and the
 // trail used to be mutually exclusive by accident (one `animation` property,
 // one winner, the C4b flagged limit); the ::after move would let both play, so
-// the one-signal-at-a-time read is made explicit instead.
+// the one-signal-at-a-time read is made explicit instead. Since 2026-09-06
+// both classes come from the SAME unseen set (the glow is played by
+// Spellbook.applyTrail on the row it lights), so this pair is on a row for
+// exactly the glow's run.
 #spellbook #spellbookList > li.unlocked.breadcrumb::after {
 	animation: none;
 }
@@ -1095,6 +1103,78 @@
 	}
 	50% {
 		box-shadow: 0 0 0.5rem 0.15rem fade(@gold-levelup, 45%);
+	}
+}
+
+// The trail's ENTRY-POINT voice (feedback 2026-09-02, ruled B with A's louder
+// trail as the follow-through): while the book is shut the marker on the way
+// in is the only one anybody can see, and the 2026-09-02 measurement found its
+// 50% frame sitting UNDER the 2.5px ink border and fading into the grass. So
+// the open buttons and the ☰ get a louder keyframe of the same beat, and the
+// overlay starts at the BORDER edge rather than the padding box. The in-book
+// trail (tabs, pager, rows) keeps the quiet one: "lightly" was the C4b ruling
+// and it still holds where the reader is already looking. Numbers are
+// placeholders - the PO's eye at the next play sets them.
+.spellbookOpenButton.breadcrumb::after,
+#mobileMenuButton.breadcrumb::after {
+	animation-name: hud-breadcrumb-pulse-entry;
+}
+
+.spellbookOpenButton.breadcrumb::after {
+	inset: -2.5px; // the .hud-button-chrome border
+}
+
+@keyframes hud-breadcrumb-pulse-entry {
+	0%, 100% {
+		box-shadow: 0 0 0 0 fade(@gold-levelup, 0%);
+	}
+	50% {
+		box-shadow: 0 0 0.9rem 0.35rem fade(@gold-levelup, 80%);
+	}
+}
+
+// The unlock one-shot on the way in (feedback 2026-09-02, ruled B): the strong
+// double flash the shut book plays on itself (invisible by construction since
+// C3 shut it) fires on whichever entry points are on screen too, then the
+// quiet trail above lingers. Same beats as `spellbook-unlock-pulse`.
+//
+// ⚑ A FILTER keyframe on the element itself, for three reasons at once: the
+// buttons keep their wood inlay in box-shadow (the C6 rule - no element-level
+// box-shadow keyframe on `.btnC`); `::after` is the trail's and a second
+// animation on the same pseudo would CANCEL it (the cancel targets the owner
+// element, and `playCssAnimation` reads that as its own end - OBSERVED
+// 2026-09-06 in `c4b-breadcrumb` leg 3: opening the book toggles `.breadcrumb`
+// off, and the flash class was gone ~3 s into its 5 s, which is that path and
+// is accepted, the book being open); and the ☰ spends `::before` on its glyph. `drop-shadow` follows the whole silhouette, so the halo lands
+// OUTSIDE the ink border - which is exactly where the trail's inset overlay
+// could not reach.
+.spellbookOpenButton.unlockPulse,
+#mobileMenuButton.unlockPulse {
+	animation: hud-button-unlock-flash 5s ease-out;
+}
+
+@keyframes hud-button-unlock-flash {
+	// Two outer halos, not one: a drop-shadow has no spread, so stacking is
+	// how it gets LOUD - the 2026-09-02 complaint was faintness.
+	0% {
+		filter: brightness(1.8) drop-shadow(0 0 0.3rem fade(@gold-flash, 100%))
+			drop-shadow(0 0 1.2rem fade(@gold-flash, 100%))
+			drop-shadow(0 0 1.2rem fade(@gold-flash, 100%));
+	}
+	40% {
+		filter: brightness(1) drop-shadow(0 0 0.3rem fade(@gold-flash, 0%))
+			drop-shadow(0 0 1.2rem fade(@gold-flash, 0%))
+			drop-shadow(0 0 1.2rem fade(@gold-flash, 0%));
+	}
+	50% {
+		filter: brightness(1.6) drop-shadow(0 0 0.3rem fade(@gold-flash, 95%))
+			drop-shadow(0 0 1.2rem fade(@gold-flash, 95%))
+			drop-shadow(0 0 1.2rem fade(@gold-flash, 95%));
+	}
+	100% {
+		filter: brightness(1) drop-shadow(0 0 0.3rem fade(@gold-flash, 0%))
+			drop-shadow(0 0 1.2rem fade(@gold-flash, 0%))
+			drop-shadow(0 0 1.2rem fade(@gold-flash, 0%));
 	}
 }
 

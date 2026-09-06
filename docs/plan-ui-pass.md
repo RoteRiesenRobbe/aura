@@ -1587,6 +1587,76 @@ change, no DB.
   play (orphaned tooltip on the last teaching row; the shut book's unlock
   breadcrumb reading as no VFX) - captured in `docs/feedback.md`, fix
   options presented, the rulings are the PO's.
+- ⭐ **Both rulings taken and FIXED 2026-09-06, own commit `[uncommitted]`**
+  (the `b3283a2f` shape: intake → ruling → red-first fix before C9; the two
+  `docs/feedback.md` rows pruned, this is the record). **Tooltip → A**:
+  `render()`'s closed branch calls `hideTooltip()` beside `closeConfirmRow()`
+  - the same orphan class as the confirm row (a removed element fires no
+  `pointerout`); red-first spec in `Conversation.test.ts`, showing the
+  tooltip through `showTooltip()` because the stubbed catalog degrades a
+  hover straight to hide. **Unlock VFX → B**: `updateSpellbook` plays the
+  strong one-shot `unlockPulse` on the ENTRY POINTS too while the book is
+  shut, then the C4b trail lingers - **and A's louder trail rides along as
+  the follow-through the ruling named**: the ENTRY POINTS' `.breadcrumb::after`
+  runs its own keyframe (`hud-breadcrumb-pulse-entry`: 0.9rem/0.35rem at 80%
+  vs the quiet 0.5rem/0.15rem at 45%, the overlay inset to the BORDER edge
+  on the buttons), while tabs, pager and rows keep the quiet C4b one
+  ("lightly" still holds where the reader already looks). Numbers are
+  placeholders. ⚑ Three constraints met at
+  once by an element-level **`filter`** keyframe (`hud-button-unlock-flash`,
+  brightness + stacked `drop-shadow`, the panel's double-flash beats): no
+  element-level box-shadow keyframe on `.btnC` (the C6 rule), `::after` is
+  the trail's (a second animation on the same pseudo CANCELS it, and the
+  cancel targets the owner element and strips the class within a frame),
+  and the ☰ spends `::before` on its glyph. The drop-shadow follows the
+  silhouette, so the halo lands OUTSIDE the ink border - exactly where the
+  trail's inset overlay could not paint. ⚑ **Hidden entry points are
+  skipped** (`getClientRects().length > 0`): an animation on a
+  `display:none` element fires no events, so the class would linger and the
+  flash fire whenever the element next appeared, at an unbounded delay. On
+  desktop that is `#spellbookButton` alone; on the phone the ☰ alone. ⚑ A
+  first cut of the harness leg asserted "both open buttons flash" and went
+  red against the correct product - the sheet's row is hidden on BOTH
+  layouts. ⚑ OBSERVED, accepted: opening the book inside the flash's 5 s
+  strips it early (leg 3's sample read the class gone ~3 s in) - that is the
+  trail's `::after` cancel reaching `playCssAnimation`'s guard, the very path
+  the pseudo was avoided for; moot with the book open, so no
+  `pseudoElement` guard was added. Schema NONE. Verified: vitest 581/581
+  (+1) · tsc · prod build · `c4b-breadcrumb` **21/21** (+4 legs: 2d/2e the
+  desktop flash + paused-peak `c4b-unlock-flash-peak.png`, 7c the trail's
+  paused 50% `c4b-trail-peak.png`, 8d the phone's ☰; 7b/8 re-pinned to the
+  entry keyframe) ·
+  `round4-tooltip` all green · `chunk3b-ii-conversation` 28/34 = HEAD
+  baseline, the three tooltip legs green. PO play owed.
+- ⭐ **PO played the same day and found the ROW GLOW broken, ruled fix-now
+  in the same message** (2026-09-06, `[uncommitted]`, same commit): a seen
+  row kept blinking on every tab, page and reopen, and only the LATEST
+  unlock ever blinked when several arrived between opens. Cause: the row's
+  `.unlocked` glow was a STATIC class stamped from HUD's tick-to-tick diff -
+  so it landed only on the newest unlock, sat on the DOM row until the next
+  rebuild with no consumer of "seen", and a CSS animation on a stamped class
+  REPLAYS every time its element goes `display:none` → shown. ⭐ **Fix, not
+  a check: one source of "new".** HUD's stamp is deleted; `applyTrail` PLAYS
+  the glow (`playCssAnimation(row, 'unlocked')`) when an unseen row comes on
+  screen, guarded against restarting a glow in flight. The helper strips the
+  class at `animationend`, or at the `animationcancel` that hiding the row
+  fires, so nothing outlives the display; the D2 dwell marking the row seen
+  makes `lit` false, so nothing replays; and every unseen row glows, not the
+  last. Marking seen does NOT cut a running glow (the class is the helper's
+  alone). D2's 500 ms dwell stays: a row hidden inside it is unseen and
+  glows again, which is "flipped past" read from the other side - the one
+  edge the PO may want moved. "Interacted with it" needs no hook: a click
+  lands on a displayed row long after the dwell. ⚑ Eight rows may now play
+  inside a panel running its own `unlockPulse`; the helper's
+  `event.target !== element` guard (the C6 "animation EVENTS bubble" pin)
+  carries that. ⭐ **Durable: a one-shot signal is PLAYED and self-cleaning,
+  never stamped as a class** - a stamped class carrying an animation replays
+  on every display toggle. Schema NONE. Verified: vitest **584/584** (+3
+  red-first: every unseen row glows · a reopen onto the seen row stays quiet
+  · a re-render mid-glow does not restart it) · tsc · prod build ·
+  `c4b-breadcrumb` **24/24** (+3: 5a the glow is a running animation, 5c the
+  PO's close-and-reopen repro, 6a the earlier of two REBUILT unlocks still
+  glows) · `c3-spellbook` 26/26. PO play owed.
 
 ### C7 - dialogue + journal restyle ✅ 2026-08-30 `70486cc0`
 

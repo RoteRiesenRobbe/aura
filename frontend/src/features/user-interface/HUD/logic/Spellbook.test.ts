@@ -438,6 +438,79 @@ describe('the unlock breadcrumb trail', () => {
         expect(buttonsPulse()).toBe(false);
     });
 
+    // The row's own GLOW (feedback 2026-09-06): it is driven by the unseen set
+    // like every other marker, played as a self-cleaning one-shot on the row
+    // the moment it is displayed. It used to be a static `.unlocked` stamped
+    // from HUD's tick diff, which (a) landed only on the LATEST unlock and (b)
+    // sat on the DOM row forever, so its CSS animation replayed on every tab,
+    // page or reopen, seen or not.
+    const glowingRows = () => [...document.querySelectorAll('#spellbookList > li')]
+        .filter((li) => li.classList.contains('unlocked'))
+        .map((li) => (li as HTMLElement).dataset.skillId);
+
+    it('glows EVERY unseen row on the displayed page, not just the latest unlock', () => {
+        fixture([...many('aura', 2), ...many('passive', 2, 50)]);
+        spellbook.setup();
+        spellbook.noteUnlocked([50]);
+        spellbook.refresh();
+        spellbook.noteUnlocked([51]); // a later rebuild, the first still unseen
+        spellbook.refresh();
+        expect(glowingRows()).toEqual([]); // shut: nobody to glow for
+
+        spellbook.toggle();
+        press('.spellbookTab[data-category="passive"]');
+        expect(glowingRows().sort()).toEqual(['50', '51']);
+    });
+
+    it('never glows again once seen - a reopen onto the same page stays quiet', () => {
+        fixture([...many('aura', 2), ...many('passive', 1, 50)]);
+        spellbook.setup();
+        spellbook.noteUnlocked([50]);
+        spellbook.refresh();
+        spellbook.toggle();
+        press('.spellbookTab[data-category="passive"]');
+        const row = document.querySelector('#spellbookList > li[data-skill-id="50"]');
+        expect(row.classList.contains('unlocked')).toBe(true);
+
+        // Marking it seen does NOT cut the running glow - the reader is looking
+        // at it; only a later display must stay quiet.
+        vi.advanceTimersByTime(spellbook.SEEN_DWELL_MS + 1);
+        expect(row.classList.contains('unlocked')).toBe(true);
+
+        // Closing hides the row: the browser cancels its animation, which is
+        // what strips the class (jsdom runs no animations, so the cancel is
+        // dispatched by hand - the Utils.test.ts technique).
+        spellbook.close();
+        row.dispatchEvent(new Event('animationcancel'));
+        expect(row.classList.contains('unlocked')).toBe(false);
+
+        spellbook.toggle();
+        expect(shown()).toContain('50');
+        expect(glowingRows()).toEqual([]);
+        expect(anyPulse()).toBe(0);
+    });
+
+    it('a re-render while the row stays on screen does not restart its glow', () => {
+        fixture([...many('aura', 2), ...many('passive', 1, 50)]);
+        spellbook.setup();
+        spellbook.noteUnlocked([50]);
+        spellbook.refresh();
+        spellbook.toggle();
+        press('.spellbookTab[data-category="passive"]');
+        const row = document.querySelector('#spellbookList > li[data-skill-id="50"]') as HTMLElement;
+        let restarts = 0;
+        const add = row.classList.add.bind(row.classList);
+        row.classList.add = ((...names: string[]) => {
+            if (names.includes('unlocked')) restarts++;
+            return add(...names);
+        }) as typeof row.classList.add;
+
+        spellbook.refresh(); // e.g. a points change rebuilt nothing visible
+        spellbook.refresh();
+        expect(restarts).toBe(0);
+        expect(row.classList.contains('unlocked')).toBe(true);
+    });
+
     it('forgets an unseen id whose row is gone, but never against an empty list', () => {
         fixture([...many('aura', 2), ...many('passive', 1, 50)]);
         spellbook.setup();

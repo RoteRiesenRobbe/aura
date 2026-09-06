@@ -12,6 +12,7 @@
 import {beforeEach, afterEach, describe, expect, it, vi} from 'vitest';
 import * as Conversation from './Conversation';
 import {ConversationTree} from './ConversationModel';
+import {showTooltip} from '../../user-interface/HUD/logic/SkillTooltip';
 
 function buildDom(): void {
     document.body.innerHTML = `
@@ -31,8 +32,12 @@ function buildDom(): void {
         </div>`;
 }
 
-/** A one-node tree whose single row is irreversible (confirmSeconds > 0). */
-function irreversibleTree(): ConversationTree {
+/**
+ * A one-node tree whose single row is irreversible (confirmSeconds > 0). With
+ * `skillId` set it doubles as a teaching row, which is what carries the hover
+ * tooltip's anchor (`data-skill-id`).
+ */
+function irreversibleTree(skillId = 0): ConversationTree {
     return {
         entityId: 7,
         actorName: 'Ascension Stone',
@@ -49,7 +54,7 @@ function irreversibleTree(): ConversationTree {
                 requiredLevel: 0,
                 reply: '',
                 confirmSeconds: 5,
-                skillId: 0,
+                skillId,
             }],
         }],
     };
@@ -102,5 +107,38 @@ describe('Conversation - the armed confirm row', () => {
         const confirm = confirmRow.querySelector(
             '.confirmRowConfirm') as HTMLElement;
         expect(confirm.onpointerdown).toBeNull();
+    });
+});
+
+/**
+ * The second orphan of the same shape (feedback 2026-09-02, ruled A): a
+ * teaching row's hover tooltip. `attachTooltips` hides on `pointerout` and
+ * `pointerdown`, but when the LAST taught skill is taken the server closes the
+ * conversation and the closed branch removes the rows - a removed element
+ * fires no `pointerout`, so nothing hid it. The tooltip is shown through its
+ * public surface here rather than by hovering: the catalog fetch is stubbed to
+ * reject in vitest, so a `pointerover` degrades straight to hide and there
+ * would be nothing on screen to orphan.
+ */
+describe('Conversation - the hover tooltip', () => {
+    beforeEach(() => {
+        buildDom();
+        Conversation.setup();
+        Conversation.update(null);
+    });
+
+    it('hides with the conversation when the tree leaves the snapshot', () => {
+        Conversation.update(irreversibleTree(7));
+        const row = document.querySelector(
+            '#conversation .conversationRows > li[data-skill-id="7"]') as HTMLElement;
+        expect(row).not.toBeNull();
+        showTooltip(row, {title: 'Strong', subtitle: 'Passive', lines: []});
+        const tooltip = document.getElementById('skillTooltip');
+        expect(tooltip.classList.contains('hidden')).toBe(false);
+
+        // The server drops the tree under a stationary pointer.
+        Conversation.update(null);
+
+        expect(tooltip.classList.contains('hidden')).toBe(true);
     });
 });

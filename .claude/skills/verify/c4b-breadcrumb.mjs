@@ -15,12 +15,20 @@
 //      the buttons stop, and the ACTIVE tab never pulses
 //   4. unseen off the displayed page: the pager step that points AT it pulses,
 //      the other one does not, and neither does the active tab
-//   5. paging to it: the row itself pulses, and a ~2× dwell clears everything
-//   6. two unseen in different categories: seeing one leaves the other tab
-//      pulsing (the trail stops only once ALL are seen)
+//   5. paging to it: the row itself pulses AND glows, a ~2× dwell clears
+//      everything, and a close + reopen onto the same page stays quiet (2026-09-06)
+//   6. two unseen in different categories, unlocked as two REBUILDS: the earlier
+//      one still glows on its page; seeing one leaves the other tab pulsing
+//      (the trail stops only once ALL are seen)
 //   7. closing the book with something still unseen resumes the buttons
-//   8. mobile: the ☰ pulses, with a real box and the same keyframe - the C1
-//      probe rather than an assumption that no mobile reset is needed
+//   8. mobile: the ☰ pulses, with a real box and the entry-point keyframe - the
+//      C1 probe rather than an assumption that no mobile reset is needed
+//   2d/8d (2026-09-06, feedback ruled B): the shut book's unlock also fires the
+//      strong ONE-SHOT flash on the entry points that are ON SCREEN - the
+//      desktop button, the phone's ☰ - and on nothing hidden (the sheet's row
+//      on both layouts), so the class cannot linger on a display:none element
+//      and fire whenever it next appears. Its peak is
+//      screenshotted paused, the way the trail's faintness was measured.
 //
 // ⚑ Leg construction, both pinned in the spec:
 //   · the book opens on the `aura` tab, so leg 3's unlock must be in a
@@ -90,14 +98,24 @@ const TRAIL = () => {
     total: document.querySelectorAll('.breadcrumb').length,
     buttons: [...document.querySelectorAll('.spellbookOpenButton')].map((b) => ({
       id: b.id, breadcrumb: lit(b), hasPoints: b.classList.contains('hasPoints'),
+      flash: b.classList.contains('unlockPulse'),
+      flashName: getComputedStyle(b).animationName,
+      visible: b.getClientRects().length > 0,
     })),
     menu: lit(document.getElementById('mobileMenuButton')),
+    menuFlash: !!document.getElementById('mobileMenuButton')?.classList.contains('unlockPulse'),
     activeTab: document.querySelector('.spellbookTab.active')?.dataset.category ?? null,
     tabs: [...document.querySelectorAll('.spellbookTab')].filter(lit).map((t) => t.dataset.category),
     steps: [...document.querySelectorAll('.spellbookPageStep')].filter(lit).map((s) => s.dataset.step),
     litRows: rows.filter(lit).map((r) => ({
       id: r.dataset.skillId, category: r.dataset.category,
       name: r.querySelector('.skillName')?.textContent ?? '',
+    })),
+    // The row's own one-shot glow (2026-09-06: played off the unseen set, no
+    // longer a static stamp) - the class AND the computed animation, since a
+    // class the browser already cancelled is exactly the bug.
+    glowRows: rows.filter((r) => r.classList.contains('unlocked')).map((r) => ({
+      id: r.dataset.skillId, animation: getComputedStyle(r).animationName,
     })),
     onPage: rows.filter((r) => !r.classList.contains('offPage')).map((r) => r.dataset.skillId),
     ids: rows.map((r) => r.dataset.skillId),
@@ -216,7 +234,35 @@ check('2c nothing INSIDE the shut book pulses - there is nobody there to read it
   shut.tabs.length === 0 && shut.steps.length === 0 && shut.litRows.length === 0,
   JSON.stringify({ tabs: shut.tabs, steps: shut.steps, rows: shut.litRows }));
 
+// ⚑ On desktop exactly ONE entry point is on screen: #spellbookButton. The
+// sheet's row and the ☰ are display:none here, and the flash must skip them.
+check('2d ⭐ the same unlock fires the ONE-SHOT flash on the on-screen button, and on nothing hidden',
+  shut.buttons.some((b) => b.id === 'spellbookButton' && b.visible)
+    && shut.buttons.every((b) => b.visible
+      ? b.flash && b.flashName === 'hud-button-unlock-flash'
+      : !b.flash)
+    && !shut.menuFlash,
+  JSON.stringify({ buttons: shut.buttons, menuFlash: shut.menuFlash }));
+
 await page.screenshot({ path: join(here, 'c4b-buttons-pulsing.png') });
+
+// The flash at its PEAK, paused - the 2026-09-02 intake measured the trail's
+// 50% keyframe statically and found it under the border; this is the same
+// measurement for the fix, for the eye.
+const peak = await page.evaluate(() => {
+  const el = document.getElementById('spellbookButton');
+  const anim = el?.getAnimations().find((a) => a.animationName === 'hud-button-unlock-flash');
+  if (!anim) return null;
+  anim.pause();
+  anim.currentTime = 0;
+  return getComputedStyle(el).filter;
+});
+check('2e the flash is a real running animation whose peak paints outside the box (filter, not the inlay)',
+  !!peak && peak.includes('drop-shadow') && peak !== 'none', `filter@0%=${peak}`);
+await page.screenshot({ path: join(here, 'c4b-unlock-flash-peak.png') });
+await page.evaluate(() => {
+  for (const a of document.getElementById('spellbookButton')?.getAnimations() ?? []) a.play();
+});
 
 // --- leg 3: opening moves the pulse to the tab ------------------------------
 
@@ -290,19 +336,43 @@ if (filled !== 0 || staged.counts.cooldown <= 8 || !staged.pageLabel.startsWith(
       landed.litRows.length === 1 && landed.litRows[0].id === late[0]
         && landed.steps.length === 0 && landed.tabs.length === 0,
       JSON.stringify({ rows: landed.litRows, steps: landed.steps, page: landed.pageLabel }));
+    check('5a ⭐ ...and it GLOWS - the one-shot is a running animation on the displayed row',
+      landed.glowRows.length === 1 && landed.glowRows[0].id === late[0]
+        && landed.glowRows[0].animation === 'skill-unlock-glow',
+      JSON.stringify(landed.glowRows));
 
     await page.waitForTimeout(2 * DWELL);
     const dwelt = await sample(page);
     check('5b ⭐ a ~2× dwell marks it seen and EVERY pulse in the HUD stops',
       dwelt.total === 0 && dwelt.buttons.every((b) => !b.breadcrumb) && !dwelt.menu,
       JSON.stringify({ total: dwelt.total, buttons: dwelt.buttons, menu: dwelt.menu }));
+
+    // The PO's 2026-09-06 repro: close and reopen onto the SAME tab and page
+    // (both persist) - the seen row must stay quiet. Hiding it cancelled the
+    // glow, the cancel stripped the class, and `lit` is false for good.
+    await closeSpellbook(page);
+    await page.waitForTimeout(300);
+    await openSpellbook(page);
+    await page.waitForTimeout(600);
+    const reopened = await sample(page);
+    check('5c ⭐ close + reopen onto the seen row: no glow, no trail, no animation left on it',
+      reopened.open && reopened.onPage.includes(late[0])
+        && reopened.glowRows.length === 0 && reopened.litRows.length === 0 && reopened.total === 0,
+      JSON.stringify({ open: reopened.open, onPage: reopened.onPage.includes(late[0]),
+        glow: reopened.glowRows, lit: reopened.litRows, total: reopened.total }));
   }
 }
 
 // --- leg 6: the ALL rule ----------------------------------------------------
 
 const beforePair = (await sample(page)).ids.length;
+// ⚑ Two separate REBUILDS on purpose (2026-09-06): Tough's row must be in
+// HUD's `known` set by the time Aegis's rebuild runs, which is exactly the
+// path the old diff-stamped glow lost - only the latest unlock ever glowed.
 await cmd('SKILL Tough');   // passive
+await page.waitForFunction((n) => document
+  .querySelectorAll('#spellbookList > li[data-skill-id]').length >= n + 1,
+  beforePair, { timeout: 30_000 });
 await cmd('SKILL Aegis');   // aura
 await page.waitForFunction((n) => document
   .querySelectorAll('#spellbookList > li[data-skill-id]').length >= n + 2,
@@ -315,6 +385,12 @@ check('6 two unseen in different categories light BOTH tabs',
   JSON.stringify({ tabs: pair.tabs, active: pair.activeTab }));
 
 await clickEl(page, '.spellbookTab[data-category="passive"]');
+const toughShown = await sample(page);
+check('6a ⭐ the EARLIER unlock still glows on its page after the later one\'s rebuild',
+  toughShown.glowRows.length === 1 && toughShown.litRows.length === 1
+    && toughShown.glowRows[0].id === toughShown.litRows[0].id
+    && toughShown.glowRows[0].animation === 'skill-unlock-glow',
+  JSON.stringify({ glow: toughShown.glowRows, lit: toughShown.litRows }));
 await page.waitForTimeout(2 * DWELL);
 const half = await sample(page);
 check('6b ⭐ seeing ONE leaves the other tab pulsing - the trail stops only once ALL are seen',
@@ -338,8 +414,29 @@ const keyframe = await page.evaluate(() => {
   const el = document.querySelector('.spellbookOpenButton.breadcrumb');
   return el ? getComputedStyle(el, '::after').animationName : null;
 });
-check('7b the pulse is a real running animation, not just a class nobody styled',
-  keyframe === 'hud-breadcrumb-pulse', `animationName=${keyframe}`);
+// ⚑ Since 2026-09-06 (feedback ruled B + A's louder trail) the ENTRY POINTS
+// run their own, louder keyframe; the in-book trail keeps the quiet one.
+check('7b the pulse is a real running animation, not just a class nobody styled - the LOUD entry-point one',
+  keyframe === 'hud-breadcrumb-pulse-entry', `animationName=${keyframe}`);
+
+// The trail at its own 50% peak, paused - the frame the 2026-09-02 intake
+// measured as invisible under the border. No flash is running here (leg 7 is a
+// re-shut, not an unlock), so the screenshot isolates the trail.
+const trailPeak = await page.evaluate(() => {
+  const el = document.getElementById('spellbookButton');
+  const anim = el?.getAnimations({ subtree: true })
+    .find((a) => a.animationName === 'hud-breadcrumb-pulse-entry');
+  if (!anim) return null;
+  anim.pause();
+  anim.currentTime = 900; // 50% of 1.8 s
+  return getComputedStyle(el, '::after').boxShadow;
+});
+check('7c the entry-point trail peaks as a real halo (::after box-shadow at 50%)',
+  !!trailPeak && trailPeak !== 'none', `boxShadow@50%=${trailPeak}`);
+await page.screenshot({ path: join(here, 'c4b-trail-peak.png') });
+await page.evaluate(() => {
+  for (const a of document.getElementById('spellbookButton')?.getAnimations({ subtree: true }) ?? []) a.play();
+});
 
 await page.screenshot({ path: join(here, 'c4b-desktop-reshut.png') });
 
@@ -393,15 +490,25 @@ const mobMenu = await mob.evaluate(() => {
     animationName: style.animationName,
     animationIterationCount: style.animationIterationCount,
     boxShadow: style.boxShadow,
+    flash: el.classList.contains('unlockPulse'),
+    flashName: getComputedStyle(el).animationName,
+    buttons: [...document.querySelectorAll('.spellbookOpenButton')].map((b) => ({
+      id: b.id, flash: b.classList.contains('unlockPulse'), visible: b.getClientRects().length > 0,
+    })),
   };
 });
-check('8 ⭐ mobile: the ☰ toggle pulses, with a real box and the SAME keyframe (no reset needed)',
+check('8 ⭐ mobile: the ☰ toggle pulses, with a real box and the entry-point keyframe (no reset needed)',
   !!mobMenu && mobMenu.breadcrumb && mobMenu.w > 20 && mobMenu.h > 20
-    && mobMenu.animationName === 'hud-breadcrumb-pulse'
+    && mobMenu.animationName === 'hud-breadcrumb-pulse-entry'
     && mobMenu.animationIterationCount === 'infinite',
   JSON.stringify(mobMenu));
 check('8b mobile: the baseline was clean before the cheat, so the pulse is the unlock\'s',
   mobBaseline.total === 0, `baseline pulses=${mobBaseline.total}`);
+check('8d ⭐ mobile: the ☰ takes the one-shot flash on the element, BESIDE its ::after trail and ::before glyph; the two hidden buttons do not',
+  !!mobMenu && mobMenu.flash && mobMenu.flashName === 'hud-button-unlock-flash'
+    && mobMenu.animationName === 'hud-breadcrumb-pulse-entry'
+    && mobMenu.buttons.every((b) => !b.visible && !b.flash),
+  JSON.stringify({ flash: mobMenu?.flash, flashName: mobMenu?.flashName, buttons: mobMenu?.buttons }));
 
 await mob.screenshot({ path: join(here, 'c4b-mobile-menu.png') });
 
