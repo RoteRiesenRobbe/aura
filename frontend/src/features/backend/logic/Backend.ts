@@ -386,14 +386,26 @@ export class Backend implements IBackend {
 
             // The tooltip prices every cost through it (R1/F2). Mirrored before
             // the spellbook update below, so the panel that opens on an unlock
-            // already prices with it; `?? 1` is the neutral value, which is what
-            // an absent field means on the wire too.
-            setLocalPlayerCostFactor(snapshot.costFactor ?? 1);
+            // already prices with it.
+            //
+            // ⚑ GATED, not `?? 1` any more (plan-server-performance.md chunk
+            // 3): costFactor/damageFactor now ride the change-only owner-state
+            // block, so undefined means "unchanged" on almost every tick, not
+            // "no such passive". Defaulting to 1 here would reset a real
+            // non-neutral factor back to neutral every single steady-state
+            // tick — the setters themselves default to the neutral 1 until
+            // first called, which covers a player who never had the passive.
+            if (Utils.isDefined(snapshot.costFactor)) {
+                setLocalPlayerCostFactor(snapshot.costFactor);
+            }
             // Same contract for the damage side (round-7 item 5, Strong).
-            setLocalPlayerDamageFactor(snapshot.damageFactor ?? 1);
+            if (Utils.isDefined(snapshot.damageFactor)) {
+                setLocalPlayerDamageFactor(snapshot.damageFactor);
+            }
 
-            // snapshot.spellbook is always defined ([] for empty); isDefined guard
-            // matches inventory pattern and is safe against the first-tick edge case.
+            // spellbook is now change-only (chunk 3): undefined means
+            // unchanged, so this guard is load-bearing, not just a first-tick
+            // nicety any more.
             if (Utils.isDefined(snapshot.spellbook)) {
                 HUD.updateSpellbook(snapshot.spellbook, snapshot.spellbookLevels ?? [], snapshot.skillPoints ?? 0);
             }
@@ -406,9 +418,13 @@ export class Backend implements IBackend {
                 HUD.updatePassiveLoadout(snapshot.passiveSlots);
             }
 
-            if (Utils.isDefined(snapshot.cooldownSlots)) {
-                HUD.updateCooldownLoadout(snapshot.cooldownSlots, snapshot.cooldownRemainingTicks ?? []);
-            }
+            // ⚑ UNCONDITIONAL, unlike the three above: cooldown_remaining_ticks
+            // is exempt from the change-only block (chunk 3, L3) precisely
+            // because it moves every tick a cooldown runs, and firing a
+            // cooldown bumps no watched revision. Gating this on the SLOTS
+            // arriving froze the countdown and the conic sweep between loadout
+            // changes. Undefined slots = "loadout unchanged", handled inside.
+            HUD.updateCooldownLoadout(snapshot.cooldownSlots, snapshot.cooldownRemainingTicks ?? []);
 
             if (Utils.isDefined(snapshot.activeAuraSlot)) {
                 HUD.updateActiveAuraSlot(snapshot.activeAuraSlot);
@@ -486,14 +502,40 @@ export class Backend implements IBackend {
 
         // Conversation panel (chunk 3b-ii). Before the badge, because the badge
         // suppresses itself for whoever the panel belongs to.
-        Conversation.update(snapshot.conversation ?? null);
+        //
+        // ⚑ REVISED (plan-server-performance.md chunk 3, D3): conversationEntityId
+        // is now the ONLY close signal — closing must be instant, so it is
+        // checked first and unconditionally. snapshot.conversation is
+        // change-only: a defined tree means fresh content (open, or a grant
+        // changed availability), undefined means "still open, nothing new" —
+        // and Conversation.update is simply not called in that case, leaving
+        // the panel showing exactly what it already had.
+        if (snapshot.conversationEntityId === 0) {
+            Conversation.update(null);
+        } else if (Utils.isDefined(snapshot.conversation)) {
+            Conversation.update(snapshot.conversation);
+        }
 
-        // The quest ledger (plan-quests.md chunk C3): live state, re-sent every
-        // tick like the tree above. The panel's own visibility is the client's;
-        // only its CONTENT comes from here. The tracker is a second reader of
-        // the same ledger (2026-08-23), always visible, so it feeds directly.
-        Journal.update(snapshot.questProgress ?? []);
-        QuestTracker.update(snapshot.questProgress ?? []);
+        // The quest ledger (plan-quests.md chunk C3): change-only now (chunk
+        // 3) — undefined means unchanged, so the guard is load-bearing, not
+        // just a first-tick nicety. The panel's own visibility is the
+        // client's; only its CONTENT comes from here. The tracker is a second
+        // reader of the same ledger (2026-08-23), always visible, so it feeds
+        // directly.
+        //
+        // ⚑ A SPECTATOR snapshot clears them outright. SpectatorGameState
+        // carries no quest_progress at all, so under the change-only rule its
+        // absence reads as "unchanged" and a dead character's quest rows would
+        // linger over the death overlay — which is what the old unconditional
+        // `?? []` used to clear as a side effect. Spectating means "you have no
+        // character right now", so an empty journal is the honest render.
+        if (snapshot.player?.isSpectator) {
+            Journal.update([]);
+            QuestTracker.update([]);
+        } else if (Utils.isDefined(snapshot.questProgress)) {
+            Journal.update(snapshot.questProgress);
+            QuestTracker.update(snapshot.questProgress);
+        }
 
         // Interact badge (chunk 3b-i). After addOrUpdate, so an actor that
         // entered the viewport this same tick already has a game object to

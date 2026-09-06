@@ -399,14 +399,34 @@ func QuestProgressMarshalFlatbuf(entries []quests.ProgressEntry, builder *flatbu
 func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	entities := EntitiesMarshalFlatbuf(gs.Entities, builder)
 	character := CharacterMarshalFlatbuf(gs.Player, builder)
-	spellbook := SpellbookMarshalFlatbuf(gs.Player.SkillComponent(), builder)
-	spellbookLevels := SpellbookLevelsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
-	auraSlots := AuraSlotsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
-	passiveSlots := PassiveSlotsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
-	cooldownSlots := CooldownSlotsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
-	cooldownRemaining := CooldownRemainingMarshalFlatbuf(gs.Player.SkillComponent(), builder)
-	conversation := ConversationMarshalFlatbuf(gs.Player.Conversation(), builder)
-	questProgress := QuestProgressMarshalFlatbuf(gs.Player.QuestLedger().Snapshot(), builder)
+	sc := gs.Player.SkillComponent()
+
+	// The owner-only "slow" block (plan-server-performance.md chunk 3): built
+	// only when the caller has not already confirmed it is unchanged since the
+	// last tick it sent one. Skipping the build here is what buys back the
+	// per-player-per-tick allocations, not just the bytes — SkipOwnerState's
+	// doc comment on the struct is the authority on exactly what this covers
+	// and why cooldown_remaining_ticks is excluded.
+	var spellbook, spellbookLevels, auraSlots, passiveSlots, cooldownSlots, questProgress flatbuffers.UOffsetT
+	if !gs.SkipOwnerState {
+		spellbook = SpellbookMarshalFlatbuf(sc, builder)
+		spellbookLevels = SpellbookLevelsMarshalFlatbuf(sc, builder)
+		auraSlots = AuraSlotsMarshalFlatbuf(sc, builder)
+		passiveSlots = PassiveSlotsMarshalFlatbuf(sc, builder)
+		cooldownSlots = CooldownSlotsMarshalFlatbuf(sc, builder)
+		questProgress = QuestProgressMarshalFlatbuf(gs.Player.QuestLedger().Snapshot(), builder)
+	}
+	cooldownRemaining := CooldownRemainingMarshalFlatbuf(sc, builder)
+
+	// The conversation tree (chunk 3, D3): change-only, gated separately from
+	// the block above because it can be dirty (a fresh grant) while the
+	// spellbook/quest revisions haven't moved this exact tick, and vice versa.
+	// conversation_entity_id (added to GameStateStart below) is NEVER gated —
+	// it is the close signal now.
+	var conversation flatbuffers.UOffsetT
+	if !gs.SkipConversationTree {
+		conversation = ConversationMarshalFlatbuf(gs.Player.Conversation(), builder)
+	}
 	// The map's campfire markers (plan-world-map.md C2). Both are one-shots: on
 	// almost every tick these are empty and add nothing to the buffer. Built
 	// here with everything else, because strings and vectors cannot be created
@@ -430,27 +450,38 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	AuraApi.GameStateAddPassiveSlots(builder, passiveSlots)
 	AuraApi.GameStateAddCooldownSlots(builder, cooldownSlots)
 	AuraApi.GameStateAddCooldownRemainingTicks(builder, cooldownRemaining)
-	AuraApi.GameStateAddActiveAuraSlot(builder, int8(gs.Player.SkillComponent().ActiveAuraSlot))
-	AuraApi.GameStateAddSkillPoints(builder, uint16(max(gs.Player.AvailableSkillPoints(), 0)))
-	// The cost-reduction passive's multiplier (R1/F2). The server has always
-	// applied it in effectCostHP; without it on the wire the tooltip renders a
-	// price the player is not charged, which is exactly what the PO reported
-	// after the feel pass. Neutral 1 is the field default, so an unmodified
-	// player adds no bytes.
-	AuraApi.GameStateAddCostFactor(builder, gs.Player.SkillComponent().Derived.CostFactor())
-	// The damageDealt passive's multiplier (round-7 item 5) — Strong's answer
-	// to the same worked-but-invisible defect. Neutral 1 is the field default,
-	// so an unmodified player adds no bytes.
-	AuraApi.GameStateAddDamageFactor(builder, gs.Player.SkillComponent().Derived.DamageFactor())
+	if !gs.SkipOwnerState {
+		// The explicit "this tick carries the owner block" flag (chunk 3). The
+		// client cannot infer this from any of the fields below: an empty
+		// spellbook, an empty quest journal, 0 skill points and active aura
+		// slot -1 are all REAL states a genuine send can carry, so emptiness
+		// would be read as "not sent" and the block silently discarded.
+		AuraApi.GameStateAddOwnerState(builder, true)
+		AuraApi.GameStateAddActiveAuraSlot(builder, int8(sc.ActiveAuraSlot))
+		AuraApi.GameStateAddSkillPoints(builder, uint16(max(gs.Player.AvailableSkillPoints(), 0)))
+		// The cost-reduction passive's multiplier (R1/F2). The server has always
+		// applied it in effectCostHP; without it on the wire the tooltip renders a
+		// price the player is not charged, which is exactly what the PO reported
+		// after the feel pass. Neutral 1 is the field default, so an unmodified
+		// player adds no bytes.
+		AuraApi.GameStateAddCostFactor(builder, sc.Derived.CostFactor())
+		// The damageDealt passive's multiplier (round-7 item 5) — Strong's answer
+		// to the same worked-but-invisible defect. Neutral 1 is the field default,
+		// so an unmodified player adds no bytes.
+		AuraApi.GameStateAddDamageFactor(builder, sc.Derived.DamageFactor())
+	}
 	// The Camp charge store (plan-downtime.md C2): owner-only data like
-	// skill_points above. Only the COUNT rides the wire — the client derives
+	// skill_points above, but NOT gated by SkipOwnerState — it is a per-session
+	// counter with no revision to key off (plan-downtime.md's own currency, not
+	// part of the persisted spellbook/quest state SkillComponent.Revision and
+	// quests.Ledger.Revision track), and it changes on its own cadence (dwell,
+	// channel completion). Only the COUNT rides the wire — the client derives
 	// the cap from the level it already has, through the shared cap curve, so
 	// the button can read "2/3" off one field.
 	AuraApi.GameStateAddCampCharges(builder, uint8(min(max(gs.Player.CampCharges(), 0), 255)))
 
 	// Cast bar (skill-vocab chunk 4): the running cast, read live off the
 	// component each tick; absent fields read as 0 = no cast.
-	sc := gs.Player.SkillComponent()
 	if es := sc.CastingSkill(); es != nil {
 		AuraApi.GameStateAddCastSkillId(builder, uint16(es.Def.ID))
 		AuraApi.GameStateAddCastTicksLeft(builder, uint16(sc.CastTicksLeft))
@@ -477,15 +508,24 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	if id := gs.Player.Interactable(); id != 0 {
 		AuraApi.GameStateAddInteractableEntityId(builder, id)
 	}
-	// The open conversation tree (chunk 3b-ii). Writing NOTHING when there is no
-	// panel is load-bearing: an absent field is the client's only close signal,
-	// so every server-side end condition needs no client counterpart.
+	// The open conversation tree (chunk 3b-ii, revised by chunk 3 D3): only
+	// written when SkipConversationTree let it build above AND there is
+	// something to send — nil (nobody home) and "not rebuilt this tick" both
+	// collapse to the same zero offset, which is exactly right: the tree is
+	// change-only now, so "nothing new" and "no panel" are indistinguishable
+	// wire states, and that is fine because conversation_entity_id below is
+	// what actually says open/closed.
 	if conversation != 0 {
 		AuraApi.GameStateAddConversation(builder, conversation)
 	}
-	// The quest ledger (chunk C3): live STATE re-sent every tick like the
-	// spellbook, because EntityMessage is a garnish channel that drops on a full
-	// buffer (L8). Nothing written while the player has no quests.
+	// conversation_entity_id (chunk 3, D3): ALWAYS written, never gated — this
+	// is now the client's only close signal, so it cannot be allowed to go
+	// missing on an ordinary tick the way the tree above can. 0 is the field
+	// default, so a closed panel still costs nothing.
+	AuraApi.GameStateAddConversationEntityId(builder, gs.Player.ConversingWith())
+	// The quest ledger (chunk C3, gated by chunk 3): live STATE like the
+	// spellbook above, sent only when SkipOwnerState let it build. Nothing
+	// written while the player has no quests, or while unchanged.
 	if questProgress != 0 {
 		AuraApi.GameStateAddQuestProgress(builder, questProgress)
 	}
@@ -695,4 +735,31 @@ type CharacterGameState struct {
 	Tick     uint64
 	Player   model.PlayerEntity
 	Entities []model.Entity
+
+	// SkipOwnerState omits the owner-only "slow" block — spellbook,
+	// spellbook_levels, the three slot vectors, active_aura_slot, skill_points,
+	// cost_factor, damage_factor and quest_progress — from this tick's encode
+	// entirely (plan-server-performance.md chunk 3). These fields change only
+	// on equip, unlock, level-up and quest events; NetSystem sets this once it
+	// has confirmed nothing in that group moved since the last tick it sent one
+	// (SkillComponent.Revision() / quests.Ledger.Revision() / player level all
+	// unchanged) and the resend heartbeat has not elapsed.
+	//
+	// ⚑ Defaults to false (send everything) so any caller that does not know
+	// about this gate — the sim harness, a future direct test — keeps getting
+	// the full, byte-identical block every tick.
+	//
+	// cooldown_remaining_ticks is deliberately NOT covered: it changes every
+	// tick a cooldown is running, so gating it here would freeze the client's
+	// cooldown sweep at whatever value it read on the last owner-state send
+	// (chunk 3, L3).
+	SkipOwnerState bool
+
+	// SkipConversationTree omits the open conversation's rebuilt tree
+	// (GameState.conversation) when nothing about its availability has
+	// changed. conversation_entity_id is NEVER gated by this — it is always
+	// written from Player.ConversingWith(), because it is now the client's
+	// only close signal (chunk 3, D3) and an absent tree must not be
+	// confusable with a closed panel.
+	SkipConversationTree bool
 }

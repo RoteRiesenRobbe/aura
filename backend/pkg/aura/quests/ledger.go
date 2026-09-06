@@ -70,14 +70,37 @@ type Ledger struct {
 	// would force a database write on every mob the player kills. Counters ride
 	// the 5-minute interval like XP does.
 	revision uint64
+
+	// displayRev counts every change to what the JOURNAL SHOWS — everything
+	// `revision` counts, PLUS an objective counter moving ("3/8 slain" →
+	// "4/8 slain") without the stage changing.
+	//
+	// ⚑ Deliberately a SECOND counter rather than a loosening of `revision`,
+	// and the field comment above is why: `revision` drives the forced-save
+	// path, so bumping it per credited kill would write to the database on
+	// every mob the player kills. This one drives the WIRE instead
+	// (plan-server-performance.md chunk 3): the owner-only block is
+	// change-only, so without a signal that moves on counter progress the
+	// tracker would sit on a stale "3/8" for up to the ~5s heartbeat — while
+	// the player watches the mob they just killed fail to count.
+	displayRev uint64
 }
 
-// Revision is the quest-state change counter. See the field.
+// Revision is the quest-state change counter — the SAVE trigger. See the field.
 func (l *Ledger) Revision() uint64 {
 	if l == nil {
 		return 0
 	}
 	return l.revision
+}
+
+// DisplayRevision is the journal-presentation change counter — the WIRE
+// trigger, which also moves when an objective counter does. See the field.
+func (l *Ledger) DisplayRevision() uint64 {
+	if l == nil {
+		return 0
+	}
+	return l.displayRev
 }
 
 // Notice is one journal event: a quest reached a new stage, or ended. It carries
@@ -316,6 +339,7 @@ func (l *Ledger) Abandon(questID string) error {
 	p.Objectives = nil
 	p.KillBase, p.TalkBase = nil, nil // re-accept re-baselines via enter anyway; keep no stale state
 	l.revision++
+	l.displayRev++
 	return nil
 }
 
@@ -434,6 +458,7 @@ func (l *Ledger) enter(q *QuestDefinition, p *Progress, s *Stage) {
 		p.Objectives = nil
 	}
 	l.revision++
+	l.displayRev++
 	if l.notify != nil {
 		l.notify(Notice{QuestID: q.ID, Title: q.Title, StageID: s.ID, Completed: p.Completed})
 	}
@@ -506,7 +531,13 @@ func (l *Ledger) recheck() {
 		if !l.satisfied(p, s) {
 			// The stage holds, but a counter moved — the "3/8" must move with
 			// it (Q2). Event-driven: this is a credit event, never a tick.
+			//
+			// ⚑ displayRev, NOT revision: this is exactly the case the two
+			// counters exist to tell apart. The journal must resend (the wire
+			// is change-only since plan-server-performance.md chunk 3), while
+			// the save path must NOT fire on every credited kill.
 			p.Objectives = l.objectiveLines(p, s)
+			l.displayRev++
 			continue
 		}
 		l.enter(q, p, q.Stage(s.Next))

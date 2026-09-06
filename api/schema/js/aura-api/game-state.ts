@@ -238,8 +238,18 @@ discoveredCampfiresLength():number {
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
+conversationEntityId():bigint {
+  const offset = this.bb!.__offset(this.bb_pos, 56);
+  return offset ? this.bb!.readUint64(this.bb_pos + offset) : BigInt('0');
+}
+
+ownerState():boolean {
+  const offset = this.bb!.__offset(this.bb_pos, 58);
+  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(26);
+  builder.startObject(28);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -477,6 +487,14 @@ static createDiscoveredCampfiresVector(builder:flatbuffers.Builder, data:flatbuf
 
 static startDiscoveredCampfiresVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(4, numElems, 4);
+}
+
+static addConversationEntityId(builder:flatbuffers.Builder, conversationEntityId:bigint) {
+  builder.addFieldInt64(26, conversationEntityId, BigInt('0'));
+}
+
+static addOwnerState(builder:flatbuffers.Builder, ownerState:boolean) {
+  builder.addFieldInt8(27, +ownerState, +false);
 }
 
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {

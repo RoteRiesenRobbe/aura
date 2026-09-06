@@ -1,11 +1,16 @@
 # plan-server-performance.md — raising the concurrent-player ceiling
 
-**Status: chunk 0 built (uncommitted), chunks 1–5 not started. 2026-08-02.**
-⭐ **Chunk 3 rewritten and PROMOTED 2026-08-30** (PO-asked design session): it
-now owns the *bytes* half as well as the CPU half, after measuring **784 B per
-player per tick of slow-changing state and a 4 264-byte conversation tree
-re-sent 30×/s**. It is the only chunk that can touch owner-only fields, which
-chunk 1 cannot help by construction. Still not started.
+**Status: chunks 0 and 3 SHIPPED; chunks 1, 2, 4, 5 not started. 2026-09-06.**
+⭐ **Chunk 3 SHIPPED 2026-09-06 `[uncommitted]`** — send-on-change for the
+owner-only block and the conversation tree, measured at **39.3 % of
+steady-state bytes** (and **59.1 %** with a dialogue open) on the real encoder.
+Its ledger is on the chunk heading below, including the **four defects a code
+review caught after the first green run** — three of which share one root worth
+carrying forward: *a change-only field needs an explicit presence bit; every
+in-band way to infer one collides with a legitimate value.*
+⚑ **Before starting chunk 1, re-read §Why the order is what it is against
+`plan-world-scale.md` §11 M1-F3**: at entity density 10× `PhysicsSystem` is
+**74 %** of the tick, not the 24 % this plan sequences chunk 4 off.
 
 The measurements this plan is built on live in `devops/loadtest.md`
 (§Diagnosis — 2026-08-02 and §The wall). This doc is only the **execution
@@ -118,7 +123,124 @@ built eagerly in `New`, with the lazy path kept only for struct-literal players
 (sim, tests). Look for the same shape elsewhere, and run the race detector
 under load, not just the unit suite.
 
-## Chunk 3 — stop re-encoding **and re-sending** owner-only state
+## Chunk 3 — stop re-encoding **and re-sending** owner-only state ✅ SHIPPED `[uncommitted]` 2026-09-06
+
+**Bought, measured on the real encoder over a 150-tick steady-state run
+(`core/net_ownerstate_bytes_test.go`, before-arm = the same binary with both
+skip flags forced false, which is byte-for-byte the old always-send path):**
+
+| scenario | before | after | saved |
+| --- | --- | --- | --- |
+| spellbook + one accepted quest, no mutation | 384 B/tick/player | 233 B/tick/player | **39.3 %** (151 B/tick) |
+| conversation held open, never advanced | 672 B/tick/player | 275 B/tick/player | **59.1 %** |
+
+A real mutation (equip, level-up, skill point, quest event) still lands on the
+**same tick** — send-on-change per D1, never a slow cadence.
+
+**How it was built, and the one thing that made it small:** no new dirty flags.
+`SkillComponent.Revision()` and `quests.Ledger` already counted exactly the
+persisted state this block encodes, and `sys/persist.go`'s `saveWatch` already
+trusted them for forced saves — so the gate is that same three-integer
+comparison, moved to the wire. `NetSystem.ownerStateGate` keys an
+`ownerStateWatch{level, skillRev, questRev, conversingWith, nextForce}` by
+client UUID and returns two bools; `codec.CharacterGameState` grew
+`SkipOwnerState`/`SkipConversationTree`, both defaulting to **false = send
+everything**, so any caller that does not know about the gate (sim, tests) keeps
+the old bytes. ⭐ **L2 fell out for free**: a reconnect always mints a fresh
+`Client` with a fresh UUID, so it lands in the unknown-key branch and gets a
+full send with no bookkeeping at any join site.
+
+⚑ **The heartbeat is the OWNER BLOCK's only.** A conversation opening on its own
+refreshes `conversingWith` but must NOT push `nextForce` back, or a player who
+keeps opening panels starves the D2 safety net indefinitely.
+
+### ⭐ The four defects a code review found after the first green run
+
+All four were real; the first two were introduced by this chunk. They are worth
+reading as a set, because three of them share one root: **a change-only field
+needs an EXPLICIT presence signal, and every "clever" way to infer one is wrong.**
+
+- **F1 — the presence signal was inferred from emptiness, and that is unsound.**
+  The client first read `spellbookLength() > 0` as "this tick carried the block".
+  But `initializePlayerSkills` starts the spellbook **bare** (the level-1
+  milestones fill it only once content is loaded), an empty quest journal is a
+  real state, and so are `skill_points` 0 and `active_aura_slot` −1. So a genuine
+  send was read as "not sent" and discarded whole. ⭐ **Fixed with a second
+  appended wire field, `owner_state:bool`**, written true only on the ticks that
+  carry the block. ⚑ **This is the chunk's transferable lesson**: for any
+  change-only group, the "did I send it" bit must be its own field — every
+  in-band signal collides with a legitimate value.
+- **F2 — the cooldown sweep froze.** `cooldown_remaining_ticks` was correctly
+  left out of the gate (L3), but its ONLY client consumer sat behind
+  `if (isDefined(snapshot.cooldownSlots))` — now change-only — and firing a
+  cooldown bumps no watched revision. The countdown and the conic wedge stopped
+  between loadout changes. ⚑ `HUD.ts:1010`'s own comment ("this path already
+  runs on every snapshot") was the invariant being broken. Fixed by making
+  `updateCooldownLoadout(slots?, remaining)` fall back to its existing
+  `currentCooldownSlots` cache, called unconditionally every tick.
+- **F3 — objective counters lagged the heartbeat.** `recheck()`'s "the stage
+  holds but a counter moved" branch updates `p.Objectives` and deliberately does
+  **not** bump `revision` — because `revision` drives forced saves and bumping it
+  per credited kill would write to the database on every mob killed. So "3/8
+  slain" sat stale for up to ~5 s while the player watched their kill not count.
+  ⭐ **Fixed with a SECOND counter, `Ledger.DisplayRevision()`**, bumped wherever
+  `revision` is plus that branch: the wire watches presentation, the save path
+  keeps watching durability. ⚑ Do not merge them — the field comments on both say
+  why.
+- **F4 — the journal stopped clearing on death.** `SpectatorGameState` carries no
+  `quest_progress`, so under the change-only rule its absence reads as
+  "unchanged" and a dead character's rows lingered over the death overlay. The
+  old unconditional `?? []` had been clearing them as a side effect. Fixed with
+  an explicit `snapshot.player?.isSpectator` branch.
+
+### Test strategy — what was built
+
+Twelve new Go legs across three files. The two written for F1/F3 are
+**mutation-verified** (reverting either fix turns them red):
+`TestNetSystem_OwnerState_FlagIsExplicitNotInferredFromEmptiness` deliberately
+uses an empty-spellbook character carrying a real quest, and
+`TestNetSystem_OwnerState_ObjectiveCounterProgressResendsTheJournal` asserts the
+resend fires **and** that `Revision()` does not move. The L1 leg
+(`TestNetSystem_Conversation_CloseSignalSurvivesTreeGating`) walks
+open → unchanged → close and pins that the id carries the close while the tree
+is omitted. The pure gate legs run against plain structs with no game at all;
+the wire legs use a real `player.New` + real `SkillComponent` + real `Ledger`.
+
+**Schema impact: WIRE YES — TWO appended fields** (`conversation_entity_id:ulong`
+per D3, and `owner_state:bool` per F1), both binding sets regenerated together.
+**DB NONE. Content NONE.**
+
+⚑ **Two harness/tooling traps met on the way**, both already in the `verify`
+skill but worth restating: `api/schema/make.bat` names a bare `flatc`, and the
+checked-in `api/schema/flatc.exe` is **1.9.0 from 2018** — it emits the old
+single-file `aura_generated.ts` layout and silently destroys the tracked
+per-file bindings. Use `backend/pkg/api/flatc_Windows_v24_3_25.exe --ts
+--gen-all -o js/ aura.fbs` (the two `--no-*` flags in make.bat are not valid on
+v24). And a stale `backend/aurad.exe` was holding port 2000 and serving
+pre-chunk code, which is the documented shadowing trap.
+
+### Verified
+
+`go build ./...` clean · `go vet ./...` clean · **`go test -count=1 ./...` all
+packages green** · `tsc --noEmit` clean · **vitest 586/586** · `npm run build`
+clean. In-game, on a rebuilt server against a live Postgres:
+**`hygiene-wire-prune` 653 sprites / 0 console errors** (the mandatory gate for
+an `.fbs` change, run for both appended fields) · **`c5-ability-bar` 30/30** —
+its leg 5c (`sweep 315deg → 178.5deg`) is the direct proof of F2 ·
+**`chunkC3-journal` 14/14 + 2 documented SKIPs** · **`r1-focus-cost` all checks
+passed**, and its `21,26 → 20,25 Focus` is the strongest single confirmation of
+the whole design: a non-neutral `cost_factor` both arrives on the mutation tick
+and survives every steady-state tick after it · **`chunk3b-ii-conversation`
+28/34, exactly the documented HEAD baseline** (all six failures map onto its
+three known causes; the harness itself names the Leave-click race).
+
+⚑ **OWED:** the journal's *"the objective counter moves on real kills"* leg
+SKIPped twice (no wolf kill inside its 150 s window), so **F3 is proven by the
+mutation-verified Go test rather than in a browser**. Re-run it alone on a fresh
+server to close that.
+
+### The original design follows (D1–D3, L1–L3), unchanged
+
 
 > **Rewritten 2026-08-30 (PO-asked design session), and PROMOTED.** It used to
 > read "cheap, low-risk, modest win, good filler chunk" and cover only the CPU

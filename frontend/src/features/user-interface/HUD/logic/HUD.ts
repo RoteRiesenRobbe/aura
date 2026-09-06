@@ -984,9 +984,23 @@ export function updatePassiveLoadout(slots: number[]) {
 // updateCooldownLoadout renders the server-authoritative cooldown slots and
 // their remaining time (ticks × the server tick interval), which doubles as the
 // fired/ready state.
-export function updateCooldownLoadout(slots: number[], remainingTicks: number[]) {
+/**
+ * Repaint the cooldown bar.
+ *
+ * ⚑ `slots` is optional because the slot vector is CHANGE-ONLY on the wire
+ * since plan-server-performance.md chunk 3, while `remainingTicks` is not (its
+ * L3 exemption: it moves every tick a cooldown runs). Passing undefined means
+ * "the loadout did not change" and reuses the cached slots — which is what
+ * keeps this path running on EVERY snapshot, as the sweep below requires.
+ * Gating the whole call on the slots arriving froze the countdown and the
+ * conic wedge at whatever they read when the loadout last changed.
+ */
+export function updateCooldownLoadout(slots: number[] | undefined, remainingTicks: number[]) {
     if (!cooldownSlotListElement) return;
-    currentCooldownSlots = slots;
+    if (slots !== undefined) {
+        currentCooldownSlots = slots;
+    }
+    slots = currentCooldownSlots;
     currentCooldownRemaining = remainingTicks;
     for (let i = 0; i < slots.length; i++) {
         const li = cooldownSlotListElement.querySelector(`.cooldownSlot[data-slot="${i}"]`) as HTMLElement;

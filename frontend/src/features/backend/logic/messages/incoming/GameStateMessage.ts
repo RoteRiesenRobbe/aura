@@ -34,26 +34,35 @@ export class GameStateMessage {
     player;
     inventory;
     entities;
-    spellbook: number[];
+    // The owner-only "slow" block (plan-server-performance.md chunk 3):
+    // spellbook, spellbookLevels, skillPoints, costFactor, damageFactor,
+    // auraSlots, passiveSlots, cooldownSlots, activeAuraSlot and questProgress
+    // are CHANGE-ONLY — the server omits all of them together on a tick where
+    // none of them moved, plus a ~5s heartbeat. undefined means "unchanged,
+    // keep whatever you already have", and the wire's explicit `owner_state`
+    // flag (never an emptiness check) is what tells the two apart.
+    spellbook: number[] | undefined;
     // per-skill levels, positionally parallel to spellbook
-    spellbookLevels: number[];
+    spellbookLevels: number[] | undefined;
     // unspent skill points of the owning player
-    skillPoints: number;
+    skillPoints: number | undefined;
     // multiplier the cost-reduction passive puts on every resource cost the
     // owning player pays (R1/F2); 1 = no reduction
-    costFactor: number;
+    costFactor: number | undefined;
     // multiplier the damageDealt passive (Strong) puts on every point of
     // damage the owning player deals (round-7 item 5); 1 = no bonus
-    damageFactor: number;
-    auraSlots: number[];
+    damageFactor: number | undefined;
+    auraSlots: number[] | undefined;
     // equipped passive slot contents, positional (index i = slot i, 0 = empty)
-    passiveSlots: number[];
+    passiveSlots: number[] | undefined;
     // equipped cooldown slot contents, positional (index i = slot i, 0 = empty)
-    cooldownSlots: number[];
-    // remaining cooldown ticks, positionally parallel to cooldownSlots; 0 = ready
+    cooldownSlots: number[] | undefined;
+    // remaining cooldown ticks, positionally parallel to cooldownSlots; 0 =
+    // ready. ⚑ NOT part of the change-only block above — it changes every
+    // tick a cooldown is running, so it stays always-sent (chunk 3, L3).
     cooldownRemainingTicks: number[];
     // index of the active aura slot for the owning player; -1 = Nothing
-    activeAuraSlot: number;
+    activeAuraSlot: number | undefined;
     // running cast of the owning player (skill-vocab chunk 4); all zero = no cast
     castSkillId: number;
     castTicksLeft: number;
@@ -80,14 +89,22 @@ export class GameStateMessage {
     // the conversant the owning player can talk to right now; 0 = none. Live
     // state, re-sent every tick while in range (chunk 3b-i)
     interactableEntityId: number;
-    // the open conversation's personalised tree, or null when no panel is open
-    // (chunk 3b-ii). ⚑ null IS the close signal — every server-side end
-    // condition (range, combat, death, disconnect) reaches the client as the
-    // field simply going absent.
-    conversation: ConversationTree | null;
+    // Who the conversation panel belongs to right now; 0 = closed
+    // (plan-server-performance.md chunk 3, D3). ALWAYS sent — this is now the
+    // ONLY close signal, since the tree below is change-only and can no
+    // longer double as one.
+    conversationEntityId: number;
+    // the open conversation's personalised tree, or undefined when nothing new
+    // rode this tick (chunk 3b-ii, revised by chunk 3 D3). ⚑ undefined no
+    // longer means "closed" — that is conversationEntityId's job now. It means
+    // "no change": still open with the same content, OR still closed. Fresh
+    // content arrives on open and on anything that changes availability (a
+    // grant), plus the heartbeat.
+    conversation: ConversationTree | undefined;
     // the owning player's running + completed quests, ids only (chunk C3); the
-    // titles and diary prose come from the /quests catalog
-    questProgress: QuestProgress[];
+    // titles and diary prose come from the /quests catalog. Rides the same
+    // change-only gate as the spellbook block above.
+    questProgress: QuestProgress[] | undefined;
 
     constructor(gameState: AuraApi.GameState) {
         this.tick = Number(gameState.tick());
@@ -108,41 +125,67 @@ export class GameStateMessage {
             this.entities.push(unmarshalWrappedEntity(gameState.entities(i)));
         }
 
-        this.spellbook = [];
-        for (let i = 0; i < gameState.spellbookLength(); ++i) {
-            this.spellbook.push(gameState.spellbook(i));
+        // The owner-only "slow" block (chunk 3): all built together, all
+        // gated behind ONE explicit server flag.
+        //
+        // ⚑ The flag is explicit rather than inferred from any field's own
+        // emptiness, and that is load-bearing: a fresh character's spellbook is
+        // legitimately EMPTY until the level-1 milestones land, an empty quest
+        // journal is a real state, and so are 0 skill points and slot -1.
+        // Inferring presence from emptiness discarded genuine sends and left a
+        // new player's journal and loadout bars blank until their first unlock.
+        if (gameState.ownerState()) {
+            this.spellbook = [];
+            for (let i = 0; i < gameState.spellbookLength(); ++i) {
+                this.spellbook.push(gameState.spellbook(i));
+            }
+
+            this.spellbookLevels = [];
+            for (let i = 0; i < gameState.spellbookLevelsLength(); ++i) {
+                this.spellbookLevels.push(gameState.spellbookLevels(i));
+            }
+
+            this.skillPoints = gameState.skillPoints();
+            this.costFactor = gameState.costFactor();
+            this.damageFactor = gameState.damageFactor();
+
+            this.auraSlots = [];
+            for (let i = 0; i < gameState.auraSlotsLength(); ++i) {
+                this.auraSlots.push(gameState.auraSlots(i));
+            }
+
+            this.passiveSlots = [];
+            for (let i = 0; i < gameState.passiveSlotsLength(); ++i) {
+                this.passiveSlots.push(gameState.passiveSlots(i));
+            }
+
+            this.cooldownSlots = [];
+            for (let i = 0; i < gameState.cooldownSlotsLength(); ++i) {
+                this.cooldownSlots.push(gameState.cooldownSlots(i));
+            }
+
+            this.activeAuraSlot = gameState.activeAuraSlot();
+
+            this.questProgress = unmarshalQuestProgress(gameState);
+        } else {
+            this.spellbook = undefined;
+            this.spellbookLevels = undefined;
+            this.skillPoints = undefined;
+            this.costFactor = undefined;
+            this.damageFactor = undefined;
+            this.auraSlots = undefined;
+            this.passiveSlots = undefined;
+            this.cooldownSlots = undefined;
+            this.activeAuraSlot = undefined;
+            this.questProgress = undefined;
         }
 
-        this.spellbookLevels = [];
-        for (let i = 0; i < gameState.spellbookLevelsLength(); ++i) {
-            this.spellbookLevels.push(gameState.spellbookLevels(i));
-        }
-
-        this.skillPoints = gameState.skillPoints();
-        this.costFactor = gameState.costFactor();
-        this.damageFactor = gameState.damageFactor();
-
-        this.auraSlots = [];
-        for (let i = 0; i < gameState.auraSlotsLength(); ++i) {
-            this.auraSlots.push(gameState.auraSlots(i));
-        }
-
-        this.passiveSlots = [];
-        for (let i = 0; i < gameState.passiveSlotsLength(); ++i) {
-            this.passiveSlots.push(gameState.passiveSlots(i));
-        }
-
-        this.cooldownSlots = [];
-        for (let i = 0; i < gameState.cooldownSlotsLength(); ++i) {
-            this.cooldownSlots.push(gameState.cooldownSlots(i));
-        }
-
+        // cooldown_remaining_ticks stays always-sent (L3): it changes every
+        // tick a cooldown is running, so it is not part of the block above.
         this.cooldownRemainingTicks = [];
         for (let i = 0; i < gameState.cooldownRemainingTicksLength(); ++i) {
             this.cooldownRemainingTicks.push(gameState.cooldownRemainingTicks(i));
         }
-
-        this.activeAuraSlot = gameState.activeAuraSlot();
 
         this.castSkillId = gameState.castSkillId();
         this.castTicksLeft = gameState.castTicksLeft();
@@ -156,8 +199,12 @@ export class GameStateMessage {
         this.activationRejectedReason = gameState.activationRejectedReason();
 
         this.interactableEntityId = Number(gameState.interactableEntityId());
+        // Open/closed (chunk 3, D3): ALWAYS read, never gated by presence —
+        // this is the panel's only close signal now. The tree is a separate,
+        // change-only question (unmarshalConversation returns undefined on an
+        // ordinary unchanged tick, not just on close).
+        this.conversationEntityId = Number(gameState.conversationEntityId());
         this.conversation = unmarshalConversation(gameState.conversation(null));
-        this.questProgress = unmarshalQuestProgress(gameState);
     }
 }
 
@@ -182,8 +229,9 @@ function unmarshalDiscoveredCampfires(gameState: AuraApi.GameState): string[] | 
 }
 
 /**
- * Read the quest ledger out of a snapshot (chunk C3, §6). An absent vector is an
- * empty journal — the shipped state until a quest is accepted.
+ * Read the quest ledger out of a snapshot (chunk C3, §6). Only called when the
+ * caller has already confirmed the owner-only block was sent this tick (chunk
+ * 3) — an absent vector THEN is a genuinely empty journal, not "unchanged".
  */
 function unmarshalQuestProgress(gameState: AuraApi.GameState): QuestProgress[] {
     const entries: QuestProgress[] = [];
@@ -219,9 +267,11 @@ function unmarshalQuestProgress(gameState: AuraApi.GameState): QuestProgress[] {
  *
  * @param c the nested table, or null when no panel is open
  */
-function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree | null {
+function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree | undefined {
     if (c === null) {
-        return null;
+        // Absent (chunk 3, D3): no fresh tree this tick. NOT the close signal
+        // any more — see conversationEntityId — just "nothing new to apply".
+        return undefined;
     }
 
     const nodes: ConversationNode[] = [];

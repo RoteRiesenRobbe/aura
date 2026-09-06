@@ -623,14 +623,17 @@ table GameState {
   // Appended at the table end so existing field IDs stay stable.
   interactable_entity_id:ulong = 0;
 
-  // The open conversation's personalised tree (chunk 3b-ii, D16); ABSENT = no
-  // conversation, which is the client's only close signal — the panel closes
-  // because the field went away, never because the client decided to, so every
-  // server-side end condition (range, combat, death, disconnect) needs no
-  // client counterpart. Own player only. Sent as STATE every tick, for
-  // consistency with interactable_entity_id above; a change-only send is a
-  // later optimisation, not a design requirement. Appended at the table end so
-  // existing field IDs stay stable.
+  // The open conversation's personalised tree (chunk 3b-ii, D16). Own player
+  // only.
+  //
+  // ⚑ REVISED (plan-server-performance.md chunk 3, D3): this field is now
+  // CHANGE-ONLY — absent means "no new tree this tick", NOT "closed". The old
+  // contract ("field went away = close signal") could not survive a
+  // send-on-change gate, because a real unchanged-and-open tick and a real
+  // closed tick would both read as absent. The close signal moved to
+  // conversation_entity_id below; this field only ever carries fresh content,
+  // resent on open, on a grant that changes availability, and on the
+  // heartbeat. Appended at the table end so existing field IDs stay stable.
   conversation:Conversation;
 
   // The owning player's quest ledger (chunk C3, §6): every running and every
@@ -716,6 +719,36 @@ table GameState {
   // stable.
   home_campfire:string;
   discovered_campfires:[string];
+
+  // Who the owning player's conversation panel belongs to right now; 0 =
+  // closed (plan-server-performance.md chunk 3, D3). Own player only, and
+  // ALWAYS sent (unlike conversation above) — it is the client's ONLY close
+  // signal now that the tree itself is change-only, so it cannot be allowed to
+  // go missing on an ordinary unchanged tick the way the tree can. Cheap: 0 is
+  // the field default, so a closed panel costs nothing on the wire, exactly
+  // like interactable_entity_id. Appended at the table end so existing field
+  // IDs stay stable.
+  conversation_entity_id:ulong = 0;
+
+  // TRUE on exactly the ticks that carry the owner-only "slow" block —
+  // spellbook, spellbook_levels, the three slot vectors, active_aura_slot,
+  // skill_points, cost_factor, damage_factor and quest_progress
+  // (plan-server-performance.md chunk 3).
+  //
+  // ⚑ It exists because every OTHER candidate signal is ambiguous. The block
+  // is change-only, so the client must distinguish "unchanged, keep what you
+  // have" from a real send — and inferring that from any field's own presence
+  // fails: a fresh character's spellbook is legitimately EMPTY until the
+  // level-1 milestones grant Damage (`initializePlayerSkills` starts it bare),
+  // an empty quest_progress is a real state, skill_points 0 is a real value,
+  // and active_aura_slot -1 is a real value. Reading emptiness as "not sent"
+  // would silently discard a genuine block and leave a new player's journal
+  // and loadout bars unpopulated until their first unlock.
+  //
+  // Own player only. Default false costs nothing on the ticks that skip the
+  // block, which is almost all of them. Appended at the table end so existing
+  // field IDs stay stable.
+  owner_state:bool = false;
 }
 
 table Welcome {

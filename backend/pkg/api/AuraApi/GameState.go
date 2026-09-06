@@ -460,8 +460,32 @@ func (rcv *GameState) DiscoveredCampfiresLength() int {
 	return 0
 }
 
+func (rcv *GameState) ConversationEntityId() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(56))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutateConversationEntityId(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(56, n)
+}
+
+func (rcv *GameState) OwnerState() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(58))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *GameState) MutateOwnerState(n bool) bool {
+	return rcv._tab.MutateBoolSlot(58, n)
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(26)
+	builder.StartObject(28)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -567,6 +591,12 @@ func GameStateAddDiscoveredCampfires(builder *flatbuffers.Builder, discoveredCam
 }
 func GameStateStartDiscoveredCampfiresVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
+}
+func GameStateAddConversationEntityId(builder *flatbuffers.Builder, conversationEntityId uint64) {
+	builder.PrependUint64Slot(26, conversationEntityId, 0)
+}
+func GameStateAddOwnerState(builder *flatbuffers.Builder, ownerState bool) {
+	builder.PrependBoolSlot(27, ownerState, false)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

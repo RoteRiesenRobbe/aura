@@ -5,6 +5,7 @@ import (
 
 	"github.com/EngoEngine/ecs"
 	flatbuffers "github.com/google/flatbuffers/go"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -55,6 +56,7 @@ func (p *rosterPlayer) Flying() bool { return p.flying }
 // rosterClient records what was sent to it, same embedding trick.
 type rosterClient struct {
 	model.Client
+	id   uuid.UUID
 	sent [][]byte
 }
 
@@ -63,11 +65,16 @@ func (c *rosterClient) SendMessage(msg []byte) error {
 	return nil
 }
 
+// UUID: NetSystem.Remove now looks this up on every player removal to drop
+// the chunk-3 owner-state watch (plan-server-performance.md), so a departure
+// test needs one even though the roster itself never asks.
+func (c *rosterClient) UUID() uuid.UUID { return c.id }
+
 func newRosterPlayer(x, y float32) *rosterPlayer {
 	return &rosterPlayer{
 		basic:  ecs.NewBasic(),
 		pos:    phy.Vec2f{X: x, Y: y},
-		client: &rosterClient{},
+		client: &rosterClient{id: uuid.New()},
 	}
 }
 
