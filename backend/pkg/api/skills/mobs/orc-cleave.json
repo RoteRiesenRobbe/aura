@@ -1,5 +1,5 @@
 {
-  "_comment": "Z2 front orc cleave (content pass C5, plan-content-zones12.md §4): huge sweeping blows — high damage, large radius, slow tick, hits up to 3 targets (an orc wades into the soldier line and staggers a whole rank; a careless player standing among the soldiers eats the same swing). Plain physical: brute force, no finesse. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "_comment": "Z2 front orc cleave (content pass C5, plan-content-zones12.md §4): huge sweeping blows — high damage, large radius, slow tick, hits up to 3 targets (an orc wades into the soldier line and staggers a whole rank; a careless player standing among the soldiers eats the same swing). Plain physical: brute force, no finesse. Curve-position-1 baseline. All values [PLACEHOLDER] ⚑ REACH PASS 2026-09-06 (PO): radius 1.4 → 1.3. 1.4 parked it a hair (0.05 u) outside the player's base reach on a 0.4 body; 1.3 keeps the sweep large but inside the trade range.",
   "id": 126,
   "name": "OrcCleave",
   "category": "active_aura",
@@ -7,7 +7,7 @@
   "effects": [
     {
       "type": "damage_aura",
-      "radius": 1.4,
+      "radius": 1.3,
       "radiusPerLevel": 0.0,
       "damageHP": 16,
       "damageHPPerLevel": 2.5,

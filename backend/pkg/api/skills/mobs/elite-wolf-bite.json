@@ -1,5 +1,5 @@
 {
-  "_comment": "Z1 elite wolf bite (content pass C2): the dark-forest pack leader feeds on wounded prey — execute (bonus vs targets below 35% HP) + lifesteal (heals itself per hit), the coverage home for both modifiers (plan-content-zones12.md §10). Large radius + slow tick is the 'telegraph' (no telegraph system exists). Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "_comment": "Z1 elite wolf bite (content pass C2): the dark-forest pack leader feeds on wounded prey — execute (bonus vs targets below 35% HP) + lifesteal (heals itself per hit), the coverage home for both modifiers (plan-content-zones12.md §10). Large radius + slow tick is the 'telegraph' (no telegraph system exists). Curve-position-1 baseline. All values [PLACEHOLDER] ⚑ REACH PASS 2026-09-06 (PO): radius 2.2 → 1.2. The 2.2 parked the wolf ~0.8 u OUTSIDE the player's base Damage reach (1.45 vs its 0.45 body), so it read as a ranged attacker; the large-radius-as-telegraph stand-in above is REVERSED. 1.2 = the plain Wolf's 0.7 lunge on a 0.45 body; it now parks inside the trade range. Tick/damage/execute/lifesteal untouched.",
   "id": 114,
   "name": "EliteWolfBite",
   "category": "active_aura",
@@ -7,7 +7,7 @@
   "effects": [
     {
       "type": "damage_aura",
-      "radius": 2.2,
+      "radius": 1.2,
       "radiusPerLevel": 0.0,
       "damageHP": 14,
       "damageHPPerLevel": 2.0,
