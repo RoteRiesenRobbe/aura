@@ -926,7 +926,7 @@ speak to each other directly.
 "the release map still owes its own sizing measurement" is now answered; the size
 *ruling* is still the PO's.
 
-#### M1-F1 ⛔ BLOCKER FOUND — a corpse panics the snapshot encoder (pre-existing)
+#### M1-F1 ⛔ BLOCKER FOUND — a corpse panics the snapshot encoder (pre-existing) — ✅ FIXED 2026-09-06
 
 ⭐ **This is the finding of the chunk, and it is not a world-scale bug at all.**
 `codec.EntitiesMarshalFlatbuf` (`gamestate.go:551-576`) switches Player/Mob/Prop and
@@ -953,9 +953,67 @@ zone with the repo's own `api/`**, 10 bots, 40 s:
 occurrences). ⚑ The corpse model is untouched since the step-7 rebrand (`aa509d95`),
 so this is long-standing, not a regression. ⚑ `core/game.go:389` already carries the
 standing warning for exactly this class: *"If you add something here, you might want
-to edit code.gamestate.EntitiesMarshalFlatbuf as well."* **Not fixed here** — M1 is a
-measurement chunk; logged to `docs/feedback.md` 2026-09-06 and wants its own chunk
-with a reproducing test.
+to edit code.gamestate.EntitiesMarshalFlatbuf as well."* **Not fixed in M1 itself** —
+M1 was a measurement chunk, so it logged this and stopped. ⭐ **The follow-up chunk
+below fixed it the same day**; everything above this line describes the broken state
+as measured.
+
+##### ✅ FIXED 2026-09-06 (follow-up chunk, `[uncommitted]`)
+
+⭐ **The gameplay question the feedback row asked — *does the client render corpses
+at all today?* — answers itself: it always could.** `Corpse.ts` exists, the
+gravestone SVG is registered through `Preloading`, `Game.layers.corpses` is a real
+layer, and `AuraApi.EntityType.Corpse` has an entry in `gameObjectClasses` — a
+`Record<AuraApi.EntityType, GameObjectClass>` the TS compiler *rejects a missing key
+in*. So the client has been ready to draw a corpse since the hour the corpse shipped,
+and the server has never sent one. ⛔ **The feature has never worked, on any build**:
+`git log -S CorpseEntity -- pkg/aura/codec/` returns **nothing**, and `2ec15c6d` (the
+chunk that added the corpse) never touched `gamestate.go`. It was born broken, and
+`recover()` is why eight weeks of play never showed it as a crash.
+
+**The fix is one case and one function** (`codec/gamestate.go`): a `model.CorpseEntity`
+arm marshalling through `CorpseEntityFlatbufMarshal` as `AnyEntityResource` — the
+table `plan-atmosphere-recovery.md` §6.6/§6.7 chose and the client already reads.
+⚑ **Deliberately NOT merged with `PropEntityFlatbufMarshal`.** The eight shared lines
+are mechanical builder calls; the two diverge on `prop_name` and `rotation`, the only
+two fields that cost bytes, and a prop encoding is pinned byte-for-byte by
+`TestPropEntityFlatbufMarshal_RealPropCostsNothing`. Folding them would park that pin
+one refactor away from a snapshot-size regression, to save nothing. A corpse writes
+neither field: it is a marker with no authored orientation.
+
+⭐ **Verified against M1-F1's own table — same rig, same 10-bot 40 s dispersed run,
+deaths allowed:**
+
+| | recovered panics / ticks | snap/s/bot | p95 |
+| --- | --- | --- | --- |
+| before (M1-F1) | **1 024 / 1 523 (67 %)** | 5.4 | — |
+| after | ⭐ **0 / 2 100** | **30.0** | 2.27 ms |
+
+**9 bots actually died in the measured run** (`💀 'hrnss_bot_000N' died.` ×9), so
+corpses were spawned and streamed — the zero is a pass, not an untested path. Zero
+`unknown entity` lines in the log.
+
+**Tests, red-first** (`codec/gamestate_test.go`): `…_CorpseStreamsAsResource` failed
+with the *production* panic at `gamestate.go:573` before the fix, and pins the union
+arm (`AnyEntityResource`), the `entity_type` the client keys its sprite off, the id,
+radius and position. ⚑ Wire positions are **px, not world units** — the first draft
+of that assertion compared 7 against 840. Plus `…_EveryStreamedEntityTypeHasACase`, a
+table over every concrete streamable `model` entity, so **the next one that forgets
+its case fails there instead of in production** (spectators excluded by construction:
+no viewport-layer body, they stream as the GameState `player` field).
+
+⚑ **The audit that says this was the only gap**: `model/` holds exactly five concrete
+entity packages — `player`, `mob`, `prop`, `corpse`, `spectator` — and the first four
+now all have cases. **Schema NONE** (EntityType 23 has existed since `2ec15c6d`),
+**DB NONE**, **content NONE**, frontend **untouched**. Backend suite `go test -count=1
+./...` **EXIT 0, 35 pkgs**; `go vet` clean.
+
+⛔ **Left deliberately undone, and it is the PO's call:** `default:` in that switch
+still `panic()`s. That panic is what turned a missing sprite into 67 % of ticks
+aborting — it is *not* fail-loud, because `runTick`'s `recover()` swallows it and the
+server then reads **faster**, not broken. Downgrading it to log-and-skip would make
+the next drift cosmetic. Not done here because it changes shared encode behaviour for
+every entity type.
 
 #### M1-F2 — what S3 left area-linear (Leg B, per-system attribution)
 

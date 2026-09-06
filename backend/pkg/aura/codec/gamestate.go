@@ -568,6 +568,13 @@ func EntitiesMarshalFlatbuf(entities []model.Entity, builder *flatbuffers.Builde
 			// plan-world-zones.md §3.2).
 			marshalled = PropEntityFlatbufMarshal(v, builder)
 			eType = AuraApi.AnyEntityResource
+		case model.CorpseEntity:
+			// A corpse rides the same Resource table as a prop (§6.6/§6.7 of
+			// plan-atmosphere-recovery.md), but it is NOT a PropEntity — it has no
+			// PropName — so it needs its own case. Without one it fell to the
+			// panic below and aborted every tick it was visible in (M1-F1).
+			marshalled = CorpseEntityFlatbufMarshal(v, builder)
+			eType = AuraApi.AnyEntityResource
 		default:
 			slog.Error("unknown entity", slog.Any("entity", e))
 			panic(fmt.Sprintf("unknown entity: %+v", e))
@@ -641,6 +648,37 @@ func PropEntityFlatbufMarshal(e model.PropEntity, builder *flatbuffers.Builder) 
 	if isPlaceholder {
 		AuraApi.ResourceAddPropName(builder, propName)
 	}
+
+	return AuraApi.ResourceEnd(builder)
+}
+
+// CorpseEntityFlatbufMarshal marshals a dead player's corpse through the Resource
+// wire table — the arm plan-atmosphere-recovery.md §6.6/§6.7 chose for it, and the
+// one the client's Corpse class reads. A corpse is a pure marker: no status
+// effects, no stock, and no authored orientation, so this is the prop encoding
+// minus prop_name and rotation.
+//
+// ⚑ Deliberately NOT folded together with PropEntityFlatbufMarshal. The eight
+// shared lines are mechanical builder calls; the two entities diverge on the two
+// fields that actually cost bytes, and a prop's encoding is pinned byte-for-byte
+// by TestPropEntityFlatbufMarshal_RealPropCostsNothing. A shared helper would put
+// that pin one refactor away from a snapshot-size regression, to save nothing.
+func CorpseEntityFlatbufMarshal(e model.CorpseEntity, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	builder.StartVector(1, 0, 0)
+	statusEffects := builder.EndVector(0)
+
+	AuraApi.ResourceStart(builder)
+	AuraApi.ResourceAddId(builder, e.Basic().ID())
+	AuraApi.ResourceAddStatusEffects(builder, statusEffects)
+
+	pos := Vec2fMarshalFlatbuf(builder, e.Position())
+	AuraApi.ResourceAddPos(builder, pos)
+
+	aabb := AabbMarshalFlatbuf(e.AABB(), builder)
+	AuraApi.ResourceAddAabb(builder, aabb)
+
+	AuraApi.ResourceAddRadius(builder, f32ToU16Px(e.Radius()))
+	AuraApi.ResourceAddEntityType(builder, AuraApi.EntityType(e.Type()))
 
 	return AuraApi.ResourceEnd(builder)
 }

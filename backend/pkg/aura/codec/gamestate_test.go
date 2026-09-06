@@ -5,6 +5,7 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/corpse"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/prop"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
@@ -800,4 +801,75 @@ func TestPropEntityFlatbufMarshal_RealPropCostsNothing(t *testing.T) {
 	assert.Equal(t, ref.FinishedBytes(), got,
 		"a non-placeholder prop must encode byte-for-byte what it encoded before prop_name existed; "+
 			"if this diverges, every prop in every snapshot just got bigger")
+}
+
+// M1-F1: a corpse must marshal, not panic. `EntitiesMarshalFlatbuf` switched
+// Player/Mob/Prop and panicked in `default`, and `CorpseEntity` matches none of
+// them — a corpse carries no `PropName`, so it does not satisfy `PropEntity`.
+// Corpses sit on `LayerViewportCollision`, the mask BOTH player and spectator
+// viewports select, so every death aborted ticks through `runTick`'s recover()
+// for as long as the corpse was visible (measured 1024 panics / 1523 ticks).
+//
+// The client has been able to draw one since the day the corpse shipped
+// (`Corpse.ts`, `GraphicsConfig.corpse`, `layers.corpses`, and an entry in the
+// compile-checked `gameObjectClasses` table) — only the server case was missing.
+func TestEntitiesMarshalFlatbuf_CorpseStreamsAsResource(t *testing.T) {
+	c := corpse.New(phy.Vec2f{X: 7, Y: 11})
+
+	b := flatbuffers.NewBuilder(256)
+	vec := EntitiesMarshalFlatbuf([]model.Entity{c}, b)
+
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddEntities(b, vec)
+	b.Finish(AuraApi.GameStateEnd(b))
+
+	gs := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0)
+	require.Equal(t, 1, gs.EntitiesLength())
+
+	var ent AuraApi.Entity
+	require.True(t, gs.Entities(&ent, 0))
+	// The Resource table, the arm §6.6/§6.7 of plan-atmosphere-recovery.md
+	// chose for the corpse and the one the client's Corpse class reads.
+	require.Equal(t, AuraApi.AnyEntityResource, ent.EType())
+
+	var tbl flatbuffers.Table
+	require.True(t, ent.E(&tbl))
+	var res AuraApi.Resource
+	res.Init(tbl.Bytes, tbl.Pos)
+
+	assert.Equal(t, c.Basic().ID(), res.Id())
+	assert.Equal(t, AuraApi.EntityTypeCorpse, res.EntityType(),
+		"the client keys its sprite off entity_type — a corpse that arrives as anything else draws as something else")
+	assert.Equal(t, f32ToU16Px(c.Radius()), res.Radius())
+
+	var pos AuraApi.Vec2f
+	require.NotNil(t, res.Pos(&pos))
+	// ⚑ Wire positions are px, not world units — Vec2fMarshalFlatbuf scales.
+	assert.Equal(t, f32ToPx(7), pos.X())
+	assert.Equal(t, f32ToPx(11), pos.Y())
+}
+
+// The guard against the NEXT one. `core.AddEntity` carries a standing comment
+// telling you to edit `EntitiesMarshalFlatbuf` too, and `addCorpse` was added
+// without doing so — a mistake nothing caught for eight weeks because
+// `runTick`'s recover() turns the panic into a silently aborted tick rather
+// than a crash. Every concrete `model` entity that can enter a viewport goes
+// through here, so a new one that forgets its case fails HERE instead of in
+// production.
+func TestEntitiesMarshalFlatbuf_EveryStreamedEntityTypeHasACase(t *testing.T) {
+	// Spectators are deliberately absent: they carry no body on a viewport
+	// layer and stream as the GameState's `player` field, never as an entity.
+	streamed := map[string]model.Entity{
+		"prop":   prop.New(model.EntityType(AuraApi.EntityTypeStone), phy.Vec2f{X: 1, Y: 2}, 0.5, 0.5, false),
+		"corpse": corpse.New(phy.Vec2f{X: 3, Y: 4}),
+	}
+
+	for name, e := range streamed {
+		t.Run(name, func(t *testing.T) {
+			b := flatbuffers.NewBuilder(256)
+			require.NotPanics(t, func() {
+				EntitiesMarshalFlatbuf([]model.Entity{e}, b)
+			}, "%s has no case in EntitiesMarshalFlatbuf — it will abort every tick it is visible in", name)
+		})
+	}
 }
