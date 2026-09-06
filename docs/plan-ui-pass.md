@@ -1587,7 +1587,7 @@ change, no DB.
   play (orphaned tooltip on the last teaching row; the shut book's unlock
   breadcrumb reading as no VFX) - captured in `docs/feedback.md`, fix
   options presented, the rulings are the PO's.
-- ⭐ **Both rulings taken and FIXED 2026-09-06, own commit `[uncommitted]`**
+- ⭐ **Both rulings taken and FIXED 2026-09-06, own commit `b8bd3d0b`**
   (the `b3283a2f` shape: intake → ruling → red-first fix before C9; the two
   `docs/feedback.md` rows pruned, this is the record). **Tooltip → A**:
   `render()`'s closed branch calls `hideTooltip()` beside `closeConfirmRow()`
@@ -1629,7 +1629,7 @@ change, no DB.
   `round4-tooltip` all green · `chunk3b-ii-conversation` 28/34 = HEAD
   baseline, the three tooltip legs green. PO play owed.
 - ⭐ **PO played the same day and found the ROW GLOW broken, ruled fix-now
-  in the same message** (2026-09-06, `[uncommitted]`, same commit): a seen
+  in the same message** (2026-09-06, `b8bd3d0b`, same commit): a seen
   row kept blinking on every tab, page and reopen, and only the LATEST
   unlock ever blinked when several arrived between opens. Cause: the row's
   `.unlocked` glow was a STATIC class stamped from HUD's tick-to-tick diff -
