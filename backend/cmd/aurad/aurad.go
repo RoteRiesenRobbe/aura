@@ -23,6 +23,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 	"github.com/RoteRiesenRobbe/aura/pkg/logging"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -159,6 +160,10 @@ func main() {
 		core.Bounds(zone.Bounds.Width, zone.Bounds.Height),
 		core.ZoneName(zone.ID),
 		core.Spawns(zone.Spawns),
+		// Blocking paths, with the bridges already subtracted. Built here
+		// because it needs the RESOLVED zone: the bridge test reads
+		// Def.CrossesPaths (plan-world-paths.md C2).
+		core.PathCorridors(world.PathCorridors(zone)),
 	)
 	if err != nil {
 		panic(err)

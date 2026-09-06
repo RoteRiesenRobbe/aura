@@ -245,6 +245,35 @@ type Region struct {
 	Points  []Point `json:"points"`
 }
 
+// Path is an open POLYLINE naming a client-side presentation PROFILE, stroked
+// into the world at Width server units across — roads and rivers
+// (plan-world-paths.md C1). The sibling of Region: a region is a closed polygon
+// FILLED, a path is an open polyline STROKED, and they share the profile table,
+// the paint spec and the blend mask on the client.
+//
+// ⚑ Deliberately its own array rather than a Region with a width (D2). A region
+// is closed and >= 3 points and its whole client lookup is point-in-polygon; a
+// path is open and >= 2. One array meaning two things would make both harder.
+//
+// ⭐ Unlike Region, the server does NOT merely parse and ignore this: a path
+// authoring BlocksMovement gets static collision corridors built for it at boot
+// (paths_collision.go). Profile stays client-only and unvalidated here (D5,
+// Region's D8 posture verbatim) — the look is the client's, and the blocking is
+// authored per placement, so the server never needs the profile table.
+type Path struct {
+	Profile string  `json:"profile"`
+	Points  []Point `json:"points"`
+	// Width is the stroke width in server units — GEOMETRY, not material (D3),
+	// so it sits beside the points rather than in the profile: one river
+	// narrows and widens, and a footpath and a highway share "Road".
+	Width float32 `json:"width"`
+	// BlocksMovement is the SAME word props[] already uses and the server
+	// already reads (D4). Its zero value is the safe one, so a path is
+	// decorative until someone says otherwise, and a shallow ford is simply a
+	// water path authored false.
+	BlocksMovement bool `json:"blocksMovement"`
+}
+
 // Anchor is a named point encounter scripts look up at registration (content
 // pass C6): the zone owns WHERE an encounter plays out (boss home, totem
 // spots, wave mouth — editor-movable), the Go script owns WHAT happens.
@@ -270,6 +299,7 @@ type Zone struct {
 	Campfires []Campfire       `json:"campfires"`
 	DarkAreas []DarkArea       `json:"darkAreas"`
 	Regions   []Region         `json:"regions"`
+	Paths     []Path           `json:"paths"`
 	Anchors   []Anchor         `json:"anchors"`
 
 	// ID is the file stem the zone was loaded from — the -zone selection key
@@ -429,6 +459,21 @@ func (z *Zone) validate() error {
 				i, len(z.Regions[i].Points))
 		}
 	}
+	// Paths name the INDEX for the same reason regions do: no id, no unique
+	// name, so the array position is the only thing an author can search for.
+	for i := range z.Paths {
+		if strings.TrimSpace(z.Paths[i].Profile) == "" {
+			return fmt.Errorf("path %d: profile must not be empty", i)
+		}
+		// TWO, not three: a path is an OPEN polyline. One point is not a line.
+		if len(z.Paths[i].Points) < 2 {
+			return fmt.Errorf("path %d: needs at least 2 points to draw a line, got %d",
+				i, len(z.Paths[i].Points))
+		}
+		if z.Paths[i].Width <= 0 {
+			return fmt.Errorf("path %d: width must be positive, got %g", i, z.Paths[i].Width)
+		}
+	}
 	// A zone that places campfires must flag at least one as a starting spawn
 	// (triage item 5) — fresh players spawn at a flagged fire, so an unflagged
 	// zone would leave them nowhere to land.
@@ -533,6 +578,15 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 			return fmt.Errorf("prop %d: unknown type %q", i, p.Type)
 		}
 		p.Def = def
+		// ⛔ A bridge that blocks is a bridge you cannot cross: it clears the
+		// water under its deck and then walls that same deck with its own body.
+		// Both values are individually legal, which is why this has to be said
+		// out loud. Lives here rather than in validate() because it needs the
+		// RESOLVED definition — the same reason the spawn speed check does.
+		if def.CrossesPaths && p.BlocksMovement {
+			return fmt.Errorf("prop %d: %q crosses paths, so it must not also blocksMovement "+
+				"(it would clear the corridor under its deck and then block the deck)", i, p.Type)
+		}
 	}
 	return nil
 }

@@ -29,7 +29,8 @@ import {meter2px} from '../../../client-data/BasicConfig';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {isMobile} from '../../user-interface/logic/Mobile';
 import * as Regions from '../../regions/logic/Regions';
-import {paintRegions} from '../../regions/logic/RegionPaint';
+import {paintTerrainSurfaces} from '../../regions/logic/RegionPaint';
+import * as Paths from '../../paths/logic/Paths';
 import {resizeTerrain} from './MapScale';
 
 /**
@@ -97,7 +98,14 @@ export function bakeTerrain(
     // prevent. The masked containers bake fine through generateTexture below,
     // and at 2048 texels across the world the map's ramp is coarser than the
     // world's and still a ramp.
-    const regionMasks = paintRegions(scratch, Regions.toRegions(zone.regions), renderer);
+    // ⚑ Regions AND paths, through the ONE function the world uses (L2). The
+    // same scratch container twice: the map has no layer split, and the
+    // function's own order — regions, then paths — is what keeps a road on top
+    // of the field here exactly as it is in the world.
+    const regionMasks = paintTerrainSurfaces(
+        scratch, scratch,
+        Regions.toRegions(zone.regions), Paths.toPaths(zone.paths),
+        renderer);
 
     let unknownTypes = 0;
     (zone.terrain || []).forEach((piece) => {

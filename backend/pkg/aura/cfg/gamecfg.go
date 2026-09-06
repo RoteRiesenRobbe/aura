@@ -42,6 +42,14 @@ type GameConfig struct {
 	// same spot on death.
 	Spawns []world.Spawn
 
+	// PathCorridors are the static collision shapes the zone's blocking paths
+	// ask for — rivers and anything else authored blocksMovement
+	// (plan-world-paths.md C2). Built by world.PathCorridors at load time, with
+	// the bridges already subtracted, so the game loop only has to register
+	// them. Empty for every zone that authors no blocking path, which is all of
+	// them today.
+	PathCorridors []world.Corridor
+
 	TotalDayCycleSeconds   uint64
 	DayTimeSeconds         uint64
 	MobChaseIntoAuraMargin float32

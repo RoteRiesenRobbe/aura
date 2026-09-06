@@ -22,7 +22,7 @@ var AuraConvert = (function () {
     var PX = 120;
 
     // Layer name selects the world.json array (D5).
-    var LAYERS = ['terrain', 'props', 'spawns', 'campfires', 'darkAreas', 'regions', 'anchors'];
+    var LAYERS = ['terrain', 'props', 'spawns', 'campfires', 'darkAreas', 'regions', 'paths', 'anchors'];
 
     // ZoneModel's rounding helper, verbatim.
     function round(value, digits) {
@@ -319,6 +319,22 @@ var AuraConvert = (function () {
                     };
                 })
                 : undefined,
+            // A path is a POLYLINE, so its points are NOT closed and there is
+            // no first-vertex repeat to strip. blocksMovement stays tri-state:
+            // false is the authored default, so an undefined must stay absent
+            // or every decorative path grows a key nobody wrote.
+            paths: z.paths && z.paths.length > 0
+                ? z.paths.map(function (p2) {
+                    return {
+                        profile: p2.profile,
+                        points: p2.points.map(function (v) {
+                            return {x: round(v.x, 2), y: round(v.y, 2)};
+                        }),
+                        width: round(p2.width, 2),
+                        blocksMovement: p2.blocksMovement ? true : undefined,
+                    };
+                })
+                : undefined,
             anchors: z.anchors && z.anchors.length > 0
                 ? z.anchors.map(function (a) { return {name: a.name, x: round(a.x, 2), y: round(a.y, 2)}; })
                 : undefined,
@@ -474,6 +490,33 @@ var AuraConvert = (function () {
             };
         });
 
+        // A path IS its centreline: a polyline whose origin sits on the first
+        // vertex, exactly like a patrol route and a region outline.
+        //
+        // ⚑ POLYLINE, not polygon. The regions layer refuses a polyline because
+        // an open shape has no inside to paint; this layer refuses a POLYGON for
+        // the mirror reason — a closed river is a lake, and Pixi would happily
+        // draw one.
+        var paths = (z.paths || []).map(function (p2) {
+            var pts = p2.points || [];
+            var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
+            var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
+            var o = {
+                shape: 'polyline', layer: 'paths', name: p2.profile, cls: 'AuraPath',
+                x: ox, y: oy, width: 0, height: 0, rotation: 0,
+                flipH: false, flipV: false,
+                polygon: pts.map(function (v) {
+                    return {x: px(v.x, hw) - ox, y: px(v.y, hh) - oy};
+                }),
+                properties: {profile: p2.profile, width: p2.width},
+                enums: {profile: REGION_ENUMS.profile},
+            };
+            // Only when true, so the Properties panel shows the class default
+            // for an ordinary path and the round-trip stays byte-identical.
+            if (p2.blocksMovement) { o.properties.blocksMovement = true; }
+            return o;
+        });
+
         var anchors = (z.anchors || []).map(function (a) {
             return {
                 shape: 'point', layer: 'anchors', name: a.name, cls: 'AuraAnchor',
@@ -500,6 +543,9 @@ var AuraConvert = (function () {
                 // containing region that declares a property wins), so this
                 // layer draws by index for the same reason terrain does.
                 {name: 'regions', drawOrder: 'index', objects: regions},
+                // Path array order is draw order too — a bridge road drawn over
+                // a river is authored by putting it later in the array.
+                {name: 'paths', drawOrder: 'index', objects: paths},
                 {name: 'anchors', drawOrder: 'index', objects: anchors},
             ],
         };
@@ -591,6 +637,17 @@ var AuraConvert = (function () {
                     points: (o.polygon || []).map(function (v) {
                         return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
                     }),
+                };
+            }),
+            paths: layer('paths').map(function (o) {
+                var w = get(o, 'width');
+                return {
+                    profile: readRegionProfile(o),
+                    points: (o.polygon || []).map(function (v) {
+                        return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
+                    }),
+                    width: typeof w === 'number' ? w : 0,
+                    blocksMovement: get(o, 'blocksMovement') ? true : undefined,
                 };
             }),
             anchors: layer('anchors').map(function (o) {
@@ -853,7 +910,7 @@ var AuraConvert = (function () {
         // ⚑ Skipped when no palette is loaded, exactly like every other content
         // check here: the converter stays usable (and testable) without one.
         var profilesKnown = content.PROFILE_NAMES.length > 0;
-        layer('regions').forEach(function (o, i) {
+        function checkProfile(o, i, known) {
             var profile = String(readRegionProfile(o) || '').replace(/^\s+|\s+$/g, '');
             if (!profile) {
                 bad(o, i, 'profile must not be empty');
@@ -862,18 +919,38 @@ var AuraConvert = (function () {
                 // does not exist" are different mistakes with different fixes.
                 bad(o, i, 'no profile chosen — "' + PROFILE_UNSET + '" is the placeholder,'
                     + ' not a profile. Pick one in the Properties panel');
-            } else if (profilesKnown && !hasValue(content.PROFILE_NAMES, profile)) {
+            } else if (known && !hasValue(content.PROFILE_NAMES, profile)) {
                 bad(o, i, 'unknown profile "' + profile + '" — the profiles are: '
                     + content.PROFILE_NAMES.join(', ') + '. Add it to'
                     + ' frontend/src/client-data/profiles.json and re-run'
                     + ' node tools/tiled/generate-palette.mjs, or pick an existing one');
             }
+        }
+        layer('regions').forEach(function (o, i) {
+            checkProfile(o, i, profilesKnown);
             var n = (o.polygon || []).length;
             if (o.shape !== 'polygon') {
                 bad(o, i, 'must be a POLYGON — the regions layer holds outlines, and any'
                     + ' other shape is dropped on save');
             } else if (n < 3) {
                 bad(o, i, 'needs at least 3 points to enclose an area, has ' + n);
+            }
+        });
+
+        // Paths carry the SAME profile vocabulary as regions, so the same three
+        // profile mistakes get the same three messages, from the same function.
+        layer('paths').forEach(function (o, i) {
+            checkProfile(o, i, profilesKnown);
+            var n = (o.polygon || []).length;
+            if (o.shape !== 'polyline') {
+                bad(o, i, 'must be a POLYLINE — a path is an open line, and a closed'
+                    + ' polygon would draw a river as a lake');
+            } else if (n < 2) {
+                bad(o, i, 'needs at least 2 points to draw a line, has ' + n);
+            }
+            var w = get(o, 'width');
+            if (typeof w !== 'number' || !(w > 0)) {
+                bad(o, i, 'width must be a positive number of world units, got ' + w);
             }
         });
 

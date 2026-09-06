@@ -156,7 +156,9 @@
         "Desert",
         "Wasteland",
         "Mountains",
-        "Ice"
+        "Ice",
+        "Road",
+        "Water"
       ],
       "valuesAsFlags": false
     },
@@ -241,6 +243,35 @@
     },
     {
       "id": 13,
+      "name": "AuraPath",
+      "type": "class",
+      "color": "#ff03a9f4",
+      "drawFill": true,
+      "useAs": [
+        "property",
+        "object"
+      ],
+      "members": [
+        {
+          "name": "profile",
+          "type": "string",
+          "propertyType": "AuraProfile",
+          "value": "(pick a profile)"
+        },
+        {
+          "name": "width",
+          "type": "float",
+          "value": 0
+        },
+        {
+          "name": "blocksMovement",
+          "type": "bool",
+          "value": false
+        }
+      ]
+    },
+    {
+      "id": 14,
       "name": "AuraSpawnCombat",
       "type": "class",
       "color": "#ff4caf50",
@@ -290,7 +321,7 @@
       ]
     },
     {
-      "id": 14,
+      "id": 15,
       "name": "AuraSpawnTalker",
       "type": "class",
       "color": "#ffe91e63",
@@ -340,7 +371,7 @@
       ]
     },
     {
-      "id": 15,
+      "id": 16,
       "name": "AuraSpawnFixture",
       "type": "class",
       "color": "#ff9e9e9e",
@@ -390,7 +421,7 @@
       ]
     },
     {
-      "id": 16,
+      "id": 17,
       "name": "AuraSpawnCompanion",
       "type": "class",
       "color": "#ff795548",

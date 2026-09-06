@@ -239,6 +239,16 @@ function propertyTypes(terrain, props, mobs, profiles) {
         // and a Tiled that keeps it reach the same answer.
         classType('AuraRegion', '#ffcddc39',
             [member('profile', 'string', PROFILE_UNSET, 'AuraProfile')]),
+        // A path wears the same profile vocabulary as a region and adds its own
+        // geometry. ⚑ Both extra members obey the C6 rule the AuraRegion note
+        // above states: 'width' defaults to 0, which the save REFUSES, so a
+        // dropped default and a kept one reach the same answer; 'blocksMovement'
+        // defaults to false, which the converter maps back to "not authored"
+        // and omits from the JSON entirely.
+        classType('AuraPath', '#ff03a9f4',
+            [member('profile', 'string', PROFILE_UNSET, 'AuraProfile'),
+                member('width', 'float', 0),
+                member('blocksMovement', 'bool', false)]),
     ];
     for (const kind of Object.keys(KIND_COLOUR)) {
         types.push(classType('AuraSpawn' + kind[0].toUpperCase() + kind.slice(1),
@@ -319,4 +329,4 @@ console.log(`props.tsx          ${props.length} props (${props.map(p => p.type).
 const nEnum = types.filter(t => t.type === 'enum').length;
 console.log(`custom types       ${types.length} (${nEnum} enums + ${types.length - nEnum} classes) → aura.tiled-project + palette/propertytypes.json`);
 console.log(`content.json       ${terrain.length} textures, ${props.length} props, ${mobs.length} mobs ${JSON.stringify(kindCounts)}`);
-console.log(`region profiles    ${profiles.length} (${profiles.join(', ')}) → AuraProfile + AuraRegion`);
+console.log(`region profiles    ${profiles.length} (${profiles.join(', ')}) → AuraProfile + AuraRegion + AuraPath`);

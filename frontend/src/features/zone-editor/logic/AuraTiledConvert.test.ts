@@ -763,6 +763,13 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         campfires: [{id: 'spawnpoint-1', x: 6, y: 6, startingSpawn: true}],
         darkAreas: [{x: 7, y: 7, radius: 2}],
         regions: [{profile: 'swamp', points: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 2}]}],
+        // ⚑ blocksMovement is tri-state on a path (false = absent), so the
+        // fixture has to author it TRUE or the key never appears and the pin
+        // passes while the writers quietly disagree about it.
+        paths: [{
+            profile: 'Water', points: [{x: 1, y: 1}, {x: 5, y: 2}],
+            width: 3, blocksMovement: true,
+        }],
         anchors: [{name: 'a', x: 8, y: 8}],
     };
 

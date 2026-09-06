@@ -124,6 +124,16 @@ interface RegionDefinition {
     points: { x: number, y: number }[];
 }
 
+// A road or a river (plan-world-paths.md). Declared locally like every other
+// shape in this file — this interface describes what the CLIENT can rely on
+// finding, which is why blocksMovement is absent: it is read by the server
+// alone, and nothing here draws differently because a river blocks.
+interface PathDefinition {
+    profile: string;
+    points: { x: number, y: number }[];
+    width: number;
+}
+
 interface CampfireDefinition {
     x: number;
     y: number;
@@ -141,6 +151,10 @@ interface ZoneJSON {
     // Ground-colour/presentation polygons, read by Regions.loadZone
     // (plan-region-primitive.md). Server units, like everything in the file.
     regions?: RegionDefinition[];
+    // Roads and rivers, read by Paths.loadPaths. This is the client's fourth,
+    // read-only view of the zone file — an array not named here simply never
+    // reaches the renderer, with no error anywhere.
+    paths?: PathDefinition[];
     // World campfires (chunk 2): read by the darkness overlay for their
     // static glow (chunk 4 follow-up).
     campfires?: CampfireDefinition[];

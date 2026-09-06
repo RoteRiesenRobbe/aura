@@ -20,6 +20,8 @@ import {Camera} from '../../camera/logic/Camera';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import * as Regions from '../../regions/logic/Regions';
+import {Region} from '../../regions/logic/Regions';
+import * as Paths from '../../paths/logic/Paths';
 import * as RegionPaint from '../../regions/logic/RegionPaint';
 import {GameState, IGame, IGameLayers} from './IGame';
 import {gameObjectId} from '../../common/logic/Types';
@@ -226,6 +228,12 @@ export class Game implements IGame {
                 // REVERSED that - a profile's `blend` now feathers the region's
                 // own edge, colour and texture alike. `blend: 0` is D5's world.)
                 regions: createNamedContainer('regions'),
+                // Roads and rivers (plan-world-paths.md C1): OVER the region
+                // ground, UNDER the texture blobs. A road lies ON the field it
+                // crosses, and the blobs keep doing edge treatment on top of
+                // both. A bridge is a PROP (D6) and therefore an entity, so it
+                // draws far above this — nothing here has to know about it.
+                paths: createNamedContainer('paths'),
                 textures: createNamedContainer('textures'),
                 resourceSpots: createNamedContainer('resourceSpots'),
             },
@@ -287,6 +295,7 @@ export class Game implements IGame {
         this.cameraGroup.addChild(
             this.layers.terrain.ground,
             this.layers.terrain.regions,
+            this.layers.terrain.paths,
             this.layers.terrain.textures,
             this.layers.terrain.resourceSpots,
         );
@@ -529,16 +538,22 @@ export class Game implements IGame {
         // same order the resolution rule reads (D0), so what you see on top is
         // what a lookup at that point answers. Static Graphics drawn once, like
         // the fill above: no per-frame cost.
-        Regions.loadRegions(GroundTextureManager.getZoneData(gameInformation.zoneName)?.regions);
-        this.paintRegions();
+        const zoneData = GroundTextureManager.getZoneData(gameInformation.zoneName);
+        Regions.loadRegions(zoneData?.regions);
+        Paths.loadPaths(zoneData?.paths);
+        this.paintTerrainSurfaces();
         // The zone's ground tiles (C4). Loaded HERE and not through Preloading:
         // the preload gate blocks boot, and by the time a zone is known it has
         // long since passed (§4.9). Until they land — and forever, if a file is
         // missing — every region paints its fallback colour (D14), so this is a
         // repaint of something already correct, never a blank world.
-        RegionPaint.loadZoneTextures(Regions.loadedRegions()).then((landed) => {
+        // ⚑ BOTH arrays, or a zone whose only textured profile is a river
+        // loads nothing and the water paints its fallback colour forever.
+        RegionPaint.loadZoneTextures(
+            (Regions.loadedRegions() as Region[]).concat(Paths.loadedPaths()),
+        ).then((landed) => {
             if (!landed) { return; }
-            this.paintRegions();
+            this.paintTerrainSurfaces();
             // ⚑ Map parity is NOT optional (§4.7/L2): the bake below has
             // already run by now, with the fallback colours. One re-bake — the
             // path setupTerrain was written for — is what keeps the map from
@@ -603,14 +618,16 @@ export class Game implements IGame {
      * Empties the layer first — it holds nothing else, and the second pass must
      * replace the first rather than stack a textured polygon on a coloured one.
      */
-    private paintRegions(): void {
+    private paintTerrainSurfaces(): void {
         const layer = this.layers.terrain.regions;
+        const pathLayer = this.layers.terrain.paths;
         // ⚑ Bare `destroy()`, deliberately: with no options Pixi frees the
         // Graphics' OWN context (its geometry) and leaves textures alone, which
         // is exactly right for a GROUND TILE - shared by every region using that
         // profile and by the map's bake. Passing `{texture: false}` would read
         // as the safer call and actually leak the context instead.
         layer.removeChildren().forEach(child => child.destroy());
+        pathLayer.removeChildren().forEach(child => child.destroy());
         // ⚑ …but a C5 blend mask is NOT shared, and the line above deliberately
         // does not free it. One RenderTexture per feathered region per paint,
         // and this method runs a second time the moment the zone's tiles land,
@@ -618,8 +635,10 @@ export class Game implements IGame {
         // GPU for the life of the session. They are ours because paintRegions
         // handed them back; nothing else holds a reference.
         this.regionMasks.forEach(texture => texture.destroy(true));
-        this.regionMasks = RegionPaint.paintRegions(
-            layer, Regions.loadedRegions(), this.application.renderer);
+        this.regionMasks = RegionPaint.paintTerrainSurfaces(
+            layer, pathLayer,
+            Regions.loadedRegions(), Paths.loadedPaths(),
+            this.application.renderer);
     }
 
     private createBackground() {

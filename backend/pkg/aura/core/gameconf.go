@@ -177,3 +177,13 @@ func Spawns(spawns []world.Spawn) Configuration {
 		return nil
 	}
 }
+
+// PathCorridors installs the blocking paths' collision shapes. Separate from
+// the zone itself for the same reason Spawns is: the game takes resolved
+// content, not a file.
+func PathCorridors(corridors []world.Corridor) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.PathCorridors = corridors
+		return nil
+	}
+}

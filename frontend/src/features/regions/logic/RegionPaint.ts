@@ -23,6 +23,7 @@ import {
     Assets, BlurFilter, Container, Graphics, Matrix, Renderer, RenderTexture, Sprite, Texture,
 } from 'pixi.js';
 import {neededTextures, Region, regionBlend, RegionPoint, regionPaintSpec} from './Regions';
+import {Path} from '../../paths/logic/Paths';
 import {meter2px} from '../../../client-data/BasicConfig';
 import {isMobile} from '../../user-interface/logic/Mobile';
 
@@ -201,13 +202,19 @@ interface BlendMask {
  * alpha sits ON the polygon someone drew in Tiled and the region spills half a
  * band past it. That is the ruling, not an oversight.
  */
-function buildBlendMask(renderer: Renderer, region: Region, blend: number): BlendMask | null {
+function buildBlendMask(
+    renderer: Renderer,
+    points: RegionPoint[],
+    blend: number,
+    draw: (g: Graphics) => void,
+    extraMargin: number = 0,
+): BlendMask | null {
     const bandPx = meter2px(blend);
     // Half a band of actual outward bleed, plus the BlurFilter's own padding - 
     // `updatePadding()` reserves 2 × strength texels, and strength is half the
     // band, so that padding is one full band. 1.5 covers both with the rounding
     // slack that keeps the ramp from touching the texture edge.
-    const footprint = footprintOf(region.points, bandPx * 1.5);
+    const footprint = footprintOf(points, bandPx * 1.5 + extraMargin);
     if (footprint === null) { return null; }
 
     // ⚑ ONE density variable feeds BOTH the texture size and the blur strength.
@@ -235,7 +242,14 @@ function buildBlendMask(renderer: Renderer, region: Region, blend: number): Blen
     // mapped into the texture by the holder's transform - so the points need no
     // arithmetic and cannot drift from the shape the region actually paints.
     const holder = new Container();
-    holder.addChild(new Graphics().poly(region.points).fill(0xffffff));
+    // ⚑ The silhouette is INJECTED rather than hardcoded as a filled polygon
+    // (C1 of plan-world-paths.md). A region fills its polygon; a path strokes
+    // its polyline. Everything below — the density, the cap, the one-variable
+    // rule, the explicit clear — is identical for both, which is the whole
+    // reason this is a callback and not a second copy of this function.
+    const silhouette = new Graphics();
+    draw(silhouette);
+    holder.addChild(silhouette);
     holder.scale.set(texelsPerPx);
     holder.position.set(-footprint.x * texelsPerPx, -footprint.y * texelsPerPx);
     // Strength is HALF the band: a Gaussian of this strength spreads about that
@@ -292,7 +306,10 @@ export function paintRegions(
         if (paint === null) { return; }
 
         const blend = regionBlend(region);
-        const mask = blend > 0 ? buildBlendMask(renderer, region, blend) : null;
+        const mask = blend > 0
+            ? buildBlendMask(renderer, region.points, blend,
+                g => g.poly(region.points).fill(0xffffff))
+            : null;
         if (mask === null) {
             // blend 0, or a band too narrow to matter: EXACTLY the C4 path. No
             // render texture, no mask, no per-frame filter pass - the feature
@@ -322,4 +339,93 @@ export function paintRegions(
         masks.push(mask.texture);
     });
     return masks;
+}
+
+/**
+ * The stroke geometry every path is drawn with. Round on both counts (D10):
+ * a butt cap reads as a river snipped off with scissors, and a mitre join
+ * spikes outward at a sharp bend in a way no riverbank does.
+ */
+const PATH_CAP = 'round';
+const PATH_JOIN = 'round';
+
+/**
+ * Draws every path into `container`, in AUTHORED ORDER.
+ *
+ * The same three cases as {@link paintRegions} — nothing to paint, a hard edge,
+ * a feathered one — and the same ownership contract: the returned mask textures
+ * are the CALLER's to free.
+ */
+export function paintPaths(
+    container: Container,
+    paths: Path[],
+    renderer: Renderer,
+): RenderTexture[] {
+    const masks: RenderTexture[] = [];
+    paths.forEach((path) => {
+        const paint = regionPaint(path);
+        if (paint === null) { return; }
+
+        // `false` is the whole difference from a region: an OPEN polyline. Pixi
+        // would happily close it, and a closed river is a lake.
+        const stroke = (g: Graphics, style: object) => g
+            .poly(path.points, false)
+            .stroke({...style, width: path.width, cap: PATH_CAP, join: PATH_JOIN});
+
+        const blend = regionBlend(path);
+        // ⚑ The footprint has to grow by HALF THE STROKE on top of the blend
+        // band: footprintOf measures the CENTRELINE's bounding box, and the
+        // ribbon reaches half a width past it on every side. Without this the
+        // mask clips the river's own banks — which looks like the blend being
+        // wrong rather than the box being too small.
+        const mask = blend > 0
+            ? buildBlendMask(renderer, path.points, blend,
+                g => stroke(g, {color: 0xffffff}), path.width / 2)
+            : null;
+
+        if (mask === null) {
+            container.addChild(stroke(new Graphics(), paint));
+            return;
+        }
+
+        // Same reasoning as a feathered region (D22): the shape comes from the
+        // mask alone, so the paint is a RECT over the mask's footprint. Masking
+        // the stroke itself would end the outward half of the ramp in a 50 %
+        // alpha step.
+        const shape = new Graphics()
+            .rect(mask.footprint.x, mask.footprint.y, mask.footprint.width, mask.footprint.height)
+            .fill(paint);
+        container.addChild(shape);
+        container.addChild(mask.sprite);
+        shape.mask = mask.sprite;
+        masks.push(mask.texture);
+    });
+    return masks;
+}
+
+/**
+ * ⭐ THE entry point both draw sites use — the world (Game.paintTerrain) and the
+ * full-screen map (MapTerrain.bakeTerrain).
+ *
+ * Regions first, then paths: a road lies ON the field it crosses. Taking both
+ * arrays through ONE function is not tidiness — plan-region-primitive.md L2
+ * records that a draw site left behind does not degrade, it produces a MAP THAT
+ * IS A WRONG DRAWING OF THE WORLD, in a form no single screenshot catches. That
+ * lesson cost a chunk once; a third surface added later cannot repeat it,
+ * because there is only one place to add it.
+ *
+ * Two containers so the world can keep its layers separate; the map passes the
+ * same scratch container twice, and gets the same order either way.
+ *
+ * ⚑ RETURNS EVERY MASK TEXTURE, AND THE CALLER OWNS THEM ALL.
+ */
+export function paintTerrainSurfaces(
+    regionContainer: Container,
+    pathContainer: Container,
+    regions: Region[],
+    paths: Path[],
+    renderer: Renderer,
+): RenderTexture[] {
+    return paintRegions(regionContainer, regions, renderer)
+        .concat(paintPaths(pathContainer, paths, renderer));
 }

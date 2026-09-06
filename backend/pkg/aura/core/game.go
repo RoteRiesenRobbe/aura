@@ -128,6 +128,25 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	wall.Shape().Layer = int(model.LayerBorderCollision)
 	p.AddStaticBody(ecs.NewBasic(), wall)
 
+	// Blocking paths — rivers and the like (plan-world-paths.md C2). The wall
+	// above is the precedent: a static body that is not an entity, registered
+	// straight into the space.
+	//
+	// ⭐ Deliberately NOT on LayerViewportCollision. The client draws water from
+	// its own bundled zone copy, so these never need to stream — which is what
+	// keeps the whole feature at zero wire cost, and why a river costs nothing
+	// per player per tick the way 777 props do.
+	for _, c := range gc.PathCorridors {
+		var body phy.DynamicCollider
+		if c.IsCircle() {
+			body = phy.NewCircle(phy.Vec2f{X: c.X, Y: c.Y}, c.Radius)
+		} else {
+			body = phy.NewSolidRotatedAABB(phy.Vec2f{X: c.X, Y: c.Y}, c.Length, c.Width, c.Angle)
+		}
+		body.Shape().Layer = int(model.LayerPlayerStaticCollision | model.LayerMobStaticCollision)
+		p.AddStaticBody(ecs.NewBasic(), body)
+	}
+
 	n := NewNetSystem(g)
 	g.AddSystem(n)
 

@@ -92,6 +92,19 @@ func (b PropBody) IsRect() bool {
 // needed; dedicated prop art is content work. The EntityType stays the
 // FlatBuffers enum here — world can't import model (cfg → world → model would
 // cycle); the boot seam converts, like gen's trees/resources tables do.
+// CrossesPaths marks a prop type as a BRIDGE: it clears the collision
+// corridors of any blocking path under its footprint (plan-world-paths.md D6).
+//
+// ⭐ A DEFINITION flag, never a placement one, deliberately. Authored once for
+// the type, it cannot be forgotten on the twelfth bridge and cannot be set on a
+// tree by a stray editor drag — which is exactly the failure a per-placement
+// bool invites, and the corridor it would punch is invisible until someone
+// walks there.
+//
+// ⚑ The footprint that clears is the VISUAL body, not the collision one: the
+// deck you can SEE is the deck you can walk on, and CollisionFactor is a ratio
+// authored so a tree crown can overhang its trunk — meaningless for a prop that
+// does not block at all.
 type PropDefinition struct {
 	// Name is the prop's IDENTITY, not a label: zone placements name it
 	// ({"type": "House"}), GetByName resolves it, duplicates are refused at
@@ -100,6 +113,8 @@ type PropDefinition struct {
 	Name       string
 	EntityType AuraApi.EntityType
 	Body       PropBody
+	// CrossesPaths — see the type comment. Absent = false = an ordinary prop.
+	CrossesPaths bool
 }
 
 // PropRegistry resolves zone prop type names to their definitions.
@@ -175,6 +190,9 @@ type propDefinitionDoc struct {
 	EntityType string   `json:"entityType"`
 	Sprite     string   `json:"sprite"`
 	Body       PropBody `json:"body"`
+	// ⚑ parsePropDefinition uses DisallowUnknownFields, so this field and the
+	// exported one above must move together or every bridge fails boot by name.
+	CrossesPaths bool `json:"crossesPaths"`
 }
 
 func parsePropDefinition(data []byte) (*PropDefinition, error) {
@@ -211,8 +229,9 @@ func parsePropDefinition(data []byte) (*PropDefinition, error) {
 		return nil, fmt.Errorf("body collisionFactor must be positive, got %g", *f)
 	}
 	return &PropDefinition{
-		Name:       doc.Name,
-		EntityType: entityType,
-		Body:       doc.Body,
+		Name:         doc.Name,
+		EntityType:   entityType,
+		Body:         doc.Body,
+		CrossesPaths: doc.CrossesPaths,
 	}, nil
 }

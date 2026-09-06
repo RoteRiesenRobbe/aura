@@ -3,6 +3,7 @@
   "_comment_colors": "Colours are ground fill, drawn under the terrain blobs. ⚑ Every value here is [PLACEHOLDER] and safe to change forever - it is data, not code, and no test pins any of it. NAMES are the only mildly sticky part: a region in api/zones/*.json names its profile, so a rename means fixing every region that names it.",
   "_comment_c3": "The set was ruled 2026-08-25 (C3, the D16 look sitting): 8 families x 2, base + variation, in authored order because that is the order the Tiled dropdown offers. ⭐ EVERY profile is intended to carry a TEXTURE eventually (C3 ruling, D18) - since C4 every one does. ⚑ A profile is a MATERIAL, not a place: many separate forests share `Forest`, which is why a quest-addressable area cannot be a profile name (§11).",
   "_comment_texture": "C4: `texture` names a seamless tile BY FILE STEM in frontend/src/features/regions/assets/ground (see the README there for provenance and what each pick is); `scale` is texture->world, so 0.35 draws a 750px tile over 262 world px - the SENSITIVE knob (§4.8), tuned per profile by eye. ⚑ D14: `color` under a `texture` is the FALLBACK and NEVER a tint - it is what paints if the file is missing or still loading, which is why every profile keeps one. A texture naming a file that is not there costs that region its tile and nothing else.",
+  "_comment_paths": "plan-world-paths.md C1: the last two profiles are worn by PATHS (zone.paths), not regions - an open polyline STROKED rather than a closed polygon filled. Same table, same keys, same D14 fallback, because in Pixi 8 a stroke style IS a fill style. ⚑ Their `blend` is deliberately NOT the uniform 1.5 above: a band is measured in world units, so 1.5 on a 2.5-unit road is a soft edge wider than the road. [PLACEHOLDER] like everything here, and precisely what the look sitting is for. ⚑ Water authors texture null on purpose - there is no water tile in assets/ground yet, so D14 paints the colour, which is the designed degrade and not a missing file. ⛔ There is no `Bridge` profile: a bridge is a PROP (D6).",
   "_comment_blend": "C5: `blend` is the width of the soft border in WORLD UNITS, per PROFILE (D2) and never per region. 0 = a hard edge, the world C4 shipped and the way D5's look stays expressible. ⭐ D22: the authored polygon is the band's MIDDLE - the ramp is symmetric, so a region spills half a band past the line drawn in Tiled. A region feathers its OWN edge and knows nothing of its neighbours, so region-meets-region and region-meets-bare-land are one code path. ⚑ [PLACEHOLDER] like every value here: 1.5 is a uniform starting point for the look sitting, not a decision.",
 
   "Fields":             { "texture": "Grass6", "scale": 0.35, "blend": 1.5, "color": "#66a83c" },
@@ -20,5 +21,8 @@
   "Desert":             { "texture": "pd106", "scale": 0.35, "blend": 1.5, "color": "#dd9a4e" },
   "Wasteland":          { "texture": "pd119", "scale": 0.35, "blend": 1.5, "color": "#9a682f" },
   "Mountains":          { "texture": "pd196", "scale": 0.35, "blend": 1.5, "color": "#736d66" },
-  "Ice":                { "texture": null, "scale": 0.35, "blend": 1.5, "color": "#dfeaf2" }
+  "Ice":                { "texture": null, "scale": 0.35, "blend": 1.5, "color": "#dfeaf2" },
+
+  "Road":               { "texture": "sand", "scale": 0.35, "blend": 0.6, "color": "#c2a878" },
+  "Water":              { "texture": null, "scale": 0.35, "blend": 0.8, "color": "#2a63a8" }
 }

@@ -129,6 +129,20 @@ export interface ZoneRegion {
     points: { x: number, y: number }[];
 }
 
+// An open polyline stroked as a road or a river (plan-world-paths.md).
+//
+// ⚑ Carried, never edited, exactly like ZoneRegion: paths are placed in Tiled
+// and everything here exists so an in-game save carries them through untouched
+// (L1). blocksMovement is tri-state on purpose — false is the authored default,
+// so an undefined stays undefined and a decorative path exports byte-identically
+// to the file it was loaded from.
+export interface ZonePath {
+    profile: string;
+    points: { x: number, y: number }[];
+    width: number;
+    blocksMovement?: boolean;
+}
+
 export interface ZoneData {
     name: string;
     bounds: ZoneBounds;
@@ -140,6 +154,7 @@ export interface ZoneData {
     darkAreas?: ZoneDarkArea[];
     // Omitted when empty so pre-step-5 zones round-trip diff-clean.
     regions?: ZoneRegion[];
+    paths?: ZonePath[];
     // Omitted when empty so pre-C6 zones round-trip diff-clean.
     anchors?: ZoneAnchor[];
 }
@@ -231,6 +246,8 @@ export class ZoneModel {
     // fromJSON → getZoneAsJSON so a save does not delete Tiled's work (L1).
     // A model built any other way simply has none.
     regions: ZoneRegion[] = [];
+    // Carried, never edited — see ZonePath and the region field above.
+    paths: ZonePath[] = [];
     // 0 until the first mint, which seeds it from the loaded zone.
     private nextSpawnPointNumber: number = 0;
 
@@ -266,6 +283,12 @@ export class ZoneModel {
         model.regions = (data.regions || []).map(r => ({
             profile: r.profile,
             points: (r.points || []).map(p => ({...p})),
+        }));
+        model.paths = (data.paths || []).map(p => ({
+            profile: p.profile,
+            points: (p.points || []).map(pt => ({...pt})),
+            width: p.width,
+            blocksMovement: p.blocksMovement,
         }));
         return model;
     }
@@ -432,6 +455,21 @@ export class ZoneModel {
                 ? this.regions.map(r => ({
                     profile: r.profile,
                     points: r.points.map(p => ({x: round(p.x, 2), y: round(p.y, 2)})),
+                }))
+                : undefined,
+            // ⚑ Named here or the whitelist eats it (L1) — the fourth time this
+            // comment has had to be written, after spawn.level, prop.scale and
+            // regions. This editor cannot author a path, so what a missing line
+            // here would silently delete is somebody else's work in Tiled.
+            // blocksMovement stays tri-state: undefined is dropped by
+            // JSON.stringify, so a decorative path exports exactly as authored
+            // rather than growing a "blocksMovement": false nobody wrote.
+            paths: this.paths.length > 0
+                ? this.paths.map(p => ({
+                    profile: p.profile,
+                    points: p.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
+                    width: round(p.width, 2),
+                    blocksMovement: p.blocksMovement ? true : undefined,
                 }))
                 : undefined,
             // Omitted (undefined key) while empty, so pre-C6 zones round-trip
