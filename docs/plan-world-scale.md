@@ -875,3 +875,218 @@ New: `phy` 3 legs · `model/mob` 12 legs · `sys` 16 legs · 1 guardrail.
 (`scripts/probegen.mjs` is kept for it) and the in-game pass — §8's S3
 checklist, in particular walking in **at every zoom level** to check D6/L8's
 containment argument by eye, and the totem-beside-a-sleeper case (L2).
+
+### M1 — Re-measure ✅ 2026-09-06 (no production code; schema impact: NONE)
+
+**Headline: the single-`Space` area ceiling went `~3.6×` → `~19×`, a 5.3× gain.**
+This is §8's owed "headline number", and it discharges the first half of S3's
+*Not done, and owed* above. **All three legs are complete** — Leg C was walked by the PO the same day
+(4 PASS, 2 inconclusive-but-fine; verdict *"overall works well"*), and it surfaced
+M1-F5 below, a real dormancy-vs-world-simulation gap.
+
+#### The A/B, and why it is trustworthy
+
+⭐ **The before-arm is the SAME BINARY with dormancy turned off via conf**
+(`game.mob.wakeMargin`/`sleepMargin` = 1000/1001, which makes the wake box contain
+any probe), not a checkout of the old build. That removes every confound except the
+one under test. `-god` on both arms so no bot dies (see M1-F1 — without it the
+measurement is worthless).
+
+| probe | dormancy OFF | M0.1 recorded (pre-S3) | **dormancy ON (HEAD)** | p95 speedup |
+| --- | --- | --- | --- | --- |
+| 1× | 3.51 / 5.00 | 3.50 / 5.00 | **2.00 / 2.50** | 2.00× |
+| 2× | 6.50 / 9.00 | 7.00 / 9.50 | **2.50 / 3.00** | 3.00× |
+| 3× | 9.51 / 13.50 | 9.50 / 12.50 | **3.00 / 3.50** | 3.85× |
+| 4× | 12.51 / 18.50 | 13.01 / 20.00 | **3.50 / 4.50** | 4.11× |
+| 6× | 19.72 / 28.50 | 21.50 / 31.00 | **5.00 / 6.50** | 4.38× |
+| 9× | — | — | **6.51 / 8.02** | |
+| 16× | — | — | **11.00 / 13.50** | |
+| 25× | — | — | **17.51 / 22.51** | |
+| 30× | — | — | **21.51 / 26.51** | |
+
+(loaded p50 / p95 ms at 10 dispersed players; **0 recovered panics on every rung**;
+0 boot errors on all nine.)
+
+⭐ **The OFF arm reproduces M0.1 on all five of its rungs within noise, so M0.1 is
+VINDICATED and the rig is provably the same instrument.** A first suspicion that
+M0.1 had been contaminated by M1-F1 was raised and then **refuted** by this control
+— worth recording, because the suspicion was reasonable and the refutation is what
+licenses comparing the two tables at all. Break signal (p95 > 16.5 ms at 10
+dispersed players) interpolates to **3.6× OFF** against M0.1's recorded ~3.5×.
+
+⚑ Same caveat as M0: **dev box (Ryzen 5 3600), not the 2-vCPU live box.** Ratios
+transfer, absolute milliseconds do not. ⚑ The ladder grew four rungs (`9, 16, 25,
+30` in `scripts/probegen.mjs`) because the break moved far past 6×; **probe-30 is
+14 640 spawns, exactly the S3 bench's population**, so the two measurements now
+speak to each other directly.
+
+⭐ **What this buys `plan-release-map.md`.** M0 put the sizing envelope at 50–60 % of
+~3.5×, i.e. ~1.8–2.1× (~200×100 u) — *below* the range the content plan assumed. At
+~19× that envelope becomes **~9.5–11.4×, roughly 440×220 to 480×240 units**. §8.3's
+"the release map still owes its own sizing measurement" is now answered; the size
+*ruling* is still the PO's.
+
+#### M1-F1 ⛔ BLOCKER FOUND — a corpse panics the snapshot encoder (pre-existing)
+
+⭐ **This is the finding of the chunk, and it is not a world-scale bug at all.**
+`codec.EntitiesMarshalFlatbuf` (`gamestate.go:551-576`) switches Player/Mob/Prop and
+`panic()`s in `default`. **`CorpseEntity` (EntityType 23) has no case** — there is no
+"Corpse" anywhere in `pkg/aura/codec`. A corpse body registers on
+`LayerViewportCollision` (`model/corpse/corpse.go:27`), the exact mask **both** player
+and spectator viewports select (`model/player/player.go:60`,
+`model/spectator/spectator.go:13`), so a corpse enters viewports and `runTick`'s
+`recover()` aborts the tick — *"world partially updated"* — for as long as it is
+visible.
+
+**The trigger is the ordinary death path** (`sys/state.go:1044`; the
+reconnect-while-dead path at `:951` does the same): a dead player becomes a spectator
+on the death overlay, standing on their own corpse. Measured on the **real `world`
+zone with the repo's own `api/`**, 10 bots, 40 s:
+
+| | recovered panics / ticks | snap/s/bot | max tick |
+| --- | --- | --- | --- |
+| bots allowed to die | **1 024 / 1 523 (67 %)** | 5.4 | 17 499 µs |
+| `-god` (no deaths) | **0** | 30.0 | 5 002 µs |
+
+⚑ Panics were observed from **`playerSendState` as well as `spectatorSendState`** — a
+*live* player near any corpse is enough. Only EntityType 23 ever panicked (3 605
+occurrences). ⚑ The corpse model is untouched since the step-7 rebrand (`aa509d95`),
+so this is long-standing, not a regression. ⚑ `core/game.go:389` already carries the
+standing warning for exactly this class: *"If you add something here, you might want
+to edit code.gamestate.EntitiesMarshalFlatbuf as well."* **Not fixed here** — M1 is a
+measurement chunk; logged to `docs/feedback.md` 2026-09-06 and wants its own chunk
+with a reproducing test.
+
+#### M1-F2 — what S3 left area-linear (Leg B, per-system attribution)
+
+Instrument: **`backend/cmd/aurad/scaling_profile_test.go`, which already existed**
+(`d1f06a06`, 2026-08-23) and boots the real world through `core.NewGameWith` — so
+dormancy is ON — reporting per-system µs. ⭐ It was written **six days before S3
+shipped**, so re-running it *is* the before/after. `AURA_SCALING_PROFILE=1`, `area`
+mode, 10 players (µs/tick):
+
+| system | 1× | 10× | growth |
+| --- | --- | --- | --- |
+| `PhysicsSystem` | 1 595 | 5 008 | 3.1× |
+| `MobSystem` | 409 | 2 047 | 5.0× |
+| `SkillSystem` | 157 | 1 034 | **6.6×** |
+| `StatusEffectsSystem` | 29 | 340 | **11.7×** |
+| `NetSystem` | 444 | **533** | **1.2× — flat** |
+| tick mean | 2.65 ms | 9.05 ms | 3.4× |
+
+⭐ **`NetSystem` is flat and `avgVisiblePerPlayer` holds at ~32 across a 10× world:
+AOI + dormancy solved the networking axis outright.** What remains is the systems
+that still walk every entity, and all three predictions confirmed:
+
+1. `sys/skills.go:194-198` — `SkillSystem` walks every mob **including dormant**.
+2. `sys/statuseffects/system.go:30-39` — same shape, and the most area-linear of all.
+3. `phy/space.go:71-75, 85-90` — `Space.grid` keys are **never deleted**, only
+   truncated to `[:0]`, so two full map iterations per tick are **O(world area)** no
+   matter what is awake.
+
+⛔ **Recorded, deliberately not fixed.** Each needs the same L6 care that gated
+`SetWakeSources` (the sim battery must stay byte-identical); that is its own chunk.
+
+#### M1-F3 — the density axis contradicts `plan-server-performance.md`'s premise
+
+Same harness, `density` mode (fixed 144×72 bounds, entities cloned in place — the
+raid/clustered axis, where dormancy cannot help because everything is near a player):
+
+| × | spawns | Physics | Net | tick mean |
+| --- | --- | --- | --- | --- |
+| 1 | 488 | 1 595 | 444 | 2.65 ms |
+| 4 | 1 952 | 15 756 | 1 654 | 22.56 ms |
+| 10 | 4 880 | **100 138** | 4 283 | 134.90 ms |
+
+⭐ At density 10× **`PhysicsSystem` is 74 % of the tick**, not the 24 % that plan
+sequences off. This is `docs/README.md:55`'s flagged concern measured and now recorded
+in a doc: *"physics is 24 %, therefore chunk 4 is fifth"* is half the picture, and the
+half that is missing is the raid case that plan most cares about. ⚑ **Re-read that
+ordering before starting its chunk 1.**
+
+#### M1-F4 — entity churn is O(total entities), not O(awake)
+
+`removeEntityUs` (one add+remove) rises **400 µs at 488 spawns → 2 675 µs at 4 880
+(area) / 6 350 µs (density)**. Dormancy does not help: `World.RemoveEntity` fans out
+to all 14 systems and most `Remove`s are linear scans over lists that still hold every
+dormant mob. **A death or disconnect wave is a tick-spike shape**, and it compounds
+M1-F1 (a death both spawns a panicking corpse and pays this).
+
+#### Verification
+
+`go build ./...` clean · `go vet ./...` clean · ⭐ **full `go test -count=1 ./...`
+EXIT 0, 35 packages, ZERO failures** — the five pre-existing reds S3 recorded are all
+gone (`martin.json` deleted 2026-09-05; the uncommitted 30× `world.json` is no longer
+present). `git status` clean apart from the intended `probegen.mjs` edit, and
+**`api/zones/` still holds only `world.json`** (L4 honoured; probes lived in a scratch
+dir, and probegen's own guard refuses any path ending `/api/zones`). `harnessdb
+-cleanup` ran between every rung with the server stopped.
+
+#### Leg C — the in-game pass ✅ WALKED 2026-09-06 (PO)
+
+Server on the real `world` zone, `-content ../api`, clean boot (0 errors). Run
+with GOD on throughout, per M1-F1 — a death would have read as a dormancy fault.
+**PO verdict: "overall works well."**
+
+| # | item | result |
+| --- | --- | --- |
+| 1 | **Zoom containment**, all three levels incl. max zoom-out | ✅ **PASS** — no mob fades in on screen |
+| 2 | **The flight leg** over a dormant region (never run before) | ✅ **PASS** |
+| 3 | Totem beside a sleeper (L2) | ⚠️ **INCONCLUSIVE — not cleanly testable** (below) |
+| 4 | Leash, not freeze | ✅ **PASS** |
+| 5 | Patroller thaws mid-leg (L7) | ⚠️ **INCONCLUSIVE — "seems fine"** (below) |
+| 6 | Walk-away / walk-back sanity | ✅ **PASS** |
+
+⭐ **D6/L8's containment argument is now checked by eye at every zoom level AND in
+flight** — the two items that only a human could settle, and the pair the S3 ledger
+had been carrying as owed since 2026-08-29. Both pass.
+
+⚑ **Item 3 could not be run as written, and the reason is itself a finding:** mobs
+kill the totem too fast to observe anything, and it also times out. Testing L2
+properly needs an **invulnerable, long-TTL totem** — which does not exist as a cheat.
+⭐ Note the mobs killing it is *weak positive evidence for* L2 (they were awake and
+acting on it beside the player's absence), but it is not the assertion. **The L2
+aura-reach risk therefore remains unconfirmed in-game**; it is covered by unit legs
+(`sys` leg 6, "a dormant mob wakes for a totem, not only a player") and by D4's
+construction, so this is a testability gap, not a known defect. ⛔ A cheat that
+plants a pinned totem would close it — worth one line whenever someone is next in
+`sys/cmd`.
+
+⚑ **Item 5 is inconclusive for a mundane reason**: patrollers walk slowly and the
+client shows no route or start point, so "did it resume from where it froze?" is not
+answerable by eye. L7 stands on its by-construction argument plus its unit leg.
+
+#### M1-F5 ⭐ PO QUESTION, and both halves are REAL — dormancy vs. a credible world
+
+Raised by the PO off the back of the pass: *do the sleep conditions match what the
+world should plausibly be doing while nobody watches?* Checked against the code the
+same day; **both cases are reachable today** and neither is covered by D3.
+
+**A — an unobserved mob-vs-mob fight never ends.** Mob-on-mob hostility is **authored
+content already**: `api/factions/human_army.json` carries `"hostileTo": ["orc"]`, and
+another faction lists `["aligned", "human_army"]`. `Pristine()` refuses `InCombat()`
+and any non-empty threat table, so **if the player walks away mid-fight both
+combatants stay awake and fight to the death with nobody watching** — burning tick
+budget in a region the whole point of S3 was to stop paying for, and churning
+authored spawns off-screen. ⭐ The PO's own parenthetical is correct and is the
+*other* half: a mob that DID sleep is out of the physics space, so an awake mob's
+sensor cannot find it and it is **effectively invulnerable** — so the pair can also
+end up in a state where one beats on something unhittable.
+
+**B — a mob can freeze mid-walk-home, off its route.** ⚑ There is **no
+"returning home" mode**: `combatMode` is only `modeIdle | modeEngage | modeSupport |
+modeFlee` (`model/mob/support.go:44-51`), and the walk-home lives *inside the idle
+path* — `patrol.go:108-113`, `if m.returnPosSet { m.idleWalk(m.returnPos) }`. So after
+a leash the mob clears threat → mode falls to `modeIdle` → health regens (~5 s) →
+**`Pristine()` goes true while it is still walking home**, and it sleeps wherever it
+happens to be: clumped from the chase, off its patrol route, away from its spawn.
+⭐ **This is exactly the case L7's ruling does NOT cover** — that argument reasoned
+about a patroller frozen *mid-leg on its own route*, which is benign; a mob frozen
+mid-return is parked somewhere the world never authored, and it stays there until a
+player next comes close.
+
+⛔ **Neither is fixed here.** The shape of a fix is a D3 amendment (sleep only once
+`returnPosSet` is false, i.e. home/on-route) plus a ruling on whether unobserved
+mob-vs-mob combat should be allowed to run at all, or be frozen/resolved. Both are
+gameplay-visible, so they are the PO's call, not a perf tidy-up. Logged to
+`docs/feedback.md` 2026-09-06.

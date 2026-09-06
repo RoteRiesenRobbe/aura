@@ -49,6 +49,12 @@ const LADDER = [
   [3, 3, 1],
   [4, 2, 2],
   [6, 3, 2],
+  // M1 (2026-09-06): S3 moved the break far past 6x, so the ladder had to grow.
+  // Whole tiles only, so density stays exact rather than approximate.
+  [9, 3, 3],
+  [16, 4, 4],
+  [25, 5, 5],
+  [30, 6, 5],
 ];
 
 const shift = (arr, dx, dy) =>
