@@ -102,7 +102,14 @@ export function bakeTerrain(
     // same scratch container twice: the map has no layer split, and the
     // function's own order — regions, then paths — is what keeps a road on top
     // of the field here exactly as it is in the world.
-    const regionMasks = paintTerrainSurfaces(
+    // ⚑ `.masks` only, and the dropped `.scrollers` is DELIBERATE (world-paths
+    // C3): the map bakes ONE still frame into a RenderTexture, so a drifting
+    // river is a still river here. Registering these with a frame loop would
+    // animate sprites that get destroyed at the bottom of this function, and
+    // animating the map at all would mean re-baking the whole terrain every
+    // frame. Not an L2 parity break — L2 is about the map drawing the same
+    // WORLD, and it does.
+    const {masks: regionMasks} = paintTerrainSurfaces(
         scratch, scratch,
         Regions.toRegions(zone.regions), Paths.toPaths(zone.paths),
         renderer);

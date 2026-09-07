@@ -21,8 +21,11 @@
  */
 import {
     Assets, BlurFilter, Container, Graphics, Matrix, Renderer, RenderTexture, Sprite, Texture,
+    TilingSprite,
 } from 'pixi.js';
-import {neededTextures, Region, regionBlend, RegionPoint, regionPaintSpec} from './Regions';
+import {
+    neededTextures, Region, regionBlend, RegionPoint, regionPaintSpec, regionScroll,
+} from './Regions';
 import {Path} from '../../paths/logic/Paths';
 import {meter2px} from '../../../client-data/BasicConfig';
 import {isMobile} from '../../user-interface/logic/Mobile';
@@ -272,6 +275,208 @@ function buildBlendMask(
     return {sprite, texture, footprint};
 }
 
+/** What one paint pass produced, and ALL OF IT IS THE CALLER'S TO OWN.
+ *
+ *  ⚑ Two lists rather than one because they are freed differently and on
+ *  different schedules: a mask texture dies with the next repaint, a scroller
+ *  dies with the container it was added to and only needs UNREGISTERING from
+ *  the frame loop. A caller that keeps neither leaks GPU memory per repaint;
+ *  a caller that keeps scrollers across a repaint animates destroyed sprites. */
+export interface PaintedSurfaces {
+    /** ⚑ One RenderTexture per feathered surface. Free with `destroy(true)`. */
+    masks: RenderTexture[];
+    /** ⚑ Hand to {@link advanceSurfaceScroll} every frame, and DROP on repaint.
+     *  A draw site that bakes a still image (the map) simply ignores these. */
+    scrollers: ScrollingSurface[];
+}
+
+/** One drifting tile surface: the sprite, and how fast its tile moves. */
+export interface ScrollingSurface {
+    sprite: TilingSprite;
+    /** World PX per second — the profile authors world units. */
+    vx: number;
+    vy: number;
+    /** One tile's size in world px: the period `tilePosition` wraps on. */
+    tileW: number;
+    tileH: number;
+}
+
+/** `x mod period`, always non-negative. `%` alone keeps the sign in JS. */
+function wrap(value: number, period: number): number {
+    return period > 0 ? ((value % period) + period) % period : value;
+}
+
+/**
+ * Advances every scrolling surface by one frame (C3).
+ *
+ * ⭐ The whole animation, and this is the entire per-frame cost: two number
+ * writes per drifting surface. Nothing is rebuilt, no geometry is touched, no
+ * texture is re-uploaded — the tile offset is a uniform and the GPU does the
+ * rest at sampling time. That is why this could not be built on the day/night
+ * filter machinery (L7: ~25 per-layer filter passes at 30 Hz once made avatars
+ * invisible).
+ *
+ * ⚑ `tilePosition` is WRAPPED to one tile. The tiling is exactly periodic, so
+ * wrapping is invisible — and without it a long session walks the offset into
+ * the range where a float32 uniform can no longer resolve a pixel, and the
+ * water quietly starts stuttering and then stops.
+ */
+export function advanceSurfaceScroll(scrollers: ScrollingSurface[], deltaMS: number): void {
+    if (scrollers.length === 0) { return; }
+    const seconds = deltaMS / 1000;
+    scrollers.forEach((s) => {
+        const p = s.sprite.tilePosition;
+        p.set(wrap(p.x + s.vx * seconds, s.tileW), wrap(p.y + s.vy * seconds, s.tileH));
+    });
+}
+
+/**
+ * The drifting twin of the static `Graphics.rect().fill(paint)` — a
+ * TilingSprite over the same footprint, phased to the same world origin.
+ *
+ * ⚑ The PHASE MATTERS and is not cosmetic. A Graphics fill takes its tile phase
+ * from the texture matrix, which is texture→LOCAL, and every surface sits at
+ * the container origin — so two adjacent rivers share one continuous tiling. A
+ * TilingSprite instead phases from its OWN top-left, so without the offset
+ * below every river would start its tile afresh at its bounding box and two
+ * touching ones would show a hard seam where the pattern jumps.
+ *
+ * `uv = (local - tilePosition) / tileScale`, and local 0 is world
+ * `footprint.x`, so `tilePosition = -footprint` reproduces the fill exactly.
+ *
+ * Returns `null` when the paint is a flat colour: a colour has no phase, so
+ * there is nothing to see move, and a TilingSprite over it would cost a draw
+ * call and two writes per frame to animate nothing.
+ */
+function scrollingSurface(
+    footprint: Footprint,
+    paint: { texture: Texture, matrix: Matrix } | { color: number },
+    scrollPx: { x: number, y: number },
+): ScrollingSurface | null {
+    if (!('texture' in paint)) { return null; }
+    // ⚑ The scale is read back off the matrix `regionPaint` just built
+    // (`new Matrix().scale(s, s)` → `a === d === s`) rather than resolved a
+    // second time from the profile table. Two lookups is two chances to
+    // disagree, and a mismatch here is a tile drawn at the wrong size ONLY
+    // while it moves — the worst kind of bug to catch in a screenshot.
+    const scale = paint.matrix.a;
+    const sprite = new TilingSprite({
+        texture: paint.texture,
+        width: footprint.width,
+        height: footprint.height,
+    });
+    sprite.position.set(footprint.x, footprint.y);
+    sprite.tileScale.set(scale);
+    sprite.tilePosition.set(-footprint.x, -footprint.y);
+    return {
+        sprite,
+        vx: scrollPx.x,
+        vy: scrollPx.y,
+        tileW: paint.texture.width * scale,
+        tileH: paint.texture.height * scale,
+    };
+}
+
+/** How one surface draws itself — filled for a region, stroked for a path.
+ *  Takes the style so the SAME call draws the paint and the white silhouette,
+ *  which is what keeps a mask from ever disagreeing with the shape it masks. */
+type DrawSurface = (g: Graphics, style: object) => Graphics;
+
+/** Case 2, extracted because case 3 falls back to it: a rect over the mask
+ *  footprint, masked by the blurred silhouette.
+ *
+ *  ⚑ The paint must be a RECT and not the shape. Masked alpha is
+ *  content × mask, so a masked shape would multiply the outward half of D22's
+ *  symmetric ramp by nothing and end the edge in a 50 % STEP — almost right,
+ *  which is the hard kind of wrong. */
+function addFeathered(
+    container: Container,
+    paint: { texture: Texture, matrix: Matrix } | { color: number },
+    mask: BlendMask,
+    out: PaintedSurfaces,
+): void {
+    const shape = new Graphics()
+        .rect(mask.footprint.x, mask.footprint.y, mask.footprint.width, mask.footprint.height)
+        .fill(paint);
+    container.addChild(shape);
+    // ⚑ The mask sprite must be IN the scene graph to have a world transform —
+    // a detached mask silently masks NOTHING, and the surface would paint as a
+    // full opaque rectangle. MiniMap.setupTerrain carries the same note for the
+    // fog.
+    container.addChild(mask.sprite);
+    shape.mask = mask.sprite;
+    out.masks.push(mask.texture);
+}
+
+/**
+ * Paints ONE surface into `container` — the three cases every region and every
+ * path goes through, in one place.
+ *
+ * 1. **Still, hard edge.** One Graphics. No render texture, no mask, no
+ *    per-frame cost. The C4 world, and still the common case.
+ * 2. **Still, feathered.** {@link addFeathered}.
+ * 3. **Drifting** (C3). The same footprint, but a TilingSprite instead of a
+ *    Graphics. It still needs a mask to have a shape at all, so a profile that
+ *    scrolls with `blend: 0` gets a CHEAP one: the plain silhouette as a
+ *    stencil, no RenderTexture and no blur pass. ⛔ Do not "simplify" that away
+ *    by making scroll depend on blend — a `scroll` that silently did nothing
+ *    because the profile authored a hard edge is exactly the class of quiet
+ *    no-op this codebase keeps paying for.
+ */
+function paintSurface(
+    container: Container,
+    surface: Region,
+    points: RegionPoint[],
+    draw: DrawSurface,
+    mask: BlendMask | null,
+    extraMargin: number,
+    out: PaintedSurfaces,
+): void {
+    const paint = regionPaint(surface);
+    if (paint === null) { return; }
+
+    const authored = regionScroll(surface);
+    const scrollPx = {x: meter2px(authored.x), y: meter2px(authored.y)};
+
+    if (scrollPx.x !== 0 || scrollPx.y !== 0) {
+        // ⚑ A feathered surface reuses the MASK's footprint rather than
+        // measuring its own. They must be the same box: the sprite is masked by
+        // that sprite, and a different one would slide the water half a band
+        // out of its own banks.
+        const footprint = mask !== null ? mask.footprint : footprintOf(points, extraMargin);
+        const scroller = footprint === null
+            ? null
+            : scrollingSurface(footprint, paint, scrollPx);
+        if (scroller !== null) {
+            container.addChild(scroller.sprite);
+            if (mask !== null) {
+                container.addChild(mask.sprite);
+                scroller.sprite.mask = mask.sprite;
+                out.masks.push(mask.texture);
+            } else {
+                // The cheap mask: a stencil off the shape's own geometry. No
+                // RenderTexture, so it is deliberately NOT pushed to
+                // `out.masks` — the container's own teardown frees it with
+                // every other child.
+                const silhouette = draw(new Graphics(), {color: 0xffffff});
+                container.addChild(silhouette);
+                scroller.sprite.mask = silhouette;
+            }
+            out.scrollers.push(scroller);
+            return;
+        }
+        // A flat colour cannot be seen to drift (D14's fallback is a colour and
+        // a colour has no phase), and a degenerate footprint has nothing to
+        // draw into. Fall through to the still look rather than to nothing.
+    }
+
+    if (mask === null) {
+        container.addChild(draw(new Graphics(), paint));
+        return;
+    }
+    addFeathered(container, paint, mask, out);
+}
+
 /**
  * Draws every region into `container`, in AUTHORED ORDER — the same order the
  * resolution rule reads (D0), so what you see on top is what a lookup at that
@@ -287,58 +492,22 @@ function buildBlendMask(
  * Adds, never clears: the map bakes regions into a scratch container that
  * already holds its land fill. A caller that repaints (the world, once the
  * tiles land) empties its own layer first.
- *
- * ⚑ RETURNS THE MASK TEXTURES, AND THE CALLER OWNS THEM. Unlike the ground
- * tiles - shared by every region on that profile and by the map's bake, which
- * is why the callers destroy their Graphics without touching textures - a mask
- * texture belongs to exactly one region of exactly one paint pass. Nothing else
- * will ever free it, and this function runs again every time the world
- * repaints, so a caller that drops the array leaks GPU memory per repaint.
  */
 export function paintRegions(
     container: Container,
     regions: Region[],
     renderer: Renderer,
-): RenderTexture[] {
-    const masks: RenderTexture[] = [];
+): PaintedSurfaces {
+    const out: PaintedSurfaces = {masks: [], scrollers: []};
     regions.forEach((region) => {
-        const paint = regionPaint(region);
-        if (paint === null) { return; }
-
+        const draw: DrawSurface = (g, style) => g.poly(region.points).fill(style);
         const blend = regionBlend(region);
         const mask = blend > 0
-            ? buildBlendMask(renderer, region.points, blend,
-                g => g.poly(region.points).fill(0xffffff))
+            ? buildBlendMask(renderer, region.points, blend, g => draw(g, {color: 0xffffff}))
             : null;
-        if (mask === null) {
-            // blend 0, or a band too narrow to matter: EXACTLY the C4 path. No
-            // render texture, no mask, no per-frame filter pass - the feature
-            // costs nothing at all until a profile authors it.
-            container.addChild(new Graphics().poly(region.points).fill(paint));
-            return;
-        }
-
-        // ⚑ The paint is a RECT over the mask's footprint, not the polygon.
-        // A masked polygon would be wrong in a way that looks almost right:
-        // masked alpha is content × mask, the content is 0 outside the polygon,
-        // so the outward half of the symmetric ramp multiplies nothing and the
-        // edge ends in a 50 %-opacity STEP. The shape has to come from the mask
-        // alone, so the fill has to reach past the line. The tile matrix is
-        // texture→local and both shapes sit at the container origin, so the
-        // tile phase is identical either way.
-        const shape = new Graphics()
-            .rect(mask.footprint.x, mask.footprint.y, mask.footprint.width, mask.footprint.height)
-            .fill(paint);
-        container.addChild(shape);
-        // ⚑ The mask sprite must be IN the scene graph to have a world
-        // transform - a detached mask silently masks NOTHING, and the region
-        // would paint as a full opaque rectangle. MiniMap.setupTerrain carries
-        // the same note for the fog.
-        container.addChild(mask.sprite);
-        shape.mask = mask.sprite;
-        masks.push(mask.texture);
+        paintSurface(container, region, region.points, draw, mask, 0, out);
     });
-    return masks;
+    return out;
 }
 
 /**
@@ -352,23 +521,20 @@ const PATH_JOIN = 'round';
 /**
  * Draws every path into `container`, in AUTHORED ORDER.
  *
- * The same three cases as {@link paintRegions} — nothing to paint, a hard edge,
- * a feathered one — and the same ownership contract: the returned mask textures
- * are the CALLER's to free.
+ * The same three cases as {@link paintRegions}, through the same helper — the
+ * only difference is the two lines below, and that is the whole claim this
+ * primitive rests on.
  */
 export function paintPaths(
     container: Container,
     paths: Path[],
     renderer: Renderer,
-): RenderTexture[] {
-    const masks: RenderTexture[] = [];
+): PaintedSurfaces {
+    const out: PaintedSurfaces = {masks: [], scrollers: []};
     paths.forEach((path) => {
-        const paint = regionPaint(path);
-        if (paint === null) { return; }
-
         // `false` is the whole difference from a region: an OPEN polyline. Pixi
         // would happily close it, and a closed river is a lake.
-        const stroke = (g: Graphics, style: object) => g
+        const draw: DrawSurface = (g, style) => g
             .poly(path.points, false)
             .stroke({...style, width: path.width, cap: PATH_CAP, join: PATH_JOIN});
 
@@ -380,32 +546,16 @@ export function paintPaths(
         // wrong rather than the box being too small.
         const mask = blend > 0
             ? buildBlendMask(renderer, path.points, blend,
-                g => stroke(g, {color: 0xffffff}), path.width / 2)
+                g => draw(g, {color: 0xffffff}), path.width / 2)
             : null;
-
-        if (mask === null) {
-            container.addChild(stroke(new Graphics(), paint));
-            return;
-        }
-
-        // Same reasoning as a feathered region (D22): the shape comes from the
-        // mask alone, so the paint is a RECT over the mask's footprint. Masking
-        // the stroke itself would end the outward half of the ramp in a 50 %
-        // alpha step.
-        const shape = new Graphics()
-            .rect(mask.footprint.x, mask.footprint.y, mask.footprint.width, mask.footprint.height)
-            .fill(paint);
-        container.addChild(shape);
-        container.addChild(mask.sprite);
-        shape.mask = mask.sprite;
-        masks.push(mask.texture);
+        paintSurface(container, path, path.points, draw, mask, path.width / 2, out);
     });
-    return masks;
+    return out;
 }
 
 /**
- * ⭐ THE entry point both draw sites use — the world (Game.paintTerrain) and the
- * full-screen map (MapTerrain.bakeTerrain).
+ * ⭐ THE entry point both draw sites use — the world (Game.paintTerrainSurfaces)
+ * and the full-screen map (MapTerrain.bakeTerrain).
  *
  * Regions first, then paths: a road lies ON the field it crosses. Taking both
  * arrays through ONE function is not tidiness — plan-region-primitive.md L2
@@ -417,7 +567,13 @@ export function paintPaths(
  * Two containers so the world can keep its layers separate; the map passes the
  * same scratch container twice, and gets the same order either way.
  *
- * ⚑ RETURNS EVERY MASK TEXTURE, AND THE CALLER OWNS THEM ALL.
+ * ⚑ EVERYTHING IT RETURNS IS THE CALLER'S — see {@link PaintedSurfaces}.
+ *
+ * ⚑ The map is the draw site that IGNORES `scrollers`, deliberately: it bakes
+ * ONE still frame into a RenderTexture, so a drifting river is a still river on
+ * the map. That is correct and not an L2 parity break — L2 is about the map
+ * drawing the same WORLD, and an animated map would cost a full re-bake per
+ * frame to animate something nobody is looking at while they read a map.
  */
 export function paintTerrainSurfaces(
     regionContainer: Container,
@@ -425,7 +581,11 @@ export function paintTerrainSurfaces(
     regions: Region[],
     paths: Path[],
     renderer: Renderer,
-): RenderTexture[] {
-    return paintRegions(regionContainer, regions, renderer)
-        .concat(paintPaths(pathContainer, paths, renderer));
+): PaintedSurfaces {
+    const fromRegions = paintRegions(regionContainer, regions, renderer);
+    const fromPaths = paintPaths(pathContainer, paths, renderer);
+    return {
+        masks: fromRegions.masks.concat(fromPaths.masks),
+        scrollers: fromRegions.scrollers.concat(fromPaths.scrollers),
+    };
 }

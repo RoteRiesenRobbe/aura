@@ -1,6 +1,6 @@
 import {describe, it, expect} from 'vitest';
 import {toPaths} from './Paths';
-import {regionBlend, regionPaintSpec, Profile} from '../../regions/logic/Regions';
+import {regionBlend, regionPaintSpec, regionScroll, Profile} from '../../regions/logic/Regions';
 
 // 1 unit = 120 px (api/shared-constants.json pointsPerMeter), the same
 // conversion Regions.toRegions applies — pinned here because the world and the
@@ -61,7 +61,7 @@ describe('toPaths', () => {
 describe('a path wears the region profile table unchanged', () => {
     const profiles: { [name: string]: Profile } = {
         Road: {texture: 'sand', scale: 0.35, blend: 0.6, color: 0xc2a878},
-        Water: {texture: null, blend: 0.8, color: 0x2a63a8},
+        Water: {texture: null, blend: 0.8, color: 0x2a63a8, scroll: {x: 0.4, y: 0.15}},
         Bare: {},
     };
 
@@ -92,6 +92,18 @@ describe('a path wears the region profile table unchanged', () => {
         const [ghost] = toPaths([{profile: 'Nope', width: 2, points: [{x: 0, y: 0}, {x: 1, y: 0}]}]);
         expect(() => regionPaintSpec(ghost, () => true, profiles)).not.toThrow();
         expect(regionBlend(ghost, profiles)).toBe(0);
+    });
+
+    // ⭐ C3, and the same claim one property further: a river is a path wearing
+    // a profile that happens to drift. Nothing in Paths.ts knows about motion.
+    it('takes its drift from its own profile', () => {
+        const [river] = toPaths([{profile: 'Water', width: 5, points: [{x: 0, y: 0}, {x: 1, y: 0}]}]);
+        expect(regionScroll(river, profiles)).toEqual({x: 0.4, y: 0.15});
+    });
+
+    it('is still for a profile that authors no drift', () => {
+        const [road] = toPaths([{profile: 'Road', width: 2, points: [{x: 0, y: 0}, {x: 1, y: 0}]}]);
+        expect(regionScroll(road, profiles)).toEqual({x: 0, y: 0});
     });
 
     // A profile transparent to blend gets the shipped default — a hard edge,

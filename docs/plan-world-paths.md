@@ -1,6 +1,6 @@
 # Plan: World paths — a stroked polyline primitive for roads and water
 
-**Status: C1 + C2 SHIPPED 2026-09-07; C3 + C4 NOT STARTED.** ⭐ **D6 was answered after the first draft and rewrote §4.2: bridges are PROPS, not paths** — which deleted D11's last-wins clearing rule outright. Schema impact: **DB NONE · FlatBuffers NONE · conf NONE · content = one new zone array** (absent = no paths, so every shipped zone stays valid).
+**Status: C1 + C2 + C3 SHIPPED 2026-09-07; C4 NOT STARTED.** ⭐ **D6 was answered after the first draft and rewrote §4.2: bridges are PROPS, not paths** — which deleted D11's last-wins clearing rule outright. Schema impact: **DB NONE · FlatBuffers NONE · conf NONE · content = one new zone array** (absent = no paths, so every shipped zone stays valid).
 
 ⭐ **This is the sibling of the region primitive, not a new system.** A region is a closed polygon *filled*; a path is an open polyline *stroked*. The profile table, the paint spec, the blend mask, map parity and the Tiled round-trip are all reused verbatim — Pixi 8's `StrokeStyle extends FillStyle` (verified at HEAD in `frontend/node_modules/pixi.js/lib/scene/graphics/shared/FillTypes.d.ts:43`), so `regionPaint()`'s `{texture, matrix}` output feeds `.stroke({…})` unchanged.
 
@@ -172,6 +172,12 @@ Opt-in per profile (`"scroll": {"x": …, "y": …}`, **[PLACEHOLDER]**); absent
 
 ⚑ The map bakes once and will therefore bake a still frame. That is correct, not a bug.
 
+⭐ **What C3 actually built differs from the sketch above in ONE way, and it matters.** The sketch said "swap the blend path's node", which would have made `scroll` silently do nothing on a profile authoring `blend: 0` — the class of quiet no-op this repo keeps paying for. A drifting surface needs a mask to have a *shape*, so the shipped code gives an unfeathered one a **cheap** mask instead: the plain silhouette as a stencil, no RenderTexture and no blur pass. All three cases (still-hard, still-feathered, drifting) now go through one `paintSurface` helper that both `paintRegions` and `paintPaths` call.
+
+⚑ **Tile PHASE is not cosmetic.** A `Graphics` fill phases from the texture matrix, which is texture→LOCAL, and every surface sits at the container origin — so two adjacent rivers share one continuous tiling. A `TilingSprite` phases from its OWN top-left. `tilePosition = -footprint` reproduces the fill exactly; without it every river restarts its tile at its own bounding box and two touching ones show a seam where the pattern jumps.
+
+⚑ **`tilePosition` must be WRAPPED to one tile.** The tiling is exactly periodic so wrapping is invisible, and without it a long session walks the offset past what a float32 uniform can resolve — the water stutters and then stops.
+
 ### 4.6 What this does NOT absorb
 
 - **No movement cost, no damage, no server-side "the player is in the river".** Blocking is the only mechanical consumer; anything else needs its own ruling. This keeps region-primitive §1's *"not gameplay"* boundary intact.
@@ -298,3 +304,23 @@ Both writers must emit **byte-identical** output; that is `aura-convert.js`'s st
 **⛔ NOT verified in-game, and deliberately so.** No shipped zone authors a path, so there is nothing to walk into: C1+C2 ship **dormant**. The in-game leg belongs with C4, which is what first puts a path in the world.
 
 **Next: C4** (re-author the sand roads — a content judgement, PO-ruled 2026-09-07) and **C3** (animated water), which is ⛔ **blocked on art**: `Water` authors `texture: null` because there is no water tile in `features/regions/assets/ground`, and scrolling a flat colour is invisible. Building the `TilingSprite` machinery before the tile exists is YAGNI.
+
+### C3 — SHIPPED 2026-09-07
+
+**What shipped.** Water drifts. One new profile key, one new frame-loop line, and a refactor that made the three drawing cases one function.
+
+- **`scroll: {x, y}`** on a profile (`Regions.ts` `Profile` · `parseScroll` · `DEFAULT_PROFILE` · **`regionScroll`**), in **world UNITS PER SECOND**. Absent or `{0,0}` = still. ⚑ Its OWN profile's vector, never a `resolve()` chain — the same rule `regionBlend` and `regionPaintSpec` obey, so a still pond drawn inside a flowing river cannot inherit the current.
+- **`ScrollingSurface`** + **`advanceSurfaceScroll`** (`RegionPaint.ts`) — a `TilingSprite` over the mask footprint, and **two number writes per drifting surface per frame**. Nothing is rebuilt, no geometry touched, no texture re-uploaded: the tile offset is a uniform.
+- **`paintTerrainSurfaces` now returns `PaintedSurfaces {masks, scrollers}`** instead of a bare `RenderTexture[]`. `Game` keeps both and **replaces** the scroller array on repaint; `MapTerrain` destructures `.masks` and **drops `.scrollers` deliberately** — it bakes one still frame, so a drifting river is a still river on the map.
+- **`paintSurface`** — the three cases (still-hard · still-feathered · drifting) in one place, called by both `paintRegions` and `paintPaths`. That collapse is what makes a **region** able to drift too: a lake is a `Water` region and now animates with no extra code.
+- **`Water` authors `{"x": 0.4, "y": 0.15}`**, [PLACEHOLDER] — at `scale: 0.35` one 750 px tile spans ~2.19 units, so the pattern repeats about every 5.5 s.
+
+**⭐ The unblocking was the tile, and it already existed.** C1's ledger recorded C3 as blocked on art. `tools/make-water-tile.mjs` (committed `a94f7193`, with the C1 Tiled fix) removed that block, so the plan-doc note above is the *stale* line, not this one.
+
+**⚑ Three traps, all now pinned in comments.** (1) The `paused` guard must come FIRST or the river jumps forward by the whole pause on resume. (2) `Game.regionScrollers` must be REPLACED on repaint, not appended — the previous pass's sprites are already destroyed. (3) `scroll` on a `texture: null` profile animates nothing on purpose: D14's fallback is a flat colour and a colour has no phase.
+
+**Schema impact: DB NONE · FlatBuffers NONE · conf NONE · content NONE.** `profiles.json` is a client-side table (D12) that never reaches the server or the zone files, so `cp-defs` is not involved and no zone changed.
+
+**Verified:** `tsc --noEmit` clean · **vitest 620/620** (was 602; +18) · `webpack --config webpack.prod.js` compiled (3 pre-existing size warnings only). **Mutation-verified twice**: rejecting the authored `{0,0}` in `parseScroll` reddens *"KEEPS an authored zero vector"*; returning the shared `DEFAULT_PROFILE.scroll` object reddens *"never hands back the shared default object"* and *"never borrows the drift"*.
+
+**⛔ Not in-game-verified by me** — the PO has water authored in `world.json` and is looking at it. ⚑ The pixi half (`advanceSurfaceScroll`, the `TilingSprite` phase and wrap) is **untestable in vitest** by the same house split that leaves `buildBlendMask` untested: `RegionPaint.ts` reaches webpack's `require.context` at import. The pure half — parse, totality, the anti-aliasing of the shared default — is covered.

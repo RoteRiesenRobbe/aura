@@ -85,6 +85,14 @@ export class Game implements IGame {
      *  nothing else references, freed by the next paint. See {@link paintRegions}. */
     private regionMasks: RenderTexture[] = [];
 
+    /** The drifting terrain surfaces the last paint created (world-paths C3) -
+     *  advanced once per frame in {@link loop}.
+     *
+     *  ⚑ REPLACED, never appended, by {@link paintTerrainSurfaces}: the sprites
+     *  in it are destroyed with the layer on a repaint, and animating a
+     *  destroyed sprite is a null write into a freed uniform. */
+    private regionScrollers: RegionPaint.ScrollingSurface[] = [];
+
     public get width(): number {
         return this.application.renderer.screen.width;
     }
@@ -446,6 +454,14 @@ export class Game implements IGame {
         }
 
         this.timeDelta = ticker.deltaMS;
+        // Drifting terrain surfaces — animated water (plan-world-paths.md C3).
+        // Two number writes per drifting surface and nothing else; a zone that
+        // authors no scroll has an empty array and this is a length check.
+        //
+        // ⚑ Above the `paused` guard would be wrong and below it is the point:
+        // a paused game must not advance the water, or the river jumps forward
+        // by the whole pause the moment play resumes.
+        RegionPaint.advanceSurfaceScroll(this.regionScrollers, this.timeDelta);
         PrerenderEvent.trigger(this.timeDelta);
     }
 
@@ -635,10 +651,16 @@ export class Game implements IGame {
         // GPU for the life of the session. They are ours because paintRegions
         // handed them back; nothing else holds a reference.
         this.regionMasks.forEach(texture => texture.destroy(true));
-        this.regionMasks = RegionPaint.paintTerrainSurfaces(
+        const painted = RegionPaint.paintTerrainSurfaces(
             layer, pathLayer,
             Regions.loadedRegions(), Paths.loadedPaths(),
             this.application.renderer);
+        this.regionMasks = painted.masks;
+        // ⚑ The scrollers need no freeing of their own - their sprites are the
+        // layer's children and died in the removeChildren above - but the
+        // reference MUST be replaced, or the frame loop keeps writing
+        // tilePosition on destroyed sprites from the previous pass.
+        this.regionScrollers = painted.scrollers;
     }
 
     private createBackground() {

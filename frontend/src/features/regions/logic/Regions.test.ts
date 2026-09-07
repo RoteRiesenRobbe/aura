@@ -7,6 +7,7 @@ import {
     Region,
     regionBlend,
     regionPaintSpec,
+    regionScroll,
     resolveIn,
 } from './Regions';
 
@@ -313,5 +314,81 @@ describe('neededTextures — what the zone has to load, and nothing more', () =>
 
     it('asks for nothing when no region is textured', () => {
         expect(neededTextures([square('flat', 0, 0)], PAINT)).toEqual([]);
+    });
+});
+
+describe('PROFILES — the scroll key (world-paths C3)', () => {
+    it('keeps a well-formed drift vector', () => {
+        expect(buildProfiles({river: {scroll: {x: 0.4, y: -0.15}}}).river.scroll)
+            .toEqual({x: 0.4, y: -0.15});
+    });
+
+    // ⚑ Same trap parseBlend documents: 0 is an authored VALUE ("explicitly
+    // still"), not a missing one. Dropping it would leave the key absent, and
+    // under D0 an outer region's drift would answer instead.
+    it('KEEPS an authored zero vector rather than dropping it as pointless', () => {
+        const profiles = buildProfiles({still: {scroll: {x: 0, y: 0}}});
+        expect('scroll' in profiles.still).toBe(true);
+        expect(profiles.still.scroll).toEqual({x: 0, y: 0});
+    });
+
+    it.each([
+        ['a missing component', {x: 1}],
+        ['a string component', {x: '1', y: 0}],
+        ['a NaN component', {x: Number.NaN, y: 0}],
+        ['an infinite component', {x: 0, y: Number.POSITIVE_INFINITY}],
+        ['a null', null],
+        ['a number', 4],
+        ['an array', [1, 2]],
+    ])('drops %s instead of declaring it', (_label, scroll) => {
+        expect('scroll' in buildProfiles({bad: {scroll}}).bad).toBe(false);
+    });
+
+    it('defaults to still — the feature costs nothing until authored', () => {
+        expect(DEFAULT_PROFILE.scroll).toEqual({x: 0, y: 0});
+    });
+});
+
+// ⚑ Its OWN profile's vector, never a resolve() chain — the same rule
+// regionBlend and regionPaintSpec obey, for the same reason: a still pond drawn
+// inside a flowing river must not inherit the river's current.
+describe('regionScroll — how fast this surface drifts (world-paths C3)', () => {
+    const SCROLL = buildProfiles({
+        river: {texture: 'water', scroll: {x: 0.4, y: 0.15}},
+        pond: {texture: 'water', scroll: {x: 0, y: 0}},
+        quiet: {color: '#111111'},
+    });
+
+    it('returns the vector the profile declares', () => {
+        expect(regionScroll({profile: 'river', points: []}, SCROLL))
+            .toEqual({x: 0.4, y: 0.15});
+    });
+
+    it('returns the zero vector for a profile that declares itself still', () => {
+        expect(regionScroll({profile: 'pond', points: []}, SCROLL)).toEqual({x: 0, y: 0});
+    });
+
+    it.each([
+        ['a profile transparent to scroll', 'quiet'],
+        ['an unknown profile name', 'no-such-profile'],
+    ])('falls back to the default for %s', (_label, profile) => {
+        expect(regionScroll({profile, points: []}, SCROLL)).toEqual(DEFAULT_PROFILE.scroll);
+    });
+
+    // ⚑ The default is a shared literal and the paint site scales what it gets
+    // into pixels. Handing the literal back would let one caller's arithmetic
+    // make every still profile in the session drift.
+    it('never hands back the shared default object', () => {
+        const first = regionScroll({profile: 'quiet', points: []}, SCROLL);
+        first.x = 99;
+        expect(DEFAULT_PROFILE.scroll.x).toBe(0);
+        expect(regionScroll({profile: 'quiet', points: []}, SCROLL).x).toBe(0);
+    });
+
+    it('never borrows the drift of a region it happens to sit inside', () => {
+        // The lookup takes ONE region, not a point — which makes the borrow
+        // structurally impossible rather than merely avoided.
+        expect(regionScroll({profile: 'pond', points: []}, SCROLL)).toEqual({x: 0, y: 0});
+        expect(regionScroll({profile: 'quiet', points: []}, SCROLL)).toEqual({x: 0, y: 0});
     });
 });

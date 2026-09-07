@@ -53,6 +53,21 @@ export interface Profile {
     // edge with no knowledge of its neighbours - which is what makes "region
     // meets region" and "region meets bare land" the same code path.
     blend?: number;
+    // How fast this profile's TILE drifts, in world UNITS PER SECOND (C3/D9).
+    // Absent or {0,0} = still, which is every profile shipped before this and
+    // the reason the feature costs exactly zero until it is authored.
+    //
+    // ⚑ It scrolls the TEXTURE, not the shape: the river stays where it was
+    // drawn and the water inside it moves. So a profile authoring `texture:
+    // null` (or naming a file that is not there) animates NOTHING — a flat
+    // colour has no visible phase. That is D14's fallback staying honest, not
+    // a missing case.
+    //
+    // ⚑ Per PROFILE, like `blend` and for D2's reason: it is what the material
+    // IS. A river's direction is not expressible here — the drift is one world
+    // vector shared by every shape on the profile — and that is the accepted
+    // limit, not an oversight (D9).
+    scroll?: { x: number, y: number };
 }
 
 /** What the world looks like today, and what every miss falls back to (D11).
@@ -71,6 +86,10 @@ export const DEFAULT_PROFILE: Required<Profile> = {
     // and a blur pass under every region in every zone that never asked for
     // one - the feature has to cost exactly zero until it is authored.
     blend: 0,
+    // The world before C3: nothing moves. ⚑ A non-zero default would put a
+    // TilingSprite and a per-frame write under every textured region in every
+    // zone that never asked for one.
+    scroll: {x: 0, y: 0},
 };
 
 /** `"#2c4028"` → `0x2c4028`. The JSON is written in the notation an artist
@@ -127,6 +146,27 @@ function parseBlend(raw: unknown): number | undefined {
     return raw;
 }
 
+/** A drift vector is a pair of finite numbers of world units per second.
+ *
+ *  ⛔ Do NOT reject `{x: 0, y: 0}`, however pointless it looks — it is the
+ *  same trap {@link parseBlend} documents. Zero is a VALID authored value
+ *  meaning "explicitly still", and dropping it would leave the key absent,
+ *  which under D0 lets an outer region's drift answer instead.
+ *
+ *  A non-finite component is meaningless and would walk `tilePosition` to NaN,
+ *  which blanks the sprite rather than degrading — so the whole vector is
+ *  dropped, like an unparseable colour. */
+function parseScroll(raw: unknown): { x: number, y: number } | undefined {
+    if (typeof raw !== 'object' || raw === null) {
+        return undefined;
+    }
+    const {x, y} = raw as { x?: unknown, y?: unknown };
+    if (typeof x !== 'number' || typeof y !== 'number' || !isFinite(x) || !isFinite(y)) {
+        return undefined;
+    }
+    return {x, y};
+}
+
 /**
  * Builds the profile table from authored JSON.
  *
@@ -151,6 +191,7 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
         if (name.charAt(0) === '_') { return; }
         const entry = raw[name] as {
             color?: unknown, texture?: unknown, scale?: unknown, blend?: unknown,
+            scroll?: unknown,
         };
         const profile: Profile = {};
         if (entry && 'color' in entry) {
@@ -176,6 +217,10 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
         if (entry && 'blend' in entry) {
             const parsed = parseBlend(entry.blend);
             if (parsed !== undefined) { profile.blend = parsed; }
+        }
+        if (entry && 'scroll' in entry) {
+            const parsed = parseScroll(entry.scroll);
+            if (parsed !== undefined) { profile.scroll = parsed; }
         }
         out[name] = profile;
     });
@@ -350,6 +395,34 @@ export function regionBlend(
     // An unknown profile, or one transparent to `blend`, ends at the default - 
     // D11's totality, restated at the one layer that can hand a number to Pixi.
     return typeof blend === 'number' ? blend : DEFAULT_PROFILE.blend;
+}
+
+/**
+ * How fast this surface's tile drifts, in world UNITS PER SECOND (C3).
+ * `{x: 0, y: 0}` means still and costs the renderer nothing at all — no
+ * TilingSprite, no per-frame write.
+ *
+ * ⚑ Its OWN profile's `scroll`, else the shipped default — deliberately NOT a
+ * `resolve()` call, for exactly the reason {@link regionBlend} is not one: D0
+ * answers each property at a POINT, so a still pond drawn inside a flowing
+ * river would inherit the river's current. The motion belongs to the shape
+ * being drawn, so the vector does too.
+ *
+ * ⚑ Returns a FRESH object every call. The default is a shared literal, and a
+ * caller that scaled it in place would make every still profile in the session
+ * drift.
+ */
+export function regionScroll(
+    region: Region,
+    profiles: { [name: string]: Profile } = PROFILES,
+): { x: number, y: number } {
+    const profile = profiles[region.profile];
+    const scroll = profile && 'scroll' in profile ? profile.scroll : DEFAULT_PROFILE.scroll;
+    // An unknown profile, or one transparent to `scroll`, ends at the default —
+    // D11's totality, restated at the layer that hands numbers to Pixi.
+    return scroll === undefined || scroll === null
+        ? {...DEFAULT_PROFILE.scroll}
+        : {x: scroll.x, y: scroll.y};
 }
 
 /** The texture names the given regions' profiles ask for, deduplicated — what
