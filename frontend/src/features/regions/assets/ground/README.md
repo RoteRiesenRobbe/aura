@@ -27,6 +27,23 @@ JPEG), renamed from `461223NNN.jpg`:
 CC0 asks for nothing, so this is not a legal obligation: it is here so the next
 person can find the other ~90 tiles instead of guessing where these came from.
 
+### `water-placeholder.png` — GENERATED, not from a pack
+
+| | |
+|---|---|
+| Source | `tools/make-water-tile.mjs` in this repo — run `node tools/make-water-tile.mjs` |
+| Author | generated procedurally; no third-party asset involved |
+| Licence | same as the repo — nothing to attribute |
+
+⚑ **It is a PLACEHOLDER and says so in its name.** It exists so `Water` had a
+tile to test against at all (plan-world-paths.md); replacing it with real art is
+a one-line `profiles.json` edit plus deleting this file.
+
+⭐ **Seamless by construction, not by eye.** Every wave in the generator has an
+INTEGER wave number, so the image is exactly periodic in both axes — see the
+script's header. Re-tune it by editing constants and re-running; the output is
+deterministic, with no RNG anywhere.
+
 ⚑ **Anything not named `pdNNN` came from somewhere else — record it here when
 you add it.** A tile with no provenance is one nobody can safely ship later.
 

@@ -948,9 +948,18 @@ var AuraConvert = (function () {
             } else if (n < 2) {
                 bad(o, i, 'needs at least 2 points to draw a line, has ' + n);
             }
-            var w = get(o, 'width');
-            if (typeof w !== 'number' || !(w > 0)) {
-                bad(o, i, 'width must be a positive number of world units, got ' + w);
+            // ⚑ prop(), not get(): get() is modelToZone's local reader and does
+            // not exist in this scope. Using it here threw "get is not defined"
+            // on every save from Tiled, and no test caught it because nothing
+            // drove validateModel over a path.
+            var w = prop(o, 'width');
+            if (w === undefined) {
+                bad(o, i, 'width is not set — a path needs a width in world units.'
+                    + ' Was this drawn with the plain polyline tool rather than as'
+                    + ' an AuraPath?');
+            } else {
+                num(o, i, 'width', w, function (v) { return v > 0; },
+                    'a positive number of world units');
             }
         });
 

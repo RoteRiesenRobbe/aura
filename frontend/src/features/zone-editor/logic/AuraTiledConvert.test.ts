@@ -458,6 +458,42 @@ describe('AuraConvert — save-time validation (C4)', () => {
         return zone({spawns: [{mob: 'Wolf', x: 0, y: 0, angle: 0, ...over}]});
     }
 
+    // ⭐ These exist because the first cut of the paths leg called get() —
+    // modelToZone's local property reader — inside validateModel, where it does
+    // not exist. Every save from Tiled threw "get is not defined", and the whole
+    // suite stayed green because NOTHING drove validateModel over a path. The
+    // completeness pin cannot catch this: it exercises the serializer and the
+    // model round-trip, never the validator.
+    function pathZone(over: Record<string, unknown> = {}) {
+        return zone({
+            paths: [{
+                profile: 'Fields', points: [{x: 0, y: 0}, {x: 5, y: 2}],
+                width: 3, ...over,
+            }],
+        });
+    }
+
+    it('a well-formed path validates cleanly', () => {
+        expect(errs(pathZone())).toEqual([]);
+    });
+
+    it('a path with no width says so instead of throwing', () => {
+        expect(only(pathZone({width: undefined}))).toContain('width is not set');
+    });
+
+    it('a path with a zero or negative width is refused', () => {
+        expect(only(pathZone({width: 0}))).toContain('positive number of world units');
+        expect(only(pathZone({width: -2}))).toContain('positive number of world units');
+    });
+
+    it('a path needs two points to be a line', () => {
+        expect(only(pathZone({points: [{x: 0, y: 0}]}))).toContain('at least 2 points');
+    });
+
+    it('a path naming a profile that does not exist is refused', () => {
+        expect(only(pathZone({profile: 'Nope'}))).toContain('unknown profile "Nope"');
+    });
+
     it('the shipped world.json has nothing to complain about', () => {
         expect(C.validateModel(C.zoneToModel(JSON.parse(worldText)))).toEqual([]);
     });
