@@ -19,7 +19,7 @@
 
 import {InteractMessage} from '../../backend/logic/messages/outgoing/InteractMessage';
 import {Countdown, startConfirmCountdown} from '../../common/logic/ConfirmCountdown';
-import {attachSkillTooltips} from '../../user-interface/HUD/logic/SkillTooltip';
+import {attachSkillTooltips, hideTooltip} from '../../user-interface/HUD/logic/SkillTooltip';
 import * as PanelExclusivity from '../../user-interface/logic/PanelExclusivity';
 import {
     ConversationModel,
@@ -231,6 +231,11 @@ function render() {
             renderedSignature = '';
             // An armed countdown belongs to the conversation that armed it.
             closeConfirmRow();
+            // So does a teaching row's hover tooltip: the rows just left the
+            // DOM under a stationary pointer, and a removed element fires no
+            // `pointerout` (feedback 2026-09-02, ruled A - local to the one
+            // panel that closes server-side).
+            hideTooltip();
         }
         return;
     }

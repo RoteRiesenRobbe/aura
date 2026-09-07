@@ -32,6 +32,7 @@
  * and page state above, and nowhere else.
  */
 
+import {playCssAnimation} from '../../../common/logic/Utils';
 import * as PanelExclusivity from '../../logic/PanelExclusivity';
 
 /** The three shipped categories, in tab order. Utility is deferred (D3). */
@@ -307,10 +308,28 @@ function applyTrail(entries: HTMLElement[], inTab: HTMLElement[], onPage: Set<HT
     const arrived: string[] = [];
     for (const row of entries) {
         const lit = open && onPage.has(row) && unseen.has(row.dataset.skillId);
-        row.classList.toggle('breadcrumb', lit);
         if (lit) {
             arrived.push(row.dataset.skillId);
+            // The row's own GLOW, the one-shot that says "here it is": PLAYED
+            // when an unseen row comes on screen, never stamped (feedback
+            // 2026-09-06). A stamped class carrying a CSS animation replays
+            // on every display toggle - tab, page, reopen - for as long as it
+            // sits on the row, seen or not, and HUD's tick diff only ever
+            // stamped the LATEST unlock. playCssAnimation strips the class at
+            // the animation's end, or at its cancel when hiding the row ends
+            // it early, so nothing outlives the display; the dwell marking
+            // the row seen makes `lit` false, so nothing replays. ⚑ The
+            // guard is what makes it once-per-display: a re-render while the
+            // row stays on screen must not restart a glow in flight.
+            if (!row.classList.contains('unlocked')) {
+                playCssAnimation(row, 'unlocked');
+            }
         }
+        // ⚑ AFTER the glow, not before: `li.unlocked.breadcrumb::after` runs no
+        // animation (C6 D4, the glow alone), and the helper forces a style
+        // recalc - toggling `breadcrumb` first would give the trail one frame
+        // in which to be created and then cancelled under `unlocked`.
+        row.classList.toggle('breadcrumb', lit);
     }
     if (arrived.length > 0) {
         // One timer for everything unseen on the displayed page: they are all

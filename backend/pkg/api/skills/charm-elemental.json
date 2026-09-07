@@ -6,6 +6,7 @@
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 4200,
+  "description": "It keeps its own level, and turns on you when the charm ends.",
   "targetFactions": ["elemental"],
   "effects": [
     {

@@ -6,6 +6,7 @@
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 600,
+  "description": "Any damage breaks it, including your own aura.",
   "targetFactions": ["wildlife_prey", "wildlife_predator"],
   "effects": [
     {

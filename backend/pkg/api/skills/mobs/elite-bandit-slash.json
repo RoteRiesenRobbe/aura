@@ -1,5 +1,5 @@
 {
-  "_comment": "Z2 elite bandit slash (content pass C4, plan-content-zones12.md §4 + §10): the first authored CRIT pair — each hit rolls critChance to multiply by critFactor (after execute/berserker, before variance; crit-flagged damage lands on the target's crit_taken wire accumulator). The spike is the elite's identity: facetanking it at level eats occasional double hits. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "_comment": "Z2 elite bandit slash (content pass C4, plan-content-zones12.md §4 + §10): the first authored CRIT pair — each hit rolls critChance to multiply by critFactor (after execute/berserker, before variance; crit-flagged damage lands on the target's crit_taken wire accumulator). The spike is the elite's identity: facetanking it at level eats occasional double hits. Curve-position-1 baseline. All values [PLACEHOLDER] ⚑ REACH PASS 2026-09-06 (PO): radius 1.6 → 1.2. At 1.6 it parked 0.25 u outside the player's reach, contradicting the facetank identity above; 1.2 parks it inside.",
   "id": 123,
   "name": "EliteBanditSlash",
   "category": "active_aura",
@@ -7,7 +7,7 @@
   "effects": [
     {
       "type": "damage_aura",
-      "radius": 1.6,
+      "radius": 1.2,
       "radiusPerLevel": 0.0,
       "damageHP": 17.5,
       "damageHPPerLevel": 2.5,

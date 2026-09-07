@@ -305,6 +305,18 @@ export interface SkillDefinition {
     // is no faction catalog here to decode them against. Names travel.
     targetFactions?: string[];
 
+    // The skill's standalone design-ruling prose (UI pass C8, D1): the
+    // sentences that describe what a mechanic DOES and cannot be derived from
+    // any authored number - "Any damage breaks it", "it turns on you when the
+    // charm ends". Authored as content per skill and served on the catalog
+    // JSON, so it is absent on every skill that has none (the targetFactions
+    // convention above).
+    //
+    // Prose-only by the same ruling: it may never carry a live or scaled
+    // number. Every number-bearing line stays auto-generated, which is what
+    // keeps the tooltip correct through a retune.
+    description?: string;
+
     effects: SkillEffect[];
 }
 

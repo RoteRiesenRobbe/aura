@@ -1,4 +1,4 @@
-import {describe, expect, it} from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 import {readFileSync} from 'fs';
 
 import {AppliedEffectBit} from '../features/game-objects/logic/EffectPips';
@@ -6,8 +6,25 @@ import {AuraCategoryBit} from '../features/game-objects/logic/AuraRings';
 import {TierRank} from './Mobs';
 import {BasicConfig, meter2px} from './BasicConfig';
 import {GraphicsConfig} from './Graphics';
-import {campChargeCap, SKILL_POINT_COST, roundHP, skillPointCost} from './Skills';
-import {COST_TRIGGER_TEXT} from '../features/user-interface/HUD/logic/SkillTooltip';
+import {
+    SkillDefinition,
+    SkillEffect,
+    campChargeCap,
+    SKILL_POINT_COST,
+    roundHP,
+    skillPointCost,
+} from './Skills';
+import {
+    COST_TRIGGER_TEXT,
+    EFFECT_COLOR_KEYS,
+    GATE_KEY_LINES,
+    NEUTRAL_EFFECT_TYPES,
+    SELECTOR_LABELS,
+    SELECTORS_PHRASED_ELSEWHERE,
+    STAT_LABELS,
+    TICKING_TYPES,
+    formatSkillTooltip,
+} from '../features/user-interface/HUD/logic/SkillTooltip';
 import {UTILITY_CAST_SECONDS} from '../features/utilities/logic/Utilities';
 import {AuraApi} from '../features/backend/logic/AuraApi';
 import {
@@ -42,6 +59,90 @@ function numericMembers(enumObject: object): { [name: string]: number } {
 function pascalKeyed(table: { [key: string]: number }): { [name: string]: number } {
     return Object.fromEntries(
         Object.entries(table).map(([key, value]) => [key.charAt(0).toUpperCase() + key.slice(1), value]));
+}
+
+// --- C8 render sweep: one payload-complete fixture per effect type ----------
+//
+// effectBlock()'s cases DEREFERENCE their payload (effect.calm.durationTicks,
+// effect.damage.tags), so a bare {type} throws instead of falling to the
+// warning branch - which is precisely why the sweep needs a table rather than
+// a loop over the names. The values are arbitrary; only the SHAPE matters.
+//
+// The table's own key set is pinned == shared.effectTypes below, so a new
+// effect type fails HERE first, with a message naming it, before it fails as a
+// missing render.
+const DAMAGE = {
+    hp: 5, hpPerLevel: 1, tags: ['physical'], gateKey: '', variance: 0, hitStyle: '',
+    structureDamageFraction: 0, executeBelowFraction: 0, executeBonusFactor: 0,
+    berserkerMaxBonusFactor: 0, critChance: 0, critChancePerLevel: 0, critFactor: 0,
+    lifestealFraction: 0,
+};
+const RESIST = {tags: ['fire'], factor: 0.5, factorPerLevel: 0, targetsSelf: false,
+    durationTicks: 90, buffLifetimeMatchesInterval: false};
+const DOT = {hp: 3, hpPerLevel: 1, tags: ['fire'], variance: 0, tickCount: 3, interval: 30};
+const SPAWN = {mobName: 'SoldierCompanion', ttlTicks: 300, ttlTicksPerLevel: 0,
+    powerPerOwnerLevel: 0, forwardUnits: 3, armTicks: 30};
+const SHIELD = {hp: 8, hpPerLevel: 2, durationTicks: 90, targetsSelf: false};
+const HOT = {hp: 4, hpPerLevel: 1, fractionOfMax: 0, fractionOfMaxPerLevel: 0,
+    variance: 0, tickCount: 6, interval: 60, targetsSelf: false};
+const SPEED = {factor: 1.5, factorPerLevel: 0.1, durationTicks: 150,
+    durationTicksPerLevel: 0, targetsSelf: true};
+const HELD = {durationTicks: 300, durationTicksPerLevel: 60};
+
+const EFFECT_FIXTURES: { [type: string]: Partial<SkillEffect> } = {
+    damage_aura: {damage: DAMAGE, tickInterval: 30},
+    instant_damage: {damage: DAMAGE},
+    heal_aura: {heal: {hp: 4, hpPerLevel: 1, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0}, tickInterval: 30},
+    self_heal: {selfHeal: {healHp: 8, healHpPerLevel: 2, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0}},
+    stat_multiplier: {stat: {name: 'maxHealth', bonus: 0.08, bonusPerLevel: 0.03}},
+    slow_aura: {slow: {fraction: 0.2, fractionPerLevel: 0.05}, tickInterval: 30},
+    resist_aura: {resist: RESIST, tickInterval: 90},
+    resist_passive: {resist: RESIST},
+    instant_resist: {resist: RESIST},
+    dot_aura: {dot: DOT, tickInterval: 60},
+    instant_dot: {dot: DOT},
+    spawn: {spawn: SPAWN},
+    spawn_at_anchor: {spawn: SPAWN},
+    projectile: {spawn: SPAWN},
+    taunt: {threat: {margin: 10}, radius: 4},
+    detaunt: {threat: {margin: 10}, radius: 4},
+    light_aura: {radius: 6},
+    shield_aura: {shield: SHIELD, tickInterval: 60},
+    instant_shield: {shield: SHIELD},
+    recall: {},
+    hot_aura: {hot: HOT, tickInterval: 60},
+    instant_hot: {hot: HOT},
+    revive: {revive: {healthFraction: 0.3}},
+    dash: {dash: {distance: 5, distancePerLevel: 1}},
+    tick_rate: {tickRate: {factor: 0.5, durationTicks: 300}},
+    calm: {calm: HELD, radius: 4, targetsEnemies: true},
+    charm: {charm: HELD, radius: 4, targetsEnemies: true, maxTargets: 1},
+    stun: {stun: HELD},
+    speed_burst: {speed: SPEED},
+    speed_aura: {speed: SPEED, tickInterval: 60, targetsAllies: true},
+    lifesteal_burst: {lifesteal: {fraction: 0.3, fractionPerLevel: 0.05, durationTicks: 180, durationTicksPerLevel: 0}},
+    retaliate_slow: {retaliate: {fraction: 0.1, fractionPerLevel: 0.05, durationTicks: 150, durationTicksPerLevel: 0}},
+    retaliate_damage: {retaliateDamage: {hp: 3, hpPerLevel: 1, tags: ['fire']}},
+    retaliate_burst: {retaliateBurst: {fraction: 0.2, fractionPerLevel: 0.05, durationTicks: 300, durationTicksPerLevel: 0, tags: ['fire']}},
+};
+
+function fixtureSkill(type: string): SkillDefinition {
+    const effect: SkillEffect = {
+        type,
+        costFractionOfMax: 0, costFractionOfMaxPerLevel: 0,
+        radius: 0, radiusPerLevel: 0,
+        tickInterval: 0, tickIntervalPerLevel: 0,
+        selector: 'all', maxTargets: 0, maxTargetsPerLevel: 0,
+        targetsEnemies: false, targetsAllies: false, targetsStructures: false,
+        ...EFFECT_FIXTURES[type],
+    };
+    return {
+        id: 1, name: 'Fixture', displayName: 'Fixture', icon: '',
+        category: 'aura', maxLevel: 3, legacy: false,
+        cooldownTicks: 0, cooldownTicksPerLevel: 0,
+        castTicks: 0, castTicksPerLevel: 0, castInterruptedByDamage: false,
+        effects: [effect],
+    };
 }
 
 describe('shared constants (api/shared-constants.json)', () => {
@@ -198,6 +299,85 @@ describe('shared constants (api/shared-constants.json)', () => {
         for (const level of [0, 1, 2, 9, 10, 11, 20, 29, 30, 31]) {
             expect(campChargeCap(level), `level ${level}`)
                 .toBe(c.base + Math.floor(level / c.perLevels));
+        }
+    });
+
+    // --- UI pass C8: the skill-tooltip vocabularies -------------------------
+    //
+    // The tooltip restates four content-keyed vocabularies by hand - label
+    // tables and `case` clauses - and each restatement used to fail SILENTLY:
+    // a stat with no label printed its raw JSON key, a ticking type missing
+    // from TICKING_TYPES simply stopped saying its cadence, and a whole new
+    // effect type degraded to "(type)" plus a console warning nobody reads.
+    // These pins turn every one of those into a red test, on the same
+    // shared-constants contract the tables above use. The Go twin
+    // (pkg/aura/skills/shared_constants_test.go) asserts the server's own maps
+    // against the same lists.
+
+    it('gives every server stat a tooltip label, and only those', () => {
+        expect(Object.keys(STAT_LABELS).sort()).toEqual([...shared.statNames].sort());
+    });
+
+    it('gives every gate key its own sentence, and only those', () => {
+        expect(Object.keys(GATE_KEY_LINES).sort()).toEqual([...shared.gateKeys].sort());
+    });
+
+    // A PARTITION, not a plain set: `all` is phrased by targetsLine's "all X in
+    // range" branch rather than as a count's adjective, so it must stay OUT of
+    // the label table while still being accounted for here.
+    it('accounts for every selector, either labelled or phrased elsewhere', () => {
+        const labelled = Object.keys(SELECTOR_LABELS);
+        expect(labelled.filter(name => SELECTORS_PHRASED_ELSEWHERE.includes(name)),
+            'a selector is both labelled and phrased elsewhere').toEqual([]);
+        expect([...labelled, ...SELECTORS_PHRASED_ELSEWHERE].sort())
+            .toEqual([...shared.selectors].sort());
+    });
+
+    // The aura-form types with a real cadence are exactly the chargeable ones
+    // (both sets are "an aura that keeps doing work over time"), so the two
+    // lists are pinned equal rather than each against its own fixture entry.
+    it('knows a cadence for exactly the chargeable aura types', () => {
+        expect([...TICKING_TYPES].sort()).toEqual(Object.keys(shared.costChargeTrigger).sort());
+    });
+
+    // The second PARTITION: EFFECT_COLOR_KEYS is partial by design, so the
+    // deliberately-neutral types are named rather than left implicit. A new
+    // effect type fails here until somebody has decided its tint - including
+    // the decision to leave it neutral.
+    it('accounts for every effect type, either tinted or deliberately neutral', () => {
+        const tinted = Object.keys(EFFECT_COLOR_KEYS);
+        expect(tinted.filter(type => NEUTRAL_EFFECT_TYPES.includes(type)),
+            'an effect type is both tinted and listed as neutral').toEqual([]);
+        expect([...tinted, ...NEUTRAL_EFFECT_TYPES].sort())
+            .toEqual([...shared.effectTypes].sort());
+    });
+
+    // The table is the sweep's own precondition, asserted separately so a new
+    // effect type fails with "the fixture table does not know X" rather than
+    // with an opaque dereference throw inside effectBlock.
+    it('carries one render fixture per effect type', () => {
+        expect(Object.keys(EFFECT_FIXTURES).sort()).toEqual([...shared.effectTypes].sort());
+    });
+
+    // The tripwire the switch's `default:` branch was always meant to be, made
+    // to fail a test instead of a console nobody is reading: every authored
+    // effect type renders real lines, never "(type)".
+    it('renders every effect type without falling to the unknown-type branch', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        try {
+            for (const type of shared.effectTypes as string[]) {
+                const content = formatSkillTooltip(fixtureSkill(type), 1, 1);
+                const texts = content.lines.map(line => line.text);
+                expect(texts, `${type} rendered no lines`).not.toHaveLength(0);
+                expect(texts, `${type} fell through to the unknown-type branch`)
+                    .not.toContain(`(${type})`);
+            }
+            const unknownTypeWarnings = warn.mock.calls
+                .map(args => String(args[0]))
+                .filter(message => message.includes('unknown effect type'));
+            expect(unknownTypeWarnings).toEqual([]);
+        } finally {
+            warn.mockRestore();
         }
     });
 });

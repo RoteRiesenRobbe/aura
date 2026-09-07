@@ -1031,6 +1031,23 @@ type SkillDefinition struct {
 	// client accessor treats "" exactly like a missing entry.
 	Icon string `json:"icon"`
 
+	// Description is the standalone design-ruling prose the client used to
+	// hardcode in its per-effect-type tooltip switch (UI pass C8, ruling D1),
+	// moved out of code and into content: one optional authored sentence or two
+	// per skill, served verbatim, rendered by the client as a single block under
+	// the tooltip subtitle. Prose ONLY by the same ruling - it carries no live
+	// or scaled numbers and there is no template system, so every
+	// number-bearing tooltip line stays auto-generated and survives a retune.
+	//
+	// One field, shared with C11's flavor descriptions (D3): C11 authors more
+	// of these, it does not add a second field.
+	//
+	// ⚑ omitempty: a skill with nothing authored serves NO key at all, and the
+	// client renders no block (unlike Icon, which serves as the empty string).
+	// ⚑ Skill-level only. `description` inside an effect object is rejected at
+	// load by the effect key allowlist, deliberately.
+	Description string `json:"description,omitempty"`
+
 	Category SkillCategory `json:"category"`
 	MaxLevel int           `json:"maxLevel"`
 
@@ -1224,6 +1241,7 @@ type skillDefinition struct {
 	Name        string `json:"name"`
 	DisplayName string `json:"displayName"` // absent → derived CamelCase→spaces
 	Icon        string `json:"icon"`        // absent → no glyph (mob-embedded skills, UI pass C4)
+	Description string `json:"description"` // absent → no prose block (UI pass C8, D1)
 	Category    string `json:"category"`
 	MaxLevel    int    `json:"maxLevel"`
 	Legacy      bool   `json:"legacy"` // absent → live content (step-7 A.5)
@@ -1595,6 +1613,7 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		Name:                    s.Name,
 		DisplayName:             displayName,
 		Icon:                    s.Icon,
+		Description:             s.Description,
 		Category:                category,
 		MaxLevel:                s.MaxLevel,
 		Legacy:                  s.Legacy,

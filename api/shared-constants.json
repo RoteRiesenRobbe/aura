@@ -1,5 +1,5 @@
 {
-  "_comment": "The cross-language contract fixture (§35 C4c, plan-conf-duplication.md D3): wire-riding values that Go and the client both restate by hand. Each side asserts its own table against this file — Go: backend/cmd/aurad/shared_constants_test.go, client: frontend/src/client-data/SharedConstants.test.ts — so a drift goes red on whichever side moved. Contract only (names ↔ values); colors, styles and pixel scaling stay client-side. Not loaded by the game: tests read it from the repo, so it needs no cp-defs/embed entry.",
+  "_comment": "The cross-language contract fixture (§35 C4c, plan-conf-duplication.md D3): wire-riding values that Go and the client both restate by hand. Each side asserts its own table against this file — Go: backend/cmd/aurad/shared_constants_test.go (plus backend/pkg/aura/skills/shared_constants_test.go for the skill vocabularies, whose Go maps are unexported), client: frontend/src/client-data/SharedConstants.test.ts — so a drift goes red on whichever side moved. Contract only (names ↔ values); colors, styles and pixel scaling stay client-side. Not loaded by the game: tests read it from the repo, so it needs no cp-defs/embed entry.",
   "appliedEffectBits": {
     "dot": 1,
     "slow": 2,
@@ -101,5 +101,21 @@
   "campChargeCap": {
     "base": 1,
     "perLevels": 7
-  }
+  },
+  "_skillVocabularyComment": "UI pass C8 (plan-ui-pass.md §5 C8): the four content-keyed vocabularies the skill tooltip restates by hand in label tables and `case` clauses. Go: skills.effectTypeMap / selectorMap / GateKeys / validStats (unexported, so the pin test lives in pkg/aura/skills/shared_constants_test.go - the accounts-codes precedent). Client: SkillTooltip.ts effectBlock() cases + EFFECT_COLOR_KEYS + TICKING_TYPES (effectTypes), SELECTOR_LABELS (selectors; `all` is phrased by the targets line, not the table), GATE_KEY_LINES (gateKeys), STAT_LABELS (statNames). Exhaustive both directions on each side, so a new type/selector/key/stat fails vitest or go test until the tooltip has decided what to say about it. ⚑ The selector list omits the `\"\"` alias: it parses as nearest but is not a name (catalog.go reverseNames skips it). costChargeTrigger's key set above is separately pinned == TICKING_TYPES.",
+  "effectTypes": [
+    "damage_aura", "heal_aura", "stat_multiplier", "instant_damage", "slow_aura",
+    "self_heal", "resist_aura", "resist_passive", "dot_aura", "instant_dot",
+    "spawn", "taunt", "detaunt", "light_aura", "shield_aura", "instant_shield",
+    "recall", "hot_aura", "instant_hot", "revive", "dash", "tick_rate",
+    "calm", "charm", "speed_burst", "lifesteal_burst", "retaliate_slow",
+    "retaliate_damage", "retaliate_burst", "stun", "instant_resist",
+    "speed_aura", "spawn_at_anchor", "projectile"
+  ],
+  "selectors": ["nearest", "lowest_health", "all"],
+  "gateKeys": ["harvest", "smash"],
+  "statNames": [
+    "movementSpeed", "maxHealth", "damageReduction", "critChance",
+    "damageDealt", "costReduction"
+  ]
 }

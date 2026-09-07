@@ -784,10 +784,11 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
     const isBaseline = knownSpellbookIds === null;
     const known = new Set(knownSpellbookIds ?? []);
     let anyUnlock = false;
-    // The breadcrumb trail's input (UI pass C4b). ⚑ It rides the SAME diff as
-    // the `.unlocked` stamp below, deliberately: that diff is what makes the
-    // join/respawn baseline all-seen, and a second one computed anywhere else
-    // would lose that property the first time the two disagreed.
+    // The breadcrumb trail's input (UI pass C4b), and since 2026-09-06 the
+    // row glow's too - Spellbook plays it off the unseen set, so this diff is
+    // the ONE source of "new": it is what makes the join/respawn baseline
+    // all-seen, and a second one computed anywhere else would lose that
+    // property the first time the two disagreed.
     const newlyUnlocked: number[] = [];
 
     const entries = ids.map((id, i) => ({id, level: levels[i] ?? 1}));
@@ -871,14 +872,15 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
                 li.classList.add('selected');
             }
             if (!isBaseline && !known.has(id)) {
-                li.classList.add('unlocked');
                 anyUnlock = true;
                 newlyUnlocked.push(id);
                 // The discovery banner is now server-authored (it carries the
                 // unlock source — plan-unlock-attribution.md) and arrives on the
-                // EntityMessage/Unlock channel. Here we only mark the panel entry
-                // and drive the unlockPulse below; level changes and the
-                // join/respawn baseline still never pulse.
+                // EntityMessage/Unlock channel. Here we only record the
+                // discovery and drive the unlockPulse below; level changes and
+                // the join/respawn baseline still never pulse. ⚑ No `.unlocked`
+                // stamp on the row any more - a stamped one-shot replays on
+                // every display toggle; Spellbook.applyTrail PLAYS it instead.
             }
             spellbookListElement.appendChild(li);
         }
@@ -886,6 +888,22 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
 
     if (anyUnlock) {
         playCssAnimation(document.getElementById('spellbook'), 'unlockPulse');
+        // The same one-shot on the WAY IN while the book is shut (feedback
+        // 2026-09-02, ruled B): the panel's own flash is invisible by
+        // construction then, and the C4b trail alone read as "no VFX". Only
+        // on the entry points that are actually on screen - on the phone the
+        // desktop button is display:none and the sheet's row is hidden until
+        // the sheet opens; an animation on a hidden element fires no events,
+        // so the class would linger and the flash would fire whenever the
+        // element next became visible, at an unbounded delay.
+        if (!Spellbook.isOpen()) {
+            const menuButton = document.getElementById('mobileMenuButton');
+            for (const button of [...spellbookButtonElements, menuButton]) {
+                if (button && button.getClientRects().length > 0) {
+                    playCssAnimation(button, 'unlockPulse');
+                }
+            }
+        }
     }
 
     // Recording only - the refresh below is what puts the trail on screen.

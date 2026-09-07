@@ -303,6 +303,7 @@ describe('passive stat labels (round-7 item 10)', () => {
 describe('calm', () => {
     const calm = skill({
         displayName: 'Calm', category: 'cooldown', maxLevel: 3, cooldownTicks: 600,
+        description: 'Any damage breaks it — including your own aura',
         effects: [effect({
             type: 'calm', radius: 4, targetsEnemies: true,
             calm: {durationTicks: 300, durationTicksPerLevel: 60},
@@ -314,7 +315,11 @@ describe('calm', () => {
         // 300 ticks at 33 ms = 9.9 s, with the next-level preview the other
         // progression lines already use.
         expect(out).toContain('Calms enemies in range for 10s → 12s');
-        expect(out).toContain('Any damage breaks it — including your own aura');
+        // C8 D1: the break condition is authored prose now, so it leaves the
+        // generated lines and arrives as the description block instead.
+        expect(formatSkillTooltip(calm, 1, 1).description)
+            .toBe('Any damage breaks it — including your own aura');
+        expect(out).not.toContain('Any damage breaks it — including your own aura');
         expect(out.join('\n')).not.toContain('(calm)');
     });
 
@@ -336,6 +341,7 @@ describe('calm', () => {
 describe('charm', () => {
     const charm = skill({
         displayName: 'Charm Beast', category: 'cooldown', maxLevel: 3, cooldownTicks: 3600,
+        description: 'It keeps its own level, and turns on you when the charm ends',
         effects: [effect({
             type: 'charm', radius: 4, targetsEnemies: true, maxTargets: 1,
             charm: {durationTicks: 1800, durationTicksPerLevel: 300},
@@ -346,7 +352,10 @@ describe('charm', () => {
         const out = lines(charm, 1, 1);
         // 1800 ticks at 33 ms = 59.4 s, with the next-level preview.
         expect(out).toContain('Charms the nearest enemy to fight for you for 60s → 70s');
-        expect(out).toContain('It keeps its own level, and turns on you when the charm ends');
+        // C8 D1: the pet's level and its turn on the caster are authored prose.
+        expect(formatSkillTooltip(charm, 1, 1).description)
+            .toBe('It keeps its own level, and turns on you when the charm ends');
+        expect(out).not.toContain('It keeps its own level, and turns on you when the charm ends');
         expect(out.join('\n')).not.toContain('(charm)');
     });
 
@@ -468,6 +477,7 @@ describe('speed aura', () => {
 describe('lifesteal burst', () => {
     const bloodthirst = skill({
         displayName: 'Bloodthirst', category: 'cooldown', maxLevel: 5, cooldownTicks: 900,
+        description: 'Works with whichever aura you have on',
         effects: [effect({
             type: 'lifesteal_burst',
             lifesteal: {fraction: 0.3, fractionPerLevel: 0.05, durationTicks: 180, durationTicksPerLevel: 0},
@@ -479,7 +489,10 @@ describe('lifesteal burst', () => {
         // one figure while the leech shows two.
         const out = lines(bloodthirst, 1, 1);
         expect(out).toContain('Heals you for 30% → 35% of the damage you deal, for 6s');
-        expect(out).toContain('Works with whichever aura you have on');
+        // C8 D1: "rides any aura" is authored prose now.
+        expect(formatSkillTooltip(bloodthirst, 1, 1).description)
+            .toBe('Works with whichever aura you have on');
+        expect(out).not.toContain('Works with whichever aura you have on');
         expect(out.join('\n')).not.toContain('(lifesteal_burst)');
     });
 
@@ -501,6 +514,7 @@ describe('lifesteal burst', () => {
 describe('stun', () => {
     const paralyze = skill({
         displayName: 'Paralyze', category: 'cooldown', maxLevel: 5, cooldownTicks: 900,
+        description: 'Damage does not break it',
         effects: [effect({
             type: 'stun',
             stun: {durationTicks: 90, durationTicksPerLevel: 6},
@@ -511,7 +525,10 @@ describe('stun', () => {
         // 90 ticks at 33 ms = 2.97 s; 96 at rank 2.
         const out = lines(paralyze, 1, 1);
         expect(out).toContain('Holds one enemy for 3s → 3.2s — it cannot move, attack or use abilities');
-        expect(out).toContain('Damage does not break it');
+        // ⚑ C8 D1 split this case: the duration line is number-bearing and
+        // stays generated, only the unbreakable-by-damage sentence moved.
+        expect(formatSkillTooltip(paralyze, 1, 1).description).toBe('Damage does not break it');
+        expect(out).not.toContain('Damage does not break it');
         expect(out.join('\n')).not.toContain('(stun)');
     });
 
@@ -527,6 +544,7 @@ describe('stun', () => {
 describe('retaliate slow', () => {
     const frostShield = skill({
         displayName: 'Frost Shield', category: 'passive', maxLevel: 5,
+        description: 'Being hit is enough — it fires even when the hit is fully absorbed',
         effects: [effect({
             type: 'retaliate_slow',
             retaliate: {fraction: 0.1, fractionPerLevel: 0.05, durationTicks: 150, durationTicksPerLevel: 0},
@@ -538,7 +556,10 @@ describe('retaliate slow', () => {
         // one figure while the fraction previews the next rank.
         const out = lines(frostShield, 1, 1);
         expect(out).toContain('Slows anything that damages you by 10% → 15% for 5s');
-        expect(out).toContain('Being hit is enough — it fires even when the hit is fully absorbed');
+        // C8 D1: the trigger sentence is authored prose on both retaliate twins.
+        expect(formatSkillTooltip(frostShield, 1, 1).description)
+            .toBe('Being hit is enough — it fires even when the hit is fully absorbed');
+        expect(out).not.toContain('Being hit is enough — it fires even when the hit is fully absorbed');
         expect(out.join('\n')).not.toContain('(retaliate_slow)');
     });
 
@@ -560,6 +581,7 @@ describe('retaliate slow', () => {
 describe('retaliate damage', () => {
     const fireShield = skill({
         displayName: 'Fire Shield', category: 'passive', maxLevel: 5,
+        description: 'Being hit is enough — it fires even when the hit is fully absorbed',
         effects: [effect({
             type: 'retaliate_damage',
             retaliateDamage: {hp: 3, hpPerLevel: 1, tags: ['fire']},
@@ -570,7 +592,9 @@ describe('retaliate damage', () => {
         const out = lines(fireShield, 1, 1);
         expect(out).toContain('Reflects 3 → 4 damage onto anything that damages you');
         expect(out).toContain('Damage type: fire');
-        expect(out).toContain('Being hit is enough — it fires even when the hit is fully absorbed');
+        expect(formatSkillTooltip(fireShield, 1, 1).description)
+            .toBe('Being hit is enough — it fires even when the hit is fully absorbed');
+        expect(out).not.toContain('Being hit is enough — it fires even when the hit is fully absorbed');
         expect(out.join('\n')).not.toContain('(retaliate_damage)');
     });
 
@@ -586,8 +610,7 @@ describe('retaliate damage', () => {
             displayName: 'Thorns', category: 'passive', maxLevel: 3,
             effects: [effect({type: 'retaliate_damage', retaliateDamage: {hp: 2, hpPerLevel: 0, tags: ['physical']}})],
         });
-        expect(lines(plain, 1, 1)).toEqual(['Reflects 2 damage onto anything that damages you',
-            'Being hit is enough — it fires even when the hit is fully absorbed']);
+        expect(lines(plain, 1, 1)).toEqual(['Reflects 2 damage onto anything that damages you']);
     });
 
     // ⚑ The reflect is RAW AUTHORED DAMAGE server-side: it leaves through
@@ -608,6 +631,7 @@ describe('retaliate burst', () => {
     const retribution = skill({
         displayName: 'Retribution', category: 'cooldown', maxLevel: 5,
         cooldownTicks: 900, cooldownTicksPerLevel: -60,
+        description: 'The share is of the hit as thrown, before your own mitigation',
         effects: [effect({
             type: 'retaliate_burst',
             retaliateBurst: {fraction: 0.2, fractionPerLevel: 0.05, durationTicks: 300, durationTicksPerLevel: 0, tags: ['fire']},
@@ -620,7 +644,10 @@ describe('retaliate burst', () => {
         const out = lines(retribution, 1, 1);
         expect(out).toContain('For 10s, reflects 20% → 25% of damage taken');
         expect(out).toContain('Damage type: fire');
-        expect(out).toContain('The share is of the hit as thrown, before your own mitigation');
+        // C8 D1: which damage the share is taken from is authored prose.
+        expect(formatSkillTooltip(retribution, 1, 1).description)
+            .toBe('The share is of the hit as thrown, before your own mitigation');
+        expect(out).not.toContain('The share is of the hit as thrown, before your own mitigation');
         expect(out.join('\n')).not.toContain('(retaliate_burst)');
     });
 
@@ -1404,5 +1431,36 @@ describe('the D7 cost trigger (plan-effect-types C3, PO follow-up)', () => {
     it('leaves an ordinary ward on the reach-someone-new line', () => {
         const ward = skill({displayName: 'Ward', maxLevel: 3, effects: [resistEffect({buffLifetimeMatchesInterval: false})]});
         expect(lines(ward, 1, 1, 100)).toContain('Costs you: 8 Focus when it reaches someone new');
+    });
+});
+
+// The served per-skill description (UI pass C8, D1/D2): the standalone ruling
+// prose the effect switch used to hardcode per TYPE now rides the skill's own
+// authored content, so it travels as its own field rather than as a tooltip
+// line. D2 puts it under the subtitle, above the numbers, which is why it is
+// NOT in `lines` at all.
+describe('served description (C8 D1)', () => {
+    const described = skill({
+        displayName: 'Calm', category: 'cooldown', maxLevel: 3, cooldownTicks: 600,
+        description: 'Any damage breaks it — including your own aura',
+        effects: [effect({
+            type: 'calm', radius: 4, targetsEnemies: true,
+            calm: {durationTicks: 300, durationTicksPerLevel: 60},
+        })],
+    });
+
+    it('passes the authored prose through, outside the effect lines', () => {
+        const content = formatSkillTooltip(described, 1, 1);
+        expect(content.description).toBe('Any damage breaks it — including your own aura');
+        expect(content.lines.map(line => line.text))
+            .not.toContain('Any damage breaks it — including your own aura');
+    });
+
+    it('leaves it undefined on a skill that authors none', () => {
+        const bare = skill({
+            displayName: 'Plain', maxLevel: 1,
+            effects: [effect({type: 'light_aura', radius: 3})],
+        });
+        expect(formatSkillTooltip(bare, 1, 1).description).toBeUndefined();
     });
 });
