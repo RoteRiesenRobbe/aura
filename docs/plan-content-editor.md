@@ -11,9 +11,11 @@
 > the living SCOPE record; this doc holds the rulings and the ledgers.
 >
 > ⚑ **Schema impact: NONE**, both parts. Dev-side tooling writing the same
-> files the loaders already read. `plan-content-tooling.md` keeps the
-> pipeline chunks (validate CLI, registry lock, dev endpoint, drag-to-move);
-> its C3 text form is superseded by Part A.
+> files the loaders already read. ⭐ **This is the ONLY content-tooling plan
+> (PO 2026-09-08)**: `archive/plan-content-tooling.md` is superseded, and its
+> two survivors live here - real Go validation on save (Part B D9 / C2) and
+> the D5 registry lock (Part B C5). Its load-time reconciliation policy is
+> `backlog.md` §61.
 
 ## Part A - dialogue trees, quest graphs, and the tabs that followed
 
@@ -222,8 +224,9 @@ new-content scaffolding shipped as the "+ New" flows in `6c2e6d5c`; the
 > names, effect types, the companion a summon spawns (picked from the
 > existing mob list), and its visuals, and that exports ONE thing into a
 > folder, ideally automatically. Eight rulings (D1-D8) taken the same session
-> as choice prompts, two rounds. Folded into this doc rather than given its
-> own (PO 2026-09-08): it is the same tool's next chunk set.
+> as choice prompts, two rounds, plus D9-D10 in a third. Folded into this doc
+> rather than given its own (PO 2026-09-08): it is the same tool's next chunk
+> set.
 >
 > ⭐ **The headline finding: the PO's example spell is authorable today as one
 > JSON file, and most of the tool already exists.** *"An aura with range X that
@@ -238,7 +241,7 @@ new-content scaffolding shipped as the "+ New" flows in `6c2e6d5c`; the
 > none, content none (the tab writes the SAME file shape the loader reads
 > today). The only Go change is a test-pinned vocabulary fixture (§B4.2).
 >
-> ⚑ **This re-rules `plan-content-tooling.md` D7** (2026-08-09: *authoring is
+> ⚑ **This re-rules `archive/plan-content-tooling.md` D7** (2026-08-09: *authoring is
 > AI-side, the human editor is for spot edits and tuning*). PO 2026-09-08:
 > *"the plan was for initial content, now that we have a somewhat
 > sophisticated content editor we move there."* D7 narrows to bulk world
@@ -316,9 +319,10 @@ content editor. It does not add a system. It cannot add an effect type (§B7).
   edits them.
 - **Skill ids are persisted** (`game.character_spellbook.skill_id INTEGER`,
   migration 000001: *"pinned-and-never-reused by the same discipline as mob
-  EntityType ids"*). `plan-content-tooling.md` D5 ratified: skill ids forever,
-  `maxLevel` never decreases. Its enforcement (the registry lock, C0 there)
-  is **unbuilt**.
+  EntityType ids"*). `archive/plan-content-tooling.md` D5 ratified: skill ids
+  forever, `maxLevel` never decreases, load-time reconciliation gets a tested
+  policy. Enforcement is **unbuilt**; the lock is **C5 here**, the policy is
+  `backlog.md` §61.
 
 ### B3. ⚑ The constraint everything follows from
 
@@ -351,7 +355,7 @@ ordinary form work.
   ⚑ That takes **`hitStyle`** out with it (the schema's one visual lever,
   auto/slash/fire/none, chosen server-side and sent as a byte): not rendered,
   preserved on round trip. The shipped-vs-open audit is §4.8.
-- **D4 - `plan-content-tooling.md` D7 re-ruled** (banner above): humans
+- **D4 - `archive/plan-content-tooling.md` D7 re-ruled** (banner above): humans
   author skills in the tool.
 - **D5 - Numbers: plain fields + a per-level preview table.** Base and
   per-level typed as authored; the form resolves every scaling pair at levels
@@ -370,6 +374,19 @@ ordinary form work.
 - **D8 - Test loop: the tab shows a ready-made game link** with
   `start-cmds=GOD,SKILL <name>` and the restart reminder. Zero coupling to
   this machine's scripts.
+- **D9 - Validation: the REAL Go loaders on save, cheap JS checks live**
+  (2026-09-08, third prompt round). No JS port of the ~70 skill rules.
+  `aurad -validate -content <dir>` (C2) loads every content source, prints
+  every finding, exits non-zero, touches no DB; the editor hands it a
+  candidate save (§B4.9). As-you-type feedback keeps only what the fixture
+  makes free: required fields, vocabulary membership, numbers that parse.
+  ⚑ This is the §B3 constraint applied to RULES, not just field lists: the
+  loader is the single validator, and the editor asks it.
+- **D10 - `plan-content-tooling.md` is ARCHIVED, superseded** (2026-09-08).
+  This doc is the only content-tooling plan. Its survivors: the `-validate`
+  mode (D9 / C2) and the D5 registry lock (C5); its reconciliation policy
+  went to `backlog.md` §61. Placement is Tiled's and is not this doc's
+  concern.
 
 #### B4.2 ⭐ The vocabulary fixture - the form is generated from Go's table
 
@@ -544,9 +561,30 @@ Everything else - the remaining 33 types, cast time, cooldown, target factions,
 crit / execute / berserker, gate keys, structure damage, stun, calm, charm,
 retaliate, revive, dash, tick rate, speed - is shipped and archived, and in.
 
+#### B4.9 Validation on save (D9)
+
+- **`aurad -validate -content <dir>`**: the seam already exists - `cmd/aurad/loaders.go`
+  `diskContent(dir)` builds every registry from a directory and is what
+  `-content ../api` uses. The flag runs that plus every cross-validation
+  (`quests.CrossValidate`, the mob/skill/recipe/milestone loaders, zone
+  validation), collects ALL findings instead of stopping at the first, prints
+  one per line, exits 1 on any, and returns **before** the store is opened,
+  so it needs neither `AURA_DB_URL` nor `AURA_JWT_KEY`. ⚑ "All findings" is
+  the one real change: today each loader returns its first error.
+- **The editor's side** (`server.mjs`): on `/api/save/skill`, copy the
+  content tree to a temp directory (215 small files, milliseconds), write the
+  candidate over its file there, run `backend/aurad -validate -content <tmp>`,
+  and refuse the save with the findings verbatim if it exits non-zero. Only
+  then write the real file. The binary path is configurable; a missing binary
+  is a clear error ("build aurad first"), never a silent pass.
+- **Live in the browser**: the fixture-derived checks only (§B4.2). They
+  exist so the form can grey out and hint, not to be a second validator.
+- ⚑ The other tabs keep their JS ports for now (§B11 Q7). D9 is ruled for
+  the Skills tab; extending it is a separate call once the seam exists.
+
 ### B5. Chunks
 
-Four, each its own session; C0 is the one with Go in it.
+Six, each its own session; C0, C2 and C5 carry Go.
 
 - **C0 - the vocabulary fixture.** `api/skill-vocabulary.json` + the golden
   test with `UPDATE_SKILL_VOCABULARY=1` (§B4.2). Red-first: write the test
@@ -560,24 +598,36 @@ Four, each its own session; C0 is the one with Go in it.
 - **C1 - the tab, read-only.** Sidebar groups, the form rendered from the
   fixture, the presentation table + its completeness assert, the per-level
   preview, seconds beside ticks, the Visuals placeholder, the sources panel,
-  the exclusions of §4.8. No Save button. ⭐ **Why read-only first: the PO
+  the exclusions of §B4.8. No Save button. ⭐ **Why read-only first: the PO
   judges the form against all 72 real skills before a single write path
-  exists**, and the byte-stability measurement (§B8) happens here with no
-  edits in play.
-- **C2 - editing and saving.** `validateSkill` in `validate.mjs` (the port of
-  §B2's rule list, table-driven from the fixture wherever the rule is
-  "vocabulary membership"), `/api/save/skill` through `saveOne`, in-place
-  edits of the raw object (never rebuilt - `_comment` on effects survives),
-  the confirm on a type change that drops keys, the rename guard (§B10 L5),
-  the `maxLevel`-lowering warning (§B10 L4).
-- **C3 - the new-skill flow and the bookkeeping.** "+ New skill" (§B4.5), the
+  exists.**
+- **C2 - `aurad -validate` and the editor's save seam** (D9, §B4.9). Go:
+  the flag, all-findings collection, the no-DB exit, a test that runs it over
+  the real `api/` (exit 0) and over a fixture tree with one broken skill
+  (exit 1, the finding named). Editor: the temp-copy-and-run path in
+  `server.mjs`, exercised by `smoke.mjs` against the real tree.
+- **C3 - editing and saving.** In-place edits of the raw object (never
+  rebuilt - `_comment` on effects survives), the live fixture checks, the
+  confirm on a type change that drops keys, `/api/save/skill` through
+  `saveOne` gated by C2, the rename guard (§B10 L5), the `maxLevel`-lowering
+  warning (§B10 L4). No `validateSkill` port.
+- **C4 - the new-skill flow and the bookkeeping.** "+ New skill" (§B4.5), the
   icon picker (§B4.4), the `spawnMob` picker with jump links, the post-save
   checklist + test link (§B4.7), the test-rig badge. Docs: the editor README's
   scope section, `manual-content-authoring.md` "Known hand-sync points"
   (the fixture REPLACES the hand-sync for skills - say so), the add-content
-  skill's landmine list (the fixture-regen step), `docs/README.md`. (The
-  `plan-content-tooling.md` banner pointer and its C3 strike were done at
-  planning time, 2026-09-08.)
+  skill's landmine list (the fixture-regen step), `docs/README.md`.
+- **C5 - the registry lock** (D5 rules 1 and 2, carried from the archived
+  plan). A checked-in `api/registry-lock.json`: for every skill `id → {name,
+  maxLevelFloor}`, retired entries moved to a `tombstones` list instead of
+  deleted. Enforced at **boot AND in `-validate`** (there is no CI to run the
+  latter, so boot is the loud path): an id reused from the tombstones, an id
+  collision, a live `maxLevel` below its floor, a lock out of sync with the
+  content. Updated only via `-validate -update-lock`, so drift is reviewed.
+  The editor then takes auto-id from the lock (max over live AND tombstoned
+  ids + 1), which closes §B10 L3, and its lowering warning becomes the
+  loader's refusal (L4). ⚑ Schema NONE: the lock is a content-side file,
+  never read by the game loop.
 
 ### B6. Schema impact
 
@@ -605,12 +655,14 @@ repo, so it needs no cp-defs/embed entry"*).
 
 - **Go**: the golden fixture test (C0), red-first. Existing `registry_test.go`
   / `definition_test.go` untouched.
+- **Go, C2**: `-validate` over the real `api/` exits 0; over a fixture tree
+  with one broken skill exits 1 naming it; the all-findings collector proven
+  by a tree with TWO broken files reporting both.
 - **Editor**: `smoke.mjs` (C0) run by hand before any chunk is declared done
   and cited in each ledger - (a) every real skill file's keys ⊆ fixture,
-  (b) after C2: `validateSkill` reports **zero errors on every real file**
-  (zero false positives, the README's discipline) and (c) one negative fixture
-  per ported rule (the rule list in §B2), so a port that stops firing is
-  visible.
+  (b) after C2: the save seam run against the real tree passes, and against
+  the C2 broken fixture is refused with the finding shown. No JS rule port
+  means no false-positive sweep is needed for skills (D9).
 - **Byte stability** (the Tiled D6 lesson) - **measured 2026-09-08, not
   deferred**: `prettyJson` reproduces only **20 of the 105 skill files**
   byte-for-byte; the other 85 reformat (hand-wrapped `effects[]` entries and
@@ -634,6 +686,11 @@ repo, so it needs no cp-defs/embed entry"*).
    (§B11 Q1).
 5. A rename with live references is REFUSED, not cascaded (§B10 L5, §B11 Q2).
 6. `ThrowBomb` / `ThrowMine` open read-only rather than being hidden (§B4.8).
+7. The temp-copy mechanism for validating a candidate save (§B4.9), and the
+   configurable binary path.
+8. The lock file's shape and its boot-time enforcement (C5), carried from the
+   archived plan's §8 proposal with one change: boot enforces it too, because
+   there is no CI to run `-validate`.
 
 ### B10. ⚑ Landmines
 
@@ -646,15 +703,15 @@ repo, so it needs no cp-defs/embed entry"*).
   types, `ttlTicks`, `dotTicks`, …): an empty input must DELETE the key, not
   write 0.
 - **L3 - auto-id reuses the last deleted id.** max + 1 over the current files
-  re-mints an id if the deleted skill held the maximum. D5's registry lock
-  with tombstones (`plan-content-tooling.md` C0, unbuilt) is the real fix; the
-  tab ships without it and the form says so beside the id. Deleting a skill
-  is NOT a tab feature (persisted spellbook rows would orphan).
+  re-mints an id if the deleted skill held the maximum. The registry lock
+  with tombstones (**C5**) is the real fix; until it lands the form says so
+  beside the id. Deleting a skill is NOT a tab feature (persisted spellbook
+  rows would orphan).
 - **L4 - lowering `maxLevel` on an existing skill.** Persisted
   `skill_level` may exceed the new cap (D5 rule 2: never decreases; the
-  reconciliation clamp is also unbuilt). The form warns and requires a
-  confirm; it does not refuse, because the PO may be fixing an authoring
-  mistake on a skill nobody has.
+  reconciliation clamp is `backlog.md` §61, unbuilt). Until C5 the form warns
+  and requires a confirm; after C5 the loader refuses a floor breach and the
+  form shows that refusal.
 - **L5 - `name` is the reference key everywhere.** Mob `skills[]` and
   `unlocks[]`, milestone `skillName`, NPC `teach_skill.skill`, recipe
   `result` / `ingredients[]`, the `SKILL` cheat, the harness scripts, the
@@ -703,9 +760,13 @@ repo, so it needs no cp-defs/embed entry"*).
    §35 class - but a client test reading `api/` is the C4 twin-pin pattern
    already, so probably yes, as a C0 rider.
 
-6. **One reformat commit of `api/skills/` before C2, or a writer that mimics
+6. **One reformat commit of `api/skills/` before C3, or a writer that mimics
    hand formatting?** §B8 measured 85 of 105 files reformat. The commit is one
    diff with a parse-equality proof; the mimic is ongoing writer complexity.
+7. **Do the existing tabs move to Go validation on save too** (D9 for mobs,
+   quests, factions, recipes, milestones), retiring `validate.mjs`'s 637-line
+   port? Once C2's seam exists it is mostly deletion, but the live
+   as-you-type errors those tabs have today would thin out. Separate call.
 
 ### B12. Chunk ledgers
 

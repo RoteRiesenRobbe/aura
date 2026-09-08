@@ -1400,7 +1400,7 @@ maxing Spearhead then unlocks it).
 
 ## 22. Standalone browser map editor (bypass the in-game zone editor) — ⛔ CLOSED 2026-08-09, SUPERSEDED
 
-**⛔ SUPERSEDED 2026-08-09 — `plan-content-tooling.md` D7/D9.** The frame
+**⛔ SUPERSEDED 2026-08-09 — `archive/plan-content-tooling.md` D7/D9.** The frame
 changed: bulk placement and overview work went **AI-side** (the world
 re-placement pass placed all 423 combat spawns via `scripts/world-place.py` /
 `world-regions.py` and never touched an editor), and the human editor exists
@@ -5907,3 +5907,24 @@ but a content SYSTEM, in two halves:
 Natural successor context since 2026-08-22: the first release map
 (`docs/plan-release-map.md`) is quested throughout - its planning session (§7)
 should decide whether this system lands there or after it.
+
+---
+
+## 61. Persisted-spellbook reconciliation at character load (D5 rule 3)
+
+**Moved here 2026-09-08 from `archive/plan-content-tooling.md` C0 when that
+plan was superseded** (the rest of it went to `plan-content-editor.md` Part B).
+The ruling stands (D5, 2026-08-05): content-vs-persisted-data gets an
+explicit, tested policy. Nothing enforces one today.
+
+- **Unknown persisted skill id** (the content was retired or the file is
+  missing): preserved but inert - tombstone-preserve, so restoring the
+  content restores the skill. Never silently dropped from the spellbook row.
+- **Persisted level above the skill's `maxLevel`**: clamp. The refund path
+  waits until a currency exists to refund into.
+- A small Go change at character load (`persist` / `SkillComponent`
+  hydration) with table-driven tests. ⚑ Touches persisted state on READ only;
+  expected **DB NONE** (no column, no migration) - verify at design time.
+- Trigger: the first time content is actually retired, or `plan-content-editor.md`
+  Part B **C5** (the registry lock) lands, whichever comes first - the lock
+  makes tombstones real, and this is what the game does when it meets one.
