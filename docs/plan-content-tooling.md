@@ -1,7 +1,12 @@
 # Plan: Content tooling — editors, validation, and the authoring pipeline
 
 > **Status: DESIGNED 2026-08-05 (D1–D6) — RE-SCOPED 2026-08-09 (D7–D10), no
-> chunk built.** Planning session opened by the PO question *"do we have a
+> chunk built.** ⚑ **D7 narrowed 2026-09-08 for SKILLS** (`plan-content-editor.md` Part B:
+> PO ruled that humans author skills in the content editor; bulk world
+> placement stays AI-side). ⛔ **C3 SUPERSEDED 2026-09-08**: the shipped content
+> editor (`plan-content-editor.md` Part A) edits full dialogue trees and quest
+> graphs, structure included, so D10's text-only form has no consumer. This
+> doc keeps the PIPELINE chunks C0-C2; editors are owned by `plan-content-editor.md`. Planning session opened by the PO question *"do we have a
 > plan to move all current content in an editor?"* — the answer was "two
 > thirds exists, no unified plan," and this document is that plan. Six rulings
 > D1–D6 taken the same day as choice prompts (two rounds).
@@ -230,7 +235,7 @@ in-game editor modes** — select a placed entity, drag, all other fields
   (e.g. the designed mob tether) lands in the in-game editor as part of its
   own plan, not here.
 
-### 4.5 C3 — the quest & dialogue TEXT form (D10)
+### 4.5 ~~C3 — the quest & dialogue TEXT form (D10)~~ - ⛔ SUPERSEDED 2026-09-08 by the shipped content editor (`plan-content-editor.md` Part A)
 
 A dev-only page (same dev-build entry pattern as the zone editor) that edits
 **prose and reward numbers, never structure**:
@@ -277,7 +282,7 @@ every chunk now qualifies as a filler session.
 | **C0** | `-validate` CLI (no DB), CI gate on `api/` changes, registry lock + tombstones, reconciliation policy + tests | small (≤1 session) |
 | **C1** *(was C2)* | Dev save + validate endpoints (dev-only, pin-tested), zone editor retrofitted, manual §7 updated | small–medium |
 | **C2** *(new)* | In-game editor drag-to-move, fields carried unchanged | small |
-| **C3** *(was C4, shrunk by D10)* | Quest & dialogue text form: prose + reward numbers, live validation, single-file save | small–medium |
+| ~~**C3**~~ | ⛔ SUPERSEDED 2026-09-08: `tools/content-editor/` edits dialogue trees and quest graphs in full (`plan-content-editor.md` Part A) | - |
 
 ⛔ Cut 2026-08-09: JSON Schemas (D8) · standalone map editor first cut +
 round 2 (D9 — drag-to-move moved into C2, everything else went AI-side).
