@@ -73,8 +73,13 @@ skillId():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
+travel():number {
+  const offset = this.bb!.__offset(this.bb_pos, 22);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+}
+
 static startConversationOption(builder:flatbuffers.Builder) {
-  builder.startObject(9);
+  builder.startObject(10);
 }
 
 static addOptionIndex(builder:flatbuffers.Builder, optionIndex:number) {
@@ -113,12 +118,16 @@ static addSkillId(builder:flatbuffers.Builder, skillId:number) {
   builder.addFieldInt16(8, skillId, 0);
 }
 
+static addTravel(builder:flatbuffers.Builder, travel:number) {
+  builder.addFieldInt8(9, travel, 0);
+}
+
 static endConversationOption(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createConversationOption(builder:flatbuffers.Builder, optionIndex:number, grantIndex:number, textOffset:flatbuffers.Offset, nextOffset:flatbuffers.Offset, locked:boolean, requiredLevel:number, replyOffset:flatbuffers.Offset, confirmSeconds:number, skillId:number):flatbuffers.Offset {
+static createConversationOption(builder:flatbuffers.Builder, optionIndex:number, grantIndex:number, textOffset:flatbuffers.Offset, nextOffset:flatbuffers.Offset, locked:boolean, requiredLevel:number, replyOffset:flatbuffers.Offset, confirmSeconds:number, skillId:number, travel:number):flatbuffers.Offset {
   ConversationOption.startConversationOption(builder);
   ConversationOption.addOptionIndex(builder, optionIndex);
   ConversationOption.addGrantIndex(builder, grantIndex);
@@ -129,6 +138,7 @@ static createConversationOption(builder:flatbuffers.Builder, optionIndex:number,
   ConversationOption.addReply(builder, replyOffset);
   ConversationOption.addConfirmSeconds(builder, confirmSeconds);
   ConversationOption.addSkillId(builder, skillId);
+  ConversationOption.addTravel(builder, travel);
   return ConversationOption.endConversationOption(builder);
 }
 }

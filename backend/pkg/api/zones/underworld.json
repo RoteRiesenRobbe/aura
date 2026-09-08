@@ -1,0 +1,178 @@
+{
+  "name": "Underworld",
+  "bounds": {
+    "width": 48,
+    "height": 28
+  },
+  "origin": {
+    "x": 0,
+    "y": 300
+  },
+  "terrain": [],
+  "props": [],
+  "spawns": [
+    {
+      "mob": "CaveExit",
+      "x": -18,
+      "y": -3,
+      "angle": 0,
+      "anchor": "surface-west"
+    },
+    {
+      "mob": "CaveExit",
+      "x": 18,
+      "y": -3,
+      "angle": 0,
+      "anchor": "surface-east"
+    },
+    {
+      "mob": "DireWolf",
+      "x": -14.47,
+      "y": 8.93,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 14
+    },
+    {
+      "mob": "DireWolf",
+      "x": -10.2,
+      "y": 8.67,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 14
+    },
+    {
+      "mob": "DireWolf",
+      "x": -3.53,
+      "y": 10.07,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 14
+    },
+    {
+      "mob": "DireWolf",
+      "x": 4.47,
+      "y": 9.47,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 14
+    },
+    {
+      "mob": "DireWolf",
+      "x": 13.87,
+      "y": 6,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 14
+    },
+    {
+      "mob": "DireWolf",
+      "x": 14.07,
+      "y": -9.67,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 14
+    },
+    {
+      "mob": "DireWolf",
+      "x": -12.2,
+      "y": -11.8,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 14
+    },
+    {
+      "mob": "DireWolf",
+      "x": -21,
+      "y": -9,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 14
+    },
+    {
+      "mob": "DireWolf",
+      "x": -20.4,
+      "y": 4.57,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 14
+    },
+    {
+      "mob": "DireWolf",
+      "x": 19.74,
+      "y": 3.82,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 14
+    }
+  ],
+  "campfires": [
+    {
+      "id": "underworld-1",
+      "x": 0,
+      "y": 8
+    }
+  ],
+  "darkAreas": [
+    {
+      "x": 0,
+      "y": -1,
+      "radius": 10
+    }
+  ],
+  "regions": [
+    {
+      "profile": "Mountains",
+      "points": [
+        {
+          "x": -24,
+          "y": -14
+        },
+        {
+          "x": 24,
+          "y": -14
+        },
+        {
+          "x": 24,
+          "y": 14
+        },
+        {
+          "x": -24,
+          "y": 14
+        }
+      ]
+    }
+  ],
+  "anchors": [
+    {
+      "name": "under-west",
+      "x": -17.93,
+      "y": -1.27
+    },
+    {
+      "name": "under-east",
+      "x": 17.94,
+      "y": -1.29
+    }
+  ]
+}

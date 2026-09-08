@@ -20,6 +20,30 @@ package model
 // over nothing" needs no separate flag.
 const ConversationNoGrant uint8 = 255
 
+// TravelDirection tells the client that taking a row will MOVE the player, and
+// which way, so it can start the transition on the press rather than on the
+// arrival (plan-underworld.md D7). Wire values are permanent, the EntityType
+// contract; 0 is the inert default, so a row that does not travel needs no flag.
+type TravelDirection uint8
+
+const (
+	// TravelNone is every row that does not teleport, which is nearly all of them.
+	TravelNone TravelDirection = 0
+	// TravelDescend lands in a zone placed BELOW this one.
+	TravelDescend TravelDirection = 1
+	// TravelAscend lands in a zone placed ABOVE this one.
+	TravelAscend TravelDirection = 2
+	// TravelLateral is a hop that changes place without changing depth: a
+	// same-zone portal, and every mode whose destination is not fixed geometry.
+	//
+	// ⚑ It is the honest answer for a STALE direction, not a fallback for an
+	// unknown one. home_campfire and caster resolve their destination at
+	// step-through time by design (plan-portal-spells.md D5), so a direction
+	// computed when the tree was built could be wrong by the time the row is
+	// taken — and a confidently wrong descent reads worse than a plain crossfade.
+	TravelLateral TravelDirection = 3
+)
+
 // Conversation is one actor's tree as it looks to one player right now.
 // Recomputed every tick while the panel is open, so a row flips to known the
 // tick after the grant lands.
@@ -89,4 +113,13 @@ type ConversationOption struct {
 	// (D18). ⚑ It is NOT the grant: GrantIndex still says what a click hands
 	// over, and a row may legitimately name a skill it does not give.
 	SkillID uint16
+	// Travel says whether taking this row moves the player, and which way, so
+	// the client can start covering the cut on the PRESS (D7). Derived from the
+	// grant, never authored — see TravelDirection.
+	//
+	// ⚑ Set on a LOCKED travel row too, deliberately: the row is inert, but the
+	// byte describes what the row IS, not what a click will do, and a locked
+	// door is still a door. The client never starts a transition from a locked
+	// row because it gives locked rows no handler at all.
+	Travel TravelDirection
 }

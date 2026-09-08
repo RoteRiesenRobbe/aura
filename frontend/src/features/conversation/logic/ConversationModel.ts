@@ -51,6 +51,35 @@ export interface ConversationRow {
      * hands over.
      */
     skillId: number;
+    /**
+     * Whether taking this row will MOVE the player, and which way
+     * (plan-underworld.md D7). Derived server-side; nothing authors it.
+     *
+     * ⭐ IT EXISTS SO THE TRANSITION CAN START ON THE PRESS. `grantIndex` is an
+     * opaque index into an authored definition the client never sees, so
+     * without this the client learns it has travelled only when the new place
+     * arrives — one frame too late to cover the cut.
+     *
+     * ⚑ Not a boolean, because at press time the client does not know the
+     * destination either and so cannot work out up-vs-down for itself.
+     */
+    travel: TravelDirection;
+}
+
+/**
+ * Which way a row moves the player. Wire values are permanent.
+ *
+ * ⚑ `Lateral` is the honest answer for a destination that may still move, not a
+ * fallback for an unknown one: campfire recall and the portal pair resolve
+ * where they land at step-through time, so a direction derived when the tree
+ * was built could be stale (plan-underworld.md L15). A confidently wrong
+ * descent reads worse than a plain crossfade.
+ */
+export enum TravelDirection {
+    None = 0,
+    Descend = 1,
+    Ascend = 2,
+    Lateral = 3,
 }
 
 export interface ConversationNode {

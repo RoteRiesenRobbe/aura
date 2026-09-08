@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
@@ -167,6 +168,17 @@ type InteractionSystem struct {
 	// with the same posture as everything else here - every anchor row renders
 	// LOCKED, which is what a door with no destination should look like.
 	zoneAnchors map[string]phy.Vec2f
+
+	// zonePlacements is every loaded zone's rectangle, and it is here for ONE
+	// question: which zone a world position falls in (plan-underworld.md U4b).
+	// That is what turns a resolved destination into a DIRECTION — the door's
+	// zone and the anchor's zone, compared.
+	//
+	// ⚑ NOT a second copy of the geometry: it is `GameConfig.Walls`, the same
+	// slice the border walls were built from, handed over at boot. Nil means
+	// every travel row reports lateral, which is exactly what a single-zone
+	// world should say.
+	zonePlacements []cfg.PlacedBounds
 }
 
 // rowSourceMux dispatches a node's declared row source to whichever provider
@@ -270,6 +282,13 @@ func (s *InteractionSystem) SetZoneAnchors(a map[string]phy.Vec2f) {
 	s.zoneAnchors = a
 }
 
+// SetZonePlacements wires the loaded zones' rectangles, which is how a travel
+// row works out whether it goes DOWN, UP or sideways (U4b). Boot data, set once
+// from core/game.go beside SetZoneAnchors.
+func (s *InteractionSystem) SetZonePlacements(z []cfg.PlacedBounds) {
+	s.zonePlacements = z
+}
+
 // travelSeam is everything a travel_to row may touch: whether it has a
 // destination at all, and the move itself (plan-portal-spells.md D3/D5).
 //
@@ -293,6 +312,12 @@ type travelSeam interface {
 	// refusal is the same silent, ordinary refusal every stale click gets - and
 	// it covers the real race: the owner may drop between the panel and the press.
 	Travel(mode mobs.TravelMode, anchor string) bool
+	// Direction reports which way a row moves the player, so the client can
+	// start covering the cut on the press rather than on the arrival (D7).
+	//
+	// ⚑ A READ, like CanReach, and asked from the same present() pass — the row
+	// is BUILT carrying its direction, so the client never has to ask.
+	Direction(mode mobs.TravelMode, anchor string) model.TravelDirection
 }
 
 // portalTravel is the shipped seam: one conversation's destination and its
@@ -332,6 +357,49 @@ type portalTravel struct {
 	// anybody is standing any more.
 	ownerLive bool
 	rider     interactor
+	// from is where the DOOR stands, and zones is every zone's rectangle: the
+	// two halves of the direction answer (U4b). The door rather than the rider
+	// deliberately — the player is within interaction range of it by
+	// construction, so they are in the same zone, and the door is the half that
+	// cannot move.
+	from  phy.Vec2f
+	zones []cfg.PlacedBounds
+}
+
+// Direction compares the zone the door stands in with the zone its destination
+// lands in (D7). Down is +Y, the convention Zone.Origin documents.
+func (t portalTravel) Direction(mode mobs.TravelMode, anchor string) model.TravelDirection {
+	// ⛔ ONLY ANCHOR MODE DERIVES A DIRECTION (L15). home_campfire and caster
+	// resolve at step-through time by design (plan-portal-spells.md D5), so an
+	// answer computed HERE — when the tree is built — can be stale by the time
+	// the row is taken. Lateral is the honest report for a destination that may
+	// still move, and it is what the shipped portal pair gets.
+	if mode != mobs.TravelAnchor {
+		return model.TravelLateral
+	}
+	dest, ok := t.destination(mode, anchor)
+	if !ok {
+		// A locked row. It says nothing about direction because it goes nowhere.
+		return model.TravelNone
+	}
+	here := cfg.ZoneIndexAt(t.zones, t.from.X, t.from.Y)
+	there := cfg.ZoneIndexAt(t.zones, dest.X, dest.Y)
+	// ⚑ -1 means a position in the empty space BETWEEN zones, which is a bug
+	// rather than a case (cfg.ZoneIndexAt says so). Reporting lateral degrades
+	// the transition to a crossfade instead of turning a mis-placed door into a
+	// panic — the fail-soft posture the whole seam already takes.
+	if here < 0 || there < 0 || here == there {
+		return model.TravelLateral
+	}
+	switch {
+	case t.zones[there].OriginY > t.zones[here].OriginY:
+		return model.TravelDescend
+	case t.zones[there].OriginY < t.zones[here].OriginY:
+		return model.TravelAscend
+	}
+	// Two zones side by side at the same depth: a genuine lateral crossing, and
+	// the reason the byte is not a bool.
+	return model.TravelLateral
 }
 
 func (t portalTravel) destination(mode mobs.TravelMode, anchor string) (phy.Vec2f, bool) {
@@ -416,7 +484,8 @@ func (s *InteractionSystem) travelFor(a Conversant, p interactor) travelSeam {
 	// is not a door, and for a door whose definition authors the default instead.
 	override := a.TravelAnchor()
 	return portalTravel{anchors: s.anchors, zoneAnchors: s.zoneAnchors, anchorOverride: override,
-		owner: owner, ownerLive: s.isLivePlayer(owner), rider: p}
+		owner: owner, ownerLive: s.isLivePlayer(owner), rider: p,
+		from: a.Position(), zones: s.zonePlacements}
 }
 
 // isLivePlayer reports whether the entity is still one of this system's
@@ -1084,6 +1153,12 @@ func travelRow(oi, gi int, opt *mobs.InteractionOption, g *mobs.InteractionGrant
 		GrantIndex:  uint8(gi),
 		Text:        opt.Text,
 		Reply:       g.Line,
+		// ⭐ THE ONE PLACE THE DIRECTION IS SET, and it is derived rather than
+		// authored (D7): every travel_to row in the game passes through here, so
+		// both ends of a passage get the right way round with nothing to author
+		// and nothing to keep in sync. A seam-less world reports none, which is
+		// the same fail-soft the locked branch above takes.
+		Travel: travel.Direction(g.Travel, g.Anchor),
 	}
 }
 

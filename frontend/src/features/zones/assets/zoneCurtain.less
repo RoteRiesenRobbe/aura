@@ -1,0 +1,142 @@
+/* ============================================================================
+ * The zone-crossing curtain (plan-underworld.md U4b / §5.1).
+ *
+ * ⭐ ONE FULL-SCREEN ELEMENT, GPU-COMPOSITED, ZERO PIXI FILTER PASSES. The
+ * precedent is vitalSigns.less' HTML overlays: a fixed div whose classes JS
+ * flips and whose motion is a CSS transition.
+ *
+ * ⛔ NEVER BUILD THIS ON THE DAY/NIGHT FILTER MACHINERY. That was disabled
+ * precisely because ~25 per-layer filter passes reassigned at 30 Hz made avatars
+ * invisible at the transition — a standing lock repeated in three docs, and a
+ * screen-covering transition is exactly the shape that tempts someone to reach
+ * for it again.
+ */
+
+#zoneCurtain {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* Taller than the viewport so the soft leading edge lives OFF-SCREEN at full
+   * cover: at rest the opaque 85% is 110vh and covers the whole viewport, with
+   * the gradient tail hanging past it. */
+  height: 130vh;
+  /* Above the HUD and the map — the curtain covers a crossing, and a half-hidden
+   * HUD during one reads as a bug. */
+  z-index: 10000;
+  /* ⚑ Load-bearing: the curtain is over the whole screen for ~400 ms, and a
+   * click it swallowed would be a press the player has to repeat. */
+  pointer-events: none;
+  /* ⚑ Painted only while a crossing runs (JS adds .running), so the compositor
+   * has nothing to do the other 99.9% of the time. */
+  display: none;
+  will-change: transform, opacity;
+
+  &.running {
+    display: block;
+  }
+
+  /* ⛑ THE DURATIONS COME FROM CurtainSequence.ts, NOT FROM HERE. ZoneCurtain
+   * sets --curtain-cover-ms / --curtain-reveal-ms on the element from the same
+   * COVER_MS / REVEAL_MS the state machine counts with.
+   *
+   * ⚑ They MUST agree, and drift is invisible rather than loud: a CSS half
+   * longer than the JS half leaves the curtain mid-travel when the machine
+   * declares itself idle and yanks `display` away — which reads as the animation
+   * "plopping" rather than as a timing bug. The fallbacks below only apply if
+   * the element is somehow rendered before the module set them. */
+  &.covering,
+  &.held {
+    transition-duration: var(--curtain-cover-ms, 160ms);
+    /* Decelerating into the stop, because the hold below it is a real beat now:
+     * a linear half that ends at a dead stop reads as the animation being cut. */
+    transition-timing-function: ease-out;
+  }
+
+  &.revealing {
+    transition-duration: var(--curtain-reveal-ms, 160ms);
+    /* ...and accelerating away from rest. ⚑ The two halves take the SAME time
+     * over the SAME distance, so the sweep never changes speed (§5.1 step 4). */
+    transition-timing-function: ease-in;
+  }
+
+  /* ---- the directional curtain ------------------------------------------- */
+
+  &.down,
+  &.up {
+    /* ⚑ The feather is ~20vh of a 130vh element. At 30% of 160vh it was 48vh —
+     * nearly half a screen of gradient, which read as the screen DIMMING rather
+     * than as an edge passing you. It still has to be soft: a hard line reads as
+     * a rectangle sliding, not as a curtain. */
+    background: linear-gradient(to bottom, #000 0%, #000 85%, transparent 100%);
+    transition-property: transform;
+    /* ⚑ The TIMING lives per-phase above, not here, and that is the point: what
+     * protects the one-movement reading (§5.1 step 4) is the two halves taking
+     * the same time over the same distance, so the sweep never changes speed.
+     * The easing only shapes each beat around the hold between them. */
+  }
+
+  /* Mirrored so the SOFT edge always leads: going up, the top is the tail.
+   *
+   * ⛑ AND SO IS THE ANCHOR, WHICH IS NOT OPTIONAL. The base rule pins the
+   * element to top: 0, so its extra 30vh hangs BELOW the viewport — right where
+   * the downward gradient wants its feather. Mirroring only the gradient put the
+   * upward feather over the TOP 20vh OF THE SCREEN, so an ascent held at
+   * something that never quite covered. Pinning it to the bottom instead puts
+   * the overhang above the viewport, and the two directions become symmetric.
+   * (PO, 2026-09-08: "holds at a different position when going up".) */
+  &.up {
+    top: auto;
+    bottom: 0;
+    background: linear-gradient(to top, #000 0%, #000 85%, transparent 100%);
+  }
+
+  /* Off the near edge — where a crossing starts. */
+  &.down {
+    transform: translateY(-100%);
+  }
+
+  &.up {
+    transform: translateY(100%);
+  }
+
+  /* Full cover, both directions. */
+  &.down.covering,
+  &.up.covering,
+  &.down.held,
+  &.up.held {
+    transform: translateY(0);
+  }
+
+  /* ⭐ AND OUT THE FAR EDGE, STILL TRAVELLING THE SAME WAY. Reversing here
+   * would make the crossing read as two fades instead of as one movement past
+   * the player, which is the whole ruling (§5.1 step 4). */
+  &.down.revealing {
+    transform: translateY(100%);
+  }
+
+  &.up.revealing {
+    transform: translateY(-100%);
+  }
+
+  /* ---- the lateral crossfade --------------------------------------------- */
+
+  /* A hop that changes place without changing depth gets no direction at all —
+   * a plain fade, which is what the shipped portal pair and campfire recall now
+   * get in place of today's hard cut. */
+  &.lateral {
+    background: #000;
+    height: 100vh;
+    opacity: 0;
+    transition-property: opacity;
+  }
+
+  &.lateral.covering,
+  &.lateral.held {
+    opacity: 1;
+  }
+
+  &.lateral.revealing {
+    opacity: 0;
+  }
+}

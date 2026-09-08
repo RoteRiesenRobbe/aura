@@ -249,6 +249,11 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 		}
 		interactionSys.SetZoneAnchors(zoneAnchors)
 	}
+	// The rectangles those anchors sit in, so a travel row can say which WAY it
+	// goes (U4b). ⚑ The same slice the border walls were built from a few lines
+	// up — one geometry, two readers, so a zone cannot be walled in one place
+	// and depth-ranked in another.
+	interactionSys.SetZonePlacements(gc.Walls)
 	// The ceremony's completion check reads the SAME catalog object the panel
 	// renders (C2a step 5), so what the stone offered and what the channel will
 	// accept cannot drift apart.

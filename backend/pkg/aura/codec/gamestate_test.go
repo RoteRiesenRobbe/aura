@@ -501,6 +501,54 @@ func TestGameStateConversation_RoundTrip(t *testing.T) {
 	assert.Zero(t, news.OptionsLength(), "a leaf reply has no rows")
 }
 
+// The direction byte a row carries so the client can cover the cut on the PRESS
+// (plan-underworld.md U4b/D7). Four rows, one per value, because the whole point
+// of a ubyte over a bool is that descend and ascend are different answers.
+//
+// ⚑ It also pins the ENCODING COST, which is why the field was appended last: a
+// row that does not travel must ride exactly the bytes it rode before the field
+// existed. The Go builder omits a field equal to its default and trims trailing
+// zero vtable slots, so TravelNone costs nothing — and nearly every row in the
+// game is TravelNone.
+func TestGameStateConversation_TravelDirectionRoundTrips(t *testing.T) {
+	rows := []model.ConversationOption{
+		{OptionIndex: 0, GrantIndex: model.ConversationNoGrant, Text: "Anything new?"},
+		{OptionIndex: 1, GrantIndex: 0, Text: "Climb down.", Travel: model.TravelDescend},
+		{OptionIndex: 2, GrantIndex: 0, Text: "Climb up.", Travel: model.TravelAscend},
+		{OptionIndex: 3, GrantIndex: 0, Text: "Step through.", Travel: model.TravelLateral},
+	}
+	c := &model.Conversation{
+		EntityID: 7, ActorName: "A dark opening", EntryNode: "root",
+		Nodes: []model.ConversationNode{{ID: "root", Options: rows}},
+	}
+
+	b := flatbuffers.NewBuilder(256)
+	offset := ConversationMarshalFlatbuf(c, b)
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddConversation(b, offset)
+	b.Finish(AuraApi.GameStateEnd(b))
+
+	var root AuraApi.ConversationNode
+	got := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).Conversation(nil)
+	require.NotNil(t, got)
+	require.True(t, got.Nodes(&root, 0))
+	require.Equal(t, len(rows), root.OptionsLength())
+
+	for i, want := range rows {
+		var opt AuraApi.ConversationOption
+		require.True(t, root.Options(&opt, i))
+		assert.EqualValues(t, want.Travel, opt.Travel(), "row %d (%s)", i, want.Text)
+	}
+
+	// ⚑ THE DEFAULT IS THE INERT ONE, read off a row that never set it — the
+	// grant_index = 255 convention one field over. A client that upgrades before
+	// the server reads 0 here, which is "this row does not move you".
+	var nav AuraApi.ConversationOption
+	require.True(t, root.Options(&nav, 0))
+	assert.EqualValues(t, model.TravelNone, nav.Travel(),
+		"a navigation row takes nobody anywhere")
+}
+
 // An absent conversation IS the close signal (D16), so no-panel must marshal to
 // nothing rather than to an empty table.
 func TestGameStateConversation_AbsentReadsNil(t *testing.T) {

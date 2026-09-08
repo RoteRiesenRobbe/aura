@@ -27,9 +27,17 @@ import (
 type fakeTravel struct {
 	reachable bool
 	travelled []mobs.TravelMode
+	// direction is what Direction reports (U4b). The zero value is TravelNone,
+	// which is what these older tests want: they predate the byte and assert
+	// nothing about it, so it must stay absent from the rows they build.
+	direction model.TravelDirection
 }
 
 func (f *fakeTravel) CanReach(mode mobs.TravelMode, _ string) bool { return f.reachable && mode != "" }
+
+func (f *fakeTravel) Direction(_ mobs.TravelMode, _ string) model.TravelDirection {
+	return f.direction
+}
 
 func (f *fakeTravel) Travel(mode mobs.TravelMode, _ string) bool {
 	if !f.CanReach(mode, "") {

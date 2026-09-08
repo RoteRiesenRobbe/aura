@@ -2,6 +2,7 @@ import {Application, Container, Graphics, RenderTexture, Ticker} from 'pixi.js';
 
 import {meter2px, px2meter} from '../../../client-data/BasicConfig';
 import {ActiveZoneTracker} from '../../zones/logic/ActiveZone';
+import {cancelCrossing, noteZoneChange, runWhenCovered} from '../../zones/logic/ZoneCurtain';
 import {Backend} from '../../backend/logic/Backend';
 import {EntityManager} from '../../backend/logic/EntityManager';
 import {MiniMap} from '../../map/logic/MiniMap';
@@ -515,6 +516,11 @@ export class Game implements IGame {
             return;
         }
         BeforeDeathEvent.trigger(this);
+        // ⚑ A crossing has exactly two ends: the arrival, and this. Death is the
+        // one that never produces a zone change, so without it a player killed
+        // mid-warp would watch the death screen through the curtain until the
+        // hold ceiling let go (U4b).
+        cancelCrossing();
         this.createSpectator(this.player.character.getX(), this.player.character.getY());
         this.player.remove();
         this.player = undefined;
@@ -699,29 +705,46 @@ export class Game implements IGame {
         if (!isDefined(this.activeZone)) {
             return undefined;
         }
+        // Captured BEFORE the update: the curtain needs both ends to know which
+        // way the crossing actually went (U4b).
+        const left = this.activeZone.active;
         const entered = this.activeZone.update(px2meter(xPx), px2meter(yPx));
         if (!isDefined(entered)) {
             return undefined;
         }
-        this.renderZone(entered.name);
-        // The camera clamp, the entity bounds and the map are all sized to ONE
-        // zone's rectangle, never a union of them (L13) — so they move too.
-        const width = meter2px(entered.width);
-        const height = meter2px(entered.height);
-        this.map?.setBounds(width, height,
-            meter2px(entered.originX), meter2px(entered.originY));
-        // ⭐ switchZone, NOT setup: a crossing is not a join. setup() is a reset —
-        // it re-appends the canvas, rebuilds every layer, closes an open map, and
-        // throws away the fog you have walked off and the campfires you have
-        // discovered. Both are published once and never again, so driving a
-        // crossing through it loses them for the session.
-        //
-        // ⚑ The ORIGIN rides along with the bounds and is not optional: every live
-        // position the map plots is a world coordinate while the map is baked
-        // zone-local, so without it a player in a zone at {0, 300} draws 300 units
-        // off their own map (plan-underworld.md U4).
-        this.miniMap?.switchZone(width, height, entered.name,
-            meter2px(entered.originX), meter2px(entered.originY));
+        // ⭐ THE ARRIVAL SIGNAL, AND IT IS NOT A MESSAGE. The server never says
+        // "you have crossed"; the client works it out from the position it was
+        // already being sent, which is the whole of the transition mechanic
+        // (§5.1). A no-op when no curtain is running — a cheat WARP across zones
+        // stays the instant cut it is today.
+        noteZoneChange(left ? left.originY : entered.originY, entered.originY);
+        // ⭐ UNDER COVER, NEVER IN PLAIN SIGHT (§5.1 step 2). Everything below is
+        // a visible teardown — renderZone destroys the ground layer and reloads
+        // every texture, and the map re-bakes — so it waits for the curtain to
+        // reach full black. ⚑ It runs IMMEDIATELY when nothing is covering (a
+        // cheat WARP), which is the behaviour this had before the curtain.
+        runWhenCovered(() => {
+            this.renderZone(entered.name);
+            // The camera clamp, the entity bounds and the map are all sized to
+            // ONE zone's rectangle, never a union of them (L13) — so they move
+            // too.
+            const width = meter2px(entered.width);
+            const height = meter2px(entered.height);
+            this.map?.setBounds(width, height,
+                meter2px(entered.originX), meter2px(entered.originY));
+            // ⭐ switchZone, NOT setup: a crossing is not a join. setup() is a
+            // reset — it re-appends the canvas, rebuilds every layer, closes an
+            // open map, and throws away the fog you have walked off and the
+            // campfires you have discovered. Both are published once and never
+            // again, so driving a crossing through it loses them for the session.
+            //
+            // ⚑ The ORIGIN rides along with the bounds and is not optional: every
+            // live position the map plots is a world coordinate while the map is
+            // baked zone-local, so without it a player in a zone at {0, 300}
+            // draws 300 units off their own map (plan-underworld.md U4).
+            this.miniMap?.switchZone(width, height, entered.name,
+                meter2px(entered.originX), meter2px(entered.originY));
+        });
         return entered.name;
     }
 

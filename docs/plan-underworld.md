@@ -1,9 +1,184 @@
 # Plan — The Underworld (the first *placed zone*)
 
 **Status:** designed 2026-09-07 (PO session, 6 rulings taken). **U1 + U2 + U3 +
-U3b + U4a SHIPPED 2026-09-08**, and the underworld is **LIVE** — two passages, walkable
-both ways. U0/U4 not started; U5 is now a fill-in-the-room pass rather than a
-build-it-from-nothing one. All numbers **[PLACEHOLDER]**.
+U3b + U4a + U4b SHIPPED 2026-09-08**, and the underworld is **LIVE** — two
+passages, walkable both ways, behind a directional curtain. **U0 not started**;
+U5 is now a fill-in-the-room pass rather than a build-it-from-nothing one. All
+numbers **[PLACEHOLDER]**.
+
+### Ledger — U4b, the directional curtain (2026-09-08)
+
+The visible half. A crossing is no longer an instant cut: black travels in from
+one edge, holds while the world swaps underneath it, and **keeps going the same
+way** out the other edge.
+
+⭐ **THE WHOLE THING RUNS ON ONE APPENDED BYTE PLUS A FACT THE CLIENT ALREADY
+HAD.** `ConversationOption.travel:ubyte` (0 none · 1 descend · 2 ascend ·
+3 lateral) is the entire wire surface; the *arrival* is the client's own
+active-zone tracker noticing its answer changed. **No transition protocol, no
+server state machine, no mid-crossing flag on the wire.**
+
+⭐ **A BOOL WOULD NOT HAVE BEEN ENOUGH, and that is the point of the field.** At
+press time the client does not know the DESTINATION — `grant_index` is an opaque
+index into a definition it never sees — so it cannot derive up-vs-down for
+itself. The server resolves the anchor, so the server knows which zone the row
+lands in. One byte carries the answer instead of the client re-deriving it from
+data it does not have.
+
+⭐ **THE DIRECTION IS DERIVED FROM GEOMETRY, WHICH MAKES `Origin` AN AUTHORING
+CONTRACT: +Y IS DEEPER.** `portalTravel.Direction` resolves the destination,
+asks `cfg.ZoneIndexAt` which zone each end is in, and compares those zones'
+`OriginY`. Nothing is authored and nothing can drift — both ends of a passage get
+the right way round for free, and the same door definition placed at either end
+reports the opposite direction. ⛔ **The cost is that packing zones down the Y
+axis for tidiness alone would make every crossing a descent**; a neighbouring
+region belongs in X. Pinned on `Zone.Origin` and in `interaction_direction_test.go`.
+⚑ **Deliberately NOT a separate `depth` int** — a second field could disagree
+with the geometry, and the disagreement would mean nothing.
+
+⛔ **L15 held, and it is the one place the byte lies on purpose.** Only `anchor`
+mode derives a direction. `home_campfire` and `caster` resolve their destination
+at **step-through** time by design (`plan-portal-spells.md` D5), so an answer
+computed when the tree was BUILT can be stale — they always report lateral. ⭐
+**The repair is in the client and costs nothing**: a lateral crossing that turns
+out to have changed zone **upgrades on arrival**, so campfire recall out of the
+underworld covers flat and reveals *upward*. It never downgrades, and never
+turns around mid-reveal.
+
+⭐ **Step 4 of §5.1 is the ruling, not a detail**, and the CSS is written to it:
+`.down` runs `translateY(-100%) → 0 → +100%`. A curtain that came in the top and
+retreated back out of the top would be **two fades**; one continuous movement
+*past* you is what makes it read as a descent with nothing to reason about.
+
+⚑ **Three traps pinned in comments.** ① The **hold ceiling** (~3 s) is not
+optional — holding is right while the server is merely slow, but a refused or
+dropped travel leaving the screen black forever is indistinguishable from a hang,
+and the panel is behind the curtain. ② It is measured **from the press**, so a
+slow cover cannot push the total past it. ③ The **first-frame reflow** is
+load-bearing: the element goes `display:none` → start transform in one task, and
+a browser that has not laid it out has no "from" value — it would jump straight
+to full cover with no movement at all.
+
+⚑ **`cancelCrossing` on death.** A crossing has exactly two ends, and death is
+the one that never produces an arrival — without it a player killed mid-warp
+watches the death screen through the curtain until the ceiling lets go.
+
+⛔ **Never on the day/night filter machinery** — a screen-covering transition is
+exactly the shape that tempts someone back to it. One `position: fixed` div, one
+`transform`, zero pixi filter passes.
+
+⚑ **Q5 is now live, not hypothetical**: `travel` is derived from the grant kind,
+so the **shipped** portal pair and campfire recall stop being hard cuts and get
+the lateral crossfade. Free and probably an improvement — but it is a change to
+something already PO-verified in-game, so it wants a look.
+
+**Schema: DB NONE · WIRE one appended field · conf NONE · content NONE.**
+
+Verified: `go build` · `go vet` · **`go test -count=1 ./...` EXIT 0** · tsc ·
+**vitest 663/663** (+12) · prod webpack build · boot clean, both zones placed ·
+**mutation-verified ×2** — flipping the origin-Y comparison reddens three
+direction tests, and letting `arrived` overwrite the direction unconditionally
+reddens the no-reverse one.
+
+⛔ **Not in-game verified by me.** The curtain is DOM + CSS, untestable in vitest
+by the same split that leaves `buildBlendMask` untested; `CurtainSequence` is the
+half that could be tested and is.
+
+**⛔ …and the PO found the proof of that in the first minute: the curtain
+"plopped in and out" with no movement at all.** I wrote `transition-property` and
+`transition-timing-function` and **no `transition-duration`** — whose CSS default
+is `0s`. Every state change completed instantly. ⭐ **The whole test suite stayed
+green through it**, because the state machine was correct and the machine is the
+only half a test can reach: the sequence held, covered and revealed exactly on
+schedule while the screen showed a hard cut. **A green `CurtainSequence` says
+nothing about whether anything animates.**
+
+⭐ **The fix moved the durations OUT of the stylesheet**: `ZoneCurtain` now sets
+`--curtain-cover-ms` / `--curtain-reveal-ms` on the element from `COVER_MS` /
+`REVEAL_MS`, so the CSS and the machine cannot disagree. ⚑ Two numbers in two
+languages counting the same interval was going to drift, and **the drift is
+invisible rather than loud** — a CSS half longer than the JS half leaves the
+curtain mid-travel when the machine declares itself idle and yanks `display`
+away, which reads as exactly the same "plop".
+
+**⛔ …and the PO's second look found a worse one, also mine, also invisible to
+every test: THE WORLD SWAPPED IN PLAIN SIGHT.** §5.1 step 2 says the client
+swaps the rendered zone *at full black*, and I never implemented it —
+`Game.updateActiveZone` called `renderZone` on the arrival, whatever the curtain
+was doing. ⭐ **`renderZone` is a heavy synchronous teardown** (the ground layer
+destroyed, every ground texture cleared and reloaded, darkness reloaded, regions,
+paths and surfaces repainted) **and on a local server the warp round trip is
+about ONE TICK** — so the rebuild landed ~35 ms into a 280 ms cover. The player
+watched the old world come apart and the new one build, and only *then* got the
+curtain. No amount of timing tuning would have fixed that.
+
+⭐ **The fix is `runWhenCovered(swap)`**, and the swap moment is
+`max(fullCover, arrival)` — so a fast server does not get its teardown shown and
+a slow one does not get it early. ⚑ **It runs IMMEDIATELY when nothing is
+covering** (a cheat WARP), and ⛑ **`cancelCrossing` flushes a pending swap**:
+abandoning the curtain must not abandon the rebuild, or a player killed mid-warp
+stands in the new zone with the old zone's terrain and darkness drawn around
+them.
+
+### Polish pass (PO, 2026-09-08, in front of the game)
+
+- ⭐ **Cover and reveal are now the SAME duration (280 ms each).** They travel
+  the same distance — the element's own height — so 250/350 meant the curtain
+  visibly **decelerated** as it left: two movements, the exact thing §5.1 step 4
+  forbids. ⚑ **The plan's "the reveal is deliberately the slower half — you are
+  arriving, not leaving" is hereby overruled** (PO call); the intent is real but
+  it was written before the speed clash was visible. `REVEAL_MS` stays its own
+  constant so the other reading is one number away, and a test pins the equality
+  so a tuning pass cannot bring the deceleration back by accident.
+- ⭐ **`HOLD_MIN_MS = 120` — a settle beat that is ALWAYS there**, measured from
+  the swap. It does two jobs: the rebuilt scene gets frames to finish before it
+  is uncovered, and every crossing gets the same rhythm instead of feeling
+  different depending on that second's latency. ⚑ It is a floor, not the hold —
+  a slow arrival still waits, up to the ceiling.
+- ⚑ **The feather was half a screen.** 30 % of a 160vh element is 48vh of
+  gradient, which reads as the screen *dimming* rather than as an edge passing
+  you. Now ~20vh of a 130vh element (opaque to 85 %). Still soft on purpose: a
+  hard line reads as a rectangle sliding.
+- ⚑ **Easing moved per-phase** — `ease-out` into the stop, `ease-in` away from
+  it. With a guaranteed hold between them each half is its own beat, so a
+  `linear` half ending at a dead stop read as the animation being cut.
+- ⚑ **The pump dropped 50 ms → 16 ms**, because the zone rebuild is scheduled off
+  that clock now: 50 ms of slack between full black and the swap is visible slack
+  at the exact moment the screen is meant to be still.
+
+### Second polish pass (PO, 2026-09-08)
+
+⛑ **AN ASCENT NEVER FULLY COVERED, and the cause is an anchoring asymmetry the
+gradient hid.** The element is pinned `top: 0` at 130vh, so its extra 30vh hangs
+BELOW the viewport — exactly where the DOWNWARD curtain wants its feather. Going
+up, only the gradient was mirrored, so the ~20vh feather landed over the **top of
+the screen** and the hold sat at something permanently translucent. ⭐ **The
+mirror has to include the ANCHOR**: `.up` is pinned `bottom: 0` instead, which
+puts the overhang above the viewport and makes the two directions geometrically
+symmetric. ⚑ Descending looked perfect throughout, which is why it survived the
+first pass — a bug that is invisible in one of two directions.
+
+⭐ **THE TWO DIRECTIONS ARE NOW CROSSED, and it is the whole reading of the
+effect** (PO: "can we switch the 2 animations?"). A DESCENT sweeps the curtain
+**upward**, because what sells "I am dropping" is the world rising PAST me — the
+same reason a camera tilts scenery the opposite way to the move. Black sweeping
+downward on a descent reads as a stage curtain being LOWERED IN FRONT OF YOU:
+something happening to you, not something you are doing. ⚑ §5.1's own words were
+already the tell — *"one continuous movement PAST you"* — and things that pass
+you travel opposite to your own direction. ⛔ **The crossing lives in
+`axisClass()` and nowhere else**: the CSS class names describe the CURTAIN'S
+motion (`.down` travels downward), so that one function is where the two
+vocabularies meet. Renaming the classes to "fix" the apparent inversion would
+make the stylesheet lie about its own transforms.
+
+⚑ **Halved the timing** (PO: "the whole transition needs to be faster"):
+**160 + 70 + 160 = 390 ms**, down from 680. `HOLD_CEILING_MS` is left at 3 s — it
+is the failure path, not the felt one.
+
+Total unimpeded crossing: **390 ms**, all [PLACEHOLDER].
+Verified again after the pass: tsc · **vitest 666/666** · prod build · the
+compiled CSS checked for the timing and the gradient · **mutation-verified** —
+moving the swap back to the arrival reddens three tests.
 
 ### Ledger — U4a, the map follows you across (2026-09-08)
 
@@ -845,8 +1020,9 @@ does not degrade with world size; what degrades is legibility).
 | **U2** | `Welcome.zone_names` appended + client active-zone derivation + finish the runtime swap (`Regions` · `Paths` · `DarknessOverlay` · ground textures, §5.2) + camera clamp / `EntityManager` bounds / minimap follow the active zone + **`RosterFor` filtered by zone** (**L14**, §7.1 item 2). | tsc · vitest · in-game: `WARP` into an empty second zone, see its terrain, walls hold, **nothing streams across** (L2) |
 | **U3** ✅ | `TravelAnchor` mode + the zone-anchor table + **two** `CaveMouth` defs (L6, L7) + `world.CrossValidateTravelAnchors`. ⭐ Anchor mode is resolved **above** `destination`'s `owner == nil` guard — a zone-placed door has no owner. | ✅ Go tests incl. the refuse-at-boot path · ⛔ **in-game round trip + the L8 campfire check are OWED**: they need the three coupled content edits U3 leaves to U5 (see the ledger) |
 | **U4a** ✅ | **The map follows you across** (§5.3): the zone-origin term on every world→map conversion, `switchZone` instead of `setup()`, per-zone fog, and the discovered set surviving a crossing. ⭐ A BUG FIX — U2/U3b shipped a map that is wrong in any zone away from `{0,0}`. | ✅ tsc · vitest 650/650 · mutation-verified · ⛔ in-game owed |
-| **U4b** | **D7**'s appended `ConversationOption.travel:ubyte` (derived server-side from `GrantTravelTo` + the destination zone; ⚑ **`anchor` mode only** — L15) + the directional curtain (§5.1) + per-zone map bake and per-zone `MapFog` (§5.3). | codec round-trip test for the appended field · in-game, PO judgement on direction/timing · ⚑ check what the curtain now does to the **shipped** portal-spell rows (Q5) |
+| **U4b** ✅ | **D7**'s appended `ConversationOption.travel:ubyte`, derived server-side by comparing the two zones' `OriginY` (⚑ **`anchor` mode only** — L15, with the client repairing a lateral on arrival) + the directional curtain (§5.1). ⚑ Per-zone map bake and `MapFog` were **U4a**, not this. | ✅ codec round-trip ×4 values · `go test -count=1 ./...` EXIT 0 · tsc · **vitest 663/663** · prod build · **mutation-verified ×2** · ⛔ in-game owed, and **Q5 is now live** — the shipped portal pair gets the lateral crossfade |
 | **U5** ⚑ *(half done by U3b)* | **Content**: author `api/zones/underworld.json` — bounds, entry/exit anchors, the two `CaveMouth`s, darkness, campfires, a first pocket of mobs. ⭐ **Cave walls as blocking `paths`, not props** (§7.1 item 1) — the single biggest perf decision in the feature, and it is a content one. | in-game |
+| **U6** *(deferred — §7.2)* | **Build-time zone placement**: an authored `depth`, an auto-assigned `origin`, and a GENERATED placement file both sides read so the wire cost stays zero. ⚑ PO-asked 2026-09-08; deferred with two named triggers, not dropped. | `go test` · `verify.sh` · a boot whose placement file is deliberately stale must still be REFUSED |
 
 U1–U3 are each small and independently verifiable; **U1 ships inert**. U5 is a
 content pass and wants its own session.
@@ -866,6 +1042,143 @@ did not block). This will bite constantly while authoring a second zone.
 
 ---
 
+## 7.2 U6 — build-time zone placement (PO-asked 2026-09-08, DEFERRED)
+
+> **Status: designed, nothing built.** Raised while planning several dungeons:
+> *"wouldn't it be safer and scale better if the game decides itself where to
+> place them?"* The answer is yes, eventually — this section is the shape it
+> should take, and the two symptoms that mean it is time.
+
+### The ask, and the two constraints the PO set
+
+1. ⛔ **The wire cost stays ZERO.** This is the constraint that picks the whole
+   design. Today the client learns where every zone sits by reading `origin`
+   out of the same bundled file the server read — which is why U1 needed no
+   wire field to place a zone (§4.4). A server that assigns origins at BOOT
+   destroys that: the client cannot know the answer, so it has to be sent.
+   ⭐ **Placing at BUILD time instead keeps the property**, because the answer
+   is back in a file both sides read before either of them runs.
+2. ⭐ **A real `depth` field — stop overloading Y.** U4b made `origin.y`
+   semantic (the direction byte compares it), which is exactly what blocks
+   auto-placement: a packer that tiles rectangles cannot know a cave belongs
+   below a surface. With `depth` authored, BOTH axes become free packing
+   coordinates and the direction byte compares depths instead.
+   ⚑ **This reverses U4b's "deliberately NOT a separate depth int"**, and the
+   reversal is honest: that call was made when the origin was hand-authored, so
+   a second field could disagree with the geometry. Once the geometry is
+   GENERATED FROM the depth, disagreement is impossible — depth becomes the
+   single source and the origin its derivative.
+3. **The packer sizes the margins itself** from each zone's bounds, rather than
+   a human keeping a grid in their head.
+
+### Shape
+
+- **`Zone.Depth int`** — authored, `0` = the surface. The only placement number
+  a human writes. ⚑ A new zone-format field means the FOUR writers again (L3
+  plus `aura-world-format.js`), and the completeness pin will redden on all of
+  them, which is the pin working.
+- **`Zone.Origin` becomes a PIN, not a placement** — the tri-state idiom this
+  format already uses for `wanderRadius`, `level` and `anchor`: absent = the
+  packer chooses, present = pinned and the packer works around it. ⭐ That is
+  what keeps `world` at `{0,0}` (see the landmine below) without a special case
+  in the packer, and it means the field is NOT removed — no writer loses a key.
+- **A generated placement file**, written by a build step and committed:
+  `{"world": {"x": 0, "y": 0}, "underworld": {"x": 0, "y": 300}, …}`. Both
+  `world.Place` and the client's `ActiveZone.zoneRects` read it instead of the
+  per-file origin, so there is exactly ONE runtime source and no wire field.
+- **Run it from `make -C backend build`**, beside `cp-defs`. ⚑ It must also be
+  runnable standalone: a Tiled save that changes a zone's BOUNDS invalidates
+  the placement, and the author needs a one-liner to refresh it.
+
+### ⛔ Where the generated file may NOT live
+
+**Not in `api/zones/`.** The zone loader parses every file in that directory as
+a zone, so a placement file there hard-fails the boot — the identical trap
+`profiles.json` already carries (D12: *"never `api/zones/profiles.json`"*).
+`api/zone-placement.json` or `api/placement/zones.json`.
+
+### What "optimal" actually optimises — and it is NOT the broadphase
+
+⚑ **Tighter packing buys nothing for performance.** `phy.Space` grids are
+`map[Vec2i][]Collider` — a sparse hash. The gap between zones allocates no
+cells, so empty space is already free and squeezing it out saves nothing per
+tick (§3, the table).
+
+⭐ **The real objective is float32 precision and the `MaxWorldCoordinate = 8192`
+ceiling.** Larger coordinates resolve a movement step more coarsely, and this
+repo has already fought that jitter class once (`archive/plan-render-jitter.md`,
+cited in `place.go`). So the packer should minimise the MAX ABSOLUTE COORDINATE
+it hands out, not the empty area — and it should refuse rather than exceed the
+ceiling, which `placeOne` already does.
+
+### The rule it packs against
+
+`separationFor(a, b) = a + b + gridCellMargin` on ONE axis — full widths, not
+halves, because `InvAABB.updateBB` gives a wall a bounding box 2× its
+half-extents (`place.go:135`, *"the plan first got wrong by a factor of two"*).
+A shelf packer — one row per depth, rows spaced by the tallest zone in each
+adjacent pair — satisfies it with a trivial implementation and leaves the
+coordinates readable, which matters for every WARP and every log line.
+
+⛑ **`checkSeparation` STAYS, and its job changes.** Today it catches an authoring
+mistake; after U6 it catches a STALE PLACEMENT FILE — a zone widened in Tiled
+without regenerating. That makes it more load-bearing, not less. **A test that
+boots a deliberately stale placement and expects a refusal is the chunk's
+headline test.**
+
+### Landmines
+
+- ⛑ **`randomSpawnPosition` takes a SIZE, not a rectangle** (`sys/state.go:454`)
+  — it centres on `{0,0}` unconditionally. It is the last-ditch fallback when a
+  zone has no campfires at all. **If the packer ever moves the PRIMARY zone off
+  `{0,0}`, it drops players into the void between zones.** The same "a size is
+  not a rectangle" bug class U4a spent itself removing from the map. Pin `world`
+  at `{0,0}` via the origin override AND fix the function.
+- ⚑ **Placement stability.** Inserting a zone must not reshuffle every other
+  zone's coordinates: it churns the generated file in git and invalidates every
+  WARP coordinate in notes and bug reports. Sorting by `(depth, name)` is
+  deterministic but still shifts a whole row on an insert. **Open question** —
+  an append-only first-seen order recorded in the placement file is the
+  alternative, at the cost of the file being state rather than a pure function
+  of the inputs.
+- ⛔ **Do not have the CLIENT re-run the packing** from the same inputs. The
+  point-in-rectangle rule is restated on both sides deliberately (`ActiveZone`
+  says so), because it is small enough to get identically right twice. A
+  packing loop is not: one float32-vs-JS-number difference in the accumulation
+  desyncs every zone after it, and the failure is "the client renders the wrong
+  zone in the wrong place". Read the generated file; do not recompute it.
+- ⚑ **The direction byte moves off `OriginY` onto `Depth`**
+  (`portalTravel.Direction`, `cfg.PlacedBounds`). Its tests are geometric today
+  (`interaction_direction_test.go` builds zones at `y: 0/300/400`) and become
+  depth-based, which is a simplification.
+- ⚑ **`Zone.Origin`'s "+Y IS DEEPER" contract is DELETED by this chunk**, along
+  with the U4b ledger paragraph that records it. Leave a note rather than a
+  silent removal: the contract was correct for its window.
+
+### Schema impact
+
+**DB NONE** (no position and no zone id are persisted — verified 2026-09-08,
+`persist/` carries neither). **WIRE NONE — that is the point.** **CONF NONE.**
+**CONTENT**: one new field (`depth`, four writers) plus one generated file.
+
+### ⛔ Deferred, with named triggers
+
+At two zones this is pure cost. The bookkeeping it removes is "pick a Y for the
+tier and an X off a 300 grid", and the mistake it prevents is already refused at
+boot with an error naming both zones and the exact distance needed.
+
+**Build it when either happens:**
+
+1. A dungeon **grows and forces its neighbours to be re-spaced** by hand. That
+   is the bookkeeping becoming real rather than theoretical.
+2. The loaded zone count passes **roughly ten**.
+
+⚑ **U0 (`plan-world-scale.md` S1, lazy zone bundling) is the more urgent
+neighbour** and should land first: every zone file is bundled into every client
+today, so the browser downloads every dungeon before entering one. U6 makes
+authoring dungeons pleasant; U0 makes having them affordable.
+
+---
 ## 7.1 What would actually make this faster
 
 Ranked by value, and two of them are free.

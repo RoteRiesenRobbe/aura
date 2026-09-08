@@ -332,6 +332,24 @@ type Zone struct {
 	// place the offset is applied, and it runs after validate() — which is why
 	// the anchor-inside-bounds check below can keep comparing against a
 	// rectangle centred on zero.
+	//
+	// ⭐ +Y IS DEEPER, AND THAT IS AN AUTHORING CONTRACT, NOT AN ACCIDENT (U4b).
+	// The offset is otherwise a free packing coordinate, but a travel row's
+	// direction byte is derived by comparing the two zones' origin Y, so where a
+	// zone is placed is what decides whether walking into it reads as a DESCENT
+	// or as a lateral crossing. Place a cave below the surface by giving it a
+	// LARGER origin Y; place a neighbouring region beside it by moving it in X
+	// instead, and its passages report lateral. ⛔ Packing zones down the Y axis
+	// for tidiness alone would make every crossing a descent.
+	//
+	// ⚑ Deliberately NOT a separate `depth` int: a second field could disagree
+	// with the geometry, and there is nothing the disagreement could mean.
+	//
+	// ⏳ PROVISIONAL, AND ITS SUCCESSOR IS ALREADY DESIGNED (§7.2, U6). Once the
+	// origin is GENERATED at build time rather than authored, a `depth` field
+	// cannot disagree with the geometry — because the geometry is derived from
+	// it — and this contract is deleted. Do not build a second consumer of
+	// "+Y is deeper" without reading that section first.
 	Origin    Point            `json:"origin"`
 	Terrain   []TerrainTexture `json:"terrain"`
 	Props     []Prop           `json:"props"`

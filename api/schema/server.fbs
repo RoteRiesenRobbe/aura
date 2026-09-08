@@ -518,6 +518,36 @@ table ConversationOption {
   // without a second field. Appended at the table end so existing field ids stay
   // stable, the confirm_seconds precedent.
   skill_id:ushort = 0;
+  // Whether taking this row will MOVE the player, and which way:
+  // 0 none · 1 descend · 2 ascend · 3 lateral (plan-underworld.md D7).
+  //
+  // ⭐ WITHOUT IT THE TRANSITION CANNOT START ON THE PRESS. grant_index is an
+  // opaque index into the authored definition, so the client can see that a row
+  // grants *something* but never that it teleports — it would only learn it had
+  // travelled when the new place arrived, which is one frame too late to cover
+  // the cut.
+  //
+  // ⭐ A BOOL WOULD NOT HAVE BEEN ENOUGH, and that is the whole point of the
+  // field: at press time the client does not know the DESTINATION either, so it
+  // cannot derive up-vs-down for itself. The server resolves the anchor, so the
+  // server knows which zone the row lands in and which way that is; one byte
+  // carries the answer instead of the client re-deriving it from data it does
+  // not have.
+  //
+  // ⚑ DERIVED, NEVER AUTHORED. The server sets it wherever a row carries a
+  // travel_to grant, so no content ever has to remember it and both ends of a
+  // passage get the right direction for free.
+  //
+  // ⛔ Only `anchor` mode derives a direction (L15). home_campfire and caster
+  // resolve at step-through time by design (plan-portal-spells.md D5), so a
+  // direction computed when the tree was BUILT can be stale — those always
+  // report 3 lateral. Consequence worth knowing: a campfire recall out of the
+  // underworld is a genuine ascent reported as lateral, and the client repairs
+  // the reveal half from the zone it actually arrives in.
+  //
+  // ⚑ A ubyte rather than a bool, with 0 = none so the default is the inert
+  // one — the grant_index = 255 convention above. Appended at the table end.
+  travel:ubyte = 0;
 }
 
 table ConversationNode {
