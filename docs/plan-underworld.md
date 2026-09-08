@@ -1238,9 +1238,12 @@ the first place.
    **a second zone**. §2.1 records why "map", "level" and "layer" were all
    refused, and parks the pre-existing `content-zone2.md` label collision as
    somebody else's cheap fix.
-2. **The D6 amendment.** Confirm the framing in §2 and record it in
-   `plan-release-map.md` §8: multiple zone *files*, still one Space, §8.3
-   untouched.
+2. ~~**The D6 amendment.**~~ ⭐ **DONE 2026-09-08** — recorded as
+   `plan-release-map.md` **§8.0**, an explicit amendment block: the forbidden
+   thing was the HANDOFF, not the file split; §8.3 is untouched; and the choice
+   between "regions of one file" and "several placed files" is now an AUTHORING
+   question decided per case, with §3.2 recording why the underworld went the
+   second way.
 3. **M1-F5 gets SHARPER, not softer.** An underworld is *by construction*
    unwatched most of the time, and both open halves apply to it: an unobserved
    mob-vs-mob fight never ends (and a slept mob is out of `phy.Space`, so also
