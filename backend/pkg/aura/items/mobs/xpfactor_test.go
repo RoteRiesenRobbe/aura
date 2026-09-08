@@ -150,7 +150,10 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 			free = append(free, def.Name)
 		}
 	}
-	assert.Len(t, free, 34, "every xpFactor-0 species: %v", free)
+	// 34 → 36 with the CaveMouth and CaveExit (plan-underworld.md U3): two more
+	// objects that talk, both off the nameplate and the XP path like every other
+	// fixture here.
+	assert.Len(t, free, 36, "every xpFactor-0 species: %v", free)
 
 	// ⚑ Exactly ONE structure pays anything, and it is the harvest chore's
 	// target: the Turnip at 0.05 (PO 2026-08-05, the one §3.4 curation pulled

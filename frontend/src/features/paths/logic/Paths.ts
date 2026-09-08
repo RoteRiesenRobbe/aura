@@ -57,11 +57,13 @@ let paths: Path[] = [];
  * on. The server refuses it at boot, so it can only arrive from a hand-edited
  * file, and a NaN width poisons the whole Graphics batch rather than one path.
  */
-export function toPaths(defs: PathDefinition[] | undefined): Path[] {
+export function toPaths(defs: PathDefinition[] | undefined, origin?: {x: number, y: number}): Path[] {
+    const ox = origin ? origin.x : 0;
+    const oy = origin ? origin.y : 0;
     return (defs || [])
         .map(p => ({
             profile: p.profile,
-            points: (p.points || []).map(pt => ({x: meter2px(pt.x), y: meter2px(pt.y)})),
+            points: (p.points || []).map(pt => ({x: meter2px(pt.x + ox), y: meter2px(pt.y + oy)})),
             width: typeof p.width === 'number' && isFinite(p.width) && p.width > 0
                 ? meter2px(p.width)
                 : 0,
@@ -72,9 +74,15 @@ export function toPaths(defs: PathDefinition[] | undefined): Path[] {
         .filter(p => p.points.length >= 2 && p.width > 0);
 }
 
-/** Installs the loaded zone's paths. */
-export function loadPaths(defs: PathDefinition[] | undefined) {
-    paths = toPaths(defs);
+/** Installs the loaded zone's paths.
+ *
+ *  ⚑ REPLACES, never appends — a zone swap calls this again with the new
+ *  zone's paths and the old ones must not survive it.
+ *
+ *  origin places the zone in the shared coordinate space (plan-underworld.md
+ *  U2); absent = {0,0}. */
+export function loadPaths(defs: PathDefinition[] | undefined, origin?: {x: number, y: number}) {
+    paths = toPaths(defs, origin);
 }
 
 /** The loaded zone's paths, in world pixels and in authored order. */

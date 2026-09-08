@@ -1,0 +1,47 @@
+{
+  "_comment": "The way UP (plan-underworld.md U3): CaveMouth's twin, standing at a passage's lower end. Every knob is cave-mouth.json's — see that file's comment for why the body recipe is what it is, why the art is a placeholder Signpost, and why NEITHER file authors a destination (U3b: the placement names its anchor, so one definition serves every upward passage). ⚑ IT IS A SEPARATE DEFINITION FOR ITS WORDS, NOT ITS DESTINATION. Since U3b the destination is per placement, so a second file buys only the text and the lines — 'a narrow shaft with daylight at the top' is not a thing you can say with the downward door's words. If a passage ever wants the same words at both ends, one definition placed twice is now enough. ⚑ The pairing is CONTENT, not structure: nothing links these two files, and nothing checks that a zone placing one also places the other. A one-way drop is legal and may well be the point somewhere. ⛔ The campfire-dwell trap (plan-portal-spells.md D8) applies to this end too, and it is the likelier of the two to be violated: an exit is exactly where a cave's campfire wants to stand.",
+  "id": 73,
+  "name": "CaveExit",
+  "type": "MOB",
+  "entityType": "Signpost",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1.0
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2.0,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          "A narrow shaft, and daylight at the top of it.",
+          "The climb looks manageable."
+        ],
+        "options": [
+          {
+            "text": "Climb up.",
+            "grants": [
+              {
+                "kind": "travel_to",
+                "mode": "anchor",
+                "line": "You climb back into the light."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

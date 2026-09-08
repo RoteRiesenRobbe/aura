@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {
     MapState, campfireMarkers, isInsideDrawnMap, mapScale, rescaleCoordinate, resizeTerrain,
-    pickCampfireMarker, rosterMarkers, worldToMap,
+    pickCampfireMarker, rosterMarkers, toZoneLocal, worldToMap,
 } from './MapScale';
 
 // The real world zone (api/zones/world.json) as the CLIENT receives it:
@@ -100,6 +100,31 @@ describe('worldToMap', () => {
         const scale = mapScale(MapState.FULLSCREEN, {width: 1440, height: 720}, WORLD);
         expect(worldToMap(-WORLD.mapWidth / 2, scale)).toBeCloseTo(-720, 6);
         expect(worldToMap(WORLD.mapWidth / 2, scale)).toBeCloseTo(720, 6);
+    });
+
+    // ⭐ THE BUG THIS ARGUMENT EXISTS FOR (plan-underworld.md U4). The map is
+    // baked ZONE-LOCAL while every live position it plots is a WORLD one, so a
+    // zone away from {0,0} draws its own player, its mobs and its roster dots
+    // off the map — silently, and only in that zone.
+    it('subtracts the zone origin, so a zone centre is the map centre', () => {
+        // The shipped underworld: 300 world units below the surface, ×120 px.
+        const originY = 300 * 120;
+        expect(worldToMap(originY, 0.1, originY)).toBe(0);
+        expect(worldToMap(originY + 600, 0.1, originY)).toBeCloseTo(60, 10);
+        expect(worldToMap(originY - 600, 0.1, originY)).toBeCloseTo(-60, 10);
+    });
+
+    // ⚑ Omitting it must stay exactly what it always was, because `world` is at
+    // {0,0} and every call site that predates zones relies on it.
+    it('is the old pure multiply when the zone sits at the shared origin', () => {
+        expect(worldToMap(4320, 0.1, 0)).toBe(worldToMap(4320, 0.1));
+    });
+});
+
+describe('toZoneLocal', () => {
+    it('is the subtraction worldToMap and the fog both need', () => {
+        expect(toZoneLocal(36000, 36000)).toBe(0);
+        expect(toZoneLocal(36000)).toBe(36000);
     });
 });
 
@@ -388,6 +413,34 @@ describe('rosterMarkers', () => {
 
         expect(marker.x).toBeCloseTo(worldToMap(-6984, FULL), 6);
         expect(marker.y).toBeCloseTo(worldToMap(2880, FULL), 6);
+    });
+
+    // ⭐ THE SAME COINCIDENCE, IN A ZONE THAT IS NOT AT THE SHARED ORIGIN —
+    // which is the whole U4 fix, and the asymmetry is the point: the roster
+    // carries WORLD px and takes the origin, while the campfire comes out of the
+    // zone FILE and is zone-local already. Offsetting both, or neither, puts the
+    // player and the fire they are standing at in two different places.
+    it('lands a player and their campfire together in a placed zone too', () => {
+        // The shipped underworld: origin {0, 300} world units.
+        const origin = {x: 0, y: 300 * 120};
+        const [fire] = campfireMarkers(
+            [{id: 'underworld-1', x: 0, y: 8}], new Set(['underworld-1']), '', FULL, 120);
+        // The same place in WORLD coordinates: zone-local (0, 8) + the origin.
+        const [dot] = rosterMarkers([{id: 8, x: 0, y: 8 * 120 + origin.y}], SELF, FULL, origin);
+
+        expect(dot.x).toBeCloseTo(fire.x, 6);
+        expect(dot.y).toBeCloseTo(fire.y, 6);
+    });
+
+    // ⚑ And the regression itself: without the origin the dot lands a whole zone
+    // away, which is what shipped and what nothing caught.
+    it('puts a placed zone\u2019s dot far off the map when the origin is omitted', () => {
+        const worldY = 8 * 120 + 300 * 120;
+        const [withOrigin] = rosterMarkers(
+            [{id: 8, x: 0, y: worldY}], SELF, FULL, {x: 0, y: 300 * 120});
+        const [without] = rosterMarkers([{id: 8, x: 0, y: worldY}], SELF, FULL);
+
+        expect(Math.abs(without.y - withOrigin.y)).toBeCloseTo(worldToMap(300 * 120, FULL), 6);
     });
 
     it('lands a player and the campfire they stand at on the same spot', () => {

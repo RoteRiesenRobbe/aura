@@ -157,9 +157,27 @@ func Tokens(t []string) Configuration {
 	}
 }
 
+// Bounds installs the PRIMARY zone's rectangle — what rides the wire as
+// Welcome.map_width/map_height and what randomSpawnPosition falls back to. It
+// is NOT the extent of the loaded world when several zones are placed; see
+// Walls, and cfg.GameConfig.Bounds for why a union would be wrong.
 func Bounds(width, height float32) Configuration {
 	return func(g *cfg.GameConfig) error {
 		g.Bounds = cfg.Bounds{Width: width, Height: height}
+		return nil
+	}
+}
+
+// Walls installs one border rectangle per loaded zone. Separate from Bounds for
+// the same reason Spawns is separate from the zone: the game takes resolved
+// geometry, and by this point world.Place has already applied every Origin and
+// proven the rectangles cannot reach each other (plan-underworld.md U1).
+//
+// ⚑ Absent or empty falls back to a single wall around Bounds, which is what
+// every test that builds a game without a zone relies on.
+func Walls(walls []cfg.PlacedBounds) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.Walls = walls
 		return nil
 	}
 }
@@ -171,9 +189,28 @@ func ZoneName(name string) Configuration {
 	}
 }
 
+// ZoneNames installs every loaded zone's stem, primary first, for the client to
+// know which of the zone files it already bundles are real this boot
+// (plan-underworld.md U2).
+func ZoneNames(names []string) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.ZoneNames = names
+		return nil
+	}
+}
+
 func Spawns(spawns []world.Spawn) Configuration {
 	return func(g *cfg.GameConfig) error {
 		g.Spawns = spawns
+		return nil
+	}
+}
+
+// ZoneAnchors installs the named-anchor lookup an anchor-mode travel_to row
+// delivers to (plan-underworld.md U3). Resolved content, the Spawns precedent.
+func ZoneAnchors(anchors map[string]world.Point) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.ZoneAnchors = anchors
 		return nil
 	}
 }
@@ -186,4 +223,17 @@ func PathCorridors(corridors []world.Corridor) Configuration {
 		g.PathCorridors = corridors
 		return nil
 	}
+}
+
+// zoneNamesOrPrimary is the zone-stem list that rides the Welcome: the loaded
+// set when there is one, else just the primary. Never empty, because a client
+// that receives no stems at all would render no terrain and blame itself.
+func zoneNamesOrPrimary(gc *cfg.GameConfig) []string {
+	if len(gc.ZoneNames) > 0 {
+		return gc.ZoneNames
+	}
+	if gc.ZoneName == "" {
+		return nil
+	}
+	return []string{gc.ZoneName}
 }

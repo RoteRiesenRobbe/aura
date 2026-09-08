@@ -18,8 +18,13 @@
 # it isn't installed on this machine). It does NOT rebuild the frontend;
 # webpack's own dev server does that.
 #
-# Local quirk pinned in CLAUDE.md: this machine's conf.json names no zone,
-# so aurad needs -zone world explicitly or boot panics.
+# ⚑ NO -zone / -zones FLAG HERE, DELIBERATELY. It used to pass `-zone world`
+# because this machine's conf.json named none and boot panicked without it;
+# backend/conf.json now authors `game.zones` like every other conf, and the
+# flag OUTRANKS it (selection order: -zones, -zone, conf.zones, conf.zone).
+# So the flag silently loaded only the surface, and since world.json places two
+# CaveMouths whose destinations live in the underworld, boot refused outright.
+# Leave the zone list to the conf: adding a third zone is then one edit, not two.
 set -euo pipefail
 
 if [ -t 1 ] && [ "${TERM:-}" != "dumb" ]; then
@@ -155,7 +160,7 @@ restart_server() {
 	kill_port 2000 "aurad"
 	cd "$REPO/backend"
 	echo -e "${BLUE}  ▶ [aurad]${RESET} Launching ./aurad.exe (logs: $LOG_DIR/server.log)..."
-	nohup ./aurad.exe -dev -content ../api -zone world >"$LOG_DIR/server.log" 2>&1 </dev/null &
+	nohup ./aurad.exe -dev -content ../api >"$LOG_DIR/server.log" 2>&1 </dev/null &
 	disown
 	if ! wait_for_http http://localhost:2000/ 20 "aurad"; then
 		echo -e "${RED}!! [aurad] aurad did not come up — last 20 log lines:${RESET}" >&2

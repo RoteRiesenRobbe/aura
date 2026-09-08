@@ -73,7 +73,9 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// entityType, which is a structure, so role and art disagree here on purpose.
 	// 45 → 46 with the PortalSummon (plan-portal-spells.md C2): the same recipe
 	// a fifth time, for the pair's other portal.
-	assert.Len(t, byRole[RoleCreature], 46, "everything else is a creature")
+	// 46 → 48 with the CaveMouth and CaveExit (plan-underworld.md U3): the
+	// memorial recipe a sixth and seventh time, for the two ends of a passage.
+	assert.Len(t, byRole[RoleCreature], 48, "everything else is a creature")
 	assert.Len(t, byRole, 3, "no def carries a role outside the three")
 }
 

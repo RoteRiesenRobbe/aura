@@ -154,6 +154,27 @@
         map.setProperty('zoneName', model.zoneName);
         map.setProperty('boundsWidth', model.boundsWidth);
         map.setProperty('boundsHeight', model.boundsHeight);
+        /* ⭐ THE FOURTH WRITER (plan-underworld.md U1/L3). The three the plan
+         * names — world/zone.go, ZoneModel.getZoneAsJSON, aura-convert.js — all
+         * carry `origin`, and the completeness pin proves it. THIS bridge is not
+         * one of them and the pin cannot see it: the pin round-trips the PURE
+         * converter (zoneToModel → modelToZone), while every map-level value has
+         * to be copied onto Tiled's own TileMap by hand, right here, or it is
+         * gone the moment a human presses Save.
+         *
+         * ⚑ It went unnoticed because verify.sh only round-trips world.json, and
+         * world.json authors NO origin — so the one file that exercised this path
+         * had nothing to lose. underworld.json came back at {0,0} and the server
+         * refused the boot (L1: the two zones would then overlap).
+         *
+         * ⚑ Written only when authored, so a zone with no origin still round-trips
+         * byte-identically instead of gaining an `origin: {0,0}` key. */
+        if (model.originX !== undefined && model.originX !== null) {
+            map.setProperty('originX', model.originX);
+        }
+        if (model.originY !== undefined && model.originY !== null) {
+            map.setProperty('originY', model.originY);
+        }
         // Whichever of the repo's two writers last touched this file decides
         // whether it ends in a newline; we reproduce what we found rather than
         // taking a side (see endsWithNewline in aura-convert.js).
@@ -269,6 +290,13 @@
             boundsHeight: bh === undefined ? map.height : bh,
             layers: layers,
         };
+        // The other half of the origin bridge above. ⚑ Absent stays ABSENT rather
+        // than defaulting to 0: modelToZone omits the key entirely for an
+        // unplaced zone, which is what keeps world.json byte-identical.
+        var ox = map.property('originX');
+        var oy = map.property('originY');
+        if (ox !== undefined && ox !== null) { model.originX = ox; }
+        if (oy !== undefined && oy !== null) { model.originY = oy; }
 
         // Normally already warm from read(); the fallback covers a map built
         // from scratch inside Tiled and saved straight to a zone path.

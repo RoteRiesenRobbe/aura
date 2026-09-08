@@ -651,13 +651,27 @@ describe('AuraConvert — save-time validation (C4)', () => {
         expect(msg).toContain('cannot wander or patrol');
     });
 
-    it('rejects campfires with no starting spawn, an empty id, or a duplicate id', () => {
+    it('rejects an empty campfire id or a duplicate one', () => {
         const fire = (id: string, startingSpawn?: boolean) => ({id, x: 0, y: 0, startingSpawn});
-        expect(only(zone({campfires: [fire('a')]}))).toContain('startingSpawn');
         expect(errs(zone({campfires: [fire('a', true)]}))).toEqual([]);
         expect(errs(zone({campfires: [fire('a', true), fire('a')]})).join(' '))
             .toContain('duplicate spawn point id');
         expect(errs(zone({campfires: [fire('', true)]})).join(' ')).toContain('must not be empty');
+    });
+
+    // ⭐ AND ACCEPTS A ZONE WITH FIRES BUT NO STARTING SPAWN, which used to be
+    // refused (plan-underworld.md U1/L4). That rule moved from per-FILE to
+    // per-SET on the server the moment more than one zone could load: a cave
+    // nobody binds in legitimately carries fires with none flagged, while the
+    // WORLD must still have somewhere to put a fresh character.
+    //
+    // ⚑ Tiled edits ONE file and simply cannot answer a question about the set,
+    // so keeping the check here refused to save every legal cave — which is how
+    // it was found, on the first attempt to edit underworld.json. The invariant
+    // is not weakened: world.Place still hard-fails the boot.
+    it('accepts a cave: campfires with no starting spawn is a SET-wide question', () => {
+        const fire = (id: string, startingSpawn?: boolean) => ({id, x: 0, y: 0, startingSpawn});
+        expect(errs(zone({campfires: [fire('underworld-1')]}))).toEqual([]);
     });
 
     it('rejects a duplicate anchor name and one placed outside the bounds', () => {
@@ -784,6 +798,12 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
     const EVERY_KEY = {
         name: 'T',
         bounds: {width: 20, height: 10},
+        // ⚑ Authored NON-ZERO on purpose. origin is omitted when absent so
+        // today's zones round-trip diff-clean, so a {0, 0} fixture would
+        // serialize to no key at all and the pin would pass while both writers
+        // quietly dropped it — the same trap paths.blocksMovement documents
+        // two fields down.
+        origin: {x: 500, y: -500},
         terrain: [{type: 'Green Grass 1', x: 0, y: 0, size: 1, rotation: 0.5, flipped: 'horizontal'}],
         props: [{type: 'Tree', x: 1, y: 1, rotation: 0.25, blocksMovement: true, scale: 2.5}],
         spawns: [{
@@ -795,6 +815,12 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             // wanderRadius is mutually exclusive with waypoints, so it needs
             // a spawn of its own to appear at all.
             mob: 'Wolf', x: 5, y: 5, angle: 0, wanderRadius: 4,
+            // ⛑ The per-placement travel destination (U3b). Authored here for
+            // the reason origin and paths.blocksMovement both document: its
+            // sentinel is the EMPTY STRING, so a fixture that left it out would
+            // serialize to no key at all and this pin would pass while both
+            // writers quietly dropped every cave mouth’s destination.
+            anchor: 'underworld-entry',
         }],
         campfires: [{id: 'spawnpoint-1', x: 6, y: 6, startingSpawn: true}],
         darkAreas: [{x: 7, y: 7, radius: 2}],

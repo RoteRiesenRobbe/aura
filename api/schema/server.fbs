@@ -783,6 +783,24 @@ table Welcome {
   // Appended at the table end so existing field IDs stay stable.
   gray_base:int;
   gray_step:int;
+
+  // Every zone the server LOADED, by file stem, primary first
+  // (plan-underworld.md U2). zone_name above stays the primary one and keeps
+  // its meaning for every existing consumer.
+  //
+  // ⭐ WHY A LIST AND NOT A PER-PLAYER FIELD. The client bundles every zone
+  // file already, so this is the whole of what it needs: which of them are
+  // real this boot. WHERE the player is, it derives from its own position
+  // against each zone's origin + bounds — so there is no per-entity layer
+  // field, no per-player layer field, and nothing about a zone change has to
+  // ride the wire at all. A warp moves the AOI 300 units and the snapshot
+  // replaces itself.
+  //
+  // ⚑ Welcome is marshalled ONCE per server lifetime, which is exactly right
+  // for a set that cannot change without a restart (a zone is read at boot).
+  //
+  // Appended at the table end so existing field IDs stay stable.
+  zone_names:[string];
 }
 
 table Accept {

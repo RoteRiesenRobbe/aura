@@ -66,8 +66,20 @@ grayStep():number {
   return offset ? this.bb!.readInt32(this.bb_pos + offset) : 0;
 }
 
+zoneNames(index: number):string
+zoneNames(index: number,optionalEncoding:flatbuffers.Encoding):string|Uint8Array
+zoneNames(index: number,optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 20);
+  return offset ? this.bb!.__string(this.bb!.__vector(this.bb_pos + offset) + index * 4, optionalEncoding) : null;
+}
+
+zoneNamesLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 20);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
 static startWelcome(builder:flatbuffers.Builder) {
-  builder.startObject(8);
+  builder.startObject(9);
 }
 
 static addServerName(builder:flatbuffers.Builder, serverNameOffset:flatbuffers.Offset) {
@@ -102,12 +114,28 @@ static addGrayStep(builder:flatbuffers.Builder, grayStep:number) {
   builder.addFieldInt32(7, grayStep, 0);
 }
 
+static addZoneNames(builder:flatbuffers.Builder, zoneNamesOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(8, zoneNamesOffset, 0);
+}
+
+static createZoneNamesVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startZoneNamesVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
+}
+
 static endWelcome(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createWelcome(builder:flatbuffers.Builder, serverNameOffset:flatbuffers.Offset, mapWidth:number, mapHeight:number, totalDaycycleTicks:bigint, dayTimeTicks:bigint, zoneNameOffset:flatbuffers.Offset, grayBase:number, grayStep:number):flatbuffers.Offset {
+static createWelcome(builder:flatbuffers.Builder, serverNameOffset:flatbuffers.Offset, mapWidth:number, mapHeight:number, totalDaycycleTicks:bigint, dayTimeTicks:bigint, zoneNameOffset:flatbuffers.Offset, grayBase:number, grayStep:number, zoneNamesOffset:flatbuffers.Offset):flatbuffers.Offset {
   Welcome.startWelcome(builder);
   Welcome.addServerName(builder, serverNameOffset);
   Welcome.addMapWidth(builder, mapWidth);
@@ -117,6 +145,7 @@ static createWelcome(builder:flatbuffers.Builder, serverNameOffset:flatbuffers.O
   Welcome.addZoneName(builder, zoneNameOffset);
   Welcome.addGrayBase(builder, grayBase);
   Welcome.addGrayStep(builder, grayStep);
+  Welcome.addZoneNames(builder, zoneNamesOffset);
   return Welcome.endWelcome(builder);
 }
 }

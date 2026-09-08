@@ -253,6 +253,58 @@ func loadZone(fsys fs.FS, name string, mr mobs.Registry, pr world.PropRegistry) 
 	return zone
 }
 
+// loadZones parses and PLACES the set of zones the server runs, in the order
+// given — the first is the primary zone (plan-underworld.md U1). Curated
+// content: any validation failure, including the placement rules, aborts
+// startup.
+func loadZones(fsys fs.FS, names []string, mr mobs.Registry, pr world.PropRegistry) []*world.Zone {
+	zones, err := world.LoadZonesFS(fsys, names, mr, pr)
+	if err != nil {
+		slog.Error("failed to load zones", slog.Any("err", err))
+		panic(err)
+	}
+	for i, zone := range zones {
+		slog.Info("Loaded zone",
+			slog.String("id", zone.ID),
+			slog.String("name", zone.Name),
+			// Logged even when {0,0}: "where is this zone" is the first thing
+			// anyone debugging a placed set needs, and its absence reads as
+			// "the field is not wired" rather than "it is at the origin".
+			slog.Bool("primary", i == 0),
+			slog.Float64("originX", float64(zone.Origin.X)),
+			slog.Float64("originY", float64(zone.Origin.Y)),
+			slog.Float64("width", float64(zone.Bounds.Width)),
+			slog.Float64("height", float64(zone.Bounds.Height)),
+			slog.Int("props", len(zone.Props)),
+			slog.Int("spawns", len(zone.Spawns)))
+		// A live zone referencing legacy-tagged content means the tag went
+		// stale — untag the content or retire the reference (step-7 A.5).
+		if len(zone.LegacyRefs) > 0 {
+			slog.Warn("live zone references legacy-tagged content",
+				slog.String("zone", zone.ID),
+				slog.String("refs", strings.Join(zone.LegacyRefs, ", ")))
+		}
+	}
+	// Do the anchor-mode travel rows point anywhere (plan-underworld.md U3)?
+	//
+	// ⚑ HERE rather than in either loader, quests.CrossValidate's reason one
+	// registry over: the anchor name is authored in api/mobs/, but the mob
+	// registry is built BEFORE any zone because the zone loader takes it as an
+	// argument. This is the first point at which both exist.
+	anchorWarnings, err := world.CrossValidateTravelAnchors(mr, zones)
+	if err != nil {
+		slog.Error("failed to cross-validate travel anchors", slog.Any("err", err))
+		panic(err)
+	}
+	// A door nobody has placed yet. A warning rather than a boot failure so the
+	// two halves of an entrance - the mob def and the zone that places it - can
+	// be authored in either order.
+	for _, w := range anchorWarnings {
+		slog.Warn("unreachable travel destination", slog.String("detail", w))
+	}
+	return zones
+}
+
 // loadMilestoneUnlocks parses the milestone-unlock table and resolves skill
 // names against the provided registry. Curated content: any validation failure
 // aborts startup.

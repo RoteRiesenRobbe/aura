@@ -27,9 +27,31 @@ import type {hasAABB} from '../../internal-tools/develop/logic/AABBs';
 export class EntityManager {
     width: number;
     height: number;
+    /**
+     * The active zone's centre in the client's px space (plan-underworld.md U4).
+     * `{0,0}` for `world` and for any zone that authors no origin.
+     *
+     * ⭐ THE SIZE ALONE IS NOT A RECTANGLE. The camera clamp is the only
+     * consumer, and with a size but no centre it holds the view inside a box
+     * around the WORLD origin — so a player in a zone at `{0, 300}` is clamped
+     * to empty coordinates 300 units above themselves and simply vanishes off
+     * the top of their own screen.
+     */
+    originX = 0;
+    originY = 0;
 
     objects: {[key: gameObjectId]: GameObject} = {};
     private miniMap: MiniMap;
+
+    /** Moves to another zone's rectangle (plan-underworld.md U2/U4). The bounds
+     *  are ONE zone's, never a union, so they move with the player — and so does
+     *  the CENTRE, without which they are only half a rectangle. */
+    setBounds(width: number, height: number, originX: number = 0, originY: number = 0): void {
+        this.width = width;
+        this.height = height;
+        this.originX = originX;
+        this.originY = originY;
+    }
 
     constructor(width: number, height: number, miniMap: MiniMap) {
         this.width = width;

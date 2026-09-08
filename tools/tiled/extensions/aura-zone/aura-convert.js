@@ -160,6 +160,7 @@ var AuraConvert = (function () {
      *   respawnTicks       -1    0 is TAKEN (absent parses to 0 = next tick)
      *   respawnVariancePct -1    same
      *   patrolMode   pingpong    the writer omits anything that is not "loop"
+     *   anchor             ""    an empty anchor name is not a name (U3b)
      *
      * ⚑ wanderRadius and respawnTicks are the two rows where the obvious
      * sentinel (0) is a real authored value. That is why this table exists
@@ -174,6 +175,11 @@ var AuraConvert = (function () {
         wanderRadius: -1,
         idleSpeedFactor: 0,
         level: 0,
+        // The per-placement travel destination (plan-underworld.md U3b). Its
+        // sentinel is the empty string, which is safe by the same C6 rule the
+        // palette records: "" is not an anchor name, so a Tiled that drops a
+        // default-valued property and one that keeps it reach the same answer.
+        anchor: '',
     };
     var PATROL_INHERIT = 'pingpong';
 
@@ -248,6 +254,17 @@ var AuraConvert = (function () {
         var data = {
             name: z.name,
             bounds: {width: z.bounds.width, height: z.bounds.height},
+            // Where this zone sits in the shared coordinate space when several
+            // are loaded together (plan-underworld.md U1). undefined =
+            // {0, 0} and JSON.stringify drops the key, so every zone that
+            // authors no origin — which is all of them today — stays
+            // byte-identical.
+            //
+            // ⚑ CARRIED, NOT DRAWN. There is no origin object on any layer:
+            // moving a zone by dragging it would move it relative to itself,
+            // which is meaningless. It rides as a map property, like the
+            // bounds it belongs beside.
+            origin: z.origin !== undefined ? z.origin : undefined,
             terrain: z.terrain.map(function (t) {
                 return {
                     type: t.type,
@@ -290,6 +307,7 @@ var AuraConvert = (function () {
                         ? s.waypoints.map(function (w) { return {x: round(w.x, 2), y: round(w.y, 2)}; })
                         : undefined,
                     patrolMode: s.patrolMode === 'loop' ? 'loop' : undefined,
+                    anchor: s.anchor || undefined,
                 };
             }),
             campfires: z.campfires && z.campfires.length > 0
@@ -530,6 +548,11 @@ var AuraConvert = (function () {
             zoneName: z.name,
             boundsWidth: z.bounds.width,
             boundsHeight: z.bounds.height,
+            // undefined when the zone authors no origin, so modelToZone can
+            // tell "at {0,0}" apart from "authors nothing" and put the file
+            // back exactly as it found it.
+            originX: z.origin ? z.origin.x : undefined,
+            originY: z.origin ? z.origin.y : undefined,
             layers: [
                 // terrain array order IS paint order (GroundTextureManager), so
                 // the layer must draw by index or the canvas lies about which
@@ -570,6 +593,10 @@ var AuraConvert = (function () {
         return {
             name: m.zoneName,
             bounds: {width: m.boundsWidth, height: m.boundsHeight},
+            origin: (m.originX !== undefined && m.originX !== null)
+                || (m.originY !== undefined && m.originY !== null)
+                ? {x: Number(m.originX) || 0, y: Number(m.originY) || 0}
+                : undefined,
             terrain: layer('terrain').map(function (o, i) {
                 if (o.flipH && o.flipV) {
                     throw new Error('terrain[' + i + '] "' + o.name + '": world.json has no'
@@ -609,6 +636,7 @@ var AuraConvert = (function () {
                     idleSpeedFactor: p.idleSpeedFactor,
                     level: p.level,
                     patrolMode: p.patrolMode,
+                    anchor: p.anchor,
                 };
                 if (o.shape === 'polyline' && o.polygon && o.polygon.length > 0) {
                     s.waypoints = o.polygon.map(function (v) {
@@ -872,19 +900,27 @@ var AuraConvert = (function () {
 
         var campfires = layer('campfires');
         var seenFire = {};
-        var hasStart = false;
         campfires.forEach(function (o, i) {
             var id = String(o.name || '').replace(/^\s+|\s+$/g, '');
             if (!id) { bad(o, i, 'id must not be empty (the object\'s Name is the campfire id)'); }
             else if (seenFire[id]) { bad(o, i, 'duplicate spawn point id "' + id + '"'); }
             seenFire[id] = true;
-            if (prop(o, 'startingSpawn')) { hasStart = true; }
         });
-        if (campfires.length > 0 && !hasStart) {
-            errors.push('zone has ' + campfires.length
-                + ' campfire(s) but none is flagged startingSpawn — fresh players would'
-                + ' have nowhere to land');
-        }
+        /* ⛔ "at least one campfire is a startingSpawn" USED TO BE CHECKED HERE and
+         * cannot be any more (plan-underworld.md U1/L4). The server moved it from
+         * per-FILE to per-SET (world.Place checkSetWide) the moment more than one
+         * zone could load: a cave nobody binds in legitimately carries campfires
+         * with no starting spawn, while the WORLD still must have somewhere to put
+         * a fresh character.
+         *
+         * ⚑ Tiled edits ONE file, so it simply cannot answer a question about the
+         * set — keeping the old rule here refused to save every legal cave. The
+         * invariant is NOT weakened: aurad still hard-fails at boot, only later
+         * and with the whole set in scope, which is the only scope it is true at.
+         *
+         * ⚑ Duplicate ids stay checked above, deliberately: those are a per-file
+         * question too (the SET-wide half is checkSetWide's L5), and catching the
+         * cheap half at save time still beats catching it at boot. */
 
         layer('darkAreas').forEach(function (o, i) {
             if (!(o.width > 0)) { bad(o, i, 'radius must be positive'); }

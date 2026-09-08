@@ -7,6 +7,16 @@
  *
  * Two facts make the whole file this short:
  *
+ *   · ⚑ A ZONE is origin-centred, and since plan-underworld.md U1 that has
+ *     stopped meaning the WORLD is. The map is baked ZONE-LOCAL (MapTerrain
+ *     reads the zone file, whose every coordinate is zone-local), while live
+ *     positions — `getX()/getY()`, roster entries — are WORLD coordinates. So a
+ *     map coordinate is `(world − origin) × scale`. ⛔ For `world` the origin is
+ *     `{0,0}` and the two spaces coincide, which is why every call site could
+ *     inline `× scale` for a year and be right; the underworld sits at
+ *     `{0, 300}` and every one of them was 300 units off. ⭐ Data read from the
+ *     ZONE FILE is already zone-local and must NOT be offset again — see
+ *     campfireMarkers.
  *   · ⚑ The world is ORIGIN-CENTRED. `api/zones/world.json` is 144 × 72 with
  *     terrain spanning ±71.5 × ±35.6, and the layer containers are positioned
  *     at the canvas centre (MiniMap.updateScaling). So a map coordinate maps
@@ -79,9 +89,29 @@ export function mapScale(state: MapState, viewport: MapViewport, bounds: MapBoun
  * A world coordinate in canvas pixels, relative to the layer origin — which is
  * the canvas centre, not its top-left. Callers add nothing; that offset is the
  * container's own position.
+ *
+ * ⭐ They DO pass the zone origin, and forgetting it is the failure this
+ * function exists to prevent: an icon plotted at `world × scale` inside a zone
+ * at `{0, 300}` lands 300 units off the map — silently, and only in that zone.
+ * ⛔ Never call this on a coordinate read from a zone FILE. Those are already
+ * zone-local and would be offset twice.
  */
-export function worldToMap(world: number, scale: number): number {
-    return world * scale;
+export function worldToMap(world: number, scale: number, originPx: number = 0): number {
+    return toZoneLocal(world, originPx) * scale;
+}
+
+/**
+ * A world coordinate in its ZONE's own space — the space the map is baked in.
+ *
+ * ⚑ `originPx` is the ACTIVE zone's origin in the client's px space
+ * (`meter2px(zone.origin.x)`), and it defaults to 0 because that is the answer
+ * for `world` and for every zone authored before origins existed.
+ *
+ * Separate from worldToMap because the fog wants the px space and not the
+ * canvas one: MapFog.revealAt corner-origins the coordinate itself.
+ */
+export function toZoneLocal(world: number, originPx: number = 0): number {
+    return world - originPx;
 }
 
 /**
@@ -168,6 +198,12 @@ export interface CampfireMarker {
  * `campfires` is authored in WORLD units and the map is in px space, so the
  * caller passes the px-per-world-unit factor it already has (meter2px) rather
  * than this module reaching for the client's config.
+ *
+ * ⛔ NO ZONE-ORIGIN TERM HERE, DELIBERATELY — the one exemption on this map.
+ * These coordinates come straight out of `api/zones/*.json`, which is authored
+ * zone-local: the same numbers MapTerrain bakes from. Subtracting the origin as
+ * rosterMarkers does would offset them a second time and put every fire in the
+ * underworld 300 units off its own map.
  */
 export function campfireMarkers(
     campfires: ZoneCampfirePoint[],
@@ -277,6 +313,12 @@ export interface RosterMarker {
  * same f32ToPx as Character.pos), so unlike campfireMarkers above there is no
  * world→px factor here. Applying one would place every dot 120× too far out.
  *
+ * ⚑ They are WORLD px though, which is why this takes the zone origin and
+ * campfireMarkers does not: a roster entry is a live position, not something
+ * read out of the zone file. ⭐ The server already filters the roster BY ZONE
+ * (plan-underworld.md L14), so every entry that arrives belongs to the active
+ * one and a single origin is the right answer for all of them.
+ *
  * ⚑ Returns nothing at scale 0, for the same reason campfireMarkers does — a
  * display:none canvas measures 0 × 0, and multiplying through would pile every
  * player onto the centre of the world.
@@ -285,6 +327,7 @@ export function rosterMarkers(
     players: RosterPlayer[],
     selfId: number,
     scale: number,
+    origin: {x: number, y: number} = {x: 0, y: 0},
 ): RosterMarker[] {
     if (!isPositive(scale) || !players) {
         return [];
@@ -299,8 +342,8 @@ export function rosterMarkers(
         }
         markers.push({
             id: player.id,
-            x: player.x * scale,
-            y: player.y * scale,
+            x: worldToMap(player.x, scale, origin.x),
+            y: worldToMap(player.y, scale, origin.y),
         });
     }
     return markers;
@@ -325,9 +368,10 @@ export interface ResizableTerrain {
  * the line testable is what lets the alignment invariant be pinned at all.
  *
  * That invariant: terrain is drawn at exactly `mapWidth × scale` and markers
- * at `getX() × scale`, so a marker's offset from the centre is always the same
- * fraction of the map as its world position. Two different scales here and
- * every marker drifts off the ground it stands on.
+ * at `(getX() − origin) × scale`, so a marker's offset from the centre is always
+ * the same fraction of the map as its position WITHIN ITS ZONE. Two different
+ * scales here and every marker drifts off the ground it stands on; two different
+ * origins and it drifts off a whole zone.
  */
 export function resizeTerrain(
     terrain: ResizableTerrain, mapWidth: number, mapHeight: number, scale: number,

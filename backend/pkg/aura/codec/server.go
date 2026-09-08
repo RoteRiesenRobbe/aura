@@ -16,6 +16,19 @@ func WelcomeMessageFlatbufMarshal(builder *flatbuffers.Builder, w *Welcome) flat
 	serverName := builder.CreateString(w.ServerName)
 	zoneName := builder.CreateString(w.ZoneName)
 
+	// ⚑ Every string has to be built BEFORE WelcomeStart — flatbuffers refuses
+	// a nested write once a table is open — and a vector is built back to
+	// front, so the offsets go in reversed.
+	zoneNameOffsets := make([]flatbuffers.UOffsetT, len(w.ZoneNames))
+	for i, n := range w.ZoneNames {
+		zoneNameOffsets[i] = builder.CreateString(n)
+	}
+	AuraApi.WelcomeStartZoneNamesVector(builder, len(zoneNameOffsets))
+	for i := len(zoneNameOffsets) - 1; i >= 0; i-- {
+		builder.PrependUOffsetT(zoneNameOffsets[i])
+	}
+	zoneNames := builder.EndVector(len(zoneNameOffsets))
+
 	AuraApi.WelcomeStart(builder)
 	AuraApi.WelcomeAddServerName(builder, serverName)
 	AuraApi.WelcomeAddMapWidth(builder, w.Width)
@@ -25,6 +38,7 @@ func WelcomeMessageFlatbufMarshal(builder *flatbuffers.Builder, w *Welcome) flat
 	AuraApi.WelcomeAddZoneName(builder, zoneName)
 	AuraApi.WelcomeAddGrayBase(builder, w.GrayBase)
 	AuraApi.WelcomeAddGrayStep(builder, w.GrayStep)
+	AuraApi.WelcomeAddZoneNames(builder, zoneNames)
 
 	welcome := AuraApi.WelcomeEnd(builder)
 
@@ -39,7 +53,14 @@ type Welcome struct {
 	DayTimeTicks       uint64
 	// ZoneName is the active zone's identity (its file stem); the client uses
 	// it to render the matching bundled terrain (world foundation chunk 6).
+	// With several zones loaded it is the PRIMARY one, and every existing
+	// consumer keeps reading it unchanged.
 	ZoneName string
+	// ZoneNames is every zone the server loaded, primary first
+	// (plan-underworld.md U2). The client bundles all zone files already, so
+	// this is only telling it which of them are real this boot; where the
+	// player IS, it derives from position.
+	ZoneNames []string
 
 	// GrayBase and GrayStep are the kill-XP gray knobs the client needs to
 	// derive the nameplate's difficulty colour from what a kill actually pays

@@ -38,6 +38,13 @@ export interface IGame {
     // Used by the zone editor to default to the zone the server actually loaded.
     readonly zoneName: string;
 
+    /**
+     * Follows the local player into another zone, given their world position in
+     * PIXELS (plan-underworld.md U2). Returns the zone entered, or undefined
+     * when nothing changed — which is every tick but a crossing.
+     */
+    updateActiveZone(xPx: number, yPx: number): string | undefined;
+
     readonly width: number;
     readonly height: number;
     readonly centerX: number;

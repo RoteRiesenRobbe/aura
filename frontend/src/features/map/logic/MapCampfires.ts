@@ -108,6 +108,21 @@ export class MapCampfires {
     }
 
     /**
+     * Points the markers at another zone's fires (plan-underworld.md U4).
+     *
+     * ⭐ THE DISCOVERED SET AND THE HOME FIRE SURVIVE, and that is the whole
+     * reason this exists instead of building a second MapCampfires. Both are
+     * the CHARACTER's state, not the zone's — spawn-point ids are unique across
+     * every loaded zone (plan-underworld.md L5), so one set spans them — while
+     * the fire POSITIONS come out of the zone file and do not. Rebuilding the
+     * object would drop the set on every crossing, and the server publishes it
+     * as a one-shot: the markers would simply never come back.
+     */
+    setZone(zoneName: string) {
+        this.campfires = (getZoneData(zoneName)?.campfires || []) as ZoneCampfirePoint[];
+    }
+
+    /**
      * Applies a server publication. Returns whether anything changed, so a
      * caller can skip the redraw on the overwhelmingly common no-op.
      *

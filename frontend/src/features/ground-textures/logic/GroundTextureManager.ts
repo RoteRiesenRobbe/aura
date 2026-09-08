@@ -145,7 +145,26 @@ interface CampfireDefinition {
     id?: string;
 }
 
-interface ZoneJSON {
+export interface ZoneBoundsJSON {
+    width: number;
+    height: number;
+}
+
+export interface ZoneOriginJSON {
+    x: number;
+    y: number;
+}
+
+export interface ZoneJSON {
+    // Zone size in server units. The server's border wall is built from
+    // exactly this rectangle, so it is also what the camera clamp and the map
+    // must size themselves to (plan-underworld.md U2/L13).
+    bounds?: ZoneBoundsJSON;
+    // Where this zone's rectangle sits in the shared coordinate space; absent
+    // means {0, 0}. It is what makes "which zone am I in" answerable from a
+    // position, which is the whole of the client's zone handling — see
+    // features/zones/logic/ActiveZone.ts.
+    origin?: ZoneOriginJSON;
     terrain?: GroundTextureDefinition[];
     darkAreas?: DarkAreaDefinition[];
     // Ground-colour/presentation polygons, read by Regions.loadZone
@@ -191,11 +210,20 @@ export function loadZone(zoneName: string) {
         console.warn(`No bundled zone data for "${zoneName}"; rendering no terrain.`);
         return;
     }
+    // ⚑ THE ORIGIN IS APPLIED HERE, NOT ON THE SERVER. Terrain is client-visual,
+    // so world.Place deliberately leaves it zone-local — the server never reads
+    // it and shifting it there would just give the two sides two chances to
+    // disagree. Every entity the client receives arrives in WORLD coordinates,
+    // so the floor under them has to be drawn in world coordinates too, or a
+    // placed zone renders its ground back at the surface
+    // (plan-underworld.md U2).
+    const ox = zone.origin ? zone.origin.x : 0;
+    const oy = zone.origin ? zone.origin.y : 0;
     (zone.terrain || []).forEach(function (t: GroundTextureDefinition) {
         placeTexture({
             type: groundTextureTypes[t.type],
-            x: meter2px(t.x),
-            y: meter2px(t.y),
+            x: meter2px(t.x + ox),
+            y: meter2px(t.y + oy),
             size: meter2px(t.size),
             rotation: t.rotation,
             flipped: t.flipped,

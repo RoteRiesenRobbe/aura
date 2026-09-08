@@ -93,6 +93,12 @@ export function setup(darknessLayer: Container) {
  */
 export function loadZone(zoneName: string) {
     clear();
+    // Dark areas and campfire glows are client-visual, so they are authored
+    // zone-local and placed here (plan-underworld.md U2) — see
+    // GroundTextureManager.loadZone for why the server does not do it.
+    const zoneOrigin = getZoneData(zoneName)?.origin;
+    const ox = zoneOrigin ? zoneOrigin.x : 0;
+    const oy = zoneOrigin ? zoneOrigin.y : 0;
     const darkAreas = getZoneData(zoneName)?.darkAreas || [];
     active = darkAreas.length > 0;
     layer.visible = active;
@@ -102,15 +108,15 @@ export function loadZone(zoneName: string) {
         const fadeRadius = area.radius + DarknessVisuals.EDGE_FADE;
         const sprite = new Sprite(texture(area.radius / fadeRadius));
         sprite.anchor.set(0.5);
-        sprite.position.set(meter2px(area.x), meter2px(area.y));
+        sprite.position.set(meter2px(area.x + ox), meter2px(area.y + oy));
         sprite.width = sprite.height = 2 * meter2px(fadeRadius);
         layer.addChild(sprite);
         // The AUTHORED radius, not fadeRadius: inside it the world is fully
         // black, in the fade ring it is only partly dark and a plate there
         // still matches what the player can see.
         darkCircles.push({
-            x: meter2px(area.x),
-            y: meter2px(area.y),
+            x: meter2px(area.x + ox),
+            y: meter2px(area.y + oy),
             radiusSq: meter2px(area.radius) ** 2,
         });
     });
@@ -125,12 +131,12 @@ export function loadZone(zoneName: string) {
             const sprite = new Sprite(texture(DarknessVisuals.LIGHT_CORE_FRACTION));
             sprite.anchor.set(0.5);
             sprite.blendMode = 'erase';
-            sprite.position.set(meter2px(fire.x), meter2px(fire.y));
+            sprite.position.set(meter2px(fire.x + ox), meter2px(fire.y + oy));
             sprite.width = sprite.height = 2 * meter2px(CAMPFIRE_LIGHT_RADIUS);
             layer.addChild(sprite);
             staticLights.push({
-                x: meter2px(fire.x),
-                y: meter2px(fire.y),
+                x: meter2px(fire.x + ox),
+                y: meter2px(fire.y + oy),
                 radiusSq: meter2px(CAMPFIRE_LIGHT_RADIUS) ** 2,
             });
         });

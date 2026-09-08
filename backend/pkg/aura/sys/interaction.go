@@ -38,6 +38,11 @@ type Conversant interface {
 	// because a mob that talks is still a mob that can fight, and the answer is
 	// free - but do not read it as a live gate.
 	InCombat() bool
+	// TravelAnchor is this PLACEMENT's anchor-mode destination, empty when the
+	// definition's own default should stand (plan-underworld.md U3b). It is what
+	// makes ONE CaveMouth definition serve every passage in the world: a door's
+	// destination is where it stands, not what kind of door it is.
+	TravelAnchor() string
 	// Owner is the player who summoned a runtime-spawned actor, nil for every
 	// zone-placed one (plan-portal-spells.md D3/D5). It is what a travel_to row
 	// resolves its destination against: the portal delivers to the CASTER's
@@ -151,6 +156,17 @@ type InteractionSystem struct {
 	// travel row LOCKED rather than crashing, because a portal that cannot say
 	// where it goes is exactly what an unbound owner produces anyway.
 	anchors AnchorSource
+
+	// zoneAnchors resolves an anchor-mode travel_to row (plan-underworld.md U3):
+	// the cave mouth's destination, in world coordinates, built once at boot.
+	//
+	// ⚑ A PLAIN MAP AND NOT AN INTERFACE, unlike the campfire seam above, and
+	// the difference is the data rather than the style: a campfire anchor is live
+	// connection state that changes as players bind, while a zone anchor is
+	// authored geometry that cannot change without a restart. Nil is supported
+	// with the same posture as everything else here - every anchor row renders
+	// LOCKED, which is what a door with no destination should look like.
+	zoneAnchors map[string]phy.Vec2f
 }
 
 // rowSourceMux dispatches a node's declared row source to whichever provider
@@ -242,6 +258,18 @@ func (s *InteractionSystem) SetAnchors(a AnchorSource) {
 	s.anchors = a
 }
 
+// SetZoneAnchors wires the named zone anchors an anchor-mode travel_to row
+// delivers to (plan-underworld.md U3). Boot data, so it is set once from
+// core/game.go and never again.
+//
+// ⛑ The BOOT-TIME guarantee that an authored name actually exists lives in
+// world.CrossValidateTravelAnchors, not here: this map has no idea which mobs
+// name which anchors, and a lookup that merely fails closed at runtime is a
+// door that swallows the keypress.
+func (s *InteractionSystem) SetZoneAnchors(a map[string]phy.Vec2f) {
+	s.zoneAnchors = a
+}
+
 // travelSeam is everything a travel_to row may touch: whether it has a
 // destination at all, and the move itself (plan-portal-spells.md D3/D5).
 //
@@ -256,21 +284,35 @@ func (s *InteractionSystem) SetAnchors(a AnchorSource) {
 type travelSeam interface {
 	// CanReach reports whether a row in this mode could deliver right now. The
 	// present side renders the row LOCKED when it cannot.
-	CanReach(mode mobs.TravelMode) bool
+	// ⚑ TWO ARGUMENTS BECAUSE A DESTINATION IS TWO THINGS since U3: the mode
+	// says how to resolve, and anchor is the name the "anchor" mode resolves BY.
+	// It is empty for every owner-relative mode, and the loader refuses it there
+	// rather than letting it ride along unread.
+	CanReach(mode mobs.TravelMode, anchor string) bool
 	// Travel delivers the clicking player, reporting whether it happened. A
 	// refusal is the same silent, ordinary refusal every stale click gets - and
 	// it covers the real race: the owner may drop between the panel and the press.
-	Travel(mode mobs.TravelMode) bool
+	Travel(mode mobs.TravelMode, anchor string) bool
 }
 
-// portalTravel is the shipped seam: one conversation's owner-side destination
-// and its player-side move.
+// portalTravel is the shipped seam: one conversation's destination and its
+// player-side move.
+//
+// ⚑ "owner-side" was true until U3. Two of the three modes still resolve
+// through the owner; anchor mode resolves through authored geometry and works
+// on a conversant that has no owner at all, which is what a cave mouth is.
 //
 // ⚑ THE DESTINATION IS RESOLVED NOW, not when the portal was cast (D5), which is
 // the whole reason this holds the owner rather than a position: a caster who
 // re-binds during the portal's 30 s changes where it leads.
 type portalTravel struct {
 	anchors AnchorSource
+	// zoneAnchors is the authored-geometry destination table (U3). Unlike every
+	// other field here it has nothing to do with the conversant's owner.
+	zoneAnchors map[string]phy.Vec2f
+	// anchorOverride is the conversant PLACEMENT's own destination, which wins
+	// over the grant's default when it is set (U3b).
+	anchorOverride string
 	// owner is the conversant's summoner, nil for a zone-placed actor.
 	//
 	// ⚑ Reading Client().UUID() off a DISCONNECTED owner is safe and is the
@@ -292,9 +334,24 @@ type portalTravel struct {
 	rider     interactor
 }
 
-func (t portalTravel) destination(mode mobs.TravelMode) (phy.Vec2f, bool) {
+func (t portalTravel) destination(mode mobs.TravelMode, anchor string) (phy.Vec2f, bool) {
+	// ⭐ ANCHOR MODE IS ANSWERED BEFORE THE OWNER IS EVEN CONSULTED, and that
+	// order is the whole of U3 rather than a tidy-up. Both older modes resolve
+	// THROUGH the portal's owner, so the guard below - correct for them - would
+	// refuse every cave mouth in the world: a zone-placed fixture has no owner by
+	// construction. An anchor is authored geometry and belongs to nobody.
+	if mode == mobs.TravelAnchor {
+		// ⚑ The PLACEMENT wins, the grant is the fallback - the tri-state idiom
+		// world.Spawn already uses for wanderRadius, idleSpeedFactor and level.
+		if t.anchorOverride != "" {
+			anchor = t.anchorOverride
+		}
+		pos, ok := t.zoneAnchors[anchor]
+		return pos, ok
+	}
 	if t.owner == nil {
-		// A zone-placed conversant has no owner, so neither mode leads anywhere.
+		// A zone-placed conversant has no owner, so neither OWNER-relative mode
+		// leads anywhere.
 		return phy.Vec2f{}, false
 	}
 	switch mode {
@@ -328,13 +385,13 @@ func (t portalTravel) destination(mode mobs.TravelMode) (phy.Vec2f, bool) {
 	return phy.Vec2f{}, false
 }
 
-func (t portalTravel) CanReach(mode mobs.TravelMode) bool {
-	_, ok := t.destination(mode)
+func (t portalTravel) CanReach(mode mobs.TravelMode, anchor string) bool {
+	_, ok := t.destination(mode, anchor)
 	return ok
 }
 
-func (t portalTravel) Travel(mode mobs.TravelMode) bool {
-	dest, ok := t.destination(mode)
+func (t portalTravel) Travel(mode mobs.TravelMode, anchor string) bool {
+	dest, ok := t.destination(mode, anchor)
 	if !ok || t.rider == nil {
 		return false
 	}
@@ -355,7 +412,11 @@ func (t portalTravel) Travel(mode mobs.TravelMode) bool {
 // cached: it is two pointers, and it is only ever built while a panel is open.
 func (s *InteractionSystem) travelFor(a Conversant, p interactor) travelSeam {
 	owner := a.Owner()
-	return portalTravel{anchors: s.anchors, owner: owner, ownerLive: s.isLivePlayer(owner), rider: p}
+	// The conversant's own placement destination (U3b). Empty for every mob that
+	// is not a door, and for a door whose definition authors the default instead.
+	override := a.TravelAnchor()
+	return portalTravel{anchors: s.anchors, zoneAnchors: s.zoneAnchors, anchorOverride: override,
+		owner: owner, ownerLive: s.isLivePlayer(owner), rider: p}
 }
 
 // isLivePlayer reports whether the entity is still one of this system's
@@ -1010,7 +1071,7 @@ const travelClosedReason = "its far end is gone"
 // locked row leads nowhere by construction.
 func travelRow(oi, gi int, opt *mobs.InteractionOption, g *mobs.InteractionGrant,
 	travel travelSeam) model.ConversationOption {
-	if travel == nil || !travel.CanReach(g.Travel) {
+	if travel == nil || !travel.CanReach(g.Travel, g.Anchor) {
 		return model.ConversationOption{
 			OptionIndex: uint8(oi),
 			GrantIndex:  uint8(gi),
@@ -1173,7 +1234,7 @@ func applyTeach(g *mobs.InteractionGrant, p learner) (string, *skills.SkillID, b
 // this refuses it silently. It also covers what the panel could not: the owner
 // dropping between the render and the click.
 func applyTravel(g *mobs.InteractionGrant, travel travelSeam) (string, *skills.SkillID, bool) {
-	if travel == nil || !travel.Travel(g.Travel) {
+	if travel == nil || !travel.Travel(g.Travel, g.Anchor) {
 		return "", nil, false
 	}
 	return g.Line, nil, true

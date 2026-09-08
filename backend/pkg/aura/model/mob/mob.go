@@ -637,6 +637,14 @@ type Mob struct {
 	// is not a respawn anchor; set post-construction by cmd/aurad.
 	dwellRadius float32
 
+	// travelAnchor is this PLACEMENT's anchor-mode travel destination
+	// (plan-underworld.md U3b), empty for the overwhelming majority of mobs and
+	// for any door that takes its definition's default. Set once at spawn from
+	// world.Spawn.Anchor - the SetSpawnLevel precedent, and carried on the mob
+	// rather than looked up because the interaction seam holds the conversant
+	// and nothing else.
+	travelAnchor string
+
 	// combat participants for the death rewards (roadmap item 10),
 	// keyed by entity ID; cleared when the mob fully regenerates out of
 	// combat (combat reset). Lazily initialized by noteParticipant.
@@ -763,6 +771,16 @@ func (m *Mob) DwellRadius() float32 {
 
 func (m *Mob) SetDwellRadius(r float32) {
 	m.dwellRadius = r
+}
+
+// TravelAnchor is where this placement's anchor-mode travel_to row delivers,
+// overriding the definition's own default. Empty = use the default.
+func (m *Mob) TravelAnchor() string {
+	return m.travelAnchor
+}
+
+func (m *Mob) SetTravelAnchor(name string) {
+	m.travelAnchor = name
 }
 
 func (m *Mob) SkillComponent() *skills.SkillComponent {

@@ -312,16 +312,26 @@ export interface RegionDefinition {
  *  the full-screen map cannot disagree about where a region is — the same rule
  *  MapTerrain's header states for terrain pieces.
  *  An absent array = no regions, which is every zone shipped before this. */
-export function toRegions(defs: RegionDefinition[] | undefined): Region[] {
+export function toRegions(defs: RegionDefinition[] | undefined, origin?: {x: number, y: number}): Region[] {
     return (defs || []).map(r => ({
         profile: r.profile,
-        points: (r.points || []).map(p => ({x: meter2px(p.x), y: meter2px(p.y)})),
+        points: (r.points || []).map(p => ({
+            x: meter2px(p.x + (origin ? origin.x : 0)),
+            y: meter2px(p.y + (origin ? origin.y : 0)),
+        })),
     }));
 }
 
-/** Installs the loaded zone's regions for {@link resolve}. */
-export function loadRegions(defs: RegionDefinition[] | undefined) {
-    regions = toRegions(defs);
+/** Installs the loaded zone's regions for {@link resolve}.
+ *
+ *  ⚑ REPLACES, never appends — a zone swap calls this again with the new
+ *  zone's polygons and the old ones must not survive it.
+ *
+ *  origin places the zone in the shared coordinate space (plan-underworld.md
+ *  U2). Absent = {0,0}, which is the overworld and every zone authored before
+ *  zones could be placed. */
+export function loadRegions(defs: RegionDefinition[] | undefined, origin?: {x: number, y: number}) {
+    regions = toRegions(defs, origin);
 }
 
 /** What a region paints, as data — a tile, a flat colour, or nothing.

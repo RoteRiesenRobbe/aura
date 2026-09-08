@@ -369,6 +369,28 @@ export class Backend implements IBackend {
     }
 
     public receiveSnapshot(snapshot: Snapshot) {
+        // ⭐ BEFORE the snapshot is applied, and that ordering is the point
+        // (plan-underworld.md U2). A zone change arrives as nothing but a large
+        // jump in the player's position; re-rendering the world FIRST means the
+        // entities of the zone being entered are added to a scene that already
+        // depicts it, instead of appearing for one frame over the old floor.
+        //
+        // Costs a length check and two comparisons per tick when nothing
+        // changed, which is every tick but the crossing.
+        //
+        // ⛔ `position` IS ABSENT ON EVERY TICK THE PLAYER DID NOT MOVE, and this
+        // is not a defensive guard — it is the correct reading of an ordinary
+        // snapshot. SnapshotFactory DELETES the key as a send-on-change trim
+        // (`nearlyEqual(…, 0.01)` → `delete snapshot.player.position`), so absent
+        // means "unchanged", which by construction cannot be a zone change.
+        // ⚑ Dereferencing it unconditionally threw the moment a player stood
+        // still — which is why U2 could pass tsc, vitest and a full Go suite and
+        // still be broken on the first frame anyone actually played.
+        const moved = snapshot.player?.position;
+        if (moved) {
+            this.game.updateActiveZone(moved.x, moved.y);
+        }
+
         this.game.map.newSnapshot(snapshot.entities);
 
         DayCycle.setTimeByTick(snapshot.tick);

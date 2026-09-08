@@ -1,5 +1,7 @@
 import {Application, Container, Graphics, RenderTexture, Ticker} from 'pixi.js';
 
+import {meter2px, px2meter} from '../../../client-data/BasicConfig';
+import {ActiveZoneTracker} from '../../zones/logic/ActiveZone';
 import {Backend} from '../../backend/logic/Backend';
 import {EntityManager} from '../../backend/logic/EntityManager';
 import {MiniMap} from '../../map/logic/MiniMap';
@@ -59,6 +61,9 @@ export class Game implements IGame {
 
     // The active zone's id, delivered in Welcome (chunk 6). Empty until then.
     public zoneName = '';
+    // Which zones exist this boot and which one the player is in, derived from
+    // position (plan-underworld.md U2). Undefined until the Welcome lands.
+    private activeZone: ActiveZoneTracker;
 
     private application: Application;
     public layers: IGameLayers;
@@ -528,60 +533,31 @@ export class Game implements IGame {
         Console.log('Joined Server "' + gameInformation.serverName + '"');
         // Render the terrain of the zone the server selected (chunk 6). setup()
         // has already run during construction, so placed textures render now.
-        this.zoneName = gameInformation.zoneName;
-        GroundTextureManager.loadZone(gameInformation.zoneName);
-        DarknessOverlay.loadZone(gameInformation.zoneName);
         // The server's gray knobs, before anything renders — a nameplate cannot
         // exist before this point, which is why the tint needs no fallback pair
         // (plan-world-replacement.md C0).
         setGrayKnobs(gameInformation.grayBase, gameInformation.grayStep);
-        const mapWidth = gameInformation.mapWidth;
-        const mapHeight = gameInformation.mapHeight;
-        // Shallow-water beach ring OUTSIDE the physical bounds (C2 fix: the
-        // old inset ring sat inside the wall, so the last 2 units of walkable
-        // land rendered as water). Land now fills the exact bounds the border
-        // collision uses.
-        const waterMargin = 240;
-        this.layers.terrain.ground.addChild(new Graphics()
-            .rect(-mapWidth / 2 - waterMargin, -mapHeight / 2 - waterMargin,
-                mapWidth + 2 * waterMargin, mapHeight + 2 * waterMargin)
-            .fill(GraphicsConfig.shallowWaterColor));
-        this.layers.terrain.ground.addChild(new Graphics()
-            .rect(-mapWidth / 2, -mapHeight / 2, mapWidth, mapHeight)
-            .fill(GraphicsConfig.landColor));
 
-        // Region ground, painted over the base fill in AUTHORED ORDER — the
-        // same order the resolution rule reads (D0), so what you see on top is
-        // what a lookup at that point answers. Static Graphics drawn once, like
-        // the fill above: no per-frame cost.
-        const zoneData = GroundTextureManager.getZoneData(gameInformation.zoneName);
-        Regions.loadRegions(zoneData?.regions);
-        Paths.loadPaths(zoneData?.paths);
-        this.paintTerrainSurfaces();
-        // The zone's ground tiles (C4). Loaded HERE and not through Preloading:
-        // the preload gate blocks boot, and by the time a zone is known it has
-        // long since passed (§4.9). Until they land — and forever, if a file is
-        // missing — every region paints its fallback colour (D14), so this is a
-        // repaint of something already correct, never a blank world.
-        // ⚑ BOTH arrays, or a zone whose only textured profile is a river
-        // loads nothing and the water paints its fallback colour forever.
-        RegionPaint.loadZoneTextures(
-            (Regions.loadedRegions() as Region[]).concat(Paths.loadedPaths()),
-        ).then((landed) => {
-            if (!landed) { return; }
-            this.paintTerrainSurfaces();
-            // ⚑ Map parity is NOT optional (§4.7/L2): the bake below has
-            // already run by now, with the fallback colours. One re-bake — the
-            // path setupTerrain was written for — is what keeps the map from
-            // being a wrong drawing of the world for the rest of the session.
-            this.miniMap?.rebakeTerrain();
-        });
+        // Which zones exist this boot, and which one we start in
+        // (plan-underworld.md U2). The tracker answers "where am I" from
+        // position alone; nothing about a zone change rides the wire.
+        this.activeZone = new ActiveZoneTracker(gameInformation.zoneNames, gameInformation.zoneName);
+        const start = this.activeZone.active;
+        const mapWidth = start ? meter2px(start.width) : gameInformation.mapWidth;
+        const mapHeight = start ? meter2px(start.height) : gameInformation.mapHeight;
+
+        this.renderZone(gameInformation.zoneName);
 
         // The zone name reaches the map for the same reason it reaches the
         // ground textures above: the full-screen state bakes that zone's
         // terrain from the bundled data (plan-world-map.md C1).
-        this.miniMap.setup(mapWidth, mapHeight, gameInformation.zoneName);
+        this.miniMap.setup(mapWidth, mapHeight, gameInformation.zoneName,
+            start ? meter2px(start.originX) : 0, start ? meter2px(start.originY) : 0);
         this.map = new EntityManager(mapWidth, mapHeight, this.miniMap);
+        // The starting zone may not be at the shared origin either — nothing
+        // says the primary zone has to sit at {0,0}.
+        this.map.setBounds(mapWidth, mapHeight,
+            start ? meter2px(start.originX) : 0, start ? meter2px(start.originY) : 0);
         // NOTE: the night tint is currently DEACTIVATED — see
         // DAY_CYCLE_PRESENTATION_ENABLED in DayCycle.ts for why. The list below
         // is still derived and handed over so re-enabling is a one-word change;
@@ -634,6 +610,121 @@ export class Game implements IGame {
      * Empties the layer first — it holds nothing else, and the second pass must
      * replace the first rather than stack a textured polygon on a coloured one.
      */
+    /**
+     * Draws one zone's whole visual world, and can be called AGAIN to swap to
+     * another (plan-underworld.md U2).
+     *
+     * ⭐ THIS IS THE PIECE THE ZONE EDITOR ONLY HALF HAD. ZoneEditor.loadZone
+     * already swapped ground textures at runtime, but left Regions, Paths, the
+     * darkness overlay and the map bake on the previous zone — which is exactly
+     * the set that makes a swap look right and behave wrong. Every one of them
+     * REPLACES rather than appends, so this is idempotent by construction.
+     *
+     * ⚑ The ground fill is torn down explicitly. It is the only thing here
+     * added straight to a container rather than through a loader that clears
+     * its own state, so without this the second zone's water rectangle stacks
+     * on top of the first one's forever.
+     */
+    private renderZone(zoneName: string): void {
+        this.zoneName = zoneName;
+        const rect = this.activeZone?.zones.find(z => z.name === zoneName);
+        const width = rect ? meter2px(rect.width) : 0;
+        const height = rect ? meter2px(rect.height) : 0;
+        const originX = rect ? meter2px(rect.originX) : 0;
+        const originY = rect ? meter2px(rect.originY) : 0;
+
+        this.layers.terrain.ground.removeChildren().forEach(c => c.destroy());
+        GroundTextureManager.clear();
+        GroundTextureManager.loadZone(zoneName);
+        DarknessOverlay.loadZone(zoneName);
+
+        // Shallow-water beach ring OUTSIDE the physical bounds (C2 fix: the
+        // old inset ring sat inside the wall, so the last 2 units of walkable
+        // land rendered as water). Land now fills the exact bounds the border
+        // collision uses — this zone's, at this zone's origin.
+        const waterMargin = 240;
+        this.layers.terrain.ground.addChild(new Graphics()
+            .rect(originX - width / 2 - waterMargin, originY - height / 2 - waterMargin,
+                width + 2 * waterMargin, height + 2 * waterMargin)
+            .fill(GraphicsConfig.shallowWaterColor));
+        this.layers.terrain.ground.addChild(new Graphics()
+            .rect(originX - width / 2, originY - height / 2, width, height)
+            .fill(GraphicsConfig.landColor));
+
+        // Region ground, painted over the base fill in AUTHORED ORDER — the
+        // same order the resolution rule reads (D0), so what you see on top is
+        // what a lookup at that point answers. Static Graphics drawn once, like
+        // the fill above: no per-frame cost.
+        //
+        // ⚑ The origin goes in HERE, not on the server: regions and paths are
+        // client-visual, so world.Place leaves them zone-local deliberately.
+        const zoneData = GroundTextureManager.getZoneData(zoneName);
+        const origin = rect ? {x: rect.originX, y: rect.originY} : undefined;
+        Regions.loadRegions(zoneData?.regions, origin);
+        Paths.loadPaths(zoneData?.paths, origin);
+        this.paintTerrainSurfaces();
+        // The zone's ground tiles (C4). Loaded HERE and not through Preloading:
+        // the preload gate blocks boot, and by the time a zone is known it has
+        // long since passed (§4.9). Until they land — and forever, if a file is
+        // missing — every region paints its fallback colour (D14), so this is a
+        // repaint of something already correct, never a blank world.
+        // ⚑ BOTH arrays, or a zone whose only textured profile is a river
+        // loads nothing and the water paints its fallback colour forever.
+        RegionPaint.loadZoneTextures(
+            (Regions.loadedRegions() as Region[]).concat(Paths.loadedPaths()),
+        ).then((landed) => {
+            if (!landed) { return; }
+            // ⚑ A late texture load must not repaint a zone the player has
+            // since left: the promise outlives the swap that started it.
+            if (this.zoneName !== zoneName) { return; }
+            this.paintTerrainSurfaces();
+            // ⚑ Map parity is NOT optional (§4.7/L2): the bake below has
+            // already run by now, with the fallback colours. One re-bake — the
+            // path setupTerrain was written for — is what keeps the map from
+            // being a wrong drawing of the world for the rest of the session.
+            this.miniMap?.rebakeTerrain();
+        });
+    }
+
+    /**
+     * Follows the local player into another zone (plan-underworld.md U2).
+     *
+     * ⭐ Driven by POSITION, not by a message. The server warps the player, the
+     * AOI moves with them and the snapshot replaces its own contents; all the
+     * client has to notice is that the position is now inside a different
+     * rectangle. Returns the zone it switched TO, or undefined if nothing
+     * changed — so a caller can hang a transition off the return value.
+     */
+    updateActiveZone(xPx: number, yPx: number): string | undefined {
+        if (!isDefined(this.activeZone)) {
+            return undefined;
+        }
+        const entered = this.activeZone.update(px2meter(xPx), px2meter(yPx));
+        if (!isDefined(entered)) {
+            return undefined;
+        }
+        this.renderZone(entered.name);
+        // The camera clamp, the entity bounds and the map are all sized to ONE
+        // zone's rectangle, never a union of them (L13) — so they move too.
+        const width = meter2px(entered.width);
+        const height = meter2px(entered.height);
+        this.map?.setBounds(width, height,
+            meter2px(entered.originX), meter2px(entered.originY));
+        // ⭐ switchZone, NOT setup: a crossing is not a join. setup() is a reset —
+        // it re-appends the canvas, rebuilds every layer, closes an open map, and
+        // throws away the fog you have walked off and the campfires you have
+        // discovered. Both are published once and never again, so driving a
+        // crossing through it loses them for the session.
+        //
+        // ⚑ The ORIGIN rides along with the bounds and is not optional: every live
+        // position the map plots is a world coordinate while the map is baked
+        // zone-local, so without it a player in a zone at {0, 300} draws 300 units
+        // off their own map (plan-underworld.md U4).
+        this.miniMap?.switchZone(width, height, entered.name,
+            meter2px(entered.originX), meter2px(entered.originY));
+        return entered.name;
+    }
+
     private paintTerrainSurfaces(): void {
         const layer = this.layers.terrain.regions;
         const pathLayer = this.layers.terrain.paths;

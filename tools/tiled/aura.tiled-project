@@ -66,6 +66,8 @@
                 "Bramble",
                 "Camp",
                 "Campfire",
+                "CaveExit",
+                "CaveMouth",
                 "CityGuard",
                 "Companion",
                 "DireBear",
@@ -320,6 +322,11 @@
                     "value": 0
                 },
                 {
+                    "name": "anchor",
+                    "type": "string",
+                    "value": ""
+                },
+                {
                     "name": "patrolMode",
                     "type": "string",
                     "propertyType": "AuraPatrolMode",
@@ -368,6 +375,11 @@
                     "name": "level",
                     "type": "int",
                     "value": 0
+                },
+                {
+                    "name": "anchor",
+                    "type": "string",
+                    "value": ""
                 },
                 {
                     "name": "patrolMode",
@@ -420,6 +432,11 @@
                     "value": 0
                 },
                 {
+                    "name": "anchor",
+                    "type": "string",
+                    "value": ""
+                },
+                {
                     "name": "patrolMode",
                     "type": "string",
                     "propertyType": "AuraPatrolMode",
@@ -468,6 +485,11 @@
                     "name": "level",
                     "type": "int",
                     "value": 0
+                },
+                {
+                    "name": "anchor",
+                    "type": "string",
+                    "value": ""
                 },
                 {
                     "name": "patrolMode",
