@@ -11,7 +11,7 @@
  */
 import {beforeEach, afterEach, describe, expect, it, vi} from 'vitest';
 import * as Conversation from './Conversation';
-import {ConversationTree} from './ConversationModel';
+import {ConversationTree, TravelDirection} from './ConversationModel';
 import {showTooltip} from '../../user-interface/HUD/logic/SkillTooltip';
 
 function buildDom(): void {
@@ -55,6 +55,7 @@ function irreversibleTree(skillId = 0): ConversationTree {
                 reply: '',
                 confirmSeconds: 5,
                 skillId,
+                travel: TravelDirection.None,
             }],
         }],
     };

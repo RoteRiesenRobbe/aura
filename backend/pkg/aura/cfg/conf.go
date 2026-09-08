@@ -31,10 +31,21 @@ type Config struct {
 		// Zone selects which zone file (by file stem, e.g. "scaffold" for
 		// scaffold.json) to load. Empty loads the sole zone when only one
 		// exists; the -zone flag overrides this.
-		Zone                   string  `json:"zone"`
-		TotalDayCycleSeconds   uint64  `json:"totalDayCycleSeconds"`
-		DayTimeSeconds         uint64  `json:"dayTimeSeconds"`
-		MobChaseIntoAuraMargin float32 `json:"mobChaseIntoAuraMargin"`
+		//
+		// ⚑ Superseded by Zones, and kept because every shipped conf authors
+		// it: a conf naming only Zone still boots, as exactly that one zone.
+		Zone string `json:"zone"`
+		// Zones lists the zone files to load TOGETHER, by file stem, in order
+		// — the first is the primary zone, where fresh characters spawn and
+		// whose bounds ride the wire (plan-underworld.md U1). Empty falls back
+		// to Zone. The -zones flag overrides both.
+		//
+		// ⚑ Only listed stems are parsed, so a half-authored zone sitting in
+		// api/zones/ cannot break a boot that never selected it.
+		Zones                  []string `json:"zones"`
+		TotalDayCycleSeconds   uint64   `json:"totalDayCycleSeconds"`
+		DayTimeSeconds         uint64   `json:"dayTimeSeconds"`
+		MobChaseIntoAuraMargin float32  `json:"mobChaseIntoAuraMargin"`
 		Player                 struct {
 			// constant for out-of-combat health regen
 			HealthGainTick float32 `json:"healthGainTick"`
@@ -66,8 +77,8 @@ type Config struct {
 			// is the source of truth and mob.SetKillXP normalizes back to it,
 			// so a conf predating this (the live server's, §35) keeps paying.
 			// [PLACEHOLDER — C2 calibrates]
-			KillXP curve.KillXP `json:"killXP"`
-			SkillPointsPerLevel   int     `json:"skillPointsPerLevel"`
+			KillXP              curve.KillXP `json:"killXP"`
+			SkillPointsPerLevel int          `json:"skillPointsPerLevel"`
 			// CritChance is the flat base crit chance every player character
 			// has (§4.3 v2, PO 2026-07-20) [PLACEHOLDER 0.05]; skill-authored
 			// chance and the critChance passive stat add on top.

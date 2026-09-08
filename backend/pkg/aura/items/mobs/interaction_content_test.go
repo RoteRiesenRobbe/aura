@@ -71,6 +71,17 @@ var expectedConversants = []string{
 	// the content too, but a different something - not an anchor lookup, but
 	// whether the owner is still a player in the world at all.
 	"PortalSummon",
+	// The two ends of a passage (plan-underworld.md U3), and the first
+	// conversants whose travel rows resolve against NOTHING TO DO WITH A PLAYER:
+	// both portals above lead wherever their owner is anchored, while these lead
+	// to a named point in a zone file. Which is also why they are the first
+	// conversants that work with no owner at all.
+	//
+	// ⚑ Neither is placed in any zone yet. The census asks who CAN talk, which
+	// is a property of the definition - the same reason the portals are listed -
+	// and world.CrossValidateTravelAnchors warns at boot until a zone places them.
+	"CaveMouth",
+	"CaveExit",
 }
 
 func conversants(t *testing.T) map[string]*MobDefinition {

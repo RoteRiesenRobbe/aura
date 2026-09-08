@@ -302,6 +302,33 @@ settled; the map is not. What a design session owes:
 > same day, and recorded here as the desired goal for the release map and
 > beyond.
 
+### 8.0 AMENDMENT 2026-09-08 — the file-count clause only (`plan-underworld.md`)
+
+⭐ **D6 said "instead of multiple `world.json`s **with a server change between
+them**". The underworld ships multiple zone FILES and no server change between
+them, and that is the amendment: the forbidden thing was the HANDOFF, not the
+file split.**
+
+There is still **one `phy.Space`, one process, no handoff, no server hop**. A
+zone file is authored around its own `{0,0}` and given a runtime `origin` that
+places it far away in the same coordinate space; zones are disjoint by
+**distance**, which the broadphase, the border walls, AOI streaming and every
+aura overlap already respect for free. The crossing itself is the same two-line
+`Ground()` + `SetPosition()` teleport `travel_to` already shipped.
+
+⛔ **§8.3 is UNTOUCHED.** Separate physics Spaces, zone handoffs, sharding and
+instancing remain out of scope, and nothing in the underworld moves toward them.
+
+⚑ **Why this note exists:** the next reader of §8 would otherwise take
+"multiple zone files" as forbidden and rebuild the release map as one enormous
+Tiled file. The underworld rejected that too, and recorded why
+(`plan-underworld.md` §3.2): one file already at 263 KB carrying every zone,
+and a surface map permanently showing a rectangle of caves stacked below it at
+reduced bake resolution. **The choice between "regions of one file" and
+"several placed files" is now an AUTHORING question, decided per case** — D6's
+coordinate-region model is still the right answer for adjacent overland zones,
+and remains what `plan-region-primitive.md` implements.
+
 ### 8.1 Why this is the recorded direction, not a new idea
 
 - The multi-world model was never built: the server loads exactly one zone

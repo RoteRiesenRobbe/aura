@@ -43,6 +43,11 @@ type spawnPoint struct {
 	// silently falling back to the species value on first death (L5).
 	level *int
 
+	// travelAnchor is the per-placement travel destination (plan-underworld.md
+	// U3b). On the POINT rather than only on the first mob, level's reason
+	// verbatim: a respawned cave mouth must lead where the authored one did.
+	travelAnchor string
+
 	liveMobID uint64 // 0 = none live (respawn pending)
 	respawnAt uint64 // tick to respawn at; only meaningful while liveMobID == 0
 }
@@ -147,6 +152,7 @@ func NewMobSystem(g model.Game, seed int64, spawns []world.Spawn, space *phy.Spa
 			patrolLoop:      s.PatrolMode == "loop",
 			idleSpeedFactor: s.IdleSpeedFactor,
 			level:           s.Level,
+			travelAnchor:    s.Anchor,
 		})
 	}
 	return &MobSystem{
@@ -411,6 +417,9 @@ func (n *MobSystem) spawnAt(idx int) {
 	}
 	if p.idleSpeedFactor != nil {
 		m.SetIdleSpeedFactor(*p.idleSpeedFactor)
+	}
+	if p.travelAnchor != "" {
+		m.SetTravelAnchor(p.travelAnchor)
 	}
 	if p.level != nil {
 		// The two calls belong together (plan-mob-levels.md L1): NewMob already

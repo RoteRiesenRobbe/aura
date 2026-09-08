@@ -27,12 +27,20 @@ import (
 type fakeTravel struct {
 	reachable bool
 	travelled []mobs.TravelMode
+	// direction is what Direction reports (U4b). The zero value is TravelNone,
+	// which is what these older tests want: they predate the byte and assert
+	// nothing about it, so it must stay absent from the rows they build.
+	direction model.TravelDirection
 }
 
-func (f *fakeTravel) CanReach(mode mobs.TravelMode) bool { return f.reachable && mode != "" }
+func (f *fakeTravel) CanReach(mode mobs.TravelMode, _ string) bool { return f.reachable && mode != "" }
 
-func (f *fakeTravel) Travel(mode mobs.TravelMode) bool {
-	if !f.CanReach(mode) {
+func (f *fakeTravel) Direction(_ mobs.TravelMode, _ string) model.TravelDirection {
+	return f.direction
+}
+
+func (f *fakeTravel) Travel(mode mobs.TravelMode, _ string) bool {
+	if !f.CanReach(mode, "") {
 		return false
 	}
 	f.travelled = append(f.travelled, mode)
@@ -152,8 +160,8 @@ func TestPortalTravel_DeliversToTheOwnersAnchor(t *testing.T) {
 	tr := portalTravel{anchors: &fakeConnState{anchor: anchor, bound: true}, owner: owner, rider: rider}
 	rider.SetConversingWith(7)
 
-	require.True(t, tr.CanReach(mobs.TravelHomeCampfire))
-	require.True(t, tr.Travel(mobs.TravelHomeCampfire))
+	require.True(t, tr.CanReach(mobs.TravelHomeCampfire, ""))
+	require.True(t, tr.Travel(mobs.TravelHomeCampfire, ""))
 
 	dist := rider.Position().DistanceToSquared(anchor)
 	assert.LessOrEqual(t, dist, float32(respawnJitterRadius*respawnJitterRadius),
@@ -170,8 +178,8 @@ func TestPortalTravel_RefusesWithoutAnAnchor(t *testing.T) {
 	rider := newFakePlayer()
 	tr := portalTravel{anchors: &fakeConnState{bound: false}, owner: newFakePlayer(), rider: rider}
 
-	assert.False(t, tr.CanReach(mobs.TravelHomeCampfire))
-	assert.False(t, tr.Travel(mobs.TravelHomeCampfire))
+	assert.False(t, tr.CanReach(mobs.TravelHomeCampfire, ""))
+	assert.False(t, tr.Travel(mobs.TravelHomeCampfire, ""))
 	assert.Equal(t, phy.VEC2F_ZERO, rider.Position(), "nothing moved")
 	assert.Zero(t, rider.grounded)
 }
@@ -180,14 +188,14 @@ func TestPortalTravel_RefusesWithoutAnAnchor(t *testing.T) {
 // nowhere. Fails closed rather than reaching through a nil.
 func TestPortalTravel_RefusesWithoutAnOwner(t *testing.T) {
 	tr := portalTravel{anchors: &fakeConnState{anchor: phy.Vec2f{X: 1}, bound: true}, rider: newFakePlayer()}
-	assert.False(t, tr.CanReach(mobs.TravelHomeCampfire))
-	assert.False(t, tr.Travel(mobs.TravelHomeCampfire))
+	assert.False(t, tr.CanReach(mobs.TravelHomeCampfire, ""))
+	assert.False(t, tr.Travel(mobs.TravelHomeCampfire, ""))
 }
 
 func TestPortalTravel_RefusesAnUnknownMode(t *testing.T) {
 	tr := portalTravel{anchors: &fakeConnState{anchor: phy.Vec2f{X: 1}, bound: true},
 		owner: newFakePlayer(), ownerLive: true, rider: newFakePlayer()}
-	assert.False(t, tr.CanReach("somewhere_else"),
+	assert.False(t, tr.CanReach("somewhere_else", ""),
 		"the seam fails closed on a mode it has no arm for, the loader's twin")
 }
 
@@ -214,8 +222,8 @@ func TestPortalTravel_CasterModeDeliversToTheOwnersLivePosition(t *testing.T) {
 	// The caster keeps moving between the cast and the step-through.
 	owner.SetPosition(phy.Vec2f{X: -18, Y: 42})
 
-	require.True(t, tr.CanReach(mobs.TravelCaster))
-	require.True(t, tr.Travel(mobs.TravelCaster))
+	require.True(t, tr.CanReach(mobs.TravelCaster, ""))
+	require.True(t, tr.Travel(mobs.TravelCaster, ""))
 
 	dist := rider.Position().DistanceToSquared(phy.Vec2f{X: -18, Y: 42})
 	assert.LessOrEqual(t, dist, float32(respawnJitterRadius*respawnJitterRadius),
@@ -231,7 +239,7 @@ func TestPortalTravel_CasterModeIgnoresTheAnchor(t *testing.T) {
 	owner := newFakePlayer()
 	owner.SetPosition(phy.Vec2f{X: 5, Y: 5})
 	tr := portalTravel{anchors: nil, owner: owner, ownerLive: true, rider: newFakePlayer()}
-	assert.True(t, tr.CanReach(mobs.TravelCaster))
+	assert.True(t, tr.CanReach(mobs.TravelCaster, ""))
 }
 
 // PO checklist item 12, half one: the caster died or logged out. Both leave the
@@ -243,8 +251,8 @@ func TestPortalTravel_CasterModeRefusesAnOwnerWhoLeftTheWorld(t *testing.T) {
 	rider := newFakePlayer()
 	tr := portalTravel{owner: owner, ownerLive: false, rider: rider}
 
-	assert.False(t, tr.CanReach(mobs.TravelCaster))
-	assert.False(t, tr.Travel(mobs.TravelCaster))
+	assert.False(t, tr.CanReach(mobs.TravelCaster, ""))
+	assert.False(t, tr.Travel(mobs.TravelCaster, ""))
 	assert.Equal(t, phy.VEC2F_ZERO, rider.Position(), "nothing moved")
 	assert.Zero(t, rider.grounded)
 }
@@ -259,15 +267,15 @@ func TestPortalTravel_CasterModeRefusesAFlyingOwner(t *testing.T) {
 	rider := newFakePlayer()
 	tr := portalTravel{owner: owner, ownerLive: true, rider: rider}
 
-	assert.False(t, tr.CanReach(mobs.TravelCaster))
-	assert.False(t, tr.Travel(mobs.TravelCaster))
+	assert.False(t, tr.CanReach(mobs.TravelCaster, ""))
+	assert.False(t, tr.Travel(mobs.TravelCaster, ""))
 	assert.Equal(t, phy.VEC2F_ZERO, rider.Position())
 }
 
 func TestPortalTravel_CasterModeRefusesWithoutAnOwner(t *testing.T) {
 	tr := portalTravel{ownerLive: true, rider: newFakePlayer()}
-	assert.False(t, tr.CanReach(mobs.TravelCaster))
-	assert.False(t, tr.Travel(mobs.TravelCaster))
+	assert.False(t, tr.CanReach(mobs.TravelCaster, ""))
+	assert.False(t, tr.Travel(mobs.TravelCaster, ""))
 }
 
 // --- caster mode end to end, through the system ---

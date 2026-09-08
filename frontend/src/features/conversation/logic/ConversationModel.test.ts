@@ -1,5 +1,11 @@
 import {describe, it, expect} from 'vitest';
-import {ConversationModel, ConversationRow, ConversationTree, NO_GRANT} from './ConversationModel';
+import {
+    ConversationModel,
+    ConversationRow,
+    ConversationTree,
+    NO_GRANT,
+    TravelDirection,
+} from './ConversationModel';
 
 function row(partial: Partial<ConversationRow>): ConversationRow {
     return {
@@ -12,6 +18,7 @@ function row(partial: Partial<ConversationRow>): ConversationRow {
         reply: '',
         confirmSeconds: 0,
         skillId: 0,
+        travel: TravelDirection.None,
         ...partial,
     };
 }

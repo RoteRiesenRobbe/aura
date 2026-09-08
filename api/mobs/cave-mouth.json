@@ -1,0 +1,47 @@
+{
+  "_comment": "The way DOWN (plan-underworld.md U3): a fixture standing at a passage's upper end whose one row moves the player to a named zone anchor. ⭐ THE FIRST TRAVEL DESTINATION THAT IS NOT A PLAYER — the two shipped portal modes both resolve through the portal's OWNER, which is why sys.portalTravel.destination answers `anchor` before it looks at the owner at all: a zone-placed fixture has no owner by construction, and until U3 that made every owner-relative mode refuse it. ⭐ IT AUTHORS NO DESTINATION, AND THAT IS THE POINT (U3b): where a door leads is a property of WHERE IT STANDS, so each placement names its own anchor (`spawns[].anchor`) and this one definition serves every downward passage in the world. Authoring a default here is legal and would be inherited by a placement that names none — no shipped placement does. The rule is plan-world-paths.md D4's, which put blocksMovement per PLACEMENT and never per profile, for exactly this reason. ⚑ world.CrossValidateTravelAnchors refuses the boot when a PLACEMENT names no destination or names one no loaded zone authors; an unplaced definition only warns, so the mob file and the zone that places it can be authored in either order. BODY IS THE MEMORIAL-STONE RECIPE VERBATIM, knob for knob, and load-bearing rather than cosmetic: collisionLayer 97 (PlayerStatic 1 + Viewport 32 + MobStatic 64) is deliberately NOT on Action(2), so no aura on either side can reach it; mask 16 (Border only) means nothing pushes it; role creature + speed 0 is the call every talking object makes (D4) — a structure runs an aura always-on, an object that merely talks is a creature authoring no movement. aggroRadius 1.0 is required-but-inert; interaction.range 2.0 is the wider of the two and is what sizes the sensor the player meets. faction townsfolk so player damage skips it, xpFactor 0 keeps it off the nameplate and the XP path. ALL VALUES [PLACEHOLDER]. ⛑ entityType Signpost is a DELIBERATE REUSE and placeholder art, the same call the memorial and the ascension stone made: a bespoke EntityType costs a wire enum value that can never be reclaimed plus an exhaustive client Record entry, and a cave mouth earns its own sprite when the underworld gets its art pass. ⛔ DO NOT PLACE THIS INSIDE A CAMPFIRE'S DWELL CIRCLE (plan-portal-spells.md D8): the client synthesizes a campfire interact offer that OVERRIDES the server's, so an entrance inside one loses every E press to the flight map.",
+  "id": 72,
+  "name": "CaveMouth",
+  "type": "MOB",
+  "entityType": "Signpost",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1.0
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2.0,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          "A dark opening in the rock.",
+          "Cold air rises out of it."
+        ],
+        "options": [
+          {
+            "text": "Climb down.",
+            "grants": [
+              {
+                "kind": "travel_to",
+                "mode": "anchor",
+                "line": "You climb down into the dark."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

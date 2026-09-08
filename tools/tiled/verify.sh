@@ -212,6 +212,39 @@ else
 fi
 
 echo
+echo "a PLACED zone round-trips — the origin survives real Tiled"
+# ⭐ THE ONE LEG THAT COVERS THE FOURTH WRITER. Every other leg here uses
+# world.json or a fixture derived from it, and world.json authors NO origin — so
+# until the underworld shipped, nothing in this file ever carried a map-level
+# value that Tiled could silently drop. aura-world-format.js has to copy each of
+# those onto the TileMap by hand, and the vitest completeness pin cannot see it:
+# the pin exercises the PURE converter, not Tiled's own read/write path. The
+# origin went missing exactly this way, and the server refused the next boot.
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const z = require("./api/zones/world.json");
+fs = require("fs");
+fs.writeFileSync("tools/tiled/.verify/placed.json", C.serializeZone({
+    // ⛑ BOTH AXES NON-ZERO, the fixture trap AuraTiledConvert.test.ts already
+    // documents for origin and paths.blocksMovement: with x at 0 the serializer
+    // reconstructs it from y alone, so dropping originX is invisible and this leg
+    // passes while half the bridge is broken. (Proven: it did.)
+    name: z.name, bounds: {width: 48, height: 28}, origin: {x: 500, y: 300},
+    terrain: [], props: [], spawns: [],
+    campfires: [{id: "underworld-1", x: 0, y: 8}],
+    anchors: [{name: "under-west", x: -16, y: 0}],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/placed.json \
+        "$(native "$ROOT/tools/tiled/.verify/placed-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/placed.json tools/tiled/.verify/placed-out.json; then
+    ok "byte-identical — the zone came back at its own origin, not at {0,0}"
+else
+    bad "a placed zone did not survive: $(cmp tools/tiled/.verify/placed.json \
+        tools/tiled/.verify/placed-out.json 2>&1 | head -1)"
+fi
+
+echo
 echo "a region naming a profile that does not exist"
 node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");

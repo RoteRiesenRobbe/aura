@@ -129,8 +129,25 @@ func (rcv *Welcome) MutateGrayStep(n int32) bool {
 	return rcv._tab.MutateInt32Slot(18, n)
 }
 
+func (rcv *Welcome) ZoneNames(j int) []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
+	}
+	return nil
+}
+
+func (rcv *Welcome) ZoneNamesLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func WelcomeStart(builder *flatbuffers.Builder) {
-	builder.StartObject(8)
+	builder.StartObject(9)
 }
 func WelcomeAddServerName(builder *flatbuffers.Builder, serverName flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(serverName), 0)
@@ -155,6 +172,12 @@ func WelcomeAddGrayBase(builder *flatbuffers.Builder, grayBase int32) {
 }
 func WelcomeAddGrayStep(builder *flatbuffers.Builder, grayStep int32) {
 	builder.PrependInt32Slot(7, grayStep, 0)
+}
+func WelcomeAddZoneNames(builder *flatbuffers.Builder, zoneNames flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(zoneNames), 0)
+}
+func WelcomeStartZoneNamesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
 }
 func WelcomeEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

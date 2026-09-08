@@ -21,6 +21,7 @@ import {InteractMessage} from '../../backend/logic/messages/outgoing/InteractMes
 import {Countdown, startConfirmCountdown} from '../../common/logic/ConfirmCountdown';
 import {attachSkillTooltips, hideTooltip} from '../../user-interface/HUD/logic/SkillTooltip';
 import * as PanelExclusivity from '../../user-interface/logic/PanelExclusivity';
+import {beginCrossing} from '../../zones/logic/ZoneCurtain';
 import {
     ConversationModel,
     ConversationRow,
@@ -133,6 +134,16 @@ function take(row: ConversationRow) {
         askToConfirm(row, id, node);
         return;
     }
+
+    // ⭐ THE CURTAIN STARTS ON THE PRESS, BEFORE ANYTHING HAS ARRIVED
+    // (plan-underworld.md D7/U4b). That is what the direction byte is for: the
+    // client cannot see the destination, or even that this row teleports, from
+    // grantIndex alone — so without it the transition could only begin once the
+    // new place was already on screen, which is a frame too late to cover.
+    //
+    // ⚑ Before model.take/render deliberately: the panel closing and the world
+    // swapping should both happen UNDER the curtain, not in front of it.
+    beginCrossing(row.travel);
 
     // Navigate locally first, so the panel answers on the frame of the click.
     model.take(row);

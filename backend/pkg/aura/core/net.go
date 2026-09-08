@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/EngoEngine/ecs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
@@ -194,14 +195,59 @@ func (n *NetSystem) sendRoster() {
 		return
 	}
 
-	roster := codec.RosterFor(n.game.Tick, n.players)
+	// ⛔ THE ROSTER IS THE ONE THING THAT CROSSES ZONES BY DEFAULT
+	// (plan-underworld.md L14). Everything else a client learns about other
+	// players comes through the AOI viewport query, which is a spatial test and
+	// therefore zone-safe for free. This is not: it ships EVERY live player to
+	// EVERY client, so without a filter an underworld player draws as a dot on
+	// the surface map — and the type's own comment has always claimed "every
+	// live player character in the zone".
+	//
+	// One roster per zone, so each client is told about its own zone only.
+	// Filtering also makes the message strictly smaller, which is the rare fix
+	// that costs nothing.
+	// ⚑ Nil-safe on purpose: the roster tests build a NetSystem by struct
+	// literal with a bare &game{}, which has no config at all. A game with no
+	// config has no placed zones, which is the single-zone path — the right
+	// answer rather than a special case.
+	var zones []cfg.PlacedBounds
+	if c := n.game.Config(); c != nil {
+		zones = c.Walls
+	}
+	if len(zones) < 2 {
+		// Single zone: assemble once, marshal once, send to everyone — byte
+		// for byte what shipped before zones could be placed.
+		roster := codec.RosterFor(n.game.Tick, n.players)
+		builder := flatbuffers.NewBuilder(64)
+		builder.Finish(codec.PlayerRosterMessageFlatbufMarshal(builder, &roster))
+		payload := builder.FinishedBytes()
+		for _, player := range n.players {
+			_ = player.Client().SendMessage(payload)
+		}
+		return
+	}
 
-	builder := flatbuffers.NewBuilder(64)
-	builder.Finish(codec.PlayerRosterMessageFlatbufMarshal(builder, &roster))
-	payload := builder.FinishedBytes()
-
-	for _, player := range n.players {
-		_ = player.Client().SendMessage(payload)
+	// Group first, then marshal once per group: the whole reason RosterFor is
+	// separate from the send is that one marshal serves every viewer of an
+	// identical message, and that still holds — per zone instead of globally.
+	byZone := make(map[int][]model.PlayerEntity, len(zones))
+	for _, p := range n.players {
+		pos := p.Position()
+		// -1 means the player is in the gap between zones, which their own
+		// zone's wall makes unreachable. Dropping them from the roster is the
+		// safe read: better a missing dot than a dot on a stranger's map.
+		if i := cfg.ZoneIndexAt(zones, pos.X, pos.Y); i >= 0 {
+			byZone[i] = append(byZone[i], p)
+		}
+	}
+	for _, group := range byZone {
+		roster := codec.RosterFor(n.game.Tick, group)
+		builder := flatbuffers.NewBuilder(64)
+		builder.Finish(codec.PlayerRosterMessageFlatbufMarshal(builder, &roster))
+		payload := builder.FinishedBytes()
+		for _, player := range group {
+			_ = player.Client().SendMessage(payload)
+		}
 	}
 }
 

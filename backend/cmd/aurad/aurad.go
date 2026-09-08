@@ -23,7 +23,6 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 	"github.com/RoteRiesenRobbe/aura/pkg/logging"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -32,12 +31,13 @@ func main() {
 	logging.SetupLogging()
 
 	var dev, help bool
-	var contentDir, zoneName, profileAddr string
+	var contentDir, zoneName, zoneNames, profileAddr string
 	flag.StringVar(&profileAddr, "profile", "", "serve net/http/pprof + /tickstats on this address for capacity checks (e.g. :6060); off by default, see devops/loadtest.md")
 	flag.BoolVar(&dev, "dev", false, "Serve frontend directly")
 	flag.BoolVar(&help, "help", false, "Show usage help")
 	flag.StringVar(&contentDir, "content", "", "Load items/mobs/skills/recipes/zones/props from this api/-layout directory instead of the embedded copies (e.g. ../api); skips cp-defs + rebuild for content edits")
 	flag.StringVar(&zoneName, "zone", "", "Select which zone to load by file stem (e.g. 'scaffold' for scaffold.json); overrides game.zone in conf.json. Empty loads the sole zone when only one exists")
+	flag.StringVar(&zoneNames, "zones", "", "Load several zones TOGETHER, comma-separated by file stem, first is primary (e.g. 'world,underworld'); overrides -zone and game.zones")
 	flag.Parse()
 	if profileAddr != "" {
 		startProfileServer(profileAddr)
@@ -88,11 +88,27 @@ func main() {
 	questsRegistry := loadQuests(content.quests, mobsRegistry)
 	ascensionCatalog := loadAscensionCatalog(content.ascension, skillsRegistry, mobsRegistry, questsRegistry)
 	propsRegistry := loadProps(content.props)
-	// -zone flag overrides the game.zone config default.
-	if zoneName == "" {
-		zoneName = config.Game.Zone
+	// Zone selection, most specific first: -zones, then -zone, then the conf's
+	// zones list, then its single zone. An empty result still boots — it means
+	// "the sole zone in the directory", which is what every conf did before
+	// this field existed.
+	zoneList := splitZoneList(zoneNames)
+	if len(zoneList) == 0 && zoneName != "" {
+		zoneList = []string{zoneName}
 	}
-	zone := loadZone(content.zones, zoneName, mobsRegistry, propsRegistry)
+	if len(zoneList) == 0 {
+		zoneList = config.Game.Zones
+	}
+	if len(zoneList) == 0 && config.Game.Zone != "" {
+		zoneList = []string{config.Game.Zone}
+	}
+	// ⚑ Placed here, not in the game: everything below takes RESOLVED geometry
+	// with each zone's Origin already applied (plan-underworld.md U1).
+	zones := loadZones(content.zones, zoneList, mobsRegistry, propsRegistry)
+	// The primary zone. It is what a fresh character spawns in, what names the
+	// world on the wire, and whose bounds size the client's camera and map —
+	// deliberately NOT a union of everything loaded (L13).
+	zone := zones[0]
 
 	tokens := loadOrCreateTokens("./tokens.list")
 	slog.Info("👮‍♀️ read tokens", slog.Int("token_count", len(tokens)))
@@ -159,11 +175,16 @@ func main() {
 		core.Tokens(tokens),
 		core.Bounds(zone.Bounds.Width, zone.Bounds.Height),
 		core.ZoneName(zone.ID),
-		core.Spawns(zone.Spawns),
+		core.ZoneNames(zoneIDs(zones)),
+		core.Walls(wallsFor(zones)),
+		core.Spawns(allSpawns(zones)),
+		// Named anchors, flattened across the set: where an anchor-mode travel_to
+		// row delivers (plan-underworld.md U3).
+		core.ZoneAnchors(allAnchors(zones)),
 		// Blocking paths, with the bridges already subtracted. Built here
 		// because it needs the RESOLVED zone: the bridge test reads
 		// Def.CrossesPaths (plan-world-paths.md C2).
-		core.PathCorridors(world.PathCorridors(zone)),
+		core.PathCorridors(allCorridors(zones)),
 	)
 	if err != nil {
 		panic(err)
@@ -172,8 +193,10 @@ func main() {
 	// The world is populated from the authored zone: mob spawn points flow to
 	// the MobSystem via core.Spawns (chunk 4); props are placed once here as
 	// static entities (chunk 3). Procedural generation is gone.
-	for i := range zone.Props {
-		g.AddEntity(prop.FromZone(&zone.Props[i]))
+	for _, z := range zones {
+		for i := range z.Props {
+			g.AddEntity(prop.FromZone(&z.Props[i]))
+		}
 	}
 
 	// Fixed world campfires (atmosphere & recovery chunk 2): permanent aligned
@@ -182,15 +205,20 @@ func main() {
 	// anchors). Def-level aligned authoring is impossible by design (the mob
 	// loader rewrites aligned→hostile), so the side is joined
 	// post-construction via Align() — the spawnSummon pattern.
-	if len(zone.Campfires) > 0 {
+	//
+	// ⚑ Across EVERY loaded zone, in one pass: the anchor list and the safe
+	// zones are both world-global sinks (SetCampfireAnchors, SetSafeZones
+	// REPLACE), so building them per zone would leave only the last zone's
+	// fires bindable. Positions are already world coordinates by here.
+	if fires := allCampfires(zones); len(fires) > 0 {
 		campfireDef, err := mobsRegistry.GetByName("Campfire")
 		if err != nil {
 			slog.Error("zone places campfires but no Campfire mob is defined", slog.String("zone", zone.ID), slog.Any("err", err))
 			panic(err)
 		}
-		anchors := make([]sys.CampfireAnchor, 0, len(zone.Campfires))
-		safeZones := make([]mob.SafeZone, 0, len(zone.Campfires))
-		for _, c := range zone.Campfires {
+		anchors := make([]sys.CampfireAnchor, 0, len(fires))
+		safeZones := make([]mob.SafeZone, 0, len(fires))
+		for _, c := range fires {
 			m := mob.NewMob(campfireDef, g.Config().MobChaseIntoAuraMargin, nil)
 			m.SetPosition(phy.Vec2f{X: c.X, Y: c.Y})
 			m.Align()
@@ -222,8 +250,8 @@ func main() {
 		}
 		sink.SetCampfireAnchors(anchors)
 		slog.Info("placed campfires",
-			slog.Int("count", len(zone.Campfires)),
-			slog.String("zone", zone.ID),
+			slog.Int("count", len(fires)),
+			slog.Int("zones", len(zones)),
 			slog.Float64("safeRadius", float64(safeZones[0].Radius)))
 	}
 
@@ -234,15 +262,22 @@ func main() {
 	// the zone's anchors (editor-movable), WHAT happens is the Go script. A
 	// missing anchor is a content bug — abort the boot loudly, never fall
 	// back to a silent default position.
-	if zone.ID == "world" {
+	//
+	// ⚑ Searched across the loaded SET rather than compared against the
+	// primary zone: "world" need not be the zone this binding lives in once
+	// more than one is loaded.
+	for _, z := range zones {
+		if z.ID != "world" {
+			continue
+		}
 		r, ok := g.(encounter.Registrar)
 		if !ok {
 			panic("game does not accept encounters")
 		}
 		anchor := func(name string) phy.Vec2f {
-			x, y, found := zone.AnchorPos(name)
+			x, y, found := z.AnchorPos(name)
 			if !found {
-				panic(fmt.Sprintf("zone %q: missing anchor %q (Orc Warlord encounter)", zone.ID, name))
+				panic(fmt.Sprintf("zone %q: missing anchor %q (Orc Warlord encounter)", z.ID, name))
 			}
 			return phy.Vec2f{X: x, Y: y}
 		}
@@ -252,7 +287,7 @@ func main() {
 			anchor(encounter.WarlordAnchorBanner2),
 			anchor(encounter.WarlordAnchorWaveMouth),
 		))
-		slog.Info("registered orc warlord encounter", slog.String("zone", zone.ID))
+		slog.Info("registered orc warlord encounter", slog.String("zone", z.ID))
 	}
 
 	//---- set up server

@@ -207,10 +207,14 @@ function propertyTypes(terrain, props, mobs, profiles) {
     // ⭐ The defaults are READ FROM the converter, never retyped here. They must
     // equal its inherit sentinels exactly, and the cheapest way to guarantee
     // that is to have one definition rather than two that a test compares.
-    const NUMERIC_TYPE = {level: 'int', respawnTicks: 'int'};   // the rest are floats
+    // Everything not named here is a float. ⛑ `anchor` is the first NON-NUMERIC
+    // spawn knob (plan-underworld.md U3b), which is why this stopped being a
+    // NUMERIC_TYPE map: typing it 'float' would give Tiled a numeric field for a
+    // zone-anchor name and silently discard whatever was typed into it.
+    const MEMBER_TYPE = {level: 'int', respawnTicks: 'int', anchor: 'string'};
     const SPAWN_MEMBERS = [member('mob', 'string', MOB_UNSET, 'AuraMobName')]
         .concat(Object.keys(C.SPAWN_INHERIT).map(
-            k => member(k, NUMERIC_TYPE[k] || 'float', C.SPAWN_INHERIT[k])))
+            k => member(k, MEMBER_TYPE[k] || 'float', C.SPAWN_INHERIT[k])))
         .concat([member('patrolMode', 'string', C.PATROL_INHERIT, 'AuraPatrolMode')]);
 
     const types = [

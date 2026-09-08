@@ -99,6 +99,10 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 		TotalDayCycleTicks: g.config.TotalDayCycleSeconds * constant.TicksPerSecond,
 		DayTimeTicks:       g.config.DayTimeSeconds * constant.TicksPerSecond,
 		ZoneName:           gc.ZoneName,
+		// Falls back to the primary alone so a game built without a zone set
+		// — every test that calls NewGameWith directly — still tells the
+		// client one true thing rather than nothing.
+		ZoneNames: zoneNamesOrPrimary(gc),
 		// The gray knobs come from the NORMALIZED economy, never from the conf
 		// block (plan-world-replacement.md C0). mob.SetKillXP falls each
 		// non-positive field back to the built-in default, so a conf that omits
@@ -124,9 +128,30 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	p := sys.NewPhysicsSystem()
 	g.AddSystem(p)
 
-	wall := phy.NewInvAABB(phy.VEC2F_ZERO, gc.Bounds.Width, gc.Bounds.Height)
-	wall.Shape().Layer = int(model.LayerBorderCollision)
-	p.AddStaticBody(ecs.NewBasic(), wall)
+	// One border wall per loaded zone (plan-underworld.md U1). A single-zone
+	// boot builds exactly the one origin-centred wall it always did; the
+	// fallback covers every test that constructs a game without a zone.
+	//
+	// ⭐ This loop is where a second zone becomes physically real, and it is the
+	// whole of it. Nothing below knows zones exist — the broadphase, the AOI
+	// query and every aura overlap see only positions — which is why
+	// world.Place has to have already proven these rectangles are far enough
+	// apart that their DOUBLED bounding boxes (InvAABB.updateBB) never share a
+	// broadphase cell. Two walls in one cell means a player being shoved toward
+	// a rectangle they are not in.
+	//
+	// ⚑ These are STATIC bodies: phy.Space documents that static shapes can be
+	// neither moved nor removed. Every wall exists from boot, which is exactly
+	// what a placed set needs and why nothing here is dynamic.
+	walls := gc.Walls
+	if len(walls) == 0 {
+		walls = []cfg.PlacedBounds{{Bounds: gc.Bounds, ZoneID: gc.ZoneName}}
+	}
+	for _, w := range walls {
+		wall := phy.NewInvAABB(phy.Vec2f{X: w.OriginX, Y: w.OriginY}, w.Width, w.Height)
+		wall.Shape().Layer = int(model.LayerBorderCollision)
+		p.AddStaticBody(ecs.NewBasic(), wall)
+	}
 
 	// Blocking paths — rivers and the like (plan-world-paths.md C2). The wall
 	// above is the precedent: a static body that is not an entity, registered
@@ -211,6 +236,24 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	// ⚑ Forgetting this call renders every portal row locked and fails no Go
 	// test - the system supports a nil seam on purpose.
 	interactionSys.SetAnchors(s)
+	// The anchor-mode destination table (plan-underworld.md U3): a cave mouth
+	// delivers to a named zone anchor, resolved when the row is taken.
+	//
+	// ⚑ Converted here rather than stored as phy.Vec2f: cfg holds authored
+	// content and stays out of the physics package. This is the one boundary
+	// that already speaks both.
+	if src := gc.ZoneAnchors; len(src) > 0 {
+		zoneAnchors := make(map[string]phy.Vec2f, len(src))
+		for name, pt := range src {
+			zoneAnchors[name] = phy.Vec2f{X: pt.X, Y: pt.Y}
+		}
+		interactionSys.SetZoneAnchors(zoneAnchors)
+	}
+	// The rectangles those anchors sit in, so a travel row can say which WAY it
+	// goes (U4b). ⚑ The same slice the border walls were built from a few lines
+	// up — one geometry, two readers, so a zone cannot be walled in one place
+	// and depth-ranked in another.
+	interactionSys.SetZonePlacements(gc.Walls)
 	// The ceremony's completion check reads the SAME catalog object the panel
 	// renders (C2a step 5), so what the stone offered and what the channel will
 	// accept cannot drift apart.

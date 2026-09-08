@@ -287,6 +287,11 @@ func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Buil
 			AuraApi.ConversationOptionAddReply(builder, reply)
 			AuraApi.ConversationOptionAddConfirmSeconds(builder, opt.ConfirmSeconds)
 			AuraApi.ConversationOptionAddSkillId(builder, opt.SkillID)
+			// ⚑ Costs zero bytes on every row that does not travel: the builder
+			// omits a field equal to its default and trims trailing zero vtable
+			// slots, and TravelNone is 0. That is why it is appended LAST — the
+			// Resource.rotation precedent, one table over.
+			AuraApi.ConversationOptionAddTravel(builder, byte(opt.Travel))
 			optionOffsets = append(optionOffsets, AuraApi.ConversationOptionEnd(builder))
 		}
 		AuraApi.ConversationNodeStartOptionsVector(builder, len(optionOffsets))

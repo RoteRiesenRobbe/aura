@@ -183,6 +183,10 @@ func TestZone_RejectsDuplicateSpawnPointID(t *testing.T) {
 
 // Triage item 5: a zone that places campfires must flag at least one as a
 // starting spawn, or fresh players would have nowhere to land — boot hard-fails.
+// ⚑ Goes through LoadZonesFS, not LoadZoneFS: "somewhere to put a fresh
+// character" moved from per-FILE validation to the placed SET when zones
+// stopped being loaded one at a time (plan-underworld.md U1/L4). Same
+// invariant, asked at the scope that can now actually answer it.
 func TestZone_RejectsCampfiresWithNoStartingSpawn(t *testing.T) {
 	const doc = `{
 		"name": "X",
@@ -193,7 +197,7 @@ func TestZone_RejectsCampfiresWithNoStartingSpawn(t *testing.T) {
 		]
 	}`
 
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
+	_, err := LoadZonesFS(mapFS(doc), nil, newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "startingSpawn")
 }

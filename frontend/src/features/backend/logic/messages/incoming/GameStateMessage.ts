@@ -12,6 +12,7 @@ import {
     ConversationNode,
     ConversationRow,
     ConversationTree,
+    TravelDirection,
 } from '../../../../conversation/logic/ConversationModel';
 import {QuestProgress} from '../../../../journal/logic/JournalModel';
 
@@ -299,6 +300,7 @@ function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree
                 reply: o.reply() ?? '',
                 confirmSeconds: o.confirmSeconds(),
                 skillId: o.skillId(),
+                travel: o.travel() as TravelDirection,
             });
         }
 

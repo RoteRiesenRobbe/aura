@@ -190,6 +190,21 @@ type InteractionGrant struct {
 	// Travel is where a GrantTravelTo row delivers its clicker
 	// (plan-portal-spells.md D3). Empty for every other kind.
 	Travel TravelMode
+	// Anchor is TravelAnchor's DEFAULT destination: the name of a zone Anchor in
+	// the loaded set (plan-underworld.md U3). Refused on every other mode,
+	// because those resolve through the portal's owner and a name here would be
+	// authored text that changes nothing.
+	//
+	// ⭐ A DEFAULT, NOT THE DESTINATION (U3b). world.Spawn.Anchor overrides it per
+	// placement, which is what lets ONE cave-mouth definition serve every passage
+	// in the world instead of one definition per hole in the ground. The shipped
+	// doors author nothing here at all.
+	//
+	// ⛑ NOT resolved to a position here, and it cannot be: the mob loader runs
+	// before the zones do (the zone loader takes the mob registry). Whether a
+	// placed door leads anywhere is world.CrossValidateTravelAnchors' question,
+	// the quests.CrossValidate precedent, and it is resolved per press at runtime.
+	Anchor string
 }
 
 // TravelMode names where a travel_to grant delivers. A closed vocabulary with
@@ -216,11 +231,27 @@ const (
 	// dead - both leave the game the same way), or flying (D3: flight removes the
 	// body from the space, so the "position" is a map animation, not a place).
 	TravelCaster TravelMode = "caster"
+
+	// TravelAnchor delivers to a named Anchor in the loaded zone set - the cave
+	// mouth and its twin at the bottom (plan-underworld.md U3).
+	//
+	// ⭐ IT IS THE FIRST MODE WHOSE DESTINATION IS AUTHORED GEOMETRY rather than
+	// a player, and that is what makes it the first a ZONE-PLACED conversant can
+	// answer at all: both modes above resolve through the portal's owner, so a
+	// fixture standing in the world - which has no owner - could never lead
+	// anywhere. sys.portalTravel.destination is where that split is enforced.
+	//
+	// ⚑ The anchor NAME is a property of the PLACEMENT (world.Spawn.Anchor),
+	// with the grant's own Anchor as a default. So ONE CaveMouth definition
+	// serves every passage in the world - the destination is where the door
+	// stands, not what kind of door it is.
+	TravelAnchor TravelMode = "anchor"
 )
 
 var travelModes = map[string]TravelMode{
 	string(TravelHomeCampfire): TravelHomeCampfire,
 	string(TravelCaster):       TravelCaster,
+	string(TravelAnchor):       TravelAnchor,
 }
 
 // ParseTravelMode resolves an authored destination mode.
@@ -507,6 +538,8 @@ type jsonInteractionGrant struct {
 	XP        uint64 `json:"xp"`
 	// Mode is travel_to's destination, required there and refused everywhere else.
 	Mode string `json:"mode"`
+	// Anchor names the zone Anchor mode "anchor" delivers to.
+	Anchor string `json:"anchor"`
 }
 
 // JSONCondition is the AUTHORED shape of one condition, exported because a
@@ -888,6 +921,9 @@ func (m *mobDefinition) mapGrant(where string, kind GrantKind, jg jsonInteractio
 	if kind != GrantTravelTo && jg.Mode != "" {
 		return g, fmt.Errorf("%s: a %s grant goes nowhere - drop the `mode` key", where, kind)
 	}
+	if kind != GrantTravelTo && jg.Anchor != "" {
+		return g, fmt.Errorf("%s: a %s grant goes nowhere - drop the `anchor` key", where, kind)
+	}
 
 	switch kind {
 	case GrantTeachSkill:
@@ -945,6 +981,24 @@ func (m *mobDefinition) mapGrant(where string, kind GrantKind, jg jsonInteractio
 			return g, fmt.Errorf("%s: mode %q must be one of %s", where, jg.Mode, names(travelModes))
 		}
 		g.Travel = mode
+		// ⛑ OPTIONAL HERE, AND THAT IS U3b RATHER THAN A LOOSENING. The
+		// destination of an anchor-mode row is a property of the PLACEMENT
+		// (world.Spawn.Anchor); what this authors is only a default for placements
+		// that name none. So "this row leads nowhere" is a question no loader can
+		// answer - it needs both the definition and the zone that places it, which
+		// is exactly what world.CrossValidateTravelAnchors has and this does not.
+		//
+		// ⚑ The REFUSAL half stays here, because it needs nothing else: an anchor
+		// on an owner-relative mode is authored text the resolver never reads,
+		// which is the quiet failure of the two - the door works, just not where
+		// it says.
+		anchor := strings.TrimSpace(jg.Anchor)
+		if mode == TravelAnchor {
+			g.Anchor = anchor
+		} else if anchor != "" {
+			return g, fmt.Errorf("%s: mode %q resolves its destination from the portal's owner, so the "+
+				"`anchor` key would never be read - drop it or switch to mode %q", where, mode, TravelAnchor)
+		}
 	}
 	return g, nil
 }

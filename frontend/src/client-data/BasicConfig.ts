@@ -14,6 +14,13 @@ export function meter2px(meter: number) {
     return meter * PIXEL_PER_METER;
 }
 
+/** The inverse of {@link meter2px}: world pixels back to server units. Needed
+ *  wherever a pixel position has to be compared against something authored in
+ *  server units — zone bounds and origins, for instance. */
+export function px2meter(px: number) {
+    return px / PIXEL_PER_METER;
+}
+
 /**
  * Milliseconds per server tick, the single client-side source for both
  * INPUT_TICKRATE and SERVER_TICKRATE (tier-1 derive, plan-code-health.md C4).

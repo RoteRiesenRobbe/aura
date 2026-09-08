@@ -4,6 +4,7 @@
   },
   "game": {
     "zone": "world",
+    "zones": ["world", "underworld"],
     "totalDayCycleSeconds": 600,
     "dayTimeSeconds": 400,
     "mobChaseIntoAuraMargin": 0.2,

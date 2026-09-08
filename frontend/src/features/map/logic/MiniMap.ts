@@ -14,6 +14,8 @@ import {
     mapScale,
     rescaleCoordinate,
     resizeTerrain,
+    toZoneLocal,
+    worldToMap,
 } from './MapScale';
 import {StartFlightMessage} from '../../backend/logic/messages/outgoing/StartFlightMessage';
 import {bakeTerrain, destroyTerrain} from './MapTerrain';
@@ -78,7 +80,29 @@ export class MiniMap {
     /** The zone the terrain above was baked from — kept so {@link rebakeTerrain}
      *  needs no argument nobody else holds. Empty until setup() runs. */
     private zoneName = '';
-    /** Session-only fog over the terrain — see MapFog's header. */
+    /**
+     * The active zone's origin in the client's px space (plan-underworld.md U4).
+     * `{0,0}` for `world` and for any zone that authors none.
+     *
+     * ⭐ EVERY LIVE POSITION THIS MAP PLOTS IS A WORLD COORDINATE, and the map is
+     * baked zone-local, so this is the term that reconciles them. Without it a
+     * player in the underworld draws 300 units off their own map — silently, and
+     * only in that zone. ⛔ It does NOT apply to campfire markers: those come out
+     * of the zone file and are zone-local already (MapScale.campfireMarkers).
+     */
+    private zoneOriginX = 0;
+    private zoneOriginY = 0;
+    /**
+     * Session-only fog over the terrain — see MapFog's header — kept PER ZONE.
+     *
+     * ⭐ One fog per zone rather than one fog, because setupTerrain rebuilds on
+     * every crossing and a single instance would be destroyed with it: walk down
+     * a cave and back up, and the surface you had explored would be blank again.
+     * Sharing ONE texture across zones is the opposite bug and just as wrong —
+     * walking the caves would reveal the surface (plan-underworld.md §5.3).
+     */
+    private fogByZone: Map<string, MapFog> = new Map();
+    /** The active zone's fog — an alias into fogByZone, never a second owner. */
     private fog: MapFog = null;
     /** Discovered-campfire markers, drawn in BOTH states — see MapCampfires. */
     private campfires: MapCampfires = null;
@@ -135,7 +159,10 @@ export class MiniMap {
         }));
     }
 
-    public setup(mapWidth: number, mapHeight: number, zoneName: string) {
+    public setup(
+        mapWidth: number, mapHeight: number, zoneName: string,
+        zoneOriginX: number = 0, zoneOriginY: number = 0,
+    ) {
         let container = HUD.getMinimapContainer();
         container.appendChild(this.application.canvas);
 
@@ -147,6 +174,25 @@ export class MiniMap {
 
         this.mapWidth = mapWidth;
         this.mapHeight = mapHeight;
+        // Before anything is baked or sized: setupTerrain and the first
+        // updateScaling both plot against it.
+        this.zoneOriginX = zoneOriginX;
+        this.zoneOriginY = zoneOriginY;
+        // ⚑ A re-setup is a second JOIN in one page life, and the fog is the
+        // previous character's history. Dropping it here is the counterpart to
+        // switchZone deliberately keeping it: crossing into a cave is not
+        // becoming a different person.
+        //
+        // ⛔ Detach before destroying, and clear the alias: the masks are still
+        // parented to the LIVE terrain layer at this point, and setupTerrain runs
+        // at the end of this method — it would otherwise reach through a stale
+        // `this.fog` and call removeFromParent on an already-destroyed sprite.
+        this.fogByZone.forEach(fog => {
+            fog.mask.removeFromParent();
+            fog.destroy();
+        });
+        this.fogByZone.clear();
+        this.fog = null;
 
         this.stage = this.application.stage;
 
@@ -184,6 +230,34 @@ export class MiniMap {
 
         this.application.ticker.add(this.update, this);
         this.application.renderer.addListener('resize', this.onResize, this);
+    }
+
+    /**
+     * Moves the whole map to another zone (plan-underworld.md U4) — a CROSSING,
+     * which is emphatically not a join.
+     *
+     * ⭐ IT EXISTS BECAUSE setup() IS A RESET. Driving a crossing through setup()
+     * re-appends the canvas, rebuilds every layer, closes an open map, and
+     * throws away two pieces of state that belong to the CHARACTER rather than
+     * to the zone: the fog they have walked off, and the campfires they have
+     * discovered. Both are published once and never again, so losing them loses
+     * them for the session. This redoes exactly the zone-derived parts.
+     */
+    public switchZone(
+        mapWidth: number, mapHeight: number, zoneName: string,
+        zoneOriginX: number, zoneOriginY: number,
+    ) {
+        this.mapWidth = mapWidth;
+        this.mapHeight = mapHeight;
+        this.zoneOriginX = zoneOriginX;
+        this.zoneOriginY = zoneOriginY;
+        this.zoneName = zoneName;
+        // The fires move, the discovered set does not.
+        this.campfires?.setZone(zoneName);
+        this.setupTerrain(zoneName);
+        // Re-derives the scale for the new zone's bounds and redraws every
+        // marker against the new origin.
+        this.updateScaling();
     }
 
     /**
@@ -252,7 +326,7 @@ export class MiniMap {
         // and this way that resolves itself a second later instead of drawing
         // your own dot twice for the rest of the session.
         this.players.setSelf(this.playerCharacter?.id ?? 0);
-        this.players.draw(this.state, this.scale);
+        this.players.draw(this.state, this.scale, {x: this.zoneOriginX, y: this.zoneOriginY});
     }
 
     /**
@@ -302,10 +376,18 @@ export class MiniMap {
             destroyTerrain(this.terrain);
             this.terrain = null;
         }
-        if (this.fog) {
-            this.fog.destroy();
-            this.fog = null;
-        }
+        // ⚑ The fog is NOT destroyed here, unlike the terrain above: it is the
+        // one piece of map state that is a player's own history rather than a
+        // drawing of the zone, and it is kept per zone across crossings.
+        //
+        // ⛔ BUT ITS MASK IS A CHILD OF THE LAYER BELOW, which is destroyed with
+        // `{children: true}` — so the mask has to come OFF FIRST. Leaving it on
+        // destroys the sprite of a fog we are about to hand back, and the next
+        // resizeTerrain throws reading `orig` of a null texture. ⚑ This fires
+        // without ever crossing a zone: rebakeTerrain re-enters here for the
+        // SAME zone the moment the region ground tiles land.
+        this.fog?.mask.removeFromParent();
+        this.fog = null;
         if (this.terrainLayer) {
             this.terrainLayer.removeFromParent();
             this.terrainLayer.destroy({children: true});
@@ -328,7 +410,12 @@ export class MiniMap {
         // It sits beside the terrain, not inside it, so both are fitted by the
         // same resize (updateScaling) instead of one inheriting the other's
         // scale twice.
-        this.fog = new MapFog(this.application.renderer, this.mapWidth, this.mapHeight);
+        // Kept across crossings and rebuilt only the first time a zone is seen.
+        this.fog = this.fogByZone.get(zoneName);
+        if (!this.fog) {
+            this.fog = new MapFog(this.application.renderer, this.mapWidth, this.mapHeight);
+            this.fogByZone.set(zoneName, this.fog);
+        }
         layer.addChild(this.fog.mask);
         this.terrain.mask = this.fog.mask;
 
@@ -693,16 +780,19 @@ export class MiniMap {
         // fog accumulates whether the map is open or docked, which is what
         // makes opening it show where you have been rather than where you are.
         if (this.fog && this.playerCharacter) {
+            // ⚑ Zone-local, not world: revealAt corner-origins the coordinate
+            // against the ZONE's rectangle, so a world y of 300 units would
+            // stamp far off the texture and reveal nothing at all.
             this.fog.revealAt(
                 this.application.renderer,
-                this.playerCharacter.getX(),
-                this.playerCharacter.getY(),
+                toZoneLocal(this.playerCharacter.getX(), this.zoneOriginX),
+                toZoneLocal(this.playerCharacter.getY(), this.zoneOriginY),
             );
         }
 
         Object.values(this.dynamicIcons[LevelOfDynamic.DYNAMIC]).forEach((icon: MiniMapIcon) => {
-            icon.shape.position.x = icon.gameObject.getX() * this.scale;
-            icon.shape.position.y = icon.gameObject.getY() * this.scale;
+            icon.shape.position.x = worldToMap(icon.gameObject.getX(), this.scale, this.zoneOriginX);
+            icon.shape.position.y = worldToMap(icon.gameObject.getY(), this.scale, this.zoneOriginY);
         });
 
         // Icons that have been marked for removal and should now be in range again
@@ -757,8 +847,8 @@ export class MiniMap {
         this.layerContainers[gameObject.miniMapLayer].addChild(minimapIcon);
 
         minimapIcon.position.set(
-            gameObject.getX() * this.scale,
-            gameObject.getY() * this.scale,
+            worldToMap(gameObject.getX(), this.scale, this.zoneOriginX),
+            worldToMap(gameObject.getY(), this.scale, this.zoneOriginY),
         );
         minimapIcon.scale.set(this.iconSizeFactor);
 

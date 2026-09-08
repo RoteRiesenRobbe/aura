@@ -1137,6 +1137,81 @@ func TestParseGrantKind_KnowsTravelTo(t *testing.T) {
 	assert.Equal(t, GrantTravelTo, kind)
 }
 
+// --- anchor mode: the destination that is not a player (plan-underworld.md U3) ---
+//
+// ⭐ The two older modes both resolve THROUGH the portal's owner. This one
+// resolves through authored geometry, which is what lets a zone-placed fixture
+// - a cave mouth, which has no owner at all - lead anywhere.
+
+func TestMapMobDefinition_ParsesAnAnchorTravelMode(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["A dark opening in the rock."],
+	  "options": [{"text": "Climb down.", "grants": [
+	    {"kind": "travel_to", "mode": "anchor", "anchor": "underworld-entry", "line": "down you go"}
+	  ]}]
+	}]}`)
+	require.NoError(t, err)
+
+	g := def.Interaction.Nodes[0].Options[0].Grants[0]
+	assert.Equal(t, TravelAnchor, g.Travel)
+	assert.Equal(t, "underworld-entry", g.Anchor)
+}
+
+// ⭐ OPTIONAL, AND THAT IS U3b RATHER THAN A LOOSENING. The destination of an
+// anchor-mode row is a property of the PLACEMENT (world.Spawn.Anchor); what a
+// definition authors is only a default for placements that name none. So "does
+// this door lead anywhere" is a question no loader can answer - it needs the
+// zone too, which is world.CrossValidateTravelAnchors' job and its test.
+func TestMapMobDefinition_AcceptsAnchorModeWithNoDefaultAnchor(t *testing.T) {
+	for _, authored := range []string{`"mode": "anchor", "line": "x"`, `"mode": "anchor", "anchor": "  ", "line": "x"`} {
+		def, err := mapInteraction(t, `{"nodes": [{
+		  "id": "root", "lines": ["hi"],
+		  "options": [{"text": "Climb down.", "grants": [{"kind": "travel_to", `+authored+`}]}]
+		}]}`)
+		require.NoError(t, err, authored)
+		g := def.Interaction.Nodes[0].Options[0].Grants[0]
+		assert.Equal(t, TravelAnchor, g.Travel)
+		assert.Empty(t, g.Anchor, "whitespace is not a name; the placement will supply one")
+	}
+}
+
+// ⚑ AND REFUSED BY THE OTHERS, which is the quieter half: an owner-relative
+// mode never reads the key, so an anchor authored there is a destination the
+// author wrote and the game ignores - the door works, just not where it says.
+func TestMapMobDefinition_RejectsAnAnchorOnAnOwnerRelativeMode(t *testing.T) {
+	for _, mode := range []string{"home_campfire", "caster"} {
+		_, err := mapInteraction(t, `{"nodes": [{
+		  "id": "root", "lines": ["hi"],
+		  "options": [{"text": "Step through.", "grants": [
+		    {"kind": "travel_to", "mode": "`+mode+`", "anchor": "underworld-entry", "line": "x"}
+		  ]}]
+		}]}`)
+		require.Error(t, err, mode)
+		assert.Contains(t, err.Error(), "anchor")
+	}
+}
+
+// The `anchor` key's cross-kind refusal, beside `mode`'s: a grant that hands
+// something over goes nowhere, so a destination on it is authored text nothing
+// will ever read.
+func TestMapMobDefinition_RejectsAnAnchorOnANonTravelGrant(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "Learn.", "grants": [
+	    {"kind": "grant_xp", "xp": 5, "anchor": "underworld-entry", "line": "x"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "anchor")
+}
+
+func TestParseTravelMode_KnowsAnchor(t *testing.T) {
+	mode, ok := ParseTravelMode("anchor")
+	require.True(t, ok)
+	assert.Equal(t, TravelAnchor, mode)
+}
+
 // ⚑ The mode is REQUIRED. A travel grant with no destination has nowhere to
 // deliver, and defaulting one would pick a destination the author never wrote.
 func TestMapMobDefinition_RejectsATravelToWithoutAMode(t *testing.T) {

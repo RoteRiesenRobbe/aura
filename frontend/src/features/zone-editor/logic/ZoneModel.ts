@@ -76,13 +76,23 @@ export interface ZoneSpawn {
     level?: number;
     waypoints?: ZoneWaypoint[];
     patrolMode?: 'pingpong' | 'loop';
+    // Where THIS PLACEMENT of an anchor-mode travel_to row delivers, by zone-
+    // anchor name (plan-underworld.md U3b). undefined = fall back to whatever
+    // the mob definition authors. It is what lets ONE CaveMouth definition
+    // serve every passage in the world: a door’s destination is where it
+    // stands, not what kind of door it is.
+    anchor?: string;
 }
 
 // A fixed world campfire position (atmosphere & recovery chunk 2) — a plain
 // point; the heal fixture itself is defined by the Campfire mob def.
-// startingSpawn marks the new-player spawn fire (intermission ① item 16); the
-// backend hard-fails at boot unless exactly one campfire in a zone carries it,
-// so it must survive editor round-trips.
+// startingSpawn marks the new-player spawn fire (intermission ① item 16). It
+// must survive editor round-trips: a character's bind is persisted against the
+// campfire id, and fresh players land on a flagged fire.
+// ⚑ The invariant is PER LOADED SET, not per file (plan-underworld.md U1/L4):
+// a cave nobody binds in legitimately carries fires with no starting spawn,
+// while the WORLD must still have somewhere to put a fresh character. Only
+// the PRIMARY zone may flag one, and world.Place enforces both halves at boot.
 export interface ZoneCampfire {
     // Stable spawn-point identity. A character's campfire bind is persisted as
     // this string, so it must survive editor round-trips and must never be
@@ -146,6 +156,15 @@ export interface ZonePath {
 export interface ZoneData {
     name: string;
     bounds: ZoneBounds;
+    // Where this zone's rectangle sits in the shared coordinate space when
+    // several zones are loaded together (plan-underworld.md U1). Absent =
+    // {0, 0}: the overworld, and every zone authored before the field existed.
+    //
+    // ⚑ CARRIED, NEVER EDITED — like regions and paths. There is no placement
+    // tool in this editor, and the only thing this field has to do is survive
+    // fromJSON -> getZoneAsJSON. Dropping it would silently move a whole zone
+    // on top of another one on the next in-game save (L3).
+    origin?: ZoneOrigin;
     terrain: ZoneTerrain[];
     props: ZoneProp[];
     spawns: ZoneSpawn[];
@@ -223,6 +242,11 @@ function spawnPointNumber(id: string): number {
     return match === null ? 0 : parseInt(match[1], 10);
 }
 
+export interface ZoneOrigin {
+    x: number;
+    y: number;
+}
+
 function round(value: number, digits: number): number {
     const factor = Math.pow(10, digits);
     return Math.round(value * factor) / factor;
@@ -248,6 +272,11 @@ export class ZoneModel {
     regions: ZoneRegion[] = [];
     // Carried, never edited — see ZonePath and the region field above.
     paths: ZonePath[] = [];
+    // Carried, never edited — see ZoneData.origin. undefined means the zone
+    // authors no origin at all, which must serialize back to NO KEY rather
+    // than to {x: 0, y: 0}, or every existing zone file gains a line on its
+    // next save.
+    origin?: ZoneOrigin;
     // 0 until the first mint, which seeds it from the loaded zone.
     private nextSpawnPointNumber: number = 0;
 
@@ -290,6 +319,7 @@ export class ZoneModel {
             width: p.width,
             blocksMovement: p.blocksMovement,
         }));
+        model.origin = data.origin ? {x: data.origin.x, y: data.origin.y} : undefined;
         return model;
     }
 
@@ -378,6 +408,9 @@ export class ZoneModel {
         const data: ZoneData = {
             name: this.name,
             bounds: {width: this.bounds.width, height: this.bounds.height},
+            // Omitted when absent so every zone that authors no origin — which
+            // is all of them today — round-trips diff-clean.
+            ...(this.origin ? {origin: {x: this.origin.x, y: this.origin.y}} : {}),
             terrain: this.terrain.map(t => ({
                 type: t.type,
                 x: round(t.x, 2),
@@ -425,6 +458,12 @@ export class ZoneModel {
                     ? s.waypoints.map(w => ({x: round(w.x, 2), y: round(w.y, 2)}))
                     : undefined,
                 patrolMode: s.patrolMode === 'loop' ? 'loop' : undefined,
+                // Named here or the whitelist eats it, `level`’s reason exactly:
+                // the backend has read spawn.anchor since U3b, so an authored
+                // destination that only lived in fromJSON’s spread would survive a
+                // load and vanish on the next save — and the door it belonged to
+                // would then take the keypress and move nobody.
+                anchor: s.anchor || undefined,
             })),
             // Omitted (undefined key) while empty, so pre-step-3 zones
             // round-trip diff-clean — the chunk-5 array precedent.

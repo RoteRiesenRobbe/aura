@@ -130,13 +130,23 @@ export class Camera {
 }
 
 function keepWithinMapBoundaries(vehicle: Vehicle) {
-    // Rectangular world (world foundation chunk 1): clamp the camera so the
-    // viewport stays inside the world bounds. If the world is smaller than the
-    // viewport on an axis, lock that axis to centre (whole world visible).
+    // Rectangular zone (world foundation chunk 1): clamp the camera so the
+    // viewport stays inside the ACTIVE zone's bounds. If the zone is smaller
+    // than the viewport on an axis, lock that axis to its centre (whole zone
+    // visible).
+    //
+    // ⭐ ABOUT THE ZONE'S CENTRE, NOT THE WORLD'S (plan-underworld.md U4). Zones
+    // are separated by DISTANCE in one shared coordinate space, so a size with
+    // no centre describes a box around `{0,0}` — and a player in a zone at
+    // `{0, 300}` gets clamped 300 units above themselves and disappears off the
+    // top of their own screen onto ground nothing is drawn on. `world` sits at
+    // `{0,0}`, which is why the origin terms were invisible for a year.
     const scale = viewScale();
-    let maxX = Math.max(0, Game.map.width / 2 - Game.width / scale / 2);
-    let maxY = Math.max(0, Game.map.height / 2 - Game.height / scale / 2);
+    const maxX = Math.max(0, Game.map.width / 2 - Game.width / scale / 2);
+    const maxY = Math.max(0, Game.map.height / 2 - Game.height / scale / 2);
+    const originX = Game.map.originX;
+    const originY = Game.map.originY;
 
-    vehicle.position.x = Math.min(maxX, Math.max(-maxX, vehicle.position.x));
-    vehicle.position.y = Math.min(maxY, Math.max(-maxY, vehicle.position.y));
+    vehicle.position.x = Math.min(originX + maxX, Math.max(originX - maxX, vehicle.position.x));
+    vehicle.position.y = Math.min(originY + maxY, Math.max(originY - maxY, vehicle.position.y));
 }

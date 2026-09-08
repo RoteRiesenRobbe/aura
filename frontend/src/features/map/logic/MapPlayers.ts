@@ -106,13 +106,13 @@ export class MapPlayers {
      * over a handful of players, and a diffing path would be more code than it
      * could ever save.
      */
-    draw(state: MapState, scale: number) {
+    draw(state: MapState, scale: number, origin: {x: number, y: number} = {x: 0, y: 0}) {
         this.layer.removeChildren().forEach((child) => child.destroy({children: true}));
 
         const cfg = GraphicsConfig.miniMap.icons.otherPlayer;
         const radius = DOT_SIZE[state] / 2;
 
-        for (const marker of this.markers(scale)) {
+        for (const marker of this.markers(scale, origin)) {
             // Drawn at the origin and POSITIONED, rather than drawn at the
             // marker's coordinates: it is how every entity icon on this map is
             // placed, so a dot's `.x/.y` mean the same thing as an icon's.
@@ -124,8 +124,11 @@ export class MapPlayers {
         }
     }
 
-    private markers(scale: number): RosterMarker[] {
-        return rosterMarkers(this.players, this.selfId, scale);
+    // ⚑ The origin is threaded rather than stored: a roster publication and a
+    // zone change are two different events, and a stale copy here would draw
+    // one second of dots against the zone you just left.
+    private markers(scale: number, origin: {x: number, y: number}): RosterMarker[] {
+        return rosterMarkers(this.players, this.selfId, scale, origin);
     }
 
     destroy() {

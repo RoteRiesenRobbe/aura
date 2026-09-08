@@ -141,6 +141,22 @@ type Spawn struct {
 	Waypoints          []Waypoint `json:"waypoints"`
 	PatrolMode         string     `json:"patrolMode"`
 
+	// Anchor is where THIS PLACEMENT's anchor-mode travel_to row delivers, by
+	// zone-anchor name (plan-underworld.md U3b). Empty = fall back to whatever
+	// the mob definition authors.
+	//
+	// ⭐ THE DESTINATION IS A PROPERTY OF THE WORLD, NOT OF THE OBJECT TYPE, and
+	// this is the field that says so. Without it one cave mouth definition is one
+	// destination, so a world with two passages needs four near-identical mob
+	// files - which is the shape plan-world-paths.md D4 already refused once when
+	// it put blocksMovement per PLACEMENT and never per profile.
+	//
+	// ⚑ An OVERRIDE with a definition-level default, the idiom the three knobs
+	// above already use (wanderRadius, idleSpeedFactor, level): absent inherits.
+	// A generic door - the shipped CaveMouth/CaveExit - authors no default at
+	// all and takes its destination entirely from here.
+	Anchor string `json:"anchor"`
+
 	// Def is the mob definition resolved from Mob; not part of the JSON.
 	Def *mobs.MobDefinition `json:"-"`
 }
@@ -198,9 +214,14 @@ type Campfire struct {
 	Y  float32 `json:"y"`
 	// StartingSpawn marks a campfire as a first-arrival spawn point (triage
 	// item 5). Fresh / unbound players spawn at a random flagged fire — kept
-	// data-driven so future selectable start locations reuse the same flag. A
-	// zone that places any campfires must flag at least one, or boot hard-fails
-	// (validate) — otherwise new players would have nowhere to spawn.
+	// data-driven so future selectable start locations reuse the same flag.
+	//
+	// ⚑ THE RULE IS PER LOADED SET, NOT PER FILE (plan-underworld.md U1, L4).
+	// It used to live in validate() and moved to Place.checkSetWide the moment
+	// more than one zone could load: a cave nobody binds in legitimately carries
+	// fires with none flagged, while the WORLD must still have somewhere to put
+	// a fresh character — and only the PRIMARY zone may flag one, or a new
+	// character lands underground. Both halves hard-fail the boot.
 	StartingSpawn bool `json:"startingSpawn"`
 }
 
@@ -290,9 +311,46 @@ type Anchor struct {
 // dark areas + anchors). NPCs used to be a section of their own; since the
 // actor merge they are ordinary spawns (plan-entity-model.md chunk 3a).
 type Zone struct {
-	Name      string           `json:"name"`
-	Legacy    bool             `json:"legacy"` // retired-content zone tag (step-7 A.5); no shipped zone authors it since zone-editor C3
-	Bounds    Bounds           `json:"bounds"`
+	Name   string `json:"name"`
+	Legacy bool   `json:"legacy"` // retired-content zone tag (step-7 A.5); no shipped zone authors it since zone-editor C3
+	Bounds Bounds `json:"bounds"`
+
+	// Origin is where this zone's rectangle sits in the SHARED coordinate space
+	// when several zones are loaded at once (plan-underworld.md U1). Absent =
+	// {0,0}, which is every zone authored before this field and the overworld
+	// forever — so a zone file is still authored around its own origin in Tiled,
+	// and placement is a property of the world rather than of the geometry.
+	//
+	// ⚑ Zones are separated by DISTANCE and nothing else. There is no layer bit:
+	// the broadphase, the border walls, the AOI viewport query and every aura
+	// overlap keep two zones apart purely because they are far apart. Place()
+	// owns the two rules that keep that true — origins must clear each other's
+	// DOUBLED wall bounding boxes (L1), and must stay small enough that float32
+	// still resolves a movement step (L12).
+	//
+	// ⚑ Every other coordinate in this file stays ZONE-LOCAL. Place() is the one
+	// place the offset is applied, and it runs after validate() — which is why
+	// the anchor-inside-bounds check below can keep comparing against a
+	// rectangle centred on zero.
+	//
+	// ⭐ +Y IS DEEPER, AND THAT IS AN AUTHORING CONTRACT, NOT AN ACCIDENT (U4b).
+	// The offset is otherwise a free packing coordinate, but a travel row's
+	// direction byte is derived by comparing the two zones' origin Y, so where a
+	// zone is placed is what decides whether walking into it reads as a DESCENT
+	// or as a lateral crossing. Place a cave below the surface by giving it a
+	// LARGER origin Y; place a neighbouring region beside it by moving it in X
+	// instead, and its passages report lateral. ⛔ Packing zones down the Y axis
+	// for tidiness alone would make every crossing a descent.
+	//
+	// ⚑ Deliberately NOT a separate `depth` int: a second field could disagree
+	// with the geometry, and there is nothing the disagreement could mean.
+	//
+	// ⏳ PROVISIONAL, AND ITS SUCCESSOR IS ALREADY DESIGNED (§7.2, U6). Once the
+	// origin is GENERATED at build time rather than authored, a `depth` field
+	// cannot disagree with the geometry — because the geometry is derived from
+	// it — and this contract is deleted. Do not build a second consumer of
+	// "+Y is deeper" without reading that section first.
+	Origin    Point            `json:"origin"`
 	Terrain   []TerrainTexture `json:"terrain"`
 	Props     []Prop           `json:"props"`
 	Spawns    []Spawn          `json:"spawns"`
@@ -377,6 +435,51 @@ func LoadZoneFS(fileSystem fs.FS, name string, mr mobs.Registry, pr PropRegistry
 	}
 	z.ID = target
 	return z, nil
+}
+
+// LoadZonesFS loads and PLACES a set of zones by file stem, in the order given
+// — the first is the primary zone, the one a fresh character spawns in and the
+// one whose bounds ride the wire (plan-underworld.md U1).
+//
+// ⚑ Only the named stems are parsed. That keeps LoadZoneFS's property that a
+// half-authored WIP zone sitting in the directory cannot break a boot it was
+// never selected for.
+//
+// ⚑ Placement is not optional and not the caller's job: Place applies each
+// Origin AND enforces the separation and identity rules that are the only thing
+// keeping two zones from reaching into each other. Loading without placing
+// would produce a world that looks right and silently overlaps.
+func LoadZonesFS(fileSystem fs.FS, names []string, mr mobs.Registry, pr PropRegistry) ([]*Zone, error) {
+	if len(names) == 0 {
+		// Backward compatible with every conf that names a single zone, and
+		// with the "sole zone needs no name" rule LoadZoneFS already carries.
+		z, err := LoadZoneFS(fileSystem, "", mr, pr)
+		if err != nil {
+			return nil, err
+		}
+		names = []string{z.ID}
+	}
+	zones := make([]*Zone, 0, len(names))
+	seen := map[string]bool{}
+	for _, name := range names {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			return nil, fmt.Errorf("zone list contains an empty name")
+		}
+		if seen[name] {
+			return nil, fmt.Errorf("zone %q is listed twice", name)
+		}
+		seen[name] = true
+		z, err := LoadZoneFS(fileSystem, name, mr, pr)
+		if err != nil {
+			return nil, err
+		}
+		zones = append(zones, z)
+	}
+	if err := Place(zones); err != nil {
+		return nil, err
+	}
+	return zones, nil
 }
 
 // parseZone decodes and validates a single zone document. Unknown keys are
@@ -474,21 +577,13 @@ func (z *Zone) validate() error {
 			return fmt.Errorf("path %d: width must be positive, got %g", i, z.Paths[i].Width)
 		}
 	}
-	// A zone that places campfires must flag at least one as a starting spawn
-	// (triage item 5) — fresh players spawn at a flagged fire, so an unflagged
-	// zone would leave them nowhere to land.
-	if len(z.Campfires) > 0 {
-		hasStart := false
-		for i := range z.Campfires {
-			if z.Campfires[i].StartingSpawn {
-				hasStart = true
-				break
-			}
-		}
-		if !hasStart {
-			return fmt.Errorf("zone has %d campfire(s) but none is flagged startingSpawn", len(z.Campfires))
-		}
-	}
+	// ⚑ "at least one campfire is a startingSpawn" USED TO LIVE HERE and moved
+	// to world.Place's checkSetWide (plan-underworld.md U1). With more than one
+	// zone loaded the question stopped being per-file: a cave that nobody binds
+	// in legitimately carries fires without any starting spawn, while the
+	// WORLD still must have somewhere to put a fresh character. Place runs on
+	// every boot, single zone included, so the invariant is not weakened — only
+	// asked at the right scope.
 	// Spawn-point identity. The map is zone-wide by design (Campfire.ID) even
 	// though campfires are its only members today.
 	spawnPointIDs := make(map[string]bool, len(z.Campfires))
