@@ -494,6 +494,42 @@ describe('AuraConvert — save-time validation (C4)', () => {
         expect(only(pathZone({profile: 'Nope'}))).toContain('unknown profile "Nope"');
     });
 
+    // ⭐ P1: a POLYGON on the paths layer is now legal and IS the closed flag.
+    // Before this it was refused outright ("a closed river is a lake"), which
+    // is the assertion this replaces — the fill it was protecting against is
+    // AuraPolygon's job, not a shape rule's.
+    it('a path drawn as a closed polygon validates cleanly', () => {
+        const z = pathZone({points: [{x: 0, y: 0}, {x: 5, y: 0}, {x: 5, y: 5}], closed: true});
+        expect(C.validateModel(C.zoneToModel(z))).toEqual([]);
+    });
+
+    it('a closed path needs three points to be a ring', () => {
+        expect(only(pathZone({points: [{x: 0, y: 0}, {x: 5, y: 0}], closed: true})))
+            .toContain('at least 3 points');
+    });
+
+    // ⭐ The shape IS the flag, in both directions: a closed path must come back
+    // out of the Tiled model as a polygon and go back into the file as
+    // `closed: true`, with no property anywhere in between. A `closed` property
+    // in the Properties panel would be a second source of truth that could
+    // contradict the shape it was drawn as.
+    it('a closed path round-trips through the SHAPE, not through a property', () => {
+        const z = pathZone({points: [{x: 0, y: 0}, {x: 5, y: 0}, {x: 5, y: 5}], closed: true});
+        const model = C.zoneToModel(z);
+        const obj = model.layers.find((l: {name: string}) => l.name === 'paths').objects[0];
+        expect(obj.shape).toBe('polygon');
+        expect(obj.properties).not.toHaveProperty('closed');
+        expect(C.modelToZone(model).paths[0].closed).toBe(true);
+    });
+
+    // And the other way: an open path must not grow the key at all, or every
+    // decorative road in every shipped zone gains a "closed": false nobody
+    // wrote and every zone file changes on the next save.
+    it('an open path emits no closed key', () => {
+        const out = JSON.parse(C.serializeZone(C.modelToZone(C.zoneToModel(pathZone()))));
+        expect(out.paths[0]).not.toHaveProperty('closed');
+    });
+
     it('the shipped world.json has nothing to complain about', () => {
         expect(C.validateModel(C.zoneToModel(JSON.parse(worldText)))).toEqual([]);
     });
@@ -828,9 +864,13 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         // ⚑ blocksMovement is tri-state on a path (false = absent), so the
         // fixture has to author it TRUE or the key never appears and the pin
         // passes while the writers quietly disagree about it.
+        // ⚑ closed is tri-state for the same reason, and it is DERIVED from the
+        // Tiled shape rather than from a property — so a fixture that left it
+        // out would exercise the polyline branch only, and both writers could
+        // quietly drop every moat in the world with this pin still green.
         paths: [{
-            profile: 'Water', points: [{x: 1, y: 1}, {x: 5, y: 2}],
-            width: 3, blocksMovement: true,
+            profile: 'Water', points: [{x: 1, y: 1}, {x: 5, y: 2}, {x: 4, y: 6}],
+            width: 3, blocksMovement: true, closed: true,
         }],
         anchors: [{name: 'a', x: 8, y: 8}],
     };

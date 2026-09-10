@@ -245,6 +245,45 @@ else
 fi
 
 echo
+echo "a CLOSED path round-trips — the SHAPE carries the flag"
+# ⭐ P1's own leg (plan-zone-polygons.md). `closed` is the first zone field that
+# is not a property at all: it is Tiled's object SHAPE, so the whole feature
+# rests on Tiled handing a polygon back as a polygon and a polyline back as a
+# polyline on the paths layer — which the pure converter can only assume. If the
+# shape were flattened either way, a moat would silently open (or every road
+# would close) and no vitest leg could see it.
+#
+# ⛑ BOTH kinds in ONE fixture, and the ring authored with a DIFFERENT point
+# count: with only a ring here, a converter that closed everything would still
+# round-trip byte-identically and this leg would pass while every road in the
+# world became a loop. (The same trap the origin fixture documents one leg up.)
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/closedpath.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    paths: [
+        // A moat: closed, blocking, three points.
+        {profile: "Water", width: 4, blocksMovement: true, closed: true,
+         points: [{x: -20, y: -10}, {x: -8, y: -10}, {x: -14, y: 2}]},
+        // A ring road: closed, decorative, four points.
+        {profile: "Road", width: 2.5, closed: true,
+         points: [{x: 4, y: -8}, {x: 16, y: -8}, {x: 16, y: 4}, {x: 4, y: 4}]},
+        // And an ORDINARY open road beside them, which must stay open.
+        {profile: "Road", width: 2.5, points: [{x: -20, y: 12}, {x: 20, y: 12}]},
+    ],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/closedpath.json         "$(native "$ROOT/tools/tiled/.verify/closedpath-out.json")" >/dev/null 2>&1    && cmp -s tools/tiled/.verify/closedpath.json tools/tiled/.verify/closedpath-out.json; then
+    ok "byte-identical — the rings came back rings and the road came back open"
+else
+    bad "a closed path did not survive: $(cmp tools/tiled/.verify/closedpath.json         tools/tiled/.verify/closedpath-out.json 2>&1 | head -1)"
+fi
+
+echo
 echo "a region naming a profile that does not exist"
 node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");

@@ -337,10 +337,11 @@ var AuraConvert = (function () {
                     };
                 })
                 : undefined,
-            // A path is a POLYLINE, so its points are NOT closed and there is
-            // no first-vertex repeat to strip. blocksMovement stays tri-state:
-            // false is the authored default, so an undefined must stay absent
-            // or every decorative path grows a key nobody wrote.
+            // A path's points are never closed in the FILE — a ring repeats no
+            // first vertex, exactly as a region's polygon does not; `closed`
+            // carries the wraparound instead. blocksMovement and closed are both
+            // tri-state: false is the authored default, so an undefined must stay
+            // absent or every decorative open path grows two keys nobody wrote.
             paths: z.paths && z.paths.length > 0
                 ? z.paths.map(function (p2) {
                     return {
@@ -350,6 +351,7 @@ var AuraConvert = (function () {
                         }),
                         width: round(p2.width, 2),
                         blocksMovement: p2.blocksMovement ? true : undefined,
+                        closed: p2.closed ? true : undefined,
                     };
                 })
                 : undefined,
@@ -511,16 +513,20 @@ var AuraConvert = (function () {
         // A path IS its centreline: a polyline whose origin sits on the first
         // vertex, exactly like a patrol route and a region outline.
         //
-        // ⚑ POLYLINE, not polygon. The regions layer refuses a polyline because
-        // an open shape has no inside to paint; this layer refuses a POLYGON for
-        // the mirror reason — a closed river is a lake, and Pixi would happily
-        // draw one.
+        // ⭐ THE SHAPE IS THE FLAG (plan-zone-polygons.md P1). A polyline is an
+        // open path, a polygon is a closed one — there is no `closed` property in
+        // the Properties panel, deliberately: an authored bool could contradict
+        // the shape it was drawn as, and then the two would disagree about where
+        // a road ends. Closure is still only a STROKE either way; the FILLED
+        // shape is a class of its own (D1), which is what makes an accidental
+        // close in Tiled a one-undo cosmetic slip rather than a lake.
         var paths = (z.paths || []).map(function (p2) {
             var pts = p2.points || [];
             var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
             var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
             var o = {
-                shape: 'polyline', layer: 'paths', name: p2.profile, cls: 'AuraPath',
+                shape: p2.closed ? 'polygon' : 'polyline',
+                layer: 'paths', name: p2.profile, cls: 'AuraPath',
                 x: ox, y: oy, width: 0, height: 0, rotation: 0,
                 flipH: false, flipV: false,
                 polygon: pts.map(function (v) {
@@ -676,6 +682,10 @@ var AuraConvert = (function () {
                     }),
                     width: typeof w === 'number' ? w : 0,
                     blocksMovement: get(o, 'blocksMovement') ? true : undefined,
+                    // ⚑ Read off the SHAPE, never off a property — see the
+                    // matching note in zoneToModel. get(o, 'closed') would be a
+                    // second source of truth for something Tiled already knows.
+                    closed: o.shape === 'polygon' ? true : undefined,
                 };
             }),
             anchors: layer('anchors').map(function (o) {
@@ -978,9 +988,15 @@ var AuraConvert = (function () {
         layer('paths').forEach(function (o, i) {
             checkProfile(o, i, profilesKnown);
             var n = (o.polygon || []).length;
-            if (o.shape !== 'polyline') {
-                bad(o, i, 'must be a POLYLINE — a path is an open line, and a closed'
-                    + ' polygon would draw a river as a lake');
+            // ⭐ BOTH shapes are legal here, and which one it is IS the closed
+            // flag (plan-zone-polygons.md P1). A polygon strokes a ring — a moat,
+            // a ring road — it does not fill one; filling is AuraPolygon's job.
+            if (o.shape !== 'polyline' && o.shape !== 'polygon') {
+                bad(o, i, 'must be a POLYLINE or a POLYGON — a path is a line, and any'
+                    + ' other shape is dropped on save');
+            } else if (o.shape === 'polygon' && n < 3) {
+                bad(o, i, 'a closed path needs at least 3 points to make a ring, has ' + n
+                    + ' — draw it with the polyline tool if it is meant to be open');
             } else if (n < 2) {
                 bad(o, i, 'needs at least 2 points to draw a line, has ' + n);
             }

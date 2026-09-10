@@ -151,6 +151,9 @@ export interface ZonePath {
     points: { x: number, y: number }[];
     width: number;
     blocksMovement?: boolean;
+    // Tri-state for the same reason blocksMovement is: false is the authored
+    // default, so an open path must export with no key at all.
+    closed?: boolean;
 }
 
 export interface ZoneData {
@@ -318,6 +321,7 @@ export class ZoneModel {
             points: (p.points || []).map(pt => ({...pt})),
             width: p.width,
             blocksMovement: p.blocksMovement,
+            closed: p.closed,
         }));
         model.origin = data.origin ? {x: data.origin.x, y: data.origin.y} : undefined;
         return model;
@@ -509,6 +513,7 @@ export class ZoneModel {
                     points: p.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
                     width: round(p.width, 2),
                     blocksMovement: p.blocksMovement ? true : undefined,
+                    closed: p.closed ? true : undefined,
                 }))
                 : undefined,
             // Omitted (undefined key) while empty, so pre-C6 zones round-trip

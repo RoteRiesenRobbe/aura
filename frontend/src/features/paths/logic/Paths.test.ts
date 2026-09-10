@@ -48,6 +48,34 @@ describe('toPaths', () => {
             .forEach(p => expect(Number.isFinite(p.width)).toBe(true));
     });
 
+    // ---- closed paths (plan-zone-polygons.md P1) --------------------------
+
+    // ⚑ Normalised to a real boolean, never carried through as undefined: it
+    // reaches Pixi as `poly(points, closed)`, whose own default is TRUE — the
+    // opposite of what a path means. An undefined would close every road.
+    it('normalises closed to a boolean, defaulting to open', () => {
+        const [open] = toPaths([{profile: 'Road', width: 1, points: [{x: 0, y: 0}, {x: 1, y: 0}]}]);
+        expect(open.closed).toBe(false);
+
+        const [ring] = toPaths([{
+            profile: 'Road', width: 1, closed: true,
+            points: [{x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: 1}],
+        }]);
+        expect(ring.closed).toBe(true);
+    });
+
+    // THREE for a ring, TWO for a line — the server refuses a two-point ring,
+    // so this is the client's own degrade path for a hand-edited file, and it
+    // drops one path rather than the zone.
+    it('drops a two-point ring but keeps a two-point line', () => {
+        const kept = toPaths([
+            {profile: 'Road', width: 1, closed: true, points: [{x: 0, y: 0}, {x: 1, y: 0}]},
+            {profile: 'Road', width: 1, points: [{x: 0, y: 0}, {x: 1, y: 0}]},
+        ]);
+        expect(kept).toHaveLength(1);
+        expect(kept[0].closed).toBe(false);
+    });
+
     // blocksMovement is read by the SERVER alone. It must not reach the drawn
     // shape at all — a blocking river and a ford look identical.
     it('does not carry blocksMovement into the drawn path', () => {

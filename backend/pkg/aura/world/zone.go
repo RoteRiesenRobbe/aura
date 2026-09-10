@@ -266,15 +266,19 @@ type Region struct {
 	Points  []Point `json:"points"`
 }
 
-// Path is an open POLYLINE naming a client-side presentation PROFILE, stroked
-// into the world at Width server units across — roads and rivers
-// (plan-world-paths.md C1). The sibling of Region: a region is a closed polygon
-// FILLED, a path is an open polyline STROKED, and they share the profile table,
-// the paint spec and the blend mask on the client.
+// Path is a POLYLINE naming a client-side presentation PROFILE, stroked into
+// the world at Width server units across — roads and rivers
+// (plan-world-paths.md C1). The sibling of Region: a region is a polygon
+// FILLED, a path is a polyline STROKED, and they share the profile table, the
+// paint spec and the blend mask on the client.
 //
 // ⚑ Deliberately its own array rather than a Region with a width (D2). A region
-// is closed and >= 3 points and its whole client lookup is point-in-polygon; a
-// path is open and >= 2. One array meaning two things would make both harder.
+// is >= 3 points and its whole client lookup is point-in-polygon; a path is >= 2
+// and has no inside at all. One array meaning two things would make both harder.
+//
+// ⚑ A path is open by default and CLOSED when Closed says so — a ring is still
+// a stroke, never a fill (plan-zone-polygons.md P1). "Open polyline" was true of
+// this type until then and is the thing to unlearn when reading older comments.
 //
 // ⭐ Unlike Region, the server does NOT merely parse and ignore this: a path
 // authoring BlocksMovement gets static collision corridors built for it at boot
@@ -293,6 +297,20 @@ type Path struct {
 	// decorative until someone says otherwise, and a shallow ford is simply a
 	// water path authored false.
 	BlocksMovement bool `json:"blocksMovement"`
+	// Closed joins the last point back to the first: a moat, a ring road, a
+	// circular town wall (plan-zone-polygons.md P1). The stroke wraps around and
+	// the seam gets a joint circle like any other bend.
+	//
+	// ⚑ DERIVED from the Tiled SHAPE, never authored as a property: an object
+	// drawn with the polygon tool is closed, one drawn with the polyline tool is
+	// not. An authored bool could contradict the shape it was drawn as, and then
+	// the two would disagree about where a road ends.
+	//
+	// ⛔ Closure does NOT imply FILL — a closed path is still a STROKE, and the
+	// filled sibling is its own type and its own array (plan-zone-polygons.md
+	// D1). That is what makes an accidental close in Tiled harmless: it joins
+	// the two ends of a road, visibly, and one undo puts it back.
+	Closed bool `json:"closed,omitempty"`
 }
 
 // Anchor is a named point encounter scripts look up at registration (content
@@ -632,6 +650,13 @@ func (z *Zone) validate() error {
 		// TWO, not three: a path is an OPEN polyline. One point is not a line.
 		if len(z.Paths[i].Points) < 2 {
 			return fmt.Errorf("path %d: needs at least 2 points to draw a line, got %d",
+				i, len(z.Paths[i].Points))
+		}
+		// A CLOSED one needs three, for the same reason a region does: two
+		// points joined back to themselves are one segment walked twice, not a
+		// ring, and the wraparound would lay a second body on top of the first.
+		if z.Paths[i].Closed && len(z.Paths[i].Points) < 3 {
+			return fmt.Errorf("path %d: a closed path needs at least 3 points to make a ring, got %d",
 				i, len(z.Paths[i].Points))
 		}
 		if z.Paths[i].Width <= 0 {

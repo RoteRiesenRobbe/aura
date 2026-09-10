@@ -338,10 +338,18 @@ function classifyRun(run) {
     // a texture whose source label is the tile file. A fallback-coloured region
     // has texture === Texture.WHITE, which is exactly what D14 degrades to.
     const painted = await page.evaluate(() => {
+      // ⚑ Scoped to the REGIONS layer, which is what this script's coverage row
+      // claims to own. It used to walk the whole stage, with the note that "the
+      // façade exposes no layer map (window.game is four methods)" — that has
+      // been false since the flight chunk added `layers`, and walking
+      // everything stopped meaning anything the day world.json authored PATHS:
+      // a path paints a textured fill into a DIFFERENT layer, so the count came
+      // out 4-against-1 and reported a stale `dist` that was perfectly current
+      // (found while wrapping plan-zone-polygons.md P1, 2026-09-10). The whole
+      // stage is still the fallback, so an older client is read as before.
       const root = window.game?.character?.plate?.parent?.parent;
-      // Walk the whole stage instead of guessing the layer path — the façade
-      // exposes no layer map (window.game is four methods).
-      const stage = (function top(c) { return c.parent ? top(c.parent) : c; })(root);
+      const stage = window.game?.layers?.terrain?.regions
+        || (function top(c) { return c.parent ? top(c.parent) : c; })(root);
       const out = [];
       (function walk(node) {
         if (node.context && node.context.fillStyle) {

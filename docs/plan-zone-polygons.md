@@ -1,6 +1,7 @@
 # Plan: Filled polygons — a blocking AREA primitive, and outlines for both
 
-> **Status:** designed 2026-09-09 (PO session), nothing built.
+> **Status:** designed 2026-09-09 (PO session). **P1 SHIPPED 2026-09-10**
+> (ledger §12); P2-P4 unstarted.
 > **Owns:** `zone.polygons` (a new authored array + Tiled class `AuraPolygon`),
 > the filled-area collider, and `outlineProfile`/`outlineWidth` on both polygons
 > and paths.
@@ -420,7 +421,8 @@ zero.
 
 Each independently shippable; the feature is inert until content authors it.
 
-- **P1 — closed paths.** `Path.Closed`, derived from the Tiled shape (never an
+- **P1 — closed paths.** ✅ **SHIPPED 2026-09-10** (ledger §12). `Path.Closed`,
+  derived from the Tiled shape (never an
   authored property) · a wraparound segment + a seam joint circle in
   `appendPathCorridors` · `.poly(points, closed)` on the client. Moats, ring
   roads, circular town walls. ⚑ **Ships FIRST by PO choice 2026-09-09** — it is
@@ -612,4 +614,92 @@ running server booted with.
 
 ## 12. Chunk ledgers
 
-_(none yet — nothing built)_
+### P1 — closed paths ✅ 2026-09-10
+
+**What shipped.** `world.Path.Closed`, one derived bool. A path drawn in Tiled
+with the **polygon** tool strokes a closed ring — a moat, a ring road, a
+circular town wall — and a blocking one walls the wraparound from the last point
+back to the first. Four files carry it end to end: `zone.go` (the field +
+validation), `paths_collision.go` (the wraparound segment + the seam joint),
+`aura-convert.js` (all three directions + the validator), `ZoneModel.ts`, plus
+`Paths.ts` and `RegionPaint.ts` on the draw side.
+
+⭐ **The shape IS the flag, and that is the design.** `closed` exists nowhere in
+Tiled's Properties panel: `zoneToModel` picks the shape from it, `modelToZone`
+reads it back off `o.shape`, and nothing in between is a property. D4 asked for
+this ("never an authored property — the shape *is* the flag") and the reason
+survived contact: an authored bool can contradict the shape it was drawn as, and
+then two sources of truth disagree about where a road ends.
+
+⚑ **The validator leg that was DELETED is the notable change.** The paths layer
+used to refuse a polygon outright — *"a closed river is a lake, and Pixi would
+happily draw one"*. That refusal is gone, because the lake it was protecting
+against is `AuraPolygon`'s job (D1) and not a shape rule's. What replaced it is a
+POINT-COUNT rule: a polygon-shaped path needs **3** points, a polyline **2** —
+the same split regions and paths already had, now inside one type. ⭐ **The proof
+that closure did not become fill is on screen**: the pixel column through the
+middle of the probe ring reads **0 % water** in both modes (§ in-game below).
+
+⚑ **The seam joint is the bend a reader forgets.** Every vertex of a ring is a
+bend — there is no end cap to leave open — so a closed path gets **n** joint
+circles where an open one gets **n − 2**, and the extra one is at point 0, the
+only bend whose two segments are not adjacent in the array. The loop therefore
+asks *"is there a next SEGMENT"*, never *"is there a next point"*.
+
+⚑ **`closed` is tri-state in every writer** (absent = open), so **every shipped
+zone stays byte-identical** and the feature is inert at HEAD — `world.json`'s
+four paths all parse `closed=false` off the Go zero value, untouched.
+
+**Schema.** DB **NONE** · wire **NONE** · conf **NONE** · zone format **one new
+key on `paths`**, absent-safe · content **NONE**.
+
+**Verified.**
+- `go build ./...` · `go vet ./...` · **`go test -count=1 ./...` EXIT 0**
+- `tsc --noEmit` · **vitest 672/672** (+7) · prod webpack build
+- **`bash tools/tiled/verify.sh` all green** through real Tiled, including its
+  new **closed-path leg** (a moat, a ring road and an ordinary open road in one
+  fixture, byte-identical round-trip)
+- **Mutation-verified ×5**: kill the wraparound → covered length falls 80 → 60 ·
+  kill the seam joint → 4 corners becomes 3 · drop `closed` from
+  `ZoneModel.getZoneAsJSON` → the completeness pin names it by name · drop the
+  shape READ in `modelToZone` → the Tiled leg reddens · force every path to a
+  polygon → the Tiled leg reddens the other way.
+
+⭐ **IN-GAME VERIFIED, as an A/B** (`.claude/skills/verify/p1-closed-path.mjs`,
+new). A probe ring at x −27..−19, y 10..18 (width 2, blocking), authored so its
+**wraparound is the west side**, walked from the middle at (−23, 14):
+
+| | walk WEST (the wraparound) | walk EAST (an ordinary segment) | pixels at x = −23 |
+| --- | --- | --- | --- |
+| `closed: true` | **stopped at x = −25.75** — exactly the predicted face | stopped at −20.25 | 0 % water |
+| `closed` absent | **walked through to −29.72** | stopped at −20.25 | 0 % water |
+
+⭐ **The east column is what makes the west column mean anything**: it is walled
+identically in both runs, so a stale server, a missed warp or a dead collider
+would have failed both. And the drawn side follows the same A/B — the pixel
+column at x = −27 is **100 % water closed, 0 % open**, while x = −19 is 71 % in
+both. ⚑ The probe ring was installed against a **byte-exact backup** of the PO's
+uncommitted `world.json` and restored by sha256 afterwards.
+
+⚑ **What P1 did NOT need, confirmed rather than assumed** (§6): `aura-world-format.js`,
+the fourth writer, already maps `polygon` and `polyline` in both directions
+generically — a new object SHAPE is not a map-level value. And the palette is
+untouched: `AuraPath`'s `useAs` carries no shape restriction, so a class that
+gained no property needed no regeneration.
+
+**Harness gate.** `c4-region-texture` (it owns `RegionPaint.ts`): **4 PASS, 1
+INCONCLUSIVE**, the inconclusive being a zone that authors only one region so
+there is no interior blended edge to read — content, not code. ⚑ **A real
+harness defect was found and fixed here rather than left**: that script walked
+the WHOLE stage and compared the textured-fill count against `zone.regions`
+alone, so the four paths the PO has authored made it report a stale
+`frontend/dist` that was perfectly current. It is now scoped to
+`layers.terrain.regions` — which its own comment said was impossible ("the
+façade exposes no layer map"), untrue since the flight chunk added `layers`.
+⚑ `c3-zone-editor-level` (it owns `ZoneModel.getZoneAsJSON`) is **deferred to
+the end of P4 by PO instruction 2026-09-10** — ZoneModel is touched again at P2
+and P4, and running it three times costs more than it buys.
+
+⚑ **The accepted cost of shipping first (§4.4) was paid as designed**: the three
+writers are taught `closed` now and will be taught `polygons` again at P2.
+

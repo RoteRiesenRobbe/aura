@@ -532,10 +532,12 @@ export function paintPaths(
 ): PaintedSurfaces {
     const out: PaintedSurfaces = {masks: [], scrollers: []};
     paths.forEach((path) => {
-        // `false` is the whole difference from a region: an OPEN polyline. Pixi
-        // would happily close it, and a closed river is a lake.
+        // The closePath flag is the whole difference from a region — and it is
+        // still a STROKE either way, which is why a closed river is a moat and
+        // not a lake. Pixi's own default here is `true`, so the argument is
+        // never left off: an omitted one would silently close every road.
         const draw: DrawSurface = (g, style) => g
-            .poly(path.points, false)
+            .poly(path.points, path.closed === true)
             .stroke({...style, width: path.width, cap: PATH_CAP, join: PATH_JOIN});
 
         const blend = regionBlend(path);
