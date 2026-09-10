@@ -537,7 +537,8 @@ world looks today.
 - `docs/plan-underworld.md` — **§6** (what the underworld gets for free, and the
   circles-only limitation), **§7.1 item 1** (cave walls as blocking paths),
   **U4a** (the zone-origin bug L5 restates), **U4b** (the untestable-drawing
-  posture), **U5** (the content pass this unblocks).
+  posture), ~~**U5**~~ (⛔ dropped 2026-09-10 — level authoring is manual, so what this
+  unblocks is the **PO**, in Tiled, not a chunk of ours; §7.3 there).
 - `docs/archive/plan-atmosphere-recovery.md` **§3.3** — where `darkAreas`,
   `light_aura`, `light_radius` and `DarknessOverlay` shipped, and the *"polygons
   only if content proves the need"* clause §1.1 answers.
