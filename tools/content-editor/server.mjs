@@ -24,12 +24,14 @@
  * registry-count pins stay out of scope — this tool never touches them and
  * flags what it can (see validate.mjs) rather than pretending to.
  */
-import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateAll, buildIndex, validateInteraction, validateQuest, validateMob, validateFaction, validateRecipe, validateMilestones } from './validate.mjs';
 import { prettyJson } from './format.mjs';
+import { readSkillVocabulary } from './vocabulary.mjs';
+import { listJsonFiles } from './files.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -40,18 +42,9 @@ const FACTIONS_DIR = path.join(ROOT, 'api', 'factions');
 const RECIPES_DIR = path.join(ROOT, 'api', 'recipes');
 const MILESTONES_FILE = path.join(ROOT, 'api', 'milestones', 'milestone-unlocks.json');
 const ENTITY_TYPE_TS = path.join(ROOT, 'api', 'schema', 'js', 'aura-api', 'entity-type.ts');
+const SKILL_VOCABULARY_FILE = path.join(ROOT, 'api', 'skill-vocabulary.json');
 const PUBLIC_DIR = path.join(HERE, 'public');
 const PORT = Number(process.env.PORT) || 4610;
-
-function listJsonFiles(dir) {
-  const out = [];
-  for (const name of readdirSync(dir)) {
-    const abs = path.join(dir, name);
-    if (statSync(abs).isDirectory()) { out.push(...listJsonFiles(abs)); continue; }
-    if (name.endsWith('.json')) out.push(abs);
-  }
-  return out;
-}
 
 function readMobs() {
   return listJsonFiles(MOBS_DIR).map((abs) => ({
@@ -257,9 +250,14 @@ const server = createServer(async (req, res) => {
       const recipes = readRecipes().map(({ file, raw }) => ({ file, raw }));
       const milestones = readMilestonesEntry();
       const entityTypes = readEntityTypes();
+      // The skill-authoring vocabulary, merged from the generated fixture and
+      // shared-constants (vocabulary.mjs). Served whole so the Skills tab can
+      // render its form from Go's own key table rather than a hand copy.
+      const skillVocabulary = readSkillVocabulary(ROOT);
       return sendJson(res, 200, {
         mobs, quests, skillNames, skillMaxLevels, factions, recipes,
         milestones: { file: milestones.file, raw: milestones.raw }, entityTypes,
+        skillVocabulary,
       });
     }
     if (req.method === 'GET' && url.pathname === '/api/validate') {
@@ -315,5 +313,5 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`content-editor: http://localhost:${PORT}`);
-  console.log(`  reading  ${path.relative(ROOT, MOBS_DIR)}, ${path.relative(ROOT, QUESTS_DIR)}, ${path.relative(ROOT, SKILLS_DIR)}`);
+  console.log(`  reading  ${path.relative(ROOT, MOBS_DIR)}, ${path.relative(ROOT, QUESTS_DIR)}, ${path.relative(ROOT, SKILLS_DIR)}, ${path.relative(ROOT, SKILL_VOCABULARY_FILE)}`);
 });

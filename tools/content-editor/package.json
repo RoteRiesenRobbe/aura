@@ -4,6 +4,7 @@
   "type": "module",
   "description": "Local editor for NPC dialogue trees + quest stage graphs (api/mobs, api/quests). Not shipped to players. See docs/plan-content-editor.md.",
   "scripts": {
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "smoke": "node smoke.mjs"
   }
 }

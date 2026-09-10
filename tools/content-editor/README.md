@@ -105,6 +105,33 @@ does not pretend to:
   `{skillName: level}` map — the strictest of the three, since it breaks on
   ANY edit to the file, not just an addition.
 
+## The skill vocabulary and `npm run smoke`
+
+The tool never hand-types the per-effect-type field lists a skill file may
+author. `api/skill-vocabulary.json` is a **generated** file holding Go's own
+tables (the per-type key allowlist, the 15 top-level keys, the categories, the
+cost keys, the retired-key hints, the damage types), written only by
+`UPDATE_SKILL_VOCABULARY=1 go test -count=1 ./pkg/aura/skills/` from
+`backend/`. Regenerate it after any change to
+`backend/pkg/aura/skills/definition.go`; until you do, the Go suite is red.
+It is read together with `api/shared-constants.json`, which carries the
+complementary half (effect types, selectors, gate keys, stat names) because
+those also ride the wire and the client restates them. No list lives in both
+files, and `vocabulary.mjs` merges the two into the `skillVocabulary` object
+served on `/api/data`.
+
+```bash
+npm run smoke        # or: node tools/content-editor/smoke.mjs
+```
+
+`smoke.mjs` is a standalone check (no server, no `aurad`) that walks every
+`api/skills/**/*.json` and reports any effect key outside its type's
+allowlist, any unknown top-level key, and any disagreement between the two
+fixtures. It prints every finding and exits non-zero if there is at least one.
+The top-level check earns its keep: skill JSON is parsed without
+`DisallowUnknownFields`, so a typo'd top-level key is read by nothing and
+fails in silence.
+
 `go build && go test` (or booting `aurad -content ../api`) remains the
 authoritative check. This tool's validation is a best-effort front-runner
 for the common mistakes, not a replacement for it.

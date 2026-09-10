@@ -1,0 +1,393 @@
+{
+  "_comment": "GENERATED FILE, do not hand-edit: written by `UPDATE_SKILL_VOCABULARY=1 go test -count=1 ./pkg/aura/skills/` (backend/pkg/aura/skills/vocabulary_test.go), which is its single writer. Go owns this vocabulary, so the Go tables are the source and this file is the copy. Complement rule: everything here is what api/shared-constants.json does NOT carry - effectTypes, selectors, gateKeys and statNames live there and no list appears in both; a reader merges the two. Read by tools/content-editor (server.mjs + smoke.mjs) to render the skill form from Go's own key table (plan-content-editor.md B3/B4.2). Not loaded by the game: no cp-defs, no embed entry.",
+  "categories": [
+    "active_aura",
+    "cooldown",
+    "passive"
+  ],
+  "topLevelKeys": [
+    "id",
+    "name",
+    "displayName",
+    "icon",
+    "description",
+    "category",
+    "maxLevel",
+    "legacy",
+    "cooldownTicks",
+    "cooldownTicksPerLevel",
+    "castTicks",
+    "castTicksPerLevel",
+    "castInterruptedByDamage",
+    "targetFactions",
+    "effects"
+  ],
+  "effectKeys": {
+    "calm": [
+      "radius",
+      "radiusPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "calmTicks",
+      "calmTicksPerLevel"
+    ],
+    "charm": [
+      "radius",
+      "radiusPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "charmTicks",
+      "charmTicksPerLevel"
+    ],
+    "damage_aura": [
+      "radius",
+      "radiusPerLevel",
+      "tickInterval",
+      "tickIntervalPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "damageHP",
+      "damageHPPerLevel",
+      "damageTags",
+      "gateKey",
+      "variance",
+      "hitStyle",
+      "targetsStructures",
+      "structureDamageFraction",
+      "executeBelowFraction",
+      "executeBonusFactor",
+      "berserkerMaxBonusFactor",
+      "critChance",
+      "critChancePerLevel",
+      "critFactor",
+      "lifestealFraction"
+    ],
+    "dash": [
+      "dashDistance",
+      "dashDistancePerLevel"
+    ],
+    "detaunt": [
+      "radius",
+      "radiusPerLevel",
+      "targetsEnemies",
+      "targetsAllies"
+    ],
+    "dot_aura": [
+      "radius",
+      "radiusPerLevel",
+      "tickInterval",
+      "tickIntervalPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "damageHP",
+      "damageHPPerLevel",
+      "damageTags",
+      "variance",
+      "dotTicks",
+      "dotTickInterval"
+    ],
+    "heal_aura": [
+      "radius",
+      "radiusPerLevel",
+      "tickInterval",
+      "tickIntervalPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "healHP",
+      "healHPPerLevel",
+      "healFractionOfMax",
+      "healFractionOfMaxPerLevel",
+      "variance"
+    ],
+    "hot_aura": [
+      "radius",
+      "radiusPerLevel",
+      "tickInterval",
+      "tickIntervalPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "healHP",
+      "healHPPerLevel",
+      "healFractionOfMax",
+      "healFractionOfMaxPerLevel",
+      "variance",
+      "hotTicks",
+      "hotTickInterval"
+    ],
+    "instant_damage": [
+      "radius",
+      "radiusPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "damageHP",
+      "damageHPPerLevel",
+      "damageTags",
+      "gateKey",
+      "variance",
+      "hitStyle",
+      "targetsStructures",
+      "structureDamageFraction",
+      "executeBelowFraction",
+      "executeBonusFactor",
+      "berserkerMaxBonusFactor",
+      "critChance",
+      "critChancePerLevel",
+      "critFactor",
+      "lifestealFraction"
+    ],
+    "instant_dot": [
+      "radius",
+      "radiusPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "damageHP",
+      "damageHPPerLevel",
+      "damageTags",
+      "variance",
+      "dotTicks",
+      "dotTickInterval"
+    ],
+    "instant_hot": [
+      "radius",
+      "radiusPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "healHP",
+      "healHPPerLevel",
+      "healFractionOfMax",
+      "healFractionOfMaxPerLevel",
+      "variance",
+      "hotTicks",
+      "hotTickInterval",
+      "targetsSelf"
+    ],
+    "instant_resist": [
+      "radius",
+      "radiusPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "resistTags",
+      "resistFactor",
+      "resistFactorPerLevel",
+      "resistDurationTicks",
+      "targetsSelf"
+    ],
+    "instant_shield": [
+      "radius",
+      "radiusPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "shieldHP",
+      "shieldHPPerLevel",
+      "shieldDurationTicks",
+      "targetsSelf"
+    ],
+    "lifesteal_burst": [
+      "lifestealFraction",
+      "lifestealFractionPerLevel",
+      "lifestealDurationTicks",
+      "lifestealDurationTicksPerLevel"
+    ],
+    "light_aura": [
+      "radius",
+      "radiusPerLevel"
+    ],
+    "projectile": [
+      "spawnMob",
+      "forwardUnits",
+      "ttlTicks",
+      "armTicks"
+    ],
+    "recall": [],
+    "resist_aura": [
+      "radius",
+      "radiusPerLevel",
+      "tickInterval",
+      "tickIntervalPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "resistTags",
+      "resistFactor",
+      "resistFactorPerLevel",
+      "targetsSelf",
+      "buffLifetimeMatchesInterval"
+    ],
+    "resist_passive": [
+      "resistTags",
+      "resistFactor",
+      "resistFactorPerLevel"
+    ],
+    "retaliate_burst": [
+      "reflectFraction",
+      "reflectFractionPerLevel",
+      "reflectDurationTicks",
+      "reflectDurationTicksPerLevel",
+      "damageTags"
+    ],
+    "retaliate_damage": [
+      "damageHP",
+      "damageHPPerLevel",
+      "damageTags"
+    ],
+    "retaliate_slow": [
+      "slowFraction",
+      "slowFractionPerLevel",
+      "slowDurationTicks",
+      "slowDurationTicksPerLevel"
+    ],
+    "revive": [
+      "radius",
+      "radiusPerLevel",
+      "reviveHealthFraction"
+    ],
+    "self_heal": [
+      "healHP",
+      "healHPPerLevel",
+      "healFractionOfMax",
+      "healFractionOfMaxPerLevel",
+      "variance"
+    ],
+    "shield_aura": [
+      "radius",
+      "radiusPerLevel",
+      "tickInterval",
+      "tickIntervalPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "shieldHP",
+      "shieldHPPerLevel",
+      "targetsSelf"
+    ],
+    "slow_aura": [
+      "radius",
+      "radiusPerLevel",
+      "tickInterval",
+      "tickIntervalPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "slowFraction",
+      "slowFractionPerLevel"
+    ],
+    "spawn": [
+      "spawnMob",
+      "ttlTicks",
+      "ttlTicksPerLevel",
+      "powerPerOwnerLevel",
+      "requiresAnchor"
+    ],
+    "spawn_at_anchor": [
+      "spawnMob",
+      "ttlTicks",
+      "ttlTicksPerLevel"
+    ],
+    "speed_aura": [
+      "radius",
+      "radiusPerLevel",
+      "tickInterval",
+      "tickIntervalPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsAllies",
+      "speedFactor",
+      "speedFactorPerLevel"
+    ],
+    "speed_burst": [
+      "radius",
+      "radiusPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "speedFactor",
+      "speedFactorPerLevel",
+      "speedDurationTicks",
+      "speedDurationTicksPerLevel",
+      "targetsAllies",
+      "targetsSelf"
+    ],
+    "stat_multiplier": [
+      "stat",
+      "statBonus",
+      "statBonusPerLevel"
+    ],
+    "stun": [
+      "radius",
+      "radiusPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "stunTicks",
+      "stunTicksPerLevel"
+    ],
+    "taunt": [
+      "radius",
+      "radiusPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "threatMargin"
+    ],
+    "tick_rate": [
+      "tickRateFactor",
+      "tickRateDurationTicks"
+    ]
+  },
+  "costKeys": [
+    "costFractionOfMax",
+    "costFractionOfMaxPerLevel"
+  ],
+  "renamedKeys": {
+    "additivePerLevel": "statBonus/statBonusPerLevel (level-scaling unification)",
+    "damageFraction": "damageHP (absolute HP, item 11 Phase 1)",
+    "healFraction": "healHP (absolute HP, item 11 Phase 1)",
+    "maxHealthPerOwnerLevel": "(nothing) — the key is retired: a summon stands at its owner's level, so its pool is its own baseMaxHealth × f(level) (plan-entity-model.md chunk 1b); delete it",
+    "targetsMobs": "targetsEnemies/targetsAllies (faction-relative since effect foundations Step 1)",
+    "targetsPlayers": "targetsEnemies/targetsAllies (faction-relative since effect foundations Step 1)"
+  },
+  "factionScoped": [
+    "calm",
+    "charm"
+  ],
+  "damageTypes": [
+    "bleed",
+    "fire",
+    "frost",
+    "nature",
+    "physical",
+    "poison"
+  ],
+  "resistWildcard": "*"
+}

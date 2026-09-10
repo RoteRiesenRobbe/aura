@@ -1,7 +1,7 @@
 # Plan: the content editor (`tools/content-editor/`)
 
-> **Status 2026-09-08: Part A SHIPPED (2026-08-27/28, `ebf4cfe5` + `6c2e6d5c`),
-> Part B DESIGNED, nothing of it built.** This is the living plan of the one
+> **Status 2026-09-10: Part A SHIPPED (2026-08-27/28, `ebf4cfe5` + `6c2e6d5c`),
+> Part B DESIGNED 2026-09-08, C0 SHIPPED 2026-09-10 (uncommitted), C1 next.** This is the living plan of the one
 > tool: **Part A** is the original design (NPC dialogue trees + quest stage
 > graphs, D1: custom, not Corkboard) and what actually shipped, which went
 > well past its v1 scope; **Part B** is the Skills tab, the spell builder,
@@ -393,6 +393,14 @@ ordinary form work.
 *(§B9 proposal, PO may veto the mechanism; the requirement in §B3 is not
 negotiable.)*
 
+> ⚑ **C0 amended the sketch below (2026-09-10, session judgement at the PO's
+> delegation, PO may veto): the fixture is a
+> COMPLEMENT of `api/shared-constants.json`, not a superset.** `effectTypes`,
+> `selectors`, `gateKeys` and `statNames` already live there, Go- and
+> client-pinned, and stay there; the new file carries only what shared-constants
+> does not, plus `topLevelKeys`. A Go test forbids any list living in both
+> files and the editor merges the two at read time. Ledger: §B12 C0.
+
 A checked-in JSON file, **`api/skill-vocabulary.json`**, beside
 `shared-constants.json`, holding exactly what the form needs and nothing
 else:
@@ -586,7 +594,7 @@ retaliate, revive, dash, tick rate, speed - is shipped and archived, and in.
 
 Six, each its own session; C0, C2 and C5 carry Go.
 
-- **C0 - the vocabulary fixture.** `api/skill-vocabulary.json` + the golden
+- **C0 - the vocabulary fixture.** ✅ **SHIPPED 2026-09-10** (ledger §B12 C0). `api/skill-vocabulary.json` + the golden
   test with `UPDATE_SKILL_VOCABULARY=1` (§B4.2). Red-first: write the test
   against an empty file, watch it fail naming the diff, generate, green. Then
   the editor's side: `server.mjs` reads the fixture into `/api/data`, and a
@@ -722,7 +730,7 @@ repo, so it needs no cp-defs/embed entry"*).
 - **L6 - both folders share one id and name space.** The loader recurses
   `api/skills/`; uniqueness checks and auto-id must read `mobs/` too even
   though D2 hides it.
-- **L7 - `_comment` lives on effects too.** Edit the raw effect object in
+- **L7 - `_comment` lives on effects too.** ⚑ **Measured WRONG at C0 (2026-09-10)**: 0 of 105 files carry an effect-level `_comment`, and `validateEffectKeys` would refuse one at boot (the effect allowlist has no underscore exemption). Only the SKILL-level `_comment` exists (102 files). The in-place-edit rule below still stands for the top level. Edit the raw effect object in
   place; a rebuilt object drops the design-rationale comments the files carry
   (Aegis's `_comment` is the whole ruling record for
   `buffLifetimeMatchesInterval`).
@@ -770,4 +778,100 @@ repo, so it needs no cp-defs/embed entry"*).
 
 ### B12. Chunk ledgers
 
-*(none yet - C0 first)*
+#### C0 - the vocabulary fixture ✅ SHIPPED 2026-09-10 `[uncommitted]`
+
+> Built by an Opus subagent, verified by the session, wrapped here. The two
+> design questions below went to the PO as choice prompts; the PO delegated
+> both ("what is the smarter and more scalable option"), so they are SESSION
+> JUDGEMENTS, not rulings, and the PO may veto either cheaply (reversal cost
+> named under each).
+> **Schema impact: NONE at every layer.** DB none, FlatBuffers none, conf none;
+> the one new `api/` file sits at the root beside `shared-constants.json` and
+> is not loaded by the game (`cp-defs` copies the nine content DIRECTORIES
+> only, nothing in `frontend/` bundles it).
+
+**What shipped**
+
+- `api/skill-vocabulary.json`, **100 % generated** (its `_comment` included),
+  written only by `UPDATE_SKILL_VOCABULARY=1 go test -count=1 ./pkg/aura/skills/`
+  and pinned by `TestVocabulary_FixtureMatchesTheLiveTables`
+  (`backend/pkg/aura/skills/vocabulary_test.go`). Shape: `categories` (3) ·
+  `topLevelKeys` (15) · `effectKeys` (34 types, `mergeKeys` order KEPT, not
+  sorted, because §B4.3's shared/payload grouping renders from it; `recall` is
+  `[]`) · `costKeys` · `renamedKeys` · `factionScoped` · `damageTypes` ·
+  `resistWildcard`. Names come from `catalog.go`'s existing `effectTypeNames`
+  reverse map and `resist.go`'s `ResistWildcard` const; nothing is restated.
+- `backend/pkg/aura/golden/golden.go`: the compare-or-rewrite helper (§B4.2
+  "built for a second kind"), a normal package so `items/mobs` can import it
+  later. Its failure message carries the paste-ready regen command for
+  whichever package called it.
+- `tools/content-editor/vocabulary.mjs` (`readSkillVocabulary`, merges the two
+  fixtures), `files.mjs` (`listJsonFiles`, lifted out of `server.mjs` so the
+  smoke sweep and the server walk the SAME two-level recursion),
+  `smoke.mjs` (+ `npm run smoke`), `skillVocabulary` on `/api/data`, README
+  section.
+
+**⭐ The design changed on measurement, twice**
+
+1. **The complement rule (session judgement, PO-delegated).** `api/shared-constants.json` ALREADY
+   carried `effectTypes`, `selectors`, `gateKeys` and `statNames`, pinned from
+   Go (`skills/shared_constants_test.go`) and from the client
+   (`SharedConstants.test.ts`). The §B4.2 sketch would have put the same four
+   lists in a second `api/` file. Ruling: the two files have different
+   contracts (cross-language wire contract, hand-authored, pinned both sides
+   vs. Go-only editor truth, Go-generated) and a list has exactly ONE home.
+   `TestVocabulary_ComplementsSharedConstants` forbids any top-level key in
+   both files and pins that `effectKeys`' key set equals shared-constants'
+   `effectTypes`. The mob fixture follows the same rule when it comes.
+   ⚑ shared-constants spells it `statNames`, not the sketch's `stats`.
+   Reversal cost: emit the four lists from the golden test too and drop the
+   disjointness assert; the editor then reads one file.
+2. **`topLevelKeys` is in (session judgement, PO-delegated).** Reflected from `skillDefinition`'s
+   json tags in struct order. The payoff is not the form: it is that
+   `smoke.mjs` now checks every shipped file's top-level keys, the FIRST check
+   of that class anywhere, because the loader parses skill JSON without
+   `DisallowUnknownFields` (L10) and a typo'd top-level key vanishes silently.
+   Measured before shipping: 0 strays in 105 files, 102 carry `_comment`.
+   Reversal cost: delete one reflected field and smoke check (b).
+
+**Findings**
+
+- **§B11 Q5 is already answered**: `SharedConstants.test.ts` pins the
+  tooltip's effect-type switch against `effectTypes`. Closed, no rider.
+- **L7 was wrong** (see the amended landmine): no effect-level `_comment`
+  exists and the loader would refuse one, so `smoke.mjs` has no exemption at
+  effect level, on purpose.
+- **§B5's "smoke imports `validate.mjs`"** does not hold: `validate.mjs` is
+  also loaded by the browser as a plain ES module, so it cannot reach
+  `node:fs`, and C0's checks need nothing from it. The README's promise is
+  now met by a script that does not import it.
+- **`readSkillVocabulary` throws inside `/api/data`**: a missing or broken
+  fixture takes down the whole editor response, not a future Skills tab. That
+  is the loud posture the plan wants, and the file is checked in; C1 should
+  know the coupling.
+- **`go test ./...` was RED on arrival, for a stale reason**: six content
+  pins (`items/mobs` ×3, `cmd/simharness` ×3) failed with
+  `unknown mob "CaveMouth"` / roster 46 vs 48. They read the EMBEDDED
+  `backend/pkg/api/` copy, which lacked U4b's two cave mobs on this machine.
+  `make -C backend cp-defs` turned all six green with no code change. The
+  standing CLAUDE.md census-pin note is amended to say so.
+- Pre-existing, untouched: `gofmt -l` flags `applied_effects.go`,
+  `aura_category.go`, `utility.go` in the skills package.
+
+**Naming convention for the fixture family** (recorded per §B4.2): one file
+per content kind at `api/<kind>-vocabulary.json`, written by the Go package
+that owns the vocabulary via `UPDATE_<KIND>_VOCABULARY=1`, complement of
+`shared-constants.json`, read by the editor through one `read<Kind>Vocabulary`
+in `tools/content-editor/`.
+
+**Verified**: red-first (the golden test failed naming the regen command with
+no file on disk, then generated, then green) · `go build ./...` · `go vet` ·
+`go test -count=1 ./pkg/aura/skills/ ./pkg/aura/golden/` · full
+**`go test -count=1 ./...` EXIT 0, 35 packages** (after the `cp-defs` refresh) · `node tools/content-editor/smoke.mjs` **0 findings / 105
+files / 162 effects / 34 types** · `/api/data` on a live editor carries
+`skillVocabulary` with both halves merged and no `_comment` leaked ·
+**mutation-verified ×3**: a fake key appended to `keysGeometry` reddened the
+golden test naming 20 types; a bogus effect key and a bogus top-level key in
+`damage.json` each reddened smoke with the file and effect index named.
+⛔ No browser harness owns this chunk (no runtime surface changed), so none
+was run. **Next: C1**, the read-only tab, rendered from the fixture.
