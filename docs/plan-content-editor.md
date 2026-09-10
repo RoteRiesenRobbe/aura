@@ -1,7 +1,7 @@
 # Plan: the content editor (`tools/content-editor/`)
 
 > **Status 2026-09-10: Part A SHIPPED (2026-08-27/28, `ebf4cfe5` + `6c2e6d5c`),
-> Part B DESIGNED 2026-09-08, C0 SHIPPED 2026-09-10 (uncommitted), C1 next.** This is the living plan of the one
+> Part B DESIGNED 2026-09-08, C0 SHIPPED 2026-09-10 (`60fb44d2`), C1 next.** This is the living plan of the one
 > tool: **Part A** is the original design (NPC dialogue trees + quest stage
 > graphs, D1: custom, not Corkboard) and what actually shipped, which went
 > well past its v1 scope; **Part B** is the Skills tab, the spell builder,
@@ -778,7 +778,7 @@ repo, so it needs no cp-defs/embed entry"*).
 
 ### B12. Chunk ledgers
 
-#### C0 - the vocabulary fixture ✅ SHIPPED 2026-09-10 `[uncommitted]`
+#### C0 - the vocabulary fixture ✅ SHIPPED 2026-09-10 `60fb44d2`
 
 > Built by an Opus subagent, verified by the session, wrapped here. The two
 > design questions below went to the PO as choice prompts; the PO delegated
