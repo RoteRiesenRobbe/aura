@@ -31,13 +31,12 @@ func main() {
 	logging.SetupLogging()
 
 	var dev, help bool
-	var contentDir, zoneName, zoneNames, profileAddr string
+	var contentDir, startZone, profileAddr string
 	flag.StringVar(&profileAddr, "profile", "", "serve net/http/pprof + /tickstats on this address for capacity checks (e.g. :6060); off by default, see devops/loadtest.md")
 	flag.BoolVar(&dev, "dev", false, "Serve frontend directly")
 	flag.BoolVar(&help, "help", false, "Show usage help")
 	flag.StringVar(&contentDir, "content", "", "Load items/mobs/skills/recipes/zones/props from this api/-layout directory instead of the embedded copies (e.g. ../api); skips cp-defs + rebuild for content edits")
-	flag.StringVar(&zoneName, "zone", "", "Select which zone to load by file stem (e.g. 'scaffold' for scaffold.json); overrides game.zone in conf.json. Empty loads the sole zone when only one exists")
-	flag.StringVar(&zoneNames, "zones", "", "Load several zones TOGETHER, comma-separated by file stem, first is primary (e.g. 'world,underworld'); overrides -zone and game.zones")
+	flag.StringVar(&startZone, "start-zone", "", "Name the PRIMARY zone by file stem (e.g. 'world' for world.json) — where fresh characters spawn; overrides game.startZone. Every zone file in the directory loads regardless")
 	flag.Parse()
 	if profileAddr != "" {
 		startProfileServer(profileAddr)
@@ -88,23 +87,14 @@ func main() {
 	questsRegistry := loadQuests(content.quests, mobsRegistry)
 	ascensionCatalog := loadAscensionCatalog(content.ascension, skillsRegistry, mobsRegistry, questsRegistry)
 	propsRegistry := loadProps(content.props)
-	// Zone selection, most specific first: -zones, then -zone, then the conf's
-	// zones list, then its single zone. An empty result still boots — it means
-	// "the sole zone in the directory", which is what every conf did before
-	// this field existed.
-	zoneList := splitZoneList(zoneNames)
-	if len(zoneList) == 0 && zoneName != "" {
-		zoneList = []string{zoneName}
-	}
-	if len(zoneList) == 0 {
-		zoneList = config.Game.Zones
-	}
-	if len(zoneList) == 0 && config.Game.Zone != "" {
-		zoneList = []string{config.Game.Zone}
+	// Every zone file in the directory loads. The only choice left is which of
+	// them is PRIMARY, and the flag beats the conf.
+	if startZone == "" {
+		startZone = config.Game.StartZone
 	}
 	// ⚑ Placed here, not in the game: everything below takes RESOLVED geometry
 	// with each zone's Origin already applied (plan-underworld.md U1).
-	zones := loadZones(content.zones, zoneList, mobsRegistry, propsRegistry)
+	zones := loadZones(content.zones, startZone, mobsRegistry, propsRegistry)
 	// The primary zone. It is what a fresh character spawns in, what names the
 	// world on the wire, and whose bounds size the client's camera and map —
 	// deliberately NOT a union of everything loaded (L13).

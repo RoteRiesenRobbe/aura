@@ -119,10 +119,11 @@ bash .claude/skills/run-simharness/setup-browser.sh   # idempotent; ends by laun
 
 Two Windows-specific gotchas, both of which look like a broken harness:
 
-- ⚑ **`./aurad` needs `-zone world` here** — the local `conf.json` names no zone,
-  so the command above becomes
-  `./aurad -dev -zone world -content ../api`. Without it the boot **panics in
-  `loadZone`**, which reads as a content problem rather than a missing flag.
+- ⚑ **No zone flag is needed any more.** Every `.json` in `api/zones/` loads on
+  every boot — the directory IS the zone list — and `game.startZone` (Go default
+  `"world"`) only names which one a fresh character spawns in. The old
+  `-zone world` workaround is gone with the flag; `-start-zone` overrides the
+  conf if you ever need a different primary.
 - ⚑ **Run the scripts from Git Bash, not PowerShell.** They resolve playwright
   through `join(process.env.HOME, '.cache/aurahunter-run')`, and `HOME` is set by
   Git Bash but usually *not* by PowerShell — where the join throws before

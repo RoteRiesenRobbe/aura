@@ -1,35 +1,17 @@
 package main
 
 import (
-	"strings"
-
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
 
 // The boot-time flattening of a placed zone set (plan-underworld.md U1).
 //
-// ⭐ These six functions are the entire cost of holding more than one zone.
+// ⭐ These functions are the entire cost of holding more than one zone.
 // Everything downstream — the physics space, the mob system, the AOI query,
 // every aura — takes flat lists of world-coordinate geometry and has no idea
 // zones exist. world.Place has already applied each Origin by the time any of
 // these run, so concatenating is genuinely all there is to do.
-
-// splitZoneList parses the -zones flag: comma-separated file stems, order
-// significant, blanks and stray whitespace forgiven.
-func splitZoneList(raw string) []string {
-	if strings.TrimSpace(raw) == "" {
-		return nil
-	}
-	parts := strings.Split(raw, ",")
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		if p = strings.TrimSpace(p); p != "" {
-			out = append(out, p)
-		}
-	}
-	return out
-}
 
 // wallsFor turns the placed set into one border rectangle per zone.
 //

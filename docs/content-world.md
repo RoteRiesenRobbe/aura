@@ -107,7 +107,7 @@ adds a **second, much later tunnel**, City ↔ zone 13, which closes the loop.
 
 **The playfield (since step 6 C1):** zones 1+2 ship as ONE zone file,
 `api/zones/world.json` (144×72; west half = Z1, east half = Z2 — design
-labels, not engine objects). It is the boot default (`game.zone: "world"`)
+labels, not engine objects). It is the boot START ZONE (`game.startZone: "world"`)
 and, since zone-editor C3 retired the proving grounds, the only shipped zone.
 
 ⚑ **Nothing in the engine supports this map yet, and that is fine at

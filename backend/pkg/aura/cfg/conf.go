@@ -28,24 +28,21 @@ type Server struct {
 type Config struct {
 	Server Server `json:"server"`
 	Game   struct {
-		// Zone selects which zone file (by file stem, e.g. "scaffold" for
-		// scaffold.json) to load. Empty loads the sole zone when only one
-		// exists; the -zone flag overrides this.
+		// StartZone names the PRIMARY zone by file stem (e.g. "world" for
+		// world.json) — the one a fresh character spawns in, whose bounds ride
+		// the wire as map_width/map_height, and which names the world on the
+		// Welcome (plan-underworld.md U1/L13).
 		//
-		// ⚑ Superseded by Zones, and kept because every shipped conf authors
-		// it: a conf naming only Zone still boots, as exactly that one zone.
-		Zone string `json:"zone"`
-		// Zones lists the zone files to load TOGETHER, by file stem, in order
-		// — the first is the primary zone, where fresh characters spawn and
-		// whose bounds ride the wire (plan-underworld.md U1). Empty falls back
-		// to Zone. The -zones flag overrides both.
+		// ⭐ IT DOES NOT SELECT WHAT LOADS. Every .json in api/zones/ loads,
+		// always; the directory is the zone list. This is the one thing about
+		// the set that the files cannot say themselves, which is why it is the
+		// only zone key left in the conf. The -start-zone flag overrides it.
 		//
-		// ⚑ Only listed stems are parsed, so a half-authored zone sitting in
-		// api/zones/ cannot break a boot that never selected it.
-		Zones                  []string `json:"zones"`
-		TotalDayCycleSeconds   uint64   `json:"totalDayCycleSeconds"`
-		DayTimeSeconds         uint64   `json:"dayTimeSeconds"`
-		MobChaseIntoAuraMargin float32  `json:"mobChaseIntoAuraMargin"`
+		// Empty is legal only when the directory holds exactly one zone.
+		StartZone              string  `json:"startZone"`
+		TotalDayCycleSeconds   uint64  `json:"totalDayCycleSeconds"`
+		DayTimeSeconds         uint64  `json:"dayTimeSeconds"`
+		MobChaseIntoAuraMargin float32 `json:"mobChaseIntoAuraMargin"`
 		Player                 struct {
 			// constant for out-of-combat health regen
 			HealthGainTick float32 `json:"healthGainTick"`
@@ -163,6 +160,13 @@ func ReadConfig(filename string) (*Config, error) {
 			slog.String("key", key), slog.String("file", filename))
 	}
 
+	// The overworld is the start zone unless a conf says otherwise. Defaulted
+	// here like every other knob (§35 D1) so an absent key and a key restating
+	// the default resolve identically — the property the shrink-to-deltas
+	// confs depend on, and the reason conf.docker.json can stay a pure delta.
+	if config.Game.StartZone == "" {
+		config.Game.StartZone = "world"
+	}
 	// Default if values are missing
 	if config.Game.TotalDayCycleSeconds <= 0 {
 		config.Game.TotalDayCycleSeconds = 600

@@ -3,8 +3,7 @@
     "port": 2000
   },
   "game": {
-    "zone": "world",
-    "zones": ["world", "underworld"],
+    "startZone": "world",
     "totalDayCycleSeconds": 600,
     "dayTimeSeconds": 400,
     "mobChaseIntoAuraMargin": 0.2,

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/fs"
 	"testing"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
@@ -167,8 +168,9 @@ func TestZoneSet_TheShippedPairIsWhole(t *testing.T) {
 	content, err := diskContent("../../../api")
 	require.NoError(t, err)
 
-	zones, err := world.LoadZonesFS(content.zones, []string{"world", "underworld"},
-		mobsRegistry, propsRegistry)
+	// The AUTO-DISCOVERED set, exactly as the server boots it — so a zone file
+	// dropped into api/zones/ has to be whole before the world will start.
+	zones, err := world.LoadAllZonesFS(content.zones, "world", mobsRegistry, propsRegistry)
 	require.NoError(t, err)
 
 	warnings, err := world.CrossValidateTravelAnchors(mobsRegistry, zones)
@@ -189,13 +191,73 @@ func TestZoneSet_TheSurfaceAloneRefusesBecauseItsDoorsLeadNowhere(t *testing.T) 
 
 	_, err = world.CrossValidateTravelAnchors(mobsRegistry, zones)
 	require.Error(t, err)
+	// ⚑ The mob and the zone, not the anchor NAME: which anchor is missing is a
+	// content detail that moves whenever the map is re-authored, and pinning it
+	// here bought nothing except a red suite after every rename.
 	assert.Contains(t, err.Error(), "CaveMouth")
-	assert.Contains(t, err.Error(), "under-")
+	assert.Contains(t, err.Error(), `zone "world"`)
+	assert.Contains(t, err.Error(), "no loaded zone authors")
 }
-func TestZoneSet_SplitZoneListParsesTheFlag(t *testing.T) {
-	assert.Nil(t, splitZoneList(""))
-	assert.Nil(t, splitZoneList("   "))
-	assert.Equal(t, []string{"world"}, splitZoneList("world"))
-	assert.Equal(t, []string{"world", "underworld"}, splitZoneList("world, underworld"))
-	assert.Equal(t, []string{"world", "underworld"}, splitZoneList("world,,underworld,"))
+// ⭐ THE DIRECTORY IS THE ZONE LIST. Pinned against the REAL api/zones/ rather
+// than a fixture, because the property that matters is "a file dropped in there
+// is live" — a fixture would prove the function works while the shipped world
+// quietly loaded a subset, which is exactly the bug this replaced.
+func TestZoneSet_AutoDiscoveryLoadsEveryFileWithTheStartZoneFirst(t *testing.T) {
+	mobsRegistry, propsRegistry := repoZoneRegistries(t)
+	content, err := diskContent("../../../api")
+	require.NoError(t, err)
+
+	zones, err := world.LoadAllZonesFS(content.zones, "world", mobsRegistry, propsRegistry)
+	require.NoError(t, err)
+
+	stems, err := fs.Glob(content.zones, "*.json")
+	require.NoError(t, err)
+	require.Len(t, zones, len(stems), "every zone file in the directory loads")
+
+	assert.Equal(t, "world", zones[0].ID, "the named start zone is primary")
+	ids := make([]string, 0, len(zones))
+	for _, z := range zones {
+		ids = append(ids, z.ID)
+	}
+	assert.Contains(t, ids, "underworld")
+	assert.Equal(t, ids, unique(ids), "no zone loads twice")
+}
+
+func unique(in []string) []string {
+	seen := map[string]bool{}
+	out := make([]string, 0, len(in))
+	for _, s := range in {
+		if seen[s] {
+			continue
+		}
+		seen[s] = true
+		out = append(out, s)
+	}
+	return out
+}
+
+// ⚑ A typo in game.startZone must not degrade into "some other zone is
+// primary" — a fresh character would spawn in the wrong world and only the
+// spawn point would show it.
+func TestZoneSet_AnUnknownStartZoneRefuses(t *testing.T) {
+	mobsRegistry, propsRegistry := repoZoneRegistries(t)
+	content, err := diskContent("../../../api")
+	require.NoError(t, err)
+
+	_, err = world.LoadAllZonesFS(content.zones, "wrold", mobsRegistry, propsRegistry)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "wrold")
+	assert.Contains(t, err.Error(), "world", "the message lists what IS available")
+}
+
+// With several zones present there is no defensible guess, so an unnamed start
+// zone is a refusal that names the knob to set.
+func TestZoneSet_NoStartZoneRefusesWhenSeveralZonesExist(t *testing.T) {
+	mobsRegistry, propsRegistry := repoZoneRegistries(t)
+	content, err := diskContent("../../../api")
+	require.NoError(t, err)
+
+	_, err = world.LoadAllZonesFS(content.zones, "", mobsRegistry, propsRegistry)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "startZone")
 }

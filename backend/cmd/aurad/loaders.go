@@ -253,12 +253,13 @@ func loadZone(fsys fs.FS, name string, mr mobs.Registry, pr world.PropRegistry) 
 	return zone
 }
 
-// loadZones parses and PLACES the set of zones the server runs, in the order
-// given — the first is the primary zone (plan-underworld.md U1). Curated
-// content: any validation failure, including the placement rules, aborts
-// startup.
-func loadZones(fsys fs.FS, names []string, mr mobs.Registry, pr world.PropRegistry) []*world.Zone {
-	zones, err := world.LoadZonesFS(fsys, names, mr, pr)
+// loadZones parses and PLACES every zone in the directory, with startZone
+// first as the primary zone (plan-underworld.md U1). Curated content: any
+// validation failure, including the placement rules, aborts startup — and
+// since the directory is now the zone list, that includes a WIP file nobody
+// selected.
+func loadZones(fsys fs.FS, startZone string, mr mobs.Registry, pr world.PropRegistry) []*world.Zone {
+	zones, err := world.LoadAllZonesFS(fsys, startZone, mr, pr)
 	if err != nil {
 		slog.Error("failed to load zones", slog.Any("err", err))
 		panic(err)

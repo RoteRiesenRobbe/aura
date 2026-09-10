@@ -383,11 +383,15 @@ type Zone struct {
 // so every anomaly aborts at boot (mirrors RecipesFromFS): malformed or
 // unknown-key JSON, non-positive bounds, empty name, an unknown spawn mob, or
 // an unknown prop type.
-func LoadZoneFS(fileSystem fs.FS, name string, mr mobs.Registry, pr PropRegistry) (*Zone, error) {
-	// Enumerate candidate zone files by stem without parsing them.
-	paths := map[string]string{} // stem -> path
-	var stems []string
-	err := fs.WalkDir(fileSystem, ".", func(p string, d fs.DirEntry, err error) error {
+// zoneStems enumerates the zone files by stem WITHOUT parsing them, so "which
+// zones exist" is answerable before any of them is known to be valid.
+//
+// ⛑ It is the single place that decides what a zone file IS — a .json under
+// the zones FS. Both the by-name selector and the auto-discovering set loader
+// read it, so the directory cannot come to mean two different things to them.
+func zoneStems(fileSystem fs.FS) (paths map[string]string, stems []string, err error) {
+	paths = map[string]string{} // stem -> path
+	err = fs.WalkDir(fileSystem, ".", func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return fmt.Errorf("cannot read %q: %w", p, err)
 		}
@@ -403,17 +407,25 @@ func LoadZoneFS(fileSystem fs.FS, name string, mr mobs.Registry, pr PropRegistry
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(stems) == 0 {
-		return nil, fmt.Errorf("no zone file found")
+		return nil, nil, fmt.Errorf("no zone file found")
 	}
 	sort.Strings(stems)
+	return paths, stems, nil
+}
+
+func LoadZoneFS(fileSystem fs.FS, name string, mr mobs.Registry, pr PropRegistry) (*Zone, error) {
+	paths, stems, err := zoneStems(fileSystem)
+	if err != nil {
+		return nil, err
+	}
 
 	target := name
 	if target == "" {
 		if len(stems) > 1 {
-			return nil, fmt.Errorf("multiple zones found (%s); select one with -zone", strings.Join(stems, ", "))
+			return nil, fmt.Errorf("multiple zones found (%s); select one by name", strings.Join(stems, ", "))
 		}
 		target = stems[0]
 	}
@@ -435,6 +447,55 @@ func LoadZoneFS(fileSystem fs.FS, name string, mr mobs.Registry, pr PropRegistry
 	}
 	z.ID = target
 	return z, nil
+}
+
+// LoadAllZonesFS loads and PLACES **every** zone file in the directory, with
+// startZone first so it becomes the primary zone.
+//
+// ⭐ THE DIRECTORY IS THE ZONE LIST. Dropping a .json into api/zones/ is the
+// whole act of adding a zone — no conf edit, no second list to keep in sync.
+// The conf names only which of them a fresh character starts in, because that
+// is a genuine choice the filesystem cannot express; everything else about the
+// set (how many, where each sits) is already authored in the files themselves.
+//
+// ⛔ THE TRADE THIS MAKES, ON PURPOSE: a half-authored zone sitting in the
+// directory now BREAKS THE BOOT, where before it was ignored until something
+// selected it. That is the point — a zone that is present but silently unloaded
+// is the failure mode this replaces (a placed zone whose passages resolve
+// against a set it was never in). Park WIP outside api/zones/, or finish it.
+//
+// The remaining zones follow in sorted order, which matters only for the boot
+// log and for error message stability: Place is order-independent, and every
+// consumer downstream takes flat world-coordinate lists.
+func LoadAllZonesFS(fileSystem fs.FS, startZone string, mr mobs.Registry, pr PropRegistry) ([]*Zone, error) {
+	_, stems, err := zoneStems(fileSystem)
+	if err != nil {
+		return nil, err
+	}
+	startZone = strings.TrimSpace(startZone)
+	if startZone == "" {
+		if len(stems) > 1 {
+			return nil, fmt.Errorf("several zones found (%s) but no start zone is named; set game.startZone "+
+				"in conf.json (or pass -start-zone) to the one a fresh character spawns in",
+				strings.Join(stems, ", "))
+		}
+		startZone = stems[0]
+	}
+	names := make([]string, 0, len(stems))
+	names = append(names, startZone)
+	found := false
+	for _, s := range stems {
+		if s == startZone {
+			found = true
+			continue
+		}
+		names = append(names, s)
+	}
+	if !found {
+		return nil, fmt.Errorf("start zone %q has no file in the zone directory (available: %s)",
+			startZone, strings.Join(stems, ", "))
+	}
+	return LoadZonesFS(fileSystem, names, mr, pr)
 }
 
 // LoadZonesFS loads and PLACES a set of zones by file stem, in the order given
