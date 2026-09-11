@@ -2,7 +2,8 @@
 
 > **Status 2026-09-11: Part A SHIPPED (2026-08-27/28, `ebf4cfe5` + `6c2e6d5c`),
 > Part B DESIGNED 2026-09-08, C0 SHIPPED 2026-09-10 (`60fb44d2`), C1 SHIPPED
-> 2026-09-11 (`7b90fb5e`) and PO-passed the same day, C2 next.** This is the living plan of the one
+> 2026-09-11 (`7b90fb5e`) and PO-passed the same day, C2 SHIPPED 2026-09-11
+> (`[uncommitted]`), C3 next (after the §B11 Q6 reformat commit).** This is the living plan of the one
 > tool: **Part A** is the original design (NPC dialogue trees + quest stage
 > graphs, D1: custom, not Corkboard) and what actually shipped, which went
 > well past its v1 scope; **Part B** is the Skills tab, the spell builder,
@@ -592,6 +593,14 @@ retaliate, revive, dash, tick rate, speed - is shipped and archived, and in.
   exist so the form can grey out and hint, not to be a second validator.
 - ⚑ The other tabs keep their JS ports for now (§B11 Q7). D9 is ruled for
   the Skills tab; extending it is a separate call once the seam exists.
+- ⚑ **Amended by what C2 shipped (2026-09-11).** "All findings" landed as
+  **stage-level, plus per-file for skills** (PO ruling); the other loaders
+  keep first-error. The editor's side is a **dry-run
+  `POST /api/validate/candidate`** over a temp copy, not a call inside
+  `/api/save/skill` (that wiring is C3). And the "missing binary" answer got
+  a twin: a **stale** binary is refused too, by an mtime guard against the
+  newest non-test Go source under `backend/`, because a seam is only as
+  current as the last `make -C backend build`.
 
 ### B5. Chunks
 
@@ -612,7 +621,7 @@ Six, each its own session; C0, C2 and C5 carry Go.
   the exclusions of §B4.8. No Save button. ⭐ **Why read-only first: the PO
   judges the form against all 72 real skills before a single write path
   exists.**
-- **C2 - `aurad -validate` and the editor's save seam** (D9, §B4.9). Go:
+- **C2 - `aurad -validate` and the editor's save seam** (D9, §B4.9). ✅ **SHIPPED 2026-09-11** (ledger §B12 C2). Go:
   the flag, all-findings collection, the no-DB exit, a test that runs it over
   the real `api/` (exit 0) and over a fixture tree with one broken skill
   (exit 1, the finding named). Editor: the temp-copy-and-run path in
@@ -754,6 +763,19 @@ repo, so it needs no cp-defs/embed entry"*).
   appears in the presets on the next simharness run; `guardrail_test.go`
   pins balance FINALs on named skills, so a new one cannot redden it, but a
   RENAMED one can (L5).
+- **L12 - a 500 from `/api/validate/candidate` is NOT a finding list.** The
+  server's generic error shape is `{ok:false, errors:[...]}`; only a real
+  validator run returns `findings`. C3's client must branch on the HTTP
+  status, or "build aurad first" (and a stale-binary refusal) renders as an
+  empty finding list, which looks exactly like a pass.
+- **L13 - the mtime freshness guard has two blind spots, by construction.**
+  It compares `backend/aurad` against the newest non-test `.go`/`go.mod`/
+  `go.sum` under `backend/`, so it cannot see `cmd/aurad/conf.default.json`
+  (go:embed, not a `.go` file; moot while `backend/conf.json` exists) and it
+  deliberately skips `backend/pkg/api/` (the seam always passes `-content`).
+  It is an mtime comparison: a fresh checkout or a clock jump (this host's
+  wall clock is non-monotonic) can cost one needless rebuild or, rarely, pass
+  a stale binary.
 
 ### B11. Open questions
 
@@ -871,6 +893,18 @@ per content kind at `api/<kind>-vocabulary.json`, written by the Go package
 that owns the vocabulary via `UPDATE_<KIND>_VOCABULARY=1`, complement of
 `shared-constants.json`, read by the editor through one `read<Kind>Vocabulary`
 in `tools/content-editor/`.
+
+**Verified**: red-first (the golden test failed naming the regen command with
+no file on disk, then generated, then green) · `go build ./...` · `go vet` ·
+`go test -count=1 ./pkg/aura/skills/ ./pkg/aura/golden/` · full
+**`go test -count=1 ./...` EXIT 0, 35 packages** (after the `cp-defs` refresh) · `node tools/content-editor/smoke.mjs` **0 findings / 105
+files / 162 effects / 34 types** · `/api/data` on a live editor carries
+`skillVocabulary` with both halves merged and no `_comment` leaked ·
+**mutation-verified ×3**: a fake key appended to `keysGeometry` reddened the
+golden test naming 20 types; a bogus effect key and a bogus top-level key in
+`damage.json` each reddened smoke with the file and effect index named.
+⛔ No browser harness owns this chunk (no runtime surface changed), so none
+was run. **Next: C1**, the read-only tab, rendered from the fixture.
 
 #### C1 - the tab, read-only ✅ SHIPPED 2026-09-11 `7b90fb5e`
 
@@ -1014,14 +1048,146 @@ harness 0 problems · one rewritten comment read in the tab.
 **PO look, round 3 (2026-09-11): the form verdict PASSED** ("works, that
 part is done"), no reorder of C2/C3. **Next: C2**, `aurad -validate` (D9).
 
-**Verified**: red-first (the golden test failed naming the regen command with
-no file on disk, then generated, then green) · `go build ./...` · `go vet` ·
-`go test -count=1 ./pkg/aura/skills/ ./pkg/aura/golden/` · full
-**`go test -count=1 ./...` EXIT 0, 35 packages** (after the `cp-defs` refresh) · `node tools/content-editor/smoke.mjs` **0 findings / 105
-files / 162 effects / 34 types** · `/api/data` on a live editor carries
-`skillVocabulary` with both halves merged and no `_comment` leaked ·
-**mutation-verified ×3**: a fake key appended to `keysGeometry` reddened the
-golden test naming 20 types; a bogus effect key and a bogus top-level key in
-`damage.json` each reddened smoke with the file and effect index named.
-⛔ No browser harness owns this chunk (no runtime surface changed), so none
-was run. **Next: C1**, the read-only tab, rendered from the fixture.
+
+#### C2 - `aurad -validate` and the editor's save seam ✅ SHIPPED 2026-09-11 `[uncommitted]`
+
+> Built by an Opus subagent (74 tool calls), verified by the session, wrapped
+> here. Six PO rulings via choice prompts (below). **Schema impact: NONE at
+> every layer.** DB none (the `-validate` branch returns before the store is
+> opened, so no migration and no `AURA_DB_URL`), FlatBuffers none, conf none
+> (no new key; `ParseConfig` is a refactor of the same parse), content none
+> (no authored file changed; the `9fd5023e` embedded sync is comment-only).
+
+**The six rulings (2026-09-11)**
+
+1. **Findings depth: stage-level, plus per-file for SKILLS.** Every loader
+   stage runs and reports; the skills loader collects every broken file. The
+   other loaders keep first-error.
+2. **Conf: read like boot, never write one.** `AURAD_CONF` / `./conf.json`;
+   when absent the embedded `conf.default.json` is parsed IN MEMORY (boot
+   writes it to disk, validate must not).
+3. **Editor seam: kind-agnostic `validateCandidate({file, raw})` + a dry-run
+   `POST /api/validate/candidate`**, NOT wired into `saveOne` for mobs,
+   quests, factions or recipes (§B11 Q7 stays a separate call).
+4. **`npm run smoke` fails loudly** when `backend/aurad` is missing
+   ("build aurad first"), never a silent pass.
+5. **Stale binary: an mtime guard**, refusing when the binary is older than
+   the newest non-test `.go` / `go.mod` / `go.sum` under `backend/`.
+   Build-on-demand via `go build` (measured **0.2 s cached / 4.0 s cold**)
+   was recommended by the session and DECLINED, as was documenting it only.
+6. **Test fixture: copy the real `api/` into a temp dir and break one file**,
+   no checked-in mini tree; a separate test proves the real tree passes.
+
+**What shipped, Go (`backend/`)**
+
+- **`cmd/aurad/content.go` (new) is the one load sequence, and that is the
+  point**: `loadContent(src, config, zoneList) (loadedContent, []string)`
+  runs every stage in the boot dependency order and BOTH boot and `-validate`
+  consume it, so the order cannot drift into two hand copies (the §B3 class).
+  Independent stages keep running after a failure; a stage whose input failed
+  emits `x: skipped (y did not load)`, so a clean line can never hide a
+  second-round error. Also `stageFindings`/`flattenJoined` (flattens
+  `errors.Join` fan-outs only, never the `%w` chain), `runValidate(w
+  io.Writer, ...) int` (**0 clean · 1 findings · 2 the validator itself
+  broke**), `validateMain`, `validateConf()`, and `resolveZoneList` (the
+  `-zones` > `-zone` > `game.zones` > `game.zone` ladder, now ONE copy).
+- `cmd/aurad/aurad.go`: the `-validate` flag, branching after flag parsing
+  and **before** `openDatabase` and `loadOrCreateTokens`, so it needs neither
+  `AURA_DB_URL` nor `AURA_JWT_KEY` and writes nothing.
+- `cmd/aurad/loaders.go`: every `loadX` helper returns `(T, error)` instead
+  of panicking, keeping its slog.Info counts and slog.Warn legacy warnings.
+- `pkg/aura/skills/registry.go`: the walk records each broken file and
+  continues; a failed file is never inserted, so the duplicate id/name checks
+  stay consistent; `errors.Join` at the end (a single error prints unchanged).
+- `pkg/aura/cfg/conf.go`: `ParseConfig(data, label)` extracted, `ReadConfig`
+  delegates to it.
+- Tests: `cmd/aurad/validate_test.go` (new, 7) - the real `api/` is clean ·
+  one broken skill named · EVERY broken skill named · a skill and a prop both
+  reported with the six dependent stages skipped BY NAME · a missing content
+  dir is a finding · `validateConf` writes no file · `ParseConfig` equals
+  `ReadConfig` on the same bytes. `pkg/aura/skills/registry_test.go` +2
+  (collects every broken file; a broken file claiming a good file's id AND
+  name does not poison the duplicate checks). Call sites updated in
+  `loaders_test.go`, `scaling_profile_test.go`,
+  `ascension_catalog_content_test.go`.
+
+**What shipped, editor (`tools/content-editor/`)**
+
+- **`aurad-validate.mjs` (new, node-only)**: `findAuradBinary` (`AURAD_BIN`,
+  `backend/aurad`, `backend/aurad.exe`), `assertAuradFresh` (the ruling-5
+  mtime guard; skips `_test.go` and `backend/pkg/api/`), `candidateSegments`
+  (kind-agnostic `api/<dir>/[<sub>/]<slug>.json`, one nesting level, rejects
+  `..`, absolute paths, backslashes and any non-content dir; proven against
+  every real content file), `validateCandidate` (mkdtemp, copy the nine
+  content subdirs, write the candidate, spawn with cwd `backend/` and a 30 s
+  timeout, always rm), `parseFindings` (drops the summary line).
+- `aurad-validate.test.mjs` (new): 5 freshness-guard cases on temp fixtures +
+  11 path-guard cases, touching no repo file.
+- `server.mjs`: `POST /api/validate/candidate`, dry-run only.
+- `smoke.mjs`: leg **(f)** the seam over the real tree, plus a candidate with
+  an unknown effect key refused naming the file; leg **(g)** the unit
+  self-tests. Header updated (leg f needs the binary).
+- `README.md`: a new "The save seam: `aurad -validate`" section.
+
+**Findings**
+
+- ⭐ **Boot now lists EVERY content finding, not the first** - a free side
+  effect of the one-sequence shape, and the panic message points at
+  `aurad -validate -content <dir>`.
+- ⚑ **The mtime guard's blind spots** (now §B10 L13): it cannot see
+  `cmd/aurad/conf.default.json` (go:embed, not a `.go` file; moot while
+  `backend/conf.json` exists) and deliberately skips `backend/pkg/api/`
+  (the seam always passes `-content`). It is an mtime comparison, so a fresh
+  checkout or this host's non-monotonic clock can produce a false stale
+  (one wasted rebuild) or, rarely, a false pass.
+- ⚑ **A 500 from the endpoint carries the server's generic
+  `{ok:false, errors:[...]}` shape, not `findings`** (now §B10 L12): C3's
+  client must branch on the HTTP status, or "build aurad first" renders as
+  an empty finding list, i.e. as a pass.
+- ⚑ **`51659e0b` skipped `cp-defs`**: the embedded skills copy was 102 files
+  behind until the separate sync commit `9fd5023e` (PO chose to land it
+  first). `make -C backend build` after ANY `api/` edit, or the tracked
+  embedded copy drifts silently.
+- ⚑ The skills layout is `api/skills/*.json` + `api/skills/mobs/`, never
+  `player/`; §B10 L6's wording is right, the C2 spec said `player/`
+  (harmless, nothing read it).
+- **TDD honesty**: `registry.go` was red-first; `content.go` and
+  `validate_test.go` were implementation-first, and mutations (a)/(b) below
+  are their bite proof.
+- **§B11 Q7 is now one line per tab away** (the seam is kind-agnostic by
+  ruling 3), but it stays a separate call: the four existing tabs would trade
+  their live as-you-type errors for a spawn per save.
+- ⚑ **Before C3: §B11 Q6**, the one reformat commit of `api/skills/` (85 of
+  105 files reformat under `prettyJson`).
+
+**Verified** (session's own runs unless marked): `go build ./...` · `go vet`
+on `cmd/aurad`, `skills`, `cfg` · `make -C backend build` · **`go test
+-count=1 ./...` EXIT 0, 35 pkgs** · **`npm run smoke` 0 findings / 105 skill
+files / 162 effects / 34 types, EXIT 0** incl. the new legs (f)+(g) · browser
+harness `content-editor-skills-tab.mjs` **0 problems** (72 skills, 122 cards,
+a Taunt jump landing on RallyDrummer) · **a REAL BOOT**, the half no agent
+could do: `./aurad -dev -content ../api` against the dev DB for 12 s, loading
+factions 12 · skills 105 · mobs 63 · milestones 3 · recipes 11 · quests 13 ·
+ascension 8 · props 6 · zones world + underworld placed, then killed cleanly
+· live endpoint probe: `{}` → `{ok:true,findings:[]}`, a broken Aegis
+candidate → `ok:false` with `skills: cannot map "aegis.json": ...` first and
+six `skipped` lines after · zero em dashes in any new line. Agent's tail:
+`./aurad -validate -content ../api` with `AURA_DB_URL` and `AURA_JWT_KEY`
+verified UNSET → `0 finding(s)` EXIT 0 · the embedded run EXIT 0 · a broken
+tree (an unknown Aegis key + a `rock.json` parse error) → **8 findings EXIT
+1**, both named, six skipped by name · a missing binary → smoke red with
+"build aurad first" · a stale binary (an `AURAD_BIN` copy touched to 2020) →
+smoke red naming the newest source. **Mutation ×3**, each red then reverted:
+(a) the skills walker returning on the first error →
+`TestRegistry_CollectsEveryBrokenFile` +
+`TestRunValidate_EveryBrokenSkillFileIsNamed`; (b) `loadContent` stopping
+after the first failed stage →
+`TestRunValidate_IndependentStagesBothReportAndDependentsSkip`; (c) the seam
+ignoring the exit status → smoke leg (f). **Measured**: a seam round trip
+**66-135 ms** (222 files copied plus a full loader run) and the freshness
+stat sweep **2-8 ms** over ~600 files; one `Date.now()` delta read **-357
+ms**, this host's known non-monotonic clock, so `hrtime` is used.
+
+**Next: C3** (editing and saving through the seam, the L2 tri-state, the
+type-change confirm, the L5 rename guard, the L4 `maxLevel` warning),
+preceded by the §B11 Q6 reformat commit. Then C4, C5.

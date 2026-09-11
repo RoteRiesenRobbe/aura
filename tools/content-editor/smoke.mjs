@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
  * The editor's standalone check that the shipped skill content and the
- * generated vocabulary still describe the same thing. No server, no aurad, no
- * dependencies:
+ * generated vocabulary still describe the same thing, plus the save seam's own
+ * two legs. No server and no dependencies; legs (f) and (g) DO need a built
+ * `backend/aurad` (spell builder C2) and say so loudly when it is missing:
  *
  *     node tools/content-editor/smoke.mjs      # or: npm run smoke
  *
@@ -28,6 +29,14 @@
  *       types too. C1, §B4.2.
  *   (e) every `*PerLevel` key's base is in the same type's list - the pairing
  *       the per-level preview (D5) relies on.
+ *   (f) the SAVE SEAM end to end (C2, §B4.9): `aurad -validate` over the real
+ *       tree reports nothing, and a candidate carrying an effect key no type
+ *       allows is REFUSED with the finding naming that file. A missing or stale
+ *       binary is a finding here, never a quiet skip - a seam that cannot run
+ *       must not read as a seam that passed.
+ *   (g) the seam's unit checks (aurad-validate.test.mjs): the stale-binary
+ *       guard and the candidate path guard, both against temp fixtures so no
+ *       repo file's mtime is ever touched.
  *
  * ⚑ No underscore exemption at EFFECT level, on purpose: no shipped effect
  * carries a _comment (measured) and Go's validateEffectKeys would refuse one,
@@ -40,6 +49,8 @@ import { fileURLToPath } from 'node:url';
 import { listJsonFiles } from './files.mjs';
 import { readSkillVocabulary } from './vocabulary.mjs';
 import { SKILL_PRESENTATION, COST_PRESENTATION, EFFECT_PRESENTATION, EFFECT_TYPE_NOTES, orphanPerLevelKeys } from './skill-presentation.mjs';
+import { validateCandidate } from './aurad-validate.mjs';
+import { selfTestFindings } from './aurad-validate.test.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -140,6 +151,36 @@ for (const abs of listJsonFiles(SKILLS_DIR)) {
     }
   }
 }
+
+// (f) the save seam, both directions. The candidate is a REAL shipped skill
+// plus one key no effect type allows - the exact mistake a hand-typed effect
+// field makes, and the one the browser's fixture checks can only hint at.
+//
+// ⚑ The throw is recorded as a finding rather than left to propagate: an
+// uncaught "build aurad first" would exit 1 with a stack trace and no summary
+// line, which reads like a crash rather than like the one-line instruction it is.
+const SEAM_CANDIDATE = 'api/skills/aegis.json';
+try {
+  const clean = validateCandidate();
+  if (!clean.ok) {
+    for (const f of clean.findings) finding('aurad -validate', f);
+  }
+
+  const raw = JSON.parse(readFileSync(path.join(ROOT, ...SEAM_CANDIDATE.split('/')), 'utf8'));
+  raw.effects[0].noSuchKeyAtAll = true;
+  const refused = validateCandidate({ file: SEAM_CANDIDATE, raw });
+  // BOTH halves matter: a seam that ignored the exit status would still produce
+  // findings-looking text, so the refusal itself is asserted first.
+  if (refused.ok) finding('save seam', `a candidate with an unknown effect key was ACCEPTED - the seam is not reading aurad's exit status`);
+  else if (!refused.findings.some((f) => f.includes('aegis.json'))) {
+    finding('save seam', `the refusal did not name ${SEAM_CANDIDATE}: ${refused.findings.join(' | ') || '(no findings)'}`);
+  }
+} catch (err) {
+  finding('save seam', String(err?.message || err));
+}
+
+// (g) the seam's own unit checks.
+for (const line of selfTestFindings()) finding('aurad-validate.test.mjs', line);
 
 for (const line of findings) console.log(line);
 console.log(`${findings.length} finding(s) across ${fileCount} skill file(s) / ${effectCount} effect(s), ${fixtureTypes.length} effect type(s) in the vocabulary`);

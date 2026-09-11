@@ -252,15 +252,18 @@ func TestDiskContent_AscensionGatesResolveAgainstTheRealWorld(t *testing.T) {
 	content, err := diskContent("../../../api")
 	require.NoError(t, err)
 
-	skillsRegistry := loadSkills(content.skills, mustLoadFactions(t, content))
+	skillsRegistry, err := loadSkills(content.skills, mustLoadFactions(t, content))
+	require.NoError(t, err)
 	factionsRegistry, err := factions.RegistryFromFS(content.factions)
 	require.NoError(t, err)
 	mobsRegistry, err := mobs.RegistryFromFS(skillsRegistry, factionsRegistry, curve.Default(), content.mobs)
 	require.NoError(t, err)
-	questsRegistry := loadQuests(content.quests, mobsRegistry)
+	questsRegistry, err := loadQuests(content.quests, mobsRegistry)
+	require.NoError(t, err)
 
-	// panics on any unresolvable gate, which IS the assertion (curated content).
-	catalog := loadAscensionCatalog(content.ascension, skillsRegistry, mobsRegistry, questsRegistry)
+	// errors on any unresolvable gate, which IS the assertion (curated content).
+	catalog, err := loadAscensionCatalog(content.ascension, skillsRegistry, mobsRegistry, questsRegistry)
+	require.NoError(t, err)
 
 	for _, entry := range catalog.All() {
 		for _, cond := range entry.Conditions {
@@ -281,12 +284,15 @@ func TestCatalogGates_ResolveAgainstTheRealRegistries(t *testing.T) {
 	content, err := diskContent("../../../api")
 	require.NoError(t, err)
 
-	skillsRegistry := loadSkills(content.skills, mustLoadFactions(t, content))
+	skillsRegistry, err := loadSkills(content.skills, mustLoadFactions(t, content))
+	require.NoError(t, err)
 	factionsRegistry, err := factions.RegistryFromFS(content.factions)
 	require.NoError(t, err)
 	mobsRegistry, err := mobs.RegistryFromFS(skillsRegistry, factionsRegistry, curve.Default(), content.mobs)
 	require.NoError(t, err)
-	gates := catalogGates{mobs: mobsRegistry, quests: loadQuests(content.quests, mobsRegistry)}
+	questsRegistry, err := loadQuests(content.quests, mobsRegistry)
+	require.NoError(t, err)
+	gates := catalogGates{mobs: mobsRegistry, quests: questsRegistry}
 
 	// The species half: D27's directed hunt names this one, and it must resolve
 	// to the id the kill ledger counts by.

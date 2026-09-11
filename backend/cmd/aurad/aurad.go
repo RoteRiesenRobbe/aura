@@ -30,11 +30,12 @@ import (
 func main() {
 	logging.SetupLogging()
 
-	var dev, help bool
+	var dev, help, validate bool
 	var contentDir, zoneName, zoneNames, profileAddr string
 	flag.StringVar(&profileAddr, "profile", "", "serve net/http/pprof + /tickstats on this address for capacity checks (e.g. :6060); off by default, see devops/loadtest.md")
 	flag.BoolVar(&dev, "dev", false, "Serve frontend directly")
 	flag.BoolVar(&help, "help", false, "Show usage help")
+	flag.BoolVar(&validate, "validate", false, "Load all content, print every finding to stdout and exit (0 clean, 1 findings); starts no server and needs no database")
 	flag.StringVar(&contentDir, "content", "", "Load items/mobs/skills/recipes/zones/props from this api/-layout directory instead of the embedded copies (e.g. ../api); skips cp-defs + rebuild for content edits")
 	flag.StringVar(&zoneName, "zone", "", "Select which zone to load by file stem (e.g. 'scaffold' for scaffold.json); overrides game.zone in conf.json. Empty loads the sole zone when only one exists")
 	flag.StringVar(&zoneNames, "zones", "", "Load several zones TOGETHER, comma-separated by file stem, first is primary (e.g. 'world,underworld'); overrides -zone and game.zones")
@@ -45,6 +46,15 @@ func main() {
 	if help {
 		flag.Usage()
 		os.Exit(1)
+	}
+
+	// ⭐ THE -validate BRANCH SITS HERE, BEFORE openDatabase AND BEFORE THE
+	// TOKENS FILE (plan-content-editor.md §B4.9, D9). A content check must run
+	// with no AURA_DB_URL, no AURA_JWT_KEY and no live server, because the whole
+	// point is that the content editor can ask it on every candidate save. It
+	// also writes nothing: no conf.json, no tokens.list.
+	if validate {
+		os.Exit(validateMain(os.Stdout, contentDir, zoneNames, zoneName))
 	}
 
 	content := embeddedContent()
@@ -75,36 +85,25 @@ func main() {
 	// the chunk that gives shutdown something to do.
 	defer db.Close()
 
-	// Factions load FIRST: since plan-faction-flips chunk 2 a skill may author
-	// a targetFactions allowlist, resolved to bits at load (D8 — the faction
-	// registry is boot-only, so names have exactly one chance to become bits).
-	// Factions themselves depend on nothing.
-	factionsRegistry := loadFactions(content.factions)
-	skillsRegistry := loadSkills(content.skills, factionsRegistry)
 	levelCurve := config.LevelCurve()
-	mobsRegistry := loadMobs(skillsRegistry, factionsRegistry, levelCurve, content.mobs)
-	milestoneUnlocks := loadMilestoneUnlocks(content.milestones, skillsRegistry)
-	recipeRegistry := loadRecipes(content.recipes, skillsRegistry)
-	questsRegistry := loadQuests(content.quests, mobsRegistry)
-	ascensionCatalog := loadAscensionCatalog(content.ascension, skillsRegistry, mobsRegistry, questsRegistry)
-	propsRegistry := loadProps(content.props)
-	// Zone selection, most specific first: -zones, then -zone, then the conf's
-	// zones list, then its single zone. An empty result still boots — it means
-	// "the sole zone in the directory", which is what every conf did before
-	// this field existed.
-	zoneList := splitZoneList(zoneNames)
-	if len(zoneList) == 0 && zoneName != "" {
-		zoneList = []string{zoneName}
+	// ⚑ ONE load sequence, shared with -validate (content.go): the dependency
+	// order between the registries lives there and nowhere else. A boot is the
+	// consumer that refuses to continue on a finding - all of them, listed,
+	// rather than only the first one a loader happened to hit.
+	world, findings := loadContent(content, config, resolveZoneList(zoneNames, zoneName, config))
+	if len(findings) > 0 {
+		for _, f := range findings {
+			slog.Error("content finding", slog.String("detail", f))
+		}
+		panic(fmt.Sprintf("%d content finding(s); run `aurad -validate -content <dir>` for the list", len(findings)))
 	}
-	if len(zoneList) == 0 {
-		zoneList = config.Game.Zones
-	}
-	if len(zoneList) == 0 && config.Game.Zone != "" {
-		zoneList = []string{config.Game.Zone}
-	}
-	// ⚑ Placed here, not in the game: everything below takes RESOLVED geometry
-	// with each zone's Origin already applied (plan-underworld.md U1).
-	zones := loadZones(content.zones, zoneList, mobsRegistry, propsRegistry)
+	skillsRegistry := world.skills
+	mobsRegistry := world.mobs
+	milestoneUnlocks := world.milestones
+	recipeRegistry := world.recipes
+	questsRegistry := world.quests
+	ascensionCatalog := world.ascension
+	zones := world.zones
 	// The primary zone. It is what a fresh character spawns in, what names the
 	// world on the wire, and whose bounds size the client's camera and map —
 	// deliberately NOT a union of everything loaded (L13).

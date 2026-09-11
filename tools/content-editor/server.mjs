@@ -7,15 +7,21 @@
  *     node tools/content-editor/server.mjs
  *
  * then open http://localhost:4610. Reads api/mobs, api/quests and api/skills
- * straight off disk on every request (no build step, no running aurad, no
- * dependencies) and writes edits straight back (the Skills tab is READ-ONLY
- * until spell builder C3, plan-content-editor.md §B5), the same posture as
+ * straight off disk on every request (no build step, no dependencies, and no
+ * running game server) and writes edits straight back (the Skills tab is
+ * READ-ONLY until spell builder C3, plan-content-editor.md §B5), the same posture as
  * tools/tiled/generate-palette.mjs: an adjacent authoring tool, never
  * shipped to players, deriving its pick-lists from api/ instead of
  * duplicating them.
  *
  * See docs/plan-content-editor.md for the design (D1: custom, not an
  * adapted external tool; scope; what this deliberately does not cover).
+ *
+ * ⚑ ONE endpoint breaks the no-aurad rule, deliberately: POST
+ * /api/validate/candidate runs the BUILT `backend/aurad -validate` over a temp
+ * copy of api/ so a candidate is judged by the real loader rather than by a JS
+ * port of its rules (C2, §B4.9). It still needs no running server and no
+ * database - only `make -C backend build` having been run at some point.
  *
  * Scope reminder: NPC dialogue trees, quest stage graphs, full mob/NPC stat
  * fields (tier/factors/body/skills/unlocks/faction/entityType), faction
@@ -33,6 +39,7 @@ import { validateAll, buildIndex, validateInteraction, validateQuest, validateMo
 import { prettyJson } from './format.mjs';
 import { readSkillVocabulary } from './vocabulary.mjs';
 import { listJsonFiles } from './files.mjs';
+import { validateCandidate } from './aurad-validate.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -316,6 +323,23 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/api/save/recipe') {
       const body = await readBody(req);
       return sendJson(res, 200, saveOne({ kind: 'recipe', file: body.file, raw: body.raw, isNew: !!body.isNew }));
+    }
+    // ⭐ The save seam, DRY-RUN ONLY (spell builder C2, plan-content-editor.md
+    // §B4.9). Takes a candidate file + object, asks the real loader through
+    // `aurad -validate` over a temp copy of api/, and answers {ok, findings}.
+    // It writes NOTHING - C3 is the chunk that gates /api/save/skill on it.
+    //
+    // ⚑ Deliberately NOT wired into saveOne for the four existing kinds: those
+    // keep their JS ports until §B11 Q7 is ruled, and silently doubling their
+    // save latency is not this chunk's call to make.
+    //
+    // ⚑ A THROW here is 500, not a refusal: a missing or stale binary means the
+    // seam could not answer, and reporting that as "no findings" would be the
+    // silent pass D9 exists to prevent.
+    if (req.method === 'POST' && url.pathname === '/api/validate/candidate') {
+      const body = await readBody(req);
+      const { ok, findings } = validateCandidate(body.file === undefined ? {} : { file: body.file, raw: body.raw });
+      return sendJson(res, 200, { ok, findings });
     }
     if (req.method === 'POST' && url.pathname === '/api/save/milestones') {
       const body = await readBody(req);

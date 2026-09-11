@@ -1,6 +1,7 @@
 package skills
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"strings"
@@ -33,9 +34,17 @@ func RegistryFromFS(fileSystem fs.FS, fr factions.Registry) (Registry, error) {
 		byName: make(map[string]*SkillDefinition),
 	}
 
+	// ⭐ ONE FINDING PER FILE, not one per walk (spell builder C2, PO ruling
+	// 2026-09-11). A broken file is recorded and the walk CONTINUES, so an
+	// author fixing a typo learns about every other broken file in the same
+	// run rather than one per run. A file that failed is never inserted, so the
+	// duplicate-id and duplicate-name checks below still see a consistent
+	// registry and cannot invent a second finding out of the first one.
+	var problems []error
 	err := fs.WalkDir(fileSystem, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return fmt.Errorf("cannot read %q: %w", path, err)
+			problems = append(problems, fmt.Errorf("cannot read %q: %w", path, err))
+			return nil
 		}
 		if d.IsDir() || !strings.HasSuffix(path, ".json") {
 			return nil
@@ -43,24 +52,29 @@ func RegistryFromFS(fileSystem fs.FS, fr factions.Registry) (Registry, error) {
 
 		data, err := fs.ReadFile(fileSystem, path)
 		if err != nil {
-			return fmt.Errorf("cannot read %q: %w", path, err)
+			problems = append(problems, fmt.Errorf("cannot read %q: %w", path, err))
+			return nil
 		}
 
 		raw, err := parseSkillDefinition(data)
 		if err != nil {
-			return fmt.Errorf("cannot parse %q: %w", path, err)
+			problems = append(problems, fmt.Errorf("cannot parse %q: %w", path, err))
+			return nil
 		}
 
 		def, err := raw.mapToSkillDefinition(fr)
 		if err != nil {
-			return fmt.Errorf("cannot map %q: %w", path, err)
+			problems = append(problems, fmt.Errorf("cannot map %q: %w", path, err))
+			return nil
 		}
 
 		if existing, ok := r.byID[def.ID]; ok {
-			return fmt.Errorf("duplicate skill ID %d: %q and %q", def.ID, existing.Name, def.Name)
+			problems = append(problems, fmt.Errorf("duplicate skill ID %d: %q and %q", def.ID, existing.Name, def.Name))
+			return nil
 		}
 		if existing, ok := r.byName[def.Name]; ok {
-			return fmt.Errorf("duplicate skill name %q: IDs %d and %d", def.Name, existing.ID, def.ID)
+			problems = append(problems, fmt.Errorf("duplicate skill name %q: IDs %d and %d", def.Name, existing.ID, def.ID))
+			return nil
 		}
 
 		r.byID[def.ID] = def
@@ -69,6 +83,11 @@ func RegistryFromFS(fileSystem fs.FS, fr factions.Registry) (Registry, error) {
 	})
 	if err != nil {
 		return nil, err
+	}
+	// errors.Join of a single error prints exactly that error, so every caller
+	// that only ever sees one broken file reads the same message as before.
+	if joined := errors.Join(problems...); joined != nil {
+		return nil, joined
 	}
 
 	return r, nil

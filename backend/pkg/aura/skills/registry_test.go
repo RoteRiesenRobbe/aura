@@ -227,3 +227,42 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, SkillID(2), heal.ID)
 }
+
+// TestRegistry_CollectsEveryBrokenFile pins the per-file collection the spell
+// builder's -validate seam needs (plan-content-editor.md §B5 C2, PO ruling
+// 2026-09-11): the walk used to return on the first bad file, so an author
+// fixing one typo learned about the next one only on the next run. Every
+// broken file is now reported in one pass.
+func TestRegistry_CollectsEveryBrokenFile(t *testing.T) {
+	fsys := fstest.MapFS{
+		"damage.json":     {Data: damageAuraJSON},
+		"broken-one.json": {Data: []byte(`{invalid`)},
+		"broken-two.json": {Data: []byte(`{"id": 77, "name": "Nope", "category": "active_aura", "maxLevel": 1, "effects": [{"type": "damage_aura", "noSuchKey": true}]}`)},
+	}
+	_, err := RegistryFromFS(fsys, nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "broken-one.json")
+	assert.Contains(t, err.Error(), "broken-two.json")
+}
+
+// A file that failed to load must not be INSERTED, or continuing the walk would
+// invent findings out of the first one. broken.json is walked first (MapFS
+// sorts), claims damage.json's id AND name, and fails on an unknown effect key:
+// if it were inserted anyway, damage.json would report a duplicate id that no
+// author can act on. The only finding must be the broken file's own.
+func TestRegistry_BrokenFileDoesNotPoisonDuplicateChecks(t *testing.T) {
+	fsys := fstest.MapFS{
+		"damage.json": {Data: damageAuraJSON},
+		"broken.json": {Data: []byte(`{
+  "id": 1,
+  "name": "Damage",
+  "category": "active_aura",
+  "maxLevel": 1,
+  "effects": [{"type": "damage_aura", "targetsMobs": true, "noSuchKeyAtAll": true}]
+}`)},
+	}
+	_, err := RegistryFromFS(fsys, nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "broken.json")
+	assert.NotContains(t, err.Error(), "duplicate")
+}

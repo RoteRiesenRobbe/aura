@@ -119,26 +119,24 @@ var defaultConfig []byte
 // loadFactions parses the faction definitions mob allegiances resolve
 // against (mob-depth chunk 6.6). Curated content: any validation failure
 // aborts startup.
-func loadFactions(fsys fs.FS) factions.Registry {
+func loadFactions(fsys fs.FS) (factions.Registry, error) {
 	registry, err := factions.RegistryFromFS(fsys)
 	if err != nil {
-		slog.Error("failed to load factions", slog.Any("err", err))
-		panic(err)
+		return nil, err
 	}
 	// All() includes the two reserved built-ins (aligned, hostile).
 	slog.Info("Loaded faction definitions", slog.Int("count", len(registry.All())))
-	return registry
+	return registry, nil
 }
 
 // loadMobs parses the mob definitions from the definition files, resolving
 // skill loadouts against the skill registry and factions against the faction
 // registry; tier+baseline numbers derive against c, the conf-driven f(L)
 // curve (C0).
-func loadMobs(sr skills.Registry, fr factions.Registry, c curve.Curve, fsys fs.FS) mobs.Registry {
+func loadMobs(sr skills.Registry, fr factions.Registry, c curve.Curve, fsys fs.FS) (mobs.Registry, error) {
 	registry, err := mobs.RegistryFromFS(sr, fr, c, fsys)
 	if err != nil {
-		slog.Error("failed to load mobs", slog.Any("err", err))
-		panic(err)
+		return nil, err
 	}
 
 	mobList := registry.Mobs()
@@ -154,30 +152,28 @@ func loadMobs(sr skills.Registry, fr factions.Registry, c curve.Curve, fsys fs.F
 				slog.String("refs", strings.Join(m.LegacyRefs, ", ")))
 		}
 	}
-	return registry
+	return registry, nil
 }
 
 // loadSkills parses the skill definitions from the definition files, resolving
 // any authored targetFactions allowlist against the already-loaded faction
 // registry (plan-faction-flips D8).
-func loadSkills(fsys fs.FS, fr factions.Registry) skills.Registry {
+func loadSkills(fsys fs.FS, fr factions.Registry) (skills.Registry, error) {
 	registry, err := skills.RegistryFromFS(fsys, fr)
 	if err != nil {
-		slog.Error("failed to load skills", slog.Any("err", err))
-		panic(err)
+		return nil, err
 	}
 	slog.Info("Loaded skill definitions", slog.Int("count", len(registry.All())))
-	return registry
+	return registry, nil
 }
 
 // loadQuests parses the quest definitions, resolving authored species and
 // conversant names against the mob registry (plan-quests.md C1, L12).
 // Curated content: any validation failure aborts startup.
-func loadQuests(fsys fs.FS, mr mobs.Registry) quests.Registry {
+func loadQuests(fsys fs.FS, mr mobs.Registry) (quests.Registry, error) {
 	registry, err := quests.RegistryFromFS(fsys, mr)
 	if err != nil {
-		slog.Error("failed to load quests", slog.Any("err", err))
-		panic(err)
+		return nil, err
 	}
 	slog.Info("Loaded quest definitions", slog.Int("count", len(registry.All())))
 
@@ -190,8 +186,7 @@ func loadQuests(fsys fs.FS, mr mobs.Registry) quests.Registry {
 	// only once every row in the world has been seen.
 	warnings, err := quests.CrossValidate(mr, registry)
 	if err != nil {
-		slog.Error("failed to cross-validate quest dialogue", slog.Any("err", err))
-		panic(err)
+		return nil, err
 	}
 	// Content that loads and runs but cannot be reached in play — a warning rather
 	// than a boot failure, because the QUEST cheat deliberately drives a quest
@@ -199,42 +194,39 @@ func loadQuests(fsys fs.FS, mr mobs.Registry) quests.Registry {
 	for _, w := range warnings {
 		slog.Warn("unreachable quest content", slog.String("detail", w))
 	}
-	return registry
+	return registry, nil
 }
 
 // loadRecipes parses the combination recipes, resolving result and
 // ingredient skill names against the provided registry. Curated content: any
 // validation failure aborts startup.
-func loadRecipes(fsys fs.FS, r skills.Registry) skills.RecipeRegistry {
+func loadRecipes(fsys fs.FS, r skills.Registry) (skills.RecipeRegistry, error) {
 	registry, err := skills.RecipesFromFS(fsys, r)
 	if err != nil {
-		slog.Error("failed to load recipes", slog.Any("err", err))
-		panic(err)
+		return nil, err
 	}
 	slog.Info("Loaded recipe definitions", slog.Int("count", len(registry.All())))
-	return registry
+	return registry, nil
 }
 
 // loadProps parses the prop definitions the zone's props resolve against.
 // Curated content: any validation failure aborts startup.
-func loadProps(fsys fs.FS) world.PropRegistry {
+func loadProps(fsys fs.FS) (world.PropRegistry, error) {
 	registry, err := world.PropRegistryFromFS(fsys)
 	if err != nil {
-		slog.Error("failed to load props", slog.Any("err", err))
-		panic(err)
+		return nil, err
 	}
 	slog.Info("Loaded prop definitions", slog.Int("count", len(registry.Props())))
-	return registry
+	return registry, nil
 }
 
 // loadZone parses the server-authoritative zone file, resolving spawn mob
 // names against the mob registry and prop types against the prop registry.
 // Curated content: any validation failure aborts startup.
-func loadZone(fsys fs.FS, name string, mr mobs.Registry, pr world.PropRegistry) *world.Zone {
+func loadZone(fsys fs.FS, name string, mr mobs.Registry, pr world.PropRegistry) (*world.Zone, error) {
 	zone, err := world.LoadZoneFS(fsys, name, mr, pr)
 	if err != nil {
-		slog.Error("failed to load zone", slog.Any("err", err))
-		panic(err)
+		return nil, err
 	}
 	slog.Info("Loaded zone",
 		slog.String("id", zone.ID),
@@ -250,18 +242,17 @@ func loadZone(fsys fs.FS, name string, mr mobs.Registry, pr world.PropRegistry) 
 			slog.String("zone", zone.ID),
 			slog.String("refs", strings.Join(zone.LegacyRefs, ", ")))
 	}
-	return zone
+	return zone, nil
 }
 
 // loadZones parses and PLACES the set of zones the server runs, in the order
 // given — the first is the primary zone (plan-underworld.md U1). Curated
 // content: any validation failure, including the placement rules, aborts
 // startup.
-func loadZones(fsys fs.FS, names []string, mr mobs.Registry, pr world.PropRegistry) []*world.Zone {
+func loadZones(fsys fs.FS, names []string, mr mobs.Registry, pr world.PropRegistry) ([]*world.Zone, error) {
 	zones, err := world.LoadZonesFS(fsys, names, mr, pr)
 	if err != nil {
-		slog.Error("failed to load zones", slog.Any("err", err))
-		panic(err)
+		return nil, err
 	}
 	for i, zone := range zones {
 		slog.Info("Loaded zone",
@@ -293,8 +284,7 @@ func loadZones(fsys fs.FS, names []string, mr mobs.Registry, pr world.PropRegist
 	// argument. This is the first point at which both exist.
 	anchorWarnings, err := world.CrossValidateTravelAnchors(mr, zones)
 	if err != nil {
-		slog.Error("failed to cross-validate travel anchors", slog.Any("err", err))
-		panic(err)
+		return nil, err
 	}
 	// A door nobody has placed yet. A warning rather than a boot failure so the
 	// two halves of an entrance - the mob def and the zone that places it - can
@@ -302,20 +292,19 @@ func loadZones(fsys fs.FS, names []string, mr mobs.Registry, pr world.PropRegist
 	for _, w := range anchorWarnings {
 		slog.Warn("unreachable travel destination", slog.String("detail", w))
 	}
-	return zones
+	return zones, nil
 }
 
 // loadMilestoneUnlocks parses the milestone-unlock table and resolves skill
 // names against the provided registry. Curated content: any validation failure
 // aborts startup.
-func loadMilestoneUnlocks(fsys fs.FS, r skills.Registry) []skills.MilestoneUnlock {
+func loadMilestoneUnlocks(fsys fs.FS, r skills.Registry) ([]skills.MilestoneUnlock, error) {
 	unlocks, err := skills.MilestoneUnlocksFromFS(fsys, r)
 	if err != nil {
-		slog.Error("failed to load milestone unlocks", slog.Any("err", err))
-		panic(err)
+		return nil, err
 	}
 	slog.Info("Loaded milestone unlocks", slog.Int("count", len(unlocks)))
-	return unlocks
+	return unlocks, nil
 }
 
 // memorialNameLimit is how many names the memorial lists at once, and
@@ -349,11 +338,10 @@ const (
 //
 // ⚑ An EMPTY catalog is not a failure — the directory ships README-only until
 // C3 authors the seed, and an exhausted catalog is a designed end state (D14).
-func loadAscensionCatalog(fsys fs.FS, r skills.Registry, mr mobs.Registry, qr quests.Registry) ascension.Catalog {
+func loadAscensionCatalog(fsys fs.FS, r skills.Registry, mr mobs.Registry, qr quests.Registry) (ascension.Catalog, error) {
 	catalog, err := ascension.CatalogFromFS(fsys, r, catalogGates{mobs: mr, quests: qr})
 	if err != nil {
-		slog.Error("failed to load the ascension catalog", slog.Any("err", err))
-		panic(err)
+		return ascension.Catalog{}, err
 	}
 	slog.Info("Loaded ascension rewards", slog.Int("count", len(catalog.All())))
 
@@ -363,8 +351,7 @@ func loadAscensionCatalog(fsys fs.FS, r skills.Registry, mr mobs.Registry, qr qu
 	// that can run it at all, since neither package may import the other.
 	warnings, err := ascension.CrossValidate(mr, catalog)
 	if err != nil {
-		slog.Error("failed to cross-validate the ascension sites", slog.Any("err", err))
-		panic(err)
+		return ascension.Catalog{}, err
 	}
 	// Content that loads and runs but that nobody offers — a warning rather than
 	// a boot failure (P7), following the unreachable-quest-content precedent
@@ -372,7 +359,7 @@ func loadAscensionCatalog(fsys fs.FS, r skills.Registry, mr mobs.Registry, qr qu
 	for _, w := range warnings {
 		slog.Warn("unreachable ascension reward", slog.String("detail", w))
 	}
-	return catalog
+	return catalog, nil
 }
 
 // catalogGates lets a catalog entry's gates reach the rest of the world without

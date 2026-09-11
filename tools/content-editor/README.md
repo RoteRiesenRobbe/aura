@@ -138,7 +138,7 @@ served on `/api/data`.
 npm run smoke        # or: node tools/content-editor/smoke.mjs
 ```
 
-`smoke.mjs` is a standalone check (no server, no `aurad`) that walks every
+`smoke.mjs` is a standalone check (no server, no database) that walks every
 `api/skills/**/*.json` and reports any effect key outside its type's
 allowlist, any unknown top-level key, any disagreement between the two
 fixtures, and any key the **Skills tab's presentation table**
@@ -149,6 +149,57 @@ The top-level check earns its keep: skill JSON is parsed without
 `DisallowUnknownFields`, so a typo'd top-level key is read by nothing and
 fails in silence.
 
+Its last two legs are the save seam's (below): they need a built
+`backend/aurad` and say `build aurad first: make -C backend build` when there
+is none, rather than passing quietly.
+
+## The save seam: `aurad -validate`
+
+`aurad -validate -content <dir>` loads every registry the game loads, runs
+every cross-validation, prints one finding per line to **stdout** and exits
+**0** clean / **1** with findings. Anything else is the validator itself
+failing. It returns before the store is opened, so it needs neither
+`AURA_DB_URL` nor `AURA_JWT_KEY`, starts no server, and writes nothing (not
+even the `conf.json` a normal boot creates when none exists). All the log
+chatter goes to stderr, so stdout is findings plus one `N finding(s)` summary
+line.
+
+```bash
+cd backend && ./aurad -validate -content ../api   # 0 clean, 1 findings
+./aurad -validate                                 # the EMBEDDED copy, i.e. cp-defs state
+```
+
+`aurad-validate.mjs` is the editor's side of it. `validateCandidate({ file,
+raw })` copies the nine content directories to a temp directory, writes the
+candidate over its file there, runs the binary, and returns
+`{ ok, findings }`. Called with no arguments it validates the tree as it sits
+on disk. It is exposed as **`POST /api/validate/candidate`**
+(`{file, raw} -> {ok, findings}`); a thrown error is a 500 with the message,
+because a seam that could not answer must never read as a seam that passed.
+⚑ A 500 carries the server's generic `{ok: false, errors: [...]}` shape, not
+`findings`, so a caller must branch on the HTTP status: reading `ok` alone
+turns `build aurad first` into an empty finding list.
+A round trip over the full tree (222 files copied, then the loader run) measured **66-135 ms**.
+
+The binary is found at `AURAD_BIN`, else `backend/aurad`, else
+`backend/aurad.exe`.
+
+> ⚑ **The seam is exactly as current as the last `make -C backend build`.**
+> The loader lives in the binary, so a Go change that is compiled nowhere is a
+> change the seam cannot see. `assertAuradFresh` therefore refuses when the
+> binary is older than the newest non-test `.go` / `go.mod` / `go.sum` under
+> `backend/` (a 2-8 ms stat sweep over ~600 files; `backend/pkg/api/` is skipped, since the seam
+> always passes `-content`). It is an **mtime** comparison, so a fresh checkout
+> or a clock jump - this host's wall clock is known to be non-monotonic - can
+> call a current binary stale, which costs one rebuild. Building on demand was
+> offered and declined (PO 2026-09-11). It also cannot see a change to
+> `cmd/aurad/conf.default.json`, which is `go:embed`ed rather than compiled.
+
+⚑ C2 built the seam and wired it to a **dry-run endpoint only**. Saving a
+skill through it is C3, and the four existing kinds (mob / quest / faction /
+recipe) still save through the JS ports in `validate.mjs` until §B11 Q7 is
+ruled.
+
 `go build && go test` (or booting `aurad -content ../api`) remains the
-authoritative check. This tool's validation is a best-effort front-runner
-for the common mistakes, not a replacement for it.
+authoritative check. This tool's in-browser validation is a best-effort
+front-runner for the common mistakes, not a replacement for it.

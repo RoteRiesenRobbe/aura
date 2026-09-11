@@ -10,6 +10,11 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-09-11, the spell builder C2 wrap rotated the cap, so THE UNDERWORLD
+U1→U4b moved here verbatim.)*
+
+- **Prior: THE UNDERWORLD: U1→U4b, the first PLACED zone** ✅ 2026-09-08 (ledger: `docs/plan-underworld.md`; engine `78a274bd`, U4b `697b983c`; full banner in `docs/archive/status-history.md`): a zone file is authored around its own `{0,0}` and gets a runtime **`origin`** far away in the ONE shared `phy.Space`; a **`CaveMouth`** interact row walks you between zones behind a **directional curtain**. ⭐ Zones are disjoint by DISTANCE, so broadphase, border walls, AOI streaming and aura overlap respect them for free; amends `plan-release-map.md` D6's file-count clause only, §8.3 stays out. ⭐ Rejected: a `worldLayer` tag (a new filter axis on every query). ⭐ U3b: the destination lives on the PLACEMENT (`spawns[].anchor`), not the mob def. ⭐ **`Zone.Origin` is an authoring contract: +Y IS DEEPER** (U4b derives a crossing's direction from `OriginY`), so a neighbour belongs in X. ⚑ `ConversationOption.travel` is DERIVED, `anchor` mode only; the client upgrades on arrival. ⚑ Fixed two second-zone boot landmines (`startingSpawn` per-SET + primary-zone-only; campfire ids unique set-wide) and a FOURTH zone-format writer the completeness pin cannot see (`aura-world-format.js`; `verify.sh` placed-zone leg, fixture needs BOTH axes non-zero). **Schema: DB NONE · WIRE 2 appended · CONF `game.zones` · CONTENT `Zone.Origin`, `Spawn.Anchor`, 2 mob defs.** Verified: build · vet · `go test -count=1 ./...` EXIT 0 · vitest 663/663 · `verify.sh` green · mutation ×4. ⛔ **NOT in-game verified by me**; U2 shipped the same way and produced three browser-only defects. OWED: U5 content, U0, the Q5 look.
+
 *(2026-09-08, the underworld wrap rotated the cap, so SERVER PERFORMANCE
 CHUNK 3 moved here verbatim.)*
 

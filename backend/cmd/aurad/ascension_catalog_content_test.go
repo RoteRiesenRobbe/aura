@@ -33,13 +33,17 @@ func loadedCatalog(t *testing.T) (ascension.Catalog, mobs.Registry) {
 	t.Helper()
 	content, err := diskContent("../../../api")
 	require.NoError(t, err)
-	skillsRegistry := loadSkills(content.skills, mustLoadFactions(t, content))
+	skillsRegistry, err := loadSkills(content.skills, mustLoadFactions(t, content))
+	require.NoError(t, err)
 	factionsRegistry, err := factions.RegistryFromFS(content.factions)
 	require.NoError(t, err)
 	mobsRegistry, err := mobs.RegistryFromFS(skillsRegistry, factionsRegistry, curve.Default(), content.mobs)
 	require.NoError(t, err)
-	questsRegistry := loadQuests(content.quests, mobsRegistry)
-	return loadAscensionCatalog(content.ascension, skillsRegistry, mobsRegistry, questsRegistry), mobsRegistry
+	questsRegistry, err := loadQuests(content.quests, mobsRegistry)
+	require.NoError(t, err)
+	catalog, err := loadAscensionCatalog(content.ascension, skillsRegistry, mobsRegistry, questsRegistry)
+	require.NoError(t, err)
+	return catalog, mobsRegistry
 }
 
 // ⭐ D26's shape, and D18's three mechanisms each with a real content consumer

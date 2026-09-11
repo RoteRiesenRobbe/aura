@@ -140,16 +140,27 @@ func (c *Config) LevelCurve() curve.Curve {
 
 // reads the config from file
 func ReadConfig(filename string) (*Config, error) {
-	var err error
-	// read file
 	dat, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
+	return ParseConfig(dat, filename)
+}
 
+// ParseConfig is ReadConfig without the file: it parses, warns about unknown
+// keys, defaults and validates, exactly as a boot would. label names the bytes
+// in the unknown-key warning.
+//
+// ⚑ It exists because `aurad -validate` must resolve a config WITHOUT writing
+// one (spell builder C2, PO ruling 2026-09-11): boot falls back to writing
+// conf.default.json to disk when no conf is present, and a validation run that
+// leaves a file behind is a validation run with a side effect. Validate parses
+// the same embedded default bytes in memory instead, through this function, so
+// the two paths cannot resolve differently.
+func ParseConfig(data []byte, label string) (*Config, error) {
 	// parse config
 	config := &Config{}
-	if err := json.Unmarshal(dat, config); err != nil {
+	if err := json.Unmarshal(data, config); err != nil {
 		return nil, err
 	}
 
@@ -157,10 +168,10 @@ func ReadConfig(filename string) (*Config, error) {
 	// deployed or local conf would block the next boot for zero gain, while
 	// the warning gives the same drift signal. The struct parse above
 	// succeeded, so the map parse inside UnknownKeys cannot fail.
-	unknown, _ := UnknownKeys(dat)
+	unknown, _ := UnknownKeys(data)
 	for _, key := range unknown {
 		slog.Warn("unknown config key — not a config key; delete it, or prefix it with _ to keep it as a comment",
-			slog.String("key", key), slog.String("file", filename))
+			slog.String("key", key), slog.String("file", label))
 	}
 
 	// Default if values are missing
@@ -201,5 +212,5 @@ func ReadConfig(filename string) (*Config, error) {
 		return config, fmt.Errorf("invalid configuration: DayTimeSeconds (%d) must not be larger than TotalDayCycleSeconds (%d)",
 			config.Game.DayTimeSeconds, config.Game.TotalDayCycleSeconds)
 	}
-	return config, err
+	return config, nil
 }
