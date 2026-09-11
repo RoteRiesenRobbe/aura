@@ -1,5 +1,5 @@
 {
-  "_comment": "Z1 wolf pack bite (content pass C2): mid radius, brisk tick — the first real combat pressure after the farm. Authored as a curve-position-1 baseline; the loader scales it by f(curveLevel). All values [PLACEHOLDER]",
+  "_comment": "A wolf pack's bite: 6 HP plus 1 per level within a 1.0-unit ring every 24 ticks. The first real combat pressure past the starting farm area. All values placeholder.",
   "id": 110,
   "name": "WolfBite",
   "category": "active_aura",

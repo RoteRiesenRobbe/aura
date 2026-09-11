@@ -1,5 +1,5 @@
 {
-  "_comment": "Dark Tunnel venom-spider spit (content pass C3, plan-content-zones12.md §4): dot_aura leaving a poison DoT — the FIRST 'poison' damage tag in the world; the Antivenom resist_passive is its authored counter (§5 drop pair). The DoT keeps ticking after the player escapes the radius — venom lingers. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "_comment": "A venom spider's spit: applies a poison dot to the nearest enemy within 1.0 unit every 50 ticks, dealing 5 HP plus 1 per level over 4 ticks at 45-tick intervals. The dot keeps ticking after the target leaves the radius. Antivenom resists it. All values placeholder.",
   "id": 118,
   "name": "VenomSpit",
   "category": "active_aura",

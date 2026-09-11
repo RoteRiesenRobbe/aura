@@ -1,5 +1,5 @@
 {
-  "_comment": "Z2 rally drum (content pass C4, plan-content-zones12.md §4): the first authored shield_aura — 'war drums embolden' re-applies a damage-absorbing shield to every bandit in the wide ring each tick (buff lifetime = tickInterval + 1, so shields persist only while the drummer lives and the ally stays in range). targetsAllies only, NO targetsSelf: the drummer stays soft on purpose — focus it down and the horde loses its armor. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "_comment": "A bandit drummer's shield aura: reapplies a damage-absorbing shield of 15 HP plus 4 per level to every ally within 4.0 units every 30 ticks. A shield buff's lifetime equals its tick interval plus one, so it fades once the drummer dies or an ally leaves range. Does not shield the drummer itself, keeping it a priority target. All values placeholder.",
   "id": 124,
   "name": "RallyDrum",
   "category": "active_aura",

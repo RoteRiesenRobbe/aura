@@ -1,5 +1,5 @@
 {
-  "_comment": "Orc Warlord frenzy (content pass C6, plan-content-zones12.md §B): the enrage question answered with existing machinery (PO 2026-07-18: rotating frenzy, no §9 lift 5 seam) — a tick_rate self-buff cooldown the mob AI fires whenever ready with a target in range, so the fight develops recurring ~10 s windows where the cleave ticks twice as fast and the healer must burn through. Haste's effect (factor 0.5) at boss cadence: window 300 ticks, rotation 900. All values [PLACEHOLDER]",
+  "_comment": "The orc warlord's enrage: a self-buff cooldown that halves its own aura tick interval for 300 ticks, on a 900-tick cooldown. Creates roughly 10-second windows, twice per minute, where its cleave lands twice as fast. All values placeholder.",
   "id": 129,
   "name": "WarlordFrenzy",
   "category": "cooldown",

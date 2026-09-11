@@ -1,5 +1,5 @@
 {
-  "_comment": "Mob-depth chunk 7 placeholder content: a tank cooldown that forces every enemy mob in range to the top of its threat table (force-to-top by threatMargin above the current top), pulling aggro onto the caster. All values [PLACEHOLDER].",
+  "_comment": "A tank cooldown that forces every enemy mob in range to the top of its threat table, pulling aggro onto the caster, by adding threatMargin above the current highest threat. All values placeholder.",
   "id": 25,
   "name": "Taunt",
   "icon": "lorc/shouting",

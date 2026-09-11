@@ -1,5 +1,5 @@
 {
-  "_comment": "First crit-chance stat passive (backlog §23, §4.3 v2 crit rework PO 2026-07-20): +2% crit chance per level on every outgoing direct hit, additive with the character base 5% (conf game.player.critChance) and any skill-authored chance; pair-less effects crit at the global defaultCritFactor (sys/skills.go). DoTs never crit. Unlock source: every wolf at 0.06 (PO 2026-07-21 — line-wide; the wolf line owns the precision identity. Was DireWolf-only from 2026-07-20). All values [PLACEHOLDER]",
+  "_comment": "A passive adding 2 percent crit chance per level to outgoing direct hits, stacking additively with the character's base crit chance and any other skill-authored chance. Damage over time never crits regardless. All values placeholder.",
   "id": 60,
   "name": "KeenEye",
   "icon": "lorc/muscle-up",

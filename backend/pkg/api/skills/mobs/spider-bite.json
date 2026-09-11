@@ -1,5 +1,5 @@
 {
-  "_comment": "Dark Tunnel spider bite (content pass C3, plan-content-zones12.md §4): damage aura carrying lifestealFraction — the spider drains what it bites (feeding, PO 2026-07-16). Lifesteal rides damage payloads only, hence the NORMAL spider carries it and the venom spider carries the DoT instead. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "_comment": "A spider's bite: 7 HP plus 1.2 per level within a 1.0-unit ring every 30 ticks, healing the spider for 40% of the damage dealt. Lifesteal only rides direct damage, which is why the venom spider carries a dot instead of this. All values placeholder.",
   "id": 117,
   "name": "SpiderBite",
   "category": "active_aura",

@@ -1,5 +1,5 @@
 {
-  "_comment": "Fire-totem aura (2026-07-21): fire dots on EVERY hostile in range (selector 'all') — the area-denial half of the FireTotem cooldown, and what separates it from the single-target TotemAura. Its level follows the FireTotem skill level at spawn (RaiseLoadoutLevels), so maxLevel matches FireTotem's. The light_aura is the totem's glow — rendering-only, slightly wider than the burn field so the danger zone is lit before you stand in it. All values [PLACEHOLDER].",
+  "_comment": "A fire totem's burn field: applies a fire dot to every hostile entity within 2.5 units every 60 ticks, dealing 6 HP plus 2 per level over 3 ticks at 60-tick intervals, and casts light out to 3.0 units. The totem's level is copied from the FireTotem skill at spawn, so this skill's maxLevel must stay equal to FireTotem's. All values placeholder.",
   "id": 135,
   "name": "FireTotemAura",
   "category": "active_aura",

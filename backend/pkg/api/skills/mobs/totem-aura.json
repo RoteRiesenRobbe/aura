@@ -1,5 +1,5 @@
 {
-  "_comment": "Mob-depth chunk 1 placeholder content: the totem's fire dot on the nearest enemy (third dot consumer). Its level follows the SummonTotem skill level at spawn (RaiseLoadoutLevels), so maxLevel matches SummonTotem's. All values [PLACEHOLDER].",
+  "_comment": "A summoned totem's fire dot: applies to the nearest enemy within 1.5 units every 60 ticks, dealing 8 HP plus 2 per level over 3 ticks at 60-tick intervals. The totem's level is copied from the SummonTotem skill at spawn, so this skill's maxLevel must stay equal to SummonTotem's. All values placeholder.",
   "id": 106,
   "name": "TotemAura",
   "category": "active_aura",

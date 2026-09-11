@@ -1,5 +1,5 @@
 {
-  "_comment": "ASCENSION CATALOG (plan-ascension.md C3 step 3, D9/D26): the nature burn. ⭐ D1 WORLD-PARITY: every number is Immolate's (id 5) verbatim, including the C2c damage raise and the 20-tick re-application cadence R2/R3 settled — pay to ignite, not to keep burning. The only difference is damageTags, fire → nature. ⚑ nature shipped DECLARED AND ENTIRELY UNCLAIMED: no player skill and no mob carried it before this file, which D4 recorded as deliberate ('the wildlife line as nature once later content fills them in'). This claims it on the damage-over-time axis, opposite Immolate's fire. ⚑ Reading its cost: the price is per IGNITION, so holding one target is close to free and the charge lands when you set something new alight — the same shape as its parent, because it IS its parent. All values [PLACEHOLDER], and they move only if Immolate's move.",
+  "_comment": "A nature damage-over-time aura on the nearest enemy: each new burn deals 10.5 HP plus 2.6111 per level over 3 ticks spaced 60 ticks apart, reapplying every 20 ticks. Cost charges only on igniting a fresh burn, not on refreshing one already burning. All values placeholder; mirrors the fire equivalent aura's numbers with the damage type swapped.",
   "id": 142,
   "name": "Blight",
   "icon": "lorc/vine-leaf",

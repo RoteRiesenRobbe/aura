@@ -1,5 +1,5 @@
 {
-  "_comment": "Z2 bandit crossbow volley (content pass C4, plan-content-zones12.md §4): large radius, slow tick, selector 'all' uncapped (kobold-volley precedent) — every valid target in range is hit each volley. Slightly harder per hit than the kobold version, fitting the higher band. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "_comment": "A bandit crossbow volley: hits every enemy within a 2.5-unit ring every 60 ticks for 10 HP plus 1.62 per level, uncapped by selector 'all'. All values placeholder.",
   "id": 121,
   "name": "BanditVolley",
   "category": "active_aura",
