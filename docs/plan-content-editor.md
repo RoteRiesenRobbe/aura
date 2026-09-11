@@ -364,7 +364,9 @@ ordinary form work.
   the tool** - the numbers-rewrite cost convention stays a human judgement.
 - **D6 - Placement: a read-only "obtained via" panel with jump links.** Every
   source of the skill (milestone row, mob `unlocks[]`, NPC `teach_skill`
-  grant, recipe result) listed, one click jumps to that entry in its own tab.
+  grant, recipe result, ⚑ **and an ascension stone's `rewards[]`** - the
+  meta-progression route, missed in the original list, added at C1) listed,
+  one click jumps to that entry in its own tab.
   A skill with no source shows **"cheat-only (`SKILL <name>`)"**. Placement
   itself is done in the existing tabs; nothing inline.
 - **D7 - The registry count pin stays; the tab shows a post-save checklist.**
@@ -603,7 +605,7 @@ Six, each its own session; C0, C2 and C5 carry Go.
   measured) that loads every real `api/skills/**/*.json` and asserts every
   authored key is inside `effectKeys[type] ∪ costKeys ∪ {type}`. That last
   assert is what keeps the fixture honest from the JS side.
-- **C1 - the tab, read-only.** Sidebar groups, the form rendered from the
+- **C1 - the tab, read-only.** ✅ **SHIPPED 2026-09-11** (ledger §B12 C1). Sidebar groups, the form rendered from the
   fixture, the presentation table + its completeness assert, the per-level
   preview, seconds beside ticks, the Visuals placeholder, the sources panel,
   the exclusions of §B4.8. No Save button. ⭐ **Why read-only first: the PO
@@ -704,8 +706,10 @@ repo, so it needs no cp-defs/embed entry"*).
 
 - **L1 - the hand copy.** Any per-type field list typed into `app.js` by hand
   is the §B3 failure. The form renders from the fixture or the chunk is wrong.
-- **L2 - `tickInterval` is `*int`, absent ≠ 0.** Absent means "the type's
-  default cadence"; an authored 0 is refused. The form needs a tri-state
+- **L2 - `tickInterval` is `*int`, absent ≠ 0.** ⚑ **Corrected at C1
+  (2026-09-11)**: absent means **every tick (1)**, not "the type's default
+  cadence" - `mapToEffectDef` reads `tickInterval := 1` for every type; an
+  authored 0 is refused. The form's hint says so. The form needs a tri-state
   (unset / value) for it, the Tiled `wanderRadius` lesson. Same care for
   every optional numeric whose zero the loader rejects (`radius` on geometry
   types, `ttlTicks`, `dotTicks`, …): an empty input must DELETE the key, not
@@ -840,7 +844,10 @@ repo, so it needs no cp-defs/embed entry"*).
   tooltip's effect-type switch against `effectTypes`. Closed, no rider.
 - **L7 was wrong** (see the amended landmine): no effect-level `_comment`
   exists and the loader would refuse one, so `smoke.mjs` has no exemption at
-  effect level, on purpose.
+  effect level, on purpose. ⚑ **Amended again 2026-09-11**: the Aegis
+  ruling is recorded in `content-ability-matrix.md`, and the comment pass
+  (C1 rider) reduced every `_comment` to an authoring note, so no comment is
+  a ruling record any more.
 - **§B5's "smoke imports `validate.mjs`"** does not hold: `validate.mjs` is
   also loaded by the browser as a plain ES module, so it cannot reach
   `node:fs`, and C0's checks need nothing from it. The README's promise is
@@ -863,6 +870,147 @@ per content kind at `api/<kind>-vocabulary.json`, written by the Go package
 that owns the vocabulary via `UPDATE_<KIND>_VOCABULARY=1`, complement of
 `shared-constants.json`, read by the editor through one `read<Kind>Vocabulary`
 in `tools/content-editor/`.
+
+#### C1 - the tab, read-only ✅ SHIPPED 2026-09-11 `[uncommitted]`
+
+> Built and verified by the session. No PO ruling was needed: §B4.3 and §B9
+> settle the design, and the three judgement calls below are presentation,
+> each cheap to reverse. **Schema impact: NONE at every layer.** DB none,
+> FlatBuffers none, conf none, content none; nothing is written (no Save
+> button exists), so §B4.8's round-trip clause (L8) holds trivially.
+
+**What shipped** (`tools/content-editor/`, editor-side only, zero Go)
+
+- **`skill-presentation.mjs`** (new, browser-loadable, no `node:` imports):
+  how each of the 98 authorable keys LOOKS - control kind, unit, shared-vs-
+  payload group, hidden flag, hint - keyed by key NAME only. ⛔ L1 holds:
+  no per-type field list exists in the editor; the card renders
+  `effectKeys[type] ∪ costKeys` straight from the served vocabulary, and a
+  key with no presentation entry still renders as a plain input. Also holds
+  `EFFECT_TYPE_NOTES` (the §B4.8 "in, with a hint" rows and the parked
+  banner text), `CATEGORY_LABELS`, `HIDDEN_EFFECT_TYPES` and the pure
+  helpers the preview uses (`resolveAt` = `base + (level-1)·perLevel`, the
+  same formula as `skills/scaling.go`; `scalingPairs`, `ticksToSecondsLabel`).
+- **`smoke.mjs` checks (d) + (e)**: the presentation table and the fixture
+  describe the same key set BOTH ways (a new Go key reddens smoke until it
+  gets a conscious entry; a stale entry after a Go rename reddens it too;
+  a type note on a non-type reddens it), and every `*PerLevel` key's base
+  sits in the same list (the pairing the preview relies on).
+- **`server.mjs`**: `/api/data` now carries `skills` (`{file, raw}` for BOTH
+  folders, L6) and `ticksPerSecond` (read from shared-constants as its own
+  field - a constant, not a vocabulary, so it stays out of
+  `vocabulary.mjs`'s merge); a static route for the new module.
+- **The tab** (`public/app.js`, `index.html`, `styles.css`): a **Skills**
+  sidebar tab grouped Auras · Cooldowns · Passives from the fixture's
+  `categories`, the faction-group helper generalised into `renderGroupedList`
+  for it; `api/skills/mobs/` hidden (D2, §B9 4). The editor, top to bottom:
+  the skill-level `_comment` shown as the design record · **Identity** ·
+  **Category block** (cooldown + cast pairs with their own per-level table,
+  the `castInterruptedByDamage` inert-note when `castTicks` is 0, an
+  aura/passive note otherwise; `targetFactions` as checkboxes over
+  `api/factions/` + the two reserved names, flagged MANDATORY when any
+  effect is in `factionScoped`) · **Effects**, one card per authored effect
+  with the type select, the shared group, the payload group, stray-key
+  lines, and the **per-level preview** (one column per level to `maxLevel`,
+  one row per authored scaling pair, flat rows dimmed, seconds beside every
+  tick cell) · **Visuals** (D3 placeholder) · **Obtained via** (D6, five
+  source kinds + "also referenced by" for recipe ingredients and mob
+  `skills[]`, every row a jump that switches the sidebar tab; cheat-only
+  otherwise). Seconds beside every tick field (D5). Every control disabled;
+  a `read-only · C1` badge; no Save/Reset.
+- **`.claude/skills/verify/content-editor-skills-tab.mjs`** (new) + its
+  coverage-map row: the in-tool browser smoke (below).
+
+**Three presentation judgements** (session, PO may veto): (1) unauthored keys
+render as dimmed empty fields rather than being omitted, so the full form is
+what the PO judges; (2) the cost pair leads the shared group; (3) the parked
+`projectile` type stays selectable on the two files that author it (greyed,
+with the banner) instead of showing a blank type select. (4) Which
+top-level keys render under the Category block rather than Identity is a
+six-name list in `app.js` (`CATEGORY_BLOCK_KEYS`): section placement, not a
+field list, so L1 holds (a key it does not name still renders, under
+Identity), but it is the one presentation choice smoke (d) cannot see; a
+`section` field on the presentation entries would fold it under the assert.
+Left for C3.
+
+**Findings**
+
+- ⚑ **L2 was wrong**: an absent `tickInterval` is **1**, every tick, for every
+  type (`mapToEffectDef`), not a per-type default. Landmine amended; the
+  form's hint says "blank = every tick".
+- ⚑ **D6's source list missed the ascension catalog**: five skills (Blight,
+  Envenom, Frostbite, RimeBurst, Venomward) read as cheat-only on the first
+  browser pass because their only placement is `ascension-stone.json`'s
+  `rewards[]`. Added as a fifth source kind; D6 amended. After it: 57
+  sourced / 15 cheat-only of 72 (the Omni trio, the projectile pair, the
+  portal, and ten auras/cooldowns still awaiting the content pass).
+- ⚑ **A PRE-EXISTING stale JS port, FIXED as a C1 rider (PO-ruled
+  2026-09-11)**: the editor opened with 2 errors - `cave-exit.json` /
+  `cave-mouth.json` author `travel_to` mode `"anchor"` (U4b, 2026-09-08),
+  unknown to `validate.mjs`'s `TRAVEL_MODES`. The §B3 failure class in the
+  mob tab, exactly as predicted, and the root cause was TWO hand copies of
+  the list (`validate.mjs` AND `app.js` each declared it). Fix: one exported
+  list, `anchor` added with the Go rule's refusal (an `anchor` key on an
+  owner-relative mode is never read, `interaction.go` ~979; the key stays
+  optional on anchor mode because the destination lives on the placement,
+  U3b), and the NPC grant row gained the anchor input + a hint. Proven
+  against the real cave-mouth file (passes) and two mutations (refused);
+  `/api/validate` 0 errors after a server restart (⚑ `server.mjs` imports
+  the validator once at boot, so a validator edit needs a restart). §B11 Q7
+  remains the structural answer for the other rules.
+- The fixture's `mergeKeys` order (kept unsorted at C0 for this reason) is
+  what makes the shared/payload split render in a stable order; sorting it
+  would scramble every card.
+
+**Verified**: `node --check` on all three modules · `npm run smoke` **0
+findings / 105 files / 162 effects / 34 types** with (d)+(e) live ·
+**mutation ×3** (a dropped `radius` entry, a stale `dashLength` entry, a
+`recal` type note - each reddened smoke naming the file and key) · browser:
+`content-editor-skills-tab.mjs` **0 problems** - Auras 27 · Cooldowns 34 ·
+Passives 11 = 72 in the sidebar, 122 cards, 156 preview tables, 0 stray keys,
+parked = ThrowBomb + ThrowMine, mandatory `targetFactions` = BindElemental,
+Calm, CharmBeast, OmniStrike, a Taunt source jump landing in the Mobs tab on
+RallyDrummer · the session read the Damage, ThrowBomb and NovaBurst
+screenshots (one layout defect found and fixed: a scaling pair overflowed its
+grid cell). **PO look, round 1 (2026-09-11)**: two design fixes, both CSS -
+the browser's disabled checkboxes were unreadable (grey box, faint check),
+so every checkbox in the tool now uses its own palette (accent fill, dark
+check, the primary button's language; enabled and disabled read alike), and
+the seven sidebar tabs overflowed their 4-column grid (a `1fr` track cannot
+shrink below its label), now a wrapping row.
+
+**PO look, round 2 (2026-09-11): the `_comment` ruling and pass.** Seeing
+FireVulnerability's comment in the tab, the PO: *"nonsensical outdated
+babbling, kind of deranged"*. Measured: 102 of 105 skill files carried a
+`_comment`, median 832 characters, max 3,087 (OmniStrike), 41 of the 72
+player skills over 600; every one a chunk retrospective in the plan-doc
+ledger dialect (dates, hashes, ⚑/⭐ glyphs, "PO ruled"). **Ruled: a
+`_comment` is an authoring note** (what the skill is, which values are
+placeholder, at most one landmine sentence with a doc pointer, under ~400
+characters; no history, no placement claims), and every skill comment is
+rewritten now, in one pass; the tab keeps showing the field in full. Rule
+text in `docs/manual-content-authoring.md` "The `_comment` field", plus a
+bullet in the add-content skill and a clause in CLAUDE.md's content rules.
+The pass: three Sonnet agents drafted from a per-file dump (fields, effects,
+old comment) against a brief with three worked examples; the session read
+all 102 and corrected 33 (one wrong sentence on Heal - "reapplies more
+often, every 80 ticks versus the usual 40" - and 32 placement claims, after
+two were found already stale: Barrier "cheat-only" is a recipe result,
+FireWard "no unlock source" is a fire-elemental drop; that is where the
+no-placement clause of the rule comes from). Applied by replacing **line 2
+only** of each file, with a per-file proof that every other line is
+byte-identical and the parsed object is equal minus `_comment`, so §B11 Q6
+(the reformat commit) is untouched by it. Result: 102 rewritten, median 330
+/ max 399; `dash`, `haste`, `tough` had no comment and got none. The old
+comments are readable at `df746e53`; the reasoning they carried lives in
+the plan-doc ledgers already (Aegis: `content-ability-matrix.md`;
+ThrowBomb: `plan-prototype-projectile.md`). ⚑ Open, filed in
+`docs/feedback.md`: the same dialect lives in mob, quest, recipe and
+faction comments; the ruling covered skills only. Verified: smoke 0/105 ·
+`cp-defs` + **`go test -count=1 ./...` EXIT 0, 35 pkgs** · the browser
+harness 0 problems · one rewritten comment read in the tab. The form
+verdict itself is still owed. **Next: C2**, `aurad -validate` (D9); the
+PO's form verdict may reorder C2/C3.
 
 **Verified**: red-first (the golden test failed naming the regen command with
 no file on disk, then generated, then green) · `go build ./...` · `go vet` ·

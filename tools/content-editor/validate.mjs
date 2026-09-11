@@ -14,7 +14,14 @@
 const QUEST_STAGE_SENTINELS = ['not_started', 'completed', 'running'];
 const CONDITION_KINDS = ['minLevel', 'quest_at_stage', 'bloodline_ascensions', 'kills_this_life'];
 const GRANT_KINDS = ['teach_skill', 'offer_quest', 'advance_quest', 'grant_xp', 'travel_to'];
-const TRAVEL_MODES = ['home_campfire', 'caster'];
+// The closed destination vocabulary of a travel_to grant (interaction.go
+// travelModes). `anchor` (underworld U3b, 2026-09-08) delivers to the zone
+// anchor named on the PLACEMENT (world.Spawn.Anchor); the grant's own `anchor`
+// key is only a default for placements that name none, so it is optional
+// here and unverifiable here (that needs the zone, which
+// world.CrossValidateTravelAnchors has and this port does not). Exported so
+// app.js offers exactly this list rather than a second copy.
+export const TRAVEL_MODES = ['home_campfire', 'caster', 'anchor'];
 const ROW_SOURCE_KINDS = ['ascension_catalog', 'memorial_names'];
 const OBJECTIVE_KINDS = ['kill', 'harvest', 'talk_to'];
 
@@ -302,6 +309,7 @@ export function validateInteraction(mob, idx) {
           if (g.quest || g.fromStage || g.toStage || g.xp) err(`${gWho}: travel_to takes no quest/stage/xp keys`);
           if (!g.mode) err(`${gWho}: travel_to needs a mode`);
           else if (!TRAVEL_MODES.includes(g.mode)) err(`${gWho}: mode "${g.mode}" must be one of ${TRAVEL_MODES.join('/')}`);
+          else if (g.mode !== 'anchor' && g.anchor) err(`${gWho}: mode "${g.mode}" resolves its destination from the portal's owner, so the "anchor" key would never be read: drop it or switch to mode "anchor"`);
         }
       }
 

@@ -20,6 +20,14 @@
  *   (c) the fixture's effect types are exactly shared-constants' effectTypes,
  *       the complement rule's other half, restated here so the check survives
  *       even when nobody runs the Go suite.
+ *   (d) the Skills tab's presentation table (skill-presentation.mjs) and the
+ *       fixture describe the same key set, BOTH ways: every fixture key has a
+ *       conscious presentation entry (a new Go key reaches the form with a
+ *       unit and a control, not a guess), and every entry names a live key
+ *       (a Go rename cannot leave a stale row). Type notes must name live
+ *       types too. C1, §B4.2.
+ *   (e) every `*PerLevel` key's base is in the same type's list - the pairing
+ *       the per-level preview (D5) relies on.
  *
  * ⚑ No underscore exemption at EFFECT level, on purpose: no shipped effect
  * carries a _comment (measured) and Go's validateEffectKeys would refuse one,
@@ -31,6 +39,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listJsonFiles } from './files.mjs';
 import { readSkillVocabulary } from './vocabulary.mjs';
+import { SKILL_PRESENTATION, COST_PRESENTATION, EFFECT_PRESENTATION, EFFECT_TYPE_NOTES, orphanPerLevelKeys } from './skill-presentation.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -59,6 +68,32 @@ for (const name of fixtureTypes) {
     finding('api/skill-vocabulary.json', `effectKeys names "${name}", which api/shared-constants.json's effectTypes does not`);
   }
 }
+
+// (d) presentation completeness, both directions, per table.
+const PRESENTATION_FILE = 'tools/content-editor/skill-presentation.mjs';
+function presentationCheck(tableName, table, liveKeys) {
+  const live = new Set(liveKeys);
+  for (const key of liveKeys) {
+    if (!(key in table)) finding(PRESENTATION_FILE, `${tableName} has no entry for "${key}" - the fixture knows the key, so the form renders it as a plain input until it gets a unit and a control`);
+    else if (!table[key].control) finding(PRESENTATION_FILE, `${tableName}.${key} has no "control"`);
+  }
+  for (const key of Object.keys(table)) {
+    if (!live.has(key)) finding(PRESENTATION_FILE, `${tableName} names "${key}", which the vocabulary no longer carries - stale after a Go rename?`);
+  }
+}
+const allEffectKeys = [...new Set(Object.values(vocabulary.effectKeys).flat())];
+presentationCheck('SKILL_PRESENTATION', SKILL_PRESENTATION, vocabulary.topLevelKeys);
+presentationCheck('COST_PRESENTATION', COST_PRESENTATION, costKeys);
+presentationCheck('EFFECT_PRESENTATION', EFFECT_PRESENTATION, allEffectKeys);
+for (const type of Object.keys(EFFECT_TYPE_NOTES)) {
+  if (!(type in vocabulary.effectKeys)) finding(PRESENTATION_FILE, `EFFECT_TYPE_NOTES names "${type}", which is not an effect type in the vocabulary`);
+}
+
+// (e) every per-level key pairs with a base in the same list.
+for (const [type, keys] of Object.entries(vocabulary.effectKeys)) {
+  for (const key of orphanPerLevelKeys(keys)) finding('api/skill-vocabulary.json', `effectKeys.${type} carries "${key}" without its base key - the per-level preview cannot pair it`);
+}
+for (const key of orphanPerLevelKeys([...vocabulary.topLevelKeys, ...costKeys])) finding('api/skill-vocabulary.json', `"${key}" has no base key among topLevelKeys/costKeys`);
 
 let fileCount = 0;
 let effectCount = 0;

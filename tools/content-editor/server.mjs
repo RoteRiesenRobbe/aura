@@ -8,7 +8,8 @@
  *
  * then open http://localhost:4610. Reads api/mobs, api/quests and api/skills
  * straight off disk on every request (no build step, no running aurad, no
- * dependencies) and writes edits straight back — same posture as
+ * dependencies) and writes edits straight back (the Skills tab is READ-ONLY
+ * until spell builder C3, plan-content-editor.md §B5), the same posture as
  * tools/tiled/generate-palette.mjs: an adjacent authoring tool, never
  * shipped to players, deriving its pick-lists from api/ instead of
  * duplicating them.
@@ -43,6 +44,7 @@ const RECIPES_DIR = path.join(ROOT, 'api', 'recipes');
 const MILESTONES_FILE = path.join(ROOT, 'api', 'milestones', 'milestone-unlocks.json');
 const ENTITY_TYPE_TS = path.join(ROOT, 'api', 'schema', 'js', 'aura-api', 'entity-type.ts');
 const SKILL_VOCABULARY_FILE = path.join(ROOT, 'api', 'skill-vocabulary.json');
+const SHARED_CONSTANTS_FILE = path.join(ROOT, 'api', 'shared-constants.json');
 const PUBLIC_DIR = path.join(HERE, 'public');
 const PORT = Number(process.env.PORT) || 4610;
 
@@ -62,8 +64,26 @@ function readQuests() {
   }));
 }
 
+// BOTH folders: api/skills/*.json (player skills, the Skills tab's scope) and
+// api/skills/mobs/*.json (mob-embedded, hidden from the tab but sharing its
+// id and name space - §B10 L6). The client filters by path.
+function readSkills() {
+  return listJsonFiles(SKILLS_DIR).map((abs) => ({
+    file: path.relative(ROOT, abs).split(path.sep).join('/'),
+    abs,
+    raw: JSON.parse(readFileSync(abs, 'utf8')),
+  }));
+}
 function readSkillDefs() {
-  return listJsonFiles(SKILLS_DIR).map((abs) => JSON.parse(readFileSync(abs, 'utf8')));
+  return readSkills().map((s) => s.raw);
+}
+// The shared tick cadence, for the seconds the Skills tab shows beside every
+// tick field (D5). A constant, not a vocabulary list, so it rides /api/data on
+// its own rather than through vocabulary.mjs's merge.
+function readTicksPerSecond() {
+  const shared = JSON.parse(readFileSync(SHARED_CONSTANTS_FILE, 'utf8'));
+  if (typeof shared.ticksPerSecond !== 'number') throw new Error(`${SHARED_CONSTANTS_FILE} has no numeric "ticksPerSecond"`);
+  return shared.ticksPerSecond;
 }
 function readSkillNames() {
   return readSkillDefs().map((d) => d.name).filter(Boolean);
@@ -244,7 +264,8 @@ const server = createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/api/data') {
       const mobs = readMobs().map(({ file, raw }) => ({ file, raw }));
       const quests = readQuests().map(({ file, raw }) => ({ file, raw }));
-      const skillNames = readSkillNames();
+      const skills = readSkills().map(({ file, raw }) => ({ file, raw }));
+      const skillNames = skills.map((s) => s.raw.name).filter(Boolean);
       const skillMaxLevels = readSkillMaxLevels();
       const factions = readFactions().map(({ file, raw }) => ({ file, raw }));
       const recipes = readRecipes().map(({ file, raw }) => ({ file, raw }));
@@ -253,11 +274,15 @@ const server = createServer(async (req, res) => {
       // The skill-authoring vocabulary, merged from the generated fixture and
       // shared-constants (vocabulary.mjs). Served whole so the Skills tab can
       // render its form from Go's own key table rather than a hand copy.
+      // ⚑ readSkillVocabulary throws on a missing/broken fixture, and that
+      // takes down this whole response on purpose (C0 finding): a stale
+      // vocabulary is a loud failure, not a Skills-tab-only one.
       const skillVocabulary = readSkillVocabulary(ROOT);
+      const ticksPerSecond = readTicksPerSecond();
       return sendJson(res, 200, {
-        mobs, quests, skillNames, skillMaxLevels, factions, recipes,
+        mobs, quests, skills, skillNames, skillMaxLevels, factions, recipes,
         milestones: { file: milestones.file, raw: milestones.raw }, entityTypes,
-        skillVocabulary,
+        skillVocabulary, ticksPerSecond,
       });
     }
     if (req.method === 'GET' && url.pathname === '/api/validate') {
@@ -298,6 +323,9 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === 'GET' && url.pathname === '/validate.mjs') {
       return serveStatic(res, path.join(HERE, 'validate.mjs'));
+    }
+    if (req.method === 'GET' && url.pathname === '/skill-presentation.mjs') {
+      return serveStatic(res, path.join(HERE, 'skill-presentation.mjs'));
     }
     if (req.method === 'GET') {
       const rel = url.pathname === '/' ? '/index.html' : url.pathname;

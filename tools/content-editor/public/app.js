@@ -1,8 +1,12 @@
 import {
   buildIndex, validateInteraction, validateQuest, validateAll, validateMob, validateFaction,
   validateRecipe, validateMilestones,
-  ROLES, TIERS, DAMAGE_TYPES, RESIST_WILDCARD, GATE_KEYS, COLLISION_LAYER_BITS, RESERVED_FACTION_NAMES,
+  ROLES, TIERS, DAMAGE_TYPES, RESIST_WILDCARD, GATE_KEYS, COLLISION_LAYER_BITS, RESERVED_FACTION_NAMES, TRAVEL_MODES,
 } from '/validate.mjs';
+import {
+  EFFECT_TYPE_NOTES, CATEGORY_LABELS, HIDDEN_EFFECT_TYPES,
+  resolveAt, scalingPairs, presentationFor, labelFor, ticksToSecondsLabel, formatNumber,
+} from '/skill-presentation.mjs';
 
 /* ---- tiny DOM helper ------------------------------------------------- */
 function el(tag, props = {}, children = []) {
@@ -25,7 +29,6 @@ function el(tag, props = {}, children = []) {
 const QUEST_SENTINELS = ['not_started', 'completed', 'running'];
 const CONDITION_KINDS = ['minLevel', 'quest_at_stage', 'bloodline_ascensions', 'kills_this_life'];
 const GRANT_KINDS = ['teach_skill', 'offer_quest', 'advance_quest', 'grant_xp', 'travel_to'];
-const TRAVEL_MODES = ['home_campfire', 'caster'];
 const ROW_KINDS = ['', 'ascension_catalog', 'memorial_names'];
 const OBJECTIVE_KINDS = ['kill', 'harvest', 'talk_to'];
 
@@ -38,6 +41,9 @@ const state = {
   factions: [],   // [{file, raw}]
   recipes: [],    // [{file, raw}]
   milestones: null, // {file, raw} — raw is the WHOLE array; one shared file, not one per entry
+  skills: [],     // [{file, raw}], BOTH api/skills/*.json and api/skills/mobs/*.json (§B10 L6); the tab shows only the former
+  skillVocabulary: null, // the generated fixture merged with shared-constants (vocabulary.mjs); the Skills form renders FROM this
+  ticksPerSecond: 30,
   entityTypes: [],
   pristine: new Map(), // file -> JSON string at load/save time
   selected: null, // {kind:'mob'|'quest'|'faction'|'recipe'|'milestones', file} — an NPC IS a mob (one w/ interaction), so one editor covers both
@@ -46,17 +52,26 @@ const state = {
   mobFilter: '',
   factionFilter: '',
   recipeFilter: '',
+  skillFilter: '',
   // Faction names (or 'hostile', the built-in default for an unauthored
   // faction) collapsed in each sidebar tab — separate per tab so browsing
   // Mobs and NPCs can be folded differently. Session-only, like every other
   // UI-state field here; not persisted across a reload.
   npcFactionCollapsed: new Set(),
   mobFactionCollapsed: new Set(),
+  skillCategoryCollapsed: new Set(),
   // stat-section titles ('Identity', 'Factors', ...) collapsed in the mob
   // editor — shared across every mob you open, since it's "I don't care
   // about Factors right now" rather than a per-mob preference.
   mobSectionCollapsed: new Set(),
+  skillSectionCollapsed: new Set(),
 };
+
+// The Skills tab's scope (D2): player skills at the top of api/skills/. The
+// mob-embedded ones under api/skills/mobs/ share the id and name space and
+// ride in state.skills for that reason, but never appear in the tab (§B11 Q1).
+const PLAYER_SKILL_FILE = /^api\/skills\/[^/]+\.json$/;
+function playerSkills() { return state.skills.filter((s) => PLAYER_SKILL_FILE.test(s.file)); }
 
 const $ = (sel) => document.querySelector(sel);
 const npcListEl = $('#npc-list');
@@ -65,6 +80,7 @@ const mobListEl = $('#mob-list');
 const factionListEl = $('#faction-list');
 const recipeListEl = $('#recipe-list');
 const milestonesListEl = $('#milestones-list');
+const skillListEl = $('#skill-list');
 const editorRoot = $('#editor-root');
 const emptyState = $('#empty-state');
 const globalStatus = $('#global-status');
@@ -89,12 +105,14 @@ function findMob(file) { return state.mobs.find((m) => m.file === file); }
 function findQuest(file) { return state.quests.find((q) => q.file === file); }
 function findFaction(file) { return state.factions.find((f) => f.file === file); }
 function findRecipe(file) { return state.recipes.find((r) => r.file === file); }
+function findSkill(file) { return state.skills.find((s) => s.file === file); }
 function isDirty(file) { return state.pristine.get(file) !== JSON.stringify(stateRawFor(file)); }
 function stateRawFor(file) {
   const m = findMob(file); if (m) return m.raw;
   const q = findQuest(file); if (q) return q.raw;
   const f = findFaction(file); if (f) return f.raw;
   const r = findRecipe(file); if (r) return r.raw;
+  const s = findSkill(file); if (s) return s.raw;
   if (state.milestones && state.milestones.file === file) return state.milestones.raw;
   return null;
 }
@@ -299,8 +317,12 @@ async function loadAll() {
   state.factions = data.factions;
   state.recipes = data.recipes;
   state.milestones = data.milestones;
+  state.skills = data.skills;
+  state.skillVocabulary = data.skillVocabulary;
+  state.ticksPerSecond = data.ticksPerSecond;
   state.entityTypes = data.entityTypes;
   for (const m of state.mobs) markPristine(m.file);
+  for (const s of state.skills) markPristine(s.file);
   for (const q of state.quests) markPristine(q.file);
   for (const f of state.factions) markPristine(f.file);
   for (const r of state.recipes) markPristine(r.file);
@@ -347,9 +369,18 @@ function selectByFile(file) {
   if (f) { state.selected = { kind: 'faction', file }; renderSidebar(); renderEditor(); return; }
   const r = findRecipe(file);
   if (r) { state.selected = { kind: 'recipe', file }; renderSidebar(); renderEditor(); return; }
+  const s = findSkill(file);
+  if (s) { state.selected = { kind: 'skill', file }; renderSidebar(); renderEditor(); return; }
   if (state.milestones && state.milestones.file === file) {
     state.selected = { kind: 'milestones', file }; renderSidebar(); renderEditor(); return;
   }
+}
+
+// D6: a jump from the sources panel lands "in its own tab" - the sidebar
+// follows the selection, unlike a plain selectByFile.
+function jumpTo(tab, file) {
+  switchSidebarTab(tab);
+  selectByFile(file);
 }
 
 /* ---- sidebar ------------------------------------------------------------ */
@@ -386,19 +417,37 @@ function renderSidebar() {
   if (state.milestones) {
     milestonesListEl.appendChild(sidebarItem(`Milestone unlocks (${state.milestones.raw.length})`, state.milestones.file, 'milestones'));
   }
+
+  renderSkillList();
+}
+
+// Skills grouped by category in the fixture's order (Auras · Cooldowns ·
+// Passives, §B4.3). A file authoring a category the fixture does not know
+// still shows, in its own group, rather than vanishing from the sidebar.
+function renderSkillList() {
+  const categories = state.skillVocabulary ? state.skillVocabulary.categories : [];
+  const skills = playerSkills().filter((s) => matchesFilter(s.raw.name, state.skillFilter));
+  const groups = new Map(categories.map((c) => [c, []]));
+  for (const s of skills) {
+    const cat = s.raw.category || '';
+    if (!groups.has(cat)) groups.set(cat, []);
+    groups.get(cat).push(s);
+  }
+  renderGroupedList(skillListEl, [...groups].map(([cat, items]) => ({
+    key: cat,
+    label: CATEGORY_LABELS[cat] || cat || '(no category)',
+    items: items.sort((a, b) => (a.raw.name || '').localeCompare(b.raw.name || '')).map((s) => ({ label: s.raw.name || s.file, file: s.file })),
+  })), state.skillCategoryCollapsed, 'skill');
 }
 
 function matchesFilter(name, filter) {
   return !filter || (name || '').toLowerCase().includes(filter.toLowerCase());
 }
 
-// Groups entries by mob.faction (absent = the built-in 'hostile' default),
-// alphabetically by DISPLAY name, each group a collapsible <li><ul> nested
-// inside the outer .item-list — collapsedSet tracks which faction NAMES
-// (the raw key, not the display label) are folded, shared across a re-render
-// so re-selecting an item doesn't reset what the user folded.
+// Groups mobs by mob.faction (absent = the built-in 'hostile' default),
+// alphabetically by DISPLAY name; collapsedSet tracks which faction NAMES
+// (the raw key, not the display label) are folded.
 function renderFactionGroupedList(container, entries, collapsedSet) {
-  container.innerHTML = '';
   const groups = new Map();
   for (const m of entries) {
     const faction = m.raw.faction || '';
@@ -406,26 +455,40 @@ function renderFactionGroupedList(container, entries, collapsedSet) {
     groups.get(faction).push(m);
   }
   const factions = [...groups.keys()].sort((a, b) => factionDisplayName(a).localeCompare(factionDisplayName(b)));
-  for (const faction of factions) {
-    const items = groups.get(faction).sort((a, b) => a.raw.name.localeCompare(b.raw.name));
-    container.appendChild(factionGroup(faction, items, collapsedSet));
+  renderGroupedList(container, factions.map((faction) => ({
+    key: faction,
+    label: factionDisplayName(faction),
+    items: groups.get(faction).sort((a, b) => a.raw.name.localeCompare(b.raw.name)).map((m) => ({ label: m.raw.name, file: m.file })),
+  })), collapsedSet, 'mob');
+}
+
+// A sidebar list of collapsible groups, each a <li><ul> nested inside the
+// outer .item-list: mobs/NPCs by faction, skills by category. `groups` is
+// [{key, label, items: [{label, file}]}] in display order; empty groups are
+// skipped. collapsedSet holds the folded group KEYS, shared across a re-render
+// so re-selecting an item doesn't reset what the user folded.
+function renderGroupedList(container, groups, collapsedSet, kind) {
+  container.innerHTML = '';
+  for (const group of groups) {
+    if (group.items.length === 0) continue;
+    container.appendChild(listGroup(group, collapsedSet, kind));
   }
 }
 
-function factionGroup(faction, items, collapsedSet) {
-  const collapsed = collapsedSet.has(faction);
-  const itemsList = el('ul', { class: 'faction-items' }, items.map((m) => sidebarItem(m.raw.name, m.file, 'mob')));
-  const li = el('li', { class: 'faction-group' + (collapsed ? ' collapsed' : '') }, [
+function listGroup({ key, label, items }, collapsedSet, kind) {
+  const collapsed = collapsedSet.has(key);
+  const itemsList = el('ul', { class: 'group-items' }, items.map((it) => sidebarItem(it.label, it.file, kind)));
+  const li = el('li', { class: 'list-group' + (collapsed ? ' collapsed' : '') }, [
     el('div', {
-      class: 'faction-header',
+      class: 'group-header',
       onclick: () => {
-        if (collapsedSet.has(faction)) collapsedSet.delete(faction); else collapsedSet.add(faction);
+        if (collapsedSet.has(key)) collapsedSet.delete(key); else collapsedSet.add(key);
         renderSidebar();
       },
     }, [
       el('span', { class: 'chevron', text: '▾' }),
-      el('span', { class: 'faction-name', text: factionDisplayName(faction) }),
-      el('span', { class: 'faction-count', text: String(items.length) }),
+      el('span', { class: 'group-name', text: label }),
+      el('span', { class: 'group-count', text: String(items.length) }),
     ]),
     itemsList,
   ]);
@@ -449,6 +512,7 @@ $('#quest-filter').addEventListener('input', (e) => { state.questFilter = e.targ
 $('#mob-filter').addEventListener('input', (e) => { state.mobFilter = e.target.value; renderSidebar(); });
 $('#faction-filter').addEventListener('input', (e) => { state.factionFilter = e.target.value; renderSidebar(); });
 $('#recipe-filter').addEventListener('input', (e) => { state.recipeFilter = e.target.value; renderSidebar(); });
+$('#skill-filter').addEventListener('input', (e) => { state.skillFilter = e.target.value; renderSidebar(); });
 $('#revalidate-btn').addEventListener('click', runGlobalValidation);
 $('#npc-new-btn').addEventListener('click', createNewNpc);
 $('#quest-new-btn').addEventListener('click', createNewQuest);
@@ -513,6 +577,7 @@ function renderEditor() {
   else if (state.selected.kind === 'faction') renderFactionEditor(findFaction(state.selected.file));
   else if (state.selected.kind === 'recipe') renderRecipeEditor(findRecipe(state.selected.file));
   else if (state.selected.kind === 'milestones') renderMilestonesEditor(state.milestones);
+  else if (state.selected.kind === 'skill') renderSkillEditor(findSkill(state.selected.file));
   else renderMobEditor(findMob(state.selected.file));
 }
 
@@ -567,18 +632,19 @@ function renderMobEditor(entry) {
 }
 
 // A collapsible section: click the header to fold/unfold the body, state
-// tracked in state.mobSectionCollapsed (shared across every mob you open —
-// "hide Factors while I work on dialogue" is a standing preference, not a
-// per-mob one). Callers append their content into the RETURNED `.body`, not
-// the section itself, and return `.section` up to renderMobEditor.
-function statSection(title) {
-  const collapsed = state.mobSectionCollapsed.has(title);
+// tracked in a per-editor set (state.mobSectionCollapsed by default, shared
+// across every mob you open: "hide Factors while I work on dialogue" is a
+// standing preference, not a per-mob one; the skill editor passes its own).
+// Callers append their content into the RETURNED `.body`, not the section
+// itself, and return `.section` up to the editor.
+function statSection(title, collapsedSet = state.mobSectionCollapsed) {
+  const collapsed = collapsedSet.has(title);
   const body = el('div', { class: 'stat-section-body' });
   const section = el('div', { class: 'stat-section' + (collapsed ? ' collapsed' : '') }, [
     el('div', {
       class: 'stat-section-head',
       onclick: () => {
-        if (state.mobSectionCollapsed.has(title)) state.mobSectionCollapsed.delete(title); else state.mobSectionCollapsed.add(title);
+        if (collapsedSet.has(title)) collapsedSet.delete(title); else collapsedSet.add(title);
         renderEditor();
       },
     }, [
@@ -913,7 +979,7 @@ function optionCard(mob, inter, node, opt, ni, oi, nodeIds, onChange, onStructur
 function grantRow(mob, opt, g, gi, onChange, onStructuralChange) {
   const wrap = el('div', { class: 'grant-row' });
   wrap.appendChild(select(GRANT_KINDS, g.kind, (v) => {
-    for (const k of ['skill', 'requiredLevel', 'quest', 'fromStage', 'toStage', 'xp', 'mode']) delete g[k];
+    for (const k of ['skill', 'requiredLevel', 'quest', 'fromStage', 'toStage', 'xp', 'mode', 'anchor']) delete g[k];
     g.kind = v; onStructuralChange();
   }, null, 'col-fixed-md'));
   wrap.appendChild(el('input', { type: 'text', class: 'col-flex', placeholder: 'line spoken', value: g.line || '', oninput: (e) => { g.line = e.target.value; onChange(); } }));
@@ -933,7 +999,12 @@ function grantRow(mob, opt, g, gi, onChange, onStructuralChange) {
   } else if (g.kind === 'grant_xp') {
     wrap.appendChild(numberInput(g.xp || 0, (v) => { g.xp = v; onChange(); }, 'xp'));
   } else if (g.kind === 'travel_to') {
-    wrap.appendChild(select(['', ...TRAVEL_MODES], g.mode || '', (v) => { g.mode = v; onChange(); }, (v) => v || '— mode —'));
+    wrap.appendChild(select(['', ...TRAVEL_MODES], g.mode || '', (v) => { g.mode = v; if (v !== 'anchor') delete g.anchor; onStructuralChange(); }, (v) => v || '— mode —'));
+    if (g.mode === 'anchor') {
+      // The destination is the placement's spawns[].anchor (U3b); this is only
+      // the default for a placement that names none, so blank deletes the key.
+      wrap.appendChild(el('input', { type: 'text', placeholder: 'default anchor (optional)', value: g.anchor || '', oninput: (e) => { if (e.target.value) g.anchor = e.target.value; else delete g.anchor; onChange(); } }));
+    }
   }
   wrap.appendChild(el('button', { class: 'danger', onclick: () => { opt.grants.splice(gi, 1); onStructuralChange(); } }, '×'));
   const hint = questRowHint(g);
@@ -959,6 +1030,9 @@ function questRowHint(g) {
   }
   if (g.kind === 'grant_xp') {
     return 'Bundled with the advance_quest/offer_quest grant on this row — applied together, never separately.';
+  }
+  if (g.kind === 'travel_to' && g.mode === 'anchor') {
+    return 'Delivers to the zone anchor named on the PLACEMENT (world.json spawns[].anchor); the field here is only a default for a placement that names none. Whether the anchor exists is checked at boot, not here.';
   }
   return '';
 }
@@ -1191,7 +1265,7 @@ function grantedByPanel(quest, stageId) {
 // synchronously, so the target card already exists once selectByFile
 // returns; only the flash needs a frame to land after layout.
 function jumpToNode(mobFile, nodeId) {
-  selectByFile(mobFile);
+  jumpTo('npc', mobFile);
   requestAnimationFrame(() => {
     const target = editorRoot.querySelector(`[data-anchor-in="${CSS.escape(nodeId)}"]`);
     if (!target) return;
@@ -1480,6 +1554,382 @@ async function saveMilestones(entry) {
   fb.textContent = body.warnings.length ? 'saved — ' + body.warnings.join(' · ') : 'saved';
   renderSidebar();
   runGlobalValidation();
+}
+
+
+/* ======================================================================
+ * Skill editor: spell builder C1, READ-ONLY (plan-content-editor.md §B4.3,
+ * §B5 C1). The form is rendered FROM the vocabulary served on /api/data
+ * (api/skill-vocabulary.json merged with shared-constants): a key in
+ * effectKeys[type] ⇒ a field, authored or not, so the PO judges the full
+ * form against every real skill before a write path exists. ⛔ L1: no
+ * per-type field list is typed here. Every control is `disabled`; C3 turns
+ * them on. §B4.8's exclusions (hitStyle, legacy, forwardUnits, armTicks)
+ * are never rendered and, with nothing written, trivially round-trip.
+ * ==================================================================== */
+const RO_BADGE = 'read-only · C1';
+
+function renderSkillEditor(entry) {
+  const skill = entry.raw;
+  const vocab = state.skillVocabulary;
+
+  editorRoot.appendChild(el('div', { class: 'editor-header' }, [
+    el('div', {}, [
+      el('h2', {}, [
+        document.createTextNode(skill.displayName || deriveDisplayName(skill.name || '')),
+        el('span', { class: 'readonly-badge', text: RO_BADGE, title: 'Spell builder C1 renders every skill read-only; editing and saving arrive with C3 (plan-content-editor.md §B5).' }),
+      ]),
+      el('div', { class: 'file-path', text: entry.file }),
+    ]),
+    el('div', { class: 'editor-actions' }, [
+      el('span', { class: 'save-feedback', text: 'No Save button yet: C3 adds the write path.' }),
+    ]),
+  ]));
+
+  if (!vocab) {
+    editorRoot.appendChild(el('div', { class: 'errors-inline' }, [el('div', { class: 'err-line', text: 'No skill vocabulary was served on /api/data - regenerate api/skill-vocabulary.json (see the README).' })]));
+    return;
+  }
+
+  // The skill-level _comment is the design record for most shipped skills
+  // (102 of 105 carry one); it is shown, never edited here.
+  if (typeof skill._comment === 'string') {
+    editorRoot.appendChild(el('div', { class: 'skill-comment' }, [el('span', { class: 'label', text: '_comment' }), document.createTextNode(skill._comment)]));
+  }
+
+  const effects = Array.isArray(skill.effects) ? skill.effects : [];
+  for (const type of HIDDEN_EFFECT_TYPES) {
+    if (effects.some((e) => e && e.type === type)) {
+      editorRoot.appendChild(el('div', { class: 'parked-banner', text: `Effect type "${type}": ${EFFECT_TYPE_NOTES[type]?.text || 'hidden from the type picker (§B4.8).'}` }));
+    }
+  }
+
+  const ctx = { vocab, skill, effects };
+  editorRoot.appendChild(skillIdentitySection(ctx));
+  editorRoot.appendChild(skillCategorySection(ctx));
+  editorRoot.appendChild(skillEffectsSection(ctx));
+  editorRoot.appendChild(skillVisualsSection());
+  editorRoot.appendChild(skillSourcesSection(skill));
+}
+
+// CamelCase → spaces, the catalog's DeriveDisplayName for a skill with no
+// authored displayName.
+function deriveDisplayName(name) {
+  return name.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+}
+
+function skillSection(title) { return statSection(title, state.skillSectionCollapsed); }
+
+// 1. Identity (§B4.3 item 1) - the top-level keys that are neither the
+// category block's nor `effects`, in the fixture's own order.
+const CATEGORY_BLOCK_KEYS = ['cooldownTicks', 'cooldownTicksPerLevel', 'castTicks', 'castTicksPerLevel', 'castInterruptedByDamage', 'targetFactions'];
+function skillIdentitySection(ctx) {
+  const col = skillSection('Identity');
+  const keys = ctx.vocab.topLevelKeys.filter((k) => k !== 'effects' && !CATEGORY_BLOCK_KEYS.includes(k));
+  col.body.appendChild(el('div', { class: 'stat-grid' }, keyFields(keys, ctx.skill, ctx)));
+  return col.section;
+}
+
+// 2. Category block (§B4.3 item 2): cooldowns author cadence + cast; auras
+// and passives author nothing extra. targetFactions is per skill, every
+// category, and turns MANDATORY when any effect is faction-scoped (calm,
+// charm - fixture `factionScoped`; the loader hard-fails an empty list then).
+function skillCategorySection(ctx) {
+  const { skill, vocab, effects } = ctx;
+  const category = skill.category || '';
+  const col = skillSection(`Category: ${CATEGORY_LABELS[category] || category || 'unset'}`);
+  if (category === 'cooldown') {
+    const keys = CATEGORY_BLOCK_KEYS.filter((k) => k !== 'targetFactions' && vocab.topLevelKeys.includes(k));
+    col.body.appendChild(el('div', { class: 'stat-grid' }, keyFields(keys, skill, ctx)));
+    if (!(skill.castTicks > 0)) {
+      col.body.appendChild(el('div', { class: 'grant-hint', text: 'castInterruptedByDamage is inert here: castTicks is 0, so there is no cast to interrupt (the loader refuses it authored true).' }));
+    }
+    col.body.appendChild(levelPreview('Per level', scalingRowsFor(skill, vocab.topLevelKeys), skill.maxLevel));
+  } else {
+    col.body.appendChild(el('div', { class: 'mob-readonly-note', text: category === 'active_aura' ? 'An aura has no cooldown or cast: it is toggled, one active at a time, and ticks on its own cadence (each effect\'s tickInterval).' : category === 'passive' ? 'A passive is always on and has no cadence, cooldown or cast.' : 'Unknown category - the loader would refuse this file.' }));
+  }
+  const scoped = effects.filter((e) => e && vocab.factionScoped.includes(e.type)).map((e) => e.type);
+  const factionsField = keyField('targetFactions', skill.targetFactions, ctx);
+  if (scoped.length) {
+    factionsField.classList.add('mandatory');
+    factionsField.appendChild(el('div', { class: 'hint', text: `MANDATORY: this skill authors ${[...new Set(scoped)].join(' + ')}, so the loader refuses an empty allowlist. Note it gates EVERY effect of the skill, allies included (OmniStrike lists "aligned" for that reason).` }));
+  }
+  col.body.appendChild(el('div', { class: 'subsection' }, [factionsField]));
+  return col.section;
+}
+
+// 3. Effects (§B4.3 item 3): one card per authored effect, each rendered from
+// effectKeys[type] ∪ costKeys, split into the shared and payload groups by
+// the presentation table, with the per-level preview underneath.
+function skillEffectsSection(ctx) {
+  const col = skillSection(`Effects (${ctx.effects.length})`);
+  if (ctx.effects.length === 0) col.body.appendChild(el('div', { class: 'mob-readonly-note', text: 'No effects authored - the loader refuses a skill without at least one.' }));
+  ctx.effects.forEach((effect, i) => col.body.appendChild(effectCard(effect, i, ctx)));
+  col.body.appendChild(el('div', { class: 'grant-hint', text: 'Add · remove · reorder · change type arrive with C3.' }));
+  return col.section;
+}
+
+function effectCard(effect, i, ctx) {
+  const { vocab } = ctx;
+  const card = el('div', { class: 'card effect-card' });
+  if (effect === null || typeof effect !== 'object') {
+    card.appendChild(el('div', { class: 'err-line', text: `effects[${i}] is not an object` }));
+    return card;
+  }
+  const type = effect.type;
+  const allowed = vocab.effectKeys[type];
+  const note = EFFECT_TYPE_NOTES[type];
+
+  // The picker offers every type but the parked ones; a skill already
+  // authoring a parked type keeps it selectable so the card still reads.
+  const pickable = Object.keys(vocab.effectKeys).filter((t) => !HIDDEN_EFFECT_TYPES.includes(t) || t === type);
+  if (type && !pickable.includes(type)) pickable.push(type);
+  const typeSelect = select(pickable, type || '', () => {}, (t) => t || '— type —', 'type-select');
+  typeSelect.disabled = true;
+  card.appendChild(el('div', { class: 'card-head' }, [
+    el('span', { class: 'idx', text: '#' + i }),
+    typeSelect,
+    note ? el('span', { class: 'type-note' + (note.parked ? ' parked' : ''), text: note.text }) : null,
+  ]));
+
+  if (!allowed) {
+    card.appendChild(el('div', { class: 'err-line', text: `Unknown effect type "${type}" - the vocabulary has no key list for it, so nothing can be rendered.` }));
+    return card;
+  }
+
+  const keys = [...vocab.costKeys, ...allowed];
+  const shared = keys.filter((k) => (presentationFor(k) || {}).group === 'shared');
+  const payload = keys.filter((k) => !shared.includes(k));
+  if (shared.length) card.appendChild(el('div', { class: 'subsection' }, [el('div', { class: 'subsection-title', text: 'Shared' }), el('div', { class: 'stat-grid' }, keyFields(shared, effect, ctx))]));
+  if (payload.length) card.appendChild(el('div', { class: 'subsection' }, [el('div', { class: 'subsection-title', text: 'Payload' }), el('div', { class: 'stat-grid' }, keyFields(payload, effect, ctx))]));
+  if (keys.length === 0) card.appendChild(el('div', { class: 'grant-hint', text: 'This type authors no fields.' }));
+
+  // Anything authored outside the type's list is a boot failure; smoke.mjs
+  // catches it offline, the card names it in place.
+  const stray = Object.keys(effect).filter((k) => k !== 'type' && !keys.includes(k));
+  for (const k of stray) {
+    const hint = vocab.renamedKeys[k];
+    card.appendChild(el('div', { class: 'stray-key', text: hint ? `"${k}" is a retired key - use ${hint}` : `"${k}" is not a key ${type} accepts; the loader refuses this file.` }));
+  }
+
+  card.appendChild(levelPreview('Per level', scalingRowsFor(effect, keys), ctx.skill.maxLevel));
+  return card;
+}
+
+// 4. Visuals (D3, §B4.8): coming soon, nothing rendered, nothing written.
+function skillVisualsSection() {
+  const col = skillSection('Visuals');
+  col.body.appendChild(el('div', { class: 'visuals-placeholder', text: 'Coming soon. No VFX ruling exists yet (plan-entity-presentation.md §39; prototype/skill-visuals is parked), so this section authors nothing. hitStyle, the one visual lever the schema has today, is not shown and is preserved untouched.' }));
+  return col.section;
+}
+
+// 5. Obtained via (D6, §B4.6): every placement of this skill - milestone
+// rows, mob unlocks[], NPC teach_skill grants, ascension rewards, recipe
+// results - computed on render the way grantedByPanel is, each row a jump
+// into the owning tab.
+// Also "referenced by": recipes naming it as an ingredient and mobs carrying
+// it in skills[] - not sources, but what a rename must see (§B10 L5).
+function skillSourcesSection(skill) {
+  const col = skillSection('Obtained via');
+  const name = skill.name;
+  const sources = [];
+  const refs = [];
+  for (const m of state.milestones ? state.milestones.raw : []) {
+    if (m.skillName === name) sources.push({ label: `Milestone · level ${m.level}`, jump: () => jumpTo('milestones', state.milestones.file) });
+  }
+  for (const m of state.mobs) {
+    for (const u of m.raw.unlocks || []) {
+      if (u.skillName === name) sources.push({ label: `${m.raw.name} · kill drop, ${u.chance != null ? `chance ${u.chance}` : 'guaranteed'}`, jump: () => jumpTo('mob', m.file) });
+    }
+    for (const s of m.raw.skills || []) {
+      if (s.skillName === name) refs.push({ label: `${m.raw.name} · carries it at level ${s.level ?? 1}`, jump: () => jumpTo('mob', m.file) });
+    }
+  }
+  for (const m of mobsWithInteraction()) {
+    for (const node of m.raw.interaction.nodes || []) {
+      // An ascension_catalog node's rewards are skill names too: the
+      // meta-progression route (a sacrificed character unlocks one for the
+      // slot), the fifth spellbook source in CLAUDE.md, missing from D6's list.
+      if (node.rows === 'ascension_catalog' && (node.rewards || []).includes(name)) {
+        sources.push({ label: `${m.raw.name} · ascension reward via node "${node.id}" (unlocks for the character slot)`, jump: () => jumpToNode(m.file, node.id) });
+      }
+      for (const opt of node.options || []) {
+        for (const g of opt.grants || []) {
+          if (g.kind === 'teach_skill' && g.skill === name) {
+            sources.push({ label: `${m.raw.name} · teaches via node "${node.id}"${g.requiredLevel ? `, level ${g.requiredLevel}+` : ''}`, jump: () => jumpToNode(m.file, node.id) });
+          }
+        }
+      }
+    }
+  }
+  for (const r of state.recipes) {
+    const ings = (r.raw.ingredients || []).map((i) => `${i.skill} ${i.level}`).join(' + ');
+    if (r.raw.result === name) sources.push({ label: `Recipe #${r.raw.id} · combination of ${ings || '(no ingredients)'}`, jump: () => jumpTo('recipe', r.file) });
+    for (const i of r.raw.ingredients || []) {
+      if (i.skill === name) refs.push({ label: `Recipe #${r.raw.id} · ingredient at level ${i.level} for ${r.raw.result || '(no result)'}`, jump: () => jumpTo('recipe', r.file) });
+    }
+  }
+
+  const panel = el('div', { class: 'sources-panel' });
+  if (sources.length === 0) {
+    panel.appendChild(el('div', { class: 'cheat-only' }, [document.createTextNode('cheat-only ('), el('code', { text: `SKILL ${name}` }), document.createTextNode(') - no milestone, kill drop, NPC or recipe grants it. Placement happens in the other tabs, not here (D6).')]));
+  } else {
+    panel.appendChild(el('ul', {}, sources.map((s) => el('li', {}, [refLink(s.label, s.jump)]))));
+  }
+  if (refs.length) {
+    panel.appendChild(el('div', { class: 'sources-title', text: 'Also referenced by (a rename must see these)' }));
+    panel.appendChild(el('ul', {}, refs.map((r) => el('li', {}, [refLink(r.label, r.jump)]))));
+  }
+  panel.appendChild(el('div', { class: 'grant-hint', text: 'Invisible to this panel: the SKILL cheat, the harness scripts and the sim-harness presets, which reference skills by name too (§B10 L5).' }));
+  col.body.appendChild(panel);
+  return col.section;
+}
+
+function refLink(label, jump) {
+  return el('a', { href: '#', class: 'ref-link', onclick: (e) => { e.preventDefault(); jump(); }, text: label });
+}
+
+/* ---- read-only field rendering, from the presentation table ------------ */
+
+// Fields for `keys` (in the given order) read off `obj`. A key whose
+// `<key>PerLevel` sibling is also in the list renders as a pair; the sibling
+// is skipped on its own turn; hidden keys are skipped outright (§B4.8).
+function keyFields(keys, obj, ctx) {
+  const set = new Set(keys);
+  const out = [];
+  for (const key of keys) {
+    const entry = presentationFor(key) || {};
+    if (entry.hidden) continue;
+    if (key.endsWith('PerLevel') && set.has(key.slice(0, -'PerLevel'.length))) continue;
+    if (set.has(key + 'PerLevel')) {
+      out.push(el('div', { class: 'pair' }, [keyField(key, obj[key], ctx), keyField(key + 'PerLevel', obj[key + 'PerLevel'], ctx, entry.unit)]));
+    } else {
+      out.push(keyField(key, obj[key], ctx));
+    }
+  }
+  return out;
+}
+
+// One labeled, disabled control for `key` holding `value`. `unitOverride`
+// lets a per-level field borrow its base's unit. No presentation entry ⇒ a
+// plain text input (§B3: never silently unauthorable).
+function keyField(key, value, ctx, unitOverride) {
+  const entry = presentationFor(key) || { control: 'text' };
+  const unit = entry.unit || unitOverride;
+  const authored = value !== undefined;
+  const wrap = el('div', { class: 'field' + (authored ? '' : ' unauthored'), title: key });
+  wrap.appendChild(el('label', { text: labelFor(key) }));
+  const row = el('div', { class: 'field-row' });
+  row.appendChild(readOnlyControl(entry, key, value, ctx));
+  if (unit && entry.control === 'number') {
+    row.appendChild(el('span', { class: 'unit', text: UNIT_LABELS[unit] || unit }));
+    if (unit === 'ticks' && typeof value === 'number') row.appendChild(el('span', { class: 'seconds', text: ticksToSecondsLabel(value, state.ticksPerSecond) }));
+  }
+  wrap.appendChild(row);
+  if (entry.hint) wrap.appendChild(el('div', { class: 'hint', text: entry.hint }));
+  return wrap;
+}
+
+const UNIT_LABELS = { ticks: 'ticks', units: 'u', hp: 'HP', fraction: 'frac', factor: '×', count: '' };
+
+function readOnlyControl(entry, key, value, ctx) {
+  const { vocab } = ctx;
+  let control;
+  switch (entry.control) {
+    case 'number':
+      control = el('input', { type: 'number', value: typeof value === 'number' ? value : '', placeholder: '—' });
+      break;
+    case 'bool':
+      control = el('input', { type: 'checkbox', checked: value === true });
+      break;
+    case 'textarea':
+      control = textArea(typeof value === 'string' ? value : '', () => {});
+      break;
+    case 'select': {
+      const options = optionList(entry.options, ctx);
+      if (value !== undefined && value !== '' && !options.includes(value)) options.push(value);
+      control = select(['', ...options], value ?? '', () => {}, (v) => v || '— unset —');
+      break;
+    }
+    case 'multi': {
+      const options = optionList(entry.options, ctx);
+      const chosen = Array.isArray(value) ? value : [];
+      for (const v of chosen) if (!options.includes(v)) options.push(v);
+      control = el('div', { class: 'bitmask-group' }, options.map((opt) => el('label', { class: 'bitmask-bit' }, [
+        el('input', { type: 'checkbox', checked: chosen.includes(opt), disabled: true }),
+        entry.options === 'factions' ? factionOptionLabel(opt) : opt,
+      ])));
+      if (options.length === 0) control.appendChild(el('span', { class: 'grant-hint', text: '(no options)' }));
+      break;
+    }
+    case 'mob':
+    case 'icon':
+    case 'text':
+    default:
+      control = el('input', { type: 'text', value: value === undefined ? '' : typeof value === 'string' ? value : JSON.stringify(value), placeholder: '—' });
+  }
+  if ('disabled' in control) control.disabled = true;
+  return control;
+}
+
+// The option list behind a select/multi entry, by the NAME the presentation
+// table gives - every list comes from the served vocabulary or the loaded
+// content, never a literal here.
+function optionList(name, ctx) {
+  const { vocab } = ctx;
+  switch (name) {
+    case 'categories': return [...vocab.categories];
+    case 'selectors': return [...vocab.selectors];
+    case 'statNames': return [...vocab.statNames];
+    case 'gateKeys': return [...vocab.gateKeys];
+    case 'damageTypes': return [...vocab.damageTypes];
+    case 'resistTags': return [...vocab.damageTypes, vocab.resistWildcard];
+    // The two reserved names resolve in the loader's registry too
+    // (factions.go seeds "aligned" and "hostile"), so both are legal here.
+    case 'factions': return [...state.factions.map((f) => f.raw.name).sort(), ...RESERVED_FACTION_NAMES];
+    default: return [];
+  }
+}
+
+function factionOptionLabel(name) {
+  if (name === 'aligned') return 'aligned (players)';
+  if (name === 'hostile') return 'hostile (the unauthored default)';
+  return factionDisplayName(name);
+}
+
+/* ---- the per-level preview (D5) ---------------------------------------- */
+
+// The scaling rows an object authors: every pair in `keys` (base +
+// `<base>PerLevel`) where at least one half is authored. Hidden keys are
+// excluded like everywhere else.
+function scalingRowsFor(obj, keys) {
+  return scalingPairs(keys)
+    .filter(({ base, perLevel }) => !(presentationFor(base) || {}).hidden && (obj[base] !== undefined || obj[perLevel] !== undefined))
+    .map(({ base, perLevel }) => ({ key: base, base: obj[base], perLevel: obj[perLevel], unit: (presentationFor(base) || {}).unit }));
+}
+
+// One column per level 1..maxLevel, one row per scaling pair, each cell
+// base + (level-1) × perLevel (skills/scaling.go). A pair whose per-level
+// half is absent or 0 is flat and rendered dimmed, so the eye goes to what
+// actually moves. Tick rows carry seconds beside every cell.
+function levelPreview(title, rows, maxLevel) {
+  const levels = Math.max(1, Number(maxLevel) || 1);
+  if (rows.length === 0) return el('div', { class: 'grant-hint', text: 'No level-scaling pair authored.' });
+  const head = el('tr', {}, [el('th', { text: title }), ...Array.from({ length: levels }, (_, i) => el('th', { text: `L${i + 1}` }))]);
+  const body = rows.map((r) => {
+    const flat = !(typeof r.perLevel === 'number' && r.perLevel !== 0);
+    return el('tr', { class: flat ? 'flat' : '' }, [
+      el('td', { text: labelFor(r.key) }),
+      ...Array.from({ length: levels }, (_, i) => {
+        const v = resolveAt(r.base, r.perLevel, i + 1);
+        return el('td', {}, [
+          document.createTextNode(formatNumber(v)),
+          r.unit === 'ticks' ? el('span', { class: 'seconds', text: ticksToSecondsLabel(v, state.ticksPerSecond) }) : null,
+        ]);
+      }),
+    ]);
+  });
+  return el('div', { class: 'level-table-wrap' }, [el('table', { class: 'level-table' }, [el('thead', {}, [head]), el('tbody', {}, body)])]);
 }
 
 /* ---- small field builders ------------------------------------------------ */

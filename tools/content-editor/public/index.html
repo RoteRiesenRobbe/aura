@@ -23,6 +23,7 @@
       <button class="tab-btn" data-tab="faction">Factions</button>
       <button class="tab-btn" data-tab="recipe">Recipes</button>
       <button class="tab-btn" data-tab="milestones">Milestones</button>
+      <button class="tab-btn" data-tab="skill">Skills</button>
     </div>
     <div class="sidebar-section" data-section="npc">
       <div class="sidebar-head">
@@ -65,10 +66,17 @@
       </div>
       <ul id="milestones-list" class="item-list"></ul>
     </div>
+    <div class="sidebar-section" data-section="skill" hidden>
+      <div class="sidebar-head">
+        <span class="sidebar-hint" title="Spell builder C1: the form renders from api/skill-vocabulary.json; saving arrives with C3.">Read-only until C3</span>
+        <input type="search" id="skill-filter" placeholder="filter…" />
+      </div>
+      <ul id="skill-list" class="item-list"></ul>
+    </div>
   </nav>
 
   <main id="editor-pane">
-    <div id="empty-state">Select an NPC, a quest, a mob, a faction, a recipe, or the milestone table on the left.</div>
+    <div id="empty-state">Select an NPC, a quest, a mob, a faction, a recipe, a skill, or the milestone table on the left.</div>
     <div id="editor-root" hidden></div>
   </main>
 

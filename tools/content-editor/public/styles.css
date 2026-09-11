@@ -66,6 +66,32 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
 textarea { width: 100%; resize: vertical; }
 
+/* Checkboxes in the tool's own palette (the primary button's accent fill with
+   a dark check) instead of the browser's, which greys a disabled box until the
+   check is unreadable on this background. Enabled and disabled look alike; the
+   read-only Skills tab only dims them. */
+input[type=checkbox] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  display: inline-block;
+  vertical-align: middle;
+  border: 1px solid var(--text-dim);
+  border-radius: 3px;
+  background: var(--bg-card);
+  cursor: pointer;
+}
+input[type=checkbox]:hover { border-color: var(--accent); }
+input[type=checkbox]:checked {
+  background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.5l2.5 2.5 4.5-5' fill='none' stroke='%230e1116' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 11px no-repeat;
+  border-color: var(--accent);
+}
+input[type=checkbox]:disabled { cursor: default; }
+
 #layout {
   flex: 1 1 auto;
   display: grid;
@@ -82,9 +108,12 @@ textarea { width: 100%; resize: vertical; }
   min-height: 0;
   overflow: hidden;
 }
-#sidebar-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 8px; flex: 0 0 auto; }
+/* A wrapping row rather than a fixed grid: seven tabs no longer fit four to a
+   260px row, and a 1fr grid track cannot shrink below its label, so it overflowed. */
+#sidebar-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; flex: 0 0 auto; }
 #sidebar-tabs .tab-btn {
-  padding: 5px 4px;
+  flex: 1 1 auto;
+  padding: 5px 6px;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -116,15 +145,16 @@ textarea { width: 100%; resize: vertical; }
 .item-list li.dirty .dirty-dot { visibility: visible; }
 .item-list li .err-count { color: var(--err); font-size: 10px; margin-left: auto; }
 
-.item-list li.faction-group { padding: 0; cursor: default; white-space: normal; overflow: visible; text-overflow: clip; display: block; }
-.item-list li.faction-group:hover { background: none; }
-.faction-header { display: flex; align-items: center; gap: 5px; padding: 5px 8px; cursor: pointer; border-radius: 4px; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
-.faction-header:hover { background: var(--bg-card); }
-.faction-header .chevron { display: inline-block; font-size: 9px; transition: transform 0.12s ease; }
-.faction-group.collapsed .faction-header .chevron { transform: rotate(-90deg); }
-.faction-header .faction-count { margin-left: auto; opacity: 0.7; }
-.faction-items { list-style: none; margin: 0; padding-left: 8px; }
-.faction-group.collapsed .faction-items { display: none; }
+/* A collapsible group inside a sidebar list: mobs/NPCs by faction, skills by category. */
+.item-list li.list-group { padding: 0; cursor: default; white-space: normal; overflow: visible; text-overflow: clip; display: block; }
+.item-list li.list-group:hover { background: none; }
+.group-header { display: flex; align-items: center; gap: 5px; padding: 5px 8px; cursor: pointer; border-radius: 4px; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
+.group-header:hover { background: var(--bg-card); }
+.group-header .chevron { display: inline-block; font-size: 9px; transition: transform 0.12s ease; }
+.list-group.collapsed .group-header .chevron { transform: rotate(-90deg); }
+.group-header .group-count { margin-left: auto; opacity: 0.7; }
+.group-items { list-style: none; margin: 0; padding-left: 8px; }
+.list-group.collapsed .group-items { display: none; }
 
 #editor-pane { overflow-y: auto; padding: 16px; position: relative; }
 #empty-state { color: var(--text-dim); padding: 40px; text-align: center; }
@@ -227,3 +257,41 @@ textarea { width: 100%; resize: vertical; }
 .resist-cell { display: flex; flex-direction: column; gap: 3px; }
 .resist-cell label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
 .resist-cell input { width: 70px; }
+
+/* ---- Skills tab (spell builder C1, read-only) ---------------------------- */
+.readonly-badge { color: var(--accent); font-size: 10px; margin-left: 6px; text-transform: uppercase; letter-spacing: 0.03em; border: 1px solid var(--accent); border-radius: 4px; padding: 1px 5px; }
+/* Disabled controls carry the real authored values here, so they stay legible. */
+input:disabled, select:disabled, textarea:disabled { opacity: 0.85; color: var(--text); cursor: default; }
+.skill-comment { font-size: 11.5px; color: var(--text-dim); background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; margin-bottom: 12px; white-space: pre-wrap; }
+.skill-comment .label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 3px; }
+.parked-banner { font-size: 12px; color: var(--warn); background: var(--bg-card); border: 1px solid var(--warn); border-radius: 6px; padding: 8px 10px; margin-bottom: 12px; }
+.field-row { display: flex; align-items: center; gap: 6px; }
+.field-row input[type=number] { width: 96px; }
+.field-row input[type=text] { min-width: 140px; }
+.field .unit, .field .seconds { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+.field .seconds { color: var(--accent); }
+.field .hint { font-size: 10px; color: var(--text-dim); font-style: italic; max-width: 260px; }
+.field.mandatory label { color: var(--warn); }
+.field.unauthored input, .field.unauthored select, .field.unauthored textarea { opacity: 0.45; }
+/* A base + per-level pair takes two grid cells so the per-level input and its unit never clip. */
+.pair { grid-column: span 2; display: flex; gap: 10px; align-items: flex-start; border-left: 2px solid var(--border); padding-left: 8px; }
+.stat-grid > .pair:only-child { grid-column: span 1; }
+.pair .field:last-child input { width: 80px; }
+.effect-card { margin-bottom: 12px; }
+.effect-card .card-head .type-select { flex: 0 0 auto; min-width: 160px; font-weight: 600; }
+.effect-card .card-head .type-note { font-size: 11px; color: var(--text-dim); font-style: italic; flex: 1 1 auto; }
+.effect-card .card-head .type-note.parked { color: var(--warn); }
+.stray-key { font-size: 11px; color: var(--err); margin-top: 6px; }
+.level-table-wrap { overflow-x: auto; margin-top: 6px; }
+.level-table { border-collapse: collapse; font-size: 11px; white-space: nowrap; }
+.level-table th, .level-table td { padding: 3px 8px; border-bottom: 1px solid var(--border); text-align: right; }
+.level-table th { color: var(--text-dim); font-weight: 500; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
+.level-table th:first-child, .level-table td:first-child { text-align: left; color: var(--text-dim); }
+.level-table td .seconds { color: var(--accent); font-size: 10px; margin-left: 3px; }
+.level-table .flat { opacity: 0.55; }
+.sources-panel { font-size: 12px; }
+.sources-panel .sources-title { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em; margin: 8px 0 4px; }
+.sources-panel ul { margin: 0; padding-left: 16px; }
+.sources-panel .cheat-only { color: var(--warn); }
+.sources-panel code { background: var(--bg-card-2); border-radius: 3px; padding: 0 4px; font-size: 11px; }
+.visuals-placeholder { font-size: 12px; color: var(--text-dim); font-style: italic; }

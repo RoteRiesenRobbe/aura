@@ -105,6 +105,20 @@ does not pretend to:
   `{skillName: level}` map — the strictest of the three, since it breaks on
   ANY edit to the file, not just an addition.
 
+## The Skills tab (spell builder, read-only until C3)
+
+The **Skills** sidebar tab shows every player skill (`api/skills/*.json`;
+the mob-embedded ones under `mobs/` are hidden) as the form the spell
+builder will edit: identity, the category block, one card per effect with
+its shared and payload fields and a per-level preview (`base + (level-1) ×
+perLevel`, seconds beside every tick value), a Visuals placeholder, and an
+"obtained via" panel listing every milestone, kill drop, NPC teaching row,
+ascension reward and recipe that grants it, each a jump into its own tab.
+**Every control is disabled and there is no Save button**: C1 exists so the
+form can be judged against all 72 real skills before a write path exists
+(`docs/plan-content-editor.md` §B5). The form is rendered from the served
+vocabulary below, never from a hand-typed field list.
+
 ## The skill vocabulary and `npm run smoke`
 
 The tool never hand-types the per-effect-type field lists a skill file may
@@ -126,8 +140,11 @@ npm run smoke        # or: node tools/content-editor/smoke.mjs
 
 `smoke.mjs` is a standalone check (no server, no `aurad`) that walks every
 `api/skills/**/*.json` and reports any effect key outside its type's
-allowlist, any unknown top-level key, and any disagreement between the two
-fixtures. It prints every finding and exits non-zero if there is at least one.
+allowlist, any unknown top-level key, any disagreement between the two
+fixtures, and any key the **Skills tab's presentation table**
+(`skill-presentation.mjs`: control, unit, hint per key NAME) lacks or no
+longer needs - so a new Go key gets a conscious entry rather than a guessed
+one, and a renamed one cannot leave a stale row. It prints every finding and exits non-zero if there is at least one.
 The top-level check earns its keep: skill JSON is parsed without
 `DisallowUnknownFields`, so a typo'd top-level key is read by nothing and
 fails in silence.
