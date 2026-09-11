@@ -1,5 +1,5 @@
 {
-  "_comment": "Damage-Burst (content pass C4, plan-content-zones12.md §5): Elite Bandit kill-drop — instant_damage on cooldown activation carrying physical+bleed, the first multi-tag INSTANT hit (PO 2026-07-18). Deliberately pure one-shot burst — its counterpart NovaBurst is the hit-plus-fire-dot version (PO 2026-07-21). All values [PLACEHOLDER]",
+  "_comment": "A cooldown that deals an instant physical and bleed hit, 22 HP plus 2.5 per level, to enemies in a 1.5-unit radius plus 0.05 per level. A pure one-shot burst with no dot component. All values placeholder.",
   "id": 49,
   "name": "DamageBurst",
   "icon": "lorc/broadsword",

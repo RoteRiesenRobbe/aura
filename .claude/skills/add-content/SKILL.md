@@ -38,6 +38,13 @@ the bottom. Trust the code over the manual if a path has drifted.
   `createNamedContainer(...)` **and** `cameraGroup.addChild(...)`. Miss the
   second and the sprite renders off-stage (invisible but functional). Reusing a
   layer needs neither.
+- **A skill's `_comment` is an authoring note, not a session ledger** (PO
+  ruling 2026-09-11, `docs/manual-content-authoring.md` "The `_comment`
+  field"): what the skill is, which values are placeholder, at most one
+  landmine sentence with a doc pointer; under ~400 characters; no dates,
+  hashes, chunk names, rulings, glyphs, history or placement claims (where
+  it is obtained lives in the mob/milestone/recipe files). The ledger prose you are
+  tempted to write there goes in the plan doc.
 - **New skill = NO client-side edit.** The old `Skills.ts` triple map is gone
   (plan-ui-polish C1): the client fetches skill metadata from the aurad sidecar
   (`GET /skills`) at startup, so the backend registry is the single source. No

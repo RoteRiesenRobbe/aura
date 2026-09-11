@@ -1,5 +1,5 @@
 {
-  "_comment": "Z1 kobold ranged volley (content pass C3, plan-content-zones12.md §4 + §10): mid radius (4.5 → 2.2, PO 2026-07-21 'halve the ranged kobold range'), slow tick, lower per-hit damage, selector 'all' = the uncapped-AoE showcase — every valid target in range is hit each volley (player + companion + summons together), ignoring maxTargets by definition. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "_comment": "A kobold's ranged volley: hits every enemy within a 2.2-unit ring every 60 ticks for 7 HP plus 1.2 per level, uncapped by selector 'all'. Wide and slow to contrast the melee kobold's fast jab. All values placeholder.",
   "id": 116,
   "name": "KoboldVolley",
   "category": "active_aura",

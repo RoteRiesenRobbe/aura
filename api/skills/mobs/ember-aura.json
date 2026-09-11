@@ -1,5 +1,5 @@
 {
-  "_comment": "Bandit pyromancer ember aura (intermission triage Session ②, item 20): a medium-range fire aura that leaves a burning DoT — the pyromancer hangs back behind the melee bandits and cooks anything that lingers. Second 'fire' damage source in the world (the fire-teacher NPC's Ignite/Immolate are the first). Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "_comment": "A bandit pyromancer's fire dot: applies to the nearest enemy within 3.0 units every 50 ticks, dealing 7.5 HP plus 1.88 per level over 3 ticks at 40-tick intervals. Lets the pyromancer hang back and punish anything that lingers. All values placeholder.",
   "id": 133,
   "name": "EmberAura",
   "category": "active_aura",

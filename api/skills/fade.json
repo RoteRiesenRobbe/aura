@@ -1,5 +1,5 @@
 {
-  "_comment": "Mob-depth chunk 7 placeholder content: a cooldown that removes the caster's own threat entry on every enemy mob in range (single-entry removal), shedding aggro to the next-highest threat holder. Group utility — no-op solo. All values [PLACEHOLDER].",
+  "_comment": "A cooldown that drops the caster's threat on every enemy mob within a 2-unit radius, handing aggro to whoever holds the next-highest threat. Only useful in a group; solo it does nothing since there is no one else to take aggro. All values placeholder.",
   "id": 26,
   "name": "Fade",
   "icon": "delapouite/invisible",

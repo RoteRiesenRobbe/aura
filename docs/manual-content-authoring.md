@@ -407,11 +407,42 @@ the dispatch sites themselves:
   never charge (pinned by `TestNoCostOnAnEffectThatCanNeverBeCharged`).
 
 **Living reference content:** the three cheat-only kitchen-sink skills author
-every one of these at once and carry the landmine notes in their `_comment`s -
+every one of these at once (the landmine notes they used to carry in their
+`_comment`s live in the gotchas list below, since the 2026-09-11 comment
+ruling) -
 `api/skills/omni-aura.json` (all 9 aura types, every damage rider),
 `api/skills/omni-passive.json` (the full passive fold),
 `api/skills/omni-strike.json` (16 cooldown types in one cast). `SKILL OmniAura`
 / `OmniPassive` / `OmniStrike`; no unlock source, ever.
+
+### The `_comment` field: authoring notes, not a session ledger
+
+*(PO ruling 2026-09-11, during the spell builder C1 look: the shipped
+comments had grown into chunk retrospectives, 832 characters at the median,
+unreadable as content.)* A skill file's `_comment` is read by the next
+person who opens the file, in the content editor or an IDE. It answers two
+questions and nothing else:
+
+1. **What is this skill**, in one or two sentences an author can check
+   against the fields below it (which effect does what, to whom, how often).
+2. **Which values are placeholder** (usually "all values placeholder").
+
+Plus, only when a number in THIS file depends on something non-obvious,
+**at most one landmine sentence** with a pointer to the doc that holds the
+reasoning (ThrowBomb's `ttlTicks = armTicks + 1`, SummonCompanion's
+cooldown-at-least-the-TTL convention).
+
+Banned in a `_comment`: dates, commit hashes, session or chunk names, "PO
+ruled", the ⚑ ⭐ ⛔ glyphs, ALL-CAPS emphasis, em dashes, any history of how
+the numbers got there, and **where the skill is obtained** ("cheat-only",
+"dropped by wolves", "milestone at 5"): placement lives in the mob, milestone
+and recipe files and goes stale here (the rewrite pass found two such claims
+already wrong). That record belongs in the plan doc's ledger; a
+content file is not where a session writes its memoirs. Keep it under ~400
+characters. `_comment` is also not `description`: that field is the
+player-facing tooltip line, this one is for authors.
+
+The loader ignores the field; nothing reads it but people.
 
 Multi-effect gotchas the limit-test pass hit, beyond the ordering rule below:
 

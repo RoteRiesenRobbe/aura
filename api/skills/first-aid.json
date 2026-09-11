@@ -1,5 +1,5 @@
 {
-  "_comment": "⚑ R3 (plan-resource-costs-feedback §5.8, PO feel pass F1): FREE. A self-heal that costs resource to restore resource reads as a contradiction the moment the cost is legible, and First Aid's whole job is the 30-second out-of-combat top-up — the one thing the player does when they have nothing else to spend. It joins the freeFloorSkills guard in cmd/aurad/free_floor_test.go, so `0` is now an enforced property and not an authoring accident. Scope is First Aid ONLY: the locked 10 %->2 % heal cost curve is untouched, and the follow-on idea of pricing other generators to differentiate them is deliberately not scheduled. All values [PLACEHOLDER].",
+  "_comment": "A cooldown self-heal restoring 20 percent of max health plus 2.5 per level. Cost is deliberately zero: a self-heal that costs resource to gain resource would be a contradiction, and this is the only free-floor exception among heals, enforced by a guard test. All values placeholder.",
   "id": 21,
   "name": "FirstAid",
   "icon": "delapouite/healing",

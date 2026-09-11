@@ -1,5 +1,5 @@
 {
-  "_comment": "Mob-depth chunk 6 placeholder content: the companion's physical bite on the nearest enemy. Its level follows the SummonCompanion skill level at spawn (RaiseLoadoutLevels), so maxLevel matches SummonCompanion's. All values [PLACEHOLDER].",
+  "_comment": "A summoned companion's bite: 10 HP plus 2 per level on the nearest enemy within 0.8 units every 40 ticks. The companion's level is copied from the SummonCompanion skill at spawn, so this skill's maxLevel must stay equal to SummonCompanion's. All values placeholder.",
   "id": 107,
   "name": "CompanionAura",
   "category": "active_aura",

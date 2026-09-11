@@ -1,5 +1,5 @@
 {
-  "_comment": "Mob-depth chunk 1 placeholder content: cooldown that summons an owned, player-aligned Totem offset from the caster. The SKILL level scales the TTL and the totem's loadout level; the OWNER's player level adds max HP and a damage/heal power multiplier (never CC — chunk-1 decision 4). cooldownTicks ≥ the max-level TTL (420) keeps it one-totem-at-a-time by content convention (§8.3, no cap system). All values [PLACEHOLDER].",
+  "_comment": "A cooldown summoning an owned, player-aligned Totem offset from the caster. The skill's level scales the totem's lifetime and loadout level; the owner's player level adds max health and a damage or heal multiplier, never crowd control. cooldownTicks matches the max-level lifetime only by convention: a shorter cooldown would let a player field more than one totem. All values placeholder.",
   "id": 23,
   "name": "SummonTotem",
   "icon": "lorc/totem-head",

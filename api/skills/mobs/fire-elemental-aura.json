@@ -1,5 +1,5 @@
 {
-  "_comment": "Fire-elemental aura (2026-07-21): the burn field both elementals carry — a fire dot on EVERYONE hostile in range (selector 'all', KoboldVolley precedent), because the elemental damages what stands near it rather than picking a target. Shared by FireElemental (cL18) and GreaterFireElemental (cL20) by PO ruling: the elite's extra HP and damage come from its tier baseline + f(cL), not from a separate skill. Curve-position-1 baseline. The light_aura is the fire's glow — rendering-only, slightly wider than the burn field so the danger zone is lit before you stand in it. All values [PLACEHOLDER]",
+  "_comment": "A fire elemental's burn field: applies a fire dot to every hostile entity within 2.0 units every 60 ticks, dealing 7 HP plus 1.8 per level over 3 ticks at 60-tick intervals, and casts light out to 2.5 units. Shared by both the normal and greater fire elemental; their difference comes from baseline stats, not this skill. All values placeholder.",
   "id": 134,
   "name": "FireElementalAura",
   "category": "active_aura",

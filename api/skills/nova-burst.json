@@ -1,5 +1,5 @@
 {
-  "_comment": "NovaBurst fire rework (PO balancing pass 2026-07-21): now the fire twin to DamageBurst's physical+bleed one-shot — a tagged fire hit PLUS a lingering fire burn (instant_damage + instant_dot, WarlordCleave multi-effect precedent, Ignite dot shape). Radius 1.5 → 2.0. Direct hit trimmed 25 → 18 to pay for the dot rider (L1 total ≈ 33 over 3 s vs DamageBurst's 22 upfront). World source: BanditPyromancer drop — the fire flavor finally matches the JSON. All values [PLACEHOLDER]",
+  "_comment": "A fire cooldown combining an instant_damage hit and a lingering instant_dot burn, both fire-tagged and sharing the same radius. All values placeholder.",
   "id": 20,
   "name": "NovaBurst",
   "icon": "carl-olsen/flame",

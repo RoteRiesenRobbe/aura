@@ -1,5 +1,5 @@
 {
-  "_comment": "Values copied from backend/conf.json as of migration start — all [PLACEHOLDER] pending balance pass. No authored crit (§4.3 v2 rework: briefly carried 1%/level, PO removed it same day 2026-07-20 — it made the starter aura the strongest non-ceiling damage skill); crits ride the character's own chance only.",
+  "_comment": "The starting aura: a physical hit on the nearest enemy inside a 1-unit ring every 40 ticks, 14 HP plus 0.2222 per level. All values placeholder. Deliberately authors no crit; crits ride the character's own crit chance.",
   "id": 1,
   "name": "Damage",
   "icon": "lorc/broadsword",

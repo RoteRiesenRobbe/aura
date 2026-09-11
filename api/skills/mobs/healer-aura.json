@@ -1,5 +1,5 @@
 {
-  "_comment": "Mob-depth chunk 8 placeholder content: a support mob's heal aura. Tops up the most-wounded same-faction ally in range (heal auras target implicit same-faction allies via the bespoke predicate; heal_aura carries no targetsAllies flag). No resource cost — pricing is a player build lever, and a mob is not a costPayer at all, so it is skipped for mob casters. All values [PLACEHOLDER].",
+  "_comment": "A support mob's heal aura: tops up the lowest-health allied entity within 2.0 units for 12 HP plus 4 per level every 60 ticks. Costs nothing since a mob cannot pay a resource cost. All values placeholder.",
   "id": 108,
   "name": "HealerAura",
   "category": "active_aura",

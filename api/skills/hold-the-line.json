@@ -1,5 +1,5 @@
 {
-  "_comment": "HoldTheLine (content pass C7, plan-content-zones12.md §13): CallForAid L3 + Taunt L3 combo — the tank-support squad: three ShieldbearerCompanions (tanky, RallyDrum allies-only shield) answer, and the cast DETAUNTS the owner (Fade pattern) so enemies prefer the wall. CallForAid conventions verbatim: 3 spawn effects in one cast, cooldownTicks >= max TTL = one-squad-at-a-time by content. Below the §A ceiling. Secret recipe. All values [PLACEHOLDER] pending C8",
+  "_comment": "A combination skill (CallForAid plus Taunt) that drops the caster's own threat within a 2-unit radius while spawning three ShieldbearerCompanions to draw aggro instead. Skill level raises their lifespan and loadout level; owner level adds their max health and power. An unlisted combo recipe. All values placeholder.",
   "id": 56,
   "name": "HoldTheLine",
   "icon": "lorc/totem-head",

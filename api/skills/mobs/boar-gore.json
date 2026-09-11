@@ -1,5 +1,5 @@
 {
-  "_comment": "Z1 boar gore (content pass C2): tusk hit carrying the first 'bleed' damage tag alongside physical (multi-tag hit — Thick Hide halves it, a future bleed resist would too). Curve-position-1 baseline. damageHP 8→6 (2026-07-22, half of the wolf-matchup nerf — see boar.json). All values [PLACEHOLDER]",
+  "_comment": "A boar's tusk gore: physical and bleed damage within a 0.9-unit ring every 30 ticks, 6 HP plus 1.5 per level. The bleed tag means Thick Hide, and any future bleed resist, reduces it. All values placeholder.",
   "id": 112,
   "name": "BoarGore",
   "category": "active_aura",

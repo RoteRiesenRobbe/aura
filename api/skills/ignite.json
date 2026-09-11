@@ -1,5 +1,5 @@
 {
-  "_comment": "Effect foundations Step 2 placeholder content: NovaBurst-shaped cooldown that applies a 3-second fire dot (3 events, 1/s) to everyone hostile in range. damageHP +~5% (§4.3 v2 base-crit rework, PO 2026-07-20: dots never crit, so dot skills missed the direct-hit EV lift). All values [PLACEHOLDER].",
+  "_comment": "A cooldown that applies a fire burn to every hostile in a 1.5-unit radius plus 0.05 per level: 6.3 HP plus 0.8 per level, in 3 ticks spaced 30 ticks (1 s) apart. Damage over time never crits, so this is priced a little higher than an equivalent direct hit to compensate. All values placeholder.",
   "id": 22,
   "name": "Ignite",
   "icon": "carl-olsen/flame",

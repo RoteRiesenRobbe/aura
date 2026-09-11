@@ -1,5 +1,5 @@
 {
-  "_comment": "Z2 bandit blades (content pass C4, plan-content-zones12.md §4): melee cuts carrying physical+bleed (multi-tag hit, boar-gore precedent — Thick Hide halves it, a future bleed resist would too). Mid radius, mid tick: steadier pressure than the kobold jab, fitting the higher band. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "_comment": "A bandit's melee slash: physical and bleed damage on a 1.0-unit ring every 25 ticks, 11.25 HP plus 1.88 per level. The bleed tag means Thick Hide, and any future bleed resist, reduces it. All values placeholder.",
   "id": 120,
   "name": "BanditBlades",
   "category": "active_aura",

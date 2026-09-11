@@ -1,5 +1,5 @@
 {
-  "_comment": "Z2 front soldier blades (content pass C5, plan-content-zones12.md §4): disciplined line-infantry cuts — plain physical, mid radius, mid tick (bandit-blades cadence without the bleed; the orcs are the savage side). Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "_comment": "An orc soldier's melee cut: 9 HP plus 1.5 per level within a 1.0-unit ring every 25 ticks, plain physical with no bleed tag. All values placeholder.",
   "id": 125,
   "name": "SoldierBlades",
   "category": "active_aura",
