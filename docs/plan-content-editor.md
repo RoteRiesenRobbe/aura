@@ -871,7 +871,7 @@ that owns the vocabulary via `UPDATE_<KIND>_VOCABULARY=1`, complement of
 `shared-constants.json`, read by the editor through one `read<Kind>Vocabulary`
 in `tools/content-editor/`.
 
-#### C1 - the tab, read-only ✅ SHIPPED 2026-09-11 `[uncommitted]`
+#### C1 - the tab, read-only ✅ SHIPPED 2026-09-11 `7b90fb5e`
 
 > Built and verified by the session. No PO ruling was needed: §B4.3 and §B9
 > settle the design, and the three judgement calls below are presentation,
