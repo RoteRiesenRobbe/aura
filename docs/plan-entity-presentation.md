@@ -10,6 +10,14 @@
 > ⚑ The backlog number **§39 stays the citation anchor**: many docs and two
 > other backlog sections cite "§39" by number, and the backlog entry remains
 > as a pointer here. New references should name this doc.
+>
+> ⚑ **AMENDED 2026-09-11 by `plan-skill-vfx.md`** (PO-ruled): the per-hit
+> SOURCE on the wire (§6 items 3, 4, 10) and the per-effect presentation ART
+> the §3 moratorium forbade now live THERE, as a `SkillEvent` vector and a
+> seven-kind visual vocabulary. What §3 keeps: no new independently-anchored
+> overlay on the sprite (the VFX layer is world-space, attached to nothing).
+> Durations, stacks, cast progress, the stun/slow split and the medallion
+> ordering are untouched and still this doc's. Its C0 rewrites §3 and §6.
 
 ---
 
