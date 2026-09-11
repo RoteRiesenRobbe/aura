@@ -1,7 +1,8 @@
 # Plan: the content editor (`tools/content-editor/`)
 
-> **Status 2026-09-10: Part A SHIPPED (2026-08-27/28, `ebf4cfe5` + `6c2e6d5c`),
-> Part B DESIGNED 2026-09-08, C0 SHIPPED 2026-09-10 (`60fb44d2`), C1 next.** This is the living plan of the one
+> **Status 2026-09-11: Part A SHIPPED (2026-08-27/28, `ebf4cfe5` + `6c2e6d5c`),
+> Part B DESIGNED 2026-09-08, C0 SHIPPED 2026-09-10 (`60fb44d2`), C1 SHIPPED
+> 2026-09-11 (`7b90fb5e`) and PO-passed the same day, C2 next.** This is the living plan of the one
 > tool: **Part A** is the original design (NPC dialogue trees + quest stage
 > graphs, D1: custom, not Corkboard) and what actually shipped, which went
 > well past its v1 scope; **Part B** is the Skills tab, the spell builder,
@@ -1008,9 +1009,10 @@ ThrowBomb: `plan-prototype-projectile.md`). ⚑ Open, filed in
 `docs/feedback.md`: the same dialect lives in mob, quest, recipe and
 faction comments; the ruling covered skills only. Verified: smoke 0/105 ·
 `cp-defs` + **`go test -count=1 ./...` EXIT 0, 35 pkgs** · the browser
-harness 0 problems · one rewritten comment read in the tab. The form
-verdict itself is still owed. **Next: C2**, `aurad -validate` (D9); the
-PO's form verdict may reorder C2/C3.
+harness 0 problems · one rewritten comment read in the tab.
+
+**PO look, round 3 (2026-09-11): the form verdict PASSED** ("works, that
+part is done"), no reorder of C2/C3. **Next: C2**, `aurad -validate` (D9).
 
 **Verified**: red-first (the golden test failed naming the regen command with
 no file on disk, then generated, then green) · `go build ./...` · `go vet` ·
