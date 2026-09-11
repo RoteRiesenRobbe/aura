@@ -3,7 +3,7 @@
 > **Status 2026-09-11: Part A SHIPPED (2026-08-27/28, `ebf4cfe5` + `6c2e6d5c`),
 > Part B DESIGNED 2026-09-08, C0 SHIPPED 2026-09-10 (`60fb44d2`), C1 SHIPPED
 > 2026-09-11 (`7b90fb5e`) and PO-passed the same day, C2 SHIPPED 2026-09-11
-> (`[uncommitted]`), C3 next (after the §B11 Q6 reformat commit).** This is the living plan of the one
+> (`5a9b5650`), C3 next (after the §B11 Q6 reformat commit).** This is the living plan of the one
 > tool: **Part A** is the original design (NPC dialogue trees + quest stage
 > graphs, D1: custom, not Corkboard) and what actually shipped, which went
 > well past its v1 scope; **Part B** is the Skills tab, the spell builder,
@@ -1049,7 +1049,7 @@ harness 0 problems · one rewritten comment read in the tab.
 part is done"), no reorder of C2/C3. **Next: C2**, `aurad -validate` (D9).
 
 
-#### C2 - `aurad -validate` and the editor's save seam ✅ SHIPPED 2026-09-11 `[uncommitted]`
+#### C2 - `aurad -validate` and the editor's save seam ✅ SHIPPED 2026-09-11 `5a9b5650`
 
 > Built by an Opus subagent (74 tool calls), verified by the session, wrapped
 > here. Six PO rulings via choice prompts (below). **Schema impact: NONE at
