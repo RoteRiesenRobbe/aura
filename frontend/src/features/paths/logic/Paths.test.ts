@@ -7,6 +7,14 @@ import {regionBlend, regionPaintSpec, regionScroll, Profile} from '../../regions
 // full-screen map both read it and a disagreement is invisible in either alone.
 const PX = 120;
 
+// One outlined path, varying only the outline fields.
+function outlinedPath(over: Record<string, unknown>) {
+    return toPaths([{
+        profile: 'Water', width: 4, points: [{x: 0, y: 0}, {x: 4, y: 0}],
+        ...over,
+    } as never]);
+}
+
 describe('toPaths', () => {
     it('converts server units to world pixels, points and width alike', () => {
         const [path] = toPaths([
@@ -139,5 +147,40 @@ describe('a path wears the region profile table unchanged', () => {
     it('defaults an undeclared blend to a hard edge', () => {
         const [bare] = toPaths([{profile: 'Bare', width: 2, points: [{x: 0, y: 0}, {x: 1, y: 0}]}]);
         expect(regionBlend(bare, profiles)).toBe(0);
+    });
+});
+
+// ---- outlines (plan-zone-polygons.md D3) ---------------------------------
+
+describe('path outlines', () => {
+    it('converts the outline width to world pixels too', () => {
+        const [s] = outlinedPath({outlineProfile: 'Coast', outlineWidth: 1.5});
+        expect(s.outlineProfile).toBe('Coast');
+        expect(s.outlineWidth).toBe(1.5 * PX);
+    });
+
+    // ⚑ HALF-authored degrades to NO outline, never to half of one. The server
+    // refuses both halves, so this is the client's degrade path for a
+    // hand-edited file — and either half alone would draw nothing anyway, so
+    // the only question is whether the absence is deliberate.
+    it('drops a half-authored outline entirely', () => {
+        for (const half of [
+            {outlineProfile: 'Coast'},
+            {outlineWidth: 1.5},
+            {outlineProfile: 'Coast', outlineWidth: 0},
+            {outlineProfile: 'Coast', outlineWidth: NaN},
+            {outlineProfile: '', outlineWidth: 2},
+        ]) {
+            const [s] = outlinedPath(half);
+            expect(s).not.toHaveProperty('outlineProfile');
+            expect(s).not.toHaveProperty('outlineWidth');
+        }
+    });
+
+    // The common case: no outline authored at all, and neither key appears.
+    it('leaves an un-outlined shape with neither key', () => {
+        const [s] = outlinedPath({});
+        expect(s).not.toHaveProperty('outlineProfile');
+        expect(s).not.toHaveProperty('outlineWidth');
     });
 });

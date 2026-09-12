@@ -303,6 +303,41 @@ export function loadedRegions(): Region[] {
 }
 
 /** Authored shape, straight out of the zone file: server units. */
+/**
+ * A second surface drawn along a shape's boundary (plan-zone-polygons.md D3) —
+ * on BOTH paths and polygons, which is why it lives beside Region rather than in
+ * either module.
+ *
+ * ⭐ It names a PROFILE, not a colour, and that is the whole design: a profile
+ * carries its own `blend`, so a wall's rim is hard and a riverbank's is soft
+ * without either of them constraining the surface underneath.
+ */
+export interface Outlined {
+    /** Absent or empty = no outline. */
+    outlineProfile?: string;
+    /** Stroke width in world PIXELS (the zone authors server units). */
+    outlineWidth?: number;
+}
+
+/**
+ * Authored outline fields → the renderer's, in world pixels. ONE function for
+ * both shapes, because a second copy is a second place for the unit conversion
+ * to drift.
+ *
+ * ⚑ HALF-authored degrades to NO outline rather than to half of one. The server
+ * refuses both halves (world/zone.go validateOutline), so this is the client's
+ * own degrade path for a hand-edited file — and a zero-width stroke or a
+ * profile-less one would draw nothing anyway, so the only choice is whether the
+ * absence is deliberate.
+ */
+export function outlineOf(def: {outlineProfile?: string, outlineWidth?: number}): Outlined {
+    const width = def.outlineWidth;
+    if (!def.outlineProfile || typeof width !== 'number' || !isFinite(width) || width <= 0) {
+        return {};
+    }
+    return {outlineProfile: def.outlineProfile, outlineWidth: meter2px(width)};
+}
+
 export interface RegionDefinition {
     profile: string;
     points: { x: number, y: number }[];

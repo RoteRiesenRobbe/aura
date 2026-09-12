@@ -311,6 +311,76 @@ type Path struct {
 	// D1). That is what makes an accidental close in Tiled harmless: it joins
 	// the two ends of a road, visibly, and one undo puts it back.
 	Closed bool `json:"closed,omitempty"`
+	// OutlineProfile and OutlineWidth draw a SECOND surface along this shape's
+	// boundary: a river with banks, a wall with a mortar edge, a cliff with a lip
+	// (plan-zone-polygons.md D3). Absent or empty = no outline, which is every
+	// shape authored before this.
+	//
+	// ⭐ A second PROFILE, and that is what dissolves the feathering problem the
+	// design started with. A profile carries its own blend, so a wall names an
+	// outline profile with blend 0 and gets a hard rim while a riverbank names
+	// one with blend 0.3 and gets a soft one — two independent knobs, no rule,
+	// no forced feather-off, no new field.
+	//
+	// ⛔ DECORATION, and it NEVER touches collision. Corridors stay derived from
+	// Width (paths) and the filled interior (polygons). Otherwise "my river
+	// blocks wider than I authored it" becomes a debugging session, and the
+	// outline stops being safely tunable by eye (L4).
+	//
+	// ⚑ Flat keys rather than a nested object because Tiled properties are flat,
+	// so all four writers stay a one-line mapping each.
+	OutlineProfile string  `json:"outlineProfile,omitempty"`
+	OutlineWidth   float32 `json:"outlineWidth,omitempty"`
+}
+
+// Polygon is a CLOSED polygon naming a client-side presentation PROFILE and
+// FILLED — a rock mass, a building footprint, a lake you cannot swim
+// (plan-zone-polygons.md D1). The third surface primitive, and the sibling of
+// both the others: a Region is a polygon filled as a MATERIAL, a Path is a
+// polyline STROKED, a Polygon is a polygon filled as a THING.
+//
+// ⭐ Its own array and its own Tiled class rather than a flag on Path, and the
+// divergence is why: once filled areas block, the two disagree about Width
+// (load-bearing there, meaningless here), about the collider (a rect chain along
+// segments vs a boundary stroke over an interior fill), about closure and about
+// the minimum point count. One array meaning two things would make both harder —
+// the same ruling Path's own comment already records against Region.
+//
+// ⛔ It is NOT a Region. Regions answer resolve() for footsteps, music and
+// atmosphere and are heading for quest-trigger identity; a cave wall is none of
+// those things and must not turn up in that lookup.
+//
+// ⚑ There is no Closed field here and never should be: a polygon is closed by
+// construction, and an unfilled OPEN shape is a Path. Profile stays client-only
+// and unvalidated (Region's D8 posture verbatim).
+type Polygon struct {
+	Profile string  `json:"profile"`
+	Points  []Point `json:"points"`
+	// BlocksMovement is the SAME word props[] and paths[] already use, zero
+	// value safe, so a polygon is decorative until someone says otherwise
+	// (world-paths D4). ⚑ Per PLACEMENT, never per profile — the profile table
+	// is client-side by D12, so the server never sees it.
+	BlocksMovement bool `json:"blocksMovement"`
+	// OutlineProfile and OutlineWidth draw a SECOND surface along this shape's
+	// boundary: a river with banks, a wall with a mortar edge, a cliff with a lip
+	// (plan-zone-polygons.md D3). Absent or empty = no outline, which is every
+	// shape authored before this.
+	//
+	// ⭐ A second PROFILE, and that is what dissolves the feathering problem the
+	// design started with. A profile carries its own blend, so a wall names an
+	// outline profile with blend 0 and gets a hard rim while a riverbank names
+	// one with blend 0.3 and gets a soft one — two independent knobs, no rule,
+	// no forced feather-off, no new field.
+	//
+	// ⛔ DECORATION, and it NEVER touches collision. Corridors stay derived from
+	// Width (paths) and the filled interior (polygons). Otherwise "my river
+	// blocks wider than I authored it" becomes a debugging session, and the
+	// outline stops being safely tunable by eye (L4).
+	//
+	// ⚑ Flat keys rather than a nested object because Tiled properties are flat,
+	// so all four writers stay a one-line mapping each.
+	OutlineProfile string  `json:"outlineProfile,omitempty"`
+	OutlineWidth   float32 `json:"outlineWidth,omitempty"`
 }
 
 // Anchor is a named point encounter scripts look up at registration (content
@@ -376,6 +446,7 @@ type Zone struct {
 	DarkAreas []DarkArea       `json:"darkAreas"`
 	Regions   []Region         `json:"regions"`
 	Paths     []Path           `json:"paths"`
+	Polygons  []Polygon        `json:"polygons"`
 	Anchors   []Anchor         `json:"anchors"`
 
 	// ID is the file stem the zone was loaded from — the -zone selection key
@@ -662,6 +733,24 @@ func (z *Zone) validate() error {
 		if z.Paths[i].Width <= 0 {
 			return fmt.Errorf("path %d: width must be positive, got %g", i, z.Paths[i].Width)
 		}
+		if err := validateOutline("path", i, z.Paths[i].OutlineProfile, z.Paths[i].OutlineWidth); err != nil {
+			return err
+		}
+	}
+	// Polygons name the INDEX for the same reason regions and paths do.
+	for i := range z.Polygons {
+		if strings.TrimSpace(z.Polygons[i].Profile) == "" {
+			return fmt.Errorf("polygon %d: profile must not be empty", i)
+		}
+		// THREE, like a region: a filled shape has to enclose an area. Two
+		// points are a line, and a line is a path.
+		if len(z.Polygons[i].Points) < 3 {
+			return fmt.Errorf("polygon %d: needs at least 3 points to enclose an area, got %d",
+				i, len(z.Polygons[i].Points))
+		}
+		if err := validateOutline("polygon", i, z.Polygons[i].OutlineProfile, z.Polygons[i].OutlineWidth); err != nil {
+			return err
+		}
 	}
 	// ⚑ "at least one campfire is a startingSpawn" USED TO LIVE HERE and moved
 	// to world.Place's checkSetWide (plan-underworld.md U1). With more than one
@@ -768,6 +857,24 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 			return fmt.Errorf("prop %d: %q crosses paths, so it must not also blocksMovement "+
 				"(it would clear the corridor under its deck and then block the deck)", i, p.Type)
 		}
+	}
+	return nil
+}
+
+// validateOutline is the one rule both surface types share (plan-zone-polygons.md
+// D3). Absent is always fine; ⚑ HALF-authored is not, and both halves fail the
+// same way — SILENTLY. A named profile with no width draws a zero-wide stroke,
+// and a width with no profile draws nothing at all, so either mistake looks
+// exactly like the outline feature not working.
+func validateOutline(kind string, i int, profile string, width float32) error {
+	named := strings.TrimSpace(profile) != ""
+	switch {
+	case named && width <= 0:
+		return fmt.Errorf("%s %d: outlineProfile %q needs a positive outlineWidth, got %g",
+			kind, i, profile, width)
+	case !named && width != 0:
+		return fmt.Errorf("%s %d: outlineWidth %g draws nothing without an outlineProfile",
+			kind, i, width)
 	}
 	return nil
 }

@@ -128,6 +128,15 @@ interface RegionDefinition {
 // shape in this file — this interface describes what the CLIENT can rely on
 // finding, which is why blocksMovement is absent: it is read by the server
 // alone, and nothing here draws differently because a river blocks.
+// A filled mass — rock, building, lake (plan-zone-polygons.md P2). Mirrors
+// PolygonDefinition in features/polygons; declared here for the same reason the
+// two above are, so this view of the zone file stays one readable block.
+interface PolygonDefinition {
+    profile: string;
+    points: { x: number, y: number }[];
+    blocksMovement?: boolean;
+}
+
 interface PathDefinition {
     profile: string;
     points: { x: number, y: number }[];
@@ -174,6 +183,9 @@ export interface ZoneJSON {
     // read-only view of the zone file — an array not named here simply never
     // reaches the renderer, with no error anywhere.
     paths?: PathDefinition[];
+    // Filled masses — rock, buildings, lakes — read by Polygons.loadPolygons
+    // (plan-zone-polygons.md P2). Same posture as the two above.
+    polygons?: PolygonDefinition[];
     // World campfires (chunk 2): read by the darkness overlay for their
     // static glow (chunk 4 follow-up).
     campfires?: CampfireDefinition[];

@@ -118,11 +118,20 @@ func placeOne(z *Zone) error {
 		z.Anchors[i].X += ox
 		z.Anchors[i].Y += oy
 	}
-	// Collision geometry, so it has to move with the zone (PathCorridors).
+	// Collision geometry, so it has to move with the zone (PathCorridors,
+	// PolygonColliders). ⚑ REGIONS are deliberately absent from this list: they
+	// are client-only, and the client applies the origin itself in toRegions —
+	// offsetting them here as well would move them twice.
 	for i := range z.Paths {
 		for j := range z.Paths[i].Points {
 			z.Paths[i].Points[j].X += ox
 			z.Paths[i].Points[j].Y += oy
+		}
+	}
+	for i := range z.Polygons {
+		for j := range z.Polygons[i].Points {
+			z.Polygons[i].Points[j].X += ox
+			z.Polygons[i].Points[j].Y += oy
 		}
 	}
 	return nil

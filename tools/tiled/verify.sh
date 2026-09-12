@@ -284,6 +284,139 @@ else
 fi
 
 echo
+echo "polygons and paths SHARE a layer and come back to their own arrays"
+# ⭐ P2's leg (plan-zone-polygons.md D5). Two classes ride the paths layer and
+# modelToZone routes by CLASS, so the whole primitive rests on Tiled handing the
+# class back on every object in a mixed layer — which the pure converter can only
+# assume, because it never meets Tiled's MapObject.
+#
+# ⛑ The fixture MIXES both classes and gives them DIFFERENT point counts and
+# profiles. With polygons alone, a converter that read the whole layer as paths
+# would be refused for a missing width (loud); with paths alone, one that read
+# them as polygons would round-trip fine (silent). Only the mix catches both, and
+# only a mix with different shapes catches a swap.
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/polygons.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    polygons: [
+        // A blocking rock mass, four points.
+        {profile: "Mountains", blocksMovement: true, points: [
+            {x: -20, y: -10}, {x: -12, y: -10}, {x: -12, y: -2}, {x: -20, y: -2}]},
+        // A decorative lake, three — and it must NOT grow a blocksMovement key.
+        {profile: "Water", points: [{x: 4, y: -8}, {x: 14, y: -8}, {x: 9, y: 2}]},
+    ],
+    // ...and an ordinary path beside them on the same layer, which must come
+    // back a path, with its width, and not as a filled shape.
+    paths: [{profile: "Road", width: 2.5, points: [{x: -20, y: 12}, {x: 20, y: 12}]}],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/polygons.json \
+        "$(native "$ROOT/tools/tiled/.verify/polygons-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/polygons.json tools/tiled/.verify/polygons-out.json; then
+    ok "byte-identical — the classes survived a shared layer, in order"
+else
+    bad "polygons did not survive: $(cmp tools/tiled/.verify/polygons.json \
+        tools/tiled/.verify/polygons-out.json 2>&1 | head -1)"
+fi
+
+echo
+echo "OUTLINES survive on both surface types"
+# ⭐ P4's leg (plan-zone-polygons.md D3). outlineProfile is a TYPED ENUM property,
+# and Tiled hands a typed enum back as an INDEX into the declared values, never
+# as the string — the same trap the regions leg exists for, now on a SECOND
+# member of the same enum type. The pure converter is tested against a
+# hand-built index; only the real binary proves the index Tiled returns for this
+# member is the one the palette declared.
+#
+# ⛑ The two shapes name DIFFERENT outline profiles, and neither matches its own
+# body profile. A fixture where the outline repeated the body would round-trip
+# byte-identically even if the reader took the wrong property.
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/outlines.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    polygons: [
+        {profile: "Water", outlineProfile: "Coast", outlineWidth: 1.25, points: [
+            {x: 4, y: -8}, {x: 14, y: -8}, {x: 9, y: 2}]},
+        // ...and one with NO outline beside it, which must keep both keys absent.
+        {profile: "Mountains", points: [
+            {x: -20, y: -10}, {x: -12, y: -10}, {x: -12, y: -2}]},
+    ],
+    paths: [{profile: "Road", width: 2.5, outlineProfile: "Desert", outlineWidth: 0.5,
+             points: [{x: -20, y: 12}, {x: 20, y: 12}]}],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/outlines.json \
+        "$(native "$ROOT/tools/tiled/.verify/outlines-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/outlines.json tools/tiled/.verify/outlines-out.json; then
+    ok "byte-identical — each outline came back as its own name, not an index"
+else
+    bad "outlines did not survive: $(cmp tools/tiled/.verify/outlines.json \
+        tools/tiled/.verify/outlines-out.json 2>&1 | head -1)"
+fi
+
+echo
+echo "a half-authored outline (a profile with no width)"
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/halfoutline.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    // ⚑ A zero-wide outline strokes nothing, so this fails SILENTLY in game and
+    // has to be caught where the author can still see the object.
+    paths: [{profile: "Road", width: 2.5, outlineProfile: "Desert", outlineWidth: 0,
+             points: [{x: -20, y: 12}, {x: 20, y: 12}]}],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/halfoutline.json \
+        "$(native "$ROOT/tools/tiled/.verify/halfoutline-out.json")" >/dev/null 2>&1; then
+    bad "the save was ACCEPTED — a zero-wide outline is not caught"
+elif [ -e tools/tiled/.verify/halfoutline-out.json ]; then
+    bad "refused, but a file was written anyway"
+else
+    ok "refused, nothing written"
+fi
+
+echo
+echo "a polygon naming a profile that does not exist"
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/badpolyprofile.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    // ⚑ zone.go ACCEPTS this (D8) and the client absorbs it (D11), so Tiled is
+    // the only place it can be caught — and the polygon class has to inherit
+    // that check rather than merely look like it does.
+    polygons: [{profile: "no-such-profile", points: [
+        {x: 0, y: 0}, {x: 8, y: 0}, {x: 8, y: 8},
+    ]}],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/badpolyprofile.json \
+        "$(native "$ROOT/tools/tiled/.verify/badpolyprofile-out.json")" >/dev/null 2>&1; then
+    bad "the save was ACCEPTED — the profile vocabulary is not enforced on polygons"
+elif [ -e tools/tiled/.verify/badpolyprofile-out.json ]; then
+    bad "refused, but a file was written anyway"
+else
+    ok "refused, nothing written"
+fi
+
+echo
 echo "a region naming a profile that does not exist"
 node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");

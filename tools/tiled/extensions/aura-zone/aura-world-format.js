@@ -262,6 +262,19 @@
                     rotation: o.rotation,
                     flipH: !!o.tileFlippedHorizontally,
                     flipV: !!o.tileFlippedVertically,
+                    // ⭐ THE CLASS IS DATA NOW, not only a colour. It has been
+                    // WRITTEN since the palette existed (obj.className above)
+                    // and never read back, which was harmless while the class
+                    // merely tinted the object — every layer held one kind.
+                    // plan-zone-polygons.md D5 put TWO classes on the paths
+                    // layer and made the class the discriminator, so dropping it
+                    // here meant every object came back class-less and the L2b
+                    // check refused the whole layer on the next save. ⚑ This is
+                    // the FOURTH WRITER the completeness pin cannot see (§6):
+                    // the pin exercises the pure converter, never Tiled's own
+                    // read/write path, so only a verify.sh leg catches it — and
+                    // it caught this one.
+                    cls: o.className,
                     properties: o.properties(),
                 };
                 // Both vertex shapes carry their nodes: a route (polyline) and
@@ -309,6 +322,14 @@
         // string aborts the save with that message; the document stays open.
         var errors = C.validateModel(model);
         if (errors.length > 0) { return C.formatErrors(errors); }
+
+        // ⭐ NON-BLOCKING, deliberately (plan-zone-polygons.md D6). Everything
+        // above aborts the save; this does not — an oversized polygon is legal,
+        // it just costs collision fidelity, and the whole ruling is that the
+        // author must not be stopped. tiled.warn puts it in the Issues view with
+        // the object id, which goes straight into Edit ▸ Select Object by Id.
+        var notes = C.polygonNotices(model);
+        for (var ni = 0; ni < notes.length; ni++) { tiled.warn(notes[ni]); }
 
         var text;
         try {

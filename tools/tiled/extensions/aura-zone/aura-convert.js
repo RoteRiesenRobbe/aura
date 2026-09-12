@@ -352,6 +352,24 @@ var AuraConvert = (function () {
                         width: round(p2.width, 2),
                         blocksMovement: p2.blocksMovement ? true : undefined,
                         closed: p2.closed ? true : undefined,
+                        outlineProfile: p2.outlineProfile || undefined,
+                        outlineWidth: p2.outlineProfile ? round(p2.outlineWidth, 2) : undefined,
+                    };
+                })
+                : undefined,
+            // A polygon's points are never closed in the FILE — no first-vertex
+            // repeat to strip, exactly as a region's are not. blocksMovement is
+            // tri-state like everywhere else.
+            polygons: z.polygons && z.polygons.length > 0
+                ? z.polygons.map(function (g) {
+                    return {
+                        profile: g.profile,
+                        points: g.points.map(function (v) {
+                            return {x: round(v.x, 2), y: round(v.y, 2)};
+                        }),
+                        blocksMovement: g.blocksMovement ? true : undefined,
+                        outlineProfile: g.outlineProfile || undefined,
+                        outlineWidth: g.outlineProfile ? round(g.outlineWidth, 2) : undefined,
                     };
                 })
                 : undefined,
@@ -538,6 +556,34 @@ var AuraConvert = (function () {
             // Only when true, so the Properties panel shows the class default
             // for an ordinary path and the round-trip stays byte-identical.
             if (p2.blocksMovement) { o.properties.blocksMovement = true; }
+            writeOutline(o, p2);
+            return o;
+        });
+
+        // ⭐ A polygon rides the SAME LAYER as a path and is told apart by its
+        // CLASS (D5). PO ask 2026-09-09: "too many layers in Tiled will make me
+        // a little crazy" — eight object layers exist already, and the class is
+        // the more honest discriminator anyway, because it is what the
+        // Properties panel shows. ⚑ The cost, and it is real: an object on this
+        // layer whose class is neither AuraPath nor AuraPolygon lands in NEITHER
+        // array and would vanish on save, so validateModel refuses one by id
+        // (L2b). The layer-per-type scheme got that check for free.
+        var polygons = (z.polygons || []).map(function (g) {
+            var pts = g.points || [];
+            var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
+            var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
+            var o = {
+                shape: 'polygon', layer: 'paths', name: g.profile, cls: 'AuraPolygon',
+                x: ox, y: oy, width: 0, height: 0, rotation: 0,
+                flipH: false, flipV: false,
+                polygon: pts.map(function (v) {
+                    return {x: px(v.x, hw) - ox, y: px(v.y, hh) - oy};
+                }),
+                properties: {profile: g.profile},
+                enums: {profile: REGION_ENUMS.profile},
+            };
+            if (g.blocksMovement) { o.properties.blocksMovement = true; }
+            writeOutline(o, g);
             return o;
         });
 
@@ -574,7 +620,11 @@ var AuraConvert = (function () {
                 {name: 'regions', drawOrder: 'index', objects: regions},
                 // Path array order is draw order too — a bridge road drawn over
                 // a river is authored by putting it later in the array.
-                {name: 'paths', drawOrder: 'index', objects: paths},
+                // ⚑ POLYGONS FIRST, then paths — the draw order is regions →
+                // polygons → paths (masses under ribbons), and modelToZone
+                // splits them back out by class with each array's own order
+                // intact, so the round-trip stays byte-identical.
+                {name: 'paths', drawOrder: 'index', objects: polygons.concat(paths)},
                 {name: 'anchors', drawOrder: 'index', objects: anchors},
             ],
         };
@@ -593,6 +643,12 @@ var AuraConvert = (function () {
                 if (m.layers[i].name === name) { return m.layers[i].objects || []; }
             }
             return [];
+        }
+        // ⚑ The paths layer holds TWO classes since plan-zone-polygons.md D5.
+        // Everything that reads it must say which one it wants, or a polygon
+        // gets read as a width-less path.
+        function onLayer(name, cls) {
+            return layer(name).filter(function (o) { return o.cls === cls; });
         }
         function centre(o) { return centreOf(o.x, o.y, o.width, o.height, o.rotation || 0); }
 
@@ -673,7 +729,10 @@ var AuraConvert = (function () {
                     }),
                 };
             }),
-            paths: layer('paths').map(function (o) {
+            // ⚑ Split by CLASS, not by layer (D5). An object that is neither is
+            // refused by validateModel before it can reach here, which is what
+            // stops it from silently vanishing.
+            paths: onLayer('paths', 'AuraPath').map(function (o) {
                 var w = get(o, 'width');
                 return {
                     profile: readRegionProfile(o),
@@ -686,6 +745,23 @@ var AuraConvert = (function () {
                     // matching note in zoneToModel. get(o, 'closed') would be a
                     // second source of truth for something Tiled already knows.
                     closed: o.shape === 'polygon' ? true : undefined,
+                    outlineProfile: readOutlineProfile(o),
+                    outlineWidth: readOutlineProfile(o) !== undefined
+                        ? (typeof get(o, 'outlineWidth') === 'number' ? get(o, 'outlineWidth') : 0)
+                        : undefined,
+                };
+            }),
+            polygons: onLayer('paths', 'AuraPolygon').map(function (o) {
+                return {
+                    profile: readRegionProfile(o),
+                    points: (o.polygon || []).map(function (v) {
+                        return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
+                    }),
+                    blocksMovement: get(o, 'blocksMovement') ? true : undefined,
+                    outlineProfile: readOutlineProfile(o),
+                    outlineWidth: readOutlineProfile(o) !== undefined
+                        ? (typeof get(o, 'outlineWidth') === 'number' ? get(o, 'outlineWidth') : 0)
+                        : undefined,
                 };
             }),
             anchors: layer('anchors').map(function (o) {
@@ -698,6 +774,31 @@ var AuraConvert = (function () {
     // readable label — the same rule readSpawn applies to a spawn's mob, and
     // the same GUI defect it exists for: a plain-string property SHADOWS a
     // typed class member, and a typed enum reads back as an INDEX.
+    /* The outline pair (plan-zone-polygons.md D3), shared by paths and polygons
+     * because they carry exactly the same two keys.
+     *
+     * ⚑ PROFILE_UNSET means two different things depending on which member it is
+     * on, and that is deliberate rather than sloppy: on `profile` it means "you
+     * forgot" and is refused; on `outlineProfile` it means "no outline" and is
+     * perfectly legal. Both members share one enum type because Tiled has no
+     * nullable enum, so the sentinel has to carry the difference.
+     */
+    function writeOutline(o, src) {
+        if (!src.outlineProfile) { return; }
+        o.properties.outlineProfile = src.outlineProfile;
+        o.properties.outlineWidth = src.outlineWidth;
+        o.enums = o.enums || {};
+        o.enums.outlineProfile = REGION_ENUMS.profile;
+    }
+
+    function readOutlineProfile(o) {
+        var v = o.properties && o.properties.outlineProfile !== undefined
+            && o.properties.outlineProfile !== null
+            ? plainValue(o.properties.outlineProfile) : undefined;
+        if (v === undefined || v === '' || v === PROFILE_UNSET) { return undefined; }
+        return v;
+    }
+
     function readRegionProfile(o) {
         var v = o.properties && o.properties.profile !== undefined && o.properties.profile !== null
             ? plainValue(o.properties.profile) : undefined;
@@ -748,6 +849,64 @@ var AuraConvert = (function () {
         return msg;
     }
 
+    /* ---- the non-blocking polygon notice (plan-zone-polygons.md D6) --------
+     *
+     * ⭐ The server never REFUSES an oversized polygon — PO 2026-09-09, an
+     * authoring session must not be stoppable by having drawn a big rock. It
+     * raises that one polygon's cell size until it fits and boots. The accepted
+     * cost is that the rock's collision is blockier than every other rock's and
+     * NOTHING ON SCREEN SAYS SO, so this exists to say it while the author is
+     * still standing on the shape.
+     *
+     * ⛔ It must NOT re-implement the greedy fill. Two copies of one algorithm in
+     * two languages is the drift trap this codebase keeps naming, and the copy
+     * that drifts is always the one nobody runs. This reports a deliberately
+     * CONSERVATIVE proxy — area ÷ cell², no merging — and the wording says so:
+     * the editor warns EARLY, the server decides. The two numbers will disagree,
+     * and the message must not pretend otherwise.
+     */
+    // ⚑ Mirrors the Go constants in world/polygons_collision.go, which are the
+    // authority. They are [PLACEHOLDER] on both sides; a disagreement makes this
+    // notice fire at the wrong size, never the collider wrong.
+    var POLY_CELL = 2;
+    var POLY_BODY_CAP = 256;
+
+    function polygonNotices(m) {
+        var notes = [];
+        for (var li = 0; li < m.layers.length; li++) {
+            if (m.layers[li].name !== 'paths') { continue; }
+            var objs = m.layers[li].objects || [];
+            for (var i = 0; i < objs.length; i++) {
+                var o = objs[i];
+                if (o.cls !== 'AuraPolygon') { continue; }
+                if (!(o.properties && o.properties.blocksMovement)) { continue; }
+                var pts = o.polygon || [];
+                if (pts.length < 3) { continue; }
+                // Shoelace, in Tiled PIXELS, then back to world units.
+                var a2 = 0;
+                for (var k = 0; k < pts.length; k++) {
+                    var b = pts[(k + 1) % pts.length];
+                    a2 += pts[k].x * b.y - b.x * pts[k].y;
+                }
+                var area = Math.abs(a2) / 2 / (PX * PX);
+                var cells = Math.ceil(area / (POLY_CELL * POLY_CELL));
+                if (cells > POLY_BODY_CAP) {
+                    notes.push('paths #' + (o.id !== undefined ? o.id : '?')
+                        + (o.name ? ' "' + o.name + '"' : '')
+                        + ': this blocking polygon is large (~' + Math.round(area)
+                        + ' sq units, roughly ' + cells + ' cells at ' + POLY_CELL
+                        + 'u against a cap of ' + POLY_BODY_CAP + '). The server will'
+                        + ' COARSEN its collision to fit and boot normally, so it will'
+                        + ' block more bluntly than other shapes. This is a rough'
+                        + ' estimate that ignores merging — the server decides, and'
+                        + ' will report a smaller number. Split the shape if the'
+                        + ' bluntness matters.');
+                }
+            }
+        }
+        return notes;
+    }
+
     function validateModel(m) {
         var errors = [];
         function bad(o, i, msg) {
@@ -759,6 +918,12 @@ var AuraConvert = (function () {
                 if (m.layers[i].name === name) { return m.layers[i].objects || []; }
             }
             return [];
+        }
+        // ⚑ The paths layer holds TWO classes since plan-zone-polygons.md D5.
+        // Everything that reads it must say which one it wants, or a polygon
+        // gets read as a width-less path.
+        function onLayer(name, cls) {
+            return layer(name).filter(function (o) { return o.cls === cls; });
         }
         function prop(o, k) {
             return o.properties && o.properties[k] !== undefined && o.properties[k] !== null
@@ -983,9 +1148,63 @@ var AuraConvert = (function () {
             }
         });
 
+        // ⭐ THE SHARED LAYER'S OWN CHECK (L2b, the one cost of D5). Two classes
+        // live here and modelToZone routes by class, so an object that is
+        // NEITHER lands in neither array and vanishes on the next save with
+        // every other check green. This is the only thing that says so, and the
+        // layer-per-type scheme got it for free.
+        layer('paths').forEach(function (o, i) {
+            if (o.cls !== 'AuraPath' && o.cls !== 'AuraPolygon') {
+                bad(o, i, 'is on the paths layer but its Class is '
+                    + (o.cls ? '"' + o.cls + '"' : 'not set')
+                    + ' — this layer holds AuraPath (a stroked line) and AuraPolygon'
+                    + ' (a filled area), and anything else is DROPPED on save.'
+                    + ' Set the Class in the Properties panel');
+            }
+        });
+
+        // ⚑ The outline pair is ALL-OR-NOTHING, and both half-authored forms
+        // fail SILENTLY: a named profile with no width strokes zero pixels, a
+        // width with no profile strokes nothing at all. Either one looks exactly
+        // like the outline feature not working, which is why they are refused
+        // here rather than absorbed. Mirrors validateOutline in world/zone.go.
+        layer('paths').forEach(function (o, i) {
+            var op = prop(o, 'outlineProfile');
+            var ow = prop(o, 'outlineWidth');
+            var named = op !== undefined && plainValue(op) !== ''
+                && plainValue(op) !== PROFILE_UNSET;
+            var w = typeof ow === 'number' ? ow : 0;
+            if (named && w <= 0) {
+                bad(o, i, 'outlineProfile is set but outlineWidth is ' + w
+                    + ' — a zero-wide outline draws nothing. Give it a width, or'
+                    + ' put outlineProfile back to "' + PROFILE_UNSET + '"');
+            } else if (!named && w !== 0) {
+                bad(o, i, 'outlineWidth is ' + w + ' but no outlineProfile is chosen'
+                    + ' — the width draws nothing on its own. Pick an outline profile,'
+                    + ' or set the width back to 0');
+            }
+            if (named && profilesKnown && !hasValue(content.PROFILE_NAMES, plainValue(op))) {
+                bad(o, i, 'unknown outline profile "' + plainValue(op) + '" — known profiles are: '
+                    + content.PROFILE_NAMES.join(', '));
+            }
+        });
+
+        // Polygons carry the same profile vocabulary and get the same messages.
+        onLayer('paths', 'AuraPolygon').forEach(function (o, i) {
+            checkProfile(o, i, profilesKnown);
+            var n = (o.polygon || []).length;
+            if (o.shape !== 'polygon') {
+                bad(o, i, 'an AuraPolygon must be a POLYGON — it is a filled AREA, and'
+                    + ' an open shape has no inside to fill. Draw it with the polygon'
+                    + ' tool, or change its Class to AuraPath');
+            } else if (n < 3) {
+                bad(o, i, 'needs at least 3 points to enclose an area, has ' + n);
+            }
+        });
+
         // Paths carry the SAME profile vocabulary as regions, so the same three
         // profile mistakes get the same three messages, from the same function.
-        layer('paths').forEach(function (o, i) {
+        onLayer('paths', 'AuraPath').forEach(function (o, i) {
             checkProfile(o, i, profilesKnown);
             var n = (o.polygon || []).length;
             // ⭐ BOTH shapes are legal here, and which one it is IS the closed
@@ -1088,6 +1307,7 @@ var AuraConvert = (function () {
         zoneToModel: zoneToModel,
         modelToZone: modelToZone,
         validateModel: validateModel,
+        polygonNotices: polygonNotices,
         formatErrors: formatErrors,
         SPAWN_INHERIT: SPAWN_INHERIT,
         SPAWN_ENUMS: SPAWN_ENUMS,

@@ -21,7 +21,7 @@
  * containment test is a distance-to-polyline this module deliberately does not
  * build. When an audio consumer wants "am I on a road", that is its own chunk.
  */
-import {Region} from '../../regions/logic/Regions';
+import {Outlined, outlineOf, Region} from '../../regions/logic/Regions';
 import {meter2px} from '../../../client-data/BasicConfig';
 
 /**
@@ -31,7 +31,7 @@ import {meter2px} from '../../../client-data/BasicConfig';
  * unchanged — which is what makes "one profile table, two shapes" true in the
  * type system rather than only in the comments.
  */
-export interface Path extends Region {
+export interface Path extends Region, Outlined {
     /** Stroke width in world PIXELS (the zone authors server units). */
     width: number;
     /**
@@ -51,6 +51,8 @@ export interface PathDefinition {
     width: number;
     blocksMovement?: boolean;
     closed?: boolean;
+    outlineProfile?: string;
+    outlineWidth?: number;
 }
 
 let paths: Path[] = [];
@@ -81,6 +83,7 @@ export function toPaths(defs: PathDefinition[] | undefined, origin?: {x: number,
             // would close the ring — Pixi's own default is true, which is the
             // opposite of what a path means.
             closed: p.closed === true,
+            ...outlineOf(p),
         }))
         // A path needs two points to be a line and a width to be visible, and a
         // CLOSED one needs three to be a ring. All three are server-validated;

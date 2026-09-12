@@ -151,9 +151,28 @@ export interface ZonePath {
     points: { x: number, y: number }[];
     width: number;
     blocksMovement?: boolean;
+    // A second surface along the boundary (plan-zone-polygons.md D3). Carried,
+    // never edited, like everything else here.
+    outlineProfile?: string;
+    outlineWidth?: number;
     // Tri-state for the same reason blocksMovement is: false is the authored
     // default, so an open path must export with no key at all.
     closed?: boolean;
+}
+
+// A filled mass — a rock, a building footprint, a lake (plan-zone-polygons.md
+// P2).
+//
+// ⚑ Carried, never edited, exactly like ZoneRegion and ZonePath: polygons are
+// placed in Tiled and everything here exists so an in-game save carries them
+// through untouched (L1). blocksMovement is tri-state for the same reason it is
+// on a path.
+export interface ZonePolygon {
+    profile: string;
+    points: { x: number, y: number }[];
+    blocksMovement?: boolean;
+    outlineProfile?: string;
+    outlineWidth?: number;
 }
 
 export interface ZoneData {
@@ -177,6 +196,7 @@ export interface ZoneData {
     // Omitted when empty so pre-step-5 zones round-trip diff-clean.
     regions?: ZoneRegion[];
     paths?: ZonePath[];
+    polygons?: ZonePolygon[];
     // Omitted when empty so pre-C6 zones round-trip diff-clean.
     anchors?: ZoneAnchor[];
 }
@@ -275,6 +295,7 @@ export class ZoneModel {
     regions: ZoneRegion[] = [];
     // Carried, never edited — see ZonePath and the region field above.
     paths: ZonePath[] = [];
+    polygons: ZonePolygon[] = [];
     // Carried, never edited — see ZoneData.origin. undefined means the zone
     // authors no origin at all, which must serialize back to NO KEY rather
     // than to {x: 0, y: 0}, or every existing zone file gains a line on its
@@ -322,6 +343,15 @@ export class ZoneModel {
             width: p.width,
             blocksMovement: p.blocksMovement,
             closed: p.closed,
+            outlineProfile: p.outlineProfile,
+            outlineWidth: p.outlineWidth,
+        }));
+        model.polygons = (data.polygons || []).map(g => ({
+            profile: g.profile,
+            points: (g.points || []).map(pt => ({...pt})),
+            blocksMovement: g.blocksMovement,
+            outlineProfile: g.outlineProfile,
+            outlineWidth: g.outlineWidth,
         }));
         model.origin = data.origin ? {x: data.origin.x, y: data.origin.y} : undefined;
         return model;
@@ -514,6 +544,23 @@ export class ZoneModel {
                     width: round(p.width, 2),
                     blocksMovement: p.blocksMovement ? true : undefined,
                     closed: p.closed ? true : undefined,
+                    // ⚑ The pair is all-or-nothing: a width without a profile
+                    // draws nothing and the server refuses it, so the profile
+                    // gates both keys.
+                    outlineProfile: p.outlineProfile || undefined,
+                    outlineWidth: p.outlineProfile ? round(p.outlineWidth || 0, 2) : undefined,
+                }))
+                : undefined,
+            // ⚑ Named here or the whitelist eats it (L1) — the fifth time this
+            // comment has had to be written, after spawn.level, prop.scale,
+            // regions and paths. This editor cannot author a polygon either.
+            polygons: this.polygons.length > 0
+                ? this.polygons.map(g => ({
+                    profile: g.profile,
+                    points: g.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
+                    blocksMovement: g.blocksMovement ? true : undefined,
+                    outlineProfile: g.outlineProfile || undefined,
+                    outlineWidth: g.outlineProfile ? round(g.outlineWidth || 0, 2) : undefined,
                 }))
                 : undefined,
             // Omitted (undefined key) while empty, so pre-C6 zones round-trip

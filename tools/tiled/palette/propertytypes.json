@@ -159,6 +159,7 @@
         "Wasteland",
         "Mountains",
         "Ice",
+        "Wall",
         "Road",
         "Water"
       ],
@@ -269,11 +270,57 @@
           "name": "blocksMovement",
           "type": "bool",
           "value": false
+        },
+        {
+          "name": "outlineProfile",
+          "type": "string",
+          "propertyType": "AuraProfile",
+          "value": "(pick a profile)"
+        },
+        {
+          "name": "outlineWidth",
+          "type": "float",
+          "value": 0
         }
       ]
     },
     {
       "id": 14,
+      "name": "AuraPolygon",
+      "type": "class",
+      "color": "#ff8d6e63",
+      "drawFill": true,
+      "useAs": [
+        "property",
+        "object"
+      ],
+      "members": [
+        {
+          "name": "profile",
+          "type": "string",
+          "propertyType": "AuraProfile",
+          "value": "(pick a profile)"
+        },
+        {
+          "name": "blocksMovement",
+          "type": "bool",
+          "value": false
+        },
+        {
+          "name": "outlineProfile",
+          "type": "string",
+          "propertyType": "AuraProfile",
+          "value": "(pick a profile)"
+        },
+        {
+          "name": "outlineWidth",
+          "type": "float",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": 15,
       "name": "AuraSpawnCombat",
       "type": "class",
       "color": "#ff4caf50",
@@ -328,7 +375,7 @@
       ]
     },
     {
-      "id": 15,
+      "id": 16,
       "name": "AuraSpawnTalker",
       "type": "class",
       "color": "#ffe91e63",
@@ -383,7 +430,7 @@
       ]
     },
     {
-      "id": 16,
+      "id": 17,
       "name": "AuraSpawnFixture",
       "type": "class",
       "color": "#ff9e9e9e",
@@ -438,7 +485,7 @@
       ]
     },
     {
-      "id": 17,
+      "id": 18,
       "name": "AuraSpawnCompanion",
       "type": "class",
       "color": "#ff795548",

@@ -530,6 +530,140 @@ describe('AuraConvert — save-time validation (C4)', () => {
         expect(out.paths[0]).not.toHaveProperty('closed');
     });
 
+    // ---- polygons, sharing the paths layer (plan-zone-polygons.md D5) -----
+
+    function polyZone(over: Record<string, unknown> = {}) {
+        return zone({
+            polygons: [{
+                profile: 'Fields',
+                points: [{x: 0, y: 0}, {x: 5, y: 0}, {x: 5, y: 5}],
+                ...over,
+            }],
+        });
+    }
+
+    it('a well-formed polygon validates cleanly', () => {
+        expect(errs(polyZone())).toEqual([]);
+    });
+
+    it('a polygon needs three points to enclose an area', () => {
+        expect(only(polyZone({points: [{x: 0, y: 0}, {x: 5, y: 0}]})))
+            .toContain('at least 3 points');
+    });
+
+    it('a polygon naming a profile that does not exist is refused', () => {
+        expect(only(polyZone({profile: 'Nope'}))).toContain('unknown profile "Nope"');
+    });
+
+    // ⭐ L2b — THE one check the layer-per-type scheme got for free. Two classes
+    // share this layer and modelToZone routes by class, so an object that is
+    // NEITHER lands in neither array and vanishes on the next save with every
+    // other check green.
+    it('an object on the paths layer with no recognised class is refused by id', () => {
+        const model = C.zoneToModel(polyZone());
+        const layer = model.layers.find((l: {name: string}) => l.name === 'paths');
+        layer.objects.push({
+            shape: 'polygon', layer: 'paths', name: 'stray', cls: '', id: 4242,
+            x: 0, y: 0, width: 0, height: 0, rotation: 0, flipH: false, flipV: false,
+            polygon: [{x: 0, y: 0}, {x: 10, y: 0}, {x: 10, y: 10}], properties: {},
+        });
+        const msg = C.validateModel(model).join(' | ');
+        expect(msg).toContain('AuraPath');
+        expect(msg).toContain('AuraPolygon');
+        expect(msg).toContain('DROPPED on save');
+    });
+
+    // ⭐ The two classes must not read each other's objects. A polygon read as a
+    // path would come back width-less (and be refused for it, which at least is
+    // loud); a path read as a polygon would come back as a filled shape, which
+    // is not loud at all.
+    it('paths and polygons on one layer round-trip into their own arrays', () => {
+        const z = zone({
+            paths: [{profile: 'Road', points: [{x: 0, y: 0}, {x: 5, y: 2}], width: 3}],
+            polygons: [{profile: 'Water', points: [{x: 1, y: 1}, {x: 6, y: 1}, {x: 6, y: 6}]}],
+        });
+        const model = C.zoneToModel(z);
+        const layer = model.layers.find((l: {name: string}) => l.name === 'paths');
+        expect(layer.objects.map((o: {cls: string}) => o.cls)).toEqual(['AuraPolygon', 'AuraPath']);
+
+        const back = C.modelToZone(model);
+        expect(back.paths).toHaveLength(1);
+        expect(back.paths[0].profile).toBe('Road');
+        expect(back.polygons).toHaveLength(1);
+        expect(back.polygons[0].profile).toBe('Water');
+        expect(back.polygons[0]).not.toHaveProperty('width');
+    });
+
+    it('a decorative polygon emits no blocksMovement key', () => {
+        const out = JSON.parse(C.serializeZone(C.modelToZone(C.zoneToModel(polyZone()))));
+        expect(out.polygons[0]).not.toHaveProperty('blocksMovement');
+    });
+
+    // ---- outlines, on both surface types (plan-zone-polygons.md D3) -------
+
+    it('an outline round-trips on a path and on a polygon alike', () => {
+        const z = zone({
+            paths: [{
+                profile: 'Road', points: [{x: 0, y: 0}, {x: 5, y: 0}], width: 2,
+                outlineProfile: 'Desert', outlineWidth: 0.5,
+            }],
+            polygons: [{
+                profile: 'Water', points: [{x: -8, y: -4}, {x: -2, y: -4}, {x: -2, y: 2}],
+                outlineProfile: 'Coast', outlineWidth: 1.25,
+            }],
+        });
+        const back = C.modelToZone(C.zoneToModel(z));
+        expect(back.paths[0].outlineProfile).toBe('Desert');
+        expect(back.paths[0].outlineWidth).toBe(0.5);
+        expect(back.polygons[0].outlineProfile).toBe('Coast');
+        expect(back.polygons[0].outlineWidth).toBe(1.25);
+    });
+
+    // ⚑ Tri-state, like every other optional key: a shape with no outline must
+    // not grow two keys nobody wrote, or every zone file changes on the next
+    // save.
+    it('a shape with no outline emits neither key', () => {
+        const out = JSON.parse(C.serializeZone(C.modelToZone(C.zoneToModel(pathZone()))));
+        expect(out.paths[0]).not.toHaveProperty('outlineProfile');
+        expect(out.paths[0]).not.toHaveProperty('outlineWidth');
+    });
+
+    // ⭐ Both half-authored forms fail SILENTLY in game — a named profile with no
+    // width strokes zero pixels, a width with no profile strokes nothing — so
+    // both are refused rather than absorbed. Mirrors validateOutline in zone.go.
+    it('refuses a half-authored outline, both ways round', () => {
+        expect(only(pathZone({outlineProfile: 'Desert', outlineWidth: 0})))
+            .toContain('a zero-wide outline draws nothing');
+
+        // ⚑ The other half has to be built on the MODEL, not in a zone file: a
+        // width with no profile is a mistake you can only make in Tiled's
+        // Properties panel, because both writers gate the width on the profile
+        // and would drop it on the way in. That is the point of checking it
+        // here — this is the only layer that can still see it.
+        const model = C.zoneToModel(pathZone());
+        const obj = model.layers.find((l: {name: string}) => l.name === 'paths').objects[0];
+        obj.properties.outlineWidth = 2;
+        expect(C.validateModel(model).join(' | ')).toContain('no outlineProfile is chosen');
+    });
+
+    it('refuses an outline profile that does not exist', () => {
+        expect(only(pathZone({outlineProfile: 'Nope', outlineWidth: 1})))
+            .toContain('unknown outline profile "Nope"');
+    });
+
+    // ⚑ The placeholder is LEGAL on outlineProfile and refused on profile — the
+    // same sentinel meaning two different things, because Tiled has no nullable
+    // enum. This is the pin that keeps someone from "tidying" that up.
+    it('the profile placeholder means NO OUTLINE, not a mistake', () => {
+        const z = pathZone();
+        const model = C.zoneToModel(z);
+        const obj = model.layers.find((l: {name: string}) => l.name === 'paths').objects[0];
+        obj.properties.outlineProfile = C.PROFILE_UNSET;
+        obj.properties.outlineWidth = 0;
+        expect(C.validateModel(model)).toEqual([]);
+        expect(C.modelToZone(model).paths[0].outlineProfile).toBeUndefined();
+    });
+
     it('the shipped world.json has nothing to complain about', () => {
         expect(C.validateModel(C.zoneToModel(JSON.parse(worldText)))).toEqual([]);
     });
@@ -868,9 +1002,23 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         // Tiled shape rather than from a property — so a fixture that left it
         // out would exercise the polyline branch only, and both writers could
         // quietly drop every moat in the world with this pin still green.
+        // ⚑ The outline pair is authored on BOTH types, not just one: they are
+        // the same two keys read by the same helper, so a fixture that exercised
+        // only the path would leave the polygon's half of that helper untested
+        // and this pin green.
         paths: [{
             profile: 'Water', points: [{x: 1, y: 1}, {x: 5, y: 2}, {x: 4, y: 6}],
             width: 3, blocksMovement: true, closed: true,
+            outlineProfile: 'Coast', outlineWidth: 0.5,
+        }],
+        // ⚑ blocksMovement TRUE for the same tri-state reason as the path above:
+        // false is the authored default, so a decorative fixture would never
+        // emit the key and this pin would pass while both writers dropped it.
+        polygons: [{
+            profile: 'Mountains',
+            points: [{x: 2, y: 1}, {x: 6, y: 1}, {x: 6, y: 5}],
+            blocksMovement: true,
+            outlineProfile: 'Ice', outlineWidth: 1.25,
         }],
         anchors: [{name: 'a', x: 8, y: 8}],
     };

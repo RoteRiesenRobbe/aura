@@ -204,6 +204,22 @@ function propertyTypes(terrain, props, mobs, profiles) {
     const member = (name, type, value, propertyType) =>
         propertyType ? {name, type, propertyType, value} : {name, type, value};
 
+    // A second surface along the shape's boundary — a riverbank, a mortar edge,
+    // a cliff lip (plan-zone-polygons.md D3). On BOTH surface classes, because
+    // they carry exactly the same pair.
+    //
+    // ⚑ Leaving outlineProfile at the placeholder means NO OUTLINE here, which
+    // is legal — unlike `profile`, where the same sentinel is refused. Tiled has
+    // no nullable enum, so one value has to mean "unset" on both members and the
+    // validator decides what unset means per member.
+    // ⛔ outlineWidth is DECORATION and never touches collision (L4). On a
+    // polygon it is also the ONLY width there is, which is the thing an author
+    // reaching for "how wide is my wall" will find (L7).
+    const OUTLINE_MEMBERS = [
+        member('outlineProfile', 'string', PROFILE_UNSET, 'AuraProfile'),
+        member('outlineWidth', 'float', 0),
+    ];
+
     // ⭐ The defaults are READ FROM the converter, never retyped here. They must
     // equal its inherit sentinels exactly, and the cheapest way to guarantee
     // that is to have one definition rather than two that a test compares.
@@ -252,7 +268,19 @@ function propertyTypes(terrain, props, mobs, profiles) {
         classType('AuraPath', '#ff03a9f4',
             [member('profile', 'string', PROFILE_UNSET, 'AuraProfile'),
                 member('width', 'float', 0),
-                member('blocksMovement', 'bool', false)]),
+                member('blocksMovement', 'bool', false),
+                ...OUTLINE_MEMBERS]),
+        // ⚑ A filled AREA, sharing the paths layer and told apart by this class
+        // (plan-zone-polygons.md D5). It has NO width member on purpose: a
+        // polygon has no stroke to be wide, and an author who reaches for "how
+        // wide is my wall" should find nothing rather than a field that quietly
+        // means something else (L7). ⛔ A blocking polygon can SEAL A REGION OFF
+        // rather than merely across — a path can only cut a line, a polygon has
+        // an inside — and no automated check catches that (L3).
+        classType('AuraPolygon', '#ff8d6e63',
+            [member('profile', 'string', PROFILE_UNSET, 'AuraProfile'),
+                member('blocksMovement', 'bool', false),
+                ...OUTLINE_MEMBERS]),
     ];
     for (const kind of Object.keys(KIND_COLOUR)) {
         types.push(classType('AuraSpawn' + kind[0].toUpperCase() + kind.slice(1),
@@ -333,4 +361,4 @@ console.log(`props.tsx          ${props.length} props (${props.map(p => p.type).
 const nEnum = types.filter(t => t.type === 'enum').length;
 console.log(`custom types       ${types.length} (${nEnum} enums + ${types.length - nEnum} classes) → aura.tiled-project + palette/propertytypes.json`);
 console.log(`content.json       ${terrain.length} textures, ${props.length} props, ${mobs.length} mobs ${JSON.stringify(kindCounts)}`);
-console.log(`region profiles    ${profiles.length} (${profiles.join(', ')}) → AuraProfile + AuraRegion + AuraPath`);
+console.log(`region profiles    ${profiles.length} (${profiles.join(', ')}) → AuraProfile + AuraRegion + AuraPath + AuraPolygon`);

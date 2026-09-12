@@ -24,9 +24,10 @@ import {
     TilingSprite,
 } from 'pixi.js';
 import {
-    neededTextures, Region, regionBlend, RegionPoint, regionPaintSpec, regionScroll,
+    neededTextures, Outlined, Region, regionBlend, RegionPoint, regionPaintSpec, regionScroll,
 } from './Regions';
 import {Path} from '../../paths/logic/Paths';
+import {Polygon} from '../../polygons/logic/Polygons';
 import {meter2px} from '../../../client-data/BasicConfig';
 import {isMobile} from '../../user-interface/logic/Mobile';
 
@@ -511,6 +512,81 @@ export function paintRegions(
 }
 
 /**
+ * Draws ONE surface's outline, if it authored one (plan-zone-polygons.md D3).
+ *
+ * ⭐ The outline is a SECOND SURFACE with a SECOND PROFILE, run through the same
+ * `paintSurface` the body just used. That is what makes it carry its own blend:
+ * a wall names an outline profile with `blend: 0` and gets a hard rim, a
+ * riverbank names one with `blend: 0.3` and gets a soft one, and neither
+ * constrains the surface underneath. ⭐ It also gets `scroll` for free, which is
+ * how a lake's shoreline can drift with the lake.
+ *
+ * ⚑ THE FOOTPRINT MUST GROW BY HALF THE OUTLINE WIDTH. A stroke centred on the
+ * boundary overhangs it by `outlineWidth / 2`, and a mask sized to the blend
+ * alone CLIPS it — which reads in-game as the BLEND being broken, not the box
+ * being too small. Identical trap to the one C1 hit and fixed for a path's own
+ * stroke; the machinery was already there, it just needed the third term.
+ *
+ * ⛔ Drawn per object immediately after that object's body, never in a second
+ * pass over everything: array order governs overlap exactly as it does for every
+ * other surface, so a later object's body covers an earlier object's outline.
+ */
+function paintOutline(
+    container: Container,
+    surface: Outlined,
+    points: RegionPoint[],
+    closed: boolean,
+    renderer: Renderer,
+    out: PaintedSurfaces,
+): void {
+    const width = surface.outlineWidth;
+    if (!surface.outlineProfile || !width) { return; }
+    // A surface of its own, so every profile lookup below reads the OUTLINE's
+    // entry and not the body's.
+    const rim: Region = {profile: surface.outlineProfile, points};
+    const draw: DrawSurface = (g, style) => g
+        .poly(points, closed)
+        .stroke({...style, width, cap: PATH_CAP, join: PATH_JOIN});
+    const blend = regionBlend(rim);
+    const mask = blend > 0
+        ? buildBlendMask(renderer, points, blend, g => draw(g, {color: 0xffffff}), width / 2)
+        : null;
+    paintSurface(container, rim, points, draw, mask, width / 2, out);
+}
+
+/**
+ * Draws every polygon into `container`, in AUTHORED ORDER (plan-zone-polygons.md
+ * P2).
+ *
+ * ⭐ The draw is BYTE-FOR-BYTE a region's — same callback, same mask, same
+ * helper — and that is the claim this primitive rests on. What differs is not
+ * the drawing but the MEANING: a region is a material `Regions.resolve()`
+ * answers with, a polygon is a thing. ⛔ Which is why this is a second function
+ * over a second array and not a longer `regions` list: sharing the draw call is
+ * free, sharing the lookup would put cave walls in the footstep table.
+ */
+export function paintPolygons(
+    container: Container,
+    polygons: Polygon[],
+    renderer: Renderer,
+): PaintedSurfaces {
+    const out: PaintedSurfaces = {masks: [], scrollers: []};
+    polygons.forEach((polygon) => {
+        // No second argument: `poly()` closes by construction, and a polygon is
+        // closed by definition. An OPEN filled shape is not a thing this
+        // primitive can express, deliberately — that shape is a path.
+        const draw: DrawSurface = (g, style) => g.poly(polygon.points).fill(style);
+        const blend = regionBlend(polygon);
+        const mask = blend > 0
+            ? buildBlendMask(renderer, polygon.points, blend, g => draw(g, {color: 0xffffff}))
+            : null;
+        paintSurface(container, polygon, polygon.points, draw, mask, 0, out);
+        paintOutline(container, polygon, polygon.points, true, renderer, out);
+    });
+    return out;
+}
+
+/**
  * The stroke geometry every path is drawn with. Round on both counts (D10):
  * a butt cap reads as a river snipped off with scissors, and a mitre join
  * spikes outward at a sharp bend in a way no riverbank does.
@@ -551,6 +627,9 @@ export function paintPaths(
                 g => draw(g, {color: 0xffffff}), path.width / 2)
             : null;
         paintSurface(container, path, path.points, draw, mask, path.width / 2, out);
+        // ⚑ The outline follows the path's OWN closure: a ring road's rim has to
+        // close with it, or the seam shows as a notch in the kerb.
+        paintOutline(container, path, path.points, path.closed === true, renderer, out);
     });
     return out;
 }
@@ -559,15 +638,16 @@ export function paintPaths(
  * ⭐ THE entry point both draw sites use — the world (Game.paintTerrainSurfaces)
  * and the full-screen map (MapTerrain.bakeTerrain).
  *
- * Regions first, then paths: a road lies ON the field it crosses. Taking both
- * arrays through ONE function is not tidiness — plan-region-primitive.md L2
- * records that a draw site left behind does not degrade, it produces a MAP THAT
- * IS A WRONG DRAWING OF THE WORLD, in a form no single screenshot catches. That
- * lesson cost a chunk once; a third surface added later cannot repeat it,
- * because there is only one place to add it.
+ * Regions, then polygons, then paths: material, then masses, then ribbons — so
+ * a road still runs on top of everything. Taking all three arrays through ONE
+ * function is not tidiness — plan-region-primitive.md L2 records that a draw
+ * site left behind does not degrade, it produces a MAP THAT IS A WRONG DRAWING
+ * OF THE WORLD, in a form no single screenshot catches. That lesson cost a
+ * chunk once; ⭐ the third surface arrived at plan-zone-polygons.md P2 and cost
+ * exactly one line per draw site, which is the whole point of this shape.
  *
- * Two containers so the world can keep its layers separate; the map passes the
- * same scratch container twice, and gets the same order either way.
+ * Three containers so the world can keep its layers separate; the map passes
+ * the same scratch container three times, and gets the same order either way.
  *
  * ⚑ EVERYTHING IT RETURNS IS THE CALLER'S — see {@link PaintedSurfaces}.
  *
@@ -579,15 +659,20 @@ export function paintPaths(
  */
 export function paintTerrainSurfaces(
     regionContainer: Container,
+    polygonContainer: Container,
     pathContainer: Container,
     regions: Region[],
+    polygons: Polygon[],
     paths: Path[],
     renderer: Renderer,
 ): PaintedSurfaces {
-    const fromRegions = paintRegions(regionContainer, regions, renderer);
-    const fromPaths = paintPaths(pathContainer, paths, renderer);
+    const painted = [
+        paintRegions(regionContainer, regions, renderer),
+        paintPolygons(polygonContainer, polygons, renderer),
+        paintPaths(pathContainer, paths, renderer),
+    ];
     return {
-        masks: fromRegions.masks.concat(fromPaths.masks),
-        scrollers: fromRegions.scrollers.concat(fromPaths.scrollers),
+        masks: painted.flatMap(p => p.masks),
+        scrollers: painted.flatMap(p => p.scrollers),
     };
 }

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log/slog"
+
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
@@ -103,18 +105,29 @@ func allAnchors(zones []*world.Zone) map[string]world.Point {
 	return out
 }
 
-// allCorridors builds each zone's blocking-path collision bodies and
-// concatenates them. Per zone rather than over a merged path list because
-// world.PathCorridors resolves bridges against that zone's own props
+// allCorridors builds each zone's blocking-path and blocking-polygon collision
+// bodies and concatenates them. Per zone rather than over a merged list because
+// both builders resolve bridges against that zone's own props
 // (plan-world-paths.md C2) — merging first would let a bridge in one zone clear
 // a river in another.
+//
+// ⚑ It also LOGS every polygon whose interior had to be coarsened to fit the cap
+// (plan-zone-polygons.md D6). That log is not decoration: the accepted cost of
+// never refusing to boot is that one rock's collision is blockier than every
+// other rock's and nothing on screen says so, and this is half of what defeats
+// that. The other half is the non-blocking notice in Tiled.
 func allCorridors(zones []*world.Zone) []world.Corridor {
-	if len(zones) == 1 {
-		return world.PathCorridors(zones[0])
-	}
 	var out []world.Corridor
 	for _, z := range zones {
 		out = append(out, world.PathCorridors(z)...)
+		bodies, coarsened := world.PolygonColliders(z)
+		out = append(out, bodies...)
+		for _, c := range coarsened {
+			slog.Warn("polygon collider coarsened to fit the body cap",
+				"zone", z.ID, "polygon", c.Index,
+				"cell", c.Cell, "authoredCell", c.FromCell,
+				"bodies", c.Bodies, "wouldHaveBeen", c.FromBodies)
+		}
 	}
 	return out
 }

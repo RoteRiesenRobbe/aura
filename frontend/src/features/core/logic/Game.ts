@@ -25,6 +25,7 @@ import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import * as Regions from '../../regions/logic/Regions';
 import {Region} from '../../regions/logic/Regions';
 import * as Paths from '../../paths/logic/Paths';
+import * as Polygons from '../../polygons/logic/Polygons';
 import * as RegionPaint from '../../regions/logic/RegionPaint';
 import {GameState, IGame, IGameLayers} from './IGame';
 import {gameObjectId} from '../../common/logic/Types';
@@ -247,6 +248,10 @@ export class Game implements IGame {
                 // crosses, and the blobs keep doing edge treatment on top of
                 // both. A bridge is a PROP (D6) and therefore an entity, so it
                 // draws far above this — nothing here has to know about it.
+                // Filled masses (plan-zone-polygons.md P2): OVER the region
+                // ground, UNDER the paths. Material, then masses, then ribbons —
+                // a rock sits on the field, and a road still runs over the rock.
+                polygons: createNamedContainer('polygons'),
                 paths: createNamedContainer('paths'),
                 textures: createNamedContainer('textures'),
                 resourceSpots: createNamedContainer('resourceSpots'),
@@ -309,6 +314,7 @@ export class Game implements IGame {
         this.cameraGroup.addChild(
             this.layers.terrain.ground,
             this.layers.terrain.regions,
+            this.layers.terrain.polygons,
             this.layers.terrain.paths,
             this.layers.terrain.textures,
             this.layers.terrain.resourceSpots,
@@ -667,6 +673,7 @@ export class Game implements IGame {
         const zoneData = GroundTextureManager.getZoneData(zoneName);
         const origin = rect ? {x: rect.originX, y: rect.originY} : undefined;
         Regions.loadRegions(zoneData?.regions, origin);
+        Polygons.loadPolygons(zoneData?.polygons, origin);
         Paths.loadPaths(zoneData?.paths, origin);
         this.paintTerrainSurfaces();
         // The zone's ground tiles (C4). Loaded HERE and not through Preloading:
@@ -677,7 +684,9 @@ export class Game implements IGame {
         // ⚑ BOTH arrays, or a zone whose only textured profile is a river
         // loads nothing and the water paints its fallback colour forever.
         RegionPaint.loadZoneTextures(
-            (Regions.loadedRegions() as Region[]).concat(Paths.loadedPaths()),
+            (Regions.loadedRegions() as Region[])
+                .concat(Polygons.loadedPolygons())
+                .concat(Paths.loadedPaths()),
         ).then((landed) => {
             if (!landed) { return; }
             // ⚑ A late texture load must not repaint a zone the player has
@@ -750,6 +759,7 @@ export class Game implements IGame {
 
     private paintTerrainSurfaces(): void {
         const layer = this.layers.terrain.regions;
+        const polygonLayer = this.layers.terrain.polygons;
         const pathLayer = this.layers.terrain.paths;
         // ⚑ Bare `destroy()`, deliberately: with no options Pixi frees the
         // Graphics' OWN context (its geometry) and leaves textures alone, which
@@ -757,6 +767,7 @@ export class Game implements IGame {
         // profile and by the map's bake. Passing `{texture: false}` would read
         // as the safer call and actually leak the context instead.
         layer.removeChildren().forEach(child => child.destroy());
+        polygonLayer.removeChildren().forEach(child => child.destroy());
         pathLayer.removeChildren().forEach(child => child.destroy());
         // ⚑ …but a C5 blend mask is NOT shared, and the line above deliberately
         // does not free it. One RenderTexture per feathered region per paint,
@@ -766,8 +777,8 @@ export class Game implements IGame {
         // handed them back; nothing else holds a reference.
         this.regionMasks.forEach(texture => texture.destroy(true));
         const painted = RegionPaint.paintTerrainSurfaces(
-            layer, pathLayer,
-            Regions.loadedRegions(), Paths.loadedPaths(),
+            layer, polygonLayer, pathLayer,
+            Regions.loadedRegions(), Polygons.loadedPolygons(), Paths.loadedPaths(),
             this.application.renderer);
         this.regionMasks = painted.masks;
         // ⚑ The scrollers need no freeing of their own - their sprites are the
