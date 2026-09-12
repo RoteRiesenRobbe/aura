@@ -1558,8 +1558,9 @@ registry pin makes this chunk touch Go after all: `go test -count=1 -timeout
 `./aurad -validate -content ../api` **`0 finding(s)`, exit 0** with
 `Loaded skill definitions count=106`.
 
-**PO look (2026-09-12): PASSED, and it produced a spell, a plan and two UI
-fixes.** The PO authored **`SummonSpider`** end to end in the tab (a `spawn`
+**PO look (2026-09-12): no verdict word was given; the PO's own words were
+"works and behaves as I guess would be technically expected", and the look
+produced a spell, a plan and two UI fixes.** The PO authored **`SummonSpider`** end to end in the tab (a `spawn`
 cooldown of the wild `Spider`, maxLevel 5, `ttlTicks` 1800 +150/level, cost
 5 % of max +0.75 %/level): the new-skill flow wrote the file, the seam
 validated it, a boot loaded it (`count=106`) and the PO cast it in game. The
