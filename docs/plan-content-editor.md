@@ -3,7 +3,7 @@
 > **Status 2026-09-12: Part A SHIPPED (2026-08-27/28, `ebf4cfe5` + `6c2e6d5c`),
 > Part B DESIGNED 2026-09-08, C0 SHIPPED 2026-09-10 (`60fb44d2`), C1 SHIPPED
 > 2026-09-11 (`7b90fb5e`) and PO-passed the same day, C2 SHIPPED 2026-09-11
-> (`5a9b5650`), C3 SHIPPED 2026-09-12 (`[uncommitted]`) and PO-passed the
+> (`5a9b5650`), C3 SHIPPED 2026-09-12 (`dd05b9f4`) and PO-passed the
 > same day (§B11 Q6 closed: no reformat, plus the same-day category-rule
 > rider), C4 next.** This is the living plan of the one tool: **Part A** is
 > the original design (NPC dialogue trees + quest stage
@@ -628,7 +628,7 @@ Six, each its own session; C0, C2 and C5 carry Go.
   the real `api/` (exit 0) and over a fixture tree with one broken skill
   (exit 1, the finding named). Editor: the temp-copy-and-run path in
   `server.mjs`, exercised by `smoke.mjs` against the real tree.
-- **C3 - editing and saving.** ✅ **SHIPPED 2026-09-12 `[uncommitted]`** (ledger §B12 C3). In-place edits of the raw object (never
+- **C3 - editing and saving.** ✅ **SHIPPED 2026-09-12 `dd05b9f4`** (ledger §B12 C3). In-place edits of the raw object (never
   rebuilt - `_comment` on effects survives), the live fixture checks, the
   confirm on a type change that drops keys, `/api/save/skill` through
   `saveOne` gated by C2 (⚑ shipped as its own module, NOT `saveOne`: the
@@ -1216,7 +1216,7 @@ ms**, this host's known non-monotonic clock, so `hrtime` is used.
 type-change confirm, the L5 rename guard, the L4 `maxLevel` warning),
 preceded by the §B11 Q6 reformat commit. Then C4, C5.
 
-#### C3 - editing and saving ✅ SHIPPED 2026-09-12 `[uncommitted]`
+#### C3 - editing and saving ✅ SHIPPED 2026-09-12 `dd05b9f4`
 
 > Built by an Opus subagent (67 tool calls), verified by the session, wrapped
 > here. Three PO rulings via choice prompts (below), plus the rider's fourth.
