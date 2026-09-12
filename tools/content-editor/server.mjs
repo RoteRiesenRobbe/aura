@@ -40,6 +40,7 @@ import { validateAll, buildIndex, validateInteraction, validateQuest, validateMo
 import { prettyJson } from './format.mjs';
 import { readSkillVocabulary } from './vocabulary.mjs';
 import { listJsonFiles } from './files.mjs';
+import { readSkillIcons } from './skill-icons.mjs';
 import { validateCandidate } from './aurad-validate.mjs';
 import { saveSkill } from './save-skill.mjs';
 
@@ -288,10 +289,15 @@ const server = createServer(async (req, res) => {
       // vocabulary is a loud failure, not a Skills-tab-only one.
       const skillVocabulary = readSkillVocabulary(ROOT);
       const ticksPerSecond = readTicksPerSecond();
+      // The vendored glyph set the icon picker offers (C4, §B4.4), parsed off
+      // the generated client artifact. ⚑ Same posture as the vocabulary above:
+      // a broken parse throws and takes this whole response down, because an
+      // empty icon picker that silently offers nothing is the worse failure.
+      const skillIcons = readSkillIcons(ROOT);
       return sendJson(res, 200, {
         mobs, quests, skills, skillNames, skillMaxLevels, factions, recipes,
         milestones: { file: milestones.file, raw: milestones.raw }, entityTypes,
-        skillVocabulary, ticksPerSecond,
+        skillVocabulary, skillIcons, ticksPerSecond,
       });
     }
     if (req.method === 'GET' && url.pathname === '/api/validate') {
@@ -343,16 +349,17 @@ const server = createServer(async (req, res) => {
       const { ok, findings } = validateCandidate(body.file === undefined ? {} : { file: body.file, raw: body.raw });
       return sendJson(res, 200, { ok, findings });
     }
-    // ⭐ The Skills tab's save (spell builder C3). Unlike the four kinds above
-    // it runs NO JS rule port: its gate is the real loader through the C2 seam
-    // (D9). save-skill.mjs holds the logic so it is testable without a server.
+    // ⭐ The Skills tab's save (spell builder C3, `isNew` added by C4). Unlike
+    // the four kinds above it runs NO JS rule port: its gate is the real loader
+    // through the C2 seam (D9). save-skill.mjs holds the logic so it is
+    // testable without a server, and answers with the post-save checklist.
     //
     // ⚑ A THROW from here is a 500 by the catch below, and that is the L12
     // contract: a missing or stale binary means the seam could not answer, and
     // the client must not render that as a clean pass or as a finding list.
     if (req.method === 'POST' && url.pathname === '/api/save/skill') {
       const body = await readBody(req);
-      return sendJson(res, 200, saveSkill({ file: body.file, raw: body.raw }, {
+      return sendJson(res, 200, saveSkill({ file: body.file, raw: body.raw, isNew: !!body.isNew }, {
         root: ROOT, readMobs, readRecipes, readMilestonesEntry, validateCandidate,
       }));
     }

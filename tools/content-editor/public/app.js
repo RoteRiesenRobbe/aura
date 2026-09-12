@@ -4,7 +4,7 @@ import {
   ROLES, TIERS, DAMAGE_TYPES, RESIST_WILDCARD, GATE_KEYS, COLLISION_LAYER_BITS, RESERVED_FACTION_NAMES, TRAVEL_MODES,
 } from '/validate.mjs';
 import {
-  EFFECT_TYPE_NOTES, EFFECT_TYPE_DEFAULTS, CATEGORY_LABELS, HIDDEN_EFFECT_TYPES,
+  EFFECT_TYPE_NOTES, EFFECT_TYPE_DEFAULTS, CATEGORY_LABELS, HIDDEN_EFFECT_TYPES, TEST_RIG_SKILLS,
   resolveAt, scalingPairs, presentationFor, labelFor, ticksToSecondsLabel, formatNumber,
 } from '/skill-presentation.mjs';
 import { collectSkillReferences } from '/skill-references.mjs';
@@ -44,6 +44,7 @@ const state = {
   milestones: null, // {file, raw} — raw is the WHOLE array; one shared file, not one per entry
   skills: [],     // [{file, raw}], BOTH api/skills/*.json and api/skills/mobs/*.json (§B10 L6); the tab shows only the former
   skillVocabulary: null, // the generated fixture merged with shared-constants (vocabulary.mjs); the Skills form renders FROM this
+  skillIcons: {},  // {key: {viewBox, body}} - the VENDORED glyph set, parsed off the generated client artifact (C4, §B4.4)
   ticksPerSecond: 30,
   entityTypes: [],
   pristine: new Map(), // file -> JSON string at load/save time
@@ -308,6 +309,41 @@ function createNewRecipe() {
   renderEditor();
 }
 
+// A new player skill (spell builder C4, §B4.5). Deliberately the SMALLEST
+// prefill that is still a real file: `id`, `name` and `maxLevel`, no category
+// and no effect card. The category decides which effect types are legal at all
+// (the C3 rider's rule), so guessing one would either pick the author's
+// direction for them or seed a card the loader refuses; the live hints ask for
+// the rest instead. PO ruling 2026-09-12.
+//
+// ⚑ maxLevel 5 because 53 of the 72 shipped player skills use it, and it never
+// decreases afterwards (L4), so the cheapest default is the common one.
+// ⚑ `icon` is left EMPTY on purpose: the required hint forces a deliberate
+// pick from the vendored set rather than inheriting someone else's glyph.
+// ⚑ The id is max + 1 over BOTH skill folders (L6), which is why it reads
+// state.skills and not playerSkills() - and it can re-mint the id of a deleted
+// skill that held the maximum (L3), which the form says beside the field until
+// C5's lock closes it.
+function createNewSkill() {
+  const display = prompt('New skill name (e.g. "Frost Nova"):');
+  if (!display) return;
+  const name = toCamelName(display);
+  const slug = slugify(display);
+  if (!name || !slug) { alert('That name needs at least one letter or number.'); return; }
+  const file = `api/skills/${slug}.json`;
+  if (findSkill(file) || state.skills.some((s) => s.raw.name === name)) {
+    alert(`A skill already resolves to "${file}" (name "${name}"). Pick a different name.`);
+    return;
+  }
+  const nextId = state.skills.reduce((max, s) => Math.max(max, s.raw.id || 0), 0) + 1;
+  const raw = { id: nextId, name, maxLevel: 5, effects: [] };
+  const entry = { file, raw, isNew: true };
+  state.skills.push(entry);
+  state.selected = { kind: 'skill', file };
+  renderSidebar();
+  renderEditor();
+}
+
 /* ---- load -------------------------------------------------------------- */
 async function loadAll() {
   const res = await fetch('/api/data');
@@ -321,6 +357,7 @@ async function loadAll() {
   state.milestones = data.milestones;
   state.skills = data.skills;
   state.skillVocabulary = data.skillVocabulary;
+  state.skillIcons = data.skillIcons || {};
   state.ticksPerSecond = data.ticksPerSecond;
   state.entityTypes = data.entityTypes;
   for (const m of state.mobs) markPristine(m.file);
@@ -438,8 +475,22 @@ function renderSkillList() {
   renderGroupedList(skillListEl, [...groups].map(([cat, items]) => ({
     key: cat,
     label: CATEGORY_LABELS[cat] || cat || '(no category)',
-    items: items.sort((a, b) => (a.raw.name || '').localeCompare(b.raw.name || '')).map((s) => ({ label: s.raw.name || s.file, file: s.file })),
+    items: items.sort((a, b) => (a.raw.name || '').localeCompare(b.raw.name || '')).map((s) => ({
+      label: s.raw.name || s.file,
+      file: s.file,
+      badges: skillBadges(s),
+    })),
   })), state.skillCategoryCollapsed, 'skill');
+}
+
+// The row markers a skill can carry: the cheat-only test rigs (C4) and a draft
+// that has never been written. Both are ROW badges, kept out of the row's own
+// name so anything reading the sidebar by name still matches.
+function skillBadges(entry) {
+  const out = [];
+  if (TEST_RIG_SKILLS.includes(entry.raw.name)) out.push({ text: 'test rig', title: TEST_RIG_TITLE, cls: 'rig-badge' });
+  if (entry.isNew) out.push({ text: 'not yet saved', title: 'A draft: nothing is on disk until you Save.', cls: 'new-badge' });
+  return out;
 }
 
 function matchesFilter(name, filter) {
@@ -479,7 +530,7 @@ function renderGroupedList(container, groups, collapsedSet, kind) {
 
 function listGroup({ key, label, items }, collapsedSet, kind) {
   const collapsed = collapsedSet.has(key);
-  const itemsList = el('ul', { class: 'group-items' }, items.map((it) => sidebarItem(it.label, it.file, kind)));
+  const itemsList = el('ul', { class: 'group-items' }, items.map((it) => sidebarItem(it.label, it.file, kind, it.badges)));
   const li = el('li', { class: 'list-group' + (collapsed ? ' collapsed' : '') }, [
     el('div', {
       class: 'group-header',
@@ -497,14 +548,19 @@ function listGroup({ key, label, items }, collapsedSet, kind) {
   return li;
 }
 
-function sidebarItem(label, file, kind) {
+// One row. ⚑ The NAME lives in its own `.item-name` span, separate from any
+// badge: a row's text content is what filters, harnesses and anything else
+// reading the sidebar match on, and folding a badge into it would rename the
+// row as far as all of them are concerned.
+function sidebarItem(label, file, kind, badges) {
   const selected = state.selected && state.selected.file === file;
   const li = el('li', {
     class: selected ? 'selected' + (isDirty(file) ? ' dirty' : '') : (isDirty(file) ? 'dirty' : ''),
     onclick: () => { state.selected = { kind, file }; renderSidebar(); renderEditor(); },
   }, [
     el('span', { class: 'dirty-dot' }),
-    el('span', { text: label }),
+    el('span', { class: 'item-name', text: label }),
+    ...(badges || []).map((b) => el('span', { class: b.cls, title: b.title, text: b.text })),
   ]);
   return li;
 }
@@ -521,6 +577,7 @@ $('#quest-new-btn').addEventListener('click', createNewQuest);
 $('#mob-new-btn').addEventListener('click', createNewMob);
 $('#faction-new-btn').addEventListener('click', createNewFaction);
 $('#recipe-new-btn').addEventListener('click', createNewRecipe);
+$('#skill-new-btn').addEventListener('click', createNewSkill);
 
 const tabButtons = document.querySelectorAll('#sidebar-tabs .tab-btn');
 for (const btn of tabButtons) {
@@ -1583,6 +1640,14 @@ async function saveMilestones(entry) {
 
 const editorPane = $('#editor-pane');
 
+// The test-rig badge's tooltip (C4): the three Omni skills are cheat rigs, not
+// content, and nothing in their files says so - see TEST_RIG_SKILLS.
+const TEST_RIG_TITLE = 'A cheat-only test rig, never content: it exists to exercise every effect surface from the SKILL cheat and is obtained by nothing. Do not tune it as if it shipped.';
+
+// The auto-id's own caveat (§B10 L3), shown beside the read-only id field of a
+// brand-new draft.
+const NEW_ID_HINT = 'Auto-assigned: the highest id across both skill folders, plus one. ⚑ If the skill that held the highest id was deleted, this re-mints that id, and ids are persisted in every character\'s spellbook row. C5\'s registry lock (ids with tombstones) is the real fix; until it lands, check that nothing was deleted recently.';
+
 // The authoring-note rule, shown under the _comment box (PO 2026-09-11).
 const COMMENT_HINT = 'An authoring note, not a session ledger: what the skill is, which values are placeholder, and at most one landmine sentence with a doc pointer. No dates, hashes, chunk names, glyphs or placement claims ("cheat-only", "dropped by wolves") - placement lives in the mob, milestone and recipe files and goes stale here. Under ~400 characters. Full rule: docs/manual-content-authoring.md, "The _comment field". Blank deletes the key.';
 
@@ -1610,9 +1675,13 @@ function renderSkillEditor(entry) {
     el('div', {}, [
       el('h2', {}, [
         document.createTextNode(skill.displayName || deriveDisplayName(skill.name || '')),
+        TEST_RIG_SKILLS.includes(skill.name) ? el('span', { class: 'rig-badge', text: 'test rig', title: TEST_RIG_TITLE }) : null,
         readOnly ? el('span', { class: 'readonly-badge', text: 'read-only', title: 'This skill authors a parked effect type (plan-content-editor.md §B4.8), so the builder shows it but never writes it.' }) : null,
       ]),
-      el('div', { class: 'file-path', text: entry.file }),
+      el('div', { class: 'file-path' }, [
+        document.createTextNode(entry.file),
+        entry.isNew ? el('span', { class: 'new-badge', text: 'not yet saved' }) : null,
+      ]),
     ]),
     el('div', { class: 'editor-actions' }, readOnly
       ? [el('span', { class: 'save-feedback', title: 'Its second in-game pass decides the type (plan-prototype-projectile.md); until then nothing here is written.', text: 'Read-only: a parked effect type.' })]
@@ -1655,11 +1724,19 @@ function renderSkillEditor(entry) {
   const comment = skillCommentSection(ctx);
   if (comment) editorRoot.appendChild(comment);
   editorRoot.appendChild(hintBox);
+  // The post-save checklist lands HERE, under the header beside the save
+  // feedback, not at the bottom of a long form (PO look 2026-09-12: "where is
+  // that checklist?"). Empty until a save fills it (renderChecklist).
+  editorRoot.appendChild(el('div', { class: 'save-checklist-box', id: 'skill-checklist-box', hidden: true }, [
+    el('div', { class: 'label', text: 'After this save' }),
+    el('ol', { class: 'save-checklist', id: 'skill-checklist' }),
+  ]));
   editorRoot.appendChild(skillIdentitySection(ctx));
   editorRoot.appendChild(skillCategorySection(ctx));
   editorRoot.appendChild(skillEffectsSection(ctx));
   editorRoot.appendChild(skillVisualsSection());
   editorRoot.appendChild(skillSourcesSection(skill));
+  editorRoot.appendChild(skillAfterSavingSection(ctx));
   refreshHints();
 }
 
@@ -1953,6 +2030,40 @@ function skillSourcesSection(skill) {
   return col.section;
 }
 
+// 6. After saving (§B4.7, C4). Rendered ALWAYS, not only after a write:
+// testing a skill that already exists is the common case, and the link is the
+// fastest way to look at one. The CHECKLIST the save response carries is
+// dropped in here by saveSkill() and stays until the form is re-rendered.
+//
+// ⚑ The token and the ports are the CLAUDE.md dev defaults, not secrets.
+function skillAfterSavingSection(ctx) {
+  const col = skillSection('After saving');
+  const name = ctx.skill.name || '';
+  const link = testLinkFor(name);
+  col.body.appendChild(el('div', { class: 'after-saving' }, [
+    el('div', { class: 'grant-hint', text: 'A save writes the file; the running game reads content at BOOT, so restart aurad (./scripts/dev-restart-windows.sh server) before looking for the change in game.' }),
+    el('div', { class: 'test-link-row' }, [
+      el('a', { class: 'ref-link', href: link, target: '_blank', rel: 'noreferrer', text: link }),
+      el('button', { onclick: (e) => copyToClipboard(link, e.target) }, 'Copy'),
+    ]),
+    el('div', { class: 'grant-hint', text: `Joins with GOD on and ${name || 'this skill'} granted, so the skill is in the bar immediately. An aura still needs its slot switched on (the first press of its number key).` }),
+  ]));
+  return col.section;
+}
+
+// D8's link: the dev client, a cheat token, GOD and the skill granted.
+function testLinkFor(name) {
+  return `http://localhost:2001/?token=plz&wsUrl=ws://localhost:2000/game&start-cmds=GOD,SKILL ${name}`;
+}
+
+// navigator.clipboard is unavailable over plain http on some browsers and in
+// some headless contexts, so the failure says so instead of doing nothing.
+function copyToClipboard(text, button) {
+  const done = (msg) => { button.textContent = msg; setTimeout(() => { button.textContent = 'Copy'; }, 2000); };
+  if (!navigator.clipboard || !navigator.clipboard.writeText) { done('copy unavailable, select the link'); return; }
+  navigator.clipboard.writeText(text).then(() => done('copied'), () => done('copy failed, select the link'));
+}
+
 // A reference's jump target is plain data ({kind, file, nodeId?}) so the
 // server can use the same scan; this is the browser half that navigates.
 function jumpToReference(jump) {
@@ -1982,7 +2093,7 @@ async function saveSkill(entry) {
     if (!confirm(`Lowering maxLevel from ${pristine.maxLevel} to ${entry.raw.maxLevel}.\n\nSkill levels are persisted per character: any spellbook row already above ${entry.raw.maxLevel} keeps its level, and nothing clamps it (the reconciliation policy is backlog §61, unbuilt). The rule is that a shipped skill's maxLevel never decreases, and C5 will make this a loader refusal.\n\nSave anyway?`)) return;
   }
   fb.textContent = 'saving…'; fb.className = 'save-feedback';
-  const res = await fetch('/api/save/skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: entry.file, raw: entry.raw }) });
+  const res = await fetch('/api/save/skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: entry.file, raw: entry.raw, isNew: !!entry.isNew }) });
   let body = null;
   try { body = await res.json(); } catch { body = null; }
   const errors = (body && body.errors) || [];
@@ -1996,11 +2107,31 @@ async function saveSkill(entry) {
     fb.textContent = (body && body.stage === 'validate' ? 'refused by aurad -validate: ' : 'refused: ') + (errors.join(' · ') || 'no message');
     return;
   }
+  const wasNew = !!entry.isNew;
+  entry.isNew = false;
+  editorRoot.querySelector('.new-badge')?.remove();
   markPristine(entry.file);
+  renderChecklist(body.checklist || []);
   fb.className = 'save-feedback ok';
-  fb.textContent = body.warnings && body.warnings.length ? 'saved: ' + body.warnings.join(' · ') : 'saved (restart aurad to see it in game: the content seam is boot time)';
+  const warnings = body.warnings && body.warnings.length ? body.warnings.join(' · ') + ' · ' : '';
+  fb.textContent = `saved${wasNew ? ' (new file written)' : ''}: ${warnings}see the checklist below`;
   renderSidebar();
   runGlobalValidation();
+}
+
+// The post-save checklist (§B4.7). It comes off the RESPONSE rather than being
+// built here: the registry pin's count is a fact about what the server just
+// wrote, and a client-side guess at it would drift the moment a file is added
+// by hand. It survives until the form is re-rendered (a re-selection, a
+// structural edit), which is deliberately not "until dismissed": the list is a
+// receipt for the save that just happened, not standing state.
+function renderChecklist(items) {
+  const box = $('#skill-checklist');
+  if (!box) return;
+  box.innerHTML = '';
+  for (const item of items) box.appendChild(el('li', { text: item }));
+  const wrap = $('#skill-checklist-box');
+  if (wrap) wrap.hidden = items.length === 0;
 }
 
 /* ---- field rendering, from the presentation table ---------------------- */
@@ -2052,6 +2183,9 @@ function keyField(key, obj, ctx, unitOverride) {
   }
   wrap.appendChild(row);
   if (entry.hint) wrap.appendChild(el('div', { class: 'hint', text: entry.hint }));
+  // The auto-id's caveat, on a NEW draft only: an existing skill's id is
+  // simply what it has always been, and repeating L3 beside it would be noise.
+  if (key === 'id' && ctx.entry && ctx.entry.isNew) wrap.appendChild(el('div', { class: 'hint', text: NEW_ID_HINT }));
   markAuthored();
   return wrap;
 }
@@ -2106,8 +2240,12 @@ function fieldControl(entry, key, obj, ctx, onSet) {
       if (options.length === 0) control.appendChild(el('span', { class: 'grant-hint', text: '(no options)' }));
       break;
     }
-    case 'mob':
     case 'icon':
+      control = iconPicker(key, obj, onSet, locked);
+      break;
+    case 'mob':
+      control = mobPicker(key, obj, ctx, onSet, locked);
+      break;
     case 'text':
     default:
       control = el('input', {
@@ -2138,6 +2276,109 @@ function optionList(name, ctx) {
     case 'factions': return [...state.factions.map((f) => f.raw.name).sort(), ...RESERVED_FACTION_NAMES];
     default: return [];
   }
+}
+
+/* ---- the two pickers C4 added (§B4.4, §B4.6) --------------------------- */
+
+// The text the icon picker ends on, in the plan's own words (§B4.4): the set
+// is closed, and widening it is a script run, not a text field.
+const ICON_FOOTER = 'a glyph outside the set is not selectable; add one with node scripts/fetch-skill-icons.mjs (downloads from game-icons.net and regenerates the committed artifacts, CC BY attribution included).';
+
+// Radio groups need a name each, and several icon fields can exist at once in
+// principle; one counter per page is enough.
+let radioGroupSeq = 0;
+
+// The icon picker: the VENDORED glyph set as the actual SVGs, tinted through
+// currentColor. Radios rather than buttons on purpose - the read-only rule for
+// a parked skill is "zero enabled controls", and only a real form control can
+// honour `disabled`.
+//
+// ⚑ The file's CURRENT value is always offered, even when the set does not
+// carry it (marked as such), so opening a skill can never silently change it.
+// Clearing writes no key at all (the L2 tri-state rule).
+function iconPicker(key, obj, onSet, locked) {
+  const glyphs = state.skillIcons || {};
+  const keys = Object.keys(glyphs).sort();
+  const current = typeof obj[key] === 'string' ? obj[key] : '';
+  const group = `icon-pick-${radioGroupSeq++}`;
+  const grid = el('div', { class: 'icon-grid' });
+
+  const option = (value, title, body, cls) => el('label', { class: 'icon-option' + (value === current ? ' current' : '') + (cls ? ' ' + cls : ''), title }, [
+    el('input', { type: 'radio', name: group, checked: value === current, disabled: locked, onchange: (e) => {
+      // The highlight follows the pick on the spot: a value edit never
+      // re-renders the form (only a structural one does), so without this
+      // "(none)" stayed lit until the next category change (PO look).
+      for (const l of grid.querySelectorAll('.icon-option.current')) l.classList.remove('current');
+      e.target.closest('.icon-option').classList.add('current');
+      onSet(value === '' ? undefined : value);
+    } }),
+    body,
+  ]);
+
+  grid.appendChild(option('', 'No icon: the spellbook row falls back to a letter. Every shipped player skill authors one.', el('span', { class: 'icon-none', text: '(none)' })));
+  for (const k of keys) {
+    const glyph = glyphs[k];
+    grid.appendChild(option(k, k, el('span', { class: 'glyph', html: `<svg viewBox="${glyph.viewBox}" width="22" height="22" fill="currentColor" aria-hidden="true">${glyph.body}</svg>` })));
+  }
+  if (current && !keys.includes(current)) {
+    grid.appendChild(option(current, `${current} is authored here but is not in the vendored set, so it renders as a letter fallback in game.`, el('span', { class: 'icon-none', text: `${current} (not vendored)` }), 'not-vendored'));
+  }
+
+  return el('div', { class: 'icon-picker' }, [
+    grid,
+    el('div', { class: 'hint', text: keys.length === 0 ? `No vendored glyph was served on /api/data: ${ICON_FOOTER}` : ICON_FOOTER }),
+  ]);
+}
+
+// The spawnMob picker: EVERY mob, grouped by role (PO ruling 2026-09-12), with
+// a jump into the Mobs tab for the one currently picked - the summon's own
+// stats, aura and art live on the mob and are edited there (D2).
+//
+// ⚑ The plan's §B4.6 filter (followers and structures only) was overruled by
+// what the content actually authors: `spawn_at_anchor` names PortalHome and
+// PortalSummon, both role `creature`, and `projectile` names ProjectileBomb.
+// Go has no role rule on spawnMob at all, so a filter here would hide shipped
+// content and be the only place such a rule existed.
+const MOB_ROLE_GROUPS = [['follower', 'Followers'], ['structure', 'Structures'], ['creature', 'Creatures']];
+
+function mobPicker(key, obj, ctx, onSet, locked) {
+  const current = typeof obj[key] === 'string' ? obj[key] : '';
+  const byRole = new Map(MOB_ROLE_GROUPS.map(([role]) => [role, []]));
+  for (const m of state.mobs) {
+    // An absent `role` IS creature (mobs/definitions.go's default), so the
+    // grouping must not invent a fourth group for it.
+    const role = m.raw.role || 'creature';
+    if (!byRole.has(role)) byRole.set(role, []);
+    byRole.get(role).push(m.raw.name);
+  }
+  const roleLabel = (role) => (MOB_ROLE_GROUPS.find(([r]) => r === role) || [role, role])[1];
+
+  const sel = el('select', { class: 'mob-select', onchange: (e) => { onSet(e.target.value === '' ? undefined : e.target.value); ctx.onStructural(); } });
+  sel.appendChild(el('option', { value: '', selected: current === '' }, '(none)'));
+  let known = false;
+  for (const [role, names] of byRole) {
+    if (names.length === 0) continue;
+    const optgroup = el('optgroup', { label: roleLabel(role) });
+    for (const name of [...names].sort((a, b) => (a || '').localeCompare(b || ''))) {
+      if (name === current) known = true;
+      optgroup.appendChild(el('option', { value: name, selected: name === current }, name));
+    }
+    sel.appendChild(optgroup);
+  }
+  // The current value always stays offered, even when no mob carries it, so
+  // opening a file never rewrites it.
+  if (current && !known) {
+    const optgroup = el('optgroup', { label: 'Not a mob on disk' });
+    optgroup.appendChild(el('option', { value: current, selected: true }, current));
+    sel.appendChild(optgroup);
+  }
+  sel.disabled = locked;
+
+  const mob = state.mobs.find((m) => m.raw.name === current);
+  return el('div', { class: 'mob-picker' }, [
+    sel,
+    mob ? refLink('edit in Mobs', () => jumpTo('mob', mob.file)) : (current ? el('span', { class: 'stray-key', text: 'no mob on disk carries that name; the loader refuses this file' }) : null),
+  ]);
 }
 
 function factionOptionLabel(name) {

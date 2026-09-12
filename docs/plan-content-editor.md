@@ -518,12 +518,22 @@ typed name, and starts with one effect card of a sensible type (aura ⇒
 Saving writes `api/skills/<kebab-name>.json`. That IS the "export one thing
 into a folder automatically" the PO asked for.
 
+⚑ **RULED OTHERWISE at C4 (2026-09-12, §B12 C4 ruling 3)**: "+ New" opens
+with the category UNSET and NO effect card; only `id`, `name` and `maxLevel`
+(5) are prefilled, the live hints ask for the rest. `EFFECT_TYPE_DEFAULTS`
+still types the first card ADDED once a category is chosen.
+
 #### B4.6 Companions and the sources panel
 
 - **`spawnMob` picker**: mobs whose `role` is `follower` (for `spawn`) or
   `structure` (totems), read from `api/mobs/`, each row with a **"edit in
   Mobs"** jump link. The companion's own aura lives on the mob and is edited
   there. "Define the companion" in the builder means picking one (D2).
+  ⚑ **The role filter was measured WRONG and overruled at C4 (2026-09-12,
+  §B12 C4 ruling 1)**: `spawn` authors both roles, `spawn_at_anchor` authors
+  the two portal mobs (role `creature`), and Go has no role rule on
+  `spawnMob`. The picker offers ALL mobs, grouped Followers · Structures ·
+  Creatures, each with the jump.
 - **Obtained via**: computed on render the way `grantedByPanel` is - scan
   `milestone-unlocks.json` rows, every mob's `unlocks[]`, every NPC
   `interaction` grant of kind `teach_skill`, every recipe's `result` and
@@ -541,6 +551,9 @@ next reload:
 2. **Bump the registry pin** if this was a new skill:
    `backend/pkg/aura/skills/registry_test.go` `assert.Len(t, r.All(), N)`.
 3. **Regenerate `docs/content-skill-inventory.md`** (its own script).
+   ⚑ **No such script exists (measured at C4, 2026-09-12; §B12 C4 ruling
+   2)**: the file was generated once and is hand-maintained since, so the
+   shipped line says "add a row by hand".
 4. **Place it** (D6 panel) or it stays cheat-only.
 5. **Test link**: `http://localhost:2001/?token=plz&wsUrl=ws://localhost:2000/game&start-cmds=GOD,SKILL <name>`
    (copy button; the token and ports are the CLAUDE.md dev defaults, not
@@ -634,7 +647,7 @@ Six, each its own session; C0, C2 and C5 carry Go.
   `saveOne` gated by C2 (⚑ shipped as its own module, NOT `saveOne`: the
   ledger says why), the rename guard (§B10 L5), the `maxLevel`-lowering
   warning (§B10 L4). No `validateSkill` port.
-- **C4 - the new-skill flow and the bookkeeping.** "+ New skill" (§B4.5), the
+- **C4 - the new-skill flow and the bookkeeping.** ✅ **SHIPPED 2026-09-12** (ledger §B12 C4). "+ New skill" (§B4.5), the
   icon picker (§B4.4), the `spawnMob` picker with jump links, the post-save
   checklist + test link (§B4.7), the test-rig badge. Docs: the editor README's
   scope section, `manual-content-authoring.md` "Known hand-sync points"
@@ -1389,5 +1402,195 @@ hints render in the red `.errors-inline` box and read like refusals though
 they never block Save, and L14's key-to-the-end reorder is still what a
 reviewer of a tab-saved diff sees after a blank-then-retype.
 
-**Next: C4** (the new-skill flow, the icon and `spawnMob` pickers, the
-post-save checklist + test link, the test-rig badge, the docs). Then C5.
+**Next: C4**, shipped the same day (below). Then C5.
+
+#### C4 - the new-skill flow and the bookkeeping ✅ SHIPPED 2026-09-12 `[uncommitted]`
+
+> Built by an Opus subagent (117 tool calls), verified by the session, wrapped
+> here. Three PO rulings via choice prompts before a line was written (below).
+> **Schema impact: NONE at every layer.** DB none, FlatBuffers none, conf
+> none. Content: ONE file, `api/skills/summonspider.json`, the PO's first
+> tab-authored spell (id 152, cheat-only, shipping here the way C3 shipped the
+> PO's `damage.json`), plus its `cp-defs` copy and the registry pin 105 → 106;
+> every file the verification itself wrote was deleted again. Go: the pin bump
+> only.
+
+**The three rulings (2026-09-12)**
+
+1. **`spawnMob` picker: ALL mobs, grouped by role** (Followers · Structures ·
+   Creatures, each row with an "edit in Mobs" jump). §B4.6's "followers for
+   `spawn`, structures for totems" was measured WRONG against the content:
+   `spawn` authors both roles, `spawn_at_anchor` authors `PortalHome` /
+   `PortalSummon` (role `creature`), and Go has no role rule on `spawnMob` at
+   all, so a filter typed into the editor would have been the L1 class and
+   would have hidden two shipped mobs. Offered and declined: a Go rule the way
+   the C3 category rider went (needs a portal decision first).
+2. **Checklist line 3 is an honest hand reminder.** §B4.7 said "regenerate
+   `docs/content-skill-inventory.md` (its own script)"; there is no script,
+   the file is marked MEASURED STALE since 2026-08-10 and was last touched by
+   hand in the projectile commit. The line now says "add a row by hand, there
+   is no generator". Building one was declined as scope creep.
+3. **"+ New" opens with the category UNSET**: one button in the Skills sidebar
+   header, a name prompt, then a form with `id`, `name`, `maxLevel` prefilled,
+   no category and no effect card; the live hints ask for the rest. Over the
+   session's recommendation of three buttons (+ Aura · + Cooldown · +
+   Passive) and over a second prompt for the category. §B4.5's "one effect
+   card of a sensible type" is therefore NOT prefilled; `EFFECT_TYPE_DEFAULTS`
+   still drives the type of the first card ADDED once a category is set.
+
+**Session judgements at the PO's delegation (PO may veto)**: `maxLevel`
+default 5 (53 of 72 skills) · `icon` left EMPTY so the required hint forces a
+deliberate pick · the test link rendered ALWAYS in a bottom "After saving"
+section (testing an existing skill is the common case), the checklist filling
+it after a save · the checklist rides the save RESPONSE so the unit test can
+read it, the registry-pin count computed server-side from the files on disk
+after the write, never a line number · items 2-4 (pin, inventory row,
+placement) only on a NEW skill's first save, item 1 (restart) on every save ·
+the test-rig badge driven by a three-name `TEST_RIG_SKILLS` list, smoke-pinned
+to exist · no JS duplicate-id / duplicate-name guard: `registry.go` refuses
+both and the seam surfaces it (D9; proven by a smoke leg and a harness POST).
+
+**What shipped (`tools/content-editor/`, docs, one harness)**
+
+- **`skill-icons.mjs` (new, node-only)**: parses
+  `frontend/src/client-data/icons/SkillIcons.generated.ts` into
+  `{key: {viewBox, body}}` with a line regex; ZERO glyphs parsed throws and
+  takes `/api/data` down with it (the C0 loud-fixture posture). 33 glyphs.
+- **`save-skill.mjs`**: `saveSkill({file, raw, isNew})`. Existence checked
+  both ways (a create refuses an existing file, an edit refuses a missing one;
+  C3's "the + New flow arrives with C4" refusal is gone); the id and rename
+  guards skipped for a new skill; the response carries `{ok, warnings,
+  checklist, skillCount}`.
+- **`save-skill.test.mjs`**: +4 case groups (red-first, 16 findings against the
+  C3 module): create onto an existing file · edit of a missing file · a clean
+  create with a duplicate id AND name reaching the fake seam (the guard must
+  not pre-empt Go) · the 4-item checklist with the computed count, 1 item on
+  an edit.
+- **`smoke.mjs`**: leg **(i)** every authored `icon` in `api/skills/**` is a
+  vendored glyph (the editor-side twin of `SkillIcons.test.ts`, both halves:
+  unvendored AND missing) · leg **(j)** `TEST_RIG_SKILLS` exist on disk · leg
+  (f) gained the real-seam proof that a new file reusing id 1 is refused as
+  `duplicate skill ID`.
+- **`skill-presentation.mjs`**: `TEST_RIG_SKILLS`; the `icon` and `spawnMob`
+  hints rewritten for the pickers. `server.mjs`: `skillIcons` on `/api/data`,
+  `isNew` passed through.
+- **`public/app.js`**: `createNewSkill` (+ `#skill-new-btn`; auto-id = max
+  over BOTH folders + 1, L6, with the L3 caveat beside it on a draft only) ·
+  sidebar rows split into `.item-name` + badge spans · the rig badge in row
+  and header · the icon picker (visually hidden radios with the inline SVGs,
+  `(none)`, the file's current value always offered and marked `not vendored`
+  if outside the set, the footer naming `scripts/fetch-skill-icons.mjs`) · the
+  `spawnMob` picker (`<optgroup>` by role, current-value fallback, the jump) ·
+  the always-rendered "After saving" section (test link + Copy +
+  `#skill-checklist`) · `saveSkill` posts `isNew`, clears the draft badge,
+  renders the checklist. `index.html`, `styles.css`.
+- **Docs**: the editor README (scope, "What C4 added", the seven-step save
+  contract, the two smoke legs) · `manual-content-authoring.md` (the
+  "Known hand-sync points" mirror claim is FALSE FOR SKILLS since C0, the
+  fixture + golden test named, still true for the other kinds; §2 says an
+  ability can be authored in the tab) · the add-content skill (the
+  fixture-regen landmine after any `definition.go` table change, and the tab
+  pointer) · the verify skill's coverage row · `docs/README.md` index line.
+- **`.claude/skills/verify/content-editor-skills-tab.mjs`**: the opener and
+  sweep read `.item-name`; per-skill rig-badge and test-link asserts; part 2b
+  (both pickers, the `spawnMob` jump) and part 2c (the whole new-skill flow:
+  prompt, draft shape, id 152, the duplicate "+ New" refused client-side, a
+  save that lands on disk, the checklist with the pin count, a new file
+  reusing id 1 refused BY THE SEAM, then **mandatory cleanup in a `finally`**:
+  a leftover file under `api/skills/` reddens the Go registry pin for
+  everyone); screenshots after a reload so they show the disk.
+
+**Findings**
+
+- ⚑ **Key order on a tab-authored NEW file differs from every shipped one**:
+  prefill writes `id, name, maxLevel, effects`, then `category` and `icon`
+  are set later and L14 appends them, so the file reads `id, name, maxLevel,
+  effects, category, icon` where hand files read `id, name, icon, category,
+  maxLevel, effects`. Parse-equal, loader-indifferent, PO-visible on a diff;
+  Q6 territory. The harness asserts the key SET, so it cannot see this.
+- ⚑ **Go has no `icon` rule at all** (only `catalog_test.go` reads it, and it
+  tolerates empty): a new skill saved with `(none)` passes the seam and reddens
+  the frontend vitest silently. Smoke (i) covers it from the editor side, a
+  named D9 exception (the editor is stricter than the loader here on purpose).
+- ⚑ **The checklist is dropped by any STRUCTURAL re-render** (a category
+  change, adding a card, repicking `spawnMob`), not only by a reload or a
+  re-selection.
+- **A parked skill now has two enabled non-form elements**: the Copy button,
+  and on `ThrowBomb` / `ThrowMine` the "edit in Mobs" link for
+  `ProjectileBomb`. Neither writes; the sweep's "zero enabled controls"
+  counts `input/select/textarea` and still holds. A deliberate exception to
+  §B4.8's wording.
+- The role census behind ruling 1: 63 mobs, follower 4 / structure 11 /
+  creature 48; the two portal mobs are creatures, `ProjectileBomb` is a
+  structure.
+- Cosmetic, same bucket as C3's red hint box: `.file-path` glues the draft
+  badge to the path in text form, and the ICON field stacks two hints (the
+  required hint plus the picker footer).
+- **TDD honesty**: `save-skill.mjs` red-first; `skill-icons.mjs`, the smoke
+  legs, all of `app.js` and the harness legs implementation-first, their bite
+  proof the mutations below.
+
+**Verified** (session's own runs unless marked): `node save-skill.test.mjs`
+0 findings, exit 0 · `npm run smoke` **0 findings / 105 files / 162 effects /
+34 types / 33 glyphs** · browser harness `content-editor-skills-tab.mjs`
+**0 problems**: 72 skills, badges on exactly OmniAura + OmniPassive +
+OmniStrike, icon picker 34 options (33 glyphs + `(none)`) with Damage's
+`lorc/broadsword` current, `spawnMob` picker Followers 4 · Structures 11 ·
+Creatures 48 and the jump landing on Companion in the Mobs tab, the draft with
+id 152 / maxLevel 5 / no category / no card, the duplicate "+ New" refused,
+the new save written with the four-line checklist naming 106, the duplicate id
+refused by the seam (`duplicate skill ID 1: "Damage" and "HarnessDupId"`), the
+file deleted · **the §B8 exit test, headless half, through the ROUTE**: the
+PO's example shape (`resist_aura` fire ×1.25 + `damage_aura` fire, 3 targets,
+every 30 ticks) POSTed as a NEW skill to `/api/save/skill` → 200 ok with the
+checklist naming pin 106, the file on disk in the writer's style, then **a
+REAL BOOT** `./aurad -dev -content ../api` against the dev DB for 15 s:
+`Loaded skill definitions count=106`, no panic, killed by timeout, file
+deleted · **mutation ×5** (agent, each red then reverted): an authored icon
+typo'd → smoke 1 · the `isNew` exists-guard defeated → unit test 2 · a bogus
+`TEST_RIG_SKILLS` name → smoke 1 · `skillCount` off by one → unit test 2 ·
+auto-id prefill +2 → harness 1 · zero em dashes in new lines (two reflowed
+pre-existing README lines keep theirs). ⚑ **The in-game tick of a tab-created
+skill was NOT walked by anyone at build time**: the test link was handed to
+the PO, and the PO look below is that walk. **Added at the wrap**, because the
+registry pin makes this chunk touch Go after all: `go test -count=1 -timeout
+120s ./...` **EXIT 0, 35 pkgs** (21 without test files), and
+`./aurad -validate -content ../api` **`0 finding(s)`, exit 0** with
+`Loaded skill definitions count=106`.
+
+**PO look (2026-09-12): PASSED, and it produced a spell, a plan and two UI
+fixes.** The PO authored **`SummonSpider`** end to end in the tab (a `spawn`
+cooldown of the wild `Spider`, maxLevel 5, `ttlTicks` 1800 +150/level, cost
+5 % of max +0.75 %/level): the new-skill flow wrote the file, the seam
+validated it, a boot loaded it (`count=106`) and the PO cast it in game. The
+Spider **fought on the caster's side and was untargetable by other players**,
+so the summon plumbing works from a tab-authored file; it also **STOOD STILL**
+where it spawned. That is by design today, not a bug in C4: the permission to
+follow a caster lives on the MOB's `role` (`RoleFollower`), which is why every
+pet is a twin file, and a wild species has none. It became
+**`docs/plan-summon-follows.md`**, designed the same day (a `follows: true` on
+the `spawn` effect, the charm precedent) and PO-scheduled as **the next chunk,
+ahead of C5**. ⭐ **The file ships in this commit**, the tab's first
+new-from-nothing content, the way C3 shipped the PO's `damage.json`: id 152,
+SKILL cheat only, plus its `cp-defs` copy and the registry pin **105 → 106**.
+**Two UI fixes shipped the same day out of the look.** (1) The **icon
+picker's highlight now follows the click**: the selected class was stamped at
+render time and a value edit never re-renders the form, so `(none)` stayed lit
+however many glyphs the PO clicked, and the pick only appeared to take after a
+category change forced a re-render. (2) The **post-save checklist moved under
+the header**, into an "After this save" box beside the save feedback, instead
+of sitting at the bottom of the form ("where is that checklist?"); the test
+link stays in the bottom "After saving" section, which is always there. Both
+re-verified: the browser harness **0 problems** over 73 skills, `npm run
+smoke` **0 findings at 106 files**. ⚑ Two findings the file itself shows: the
+**new-file key order** predicted above (`category` and `icon` land LAST), and
+**no `cooldownTicks`**, so the spell is castable every tick for 5 % of max per
+press - the picker never asked for one and the loader does not require one;
+noted to the PO as a tuning matter, not fixed here. ⚑ The checklist's
+**inventory row was deliberately NOT added**: `docs/content-skill-inventory.md`
+is MEASURED STALE and this is a cheat-only test spell, not content anyone
+hunts.
+
+**Next: C5** (the registry lock: `api/registry-lock.json`, tombstones, boot
+AND `-validate` enforcement, `-validate -update-lock`; auto-id then comes from
+the lock, closing L3, and the L4 lowering warning becomes a loader refusal).

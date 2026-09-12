@@ -348,6 +348,15 @@ specific to the talking half:
 
 ## 2. New ability (aura / passive / cooldown)
 
+⭐ **A player ability can now be authored in the content editor's Skills tab**
+(`node tools/content-editor/server.mjs`, spell builder C4): "+ New" writes
+`api/skills/<kebab-name>.json`, the form offers only what the loader accepts
+(its field lists are generated from Go's own tables), the icon and `spawnMob`
+values are picked from the real sets, the save is validated by the real loader
+through `aurad -validate`, and the post-save checklist names the registry pin
+and the other bookkeeping below. Hand-authoring the JSON is still perfectly
+fine, and everything in this section is what the tab writes.
+
 If it composes an **already-supported effect type**, this is mostly JSON with no
 wire changes — skills ride the existing spellbook stream. A **brand-new effect
 type** is Go work (payload struct + `effectKeys` allowlist + validator in
@@ -1049,6 +1058,19 @@ forget:
   `validate.mjs` and asserting zero false positives against every real
   `api/*/*.json` file) is the way to confirm a rule port is still accurate —
   see its README.
+- ⭐ **NO LONGER TRUE FOR SKILLS** (spell builder C0, 2026-09-10). The bullet
+  above still holds for mobs, NPCs, quests, factions, recipes and milestones,
+  but the Skills tab does not mirror anything: it renders from
+  `api/skill-vocabulary.json`, a GENERATED file carrying Go's own tables (the
+  per-effect-type key allowlist, the 15 top-level keys, the categories, the
+  cost keys, the per-type category table, the retired-key hints), whose only
+  writer is the golden test
+  `UPDATE_SKILL_VOCABULARY=1 go test -count=1 ./pkg/aura/skills/` (from
+  `backend/`). So a new effect key or type reaches the form with no editor
+  work, but the fixture must be regenerated and committed, or the Go suite is
+  red and `npm run smoke` in `tools/content-editor/` reddens on the drift too.
+  A skill save then runs no JS rule port at all: it is validated by the real
+  loader through `aurad -validate` (the editor's save seam).
 
 ## Quick reference: what touches the wire?
 

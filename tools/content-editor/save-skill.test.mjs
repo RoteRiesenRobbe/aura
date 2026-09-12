@@ -181,6 +181,74 @@ export function selfTestFindings() {
     if (readRaw(root, OMNI).effects[0].damageHP === 42) fail('throwing seam', 'the file was written despite the seam not answering');
   }
 
+  // --- C4: a NEW skill. The path guard still applies, the file must NOT
+  // already exist, and the id and rename guards are skipped: there is no
+  // on-disk twin to compare against, and duplicate ids / names are the
+  // loader's refusal (registry.go), never a JS twin of it (D9) ---
+  {
+    const root = tempTree();
+    const deps = { ...readersFor(root), validateCandidate: fakeSeam({ ok: true, findings: [] }) };
+    const raw = readRaw(root, OMNI);
+    expectRefusal('new skill(file exists)', saveSkill({ file: OMNI, raw, isNew: true }, deps), 'guard', 'already exists');
+    if (deps.validateCandidate.calls.length !== 0) fail('new skill(file exists)', 'the seam ran despite a refused create');
+  }
+
+  // An EDIT of a file that is not there is still refused - "+ New" is the only
+  // way to create one, and a typo'd path must not silently write a new file.
+  {
+    const root = tempTree();
+    const deps = { ...readersFor(root), validateCandidate: fakeSeam({ ok: true, findings: [] }) };
+    const raw = readRaw(root, OMNI);
+    expectRefusal('edit(missing file)', saveSkill({ file: 'api/skills/no-such-skill.json', raw }, deps), 'guard', 'does not exist');
+  }
+
+  {
+    const root = tempTree();
+    const deps = { ...readersFor(root), validateCandidate: fakeSeam({ ok: true, findings: [] }) };
+    const before = listJsonFiles(path.join(root, 'api', 'skills')).length;
+    // Deliberately a DUPLICATE id and a DUPLICATE name: both are the loader's
+    // refusal through the seam, and this case proves the JS guards do not
+    // pre-empt it (the fake seam answers clean, so the write goes through).
+    const raw = { id: 1, name: 'Damage', icon: 'lorc/broadsword', category: 'active_aura', maxLevel: 5, effects: [{ type: 'damage_aura', radius: 1, damageHP: 5, targetsEnemies: true }] };
+    const file = 'api/skills/unit-new-skill.json';
+    const result = saveSkill({ file, raw, isNew: true }, deps);
+    if (result.ok !== true) { fail('new skill(clean)', `expected ok:true, got ${JSON.stringify(result)}`); }
+    if (deps.validateCandidate.calls.length !== 1) fail('new skill(clean)', `the seam ran ${deps.validateCandidate.calls.length} time(s), expected 1`);
+    const after = listJsonFiles(path.join(root, 'api', 'skills'));
+    if (after.length !== before + 1) fail('new skill(clean)', `${before} skill file(s) became ${after.length}, expected ${before + 1}`);
+    try {
+      if (JSON.stringify(readRaw(root, file)) !== JSON.stringify(raw)) fail('new skill(clean)', 'the written file is not the candidate');
+    } catch (err) {
+      fail('new skill(clean)', `${file} was not written (${err.code || err.message})`);
+    }
+
+    // The checklist is part of the RESPONSE (so it is testable here, not only
+    // in the browser): four items for a new skill, and the registry-pin line
+    // carries the count computed from the files on disk after the write.
+    const checklist = result.checklist || [];
+    if (checklist.length !== 4) fail('new skill(checklist)', `${checklist.length} item(s), expected 4: ${JSON.stringify(checklist)}`);
+    if (result.skillCount !== after.length) fail('new skill(checklist)', `skillCount ${result.skillCount}, expected ${after.length} (the files on disk across both folders)`);
+    const text = checklist.join(' | ');
+    for (const needle of ['dev-restart-windows.sh', 'Loaded skill definitions count=', 'registry_test.go', `r.All(), ${after.length}`, 'content-skill-inventory.md', 'cheat-only']) {
+      if (!text.includes(needle)) fail('new skill(checklist)', `no item mentions ${JSON.stringify(needle)}: ${JSON.stringify(checklist)}`);
+    }
+  }
+
+  // An edit gets the restart line ONLY: the pin, the inventory row and the
+  // placement reminder are things a NEW skill owes, and a checklist that
+  // repeats them on every tuning save is a checklist nobody reads.
+  {
+    const root = tempTree();
+    const deps = { ...readersFor(root), validateCandidate: fakeSeam({ ok: true, findings: [] }) };
+    const raw = readRaw(root, OMNI);
+    raw.effects[0].damageHP = 8;
+    const result = saveSkill({ file: OMNI, raw }, deps);
+    if (result.ok !== true) fail('edit(checklist)', `expected ok:true, got ${JSON.stringify(result)}`);
+    const checklist = result.checklist || [];
+    if (checklist.length !== 1) fail('edit(checklist)', `${checklist.length} item(s), expected 1: ${JSON.stringify(checklist)}`);
+    if (!(checklist[0] || '').includes('dev-restart-windows.sh')) fail('edit(checklist)', `the one item is not the restart line: ${JSON.stringify(checklist[0])}`);
+  }
+
   // --- the shared reference scan, against the REAL content ---
   {
     const content = readersFor(ROOT);

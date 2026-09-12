@@ -1,4 +1,4 @@
-// Spell builder C1+C3 (plan-content-editor.md §B5, §B12): the CONTENT EDITOR's
+// Spell builder C1+C3+C4 (plan-content-editor.md §B5, §B12): the CONTENT EDITOR's
 // Skills tab, editable and saving through the aurad seam. Needs the editor AND
 // a built, mtime-fresh `backend/aurad` (the save legs run `aurad -validate`);
 // no DB, no frontend build:
@@ -28,11 +28,28 @@
 //      confirms naming the dropped keys incl. `hitStyle (not shown)`, accept
 //      drops them and keeps `radius`, cancel leaves the type · move down swaps
 //      · Delete confirms · lowering maxLevel confirms and cancel posts nothing.
+//   2b. the C4 PICKERS: the icon picker on Damage offers the whole vendored
+//      set (counted off /api/data, not pinned) as inline SVGs with the file's
+//      own glyph checked, and names the fetch script in its footer; the
+//      spawnMob picker on SummonCompanion is grouped by role with Followers
+//      first, offers the creature-role PortalHome, and its "edit in Mobs" link
+//      lands on Companion in the Mobs tab.
+//   2c. the C4 NEW-SKILL flow: "+ New" prompts, opens a draft with the id =
+//      max over BOTH skill folders + 1, the L3 caveat beside it, NO category,
+//      NO card and the "not yet saved" badge; a second "+ New" with the same
+//      name is refused client-side; category + icon + one damage_aura card are
+//      filled and SAVED, the file lands on disk with exactly the authored keys,
+//      the rendered checklist carries the registry-pin count (recounted here),
+//      the badge is gone; and a NEW file reusing id 1, posted straight at the
+//      API, is refused BY THE SEAM naming the duplicate.
 //   3. screenshots of Damage / OmniStrike / ThrowBomb / NovaBurst for the PO.
 //
-// ⚑ Part 2 WRITES api/skills/damage.json once and restores it itself; if the
-// run dies mid-leg, `git checkout api/skills/damage.json`.
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+// ⚑ Part 2 WRITES api/skills/damage.json once and restores it itself, and part
+// 2c WRITES AND DELETES api/skills/harness-test-skill.json (its cleanup is in a
+// finally block; a leftover file reddens the Go registry count pin for
+// everyone). If the run dies mid-leg: `git checkout api/skills/damage.json` and
+// `rm -f api/skills/harness-test-skill.json`.
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -43,6 +60,19 @@ const outdir = process.argv[3] || 'skills-shots';
 mkdirSync(outdir, { recursive: true });
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const DAMAGE_FILE = join(REPO, 'api', 'skills', 'damage.json');
+
+// api/skills is two levels deep (player skills at the top, mob-embedded ones
+// under mobs/), and BOTH share the id space (§B10 L6) and the registry count
+// the post-save checklist names, so the sweep must recurse.
+function readdirRecursive(dir) {
+  const out = [];
+  for (const name of readdirSync(dir)) {
+    const abs = join(dir, name);
+    if (statSync(abs).isDirectory()) out.push(...readdirRecursive(abs));
+    else if (name.endsWith('.json')) out.push(abs);
+  }
+  return out;
+}
 
 const workdir = join(homedir(), '.cache', 'aurahunter-run');
 // playwright lives in the run dir, and node resolves a bare import from the
@@ -66,8 +96,11 @@ await page.waitForSelector('#skill-list li.list-group');
 // Locator-based on purpose: the sidebar re-renders after every save and
 // validation pass, so an element handle taken a moment earlier can be detached
 // by the time it is clicked.
+// ⚑ Matches the row's `.item-name` span, not the whole <li>: C4 put the
+// test-rig and not-yet-saved badges in the row, and a row's text content would
+// otherwise read "OmniAura test rig" and match nothing.
 async function open(name) {
-  const row = page.locator('#skill-list .group-items li').filter({ hasText: new RegExp(`^\\s*${name}\\s*$`) });
+  const row = page.locator('#skill-list .group-items li .item-name').filter({ hasText: new RegExp(`^\\s*${name}\\s*$`) });
   if (await row.count() === 0) { problems.push(`sidebar has no "${name}"`); return false; }
   await row.first().click();
   await page.waitForTimeout(150);
@@ -94,8 +127,18 @@ console.log('groups:', groups.map((g) => `${g.label} ${g.count}`).join(' · '));
 const dirtyDots = await page.$$eval('#skill-list .group-items li.dirty', (els) => els.length);
 if (dirtyDots) problems.push(`${dirtyDots} skill(s) show a dirty dot on load`);
 
-const items = await page.$$eval('#skill-list .group-items li', (els) => els.map((li) => li.textContent.trim()));
+const items = await page.$$eval('#skill-list .group-items li .item-name', (els) => els.map((n) => n.textContent.trim()));
 console.log(`${items.length} skills in the sidebar`);
+
+// C4: the test-rig badge, in the sidebar. A name list in skill-presentation.mjs
+// (nothing in the content marks a cheat rig), so both halves are asserted: the
+// three rows carry it and no other row does.
+const RIGS = ['OmniAura', 'OmniPassive', 'OmniStrike'];
+const badgedRows = await page.$$eval('#skill-list .group-items li', (els) => els
+  .filter((li) => li.querySelector('.rig-badge'))
+  .map((li) => li.querySelector('.item-name').textContent.trim()).sort());
+if (JSON.stringify(badgedRows) !== JSON.stringify([...RIGS].sort())) problems.push(`sidebar test-rig badges: ${JSON.stringify(badgedRows)}, expected ${JSON.stringify([...RIGS].sort())}`);
+console.log('sidebar test-rig badges:', badgedRows.join(', '));
 
 const stats = { cards: 0, previews: 0, cheatOnly: 0, sourced: 0, stray: 0, parked: 0, mandatory: 0, hints: 0 };
 const perSkill = [];
@@ -119,6 +162,8 @@ for (const name of items) {
       errLines: [...root.querySelectorAll('.err-line')].map((e) => e.textContent),
       saveButtons: [...root.querySelectorAll('.editor-actions button')].filter((b) => /save/i.test(b.textContent)).length,
       comment: !!root.querySelector('.skill-comment textarea'),
+      rig: !!root.querySelector('.editor-header .rig-badge'),
+      testLink: (root.querySelector('.test-link-row a') || {}).textContent || '',
     };
   });
   if (facts.parked) {
@@ -131,6 +176,10 @@ for (const name of items) {
   }
   if (facts.errLines.length) { stats.hints += facts.errLines.length; console.log(`  hint on ${name}: ${facts.errLines.join(' | ')}`); }
   if (facts.cards === 0) problems.push(`${name}: no effect cards rendered`);
+  // C4: the editor header's rig badge matches the sidebar's, and the test link
+  // is on EVERY skill (the common case is testing one that already exists).
+  if (facts.rig !== RIGS.includes(name)) problems.push(`${name}: editor header rig badge = ${facts.rig}, expected ${RIGS.includes(name)}`);
+  if (!facts.testLink.includes(`start-cmds=GOD,SKILL ${name}`)) problems.push(`${name}: the "After saving" test link does not carry this skill (${facts.testLink.slice(0, 120)})`);
   stats.cards += facts.cards; stats.previews += facts.previews; stats.stray += facts.stray;
   if (facts.cheatOnly) stats.cheatOnly += 1; else stats.sourced += 1;
   if (facts.parked) stats.parked += 1;
@@ -298,7 +347,198 @@ if ((await feedback()) !== '') problems.push(`cancelling the maxLevel confirm st
 console.log('maxLevel confirm:', lowerMsg.split('\n')[0]);
 await reset();
 
+/* ---- 2b. the C4 pickers ------------------------------------------------- */
+// The icon picker (§B4.4): the whole VENDORED set as real SVGs plus a "(none)"
+// option, with the file's own value selected. The expected count comes from
+// /api/data, not a literal - the set grows when someone runs the fetch script.
+const glyphKeys = Object.keys((await (await fetch(`${url}/api/data`)).json()).skillIcons || {});
+await open('Damage');
+const iconFacts = await page.evaluate(() => {
+  const field = document.querySelector('#editor-root .field[title="icon"]');
+  const options = [...field.querySelectorAll('.icon-option')];
+  return {
+    options: options.length,
+    glyphs: field.querySelectorAll('.icon-option .glyph svg').length,
+    checked: options.filter((o) => o.querySelector('input').checked).map((o) => o.title),
+    current: options.filter((o) => o.classList.contains('current')).map((o) => o.title),
+    footer: (field.querySelector('.icon-picker .hint') || {}).textContent || '',
+  };
+});
+if (iconFacts.options !== glyphKeys.length + 1) problems.push(`icon picker: ${iconFacts.options} option(s), expected ${glyphKeys.length + 1} (${glyphKeys.length} vendored + none)`);
+if (iconFacts.glyphs !== glyphKeys.length) problems.push(`icon picker: ${iconFacts.glyphs} inline SVG(s), expected ${glyphKeys.length}`);
+if (JSON.stringify(iconFacts.checked) !== JSON.stringify(['lorc/broadsword'])) problems.push(`icon picker: checked ${JSON.stringify(iconFacts.checked)}, expected Damage's own lorc/broadsword`);
+if (JSON.stringify(iconFacts.current) !== JSON.stringify(['lorc/broadsword'])) problems.push(`icon picker: highlighted ${JSON.stringify(iconFacts.current)}, expected lorc/broadsword`);
+if (!iconFacts.footer.includes('fetch-skill-icons.mjs')) problems.push(`icon picker footer does not name the script: ${iconFacts.footer.slice(0, 120)}`);
+console.log(`icon picker: ${iconFacts.options} options (${iconFacts.glyphs} glyphs), current ${iconFacts.checked.join(',')}`);
+
+// The spawnMob picker (§B4.6, PO 2026-09-12 overruling the plan's filter):
+// EVERY mob, grouped by role, so a creature-role summon like PortalHome is
+// offered too - plus the jump into the Mobs tab for the picked one.
+await open('SummonCompanion');
+const mobFacts = await page.evaluate(() => {
+  const sel = document.querySelector('#editor-root .field[title="spawnMob"] select');
+  return {
+    value: sel.value,
+    groups: [...sel.querySelectorAll('optgroup')].map((g) => `${g.label} ${g.children.length}`),
+    hasPortalHome: [...sel.options].some((o) => o.value === 'PortalHome'),
+    portalGroup: ([...sel.options].find((o) => o.value === 'PortalHome') || {}).parentElement?.label,
+    link: !!document.querySelector('#editor-root .field[title="spawnMob"] a.ref-link'),
+  };
+});
+if (mobFacts.value !== 'Companion') problems.push(`spawnMob picker: value "${mobFacts.value}", expected Companion`);
+if (!mobFacts.groups[0] || !mobFacts.groups[0].startsWith('Followers')) problems.push(`spawnMob picker: first group is ${JSON.stringify(mobFacts.groups[0])}, expected Followers first`);
+if (!mobFacts.hasPortalHome) problems.push('spawnMob picker: PortalHome (a creature-role summon that ships) is not offered');
+if (mobFacts.portalGroup !== 'Creatures') problems.push(`spawnMob picker: PortalHome sits in group "${mobFacts.portalGroup}", expected Creatures`);
+if (!mobFacts.link) problems.push('spawnMob picker: no "edit in Mobs" jump link for the picked mob');
+console.log('spawnMob picker:', mobFacts.groups.join(' · '));
+await page.locator('#editor-root .field[title="spawnMob"] a.ref-link').click();
+await page.waitForTimeout(250);
+const jumpedTab = await page.$eval('#sidebar-tabs .tab-btn.active', (b) => b.dataset.tab);
+const jumpedTitle = await page.$eval('#editor-root h2', (h) => h.textContent.trim());
+if (jumpedTab !== 'mob') problems.push(`the spawnMob jump landed on tab "${jumpedTab}", expected mob`);
+if (jumpedTitle !== 'Companion') problems.push(`the spawnMob jump opened "${jumpedTitle}", expected Companion`);
+console.log(`spawnMob jump → tab "${jumpedTab}", editor "${jumpedTitle}"`);
+await page.click('#sidebar-tabs .tab-btn[data-tab="skill"]');
+
+/* ---- 2c. the new-skill flow (C4) --------------------------------------- */
+// ⚑ THIS WRITES api/skills/harness-test-skill.json AND DELETES IT AGAIN. A
+// leftover file reddens the Go registry count pin for everyone, so the whole
+// leg sits in try/finally and the cleanup asserts the file is gone.
+const NEW_NAME = 'Harness Test Skill';
+const NEW_FILE = join(REPO, 'api', 'skills', 'harness-test-skill.json');
+const NEW_REL = 'api/skills/harness-test-skill.json';
+try {
+  page.once('dialog', (d) => d.accept(NEW_NAME));
+  await page.click('#skill-new-btn');
+  await page.waitForTimeout(300);
+
+  const draft = await page.evaluate(() => {
+    const root = document.getElementById('editor-root');
+    const val = (key) => {
+      const input = root.querySelector(`.field[title="${key}"] input, .field[title="${key}"] select, .field[title="${key}"] textarea`);
+      return input ? input.value : null;
+    };
+    return {
+      file: root.querySelector('.file-path').textContent,
+      newBadge: !!root.querySelector('.file-path .new-badge'),
+      id: val('id'),
+      name: val('name'),
+      maxLevel: val('maxLevel'),
+      category: val('category'),
+      icon: [...root.querySelectorAll('.field[title="icon"] .icon-option input')].filter((i) => i.checked).length,
+      cards: root.querySelectorAll('.effect-card').length,
+      idHints: [...root.querySelectorAll('.field[title="id"] .hint')].map((h) => h.textContent).join(' '),
+      hints: [...root.querySelectorAll('.errors-inline .err-line')].map((e) => e.textContent),
+    };
+  });
+  console.log('new draft:', JSON.stringify({ ...draft, idHints: draft.idHints.slice(0, 40) + '…', hints: draft.hints.length }));
+  // max id over BOTH skill folders + 1 (L6), computed here rather than pinned.
+  const maxId = readdirRecursive(join(REPO, 'api', 'skills'))
+    .reduce((max, abs) => Math.max(max, JSON.parse(readFileSync(abs, 'utf8')).id || 0), 0);
+  if (!draft.newBadge) problems.push('the new draft carries no "not yet saved" badge');
+  if (!draft.file.includes(NEW_REL)) problems.push(`the new draft's file is ${draft.file}, expected ${NEW_REL}`);
+  if (Number(draft.id) !== maxId + 1) problems.push(`the new draft's id is ${draft.id}, expected ${maxId + 1} (max over both folders + 1)`);
+  if (draft.name !== 'HarnessTestSkill') problems.push(`the new draft's name is ${JSON.stringify(draft.name)}, expected HarnessTestSkill`);
+  if (draft.maxLevel !== '5') problems.push(`the new draft's maxLevel is ${JSON.stringify(draft.maxLevel)}, expected 5`);
+  if (draft.category !== '') problems.push(`the new draft opened WITH a category (${JSON.stringify(draft.category)}); the PO ruling is unset`);
+  if (draft.cards !== 0) problems.push(`the new draft opened with ${draft.cards} effect card(s), expected none`);
+  if (draft.icon !== 1) problems.push(`the new draft has ${draft.icon} icon radio(s) checked, expected exactly the "(none)" one`);
+  if (!/re-mints/.test(draft.idHints)) problems.push(`the new draft's id field does not carry the L3 caveat: ${JSON.stringify(draft.idHints.slice(0, 120))}`);
+  if (!draft.hints.some((h) => /category is required/.test(h))) problems.push(`the live hints do not ask for a category: ${JSON.stringify(draft.hints)}`);
+
+  // A second "+ New" with the same name is refused CLIENT-SIDE (an alert), so
+  // two drafts can never race for one file.
+  const alertText = await new Promise((res) => {
+    page.once('dialog', async (d) => {
+      if (d.type() === 'prompt') { await d.accept(NEW_NAME); page.once('dialog', async (d2) => { const m = d2.message(); await d2.accept(); res(m); }); return; }
+      const m = d.message(); await d.accept(); res(m);
+    });
+    page.click('#skill-new-btn');
+  });
+  await page.waitForTimeout(200);
+  if (!/already resolves/.test(alertText)) problems.push(`a second "+ New" with the same name was not refused client-side: ${alertText.slice(0, 140)}`);
+  console.log('duplicate "+ New":', alertText.slice(0, 90));
+
+  // Fill the minimum a damage_aura aura needs, then save for real.
+  await open('HarnessTestSkill');
+  await page.locator('#editor-root .field[title="category"] select').selectOption('active_aura');
+  await page.waitForTimeout(250);
+  // The label, not its radio: the radio is visually hidden (zero-sized) so the
+  // glyph itself is the click target, which is also how a human picks one.
+  await page.locator('#editor-root .field[title="icon"] .icon-option[title="lorc/broadsword"]').click();
+  await page.waitForTimeout(100);
+  await page.locator('#editor-root button.add-row', { hasText: 'Add effect' }).click();
+  await page.waitForTimeout(250);
+  const cardType = await page.locator('#editor-root .effect-card .type-select').first().inputValue();
+  if (cardType !== 'damage_aura') problems.push(`the added card opened on "${cardType}", expected damage_aura`);
+  await page.locator('#editor-root .effect-card .field[title="radius"] input').first().fill('1');
+  await page.locator('#editor-root .effect-card .field[title="damageHP"] input').first().fill('5');
+  await page.locator('#editor-root .effect-card .field[title="tickInterval"] input').first().fill('40');
+  await page.locator('#editor-root .effect-card .field[title="targetsEnemies"] input').first().check();
+  await page.waitForTimeout(150);
+  await save().click();
+  await page.waitForFunction(() => /refused|saved|could not/.test(document.getElementById('save-feedback').textContent), null, { timeout: 30000 });
+  const newFb = await feedback();
+  console.log('new save:', newFb.slice(0, 120));
+  if (!newFb.startsWith('saved')) problems.push(`the new skill was not saved: ${newFb.slice(0, 200)}`);
+
+  if (!existsSync(NEW_FILE)) problems.push(`${NEW_REL} is not on disk after a successful save`);
+  else {
+    const written = JSON.parse(readFileSync(NEW_FILE, 'utf8'));
+    const keys = Object.keys(written).sort().join(',');
+    if (keys !== 'category,effects,icon,id,maxLevel,name') problems.push(`the written file authors ${keys}, expected exactly category,effects,icon,id,maxLevel,name`);
+    const effectKeys = Object.keys(written.effects[0] || {}).sort().join(',');
+    if (effectKeys !== 'damageHP,radius,targetsEnemies,tickInterval,type') problems.push(`the written effect authors ${effectKeys}, expected exactly damageHP,radius,targetsEnemies,tickInterval,type`);
+    if (written.name !== 'HarnessTestSkill' || written.category !== 'active_aura' || written.icon !== 'lorc/broadsword') problems.push(`the written file's identity is wrong: ${JSON.stringify({ name: written.name, category: written.category, icon: written.icon })}`);
+  }
+  // The checklist rides the response and is rendered under "After saving".
+  // Its registry-pin count must be the files NOW on disk, counted here too.
+  const onDisk = readdirRecursive(join(REPO, 'api', 'skills')).length;
+  const checklist = await page.$$eval('#skill-checklist li', (els) => els.map((li) => li.textContent));
+  if (checklist.length !== 4) problems.push(`the rendered checklist has ${checklist.length} item(s), expected 4 for a new skill`);
+  if (!checklist.some((c) => c.includes(`r.All(), ${onDisk}`))) problems.push(`no checklist item names the registry pin count ${onDisk}: ${JSON.stringify(checklist)}`);
+  if (!checklist.some((c) => c.includes('content-skill-inventory.md'))) problems.push('no checklist item names the inventory row');
+  console.log('checklist:', checklist.map((c) => c.slice(0, 50)).join(' | '));
+  if (await page.locator('#editor-root .file-path .new-badge').count() !== 0) problems.push('the "not yet saved" badge survived a successful save');
+  if (await page.locator('#skill-list li.dirty').count() !== 0) problems.push('the saved new skill still shows a dirty marker');
+
+  // A NEW file reusing a shipped id is refused BY THE SEAM, not by a JS twin
+  // of the loader's rule (D9). Posted straight at the API: the form locks the
+  // id field, which is the point.
+  const dupRes = await fetch(`${url}/api/save/skill`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      file: 'api/skills/harness-dup-id.json',
+      isNew: true,
+      raw: { id: 1, name: 'HarnessDupId', icon: 'lorc/broadsword', category: 'active_aura', maxLevel: 5, effects: [{ type: 'damage_aura', radius: 1, damageHP: 5, targetsEnemies: true, tickInterval: 40 }] },
+    }),
+  });
+  const dupBody = await dupRes.json();
+  if (dupRes.status !== 200) problems.push(`the duplicate-id POST answered HTTP ${dupRes.status}, expected 200 with a refusal`);
+  if (dupBody.ok !== false || dupBody.stage !== 'validate') problems.push(`the duplicate-id save was not refused by the seam: ${JSON.stringify(dupBody).slice(0, 200)}`);
+  else if (!(dupBody.errors || []).some((e) => /duplicate skill ID/i.test(e))) problems.push(`the seam's refusal does not name the duplicate id: ${JSON.stringify(dupBody.errors)}`);
+  if (existsSync(join(REPO, 'api', 'skills', 'harness-dup-id.json'))) problems.push('the refused duplicate-id candidate was written to disk');
+  console.log('duplicate id:', ((dupBody.errors || [])[0] || '(no error)').slice(0, 110));
+} finally {
+  // MANDATORY cleanup: a leftover file reddens the Go registry pin for everyone.
+  if (existsSync(NEW_FILE)) unlinkSync(NEW_FILE);
+  if (existsSync(NEW_FILE)) problems.push(`${NEW_REL} could not be deleted - delete it by hand before running go test`);
+  else console.log(`cleanup: ${NEW_REL} deleted`);
+}
+
 /* ---- 3. screenshots ---------------------------------------------------- */
+// Reloaded first, so the shots show the tree as it is ON DISK: the edit legs
+// left their in-memory markers behind (a restored description, the deleted
+// harness draft), and a screenshot for the PO should not carry them. The
+// reload also proves the deleted draft is gone from a fresh load.
+await page.goto(url);
+await page.waitForFunction(() => document.querySelectorAll('#npc-list li').length > 0);
+await page.click('#sidebar-tabs .tab-btn[data-tab="skill"]');
+await page.waitForSelector('#skill-list li.list-group');
+if (await page.locator('#skill-list .group-items li .item-name').filter({ hasText: /^\s*HarnessTestSkill\s*$/ }).count() !== 0) {
+  problems.push('HarnessTestSkill is still in the sidebar after a reload - the file was not deleted');
+}
 for (const name of ['Damage', 'OmniStrike', 'ThrowBomb', 'NovaBurst']) {
   await open(name);
   await page.screenshot({ path: join(outdir, `${name}.png`), fullPage: true });

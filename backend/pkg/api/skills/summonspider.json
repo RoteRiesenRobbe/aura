@@ -1,0 +1,19 @@
+{
+  "id": 152,
+  "name": "SummonSpider",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "spawn",
+      "spawnMob": "Spider",
+      "ttlTicks": 1800,
+      "ttlTicksPerLevel": 150,
+      "costFractionOfMax": 0.05,
+      "costFractionOfMaxPerLevel": 0.0075,
+      "powerPerOwnerLevel": 0.05
+    }
+  ],
+  "category": "cooldown",
+  "icon": "delapouite/knocked-out-stars",
+  "_comment": "Summon a Spider to fight for you"
+}

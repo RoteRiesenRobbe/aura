@@ -10,6 +10,11 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-09-12, the spell builder C4 wrap rotated the cap, so SPELL BUILDER C1
+moved here verbatim.)*
+
+- **Prior: SPELL BUILDER C1: the Skills tab, READ-ONLY** ✅ 2026-09-11 `7b90fb5e` (ledger: `docs/plan-content-editor.md` §B12 C1): a **Skills** tab in `tools/content-editor/` renders all 72 player skills as the builder's form, every control disabled, no Save: identity · category block · one card per effect with a per-level preview · Visuals placeholder · **Obtained via** (five source kinds). ⛔ L1 holds: a card renders `effectKeys[type] ∪ costKeys` from the served fixture; `skill-presentation.mjs` decides only how a key LOOKS, keyed by name, and `smoke.mjs` pins it against the fixture BOTH ways. ⚑ L2 was wrong (absent `tickInterval` = 1); ⚑ D6 missed the ascension catalog. **Two PO-look riders**: the stale `anchor` travel mode in `validate.mjs` fixed (TWO hand copies of the list, now one export); and ⭐ **the `_comment` ruling: an api/ comment is an AUTHORING NOTE, never a session ledger** ("deranged babbling"; rule in `manual-content-authoring.md`), all 102 skill comments rewritten in one line-2-only pass with a parse-equality proof (other content kinds open in `feedback.md`). **Schema ALL NONE.** Verified: smoke 0/105 + mutation ×3 · `content-editor-skills-tab.mjs` 0 problems · `go test -count=1 ./...` EXIT 0, 35 pkgs. ✅ **PO form verdict PASSED** ("works, that part is done"). C2 shipped the same day.
+
 *(2026-09-12, the spell builder C3 wrap rotated the cap, so SPELL BUILDER C0
 moved here verbatim.)*
 

@@ -7,7 +7,7 @@
  *
  *     node tools/content-editor/smoke.mjs      # or: npm run smoke
  *
- * Eight findings classes (plan-content-editor.md §B5 C0, §B8):
+ * Ten findings classes (plan-content-editor.md §B5 C0, §B8):
  *
  *   (a) every effect's keys are inside effectKeys[type] plus the cost keys
  *       plus "type", and its TYPE is one effectCategories allows on the file's
@@ -43,10 +43,21 @@
  *   (g) the seam's unit checks (aurad-validate.test.mjs): the stale-binary
  *       guard and the candidate path guard, both against temp fixtures so no
  *       repo file's mtime is ever touched.
- *   (h) the skill save path's unit checks (save-skill.test.mjs, C3): the path /
- *       id / rename guards, a seam finding refusing the write, a clean
- *       candidate written with its unrendered keys intact, and a throwing seam
- *       propagating - every case over a temp copy of api/, none over the repo.
+ *   (h) the skill save path's unit checks (save-skill.test.mjs, C3+C4): the
+ *       path / id / rename guards, the isNew existence guards both ways, a seam
+ *       finding refusing the write, a clean candidate written with its
+ *       unrendered keys intact, the post-save checklist and its computed
+ *       registry-pin count, and a throwing seam propagating - every case over a
+ *       temp copy of api/, none over the repo.
+ *   (i) every `icon` authored in api/skills/**.json is a key of the VENDORED
+ *       glyph set, parsed out of the generated client artifact by
+ *       skill-icons.mjs (C4, §B4.4). This is the editor-side twin of
+ *       SkillIcons.test.ts: the picker offers exactly this set, so a value
+ *       outside it could only arrive by hand, and it renders in game as a
+ *       letter fallback nobody notices.
+ *   (j) every name in TEST_RIG_SKILLS is a player skill on disk - the badge is
+ *       a name list (nothing in the files marks a cheat rig), so a rename must
+ *       not leave it pointing at nothing.
  *
  * ⚑ No underscore exemption at EFFECT level, on purpose: no shipped effect
  * carries a _comment (measured) and Go's validateEffectKeys would refuse one,
@@ -58,7 +69,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listJsonFiles } from './files.mjs';
 import { readSkillVocabulary } from './vocabulary.mjs';
-import { SKILL_PRESENTATION, COST_PRESENTATION, EFFECT_PRESENTATION, EFFECT_TYPE_NOTES, EFFECT_TYPE_DEFAULTS, orphanPerLevelKeys } from './skill-presentation.mjs';
+import { SKILL_PRESENTATION, COST_PRESENTATION, EFFECT_PRESENTATION, EFFECT_TYPE_NOTES, EFFECT_TYPE_DEFAULTS, TEST_RIG_SKILLS, orphanPerLevelKeys } from './skill-presentation.mjs';
+import { readSkillIcons, SKILL_ICONS_FILE, REGEN_ICONS } from './skill-icons.mjs';
 import { validateCandidate } from './aurad-validate.mjs';
 import { selfTestFindings as seamSelfTestFindings } from './aurad-validate.test.mjs';
 import { selfTestFindings as saveSkillSelfTestFindings } from './save-skill.test.mjs';
@@ -145,6 +157,18 @@ for (const [type, keys] of Object.entries(vocabulary.effectKeys)) {
 }
 for (const key of orphanPerLevelKeys([...vocabulary.topLevelKeys, ...costKeys])) finding('api/skill-vocabulary.json', `"${key}" has no base key among topLevelKeys/costKeys`);
 
+// (i) the vendored glyph set, parsed off the generated client artifact. A
+// broken parse THROWS out of readSkillIcons and that is deliberate: an empty
+// icon picker is a worse failure than a loud one.
+const glyphs = readSkillIcons(ROOT);
+const glyphCount = Object.keys(glyphs).length;
+
+// The Skills tab's own scope (D2), restated here because the icon pin is about
+// the rows a player sees: the mob-embedded skills under api/skills/mobs/ author
+// no icon by ruling and render no spellbook row.
+const PLAYER_SKILL_FILE = /^api\/skills\/[^/]+\.json$/;
+const playerSkillNames = [];
+
 let fileCount = 0;
 let effectCount = 0;
 
@@ -158,6 +182,18 @@ for (const abs of listJsonFiles(SKILLS_DIR)) {
     continue;
   }
   fileCount += 1;
+
+  // (i) the icon, on player skills only. Both halves of the frontend twin
+  // (SkillIcons.test.ts): an unauthored icon and one outside the vendored set
+  // both ship as a letter fallback nobody notices, and no Go rule sees either.
+  if (PLAYER_SKILL_FILE.test(rel)) {
+    if (raw.name) playerSkillNames.push(raw.name);
+    if (typeof raw.icon !== 'string' || raw.icon === '') {
+      finding(rel, `authors no "icon" - every spellbook row needs a glyph, and SkillIcons.test.ts (the frontend twin of this check) reddens on it. Pick one in the Skills tab's icon picker`);
+    } else if (!(raw.icon in glyphs)) {
+      finding(rel, `icon "${raw.icon}" is not one of the ${glyphCount} vendored glyphs in ${SKILL_ICONS_FILE} - it renders as a letter fallback. Pick a vendored glyph in the Skills tab, or add this one with: ${REGEN_ICONS}`);
+    }
+  }
 
   // (b) top-level keys.
   for (const key of Object.keys(raw)) {
@@ -221,8 +257,32 @@ try {
   else if (!refused.findings.some((f) => f.includes('aegis.json'))) {
     finding('save seam', `the refusal did not name ${SEAM_CANDIDATE}: ${refused.findings.join(' | ') || '(no findings)'}`);
   }
+
+  // ⭐ C4: a NEW file reusing a shipped id. save-skill.mjs deliberately grew no
+  // duplicate-id or duplicate-name guard of its own (D9: no JS twin of a Go
+  // rule), so this asserts the rule it delegates to is really there - through
+  // the seam, over the real tree, which a unit case with its own temp root
+  // cannot do. The candidate is never written anywhere: validateCandidate
+  // substitutes it into a temp copy.
+  const duplicate = JSON.parse(readFileSync(path.join(ROOT, ...SEAM_CANDIDATE.split('/')), 'utf8'));
+  duplicate.id = 1;
+  duplicate.name = 'SmokeDuplicateId';
+  const dup = validateCandidate({ file: 'api/skills/smoke-duplicate-id.json', raw: duplicate });
+  if (dup.ok) finding('save seam', 'a NEW skill file reusing id 1 was ACCEPTED - the loader is expected to refuse a duplicate skill ID, and save-skill.mjs has no JS twin of that rule');
+  else if (!dup.findings.some((f) => /duplicate skill ID/i.test(f))) {
+    finding('save seam', `a new file reusing id 1 was refused, but not as a duplicate id: ${dup.findings.join(' | ') || '(no findings)'}`);
+  }
 } catch (err) {
   finding('save seam', String(err?.message || err));
+}
+
+// (j) the test-rig badge's name list. Nothing in the content marks a cheat
+// rig, so this is a hand list by necessity - and therefore one that must be
+// pinned against the files, or a rename leaves a badge on nothing.
+for (const name of TEST_RIG_SKILLS) {
+  if (!playerSkillNames.includes(name)) {
+    finding(PRESENTATION_FILE, `TEST_RIG_SKILLS names "${name}", which is not a player skill in api/skills/ - the sidebar badge would mark nothing (renamed, moved or deleted?)`);
+  }
 }
 
 // (g) the seam's own unit checks.
@@ -232,5 +292,5 @@ for (const line of seamSelfTestFindings()) finding('aurad-validate.test.mjs', li
 for (const line of saveSkillSelfTestFindings()) finding('save-skill.test.mjs', line);
 
 for (const line of findings) console.log(line);
-console.log(`${findings.length} finding(s) across ${fileCount} skill file(s) / ${effectCount} effect(s), ${fixtureTypes.length} effect type(s) in the vocabulary`);
+console.log(`${findings.length} finding(s) across ${fileCount} skill file(s) / ${effectCount} effect(s), ${fixtureTypes.length} effect type(s) in the vocabulary, ${glyphCount} vendored glyph(s)`);
 process.exit(findings.length > 0 ? 1 : 0);

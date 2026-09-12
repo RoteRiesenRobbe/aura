@@ -67,6 +67,18 @@ the bottom. Trust the code over the manual if a path has drifted.
   (`docs/manual-tiled-editor.md` §6). It reads the prop's own `sprite` field —
   no separate map to maintain any more, but a missing/empty `sprite` hard-fails
   at server boot (`world/props.go`), before this script would ever see it.
+- **A change to the SKILL tables in `backend/pkg/aura/skills/definition.go`
+  needs the vocabulary fixture regenerated** (`effectKeys`, `effectCategories`,
+  `costKeys`, the categories, the top-level key list): the golden test fails
+  until you run `UPDATE_SKILL_VOCABULARY=1 go test -count=1
+  ./pkg/aura/skills/` from `backend/` and commit `api/skill-vocabulary.json`.
+  The content editor's Skills tab renders its whole form from that fixture, so
+  a stale one means a new key cannot be authored there and `npm run smoke` in
+  `tools/content-editor/` reddens on the drift. ⭐ **A player skill can be
+  authored in the content editor's Skills tab** ("+ New" in the Skills sidebar,
+  spell builder C4), which runs the REAL loader on save (`aurad -validate`, so
+  `make -C backend build` must be current) and hands you the post-save
+  checklist: the registry pin below, the inventory row, placement, restart.
 - **A new/changed mob, quest, faction, recipe, or milestone field or
   validation rule needs `tools/content-editor/` updated by hand** (`docs/manual-content-authoring.md`
   "Known hand-sync points"): `validate.mjs` (the JS port of the Go rule),

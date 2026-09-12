@@ -47,7 +47,7 @@ export const SKILL_PRESENTATION = {
   id: { control: 'number', unit: 'count', hint: 'Persisted in every spellbook row; never changes once shipped (C5 will lock it).' },
   name: { control: 'text', hint: 'The reference key everywhere: mob skills[]/unlocks[], milestones, NPC grants, recipes, the SKILL cheat.' },
   displayName: { control: 'text', hint: 'Optional; blank derives one from the name (CamelCase → spaces).' },
-  icon: { control: 'icon', hint: 'Must be a vendored glyph (frontend/src/client-data/icons/vendor); SkillIcons.test.ts reddens otherwise.' },
+  icon: { control: 'icon', hint: 'Required: pick one of the vendored glyphs. An unvendored value renders as a letter fallback and reddens SkillIcons.test.ts.' },
   description: { control: 'textarea', hint: 'Optional tooltip flavor line.' },
   category: { control: 'select', options: 'categories' },
   maxLevel: { control: 'number', unit: 'count', hint: 'Never decreases on a shipped skill (persisted levels may exceed a lowered cap).' },
@@ -158,7 +158,7 @@ export const EFFECT_PRESENTATION = {
   statBonusPerLevel: { control: 'number', group: PAYLOAD },
 
   // --- spawn / projectile ---
-  spawnMob: { control: 'mob', group: PAYLOAD, hint: 'A mob name; followers and totems are picked, never authored inline (D2).' },
+  spawnMob: { control: 'mob', group: PAYLOAD, hint: 'Picked from every mob on disk, grouped by role; the summon\'s own stats, aura and art are edited in the Mobs tab (D2), never inline here.' },
   ttlTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, label: 'TTL ticks' },
   ttlTicksPerLevel: { control: 'number', group: PAYLOAD, label: 'TTL per level' },
   powerPerOwnerLevel: { control: 'number', unit: 'fraction', group: PAYLOAD, hint: 'Damage multiplier the summon gains per OWNER level.' },
@@ -200,6 +200,14 @@ export const EFFECT_TYPE_DEFAULTS = {
 // The effect types the picker never offers (§B4.8). A skill that already
 // authors one still opens, read-only, with the type's note as a banner.
 export const HIDDEN_EFFECT_TYPES = ['projectile'];
+
+// The cheat-only test rigs (`9ee8cdb4`), badged in the sidebar and the editor
+// header so nobody reads them as content or tunes them as if they shipped:
+// they exist to exercise every effect surface from a cheat, not to be obtained.
+// A NAME list, not a rule, because there is nothing in the files that marks
+// them - which is exactly why the badge is worth having. smoke.mjs asserts
+// every name here is a player skill on disk, so a rename cannot leave it stale.
+export const TEST_RIG_SKILLS = ['OmniAura', 'OmniPassive', 'OmniStrike'];
 
 // Level-scaling resolution, the same formula as skills/scaling.go:
 // base + (level-1) × perLevel. Both halves default to 0 when unauthored, so

@@ -57,7 +57,7 @@ recipe `id`/`result`/`ingredients[]` on `api/recipes/*.json`, result and
 each ingredient's skill picked from the real skill catalog; the shared
 `api/milestones/milestone-unlocks.json` level/skillName table, edited as one
 flat list rather than a sidebar of separate files (it's a single JSON array,
-not one-file-per-entry). The sidebar's NPCs/Quests/Mobs/Factions/Recipes
+not one-file-per-entry). The sidebar's NPCs/Quests/Mobs/Factions/Recipes/Skills
 tabs each hold a "+ New" flow that prefills every mandatory field and
 derives the filename from the name/title you type — snake_case for factions
 (`wildlife_predator.json`, matching that directory's existing convention),
@@ -74,9 +74,9 @@ art or walk the manual 5-file path. NPCs and Mobs are the SAME editor —
 selecting a plain (non-dialogue) mob shows its stats plus a "+ Add dialogue
 tree" button that promotes it into an NPC in place.
 
-All five content kinds this tool edits — mobs (and by extension NPCs),
-quests, factions, recipes, and milestones — are genuinely, fully
-JSON-authorable: nothing here needs a Go/FlatBuffers change to become live,
+All six content kinds this tool edits — mobs (and by extension NPCs),
+quests, factions, recipes, milestones, and player skills — are genuinely,
+fully JSON-authorable: nothing here needs a Go/FlatBuffers change to become live,
 mirroring `tools/tiled/`'s posture. The one asterisk is mobs: a brand-new
 **visual species** (no existing sprite to reuse via `entityType` override)
 still needs the manual art/EntityType 5-file path — which is exactly why new
@@ -118,6 +118,54 @@ its own tab. The form is rendered from the served vocabulary below, never from
 a hand-typed field list, so a new effect key in Go reaches it with no editor
 work.
 
+What C4 added on top of C3's write path:
+
+- **"+ New skill"** in the Skills sidebar header. It asks for a name, derives
+  `api/skills/<kebab-name>.json` and `CamelCase` from it (refusing a file or
+  name either skill folder already uses), and opens the form with `id`, `name`
+  and `maxLevel` 5 filled in and **nothing else**: no category, no effect card,
+  no icon. The category decides which effect types are legal at all, so
+  guessing one would either pick your direction for you or seed a card the
+  loader refuses; the live hints ask for the rest. `id` is the highest id
+  across BOTH skill folders plus one, read-only, with its own caveat beside it
+  (it re-mints the id of a deleted skill that held the highest, which C5's
+  registry lock closes). The draft carries a **not yet saved** badge until it
+  is written.
+- **The icon picker** replaces the text field: the vendored glyph set
+  (`frontend/src/client-data/icons/SkillIcons.generated.ts`, parsed off disk by
+  `skill-icons.mjs` and served on `/api/data`) drawn as the real SVGs, the
+  current value highlighted, plus a `(none)` option that deletes the key. A
+  value the set does not carry is still offered, marked `not vendored`, so
+  opening a file never changes it. The set is closed by design: adding a glyph
+  is a script run (`node scripts/fetch-skill-icons.mjs`, which downloads from
+  game-icons.net and regenerates the committed artifacts, CC BY attribution
+  included), which is what the footer under the grid says.
+- **The `spawnMob` picker**: every mob on disk, grouped by role (followers,
+  structures, creatures; an absent `role` IS creature), with an **edit in
+  Mobs** jump for the one picked, because the summon's own stats, aura and art
+  live on the mob. ⚑ The plan's §B4.6 filter (followers and structures only)
+  was overruled by the content: `spawn_at_anchor` names `PortalHome` /
+  `PortalSummon` and `projectile` names `ProjectileBomb`, all role `creature`,
+  and Go has no role rule on `spawnMob` at all.
+- **A test-rig badge** on `OmniAura` / `OmniPassive` / `OmniStrike`, in the
+  sidebar row and the editor header: they are cheat-only rigs, never content,
+  and nothing in their files says so. The list is `TEST_RIG_SKILLS` in
+  `skill-presentation.mjs` and `npm run smoke` asserts each name is still a
+  player skill on disk.
+- **An "After saving" section** at the bottom of every skill, not only a new
+  one: the boot-time reminder, the test link
+  `http://localhost:2001/?token=plz&wsUrl=ws://localhost:2000/game&start-cmds=GOD,SKILL <name>`
+  (the CLAUDE.md dev defaults, not secrets) with a Copy button, and the place
+  the **post-save checklist** is rendered. That checklist comes off the save
+  RESPONSE, not the browser: restart `aurad` always, and for a new skill also
+  bump `assert.Len(t, r.All(), N)` in
+  `backend/pkg/aura/skills/registry_test.go` to the count the server just
+  measured on disk, add a row to `docs/content-skill-inventory.md` by hand (it
+  was generated once and hand-maintained since, and carries its own stale
+  marker; there is no generator script), and place the skill in the other tabs
+  or it stays cheat-only. It stands until the form is re-rendered: it is a
+  receipt for the save that happened, not standing state.
+
 What C3 added on top of C1's read-only form:
 
 - **Editing in place.** Keys are assigned and deleted on the object that came
@@ -157,10 +205,14 @@ What C3 added on top of C1's read-only form:
 `POST /api/save/skill` (`save-skill.mjs`) is deliberately **not** `saveOne`:
 a skill runs no JS port of the Go rules at all. In order:
 
-1. **The path guard** - `api/skills/<slug>.json` only, one level, no `..`, and
-   the file must already exist (the "+ New skill" flow is C4).
-2. **The id guard** - `id` may not change; spellbook rows store it.
-3. **The rename guard** - if `name` changed, the content is scanned for
+1. **The path guard** - `api/skills/<slug>.json` only, one level, no `..`.
+2. **Existence, both ways round** - an edit refuses a file that is not there,
+   and a create (`isNew`, the "+ New skill" flow) refuses one that already is.
+3. **The id guard** - `id` may not change; spellbook rows store it. Skipped for
+   a new skill: there is no on-disk twin, and a duplicate id is the LOADER's
+   refusal through the seam (`duplicate skill ID`), never a JS twin of that
+   rule. Same for a duplicate name.
+4. **The rename guard** - if `name` changed, the content is scanned for
    references to the OLD name (milestone rows, mob `unlocks[]` and `skills[]`,
    NPC `teach_skill` grants, ascension `rewards[]`, recipe results and
    ingredients) and the save is REFUSED, listing every one, rather than
@@ -168,10 +220,13 @@ a skill runs no JS port of the Go rules at all. In order:
    `SKILL <name>` cheat, the harness scripts and the sim-harness presets.
    ⚑ That scan is `skill-references.mjs`, shared with the tab's "obtained via"
    panel on purpose - a row the panel shows but the guard misses would be a
-   rename that silently breaks content.
-4. **The seam** - `aurad -validate` over a temp copy with the candidate
+   rename that silently breaks content. Skipped for a new skill: nothing can
+   reference a name that has never been on disk.
+5. **The seam** - `aurad -validate` over a temp copy with the candidate
    written in (below).
-5. **The write**, through the same `prettyJson` writer every other kind uses.
+6. **The write**, through the same `prettyJson` writer every other kind uses.
+7. **The checklist**, counted after the write, in the response
+   (`{ok: true, warnings, checklist, skillCount}`).
 
 **The two failure shapes are different on the wire, and the client branches on
 the HTTP status** (`docs/plan-content-editor.md` §B10 L12): a **200** with
@@ -239,6 +294,15 @@ one, and a renamed one cannot leave a stale row. It prints every finding and exi
 The top-level check earns its keep: skill JSON is parsed without
 `DisallowUnknownFields`, so a typo'd top-level key is read by nothing and
 fails in silence.
+
+Two more legs came with C4: every `icon` authored in `api/skills/*.json` must
+be a key of the vendored glyph set (`skill-icons.mjs`'s parse of the generated
+client artifact - the editor-side twin of `SkillIcons.test.ts`, since the
+picker offers exactly that set and a value outside it could only arrive by
+hand), and every name in `TEST_RIG_SKILLS` must still be a player skill on
+disk. The seam leg also asserts that a NEW file reusing a shipped `id` is
+refused by the loader as a `duplicate skill ID` - the rule `save-skill.mjs`
+deliberately does not re-implement.
 
 Its last three legs are the save path's: the seam over the real tree (which
 needs a built `backend/aurad` and says `build aurad first: make -C backend
