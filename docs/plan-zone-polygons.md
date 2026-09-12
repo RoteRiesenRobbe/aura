@@ -705,7 +705,7 @@ and P4, and running it three times costs more than it buys.
 ⚑ **The accepted cost of shipping first (§4.4) was paid as designed**: the three
 writers are taught `closed` now and will be taught `polygons` again at P2.
 
-### P2 — the polygon primitive, draw only ✅ 2026-09-10 (`[uncommitted]`)
+### P2 — the polygon primitive, draw only ✅ 2026-09-10 (`05553e43`)
 
 **What shipped.** `zone.polygons` — closed polygons naming the same profile a
 region and a path do, FILLED into the world and onto the map. `world.Polygon`
@@ -748,7 +748,7 @@ nothing rather than a field that quietly means something else. P4 then gives the
 
 ---
 
-### P3 — filled blocking ✅ 2026-09-10 (`[uncommitted]`)
+### P3 — filled blocking ✅ 2026-09-10 (`05553e43`)
 
 **What shipped.** `PolygonColliders` beside `PathCorridors`: the winding-normalised
 **inset rotated boundary stroke** plus the **coarse axis-aligned interior fill**,
@@ -805,7 +805,7 @@ move them twice.
 ---
 
 
-### P3 rider — the fill was poking out of the art ✅ 2026-09-12 (`[uncommitted]`)
+### P3 rider — the fill was poking out of the art ✅ 2026-09-12 (`05553e43`)
 
 ⛔ **PO pass, 2026-09-10: "collision is MUCH worse than paths — big chunks of
 colliders poking out of the outline, we cannot even pretend to slide on diagonal
@@ -876,7 +876,7 @@ such tile exists and D14 falls back to the colour, but it is working by accident
 
 ---
 
-### P4 — outlines ✅ 2026-09-10 (`[uncommitted]`)
+### P4 — outlines ✅ 2026-09-10 (`05553e43`)
 
 **What shipped.** `outlineProfile` + `outlineWidth` on **both** `Path` and
 `Polygon`, one shared paint helper, one shared converter, one shared validator.
