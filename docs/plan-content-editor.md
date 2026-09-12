@@ -647,7 +647,7 @@ Six, each its own session; C0, C2 and C5 carry Go.
   `saveOne` gated by C2 (⚑ shipped as its own module, NOT `saveOne`: the
   ledger says why), the rename guard (§B10 L5), the `maxLevel`-lowering
   warning (§B10 L4). No `validateSkill` port.
-- **C4 - the new-skill flow and the bookkeeping.** ✅ **SHIPPED 2026-09-12** (ledger §B12 C4). "+ New skill" (§B4.5), the
+- **C4 - the new-skill flow and the bookkeeping.** ✅ **SHIPPED 2026-09-12 `71183777`** (ledger §B12 C4). "+ New skill" (§B4.5), the
   icon picker (§B4.4), the `spawnMob` picker with jump links, the post-save
   checklist + test link (§B4.7), the test-rig badge. Docs: the editor README's
   scope section, `manual-content-authoring.md` "Known hand-sync points"
@@ -1404,7 +1404,7 @@ reviewer of a tab-saved diff sees after a blank-then-retype.
 
 **Next: C4**, shipped the same day (below). Then C5.
 
-#### C4 - the new-skill flow and the bookkeeping ✅ SHIPPED 2026-09-12 `[uncommitted]`
+#### C4 - the new-skill flow and the bookkeeping ✅ SHIPPED 2026-09-12 `71183777`
 
 > Built by an Opus subagent (117 tool calls), verified by the session, wrapped
 > here. Three PO rulings via choice prompts before a line was written (below).
