@@ -8,8 +8,9 @@
  *
  * then open http://localhost:4610. Reads api/mobs, api/quests and api/skills
  * straight off disk on every request (no build step, no dependencies, and no
- * running game server) and writes edits straight back (the Skills tab is
- * READ-ONLY until spell builder C3, plan-content-editor.md §B5), the same posture as
+ * running game server) and writes edits straight back (the Skills tab
+ * writes through the aurad seam below, spell builder C3,
+ * plan-content-editor.md §B5), the same posture as
  * tools/tiled/generate-palette.mjs: an adjacent authoring tool, never
  * shipped to players, deriving its pick-lists from api/ instead of
  * duplicating them.
@@ -40,6 +41,7 @@ import { prettyJson } from './format.mjs';
 import { readSkillVocabulary } from './vocabulary.mjs';
 import { listJsonFiles } from './files.mjs';
 import { validateCandidate } from './aurad-validate.mjs';
+import { saveSkill } from './save-skill.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -341,6 +343,19 @@ const server = createServer(async (req, res) => {
       const { ok, findings } = validateCandidate(body.file === undefined ? {} : { file: body.file, raw: body.raw });
       return sendJson(res, 200, { ok, findings });
     }
+    // ⭐ The Skills tab's save (spell builder C3). Unlike the four kinds above
+    // it runs NO JS rule port: its gate is the real loader through the C2 seam
+    // (D9). save-skill.mjs holds the logic so it is testable without a server.
+    //
+    // ⚑ A THROW from here is a 500 by the catch below, and that is the L12
+    // contract: a missing or stale binary means the seam could not answer, and
+    // the client must not render that as a clean pass or as a finding list.
+    if (req.method === 'POST' && url.pathname === '/api/save/skill') {
+      const body = await readBody(req);
+      return sendJson(res, 200, saveSkill({ file: body.file, raw: body.raw }, {
+        root: ROOT, readMobs, readRecipes, readMilestonesEntry, validateCandidate,
+      }));
+    }
     if (req.method === 'POST' && url.pathname === '/api/save/milestones') {
       const body = await readBody(req);
       return sendJson(res, 200, saveMilestones(body.raw));
@@ -350,6 +365,9 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === 'GET' && url.pathname === '/skill-presentation.mjs') {
       return serveStatic(res, path.join(HERE, 'skill-presentation.mjs'));
+    }
+    if (req.method === 'GET' && url.pathname === '/skill-references.mjs') {
+      return serveStatic(res, path.join(HERE, 'skill-references.mjs'));
     }
     if (req.method === 'GET') {
       const rel = url.pathname === '/' ? '/index.html' : url.pathname;

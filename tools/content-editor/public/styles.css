@@ -259,11 +259,15 @@ input[type=checkbox]:disabled { cursor: default; }
 .resist-cell input { width: 70px; }
 
 /* ---- Skills tab (spell builder C1, read-only) ---------------------------- */
-.readonly-badge { color: var(--accent); font-size: 10px; margin-left: 6px; text-transform: uppercase; letter-spacing: 0.03em; border: 1px solid var(--accent); border-radius: 4px; padding: 1px 5px; }
+.readonly-badge { color: var(--accent); font-size: 10px; margin-left: 6px; text-transform: uppercase; letter-spacing: 0.03em; border: 1px solid var(--accent); border-radius: 4px; padding: 1px 5px; white-space: nowrap; }
 /* Disabled controls carry the real authored values here, so they stay legible. */
 input:disabled, select:disabled, textarea:disabled { opacity: 0.85; color: var(--text); cursor: default; }
 .skill-comment { font-size: 11.5px; color: var(--text-dim); background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; margin-bottom: 12px; white-space: pre-wrap; }
 .skill-comment .label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 3px; }
+/* C3 made _comment editable (PO 2026-09-11): the box holds a textarea plus
+   the authoring-note rule, and .hint is styled per-field elsewhere. */
+.skill-comment textarea { margin-top: 4px; color: var(--text); white-space: pre-wrap; }
+.skill-comment .hint { font-size: 10px; color: var(--text-dim); font-style: italic; margin-top: 4px; }
 .parked-banner { font-size: 12px; color: var(--warn); background: var(--bg-card); border: 1px solid var(--warn); border-radius: 6px; padding: 8px 10px; margin-bottom: 12px; }
 .field-row { display: flex; align-items: center; gap: 6px; }
 .field-row input[type=number] { width: 96px; }

@@ -365,6 +365,111 @@
       "tickRateDurationTicks"
     ]
   },
+  "effectCategories": {
+    "calm": [
+      "cooldown"
+    ],
+    "charm": [
+      "cooldown"
+    ],
+    "damage_aura": [
+      "active_aura"
+    ],
+    "dash": [
+      "cooldown"
+    ],
+    "detaunt": [
+      "cooldown"
+    ],
+    "dot_aura": [
+      "active_aura"
+    ],
+    "heal_aura": [
+      "active_aura"
+    ],
+    "hot_aura": [
+      "active_aura"
+    ],
+    "instant_damage": [
+      "cooldown"
+    ],
+    "instant_dot": [
+      "cooldown"
+    ],
+    "instant_hot": [
+      "cooldown"
+    ],
+    "instant_resist": [
+      "cooldown"
+    ],
+    "instant_shield": [
+      "cooldown"
+    ],
+    "lifesteal_burst": [
+      "cooldown"
+    ],
+    "light_aura": [
+      "active_aura",
+      "passive"
+    ],
+    "projectile": [
+      "cooldown"
+    ],
+    "recall": [
+      "cooldown"
+    ],
+    "resist_aura": [
+      "active_aura"
+    ],
+    "resist_passive": [
+      "passive"
+    ],
+    "retaliate_burst": [
+      "cooldown"
+    ],
+    "retaliate_damage": [
+      "passive"
+    ],
+    "retaliate_slow": [
+      "passive"
+    ],
+    "revive": [
+      "cooldown"
+    ],
+    "self_heal": [
+      "cooldown"
+    ],
+    "shield_aura": [
+      "active_aura"
+    ],
+    "slow_aura": [
+      "active_aura"
+    ],
+    "spawn": [
+      "cooldown"
+    ],
+    "spawn_at_anchor": [
+      "cooldown"
+    ],
+    "speed_aura": [
+      "active_aura"
+    ],
+    "speed_burst": [
+      "cooldown"
+    ],
+    "stat_multiplier": [
+      "passive"
+    ],
+    "stun": [
+      "cooldown"
+    ],
+    "taunt": [
+      "cooldown"
+    ],
+    "tick_rate": [
+      "cooldown"
+    ]
+  },
   "costKeys": [
     "costFractionOfMax",
     "costFractionOfMaxPerLevel"

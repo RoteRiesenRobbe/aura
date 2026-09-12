@@ -4,9 +4,10 @@ import {
   ROLES, TIERS, DAMAGE_TYPES, RESIST_WILDCARD, GATE_KEYS, COLLISION_LAYER_BITS, RESERVED_FACTION_NAMES, TRAVEL_MODES,
 } from '/validate.mjs';
 import {
-  EFFECT_TYPE_NOTES, CATEGORY_LABELS, HIDDEN_EFFECT_TYPES,
+  EFFECT_TYPE_NOTES, EFFECT_TYPE_DEFAULTS, CATEGORY_LABELS, HIDDEN_EFFECT_TYPES,
   resolveAt, scalingPairs, presentationFor, labelFor, ticksToSecondsLabel, formatNumber,
 } from '/skill-presentation.mjs';
+import { collectSkillReferences } from '/skill-references.mjs';
 
 /* ---- tiny DOM helper ------------------------------------------------- */
 function el(tag, props = {}, children = []) {
@@ -134,6 +135,7 @@ function resetEntry(entry, kind) {
     else if (kind === 'quest') state.quests = state.quests.filter((q) => q !== entry);
     else if (kind === 'faction') state.factions = state.factions.filter((f) => f !== entry);
     else if (kind === 'recipe') state.recipes = state.recipes.filter((r) => r !== entry);
+    else if (kind === 'skill') state.skills = state.skills.filter((s) => s !== entry);
     state.selected = null;
     renderSidebar();
     renderEditor();
@@ -1558,32 +1560,67 @@ async function saveMilestones(entry) {
 
 
 /* ======================================================================
- * Skill editor: spell builder C1, READ-ONLY (plan-content-editor.md §B4.3,
- * §B5 C1). The form is rendered FROM the vocabulary served on /api/data
+ * Skill editor: the spell builder (plan-content-editor.md §B4.3, §B5 C1+C3).
+ * The form is rendered FROM the vocabulary served on /api/data
  * (api/skill-vocabulary.json merged with shared-constants): a key in
- * effectKeys[type] ⇒ a field, authored or not, so the PO judges the full
- * form against every real skill before a write path exists. ⛔ L1: no
- * per-type field list is typed here. Every control is `disabled`; C3 turns
- * them on. §B4.8's exclusions (hitStyle, legacy, forwardUnits, armTicks)
- * are never rendered and, with nothing written, trivially round-trip.
+ * effectKeys[type] ⇒ a field, authored or not. ⛔ L1: no per-type field list
+ * is typed here.
+ *
+ * C3 made it writable. Three rules hold everywhere in this section:
+ *
+ *   1. EDIT THE RAW OBJECT IN PLACE (L7/L8). Keys are assigned and deleted on
+ *      the object that came off disk, never on a rebuilt one, so _comment and
+ *      every key the form does not render (hitStyle, legacy, forwardUnits,
+ *      armTicks - §B4.8) round-trip untouched.
+ *   2. BLANK DELETES THE KEY (L2). Absent and 0 are different values to the
+ *      loader (tickInterval absent = every tick, an authored 0 is refused), so
+ *      an emptied input removes the key and a typed 0 writes 0. This is the
+ *      rule for EVERY control, not a list of which keys need it.
+ *   3. THE LOADER IS THE VALIDATOR (D9). The checks rendered live are hints;
+ *      they never block Save. The gate is `aurad -validate` on the way through
+ *      POST /api/save/skill.
  * ==================================================================== */
-const RO_BADGE = 'read-only · C1';
+
+const editorPane = $('#editor-pane');
+
+// The authoring-note rule, shown under the _comment box (PO 2026-09-11).
+const COMMENT_HINT = 'An authoring note, not a session ledger: what the skill is, which values are placeholder, and at most one landmine sentence with a doc pointer. No dates, hashes, chunk names, glyphs or placement claims ("cheat-only", "dropped by wolves") - placement lives in the mob, milestone and recipe files and goes stale here. Under ~400 characters. Full rule: docs/manual-content-authoring.md, "The _comment field". Blank deletes the key.';
+
+// Re-renders the open editor after a STRUCTURAL change (a card added, moved,
+// removed, a type or a category switched), keeping the scroll position.
+// ⚑ Text and number edits must NOT come here: a re-render mid-keystroke takes
+// the focus out of the input being typed into. They mutate and then refresh
+// only what reads the value (the dirty dot, the hints, the level tables).
+function rerenderSkillEditor() {
+  const top = editorPane ? editorPane.scrollTop : 0;
+  renderEditor();
+  if (editorPane) editorPane.scrollTop = top;
+}
 
 function renderSkillEditor(entry) {
   const skill = entry.raw;
   const vocab = state.skillVocabulary;
+  const effects = Array.isArray(skill.effects) ? skill.effects : [];
+  // §B4.8: a skill authoring a parked effect type opens READ-ONLY, whole. One
+  // guard here rather than a condition on thirty controls, because that is
+  // exactly how a parked file becomes editable by accident.
+  const readOnly = effects.some((e) => e && HIDDEN_EFFECT_TYPES.includes(e.type));
 
   editorRoot.appendChild(el('div', { class: 'editor-header' }, [
     el('div', {}, [
       el('h2', {}, [
         document.createTextNode(skill.displayName || deriveDisplayName(skill.name || '')),
-        el('span', { class: 'readonly-badge', text: RO_BADGE, title: 'Spell builder C1 renders every skill read-only; editing and saving arrive with C3 (plan-content-editor.md §B5).' }),
+        readOnly ? el('span', { class: 'readonly-badge', text: 'read-only', title: 'This skill authors a parked effect type (plan-content-editor.md §B4.8), so the builder shows it but never writes it.' }) : null,
       ]),
       el('div', { class: 'file-path', text: entry.file }),
     ]),
-    el('div', { class: 'editor-actions' }, [
-      el('span', { class: 'save-feedback', text: 'No Save button yet: C3 adds the write path.' }),
-    ]),
+    el('div', { class: 'editor-actions' }, readOnly
+      ? [el('span', { class: 'save-feedback', title: 'Its second in-game pass decides the type (plan-prototype-projectile.md); until then nothing here is written.', text: 'Read-only: a parked effect type.' })]
+      : [
+        el('span', { class: 'save-feedback', id: 'save-feedback' }),
+        el('button', { onclick: () => resetEntry(entry, 'skill') }, 'Reset'),
+        el('button', { class: 'primary', onclick: () => saveSkill(entry) }, 'Save'),
+      ]),
   ]));
 
   if (!vocab) {
@@ -1591,25 +1628,39 @@ function renderSkillEditor(entry) {
     return;
   }
 
-  // The skill-level _comment is the design record for most shipped skills
-  // (102 of 105 carry one); it is shown, never edited here.
-  if (typeof skill._comment === 'string') {
-    editorRoot.appendChild(el('div', { class: 'skill-comment' }, [el('span', { class: 'label', text: '_comment' }), document.createTextNode(skill._comment)]));
-  }
-
-  const effects = Array.isArray(skill.effects) ? skill.effects : [];
   for (const type of HIDDEN_EFFECT_TYPES) {
     if (effects.some((e) => e && e.type === type)) {
       editorRoot.appendChild(el('div', { class: 'parked-banner', text: `Effect type "${type}": ${EFFECT_TYPE_NOTES[type]?.text || 'hidden from the type picker (§B4.8).'}` }));
     }
   }
 
-  const ctx = { vocab, skill, effects };
+  const hintBox = el('div', { class: 'errors-inline' });
+  const ctx = {
+    vocab, skill, effects, entry, readOnly,
+    previews: [],
+    // A value edit: the object is already mutated, so refresh what READS it.
+    onEdit() {
+      sidebarBumpDirty();
+      refreshHints();
+      for (const refresh of ctx.previews) refresh();
+    },
+    // A shape edit: rebuild the form.
+    onStructural() { rerenderSkillEditor(); },
+  };
+  function refreshHints() {
+    hintBox.innerHTML = '';
+    for (const line of skillHints(ctx)) hintBox.appendChild(el('div', { class: 'err-line', text: line }));
+  }
+
+  const comment = skillCommentSection(ctx);
+  if (comment) editorRoot.appendChild(comment);
+  editorRoot.appendChild(hintBox);
   editorRoot.appendChild(skillIdentitySection(ctx));
   editorRoot.appendChild(skillCategorySection(ctx));
   editorRoot.appendChild(skillEffectsSection(ctx));
   editorRoot.appendChild(skillVisualsSection());
   editorRoot.appendChild(skillSourcesSection(skill));
+  refreshHints();
 }
 
 // CamelCase → spaces, the catalog's DeriveDisplayName for a skill with no
@@ -1620,12 +1671,68 @@ function deriveDisplayName(name) {
 
 function skillSection(title) { return statSection(title, state.skillSectionCollapsed); }
 
+// Which block of the form draws a top-level key. Placement, read off the
+// presentation table's `section` (default Identity) rather than a list here -
+// so a key the table does not name still renders, and L1 holds.
+function sectionOf(key) { return (presentationFor(key) || {}).section || 'identity'; }
+
+// Assigns or DELETES: `undefined` removes the key outright (rule 2 above).
+function setKey(obj, key, value) {
+  if (value === undefined) delete obj[key];
+  else obj[key] = value;
+}
+
+// The skill-level _comment, editable in place (PO ruling 2026-09-11). It is
+// the one underscore key the content ships and the loader ignores it, so it
+// never reaches the seam - the rule below it is the only guard it has.
+function skillCommentSection(ctx) {
+  const value = typeof ctx.skill._comment === 'string' ? ctx.skill._comment : '';
+  if (ctx.readOnly && !value) return null;
+  const wrap = el('div', { class: 'skill-comment' }, [el('span', { class: 'label', text: '_comment' })]);
+  if (ctx.readOnly) {
+    wrap.appendChild(document.createTextNode(value));
+    return wrap;
+  }
+  wrap.appendChild(textArea(value, (v) => { setKey(ctx.skill, '_comment', v.trim() === '' ? undefined : v); ctx.onEdit(); }));
+  wrap.appendChild(el('div', { class: 'hint', text: COMMENT_HINT }));
+  return wrap;
+}
+
+// The live checks (D9): what the fixture makes free, as hints, NEVER a gate.
+// Save stays enabled with every one of these showing - the loader answers on
+// save, and a second opinion that could block it is exactly the JS port §B3
+// forbids.
+function skillHints(ctx) {
+  const { skill, vocab, effects } = ctx;
+  const out = [];
+  for (const key of ['name', 'icon', 'category', 'maxLevel']) {
+    if (skill[key] === undefined || skill[key] === '') out.push(`${key} is required on a player skill.`);
+  }
+  if (skill.category !== undefined && skill.category !== '' && !vocab.categories.includes(skill.category)) {
+    out.push(`category "${skill.category}" is not one of ${vocab.categories.join(', ')}.`);
+  }
+  if (effects.length === 0) out.push('No effects: the loader refuses a skill without at least one.');
+  effects.forEach((e, i) => {
+    if (e === null || typeof e !== 'object') { out.push(`effects[${i}] is not an object.`); return; }
+    if (!e.type) out.push(`effects[${i}] has no type.`);
+    else if (!vocab.effectKeys[e.type]) out.push(`effects[${i}] has type "${e.type}", which the vocabulary does not know.`);
+    else {
+      const illegal = illegalTypeLine(vocab, e.type, skill.category);
+      if (illegal) out.push(`effects[${i}]: ${illegal}`);
+    }
+  });
+  const scoped = [...new Set(effects.filter((e) => e && vocab.factionScoped.includes(e.type)).map((e) => e.type))];
+  if (scoped.length && !(Array.isArray(skill.targetFactions) && skill.targetFactions.length > 0)) {
+    out.push(`targetFactions is MANDATORY here: this skill authors ${scoped.join(' + ')}, and the loader refuses an empty allowlist.`);
+  }
+  return out;
+}
+
 // 1. Identity (§B4.3 item 1) - the top-level keys that are neither the
 // category block's nor `effects`, in the fixture's own order.
-const CATEGORY_BLOCK_KEYS = ['cooldownTicks', 'cooldownTicksPerLevel', 'castTicks', 'castTicksPerLevel', 'castInterruptedByDamage', 'targetFactions'];
 function skillIdentitySection(ctx) {
   const col = skillSection('Identity');
-  const keys = ctx.vocab.topLevelKeys.filter((k) => k !== 'effects' && !CATEGORY_BLOCK_KEYS.includes(k));
+  const keys = ctx.vocab.topLevelKeys.filter((k) => k !== 'effects' && sectionOf(k) !== 'category');
   col.body.appendChild(el('div', { class: 'stat-grid' }, keyFields(keys, ctx.skill, ctx)));
   return col.section;
 }
@@ -1634,22 +1741,26 @@ function skillIdentitySection(ctx) {
 // and passives author nothing extra. targetFactions is per skill, every
 // category, and turns MANDATORY when any effect is faction-scoped (calm,
 // charm - fixture `factionScoped`; the loader hard-fails an empty list then).
+//
+// ⚑ Switching the category re-renders this block but deletes NOTHING: whether
+// a leftover cooldownTicks on an aura is legal is the loader's call, and the
+// seam reports it on save. The tool does not guess.
 function skillCategorySection(ctx) {
   const { skill, vocab, effects } = ctx;
   const category = skill.category || '';
   const col = skillSection(`Category: ${CATEGORY_LABELS[category] || category || 'unset'}`);
   if (category === 'cooldown') {
-    const keys = CATEGORY_BLOCK_KEYS.filter((k) => k !== 'targetFactions' && vocab.topLevelKeys.includes(k));
+    const keys = vocab.topLevelKeys.filter((k) => sectionOf(k) === 'category' && k !== 'targetFactions');
     col.body.appendChild(el('div', { class: 'stat-grid' }, keyFields(keys, skill, ctx)));
     if (!(skill.castTicks > 0)) {
       col.body.appendChild(el('div', { class: 'grant-hint', text: 'castInterruptedByDamage is inert here: castTicks is 0, so there is no cast to interrupt (the loader refuses it authored true).' }));
     }
-    col.body.appendChild(levelPreview('Per level', scalingRowsFor(skill, vocab.topLevelKeys), skill.maxLevel));
+    col.body.appendChild(livePreview(ctx, 'Per level', skill, vocab.topLevelKeys));
   } else {
     col.body.appendChild(el('div', { class: 'mob-readonly-note', text: category === 'active_aura' ? 'An aura has no cooldown or cast: it is toggled, one active at a time, and ticks on its own cadence (each effect\'s tickInterval).' : category === 'passive' ? 'A passive is always on and has no cadence, cooldown or cast.' : 'Unknown category - the loader would refuse this file.' }));
   }
   const scoped = effects.filter((e) => e && vocab.factionScoped.includes(e.type)).map((e) => e.type);
-  const factionsField = keyField('targetFactions', skill.targetFactions, ctx);
+  const factionsField = keyField('targetFactions', skill, ctx);
   if (scoped.length) {
     factionsField.classList.add('mandatory');
     factionsField.appendChild(el('div', { class: 'hint', text: `MANDATORY: this skill authors ${[...new Set(scoped)].join(' + ')}, so the loader refuses an empty allowlist. Note it gates EVERY effect of the skill, allies included (OmniStrike lists "aligned" for that reason).` }));
@@ -1660,13 +1771,91 @@ function skillCategorySection(ctx) {
 
 // 3. Effects (§B4.3 item 3): one card per authored effect, each rendered from
 // effectKeys[type] ∪ costKeys, split into the shared and payload groups by
-// the presentation table, with the per-level preview underneath.
+// the presentation table, with the per-level preview underneath. C3 adds
+// add · remove · reorder · change type.
 function skillEffectsSection(ctx) {
   const col = skillSection(`Effects (${ctx.effects.length})`);
   if (ctx.effects.length === 0) col.body.appendChild(el('div', { class: 'mob-readonly-note', text: 'No effects authored - the loader refuses a skill without at least one.' }));
   ctx.effects.forEach((effect, i) => col.body.appendChild(effectCard(effect, i, ctx)));
-  col.body.appendChild(el('div', { class: 'grant-hint', text: 'Add · remove · reorder · change type arrive with C3.' }));
+  if (!ctx.readOnly) {
+    const type = EFFECT_TYPE_DEFAULTS[ctx.skill.category];
+    col.body.appendChild(el('button', { class: 'add-row', onclick: () => addEffect(ctx) }, type ? `+ Add effect (${type})` : '+ Add effect'));
+  }
   return col.section;
+}
+
+// A fresh card starts on the category's default type (§B4.5,
+// EFFECT_TYPE_DEFAULTS), or with no type at all when the category is unset or
+// unknown - then the picker is the next thing the author touches.
+function addEffect(ctx) {
+  // ctx.effects may be the empty stand-in used for a file that authors none,
+  // so push onto the real array, creating it first if need be.
+  if (!Array.isArray(ctx.skill.effects)) ctx.skill.effects = [];
+  const type = EFFECT_TYPE_DEFAULTS[ctx.skill.category];
+  ctx.skill.effects.push(type ? { type } : {});
+  ctx.onStructural();
+}
+
+function moveEffect(ctx, i, delta) {
+  const list = ctx.effects;
+  const j = i + delta;
+  if (j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+  ctx.onStructural();
+}
+
+function removeEffect(ctx, i) {
+  const effect = ctx.effects[i];
+  const authored = effect && typeof effect === 'object' ? Object.keys(effect).filter((k) => k !== 'type') : [];
+  if (authored.length > 0 && !confirm(`Delete effect #${i} (${(effect && effect.type) || 'no type'}) and the ${authored.length} key(s) it authors?\n\n${authored.join(', ')}`)) return;
+  ctx.effects.splice(i, 1);
+  ctx.onStructural();
+}
+
+// ⭐ The category rule (C3 rider, PO 2026-09-12), carried here by the fixture's
+// `effectCategories` - Go owns it, the picker only reads it. A stat_multiplier
+// on an active aura used to LOAD and then do nothing: the aura tick dispatcher
+// handles eight types and drops the rest, and stat bonuses are summed over
+// passive slots only. The loader now refuses it; these two functions make sure
+// the builder cannot author it in the first place.
+//
+// An unset or unknown category answers "every type": the fixture cannot say
+// which are legal, and hiding everything would be worse than offering too much.
+function legalEffectTypes(vocab, category) {
+  const all = Object.keys(vocab.effectCategories).sort();
+  if (!category || !vocab.categories.includes(category)) return all;
+  return all.filter((t) => (vocab.effectCategories[t] || []).includes(category));
+}
+
+// The refusal, worded as the loader words it, for a card whose CURRENT type is
+// illegal - which the picker cannot prevent (change the category of a skill
+// that already authors effects and every card can land here). null when the
+// pairing is fine or the fixture cannot judge it.
+function illegalTypeLine(vocab, type, category) {
+  const legal = vocab.effectCategories[type];
+  if (!legal || !category || !vocab.categories.includes(category)) return null;
+  if (legal.includes(category)) return null;
+  const article = /^[aeiou]/.test(category) ? 'an' : 'a';
+  return `"${type}" is not legal on ${article} ${category} skill; legal on: ${legal.join(', ')}. The loader refuses this file.`;
+}
+
+// §B4.3: switching a card's type drops the keys the new type does not accept -
+// the loader would refuse them anyway - so the author is shown exactly what
+// goes, INCLUDING the keys the form never renders (§B4.8), and may cancel.
+// Keys the new type also accepts stay in place, untouched.
+function changeEffectType(effect, next, ctx, selectEl, previous) {
+  const allowed = ctx.vocab.effectKeys[next] || [];
+  const dropped = Object.keys(effect).filter((k) => k !== 'type' && !allowed.includes(k) && !ctx.vocab.costKeys.includes(k));
+  if (dropped.length > 0) {
+    const names = dropped.map((k) => ((presentationFor(k) || {}).hidden ? `${k} (not shown)` : k));
+    if (!confirm(`Changing this effect from "${previous || '(none)'}" to "${next || '(none)'}" deletes ${dropped.length} authored key(s) the new type does not accept:\n\n${names.join('\n')}\n\nContinue?`)) {
+      selectEl.value = previous || '';
+      return;
+    }
+    for (const k of dropped) delete effect[k];
+  }
+  setKey(effect, 'type', next === '' ? undefined : next);
+  ctx.onStructural();
 }
 
 function effectCard(effect, i, ctx) {
@@ -1680,17 +1869,32 @@ function effectCard(effect, i, ctx) {
   const allowed = vocab.effectKeys[type];
   const note = EFFECT_TYPE_NOTES[type];
 
-  // The picker offers every type but the parked ones; a skill already
-  // authoring a parked type keeps it selectable so the card still reads.
-  const pickable = Object.keys(vocab.effectKeys).filter((t) => !HIDDEN_EFFECT_TYPES.includes(t) || t === type);
+  // The picker offers the types this skill's CATEGORY can author (the rider's
+  // filter, legalEffectTypes) minus the parked ones; a skill already authoring
+  // a parked type keeps it selectable so the card still reads (and that whole
+  // skill is read-only anyway, so the switch can never fire).
+  // A card with no type yet (a fresh one on a skill whose category is unset)
+  // needs the blank option to exist, or the select shows the first type while
+  // the object authors none, and picking that type could never fire `change`.
+  // An illegal current type stays selectable too - taking it out of the list
+  // would silently retype the card; the red line below says what is wrong.
+  const pickable = [...(type ? [] : ['']), ...legalEffectTypes(vocab, ctx.skill.category).filter((t) => !HIDDEN_EFFECT_TYPES.includes(t) || t === type)];
   if (type && !pickable.includes(type)) pickable.push(type);
-  const typeSelect = select(pickable, type || '', () => {}, (t) => t || '— type —', 'type-select');
-  typeSelect.disabled = true;
+  const typeSelect = select(pickable, type || '', (v) => changeEffectType(effect, v, ctx, typeSelect, type), (t) => t || '— type —', 'type-select');
+  typeSelect.disabled = ctx.readOnly;
   card.appendChild(el('div', { class: 'card-head' }, [
     el('span', { class: 'idx', text: '#' + i }),
     typeSelect,
     note ? el('span', { class: 'type-note' + (note.parked ? ' parked' : ''), text: note.text }) : null,
+    ctx.readOnly ? null : el('div', { class: 'card-actions' }, [
+      el('button', { title: 'Move up', onclick: () => moveEffect(ctx, i, -1) }, '↑'),
+      el('button', { title: 'Move down', onclick: () => moveEffect(ctx, i, 1) }, '↓'),
+      el('button', { class: 'danger', onclick: () => removeEffect(ctx, i) }, 'Delete'),
+    ]),
   ]));
+
+  const illegal = illegalTypeLine(vocab, type, ctx.skill.category);
+  if (illegal) card.appendChild(el('div', { class: 'err-line', text: illegal }));
 
   if (!allowed) {
     card.appendChild(el('div', { class: 'err-line', text: `Unknown effect type "${type}" - the vocabulary has no key list for it, so nothing can be rendered.` }));
@@ -1712,7 +1916,7 @@ function effectCard(effect, i, ctx) {
     card.appendChild(el('div', { class: 'stray-key', text: hint ? `"${k}" is a retired key - use ${hint}` : `"${k}" is not a key ${type} accepts; the loader refuses this file.` }));
   }
 
-  card.appendChild(levelPreview('Per level', scalingRowsFor(effect, keys), ctx.skill.maxLevel));
+  card.appendChild(livePreview(ctx, 'Per level', effect, keys));
   return card;
 }
 
@@ -1723,77 +1927,88 @@ function skillVisualsSection() {
   return col.section;
 }
 
-// 5. Obtained via (D6, §B4.6): every placement of this skill - milestone
-// rows, mob unlocks[], NPC teach_skill grants, ascension rewards, recipe
-// results - computed on render the way grantedByPanel is, each row a jump
-// into the owning tab.
-// Also "referenced by": recipes naming it as an ingredient and mobs carrying
-// it in skills[] - not sources, but what a rename must see (§B10 L5).
+// 5. Obtained via (D6, §B4.6): every placement of this skill - milestone rows,
+// mob unlocks[], NPC teach_skill grants, ascension rewards, recipe results -
+// plus what merely references it (a mob carrying it, a recipe consuming it).
+//
+// ⭐ The scan itself lives in skill-references.mjs because the SERVER runs it
+// too, as the rename guard (§B10 L5): a row this panel shows but the guard
+// misses would be a rename that silently breaks content.
 function skillSourcesSection(skill) {
   const col = skillSection('Obtained via');
-  const name = skill.name;
-  const sources = [];
-  const refs = [];
-  for (const m of state.milestones ? state.milestones.raw : []) {
-    if (m.skillName === name) sources.push({ label: `Milestone · level ${m.level}`, jump: () => jumpTo('milestones', state.milestones.file) });
-  }
-  for (const m of state.mobs) {
-    for (const u of m.raw.unlocks || []) {
-      if (u.skillName === name) sources.push({ label: `${m.raw.name} · kill drop, ${u.chance != null ? `chance ${u.chance}` : 'guaranteed'}`, jump: () => jumpTo('mob', m.file) });
-    }
-    for (const s of m.raw.skills || []) {
-      if (s.skillName === name) refs.push({ label: `${m.raw.name} · carries it at level ${s.level ?? 1}`, jump: () => jumpTo('mob', m.file) });
-    }
-  }
-  for (const m of mobsWithInteraction()) {
-    for (const node of m.raw.interaction.nodes || []) {
-      // An ascension_catalog node's rewards are skill names too: the
-      // meta-progression route (a sacrificed character unlocks one for the
-      // slot), the fifth spellbook source in CLAUDE.md, missing from D6's list.
-      if (node.rows === 'ascension_catalog' && (node.rewards || []).includes(name)) {
-        sources.push({ label: `${m.raw.name} · ascension reward via node "${node.id}" (unlocks for the character slot)`, jump: () => jumpToNode(m.file, node.id) });
-      }
-      for (const opt of node.options || []) {
-        for (const g of opt.grants || []) {
-          if (g.kind === 'teach_skill' && g.skill === name) {
-            sources.push({ label: `${m.raw.name} · teaches via node "${node.id}"${g.requiredLevel ? `, level ${g.requiredLevel}+` : ''}`, jump: () => jumpToNode(m.file, node.id) });
-          }
-        }
-      }
-    }
-  }
-  for (const r of state.recipes) {
-    const ings = (r.raw.ingredients || []).map((i) => `${i.skill} ${i.level}`).join(' + ');
-    if (r.raw.result === name) sources.push({ label: `Recipe #${r.raw.id} · combination of ${ings || '(no ingredients)'}`, jump: () => jumpTo('recipe', r.file) });
-    for (const i of r.raw.ingredients || []) {
-      if (i.skill === name) refs.push({ label: `Recipe #${r.raw.id} · ingredient at level ${i.level} for ${r.raw.result || '(no result)'}`, jump: () => jumpTo('recipe', r.file) });
-    }
-  }
+  const { sources, refs } = collectSkillReferences(skill.name, { mobs: state.mobs, recipes: state.recipes, milestones: state.milestones });
 
   const panel = el('div', { class: 'sources-panel' });
   if (sources.length === 0) {
-    panel.appendChild(el('div', { class: 'cheat-only' }, [document.createTextNode('cheat-only ('), el('code', { text: `SKILL ${name}` }), document.createTextNode(') - no milestone, kill drop, NPC or recipe grants it. Placement happens in the other tabs, not here (D6).')]));
+    panel.appendChild(el('div', { class: 'cheat-only' }, [document.createTextNode('cheat-only ('), el('code', { text: `SKILL ${skill.name}` }), document.createTextNode(') - no milestone, kill drop, NPC or recipe grants it. Placement happens in the other tabs, not here (D6).')]));
   } else {
-    panel.appendChild(el('ul', {}, sources.map((s) => el('li', {}, [refLink(s.label, s.jump)]))));
+    panel.appendChild(el('ul', {}, sources.map((s) => el('li', {}, [refLink(s.label, () => jumpToReference(s.jump))]))));
   }
   if (refs.length) {
     panel.appendChild(el('div', { class: 'sources-title', text: 'Also referenced by (a rename must see these)' }));
-    panel.appendChild(el('ul', {}, refs.map((r) => el('li', {}, [refLink(r.label, r.jump)]))));
+    panel.appendChild(el('ul', {}, refs.map((r) => el('li', {}, [refLink(r.label, () => jumpToReference(r.jump))]))));
   }
-  panel.appendChild(el('div', { class: 'grant-hint', text: 'Invisible to this panel: the SKILL cheat, the harness scripts and the sim-harness presets, which reference skills by name too (§B10 L5).' }));
+  panel.appendChild(el('div', { class: 'grant-hint', text: 'Invisible to this panel: the SKILL cheat, the harness scripts and the sim-harness presets, which reference skills by name too (§B10 L5). A rename is refused on save while any row above exists.' }));
   col.body.appendChild(panel);
   return col.section;
+}
+
+// A reference's jump target is plain data ({kind, file, nodeId?}) so the
+// server can use the same scan; this is the browser half that navigates.
+function jumpToReference(jump) {
+  if (jump.kind === 'milestones') return jumpTo('milestones', jump.file);
+  if (jump.kind === 'recipe') return jumpTo('recipe', jump.file);
+  if (jump.nodeId) return jumpToNode(jump.file, jump.nodeId);
+  return jumpTo('mob', jump.file);
 }
 
 function refLink(label, jump) {
   return el('a', { href: '#', class: 'ref-link', onclick: (e) => { e.preventDefault(); jump(); }, text: label });
 }
 
-/* ---- read-only field rendering, from the presentation table ------------ */
+// Saving a skill (C3). Two things happen here that no other tab's save does:
+//
+//   ⚑ the maxLevel-lowering confirm (L4): persisted spellbook levels may
+//     exceed a lowered cap, and the reconciliation clamp (backlog §61) is not
+//     built. C5 turns this into a loader refusal; until then it is a question.
+//   ⚑ the HTTP-status branch (L12): a 200 {ok:false} is the loader refusing
+//     the content, a non-200 is the validator failing to ANSWER (no binary, a
+//     stale one, a crash). Reading `ok` alone would render "build aurad first"
+//     as a clean pass.
+async function saveSkill(entry) {
+  const fb = $('#save-feedback');
+  const pristine = JSON.parse(state.pristine.get(entry.file) || 'null');
+  if (pristine && typeof pristine.maxLevel === 'number' && typeof entry.raw.maxLevel === 'number' && entry.raw.maxLevel < pristine.maxLevel) {
+    if (!confirm(`Lowering maxLevel from ${pristine.maxLevel} to ${entry.raw.maxLevel}.\n\nSkill levels are persisted per character: any spellbook row already above ${entry.raw.maxLevel} keeps its level, and nothing clamps it (the reconciliation policy is backlog §61, unbuilt). The rule is that a shipped skill's maxLevel never decreases, and C5 will make this a loader refusal.\n\nSave anyway?`)) return;
+  }
+  fb.textContent = 'saving…'; fb.className = 'save-feedback';
+  const res = await fetch('/api/save/skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: entry.file, raw: entry.raw }) });
+  let body = null;
+  try { body = await res.json(); } catch { body = null; }
+  const errors = (body && body.errors) || [];
+  if (!res.ok) {
+    fb.className = 'save-feedback err';
+    fb.textContent = `the validator could not run (HTTP ${res.status}), nothing was written: ${errors.join(' · ') || 'no message'}`;
+    return;
+  }
+  if (!body || body.ok !== true) {
+    fb.className = 'save-feedback err';
+    fb.textContent = (body && body.stage === 'validate' ? 'refused by aurad -validate: ' : 'refused: ') + (errors.join(' · ') || 'no message');
+    return;
+  }
+  markPristine(entry.file);
+  fb.className = 'save-feedback ok';
+  fb.textContent = body.warnings && body.warnings.length ? 'saved: ' + body.warnings.join(' · ') : 'saved (restart aurad to see it in game: the content seam is boot time)';
+  renderSidebar();
+  runGlobalValidation();
+}
+
+/* ---- field rendering, from the presentation table ---------------------- */
 
 // Fields for `keys` (in the given order) read off `obj`. A key whose
 // `<key>PerLevel` sibling is also in the list renders as a pair; the sibling
-// is skipped on its own turn; hidden keys are skipped outright (§B4.8).
+// is skipped on its own turn; hidden keys are skipped outright (§B4.8) and,
+// because every edit is in place, survive untouched.
 function keyFields(keys, obj, ctx) {
   const set = new Set(keys);
   const out = [];
@@ -1802,53 +2017,73 @@ function keyFields(keys, obj, ctx) {
     if (entry.hidden) continue;
     if (key.endsWith('PerLevel') && set.has(key.slice(0, -'PerLevel'.length))) continue;
     if (set.has(key + 'PerLevel')) {
-      out.push(el('div', { class: 'pair' }, [keyField(key, obj[key], ctx), keyField(key + 'PerLevel', obj[key + 'PerLevel'], ctx, entry.unit)]));
+      out.push(el('div', { class: 'pair' }, [keyField(key, obj, ctx), keyField(key + 'PerLevel', obj, ctx, entry.unit)]));
     } else {
-      out.push(keyField(key, obj[key], ctx));
+      out.push(keyField(key, obj, ctx));
     }
   }
   return out;
 }
 
-// One labeled, disabled control for `key` holding `value`. `unitOverride`
-// lets a per-level field borrow its base's unit. No presentation entry ⇒ a
-// plain text input (§B3: never silently unauthorable).
-function keyField(key, value, ctx, unitOverride) {
+// One labeled control for `key` on `obj`. `unitOverride` lets a per-level
+// field borrow its base's unit. No presentation entry ⇒ a plain text input
+// (§B3: never silently unauthorable).
+function keyField(key, obj, ctx, unitOverride) {
   const entry = presentationFor(key) || { control: 'text' };
   const unit = entry.unit || unitOverride;
-  const authored = value !== undefined;
-  const wrap = el('div', { class: 'field' + (authored ? '' : ' unauthored'), title: key });
+  const wrap = el('div', { class: 'field', title: key });
   wrap.appendChild(el('label', { text: labelFor(key) }));
   const row = el('div', { class: 'field-row' });
-  row.appendChild(readOnlyControl(entry, key, value, ctx));
+  const seconds = el('span', { class: 'seconds' });
+  const markAuthored = () => wrap.classList.toggle('unauthored', obj[key] === undefined);
+  const onSet = (value) => {
+    setKey(obj, key, value);
+    markAuthored();
+    if (unit === 'ticks') seconds.textContent = ticksToSecondsLabel(obj[key], state.ticksPerSecond);
+    ctx.onEdit();
+  };
+  row.appendChild(fieldControl(entry, key, obj, ctx, onSet));
   if (unit && entry.control === 'number') {
     row.appendChild(el('span', { class: 'unit', text: UNIT_LABELS[unit] || unit }));
-    if (unit === 'ticks' && typeof value === 'number') row.appendChild(el('span', { class: 'seconds', text: ticksToSecondsLabel(value, state.ticksPerSecond) }));
+    if (unit === 'ticks') {
+      seconds.textContent = ticksToSecondsLabel(obj[key], state.ticksPerSecond);
+      row.appendChild(seconds);
+    }
   }
   wrap.appendChild(row);
   if (entry.hint) wrap.appendChild(el('div', { class: 'hint', text: entry.hint }));
+  markAuthored();
   return wrap;
 }
 
 const UNIT_LABELS = { ticks: 'ticks', units: 'u', hp: 'HP', fraction: 'frac', factor: '×', count: '' };
 
-function readOnlyControl(entry, key, value, ctx) {
-  const { vocab } = ctx;
+// The control itself. Every write goes through onSet, and `undefined` DELETES
+// the key - the absent-vs-0 tri-state (L2) is the rule for the whole form, not
+// a list of which keys need it.
+//
+// ⚑ `id` is the one key that stays read-only even in a writable editor: it is
+// persisted in every character's spellbook row (C5 locks it for real).
+function fieldControl(entry, key, obj, ctx, onSet) {
+  const value = obj[key];
+  const locked = ctx.readOnly || key === 'id';
   let control;
   switch (entry.control) {
     case 'number':
-      control = el('input', { type: 'number', value: typeof value === 'number' ? value : '', placeholder: '—' });
+      control = nullableNumberInput(value, (v) => onSet(Number.isFinite(v) ? v : undefined), '—');
       break;
     case 'bool':
-      control = el('input', { type: 'checkbox', checked: value === true });
+      // Every skill bool is a plain Go bool (definition.go), so absent IS
+      // false and unchecked deletes the key rather than writing `false`.
+      control = checkboxInput(value === true, (v) => onSet(v ? true : undefined));
       break;
     case 'textarea':
-      control = textArea(typeof value === 'string' ? value : '', () => {});
+      control = textArea(typeof value === 'string' ? value : '', (v) => onSet(v === '' ? undefined : v));
       break;
     case 'select': {
       const options = optionList(entry.options, ctx);
       if (value !== undefined && value !== '' && !options.includes(value)) options.push(value);
-      control = select(['', ...options], value ?? '', () => {}, (v) => v || '— unset —');
+      control = select(['', ...options], value ?? '', (v) => { onSet(v === '' ? undefined : v); ctx.onStructural(); }, (v) => v || '— unset —');
       break;
     }
     case 'multi': {
@@ -1856,7 +2091,16 @@ function readOnlyControl(entry, key, value, ctx) {
       const chosen = Array.isArray(value) ? value : [];
       for (const v of chosen) if (!options.includes(v)) options.push(v);
       control = el('div', { class: 'bitmask-group' }, options.map((opt) => el('label', { class: 'bitmask-bit' }, [
-        el('input', { type: 'checkbox', checked: chosen.includes(opt), disabled: true }),
+        el('input', {
+          type: 'checkbox', checked: chosen.includes(opt), disabled: locked,
+          onchange: (e) => {
+            const next = Array.isArray(obj[key]) ? [...obj[key]] : [];
+            const at = next.indexOf(opt);
+            if (e.target.checked) { if (at < 0) next.push(opt); }
+            else if (at >= 0) next.splice(at, 1);
+            onSet(next.length > 0 ? next : undefined);
+          },
+        }),
         entry.options === 'factions' ? factionOptionLabel(opt) : opt,
       ])));
       if (options.length === 0) control.appendChild(el('span', { class: 'grant-hint', text: '(no options)' }));
@@ -1866,9 +2110,14 @@ function readOnlyControl(entry, key, value, ctx) {
     case 'icon':
     case 'text':
     default:
-      control = el('input', { type: 'text', value: value === undefined ? '' : typeof value === 'string' ? value : JSON.stringify(value), placeholder: '—' });
+      control = el('input', {
+        type: 'text',
+        value: value === undefined ? '' : typeof value === 'string' ? value : JSON.stringify(value),
+        placeholder: '—',
+        oninput: (e) => onSet(e.target.value === '' ? undefined : e.target.value),
+      });
   }
-  if ('disabled' in control) control.disabled = true;
+  if ('disabled' in control) control.disabled = locked;
   return control;
 }
 
@@ -1898,6 +2147,22 @@ function factionOptionLabel(name) {
 }
 
 /* ---- the per-level preview (D5) ---------------------------------------- */
+
+// A per-level table that re-reads its object whenever a value changes. The
+// tables are the one part of the skill form that depends on values it does
+// not itself draw (maxLevel decides the column count, every base/per-level
+// pair decides a row), so each one registers a refresh in ctx rather than
+// waiting for a re-render that a text edit must not trigger.
+function livePreview(ctx, title, obj, keys) {
+  const build = () => levelPreview(title, scalingRowsFor(obj, keys), ctx.skill.maxLevel);
+  let node = build();
+  ctx.previews.push(() => {
+    const next = build();
+    node.replaceWith(next);
+    node = next;
+  });
+  return node;
+}
 
 // The scaling rows an object authors: every pair in `keys` (base +
 // `<base>PerLevel`) where at least one half is authored. Hidden keys are

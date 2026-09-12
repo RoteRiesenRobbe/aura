@@ -10,6 +10,11 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-09-12, the spell builder C3 wrap rotated the cap, so SPELL BUILDER C0
+moved here verbatim.)*
+
+- **Prior: SPELL BUILDER C0: the vocabulary fixture** ✅ 2026-09-10 `60fb44d2` (ledger: `docs/plan-content-editor.md` §B12 C0): **`api/skill-vocabulary.json` is a GENERATED file**, written only by `UPDATE_SKILL_VOCABULARY=1 go test -count=1 ./pkg/aura/skills/` and pinned by a golden test, so a new effect key, type or category reddens `go test` until regenerated and then reaches the editor with zero hand work (§B3). ⭐ It is a **COMPLEMENT of `api/shared-constants.json`**: a test forbids any list living in both files, `vocabulary.mjs` merges them. ⭐ `topLevelKeys` reflected from json tags lets `smoke.mjs` catch a typo'd top-level key for the first time (the loader has no `DisallowUnknownFields` there). Both are session judgements at the PO's delegation, reversal costs in the ledger. ⚑ L7 was wrong (no effect-level `_comment` exists). New: `pkg/aura/golden`, three `tools/content-editor/` modules, `npm run smoke`. **Schema ALL NONE.** Verified: red-first · `go test -count=1 ./...` EXIT 0 · smoke 0/105 · mutation ×3.
+
 *(2026-09-11, the spell builder C2 wrap rotated the cap, so THE UNDERWORLD
 U1→U4b moved here verbatim.)*
 

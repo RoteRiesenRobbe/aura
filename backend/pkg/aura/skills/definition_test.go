@@ -405,12 +405,16 @@ func TestParse_VarianceDefaultsToZero(t *testing.T) {
 func TestParse_VarianceValidOnAllRollingEffects(t *testing.T) {
 	// Damage and heal amounts both roll (decision C1): damage_aura,
 	// instant_damage, heal_aura and self_heal all accept a variance band.
-	for _, effect := range []string{
-		`{"type": "instant_damage", "radius": 1, "targetsEnemies": true, "damageHP": 25, "variance": 0.1}`,
-		`{"type": "heal_aura", "radius": 1, "healHP": 6, "variance": 0.1}`,
-		`{"type": "self_heal", "healHP": 20, "variance": 0.1}`,
+	// The category rides each case since the category rule landed: heal_aura
+	// is an aura, the other two are casts, and a wrapper category that fits
+	// them all no longer exists.
+	for _, tc := range []struct{ category, effect string }{
+		{"cooldown", `{"type": "instant_damage", "radius": 1, "targetsEnemies": true, "damageHP": 25, "variance": 0.1}`},
+		{"active_aura", `{"type": "heal_aura", "radius": 1, "healHP": 6, "variance": 0.1}`},
+		{"cooldown", `{"type": "self_heal", "healHP": 20, "variance": 0.1}`},
 	} {
-		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"effects":[` + effect + `]}`))
+		effect := tc.effect
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"` + tc.category + `","maxLevel":1,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
 		def, err := raw.mapToSkillDefinition(nil)
 		require.NoError(t, err, "variance must be accepted on %s", effect)
@@ -1543,11 +1547,12 @@ func TestParse_PayloadlessTypesStillParse(t *testing.T) {
 	// §27.3.1 regression: light_aura and recall are the two types the payload
 	// switch intentionally handles with no payload. They must keep parsing
 	// (the default: branch hard-fails only a type forgotten from the switch).
-	for _, effect := range []string{
-		`{"type": "light_aura", "radius": 4}`,
-		`{"type": "recall"}`,
+	for _, tc := range []struct{ category, effect string }{
+		{"active_aura", `{"type": "light_aura", "radius": 4}`},
+		{"cooldown", `{"type": "recall"}`},
 	} {
-		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[` + effect + `]}`))
+		effect := tc.effect
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"` + tc.category + `","maxLevel":1,"cooldownTicks":300,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
 		_, err = raw.mapToSkillDefinition(nil)
 		require.NoError(t, err, "payload-less type must still parse: %s", effect)

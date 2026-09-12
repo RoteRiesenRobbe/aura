@@ -27,6 +27,11 @@
 //            ('selectors', 'statNames', 'gateKeys', 'categories',
 //            'damageTypes', 'resistTags', 'factions')
 //   group    'shared' | 'payload' (effect keys only; §B4.3's two groups)
+//   section  'identity' | 'category' (TOP-LEVEL keys only; which block of the
+//            skill form the key is drawn in, §B4.3 items 1 and 2). Absent =
+//            'identity'. smoke.mjs (d) refuses any other value. This is
+//            PLACEMENT, not a field list: a key with no entry still renders,
+//            under Identity, so L1 holds.
 //   hidden   true ⇒ never rendered, preserved on round trip (§B4.8)
 //   label    override for the derived camelCase → words label
 //   hint     one line under the field
@@ -47,12 +52,12 @@ export const SKILL_PRESENTATION = {
   category: { control: 'select', options: 'categories' },
   maxLevel: { control: 'number', unit: 'count', hint: 'Never decreases on a shipped skill (persisted levels may exceed a lowered cap).' },
   legacy: { control: 'bool', hidden: true },
-  cooldownTicks: { control: 'number', unit: 'ticks' },
-  cooldownTicksPerLevel: { control: 'number' },
-  castTicks: { control: 'number', unit: 'ticks', hint: 'Cost and cooldown are consumed at cast completion; moving cancels for free.' },
-  castTicksPerLevel: { control: 'number' },
-  castInterruptedByDamage: { control: 'bool', hint: 'Only legal when castTicks > 0 (loader rule).' },
-  targetFactions: { control: 'multi', options: 'factions', hint: 'Faction allowlist; MANDATORY when any effect is calm or charm, and then it gates EVERY effect of the skill.' },
+  cooldownTicks: { control: 'number', unit: 'ticks', section: 'category' },
+  cooldownTicksPerLevel: { control: 'number', section: 'category' },
+  castTicks: { control: 'number', unit: 'ticks', section: 'category', hint: 'Cost and cooldown are consumed at cast completion; moving cancels for free.' },
+  castTicksPerLevel: { control: 'number', section: 'category' },
+  castInterruptedByDamage: { control: 'bool', section: 'category', hint: 'Only legal when castTicks > 0 (loader rule).' },
+  targetFactions: { control: 'multi', options: 'factions', section: 'category', hint: 'Faction allowlist; MANDATORY when any effect is calm or charm, and then it gates EVERY effect of the skill.' },
   effects: { control: 'effects' },
 };
 
@@ -181,6 +186,16 @@ export const EFFECT_TYPE_NOTES = {
 // display order (Auras · Cooldowns · Passives). Keyed by the authored
 // category name.
 export const CATEGORY_LABELS = { active_aura: 'Auras', cooldown: 'Cooldowns', passive: 'Passives' };
+
+// The effect type a fresh effect card starts on, by skill category (§B4.5).
+// Lives here rather than in app.js so C4's "+ New skill" flow reads the same
+// map, and smoke.mjs (d) asserts every key is a live category and every value
+// a live effect type.
+export const EFFECT_TYPE_DEFAULTS = {
+  active_aura: 'damage_aura',
+  cooldown: 'instant_damage',
+  passive: 'stat_multiplier',
+};
 
 // The effect types the picker never offers (§B4.8). A skill that already
 // authors one still opens, read-only, with the type's note as a banner.

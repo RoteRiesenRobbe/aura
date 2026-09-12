@@ -49,15 +49,21 @@ const vocabularyComment = "GENERATED FILE, do not hand-edit: written by " +
 // skillVocabulary is a struct rather than a map so the generated file keeps a
 // readable order; a map would sort every key alphabetically.
 type skillVocabulary struct {
-	Comment        string              `json:"_comment"`
-	Categories     []string            `json:"categories"`
-	TopLevelKeys   []string            `json:"topLevelKeys"`
-	EffectKeys     map[string][]string `json:"effectKeys"`
-	CostKeys       []string            `json:"costKeys"`
-	RenamedKeys    map[string]string   `json:"renamedKeys"`
-	FactionScoped  []string            `json:"factionScoped"`
-	DamageTypes    []string            `json:"damageTypes"`
-	ResistWildcard string              `json:"resistWildcard"`
+	Comment      string              `json:"_comment"`
+	Categories   []string            `json:"categories"`
+	TopLevelKeys []string            `json:"topLevelKeys"`
+	EffectKeys   map[string][]string `json:"effectKeys"`
+	// EffectCategories is the C3 rider (PO 2026-09-12): which skill categories
+	// may author each effect type. It carries the loader's third refusal to the
+	// editor so the type picker can filter by the skill's category instead of
+	// offering all 34 flat and alphabetical, which is how a stat_multiplier
+	// reached an active aura and did nothing.
+	EffectCategories map[string][]string `json:"effectCategories"`
+	CostKeys         []string            `json:"costKeys"`
+	RenamedKeys      map[string]string   `json:"renamedKeys"`
+	FactionScoped    []string            `json:"factionScoped"`
+	DamageTypes      []string            `json:"damageTypes"`
+	ResistWildcard   string              `json:"resistWildcard"`
 }
 
 // topLevelKeys reflects skillDefinition's json tags in struct order: the 15
@@ -102,6 +108,13 @@ func buildSkillVocabulary(t *testing.T) skillVocabulary {
 		keysByType[name] = keys
 	}
 
+	categoriesByType := make(map[string][]string, len(effectTypeMap))
+	for name, effectType := range effectTypeMap {
+		legal := legalCategoryNames(effectType)
+		require.NotEmpty(t, legal, "effect type %q has no effectCategories entry - the editor would offer it on every category", name)
+		categoriesByType[name] = legal
+	}
+
 	factionScoped := make([]string, 0, len(factionScopedEffects))
 	for effectType, required := range factionScopedEffects {
 		if !required {
@@ -114,15 +127,16 @@ func buildSkillVocabulary(t *testing.T) skillVocabulary {
 	slices.Sort(factionScoped)
 
 	return skillVocabulary{
-		Comment:        vocabularyComment,
-		Categories:     sortedKeys(skillCategoryMap),
-		TopLevelKeys:   topLevelKeys(),
-		EffectKeys:     keysByType,
-		CostKeys:       keysCost,
-		RenamedKeys:    renamedEffectKeys,
-		FactionScoped:  factionScoped,
-		DamageTypes:    sortedKeys(DamageTypes),
-		ResistWildcard: ResistWildcard,
+		Comment:          vocabularyComment,
+		Categories:       sortedKeys(skillCategoryMap),
+		TopLevelKeys:     topLevelKeys(),
+		EffectKeys:       keysByType,
+		EffectCategories: categoriesByType,
+		CostKeys:         keysCost,
+		RenamedKeys:      renamedEffectKeys,
+		FactionScoped:    factionScoped,
+		DamageTypes:      sortedKeys(DamageTypes),
+		ResistWildcard:   ResistWildcard,
 	}
 }
 
@@ -153,6 +167,14 @@ func TestVocabulary_ComplementsSharedConstants(t *testing.T) {
 	require.NoError(t, json.Unmarshal(shared["effectTypes"], &sharedEffectTypes))
 	assert.ElementsMatch(t, sharedEffectTypes, mapKeys(fixtureEffectKeys),
 		"the two fixtures disagree on which effect types exist - effectKeys must cover exactly the effectTypes shared-constants lists")
+
+	// The same universe once more for the category table: a type the editor can
+	// render but not place would fall back to "offer it everywhere", which is
+	// the flat picker the rider exists to end.
+	var fixtureEffectCategories map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(vocabulary["effectCategories"], &fixtureEffectCategories))
+	assert.ElementsMatch(t, sharedEffectTypes, mapKeys(fixtureEffectCategories),
+		"effectCategories must cover exactly the effect types shared-constants lists")
 }
 
 func readTopLevel(t *testing.T, path string) map[string]json.RawMessage {

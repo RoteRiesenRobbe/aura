@@ -5,7 +5,8 @@ A local, standalone tool for hand-authored **mobs** (full stat fields:
 **NPC dialogue trees** (the same mob file's `interaction` block — an NPC is
 not a separate schema, just a mob that carries one), **quest stage graphs**
 (`api/quests/*.json`), **factions** (`api/factions/*.json`), **recipes**
-(`api/recipes/*.json`), and the **milestone-unlock table**
+(`api/recipes/*.json`), **player skills** (`api/skills/*.json`, the spell
+builder) and the **milestone-unlock table**
 (`api/milestones/milestone-unlocks.json`, one shared file). No dependencies,
 no build step, no running `aurad`.
 
@@ -105,26 +106,102 @@ does not pretend to:
   `{skillName: level}` map — the strictest of the three, since it breaks on
   ANY edit to the file, not just an addition.
 
-## The Skills tab (spell builder, read-only until C3)
+## The Skills tab (the spell builder)
 
-The **Skills** sidebar tab shows every player skill (`api/skills/*.json`;
-the mob-embedded ones under `mobs/` are hidden) as the form the spell
-builder will edit: identity, the category block, one card per effect with
-its shared and payload fields and a per-level preview (`base + (level-1) ×
-perLevel`, seconds beside every tick value), a Visuals placeholder, and an
-"obtained via" panel listing every milestone, kill drop, NPC teaching row,
-ascension reward and recipe that grants it, each a jump into its own tab.
-**Every control is disabled and there is no Save button**: C1 exists so the
-form can be judged against all 72 real skills before a write path exists
-(`docs/plan-content-editor.md` §B5). The form is rendered from the served
-vocabulary below, never from a hand-typed field list.
+The **Skills** sidebar tab edits every player skill (`api/skills/*.json`; the
+mob-embedded ones under `mobs/` are hidden, D2): identity, the category block,
+one card per effect with its shared and payload fields and a per-level preview
+(`base + (level-1) × perLevel`, seconds beside every tick value), a Visuals
+placeholder, and an "obtained via" panel listing every milestone, kill drop,
+NPC teaching row, ascension reward and recipe that grants it, each a jump into
+its own tab. The form is rendered from the served vocabulary below, never from
+a hand-typed field list, so a new effect key in Go reaches it with no editor
+work.
+
+What C3 added on top of C1's read-only form:
+
+- **Editing in place.** Keys are assigned and deleted on the object that came
+  off disk, never on a rebuilt one, so `_comment` and every key the form does
+  not render (`hitStyle`, `legacy`, `forwardUnits`, `armTicks`) round-trip
+  untouched.
+- **Blank deletes the key, a typed `0` writes 0.** Absent and 0 are different
+  values to the loader (an absent `tickInterval` means every tick; an authored
+  0 is refused), and that is the rule for every control in the form, numbers,
+  bools, selects and multi-pickers alike. An unchecked box removes the key
+  rather than writing `false`, which is what an absent Go `bool` already means.
+- **Effect cards**: add (the new card opens on the category's default type,
+  `EFFECT_TYPE_DEFAULTS` in `skill-presentation.mjs`), remove (with a confirm
+  when the card authors anything beyond its type), reorder, and change type.
+  A type change lists the keys the new type does not accept, hidden ones
+  included, and deletes exactly those on OK; keys the new type also accepts
+  stay where they are.
+- **The `_comment` is editable** (PO ruling 2026-09-11). It is an authoring
+  note, not a session ledger: what the skill is, which values are placeholder,
+  at most one landmine sentence with a doc pointer, under ~400 characters, and
+  never placement claims. The rule is in `docs/manual-content-authoring.md`,
+  "The `_comment` field", and abridged under the box.
+- **`id` stays read-only.** It is persisted in every character's spellbook row
+  (`game.character_spellbook.skill_id`); C5 turns the tool's restraint into a
+  loader lock.
+- **Parked types open read-only, whole.** A skill authoring `ThrowBomb` or
+  `ThrowMine` (effect type `projectile`) shows every control disabled and no
+  Save button, with the banner saying why.
+- **Live checks are HINTS, never a gate.** The list under the header names
+  missing required fields, an unknown category or effect type, and an empty
+  `targetFactions` on a `calm`/`charm` skill. Save stays enabled with all of
+  them showing: the loader is the validator (D9), and a second opinion that
+  could block it is exactly the JS port the design forbids.
+
+### What a skill save runs through
+
+`POST /api/save/skill` (`save-skill.mjs`) is deliberately **not** `saveOne`:
+a skill runs no JS port of the Go rules at all. In order:
+
+1. **The path guard** - `api/skills/<slug>.json` only, one level, no `..`, and
+   the file must already exist (the "+ New skill" flow is C4).
+2. **The id guard** - `id` may not change; spellbook rows store it.
+3. **The rename guard** - if `name` changed, the content is scanned for
+   references to the OLD name (milestone rows, mob `unlocks[]` and `skills[]`,
+   NPC `teach_skill` grants, ascension `rewards[]`, recipe results and
+   ingredients) and the save is REFUSED, listing every one, rather than
+   cascading. The refusal also names what the scan cannot see: the
+   `SKILL <name>` cheat, the harness scripts and the sim-harness presets.
+   ⚑ That scan is `skill-references.mjs`, shared with the tab's "obtained via"
+   panel on purpose - a row the panel shows but the guard misses would be a
+   rename that silently breaks content.
+4. **The seam** - `aurad -validate` over a temp copy with the candidate
+   written in (below).
+5. **The write**, through the same `prettyJson` writer every other kind uses.
+
+**The two failure shapes are different on the wire, and the client branches on
+the HTTP status** (`docs/plan-content-editor.md` §B10 L12): a **200** with
+`{ok: false, stage, errors}` is a refusal (a guard, or the loader rejecting the
+content), while a **non-200** means the validator could not answer at all - no
+binary, a stale one, a crash. Reading `ok` alone would render
+`build aurad first` as a clean pass.
+
+⚑ Lowering `maxLevel` asks for a confirm before the POST: persisted skill
+levels may already exceed the new cap and nothing clamps them (the
+reconciliation policy is `backlog.md` §61, unbuilt). C5 makes it a loader
+refusal.
+
+⚑ A save is **half-live**: the file is right, the running game is not. Restart
+`aurad` to see it.
+
+⚑ The writer reformats. `prettyJson` imposes its own whitespace style, so the
+first save of a hand-wrapped file carries a whole-file reformat on top of the
+real edit - the same deal the mob tab has always had (PO 2026-09-12: no
+reformat pass, the writer owns the style). Deleting a key and re-adding it
+(clearing `_comment` and retyping it, unchecking and rechecking a box) also
+moves it to the end of the object, since that is what JSON key order does.
 
 ## The skill vocabulary and `npm run smoke`
 
 The tool never hand-types the per-effect-type field lists a skill file may
 author. `api/skill-vocabulary.json` is a **generated** file holding Go's own
 tables (the per-type key allowlist, the 15 top-level keys, the categories, the
-cost keys, the retired-key hints, the damage types), written only by
+cost keys, the retired-key hints, the damage types, the per-type category
+table), written only by
 `UPDATE_SKILL_VOCABULARY=1 go test -count=1 ./pkg/aura/skills/` from
 `backend/`. Regenerate it after any change to
 `backend/pkg/aura/skills/definition.go`; until you do, the Go suite is red.
@@ -133,6 +210,20 @@ complementary half (effect types, selectors, gate keys, stat names) because
 those also ride the wire and the client restates them. No list lives in both
 files, and `vocabulary.mjs` merges the two into the `skillVocabulary` object
 served on `/api/data`.
+
+### Which effect types a category may author
+
+An effect type is legal only on some skill categories, and that rule is Go's:
+`effectCategories` (`backend/pkg/aura/skills/definition.go`) places every type,
+`mapToSkillDefinition` refuses a file that breaks it, the fixture carries the
+table as `effectCategories`, and the Skills tab's type picker offers only the
+types the open skill's category may author. The rule existed before the table
+did, but only inside three dispatch switches that silently drop what they do
+not handle - which is how a `stat_multiplier` reached an active aura, loaded
+clean and did nothing (PO 2026-09-12). A card whose current type is illegal
+(change the category of a skill that already has effects and every card can be)
+keeps its type selectable and shows the refusal in red, on the card and in the
+header hint box; the loader answers for real on save.
 
 ```bash
 npm run smoke        # or: node tools/content-editor/smoke.mjs
@@ -149,9 +240,13 @@ The top-level check earns its keep: skill JSON is parsed without
 `DisallowUnknownFields`, so a typo'd top-level key is read by nothing and
 fails in silence.
 
-Its last two legs are the save seam's (below): they need a built
-`backend/aurad` and say `build aurad first: make -C backend build` when there
-is none, rather than passing quietly.
+Its last three legs are the save path's: the seam over the real tree (which
+needs a built `backend/aurad` and says `build aurad first: make -C backend
+build` when there is none, rather than passing quietly), the seam's own unit
+checks, and the skill save path's unit checks (`save-skill.test.mjs`: the
+path / id / rename guards, a finding refusing the write, a clean candidate
+written with its unrendered keys intact, a throwing seam propagating - every
+case over a temp copy of `api/`, none over the repo).
 
 ## The save seam: `aurad -validate`
 
@@ -195,10 +290,10 @@ The binary is found at `AURAD_BIN`, else `backend/aurad`, else
 > offered and declined (PO 2026-09-11). It also cannot see a change to
 > `cmd/aurad/conf.default.json`, which is `go:embed`ed rather than compiled.
 
-⚑ C2 built the seam and wired it to a **dry-run endpoint only**. Saving a
-skill through it is C3, and the four existing kinds (mob / quest / faction /
-recipe) still save through the JS ports in `validate.mjs` until §B11 Q7 is
-ruled.
+⚑ C3 wired the seam into `POST /api/save/skill` (above). The dry-run
+`POST /api/validate/candidate` stays, and the four existing kinds (mob / quest
+/ faction / recipe) still save through the JS ports in `validate.mjs` until
+§B11 Q7 is ruled.
 
 `go build && go test` (or booting `aurad -content ../api`) remains the
 authoritative check. This tool's in-browser validation is a best-effort

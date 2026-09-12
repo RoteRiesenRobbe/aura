@@ -1,5 +1,5 @@
 {
-  "_comment": "The starting aura: a physical hit on the nearest enemy inside a 1-unit ring every 40 ticks, 14 HP plus 0.2222 per level. All values placeholder. Deliberately authors no crit; crits ride the character's own crit chance.",
+  "_comment": "The starting aura: a physical hit on the nearest enemy inside a 1-unit ring every 40 ticks.",
   "id": 1,
   "name": "Damage",
   "icon": "lorc/broadsword",
@@ -8,11 +8,11 @@
   "effects": [
     {
       "type": "damage_aura",
-      "radius": 1.0,
-      "radiusPerLevel": 0.0,
+      "radius": 1,
+      "radiusPerLevel": 0,
       "damageHP": 14,
       "damageHPPerLevel": 0.2222,
-      "damageTags": ["physical"],
+      "damageTags": [ "physical" ],
       "variance": 0.15,
       "targetsEnemies": true,
       "targetsAllies": false,

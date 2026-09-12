@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strings"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 )
@@ -1481,6 +1482,95 @@ var factionScopedEffects = map[EffectType]bool{
 	EffectTypeCharm: true,
 }
 
+// effectCategories is the skill CATEGORY each effect type is legal on, and the
+// third thing the loader refuses that the JSON shape cannot express (after the
+// key allowlist and the faction allowlist).
+//
+// ⭐ Why it has to exist (PO finding 2026-09-12): a `stat_multiplier` authored
+// on an active aura loads clean and does NOTHING. The rule was real but lived
+// only inside three switch statements that each drop what they do not handle:
+//
+//   - sys.applyAuraEffect ticks the eight OUTPUT auras; light_aura is not one
+//     of them because it is read as a radius (EquippedSkill.LightRadius), not
+//     applied.
+//   - sys.fireCooldown (activation) handles the 21 cast effects.
+//   - SkillComponent.recomputeDerived folds the four equip-time passives, and
+//     it walks PassiveSlots ONLY - which is exactly why the PO's stat bonus on
+//     an aura reached nothing.
+//
+// A default: that silently ignores an effect is the right runtime shape (the
+// alternative is a panic in the tick loop), so the guard belongs at load time
+// where a content mistake still has an author looking at it. All 105 shipped
+// skill files fit this table exactly, measured before it was written.
+//
+// light_aura is the one type two categories share: the active aura lights
+// while it is the one switched on, and every equipped passive lights alongside
+// it (SkillComponent.LightRadius walks both lists). A cooldown cannot carry it
+// - the radius is read per equipped skill, never per cast.
+var effectCategories = map[EffectType][]SkillCategory{
+	// The eight output auras sys.applyAuraEffect dispatches, plus light.
+	EffectTypeDamageAura: {SkillCategoryActiveAura},
+	EffectTypeHealAura:   {SkillCategoryActiveAura},
+	EffectTypeSlowAura:   {SkillCategoryActiveAura},
+	EffectTypeResistAura: {SkillCategoryActiveAura},
+	EffectTypeDotAura:    {SkillCategoryActiveAura},
+	EffectTypeShieldAura: {SkillCategoryActiveAura},
+	EffectTypeHotAura:    {SkillCategoryActiveAura},
+	EffectTypeSpeedAura:  {SkillCategoryActiveAura},
+	EffectTypeLightAura:  {SkillCategoryActiveAura, SkillCategoryPassive},
+
+	// The cast effects, fired on activation.
+	EffectTypeSelfHeal:       {SkillCategoryCooldown},
+	EffectTypeSpawn:          {SkillCategoryCooldown},
+	EffectTypeSpawnAtAnchor:  {SkillCategoryCooldown},
+	EffectTypeProjectile:     {SkillCategoryCooldown},
+	EffectTypeTaunt:          {SkillCategoryCooldown},
+	EffectTypeDetaunt:        {SkillCategoryCooldown},
+	EffectTypeInstantShield:  {SkillCategoryCooldown},
+	EffectTypeInstantResist:  {SkillCategoryCooldown},
+	EffectTypeCalm:           {SkillCategoryCooldown},
+	EffectTypeStun:           {SkillCategoryCooldown},
+	EffectTypeCharm:          {SkillCategoryCooldown},
+	EffectTypeRecall:         {SkillCategoryCooldown},
+	EffectTypeInstantHot:     {SkillCategoryCooldown},
+	EffectTypeRevive:         {SkillCategoryCooldown},
+	EffectTypeDash:           {SkillCategoryCooldown},
+	EffectTypeTickRate:       {SkillCategoryCooldown},
+	EffectTypeSpeedBurst:     {SkillCategoryCooldown},
+	EffectTypeLifestealBurst: {SkillCategoryCooldown},
+	EffectTypeRetaliateBurst: {SkillCategoryCooldown},
+	EffectTypeInstantDamage:  {SkillCategoryCooldown},
+	EffectTypeInstantDot:     {SkillCategoryCooldown},
+
+	// The equip-time folds recomputeDerived reads.
+	EffectTypeStatMultiplier:  {SkillCategoryPassive},
+	EffectTypeResistPassive:   {SkillCategoryPassive},
+	EffectTypeRetaliateSlow:   {SkillCategoryPassive},
+	EffectTypeRetaliateDamage: {SkillCategoryPassive},
+}
+
+// legalCategoryNames lists, in the fixture's sorted order, the authored
+// category names an effect type may appear under. Names rather than enums
+// because both readers are humans: the loader's refusal text and the editor's
+// generated vocabulary.
+// indefiniteArticle keeps the refusal readable for the one category that
+// starts with a vowel. The editor's flag line words it identically.
+func indefiniteArticle(category string) string {
+	if category != "" && strings.ContainsRune("aeiou", rune(category[0])) {
+		return "an"
+	}
+	return "a"
+}
+
+func legalCategoryNames(t EffectType) []string {
+	names := make([]string, 0, len(effectCategories[t]))
+	for _, c := range effectCategories[t] {
+		names = append(names, skillCategoryNames[c])
+	}
+	slices.Sort(names)
+	return names
+}
+
 func mergeKeys(groups ...[]string) []string {
 	var merged []string
 	for _, g := range groups {
@@ -1589,6 +1679,14 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		effect, err := mapEffect(rawEffect)
 		if err != nil {
 			return nil, fmt.Errorf("skill %q: %w", s.Name, err)
+		}
+		// An effect on a category that never dispatches it loads clean and
+		// does nothing (see effectCategories for the three switches that used
+		// to hold this rule alone).
+		if !slices.Contains(effectCategories[effect.Type], category) {
+			return nil, fmt.Errorf("skill %q: effect type %q is not legal on %s %s skill (legal on: %s)",
+				s.Name, effectTypeNames[effect.Type], indefiniteArticle(s.Category), s.Category,
+				strings.Join(legalCategoryNames(effect.Type), ", "))
 		}
 		// A faction-scoped effect without an allowlist would reach every
 		// faction — see factionScopedEffects for why that is a hard-fail and

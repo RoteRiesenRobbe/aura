@@ -1,10 +1,12 @@
 # Plan: the content editor (`tools/content-editor/`)
 
-> **Status 2026-09-11: Part A SHIPPED (2026-08-27/28, `ebf4cfe5` + `6c2e6d5c`),
+> **Status 2026-09-12: Part A SHIPPED (2026-08-27/28, `ebf4cfe5` + `6c2e6d5c`),
 > Part B DESIGNED 2026-09-08, C0 SHIPPED 2026-09-10 (`60fb44d2`), C1 SHIPPED
 > 2026-09-11 (`7b90fb5e`) and PO-passed the same day, C2 SHIPPED 2026-09-11
-> (`5a9b5650`), C3 next (after the §B11 Q6 reformat commit).** This is the living plan of the one
-> tool: **Part A** is the original design (NPC dialogue trees + quest stage
+> (`5a9b5650`), C3 SHIPPED 2026-09-12 (`[uncommitted]`) and PO-passed the
+> same day (§B11 Q6 closed: no reformat, plus the same-day category-rule
+> rider), C4 next.** This is the living plan of the one tool: **Part A** is
+> the original design (NPC dialogue trees + quest stage
 > graphs, D1: custom, not Corkboard) and what actually shipped, which went
 > well past its v1 scope; **Part B** is the Skills tab, the spell builder,
 > designed 2026-09-08 and next. ⚑ Part A was never ledgered or indexed after
@@ -626,10 +628,11 @@ Six, each its own session; C0, C2 and C5 carry Go.
   the real `api/` (exit 0) and over a fixture tree with one broken skill
   (exit 1, the finding named). Editor: the temp-copy-and-run path in
   `server.mjs`, exercised by `smoke.mjs` against the real tree.
-- **C3 - editing and saving.** In-place edits of the raw object (never
+- **C3 - editing and saving.** ✅ **SHIPPED 2026-09-12 `[uncommitted]`** (ledger §B12 C3). In-place edits of the raw object (never
   rebuilt - `_comment` on effects survives), the live fixture checks, the
   confirm on a type change that drops keys, `/api/save/skill` through
-  `saveOne` gated by C2, the rename guard (§B10 L5), the `maxLevel`-lowering
+  `saveOne` gated by C2 (⚑ shipped as its own module, NOT `saveOne`: the
+  ledger says why), the rename guard (§B10 L5), the `maxLevel`-lowering
   warning (§B10 L4). No `validateSkill` port.
 - **C4 - the new-skill flow and the bookkeeping.** "+ New skill" (§B4.5), the
   icon picker (§B4.4), the `spawnMob` picker with jump links, the post-save
@@ -692,7 +695,13 @@ repo, so it needs no cp-defs/embed entry"*).
   `api/skills/` reformat commit** (the mob tab already lives with
   `prettyJson`'s style; teaching the writer to mimic hand formatting is the
   wrong side of the trade), with a scripted proof that the reformatted files
-  parse to identical objects. PO call (§B11 Q6).
+  parse to identical objects. PO call (§B11 Q6). ⚑ **RULED 2026-09-12: no
+  reformat, no pin.** Re-measured the same day (20 of 105 stable; a tighter
+  inline style reaches 33; `4.0` → `4` can never round-trip since
+  `JSON.parse` drops it; the mob tab is 0 of 63): the style change lands per
+  file on its first tab save, mixed with the real edit, and the loader never
+  sees a difference. Nothing needed reformatting; the question was diff
+  cosmetics only.
 - **In-game**: C3's exit test is the PO's own example - author the
   fire-vulnerability-plus-fire-damage aura in the tab, restart, open the test
   link, see it tick. Also the `verify` skill's boot-count check.
@@ -767,7 +776,17 @@ repo, so it needs no cp-defs/embed entry"*).
   server's generic error shape is `{ok:false, errors:[...]}`; only a real
   validator run returns `findings`. C3's client must branch on the HTTP
   status, or "build aurad first" (and a stale-binary refusal) renders as an
-  empty finding list, which looks exactly like a pass.
+  empty finding list, which looks exactly like a pass. ⚑ **Amended at C3
+  (2026-09-12)**: a REFUSED save is 200 `{ok:false, stage:'guard'|'validate',
+  errors}` (a bad path, an id change or a live rename never reach the seam and
+  must not read as loader findings); only a THROWN seam is 500. The client
+  renders three different prefixes.
+- **L14 - an in-place edit moves a key to the END of the object.** JS
+  `delete` + reassign appends: blanking and retyping `_comment` writes it at
+  the bottom of the file, and unchecking then rechecking a bool marks the file
+  dirty with no semantic change. Inside the Q6 ruling (the writer owns the
+  style), PO-visible on a diff. A key-order-preserving setter is the fix if it
+  ever grates.
 - **L13 - the mtime freshness guard has two blind spots, by construction.**
   It compares `backend/aurad` against the newest non-test `.go`/`go.mod`/
   `go.sum` under `backend/`, so it cannot see `cmd/aurad/conf.default.json`
@@ -798,6 +817,11 @@ repo, so it needs no cp-defs/embed entry"*).
 6. **One reformat commit of `api/skills/` before C3, or a writer that mimics
    hand formatting?** §B8 measured 85 of 105 files reformat. The commit is one
    diff with a parse-equality proof; the mimic is ongoing writer complexity.
+   ⚑ **RULED 2026-09-12: neither.** The PO's question was "what do we even
+   need to change?", and the honest answer was nothing: no field, no value.
+   The style change is absorbed per file on first save (§B8). First proof:
+   the PO's own `damage.json` save landed exactly those lines beside the real
+   edit (§B12 C3, PO look round 2).
 7. **Do the existing tabs move to Go validation on save too** (D9 for mobs,
    quests, factions, recipes, milestones), retiring `validate.mjs`'s 637-line
    port? Once C2's seam exists it is mostly deletion, but the live
@@ -1191,3 +1215,179 @@ ms**, this host's known non-monotonic clock, so `hrtime` is used.
 **Next: C3** (editing and saving through the seam, the L2 tri-state, the
 type-change confirm, the L5 rename guard, the L4 `maxLevel` warning),
 preceded by the §B11 Q6 reformat commit. Then C4, C5.
+
+#### C3 - editing and saving ✅ SHIPPED 2026-09-12 `[uncommitted]`
+
+> Built by an Opus subagent (67 tool calls), verified by the session, wrapped
+> here. Three PO rulings via choice prompts (below), plus the rider's fourth.
+> **Schema impact: NONE at every layer.** DB none, FlatBuffers none, conf
+> none. Content: ONE file, `api/skills/damage.json` (the PO's own tab save,
+> round 2 below) plus its `cp-defs` copy; every file the verification itself
+> wrote was restored byte for byte. Go only in the rider paragraph.
+
+**The three rulings (2026-09-12)**
+
+1. **§B11 Q6: NO reformat commit, no byte-stability pin.** Asked twice; the
+   PO's second question ("what do we need to reformat, and because of what?")
+   reframed it: nothing needs changing, the writer just cannot reproduce hand
+   whitespace or a `4.0`. Ruled: the style change lands per file on its first
+   tab save, the way the mob tab has lived since Part A.
+2. **`_comment` is EDITABLE** (a textarea with the authoring-note rule as its
+   hint; blank deletes the key). This reverses C1's "shown, never edited".
+3. (Session judgements at the PO's delegation, PO may veto): blank number /
+   unchecked bool / empty select or multi all DELETE the key (every skill bool
+   is a plain Go `bool`, checked against `definition.go`, so absent is false);
+   `id` read-only; Save always enabled, the live checks are hints only; a new
+   card opens on the category's default type; refusals are 200 with a
+   `stage`.
+
+**What shipped (`tools/content-editor/`, plus one harness)**
+
+- **`save-skill.mjs` (new, node-only)**: `saveSkill({file, raw}, deps)`, every
+  dependency injected. Order: path guard (`api/skills/<slug>.json` only, via
+  `candidateSegments`, the file must exist: C4 owns "new") · id guard (a
+  changed `id` refused, spellbook rows persist it) · **rename guard** (§B10
+  L5: any content naming the old skill refuses the save with the list, plus
+  the invisible cheat / harness / simharness references named in the text) ·
+  the C2 seam · `prettyJson` write. ⭐ **Not `saveOne`**: the four older
+  kinds run `validate.mjs`'s port before writing; a skill runs NO JS port
+  (D9), so the only rules typed here are the three the loader cannot see.
+  Guards RETURN, the seam may THROW (L12).
+- **`skill-references.mjs` (new, browser + node)**: ONE
+  `collectSkillReferences(name, {mobs, milestones, recipes})` returning plain
+  `{label, jump:{kind,file,nodeId?}}` rows, used by the sources panel (jump
+  links) AND the rename guard, so a row the panel shows is a row the guard
+  sees.
+- **`save-skill.test.mjs` (new)**: 8 case groups over a temp copy of `api/`
+  with a fake seam (path, id, rename refused naming the milestone, rename
+  with no references reaching the seam, a finding refusing the write, a clean
+  write preserving `_comment` + `hitStyle`, a throwing seam propagating) and
+  `collectSkillReferences` against real content. Smoke leg **(h)**.
+- **`public/app.js`**: every control live, in-place mutation, the L2 tri-state
+  on every field, the parked guard as ONE line at the top of
+  `renderSkillEditor` (a `HIDDEN_EFFECT_TYPES` skill keeps every control
+  disabled and no Save), Reset + Save header (`resetEntry` gained `'skill'`),
+  effect cards add / Delete (confirm when keys are authored) / ↑ ↓ / change
+  type with a confirm naming every dropped key incl. `hitStyle (not shown)`,
+  category change re-rendering the block, live hints, `saveSkill` branching on
+  the HTTP status with three prefixes ("refused:", "refused by aurad
+  -validate:", "the validator could not run (HTTP n), nothing was written:"),
+  the `maxLevel`-lowering confirm (L4). `CATEGORY_BLOCK_KEYS` is gone: the C1
+  rider, `section` on the presentation entries, smoke (d) refusing an unknown
+  section.
+- **`skill-presentation.mjs`**: `section: 'category'` on the six keys;
+  `EFFECT_TYPE_DEFAULTS` (§B4.5's map, exported for C4, smoke-pinned to live
+  categories and types).
+- `server.mjs`: `POST /api/save/skill`, the static route. `smoke.mjs`: leg
+  (h), (d) extended, header. `styles.css`, `index.html`, `README.md` (the
+  save contract, the guards, the tri-state, the parked rule, L14).
+- **`.claude/skills/verify/content-editor-skills-tab.mjs` REWRITTEN** for the
+  editable tab (its C1 asserts were inverted): the 72-skill sweep (Save
+  present, `id` disabled, `name` enabled, parked = zero enabled + no Save),
+  then the edit legs on Damage and OmniAura (dirty dot, add + Reset, a rename
+  refused as a guard naming the milestone, an illegal cost refused BY THE
+  SEAM, a real description save with the file on disk changed by that key
+  only and `_comment` intact, then restored byte for byte; type-change
+  confirm accept + cancel, move, Delete, the `maxLevel` confirm cancel posting
+  nothing), then the four screenshots. ⚑ Needs a fresh `backend/aurad` now.
+
+**Findings**
+
+- ⚑ **L14 (new)**: `delete` + reassign appends the key; see §B10.
+- ⚑ **L12 amended**: refusals carry `stage`; three client prefixes.
+- ⚑ **A Playwright element handle to a sidebar row goes stale after a save**
+  (the sidebar re-renders on save and on every validation pass); the harness
+  opener is locator-based for that reason.
+- ⚑ **A card with no `type`** (a fresh card on a skill whose category is
+  unset) needs a blank option or the select shows the first type while the
+  object authors none (advisor-caught, fixed before verification).
+- **§B5 said "through `saveOne`"; C3 did not**, deliberately (above). C1's
+  ledger said `_comment` is never edited; ruling 2 reverses it.
+- ⚑ **The `1.0` marker on float fields is lost on first save** (Q6): a
+  reader of a tab-saved diff should expect `4.0` → `4` and `["x"]` → `[ "x" ]`
+  lines beside the real edit.
+- **Presentation, still open after the PO look**: the live hints render in the red
+  `.errors-inline` box and read like refusals though they never block Save.
+- **TDD honesty**: `save-skill.mjs` red-first (12 findings against a stub);
+  `app.js`, `section`, `EFFECT_TYPE_DEFAULTS` and the smoke legs
+  implementation-first, their bite proof the mutations below.
+
+**Verified** (session's own runs unless marked): `npm run smoke` **0
+findings / 105 files / 162 effects / 34 types**, legs (a)-(h) · `node
+save-skill.test.mjs` 0 findings, exit 0 · browser harness
+`content-editor-skills-tab.mjs` **0 problems**: 72 skills, 122 cards, 156
+previews, parked = ThrowBomb + ThrowMine with 0 enabled controls, every other
+skill exactly 1 disabled control (`id`), editable `_comment` on 70, the
+Taunt jump to CityGuard, rename refused naming the milestone, cost 1.5
+refused by the seam with the loader's own message, the description save
+round-tripped and restored · **the §B8 exit test, headless half**: a fire
+`damage_aura` card added to FireVulnerability through `/api/save/skill`
+(200 ok), then **a REAL BOOT** `./aurad -dev -content ../api` against the
+dev DB for 14 s loading `Loading content source=../api` and `Loaded skill
+definitions count=105` with the two-effect file, no panic, killed cleanly;
+file restored. ⚑ **The in-game tick of that aura was left to the PO's own
+look** (the test link; no agent walked it), and round 2 below covers it. · **Mutation ×6** (agent ×4: rename
+guard defeated → 4 findings · seam answer ignored → 2 · bogus
+`EFFECT_TYPE_DEFAULTS` type → smoke 1 · bogus `section` → smoke 1; session
+×2: id guard removed → the unit test 3 findings · parked guard defeated →
+the harness 6 problems on ThrowBomb + ThrowMine), each red then reverted ·
+zero em dashes in any new line (the `— unset —` / `—` placeholders are C1's
+UI string literals). Not re-run: `go test` (zero Go changed).
+
+**PO look, round 1 (2026-09-12): the category rule, a RIDER built the same
+day.** The PO added a `stat_multiplier` card to an aura and asked why the tab
+did not say that is illegal, and where the flat 33-entry type list came from.
+Measured: the loader had NO rule tying effect types to skill categories; the
+legality lived only in three runtime switches (`sys.applyAuraEffect` ticks
+eight output auras and drops the rest in `default:`, the activation
+dispatcher fires the 21 casts, `SkillComponent.recomputeDerived` folds four
+passives over `PassiveSlots` only), so the aura loaded clean and the stat
+bonus reached nothing. **Ruled (choice prompt): the Go rule + a filtered
+picker, now** (over "as a C4 rider" and "an editor-only hand list", the
+latter being the L1 failure). Shipped by an Opus subagent (69 tool calls),
+verified by the session: `effectCategories` beside `factionScopedEffects`
+(active_aura 9 · cooldown 21 · passive 5, `light_aura` legal on aura AND
+passive because `LightRadius` walks both slot lists; `EffectTypeNone`
+unplaced), refused in `mapToSkillDefinition` as `skill "X": effect type
+"stat_multiplier" is not legal on an active_aura skill (legal on: passive)`;
+`effect_categories_test.go` (every type placed · only real categories · two
+refusals · light on both) red-first; two pre-existing parse tests rewired
+because they wrapped every type in `cooldown`; the fixture gained
+`effectCategories` (34 entries) and the complement test pins it against
+shared-constants' `effectTypes`; the picker offers only the category's types
+(parked filter still on top), a card whose type no longer fits shows the
+loader's own sentence in red and the header hint repeats it; smoke gained
+three asserts (content legality per file, `EFFECT_TYPE_DEFAULTS` legal for
+its category, `effectCategories` ↔ `effectKeys` both ways); the harness
+checks the picker on Damage and OmniPassive. All 105 files fit the partition,
+measured before the table was written. **Schema NONE, content NONE** (the
+fixture is generated). Verified (session): `go test -count=1 ./...` EXIT 0,
+35 pkgs · smoke 0/105 · harness 0 problems (`picker: aura 9, passive 5`) ·
+agent's mutations ×6 (table entry removed → test + golden red; guard defeated
+→ 2 refusal tests red; a re-placed `damage_aura` → smoke 36; a type deleted
+from the fixture → smoke 1; `legalEffectTypes` defeated → harness 2). ⚑ The
+plan's own audit missed this: §B2 called the loader "strict and good", and it
+was, for everything the JSON SHAPE can express; the category rule is the
+first that needed the dispatchers read. ⚑ A `default:` that silently ignores
+an effect is the right RUNTIME shape (a panic in the tick loop is worse), so
+this class of rule belongs at load time; look for siblings whenever a switch
+has a silent default.
+
+**PO look, round 2 (2026-09-12): the C3 verdict PASSED** ("Seems to work").
+The checklist handed over was the write path end to end plus the in-game tick
+of a tab-authored aura, and the verdict covers the look as a whole; nothing on
+C3's write path is owed a second sitting. ⭐ **The PO's own save of
+`api/skills/damage.json` is the first real content edit made through the tab,
+and it ships in this commit**: the `_comment` trimmed to one sentence (the
+authoring-note rule applied by hand, by its author) and, beside it, exactly
+the Q6 style lines the Findings bullet predicted - `radius` `1.0` to `1`,
+`radiusPerLevel` `0.0` to `0`, `["physical"]` to `[ "physical" ]` - plus the
+`cp-defs` copy under `backend/pkg/api/skills/damage.json`. Parse-equal apart
+from the comment, so for the loader it is a comment-only content change;
+**schema NONE**. Left open, both presentational and low-stakes: the live
+hints render in the red `.errors-inline` box and read like refusals though
+they never block Save, and L14's key-to-the-end reorder is still what a
+reviewer of a tab-saved diff sees after a blank-then-retype.
+
+**Next: C4** (the new-skill flow, the icon and `spawnMob` pickers, the
+post-save checklist + test link, the test-rig badge, the docs). Then C5.
