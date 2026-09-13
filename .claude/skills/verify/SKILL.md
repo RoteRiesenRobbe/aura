@@ -414,6 +414,15 @@ for reasons unrelated to any recent change:
   check treats it as public and blocks every local request — surfacing as a bare
   `TypeError: Failed to fetch`, **indistinguishable from a CORS refusal**. Stand
   up a real `http.createServer` when a script needs a second origin.
+- **⚑ Screenshotting a 900 ms floating text needs a slowed page clock.** A
+  headless frame takes ~300 ms to render here (two `requestAnimationFrame`s
+  measured 627-675 ms, and a rAF-to-setTimeout shim does NOT help: the cost is
+  the render, not the throttle), so by the time `page.screenshot` captures, a
+  rise driven by `performance.now()` has ended and the text is destroyed. Four
+  empty frames on 2026-09-13 before the fix: inside the same `page.evaluate`
+  that spawns the text, replace `performance.now` with a clock running 6×
+  slower from that instant (`base + (real() - base) / 6`). Scene-graph reads
+  do not need it, only pixels.
 - **After `WARP`, wait ~20 s before screenshotting.** The client interpolates
   the camera very slowly across a large jump (backlog §20), so a shot taken
   ~1.5 s after the command renders the *previous* position — silently, with no

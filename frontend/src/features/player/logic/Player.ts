@@ -1,5 +1,5 @@
 import {Character} from '../../game-objects/logic/Character';
-import {hpToDisplay, IMMUNE_COLOR} from '../../game-objects/logic/_GameObject';
+import {hpToDisplay, IMMUNE_COLOR, IMMUNE_LANE} from '../../game-objects/logic/_GameObject';
 import {StatusEffect} from '../../game-objects/logic/StatusEffect';
 import {Controls} from '../../controls/logic/Controls';
 import {Camera} from '../../camera/logic/Camera';
@@ -161,7 +161,7 @@ export class Player {
         // landed (D9) - the word explains why nothing is happening, so when
         // damage IS showing, the question does not arise.
         if (entity.immuneHit && !(entity.damageTaken > 0)) {
-            this.character.showFloatingText('Immune', IMMUNE_COLOR);
+            this.character.showFloatingText('Immune', IMMUNE_COLOR, 1, IMMUNE_LANE);
         }
         if (entity.healReceived > 0) {
             this.character.showFloatingNumber(hpToDisplay(entity.healReceived), 'heal');

@@ -2,7 +2,7 @@ import _clone = require('lodash/clone');
 import {Ticker} from 'pixi.js';
 import {isDefined, isFunction} from '../../common/logic/Utils';
 import {DebugCircle} from '../../internal-tools/develop/logic/DebugCircle';
-import {GameObject, hpToDisplay, IMMUNE_COLOR} from '../../game-objects/logic/_GameObject';
+import {GameObject, hpToDisplay, IMMUNE_COLOR, IMMUNE_LANE} from '../../game-objects/logic/_GameObject';
 import {StatusEffect} from '../../game-objects/logic/StatusEffect';
 import {Character} from '../../game-objects/logic/Character';
 import {Mob} from '../../game-objects/logic/Mobs';
@@ -239,7 +239,7 @@ export class EntityManager {
         // landed (D9) - the word explains why nothing is happening, so when
         // damage IS showing, the question does not arise.
         if (entity.immuneHit && !(entity.damageTaken > 0)) {
-            gameObject.showFloatingText('Immune', IMMUNE_COLOR);
+            gameObject.showFloatingText('Immune', IMMUNE_COLOR, 1, IMMUNE_LANE);
         }
         if (entity.healReceived > 0) {
             gameObject.showFloatingNumber(hpToDisplay(entity.healReceived), 'heal');

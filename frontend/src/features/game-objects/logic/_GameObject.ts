@@ -10,6 +10,9 @@ import {IGame} from "../../core/logic/IGame";
 import * as TextDisplay from '../../../client-data/TextDisplay';
 import {BRAND, cssHex} from '../../../client-data/Theme';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
+import {
+    FloatingLane, FloatingNumberKind, freeSlotY, laneAnchorX, laneFor, laneX, lanesSeenBy,
+} from './FloatingNumberLayout';
 
 let movementInterpolatedObjects = new Set();
 let rotatingObjects = new Set();
@@ -49,8 +52,9 @@ GameSetupEvent.subscribe((game: IGame) => {
 // crit-flagged share of damage (skill-vocab chunk 1): same '-' semantics as
 // damage, rendered bigger and warmer so the one sanctioned RNG pops. 'cost'
 // is the resource the player SPENT (round-7 item 7) — same '-' semantics,
-// blue so paying never reads as being attacked.
-export type FloatingNumberKind = 'damage' | 'crit' | 'heal' | 'xp' | 'cost';
+// blue so paying never reads as being attacked. The kind also picks the
+// number's lane (FloatingNumberLayout: losses left, gains right).
+export type {FloatingNumberKind, FloatingLane} from './FloatingNumberLayout';
 const FLOATING_NUMBER_COLORS: Record<FloatingNumberKind, number> = {
     damage: 0xFF4D4D,
     crit: 0xFFB84D,
@@ -66,8 +70,11 @@ const CRIT_SIZE_FACTOR = 1.8;
 // The floating "Immune" label (plan-immune-feedback.md, D3): grey and
 // normal-sized, so a fully mitigated hit reads as a non-event where a red
 // number would have been. Not a FloatingNumberKind - the label is not a
-// number and must not pass showFloatingNumber's value <= 0 guard.
+// number and must not pass showFloatingNumber's value <= 0 guard. Callers
+// pass IMMUNE_LANE so it stands in the damage lane, where that number would
+// have been.
 export const IMMUNE_COLOR = 0xB0B0B0;
+export const IMMUNE_LANE: FloatingLane = 'left';
 
 // Damage/heal arrive in absolute HP (item 11 Phase 1) — the floating number is
 // the literal HP dealt. Kept as a helper so a tiny hit still shows at least 1.
@@ -447,13 +454,18 @@ export abstract class GameObject {
         if (value <= 0) return;
         const sign = (kind === 'damage' || kind === 'crit' || kind === 'cost') ? '-' : '+';
         const label = sign + value + (kind === 'xp' ? ' XP' : '');
-        this.showFloatingText(label, FLOATING_NUMBER_COLORS[kind], kind === 'crit' ? CRIT_SIZE_FACTOR : 1);
+        this.showFloatingText(label, FLOATING_NUMBER_COLORS[kind], kind === 'crit' ? CRIT_SIZE_FACTOR : 1, laneFor(kind));
     }
+
+    // Floating texts per lane still on screen, so a new one never spawns over
+    // one still rising (FloatingNumberLayout). Destroyed texts are dropped on
+    // the next spawn; empty when idle.
+    private floatingLanes: Partial<Record<FloatingLane, Text[]>> = {};
 
     // General rising, fading text over the entity — the floating-number
     // animation with a free label/color (first non-number use: the campfire
-    // "bound" feedback, chunk 4).
-    showFloatingText(label: string, color: number, sizeFactor: number = 1) {
+    // "bound" feedback, chunk 4). Word labels default to the centre lane.
+    showFloatingText(label: string, color: number, sizeFactor: number = 1, lane: FloatingLane = 'center') {
         if (Game === null) return;
 
         // Swallowed by unlit darkness, exactly like mob name plates
@@ -476,10 +488,6 @@ export abstract class GameObject {
             return;
         }
 
-        // Slight horizontal jitter so numbers stacking on the same tick fan out.
-        const startX = this.shape.position.x + (Math.random() - 0.5) * this.size;
-        const startY = this.shape.position.y - this.size;
-
         const layer = Game.layers.characterAdditions.floatingNumbers;
         const text = new Text({
             text: label,
@@ -491,7 +499,24 @@ export abstract class GameObject {
                 stroke: {color: 0x000000, width: 4},
             },
         });
-        text.anchor.set(0.5, 0.5);
+
+        // Lane by kind, slot by what is still rising in that lane, read off
+        // the live texts' real positions. The text is built first so its
+        // measured height sizes the slot (a crit is 1.8× taller than the
+        // number beside it).
+        const occupied: Text[] = [];
+        for (const seen of lanesSeenBy(lane)) {
+            const live = (this.floatingLanes[seen] ?? []).filter((t) => !t.destroyed);
+            this.floatingLanes[seen] = live;
+            occupied.push(...live);
+        }
+        const startX = laneX(lane, this.shape.position.x);
+        const startY = freeSlotY(
+            occupied.map((t) => ({y: t.position.y, halfHeight: t.height / 2})),
+            this.shape.position.y - this.size, text.height / 2);
+        this.floatingLanes[lane].push(text);
+
+        text.anchor.set(laneAnchorX(lane), 0.5);
         text.position.set(startX, startY);
         layer.addChild(text);
 

@@ -276,7 +276,11 @@ encode loop.
 
 The six per-entity fields in §3.2. The client's floating numbers,
 "Immune" label, crit pop and hit VFX all become consumers of
-`skill_events`. Byte-identical simulation by construction (the fields were
+`skill_events`. ⚑ The numbers' placement (lanes by kind + a free-slot
+stack per lane, `FloatingNumberLayout.ts`, fixed 2026-09-13 off a PO
+screenshot) is per spawn, so C1 keeps calling `showFloatingNumber` per
+event and inherits it; the per-hit stream is exactly the load it was
+sized for. Byte-identical simulation by construction (the fields were
 encode-only), pinned by the existing sim-determinism tests plus a new
 codec test that a snapshot with N landings carries N events.
 
