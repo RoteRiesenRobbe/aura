@@ -2955,13 +2955,17 @@ func TestCooldown_ThreeSpawnEffectsRaiseThreeSummons(t *testing.T) {
 }
 
 func TestCooldown_SpawnMovingSummonFollowsOwner(t *testing.T) {
-	// The second spawn consumer (mob-depth chunk 6): an owned summon authored
-	// as a follower — spawnSummon's SetOwner plus the definition's role are
-	// all it takes; after spawning offset beside the caster it trails the
-	// owner instead of standing or wandering.
+	// The second spawn consumer (mob-depth chunk 6): an owned summon the SPELL
+	// authored as a pet - spawnSummon's SetOwner plus the effect's `follows`
+	// key are all it takes; after spawning offset beside the caster it trails
+	// the owner instead of standing or wandering.
+	//
+	// ⚑ Nothing on the DEFINITION carries the permission (plan-summon-follows.md
+	// D1, and C2 retired the role that used to): this is an ordinary creature,
+	// exactly like the four shipped companion mobs now are. `Follows: true`
+	// below is what makes this summon follow.
 	companionDef := &mobs.MobDefinition{
 		ID: 10, Name: "Companion", // must be a valid AuraApi entity type name
-		Role:    mobs.RoleFollower,
 		Body:    mobs.Body{Radius: 0.25, AggroRadius: 3.5},
 		Factors: mobs.Factors{BaseMaxHealth: 60, Speed: 1.2},
 		Skills:  []mobs.MobSkill{{Def: totemAuraDef(), Level: 1}},
@@ -2972,6 +2976,7 @@ func TestCooldown_SpawnMovingSummonFollowsOwner(t *testing.T) {
 	caster.level = 5
 	summonDef := summonTotemDef()
 	summonDef.Effects[0].Spawn.MobName = "Companion"
+	summonDef.Effects[0].Spawn.Follows = true
 	caster.sc.EquipCooldown(0, summonDef, 2)
 	sk := NewSkillSystem(phy.NewSpace(), g)
 	sk.rng = testRNG()

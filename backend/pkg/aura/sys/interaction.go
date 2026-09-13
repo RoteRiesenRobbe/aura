@@ -20,8 +20,8 @@ import (
 
 // Conversant is the capability an actor has when its definition carries an
 // interaction block (plan-entity-model.md chunk 3a). It is asserted
-// structurally, never type-tested: a creature, a structure and a follower can
-// each talk, and a teaching guard that also fights bandits needs no new type.
+// structurally, never type-tested: a creature and a structure can each talk,
+// and a teaching guard that also fights bandits needs no new type.
 //
 // Sensor is the actor's aggro aura. That is the whole merge in one line — an
 // NPC's proximity sensor and a mob's aggro sensor were always the same

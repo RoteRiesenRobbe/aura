@@ -520,11 +520,10 @@ type Mob struct {
 	// (3b).
 	leashTicks int
 
-	// role is the authored actor discriminator (chunk 2): creature, structure or
-	// follower. It answers "what is this", which used to be read off incidental
-	// values — a structure by its speed being 0, a follower by having an owner
-	// and a non-zero velocity. Orthogonal to the loadout slots below and to
-	// ownership: a totem is a structure WITH an owner.
+	// role is the authored actor discriminator (chunk 2): creature or structure.
+	// It answers "what is this", which used to be read off incidental values —
+	// a structure by its speed being 0. Orthogonal to the loadout slots below
+	// and to ownership: a totem is a structure WITH an owner.
 	role mobs.Role
 
 	// Loadout slots (round 3, see support.go). supportSlot/combatSlot are the
@@ -607,6 +606,18 @@ type Mob struct {
 	// client pip comes for free. Charm/EndCharm keep the two in step; Update
 	// polls for expiry, because charm's expiry has to act.
 	charmer model.PlayerEntity
+
+	// follows is the SPELL's statement that this summon is a pet
+	// (plan-summon-follows.md D1), set only by the summon builder from the
+	// spawn effect's authored `follows` key and never persisted. It is the
+	// second of the two ways into isFollower, beside charm.
+	//
+	// ⚑ Deliberately not the charmer link (plan L1: EndCharm reverts faction,
+	// and the removal fan-out calls it whenever any entity leaves the world, so
+	// a summon riding charmer would flip back to its species faction mid-TTL),
+	// and deliberately not the role (plan L2: role is never written after
+	// construction, entity-model chunk 2).
+	follows bool
 
 	// damageTaken accumulates health lost this tick (VitalSign units) for the
 	// floating damage number (roadmap item 11); reset every tick.
@@ -923,8 +934,8 @@ func (m *Mob) Sensor() phy.DynamicCollider { return m.aggroAura }
 
 // Interaction is the conversation this actor carries, nil for the overwhelming
 // majority that carry none. It is the Conversant capability the interaction
-// system asserts on — never a type test, so a creature, a structure and a
-// follower can each talk without a branch.
+// system asserts on — never a type test, so a creature and a structure can
+// each talk without a branch.
 func (m *Mob) Interaction() *mobs.Interaction { return m.definition.Interaction }
 
 // aggroSensorMask derives the aggro sensor's collision mask from the aggro
@@ -949,6 +960,32 @@ func (m *Mob) SetOwner(o model.PlayerEntity) {
 // Owner is the summoning player, nil for world mobs (model.Owned).
 func (m *Mob) Owner() model.PlayerEntity {
 	return m.owner
+}
+
+// OwnedBy reports whether this mob was summoned by the entity with the given
+// id. The removal fan-out holds ecs ids, not player refs: this is the query it
+// needs to find whose summons to retire, and it is CharmedBy's twin
+// (plan-summon-follows.md C3).
+func (m *Mob) OwnedBy(id uint64) bool {
+	return m.owner != nil && m.owner.Basic().ID() == id
+}
+
+// ExpireWithOwner retires this summon because its owner left the world: died,
+// disconnected or took a flight (plan-summon-follows.md C3, PO R1/R2: EVERY
+// owned summon goes, pets, totems, portals and thrown bombs alike, so nothing
+// keeps standing for the rest of its TTL with nobody behind it).
+//
+// It is the TTL expiry's twin, deliberately the same two lines: health to 0 so
+// the next Update reports a death (Update's first check), which grants no kill
+// rewards (those only flow through PlayerTouches) and lets stale threat rows
+// pointing at this summon read as dead and prune themselves. The removal itself
+// belongs to MobSystem.Update's deferred sweep, never to the caller.
+//
+// Idempotent: a flight takeoff calls the departure hook directly and a
+// mid-flight disconnect calls it again for the same player, so the second pass
+// must find nothing left to do.
+func (m *Mob) ExpireWithOwner() {
+	m.health = 0
 }
 
 // SetTTLTicks arms the spawned-entity lifetime (spawn site only; 0 = none).
@@ -1087,6 +1124,10 @@ func (m *Mob) Update(dt float32) bool {
 	// death; kill rewards only flow through PlayerTouches, so none are
 	// granted. Health is zeroed so stale threat-table refs to the removed
 	// summon read as dead and get pruned (chunk 3a).
+	//
+	// ⚑ ExpireWithOwner is this block's twin: the same zeroing, reached from
+	// the departure fan-out instead of from the clock, when the owner leaves
+	// the world before the TTL runs out (plan-summon-follows.md C3).
 	if m.ttlTicks > 0 {
 		m.ttlTicks--
 		if m.ttlTicks == 0 {

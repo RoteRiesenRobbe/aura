@@ -954,6 +954,14 @@ type SpawnParams struct {
 	// never seen a campfire. The gate belongs to the content, not to `spawn`.
 	RequiresAnchor bool `json:"requiresAnchor,omitempty"`
 
+	// Follows is the spell's statement that this summon is a PET
+	// (plan-summon-follows.md D1): the summon builder copies it onto a runtime
+	// flag on the spawned mob, and the mob's follow check reads that flag beside
+	// charm's leader link. Absent means false, which is every totem, every
+	// portal and every thrown bomb. It is authored on the SPELL, not on the mob,
+	// so any mob in the picker can be summoned as a companion.
+	Follows bool `json:"follows,omitempty"`
+
 	// ForwardUnits and ArmTicks are the PROJECTILE placement's two extra knobs
 	// (plan-prototype-projectile.md D2), unauthorable on either spawn form: how
 	// far ahead of the caster the thrown entity lands, and how long its own
@@ -1197,6 +1205,7 @@ type effectDef struct {
 	TTLTicksPerLevel   int     `json:"ttlTicksPerLevel"`
 	PowerPerOwnerLevel float32 `json:"powerPerOwnerLevel"`
 	RequiresAnchor     bool    `json:"requiresAnchor"`
+	Follows            bool    `json:"follows"`      // spawn: the summon follows and fights for its caster
 	ForwardUnits       float32 `json:"forwardUnits"` // projectile: throw distance ahead of the caster
 	ArmTicks           int     `json:"armTicks"`     // projectile: ticks before the carried burst may fire
 
@@ -1328,8 +1337,8 @@ var effectKeys = map[EffectType][]string{
 	EffectTypeInstantDot: mergeKeys(keysGeometry, keysCapped, keysTargetFlags, keysDotPayload),
 	// No geometry/cadence/targeting: a spawn fires at the caster's position on
 	// cooldown activation — placement is the spawn site's business.
-	EffectTypeSpawn: {"spawnMob", "ttlTicks", "ttlTicksPerLevel", "powerPerOwnerLevel", "requiresAnchor"},
-	// The remote twin (plan-portal-spells.md D4/C2). ⭐ TWO KEYS ARE
+	EffectTypeSpawn: {"spawnMob", "ttlTicks", "ttlTicksPerLevel", "powerPerOwnerLevel", "requiresAnchor", "follows"},
+	// The remote twin (plan-portal-spells.md D4/C2). ⭐ THREE KEYS ARE
 	// DELIBERATELY MISSING from spawn's row above, and their absence is the
 	// documentation:
 	//   - `requiresAnchor`: the anchor gate is this TYPE's, not the content's.
@@ -1340,9 +1349,12 @@ var effectKeys = map[EffectType][]string{
 	//     failure instead of a silent no-op.
 	//   - `powerPerOwnerLevel`: nothing placed at a campfire fights. Add it the
 	//     day an anchored summon does, and re-derive its scaling then.
+	//   - `follows`: a portal is a door. It is planted at a fixed place on
+	//     purpose, so a pet flag could only ever contradict the placement
+	//     (plan-summon-follows.md §4, L4).
 	EffectTypeSpawnAtAnchor: {"spawnMob", "ttlTicks", "ttlTicksPerLevel"},
 	// The THROWN twin (plan-prototype-projectile.md D2). Its two own keys are
-	// the placement (`forwardUnits`) and the fuse (`armTicks`); THREE of spawn's
+	// the placement (`forwardUnits`) and the fuse (`armTicks`); FOUR of spawn's
 	// are deliberately missing, each for a reason the allowlist turns into a
 	// boot failure instead of a silent no-op:
 	//   - `requiresAnchor`: a throw needs a direction, never a campfire.
@@ -1351,6 +1363,9 @@ var effectKeys = map[EffectType][]string{
 	//     nothing here. Add it the day a projectile carries a scaled aura.
 	//   - `ttlTicksPerLevel`: the throw skills are maxLevel 1 in the prototype,
 	//     so a per-level slope could only ever read as dead authoring.
+	//   - `follows`: a bomb is a bomb. It is thrown to a spot and detonates
+	//     there; a pet flag on it would be a leak, not a feature
+	//     (plan-summon-follows.md §4, L4).
 	EffectTypeProjectile: {"spawnMob", "forwardUnits", "ttlTicks", "armTicks"},
 	// Threat ops (chunk 7): a query circle (geometry) of enemy mobs; taunt
 	// carries a threatMargin, detaunt is a bare single-entry removal.
@@ -2156,6 +2171,7 @@ func (e *effectDef) spawnParams() (*SpawnParams, error) {
 		TTLTicksPerLevel:   e.TTLTicksPerLevel,
 		PowerPerOwnerLevel: e.PowerPerOwnerLevel,
 		RequiresAnchor:     e.RequiresAnchor,
+		Follows:            e.Follows,
 	}, nil
 }
 

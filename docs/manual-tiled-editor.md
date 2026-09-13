@@ -148,7 +148,7 @@ objects instead, and the species is a dropdown.
 1. Select the `spawns` layer and click once with **Insert Point** (I).
 2. In the Properties panel, set **Class** (the top row, above the custom
    properties) to the kind of thing it is: `AuraSpawnCombat`,
-   `AuraSpawnTalker`, `AuraSpawnFixture` or `AuraSpawnCompanion`.
+   `AuraSpawnTalker` or `AuraSpawnFixture`.
    ⭐ **This is the step that brings up the form** — all seven spawn fields
    belong to that class, so a classless point shows nothing. It also gives the
    marker the same colour the in-game editor uses for that kind.
@@ -157,7 +157,7 @@ objects instead, and the species is a dropdown.
 
 The kind only decides the colour and is not saved to the file, so picking the
 "wrong" one is cosmetic — but the save tells you if you forget the Class
-entirely, and names the four options.
+entirely, and names the three options.
 
 **Faster than all of that:** copy an existing spawn of the same species
 (Ctrl+C / Ctrl+V) and drag the copy where you want it. It arrives with the

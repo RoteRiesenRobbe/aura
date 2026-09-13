@@ -12,7 +12,6 @@ package mob
 import (
 	"math"
 
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 )
@@ -55,25 +54,38 @@ func (m *Mob) companionHoldAngleOffset() float64 {
 	return (float64(h)/float64(companionJitterBuckets)*2 - 1) * companionJitterAngle
 }
 
-// isFollower reports whether this mob follows a leader: authored as a follower
-// AND actually owned, or charmed right now.
+// isFollower reports whether this mob follows a leader. Two ways in, and only
+// two (plan-summon-follows.md D1, UNIFORM): it is charmed right now, or its
+// spell authored `follows` AND an owner is actually bound.
 //
-// The role is the authored intent (chunk 2 — it used to be inferred from
-// "owned and able to move", which made a totem's stillness the only thing
-// keeping it planted). Ownership stays a runtime precondition on top of it:
-// every follower path needs someone to follow or to take combat signals from,
-// so an ownerless follower — a companion def placed from the zone editor —
-// degrades to ordinary creature behaviour rather than standing inert.
+// ⭐ The authored ROLE is not read here. There used to be a third role whose
+// whole job was to grant this permission, which is why every pet needed a twin
+// mob file: the permission lived on the mob instead of on the spell. Now
+// `follows` on the spawn effect states it, so any mob in the picker can be
+// summoned as a pet, and the role was retired outright in C2 (Q1): one concept,
+// not two.
 //
-// Charm widens it WITHOUT mutating the role (plan-faction-flips D6): a charmed
-// wolf is a creature that is temporarily somebody's pet, and m.role is still
-// never written after construction — entity-model chunk 2's property survives.
+// Ownership stays the runtime precondition on the flag half: every follower path
+// needs someone to follow or to take combat signals from, so a pet whose owner
+// was never bound (a mob-cast summon) degrades to ordinary creature behaviour
+// rather than standing inert. Charm needs no such check - the charmer link IS
+// the leader.
+//
+// Charm and the flag stay separate fields (plan L1): charm carries a timer, a
+// buff and a faction revert that a summon must never inherit.
 func (m *Mob) isFollower() bool {
 	if m.charmer != nil {
 		return true
 	}
-	return m.role == mobs.RoleFollower && m.owner != nil
+	return m.follows && m.owner != nil
 }
+
+// SetFollows marks this mob as a pet: it follows its owner and takes its fights
+// from the owner's combat signals. The summon builder is the only caller
+// (sys/skills.go buildSummon), copying the spawn effect's authored `follows`.
+// Ownership is the runtime precondition, checked in isFollower rather than here,
+// so one guard answers the question in one place.
+func (m *Mob) SetFollows(follows bool) { m.follows = follows }
 
 // leaderCombatant is the leader as combat sees it (position/liveness); nil when
 // there is none, or when its shape doesn't support it.
@@ -89,7 +101,14 @@ func (m *Mob) leaderCombatant() model.Combatant {
 // updateFollow is the follower's idle movement: snap-catch-up when hopelessly
 // far, walk at FULL speed toward the follow ring when beyond it, stand inside
 // it. Never the idle amble — the owner (player speed 0.05/tick) outruns every
-// current mob's idle pace. A dead/absent owner means stand; the TTL cleans up.
+// current mob's idle pace.
+//
+// A dead or absent leader means stand. ⚑ Since plan-summon-follows.md C3 that
+// is a one-tick state at most for an OWNER who left the world: the removal
+// fan-out expires the summon outright (ExpireWithOwner), rather than leaving it
+// standing for the rest of its TTL, which is what the PO reported on
+// 2026-09-13. The branch still matters for a charmer who is merely dead-but-
+// present and for the tick before the sweep runs.
 func (m *Mob) updateFollow() {
 	leader := m.leaderCombatant()
 	if leader == nil || leader.HealthRatio() == 0 {

@@ -10,7 +10,8 @@
       "ttlTicksPerLevel": 150,
       "costFractionOfMax": 0.05,
       "costFractionOfMaxPerLevel": 0.0075,
-      "powerPerOwnerLevel": 0.05
+      "powerPerOwnerLevel": 0.05,
+      "follows": true
     }
   ],
   "category": "cooldown",

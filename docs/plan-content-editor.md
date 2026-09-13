@@ -317,10 +317,12 @@ content editor. It does not add a system. It cannot add an effect type (§B7).
   reference-panel pattern (§B4.6). `state.skillNames` / `skillMaxLevels`
   already feed the recipe and mob tabs' pickers.
 - **Companions are ordinary mobs.** `spawnMob` names a mob; the four
-  followers (`Companion`, `SoldierCompanion`, `ShieldbearerCompanion`,
-  `MedicCompanion`) author `role: follower`, totems author `role: structure`,
+  companions (`Companion`, `SoldierCompanion`, `ShieldbearerCompanion`,
+  `MedicCompanion`) author no role at all, totems author `role: structure`,
   and each carries its own aura as a mob-embedded skill. The Mobs tab already
-  edits them.
+  edits them. ⚑ **Updated 2026-09-13**: they authored `role: follower` until
+  plan-summon-follows.md C2 retired that role, so the picker now groups
+  Structures · Creatures and they sit in Creatures.
 - **Skill ids are persisted** (`game.character_spellbook.skill_id INTEGER`,
   migration 000001: *"pinned-and-never-reused by the same discipline as mob
   EntityType ids"*). `archive/plan-content-tooling.md` D5 ratified: skill ids
@@ -532,8 +534,10 @@ still types the first card ADDED once a category is chosen.
   ⚑ **The role filter was measured WRONG and overruled at C4 (2026-09-12,
   §B12 C4 ruling 1)**: `spawn` authors both roles, `spawn_at_anchor` authors
   the two portal mobs (role `creature`), and Go has no role rule on
-  `spawnMob`. The picker offers ALL mobs, grouped Followers · Structures ·
-  Creatures, each with the jump.
+  `spawnMob`. The picker offers ALL mobs, grouped by role, each with the jump.
+  ⚑ **Two groups since plan-summon-follows.md C2 (2026-09-13)**, Structures ·
+  Creatures: the `follower` role was retired, so the four companion mobs are
+  creatures.
 - **Obtained via**: computed on render the way `grantedByPanel` is - scan
   `milestone-unlocks.json` rows, every mob's `unlocks[]`, every NPC
   `interaction` grant of kind `teach_skill`, every recipe's `result` and
@@ -1569,7 +1573,7 @@ so the summon plumbing works from a tab-authored file; it also **STOOD STILL**
 where it spawned. That is by design today, not a bug in C4: the permission to
 follow a caster lives on the MOB's `role` (`RoleFollower`), which is why every
 pet is a twin file, and a wild species has none. It became
-**`docs/plan-summon-follows.md`**, designed the same day (a `follows: true` on
+**`docs/archive/plan-summon-follows.md`**, designed the same day (a `follows: true` on
 the `spawn` effect, the charm precedent) and PO-scheduled as **the next chunk,
 ahead of C5**. ⭐ **The file ships in this commit**, the tab's first
 new-from-nothing content, the way C3 shipped the PO's `damage.json`: id 152,

@@ -166,13 +166,12 @@ const COLOR_SPAWN = 0x4CAF50;
 // §4.4, every colour [PLACEHOLDER]): the diamond shape still says "spawn
 // point", the colour says what kind. Combat keeps the historical green (435
 // of 488 placements, so the map a designer knows stays the map they know);
-// talker pink and companion brown steer clear of the prop red and dark-area
-// purple.
+// talker pink steers clear of the prop red and dark-area purple. (A fourth
+// 'companion' brown went with the follower role, plan-summon-follows.md C2.)
 const SPAWN_KIND_STYLE: { [kind in MobKind]: { color: number } } = {
     combat: {color: COLOR_SPAWN},
     talker: {color: 0xE91E63},
     fixture: {color: 0x9E9E9E},
-    companion: {color: 0x795548},
 };
 const COLOR_CAMPFIRE = 0xFF9800;
 const COLOR_DARK = 0x673AB7;

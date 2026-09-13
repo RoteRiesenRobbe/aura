@@ -223,6 +223,88 @@ func TestMobSystem_Remove_ForgetsALivingMobRemovedFromTheWorld(t *testing.T) {
 	assert.False(t, wolf.TargetsEntity(camp.Basic().ID()), "and it re-latched the ghost next tick")
 }
 
+// ⭐ plan-summon-follows.md C3, PO report 2026-09-13: "If I die, my companions
+// remain but are no longer bound to me, they just stand there until they
+// disappear. They should de-spawn with the player." R1 makes it EVERY owned
+// summon, not only the ones that follow: a pet, a totem, a portal and a thrown
+// bomb all belong to a player who is no longer in the world.
+//
+// Death and disconnect both end in game.RemoveEntity(player), so the departure
+// fan-out is the one hook that covers both, the same reasoning that put charm
+// and aggro here.
+func TestMobSystem_Remove_ExpiresEveryOwnedSummonOfTheDepartedPlayer(t *testing.T) {
+	ms, g := newMobSystemWith(nil)
+	ms.Update(0)
+
+	owner := newFakePlayer()
+
+	pet := mob.NewMob(testMobDef(), 0, nil)
+	pet.Align()
+	pet.SetOwner(owner)
+	pet.SetFollows(true) // a companion
+
+	structureDef := testMobDef()
+	structureDef.Name = "Totem"
+	structureDef.Role = mobs.RoleStructure
+	totem := mob.NewMob(structureDef, 0, nil)
+	totem.Align()
+	totem.SetOwner(owner) // owned, and never a follower: this is what pins R1
+
+	bystander := mob.NewMob(testMobDef(), 0, nil) // a world mob, owned by nobody
+
+	for _, m := range []*mob.Mob{pet, totem, bystander} {
+		ms.AddEntity(m)
+		require.True(t, m.Update(0))
+		require.Greater(t, m.HealthRatio(), float32(0))
+	}
+
+	g.RemoveEntity(owner.basic) // the death, or the disconnect
+
+	assert.Zero(t, pet.HealthRatio(), "the pet expires with its owner")
+	assert.Zero(t, totem.HealthRatio(), "and so does the owned structure (R1)")
+	assert.Greater(t, bystander.HealthRatio(), float32(0), "a world mob is untouched")
+
+	ms.Update(0)
+
+	assert.Contains(t, g.removed, pet.Basic().ID(), "the pet is gone after one tick")
+	assert.Contains(t, g.removed, totem.Basic().ID(), "and so is the totem")
+	assert.NotContains(t, g.removed, bystander.Basic().ID(), "the world mob stands")
+}
+
+// R2: a flight takeoff is the same event for the ground world, and it calls
+// ForgetDeparted directly (the FlightForget seam) without removing any entity.
+// One hook, no special case: a pet cannot follow a flight, and a totem left
+// burning at the flight master would be the same orphan by another name.
+//
+// It also pins the recursion edge: a summon's OWN removal fans out through
+// ForgetDeparted too, and nothing is owned by a mob, so that pass is a no-op.
+func TestMobSystem_ForgetDeparted_ExpiresOwnedSummonsForAFlightTakeoff(t *testing.T) {
+	ms, g := newMobSystemWith(nil)
+	ms.Update(0)
+
+	flyer := newFakePlayer()
+	pet := mob.NewMob(testMobDef(), 0, nil)
+	pet.Align()
+	pet.SetOwner(flyer)
+	pet.SetFollows(true)
+	bystander := mob.NewMob(testMobDef(), 0, nil)
+	ms.AddEntity(pet)
+	ms.AddEntity(bystander)
+	require.True(t, pet.Update(0))
+
+	ms.ForgetDeparted(flyer.basic.ID()) // takeoff: no entity removal at all
+
+	assert.Zero(t, pet.HealthRatio(), "the pet expires when its owner flies away")
+	assert.Greater(t, bystander.HealthRatio(), float32(0))
+
+	// The summon's own departure fans out in turn; nothing is owned by a mob,
+	// so it changes nothing and cannot recurse.
+	ms.ForgetDeparted(pet.Basic().ID())
+	ms.Update(0)
+	assert.Contains(t, g.removed, pet.Basic().ID())
+	assert.NotContains(t, g.removed, bystander.Basic().ID())
+}
+
 func TestSpawnPoint_SpawnsAtAuthoredPosition(t *testing.T) {
 	pos := phy.Vec2f{X: 12, Y: -5}
 	ms, g := newMobSystemWith([]world.Spawn{

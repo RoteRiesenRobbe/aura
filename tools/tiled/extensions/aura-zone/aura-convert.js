@@ -853,8 +853,8 @@ var AuraConvert = (function () {
                 // so the form never appeared. Say how to make it appear rather
                 // than reporting an unknown mob named "".
                 bad(o, i, 'this spawn has no mob. Set its Class (Properties panel, top row) to'
-                    + ' AuraSpawnCombat / AuraSpawnTalker / AuraSpawnFixture /'
-                    + ' AuraSpawnCompanion — that is what brings up the spawn form — then'
+                    + ' AuraSpawnCombat / AuraSpawnTalker / AuraSpawnFixture'
+                    + ' — that is what brings up the spawn form — then'
                     + ' pick a "mob" from the dropdown');
                 known = false;
             } else if (!known) {

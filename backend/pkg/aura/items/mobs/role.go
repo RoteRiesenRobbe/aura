@@ -2,11 +2,10 @@ package mobs
 
 // Role is the authored actor discriminator (plan-entity-model.md chunk 2): what
 // a mob IS, stated once in the definition instead of inferred from what its
-// numbers happen to be. Before this, "structure" meant factors.speed <= 0 and
-// "follower" meant an owner plus a non-zero velocity — so the only way to
-// author a kind was to pick a stat value that implied it, and the ten authored
-// structures each carried a dummy body.aggroRadius of 0.1 purely to survive the
-// loader.
+// numbers happen to be. Before this, "structure" meant factors.speed <= 0, so
+// the only way to author a kind was to pick a stat value that implied it, and
+// the ten authored structures each carried a dummy body.aggroRadius of 0.1
+// purely to survive the loader.
 //
 // ⚑ Role is NOT a statement about movement. A stationary creature (a hazard
 // that gates its aura on aggro) and a moving structure are both legal — the
@@ -25,11 +24,6 @@ const (
 	// RoleStructure does not chase; its aura IS its behaviour, so the aura
 	// stays always-on and needs no aggro target to fire.
 	RoleStructure Role = "structure"
-	// RoleFollower is owner-centric: it acquires from the owner's combat
-	// signals rather than its own sensor, is bounded by the owner tether, and
-	// has no leash or evade point. Ownership is a runtime precondition on top
-	// of the authored role — an ownerless follower behaves like a creature.
-	RoleFollower Role = "follower"
 )
 
 // roles is the single source of authorable roles — the tierRanks precedent. A
@@ -39,14 +33,13 @@ const (
 var roles = map[string]Role{
 	string(RoleCreature):  RoleCreature,
 	string(RoleStructure): RoleStructure,
-	string(RoleFollower):  RoleFollower,
 }
 
 // RoleNames renders the authorable roles for an error message, sorted. Every
 // "must be one of ..." string reads from here rather than spelling the list out,
-// so adding a role cannot leave a message naming only the old ones — which had
-// already happened: the simharness web explorer offered creature/structure only
-// and made follower unselectable.
+// so adding a role cannot leave a message naming only the old ones. That had
+// already happened once, when a third role existed and the simharness web
+// explorer's hand-written list did not know it.
 func RoleNames() string {
 	return names(roles)
 }

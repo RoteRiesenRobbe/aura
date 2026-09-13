@@ -2714,6 +2714,11 @@ func (s *SkillSystem) buildSummon(e skillEntity, es *skills.EquippedSkill, p *sk
 		m.Align()
 	}
 	m.SetTTLTicks(p.TTLAt(es.Level))
+	// The spell says whether this summon is a pet (plan-summon-follows.md D1).
+	// Set unconditionally: the owner precondition lives in the mob's follow
+	// check (CALL A), so a mob-cast summon that binds no owner degrades to
+	// creature behaviour without a second guard here.
+	m.SetFollows(p.Follows)
 	m.SkillComponent().RaiseLoadoutLevels(es.Level)
 	if owner, ok := e.(model.PlayerEntity); ok {
 		// Binding the owner IS the body scaling since chunk 1b: the summon's

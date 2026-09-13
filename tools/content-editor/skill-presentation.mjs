@@ -163,6 +163,7 @@ export const EFFECT_PRESENTATION = {
   ttlTicksPerLevel: { control: 'number', group: PAYLOAD, label: 'TTL per level' },
   powerPerOwnerLevel: { control: 'number', unit: 'fraction', group: PAYLOAD, hint: 'Damage multiplier the summon gains per OWNER level.' },
   requiresAnchor: { control: 'bool', group: PAYLOAD },
+  follows: { control: 'bool', group: PAYLOAD, hint: 'The summon trails its caster and takes its fights from the caster\'s combat signals. A wild mob keeps its own body and speed: it can body-block, and it lags behind before snapping to your side.' },
   forwardUnits: { control: 'number', unit: 'units', group: PAYLOAD, hidden: true },
   armTicks: { control: 'number', unit: 'ticks', group: PAYLOAD, hidden: true },
 

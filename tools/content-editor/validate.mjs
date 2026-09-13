@@ -28,7 +28,7 @@ const OBJECTIVE_KINDS = ['kill', 'harvest', 'talk_to'];
 // Mob-definition vocabulary, ported from the Go single sources of truth:
 // backend/pkg/aura/items/mobs/role.go, definitions.go's tierRanks, and
 // backend/pkg/aura/skills/definition.go's DamageTypes/GateKeys.
-export const ROLES = ['creature', 'structure', 'follower'];
+export const ROLES = ['creature', 'structure'];
 export const TIERS = ['normal', 'elite', 'boss'];
 const TIER_RANK = { normal: 0, elite: 1, boss: 2 };
 export const DAMAGE_TYPES = ['physical', 'fire', 'frost', 'nature', 'poison', 'bleed'];

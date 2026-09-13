@@ -21,7 +21,8 @@
       "spawnMob": "ShieldbearerCompanion",
       "ttlTicks": 1800,
       "ttlTicksPerLevel": 150,
-      "powerPerOwnerLevel": 0.05
+      "powerPerOwnerLevel": 0.05,
+      "follows": true
     },
     {
       "type": "spawn",
@@ -30,7 +31,8 @@
       "spawnMob": "ShieldbearerCompanion",
       "ttlTicks": 1800,
       "ttlTicksPerLevel": 150,
-      "powerPerOwnerLevel": 0.05
+      "powerPerOwnerLevel": 0.05,
+      "follows": true
     },
     {
       "type": "spawn",
@@ -39,7 +41,8 @@
       "spawnMob": "ShieldbearerCompanion",
       "ttlTicks": 1800,
       "ttlTicksPerLevel": 150,
-      "powerPerOwnerLevel": 0.05
+      "powerPerOwnerLevel": 0.05,
+      "follows": true
     }
   ]
 }

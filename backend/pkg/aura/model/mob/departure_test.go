@@ -100,3 +100,50 @@ func TestMob_ForgetEntity_UnrelatedIDLeavesEverythingAlone(t *testing.T) {
 	assert.Same(t, p, m.aggroTarget)
 	assert.True(t, m.HasThreat(p.basic.ID()))
 }
+
+// --- the OWNER departs: the summon goes with them (plan-summon-follows.md C3) ---
+//
+// PO report 2026-09-13: "If I die, my companions remain but are no longer bound
+// to me, they just stand there until they disappear." Before C3 a dead or
+// disconnected owner only made updateFollow stand still, so every pet, totem,
+// portal and bomb outlived its caster for the rest of its TTL. R1 (PO): EVERY
+// owned summon expires, not only the followers. These two verbs are what the
+// removal fan-out needs: an id-keyed question, and the verb that answers it.
+
+func TestMob_OwnedBy_ReportsTheOwnerLink(t *testing.T) {
+	owner := newFakeOwner()
+	m := newTestCompanion(owner)
+
+	assert.True(t, m.OwnedBy(owner.basic.ID()), "its own owner")
+	assert.False(t, m.OwnedBy(owner.basic.ID()+1), "somebody else leaving is not its departure")
+	assert.False(t, newTestMob().OwnedBy(owner.basic.ID()), "a world mob is owned by nobody")
+}
+
+// The verb is the TTL expiry's twin: health to 0, so the next Update reports a
+// death that grants nothing (kill rewards only flow through PlayerTouches) and
+// stale threat rows onto the summon prune themselves.
+func TestMob_ExpireWithOwner_RetiresTheSummonOnItsNextUpdate(t *testing.T) {
+	owner := newFakeOwner()
+	m := newTestCompanion(owner)
+	require.True(t, m.Update(0))
+	require.Greater(t, m.HealthRatio(), float32(0), "alive before its owner leaves")
+
+	m.ExpireWithOwner()
+
+	assert.Zero(t, m.HealthRatio(), "health is zeroed on the spot")
+	assert.False(t, m.Update(0), "and the next Update reports it dead, exactly as the TTL does")
+}
+
+// Idempotent, and that is load-bearing: a flight takeoff calls the removal hook
+// directly, and a mid-flight disconnect then calls it a second time for the same
+// player. The second pass must find nothing left to do.
+func TestMob_ExpireWithOwner_IsIdempotent(t *testing.T) {
+	m := newTestCompanion(newFakeOwner())
+	require.True(t, m.Update(0))
+
+	m.ExpireWithOwner()
+	m.ExpireWithOwner()
+
+	assert.Zero(t, m.HealthRatio())
+	assert.False(t, m.Update(0))
+}

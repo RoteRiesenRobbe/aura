@@ -13,6 +13,13 @@
 //      which is the follower steering the chunk rewrote
 //   3. it is a distinct actor from the player, not a VFX
 //
+// ⛑ 2026-09-13 (plan-summon-follows C1/C2): the header above is history.
+// A summon no longer follows because its mob is authored `role: "follower"`:
+// that role is retired. It follows because the SPELL's spawn effect
+// authors `follows: true`, which `SummonCompanion` now does. The assertions
+// below are unchanged and still measure the same behaviour through the new
+// carrier; leg 2 is the one that would go red if the key were ever dropped.
+//
 // ⚑ Slot hotkeys need a LONG hold (~1.3 s). They are edge-triggered from
 // Controls.update, whose Tock clock is rAF-driven, and a headless page throttles
 // rAF hard — a short down/up pair falls between two samples, the key really does

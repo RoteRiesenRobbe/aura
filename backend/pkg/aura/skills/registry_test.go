@@ -215,9 +215,11 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// + SummonSpider (2026-09-12), id 152: a `spawn` cooldown of the wild
 	// `Spider`, and the PO's first spell authored end to end in the content
 	// editor's Skills tab, at the C4 look. SKILL cheat only, no unlock source.
-	// It stands where it spawns: the permission to follow a caster lives on
-	// the MOB's role today, and a wild species has none - which is what
-	// docs/plan-summon-follows.md is for. 105 → 106.
+	// It stood where it spawned, because the permission to follow a caster
+	// lived on the MOB's role and a wild species had none. Retired
+	// 2026-09-13 by docs/archive/plan-summon-follows.md: the SPELL's
+	// `follows` key carries it now, and the PO ticked it on this very
+	// skill during the walk. 105 → 106.
 	assert.Len(t, r.All(), 106)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {

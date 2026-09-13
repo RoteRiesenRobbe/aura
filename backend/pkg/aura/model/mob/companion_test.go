@@ -38,17 +38,45 @@ func newFakeOwner() *fakeOwner {
 func companionDefinition() *mobs.MobDefinition {
 	def := testMobDefinition()
 	def.Name = "Companion"
-	def.Role = mobs.RoleFollower // authored since chunk 2, no longer inferred from owner+velocity
+	// A plain creature, like the four shipped companion mobs are since C2
+	// retired the third role (plan-summon-follows.md Q1). Nothing on the
+	// DEFINITION makes a pet; what makes this fixture follow is SetFollows.
 	return def
 }
 
-// newTestCompanion builds an owned, moving mob (= follower) at the origin.
+// newTestCompanion builds an owned, moving PET at the origin: owned, and
+// carrying the runtime flag the summon builder copies from the spell's
+// authored `follows` (plan-summon-follows.md D1).
 func newTestCompanion(owner *fakeOwner) *Mob {
 	m := NewMob(companionDefinition(), 0, nil)
 	m.Align()
 	m.SetOwner(owner)
+	m.SetFollows(true)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 	return m
+}
+
+// ⭐ The point of plan-summon-follows.md D1: the permission to follow is the
+// SPELL's, not the mob's. A wild species with its own creature role, its own
+// body and its own speed follows its owner the moment the summon builder sets
+// the flag - which is what lets any mob in the spawnMob picker be summoned as a
+// pet without a companion twin file.
+func TestMob_OwnedCreatureWithTheFollowsFlagFollowsItsOwner(t *testing.T) {
+	owner := newFakeOwner()
+	owner.pos = phy.Vec2f{X: 5, Y: 0}
+	def := testMobDefinition() // role absent -> creature, a wild species
+	m := NewMob(def, 0, nil)
+	m.Align()
+	m.SetOwner(owner)
+	m.SetFollows(true)
+	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
+
+	require.True(t, m.Update(0))
+
+	assert.InDelta(t, 0.055, m.Position().Abs(), 1e-3,
+		"the flag alone buys the full-speed follow step")
+	assert.Greater(t, m.Position().X, float32(0.04),
+		"...and the step heads toward the owner")
 }
 
 func newHostileCombatant(pos phy.Vec2f) *fakeCombatant {
@@ -441,6 +469,7 @@ func TestMob_MedicCompanion_HealsAWoundedAllyWhileFollowing(t *testing.T) {
 	m := NewMob(medicCompanionDefinition(), 0, nil)
 	m.Align()
 	m.SetOwner(owner)
+	m.SetFollows(true)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 
 	require.True(t, m.isFollower(), "still a follower")
@@ -517,6 +546,7 @@ func TestMob_MedicCompanion_IgnoresTheOwnersAttacker(t *testing.T) {
 	m := NewMob(medicCompanionDefinition(), 0, nil)
 	m.Align()
 	m.SetOwner(owner)
+	m.SetFollows(true)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 	require.True(t, m.isFollower())
 	require.True(t, m.isPacifist())

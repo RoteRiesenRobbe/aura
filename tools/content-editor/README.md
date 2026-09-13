@@ -140,13 +140,16 @@ What C4 added on top of C3's write path:
   is a script run (`node scripts/fetch-skill-icons.mjs`, which downloads from
   game-icons.net and regenerates the committed artifacts, CC BY attribution
   included), which is what the footer under the grid says.
-- **The `spawnMob` picker**: every mob on disk, grouped by role (followers,
-  structures, creatures; an absent `role` IS creature), with an **edit in
-  Mobs** jump for the one picked, because the summon's own stats, aura and art
-  live on the mob. ⚑ The plan's §B4.6 filter (followers and structures only)
-  was overruled by the content: `spawn_at_anchor` names `PortalHome` /
+- **The `spawnMob` picker**: every mob on disk, grouped by role (structures,
+  creatures; an absent `role` IS creature), with an **edit in Mobs** jump for
+  the one picked, because the summon's own stats, aura and art live on the
+  mob. ⚑ The plan's §B4.6 filter (followers and structures only) was
+  overruled by the content: `spawn_at_anchor` names `PortalHome` /
   `PortalSummon` and `projectile` names `ProjectileBomb`, all role `creature`,
-  and Go has no role rule on `spawnMob` at all.
+  and Go has no role rule on `spawnMob` at all. ⚑ There were three groups
+  until plan-summon-follows.md C2 (2026-09-13) retired `role: follower`: a pet
+  is made by the SPELL's `follows` key, so the four companion mobs are
+  ordinary creatures.
 - **A test-rig badge** on `OmniAura` / `OmniPassive` / `OmniStrike`, in the
   sidebar row and the editor header: they are cheat-only rigs, never content,
   and nothing in their files says so. The list is `TEST_RIG_SKILLS` in

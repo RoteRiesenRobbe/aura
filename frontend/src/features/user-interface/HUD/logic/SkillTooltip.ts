@@ -560,6 +560,12 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // about the effect is: it is the same SpawnParams payload.
             const where = effect.type === 'spawn_at_anchor' ? ' at your campfire' : '';
             lines.push(`Summons ${count}${mobDisplayName(spawn.mobName)}${where} for ${prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}`);
+            // A pet, or a thing left standing where it was placed
+            // (plan-summon-follows.md D1) - the difference the player feels
+            // most, and nothing else in the tooltip says it.
+            if (spawn.follows) {
+                lines.push('Follows you and fights at your side');
+            }
             if (spawn.powerPerOwnerLevel > 0) {
                 lines.push(`Summon power: +${pct(spawn.powerPerOwnerLevel)} per player level`);
             }

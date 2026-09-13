@@ -436,61 +436,6 @@
           "value": "pingpong"
         }
       ]
-    },
-    {
-      "id": 17,
-      "name": "AuraSpawnCompanion",
-      "type": "class",
-      "color": "#ff795548",
-      "drawFill": true,
-      "useAs": [
-        "property",
-        "object"
-      ],
-      "members": [
-        {
-          "name": "mob",
-          "type": "string",
-          "propertyType": "AuraMobName",
-          "value": "(pick a mob)"
-        },
-        {
-          "name": "respawnTicks",
-          "type": "int",
-          "value": -1
-        },
-        {
-          "name": "respawnVariancePct",
-          "type": "float",
-          "value": -1
-        },
-        {
-          "name": "wanderRadius",
-          "type": "float",
-          "value": -1
-        },
-        {
-          "name": "idleSpeedFactor",
-          "type": "float",
-          "value": 0
-        },
-        {
-          "name": "level",
-          "type": "int",
-          "value": 0
-        },
-        {
-          "name": "anchor",
-          "type": "string",
-          "value": ""
-        },
-        {
-          "name": "patrolMode",
-          "type": "string",
-          "propertyType": "AuraPatrolMode",
-          "value": "pingpong"
-        }
-      ]
     }
   ]
 }

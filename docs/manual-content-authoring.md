@@ -76,16 +76,20 @@ faction and skills without a schema append (see §5).
      load**; raw absolute numbers sized to a zone are a review reject.
      (Absent `tier`/`curveLevel` default to `normal`/1 — for synthetic/test
      defs only, content always authors them explicitly.)
-   - **`role` — what the actor IS** (`creature` / `structure` / `follower`;
-     absent = `creature`). `creature` chases what it aggros and its aura runs
-     only while it has a target; `structure` does not chase and its aura is
-     **always on** (totems, campfires, gate obstacles); `follower`
-     acquires from its owner's combat signals and trails the owner (the
-     companion summons). ⚑ **Role is not a speed.** A stationary creature (a
-     hazard that gates its aura on aggro) and a moving structure are both
+   - **`role` — what the actor IS** (`creature` / `structure`; absent =
+     `creature`). `creature` chases what it aggros and its aura runs only
+     while it has a target; `structure` does not chase and its aura is
+     **always on** (totems, campfires, gate obstacles). ⭐ **There is no role
+     for a pet** (plan-summon-follows.md C2, 2026-09-13, PO: one concept, not
+     two). A summon follows its caster because its SPELL authors
+     `follows: true` on the `spawn` effect, so any mob in the picker is a
+     candidate and the four companion mobs are ordinary creatures. A third
+     role, `follower`, used to carry that permission and was retired once the
+     spell key took it over. ⚑ **Role is not a speed.** A stationary creature
+     (a hazard that gates its aura on aggro) and a moving structure are both
      legal and neither is warned about — author the role you mean. Before
-     chunk 2 this was inferred (`speed: 0` = structure, owner + moving =
-     follower), which is why old defs carried a dummy `aggroRadius`.
+     chunk 2 this was inferred (`speed: 0` = structure), which is why old defs
+     carried a dummy `aggroRadius`.
    - ⭐ **THE ARCHETYPE RULE — the Wolf is the unit, and strength must be paid
      for** (D6, `plan-world-replacement.md` §3.8, PO 2026-08-06). Read every
      species' numbers as **ratios to one reference mob**:
@@ -159,9 +163,10 @@ faction and skills without a schema append (see §5).
      so a physical entry anywhere re-calibrates the tier thresholds — a test
      (`TestNoCuratedResistanceTouchesPhysical`) makes that a deliberate act
      rather than a surprise.
-   - `body`: `radius`, `aggroRadius` (required and `> 0` for `creature` and
-     `follower`; **omit it on a `structure`** — a structure acquires nothing,
-     and requiring one is what produced the old `0.1` dummies)
+   - `body`: `radius`, `aggroRadius` (required and `> 0` for a `creature`,
+     which is every mob that is not a `structure`, pets included; **omit it on
+     a `structure`** — a structure acquires nothing, and requiring one is what
+     produced the old `0.1` dummies)
    - **Solid-obstacle mobs (campfire/bramble pattern):** optional
      `body.collisionLayer` / `collisionMask` override the defaults (layer
      34 = Viewport|Action, mask 80 = MobStatic|Border). Campfire `32/16` =
@@ -652,7 +657,7 @@ payload): `radius`, `radiusPerLevel`, `tickInterval`, `tickIntervalPerLevel`,
 | `buffLifetimeMatchesInterval` | `resist.buffLifetimeMatchesInterval` | ⚑ resist_aura only, and it is a PRICING lever, not a duration knob: it drops the standard interval + 1 buff lifetime so every application at base cadence is fresh work and is charged (plan-effect-types.md D7). Default false = the shipped behaviour |
 | `stat` / `statBonus` / `statBonusPerLevel` | `stat.name` / `stat.bonus` / `stat.bonusPerLevel` | stat_multiplier |
 | `targetsSelf` | `<payload>.targetsSelf` | ⚑ resist / shield / hot — inside the payload, unlike the other target flags |
-| `spawnMob` / `ttlTicks` / `ttlTicksPerLevel` / `powerPerOwnerLevel` / `requiresAnchor` | `spawn.mobName` / `spawn.ttlTicks` / … | ⚑ spawn AND spawn_at_anchor share the `spawn` payload, but NOT the key row. `spawn` takes all five: `requiresAnchor` is its OPT-IN campfire gate (the portal's destination is the caster's fire, while FireTotem must keep casting unbound). `spawn_at_anchor` takes only the first three - it places its summon AT the anchor, so the gate is inherent to the TYPE and authoring `requiresAnchor` (either value) hard-fails, as does `powerPerOwnerLevel` (nothing placed at a campfire fights). Its placement is a 2.5 u ring around the fire that never overlaps a bind circle (`sys.anchorSpawnOffset`, plan-portal-spells.md D8) |
+| `spawnMob` / `ttlTicks` / `ttlTicksPerLevel` / `powerPerOwnerLevel` / `requiresAnchor` / `follows` | `spawn.mobName` / `spawn.ttlTicks` / … | ⚑ spawn AND spawn_at_anchor share the `spawn` payload, but NOT the key row. `spawn` takes all six: `requiresAnchor` is its OPT-IN campfire gate (the portal's destination is the caster's fire, while FireTotem must keep casting unbound), and ⭐ `follows: true` is what makes the summon a PET (plan-summon-follows.md D1) - it trails its caster and takes its fights, and any mob in the picker qualifies, because nothing on the MOB grants or withholds the permission (C2 retired the `follower` role that once did). `follows` is on the `spawn` row ALONE: a portal is a door, a bomb is a bomb, so authoring it on `spawn_at_anchor` or `projectile` hard-fails. `spawn_at_anchor` takes only the first three - it places its summon AT the anchor, so the gate is inherent to the TYPE and authoring `requiresAnchor` (either value) hard-fails, as does `powerPerOwnerLevel` (nothing placed at a campfire fights). Its placement is a 2.5 u ring around the fire that never overlaps a bind circle (`sys.anchorSpawnOffset`, plan-portal-spells.md D8). ⚑ **`ttlTicks` is not the only end**: every OWNED summon - pet, totem, portal, thrown bomb - expires the moment its owner leaves the world, whether they die, disconnect or take a flight (plan-summon-follows.md C3, PO 2026-09-13: one rule, so nothing a player placed outlives them) |
 | `threatMargin` | `threat.margin` | taunt (detaunt ignores it) |
 | `reviveHealthFraction` | `revive.healthFraction` | revive |
 | `dashDistance` / `dashDistancePerLevel` | `dash.distance` / `dash.distancePerLevel` | dash |

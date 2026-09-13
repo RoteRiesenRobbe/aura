@@ -182,7 +182,7 @@ export interface ZoneData {
 // computed from fields every mob def already carries, never authored. It
 // drives three display surfaces (picker grouping, marker colour, and, from
 // C2, which controls show), and nothing else: no data behaviour reads it.
-export type MobKind = 'combat' | 'talker' | 'fixture' | 'companion';
+export type MobKind = 'combat' | 'talker' | 'fixture';
 
 // The minimal structural shape kindOf needs, decoupled from how the defs got
 // into the browser (ZoneEditor's require.context cannot be imported under
@@ -199,11 +199,15 @@ export function kindOf(def: MobKindDef): MobKind {
     if (def.role === 'structure') {
         return 'fixture';
     }
-    if (def.role === 'follower') {
-        return 'companion';
-    }
-    // The common case: 27 defs author no role at all, and unrecognized role
+    // The common case: most defs author no role at all, and unrecognized role
     // values (e.g. "creature") fall through here rather than throw.
+    //
+    // ⚑ A fourth kind, 'companion', was derived from `role: "follower"` until
+    // plan-summon-follows.md C2 retired that role: a pet is made by the SPELL's
+    // `follows` key now, so nothing on a mob def says "companion" any more. The
+    // four companion mobs land in 'combat' and zone authors simply do not place
+    // them. Deriving the bucket from xpFactor 0 instead would be the
+    // infer-from-a-number pattern the entity model retired.
     return 'combat';
 }
 

@@ -230,7 +230,6 @@ export function setupPanel() {
         {kind: 'combat', label: 'Combat'},
         {kind: 'talker', label: 'Talkers'},
         {kind: 'fixture', label: 'Fixtures'},
-        {kind: 'companion', label: 'Companions'},
     ];
     MOB_GROUPS.forEach(group => {
         let mobs = ZoneEditor.mobOptions.filter(mob => mob.kind === group.kind);

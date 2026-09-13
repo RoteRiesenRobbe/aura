@@ -2334,12 +2334,15 @@ function iconPicker(key, obj, onSet, locked) {
 // a jump into the Mobs tab for the one currently picked - the summon's own
 // stats, aura and art live on the mob and are edited there (D2).
 //
-// ⚑ The plan's §B4.6 filter (followers and structures only) was overruled by
-// what the content actually authors: `spawn_at_anchor` names PortalHome and
-// PortalSummon, both role `creature`, and `projectile` names ProjectileBomb.
-// Go has no role rule on spawnMob at all, so a filter here would hide shipped
-// content and be the only place such a rule existed.
-const MOB_ROLE_GROUPS = [['follower', 'Followers'], ['structure', 'Structures'], ['creature', 'Creatures']];
+// ⚑ Never a filter. Go has no role rule on spawnMob at all, so a filter typed
+// in here would be the only place such a rule existed, and it would hide
+// shipped content: `spawn_at_anchor` names PortalHome and PortalSummon and
+// `projectile` names ProjectileBomb.
+//
+// ⚑ Two roles since plan-summon-follows.md C2 retired the third. A pet is made
+// by the SPELL's `follows` key, so the four companion mobs are ordinary
+// creatures and sit in the Creatures group with everything else.
+const MOB_ROLE_GROUPS = [['structure', 'Structures'], ['creature', 'Creatures']];
 
 function mobPicker(key, obj, ctx, onSet, locked) {
   const current = typeof obj[key] === 'string' ? obj[key] : '';

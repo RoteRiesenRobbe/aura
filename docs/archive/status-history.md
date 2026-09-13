@@ -10,6 +10,11 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-09-13, the summon-follows wrap rotated the cap, so SPELL BUILDER C2
+moved here verbatim.)*
+
+- **Prior: SPELL BUILDER C2: `aurad -validate` and the editor's save seam** ✅ 2026-09-11 `5a9b5650` (ledger: `docs/plan-content-editor.md` §B12 C2): `aurad -validate -content <dir>` checks every content kind with **no DB and no JWT key** (it branches before the store opens) and prints **every** finding on stdout, one per line; exit 0 clean / 1 findings / 2 validator broken. ⭐ The shape that outlives the chunk: **ONE load sequence (`cmd/aurad/content.go`) feeds BOTH boot and `-validate`**, so the dependency order cannot drift into two hand copies (§B3); independent stages keep running and a stage whose input failed prints `x: skipped (y did not load)`. Boot now lists every finding too, not just the first. PO ruled: findings stage-level **plus per-file for skills** · conf read like boot, never written · the editor's seam is a kind-agnostic dry-run `POST /api/validate/candidate` over a temp copy, NOT yet wired into `saveOne` (§B11 Q7) · a missing OR stale `backend/aurad` fails `npm run smoke` loudly (mtime guard; build-on-demand declined). ⚑ A 500 from that endpoint carries `{ok:false, errors:[…]}`, not `findings`, so C3's client must branch on the HTTP status (L12). **Schema ALL NONE.** Verified: `go test -count=1 ./...` EXIT 0, 35 pkgs · smoke 0/105 incl. the two new legs · browser harness 0 problems · a real 12 s boot on the dev DB · mutation ×3.
+
 *(2026-09-12, the spell builder C4 wrap rotated the cap, so SPELL BUILDER C1
 moved here verbatim.)*
 

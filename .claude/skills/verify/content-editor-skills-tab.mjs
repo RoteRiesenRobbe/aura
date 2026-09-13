@@ -31,9 +31,10 @@
 //   2b. the C4 PICKERS: the icon picker on Damage offers the whole vendored
 //      set (counted off /api/data, not pinned) as inline SVGs with the file's
 //      own glyph checked, and names the fetch script in its footer; the
-//      spawnMob picker on SummonCompanion is grouped by role with Followers
+//      spawnMob picker on SummonCompanion is grouped by role with Structures
 //      first, offers the creature-role PortalHome, and its "edit in Mobs" link
-//      lands on Companion in the Mobs tab.
+//      lands on Companion in the Mobs tab. (Two groups since
+//      plan-summon-follows.md C2 retired the follower role.)
 //   2c. the C4 NEW-SKILL flow: "+ New" prompts, opens a draft with the id =
 //      max over BOTH skill folders + 1, the L3 caveat beside it, NO category,
 //      NO card and the "not yet saved" badge; a second "+ New" with the same
@@ -386,7 +387,7 @@ const mobFacts = await page.evaluate(() => {
   };
 });
 if (mobFacts.value !== 'Companion') problems.push(`spawnMob picker: value "${mobFacts.value}", expected Companion`);
-if (!mobFacts.groups[0] || !mobFacts.groups[0].startsWith('Followers')) problems.push(`spawnMob picker: first group is ${JSON.stringify(mobFacts.groups[0])}, expected Followers first`);
+if (!mobFacts.groups[0] || !mobFacts.groups[0].startsWith('Structures')) problems.push(`spawnMob picker: first group is ${JSON.stringify(mobFacts.groups[0])}, expected Structures first`);
 if (!mobFacts.hasPortalHome) problems.push('spawnMob picker: PortalHome (a creature-role summon that ships) is not offered');
 if (mobFacts.portalGroup !== 'Creatures') problems.push(`spawnMob picker: PortalHome sits in group "${mobFacts.portalGroup}", expected Creatures`);
 if (!mobFacts.link) problems.push('spawnMob picker: no "edit in Mobs" jump link for the picked mob');

@@ -1,6 +1,7 @@
 package mobs
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 
@@ -154,10 +155,18 @@ func resolveConditionSpecies(mobs *registry) error {
 // the spawn payload as catalog references (round-7 item 3) — the /skills
 // catalog is where the tooltip learns what the summon does; see
 // skills.SpawnParams.SummonLoadout for why the carve-out lives there.
+//
+// ⚑ CALL C (plan-summon-follows.md C1): findings are COLLECTED with errors.Join
+// rather than returned on the first one, so one -validate run lists every
+// unresolvable spawnMob instead of making the author fix them one boot at a
+// time. The joined shape (Unwrap() []error) is exactly what
+// cmd/aurad/content.go stageFindings flattens into one line per finding; a %w
+// wrap around it would fold them all into a single line.
 func validateSpawnEffects(mobs *registry, sr skills.Registry) error {
 	if sr == nil {
 		return nil
 	}
+	var findings []error
 	for _, skill := range sr.All() {
 		for _, effect := range skill.Effects {
 			if effect.Spawn == nil {
@@ -165,7 +174,8 @@ func validateSpawnEffects(mobs *registry, sr skills.Registry) error {
 			}
 			summoned, err := mobs.GetByName(effect.Spawn.MobName)
 			if err != nil {
-				return fmt.Errorf("skill %q: spawnMob %q does not match any mob definition", skill.Name, effect.Spawn.MobName)
+				findings = append(findings, fmt.Errorf("skill %q: spawnMob %q does not match any mob definition", skill.Name, effect.Spawn.MobName))
+				continue
 			}
 			loadout := make([]skills.SummonSkillRef, 0, len(summoned.Skills))
 			for _, ms := range summoned.Skills {
@@ -174,5 +184,5 @@ func validateSpawnEffects(mobs *registry, sr skills.Registry) error {
 			effect.Spawn.SummonLoadout = loadout
 		}
 	}
-	return nil
+	return errors.Join(findings...)
 }

@@ -105,6 +105,10 @@ export interface SpawnParams {
     // only way to say what the summon does. The levels are a floor: the spawn
     // site raises them to the summon skill's level.
     summonLoadout?: SummonSkillRef[];
+    // The spell's statement that this summon is a PET (plan-summon-follows.md
+    // D1): it trails its caster and takes its fights. A hand mirror of the Go
+    // struct with no completeness pin behind it (plan L5).
+    follows?: boolean;
     // The PROJECTILE placement's two extra knobs (plan-prototype-projectile.md
     // D2), absent on both spawn forms: how far ahead of the caster the thrown
     // entity lands, and how long its own burst is held down before it may fire.

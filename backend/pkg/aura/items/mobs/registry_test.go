@@ -77,6 +77,70 @@ func TestRegistryFromFS_SpawnEffectCarriesSummonLoadout(t *testing.T) {
 	assert.Contains(t, string(marshaled), `"summonLoadout":[{"skillId":101,"level":2}]`)
 }
 
+// --- the follows rule (plan-summon-follows.md §3.2) ---
+
+// followsFixture builds a skill registry with one spawn effect and a mob
+// registry holding the mob it names, which is the smallest tree
+// validateSpawnEffects has an opinion about.
+func followsFixture(t *testing.T, skillJSON, mobJSON string) error {
+	t.Helper()
+	sr, err := skills.RegistryFromFS(fstest.MapFS{
+		"dodo-aura.json": {Data: testAuraSkillJSON},
+		"summon.json":    {Data: []byte(skillJSON)},
+	}, nil)
+	require.NoError(t, err)
+	_, err = RegistryFromFS(sr, nil, testCurve(), fstest.MapFS{"pet.json": {Data: []byte(mobJSON)}})
+	return err
+}
+
+const creaturePetJSON = `{
+  "id": 9, "name": "Spider", "type": "MOB",
+  "body": {"radius": 0.25, "aggroRadius": 3},
+  "skills": [{"skillName": "DodoAura", "level": 1}]
+}`
+
+func summonSkillJSON(id int, name, mob, extra string) string {
+	return `{"id": ` + strconv.Itoa(id) + `, "name": "` + name + `", "category": "cooldown",
+	  "maxLevel": 1, "cooldownTicks": 450,
+	  "effects": [{"type": "spawn", "spawnMob": "` + mob + `", "ttlTicks": 300` + extra + `}]}`
+}
+
+// The whole point of plan-summon-follows.md: a wild species summoned as a pet.
+// `follows` is the spell's statement and needs no permission from the mob, so
+// an ordinary creature-role spawnMob carrying the key loads clean.
+func TestRegistryFromFS_CreatureRoleSpawnWithFollowsLoads(t *testing.T) {
+	err := followsFixture(t, summonSkillJSON(23, "SummonSpider", "Spider", `, "follows": true`), creaturePetJSON)
+
+	require.NoError(t, err)
+}
+
+// CALL C (plan-summon-follows.md C1): the pass collects with errors.Join
+// instead of returning on the first finding, so one -validate run lists every
+// unresolvable spawnMob rather than making the author fix them one boot at a
+// time. The joined shape is what cmd/aurad/content.go stageFindings flattens
+// into one line each.
+//
+// ⚑ C2 re-pointed this at two spawnMob TYPOS. It used to drive the finding with
+// two follower-role spawns missing `follows`; that rule was retired with the
+// role itself, and the collection behaviour it pins is not specific to it.
+func TestRegistryFromFS_EverySpawnFindingIsReported(t *testing.T) {
+	sr, err := skills.RegistryFromFS(fstest.MapFS{
+		"dodo-aura.json": {Data: testAuraSkillJSON},
+		"one.json":       {Data: []byte(summonSkillJSON(23, "SummonCompanion", "Compainon", ""))},
+		"two.json":       {Data: []byte(summonSkillJSON(24, "CallForAid", "Spidr", ""))},
+	}, nil)
+	require.NoError(t, err)
+
+	_, err = RegistryFromFS(sr, nil, testCurve(), fstest.MapFS{"pet.json": {Data: []byte(creaturePetJSON)}})
+
+	require.Error(t, err)
+	joined, ok := err.(interface{ Unwrap() []error })
+	require.True(t, ok, "the findings must be joined, not wrapped - stageFindings only flattens Unwrap() []error")
+	assert.Len(t, joined.Unwrap(), 2, "both offending skills are reported by one run")
+	assert.Contains(t, err.Error(), "SummonCompanion")
+	assert.Contains(t, err.Error(), "CallForAid")
+}
+
 // --- kills_this_life species resolution (plan-ascension.md §13 step 1, P20) ---
 
 // The species of a kills_this_life gate is resolved ONCE, against the finished

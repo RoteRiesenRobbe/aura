@@ -241,8 +241,8 @@ type MobDefinition struct {
 	Tier       string
 	CurveLevel int
 
-	// Role is the authored actor discriminator (chunk 2, role.go): creature,
-	// structure or follower. Absent in JSON → creature; the zero value is the
+	// Role is the authored actor discriminator (chunk 2, role.go): creature or
+	// structure. Absent in JSON → creature; the zero value is the
 	// empty string, so NewMob re-applies that default for definitions built
 	// directly (tests, the sim harness).
 	Role Role

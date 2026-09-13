@@ -305,7 +305,8 @@
       "ttlTicks",
       "ttlTicksPerLevel",
       "powerPerOwnerLevel",
-      "requiresAnchor"
+      "requiresAnchor",
+      "follows"
     ],
     "spawn_at_anchor": [
       "spawnMob",

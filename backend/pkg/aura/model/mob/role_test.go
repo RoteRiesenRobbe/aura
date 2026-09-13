@@ -66,8 +66,11 @@ func TestMob_OwnedStructureDoesNotFollowItsOwner(t *testing.T) {
 		"a totem stays where it was planted")
 }
 
-// Same for an owned creature: a summon is not a follower unless it is authored
-// as one.
+// Same for an owned creature: a summon does not follow unless its SPELL says so
+// (plan-summon-follows.md D1). ⚑ C2 deleted the sibling pin that authored the
+// retired `follower` role here and asserted the same standstill - with the role
+// gone there is no longer a second subject to deny the behaviour to, and this
+// test IS the negative space that remains.
 func TestMob_OwnedCreatureDoesNotFollowItsOwner(t *testing.T) {
 	owner := newFakeOwner()
 	owner.pos = phy.Vec2f{X: 5, Y: 0}
@@ -83,13 +86,15 @@ func TestMob_OwnedCreatureDoesNotFollowItsOwner(t *testing.T) {
 		"an owned creature keeps the world archetype — walk home, not walk to owner")
 }
 
-// D4: the authored role states the intent, ownership is the runtime
-// precondition. An ownerless follower has nothing to follow or acquire from, so
-// it degrades to ordinary creature behaviour rather than standing inert.
+// D4, rewritten for plan-summon-follows.md D1: the spell states the intent,
+// ownership is the runtime precondition (CALL A - the precondition lives in
+// isFollower, so the builder can set the flag unconditionally). A pet with
+// nobody to follow or acquire from degrades to ordinary creature behaviour
+// rather than standing inert.
 func TestMob_OwnerlessFollowerFallsBackToCreatureBehaviour(t *testing.T) {
 	def := testMobDefinition()
-	def.Role = mobs.RoleFollower
 	m := NewMob(def, 0, nil)
+	m.SetFollows(true)                   // the spell said pet; no owner was ever bound
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0}) // the first SetPosition IS the spawn point
 	m.SetPosition(phy.Vec2f{X: 3, Y: 0}) // …and this displaces it from home
 

@@ -972,7 +972,9 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
     });
 
     it('gives every spawn kind the same form', () => {
-        const names = ['AuraSpawnCombat', 'AuraSpawnTalker', 'AuraSpawnFixture', 'AuraSpawnCompanion'];
+        // Three since plan-summon-follows.md C2: AuraSpawnCompanion went with
+        // the 'companion' kind, which was derived from `role: "follower"`.
+        const names = ['AuraSpawnCombat', 'AuraSpawnTalker', 'AuraSpawnFixture'];
         const shape = JSON.stringify(byName('AuraSpawnCombat').members);
         names.forEach(n => expect(JSON.stringify(byName(n).members), n).toBe(shape));
     });

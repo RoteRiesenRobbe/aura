@@ -4,9 +4,9 @@ package mob
 //
 // ⚑ "Role" here means the COMBAT role — supporter or fighter — and it is
 // derived from the loadout every tick, never authored. It is a different axis
-// from the authored actor role (creature/structure/follower, items/mobs/role.go),
-// which is why the finder below is loadoutSlots and not roleSlots: a follower
-// can be a supporter, a structure can be a fighter.
+// from the authored actor role (creature/structure, items/mobs/role.go), which
+// is why the finder below is loadoutSlots and not roleSlots: a pet can be a
+// supporter, a structure can be a fighter.
 //
 // A mob used to BE a healer: NewMob checked whether slot 0 carried a heal
 // effect and latched a `seekHealer` bool for the mob's whole life, and
