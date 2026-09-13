@@ -3,7 +3,7 @@
 **Status: ✅ COMPLETE 2026-09-13 (C1 `follows`, C2 the retirement of
 `role: "follower"`, C3 the summon despawns with its owner), PO-walked the same
 day, verdict "all three work" (the walk record closes §9).** Designed
-2026-09-12, executed and walked the next day. Commit `[uncommitted]`. Schema:
+2026-09-12, executed and walked the next day. Commit `0bde3c7f`. Schema:
 DB none, wire none, conf none; content: five skill files gain the key (four by
 this session, the fifth `summonspider.json` ticked by the PO in the Skills tab
 during the walk), four mob files lose their role, four authoring notes are
@@ -271,11 +271,11 @@ four skill files gain one key per spawn effect; the generated fixture; the
 ## 9. Chunk + ledger
 
 - **C1 - `follows`** (everything in §4, verified per §7). ✅ **SHIPPED
-  2026-09-13** `[uncommitted]`.
+  2026-09-13** `0bde3c7f`.
 - **C2 - retire `role: "follower"`** (Q1, PO-ruled the same day). ✅ **SHIPPED
-  2026-09-13** `[uncommitted]`.
+  2026-09-13** `0bde3c7f`.
 - **C3 - the summon despawns with its owner** (§10, PO bug report the same
-  day). ✅ **SHIPPED 2026-09-13** `[uncommitted]`.
+  day). ✅ **SHIPPED 2026-09-13** `0bde3c7f`.
 - **The PO walk of all three**, 2026-09-13, verdict *"all three work"*: the
   record closes this section, below the C3 ledger. All three chunks ship in one
   commit.
