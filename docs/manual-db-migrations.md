@@ -106,9 +106,22 @@ Aura's Go test suite validates both up and down migrations against a real Postgr
 
 ### The local development database
 
-Local Postgres runs in Docker, driven by targets in `backend/Makefile` — `make -C backend db-up`
-creates (or starts) the `aura-dev-db` container on a **named volume**, so dev characters survive a
-container removal or a WSL restart.
+⭐ **Docker is OPTIONAL. What `aurad` needs is a reachable PostgreSQL serving `AURA_DB_URL`**
+(PO correction 2026-09-12) — nothing in the server, the harness or this runbook can tell a
+container apart from a native install. Two supported setups:
+
+- **Docker**, driven by targets in `backend/Makefile` — `make -C backend db-up` creates (or
+  starts) the `aura-dev-db` container on a **named volume**, so dev characters survive a
+  container removal or a WSL restart.
+- **A native Postgres** (any ≥ 14). The Windows dev box runs 18 as a Windows service and has
+  **no Docker on PATH at all**; `scripts/dev-restart-windows.sh` starts the service through
+  `ensure_db()` when nothing is already listening, then builds and boots `aurad`. ⛔ "No
+  Docker on this host" is therefore never a reason the game cannot be run — it was recorded
+  as one more than once, wrongly.
+
+⚑ **Either way the three variables may come from `backend/.env.local` OR from exported
+machine-scope variables.** The Windows box uses the latter, so that file is legitimately
+absent there. Check `env | grep AURA_` before concluding the environment is unconfigured.
 
 It serves **two databases, and the split is load-bearing**:
 
@@ -155,10 +168,17 @@ To test a migration locally:
 
    Snapshot before you do, so a bad up-migration costs nothing:
    ```bash
+   # Docker:
    docker exec aura-dev-db pg_dump -U aura -d aura --clean --if-exists > /tmp/aura-dev-backup.sql
-   # restore:
    docker exec -i aura-dev-db psql -U aura -d aura -v ON_ERROR_STOP=1 < /tmp/aura-dev-backup.sql
+
+   # Native (works against a container too — it is a plain client connection):
+   pg_dump "$AURA_DB_URL" --clean --if-exists > /tmp/aura-dev-backup.sql
+   psql "$AURA_DB_URL" -v ON_ERROR_STOP=1 -f /tmp/aura-dev-backup.sql
    ```
+   ⚑ The dump file is identical either way and restores into either setup — only the transport
+   differs. Prefer the URL form: it cannot target the wrong database by naming the wrong
+   container.
    ⚑ **Stop `aurad` before dumping** (`kill -TERM`). It holds live characters in memory and only
    writes them on shutdown — `💾 flushed N live character(s) for shutdown` in the log — so a dump
    taken under a running server misses whatever has not been flushed yet.

@@ -19,24 +19,69 @@
 > deliberately left open when darkness shipped: *"circles first… polygons only
 > if content proves the need."* §1.1 is that proof.
 >
-> ⚑ **Schema: DB NONE · wire NONE · conf NONE · content NONE, for the whole
-> atmosphere half.** The profile table is client-side by region-primitive
-> **D12** (`frontend/src/client-data/profiles.json`), so A1–A2 touch no zone
-> file, no Go, no `cp-defs` and none of the three zone-format writers. ⭐ **A
-> consequence worth stating up front: the atmosphere half is FULLY live under
-> HMR** — no server restart, none of [[project-zone-edit-half-live]]'s boot-time
-> seam. Tuning gloom in front of the game is a file save. Only **B1** touches
-> content, and only by one optional prop-definition field.
+> ⚑ **REVIEWED 2026-09-12 against HEAD + the uncommitted zone-polygons tree.**
+> Every code claim in here was re-verified; the ones that moved are marked
+> **[REVIEW]** at the point of change, and the review added **L12–L15** plus
+> **Q7–Q8**. ⭐ **The two that would have cost a session each are L12 (`active`
+> is a five-way gate, so a gloom-only zone renders NOTHING and errors nowhere)
+> and L13 (`DarknessOverlay.loadZone` runs 24 lines BEFORE `Regions.loadRegions`,
+> so the shape list inside it answers for the PREVIOUS zone).** ⚑ Line
+> numbers below are pinned to `8d9dc4b9` plus the working tree of 2026-09-12;
+> re-verify before quoting one.
+>
+> ⭐ **REDESIGNED 2026-09-12 (PO ruling, mid-review): atmosphere is its OWN
+> authored shape, not a property of a region.** `zone.atmospheres` — authored
+> **areas**, each naming a profile — on **their own** Tiled object layer under a
+> new class `AuraAtmosphere`. The PO also asked for **animated fog** and for
+> reuse over reinvention; §3.2 is the answer to both, and it is larger than it
+> looks. ⛔ **The reversed ruling is D0** and the superseded version is kept in
+> the ledger with its reason. ⚑ **D5 and D6 fall with it** — the gloom edge is
+> now the profile's own `blend`, so the feathering chunk **A1b is deleted rather
+> than deferred**.
+>
+> ⛔ **ATMOSPHERE IS NOT `AuraPolygon`, AND THE WORD "POLYGON" IS THE TRAP**
+> (**D15**, PO-corrected 2026-09-12). *Polygon* here is the **shape** — a closed
+> ring of authored points — and **not** the zone-polygons concept, which is the
+> **wall/mass** primitive that BLOCKS and paints terrain. An atmosphere area
+> **never blocks**, never takes an outline, never enters `phy.Space`, and draws
+> **on top of everything** rather than into the ground. Four arrays share a
+> shape and share nothing else. Wherever this doc says "polygon" of an
+> atmosphere it means the geometry, never the sibling.
+>
+> ⛔ **Schema, re-priced honestly by that ruling: DB NONE · wire NONE · conf NONE
+> · content NONE, but the ZONE FORMAT grows one array** (`atmospheres`,
+> absent-safe), which drags in the whole whitelist tax the old design had dodged:
+> `zone.go` · `aura-convert.js` · `ZoneModel.getZoneAsJSON` (**L1**, the one that
+> silently deletes) · `aura-world-format.js` (U4b's fourth writer) · the
+> completeness pin going red by design · one Tiled palette class. ⚑ **That is
+> the headline the plan LOST and it should not be glossed**: the old design's
+> "schema NONE, tuning is an HMR save" came from region-primitive **D12** having
+> put the profile table in the client.
+>
+> ⭐ **Most of that payoff is kept on purpose (D13): only the SHAPE goes in the
+> zone file; every VALUE stays in `profiles.json`.** So drawing a new fog bank
+> needs a server restart ([[project-zone-edit-half-live]]), and *tuning* gloom,
+> fog art, softness and drift speed stays a client-side file save with no boot
+> in it — the same split regions, paths and polygons already use. Only **B1**
+> touches content, and only by one optional prop-definition field.
 
 ## 1. What this is
 
 Two features that share one lookup, and they are separable in that order:
 
-- **A — atmosphere.** A region's profile gains properties that describe the
-  **air** rather than the ground: how dark the region is (`gloom`) and how far
-  you can see inside it (`sight`). One authored polygon replaces a hand-placed
-  chain of dark circles, and the same table that already says what a swamp
-  looks like underfoot now says what it is like to stand in one.
+- **A — atmosphere.** A zone gains `atmospheres`: authored polygons that
+  describe the **air** rather than the ground, naming a profile that says how
+  dark this place is (`gloom`), how far you see inside it (`sight`), and what
+  the murk actually looks like — which is the shipped `texture` / `color` /
+  `scale` / `blend` / `scroll` vocabulary doing fog for free. One authored
+  polygon replaces a hand-placed chain of dark circles.
+  ⭐ **It is its own shape and not a region property (D0, PO 2026-09-12),
+  because the air and the ground are not the same boundary**: the lit pocket at
+  a cave mouth has the *same floor* as the dark part of the cave, and a lit
+  clearing in a dark forest is still forest underfoot. Welding the two forces
+  one polygon to answer both questions — and §3.3's D3 erase branch is the
+  plan's own evidence, invented purely to work around a coupling that did not
+  need to exist.
 - **B — line of sight.** The hole your own light punches in that darkness stops
   at walls instead of being a circle. Vision becomes what you can actually see
   from where you stand.
@@ -56,6 +101,11 @@ there is nothing for a wall to cut into. That ordering is the whole chunk plan.
   can find the exit in."* That is a **content** compromise forced by the
   **shape** vocabulary. A cave zone wants "all of this is dark, and the exit is
   a lit pocket", which is one polygon and one hole, not a tiling of circles.
+  ⚑ **[REVIEW]** True at `8d9dc4b9`. In the uncommitted P2–P4 tree that circle
+  is already **deleted**, the room's region profile has moved `Mountains` →
+  `Swamp`, and **two `City` polygons** are authored — scratch content for the
+  polygon primitive, not a ruling. Re-read the file before quoting it, and do
+  not let A1's verify step name a profile a Tiled save can rename.
 - **The region primitive is shipped and the underworld already leans on it.**
   `plan-underworld.md` §6 already says the region and path primitives *"carry
   the whole visual identity (cave floor, lava rivers, chasm edges) with no new
@@ -94,18 +144,24 @@ there is nothing for a wall to cut into. That ordering is the whole chunk plan.
 
 | | Decision | Status |
 |---|---|---|
-| **D0** | Atmosphere is **profile properties on the existing region primitive**, not a new array and not a new file. | PROPOSAL |
-| **D1** | `gloom` is a **per-shape** property (drawn on the region's own footprint, like `blend`/`scroll`); `sight` is a **per-point** property (resolved at the player, like music). §3.1 is why getting this backwards is the trap. | PROPOSAL |
-| **D2** | The darkness is drawn in **world space on the region's footprint**, not as a screen-space vignette around the player. §3.2 weighs the alternative and why it loses. | PROPOSAL |
-| **D3** | Gloom shapes draw in **authored order**, and a region declaring `gloom: 0` inside one declaring `gloom: 1` draws as an **erase** shape. ⭐ This is what keeps the DRAWING and `resolve()` agreeing under D0. | PROPOSAL |
-| **D4** | `darkAreas` **stays**, unchanged, indefinitely if need be. This plan adds a second source of dark shapes; it does not migrate content. The retrofit is its own optional chunk (**A3**) and is a content judgement. | PROPOSAL |
-| **D5** | The gloom edge uses `DarknessVisuals.EDGE_FADE`, **not** the profile's `blend`. Two different edges of two different things; see §3.2. | PROPOSAL |
-| **D6** | **A1 ships hard-edged gloom polygons.** The feather (`buildBlendMask`) is A1b, triggered by the first gloom region whose edge is actually visible in play. A wholesale-dark zone's gloom edge is the border wall, which nobody ever sees. | PROPOSAL |
-| **D7** | `sight` never **shrinks** a light the player earned: the local hole is `max(wire light_radius, sight)`. A region cannot take away what Lantern or Torch gives. | PROPOSAL |
+| **D0** | ⭐ **Atmosphere is its OWN authored shape: `zone.atmospheres`, a fourth array of authored AREAS naming a profile** — Tiled class `AuraAtmosphere` on its **own** object layer (see **D16**). | **RULED, PO 2026-09-12** |
+| ~~**D0′**~~ | ~~Atmosphere is **profile properties on the existing region primitive**, not a new array and not a new file.~~ ⛔ **SUPERSEDED 2026-09-12.** Kept because the reason matters: a region is *the material underfoot* — footsteps, music, ground texture, and later quest identity — so a fake region authored to carry a lit clearing silently overrides all of those for anyone standing in it. The air and the ground are different boundaries. Same test `world.Path`'s doc comment applied to split paths from regions and zone-polygons **D1** applied to split polygons from paths: *"one array meaning two things would make both harder."* Third time, same answer. | SUPERSEDED |
+| **D1** | `gloom` is a **per-shape** property (drawn on the atmosphere shape's own footprint, like `blend`/`scroll`); `sight` is a **per-point** property (resolved at the player, like music). §3.1 is why getting this backwards is the trap. ⚑ Both halves now read the **`atmospheres`** array, so the two answers come from one source instead of two. | PROPOSAL |
+| **D2** | The darkness is drawn in **world space on the shape's footprint**, not as a screen-space vignette around the player. §3.2 weighs the alternative and why it loses. | PROPOSAL |
+| **D3** ⛔ **REOPENED 2026-09-16 (PO), §11 — `gloom: 0` shipped as `darkness: 0`/`haze: 0` and the PO rejected the magic value on sight:** *"0 darkness should be LEGAL, because there might be atmospheres that want no darkness at all. Maybe more class separation is in order?"* The replacement is **A4**, where a clearing is its own Tiled CLASS and `darkness: 0` simply declares zero. Everything below still describes what is BUILT. | Atmosphere shapes draw in **authored order**, and one declaring `gloom: 0` inside one declaring `gloom: 1` draws as an **erase** shape. ⭐ This is what keeps the DRAWING and `resolve()` agreeing under D0. ⚑ **D0's reversal makes it honest**: the lit clearing is now a real atmosphere shape, not a counterfeit region that also silently rewrote the footsteps. | PROPOSAL |
+| **D4** | `darkAreas` **stays for now** — this plan adds a second source of dark shapes and does not migrate content. ⚑ **Amended 2026-09-12 (PO): it is MARKED FOR DELETION**, because a circle is now strictly a degenerate atmosphere shape and two sources of dark geometry is the duplication D0's reversal exists to avoid. Registered in `docs/cleanup.md`; the trigger is **A3**, the content retrofit, which stays a content judgement. | PROPOSAL + marked |
+| ~~**D5**~~ | ~~The gloom edge uses `DarknessVisuals.EDGE_FADE`, **not** the profile's `blend`.~~ ⛔ **REVERSED 2026-09-12 by D0.** The argument was that a road's `blend: 0.3` must not become the darkness feather of whatever the road runs through — which was only ever true while atmosphere rode a **ground** profile. An atmosphere shape names an **atmosphere** profile, so its `blend` is the fog's own softness and nothing else's. ⚑ `darkAreas` circles keep `EDGE_FADE`; the two edges coexist because they belong to two primitives. | REVERSED |
+| ~~**D6**~~ | ~~**A1 ships hard-edged gloom polygons**; the feather is A1b, triggered.~~ ⛔ **DELETED 2026-09-12.** `paintSurface` already feathers any surface it draws, via `buildBlendMask` and the profile's `blend`. **A1b was a whole deferred chunk (with its own `Renderer`-plumbing problem) that reuse dissolves.** | DELETED |
+| **D7** | `sight` never **shrinks** a light the player earned: the local hole is `max(wire light_radius, sight)`. An atmosphere cannot take away what Lantern or Torch gives. | PROPOSAL |
 | **D8** | An occluder is authored by the prop **DEFINITION** (`occludesSight`), not by the placement — the `crossesPaths` idiom, not the `blocksMovement` one. §3.5 argues why this one goes the other way from paths **D4**. | PROPOSAL |
 | **D9** | **B ships with LOS on the local player's own light only.** Every other light keeps its circle. §3.7 has the compositing reason and the upgrade path. | PROPOSAL, needs PO (§8 Q3) |
 | **D10** | The visibility polygon is a **stencil** mask (a `Graphics` set as `mask`), never an alpha mask, and the falloff stays a texture. **L2 + L3.** | FORCED by the engine, not a preference |
-| **D11** | Neither the full-screen map nor the minimap draws gloom. The map is **knowledge**, not vision (`plan-world-map.md` D16's shape); `MapFog` already owns "where have I been". | PROPOSAL |
+| **D11** | Neither the full-screen map nor the minimap draws gloom. The map is **knowledge**, not vision (`plan-world-map.md` D16's shape); `MapFog` already owns "where have I been". ⚑ **This is the one place an atmosphere shape must NOT follow its three siblings** — regions, paths and polygons all bake into the map by the parity rule (region-primitive §4.7), and atmosphere deliberately does not. Say so at the call site or someone will "fix" the asymmetry. | PROPOSAL |
+| **D12** | ⭐ **Animated fog is the SHIPPED `scroll` property, and fog art is the shipped `texture` / `color` / `scale`.** No new vocabulary at all: an atmosphere shape is painted by `paintSurface`, which already does texture-or-colour fallback (D14), the feathered edge, the drift and the cheap stencil mask. Flat black darkness is simply a profile that authors a colour and no texture. | **RULED, PO 2026-09-12** (reuse, not reinvention) |
+| **D13** | **Only the SHAPE goes in the zone file; every VALUE stays in `profiles.json`.** The same split regions, paths and polygons already use — and it is what keeps *tuning* fog free of the boot-time seam even though *drawing* one is not. | PROPOSAL |
+| **D14** | **Four arrays of authored areas is accepted** (`regions` · `paths` · `polygons` · `atmospheres`), PO-ruled 2026-09-12, on zone-polygons **D5**'s free finding: `zoneToModel` synthesizes the layer list on every load and the zone file stores arrays rather than layers, so **merging them later is a two-line change with zero content migration**. The door stays open; nothing is built to hold it open. | **RULED, PO 2026-09-12** |
+| **D15** | ⛔ **An atmosphere area NEVER BLOCKS and is not a sibling of `AuraPolygon`.** No `blocksMovement`, no `outlineProfile` / `outlineWidth`, nothing reaches `phy.Space`, and the Go side is parse-validate-**ignore**. ⭐ **The two arrays share a SHAPE and nothing else**: a polygon is a wall you walk into, an atmosphere is air you walk through. §3.8 is the z-order that follows from it. | **RULED, PO 2026-09-12** |
+| **D16** | ⭐ **Atmosphere gets its OWN Tiled object layer**, `atmospheres` — it does **not** ride the `paths` layer by class the way `AuraPolygon` does. ⚑ **This NARROWS zone-polygons D5 rather than contradicting it**: D5 refused a new layer for shapes that sit *beside* paths, and an atmosphere area *covers* them. §3.8 has the two reasons and the precedent, which is decisive — **`darkAreas`, the primitive atmosphere replaces, already has its own layer today.** | PROPOSAL |
 
 ## 3. Design
 
@@ -115,11 +171,16 @@ The shipped code already distinguishes these and says so in three places
 (`regionBlend`, `regionScroll` and `regionPaintSpec` all carry the same
 warning):
 
-- **Per-point** — `resolve(property, point)`: D0's outward search, *the last
-  region in array order containing the point whose profile declares the
+- **Per-point** — `resolve(property, point)`: region-primitive D0's search,
+  *the last shape in array order containing the point whose profile declares the
   property wins*. For anything about **where you are standing**: music,
   footsteps, and here `sight`.
-- **Per-shape** — the region's **own** profile, no `resolve()` call at all. For
+  ⭐ **[REUSE] `resolveIn` is already parameterized on the shape array**
+  (`resolveIn(property, point, inShapes, profiles)`), so answering `sight` over
+  `atmospheres` instead of `regions` is **a call, not a lookup engine**. The
+  point-in-polygon walk, the last-declaring-wins order and the totality
+  guarantee are shipped and tested; atmosphere passes a different array to them.
+- **Per-shape** — the shape's **own** profile, no `resolve()` call at all. For
   anything about **how a shape is drawn**: `blend`, `scroll`, and here `gloom`.
   ⚑ The reason is already stated twice in `Regions.ts`: *"a still pond drawn
   inside a flowing river would inherit the river's current"*, and *"a region
@@ -134,23 +195,79 @@ darkness"*. §3.3 shows the two answers agree for free, provided D3 holds.
 ### 3.2 `gloom` — the darkness that follows the polygon
 
 ```json
-"Cave": { "texture": "pd196", "scale": 0.35, "blend": 1.5,
-          "color": "#3a3a3a", "gloom": 1, "sight": 4 }
+"CaveAir": { "color": "#000000", "blend": 0, "gloom": 1, "sight": 2 }
 ```
 
-`gloom?: number | null` — 0…1, opacity of the dark shape drawn over this
-region's footprint. Absent = **transparent** to gloom (D0), so the next
-containing region answers; `DEFAULT_PROFILE.gloom = 0`, which is every zone and
-every profile shipped today, so **the feature costs exactly zero until it is
-authored** — the same bar `blend` and `scroll` were held to.
+⚑ **An ATMOSPHERE profile, not a ground one.** It lives in the same
+`profiles.json` table as `Cave`, `Swamp` and `Road` — but nothing paints ground
+from it, and nothing resolves a footstep against it. **L15** is the residue of
+one table serving two vocabularies, and the file's own header is where that
+grouping has to be said out loud.
 
-`DarknessOverlay.loadZone` gains a second source beside `zone.darkAreas`: walk
-`Regions.loadedRegions()` in authored order and, for each region whose own
-profile declares `gloom > 0`, add
-`new Graphics().poly(points).fill({color: 0x000000, alpha: gloom})` to the same
-layer, before the light holes. Nothing else about the overlay changes: same
-layer, same `AlphaFilter`, same erase-blend holes on top, same exemption from
-the day-cycle filter set.
+`gloom?: number | null` — 0…1, the **opacity of the whole painted atmosphere
+surface**. Absent = **transparent** to gloom, so the next containing shape
+answers; `DEFAULT_PROFILE.gloom = 0`, so **the feature costs exactly zero until
+it is authored** — the same bar `blend` and `scroll` were held to.
+
+⭐ **[REUSE — the load-bearing part of the 2026-09-12 redesign] An atmosphere
+shape is painted by `paintSurface`, into the darkness layer.** The function at
+`RegionPaint.ts:427` takes its **container as its first argument**, so pointing
+it at `DarknessOverlay`'s layer instead of the terrain layer is free — and
+everything the fog needs comes with it, already shipped, already tested:
+
+| The fog wants | What it actually is | Status |
+|---|---|---|
+| To be a drifting cloud, not a flat wash | `scroll` — `scrollingSurface` + `advanceSurfaceScroll` | shipped, world-paths C3 |
+| To look like murk rather than a black hole | `texture` + `scale`, with `color` as D14's fallback | shipped, region C4 |
+| A soft edge instead of a cut-out | `blend` → `buildBlendMask` | shipped, region C5 — ⭐ **this is what deletes A1b** |
+| Not to cost a filter pass | the cheap stencil path `paintSurface` already picks | shipped, world-paths C3 |
+
+So `"Fog": {"texture": "fog01", "scale": 0.6, "blend": 2, "scroll": {"x": 0.4,
+"y": 0.1}, "gloom": 0.7, "sight": 5}` is a drifting, soft-edged fog bank, and
+`"Cave": {"color": "#000000", "blend": 0, "gloom": 1, "sight": 2}` is flat
+pitch-black — **one code path, no branch, and no new vocabulary for either.**
+
+`DarknessOverlay.loadZone` therefore gains a second source beside
+`zone.darkAreas`: walk `Atmospheres.loaded()` in authored order and, for each
+shape whose profile declares `gloom`, `paintSurface` it into a per-shape
+`Container` carrying `alpha = gloom` — wrapped, because the paint may be several
+children (a scroller plus its mask) and the opacity belongs to the group. Those
+containers go in before the light holes. The rest of the overlay is unchanged:
+same layer, same `AlphaFilter` flattening the overlaps, same erase-blend holes
+on top, same exemption from the day-cycle filter set.
+
+⚑ **`gloom: 0` is the one case that cannot be a paint** — it is D3's erase
+stencil, which has no texture and no drift by definition. That is a branch on
+the *value*, not a second drawing system.
+
+⛔ **[REVIEW] Two things in `loadZone` are NOT unchanged, and both fail
+silently.** The original wording here said "nothing else changes"; that was
+wrong, and wrong in the direction where A1 presents as simply unwired:
+
+- **`active` is a FIVE-way gate, not a flag** (**L12**). `active =
+  darkAreas.length > 0` gates `layer.visible`, the static campfire-glow block,
+  `setLightRadius`, `update` **and** `isHidden`. A zone that authors `gloom` and
+  **no** `darkAreas` — which is the underworld, the whole point of the feature —
+  computes `active = false`, so it draws no gloom, places no campfire glow, and
+  never opens the player's own hole. It must become *"any dark area **or** any
+  loaded region whose profile declares `gloom > 0`"*, and the gloom scan has to
+  run **before** the `if (active)` campfire block that depends on it.
+- **The gloom scan reads a list that is not loaded yet** (**L13**).
+  `DarknessOverlay.loadZone` is called from `Game.renderZone` **24 lines above**
+  `Regions.loadRegions` (and, after A0, `Atmospheres.load`), so `Atmospheres.loaded()` inside it answers for the
+  *previous* zone, or for nothing at all on first load. ⭐ The fix is to **move
+  the `DarknessOverlay.loadZone` call below the three `load*` calls**, not to
+  re-derive regions inside the overlay: a second `toRegions` would be a fourth
+  reader of the same authored points and could disagree about `origin`, which is
+  **L5** arriving through a different door.
+
+⚑ **[REVIEW] Draw order across the two sources is a decision now, not an
+accident.** D3's `gloom: 0` erase shape is appended to the same layer as the
+`darkAreas` sprites, so an erase drawn after them punches a hole in an authored
+**circle** too, not only in an outer gloom polygon. That is probably what an
+author means, but it has to be written down: **darkAreas → gloom shapes (in
+authored order, erase branch included) → light holes**, and a `gloom: 0`
+clearing laid over a shipped dark circle clears it.
 
 **Why world-space and not a screen-space vignette (D2).** A vignette centred on
 the player is the cheaper reading of *"global and not placed in the level"* —
@@ -168,14 +285,23 @@ one sprite, no geometry, no polygon at all. It loses on three counts:
   hole they already have. The vignette and the region fill are not two designs
   for one feature; they are the two halves, and this plan builds both.
 
-**Why `EDGE_FADE` and not `blend` (D5).** A profile's `blend` is the width of
-the band where its **ground** crossfades into its neighbour — 1.5 units across
-the region set, 0.3 for a road. The darkness edge is a different object with a
-hard constraint the ground edge does not have: **overlapping dark shapes must
-chain without a visible seam**, which is exactly why the shipped circles are
-fully opaque up to the authored radius with the fade appended *outside* it, and
-why the layer carries an `AlphaFilter` to flatten the overlaps. Coupling the two
-would make a road's 0.3 the darkness feather of whatever the road runs through.
+**Why the edge is `blend` after all (D5, REVERSED 2026-09-12).** The original
+ruling sent the gloom edge to `DarknessVisuals.EDGE_FADE` and kept it off the
+profile's `blend`, on the grounds that `blend` is the width of the band where a
+**ground** crossfades into its neighbour — 1.5 units across the region set, 0.3
+for a road — and coupling them would make a road's 0.3 the darkness feather of
+whatever the road ran through. ⭐ **That argument dies with D0.** An atmosphere
+shape names an **atmosphere** profile; its `blend` is the softness of the fog's
+own edge and is not shared with any road. The feather is then `buildBlendMask`,
+already built, already rasterised, already correct — and **A1b, a whole deferred
+chunk, disappears.**
+
+⚑ **What survives the reversal is the chaining constraint**, and it is why
+`darkAreas` keeps `EDGE_FADE`: **overlapping dark shapes must chain without a
+visible seam**, which is why the shipped circles are fully opaque to the
+authored radius with the fade appended *outside* it, and why the layer carries
+an `AlphaFilter` to flatten overlaps. Two primitives, two edges, one flattening
+filter over both.
 
 ⚑ **The overlap guarantee is partly lost the moment two gloom values differ**,
 and that is the honest cost of allowing a number instead of a flag. Two
@@ -188,7 +314,8 @@ all; if the answer is no, this paragraph deletes itself.
 ### 3.3 `resolve()` and the drawing agree — but only because of D3
 
 `isHidden(x, y)` today is *"inside an authored dark circle and reached by no
-light"*, and it gates mob nameplates. With gloom it becomes:
+light"*, and it gates mob nameplates. With gloom — resolved over the
+`atmospheres` array, per D1 — it becomes:
 
 ```ts
 if (!active || (gloomAt(p) <= 0 && !inAnyCircle(p, darkCircles))) { return false; }
@@ -200,15 +327,15 @@ over the same polygons in the same order the renderer drew. ⚑ `resolve` return
 here", so `gloomAt` must map it to 0 explicitly rather than lean on coercion
 (**L1**).
 
-⛔ **And this is exactly where D3 earns its place.** D0 says the *last*
-declaring region wins, so an inner region authored `gloom: 0` inside an outer
-`gloom: 1` is a **lit clearing in a dark forest** — a thing an author will
+⛔ **And this is exactly where D3 earns its place.** The resolution rule says the
+*last* declaring shape wins, so an inner atmosphere authored `gloom: 0` inside an
+outer `gloom: 1` is a **lit clearing in a dark forest** — a thing an author will
 absolutely try. `resolve()` gets that right on its own. The **drawing** does
-not: the outer polygon's black fill still covers the clearing. The fix is one
-branch, using machinery already in the file:
+not: the outer polygon's fill still covers the clearing. The fix is one branch,
+using machinery already in the file:
 
-> **Draw every gloom-*declaring* region in authored order. `gloom > 0` draws a
-> black fill; `gloom === 0` draws an *erase*-blended fill.** Light holes are
+> **Draw every gloom-*declaring* atmosphere shape in authored order. `gloom > 0`
+> paints the surface; `gloom === 0` draws an *erase*-blended fill.** Light holes are
 > still appended after all of them, so a light in the clearing is unaffected and
 > double-erase clamps exactly as the campfire glow already relies on.
 
@@ -280,12 +407,29 @@ Three sources, all already client-side and all static at load:
 2. **Blocking paths** — the cave walls, per `plan-underworld.md` §7.1. A stroked
    polyline of width *w* is two offset polylines plus round caps; for occlusion,
    the **centre-line segments dilated by w/2** is close enough and far simpler.
+   ⚑ **[REVIEW] A path may now be CLOSED** (`PathDefinition.closed`, shipped P1
+   `8d9dc4b9`), so the derivation must emit the **wraparound segment** from the
+   last point back to the first. The loop asks *"is there a next SEGMENT"*,
+   never *"is there a next point"* — P1's own finding — and the failure mode
+   here is a ring wall that leaks light through exactly one seam.
    ⚑ **`Paths.ts` deliberately drops `blocksMovement` from the drawn path and a
    test pins that** (`Paths.test.ts:53`). Do **not** relax that pin — the
    occluder set is a **second derivation from `PathDefinition`**, beside
    `toPaths()`, and not a change to what gets drawn (**L6**).
 3. **The zone border** — four segments from `bounds` at `origin`. Free, and
    without them a light at the wall spills into the void.
+4. ⭐ **[REVIEW] Blocking polygons** — `zone.polygons` carrying `blocksMovement`,
+   which did not exist when this plan was written (zone-polygons P2–P4, designed
+   2026-09-09, shipped uncommitted by review time). **This is the PRIMARY source
+   now, not a fourth afterthought**: `CLAUDE.md` names *"cave walls as blocking
+   polygons"* as the polygon primitive's first content consumer, while
+   `plan-underworld.md` §7.1 item 1 still says *paths* — the two disagree, and
+   **B1 reads both rather than waiting for the ruling** (§8 Q8). The geometry is
+   the cheapest of the three: `Polygons.loadedPolygons()` already hands over
+   world-pixel vertices with `origin` applied, and a polygon's occluder set is
+   its **edges, closed** — no dilation, no caps. ⛔ The **outline**
+   (`outlineProfile` / `outlineWidth`) is decoration and contributes nothing;
+   occlude on the authored ring only.
 
 **D8 — `occludesSight` is a prop-DEFINITION field.** `plan-world-paths.md`
 **D4** put `blocksMovement` on the *placement* and `plan-underworld.md` U3b
@@ -377,10 +521,56 @@ actually reading — keeps the first landing at a single stencil, and widening t
 shining through a wall beside your correctly shadowed one is worse than no
 shadows at all.
 
-### 3.8 What this plan does not touch
+### 3.8 Never blocking, and drawn on top of everything (D15, D16)
+
+⭐ **The z-order the PO described is the one the engine already has, verified.**
+`Game.ts` adds `layers.darkness` to the camera group with the comment *"Darkness
+overlay above every entity"* — **after** terrain, props, region/path/polygon
+paint, mobs, characters, resources and even `layers.flyers` (which is itself
+lifted above trees deliberately, and then explicitly kept *below* darkness,
+because *"a flyer crossing a dark region is still in it"*). An atmosphere area
+painted into that layer is therefore on top of every wall polygon, every path
+and every entity, for free and by construction.
+
+⚑ **One thing is deliberately ABOVE the darkness and it is the reason `isHidden`
+exists**: nameplates, chat messages and floating combat numbers are added after
+it. They are UI drawn in world space, so z-order cannot dim them and never will
+— which is exactly why hiding a plate in the dark is a **function call**
+(`isHidden`, **L4**, §8 Q4) and not a layering question. Anybody "fixing" that
+asymmetry would silently un-gate every nameplate in the game.
+
+**Why its own Tiled layer (D16).** Zone-polygons **D5** ruled *no new layer* and
+put `AuraPolygon` on the `paths` layer under a class, against the PO's *"too
+many layers in Tiled will make me a little crazy"*. That reasoning holds for
+polygons and breaks for atmosphere, on two counts:
+
+1. ⭐ **The precedent runs the other way.** `aura-convert.js`'s `LAYERS` array is
+   `['terrain', 'props', 'spawns', 'campfires', 'darkAreas', 'regions', 'paths',
+   'anchors']` — **`darkAreas` already owns a dedicated layer** with its own
+   class `AuraDarkArea`. Putting atmosphere on a shared layer would give the
+   *successor* worse authoring than the primitive it retires, and A3 eventually
+   frees the slot besides, so the layer count ends level.
+2. ⭐ **Overlapping shapes need a visibility toggle, and a class cannot give
+   one.** A polygon sits *beside* a path; an atmosphere area *covers* the walls
+   and roads it darkens. On a shared layer there is no way to hide the fog to
+   select the wall underneath — Tiled toggles visibility per **layer**, never
+   per class. That cost does not exist for `AuraPolygon` and is unavoidable for
+   atmosphere.
+
+⚑ **It is nearly free**, by D5's own finding: `LAYERS` is a flat array, the
+layer list is synthesized on every load, and the zone file stores arrays rather
+than layers. ⛔ It does **not** buy back L2b: an object whose class is
+unrecognised still lands in no array and vanishes on save, so the validator leg
+is owed either way.
+
+### 3.9 What this plan does not touch
 
 - **`darkAreas`** (D4). Still parsed, still validated, still drawn. A3 is an
   optional content retrofit, deletable without touching a line of A1/A2.
+- ⛔ **Collision, in any form** (D15). An atmosphere area is air. It never
+  reaches `phy.Space`, never takes `blocksMovement`, and the walls it hangs over
+  are `zone.polygons` and blocking `paths` — a **different** primitive that this
+  one only shares a shape with.
 - **The server.** Not one byte. No wire field, no Go change, no `cp-defs`.
 - **The map.** `MapTerrain` does not draw darkness today and must not start
   (D11). ⚑ Stated here so nobody "fixes" the asymmetry: region-primitive §4.7's
@@ -391,38 +581,66 @@ shadows at all.
 
 ## 4. Schema impact
 
-| | A1 · A1b · A2 · A3 | B1 | B2 · B3 |
-|---|---|---|---|
-| DB | **NONE** | **NONE** | **NONE** |
-| Wire | **NONE** | **NONE** | **NONE** |
-| conf | **NONE** | **NONE** | **NONE** |
-| Zone format | **NONE** | **NONE** | **NONE** |
-| Content | **NONE** (`profiles.json` is client-side, D12) | **one prop-definition field**, `occludesSight`, absent-safe | **NONE** |
+| | **A0** | A1 · A2 · A3 | B1 | B2 · B3 |
+|---|---|---|---|---|
+| DB | **NONE** | **NONE** | **NONE** | **NONE** |
+| Wire | **NONE** | **NONE** | **NONE** | **NONE** |
+| conf | **NONE** | **NONE** | **NONE** | **NONE** |
+| Zone format | ⛔ **ONE ARRAY**, `atmospheres`, absent-safe | **NONE** | **NONE** | **NONE** |
+| Content | **NONE** | **NONE** (`profiles.json` is client-side, region-primitive D12) | **one prop-definition field**, `occludesSight`, absent-safe | **NONE** |
 
-⭐ **The three zone-format writers (region-primitive L1/L3) are not involved
-anywhere in this plan**, because no zone file grows a key. That is the direct
-payoff of D12 having put the profile table in the client. ⚑ `occludesSight` is a
-**prop definition** field (`api/props/*.json`), which is loader-side rather than
-zone-format — it does not go near `ZoneModel`, `aura-convert.js` or the
-completeness pin. It does need the Go `PropDefinition` struct to accept it
-(`DisallowUnknownFields` hard-fails an unknown key at boot), which is one field
-and one test, and `cp-defs` on the way to a build.
+⛔ **[2026-09-12] The whole zone-format cost is A0 and it is real.** The old
+design claimed NONE across the board because atmosphere rode the client-side
+profile table; D0's reversal buys the right boundary and pays the whitelist tax
+for it. A0 must teach **four** writers — `zone.go` (parse + validate + ignore,
+the `DarkArea`/`Region` posture verbatim: `zone.go:228` and `:250` are the two
+precedents, and the decoder sets `DisallowUnknownFields` so an untaught server
+refuses the boot by name), `aura-convert.js`, `ZoneModel.getZoneAsJSON`
+(**L1** — the whitelist whose omission silently deletes on the first in-game
+save) and `aura-world-format.js` (U4b's fourth writer, which the completeness
+pin **cannot see**) — plus one `AuraAtmosphere` class in the Tiled palette.
+⭐ **The saving grace is that this is now a COPY, not a design**: zone-polygons
+P2 did exactly this, end to end, four writers and all, days ago.
+
+⭐ **D13 keeps the tuning loop free even so**: no *value* moves into the zone
+file, so gloom, fog art, softness and drift speed are all still
+`profiles.json` edits under HMR. Only *drawing a new shape* crosses the
+boot-time seam. ⚑ `occludesSight` is a **prop definition** field
+(`api/props/*.json`), loader-side rather than zone-format — it does not go near
+`ZoneModel`, `aura-convert.js` or the completeness pin. It does need the Go `propDefinitionDoc` struct to accept it
+(`parsePropDefinition` sets `DisallowUnknownFields`, so an unknown key hard-fails
+the boot by name), which is one field and one test, and `cp-defs` on the way to a
+build. ⭐ **[REVIEW] The implementation precedent is `sprite`, not
+`crossesPaths`** — and the distinction is the shape of the whole field.
+`crossesPaths` is *read* by the server (`paths_collision.go`,
+`polygons_collision.go`); `occludesSight` is read by **nobody** server-side,
+exactly like `sprite`, whose own doc comment records the posture verbatim:
+*"parsed here only to fail boot fast on a missing value; nothing server-side
+reads it, so it does not appear on the exported `PropDefinition`."* Follow that —
+declare it on the doc struct and **not** on the exported type — or the next
+reader assumes physics consumes it. ⚑ `crossesPaths` stays the right precedent
+for **D8's authoring question** (definition vs. placement); it is the wrong one
+for the plumbing.
 
 ## 5. Chunks
 
 | Chunk | Content | Verify |
 |---|---|---|
-| **A1** | `gloom` on `Profile` + `DEFAULT_PROFILE` + `buildProfiles` · `regionGloom()` beside `regionBlend` · gloom shapes in `DarknessOverlay.loadZone` in authored order with D3's erase branch · `isHidden()` through the resolve · **hard edges** (D6) | vitest on the parse, D3's ordering and `isHidden` · in-game: author `gloom` on the underworld's `Mountains` region, watch the room go dark, walk out through a passage |
-| **A1b** *(triggered, not scheduled)* | Feathered gloom edges via `buildBlendMask`'s silhouette callback. ⚑ Needs a `Renderer` in `DarknessOverlay.setup`, which it does not take today. **Trigger: the first gloom region whose edge is visible in play.** | in-game only |
-| **A2** | `sight` + the ramp + the remembered-value wrapper (`plan-region-audio.md` inherits it) · `max(wire, sight)` (D7) · the frame delta into `update()` | vitest on the wrapper and the max rule · in-game: cross the boundary, Lantern on and off |
-| **A3** *(optional, PO call)* | **Content**: re-author `world.json`'s 35 `darkAreas` as 2–3 gloom regions. ⚑ A content judgement — *where the dark places actually are* — not a transform derivable from circle positions. `plan-world-paths.md` C4's shape exactly. | in-game, plus a before/after screenshot pair |
-| **B1** | `Occluders.ts` — pure segment derivation from props (+ `occludesSight`), blocking paths and the border. No rendering. | vitest: it is 100 % testable and should be 100 % tested · a count assertion against the real `world.json` |
+| **A0** *(new, 2026-09-12)* | ⭐ **The `atmospheres` area primitive** — `Atmospheres.ts` beside `Polygons.ts` (`toAtmospheres` + `load` + `loaded`, origin applied, ≥3 points) · the four writers · its **own** Tiled layer + the `AuraAtmosphere` class (**D16**) · Go parse-validate-ignore. ⛔ **No `blocksMovement`, no outline, nothing in `phy.Space`** (**D15**) — which is what makes it a *smaller* copy of zone-polygons P2 than it looks, since P2–P4's collision half does not exist here. ✅ **SHIPPED 2026-09-16 `5b57d0c4`** (ledger §10). | vitest on the conversion · `verify.sh`'s completeness + placed-zone legs · a Tiled round-trip that proves the shape survives a save (**L1**) · ⚑ a leg that an atmosphere area does **not** collide |
+| **A1** ✅ *(shipped `5b57d0c4`; ⚑ `gloom` became `darkness` + `haze` — §10)* | `gloom` on `Profile` + `DEFAULT_PROFILE` + `buildProfiles` · atmosphere shapes painted by **`paintSurface` into the darkness layer** in authored order, per-shape container at `alpha = gloom`, with D3's erase branch · `isHidden()` through the resolve · ⛔ **[REVIEW] the `active` gate (L12) and the `loadZone` call order (L13)** — both silent, both one line · scroller registration + teardown (**L16**, **L17**) | vitest on the parse, D3's ordering and `isHidden` · in-game: author an atmosphere over **the underworld's room**, watch it go dark, walk out through a passage. ⚑ **A PLACED zone, per L5** — and the underworld is the only one |
+| **A1-fog** *(same chunk, no code)* | ⭐ The fog **look**: a profile authoring `texture` + `scroll` + `blend`. **Zero engineering** (D12) — it is an `atmosphere-profiles.json` edit plus one art asset, and it is the PO's knob. ✅ The tile landed with `5b57d0c4` (`tools/make-fog-tile.mjs`, deterministic and re-runnable); every NUMBER is still [PLACEHOLDER] | in-game only; there is nothing testable about whether murk looks like murk |
+| **A2** ✅ *(shipped `5b57d0c4`)* | `sight` + the ramp + the remembered-value wrapper (`plan-region-audio.md` inherits it) · `max(wire, sight)` (D7) · the frame delta into `update()` | vitest on the wrapper and the max rule · in-game: cross the boundary, Lantern on and off |
+| **A3** *(optional, PO call)* | **Content**: re-author `world.json`'s 35 `darkAreas` as 2–3 atmosphere shapes. ⚑ A content judgement — *where the dark places actually are* — not a transform derivable from circle positions. `plan-world-paths.md` C4's shape exactly. ⭐ **It is now also the trigger that retires `darkAreas`** (D4, `docs/cleanup.md`): the primitive only leaves once nothing authors it | in-game, plus a before/after screenshot pair |
+| **A4** *(designed 2026-09-16, PO-raised; §11)* | ⭐ **`AuraClearing` — the clearing becomes a CLASS.** Reopens **D3**: `darkness: 0` stops meaning *erase* and starts meaning *declares zero* (which a pure fog bank may legitimately want), and a clearing becomes its own Tiled class on the atmospheres layer, with its own `zone.clearings` array and **no profile member** (L7). ⛔ **The seam is `inDarkness()`** — a profile-less clearing is invisible to the `resolveIn` walk, so the sim would call a lit pocket dark. Four-writer tax; comparable to zone-polygons P2 | vitest on the class routing and the `inDarkness` seam · a `verify.sh` leg, since the fourth writer is unpinnable otherwise · ⛔ **mutation-verify the seam specifically** — the picture looks right either way |
+| **B1** | `Occluders.ts` — pure segment derivation from props (+ `occludesSight`), blocking paths (**incl. the `closed` wraparound**), **blocking polygons [REVIEW]** and the border. No rendering. | vitest: it is 100 % testable and should be 100 % tested · a count assertion against the real `world.json` |
 | **B2** | The visibility polygon. Pure. | vitest incl. every §3.6 edge case · **mutation-verified**: the no-occluder case must return today's circle |
-| **B3** | The stencil mask on the local player's hole (D9/D10) · the interpolated-position pin | in-game: stand behind a wall inside a gloom region · frame time on the mobile ceiling |
+| **B3** | The stencil mask on the local player's hole (D9/D10) · the interpolated-position pin | in-game: stand behind a wall inside an atmosphere shape · frame time on the mobile ceiling |
 
-**A1 → A2 → B1 → B2 → B3**, each independently shippable. ⭐ **A1 is inert until
-a profile authors `gloom`**, so it can land at any time without touching how the
-world looks today.
+**A0 → A1 → A2** ✅ all shipped 2026-09-16 (`5b57d0c4`, ledger §10).
+
+⭐ **Next: A4** (§11 — the vocabulary fix the PO asked for, and the one thing in this
+plan that changes something already authored) **or B1** (the occlusion half), in either
+order: they touch nothing in common. **A3 stays a PO content call.**
 
 ## 6. Test strategy
 
@@ -490,6 +708,52 @@ world looks today.
   zone-level atmosphere default instead; §8 Q6 carries it with its trigger. It
   is deliberately **not** built now, because it would be the first zone-format
   field in this plan and would drag all three writers in.
+- ⛔ **L12 — [REVIEW] `active` gates FIVE things, and `darkAreas.length > 0` is
+  the whole of it today.** `layer.visible`, the static campfire glows,
+  `setLightRadius`, `update` and `isHidden` all sit behind it, so a gloom-only
+  zone renders **nothing, with no error** — which presents exactly as "A1 was
+  never wired up". ⭐ The most expensive line in the chunk, and it is one
+  boolean.
+- ⛔ **L13 — [REVIEW] `DarknessOverlay.loadZone` runs BEFORE the regions load.**
+  `Game.renderZone` calls it 24 lines above `Regions.loadRegions`, so
+  `Atmospheres.loaded()` inside it answers for the **previous** zone — empty on first
+  load, the old zone's polygons at the new zone's origin on a swap. A U4a-shaped
+  failure: invisible in `world`, wrong in the underworld. Move the call; do not
+  re-derive.
+- ⚑ **L14 — [REVIEW] a `gloom: 0` erase shape also clears authored `darkAreas`
+  circles**, because both live on the same layer and the erase is appended after
+  them. Deliberate and probably wanted — but say so, because D4 promises
+  `darkAreas` is *"unchanged"* and this is the one place the two sources touch.
+- ⚑ **L15 — a profile is shared by FOUR shapes now** (`Polygon extends Region`
+  structurally, and an atmosphere will too). ⭐ **D0's reversal defuses this
+  rather than fixing it**: `gloom` is read only from the `atmospheres` array, so
+  a ground profile that happens to declare it does nothing, and an atmosphere
+  profile that happens to declare `texture` paints fog rather than ground. ⚑ The
+  residue is that **one table now holds two vocabularies with an overlap**, and
+  nothing in the file says which properties an atmosphere profile is allowed —
+  so `profiles.json`'s header must group them, or the first author will put
+  `gloom` on `Swamp` and wait for a dark swamp that never comes.
+- ⚑ **L16 — a scrolling atmosphere must be REGISTERED or it never drifts.**
+  `paintSurface` hands drift back in `out.scrollers`; the frame step is
+  `advanceSurfaceScroll`, which `Game.loop` calls on `this.regionScrollers`
+  only. Atmosphere scrollers must join that walk — and behind the **`paused`
+  guard**, or a fog bank jumps by the whole pause (**L8**, the trap
+  `advanceSurfaceScroll` already documents). The failure is silent: fog that
+  renders perfectly and simply never moves.
+- ⚑ **L17 — `paintSurface` can allocate a RenderTexture, and the caller owns
+  the teardown.** A feathered atmosphere (`blend > 0`) pushes its mask texture
+  into `out.masks`, which the *terrain* path destroys on repaint.
+  `DarknessOverlay.clear()` has never had to destroy anything but sprites, so a
+  zone swap would leak one texture per feathered shape. ⚑ Related to **L10**:
+  the cheap-stencil path deliberately does NOT push to `out.masks`, so "destroy
+  everything in the layer" and "destroy `out.masks`" are both required and
+  neither is sufficient.
+- ⚑ **L18 — the fourth writer cannot be caught by the completeness pin.**
+  `aura-world-format.js` copies map-level values onto Tiled's `TileMap` **by
+  hand** (U4b's finding: a Tiled save silently dropped `origin` and the next
+  boot refused). A0 adds the array; `verify.sh` must grow a leg that a real
+  Tiled round-trip preserves it, because no unit test in either language can
+  see that writer.
 
 ## 8. Open questions for the PO
 
@@ -500,7 +764,9 @@ world looks today.
 2. **Do trees occlude?** A canopy is above eye height in a top-down world, and a
    forest of trunk shadows may read as noise rather than as sight lines. My lean:
    **rocks, boulders, houses and gate walls yes; trees no** — `occludesSight`
-   authored on four of the six shipped prop definitions.
+   authored on four of the six shipped prop definitions (`Rock`, `Boulder`,
+   `House`, `GateWall`; ⚑ **[REVIEW]** that count silently excludes `Tombstone`
+   as well as `Tree` — a headstone is knee-high, so no, but say so).
 3. **LOS on one light or on all of them?** (D9) One is a single stencil and the
    only hole whose shape you read. All of them is correct, but is *N* stencils
    and makes every campfire and every ally a per-frame sweep. My lean: **ship
@@ -514,12 +780,26 @@ world looks today.
    upside for authoring and pure churn for a world the PO is currently judging in
    front of the game. It can wait indefinitely (D4).
 6. **A zone-level atmosphere default?** (L11) Instead of authoring a polygon over
-   the whole cave, `zone.profile: "Cave"` as the fallback `resolve()` consults
-   before `DEFAULT_PROFILE`. ⛔ Not proposed for v1 — it is a zone-format field,
-   three writers, the completeness pin, and one polygon is not yet boilerplate.
-   **Named trigger: the third zone that wants a wholesale atmosphere**, or the
-   first time L11's drift actually happens.
-7. **Does a lit region exist as content?** D3 makes a `gloom: 0` clearing inside
+   the whole cave, `zone.atmosphere: "Cave"` as the fallback `resolve()` consults
+   before `DEFAULT_PROFILE`. ⚑ **Re-priced 2026-09-12**: its old objection was
+   *"it is a zone-format field and three writers"* — and A0 pays that toll
+   anyway now, so the cost of this one drops to a scalar beside the array it
+   would sit next to. ⛔ Still not proposed for v1, but on a weaker argument:
+   one polygon is not yet boilerplate. **Named trigger unchanged: the third zone
+   that wants a wholesale atmosphere**, or the first time L11's drift happens.
+7. ~~**Does a blocking POLYGON carry gloom?**~~ ⛔ **ANSWERED 2026-09-12 by D0's
+   reversal, and this is the cleanest evidence that the reversal was right.**
+   The question only existed because gloom rode the profile table, which all
+   three shapes share — so a `Cave` profile used by both a floor region and a
+   rock polygon had two possible meanings and no way to author either one. With
+   atmosphere as its own array the question does not arise: you draw the dark
+   where the dark is, over the floor and the rock alike, and the rock keeps
+   being a rock.
+8. ⚑ **[REVIEW] Are cave walls paths or polygons?** `CLAUDE.md` says polygons;
+   `plan-underworld.md` §7.1 item 1 still says paths. B1 reads both either way,
+   so this blocks no chunk — but it decides what the PO actually authors in
+   Tiled, and therefore which occluder leg ever gets walked in front of the game.
+9. **Does a lit region exist as content?** D3 makes a `gloom: 0` clearing inside
    a dark region work, and the underworld's *"deliberately not wholesale dark"*
    compromise suggests somebody wants exactly that. Worth confirming, because it
    is the one design property that costs a branch to keep.
@@ -542,6 +822,13 @@ world looks today.
 - `docs/archive/plan-atmosphere-recovery.md` **§3.3** — where `darkAreas`,
   `light_aura`, `light_radius` and `DarknessOverlay` shipped, and the *"polygons
   only if content proves the need"* clause §1.1 answers.
+- `docs/cleanup.md` — ⭐ **where `darkAreas`' death warrant lives** (D4, PO
+  2026-09-12). It stays live and shipped until **A3** retires the last authored
+  circle; the register is what stops "for now" from becoming "forever".
+- `docs/plan-zone-polygons.md` — ⚑ **[REVIEW] designed the day after this plan
+  and shipped P1–P4 before it started**: `zone.polygons`, the `closed` flag on
+  paths, and `outlineProfile` / `outlineWidth`. B1's occluder set (§3.5 items 2
+  and 4), **L15** and §8 Q7–Q8 are all consequences of it.
 - `docs/plan-region-audio.md` **§3.5** — the music tracker that becomes the
   second consumer of A2's wrapper.
 - `docs/plan-release-map.md` **§8.2** — the atmosphere/lighting bullet, which
@@ -553,4 +840,214 @@ world looks today.
 
 ## 10. Chunk ledgers
 
-*(Nothing built.)*
+### A0 + A1 + A2 — the air, its two dials, and two profile tables ✅ 2026-09-16 (`5b57d0c4`)
+
+**What shipped.** `zone.atmospheres` — polygons naming a profile, drawn as the AIR
+over an area rather than the ground under it, on the ninth object layer and a client
+render layer of their own. A1’s draw is byte-for-byte a region’s (`paintSurface` takes
+its container as an argument), so `texture`/`scale`/`blend`/`scroll` came along free and
+the deferred feathering chunk **A1b does not need to exist**. A2 adds `sight`, resolved
+PER POINT and eased through the new `Ramp` — the “remembered value” wrapper
+`plan-region-primitive.md` §4.3 predicted, arriving with its first real consumer.
+
+⭐ **THE AIR IS TWO THINGS, and one dial could not say which** (PO 2026-09-14, and it
+replaced `gloom` outright). `darkness` is the ABSENCE OF LIGHT — a lantern removes it by
+definition, so it is drawn where the light holes erase it, and it is **COLOUR ONLY**.
+`haze` is SUSPENDED MATTER — a lamp *shows* you fog rather than dispersing it, so it
+lives in its own layer that nothing erases, and it is the half carrying `texture`,
+`scale`, `blend` and `scroll`. ⭐ **The behaviour follows from WHICH KEY you authored**,
+never from a flag beside a number, so the two cannot contradict — the same rule P1’s
+closed-path shape flag follows. ⚑ Haze draws UNDER darkness, so fog is only visible
+where there is light to see it by. ⚑ Authoring both is the smoky cave and is supported;
+their opacities **COMPOUND rather than max** (0.8 under 0.4 reads ~0.88 unlit).
+
+⭐ **TWO PROFILE TABLES, and this is the headline** (PO 2026-09-15, asked as *“can any
+profile have darkness and haze? Even the regions?”*). `profiles.json` held the ground and
+the air in ONE file and therefore fed ONE Tiled dropdown, so naming a ground profile on
+an atmosphere drew **nothing** and an atmosphere profile on a region painted **grey
+mud** — L15, and it had already cost a session. ⛔ **A validator leg catches that after
+the fact; two files make it unrepresentable**, which is why the split beat the leg.
+`terrain-profiles.json` → `AuraProfile` (19, worn by regions, paths, polygons and every
+outline) and `atmosphere-profiles.json` → a new `AuraAtmosphereProfile` (4, atmospheres
+only). ⚑ `AtmosphereProfile` **EXTENDS** `TerrainProfile` because fog legitimately wants
+a texture — what the type split buys is the other direction, where
+`TERRAIN_PROFILES.Forest.darkness` is now a **compile error** rather than data nothing
+reads. ⛔ The two name lists are **DISJOINT** and three separate things pin it (the
+palette generator hard-fails, a vitest, and a converter test): every accessor picks its
+table by CALL SITE, so a name in both would make *“which Fog?”* depend on which lookup
+ran, with both answers plausible on screen.
+
+⭐ **The converter’s payoff is the MESSAGE.** A crossed name no longer reads *“unknown
+profile”* — true and useless — but names the table the name actually lives in.
+
+### ⚑ Two traps recorded, because neither is visible from the code
+
+1. ⛔ **The texture preload must stay TWO calls.** A tile is named by a PROFILE, and the
+   ground and air keep separate namespaces. Concatenating all four shape arrays into one
+   `loadZoneTextures` would look `Fog` up in the terrain table, miss, and leave the bank
+   on its fallback colour **for the life of the session with nothing said anywhere** —
+   the exact failure the comment already there warns about, reintroduced by a
+   tidier-looking line.
+2. ⭐ **`verify.sh` CANNOT see which enum a class member declares — MEASURED, not
+   assumed.** Headless `--export-map` loads no project, so `tiled.propertyValue` throws
+   and `aura-world-format.js` falls back to writing the bare STRING (its `typedValue`),
+   which round-trips whatever the member says. Pointing `AuraAtmosphere` back at
+   `AuraProfile` was mutation-tested against the full `verify.sh` and **every leg stayed
+   GREEN**. ⚑ The guard is a static pin over the generated palette instead
+   (`AuraTiledConvert.test.ts`), and the DROPDOWN itself is now an explicit human check
+   in `verify.sh`’s footer. ⭐ The general lesson: a round-trip leg proves NAMES survive,
+   never that the GUI wiring is right.
+
+### Riders that came in with it
+
+- ⚑ The `Wall` profile authored `"texture": "null"` as a **STRING** — it worked by
+  accident (no such tile, so D14 falls back to the colour) and is now real JSON `null`.
+  This closes the item `plan-zone-polygons.md` §12 owed.
+- ⚑ **Rectangles drawn in Tiled convert to polygons** on every closed-area layer
+  (regions, `AuraPolygon`, atmospheres), with zero-size ones refused — PO-asked after
+  *“I guess I used rectangle in Tiled, assuming it would convert cleanly”*.
+- ⛔ **The atmospheres layer had NO `validateModel` leg at all**, which is what let a
+  vertex-less shape reach the server and refuse the boot. That is the defect the PO hit;
+  the missing leg, not the rectangle, was the cause.
+
+**Schema: DB NONE · WIRE NONE · CONF NONE · CONTENT NONE** (both profile tables are
+client-side, region-primitive D12) **· ZONE FORMAT one new array, absent-safe.**
+
+Verified: build · vet · **`go test -count=1 ./...` EXIT 0** · tsc · **vitest 770/770** ·
+prod build · **`verify.sh` all green** through real Tiled incl. two new legs ·
+**mutation-verified ×5, one of which FAILED** and was replaced by the static pin ·
+**IN-GAME**: fog paints textured and drifting, a `Clearing` cuts the fog and leaves the
+ground intact (which is what proves the haze erase is scoped to its own render target),
+darkness keeps its light holes, 0 page errors.
+
+### ⚑ What this chunk OWES
+
+- ⭐ **D3 is REOPENED by the PO (2026-09-16) and §11 holds the replacement design.**
+  *“0 darkness should not be a clearing, it is not intuitive”*, then, on being offered a
+  flag: *“0 darkness should be legal, because there might be atmospheres that want no
+  darkness at all. Maybe more class separation is in order?”* — both correct, and the
+  second is the better objection.
+- ⚑ **Every number is [PLACEHOLDER] and the look sitting has not happened.** `Fog` sits
+  at `haze: 0.5`, `Gloom` at `darkness: 0.55`, `Cave Air` at `1`. `sight` is authored by
+  NOTHING shipped, so D7’s max() has never been exercised by real content.
+- ⚑ The day/night cycle is still OFF (~25 per-layer filter passes); this chunk added a
+  second filtered layer and did not change that verdict.
+
+---
+
+## 11. A4 — `AuraClearing`: the clearing becomes a CLASS, not a magic value
+
+**Designed 2026-09-16 (PO-raised). NOTHING BUILT.** This REOPENS **D3**, which shipped
+in A1 and which the PO rejected the first time they read it back.
+
+### 11.1 What is wrong with D3
+
+D3 made `darkness: 0` mean **erase**. It works, and `resolve()` gets it right on its own
+— but it is one key doing two jobs: *how much* and *which operation*. Three separate
+author intents collapse onto two spellings:
+
+| the author means | today they write | what they get |
+| --- | --- | --- |
+| “no opinion, ask the next atmosphere” | omit the key | correct |
+| “there is **no darkness** in my air” | `darkness: 0` | ⛔ an **erase**, not what they meant |
+| “cut a hole in whatever is here” | `darkness: 0` | correct, but by a magic value |
+
+⭐ **The PO’s objection is the sharper one, and it arrived in two steps.** First
+*“0 darkness should not be a clearing, it is not intuitive — maybe a clearing flag
+instead?”*. Then, offered exactly that flag: *“hm, 0 darkness should be LEGAL, because
+there might be atmospheres that want no darkness at all. Maybe more class separation is
+in order?”* — which rejects the flag too, and for a better reason. A flag on the
+PROFILE still makes the look table carry an OPERATION.
+
+⚑ **The absent-vs-zero confusion is the same bruise that already cost a session**: the
+PO removed `haze` from `Fog` expecting it to go pale and the whole bank vanished. Any
+design where “0” and “absent” differ in a way the author has to hold in their head will
+keep producing that class of surprise.
+
+### 11.2 The shape
+
+⭐ **A clearing is a different KIND OF OBJECT, not an atmosphere with a special number.**
+That matches two rulings this codebase already made, and it is why this design is not a
+new idea so much as the consistent one:
+
+- **P1 — “the SHAPE is the flag.”** A closed path carries no `closed` bool, because an
+  authored bool can contradict the shape it was drawn as, and then two sources of truth
+  disagree.
+- **D5 — `AuraPath` and `AuraPolygon` share the `paths` layer and are told apart by
+  CLASS**, not by a property, and they land in separate zone arrays.
+
+```
+atmospheres layer
+├── AuraAtmosphere   profile → AuraAtmosphereProfile   (PAINTS)
+└── AuraClearing     clears  → darkness | haze | both   (ERASES)
+```
+
+`zone.clearings[] = {clears, points}` — its own array, exactly as polygons got their own
+despite sharing a layer with paths.
+
+⛔ **`AuraClearing` takes NO profile member**, and the emptiness is the ruling. It paints
+nothing, so by the L7 argument (a polygon has no `width`, an atmosphere has no
+`blocksMovement`) an author reaching for *“what colour is my clearing”* must find
+**NOTHING** rather than a field that quietly means something else.
+
+That frees the whole vocabulary, and every cell below is then the obvious reading:
+
+| author writes | means |
+| --- | --- |
+| *(key absent)* | no opinion — the search continues outward (D0) |
+| `darkness: 0` | **declares** zero darkness; paints nothing, and STOPS the search |
+| `darkness: 0.55` | paints, at that opacity |
+| an `AuraClearing` | cuts a hole in whatever is already there |
+
+⭐ **`darkness: 0` becomes genuinely USEFUL rather than merely legal**, which is the part
+the PO saw and the flag design missed: a pure fog profile can declare *“and it is not
+dark in here”*, which stops a containing dark bank from being reported at that point.
+That is a capability the current design cannot express at all.
+
+### 11.3 ⛔ The seam that must not be missed
+
+`DarknessOverlay.inDarkness()` — the GAMEPLAY query deciding whether a mob’s nameplate
+is visible — is `resolveIn('darkness', …) > 0`, a walk over atmosphere PROFILES. Its own
+comment records that D3’s clearing *“falls out for free”* precisely because a clearing
+DECLARES `darkness: 0` and is therefore the last declaring shape at that point.
+
+⛔ **A clearing with no profile is INVISIBLE to that walk.** Build A4 naively and a
+player stands in a lit pocket while the sim still thinks they are in the dark — correct
+on screen, wrong in the simulation, and nothing throws. ⚑ Same class of defect as the
+abutting-collider trap in `plan-zone-polygons.md`, and it will not be found by looking
+at the picture.
+
+⚑ **The fix is what keeps the design honest**: clearing shapes enter that lookup
+deliberately, answering 0 for whichever layers they clear. One resolved model, two
+authoring surfaces — `resolveIn` itself does not change.
+
+### 11.4 What it costs — a CHUNK, not a tweak
+
+A new zone-format array is the four-writer tax, and the completeness pin cannot see the
+fourth writer:
+
+1. `backend/pkg/aura/world/zone.go` — the struct, `DisallowUnknownFields`, validation
+   (≥3 points; `clears` from a closed set) — and `place.go`, since clearings must take
+   the zone origin like atmospheres do.
+2. `aura-convert.js` — all three directions, plus the shared-layer class check the
+   atmospheres layer does not have yet (D5’s L2b: an object that is NEITHER class lands
+   in neither array and vanishes on the next save with every check green).
+3. `ZoneModel.getZoneAsJSON()` — the in-game editor carries it through untouched.
+4. ⛔ `aura-world-format.js` — **the writer the completeness pin cannot see**, and the
+   one that has already produced two real defects (a dropped `origin`, an unread
+   `className`). A `verify.sh` leg is the only guard.
+5. `generate-palette.mjs` — the `AuraClearing` class and a `clears` enum.
+6. Client — a `Clearings` loader, the `paintAtmospheres` erase pass, and §11.3’s seam.
+
+⚑ Comparable to `plan-zone-polygons.md` P2 in shape and size.
+
+### 11.5 ⚑ What this does NOT decide
+
+- Whether `clears` is an enum (`darkness` / `haze` / `both`) or two bools on the class.
+  The enum is proposed because Tiled gives it a dropdown for free and a bool pair lets
+  an author check neither.
+- Whether the shipped `Clearing` PROFILE survives A4 at all. It probably should not —
+  once a clearing is a class, a profile named `Clearing` that clears nothing is a trap
+  wearing the right name. ⚑ That is a `docs/cleanup.md` entry with A4 as its trigger.
+- Whether partial clearing (“thin the fog to 0.2”) should exist. It does not today —
+  opacities COMPOUND, so a lower value cannot reduce — and A4 does not add it.
