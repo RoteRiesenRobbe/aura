@@ -169,31 +169,38 @@ describe('darkness — parsing', () => {
 describe('darkness — declared vs. zero', () => {
     const profiles = buildProfiles({
         Bank: {darkness: 1},
-        Clearing: {darkness: 0},
+        // ⚑ RENAMED from 'Clearing' at A4. It declares ZERO darkness, which is a
+        // real and useful thing for a profile to say — but it is NOT a clearing
+        // any more: a clearing is AuraClearing, its own class with no profile.
+        ClearAir: {darkness: 0},
         Grass: {color: '#00ff00'},
     });
 
-    // ⭐ THE D3 DISTINCTION, and the whole reason declaresDarkness exists beside
-    // regionDarkness. A profile that DECLARES 0 is an authored clearing and draws
-    // as an erase; one that declares nothing is transparent and draws NOTHING.
-    // Collapsing the two would punch a hole through every fog bank that an
-    // ordinary undeclared shape happens to overlap.
-    it('tells a clearing apart from a shape with no opinion', () => {
-        expect(declaresDarkness(square('Clearing', 0, 0, 1), profiles)).toBe(true);
+    // ⭐ THE DISTINCTION declaresDarkness EXISTS FOR, and A4 sharpened rather
+    // than removed it. A profile that DECLARES 0 states that its air has no
+    // darkness and STOPS the search there; one that declares nothing is
+    // transparent and defers outward. Collapsing the two would make a fog bank
+    // vanish the moment an ordinary undeclared shape overlapped it.
+    //
+    // ⛔ Neither one ERASES any more. That was D3, one key carrying both 'how
+    // much' and 'which operation', and the PO rejected it (A4) — the erase moved
+    // to AuraClearing, which has no profile to declare anything with.
+    it('tells declared-zero apart from a shape with no opinion', () => {
+        expect(declaresDarkness(square('ClearAir', 0, 0, 1), profiles)).toBe(true);
         expect(declaresDarkness(square('Grass', 0, 0, 1), profiles)).toBe(false);
         expect(declaresDarkness(square('Bank', 0, 0, 1), profiles)).toBe(true);
 
         // …and both answer the same NUMBER, which is exactly why the number
         // alone cannot carry the distinction.
-        expect(regionDarkness(square('Clearing', 0, 0, 1), profiles)).toBe(0);
+        expect(regionDarkness(square('ClearAir', 0, 0, 1), profiles)).toBe(0);
         expect(regionDarkness(square('Grass', 0, 0, 1), profiles)).toBe(0);
     });
 
-    // ⚑ Per SHAPE, never resolved at a point inside it: a clearing drawn inside
-    // a bank must not inherit the bank's opacity, for the same reason a still
-    // pond inside a river must not inherit its current.
+    // ⚑ Per SHAPE, never resolved at a point inside it: air drawn inside a bank
+    // must not inherit the bank's opacity, for the same reason a still pond
+    // inside a river must not inherit its current.
     it('reads the shape\'s OWN profile, not the one it sits inside', () => {
-        expect(regionDarkness(square('Clearing', 5, 5, 2), profiles)).toBe(0);
+        expect(regionDarkness(square('ClearAir', 5, 5, 2), profiles)).toBe(0);
         expect(regionDarkness(square('Bank', 0, 0, 20), profiles)).toBe(1);
     });
 });
@@ -201,13 +208,17 @@ describe('darkness — declared vs. zero', () => {
 describe('darkness — the per-point resolve', () => {
     const profiles = buildProfiles({
         Bank: {darkness: 1},
-        Clearing: {darkness: 0},
+        ClearAir: {darkness: 0},
         Grass: {color: '#00ff00'},
     });
 
     // ⭐ The lookup isHidden() uses is resolveIn over the SAME array in the SAME
     // order the painter drew — so the drawing and the lookup agree by
     // construction rather than by coincidence.
+    //
+    // ⚑ This describes the ATMOSPHERE half only. Since A4 an AuraClearing also
+    // answers here, through Clearings.clearsAt, and it is NOT part of this walk
+    // — see Clearings.test.ts, where that seam is pinned and mutation-verified.
     it('answers dark inside a bank', () => {
         const air = [square('Bank', 0, 0, 20)];
         expect(resolveIn('darkness', {x: 10, y: 10}, air, profiles)).toBe(1);
@@ -218,20 +229,25 @@ describe('darkness — the per-point resolve', () => {
         expect(resolveIn('darkness', {x: 50, y: 50}, air, profiles)).toBe(0);
     });
 
-    // ⭐ The case D3 exists for: the LAST declaring shape containing the point
-    // wins, so a clearing authored after the bank it sits inside answers 0.
-    it('answers lit inside a clearing drawn over a bank', () => {
-        const air = [square('Bank', 0, 0, 20), square('Clearing', 5, 5, 5)];
+    // ⭐ The LAST declaring shape containing the point wins, so air declaring
+    // zero darkness, authored after the bank it sits inside, answers 0.
+    it('answers lit inside declared-zero air drawn over a bank', () => {
+        const air = [square('Bank', 0, 0, 20), square('ClearAir', 5, 5, 5)];
         expect(resolveIn('darkness', {x: 7, y: 7}, air, profiles)).toBe(0);
         // …and still dark just outside the clearing.
         expect(resolveIn('darkness', {x: 2, y: 2}, air, profiles)).toBe(1);
     });
 
     // ⚑ ORDER, not containment, decides. Authoring the bank last re-darkens the
-    // clearing — which is a legal thing to author, and the pin that says the
-    // rule is array order rather than "smallest shape wins".
-    it('lets a later bank darken an earlier clearing', () => {
-        const air = [square('Clearing', 5, 5, 5), square('Bank', 0, 0, 20)];
+    // declared-zero air — a legal thing to author, and the pin that says the rule
+    // is array order rather than "smallest shape wins".
+    //
+    // ⛔ A CLEARING IS THE OPPOSITE, and the contrast is D17: a clearing is
+    // applied after EVERY atmosphere regardless of order, so nothing can
+    // re-darken it. Two arrays cannot express interleaving without an ordering
+    // key, and "cuts a hole in whatever is there" is the reading that needs none.
+    it('lets a later bank darken earlier declared-zero air', () => {
+        const air = [square('ClearAir', 5, 5, 5), square('Bank', 0, 0, 20)];
         expect(resolveIn('darkness', {x: 7, y: 7}, air, profiles)).toBe(1);
     });
 

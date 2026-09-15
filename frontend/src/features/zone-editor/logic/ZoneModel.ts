@@ -190,6 +190,22 @@ export interface ZoneAtmosphere {
     points: { x: number, y: number }[];
 }
 
+// A HOLE cut in that air — the lit pocket at a cave mouth, the gap in a fog
+// bank (plan-region-atmosphere.md A4).
+//
+// ⚑ Carried, never edited, exactly like the four shapes above it.
+//
+// ⛔ TWO fields and NO PROFILE, and the absence is the ruling (L7). A clearing
+// paints nothing, so there is no look to name. This is the whole of A4: the
+// erase used to be an atmosphere whose profile authored `darkness: 0`, one key
+// doing two jobs — *how much* and *which operation* — and the PO rejected it on
+// sight. Carrying a profile here would re-create the ambiguity in the one writer
+// nobody re-reads.
+export interface ZoneClearing {
+    clears: 'darkness' | 'haze' | 'both';
+    points: { x: number, y: number }[];
+}
+
 export interface ZoneData {
     name: string;
     bounds: ZoneBounds;
@@ -213,6 +229,7 @@ export interface ZoneData {
     paths?: ZonePath[];
     polygons?: ZonePolygon[];
     atmospheres?: ZoneAtmosphere[];
+    clearings?: ZoneClearing[];
     // Omitted when empty so pre-C6 zones round-trip diff-clean.
     anchors?: ZoneAnchor[];
 }
@@ -313,6 +330,7 @@ export class ZoneModel {
     paths: ZonePath[] = [];
     polygons: ZonePolygon[] = [];
     atmospheres: ZoneAtmosphere[] = [];
+    clearings: ZoneClearing[] = [];
     // Carried, never edited — see ZoneData.origin. undefined means the zone
     // authors no origin at all, which must serialize back to NO KEY rather
     // than to {x: 0, y: 0}, or every existing zone file gains a line on its
@@ -373,6 +391,10 @@ export class ZoneModel {
         model.atmospheres = (data.atmospheres || []).map(a => ({
             profile: a.profile,
             points: (a.points || []).map(pt => ({...pt})),
+        }));
+        model.clearings = (data.clearings || []).map(c => ({
+            clears: c.clears,
+            points: (c.points || []).map(pt => ({...pt})),
         }));
         model.origin = data.origin ? {x: data.origin.x, y: data.origin.y} : undefined;
         return model;
@@ -596,6 +618,17 @@ export class ZoneModel {
                 ? this.atmospheres.map(a => ({
                     profile: a.profile,
                     points: a.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
+                }))
+                : undefined,
+            // ⚑ The SEVENTH time the L1 comment above has had to be written. This
+            // editor cannot author a clearing either, so a missing line here
+            // deletes somebody else's Tiled work with every test still green.
+            //
+            // ⛔ Two keys and NO profile (L7) — a clearing paints nothing.
+            clearings: this.clearings.length > 0
+                ? this.clearings.map(c => ({
+                    clears: c.clears,
+                    points: c.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
                 }))
                 : undefined,
             // Omitted (undefined key) while empty, so pre-C6 zones round-trip

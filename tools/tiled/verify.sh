@@ -391,6 +391,88 @@ else
 fi
 
 echo
+echo "CLEARINGS share the atmospheres layer and come back to their OWN array"
+# ⭐ A4's leg (plan-region-atmosphere.md §11). The atmospheres layer now holds
+# TWO classes — AuraAtmosphere paints, AuraClearing erases — and modelToZone
+# routes them by class into two arrays. That routing is the thing under test.
+#
+# ⛔ THIS IS THE FOURTH WRITER AND ONLY THIS FILE CAN SEE IT. The pure converter
+# is pinned by vitest, but aura-world-format.js — the half that talks to real
+# Tiled — is not, and it has already produced two real defects this way: a
+# dropped `origin`, and a `className` it wrote for years and never read back.
+# That second one is exactly this shape: harmless while a layer held ONE class,
+# fatal the moment a class became the discriminator. A4 makes the atmospheres
+# layer the second layer where that is true, so it needs the same guard the
+# paths layer got.
+#
+# ⛑ The fixture deliberately puts the clearing INSIDE the bank it cuts, which is
+# the authoring case, and gives the two DIFFERENT point counts so a converter
+# that collapsed them into one array cannot pass by accident.
+#
+# ⛔ What this leg CANNOT see, the same measured limit as the atmospheres leg
+# above: which ENUM the AuraClearing.clears member declares. Headless
+# --export-map loads no project, so the value round-trips as a bare string
+# whatever the member says. The enum wiring is pinned statically in
+# AuraTiledConvert.test.ts and the dropdown is a human check in the footer.
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/clearings.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    atmospheres: [
+        {profile: "Cave Air", points: [
+            {x: -22, y: -12}, {x: -10, y: -12}, {x: -10, y: 0}, {x: -22, y: 0}]},
+    ],
+    clearings: [
+        // Inside the bank above: the lit pocket at a cave mouth.
+        {clears: "both", points: [
+            {x: -18, y: -8}, {x: -14, y: -8}, {x: -14, y: -4}]},
+        // A second hole, a different clears value AND a different point count,
+        // so a converter that kept only one — or defaulted the enum — is caught.
+        {clears: "haze", points: [
+            {x: 4, y: -8}, {x: 14, y: -8}, {x: 14, y: 2}, {x: 4, y: 2}]},
+    ],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/clearings.json \
+        "$(native "$ROOT/tools/tiled/.verify/clearings-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/clearings.json tools/tiled/.verify/clearings-out.json; then
+    ok "byte-identical — the class split survived real Tiled, and the hole did not
+        come back as a fog bank"
+else
+    bad "clearings did not survive: $(cmp tools/tiled/.verify/clearings.json \
+        tools/tiled/.verify/clearings-out.json 2>&1 | head -1)"
+fi
+
+echo
+echo "a zone with a vertex-less CLEARING is REFUSED"
+# ⚑ The atmospheres layer shipped without this leg and it cost a boot
+# (2026-09-14, see the atmosphere version below). A4 adds a second class to that
+# layer, so it gets its own from day one rather than after the same lesson.
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/emptyclearing.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    clearings: [{clears: "both", points: []}],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/emptyclearing.json \
+        "$(native "$ROOT/tools/tiled/.verify/emptyclearing-out.json")" >/dev/null 2>&1; then
+    bad "the save was ACCEPTED — an empty clearing would break the next boot"
+elif [ -e tools/tiled/.verify/emptyclearing-out.json ]; then
+    bad "refused, but a file was written anyway"
+else
+    ok "refused, nothing written"
+fi
+
+echo
 echo "EVERY ATMOSPHERE PROFILE comes back as its own name (the 2026-09-15 split)"
 # ⭐ The air’s own copy of the regions leg above: one atmosphere per air
 # profile, so every name the palette offers is proven to survive a real Tiled
@@ -598,10 +680,14 @@ if [ "$fail" -eq 0 ]; then
     echo "⚑ still a human check (project state does not load headlessly):"
     echo "  1. open tools/tiled/aura.tiled-project, click a spawn, confirm the mob"
     echo "     dropdown renders;"
-    echo "  2. click an object on the atmospheres layer and confirm its profile"
-    echo "     dropdown offers the AIR names only — Cave Air, Gloom, Fog, Clearing —"
+    echo "  2. click an AuraAtmosphere on the atmospheres layer and confirm its"
+    echo "     profile dropdown offers the AIR names only — Cave Air, Gloom, Fog —"
     echo "     while a region offers the ground ones. That separation is the point of"
     echo "     the 2026-09-15 table split and no headless leg can see it."
+    echo "  3. click an AuraClearing on the SAME layer and confirm it has NO profile"
+    echo "     field at all, and that its 'clears' field is a DROPDOWN offering"
+    echo "     darkness / haze / both. The empty property bag is the A4 ruling (L7):"
+    echo "     a clearing paints nothing, so there is no look to name."
 else
     echo "FAILED — see above."
 fi

@@ -27,6 +27,7 @@ import {Region} from '../../regions/logic/Regions';
 import * as Paths from '../../paths/logic/Paths';
 import * as Polygons from '../../polygons/logic/Polygons';
 import * as Atmospheres from '../../atmospheres/logic/Atmospheres';
+import * as Clearings from '../../atmospheres/logic/Clearings';
 import * as RegionPaint from '../../regions/logic/RegionPaint';
 import {GameState, IGame, IGameLayers} from './IGame';
 import {gameObjectId} from '../../common/logic/Types';
@@ -701,6 +702,9 @@ export class Game implements IGame {
         // `darkness` or `haze` there is nothing to paint, which keeps the feature
         // inert in every zone that does not ask for it.
         Atmospheres.loadAtmospheres(zoneData?.atmospheres, origin);
+        // The HOLES cut in that air (A4) — loaded beside the array they cut and
+        // before DarknessOverlay.loadZone for the same L13 reason it is.
+        Clearings.loadClearings(zoneData?.clearings, origin);
         // ⛔ AFTER the four load* calls, never before them
         // (plan-region-atmosphere.md L13). loadZone asks
         // `Atmospheres.loadedAtmospheres()` whether this zone is dark at all,
@@ -880,7 +884,8 @@ export class Game implements IGame {
         // long-lived child of the camera group, not something to re-parent.
         haze.removeChildren().forEach(child => child.destroy({children: true}));
         return RegionPaint.paintAtmospheres(
-            container, haze, Atmospheres.loadedAtmospheres(), this.application.renderer);
+            container, haze, Atmospheres.loadedAtmospheres(),
+            Clearings.loadedClearings(), this.application.renderer);
     }
 
     private createBackground() {

@@ -4,6 +4,7 @@ import {PrerenderEvent} from '../../core/logic/Events';
 import {getZoneData} from '../../ground-textures/logic/GroundTextureManager';
 import {gameObjectId} from '../../common/logic/Types';
 import * as Atmospheres from '../../atmospheres/logic/Atmospheres';
+import * as Clearings from '../../atmospheres/logic/Clearings';
 import {
     ATMOSPHERE_PROFILES, DEFAULT_PROFILE, declaresDarkness, declaresHaze,
     lightRadiusWithSight,
@@ -181,10 +182,17 @@ export function loadZone(zoneName: string) {
     // player's own hole, and reported no error anywhere. It presented exactly
     // as "the feature was never wired up".
     //
-    // ⚑ Any atmosphere that DECLARES darkness counts, including an authored
-    // clearing: a zone whose only atmosphere is a `darkness: 0` pocket has nothing
-    // to darken, but it is still a zone that means to use the overlay, and a
-    // lit hole in nothing costs one invisible stencil.
+    // ⚑ Any atmosphere that DECLARES darkness counts — including one declaring
+    // ZERO. Since A4 that is no longer an erase but a plain statement that this
+    // air is not dark, and a zone that bothers to say so is still a zone that
+    // means to use the overlay; a lit hole in nothing costs one invisible
+    // stencil, and the alternative is the five-way L12 silence again.
+    //
+    // ⛔ CLEARINGS ARE DELIBERATELY NOT COUNTED HERE, which is the one place A4
+    // does NOT simply mirror the atmosphere. A clearing only ever SUBTRACTS, so
+    // a zone whose air is entirely clearings has nothing to darken and nothing
+    // to erase — turning the layer on for it would light the overlay up to draw
+    // holes in an empty texture, every frame, forever.
     const air = Atmospheres.loadedAtmospheres();
     active = darkAreas.length > 0 || air.some(a => declaresDarkness(a));
     layer.visible = active;
@@ -409,10 +417,30 @@ function inAnyCircle(x: number, y: number, circles: Circle[]): boolean {
  *
  * ⚑ `resolveIn` and not `resolve`: `resolve` walks the REGIONS, which is the
  * ground. Darkness lives on the atmospheres and nowhere else (D0/D15).
+ *
+ * ⛔⛔ THE CLEARING CHECK BELOW IS THE A4 SEAM, AND IT IS THE ONE THING IN THAT
+ * chunk THAT LOOKS RIGHT ON SCREEN WHILE BEING WRONG. Until A4 a clearing WAS
+ * an atmosphere and DID declare `darkness: 0`, so it was the last declaring
+ * shape at its point and this walk answered 0 all by itself — the comment above
+ * used to say it "falls out for free". A4 gave the clearing its own class and
+ * took its profile away (L7), and a profile-less shape is INVISIBLE to a walk
+ * that looks profiles up by name. Delete these three lines and the picture stays
+ * perfect — the hole is still painted, the mob is still lit — while the sim
+ * reports the player as standing in darkness and hides every nameplate in the
+ * lit pocket. Nothing throws, and no screenshot shows it.
+ *
+ * ⭐ D17 is why this is a flat containment test and not an ordering comparison:
+ * a clearing is applied AFTER every atmosphere regardless of authoring order,
+ * so "is this point in a clearing that cuts darkness" is the whole question.
+ * `paintAtmospheres` cuts its holes by the same rule in the same pass order, so
+ * the drawing and this lookup agree by construction.
  */
 function inDarkness(x: number, y: number): boolean {
     const shapes = Atmospheres.loadedAtmospheres();
     if (shapes.length === 0) {
+        return false;
+    }
+    if (Clearings.clearsAt('darkness', {x, y}, Clearings.loadedClearings())) {
         return false;
     }
     return resolveIn('darkness', {x, y}, shapes, ATMOSPHERE_PROFILES) > 0;

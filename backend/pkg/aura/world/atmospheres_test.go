@@ -150,3 +150,115 @@ func TestAtmospherePointsStayZoneLocal(t *testing.T) {
 		"atmospheres are NOT — the client applies the origin, and doing it here too would move them twice")
 	assert.EqualValues(t, 0, z.Atmospheres[0].Points[0].Y)
 }
+
+// ---- A4: the clearing is its own CLASS, not a magic value ------------------
+
+func TestClearingParses(t *testing.T) {
+	const doc = `{
+		"name": "Airs",
+		"bounds": { "width": 60, "height": 40 },
+		"clearings": [
+			{ "clears": "both",
+			  "points": [{"x":-2,"y":-2},{"x":2,"y":-2},{"x":2,"y":2},{"x":-2,"y":2}] },
+			{ "clears": "haze",
+			  "points": [{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}] }
+		]
+	}`
+	z, err := parseZone([]byte(doc))
+	require.NoError(t, err)
+	require.Len(t, z.Clearings, 2)
+	assert.Equal(t, ClearsBoth, z.Clearings[0].Clears)
+	assert.Len(t, z.Clearings[0].Points, 4)
+	assert.Equal(t, ClearsHaze, z.Clearings[1].Clears)
+}
+
+// Inert at HEAD, the bar every surface primitive before it was held to.
+func TestZoneWithoutClearingsIsValid(t *testing.T) {
+	z, err := parseZone([]byte(`{"name":"None","bounds":{"width":60,"height":40}}`))
+	require.NoError(t, err)
+	assert.Empty(t, z.Clearings)
+}
+
+// ⛔ THE VALUE MUST BE REFUSED, NOT DEFAULTED. A clearing that silently cleared
+// nothing looks exactly like one drawn in the wrong place, and no picture
+// distinguishes the two — so an unrecognised `clears` has to die at boot.
+func TestClearingValidationNamesTheIndex(t *testing.T) {
+	cases := []struct {
+		name, clearing, want string
+	}{
+		{"empty clears",
+			`{"clears":"","points":[{"x":0,"y":0},{"x":1,"y":0},{"x":1,"y":1}]}`,
+			`clearing 0: clears "" must be one of "darkness", "haze" or "both"`},
+		{"a value outside the closed set",
+			`{"clears":"sight","points":[{"x":0,"y":0},{"x":1,"y":0},{"x":1,"y":1}]}`,
+			`clearing 0: clears "sight" must be one of "darkness", "haze" or "both"`},
+		{"two points are a line, not an area",
+			`{"clears":"both","points":[{"x":0,"y":0},{"x":1,"y":0}]}`,
+			"clearing 0: needs at least 3 points to enclose an area, got 2"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			doc := `{"name":"A","bounds":{"width":60,"height":40},"clearings":[` + c.clearing + `]}`
+			_, err := parseZone([]byte(doc))
+			require.Error(t, err)
+			assert.EqualError(t, err, c.want)
+		})
+	}
+}
+
+// ⭐ THE A4 RULING IN THE TYPE SYSTEM: a clearing takes NO profile. It paints
+// nothing, so an author reaching for "what colour is my clearing" must find
+// NOTHING rather than a field that quietly means something else (L7). It also
+// still refuses everything an atmosphere refuses — it is air, not a wall.
+func TestClearingTakesNoProfileAndNoCollision(t *testing.T) {
+	cases := []struct{ name, key string }{
+		{"profile", `"profile": "Clearing"`},
+		{"darkness", `"darkness": 0`},
+		{"blocksMovement", `"blocksMovement": true`},
+		{"outlineProfile", `"outlineProfile": "Rim"`},
+		{"width", `"width": 2`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			doc := `{"name":"A","bounds":{"width":60,"height":40},"clearings":[
+				{"clears":"both", ` + c.key + `,
+				 "points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}]}]}`
+			_, err := parseZone([]byte(doc))
+			require.Error(t, err, "a clearing must refuse %s by name, not accept and ignore it", c.name)
+		})
+	}
+}
+
+// A clearing is air like the atmosphere it cuts: nothing reaches phy.Space.
+func TestClearingEmitsNoColliders(t *testing.T) {
+	square := `"points":[{"x":-5,"y":-5},{"x":5,"y":-5},{"x":5,"y":5},{"x":-5,"y":5}]`
+
+	withPolygon, err := parseZone([]byte(`{"name":"A","bounds":{"width":60,"height":40},
+		"polygons":[{"profile":"Mountains","blocksMovement":true,` + square + `}]}`))
+	require.NoError(t, err)
+	baseline, _ := PolygonColliders(withPolygon)
+	require.NotEmpty(t, baseline)
+
+	withBoth, err := parseZone([]byte(`{"name":"A","bounds":{"width":60,"height":40},
+		"polygons":[{"profile":"Mountains","blocksMovement":true,` + square + `}],
+		"clearings":[{"clears":"both",` + square + `}]}`))
+	require.NoError(t, err)
+	both, _ := PolygonColliders(withBoth)
+	assert.Len(t, both, len(baseline))
+}
+
+// ⚑ Client-visual, so zone-local — the atmospheres rule verbatim. A clearing
+// placed here as well would be cut 300 units from the hole it belongs in, and
+// the failure is invisible in `world` (origin {0,0}).
+func TestClearingPointsStayZoneLocal(t *testing.T) {
+	z, err := parseZone([]byte(`{"name":"A","bounds":{"width":40,"height":20},
+		"origin":{"x":500,"y":300},
+		"polygons":[{"profile":"Mountains","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}],
+		"clearings":[{"clears":"both","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`))
+	require.NoError(t, err)
+	require.NoError(t, Place([]*Zone{z}))
+
+	assert.EqualValues(t, 500, z.Polygons[0].Points[0].X, "the control: polygons ARE placed")
+	assert.EqualValues(t, 0, z.Clearings[0].Points[0].X,
+		"clearings are NOT — the client applies the origin, and doing it here too would move them twice")
+}

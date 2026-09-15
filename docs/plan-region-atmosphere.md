@@ -148,7 +148,7 @@ there is nothing for a wall to cut into. That ordering is the whole chunk plan.
 | ~~**D0′**~~ | ~~Atmosphere is **profile properties on the existing region primitive**, not a new array and not a new file.~~ ⛔ **SUPERSEDED 2026-09-12.** Kept because the reason matters: a region is *the material underfoot* — footsteps, music, ground texture, and later quest identity — so a fake region authored to carry a lit clearing silently overrides all of those for anyone standing in it. The air and the ground are different boundaries. Same test `world.Path`'s doc comment applied to split paths from regions and zone-polygons **D1** applied to split polygons from paths: *"one array meaning two things would make both harder."* Third time, same answer. | SUPERSEDED |
 | **D1** | `gloom` is a **per-shape** property (drawn on the atmosphere shape's own footprint, like `blend`/`scroll`); `sight` is a **per-point** property (resolved at the player, like music). §3.1 is why getting this backwards is the trap. ⚑ Both halves now read the **`atmospheres`** array, so the two answers come from one source instead of two. | PROPOSAL |
 | **D2** | The darkness is drawn in **world space on the shape's footprint**, not as a screen-space vignette around the player. §3.2 weighs the alternative and why it loses. | PROPOSAL |
-| **D3** ⛔ **REOPENED 2026-09-16 (PO), §11 — `gloom: 0` shipped as `darkness: 0`/`haze: 0` and the PO rejected the magic value on sight:** *"0 darkness should be LEGAL, because there might be atmospheres that want no darkness at all. Maybe more class separation is in order?"* The replacement is **A4**, where a clearing is its own Tiled CLASS and `darkness: 0` simply declares zero. Everything below still describes what is BUILT. | Atmosphere shapes draw in **authored order**, and one declaring `gloom: 0` inside one declaring `gloom: 1` draws as an **erase** shape. ⭐ This is what keeps the DRAWING and `resolve()` agreeing under D0. ⚑ **D0's reversal makes it honest**: the lit clearing is now a real atmosphere shape, not a counterfeit region that also silently rewrote the footsteps. | PROPOSAL |
+| **D3** ✅ **CLOSED 2026-09-16 by A4 (§10) — `darkness: 0` now DECLARES zero and the erase is `AuraClearing`, its own class. Everything below describes the superseded design.** ⛔ **Was REOPENED 2026-09-16 (PO), §11 — `gloom: 0` shipped as `darkness: 0`/`haze: 0` and the PO rejected the magic value on sight:** *"0 darkness should be LEGAL, because there might be atmospheres that want no darkness at all. Maybe more class separation is in order?"* The replacement is **A4**, shipped the same day: a clearing is its own Tiled CLASS and `darkness: 0` simply declares zero. ⛔ The cell to the right is the SUPERSEDED rule, kept only because the reason matters. | Atmosphere shapes draw in **authored order**, and one declaring `gloom: 0` inside one declaring `gloom: 1` draws as an **erase** shape. ⭐ This is what keeps the DRAWING and `resolve()` agreeing under D0. ⚑ **D0's reversal makes it honest**: the lit clearing is now a real atmosphere shape, not a counterfeit region that also silently rewrote the footsteps. | PROPOSAL |
 | **D4** | `darkAreas` **stays for now** — this plan adds a second source of dark shapes and does not migrate content. ⚑ **Amended 2026-09-12 (PO): it is MARKED FOR DELETION**, because a circle is now strictly a degenerate atmosphere shape and two sources of dark geometry is the duplication D0's reversal exists to avoid. Registered in `docs/cleanup.md`; the trigger is **A3**, the content retrofit, which stays a content judgement. | PROPOSAL + marked |
 | ~~**D5**~~ | ~~The gloom edge uses `DarknessVisuals.EDGE_FADE`, **not** the profile's `blend`.~~ ⛔ **REVERSED 2026-09-12 by D0.** The argument was that a road's `blend: 0.3` must not become the darkness feather of whatever the road runs through — which was only ever true while atmosphere rode a **ground** profile. An atmosphere shape names an **atmosphere** profile, so its `blend` is the fog's own softness and nothing else's. ⚑ `darkAreas` circles keep `EDGE_FADE`; the two edges coexist because they belong to two primitives. | REVERSED |
 | ~~**D6**~~ | ~~**A1 ships hard-edged gloom polygons**; the feather is A1b, triggered.~~ ⛔ **DELETED 2026-09-12.** `paintSurface` already feathers any surface it draws, via `buildBlendMask` and the profile's `blend`. **A1b was a whole deferred chunk (with its own `Renderer`-plumbing problem) that reuse dissolves.** | DELETED |
@@ -631,16 +631,17 @@ for the plumbing.
 | **A1-fog** *(same chunk, no code)* | ⭐ The fog **look**: a profile authoring `texture` + `scroll` + `blend`. **Zero engineering** (D12) — it is an `atmosphere-profiles.json` edit plus one art asset, and it is the PO's knob. ✅ The tile landed with `5b57d0c4` (`tools/make-fog-tile.mjs`, deterministic and re-runnable); every NUMBER is still [PLACEHOLDER] | in-game only; there is nothing testable about whether murk looks like murk |
 | **A2** ✅ *(shipped `5b57d0c4`)* | `sight` + the ramp + the remembered-value wrapper (`plan-region-audio.md` inherits it) · `max(wire, sight)` (D7) · the frame delta into `update()` | vitest on the wrapper and the max rule · in-game: cross the boundary, Lantern on and off |
 | **A3** *(optional, PO call)* | **Content**: re-author `world.json`'s 35 `darkAreas` as 2–3 atmosphere shapes. ⚑ A content judgement — *where the dark places actually are* — not a transform derivable from circle positions. `plan-world-paths.md` C4's shape exactly. ⭐ **It is now also the trigger that retires `darkAreas`** (D4, `docs/cleanup.md`): the primitive only leaves once nothing authors it | in-game, plus a before/after screenshot pair |
-| **A4** *(designed 2026-09-16, PO-raised; §11)* | ⭐ **`AuraClearing` — the clearing becomes a CLASS.** Reopens **D3**: `darkness: 0` stops meaning *erase* and starts meaning *declares zero* (which a pure fog bank may legitimately want), and a clearing becomes its own Tiled class on the atmospheres layer, with its own `zone.clearings` array and **no profile member** (L7). ⛔ **The seam is `inDarkness()`** — a profile-less clearing is invisible to the `resolveIn` walk, so the sim would call a lit pocket dark. Four-writer tax; comparable to zone-polygons P2 | vitest on the class routing and the `inDarkness` seam · a `verify.sh` leg, since the fourth writer is unpinnable otherwise · ⛔ **mutation-verify the seam specifically** — the picture looks right either way |
+| **A4** ✅ *(shipped 2026-09-16; ledger §10)* | ⭐ **`AuraClearing` — the clearing becomes a CLASS.** Reopens **D3**: `darkness: 0` stops meaning *erase* and starts meaning *declares zero* (which a pure fog bank may legitimately want), and a clearing becomes its own Tiled class on the atmospheres layer, with its own `zone.clearings` array and **no profile member** (L7). ⛔ **The seam is `inDarkness()`** — a profile-less clearing is invisible to the `resolveIn` walk, so the sim would call a lit pocket dark. Four-writer tax; comparable to zone-polygons P2 | vitest on the class routing and the `inDarkness` seam · a `verify.sh` leg, since the fourth writer is unpinnable otherwise · ⛔ **mutation-verify the seam specifically** — the picture looks right either way |
 | **B1** | `Occluders.ts` — pure segment derivation from props (+ `occludesSight`), blocking paths (**incl. the `closed` wraparound**), **blocking polygons [REVIEW]** and the border. No rendering. | vitest: it is 100 % testable and should be 100 % tested · a count assertion against the real `world.json` |
 | **B2** | The visibility polygon. Pure. | vitest incl. every §3.6 edge case · **mutation-verified**: the no-occluder case must return today's circle |
 | **B3** | The stencil mask on the local player's hole (D9/D10) · the interpolated-position pin | in-game: stand behind a wall inside an atmosphere shape · frame time on the mobile ceiling |
 
-**A0 → A1 → A2** ✅ all shipped 2026-09-16 (`5b57d0c4`, ledger §10).
+**A0 → A1 → A2 → A4** ✅ all shipped 2026-09-16 (A0-A2 `5b57d0c4`; A4 ledger §10).
 
-⭐ **Next: A4** (§11 — the vocabulary fix the PO asked for, and the one thing in this
-plan that changes something already authored) **or B1** (the occlusion half), in either
-order: they touch nothing in common. **A3 stays a PO content call.**
+⭐ **Next: B1** (the occlusion half, and the answer to the PO's original
+line-of-sight ask), then B2 → B3. **A3 stays a PO content call.** ⚑ **§8 Q3 is open
+and B3 needs it**: is an ally's torch shining through a wall, beside your own correctly
+shadowed light, worse than neither having shadows (D9)?
 
 ## 6. Test strategy
 
@@ -840,6 +841,95 @@ order: they touch nothing in common. **A3 stays a PO content call.**
 
 ## 10. Chunk ledgers
 
+### A4 — `AuraClearing`: the clearing becomes a CLASS ✅ 2026-09-16
+
+**What shipped.** `zone.clearings` — closed areas that ERASE atmosphere instead of
+painting it, riding the atmospheres layer under a new Tiled class `AuraClearing` and
+carrying **no profile at all**. **D3 is CLOSED**: `darkness: 0` stops meaning *erase*
+and becomes a plain DECLARATION of zero, which is legal, useful, and was unsayable
+before — a pure fog profile can now state *“and it is not dark in here”* and stop a
+containing dark bank being reported at that point.
+
+⭐ **THE PO’S SECOND OBJECTION WAS THE RIGHT ONE, and the design follows it rather than
+the first.** Offered a `clearing` flag on the profile, the answer was *“hm, 0 darkness
+should be LEGAL… maybe more class separation is in order?”* — which rejects the flag
+too, and for a better reason: a flag on the PROFILE still makes the look table carry an
+OPERATION. The class carries it instead. Third application of **P1’s “the SHAPE is the
+flag”**, after `closed` and `AuraPolygon`.
+
+⛔ **THE SEAM WAS THE WHOLE RISK AND IT BEHAVED EXACTLY AS §11.3 PREDICTED.**
+`inDarkness()` is a walk over atmosphere PROFILES, and a profile-less clearing is
+invisible to it — so the naive build leaves the picture PERFECT (hole painted, mob lit)
+while the sim hides every nameplate in the lit pocket, with nothing thrown.
+`Clearings.clearsAt` closes it deliberately. **Mutation-verified ×3** (kill the seam ·
+ignore the layer · drop `both` from `clearsDarkness`); all three caught.
+
+⭐ **D17, a ruling this chunk had to make and §11 had left open: a clearing applies
+AFTER every atmosphere, regardless of authoring order.** Two separate arrays cannot
+express interleaving without inventing an ordering key, and *“cuts a hole in whatever is
+already there”* is the reading that needs none. ⚑ It is also what keeps the DRAWING and
+the LOOKUP agreeing — `paintAtmospheres` cuts its holes in one pass after the paint
+loop, so a point `clearsAt` calls clear is a point where a hole was actually cut. The
+property D3 had, kept by different means.
+
+⚑ `clears` is an ENUM (`darkness` / `haze` / `both`), per §11.5’s proposal: Tiled gives
+a dropdown free and a bool PAIR lets an author tick neither. Absent reads as `both` (the
+palette member’s own default — the C6 rule with no sentinel available); **present-and-
+wrong is REFUSED**, by `zone.go` at boot and by `validateModel` at save.
+
+⭐ **TWO PRE-EXISTING DEFECTS FELL OUT, and they are the durable part.**
+① The converter’s **class split on the atmospheres layer was unpinned** — a mutation
+pointing `modelToZone` back at the whole layer left all 133 legs GREEN, because the
+completeness pin compares KEYS and both keys were still emitted. Now pinned by its own
+leg, and the mutation is caught.
+② `AuraTiledConvert`’s **layer-count test asserted layer-count == same-named-array-count
+and had been wrong since zone-polygons D5** — it passed only because no zone authors a
+polygon yet. A4 made it fire at once because `world.json` does author a clearing.
+⛔ **The bug was found by CONTENT, not by the suite**, which is the thing to remember:
+a shared layer needs its count test taught about sharing on the day the sharing lands.
+
+**Content.** The `Clearing` PROFILE is retired in this commit — §11.5’s
+`docs/cleanup.md` entry, executed rather than deferred, because once a clearing is a
+class, a profile named `Clearing` that clears nothing is a trap wearing the right name.
+
+⚑ **`world.json`’s migration is PREPARED IN THE WORKING TREE AND DELIBERATELY NOT IN
+THIS COMMIT.** Its one `Clearing` atmosphere becomes a real clearing (`clears: "both"`,
+byte-identical polygon) — but that file also carries the PO’s own uncommitted authoring
+(the atmosphere banks themselves, new `CaveMouth` spawns), and `underworld.json` and
+`tunnel.json` are entirely theirs. Splitting one file’s changes is not something to do on
+someone else’s behalf, so **A4 ships INERT at HEAD** — the bar every surface primitive
+before it was held to — and the migration goes in with the PO’s content.
+
+⚑ **That shape never worked anyway**: it sat at index 0, BEFORE `Gloom`, so
+last-declaring-wins painted straight over it. D17 is what makes it work at all.
+
+**Schema: DB/WIRE/CONF/CONTENT NONE · ZONE FORMAT one new array, absent-safe.**
+
+**Verified.** build · vet · `go test -count=1 ./...` EXIT 0 · tsc · **vitest 788/788** ·
+prod build · **`verify.sh` all green through real Tiled incl. 2 new legs** ·
+**mutation-verified ×5, one of which SURVIVED** and produced the missing class-split leg
+above · **IN-GAME** (new `a4-clearing.mjs`, A/B): the sim reports LIT inside the clearing
+and DARK outside it, and the scene graph holds **2 erase Graphics with the clearing
+authored and 0 without**, 0 page errors.
+
+⚑ **What the camera could NOT settle, recorded rather than smoothed over.** The pixel
+A/B reads ×0.99 and is **inconclusive by geometry, not by defect**: a clearing must
+OVERLAP a dark bank to have anything to erase, and this one’s overlap is a ~4 u strip —
+narrower than the player’s OWN light, which erases the same darkness in both runs, so the
+screen is identical either way. ⛔ **The bar was NOT lowered to make it green**: a pixel
+leg that passed there would pass with `cutHole` deleted. To let the camera answer, author
+a clearing whose overlap with a dark bank is comfortably wider than the carried light.
+⚑ Two probe bugs of the same family were fixed on the way and are worth knowing before
+writing the next one: **the player’s own light lights the player**, so asking `isHidden`
+about the tile you warped onto always answers “lit”; and a sample patch offset away from
+the avatar **walks out of the hole** unless the point is chosen for CLEARANCE, which
+inverted the A/B and reported a working clearing as broken.
+
+⚑ **Also owed, unchanged:** every number is [PLACEHOLDER] and the look sitting has not
+happened. `sight` is still authored by nothing, so D7’s `max()` remains unexercised by
+real content.
+
+
 ### A0 + A1 + A2 — the air, its two dials, and two profile tables ✅ 2026-09-16 (`5b57d0c4`)
 
 **What shipped.** `zone.atmospheres` — polygons naming a profile, drawn as the AIR
@@ -937,8 +1027,11 @@ darkness keeps its light holes, 0 page errors.
 
 ## 11. A4 — `AuraClearing`: the clearing becomes a CLASS, not a magic value
 
-**Designed 2026-09-16 (PO-raised). NOTHING BUILT.** This REOPENS **D3**, which shipped
-in A1 and which the PO rejected the first time they read it back.
+**Designed 2026-09-16 (PO-raised). ✅ BUILT the same day — the ledger is §10, and it
+records the two rulings this section deliberately left open (D17's ordering, and
+`clears` as an enum) plus the two pre-existing defects the build exposed.** This
+REOPENED **D3**, which shipped in A1 and which the PO rejected the first time they read
+it back.
 
 ### 11.1 What is wrong with D3
 
@@ -1043,11 +1136,16 @@ fourth writer:
 
 ### 11.5 ⚑ What this does NOT decide
 
-- Whether `clears` is an enum (`darkness` / `haze` / `both`) or two bools on the class.
-  The enum is proposed because Tiled gives it a dropdown for free and a bool pair lets
-  an author check neither.
-- Whether the shipped `Clearing` PROFILE survives A4 at all. It probably should not —
-  once a clearing is a class, a profile named `Clearing` that clears nothing is a trap
-  wearing the right name. ⚑ That is a `docs/cleanup.md` entry with A4 as its trigger.
+- ~~Whether `clears` is an enum or two bools on the class.~~ ✅ **RESOLVED: the ENUM**,
+  for the reason proposed — Tiled gives a dropdown for free and a bool PAIR lets an
+  author tick neither. ⚑ Absent reads as `both` (the palette member's own default, the
+  C6 rule with no sentinel available); present-and-wrong is REFUSED at both save and
+  boot.
+- ~~Whether the shipped `Clearing` PROFILE survives A4 at all.~~ ✅ **RESOLVED in the
+  build: it does not.** Once a clearing is a class, a profile named `Clearing` that
+  clears nothing is a trap wearing the right name — so A4 retired it and migrated
+  `world.json`'s one use to a real clearing. Done inside the chunk rather than deferred
+  to `docs/cleanup.md`, because leaving both spellings alive for even one session is
+  precisely the ambiguity A4 exists to remove.
 - Whether partial clearing (“thin the fog to 0.2”) should exist. It does not today —
   opacities COMPOUND, so a lower value cannot reduce — and A4 does not add it.

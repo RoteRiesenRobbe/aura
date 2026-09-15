@@ -426,6 +426,57 @@ type Atmosphere struct {
 	Points  []Point `json:"points"`
 }
 
+// ClearsDarkness, ClearsHaze and ClearsBoth are the closed set a Clearing's
+// Clears field may name (plan-region-atmosphere.md A4). An enum rather than two
+// bools because Tiled renders a dropdown for free and a bool PAIR lets an author
+// tick neither, which is a shape that means nothing and would have to be refused
+// here anyway.
+const (
+	ClearsDarkness = "darkness"
+	ClearsHaze     = "haze"
+	ClearsBoth     = "both"
+)
+
+// Clearing is a closed area that ERASES atmosphere rather than painting it — a
+// lit pocket at a cave mouth, a hole in a fog bank (plan-region-atmosphere.md
+// A4). The fifth surface primitive, and the only one that names no profile at
+// all.
+//
+// ⭐ IT IS ITS OWN CLASS BECAUSE THE ALTERNATIVE WAS A MAGIC VALUE, and the PO
+// rejected that on sight (2026-09-16, reopening D3). A4 replaces a design where
+// an atmosphere profile authoring `darkness: 0` meant ERASE: one key doing two
+// jobs, "how much" and "which operation", so three distinct author intents
+// collapsed onto two spellings and "there is no darkness in my air" was
+// unsayable. Now the SHAPE'S CLASS carries the operation and the profile carries
+// only the look — P1's "the SHAPE is the flag" ruling, third application.
+//
+// ⛔ IT TAKES NO PROFILE, AND THE EMPTINESS IS THE RULING (L7, the argument a
+// Polygon's missing Width already records). A clearing paints nothing, so an
+// author reaching for "what colour is my clearing" must find NOTHING rather
+// than a field that quietly means something else.
+//
+// ⭐ The payoff is on the OTHER side, and it is the part the PO saw: `darkness:
+// 0` on an atmosphere profile is now simply a DECLARATION of zero — legal,
+// meaningful, and a capability the old design could not express at all. A pure
+// fog profile can say "and it is not dark in here", which stops a containing
+// dark bank from being reported at that point.
+//
+// ⚑ A clearing rides the ATMOSPHERES layer in Tiled and is told apart by its
+// class, which is zone-polygons D5's scheme rather than D16's — a clearing sits
+// INSIDE the air it cuts, so hiding one to select the other is never the need
+// that forced atmosphere onto a layer of its own.
+//
+// ⚑ Client-visual only, so the server parses, validates and IGNORES it —
+// Atmosphere's D15 posture verbatim. Nothing here reaches phy.Space.
+type Clearing struct {
+	// Which layers this hole cuts: ClearsDarkness, ClearsHaze or ClearsBoth.
+	// ⚑ Required, and validated against the closed set — an unrecognised value
+	// would otherwise clear nothing and look exactly like a clearing the author
+	// drew in the wrong place.
+	Clears string  `json:"clears"`
+	Points []Point `json:"points"`
+}
+
 // Zone is the whole authored world description loaded from a zone file. One
 // file = one complete zone (bounds + terrain + props + spawns + campfires +
 // dark areas + anchors). NPCs used to be a section of their own; since the
@@ -482,7 +533,13 @@ type Zone struct {
 	// Atmospheres is client-visual only and the server never reads it past
 	// validation — DarkArea's and Region's posture verbatim.
 	Atmospheres []Atmosphere `json:"atmospheres"`
-	Anchors     []Anchor     `json:"anchors"`
+	// Clearings ERASE what Atmospheres paint, and they are applied AFTER every
+	// atmosphere regardless of authoring order (A4/D17) — "a hole in whatever is
+	// already there", which is the only reading two separate arrays can support
+	// without inventing an interleaving key. Client-visual only, like the array
+	// above.
+	Clearings []Clearing `json:"clearings"`
+	Anchors   []Anchor   `json:"anchors"`
 
 	// ID is the file stem the zone was loaded from — the -zone selection key
 	// and the identity sent to the client so it renders the matching terrain.
@@ -799,6 +856,23 @@ func (z *Zone) validate() error {
 		if len(z.Atmospheres[i].Points) < 3 {
 			return fmt.Errorf("atmosphere %d: needs at least 3 points to enclose an area, got %d",
 				i, len(z.Atmospheres[i].Points))
+		}
+	}
+	// Clearings name the INDEX like every other shape array, and check the one
+	// thing a clearing has that an atmosphere does not: a Clears value from the
+	// closed set. ⛔ An unrecognised value must be REFUSED rather than defaulted
+	// — a clearing that silently cleared nothing is indistinguishable on screen
+	// from one drawn in the wrong place, which is a whole debugging session.
+	for i := range z.Clearings {
+		switch strings.TrimSpace(z.Clearings[i].Clears) {
+		case ClearsDarkness, ClearsHaze, ClearsBoth:
+		default:
+			return fmt.Errorf("clearing %d: clears %q must be one of %q, %q or %q",
+				i, z.Clearings[i].Clears, ClearsDarkness, ClearsHaze, ClearsBoth)
+		}
+		if len(z.Clearings[i].Points) < 3 {
+			return fmt.Errorf("clearing %d: needs at least 3 points to enclose an area, got %d",
+				i, len(z.Clearings[i].Points))
 		}
 	}
 	// ⚑ "at least one campfire is a startingSpawn" USED TO LIVE HERE and moved

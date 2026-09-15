@@ -236,7 +236,21 @@ var AuraConvert = (function () {
     // 'profile' in both because the ZONE KEY is the same; only the list behind
     // it differs, which is what makes naming 'Forest' on a fog bank impossible
     // in the Properties panel rather than merely wrong on screen.
-    var REGION_ENUMS = {profile: 'AuraProfile', air: 'AuraAtmosphereProfile'};
+    // ⚑ `clears` is the THIRD vocabulary on this map and the only one that is
+    // not a profile table: an AuraClearing names no profile at all (A4/L7), so
+    // its one member points at a closed set of LAYER NAMES instead.
+    var REGION_ENUMS = {
+        profile: 'AuraProfile', air: 'AuraAtmosphereProfile', clears: 'AuraClears',
+    };
+    // The closed set zone.go's validate() refuses anything outside
+    // (world.ClearsDarkness / ClearsHaze / ClearsBoth). Mirrored here so the
+    // editor can say so while the author is still looking at the shape.
+    var CLEARS_VALUES = ['darkness', 'haze', 'both'];
+    // ⚑ What an ABSENT `clears` means, and it must equal the palette member's
+    // own default (generate-palette.mjs) — the C6 rule: a member is safe exactly
+    // when a Tiled that DROPS a default-valued property and a Tiled that KEEPS
+    // it reach the same answer.
+    var CLEARS_DEFAULT = 'both';
 
     /* Read a spawn object's authored values, with every sentinel resolved back
      * to "absent". The single source of truth for the table above. */
@@ -429,6 +443,24 @@ var AuraConvert = (function () {
                     return {
                         profile: a.profile,
                         points: a.points.map(function (v) {
+                            return {x: round(v.x, 2), y: round(v.y, 2)};
+                        }),
+                    };
+                })
+                : undefined,
+            // The HOLES cut in that air (plan-region-atmosphere.md A4). Its own
+            // array for the reason polygons got one despite sharing a layer with
+            // paths: two kinds of object, told apart by CLASS, landing in two
+            // places.
+            //
+            // ⛔ TWO keys and NO profile. A clearing paints nothing, so there is
+            // nothing to name a look for — zone.go refuses `profile` by name,
+            // and emitting one here would write a file that no longer boots.
+            clearings: z.clearings && z.clearings.length > 0
+                ? z.clearings.map(function (c) {
+                    return {
+                        clears: c.clears,
+                        points: c.points.map(function (v) {
                             return {x: round(v.x, 2), y: round(v.y, 2)};
                         }),
                     };
@@ -680,6 +712,41 @@ var AuraConvert = (function () {
             };
         });
 
+        // ⭐ A CLEARING RIDES THE ATMOSPHERES LAYER AND IS TOLD APART BY ITS
+        // CLASS (plan-region-atmosphere.md A4) — zone-polygons D5's scheme, not
+        // D16's. D16 gave atmosphere a layer of its own because an atmosphere
+        // COVERS the walls it darkens and Tiled toggles visibility per layer, so
+        // a shared layer would leave no way to hide the fog and select the wall.
+        // A clearing is the opposite case: it sits INSIDE the air it cuts, is
+        // authored in the same breath, and hiding one to reach the other is
+        // never the need. Sharing the layer also keeps the two visible together,
+        // which is the only way to see that the hole lands in the bank.
+        //
+        // ⛔ NO profile member, and the emptiness IS the ruling (L7). A clearing
+        // paints nothing; an author reaching for "what colour is my clearing"
+        // must find NOTHING rather than a field that quietly means something
+        // else. zone.go refuses the key by name.
+        var clearings = (z.clearings || []).map(function (c) {
+            var pts = c.points || [];
+            var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
+            var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
+            return {
+                shape: 'polygon', layer: 'atmospheres',
+                // ⚑ The NAME is the clears value, so the Objects panel reads
+                // "both" / "darkness" rather than a row of blank entries. The
+                // typed property is still what modelToZone reads (readClears) —
+                // the name is a label, exactly as it is for a region's profile.
+                name: c.clears, cls: 'AuraClearing',
+                x: ox, y: oy, width: 0, height: 0, rotation: 0,
+                flipH: false, flipV: false,
+                polygon: pts.map(function (v) {
+                    return {x: px(v.x, hw) - ox, y: px(v.y, hh) - oy};
+                }),
+                properties: {clears: c.clears},
+                enums: {clears: REGION_ENUMS.clears},
+            };
+        });
+
         var anchors = (z.anchors || []).map(function (a) {
             return {
                 shape: 'point', layer: 'anchors', name: a.name, cls: 'AuraAnchor',
@@ -722,7 +789,16 @@ var AuraConvert = (function () {
                 // regions' rule exactly (D0/D3: the last declaring shape wins,
                 // and a gloom:0 clearing erases the bank it sits inside), so
                 // this layer draws by index for the same reason.
-                {name: 'atmospheres', drawOrder: 'index', objects: atmospheres},
+                // ⚑ ATMOSPHERES FIRST, THEN CLEARINGS, and the order is D17
+                // rather than cosmetic: a clearing is applied AFTER every
+                // atmosphere no matter where it was authored, so laying the
+                // layer out that way makes the canvas show the same z-order the
+                // client draws and the resolver answers. modelToZone splits them
+                // back out by class with each array's own order intact, so the
+                // round-trip stays byte-identical — the paths layer's rule
+                // exactly.
+                {name: 'atmospheres', drawOrder: 'index',
+                    objects: atmospheres.concat(clearings)},
                 {name: 'anchors', drawOrder: 'index', objects: anchors},
             ],
         };
@@ -870,9 +946,20 @@ var AuraConvert = (function () {
             // blocksMovement here "for symmetry with polygons": don't. The
             // server refuses the key by name, so it would round-trip into a zone
             // file that no longer boots.
-            atmospheres: layer('atmospheres').map(function (o) {
+            atmospheres: onLayer('atmospheres', 'AuraAtmosphere').map(function (o) {
                 return {
                     profile: readRegionProfile(o),
+                    points: closedAreaPoints(o).map(function (v) {
+                        return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
+                    }),
+                };
+            }),
+            // ⭐ The SECOND class on this layer since A4, read by class for the
+            // same reason the paths layer's two are: an object read as the wrong
+            // kind comes back profile-less or clears-less, and both are silent.
+            clearings: onLayer('atmospheres', 'AuraClearing').map(function (o) {
+                return {
+                    clears: readClears(o),
                     points: closedAreaPoints(o).map(function (v) {
                         return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
                     }),
@@ -917,6 +1004,25 @@ var AuraConvert = (function () {
         var v = o.properties && o.properties.profile !== undefined && o.properties.profile !== null
             ? plainValue(o.properties.profile) : undefined;
         return v !== undefined ? v : o.name;
+    }
+
+    /* Which layers an AuraClearing cuts (A4).
+     *
+     * ⚑ It falls back to CLEARS_DEFAULT and NOT to o.name, which is where it
+     * parts company with readRegionProfile above. A profile has no sensible
+     * default — a region that names none is an authoring mistake and the save
+     * refuses it — but `clears` has exactly one: the palette member's own
+     * default. Tiled is free to DROP a property still sitting at its default,
+     * so reading absent as anything else would turn a freshly drawn clearing
+     * into a different clearing on its first save.
+     *
+     * ⛔ An empty string is NOT absent. A member explicitly blanked is an
+     * authoring mistake, and validateModel refuses it by id — quietly promoting
+     * it to the default would hide the thing the author needs to see. */
+    function readClears(o) {
+        var v = o.properties && o.properties.clears !== undefined && o.properties.clears !== null
+            ? plainValue(o.properties.clears) : undefined;
+        return v !== undefined ? v : CLEARS_DEFAULT;
     }
 
     /* ---- save-time validation (C4) -----------------------------------------
@@ -1401,9 +1507,53 @@ var AuraConvert = (function () {
             }
         }
 
+        /* ⭐ THE SHARED LAYER'S OWN CHECK, second application (L2b). A4 put a
+         * SECOND class on the atmospheres layer, so this layer now carries the
+         * same cost the paths layer has carried since zone-polygons D5: an
+         * object that is NEITHER class lands in neither array and VANISHES on
+         * the next save with every other check green.
+         *
+         * ⛔ It is worth stating plainly that this check did not exist here
+         * before A4 and did not need to — modelToZone read the layer whole. The
+         * moment a class becomes a discriminator the layer needs a guard, and
+         * the atmospheres layer has now been through the OTHER version of this
+         * lesson too: it shipped without a closed-area leg at all, and that is
+         * what let a vertex-less shape refuse the PO's boot (2026-09-14).
+         */
         layer('atmospheres').forEach(function (o, i) {
+            if (o.cls !== 'AuraAtmosphere' && o.cls !== 'AuraClearing') {
+                bad(o, i, 'is on the atmospheres layer but its Class is '
+                    + (o.cls ? '"' + o.cls + '"' : 'not set')
+                    + ' — this layer holds AuraAtmosphere (air that PAINTS) and'
+                    + ' AuraClearing (a hole that ERASES), and anything else is'
+                    + ' DROPPED on save. Set the Class in the Properties panel');
+            }
+        });
+
+        onLayer('atmospheres', 'AuraAtmosphere').forEach(function (o, i) {
             checkProfile(o, i, profilesKnown, true);
-            checkClosedArea(o, i, 'an atmosphere');
+            checkClosedArea(o, i, 'an atmosphere',
+                ' — or change its Class to AuraClearing if you meant a hole');
+        });
+
+        /* ⛔ THE CLEARS VALUE IS REFUSED, NEVER DEFAULTED, and that asymmetry
+         * with readClears is deliberate. An ABSENT property is Tiled dropping a
+         * value still at its default, which is invisible to the author and must
+         * round-trip — so readClears supplies it. An property that is PRESENT
+         * and wrong is the author having typed something, and a clearing that
+         * silently cleared nothing looks on screen exactly like one drawn in the
+         * wrong place. zone.go refuses the same set at boot; this says so hours
+         * earlier, next to the shape.
+         */
+        onLayer('atmospheres', 'AuraClearing').forEach(function (o, i) {
+            var raw = o.properties && o.properties.clears !== undefined
+                && o.properties.clears !== null ? plainValue(o.properties.clears) : undefined;
+            if (raw !== undefined && !hasValue(CLEARS_VALUES, raw)) {
+                bad(o, i, 'clears ' + JSON.stringify(raw) + ' must be one of '
+                    + CLEARS_VALUES.join(', ') + ' — which layers should this hole cut?');
+            }
+            checkClosedArea(o, i, 'an AuraClearing',
+                ' — or change its Class to AuraAtmosphere if you meant air that paints');
         });
 
         var seenAnchor = {};

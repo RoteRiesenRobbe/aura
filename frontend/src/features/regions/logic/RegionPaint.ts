@@ -23,6 +23,7 @@ import {
     Assets, BlurFilter, Container, Graphics, Matrix, Renderer, RenderTexture, Sprite, Texture,
     TilingSprite,
 } from 'pixi.js';
+import {Clearing, clearsDarkness, clearsHaze} from '../../atmospheres/logic/Clearings';
 import {
     ATMOSPHERE_PROFILES, AtmosphereProfile, declaresDarkness, declaresHaze,
     neededTextures, Outlined, Region, regionBlend,
@@ -543,14 +544,17 @@ export function paintRegions(
  *
  * ⭐ Only shapes whose profile DECLARES the dial for a layer are drawn into
  * it at all. One that says nothing is transparent, not a hole — see
- * {@link declaresDarkness}.
+ * {@link declaresDarkness}. ⭐ `darkness: 0` is now simply a DECLARATION of
+ * zero (A4): it paints nothing and it STOPS the resolve there, which is what
+ * lets a pure fog profile say "and it is not dark in here".
  *
- * ⛔ D3, and it is one branch PER LAYER: `> 0` PAINTS, `=== 0` ERASES. An
- * authored clearing inside a dark bank is a thing an author will absolutely
- * try, `resolve()` gets it right on its own, and without the erase the outer
- * shape's fill would still cover it — so the drawing follows the resolution
- * rule by construction instead of by coincidence. ⚑ A clearing cannot be
- * textured or drift: it has nothing to paint, by definition.
+ * ⛔ THE HOLES ARE A SEPARATE PASS AND IT RUNS LAST (A4/D17). A clearing is its
+ * own class with its own array, so it cannot be interleaved with the air by
+ * authoring order — and it should not be: "cuts a hole in whatever is already
+ * there" is the reading two separate arrays support without inventing an
+ * ordering key, and it is what an author means by drawing one. ⚑ Before A4 this
+ * was a branch INSIDE the paint loop keyed on `opacity === 0`; that magic value
+ * is exactly what the PO rejected on 2026-09-16.
  *
  * ⚑ Each shape gets its OWN Container carrying `alpha = <the dial>`, because the
  * paint may be SEVERAL children (a drifting sprite plus its mask) and the
@@ -560,6 +564,7 @@ export function paintAtmospheres(
     darknessContainer: Container,
     hazeContainer: Container,
     atmospheres: Region[],
+    clearings: Clearing[],
     renderer: Renderer,
 ): PaintedSurfaces {
     const out: PaintedSurfaces = {masks: [], scrollers: []};
@@ -577,17 +582,46 @@ export function paintAtmospheres(
                 renderer, out, false);
         }
     });
+    // ⛔ AFTER the whole loop, never inside it (D17). Appending a hole while
+    // banks are still to come would let a later bank fill it in, which is the
+    // one thing an author who drew a clearing did not ask for — and
+    // `Clearings.clearsAt` has no way to express "except the banks after it", so
+    // the drawing and the sim would answer differently. They agree here by
+    // construction, which is the property D3 had and A4 must not lose.
+    clearings.forEach((clearing) => {
+        if (clearsDarkness(clearing)) { cutHole(darknessContainer, clearing); }
+        if (clearsHaze(clearing)) { cutHole(hazeContainer, clearing); }
+    });
     return out;
+}
+
+/**
+ * One clearing's hole in one layer.
+ *
+ * ⭐ A stencil-shaped erase, exactly like a light hole — the same blend mode the
+ * campfire glow and the player's own lantern already use, so nothing new
+ * composites here and the three kinds of hole stack the way they always did.
+ *
+ * ⛔ NO texture, NO blend, NO scroll, NO colour, and the shortness is the ruling
+ * (L7). A clearing names no profile because it paints nothing: there is no look
+ * to author, so there is nothing to read.
+ */
+function cutHole(container: Container, clearing: Clearing): void {
+    const hole = new Graphics().poly(clearing.points).fill({color: 0xffffff});
+    hole.blendMode = 'erase';
+    container.addChild(hole);
 }
 
 /**
  * One atmosphere layer's share of one shape.
  *
- * ⛔ D3, and it is one branch: opacity `> 0` PAINTS, `=== 0` ERASES. An authored
- * clearing inside a dark bank is a thing an author will absolutely try,
- * `resolve()` gets it right on its own, and without the erase the outer shape's
- * fill would still cover it — so the drawing follows the resolution rule by
- * construction instead of by coincidence.
+ * ⛔ `opacity === 0` NO LONGER ERASES HERE (A4). It draws nothing at all, which
+ * is the honest reading of "this air declares zero darkness" — the ERASE is
+ * {@link cutHole}, reachable only by an AuraClearing, and that split is the
+ * whole of A4: one key had been doing two jobs, *how much* and *which
+ * operation*. ⚑ The early return is KEPT rather than deleted, because a
+ * zero-alpha Container full of children is a real cost for a shape nobody can
+ * see.
  *
  * ⛔ `flat` is what keeps DARKNESS colour-only. Darkness has no texture in the
  * world and none here: honouring `texture`/`scroll` on both halves would draw
@@ -608,12 +642,8 @@ function paintAir(
 ): void {
     const draw: DrawSurface = (g, style) => g.poly(atmosphere.points).fill(style);
     if (opacity <= 0) {
-        // The clearing. A stencil-shaped hole in whatever this layer drew before
-        // it, exactly like a light hole — and appended in array order, so a later
-        // bank can darken it again if that is what was authored.
-        const hole = draw(new Graphics(), {color: 0xffffff});
-        hole.blendMode = 'erase';
-        container.addChild(hole);
+        // Declared zero: there is nothing to draw. ⛔ NOT an erase — that is
+        // cutHole's job and an AuraClearing's alone (A4).
         return;
     }
     const group = new Container();

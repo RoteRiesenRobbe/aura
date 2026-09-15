@@ -128,8 +128,12 @@
       "(pick a profile)",
       "Cave Air",
       "Gloom",
-      "Fog",
-      "Clearing"
+      "Fog"
+    ],
+    "AuraClears": [
+      "darkness",
+      "haze",
+      "both"
     ]
   },
   "TERRAIN_TYPES": [
@@ -330,7 +334,6 @@
   "AIR_PROFILE_NAMES": [
     "Cave Air",
     "Gloom",
-    "Fog",
-    "Clearing"
+    "Fog"
   ]
 }

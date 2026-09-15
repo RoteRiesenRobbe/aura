@@ -157,6 +157,19 @@ interface AtmosphereDefinition {
     points: { x: number, y: number }[];
 }
 
+// The HOLES cut in that air (plan-region-atmosphere.md A4). Declared locally
+// like every shape above it.
+//
+// ⛔ TWO fields and NO PROFILE, and the absence IS the ruling (L7). A clearing
+// paints nothing, so an author reaching for "what colour is my clearing" must
+// find NOTHING rather than a field that quietly means something else — which is
+// the whole of A4, where the PO rejected `darkness: 0` meaning ERASE because
+// one key was doing two jobs, *how much* and *which operation*.
+interface ClearingDefinition {
+    clears: 'darkness' | 'haze' | 'both';
+    points: { x: number, y: number }[];
+}
+
 interface CampfireDefinition {
     x: number;
     y: number;
@@ -206,6 +219,11 @@ export interface ZoneJSON {
     // (D15). ⚑ The warning in the `paths` note applies to it exactly — an array
     // not named HERE never reaches the renderer, with no error anywhere.
     atmospheres?: AtmosphereDefinition[];
+    // The HOLES cut in that air, read by Clearings.loadClearings
+    // (plan-region-atmosphere.md A4). ⛔ It names NO profile: a clearing paints
+    // nothing, so there is no look to author (L7). ⚑ Same warning as every
+    // array above — one not named HERE never reaches the renderer, silently.
+    clearings?: ClearingDefinition[];
     // World campfires (chunk 2): read by the darkness overlay for their
     // static glow (chunk 4 follow-up).
     campfires?: CampfireDefinition[];

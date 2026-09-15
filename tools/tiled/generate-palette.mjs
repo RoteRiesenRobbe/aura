@@ -256,6 +256,17 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles) {
         // same rule, a different list — which is what makes naming `Forest` on
         // a fog bank impossible rather than merely wrong.
         enumType('AuraAtmosphereProfile', [PROFILE_UNSET].concat(airProfiles)),
+        // ⭐ A4's vocabulary, and the ONE enum here that is not a profile table:
+        // it names which LAYERS a hole cuts. Mirrors world.ClearsDarkness /
+        // ClearsHaze / ClearsBoth in zone.go, which refuses anything outside it.
+        //
+        // ⛔ NO PROFILE_UNSET SENTINEL, and that is the difference from every
+        // enum above it. A sentinel exists where "unassigned" is a real state the
+        // save must refuse — a region with no profile repaints the ground in
+        // whichever name sorts first. A clearing has no such state: it always
+        // cuts something, 'both' is the honest default, and offering an
+        // unassigned entry would invent a broken shape the author can pick.
+        enumType('AuraClears', ['darkness', 'haze', 'both']),
         classType('AuraTerrain', '#ff8bc34a'),
         classType('AuraProp', '#fff44336'),
         classType('AuraCampfire', '#ffff9800'),
@@ -310,6 +321,26 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles) {
         // vocabulary behind it differs.
         classType('AuraAtmosphere', '#ff9e9e9e',
             [member('profile', 'string', PROFILE_UNSET, 'AuraAtmosphereProfile')]),
+        // ⭐ THE HOLE (plan-region-atmosphere.md A4) — the second class on the
+        // atmospheres layer, told apart from the air it cuts by CLASS the way
+        // AuraPolygon is told from AuraPath (zone-polygons D5).
+        //
+        // ⛔ NO PROFILE MEMBER, AND THE EMPTINESS IS THE RULING (L7). This is
+        // the whole of A4: the PO rejected 'darkness: 0 means erase' because one
+        // key was doing two jobs, "how much" and "which operation". The class now
+        // carries the operation and a profile carries only the look — so
+        // 'darkness: 0' on an AuraAtmosphereProfile became a plain DECLARATION of
+        // zero, which is legal, useful, and unsayable before. An author reaching
+        // here for "what colour is my clearing" must find NOTHING.
+        //
+        // ⚑ 'both' is the default and it must stay equal to CLEARS_DEFAULT in
+        // aura-convert.js. The C6 rule applies with no sentinel available: a
+        // Tiled that DROPS a default-valued property and one that KEEPS it have
+        // to reach the same answer, and readClears supplies exactly this value
+        // when the property is absent. Changing one side alone would silently
+        // rewrite every freshly drawn clearing on its first save.
+        classType('AuraClearing', '#ffffeb3b',
+            [member('clears', 'string', 'both', 'AuraClears')]),
     ];
     for (const kind of Object.keys(KIND_COLOUR)) {
         types.push(classType('AuraSpawn' + kind[0].toUpperCase() + kind.slice(1),

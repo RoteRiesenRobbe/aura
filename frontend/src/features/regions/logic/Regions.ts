@@ -437,8 +437,14 @@ let regions: Region[] = [];
 
 /** Ray casting. Vertices and edges are not special-cased: a point exactly on a
  *  shared edge lands in one region or the other, never neither, and no consumer
- *  can tell the difference at pixel scale. */
-function pointInPolygon(point: RegionPoint, polygon: RegionPoint[]): boolean {
+ *  can tell the difference at pixel scale.
+ *
+ *  ⭐ EXPORTED since A4, and the export is the point: a clearing names no
+ *  profile, so it can never ride `resolveIn` the way the four profile-bearing
+ *  shapes do — but it must answer the SAME containment question, by the same
+ *  rule, or a hole would be drawn in one place and resolved in another. One
+ *  ray-cast, four callers. */
+export function pointInPolygon(point: RegionPoint, polygon: RegionPoint[]): boolean {
     let inside = false;
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
         const a = polygon[i], b = polygon[j];

@@ -79,6 +79,23 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
     // Counts are DERIVED from the file, never hardcoded: world.json is live
     // content and every authored edit would otherwise turn this red. What is
     // being asserted is "no array loses objects", not any particular census.
+    //
+    // ⭐ A LAYER IS NOT ALWAYS ONE ARRAY, and this is the only structural fact
+    // this test has to state rather than derive. Two layers carry two classes
+    // each: `paths` holds AuraPath + AuraPolygon (zone-polygons D5) and, since
+    // A4, `atmospheres` holds AuraAtmosphere + AuraClearing.
+    //
+    // ⛔ THE PATHS ROW WAS ALREADY WRONG AND NOBODY KNEW, which is the durable
+    // point. This test has asserted layer-count == same-named-array-count since
+    // before D5 shipped, and it kept passing only because no zone authors a
+    // polygon yet — authoring one would have reddened it with nothing broken.
+    // A4 made the same latent defect fire at once, because world.json DOES
+    // author a clearing. The bug was found by content, not by the suite.
+    const SHARED_LAYERS: Record<string, string[]> = {
+        paths: ['polygons', 'paths'],
+        atmospheres: ['atmospheres', 'clearings'],
+    };
+
     it('maps every array onto its own layer, losing nothing', () => {
         const src = JSON.parse(worldText);
         const model = C.zoneToModel(src);
@@ -87,8 +104,28 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
             counts[l.name] = l.objects.length;
         });
         const expected: Record<string, number> = {};
-        C.LAYERS.forEach((name: string) => { expected[name] = (src[name] || []).length; });
+        C.LAYERS.forEach((name: string) => {
+            expected[name] = (SHARED_LAYERS[name] || [name])
+                .reduce((n, array) => n + (src[array] || []).length, 0);
+        });
         expect(counts).toEqual(expected);
+    });
+
+    // ⚑ The guard on the map above: a layer that stops being shared, or an array
+    // that moves off one, would make the sum silently wrong in the other
+    // direction and this test would go back to passing for the wrong reason.
+    it('every array named in SHARED_LAYERS is real, and includes the layer itself', () => {
+        const src = JSON.parse(worldText);
+        Object.keys(SHARED_LAYERS).forEach((layerName) => {
+            const arrays = SHARED_LAYERS[layerName];
+            expect(C.LAYERS).toContain(layerName);
+            arrays.forEach(a => {
+                expect(src[a] === undefined || Array.isArray(src[a])).toBe(true);
+            });
+            // The layer's own name must be one of the arrays it carries, or the
+            // reduce above would be counting a layer that has no array at all.
+            expect(arrays).toContain(layerName);
+        });
     });
 
     it('terrain paint order is preserved as index draw order', () => {
@@ -592,6 +629,98 @@ describe('AuraConvert — save-time validation (C4)', () => {
         expect(back.polygons).toHaveLength(1);
         expect(back.polygons[0].profile).toBe('Water');
         expect(back.polygons[0]).not.toHaveProperty('width');
+    });
+
+    // ---- A4: the SECOND shared layer, and its own class split -------------
+    //
+    // ⛔ THESE LEGS EXIST BECAUSE A MUTATION SURVIVED WITHOUT THEM. Pointing
+    // modelToZone's `atmospheres` back at the whole layer — the exact defect
+    // zone-polygons D5 produced on the paths layer — left the completeness pin,
+    // the round-trip pin and all 133 other legs GREEN, because the pin compares
+    // KEYS and both keys were still emitted. What it actually does is hand every
+    // clearing back a second time as an atmosphere whose profile is the string
+    // "darkness", which no profile table contains: the fog bank grows a shape
+    // that paints nothing, and the file on disk quietly gains it on every save.
+
+    function airZone() {
+        return zone({
+            atmospheres: [{
+                profile: 'Fog',
+                points: [{x: 0, y: 0}, {x: 6, y: 0}, {x: 6, y: 6}],
+            }],
+            clearings: [{
+                clears: 'darkness',
+                points: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 3}],
+            }],
+        });
+    }
+
+    it('air and clearings on one layer round-trip into their own arrays', () => {
+        const model = C.zoneToModel(airZone());
+        const layer = model.layers.find((l: {name: string}) => l.name === 'atmospheres');
+        // ⚑ ATMOSPHERES FIRST, THEN CLEARINGS — D17's order, so the canvas shows
+        // the z-order the client draws and the resolver answers.
+        expect(layer.objects.map((o: {cls: string}) => o.cls))
+            .toEqual(['AuraAtmosphere', 'AuraClearing']);
+
+        const back = C.modelToZone(model);
+        expect(back.atmospheres).toHaveLength(1);
+        expect(back.atmospheres[0].profile).toBe('Fog');
+        expect(back.clearings).toHaveLength(1);
+        expect(back.clearings[0].clears).toBe('darkness');
+        // ⛔ L7 on the wire: a clearing paints nothing, so it must come back with
+        // NO profile. zone.go refuses the key by name, so a converter that added
+        // one would write a file that no longer boots.
+        expect(back.clearings[0]).not.toHaveProperty('profile');
+    });
+
+    it('an object on the atmospheres layer with no recognised class is refused by id', () => {
+        const model = C.zoneToModel(airZone());
+        const layer = model.layers.find((l: {name: string}) => l.name === 'atmospheres');
+        layer.objects.push({
+            shape: 'polygon', layer: 'atmospheres', name: 'stray', cls: '', id: 4243,
+            x: 0, y: 0, width: 0, height: 0, rotation: 0, flipH: false, flipV: false,
+            polygon: [{x: 0, y: 0}, {x: 10, y: 0}, {x: 10, y: 10}], properties: {},
+        });
+        const msg = C.validateModel(model).join(' | ');
+        expect(msg).toContain('AuraAtmosphere');
+        expect(msg).toContain('AuraClearing');
+        expect(msg).toContain('DROPPED on save');
+    });
+
+    // ⭐ The C6 rule with no sentinel available. Tiled may DROP a property still
+    // sitting at its declared default, so an absent `clears` has to read back as
+    // that same default — otherwise a freshly drawn clearing becomes a different
+    // clearing the first time it is saved. The palette's member default and
+    // aura-convert's CLEARS_DEFAULT are the two halves that must agree.
+    it('an absent clears reads back as the palette default', () => {
+        const model = C.zoneToModel(airZone());
+        const layer = model.layers.find((l: {name: string}) => l.name === 'atmospheres');
+        const hole = layer.objects.find((o: {cls: string}) => o.cls === 'AuraClearing');
+        delete hole.properties.clears;
+        expect(C.validateModel(model)).toEqual([]);
+        expect(C.modelToZone(model).clearings[0].clears).toBe('both');
+    });
+
+    // ⛔ REFUSED, never defaulted — the asymmetry with the leg above is the
+    // point. Absent is Tiled being tidy; present-and-wrong is the author having
+    // typed something, and a clearing that silently cleared nothing looks on
+    // screen exactly like one drawn in the wrong place.
+    it('a clears value outside the closed set is refused by id', () => {
+        const model = C.zoneToModel(airZone());
+        const layer = model.layers.find((l: {name: string}) => l.name === 'atmospheres');
+        const hole = layer.objects.find((o: {cls: string}) => o.cls === 'AuraClearing');
+        hole.properties.clears = 'sight';
+        const msg = C.validateModel(model).join(' | ');
+        expect(msg).toContain('clears');
+        expect(msg).toContain('darkness, haze, both');
+    });
+
+    // ⚑ A clearing is air, so it refuses everything an atmosphere refuses. The
+    // serializer must not grow a collision key "for symmetry with polygons".
+    it('a clearing serializes exactly two keys', () => {
+        const out = JSON.parse(C.serializeZone(C.modelToZone(C.zoneToModel(airZone()))));
+        expect(Object.keys(out.clearings[0]).sort()).toEqual(['clears', 'points']);
     });
 
     it('a decorative polygon emits no blocksMovement key', () => {
@@ -1219,6 +1348,20 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         atmospheres: [{
             profile: 'CaveAir',
             points: [{x: 1, y: 2}, {x: 7, y: 2}, {x: 7, y: 6}],
+        }],
+        // ⛔ TWO keys and NO PROFILE — the A4 ruling in the fixture (L7). A
+        // clearing paints nothing, so there is no look to name, and authoring a
+        // profile here "for symmetry with the atmosphere above" would demand
+        // both writers round-trip a key zone.go refuses by name.
+        //
+        // ⚑ It SHARES the atmospheres layer with the shape above it and is told
+        // apart by CLASS (zone-polygons D5's scheme, not D16's), so this is also
+        // the fixture that proves the split survives a round-trip: a converter
+        // that read the layer whole would hand both objects back as atmospheres
+        // and lose the clears value with nothing else noticing.
+        clearings: [{
+            clears: 'darkness' as const,
+            points: [{x: 3, y: 3}, {x: 5, y: 3}, {x: 5, y: 5}],
         }],
         anchors: [{name: 'a', x: 8, y: 8}],
     };

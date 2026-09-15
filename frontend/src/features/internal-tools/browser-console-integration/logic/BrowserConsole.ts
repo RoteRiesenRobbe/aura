@@ -3,6 +3,7 @@
  */
 import {BackendValidTokenEvent, GameSetupEvent, PlayerCreatedEvent} from '../../../core/logic/Events';
 import * as Console from '../../console/logic/Console';
+import * as DarknessOverlay from '../../../darkness/logic/DarknessOverlay';
 import {Player} from "../../../player/logic/Player";
 import {IGame} from "../../../core/logic/IGame";
 
@@ -16,6 +17,7 @@ function setup() {
         play: undefined,
         miniMap: undefined,
         layers: undefined,
+        darkness: undefined,
     };
 
     consoleCommands.run = Console.run;
@@ -39,6 +41,18 @@ function setup() {
         // stage-index assertion is the only way to pin it; by eye, a fire that
         // has quietly slipped back under the avatar looks like nothing at all.
         consoleCommands.layers = game.layers;
+        // ⛔ THE ONE QUERY IN THIS FEATURE A SCREENSHOT CANNOT CHECK
+        // (plan-region-atmosphere.md A4). `isHidden` decides whether a mob's
+        // nameplate is readable, and since A4 a CLEARING answers it through a
+        // path the profile walk cannot see — a clearing names no profile, so it
+        // is invisible to `resolveIn`. Get that seam wrong and the picture stays
+        // PERFECT: the hole is painted, the mob is lit, and every nameplate
+        // inside the lit pocket is hidden with nothing thrown.
+        //
+        // ⚑ Same precedent and same reason as `miniMap` and `layers` above: an
+        // internal-tools surface, read-only, exposed so the harness can ASSERT
+        // rather than screenshot. Nothing in the game reads it back.
+        consoleCommands.darkness = {isHidden: DarknessOverlay.isHidden};
 
         return true;
     });
