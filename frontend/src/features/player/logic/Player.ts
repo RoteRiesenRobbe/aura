@@ -119,13 +119,18 @@ export class Player {
                 HUD.pulseAuraMetronome();
             }
         }
-        // Own light hole in the darkness overlay (chunk 3). Floored at a TINY
-        // self-glow (PO ruling 2026-07-17: darkness stays fully dark — the
-        // hole may cover the avatar itself and nothing more). Other entities
-        // keep the raw wire value. [PLACEHOLDER]
+        // Own light hole in the darkness overlay (chunk 3), marked `own` so the
+        // overlay applies the sight floor to it and to nothing else.
+        //
+        // ⭐ The floor USED TO BE APPLIED HERE as `Math.max(..., 40)` and moved
+        // into the overlay at A2, because `sight` made it authorable: it is now
+        // `DEFAULT_PROFILE.sight`, resolved per frame at the player's position
+        // and eased across boundaries (D7 — `max(wire, sight)`, so a region can
+        // only ever make you see MORE). ⛔ Flooring again here would pin the
+        // hole at the old constant and silently cap every authored `sight`
+        // below it, which no test would catch because both numbers are right.
         if (isDefined(entity.lightRadius)) {
-            DarknessOverlay.setLightRadius(this.character,
-                Math.max(entity.lightRadius, MIN_SELF_LIGHT_PX));
+            DarknessOverlay.setLightRadius(this.character, entity.lightRadius, true);
         }
         if (isDefined(entity.level)) {
             // Level-up notification: the server sends no event — detect the
@@ -212,10 +217,6 @@ export class Player {
     }
 }
 
-// Minimum radius (px) of the own character's darkness hole — deliberately
-// tiny, just covering the avatar sprite itself (PO: darkness stays fully
-// dark). [PLACEHOLDER]
-const MIN_SELF_LIGHT_PX = 40;
 
 // Level-up overhead flash: gold matching the banner's unlock/levelup color,
 // crit-sized so it pops over the simultaneous +XP number.

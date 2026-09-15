@@ -58,7 +58,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 function expectations() {
   const root = join(outDir, '../../..');
   const zone = JSON.parse(readFileSync(join(root, 'api/zones/world.json'), 'utf8'));
-  const table = JSON.parse(readFileSync(join(root, 'frontend/src/client-data/profiles.json'), 'utf8'));
+  const table = JSON.parse(readFileSync(join(root, 'frontend/src/client-data/terrain-profiles.json'), 'utf8'));
   const regions = (zone.regions || []).map((r) => {
     const xs = r.points.map(p => p.x), ys = r.points.map(p => p.y);
     const texture = table[r.profile] && table[r.profile].texture;

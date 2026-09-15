@@ -664,6 +664,97 @@ describe('AuraConvert — save-time validation (C4)', () => {
         expect(C.modelToZone(model).paths[0].outlineProfile).toBeUndefined();
     });
 
+    // ---- ⭐ RECTANGLES on the three closed-area layers ---------------------
+    //
+    // ⛔ THIS BLOCK EXISTS BECAUSE A REAL BOOT BROKE (2026-09-14). The
+    // atmospheres layer was added without a validateModel leg — the only shape
+    // layer without one — so Tiled happily saved three objects with no vertices
+    // and aurad died on "needs at least 3 points to enclose an area, got 0".
+    // Save-time validation exists precisely to catch what the server would
+    // reject while the author is still looking at the object.
+    //
+    // ⭐ The PO's instinct was the right one: "i used rectangle in tiled,
+    // assuming it would convert to a polygon cleanly". A rect IS a closed area,
+    // so all three closed-area layers now accept one and convert it to its four
+    // corners; the refusal that used to greet it was the wrong call.
+
+    // Where each closed-area type lives, and the class Tiled marks it with.
+    const CLOSED_AREAS: [string, string, string][] = [
+        ['regions', 'AuraRegion', 'Swamp'],
+        ['paths', 'AuraPolygon', 'Mountains'],
+        ['atmospheres', 'AuraAtmosphere', 'Fog'],
+    ];
+
+    // A Tiled object as the format writer hands it back, on the given layer.
+    function areaObject(layer: string, cls: string, profile: string,
+                        over: Record<string, unknown> = {}) {
+        return {
+            shape: 'rect', layer, cls, name: profile, id: 4242,
+            x: 1200, y: 600, width: 600, height: 360, rotation: 0,
+            flipH: false, flipV: false, properties: {profile},
+            ...over,
+        };
+    }
+
+    function withArea(layer: string, cls: string, profile: string,
+                      over: Record<string, unknown> = {}) {
+        const model = C.zoneToModel(zone());
+        model.layers.find((l: {name: string}) => l.name === layer)
+            .objects.push(areaObject(layer, cls, profile, over));
+        return model;
+    }
+
+    CLOSED_AREAS.forEach(([layer, cls, profile]) => {
+        it(`a RECTANGLE on the ${layer} layer converts to four corners`, () => {
+            const model = withArea(layer, cls, profile);
+            expect(C.validateModel(model)).toEqual([]);
+
+            const back = C.modelToZone(model);
+            const key = layer === 'paths' ? 'polygons' : layer;
+            const pts = back[key][back[key].length - 1].points;
+            // 1200,600 px at 120 px/u is (10, 5) from the top-left of a 20x10
+            // zone, i.e. (0, 0) in world units; the rect is 5 x 3 u.
+            expect(pts).toEqual([
+                {x: 0, y: 0}, {x: 5, y: 0}, {x: 5, y: 3}, {x: 0, y: 3},
+            ]);
+        });
+
+        it(`a rectangle with NO SIZE on ${layer} is refused, not silently empty`, () => {
+            // ⛔ The case the point count CANNOT catch, and it is worse than the
+            // crash it replaces: a rect always yields four corners, so a 0x0 one
+            // passes "at least 3 points" on both sides, boots, and then draws
+            // nothing, blocks nothing and says nothing.
+            const msg = C.validateModel(withArea(layer, cls, profile,
+                {width: 0, height: 0})).join(' | ');
+            expect(msg).toContain('no size');
+        });
+
+        it(`an ELLIPSE on ${layer} is refused by name`, () => {
+            const msg = C.validateModel(withArea(layer, cls, profile,
+                {shape: 'ellipse'})).join(' | ');
+            expect(msg).toContain('POLYGON or a RECTANGLE');
+            expect(msg).toContain('an ellipse');
+        });
+
+        it(`a vertex-less POLYGON on ${layer} is refused — the boot that broke`, () => {
+            const msg = C.validateModel(withArea(layer, cls, profile,
+                {shape: 'polygon', polygon: []})).join(' | ');
+            expect(msg).toContain('at least 3 points');
+        });
+    });
+
+    // ⚑ A rect anchors at its TOP-LEFT and rotates about that — the plain-rect
+    // convention, NOT the tile convention the boxed objects use. Getting it
+    // wrong would put a rotated area's corners somewhere plausible and wrong.
+    it('a rotated rectangle rotates about its top-left corner', () => {
+        const back = C.modelToZone(withArea('atmospheres', 'AuraAtmosphere', 'Fog',
+            {rotation: 90}));
+        // A 5 x 3 rect turned a quarter turn spans 3 across and 5 down.
+        expect(back.atmospheres[back.atmospheres.length - 1].points).toEqual([
+            {x: 0, y: 0}, {x: 0, y: 5}, {x: -3, y: 5}, {x: -3, y: 0},
+        ]);
+    });
+
     it('the shipped world.json has nothing to complain about', () => {
         expect(C.validateModel(C.zoneToModel(JSON.parse(worldText)))).toEqual([]);
     });
@@ -775,7 +866,102 @@ describe('AuraConvert — save-time validation (C4)', () => {
     it('rejects an unknown profile name, now that the palette carries the vocabulary', () => {
         const msg = only(region({profile: 'no-such-profile'}));
         expect(msg).toContain('unknown profile "no-such-profile"');
-        expect(msg).toContain('profiles.json');
+        // ⛔ The FULL filename, not a substring of it: since the 2026-09-15
+        // split there are two tables, and 'profiles.json' alone matches both.
+        expect(msg).toContain('terrain-profiles.json');
+    });
+
+    // ⭐ THE SPLIT’S OWN CHECK (PO 2026-09-15). The ground and the air keep
+    // separate profile namespaces, and this is the pair of messages that makes
+    // a crossed name say WHERE the name actually lives rather than the true but
+    // useless "unknown profile". ⚑ Both names are DERIVED from the palette, so
+    // renaming a profile cannot redden this.
+    describe('a profile from the OTHER table is refused by name (2026-09-15)', () => {
+        const AN_AIR_PROFILE = (content.AIR_PROFILE_NAMES as string[])[0];
+
+        it('refuses an atmosphere profile on a region, and says so', () => {
+            const msg = only(region({profile: AN_AIR_PROFILE}));
+            expect(msg).toContain('"' + AN_AIR_PROFILE + '" is an atmosphere profile');
+            expect(msg).toContain('atmosphere-profiles.json');
+            expect(msg).toContain('needs one from terrain-profiles.json');
+        });
+
+        it('refuses a terrain profile on an atmosphere, and says so', () => {
+            const msg = only(zone({
+                atmospheres: [{
+                    profile: A_REAL_PROFILE,
+                    points: [{x: 0, y: 0}, {x: 2, y: 0}, {x: 2, y: 2}],
+                }],
+            }));
+            expect(msg).toContain('"' + A_REAL_PROFILE + '" is a terrain profile');
+            expect(msg).toContain('terrain-profiles.json');
+            expect(msg).toContain('needs one from atmosphere-profiles.json');
+        });
+
+        // ⚑ The two lists must be disjoint or the messages above are
+        // nonsense — a name in both would resolve differently per call site.
+        it('keeps the two vocabularies disjoint', () => {
+            const ground = content.PROFILE_NAMES as string[];
+            const air = content.AIR_PROFILE_NAMES as string[];
+            expect(ground.filter(n => air.indexOf(n) >= 0)).toEqual([]);
+            expect(air.length).toBeGreaterThan(0);
+        });
+    });
+
+    // ⭐ WHICH ENUM EACH CLASS MEMBER DECLARES — pinned HERE because nothing
+    // else can see it. ⛔ Measured 2026-09-16, not assumed: verify.sh’s Tiled
+    // round-trip CANNOT catch this. Headless --export-map loads no project, so
+    // tiled.propertyValue throws and aura-world-format.js falls back to writing
+    // the bare string (its typedValue), which round-trips whatever the member
+    // says. Pointing AuraAtmosphere.profile back at AuraProfile was mutation-
+    // tested against the full verify.sh and every leg stayed GREEN — the only
+    // visible symptom is the wrong DROPDOWN in the GUI, which is why this pin
+    // exists and why verify.sh’s footer now asks a human to look.
+    describe('the generated palette wires each class to its own vocabulary', () => {
+        const types = nodeRequire('../../../../../tools/tiled/palette/propertytypes.json')
+            .propertyTypes as {name: string; type: string; values?: string[];
+                members?: {name: string; propertyType?: string}[]}[];
+        const classOf = (name: string) => {
+            const found = types.filter(t => t.name === name)[0];
+            expect(found, name + ' is missing from the palette').toBeTruthy();
+            return found;
+        };
+        const memberType = (cls: string, member: string) => {
+            const m = (classOf(cls).members || []).filter(x => x.name === member)[0];
+            expect(m, cls + '.' + member + ' is missing').toBeTruthy();
+            return m.propertyType;
+        };
+
+        it('gives the atmosphere layer the AIR enum', () => {
+            expect(memberType('AuraAtmosphere', 'profile')).toBe('AuraAtmosphereProfile');
+        });
+
+        // ⚑ And the ground classes keep the ground one. Asserting only the
+        // atmosphere would pass a palette that had moved EVERYTHING to the air
+        // enum, which is the same bug wearing the other shoe.
+        it('leaves every ground surface on the terrain enum', () => {
+            expect(memberType('AuraRegion', 'profile')).toBe('AuraProfile');
+            expect(memberType('AuraPath', 'profile')).toBe('AuraProfile');
+            expect(memberType('AuraPolygon', 'profile')).toBe('AuraProfile');
+        });
+
+        // ⚑ An outline is a GROUND surface even on a shape that is not — it
+        // strokes the boundary, so it paints from the terrain table.
+        it('keeps outlines on the terrain enum, on both surface types', () => {
+            expect(memberType('AuraPath', 'outlineProfile')).toBe('AuraProfile');
+            expect(memberType('AuraPolygon', 'outlineProfile')).toBe('AuraProfile');
+        });
+
+        // ⭐ The enum VALUES must match the name lists the converter validates
+        // against, or the dropdown offers something the save then refuses.
+        // Both carry the placeholder at index 0 and the names after it.
+        it('offers exactly the names the converter will accept', () => {
+        const values = (name: string) => classOf(name).values as string[];
+            expect(values('AuraProfile').slice(1))
+                .toEqual(content.PROFILE_NAMES as string[]);
+            expect(values('AuraAtmosphereProfile').slice(1))
+                .toEqual(content.AIR_PROFILE_NAMES as string[]);
+        });
     });
 
     // The dropdown the generator emits, exercised end to end: every name it
@@ -1019,6 +1205,20 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             points: [{x: 2, y: 1}, {x: 6, y: 1}, {x: 6, y: 5}],
             blocksMovement: true,
             outlineProfile: 'Ice', outlineWidth: 1.25,
+        }],
+        // ⛔ TWO keys and no third — the D15 ruling in the fixture. An
+        // atmosphere is air: no blocksMovement, no outline, no width. Authoring
+        // one here "for symmetry" would make this pin demand that both writers
+        // round-trip a key zone.go refuses by name, i.e. demand they produce a
+        // zone file that no longer boots.
+        //
+        // ⚑ It has its OWN Tiled layer rather than riding `paths` by class
+        // (D16), so this is also the fixture that proves the ninth layer is
+        // read back — a converter that forgot to add it to LAYERS would lose
+        // every shape on it and nothing else would notice.
+        atmospheres: [{
+            profile: 'CaveAir',
+            points: [{x: 1, y: 2}, {x: 7, y: 2}, {x: 7, y: 6}],
         }],
         anchors: [{name: 'a', x: 8, y: 8}],
     };

@@ -175,6 +175,21 @@ export interface ZonePolygon {
     outlineWidth?: number;
 }
 
+// The AIR over an area — how dark this place is, how far you see inside it, and
+// what the murk looks like (plan-region-atmosphere.md A0).
+//
+// ⚑ Carried, never edited, exactly like ZoneRegion, ZonePath and ZonePolygon.
+//
+// ⛔ TWO fields, and the shortness is the ruling (D15): an atmosphere is NOT a
+// ZonePolygon. No blocksMovement, no outline, no width — a polygon is a wall you
+// walk into, an atmosphere is air you walk through, and they share a shape and
+// nothing else. Adding a collision field here would make it survive a round-trip
+// and do nothing, which is worse than it being refused.
+export interface ZoneAtmosphere {
+    profile: string;
+    points: { x: number, y: number }[];
+}
+
 export interface ZoneData {
     name: string;
     bounds: ZoneBounds;
@@ -197,6 +212,7 @@ export interface ZoneData {
     regions?: ZoneRegion[];
     paths?: ZonePath[];
     polygons?: ZonePolygon[];
+    atmospheres?: ZoneAtmosphere[];
     // Omitted when empty so pre-C6 zones round-trip diff-clean.
     anchors?: ZoneAnchor[];
 }
@@ -296,6 +312,7 @@ export class ZoneModel {
     // Carried, never edited — see ZonePath and the region field above.
     paths: ZonePath[] = [];
     polygons: ZonePolygon[] = [];
+    atmospheres: ZoneAtmosphere[] = [];
     // Carried, never edited — see ZoneData.origin. undefined means the zone
     // authors no origin at all, which must serialize back to NO KEY rather
     // than to {x: 0, y: 0}, or every existing zone file gains a line on its
@@ -352,6 +369,10 @@ export class ZoneModel {
             blocksMovement: g.blocksMovement,
             outlineProfile: g.outlineProfile,
             outlineWidth: g.outlineWidth,
+        }));
+        model.atmospheres = (data.atmospheres || []).map(a => ({
+            profile: a.profile,
+            points: (a.points || []).map(pt => ({...pt})),
         }));
         model.origin = data.origin ? {x: data.origin.x, y: data.origin.y} : undefined;
         return model;
@@ -561,6 +582,20 @@ export class ZoneModel {
                     blocksMovement: g.blocksMovement ? true : undefined,
                     outlineProfile: g.outlineProfile || undefined,
                     outlineWidth: g.outlineProfile ? round(g.outlineWidth || 0, 2) : undefined,
+                }))
+                : undefined,
+            // ⚑ Named here or the whitelist eats it (L1) — the SIXTH time this
+            // comment has had to be written, after spawn.level, prop.scale,
+            // regions, paths and polygons. This editor cannot author an
+            // atmosphere either, so a missing line here deletes somebody else's
+            // work in Tiled and every test stays green.
+            //
+            // ⛔ Two keys and no third. There is deliberately no blocksMovement
+            // and no outline to carry (D15) — an atmosphere is air.
+            atmospheres: this.atmospheres.length > 0
+                ? this.atmospheres.map(a => ({
+                    profile: a.profile,
+                    points: a.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
                 }))
                 : undefined,
             // Omitted (undefined key) while empty, so pre-C6 zones round-trip

@@ -22,7 +22,7 @@ var AuraConvert = (function () {
     var PX = 120;
 
     // Layer name selects the world.json array (D5).
-    var LAYERS = ['terrain', 'props', 'spawns', 'campfires', 'darkAreas', 'regions', 'paths', 'anchors'];
+    var LAYERS = ['terrain', 'props', 'spawns', 'campfires', 'darkAreas', 'regions', 'paths', 'atmospheres', 'anchors'];
 
     // ZoneModel's rounding helper, verbatim.
     function round(value, digits) {
@@ -62,6 +62,40 @@ var AuraConvert = (function () {
         return {x: x + (w / 2 * c - h / 2 * s), y: y + (w / 2 * s + h / 2 * c)};
     }
 
+    /* The vertices of a CLOSED-AREA object — a region, an AuraPolygon or an
+     * atmosphere — in pixels RELATIVE to o.x/o.y, which is the form o.polygon
+     * already takes.
+     *
+     * ⭐ A RECTANGLE converts to its four corners instead of being refused
+     * (PO 2026-09-14: "i used rectangle in tiled, assuming it would convert to a
+     * polygon cleanly"). The assumption was right and the old refusal was the
+     * wrong call: a rect IS a closed area, and it is the natural tool for a big
+     * fog bank or a rock mass. All three closed-area layers accept one.
+     *
+     * ⚑ A plain rect anchors at its TOP-LEFT and rotates about that — the same
+     * convention rectAnchor/rectCentre above already encode, and NOT the tile
+     * convention the boxed objects use. Getting that wrong would put a rotated
+     * area's corners in the wrong place with nothing to say so.
+     *
+     * ⛔ ONE-WAY, and worth knowing before you draw: the zone format has no
+     * rectangle for these arrays, so a rect SAVES as four points and REOPENS as
+     * a polygon. The shape is identical — nothing is lost — but you cannot drag
+     * it by its handles as a rect afterwards.
+     */
+    function aOrAn(word) {
+        return ('aeiou'.indexOf(String(word).charAt(0).toLowerCase()) >= 0 ? 'an ' : 'a ') + word;
+    }
+
+    function closedAreaPoints(o) {
+        if (o.shape !== 'rect') { return o.polygon || []; }
+        var t = deg2rad(o.rotation || 0), c = Math.cos(t), s2 = Math.sin(t);
+        var w = o.width || 0, h = o.height || 0;
+        var corners = [[0, 0], [w, 0], [w, h], [0, h]];
+        return corners.map(function (pt) {
+            return {x: pt[0] * c - pt[1] * s2, y: pt[0] * s2 + pt[1] * c};
+        });
+    }
+
     // Which anchor convention the boxed objects (terrain, props) use. C2 gave
     // them real tilesets, so they are tile objects now.
     var ANCHOR = 'tile';
@@ -76,7 +110,7 @@ var AuraConvert = (function () {
      * so the converter stays testable on its own. */
     var content = {
         TERRAIN_TYPES: [], PROP_SIZE: {}, MOB_KIND: {}, MOB_SPEED: {},
-        PROFILE_NAMES: [], ENUM_VALUES: {},
+        PROFILE_NAMES: [], AIR_PROFILE_NAMES: [], ENUM_VALUES: {},
     };
     function useContent(c) {
         content = {
@@ -84,11 +118,16 @@ var AuraConvert = (function () {
             PROP_SIZE: (c && c.PROP_SIZE) || {},
             MOB_KIND: (c && c.MOB_KIND) || {},
             MOB_SPEED: (c && c.MOB_SPEED) || {},
-            // The region profiles the client can actually resolve, straight out
-            // of frontend/src/client-data/profiles.json (D12). Absent means "no
+            // The profiles the client can actually resolve, straight out of
+            // frontend/src/client-data/terrain-profiles.json and its air
+            // sibling (D12). ⭐ TWO lists because they are two NAMESPACES: the
+            // ground and the air are separate tables, and holding both is what
+            // lets checkProfile say "that is an atmosphere profile" instead of
+            // the true but useless "unknown profile". Absent means "no
             // vocabulary loaded", and the unknown-profile check skips itself —
             // the same posture every other content check here takes.
             PROFILE_NAMES: (c && c.PROFILE_NAMES) || [],
+            AIR_PROFILE_NAMES: (c && c.AIR_PROFILE_NAMES) || [],
             ENUM_VALUES: (c && c.ENUM_VALUES) || {},
         };
     }
@@ -193,7 +232,11 @@ var AuraConvert = (function () {
     // leads the table and repaint that ground silently. Not a profile name, so
     // validation refuses the save until one is picked.
     var PROFILE_UNSET = '(pick a profile)';
-    var REGION_ENUMS = {profile: 'AuraProfile'};
+    // ⭐ TWO vocabularies since 2026-09-15, one per table. The MEMBER is called
+    // 'profile' in both because the ZONE KEY is the same; only the list behind
+    // it differs, which is what makes naming 'Forest' on a fog bank impossible
+    // in the Properties panel rather than merely wrong on screen.
+    var REGION_ENUMS = {profile: 'AuraProfile', air: 'AuraAtmosphereProfile'};
 
     /* Read a spawn object's authored values, with every sentinel resolved back
      * to "absent". The single source of truth for the table above. */
@@ -370,6 +413,24 @@ var AuraConvert = (function () {
                         blocksMovement: g.blocksMovement ? true : undefined,
                         outlineProfile: g.outlineProfile || undefined,
                         outlineWidth: g.outlineProfile ? round(g.outlineWidth, 2) : undefined,
+                    };
+                })
+                : undefined,
+            // The AIR over an area (plan-region-atmosphere.md A0). Points are
+            // never closed in the FILE, exactly as a region's and a polygon's
+            // are not.
+            //
+            // ⛔ TWO keys and no third. There is deliberately no blocksMovement
+            // and no outline to write (D15) — an atmosphere is air, and zone.go
+            // refuses those keys by name, so emitting one would produce a file
+            // that no longer boots.
+            atmospheres: z.atmospheres && z.atmospheres.length > 0
+                ? z.atmospheres.map(function (a) {
+                    return {
+                        profile: a.profile,
+                        points: a.points.map(function (v) {
+                            return {x: round(v.x, 2), y: round(v.y, 2)};
+                        }),
                     };
                 })
                 : undefined,
@@ -587,6 +648,38 @@ var AuraConvert = (function () {
             return o;
         });
 
+        // ⭐ An atmosphere gets its OWN LAYER, and it is the one place this file
+        // does NOT follow D5's class-discriminator (plan-region-atmosphere.md
+        // D16). Two reasons, and the first is decisive: `darkAreas` — the
+        // primitive atmosphere retires — already owns a layer, so sharing one
+        // would give the successor worse authoring than the thing it replaces.
+        // The second is that a polygon sits BESIDE a path while an atmosphere
+        // COVERS the walls and roads it darkens, and Tiled toggles visibility
+        // per LAYER and never per class — so on a shared layer there would be no
+        // way to hide the fog to select the wall underneath.
+        //
+        // ⛔ NO blocksMovement, NO outline, NO width (D15). An atmosphere is
+        // air: a polygon is a wall you walk into, this is what you walk through.
+        // The two share a shape and nothing else, and the short property bag
+        // here is that ruling where an author can see it.
+        // ⛔ enums.profile is REGION_ENUMS.air here, NOT .profile — this is the
+        // one writer of the four whose vocabulary is the atmosphere table.
+        var atmospheres = (z.atmospheres || []).map(function (a) {
+            var pts = a.points || [];
+            var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
+            var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
+            return {
+                shape: 'polygon', layer: 'atmospheres', name: a.profile, cls: 'AuraAtmosphere',
+                x: ox, y: oy, width: 0, height: 0, rotation: 0,
+                flipH: false, flipV: false,
+                polygon: pts.map(function (v) {
+                    return {x: px(v.x, hw) - ox, y: px(v.y, hh) - oy};
+                }),
+                properties: {profile: a.profile},
+                enums: {profile: REGION_ENUMS.air},
+            };
+        });
+
         var anchors = (z.anchors || []).map(function (a) {
             return {
                 shape: 'point', layer: 'anchors', name: a.name, cls: 'AuraAnchor',
@@ -625,6 +718,11 @@ var AuraConvert = (function () {
                 // splits them back out by class with each array's own order
                 // intact, so the round-trip stays byte-identical.
                 {name: 'paths', drawOrder: 'index', objects: polygons.concat(paths)},
+                // Atmosphere array order is draw order AND resolution order,
+                // regions' rule exactly (D0/D3: the last declaring shape wins,
+                // and a gloom:0 clearing erases the bank it sits inside), so
+                // this layer draws by index for the same reason.
+                {name: 'atmospheres', drawOrder: 'index', objects: atmospheres},
                 {name: 'anchors', drawOrder: 'index', objects: anchors},
             ],
         };
@@ -724,7 +822,7 @@ var AuraConvert = (function () {
             regions: layer('regions').map(function (o) {
                 return {
                     profile: readRegionProfile(o),
-                    points: (o.polygon || []).map(function (v) {
+                    points: closedAreaPoints(o).map(function (v) {
                         return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
                     }),
                 };
@@ -754,7 +852,7 @@ var AuraConvert = (function () {
             polygons: onLayer('paths', 'AuraPolygon').map(function (o) {
                 return {
                     profile: readRegionProfile(o),
-                    points: (o.polygon || []).map(function (v) {
+                    points: closedAreaPoints(o).map(function (v) {
                         return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
                     }),
                     blocksMovement: get(o, 'blocksMovement') ? true : undefined,
@@ -762,6 +860,22 @@ var AuraConvert = (function () {
                     outlineWidth: readOutlineProfile(o) !== undefined
                         ? (typeof get(o, 'outlineWidth') === 'number' ? get(o, 'outlineWidth') : 0)
                         : undefined,
+                };
+            }),
+            // ⚑ Read by LAYER, not by class (D16) — so unlike the paths layer
+            // this one needs no onLayer() split and cannot lose an object to a
+            // class it does not recognise.
+            //
+            // ⛔ Two keys out, two keys in. If a future reader is tempted to add
+            // blocksMovement here "for symmetry with polygons": don't. The
+            // server refuses the key by name, so it would round-trip into a zone
+            // file that no longer boots.
+            atmospheres: layer('atmospheres').map(function (o) {
+                return {
+                    profile: readRegionProfile(o),
+                    points: closedAreaPoints(o).map(function (v) {
+                        return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
+                    }),
                 };
             }),
             anchors: layer('anchors').map(function (o) {
@@ -1121,7 +1235,24 @@ var AuraConvert = (function () {
         // ⚑ Skipped when no palette is loaded, exactly like every other content
         // check here: the converter stays usable (and testable) without one.
         var profilesKnown = content.PROFILE_NAMES.length > 0;
-        function checkProfile(o, i, known) {
+
+        // ⭐ WHICH TABLE this shape’s profile must come from. Ground and air are
+        // separate namespaces (2026-09-15), so the check needs to know which one
+        // it is holding — and the payoff is the MESSAGE: naming an atmosphere
+        // profile on a region used to read "unknown profile", which is true and
+        // useless. Now it says where the name actually lives.
+        function vocabulary(air) {
+            return {
+                names: air ? (content.AIR_PROFILE_NAMES || []) : content.PROFILE_NAMES,
+                other: air ? content.PROFILE_NAMES : (content.AIR_PROFILE_NAMES || []),
+                file: air ? 'atmosphere-profiles.json' : 'terrain-profiles.json',
+                otherFile: air ? 'terrain-profiles.json' : 'atmosphere-profiles.json',
+                otherKind: air ? 'a terrain' : 'an atmosphere',
+            };
+        }
+
+        function checkProfile(o, i, known, air) {
+            var v = vocabulary(air);
             var profile = String(readRegionProfile(o) || '').replace(/^\s+|\s+$/g, '');
             if (!profile) {
                 bad(o, i, 'profile must not be empty');
@@ -1130,22 +1261,24 @@ var AuraConvert = (function () {
                 // does not exist" are different mistakes with different fixes.
                 bad(o, i, 'no profile chosen — "' + PROFILE_UNSET + '" is the placeholder,'
                     + ' not a profile. Pick one in the Properties panel');
-            } else if (known && !hasValue(content.PROFILE_NAMES, profile)) {
+            } else if (known && hasValue(v.other, profile)) {
+                // ⭐ THE MESSAGE THE SPLIT EXISTS FOR. The dropdown no longer
+                // offers this, so reaching it means a hand-edited file or a stale
+                // palette — and both of those this names exactly.
+                bad(o, i, '"' + profile + '" is ' + v.otherKind + ' profile (it lives in'
+                    + ' frontend/src/client-data/' + v.otherFile + '), and this shape'
+                    + ' needs one from ' + v.file + '. The two are separate'
+                    + ' vocabularies: ' + v.names.join(', '));
+            } else if (known && !hasValue(v.names, profile)) {
                 bad(o, i, 'unknown profile "' + profile + '" — the profiles are: '
-                    + content.PROFILE_NAMES.join(', ') + '. Add it to'
-                    + ' frontend/src/client-data/profiles.json and re-run'
+                    + v.names.join(', ') + '. Add it to'
+                    + ' frontend/src/client-data/' + v.file + ' and re-run'
                     + ' node tools/tiled/generate-palette.mjs, or pick an existing one');
             }
         }
         layer('regions').forEach(function (o, i) {
             checkProfile(o, i, profilesKnown);
-            var n = (o.polygon || []).length;
-            if (o.shape !== 'polygon') {
-                bad(o, i, 'must be a POLYGON — the regions layer holds outlines, and any'
-                    + ' other shape is dropped on save');
-            } else if (n < 3) {
-                bad(o, i, 'needs at least 3 points to enclose an area, has ' + n);
-            }
+            checkClosedArea(o, i, 'a region');
         });
 
         // ⭐ THE SHARED LAYER'S OWN CHECK (L2b, the one cost of D5). Two classes
@@ -1183,6 +1316,9 @@ var AuraConvert = (function () {
                     + ' — the width draws nothing on its own. Pick an outline profile,'
                     + ' or set the width back to 0');
             }
+            // ⚑ An outline is a GROUND surface even on a shape that is not: it
+            // strokes the boundary, so it reads from the terrain table like every
+            // other painted edge.
             if (named && profilesKnown && !hasValue(content.PROFILE_NAMES, plainValue(op))) {
                 bad(o, i, 'unknown outline profile "' + plainValue(op) + '" — known profiles are: '
                     + content.PROFILE_NAMES.join(', '));
@@ -1192,14 +1328,8 @@ var AuraConvert = (function () {
         // Polygons carry the same profile vocabulary and get the same messages.
         onLayer('paths', 'AuraPolygon').forEach(function (o, i) {
             checkProfile(o, i, profilesKnown);
-            var n = (o.polygon || []).length;
-            if (o.shape !== 'polygon') {
-                bad(o, i, 'an AuraPolygon must be a POLYGON — it is a filled AREA, and'
-                    + ' an open shape has no inside to fill. Draw it with the polygon'
-                    + ' tool, or change its Class to AuraPath');
-            } else if (n < 3) {
-                bad(o, i, 'needs at least 3 points to enclose an area, has ' + n);
-            }
+            checkClosedArea(o, i, 'an AuraPolygon',
+                ' — or change its Class to AuraPath if you meant a line');
         });
 
         // Paths carry the SAME profile vocabulary as regions, so the same three
@@ -1232,6 +1362,48 @@ var AuraConvert = (function () {
                 num(o, i, 'width', w, function (v) { return v > 0; },
                     'a positive number of world units');
             }
+        });
+
+        /* ⭐ THE CHECK THE ATMOSPHERES LAYER DID NOT HAVE, and its absence is how
+         * a zone that Tiled saved happily refused the next boot (2026-09-14):
+         * three atmospheres went to disk with "points": [] and aurad died on
+         * "needs at least 3 points to enclose an area, got 0". Every other shape
+         * layer had a leg; this one was added without one.
+         *
+         * ⛔ That is the whole point of save-time validation — catch what the
+         * server would reject while the author is still looking at the object —
+         * so a new shape layer without a leg here is a boot waiting to break.
+         */
+        function checkClosedArea(o, i, what, hint) {
+            if (o.shape !== 'polygon' && o.shape !== 'rect') {
+                bad(o, i, what + ' must be a POLYGON or a RECTANGLE — it encloses an'
+                    + ' AREA, and ' + aOrAn(o.shape || 'shape') + ' has no inside to fill.'
+                    + ' Draw it with the polygon or the rectangle tool'
+                    + (hint || ''));
+                return;
+            }
+            // ⛔ A rect ALWAYS yields four corners, so the point count cannot catch a
+            // rectangle with no size — its four corners are the same point, the area
+            // is zero, and the server's own "at least 3 points" rule waves it
+            // through. That is WORSE than the empty-polygon crash it replaces: the
+            // shape boots, draws nothing, blocks nothing, and says nothing. Measure
+            // the size instead.
+            if (o.shape === 'rect' && (Math.abs(o.width || 0) < 1 || Math.abs(o.height || 0) < 1)) {
+                bad(o, i, what + ' is a rectangle with no size (' + (o.width || 0) + ' x '
+                    + (o.height || 0) + ' px) — it encloses nothing. Drag it out, or delete it');
+                return;
+            }
+            var n = closedAreaPoints(o).length;
+            if (n < 3) {
+                bad(o, i, what + ' needs at least 3 points to enclose an area, has ' + n
+                    + ' — the polygon tool needs its nodes placed, or use the'
+                    + ' rectangle tool instead');
+            }
+        }
+
+        layer('atmospheres').forEach(function (o, i) {
+            checkProfile(o, i, profilesKnown, true);
+            checkClosedArea(o, i, 'an atmosphere');
         });
 
         var seenAnchor = {};

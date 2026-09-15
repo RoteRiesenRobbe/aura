@@ -239,9 +239,17 @@ footsteps and atmosphere are later consumers of the same region.
   nothing else still takes the surrounding region's music once music exists —
   that is the point of profiles, and why regions may overlap freely.
 - **A profile is not a Tiled thing.** The dropdown is generated from
-  `frontend/src/client-data/profiles.json`; adding a profile means editing that
-  file and re-running the generator (§6). The save refuses a name that is not
-  in it, because the client would silently paint nothing.
+  `frontend/src/client-data/terrain-profiles.json`; adding a profile means
+  editing that file and re-running the generator (§6). The save refuses a name
+  that is not in it, because the client would silently paint nothing.
+- ⭐ **There are TWO profile tables, and two dropdowns** (2026-09-15). The
+  ground — `regions`, `paths`, `polygons`, and the `outlineProfile` of the last
+  two — reads `terrain-profiles.json` (`AuraProfile`). The **air** —
+  `atmospheres` — reads `atmosphere-profiles.json` (`AuraAtmosphereProfile`).
+  They used to be one file and therefore one dropdown, which made two silent
+  mistakes possible: a ground profile on a fog bank drew **nothing**, and an
+  atmosphere profile on a region painted **grey mud**. Neither is offerable now,
+  and if one reaches the file by hand the save names the table it belongs to.
 - The in-game zone editor has **no region tool** — it carries regions through
   untouched, so a region drawn here survives an in-game save.
 
@@ -297,8 +305,9 @@ node tools/tiled/generate-palette.mjs   # then reopen the zone
 ```
 
 No reinstall, no hand-import. The generator reads `api/`, the client's
-`Graphics.ts` and `client-data/profiles.json` — the same sources the game loads
-— and **fails loudly** rather than shipping a gap.
+`Graphics.ts` and both `client-data/*-profiles.json` tables — the same sources
+the game loads — and **fails loudly** rather than shipping a gap, including if
+a profile name appears in **both** tables (they are separate namespaces).
 
 ⚑ **This also runs automatically** as a `prebuild`/`pretest` npm hook
 (`frontend/package.json`), so `npm run build` and `npm test` regenerate the
@@ -307,10 +316,11 @@ frontend build. It does NOT run `tools/tiled/verify.sh`'s full round-trip
 (that needs the real Tiled binary installed and stays a manual step); it only
 guarantees the generated files are never behind what `api/` currently says.
 
-⚑ A **region profile** is the same job: add it to
-`frontend/src/client-data/profiles.json`, regenerate, reopen. Until you do, the
-name is not in the dropdown and the save refuses it — deliberately, because a
-profile the client cannot resolve paints nothing and says nothing.
+⚑ A **profile** is the same job: add it to
+`frontend/src/client-data/terrain-profiles.json` (ground) or
+`atmosphere-profiles.json` (air), regenerate, reopen. Until you do, the name is
+not in the dropdown and the save refuses it — deliberately, because a profile
+the client cannot resolve paints nothing and says nothing.
 
 ⛑ **Close the zone before you regenerate, and reopen it after.** If a prop
 type's body changes size, every prop of that type in an already-open document
@@ -353,7 +363,8 @@ after touching anything under `tools/tiled/`.
 | Make it wander | `wanderRadius` above 0, and no route |
 | Make it stand still | `wanderRadius` **0** — not `-1`, which means inherit |
 | Paint an area's ground | Insert Polygon on `regions`, then pick `profile` |
-| Add a new profile | edit `frontend/src/client-data/profiles.json`, then regenerate the palette |
+| Add a new ground profile | edit `frontend/src/client-data/terrain-profiles.json`, then regenerate the palette |
+| Add a new atmosphere profile | edit `frontend/src/client-data/atmosphere-profiles.json`, then regenerate the palette |
 | Use the species defaults | leave the sentinels alone (`-1` / `0` / `pingpong`) |
 | Find the object an error names | Edit ▸ Select Object by Id |
 | Save | Ctrl+S — it writes `api/zones/world.json` in place |

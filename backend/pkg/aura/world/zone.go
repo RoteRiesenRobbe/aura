@@ -394,6 +394,38 @@ type Anchor struct {
 	Y    float32 `json:"y"`
 }
 
+// Atmosphere is a closed area naming a client-side presentation PROFILE that
+// describes the AIR rather than the ground: how dark this place is, how far you
+// see inside it, and what the murk looks like
+// (plan-region-atmosphere.md D0). The fourth surface primitive.
+//
+// ⛔ IT IS NOT A Polygon, and the word "polygon" is the trap (D15). Polygon is
+// the WALL/MASS primitive: it fills, it may BLOCK, it takes an outline, and
+// paths_collision's sibling builds static bodies for it. An atmosphere blocks
+// NOTHING, takes no outline, never reaches phy.Space, and is drawn by the client
+// on top of every wall, road and entity rather than into the ground. The two
+// share a SHAPE and nothing else — a polygon is a wall you walk into, an
+// atmosphere is air you walk through.
+//
+// ⭐ Its own array rather than properties on Region, which is where the design
+// started (D0, reversed by the PO on 2026-09-12): a region is the MATERIAL
+// UNDERFOOT — footsteps, music, ground texture, later quest identity — and the
+// air is not the same boundary as the ground. A lit pocket at a cave mouth has
+// the same floor as the dark part of the cave. Welding the two forces one
+// polygon to answer both questions, and the "lit clearing" case then needs a
+// fake region that silently overrides the footsteps of anyone standing in it.
+// Third application of the ruling Path's own comment records against Region:
+// one array meaning two things would make both harder.
+//
+// ⚑ Profile stays client-only and unvalidated (Region's D8 posture verbatim):
+// the profile table lives in the client, so a typo costs one fog bank's look and
+// never a broken boot. ⚑ There is no Closed field for Polygon's reason — an area
+// is closed by construction.
+type Atmosphere struct {
+	Profile string  `json:"profile"`
+	Points  []Point `json:"points"`
+}
+
 // Zone is the whole authored world description loaded from a zone file. One
 // file = one complete zone (bounds + terrain + props + spawns + campfires +
 // dark areas + anchors). NPCs used to be a section of their own; since the
@@ -447,7 +479,10 @@ type Zone struct {
 	Regions   []Region         `json:"regions"`
 	Paths     []Path           `json:"paths"`
 	Polygons  []Polygon        `json:"polygons"`
-	Anchors   []Anchor         `json:"anchors"`
+	// Atmospheres is client-visual only and the server never reads it past
+	// validation — DarkArea's and Region's posture verbatim.
+	Atmospheres []Atmosphere `json:"atmospheres"`
+	Anchors     []Anchor     `json:"anchors"`
 
 	// ID is the file stem the zone was loaded from — the -zone selection key
 	// and the identity sent to the client so it renders the matching terrain.
@@ -750,6 +785,20 @@ func (z *Zone) validate() error {
 		}
 		if err := validateOutline("polygon", i, z.Polygons[i].OutlineProfile, z.Polygons[i].OutlineWidth); err != nil {
 			return err
+		}
+	}
+	// Atmospheres name the INDEX for the same reason every other shape array
+	// does. ⚑ THREE points, like a region and a polygon: an area has to enclose
+	// one. ⛔ There is deliberately nothing else to check — no width, no
+	// blocksMovement, no outline — and that short loop IS the D15 ruling
+	// showing up in the code.
+	for i := range z.Atmospheres {
+		if strings.TrimSpace(z.Atmospheres[i].Profile) == "" {
+			return fmt.Errorf("atmosphere %d: profile must not be empty", i)
+		}
+		if len(z.Atmospheres[i].Points) < 3 {
+			return fmt.Errorf("atmosphere %d: needs at least 3 points to enclose an area, got %d",
+				i, len(z.Atmospheres[i].Points))
 		}
 	}
 	// ⚑ "at least one campfire is a startingSpawn" USED TO LIVE HERE and moved

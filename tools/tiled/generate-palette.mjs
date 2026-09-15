@@ -126,25 +126,31 @@ function readMobs() {
     }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Region profiles (plan-region-primitive.md D12). ⚑ The ONE reason that table
-// is JSON and not TypeScript: the client imports it and this Node script reads
-// it, so the Tiled dropdown and what the client can actually resolve are the
-// same list by construction. A .ts table would have forced a hand-kept enum
-// here — the exact drift this generator's header forbids.
+// Profile tables (plan-region-primitive.md D12). ⚑ The ONE reason they are JSON
+// and not TypeScript: the client imports them and this Node script reads them,
+// so the Tiled dropdown and what the client can actually resolve are the same
+// list by construction. A .ts table would have forced a hand-kept enum here —
+// the exact drift this generator's header forbids.
 //
-// ⚑ Authored order, not sorted: profiles.json is a hand-written table and its
-// order is the author's grouping. content.json's ENUM_VALUES is derived from
-// what is emitted here, so the two orderings cannot drift — which matters,
-// because Tiled hands an enum property back as an INDEX into this list.
+// ⭐ TWO tables since 2026-09-15, and the split is the whole point: they used to
+// share one file and therefore ONE dropdown, so a ground profile could be named
+// on an atmosphere (drawing nothing) and an atmosphere profile on a region
+// (painting grey mud). Two files means two enums — AuraProfile for the ground,
+// AuraAtmosphereProfile for the air — and neither mistake is offerable.
+//
+// ⚑ Authored order, not sorted: each is a hand-written table and its order is
+// the author's grouping. content.json's ENUM_VALUES is derived from what is
+// emitted here, so the two orderings cannot drift — which matters, because
+// Tiled hands an enum property back as an INDEX into this list.
 //
 // ⚑ '_'-prefixed keys are documentation (the repo's _comment convention),
 // skipped here exactly as Regions.buildProfiles skips them client-side.
-function readProfiles() {
-    const file = path.join(ROOT, 'frontend/src/client-data/profiles.json');
+function readProfileTable(name) {
+    const file = path.join(ROOT, 'frontend/src/client-data/' + name);
     if (!existsSync(file)) { fail('profile table not found: ' + path.relative(ROOT, file)); }
     const table = JSON.parse(readFileSync(file, 'utf8'));
     const out = Object.keys(table).filter(k => k.charAt(0) !== '_');
-    if (out.length === 0) { fail('parsed zero region profiles from ' + path.relative(ROOT, file)); }
+    if (out.length === 0) { fail('parsed zero profiles from ' + path.relative(ROOT, file)); }
     return out;
 }
 
@@ -190,7 +196,7 @@ const KIND_COLOUR = {
     companion: '#ff795548',
 };
 
-function propertyTypes(terrain, props, mobs, profiles) {
+function propertyTypes(terrain, props, mobs, profiles, airProfiles) {
     let id = 0;
     const enumType = (name, values) => ({
         id: ++id, name, type: 'enum', storageType: 'string',
@@ -246,6 +252,10 @@ function propertyTypes(terrain, props, mobs, profiles) {
         // unassigned region would otherwise repaint that ground in whichever
         // profile happens to lead the table.
         enumType('AuraProfile', [PROFILE_UNSET].concat(profiles)),
+        // ⭐ The AIR's own vocabulary, separate since 2026-09-15. Same sentinel,
+        // same rule, a different list — which is what makes naming `Forest` on
+        // a fog bank impossible rather than merely wrong.
+        enumType('AuraAtmosphereProfile', [PROFILE_UNSET].concat(airProfiles)),
         classType('AuraTerrain', '#ff8bc34a'),
         classType('AuraProp', '#fff44336'),
         classType('AuraCampfire', '#ffff9800'),
@@ -281,6 +291,25 @@ function propertyTypes(terrain, props, mobs, profiles) {
             [member('profile', 'string', PROFILE_UNSET, 'AuraProfile'),
                 member('blocksMovement', 'bool', false),
                 ...OUTLINE_MEMBERS]),
+        // ⭐ The AIR over an area (plan-region-atmosphere.md A0) — and the ONE
+        // class with a layer of its own rather than a share of `paths` (D16),
+        // because `darkAreas` (the primitive it retires) already has one, and
+        // because an atmosphere COVERS the walls it darkens while a polygon sits
+        // beside them — Tiled toggles visibility per layer and never per class.
+        //
+        // ⛔ ONE member, and the emptiness is the ruling (D15). No
+        // blocksMovement, no outline, no width: a polygon is a wall you walk
+        // into, an atmosphere is air you walk through. An author reaching for
+        // "how solid is my fog" must find NOTHING here rather than a field that
+        // quietly means something else — the same L7 argument the polygon's
+        // missing `width` records, applied to collision instead of geometry.
+        // zone.go refuses every one of those keys by name, so a member added
+        // here would round-trip into a zone file that no longer boots.
+        // ⛔ AuraAtmosphereProfile, NOT AuraProfile. The member name is the
+        // same because the ZONE KEY is the same (`profile`); only the
+        // vocabulary behind it differs.
+        classType('AuraAtmosphere', '#ff9e9e9e',
+            [member('profile', 'string', PROFILE_UNSET, 'AuraAtmosphereProfile')]),
     ];
     for (const kind of Object.keys(KIND_COLOUR)) {
         types.push(classType('AuraSpawn' + kind[0].toUpperCase() + kind.slice(1),
@@ -296,7 +325,7 @@ function propertyTypes(terrain, props, mobs, profiles) {
 // the extension carries no content at all and is installed once per machine and
 // never again; being JSON means the extension parses it with JSON.parse rather
 // than eval'ing a script it read off disk.
-function contentJson(terrain, props, mobs, profiles, types) {
+function contentJson(terrain, props, mobs, profiles, airProfiles, types) {
     const sizes = {};
     props.forEach(p => { sizes[p.type] = {w: p.wUnits, h: p.hUnits}; });
     const kinds = {};
@@ -317,9 +346,15 @@ function contentJson(terrain, props, mobs, profiles, types) {
         MOB_KIND: kinds,
         MOB_SPEED: speeds,
         // ⚑ The profile names WITHOUT the sentinel, which ENUM_VALUES carries
-        // at index 0. The converter checks membership against this: the
+        // at index 0. The converter checks membership against these: the
         // placeholder is not a profile, and earns its own message.
+        //
+        // ⭐ TWO lists, so the converter can say WHICH vocabulary a name belongs
+        // to. Naming `Fog` on a region is no longer "unknown profile" — it is
+        // "that is an atmosphere profile", which is the error an author can
+        // actually act on.
         PROFILE_NAMES: profiles,
+        AIR_PROFILE_NAMES: airProfiles,
     }, null, 2) + '\n';
 }
 
@@ -341,14 +376,26 @@ function patchProject(file, types) {
 const terrain = readTerrainTypes();
 const props = readProps();
 const mobs = readMobs();
-const profiles = readProfiles();
+const profiles = readProfileTable('terrain-profiles.json');
+const airProfiles = readProfileTable('atmosphere-profiles.json');
+// ⛔ The two namespaces must stay DISJOINT: every accessor picks its table by
+// call site, so a name in both would make "which Fog?" depend on which lookup
+// ran. Regions.test.ts pins the same thing client-side; this is the half that
+// fires before a bad palette can reach Tiled.
+const clash = profiles.filter(n => airProfiles.indexOf(n) >= 0);
+if (clash.length > 0) {
+    fail('profile name in BOTH tables: ' + clash.join(', ')
+        + ' — terrain-profiles.json and atmosphere-profiles.json are separate'
+        + ' namespaces, so rename one.');
+}
 
-const types = propertyTypes(terrain, props, mobs, profiles);
+const types = propertyTypes(terrain, props, mobs, profiles, airProfiles);
 
 mkdirSync(PALETTE, {recursive: true});
 writeFileSync(path.join(PALETTE, 'terrain.tsx'), tileset('aura-terrain', 'AuraTerrain', terrain));
 writeFileSync(path.join(PALETTE, 'props.tsx'), tileset('aura-props', 'AuraProp', props));
-writeFileSync(path.join(PALETTE, 'content.json'), contentJson(terrain, props, mobs, profiles, types));
+writeFileSync(path.join(PALETTE, 'content.json'),
+    contentJson(terrain, props, mobs, profiles, airProfiles, types));
 writeFileSync(path.join(TOOLS, 'aura.tiled-project'), patchProject(path.join(TOOLS, 'aura.tiled-project'), types));
 // ⚑ Kept as well as the project copy, and deliberately: project-embedded types
 // apply only while the PROJECT is open. Opening api/zones/world.json on its own
@@ -361,4 +408,5 @@ console.log(`props.tsx          ${props.length} props (${props.map(p => p.type).
 const nEnum = types.filter(t => t.type === 'enum').length;
 console.log(`custom types       ${types.length} (${nEnum} enums + ${types.length - nEnum} classes) → aura.tiled-project + palette/propertytypes.json`);
 console.log(`content.json       ${terrain.length} textures, ${props.length} props, ${mobs.length} mobs ${JSON.stringify(kindCounts)}`);
-console.log(`region profiles    ${profiles.length} (${profiles.join(', ')}) → AuraProfile + AuraRegion + AuraPath + AuraPolygon`);
+console.log(`terrain profiles   ${profiles.length} (${profiles.join(', ')}) → AuraProfile + AuraRegion + AuraPath + AuraPolygon`);
+console.log(`air profiles       ${airProfiles.length} (${airProfiles.join(', ')}) → AuraAtmosphereProfile + AuraAtmosphere`);

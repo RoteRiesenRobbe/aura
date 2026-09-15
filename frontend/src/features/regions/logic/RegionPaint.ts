@@ -24,7 +24,10 @@ import {
     TilingSprite,
 } from 'pixi.js';
 import {
-    neededTextures, Outlined, Region, regionBlend, RegionPoint, regionPaintSpec, regionScroll,
+    ATMOSPHERE_PROFILES, AtmosphereProfile, declaresDarkness, declaresHaze,
+    neededTextures, Outlined, Region, regionBlend,
+    regionDarkness, regionHaze, RegionPoint, regionPaintSpec, regionScroll,
+    TERRAIN_PROFILES,
 } from './Regions';
 import {Path} from '../../paths/logic/Paths';
 import {Polygon} from '../../polygons/logic/Polygons';
@@ -70,8 +73,11 @@ export function isTextureUsable(name: string): boolean {
  * all flat colours loads nothing and resolves `false`, so the feature costs
  * exactly zero until a texture is authored.
  */
-export function loadZoneTextures(regions: Region[]): Promise<boolean> {
-    const wanted = neededTextures(regions).filter(name => loaded[name] === undefined);
+export function loadZoneTextures(
+    regions: Region[],
+    profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
+): Promise<boolean> {
+    const wanted = neededTextures(regions, profiles).filter(name => loaded[name] === undefined);
     if (wanted.length === 0) {
         return Promise.resolve(false);
     }
@@ -108,8 +114,11 @@ export function loadZoneTextures(regions: Region[]): Promise<boolean> {
  * its own pixel size. No `tint` and no `color` is set beside the texture: D14
  * ruled colour is the fallback, never a tint.
  */
-export function regionPaint(region: Region): { texture: Texture, matrix: Matrix } | { color: number } | null {
-    const spec = regionPaintSpec(region, isTextureUsable);
+export function regionPaint(
+    region: Region,
+    profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
+): { texture: Texture, matrix: Matrix } | { color: number } | null {
+    const spec = regionPaintSpec(region, isTextureUsable, profiles);
     if (spec === null) {
         return null;
     }
@@ -432,11 +441,17 @@ function paintSurface(
     mask: BlendMask | null,
     extraMargin: number,
     out: PaintedSurfaces,
+    // ⛔ WHICH TABLE names this surface's profile. Ground by default because
+    // that is nearly every caller; the atmosphere path passes its own, and
+    // getting it wrong costs fog its texture, blend and drift silently — the
+    // two namespaces are disjoint, so a miss resolves to the DEFAULT profile
+    // rather than throwing.
+    profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
 ): void {
-    const paint = regionPaint(surface);
+    const paint = regionPaint(surface, profiles);
     if (paint === null) { return; }
 
-    const authored = regionScroll(surface);
+    const authored = regionScroll(surface, profiles);
     const scrollPx = {x: meter2px(authored.x), y: meter2px(authored.y)};
 
     if (scrollPx.x !== 0 || scrollPx.y !== 0) {
@@ -509,6 +524,122 @@ export function paintRegions(
         paintSurface(container, region, region.points, draw, mask, 0, out);
     });
     return out;
+}
+
+/**
+ * Draws every ATMOSPHERE into `container`, in AUTHORED ORDER
+ * (plan-region-atmosphere.md A1). The container is the DARKNESS layer, not a
+ * terrain one — which is the whole reason this works: `paintSurface` takes its
+ * container as an argument, so pointing it somewhere else is free.
+ *
+ * ⭐ THE REUSE IS THE DESIGN (D12). Everything fog needs already shipped for
+ * ground:
+ *   - `scroll` → the drift, so an animated fog bank is a profile edit
+ *   - `texture` + `scale` → what the murk looks like, with `color` as D14's
+ *     fallback, so flat pitch-black is the SAME code path with no texture
+ *   - `blend` → the soft edge, via the same `buildBlendMask` a region uses
+ * No new vocabulary, no second drawing system, and the feathering chunk this
+ * plan had deferred (A1b) does not need to exist.
+ *
+ * ⭐ Only shapes whose profile DECLARES the dial for a layer are drawn into
+ * it at all. One that says nothing is transparent, not a hole — see
+ * {@link declaresDarkness}.
+ *
+ * ⛔ D3, and it is one branch PER LAYER: `> 0` PAINTS, `=== 0` ERASES. An
+ * authored clearing inside a dark bank is a thing an author will absolutely
+ * try, `resolve()` gets it right on its own, and without the erase the outer
+ * shape's fill would still cover it — so the drawing follows the resolution
+ * rule by construction instead of by coincidence. ⚑ A clearing cannot be
+ * textured or drift: it has nothing to paint, by definition.
+ *
+ * ⚑ Each shape gets its OWN Container carrying `alpha = <the dial>`, because the
+ * paint may be SEVERAL children (a drifting sprite plus its mask) and the
+ * opacity belongs to the group, not to whichever child happens to be first.
+ */
+export function paintAtmospheres(
+    darknessContainer: Container,
+    hazeContainer: Container,
+    atmospheres: Region[],
+    renderer: Renderer,
+): PaintedSurfaces {
+    const out: PaintedSurfaces = {masks: [], scrollers: []};
+    atmospheres.forEach((atmosphere) => {
+        // ⚑ BOTH, independently. A profile authoring both is the smoky cave:
+        // the same polygon is painted into both layers, so a lantern cuts the
+        // black and leaves the fog lit. Their opacities then COMPOUND rather
+        // than max, which is the thing to remember when tuning.
+        if (declaresDarkness(atmosphere)) {
+            paintAir(darknessContainer, atmosphere, regionDarkness(atmosphere),
+                renderer, out, true);
+        }
+        if (declaresHaze(atmosphere)) {
+            paintAir(hazeContainer, atmosphere, regionHaze(atmosphere),
+                renderer, out, false);
+        }
+    });
+    return out;
+}
+
+/**
+ * One atmosphere layer's share of one shape.
+ *
+ * ⛔ D3, and it is one branch: opacity `> 0` PAINTS, `=== 0` ERASES. An authored
+ * clearing inside a dark bank is a thing an author will absolutely try,
+ * `resolve()` gets it right on its own, and without the erase the outer shape's
+ * fill would still cover it — so the drawing follows the resolution rule by
+ * construction instead of by coincidence.
+ *
+ * ⛔ `flat` is what keeps DARKNESS colour-only. Darkness has no texture in the
+ * world and none here: honouring `texture`/`scroll` on both halves would draw
+ * one profile's tile TWICE and compound it against itself. Haze owns the tile,
+ * the drift and the soft edge; darkness owns a colour.
+ *
+ * ⚑ Each shape gets its OWN Container carrying `alpha`, because the paint may
+ * be SEVERAL children (a drifting sprite plus its mask) and the opacity belongs
+ * to the group, not to whichever child happens to be first.
+ */
+function paintAir(
+    container: Container,
+    atmosphere: Region,
+    opacity: number,
+    renderer: Renderer,
+    out: PaintedSurfaces,
+    flat: boolean,
+): void {
+    const draw: DrawSurface = (g, style) => g.poly(atmosphere.points).fill(style);
+    if (opacity <= 0) {
+        // The clearing. A stencil-shaped hole in whatever this layer drew before
+        // it, exactly like a light hole — and appended in array order, so a later
+        // bank can darken it again if that is what was authored.
+        const hole = draw(new Graphics(), {color: 0xffffff});
+        hole.blendMode = 'erase';
+        container.addChild(hole);
+        return;
+    }
+    const group = new Container();
+    group.alpha = opacity;
+    container.addChild(group);
+
+    if (flat) {
+        // Colour only — the profile's own colour if it authored one, else black,
+        // which is what darkness IS.
+        //
+        // ⚑ `() => false` says NO TEXTURE IS EVER USABLE here, which walks the
+        // same D14 fallback a missing tile file takes and hands back the colour.
+        // Cheaper than a second accessor, and it makes the colour-only rule a
+        // property of the CALL rather than a branch someone can forget.
+        const spec = regionPaintSpec(atmosphere, () => false, ATMOSPHERE_PROFILES);
+        const color = spec !== null && 'color' in spec ? spec.color : 0x000000;
+        group.addChild(draw(new Graphics(), {color}));
+        return;
+    }
+
+    const blend = regionBlend(atmosphere, ATMOSPHERE_PROFILES);
+    const mask = blend > 0
+        ? buildBlendMask(renderer, atmosphere.points, blend, g => draw(g, {color: 0xffffff}))
+        : null;
+    paintSurface(group, atmosphere, atmosphere.points, draw, mask, 0, out,
+        ATMOSPHERE_PROFILES);
 }
 
 /**

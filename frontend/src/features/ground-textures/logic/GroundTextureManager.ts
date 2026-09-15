@@ -143,6 +143,20 @@ interface PathDefinition {
     width: number;
 }
 
+// The AIR over an area (plan-region-atmosphere.md A0). Declared locally like
+// every other shape in this file, so this view of the zone file stays one
+// readable block.
+//
+// ⛔ TWO fields, and the shortness is the ruling (D15): an atmosphere is NOT a
+// polygon. It never blocks, takes no outline and has no width — a polygon is a
+// wall you walk into, an atmosphere is air you walk through. The absence of
+// blocksMovement here is for the same reason PathDefinition omits it, and then
+// some: there is no such key anywhere in the format for this shape.
+interface AtmosphereDefinition {
+    profile: string;
+    points: { x: number, y: number }[];
+}
+
 interface CampfireDefinition {
     x: number;
     y: number;
@@ -186,6 +200,12 @@ export interface ZoneJSON {
     // Filled masses — rock, buildings, lakes — read by Polygons.loadPolygons
     // (plan-zone-polygons.md P2). Same posture as the two above.
     polygons?: PolygonDefinition[];
+    // The AIR over an area — read by Atmospheres.loadAtmospheres
+    // (plan-region-atmosphere.md A0). ⛔ NOT a polygon: it never blocks, takes
+    // no outline, and draws on top of everything rather than into the ground
+    // (D15). ⚑ The warning in the `paths` note applies to it exactly — an array
+    // not named HERE never reaches the renderer, with no error anywhere.
+    atmospheres?: AtmosphereDefinition[];
     // World campfires (chunk 2): read by the darkness overlay for their
     // static glow (chunk 4 follow-up).
     campfires?: CampfireDefinition[];

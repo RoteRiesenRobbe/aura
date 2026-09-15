@@ -17,6 +17,10 @@ export enum GameState {
 
 export interface IGameLayers {
     terrain: Record<string, Container>,
+    // The HAZE half of the atmospheres, in its own filtered container UNDER the
+    // darkness (plan-region-atmosphere.md, PO 2026-09-14). Separate from
+    // `darkness` so the light holes punched into that layer cannot reach it.
+    haze: Container,
     // Player corpses (chunk 4): below characters, above the terrain.
     corpses: Container,
     characters: Container,

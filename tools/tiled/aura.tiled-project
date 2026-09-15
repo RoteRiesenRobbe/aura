@@ -174,6 +174,20 @@
         },
         {
             "id": 7,
+            "name": "AuraAtmosphereProfile",
+            "type": "enum",
+            "storageType": "string",
+            "values": [
+                "(pick a profile)",
+                "Cave Air",
+                "Gloom",
+                "Fog",
+                "Clearing"
+            ],
+            "valuesAsFlags": false
+        },
+        {
+            "id": 8,
             "name": "AuraTerrain",
             "type": "class",
             "color": "#ff8bc34a",
@@ -185,7 +199,7 @@
             "members": []
         },
         {
-            "id": 8,
+            "id": 9,
             "name": "AuraProp",
             "type": "class",
             "color": "#fff44336",
@@ -197,7 +211,7 @@
             "members": []
         },
         {
-            "id": 9,
+            "id": 10,
             "name": "AuraCampfire",
             "type": "class",
             "color": "#ffff9800",
@@ -209,7 +223,7 @@
             "members": []
         },
         {
-            "id": 10,
+            "id": 11,
             "name": "AuraDarkArea",
             "type": "class",
             "color": "#ff673ab7",
@@ -221,7 +235,7 @@
             "members": []
         },
         {
-            "id": 11,
+            "id": 12,
             "name": "AuraAnchor",
             "type": "class",
             "color": "#ff00bcd4",
@@ -233,7 +247,7 @@
             "members": []
         },
         {
-            "id": 12,
+            "id": 13,
             "name": "AuraRegion",
             "type": "class",
             "color": "#ffcddc39",
@@ -252,7 +266,7 @@
             ]
         },
         {
-            "id": 13,
+            "id": 14,
             "name": "AuraPath",
             "type": "class",
             "color": "#ff03a9f4",
@@ -292,7 +306,7 @@
             ]
         },
         {
-            "id": 14,
+            "id": 15,
             "name": "AuraPolygon",
             "type": "class",
             "color": "#ff8d6e63",
@@ -327,7 +341,26 @@
             ]
         },
         {
-            "id": 15,
+            "id": 16,
+            "name": "AuraAtmosphere",
+            "type": "class",
+            "color": "#ff9e9e9e",
+            "drawFill": true,
+            "useAs": [
+                "property",
+                "object"
+            ],
+            "members": [
+                {
+                    "name": "profile",
+                    "type": "string",
+                    "propertyType": "AuraAtmosphereProfile",
+                    "value": "(pick a profile)"
+                }
+            ]
+        },
+        {
+            "id": 17,
             "name": "AuraSpawnCombat",
             "type": "class",
             "color": "#ff4caf50",
@@ -382,7 +415,7 @@
             ]
         },
         {
-            "id": 16,
+            "id": 18,
             "name": "AuraSpawnTalker",
             "type": "class",
             "color": "#ffe91e63",
@@ -437,7 +470,7 @@
             ]
         },
         {
-            "id": 17,
+            "id": 19,
             "name": "AuraSpawnFixture",
             "type": "class",
             "color": "#ff9e9e9e",
@@ -492,7 +525,7 @@
             ]
         },
         {
-            "id": 18,
+            "id": 20,
             "name": "AuraSpawnCompanion",
             "type": "class",
             "color": "#ff795548",

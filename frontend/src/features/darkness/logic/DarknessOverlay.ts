@@ -3,6 +3,13 @@ import {meter2px} from '../../../client-data/BasicConfig';
 import {PrerenderEvent} from '../../core/logic/Events';
 import {getZoneData} from '../../ground-textures/logic/GroundTextureManager';
 import {gameObjectId} from '../../common/logic/Types';
+import * as Atmospheres from '../../atmospheres/logic/Atmospheres';
+import {
+    ATMOSPHERE_PROFILES, DEFAULT_PROFILE, declaresDarkness, declaresHaze,
+    lightRadiusWithSight,
+    resolveIn, resolveSight,
+} from '../../regions/logic/Regions';
+import {advanceRamp, ramp, rampSettled, rampTo} from '../../regions/logic/Ramp';
 
 /**
  * Darkness overlay (atmosphere & recovery chunk 3).
@@ -30,7 +37,8 @@ const DarknessVisuals = {
     // ("field of view heavily restricted") and the 2026-07-17 ruling recorded
     // in Player.ts, so the residual 6% was never the design — it was the
     // placeholder. Vision now comes exclusively from the light holes, of which
-    // the player's own MIN_SELF_LIGHT_PX glow is the guaranteed floor.
+    // the player's own sight floor (Regions.SELF_SIGHT_FLOOR_PX, authorable
+    // per profile since A2) is the guaranteed minimum.
     MAX_ALPHA: 1,
     // Width (world units) of the soft edge appended OUTSIDE the authored
     // radius — the authored circle itself is guaranteed fully dark, so
@@ -41,6 +49,11 @@ const DarknessVisuals = {
     // [PLACEHOLDER]
     LIGHT_CORE_FRACTION: 0.55,
     TEXTURE_SIZE: 256,
+    // How long a full `sight` crossing takes, in ms (A2). A hole that snapped
+    // from the floor to a room's worth of vision at a polygon edge is a pop;
+    // this is short enough to feel like your eyes adjusting and long enough
+    // that the boundary is not a line. [PLACEHOLDER]
+    SIGHT_RAMP_MS: 400,
 };
 
 // World campfires glow permanently (chunk 4 follow-up): their wire
@@ -59,6 +72,14 @@ interface LightSource {
     // Minimal structural slice of GameObject — id + world-positioned shape.
     object: { id: gameObjectId, shape: Container };
     sprite: Sprite;
+    /** The wire's own radius in px, kept apart from the DRAWN size because the
+     *  local player's hole is `max(wire, sight)` and sight moves every frame
+     *  while the wire value only changes when the server says so (D7). */
+    wireRadiusPx: number;
+    /** Is this the LOCAL player's hole? Only that one gets `sight`: it answers
+     *  "how far can I see", which is a question about the viewer and not about
+     *  the entity. A remote player standing in fog keeps their own light. */
+    own: boolean;
 }
 
 interface Circle {
@@ -69,8 +90,41 @@ interface Circle {
 }
 
 let layer: Container = null;
+// ⭐ THE HAZE LAYER IS A SEPARATE FILTERED CONTAINER, and that separation is the
+// whole feature (PO 2026-09-14). The darkness layer's AlphaFilter forces it into
+// its own render texture, and an erase sprite removes alpha from everything
+// already in that texture — which is exactly why a lantern cuts fog today. A
+// sibling container INSIDE the darkness layer would not help: it composites into
+// the same target before the holes are punched.
+//
+// ⛔ So haze lives outside the darkness layer entirely, with a filter of its own,
+// and nothing in the darkness layer can reach it. A lamp shows you the fog; it
+// does not disperse it.
+//
+// ⚑ It is drawn UNDER the darkness (Game adds it to cameraGroup first), so fog
+// is only visible where there is light to see it by: an unlit smoky cave reads
+// black, and its fog appears inside the lantern pocket. ⚑ It still needs its own
+// filter despite having no light holes, because an authored `haze: 0` clearing
+// is an erase, and an unscoped erase would eat the world beneath.
+let hazeLayer: Container = null;
+let hazeActive = false;
+// The atmosphere shapes' own child container, inserted BETWEEN the dark
+// circles and the erase holes (plan-region-atmosphere.md A1).
+//
+// ⭐ A child container rather than shapes added straight to the layer, and the
+// reason is ORDER. Three things share this layer and the order is load-bearing:
+// dark circles, then the DARKNESS shapes, then every erase hole (static campfire glows and
+// the wire-driven lights that `setLightRadius` appends later). Game repaints
+// the atmospheres a SECOND time when the zone's ground tiles land, and a repaint
+// that re-added them to the layer would put the fog on top of the campfire
+// glows and quietly seal them shut. Emptying one container in place cannot.
+let atmosphereLayer: Container = null;
 const radialTextures = new Map<number, Texture>();
 let active = false;
+/** The local player's unaided sight radius in world PX, easing across
+ *  boundaries rather than snapping (A2). Starts at the shipped floor, which is
+ *  what every zone that authors no `sight` keeps forever. */
+const sightPx = ramp(meter2px(DEFAULT_PROFILE.sight));
 const lights = new Map<gameObjectId, LightSource>();
 // Hit-test geometry for isHidden(), in the same world-px space as the sprites.
 // Kept alongside the sprites rather than derived from them because the sprite
@@ -79,11 +133,30 @@ const lights = new Map<gameObjectId, LightSource>();
 const darkCircles: Circle[] = [];
 const staticLights: Circle[] = [];
 
-export function setup(darknessLayer: Container) {
+/** Where {@link RegionPaint.paintAtmospheres} draws — emptied and refilled by
+ *  Game on every terrain repaint, never re-parented. Null before the first
+ *  {@link loadZone}. */
+export function atmosphereContainer(): Container {
+    return atmosphereLayer;
+}
+
+export function setup(darknessLayer: Container, hazeContainer: Container) {
     layer = darknessLayer;
     layer.filters = [new AlphaFilter({alpha: DarknessVisuals.MAX_ALPHA})];
     layer.visible = false;
+    // ⚑ Full alpha, unlike the darkness: MAX_ALPHA is how much of the world a
+    // DARK AREA hides, and a fog bank's thickness is its own `haze` value. The
+    // filter is here for render-target isolation, not for opacity.
+    hazeContainer.filters = [new AlphaFilter({alpha: 1})];
+    hazeContainer.visible = false;
+    hazeLayer = hazeContainer;
     PrerenderEvent.subscribe(update);
+}
+
+/** Where the HAZE half of {@link RegionPaint.paintAtmospheres} draws. Null
+ *  before {@link setup}. */
+export function hazeContainer(): Container {
+    return hazeLayer;
 }
 
 /**
@@ -100,8 +173,26 @@ export function loadZone(zoneName: string) {
     const ox = zoneOrigin ? zoneOrigin.x : 0;
     const oy = zoneOrigin ? zoneOrigin.y : 0;
     const darkAreas = getZoneData(zoneName)?.darkAreas || [];
-    active = darkAreas.length > 0;
+    // ⛔ `active` GATES FIVE THINGS, not one: `layer.visible`, the static
+    // campfire-glow block below, `setLightRadius`, `update` and `isHidden`. It
+    // read `darkAreas.length > 0` alone until A1, which meant a zone that
+    // authored darkness and no circles — the underworld, the whole point of the
+    // feature — drew NOTHING, placed no campfire glow, never opened the
+    // player's own hole, and reported no error anywhere. It presented exactly
+    // as "the feature was never wired up".
+    //
+    // ⚑ Any atmosphere that DECLARES darkness counts, including an authored
+    // clearing: a zone whose only atmosphere is a `darkness: 0` pocket has nothing
+    // to darken, but it is still a zone that means to use the overlay, and a
+    // lit hole in nothing costs one invisible stencil.
+    const air = Atmospheres.loadedAtmospheres();
+    active = darkAreas.length > 0 || air.some(a => declaresDarkness(a));
     layer.visible = active;
+    // ⚑ Gated separately, and that is what keeps the second render target from
+    // costing anything in a zone with no fog: a layer nobody authored is never
+    // drawn, exactly as the darkness layer has always worked.
+    hazeActive = air.some(a => declaresHaze(a));
+    if (hazeLayer !== null) { hazeLayer.visible = hazeActive; }
 
     darkAreas.forEach((area) => {
         // Fully dark up to the authored radius; the fade lives outside it.
@@ -120,6 +211,12 @@ export function loadZone(zoneName: string) {
             radiusSq: meter2px(area.radius) ** 2,
         });
     });
+
+    // The atmosphere shapes' container, added AFTER the circles and BEFORE
+    // every erase hole. Empty here: Game paints into it, and repaints it when
+    // the zone's ground tiles land (fog can name a texture too).
+    atmosphereLayer = new Container();
+    layer.addChild(atmosphereLayer);
 
     // Static campfire glow — erase sprites appended after the dark sprites so
     // they render on top within this layer's own texture. The wire-driven
@@ -149,12 +246,20 @@ export function loadZone(zoneName: string) {
  * appended after the dark sprites, so they always render on top of them
  * within this layer's own render texture.
  */
-export function setLightRadius(object: { id: gameObjectId, shape: Container }, radiusPx: number) {
+export function setLightRadius(
+    object: { id: gameObjectId, shape: Container },
+    radiusPx: number,
+    own = false,
+) {
     if (!active) {
         return;
     }
     let light = lights.get(object.id);
-    if (radiusPx <= 0) {
+    // ⚑ The OWN light is never removed for a zero radius: the player always has
+    // at least their sight floor, and a snapshot with no light_radius means "no
+    // light SOURCE", not "no eyes". Removing it would black out the avatar the
+    // moment a torch burned out.
+    if (radiusPx <= 0 && !own) {
         if (light) {
             removeLight(object.id, light);
         }
@@ -165,11 +270,29 @@ export function setLightRadius(object: { id: gameObjectId, shape: Container }, r
         sprite.anchor.set(0.5);
         sprite.blendMode = 'erase';
         layer.addChild(sprite);
-        light = {object, sprite};
+        light = {object, sprite, wireRadiusPx: 0, own};
         lights.set(object.id, light);
     }
     light.object = object;
-    light.sprite.width = light.sprite.height = 2 * radiusPx;
+    light.own = light.own || own;
+    light.wireRadiusPx = Math.max(radiusPx, 0);
+    applyRadius(light);
+}
+
+/**
+ * The drawn size of one hole — ⭐ **D7, and it is one `Math.max`.**
+ *
+ * `sight` may only ever RAISE the local player's hole, never lower it. Without
+ * that an authored region could cancel a Lantern, and the GDD's whole
+ * light-vs-damage trade-off — the aura is what buys you the room — would be
+ * revocable by map data. It also means `sight` can only ever make a place
+ * kinder, which is a good property for a knob nobody has tuned.
+ */
+function applyRadius(light: LightSource) {
+    const radius = light.own
+        ? lightRadiusWithSight(light.wireRadiusPx, sightPx.value)
+        : light.wireRadiusPx;
+    light.sprite.width = light.sprite.height = 2 * radius;
 }
 
 /**
@@ -177,7 +300,7 @@ export function setLightRadius(object: { id: gameObjectId, shape: Container }, r
  * self-clean lights whose entity left the viewport (GameObject.hide detaches
  * the shape from its layer).
  */
-function update() {
+function update(deltaMS: number) {
     if (!active) {
         return;
     }
@@ -188,6 +311,48 @@ function update() {
         }
         light.sprite.position.copyFrom(light.object.shape.position);
     });
+    advanceSight(deltaMS);
+}
+
+/**
+ * Resolves `sight` at the local player's INTERPOLATED position and eases the
+ * hole toward it (A2).
+ *
+ * ⚑ The interpolated position, not the snapshot one — the sprite was just moved
+ * to it above, and resolving at a different point would make the ramp fire a
+ * step early or late at a boundary the player can see themselves crossing.
+ *
+ * ⚑ `deltaMS` arrives from `PrerenderEvent`, which `Game.loop` triggers AFTER
+ * its `paused` guard — so a ramp can never be advanced across a pause and jump
+ * the whole way (L8, the trap `advanceSurfaceScroll` documents).
+ *
+ * ⭐ Costs nothing in a zone that authors no atmospheres: the resolve short-
+ * circuits on an empty list, `rampTo` is a no-op when the target has not moved,
+ * and `advanceRamp` returns immediately once settled. The common frame does one
+ * array-length check.
+ */
+function advanceSight(deltaMS: number) {
+    const own = ownLight();
+    if (own === undefined) {
+        return;
+    }
+    const shapes = Atmospheres.loadedAtmospheres();
+    const target = shapes.length === 0
+        ? DEFAULT_PROFILE.sight
+        : resolveSight(own.sprite.position, shapes, ATMOSPHERE_PROFILES);
+    rampTo(sightPx, meter2px(target));
+    if (rampSettled(sightPx)) {
+        return;
+    }
+    advanceRamp(sightPx, deltaMS, DarknessVisuals.SIGHT_RAMP_MS);
+    applyRadius(own);
+}
+
+function ownLight(): LightSource | undefined {
+    for (const light of lights.values()) {
+        if (light.own) { return light; }
+    }
+    return undefined;
 }
 
 function removeLight(id: gameObjectId, light: LightSource) {
@@ -209,7 +374,7 @@ function removeLight(id: gameObjectId, light: LightSource) {
  * the zone's handful of circles and never touches the light lists.
  */
 export function isHidden(x: number, y: number): boolean {
-    if (!active || !inAnyCircle(x, y, darkCircles)) {
+    if (!active || !(inAnyCircle(x, y, darkCircles) || inDarkness(x, y))) {
         return false;
     }
     if (inAnyCircle(x, y, staticLights)) {
@@ -231,9 +396,46 @@ function inAnyCircle(x: number, y: number, circles: Circle[]): boolean {
     return circles.some(c => (x - c.x) ** 2 + (y - c.y) ** 2 <= c.radiusSq);
 }
 
+/**
+ * Is this world-px point swallowed by an authored atmosphere?
+ *
+ * ⭐ NO NEW GEOMETRY CODE. `resolveIn` already walks a shape list backwards and
+ * answers "the last shape containing this point whose profile declares the
+ * property" — the identical rule the painter drew by, over the identical array
+ * in the identical order. So the drawing and the lookup agree by construction,
+ * and D3's clearing falls out for free: a `darkness: 0` pocket is the last
+ * declaring shape at that point, so it answers 0 and the plate stays visible,
+ * exactly as the erase hole makes the mob visible.
+ *
+ * ⚑ `resolveIn` and not `resolve`: `resolve` walks the REGIONS, which is the
+ * ground. Darkness lives on the atmospheres and nowhere else (D0/D15).
+ */
+function inDarkness(x: number, y: number): boolean {
+    const shapes = Atmospheres.loadedAtmospheres();
+    if (shapes.length === 0) {
+        return false;
+    }
+    return resolveIn('darkness', {x, y}, shapes, ATMOSPHERE_PROFILES) > 0;
+}
+
 function clear() {
     lights.forEach((light, id) => removeLight(id, light));
-    layer.removeChildren().forEach(child => child.destroy());
+    // ⚑ Back to the floor on a zone swap, INSTANTLY. Easing here would ramp
+    // across a teleport between two zones that share nothing, which reads as a
+    // slow fade-in on arrival rather than as eyes adjusting.
+    sightPx.value = sightPx.target = sightPx.from = meter2px(DEFAULT_PROFILE.sight);
+    // ⚑ `{children: true}`, unlike the terrain layers' bare `destroy()`. The
+    // atmosphere container holds the painted fog, and a bare destroy on a
+    // Container frees the container and STRANDS its children. ⛔ It does NOT
+    // free the blend-mask RenderTextures: those came back from paintAtmospheres
+    // and Game owns them, exactly as it owns the terrain ones.
+    layer.removeChildren().forEach(child => child.destroy({children: true}));
+    atmosphereLayer = null;
+    if (hazeLayer !== null) {
+        hazeLayer.removeChildren().forEach(child => child.destroy({children: true}));
+        hazeLayer.visible = false;
+    }
+    hazeActive = false;
     darkCircles.length = 0;
     staticLights.length = 0;
     active = false;

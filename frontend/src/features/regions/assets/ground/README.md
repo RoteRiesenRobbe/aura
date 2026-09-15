@@ -1,8 +1,11 @@
 # Region ground tiles
 
 The seamless tiles a region profile paints (`plan-region-primitive.md` C4/D13).
-A profile's `texture` key in `frontend/src/client-data/profiles.json` names one
-of these files **by stem** — `"texture": "pd163"` is `pd163.jpg`. Nothing else
+A profile's `texture` key in `frontend/src/client-data/terrain-profiles.json`
+(or `atmosphere-profiles.json`, for a fog bank — the air is a surface too)
+names one of these files **by stem** — `"texture": "pd163"` is `pd163.jpg`.
+⚑ `fog-placeholder.png` is the one RGBA tile here, and the only one an
+atmosphere profile currently names. Nothing else
 lists them: `RegionPaint.ts` discovers this folder with `require.context`, so
 adding a tile is dropping a file in here, and naming a file that is not here
 costs one region its texture and nothing more (D14 paints the profile's colour).

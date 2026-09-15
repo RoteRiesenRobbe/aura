@@ -325,6 +325,110 @@ else
 fi
 
 echo
+echo "ATMOSPHERES ride a layer of their OWN and come back intact"
+# ⭐ A0's leg (plan-region-atmosphere.md D16). This is the NINTH object layer,
+# and it is the first shape in the format that does NOT ride an existing layer
+# by class — so the thing under test is that real Tiled creates, exports and
+# reads back a layer the extension only just learned about. `aura-world-format.js`
+# derives its known-layer set from C.LAYERS, which the pure converter can only
+# assume holds at runtime.
+#
+# ⛑ The fixture puts an atmosphere OVER a blocking polygon on purpose, which is
+# the authoring case D16 exists for: the fog covers the wall, and the two must
+# come back to DIFFERENT arrays rather than one swallowing the other. A
+# same-layer scheme would have made this ambiguous and this leg is what proves
+# it is not.
+#
+# ⛔ It also pins D15 negatively: the atmosphere authors NO blocksMovement and
+# NO outline, and a round-trip that grew either would produce a zone file that
+# zone.go refuses by name on the next boot — loud, but only after the save.
+#
+# ⭐ THE PROFILES HERE ARE AIR NAMES since the 2026-09-15 table split — the
+# polygon below wears a TERRAIN profile and the atmospheres wear ATMOSPHERE
+# ones, so this map exercises both vocabularies at once.
+# ⚑ This fixture used to author "Mountains" and "Swamp" on the atmospheres,
+# which was the exact L15 mistake the split exists to make unrepresentable.
+#
+# ⛔ WHAT THIS LEG CANNOT SEE, measured 2026-09-16 rather than assumed: which
+# ENUM TYPE the AuraAtmosphere.profile member points at. Headless --export-map
+# loads no project, so tiled.propertyValue throws and aura-world-format.js
+# falls back to writing the bare STRING (see typedValue there) — the name
+# round-trips whatever the member declares. Pointing AuraAtmosphere back at
+# AuraProfile was mutation-tested and this leg stayed GREEN. The enum wiring is
+# pinned statically instead, in AuraTiledConvert.test.ts, and the DROPDOWN
+# itself is a human check like the mob one at the foot of this script.
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/atmospheres.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    // The wall the fog hangs over — a different layer, a different array.
+    polygons: [{profile: "Mountains", blocksMovement: true, points: [
+        {x: -20, y: -10}, {x: -12, y: -10}, {x: -12, y: -2}, {x: -20, y: -2}]}],
+    atmospheres: [
+        // A dark cave interior, four points, covering the wall above.
+        {profile: "Cave Air", points: [
+            {x: -22, y: -12}, {x: -10, y: -12}, {x: -10, y: 0}, {x: -22, y: 0}]},
+        // A second bank with a different profile and point count, so a
+        // converter that collapsed the array to one shape is caught.
+        // ⚑ "Fog" is at a DIFFERENT index in AuraAtmosphereProfile than
+        // "Cave Air", so a decode against the wrong list cannot land on it.
+        {profile: "Fog", points: [{x: 4, y: -8}, {x: 14, y: -8}, {x: 9, y: 2}]},
+    ],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/atmospheres.json \
+        "$(native "$ROOT/tools/tiled/.verify/atmospheres-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/atmospheres.json tools/tiled/.verify/atmospheres-out.json; then
+    ok "byte-identical — the ninth layer survived, the fog did not eat the wall,
+        and both enums decoded to their own vocabulary"
+else
+    bad "atmospheres did not survive: $(cmp tools/tiled/.verify/atmospheres.json \
+        tools/tiled/.verify/atmospheres-out.json 2>&1 | head -1)"
+fi
+
+echo
+echo "EVERY ATMOSPHERE PROFILE comes back as its own name (the 2026-09-15 split)"
+# ⭐ The air’s own copy of the regions leg above: one atmosphere per air
+# profile, so every name the palette offers is proven to survive a real Tiled
+# round-trip rather than only the two the fixture above happens to use.
+#
+# ⛔ It does NOT prove which enum the member declares — see the measured note
+# on the atmospheres leg above. What it proves is that no air profile name is
+# mangled, dropped or reordered on the way through, which is a real failure
+# mode for a layer and a vocabulary this young.
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+const content = require("./tools/tiled/palette/content.json");
+C.useContent(content);
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+// Every air profile the palette offers, each on its own triangle, stepped
+// along X so no two shapes coincide.
+const air = content.AIR_PROFILE_NAMES.map(function (profile, i) {
+    const x = -20 + i * 6;
+    return {profile: profile, points: [
+        {x: x, y: -10}, {x: x + 4, y: -10}, {x: x + 2, y: -6}]};
+});
+if (air.length === 0) { throw new Error("no air profiles in the palette"); }
+fs.writeFileSync("tools/tiled/.verify/air-profiles.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors, atmospheres: air,
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/air-profiles.json \
+        "$(native "$ROOT/tools/tiled/.verify/air-profiles-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/air-profiles.json tools/tiled/.verify/air-profiles-out.json; then
+    ok "byte-identical — every air profile came back as its own name, not an index"
+else
+    bad "air profiles did not survive: $(cmp tools/tiled/.verify/air-profiles.json \
+        tools/tiled/.verify/air-profiles-out.json 2>&1 | head -1)"
+fi
+
+echo
 echo "OUTLINES survive on both surface types"
 # ⭐ P4's leg (plan-zone-polygons.md D3). outlineProfile is a TYPED ENUM property,
 # and Tiled hands a typed enum back as an INDEX into the declared values, never
@@ -417,6 +521,36 @@ else
 fi
 
 echo
+echo "a zone with a vertex-less atmosphere is REFUSED"
+# ⛔ THE LEG FOR A BOOT THAT ACTUALLY BROKE (2026-09-14). The atmospheres layer
+# shipped without a validateModel leg — the only shape layer without one — so
+# Tiled saved three objects with no vertices and aurad died on
+# "atmosphere 0: needs at least 3 points to enclose an area, got 0".
+#
+# ⭐ Save-time validation exists to catch what the SERVER would reject while the
+# author is still looking at the object. A new shape layer without a leg here is
+# a broken boot waiting to happen, and only this file drives the real binary.
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/emptyatmo.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    atmospheres: [{profile: "Fog", points: []}],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/emptyatmo.json \
+        "$(native "$ROOT/tools/tiled/.verify/emptyatmo-out.json")" >/dev/null 2>&1; then
+    bad "the save was ACCEPTED — an empty atmosphere would break the next boot"
+elif [ -e tools/tiled/.verify/emptyatmo-out.json ]; then
+    bad "refused, but a file was written anyway"
+else
+    ok "refused, nothing written"
+fi
+
+echo
 echo "a region naming a profile that does not exist"
 node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
@@ -461,8 +595,13 @@ fi
 echo
 if [ "$fail" -eq 0 ]; then
     echo "all green."
-    echo "⚑ still a human check: open tools/tiled/aura.tiled-project, click a spawn,"
-    echo "  and confirm the mob dropdown renders (project state does not load headlessly)."
+    echo "⚑ still a human check (project state does not load headlessly):"
+    echo "  1. open tools/tiled/aura.tiled-project, click a spawn, confirm the mob"
+    echo "     dropdown renders;"
+    echo "  2. click an object on the atmospheres layer and confirm its profile"
+    echo "     dropdown offers the AIR names only — Cave Air, Gloom, Fog, Clearing —"
+    echo "     while a region offers the ground ones. That separation is the point of"
+    echo "     the 2026-09-15 table split and no headless leg can see it."
 else
     echo "FAILED — see above."
 fi

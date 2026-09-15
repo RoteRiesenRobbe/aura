@@ -120,8 +120,16 @@
       "Wasteland",
       "Mountains",
       "Ice",
+      "Wall",
       "Road",
       "Water"
+    ],
+    "AuraAtmosphereProfile": [
+      "(pick a profile)",
+      "Cave Air",
+      "Gloom",
+      "Fog",
+      "Clearing"
     ]
   },
   "TERRAIN_TYPES": [
@@ -315,7 +323,14 @@
     "Wasteland",
     "Mountains",
     "Ice",
+    "Wall",
     "Road",
     "Water"
+  ],
+  "AIR_PROFILE_NAMES": [
+    "Cave Air",
+    "Gloom",
+    "Fog",
+    "Clearing"
   ]
 }

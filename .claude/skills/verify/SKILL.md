@@ -22,17 +22,30 @@ the webpack **prod build**, not just a dev server. Game URL:
 ⚑ **Since step 8a chunk 1c, `aurad` REFUSES TO BOOT without `AURA_DB_URL` and
 `AURA_JWT_KEY`.** An unset `AURA_DB_URL` exits 1 with an explicit message; an
 unset `AURA_JWT_KEY` panics. Neither looks like a harness problem, so check the
-log's first lines before chasing anything else. The canonical source for both is
-the gitignored **`backend/.env.local`** (`cp backend/.env.local.example` to
-create it) — source it before launching `aurad` by hand:
+log's first lines before chasing anything else.
+
+⭐ **DOCKER IS OPTIONAL — the requirement is a reachable PostgreSQL, not a
+container** (PO correction 2026-09-12). Two equivalent setups:
 
 ```bash
+# (a) Docker
 make -C backend db-up && set -a && . backend/.env.local && set +a
+# (b) Windows / native Postgres — no container, no .env.local needed
+./scripts/dev-restart-windows.sh server
 ```
 
-`scripts/dev-restart.sh` does this for you. On the Windows dev box they may also
-be set at User scope, but a shell opened before that does not see them — read
-them back with `[Environment]::GetEnvironmentVariable('NAME','User')`.
+⛔ **On the Windows dev box `docker` is not on PATH at all, and the game boots
+fine.** Never record "could not verify in-game: no Docker on this host" — it has
+been written into the status history more than once and it was wrong every time.
+Run (b) instead, or say plainly that you chose not to.
+
+⚑ **`backend/.env.local` is ONE source, not the canonical one.** The three
+variables may be exported at machine scope instead — which is how the Windows
+box is configured, so the file is legitimately ABSENT there while every boot
+works. `dev-restart*.sh` source the file when present and let an exported value
+win. **Run `env | grep AURA_` before concluding anything is unset**; a shell
+opened before the variables were set at User scope will not see them, and
+`[Environment]::GetEnvironmentVariable('NAME','User')` reads them back.
 
 ⚑ **Harness runs now leave residue in a DURABLE database.** Every script creates
 `hrnss_*` characters, and since the dev DB moved to a named volume they no longer
