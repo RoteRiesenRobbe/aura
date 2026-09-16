@@ -1,4 +1,9 @@
-# Plan: region atmosphere — the air a region carries, and what you can see through it
+# Plan: region atmosphere — the air a region carries
+
+> ⛔ **"…and what you can see through it" moved out on 2026-09-16.** The
+> line-of-sight half is **`docs/plan-line-of-sight.md`**; §3.5 below records the
+> split and its reason. This plan is now the AIR: how dark a place is, how thick
+> the murk is, how far you see unaided, and where the holes are.
 
 > **Status: DESIGNED 2026-09-08. Nothing built. Every ruling below marked
 > PROPOSAL is mine and the PO may veto any of them; §8 holds the calls I could
@@ -138,7 +143,11 @@ there is nothing for a wall to cut into. That ordering is the whole chunk plan.
    inside it: shapes on one dedicated layer, erase-blend holes, zone-data-driven.
 3. ⛔ **No gameplay meaning**, region-primitive §1 verbatim. No mob sees further
    because a region is bright; none is blinded because it is dark. The one place
-   this fence is genuinely thin is `isHidden()` — §8 Q4.
+   this fence is genuinely thin is `isHidden()` — `plan-line-of-sight.md` §7 Q2,
+   which is where that question went with the B chunks. ⚑ A4 has since given
+   `isHidden` a SECOND input (`Clearings.clearsAt`), so the fence is thinner than
+   when this was written, though still purely about VISIBILITY and never about
+   what a mob can do.
 
 ## 2. Decision ledger
 
@@ -153,9 +162,7 @@ there is nothing for a wall to cut into. That ordering is the whole chunk plan.
 | ~~**D5**~~ | ~~The gloom edge uses `DarknessVisuals.EDGE_FADE`, **not** the profile's `blend`.~~ ⛔ **REVERSED 2026-09-12 by D0.** The argument was that a road's `blend: 0.3` must not become the darkness feather of whatever the road runs through — which was only ever true while atmosphere rode a **ground** profile. An atmosphere shape names an **atmosphere** profile, so its `blend` is the fog's own softness and nothing else's. ⚑ `darkAreas` circles keep `EDGE_FADE`; the two edges coexist because they belong to two primitives. | REVERSED |
 | ~~**D6**~~ | ~~**A1 ships hard-edged gloom polygons**; the feather is A1b, triggered.~~ ⛔ **DELETED 2026-09-12.** `paintSurface` already feathers any surface it draws, via `buildBlendMask` and the profile's `blend`. **A1b was a whole deferred chunk (with its own `Renderer`-plumbing problem) that reuse dissolves.** | DELETED |
 | **D7** | `sight` never **shrinks** a light the player earned: the local hole is `max(wire light_radius, sight)`. An atmosphere cannot take away what Lantern or Torch gives. | PROPOSAL |
-| **D8** | An occluder is authored by the prop **DEFINITION** (`occludesSight`), not by the placement — the `crossesPaths` idiom, not the `blocksMovement` one. §3.5 argues why this one goes the other way from paths **D4**. | PROPOSAL |
-| **D9** | **B ships with LOS on the local player's own light only.** Every other light keeps its circle. §3.7 has the compositing reason and the upgrade path. | PROPOSAL, needs PO (§8 Q3) |
-| **D10** | The visibility polygon is a **stencil** mask (a `Graphics` set as `mask`), never an alpha mask, and the falloff stays a texture. **L2 + L3.** | FORCED by the engine, not a preference |
+| ~~**D8** · **D9** · **D10**~~ | ⛔ **MOVED 2026-09-16 to `docs/plan-line-of-sight.md` §2** — `occludesSight` as a prop-DEFINITION field, LOS on one light or all of them, and the stencil-not-alpha ruling. All three were only ever about the B chunks. ⚑ That plan added **D19** (static lights are cached) when the split forced the perf question to be measured. | MOVED |
 | **D11** | Neither the full-screen map nor the minimap draws gloom. The map is **knowledge**, not vision (`plan-world-map.md` D16's shape); `MapFog` already owns "where have I been". ⚑ **This is the one place an atmosphere shape must NOT follow its three siblings** — regions, paths and polygons all bake into the map by the parity rule (region-primitive §4.7), and atmosphere deliberately does not. Say so at the call site or someone will "fix" the asymmetry. | PROPOSAL |
 | **D12** | ⭐ **Animated fog is the SHIPPED `scroll` property, and fog art is the shipped `texture` / `color` / `scale`.** No new vocabulary at all: an atmosphere shape is painted by `paintSurface`, which already does texture-or-colour fallback (D14), the feathered edge, the drift and the cheap stencil mask. Flat black darkness is simply a profile that authors a colour and no texture. | **RULED, PO 2026-09-12** (reuse, not reinvention) |
 | **D13** | **Only the SHAPE goes in the zone file; every VALUE stays in `profiles.json`.** The same split regions, paths and polygons already use — and it is what keeps *tuning* fog free of the boot-time seam even though *drawing* one is not. | PROPOSAL |
@@ -386,140 +393,31 @@ that doc should be told.
 it, and the `paused` guard above that line is load-bearing for the reason
 `advanceSurfaceScroll` documents — a ramp advanced across a pause jumps (**L8**).
 
-### 3.5 B1 — the occluder set
+### 3.5 ⛔ MOVED — the line-of-sight half is `docs/plan-line-of-sight.md`
 
-A pure module (`features/darkness/logic/Occluders.ts`): no PixiJS, no
-`require.context`, turning bundled zone data into **segments in world pixels**.
-⚑ Its own file for the reason `PropPlaceholderLayout.ts`'s header states —
-*"Props.ts reaches `require.context` at import time, which only webpack
-provides. Anything importing it is untestable under vitest."* The geometry is
-the part most worth testing, so it must not import the bundlers.
+⭐ **B1 (the occluder set), B2 (the visibility polygon) and B3 (the stencil)
+left this document on 2026-09-16** (PO: *"I feel like it should maybe move to
+its own plan"*), taking **D8**, **D9**, **D10**, the four open questions that
+were only ever about them, and landmines **L2**, **L3**, **L4**, **L6** and
+**L7**. Every section went across VERBATIM; nothing was rewritten in the move.
 
-Three sources, all already client-side and all static at load:
+⚑ **Why the split is right, and it is not doc length.** This plan answered
+*what the air looks like* and shipped as AUTHORING VOCABULARY — profile keys, a
+Tiled class, the four-writer tax. B answers *what you can see through it* and is
+GEOMETRY plus render-target work with almost no authoring surface: one
+prop-definition flag. They share a render layer and nothing else.
 
-1. **Props.** `zone.props` gives type · x · y · rotation · scale ·
-   `blocksMovement`; `api/props/*.json` gives the body — `Props.ts:63` already
-   bundles those definitions, and `propFootprint()` already reconstructs
-   half-extents from the same authored body. Circle bodies contribute a tangent
-   pair; rect bodies four rotated segments. ⭐ **Zero wire cost and no streaming
-   pop**: this reads the bundled zone copy, not the AOI-streamed entity, so a
-   wall occludes before it has streamed in.
-2. **Blocking paths** — the cave walls, per `plan-underworld.md` §7.1. A stroked
-   polyline of width *w* is two offset polylines plus round caps; for occlusion,
-   the **centre-line segments dilated by w/2** is close enough and far simpler.
-   ⚑ **[REVIEW] A path may now be CLOSED** (`PathDefinition.closed`, shipped P1
-   `8d9dc4b9`), so the derivation must emit the **wraparound segment** from the
-   last point back to the first. The loop asks *"is there a next SEGMENT"*,
-   never *"is there a next point"* — P1's own finding — and the failure mode
-   here is a ring wall that leaks light through exactly one seam.
-   ⚑ **`Paths.ts` deliberately drops `blocksMovement` from the drawn path and a
-   test pins that** (`Paths.test.ts:53`). Do **not** relax that pin — the
-   occluder set is a **second derivation from `PathDefinition`**, beside
-   `toPaths()`, and not a change to what gets drawn (**L6**).
-3. **The zone border** — four segments from `bounds` at `origin`. Free, and
-   without them a light at the wall spills into the void.
-4. ⭐ **[REVIEW] Blocking polygons** — `zone.polygons` carrying `blocksMovement`,
-   which did not exist when this plan was written (zone-polygons P2–P4, designed
-   2026-09-09, shipped uncommitted by review time). **This is the PRIMARY source
-   now, not a fourth afterthought**: `CLAUDE.md` names *"cave walls as blocking
-   polygons"* as the polygon primitive's first content consumer, while
-   `plan-underworld.md` §7.1 item 1 still says *paths* — the two disagree, and
-   **B1 reads both rather than waiting for the ruling** (§8 Q8). The geometry is
-   the cheapest of the three: `Polygons.loadedPolygons()` already hands over
-   world-pixel vertices with `origin` applied, and a polygon's occluder set is
-   its **edges, closed** — no dilation, no caps. ⛔ The **outline**
-   (`outlineProfile` / `outlineWidth`) is decoration and contributes nothing;
-   occlude on the authored ring only.
+⚑ **They remain one PO ask** — the original request named the fog and the sight
+limit in one breath — so the new plan opens by quoting it, and this pointer is
+here so the thread is followable from either end.
 
-**D8 — `occludesSight` is a prop-DEFINITION field.** `plan-world-paths.md`
-**D4** put `blocksMovement` on the *placement* and `plan-underworld.md` U3b
-followed it for `anchor`, so the burden is on going the other way. It is
-discharged: those two are about **where a thing is used** (this river is
-fordable here; this door leads there), whereas *"can you see through a boulder"*
-is about **what the thing is** — a material fact, the same category as
-`crossesPaths` on a bridge, which is a definition field for exactly this reason.
-⚑ And its **absence** is what matters most: `occludesSight` defaults false, so a
-zone with no authored occluders builds an empty set and B is inert, exactly as
-`gloom` defaults 0.
-
-⚑ **The collider is not the silhouette.** `body.collisionFactor` shrinks the
-collider (a tree's trunk is 0.714 of its crown); an occluder should use the
-**visual** body, because what you cannot see past is the thing you can see.
-Whether a tree occludes **at all** is §8 Q2 — a canopy is above eye height in a
-top-down world, and shadowing every trunk in a forest may read as noise.
-
-**Cost, counted rather than feared.** `world.json` is 772 props over 144 × 72 =
-10 368 u² → **0.074 props/u²**. The sweep set is what lies inside the light
-radius, not the screen: a Lantern at r 4 covers ~50 u² ≈ **4 props ≈ 16
-corners**; a campfire at r 7 covers ~154 u² ≈ 11 props ≈ 45 corners — and
-occluders are a subset of those. This is not a scale problem, and B1 should ship
-the naive filter (linear scan, squared distances, the `inAnyCircle` idiom)
-rather than a spatial index.
-
-### 3.6 B2 — the visibility polygon
-
-The classic angular sweep: pure math, fully unit-testable, and that matters here
-because ⛔ **the drawing half is not** — it is untestable under vitest by exactly
-the split that leaves `buildBlendMask` and `ZoneCurtain`'s CSS untested, and
-`plan-underworld.md` U4b is the cautionary tale: *"a green `CurtainSequence`
-says nothing about whether anything animates."* Push everything that can be a
-number into B2.
-
-For a light at *P* with radius *r*, over the segments B1 hands it:
-
-1. Collect candidate angles: both endpoints of every segment, each ± a small
-   epsilon so a ray slides past a corner instead of stopping on it.
-2. Cast each ray, take the nearest hit, clamp to *r*.
-3. Sort by angle; the hit points in order are the polygon.
-4. Between two consecutive rays that both ran to the clamp, insert arc points so
-   the unoccluded part stays visibly round rather than a chord.
-
-Edge cases that must be **tests, not comments**: no occluders at all (→ the full
-circle, i.e. **today's behaviour, which is what makes B safe to land**) · the
-light **inside** an occluder (→ degenerate; return the circle rather than a black
-screen) · collinear and duplicate endpoints · a segment entirely outside *r*.
-
-### 3.7 B3 — drawing it, and the two engine facts that pick the design
-
-The light hole today is a `Sprite` of a canvas radial-gradient texture with
-`blendMode: 'erase'`. To clip it, set the visibility polygon as that sprite's
-**mask**:
-
-```ts
-light.sprite.mask = new Graphics().poly(visibility).fill(0xffffff);
-```
-
-⭐ **D10 is forced, not chosen:**
-
-- **`FillGradient` in the installed PixiJS 8.4.1 is LINEAR ONLY.** Its
-  `GradientType` union names `'radial'` and the class implements only
-  `buildLinearGradient()` — verified at HEAD in
-  `node_modules/pixi.js/lib/scene/graphics/shared/fill/FillGradient.d.ts`. So the
-  obvious shortcut — draw the visibility polygon *with* a radial gradient fill
-  and skip the mask entirely — **does not exist**, however much the type name
-  suggests it does.
-- **A `Graphics` mask is a STENCIL; a texture/sprite mask is a FILTER PASS.**
-  Region-primitive **L12** is about the second (`AlphaMaskPipe extends
-  FilterEffect` — a render-target switch per masked object per frame);
-  `paintSurface` already discovered and documented the first, giving a scrolling
-  surface with `blend: 0` *"a CHEAP one: the plain silhouette as a stencil, no
-  RenderTexture and no blur pass."* Same path here.
-
-⚑ **The mask must be built from the sprite's own interpolated position**, not
-the snapshot position — `update()` already copies
-`light.object.shape.position` onto the sprite each frame, and a polygon built
-from a different point lags the avatar by one interpolation step, which reads as
-the shadows swimming.
-
-**D9 — one LOS light in v1, and the reason is compositing, not cost.** Shadows
-do not compose by drawing black over the light: a point in A's shadow but lit by
-B is lit, so each light needs its **own** clipped erase shape. Per-light masks
-are correct by construction, and the cost is one stencil pass per LOS light per
-frame. Starting at one — the local player's, the only hole whose shape you are
-actually reading — keeps the first landing at a single stencil, and widening to
-*N* is the same code in a loop. §8 Q3 is the PO's call on whether an ally's torch
-shining through a wall beside your correctly shadowed one is worse than no
-shadows at all.
+⭐ **The split also bought the thing neither half had: a measured performance
+section.** It is `plan-line-of-sight.md` §3, and the headline is that the sweep
+is **quadratic in segments per light and linear in lights** — so D9 as designed
+costs 0.34 % of a frame, while 20 campfire-radius lights in a dense cave cost
+17 % on a DESKTOP. ⭐ It also produced a new ruling, **D19**: a static light over
+static occluders has a static visibility polygon and is CACHED, so only moving
+lights pay per frame.
 
 ### 3.8 Never blocking, and drawn on top of everything (D15, D16)
 
@@ -536,7 +434,7 @@ and every entity, for free and by construction.
 exists**: nameplates, chat messages and floating combat numbers are added after
 it. They are UI drawn in world space, so z-order cannot dim them and never will
 — which is exactly why hiding a plate in the dark is a **function call**
-(`isHidden`, **L4**, §8 Q4) and not a layering question. Anybody "fixing" that
+(`isHidden`, `plan-line-of-sight.md` L4 / §7 Q2) and not a layering question. Anybody "fixing" that
 asymmetry would silently un-gate every nameplate in the game.
 
 **Why its own Tiled layer (D16).** Zone-polygons **D5** ruled *no new layer* and
@@ -632,16 +530,17 @@ for the plumbing.
 | **A2** ✅ *(shipped `5b57d0c4`)* | `sight` + the ramp + the remembered-value wrapper (`plan-region-audio.md` inherits it) · `max(wire, sight)` (D7) · the frame delta into `update()` | vitest on the wrapper and the max rule · in-game: cross the boundary, Lantern on and off |
 | **A3** *(optional, PO call)* | **Content**: re-author `world.json`'s 35 `darkAreas` as 2–3 atmosphere shapes. ⚑ A content judgement — *where the dark places actually are* — not a transform derivable from circle positions. `plan-world-paths.md` C4's shape exactly. ⭐ **It is now also the trigger that retires `darkAreas`** (D4, `docs/cleanup.md`): the primitive only leaves once nothing authors it | in-game, plus a before/after screenshot pair |
 | **A4** ✅ *(shipped 2026-09-16; ledger §10)* | ⭐ **`AuraClearing` — the clearing becomes a CLASS.** Reopens **D3**: `darkness: 0` stops meaning *erase* and starts meaning *declares zero* (which a pure fog bank may legitimately want), and a clearing becomes its own Tiled class on the atmospheres layer, with its own `zone.clearings` array and **no profile member** (L7). ⛔ **The seam is `inDarkness()`** — a profile-less clearing is invisible to the `resolveIn` walk, so the sim would call a lit pocket dark. Four-writer tax; comparable to zone-polygons P2 | vitest on the class routing and the `inDarkness` seam · a `verify.sh` leg, since the fourth writer is unpinnable otherwise · ⛔ **mutation-verify the seam specifically** — the picture looks right either way |
-| **B1** | `Occluders.ts` — pure segment derivation from props (+ `occludesSight`), blocking paths (**incl. the `closed` wraparound**), **blocking polygons [REVIEW]** and the border. No rendering. | vitest: it is 100 % testable and should be 100 % tested · a count assertion against the real `world.json` |
-| **B2** | The visibility polygon. Pure. | vitest incl. every §3.6 edge case · **mutation-verified**: the no-occluder case must return today's circle |
-| **B3** | The stencil mask on the local player's hole (D9/D10) · the interpolated-position pin | in-game: stand behind a wall inside an atmosphere shape · frame time on the mobile ceiling |
+| ~~**B1** · **B2** · **B3**~~ | ⛔ **MOVED 2026-09-16 to `docs/plan-line-of-sight.md`** (§3.5 here says why). The occluder set, the visibility polygon and the stencil mask, with D8/D9/D10 and their open questions. ⭐ That plan also carries the MEASURED perf numbers, and a new **D19** (static lights are cached) that came out of measuring | — |
 
 **A0 → A1 → A2 → A4** ✅ all shipped 2026-09-16 (A0-A2 `5b57d0c4`; A4 ledger §10).
 
-⭐ **Next: B1** (the occlusion half, and the answer to the PO's original
-line-of-sight ask), then B2 → B3. **A3 stays a PO content call.** ⚑ **§8 Q3 is open
-and B3 needs it**: is an ally's torch shining through a wall, beside your own correctly
-shadowed light, worse than neither having shadows (D9)?
+⭐ **Next in THIS plan: A3 only, and it is a PO content call** — re-author
+`world.json`'s 35 `darkAreas` as 2–3 atmosphere shapes, which is also the trigger that
+retires the `darkAreas` primitive (D4). ⛔ **When A3 is ruled, this plan is DONE and
+moves to `archive/`.**
+
+⭐ **The line-of-sight work continues in `docs/plan-line-of-sight.md`** (B1 → B2 → B3),
+which is where its open PO questions now live.
 
 ## 6. Test strategy
 
@@ -666,36 +565,23 @@ shadowed light, worse than neither having shadows (D9)?
 
 ## 7. Landmines
 
+> ⛔ **L2, L3, L4, L6 and L7 moved to `docs/plan-line-of-sight.md` §8 on
+> 2026-09-16** — stencil-vs-filter, the linear-only `FillGradient`, the
+> `isHidden()` gameplay surface, the `Paths.ts` pin and the `require.context`
+> testability rule. They were all about the B chunks. ⚑ **The numbering is left
+> with holes on purpose**: every one of them is cited by tag from other docs, and
+> renumbering would silently repoint those citations.
+
 - **L1 — `resolve('gloom')` can return `null`.** D11's authored "nothing here"
   is a legal value for every profile property. `null > 0` is `false` and
   `null <= 0` is `true` in JS, so the naive comparison happens to work — which is
   worse than it failing, because the next property added will not be so lucky.
   Map it to 0 explicitly.
-- **L2 — a texture mask is a filter pass; a `Graphics` mask is a stencil.**
-  Region-primitive **L12** plus `paintSurface`'s cheap-mask path. Getting this
-  backwards puts a render-target switch per light per frame on a client whose
-  measured frame time is ~204 ms/Mpx on a phone.
-- **L3 — `FillGradient` is linear-only in 8.4.1** despite `GradientType` naming
-  `'radial'`, so the soft falloff has to stay a texture. Verified at HEAD;
-  re-check on any PixiJS bump, because this is the one landmine here that a
-  version bump *removes*.
-- **L4 — `isHidden()` is the one gameplay-adjacent surface in the whole plan.**
-  It gates mob nameplates today, already justified as *"vision in the dark is the
-  light role's job (GDD 'spotting targets'), and a readable plate over an
-  invisible mob hands that away for free."* Let LOS shape it and a mob behind a
-  rock loses its plate — which is either the feature working or a stealth
-  mechanic arriving through the back door. §8 Q4.
 - **L5 — the zone origin, U4a's bug verbatim.** Every shape here is built from
   zone-local authored coordinates and drawn in world space. `Regions.toRegions`
   and `DarknessOverlay.loadZone` both already apply `origin`; anything new must
   too, and the failure is **invisible in `world`** (origin `{0,0}`) and 300 units
   off in the underworld. **Test in a placed zone or you have not tested it.**
-- **L6 — `Paths.ts` drops `blocksMovement` on purpose and a test pins it.** The
-  occluder derivation is a second reader of `PathDefinition`, not a change to the
-  drawn path. Do not "fix" the pin.
-- **L7 — a module reaching `require.context` at import time is untestable.**
-  Stated in `PropPlaceholderLayout.ts`'s header; it is why B1 is its own file
-  rather than a function inside `Props.ts`.
 - **L8 — the `paused` guard.** A ramp, or a per-frame polygon rebuild, advanced
   across a pause jumps by the whole pause — the trap `advanceSurfaceScroll`
   already documents at `Game.ts:467`.
@@ -762,21 +648,11 @@ shadowed light, worse than neither having shadows (D9)?
    mist, an overcast moor); a flag deletes L9 and §3.2's last paragraph and keeps
    the shipped chaining guarantee absolute. My lean: **keep the number**, author
    only 0 and 1 until something wants otherwise.
-2. **Do trees occlude?** A canopy is above eye height in a top-down world, and a
-   forest of trunk shadows may read as noise rather than as sight lines. My lean:
-   **rocks, boulders, houses and gate walls yes; trees no** — `occludesSight`
-   authored on four of the six shipped prop definitions (`Rock`, `Boulder`,
-   `House`, `GateWall`; ⚑ **[REVIEW]** that count silently excludes `Tombstone`
-   as well as `Tree` — a headstone is knee-high, so no, but say so).
-3. **LOS on one light or on all of them?** (D9) One is a single stencil and the
-   only hole whose shape you read. All of them is correct, but is *N* stencils
-   and makes every campfire and every ally a per-frame sweep. My lean: **ship
-   one, look at it, then decide** — the widening is a loop.
-4. **Should LOS shape `isHidden()`?** (L4) If yes, a mob behind a wall loses its
-   nameplate — consistent, and arguably the point. If no, plates leak the
-   position of things you cannot see. ⚑ Either way this is the only place the
-   feature touches something a player can play around, so it wants a ruling
-   rather than a default.
+2. ~~**Do trees occlude?**~~ · ~~**LOS on one light or all?**~~ ·
+   ~~**Should LOS shape `isHidden()`?**~~ ⛔ **MOVED 2026-09-16 to
+   `docs/plan-line-of-sight.md` §7**, with Q8 below. All four were questions about
+   the B chunks, and leaving them here would have meant answering them in a
+   document that no longer contains the work.
 5. **Is A3 wanted, and when?** Re-authoring `world.json`'s 35 circles is pure
    upside for authoring and pure churn for a world the PO is currently judging in
    front of the game. It can wait indefinitely (D4).
@@ -796,10 +672,10 @@ shadowed light, worse than neither having shadows (D9)?
    atmosphere as its own array the question does not arise: you draw the dark
    where the dark is, over the floor and the rock alike, and the rock keeps
    being a rock.
-8. ⚑ **[REVIEW] Are cave walls paths or polygons?** `CLAUDE.md` says polygons;
-   `plan-underworld.md` §7.1 item 1 still says paths. B1 reads both either way,
-   so this blocks no chunk — but it decides what the PO actually authors in
-   Tiled, and therefore which occluder leg ever gets walked in front of the game.
+8. ~~⚑ **Are cave walls paths or polygons?**~~ ⛔ **MOVED with the others** to
+   `docs/plan-line-of-sight.md` §7 Q4. ⚑ The content has since answered it in
+   practice: `underworld.json` authors **2 blocking polygons and zero blocking
+   paths**, so a ruling would be ratifying what the PO already did.
 9. **Does a lit region exist as content?** D3 makes a `gloom: 0` clearing inside
    a dark region work, and the underworld's *"deliberately not wholesale dark"*
    compromise suggests somebody wants exactly that. Worth confirming, because it
@@ -807,6 +683,9 @@ shadowed light, worse than neither having shadows (D9)?
 
 ## 9. Cross-references
 
+- ⭐ **`docs/plan-line-of-sight.md` — the other half of the same PO ask**, split
+  out 2026-09-16: B1/B2/B3, D8/D9/D10/D19, and the MEASURED perf numbers. It masks
+  the darkness layer THIS plan owns, so §3.8's z-order is its constraint too.
 - `docs/plan-region-primitive.md` — the primitive, `resolve()`, **D0** (the
   resolution rule), **D11** (totality), **D12** (the client-side table), **§4.3**
   (the atmosphere row and the remembered-value wrapper), **§4.4** + **§11** (the
@@ -828,8 +707,9 @@ shadowed light, worse than neither having shadows (D9)?
   circle; the register is what stops "for now" from becoming "forever".
 - `docs/plan-zone-polygons.md` — ⚑ **[REVIEW] designed the day after this plan
   and shipped P1–P4 before it started**: `zone.polygons`, the `closed` flag on
-  paths, and `outlineProfile` / `outlineWidth`. B1's occluder set (§3.5 items 2
-  and 4), **L15** and §8 Q7–Q8 are all consequences of it.
+  paths, and `outlineProfile` / `outlineWidth`. **L15** and §8 Q7 are consequences
+  of it here; B1's occluder set is now `plan-line-of-sight.md` §4.1 items 2 and 4,
+  and Q8 went with it.
 - `docs/plan-region-audio.md` **§3.5** — the music tracker that becomes the
   second consumer of A2's wrapper.
 - `docs/plan-release-map.md` **§8.2** — the atmosphere/lighting bullet, which
