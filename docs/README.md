@@ -114,20 +114,39 @@ go to `backlog.md`; this section is content only.
 - **content-zone1.md** — Zone 1 (village + forest) design intent
 - **content-zone2.md** — Zone 2 (village + City Gates + the front) design intent
 
-## Art (`docs/art/` — inventory for the art overhaul)
+## Art (`docs/art/` — the brief, the tracker, the pipeline)
 
-Generated 2026-08-15 from `api/` + the client, not hand-maintained prose. Regenerate
-(or spot-fix) after any chunk that adds a mob, prop, ground texture or in-world VFX.
+**The split, 2026-09-16:** `art/README.md` is the standing **brief** (rarely changes);
+`art/assets.csv` is the **tracker** (changes constantly). Update the tracker after any
+chunk that adds a mob, prop, profile texture, atmosphere, VFX or sound.
 
-- **art/README.md** — the art brief **and** the worklist in one file, 108 tickable rows
-  (`☐` → `☑`). Brief: **the Portrait Rule** (entities are front-facing busts, never
-  rotated — GDD §10 + `manual-content-authoring.md` §4), the Gothic tone register, the
-  120 px/meter scale rule, the ×2 renderer gotcha, rendering constraints (darkness
+- **art/assets.csv** — ⭐ **the asset tracker and the single source of truth for what
+  is owed**: 198 rows spanning **art, animation and audio**, one row per asset, with
+  `state` (drawn · shared · placeholder · stock · missing · code · blocked · n/a),
+  `priority` (P0–P3, derived from placement count and flagged stakes), placements,
+  on-screen px, delivery format, target path in the repo, the constraints it must
+  survive, and **empty `owner`/`status` columns for whoever is drawing it**. ⭐ **CSV
+  rather than markdown on purpose — it imports straight into Google Sheets** (File →
+  Import → Upload → *Replace current sheet*) so it can be handed to an artist or
+  musician who has no repo, and exported back over the file. Absorbs the 108 rows that
+  used to be `art/README.md`'s worklist, and adds what that file structurally could not
+  have: it was generated 2026-08-15 and so predates **every ground- and air-painting
+  primitive** (world paths 09-07, zone polygons 09-10, atmospheres + clearings 09-16),
+  leaving it with no rows at all for terrain-profile or atmosphere textures — most of
+  what the world is painted with today
+- **art/assets.md** — ⛔ **generated, do not edit**: the reading view of `assets.csv`,
+  grouped by kind → category with a P0 shortlist and the state/priority legends.
+  `node tools/asset-tracker.mjs` rebuilds it; `--check` fails when it is stale,
+  `--stats` prints counts only. The script also **validates** the CSV — unique ids,
+  known `state`/`priority` values, and the exact column set a Sheets export must keep
+- **art/README.md** — the standing **brief**, no longer a worklist: **the Portrait Rule**
+  (entities are front-facing busts, never rotated — GDD §10 +
+  `manual-content-authoring.md` §4), the Gothic tone register, the 120 px/meter scale
+  rule, the ×2 renderer gotcha, the rendering constraints new art must survive (darkness
   overlay, damage flash, tier rings, rotation), and where the placement volume is
-  concentrated. Lists: 58 live mobs/NPCs/summons/fixtures grouped by the `content-mobs.md`
-  taxonomy · 29 environment (props, the 16 ground decals, terrain colours, lighting,
-  world scale) · 21 player + code-drawn VFX + overlays + deferred UI. Legacy Berryhunter
-  content is excluded to an appendix.
+  concentrated. ⚑ Its counts are the 2026-08-15 ones and the world has been re-authored
+  since — the argument holds, the numbers are indicative, `assets.csv` carries current.
+  Legacy Berryhunter content is excluded to an appendix
 - **art/pipeline.md** — how art gets *into* the game: the bake-once/square-sprite
   mechanics and the `maxSize` resolution knob, drop-in file replacement (frontend-only,
   plus the shared-sprite and lying-filename traps), **SVG vs PNG** (webpack already
