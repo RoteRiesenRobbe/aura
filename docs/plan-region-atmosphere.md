@@ -158,7 +158,7 @@ there is nothing for a wall to cut into. That ordering is the whole chunk plan.
 | **D1** | `gloom` is a **per-shape** property (drawn on the atmosphere shape's own footprint, like `blend`/`scroll`); `sight` is a **per-point** property (resolved at the player, like music). §3.1 is why getting this backwards is the trap. ⚑ Both halves now read the **`atmospheres`** array, so the two answers come from one source instead of two. | PROPOSAL |
 | **D2** | The darkness is drawn in **world space on the shape's footprint**, not as a screen-space vignette around the player. §3.2 weighs the alternative and why it loses. | PROPOSAL |
 | **D3** ✅ **CLOSED 2026-09-16 by A4 (§10) — `darkness: 0` now DECLARES zero and the erase is `AuraClearing`, its own class. Everything below describes the superseded design.** ⛔ **Was REOPENED 2026-09-16 (PO), §11 — `gloom: 0` shipped as `darkness: 0`/`haze: 0` and the PO rejected the magic value on sight:** *"0 darkness should be LEGAL, because there might be atmospheres that want no darkness at all. Maybe more class separation is in order?"* The replacement is **A4**, shipped the same day: a clearing is its own Tiled CLASS and `darkness: 0` simply declares zero. ⛔ The cell to the right is the SUPERSEDED rule, kept only because the reason matters. | Atmosphere shapes draw in **authored order**, and one declaring `gloom: 0` inside one declaring `gloom: 1` draws as an **erase** shape. ⭐ This is what keeps the DRAWING and `resolve()` agreeing under D0. ⚑ **D0's reversal makes it honest**: the lit clearing is now a real atmosphere shape, not a counterfeit region that also silently rewrote the footsteps. | PROPOSAL |
-| **D4** | `darkAreas` **stays for now** — this plan adds a second source of dark shapes and does not migrate content. ⚑ **Amended 2026-09-12 (PO): it is MARKED FOR DELETION**, because a circle is now strictly a degenerate atmosphere shape and two sources of dark geometry is the duplication D0's reversal exists to avoid. Registered in `docs/cleanup.md`; the trigger is **A3**, the content retrofit, which stays a content judgement. | PROPOSAL + marked |
+| **D4** | `darkAreas` **stays for now** — this plan adds a second source of dark shapes and does not migrate content. ⚑ **Amended 2026-09-12 (PO): it is MARKED FOR DELETION**, because a circle is now strictly a degenerate atmosphere shape and two sources of dark geometry is the duplication D0's reversal exists to avoid. Registered in `docs/cleanup.md`. ⛔ **Amended again 2026-09-16 (PO): that entry now owns A3 outright AND the prior question — should `darkAreas` be retired at all?** D4 marked it for deletion on a premise nobody had argued against; the register is where that argument goes. | PROPOSAL + marked |
 | ~~**D5**~~ | ~~The gloom edge uses `DarknessVisuals.EDGE_FADE`, **not** the profile's `blend`.~~ ⛔ **REVERSED 2026-09-12 by D0.** The argument was that a road's `blend: 0.3` must not become the darkness feather of whatever the road runs through — which was only ever true while atmosphere rode a **ground** profile. An atmosphere shape names an **atmosphere** profile, so its `blend` is the fog's own softness and nothing else's. ⚑ `darkAreas` circles keep `EDGE_FADE`; the two edges coexist because they belong to two primitives. | REVERSED |
 | ~~**D6**~~ | ~~**A1 ships hard-edged gloom polygons**; the feather is A1b, triggered.~~ ⛔ **DELETED 2026-09-12.** `paintSurface` already feathers any surface it draws, via `buildBlendMask` and the profile's `blend`. **A1b was a whole deferred chunk (with its own `Renderer`-plumbing problem) that reuse dissolves.** | DELETED |
 | **D7** | `sight` never **shrinks** a light the player earned: the local hole is `max(wire light_radius, sight)`. An atmosphere cannot take away what Lantern or Torch gives. | PROPOSAL |
@@ -446,8 +446,11 @@ polygons and breaks for atmosphere, on two counts:
    `['terrain', 'props', 'spawns', 'campfires', 'darkAreas', 'regions', 'paths',
    'anchors']` — **`darkAreas` already owns a dedicated layer** with its own
    class `AuraDarkArea`. Putting atmosphere on a shared layer would give the
-   *successor* worse authoring than the primitive it retires, and A3 eventually
-   frees the slot besides, so the layer count ends level.
+   *successor* worse authoring than the primitive it retires. ⚑ **That argument
+   used to lean on A3 eventually freeing the slot** so the layer count ended
+   level; since 2026-09-16 the retirement is an open PO question rather than a
+   scheduled one (`docs/cleanup.md` entry 1), so **treat the layer as permanent**
+   — the first reason stands on its own and never needed the second.
 2. ⭐ **Overlapping shapes need a visibility toggle, and a class cannot give
    one.** A polygon sits *beside* a path; an atmosphere area *covers* the walls
    and roads it darkens. On a shared layer there is no way to hide the fog to
@@ -463,8 +466,10 @@ is owed either way.
 
 ### 3.9 What this plan does not touch
 
-- **`darkAreas`** (D4). Still parsed, still validated, still drawn. A3 is an
-  optional content retrofit, deletable without touching a line of A1/A2.
+- **`darkAreas`** (D4). Still parsed, still validated, still drawn, and ⚑ **as
+  of 2026-09-16 not certainly going anywhere** — whether it is retired at all is
+  an open PO question in `docs/cleanup.md` entry 1, which also owns the content
+  migration that used to be A3. Nothing in A0–A4 depends on the answer.
 - ⛔ **Collision, in any form** (D15). An atmosphere area is air. It never
   reaches `phy.Space`, never takes `blocksMovement`, and the walls it hangs over
   are `zone.polygons` and blocking `paths` — a **different** primitive that this
@@ -479,13 +484,19 @@ is owed either way.
 
 ## 4. Schema impact
 
-| | **A0** | A1 · A2 · A3 | B1 | B2 · B3 |
-|---|---|---|---|---|
-| DB | **NONE** | **NONE** | **NONE** | **NONE** |
-| Wire | **NONE** | **NONE** | **NONE** | **NONE** |
-| conf | **NONE** | **NONE** | **NONE** | **NONE** |
-| Zone format | ⛔ **ONE ARRAY**, `atmospheres`, absent-safe | **NONE** | **NONE** | **NONE** |
-| Content | **NONE** | **NONE** (`profiles.json` is client-side, region-primitive D12) | **one prop-definition field**, `occludesSight`, absent-safe | **NONE** |
+| | **A0** | A1 · A2 | **A4** |
+|---|---|---|---|
+| DB | **NONE** | **NONE** | **NONE** |
+| Wire | **NONE** | **NONE** | **NONE** |
+| conf | **NONE** | **NONE** | **NONE** |
+| Zone format | ⛔ **ONE ARRAY**, `atmospheres`, absent-safe | **NONE** | ⛔ **ONE ARRAY**, `clearings`, absent-safe |
+| Content | **NONE** | **NONE** (the profile tables are client-side, region-primitive D12) | **NONE** |
+
+⚑ **B1–B3's column moved with them** to `docs/plan-line-of-sight.md` §5 — where
+the one real cost, a new `occludesSight` prop-DEFINITION field, is recorded.
+⚑ **A3's column is gone rather than moved**: a content migration changes no
+schema by definition, and the question of whether it happens at all now lives in
+`docs/cleanup.md` entry 1.
 
 ⛔ **[2026-09-12] The whole zone-format cost is A0 and it is real.** The old
 design claimed NONE across the board because atmosphere rode the client-side
@@ -528,19 +539,23 @@ for the plumbing.
 | **A1** ✅ *(shipped `5b57d0c4`; ⚑ `gloom` became `darkness` + `haze` — §10)* | `gloom` on `Profile` + `DEFAULT_PROFILE` + `buildProfiles` · atmosphere shapes painted by **`paintSurface` into the darkness layer** in authored order, per-shape container at `alpha = gloom`, with D3's erase branch · `isHidden()` through the resolve · ⛔ **[REVIEW] the `active` gate (L12) and the `loadZone` call order (L13)** — both silent, both one line · scroller registration + teardown (**L16**, **L17**) | vitest on the parse, D3's ordering and `isHidden` · in-game: author an atmosphere over **the underworld's room**, watch it go dark, walk out through a passage. ⚑ **A PLACED zone, per L5** — and the underworld is the only one |
 | **A1-fog** *(same chunk, no code)* | ⭐ The fog **look**: a profile authoring `texture` + `scroll` + `blend`. **Zero engineering** (D12) — it is an `atmosphere-profiles.json` edit plus one art asset, and it is the PO's knob. ✅ The tile landed with `5b57d0c4` (`tools/make-fog-tile.mjs`, deterministic and re-runnable); every NUMBER is still [PLACEHOLDER] | in-game only; there is nothing testable about whether murk looks like murk |
 | **A2** ✅ *(shipped `5b57d0c4`)* | `sight` + the ramp + the remembered-value wrapper (`plan-region-audio.md` inherits it) · `max(wire, sight)` (D7) · the frame delta into `update()` | vitest on the wrapper and the max rule · in-game: cross the boundary, Lantern on and off |
-| **A3** *(optional, PO call)* | **Content**: re-author `world.json`'s 35 `darkAreas` as 2–3 atmosphere shapes. ⚑ A content judgement — *where the dark places actually are* — not a transform derivable from circle positions. `plan-world-paths.md` C4's shape exactly. ⭐ **It is now also the trigger that retires `darkAreas`** (D4, `docs/cleanup.md`): the primitive only leaves once nothing authors it | in-game, plus a before/after screenshot pair |
+| ~~**A3**~~ | ⛔ **MOVED 2026-09-16 to `docs/cleanup.md` entry 1** (PO ask). Re-authoring `world.json`’s 35 `darkAreas` as atmosphere shapes was never engineering — it is a content judgement about *where the dark places actually are* — and it was only ever here as the TRIGGER that retires the `darkAreas` primitive (D4). A retirement belongs with the thing being retired. ⭐ **The PO also reopened the prior question there: should `darkAreas` be retired at all?** ⚑ That entry records the case both ways and a third option (teach the atmospheres layer the ELLIPSE tool, keeping circle ergonomics without a second primitive) | — |
 | **A4** ✅ *(shipped 2026-09-16; ledger §10)* | ⭐ **`AuraClearing` — the clearing becomes a CLASS.** Reopens **D3**: `darkness: 0` stops meaning *erase* and starts meaning *declares zero* (which a pure fog bank may legitimately want), and a clearing becomes its own Tiled class on the atmospheres layer, with its own `zone.clearings` array and **no profile member** (L7). ⛔ **The seam is `inDarkness()`** — a profile-less clearing is invisible to the `resolveIn` walk, so the sim would call a lit pocket dark. Four-writer tax; comparable to zone-polygons P2 | vitest on the class routing and the `inDarkness` seam · a `verify.sh` leg, since the fourth writer is unpinnable otherwise · ⛔ **mutation-verify the seam specifically** — the picture looks right either way |
 | ~~**B1** · **B2** · **B3**~~ | ⛔ **MOVED 2026-09-16 to `docs/plan-line-of-sight.md`** (§3.5 here says why). The occluder set, the visibility polygon and the stencil mask, with D8/D9/D10 and their open questions. ⭐ That plan also carries the MEASURED perf numbers, and a new **D19** (static lights are cached) that came out of measuring | — |
 
 **A0 → A1 → A2 → A4** ✅ all shipped 2026-09-16 (A0-A2 `5b57d0c4`; A4 ledger §10).
 
-⭐ **Next in THIS plan: A3 only, and it is a PO content call** — re-author
-`world.json`'s 35 `darkAreas` as 2–3 atmosphere shapes, which is also the trigger that
-retires the `darkAreas` primitive (D4). ⛔ **When A3 is ruled, this plan is DONE and
-moves to `archive/`.**
+⛔ **NO CHUNKS REMAIN. A0, A1, A2 and A4 are shipped; B1–B3 moved to
+`docs/plan-line-of-sight.md`; A3 moved to `docs/cleanup.md` entry 1.**
 
-⭐ **The line-of-sight work continues in `docs/plan-line-of-sight.md`** (B1 → B2 → B3),
-which is where its open PO questions now live.
+⚑ **This plan is NOT archived yet, and the reason is honest rather than
+bureaucratic**: what is left is JUDGEMENT, not chunks. ⭐ **Every number in
+`atmosphere-profiles.json` is still [PLACEHOLDER] and the look sitting has not
+happened** — `Fog` at `haze: 0.5`, `Gloom` at `darkness: 0.55`, `Cave Air` at `1` —
+and ⛔ **`sight` is authored by NOTHING shipped, so D7’s `max()` has never been
+exercised by real content.** §8 Q6 (a zone-level atmosphere default) is also still
+open with a named trigger. **When the look sitting has happened and Q6 is ruled,
+this moves to `archive/`.**
 
 ## 6. Test strategy
 
@@ -653,9 +668,11 @@ which is where its open PO questions now live.
    `docs/plan-line-of-sight.md` §7**, with Q8 below. All four were questions about
    the B chunks, and leaving them here would have meant answering them in a
    document that no longer contains the work.
-5. **Is A3 wanted, and when?** Re-authoring `world.json`'s 35 circles is pure
-   upside for authoring and pure churn for a world the PO is currently judging in
-   front of the game. It can wait indefinitely (D4).
+5. ~~**Is A3 wanted, and when?**~~ ⛔ **MOVED 2026-09-16 to `docs/cleanup.md`
+   entry 1**, which now owns both the migration and the question underneath it:
+   ⭐ **should `darkAreas` be retired at all?** The old framing assumed yes and
+   asked only about timing; the PO reopened the premise, and a register entry is
+   where a retirement argument belongs.
 6. **A zone-level atmosphere default?** (L11) Instead of authoring a polygon over
    the whole cave, `zone.atmosphere: "Cave"` as the fallback `resolve()` consults
    before `DEFAULT_PROFILE`. ⚑ **Re-priced 2026-09-12**: its old objection was
@@ -702,9 +719,13 @@ which is where its open PO questions now live.
 - `docs/archive/plan-atmosphere-recovery.md` **§3.3** — where `darkAreas`,
   `light_aura`, `light_radius` and `DarknessOverlay` shipped, and the *"polygons
   only if content proves the need"* clause §1.1 answers.
-- `docs/cleanup.md` — ⭐ **where `darkAreas`' death warrant lives** (D4, PO
-  2026-09-12). It stays live and shipped until **A3** retires the last authored
-  circle; the register is what stops "for now" from becoming "forever".
+- `docs/cleanup.md` **entry 1** — ⭐ **where `darkAreas`' future now lives
+  entirely** (D4, PO 2026-09-12; re-scoped 2026-09-16). It owns the content
+  migration that used to be chunk **A3**, and the question underneath it the PO
+  reopened: **should `darkAreas` be retired at all?** ⚑ The entry records the
+  case both ways plus a third option — teach the atmospheres layer the **ellipse
+  tool**, which keeps circle ergonomics without a second primitive and costs one
+  branch in `closedAreaPoints`.
 - `docs/plan-zone-polygons.md` — ⚑ **[REVIEW] designed the day after this plan
   and shipped P1–P4 before it started**: `zone.polygons`, the `closed` flag on
   paths, and `outlineProfile` / `outlineWidth`. **L15** and §8 Q7 are consequences
