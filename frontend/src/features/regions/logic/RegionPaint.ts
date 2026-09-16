@@ -589,11 +589,23 @@ export function paintAtmospheres(
     // the drawing and the sim would answer differently. They agree here by
     // construction, which is the property D3 had and A4 must not lose.
     clearings.forEach((clearing) => {
-        if (clearsDarkness(clearing)) { cutHole(darknessContainer, clearing); }
-        if (clearsHaze(clearing)) { cutHole(hazeContainer, clearing); }
+        if (clearsDarkness(clearing)) {
+            cutHole(darknessContainer, clearing, renderer, out);
+        }
+        if (clearsHaze(clearing)) { cutHole(hazeContainer, clearing, renderer, out); }
     });
     return out;
 }
+
+/** How wide a clearing's edge ramps, in WORLD UNITS.
+ *
+ *  ⚑ A constant rather than a profile value, and that is FORCED rather than
+ *  chosen: a clearing names NO profile (L7), so unlike every other soft edge in
+ *  this file the band cannot come from the look table. [PLACEHOLDER], like every
+ *  number in atmosphere-profiles.json — and it wants judging beside the 2-unit
+ *  `EDGE_FADE` on DarknessOverlay's authored circles, which is the other
+ *  hand-authored rim living in this same layer. */
+const CLEARING_FADE = 2;
 
 /**
  * One clearing's hole in one layer.
@@ -602,14 +614,49 @@ export function paintAtmospheres(
  * campfire glow and the player's own lantern already use, so nothing new
  * composites here and the three kinds of hole stack the way they always did.
  *
- * ⛔ NO texture, NO blend, NO scroll, NO colour, and the shortness is the ruling
+ * ⛔ NO texture, NO scroll, NO colour, and the shortness is still the ruling
  * (L7). A clearing names no profile because it paints nothing: there is no look
- * to author, so there is nothing to read.
+ * to author, so there is nothing to read. The soft EDGE is the one exception and
+ * it comes from {@link CLEARING_FADE} rather than from a profile — a hard-rimmed
+ * hole inside a soft-rimmed bank is the mismatch that would show.
+ *
+ * ⛔⛔ THE RAMP IS THE SPRITE, NOT A MASK ON A SHAPE — and that is MEASURED
+ * rather than preferred (2026-09-17). The obvious build reused
+ * {@link addFeathered} and set `blendMode = 'erase'` on the rect it returns; in
+ * PixiJS a masked object is drawn through a filter pass and the BLEND MODE DOES
+ * NOT SURVIVE IT, so the erase silently stopped erasing and the cave read SOLID
+ * BLACK — with the mask correctly built, correctly attached, and a structural
+ * "is it masked?" assertion passing on that very build. Only the pixels caught
+ * it.
+ *
+ * ⭐ What works is what the LIGHT HOLES have always done: a sprite whose own
+ * alpha ramps, erase-blended, with no mask anywhere. {@link buildBlendMask}
+ * already rasterises exactly that — a white silhouette, blurred, on transparent
+ * — so the hole IS that texture, drawn directly. It is also the cheaper of the
+ * two: one sprite, and no filter pass.
  */
-function cutHole(container: Container, clearing: Clearing): void {
-    const hole = new Graphics().poly(clearing.points).fill({color: 0xffffff});
-    hole.blendMode = 'erase';
-    container.addChild(hole);
+function cutHole(
+    container: Container,
+    clearing: Clearing,
+    renderer: Renderer,
+    out: PaintedSurfaces,
+): void {
+    const draw: DrawSurface = (g, style) => g.poly(clearing.points).fill(style);
+    const ramp = buildBlendMask(renderer, clearing.points, CLEARING_FADE,
+        g => draw(g, {color: 0xffffff}));
+    if (ramp === null) {
+        // Sub-texel band or a degenerate shape — take the hard edge honestly,
+        // exactly as buildBlendMask's own bail-out intends.
+        const hole = draw(new Graphics(), {color: 0xffffff});
+        hole.blendMode = 'erase';
+        container.addChild(hole);
+        return;
+    }
+    ramp.sprite.blendMode = 'erase';
+    container.addChild(ramp.sprite);
+    // ⚑ Ours to free, on the same schedule as every other blend mask: the sprite
+    // dies with its container, the RenderTexture behind it does not.
+    out.masks.push(ramp.texture);
 }
 
 /**
@@ -625,8 +672,12 @@ function cutHole(container: Container, clearing: Clearing): void {
  *
  * ⛔ `flat` is what keeps DARKNESS colour-only. Darkness has no texture in the
  * world and none here: honouring `texture`/`scroll` on both halves would draw
- * one profile's tile TWICE and compound it against itself. Haze owns the tile,
- * the drift and the soft edge; darkness owns a colour.
+ * one profile's tile TWICE and compound it against itself. Haze owns the tile
+ * and the drift; darkness owns a colour.
+ *
+ * ⚑ `blend` is the ONE look key BOTH halves read, which is why the mask is
+ * built ABOVE the branch rather than inside it. It used to be haze's alone, and
+ * that was the gap: a dark bank had no soft edge to author.
  *
  * ⚑ Each shape gets its OWN Container carrying `alpha`, because the paint may
  * be SEVERAL children (a drifting sprite plus its mask) and the opacity belongs
@@ -650,6 +701,11 @@ function paintAir(
     group.alpha = opacity;
     container.addChild(group);
 
+    const blend = regionBlend(atmosphere, ATMOSPHERE_PROFILES);
+    const mask = blend > 0
+        ? buildBlendMask(renderer, atmosphere.points, blend, g => draw(g, {color: 0xffffff}))
+        : null;
+
     if (flat) {
         // Colour only — the profile's own colour if it authored one, else black,
         // which is what darkness IS.
@@ -660,14 +716,18 @@ function paintAir(
         // property of the CALL rather than a branch someone can forget.
         const spec = regionPaintSpec(atmosphere, () => false, ATMOSPHERE_PROFILES);
         const color = spec !== null && 'color' in spec ? spec.color : 0x000000;
-        group.addChild(draw(new Graphics(), {color}));
+        // ⛔ `addFeathered`, NOT `paintSurface`, however close the two look from
+        // here: paintSurface would honour `texture` and `scroll`, which is the one
+        // thing `flat` exists to prevent. Feather the COLOUR and borrow nothing
+        // else.
+        if (mask === null) {
+            group.addChild(draw(new Graphics(), {color}));
+            return;
+        }
+        addFeathered(group, {color}, mask, out);
         return;
     }
 
-    const blend = regionBlend(atmosphere, ATMOSPHERE_PROFILES);
-    const mask = blend > 0
-        ? buildBlendMask(renderer, atmosphere.points, blend, g => draw(g, {color: 0xffffff}))
-        : null;
     paintSurface(group, atmosphere, atmosphere.points, draw, mask, 0, out,
         ATMOSPHERE_PROFILES);
 }
