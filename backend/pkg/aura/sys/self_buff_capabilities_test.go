@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/player"
 )
@@ -57,6 +58,38 @@ func TestRealEntitiesSatisfyTheSelfBuffCapabilities(t *testing.T) {
 	} {
 		assert.Truef(t, c.holds(p), "*player must satisfy %s, or the cooldown that needs it charges and does nothing", c.name)
 		assert.Truef(t, c.holds(m), "*mob.Mob must satisfy %s, or the cooldown that needs it charges and does nothing", c.name)
+	}
+}
+
+// ⭐⭐ THE SAME CLASS OF TRAP, AND E2 WALKED STRAIGHT INTO IT
+// (plan-area-effects.md E2). AreaEffectSystem.AddEntity keeps an entity only if
+// it satisfies areaAffectable — a structural assert, the house pattern, with the
+// house failure mode: no match means no entity, which means an empty list, which
+// means Update does nothing, forever, in silence.
+//
+// ⛔ AND IT HAPPENED. The first cut of areaeffects.go declared Position() against
+// a hand-rolled `interface{ XY() (float32, float32) }`. phy.Vec2f has no such
+// method, so areaAffectable matched NOTHING. It COMPILED, go vet was clean, and
+// every system test written against the double was green — because the double
+// had the method the real types did not. That is the lifesteal_burst story
+// verbatim, one feature later, which is why this leg now lives beside it.
+//
+// ⚑ Also asserts model.AreaHittable, the OTHER half: an entity that carries the
+// buff but cannot receive the hit would tick a dot whose every event
+// sys/skills.go then drops on the floor.
+func TestRealEntitiesSatisfyTheAreaEffectCapabilities(t *testing.T) {
+	p := player.New(newStateFakeGame(t), nil, "capability-probe")
+	var m any = &mob.Mob{}
+
+	for _, c := range []struct {
+		name  string
+		holds func(any) bool
+	}{
+		{"areaAffectable", func(e any) bool { _, ok := e.(areaAffectable); return ok }},
+		{"model.AreaHittable", func(e any) bool { _, ok := e.(model.AreaHittable); return ok }},
+	} {
+		assert.Truef(t, c.holds(p), "*player must satisfy %s, or every area effect is silently inert", c.name)
+		assert.Truef(t, c.holds(m), "*mob.Mob must satisfy %s, or every area effect is silently inert", c.name)
 	}
 }
 

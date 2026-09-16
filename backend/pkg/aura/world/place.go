@@ -49,11 +49,24 @@ const gridCellMargin = 10
 // WORLD coordinates, while Bounds stays the zone-local size and Origin says
 // where its centre sits.
 //
-// ⚑ Client-visual arrays (Terrain, Regions, DarkAreas) are deliberately NOT
-// offset. The server never reads them — the client reads the zone file itself
-// and applies Origin on its own — so shifting them here would be dead work that
-// only invites the two sides to disagree. Paths ARE offset, because
-// PathCorridors turns them into collision bodies.
+// ⚑ Client-visual arrays (Terrain, Regions, DarkAreas, Clearings) are
+// deliberately NOT offset. The server never reads them — the client reads the
+// zone file itself and applies Origin on its own — so shifting them here would
+// be dead work that only invites the two sides to disagree. Paths ARE offset,
+// because PathCorridors turns them into collision bodies.
+//
+// ⭐ THE RULE IS "WHAT THE SERVER READS GETS OFFSET", and plan-area-effects.md
+// E2 moved a fourth array across that line: ATMOSPHERES are now offset too,
+// because an atmosphere may carry an `effect` and the area-effect system
+// point-tests entities against it. ⛔ Leaving it out was a live trap and the
+// symptom would have been invisible on the overworld: origin {0,0} means no
+// offset at all, so a miasma bank would have worked perfectly in world.json and
+// silently acted at the wrong place in every zone that IS placed — the
+// underworld, which is precisely where the hazards are going.
+//
+// ⚑ It does NOT double-move anything, checked rather than assumed: the client
+// never sees this copy. It reads api/zones/*.json through webpack and applies
+// Origin itself, so the server's in-memory offset is private to the server.
 func Place(zones []*Zone) error {
 	if len(zones) == 0 {
 		return fmt.Errorf("no zones to place")
@@ -132,6 +145,17 @@ func placeOne(z *Zone) error {
 		for j := range z.Polygons[i].Points {
 			z.Polygons[i].Points[j].X += ox
 			z.Polygons[i].Points[j].Y += oy
+		}
+	}
+	// ⭐ Atmospheres joined this list at plan-area-effects.md E2, when the air
+	// stopped being purely client-visual: one may carry an `effect`, and the
+	// area-effect system tests entity positions against its polygon in WORLD
+	// coordinates. ⛔ Clearings deliberately do NOT join it — a clearing erases
+	// atmosphere on the client and the server still never reads it (A4).
+	for i := range z.Atmospheres {
+		for j := range z.Atmospheres[i].Points {
+			z.Atmospheres[i].Points[j].X += ox
+			z.Atmospheres[i].Points[j].Y += oy
 		}
 	}
 	return nil

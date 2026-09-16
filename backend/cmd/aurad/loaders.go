@@ -318,6 +318,15 @@ func loadZones(fsys fs.FS, startZone string, mr mobs.Registry, pr world.PropRegi
 		slog.Error("failed to cross-validate area effects", slog.Any("err", err))
 		panic(err)
 	}
+	// ⚑ SECOND, and deliberately a separate pass (plan-area-effects.md E2): the
+	// one above asks whether the name resolves, this asks whether what it
+	// resolves to can actually be applied by an area. Running them in this order
+	// keeps one mistake to one message — a typo reports as a typo, not as
+	// "carries no dot_aura".
+	if err := world.CrossValidateAreaEffectShapes(sr, zones); err != nil {
+		slog.Error("failed to cross-validate area effect shapes", slog.Any("err", err))
+		panic(err)
+	}
 	return zones
 }
 

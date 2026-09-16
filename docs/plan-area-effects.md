@@ -1,7 +1,7 @@
 # Plan: area effects — ground and air that act on what stands in them
 
-**Designed 2026-09-16 (PO session). 3 chunks — ⭐ E1 SHIPPED 2026-09-16 (ledger §9),
-E2 and E3 unbuilt.**
+**Designed 2026-09-16 (PO session). 3 chunks — ⭐ E1 + E2 SHIPPED 2026-09-16
+(ledgers §9). E3 (content + the in-game pass) is what is left.**
 
 ⭐ **The whole feature is one optional key on a shape.** A polygon, path or
 atmosphere that already exists for its LOOK gains `effect`, naming an authored
@@ -245,7 +245,7 @@ Boot-time validation refuses an unknown effect name, the way a crossed profile
 name already does — and with the same posture: the message must name what is
 wrong, not merely say "unknown".
 
-### 3.2 E2 — the consumer
+### 3.2 E2 — the consumer ✅ SHIPPED (ledger §9)
 
 One system pass per tick: for each affected entity, for each shape carrying an
 `effect` in the current zone, point-in-polygon; inside → apply that effect's
@@ -370,6 +370,15 @@ byte-identical and the feature does nothing until someone draws one.
 - **L4 — GOD must ignore harmful areas**, or the first in-game pass is confusing.
   ⚑ It should probably NOT ignore beneficial ones, which is a small asymmetry
   worth deciding rather than discovering.
+- **L7 — ⛔ `ApplyHot` KEYS ITS STREAM ON PER-EVENT HP ALONE**, with no caster
+  — so two beneficial areas of equal strength COLLAPSE into one stream and
+  under-heal anyone standing in both. `ApplyDot` was widened to include the
+  caster at round-7 item 6; `ApplyHot` was not, and its comment still describes
+  the pre-round-7 rule. ⚑ PO-ruled OUT OF SCOPE for E2 (2026-09-16) and recorded
+  instead: the same gap already affects two PLAYERS healing one target with the
+  same skill, so closing it is a balance change rather than a bug fix. ⭐ L2's
+  twin, and worse — L2 is closed for damage by the placed shape being a distinct
+  caster per area, and that fix simply does not reach the hot path.
 - **L6 — ⛔ D12 MAKES M1-F5(B) VISIBLE, and this is its second consumer.**
   `plan-world-scale.md` M1-F5(B) already records that a mob can freeze
   **mid-walk-home off its route**: the walk-home sits INSIDE the idle path
@@ -405,6 +414,133 @@ byte-identical and the feature does nothing until someone draws one.
 ---
 
 ## 9. Chunk ledgers
+
+### E2 — the consumer ✅ 2026-09-16
+
+**Schema: DB NONE · WIRE NONE · CONF NONE · CONTENT NONE · ZONE FORMAT
+unchanged** (E1's key is all it needs). ⚑ Still inert at HEAD: no zone authors an
+`effect`, so `CollectAreaEffects` returns nothing and the system's `Update`
+leaves on a length check.
+
+⭐⭐ **D8 WAS UNIMPLEMENTABLE AS WRITTEN, AND THAT IS THE HEADLINE.** The plan
+called for "a synthetic source id" because `ApplyDot` streams are keyed by
+`(caster, per-event damage)` — true, and only half the story. `DotBuff.Caster`
+is ALSO the **attribution dispatch**: `sys/skills.go` type-switches on it to pick
+which entry point the damage takes, and `model.Interacter` has exactly TWO
+methods, so anything else falls into a `default: continue`. ⛔ A synthetic token
+would have applied the buff, ticked it, and **discarded every damage event in
+silence** — the A4 `inDarkness()` seam wearing different clothes. One field was
+doing two jobs and the design had only seen one.
+
+⭐ **D13 (PO, 2026-09-16) is the answer: the world is a third kind of damage
+source.** `model.AreaSource` (a name and nothing else — an area has no level, no
+power scale, no resistances, no threat table and nothing to credit) plus
+`model.AreaHittable`, and a `case model.AreaSource` in the dot dispatch. ⚑ An
+OPTIONAL interface rather than a third method on `Interacter`, which is the house
+idiom (`dotBuffable`, `buffEventCarrier`) and avoids forcing a method onto seven
+test fakes that will never meet an area; the ruling is unchanged. ⛔ No threat, no
+kill credit, no participation, no lifesteal — **a mob that dies in lava pays
+nobody**, which is also the anti-exploit: an area that credited its kills to the
+nearest player would be an XP farm nobody had to fight.
+
+⭐ **D11 cost NOTHING, confirmed in code rather than argued.** `AreaTouches` goes
+through `takeDamage`, where `ResistMultiplier` already lives, so a mob's authored
+`factors.resistances` mitigates an area exactly as it mitigates a skill and a
+`0` is immunity — with no area-effect-specific code in the path. ⚑ Pinned at
+**0.5 AND 0**, never only the immunity: a suite that pinned `0` alone could not
+tell "immune" from "the multiplier is no longer applied to this path", because
+the two look identical.
+
+⭐ **D12 rides the existing skip** — the system asks the entity `Dormant()`, not
+MobSystem's bookkeeping, because it never sees MobSystem and asking the mob is
+the only reading that cannot go stale. ⚑ Pinned as **skipped, not resisted**:
+different mechanisms, same observable, and only one survives waking up.
+
+⛔⛔ **`Place()` DID NOT OFFSET ATMOSPHERES, AND A SHIPPED TEST ASSERTED IT MUST
+NOT.** Its stated reason — *"the client applies the origin, and doing it here too
+would move them twice"* — is **wrong on the mechanism, measured not argued**:
+zone geometry is not on the wire AT ALL (no such field in `api/schema/*.fbs`),
+and the client bundles `api/zones/*.json` straight through webpack
+(`GroundTextureManager.ts`'s `require.context`), so the server's in-memory copy
+is private and cannot double-move anything. ⚑ What the old rule got RIGHT was the
+policy of its day: no dead work for an array nobody server-side reads. E2 created
+the reader, so the premise expired. ⛔ **The bug it prevents is INVISIBLE ON THE
+OVERWORLD** — origin {0,0} means no offset, so an unplaced miasma bank works
+perfectly in `world.json` and acts in the wrong place in every zone that IS
+placed, which is precisely where the hazards are going. ⚑ Clearings stay local as
+the control, so "place everything" cannot be read into the change.
+
+⛔⛔ **I NEARLY SHIPPED A SYSTEM THAT COMPILED AND DID NOTHING.** The first cut
+declared `Position()` against a hand-rolled `interface{ XY() (float32, float32) }`
+— `phy.Vec2f` has no such method, so `areaAffectable` matched **NOTHING**,
+`AddEntity` registered zero entities, and `Update` was a permanent no-op. It
+compiled, `go vet` was clean, and tests against the double were green because the
+double had the method the real types did not. ⭐ That is `lifesteal_burst`'s story
+verbatim one feature later, which is why the leg now lives IN
+`self_buff_capabilities_test.go` beside it rather than in a file of its own.
+
+⛔ **Mutation-testing found a missing leg that mattered**: deleting the dispatch
+case left every other area test GREEN — they assert the buff applies and that the
+caster's type is right, and neither notices the damage being dropped downstream.
+There is now an end-to-end leg driving `tickBuffEvents` on a REAL mob and
+asserting **health went down**.
+
+**Two rulings E2 had to make**, both left open by E1 on purpose:
+
+- ⭐ **An area consumes `dot_aura` and `hot_aura`, and nothing else.** They are
+  the only types whose whole shape is "a thing that keeps happening to whoever is
+  in range", which is what an area IS. A new boot pass
+  (`CrossValidateAreaEffectShapes`) refuses a skill that exists but carries
+  neither — *"Immolate exists"* is not enough if Immolate is only a cooldown. ⚑ A
+  mixed skill is fine; the area applies what it can.
+- ⭐ **Level 1, always.** An area has nothing to scale off, and per-level growth
+  describes a CASTER getting better at something — a lava pool does not get
+  better at being lava. Strength is authored per placement, which is D2's third
+  reason arriving in code.
+
+⚑ **The geometry lesson is sharper than P3's and worth carrying forward: AWKWARD
+IS NECESSARY AND NOT SUFFICIENT.** Mutating `PointInPolygon` found that the
+likeliest rewrite error — `>` becoming `>=` — is **invisible** to an awkward
+quadrilateral and to a concave L, and is caught **only** by the axis-aligned box,
+because that comparison can only differ when a vertex's Y is EXACTLY the sample's
+Y. ⛔ P3's lesson read alone ("a grid-aligned fixture proves nothing") would have
+deleted the one fixture that catches it. The two are complementary.
+
+⚑ **Go and the client's point-in-polygon DIVERGE at a vertex and cannot be made
+to agree** — measured: `lShape`'s first vertex is `true` in TS and `false` in Go,
+because JS numbers are float64 and `world.Point` is float32. Harmless (L1 already
+puts the drawn edge ~1.5 u from the authored one by design) but do NOT write a
+test claiming parity.
+
+⚑ **A PATH IS A STROKE, NOT AN AREA** — recorded in code, not fixed. D1 puts
+`effect` on all three shapes, but point-in-polygon over a road's centreline
+answers about the sliver the polyline encloses, not the corridor the player sees.
+The honest fix is a different predicate (distance-to-segment). Inert: no content
+authors one.
+
+⚑ **ApplyHot's stream keying stays as it is (PO, out of scope)**: it keys on
+per-event HP ALONE — no caster — so two beneficial areas of equal strength
+collapse into one stream. `ApplyDot` was widened at round-7 and `ApplyHot` was
+not; its comment still describes the old rule. A pre-existing gap that also
+affects two players healing one target with the same skill, so fixing it is a
+balance change rather than a bug fix. **Landmine L7.**
+
+**Files:** `world/point_in_polygon.go` (new) · `world/area_effects.go`
+(`PlacedAreaEffect`, `CollectAreaEffects`, `CrossValidateAreaEffectShapes`) ·
+`world/place.go` (atmospheres offset) · `model/interactable.go` (`AreaSource`,
+`AreaHittable`) · `model/player` + `model/mob` (`AreaTouches`) ·
+`sys/areaeffects.go` (new) · `sys/skills.go` (the dispatch case) ·
+`cfg/gamecfg.go` + `core/gameconf.go` + `core/game.go` + `cmd/aurad` (wiring).
+
+**Verified:** `go build` · `go vet` · **`go test -count=1 ./...` EXIT 0** (35
+packages) · `tsc` · **vitest 803/803** · **`verify.sh` all green** ·
+**mutation-verified ×9, two of which SURVIVED the first pass** and produced the
+end-to-end dispatch leg and a corrected L2 mutation.
+
+⛔ **NO IN-GAME PASS, and it is OWED** — E3's, because nothing authors an effect
+yet, so there is nothing to stand in. ⚑ **L6 is E2's dependency, not its code**:
+M1-F5(B)'s mid-return sleep means a mob can fall asleep INSIDE a lava pool and
+sit there taking nothing, which the in-game pass will see.
 
 ### E1 — the key, inert ✅ 2026-09-16
 

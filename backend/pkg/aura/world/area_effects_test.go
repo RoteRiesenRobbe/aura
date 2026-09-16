@@ -207,3 +207,135 @@ func TestCrossValidateAreaEffects_ChecksEveryZoneInTheSet(t *testing.T) {
 	assert.Contains(t, err.Error(), "underworld")
 	assert.True(t, strings.Contains(err.Error(), "NoSuchSkill"))
 }
+
+// ---- E2: collecting the placed shapes -------------------------------------
+
+// ⭐ THE TRAP THIS EXISTS FOR, and it is invisible on the overworld: a shape's
+// points are ZONE-LOCAL until Place runs, and the overworld's origin is {0, 0},
+// so a collector that ran too early would look perfect in world.json and put
+// every hazard in a PLACED zone at the wrong spot. The underworld is exactly
+// where the hazards are going.
+func TestCollectAreaEffects_UsesWorldCoordinates(t *testing.T) {
+	z := zoneWithEffects(t, "under", `{
+		"name": "Under", "bounds": { "width": 60, "height": 40 },
+		"atmospheres": [{ "profile": "Miasma", "effect": "Envenom",
+		                  "points": [{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}] }]
+	}`)
+	z.Origin = Point{X: 100, Y: -200}
+	require.NoError(t, Place([]*Zone{z}))
+
+	got := CollectAreaEffects([]*Zone{z})
+	require.Len(t, got, 1)
+	assert.Equal(t, "Envenom", got[0].Effect)
+	assert.Equal(t, Point{X: 100, Y: -200}, got[0].Points[0],
+		"an atmosphere's points must be offset by Place, or the hazard acts where nobody is")
+	assert.InDelta(t, 100, got[0].Bounds.MinX, 1e-4)
+	assert.InDelta(t, -200, got[0].Bounds.MinY, 1e-4)
+}
+
+// ⭐ D10/§3.2: decorative shapes never reach the per-tick walk at all. The gate
+// is here rather than at use, so a zone of 35 fog banks and 2 lava pools
+// contributes two entries.
+func TestCollectAreaEffects_SkipsDecorativeShapes(t *testing.T) {
+	z := zoneWithEffects(t, "world", `{
+		"name": "Mixed", "bounds": { "width": 60, "height": 40 },
+		"polygons": [
+			{ "profile": "Lava", "effect": "Immolate",
+			  "points": [{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}] },
+			{ "profile": "Mountains",
+			  "points": [{"x":6,"y":6},{"x":9,"y":6},{"x":9,"y":9}] }
+		],
+		"atmospheres": [{ "profile": "Fog",
+		                  "points": [{"x":1,"y":1},{"x":7,"y":1},{"x":7,"y":7}] }]
+	}`)
+	got := CollectAreaEffects([]*Zone{z})
+	require.Len(t, got, 1, "only the shape naming an effect is collected")
+	assert.Equal(t, "polygon", got[0].Kind)
+	assert.Equal(t, 0, got[0].Index)
+}
+
+// ⚑ All three arrays, flattened, each keeping the identity a message needs.
+func TestCollectAreaEffects_CoversEveryShapeKind(t *testing.T) {
+	z := zoneWithEffects(t, "hazards", effectDoc)
+	got := CollectAreaEffects([]*Zone{z})
+	require.Len(t, got, 3)
+	kinds := map[string]string{}
+	for _, a := range got {
+		kinds[a.Kind] = a.Effect
+		assert.Equal(t, "hazards", a.Zone)
+		assert.NotEmpty(t, a.Points)
+	}
+	assert.Equal(t, map[string]string{
+		"path": "Blight", "polygon": "Immolate", "atmosphere": "Envenom",
+	}, kinds)
+}
+
+// ⚑ The placed shape IS the damage source (D13): it reports its own effect name,
+// which is what an obituary and a log line quote.
+func TestPlacedAreaEffect_IsItsOwnSource(t *testing.T) {
+	a := &PlacedAreaEffect{Effect: "Immolate"}
+	assert.Equal(t, "Immolate", a.AreaEffectName())
+}
+
+// ---- E2: the applicable-effect check --------------------------------------
+
+// fakeSkillDefs answers with real definitions, so the effect-type check has
+// something to look at.
+type fakeSkillDefs struct{ defs map[string]*skills.SkillDefinition }
+
+func (f fakeSkillDefs) GetByName(name string) (*skills.SkillDefinition, error) {
+	if d, ok := f.defs[name]; ok {
+		return d, nil
+	}
+	return nil, assert.AnError
+}
+
+func defsWith(name string, types ...skills.EffectType) fakeSkillDefs {
+	d := &skills.SkillDefinition{Name: name}
+	for _, ty := range types {
+		d.Effects = append(d.Effects, skills.EffectDef{Type: ty})
+	}
+	return fakeSkillDefs{defs: map[string]*skills.SkillDefinition{name: d}}
+}
+
+// ⭐ THE RULING E1 DEFERRED: "Immolate exists" is not enough. A skill carrying
+// only a cooldown would pass the name check and still be inert on the ground —
+// a pool that draws, reads as dangerous, and does nothing.
+func TestCrossValidateAreaEffectShapes_RefusesASkillAnAreaCannotApply(t *testing.T) {
+	z := zoneWithEffects(t, "hazards", `{"name":"Z","bounds":{"width":60,"height":40},
+		"polygons":[{"profile":"Lava","effect":"Dash",
+		             "points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`)
+	err := CrossValidateAreaEffectShapes(defsWith("Dash", skills.EffectTypeSpeedBurst), []*Zone{z})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Dash")
+	assert.Contains(t, err.Error(), "dot_aura")
+	assert.Contains(t, err.Error(), "hazards")
+}
+
+func TestCrossValidateAreaEffectShapes_AcceptsDotAndHot(t *testing.T) {
+	for _, ty := range []skills.EffectType{skills.EffectTypeDotAura, skills.EffectTypeHotAura} {
+		z := zoneWithEffects(t, "hazards", `{"name":"Z","bounds":{"width":60,"height":40},
+			"polygons":[{"profile":"Lava","effect":"Thing",
+			             "points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`)
+		assert.NoError(t, CrossValidateAreaEffectShapes(defsWith("Thing", ty), []*Zone{z}))
+	}
+}
+
+// ⚑ A skill may legitimately mix applicable and inapplicable effects — one
+// authored for a player often does. The area applies what it can.
+func TestCrossValidateAreaEffectShapes_AcceptsAMixedSkill(t *testing.T) {
+	z := zoneWithEffects(t, "hazards", `{"name":"Z","bounds":{"width":60,"height":40},
+		"polygons":[{"profile":"Lava","effect":"Mixed",
+		             "points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`)
+	assert.NoError(t, CrossValidateAreaEffectShapes(
+		defsWith("Mixed", skills.EffectTypeSpeedBurst, skills.EffectTypeDotAura), []*Zone{z}))
+}
+
+// ⚑ An UNKNOWN name is the other pass's error, and silence here is what keeps
+// one mistake to one message.
+func TestCrossValidateAreaEffectShapes_LeavesTheUnknownNameToTheOtherPass(t *testing.T) {
+	z := zoneWithEffects(t, "hazards", `{"name":"Z","bounds":{"width":60,"height":40},
+		"polygons":[{"profile":"Lava","effect":"NoSuchSkill",
+		             "points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`)
+	assert.NoError(t, CrossValidateAreaEffectShapes(defsWith("Other", skills.EffectTypeDotAura), []*Zone{z}))
+}

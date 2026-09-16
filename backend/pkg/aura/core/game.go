@@ -223,6 +223,13 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	se := statuseffects.NewStatusEffectsSystem()
 	g.AddSystem(se)
 
+	// Area effects (plan-area-effects.md E2). ⚑ Registered unconditionally even
+	// though no shipped zone authors one: the system's own Update returns on a
+	// length check, and a conditional registration here would be a second place
+	// that has to know the feature is inert.
+	ae := sys.NewAreaEffectSystem(gc.AreaEffects, gc.SkillRegistry)
+	g.AddSystem(ae)
+
 	s := sys.NewConnectionStateSystem(g)
 	g.AddSystem(s)
 	g.connState = s
@@ -503,6 +510,12 @@ func (g *game) addMobEntity(e model.MobEntity) {
 			s.AddEntity(e)
 		case *encounter.System:
 			s.AddEntity(e)
+		// ⭐ D11 — the PO's 2026-09-16 ruling, and the half that needed no new
+		// concept: a mob standing in lava burns, and a mob that should not
+		// authors a 0 in factors.resistances for that damage tag. The
+		// resistance path is takeDamage's, which AreaTouches goes through.
+		case *sys.AreaEffectSystem:
+			s.AddEntity(e)
 		}
 	}
 }
@@ -568,6 +581,10 @@ func (g *game) addPlayer(p model.PlayerEntity) {
 			s.AddPlayer(p)
 		case *sys.QuestSystem:
 			s.AddPlayer(p)
+		// Area effects act on players and mobs alike (plan-area-effects.md
+		// D11), so both registration paths carry this case.
+		case *sys.AreaEffectSystem:
+			s.AddEntity(p)
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sort"
 	"testing"
 	"testing/fstest"
 
@@ -62,9 +63,28 @@ func TestLoadZones_RunsTheAreaEffectCheck(t *testing.T) {
 
 	// ⚑ Derived from the registry, never typed: a renamed skill must not redden
 	// this, and the point is only that SOME real name passes.
-	known := sr.All()
-	require.NotEmpty(t, known)
-	realName := known[0].Name
+	//
+	// ⛔ It must be a skill an area can actually APPLY, and the first cut of this
+	// test was not — it took All()[0], which landed on RallyDrum and was refused
+	// by E2's second boot check the day that check landed. The test was right to
+	// go red; the fixture was wrong. ⚑ Sorted by ID as well, because All() walks
+	// a MAP: an unsorted pick is a different skill on different runs, which is a
+	// flake waiting for the day one of them stops being applicable.
+	applicable := sr.All()
+	sort.Slice(applicable, func(i, j int) bool { return applicable[i].ID < applicable[j].ID })
+	realName := ""
+	for _, d := range applicable {
+		for _, e := range d.Effects {
+			if e.Type == skills.EffectTypeDotAura || e.Type == skills.EffectTypeHotAura {
+				realName = d.Name
+				break
+			}
+		}
+		if realName != "" {
+			break
+		}
+	}
+	require.NotEmpty(t, realName, "the content must author at least one area-applicable skill")
 
 	t.Run("a known effect boots", func(t *testing.T) {
 		require.NotPanics(t, func() {

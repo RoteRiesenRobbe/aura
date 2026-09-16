@@ -23,6 +23,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 	"github.com/RoteRiesenRobbe/aura/pkg/logging"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -95,6 +96,12 @@ func main() {
 	// ⚑ Placed here, not in the game: everything below takes RESOLVED geometry
 	// with each zone's Origin already applied (plan-underworld.md U1).
 	zones := loadZones(content.zones, startZone, mobsRegistry, propsRegistry, skillsRegistry)
+	// ⛔ AFTER loadZones, and the ordering is load-bearing: loadZones is what
+	// calls world.Place, and an unplaced shape's points are ZONE-LOCAL. Collect
+	// before that and every hazard in a placed zone acts at the wrong spot —
+	// silently, because the overworld's origin is {0,0} and would look perfect
+	// (plan-area-effects.md E2, placeOne's note).
+	areaEffects := world.CollectAreaEffects(zones)
 	// The primary zone. It is what a fresh character spawns in, what names the
 	// world on the wire, and whose bounds size the client's camera and map —
 	// deliberately NOT a union of everything loaded (L13).
@@ -175,6 +182,9 @@ func main() {
 		// because it needs the RESOLVED zone: the bridge test reads
 		// Def.CrossesPaths (plan-world-paths.md C2).
 		core.PathCorridors(allCorridors(zones)),
+		// The shapes that ACT on what stands in them (plan-area-effects.md E2).
+		// Collected above, after Place, because they carry world coordinates.
+		core.AreaEffects(areaEffects),
 	)
 	if err != nil {
 		panic(err)

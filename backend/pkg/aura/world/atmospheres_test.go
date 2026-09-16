@@ -137,18 +137,45 @@ func TestAtmosphereEmitsNoColliders(t *testing.T) {
 // applies the origin itself — regions' posture, not polygons'. Placing them
 // here as well would move every fog bank twice, and the failure is invisible in
 // `world` (origin {0,0}) and 300 units off in the underworld (L5).
-func TestAtmospherePointsStayZoneLocal(t *testing.T) {
+// ⭐⭐ REVERSED AT plan-area-effects.md E2, AND THE OLD REASON WAS WRONG ON THE
+// MECHANISM. This leg used to assert that atmospheres stay ZONE-LOCAL, "because
+// the client applies the origin, and doing it here too would move them twice".
+//
+// ⛔ The client never sees this copy — MEASURED, not argued. Zone geometry is not
+// on the wire at all (no atmosphere or polygon field exists in api/schema/*.fbs),
+// and the client bundles api/zones/*.json straight through webpack
+// (GroundTextureManager.ts's require.context). So the server's in-memory offset
+// is private to the server and cannot double-move anything.
+//
+// ⚑ What the old rule got RIGHT was the policy of its day: don't do dead work
+// for an array nobody server-side reads. E2 created the reader — an atmosphere
+// may carry an `effect`, and the area-effect system point-tests entities against
+// it in WORLD coordinates — so the premise expired rather than the rule being
+// mistaken.
+//
+// ⛔ The failure this now prevents is INVISIBLE ON THE OVERWORLD: origin {0,0}
+// means no offset, so an unplaced miasma bank works perfectly in world.json and
+// acts at the wrong spot in every zone that IS placed — the underworld, which is
+// exactly where the hazards are going.
+func TestAtmospherePointsArePlaced(t *testing.T) {
 	z, err := parseZone([]byte(`{"name":"A","bounds":{"width":40,"height":20},
 		"origin":{"x":500,"y":300},
 		"polygons":[{"profile":"Mountains","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}],
-		"atmospheres":[{"profile":"CaveAir","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`))
+		"atmospheres":[{"profile":"CaveAir","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}],
+		"clearings":[{"clears":"both","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`))
 	require.NoError(t, err)
 	require.NoError(t, Place([]*Zone{z}))
 
 	assert.EqualValues(t, 500, z.Polygons[0].Points[0].X, "the control: polygons ARE placed")
-	assert.EqualValues(t, 0, z.Atmospheres[0].Points[0].X,
-		"atmospheres are NOT — the client applies the origin, and doing it here too would move them twice")
-	assert.EqualValues(t, 0, z.Atmospheres[0].Points[0].Y)
+	assert.EqualValues(t, 500, z.Atmospheres[0].Points[0].X,
+		"atmospheres are placed too since E2 — an effect-bearing one must act where it is DRAWN")
+	assert.EqualValues(t, 300, z.Atmospheres[0].Points[0].Y)
+
+	// ⛔ And the line has to stay somewhere: a CLEARING is still client-only —
+	// it erases atmosphere on the client and no server code reads it (A4). It is
+	// the control that stops "place everything" being read into this change.
+	assert.EqualValues(t, 0, z.Clearings[0].Points[0].X,
+		"clearings stay zone-local — the server still never reads one")
 }
 
 // ---- A4: the clearing is its own CLASS, not a magic value ------------------

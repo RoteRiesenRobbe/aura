@@ -215,6 +215,17 @@ func ZoneAnchors(anchors map[string]world.Point) Configuration {
 	}
 }
 
+// AreaEffects installs the effect-bearing shapes an area effect acts through
+// (plan-area-effects.md E2). Resolved, PLACED content — the Spawns precedent,
+// and the ordering matters: these carry world coordinates, so they must be
+// collected after world.Place.
+func AreaEffects(areas []world.PlacedAreaEffect) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.AreaEffects = areas
+		return nil
+	}
+}
+
 // PathCorridors installs the blocking paths' collision shapes. Separate from
 // the zone itself for the same reason Spawns is: the game takes resolved
 // content, not a file.
