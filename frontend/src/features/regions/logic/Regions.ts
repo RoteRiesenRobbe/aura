@@ -691,9 +691,24 @@ export function regionDarkness(
     return opacityOf(region, 'darkness', profiles);
 }
 
-/** How thick this surface's visible medium is, 0…1 — its OWN profile's
- *  `haze`, else the shipped default of 0. Same per-shape rule as
- *  {@link regionDarkness}. */
+/**
+ * How thick this surface's visible medium is, 0…1 — its OWN profile's `haze`,
+ * else the shipped default of 0. Same per-shape rule as {@link regionDarkness}.
+ *
+ * ⛔ IT IS NOT "TEXTURE OPACITY", and the difference is the one an author trips
+ * over (PO question 2026-09-16, which is why this is written down). `haze` is
+ * the opacity of the whole SUSPENDED-MATTER LAYER — the half that light does NOT
+ * erase — and that layer paints with or without a tile: it goes through
+ * {@link regionPaintSpec}, so a profile authoring `haze` and NO `texture` falls
+ * back to its `color` (D14) and paints a flat wash at this opacity. Reading the
+ * key as "how strong is my texture" predicts nothing happens there, and
+ * something does.
+ *
+ * ⚑ What the pair actually encodes is WHICH LAYER, not which look: `darkness` is
+ * colour-only and lights erase it; `haze` owns `texture`, `scale`, `blend` and
+ * `scroll`, and nothing erases it. A lamp disperses darkness and merely SHOWS
+ * you fog.
+ */
 export function regionHaze(
     region: Region,
     profiles: { [name: string]: AtmosphereProfile } = ATMOSPHERE_PROFILES,
