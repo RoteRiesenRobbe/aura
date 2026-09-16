@@ -42,9 +42,42 @@ interface PropDefJSON {
     entityType: string;
     sprite: string;
     body: { radius?: number; width?: number; height?: number };
+    // Z-ORDER: a prop a character stands ON TOP OF (a bridge deck, a dock).
+    // ⚑ Client-only in EFFECT, but the server parses it all the same —
+    // parsePropDefinition uses DisallowUnknownFields, so a key this table
+    // invented on its own would refuse the boot by name.
+    underfoot?: boolean;
+    // Whether placements of this type block movement unless the placement says
+    // otherwise. ⭐ ABSENT MEANS TRUE — a prop is solid unless its type declares
+    // it decorative — which is why nothing here may coerce it with `!`. Read it
+    // through propBlocksMovement() below.
+    //
+    // ⚑ Server-authoritative: collision is the server's, and this copy exists so
+    // the in-game zone editor can COLOUR a prop by what it will actually do.
+    blocksMovement?: boolean;
 }
 
 type GameObjectClass = new (...args: any[]) => unknown;
+
+/**
+ * Which container a prop draws in — the z-order question, and the only thing
+ * `underfoot` decides (PO 2026-09-16).
+ *
+ * ⭐ A prop you WALK ON has to draw BELOW the character walking on it. The
+ * `resources` layers are added AFTER `layers.characters` (Game.ts), which is
+ * right for a tree — you walk behind it — and wrong for a bridge, which would
+ * cover the player crossing it. `underfoot` puts it on the last TERRAIN layer
+ * instead, under every entity. It is the mobs-under-characters ruling ("a
+ * player standing on a campfire must never be covered by its art") applied to
+ * world geometry, and the server refuses `crossesPaths` without it.
+ *
+ * ⚑ Resolved per INSTANCE, never captured at module load: the generated
+ * classes below are built while this module is imported, and `Game` is still
+ * null until the GameSetupEvent fires.
+ */
+function propLayer(underfoot: boolean): Container {
+    return underfoot ? Game.layers.terrain.decks : Game.layers.resources.trees;
+}
 
 // Tree/RoundTree and Mineral/Stone have real behavior (resource-spot decal,
 // authored-not-random rotation) and keep their hand-written Resources.ts
@@ -82,8 +115,9 @@ spriteContext.keys().forEach((key: string) => {
 abstract class SimpleProp extends Resource {
     static bodyAspect: { width: number; height: number } | null = null;
 
-    protected constructor(id: number, x: number, y: number, size: number, rotation: number, svg: Texture) {
-        super(id, Game.layers.resources.trees, x, y, size, rotation, svg);
+    protected constructor(id: number, layer: Container, x: number, y: number,
+                          size: number, rotation: number, svg: Texture) {
+        super(id, layer, x, y, size, rotation, svg);
         this.visibleOnMinimap = false;
     }
 
@@ -145,12 +179,21 @@ defsByEntityType.forEach((defs, entityType) => {
     }
     const maxSize = MAX_SIZE_OVERRIDE[entityType] ?? Math.round(maxUnits * PX_PER_UNIT);
 
+    // ⚑ The layer belongs to the generated CLASS, so a group whose defs
+    // disagreed would draw half of them in the wrong place and say nothing —
+    // refused here, in the same breath as the missing-sprite throw above.
+    const underfoot = defs[0].underfoot === true;
+    if (defs.some((d) => (d.underfoot === true) !== underfoot)) {
+        throw new Error(`Props.ts: entityType "${entityType}" mixes underfoot and ordinary `
+            + `definitions (${defs.map((d) => d.name).join(', ')}) — they share one render layer`);
+    }
+
     class GeneratedProp extends SimpleProp {
         static svg: Texture;
         static bodyAspect = bodyAspect;
 
         constructor(id: number, x: number, y: number, size: number, rotation: number) {
-            super(id, x, y, size, rotation, GeneratedProp.svg);
+            super(id, propLayer(underfoot), x, y, size, rotation, GeneratedProp.svg);
         }
     }
 
@@ -176,6 +219,24 @@ defsByEntityType.forEach((defs, entityType) => {
 const propDefsByName = new Map<string, PropDefJSON>();
 for (const def of propDefs) {
     propDefsByName.set(def.name, def);
+}
+
+/**
+ * Whether a placement of `type` blocks movement — the client-side mirror of the
+ * server's world.Prop.Blocks(), and the ONE place the default is applied here.
+ *
+ * ⭐ THE DEFAULT IS TRUE AT BOTH ENDS OF THE TRI-STATE, which is the bit worth
+ * getting right: an absent placement value inherits the type, and an absent TYPE
+ * value means blocking. A prop is solid unless somebody has said otherwise.
+ *
+ * ⚑ An unknown type answers true as well. Guessing "decorative" for a prop the
+ * client cannot resolve would draw a walk-through marker over something the
+ * server is very much colliding with, and that lie is the worse of the two.
+ */
+export function propBlocksMovement(type: string, placement?: boolean): boolean {
+    if (placement !== undefined) { return placement; }
+    const def = propDefsByName.get(type);
+    return def === undefined || def.blocksMovement !== false;
 }
 
 // The loud, deliberately un-gamelike palette, shared with npcPlaceholder.svg so
@@ -213,7 +274,13 @@ const STROKE_MAX = 5;
  */
 export class PropPlaceholder extends Resource {
     constructor(id: number, x: number, y: number, size: number, rotation: number, propName: string) {
-        super(id, Game.layers.resources.trees, x, y, size, rotation, null);
+        // ⚑ The layer is resolved in the super() ARGUMENT, from the same map the
+        // body comes from a moment later: `this` does not exist yet. The
+        // placeholder path has to honour `underfoot` as well, because it is how
+        // the FIRST bridge arrives — the deck art is unstarted (art/assets.md),
+        // so a labelled square is what the PO will walk across.
+        super(id, propLayer(propDefsByName.get(propName)?.underfoot === true),
+            x, y, size, rotation, null);
         this.visibleOnMinimap = false;
 
         // ⚑ The SHAPE needs the definition; the LABEL does not — the wire

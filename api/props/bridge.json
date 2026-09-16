@@ -1,0 +1,9 @@
+{
+  "name": "Bridge",
+  "entityType": "Bridge",
+  "sprite": "bridge.svg",
+  "body": { "width": 5, "height": 2 },
+  "crossesPaths": true,
+  "underfoot": true,
+  "blocksMovement": false
+}

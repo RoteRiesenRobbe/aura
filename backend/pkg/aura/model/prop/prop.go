@@ -36,11 +36,11 @@ func FromZone(p *world.Prop) *Prop {
 		// of what the collision body is (C2b) — a construct-then-orient step
 		// would be forgettable, and forgetting it is silent: the prop would
 		// render turned and block upright, which is the exact bug C2b fixes.
-		e = NewRect(entityType, pos, solid.Width, solid.Height, p.Rotation, visual.VisualRadius(), p.BlocksMovement)
+		e = NewRect(entityType, pos, solid.Width, solid.Height, p.Rotation, visual.VisualRadius(), p.Blocks())
 	} else {
 		// A circle has no orientation, so the body needs nothing; only the
 		// sprite angle below applies.
-		e = New(entityType, pos, solid.Radius, visual.VisualRadius(), p.BlocksMovement)
+		e = New(entityType, pos, solid.Radius, visual.VisualRadius(), p.Blocks())
 	}
 	e.rotation = p.Rotation
 	// ⚑ THE definition name reaches the entity only here. New/NewRect take the

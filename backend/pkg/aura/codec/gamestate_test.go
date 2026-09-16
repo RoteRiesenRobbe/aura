@@ -613,7 +613,7 @@ func TestEntitiesMarshalFlatbuf_LengthAndOrder(t *testing.T) {
 // path, which is where the field is actually assigned.
 func TestPropEntityFlatbufMarshal_CarriesRotation(t *testing.T) {
 	def := &world.PropDefinition{Body: world.PropBody{Radius: 1}}
-	p := prop.FromZone(&world.Prop{X: 1, Y: 2, Rotation: 2.03, BlocksMovement: true, Def: def})
+	p := prop.FromZone(&world.Prop{X: 1, Y: 2, Rotation: 2.03, Def: def})
 
 	b := flatbuffers.NewBuilder(256)
 	b.Finish(PropEntityFlatbufMarshal(p, b))
@@ -777,7 +777,7 @@ func TestPropEntityFlatbufMarshal_CarriesPropNameForPlaceholder(t *testing.T) {
 		EntityType: AuraApi.EntityTypePropPlaceholder,
 		Body:       world.PropBody{Width: 2, Height: 0.6},
 	}
-	p := prop.FromZone(&world.Prop{X: 1, Y: 2, Rotation: 0.4, BlocksMovement: true, Def: def})
+	p := prop.FromZone(&world.Prop{X: 1, Y: 2, Rotation: 0.4, Def: def})
 
 	b := flatbuffers.NewBuilder(256)
 	b.Finish(PropEntityFlatbufMarshal(p, b))
@@ -825,7 +825,7 @@ func TestPropEntityFlatbufMarshal_RealPropCostsNothing(t *testing.T) {
 		EntityType: AuraApi.EntityTypeStone,
 		Body:       world.PropBody{Radius: 1},
 	}
-	p := prop.FromZone(&world.Prop{X: 1, Y: 2, Rotation: 2.03, BlocksMovement: true, Def: def})
+	p := prop.FromZone(&world.Prop{X: 1, Y: 2, Rotation: 2.03, Def: def})
 
 	b := flatbuffers.NewBuilder(256)
 	b.Finish(PropEntityFlatbufMarshal(p, b))

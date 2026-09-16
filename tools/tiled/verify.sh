@@ -175,6 +175,42 @@ else
     ok "refused, nothing written"
 fi
 
+# ---- 2b-ii. a prop's TRI-STATE blocksMovement survives a real Tiled save ----
+# ⭐ The one that matters is the INHERITING prop: it must come back carrying no
+# key at all. A converter that helpfully filled in a bool would freeze today's
+# answer into the file, and re-typing the prop in api/props/ would stop moving
+# its placements — which is the whole reason the tri-state exists.
+#
+# ⛔ THIS LEG PROVES THE VALUE SURVIVES AND NOTHING ABOUT THE DROPDOWN. Headless
+# --export-map loads no project, so tiled.propertyValue throws and the enum
+# degrades to a bare string — measured during the 2026-09-15 profile split. The
+# class member itself is pinned statically by vitest (AuraTiledConvert.test.ts),
+# and the GUI wiring is a human check in the footer.
+echo
+echo "a prop's tri-state blocksMovement round-trips"
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/propblocks.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    props: [
+        // Inheriting — NO key, and it must still have none on the way back.
+        {type: "Tree", x: 0, y: 0, rotation: 0},
+        // The two explicit overrides, one each way.
+        {type: "House", x: 8, y: 0, rotation: 0, blocksMovement: true},
+        {type: "Rock", x: -8, y: 0, rotation: 0, blocksMovement: false},
+    ],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/propblocks.json         "$(native "$ROOT/tools/tiled/.verify/propblocks-out.json")" >/dev/null 2>&1    && cmp -s tools/tiled/.verify/propblocks.json tools/tiled/.verify/propblocks-out.json; then
+    ok "byte-identical — the inheriting prop grew no key, both overrides survived"
+else
+    bad "blocksMovement did not survive: $(cmp tools/tiled/.verify/propblocks.json         tools/tiled/.verify/propblocks-out.json 2>&1 | head -1)"
+fi
+
 # ---- 2c. a region survives Tiled's own property handling --------------------
 # ⚑ vitest cannot cover this leg either: the profile is a TYPED enum property,
 # and Tiled hands a typed enum back as an INDEX into the declared values, never
@@ -823,6 +859,12 @@ if [ "$fail" -eq 0 ]; then
     echo "     that an AuraRegion and an AuraClearing have NO effect field at all."
     echo "     Which enum a member declares is invisible headlessly (measured), so the"
     echo "     three legs above prove the NAME survives and nothing about the wiring."
+    echo "  5. click a prop on the props layer and confirm it has a 'blocksMovement'"
+    echo "     DROPDOWN reading '(inherit)' / 'blocks' / 'walk through' — then DRAG A"
+    echo "     FRESH ONE from the aura-props tileset and confirm it shows the same"
+    echo "     field, already sitting at '(inherit)'. ⛔ That second half is the whole"
+    echo "     point: AuraProp carried no members at all until 2026-09-17, so a newly"
+    echo "     dragged prop had an EMPTY Properties panel and saved as non-blocking."
 else
     echo "FAILED — see above."
 fi

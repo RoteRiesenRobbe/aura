@@ -97,7 +97,13 @@ enum EntityType : ushort {
   // other prop type maps 1:1 to a sprite, but EVERY placeholder shares this
   // value while differing in shape and label. That is what Resource.prop_name
   // is for, and the only reason that field exists.
-  PropPlaceholder = 77
+  PropPlaceholder = 77,
+  // A bridge deck — the first prop a character walks ON TOP OF rather than
+  // around (plan-world-paths.md D6). Its definition authors `crossesPaths`,
+  // which clears the blocking path corridor under its footprint, and
+  // `underfoot`, which is what puts the sprite on the client's `decks` layer
+  // BELOW the characters instead of above them with the trees.
+  Bridge = 78
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

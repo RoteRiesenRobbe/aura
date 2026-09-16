@@ -81,7 +81,8 @@ let propControls: HTMLElement;
 let propTypeSelect: HTMLSelectElement;
 let propRadiusLabel: HTMLElement;
 let propRotationInput: HTMLInputElement;
-let blocksMovementToggle: HTMLInputElement;
+// TRI-STATE: 'inherit' | 'blocks' | 'walk'. See readPropBlocks below.
+let blocksMovementToggle: HTMLSelectElement;
 let propSelectionGroup: HTMLElement;
 let propSelectedIndexLabel: HTMLElement;
 
@@ -165,7 +166,7 @@ export function setupPanel() {
     propTypeSelect = document.getElementById('zoneEditor_propType') as HTMLSelectElement;
     propRadiusLabel = document.getElementById('zoneEditor_propRadius');
     propRotationInput = document.getElementById('zoneEditor_propRotation') as HTMLInputElement;
-    blocksMovementToggle = document.getElementById('zoneEditor_blocksMovement') as HTMLInputElement;
+    blocksMovementToggle = document.getElementById('zoneEditor_blocksMovement') as HTMLSelectElement;
     propSelectionGroup = document.getElementById('zoneEditor_propSelection');
     propSelectedIndexLabel = document.getElementById('zoneEditor_propSelectedIndex');
 
@@ -616,7 +617,7 @@ function readPropControls(x: number, y: number): ZoneProp {
         x,
         y,
         rotation: deg2rad(parseFloat(propRotationInput.value) || 0),
-        blocksMovement: blocksMovementToggle.checked,
+        blocksMovement: readPropBlocks(),
     };
 }
 
@@ -650,11 +651,24 @@ function readSpawnControls(x: number, y: number): ZoneSpawn {
     };
 }
 
+/* ⛔ THE THIRD STATE IS THE WHOLE POINT, and leaving it out would make this
+ * editor eat a field for the third time (spawn.level and prop.scale were the
+ * first two). blocksMovement is tri-state in the file: absent means "inherit
+ * api/props/<type>.json", which itself defaults to BLOCKING. A two-state
+ * checkbox has nowhere to put that, so merely SELECTING a prop here and saving
+ * would write an explicit value over every inherit in the zone. */
+function readPropBlocks(): boolean | undefined {
+    if (blocksMovementToggle.value === 'blocks') { return true; }
+    if (blocksMovementToggle.value === 'walk') { return false; }
+    return undefined;
+}
+
 function populatePropControls(prop: ZoneProp) {
     propTypeSelect.value = prop.type;
     updatePropRadiusLabel();
     propRotationInput.value = String(Math.round(prop.rotation * 180 / Math.PI));
-    blocksMovementToggle.checked = prop.blocksMovement;
+    blocksMovementToggle.value = prop.blocksMovement === undefined
+        ? 'inherit' : (prop.blocksMovement ? 'blocks' : 'walk');
 }
 
 function populateSpawnControls(spawn: ZoneSpawn) {

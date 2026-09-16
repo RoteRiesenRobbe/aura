@@ -170,6 +170,68 @@ describe('AuraConvert — the tri-state fields', () => {
         expect(out.spawns[0].level).toBe(13);
         expect(out.spawns[0].idleSpeedFactor).toBe(0.1);
     });
+
+    /* ---- a prop's blocksMovement, the newest tri-state ---------------------
+     * ⭐ THE DEFAULT IS THE SERVER'S TO APPLY, not this file's. Absent means
+     * "ask api/props/<type>.json", so the one thing these legs must prove is
+     * that absent STAYS absent through a full round-trip — a converter that
+     * helpfully filled in a bool would freeze today's answer into the zone and
+     * re-typing the prop would stop moving its placements.
+     */
+    const propZone = (over: Record<string, unknown> = {}) =>
+        zone({props: [{type: 'Tree', x: 0, y: 0, rotation: 0, ...over}]});
+
+    it('⭐ an inheriting prop keeps NO blocksMovement key at all', () => {
+        const out = roundTrip(propZone());
+        expect('blocksMovement' in out.props[0]).toBe(false);
+        expect(JSON.stringify(out)).not.toContain('blocksMovement');
+    });
+
+    it('an explicit blocking prop survives as true', () => {
+        const out = roundTrip(propZone({blocksMovement: true}));
+        expect(out.props[0].blocksMovement).toBe(true);
+    });
+
+    it('an explicit walk-through prop survives as false — it is an OVERRIDE', () => {
+        const out = roundTrip(propZone({blocksMovement: false}));
+        expect(out.props[0].blocksMovement).toBe(false);
+        expect('blocksMovement' in out.props[0]).toBe(true);
+    });
+
+    /* ⛔ THE SHADOWING RULE, and it is invisible from the file it protects: an
+     * object-level property SHADOWS the class member that declares its enum, and
+     * the Properties panel then degrades from a dropdown to a free-text box. So
+     * an inheriting prop must reach Tiled carrying NOTHING, and the member is
+     * what shows '(inherit)'. Measured in the GUI during C6; the same trap the
+     * spawn sentinels exist to avoid. */
+    it('⛔ zoneToModel sets no property on an inheriting prop, so the dropdown survives', () => {
+        const m = C.zoneToModel(propZone()) as {layers: {name: string; objects:
+            {properties: Record<string, unknown>; enums: Record<string, string>}[]}[]};
+        const o = m.layers.filter(l => l.name === 'props')[0].objects[0];
+        expect('blocksMovement' in o.properties).toBe(false);
+        // …but the enum is still declared, so a value SET later is written typed.
+        expect(o.enums.blocksMovement).toBe(C.PROP_BLOCKS_ENUM);
+    });
+
+    it('an authored prop reaches Tiled as the enum STRING, not a bool', () => {
+        const m = C.zoneToModel(propZone({blocksMovement: false})) as {layers:
+            {name: string; objects: {properties: Record<string, unknown>}[]}[]};
+        const o = m.layers.filter(l => l.name === 'props')[0].objects[0];
+        expect(o.properties.blocksMovement).toBe(C.PROP_WALK_THROUGH);
+    });
+
+    /* ⚑ A Tiled that never loaded the project degrades a typed value to whatever
+     * the writer put there (tiled.propertyValue throws on an unregistered type,
+     * measured during the atmosphere split). A zone opened that way must still
+     * round-trip, which is why readPropBlocks accepts a raw bool. */
+    it('a raw boolean property still reads, for a project-less Tiled', () => {
+        const m = C.zoneToModel(propZone()) as {layers: {name: string; objects:
+            {properties: Record<string, unknown>}[]}[]};
+        const o = m.layers.filter(l => l.name === 'props')[0].objects[0];
+        o.properties.blocksMovement = false;
+        expect((C.modelToZone(m) as {props: {blocksMovement: unknown}[]})
+            .props[0].blocksMovement).toBe(false);
+    });
 });
 
 describe('AuraConvert — terrain geometry', () => {
@@ -494,6 +556,33 @@ describe('AuraConvert — save-time validation (C4)', () => {
     function spawn(over: Record<string, unknown> = {}) {
         return zone({spawns: [{mob: 'Wolf', x: 0, y: 0, angle: 0, ...over}]});
     }
+
+    /* ⛔ PRESENT AND WRONG IS REFUSED; ABSENT IS THE DEFAULT — the same
+     * asymmetry `clears` records. An absent property is Tiled dropping a value
+     * still at its member default, invisible to the author and required to
+     * round-trip. A value that is present and unrecognised is somebody having
+     * typed it, and a prop that quietly stopped blocking looks on screen exactly
+     * like one that still does. */
+    it('refuses a blocksMovement Tiled cannot map, and says what it takes', () => {
+        const m = modelOf(zone({props: [{type: 'Tree', x: 0, y: 0, rotation: 0}]})) as unknown as
+            {layers: {name: string; objects: {properties: Record<string, unknown>}[]}[]};
+        m.layers.filter(l => l.name === 'props')[0].objects[0]
+            .properties.blocksMovement = 'solid-ish';
+        const e = C.validateModel(m) as string[];
+        expect(e).toHaveLength(1);
+        expect(e[0]).toContain('blocksMovement');
+        expect(e[0]).toContain(C.PROP_BLOCKS_INHERIT);
+    });
+
+    it('accepts all three values, and an absent one', () => {
+        C.PROP_BLOCKS_VALUES.forEach((v: string) => {
+            const m = modelOf(zone({props: [{type: 'Tree', x: 0, y: 0, rotation: 0}]})) as unknown as
+                {layers: {name: string; objects: {properties: Record<string, unknown>}[]}[]};
+            m.layers.filter(l => l.name === 'props')[0].objects[0].properties.blocksMovement = v;
+            expect(C.validateModel(m), v).toEqual([]);
+        });
+        expect(errs(zone({props: [{type: 'Tree', x: 0, y: 0, rotation: 0}]}))).toEqual([]);
+    });
 
     // ⭐ These exist because the first cut of the paths leg called get() —
     // modelToZone's local property reader — inside validateModel, where it does
@@ -1716,11 +1805,42 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
         names.forEach(n => expect(JSON.stringify(byName(n).members), n).toBe(shape));
     });
 
-    // ⚑ The reason AuraProp stays memberless: blocksMovement is a bool with no
-    // spare value, so it has no sentinel — a default would risk flipping props.
+    // ⚑ These four stay memberless: none of them has a per-placement knob at
+    // all, so there is nothing a member could carry.
+    //
+    // ⛔ AuraProp CAME OFF THIS LIST on 2026-09-17, and the reason it was ever on
+    // it is the interesting half. blocksMovement is a BOOL, which has no spare
+    // value to serve as an inherit sentinel — so a member defaulting to true,
+    // plus a Tiled that drops default-valued properties, would have flipped all
+    // 777 props to false. Sound reasoning, steep price: a freshly dragged prop
+    // showed an EMPTY Properties panel and saved as non-blocking. The fix was to
+    // stop asking a bool to carry three answers — see the AuraProp block below.
     it('gives the OTHER classes no members, deliberately', () => {
-        ['AuraProp', 'AuraTerrain', 'AuraCampfire', 'AuraDarkArea', 'AuraAnchor']
+        ['AuraTerrain', 'AuraCampfire', 'AuraDarkArea', 'AuraAnchor']
             .forEach(n => expect(byName(n).members ?? [], n).toEqual([]));
+    });
+
+    /* ⭐ THE PIN THE WHOLE PROP DESIGN RESTS ON, and the same one the spawn
+     * sentinels get above: the palette's class default and the converter's
+     * "absent" reading must be the SAME value. Equal, the design is immune to
+     * which way Tiled behaves — a kept '(inherit)' and a dropped property reach
+     * the same answer. Unequal, a freshly drawn prop is silently rewritten on
+     * its first save, and nothing else in the suite would say so. */
+    it("⭐ AuraProp's class default IS the converter's inherit sentinel", () => {
+        const members = byName('AuraProp').members ?? [];
+        expect(members.length, 'AuraProp carries exactly one member').toBe(1);
+        expect(members[0].name).toBe('blocksMovement');
+        expect(members[0].propertyType).toBe(C.PROP_BLOCKS_ENUM);
+        expect(members[0].value, 'class default must equal PROP_BLOCKS_INHERIT')
+            .toBe(C.PROP_BLOCKS_INHERIT);
+    });
+
+    // ⚑ And the enum behind it must actually offer the three values the
+    // converter maps, with the sentinel leading so it is the natural default.
+    it('offers inherit, blocks and walk-through, sentinel first', () => {
+        const values = byName(C.PROP_BLOCKS_ENUM).values ?? [];
+        expect(values).toEqual(C.PROP_BLOCKS_VALUES);
+        expect(values[0]).toBe(C.PROP_BLOCKS_INHERIT);
     });
 
     it('offers every mob in the dropdown, with the unset default first', () => {

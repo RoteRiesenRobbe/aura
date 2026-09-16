@@ -56,11 +56,30 @@ type Prop struct {
 	X              float32  `json:"x"`
 	Y              float32  `json:"y"`
 	Rotation       float32  `json:"rotation"`
-	BlocksMovement bool     `json:"blocksMovement"`
+	// BlocksMovement is a TRI-STATE OVERRIDE of the prop TYPE's own
+	// blocksMovement: nil = inherit the definition, which is what a prop dragged
+	// fresh in Tiled authors. Read it through Blocks(), never directly.
+	//
+	// ⭐ It used to be a plain bool, and the zero value WAS the bug: a freshly
+	// dragged prop carried no key, the converter read absent as false, and you
+	// got a tree you could walk through with nothing said. Whether a prop is
+	// solid is a fact about the TYPE; the placement only overrides it — the same
+	// argument Scale below makes for being a multiplier rather than an absolute.
+	BlocksMovement *bool    `json:"blocksMovement"`
 	Scale          *float32 `json:"scale"`
 
 	// Def is the prop definition resolved from Type; not part of the JSON.
 	Def *PropDefinition `json:"-"`
+}
+
+// Blocks resolves the placement's tri-state override against the type's
+// default — the ONE seam where the two layers meet. Only meaningful once Def
+// is resolved, exactly like VisualBody below.
+func (p *Prop) Blocks() bool {
+	if p.BlocksMovement != nil {
+		return *p.BlocksMovement
+	}
+	return p.Def.Blocks()
 }
 
 // MaxPropScale is the upper rail on Prop.Scale — [PLACEHOLDER] (D2), a sanity
@@ -1032,7 +1051,7 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 		// Both values are individually legal, which is why this has to be said
 		// out loud. Lives here rather than in validate() because it needs the
 		// RESOLVED definition — the same reason the spawn speed check does.
-		if def.CrossesPaths && p.BlocksMovement {
+		if def.CrossesPaths && p.Blocks() {
 			return fmt.Errorf("prop %d: %q crosses paths, so it must not also blocksMovement "+
 				"(it would clear the corridor under its deck and then block the deck)", i, p.Type)
 		}

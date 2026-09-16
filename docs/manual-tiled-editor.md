@@ -131,10 +131,29 @@ WYSIWYG.
   - The in-game editor has its own prop rotation box and always had; it now
     means something there too. ⚑ It reads and writes **whole degrees**, so
     opening a Tiled-rotated prop in it and saving quantises the angle to 1°.
-- `blocksMovement` is a checkbox in the Properties panel. ⚑ A **newly dragged**
-  prop has no such property yet, so it saves as `false` — non-blocking. Add it
-  (Properties panel ▸ **+** ▸ bool ▸ `blocksMovement`) on anything meant to be
-  solid, or you get a tree you can walk through.
+- ⭐ **A prop BLOCKS unless you say otherwise, and you rarely need to say
+  anything.** `blocksMovement` is a dropdown in the Properties panel with three
+  values, and a freshly dragged prop arrives at **`(inherit)`**:
+  - **`(inherit)`** — take whatever `api/props/<type>.json` says, which for
+    every shipped prop is *blocking*. Leave it here. The zone file then carries
+    no key at all, so retuning the type later moves every placement of it.
+  - **`blocks`** / **`walk through`** — override this ONE placement, for the
+    one rock that really is different from every other rock.
+
+  ⚑ **This is new as of 2026-09-17, and the old behaviour was the opposite.**
+  `AuraProp` carried no properties at all, so a newly dragged prop showed an
+  **empty** Properties panel and saved as non-blocking — a tree you could walk
+  through, with nothing said. If you placed props before that date, check them.
+- ⚑ **A prop's full editable set, in one place**, because only one of the five
+  is a property:
+  - **which prop** — the tile you dragged from the `aura-props` tileset.
+  - **position** — drag it.
+  - **rotation** — the rotation handle, or `Rotation` in the Object section.
+  - **size** — resize the box. There is deliberately no `scale` property: the
+    box *is* the scale, and a second place to say it would be a second source of
+    truth that can disagree with what you see.
+  - **`blocksMovement`** — the dropdown above, and the only custom property a
+    prop has.
 
 ### Spawns
 

@@ -248,8 +248,9 @@ export class Game implements IGame {
                 // Roads and rivers (plan-world-paths.md C1): OVER the region
                 // ground, UNDER the texture blobs. A road lies ON the field it
                 // crosses, and the blobs keep doing edge treatment on top of
-                // both. A bridge is a PROP (D6) and therefore an entity, so it
-                // draws far above this — nothing here has to know about it.
+                // both. A bridge is a PROP (D6) and therefore an entity — but an
+                // entity you WALK ON, so it draws on `decks` a few lines below,
+                // never in the `resources` layers with the trees (PO 2026-09-16).
                 // Filled masses (plan-zone-polygons.md P2): OVER the region
                 // ground, UNDER the paths. Material, then masses, then ribbons —
                 // a rock sits on the field, and a road still runs over the rock.
@@ -257,6 +258,21 @@ export class Game implements IGame {
                 paths: createNamedContainer('paths'),
                 textures: createNamedContainer('textures'),
                 resourceSpots: createNamedContainer('resourceSpots'),
+                // Bridges, docks, plank walkways — anything a character stands
+                // ON TOP OF, i.e. every prop definition authoring
+                // `underfoot: true` (PO 2026-09-16, plan-world-paths.md D6).
+                //
+                // ⭐ THE LAST TERRAIN LAYER, AND THEREFORE STILL UNDER EVERY
+                // ENTITY — which is the entire point. A prop drawn in the
+                // `resources` layers is drawn above `characters`, so a bridge
+                // there would cover the player crossing it: the campfire defect
+                // (see the mobs-under-characters note below), applied to world
+                // geometry. The server refuses `crossesPaths` without
+                // `underfoot` so the two cannot drift apart.
+                //
+                // ⚑ ABOVE `resourceSpots`: a deck hides the ground scuffing it
+                // is laid over, not the other way round.
+                decks: createNamedContainer('decks'),
             },
             // No `placeables` group: the Berryhunter build/placeable feature is
             // gone (backlog §26/§28), so all seven of its containers rendered
@@ -335,6 +351,7 @@ export class Game implements IGame {
             this.layers.terrain.paths,
             this.layers.terrain.textures,
             this.layers.terrain.resourceSpots,
+            this.layers.terrain.decks,
         );
 
         // Corpses below the living

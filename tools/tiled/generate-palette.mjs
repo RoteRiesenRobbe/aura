@@ -41,6 +41,7 @@ const C = createRequire(import.meta.url)(
 const MOB_UNSET = C.MOB_UNSET;
 const PROFILE_UNSET = C.PROFILE_UNSET;
 const EFFECT_UNSET = C.EFFECT_UNSET;
+const PROP_BLOCKS_INHERIT = C.PROP_BLOCKS_INHERIT;
 
 function fail(msg) {
     console.error('generate-palette: ' + msg);
@@ -236,9 +237,18 @@ function tileset(name, cls, tiles) {
 // that merely equals its class default, the converter sees it absent and
 // reaches the same answer. The design does not depend on which Tiled does.
 //
-// ⚑ Which is exactly why AuraProp gets NO members. `blocksMovement` is a bool
-// with no spare value, so it has no sentinel — a default of true and a Tiled
-// that omits default-valued properties would flip all 777 props to false.
+// ⭐ AuraProp carried NO members for exactly that reason until 2026-09-17:
+// `blocksMovement` is a bool with no spare value, so it had no sentinel, and a
+// member defaulting to true plus a Tiled that omits default-valued properties
+// would have flipped all 777 props to false. The reasoning was sound and the
+// price was steep — a freshly dragged prop showed an EMPTY Properties panel and
+// saved as non-blocking, which is a tree you can walk through with nothing said.
+//
+// ⭐ THE FIX IS TO STOP ASKING A BOOL TO CARRY THREE ANSWERS. The member is an
+// ENUM now — (inherit) / blocks / walk through — so the sentinel exists and the
+// C6 rule is satisfied the ordinary way. Whether a prop is solid is a fact about
+// the TYPE (api/props/<name>.json, absent = blocking); the placement only
+// OVERRIDES it, which is why "(inherit)" has to be sayable at all.
 const KIND_COLOUR = {
     combat: '#ff4caf50',    // the in-game editor's marker colours, verbatim
     talker: '#ffe91e63',
@@ -310,6 +320,11 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
     const types = [
         enumType('AuraTerrainType', terrain.map(t => t.type)),
         enumType('AuraPropType', props.map(p => p.type)),
+        // ⚑ The sentinel leads the list so it is the natural default, like
+        // AuraMobName's — but it means the OPPOSITE of MOB_UNSET's: "(pick a
+        // mob)" refuses the save, "(inherit)" is the correct answer for almost
+        // every prop ever placed. It is the EFFECT_UNSET reading of a sentinel.
+        enumType(C.PROP_BLOCKS_ENUM, C.PROP_BLOCKS_VALUES),
         // MOB_UNSET leads the list so it is the natural default: a hand-drawn
         // spawn that nobody has assigned refuses the save instead of silently
         // becoming whichever mob happens to sort first.
@@ -345,7 +360,13 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // sorted first would be a hazard nobody drew.
         enumType('AuraEffect', [EFFECT_UNSET].concat(effects)),
         classType('AuraTerrain', '#ff8bc34a'),
-        classType('AuraProp', '#fff44336'),
+        // ⭐ ONE member, and the enum above is what makes it safe — see the
+        // block comment over KIND_COLOUR. The default IS C.PROP_BLOCKS_INHERIT,
+        // which aura-convert.js's readPropBlocks maps back to "not authored";
+        // a vitest pins the two together, because the whole design rests on
+        // them being equal.
+        classType('AuraProp', '#fff44336',
+            [member('blocksMovement', 'string', PROP_BLOCKS_INHERIT, C.PROP_BLOCKS_ENUM)]),
         classType('AuraCampfire', '#ffff9800'),
         classType('AuraDarkArea', '#ff673ab7'),
         classType('AuraAnchor', '#ff00bcd4'),

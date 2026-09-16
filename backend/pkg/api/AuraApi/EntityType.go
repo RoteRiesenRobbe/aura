@@ -69,6 +69,7 @@ const (
 	EntityTypeCamp                  EntityType = 75
 	EntityTypeTombstone             EntityType = 76
 	EntityTypePropPlaceholder       EntityType = 77
+	EntityTypeBridge                EntityType = 78
 )
 
 var EnumNamesEntityType = map[EntityType]string{
@@ -134,6 +135,7 @@ var EnumNamesEntityType = map[EntityType]string{
 	EntityTypeCamp:                  "Camp",
 	EntityTypeTombstone:             "Tombstone",
 	EntityTypePropPlaceholder:       "PropPlaceholder",
+	EntityTypeBridge:                "Bridge",
 }
 
 var EnumValuesEntityType = map[string]EntityType{
@@ -199,6 +201,7 @@ var EnumValuesEntityType = map[string]EntityType{
 	"Camp":                  EntityTypeCamp,
 	"Tombstone":             EntityTypeTombstone,
 	"PropPlaceholder":       EntityTypePropPlaceholder,
+	"Bridge":                EntityTypeBridge,
 }
 
 func (v EntityType) String() string {

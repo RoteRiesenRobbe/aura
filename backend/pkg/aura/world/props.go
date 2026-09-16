@@ -115,6 +115,24 @@ type PropDefinition struct {
 	Body       PropBody
 	// CrossesPaths — see the type comment. Absent = false = an ordinary prop.
 	CrossesPaths bool
+	// BlocksMovement is whether placements of this type block by default.
+	//
+	// ⭐ A POINTER because the safe default here is TRUE, not the Go zero value:
+	// every one of the six shipped defs authors nothing and every one of them
+	// must keep blocking. Read it through Blocks(), never directly.
+	BlocksMovement *bool
+}
+
+// Blocks reports whether placements of this type block movement unless the
+// placement itself says otherwise. Absent = true: a prop is solid unless its
+// type declares it decorative.
+//
+// ⛔ THE DEFAULT LIVES HERE AND NOWHERE ELSE. Every test registry in this
+// package builds a PropDefinition as a struct literal, so a plain bool field
+// would make a hand-built def mean "walk through" while an identical authored
+// file meant "blocks" — the two must never be able to disagree.
+func (d *PropDefinition) Blocks() bool {
+	return d.BlocksMovement == nil || *d.BlocksMovement
 }
 
 // PropRegistry resolves zone prop type names to their definitions.
@@ -193,6 +211,16 @@ type propDefinitionDoc struct {
 	// ⚑ parsePropDefinition uses DisallowUnknownFields, so this field and the
 	// exported one above must move together or every bridge fails boot by name.
 	CrossesPaths bool `json:"crossesPaths"`
+	// Underfoot is the prop's Z-ORDER, and the CLIENT ALONE reads it - which
+	// layer a sprite draws in is no business of the server's, so it is parsed
+	// here and never exported, exactly like Sprite above. It is named all the
+	// same for two reasons: DisallowUnknownFields would refuse the boot
+	// otherwise, and the CrossesPaths pairing below has to be checkable.
+	Underfoot bool `json:"underfoot"`
+	// BlocksMovement is TRI-STATE and absent means TRUE (see
+	// PropDefinition.Blocks). ⚑ DisallowUnknownFields again: this field and the
+	// exported one must move together or every prop file fails boot by name.
+	BlocksMovement *bool `json:"blocksMovement"`
 }
 
 func parsePropDefinition(data []byte) (*PropDefinition, error) {
@@ -228,10 +256,32 @@ func parsePropDefinition(data []byte) (*PropDefinition, error) {
 	if f := doc.Body.CollisionFactor; f != nil && *f <= 0 {
 		return nil, fmt.Errorf("body collisionFactor must be positive, got %g", *f)
 	}
+	// A bridge drawn OVER the player is the defect this pairing exists to make
+	// unsayable (PO 2026-09-16). A prop that clears the corridor under its deck
+	// is by definition a prop you WALK ON, and a prop you walk on has to draw
+	// below the character standing on it - the campfire ruling (Game.ts keeps
+	// layers.mobs under layers.characters), applied to world geometry.
+	// The implication runs ONE WAY: a dock or a plank walkway is underfoot and
+	// crosses nothing, which stays legal - so the render field cannot simply be
+	// derived from this one.
+	if doc.CrossesPaths && !doc.Underfoot {
+		return nil, fmt.Errorf("crossesPaths needs underfoot: a prop you walk across must draw " +
+			"below the character walking on it, or its deck covers them")
+	}
+	// ⛔ A bridge that blocks is a bridge you cannot cross: it clears the water
+	// under its deck and then walls that same deck with its own body. zone.go
+	// already refuses that combination per PLACEMENT; said at the TYPE it is
+	// refused once, for every placement there will ever be — which is the level
+	// crossesPaths itself lives at.
+	if doc.CrossesPaths && (doc.BlocksMovement == nil || *doc.BlocksMovement) {
+		return nil, fmt.Errorf("crossesPaths needs blocksMovement: false — a prop you walk " +
+			"across must not also wall its own deck (an absent blocksMovement means true)")
+	}
 	return &PropDefinition{
-		Name:         doc.Name,
-		EntityType:   entityType,
-		Body:         doc.Body,
-		CrossesPaths: doc.CrossesPaths,
+		Name:           doc.Name,
+		EntityType:     entityType,
+		Body:           doc.Body,
+		CrossesPaths:   doc.CrossesPaths,
+		BlocksMovement: doc.BlocksMovement,
 	}, nil
 }

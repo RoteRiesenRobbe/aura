@@ -107,7 +107,7 @@ func TestZone_LoadsValid(t *testing.T) {
 	assert.EqualValues(t, 40, z.Bounds.Height)
 	require.Len(t, z.Props, 1)
 	assert.Equal(t, "Rock", z.Props[0].Type)
-	assert.True(t, z.Props[0].BlocksMovement)
+	assert.True(t, z.Props[0].Blocks())
 	// prop type names are resolved at load time
 	require.NotNil(t, z.Props[0].Def)
 	assert.Equal(t, "Rock", z.Props[0].Def.Name)

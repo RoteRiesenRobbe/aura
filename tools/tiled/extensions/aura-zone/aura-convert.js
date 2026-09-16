@@ -274,6 +274,52 @@ var AuraConvert = (function () {
     // it reach the same answer.
     var CLEARS_DEFAULT = 'both';
 
+    /* ---- whether a prop blocks: the TYPE decides, the placement overrides ---
+     * A prop's blocksMovement is TRI-STATE in the file since 2026-09-17: absent
+     * means "inherit api/props/<type>.json", which itself defaults to BLOCKING.
+     *
+     * ⭐ AN ENUM, NOT A CHECKBOX, and that is the whole trick. AuraProp used to
+     * carry NO members at all, on the ground that a bool has no spare value to
+     * serve as a sentinel — so a member defaulting to true plus a Tiled that
+     * drops default-valued properties would flip every prop in the world to
+     * false. That reasoning was right, and the price was a freshly dragged prop
+     * with an EMPTY Properties panel that silently saved as non-blocking: a tree
+     * you could walk through, with nothing said. An enum supplies the missing
+     * sentinel exactly as MOB_UNSET, PROFILE_UNSET and SPAWN_INHERIT do, so the
+     * design no longer depends on which way Tiled behaves — kept reads
+     * '(inherit)' and maps to absent, dropped reads absent and maps to absent.
+     *
+     * ⚑ PROP_BLOCKS_INHERIT must equal the palette member's own default
+     * (generate-palette.mjs); a vitest pins the two together. */
+    var PROP_BLOCKS_INHERIT = '(inherit)';
+    var PROP_BLOCKS = 'blocks';
+    var PROP_WALK_THROUGH = 'walk through';
+    var PROP_BLOCKS_VALUES = [PROP_BLOCKS_INHERIT, PROP_BLOCKS, PROP_WALK_THROUGH];
+    var PROP_BLOCKS_ENUM = 'AuraPropBlocks';
+
+    /* Read a prop object's tri-state blocksMovement back to the zone value.
+     *
+     * ⚑ Absent and '(inherit)' both map to undefined — the serializer drops the
+     * key and the SERVER resolves it against the prop type, which is the only
+     * place that default is ever applied. Anything else is an explicit override.
+     *
+     * ⛔ An unrecognised value maps to undefined rather than to a guess:
+     * validateModel refuses it by object id, and quietly promoting it would hide
+     * the thing the author needs to see (readClears takes the same line). */
+    function readPropBlocks(o) {
+        var v = o.properties && o.properties.blocksMovement !== undefined
+            && o.properties.blocksMovement !== null
+            ? plainValue(o.properties.blocksMovement) : undefined;
+        // ⚑ A real BOOLEAN still reads, and it has to: a zone file authored
+        // before the enum existed round-trips through a Tiled that never loaded
+        // the project (headless --export-map), where the typed value degrades to
+        // whatever the writer put there.
+        if (typeof v === 'boolean') { return v; }
+        if (v === PROP_BLOCKS) { return true; }
+        if (v === PROP_WALK_THROUGH) { return false; }
+        return undefined;
+    }
+
     /* Read a spawn object's authored values, with every sentinel resolved back
      * to "absent". The single source of truth for the table above. */
     // Which spawn properties carry a custom enum type. aura-world-format.js
@@ -360,6 +406,10 @@ var AuraConvert = (function () {
                     x: round(p.x, 2),
                     y: round(p.y, 2),
                     rotation: round(p.rotation, 3),
+                    // TRI-STATE like `scale` below: undefined = inherit
+                    // api/props/<type>.json's own blocksMovement, which defaults
+                    // to BLOCKING. JSON.stringify drops it, so a prop that agrees
+                    // with its type carries no key at all.
                     blocksMovement: p.blocksMovement,
                     // undefined = inherit the type's body; JSON.stringify drops
                     // it, so an unscaled prop is byte-identical to before C1.
@@ -539,14 +589,25 @@ var AuraConvert = (function () {
             var sc = (typeof p2.scale === 'number' && p2.scale > 0) ? p2.scale : 1;
             var w = sz.w * PX * sc, h = sz.h * PX * sc;
             var a = anchorOf(px(p2.x, hw), px(p2.y, hh), w, h, rad2deg(p2.rotation || 0));
-            return {
+            var o = {
                 shape: 'tile', layer: 'props', name: p2.type,
                 tileset: 'props', tileType: p2.type, cls: 'AuraProp',
                 x: a.x, y: a.y, width: w, height: h,
                 rotation: rad2deg(p2.rotation || 0),
                 flipH: false, flipV: false,
-                properties: {blocksMovement: !!p2.blocksMovement},
+                properties: {},
+                enums: {blocksMovement: PROP_BLOCKS_ENUM},
             };
+            // ⛔ Set NOTHING when the file authored nothing, so the Properties
+            // panel shows the CLASS member sitting at '(inherit)'. An
+            // object-level property SHADOWS the member that gives it its type,
+            // which degrades the dropdown to a free-text box — measured, and the
+            // same trap readSpawn's sentinels exist to avoid.
+            if (typeof p2.blocksMovement === 'boolean') {
+                o.properties.blocksMovement =
+                    p2.blocksMovement ? PROP_BLOCKS : PROP_WALK_THROUGH;
+            }
+            return o;
         });
 
         var spawns = (z.spawns || []).map(function (s) {
@@ -888,7 +949,7 @@ var AuraConvert = (function () {
                     type: o.name,
                     x: u(c.x, hw), y: u(c.y, hh),
                     rotation: deg2rad(o.rotation || 0),
-                    blocksMovement: !!get(o, 'blocksMovement'),
+                    blocksMovement: readPropBlocks(o),
                     scale: readPropScale(o),
                 };
             }),
@@ -1260,6 +1321,23 @@ var AuraConvert = (function () {
 
         var propsKnown = Object.keys(content.PROP_SIZE).length > 0;
         layer('props').forEach(function (o, i) {
+            /* ⛔ PRESENT AND WRONG IS REFUSED; ABSENT IS THE DEFAULT. The same
+             * asymmetry `clears` records below, for the same reason: an absent
+             * property is Tiled dropping a value still at its member default,
+             * which is invisible to the author and must round-trip — while a
+             * value that is present and unrecognised is somebody having typed
+             * it, and a prop that silently stopped blocking looks on screen
+             * exactly like one that still does. */
+            var rawBlocks = o.properties && o.properties.blocksMovement !== undefined
+                && o.properties.blocksMovement !== null
+                ? plainValue(o.properties.blocksMovement) : undefined;
+            if (rawBlocks !== undefined && typeof rawBlocks !== 'boolean'
+                && !hasValue(PROP_BLOCKS_VALUES, rawBlocks)) {
+                bad(o, i, 'blocksMovement ' + JSON.stringify(rawBlocks) + ' must be one of '
+                    + PROP_BLOCKS_VALUES.join(', ') + ' — "' + PROP_BLOCKS_INHERIT
+                    + '" takes whatever api/props/' + (o.name || '<type>') + ' says');
+            }
+
             var known = true;
             if (!o.name) {
                 fromTileset(o, i, 'prop', 'aura-props');
@@ -1745,6 +1823,11 @@ var AuraConvert = (function () {
         PATROL_INHERIT: PATROL_INHERIT,
         MOB_UNSET: MOB_UNSET,
         PROFILE_UNSET: PROFILE_UNSET,
+        PROP_BLOCKS_INHERIT: PROP_BLOCKS_INHERIT,
+        PROP_BLOCKS: PROP_BLOCKS,
+        PROP_WALK_THROUGH: PROP_WALK_THROUGH,
+        PROP_BLOCKS_VALUES: PROP_BLOCKS_VALUES,
+        PROP_BLOCKS_ENUM: PROP_BLOCKS_ENUM,
         EFFECT_UNSET: EFFECT_UNSET,
         REGION_ENUMS: REGION_ENUMS,
         readSpawn: readSpawn,

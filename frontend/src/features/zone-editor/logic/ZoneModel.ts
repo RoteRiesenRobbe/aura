@@ -27,7 +27,18 @@ export interface ZoneProp {
     x: number;
     y: number;
     rotation: number; // radians
-    blocksMovement: boolean;
+    // TRI-STATE since 2026-09-17: undefined = inherit the prop TYPE's own
+    // blocksMovement (api/props/<type>.json), which itself defaults to BLOCKING.
+    //
+    // ⭐ It used to be a required boolean, and that was the bug: a prop dragged
+    // fresh in Tiled carried no property at all, the converter read absent as
+    // false, and you got a tree you could walk through. Whether a prop is solid
+    // is a fact about the type; a placement only overrides it.
+    //
+    // ⛔ Anything that READS this must resolve it against the definition rather
+    // than coerce it — `!prop.blocksMovement` is now wrong for an inheriting
+    // prop of a blocking type. See propBlocks() in ZoneEditor.
+    blocksMovement?: boolean;
     // Tri-state per-placement size multiplier on the prop TYPE's body
     // (plan-prop-scale.md C1): undefined = inherit the body verbatim. The
     // in-game editor never authors it — Tiled and the placement scripts do —

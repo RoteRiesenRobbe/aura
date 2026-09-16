@@ -21,11 +21,17 @@
     ],
     "AuraPropType": [
       "Boulder",
+      "Bridge",
       "GateWall",
       "House",
       "Rock",
       "Tombstone",
       "Tree"
+    ],
+    "AuraPropBlocks": [
+      "(inherit)",
+      "blocks",
+      "walk through"
     ],
     "AuraMobName": [
       "(pick a mob)",
@@ -276,6 +282,10 @@
     "Boulder": {
       "w": 3.21,
       "h": 3.21
+    },
+    "Bridge": {
+      "w": 5,
+      "h": 2
     },
     "GateWall": {
       "w": 2.4,

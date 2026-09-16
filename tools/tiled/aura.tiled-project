@@ -39,6 +39,7 @@
             "storageType": "string",
             "values": [
                 "Boulder",
+                "Bridge",
                 "GateWall",
                 "House",
                 "Rock",
@@ -49,6 +50,18 @@
         },
         {
             "id": 3,
+            "name": "AuraPropBlocks",
+            "type": "enum",
+            "storageType": "string",
+            "values": [
+                "(inherit)",
+                "blocks",
+                "walk through"
+            ],
+            "valuesAsFlags": false
+        },
+        {
+            "id": 4,
             "name": "AuraMobName",
             "type": "enum",
             "storageType": "string",
@@ -121,7 +134,7 @@
             "valuesAsFlags": false
         },
         {
-            "id": 4,
+            "id": 5,
             "name": "AuraPatrolMode",
             "type": "enum",
             "storageType": "string",
@@ -132,7 +145,7 @@
             "valuesAsFlags": false
         },
         {
-            "id": 5,
+            "id": 6,
             "name": "AuraFlipped",
             "type": "enum",
             "storageType": "string",
@@ -144,7 +157,7 @@
             "valuesAsFlags": false
         },
         {
-            "id": 6,
+            "id": 7,
             "name": "AuraProfile",
             "type": "enum",
             "storageType": "string",
@@ -175,7 +188,7 @@
             "valuesAsFlags": false
         },
         {
-            "id": 7,
+            "id": 8,
             "name": "AuraAtmosphereProfile",
             "type": "enum",
             "storageType": "string",
@@ -196,7 +209,7 @@
             "valuesAsFlags": false
         },
         {
-            "id": 8,
+            "id": 9,
             "name": "AuraClears",
             "type": "enum",
             "storageType": "string",
@@ -208,7 +221,7 @@
             "valuesAsFlags": false
         },
         {
-            "id": 9,
+            "id": 10,
             "name": "AuraEffect",
             "type": "enum",
             "storageType": "string",
@@ -323,7 +336,7 @@
             "valuesAsFlags": false
         },
         {
-            "id": 10,
+            "id": 11,
             "name": "AuraTerrain",
             "type": "class",
             "color": "#ff8bc34a",
@@ -335,7 +348,7 @@
             "members": []
         },
         {
-            "id": 11,
+            "id": 12,
             "name": "AuraProp",
             "type": "class",
             "color": "#fff44336",
@@ -344,10 +357,17 @@
                 "property",
                 "object"
             ],
-            "members": []
+            "members": [
+                {
+                    "name": "blocksMovement",
+                    "type": "string",
+                    "propertyType": "AuraPropBlocks",
+                    "value": "(inherit)"
+                }
+            ]
         },
         {
-            "id": 12,
+            "id": 13,
             "name": "AuraCampfire",
             "type": "class",
             "color": "#ffff9800",
@@ -359,7 +379,7 @@
             "members": []
         },
         {
-            "id": 13,
+            "id": 14,
             "name": "AuraDarkArea",
             "type": "class",
             "color": "#ff673ab7",
@@ -371,7 +391,7 @@
             "members": []
         },
         {
-            "id": 14,
+            "id": 15,
             "name": "AuraAnchor",
             "type": "class",
             "color": "#ff00bcd4",
@@ -383,7 +403,7 @@
             "members": []
         },
         {
-            "id": 15,
+            "id": 16,
             "name": "AuraRegion",
             "type": "class",
             "color": "#ffcddc39",
@@ -402,7 +422,7 @@
             ]
         },
         {
-            "id": 16,
+            "id": 17,
             "name": "AuraPath",
             "type": "class",
             "color": "#ff03a9f4",
@@ -448,7 +468,7 @@
             ]
         },
         {
-            "id": 17,
+            "id": 18,
             "name": "AuraPolygon",
             "type": "class",
             "color": "#ff8d6e63",
@@ -489,7 +509,7 @@
             ]
         },
         {
-            "id": 18,
+            "id": 19,
             "name": "AuraAtmosphere",
             "type": "class",
             "color": "#ff9e9e9e",
@@ -514,7 +534,7 @@
             ]
         },
         {
-            "id": 19,
+            "id": 20,
             "name": "AuraClearing",
             "type": "class",
             "color": "#ffffeb3b",
@@ -533,7 +553,7 @@
             ]
         },
         {
-            "id": 20,
+            "id": 21,
             "name": "AuraSpawnCombat",
             "type": "class",
             "color": "#ff4caf50",
@@ -588,7 +608,7 @@
             ]
         },
         {
-            "id": 21,
+            "id": 22,
             "name": "AuraSpawnTalker",
             "type": "class",
             "color": "#ffe91e63",
@@ -643,7 +663,7 @@
             ]
         },
         {
-            "id": 22,
+            "id": 23,
             "name": "AuraSpawnFixture",
             "type": "class",
             "color": "#ff9e9e9e",
@@ -698,7 +718,7 @@
             ]
         },
         {
-            "id": 23,
+            "id": 24,
             "name": "AuraSpawnCompanion",
             "type": "class",
             "color": "#ff795548",
