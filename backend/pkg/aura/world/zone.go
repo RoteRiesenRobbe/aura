@@ -331,6 +331,13 @@ type Path struct {
 	// so all four writers stay a one-line mapping each.
 	OutlineProfile string  `json:"outlineProfile,omitempty"`
 	OutlineWidth   float32 `json:"outlineWidth,omitempty"`
+	// Effect names an authored skill applied to whatever stands inside this
+	// shape — a lava river, a stream that heals (plan-area-effects.md E1).
+	// Absent = inert, which is every path authored before this.
+	//
+	// ⚑ ON THE SHAPE, NEVER ON THE PROFILE (D2) — the full argument sits on
+	// Polygon.Effect below, because the two carry exactly the same key.
+	Effect string `json:"effect,omitempty"`
 }
 
 // Polygon is a CLOSED polygon naming a client-side presentation PROFILE and
@@ -381,6 +388,34 @@ type Polygon struct {
 	// so all four writers stay a one-line mapping each.
 	OutlineProfile string  `json:"outlineProfile,omitempty"`
 	OutlineWidth   float32 `json:"outlineWidth,omitempty"`
+	// Effect names an authored skill applied to whatever stands inside this
+	// shape — the lava pool, the bog (plan-area-effects.md E1). Absent = inert,
+	// and no shipped zone authors one, so the feature costs exactly zero (D10).
+	//
+	// ⭐ ON THE SHAPE, NEVER ON THE PROFILE (D2), and the reason is the one
+	// BlocksMovement's own comment already records two fields up: the profile
+	// table is CLIENT-SIDE (region-primitive D12), so the server never sees it.
+	// A profile key would make the look table gameplay-authoritative — and a
+	// profile is a MATERIAL, not a place, so a zone-1 pool and a zone-5 pool
+	// wearing the same "Lava" would have to hurt identically, or the look table
+	// forks for a balance reason and two visually identical profiles differ in
+	// one number. Per PLACEMENT dissolves both, exactly as it does for
+	// BlocksMovement.
+	//
+	// ⚑ The value names an authored SKILL, never a raw number (D3): a bare
+	// magnitude would invent a second damage pipeline with no damage type, no
+	// resistances and no immunity rails. ⚑ And the key is NEUTRAL (D9) —
+	// ApplyHot sits beside ApplyDot with the same stream keying and the same
+	// refresh rule, so a healing spring needs no second mechanism.
+	//
+	// ⛔ validate() cannot check the NAME: the skill registry is built before
+	// any zone but is not an argument to the zone loader. CrossValidateAreaEffects
+	// (area_effects.go) is where an unknown one refuses the boot, for the reason
+	// CrossValidateTravelAnchors exists one file over.
+	//
+	// ⛔ The server does not READ this yet. E1 ships the key inert; the system
+	// pass that applies it is E2.
+	Effect string `json:"effect,omitempty"`
 }
 
 // Anchor is a named point encounter scripts look up at registration (content
@@ -424,6 +459,18 @@ type Anchor struct {
 type Atmosphere struct {
 	Profile string  `json:"profile"`
 	Points  []Point `json:"points"`
+	// Effect names an authored skill applied to whatever stands inside this air
+	// — the miasma (plan-area-effects.md E1). Absent = inert.
+	//
+	// ⚑ THE ONE KEY D15 DOES NOT REFUSE, and it is worth saying why, because
+	// every other addition here has been turned away. D15 refuses
+	// blocksMovement, outline and width because an atmosphere is AIR and those
+	// describe a WALL — they would round-trip into a file that no longer boots.
+	// An area effect describes no wall: it is a region of space acting on what
+	// stands in it (D1), which air does as readily as ground. Lava is ground,
+	// miasma is air, ONE key covers both — which is the whole reason this is one
+	// feature rather than two.
+	Effect string `json:"effect,omitempty"`
 }
 
 // ClearsDarkness, ClearsHaze and ClearsBoth are the closed set a Clearing's
@@ -828,6 +875,9 @@ func (z *Zone) validate() error {
 		if err := validateOutline("path", i, z.Paths[i].OutlineProfile, z.Paths[i].OutlineWidth); err != nil {
 			return err
 		}
+		if err := validateEffect("path", i, z.Paths[i].Effect); err != nil {
+			return err
+		}
 	}
 	// Polygons name the INDEX for the same reason regions and paths do.
 	for i := range z.Polygons {
@@ -843,6 +893,9 @@ func (z *Zone) validate() error {
 		if err := validateOutline("polygon", i, z.Polygons[i].OutlineProfile, z.Polygons[i].OutlineWidth); err != nil {
 			return err
 		}
+		if err := validateEffect("polygon", i, z.Polygons[i].Effect); err != nil {
+			return err
+		}
 	}
 	// Atmospheres name the INDEX for the same reason every other shape array
 	// does. ⚑ THREE points, like a region and a polygon: an area has to enclose
@@ -856,6 +909,9 @@ func (z *Zone) validate() error {
 		if len(z.Atmospheres[i].Points) < 3 {
 			return fmt.Errorf("atmosphere %d: needs at least 3 points to enclose an area, got %d",
 				i, len(z.Atmospheres[i].Points))
+		}
+		if err := validateEffect("atmosphere", i, z.Atmospheres[i].Effect); err != nil {
+			return err
 		}
 	}
 	// Clearings name the INDEX like every other shape array, and check the one
@@ -980,6 +1036,27 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 			return fmt.Errorf("prop %d: %q crosses paths, so it must not also blocksMovement "+
 				"(it would clear the corridor under its deck and then block the deck)", i, p.Type)
 		}
+	}
+	return nil
+}
+
+// validateEffect is the half of the area-effect check that needs no registry
+// (plan-area-effects.md E1). Absent is inert and always fine; PRESENT AND BLANK
+// is not, and it fails here rather than in the cross-validation pass so the
+// message can say what the mistake actually is.
+//
+// ⚑ It is a real authoring shape, not a theoretical one: a Tiled member cannot
+// be empty, so an author who blanks the field by hand — or a hand-edited file
+// with "effect": "" — produces exactly this. Left to the registry lookup it
+// would read as `unknown effect ""`, which is true and useless.
+//
+// ⛔ The NAME is deliberately not checked here. The skill registry is built
+// before any zone but is not an argument to the zone loader, so this function
+// could not resolve one even if it wanted to — see CrossValidateAreaEffects.
+func validateEffect(kind string, i int, effect string) error {
+	if effect != "" && strings.TrimSpace(effect) == "" {
+		return fmt.Errorf("%s %d: effect %q is blank — leave the key out entirely for no effect",
+			kind, i, effect)
 	}
 	return nil
 }

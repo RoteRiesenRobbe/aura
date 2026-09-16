@@ -202,6 +202,121 @@
     },
     {
       "id": 9,
+      "name": "AuraEffect",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "(no effect)",
+        "Aegis",
+        "Antivenom",
+        "BanditBlades",
+        "BanditHeal",
+        "BanditVolley",
+        "Barrier",
+        "BearSwipe",
+        "Berserker",
+        "BindElemental",
+        "Blight",
+        "Bloodthirst",
+        "BoarGore",
+        "BombBurst",
+        "CallForAid",
+        "Calm",
+        "CampAura",
+        "CampfireAura",
+        "CharmBeast",
+        "CompanionAura",
+        "Damage",
+        "DamageBurst",
+        "Dash",
+        "Discipline",
+        "EliteBanditSlash",
+        "EliteWolfBite",
+        "EmberAura",
+        "Envenom",
+        "Fade",
+        "FieldMedics",
+        "FireElementalAura",
+        "FireShield",
+        "FireTotem",
+        "FireTotemAura",
+        "FireVulnerability",
+        "FireWard",
+        "FirstAid",
+        "FlyYouFools",
+        "Frostbite",
+        "FrostShield",
+        "GiantVenomSpit",
+        "GruntSlash",
+        "Hardy",
+        "Harvest",
+        "Haste",
+        "Heal",
+        "HealerAura",
+        "Hoarfrost",
+        "HoldTheLine",
+        "Ignite",
+        "Immolate",
+        "KeenEye",
+        "KoboldStab",
+        "KoboldVolley",
+        "Lantern",
+        "Lifewarden",
+        "LongRangeStrike",
+        "NovaBurst",
+        "OmniAura",
+        "OmniPassive",
+        "OmniStrike",
+        "Onward",
+        "OpenPortal",
+        "OrcCleave",
+        "Paladin",
+        "Paralyze",
+        "Pickaxe",
+        "PoisonPoolAura",
+        "PullThrough",
+        "RallyDrum",
+        "Reaper",
+        "Recover",
+        "Rejuvenation",
+        "Retribution",
+        "Revive",
+        "RimeBurst",
+        "Sanctuary",
+        "Shockwave",
+        "Slow",
+        "SoldierBlades",
+        "Spearhead",
+        "SpiderBite",
+        "SpikeBarricadeAura",
+        "StagKick",
+        "Strong",
+        "SummonCompanion",
+        "SummonTotem",
+        "Suppression",
+        "Swift",
+        "Taunt",
+        "ThickHide",
+        "ThrowBomb",
+        "ThrowMine",
+        "Torch",
+        "TotemAura",
+        "Tough",
+        "TrollSmash",
+        "Vanguard",
+        "VenomSpit",
+        "Venomward",
+        "Warbanner",
+        "WarbannerShield",
+        "WarlordCleave",
+        "WarlordFrenzy",
+        "Wildfire",
+        "WolfBite"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 10,
       "name": "AuraTerrain",
       "type": "class",
       "color": "#ff8bc34a",
@@ -213,7 +328,7 @@
       "members": []
     },
     {
-      "id": 10,
+      "id": 11,
       "name": "AuraProp",
       "type": "class",
       "color": "#fff44336",
@@ -225,7 +340,7 @@
       "members": []
     },
     {
-      "id": 11,
+      "id": 12,
       "name": "AuraCampfire",
       "type": "class",
       "color": "#ffff9800",
@@ -237,7 +352,7 @@
       "members": []
     },
     {
-      "id": 12,
+      "id": 13,
       "name": "AuraDarkArea",
       "type": "class",
       "color": "#ff673ab7",
@@ -249,7 +364,7 @@
       "members": []
     },
     {
-      "id": 13,
+      "id": 14,
       "name": "AuraAnchor",
       "type": "class",
       "color": "#ff00bcd4",
@@ -261,7 +376,7 @@
       "members": []
     },
     {
-      "id": 14,
+      "id": 15,
       "name": "AuraRegion",
       "type": "class",
       "color": "#ffcddc39",
@@ -280,7 +395,7 @@
       ]
     },
     {
-      "id": 15,
+      "id": 16,
       "name": "AuraPath",
       "type": "class",
       "color": "#ff03a9f4",
@@ -316,11 +431,17 @@
           "name": "outlineWidth",
           "type": "float",
           "value": 0
+        },
+        {
+          "name": "effect",
+          "type": "string",
+          "propertyType": "AuraEffect",
+          "value": "(no effect)"
         }
       ]
     },
     {
-      "id": 16,
+      "id": 17,
       "name": "AuraPolygon",
       "type": "class",
       "color": "#ff8d6e63",
@@ -351,11 +472,17 @@
           "name": "outlineWidth",
           "type": "float",
           "value": 0
+        },
+        {
+          "name": "effect",
+          "type": "string",
+          "propertyType": "AuraEffect",
+          "value": "(no effect)"
         }
       ]
     },
     {
-      "id": 17,
+      "id": 18,
       "name": "AuraAtmosphere",
       "type": "class",
       "color": "#ff9e9e9e",
@@ -370,11 +497,17 @@
           "type": "string",
           "propertyType": "AuraAtmosphereProfile",
           "value": "(pick a profile)"
+        },
+        {
+          "name": "effect",
+          "type": "string",
+          "propertyType": "AuraEffect",
+          "value": "(no effect)"
         }
       ]
     },
     {
-      "id": 18,
+      "id": 19,
       "name": "AuraClearing",
       "type": "class",
       "color": "#ffffeb3b",
@@ -393,7 +526,7 @@
       ]
     },
     {
-      "id": 19,
+      "id": 20,
       "name": "AuraSpawnCombat",
       "type": "class",
       "color": "#ff4caf50",
@@ -448,7 +581,7 @@
       ]
     },
     {
-      "id": 20,
+      "id": 21,
       "name": "AuraSpawnTalker",
       "type": "class",
       "color": "#ffe91e63",
@@ -503,7 +636,7 @@
       ]
     },
     {
-      "id": 21,
+      "id": 22,
       "name": "AuraSpawnFixture",
       "type": "class",
       "color": "#ff9e9e9e",
@@ -558,7 +691,7 @@
       ]
     },
     {
-      "id": 22,
+      "id": 23,
       "name": "AuraSpawnCompanion",
       "type": "class",
       "color": "#ff795548",

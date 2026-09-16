@@ -12,7 +12,7 @@
  * QJSEngine and cannot use ESM), hence createRequire rather than import.
  */
 import {createRequire} from 'node:module';
-import {readFileSync} from 'node:fs';
+import {readdirSync, readFileSync} from 'node:fs';
 import {describe, expect, it} from 'vitest';
 // The third whitelist. C2 brought it under the same pin: two of the three
 // serializers being complete is not the invariant — all three are.
@@ -1049,7 +1049,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
     describe('the generated palette wires each class to its own vocabulary', () => {
         const types = nodeRequire('../../../../../tools/tiled/palette/propertytypes.json')
             .propertyTypes as {name: string; type: string; values?: string[];
-                members?: {name: string; propertyType?: string}[]}[];
+                members?: {name: string; value?: unknown; propertyType?: string}[]}[];
         const classOf = (name: string) => {
             const found = types.filter(t => t.name === name)[0];
             expect(found, name + ' is missing from the palette').toBeTruthy();
@@ -1081,6 +1081,30 @@ describe('AuraConvert — save-time validation (C4)', () => {
             expect(memberType('AuraPolygon', 'outlineProfile')).toBe('AuraProfile');
         });
 
+        // ⭐ The area effect (plan-area-effects.md E1) — a THIRD vocabulary, and
+        // not a profile table at all: an effect names an authored SKILL. Pinned
+        // here for the same measured reason the two above are: verify.sh cannot
+        // see which enum a member declares.
+        it('gives every effect-bearing shape the skill enum', () => {
+            expect(memberType('AuraPath', 'effect')).toBe('AuraEffect');
+            expect(memberType('AuraPolygon', 'effect')).toBe('AuraEffect');
+            expect(memberType('AuraAtmosphere', 'effect')).toBe('AuraEffect');
+        });
+
+        // ⛔ AND THE TWO SHAPES THAT MUST NOT HAVE ONE, which is the half a
+        // "does it exist" pin would miss. A region is the MATERIAL UNDERFOOT —
+        // the footsteps/music/colour lookup — so an effect there would be a
+        // property of every patch of that material rather than of a place. A
+        // clearing paints nothing and names nothing (A4/L7); an erase that also
+        // burned you is one shape doing two jobs, which is the ambiguity A4
+        // exists to have removed.
+        it('gives NO effect member to a region or a clearing', () => {
+            ['AuraRegion', 'AuraClearing'].forEach(cls => {
+                const names = (classOf(cls).members || []).map(m => m.name);
+                expect(names, cls).not.toContain('effect');
+            });
+        });
+
         // ⭐ The enum VALUES must match the name lists the converter validates
         // against, or the dropdown offers something the save then refuses.
         // Both carry the placeholder at index 0 and the names after it.
@@ -1090,6 +1114,28 @@ describe('AuraConvert — save-time validation (C4)', () => {
                 .toEqual(content.PROFILE_NAMES as string[]);
             expect(values('AuraAtmosphereProfile').slice(1))
                 .toEqual(content.AIR_PROFILE_NAMES as string[]);
+        });
+
+        // ⚑ The effect enum carries its own placeholder at index 0, and the
+        // placeholder MEANS something different from the profile one: there it
+        // is a mistake the save refuses, here it is "this shape is decorative",
+        // which is every shape in every shipped zone.
+        it('leads the effect dropdown with the no-effect placeholder', () => {
+            const vals = classOf('AuraEffect').values as string[];
+            expect(vals[0]).toBe(C.EFFECT_UNSET);
+            expect(vals.slice(1)).toEqual(content.EFFECT_NAMES as string[]);
+        });
+
+        // ⭐ And the class DEFAULT is that placeholder, on all three. The C6 rule
+        // with no spare value available: Tiled may DROP a property still at its
+        // class default, so the default and "absent" have to reach the same
+        // answer. A default naming a real skill would arm every shape in the
+        // world with a hazard nobody drew.
+        it('defaults every effect member to the placeholder', () => {
+            ['AuraPath', 'AuraPolygon', 'AuraAtmosphere'].forEach(cls => {
+                const m = (classOf(cls).members || []).filter(x => x.name === 'effect')[0];
+                expect(m.value, cls).toBe(C.EFFECT_UNSET);
+            });
         });
     });
 
@@ -1113,6 +1159,159 @@ describe('AuraConvert — save-time validation (C4)', () => {
     // must never be reported as "unknown profile", and neither as "empty".
     it('an unknown profile is not reported as an empty one', () => {
         expect(only(region({profile: 'no-such-profile'}))).not.toContain('must not be empty');
+    });
+
+    /**
+     * ⭐ AREA EFFECTS (plan-area-effects.md E1) — one optional key on three
+     * shapes, inert until authored.
+     *
+     * ⛔ Every leg here uses a DIFFERENT effect per shape, deliberately. The
+     * three arrays are read by three separate branches of modelToZone, and a
+     * reader cross-wired to the wrong shape would round-trip a single shared
+     * name perfectly — the trap the shared-layer fixtures in verify.sh each
+     * document in their own words.
+     */
+    describe('an area effect on a shape (E1)', () => {
+        // Derived from the palette, never typed: the dropdown IS the vocabulary
+        // the validator checks against, so a hand-written name here would go red
+        // the next time somebody renames a skill and look like a converter bug.
+        const EFFECTS = content.EFFECT_NAMES as string[];
+        const [E_PATH, E_POLY, E_AIR] = [EFFECTS[0], EFFECTS[1], EFFECTS[2]];
+
+        const shaped = (over: Record<string, unknown> = {}) => zone({
+            paths: [{profile: A_REAL_PROFILE, width: 2,
+                points: [{x: 0, y: 0}, {x: 4, y: 0}], effect: E_PATH}],
+            polygons: [{profile: A_REAL_PROFILE,
+                points: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}], effect: E_POLY}],
+            atmospheres: [{profile: (content.AIR_PROFILE_NAMES as string[])[0],
+                points: [{x: 1, y: 1}, {x: 5, y: 1}, {x: 5, y: 5}], effect: E_AIR}],
+            ...over,
+        });
+
+        it('⭐ each shape keeps its OWN effect through a full round-trip', () => {
+            const back = roundTrip(shaped());
+            expect(back.paths[0].effect).toBe(E_PATH);
+            expect(back.polygons[0].effect).toBe(E_POLY);
+            expect(back.atmospheres[0].effect).toBe(E_AIR);
+        });
+
+        it('marks the property so Tiled sets it as a TYPED value', () => {
+            const m = C.zoneToModel(shaped()) as
+                {layers: {name: string; objects: {cls: string; enums: Record<string, string>}[]}[]};
+            const objs = m.layers.flatMap(l => l.objects)
+                .filter(o => o.enums && o.enums.effect);
+            expect(objs).toHaveLength(3);
+            objs.forEach(o => expect(o.enums.effect, o.cls).toBe('AuraEffect'));
+        });
+
+        // ⭐ D10, and it is the acceptance criterion for the chunk: the feature
+        // costs exactly zero until authored. A decorative shape must not grow an
+        // "effect": "(no effect)" nobody wrote, or every shipped zone changes on
+        // its next save.
+        it('⭐ a decorative shape grows no key at all', () => {
+            const back = roundTrip(zone({
+                paths: [{profile: A_REAL_PROFILE, width: 2,
+                    points: [{x: 0, y: 0}, {x: 4, y: 0}]}],
+                polygons: [{profile: A_REAL_PROFILE,
+                    points: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}]}],
+                atmospheres: [{profile: (content.AIR_PROFILE_NAMES as string[])[0],
+                    points: [{x: 1, y: 1}, {x: 5, y: 1}, {x: 5, y: 5}]}],
+            }));
+            expect(Object.keys(back.paths[0])).not.toContain('effect');
+            expect(Object.keys(back.polygons[0])).not.toContain('effect');
+            expect(Object.keys(back.atmospheres[0])).not.toContain('effect');
+        });
+
+        // ⚑ The C6 rule with no spare value available: Tiled is free to DROP a
+        // property still sitting at its class default, so the sentinel and an
+        // absent property have to reach the same answer. They do — both mean
+        // "no effect" — which is what keeps a freshly drawn shape unchanged.
+        it('the placeholder means NO EFFECT, and reads back as absent', () => {
+            const model = C.zoneToModel(shaped());
+            model.layers.forEach((l: {objects: {properties: Record<string, unknown>}[]}) =>
+                l.objects.forEach(o => {
+                    if (o.properties && o.properties.effect !== undefined) {
+                        o.properties.effect = C.EFFECT_UNSET;
+                    }
+                }));
+            expect(C.validateModel(model)).toEqual([]);
+            const back = C.modelToZone(model);
+            expect(back.paths[0].effect).toBeUndefined();
+            expect(back.polygons[0].effect).toBeUndefined();
+            expect(back.atmospheres[0].effect).toBeUndefined();
+        });
+
+        // ⚑ Tiled hands a typed enum property back as an INDEX into the declared
+        // values, never as the string — the same trap the profile legs exist
+        // for, on a third enum.
+        it('decodes a typed enum index back to its name', () => {
+            const values = content.ENUM_VALUES.AuraEffect as string[];
+            const model = C.zoneToModel(shaped());
+            const obj = model.layers.find((l: {name: string}) => l.name === 'atmospheres')
+                .objects[0];
+            obj.properties.effect = {
+                value: values.indexOf(E_AIR), typeId: 0, typeName: 'AuraEffect',
+            };
+            expect(C.modelToZone(model).atmospheres[0].effect).toBe(E_AIR);
+        });
+
+        // ⭐ THE LEG L5 DEMANDS, WRITTEN THE DAY THE KEY LANDS. The atmospheres
+        // layer shipped with NO validateModel leg at all, and the missing leg —
+        // not the bad shape — is what let a vertex-less object refuse the PO's
+        // boot. The server refuses an unknown effect too
+        // (world.CrossValidateAreaEffects); this says so hours earlier, with an
+        // id that goes into Edit ▸ Select Object by Id.
+        (['paths', 'polygons', 'atmospheres'] as const).forEach(array => {
+            it('refuses an unknown effect on ' + array + ', by id', () => {
+                const over: Record<string, unknown> = {};
+                const base = shaped()[array] as Record<string, unknown>[];
+                over[array] = [{...base[0], effect: 'NoSuchSkill'}];
+                const msg = only(shaped(over));
+                expect(msg).toContain('unknown effect "NoSuchSkill"');
+                // ⚑ It has to say WHERE effects live. "unknown effect" alone is
+                // true and useless — the crossed-profile message's posture.
+                expect(msg).toContain('api/skills/');
+            });
+        });
+
+        it('refuses an effect with stray whitespace rather than trimming it', () => {
+            const msg = only(shaped({polygons: [{profile: A_REAL_PROFILE,
+                points: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}],
+                effect: ' ' + E_POLY}]}));
+            expect(msg).toContain('stray whitespace');
+        });
+
+        // The dropdown exercised end to end: every name the generator offers has
+        // to pass the check that reads its output back. The profile legs' own
+        // posture, derived from the content and never a second list.
+        it('accepts every effect the palette actually offers', () => {
+            expect(EFFECTS.length).toBeGreaterThan(0);
+            EFFECTS.forEach(effect => expect(
+                errs(zone({polygons: [{profile: A_REAL_PROFILE,
+                    points: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}], effect}]})),
+                effect).toEqual([]));
+        });
+
+        // ⛔ THE DRIFT GUARD, AND IT CAUGHT A REAL BUG WHILE E1 WAS BEING
+        // WRITTEN. api/skills/ has a mobs/ SUBDIRECTORY, and the Go registry
+        // walks the tree (skills.RegistryFromFS uses fs.WalkDir) while the first
+        // cut of readEffects did a flat readdir — so the palette offered 72 of
+        // 105 names and Tiled would have REFUSED a name the server accepts.
+        // Derived from the directory, never a count.
+        it('⭐ offers every skill the SERVER loads, subdirectories included', () => {
+            const dir = nodeRequire.resolve('../../../../../api/skills/damage.json')
+                .replace(/damage\.json$/, '');
+            const names: string[] = [];
+            (function walk(d: string) {
+                for (const entry of readdirSync(d, {withFileTypes: true})) {
+                    const abs = d + '/' + entry.name;
+                    if (entry.isDirectory()) { walk(abs); continue; }
+                    if (!entry.name.endsWith('.json')) { continue; }
+                    names.push(JSON.parse(readFileSync(abs, 'utf8')).name);
+                }
+            })(dir);
+            expect([...EFFECTS].sort()).toEqual(names.sort());
+        });
     });
 
     it('refuses a patrol route drawn as a closed polygon instead of dropping its waypoints', () => {
@@ -1321,10 +1520,16 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         // the same two keys read by the same helper, so a fixture that exercised
         // only the path would leave the polygon's half of that helper untested
         // and this pin green.
+        // ⚑ `effect` is authored on ALL THREE shapes that can carry one, with a
+        // DIFFERENT name on each (plan-area-effects.md E1). One would satisfy
+        // this pin — it compares key SETS — while two of the three writers
+        // quietly dropped it, which is exactly the hole the pin exists to close
+        // one level up. The per-array legs below assert the values.
         paths: [{
             profile: 'Water', points: [{x: 1, y: 1}, {x: 5, y: 2}, {x: 4, y: 6}],
             width: 3, blocksMovement: true, closed: true,
             outlineProfile: 'Coast', outlineWidth: 0.5,
+            effect: 'Blight',
         }],
         // ⚑ blocksMovement TRUE for the same tri-state reason as the path above:
         // false is the authored default, so a decorative fixture would never
@@ -1334,12 +1539,14 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             points: [{x: 2, y: 1}, {x: 6, y: 1}, {x: 6, y: 5}],
             blocksMovement: true,
             outlineProfile: 'Ice', outlineWidth: 1.25,
+            effect: 'Immolate',
         }],
-        // ⛔ TWO keys and no third — the D15 ruling in the fixture. An
-        // atmosphere is air: no blocksMovement, no outline, no width. Authoring
-        // one here "for symmetry" would make this pin demand that both writers
-        // round-trip a key zone.go refuses by name, i.e. demand they produce a
-        // zone file that no longer boots.
+        // ⛔ NO blocksMovement, NO outline, NO width — the D15 ruling in the
+        // fixture. An atmosphere is air, and authoring one of those here "for
+        // symmetry" would make this pin demand that both writers round-trip a
+        // key zone.go refuses by name, i.e. demand they produce a zone file that
+        // no longer boots. ⚑ `effect` below is the ONE addition that ruling does
+        // not turn away (plan-area-effects.md D1): it describes no wall.
         //
         // ⚑ It has its OWN Tiled layer rather than riding `paths` by class
         // (D16), so this is also the fixture that proves the ninth layer is
@@ -1348,6 +1555,7 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         atmospheres: [{
             profile: 'CaveAir',
             points: [{x: 1, y: 2}, {x: 7, y: 2}, {x: 7, y: 6}],
+            effect: 'Envenom',
         }],
         // ⛔ TWO keys and NO PROFILE — the A4 ruling in the fixture (L7). A
         // clearing paints nothing, so there is no look to name, and authoring a

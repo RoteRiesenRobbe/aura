@@ -258,7 +258,8 @@ func loadZone(fsys fs.FS, name string, mr mobs.Registry, pr world.PropRegistry) 
 // validation failure, including the placement rules, aborts startup — and
 // since the directory is now the zone list, that includes a WIP file nobody
 // selected.
-func loadZones(fsys fs.FS, startZone string, mr mobs.Registry, pr world.PropRegistry) []*world.Zone {
+func loadZones(fsys fs.FS, startZone string, mr mobs.Registry, pr world.PropRegistry,
+	sr skills.Registry) []*world.Zone {
 	zones, err := world.LoadAllZonesFS(fsys, startZone, mr, pr)
 	if err != nil {
 		slog.Error("failed to load zones", slog.Any("err", err))
@@ -302,6 +303,20 @@ func loadZones(fsys fs.FS, startZone string, mr mobs.Registry, pr world.PropRegi
 	// be authored in either order.
 	for _, w := range anchorWarnings {
 		slog.Warn("unreachable travel destination", slog.String("detail", w))
+	}
+	// Does every area effect a shape names exist (plan-area-effects.md E1)?
+	//
+	// ⚑ HERE for the reason the anchor pass above is here, one registry over:
+	// the effect name is authored in api/zones/, the skills registry is built
+	// long before any zone, and the zone loader does not take it. This is the
+	// first point at which both exist.
+	//
+	// ⛔ A hard fail, unlike the anchor WARNINGS above it: an area effect is
+	// placed by construction, so a name that resolves to nothing is a hazard
+	// that draws, reads as dangerous and does nothing.
+	if err := world.CrossValidateAreaEffects(sr, zones); err != nil {
+		slog.Error("failed to cross-validate area effects", slog.Any("err", err))
+		panic(err)
 	}
 	return zones
 }

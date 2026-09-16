@@ -94,7 +94,7 @@ func main() {
 	}
 	// ⚑ Placed here, not in the game: everything below takes RESOLVED geometry
 	// with each zone's Origin already applied (plan-underworld.md U1).
-	zones := loadZones(content.zones, startZone, mobsRegistry, propsRegistry)
+	zones := loadZones(content.zones, startZone, mobsRegistry, propsRegistry, skillsRegistry)
 	// The primary zone. It is what a fresh character spawns in, what names the
 	// world on the wire, and whose bounds size the client's camera and map —
 	// deliberately NOT a union of everything loaded (L13).

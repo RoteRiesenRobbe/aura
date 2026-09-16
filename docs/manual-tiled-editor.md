@@ -253,6 +253,39 @@ footsteps and atmosphere are later consumers of the same region.
 - The in-game zone editor has **no region tool** — it carries regions through
   untouched, so a region drawn here survives an in-game save.
 
+### Area effects — making a shape *do* something
+
+A **path**, a **polygon** and an **atmosphere** each carry an optional
+`effect` in the Properties panel. Pick a skill from the dropdown and whatever
+stands inside the shape gets it: lava burns, a bog rots, miasma poisons — and a
+healing spring heals, because the same machinery runs both directions.
+
+- **It sits on the SHAPE, never on the profile.** `Lava` the *material* is
+  authored once and looks the same everywhere; how much a particular pool hurts
+  is authored on that pool. So a zone-1 pool and a zone-5 pool can wear the same
+  profile at different strengths, and tuning one never touches the other.
+- ⚑ **`(no effect)` is the default and it means exactly that.** Unlike
+  `(pick a profile)`, it is not a mistake — nearly every shape in the world is
+  decorative, and one left alone writes no `effect` key at all.
+- ⚑ **The dropdown is the skill roster** (`api/skills/`, the mob skills
+  included). A name that is not in it is refused at save time, and the server
+  refuses the boot on it too — an area whose effect resolves to nothing would
+  draw, read as dangerous, and do nothing.
+- ⛔ **The visible edge is not the effect edge.** A profile's blend band is
+  centred on the polygon you drew, so the art spills about half a band *outside*
+  the shape. For a hazard that is the forgiving direction — you see it before it
+  touches you. For something *beneficial* it is the wrong way round: a player
+  standing in the visible halo gets nothing. Give a kind area a small blend, or
+  draw its shape a little larger than its art suggests.
+- ⛔ **Restart the server.** A shape drawn in Tiled renders instantly through
+  HMR and does nothing until `aurad` is restarted — it reads the zone once, at
+  boot. Geometry that looks right and behaves wrong has already cost one
+  debugging session.
+- **Regions and clearings have no `effect` field**, deliberately. A region is
+  the *material underfoot* — footsteps, music, ground colour — not a place; a
+  clearing only erases atmosphere, and an erase that also burned you would be one
+  shape doing two jobs.
+
 ### Campfires, dark areas, anchors
 
 - **Campfire**: a point whose **Name** is the campfire id, which must be
@@ -316,6 +349,10 @@ frontend build. It does NOT run `tools/tiled/verify.sh`'s full round-trip
 (that needs the real Tiled binary installed and stays a manual step); it only
 guarantees the generated files are never behind what `api/` currently says.
 
+⚑ A **skill** is the same job with no extra step: `api/skills/*.json` is read
+straight off disk (subdirectories included, so the mob skills are offered too),
+so a new one turns up in the `effect` dropdown the moment you regenerate.
+
 ⚑ A **profile** is the same job: add it to
 `frontend/src/client-data/terrain-profiles.json` (ground) or
 `atmosphere-profiles.json` (air), regenerate, reopen. Until you do, the name is
@@ -365,6 +402,8 @@ after touching anything under `tools/tiled/`.
 | Paint an area's ground | Insert Polygon on `regions`, then pick `profile` |
 | Add a new ground profile | edit `frontend/src/client-data/terrain-profiles.json`, then regenerate the palette |
 | Add a new atmosphere profile | edit `frontend/src/client-data/atmosphere-profiles.json`, then regenerate the palette |
+| Make a pool burn / a spring heal | set `effect` on the path, polygon or atmosphere — then **restart the server** |
+| Make a shape purely decorative | leave `effect` at `(no effect)` |
 | Use the species defaults | leave the sentinels alone (`-1` / `0` / `pingpong`) |
 | Find the object an error names | Edit ▸ Select Object by Id |
 | Save | Ctrl+S — it writes `api/zones/world.json` in place |

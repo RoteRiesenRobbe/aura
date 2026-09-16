@@ -158,6 +158,10 @@ export interface ZonePath {
     // Tri-state for the same reason blocksMovement is: false is the authored
     // default, so an open path must export with no key at all.
     closed?: boolean;
+    // An authored skill applied to whatever stands in this shape
+    // (plan-area-effects.md E1). Carried, never edited, like everything else
+    // here. Absent = inert, which is every path in every shipped zone.
+    effect?: string;
 }
 
 // A filled mass — a rock, a building footprint, a lake (plan-zone-polygons.md
@@ -173,6 +177,12 @@ export interface ZonePolygon {
     blocksMovement?: boolean;
     outlineProfile?: string;
     outlineWidth?: number;
+    // The lava pool, the bog (plan-area-effects.md E1). ⚑ On the SHAPE and never
+    // on the profile (D2): the profile tables are client-side, so a profile key
+    // would make the look table gameplay-authoritative — and a profile is a
+    // MATERIAL, so a zone-1 pool and a zone-5 pool wearing the same "Lava" would
+    // have to hurt identically.
+    effect?: string;
 }
 
 // The AIR over an area — how dark this place is, how far you see inside it, and
@@ -188,6 +198,12 @@ export interface ZonePolygon {
 export interface ZoneAtmosphere {
     profile: string;
     points: { x: number, y: number }[];
+    // ⚑ THE ONE KEY THE D15 NOTE ABOVE DOES NOT REFUSE (plan-area-effects.md
+    // D1). blocksMovement, outline and width all describe a WALL and would
+    // round-trip into a file that no longer boots. An area effect describes no
+    // wall — it is a region of space acting on what stands in it, which air does
+    // as readily as ground. Lava is ground, miasma is air, one key covers both.
+    effect?: string;
 }
 
 // A HOLE cut in that air — the lit pocket at a cave mouth, the gap in a fog
@@ -380,6 +396,7 @@ export class ZoneModel {
             closed: p.closed,
             outlineProfile: p.outlineProfile,
             outlineWidth: p.outlineWidth,
+            effect: p.effect,
         }));
         model.polygons = (data.polygons || []).map(g => ({
             profile: g.profile,
@@ -387,10 +404,12 @@ export class ZoneModel {
             blocksMovement: g.blocksMovement,
             outlineProfile: g.outlineProfile,
             outlineWidth: g.outlineWidth,
+            effect: g.effect,
         }));
         model.atmospheres = (data.atmospheres || []).map(a => ({
             profile: a.profile,
             points: (a.points || []).map(pt => ({...pt})),
+            effect: a.effect,
         }));
         model.clearings = (data.clearings || []).map(c => ({
             clears: c.clears,
@@ -592,6 +611,10 @@ export class ZoneModel {
                     // gates both keys.
                     outlineProfile: p.outlineProfile || undefined,
                     outlineWidth: p.outlineProfile ? round(p.outlineWidth || 0, 2) : undefined,
+                    // ⚑ Absent stays absent (plan-area-effects.md D10): no
+                    // shipped path names an effect, so an empty string here must
+                    // serialize to no key at all or every existing zone changes.
+                    effect: p.effect || undefined,
                 }))
                 : undefined,
             // ⚑ Named here or the whitelist eats it (L1) — the fifth time this
@@ -604,6 +627,7 @@ export class ZoneModel {
                     blocksMovement: g.blocksMovement ? true : undefined,
                     outlineProfile: g.outlineProfile || undefined,
                     outlineWidth: g.outlineProfile ? round(g.outlineWidth || 0, 2) : undefined,
+                    effect: g.effect || undefined,
                 }))
                 : undefined,
             // ⚑ Named here or the whitelist eats it (L1) — the SIXTH time this
@@ -612,12 +636,15 @@ export class ZoneModel {
             // atmosphere either, so a missing line here deletes somebody else's
             // work in Tiled and every test stays green.
             //
-            // ⛔ Two keys and no third. There is deliberately no blocksMovement
-            // and no outline to carry (D15) — an atmosphere is air.
+            // ⛔ NO blocksMovement and NO outline to carry (D15) — an atmosphere
+            // is air. ⚑ `effect` is the one addition that ruling does not turn
+            // away (plan-area-effects.md D1): it describes no wall, it describes
+            // a region of space acting on what stands in it.
             atmospheres: this.atmospheres.length > 0
                 ? this.atmospheres.map(a => ({
                     profile: a.profile,
                     points: a.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
+                    effect: a.effect || undefined,
                 }))
                 : undefined,
             // ⚑ The SEVENTH time the L1 comment above has had to be written. This

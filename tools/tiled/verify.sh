@@ -658,6 +658,136 @@ else
     ok "refused, nothing written"
 fi
 
+echo
+echo "AREA EFFECTS survive on all three shapes — the FOURTH WRITER's leg"
+# ⭐ E1's leg (plan-area-effects.md). `effect` is a TYPED ENUM property on three
+# different classes across two layers, and Tiled hands a typed enum back as an
+# INDEX into the declared values, never as the string — the same trap the regions
+# and outlines legs exist for, now on a third vocabulary.
+#
+# ⛔ AND THIS IS THE ONLY THING THAT COVERS THE FOURTH WRITER FOR THIS KEY.
+# aura-world-format.js copies object properties GENERICALLY (its `for key in
+# src.properties` on the way in, `o.properties()` on the way out), so `effect`
+# should need no code there at all — unlike `origin`, which is a MAP-level value
+# that has to be copied onto the TileMap by hand and went missing exactly that
+# way. "Should need none" is a claim, and the vitest pin cannot test it: the pin
+# exercises the PURE converter and never meets Tiled's MapObject. This leg is
+# what turns the claim into a measurement.
+#
+# ⛑ THREE shapes, THREE DIFFERENT effects, and two of them share the paths
+# layer. A fixture naming one effect everywhere would round-trip byte-identically
+# even with the reader cross-wired to the wrong class — the trap the polygons and
+# clearings fixtures each document in their own words. The atmosphere also proves
+# the key crosses a layer boundary, since its half lives in a different branch.
+#
+# ⛔ What this leg CANNOT see, the same measured limit as the atmospheres leg
+# above: which ENUM the `effect` members declare. Headless --export-map loads no
+# project, so tiled.propertyValue throws and the value round-trips as a bare
+# string whatever the member says. That wiring is pinned statically in
+# AuraTiledConvert.test.ts and the dropdown is a human check in the footer.
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+const content = require("./tools/tiled/palette/content.json");
+C.useContent(content);
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+// ⚑ Names taken from the generated vocabulary, never typed: renaming a skill
+// must not redden this leg, and a hand-typed name would.
+const E = content.EFFECT_NAMES;
+// ⚑ Profiles derived too, and for a sharper reason than tidiness: the first cut
+// of this leg named "Lava" and "Miasma", which live only in an UNCOMMITTED
+// profile table — so the leg was green in the working tree and would have been
+// red the moment it was committed. A fixture must not depend on content that
+// might not be there.
+const P = content.PROFILE_NAMES[0], A = content.AIR_PROFILE_NAMES[0];
+fs.writeFileSync("tools/tiled/.verify/effects.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    // A river that does something to whoever wades it — a stroked shape.
+    paths: [{profile: P, width: 2.5, effect: E[0],
+        points: [{x: -20, y: 12}, {x: 20, y: 12}]}],
+    // The lava pool — a FILLED shape, on the same layer as the path above, with
+    // a different effect. Also decorative-sibling free: the polygon and the path
+    // must come back to their own arrays carrying their own names.
+    polygons: [{profile: P, blocksMovement: true, effect: E[1], points: [
+        {x: -20, y: -10}, {x: -12, y: -10}, {x: -12, y: -2}, {x: -20, y: -2}]}],
+    // The miasma — AIR, on a different layer, with a third effect. This is the
+    // half that proves the key is not a ground-shape-only property.
+    atmospheres: [{profile: A, effect: E[2],
+        points: [{x: 4, y: -8}, {x: 14, y: -8}, {x: 9, y: 2}]}],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/effects.json \
+        "$(native "$ROOT/tools/tiled/.verify/effects-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/effects.json tools/tiled/.verify/effects-out.json; then
+    ok "byte-identical — three shapes, three effects, two layers, none swapped"
+else
+    bad "area effects did not survive: $(cmp tools/tiled/.verify/effects.json \
+        tools/tiled/.verify/effects-out.json 2>&1 | head -1)"
+fi
+
+echo
+echo "a DECORATIVE shape grows no effect key — the inert-at-HEAD acceptance test"
+# ⭐ D10, and it is the acceptance criterion for the whole chunk: the feature
+# costs exactly zero until authored. A Tiled class member ALWAYS has a value, so
+# the risk is the mirror image of the leg above — every one of the world's paths,
+# polygons and fog banks growing an `"effect": "(no effect)"` nobody wrote on its
+# first save. The round-trip of the shipped world.json at the top of this file
+# already covers that for real content; this states it as its own leg so a
+# failure says WHY rather than reporting 40 stray lines of diff.
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/noeffect.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    paths: [{profile: "Road", width: 2.5, points: [{x: -20, y: 12}, {x: 20, y: 12}]}],
+    polygons: [{profile: "Mountains", points: [
+        {x: -20, y: -10}, {x: -12, y: -10}, {x: -12, y: -2}]}],
+    atmospheres: [{profile: "Fog", points: [{x: 4, y: -8}, {x: 14, y: -8}, {x: 9, y: 2}]}],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/noeffect.json \
+        "$(native "$ROOT/tools/tiled/.verify/noeffect-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/noeffect.json tools/tiled/.verify/noeffect-out.json \
+   && ! grep -q '"effect"' tools/tiled/.verify/noeffect-out.json; then
+    ok "byte-identical, and no effect key appeared anywhere"
+else
+    bad "a decorative shape changed on save: $(cmp tools/tiled/.verify/noeffect.json \
+        tools/tiled/.verify/noeffect-out.json 2>&1 | head -1)"
+fi
+
+echo
+echo "a shape naming an effect that does not exist is REFUSED"
+# ⚑ L5's rule applied the day the key lands: a new authored field without a
+# validateModel leg is a broken boot waiting to happen, and the atmospheres layer
+# has already taught that lesson once the expensive way. The server refuses this
+# too (world.CrossValidateAreaEffects), so what is under test is WHEN and WHERE
+# it is reported — next to the object, with an id, hours earlier.
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+const content = require("./tools/tiled/palette/content.json");
+C.useContent(content);
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/badeffect.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    polygons: [{profile: content.PROFILE_NAMES[0], effect: "NoSuchSkill", points: [
+        {x: 0, y: 0}, {x: 8, y: 0}, {x: 8, y: 8}]}],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/badeffect.json \
+        "$(native "$ROOT/tools/tiled/.verify/badeffect-out.json")" >/dev/null 2>&1; then
+    bad "the save was ACCEPTED — the effect vocabulary is not enforced"
+elif [ -e tools/tiled/.verify/badeffect-out.json ]; then
+    bad "refused, but a file was written anyway"
+else
+    ok "refused, nothing written"
+fi
+
 # ---- 3. the generated palette is in step with api/ --------------------------
 echo
 echo "generated palette matches the content it is generated from"
@@ -688,6 +818,11 @@ if [ "$fail" -eq 0 ]; then
     echo "     field at all, and that its 'clears' field is a DROPDOWN offering"
     echo "     darkness / haze / both. The empty property bag is the A4 ruling (L7):"
     echo "     a clearing paints nothing, so there is no look to name."
+    echo "  4. click an AuraPath, an AuraPolygon and an AuraAtmosphere and confirm each"
+    echo "     has an 'effect' DROPDOWN listing the skills, led by '(no effect)' — and"
+    echo "     that an AuraRegion and an AuraClearing have NO effect field at all."
+    echo "     Which enum a member declares is invisible headlessly (measured), so the"
+    echo "     three legs above prove the NAME survives and nothing about the wiring."
 else
     echo "FAILED — see above."
 fi
