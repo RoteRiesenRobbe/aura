@@ -168,7 +168,9 @@
                 "Ice",
                 "Wall",
                 "Road",
-                "Water"
+                "Water",
+                "Bog",
+                "Lava"
             ],
             "valuesAsFlags": false
         },
@@ -181,7 +183,15 @@
                 "(pick a profile)",
                 "Cave Air",
                 "Gloom",
-                "Fog"
+                "Canopy",
+                "Storm Sky",
+                "Fog",
+                "Miasma",
+                "Rain",
+                "Snow",
+                "Ash Fall",
+                "Sandstorm",
+                "Fairy Dust"
             ],
             "valuesAsFlags": false
         },
