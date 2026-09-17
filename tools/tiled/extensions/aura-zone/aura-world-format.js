@@ -8,7 +8,7 @@
  * (same extension = shared globals, alphabetical order — measured in C0).
  * This file only moves values between that plain model and Tiled's objects.
  *
- * ⚑ These two files are the WHOLE extension. Since C5 the generated content
+ * ⚑ These three files are the WHOLE extension (aura-fit-size.js is the third). Since C5 the generated content
  * lives in the repo palette rather than here, so this directory is installed
  * once per machine and never needs reinstalling when content is added.
  *

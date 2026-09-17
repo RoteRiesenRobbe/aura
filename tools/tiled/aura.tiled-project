@@ -4,7 +4,8 @@
     "compatibilityVersion": 1100,
     "extensionsPath": "extensions",
     "folders": [
-        "../../api/zones"
+        "../../api/zones",
+        "palette/templates"
     ],
     "propertyTypes": [
         {

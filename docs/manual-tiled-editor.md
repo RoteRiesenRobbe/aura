@@ -85,9 +85,18 @@ fix and save again.
 
 ### Terrain
 
-Drag a texture from the **aura-terrain** tileset onto the `terrain` layer.
+Drag a texture from the **Templates** view onto the `terrain` layer.
 Rotate and scale freely. Horizontal and vertical flip (X / Y) both work.
 
+- ⭐ **Drag from Templates, not from the aura-terrain tileset.** A terrain patch
+  has no type size to be right about — the box *is* the size — so a tile dragged
+  straight off the tileset inherits its **image's** pixel size, and the images do
+  not agree: twelve of the sixteen textures are 100×100 SVGs (`size` 0.42) and
+  two are 256×256 PNGs (`size` 1.07). Dropping Sand next to Grass gave you a
+  patch **2.56× larger** for no reason anyone authored. Every template starts at
+  `size` 1 instead — a 2 u square — and you scale from there. A patch dropped
+  the old way is fixed the same way a prop is: **Map ▸ Fit to true size**
+  (`Ctrl+Alt+F`), see Props below.
 - ⚑ **Both flips at once is not expressible** in the zone format. Use one flip
   plus 180° of rotation; the save refuses otherwise.
 - ⚑ **Order within the layer is paint order** — the array's order is what
@@ -96,10 +105,29 @@ Rotate and scale freely. Horizontal and vertical flip (X / Y) both work.
 
 ### Props
 
-Drag from the **aura-props** tileset. Each prop draws at its **visual
-footprint** — the same size it is in game, to the pixel — so the editor is
-WYSIWYG.
+Drag from the **Templates** view. Each prop draws at its **visual footprint** —
+the same size it is in game, to the pixel — so the editor is WYSIWYG.
 
+- ⛔ **Drag from Templates, never from the aura-props tileset**, and this is not
+  a style preference. Tiled sizes a tile object it inserts by the tile
+  **image's** pixel size, and the art knows nothing about world units:
+  `roundTree.png` is 512×512 against a Tree body of 336 px, so **every tree ever
+  dragged off the tileset authored `"scale": 1.524`** — 52 % oversized, silently,
+  on every placement. House, Bridge and Tombstone were worse: their image aspect
+  is not their body aspect, so the proportions check below **refused the save**
+  and they could not be dragged in at all. A template carries the box; a tileset
+  tile carries only the picture. (Fixed 2026-09-17; the tileset is still there
+  because the templates are built on it, but it is not the thing to drag.)
+- ⭐ **If you dragged one anyway: Map ▸ Fit to true size (`Ctrl+Alt+F`).** Select
+  the props or textures — `Edit ▸ Select All` takes the whole layer — and each
+  snaps to its true box, **about its centre**, in one undo step. That is the
+  escape hatch for everything already placed the old way, and it is why a
+  tileset drag is no longer a trap: it is one keystroke from right.
+  - ⚑ It leaves anything that is **not** a prop or a texture alone, and names it
+    in the message. A region or a route is geometry you drew; only a prop and a
+    patch have a "true size" to be snapped to.
+  - ⚑ It is **not** a way to clear a deliberate `scale` on one prop and keep it
+    on another — it resets everything selected. Select deliberately.
 - ⭐ **Resize a prop to scale it.** The box *is* the size: drag a corner handle
   and the placement gets a `scale` multiplier on its type's body. That is how
   you get one big old tree among saplings, without touching `api/props/`.
@@ -146,7 +174,7 @@ WYSIWYG.
   through, with nothing said. If you placed props before that date, check them.
 - ⚑ **A prop's full editable set, in one place**, because only one of the five
   is a property:
-  - **which prop** — the tile you dragged from the `aura-props` tileset.
+  - **which prop** — the template you dragged in.
   - **position** — drag it.
   - **rotation** — the rotation handle, or `Rotation` in the Object section.
   - **size** — resize the box. There is deliberately no `scale` property: the
@@ -361,6 +389,12 @@ No reinstall, no hand-import. The generator reads `api/`, the client's
 the game loads — and **fails loudly** rather than shipping a gap, including if
 a profile name appears in **both** tables (they are separate namespaces).
 
+⚑ It also writes the **object templates** (`palette/templates/`, regenerated
+wholesale so a retired prop takes its template with it) and adds that folder to
+the project, which is what puts them in the Templates view. A prop whose `body`
+you changed gets a new template box in the same command — which is exactly why
+the ⛑ note below matters.
+
 ⚑ **This also runs automatically** as a `prebuild`/`pretest` npm hook
 (`frontend/package.json`), so `npm run build` and `npm test` regenerate the
 palette before doing anything else — a stale palette can't survive a normal
@@ -412,6 +446,8 @@ after touching anything under `tools/tiled/`.
 |---|---|
 | Install | `bash tools/tiled/install.sh`, once ever |
 | Open | `tools/tiled/aura.tiled-project`, then `world.json` from the folder list |
+| Place a prop or a texture | Drag it from the **Templates** view — **not** the tileset, which drops it at the art's pixel size |
+| Fix one dropped at the wrong size | Select it, **Map ▸ Fit to true size** (`Ctrl+Alt+F`) |
 | Move / rotate / scale a texture | Select Objects (S), drag or use the handles |
 | Scale a prop | Select Objects (S), drag a corner handle with **Shift** held |
 | Place a mob | Insert Point on `spawns`, set `mob` in the Properties panel |

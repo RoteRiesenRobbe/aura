@@ -116,6 +116,12 @@ var AuraConvert = (function () {
         content = {
             TERRAIN_TYPES: (c && c.TERRAIN_TYPES) || [],
             PROP_SIZE: (c && c.PROP_SIZE) || {},
+            // The canonical size a terrain patch is cut at, generated from the
+            // same constant the templates use. A texture has no body, so this
+            // is the only thing "its true size" can mean for one. 0 means "no
+            // vocabulary loaded", and the fit action refuses rather than
+            // guessing — the posture every other content check here takes.
+            TERRAIN_SIZE: (c && c.TERRAIN_SIZE) || 0,
             MOB_KIND: (c && c.MOB_KIND) || {},
             MOB_SPEED: (c && c.MOB_SPEED) || {},
             // The profiles the client can actually resolve, straight out of
@@ -1801,6 +1807,13 @@ var AuraConvert = (function () {
     return {
         PX: PX,
         LAYERS: LAYERS,
+        // ⚑ The raw tables, for aura-fit-size.js. It deliberately does NOT go
+        // through propSize(): that helper falls back to a 1-unit box when the
+        // vocabulary is absent, which is right for a conversion (the geometry
+        // still round-trips) and wrong for a RESIZE, where it would silently
+        // squash an unknown prop to 120 px. The action refuses instead.
+        propSizes: function () { return content.PROP_SIZE; },
+        terrainSize: function () { return content.TERRAIN_SIZE; },
         utf8Bytes: utf8Bytes,
         useContent: useContent,
         endsWithNewline: endsWithNewline,

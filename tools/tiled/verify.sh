@@ -827,13 +827,21 @@ fi
 # ---- 3. the generated palette is in step with api/ --------------------------
 echo
 echo "generated palette matches the content it is generated from"
-before="$(cat tools/tiled/palette/content.json tools/tiled/palette/propertytypes.json \
-          tools/tiled/palette/terrain.tsx tools/tiled/palette/props.tsx \
-          tools/tiled/aura.tiled-project)"
+# ⚑ The templates are in here too, and they are the half most likely to go
+# stale unnoticed: they carry a prop's body size baked into a box, so editing
+# api/props/*.json without regenerating leaves the Templates view handing out
+# the OLD size — which the box-is-the-scale rule then authors as a multiplier.
+# `|| true`: the glob finds nothing on a checkout that predates them, and an
+# empty `before` is exactly the "stale, regenerate" answer this leg should give.
+palette_state() {
+    cat tools/tiled/palette/content.json tools/tiled/palette/propertytypes.json \
+        tools/tiled/palette/terrain.tsx tools/tiled/palette/props.tsx \
+        tools/tiled/palette/templates/*/*.tx \
+        tools/tiled/aura.tiled-project 2>/dev/null || true
+}
+before="$(palette_state)"
 node tools/tiled/generate-palette.mjs >/dev/null
-after="$(cat tools/tiled/palette/content.json tools/tiled/palette/propertytypes.json \
-         tools/tiled/palette/terrain.tsx tools/tiled/palette/props.tsx \
-         tools/tiled/aura.tiled-project)"
+after="$(palette_state)"
 if [ "$before" = "$after" ]; then
     ok "up to date and idempotent"
 else
@@ -861,10 +869,26 @@ if [ "$fail" -eq 0 ]; then
     echo "     three legs above prove the NAME survives and nothing about the wiring."
     echo "  5. click a prop on the props layer and confirm it has a 'blocksMovement'"
     echo "     DROPDOWN reading '(inherit)' / 'blocks' / 'walk through' — then DRAG A"
-    echo "     FRESH ONE from the aura-props tileset and confirm it shows the same"
+    echo "     FRESH ONE from the Templates view and confirm it shows the same"
     echo "     field, already sitting at '(inherit)'. ⛔ That second half is the whole"
     echo "     point: AuraProp carried no members at all until 2026-09-17, so a newly"
     echo "     dragged prop had an EMPTY Properties panel and saved as non-blocking."
+    echo "  6. in that same Templates view, drag a Tree, a House and a Sand patch onto"
+    echo "     the map and confirm each lands at its TRUE footprint — save, and the"
+    echo "     three placements carry NO 'scale' key and the patch reads \"size\": 1."
+    echo "     ⛔ Drag them from the TILESET instead and every one is wrong: the tree"
+    echo "     arrives at 1.524 (roundTree.png is 512² against a 336 px body) and the"
+    echo "     house is REFUSED outright, because its image aspect is not its body's."
+    echo "     A template carries the box; a tileset tile carries only the picture."
+    echo "     ⚑ Nothing headless can perform a drag, so this is the only leg there is."
+    echo "  7. the escape hatch, for everything already dropped the old way: drag a"
+    echo "     tree off the TILESET on purpose, then Map ▸ Fit to true size"
+    echo "     (Ctrl+Alt+F). It must snap to the body box WITHOUT sliding — a tile"
+    echo "     object anchors bottom-left, so a resize that ignores the centre walks"
+    echo "     the art up and right by half the change. Then Ctrl+Z: one undo step,"
+    echo "     not one per object. ⚑ Also try it on a REGION polygon and confirm it"
+    echo "     is left alone and named in the message — only props and terrain have"
+    echo "     a true size, and squashing a drawn shape is the bug, not the fix."
 else
     echo "FAILED — see above."
 fi

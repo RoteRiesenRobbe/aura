@@ -7,7 +7,7 @@
 # user directory, so each machine runs this once. The source of truth stays
 # version-controlled here.
 #
-# ⚑ ONCE per machine for CONTENT (C5): the extension is two script files and
+# ⚑ ONCE per machine for CONTENT (C5): the extension is three script files and
 # carries none at all. Adding a mob, a texture or a prop is
 # `node tools/tiled/generate-palette.mjs` and a reopen — never a reinstall.
 #

@@ -275,6 +275,135 @@ describe('AuraConvert — terrain geometry', () => {
     });
 });
 
+/* ---- the generated object templates ---------------------------------------
+ * ⭐ WHY THEY EXIST: Tiled inserts a tile object at the tile IMAGE's natural
+ * pixel size, and the box IS the scale (plan-prop-scale.md C1). roundTree.png
+ * is 512² against a 336 px body, so every tree ever DRAGGED out of the palette
+ * authored `"scale": 1.524` — silently, on every placement. House, Bridge and
+ * Tombstone were worse off: their image aspect is not their body aspect, so the
+ * proportions check REFUSED the save and they could not be dragged in at all.
+ *
+ * ⛔ verify.sh cannot cover this. It drives headless --export-map, which has no
+ * way to perform a drag, and a template is insert-time only — by the time a map
+ * is on disk the objects are ordinary tile objects. So the pin is STATIC (the
+ * boxes are right, the gids point where they claim) and the drag itself is a
+ * human check in verify.sh's footer, the same posture the enum dropdown takes.
+ */
+describe('AuraConvert — the generated object templates', () => {
+    const dir = nodeRequire.resolve('../../../../../tools/tiled/palette/content.json')
+        .replace(/content\.json$/, 'templates');
+
+    function templates(kind: 'props' | 'terrain') {
+        return readdirSync(dir + '/' + kind).map(f => {
+            const text = readFileSync(dir + '/' + kind + '/' + f, 'utf8');
+            const obj = /<object name="([^"]*)" class="([^"]*)" gid="(\d+)" width="([\d.]+)" height="([\d.]+)"\/>/
+                .exec(text);
+            const set = /<tileset firstgid="1" source="[^"]*\/([^"/]+)"\/>/.exec(text);
+            expect(obj, `${kind}/${f} has no parsable object`).toBeTruthy();
+            expect(set, `${kind}/${f} has no parsable tileset`).toBeTruthy();
+            return {
+                file: f, tsx: set![1], name: obj![1], cls: obj![2],
+                gid: +obj![3], w: +obj![4], h: +obj![5],
+            };
+        });
+    }
+
+    // type -> tile id, straight out of the tsx the template points at. The
+    // template's gid is firstgid(1) + that id, and nothing else guarantees the
+    // two orderings stay together.
+    function tileIds(tsx: string) {
+        const text = readFileSync(dir.replace(/templates$/, '') + tsx, 'utf8');
+        const out: Record<string, number> = {};
+        const re = /<tile id="(\d+)"[^>]*>\s*<properties>\s*<property name="auraType" value="([^"]*)"/g;
+        let m;
+        while ((m = re.exec(text))) { out[m[2]] = +m[1]; }
+        return out;
+    }
+
+    // Through the real derivation, never a reimplementation of it: drop the
+    // template's box onto a placement and ask the serializer what it authors.
+    function authored(kind: 'props' | 'terrain', name: string, w: number, h: number) {
+        const z = kind === 'props'
+            ? zone({props: [{type: name, x: 0, y: 0, rotation: 0, blocksMovement: false}]})
+            : zone({terrain: [{type: name, x: 0, y: 0, size: 1, rotation: 0, flipped: 'none'}]});
+        const model = C.zoneToModel(z) as {layers: {name: string;
+            objects: {width: number; height: number}[]}[]};
+        const o = model.layers.filter(l => l.name === kind)[0].objects[0];
+        o.width = w;
+        o.height = h;
+        return JSON.parse(C.serializeZone(C.modelToZone(model)));
+    }
+
+    it('there is exactly one template per prop and per texture', () => {
+        expect(templates('props').map(t => t.name).sort())
+            .toEqual(Object.keys(content.PROP_SIZE).sort());
+        expect(templates('terrain').map(t => t.name).sort())
+            .toEqual([...content.TERRAIN_TYPES].sort());
+    });
+
+    it('each gid points at the tile its own tileset holds for that name', () => {
+        (['props', 'terrain'] as const).forEach(kind => {
+            templates(kind).forEach(t => {
+                const ids = tileIds(t.tsx);
+                expect(t.gid, `${kind}/${t.file} gid`).toBe(ids[t.name] + 1);
+            });
+        });
+    });
+
+    // ⭐ THE POINT OF THE WHOLE THING: a dragged prop authors no `scale` key.
+    it('a prop dropped from its template authors NO scale', () => {
+        templates('props').forEach(t => {
+            const sz = content.PROP_SIZE[t.name];
+            expect({w: t.w, h: t.h}, `${t.file} box`)
+                .toEqual({w: +(sz.w * C.PX).toFixed(4), h: +(sz.h * C.PX).toFixed(4)});
+            expect(authored('props', t.name, t.w, t.h).props[0].scale,
+                `${t.file} must inherit its type body`).toBeUndefined();
+        });
+    });
+
+    /* ⚑ Terrain has no type body to be right about — the box IS the size — so
+     * a dragged patch used to inherit its IMAGE's size: 0.42 for the twelve
+     * 100² SVG textures against 1.07 for the two 256² PNGs, a 2.56× split with
+     * nothing behind it. One canonical box is the fix, and the NUMBER is a
+     * [PLACEHOLDER] look call, so this pins the invariants rather than the
+     * value: every texture starts the same, and it serializes clean. */
+    it('every texture template shares one box, and it round-trips clean', () => {
+        const all = templates('terrain');
+        const [first] = all;
+        all.forEach(t => expect({w: t.w, h: t.h}, `${t.file} box`)
+            .toEqual({w: first.w, h: first.h}));
+        expect(first.w).toBe(first.h);
+        const size = authored('terrain', first.name, first.w, first.h).terrain[0].size;
+        expect(size).toBeGreaterThan(0);
+        expect(size, 'a box that serializes to float dust is a box nobody can retype')
+            .toBe(Math.round(size * 100) / 100);
+        // ⭐ ONE number, two consumers. The templates are cut at it and the "fit
+        // to true size" action resizes to it, so the generator publishes it
+        // through content.json instead of each side declaring its own. Two
+        // copies would drift the day the look call is made, and the symptom
+        // would be a patch that changes size when you fix it.
+        expect(size, 'the templates and content.TERRAIN_SIZE must be the same number')
+            .toBe(content.TERRAIN_SIZE);
+        expect(C.terrainSize()).toBe(content.TERRAIN_SIZE);
+    });
+
+    /* ⛔ The fit action's lookup must NOT be propSize()'s. That helper answers
+     * {w:1,h:1} for an unknown name, which is right for a CONVERSION — the
+     * geometry still round-trips — and catastrophic for a RESIZE, where it
+     * would squash an unrecognised prop to a 120 px box that looks deliberate.
+     * So the raw table is exported and the action refuses instead. */
+    it('exposes the raw tables the fit action refuses on, not a fallback', () => {
+        expect(Object.keys(C.propSizes()).sort())
+            .toEqual(Object.keys(content.PROP_SIZE).sort());
+        expect(C.propSizes().NoSuchProp).toBeUndefined();
+    });
+
+    it('the class matches the layer the template belongs on', () => {
+        templates('props').forEach(t => expect(t.cls, t.file).toBe('AuraProp'));
+        templates('terrain').forEach(t => expect(t.cls, t.file).toBe('AuraTerrain'));
+    });
+});
+
 describe('AuraConvert — the generated palette (C2)', () => {
     it('draws each prop at its TYPE body size, in px', () => {
         const model = C.zoneToModel(zone({
@@ -284,13 +413,22 @@ describe('AuraConvert — the generated palette (C2)', () => {
             ],
         }));
         const [house, tree] = model.layers[1].objects;
-        // house.json body 4x3 units; tree.json radius 1.4 -> 2.8x2.8 units.
-        // ⚑ The tree's 1.4 is its VISUAL radius since C1b — the authored body
-        // is now what the sprite is drawn at, and the 1.0 trunk collider is
-        // body.collisionFactor. That is precisely what makes this box match
-        // the game: before C1b it drew the collider and was 29% too small.
-        expect({w: house.width, h: house.height}).toEqual({w: 4 * 120, h: 3 * 120});
-        expect({w: tree.width, h: tree.height}).toEqual({w: 2.8 * 120, h: 2.8 * 120});
+        // ⚑ DERIVED from the palette, never typed: a body is a [PLACEHOLDER]
+        // look call the PO retunes in front of the game, and a test that names
+        // the number turns every such retune into a red suite. What is being
+        // pinned is that the box IS the body — a rect's own w/h, a circle's
+        // 2*radius — at PX.
+        // ⚑ That radius is the VISUAL one since C1b: the authored body is what
+        // the sprite is drawn at, and the smaller trunk collider is
+        // body.collisionFactor. Before C1b this box drew the COLLIDER and the
+        // editor was 29% too small.
+        const px = (u: number) => u * C.PX;
+        expect({w: house.width, h: house.height})
+            .toEqual({w: px(content.PROP_SIZE.House.w), h: px(content.PROP_SIZE.House.h)});
+        expect({w: tree.width, h: tree.height})
+            .toEqual({w: px(content.PROP_SIZE.Tree.w), h: px(content.PROP_SIZE.Tree.h)});
+        // …and the circle really is square, which is the half a rect cannot say.
+        expect(tree.width).toBe(tree.height);
     });
 
     it('every prop type in world.json has a palette size', () => {
@@ -345,9 +483,8 @@ describe('AuraConvert — the generated palette (C2)', () => {
     });
 
     it('scale round-trips through the box for both body shapes', () => {
-        // Tree is a circle (visual r 1.4 → a 2.8×2.8-unit box), House a 4×3
-        // rect. One multiplier has to serve both, which is why it is not
-        // terrain's absolute size.
+        // Tree is a circle, House a rect. One multiplier has to serve both,
+        // which is why it is not terrain's absolute size.
         const src = zone({props: [
             {type: 'Tree', x: 0, y: 0, rotation: 0, blocksMovement: true, scale: 2.5},
             {type: 'House', x: 4, y: 1, rotation: 0, blocksMovement: true, scale: 0.5},
@@ -355,8 +492,10 @@ describe('AuraConvert — the generated palette (C2)', () => {
         const model = C.zoneToModel(src);
         // The box really is the scaled physics footprint — what you see is
         // what blocks, at the size it blocks.
+        const box = (t: string, s: number) =>
+            [content.PROP_SIZE[t].w * C.PX * s, content.PROP_SIZE[t].h * C.PX * s];
         expect(model.layers[1].objects.map((o: {width: number; height: number}) =>
-            [o.width, o.height])).toEqual([[840, 840], [240, 180]]);
+            [o.width, o.height])).toEqual([box('Tree', 2.5), box('House', 0.5)]);
         expect(roundTrip(src).props.map((p: {scale?: number}) => p.scale)).toEqual([2.5, 0.5]);
     });
 
@@ -1472,9 +1611,9 @@ describe('AuraConvert — save-time validation (C4)', () => {
         expect(C.validateModel(m)).toEqual([]);
         const o = (m as unknown as {layers: {name: string; objects: {width: number; height: number}[]}[]})
             .layers.filter(l => l.name === 'props')[0].objects[0];
-        // Tree's visual body is r 1.4 → a 2.8-unit (336 px) box. 11× is past
-        // the rail of 10.
-        o.width = 336 * 11; o.height = 336 * 11;
+        // 11× the type's own box is past the rail of 10, whatever that box is.
+        o.width = content.PROP_SIZE.Tree.w * C.PX * 11;
+        o.height = content.PROP_SIZE.Tree.h * C.PX * 11;
         const msg = C.validateModel(m).join(' ');
         expect(msg).toContain('scale 11 must be in (0, 10]');
     });
