@@ -42,7 +42,7 @@ Verified by the reachability sweep in `content-skill-inventory.md`.
 
 **Deliberately outside (post-v1 candidates):**
 
-- **Auras:** Wild, Light, Reaper (no longer a proving relic — the AlphaWolf
+- **Auras:** Wild, Lantern (né Light), Reaper (no longer a proving relic — the AlphaWolf
   apex drop since 2026-07-21), Rejuvenation,
   FireWard, Harvest + Pickaxe (chore/profession identity — combining them
   would blur the gate design), Berserker.

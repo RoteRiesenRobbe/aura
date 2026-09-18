@@ -150,8 +150,9 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// + Bloodthirst, the R3 lifesteal_burst cooldown — the rider Reaper dropped
 	// in §5.6, re-shaped as a six-second window you spend a cooldown on
 	// (2026-08-01)
-	// − Recall, RETIRED 2026-08-03 (R4 C1, plan-downtime.md D7): it became a
-	// baseline utility outside the skill catalog; id 28 stays burned.
+	// − Recall, 2026-08-03 (R4 C1, plan-downtime.md D7): it became a baseline
+	// utility outside the skill catalog and its file left the tree, id 28 kept
+	// free. RESTORED 2026-09-18 (the last entry below).
 	// + CampAura, the R4 C2 mini-campfire's heal + dim light (2026-08-03) —
 	// mob content, referenced only by camp.json, which applyCamp builds from
 	// Go rather than from a spawn effect.
@@ -167,7 +168,8 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// source kind rather than six exceptions.
 	// − the FIVE legacy mob skills (zone-editor C3, 2026-08-16): the legacy
 	// roster retired and its auras with it (Dodo/SaberToothCat/Mammoth/
-	// AngryMammoth auras + AngryMammothStomp), 95 → 90.
+	// AngryMammoth auras + AngryMammothStomp), 95 → 90. RESTORED 2026-09-18
+	// (the last entry below).
 	// + FireVulnerability, the first vulnerability aura (plan-effect-types.md
 	// C1, 2026-08-16), id 66: resist_aura with a factor above 1 aimed at
 	// enemies. Pure content on an existing effect type; SKILL cheat only, no

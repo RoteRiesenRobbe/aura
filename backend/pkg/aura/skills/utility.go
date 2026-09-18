@@ -43,9 +43,10 @@ type UtilityDef struct {
 }
 
 var utilityDefs = map[UtilityKind]*UtilityDef{
-	// Recall inherits the retired skill's 10 s cast (300 ticks at 30/s) and
-	// its damage interrupt; the 5 % cost and 5 min cooldown died with the
-	// skill (D7 — free and cooldown-less, the cast is the only brake).
+	// Recall mirrors the Recall SKILL's 10 s cast (300 ticks at 30/s) and its
+	// damage interrupt (api/skills/recall.json, cheat-only since R4); the
+	// utility drops that skill's 5 % cost and 5 min cooldown (D7 — free and
+	// cooldown-less, the cast is the only brake).
 	UtilityRecall: {Kind: UtilityRecall, Name: "Recall", CastTicks: 300, CastInterruptedByDamage: true},
 	// Camp (C2, D2): the channel IS the "sit still" moment of the PO sketch —
 	// movement already cancels every cast unconditionally (core/input.go), so

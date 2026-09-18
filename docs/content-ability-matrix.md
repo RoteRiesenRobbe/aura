@@ -36,8 +36,8 @@ they are authoring details of their mobs and are not counted here.
 
 ⚑ **`content-skill-inventory.md` has drifted twice over, and both ways cancel
 out.** Its prose still says "the 50 player skills" while its tables already list
-52 rows; of those rows one (Recall) no longer exists as content, and one that
-does exist (Discipline) is missing. Regenerate it before trusting any per-skill
+52 rows; of those rows one (Recall) had no file at the time (restored
+2026-09-18, cheat-only), and one that does exist (Discipline) is missing. Regenerate it before trusting any per-skill
 line, exactly as its own header warns.
 
 ---

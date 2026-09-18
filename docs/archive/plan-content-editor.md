@@ -1724,6 +1724,8 @@ boot both ways, 0 ERROR/panic · editor `node --test` **2/2**, `npm run smoke`
 files** + typecheck clean · `content-editor-skills-tab.mjs` **0 problems**
 after the rewritten leg · no new em dash in any edited file.
 
+⚑ **Rider, same day, after the push (`e9e945cd`)**: the PO asked whether any text still called the restored skills deleted. A repo-wide sweep of live surfaces found nine (`registry_test.go`'s count history, `utility.go`'s Recall comment, `content-auras.md`'s struck-through Wild row, `content-ability-matrix.md`, `content-recipes.md`'s "Light", two verify-script headers, the README's downtime line), all reworded in a follow-up commit. Archive docs keep their history. Left as they are: the `legacy` flag's Go plumbing (a recorded unowned follow-up, it names no skill) and the Town Crier / Wanderer `_comment`s, which say the Recall TEACHING is gone, which is true.
+
 **The plan is COMPLETE**: Part A shipped, Part B C0-C4 shipped and C5 cut by
 ruling. Archived 2026-09-18. Open beside it, both PO calls: §B11 Q7 (Go
 validation for every tab, retiring `validate.mjs`'s port) and `backlog.md`
