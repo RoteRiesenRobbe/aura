@@ -316,14 +316,15 @@ function createNewRecipe() {
 // direction for them or seed a card the loader refuses; the live hints ask for
 // the rest instead. PO ruling 2026-09-12.
 //
-// ⚑ maxLevel 5 because 53 of the 72 shipped player skills use it, and it never
+// ⚑ maxLevel 5 because 55 of the 75 shipped player skills use it, and it never
 // decreases afterwards (L4), so the cheapest default is the common one.
 // ⚑ `icon` is left EMPTY on purpose: the required hint forces a deliberate
 // pick from the vendored set rather than inheriting someone else's glyph.
 // ⚑ The id is max + 1 over BOTH skill folders (L6), which is why it reads
-// state.skills and not playerSkills() - and it can re-mint the id of a deleted
-// skill that held the maximum (L3), which the form says beside the field until
-// C5's lock closes it.
+// state.skills and not playerSkills(). That is safe because a skill file is
+// never deleted (docs/manual-content-authoring.md, "Retiring a skill"): an id
+// on disk cannot go missing, so max + 1 can never re-mint one. L3 closes on
+// the rule rather than on a lock file.
 function createNewSkill() {
   const display = prompt('New skill name (e.g. "Frost Nova"):');
   if (!display) return;
@@ -1646,7 +1647,7 @@ const TEST_RIG_TITLE = 'A cheat-only test rig, never content: it exists to exerc
 
 // The auto-id's own caveat (§B10 L3), shown beside the read-only id field of a
 // brand-new draft.
-const NEW_ID_HINT = 'Auto-assigned: the highest id across both skill folders, plus one. ⚑ If the skill that held the highest id was deleted, this re-mints that id, and ids are persisted in every character\'s spellbook row. C5\'s registry lock (ids with tombstones) is the real fix; until it lands, check that nothing was deleted recently.';
+const NEW_ID_HINT = 'Auto-assigned: the highest id across both skill folders, plus one. Ids are persisted in every character\'s spellbook row, so they never change and are never re-minted: a skill file is never deleted, it is retired by removing its unlock sources (docs/manual-content-authoring.md, "Retiring a skill"). That rule is what makes max + 1 safe.';
 
 // The authoring-note rule, shown under the _comment box (PO 2026-09-11).
 const COMMENT_HINT = 'An authoring note, not a session ledger: what the skill is, which values are placeholder, and at most one landmine sentence with a doc pointer. No dates, hashes, chunk names, glyphs or placement claims ("cheat-only", "dropped by wolves") - placement lives in the mob, milestone and recipe files and goes stale here. Under ~400 characters. Full rule: docs/manual-content-authoring.md, "The _comment field". Blank deletes the key.';
@@ -2081,7 +2082,8 @@ function refLink(label, jump) {
 //
 //   ⚑ the maxLevel-lowering confirm (L4): persisted spellbook levels may
 //     exceed a lowered cap, and the reconciliation clamp (backlog §61) is not
-//     built. C5 turns this into a loader refusal; until then it is a question.
+//     built. The rule is that a maxLevel never decreases (per-level numbers
+//     move instead); the confirm is the reminder, not a gate.
 //   ⚑ the HTTP-status branch (L12): a 200 {ok:false} is the loader refusing
 //     the content, a non-200 is the validator failing to ANSWER (no binary, a
 //     stale one, a crash). Reading `ok` alone would render "build aurad first"
@@ -2090,7 +2092,7 @@ async function saveSkill(entry) {
   const fb = $('#save-feedback');
   const pristine = JSON.parse(state.pristine.get(entry.file) || 'null');
   if (pristine && typeof pristine.maxLevel === 'number' && typeof entry.raw.maxLevel === 'number' && entry.raw.maxLevel < pristine.maxLevel) {
-    if (!confirm(`Lowering maxLevel from ${pristine.maxLevel} to ${entry.raw.maxLevel}.\n\nSkill levels are persisted per character: any spellbook row already above ${entry.raw.maxLevel} keeps its level, and nothing clamps it (the reconciliation policy is backlog §61, unbuilt). The rule is that a shipped skill's maxLevel never decreases, and C5 will make this a loader refusal.\n\nSave anyway?`)) return;
+    if (!confirm(`Lowering maxLevel from ${pristine.maxLevel} to ${entry.raw.maxLevel}.\n\nSkill levels are persisted per character: any spellbook row already above ${entry.raw.maxLevel} keeps its level, and nothing clamps it (the reconciliation policy is backlog §61, unbuilt). The rule is that a shipped skill's maxLevel never decreases: adjust the per-level numbers instead.\n\nSave anyway?`)) return;
   }
   fb.textContent = 'saving…'; fb.className = 'save-feedback';
   const res = await fetch('/api/save/skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: entry.file, raw: entry.raw, isNew: !!entry.isNew }) });
@@ -2197,7 +2199,7 @@ const UNIT_LABELS = { ticks: 'ticks', units: 'u', hp: 'HP', fraction: 'frac', fa
 // a list of which keys need it.
 //
 // ⚑ `id` is the one key that stays read-only even in a writable editor: it is
-// persisted in every character's spellbook row (C5 locks it for real).
+// persisted in every character's spellbook row and never changes.
 function fieldControl(entry, key, obj, ctx, onSet) {
   const value = obj[key];
   const locked = ctx.readOnly || key === 'id';

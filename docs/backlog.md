@@ -5925,6 +5925,9 @@ explicit, tested policy. Nothing enforces one today.
 - A small Go change at character load (`persist` / `SkillComponent`
   hydration) with table-driven tests. ⚑ Touches persisted state on READ only;
   expected **DB NONE** (no column, no migration) - verify at design time.
-- Trigger: the first time content is actually retired, or `plan-content-editor.md`
-  Part B **C5** (the registry lock) lands, whichever comes first - the lock
-  makes tombstones real, and this is what the game does when it meets one.
+- Trigger: **C5 was CUT 2026-09-18** (`plan-content-editor.md` §B12 C5) in
+  favour of a written rule: a skill file is never deleted, an id never changes,
+  a `maxLevel` never decreases (`manual-content-authoring.md`, "Retiring a
+  skill"). Under that rule an unknown persisted id should never arise at all,
+  so the remaining trigger is the first time content is **actually** retired
+  (the rule held only by hand), or the first persisted level found above a cap.

@@ -220,7 +220,12 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// 2026-09-13 by docs/archive/plan-summon-follows.md: the SPELL's
 	// `follows` key carries it now, and the PO ticked it on this very
 	// skill during the walk. 105 → 106.
-	assert.Len(t, r.All(), 106)
+	// + the SEVEN restored files (plan-content-editor.md §B12 C5, 2026-09-18):
+	// the registry lock was cut for the rule "ids are forever, so nothing is
+	// ever deleted", and every skill file ever deleted comes back under it -
+	// Wild id 3, Recall id 28 and the five mob-only skills ids 101-105.
+	// 106 → 113.
+	assert.Len(t, r.All(), 113)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

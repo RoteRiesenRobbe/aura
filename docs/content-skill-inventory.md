@@ -71,11 +71,16 @@ in `api/skills/mobs/` are not listed (they're authoring details of their mobs).
 > ⭐ **ROSTER REPAIRED 2026-08-17 (PO ruling), by re-deriving every count from
 > `api/` rather than incrementing the old ones, which is what let them drift
 > in the first place.** Four rows were wrong: **Wild** (id 3) and **Recall**
-> (id 28) were listed but no longer exist as skills (Recall became one of the
-> three baseline UTILITIES, `skills/utility.go`, which live outside the catalog
-> by ruling and so are outside this table too), while **Bloodthirst** (id 8)
-> and **Discipline** (id 65) existed and were missing. The two errors had been
-> cancelling in the totals, which is why the counts looked plausible. ⚑ The
+> (id 28) were listed while their files were gone from `api/skills/` (Recall
+> had become one of the three baseline UTILITIES, `skills/utility.go`, which
+> live outside the catalog by ruling). ⚑ **Both files are back on disk since
+> 2026-09-18** under the rule that a skill file is never deleted
+> (`manual-content-authoring.md`, "Retiring a skill"), so both are player
+> skills in the registry again, obtainable by the `SKILL` cheat only; the
+> table below has not been regenerated for them. The other two errors ran the
+> other way: **Bloodthirst** (id 8) and **Discipline** (id 65) existed and were
+> missing. The two kinds of error had been cancelling in the totals, which is
+> why the counts looked plausible. ⚑ The
 > missing Bloodthirst row was also hiding an unreachable skill: the
 > reachability summary read THREE cheat-only skills when the true answer was
 > four even before this chunk added two. **Every row now corresponds 1:1 to a

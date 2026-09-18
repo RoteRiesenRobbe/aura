@@ -12,14 +12,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Every authored PLAYER skill carries an icon (UI pass C4, ruling D1): all 72
+// Every authored PLAYER skill carries an icon (UI pass C4, ruling D1): all 75
 // definitions in api/skills, cheat rigs and prototypes included, so no surface
 // can ever render a blank token. A new skill without one fails HERE rather than
 // at boot - a missing glyph is a content gap, not a reason to refuse to start.
 //
 // ⚑ Scoped to the TOP LEVEL of api/skills on purpose. api/skills/mobs holds the
 // mob-embedded skills, which author no icon by the same ruling: they are in the
-// 105-entry catalog but never appear in a spellbook. Walking the loaded registry
+// 113-entry catalog but never appear in a spellbook. Walking the loaded registry
 // instead of the directory would fail by construction.
 //
 // ⚑ This reads the repo's api/ tree, not the embedded copy. Content edits do not

@@ -44,7 +44,7 @@ const PAYLOAD = 'payload';
 
 // The 15 top-level keys (skillDefinition's json tags, fixture `topLevelKeys`).
 export const SKILL_PRESENTATION = {
-  id: { control: 'number', unit: 'count', hint: 'Persisted in every spellbook row; never changes once shipped (C5 will lock it).' },
+  id: { control: 'number', unit: 'count', hint: 'Persisted in every spellbook row; never changes once shipped.' },
   name: { control: 'text', hint: 'The reference key everywhere: mob skills[]/unlocks[], milestones, NPC grants, recipes, the SKILL cheat.' },
   displayName: { control: 'text', hint: 'Optional; blank derives one from the name (CamelCase → spaces).' },
   icon: { control: 'icon', hint: 'Required: pick one of the vendored glyphs. An unvendored value renders as a letter fallback and reddens SkillIcons.test.ts.' },

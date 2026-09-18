@@ -9,7 +9,7 @@
 // `go build && go test` does, not to replace that boot-time check — a few
 // deep corners (costs/consequences schema-room tombstones, the exact
 // wire-index edge cases) are deliberately left to Go. See
-// docs/plan-content-editor.md §4/§6.
+// docs/archive/plan-content-editor.md §4/§6.
 
 const QUEST_STAGE_SENTINELS = ['not_started', 'completed', 'running'];
 const CONDITION_KINDS = ['minLevel', 'quest_at_stage', 'bloodline_ascensions', 'kills_this_life'];

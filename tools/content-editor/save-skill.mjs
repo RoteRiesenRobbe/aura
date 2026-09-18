@@ -115,7 +115,7 @@ export function saveSkill({ file, raw, isNew }, deps) {
     // content. A new skill has no twin to compare against, and its id is the
     // loader's business (a collision is `duplicate skill ID`).
     if (raw.id !== onDisk.id) {
-      return refuse('guard', `skill id ${JSON.stringify(onDisk.id)} cannot become ${JSON.stringify(raw.id)}: ids are persisted in every character's spellbook and are never reused (C5 makes this a loader refusal).`);
+      return refuse('guard', `skill id ${JSON.stringify(onDisk.id)} cannot become ${JSON.stringify(raw.id)}: ids are persisted in every character's spellbook and never change.`);
     }
 
     // 4. the rename guard (§B10 L5): `name` is the reference key in five other

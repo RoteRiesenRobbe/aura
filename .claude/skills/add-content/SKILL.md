@@ -45,6 +45,13 @@ the bottom. Trust the code over the manual if a path has drifted.
   hashes, chunk names, rulings, glyphs, history or placement claims (where
   it is obtained lives in the mob/milestone/recipe files). The ledger prose you are
   tempted to write there goes in the plan doc.
+- **A skill file is never deleted, an `id` never changes, a `maxLevel` never
+  decreases** (PO ruling 2026-09-18, `docs/manual-content-authoring.md`,
+  "Retiring a skill: never delete the file"). Skill ids and levels are
+  persisted per character and nothing reconciles a spellbook row against the
+  content at load. Retire a skill by removing it from every unlock source (mob
+  `unlocks[]`, milestones, NPC `teach_skill`, recipes) and leaving the file on
+  disk; re-pricing a level is how you weaken a skill, not a lower cap.
 - **New skill = NO client-side edit.** The old `Skills.ts` triple map is gone
   (plan-ui-polish C1): the client fetches skill metadata from the aurad sidecar
   (`GET /skills`) at startup, so the backend registry is the single source. No

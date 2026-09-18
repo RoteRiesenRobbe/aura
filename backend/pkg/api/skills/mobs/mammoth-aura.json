@@ -1,0 +1,19 @@
+{
+  "_comment": "A mob-only damage aura: 12 HP to the nearest enemy inside a 1.0-unit ring every 40 ticks. All values placeholder. Kept on disk because a skill id is never deleted (docs/manual-content-authoring.md, \"Retiring a skill\").",
+  "id": 103,
+  "name": "MammothAura",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "damageHP": 12,
+      "damageHPPerLevel": 0.0,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "tickInterval": 40
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "_comment": "A physical damage aura on the nearest enemy in a 1.4-unit ring every 40 ticks, 10 HP plus 2.4 per level: a wider reach than the base Damage aura, paid for with a resource cost per hit. All values placeholder.",
+  "id": 3,
+  "name": "Wild",
+  "icon": "lorc/broadsword",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "costFractionOfMax": 0.0082,
+      "costFractionOfMaxPerLevel": 0.00195,
+      "radius": 1.4,
+      "radiusPerLevel": 0.05,
+      "damageHP": 10,
+      "damageHPPerLevel": 2.4,
+      "damageTags": ["physical"],
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 40
+    }
+  ]
+}

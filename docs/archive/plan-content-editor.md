@@ -1,15 +1,16 @@
 # Plan: the content editor (`tools/content-editor/`)
 
-> **Status 2026-09-12: Part A SHIPPED (2026-08-27/28, `ebf4cfe5` + `6c2e6d5c`),
+> **Status 2026-09-18: Part A SHIPPED (2026-08-27/28, `ebf4cfe5` + `6c2e6d5c`),
 > Part B DESIGNED 2026-09-08, C0 SHIPPED 2026-09-10 (`60fb44d2`), C1 SHIPPED
 > 2026-09-11 (`7b90fb5e`) and PO-passed the same day, C2 SHIPPED 2026-09-11
 > (`5a9b5650`), C3 SHIPPED 2026-09-12 (`dd05b9f4`) and PO-passed the
 > same day (§B11 Q6 closed: no reformat, plus the same-day category-rule
-> rider), C4 next.** This is the living plan of the one tool: **Part A** is
+> rider), C4 SHIPPED 2026-09-12 (`71183777`), ⛔ C5 CUT 2026-09-18 and
+> replaced by a written rule (§B12 C5): the plan is COMPLETE.** This is the living plan of the one tool: **Part A** is
 > the original design (NPC dialogue trees + quest stage
 > graphs, D1: custom, not Corkboard) and what actually shipped, which went
 > well past its v1 scope; **Part B** is the Skills tab, the spell builder,
-> designed 2026-09-08 and next. ⚑ Part A was never ledgered or indexed after
+> designed 2026-09-08, shipped C0-C4 2026-09-10 to 09-12, C5 cut 2026-09-18. ⚑ Part A was never ledgered or indexed after
 > it shipped: this banner said "nothing built" for twelve days while the tool
 > had six tabs. Fixed 2026-09-08 (§8). `tools/content-editor/README.md` is
 > the living SCOPE record; this doc holds the rulings and the ledgers.
@@ -18,7 +19,7 @@
 > files the loaders already read. ⭐ **This is the ONLY content-tooling plan
 > (PO 2026-09-08)**: `archive/plan-content-tooling.md` is superseded, and its
 > two survivors live here - real Go validation on save (Part B D9 / C2) and
-> the D5 registry lock (Part B C5). Its load-time reconciliation policy is
+> the D5 registry lock (Part B C5, ⛔ CUT 2026-09-18 for a written rule, §B12 C5). Its load-time reconciliation policy is
 > `backlog.md` §61.
 
 ## Part A - dialogue trees, quest graphs, and the tabs that followed
@@ -657,8 +658,8 @@ Six, each its own session; C0, C2 and C5 carry Go.
   scope section, `manual-content-authoring.md` "Known hand-sync points"
   (the fixture REPLACES the hand-sync for skills - say so), the add-content
   skill's landmine list (the fixture-regen step), `docs/README.md`.
-- **C5 - the registry lock** (D5 rules 1 and 2, carried from the archived
-  plan). A checked-in `api/registry-lock.json`: for every skill `id → {name,
+- **C5 - the registry lock** ⛔ **CUT 2026-09-18, replaced by a written rule (ledger §B12 C5).** As designed (D5 rules 1 and 2, carried from the archived
+  plan): A checked-in `api/registry-lock.json`: for every skill `id → {name,
   maxLevelFloor}`, retired entries moved to a `tombstones` list instead of
   deleted. Enforced at **boot AND in `-validate`** (there is no CI to run the
   latter, so boot is the loud path): an id reused from the tombstones, an id
@@ -1596,6 +1597,134 @@ noted to the PO as a tuning matter, not fixed here. ⚑ The checklist's
 is MEASURED STALE and this is a cheat-only test spell, not content anyone
 hunts.
 
-**Next: C5** (the registry lock: `api/registry-lock.json`, tombstones, boot
-AND `-validate` enforcement, `-validate -update-lock`; auto-id then comes from
-the lock, closing L3, and the L4 lowering warning becomes a loader refusal).
+**Next: C5**, which became the ruling below.
+
+#### C5 - the registry lock ⛔ CUT 2026-09-18, replaced by the rule "ids are forever, so nothing is ever deleted"
+
+**The ruling (PO, 2026-09-18).** The session opened on "let's finish the
+spell builder" and the PO asked what the lock was actually for, in plain
+words. The honest answer, measured against the repo rather than the August
+design: the lock is a machine that enforces two rules (a skill id is never
+reused, a `maxLevel` never decreases) against a failure that has happened
+exactly once since persistence exists, and that once was an AI cleanup
+session deleting five mob-only auras with their species. The PO ruled:
+**keep the rules, drop the machine, and bring every deleted skill back.**
+In the PO's words: *"content questions do not matter at all, we can always
+choose not to place a spell in the world. Lets go with the rule, ensure we
+don't do anything stupid in the fixing process."*
+
+**The rule, in full** (written into `manual-content-authoring.md` §2, the
+`add-content` skill and CLAUDE.md's content rules by this chunk):
+
+1. **A skill file is never deleted.** A skill nobody should obtain stays on
+   disk and is removed from every unlock source instead (mob `unlocks[]`,
+   milestones, NPC `teach_skill`, recipes). It then exists for the loader,
+   the SKILL cheat and every character who already holds it, and for nobody
+   else.
+2. **A skill's `id` never changes** (the editor's id guard already refuses
+   it) and, because of rule 1, is never re-minted: max + 1 over the files on
+   disk is a safe auto-id once nothing is ever removed from the disk. §B10
+   L3 closes on that.
+3. **`maxLevel` never decreases.** Adjust the per-level numbers instead. The
+   editor's L4 confirm stays as the reminder; it no longer promises a loader
+   refusal.
+
+**What "bring them back" turned out to mean, measured.** Nine skill files
+have ever been deleted from `api/skills/`. Two were renames with the id kept
+(Light 6 → Lantern, TurnipPull 41 → Harvest): one entry each, nothing to
+restore. **Seven come back in this chunk**, restored from their parent
+commits and brought up to today's authoring rules (no `legacy` key, an
+`icon` on the two player skills, a damage type and a cost on Wild,
+`_comment`s rewritten as authoring notes):
+
+| id | name | folder | why it went | comes back as |
+| --- | --- | --- | --- | --- |
+| 3 | Wild | `skills/` | numbers rewrite D12 item 4, "proof of concept" | cheat-only, no unlock source (EliteWolf's slot stays empty by the 2026-08-01 ruling) |
+| 28 | Recall | `skills/` | became the free baseline utility (`plan-downtime.md` R4 C1) | cheat-only spellbook cooldown beside the free button |
+| 101 | DodoAura | `skills/mobs/` | legacy roster purge (zone-editor C3) | mob-only skill of a species that no longer exists; nothing references it |
+| 102 | SaberToothCatAura | `skills/mobs/` | same | same |
+| 103 | MammothAura | `skills/mobs/` | same | same |
+| 104 | AngryMammothAura | `skills/mobs/` | same | same |
+| 105 | AngryMammothStomp | `skills/mobs/` | same | same |
+
+⚑ **One consequence, by design:** restoring an id restores the skill for
+every character whose persisted spellbook still holds it. A character that
+owned Recall before 2026-08-03 gets a spellbook Recall back next to the free
+one. That is rule 1 working as intended.
+
+**The rename question, answered here because the PO asked it.** The `id` is
+what the database stores and is the only forever thing. The `name` key is
+the internal reference key (mob unlocks, milestones, NPC teaching, recipes,
+the SKILL cheat) and changes freely as long as every reference moves in the
+same edit, which is why the tab refuses a rename while references exist
+(L5). `displayName` is the optional in-game label and derives from `name`
+when absent.
+
+**What the cut leaves behind.** No lock file, no `-update-lock`, no boot
+rule. `backlog.md` §61 (load-time reconciliation) keeps its rules but loses
+C5 as its trigger: under rule 1 an unknown persisted id should never arise,
+so its remaining case is a persisted level above cap, which rule 3 prevents
+at the source. The archived `plan-content-tooling.md` D5 rules 1 and 2 stand
+as RULES, enforced by the manual and the editor's guards, not by Go.
+
+**Ledger, 2026-09-18 `[uncommitted]`.** Built by an Opus 5 agent from the
+ruling above, reviewed and wrapped in the same session.
+
+- **The seven files are back**, each restored from the parent of its deleting
+  commit and diffed against it by script: identical apart from `_comment`,
+  the dropped `legacy` key, the added `icon` and Wild's three additions.
+  Wild authors `damageTags: ["physical"]` and `costFractionOfMax 0.0082`
+  (+0.00195 per level), copied from Berserker, the nearest standalone
+  non-free maxLevel-5 damage aura (drain 0.75 %/s at level 1, the survivable
+  bound is 6 %). Recall keeps its 0.05 (the cost test skips cooldowns).
+  Icons: Wild `lorc/broadsword` like every physical aura, Recall
+  `lorc/return-arrow`, the glyph the free utility already wears. The five
+  mob files author none (the icon test asserts both directions).
+- **Pins**: `registry_test.go` 106 → **113** (75 player + 38 mob);
+  `skill_icon_content_test.go`'s comments 72 → 75 and 105 → 113. Left as
+  dated measurements on purpose: `definition.go:1518` ("All 105 shipped
+  skill files fit this table exactly, measured") and
+  `verify/c4-ally-speed.mjs:67`.
+- **Editor**: `NEW_ID_HINT`, the maxLevel-lowering confirm, the id-guard
+  message, `skill-presentation.mjs`'s id hint, the README and three comment
+  blocks reworded to the rule; `grep -rn C5 tools/content-editor/` is empty.
+  The confirm and the guard STAY: they are the reminders the rule relies on.
+  `content-editor-skills-tab.mjs`'s L3 leg asserted the old caveat text and
+  went red, so it was rewritten to assert the never-deleted rule in this
+  chunk (0 problems after).
+- **Docs**: `manual-content-authoring.md` §2 gains "Retiring a skill: never
+  delete the file" (the three rules, the reason, the `name`-vs-`id`
+  distinction, the one-line history); the `add-content` skill gains the
+  landmine bullet; `backlog.md` §61's trigger no longer names C5;
+  `content-skill-inventory.md`'s "no longer exist" claim is corrected in
+  place; `api/mobs/elite-wolf.json`'s `_comment` is an authoring note again
+  (the deletion claim and the dated drop history are gone, the empty slot is
+  stated as deliberate).
+- ⚑ **The comment rule bit its own author.** The task text asked the five
+  mob comments to say the species is not in the roster; the agent wrote "No
+  mob in the roster carries it", which is precisely the placement claim the
+  manual forbids, and flagged it. Stripped in review to "Kept on disk because
+  a skill id is never deleted".
+- ⚑ `gofmt -l` lists 12 files at HEAD, none touched here (unowned). The
+  editor has no `npm test` script; its two test files run via
+  `node --test *.test.mjs`. `backend/pkg/api/mobs/*.json` is gitignored while
+  the `skills/` copies are tracked, so the refreshed embedded elite-wolf copy
+  shows nowhere in git.
+
+**Schema impact: DB NONE, wire NONE, conf NONE.** Content: seven skill files
+restored, one mob `_comment` rewritten, the embedded copies refreshed by
+`cp-defs`.
+
+**Verified:** `go build ./...` · `go test -count=1 ./...` **35 pkgs, 0
+failures** (red-first: exactly the icon test and the count pin failed on the
+raw restores) · `./aurad -validate -content ../api` **0 findings,
+`count=113`** and the same WITHOUT `-content` (the embed is in sync) · a real
+boot both ways, 0 ERROR/panic · editor `node --test` **2/2**, `npm run smoke`
+**0 findings across 113 files / 170 effects** · frontend **678 tests / 38
+files** + typecheck clean · `content-editor-skills-tab.mjs` **0 problems**
+after the rewritten leg · no new em dash in any edited file.
+
+**The plan is COMPLETE**: Part A shipped, Part B C0-C4 shipped and C5 cut by
+ruling. Archived 2026-09-18. Open beside it, both PO calls: §B11 Q7 (Go
+validation for every tab, retiring `validate.mjs`'s port) and `backlog.md`
+§61 (load-time reconciliation, now without a trigger date).

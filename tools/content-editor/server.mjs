@@ -15,7 +15,7 @@
  * shipped to players, deriving its pick-lists from api/ instead of
  * duplicating them.
  *
- * See docs/plan-content-editor.md for the design (D1: custom, not an
+ * See docs/archive/plan-content-editor.md for the design (D1: custom, not an
  * adapted external tool; scope; what this deliberately does not cover).
  *
  * ⚑ ONE endpoint breaks the no-aurad rule, deliberately: POST

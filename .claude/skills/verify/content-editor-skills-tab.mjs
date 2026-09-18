@@ -36,7 +36,7 @@
 //      lands on Companion in the Mobs tab. (Two groups since
 //      plan-summon-follows.md C2 retired the follower role.)
 //   2c. the C4 NEW-SKILL flow: "+ New" prompts, opens a draft with the id =
-//      max over BOTH skill folders + 1, the L3 caveat beside it, NO category,
+//      max over BOTH skill folders + 1, the never-deleted rule beside it, NO category,
 //      NO card and the "not yet saved" badge; a second "+ New" with the same
 //      name is refused client-side; category + icon + one damage_aura card are
 //      filled and SAVED, the file lands on disk with exactly the authored keys,
@@ -444,7 +444,10 @@ try {
   if (draft.category !== '') problems.push(`the new draft opened WITH a category (${JSON.stringify(draft.category)}); the PO ruling is unset`);
   if (draft.cards !== 0) problems.push(`the new draft opened with ${draft.cards} effect card(s), expected none`);
   if (draft.icon !== 1) problems.push(`the new draft has ${draft.icon} icon radio(s) checked, expected exactly the "(none)" one`);
-  if (!/re-mints/.test(draft.idHints)) problems.push(`the new draft's id field does not carry the L3 caveat: ${JSON.stringify(draft.idHints.slice(0, 120))}`);
+  // The hint used to be the L3 caveat ("C5's lock is the real fix"); since C5
+  // was cut for the rule (plan-content-editor.md §B12 C5, 2026-09-18) it states
+  // the rule that makes max + 1 safe: a skill file is never deleted.
+  if (!/never deleted/.test(draft.idHints)) problems.push(`the new draft's id field does not carry the never-deleted rule: ${JSON.stringify(draft.idHints.slice(0, 120))}`);
   if (!draft.hints.some((h) => /category is required/.test(h))) problems.push(`the live hints do not ask for a category: ${JSON.stringify(draft.hints)}`);
 
   // A second "+ New" with the same name is refused CLIENT-SIDE (an alert), so

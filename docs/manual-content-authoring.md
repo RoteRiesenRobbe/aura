@@ -538,6 +538,44 @@ Two things keep the surface small, and neither removes it:
 A Warbanner that heals before it damages is a different skill at 5 % health than
 one that damages before it heals.
 
+### Retiring a skill: never delete the file
+
+*(PO ruling 2026-09-18, `plan-content-editor.md` §B12 C5, which replaced the
+planned registry lock with this rule.)* A skill's `id` and its level are
+**persisted per character** (`game.character_spellbook`). Nothing in the game
+reconciles a spellbook row against the content at load (`backlog.md` §61 is
+unbuilt), so the content tree has to hold still under the rows instead. Three
+rules, and they are the whole mechanism:
+
+1. **A skill file is never deleted.** A skill nobody should obtain any more
+   stays on disk and is retired by removing it from every unlock source
+   instead: the mob `unlocks[]` entries, `api/milestones/`, an NPC's
+   `teach_skill` row, and any recipe that produces it. It then still exists for
+   the loader, for the `SKILL` cheat and for every character who already holds
+   it, and for nobody else. (Check the sources with
+   `tools/content-editor/skill-references.mjs`, or grep the `name` across
+   `api/`.)
+2. **An `id` never changes**, and because of rule 1 it is never re-minted
+   either: with nothing ever leaving the disk, "highest id on disk plus one" is
+   a safe new id, which is exactly how the content editor assigns one. A
+   re-minted id would hand a stranger's skill to every character that held the
+   old one, silently, at their next load.
+3. **`maxLevel` never decreases.** Adjust the per-level numbers instead. A
+   lowered cap orphans every persisted row above it, and nothing clamps them.
+   The editor's confirm on a lowering save is the reminder, not a gate.
+
+The `name` key is different: it is the internal reference key (mob unlocks,
+milestones, NPC teaching, recipes, the `SKILL` cheat) and may change freely as
+long as every reference moves in the same edit. The editor refuses a rename
+while references exist, for that reason. `displayName` is the player-facing
+label and derives from `name` when absent.
+
+⚑ History, so the restored files are not mistaken for dead weight: seven skill
+files were deleted before this rule existed and were restored 2026-09-18 (Wild
+id 3, Recall id 28, and the five mob-only skills ids 101-105, whose species
+are no longer in the roster). Two further deletions were renames that kept the id
+(Light 6 became Lantern, TurnipPull 41 became Harvest) and needed nothing.
+
 ### Backend / data
 
 1. **`api/skills/newskill.json`** — copy `api/skills/damage.json`:

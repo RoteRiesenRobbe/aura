@@ -10,7 +10,7 @@ builder) and the **milestone-unlock table**
 (`api/milestones/milestone-unlocks.json`, one shared file). No dependencies,
 no build step, no running `aurad`.
 
-Design record: `docs/plan-content-editor.md` (D1: custom, not an adapted
+Design record: `docs/archive/plan-content-editor.md` (D1: custom, not an adapted
 external tool; the invariants it enforces). Stat-field, faction, recipe and
 milestone editing were later additions beyond that doc's original v1 scope.
 
@@ -127,9 +127,10 @@ What C4 added on top of C3's write path:
   no icon. The category decides which effect types are legal at all, so
   guessing one would either pick your direction for you or seed a card the
   loader refuses; the live hints ask for the rest. `id` is the highest id
-  across BOTH skill folders plus one, read-only, with its own caveat beside it
-  (it re-mints the id of a deleted skill that held the highest, which C5's
-  registry lock closes). The draft carries a **not yet saved** badge until it
+  across BOTH skill folders plus one, read-only, with the rule that makes it
+  safe beside it: a skill file is never deleted, so an id on disk cannot go
+  missing and max + 1 can never re-mint one (`docs/manual-content-authoring.md`,
+  "Retiring a skill"). The draft carries a **not yet saved** badge until it
   is written.
 - **The icon picker** replaces the text field: the vendored glyph set
   (`frontend/src/client-data/icons/SkillIcons.generated.ts`, parsed off disk by
@@ -192,8 +193,9 @@ What C3 added on top of C1's read-only form:
   never placement claims. The rule is in `docs/manual-content-authoring.md`,
   "The `_comment` field", and abridged under the box.
 - **`id` stays read-only.** It is persisted in every character's spellbook row
-  (`game.character_spellbook.skill_id`); C5 turns the tool's restraint into a
-  loader lock.
+  (`game.character_spellbook.skill_id`), so it never changes: the rule, not a
+  lock file, is what holds it (`docs/manual-content-authoring.md`, "Retiring a
+  skill").
 - **Parked types open read-only, whole.** A skill authoring `ThrowBomb` or
   `ThrowMine` (effect type `projectile`) shows every control disabled and no
   Save button, with the banner saying why.
@@ -232,7 +234,7 @@ a skill runs no JS port of the Go rules at all. In order:
    (`{ok: true, warnings, checklist, skillCount}`).
 
 **The two failure shapes are different on the wire, and the client branches on
-the HTTP status** (`docs/plan-content-editor.md` §B10 L12): a **200** with
+the HTTP status** (`docs/archive/plan-content-editor.md` §B10 L12): a **200** with
 `{ok: false, stage, errors}` is a refusal (a guard, or the loader rejecting the
 content), while a **non-200** means the validator could not answer at all - no
 binary, a stale one, a crash. Reading `ok` alone would render
@@ -240,8 +242,9 @@ binary, a stale one, a crash. Reading `ok` alone would render
 
 ⚑ Lowering `maxLevel` asks for a confirm before the POST: persisted skill
 levels may already exceed the new cap and nothing clamps them (the
-reconciliation policy is `backlog.md` §61, unbuilt). C5 makes it a loader
-refusal.
+reconciliation policy is `backlog.md` §61, unbuilt). The rule is that a
+shipped `maxLevel` never decreases, and the per-level numbers move instead;
+the confirm is the reminder.
 
 ⚑ A save is **half-live**: the file is right, the running game is not. Restart
 `aurad` to see it.
