@@ -1667,7 +1667,7 @@ so its remaining case is a persisted level above cap, which rule 3 prevents
 at the source. The archived `plan-content-tooling.md` D5 rules 1 and 2 stand
 as RULES, enforced by the manual and the editor's guards, not by Go.
 
-**Ledger, 2026-09-18 `[uncommitted]`.** Built by an Opus 5 agent from the
+**Ledger, 2026-09-18 `e9e945cd`.** Built by an Opus 5 agent from the
 ruling above, reviewed and wrapped in the same session.
 
 - **The seven files are back**, each restored from the parent of its deleting
