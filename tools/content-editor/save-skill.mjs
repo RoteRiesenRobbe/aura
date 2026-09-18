@@ -58,7 +58,7 @@ function checklistFor(isNew, skillCount) {
   ];
   if (!isNew) return out;
   out.push(`Bump the registry pin in backend/pkg/aura/skills/registry_test.go to assert.Len(t, r.All(), ${skillCount}) - that is the skill files now on disk across api/skills/ and api/skills/mobs/. Until it is bumped, go test is red at HEAD.`);
-  out.push('Add a row to docs/content-skill-inventory.md by hand: it was generated once and has been hand-maintained since (it carries its own stale marker). There is no generator script.');
+  out.push('Regenerate docs/content-skill-inventory.md with npm run inventory in tools/content-editor/ (it rewrites the whole file from api/). Optional: the doc is allowed to lag behind the content, so run it when you want a current picture.');
   out.push('Place it in the other tabs (a milestone row, a mob unlocks[], an NPC teach_skill grant, a recipe result, an ascension stone reward) or it stays cheat-only, reachable only through the SKILL cheat.');
   return out;
 }

@@ -164,10 +164,10 @@ What C4 added on top of C3's write path:
   RESPONSE, not the browser: restart `aurad` always, and for a new skill also
   bump `assert.Len(t, r.All(), N)` in
   `backend/pkg/aura/skills/registry_test.go` to the count the server just
-  measured on disk, add a row to `docs/content-skill-inventory.md` by hand (it
-  was generated once and hand-maintained since, and carries its own stale
-  marker; there is no generator script), and place the skill in the other tabs
-  or it stays cheat-only. It stands until the form is re-rendered: it is a
+  measured on disk, regenerate `docs/content-skill-inventory.md` with `npm run
+  inventory` (the doc is allowed to lag behind `api/`, so this is a "when you
+  want a current picture" step, not a gate), and place the skill in the other
+  tabs or it stays cheat-only. It stands until the form is re-rendered: it is a
   receipt for the save that happened, not standing state.
 
 What C3 added on top of C1's read-only form:
@@ -317,6 +317,35 @@ checks, and the skill save path's unit checks (`save-skill.test.mjs`: the
 path / id / rename guards, a finding refusing the write, a clean candidate
 written with its unrendered keys intact, a throwing seam propagating - every
 case over a temp copy of `api/`, none over the repo).
+
+## The skill inventory: `npm run inventory`
+
+```bash
+npm run inventory    # or: node tools/content-editor/skill-inventory.mjs
+```
+
+`skill-inventory.mjs` rewrites `docs/content-skill-inventory.md` in full from
+`api/`: every player and mob-only skill with its authored fields, and the
+sources a player obtains it through. It owns the whole file, prose included,
+so there is no hand-edited region and no markers to respect.
+
+It reuses this tool's own modules rather than re-scanning: `files.mjs` for the
+two-level skills walk, `vocabulary.mjs` for the key lists and their order,
+`skill-presentation.mjs` for units and labels, and `collectSkillReferences`
+for the sources - the same scan the rename guard and the "Obtained via" panel
+run, so the doc and the tool can never disagree about whether a skill is
+reachable. Nothing in it types a per-type field list by hand, which is what
+the doc's predecessor did for a year and drifted three ways doing.
+
+⚑ **The doc is allowed to lag behind `api/`.** It is a snapshot for reading,
+not a pin; nobody owes a regeneration as part of a content edit. Its own
+header says so, and it carries the date and commit it was generated at.
+
+Self-checks, all fatal: every skill file rendered exactly once, the player and
+mob-only counts summing to the files on disk, two renders of the same tree
+byte-identical, every vocabulary top-level key either rendered or explicitly
+skipped, every authored effect key legal on its type with a presentation
+entry, and every skill name another content file points at present on disk.
 
 ## The save seam: `aurad -validate`
 

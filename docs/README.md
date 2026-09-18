@@ -104,7 +104,7 @@ go to `backlog.md`; this section is content only.
 - **content-story.md** — cross-zone story arcs + breadcrumb chains
 - **content-world.md** — zone progression map (21+ zones), scope tiers, connections, unplaced locations
 - **content-ability-matrix.md** - the **possibility space**: the effect vocabulary as a grid (category × effect type × damage type), which cells are filled, which are empty, what the vocabulary cannot express, and how many relevant abilities are authorable. Owns the empty cells and the count only; numbers and sources stay in the inventory, per-ability intent stays in the three catalogs above
-- **content-skill-inventory.md** — **generated** from `api/` (not hand-maintained): every player skill with id, maxLevel, values and **unlock source**, plus the reachability sweep. The source of truth the three catalogs above point at; regenerate after any content chunk
+- **content-skill-inventory.md** - **generated in full** from `api/` by `npm run inventory` in `tools/content-editor/`: every skill with its id, maxLevel, cost, timing, effects and **unlock sources**, now covering the mob-only skills in `api/skills/mobs/` too, plus a derived reachability summary. It is allowed to lag behind the content - regenerate whenever you want a current picture, and trust `api/` and the loader over the doc
 - **content-zone1.md** — Zone 1 (village + forest) design intent
 - **content-zone2.md** — Zone 2 (village + City Gates + the front) design intent
 

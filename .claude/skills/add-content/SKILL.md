@@ -134,15 +134,21 @@ at HEAD (this bit C2 — "Part 1 never bumped the pinned count"). After adding:
    section of the `verify` skill for the exact grep. A stale `aurad`
    process silently masks new content.
 4. **In-game smoke:** the `verify` skill (real client, HUD-driven).
-5. **Regenerate `docs/content-skill-inventory.md`** if you touched skills,
-   mob `unlocks[]`, NPC `teachings[]`, recipes, or the milestone table. It is
-   **generated, not hand-maintained** — the doc carries its own regeneration
-   script. Re-run the reachability sweep at the bottom too: every player skill
-   should have a non-legacy world source (`FireWard` is the one known,
-   tracked exception). This is the step that keeps the docs honest: the
-   step-7 A.6 rename (`24806352`) touched zero docs, and the catalogs drifted
-   for days — stale names, wrong drop chances, and a reachability summary
-   claiming 7 cheat-only skills when only 1 was.
+5. **Optional: refresh `docs/content-skill-inventory.md`** with `npm run
+   inventory` in `tools/content-editor/`. It rewrites the whole file from
+   `api/`: every player and mob-only skill, its authored fields, its sources,
+   and the reachability summary (which the script derives, so there is no
+   sweep to re-run by hand). **The doc is allowed to lag behind the content**:
+   it is a snapshot for reading, not a pin, and nothing breaks while it is
+   stale. Run it when you want a current picture.
+
+   The six source kinds it derives: a milestone row, a mob `unlocks[]` entry,
+   a `teach_skill` grant inside a mob's `interaction` tree (NPC teaching has
+   no `teachings[]` list; that section died with entity-model chunk 3a), a
+   `teach_skill` grant riding a quest turn-in row, a recipe result, and an
+   ascension stone's `rewards`. A skill named by none of them is cheat-only,
+   and the doc's Reachability section lists those split into unplaced content,
+   test rigs and parked prototypes.
 
    The three design catalogs (`content-auras.md` / `content-passives.md` /
    `content-cooldowns.md`) deliberately **do not** repeat sources or numbers —
