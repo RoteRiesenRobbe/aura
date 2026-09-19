@@ -145,7 +145,7 @@ export function saveSkill({ file, raw, isNew }, deps) {
   if (!ok) return { ok: false, stage: 'validate', errors: findings };
 
   // 6. write. The client round-trips the whole raw object and edits it in
-  // place, so _comment and every key the form never renders (hitStyle, legacy,
+  // place, so _comment and every key the form never renders (visual, legacy,
   // forwardUnits, armTicks - §B4.8, L8) are written back untouched.
   writeFileSync(abs, prettyJson(raw) + '\n', 'utf8');
 

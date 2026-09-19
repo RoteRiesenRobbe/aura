@@ -72,7 +72,7 @@ function pascalKeyed(table: { [key: string]: number }): { [name: string]: number
 // effect type fails HERE first, with a message naming it, before it fails as a
 // missing render.
 const DAMAGE = {
-    hp: 5, hpPerLevel: 1, tags: ['physical'], gateKey: '', variance: 0, hitStyle: '',
+    hp: 5, hpPerLevel: 1, tags: ['physical'], gateKey: '', variance: 0,
     structureDamageFraction: 0, executeBelowFraction: 0, executeBonusFactor: 0,
     berserkerMaxBonusFactor: 0, critChance: 0, critChancePerLevel: 0, critFactor: 0,
     lifestealFraction: 0,

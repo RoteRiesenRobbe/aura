@@ -266,7 +266,7 @@ describe('character power scale', () => {
 function damageParams(hp: number, hpPerLevel: number = 0) {
     return {
         hp, hpPerLevel, tags: ['physical'], gateKey: '', variance: 0,
-        hitStyle: 'all', structureDamageFraction: 0,
+        structureDamageFraction: 0,
         executeBelowFraction: 0, executeBonusFactor: 0, berserkerMaxBonusFactor: 0,
         critChance: 0, critChancePerLevel: 0, critFactor: 0, lifestealFraction: 0,
     };

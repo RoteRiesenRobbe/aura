@@ -42,7 +42,6 @@ type touchRecorder struct {
 	sources    []model.Combatant // Damage.Source per hit (threat attribution, chunk 3)
 	crits      []bool            // Damage.Crit per hit (chunk 1)
 	lifesteals []float32         // Damage.Lifesteal per hit (chunk 1)
-	hitStyles  []model.AuraHitStyle
 }
 
 // atLevelNormalAward is what a level-1 participant earns from a level-1 normal
@@ -61,15 +60,9 @@ func (r *touchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage)
 	r.crits = append(r.crits, damage.Crit)
 	r.lifesteals = append(r.lifesteals, damage.Lifesteal)
 }
-func (r *touchRecorder) NoteAuraHit(style model.AuraHitStyle) {
-	r.hitStyles = append(r.hitStyles, style)
-}
 func (r *touchRecorder) Faction() model.Faction { return model.FactionHostile }
 
-var (
-	_ model.Interacter      = (*touchRecorder)(nil)
-	_ model.AuraHitNotifier = (*touchRecorder)(nil)
-)
+var _ model.Interacter = (*touchRecorder)(nil)
 
 // fakePlayer satisfies both skillEntity and model.PlayerEntity. The embedded
 // nil PlayerEntity provides all interface methods; any method that is not
@@ -455,46 +448,6 @@ func TestApplyDamageAura_CarriesGateKey(t *testing.T) {
 	assert.Equal(t, "harvest", mobTarget.factors[0].GateKey)
 }
 
-func TestApplyDamageAura_TagsFireStyleForFastTick(t *testing.T) {
-	caster := newFakePlayer()
-	target := &touchRecorder{}
-	set := colliderSetOf(target)
-
-	// A fast-tick aura (interval below the slash threshold) reads as sustained fire.
-	applyDamageAura(caster, testSkillID, 1, damageEffect(1), set, testRNG())
-
-	require.Len(t, target.hitStyles, 1)
-	assert.Equal(t, model.AuraHitStyleFire, target.hitStyles[0])
-}
-
-func TestApplyDamageAura_TagsSlashStyleForSlowTick(t *testing.T) {
-	caster := newFakePlayer()
-	target := &touchRecorder{}
-	set := colliderSetOf(target)
-
-	// A slow-tick aura (interval at/above the slash threshold) reads as a discrete slash.
-	applyDamageAura(caster, testSkillID, 1, damageEffect(auraSlashTickThreshold), set, testRNG())
-
-	require.Len(t, target.hitStyles, 1)
-	assert.Equal(t, model.AuraHitStyleSlash, target.hitStyles[0])
-}
-
-func TestApplyDamageAura_MobCaster_TagsHitStyle(t *testing.T) {
-	caster := newFakeMob()
-	target := &mobTouchRecorder{}
-	effect := skills.EffectDef{
-		Type:           skills.EffectTypeDamageAura,
-		TargetsEnemies: true,
-		TickInterval:   auraSlashTickThreshold,
-		Damage:         &skills.DamageParams{HP: 0.004},
-	}
-
-	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
-
-	require.Len(t, target.hitStyles, 1)
-	assert.Equal(t, model.AuraHitStyleSlash, target.hitStyles[0])
-}
-
 func TestApplyDamageAura_NoFriendlyFire(t *testing.T) {
 	caster := newFakePlayer()
 	otherPlayer := &playerTouchRecorder{basic: ecs.NewBasic()}
@@ -744,22 +697,15 @@ func TestProcessEntity_SubMaxRadiusEffectSkipsMidSensorTarget(t *testing.T) {
 // mobTouchRecorder implements model.Interacter and records MobTouches calls —
 // it stands in for a player or structure hit by a mob's aura.
 type mobTouchRecorder struct {
-	factors   []mobs.Factors
-	hitStyles []model.AuraHitStyle
+	factors []mobs.Factors
 }
 
 func (r *mobTouchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage) {}
 func (r *mobTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {
 	r.factors = append(r.factors, factors)
 }
-func (r *mobTouchRecorder) NoteAuraHit(style model.AuraHitStyle) {
-	r.hitStyles = append(r.hitStyles, style)
-}
 
-var (
-	_ model.Interacter      = (*mobTouchRecorder)(nil)
-	_ model.AuraHitNotifier = (*mobTouchRecorder)(nil)
-)
+var _ model.Interacter = (*mobTouchRecorder)(nil)
 
 // fakeMob satisfies skillEntity and model.MobEntity via the embedded nil
 // interface (panics loudly on any method the test did not anticipate).
@@ -2522,8 +2468,8 @@ func TestApplyDotEffect_SameFactionTargetExcluded(t *testing.T) {
 }
 
 // dotVictim carries a real skills.Buffs store and satisfies skillEntity +
-// dotCarrier + Interacter + AuraHitNotifier, so tickDots runs end-to-end
-// against the real store lifecycle.
+// dotCarrier + Interacter, so tickDots runs end-to-end against the real store
+// lifecycle.
 type dotVictim struct {
 	basic      ecs.BasicEntity
 	sc         *skills.SkillComponent
@@ -2531,7 +2477,6 @@ type dotVictim struct {
 	buffs      skills.Buffs
 	playerHits []model.Damage
 	mobHits    []mobs.Factors
-	hitStyles  []model.AuraHitStyle
 }
 
 func newDotVictim() *dotVictim {
@@ -2555,7 +2500,6 @@ func (v *dotVictim) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 func (v *dotVictim) MobTouches(m model.MobEntity, factors mobs.Factors) {
 	v.mobHits = append(v.mobHits, factors)
 }
-func (v *dotVictim) NoteAuraHit(style model.AuraHitStyle) { v.hitStyles = append(v.hitStyles, style) }
 
 // fakeMobCaster is a mob-typed caster reference for mob-sourced dots; only
 // its type identity is used (tickDots type-switches on the caster).
@@ -2580,8 +2524,6 @@ func TestTickDots_PlayerSourcedDamageRidesPlayerTouches(t *testing.T) {
 		assert.InDelta(t, 4, hit.HP, 1e-6, "no variance authored → exact center")
 		assert.Equal(t, []string{"fire"}, hit.Tags, "damage tags reach the target's mitigation")
 	}
-	assert.Equal(t, []model.AuraHitStyle{model.AuraHitStyleFire, model.AuraHitStyleFire, model.AuraHitStyleFire},
-		v.hitStyles, "every dot event stamps the fire hit VFX")
 	assert.Empty(t, v.mobHits)
 }
 

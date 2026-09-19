@@ -55,7 +55,6 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	// Current total absorb capacity — a live value (skill-vocab chunk 2).
 	AuraApi.CharacterAddShieldHp(builder, p.ShieldHP().UInt32())
 	AuraApi.CharacterAddXpGained(builder, u64ToU32Clamped(p.XpGained()))
-	AuraApi.CharacterAddAuraHitStyle(builder, byte(p.AuraHitStyle()))
 	// One-tick stamp: a campfire became the respawn anchor (chunk 4).
 	AuraApi.CharacterAddCampfireBound(builder, p.CampfireBound())
 	// In-combat flag — drives the HUD combat indicator.

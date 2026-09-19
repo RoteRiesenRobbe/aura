@@ -227,7 +227,12 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// ever deleted", and every skill file ever deleted comes back under it -
 	// Wild id 3, Recall id 28 and the five mob-only skills ids 101-105.
 	// 106 → 113.
-	assert.Len(t, r.All(), 113)
+	// + LightningStrike (plan-skill-vfx.md C2a, 2026-09-19), id 76: an active
+	// aura that hits the nearest three inside a Long-Range Strike ring for
+	// well under half its damage per hit, and the first content the `beam`
+	// kind's chain + flash visuals are authored against. SKILL cheat only, no
+	// unlock source, until the PO places it. 113 → 114 (76 player + 38 mob).
+	assert.Len(t, r.All(), 114)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

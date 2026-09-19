@@ -4,6 +4,11 @@
   "name": "WarlordCleave",
   "category": "active_aura",
   "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "strike", "on": "hit", "curve": "overhead", "ms": 460 }
+    ]
+  },
   "effects": [
     {
       "type": "damage_aura",

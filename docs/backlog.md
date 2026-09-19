@@ -5698,7 +5698,10 @@ there until abilities roll in.
 shipped version is `plan-skill-vfx.md` C2a, not §39.** That plan puts the
 per-hit source on the wire (C1) and a world-space VFX layer on the client
 (C2a), so a line from `source` to `victim` is one more `beam` body rather than
-a system of its own; `prototype/attack-lines` is deletable once C2a lands.)*
+a system of its own. ⭐ **C2a LANDED 2026-09-19** (`beam` ships with `curve`
+and `chain`, and a mob's melee hit now draws the caster-anchored `strike`), so
+`prototype/attack-lines` is deletable - a PO ask at the wrap, never
+autonomous.)*
 
 The ask: an indicator showing **which mob is attacking which character** —
 imagined as a line (hit- or arrow-like) from the mob to the player that lingers

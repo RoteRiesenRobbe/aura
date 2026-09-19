@@ -11,7 +11,7 @@ import * as TextDisplay from '../../../client-data/TextDisplay';
 import {difficultyColor, getLocalPlayerLevel, mobDefinition, TierRank} from '../../../client-data/Mobs';
 import * as PIXI from 'pixi.js';
 import {createInjectedSVG} from "../../core/logic/InjectedSVG";
-import {AuraTickIndicator} from './AuraTickIndicator';
+import * as SkillFx from '../../skill-fx/logic/SkillFx';
 import {AuraRingStack} from './AuraRings';
 import {OverheadHealthBar} from './OverheadHealthBar';
 import type {AuraDisplay, DwellRing, Interactable, LevelDisplay, MobPlate, OverheadVitals} from './WireSetters';
@@ -115,10 +115,6 @@ export abstract class Mob extends GameObject
     private tierFrame: PIXI.Graphics;
     private tierFrameRadius: number;
     private tierRank: number;
-    // Bare tick indicator (skill-vocab chunk 6): a dot orbiting the aura ring
-    // once per effective tick interval — reading a mob's beat to dodge its
-    // ticks is the design-critical use case.
-    private auraTickIndicator: AuraTickIndicator = null;
     // Beat inference for the N5 ring pulse — see setAuraTick.
     private readonly auraBeat = new BeatDetector();
     // Interact prompt (chunk 3b-i): shown only while the server names this
@@ -368,19 +364,14 @@ export abstract class Mob extends GameObject
             if (this.auraRings !== null) {
                 this.auraRings.setRadius(0);
             }
-            if (this.auraTickIndicator !== null) {
-                this.auraTickIndicator.setRadius(0);
-            }
+            SkillFx.setGlowRadius(this, 0);
             return;
         }
         // Like hit reach, the visual ring extends by the player collider
         // radius (collision is shape-vs-shape).
         const ringRadius = radiusPx + meter2px(GraphicsConfig.character.colliderRadiusMeters);
         this.ensureAuraRings().setRadius(ringRadius);
-        if (this.auraTickIndicator === null) {
-            this.auraTickIndicator = new AuraTickIndicator(this.shape);
-        }
-        this.auraTickIndicator.setRadius(ringRadius);
+        SkillFx.setGlowRadius(this, ringRadius);
     }
 
     // setAppliedEffects drives the buff/debuff pips from the wire
@@ -407,16 +398,14 @@ export abstract class Mob extends GameObject
         return this.auraRings;
     }
 
-    // setAuraTick drives the bare tick indicator from the wire
-    // aura_tick_interval / aura_tick_phase fields (skill-vocab chunk 6), and
-    // since N5 the ring pulse (Character's twin). Mobs carry no active skill
-    // id on the wire, so the stream key is 0 — mobs never re-equip, and the
-    // interval guard still covers the aura-gating edge.
+    // setAuraTick drives the wind-up glow from the wire aura_tick_interval /
+    // aura_tick_phase fields (skill-vocab chunk 6; since plan-skill-vfx.md C2a
+    // the glow is drawn by SkillFx on its own layer rather than by an indicator
+    // hanging off this shape), and since N5 the ring pulse (Character's twin).
+    // Mobs carry no active skill id on the wire, so the stream key is 0 — mobs
+    // never re-equip, and the interval guard still covers the aura-gating edge.
     setAuraTick(interval: number, phase: number): boolean {
-        if (this.auraTickIndicator === null) {
-            this.auraTickIndicator = new AuraTickIndicator(this.shape);
-        }
-        this.auraTickIndicator.setTick(interval, phase);
+        SkillFx.setGlowTick(this, interval, phase);
         const landed = this.auraBeat.observe(0, interval, phase);
         // The ring stack is created lazily with the first visible radius; a
         // gated aura has no ring to pulse.

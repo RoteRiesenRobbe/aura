@@ -58,7 +58,6 @@
       "damageTags",
       "gateKey",
       "variance",
-      "hitStyle",
       "targetsStructures",
       "structureDamageFraction",
       "executeBelowFraction",
@@ -139,7 +138,6 @@
       "damageTags",
       "gateKey",
       "variance",
-      "hitStyle",
       "targetsStructures",
       "structureDamageFraction",
       "executeBelowFraction",
@@ -499,7 +497,7 @@
   "resistWildcard": "*",
   "visualKinds": [
     "impact",
-    "arc-swing",
+    "strike",
     "projectile",
     "beam",
     "cast-pose",
@@ -512,14 +510,6 @@
     "hit"
   ],
   "visualKeys": {
-    "arc-swing": [
-      "kind",
-      "on",
-      "body",
-      "tint",
-      "scale",
-      "ms"
-    ],
     "beam": [
       "kind",
       "on",
@@ -527,7 +517,9 @@
       "tint",
       "scale",
       "ms",
-      "width"
+      "width",
+      "curve",
+      "chain"
     ],
     "cast-pose": [
       "kind",
@@ -572,12 +564,18 @@
       "tint",
       "scale",
       "speed"
+    ],
+    "strike": [
+      "kind",
+      "on",
+      "body",
+      "tint",
+      "scale",
+      "ms",
+      "curve"
     ]
   },
   "visualTriggersByKind": {
-    "arc-swing": [
-      "hit"
-    ],
     "beam": [
       "hit"
     ],
@@ -598,13 +596,26 @@
     ],
     "projectile": [
       "hit"
+    ],
+    "strike": [
+      "hit"
     ]
   },
-  "visualCurves": [
-    "thrust",
-    "snap",
-    "burst"
-  ],
+  "visualCurves": {
+    "beam": [
+      "flash",
+      "extend"
+    ],
+    "impact": [
+      "burst",
+      "snap"
+    ],
+    "strike": [
+      "thrust",
+      "swing",
+      "overhead"
+    ]
+  },
   "visualMotions": [
     "swirl",
     "rise",

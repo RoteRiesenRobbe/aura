@@ -27,7 +27,7 @@ import { saveSkill } from './save-skill.mjs';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
 
-const OMNI = 'api/skills/omni-aura.json';   // cheat-only (no reference anywhere) AND authors hitStyle + _comment
+const OMNI = 'api/skills/omni-aura.json';   // cheat-only (no reference anywhere) AND authors visual + _comment
 const DAMAGE = 'api/skills/damage.json';    // the level-1 milestone unlock
 
 const trees = [];
@@ -148,7 +148,7 @@ export function selfTestFindings() {
   }
 
   // --- a clean candidate is written IN PLACE: _comment and the keys the form
-  // never renders (hitStyle, §B4.8 / L8) survive the round trip ---
+  // never renders (visual, §B4.8 / L8) survive the round trip ---
   {
     const root = tempTree();
     const deps = { ...readersFor(root), validateCandidate: fakeSeam({ ok: true, findings: [] }) };
@@ -160,7 +160,7 @@ export function selfTestFindings() {
     const after = readRaw(root, OMNI);
     if (after.effects[0].damageHP !== 7) fail('clean write', 'the edit was not written');
     if (after._comment !== before._comment) fail('clean write', '_comment did not survive the round trip');
-    if (after.effects[0].hitStyle !== before.effects[0].hitStyle) fail('clean write', 'hitStyle (never rendered, §B4.8) did not survive the round trip');
+    if (JSON.stringify(after.visual) !== JSON.stringify(before.visual)) fail('clean write', 'visual (never rendered, §B4.8) did not survive the round trip');
     if (JSON.stringify(after.effects[1]) !== JSON.stringify(before.effects[1])) fail('clean write', 'an untouched effect changed');
   }
 

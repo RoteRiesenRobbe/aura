@@ -88,7 +88,6 @@ export const EFFECT_PRESENTATION = {
   damageTags: { control: 'multi', options: 'damageTypes', group: PAYLOAD, hint: 'Mutually exclusive with gateKey.' },
   gateKey: { control: 'select', options: 'gateKeys', group: PAYLOAD, hint: 'Chore-only damage: hits only mobs authoring the same gate key. Mutually exclusive with damageTags.' },
   variance: { control: 'number', unit: 'fraction', group: PAYLOAD, hint: '± share applied per hit; [0, 1).' },
-  hitStyle: { control: 'select', group: PAYLOAD, hidden: true },
   targetsStructures: { control: 'bool', group: PAYLOAD },
   structureDamageFraction: { control: 'number', unit: 'fraction', group: PAYLOAD },
   executeBelowFraction: { control: 'number', unit: 'fraction', group: PAYLOAD, hint: 'Authored together with executeBonusFactor or not at all.' },

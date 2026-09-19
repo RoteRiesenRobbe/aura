@@ -9,7 +9,7 @@ import * as PIXI from 'pixi.js';
  * would refuse. The server validates an incoming Interact against the exact
  * value it used to light this up.
  *
- * It hangs off the mob's own shape, the AuraTickIndicator pattern, rather than
+ * It hangs off the mob's own shape, the aura ring stack's pattern, rather than
  * the unfiltered nameplate overlay: a prompt should dim and vanish with the NPC
  * it labels when the light does, whereas a nameplate deliberately stays legible
  * above the darkness layer and pays for that with an explicit isHidden test.
@@ -21,7 +21,7 @@ import * as PIXI from 'pixi.js';
  *
  * ⚑ ATTACHED to the mob's shape group, MEASURED against its art alone (R4).
  * The two are different containers on purpose: the group also carries the aura
- * ring stack, the dwell ring, the tick indicator and the health bar, so
+ * ring stack, the dwell ring and the health bar, so
  * measuring it anchors the cap to whichever decoration happens to be widest.
  * Measuring the group was correct only by accident — all 14 conversants author
  * `"skills": []`, so the ring graphic stays invisible and Pixi skips it, and

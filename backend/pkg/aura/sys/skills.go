@@ -517,9 +517,6 @@ func (s *SkillSystem) tickBuffEvents(e skillEntity) {
 			default:
 				continue
 			}
-			if n, ok := e.(model.AuraHitNotifier); ok {
-				n.NoteAuraHit(model.AuraHitStyleFire)
-			}
 		}
 	}
 
@@ -743,7 +740,6 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 	// summon rages; the owner's HP is irrelevant — the §4.2 parallel).
 	damageHP := effect.Damage.HPAt(level) * outputScale * berserkerMultiplier(effect.Damage, acting) * casterDamageFactor(acting)
 
-	style := auraHitStyleFor(effect, level)
 	critChance := effect.Damage.CritChanceAt(level) + casterCritChance(acting)
 	// A live lifesteal_burst ADDS to the effect's authored leech rather than
 	// replacing it, the critChance rule — an aura that already leeches leeches
@@ -756,7 +752,6 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 		hitHP, crit := rollHitDamage(damageHP, effect.Damage, c, rng, critChance)
 		damage := model.Damage{HP: hitHP, Tags: effect.Damage.Tags, GateKey: effect.Damage.GateKey, Source: source, Lifesteal: lifesteal, Crit: crit, SkillID: id}
 		c.Shape().UserData.(model.Interacter).PlayerTouches(caster, damage)
-		noteAuraHit(c, style)
 	}
 	// Dealing harm enters combat (chunk 1); direct casts only — a summon's hits
 	// belong to the summon, not the owner (source != nil), so the owner does
@@ -803,14 +798,12 @@ func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, id skills.S
 		return true
 	}
 
-	style := auraHitStyleFor(effect, level)
 	critChance := effect.Damage.CritChanceAt(level) + casterCritChance(caster)
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
 		// Per-hit execute × crit × variance, same as the player path.
 		factors.Damage, factors.Crit = rollHitDamage(damageHP, effect.Damage, c, rng, critChance)
 		c.Shape().UserData.(model.Interacter).MobTouches(caster, factors)
-		noteAuraHit(c, style)
 	}
 	return len(targets) > 0
 }
@@ -919,15 +912,6 @@ func rollHitDamage(base float32, d *skills.DamageParams, c phy.Collider, rng *ra
 		hp *= factor
 	}
 	return vitals.RollVariance(hp, d.Variance, rng), crit
-}
-
-// noteAuraHit stamps the per-tick aura-hit VFX style on a struck target if it
-// supports it (item 11 Step 4). Targets that are not AuraHitNotifiers (e.g.
-// resources/structures) simply get no hit VFX.
-func noteAuraHit(c phy.Collider, style model.AuraHitStyle) {
-	if n, ok := c.Shape().UserData.(model.AuraHitNotifier); ok {
-		n.NoteAuraHit(style)
-	}
 }
 
 func (s *SkillSystem) applyHealAura(e skillEntity, id skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) bool {

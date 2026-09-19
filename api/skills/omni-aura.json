@@ -5,6 +5,12 @@
   "icon": "lorc/star-swirl",
   "category": "active_aura",
   "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "beam", "on": "hit", "curve": "extend", "ms": 300, "width": 14 },
+      { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
+    ]
+  },
   "effects": [
     {
       "type": "damage_aura",
@@ -15,7 +21,6 @@
       "damageHPPerLevel": 0.25,
       "damageTags": ["fire"],
       "variance": 0.15,
-      "hitStyle": "fire",
       "critChance": 0.1,
       "critChancePerLevel": 0.02,
       "critFactor": 2.0,

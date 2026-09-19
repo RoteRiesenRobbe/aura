@@ -25,8 +25,8 @@
 //      THE SEAM ("refused by aurad -validate") · a real description edit is
 //      SAVED, the file on disk carries exactly that change with `_comment`
 //      intact, and the harness writes the original bytes back · a type change
-//      confirms naming the dropped keys incl. `hitStyle (not shown)`, accept
-//      drops them and keeps `radius`, cancel leaves the type · move down swaps
+//      confirms naming the dropped keys, accept drops them and keeps `radius`,
+//      cancel leaves the type · move down swaps
 //      · Delete confirms · lowering maxLevel confirms and cancel posts nothing.
 //   2b. the C4 PICKERS: the icon picker on Damage offers the whole vendored
 //      set (counted off /api/data, not pinned) as inline SVGs with the file's
@@ -305,7 +305,6 @@ let dlg = nextDialog('accept');
 await typeSel().selectOption('heal_aura');
 let msg = await dlg;
 await page.waitForTimeout(250);
-if (!msg.includes('hitStyle (not shown)')) problems.push(`type-change confirm did not mark the hidden key: ${msg.slice(0, 200)}`);
 if (!msg.includes('damageHP')) problems.push(`type-change confirm did not name damageHP: ${msg.slice(0, 200)}`);
 const card0 = () => page.locator('#editor-root .effect-card').first();
 if (await card0().locator('.field[title="damageHP"]').count() !== 0) problems.push('damageHP survived a type change that dropped it');

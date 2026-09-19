@@ -42,7 +42,6 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 	AuraApi.MobAddBurstRadius(builder, f32ToU16Px(m.BurstRadius()))
 	// Current total absorb capacity — a live value (skill-vocab chunk 2).
 	AuraApi.MobAddShieldHp(builder, m.ShieldHP().UInt32())
-	AuraApi.MobAddAuraHitStyle(builder, byte(m.AuraHitStyle()))
 	// Who this mob is credited to while it acts for a player (plan-skill-vfx.md
 	// §12a.5): the client reads it to decide whether a skill event sourced at
 	// this mob was own-caused. Asserted rather than required on MobEntity, the

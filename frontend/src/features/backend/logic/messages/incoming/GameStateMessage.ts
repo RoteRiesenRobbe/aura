@@ -414,7 +414,6 @@ function unmarshalEntity(entity, eType) {
         costPaid: undefined,
         shieldHp: undefined,
         xpGained: undefined,
-        auraHitStyle: undefined,
         xpInLevel: undefined,
         xpForNextLevel: undefined,
         campfireBound: undefined,
@@ -459,7 +458,6 @@ function unmarshalEntity(entity, eType) {
         result.burstRadius = entity.burstRadius();
         // current absorb capacity, 0 = unshielded (skill-vocab chunk 2)
         result.shieldHp = entity.shieldHp();
-        result.auraHitStyle = entity.auraHitStyle();
         // 0 for every world mob; a summoned or charmed one carries its owner.
         result.ownerId = Number(entity.ownerId());
         // effective radius of the active aura in px, 0 while gated — drives
@@ -516,7 +514,6 @@ function unmarshalEntity(entity, eType) {
         // current absorb capacity, 0 = unshielded (skill-vocab chunk 2)
         result.shieldHp = entity.shieldHp();
         result.xpGained = entity.xpGained();
-        result.auraHitStyle = entity.auraHitStyle();
         result.xpInLevel = entity.xpInLevel();
         result.xpForNextLevel = entity.xpForNextLevel();
         // one-tick stamp: a campfire became the respawn anchor (chunk 4)

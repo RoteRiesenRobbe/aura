@@ -4,6 +4,11 @@
   "name": "GruntSlash",
   "category": "active_aura",
   "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "strike", "on": "hit", "curve": "swing", "ms": 280 }
+    ]
+  },
   "effects": [
     {
       "type": "damage_aura",

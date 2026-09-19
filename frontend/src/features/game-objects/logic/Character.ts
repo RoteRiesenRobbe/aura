@@ -5,7 +5,7 @@ import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import * as Preloading from '../../core/logic/Preloading';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {meter2px} from "../../../client-data/BasicConfig";
-import {AuraTickIndicator} from './AuraTickIndicator';
+import * as SkillFx from '../../skill-fx/logic/SkillFx';
 import {AscensionChannelFx} from './AscensionChannelFx';
 import {StatusEffect} from './StatusEffect';
 import {IGame} from '../../core/logic/IGame';
@@ -64,9 +64,6 @@ export class Character extends GameObject
     // plan-code-health.md C5). Created in initHealthBar (constructor body),
     // so an initializer here is safe — unlike fields assigned in initShape.
     private overheadBar: OverheadHealthBar = null;
-    // Bare tick indicator (skill-vocab chunk 6): a dot orbiting the aura ring
-    // once per effective tick interval, so the beat is visible.
-    private auraTickIndicator: AuraTickIndicator = null;
     // The ascension ceremony's channel effect — see setChannellingAscension.
     // Built on demand and dropped again, unlike the two above: it exists for
     // ten seconds once in a character's life.
@@ -254,18 +251,20 @@ export class Character extends GameObject
     setAuraRadius(radiusPx: number) {
         // `auraRadius` from the backend is already serialized in pixel units.
         this.auraRings.setRadius(radiusPx);
-        this.ensureAuraTickIndicator().setRadius(radiusPx);
+        SkillFx.setGlowRadius(this, radiusPx);
     }
 
-    // setAuraTick drives the bare tick indicator from the wire
-    // aura_tick_interval / aura_tick_phase fields (skill-vocab chunk 6), and
-    // since N5 the ring pulse: the beat is inferred from the phase wrap,
+    // setAuraTick drives the wind-up glow from the wire aura_tick_interval /
+    // aura_tick_phase fields (skill-vocab chunk 6; since plan-skill-vfx.md C2a
+    // the glow is drawn by SkillFx on its own layer rather than by an indicator
+    // hanging off this shape), and since N5 the ring pulse: the beat is
+    // inferred from the phase wrap,
     // guarded against the switch-reset stutter by keying the stream on the
     // active skill id (BeatDetector). Returns whether a beat landed so the
     // own player can drive the HUD metronome without game-objects importing
     // the HUD.
     setAuraTick(interval: number, phase: number, activeSkillId: number = 0): boolean {
-        this.ensureAuraTickIndicator().setTick(interval, phase);
+        SkillFx.setGlowTick(this, interval, phase);
         const landed = this.auraBeat.observe(activeSkillId, interval, phase);
         this.auraRings.beat(landed);
         return landed;
@@ -292,16 +291,6 @@ export class Character extends GameObject
             this.ascensionFx = new AscensionChannelFx(this.shape);
         }
         return this.ascensionFx;
-    }
-
-    // Lazily create the indicator on this.shape (the container that holds the
-    // aura sprites). NOT built in initShape: that runs during super(), before
-    // this class's field initializers, so a `= null` field would clobber it.
-    private ensureAuraTickIndicator(): AuraTickIndicator {
-        if (this.auraTickIndicator === null) {
-            this.auraTickIndicator = new AuraTickIndicator(this.shape);
-        }
-        return this.auraTickIndicator;
     }
 
     createMinimapIcon() {

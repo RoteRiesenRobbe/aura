@@ -177,18 +177,6 @@ func (rcv *Mob) MutateBurstRadius(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(22, n)
 }
 
-func (rcv *Mob) AuraHitStyle() byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
-	if o != 0 {
-		return rcv._tab.GetByte(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *Mob) MutateAuraHitStyle(n byte) bool {
-	return rcv._tab.MutateByteSlot(26, n)
-}
-
 func (rcv *Mob) MaxHealth() uint32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
 	if o != 0 {
@@ -368,9 +356,6 @@ func MobAddMobId(builder *flatbuffers.Builder, mobId uint16) {
 }
 func MobAddBurstRadius(builder *flatbuffers.Builder, burstRadius uint16) {
 	builder.PrependUint16Slot(9, burstRadius, 0)
-}
-func MobAddAuraHitStyle(builder *flatbuffers.Builder, auraHitStyle byte) {
-	builder.PrependByteSlot(11, auraHitStyle, 0)
 }
 func MobAddMaxHealth(builder *flatbuffers.Builder, maxHealth uint32) {
 	builder.PrependUint32Slot(12, maxHealth, 0)

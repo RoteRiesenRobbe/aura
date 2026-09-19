@@ -45,6 +45,18 @@ the bottom. Trust the code over the manual if a path has drifted.
   hashes, chunk names, rulings, glyphs, history or placement claims (where
   it is obtained lives in the mob/milestone/recipe files). The ledger prose you are
   tempted to write there goes in the plan doc.
+- **A damaging skill with no `visual` draws NOTHING** (`plan-skill-vfx.md`
+  C2a, PO 2026-09-19). The old cadence-derived slash/fire lever (`hitStyle`) is
+  deleted end to end and no engine fallback replaced it, so every new damaging
+  skill authors a `visual` block. A weapon-wielder's plain hit is a `strike`
+  ALONE (`thrust` spear / `swing` blade / `overhead` hammer, chosen by `curve`,
+  which also picks the placeholder weapon); an animal's bite or gore is
+  `impact` / `snap` alone; elemental, AoE, DoT and cooldown hits and a missile's
+  arrival are `impact` / `burst`; ranged reach is a `projectile` plus that
+  `impact`. ⚑ `impact` is OPT-IN and anchored at the VICTIM, a `strike` at the
+  ATTACKER. ⚑ `curve` belongs to the KIND and `chain` is the `beam`'s
+  alone and VISUAL ONLY - it changes no targeting. ⚑ Author no `body`.
+  `docs/manual-content-authoring.md` §2 "Visuals" has the tables.
 - **A skill file is never deleted, an `id` never changes, a `maxLevel` never
   decreases** (PO ruling 2026-09-18, `docs/manual-content-authoring.md`,
   "Retiring a skill: never delete the file"). Skill ids and levels are
@@ -78,7 +90,10 @@ the bottom. Trust the code over the manual if a path has drifted.
   or `visual.go` needs the vocabulary fixture regenerated** (`effectKeys`,
   `effectCategories`, `costKeys`, the categories, the top-level key list, and
   the six VFX lists `visualKinds`, `visualTriggers`, `visualKeys`,
-  `visualTriggersByKind`, `visualCurves`, `visualMotions`): the golden test fails
+  `visualTriggersByKind`, `visualCurves` - keyed BY KIND since C2a, because an
+  impact curves `burst`/`snap`, a strike `thrust`/`swing`/`overhead` and a beam
+  `flash`/`extend` - and
+  `visualMotions`): the golden test fails
   until you run `UPDATE_SKILL_VOCABULARY=1 go test -count=1
   ./pkg/aura/skills/` from `backend/` and commit `api/skill-vocabulary.json`.
   The content editor's Skills tab renders its whole form from that fixture, so

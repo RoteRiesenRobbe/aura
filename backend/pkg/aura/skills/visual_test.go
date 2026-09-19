@@ -3,6 +3,7 @@ package skills
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -79,6 +80,56 @@ func TestVisual_CommonKeysLandOnEveryKind(t *testing.T) {
 	assert.Equal(t, "swirl", l.Motion)
 }
 
+// The beam's own two tunables (C2a, PO 2026-09-19). `curve` picks the
+// envelope, `chain` re-reads one tick's hit events as a single caster→v1→v2
+// polyline instead of a fan. An absent `curve` stays legal and means the
+// kind's default (`flash`); `chain: false` is the same as omitting it.
+func TestVisual_BeamCurveAndChain(t *testing.T) {
+	def := mustParse(t, visualSkill("active_aura", `{
+	  "layers": [
+	    { "kind": "beam", "on": "hit", "curve": "flash",  "chain": true, "ms": 260 },
+	    { "kind": "beam", "on": "hit", "curve": "extend", "chain": false },
+	    { "kind": "beam", "on": "hit" }
+	  ]
+	}`))
+	require.NotNil(t, def.Visual)
+	require.Len(t, def.Visual.Layers, 3)
+
+	assert.Equal(t, "flash", def.Visual.Layers[0].Curve)
+	assert.True(t, def.Visual.Layers[0].Chain)
+	assert.Equal(t, 260, def.Visual.Layers[0].MS)
+
+	assert.Equal(t, "extend", def.Visual.Layers[1].Curve)
+	assert.False(t, def.Visual.Layers[1].Chain)
+
+	assert.Empty(t, def.Visual.Layers[2].Curve, "an unauthored curve stays empty and the renderer supplies the kind's default")
+	assert.False(t, def.Visual.Layers[2].Chain)
+}
+
+// The strike's three styles (C2a amendment, PO 2026-09-19). A weapon starts at
+// the ATTACKER and travels to the victim, and `curve` picks which weapon and
+// which motion: a spear thrust, a blade swing, an overhead hammer. Absent means
+// the kind's default (`thrust`), presence-gated like every other tunable, so an
+// unauthored curve stays empty on the struct rather than being filled in here.
+func TestVisual_StrikeCurves(t *testing.T) {
+	def := mustParse(t, visualSkill("active_aura", `{
+	  "layers": [
+	    { "kind": "strike", "on": "hit", "curve": "thrust",   "ms": 200 },
+	    { "kind": "strike", "on": "hit", "curve": "swing",    "ms": 280 },
+	    { "kind": "strike", "on": "hit", "curve": "overhead", "ms": 460 },
+	    { "kind": "strike", "on": "hit" }
+	  ]
+	}`))
+	require.NotNil(t, def.Visual)
+	require.Len(t, def.Visual.Layers, 4)
+
+	assert.Equal(t, "thrust", def.Visual.Layers[0].Curve)
+	assert.Equal(t, 200, def.Visual.Layers[0].MS)
+	assert.Equal(t, "swing", def.Visual.Layers[1].Curve)
+	assert.Equal(t, "overhead", def.Visual.Layers[2].Curve)
+	assert.Empty(t, def.Visual.Layers[3].Curve, "an unauthored curve stays empty and the renderer supplies the kind's default")
+}
+
 // The overwhelmingly common case: no `visual` at all. Nothing else changes.
 func TestVisual_AbsentIsNil(t *testing.T) {
 	def := mustParse(t, damageAuraJSON)
@@ -147,7 +198,61 @@ func TestVisual_Refusals(t *testing.T) {
 			name:     "curve outside its set",
 			category: "active_aura",
 			visual:   `{"layers":[{"kind":"impact","on":"hit","curve":"wiggle"}]}`,
-			contains: []string{`"Fixture"`, "visual layer 0", `"wiggle"`, "thrust"},
+			contains: []string{`"Fixture"`, "visual layer 0", `"wiggle"`, "burst"},
+		},
+		{
+			// Curves are PER KIND (C2a, PO 2026-09-19): a beam plays flash or
+			// extend, and a strike's thrust means nothing to it. A shared set
+			// would load this clean and draw the beam's default forever.
+			name:     "a strike curve on a beam",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"beam","on":"hit","curve":"thrust"}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"beam"`, `"thrust"`, "flash", "extend"},
+		},
+		{
+			name:     "a beam curve on an impact",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"impact","on":"hit","curve":"flash"}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"impact"`, `"flash"`, "burst", "snap"},
+		},
+		{
+			// The C2a amendment (§12c.1): `thrust` left the impact and became a
+			// strike style, so the word that used to be an impact's default
+			// motion is now a refusal naming the two the impact kept. Silently
+			// ignoring it would draw the impact's default and read as a
+			// renderer bug for the rest of the plan.
+			name:     "a strike curve on an impact",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"impact","on":"hit","curve":"thrust"}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"impact"`, `"thrust"`, "burst", "snap"},
+		},
+		{
+			name:     "a beam curve on a strike",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"strike","on":"hit","curve":"flash"}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"strike"`, `"flash"`, "thrust", "swing", "overhead"},
+		},
+		{
+			// A strike is a weapon travelling from the attacker INTO a victim,
+			// so it has no moment without one: `hit` and nothing else.
+			name:     "a strike on the fired moment",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"strike","on":"fired"}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"strike"`, `"fired"`, "hit"},
+		},
+		{
+			name:     "a key the strike does not accept",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"strike","on":"hit","speed":900}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"speed"`},
+		},
+		{
+			// `chain` is the beam's alone: it re-reads one tick's hit events as
+			// one polyline, which no other kind has a shape for.
+			name:     "chain on a kind that is not a beam",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"impact","on":"hit","chain":true}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"chain"`},
 		},
 		{
 			name:     "motion outside its set",
@@ -239,17 +344,20 @@ func TestVisual_D2TriggersByCategory(t *testing.T) {
 		ok       bool
 	}{
 		{category: "passive", on: "hit", kind: "impact", ok: true},
+		{category: "passive", on: "hit", kind: "strike", ok: true},
 		{category: "passive", on: "ambient", kind: "emitter", ok: false},
 		{category: "passive", on: "fired", kind: "cast-pose", ok: false},
 		{category: "cooldown", on: "ambient", kind: "emitter", ok: false},
 		{category: "cooldown", on: "fired", kind: "cast-pose", ok: true},
 		{category: "cooldown", on: "hit", kind: "impact", ok: true},
+		{category: "cooldown", on: "hit", kind: "strike", ok: true},
 		{category: "active_aura", on: "ambient", kind: "emitter", ok: true},
 		{category: "active_aura", on: "fired", kind: "orbit", ok: true},
 		{category: "active_aura", on: "hit", kind: "impact", ok: true},
+		{category: "active_aura", on: "hit", kind: "strike", ok: true},
 	}
 	for _, tc := range cases {
-		t.Run(tc.category+"/"+tc.on, func(t *testing.T) {
+		t.Run(tc.category+"/"+tc.on+"/"+tc.kind, func(t *testing.T) {
 			visual := fmt.Sprintf(`{"layers":[{"kind":%q,"on":%q}]}`, tc.kind, tc.on)
 			if tc.ok {
 				def := mustParse(t, visualSkill(tc.category, visual))
@@ -286,6 +394,22 @@ func TestVisual_TablesCoverEveryKind(t *testing.T) {
 	assert.Len(t, visualTriggersByKind, len(visualKinds))
 }
 
+// Curves are per kind (C2a), so the curve table and the key table have to
+// describe the same kinds from both sides: a kind reading `curve` with no
+// curve row would refuse every value an author picked, and a curve row on a
+// kind that does not read `curve` is a set nothing can reach.
+func TestVisual_CurveTableMatchesTheKeyTable(t *testing.T) {
+	for _, kind := range visualKinds {
+		readsCurve := slices.Contains(visualKeysByKind[kind], "curve")
+		_, hasCurves := visualCurvesByKind[kind]
+		assert.Equal(t, readsCurve, hasCurves,
+			"kind %q reads curve=%v but has a curve row=%v", kind, readsCurve, hasCurves)
+	}
+	for kind := range visualCurvesByKind {
+		assert.Contains(t, visualKinds, kind, "visualCurvesByKind names %q, which is not a kind", kind)
+	}
+}
+
 // ⭐ The acceptance set: §4.3's nine PO descriptions from 2026-09-11, each
 // decomposed into layers by the plan and authored here with PLACEHOLDER
 // numbers. "Every one of the nine is covered by the seven kinds with zero
@@ -302,14 +426,14 @@ func TestVisual_TheNinePOExamples(t *testing.T) {
 		{
 			name:     "sword stab directly on the mob",
 			category: "active_aura",
-			visual:   `{"layers":[{"kind":"impact","on":"hit","body":"sword","curve":"thrust","ms":180}]}`,
+			visual:   `{"layers":[{"kind":"strike","on":"hit","body":"sword","curve":"thrust","ms":200}]}`,
 			layers:   1,
 		},
 		{
 			name:     "overhead mace, an arc from above the player down onto the mob",
 			category: "active_aura",
 			visual: `{"layers":[
-			  {"kind":"arc-swing","on":"hit","body":"mace-arc","ms":320},
+			  {"kind":"strike","on":"hit","body":"mace","curve":"overhead","ms":460},
 			  {"kind":"impact","on":"hit","body":"mace-hit","curve":"burst","ms":160}]}`,
 			layers: 2,
 		},
@@ -330,7 +454,7 @@ func TestVisual_TheNinePOExamples(t *testing.T) {
 		{
 			name:     "lightning, weak then bright and bold then fade",
 			category: "cooldown",
-			visual:   `{"layers":[{"kind":"beam","on":"hit","body":"lightning","ms":420,"width":0.35}]}`,
+			visual:   `{"layers":[{"kind":"beam","on":"hit","body":"lightning","curve":"flash","ms":420,"width":5}]}`,
 			layers:   1,
 		},
 		{
@@ -339,13 +463,13 @@ func TestVisual_TheNinePOExamples(t *testing.T) {
 			visual: `{"layers":[
 			  {"kind":"cast-pose","on":"fired","body":"bow","ms":250},
 			  {"kind":"projectile","on":"hit","body":"arrow","speed":900},
-			  {"kind":"impact","on":"hit","body":"arrow-hit","curve":"snap","ms":150}]}`,
+			  {"kind":"impact","on":"hit","body":"arrow-hit","curve":"burst","ms":200}]}`,
 			layers: 3,
 		},
 		{
 			name:     "flame aura, pillars extend and return on up to three mobs",
 			category: "active_aura",
-			visual:   `{"layers":[{"kind":"beam","on":"hit","body":"flame-pillar","ms":600,"width":0.5}]}`,
+			visual:   `{"layers":[{"kind":"beam","on":"hit","body":"flame-pillar","curve":"extend","ms":600,"width":14}]}`,
 			layers:   1,
 		},
 		{
@@ -353,7 +477,7 @@ func TestVisual_TheNinePOExamples(t *testing.T) {
 			category: "cooldown",
 			visual: `{"layers":[
 			  {"kind":"orbit","on":"fired","body":"axe","count":2,"ms":3000},
-			  {"kind":"impact","on":"hit","body":"axe-hit","curve":"snap","ms":140}]}`,
+			  {"kind":"impact","on":"hit","body":"axe-hit","curve":"burst","ms":200}]}`,
 			layers: 2,
 		},
 		{

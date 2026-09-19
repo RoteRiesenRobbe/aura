@@ -147,11 +147,6 @@ type PlayerEntity interface {
 	// internal to stepLength, since a mob moves itself.
 	MovementFactor() float32
 	XpGained() uint64
-	// AuraHitStyle / NoteAuraHit carry the per-tick aura-hit VFX (item 11
-	// Step 4); NoteAuraHit is called by the SkillSystem when a damage aura
-	// strikes this player, AuraHitStyle is serialized as aura_hit_style.
-	AuraHitStyle() AuraHitStyle
-	NoteAuraHit(style AuraHitStyle)
 	// CampfireBound / NoteCampfireBound carry the per-tick "campfire became
 	// the respawn anchor" stamp (chunk 4): the ConnectionStateSystem notes it
 	// the tick a dwell completes, serialized as campfire_bound.

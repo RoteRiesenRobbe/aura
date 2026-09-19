@@ -408,20 +408,6 @@ func TestMob_DamageTaken_AccumulatesAndResets(t *testing.T) {
 	assert.Zero(t, damageTaken(m), "reset clears the per-tick accumulator")
 }
 
-func TestMob_AuraHitStyle_SetAndReset(t *testing.T) {
-	m := newTestMob()
-
-	assert.Equal(t, model.AuraHitStyleNone, m.AuraHitStyle(), "no aura hit yet")
-
-	m.NoteAuraHit(model.AuraHitStyleSlash)
-	assert.Equal(t, model.AuraHitStyleSlash, m.AuraHitStyle(),
-		"NoteAuraHit records the style for this tick")
-
-	m.ResetTickNumbers()
-	assert.Equal(t, model.AuraHitStyleNone, m.AuraHitStyle(),
-		"reset clears the per-tick aura-hit style")
-}
-
 // --- kill rewards (participation XP, roadmap item 10) ---
 
 func TestMob_Kill_AllDamagersGetFullXP(t *testing.T) {

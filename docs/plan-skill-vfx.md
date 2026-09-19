@@ -1,10 +1,15 @@
 # Plan: Skill VFX - what a hit, a cast and a running aura look like, for everyone
 
-> **Status: C1 BUILT 2026-09-19 `194a0cd5` (the wire: `SkillEvent` FIRED + HIT
+> **Status: C2a BUILT 2026-09-19 `[uncommitted]`, PO look PASSED (the engine:
+> the `SkillFx` manager on its own layer below darkness, budget + pools, the
+> math module, placeholder bodies, `impact` / `projectile` / `beam` plus the
+> amendment's caster-anchored `strike`, the `hitStyle` lever deleted end to end,
+> `AuraTickIndicator` absorbed, `visual` on 59 skills incl. the new Lightning
+> Strike). C1 BUILT 2026-09-19 `194a0cd5` (the wire: `SkillEvent` FIRED + HIT
 > inside the four funnels, `Mob.owner_id`, five field names deprecated, numbers
 > own-caused only, loadbot: D10 stands). C0 SHIPPED 2026-09-19 `e8f7b6b4` (the `visual` key, one per SKILL: seven
 > closed kinds, three triggers, load-time validation, six generated fixture
-> lists, six content files authored). C2a-C4 unbuilt.** Designed 2026-09-11
+> lists, six content files authored). C2b-C4 unbuilt.** Designed 2026-09-11
 > (D1-D10 PO-ruled in one sitting; everything in §4-§7 that is not a D-number
 > is still a proposal with options). Line refs pinned to `df746e53`;
 > re-verify before executing. Ledger: §13.
@@ -23,7 +28,7 @@
 > does not exist, because nothing here attaches to the sprite (§7.1).
 >
 > **Schema, whole plan: DB NONE · WIRE one enum + one table + one appended vector +
-> `Mob.owner_id`, five field names deprecated (C1, as built; `aura_hit_style` follows in C2) · CONTENT one new top-level skill key (C0) · CONF NONE.**
+> `Mob.owner_id`, five field names deprecated (C1) + `aura_hit_style` deprecated on Mob and Character (C2a), all as built · CONTENT one new top-level skill key (C0), then the `strike` kind, the two `beam` keys and `visual` on 59 skills (C2a) · CONF NONE.**
 > All numbers [PLACEHOLDER].
 
 ---
@@ -167,10 +172,10 @@ phase fields. `MobJuice.ts` plays the hit sounds. `AuraRings.ts` and
 
 | Kind | Trigger | What moves | Placeholder body |
 | --- | --- | --- | --- |
-| `impact` | hit | a sprite appears at the VICTIM, oriented along caster→victim, plays a short curve (thrust, snap, burst) | a stroked wedge |
-| `arc-swing` | hit | a sprite travels an arc from above the CASTER down onto the victim, ends in an impact | a thick arc stroke |
+| `impact` | hit | a small round burst ON the victim, never directional, tinted by damage type, OPT-IN (§12c.1); `curve` picks burst or snap | a small round burst |
+| `strike` | hit | a weapon starts at the ATTACKER and travels into the victim; `curve` picks the style AND the weapon (§12c.1) | a spear (thrust), a blade (swing), a hammer (overhead) |
 | `projectile` | hit | a sprite flies caster→victim, straight, constant speed, ends in an impact | a filled circle with a trail |
-| `beam` | hit | a body stretched caster→victim with an intensity envelope (attack, hold, fade) and a width curve | a jagged polyline (lightning) or a gaussian ribbon |
+| `beam` | hit | a body stretched caster→victim with an intensity envelope and a width curve; `curve` picks the envelope (`flash` = attack/peak/fade, `extend` = extend/retract, C2a) | a jagged polyline (lightning) or a gaussian ribbon |
 | `cast-pose` | fired | a sprite shown ON the caster for the duration of a cast or a tick (the bow) | a small rotated rectangle |
 | `orbit` | fired / ambient | N sprites circle the caster for a duration | two rotating wedges |
 | `emitter` | ambient / fired / hit | particles from a point or a disc, with a motion (`swirl`, `rise`, `burst`) and a lifetime | tinted circles |
@@ -203,7 +208,7 @@ A skill carries one new top-level key, `visual`, holding a list of layers:
   `frost`, `nature`, `poison`, `bleed`, `physical`: six, from the
   vocabulary fixture) and from the category for heal / shield / light;
   `tint` on a layer overrides.
-- **Tunables** are per kind and few: `ms`, `speed`, `curve`, `count`,
+- **Tunables** are per kind and few: `ms`, `speed`, `curve`, `chain`, `count`,
   `motion`, `width`, `tint`, `scale`. The Go struct is the list (§5.1); the
   fixture exports it; the editor renders it; `smoke.mjs` pins it both ways
   (the spell builder's L1 rule, unchanged).
@@ -216,14 +221,14 @@ skill with two effects (damage + slow) has one look.
 
 | PO description (2026-09-11) | Layers |
 | --- | --- |
-| Sword stab directly on the mob | `impact` (sword body, thrust curve) |
-| Overhead mace, arc from above the player down onto the mob | `arc-swing` + `impact` |
+| Sword stab directly on the mob | `strike` (thrust curve; §12c.1, was an `impact`) |
+| Overhead mace, arc from above the player down onto the mob | `strike` (overhead curve) + `impact` (burst) |
 | Wolf bite: teeth appear, snap shut in a quick motion | `impact` (sheet body: open→closed) |
 | Firebolt, straight line, constant speed | `projectile` + `impact` |
 | Lightning: weak, then bright and bold, then fade | `beam` (jagged body, envelope attack→peak→fade, width follows) |
 | Arrow: a bow in the player's hand, an arrow flies and hits | `cast-pose` (bow) + `projectile` (arrow) + `impact` |
 | Flame aura, up to three mobs at once: fire pillars extend and return | `beam` ×N (gaussian ribbon, envelope extend→retract) |
-| Two axes spinning around the character, hits everyone around | `orbit` (2 bodies, the ability's duration) + `impact` per victim |
+| Two axes spinning around the character, hits everyone around | `orbit` (2 bodies, the ability's duration) + `impact` (burst) per victim - the axes are the orbit's bodies, so there is no `strike` here |
 | Heal: green crosses and mist rise from the player's centre | `emitter` (motion `rise`, two bodies: cross, mist) |
 
 Every one of the nine is covered by the seven kinds with zero engine
@@ -232,9 +237,10 @@ special-casing, which is the test the vocabulary has to keep passing.
 ### 4.4 What the prototype's four map to
 
 `field-ice` → `emitter` (`motion: swirl`, ambient) · `strike-sword` →
-`impact` (thrust) · `projectile-fire` / `projectile-frost` → `projectile`
-+ `impact` with the palette doing the colour. The impact-deferred number
-does not survive (D6).
+`strike` (thrust; §12c.1 corrected this row, which mapped the prototype's
+caster-anchored sword onto the victim-anchored `impact`) ·
+`projectile-fire` / `projectile-frost` → `projectile` + `impact` with the
+palette doing the colour. The impact-deferred number does not survive (D6).
 
 ## 5. The wire (D5, D10)
 
@@ -390,8 +396,9 @@ work for the audio lane, fed by the HIT event when it has an owner.
 ## 8. Deletions
 
 - The `hitStyle` lever end to end (D7): `skills/definition.go:193-215`
-  (enum, map), `catalog.go:28,53`, `sys/skills.go:731 auraHitStyleFor` +
-  `:507`, `model/status_effects.go:76-97`, `NoteAuraHit` / `AuraHitStyle` on
+  (enum, map), `catalog.go:28,53`, `sys/targeting.go auraHitStyleFor`
+  (⚑ §8 long said `sys/skills.go:731`; it moved) + `sys/skills.go:507`,
+  `model/status_effects.go:76-97`, `NoteAuraHit` / `AuraHitStyle` on
   both models (`mob.go:634,2009-2017,2139`, `player.go:176,475,620,743`),
   the two codec lines, the `Skills.ts:30` client type, `showAuraHit` and
   its two call sites, the two authored `"hitStyle"` values in `api/skills/`.
@@ -445,13 +452,23 @@ builder C1 lesson: a chunk whose purpose is a look is not done without one).
   green; new codec test (N landings → N events, filter honoured); loadbot
   leg (§5.3) recorded in the ledger, D10 fallback ruled. **Schema: WIRE
   appended + deprecated.** ⚑ Verify the DoT stream's skill id (§3.3).
-- **C2a · The engine + three kinds.** `SkillFx` manager, layer, budget,
-  pools, math module (prototype harvest), body resolver with placeholders,
-  `impact`, `projectile`, `beam`; own player, other players, mobs; the
-  `hitStyle` lever deleted; `AuraTickIndicator` absorbed. Browser harness
-  (Chromium no-throttling flags). Screenshots. **Schema: NONE** (C1 did the
-  wire).
-- **C2b · The other four kinds + the slider.** `arc-swing`, `cast-pose`,
+- **C2a · The engine + three kinds.** ✅ **BUILT 2026-09-19, PO look PASSED**
+  (spec: §12b, the `strike` amendment: §12c, ledger: §13). `SkillFx` manager,
+  layer, budget, pools, math module (prototype harvest), body resolver with
+  placeholders, `impact`, `projectile`, `beam`; own player, other players,
+  mobs; the `hitStyle` lever deleted; `AuraTickIndicator` absorbed. Browser
+  harness (Chromium no-throttling flags). Screenshots. **Schema: NOT NONE, as
+  §12b.2 corrects: WIRE one field name deprecated, two slots**
+  (`aura_hit_style` on Mob + Character), both binding sets regenerated;
+  CONTENT the `beam` keys, `visual` on 52 more files, one new skill; DB and
+  CONF NONE.
+
+  ⚑ **Four kinds shipped, not three**: the PO's first look rejected the
+  victim-anchored wedge, so §12c added the caster-anchored `strike` (replacing
+  `arc-swing`, still seven kinds) and made `impact` a small opt-in round burst.
+  28 files were re-authored for it the same day.
+- **C2b · The other three kinds + the slider** (`arc-swing` became C2a's
+  `strike`, §12c). `cast-pose`,
   `orbit`, `emitter`; the density setting (§7.3) with mobile default; the
   nine PO examples authored with placeholders as the acceptance set.
   Screenshots + PO play. **Schema: NONE.**
@@ -493,6 +510,11 @@ C0 and C1 can be built in either order; C2a needs both.
    owned relation client-side (XP already credits the owner; the number
    should agree with the XP). Needs the owner id on the wire or a client
    lookup; C1 decides which.
+
+10. **The flinch** (PO 2026-09-19, carried): a 2-3 px, ~80 ms nudge of the
+    victim's sprite away from the attacker on every landed damage hit, the
+    WoW hit-react. Not built: it transforms the entity sprite and fights the
+    position interpolation; belongs to `plan-entity-presentation.md`.
 
 ### 10.1 Rulings made while executing, recorded here
 
@@ -726,7 +748,374 @@ line: DB NONE (confirm the character persistence marshaller is a whitelist
 that cannot pick up the new slice) · WIRE appended + 5 field names deprecated + one Mob
 field · CONF NONE · CONTENT NONE.
 
+## 12b. C2a execution spec (2026-09-19, re-verified against HEAD `83aadd66`)
+
+Planned in the executing session; the PO answered five questions up front
+(below). Everything not marked PO is an implementation call.
+
+### 12b.1 PO calls (2026-09-19)
+
+- ⭐ **No engine default for a skill without a `visual`.** Deleting the
+  `hitStyle` lever would leave 107 of 113 skills drawing nothing on a hit
+  (today every damage aura gets a cadence-derived slash / fire). PO: **author
+  every damaging skill now**, by reach and flavour (§12b.5), not an engine
+  fallback. A skill with no `visual` draws nothing, by rule.
+- ⭐ **`beam` gains `curve`, with its own value set: `flash` | `extend`.**
+  `flash` = attack → peak → fade on the jagged placeholder (lightning);
+  `extend` = extend → retract on the ribbon placeholder (flame pillars).
+  Absent = `flash`. Curves become PER-KIND sets (`impact`: thrust / snap /
+  burst, unchanged).
+- ⭐ **`beam` gains `chain` (bool).** One tick's HIT events of one (source,
+  skill) draw caster→v1→v2→v3 instead of a fan from the caster; order is
+  greedy nearest-neighbour from the caster, each hop starts a fixed delay
+  after the previous ([PLACEHOLDER] 60 ms). ⚑ VISUAL ONLY: every victim is
+  inside the caster's ring, the server is untouched. A true chain selector
+  (jump range from the previous victim) is future gameplay work, not built.
+- ⭐ **A new skill, Lightning Strike** (id 76, `lightning-strike.json`):
+  active aura, `nature` (the WoW Classic precedent; no seventh damage type),
+  ranged ring, nearest 3, tick 40, numbers cloned down from Long-Range Strike,
+  all [PLACEHOLDER]; `beam` / `flash` / `chain` with a pale blue `tint`.
+  **No unlock source**: cheat-only (`SKILL`) until the PO places it. Registry
+  pin 113 → 114 (76 player + 38 mob).
+- ⭐ **Heal / shield / light auras and non-damage cooldowns wait for C2b**
+  (their kinds, `emitter` / `orbit` / `cast-pose`, do not exist yet; they draw
+  nothing today, so nothing regresses).
+
+### 12b.2 Schema, corrected
+
+§9 said "Schema: NONE" for C2a. It is not: **WIRE one field name deprecated,
+two slots** (`aura_hit_style` on Mob + Character), both binding sets
+regenerated. **CONTENT: two vocabulary keys on `beam` (`curve`, `chain`), one
+new skill, `visual` on ~52 files, two `hitStyle` values deleted, the
+`hitStyle` effect key gone from the fixture. DB NONE · CONF NONE.**
+
+⚑ This arms the C1 landmine directly: the regen drops `auraHitStyle()` while
+`GameStateMessage.ts:462` and `:519` still call it; `tsc` and vitest stay
+GREEN and the first Mob decode throws. Those two reads leave in the same half
+as the regen, and that half is gated on a REAL BOOT, not on tests.
+
+### 12b.3 Engine (half A)
+
+Files, all under `frontend/src/features/skill-fx/logic/`:
+
+- `SkillFxMath.ts` + test: the prototype harvest (`git show
+  prototype/skill-visuals:frontend/src/features/game-objects/logic/SkillVisualsMath.ts`
+  and its 16 cases): `flightMs`, `projectilePoint`, `strikePhase`, `clamp01`.
+  New: the three impact curves, the two beam envelopes (intensity + width /
+  extent as functions of elapsed ms), the jagged polyline (deterministic,
+  index-seeded, "nothing here is random"), `chainOrder(caster, victims)`,
+  the wind-up glow alpha (moved verbatim from `AuraTickIndicator`). The
+  skill-id table, `withinReach` and the snowflake do NOT come over (the
+  inference is dead; the flake is C2b's emitter).
+- `SkillFxPalette.ts`: damage type → colour (six + a neutral for untyped),
+  from the skill's first damage-carrying effect's first `damageTags` entry;
+  `tint` on the layer wins. Hex values [PLACEHOLDER].
+- `SkillFxBodies.ts`: `body` → atlas frame, else the kind's placeholder
+  Graphics; no atlas exists, so every lookup is the placeholder and a named
+  body logs once in dev.
+- `SkillFxKinds.ts`: the registry holds ALL SEVEN kind names so the
+  both-ways pin against `visualKinds` holds today; `impact`, `projectile`,
+  `beam` are real, the other four are no-op stubs that log once (C2b fills
+  them). Pools per kind.
+- `SkillFx.ts`: the manager. `setup(layer)`, `onSnapshot(events, resolve)`,
+  a ticker update, `reset()`. Budget: live-Fx cap 96 [PLACEHOLDER],
+  oldest-first eviction.
+- `client-data/Skills.ts`: the `VisualDef` / `VisualLayer` mirror on
+  `SkillDefinition`.
+- `Game.ts` / `IGame.ts`: `layers.skillFx` above `flyers`, below `darkness`
+  (the prototype's diff, verbatim in intent).
+
+Rules:
+
+- **One feed, one call site.** The manager is fed from
+  `Backend.receiveSnapshot` beside `showSkillEventNumbers` (after the player
+  and the entity loop, §12), resolving the own Character by id FIRST (it is
+  not in `EntityManager`). An event naming an entity the client does not hold
+  is skipped silently.
+- **`on: hit` draws once per HIT event, whatever its `HitKind`** (an Immune
+  or Absorb landing still landed). FIRED events are consumed for `on: fired`
+  layers, which in C2a are all stubs.
+- **D1: no attribution.** VFX draw for every source and victim in view. The
+  manager does not need `ownerId`; C1's "move it onto the `Mob` game object"
+  landmine is left alone (YAGNI).
+- **Implicit sequencing.** In one `visual`, an `impact` on the same trigger as
+  a `projectile` starts when the projectile ARRIVES (§4.1: "ends in an
+  impact"). No `delay` key. A chained beam's impact on hop N waits for hop N.
+- **Follow, then finish.** Layers re-read source / victim positions per
+  frame; when either despawns, a `projectile` / `beam` finishes toward the
+  last known position.
+- **The wind-up glow** (D7) moves from each entity's `shape` to the `skillFx`
+  layer, positioned per frame, driven by the same `aura_tick_interval` /
+  `aura_tick_phase` and the same px radius `Character.ts:257/268` and
+  `Mobs.ts:381/417` feed today. It is NOT authored content, NOT under the
+  budget and NOT (C2b) under the density slider: it is readability.
+  `AuraTickIndicator.ts` is deleted. ⚑ Render order changes: the glow now
+  sits above every entity instead of under later ones. Check in the look.
+- **§10.1's carried question** (an `ambient` layer while an aura is equipped
+  but off): in C2a the only ambient consumer is the wire-driven glow, and
+  interval 0 already hides it. The `visual`-level answer is C2b's.
+- `window.game.skillFx()` → `{live, spawnedByKind, evicted}` for the harness.
+
+### 12b.4 The lever (half B), a checklist
+
+Go: `skills/definition.go` (enum, `hitStyleMap`, the `Damage.HitStyle` field
+and its parse) · `skills/catalog.go` · `sys/targeting.go:46-64`
+`auraHitStyleFor` (⚑ §8 said `sys/skills.go:731`, stale) ·
+`sys/skills.go:521,746,806,927` · `model/status_effects.go:76-97` ·
+`model/entity.go` / `model/player.go` interface lines · `NoteAuraHit` /
+`AuraHitStyle` + the field + its reset on `mob/mob.go` and
+`player/player.go` · `codec/mob.go` + `codec/gamestate.go` · tests:
+`mob_test.go`, `retaliate_test.go`, `skills_behavior_test.go`,
+`targeting_test.go`.
+Wire: `aura_hit_style (deprecated)` ×2 in `server.fbs`, regen both sets
+(`flatcgen.go` needs network; the checked-in flatc by hand is byte-identical).
+Vocabulary: `visual.go` (per-kind curve sets, `chain`), `visual_test.go`
+red-first, fixture regen with `UPDATE_SKILL_VOCABULARY=1` (drops `hitStyle`
+from `effectKeys`, adds the beam keys), `smoke.mjs` leg (k) for per-kind
+curves.
+Editor: `skill-presentation.mjs`, `save-skill.mjs` + test, `public/app.js`,
+`.claude/skills/verify/content-editor-skills-tab.mjs`.
+Client: `Skills.ts:30`, `showAuraHit` + `buildAuraHitFx` + its fields in
+`_GameObject.ts`, the call sites `EntityManager.ts:241` and `Player.ts:164`,
+the two decode reads, `SharedConstants.test.ts`, `SkillTooltip.test.ts`.
+Docs: `manual-content-authoring.md` §2 (beam `curve` / `chain`, per-kind
+curves) and §3 (the `hitStyle` bullet goes), the `add-content` skill,
+`plan-content-editor.md`'s "hitStyle stays" note, `tools/content-editor/README.md`.
+
+### 12b.5 Content: the authoring rule and every pick (PO: reach and flavour)
+
+Melee reach (radius < 2): `impact`; bites / gore = `snap`, weapons / stabs /
+kicks = `thrust`, stomps / bursts / AoE cooldowns / DoT applications / ground
+auras = `burst`. Ranged (radius ≥ 2, volleys, spits): `projectile` + `impact`.
+Fire DoT auras of stationary casters stay `impact` / `burst` on the victim
+(a totem throwing a bolt per tick is a content judgement for later).
+Retaliate passives: `impact` / `burst` (lands on the attacker, `hit` only,
+D2). All [PLACEHOLDER], no `body`, no `tint` except Lightning Strike.
+
+| Pick | Files |
+| --- | --- |
+| `impact` thrust | berserker, harvest, paladin, pickaxe, reaper, spearhead, vanguard, warbanner, wild · mobs: bandit-blades, companion-aura, elite-bandit-slash, grunt-slash, kobold-stab, soldier-blades, stag-kick, orc-cleave, warlord-cleave |
+| `impact` snap | mobs: bear-swipe, boar-gore, elite-wolf-bite, saber-tooth-cat-aura, spider-bite, dodo-aura |
+| `impact` burst | blight, immolate, wildfire, damage-burst, envenom, ignite, nova-burst, rime-burst, shockwave, fire-shield, omni-passive, omni-strike (replaces `hitStyle: slash`) · mobs: angry-mammoth-aura, angry-mammoth-stomp, bomb-burst, mammoth-aura, troll-smash, poison-pool-aura, spike-barricade-aura, ember-aura, fire-elemental-aura, fire-totem-aura, totem-aura |
+| `projectile` + `impact` snap | mobs: bandit-volley, kobold-volley, giant-venom-spit, venom-spit |
+| `beam` extend + `impact` burst | omni-aura (replaces `hitStyle: fire`; the §4.3 flame pillars, 3 targets) |
+| `beam` flash chain + `impact` burst | **lightning-strike (NEW, id 76)** |
+
+⚑ Every `on: hit` layer must pass D2 by category; the agent runs
+`aurad -validate -content ../api` after the batch, then `make -C backend
+build` (cp-defs) before any Go test reads the embedded copy.
+
+### 12b.6 Verify tail C2a owes
+
+`go build` / `go vet` / `go test -count=1 ./...` (determinism, guardrails,
+alloc pins) · `make -C backend build` · `-validate` 0 both ways · `npm run
+smoke` · editor `node --test` · `npm run inventory` regenerated · frontend
+`npm test` / `typecheck` / `build` · ⭐ **a real boot + join** (the dropped
+accessor) · a new harness `skill-fx.mjs` (harvested from
+`skill-visuals-proto.mjs`, Chromium no-throttling flags, equips on open
+ground after `#combatIndicator.hidden`): own impact, a projectile in flight
+then its impact, a chained beam with 3 victims, a mob's impact on the own
+player, the glow alive, `hygiene-wire-prune` clean, 0 console errors ·
+screenshots for the PO look. ⛔ Not done, not wrapped, not committed before
+the PO look. ⚑ Branch deletion (`prototype/skill-visuals`,
+`prototype/attack-lines`, local + origin) is a PO ask at the wrap, never
+autonomous.
+
+## 12c. C2a amendment: the `strike` kind (PO look 2026-09-19)
+
+**The PO's look:** "the effects look good, some even very good", the chained
+bolt and the projectile work. ⛔ **The wedge does not**: "it doesn't work
+visually as an indicator", and "the damage aura itself does not seem to have
+an element attached to it".
+
+**Diagnosis: a VOCABULARY defect, not tech and not content.** The prototype's
+sword was anchored at the PLAYER and thrust across the gap. §4.4 mapped it to
+`impact`, which §4.1 anchors at the VICTIM, so the attacker's half of a melee
+hit had no kind at all; `arc-swing` (the only caster-side weapon kind) sat in
+C2b. §12b.5 then put `impact` on every damaging skill, which turned a
+placeholder for a missing weapon sprite into an accidental general indicator.
+
+### 12c.1 PO calls (2026-09-19)
+
+- ⭐ **A caster-anchored melee kind, `strike`, REPLACES `arc-swing`** (still
+  seven kinds). A weapon starts at the attacker and travels to the victim.
+  `on: hit` only. Keys: the common ones + `ms` + `curve`.
+- ⭐ **Three styles, `curve`: `thrust` | `swing` | `overhead`** (absent =
+  `thrust`). `thrust` = a quick straight stab out and back; `swing` = the
+  weapon pivots at the attacker and sweeps ~100° through the victim;
+  `overhead` = a visible wind-up above the attacker, then down onto the
+  victim, slow and heavy. (`flurry` was offered and not taken.)
+- ⭐ **One placeholder weapon PER STYLE, chosen by the style**: a spear for
+  `thrust`, a blade for `swing`, a hammer for `overhead`. Content still
+  authors NO `body` (C0's rule stands); the artist's sprite replaces the
+  placeholder under the same style later.
+- ⭐ **`impact` is OPT-IN and small** (the WoW model: a plain melee hit is the
+  swing + the victim's hit flash + the number; only spells, elemental hits,
+  nukes, bites and missile arrivals get a burst on the target). `impact`
+  becomes a small ROUND burst on the victim, tinted by damage type, never
+  directional. Its curves are **`burst` | `snap`**; `thrust` moves to
+  `strike`. The wedge placeholder is deleted.
+- ⭐ **The flinch is NOT built** (a nudge of the victim's sprite on every hit):
+  it transforms the entity sprite, which this plan does not touch. Carried as
+  §10 Q10 for `plan-entity-presentation.md`.
+- Implicit sequencing extends: an `impact` beside a `strike` starts at the
+  strike's CONTACT moment (end of the thrust-out / the sweep crossing the
+  victim / the hammer landing), as it already waits for a projectile.
+
+### 12c.2 Content, every pick (all [PLACEHOLDER])
+
+Rule: a weapon-wielder's plain hit is `strike` ALONE. An animal's bite, gore
+or swipe is `impact`/`snap` alone (it wields nothing). Elemental, poison,
+AoE and cooldown hits keep `impact`/`burst`. A missile's arrival is
+`impact`/`burst` (was `snap`, which is the bite).
+
+| Pick | Files |
+| --- | --- |
+| `strike` thrust | damage, berserker, paladin, spearhead, vanguard, warbanner · mobs: companion-aura, kobold-stab |
+| `strike` swing | reaper, wild · mobs: bandit-blades, elite-bandit-slash, grunt-slash, soldier-blades, orc-cleave |
+| `strike` overhead | harvest, pickaxe · mobs: troll-smash, warlord-cleave |
+| `impact` snap (unchanged) | mobs: wolf-bite, elite-wolf-bite, spider-bite, boar-gore, saber-tooth-cat-aura, dodo-aura, bear-swipe |
+| `impact` burst, was thrust | frostbite, hoarfrost (beside their emitter) · mobs: stag-kick |
+| `impact` burst (unchanged) | every other file that authors it today |
+| `projectile` + `impact` burst, was snap | long-range-strike, suppression · mobs: bandit-volley, kobold-volley, giant-venom-spit, venom-spit |
+| unchanged | lightning-strike, omni-aura, omni-strike, omni-passive |
+
+**Schema: DB / WIRE / CONF NONE. CONTENT:** vocabulary kind `arc-swing` →
+`strike` (+ `curve`), `impact` loses curve `thrust`, ~35 files re-authored.
+`TestVisual_TheNinePOExamples`: the sword stab becomes `strike`/thrust, the
+overhead mace `strike`/overhead (+ `impact`), the wolf bite stays
+`impact`/snap.
+
 ## 13. Ledger
+
+### C2a ledger (2026-09-19) - the engine + three kinds
+
+✅ **BUILT 2026-09-19** `[uncommitted]`, **PO look PASSED**. Spec: §12b, with
+the PO's calls of the day in §12b.1; the `strike` amendment that came out of
+the first look is §12c.
+
+**Schema: DB NONE · CONF NONE · WIRE one field name deprecated, two slots**
+(`aura_hit_style` on Mob + Character), both binding sets regenerated ·
+**CONTENT:** `beam` gains `curve` (flash | extend) and `chain`; `visualCurves`
+is now a per-KIND map in the fixture; `hitStyle` gone from `effectKeys`;
+`visual` on 52 more files (59 total, 69 layers); two `hitStyle` values
+deleted; one new skill, Lightning Strike (id 76); registry pin 113 → 114.
+
+**What was built**
+
+- `frontend/src/features/skill-fx/logic/`: `SkillFxMath` (prototype harvest +
+  impact curves, beam envelopes, the deterministic jagged polyline,
+  `chainOrder`, the glow alpha), `SkillFxPalette`, `SkillFxBodies`
+  (placeholders only, no atlas yet), `SkillFxKinds` (all seven names
+  registered, three real, four once-logging stubs for C2b, pinned both ways
+  against `visualKinds`), `SkillFx` (the manager: one feed in
+  `Backend.receiveSnapshot`, budget 96, pools, `reset()` on own death).
+- `layers.skillFx` above `flyers`, below `darkness`.
+- The wind-up glow lives in the manager; `AuraTickIndicator.ts` deleted.
+- The `hitStyle` lever is gone end to end: Go enum + parse + stamp + both
+  models + codec, the wire field, the editor, the client (`showAuraHit` and
+  its 106-line block). `grep -i hitstyle` over code and content: 0 hits.
+- `.claude/skills/verify/skill-fx.mjs` (NEW harness, five legs).
+
+**Implementation calls (not PO calls)**
+
+- ⚑ **The manager runs on `PrerenderEvent`, subscribed AFTER
+  `GameObject.setup()`**, not on `Ticker.shared` as the prototype did: the
+  glow is no longer a child of the entity's shape, so it must be positioned
+  after `moveInterpolatedObjects` or it trails its entity by a frame. Side
+  effect: VFX freeze with a paused game.
+- ⚑ **`width` is PIXELS, as `speed` is px/s.** The two halves disagreed (the
+  content half authored 0.35 as if world units, the engine read px) and the
+  first chained bolt was a 0.35 px hairline. Settled in the manual; the two
+  authored beams are 5 and 14.
+- A chained hop's impact is oriented from the PREVIOUS victim. `tint` resolves
+  per layer. A delayed Fx holds a budget slot from feed time.
+- The catalog serves damage types as `tags`, not `damageTags`; the palette
+  walks damage / dot / retaliate payloads in that order.
+- Lightning Strike's icon is `lorc/star-swirl` (no lightning glyph is
+  vendored; a fetch + a client icon write is a follow-up).
+- The fixture's per-kind curve map is partial on purpose and pinned against
+  the KEY table (every kind whose key row has `curve` has a curve row).
+
+**Red→green, stated honestly.** Red-first: the vocabulary tests (per-kind
+curves, `chain`), `SkillFxMath` (27), palette (8), the registry pin (4).
+⚑ **No manager-level unit test**: `SkillFx.ts` is Pixi-bound, so chain
+GROUPING and the projectile→impact delay are covered by the harness only.
+
+**Mutation ×3, each reverted:** `curve: thrust` on a beam (Go + smoke both
+red) · a stray `hitStyle` in content (smoke leg (a) + `-validate`) · `chain`
+on an `impact` (Go + smoke).
+
+**Verify tail** (rerun by the lead after both halves and after the width fix):
+`go build` / `go vet` clean · `go test -count=1 ./...` **35 packages ok, 0
+failures** (DB tests skip; no `-race`) · `make -C backend build` · `-validate`
+**0 findings** both ways · `npm run smoke` **0 findings / 114 files / 69
+layers** · editor `node --test` 2/2 · inventory regenerated · frontend `npm
+test` **733 / 42** (was 694 / 39) · `typecheck` clean · `npm run build`.
+
+**Harness gate** (fresh server, one at a time): ⭐ **real boot + join clean**
+(`hygiene-wire-prune`: 0 console errors, 0 context losses; the dropped
+`auraHitStyle()` accessor did not bite; first run hit the documented
+post-restart join race) · `skill-fx.mjs` **PASS 5/5**: nothing spawns without
+an event · Damage → 21-51 impacts (own + the wolves' `wolf-bite` on the
+player) · Long-Range Strike → 12 projectiles + 12 impacts · Lightning Strike →
+33 beams on a four-wolf pack · `skillFx` below `darkness` ·
+`immune-feedback.mjs` PASS. ⚑ Harness lessons: a fixed-time screenshot misses
+a 260 ms beam (the shot arms on the spawn counter and slows the page clock
+8×); every equip happens BEFORE the first fight (no XP cheat, or a levelled
+player one-shots the pack and the chain has nothing to jump to); a leg whose
+skill never landed is INCONCLUSIVE, not red.
+
+**Not run:** `content-editor-skills-tab.mjs` (its `hitStyle` assertion was
+removed, the rest untouched) · the two-window leg (another player's VFX) ·
+loadbot (no wire growth, a field left).
+
+**⭐ Amendment after the first PO look (2026-09-19, §12c): the `strike` kind.**
+PO: effects "look good, some even very good", the wedge does not work and the
+Damage aura had nothing on the attacker. Built the same day: `strike` replaces
+`arc-swing` (caster-anchored; `thrust` spear / `swing` blade / `overhead`
+hammer, one placeholder weapon per style), `impact` is a small round opt-in
+burst (`burst` | `snap`), the wedge is deleted, 28 files re-authored per
+§12c.2 (8 thrust, 7 swing, 4 overhead; plain weapon hits author `strike`
+alone), an `impact` beside a strike waits for the weapon's contact moment, the
+flinch is carried as §10 Q10. Verify tail rerun by the lead: Go **35 packages
+ok, 0 failures** · `-validate` 0 both ways · smoke 0 / 114 files / 69 layers ·
+editor 2/2 · frontend **742 / 42** · typecheck + build clean · mutation ×3
+(impact `thrust`, kind `arc-swing`, strike on `fired`: all refused by Go AND
+smoke) · `skill-fx.mjs` **PASS 7/7** with two new legs (a Troll's overhead and
+a Bandit's swing landing on the own player). ⚑ **GOD short-circuits the
+player's `takeDamage`, so a god-mode player is never the VICTIM of a HIT event
+and no mob strike draws on them**: the two mob legs drop GOD only for the
+armed window. ⚑ The first spear was a 2 px brown shaft, invisible on fur and
+ground; it is pale, outlined and blade-thick now. ⚑ Disclosed: the content
+agent ran `git checkout` on two uncommitted files during a mutation revert and
+rebuilt them by hand; both diffed and match §12c.2. ⚑ Thrust animates by
+x-stretch (the prototype's way), so the spear head squashes early in the stab.
+**The second PO look PASSED (below).**
+
+**⭐ The PO look, two sittings, 2026-09-19.** First: *"the effects look good,
+some even very good"* - the chained bolt and the projectile work, the wedge
+does not ("it doesn't work visually as an indicator") and the Damage aura had
+nothing on the attacker. That verdict is what §12c is, and it was built the
+same day. Second, after the amendment: ⭐ **"works for now as placeholders,
+ingame look passes"**. C2a is done.
+
+**Still open after the wrap** (none of it blocks C2b):
+
+- ⛔ **A PO yes/no on deleting `prototype/skill-visuals` and
+  `prototype/attack-lines`** (local + origin). Both are quarried out now (the
+  math module came over, backlog §57's shipped version IS this chunk), but a
+  branch deletion is a PO ask, **never autonomous**.
+- Lightning Strike wears `lorc/star-swirl`: a real lightning glyph needs a
+  fetch + a client icon write, a follow-up.
+- **No everyday player skill authors `overhead`** - only Harvest and Pickaxe,
+  which are gated. The style is verified by the Troll's smash, not by a
+  player's own hand.
+- **No manager-level unit test** (`SkillFx.ts` is Pixi-bound): chain grouping
+  and the projectile→impact delay are covered by the harness only.
+- The **two-window leg** (another player's VFX) was the PO's own walk, not a
+  harness. `content-editor-skills-tab.mjs` was edited (its `hitStyle`
+  assertion removed) and not re-run.
 
 ### C1 ledger (2026-09-19) - the wire
 

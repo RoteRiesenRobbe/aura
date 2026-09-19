@@ -4,6 +4,12 @@
   "name": "KoboldVolley",
   "category": "active_aura",
   "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "projectile", "on": "hit", "speed": 900 },
+      { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
+    ]
+  },
   "effects": [
     {
       "type": "damage_aura",

@@ -6,6 +6,11 @@
   "category": "passive",
   "maxLevel": 5,
   "description": "Cheat-only test rig. Its retaliates fire on any hit, even one that is fully absorbed.",
+  "visual": {
+    "layers": [
+      { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
+    ]
+  },
   "effects": [
     {
       "type": "stat_multiplier",

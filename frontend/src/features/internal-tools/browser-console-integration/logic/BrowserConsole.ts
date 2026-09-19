@@ -6,6 +6,7 @@ import * as Console from '../../console/logic/Console';
 import {Player} from "../../../player/logic/Player";
 import {IGame} from "../../../core/logic/IGame";
 import {SkillEventData} from "../../../backend/logic/SkillEventNumbers";
+import * as SkillFx from "../../../skill-fx/logic/SkillFx";
 
 // The last non-empty skill-event list and a running total (plan-skill-vfx.md
 // C1). Floating numbers are transient PIXI.Text with no DOM of their own, so a
@@ -33,12 +34,18 @@ function setup() {
         miniMap: undefined,
         layers: undefined,
         skillEvents: undefined,
+        skillFx: undefined,
     };
 
     consoleCommands.run = Console.run;
     // Gated with the rest of the handle: recorded always (an assignment and an
     // add), reachable only once the token is valid.
     consoleCommands.skillEvents = () => ({last: lastSkillEvents, total: skillEventCount});
+    // What the VFX manager actually did with those events (plan-skill-vfx.md
+    // C2a): live Fx, spawns per kind and evictions. Same reason as the events
+    // above: an Fx is a pooled Graphics with no DOM, so a harness can only
+    // screenshot it and hope; the counters are what the client decided.
+    consoleCommands.skillFx = () => SkillFx.counters();
     PlayerCreatedEvent.subscribe((player: Player) => {
         consoleCommands.character = player.character;
         return true;

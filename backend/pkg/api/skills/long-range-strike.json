@@ -9,7 +9,7 @@
   "visual": {
     "layers": [
       { "kind": "projectile", "on": "hit", "speed": 900 },
-      { "kind": "impact", "on": "hit", "curve": "snap", "ms": 150 }
+      { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
     ]
   },
   "effects": [

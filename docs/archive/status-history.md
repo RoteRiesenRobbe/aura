@@ -10,6 +10,11 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-09-19, the skill VFX C2a wrap rotated the cap, so SPELL BUILDER C5
+moved here verbatim.)*
+
+- **Prior: SPELL BUILDER C5 CUT, the plan COMPLETE: "ids are forever, so nothing is ever deleted"** ✅ 2026-09-18 `e9e945cd` (ledger: `docs/archive/plan-content-editor.md` §B12 C5, ARCHIVED): the registry lock was a machine for two rules; the PO kept the rules and dropped the machine. ⭐ **Rule: a skill file is never deleted (retire it by removing every unlock source), an `id` never changes, `maxLevel` never decreases** (`manual-content-authoring.md` §2 "Retiring a skill", the `add-content` skill). ⭐ **Every skill ever deleted is BACK: Wild 3, Recall 28, the five mob-only auras 101-105** (two other deletions were renames with the id kept), brought up to today's rules; the registry pin is **106 → 113** (75 player + 38 mob). ⚑ By design, a character whose persisted spellbook still holds id 28 regains a spellbook Recall beside the free utility. ⚑ The comment rule bit its own author: "no mob carries it" is a placement claim, stripped in review. **Schema DB/wire/conf NONE; content: seven files restored + embedded copies + one mob comment.** Verified: 35 pkgs 0 failures · `-validate` 0 findings at count=113 with AND without `-content` · real boot both ways · editor tests 2/2 + smoke 0/113 · `content-editor-skills-tab.mjs` 0 problems (its L3 leg rewritten to the rule) · frontend 678/38. ⭐ **Rider 2026-09-19: `npm run inventory` (tools/content-editor) now GENERATES `docs/content-skill-inventory.md` whole**, all 113 skills incl. mob-only, sources derived; it may lag `api/` by PO stance. Open riders, PO calls: §B11 Q7 (Go validation for every tab) · backlog §61 (its trigger no longer names C5).
+
 *(2026-09-19, the skill VFX C1 wrap rotated the cap, so SPELL BUILDER C4
 moved here verbatim.)*
 

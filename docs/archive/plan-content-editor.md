@@ -362,6 +362,10 @@ ordinary form work.
   ⚑ That takes **`hitStyle`** out with it (the schema's one visual lever,
   auto/slash/fire/none, chosen server-side and sent as a byte): not rendered,
   preserved on round trip. The shipped-vs-open audit is §4.8.
+  ✅ **RESOLVED 2026-09-19:** `hitStyle` is DELETED end to end by
+  `plan-skill-vfx.md` C2a (D7) - the Go enum, the JSON key, the wire byte and
+  the two authored values are gone, and the hidden-but-preserved key on a skill
+  file is `visual` now.
   ⭐ **Update 2026-09-19:** the VFX ruling now exists. `plan-skill-vfx.md` C0
   shipped the authored vocabulary as a top-level `visual` key (seven closed
   kinds, three triggers), and that plan's C3 is where the Visuals section
@@ -578,7 +582,7 @@ plan docs 2026-09-08:
 | Out | Why | Handling |
 |---|---|---|
 | **Visuals** | no VFX ruling exists (`plan-entity-presentation.md` §39, `prototype/skill-visuals` parked) | disabled section. ⭐ **2026-09-19:** the ruling exists (`plan-skill-vfx.md` C0, the `visual` key); the section renders it at that plan's C3, and until then the key is hidden and preserved like `legacy` |
-| **`hitStyle`** | the one visual lever; goes with VFX | not rendered, preserved on round trip (2 users) |
+| **`hitStyle`** | the one visual lever; goes with VFX | ✅ **resolved 2026-09-19**: DELETED end to end by `plan-skill-vfx.md` C2a (D7), both authored values with it. `visual` is the hidden-and-preserved key now |
 | **`projectile`** type + `forwardUnits`, `armTicks` | `plan-prototype-projectile.md` PARKED 2026-08-20, P2/P3-or-delete hangs on the owed second pass | type hidden from the picker; `ThrowBomb` / `ThrowMine` open **read-only** with a banner |
 | **`legacy`** flag | no file authors it; the proving-grounds content it marked was deleted at zone-editor C3 | not rendered, preserved |
 
@@ -780,7 +784,8 @@ repo, so it needs no cp-defs/embed entry"*).
   place; a rebuilt object drops the design-rationale comments the files carry
   (Aegis's `_comment` is the whole ruling record for
   `buffLifetimeMatchesInterval`).
-- **L8 - the exclusions must round-trip.** `hitStyle`, `legacy`,
+- **L8 - the exclusions must round-trip.** `hitStyle` (deleted 2026-09-19 by
+  skill-VFX C2a; `visual` took its place in the list), `legacy`,
   `forwardUnits`, `armTicks` are never rendered but must be written back
   untouched; `smoke.mjs` (a) covers this only if the read-only files are in
   its sweep - they are.
@@ -1284,14 +1289,16 @@ preceded by the §B11 Q6 reformat commit. Then C4, C5.
 - **`save-skill.test.mjs` (new)**: 8 case groups over a temp copy of `api/`
   with a fake seam (path, id, rename refused naming the milestone, rename
   with no references reaching the seam, a finding refusing the write, a clean
-  write preserving `_comment` + `hitStyle`, a throwing seam propagating) and
+  write preserving `_comment` + `hitStyle` (re-pointed at `visual` when
+  skill-VFX C2a deleted the key), a throwing seam propagating) and
   `collectSkillReferences` against real content. Smoke leg **(h)**.
 - **`public/app.js`**: every control live, in-place mutation, the L2 tri-state
   on every field, the parked guard as ONE line at the top of
   `renderSkillEditor` (a `HIDDEN_EFFECT_TYPES` skill keeps every control
   disabled and no Save), Reset + Save header (`resetEntry` gained `'skill'`),
   effect cards add / Delete (confirm when keys are authored) / ↑ ↓ / change
-  type with a confirm naming every dropped key incl. `hitStyle (not shown)`,
+  type with a confirm naming every dropped key, hidden ones marked
+  "(not shown)" (the example was `hitStyle`, deleted by skill-VFX C2a),
   category change re-rendering the block, live hints, `saveSkill` branching on
   the HTTP status with three prefixes ("refused:", "refused by aurad
   -validate:", "the validator could not run (HTTP n), nothing was written:"),

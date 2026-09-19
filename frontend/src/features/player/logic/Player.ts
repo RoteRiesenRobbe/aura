@@ -15,6 +15,7 @@ import {BRAND, LEVEL_UP_GOLD} from '../../../client-data/Theme';
 import {setLocalPlayerMaxHealth} from '../../../client-data/Skills';
 import {shieldBarSegments} from '../../game-objects/logic/ShieldBarMath';
 import * as Flight from '../../flight/logic/Flight';
+import * as SkillFx from '../../skill-fx/logic/SkillFx';
 import * as FlightOrigin from '../../flight/logic/FlightOrigin';
 import './PlayerJuice';
 
@@ -160,10 +161,6 @@ export class Player {
         if (entity.xpGained > 0) {
             this.character.showFloatingNumber(entity.xpGained, 'xp');
         }
-        // Aura-hit VFX (item 11 Step 4): slash / fire stamped by a damage aura.
-        if (entity.auraHitStyle > 0) {
-            this.character.showAuraHit(entity.auraHitStyle);
-        }
         // Campfire became the respawn anchor (chunk 4): confirm the bind.
         // Own player only — nobody else needs to see it. "Restocked" because
         // the same dwell also refills the Camp charges (plan-downtime.md) —
@@ -183,6 +180,10 @@ export class Player {
         // this, a re-join would spend its first tick zoomed out with a greyed
         // ability bar until the first snapshot corrected it.
         Flight.reset();
+        // Every live skill effect and every wind-up glow goes with the world
+        // (plan-skill-vfx.md §7.1): the prototype's lesson is that without
+        // this, a bolt in flight and an ambient layer outlive the corpse.
+        SkillFx.reset();
         FlightOrigin.setOrigin(0);
         HUD.updateFlight(false, 0);
         // The own character is added to the minimap here rather than through

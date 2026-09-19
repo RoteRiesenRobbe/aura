@@ -540,11 +540,12 @@ one that damages before it heals.
 
 ### Visuals: the `visual` key
 
-*(`plan-skill-vfx.md` C0, shipped 2026-09-19. The renderer is C2a/C2b, so
-authoring this today is authoring ahead of the thing that draws it.)*
+*(`plan-skill-vfx.md` C0 + C2a, 2026-09-19. C2a draws `impact`, `projectile`
+and `beam`; the other four kinds are authorable but still stubs until C2b.)*
 
-A skill may carry one optional top-level `visual` block, placed after
-`maxLevel` and before `effects`. It says what the skill LOOKS like, on the
+A skill may carry one optional top-level `visual` block, placed immediately
+before `effects` (which for a plain aura is right after `maxLevel`, and for a
+cooldown after `targetFactions`). It says what the skill LOOKS like, on the
 SKILL and never per effect: a skill with a damage effect and a slow effect has
 one look. Mobs use the same key on their own files, so a visual on
 `api/skills/mobs/wolf-bite.json` dresses every wolf.
@@ -553,7 +554,7 @@ one look. Mobs use the same key on their own files, so a visual on
 "visual": {
   "layers": [
     { "kind": "projectile", "on": "hit", "speed": 900 },
-    { "kind": "impact", "on": "hit", "curve": "snap", "ms": 150 }
+    { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
   ]
 }
 ```
@@ -565,20 +566,48 @@ content decision. Everything else is a parameter.
 
 | kind | plays on | its own keys | what it is |
 |---|---|---|---|
-| `impact` | hit | `ms`, `curve` | a body at the VICTIM, oriented caster→victim |
-| `arc-swing` | hit | `ms` | a body swung from above the caster onto the victim |
+| `impact` | hit | `ms`, `curve` | a small round burst ON the victim, opt-in, tinted by damage type |
+| `strike` | hit | `ms`, `curve` | a weapon that starts at the ATTACKER and travels into the victim |
 | `projectile` | hit | `speed` | a body flying caster→victim at constant speed |
-| `beam` | hit | `ms`, `width` | a body stretched caster→victim with an envelope |
+| `beam` | hit | `ms`, `width`, `curve`, `chain` | a body stretched caster→victim with an envelope |
 | `cast-pose` | fired | `ms` | a body worn ON the caster while it casts (the bow) |
 | `orbit` | fired, ambient | `ms`, `count` | N bodies circling the caster |
 | `emitter` | ambient, fired, hit | `ms`, `count`, `motion` | particles from a point or a disc |
 
 Legal on every layer: `kind` and `on` (both required), plus `body`, `tint`
-(lowercase `#rrggbb`) and `scale`. Closed value sets: `curve` is one of
-`thrust` / `snap` / `burst`, `motion` one of `swirl` / `rise` / `burst`. Every
-number is a **[PLACEHOLDER]** like all the others; `ms`, `speed`, `width` and
-`scale` must be > 0 when authored and `count` >= 1, and omitting one means
-"the kind's own default" rather than zero.
+(lowercase `#rrggbb`) and `scale`. Every number is a **[PLACEHOLDER]** like all
+the others; `ms`, `speed`, `width` and `scale` must be > 0 when authored and
+`count` >= 1, and omitting one means "the kind's own default" rather than zero.
+**Units are screen-space: `speed` is px per second, `width` is px** (a world
+unit is 120 px; a lightning bolt is ~5, a flame pillar ~14), `ms` is
+milliseconds, `scale` is a plain multiplier.
+
+**Closed value sets, and `curve` belongs to the KIND** (C2a): an `impact`
+curves `burst` or `snap`, a `strike` curves `thrust` / `swing` / `overhead`
+(absent = `thrust`), a `beam` curves `flash` (attack → peak → fade, the
+lightning envelope) or `extend` (extend → retract, the flame pillar), absent =
+`flash`. Borrowing another kind's word is a hard-fail naming both sets, because
+a beam authoring `thrust` would otherwise load clean and draw its default
+forever. `motion` is one of `swirl` / `rise` / `burst` and is the `emitter`'s
+alone.
+
+⭐ **The `strike`'s style also picks the weapon.** There is one placeholder per
+style and the style chooses it: a **spear** for `thrust` (a quick straight stab
+out and back), a **blade** for `swing` (the weapon pivots at the attacker and
+sweeps through the victim), a **hammer** for `overhead` (a visible wind-up above
+the attacker, then down onto the victim, slow and heavy). **Author no `body`** -
+the artist's sprite replaces the placeholder under the same style later, and
+`ms` is the whole motion ([PLACEHOLDER] today: thrust 200, swing 280, overhead
+460). A `strike` is anchored at the ATTACKER, which is the half of a melee hit
+an `impact` cannot draw; an `impact` beside one starts at the strike's contact
+moment, as it already waits for a projectile's arrival.
+
+`chain` (bool) is the `beam`'s alone: one tick's hits of one caster and one
+skill draw as a single caster→v1→v2→v3 polyline instead of a fan, each hop a
+short delay after the last. ⛑ **VISUAL ONLY.** Every victim is already inside
+the caster's ring and the server never reads the key; it does not add range, a
+jump distance, or a target. A real chain selector would be gameplay work, and
+nobody has asked for it.
 
 The three moments:
 
@@ -587,6 +616,24 @@ The three moments:
 - **`hit`** - once per victim of a landing. A `hit` layer on an aura that
   strikes three targets draws three times in one tick; that is the intent, not
   a special case.
+
+⭐ **Nothing draws by default.** A skill with no `visual` draws no hit VFX at
+all - the old cadence-derived slash/fire lever (`hitStyle`) is gone, and C2a
+deliberately shipped no engine fallback in its place (PO 2026-09-19). So
+**every damaging skill authors a `visual`**, by reach and flavour. The rule
+since the C2a amendment, and `impact` is now OPT-IN rather than the default
+dressing on everything:
+
+- **A weapon-wielder's plain hit is a `strike` ALONE** - no `impact` beside it.
+  A spear or a stab is `thrust`, a blade or a cleave is `swing`, a maul or a
+  pick is `overhead`. The swing plus the number is the whole hit, the WoW model.
+- **An animal's bite, gore or swipe is `impact` / `snap` alone.** It wields
+  nothing, so there is no weapon to start at the attacker.
+- **Elemental, poison, AoE, DoT and cooldown hits are `impact` / `burst`**, and
+  so is a **missile's arrival**: ranged reach, volleys and spits are a
+  `projectile` plus an `impact` / `burst`.
+
+Heal, shield and light auras wait for C2b's kinds.
 
 ⭐ **D2, enforced at load:** `ambient` is legal only on an **active aura** (it
 is the only category that is ever "running"), and a **passive** may author
@@ -599,8 +646,7 @@ a file that loads clean and draws nothing.
 atlas does not exist until `plan-skill-vfx.md` C3. An absent `body` draws the
 kind's procedural placeholder, which is the right thing to author right now: a
 body named before the atlas exists becomes a `-validate` ERROR the moment C3
-arms the check. The six skills that ship a `visual` today (Damage,
-LongRangeStrike, Suppression, Frostbite, Hoarfrost, WolfBite) author none.
+arms the check. The 59 skills that ship a `visual` today author none.
 
 ⚑ The content editor's Skills tab does NOT render `visual` until C3. It is
 hidden and preserved untouched on round trip, exactly like `legacy`, so a
@@ -688,7 +734,7 @@ are no longer in the roster). Two further deletions were renames that kept the i
      `base + (level−1) × perLevel` (e.g. `damageHP` + `damageHPPerLevel`)
    - targeting is faction-relative: `targetsEnemies` / `targetsAllies`
      (+ `selector`, `maxTargets`, `tickInterval`, optional `variance`,
-     `damageTags`, `hitStyle`)
+     `damageTags`)
 2. **Pick an unlock source:**
    - **Milestone** — add to `api/milestones/milestone-unlocks.json`.
      (Moved out of `backend/pkg/aura/skills/` on 2026-07-21 — it is now ordinary
@@ -745,7 +791,7 @@ payload): `radius`, `radiusPerLevel`, `tickInterval`, `tickIntervalPerLevel`,
 | `damageTags` | `damage.tags` | ⚑ also `dot.tags` on the dot types. **Closed vocabulary** (D4): `physical` `fire` `frost` `nature` `poison` `bleed` — anything else hard-fails |
 | `gateKey` (string) | `damage.gateKey` | ⚑ the lock-and-key mechanism, **not** a damage type. Closed vocabulary: `harvest` `smash`. Mutually exclusive with `damageTags` — a gated hit declares no type |
 | `variance` | `<payload>.variance` | damage / dot / heal / hot / selfHeal |
-| `hitStyle`, `structureDamageFraction` | `damage.hitStyle`, `damage.structureDamageFraction` | damage_aura, instant_damage |
+| `structureDamageFraction` | `damage.structureDamageFraction` | damage_aura, instant_damage |
 | `executeBelowFraction`, `executeBonusFactor`, `berserkerMaxBonusFactor`, `critChance`, `critChancePerLevel`, `critFactor`, `lifestealFraction` | `damage.<same name>` | damage_aura, instant_damage |
 | `damageHP` / `damageHPPerLevel` | `dot.hp` / `dot.hpPerLevel` | ⚑ dot_aura, instant_dot — **same authored key, different path** |
 | `dotTicks` / `dotTickInterval` | `dot.tickCount` / `dot.interval` | dot_aura, instant_dot |
@@ -792,18 +838,13 @@ Three distinct VFX surfaces — **all pure frontend, no backend, no wire.**
   `frontend/src/features/game-objects/assets/effects/damageAura.svg` and
   `healAura.svg`, referenced in `Graphics.ts` as `character.damageAuraFile` /
   `healAuraFile`. Replace the SVG (keep the filename, or repoint the `require`).
-- **Per-hit VFX** (slash streak / fire cluster on each aura tick): ⭐ **the
-  lever is the skill's `visual` key** (§2 "Visuals", `plan-skill-vfx.md`), not
-  this drawing code. Author the layers on the skill file; every skill gets its
-  own look, for mobs too, and the renderer is that plan's C2a/C2b.
-  ⚑ What is still in the code until then: the generic slash / fire cluster,
-  drawn programmatically in
-  `frontend/src/features/game-objects/logic/_GameObject.ts` →
-  `buildAuraHitFx(style)` (see `showAuraHit` above it), with *which* style
-  plays (1 = slash, 2 = fire) chosen **server-side** from the effect's
-  `hitStyle` override or its `tickInterval` cadence. **`hitStyle` is retired by
-  `plan-skill-vfx.md` C2** (D7), end to end, and carries one bit of style in
-  the meantime: do not author new ones.
+- **Per-hit VFX** (what a landing looks like): ⭐ **the lever is the skill's
+  `visual` key** (§2 "Visuals", `plan-skill-vfx.md`), not drawing code. Author
+  the layers on the skill file; every skill gets its own look, for mobs too,
+  and the renderer is `SkillFx` on its own layer below darkness (C2a).
+  ⚑ **There is no default.** The old `hitStyle` lever - one server-chosen byte
+  of slash-or-fire, derived from the tick cadence - is **deleted end to end** by
+  C2a (D7), and nothing replaced it: a skill with no `visual` draws nothing.
 - **Cooldown burst** (gold ring on cooldown activation): also programmatic in
   `_GameObject.ts`.
 

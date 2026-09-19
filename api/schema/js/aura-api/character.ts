@@ -115,11 +115,6 @@ xpGained():number {
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
-auraHitStyle():number {
-  const offset = this.bb!.__offset(this.bb_pos, 40);
-  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
-}
-
 maxHealth():number {
   const offset = this.bb!.__offset(this.bb_pos, 42);
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
@@ -269,10 +264,6 @@ static addBurstRadius(builder:flatbuffers.Builder, burstRadius:number) {
 
 static addXpGained(builder:flatbuffers.Builder, xpGained:number) {
   builder.addFieldInt32(17, xpGained, 0);
-}
-
-static addAuraHitStyle(builder:flatbuffers.Builder, auraHitStyle:number) {
-  builder.addFieldInt8(18, auraHitStyle, 0);
 }
 
 static addMaxHealth(builder:flatbuffers.Builder, maxHealth:number) {

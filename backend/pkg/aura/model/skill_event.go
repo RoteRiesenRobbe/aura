@@ -73,9 +73,9 @@ type Healing struct {
 }
 
 // SkillFiredNotifier is the narrow door the SkillSystem stamps a FIRED event
-// through, the AuraHitNotifier precedent, and kept separate from the funnels
-// for the same reason: the caster knows what it cast, the victim knows what it
-// took, and neither knows the other's half.
+// through, kept separate from the funnels for the same reason the recording
+// splits in two: the caster knows what it cast, the victim knows what it took,
+// and neither knows the other's half.
 type SkillFiredNotifier interface {
 	NoteSkillFired(id skills.SkillID)
 }

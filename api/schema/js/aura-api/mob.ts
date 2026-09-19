@@ -88,11 +88,6 @@ burstRadius():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
-auraHitStyle():number {
-  const offset = this.bb!.__offset(this.bb_pos, 26);
-  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
-}
-
 maxHealth():number {
   const offset = this.bb!.__offset(this.bb_pos, 28);
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
@@ -207,10 +202,6 @@ static addMobId(builder:flatbuffers.Builder, mobId:number) {
 
 static addBurstRadius(builder:flatbuffers.Builder, burstRadius:number) {
   builder.addFieldInt16(9, burstRadius, 0);
-}
-
-static addAuraHitStyle(builder:flatbuffers.Builder, auraHitStyle:number) {
-  builder.addFieldInt8(11, auraHitStyle, 0);
 }
 
 static addMaxHealth(builder:flatbuffers.Builder, maxHealth:number) {

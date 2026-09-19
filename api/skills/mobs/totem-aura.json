@@ -4,6 +4,11 @@
   "name": "TotemAura",
   "category": "active_aura",
   "maxLevel": 3,
+  "visual": {
+    "layers": [
+      { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
+    ]
+  },
   "effects": [
     {
       "type": "dot_aura",

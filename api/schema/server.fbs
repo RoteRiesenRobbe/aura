@@ -213,9 +213,12 @@ table Mob {
   // Drives the floating damage number (item 11). Reset every tick.
   damage_taken:uint = 0 (deprecated);
 
-  // aura-hit VFX stamped by a damage aura this tick (item 11 Step 4):
-  // 0 = none, 1 = slash (slow-tick), 2 = fire (fast-tick). Reset every tick.
-  aura_hit_style:ubyte = 0;
+  // WAS: the aura-hit VFX a damage aura stamped this tick (item 11 Step 4),
+  // one byte of style chosen server-side from the tick cadence. Deprecated by
+  // plan-skill-vfx.md C2a (D7): a skill's look is authored content now (the
+  // `visual` key), drawn from the per-skill hit events above, and nothing
+  // writes or reads this byte.
+  aura_hit_style:ubyte = 0 (deprecated);
 
   // absolute HP pool (item 11 Phase 1); `health` is now in absolute HP too, so
   // the client draws the bar as health/max_health. Appended at the table end so
@@ -362,9 +365,12 @@ table Character {
   heal_received:uint = 0 (deprecated);
   xp_gained:uint = 0;
 
-  // aura-hit VFX stamped by a damage aura this tick (item 11 Step 4):
-  // 0 = none, 1 = slash (slow-tick), 2 = fire (fast-tick). Reset every tick.
-  aura_hit_style:ubyte = 0;
+  // WAS: the aura-hit VFX a damage aura stamped this tick (item 11 Step 4),
+  // one byte of style chosen server-side from the tick cadence. Deprecated by
+  // plan-skill-vfx.md C2a (D7): a skill's look is authored content now (the
+  // `visual` key), drawn from the per-skill hit events above, and nothing
+  // writes or reads this byte.
+  aura_hit_style:ubyte = 0 (deprecated);
 
   // absolute HP pool (item 11 Phase 1); `health` is now in absolute HP too, so
   // the client draws the bar as health/max_health. Appended at the table end so

@@ -23,6 +23,11 @@
     "wildlife_predator",
     "wildlife_prey"
   ],
+  "visual": {
+    "layers": [
+      { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
+    ]
+  },
   "effects": [
     {
       "type": "instant_damage",
@@ -34,7 +39,6 @@
       "damageHPPerLevel": 2,
       "damageTags": ["fire"],
       "variance": 0.15,
-      "hitStyle": "slash",
       "critChance": 0.15,
       "critFactor": 2.0,
       "executeBelowFraction": 0.25,

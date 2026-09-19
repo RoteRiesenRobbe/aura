@@ -8,7 +8,7 @@
   "visual": {
     "layers": [
       { "kind": "emitter", "on": "ambient", "motion": "swirl", "count": 12, "ms": 1200 },
-      { "kind": "impact", "on": "hit", "curve": "thrust", "ms": 180 }
+      { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
     ]
   },
   "effects": [

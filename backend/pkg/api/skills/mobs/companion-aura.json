@@ -4,6 +4,11 @@
   "name": "CompanionAura",
   "category": "active_aura",
   "maxLevel": 3,
+  "visual": {
+    "layers": [
+      { "kind": "strike", "on": "hit", "curve": "thrust", "ms": 200 }
+    ]
+  },
   "effects": [
     {
       "type": "damage_aura",

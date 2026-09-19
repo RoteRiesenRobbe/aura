@@ -72,12 +72,20 @@ type VisualLayer struct {
 
 	MS     int     `json:"ms,omitempty"`     // duration in milliseconds [PLACEHOLDER per skill]
 	Speed  float32 `json:"speed,omitempty"`  // projectile travel speed
-	Curve  string  `json:"curve,omitempty"`  // impact only, one of visualCurves
+	Curve  string  `json:"curve,omitempty"`  // impact / strike / beam, one of the KIND's visualCurvesByKind set
 	Count  int     `json:"count,omitempty"`  // orbit / emitter: how many bodies
 	Motion string  `json:"motion,omitempty"` // emitter only, one of visualMotions
 	Width  float32 `json:"width,omitempty"`  // beam only
 	Tint   string  `json:"tint,omitempty"`   // overrides the palette; lowercase #rrggbb
 	Scale  float32 `json:"scale,omitempty"`  // body size multiplier
+
+	// Chain is the beam's alone (C2a, PO 2026-09-19): one tick's hit events
+	// of one (caster, skill) draw as a single caster→v1→v2→v3 polyline
+	// instead of a fan from the caster. VISUAL ONLY - every victim is already
+	// inside the caster's ring and the server never sees this key. A true
+	// chain selector (jump range measured from the previous victim) is
+	// gameplay work nobody has asked for.
+	Chain bool `json:"chain,omitempty"`
 }
 
 // visualTriggerFired is the one trigger name Go itself branches on (the FIRED
@@ -86,19 +94,40 @@ type VisualLayer struct {
 const visualTriggerFired = "fired"
 
 // The closed tables. visualKinds and visualTriggers are the vocabulary; the
-// three per-kind maps say what each kind accepts. All six ride the generated
+// per-kind maps say what each kind accepts. All six ride the generated
 // api/skill-vocabulary.json (vocabulary_test.go), so the content editor and
 // its smoke script read Go's own words rather than a hand-typed copy.
 var (
-	// visualKinds, in the order of plan-skill-vfx.md §4.1.
-	visualKinds = []string{"impact", "arc-swing", "projectile", "beam", "cast-pose", "orbit", "emitter"}
+	// visualKinds, in the order of plan-skill-vfx.md §4.1. `strike` took
+	// `arc-swing`'s slot in the C2a amendment (§12c.1): the attacker's half of
+	// a melee hit had no kind at all, because `impact` is anchored at the
+	// VICTIM, and the arc was only one of the three weapon motions a melee
+	// skill wants. Still seven.
+	visualKinds = []string{"impact", "strike", "projectile", "beam", "cast-pose", "orbit", "emitter"}
 
 	// visualTriggers: ambient = while this is the actor's running aura,
 	// fired = a cast or an aura tick went off (targets or not), hit = once
 	// per victim of a landing.
 	visualTriggers = []string{"ambient", visualTriggerFired, "hit"}
 
-	visualCurves  = []string{"thrust", "snap", "burst"}
+	// visualCurvesByKind: `curve` picks a motion shape, and the shapes are
+	// per KIND because they are per renderer (C2a, PO 2026-09-19). An impact
+	// bursts or snaps on the victim; a strike thrusts, swings or comes down
+	// overhead from the attacker, and the style also picks the placeholder
+	// weapon (spear / blade / hammer); a beam either flashes (attack → peak →
+	// fade, the lightning envelope) or extends (extend → retract, the flame
+	// pillar). A shared set would let a beam author "thrust", load clean and
+	// draw its default forever. Only the kinds whose visualKeysByKind row
+	// carries "curve" have a row here, both ways.
+	//
+	// ⚑ `thrust` MOVED from impact to strike in the C2a amendment (§12c.1),
+	// so it is now a refusal on an impact rather than its default motion.
+	visualCurvesByKind = map[string][]string{
+		"impact": {"burst", "snap"},
+		"strike": {"thrust", "swing", "overhead"},
+		"beam":   {"flash", "extend"},
+	}
+
 	visualMotions = []string{"swirl", "rise", "burst"}
 
 	// The keys legal on EVERY layer, in the order the editor will draw them.
@@ -109,21 +138,22 @@ var (
 	// rule: a key a kind does not read is a hard-fail, not a silent no-op.
 	visualKeysByKind = map[string][]string{
 		"impact":     mergeKeys(visualKeysCommon, []string{"ms", "curve"}),
-		"arc-swing":  mergeKeys(visualKeysCommon, []string{"ms"}),
+		"strike":     mergeKeys(visualKeysCommon, []string{"ms", "curve"}),
 		"projectile": mergeKeys(visualKeysCommon, []string{"speed"}),
-		"beam":       mergeKeys(visualKeysCommon, []string{"ms", "width"}),
+		"beam":       mergeKeys(visualKeysCommon, []string{"ms", "width", "curve", "chain"}),
 		"cast-pose":  mergeKeys(visualKeysCommon, []string{"ms"}),
 		"orbit":      mergeKeys(visualKeysCommon, []string{"ms", "count"}),
 		"emitter":    mergeKeys(visualKeysCommon, []string{"ms", "count", "motion"}),
 	}
 
 	// visualTriggersByKind: which moments a kind can play at. An `impact`
-	// needs a victim, so it is a hit and nothing else; a `cast-pose` is worn
-	// for the duration of a cast, so it is fired; only `emitter` spans all
-	// three.
+	// needs a victim, so it is a hit and nothing else, and a `strike` travels
+	// INTO one, so it has no moment without a victim either; a `cast-pose` is
+	// worn for the duration of a cast, so it is fired; only `emitter` spans
+	// all three.
 	visualTriggersByKind = map[string][]string{
 		"impact":     {"hit"},
-		"arc-swing":  {"hit"},
+		"strike":     {"hit"},
 		"projectile": {"hit"},
 		"beam":       {"hit"},
 		"cast-pose":  {"fired"},
@@ -243,9 +273,11 @@ func parseVisualLayer(raw json.RawMessage, categoryName string) (VisualLayer, er
 		}
 	}
 
-	if layer.Curve != "" && !slices.Contains(visualCurves, layer.Curve) {
+	// The curve set belongs to the KIND, so a value borrowed from another
+	// kind's set is refused by name rather than quietly ignored.
+	if legal := visualCurvesByKind[layer.Kind]; layer.Curve != "" && !slices.Contains(legal, layer.Curve) {
 		return VisualLayer{}, fmt.Errorf("kind %q: curve %q is not one of: %s",
-			layer.Kind, layer.Curve, strings.Join(visualCurves, ", "))
+			layer.Kind, layer.Curve, strings.Join(legal, ", "))
 	}
 	if layer.Motion != "" && !slices.Contains(visualMotions, layer.Motion) {
 		return VisualLayer{}, fmt.Errorf("kind %q: motion %q is not one of: %s",

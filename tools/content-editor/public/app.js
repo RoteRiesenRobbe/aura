@@ -1628,7 +1628,7 @@ async function saveMilestones(entry) {
  *
  *   1. EDIT THE RAW OBJECT IN PLACE (L7/L8). Keys are assigned and deleted on
  *      the object that came off disk, never on a rebuilt one, so _comment and
- *      every key the form does not render (hitStyle, legacy, forwardUnits,
+ *      every key the form does not render (visual, legacy, forwardUnits,
  *      armTicks - §B4.8) round-trip untouched.
  *   2. BLANK DELETES THE KEY (L2). Absent and 0 are different values to the
  *      loader (tickInterval absent = every tick, an authored 0 is refused), so
@@ -2001,7 +2001,7 @@ function effectCard(effect, i, ctx) {
 // 4. Visuals (D3, §B4.8): coming soon, nothing rendered, nothing written.
 function skillVisualsSection() {
   const col = skillSection('Visuals');
-  col.body.appendChild(el('div', { class: 'visuals-placeholder', text: 'Coming soon. No VFX ruling exists yet (plan-entity-presentation.md §39; prototype/skill-visuals is parked), so this section authors nothing. hitStyle, the one visual lever the schema has today, is not shown and is preserved untouched.' }));
+  col.body.appendChild(el('div', { class: 'visuals-placeholder', text: 'Coming soon. The vocabulary exists (plan-skill-vfx.md C0: the top-level `visual` key, seven kinds, three moments) and is authored by hand for now; this section renders it from C3 on. `visual` is not shown here and is preserved untouched on save.' }));
   return col.section;
 }
 

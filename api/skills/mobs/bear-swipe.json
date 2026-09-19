@@ -4,6 +4,11 @@
   "name": "BearSwipe",
   "category": "active_aura",
   "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "impact", "on": "hit", "curve": "snap", "ms": 160 }
+    ]
+  },
   "effects": [
     {
       "type": "damage_aura",

@@ -72,8 +72,11 @@ type skillVocabulary struct {
 	VisualTriggers       []string            `json:"visualTriggers"`
 	VisualKeys           map[string][]string `json:"visualKeys"`
 	VisualTriggersByKind map[string][]string `json:"visualTriggersByKind"`
-	VisualCurves         []string            `json:"visualCurves"`
-	VisualMotions        []string            `json:"visualMotions"`
+	// VisualCurves is keyed by KIND (C2a): an impact and a beam read the same
+	// `curve` key from different sets, so one flat list would let the editor
+	// offer a beam envelope on an impact and the loader would refuse it.
+	VisualCurves  map[string][]string `json:"visualCurves"`
+	VisualMotions []string            `json:"visualMotions"`
 }
 
 // topLevelKeys reflects skillDefinition's json tags in struct order: the 16
@@ -151,6 +154,20 @@ func buildSkillVocabulary(t *testing.T) skillVocabulary {
 	require.ElementsMatch(t, visualKinds, mapKeys(visualKeysByKind), "visualKeysByKind must name exactly the kinds")
 	require.ElementsMatch(t, visualKinds, mapKeys(visualTriggersByKind), "visualTriggersByKind must name exactly the kinds")
 
+	// The curve table is keyed by kind and is deliberately PARTIAL (only the
+	// kinds that read `curve`), so the pin is against the key table rather
+	// than against the kind list: a curve row nothing can author and a kind
+	// reading `curve` with no set are both silent in the editor.
+	for _, kind := range visualKinds {
+		readsCurve := slices.Contains(visualKeysByKind[kind], "curve")
+		_, hasCurves := visualCurvesByKind[kind]
+		require.Equal(t, readsCurve, hasCurves,
+			"visual kind %q reads curve=%v but has a visualCurvesByKind row=%v", kind, readsCurve, hasCurves)
+	}
+	for kind := range visualCurvesByKind {
+		require.Contains(t, visualKinds, kind, "visualCurvesByKind names %q, which is not a visual kind", kind)
+	}
+
 	return skillVocabulary{
 		Comment:          vocabularyComment,
 		Categories:       sortedKeys(skillCategoryMap),
@@ -170,7 +187,7 @@ func buildSkillVocabulary(t *testing.T) skillVocabulary {
 		VisualTriggers:       visualTriggers,
 		VisualKeys:           visualKeysByKind,
 		VisualTriggersByKind: visualTriggersByKind,
-		VisualCurves:         visualCurves,
+		VisualCurves:         visualCurvesByKind,
 		VisualMotions:        visualMotions,
 	}
 }

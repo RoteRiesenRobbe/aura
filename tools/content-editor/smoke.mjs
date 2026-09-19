@@ -62,9 +62,10 @@
  *   (k) the `visual` vocabulary, both halves (plan-skill-vfx.md C0). The
  *       FIXTURE half: the six generated lists exist and agree with each other
  *       (seven kinds, three triggers, a key row and a trigger row per kind,
- *       every named trigger a real one). The CONTENT half: every authored
- *       layer names a known kind, a moment that kind has, and only keys that
- *       kind reads - the (a)/(b) checks one level down. The Skills tab does
+ *       every named trigger a real one, and a curve set for exactly the kinds
+ *       that read `curve`). The CONTENT half: every authored layer names a
+ *       known kind, a moment that kind has, only keys that kind reads, and a
+ *       curve out of that kind's own set - the (a)/(b) checks one level down. The Skills tab does
  *       not render `visual` until C3, so until then this is the only JS-side
  *       reader of the key, and a hand-typed layer has nothing else to catch
  *       it before the loader does.
@@ -140,7 +141,8 @@ const visualKinds = vocabulary.visualKinds || [];
 const visualTriggers = vocabulary.visualTriggers || [];
 const visualKeys = vocabulary.visualKeys || {};
 const visualTriggersByKind = vocabulary.visualTriggersByKind || {};
-for (const [list, name] of [[visualKinds, 'visualKinds'], [visualTriggers, 'visualTriggers'], [vocabulary.visualCurves, 'visualCurves'], [vocabulary.visualMotions, 'visualMotions']]) {
+const visualCurves = vocabulary.visualCurves || {};
+for (const [list, name] of [[visualKinds, 'visualKinds'], [visualTriggers, 'visualTriggers'], [vocabulary.visualMotions, 'visualMotions']]) {
   if (!Array.isArray(list) || list.length === 0) finding('api/skill-vocabulary.json', `${name} is missing or empty - regenerate the fixture (${REGEN_VOCABULARY})`);
 }
 if (visualKinds.length !== VISUAL_KINDS) {
@@ -167,6 +169,24 @@ for (const kind of Object.keys(visualKeys)) {
 }
 for (const kind of Object.keys(visualTriggersByKind)) {
   if (!visualKinds.includes(kind)) finding('api/skill-vocabulary.json', `visualTriggersByKind names "${kind}", which visualKinds does not - regenerate the fixture`);
+}
+// `curve` reads a set that belongs to the KIND (C2a), so the curve table is
+// keyed by kind and deliberately PARTIAL: only the kinds whose key row carries
+// "curve" have a row. Pinned against that key row from both sides, because a
+// missing set refuses every value an author picks and an unreachable set is
+// one nothing can reach.
+for (const kind of visualKinds) {
+  const readsCurve = (visualKeys[kind] || []).includes('curve');
+  const set = visualCurves[kind];
+  if (readsCurve && (!Array.isArray(set) || set.length === 0)) {
+    finding('api/skill-vocabulary.json', `visualCurves has no set for kind "${kind}", which reads "curve" - every authored curve would be refused`);
+  }
+  if (!readsCurve && set !== undefined) {
+    finding('api/skill-vocabulary.json', `visualCurves carries a set for kind "${kind}", which does not read "curve" - nothing could ever author it`);
+  }
+}
+for (const kind of Object.keys(visualCurves)) {
+  if (!visualKinds.includes(kind)) finding('api/skill-vocabulary.json', `visualCurves names "${kind}", which visualKinds does not - regenerate the fixture`);
 }
 
 // (d) presentation completeness, both directions, per table.
@@ -280,6 +300,12 @@ for (const abs of listJsonFiles(SKILLS_DIR)) {
     for (const key of Object.keys(layer)) {
       if (allowedLayerKeys.includes(key)) continue;
       finding(rel, `visual.layers[${i}] (${layer.kind}) authors "${key}", which visualKeys.${layer.kind} does not allow`);
+    }
+    // The curve set is the KIND's, so a value borrowed from another kind's set
+    // (a beam authoring "thrust") passes the key check and still means nothing.
+    const curves = visualCurves[layer.kind] || [];
+    if (layer.curve !== undefined && !curves.includes(layer.curve)) {
+      finding(rel, `visual.layers[${i}] (${layer.kind}) authors curve "${layer.curve}", which is not one of that kind's curves (${curves.join(', ') || 'none - this kind reads no curve'})`);
     }
   }
 

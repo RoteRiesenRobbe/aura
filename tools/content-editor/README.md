@@ -174,7 +174,7 @@ What C3 added on top of C1's read-only form:
 
 - **Editing in place.** Keys are assigned and deleted on the object that came
   off disk, never on a rebuilt one, so `_comment` and every key the form does
-  not render (`hitStyle`, `legacy`, `forwardUnits`, `armTicks`) round-trip
+  not render (`visual`, `legacy`, `forwardUnits`, `armTicks`) round-trip
   untouched.
 - **Blank deletes the key, a typed `0` writes 0.** Absent and 0 are different
   values to the loader (an absent `tickInterval` means every tick; an authored
@@ -263,7 +263,9 @@ author. `api/skill-vocabulary.json` is a **generated** file holding Go's own
 tables (the per-type key allowlist, the 16 top-level keys, the categories, the
 cost keys, the retired-key hints, the damage types, the per-type category
 table, and the six skill-VFX lists `visualKinds`, `visualTriggers`,
-`visualKeys`, `visualTriggersByKind`, `visualCurves`, `visualMotions`),
+`visualKeys`, `visualTriggersByKind`, `visualCurves` - keyed BY KIND, since an
+impact (`burst`/`snap`), a strike (`thrust`/`swing`/`overhead`) and a beam
+(`flash`/`extend`) curve differently - and `visualMotions`),
 written only by
 `UPDATE_SKILL_VOCABULARY=1 go test -count=1 ./pkg/aura/skills/` from
 `backend/`. Regenerate it after any change to

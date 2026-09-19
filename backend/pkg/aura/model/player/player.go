@@ -169,10 +169,6 @@ type player struct {
 	costPaid vitals.VitalSign
 	xpGained uint64
 
-	// auraHitStyle is the aura-hit VFX a damage aura stamped on this player this
-	// tick (item 11 Step 4); reset each tick alongside the accumulators above.
-	auraHitStyle model.AuraHitStyle
-
 	// campfireBound is stamped the tick a campfire dwell completes (chunk 4):
 	// the fire became this player's respawn anchor. Reset each tick alongside
 	// the accumulators above; drives the client's "bound" feedback.
@@ -495,10 +491,6 @@ func (p *player) Heal(h model.Healing) vitals.VitalSign {
 	return healed
 }
 
-// AuraHitStyle is the aura-hit VFX stamped on this player this tick (item 11
-// Step 4); serialized as the Character aura_hit_style wire field.
-func (p *player) AuraHitStyle() model.AuraHitStyle { return p.auraHitStyle }
-
 // CampfireBound reports whether a campfire dwell completed this tick
 // (chunk 4); serialized as the Character campfire_bound wire field.
 func (p *player) CampfireBound() bool { return p.campfireBound }
@@ -638,10 +630,6 @@ func (p *player) NoteActivationRejected(skill skills.SkillID, reason model.Activ
 	p.rejectedReason = reason
 }
 
-// NoteAuraHit records the aura-hit VFX style for this tick; the SkillSystem
-// calls it when a damage aura strikes this player.
-func (p *player) NoteAuraHit(style model.AuraHitStyle) { p.auraHitStyle = style }
-
 // ApplyResist grants a transient tag-resistance buff from a resist aura
 // (item 11 Phase 2); re-applied each aura tick, it expires on the same
 // per-tick lifecycle as the floating-number accumulators.
@@ -762,7 +750,6 @@ func (p *player) ResetTickNumbers() {
 	p.skillEvents = p.skillEvents[:0]
 	p.costPaid = 0
 	p.xpGained = 0
-	p.auraHitStyle = model.AuraHitStyleNone
 	p.campfireBound = false
 	p.homeCampfire = ""
 	p.discoveredCampfires = nil

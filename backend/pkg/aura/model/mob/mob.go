@@ -625,10 +625,6 @@ type Mob struct {
 	// the steady state allocates nothing.
 	skillEvents []model.SkillEvent
 
-	// auraHitStyle is the aura-hit VFX a damage aura stamped on this mob this
-	// tick (item 11 Step 4); reset every tick alongside the skill events.
-	auraHitStyle model.AuraHitStyle
-
 	// dwellRadius is the campfire bind radius (chunk 4), 0 for every mob that
 	// is not a respawn anchor; set post-construction by cmd/aurad.
 	dwellRadius float32
@@ -2058,18 +2054,6 @@ func (m *Mob) Heal(h model.Healing) vitals.VitalSign {
 	return healed
 }
 
-// AuraHitStyle is the aura-hit VFX stamped on this mob this tick (item 11
-// Step 4); serialized as the mob's aura_hit_style wire field.
-func (m *Mob) AuraHitStyle() model.AuraHitStyle {
-	return m.auraHitStyle
-}
-
-// NoteAuraHit records the aura-hit VFX style for this tick; called by the
-// SkillSystem when a damage aura strikes this mob.
-func (m *Mob) NoteAuraHit(style model.AuraHitStyle) {
-	m.auraHitStyle = style
-}
-
 // ApplyResist grants a transient tag-resistance buff from a resist aura
 // (item 11 Phase 2); re-applied each aura tick, it expires on the same
 // per-tick lifecycle as the floating-number accumulators.
@@ -2187,7 +2171,6 @@ func (m *Mob) ResetTickNumbers() {
 	// Truncate, never nil: the slice keeps its capacity across ticks, so a mob
 	// in a steady fight allocates nothing (the idle-loop alloc pins).
 	m.skillEvents = m.skillEvents[:0]
-	m.auraHitStyle = model.AuraHitStyleNone
 	m.buffs.Tick()
 }
 

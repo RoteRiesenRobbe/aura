@@ -31,6 +31,7 @@ import {Session} from "../../accounts/logic/Session";
 import {Badgeable, retargetInteractBadge} from "./InteractBadgeTargeting";
 import {skillEventNumber} from "./SkillEventNumbers";
 import {recordSkillEvents} from "../../internal-tools/browser-console-integration/logic/BrowserConsole";
+import * as SkillFx from "../../skill-fx/logic/SkillFx";
 import {hpToDisplay, IMMUNE_COLOR, IMMUNE_LANE} from "../../game-objects/logic/_GameObject";
 import * as Interact from "../../interact/logic/Interact";
 import {isMobile} from "../../user-interface/logic/Mobile";
@@ -534,6 +535,12 @@ export class Backend implements IBackend {
         // player update instead and had to run before both.
         this.showSkillEventNumbers(snapshot);
 
+        // The authored VFX off the same events (plan-skill-vfx.md C2a). ONE
+        // feed, one call site, and deliberately NOT inside the player block
+        // above: D1 says everyone's VFX draw, so a spectator with no character
+        // of their own still sees the fight.
+        this.feedSkillFx(snapshot);
+
         // Conversation panel (chunk 3b-ii). Before the badge, because the badge
         // suppresses itself for whoever the panel belongs to.
         //
@@ -696,6 +703,28 @@ export class Backend implements IBackend {
                 target.showFloatingNumber(hpToDisplay(event.amount), draw.kind);
             }
         });
+    }
+
+    /**
+     * Hand this tick's events to the VFX manager (plan-skill-vfx.md C2a).
+     *
+     * All this site owns is the id → game object resolution, and the one thing
+     * that is not obvious about it: the own Character is NOT in the
+     * EntityManager (the server sends it as the snapshot's player, never as one
+     * of the entities), so it is answered first and by id.
+     *
+     * ⚑ Unlike the numbers above, there is no "own" gate: a skill's visuals
+     * draw for every source and victim in view (D1).
+     */
+    private feedSkillFx(snapshot: Snapshot): void {
+        const events = snapshot.skillEvents;
+        if (!events || events.length === 0) {
+            return;
+        }
+        const own = this.game.player?.character;
+        SkillFx.onSnapshot(events, (id) => (own && id === own.id)
+            ? own
+            : this.game.map.getObject(id));
     }
 
     /**

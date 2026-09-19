@@ -25,6 +25,10 @@ export interface IGameLayers {
     // A character in flight (C3): above props and boss mobs, below darkness.
     // Holds at most the local player, and only while airborne.
     flyers: Container,
+    // Skill VFX (plan-skill-vfx.md C2a): every authored impact, bolt and beam,
+    // plus the aura wind-up glow. Above every entity, below darkness - a
+    // fireball must not be the first thing to light a dark area (§6.5).
+    skillFx: Container,
     // Darkness overlay (chunk 3): dark areas + erase-blend light holes.
     darkness: Container,
     characterAdditions: Record<string, Container>,

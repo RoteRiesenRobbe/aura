@@ -198,13 +198,13 @@ func TestRetaliateDamage_RejectsAZeroReflect(t *testing.T) {
 
 // The retaliate_slow L6 test, aimed at the twin. Its allowlist is NARROWER than
 // keysDamagePayload on purpose: a passive has no circle and no cadence, and the
-// vocabulary keys that ride a real hit (gateKey, variance, hitStyle, the
-// structure pair) belong to an effect that CHOOSES its targets — the reflect
+// vocabulary keys that ride a real hit (gateKey, variance, the structure
+// pair) belong to an effect that CHOOSES its targets, and the reflect
 // only ever answers whoever hit you.
 func TestRetaliateDamage_RejectsGeometryCadenceAndHitVocabulary(t *testing.T) {
 	for _, key := range []string{
 		`"radius": 2`, `"tickInterval": 30`, `"targetsEnemies": true`,
-		`"gateKey": "harvest"`, `"variance": 0.1`, `"hitStyle": "fire"`,
+		`"gateKey": "harvest"`, `"variance": 0.1`,
 		`"targetsStructures": true`, `"critChance": 0.1`,
 	} {
 		raw, err := parseSkillDefinition([]byte(`{

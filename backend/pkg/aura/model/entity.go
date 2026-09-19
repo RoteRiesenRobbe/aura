@@ -148,11 +148,6 @@ type MobEntity interface {
 	// this mob (wire applied_effects — the client draws the pips from it; the
 	// received-status mirror of AuraCategories).
 	AppliedEffects() skills.AppliedEffect
-
-	// AuraHitStyle is the per-tick aura-hit VFX stamped on this entity by a
-	// damage aura (item 11 Step 4); serialized as the aura_hit_style wire field
-	// and reset each tick via ResetTickNumbers.
-	AuraHitStyle() AuraHitStyle
 }
 
 // AABB is an alias to not expose transitive dependencies

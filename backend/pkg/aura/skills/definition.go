@@ -191,30 +191,6 @@ var selectorMap = map[string]Selector{
 	"all":           SelectorAll,
 }
 
-// HitStyle is a per-effect override for the aura-hit VFX (item 11 Step 4). The
-// default, HitStyleAuto, derives the style from the effect's tick cadence (see
-// sys.auraHitStyleFor); the explicit values pin a style regardless of cadence so
-// each aura is individually configurable via its JSON `hitStyle` field. Kept in
-// this package (not model) to avoid the skills↔model import cycle; sys maps it
-// to model.AuraHitStyle.
-type HitStyle int
-
-const (
-	HitStyleAuto  HitStyle = iota // default: derive from tick cadence
-	HitStyleSlash                 // always a discrete slash
-	HitStyleFire                  // always a sustained fire/spark
-	HitStyleNone                  // never show a hit VFX
-)
-
-// hitStyleMap parses the JSON `hitStyle` field. Absent/"auto" → cadence-derived.
-var hitStyleMap = map[string]HitStyle{
-	"":      HitStyleAuto,
-	"auto":  HitStyleAuto,
-	"slash": HitStyleSlash,
-	"fire":  HitStyleFire,
-	"none":  HitStyleNone,
-}
-
 // DamageTagPhysical is the reserved default damage tag (item 11 Phase 2).
 // Damage effects with no explicit `damageTags` are normalized to it at parse
 // time, so armor-style resistance (a "physical" entry in a resistance map)
@@ -436,10 +412,6 @@ type DamageParams struct {
 	// amount. 0 = static (the default); valid range 0 <= v < 1. The roll
 	// happens before the target's mitigation (decision C3).
 	Variance float32 `json:"variance"`
-
-	// Per-effect aura-hit VFX override (item 11 Step 4). HitStyleAuto
-	// (default) derives the style from the tick cadence.
-	HitStyle HitStyle `json:"hitStyle"`
 
 	// Mob casters only: damage dealt to structures (placeables) per tick.
 	// Structures read this via MobTouches double dispatch.
@@ -1191,8 +1163,6 @@ type effectDef struct {
 	TickInterval         *int `json:"tickInterval"` // nil → default 1
 	TickIntervalPerLevel int  `json:"tickIntervalPerLevel"`
 
-	HitStyle string `json:"hitStyle"` // "" → auto (cadence-derived)
-
 	Stat              string  `json:"stat"`
 	StatBonus         float32 `json:"statBonus"`
 	StatBonusPerLevel float32 `json:"statBonusPerLevel"`
@@ -1301,7 +1271,7 @@ var (
 	// ride only here — dots are deliberately excluded in v1 (§3.3; add to
 	// keysDotPayload + DotParams when content wants a burning execute).
 	keysDamagePayload = []string{
-		"damageHP", "damageHPPerLevel", "damageTags", "gateKey", "variance", "hitStyle", "targetsStructures", "structureDamageFraction",
+		"damageHP", "damageHPPerLevel", "damageTags", "gateKey", "variance", "targetsStructures", "structureDamageFraction",
 		"executeBelowFraction", "executeBonusFactor", "berserkerMaxBonusFactor", "critChance", "critChancePerLevel", "critFactor", "lifestealFraction",
 	}
 	keysResistPayload = []string{"resistTags", "resistFactor", "resistFactorPerLevel"}
@@ -1460,9 +1430,8 @@ var effectKeys = map[EffectType][]string{
 	// payload. Its list is NARROWER than keysDamagePayload by three
 	// deliberate omissions, not by oversight. No gateKey: a lock-and-key hit
 	// names the targets it may touch, and a reflect never chooses — it answers
-	// whoever hit you. No variance/hitStyle: both are properties of a swing
-	// the wearer takes, and the reflect has no swing of its own to roll or
-	// draw. No structure keys: a wall cannot damage you, so it can never be
+	// whoever hit you. No variance: it is a property of a swing the wearer
+	// takes, and the reflect has no swing of its own to roll. No structure keys: a wall cannot damage you, so it can never be
 	// the attacker. What is left is the amount, its slope and its damage type.
 	EffectTypeRetaliateDamage: {"damageHP", "damageHPPerLevel", "damageTags"},
 	// Retaliate burst (PO 2026-08-17): the PERCENTAGE reflect, and structurally
@@ -1993,10 +1962,6 @@ func (e *effectDef) damageParams() (*DamageParams, error) {
 		return nil, err
 	}
 
-	hitStyle, ok := hitStyleMap[e.HitStyle]
-	if !ok {
-		return nil, fmt.Errorf("unknown hitStyle: %q", e.HitStyle)
-	}
 	if err := validateVariance(e.Variance); err != nil {
 		return nil, err
 	}
@@ -2049,7 +2014,6 @@ func (e *effectDef) damageParams() (*DamageParams, error) {
 		Tags:                    tags,
 		GateKey:                 e.GateKey,
 		Variance:                e.Variance,
-		HitStyle:                hitStyle,
 		StructureDamageFraction: e.StructureDamageFraction,
 		ExecuteBelowFraction:    e.ExecuteBelowFraction,
 		ExecuteBonusFactor:      e.ExecuteBonusFactor,
