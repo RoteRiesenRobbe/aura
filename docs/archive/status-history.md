@@ -10,6 +10,11 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-09-19, the skill VFX C1 wrap rotated the cap, so SPELL BUILDER C4
+moved here verbatim.)*
+
+- **Prior: SPELL BUILDER C4: the new-skill flow and the bookkeeping** ✅ 2026-09-12 `71183777` (ledger: `docs/archive/plan-content-editor.md` §B12 C4): **"+ New" writes `api/skills/<kebab>.json`** (auto-id = max over BOTH folders + 1; category UNSET on open, PO call), an **icon picker** over the 33 vendored glyphs, a **`spawnMob` picker grouped by role**, the **test-rig badge**, and an **After saving** section: the `start-cmds=GOD,SKILL <name>` link + Copy, then the **checklist from the RESPONSE** (restart · registry pin computed from disk · inventory row BY HAND · placement). ⚑ Go has NO `icon` rule: smoke leg (i) twins `SkillIcons.test.ts`, a named D9 exception. ⚑ A tab-authored NEW file's key order differs from hand files (L14). **Schema ALL NONE; content: the PO's tab-authored `summonspider.json` ships (id 152) + the registry pin 105 → 106.** Verified: smoke 0/106 · harness 0 problems incl. the new-skill leg · a REAL 15 s boot `count=106` · 35 pkgs green · mutation ×5. ⭐ **PO look: "works and behaves as I guess would be technically expected"** - the PO authored AND cast `SummonSpider`, the first tab-created skill walked in game; it fought but STOOD STILL, which became the summon-follows plan.
+
 *(2026-09-19, the skill VFX C0 wrap rotated the cap, so SUMMON FOLLOWS C1-C3
 moved here verbatim.)*
 

@@ -121,18 +121,13 @@ type PlayerEntity interface {
 	NoteHealedBy(healer PlayerEntity)
 	RecentHealers() []PlayerEntity
 
-	// Per-tick floating-number sources (roadmap item 11): health lost, and
-	// healing / XP received this tick. Serialized once per tick, then reset via
-	// ResetTickNumbers (TickAccumulators). NoteHealReceived is called by the
-	// SkillSystem when a heal aura lands on this player.
-	DamageTaken() vitals.VitalSign
-	// CritTaken is the crit-flagged share of DamageTaken (plan-skill-vocab
-	// chunk 1, §4.3), serialized as crit_taken so the client pops it big.
-	CritTaken() vitals.VitalSign
-	// ImmuneHit reports a fully mitigated hit this tick
-	// (plan-immune-feedback.md), serialized as immune_hit - drives the
-	// floating "Immune" label; per-tick one-shot like DamageTaken.
-	ImmuneHit() bool
+	// SkillEvents are the attributed hits and casts recorded on this player
+	// this tick (plan-skill-vfx.md C1): every landing inside takeDamage / Heal
+	// plus every cast it fired. Serialized into GameState.skill_events, then
+	// truncated via ResetTickNumbers (TickAccumulators). It replaced the four
+	// per-tick aggregates (damage/crit/heal/immune), which could say only THAT
+	// something happened, never who did it or with which skill.
+	SkillEvents() []SkillEvent
 	// CostPaid is the resource cost charged this tick (round-7 item 7),
 	// serialized as cost_paid so the client pops it blue — the spend's own
 	// accumulator, deliberately separate from DamageTaken.
@@ -151,9 +146,7 @@ type PlayerEntity interface {
 	// MovementSpeedFactor next to it; 1.0 = nothing applied. The mob twin is
 	// internal to stepLength, since a mob moves itself.
 	MovementFactor() float32
-	HealReceived() vitals.VitalSign
 	XpGained() uint64
-	NoteHealReceived(delta vitals.VitalSign)
 	// AuraHitStyle / NoteAuraHit carry the per-tick aura-hit VFX (item 11
 	// Step 4); NoteAuraHit is called by the SkillSystem when a damage aura
 	// strikes this player, AuraHitStyle is serialized as aura_hit_style.

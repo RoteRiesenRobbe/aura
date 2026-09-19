@@ -211,7 +211,7 @@ table Mob {
 
   // health lost this tick, in absolute HP (same scale as `health`); 0 = none.
   // Drives the floating damage number (item 11). Reset every tick.
-  damage_taken:uint = 0;
+  damage_taken:uint = 0 (deprecated);
 
   // aura-hit VFX stamped by a damage aura this tick (item 11 Step 4):
   // 0 = none, 1 = slash (slow-tick), 2 = fire (fast-tick). Reset every tick.
@@ -232,7 +232,7 @@ table Mob {
   // none. Drives the floating heal number for mob-cast heals (mob-depth chunk
   // 8). Mirrors Character.heal_received; reset every tick. Appended at table
   // end so existing field IDs stay stable.
-  heal_received:uint = 0;
+  heal_received:uint = 0 (deprecated);
 
   // light radius (px) emitted by the active aura's light_aura effect; 0 = no
   // light. The client punches a hole of this size into the darkness overlay
@@ -252,7 +252,7 @@ table Mob {
   // one sanctioned, upside-only RNG — the client pops this portion big.
   // Same absolute-HP scale; reset every tick. Appended at table end so
   // existing field IDs stay stable.
-  crit_taken:uint = 0;
+  crit_taken:uint = 0 (deprecated);
 
   // current total absorb capacity (skill-vocab chunk 2); 0 = unshielded.
   // Same absolute-HP scale as health; a live value, NOT a per-tick
@@ -305,7 +305,22 @@ table Mob {
   // label. Per-tick one-shot like damage_taken; a gate-key miss does NOT
   // set it (a gated skill's non-target was never immune). Appended at the
   // table end so existing field IDs stay stable.
-  immune_hit:bool = false;
+  immune_hit:bool = false (deprecated);
+
+  // The entity this mob is CREDITED to while it acts on a player's behalf:
+  // an owned summon answers its summoner, a charmed mob its charmer, and
+  // everything else 0 (plan-skill-vfx.md §12a.5). The client reads it to
+  // decide whether a SkillEvent whose source is this mob was own-caused, so
+  // a totem's damage number draws for the player who planted it (D6).
+  //
+  // ⚑ It carries the ATTRIBUTION owner (model.Credited.CreditTo), not "whose
+  // level do I stand at" (model.Owned.Owner): the two are deliberately
+  // different questions server-side, and attribution is the one the client is
+  // asking here.
+  //
+  // FlatBuffers omits defaults, so only summons pay for it. Appended at the
+  // table end so existing field IDs stay stable.
+  owner_id:ulong = 0;
 }
 
 table Character {
@@ -317,7 +332,7 @@ table Character {
   radius:ushort;
 
   rotation:float;
-  is_hit:bool = false;
+  is_hit:bool = false (deprecated);
 
   name:string;
 
@@ -343,8 +358,8 @@ table Character {
   // per-tick floating-number sources (item 11), all reset each tick.
   // damage_taken / heal_received are in absolute HP (same scale as `health`);
   // xp_gained is raw experience points.
-  damage_taken:uint = 0;
-  heal_received:uint = 0;
+  damage_taken:uint = 0 (deprecated);
+  heal_received:uint = 0 (deprecated);
   xp_gained:uint = 0;
 
   // aura-hit VFX stamped by a damage aura this tick (item 11 Step 4):
@@ -379,7 +394,7 @@ table Character {
   // one sanctioned, upside-only RNG — the client pops this portion big.
   // Same absolute-HP scale; reset every tick. Appended at the table end so
   // existing field IDs stay stable.
-  crit_taken:uint = 0;
+  crit_taken:uint = 0 (deprecated);
 
   // current total absorb capacity (skill-vocab chunk 2); 0 = unshielded.
   // Same absolute-HP scale as health; a live value, NOT a per-tick
@@ -441,7 +456,7 @@ table Character {
   // "Immune" label. Per-tick one-shot like campfire_bound; mirrors
   // Mob.immune_hit. Appended at the table end so existing field IDs stay
   // stable.
-  immune_hit:bool = false;
+  immune_hit:bool = false (deprecated);
 }
 
 table Spectator {
@@ -592,6 +607,43 @@ table QuestProgress {
   // ⚑ Appended LAST: this table is positional (no field ids), so an insert
   // above would silently renumber `completed` for every client.
   objectives:[string];
+}
+
+// --- skill events (plan-skill-vfx.md C1, D5/D9) ---
+
+// What a landed hit DID to its victim, as far as the client needs to draw it.
+// Values are EXPLICIT and permanent, the EntityType contract: the Go
+// model.HitKind constants mirror these one for one and a codec test pins the
+// pairing, so a renumber cannot silently redraw a heal as a crit.
+enum HitKind : ubyte { Damage = 0, Crit = 1, Heal = 2, Absorb = 3, Immune = 4 }
+// One thing a skill did this tick: a cast that went off (`fired`), or a single
+// landing on a single victim (D5: honest attribution, no client-side
+// inference). The four per-tick aggregates this replaces (damage_taken,
+// crit_taken, heal_received, immune_hit on Mob and Character) are deprecated
+// above; they could not say WHO dealt a hit or WHICH skill dealt it, which is
+// everything the VFX engine needs.
+//
+// DoT and HoT ticks, lifesteal heals and reflects are ordinary hits here: the
+// caster travels in the buff payload, so a burn keeps its source and its skill
+// after the victim walks out of range (D6's case 1).
+table SkillEvent {
+  // The casting entity: the summon itself on an owned cast, the reflecting
+  // player on a reflect. Never 0. The client resolves own-caused through
+  // Mob.owner_id when this names a summon.
+  source:ulong;
+  // The struck entity; 0 on a FIRED event.
+  victim:ulong = 0;
+  skill_id:ushort;
+  // Post-mitigation, in the same absolute-HP units as `health`. 0 on FIRED and
+  // on Immune. A PARTIAL absorb reports the real HP loss as Damage/Crit and
+  // leaves the absorbed share off the wire; the shield bar already shows it.
+  amount:uint = 0;
+  kind:HitKind = Damage;
+  // true = the cast/aura tick went off (targets or not), and victim is 0;
+  // false = one landing. ⚑ An aura tick only fires this when the skill's
+  // authored `visual` carries an `on: fired` layer; nothing else would ever
+  // look at it, and a 30 Hz aura would otherwise bill an event per tick.
+  fired:bool = false;
 }
 
 table GameState {
@@ -779,6 +831,24 @@ table GameState {
   // block, which is almost all of them. Appended at the table end so existing
   // field IDs stay stable.
   owner_state:bool = false;
+
+  // Everything skills did this tick that this viewer can see (plan-skill-vfx.md
+  // C1, D5): one entry per landing plus one per cast that went off. It replaces
+  // the deprecated per-entity aggregates with attributed, per-skill facts: the
+  // client can finally say "your Frostbite hit that wolf for 12" instead of
+  // inferring it from a number on a mob.
+  //
+  // ⚑ PER-VIEWER and unlike anything else in GameState it is neither owner-only
+  // nor entity state: the server ships an event when its VICTIM (a hit) or its
+  // CASTER (a fired) is in this viewer's set, i.e. exactly the entities that
+  // also ride `entities` above. An event can still name a source the client
+  // does not hold (your DoT ticking a mob that walked out of view); the
+  // consumer skips what it cannot place rather than throwing.
+  //
+  // One-shot, per tick. Absent on the overwhelming majority of ticks (nothing
+  // landed), so it costs nothing while the world is quiet. Appended at the
+  // table end so existing field IDs stay stable.
+  skill_events:[SkillEvent];
 }
 
 table Welcome {

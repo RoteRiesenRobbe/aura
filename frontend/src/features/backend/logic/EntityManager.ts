@@ -2,7 +2,7 @@ import _clone = require('lodash/clone');
 import {Ticker} from 'pixi.js';
 import {isDefined, isFunction} from '../../common/logic/Utils';
 import {DebugCircle} from '../../internal-tools/develop/logic/DebugCircle';
-import {GameObject, hpToDisplay, IMMUNE_COLOR, IMMUNE_LANE} from '../../game-objects/logic/_GameObject';
+import {GameObject, hpToDisplay} from '../../game-objects/logic/_GameObject';
 import {StatusEffect} from '../../game-objects/logic/StatusEffect';
 import {Character} from '../../game-objects/logic/Character';
 import {Mob} from '../../game-objects/logic/Mobs';
@@ -223,27 +223,12 @@ export class EntityManager {
             go.setShield(entity.shieldHp, entity.maxHealth);
         }
 
-        // Floating combat numbers (item 11): damage on mobs + other players,
-        // heal/XP on other players (own player is handled in Player.ts).
-        // The crit-flagged share pops big (skill-vocab chunk 1); the
-        // remainder shows as a regular damage number.
-        const critTaken = entity.critTaken > 0 ? entity.critTaken : 0;
-        if (critTaken > 0) {
-            gameObject.showFloatingNumber(hpToDisplay(critTaken), 'crit');
-        }
-        if (entity.damageTaken > critTaken) {
-            gameObject.showFloatingNumber(hpToDisplay(entity.damageTaken - critTaken), 'damage');
-        }
-        // A hit was fully mitigated this tick (plan-immune-feedback.md):
-        // grey "Immune" where the number would have been. Only when nothing
-        // landed (D9) - the word explains why nothing is happening, so when
-        // damage IS showing, the question does not arise.
-        if (entity.immuneHit && !(entity.damageTaken > 0)) {
-            gameObject.showFloatingText('Immune', IMMUNE_COLOR, 1, IMMUNE_LANE);
-        }
-        if (entity.healReceived > 0) {
-            gameObject.showFloatingNumber(hpToDisplay(entity.healReceived), 'heal');
-        }
+        // ⚑ Damage, crit, "Immune" and heal numbers are NOT drawn from here
+        // any more (plan-skill-vfx.md C1): they were per-tick aggregates with
+        // no source, so every viewer saw every hit on everyone. They arrive as
+        // attributed per-hit events now and Backend draws the own player's,
+        // after this loop has put the entities in place.
+        //
         // Resource spent (round-7 item 7), blue — visible over other players
         // too, same as their damage and heal numbers.
         if (entity.costPaid > 0) {

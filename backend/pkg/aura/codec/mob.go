@@ -40,15 +40,19 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 	AuraApi.MobAddRadius(builder, f32ToU16Px(m.Radius()))
 
 	AuraApi.MobAddBurstRadius(builder, f32ToU16Px(m.BurstRadius()))
-	AuraApi.MobAddDamageTaken(builder, m.DamageTaken().UInt32())
-	// Crit-flagged share of damage taken (skill-vocab chunk 1, §4.3).
-	AuraApi.MobAddCritTaken(builder, m.CritTaken().UInt32())
-	// A fully mitigated hit this tick - the floating "Immune" label.
-	AuraApi.MobAddImmuneHit(builder, m.ImmuneHit())
 	// Current total absorb capacity — a live value (skill-vocab chunk 2).
 	AuraApi.MobAddShieldHp(builder, m.ShieldHP().UInt32())
-	AuraApi.MobAddHealReceived(builder, m.HealReceived().UInt32())
 	AuraApi.MobAddAuraHitStyle(builder, byte(m.AuraHitStyle()))
+	// Who this mob is credited to while it acts for a player (plan-skill-vfx.md
+	// §12a.5): the client reads it to decide whether a skill event sourced at
+	// this mob was own-caused. Asserted rather than required on MobEntity, the
+	// standing Credited rule (a capability-shaped door, so the MobEntity fakes
+	// stay untouched). 0 for every world mob, which is almost all of them.
+	if credited, ok := m.(model.Credited); ok {
+		if to := credited.CreditTo(); to != nil {
+			AuraApi.MobAddOwnerId(builder, to.Basic().ID())
+		}
+	}
 	// 0 while the aura is gated — the client hides the ring (chunk 3c).
 	AuraApi.MobAddAuraRadius(builder, f32ToU16Px(m.AuraRadius()))
 	// 0 = no light; the client hole-punches the darkness overlay (chunk 3).

@@ -1,8 +1,10 @@
 # Plan: Skill VFX - what a hit, a cast and a running aura look like, for everyone
 
-> **Status: C0 SHIPPED 2026-09-19 `e8f7b6b4` (the `visual` key, one per SKILL: seven
+> **Status: C1 BUILT 2026-09-19 `[uncommitted]` (the wire: `SkillEvent` FIRED + HIT
+> inside the four funnels, `Mob.owner_id`, five field names deprecated, numbers
+> own-caused only, loadbot: D10 stands). C0 SHIPPED 2026-09-19 `e8f7b6b4` (the `visual` key, one per SKILL: seven
 > closed kinds, three triggers, load-time validation, six generated fixture
-> lists, six content files authored). C1-C4 unbuilt.** Designed 2026-09-11
+> lists, six content files authored). C2a-C4 unbuilt.** Designed 2026-09-11
 > (D1-D10 PO-ruled in one sitting; everything in §4-§7 that is not a D-number
 > is still a proposal with options). Line refs pinned to `df746e53`;
 > re-verify before executing. Ledger: §13.
@@ -20,8 +22,8 @@
 > forward; the reverse dependency (this plan needing the medallion token)
 > does not exist, because nothing here attaches to the sprite (§7.1).
 >
-> **Schema, whole plan: DB NONE · WIRE one appended vector + six deprecated
-> fields (C1) · CONTENT one new top-level skill key (C0) · CONF NONE.**
+> **Schema, whole plan: DB NONE · WIRE one enum + one table + one appended vector +
+> `Mob.owner_id`, five field names deprecated (C1, as built; `aura_hit_style` follows in C2) · CONTENT one new top-level skill key (C0) · CONF NONE.**
 > All numbers [PLACEHOLDER].
 
 ---
@@ -380,6 +382,11 @@ HIT event's impact moment instead of `damage_taken`. A per-layer `sound`
 key is NOT added (YAGNI; `plan-region-audio.md` owns the audio lane and can
 add it when it has a consumer).
 
+⚑ **As found in C1 (2026-09-19): that seam does not exist.** No caller passes
+`soundData` to `StatusEffect.forDamaged`, so `mobHit` never plays today and
+there was nothing to re-trigger. C1 left it alone; wiring a hit sound is new
+work for the audio lane, fed by the HIT event when it has an owner.
+
 ## 8. Deletions
 
 - The `hitStyle` lever end to end (D7): `skills/definition.go:193-215`
@@ -427,13 +434,14 @@ builder C1 lesson: a chunk whose purpose is a look is not done without one).
   or nothing), and inventing one for a rule that becomes an ERROR at C3 is the
   machine this project keeps choosing not to build. The rule is written in
   `manual-content-authoring.md` §2 instead: author no `body` before the atlas.
-- **C1 · The wire.** `SkillEvent` + `skill_events` appended; the payload
+- **C1 · The wire.** ✅ **BUILT 2026-09-19** (§12a is the spec as built, §13 the
+  ledger; `MobJuice` and `aura_hit_style` left scope). `SkillEvent` + `skill_events` appended; the payload
   widening (`model.Damage` + a heal payload carry caster + skill id;
   `MobTouches` / `PlayerTouches` / `Heal` signatures change once, D9);
   FIRED emission at the cast and aura-tick sites; HIT emission inside the
   four funnels; per-viewer filter; both binding sets regenerated; client
   decode; **floating numbers switched to the events under D6's rule**;
-  the six fields deprecated; `MobJuice` re-seamed. Sim-determinism pins
+  five field names deprecated; `MobJuice` left to the audio lane. Sim-determinism pins
   green; new codec test (N landings → N events, filter honoured); loadbot
   leg (§5.3) recorded in the ledger, D10 fallback ruled. **Schema: WIRE
   appended + deprecated.** ⚑ Verify the DoT stream's skill id (§3.3).
@@ -474,13 +482,13 @@ C0 and C1 can be built in either order; C2a needs both.
    nowhere: not the Go enum, not `effectKeys`, not the two authored values,
    not the client. Main never carries a fixture that rejects shipped content,
    and the lever leaves in one piece when its replacement can draw.
-7. FIRED cadence for an aura: every tick (30 Hz for a 1-tick aura) is
+7. ✅ **RESOLVED 2026-09-19 (PO): casts + flagged auras**, §12a.4. Was: FIRED cadence for an aura: every tick (30 Hz for a 1-tick aura) is
    wasteful on the wire for an ambient-only skill. Proposal: emit FIRED
    only for skills whose `visual` has an `on: fired` layer, resolved at
    load into a per-skill flag; the sim never reads it.
 8. A cast BAR for other players is §39's (cast progress); the FIRED event
    deliberately carries no progress.
-9. Own-summon numbers: a summon's hit has `source` = the summon, and D6 says
+9. ✅ **RESOLVED 2026-09-19 (PO): `Mob.owner_id`**, §12a.5. Was: Own-summon numbers: a summon's hit has `source` = the summon, and D6 says
    "dealt by the own player". Proposal: yes, show them, resolved through the
    owned relation client-side (XP already credits the owner; the number
    should agree with the XP). Needs the owner id on the wire or a client
@@ -555,7 +563,307 @@ All ✅ **DONE 2026-09-19** unless marked otherwise.
 - **The stun/slow conflation** (§40 update box) is NOT this plan's; a HIT
   event carries no applied-effect kind. Stays with §39.
 
+## 12a. C1 execution spec (2026-09-19, re-verified against HEAD `9ebb1dab`)
+
+§3's line refs are stale; the refs below are current. This section is the
+spec the C1 session builds from. PO calls of 2026-09-19 are marked ⭐.
+
+### 12a.1 Recording: per-entity event lists, no game-wide sink
+
+No per-tick game-wide buffer exists (chat and obituaries send immediately) and
+models hold no game reference (`player.New` reads `g` at construction only,
+`mob.NewMob` takes none). C1 does NOT build one. It reuses the accumulator
+pattern already there:
+
+- A `model.SkillEvent` value type (`Source uint64`, `Victim uint64`,
+  `SkillID skills.SkillID`, `Amount vitals.VitalSign`, `Kind HitKind`,
+  `Fired bool`) and a `[]model.SkillEvent` field on both `*mob.Mob` and
+  `*player.player`, with a getter `SkillEvents()` on `model.MobEntity` and
+  `model.PlayerEntity`.
+- **HIT**: appended to the VICTIM's list inside `takeDamage` / `Heal` (D9).
+- **FIRED**: appended to the CASTER's list by the SkillSystem through a narrow
+  interface (the `AuraHitNotifier` precedent, `model/status_effects.go:90-97`).
+- `ResetTickNumbers` (`mob.go:2175`, `player.go:736`) truncates with `[:0]`,
+  never `nil`, so steady state allocates nothing
+  (`model/status_effects_alloc_test.go` is the pin; add a twin for the list).
+- The encoder concatenates the lists of every entity in `gs.Entities` (which
+  IS the viewport set, `core/net.go:258-263`) PLUS `gs.Player`'s own list:
+  the viewport sensor shares the body's collision `Group`
+  (`player.go:50-60`), so the own player is not in its own set.
+- ⚑ **Departure from §5.1, an implementation call:** this ships an event when
+  its VICTIM (HIT) or CASTER (FIRED) is in the viewer's set, not "source OR
+  victim". The one lost case is source-in-view / victim-out, which §12 already
+  has the client skip silently. Same observable result, less wire, nothing new
+  to maintain.
+
+### 12a.2 Payload widening (D9): the five plumbing gaps
+
+1. `model.Damage` (`model/interactable.go:11-40`) gains `SkillID`.
+   `mobs.Factors` (`items/mobs/definitions.go:139`) gains a payload-only
+   `SkillID` beside `Lifesteal` / `Crit` / `GateKey`. Do NOT unify
+   `MobTouches` onto `Damage` (scope). Event source = `damage.Source` if set
+   (owned summon), else the toucher.
+2. `Healable.Heal(hp uint32)` (`model/healable.go:12`) becomes
+   `Heal(h model.Healing)` with `Healing{HP uint32, Caster Combatant-ish,
+   SkillID}`. Two production implementers (`mob.go:2036`, `player.go:467`), six
+   test fakes (`mob_test.go:1992,2013`, `player_test.go:889`,
+   `skills_behavior_test.go:175,818,2278`).
+3. ⚑ **§3.3's landmine is CONFIRMED:** `Buffs.DueBuffEvents()`
+   (`skills/buffs.go:875-914`) ranges `b.entries` with `_`, discarding the
+   `SkillID` map key. `DotHit` and `HotEvent` gain `Source SkillID`. Red-first.
+4. `applyAuraEffect` (`sys/skills.go:309-341`) forwards `source` to every
+   effect EXCEPT `applyDamageAura` (:321) and `applyHealAura` (:323);
+   `fireCooldown`'s `EffectTypeInstantDamage` (:2054-2063) has `es.Def.ID` in
+   scope and does not forward it. Thread all three. `tickBuffEvents`
+   (:464-515) and `tickHotEvents` (:526-557) pass the recovered id.
+5. `model.ApplyLifesteal` (`healable.go:23-38`) gains the skill id (its four
+   callers are the `*Touches` methods, which now hold it on the payload);
+   source = the leeching entity. Reflect (`player.go:851-896`): the flat
+   `retaliate_damage` carries the granting passive's id; `Buffs.ReflectBurst()`
+   (`buffs.go:375`) must return the id of the winning source it currently
+   discards.
+6. The self-heal cooldown (`sys/skills.go:1944-1961`) writes `Health` directly
+   and calls `NoteHealReceived` by hand. Route it through `Heal`: that bypass is
+   exactly what D9 forbids.
+7. **Stay bypassed by decision:** out-of-combat regen (`player/update.go:44-56`,
+   `mob.go:1204-1218`) and `RestoreToFullHealth` (`mob.go:1105`). No skill, no
+   event, no number today either.
+8. `SkillID` 0 = "no skill" (cheat damage, `sys/cmd/cmd.go:206`). Verified: no
+   file under `api/skills/` authors id 0.
+
+### 12a.3 HitKind inside the funnel
+
+- GOD (`player.go:388`) returns before anything: no event (today's behaviour).
+- Invulnerable / fully resisted with INPUT `damage.HP > 0`
+  (`mob.go:1949-1954,1976-1981`, `player.go:395-400`) → one `Immune`, amount 0.
+- `loss > 0` → one `Crit` (if `damage.Crit`) or `Damage`, amount = `loss`.
+- ⭐ **Absorb, one event per landing (PO):** `absorbed > 0 && loss == 0` → one
+  `Absorb` with the absorbed amount; a PARTIAL absorb → one `Damage` / `Crit`
+  with amount = real loss, the absorbed share not on the wire (today's "the
+  shield bar drops, the number shows real loss").
+- `Heal` with `healed > 0` → one `Heal`. A zero heal (full HP) emits nothing.
+- ⚑ Behaviour change to record: today the client suppresses "Immune" when the
+  same entity also took damage that tick; per event, an Immune from source A
+  draws beside a Damage from source B. More honest, accepted.
+
+### 12a.4 FIRED ⭐ (PO, §10 Q7 resolved)
+
+Every cooldown cast that is CONSUMED emits FIRED, targets or not (§5.1): for a
+player that is `fireAndCharge` (the cost is charged hit or whiff), for a mob the
+`processCooldowns` branch where `fireCooldown` returned true and the cooldown
+starts (a mob whiff consumes nothing, so nothing was cast). Exactly once per
+cast. An AURA tick emits FIRED only when the
+skill's `visual` has an `on: fired` layer: a per-skill bool resolved at load in
+`skills/visual.go` (e.g. `VisualDef.HasFired`), read only by the emitter, never
+by the sim.
+
+### 12a.5 Summon ownership ⭐ (PO, §10 Q9 resolved)
+
+`Mob.owner_id:ulong = 0` appended to the Mob table; set to the owning entity's
+id for an owned summon, 0 otherwise. FlatBuffers omits defaults, so only
+summons pay (~8 B per summon per viewer per tick; the loadbot leg watches it).
+`SkillEvent.source` stays the summon (C2's VFX origin). The client treats a
+HIT as own-dealt when `source === ownId` OR the source entity's `ownerId ===
+ownId`.
+
+### 12a.6 Wire
+
+`enum HitKind`, `table SkillEvent` and `GameState.skill_events` exactly as
+§5.1, appended last (after `owner_state`, `server.fbs:781`). `(deprecated)` on
+`damage_taken`, `crit_taken`, `heal_received`, `immune_hit` (both tables) and
+`Character.is_hit` (never written by the server, no client reader): FIVE
+field names (nine slots across the two tables), the first use of the attribute in this schema. ⚑ `aura_hit_style` is
+NOT deprecated in C1: §10 Q6 put the whole `hitStyle` lever in C2, and
+deprecating the byte now would blind the still-live slash/fire VFX. (§3.2's
+table and §5.2 said six incl. the style byte; this supersedes them.) flatc
+drops deprecated accessors, so the codec `Add*` calls and the client reads go
+in the same step. Regenerate TS with `api/schema/make.sh` and Go with
+`go generate ./...` (checked-in `flatc_Linux_v24_3_25`); both binding sets are
+committed, review the diff. Mirror the `.fbs` into `devops/bundle/api/schema/`
+if that copy is tracked and in sync today.
+
+Go accumulators deleted with their getters and interface methods once nothing
+reads them: `damageTaken`, `critTaken`, `healReceived`, `immuneHit`,
+`NoteHealReceived`. Tests that asserted on them re-point at `SkillEvents()`.
+KEEP `tookDamage`, `inCombatTicks`, `costPaid`, `xpGained`, `auraHitStyle`.
+
+### 12a.7 Client
+
+- `GameStateMessage.ts`: decode `skillEvents` into plain objects; decode
+  `ownerId` on mobs; drop the deprecated reads.
+- A pure module (vitest) holding D6's rule:
+  `(ownId, event, sourceOwnerId) → {target: 'victim', kind} | null`. Numbers
+  draw when the own player is source (or owner of the source) or victim. Map
+  `Damage`→`damage`, `Crit`→`crit`, `Heal`→`heal`, `Immune`→ the existing
+  `showFloatingText('Immune', IMMUNE_COLOR, 1, IMMUNE_LANE)`. `Absorb` draws
+  the grey word "Absorbed" in the Immune style and lane (⭐ PO 2026-09-19, after
+  the walk: "similar to how wow does it"; the first cut drew nothing); FIRED draws nothing
+  until C2a.
+- One consumer called from `Backend.receiveSnapshot` AFTER the entity loop
+  (`Backend.ts:521-523`). Id resolution: `game.player.character.id` first (the
+  own `Character` is NOT in `EntityManager`), then `EntityManager.getObject`,
+  skip silently on a miss (§12).
+- Delete the duplicated aggregate blocks (`EntityManager.ts:226-247`,
+  `Player.ts:149-168`); `costPaid`, `xpGained` and `showAuraHit` stay.
+- Expose the last decoded events for harnesses on the existing `window.game`
+  debug handle (`BrowserConsole.ts:46`), dev-gated like the rest of it.
+- ⚑ **`MobJuice` leaves C1's scope.** §7.5's seam does not exist: no caller
+  passes `soundData` to `StatusEffect.forDamaged`, so `mobHit` never plays
+  today. Wiring a sound is not a re-seam; it stays with the audio lane.
+
+### 12a.8 Verify tail C1 owes
+
+Red-first: `DueBuffEvents` keeps the skill id · funnel tests per `HitKind` on
+both models (incl. god = none, partial vs full absorb, zero heal = none) ·
+codec test: N landings → N events, an out-of-set entity's events absent, the
+own player's included · FIRED flag test · D6 vitest. Then:
+`TestRunPlacements_IsDeterministic` + `cmd/simharness` guardrails green · the
+three `*_alloc_test.go` pins + the new list pin · `go build ./...` ·
+`go test -count=1 ./...` · `make -C backend build` · `aurad -validate` both
+ways · `npm run smoke` · frontend `npm test` + `npm run typecheck` · headless
+`immune-feedback.mjs` · **the loadbot leg (§5.3)**, which rules D10. Schema
+line: DB NONE (confirm the character persistence marshaller is a whitelist
+that cannot pick up the new slice) · WIRE appended + 5 field names deprecated + one Mob
+field · CONF NONE · CONTENT NONE.
+
 ## 13. Ledger
+
+### C1 ledger (2026-09-19) - the wire
+
+✅ **BUILT 2026-09-19** `[uncommitted]`. Spec: §12a (re-verified refs + the
+PO's three calls of the day).
+
+**Schema: DB NONE** (`sys/persist.go` `characterState` is a field-by-field
+mapping into a hand-written struct and the store's SQL names every column, so
+the new slice cannot be picked up). **WIRE: appended** `enum HitKind`,
+`table SkillEvent`, `GameState.skill_events`, `Mob.owner_id`; **deprecated**
+five field names across nine slots (`damage_taken`, `crit_taken`,
+`heal_received`, `immune_hit` on Mob + Character, `Character.is_hit`), the
+first `(deprecated)` in this schema. `aura_hit_style` NOT deprecated (§10 Q6:
+the lever leaves whole in C2). Both binding sets regenerated. **CONF NONE ·
+CONTENT NONE.**
+
+**PO calls (2026-09-19)**
+
+- ⭐ **§10 Q7, FIRED cadence:** every CONSUMED cooldown cast emits FIRED,
+  targets or not; an aura tick emits only when the skill's `visual` has an
+  `on: fired` layer (`VisualDef.HasFired`, derived at parse, `json:"-"`).
+- ⭐ **§10 Q9, summons:** `Mob.owner_id` on the Mob table ("be mindful of
+  performance": a default 0 is omitted, so only summons pay, and the loadbot
+  leg saw nothing). `SkillEvent.source` stays the summon.
+- ⭐ **Absorb:** one event per landing. Full absorb = one `Absorb`; partial =
+  one `Damage` / `Crit` with the real loss.
+
+**What was built**
+
+- Recording reuses the accumulator pattern, no game-wide sink (§12a.1):
+  `model.SkillEvent` + a per-entity list on both models, HIT appended to the
+  VICTIM inside `takeDamage` / `Heal` (D9), FIRED to the CASTER through
+  `model.SkillFiredNotifier`, truncated `[:0]` in `ResetTickNumbers`. The
+  codec concatenates `gs.Player`'s list plus every entity in `gs.Entities`;
+  a quiet tick omits the field entirely (offset 0), so an idle viewer pays
+  nothing. Spectators get the vector too.
+- Payload widening: `Damage.SkillID`, `Factors.SkillID`,
+  `Heal(model.Healing{HP, Caster, SkillID})`, `ApplyLifesteal(+id)`,
+  `ReflectBurst()` returns its winner's id, `takeDamage(+source uint64)`
+  resolved by the `*Touches` wrappers (`model.ActingSourceID`).
+- ⚑ **§3.3's landmine was real:** `DueBuffEvents` discarded the skill id (the
+  map key). `DotHit` / `HotEvent` now carry `Source`. Also threaded:
+  `applyAuraEffect` → `applyDamageAura` / `applyHealAura`, `fireCooldown`'s
+  InstantDamage, and the self-heal cooldown now goes THROUGH `Heal`.
+- The four Go accumulators, their getters and `NoteHealReceived` are deleted;
+  ~16 test files re-pointed at `SkillEvents()`.
+- Client: `SkillEventNumbers.ts` (D6 as a pure function, 15 vitest cases),
+  decode in `GameStateMessage.ts` (ids narrowed with `Number()`, as every other
+  id there), carried through `SnapshotFactory`'s delta branch, one consumer in
+  `Backend.receiveSnapshot` after the entity loop, the two duplicated aggregate
+  blocks deleted, `window.game.skillEvents()` → `{last, total}` for harnesses.
+
+**Implementation calls (not PO calls)**
+
+- **Ships on "victim (or caster) in view", not "source OR victim"** (§12a.1).
+- **`owner_id` carries `CreditTo()`, not `Owner()`**: the question is
+  attribution, and `Owner()` would miss a CHARMED mob.
+- **FIRED once per skill per tick**, not per effect (`applyAuraEffect` now
+  returns "ran").
+- **`aura_hit_style` kept** (above); **`MobJuice` dropped from C1**: §7.5's
+  seam does not exist, no caller passes `soundData`, `mobHit` never plays.
+- Client: the source→owner lookup is built from `snapshot.entities` on ticks
+  that carry events, not stored on the `Mob` game object. An own-summon hit
+  whose summon is outside the viewer's set draws nothing (§12's skip case).
+- A non-Immune, non-Absorb event with amount ≤ 0 draws nothing (`hpToDisplay`
+  floors at 1); the two grey words return before that check, being words.
+
+**Behaviour changes to know** (rulings, not bugs): other players' numbers and
+mob-vs-mob numbers are gone (D6) · an Immune from source A now draws beside a
+Damage from source B on the same tick · a fully absorbed hit now draws a grey
+"Absorbed" (PO call after the walk; a PARTIAL absorb still shows only the real
+loss, the shield's share is not on the wire).
+
+**Red→green, stated honestly.** Genuinely red-first: the `DueBuffEvents` and
+`ReflectBurst` skill-id tests (compile-red), the player-whiff FIRED test
+(`expected [98]`, `actual nil`), the 15 D6 vitest cases. The funnel, codec and
+`owner_id` tests were written AFTER the code and are proven by mutation.
+
+**Mutation ×9, each reverted:** drop the append in `mob.takeDamage` (10 red) ·
+drop `gs.Player`'s list in the codec (1) · discard the map key in
+`DueBuffEvents` (3) · remove the `HasFired` gate (1) · drop `MobAddOwnerId`
+(1) · drop `noteCooldownCast` from `fireAndCharge` (3) · stamp a mob whiff
+(1) · disable D6 attribution (5) · draw Absorb (1).
+
+**Verify tail** (rerun by the lead after both halves): `go build ./...` ·
+`go vet ./...` · `go test -count=1 ./...` **35 packages ok, 0 failures** (DB
+tests skip without `AURA_TEST_DB_URL`; no `-race` run) incl.
+`TestRunPlacements_IsDeterministic`, the four simharness guardrails and the
+three alloc pins + two new list pins · `make -C backend build` (regenerates;
+bindings byte-identical to the hand run) · `aurad -validate` **0 findings**
+both ways · `npm run smoke` **0 findings / 113 files** · frontend `npm test`
+**694 / 39** (was 678 / 38; the last 15 are the D6 rule, the 694th the
+"Absorbed" word) · `npm run typecheck` clean · `npm run build`.
+
+**Harness gate** (fresh server, one at a time): `immune-feedback.mjs`
+**PASS** (6 labels, all grey, all at the wall, 0 damage numbers there; first
+run hit the documented post-restart join race) · `hygiene-wire-prune.mjs`
+clean ×2, 0 console errors · `r3-lifesteal-burst.mjs` **7/7**, 44 combat
+numbers in a live fight · `chunk2-follower.mjs` 5 PASS + the fight leg
+INCONCLUSIVE (nothing came into range). No harness saw the own-SUMMON number
+or D6's two-client headline; the PO walk below did.
+`chunk3-charm.mjs` NOT run: C1 only READS `CreditTo`, and the script is
+known-inconclusive 6-8/9 at HEAD.
+
+**⭐ The loadbot leg (§5.3): D10 STANDS, no fallback.** Combat-clustered
+(`-skills Damage -god -warp 38,31`, steps 25,50, hold 40 s, `-profile`), same
+machine, same DB, A/B/A/B, `auras CONFIRMED LIVE 50/50` on every leg:
+
+| 50 bots | p50 ms | p95 ms | util % | kB/s/bot | snap/s |
+| --- | --- | --- | --- | --- | --- |
+| baseline `9ebb1dab` | 5.62 | 7.27 | 21.8 | 201.6 | 30.0 |
+| C1 | 5.94 | 7.56 | 22.7 | 209.2 | 30.0 |
+| baseline (again) | 5.90 | 7.90 | 23.7 | 212.7 | 30.0 |
+| C1 (again) | 6.07 | 7.80 | 23.4 | 214.9 | 30.0 |
+
+C1 sits inside the baseline-vs-baseline spread on every column. ⚑ **The first
+round was void and found loadbot rot:** the `CONFIRMED LIVE` gauge read the
+loadout off EVERY snapshot, but since perf chunk 3 (`68946f78`) the owner
+block ships on change only, so the gauge flapped to 0/n on a healthy run.
+Fixed in `cmd/loadbot/main.go` (judge only on `gs.OwnerState()`).
+
+**Landmines for C2a**
+
+- ⚑ **A dropped FlatBuffers accessor is a RUNTIME break on the client, not a
+  compile break.** `unmarshalEntity(entity, eType)` is implicit `any`, so with
+  the new bindings and the old reads, `tsc` and vitest were both GREEN while
+  the first Mob decode would have thrown. Only a real boot catches it.
+- `flatcgen.go` downloads flatc unconditionally (`go generate` needs network);
+  the checked-in binary invoked by hand gives byte-identical output.
+- The own `Character` is not in `EntityManager`: resolve the own id first.
+- `ownerId` lives on the snapshot entity, not the `Mob` game object; C2a's
+  manager will want it there.
+
+**⭐ PO walk 2026-09-19: "everything works as intended"** (the nine-step
+checklist: own numbers, heals, Immune, cost / XP / hit flash unregressed, and
+the two-window D6 legs incl. the own-summon number). One request out of it,
+built the same day test-first: the "Absorbed" word (vitest 694 / 39).
 
 ### C0 ledger (2026-09-19) - the vocabulary + the docs amendment
 

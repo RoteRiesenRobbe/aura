@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
 // Damage is one hit's payload (item 11 Phase 2): absolute HP plus the damage
@@ -37,6 +38,15 @@ type Damage struct {
 	//
 	// ⚑ A gated hit carries no Tags, so it never enters resistance math at all.
 	GateKey string
+
+	// SkillID is the skill this hit belongs to, carried for the hit event the
+	// funnel records (plan-skill-vfx.md D9). 0 = no skill: the cheat damage
+	// command and nothing else (no api/skills file authors id 0).
+	//
+	// ⚑ It is NOT a resolvable-from-Source substitute. A DoT tick lands long
+	// after its aura is gone, and a reflect names the passive that bounced it,
+	// not whatever the caster happens to be running now.
+	SkillID skills.SkillID
 }
 
 type Interacter interface {

@@ -28,8 +28,8 @@ func TestPlayer_ImmuneHit_FullResistSetsFlag(t *testing.T) {
 
 	p.MobTouches(newFakeAttackerMob(), mobs.Factors{Damage: 10, DamageTags: []string{"physical"}})
 
-	assert.True(t, p.ImmuneHit())
-	assert.Zero(t, p.DamageTaken())
+	assert.True(t, immuneHit(p))
+	assert.Zero(t, damageTaken(p))
 }
 
 func TestPlayer_ImmuneHit_GodWritesNoFlag(t *testing.T) {
@@ -40,7 +40,7 @@ func TestPlayer_ImmuneHit_GodWritesNoFlag(t *testing.T) {
 
 	p.MobTouches(newFakeAttackerMob(), mobs.Factors{Damage: 10})
 
-	assert.False(t, p.ImmuneHit())
+	assert.False(t, immuneHit(p))
 }
 
 func TestPlayer_ImmuneHit_GateMissStaysSilent(t *testing.T) {
@@ -50,26 +50,26 @@ func TestPlayer_ImmuneHit_GateMissStaysSilent(t *testing.T) {
 
 	p.MobTouches(newFakeAttackerMob(), mobs.Factors{Damage: 10, GateKey: "harvest"})
 
-	assert.False(t, p.ImmuneHit())
+	assert.False(t, immuneHit(p))
 }
 
 func TestPlayer_ImmuneHit_NormalAndZeroDamageLeaveFlagUnset(t *testing.T) {
 	p := newImmuneHitTestPlayer()
 	p.MobTouches(newFakeAttackerMob(), mobs.Factors{Damage: 10})
-	assert.False(t, p.ImmuneHit(), "a landing hit is not immunity")
+	assert.False(t, immuneHit(p), "a landing hit is not immunity")
 
 	q := newImmuneHitTestPlayer()
 	q.MobTouches(newFakeAttackerMob(), mobs.Factors{Damage: 0})
-	assert.False(t, q.ImmuneHit(), "a zero-damage hit is a no-op, not immunity")
+	assert.False(t, immuneHit(q), "a zero-damage hit is a no-op, not immunity")
 }
 
 func TestPlayer_ImmuneHit_ResetTickNumbersClearsIt(t *testing.T) {
 	p := newImmuneHitTestPlayer()
 	p.ApplyResist(69, []string{skills.ResistWildcard}, 0, 2)
 	p.MobTouches(newFakeAttackerMob(), mobs.Factors{Damage: 10, DamageTags: []string{"physical"}})
-	assert.True(t, p.ImmuneHit())
+	assert.True(t, immuneHit(p))
 
 	p.ResetTickNumbers()
 
-	assert.False(t, p.ImmuneHit(), "per-tick one-shot like damage_taken")
+	assert.False(t, immuneHit(p), "per-tick one-shot like damage_taken")
 }

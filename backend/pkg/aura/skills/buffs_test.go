@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // --- resist payload (semantics inherited 1:1 from the retired ResistBuffs,
@@ -991,7 +992,7 @@ func TestBuffs_ApplyShieldReportsNewOrRestoredPool(t *testing.T) {
 
 func TestBuffs_ReflectDefaultIsZero(t *testing.T) {
 	var b Buffs
-	fraction, tags := b.ReflectBurst()
+	_, fraction, tags := b.ReflectBurst()
 	assert.Zero(t, fraction, "no burst up = nothing bounces back")
 	assert.Nil(t, tags)
 }
@@ -1000,7 +1001,7 @@ func TestBuffs_ReflectCarriesItsAuthoredTags(t *testing.T) {
 	var b Buffs
 	b.ApplyReflect(8, 0.2, []string{"fire"}, 2)
 
-	fraction, tags := b.ReflectBurst()
+	_, fraction, tags := b.ReflectBurst()
 	assert.InDelta(t, 0.2, fraction, 1e-6)
 	assert.Equal(t, []string{"fire"}, tags, "PO ruling 2: the SKILL's damage type, not the incoming hit's")
 }
@@ -1012,7 +1013,7 @@ func TestBuffs_ReflectStrongestWinsWholesaleAcrossSkills(t *testing.T) {
 	b.ApplyReflect(8, 0.2, []string{"fire"}, 2)
 	b.ApplyReflect(9, 0.5, []string{"frost"}, 2)
 
-	fraction, tags := b.ReflectBurst()
+	_, fraction, tags := b.ReflectBurst()
 	assert.InDelta(t, 0.5, fraction, 1e-6, "the bigger share wins")
 	assert.Equal(t, []string{"frost"}, tags, "…and brings ITS OWN damage type")
 }
@@ -1023,15 +1024,15 @@ func TestBuffs_ReflectSameSkillStrongestWins(t *testing.T) {
 	var b Buffs
 	b.ApplyReflect(8, 0.2, []string{"fire"}, 2)
 	b.ApplyReflect(8, 0.4, []string{"fire"}, 2)
-	fraction, _ := b.ReflectBurst()
+	_, fraction, _ := b.ReflectBurst()
 	assert.InDelta(t, 0.4, fraction, 1e-6)
 
 	b.ApplyReflect(8, 0.1, []string{"fire"}, 3)
-	fraction, _ = b.ReflectBurst()
+	_, fraction, _ = b.ReflectBurst()
 	assert.InDelta(t, 0.4, fraction, 1e-6)
 	b.Tick()
 	b.Tick()
-	fraction, _ = b.ReflectBurst()
+	_, fraction, _ = b.ReflectBurst()
 	assert.InDelta(t, 0.1, fraction, 1e-6, "0.2/0.4 expired; the 3-tick 0.1 remains")
 }
 
@@ -1041,7 +1042,7 @@ func TestBuffs_ReflectRefreshExtends(t *testing.T) {
 	b.Tick()
 	b.ApplyReflect(8, 0.2, []string{"fire"}, 2) // same fraction: refreshes in place
 	b.Tick()
-	fraction, _ := b.ReflectBurst()
+	_, fraction, _ := b.ReflectBurst()
 	assert.InDelta(t, 0.2, fraction, 1e-6, "re-firing extends rather than stacking")
 }
 
@@ -1050,11 +1051,42 @@ func TestBuffs_ReflectExpiry(t *testing.T) {
 	b.ApplyReflect(8, 0.2, []string{"fire"}, 2)
 
 	b.Tick()
-	fraction, _ := b.ReflectBurst()
+	_, fraction, _ := b.ReflectBurst()
 	assert.InDelta(t, 0.2, fraction, 1e-6, "survives one tick boundary")
 
 	b.Tick()
-	fraction, tags := b.ReflectBurst()
+	_, fraction, tags := b.ReflectBurst()
 	assert.Zero(t, fraction, "expired without re-application")
 	assert.Nil(t, tags, "and takes its damage type with it")
+}
+
+// --- the source skill survives the drain (plan-skill-vfx.md C1, §12a.2/3) ---
+
+func TestBuffs_DueBuffEventsKeepTheSourceSkill(t *testing.T) {
+	// The store is KEYED by source skill, and DueBuffEvents used to range the
+	// map with `_` and throw the key away, so a burn tick reached the funnel
+	// with no idea which skill lit it. The hit event needs it.
+	var b Buffs
+	b.ApplyDot(141, DotBuff{HP: 4, Interval: 1}, 3)
+	b.ApplyHot(72, HotBuff{HP: 7, Interval: 1}, 3)
+
+	b.Tick()
+	dots, hots := b.DueBuffEvents()
+	require.Len(t, dots, 1)
+	require.Len(t, hots, 1)
+	assert.Equal(t, SkillID(141), dots[0].Source, "the dot names the skill that applied it")
+	assert.Equal(t, SkillID(72), hots[0].Source, "and so does the hot")
+}
+
+func TestBuffs_ReflectBurstNamesItsSource(t *testing.T) {
+	// The reflect leaves as a hit of the granting passive, so the winning
+	// application has to bring its id along with its fraction and tags.
+	var b Buffs
+	b.ApplyReflect(60, 0.2, []string{"fire"}, 5)
+	b.ApplyReflect(61, 0.5, []string{"ice"}, 5)
+
+	source, fraction, tags := b.ReflectBurst()
+	assert.Equal(t, SkillID(61), source, "strongest wins wholesale, id included")
+	assert.InDelta(t, 0.5, fraction, 1e-6)
+	assert.Equal(t, []string{"ice"}, tags)
 }

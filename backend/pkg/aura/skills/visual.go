@@ -42,6 +42,17 @@ import (
 // accident, not a way to say "no dressing" (that is simply omitting the key).
 type VisualDef struct {
 	Layers []VisualLayer `json:"layers"`
+
+	// HasFired is "at least one layer plays at the `fired` moment", resolved
+	// once at load (plan-skill-vfx.md §12a.4). An AURA ticks up to 30 times a
+	// second and only a skill that actually draws something on its beat is
+	// worth a FIRED event per tick, so the emitter reads this and nothing else
+	// does. Derived, never authored: json:"-" keeps it off the HTTP catalog
+	// and out of the content editor's round-trip.
+	//
+	// ⚑ The SIMULATION never reads it. It gates an output event, exactly like
+	// the events themselves.
+	HasFired bool `json:"-"`
 }
 
 // VisualLayer is one dressing element: a kind, the moment it plays, and the
@@ -69,6 +80,11 @@ type VisualLayer struct {
 	Scale  float32 `json:"scale,omitempty"`  // body size multiplier
 }
 
+// visualTriggerFired is the one trigger name Go itself branches on (the FIRED
+// emitter, plan-skill-vfx.md §12a.4), so it is a constant rather than a string
+// literal repeated in two packages.
+const visualTriggerFired = "fired"
+
 // The closed tables. visualKinds and visualTriggers are the vocabulary; the
 // three per-kind maps say what each kind accepts. All six ride the generated
 // api/skill-vocabulary.json (vocabulary_test.go), so the content editor and
@@ -80,7 +96,7 @@ var (
 	// visualTriggers: ambient = while this is the actor's running aura,
 	// fired = a cast or an aura tick went off (targets or not), hit = once
 	// per victim of a landing.
-	visualTriggers = []string{"ambient", "fired", "hit"}
+	visualTriggers = []string{"ambient", visualTriggerFired, "hit"}
 
 	visualCurves  = []string{"thrust", "snap", "burst"}
 	visualMotions = []string{"swirl", "rise", "burst"}
@@ -164,7 +180,14 @@ func parseVisual(raw json.RawMessage, categoryName string) (*VisualDef, error) {
 		}
 		layers = append(layers, layer)
 	}
-	return &VisualDef{Layers: layers}, nil
+	def := &VisualDef{Layers: layers}
+	for _, l := range layers {
+		if l.On == visualTriggerFired {
+			def.HasFired = true
+			break
+		}
+	}
+	return def, nil
 }
 
 func parseVisualLayer(raw json.RawMessage, categoryName string) (VisualLayer, error) {

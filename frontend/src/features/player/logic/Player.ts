@@ -1,5 +1,5 @@
 import {Character} from '../../game-objects/logic/Character';
-import {hpToDisplay, IMMUNE_COLOR, IMMUNE_LANE} from '../../game-objects/logic/_GameObject';
+import {hpToDisplay} from '../../game-objects/logic/_GameObject';
 import {StatusEffect} from '../../game-objects/logic/StatusEffect';
 import {Controls} from '../../controls/logic/Controls';
 import {Camera} from '../../camera/logic/Camera';
@@ -146,26 +146,12 @@ export class Player {
             setLocalPlayerLevel(entity.level);
         }
 
-        // Floating combat numbers over the own character (item 11). The
-        // crit-flagged share pops big (skill-vocab chunk 1); the remainder
-        // shows as a regular damage number.
-        const critTaken = entity.critTaken > 0 ? entity.critTaken : 0;
-        if (critTaken > 0) {
-            this.character.showFloatingNumber(hpToDisplay(critTaken), 'crit');
-        }
-        if (entity.damageTaken > critTaken) {
-            this.character.showFloatingNumber(hpToDisplay(entity.damageTaken - critTaken), 'damage');
-        }
-        // A hit was fully mitigated this tick (plan-immune-feedback.md):
-        // grey "Immune" where the number would have been. Only when nothing
-        // landed (D9) - the word explains why nothing is happening, so when
-        // damage IS showing, the question does not arise.
-        if (entity.immuneHit && !(entity.damageTaken > 0)) {
-            this.character.showFloatingText('Immune', IMMUNE_COLOR, 1, IMMUNE_LANE);
-        }
-        if (entity.healReceived > 0) {
-            this.character.showFloatingNumber(hpToDisplay(entity.healReceived), 'heal');
-        }
+        // ⚑ Damage, crit, "Immune" and heal numbers over the own character
+        // are Backend's now (plan-skill-vfx.md C1), drawn per attributed hit
+        // event instead of from a per-tick aggregate. The cost and XP numbers
+        // below stay here: they are the own player's by definition and have no
+        // source to attribute.
+        //
         // Resource spent (round-7 item 7): blue, so paying a cost never reads
         // as being attacked — before this, a cost was only the bar dropping.
         if (entity.costPaid > 0) {

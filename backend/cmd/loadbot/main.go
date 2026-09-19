@@ -659,7 +659,13 @@ func spawnBot(id int) (*bot, error) {
 					levelsSpent.Add(spent)
 					questsHeld.Add(int64(gs.QuestProgressLength()))
 
-					live := gs.ActiveAuraSlot() >= 0 && gs.AuraSlotsLength() > 0 && gs.AuraSlots(0) != 0
+					// The loadout rides the owner block, which ships on change only
+					// (perf chunk 3): a snapshot without it reads the defaults, so
+					// judging "live" there flaps the gauge to 0.
+					live := armed
+					if gs.OwnerState() {
+						live = gs.ActiveAuraSlot() >= 0 && gs.AuraSlotsLength() > 0 && gs.AuraSlots(0) != 0
+					}
 					if live != armed {
 						armed = live
 						if live {

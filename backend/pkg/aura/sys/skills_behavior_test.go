@@ -127,6 +127,10 @@ type fakePlayer struct {
 	flying       bool
 	conversation *model.Conversation
 	conf         cfg.PlayerConfig // zero value = no base crit (§4.3 v2); tests set CritChance explicitly
+	// skillEvents are the hits and casts this double recorded (C1); only the
+	// FIRED half reaches it, since nothing damages a fakePlayer through its
+	// own funnel.
+	skillEvents []model.SkillEvent
 }
 
 // appliedResist records one ApplyResist call on a test double.
@@ -151,7 +155,17 @@ type appliedHot struct {
 	ticks  int
 }
 
-func (f *fakePlayer) Basic() ecs.BasicEntity                 { return f.basic }
+func (f *fakePlayer) Basic() ecs.BasicEntity { return f.basic }
+
+// SkillEvents / NoteSkillFired: the hit-event recorder (plan-skill-vfx.md C1).
+// NoteSkillFired is not on PlayerEntity, so the nil embed never supplied it and
+// the stamp site's assertion would simply no-op; these two exist so the FIRED
+// tests have something to read.
+func (f *fakePlayer) SkillEvents() []model.SkillEvent { return f.skillEvents }
+func (f *fakePlayer) NoteSkillFired(id skills.SkillID) {
+	f.skillEvents = append(f.skillEvents, model.SkillEvent{Source: f.basic.ID(), SkillID: id, Fired: true})
+}
+
 func (f *fakePlayer) Faction() model.Faction                 { return model.FactionAligned }
 func (f *fakePlayer) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakePlayer) QuestLedger() *quests.Ledger            { return f.ledger }
@@ -171,12 +185,11 @@ func (f *fakePlayer) HealthRatio() float32 {
 	}
 	return float32(f.vitalSigns.Health) / float32(f.maxHealth)
 }
-func (f *fakePlayer) NoteHealReceived(d vitals.VitalSign) { f.healReceived += d }
-func (f *fakePlayer) Heal(hp uint32) vitals.VitalSign {
+func (f *fakePlayer) Heal(h model.Healing) vitals.VitalSign {
 	before := f.vitalSigns.Health
-	f.vitalSigns.Health = before.AddCapped(hp, f.maxHealth)
+	f.vitalSigns.Health = before.AddCapped(h.HP, f.maxHealth)
 	healed := f.vitalSigns.Health - before
-	f.NoteHealReceived(healed)
+	f.healReceived += healed
 	return healed
 }
 func (f *fakePlayer) Radius() float32            { return 0.25 }
@@ -385,12 +398,12 @@ func TestApplyDamageAura_DealsLevelScaledDamage(t *testing.T) {
 	target := &touchRecorder{}
 	set := colliderSetOf(target)
 
-	applyDamageAura(caster, 1, damageEffect(1), set, testRNG())
+	applyDamageAura(caster, testSkillID, 1, damageEffect(1), set, testRNG())
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 0.01, target.touches[0], 1e-6, "level 1 = base fraction")
 
 	target.touches = nil
-	applyDamageAura(caster, 3, damageEffect(1), set, testRNG())
+	applyDamageAura(caster, testSkillID, 3, damageEffect(1), set, testRNG())
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 0.014, target.touches[0], 1e-6, "level 3 = base + 2*perLevel")
 }
@@ -403,7 +416,7 @@ func TestApplyDamageAura_CarriesDamageTags(t *testing.T) {
 	effect := damageEffect(1)
 	effect.Damage.Tags = []string{"fire", "boss_x_lava"}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touchTags, 1)
 	assert.Equal(t, []string{"fire", "boss_x_lava"}, target.touchTags[0])
@@ -412,7 +425,7 @@ func TestApplyDamageAura_CarriesDamageTags(t *testing.T) {
 	mobCaster := newFakeMob()
 	mobTarget := &mobTouchRecorder{}
 
-	applyDamageAura(mobCaster, 1, effect, colliderSetOf(mobTarget), testRNG())
+	applyDamageAura(mobCaster, testSkillID, 1, effect, colliderSetOf(mobTarget), testRNG())
 
 	require.Len(t, mobTarget.factors, 1)
 	assert.Equal(t, []string{"fire", "boss_x_lava"}, mobTarget.factors[0].DamageTags)
@@ -428,7 +441,7 @@ func TestApplyDamageAura_CarriesGateKey(t *testing.T) {
 	effect.Damage.Tags = nil // a gated hit declares no damage type
 	effect.Damage.GateKey = "harvest"
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.gateKeys, 1)
 	assert.Equal(t, "harvest", target.gateKeys[0])
@@ -436,7 +449,7 @@ func TestApplyDamageAura_CarriesGateKey(t *testing.T) {
 	mobCaster := newFakeMob()
 	mobTarget := &mobTouchRecorder{}
 
-	applyDamageAura(mobCaster, 1, effect, colliderSetOf(mobTarget), testRNG())
+	applyDamageAura(mobCaster, testSkillID, 1, effect, colliderSetOf(mobTarget), testRNG())
 
 	require.Len(t, mobTarget.factors, 1)
 	assert.Equal(t, "harvest", mobTarget.factors[0].GateKey)
@@ -448,7 +461,7 @@ func TestApplyDamageAura_TagsFireStyleForFastTick(t *testing.T) {
 	set := colliderSetOf(target)
 
 	// A fast-tick aura (interval below the slash threshold) reads as sustained fire.
-	applyDamageAura(caster, 1, damageEffect(1), set, testRNG())
+	applyDamageAura(caster, testSkillID, 1, damageEffect(1), set, testRNG())
 
 	require.Len(t, target.hitStyles, 1)
 	assert.Equal(t, model.AuraHitStyleFire, target.hitStyles[0])
@@ -460,7 +473,7 @@ func TestApplyDamageAura_TagsSlashStyleForSlowTick(t *testing.T) {
 	set := colliderSetOf(target)
 
 	// A slow-tick aura (interval at/above the slash threshold) reads as a discrete slash.
-	applyDamageAura(caster, 1, damageEffect(auraSlashTickThreshold), set, testRNG())
+	applyDamageAura(caster, testSkillID, 1, damageEffect(auraSlashTickThreshold), set, testRNG())
 
 	require.Len(t, target.hitStyles, 1)
 	assert.Equal(t, model.AuraHitStyleSlash, target.hitStyles[0])
@@ -476,7 +489,7 @@ func TestApplyDamageAura_MobCaster_TagsHitStyle(t *testing.T) {
 		Damage:         &skills.DamageParams{HP: 0.004},
 	}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.hitStyles, 1)
 	assert.Equal(t, model.AuraHitStyleSlash, target.hitStyles[0])
@@ -487,7 +500,7 @@ func TestApplyDamageAura_NoFriendlyFire(t *testing.T) {
 	otherPlayer := &playerTouchRecorder{basic: ecs.NewBasic()}
 	set := colliderSetOf(otherPlayer)
 
-	applyDamageAura(caster, 1, damageEffect(1), set, testRNG())
+	applyDamageAura(caster, testSkillID, 1, damageEffect(1), set, testRNG())
 
 	assert.Empty(t, otherPlayer.rec.touches, "players must never be damaged by a damage aura")
 }
@@ -497,7 +510,7 @@ func TestApplyDamageAura_IgnoresNilAndNonInteracterUserData(t *testing.T) {
 	set := colliderSetOf(nil, "just a string")
 
 	assert.NotPanics(t, func() {
-		applyDamageAura(caster, 1, damageEffect(1), set, testRNG())
+		applyDamageAura(caster, testSkillID, 1, damageEffect(1), set, testRNG())
 	})
 }
 
@@ -508,7 +521,7 @@ func TestApplyDamageAura_NonPlayerCasterIsNoop(t *testing.T) {
 	target := &touchRecorder{}
 	set := colliderSetOf(target)
 
-	applyDamageAura(caster, 1, damageEffect(1), set, testRNG())
+	applyDamageAura(caster, testSkillID, 1, damageEffect(1), set, testRNG())
 
 	assert.Empty(t, target.touches)
 }
@@ -522,7 +535,7 @@ func TestApplyHealAura_HealsHurtAllyByExactFraction(t *testing.T) {
 	start := ally.vitalSigns.Health
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+	testSkillSystem().applyHealAura(caster, testSkillID, 1, healEffect(), set)
 
 	assert.Equal(t, start.Add(10), ally.vitalSigns.Health)
 }
@@ -535,7 +548,7 @@ func TestApplyHealAura_NotesHealerOnTarget(t *testing.T) {
 	ally := newFakePlayer()
 	ally.vitalSigns.Health = 50
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
+	testSkillSystem().applyHealAura(caster, testSkillID, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
 
 	require.Len(t, ally.healedBy, 1)
 	assert.Equal(t, model.PlayerEntity(caster), ally.healedBy[0])
@@ -545,7 +558,7 @@ func TestApplyHealAura_FullHealthTargetNotesNothing(t *testing.T) {
 	caster := newFakePlayer()
 	ally := newFakePlayer() // full health — no heal happens
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
+	testSkillSystem().applyHealAura(caster, testSkillID, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
 
 	assert.Empty(t, ally.healedBy)
 }
@@ -555,7 +568,7 @@ func TestApplyHealAura_SkipsAllyAtFullHealth_NoSelfDamage(t *testing.T) {
 	ally := newFakePlayer() // full health
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+	testSkillSystem().applyHealAura(caster, testSkillID, 1, healEffect(), set)
 
 	assert.Equal(t, ally.MaxHealth(), ally.vitalSigns.Health)
 	assert.Equal(t, caster.MaxHealth(), caster.vitalSigns.Health,
@@ -569,7 +582,7 @@ func TestApplyHealAura_SkipsSelf(t *testing.T) {
 	start := caster.vitalSigns.Health
 	set := colliderSetOf(model.PlayerEntity(caster))
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+	testSkillSystem().applyHealAura(caster, testSkillID, 1, healEffect(), set)
 
 	assert.Equal(t, start, caster.vitalSigns.Health,
 		"the caster's own collider entry must neither heal nor cost anything")
@@ -608,7 +621,7 @@ func TestApplyHealAura_GodModePaysNoSelfDamage(t *testing.T) {
 	start := ally.vitalSigns.Health
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+	testSkillSystem().applyHealAura(caster, testSkillID, 1, healEffect(), set)
 
 	assert.Equal(t, start.Add(10), ally.vitalSigns.Health, "ally is still healed")
 	assert.Equal(t, caster.MaxHealth(), caster.vitalSigns.Health, "god pays nothing")
@@ -624,7 +637,7 @@ func TestApplyHealAura_HealingEngagedAlly_EntersCombat(t *testing.T) {
 	ally.inCombat = true
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+	testSkillSystem().applyHealAura(caster, testSkillID, 1, healEffect(), set)
 
 	assert.Equal(t, 1, caster.combatActions, "supporting an engaged ally enters combat")
 }
@@ -638,7 +651,7 @@ func TestApplyHealAura_HealingSafeAlly_StaysOutOfCombat(t *testing.T) {
 	ally.inCombat = false
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+	testSkillSystem().applyHealAura(caster, testSkillID, 1, healEffect(), set)
 
 	require.Equal(t, vitals.VitalSign(60), ally.vitalSigns.Health, "the ally was actually healed")
 	assert.Equal(t, 0, caster.combatActions, "healing a safe ally is not a combat action")
@@ -759,9 +772,22 @@ type fakeMob struct {
 	faction       model.Faction
 	healthRatio   float32
 	powerScale    float32 // tier+baseline scale f(curveLevel) (C0); newFakeMob sets neutral 1
+	// skillEvents are the casts this double recorded (C1); only the FIRED half
+	// reaches it, since nothing damages a fakeMob through its own funnel.
+	skillEvents []model.SkillEvent
 }
 
-func (f *fakeMob) Basic() ecs.BasicEntity                 { return f.basic }
+func (f *fakeMob) Basic() ecs.BasicEntity { return f.basic }
+
+// SkillEvents / NoteSkillFired: the hit-event recorder (plan-skill-vfx.md C1).
+// NoteSkillFired is not on MobEntity, so the nil embed never supplied it and
+// the stamp site's assertion would simply no-op; these two exist so the FIRED
+// tests have something to read.
+func (f *fakeMob) SkillEvents() []model.SkillEvent { return f.skillEvents }
+func (f *fakeMob) NoteSkillFired(id skills.SkillID) {
+	f.skillEvents = append(f.skillEvents, model.SkillEvent{Source: f.basic.ID(), SkillID: id, Fired: true})
+}
+
 func (f *fakeMob) Faction() model.Faction                 { return f.faction }
 func (f *fakeMob) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakeMob) AuraCollider() *phy.Circle              { return f.aura }
@@ -815,9 +841,9 @@ func (f *fakeHealableMob) HealthRatio() float32 {
 	}
 	return float32(f.health) / float32(f.maxHealth)
 }
-func (f *fakeHealableMob) Heal(hp uint32) vitals.VitalSign {
+func (f *fakeHealableMob) Heal(h model.Healing) vitals.VitalSign {
 	before := f.health
-	f.health = before.AddCapped(hp, f.maxHealth)
+	f.health = before.AddCapped(h.HP, f.maxHealth)
 	healed := f.health - before
 	f.healReceived += healed
 	return healed
@@ -835,7 +861,7 @@ func TestApplyDamageAura_MobCaster_DamagesViaMobTouches(t *testing.T) {
 		Damage:         &skills.DamageParams{HP: 0.004},
 	}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.factors, 1)
 	assert.InDelta(t, 0.004, target.factors[0].Damage, 1e-6)
@@ -850,7 +876,7 @@ func TestApplyDamageAura_MobCaster_LevelScalesDamage(t *testing.T) {
 		Damage:         &skills.DamageParams{HP: 0.004, HPPerLevel: 0.001},
 	}
 
-	applyDamageAura(caster, 3, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 3, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.factors, 1)
 	assert.InDelta(t, 0.006, target.factors[0].Damage, 1e-6)
@@ -866,7 +892,7 @@ func TestApplyDamageAura_MobCaster_CarriesStructureDamage(t *testing.T) {
 		Damage:            &skills.DamageParams{HP: 0.0067, StructureDamageFraction: 0.67},
 	}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.factors, 1)
 	assert.InDelta(t, 0.67, target.factors[0].StructureDamageFraction, 1e-6)
@@ -881,7 +907,7 @@ func TestApplyDamageAura_PlayerCaster_RespectsTargetsEnemiesFlag(t *testing.T) {
 		Damage:         &skills.DamageParams{HP: 0.01},
 	}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	assert.Empty(t, target.touches, "targetsMobs=false must not hit mob-like targets")
 }
@@ -898,7 +924,7 @@ func TestApplyDamageAura_PlayerCaster_EntersCombatOnHit(t *testing.T) {
 		Damage:         &skills.DamageParams{HP: 0.01},
 	}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.NotEmpty(t, target.touches, "the hostile was hit")
 	assert.Equal(t, 1, caster.combatActions, "dealing harm enters combat")
@@ -915,7 +941,7 @@ func TestApplyDamageAura_PlayerCaster_NoHitNoCombat(t *testing.T) {
 		Damage:         &skills.DamageParams{HP: 0.01},
 	}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	assert.Equal(t, 0, caster.combatActions, "a cast that hits nothing is not a combat action")
 }
@@ -952,7 +978,7 @@ func TestApplyDamageAura_SameFactionTargetExcluded(t *testing.T) {
 	caster := newFakePlayer()
 	ally := &alignedTouchRecorder{}
 
-	applyDamageAura(caster, 1, damageEffect(1), colliderSetOf(ally), testRNG())
+	applyDamageAura(caster, testSkillID, 1, damageEffect(1), colliderSetOf(ally), testRNG())
 
 	assert.Empty(t, ally.touches, "targetsEnemies must not hit a same-faction target")
 }
@@ -990,7 +1016,7 @@ func TestApplyDamageAura_PlayerCaster_SkipsFriendlyFaction(t *testing.T) {
 	caster := newFakePlayer()
 	army := &friendlyTouchRecorder{}
 
-	applyDamageAura(caster, 1, damageEffect(1), colliderSetOf(army), testRNG())
+	applyDamageAura(caster, testSkillID, 1, damageEffect(1), colliderSetOf(army), testRNG())
 
 	assert.Empty(t, army.touches, "an aligned caster must never harm a friendly faction")
 }
@@ -1002,7 +1028,7 @@ func TestApplyDamageAura_AlignedSummonCaster_SkipsFriendlyFaction(t *testing.T) 
 	caster.faction = model.FactionAligned
 	army := &friendlyTouchRecorder{}
 
-	applyDamageAura(caster, 1, damageEffect(1), colliderSetOf(army), testRNG())
+	applyDamageAura(caster, testSkillID, 1, damageEffect(1), colliderSetOf(army), testRNG())
 
 	assert.Empty(t, army.mobFactors, "aligned summons must never harm a friendly faction")
 }
@@ -1013,7 +1039,7 @@ func TestApplyDamageAura_MobCaster_StillHitsFriendlyFaction(t *testing.T) {
 	caster := newFakeMob() // FactionHostile, ungated double
 	army := &friendlyTouchRecorder{}
 
-	applyDamageAura(caster, 1, damageEffect(1), colliderSetOf(army), testRNG())
+	applyDamageAura(caster, testSkillID, 1, damageEffect(1), colliderSetOf(army), testRNG())
 
 	assert.Len(t, army.mobFactors, 1, "orcs still fight the player-friendly faction")
 }
@@ -1038,7 +1064,7 @@ func TestApplyDamageAura_UnfactionedTargetNeverEatsTargetSlot(t *testing.T) {
 	effect := damageEffect(1)
 	effect.MaxTargets = 1 // nearest-1, the base-aura shape
 
-	applyDamageAura(caster, 1, effect, set, testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, set, testRNG())
 
 	assert.Empty(t, structure.touches, "unfactioned targets are not flag-eligible")
 	require.Len(t, mobTarget.touches, 1, "the slot must go to the factioned enemy")
@@ -1319,7 +1345,7 @@ func TestApplyDamageAura_VarianceRollsPerHitWithinBand(t *testing.T) {
 		userData[i] = targets[i]
 	}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(userData...), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(userData...), testRNG())
 
 	distinct := map[float32]bool{}
 	for _, target := range targets {
@@ -1339,7 +1365,7 @@ func TestApplyDamageAura_ZeroVarianceStaysExact(t *testing.T) {
 	effect := damageEffect(1)
 	effect.Damage.HP = 100
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
 	assert.Equal(t, float32(100), target.touches[0], "no variance → exact authored damage")
@@ -1366,7 +1392,7 @@ func TestApplyDamageAura_VarianceComposesWithResistance(t *testing.T) {
 	effect.Damage.Variance = 0.1
 	effect.Damage.Tags = []string{"fire"}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(m), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(m), testRNG())
 
 	loss := m.MaxHealth() - m.Health()
 	assert.GreaterOrEqual(t, loss, vitals.VitalSign(45), "below the resisted variance band")
@@ -1387,7 +1413,7 @@ func TestApplyHealAura_VarianceRollsWithinBand(t *testing.T) {
 		ally.maxHealth = 1000
 		ally.vitalSigns.Health = 100
 
-		s.applyHealAura(caster, 1, effect, colliderSetOf(model.PlayerEntity(ally)))
+		s.applyHealAura(caster, testSkillID, 1, effect, colliderSetOf(model.PlayerEntity(ally)))
 
 		assert.GreaterOrEqual(t, ally.healReceived, vitals.VitalSign(40), "roll below the variance band")
 		assert.LessOrEqual(t, ally.healReceived, vitals.VitalSign(60), "roll above the variance band")
@@ -2269,13 +2295,13 @@ type hotTargetRecorder struct {
 
 func (r *hotTargetRecorder) MaxHealth() vitals.VitalSign { return r.maxHealth }
 
-func (r *hotTargetRecorder) Basic() ecs.BasicEntity          { return r.basic }
-func (r *hotTargetRecorder) Faction() model.Faction          { return model.FactionAligned }
-func (r *hotTargetRecorder) HealthRatio() float32            { return r.ratio }
-func (r *hotTargetRecorder) InCombat() bool                  { return false }
-func (r *hotTargetRecorder) Position() phy.Vec2f             { return phy.VEC2F_ZERO }
-func (r *hotTargetRecorder) Radius() float32                 { return 0.25 }
-func (r *hotTargetRecorder) Heal(hp uint32) vitals.VitalSign { return vitals.VitalSign(hp) }
+func (r *hotTargetRecorder) Basic() ecs.BasicEntity                { return r.basic }
+func (r *hotTargetRecorder) Faction() model.Faction                { return model.FactionAligned }
+func (r *hotTargetRecorder) HealthRatio() float32                  { return r.ratio }
+func (r *hotTargetRecorder) InCombat() bool                        { return false }
+func (r *hotTargetRecorder) Position() phy.Vec2f                   { return phy.VEC2F_ZERO }
+func (r *hotTargetRecorder) Radius() float32                       { return 0.25 }
+func (r *hotTargetRecorder) Heal(h model.Healing) vitals.VitalSign { return vitals.VitalSign(h.HP) }
 func (r *hotTargetRecorder) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) bool {
 	r.hots = append(r.hots, appliedHot{source, hot, ticks})
 	return r.buffs.ApplyHot(source, hot, ticks)
@@ -3089,12 +3115,13 @@ func TestTotemAuraDamage_CreditsOwnerXPAndKillRewards(t *testing.T) {
 	effect := damageEffect(1)
 	effect.Damage = &skills.DamageParams{HP: 1000} // overkill vs. 40 HP
 
-	applyDamageAura(totem, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(totem, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	assert.Equal(t, vitals.VitalSign(0), target.Health(), "the totem's hit lands")
 	assert.Equal(t, []uint64{atLevelNormalAward}, owner.xp,
 		"kill XP rides PlayerTouches(owner) — the full player reward path")
-	assert.Equal(t, target.MaxHealth(), target.DamageTaken(), "floating damage number recorded")
+	assert.Equal(t, target.MaxHealth(), hitAmountOf(target.SkillEvents(), model.HitKindDamage),
+		"the hit event carries the full loss")
 }
 
 func TestApplyDamageAura_OwnedCasterScalesPower(t *testing.T) {
@@ -3110,7 +3137,7 @@ func TestApplyDamageAura_OwnedCasterScalesPower(t *testing.T) {
 	effect := damageEffect(1)
 	effect.Damage = &skills.DamageParams{HP: 10}
 
-	applyDamageAura(totem, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(totem, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	// The curve rides in through the summon's own PowerScale (it stands at its
 	// owner's level, chunk 1b), so it must be stated explicitly now that the
@@ -3176,7 +3203,7 @@ func TestTotem_KillableByHostileMobAura(t *testing.T) {
 	assert.NotZero(t, mask&totem.Bodies()[0].Shape().Layer,
 		"a hostile enemy-targeting aura's mask matches the totem's player-layer body")
 
-	applyDamageAura(hostile, 1, effect, colliderSetOf(totem), testRNG())
+	applyDamageAura(hostile, testSkillID, 1, effect, colliderSetOf(totem), testRNG())
 	assert.Equal(t, totem.MaxHealth()-10, totem.Health(), "the hostile hit damages the totem")
 }
 
@@ -3189,7 +3216,7 @@ func TestApplyDamageAura_OwnedCasterStampsSummonSource(t *testing.T) {
 	totem := newTestTotem(owner)
 
 	target := &touchRecorder{}
-	applyDamageAura(totem, 1, damageEffect(1), colliderSetOf(target), testRNG())
+	applyDamageAura(totem, testSkillID, 1, damageEffect(1), colliderSetOf(target), testRNG())
 
 	require.Len(t, target.sources, 1)
 	assert.Same(t, any(totem), any(target.sources[0]),
@@ -3198,7 +3225,7 @@ func TestApplyDamageAura_OwnedCasterStampsSummonSource(t *testing.T) {
 
 func TestApplyDamageAura_DirectPlayerCastHasNilSource(t *testing.T) {
 	caster, target := activeAuraPlayer(t, damageEffect(1))
-	applyDamageAura(caster, 1, damageEffect(1), colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, damageEffect(1), colliderSetOf(target), testRNG())
 
 	require.Len(t, target.sources, 1)
 	assert.Nil(t, target.sources[0],
@@ -3252,7 +3279,7 @@ func TestApplyHealAura_CreditsHealerThreatOnMobsFightingTarget(t *testing.T) {
 	s.AddEntity(fighting)
 	s.AddEntity(idle)
 
-	s.applyHealAura(healer, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
+	s.applyHealAura(healer, testSkillID, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
 
 	require.Len(t, fighting.sources, 1, "a mob in combat with the heal target learns of the heal")
 	assert.Same(t, any(healer), any(fighting.sources[0]))
@@ -3272,7 +3299,7 @@ func TestApplyHealAura_CreditsHealerThreatOnSensorAggroMob(t *testing.T) {
 	aggro := &threatRecordingMob{fakeMob: *newFakeMob(), targeting: map[uint64]bool{ally.basic.ID(): true}}
 	s.AddEntity(aggro)
 
-	s.applyHealAura(healer, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
+	s.applyHealAura(healer, testSkillID, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
 
 	require.Len(t, aggro.sources, 1,
 		"a mob whose aggro target is the heal target is in combat with it — the healer gets credited")
@@ -3324,7 +3351,7 @@ func TestApplyHealAura_UntargetableHealerDrawsNoThreat(t *testing.T) {
 	fighting := &threatRecordingMob{fakeMob: *newFakeMob(), fighting: map[uint64]bool{ally.basic.ID(): true}}
 	s.AddEntity(fighting)
 
-	s.applyHealAura(campfire, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
+	s.applyHealAura(campfire, testSkillID, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
 
 	require.Equal(t, vitals.VitalSign(60), ally.vitalSigns.Health, "the campfire heal itself lands")
 	assert.Empty(t, fighting.sources,
@@ -3380,7 +3407,7 @@ func TestApplyMobDamageAura_SameFactionNeverHitNorEatsTargetSlot(t *testing.T) {
 	effect := damageEffect(1)
 	effect.MaxTargets = 1 // nearest-1, the base-aura shape
 
-	applyMobDamageAura(caster, phy.VEC2F_ZERO, 1, effect, set, testRNG())
+	applyMobDamageAura(caster, phy.VEC2F_ZERO, testSkillID, 1, effect, set, testRNG())
 
 	assert.Empty(t, packMate.hits, "no friendly fire between same-faction mobs")
 	require.Len(t, enemy.hits, 1, "the slot goes to the enemy behind the pack mate")
@@ -3393,7 +3420,7 @@ func TestApplyMobDamageAura_DifferentFactionMobIsHit(t *testing.T) {
 	caster := &factionedMobCaster{faction: 2} // a content faction
 	prey := &factionedMobTouchRecorder{faction: 3}
 
-	applyMobDamageAura(caster, phy.VEC2F_ZERO, 1, damageEffect(1), colliderSetOf(prey), testRNG())
+	applyMobDamageAura(caster, phy.VEC2F_ZERO, testSkillID, 1, damageEffect(1), colliderSetOf(prey), testRNG())
 
 	require.Len(t, prey.hits, 1)
 }
@@ -3409,7 +3436,7 @@ func TestApplyMobDamageAura_UnfactionedStructureStillHit(t *testing.T) {
 	effect.TargetsStructures = true
 	effect.Damage.StructureDamageFraction = 0.5
 
-	applyMobDamageAura(caster, phy.VEC2F_ZERO, 1, effect, colliderSetOf(structure), testRNG())
+	applyMobDamageAura(caster, phy.VEC2F_ZERO, testSkillID, 1, effect, colliderSetOf(structure), testRNG())
 
 	require.Len(t, structure.mobHits, 1, "unfactioned targets ride the mask, not the faction gate")
 }
@@ -3471,7 +3498,7 @@ func TestApplyMobDamageAura_NeutralFactionNeverSplashed(t *testing.T) {
 	dodo := &factionedMobTouchRecorder{faction: 5} // neutral to the mammoth
 	player := &factionedMobTouchRecorder{faction: model.FactionAligned}
 
-	applyMobDamageAura(mammoth, phy.VEC2F_ZERO, 1, damageEffect(1), colliderSetOf(dodo, player), testRNG())
+	applyMobDamageAura(mammoth, phy.VEC2F_ZERO, testSkillID, 1, damageEffect(1), colliderSetOf(dodo, player), testRNG())
 
 	assert.Empty(t, dodo.hits, "no declared hostility, no combat link → no splash")
 	require.Len(t, player.hits, 1, "the declared enemy (aligned) is still hit")
@@ -3485,9 +3512,10 @@ func TestApplyMobDamageAura_ThreatTableAttackerIsFairGame(t *testing.T) {
 
 	rabbit.MobTouches(wolf, mobs.Factors{Damage: 5}) // wolf hurts the rabbit
 
-	applyMobDamageAura(rabbit, phy.VEC2F_ZERO, 1, damageEffect(1), colliderSetOf(wolf), testRNG())
+	applyMobDamageAura(rabbit, phy.VEC2F_ZERO, testSkillID, 1, damageEffect(1), colliderSetOf(wolf), testRNG())
 
-	assert.Positive(t, int(wolf.DamageTaken()), "the rabbit bites back at its attacker")
+	assert.Positive(t, int(hitAmountOf(wolf.SkillEvents(), model.HitKindDamage)),
+		"the rabbit bites back at its attacker")
 }
 
 // factionedDotRecorder is a dot-capable factioned target (the shape of a mob
@@ -3537,7 +3565,7 @@ func TestApplyHealAura_MobCaster_HealsWoundedAllyResource(t *testing.T) {
 	}
 	set := colliderSetOf(model.Healable(ally))
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+	testSkillSystem().applyHealAura(caster, testSkillID, 1, healEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(60), ally.health, "wounded ally healed by flat HP into its own pool")
 	assert.Equal(t, vitals.VitalSign(10), ally.healReceived, "records the mob floating heal number")
@@ -3554,7 +3582,7 @@ func TestApplyHealAura_MobCaster_NoPlayerEntitlement(t *testing.T) {
 	player.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(player))
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+	testSkillSystem().applyHealAura(caster, testSkillID, 1, healEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(60), player.vitalSigns.Health, "player is still healed")
 	assert.Empty(t, player.healedBy, "a mob healer creates no recent-healer XP entitlement (#12)")
@@ -3568,7 +3596,7 @@ func TestApplyHealAura_MobCaster_DoesNotHealAcrossFactions(t *testing.T) {
 	player.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(player))
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+	testSkillSystem().applyHealAura(caster, testSkillID, 1, healEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(50), player.vitalSigns.Health, "different-faction target is never healed")
 	assert.Empty(t, player.healedBy)
@@ -3586,7 +3614,7 @@ func TestApplyHealAura_MobCaster_SkipsFullHealthAlly(t *testing.T) {
 	}
 	set := colliderSetOf(model.Healable(healthy))
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+	testSkillSystem().applyHealAura(caster, testSkillID, 1, healEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(0), healthy.healReceived, "a full-health ally is never healed")
 }
@@ -3629,16 +3657,16 @@ func TestApplyDamageAura_BerserkerScalesWithCasterMissingHP(t *testing.T) {
 	target := &touchRecorder{}
 	set := colliderSetOf(target)
 
-	applyDamageAura(caster, 1, effect, set, testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, set, testRNG())
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 10.0, target.touches[0], 1e-4, "full HP = no bonus")
 
 	caster.vitalSigns.Health = 50
-	applyDamageAura(caster, 1, effect, set, testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, set, testRNG())
 	assert.InDelta(t, 15.0, target.touches[1], 1e-4, "half HP = half the max bonus")
 
 	caster.vitalSigns.Health = 0
-	applyDamageAura(caster, 1, effect, set, testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, set, testRNG())
 	assert.InDelta(t, 20.0, target.touches[2], 1e-4, "zero HP = full bonus")
 }
 
@@ -3652,7 +3680,7 @@ func TestApplyDamageAura_ExecuteBonusBelowThresholdOnly(t *testing.T) {
 	boundary := &ratioTouchRecorder{ratio: 0.35}
 	wounded := &ratioTouchRecorder{ratio: 0.2}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(healthy, boundary, wounded), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(healthy, boundary, wounded), testRNG())
 
 	require.Len(t, healthy.touches, 1)
 	assert.InDelta(t, 10.0, healthy.touches[0], 1e-4, "above threshold = base")
@@ -3670,7 +3698,7 @@ func TestApplyDamageAura_ExecuteSkipsRatiolessTargets(t *testing.T) {
 	caster := newFakePlayer()
 	target := &touchRecorder{} // no HealthRatio
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 10.0, target.touches[0], 1e-4, "no ratio = no execute, base damage")
@@ -3684,7 +3712,7 @@ func TestApplyDamageAura_CritAlwaysAtChanceOne(t *testing.T) {
 	caster := newFakePlayer()
 	target := &touchRecorder{}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 20.0, target.touches[0], 1e-4)
@@ -3703,7 +3731,7 @@ func TestApplyDamageAura_CritSeededMixAtHalfChance(t *testing.T) {
 
 	rng := testRNG()
 	for i := 0; i < 100; i++ {
-		applyDamageAura(caster, 1, effect, set, rng)
+		applyDamageAura(caster, testSkillID, 1, effect, set, rng)
 	}
 
 	require.Len(t, target.touches, 100)
@@ -3741,7 +3769,7 @@ func TestApplyDamageAura_StatCritUsesDefaultFactorAndFlag(t *testing.T) {
 	caster.sc.EquipPassive(0, critPassiveDef(1), 1)
 	target := &touchRecorder{}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 10.0*cfg.DefaultCritFactor, target.touches[0], 1e-4)
@@ -3760,7 +3788,7 @@ func TestApplyDamageAura_StatCritStacksAdditivelyWithAuthored(t *testing.T) {
 	caster.sc.EquipPassive(0, critPassiveDef(0.5), 1)
 	target := &touchRecorder{}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 30.0, target.touches[0], 1e-4)
@@ -3786,7 +3814,7 @@ func TestApplyDamageAura_DamageDealtStatScalesBase(t *testing.T) {
 	caster.sc.EquipPassive(0, damagePassiveDef(0.2), 1)
 	target := &touchRecorder{}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 12.0, target.touches[0], 1e-4)
@@ -3815,7 +3843,7 @@ func TestApplyDamageAura_CharacterBaseCritFromConfig(t *testing.T) {
 	caster.conf.CritChance = 1
 	target := &touchRecorder{}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 10.0*cfg.DefaultCritFactor, target.touches[0], 1e-4)
@@ -3833,7 +3861,7 @@ func TestApplyDamageAura_AuthoredCritChanceScalesPerLevel(t *testing.T) {
 	caster := newFakePlayer()
 	target := &touchRecorder{}
 
-	applyDamageAura(caster, 2, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 2, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 30.0, target.touches[0], 1e-4, "level-2 chance 1.0 × factor 3")
@@ -3852,7 +3880,7 @@ func TestApplyPlayerDamageAura_SummonDoesNotInheritOwnerCrit(t *testing.T) {
 	summon := &fakeActingSource{ratio: 1}
 	target := &touchRecorder{}
 
-	applyPlayerDamageAura(owner, summon, phy.VEC2F_ZERO, 1, effect, colliderSetOf(target), testRNG(), 1)
+	applyPlayerDamageAura(owner, summon, phy.VEC2F_ZERO, testSkillID, 1, effect, colliderSetOf(target), testRNG(), 1)
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 10.0, target.touches[0], 1e-4, "no crit: the acting summon has no base or stat")
@@ -3867,7 +3895,7 @@ func TestApplyDamageAura_MobCasterReadsOwnStatCrit(t *testing.T) {
 	caster.sc.EquipPassive(0, critPassiveDef(1), 1)
 	target := &mobTouchRecorder{}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.factors, 1)
 	assert.InDelta(t, 10.0*cfg.DefaultCritFactor, target.factors[0].Damage, 1e-4)
@@ -3879,7 +3907,7 @@ func TestApplyDamageAura_LifestealRidesDamagePayload(t *testing.T) {
 	caster := newFakePlayer()
 	target := &touchRecorder{}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.lifesteals, 1)
 	assert.InDelta(t, 0.5, target.lifesteals[0], 1e-6)
@@ -3908,7 +3936,7 @@ func TestApplyDamageAura_CompositionOrderF6(t *testing.T) {
 	caster.vitalSigns.Health = 50
 	target := &ratioTouchRecorder{ratio: 0.2}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 60.0, target.touches[0], 1e-3)
@@ -3934,7 +3962,7 @@ func TestApplyPlayerDamageAura_BerserkerReadsActingSummonHP(t *testing.T) {
 	summon := &fakeActingSource{ratio: 0.5}
 	target := &touchRecorder{}
 
-	applyPlayerDamageAura(owner, summon, phy.VEC2F_ZERO, 1, effect, colliderSetOf(target), testRNG(), 1)
+	applyPlayerDamageAura(owner, summon, phy.VEC2F_ZERO, testSkillID, 1, effect, colliderSetOf(target), testRNG(), 1)
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 15.0, target.touches[0], 1e-4, "summon at half HP rages; owner HP ignored")
@@ -3953,7 +3981,7 @@ func TestApplyDamageAura_MobCaster_VocabularyRidesFactors(t *testing.T) {
 	caster.healthRatio = 0.5
 	target := &ratioMobTouchRecorder{ratio: 0.2}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.factors, 1)
 	f := target.factors[0]
@@ -4398,7 +4426,7 @@ func TestApplyDamageAura_PlayerPowerScaleMultipliesDamage(t *testing.T) {
 	effect := damageEffect(1)
 	effect.Damage = &skills.DamageParams{HP: 10}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 20, target.touches[0], 1e-6, "10 HP × f 2")
@@ -4415,7 +4443,7 @@ func TestApplyDamageAura_MobCaster_PowerScaleMultipliesDamage(t *testing.T) {
 		Damage:         &skills.DamageParams{HP: 10},
 	}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.factors, 1)
 	assert.InDelta(t, 12.544, target.factors[0].Damage, 1e-4)
@@ -4553,7 +4581,7 @@ func TestApplyDamageAura_OwnedCaster_ComposesOwnerCurveScale(t *testing.T) {
 	effect := damageEffect(1)
 	effect.Damage = &skills.DamageParams{HP: 10}
 
-	applyDamageAura(totem, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(totem, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 10*1.3*f7, target.touches[0], 1e-5, "10 HP × power 1.3 × f(owner level 7)")
@@ -4594,7 +4622,7 @@ func TestApplyDamageAura_ConfiguredCritFactorDrivesTheHit(t *testing.T) {
 	effect := damageEffect(1)
 	effect.Damage = &skills.DamageParams{HP: 10, CritChance: 1} // always crits, authors no factor
 
-	applyDamageAura(newFakePlayer(), 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(newFakePlayer(), testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 50.0, target.touches[0], 1e-4, "10 HP × the configured factor 5")
@@ -4743,7 +4771,7 @@ func TestCharmedMobAuraDamage_CreditsTheCharmerNotItself(t *testing.T) {
 	effect := damageEffect(1)
 	effect.Damage = &skills.DamageParams{HP: 1000} // overkill
 
-	applyDamageAura(wolf, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(wolf, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	assert.Equal(t, vitals.VitalSign(0), target.Health(), "the pet's hit lands")
 	assert.Equal(t, []uint64{atLevelNormalAward}, charmer.xp, "kill XP rides PlayerTouches(charmer)")
@@ -4764,7 +4792,7 @@ func TestCharmedMobAuraDamage_UsesItsOwnPowerNotItsCharmers(t *testing.T) {
 	effect := damageEffect(1)
 	effect.Damage = &skills.DamageParams{HP: 10}
 
-	applyDamageAura(wolf, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(wolf, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 10.0, target.touches[0], 1e-4,
@@ -5216,12 +5244,12 @@ func TestCooldown_LifestealBurstRidesTheCastersHits(t *testing.T) {
 	effect := vocabEffect(func(*skills.DamageParams) {})
 	target := &touchRecorder{}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 	require.Len(t, target.lifesteals, 1)
 	require.Zero(t, target.lifesteals[0], "an unbuffed caster's hits do not leech")
 
 	fireLifestealBurst(t, caster, 1)
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.lifesteals, 2)
 	assert.InDelta(t, 0.3, target.lifesteals[1], 1e-6, "the same hit now leeches")
@@ -5236,7 +5264,7 @@ func TestCooldown_LifestealBurstComposesWithAnAuthoredLeech(t *testing.T) {
 
 	effect := vocabEffect(func(d *skills.DamageParams) { d.LifestealFraction = 0.25 })
 	target := &touchRecorder{}
-	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.lifesteals, 1)
 	assert.InDelta(t, 0.55, target.lifesteals[0], 1e-6, "0.25 authored + 0.3 burst")
@@ -5263,7 +5291,7 @@ func TestCooldown_LifestealBurstExpires(t *testing.T) {
 	assert.Zero(t, caster.buffs.LifestealFraction(), "the leech ends with the window")
 
 	target := &touchRecorder{}
-	applyDamageAura(caster, 1, vocabEffect(func(*skills.DamageParams) {}), colliderSetOf(target), testRNG())
+	applyDamageAura(caster, testSkillID, 1, vocabEffect(func(*skills.DamageParams) {}), colliderSetOf(target), testRNG())
 	require.Len(t, target.lifesteals, 1)
 	assert.Zero(t, target.lifesteals[0], "and hits after it stop leeching")
 }
@@ -5823,7 +5851,7 @@ func TestApplyHealAura_APlacedCampHealsASecondPlayer(t *testing.T) {
 	stranger.vitalSigns.Health = 50
 	start := stranger.vitalSigns.Health
 
-	testSkillSystem().applyHealAura(camp, 1, healEffect(), colliderSetOf(model.PlayerEntity(stranger)))
+	testSkillSystem().applyHealAura(camp, testSkillID, 1, healEffect(), colliderSetOf(model.PlayerEntity(stranger)))
 
 	assert.Greater(t, stranger.vitalSigns.Health, start,
 		"a camp heals whoever stands in it — no owner check anywhere in the heal path")
@@ -5863,12 +5891,12 @@ func fireRetaliateBurst(t *testing.T, caster *fakePlayer, level int) {
 
 func TestCooldown_RetaliateBurstBuffsTheCaster(t *testing.T) {
 	caster := newFakePlayer()
-	fraction, _ := caster.buffs.ReflectBurst()
+	_, fraction, _ := caster.buffs.ReflectBurst()
 	require.Zero(t, fraction, "nothing bounces back before firing")
 
 	fireRetaliateBurst(t, caster, 1)
 
-	fraction, tags := caster.buffs.ReflectBurst()
+	_, fraction, tags := caster.buffs.ReflectBurst()
 	assert.InDelta(t, 0.2, fraction, 1e-6, "the reflect is live")
 	assert.Equal(t, []string{"fire"}, tags, "PO ruling 2: the skill's authored damage type rides along")
 	assert.Equal(t, 900, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
@@ -5878,7 +5906,7 @@ func TestCooldown_RetaliateBurstScalesTheShareOnly(t *testing.T) {
 	caster := newFakePlayer()
 	fireRetaliateBurst(t, caster, 5)
 
-	fraction, _ := caster.buffs.ReflectBurst()
+	_, fraction, _ := caster.buffs.ReflectBurst()
 	assert.InDelta(t, 0.4, fraction, 1e-6, "0.2 + 4×0.05")
 	assert.Equal(t, 660, caster.sc.SlotCooldownRemaining(0), "900 − 4×60")
 }
@@ -5890,7 +5918,7 @@ func TestCooldown_RetaliateBurstFiresWithNoEnemyInSight(t *testing.T) {
 	caster := newFakePlayer()
 	fireRetaliateBurst(t, caster, 1)
 
-	fraction, _ := caster.buffs.ReflectBurst()
+	_, fraction, _ := caster.buffs.ReflectBurst()
 	assert.NotZero(t, fraction, "an empty field is not a whiff for a self-buff")
 	assert.NotZero(t, caster.sc.SlotCooldownRemaining(0), "and it still costs the cooldown")
 }
@@ -6119,3 +6147,9 @@ func TestSpawnAtAnchor_RejectsAtCompletionWhenTheAnchorIsLost(t *testing.T) {
 	require.Len(t, caster.rejections, 1)
 	assert.Equal(t, model.ActivationRejectedNoAnchor, caster.rejections[0].reason)
 }
+
+// testSkillID is the skill id the aura appliers are called with when a test
+// does not care which skill dealt the hit (plan-skill-vfx.md C1 threaded it
+// through for the hit event). Non-zero on purpose: 0 means "no skill" on the
+// wire, and a test should not accidentally pin that.
+const testSkillID skills.SkillID = 1

@@ -68,11 +68,6 @@ rotation():number {
   return offset ? this.bb!.readFloat32(this.bb_pos + offset) : 0.0;
 }
 
-isHit():boolean {
-  const offset = this.bb!.__offset(this.bb_pos, 16);
-  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
-}
-
 name():string|null
 name(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
 name(optionalEncoding?:any):string|Uint8Array|null {
@@ -115,16 +110,6 @@ burstRadius():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
-damageTaken():number {
-  const offset = this.bb!.__offset(this.bb_pos, 34);
-  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
-}
-
-healReceived():number {
-  const offset = this.bb!.__offset(this.bb_pos, 36);
-  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
-}
-
 xpGained():number {
   const offset = this.bb!.__offset(this.bb_pos, 38);
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
@@ -158,11 +143,6 @@ lightRadius():number {
 campfireBound():boolean {
   const offset = this.bb!.__offset(this.bb_pos, 50);
   return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
-}
-
-critTaken():number {
-  const offset = this.bb!.__offset(this.bb_pos, 52);
-  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
 shieldHp():number {
@@ -215,11 +195,6 @@ flightArrivalTick():bigint {
   return offset ? this.bb!.readUint64(this.bb_pos + offset) : BigInt('0');
 }
 
-immuneHit():boolean {
-  const offset = this.bb!.__offset(this.bb_pos, 74);
-  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
-}
-
 static startCharacter(builder:flatbuffers.Builder) {
   builder.startObject(36);
 }
@@ -260,10 +235,6 @@ static addRotation(builder:flatbuffers.Builder, rotation:number) {
   builder.addFieldFloat32(5, rotation, 0.0);
 }
 
-static addIsHit(builder:flatbuffers.Builder, isHit:boolean) {
-  builder.addFieldInt8(6, +isHit, +false);
-}
-
 static addName(builder:flatbuffers.Builder, nameOffset:flatbuffers.Offset) {
   builder.addFieldOffset(7, nameOffset, 0);
 }
@@ -296,14 +267,6 @@ static addBurstRadius(builder:flatbuffers.Builder, burstRadius:number) {
   builder.addFieldInt16(14, burstRadius, 0);
 }
 
-static addDamageTaken(builder:flatbuffers.Builder, damageTaken:number) {
-  builder.addFieldInt32(15, damageTaken, 0);
-}
-
-static addHealReceived(builder:flatbuffers.Builder, healReceived:number) {
-  builder.addFieldInt32(16, healReceived, 0);
-}
-
 static addXpGained(builder:flatbuffers.Builder, xpGained:number) {
   builder.addFieldInt32(17, xpGained, 0);
 }
@@ -330,10 +293,6 @@ static addLightRadius(builder:flatbuffers.Builder, lightRadius:number) {
 
 static addCampfireBound(builder:flatbuffers.Builder, campfireBound:boolean) {
   builder.addFieldInt8(23, +campfireBound, +false);
-}
-
-static addCritTaken(builder:flatbuffers.Builder, critTaken:number) {
-  builder.addFieldInt32(24, critTaken, 0);
 }
 
 static addShieldHp(builder:flatbuffers.Builder, shieldHp:number) {
@@ -374,10 +333,6 @@ static addFlightDest(builder:flatbuffers.Builder, flightDestOffset:flatbuffers.O
 
 static addFlightArrivalTick(builder:flatbuffers.Builder, flightArrivalTick:bigint) {
   builder.addFieldInt64(34, flightArrivalTick, BigInt('0'));
-}
-
-static addImmuneHit(builder:flatbuffers.Builder, immuneHit:boolean) {
-  builder.addFieldInt8(35, +immuneHit, +false);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

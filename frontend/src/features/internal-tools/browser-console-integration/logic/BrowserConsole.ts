@@ -5,7 +5,23 @@ import {BackendValidTokenEvent, GameSetupEvent, PlayerCreatedEvent} from '../../
 import * as Console from '../../console/logic/Console';
 import {Player} from "../../../player/logic/Player";
 import {IGame} from "../../../core/logic/IGame";
+import {SkillEventData} from "../../../backend/logic/SkillEventNumbers";
 
+// The last non-empty skill-event list and a running total (plan-skill-vfx.md
+// C1). Floating numbers are transient PIXI.Text with no DOM of their own, so a
+// harness can otherwise only poll the number layer and hope to catch a frame;
+// the events are what the client actually decided from. Internal-tools surface
+// like everything else on this object - nothing in the game reads it back.
+let lastSkillEvents: readonly SkillEventData[] = [];
+let skillEventCount = 0;
+
+export function recordSkillEvents(events: readonly SkillEventData[]): void {
+    if (events.length === 0) {
+        return;
+    }
+    lastSkillEvents = events;
+    skillEventCount += events.length;
+}
 
 function setup() {
     // only enable this class if token is valid
@@ -16,9 +32,13 @@ function setup() {
         play: undefined,
         miniMap: undefined,
         layers: undefined,
+        skillEvents: undefined,
     };
 
     consoleCommands.run = Console.run;
+    // Gated with the rest of the handle: recorded always (an assignment and an
+    // add), reachable only once the token is valid.
+    consoleCommands.skillEvents = () => ({last: lastSkillEvents, total: skillEventCount});
     PlayerCreatedEvent.subscribe((player: Player) => {
         consoleCommands.character = player.character;
         return true;

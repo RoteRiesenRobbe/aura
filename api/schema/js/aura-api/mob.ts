@@ -88,11 +88,6 @@ burstRadius():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
-damageTaken():number {
-  const offset = this.bb!.__offset(this.bb_pos, 24);
-  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
-}
-
 auraHitStyle():number {
   const offset = this.bb!.__offset(this.bb_pos, 26);
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
@@ -108,11 +103,6 @@ auraRadius():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
-healReceived():number {
-  const offset = this.bb!.__offset(this.bb_pos, 32);
-  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
-}
-
 lightRadius():number {
   const offset = this.bb!.__offset(this.bb_pos, 34);
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
@@ -121,11 +111,6 @@ lightRadius():number {
 dwellRadius():number {
   const offset = this.bb!.__offset(this.bb_pos, 36);
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
-}
-
-critTaken():number {
-  const offset = this.bb!.__offset(this.bb_pos, 38);
-  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
 shieldHp():number {
@@ -163,13 +148,13 @@ level():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
-immuneHit():boolean {
-  const offset = this.bb!.__offset(this.bb_pos, 54);
-  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
+ownerId():bigint {
+  const offset = this.bb!.__offset(this.bb_pos, 56);
+  return offset ? this.bb!.readUint64(this.bb_pos + offset) : BigInt('0');
 }
 
 static startMob(builder:flatbuffers.Builder) {
-  builder.startObject(26);
+  builder.startObject(27);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -224,10 +209,6 @@ static addBurstRadius(builder:flatbuffers.Builder, burstRadius:number) {
   builder.addFieldInt16(9, burstRadius, 0);
 }
 
-static addDamageTaken(builder:flatbuffers.Builder, damageTaken:number) {
-  builder.addFieldInt32(10, damageTaken, 0);
-}
-
 static addAuraHitStyle(builder:flatbuffers.Builder, auraHitStyle:number) {
   builder.addFieldInt8(11, auraHitStyle, 0);
 }
@@ -240,20 +221,12 @@ static addAuraRadius(builder:flatbuffers.Builder, auraRadius:number) {
   builder.addFieldInt16(13, auraRadius, 0);
 }
 
-static addHealReceived(builder:flatbuffers.Builder, healReceived:number) {
-  builder.addFieldInt32(14, healReceived, 0);
-}
-
 static addLightRadius(builder:flatbuffers.Builder, lightRadius:number) {
   builder.addFieldInt16(15, lightRadius, 0);
 }
 
 static addDwellRadius(builder:flatbuffers.Builder, dwellRadius:number) {
   builder.addFieldInt16(16, dwellRadius, 0);
-}
-
-static addCritTaken(builder:flatbuffers.Builder, critTaken:number) {
-  builder.addFieldInt32(17, critTaken, 0);
 }
 
 static addShieldHp(builder:flatbuffers.Builder, shieldHp:number) {
@@ -284,8 +257,8 @@ static addLevel(builder:flatbuffers.Builder, level:number) {
   builder.addFieldInt16(24, level, 0);
 }
 
-static addImmuneHit(builder:flatbuffers.Builder, immuneHit:boolean) {
-  builder.addFieldInt8(25, +immuneHit, +false);
+static addOwnerId(builder:flatbuffers.Builder, ownerId:bigint) {
+  builder.addFieldInt64(26, ownerId, BigInt('0'));
 }
 
 static endMob(builder:flatbuffers.Builder):flatbuffers.Offset {

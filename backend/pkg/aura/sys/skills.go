@@ -286,6 +286,7 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 	}
 
 	collisions := collider.Collisions()
+	ran := false
 	for _, effect := range equip.Def.Effects {
 		if equip.TickAccumulator%skills.EffectiveTickInterval(effect, equip.Level, factor) != 0 {
 			continue
@@ -294,7 +295,15 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 		// gets its collision set narrowed to its own reach (chunk 2). For the
 		// common equal-radii case this is the untouched set.
 		targets := effectCollisions(collisions, collider.Position(), collider.Radius, effect, equip.Level)
-		s.applyAuraEffect(e, equip.Def.ID, equip.Level, effect, targets)
+		ran = s.applyAuraEffect(e, equip.Def.ID, equip.Level, effect, targets) || ran
+	}
+	// ONE fired event per skill per tick, and only for a skill whose authored
+	// visual actually draws on its beat (plan-skill-vfx.md §12a.4). An aura
+	// with no `on: fired` layer would otherwise bill an event 30 times a second
+	// for nobody to draw. A tick that never ran an effect (none was due, or the
+	// never-kill floor skipped it) is not a beat.
+	if ran && equip.Def.Visual != nil && equip.Def.Visual.HasFired {
+		model.NoteSkillFired(e, equip.Def.ID)
 	}
 }
 
@@ -306,21 +315,25 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 // clamped BEFORE the effect (L4 — computing affordability afterwards would let
 // a cost kill its caster), and paid only after the applier reports it reached
 // something (D8 — an aura is a field, it pays for what it did).
-func (s *SkillSystem) applyAuraEffect(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, targets phy.ColliderSet) {
+//
+// Reports whether the effect RAN at all (plan-skill-vfx.md §12a.4): false only
+// on the never-kill skip, which is what keeps a starved caster's aura from
+// reading as a beat.
+func (s *SkillSystem) applyAuraEffect(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, targets phy.ColliderSet) bool {
 	payer, charge, skip := auraEffectCost(e, effect, level)
 	if skip {
 		// The caster is at the never-kill floor: no effect emitted, no cost
 		// paid. Carried verbatim from applyHealAura, where the shape has been
 		// live since triage item 1.
-		return
+		return false
 	}
 
 	landed := false
 	switch effect.Type {
 	case skills.EffectTypeDamageAura:
-		landed = applyDamageAura(e, level, effect, targets, s.rng)
+		landed = applyDamageAura(e, source, level, effect, targets, s.rng)
 	case skills.EffectTypeHealAura:
-		landed = s.applyHealAura(e, level, effect, targets)
+		landed = s.applyHealAura(e, source, level, effect, targets)
 	case skills.EffectTypeSlowAura:
 		landed = applySlowAura(e, source, level, effect, targets)
 	case skills.EffectTypeResistAura:
@@ -338,6 +351,7 @@ func (s *SkillSystem) applyAuraEffect(e skillEntity, source skills.SkillID, leve
 	if landed && payer != nil {
 		chargeCost(payer, charge)
 	}
+	return true
 }
 
 // notePresence probes the space around a player whose active aura is on and
@@ -497,9 +511,9 @@ func (s *SkillSystem) tickBuffEvents(e skillEntity) {
 			lifesteal := casterLifesteal(storedCaster)
 			switch caster := storedCaster.(type) {
 			case model.PlayerEntity:
-				target.PlayerTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags, Source: source, Lifesteal: lifesteal})
+				target.PlayerTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags, Source: source, Lifesteal: lifesteal, SkillID: hit.Source})
 			case model.MobEntity:
-				target.MobTouches(caster, mobs.Factors{Damage: damageHP, DamageTags: hit.Tags, Lifesteal: lifesteal})
+				target.MobTouches(caster, mobs.Factors{Damage: damageHP, DamageTags: hit.Tags, Lifesteal: lifesteal, SkillID: hit.Source})
 			default:
 				continue
 			}
@@ -530,7 +544,8 @@ func (s *SkillSystem) tickHotEvents(e skillEntity, hots []skills.HotEvent) {
 	}
 	for _, hit := range hots {
 		healHP := vitals.HP(vitals.RollVariance(hit.HP, hit.Variance, s.rng))
-		healed := target.Heal(healHP)
+		healer, _ := hit.Caster.(model.Combatant)
+		healed := target.Heal(model.Healing{HP: healHP, Caster: healer, SkillID: hit.Source})
 		if healed <= 0 {
 			continue // already full, or a dead target this tick — not a heal
 		}
@@ -687,18 +702,18 @@ func eligibleByTargetFlags[Capability any](effect skills.EffectDef, caster model
 // standing at its OWN level, and casterPowerScale below still reads Owned so
 // the summon-only SummonPower knob stays off it (D2 / L-M).
 // Reports whether the aura hit at least one target (D8).
-func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) bool {
+func applyDamageAura(e skillEntity, id skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) bool {
 	if credited, ok := e.(model.Credited); ok && credited.CreditTo() != nil {
 		// The acting mob rides along as the hit's Source: threat credits the
 		// mob itself, XP the player (mob-depth chunk 3, gotcha #9).
 		source, _ := e.(model.Combatant)
-		return applyPlayerDamageAura(credited.CreditTo(), source, e.AuraCollider().Position(), level, effect, collisions, rng, casterPowerScale(e))
+		return applyPlayerDamageAura(credited.CreditTo(), source, e.AuraCollider().Position(), id, level, effect, collisions, rng, casterPowerScale(e))
 	}
 	switch caster := e.(type) {
 	case model.PlayerEntity:
-		return applyPlayerDamageAura(caster, nil, e.AuraCollider().Position(), level, effect, collisions, rng, casterPowerScale(e))
+		return applyPlayerDamageAura(caster, nil, e.AuraCollider().Position(), id, level, effect, collisions, rng, casterPowerScale(e))
 	case model.MobEntity:
-		return applyMobDamageAura(caster, e.AuraCollider().Position(), level, effect, collisions, rng)
+		return applyMobDamageAura(caster, e.AuraCollider().Position(), id, level, effect, collisions, rng)
 	}
 	return false
 }
@@ -709,7 +724,7 @@ func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisio
 // parameters).
 // source is the summon entity on owned casts (threat attribution, chunk 3),
 // nil on direct casts — the target then treats the caster as the source.
-func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand, outputScale float32) bool {
+func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, casterPos phy.Vec2f, id skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand, outputScale float32) bool {
 	// Declarative targeting: the sensor mask pre-filters layers, the faction
 	// flags decide per target. targetsAllies=false is the no-friendly-fire
 	// rule. No caster skip, matching the damage path's long-standing
@@ -739,7 +754,7 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 		// F6 §3.1 steps 3–5 per hit: execute × crit roll × variance roll; the
 		// target's resistance then multiplies the rolled value (decision C3).
 		hitHP, crit := rollHitDamage(damageHP, effect.Damage, c, rng, critChance)
-		damage := model.Damage{HP: hitHP, Tags: effect.Damage.Tags, GateKey: effect.Damage.GateKey, Source: source, Lifesteal: lifesteal, Crit: crit}
+		damage := model.Damage{HP: hitHP, Tags: effect.Damage.Tags, GateKey: effect.Damage.GateKey, Source: source, Lifesteal: lifesteal, Crit: crit, SkillID: id}
 		c.Shape().UserData.(model.Interacter).PlayerTouches(caster, damage)
 		noteAuraHit(c, style)
 	}
@@ -760,12 +775,13 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 // the sensor mask (targetsStructures), NOT eligibleByTargetFlags, which would
 // reject them. The Factors payload carries both damage values and each target
 // picks the one that applies to it. Selector/cap ride on top.
-func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) bool {
+func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, id skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) bool {
 	// Same F6 §3.1 composition as the player path: base × tier scale (C0:
 	// the mob's derived f(curveLevel)) × berserker (the caster's own missing
 	// HP), then per-hit execute × crit × variance below.
 	damageHP := effect.Damage.HPAt(level) * casterPowerScale(caster) * berserkerMultiplier(effect.Damage, caster) * casterDamageFactor(caster)
 	factors := mobs.Factors{
+		SkillID:                 id,
 		DamageTags:              effect.Damage.Tags,
 		GateKey:                 effect.Damage.GateKey,
 		StructureDamageFraction: effect.Damage.StructureDamageFraction,
@@ -914,7 +930,7 @@ func noteAuraHit(c phy.Collider, style model.AuraHitStyle) {
 	}
 }
 
-func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet) bool {
+func (s *SkillSystem) applyHealAura(e skillEntity, id skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) bool {
 	rng := s.rng
 	// The heal amount rides the caster's power scale (C0). The SELF-COST used
 	// to be computed here too; it moved to the dispatch loop with the rest of
@@ -969,7 +985,8 @@ func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.Effe
 		}
 		// Heals roll per hit like damage does (item 11 Phase 3, decision C1).
 		healHP := vitals.HP(vitals.RollVariance(centerHP, effect.Heal.Variance, rng))
-		healed := other.Heal(healHP) // clamps at max, records the floating heal number
+		healer, _ := e.(model.Combatant)
+		healed := other.Heal(model.Healing{HP: healHP, Caster: healer, SkillID: id}) // clamps at max, records the hit event
 
 		if healed <= 0 {
 			continue // fully healed between selection and application; not a hit
@@ -1452,6 +1469,10 @@ func (s *SkillSystem) processCooldowns(e skillEntity, sc *skills.SkillComponent)
 			// so the mob keeps it ready until a target wanders into range.
 			if s.fireCooldown(e, es) {
 				sc.StartCooldown(es)
+				// Consumed, so it was a cast (see noteCooldownCast). Stamped
+				// before the despawn-on-fire return below, so a thrown mine
+				// still reports the throw that killed it.
+				noteCooldownCast(e, es)
 				// A thrown projectile is CONSUMED by its own detonation (PO
 				// ruling 2026-08-19). TTL 1 is the mechanism rather than a new
 				// death call: the next MobSystem pass zeroes the health and the
@@ -1592,6 +1613,9 @@ func (s *SkillSystem) fireAndCharge(e skillEntity, es *skills.EquippedSkill) {
 		chargeCost(payer, cost)
 	}
 	e.SkillComponent().StartCooldown(es)
+	// Paid for and consumed, hit or whiff: that is a cast, and a cast is
+	// drawn (see noteCooldownCast).
+	noteCooldownCast(e, es)
 }
 
 // activationPrecondition checks the per-effect-type requirements a cooldown
@@ -1949,15 +1973,18 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 				continue
 			}
 			healHP := vitals.HP(vitals.RollVariance(selfHealHP(effect.SelfHeal, es.Level, caster.MaxHealth(), casterPowerScale(e)), effect.SelfHeal.Variance, s.rng))
-			vs := caster.VitalSigns()
-			before := vs.Health
-			vs.Health = vs.Health.AddCapped(healHP, caster.MaxHealth())
-			// Floating heal number (item 11): the aura path records this via
-			// NoteHealReceived; the self-heal cooldown must too. Only players
-			// self-heal, so a PlayerEntity is the expected caster.
-			if pe, ok := e.(model.PlayerEntity); ok {
-				pe.NoteHealReceived(vs.Health - before)
+			// ⚑ Routed through Healable.Heal rather than writing Health here
+			// (plan-skill-vfx.md §12a.2/6): this was the ONE heal that wrote
+			// the pool directly and stamped its own number by hand, which is
+			// precisely the bypass D9 exists to close. The clamp is Heal's now.
+			// Only players self-heal, so a Healable caster is the expected one;
+			// a fake without the door heals nothing and still consumes, which
+			// is the old behaviour for a non-player caster.
+			if target, ok := e.(model.Healable); ok {
+				target.Heal(model.Healing{HP: healHP, Caster: target, SkillID: es.Def.ID})
 			}
+			// Unconditional, as before: a cooldown is a committed act and
+			// consumes whether or not the pool had room (D8).
 			hitAny = true
 
 		case skills.EffectTypeSpawn:
@@ -2056,7 +2083,7 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			// PlayerTouches feeds participation XP, MobTouches the double
 			// dispatch.
 			if targets := s.queryInstantTargets(e, effect, es.Level); len(targets) > 0 {
-				landed := applyDamageAura(e, es.Level, effect, targets, s.rng)
+				landed := applyDamageAura(e, es.Def.ID, es.Level, effect, targets, s.rng)
 				if landed || !strictHits {
 					hitAny = true
 				}
@@ -2072,6 +2099,25 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 		}
 	}
 	return hitAny
+}
+
+// noteCooldownCast stamps the FIRED event for one cooldown cast
+// (plan-skill-vfx.md §5.1, PO 2026-09-19). It is what lets anyone but the
+// caster see a cast at all: GameState.cast_skill_id is own-player-only.
+//
+// ⚑ THE TRIGGER IS CONSUMPTION, NOT A HIT, and it is called from the two sites
+// that consume rather than from fireCooldown. "A cast that went off, targets or
+// not" is the rule, so a player's burst into thin air is a cast and draws;
+// gating on fireCooldown's return would silence exactly the case the ruling
+// names (spinning axes with nobody in range).
+//
+// ⚑ The two entity kinds consume differently, and that asymmetry carries the
+// rule rather than contradicting it: a player pays and consumes hit or whiff
+// (D8, a cooldown is a committed act), while a mob keeps a whiffed burst READY
+// until something wanders into range. A mob whiff was never a cast, so there is
+// nothing to draw.
+func noteCooldownCast(e skillEntity, es *skills.EquippedSkill) {
+	model.NoteSkillFired(e, es.Def.ID)
 }
 
 // applyRecall teleports the caster to their bound campfire anchor with the

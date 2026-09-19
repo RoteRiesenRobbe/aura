@@ -29,6 +29,9 @@ import {GameState, IGame} from "../../core/logic/IGame";
 import {BackendState, IBackend} from "./IBackend";
 import {Session} from "../../accounts/logic/Session";
 import {Badgeable, retargetInteractBadge} from "./InteractBadgeTargeting";
+import {skillEventNumber} from "./SkillEventNumbers";
+import {recordSkillEvents} from "../../internal-tools/browser-console-integration/logic/BrowserConsole";
+import {hpToDisplay, IMMUNE_COLOR, IMMUNE_LANE} from "../../game-objects/logic/_GameObject";
 import * as Interact from "../../interact/logic/Interact";
 import {isMobile} from "../../user-interface/logic/Mobile";
 import * as Conversation from "../../conversation/logic/Conversation";
@@ -522,6 +525,15 @@ export class Backend implements IBackend {
             this.game.map.addOrUpdate(entity);
         });
 
+        // Attributed floating combat numbers (plan-skill-vfx.md C1, D6).
+        //
+        // ⚑ AFTER the entity loop above, and that ordering is the point: an
+        // event names its source and victim by id, so an entity that entered
+        // the viewport on this very snapshot must already have a game object
+        // to hang a number on. The prototype inferred hits from the same-tick
+        // player update instead and had to run before both.
+        this.showSkillEventNumbers(snapshot);
+
         // Conversation panel (chunk 3b-ii). Before the badge, because the badge
         // suppresses itself for whoever the panel belongs to.
         //
@@ -620,6 +632,70 @@ export class Backend implements IBackend {
             this.firstGameStateResolve();
             this.firstGameStateReceived = true;
         }
+    }
+
+    /**
+     * Draw the own player's share of this tick's skill landings (D6).
+     *
+     * The rule itself is SkillEventNumbers, pure and unit-tested; this is the
+     * plumbing around it: whose id is "own", where a summon's owner comes from
+     * and which game object the number sits on.
+     *
+     * ⚑ An event may name an entity this client does not hold (§12): the
+     * server ships an event whose caster is in the viewport even when its
+     * victim has walked out of it, which is exactly the own DoT the honest
+     * attribution exists for. There is nowhere to draw it, so it is skipped -
+     * silently, never thrown.
+     */
+    private showSkillEventNumbers(snapshot: Snapshot): void {
+        const events = snapshot.skillEvents;
+        if (!events || events.length === 0) {
+            return;
+        }
+        recordSkillEvents(events);
+
+        // A spectator, or the tick before createPlayer: nobody to attribute
+        // anything to, so nothing is anybody's.
+        const own = this.game.player?.character;
+        if (!own) {
+            return;
+        }
+
+        // `owner_id` rides the decoded entity, not the game object, so the
+        // lookup is built from the snapshot, and only on a tick that carries
+        // events, which in steady state is none of them.
+        // ⚑ The callback is annotated because Snapshot.entities is still typed
+        // as the empty tuple `[]` (the file's standing TODO), so an
+        // un-annotated element is `never` and reading a field off it is an
+        // error. Narrowed here rather than re-typing the snapshot, which is
+        // its own piece of work.
+        const ownerIds: { [id: number]: number } = {};
+        snapshot.entities.forEach((entity: { id: number, ownerId?: number } | null) => {
+            if (entity) {
+                ownerIds[entity.id] = entity.ownerId;
+            }
+        });
+
+        events.forEach((event) => {
+            const draw = skillEventNumber(own.id, event, ownerIds[event.source]);
+            if (draw === null) {
+                return;
+            }
+            // ⚑ The own Character is NOT in the EntityManager (the server
+            // sends it as the snapshot's player, never as one of the
+            // entities), so it is resolved first and by id, not looked up.
+            const target = event.victim === own.id ? own : this.game.map.getObject(event.victim);
+            if (!target) {
+                return;
+            }
+            if (draw.kind === 'immune') {
+                target.showFloatingText('Immune', IMMUNE_COLOR, 1, IMMUNE_LANE);
+            } else if (draw.kind === 'absorbed') {
+                target.showFloatingText('Absorbed', IMMUNE_COLOR, 1, IMMUNE_LANE);
+            } else {
+                target.showFloatingNumber(hpToDisplay(event.amount), draw.kind);
+            }
+        });
     }
 
     /**

@@ -1,6 +1,7 @@
 package skills
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -372,4 +373,37 @@ func TestVisual_TheNinePOExamples(t *testing.T) {
 			assert.Len(t, def.Visual.Layers, tc.layers)
 		})
 	}
+}
+
+// --- HasFired, the FIRED emitter's gate (plan-skill-vfx.md §12a.4) ---
+
+func TestVisual_HasFiredIsDerivedFromTheLayers(t *testing.T) {
+	// An aura beats up to 30 times a second, so it bills a FIRED event only
+	// when it actually draws on its beat. The flag is resolved once at load;
+	// the emitter reads it and nothing else does.
+	withFired := mustParseVisual(t, `{"layers":[{"kind":"emitter","on":"hit"},{"kind":"cast-pose","on":"fired"}]}`, "active_aura")
+	assert.True(t, withFired.HasFired)
+
+	hitOnly := mustParseVisual(t, `{"layers":[{"kind":"impact","on":"hit"}]}`, "active_aura")
+	assert.False(t, hitOnly.HasFired)
+}
+
+func TestVisual_HasFiredIsNotAuthorable(t *testing.T) {
+	// Derived, never authored: it carries `json:"-"`, so it stays off the HTTP
+	// catalog and out of the content editor's round-trip.
+	def := mustParseVisual(t, `{"layers":[{"kind":"cast-pose","on":"fired"}]}`, "active_aura")
+	require.True(t, def.HasFired)
+
+	out, err := json.Marshal(def)
+	require.NoError(t, err)
+	assert.NotContains(t, string(out), "HasFired")
+	assert.NotContains(t, string(out), "hasFired")
+}
+
+func mustParseVisual(t *testing.T, raw, category string) *VisualDef {
+	t.Helper()
+	def, err := parseVisual(json.RawMessage(raw), category)
+	require.NoError(t, err)
+	require.NotNil(t, def)
+	return def
 }

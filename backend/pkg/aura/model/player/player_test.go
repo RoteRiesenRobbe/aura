@@ -233,15 +233,15 @@ func TestPlayer_DamageTaken_AccumulatesAndResets(t *testing.T) {
 	p := newTestPlayer(nil)
 	p.statusEffects = model.NewStatusEffects()
 
-	p.takeDamage(model.Damage{HP: 0.1}, model.StatusEffectDamagedAmbient)
-	p.takeDamage(model.Damage{HP: 0.05}, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 0.1}, 0, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 0.05}, 0, model.StatusEffectDamagedAmbient)
 
-	assert.Equal(t, vitals.Max-p.VitalSigns().Health, p.DamageTaken(),
+	assert.Equal(t, vitals.Max-p.VitalSigns().Health, damageTaken(p),
 		"DamageTaken sums the actual health lost this tick")
-	assert.NotZero(t, p.DamageTaken())
+	assert.NotZero(t, damageTaken(p))
 
 	p.ResetTickNumbers()
-	assert.Zero(t, p.DamageTaken())
+	assert.Zero(t, damageTaken(p))
 }
 
 func TestPlayer_XpGained_AccumulatesAndResets(t *testing.T) {
@@ -257,15 +257,19 @@ func TestPlayer_XpGained_AccumulatesAndResets(t *testing.T) {
 }
 
 func TestPlayer_HealReceived_AccumulatesAndResets(t *testing.T) {
+	// Two heals in one tick are two events; "heal received this tick" is now a
+	// sum over them rather than a single accumulator (plan-skill-vfx.md C1).
 	p := newTestPlayer(nil)
+	p.PlayerVitalSigns.Health = p.MaxHealth().Sub(20)
+	healer := newTestPlayer(nil)
 
-	p.NoteHealReceived(100)
-	p.NoteHealReceived(50)
+	p.Heal(model.Healing{HP: 10, Caster: healer})
+	p.Heal(model.Healing{HP: 5, Caster: healer})
 
-	assert.Equal(t, vitals.VitalSign(150), p.HealReceived())
+	assert.Equal(t, vitals.VitalSign(15), healReceived(p))
 
 	p.ResetTickNumbers()
-	assert.Zero(t, p.HealReceived())
+	assert.Zero(t, healReceived(p))
 }
 
 // --- the interact prompt stamp (plan-entity-model.md chunk 3b-i) ---
@@ -357,7 +361,7 @@ func TestPlayer_TakeDamage_EntersCombat(t *testing.T) {
 	p.statusEffects = model.NewStatusEffects()
 	require.False(t, p.InCombat())
 
-	p.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 5}, 0, model.StatusEffectDamagedAmbient)
 
 	assert.True(t, p.InCombat(), "taking HP damage puts the player in combat")
 }
@@ -687,14 +691,14 @@ func TestPlayer_TakeDamage_ResistBuffAndPassiveStack(t *testing.T) {
 	p.ApplyResist(40, []string{"fire"}, 0.5, 2)
 
 	before := p.VitalSigns().Health
-	p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, 0, model.StatusEffectDamagedAmbient)
 	assert.Equal(t, vitals.VitalSign(10), before-p.VitalSigns().Health)
 
 	// Two tick boundaries later the transient buff is gone; the passive stays.
 	p.ResetTickNumbers()
 	p.ResetTickNumbers()
 	before = p.VitalSigns().Health
-	p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, 0, model.StatusEffectDamagedAmbient)
 	assert.Equal(t, vitals.VitalSign(20), before-p.VitalSigns().Health)
 }
 
@@ -708,12 +712,12 @@ func TestPlayer_TakeDamage_VulnerabilityBuffAmplifies(t *testing.T) {
 	p.ApplyResist(40, []string{"fire"}, 1.5, 2)
 
 	before := p.VitalSigns().Health
-	p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, 0, model.StatusEffectDamagedAmbient)
 	assert.Equal(t, vitals.VitalSign(60), before-p.VitalSigns().Health, "40 × 1.5")
 
 	// Untagged half of the hit vocabulary is untouched: the curse covers fire.
 	before = p.VitalSigns().Health
-	p.takeDamage(model.Damage{HP: 20, Tags: []string{"frost"}}, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 20, Tags: []string{"frost"}}, 0, model.StatusEffectDamagedAmbient)
 	assert.Equal(t, vitals.VitalSign(20), before-p.VitalSigns().Health, "uncovered tag is unamplified")
 }
 
@@ -722,10 +726,10 @@ func TestPlayer_TakeDamage_ImmuneIsANonEvent(t *testing.T) {
 	p.statusEffects = model.NewStatusEffects()
 	p.ApplyResist(40, []string{"fire"}, 0, 2) // immunity from a single source
 
-	p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, 0, model.StatusEffectDamagedAmbient)
 
 	assert.Equal(t, vitals.Max, p.VitalSigns().Health)
-	assert.Zero(t, p.DamageTaken(), "no floating number for a fully resisted hit")
+	assert.Zero(t, damageTaken(p), "no floating number for a fully resisted hit")
 }
 
 func TestPlayer_TakeDamage_WildcardImmunityCoversEveryTag(t *testing.T) {
@@ -739,10 +743,10 @@ func TestPlayer_TakeDamage_WildcardImmunityCoversEveryTag(t *testing.T) {
 	p.ApplyResist(69, []string{skills.ResistWildcard}, 0, 2)
 
 	for _, tags := range [][]string{{"fire"}, {"frost"}, {"physical"}, {"fire", "physical"}} {
-		p.takeDamage(model.Damage{HP: 40, Tags: tags}, model.StatusEffectDamagedAmbient)
+		p.takeDamage(model.Damage{HP: 40, Tags: tags}, 0, model.StatusEffectDamagedAmbient)
 	}
 	assert.Equal(t, vitals.Max, p.VitalSigns().Health)
-	assert.Zero(t, p.DamageTaken())
+	assert.Zero(t, damageTaken(p))
 }
 
 // --- companion combat signals (mob-depth chunk 6, §3.6) ---
@@ -838,16 +842,16 @@ func TestPlayer_Heal_ClampsRecordsAndReturnsDelta(t *testing.T) {
 	maxHP := p.MaxHealth()
 	p.PlayerVitalSigns.Health = maxHP.Sub(40)
 
-	healed := p.Heal(30)
+	healed := p.Heal(model.Healing{HP: 30, Caster: p})
 	assert.Equal(t, vitals.VitalSign(30), healed)
 	assert.Equal(t, maxHP.Sub(10), p.VitalSigns().Health)
-	assert.Equal(t, vitals.VitalSign(30), p.HealReceived())
+	assert.Equal(t, vitals.VitalSign(30), healReceived(p))
 
 	// Over-heal clamps at MaxHealth; only the applied delta is recorded.
-	healed = p.Heal(50)
+	healed = p.Heal(model.Healing{HP: 50, Caster: p})
 	assert.Equal(t, vitals.VitalSign(10), healed)
 	assert.Equal(t, maxHP, p.VitalSigns().Health)
-	assert.Equal(t, vitals.VitalSign(40), p.HealReceived())
+	assert.Equal(t, vitals.VitalSign(40), healReceived(p))
 }
 
 // --- damage dealt return + lifesteal + crit accumulator (plan-skill-vocab chunk 1) ---
@@ -856,11 +860,11 @@ func TestPlayer_TakeDamage_ReturnsDealtLoss(t *testing.T) {
 	p := newTestPlayer(nil)
 	p.statusEffects = model.NewStatusEffects()
 
-	dealt := p.takeDamage(model.Damage{HP: 7}, model.StatusEffectDamagedAmbient)
+	dealt := p.takeDamage(model.Damage{HP: 7}, 0, model.StatusEffectDamagedAmbient)
 	assert.Equal(t, vitals.VitalSign(7), dealt, "mirrors the mob site: post-mitigation loss")
 
 	p.PlayerVitalSigns.Health = 3
-	dealt = p.takeDamage(model.Damage{HP: 100}, model.StatusEffectDamagedAmbient)
+	dealt = p.takeDamage(model.Damage{HP: 100}, 0, model.StatusEffectDamagedAmbient)
 	assert.Equal(t, vitals.VitalSign(3), dealt, "overkill never counts (F6 §3.1/9)")
 }
 
@@ -868,15 +872,15 @@ func TestPlayer_CritTaken_AccumulatesAndResets(t *testing.T) {
 	p := newTestPlayer(nil)
 	p.statusEffects = model.NewStatusEffects()
 
-	p.takeDamage(model.Damage{HP: 5, Crit: true}, model.StatusEffectDamagedAmbient)
-	p.takeDamage(model.Damage{HP: 3}, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 5, Crit: true}, 0, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 3}, 0, model.StatusEffectDamagedAmbient)
 
-	assert.Equal(t, vitals.VitalSign(5), p.CritTaken(),
+	assert.Equal(t, vitals.VitalSign(5), critTaken(p),
 		"only crit-flagged hits land on the crit accumulator")
-	assert.Equal(t, vitals.VitalSign(8), p.DamageTaken())
+	assert.Equal(t, vitals.VitalSign(8), damageTaken(p))
 
 	p.ResetTickNumbers()
-	assert.Zero(t, p.CritTaken())
+	assert.Zero(t, critTaken(p))
 }
 
 // fakeLeechMob adds a Heal recorder to fakeAttackerMob so a mob-cast hit's
@@ -886,9 +890,9 @@ type fakeLeechMob struct {
 	healed []uint32
 }
 
-func (f *fakeLeechMob) Heal(hp uint32) vitals.VitalSign {
-	f.healed = append(f.healed, hp)
-	return vitals.VitalSign(hp)
+func (f *fakeLeechMob) Heal(h model.Healing) vitals.VitalSign {
+	f.healed = append(f.healed, h.HP)
+	return vitals.VitalSign(h.HP)
 }
 
 func TestPlayer_MobTouches_LifestealHealsMob(t *testing.T) {
@@ -908,7 +912,7 @@ func TestPlayer_MobTouches_CritLandsOnCritTaken(t *testing.T) {
 
 	p.MobTouches(newFakeAttackerMob(), mobs.Factors{Damage: 10, Crit: true})
 
-	assert.Equal(t, vitals.VitalSign(10), p.CritTaken(), "Factors.Crit rides into the accumulator")
+	assert.Equal(t, vitals.VitalSign(10), critTaken(p), "Factors.Crit rides into the accumulator")
 }
 
 // --- shield absorb step (plan-skill-vocab chunk 2, F6 §3.1/8-9) ---
@@ -918,12 +922,12 @@ func TestPlayer_TakeDamage_ShieldAbsorbsBeforeHP(t *testing.T) {
 	p.statusEffects = model.NewStatusEffects()
 	p.ApplyShield(27, 20, 300)
 
-	dealt := p.takeDamage(model.Damage{HP: 8, Crit: true}, model.StatusEffectDamagedAmbient)
+	dealt := p.takeDamage(model.Damage{HP: 8, Crit: true}, 0, model.StatusEffectDamagedAmbient)
 
 	assert.Equal(t, vitals.VitalSign(8), dealt, "a fully absorbed hit still counts as dealt")
 	assert.Equal(t, vitals.Max, p.VitalSigns().Health, "HP untouched while the shield holds")
-	assert.Zero(t, p.DamageTaken(), "damage numbers show real HP loss only")
-	assert.Zero(t, p.CritTaken(), "crit accumulator follows the same loss-only rule")
+	assert.Zero(t, damageTaken(p), "damage numbers show real HP loss only")
+	assert.Zero(t, critTaken(p), "crit accumulator follows the same loss-only rule")
 	assert.Equal(t, vitals.VitalSign(12), p.ShieldHP(), "the pool drained by the absorbed amount")
 	assert.True(t, p.InCombat(), "being beaten on your shield is combat (§3.1)")
 }
@@ -934,11 +938,11 @@ func TestPlayer_TakeDamage_PartialAbsorbSpillsToHP(t *testing.T) {
 	p.ApplyShield(27, 5, 300)
 
 	before := p.VitalSigns().Health
-	dealt := p.takeDamage(model.Damage{HP: 8}, model.StatusEffectDamagedAmbient)
+	dealt := p.takeDamage(model.Damage{HP: 8}, 0, model.StatusEffectDamagedAmbient)
 
 	assert.Equal(t, vitals.VitalSign(8), dealt, "dealt = absorbed + HP lost")
 	assert.Equal(t, before-3, p.VitalSigns().Health, "the spill hits HP")
-	assert.Equal(t, vitals.VitalSign(3), p.DamageTaken())
+	assert.Equal(t, vitals.VitalSign(3), damageTaken(p))
 	assert.Zero(t, p.ShieldHP(), "the broken pool is gone")
 }
 
@@ -954,12 +958,12 @@ func TestPlayer_TakeDamage_ShieldAfterResistAndDR(t *testing.T) {
 	p.ApplyShield(27, 12, 300)
 
 	before := p.VitalSigns().Health
-	dealt := p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, model.StatusEffectDamagedAmbient)
+	dealt := p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, 0, model.StatusEffectDamagedAmbient)
 
 	assert.Equal(t, vitals.VitalSign(15), dealt)
 	assert.Equal(t, before-3, p.VitalSigns().Health)
 	assert.Zero(t, p.ShieldHP())
-	assert.Equal(t, vitals.VitalSign(3), p.DamageTaken())
+	assert.Equal(t, vitals.VitalSign(3), damageTaken(p))
 }
 
 func TestPlayer_TakeDamage_FullyResistedHitLeavesShieldUntouched(t *testing.T) {
@@ -970,7 +974,7 @@ func TestPlayer_TakeDamage_FullyResistedHitLeavesShieldUntouched(t *testing.T) {
 	p.ApplyResist(40, []string{"fire"}, 0, 100) // immune
 	p.ApplyShield(27, 20, 300)
 
-	dealt := p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, model.StatusEffectDamagedAmbient)
+	dealt := p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, 0, model.StatusEffectDamagedAmbient)
 
 	assert.Zero(t, dealt)
 	assert.Equal(t, vitals.VitalSign(20), p.ShieldHP(), "resisted-away damage never reaches the shield")
@@ -983,7 +987,7 @@ func TestPlayer_TakeDamage_GodLeavesShieldUntouched(t *testing.T) {
 	p.SetGodmode(true)
 	p.ApplyShield(27, 20, 300)
 
-	dealt := p.takeDamage(model.Damage{HP: 8}, model.StatusEffectDamagedAmbient)
+	dealt := p.takeDamage(model.Damage{HP: 8}, 0, model.StatusEffectDamagedAmbient)
 
 	assert.Zero(t, dealt)
 	assert.Equal(t, vitals.VitalSign(20), p.ShieldHP(), "god mode short-circuits before the absorb step")
@@ -1021,7 +1025,7 @@ func TestPlayer_TakeDamage_CancelsFlaggedCast(t *testing.T) {
 	p.statusEffects = model.NewStatusEffects()
 	equipCastingSkill(p, true)
 
-	p.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 5}, 0, model.StatusEffectDamagedAmbient)
 
 	assert.False(t, p.skills.IsCasting(), "castInterruptedByDamage: dealt > 0 cancels")
 }
@@ -1033,7 +1037,7 @@ func TestPlayer_TakeDamage_UnflaggedCastSurvives(t *testing.T) {
 	p.statusEffects = model.NewStatusEffects()
 	equipCastingSkill(p, false)
 
-	p.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 5}, 0, model.StatusEffectDamagedAmbient)
 
 	assert.True(t, p.skills.IsCasting(), "unflagged cast survives damage")
 }
@@ -1046,7 +1050,7 @@ func TestPlayer_TakeDamage_FullyAbsorbedHitCancelsFlaggedCast(t *testing.T) {
 	p.ApplyShield(27, 20, 300)
 	equipCastingSkill(p, true)
 
-	p.takeDamage(model.Damage{HP: 8}, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 8}, 0, model.StatusEffectDamagedAmbient)
 
 	assert.Equal(t, vitals.Max, p.VitalSigns().Health, "hit fully absorbed")
 	assert.False(t, p.skills.IsCasting(), "absorbed damage still interrupts")

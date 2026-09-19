@@ -192,11 +192,16 @@ type DotBuff struct {
 
 // DotHit is one due damage event, returned to the acting site. HP is the
 // pre-variance center; the acting site rolls per event.
+//
+// Source is the skill that applied the stream - the store's own map key, which
+// the drain used to discard (plan-skill-vfx.md §12a.2/3). The hit event needs
+// it: a burn tick is a hit of THAT skill, long after its aura is gone.
 type DotHit struct {
 	HP       float32
 	Tags     []string
 	Variance float32
 	Caster   any
+	Source   SkillID
 }
 
 // HotBuff is one heal-over-time application (plan-skill-vocab §3.7): the dot
@@ -215,11 +220,12 @@ type HotBuff struct {
 
 // HotEvent is one due heal event, returned to the acting site. HP is the
 // pre-variance center; the acting site rolls per event, then heals via
-// model.Healable.Heal.
+// model.Healable.Heal. Source is the applying skill, DotHit's twin.
 type HotEvent struct {
 	HP       float32
 	Variance float32
 	Caster   any
+	Source   SkillID
 }
 
 func (b *Buffs) apply(source SkillID, payload buffPayload, ticks int) {
@@ -361,9 +367,14 @@ func (b *Buffs) ApplyReflect(source SkillID, fraction float32, tags []string, ti
 	b.apply(source, &reflectPayload{fraction: fraction, tags: tags}, ticks)
 }
 
-// ReflectBurst is the share of an incoming hit that bounces back right now, and
-// the damage type it bounces back as: the single strongest live application
-// across every source. Zero fraction and nil tags when nothing is up.
+// ReflectBurst is the share of an incoming hit that bounces back right now, the
+// damage type it bounces back as, and the skill that granted it: the single
+// strongest live application across every source. Zero source, zero fraction
+// and nil tags when nothing is up.
+//
+// ⚑ The SOURCE is returned because the reflect leaves as a real hit and a real
+// hit names its skill (plan-skill-vfx.md §12a.2/5); the winner was already
+// being picked, the id was simply thrown away with the map key.
 //
 // ⚑ STRONGEST WINS WHOLESALE, and this is the one place the reflect burst
 // deliberately parts from its lifesteal twin, which sums across skills. It
@@ -372,23 +383,24 @@ func (b *Buffs) ApplyReflect(source SkillID, fraction float32, tags []string, ti
 // picking one skill's damage type to carry the other skill's damage. One
 // winner, bringing its own fraction and its own tags, is the same rule the
 // derived retaliate_damage fold uses and for the same reason.
-func (b *Buffs) ReflectBurst() (float32, []string) {
+func (b *Buffs) ReflectBurst() (SkillID, float32, []string) {
 	var strongest *reflectPayload
-	for _, list := range b.entries {
+	var strongestSource SkillID
+	for source, list := range b.entries {
 		for _, e := range list {
 			p, ok := e.payload.(*reflectPayload)
 			if !ok {
 				continue
 			}
 			if strongest == nil || p.fraction > strongest.fraction {
-				strongest = p
+				strongest, strongestSource = p, source
 			}
 		}
 	}
 	if strongest == nil {
-		return 0, nil
+		return 0, 0, nil
 	}
-	return strongest.fraction, strongest.tags
+	return strongestSource, strongest.fraction, strongest.tags
 }
 
 // ApplyTickRate grants (or refreshes) a tick-rate buff from the given source
@@ -875,7 +887,7 @@ func (b *Buffs) dropDepletedShields() {
 func (b *Buffs) DueBuffEvents() ([]DotHit, []HotEvent) {
 	var dots []DotHit
 	var hots []HotEvent
-	for _, list := range b.entries {
+	for source, list := range b.entries {
 		var strongestHot *hotPayload
 		for _, e := range list {
 			switch p := e.payload.(type) {
@@ -899,6 +911,7 @@ func (b *Buffs) DueBuffEvents() ([]DotHit, []HotEvent) {
 					Tags:     p.dot.Tags,
 					Variance: p.dot.Variance,
 					Caster:   p.dot.Caster,
+					Source:   source,
 				})
 			}
 		}
@@ -907,6 +920,7 @@ func (b *Buffs) DueBuffEvents() ([]DotHit, []HotEvent) {
 				HP:       strongestHot.hot.HP,
 				Variance: strongestHot.hot.Variance,
 				Caster:   strongestHot.hot.Caster,
+				Source:   source,
 			})
 		}
 	}

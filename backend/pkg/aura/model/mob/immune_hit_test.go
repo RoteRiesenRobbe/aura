@@ -19,8 +19,8 @@ func TestMob_ImmuneHit_InvulnerableSetsFlag(t *testing.T) {
 
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"physical"}})
 
-	assert.True(t, m.ImmuneHit(), "scripted invulnerability is the Warlord case")
-	assert.Zero(t, m.DamageTaken())
+	assert.True(t, immuneHit(m), "scripted invulnerability is the Warlord case")
+	assert.Zero(t, damageTaken(m))
 	assert.Equal(t, m.MaxHealth(), m.Health())
 }
 
@@ -32,8 +32,8 @@ func TestMob_ImmuneHit_FullResistSetsFlag(t *testing.T) {
 
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"physical"}})
 
-	assert.True(t, m.ImmuneHit())
-	assert.Zero(t, m.DamageTaken())
+	assert.True(t, immuneHit(m))
+	assert.Zero(t, damageTaken(m))
 }
 
 func TestMob_ImmuneHit_GateMissStaysSilent(t *testing.T) {
@@ -43,7 +43,7 @@ func TestMob_ImmuneHit_GateMissStaysSilent(t *testing.T) {
 
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, GateKey: "harvest"})
 
-	assert.False(t, m.ImmuneHit())
+	assert.False(t, immuneHit(m))
 }
 
 func TestMob_ImmuneHit_NormalHitLeavesFlagUnset(t *testing.T) {
@@ -51,8 +51,8 @@ func TestMob_ImmuneHit_NormalHitLeavesFlagUnset(t *testing.T) {
 
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"physical"}})
 
-	assert.False(t, m.ImmuneHit())
-	assert.NotZero(t, m.DamageTaken())
+	assert.False(t, immuneHit(m))
+	assert.NotZero(t, damageTaken(m))
 }
 
 func TestMob_ImmuneHit_ChipHitFloorsToOneNotImmune(t *testing.T) {
@@ -62,7 +62,7 @@ func TestMob_ImmuneHit_ChipHitFloorsToOneNotImmune(t *testing.T) {
 
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 0.1, Tags: []string{"physical"}})
 
-	assert.False(t, m.ImmuneHit())
+	assert.False(t, immuneHit(m))
 	assert.Equal(t, m.MaxHealth()-1, m.Health(), "0.1 HP floors to a 1 HP hit")
 }
 
@@ -71,12 +71,12 @@ func TestMob_ImmuneHit_ZeroAuthoredDamageIsANoOpNotImmunity(t *testing.T) {
 	// mitigated - it must not stamp the label, on any branch.
 	m := newTestMob()
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 0, Tags: []string{"physical"}})
-	assert.False(t, m.ImmuneHit(), "plain zero-damage hit")
+	assert.False(t, immuneHit(m), "plain zero-damage hit")
 
 	inv := newTestMob()
 	inv.SetInvulnerable(true)
 	inv.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 0})
-	assert.False(t, inv.ImmuneHit(), "zero-damage hit at an invulnerable mob")
+	assert.False(t, immuneHit(inv), "zero-damage hit at an invulnerable mob")
 }
 
 func TestMob_ImmuneHit_CoexistsWithDamageTaken(t *testing.T) {
@@ -91,17 +91,17 @@ func TestMob_ImmuneHit_CoexistsWithDamageTaken(t *testing.T) {
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"fire"}})
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"physical"}})
 
-	assert.True(t, m.ImmuneHit())
-	assert.NotZero(t, m.DamageTaken())
+	assert.True(t, immuneHit(m))
+	assert.NotZero(t, damageTaken(m))
 }
 
 func TestMob_ImmuneHit_ResetTickNumbersClearsIt(t *testing.T) {
 	m := newTestMob()
 	m.SetInvulnerable(true)
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10})
-	assert.True(t, m.ImmuneHit())
+	assert.True(t, immuneHit(m))
 
 	m.ResetTickNumbers()
 
-	assert.False(t, m.ImmuneHit(), "per-tick one-shot like damage_taken")
+	assert.False(t, immuneHit(m), "per-tick one-shot like damage_taken")
 }

@@ -78,7 +78,7 @@ func TestMob_RestoreToFullHealth_FillsTheDerivedPool(t *testing.T) {
 	m.RestoreToFullHealth()
 
 	assert.Equal(t, m.MaxHealth(), m.Health())
-	assert.Zero(t, m.HealReceived(), "a spawn fill is not a heal — no floating number")
+	assert.Zero(t, healReceived(m), "a spawn fill is not a heal, so no event")
 }
 
 // A pool that SHRINKS mid-life (an unequipped passive, an owner that somehow

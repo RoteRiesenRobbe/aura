@@ -131,19 +131,13 @@ type MobEntity interface {
 	// source; atmosphere & recovery chunk 4).
 	DwellRadius() float32
 
-	// DamageTaken is the health lost this tick (VitalSign units), serialized as
-	// the floating damage number (roadmap item 11) and reset each tick via
-	// ResetTickNumbers (TickAccumulators).
-	DamageTaken() vitals.VitalSign
-
-	// CritTaken is the crit-flagged share of DamageTaken (plan-skill-vocab
-	// chunk 1, §4.3), serialized as crit_taken so the client pops it big.
-	CritTaken() vitals.VitalSign
-
-	// ImmuneHit reports a fully mitigated hit this tick
-	// (plan-immune-feedback.md), serialized as immune_hit - drives the
-	// floating "Immune" label; per-tick one-shot like DamageTaken.
-	ImmuneHit() bool
+	// SkillEvents are the attributed hits and casts recorded on this mob this
+	// tick (plan-skill-vfx.md C1): every landing inside takeDamage / Heal plus
+	// every cast it fired. Serialized into GameState.skill_events, then
+	// truncated each tick via ResetTickNumbers (TickAccumulators). It replaced
+	// the four per-tick aggregates (damage/crit/heal/immune), which could say
+	// only THAT something happened, never who did it or with which skill.
+	SkillEvents() []SkillEvent
 
 	// ShieldHP is the current total absorb capacity (plan-skill-vocab
 	// chunk 2), serialized as shield_hp — a live value, not a per-tick
@@ -154,11 +148,6 @@ type MobEntity interface {
 	// this mob (wire applied_effects — the client draws the pips from it; the
 	// received-status mirror of AuraCategories).
 	AppliedEffects() skills.AppliedEffect
-
-	// HealReceived is the health restored this tick (VitalSign units),
-	// serialized as the floating heal number for a mob-cast heal (mob-depth
-	// chunk 8) and reset each tick via ResetTickNumbers.
-	HealReceived() vitals.VitalSign
 
 	// AuraHitStyle is the per-tick aura-hit VFX stamped on this entity by a
 	// damage aura (item 11 Step 4); serialized as the aura_hit_style wire field
