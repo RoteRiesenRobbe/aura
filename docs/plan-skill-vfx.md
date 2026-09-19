@@ -1,6 +1,6 @@
 # Plan: Skill VFX - what a hit, a cast and a running aura look like, for everyone
 
-> **Status: C0 SHIPPED 2026-09-19 (the `visual` key, one per SKILL: seven
+> **Status: C0 SHIPPED 2026-09-19 `e8f7b6b4` (the `visual` key, one per SKILL: seven
 > closed kinds, three triggers, load-time validation, six generated fixture
 > lists, six content files authored). C1-C4 unbuilt.** Designed 2026-09-11
 > (D1-D10 PO-ruled in one sitting; everything in §4-§7 that is not a D-number
@@ -559,7 +559,7 @@ All ✅ **DONE 2026-09-19** unless marked otherwise.
 
 ### C0 ledger (2026-09-19) - the vocabulary + the docs amendment
 
-✅ **SHIPPED 2026-09-19** `[uncommitted]`.
+✅ **SHIPPED 2026-09-19** `e8f7b6b4`.
 
 **Schema: DB NONE** (the key is content, nothing persists a visual and no
 spellbook row changes). **WIRE NONE** - the skill catalog is HTTP JSON marshalled
