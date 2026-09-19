@@ -1,6 +1,6 @@
 # Plan: Skill VFX - what a hit, a cast and a running aura look like, for everyone
 
-> **Status: C1 BUILT 2026-09-19 `[uncommitted]` (the wire: `SkillEvent` FIRED + HIT
+> **Status: C1 BUILT 2026-09-19 `194a0cd5` (the wire: `SkillEvent` FIRED + HIT
 > inside the four funnels, `Mob.owner_id`, five field names deprecated, numbers
 > own-caused only, loadbot: D10 stands). C0 SHIPPED 2026-09-19 `e8f7b6b4` (the `visual` key, one per SKILL: seven
 > closed kinds, three triggers, load-time validation, six generated fixture
@@ -730,7 +730,7 @@ field · CONF NONE · CONTENT NONE.
 
 ### C1 ledger (2026-09-19) - the wire
 
-✅ **BUILT 2026-09-19** `[uncommitted]`. Spec: §12a (re-verified refs + the
+✅ **BUILT 2026-09-19** `194a0cd5`. Spec: §12a (re-verified refs + the
 PO's three calls of the day).
 
 **Schema: DB NONE** (`sys/persist.go` `characterState` is a field-by-field
