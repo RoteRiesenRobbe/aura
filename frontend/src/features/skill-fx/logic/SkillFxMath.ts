@@ -184,6 +184,34 @@ export function contactMs(curve: StrikeCurve, totalMs: number): number {
     return total * (STRIKE_CONTACT_FRACTION[curve] ?? THRUST_CONTACT_FRACTION);
 }
 
+/** Which weapon style a `strike` layer authors; absent = thrust (PO 2026-09-19). */
+export function strikeCurveOf(curve: string | undefined): StrikeCurve {
+    return curve === 'swing' || curve === 'overhead' ? curve : 'thrust';
+}
+
+/**
+ * When an authored `strike` layer's weapon is ON the victim.
+ *
+ * ⚑ It lives HERE, beside `contactMs`, rather than with the kind that draws it:
+ * SkillFxPlan sequences an `impact` off it and must stay renderer-free, and the
+ * planner and the kind must not disagree about which total the contact is a
+ * fraction of. (`impactCurveOf` / `beamCurveOf` stay in SkillFxKinds - nothing
+ * outside the drawing reads them.)
+ */
+export function strikeContactMsOf(curve: string | undefined, ms: number | undefined): number {
+    return contactMs(strikeCurveOf(curve), strikeTotalMsOf(curve, ms));
+}
+
+/**
+ * A strike's whole duration: the authored `ms`, else the style's default. The
+ * ONE place that fallback lives, because the weapon animates against this
+ * total and its impact fires at a fraction of it: two copies that drift would
+ * land the mark before or after the weapon.
+ */
+export function strikeTotalMsOf(curve: string | undefined, ms: number | undefined): number {
+    return ms && ms > 0 ? ms : STRIKE_CURVE_MS[strikeCurveOf(curve)];
+}
+
 /**
  * One weapon over time. The far end of the weapon (its head) sits at
  * `offset + extend * scale` reach units from the attacker, and no style puts it

@@ -1039,8 +1039,7 @@ deleted; one new skill, Lightning Strike (id 76); registry pin 113 → 114.
 
 **Red→green, stated honestly.** Red-first: the vocabulary tests (per-kind
 curves, `chain`), `SkillFxMath` (27), palette (8), the registry pin (4).
-⚑ **No manager-level unit test**: `SkillFx.ts` is Pixi-bound, so chain
-GROUPING and the projectile→impact delay are covered by the harness only.
+✅ **The manager's decisions ARE unit-tested since the follow-up below** (`SkillFxPlan`); at the C2a commit they were harness-only.
 
 **Mutation ×3, each reverted:** `curve: thrust` on a beam (Go + smoke both
 red) · a stray `hitStyle` in content (smoke leg (a) + `-validate`) · `chain`
@@ -1111,8 +1110,16 @@ ingame look passes"**. C2a is done.
 - **No everyday player skill authors `overhead`** - only Harvest and Pickaxe,
   which are gated. The style is verified by the Troll's smash, not by a
   player's own hand.
-- **No manager-level unit test** (`SkillFx.ts` is Pixi-bound): chain grouping
-  and the projectile→impact delay are covered by the harness only.
+- ✅ ~~No manager-level unit test~~ **CLOSED 2026-09-19 (follow-up, PO-asked):** the
+  manager's decisions were extracted into the pure `SkillFxPlan.planSpawns`
+  (which layers an event draws, the silent skip of an unheld entity, chain
+  grouping + hop anchors + stagger, the impact delay = the later of projectile
+  flight and strike contact); `SkillFx.ts` keeps only the Pixi half. 30 vitest
+  cases, red-first against a stub (24 red), mutation ×4 each reverted; frontend
+  **772 / 43**; `skill-fx.mjs` still PASS 7/7 (behaviour unchanged). One
+  bounded difference: anchors are per entity per snapshot, not per landing.
+  ⚑ Noted, not changed: `ProjectileFx` reads its source position once at
+  spawn, so on a chain it would launch from the hop's snapshot-time position.
 - The **two-window leg** (another player's VFX) was the PO's own walk, not a
   harness. `content-editor-skills-tab.mjs` was edited (its `hitStyle`
   assertion removed) and not re-run.

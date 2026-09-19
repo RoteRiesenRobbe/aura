@@ -22,14 +22,14 @@ import {
     beamExtend,
     beamFlash,
     clamp01,
-    contactMs,
     flightMs,
     IMPACT_CURVE_MS,
     ImpactCurve,
     impactPhase,
     projectilePoint,
-    STRIKE_CURVE_MS,
     StrikeCurve,
+    strikeCurveOf,
+    strikeTotalMsOf,
     strikePhase,
     swingDirection,
 } from './SkillFxMath';
@@ -144,22 +144,6 @@ function impactCurveOf(def: VisualLayer): ImpactCurve {
     return def.curve === 'snap' ? 'snap' : 'burst';
 }
 
-function strikeCurveOf(def: VisualLayer): StrikeCurve {
-    // Absent = thrust (PO 2026-09-19).
-    return def.curve === 'swing' || def.curve === 'overhead' ? def.curve : 'thrust';
-}
-
-/**
- * When this `strike` layer's weapon is ON the victim. Exported because the
- * manager sequences an `impact` beside a strike off it, the way it already
- * waits out a projectile's flight, and the two must not disagree about which
- * total the contact is a fraction of.
- */
-export function strikeContactMsOf(def: VisualLayer): number {
-    const curve = strikeCurveOf(def);
-    return contactMs(curve, def.ms && def.ms > 0 ? def.ms : STRIKE_CURVE_MS[curve]);
-}
-
 function beamCurveOf(def: VisualLayer): BeamCurve {
     // Absent = flash (PO 2026-09-19).
     return def.curve === 'extend' ? 'extend' : 'flash';
@@ -254,8 +238,8 @@ class StrikeFx implements Fx {
     private drawnLengthPx = 0;
 
     constructor(private readonly ctx: FxSpawnContext) {
-        this.curve = strikeCurveOf(ctx.def);
-        this.totalMs = ctx.def.ms && ctx.def.ms > 0 ? ctx.def.ms : STRIKE_CURVE_MS[this.curve];
+        this.curve = strikeCurveOf(ctx.def.curve);
+        this.totalMs = strikeTotalMsOf(ctx.def.curve, ctx.def.ms);
         this.sizeScale = scaleOf(ctx.def);
         this.sweepDirection = swingDirection(ctx.seed);
         resolveBody(ctx.def.body);

@@ -23,16 +23,10 @@ import {Container, Graphics} from 'pixi.js';
 import type {GameObject} from '../../game-objects/logic/_GameObject';
 import {PrerenderEvent} from '../../core/logic/Events';
 import type {SkillEventData} from '../../backend/logic/SkillEventNumbers';
-import {skillDefinition, VisualLayer} from '../../../client-data/Skills';
-import {
-    CHAIN_HOP_STAGGER_MS,
-    chainOrder,
-    flightMs,
-    GLOW_COLOR,
-    GLOW_WIDTH_PX,
-    windUpGlowAlpha,
-} from './SkillFxMath';
-import {clearPools, Fx, FxAnchor, kindHandler, strikeContactMsOf, VISUAL_KINDS} from './SkillFxKinds';
+import {skillDefinition} from '../../../client-data/Skills';
+import {GLOW_COLOR, GLOW_WIDTH_PX, windUpGlowAlpha} from './SkillFxMath';
+import {clearPools, Fx, FxAnchor, kindHandler, VISUAL_KINDS} from './SkillFxKinds';
+import {planSpawns, PointOf, SkillVisual} from './SkillFxPlan';
 import {parseTint, skillFxColor} from './SkillFxPalette';
 
 /**
@@ -95,10 +89,15 @@ export type ResolveEntity = (id: number) => GameObject | undefined;
  * One call per snapshot, from Backend.receiveSnapshot beside the floating
  * numbers (§12b.3: one feed, one call site).
  *
+ * All the deciding - which layers, between whom, when - is SkillFxPlan's, and
+ * tested there without a renderer. What is left here is the Pixi half: resolve
+ * each planned id to a game object, hand the kind an anchor that follows it,
+ * and keep the budget.
+ *
  * ⚑ An event may name an entity this client does not hold (§12): the server
  * ships an event whose caster is in view even when its victim has walked out
  * of it. There is nothing to draw between two points when one of them is
- * unknown, so it is skipped - silently, never thrown.
+ * unknown, so the plan skips it - silently, never thrown.
  */
 export function onSnapshot(events: readonly SkillEventData[], resolve: ResolveEntity): void {
     if (layer === null || events.length === 0) {
@@ -106,116 +105,46 @@ export function onSnapshot(events: readonly SkillEventData[], resolve: ResolveEn
     }
     const now = performance.now();
 
-    // Chained beams first: a chain is a property of one (source, skill) GROUP
-    // within one snapshot, so it cannot be decided event by event. Everything
-    // else draws source→victim on its own.
-    const chained = new Map<string, Landing[]>();
-    const plain: Landing[] = [];
-    events.forEach((event) => {
-        const landing = landingFor(event, resolve);
-        if (landing === null) {
-            return;
+    // One resolution per entity per snapshot: the planner asks for a position
+    // and the spawn loop then asks for an anchor on the same object.
+    const objects = new Map<number, GameObject | undefined>();
+    const objectOf = (id: number): GameObject | undefined => {
+        if (!objects.has(id)) {
+            objects.set(id, resolve(id));
         }
-        if (!event.fired && landing.layers.some(isChainedBeam)) {
-            const key = `${event.source}:${event.skillId}`;
-            const group = chained.get(key);
-            if (group) {
-                group.push(landing);
-            } else {
-                chained.set(key, [landing]);
-            }
-        } else {
-            plain.push(landing);
-        }
-    });
-
-    plain.forEach(landing => spawnLanding(landing, landing.source, now, 0));
-
-    chained.forEach((group) => {
-        const caster = group[0].source.point();
-        // The hop order is over POSITIONS, so the ordered victims come back as
-        // the landings they belong to.
-        const hops = chainOrder(caster, group.map(l => ({...l.victim.point(), landing: l})));
-        hops.forEach((hop, index) => {
-            const fromLanding = index === 0 ? null : hops[index - 1].to.landing;
-            const from = fromLanding === null ? hop.to.landing.source : fromLanding.victim;
-            spawnLanding(hop.to.landing, from, now, index * CHAIN_HOP_STAGGER_MS);
-        });
-    });
-}
-
-/** One event resolved against the client's world: who, where, which layers. */
-interface Landing {
-    source: FxAnchor;
-    victim: FxAnchor;
-    layers: VisualLayer[];
-    /** the skill's damage-type colour; a layer's own `tint` overrides it */
-    baseColor: number;
-    seed: number;
-}
-
-function isChainedBeam(def: VisualLayer): boolean {
-    return def.kind === 'beam' && def.chain === true;
-}
-
-let seedCounter = 0;
-
-function landingFor(event: SkillEventData, resolve: ResolveEntity): Landing | null {
-    const def = skillDefinition(event.skillId);
-    const authored = def?.visual?.layers;
-    if (!authored || authored.length === 0) {
-        return null;
-    }
-    // `on: hit` draws once per HIT event whatever its HitKind - an Immune or
-    // Absorb landing still landed.
-    const trigger = event.fired ? 'fired' : 'hit';
-    const layers = authored.filter(l => l.on === trigger);
-    if (layers.length === 0) {
-        return null;
-    }
-    const source = resolve(event.source);
-    if (!source) {
-        return null;
-    }
-    // A FIRED event names no victim: the caster is both ends of it.
-    const victim = event.fired ? source : resolve(event.victim);
-    if (!victim) {
-        return null;
-    }
-    return {
-        source: anchorFor(source),
-        victim: anchorFor(victim),
-        layers,
-        baseColor: skillFxColor(def, undefined),
-        seed: seedCounter++,
+        return objects.get(id);
     };
-}
+    const pointOf: PointOf = (id) => {
+        const obj = objectOf(id);
+        return obj ? {x: obj.shape.position.x, y: obj.shape.position.y} : undefined;
+    };
 
-/**
- * Spawn one landing's layers, applying the implicit sequencing (§12b.3, widened
- * by §12c.1): an `impact` on the same trigger as a `projectile` starts when the
- * bolt ARRIVES, and one beside a `strike` starts when the weapon reaches the
- * victim. With both authored, the later of the two wins - the mark belongs to
- * whatever actually touched the victim last. No `delay` key anywhere in the
- * vocabulary.
- */
-function spawnLanding(landing: Landing, from: FxAnchor, nowMs: number, baseDelayMs: number): void {
-    const arrival = Math.max(projectileFlightMs(landing, from), strikeContactMs(landing));
-    landing.layers.forEach((def) => {
+    const anchors = new Map<number, FxAnchor>();
+    const anchorOf = (id: number): FxAnchor => {
+        let anchor = anchors.get(id);
+        if (!anchor) {
+            // Every id in a plan entry was resolved by pointOf above.
+            anchor = anchorFor(objectOf(id));
+            anchors.set(id, anchor);
+        }
+        return anchor;
+    };
+
+    planSpawns(events, visualOf, pointOf).forEach((entry) => {
+        const def = entry.def;
         const handler = kindHandler(def.kind);
         spawnedByKind[def.kind] = (spawnedByKind[def.kind] ?? 0) + 1;
         if (!handler) {
             return;
         }
-        const delay = baseDelayMs + (def.kind === 'impact' ? arrival : 0);
         const fx = handler.spawn({
             layer,
-            source: from,
-            victim: landing.victim,
-            color: parseTint(def.tint) ?? landing.baseColor,
+            source: anchorOf(entry.from),
+            victim: anchorOf(entry.victim),
+            color: parseTint(def.tint) ?? entry.baseColor,
             def,
-            startAtMs: nowMs + delay,
-            seed: landing.seed,
+            startAtMs: now + entry.delayMs,
+            seed: entry.seed,
         });
         if (fx !== null) {
             push(fx);
@@ -223,21 +152,11 @@ function spawnLanding(landing: Landing, from: FxAnchor, nowMs: number, baseDelay
     });
 }
 
-/** The first `projectile` layer's flight time, or 0 when there is none. */
-function projectileFlightMs(landing: Landing, from: FxAnchor): number {
-    const bolt = landing.layers.find(l => l.kind === 'projectile');
-    if (!bolt) {
-        return 0;
-    }
-    const a = from.point();
-    const b = landing.victim.point();
-    return flightMs(Math.hypot(b.x - a.x, b.y - a.y), bolt.speed ?? 0);
-}
-
-/** The first `strike` layer's contact moment, or 0 when there is none. */
-function strikeContactMs(landing: Landing): number {
-    const weapon = landing.layers.find(l => l.kind === 'strike');
-    return weapon ? strikeContactMsOf(weapon) : 0;
+/** The catalog half of the plan's input: a skill's layers and its colour. */
+function visualOf(skillId: number): SkillVisual | undefined {
+    const def = skillDefinition(skillId);
+    const layers = def?.visual?.layers;
+    return layers ? {layers, baseColor: skillFxColor(def, undefined)} : undefined;
 }
 
 function push(fx: Fx): void {
