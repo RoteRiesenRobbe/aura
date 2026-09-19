@@ -14,7 +14,7 @@ and nobody owes a regeneration as part of a content edit. Run the command
 whenever you want a current picture. The content tree, the loader and its tests
 are the truth about what the game does; this page never is.
 
-Generated 2026-09-19 from api/ at b0dbb822.
+Generated 2026-09-19 from api/ at 082e9e95.
 
 Every number here is **[PLACEHOLDER]** by project rule. Per-ability design
 intent lives in `content-auras.md` / `content-passives.md` /

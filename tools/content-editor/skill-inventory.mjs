@@ -309,7 +309,10 @@ function build() {
     'cooldownTicks', 'cooldownTicksPerLevel', 'castTicks', 'castTicksPerLevel',
     'castInterruptedByDamage', 'targetFactions', 'effects',
   ]);
-  const SKIPPED_TOP = new Set(['legacy']); // retired flag, never shown to a reader
+  // 'legacy' is a retired flag, never shown to a reader; 'visual' is the VFX
+  // layer list (plan-skill-vfx.md C0), which says nothing about what a skill
+  // DOES and stays out of the inventory until there is art to point at (C3).
+  const SKIPPED_TOP = new Set(['legacy', 'visual']);
   for (const key of vocabulary.topLevelKeys) {
     if (!RENDERED_TOP.has(key) && !SKIPPED_TOP.has(key)) {
       fail(`top-level key "${key}" is in the vocabulary fixture but this generator neither renders nor skips it`);

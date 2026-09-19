@@ -260,9 +260,11 @@ moves it to the end of the object, since that is what JSON key order does.
 
 The tool never hand-types the per-effect-type field lists a skill file may
 author. `api/skill-vocabulary.json` is a **generated** file holding Go's own
-tables (the per-type key allowlist, the 15 top-level keys, the categories, the
+tables (the per-type key allowlist, the 16 top-level keys, the categories, the
 cost keys, the retired-key hints, the damage types, the per-type category
-table), written only by
+table, and the six skill-VFX lists `visualKinds`, `visualTriggers`,
+`visualKeys`, `visualTriggersByKind`, `visualCurves`, `visualMotions`),
+written only by
 `UPDATE_SKILL_VOCABULARY=1 go test -count=1 ./pkg/aura/skills/` from
 `backend/`. Regenerate it after any change to
 `backend/pkg/aura/skills/definition.go`; until you do, the Go suite is red.
@@ -271,6 +273,14 @@ complementary half (effect types, selectors, gate keys, stat names) because
 those also ride the wire and the client restates them. No list lives in both
 files, and `vocabulary.mjs` merges the two into the `skillVocabulary` object
 served on `/api/data`.
+
+⚑ The top-level `visual` key (`plan-skill-vfx.md` C0) is in the fixture and in
+`smoke.mjs`'s checks, but **hidden in the tab**: like `legacy`, it is never
+rendered and always preserved on round trip, so a hand-authored layer list
+survives a save. The Visuals section starts rendering it at that plan's C3.
+`smoke.mjs` leg (k) is meanwhile the only JS-side reader of the key: it pins
+the six lists against each other and checks every authored layer's kind,
+moment and keys.
 
 ### Which effect types a category may author
 

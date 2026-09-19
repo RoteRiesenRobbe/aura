@@ -1,9 +1,11 @@
 # Plan: Skill VFX - what a hit, a cast and a running aura look like, for everyone
 
-> **Status: DESIGNED 2026-09-11 (D1-D10 PO-ruled in one sitting; everything
-> in §4-§7 that is not a D-number is a proposal with options). Nothing built.
-> Runs NEXT after the spell builder's PO look (D8).** Line refs pinned to
-> `df746e53`; re-verify before executing.
+> **Status: C0 SHIPPED 2026-09-19 (the `visual` key, one per SKILL: seven
+> closed kinds, three triggers, load-time validation, six generated fixture
+> lists, six content files authored). C1-C4 unbuilt.** Designed 2026-09-11
+> (D1-D10 PO-ruled in one sitting; everything in §4-§7 that is not a D-number
+> is still a proposal with options). Line refs pinned to `df746e53`;
+> re-verify before executing. Ledger: §13.
 >
 > Origin: the PO picked the parked `prototype/skill-visuals` branch back up
 > ("I like the general direction and want to really build something like
@@ -404,16 +406,27 @@ tail of CLAUDE.md, a schema line, a ledger entry in §13. **Every visual
 chunk owes a PO look with screenshots before it is called done** (the spell
 builder C1 lesson: a chunk whose purpose is a look is not done without one).
 
-- **C0 · The vocabulary + the docs amendment.** Go: `VisualDef` struct with
-  json tags on `SkillDef` (`visual`, top-level), per-kind allowed keys,
-  load-time validation (known kind, known trigger, ranges; bodies are only
-  warned until an atlas exists), fixture regen (`UPDATE_SKILL_VOCABULARY=1`)
-  gaining `visualKinds`, `visualTriggers`, `visualKeys[kind]`; `smoke.mjs`
-  pins; `effectKeys` drops `hitStyle` (the deletion's content half moves
-  here or to C2, §10 Q6). Content: `visual` authored on the prototype's
-  five skills + one wolf bite, placeholders only. Docs: §11's amendments.
-  **Schema: CONTENT one key.** Verify: `go test -count=1 ./...`, smoke,
-  mutation ×3.
+- **C0 · The vocabulary + the docs amendment.** ✅ **SHIPPED 2026-09-19.**
+  Go: `skills/visual.go` holds `VisualDef` / `VisualLayer`, the six closed
+  tables and the load-time validation, called from `mapToSkillDefinition`;
+  `visual` is a top-level key on the SKILL (§10 Q1) and rides
+  `SkillDefinition` to the HTTP catalog. Refusals: unknown kind, unknown
+  trigger, a trigger the kind does not play at, a key the kind does not read,
+  `curve` / `motion` outside their sets, a non-positive `ms` / `speed` /
+  `width` / `scale`, `count` < 1, a `tint` that is not lowercase `#rrggbb`, a
+  `visual` with no layers, and **D2 by category** (see §10). Fixture regen
+  gains all six lists; `smoke.mjs` pins them and checks every authored layer.
+  Content: `visual` on the prototype's five skills + `wolf-bite`, placeholders
+  only. Docs: §11's amendments. **Schema: CONTENT one key.**
+
+  ⚑ Two departures from the line above as it was designed, both PO calls of
+  2026-09-19: **`hitStyle` stays put** (§10 Q6 resolved for C2, so main never
+  carries a fixture that rejects shipped content), and **`body` is neither
+  checked nor warned** rather than "warned until an atlas exists": C0 has no
+  warning channel to degrade through (`mapToSkillDefinition` returns an error
+  or nothing), and inventing one for a rule that becomes an ERROR at C3 is the
+  machine this project keeps choosing not to build. The rule is written in
+  `manual-content-authoring.md` §2 instead: author no `body` before the atlas.
 - **C1 · The wire.** `SkillEvent` + `skill_events` appended; the payload
   widening (`model.Damage` + a heal payload carry caster + skill id;
   `MobTouches` / `PlayerTouches` / `Heal` signatures change once, D9);
@@ -446,7 +459,8 @@ C0 and C1 can be built in either order; C2a needs both.
 
 ## 10. Open questions (carried, not blocking)
 
-1. `visual` per skill or per effect? Proposal: per skill (§4.2).
+1. ~~`visual` per skill or per effect?~~ ✅ **RESOLVED 2026-09-19 (PO): per
+   SKILL**, one top-level key, never per effect. Built that way in C0.
 2. What does `low` cut? Proposal in §7.3.
 3. Mobile default `low`? Proposal yes.
 4. Default dressings for heal / shield / light auras that author no
@@ -455,9 +469,11 @@ C0 and C1 can be built in either order; C2a needs both.
 5. Does the `AuraRings` tint follow the layer palette, or stay the category
    colour? Proposal: stays; the ring is gameplay information (range +
    category), the layers are dressing.
-6. Where does the `hitStyle` content deletion land, C0 (fixture drops the
-   key, content must follow) or C2 (with the code)? Proposal: C2, so main
-   never carries a fixture that rejects shipped content.
+6. ~~Where does the `hitStyle` content deletion land, C0 or C2?~~
+   ✅ **RESOLVED 2026-09-19 (PO): C2, with the code.** C0 touched `hitStyle`
+   nowhere: not the Go enum, not `effectKeys`, not the two authored values,
+   not the client. Main never carries a fixture that rejects shipped content,
+   and the lever leaves in one piece when its replacement can draw.
 7. FIRED cadence for an aura: every tick (30 Hz for a 1-tick aura) is
    wasteful on the wire for an ambient-only skill. Proposal: emit FIRED
    only for skills whose `visual` has an `on: fired` layer, resolved at
@@ -470,24 +486,48 @@ C0 and C1 can be built in either order; C2a needs both.
    should agree with the XP). Needs the owner id on the wire or a client
    lookup; C1 decides which.
 
+### 10.1 Rulings made while executing, recorded here
+
+- ⭐ **D2 is enforced at LOAD, by skill category** (PO 2026-09-19, built in
+  C0). `visualTriggersByCategory` (`skills/visual.go`): an **active aura** may
+  author all three moments, a **cooldown** `fired` and `hit`, a **passive**
+  `hit` alone. Both halves are hard-fails naming the skill, the layer index
+  and the rule. The reasoning is D2's own: a passive is neither switched on
+  nor cast, so it has no "while active" moment and no cast moment, and a
+  cooldown is never the running aura. Without the gate an authored `ambient`
+  on a passive would load clean, draw nothing, and look like a renderer bug.
+  ⚑ This is a LOAD rule, not a renderer rule; C2a still has to decide what an
+  `ambient` layer does while an aura is equipped but not switched on.
+
 ## 11. Docs this plan amends (C0's first task)
 
-- `plan-entity-presentation.md`: §3's moratorium rewritten (per-effect
-  presentation ART now lives here; the moratorium keeps only "no new
-  independently-anchored overlay on the sprite"); §6 items 3, 4, 10 move
-  here; §7's "wire shape" question loses the per-hit half.
-- `CLAUDE.md`: the Status "Next" entry (done 2026-09-11); the gotcha line
-  repeating the moratorium (still owed).
-- `docs/feedback.md` 2026-08-24 row: prunes to "→ plan-skill-vfx.md".
-- `plan-content-editor.md` D3 / §B4.8: the Visuals placeholder now points
-  here; `hitStyle` leaves the shipped-vs-open audit.
-- `backlog.md` §57: attack lines become a free consumer of the HIT event's
-  source (a line from `source` to `victim` is one more `beam` body); its
-  shipped version is C2a, not §39. `prototype/attack-lines` deletable after
-  C2a.
-- `docs/README.md`: index line (done 2026-09-11).
-- `plan-entity-presentation.md` status block: pointer added 2026-09-11; the
-  §3 / §6 rewrite is still C0's.
+All ✅ **DONE 2026-09-19** unless marked otherwise.
+
+- ✅ `plan-entity-presentation.md`: §3's moratorium rewritten to "no new
+  independently-anchored overlay on the sprite" and nothing else; §6 items 3,
+  4 and 10 replaced by pointers here (C1, C1, C0+C2a); §7's "wire shape"
+  question keeps only its per-entity half; the status block says rewritten.
+- ✅ `CLAUDE.md`: the Status "Next" entry (done 2026-09-11, rewritten to C1 by
+  the 2026-09-19 wrap). ⚑ The "gotcha line repeating the moratorium" this
+  list owed does not exist: at the wrap only the Next entry mentioned the
+  moratorium, and it now points at C1. Nothing left to edit.
+- ✅ `docs/feedback.md` 2026-08-24 row: pruned to "→ plan-skill-vfx.md
+  (DESIGNED 2026-09-11, C0 shipped 2026-09-19)".
+- ✅ `plan-content-editor.md` D3 / §B4.8: the Visuals placeholder now points
+  here and says the key is hidden and preserved until C3. ⚑ `hitStyle` STAYS
+  in the shipped-vs-open audit: §10 Q6 put its deletion in C2.
+- ✅ `backlog.md` §57: its head note now says the shipped version is C2a, not
+  §39, and that `prototype/attack-lines` is deletable once C2a lands.
+- ✅ `docs/README.md`: index line (done 2026-09-11).
+- ✅ `plan-entity-presentation.md` status block: pointer added 2026-09-11, the
+  §3 / §6 rewrite done 2026-09-19.
+- ✅ **Not in the original list, owed all the same:**
+  `manual-content-authoring.md` §2 gains a "Visuals: the `visual` key"
+  subsection (the kinds table, the moments, D2, the body rule, an example) and
+  §3's per-hit bullet now names `visual` as the lever and `hitStyle` as C2's
+  deletion; `.claude/skills/add-content/SKILL.md` and
+  `tools/content-editor/README.md` name the six new fixture lists and the
+  hidden key.
 
 ## 12. Landmines
 
@@ -517,4 +557,99 @@ C0 and C1 can be built in either order; C2a needs both.
 
 ## 13. Ledger
 
-(empty; the first entry is C0's)
+### C0 ledger (2026-09-19) - the vocabulary + the docs amendment
+
+✅ **SHIPPED 2026-09-19** `[uncommitted]`.
+
+**Schema: DB NONE** (the key is content, nothing persists a visual and no
+spellbook row changes). **WIRE NONE** - the skill catalog is HTTP JSON marshalled
+straight off `SkillDefinition`, so the new `visual,omitempty` field reaches the
+client with no `.fbs` edit and no binding regeneration. **CONF NONE.**
+**CONTENT: one new top-level key, `visual`**, plus the generated
+`api/skill-vocabulary.json` and the six `backend/pkg/api/skills/` cp-defs
+copies.
+
+**What was built**
+
+- `backend/pkg/aura/skills/visual.go` (NEW): `VisualDef` / `VisualLayer`, the
+  six closed tables (`visualKinds` 7, `visualTriggers` 3, `visualKeysByKind`,
+  `visualTriggersByKind`, `visualCurves`, `visualMotions`) plus
+  `visualTriggersByCategory` (D2), and `parseVisual` / `parseVisualLayer`.
+  Layers are decoded into a `map[string]json.RawMessage` first, the effects
+  pattern, so a key the kind does not read hard-fails instead of vanishing.
+- `definition.go`: `skillDefinition.Visual json.RawMessage` (so the raw object
+  survives to the allowlist) and `SkillDefinition.Visual *VisualDef`; the parse
+  is called from `mapToSkillDefinition` with the skill's category, and its
+  error is wrapped `skill %q: ...` like every other content refusal.
+- `vocabulary_test.go`: six new fixture fields, plus `require`s that the kind
+  list and the two per-kind maps describe exactly the same seven kinds and that
+  every trigger they name is a real trigger.
+- `tools/content-editor/`: `visual` added to `SKILL_PRESENTATION` as
+  `hidden: true` (the `legacy` precedent: never rendered, preserved on round
+  trip) and to the inventory's `SKIPPED_TOP`; `smoke.mjs` gains finding class
+  **(k)**, both halves, fixture and content.
+- Content: `visual` on `damage`, `long-range-strike`, `suppression`,
+  `frostbite`, `hoarfrost` and `mobs/wolf-bite`, 10 layers, all
+  [PLACEHOLDER], **no `body` anywhere** (§9 C0's departure note).
+
+**Three implementation calls (mine, not PO calls)**
+
+- **CALL A - the D2 gate is a per-CATEGORY trigger table**, not a special case
+  for `passive`. `visualTriggersByCategory` states all three categories
+  positively, so the cooldown half ("a cooldown is never the running aura, so
+  no `ambient`") falls out of the same table instead of being a second rule
+  nobody wrote down. Pinned both ways by nine cases, plus a test that every
+  category the loader knows has a row.
+- **CALL B - range checks are PRESENCE-gated.** An absent `ms` and an authored
+  `"ms": 0` are the same zero after decoding, so the checks test the raw key
+  map: absent means "the kind's own default" and stays legal, an authored zero
+  is refused. Testing the decoded value alone would have refused every layer
+  that omits a tunable, which is most of them.
+- **CALL C - the fixture carries exactly six lists**, not seven: the D2 table
+  stays Go-only because the editor does not render `visual` until C3 and a
+  fixture list with no reader is a list that goes stale unwatched.
+
+**Red→green proofs**
+
+- `visual_test.go` written first: red as a compile failure (no `Visual` field),
+  then red BEHAVIOURALLY at 24 failing subtests once the types existed but the
+  rules did not (every refusal case plus the three D2 negatives loaded clean),
+  green after `parseVisualLayer`.
+- `TestVocabulary_FixtureMatchesTheLiveTables` red on the six missing lists,
+  regenerated with `UPDATE_SKILL_VOCABULARY=1`, green on the rerun without it.
+- ⭐ `TestVisual_TheNinePOExamples`: §4.3's nine animations, authored as JSON
+  with placeholder numbers. All nine load, with zero engine special-casing.
+  This is the acceptance test of the chunk and the thing the vocabulary has to
+  keep passing; a tenth animation that cannot be written here is a plan
+  amendment, not a quiet new kind.
+
+**Verify tail** (all from a clean tree, mutations reverted)
+
+`go build ./...` clean · `go vet ./pkg/aura/skills/` clean ·
+`go test -count=1 ./...` **35 packages ok, 0 failures** (DB tests skip without
+`AURA_TEST_DB_URL`) · `make -C backend build` (runs cp-defs) ·
+`./aurad -validate -content ../api` **0 findings** · `./aurad -validate`
+(embedded) **0 findings** · `npm run smoke` **0 findings across 113 skill
+files / 170 effects / 10 visual layers, 7 visual kinds** · editor `node --test`
+**2/2** · `npm run inventory` regenerated (only its "Generated ... at <hash>"
+line moved; the generator skips `visual` by design) · frontend `npm test`
+**678/38** and `npm run typecheck` clean, both untouched by this chunk.
+
+**Mutation ×3, each reverted**
+
+1. A fake kind `sparkleburst` prepended to `visualKinds`: RED on
+   `TestVisual_TablesCoverEveryKind` (*kind "sparkleburst" has no key row*) and
+   on the golden fixture's own require (*visual kind "sparkleburst" has no
+   visualKeysByKind entry*), before any diff.
+2. `"kind": "bogus"` in `api/skills/damage.json`: RED both ways.
+   `aurad -validate -content ../api` exits 1 with *skill "Damage": visual layer
+   0: unknown kind "bogus" ...*, and `npm run smoke` reddens from the NEW leg
+   (k), naming the file and `visual.layers[0]` (checked deliberately: leg (f)
+   would otherwise have made this a false pass through the seam).
+3. `{"kind":"emitter","on":"ambient"}` on the passive `fire-shield.json`:
+   REFUSED, *skill "FireShield": visual layer 0: trigger "ambient" is not legal
+   on a passive skill (D2: a passive skill may author hit) - ...*.
+
+**⛔ Not verified in game.** C0 has no runtime surface: nothing draws a layer
+until C2a, and the boot proof is `-validate` both ways. The PO look this plan
+owes per §9 is C2a's.

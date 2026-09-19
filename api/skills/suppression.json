@@ -5,6 +5,12 @@
   "icon": "lorc/snowflake-1",
   "category": "active_aura",
   "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "projectile", "on": "hit", "speed": 700 },
+      { "kind": "impact", "on": "hit", "curve": "snap", "ms": 150 }
+    ]
+  },
   "effects": [
     {
       "type": "damage_aura",

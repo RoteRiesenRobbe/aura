@@ -6,6 +6,12 @@
   "displayName": "Long-Range Strike",
   "category": "active_aura",
   "maxLevel": 10,
+  "visual": {
+    "layers": [
+      { "kind": "projectile", "on": "hit", "speed": 900 },
+      { "kind": "impact", "on": "hit", "curve": "snap", "ms": 150 }
+    ]
+  },
   "effects": [
     {
       "type": "damage_aura",

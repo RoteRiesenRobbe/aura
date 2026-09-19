@@ -64,9 +64,19 @@ type skillVocabulary struct {
 	FactionScoped    []string            `json:"factionScoped"`
 	DamageTypes      []string            `json:"damageTypes"`
 	ResistWildcard   string              `json:"resistWildcard"`
+	// The `visual` vocabulary (plan-skill-vfx.md C0). Six lists, the same
+	// generated-not-typed rule as effectKeys: the seven kinds are engine code,
+	// so a kind, a trigger or a tunable added in Go reaches the editor and its
+	// smoke script without anybody retyping it, and a stale copy is impossible.
+	VisualKinds          []string            `json:"visualKinds"`
+	VisualTriggers       []string            `json:"visualTriggers"`
+	VisualKeys           map[string][]string `json:"visualKeys"`
+	VisualTriggersByKind map[string][]string `json:"visualTriggersByKind"`
+	VisualCurves         []string            `json:"visualCurves"`
+	VisualMotions        []string            `json:"visualMotions"`
 }
 
-// topLevelKeys reflects skillDefinition's json tags in struct order: the 15
+// topLevelKeys reflects skillDefinition's json tags in struct order: the 16
 // keys the editor is allowed to write. The loader parses skill JSON WITHOUT
 // DisallowUnknownFields (definition.go, factionScopedEffects' comment), so a
 // typo'd top-level key vanishes in silence; a form that only ever writes these
@@ -126,6 +136,21 @@ func buildSkillVocabulary(t *testing.T) skillVocabulary {
 	}
 	slices.Sort(factionScoped)
 
+	// The visual tables must describe the same seven kinds from every side, or
+	// the editor would offer a kind it cannot render keys for (or refuse one
+	// the loader accepts) and the drift would be silent in both directions.
+	for _, kind := range visualKinds {
+		_, hasKeys := visualKeysByKind[kind]
+		require.True(t, hasKeys, "visual kind %q has no visualKeysByKind entry - the editor could author nothing on it", kind)
+		triggers, hasTriggers := visualTriggersByKind[kind]
+		require.True(t, hasTriggers, "visual kind %q has no visualTriggersByKind entry - it could be authored at no moment at all", kind)
+		for _, on := range triggers {
+			require.Contains(t, visualTriggers, on, "visual kind %q names trigger %q, which is not one of the triggers", kind, on)
+		}
+	}
+	require.ElementsMatch(t, visualKinds, mapKeys(visualKeysByKind), "visualKeysByKind must name exactly the kinds")
+	require.ElementsMatch(t, visualKinds, mapKeys(visualTriggersByKind), "visualTriggersByKind must name exactly the kinds")
+
 	return skillVocabulary{
 		Comment:          vocabularyComment,
 		Categories:       sortedKeys(skillCategoryMap),
@@ -137,6 +162,16 @@ func buildSkillVocabulary(t *testing.T) skillVocabulary {
 		FactionScoped:    factionScoped,
 		DamageTypes:      sortedKeys(DamageTypes),
 		ResistWildcard:   ResistWildcard,
+		// Deliberately NOT sorted, like effectKeys: the LIST order is §4.1's
+		// and the per-kind key order is common-then-payload, which is the
+		// order the editor's form will draw. (The two maps still marshal
+		// alphabetically, as effectKeys does; only their values keep order.)
+		VisualKinds:          visualKinds,
+		VisualTriggers:       visualTriggers,
+		VisualKeys:           visualKeysByKind,
+		VisualTriggersByKind: visualTriggersByKind,
+		VisualCurves:         visualCurves,
+		VisualMotions:        visualMotions,
 	}
 }
 

@@ -5694,8 +5694,11 @@ there until abilities roll in.
 
 *(added 2026-08-08 from the marketing-assessment conversation; the PO wants an
 **early prototype**. ✅ **PROTOTYPE BUILT AND PO-PLAYED 2026-08-08** — see
-"The prototype" at the end of this section. The **shipped** version is still
-unscheduled and still belongs behind §39.)*
+"The prototype" at the end of this section. ⭐ **Updated 2026-09-19: the
+shipped version is `plan-skill-vfx.md` C2a, not §39.** That plan puts the
+per-hit source on the wire (C1) and a world-space VFX layer on the client
+(C2a), so a line from `source` to `victim` is one more `beam` body rather than
+a system of its own; `prototype/attack-lines` is deletable once C2a lands.)*
 
 The ask: an indicator showing **which mob is attacking which character** —
 imagined as a line (hit- or arrow-like) from the mob to the player that lingers

@@ -75,8 +75,10 @@ the bottom. Trust the code over the manual if a path has drifted.
   no separate map to maintain any more, but a missing/empty `sprite` hard-fails
   at server boot (`world/props.go`), before this script would ever see it.
 - **A change to the SKILL tables in `backend/pkg/aura/skills/definition.go`
-  needs the vocabulary fixture regenerated** (`effectKeys`, `effectCategories`,
-  `costKeys`, the categories, the top-level key list): the golden test fails
+  or `visual.go` needs the vocabulary fixture regenerated** (`effectKeys`,
+  `effectCategories`, `costKeys`, the categories, the top-level key list, and
+  the six VFX lists `visualKinds`, `visualTriggers`, `visualKeys`,
+  `visualTriggersByKind`, `visualCurves`, `visualMotions`): the golden test fails
   until you run `UPDATE_SKILL_VOCABULARY=1 go test -count=1
   ./pkg/aura/skills/` from `backend/` and commit `api/skill-vocabulary.json`.
   The content editor's Skills tab renders its whole form from that fixture, so

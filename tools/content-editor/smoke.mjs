@@ -7,7 +7,8 @@
  *
  *     node tools/content-editor/smoke.mjs      # or: npm run smoke
  *
- * Ten findings classes (plan-content-editor.md §B5 C0, §B8):
+ * Eleven findings classes (plan-content-editor.md §B5 C0, §B8; (k) is
+ * plan-skill-vfx.md C0):
  *
  *   (a) every effect's keys are inside effectKeys[type] plus the cost keys
  *       plus "type", and its TYPE is one effectCategories allows on the file's
@@ -16,7 +17,7 @@
  *       Skills tab would render a form that cannot express real content - and
  *       if the category table disagreed with the content, the picker would
  *       hide a type the game actually ships (C3 rider, PO 2026-09-12).
- *   (b) every top-level key is one of the 15 the loader reads, or starts with
+ *   (b) every top-level key is one of the 16 the loader reads, or starts with
  *       an underscore. ⚑ This is the FIRST check of that class anywhere:
  *       skill JSON is parsed WITHOUT DisallowUnknownFields, so a typo'd
  *       top-level key vanishes in silence and the field it meant to set stays
@@ -58,6 +59,15 @@
  *   (j) every name in TEST_RIG_SKILLS is a player skill on disk - the badge is
  *       a name list (nothing in the files marks a cheat rig), so a rename must
  *       not leave it pointing at nothing.
+ *   (k) the `visual` vocabulary, both halves (plan-skill-vfx.md C0). The
+ *       FIXTURE half: the six generated lists exist and agree with each other
+ *       (seven kinds, three triggers, a key row and a trigger row per kind,
+ *       every named trigger a real one). The CONTENT half: every authored
+ *       layer names a known kind, a moment that kind has, and only keys that
+ *       kind reads - the (a)/(b) checks one level down. The Skills tab does
+ *       not render `visual` until C3, so until then this is the only JS-side
+ *       reader of the key, and a hand-typed layer has nothing else to catch
+ *       it before the loader does.
  *
  * ⚑ No underscore exemption at EFFECT level, on purpose: no shipped effect
  * carries a _comment (measured) and Go's validateEffectKeys would refuse one,
@@ -84,6 +94,8 @@ const findings = [];
 function finding(where, message) {
   findings.push(`${where}: ${message}`);
 }
+
+const REGEN_VOCABULARY = 'UPDATE_SKILL_VOCABULARY=1 go test -count=1 ./pkg/aura/skills/  (run from backend/)';
 
 const vocabulary = readSkillVocabulary(ROOT);
 const topLevelKeys = new Set(vocabulary.topLevelKeys);
@@ -116,6 +128,45 @@ for (const name of fixtureTypes) {
 }
 for (const name of Object.keys(effectCategories)) {
   if (!(name in vocabulary.effectKeys)) finding('api/skill-vocabulary.json', `effectCategories names "${name}", which effectKeys does not - regenerate the fixture`);
+}
+
+// (k) the visual vocabulary's fixture half. The counts are pinned outright:
+// the seven kinds are ENGINE code (each one is a renderer class), so an eighth
+// arriving in the fixture without a plan amendment is exactly what this should
+// stop, and a kind quietly lost is the same finding from the other side.
+const VISUAL_KINDS = 7;
+const VISUAL_TRIGGERS = 3;
+const visualKinds = vocabulary.visualKinds || [];
+const visualTriggers = vocabulary.visualTriggers || [];
+const visualKeys = vocabulary.visualKeys || {};
+const visualTriggersByKind = vocabulary.visualTriggersByKind || {};
+for (const [list, name] of [[visualKinds, 'visualKinds'], [visualTriggers, 'visualTriggers'], [vocabulary.visualCurves, 'visualCurves'], [vocabulary.visualMotions, 'visualMotions']]) {
+  if (!Array.isArray(list) || list.length === 0) finding('api/skill-vocabulary.json', `${name} is missing or empty - regenerate the fixture (${REGEN_VOCABULARY})`);
+}
+if (visualKinds.length !== VISUAL_KINDS) {
+  finding('api/skill-vocabulary.json', `visualKinds has ${visualKinds.length} entries, not the ${VISUAL_KINDS} closed kinds of plan-skill-vfx.md §4.1 - a kind is a renderer class, so adding or dropping one is a plan amendment, not a table edit`);
+}
+if (visualTriggers.length !== VISUAL_TRIGGERS) {
+  finding('api/skill-vocabulary.json', `visualTriggers has ${visualTriggers.length} entries, not the ${VISUAL_TRIGGERS} moments (ambient, fired, hit)`);
+}
+for (const kind of visualKinds) {
+  if (!Array.isArray(visualKeys[kind]) || visualKeys[kind].length === 0) {
+    finding('api/skill-vocabulary.json', `visualKeys has no entry for kind "${kind}" - nothing could be authored on it`);
+  }
+  const triggers = visualTriggersByKind[kind];
+  if (!Array.isArray(triggers) || triggers.length === 0) {
+    finding('api/skill-vocabulary.json', `visualTriggersByKind has no entry for kind "${kind}" - it could be authored at no moment at all`);
+  } else {
+    for (const on of triggers) {
+      if (!visualTriggers.includes(on)) finding('api/skill-vocabulary.json', `visualTriggersByKind.${kind} names "${on}", which visualTriggers does not carry`);
+    }
+  }
+}
+for (const kind of Object.keys(visualKeys)) {
+  if (!visualKinds.includes(kind)) finding('api/skill-vocabulary.json', `visualKeys names "${kind}", which visualKinds does not - regenerate the fixture`);
+}
+for (const kind of Object.keys(visualTriggersByKind)) {
+  if (!visualKinds.includes(kind)) finding('api/skill-vocabulary.json', `visualTriggersByKind names "${kind}", which visualKinds does not - regenerate the fixture`);
 }
 
 // (d) presentation completeness, both directions, per table.
@@ -171,6 +222,7 @@ const playerSkillNames = [];
 
 let fileCount = 0;
 let effectCount = 0;
+let visualLayerCount = 0;
 
 for (const abs of listJsonFiles(SKILLS_DIR)) {
   const rel = path.relative(ROOT, abs).split(path.sep).join('/');
@@ -200,6 +252,34 @@ for (const abs of listJsonFiles(SKILLS_DIR)) {
     if (key.startsWith('_')) continue;
     if (!topLevelKeys.has(key)) {
       finding(rel, `unknown top-level key "${key}" - the loader parses skill JSON without DisallowUnknownFields, so this key is read by nothing and fails silently`);
+    }
+  }
+
+  // (k) the visual layers, the content half. Mirrors (a) one level down: the
+  // kind is the layer's "type", visualKeys[kind] its allowlist, and the
+  // trigger has to be a moment that kind actually has.
+  const layers = Array.isArray((raw.visual || {}).layers) ? raw.visual.layers : [];
+  if (raw.visual !== undefined && layers.length === 0) {
+    finding(rel, `authors "visual" with no layers - a skill with nothing to draw omits the whole key`);
+  }
+  for (const [i, layer] of layers.entries()) {
+    if (layer === null || typeof layer !== 'object') {
+      finding(rel, `visual.layers[${i}] is not an object`);
+      continue;
+    }
+    visualLayerCount += 1;
+    const allowedLayerKeys = visualKeys[layer.kind];
+    if (!allowedLayerKeys) {
+      finding(rel, `visual.layers[${i}] has kind "${layer.kind}", which the vocabulary does not know - the kinds are engine code and closed: ${visualKinds.join(', ')}`);
+      continue;
+    }
+    const moments = visualTriggersByKind[layer.kind] || [];
+    if (!moments.includes(layer.on)) {
+      finding(rel, `visual.layers[${i}] (${layer.kind}) is authored on "${layer.on}", which is not a moment that kind plays at (${moments.join(', ')})`);
+    }
+    for (const key of Object.keys(layer)) {
+      if (allowedLayerKeys.includes(key)) continue;
+      finding(rel, `visual.layers[${i}] (${layer.kind}) authors "${key}", which visualKeys.${layer.kind} does not allow`);
     }
   }
 
@@ -292,5 +372,5 @@ for (const line of seamSelfTestFindings()) finding('aurad-validate.test.mjs', li
 for (const line of saveSkillSelfTestFindings()) finding('save-skill.test.mjs', line);
 
 for (const line of findings) console.log(line);
-console.log(`${findings.length} finding(s) across ${fileCount} skill file(s) / ${effectCount} effect(s), ${fixtureTypes.length} effect type(s) in the vocabulary, ${glyphCount} vendored glyph(s)`);
+console.log(`${findings.length} finding(s) across ${fileCount} skill file(s) / ${effectCount} effect(s) / ${visualLayerCount} visual layer(s), ${fixtureTypes.length} effect type(s) and ${visualKinds.length} visual kind(s) in the vocabulary, ${glyphCount} vendored glyph(s)`);
 process.exit(findings.length > 0 ? 1 : 0);

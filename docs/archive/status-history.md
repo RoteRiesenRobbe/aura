@@ -10,6 +10,11 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-09-19, the skill VFX C0 wrap rotated the cap, so SUMMON FOLLOWS C1-C3
+moved here verbatim.)*
+
+- **Prior: SUMMON FOLLOWS C1-C3, `follows` · the retired role · the despawn** ✅ 2026-09-13 `0bde3c7f` (ledger: `docs/archive/plan-summon-follows.md` §9, ARCHIVED): a **`follows: true` key on the `spawn` effect is the ONLY authored way a summon follows its caster**, a runtime flag the follow check reads beside charm's leader link, so any mob in the `spawnMob` picker can be a pet and the twin companion files became optional (D1). ⭐ **`role: "follower"` is GONE** (C2, Q1 closed on the PO's *"I thought we only have one concept?"*), with C1's transition guard and the zone editor's `companion` marker kind (CALL D). ⭐ **C3, a PO bug the same day: every OWNED summon expires with its owner** through `ForgetDeparted`, the one hook that sees death, disconnect AND flight takeoff (R1 every owned thing, R4 the placed `Camp` too). ⚑ `doFuneral`'s owned-entities loop reads like the home for that and is DEAD CODE. ⚑ An installed Tiled extension stays stale until `bash tools/tiled/install.sh` re-runs. **Schema DB/wire/conf NONE; content: five skill files gain the key (the fifth ticked by the PO in the tab during the walk), four mob files lose their role and their `_comment`s, plus the fixture.** Verified: 35 pkgs 0 failures · `-validate` 0 findings · editor smoke 0/106 · `chunk2-follower.mjs` 5 PASS + 1 designed-INCONCLUSIVE (gap 0.8 → 1.49 u across an 8.2 u walk) · frontend 678/38. ⭐ **PO walk: "all three work"** (CallForAid heels · the PO's own `SummonSpider` follows · summons vanish on death).
+
 *(2026-09-13, the summon-follows wrap rotated the cap, so SPELL BUILDER C2
 moved here verbatim.)*
 

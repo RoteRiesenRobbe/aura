@@ -538,6 +538,74 @@ Two things keep the surface small, and neither removes it:
 A Warbanner that heals before it damages is a different skill at 5 % health than
 one that damages before it heals.
 
+### Visuals: the `visual` key
+
+*(`plan-skill-vfx.md` C0, shipped 2026-09-19. The renderer is C2a/C2b, so
+authoring this today is authoring ahead of the thing that draws it.)*
+
+A skill may carry one optional top-level `visual` block, placed after
+`maxLevel` and before `effects`. It says what the skill LOOKS like, on the
+SKILL and never per effect: a skill with a damage effect and a slow effect has
+one look. Mobs use the same key on their own files, so a visual on
+`api/skills/mobs/wolf-bite.json` dresses every wolf.
+
+```json
+"visual": {
+  "layers": [
+    { "kind": "projectile", "on": "hit", "speed": 900 },
+    { "kind": "impact", "on": "hit", "curve": "snap", "ms": 150 }
+  ]
+}
+```
+
+Each layer names a **kind** (what moves) and an **`on`** (the moment it
+plays). The seven kinds are ENGINE code and the set is CLOSED: each one is a
+renderer class with its own math, so an eighth is a plan amendment, not a
+content decision. Everything else is a parameter.
+
+| kind | plays on | its own keys | what it is |
+|---|---|---|---|
+| `impact` | hit | `ms`, `curve` | a body at the VICTIM, oriented caster→victim |
+| `arc-swing` | hit | `ms` | a body swung from above the caster onto the victim |
+| `projectile` | hit | `speed` | a body flying caster→victim at constant speed |
+| `beam` | hit | `ms`, `width` | a body stretched caster→victim with an envelope |
+| `cast-pose` | fired | `ms` | a body worn ON the caster while it casts (the bow) |
+| `orbit` | fired, ambient | `ms`, `count` | N bodies circling the caster |
+| `emitter` | ambient, fired, hit | `ms`, `count`, `motion` | particles from a point or a disc |
+
+Legal on every layer: `kind` and `on` (both required), plus `body`, `tint`
+(lowercase `#rrggbb`) and `scale`. Closed value sets: `curve` is one of
+`thrust` / `snap` / `burst`, `motion` one of `swirl` / `rise` / `burst`. Every
+number is a **[PLACEHOLDER]** like all the others; `ms`, `speed`, `width` and
+`scale` must be > 0 when authored and `count` >= 1, and omitting one means
+"the kind's own default" rather than zero.
+
+The three moments:
+
+- **`ambient`** - while this is the actor's running aura.
+- **`fired`** - a cast or an aura tick went off, targets or not.
+- **`hit`** - once per victim of a landing. A `hit` layer on an aura that
+  strikes three targets draws three times in one tick; that is the intent, not
+  a special case.
+
+⭐ **D2, enforced at load:** `ambient` is legal only on an **active aura** (it
+is the only category that is ever "running"), and a **passive** may author
+`hit` layers only (it is neither switched on nor cast, so its hit moments are
+all it has). A **cooldown** may author `fired` and `hit`. The loader hard-fails
+anything else, naming the skill and the layer index, because the alternative is
+a file that loads clean and draws nothing.
+
+⚑ **`body` is UNCHECKED today.** It names a frame in the art atlas, and the
+atlas does not exist until `plan-skill-vfx.md` C3. An absent `body` draws the
+kind's procedural placeholder, which is the right thing to author right now: a
+body named before the atlas exists becomes a `-validate` ERROR the moment C3
+arms the check. The six skills that ship a `visual` today (Damage,
+LongRangeStrike, Suppression, Frostbite, Hoarfrost, WolfBite) author none.
+
+⚑ The content editor's Skills tab does NOT render `visual` until C3. It is
+hidden and preserved untouched on round trip, exactly like `legacy`, so a
+hand-authored block survives a save from the tab.
+
 ### Retiring a skill: never delete the file
 
 *(PO ruling 2026-09-18, `plan-content-editor.md` §B12 C5, which replaced the
@@ -724,12 +792,18 @@ Three distinct VFX surfaces — **all pure frontend, no backend, no wire.**
   `frontend/src/features/game-objects/assets/effects/damageAura.svg` and
   `healAura.svg`, referenced in `Graphics.ts` as `character.damageAuraFile` /
   `healAuraFile`. Replace the SVG (keep the filename, or repoint the `require`).
-- **Per-hit VFX** (slash streak / fire cluster on each aura tick): **not an
-  asset** — drawn programmatically in
+- **Per-hit VFX** (slash streak / fire cluster on each aura tick): ⭐ **the
+  lever is the skill's `visual` key** (§2 "Visuals", `plan-skill-vfx.md`), not
+  this drawing code. Author the layers on the skill file; every skill gets its
+  own look, for mobs too, and the renderer is that plan's C2a/C2b.
+  ⚑ What is still in the code until then: the generic slash / fire cluster,
+  drawn programmatically in
   `frontend/src/features/game-objects/logic/_GameObject.ts` →
-  `buildAuraHitFx(style)` (see `showAuraHit` above it). Edit that method to change
-  the look. *Which* style plays (1 = slash, 2 = fire) is chosen **server-side**
-  from the effect's `hitStyle` override or its `tickInterval` cadence.
+  `buildAuraHitFx(style)` (see `showAuraHit` above it), with *which* style
+  plays (1 = slash, 2 = fire) chosen **server-side** from the effect's
+  `hitStyle` override or its `tickInterval` cadence. **`hitStyle` is retired by
+  `plan-skill-vfx.md` C2** (D7), end to end, and carries one bit of style in
+  the meantime: do not author new ones.
 - **Cooldown burst** (gold ring on cooldown activation): also programmatic in
   `_GameObject.ts`.
 
@@ -1105,7 +1179,7 @@ forget:
   above still holds for mobs, NPCs, quests, factions, recipes and milestones,
   but the Skills tab does not mirror anything: it renders from
   `api/skill-vocabulary.json`, a GENERATED file carrying Go's own tables (the
-  per-effect-type key allowlist, the 15 top-level keys, the categories, the
+  per-effect-type key allowlist, the 16 top-level keys, the categories, the
   cost keys, the per-type category table, the retired-key hints), whose only
   writer is the golden test
   `UPDATE_SKILL_VOCABULARY=1 go test -count=1 ./pkg/aura/skills/` (from

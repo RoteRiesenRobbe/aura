@@ -362,6 +362,11 @@ ordinary form work.
   ⚑ That takes **`hitStyle`** out with it (the schema's one visual lever,
   auto/slash/fire/none, chosen server-side and sent as a byte): not rendered,
   preserved on round trip. The shipped-vs-open audit is §4.8.
+  ⭐ **Update 2026-09-19:** the VFX ruling now exists. `plan-skill-vfx.md` C0
+  shipped the authored vocabulary as a top-level `visual` key (seven closed
+  kinds, three triggers), and that plan's C3 is where the Visuals section
+  starts rendering it. Until then `visual` behaves exactly like `legacy`:
+  hidden in the tab, preserved untouched on round trip.
 - **D4 - `archive/plan-content-tooling.md` D7 re-ruled** (banner above): humans
   author skills in the tool.
 - **D5 - Numbers: plain fields + a per-level preview table.** Base and
@@ -572,7 +577,7 @@ plan docs 2026-09-08:
 
 | Out | Why | Handling |
 |---|---|---|
-| **Visuals** | no VFX ruling exists (`plan-entity-presentation.md` §39, `prototype/skill-visuals` parked) | disabled section |
+| **Visuals** | no VFX ruling exists (`plan-entity-presentation.md` §39, `prototype/skill-visuals` parked) | disabled section. ⭐ **2026-09-19:** the ruling exists (`plan-skill-vfx.md` C0, the `visual` key); the section renders it at that plan's C3, and until then the key is hidden and preserved like `legacy` |
 | **`hitStyle`** | the one visual lever; goes with VFX | not rendered, preserved on round trip (2 users) |
 | **`projectile`** type + `forwardUnits`, `armTicks` | `plan-prototype-projectile.md` PARKED 2026-08-20, P2/P3-or-delete hangs on the owed second pass | type hidden from the picker; `ThrowBomb` / `ThrowMine` open **read-only** with a banner |
 | **`legacy`** flag | no file authors it; the proving-grounds content it marked was deleted at zone-editor C3 | not rendered, preserved |

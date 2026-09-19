@@ -42,7 +42,7 @@
 const SHARED = 'shared';
 const PAYLOAD = 'payload';
 
-// The 15 top-level keys (skillDefinition's json tags, fixture `topLevelKeys`).
+// The 16 top-level keys (skillDefinition's json tags, fixture `topLevelKeys`).
 export const SKILL_PRESENTATION = {
   id: { control: 'number', unit: 'count', hint: 'Persisted in every spellbook row; never changes once shipped.' },
   name: { control: 'text', hint: 'The reference key everywhere: mob skills[]/unlocks[], milestones, NPC grants, recipes, the SKILL cheat.' },
@@ -58,6 +58,7 @@ export const SKILL_PRESENTATION = {
   castTicksPerLevel: { control: 'number', section: 'category' },
   castInterruptedByDamage: { control: 'bool', section: 'category', hint: 'Only legal when castTicks > 0 (loader rule).' },
   targetFactions: { control: 'multi', options: 'factions', section: 'category', hint: 'Faction allowlist; MANDATORY when any effect is calm or charm, and then it gates EVERY effect of the skill.' },
+  visual: { control: 'text', hidden: true, hint: 'The skill VFX layer list (plan-skill-vfx.md C0). Authored by hand for now and preserved untouched on save; the tab renders it from C3 on.' },
   effects: { control: 'effects' },
 };
 

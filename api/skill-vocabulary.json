@@ -20,6 +20,7 @@
     "castTicksPerLevel",
     "castInterruptedByDamage",
     "targetFactions",
+    "visual",
     "effects"
   ],
   "effectKeys": {
@@ -495,5 +496,118 @@
     "physical",
     "poison"
   ],
-  "resistWildcard": "*"
+  "resistWildcard": "*",
+  "visualKinds": [
+    "impact",
+    "arc-swing",
+    "projectile",
+    "beam",
+    "cast-pose",
+    "orbit",
+    "emitter"
+  ],
+  "visualTriggers": [
+    "ambient",
+    "fired",
+    "hit"
+  ],
+  "visualKeys": {
+    "arc-swing": [
+      "kind",
+      "on",
+      "body",
+      "tint",
+      "scale",
+      "ms"
+    ],
+    "beam": [
+      "kind",
+      "on",
+      "body",
+      "tint",
+      "scale",
+      "ms",
+      "width"
+    ],
+    "cast-pose": [
+      "kind",
+      "on",
+      "body",
+      "tint",
+      "scale",
+      "ms"
+    ],
+    "emitter": [
+      "kind",
+      "on",
+      "body",
+      "tint",
+      "scale",
+      "ms",
+      "count",
+      "motion"
+    ],
+    "impact": [
+      "kind",
+      "on",
+      "body",
+      "tint",
+      "scale",
+      "ms",
+      "curve"
+    ],
+    "orbit": [
+      "kind",
+      "on",
+      "body",
+      "tint",
+      "scale",
+      "ms",
+      "count"
+    ],
+    "projectile": [
+      "kind",
+      "on",
+      "body",
+      "tint",
+      "scale",
+      "speed"
+    ]
+  },
+  "visualTriggersByKind": {
+    "arc-swing": [
+      "hit"
+    ],
+    "beam": [
+      "hit"
+    ],
+    "cast-pose": [
+      "fired"
+    ],
+    "emitter": [
+      "ambient",
+      "fired",
+      "hit"
+    ],
+    "impact": [
+      "hit"
+    ],
+    "orbit": [
+      "fired",
+      "ambient"
+    ],
+    "projectile": [
+      "hit"
+    ]
+  },
+  "visualCurves": [
+    "thrust",
+    "snap",
+    "burst"
+  ],
+  "visualMotions": [
+    "swirl",
+    "rise",
+    "burst"
+  ]
 }

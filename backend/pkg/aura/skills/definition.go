@@ -1112,6 +1112,14 @@ type SkillDefinition struct {
 	// this is presentation, and the scope is a property of the SKILL (D8).
 	TargetFactions []string `json:"targetFactions,omitempty"`
 
+	// Visual is the authored `visual` block, nil when the skill authors none
+	// (plan-skill-vfx.md C0). See visual.go for the vocabulary and the rules.
+	//
+	// ⚑ omitempty and public on purpose: GET /skills marshals this struct
+	// verbatim, so the client's renderer reads the layers straight off the
+	// catalog and a skill with no dressing serves no key at all.
+	Visual *VisualDef `json:"visual,omitempty"`
+
 	Effects []EffectDef `json:"effects"`
 }
 
@@ -1265,6 +1273,11 @@ type skillDefinition struct {
 
 	// Faction names this skill is allowed to reach (plan-faction-flips D8).
 	TargetFactions []string `json:"targetFactions"`
+
+	// Kept raw for the same reason the effects are: the per-layer key
+	// allowlist (visual.go) can only hard-fail a key the kind does not read if
+	// it still sees the authored object.
+	Visual json.RawMessage `json:"visual"`
 
 	// Kept raw so mapping can hard-fail keys the effect type does not read
 	// (see effectKeys).
@@ -1689,6 +1702,11 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		return nil, fmt.Errorf("skill %q: castInterruptedByDamage requires castTicks > 0", s.Name)
 	}
 
+	visual, err := parseVisual(s.Visual, s.Category)
+	if err != nil {
+		return nil, fmt.Errorf("skill %q: %w", s.Name, err)
+	}
+
 	effects := make([]EffectDef, 0, len(s.Effects))
 	for _, rawEffect := range s.Effects {
 		effect, err := mapEffect(rawEffect)
@@ -1737,6 +1755,7 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		CastInterruptedByDamage: s.CastInterruptedByDamage,
 		TargetFactionMask:       targetFactionMask,
 		TargetFactions:          targetFactionNames,
+		Visual:                  visual,
 		Effects:                 effects,
 	}, nil
 }
