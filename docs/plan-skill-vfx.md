@@ -1,6 +1,6 @@
 # Plan: Skill VFX - what a hit, a cast and a running aura look like, for everyone
 
-> **Status: C2a BUILT 2026-09-19 `[uncommitted]`, PO look PASSED (the engine:
+> **Status: C2a BUILT 2026-09-19 `512d4afd`, PO look PASSED (the engine:
 > the `SkillFx` manager on its own layer below darkness, budget + pools, the
 > math module, placeholder bodies, `impact` / `projectile` / `beam` plus the
 > amendment's caster-anchored `strike`, the `hitStyle` lever deleted end to end,
@@ -990,7 +990,7 @@ overhead mace `strike`/overhead (+ `impact`), the wolf bite stays
 
 ### C2a ledger (2026-09-19) - the engine + three kinds
 
-✅ **BUILT 2026-09-19** `[uncommitted]`, **PO look PASSED**. Spec: §12b, with
+✅ **BUILT 2026-09-19** `512d4afd`, **PO look PASSED**. Spec: §12b, with
 the PO's calls of the day in §12b.1; the `strike` amendment that came out of
 the first look is §12c.
 
