@@ -177,30 +177,6 @@ func (rcv *Mob) MutateBurstRadius(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(22, n)
 }
 
-func (rcv *Mob) DamageTaken() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
-	if o != 0 {
-		return rcv._tab.GetUint32(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *Mob) MutateDamageTaken(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(24, n)
-}
-
-func (rcv *Mob) AuraHitStyle() byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
-	if o != 0 {
-		return rcv._tab.GetByte(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *Mob) MutateAuraHitStyle(n byte) bool {
-	return rcv._tab.MutateByteSlot(26, n)
-}
-
 func (rcv *Mob) MaxHealth() uint32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
 	if o != 0 {
@@ -225,18 +201,6 @@ func (rcv *Mob) MutateAuraRadius(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(30, n)
 }
 
-func (rcv *Mob) HealReceived() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
-	if o != 0 {
-		return rcv._tab.GetUint32(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *Mob) MutateHealReceived(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(32, n)
-}
-
 func (rcv *Mob) LightRadius() uint16 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
 	if o != 0 {
@@ -259,18 +223,6 @@ func (rcv *Mob) DwellRadius() uint16 {
 
 func (rcv *Mob) MutateDwellRadius(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(36, n)
-}
-
-func (rcv *Mob) CritTaken() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
-	if o != 0 {
-		return rcv._tab.GetUint32(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *Mob) MutateCritTaken(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(38, n)
 }
 
 func (rcv *Mob) ShieldHp() uint32 {
@@ -357,20 +309,20 @@ func (rcv *Mob) MutateLevel(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(52, n)
 }
 
-func (rcv *Mob) ImmuneHit() bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(54))
+func (rcv *Mob) OwnerId() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(56))
 	if o != 0 {
-		return rcv._tab.GetBool(o + rcv._tab.Pos)
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
 	}
-	return false
+	return 0
 }
 
-func (rcv *Mob) MutateImmuneHit(n bool) bool {
-	return rcv._tab.MutateBoolSlot(54, n)
+func (rcv *Mob) MutateOwnerId(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(56, n)
 }
 
 func MobStart(builder *flatbuffers.Builder) {
-	builder.StartObject(26)
+	builder.StartObject(27)
 }
 func MobAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -405,29 +357,17 @@ func MobAddMobId(builder *flatbuffers.Builder, mobId uint16) {
 func MobAddBurstRadius(builder *flatbuffers.Builder, burstRadius uint16) {
 	builder.PrependUint16Slot(9, burstRadius, 0)
 }
-func MobAddDamageTaken(builder *flatbuffers.Builder, damageTaken uint32) {
-	builder.PrependUint32Slot(10, damageTaken, 0)
-}
-func MobAddAuraHitStyle(builder *flatbuffers.Builder, auraHitStyle byte) {
-	builder.PrependByteSlot(11, auraHitStyle, 0)
-}
 func MobAddMaxHealth(builder *flatbuffers.Builder, maxHealth uint32) {
 	builder.PrependUint32Slot(12, maxHealth, 0)
 }
 func MobAddAuraRadius(builder *flatbuffers.Builder, auraRadius uint16) {
 	builder.PrependUint16Slot(13, auraRadius, 0)
 }
-func MobAddHealReceived(builder *flatbuffers.Builder, healReceived uint32) {
-	builder.PrependUint32Slot(14, healReceived, 0)
-}
 func MobAddLightRadius(builder *flatbuffers.Builder, lightRadius uint16) {
 	builder.PrependUint16Slot(15, lightRadius, 0)
 }
 func MobAddDwellRadius(builder *flatbuffers.Builder, dwellRadius uint16) {
 	builder.PrependUint16Slot(16, dwellRadius, 0)
-}
-func MobAddCritTaken(builder *flatbuffers.Builder, critTaken uint32) {
-	builder.PrependUint32Slot(17, critTaken, 0)
 }
 func MobAddShieldHp(builder *flatbuffers.Builder, shieldHp uint32) {
 	builder.PrependUint32Slot(18, shieldHp, 0)
@@ -450,8 +390,8 @@ func MobAddAppliedEffects(builder *flatbuffers.Builder, appliedEffects byte) {
 func MobAddLevel(builder *flatbuffers.Builder, level uint16) {
 	builder.PrependUint16Slot(24, level, 0)
 }
-func MobAddImmuneHit(builder *flatbuffers.Builder, immuneHit bool) {
-	builder.PrependBoolSlot(25, immuneHit, false)
+func MobAddOwnerId(builder *flatbuffers.Builder, ownerId uint64) {
+	builder.PrependUint64Slot(26, ownerId, 0)
 }
 func MobEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

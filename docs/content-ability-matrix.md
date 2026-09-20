@@ -30,15 +30,14 @@ not a fourth copy of the content tables:
 Every number in a proposed cell is **[PLACEHOLDER]** by project rule, and every
 proposed *name* is a working title for the PO to accept, rename or reject.
 
-**Scope: player skills**, 52 files in `api/skills/` on 2026-08-10. The 37
-mob-only skills in `api/skills/mobs/` use the same vocabulary and the same grid;
-they are authoring details of their mobs and are not counted here.
+**Scope: player skills**, the files in `api/skills/` (75 on 2026-09-19; the
+current count is the totals line of `content-skill-inventory.md`). The mob-only
+skills in `api/skills/mobs/` use the same vocabulary and the same grid; they are
+authoring details of their mobs and are not counted here.
 
-⚑ **`content-skill-inventory.md` has drifted twice over, and both ways cancel
-out.** Its prose still says "the 50 player skills" while its tables already list
-52 rows; of those rows one (Recall) no longer exists as content, and one that
-does exist (Discipline) is missing. Regenerate it before trusting any per-skill
-line, exactly as its own header warns.
+`content-skill-inventory.md` is regenerated from `api/` by `npm run inventory`
+in `tools/content-editor/`, and is allowed to lag behind the content between
+runs.
 
 ---
 

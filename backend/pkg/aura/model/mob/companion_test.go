@@ -1,9 +1,10 @@
 package mob
 
 // Behavior pins for the companion follower (mob-depth chunk 6): an owned,
-// moving summon follows its owner and acquires targets exclusively from the
-// owner's combat signals (§3.6) — never from its aggro sensor (whose mask
-// sees the player layer) and never from its own threat table.
+// moving summon follows its owner and acquires targets from the owner's
+// combat signals first (§3.6), then, only while still idle, from its own
+// threat table in self-defense (2026-09-19, the single-target ruling). Never
+// from its aggro sensor, whose mask sees the player layer.
 
 import (
 	"testing"
@@ -38,17 +39,45 @@ func newFakeOwner() *fakeOwner {
 func companionDefinition() *mobs.MobDefinition {
 	def := testMobDefinition()
 	def.Name = "Companion"
-	def.Role = mobs.RoleFollower // authored since chunk 2, no longer inferred from owner+velocity
+	// A plain creature, like the four shipped companion mobs are since C2
+	// retired the third role (plan-summon-follows.md Q1). Nothing on the
+	// DEFINITION makes a pet; what makes this fixture follow is SetFollows.
 	return def
 }
 
-// newTestCompanion builds an owned, moving mob (= follower) at the origin.
+// newTestCompanion builds an owned, moving PET at the origin: owned, and
+// carrying the runtime flag the summon builder copies from the spell's
+// authored `follows` (plan-summon-follows.md D1).
 func newTestCompanion(owner *fakeOwner) *Mob {
 	m := NewMob(companionDefinition(), 0, nil)
 	m.Align()
 	m.SetOwner(owner)
+	m.SetFollows(true)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 	return m
+}
+
+// ⭐ The point of plan-summon-follows.md D1: the permission to follow is the
+// SPELL's, not the mob's. A wild species with its own creature role, its own
+// body and its own speed follows its owner the moment the summon builder sets
+// the flag - which is what lets any mob in the spawnMob picker be summoned as a
+// pet without a companion twin file.
+func TestMob_OwnedCreatureWithTheFollowsFlagFollowsItsOwner(t *testing.T) {
+	owner := newFakeOwner()
+	owner.pos = phy.Vec2f{X: 5, Y: 0}
+	def := testMobDefinition() // role absent -> creature, a wild species
+	m := NewMob(def, 0, nil)
+	m.Align()
+	m.SetOwner(owner)
+	m.SetFollows(true)
+	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
+
+	require.True(t, m.Update(0))
+
+	assert.InDelta(t, 0.055, m.Position().Abs(), 1e-3,
+		"the flag alone buys the full-speed follow step")
+	assert.Greater(t, m.Position().X, float32(0.04),
+		"...and the step heads toward the owner")
 }
 
 func newHostileCombatant(pos phy.Vec2f) *fakeCombatant {
@@ -301,7 +330,7 @@ func TestMob_FollowerDropsTargetBeyondOwnerTether(t *testing.T) {
 		"a target beyond the tether-from-owner is dropped (the companion never strays)")
 }
 
-func TestMob_FollowerIgnoresOwnThreatTable(t *testing.T) {
+func TestMob_FollowerRetaliatesAgainstItsOwnAttacker(t *testing.T) {
 	owner := newFakeOwner()
 	owner.pos = phy.Vec2f{X: 1, Y: 0}
 	m := newTestCompanion(owner)
@@ -310,8 +339,35 @@ func TestMob_FollowerIgnoresOwnThreatTable(t *testing.T) {
 	m.noteThreat(biter, 50)
 	require.True(t, m.Update(0))
 
-	assert.Nil(t, m.aggroTarget,
-		"§3.6 is owner-centric: hits on the companion itself never acquire")
+	assert.Same(t, model.Combatant(biter), m.aggroTarget,
+		"a single-target mob may bite only the companion, so hits on it must acquire")
+}
+
+func TestMob_FollowerOwnerSignalsBeatSelfDefense(t *testing.T) {
+	owner := newFakeOwner()
+	owner.pos = phy.Vec2f{X: 1, Y: 0}
+	target := newHostileCombatant(phy.Vec2f{X: 3, Y: 0})
+	owner.attackTarget = target
+	m := newTestCompanion(owner)
+
+	biter := newHostileCombatant(phy.Vec2f{X: 0, Y: 1})
+	m.noteThreat(biter, 50)
+	require.True(t, m.Update(0))
+
+	assert.Same(t, model.Combatant(target), m.aggroTarget,
+		"self-defense is the last resort: the owner's fight comes first")
+}
+
+func TestMob_FollowerIgnoresAnAttackerBeyondTheTether(t *testing.T) {
+	owner := newFakeOwner()
+	owner.pos = phy.Vec2f{X: 1, Y: 0}
+	m := newTestCompanion(owner)
+
+	sniper := newHostileCombatant(phy.Vec2f{X: 1 + companionTetherRadius + 5, Y: 0})
+	m.noteThreat(sniper, 50)
+	require.True(t, m.Update(0))
+
+	assert.Nil(t, m.aggroTarget, "retaliation never drags the companion off its owner")
 }
 
 // --- evade-return skip (the chunk-5 handoff trap) ---
@@ -441,6 +497,7 @@ func TestMob_MedicCompanion_HealsAWoundedAllyWhileFollowing(t *testing.T) {
 	m := NewMob(medicCompanionDefinition(), 0, nil)
 	m.Align()
 	m.SetOwner(owner)
+	m.SetFollows(true)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 
 	require.True(t, m.isFollower(), "still a follower")
@@ -517,6 +574,7 @@ func TestMob_MedicCompanion_IgnoresTheOwnersAttacker(t *testing.T) {
 	m := NewMob(medicCompanionDefinition(), 0, nil)
 	m.Align()
 	m.SetOwner(owner)
+	m.SetFollows(true)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 	require.True(t, m.isFollower())
 	require.True(t, m.isPacifist())

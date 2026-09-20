@@ -27,7 +27,6 @@ export interface DamageParams {
     // that name the key, and it carries no damage types at all.
     gateKey: string;
     variance: number;
-    hitStyle: string;
     structureDamageFraction: number;
     executeBelowFraction: number;
     executeBonusFactor: number;
@@ -105,6 +104,10 @@ export interface SpawnParams {
     // only way to say what the summon does. The levels are a floor: the spawn
     // site raises them to the summon skill's level.
     summonLoadout?: SummonSkillRef[];
+    // The spell's statement that this summon is a PET (plan-summon-follows.md
+    // D1): it trails its caster and takes its fights. A hand mirror of the Go
+    // struct with no completeness pin behind it (plan L5).
+    follows?: boolean;
     // The PROJECTILE placement's two extra knobs (plan-prototype-projectile.md
     // D2), absent on both spawn forms: how far ahead of the caster the thrown
     // entity lands, and how long its own burst is held down before it may fire.
@@ -280,6 +283,46 @@ export interface SkillEffect {
     stun?: StunParams;
 }
 
+// --- the visual vocabulary (plan-skill-vfx.md C0/C2a) -----------------------
+
+/**
+ * One authored VFX layer. The seven `kind` names are ENGINE code and closed -
+ * `impact`, `strike`, `projectile`, `beam`, `cast-pose`, `orbit`, `emitter`
+ * (SkillFxKinds pins them against api/skill-vocabulary.json); everything else
+ * is a parameter, and which parameters a kind reads is that kind's business.
+ *
+ * ⚑ A hand mirror of the Go `skills.VisualLayer`, with no completeness pin
+ * behind it (the SpawnParams.follows convention): a key the server starts
+ * serving and this interface does not name simply never reaches a layer.
+ */
+export interface VisualLayer {
+    kind: string;
+    /** 'ambient' | 'fired' | 'hit' - which moment spawns this layer */
+    on: string;
+    /** atlas entry; absent (and, until the atlas exists, always) → the kind's placeholder */
+    body?: string;
+    /** '#rrggbb', overriding the damage-type palette */
+    tint?: string;
+    scale?: number;
+    ms?: number;
+    /** projectile: px/s */
+    speed?: number;
+    /** beam: stroke width in px */
+    width?: number;
+    /** impact: burst | snap · strike: thrust | swing | overhead · beam: flash | extend */
+    curve?: string;
+    /** orbit / emitter: how many bodies */
+    count?: number;
+    /** emitter: swirl | rise | burst */
+    motion?: string;
+    /** beam: draw one tick's victims as caster→v1→v2→v3 instead of a fan */
+    chain?: boolean;
+}
+
+export interface VisualDef {
+    layers: VisualLayer[];
+}
+
 export interface SkillDefinition {
     id: number;
     name: string;
@@ -316,6 +359,11 @@ export interface SkillDefinition {
     // number. Every number-bearing line stays auto-generated, which is what
     // keeps the tooltip correct through a retune.
     description?: string;
+
+    // The skill's authored VFX (plan-skill-vfx.md C0). Absent on every skill
+    // that authors none, and that is the whole rule: a skill with no `visual`
+    // draws nothing, by PO ruling - there is no engine default.
+    visual?: VisualDef;
 
     effects: SkillEffect[];
 }

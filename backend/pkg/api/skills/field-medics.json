@@ -1,11 +1,16 @@
 {
-  "_comment": "FieldMedics (content pass C7, plan-content-zones12.md §13): CallForAid L3 + Heal L5 combo (PO pick 2026-07-18: Heal as the medic partner) — the support squad: two soldiers and a MedicCompanion (HealerAura, heals the squad and its owner). CallForAid conventions verbatim: 3 spawn effects in one cast, cooldownTicks >= max TTL = one-squad-at-a-time by content. Below the §A ceiling. Secret recipe. All values [PLACEHOLDER] pending C8",
+  "_comment": "A combination skill (CallForAid plus Heal) that spawns two SoldierCompanions and one MedicCompanion, which heals the squad and its owner. Skill level raises their lifespan and loadout level; owner level adds their max health and power. The cooldown is at least as long as the max lifespan so only one squad exists at a time. An unlisted combo recipe. All values placeholder.",
   "id": 57,
   "name": "FieldMedics",
   "icon": "lorc/totem-head",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 2400,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 6, "ms": 450, "scale": 0.7, "tint": "#cfd6e6" }
+    ]
+  },
   "effects": [
     {
       "type": "spawn",
@@ -14,7 +19,8 @@
       "spawnMob": "SoldierCompanion",
       "ttlTicks": 1800,
       "ttlTicksPerLevel": 150,
-      "powerPerOwnerLevel": 0.05
+      "powerPerOwnerLevel": 0.05,
+      "follows": true
     },
     {
       "type": "spawn",
@@ -23,7 +29,8 @@
       "spawnMob": "SoldierCompanion",
       "ttlTicks": 1800,
       "ttlTicksPerLevel": 150,
-      "powerPerOwnerLevel": 0.05
+      "powerPerOwnerLevel": 0.05,
+      "follows": true
     },
     {
       "type": "spawn",
@@ -32,7 +39,8 @@
       "spawnMob": "MedicCompanion",
       "ttlTicks": 1800,
       "ttlTicksPerLevel": 150,
-      "powerPerOwnerLevel": 0.05
+      "powerPerOwnerLevel": 0.05,
+      "follows": true
     }
   ]
 }

@@ -10,6 +10,15 @@
 > ⚑ The backlog number **§39 stays the citation anchor**: many docs and two
 > other backlog sections cite "§39" by number, and the backlog entry remains
 > as a pointer here. New references should name this doc.
+>
+> ⚑ **AMENDED 2026-09-11 by `plan-skill-vfx.md`** (PO-ruled): the per-hit
+> SOURCE on the wire (§6 items 3, 4, 10) and the per-effect presentation ART
+> the §3 moratorium forbade now live THERE, as a `SkillEvent` vector and a
+> seven-kind visual vocabulary. What §3 keeps: no new independently-anchored
+> overlay on the sprite (the VFX layer is world-space, attached to nothing).
+> Durations, stacks, cast progress, the stun/slow split and the medallion
+> ordering are untouched and still this doc's. §3 and §6 were **rewritten
+> 2026-09-19** by that plan's C0.
 
 ---
 
@@ -61,8 +70,16 @@ One design pass covering, for both mobs and the player:
    whichever fields happen to be non-zero, the same defect the entity model
    fixed server-side.
 
-Until this plan runs, the standing moratorium holds: **no further per-effect
-overlay art**; per-effect presentation asks queue here instead.
+Until this plan runs, the standing moratorium holds, in the one form it kept
+after `plan-skill-vfx.md` took the art half (PO-ruled 2026-09-11, written in
+2026-09-19): **no new independently-anchored overlay on the sprite.** That is
+the objection item 2 above records, and it is the whole of the rule now.
+
+Per-effect and per-skill VFX are no longer forbidden and no longer queue here:
+they are `plan-skill-vfx.md`'s, which meets this rule by construction (one
+world-space container attached to no sprite, §7.1 there). A presentation ask
+belongs here when it wants a new thing ANCHORED to an actor, or a fact that is
+not on the wire (durations, stacks, cast progress, the stun/slow split).
 
 ## 4. Sequencing: medallions first (PO 2026-08-24)
 
@@ -111,14 +128,10 @@ Collected 2026-08-24 from the docs; input inventory for the design session.
    §40's update box records **two** buffs queued behind the presence-bits →
    durations widening (lifesteal, and this conflation). This plan owns the
    split.
-3. **Per-hit attribution (backlog §57 attack lines)**: prototype built and
-   PO-played (`prototype/attack-lines`, `cf305284`, deliberately unmerged);
-   the shipped version needs the per-hit *source* on the wire and would
-   otherwise be the seventh independently-anchored overlay. "Prototype
-   freely, ship through §39."
-4. **Per-hit damage numbers**: `damageTaken` is a per-tick accumulator (one
-   number per entity per tick), so same-tick sources merge on screen
-   (plan-effect-types C2 lesson); per-hit numbers need per-hit wire events.
+3. **Per-hit attribution (backlog §57 attack lines)**: MOVED to
+   `plan-skill-vfx.md`, C1 (the `SkillEvent` vector carries the source).
+4. **Per-hit damage numbers**: MOVED to `plan-skill-vfx.md`, C1 (the events
+   replace the per-tick aggregates, under its D6 own-caused rule).
 5. **Stealth / invisibility**: v1 is cosmetic by effect-foundations F9
    (transparency + aggro drop, no per-viewer hiding); the effect-types
    round-1 ruling (2026-08-15) blocks even that on this plan.
@@ -135,24 +148,17 @@ Collected 2026-08-24 from the docs; input inventory for the design session.
 9. **The six wanted effect archetypes** (backlog §40 complexity ranking):
    "presentation for all six rides §39; none of them justifies a seventh
    independently-anchored overlay before it."
-10. **Per-skill hit/field dressings** (PO animation mockups 2026-08-24;
-    PROTOTYPE built and PO-played "works", branch `prototype/skill-visuals`
-    `f2e4083c`, deliberately unmerged - the attack-lines pattern): ambient
-    particle field / strike-at-victim / projectile-with-impact-timed-number,
-    own player only, attribution by the item-3 inference (same blind spot).
-    The ship version needs: the visual style as an AUTHORED skill-JSON
-    property instead of the prototype's client-side skill-id table; item 3's
-    per-hit source for honest strikes in multiplayer; item 4's per-hit events
-    for honest impact-timed numbers; and the item-7 wire widening before any
-    OTHER entity's aura can carry its flavor. Perf notes for the design
-    session live in the prototype's module header (ParticleContainer + one
-    FX manager are the two known upgrades at world scale).
+10. **Per-skill hit/field dressings** (PO animation mockups 2026-08-24):
+    MOVED to `plan-skill-vfx.md`, C0 (the authored `visual` vocabulary,
+    shipped 2026-09-19) and C2a/C2b (the renderer).
 
 ## 7. Open questions for the design session
 
-- The wire shape: which facts ride per-entity state (durations, stacks,
-  sources, cast progress) vs per-hit events, and in what encoding; bundled
-  once per §3.1.
+- The wire shape: which facts ride per-entity state (durations, stacks, cast
+  progress), and in what encoding; bundled once per §3.1. ⚑ The per-hit half
+  of this question is answered elsewhere: `plan-skill-vfx.md` C1 rules that
+  sources and landings ride a `SkillEvent` vector, so what is left here is
+  per-entity state.
 - Which sibling overlays merge *into* the frame vs stay anchored *to* it
   (medallions §2.5 keeps all six out of the token; this plan revisits that
   from the state side).

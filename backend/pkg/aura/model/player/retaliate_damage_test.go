@@ -13,6 +13,7 @@ package player
 import (
 	"testing"
 
+	"github.com/EngoEngine/ecs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
@@ -30,11 +31,17 @@ const reflectSource = skills.SkillID(201)
 // else.
 type reflectableAttacker struct {
 	model.MobEntity
+	basic   ecs.BasicEntity
 	hits    []model.Damage
 	by      []model.PlayerEntity
 	ratio   float32
 	touched int
 }
+
+// Basic: MobTouches attributes the hit event to the toucher, so even a stub
+// attacker needs an id (plan-skill-vfx.md C1). The zero BasicEntity is fine -
+// the events only have to name a consistent entity, not a registered one.
+func (a *reflectableAttacker) Basic() ecs.BasicEntity { return a.basic }
 
 func (a *reflectableAttacker) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	a.touched++

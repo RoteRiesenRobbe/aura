@@ -492,6 +492,25 @@ func (n *MobSystem) Remove(b ecs.BasicEntity) {
 // references a mob already holds only sticks because Space.RemoveShape now
 // also purges the departed shape from the sensor sets, so nothing re-acquires
 // it on the next tick. Either half alone leaves the mob latched.
+//
+// ⭐ THE THIRD THING IT DOES, since plan-summon-follows.md C3: it retires every
+// summon the departed entity OWNED. PO report 2026-09-13, "if I die, my
+// companions remain but are no longer bound to me, they just stand there until
+// they disappear" - before this a dead owner only made updateFollow stand
+// still, so pets, totems, portals and thrown bombs all outlived their caster
+// for the rest of their TTL. R1 (PO): EVERY owned summon, not only the ones
+// that follow, so there is one rule and no orphan class. R2 (PO): a flight
+// takeoff fires the same hook and takes them too - a pet cannot follow a
+// flight, and a totem left burning at the flight master is the same orphan by
+// another name.
+//
+// ⚑ Expiring INSIDE the loop is safe because it removes nothing: the verb only
+// zeroes the summon's health, and MobSystem.Update's deferred sweep takes it
+// out of n.mobs on the next tick (backlog §27.1's rule - never mutate n.mobs
+// under iteration). It is also idempotent, which the flight seam needs: a
+// mid-flight disconnect calls this a second time for the same player. And a
+// summon's own removal fans out here in turn, which is a no-op: nothing is
+// owned by a mob.
 func (n *MobSystem) ForgetDeparted(id uint64) {
 	for _, m := range n.mobs {
 		if c, ok := m.(charmBreaker); ok && c.CharmedBy(id) {
@@ -499,6 +518,9 @@ func (n *MobSystem) ForgetDeparted(id uint64) {
 		}
 		if f, ok := m.(targetForgetter); ok {
 			f.ForgetEntity(id)
+		}
+		if o, ok := m.(ownedSummon); ok && o.OwnedBy(id) {
+			o.ExpireWithOwner()
 		}
 	}
 }
@@ -509,6 +531,16 @@ func (n *MobSystem) ForgetDeparted(id uint64) {
 // charmBreaker below and every other narrow contract the systems assert.
 type targetForgetter interface {
 	ForgetEntity(id uint64)
+}
+
+// ownedSummon is a player's placed entity as the removal fan-out sees it: an id
+// to match (the fan-out holds ecs ids, never player refs) and the verb that
+// retires it when that player leaves the world. A capability rather than a
+// MobEntity method, like charmBreaker and targetForgetter beside it - a mob
+// that owns nothing simply never answers OwnedBy true.
+type ownedSummon interface {
+	OwnedBy(id uint64) bool
+	ExpireWithOwner()
 }
 
 // charmBreaker is the charm link as the removal fan-out sees it: an id to match

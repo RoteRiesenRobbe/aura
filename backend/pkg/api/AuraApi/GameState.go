@@ -484,8 +484,28 @@ func (rcv *GameState) MutateOwnerState(n bool) bool {
 	return rcv._tab.MutateBoolSlot(58, n)
 }
 
+func (rcv *GameState) SkillEvents(obj *SkillEvent, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(60))
+	if o != 0 {
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 4
+		x = rcv._tab.Indirect(x)
+		obj.Init(rcv._tab.Bytes, x)
+		return true
+	}
+	return false
+}
+
+func (rcv *GameState) SkillEventsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(60))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(28)
+	builder.StartObject(29)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -597,6 +617,12 @@ func GameStateAddConversationEntityId(builder *flatbuffers.Builder, conversation
 }
 func GameStateAddOwnerState(builder *flatbuffers.Builder, ownerState bool) {
 	builder.PrependBoolSlot(27, ownerState, false)
+}
+func GameStateAddSkillEvents(builder *flatbuffers.Builder, skillEvents flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(28, flatbuffers.UOffsetT(skillEvents), 0)
+}
+func GameStateStartSkillEventsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

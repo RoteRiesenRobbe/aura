@@ -1,5 +1,5 @@
 {
-  "_comment": "Call for Aid — the Boss-Aura (content pass C6, plan-content-zones12.md §B): the Orc Warlord's chance-1.0 kill drop (all participants + recent healers), the v1 completion trophy and a curated combo ingredient (>=3 recipes, chunk C7). Sound the horn and three soldiers of the front answer: one cooldown, THREE spawn effects — fireCooldown applies every effect, so one cast raises the full squad (each on its own placement ring roll). SummonCompanion conventions: skill level scales TTL + summon loadout level, owner level adds max HP + power; cooldownTicks >= max TTL keeps it one-squad-at-a-time by content convention. Sits below the Vanguard ceiling (GDD §5). All values [PLACEHOLDER]",
+  "_comment": "A cooldown that spawns three SoldierCompanions at once (one spawn effect per soldier), each on its own placement point. Skill level raises their lifespan and loadout level; owner level adds their max health and power. The cooldown is at least as long as the max lifespan so only one squad exists at a time. All values placeholder.",
   "id": 51,
   "name": "CallForAid",
   "icon": "lorc/totem-head",
@@ -7,6 +7,11 @@
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 2400,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 6, "ms": 450, "scale": 0.7, "tint": "#cfd6e6" }
+    ]
+  },
   "effects": [
     {
       "type": "spawn",
@@ -15,7 +20,8 @@
       "spawnMob": "SoldierCompanion",
       "ttlTicks": 1800,
       "ttlTicksPerLevel": 150,
-      "powerPerOwnerLevel": 0.05
+      "powerPerOwnerLevel": 0.05,
+      "follows": true
     },
     {
       "type": "spawn",
@@ -24,7 +30,8 @@
       "spawnMob": "SoldierCompanion",
       "ttlTicks": 1800,
       "ttlTicksPerLevel": 150,
-      "powerPerOwnerLevel": 0.05
+      "powerPerOwnerLevel": 0.05,
+      "follows": true
     },
     {
       "type": "spawn",
@@ -33,7 +40,8 @@
       "spawnMob": "SoldierCompanion",
       "ttlTicks": 1800,
       "ttlTicksPerLevel": 150,
-      "powerPerOwnerLevel": 0.05
+      "powerPerOwnerLevel": 0.05,
+      "follows": true
     }
   ]
 }

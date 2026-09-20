@@ -78,18 +78,18 @@ func TestMob_MaxHealthPassive_RaisesThePool(t *testing.T) {
 	assert.Equal(t, vitals.VitalSign(150), m.MaxHealth(), "+50% max health")
 	// The cap moved, not just the getter: the mob can now heal into the
 	// widened pool (spawn health is the base pool).
-	assert.Equal(t, vitals.VitalSign(50), m.Heal(80), "heals up to the new cap")
+	assert.Equal(t, vitals.VitalSign(50), m.Heal(model.Healing{HP: 80, Caster: newFakeAuraPlayer()}), "heals up to the new cap")
 	assert.Equal(t, vitals.VitalSign(150), m.Health())
 }
 
 func TestMob_DamageReductionPassive_ReducesDamageTaken(t *testing.T) {
 	plain := mobWithPool(100)
-	plain.takeDamage(model.Damage{HP: 40}, model.StatusEffectDamagedAmbient)
+	plain.takeDamage(model.Damage{HP: 40}, 0, model.StatusEffectDamagedAmbient)
 	require.Equal(t, vitals.VitalSign(60), plain.Health(), "baseline: full 40 lands")
 
 	tough := mobWithPool(100)
 	tough.SkillComponent().EquipPassive(0, statPassive(skills.StatDamageReduction, 0.25), 1)
-	tough.takeDamage(model.Damage{HP: 40}, model.StatusEffectDamagedAmbient)
+	tough.takeDamage(model.Damage{HP: 40}, 0, model.StatusEffectDamagedAmbient)
 
 	assert.Equal(t, vitals.VitalSign(70), tough.Health(), "40 × (1 − 0.25) = 30 lands")
 }

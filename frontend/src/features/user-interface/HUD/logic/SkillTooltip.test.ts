@@ -266,7 +266,7 @@ describe('character power scale', () => {
 function damageParams(hp: number, hpPerLevel: number = 0) {
     return {
         hp, hpPerLevel, tags: ['physical'], gateKey: '', variance: 0,
-        hitStyle: 'all', structureDamageFraction: 0,
+        structureDamageFraction: 0,
         executeBelowFraction: 0, executeBonusFactor: 0, berserkerMaxBonusFactor: 0,
         critChance: 0, critChancePerLevel: 0, critFactor: 0, lifestealFraction: 0,
     };
@@ -694,6 +694,23 @@ describe('spawn mob name', () => {
     it('falls back to the raw authored name while the catalog is unavailable', async () => {
         await loadCatalog([]); // pin the empty state; import-time fetch is stubbed to reject
         expect(lines(summon, 1, 1)).toContain('Summons SoldierCompanion for 10s');
+    });
+
+    // plan-summon-follows.md D1: the pet flag is the spell's, and the tooltip is
+    // the only place a player can learn whether a summon will come along.
+    it('says a summon follows when the spell authored it', () => {
+        const pet = skill({
+            displayName: 'Summon Spider', category: 'cooldown', maxLevel: 1, cooldownTicks: 900,
+            effects: [effect({
+                type: 'spawn',
+                spawn: {mobName: 'Spider', ttlTicks: 300, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0, follows: true},
+            })],
+        });
+        expect(lines(pet, 1, 1)).toContain('Follows you and fights at your side');
+    });
+
+    it('says nothing about following for a summon that stays put', () => {
+        expect(lines(summon, 1, 1).join('\n')).not.toContain('Follows you');
     });
 
     it('renders the served displayName once the catalog is loaded', async () => {

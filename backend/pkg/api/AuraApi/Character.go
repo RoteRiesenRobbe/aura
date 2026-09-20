@@ -128,18 +128,6 @@ func (rcv *Character) MutateRotation(n float32) bool {
 	return rcv._tab.MutateFloat32Slot(14, n)
 }
 
-func (rcv *Character) IsHit() bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
-	if o != 0 {
-		return rcv._tab.GetBool(o + rcv._tab.Pos)
-	}
-	return false
-}
-
-func (rcv *Character) MutateIsHit(n bool) bool {
-	return rcv._tab.MutateBoolSlot(16, n)
-}
-
 func (rcv *Character) Name() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
 	if o != 0 {
@@ -233,30 +221,6 @@ func (rcv *Character) MutateBurstRadius(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(32, n)
 }
 
-func (rcv *Character) DamageTaken() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
-	if o != 0 {
-		return rcv._tab.GetUint32(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *Character) MutateDamageTaken(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(34, n)
-}
-
-func (rcv *Character) HealReceived() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
-	if o != 0 {
-		return rcv._tab.GetUint32(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *Character) MutateHealReceived(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(36, n)
-}
-
 func (rcv *Character) XpGained() uint32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
 	if o != 0 {
@@ -267,18 +231,6 @@ func (rcv *Character) XpGained() uint32 {
 
 func (rcv *Character) MutateXpGained(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(38, n)
-}
-
-func (rcv *Character) AuraHitStyle() byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(40))
-	if o != 0 {
-		return rcv._tab.GetByte(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *Character) MutateAuraHitStyle(n byte) bool {
-	return rcv._tab.MutateByteSlot(40, n)
 }
 
 func (rcv *Character) MaxHealth() uint32 {
@@ -339,18 +291,6 @@ func (rcv *Character) CampfireBound() bool {
 
 func (rcv *Character) MutateCampfireBound(n bool) bool {
 	return rcv._tab.MutateBoolSlot(50, n)
-}
-
-func (rcv *Character) CritTaken() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(52))
-	if o != 0 {
-		return rcv._tab.GetUint32(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *Character) MutateCritTaken(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(52, n)
 }
 
 func (rcv *Character) ShieldHp() uint32 {
@@ -474,18 +414,6 @@ func (rcv *Character) MutateFlightArrivalTick(n uint64) bool {
 	return rcv._tab.MutateUint64Slot(72, n)
 }
 
-func (rcv *Character) ImmuneHit() bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(74))
-	if o != 0 {
-		return rcv._tab.GetBool(o + rcv._tab.Pos)
-	}
-	return false
-}
-
-func (rcv *Character) MutateImmuneHit(n bool) bool {
-	return rcv._tab.MutateBoolSlot(74, n)
-}
-
 func CharacterStart(builder *flatbuffers.Builder) {
 	builder.StartObject(36)
 }
@@ -509,9 +437,6 @@ func CharacterAddRadius(builder *flatbuffers.Builder, radius uint16) {
 }
 func CharacterAddRotation(builder *flatbuffers.Builder, rotation float32) {
 	builder.PrependFloat32Slot(5, rotation, 0.0)
-}
-func CharacterAddIsHit(builder *flatbuffers.Builder, isHit bool) {
-	builder.PrependBoolSlot(6, isHit, false)
 }
 func CharacterAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(name), 0)
@@ -537,17 +462,8 @@ func CharacterAddActiveSkillId(builder *flatbuffers.Builder, activeSkillId uint1
 func CharacterAddBurstRadius(builder *flatbuffers.Builder, burstRadius uint16) {
 	builder.PrependUint16Slot(14, burstRadius, 0)
 }
-func CharacterAddDamageTaken(builder *flatbuffers.Builder, damageTaken uint32) {
-	builder.PrependUint32Slot(15, damageTaken, 0)
-}
-func CharacterAddHealReceived(builder *flatbuffers.Builder, healReceived uint32) {
-	builder.PrependUint32Slot(16, healReceived, 0)
-}
 func CharacterAddXpGained(builder *flatbuffers.Builder, xpGained uint32) {
 	builder.PrependUint32Slot(17, xpGained, 0)
-}
-func CharacterAddAuraHitStyle(builder *flatbuffers.Builder, auraHitStyle byte) {
-	builder.PrependByteSlot(18, auraHitStyle, 0)
 }
 func CharacterAddMaxHealth(builder *flatbuffers.Builder, maxHealth uint32) {
 	builder.PrependUint32Slot(19, maxHealth, 0)
@@ -563,9 +479,6 @@ func CharacterAddLightRadius(builder *flatbuffers.Builder, lightRadius uint16) {
 }
 func CharacterAddCampfireBound(builder *flatbuffers.Builder, campfireBound bool) {
 	builder.PrependBoolSlot(23, campfireBound, false)
-}
-func CharacterAddCritTaken(builder *flatbuffers.Builder, critTaken uint32) {
-	builder.PrependUint32Slot(24, critTaken, 0)
 }
 func CharacterAddShieldHp(builder *flatbuffers.Builder, shieldHp uint32) {
 	builder.PrependUint32Slot(25, shieldHp, 0)
@@ -596,9 +509,6 @@ func CharacterAddFlightDest(builder *flatbuffers.Builder, flightDest flatbuffers
 }
 func CharacterAddFlightArrivalTick(builder *flatbuffers.Builder, flightArrivalTick uint64) {
 	builder.PrependUint64Slot(34, flightArrivalTick, 0)
-}
-func CharacterAddImmuneHit(builder *flatbuffers.Builder, immuneHit bool) {
-	builder.PrependBoolSlot(35, immuneHit, false)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

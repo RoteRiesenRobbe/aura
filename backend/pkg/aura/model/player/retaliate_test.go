@@ -12,6 +12,7 @@ package player
 import (
 	"testing"
 
+	"github.com/EngoEngine/ecs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -26,10 +27,13 @@ const retaliateSource = skills.SkillID(200)
 // embedded nil interface is the tripwire for anything else.
 type slowableAttacker struct {
 	model.MobEntity
+	basic     ecs.BasicEntity
 	sources   []skills.SkillID
 	fractions []float32
 	ticks     []int
 }
+
+func (a *slowableAttacker) Basic() ecs.BasicEntity { return a.basic }
 
 func (a *slowableAttacker) ApplySlow(source skills.SkillID, fraction float32, ticks int) bool {
 	a.sources = append(a.sources, source)
@@ -40,7 +44,12 @@ func (a *slowableAttacker) ApplySlow(source skills.SkillID, fraction float32, ti
 
 // plainAttacker carries no ApplySlow at all — a structure, or a mob type that
 // never gained the door. The trigger must skip it silently.
-type plainAttacker struct{ model.MobEntity }
+type plainAttacker struct {
+	model.MobEntity
+	basic ecs.BasicEntity
+}
+
+func (a *plainAttacker) Basic() ecs.BasicEntity { return a.basic }
 
 var retaliatePassive = &skills.SkillDefinition{
 	ID:       retaliateSource,

@@ -22,6 +22,7 @@ import * as Console from '../../internal-tools/console/logic/Console';
 import {Camera} from '../../camera/logic/Camera';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
+import * as SkillFx from '../../skill-fx/logic/SkillFx';
 import * as Regions from '../../regions/logic/Regions';
 import {Region} from '../../regions/logic/Regions';
 import * as Paths from '../../paths/logic/Paths';
@@ -315,6 +316,11 @@ export class Game implements IGame {
             // renders it, so the second render target costs nothing until
             // someone asks for fog.
             haze: createNamedContainer('haze'),
+            // Skill VFX (plan-skill-vfx.md C2a): above every entity, below
+            // darkness: a fireball must not be the first thing to light a
+            // dark area (§6.5, the attack-lines precedent). Also carries the
+            // aura wind-up glow, which used to sit on each entity's own shape.
+            skillFx: createNamedContainer('skillFx'),
             // Darkness overlay (chunk 3): above all entities, below the
             // floating numbers; deliberately NOT in the DayCycle filtered
             // set — dark areas are dark independent of the cycle (§6.5).
@@ -395,6 +401,9 @@ export class Game implements IGame {
         // still in it — so this sits just below it.
         this.cameraGroup.addChild(this.layers.flyers);
 
+        // Skill VFX above the entities they connect, below darkness.
+        this.cameraGroup.addChild(this.layers.skillFx);
+
         // Darkness overlay above every entity
         this.cameraGroup.addChild(this.layers.haze);
         this.cameraGroup.addChild(this.layers.darkness);
@@ -417,6 +426,11 @@ export class Game implements IGame {
         DarknessOverlay.setup(this.layers.darkness, this.layers.haze);
 
         GameObject.setup();
+        // ⚑ AFTER GameObject.setup(), and that ordering is load-bearing: both
+        // subscribe to PrerenderEvent, listeners fire in subscription order,
+        // and the wind-up glow has to read each entity's position AFTER the
+        // interpolation pass has written it (see SkillFx.setup).
+        SkillFx.setup(this.layers.skillFx);
 
         this.inputManager = new InputManager({
             inputKeyboard: true,

@@ -1400,7 +1400,7 @@ maxing Spearhead then unlocks it).
 
 ## 22. Standalone browser map editor (bypass the in-game zone editor) — ⛔ CLOSED 2026-08-09, SUPERSEDED
 
-**⛔ SUPERSEDED 2026-08-09 — `plan-content-tooling.md` D7/D9.** The frame
+**⛔ SUPERSEDED 2026-08-09 — `archive/plan-content-tooling.md` D7/D9.** The frame
 changed: bulk placement and overview work went **AI-side** (the world
 re-placement pass placed all 423 combat spawns via `scripts/world-place.py` /
 `world-regions.py` and never touched an editor), and the human editor exists
@@ -5694,8 +5694,14 @@ there until abilities roll in.
 
 *(added 2026-08-08 from the marketing-assessment conversation; the PO wants an
 **early prototype**. ✅ **PROTOTYPE BUILT AND PO-PLAYED 2026-08-08** — see
-"The prototype" at the end of this section. The **shipped** version is still
-unscheduled and still belongs behind §39.)*
+"The prototype" at the end of this section. ⭐ **Updated 2026-09-19: the
+shipped version is `plan-skill-vfx.md` C2a, not §39.** That plan puts the
+per-hit source on the wire (C1) and a world-space VFX layer on the client
+(C2a), so a line from `source` to `victim` is one more `beam` body rather than
+a system of its own. ⭐ **C2a LANDED 2026-09-19** (`beam` ships with `curve`
+and `chain`, and a mob's melee hit now draws the caster-anchored `strike`), so
+**the `prototype/attack-lines` branch is DELETED** (verified gone 2026-09-20,
+local + origin). Everything below about it is history.)*
 
 The ask: an indicator showing **which mob is attacking which character** —
 imagined as a line (hit- or arrow-like) from the mob to the player that lingers
@@ -5730,7 +5736,10 @@ would otherwise be the **seventh** independently-anchored overlay on a sprite
 (`AuraRings`, `EffectPips`, `AuraTickIndicator`, `InteractBadge`, nameplate,
 health bar). Prototype freely, ship through §39.
 
-### The prototype — built 2026-08-08, PO-played, NOT merged
+### The prototype: built 2026-08-08, PO-played, never merged, branch DELETED
+
+⚑ **The branch no longer exists** (verified 2026-09-20). The text below is the
+record of what it was; its shipped successor is `plan-skill-vfx.md` C2a.
 
 Branch **`prototype/attack-lines`**, commit **`cf305284`**. Deliberately *not*
 on `main`: it is throwaway by construction (see "What it cannot do"), and the
@@ -5910,7 +5919,28 @@ should decide whether this system lands there or after it.
 
 ---
 
-## 61. Other animations on atmospheres and polygons than `scroll`
+## 61. Persisted-spellbook reconciliation at character load (D5 rule 3)
+
+**Moved here 2026-09-08 from `archive/plan-content-tooling.md` C0 when that
+plan was superseded** (the rest of it went to `plan-content-editor.md` Part B).
+The ruling stands (D5, 2026-08-05): content-vs-persisted-data gets an
+explicit, tested policy. Nothing enforces one today.
+
+- **Unknown persisted skill id** (the content was retired or the file is
+  missing): preserved but inert - tombstone-preserve, so restoring the
+  content restores the skill. Never silently dropped from the spellbook row.
+- **Persisted level above the skill's `maxLevel`**: clamp. The refund path
+  waits until a currency exists to refund into.
+- A small Go change at character load (`persist` / `SkillComponent`
+  hydration) with table-driven tests. ⚑ Touches persisted state on READ only;
+  expected **DB NONE** (no column, no migration) - verify at design time.
+- Trigger: **C5 was CUT 2026-09-18** (`plan-content-editor.md` §B12 C5) in
+  favour of a written rule: a skill file is never deleted, an id never changes,
+  a `maxLevel` never decreases (`manual-content-authoring.md`, "Retiring a
+  skill"). Under that rule an unknown persisted id should never arise at all,
+  so the remaining trigger is the first time content is **actually** retired
+  (the rule held only by hand), or the first persisted level found above a cap.
+## 62. Other animations on atmospheres and polygons than `scroll`
 
 **PO-asked 2026-09-16**, verbatim: *"Can we design other animations on
 atmosphere and polys than scroll?"* ⚑ Filed in `docs/cleanup.md` first and moved

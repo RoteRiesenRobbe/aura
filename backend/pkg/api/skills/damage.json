@@ -1,18 +1,23 @@
 {
-  "_comment": "Values copied from backend/conf.json as of migration start — all [PLACEHOLDER] pending balance pass. No authored crit (§4.3 v2 rework: briefly carried 1%/level, PO removed it same day 2026-07-20 — it made the starter aura the strongest non-ceiling damage skill); crits ride the character's own chance only.",
+  "_comment": "The starting aura: a physical hit on the nearest enemy inside a 1-unit ring every 40 ticks.",
   "id": 1,
   "name": "Damage",
   "icon": "lorc/broadsword",
   "category": "active_aura",
   "maxLevel": 10,
+  "visual": {
+    "layers": [
+      { "kind": "strike", "on": "hit", "curve": "thrust", "ms": 200 }
+    ]
+  },
   "effects": [
     {
       "type": "damage_aura",
-      "radius": 1.0,
-      "radiusPerLevel": 0.0,
+      "radius": 1,
+      "radiusPerLevel": 0,
       "damageHP": 14,
       "damageHPPerLevel": 0.2222,
-      "damageTags": ["physical"],
+      "damageTags": [ "physical" ],
       "variance": 0.15,
       "targetsEnemies": true,
       "targetsAllies": false,

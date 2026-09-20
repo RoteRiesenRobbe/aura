@@ -157,6 +157,9 @@ type Factors struct {
 	// (plan-skill-vocab chunk 1): the SkillSystem fills them per hit from the
 	// casting effect; they are not part of the mob JSON. GateKey is the
 	// lock-and-key tag (content pass C1, skills.GateOpensFor).
+	// SkillID is the skill this hit belongs to (plan-skill-vfx.md D9), the
+	// Damage.SkillID twin on the mob-touch side. Payload-only; 0 = no skill.
+	SkillID                 skills.SkillID
 	Lifesteal               float32
 	Crit                    bool
 	GateKey                 string
@@ -241,8 +244,8 @@ type MobDefinition struct {
 	Tier       string
 	CurveLevel int
 
-	// Role is the authored actor discriminator (chunk 2, role.go): creature,
-	// structure or follower. Absent in JSON → creature; the zero value is the
+	// Role is the authored actor discriminator (chunk 2, role.go): creature or
+	// structure. Absent in JSON → creature; the zero value is the
 	// empty string, so NewMob re-applies that default for definitions built
 	// directly (tests, the sim harness).
 	Role Role

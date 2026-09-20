@@ -8,6 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
 // catalogTestRegistry: a normal cL2 species, an elite cL10 whose CamelCase
@@ -151,6 +153,11 @@ func TestMobCatalogJSON_ConversantMeansAuthoredInteraction(t *testing.T) {
 // would hand players an out-of-game answer key for content the spellbook is
 // meant to make them discover (zero-hint policy), so the projection is pinned
 // exactly — a future field added to MobDefinition must not leak by default.
+//
+// `auraSkillId` is the ONE deliberate exception, added by C2b because a mob's
+// ambient VFX has no other way to learn which aura is running; CatalogEntry's
+// doc argues why an aura id is not an answer key. It is in the list so that
+// exception stays a decision somebody made, not a field that drifted in.
 func TestMobCatalogJSON_ExposesNothingBeyondNameplateFields(t *testing.T) {
 	data, err := CatalogJSON(catalogTestRegistry(t))
 	require.NoError(t, err)
@@ -160,9 +167,104 @@ func TestMobCatalogJSON_ExposesNothingBeyondNameplateFields(t *testing.T) {
 		for k := range entry {
 			keys = append(keys, k)
 		}
-		assert.ElementsMatch(t, []string{"id", "name", "displayName", "curveLevel", "tier", "combatTarget", "conversant"}, keys,
+		assert.ElementsMatch(t, []string{"id", "name", "displayName", "curveLevel", "tier", "combatTarget", "conversant", "auraSkillId"}, keys,
 			"catalog must not leak drops/resistances/HP/skill loadouts")
 	}
+}
+
+// --- auraSkillId (plan-skill-vfx.md C2b, §12d.2) ---
+
+// auraCatalogSkills: one active aura and one passive, so "the species' ACTIVE
+// aura" is a claim the fixture can actually falsify - a species carrying only
+// the passive must still report 0.
+func auraCatalogSkills(t *testing.T) skills.Registry {
+	t.Helper()
+	r, err := skills.RegistryFromFS(fstest.MapFS{
+		"warmth-aura.json": {Data: []byte(`{
+		  "id": 201, "name": "WarmthAura", "category": "active_aura", "maxLevel": 1,
+		  "effects": [{"type": "heal_aura", "radius": 2, "healFractionOfMax": 0.1, "tickInterval": 60}]
+		}`)},
+		"thick-hide.json": {Data: []byte(`{
+		  "id": 202, "name": "MobThickHide", "category": "passive", "maxLevel": 1,
+		  "effects": [{"type": "resist_passive", "resistTags": ["fire"], "resistFactor": 0.8}]
+		}`)},
+	}, nil)
+	require.NoError(t, err)
+	return r
+}
+
+// A mob's ambient VFX layers need to know WHICH aura is running, and the Mob
+// wire table carries no active skill id (§12d.2). The species' one active aura
+// rides the catalog instead, since it never changes after boot.
+func TestMobCatalogJSON_AuraSkillIDNamesTheSpeciesActiveAura(t *testing.T) {
+	r, err := RegistryFromFS(auraCatalogSkills(t), nil, testCurve(), fstest.MapFS{
+		"campfire.json": {Data: []byte(`{
+		  "id": 12, "name": "Campfire", "type": "MOB", "curveLevel": 1,
+		  "factors": {"baseMaxHealth": 20, "xpFactor": 0, "speed": 0},
+		  "body": {"radius": 0.3, "aggroRadius": 0.1},
+		  "skills": [{"skillName": "WarmthAura", "level": 1}]
+		}`)},
+		"turnip.json": {Data: []byte(`{
+		  "id": 13, "name": "Turnip", "type": "MOB", "curveLevel": 1,
+		  "factors": {"baseMaxHealth": 20, "xpFactor": 0, "speed": 0},
+		  "body": {"radius": 0.3, "aggroRadius": 0.1}
+		}`)},
+		"stag.json": {Data: []byte(`{
+		  "id": 14, "name": "Stag", "type": "MOB", "curveLevel": 2,
+		  "factors": {"baseMaxHealth": 20},
+		  "body": {"radius": 0.3, "aggroRadius": 3},
+		  "skills": [{"skillName": "MobThickHide", "level": 1}]
+		}`)},
+	})
+	require.NoError(t, err)
+
+	entries := decodeMobCatalog(t, mustCatalogJSON(t, r))
+
+	assert.Equal(t, float64(201), entries[0]["auraSkillId"], "the Campfire's one active aura")
+	assert.Equal(t, float64(0), entries[1]["auraSkillId"], "a species with no skills at all authors no aura")
+	assert.Equal(t, float64(0), entries[2]["auraSkillId"],
+		"a passive is not an aura: it is never the running skill, so it has no ambient moment")
+}
+
+// The content pin the whole mechanism rests on. `auraSkillId` is SINGULAR, so
+// a species that ever authors two active auras silently loses one of them on
+// the client, and there is nothing in the loader forbidding it (a mob may
+// carry any number of skills). This is where that day gets loud.
+func TestContent_EverySpeciesAuthorsAtMostOneActiveAura(t *testing.T) {
+	r := contentRegistry(t)
+
+	for _, def := range r.Mobs() {
+		auras := []string{}
+		for _, s := range def.Skills {
+			if s.Def != nil && s.Def.Category == skills.SkillCategoryActiveAura {
+				auras = append(auras, s.Def.Name)
+			}
+		}
+		assert.LessOrEqual(t, len(auras), 1,
+			"%s authors %v: the /mobs catalog carries ONE auraSkillId, so the client would "+
+				"draw the first and silently drop the rest (plan-skill-vfx.md §12d.2)", def.Name, auras)
+	}
+
+	// A named example from each side, so the pin also fails when the derivation
+	// itself breaks rather than only when the content does.
+	byName := map[string]float64{}
+	for _, entry := range decodeMobCatalog(t, mustCatalogJSON(t, r)) {
+		byName[entry["name"].(string)] = entry["auraSkillId"].(float64)
+	}
+	campfire, err := r.GetByName("Campfire")
+	require.NoError(t, err)
+	require.Len(t, campfire.Skills, 1)
+	require.Equal(t, "CampfireAura", campfire.Skills[0].Def.Name)
+	assert.Equal(t, float64(campfire.Skills[0].Def.ID), byName["Campfire"], "the campfire's warmth aura")
+	assert.NotZero(t, byName["Campfire"], "and it is a real id, not the absent-aura 0")
+	assert.Equal(t, float64(0), byName["Turnip"], "a turnip runs nothing")
+}
+
+func mustCatalogJSON(t *testing.T, r Registry) []byte {
+	t.Helper()
+	data, err := CatalogJSON(r)
+	require.NoError(t, err)
+	return data
 }
 
 func TestMobCatalogHandler_ServesJSONWithCORS(t *testing.T) {

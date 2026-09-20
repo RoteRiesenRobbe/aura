@@ -38,6 +38,47 @@ the bottom. Trust the code over the manual if a path has drifted.
   `createNamedContainer(...)` **and** `cameraGroup.addChild(...)`. Miss the
   second and the sprite renders off-stage (invisible but functional). Reusing a
   layer needs neither.
+- **A skill's `_comment` is an authoring note, not a session ledger** (PO
+  ruling 2026-09-11, `docs/manual-content-authoring.md` "The `_comment`
+  field"): what the skill is, which values are placeholder, at most one
+  landmine sentence with a doc pointer; under ~400 characters; no dates,
+  hashes, chunk names, rulings, glyphs, history or placement claims (where
+  it is obtained lives in the mob/milestone/recipe files). The ledger prose you are
+  tempted to write there goes in the plan doc.
+- **A skill with no `visual` draws NOTHING** (`plan-skill-vfx.md` C2a + C2b, PO
+  2026-09-19/20). The old cadence-derived slash/fire lever (`hitStyle`) is
+  deleted end to end and no engine fallback replaced it, so **every new aura
+  and cooldown that CAN author a look authors one** - not only the damaging
+  ones. A weapon-wielder's plain hit is a `strike`
+  ALONE (`thrust` spear / `swing` blade / `overhead` hammer, chosen by `curve`,
+  which also picks the placeholder weapon); an animal's bite or gore is
+  `impact` / `snap` alone; elemental, AoE, DoT and cooldown hits and a missile's
+  arrival are `impact` / `burst`; ranged reach is a `projectile` plus that
+  `impact`. A non-damaging aura or cooldown dresses its own moment instead: an
+  `emitter` (`swirl` / `rise` / `burst` particles), an `orbit` (N bodies
+  circling), a `cast-pose` (a body worn at RELEASE, never a wind-up).
+  ⚑ `impact` is OPT-IN and anchored at the VICTIM, a `strike` at the
+  ATTACKER. ⚑ `curve` belongs to the KIND and `chain` is the `beam`'s
+  alone and VISUAL ONLY - it changes no targeting. ⚑ Author no `body`, and no
+  `tint` on anything that carries damage tags (the palette derives it).
+  ⚑ **A passive gets the `hit` moment alone** (D2, load-enforced), so a passive
+  that never hits - Torch, the stat/resist passives, FrostShield's damageless
+  `retaliate_slow` - is UNDRESSABLE by rule, not by oversight.
+  `docs/manual-content-authoring.md` §2 "Visuals" has the tables.
+- **A mob attack hits ONE target unless the world explains more** (PO ruling
+  2026-09-19, `docs/manual-content-authoring.md` §2 "Mob attacks hit one
+  target"). Author `"selector": "nearest"` + `"maxTargets"` explicitly on every
+  mob damage/DoT effect: 1 by default, 2 for two visible weapons, 3 for a
+  cleave; uncapped only for a PLACE (pool, barricade, totem) or a telegraphed
+  AoE event (a stomp, a bomb), written as `"selector": "all"`. ⚑ An absent `maxTargets` silently means "hits
+  everyone", so a forgotten cap loads clean.
+- **A skill file is never deleted, an `id` never changes, a `maxLevel` never
+  decreases** (PO ruling 2026-09-18, `docs/manual-content-authoring.md`,
+  "Retiring a skill: never delete the file"). Skill ids and levels are
+  persisted per character and nothing reconciles a spellbook row against the
+  content at load. Retire a skill by removing it from every unlock source (mob
+  `unlocks[]`, milestones, NPC `teach_skill`, recipes) and leaving the file on
+  disk; re-pricing a level is how you weaken a skill, not a lower cap.
 - **New skill = NO client-side edit.** The old `Skills.ts` triple map is gone
   (plan-ui-polish C1): the client fetches skill metadata from the aurad sidecar
   (`GET /skills`) at startup, so the backend registry is the single source. No
@@ -60,6 +101,23 @@ the bottom. Trust the code over the manual if a path has drifted.
   (`docs/manual-tiled-editor.md` §6). It reads the prop's own `sprite` field —
   no separate map to maintain any more, but a missing/empty `sprite` hard-fails
   at server boot (`world/props.go`), before this script would ever see it.
+- **A change to the SKILL tables in `backend/pkg/aura/skills/definition.go`
+  or `visual.go` needs the vocabulary fixture regenerated** (`effectKeys`,
+  `effectCategories`, `costKeys`, the categories, the top-level key list, and
+  the six VFX lists `visualKinds`, `visualTriggers`, `visualKeys`,
+  `visualTriggersByKind`, `visualCurves` - keyed BY KIND since C2a, because an
+  impact curves `burst`/`snap`, a strike `thrust`/`swing`/`overhead` and a beam
+  `flash`/`extend` - and
+  `visualMotions`): the golden test fails
+  until you run `UPDATE_SKILL_VOCABULARY=1 go test -count=1
+  ./pkg/aura/skills/` from `backend/` and commit `api/skill-vocabulary.json`.
+  The content editor's Skills tab renders its whole form from that fixture, so
+  a stale one means a new key cannot be authored there and `npm run smoke` in
+  `tools/content-editor/` reddens on the drift. ⭐ **A player skill can be
+  authored in the content editor's Skills tab** ("+ New" in the Skills sidebar,
+  spell builder C4), which runs the REAL loader on save (`aurad -validate`, so
+  `make -C backend build` must be current) and hands you the post-save
+  checklist: the registry pin below, the inventory row, placement, restart.
 - **A new/changed mob, quest, faction, recipe, or milestone field or
   validation rule needs `tools/content-editor/` updated by hand** (`docs/manual-content-authoring.md`
   "Known hand-sync points"): `validate.mjs` (the JS port of the Go rule),
@@ -108,15 +166,21 @@ at HEAD (this bit C2 — "Part 1 never bumped the pinned count"). After adding:
    section of the `verify` skill for the exact grep. A stale `aurad`
    process silently masks new content.
 4. **In-game smoke:** the `verify` skill (real client, HUD-driven).
-5. **Regenerate `docs/content-skill-inventory.md`** if you touched skills,
-   mob `unlocks[]`, NPC `teachings[]`, recipes, or the milestone table. It is
-   **generated, not hand-maintained** — the doc carries its own regeneration
-   script. Re-run the reachability sweep at the bottom too: every player skill
-   should have a non-legacy world source (`FireWard` is the one known,
-   tracked exception). This is the step that keeps the docs honest: the
-   step-7 A.6 rename (`24806352`) touched zero docs, and the catalogs drifted
-   for days — stale names, wrong drop chances, and a reachability summary
-   claiming 7 cheat-only skills when only 1 was.
+5. **Optional: refresh `docs/content-skill-inventory.md`** with `npm run
+   inventory` in `tools/content-editor/`. It rewrites the whole file from
+   `api/`: every player and mob-only skill, its authored fields, its sources,
+   and the reachability summary (which the script derives, so there is no
+   sweep to re-run by hand). **The doc is allowed to lag behind the content**:
+   it is a snapshot for reading, not a pin, and nothing breaks while it is
+   stale. Run it when you want a current picture.
+
+   The six source kinds it derives: a milestone row, a mob `unlocks[]` entry,
+   a `teach_skill` grant inside a mob's `interaction` tree (NPC teaching has
+   no `teachings[]` list; that section died with entity-model chunk 3a), a
+   `teach_skill` grant riding a quest turn-in row, a recipe result, and an
+   ascension stone's `rewards`. A skill named by none of them is cheat-only,
+   and the doc's Reachability section lists those split into unplaced content,
+   test rigs and parked prototypes.
 
    The three design catalogs (`content-auras.md` / `content-passives.md` /
    `content-cooldowns.md`) deliberately **do not** repeat sources or numbers —

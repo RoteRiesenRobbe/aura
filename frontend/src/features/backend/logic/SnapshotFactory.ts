@@ -3,6 +3,7 @@ import {BackendState} from "./IBackend";
 import _clone = require('lodash/clone');
 import {ConversationTree} from '../../conversation/logic/ConversationModel';
 import {QuestProgress} from '../../journal/logic/JournalModel';
+import {SkillEventData} from './SkillEventNumbers';
 import {GameStateMessage} from './messages/incoming/GameStateMessage';
 
 
@@ -49,6 +50,9 @@ export class Snapshot {
     // running + completed quests, ids only (C3). Rides the same change-only
     // gate as the spellbook block above; undefined = unchanged.
     questProgress: QuestProgress[] | undefined;
+    // This tick's skill landings and casts (plan-skill-vfx.md C1); [] on a
+    // quiet tick. Events, not state: nothing to carry forward, ever.
+    skillEvents: SkillEventData[];
 }
 
 export function newSnapshot(backendState: BackendState, gameState: GameStateMessage) {
@@ -124,6 +128,9 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
         // actually resends — which it does the same tick Abandon() runs,
         // since that bumps the ledger's revision.
         snapshot.questProgress = gameState.questProgress;
+        // Always carried, and never diffed: an event that happened cannot be
+        // "unchanged". An empty list is the honest reading of a quiet tick.
+        snapshot.skillEvents = gameState.skillEvents;
     } else {
         // First snapshot: assign the whole GameStateMessage, which already carries spellbook.
         snapshot = gameState;

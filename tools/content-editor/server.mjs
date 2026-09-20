@@ -7,14 +7,22 @@
  *     node tools/content-editor/server.mjs
  *
  * then open http://localhost:4610. Reads api/mobs, api/quests and api/skills
- * straight off disk on every request (no build step, no running aurad, no
- * dependencies) and writes edits straight back — same posture as
+ * straight off disk on every request (no build step, no dependencies, and no
+ * running game server) and writes edits straight back (the Skills tab
+ * writes through the aurad seam below, spell builder C3,
+ * plan-content-editor.md §B5), the same posture as
  * tools/tiled/generate-palette.mjs: an adjacent authoring tool, never
  * shipped to players, deriving its pick-lists from api/ instead of
  * duplicating them.
  *
- * See docs/plan-content-editor.md for the design (D1: custom, not an
+ * See docs/archive/plan-content-editor.md for the design (D1: custom, not an
  * adapted external tool; scope; what this deliberately does not cover).
+ *
+ * ⚑ ONE endpoint breaks the no-aurad rule, deliberately: POST
+ * /api/validate/candidate runs the BUILT `backend/aurad -validate` over a temp
+ * copy of api/ so a candidate is judged by the real loader rather than by a JS
+ * port of its rules (C2, §B4.9). It still needs no running server and no
+ * database - only `make -C backend build` having been run at some point.
  *
  * Scope reminder: NPC dialogue trees, quest stage graphs, full mob/NPC stat
  * fields (tier/factors/body/skills/unlocks/faction/entityType), faction
@@ -24,12 +32,17 @@
  * registry-count pins stay out of scope — this tool never touches them and
  * flags what it can (see validate.mjs) rather than pretending to.
  */
-import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateAll, buildIndex, validateInteraction, validateQuest, validateMob, validateFaction, validateRecipe, validateMilestones } from './validate.mjs';
 import { prettyJson } from './format.mjs';
+import { readSkillVocabulary } from './vocabulary.mjs';
+import { listJsonFiles } from './files.mjs';
+import { readSkillIcons } from './skill-icons.mjs';
+import { validateCandidate } from './aurad-validate.mjs';
+import { saveSkill } from './save-skill.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -40,18 +53,10 @@ const FACTIONS_DIR = path.join(ROOT, 'api', 'factions');
 const RECIPES_DIR = path.join(ROOT, 'api', 'recipes');
 const MILESTONES_FILE = path.join(ROOT, 'api', 'milestones', 'milestone-unlocks.json');
 const ENTITY_TYPE_TS = path.join(ROOT, 'api', 'schema', 'js', 'aura-api', 'entity-type.ts');
+const SKILL_VOCABULARY_FILE = path.join(ROOT, 'api', 'skill-vocabulary.json');
+const SHARED_CONSTANTS_FILE = path.join(ROOT, 'api', 'shared-constants.json');
 const PUBLIC_DIR = path.join(HERE, 'public');
 const PORT = Number(process.env.PORT) || 4610;
-
-function listJsonFiles(dir) {
-  const out = [];
-  for (const name of readdirSync(dir)) {
-    const abs = path.join(dir, name);
-    if (statSync(abs).isDirectory()) { out.push(...listJsonFiles(abs)); continue; }
-    if (name.endsWith('.json')) out.push(abs);
-  }
-  return out;
-}
 
 function readMobs() {
   return listJsonFiles(MOBS_DIR).map((abs) => ({
@@ -69,8 +74,26 @@ function readQuests() {
   }));
 }
 
+// BOTH folders: api/skills/*.json (player skills, the Skills tab's scope) and
+// api/skills/mobs/*.json (mob-embedded, hidden from the tab but sharing its
+// id and name space - §B10 L6). The client filters by path.
+function readSkills() {
+  return listJsonFiles(SKILLS_DIR).map((abs) => ({
+    file: path.relative(ROOT, abs).split(path.sep).join('/'),
+    abs,
+    raw: JSON.parse(readFileSync(abs, 'utf8')),
+  }));
+}
 function readSkillDefs() {
-  return listJsonFiles(SKILLS_DIR).map((abs) => JSON.parse(readFileSync(abs, 'utf8')));
+  return readSkills().map((s) => s.raw);
+}
+// The shared tick cadence, for the seconds the Skills tab shows beside every
+// tick field (D5). A constant, not a vocabulary list, so it rides /api/data on
+// its own rather than through vocabulary.mjs's merge.
+function readTicksPerSecond() {
+  const shared = JSON.parse(readFileSync(SHARED_CONSTANTS_FILE, 'utf8'));
+  if (typeof shared.ticksPerSecond !== 'number') throw new Error(`${SHARED_CONSTANTS_FILE} has no numeric "ticksPerSecond"`);
+  return shared.ticksPerSecond;
 }
 function readSkillNames() {
   return readSkillDefs().map((d) => d.name).filter(Boolean);
@@ -251,15 +274,30 @@ const server = createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/api/data') {
       const mobs = readMobs().map(({ file, raw }) => ({ file, raw }));
       const quests = readQuests().map(({ file, raw }) => ({ file, raw }));
-      const skillNames = readSkillNames();
+      const skills = readSkills().map(({ file, raw }) => ({ file, raw }));
+      const skillNames = skills.map((s) => s.raw.name).filter(Boolean);
       const skillMaxLevels = readSkillMaxLevels();
       const factions = readFactions().map(({ file, raw }) => ({ file, raw }));
       const recipes = readRecipes().map(({ file, raw }) => ({ file, raw }));
       const milestones = readMilestonesEntry();
       const entityTypes = readEntityTypes();
+      // The skill-authoring vocabulary, merged from the generated fixture and
+      // shared-constants (vocabulary.mjs). Served whole so the Skills tab can
+      // render its form from Go's own key table rather than a hand copy.
+      // ⚑ readSkillVocabulary throws on a missing/broken fixture, and that
+      // takes down this whole response on purpose (C0 finding): a stale
+      // vocabulary is a loud failure, not a Skills-tab-only one.
+      const skillVocabulary = readSkillVocabulary(ROOT);
+      const ticksPerSecond = readTicksPerSecond();
+      // The vendored glyph set the icon picker offers (C4, §B4.4), parsed off
+      // the generated client artifact. ⚑ Same posture as the vocabulary above:
+      // a broken parse throws and takes this whole response down, because an
+      // empty icon picker that silently offers nothing is the worse failure.
+      const skillIcons = readSkillIcons(ROOT);
       return sendJson(res, 200, {
-        mobs, quests, skillNames, skillMaxLevels, factions, recipes,
+        mobs, quests, skills, skillNames, skillMaxLevels, factions, recipes,
         milestones: { file: milestones.file, raw: milestones.raw }, entityTypes,
+        skillVocabulary, skillIcons, ticksPerSecond,
       });
     }
     if (req.method === 'GET' && url.pathname === '/api/validate') {
@@ -294,12 +332,49 @@ const server = createServer(async (req, res) => {
       const body = await readBody(req);
       return sendJson(res, 200, saveOne({ kind: 'recipe', file: body.file, raw: body.raw, isNew: !!body.isNew }));
     }
+    // ⭐ The save seam, DRY-RUN ONLY (spell builder C2, plan-content-editor.md
+    // §B4.9). Takes a candidate file + object, asks the real loader through
+    // `aurad -validate` over a temp copy of api/, and answers {ok, findings}.
+    // It writes NOTHING - C3 is the chunk that gates /api/save/skill on it.
+    //
+    // ⚑ Deliberately NOT wired into saveOne for the four existing kinds: those
+    // keep their JS ports until §B11 Q7 is ruled, and silently doubling their
+    // save latency is not this chunk's call to make.
+    //
+    // ⚑ A THROW here is 500, not a refusal: a missing or stale binary means the
+    // seam could not answer, and reporting that as "no findings" would be the
+    // silent pass D9 exists to prevent.
+    if (req.method === 'POST' && url.pathname === '/api/validate/candidate') {
+      const body = await readBody(req);
+      const { ok, findings } = validateCandidate(body.file === undefined ? {} : { file: body.file, raw: body.raw });
+      return sendJson(res, 200, { ok, findings });
+    }
+    // ⭐ The Skills tab's save (spell builder C3, `isNew` added by C4). Unlike
+    // the four kinds above it runs NO JS rule port: its gate is the real loader
+    // through the C2 seam (D9). save-skill.mjs holds the logic so it is
+    // testable without a server, and answers with the post-save checklist.
+    //
+    // ⚑ A THROW from here is a 500 by the catch below, and that is the L12
+    // contract: a missing or stale binary means the seam could not answer, and
+    // the client must not render that as a clean pass or as a finding list.
+    if (req.method === 'POST' && url.pathname === '/api/save/skill') {
+      const body = await readBody(req);
+      return sendJson(res, 200, saveSkill({ file: body.file, raw: body.raw, isNew: !!body.isNew }, {
+        root: ROOT, readMobs, readRecipes, readMilestonesEntry, validateCandidate,
+      }));
+    }
     if (req.method === 'POST' && url.pathname === '/api/save/milestones') {
       const body = await readBody(req);
       return sendJson(res, 200, saveMilestones(body.raw));
     }
     if (req.method === 'GET' && url.pathname === '/validate.mjs') {
       return serveStatic(res, path.join(HERE, 'validate.mjs'));
+    }
+    if (req.method === 'GET' && url.pathname === '/skill-presentation.mjs') {
+      return serveStatic(res, path.join(HERE, 'skill-presentation.mjs'));
+    }
+    if (req.method === 'GET' && url.pathname === '/skill-references.mjs') {
+      return serveStatic(res, path.join(HERE, 'skill-references.mjs'));
     }
     if (req.method === 'GET') {
       const rel = url.pathname === '/' ? '/index.html' : url.pathname;
@@ -315,5 +390,5 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`content-editor: http://localhost:${PORT}`);
-  console.log(`  reading  ${path.relative(ROOT, MOBS_DIR)}, ${path.relative(ROOT, QUESTS_DIR)}, ${path.relative(ROOT, SKILLS_DIR)}`);
+  console.log(`  reading  ${path.relative(ROOT, MOBS_DIR)}, ${path.relative(ROOT, QUESTS_DIR)}, ${path.relative(ROOT, SKILLS_DIR)}, ${path.relative(ROOT, SKILL_VOCABULARY_FILE)}`);
 });

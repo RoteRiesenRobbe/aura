@@ -3,6 +3,8 @@ package codec
 import (
 	"testing"
 
+	"github.com/EngoEngine/ecs"
+
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
@@ -192,16 +194,42 @@ func TestMobMarshalFlatbuf_Level(t *testing.T) {
 	})
 }
 
-// levelledOwner answers Progression() and nothing else: the embedded nil
-// interface satisfies model.PlayerEntity at compile time, and Level() is the
-// only call the encode path makes on an owner. Any other call panics loudly,
-// which is the point — a double that silently answers would hide a widened
-// dependency.
+// levelledOwner answers Progression() and Basic() and nothing else: the
+// embedded nil interface satisfies model.PlayerEntity at compile time, and
+// those two are the only calls the encode path makes on an owner. Any other
+// call panics loudly, which is the point: a double that silently answers
+// would hide a widened dependency.
+//
+// ⚑ Basic() is here BECAUSE of that design: plan-skill-vfx.md C1 widened the
+// dependency (the owner's id now rides the wire as Mob.owner_id) and this
+// double is what said so, by panicking.
 type levelledOwner struct {
 	model.PlayerEntity
+	basic ecs.BasicEntity
 	level uint16
 }
 
+func (o *levelledOwner) Basic() ecs.BasicEntity { return o.basic }
+
 func (o *levelledOwner) Progression() model.PlayerProgression {
 	return model.PlayerProgression{Level: uint32(o.level)}
+}
+
+// --- Mob.owner_id (plan-skill-vfx.md §12a.5) ---
+
+func TestMobMarshalFlatbuf_OwnerID(t *testing.T) {
+	t.Run("a world mob names nobody", func(t *testing.T) {
+		m := mob.NewMob(testMobDef(mobs.RoleCreature), 0, nil)
+		assert.Zero(t, marshalledMob(t, m).OwnerId(),
+			"0 is the default, so an unowned mob costs no bytes")
+	})
+
+	t.Run("an owned summon names its owner", func(t *testing.T) {
+		owner := &levelledOwner{basic: ecs.NewBasic(), level: 5}
+		m := mob.NewMob(testMobDef(mobs.RoleCreature), 0, nil)
+		m.SetOwner(owner)
+
+		assert.Equal(t, owner.Basic().ID(), marshalledMob(t, m).OwnerId(),
+			"the client reads this to tell its own summon's hits from a stranger's")
+	})
 }

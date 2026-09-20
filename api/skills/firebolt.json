@@ -1,0 +1,33 @@
+{
+  "_comment": "An active aura on Long-Range Strike's ring, cadence and damage, retagged to fire: the same ranged single-target trade at a damage type mobs can resist, so the pick is the element rather than the reach. All values placeholder. No unlock source yet - cheat-only (SKILL) until it is placed.",
+  "id": 78,
+  "name": "Firebolt",
+  "icon": "carl-olsen/flame",
+  "displayName": "Firebolt",
+  "category": "active_aura",
+  "maxLevel": 10,
+  "visual": {
+    "layers": [
+      { "kind": "projectile", "on": "hit", "speed": 900 },
+      { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
+    ]
+  },
+  "effects": [
+    {
+      "type": "damage_aura",
+      "costFractionOfMax": 0.0116,
+      "costFractionOfMaxPerLevel": 0.001867,
+      "radius": 2.6,
+      "radiusPerLevel": 0.0444,
+      "damageHP": 9,
+      "damageHPPerLevel": 1.4444,
+      "damageTags": ["fire"],
+      "variance": 0.15,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 40
+    }
+  ]
+}

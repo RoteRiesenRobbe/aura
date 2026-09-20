@@ -110,7 +110,7 @@ func TestMob_SpawnLevel_NeedsTheSpawnSiteFill(t *testing.T) {
 	m.RestoreToFullHealth()
 
 	assert.Equal(t, m.MaxHealth(), m.Health(), "the spawn site's tool closes the gap")
-	assert.Zero(t, m.HealReceived(), "a spawn fill is not a heal")
+	assert.Zero(t, healReceived(m), "a spawn fill is not a heal")
 }
 
 // The variance axis is independent of the level axis: the roll rides the BASE

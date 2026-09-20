@@ -1,0 +1,33 @@
+{
+  "_comment": "A chained bolt: the same ring as Long-Range Strike at well under half its damage per hit, but up to three targets, so it trades punch for spread rather than replacing it. All values placeholder. No unlock source yet - cheat-only (SKILL) until it is placed.",
+  "id": 76,
+  "name": "LightningStrike",
+  "icon": "lorc/star-swirl",
+  "displayName": "Lightning Strike",
+  "category": "active_aura",
+  "maxLevel": 10,
+  "visual": {
+    "layers": [
+      { "kind": "beam", "on": "hit", "curve": "flash", "chain": true, "tint": "#cfe8ff", "ms": 260, "width": 5 },
+      { "kind": "impact", "on": "hit", "curve": "burst", "ms": 160 }
+    ]
+  },
+  "effects": [
+    {
+      "type": "damage_aura",
+      "costFractionOfMax": 0.0116,
+      "costFractionOfMaxPerLevel": 0.001867,
+      "radius": 2.6,
+      "radiusPerLevel": 0.0444,
+      "damageHP": 4,
+      "damageHPPerLevel": 0.65,
+      "damageTags": ["nature"],
+      "variance": 0.15,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "nearest",
+      "maxTargets": 3,
+      "tickInterval": 40
+    }
+  ]
+}

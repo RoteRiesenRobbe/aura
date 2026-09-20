@@ -5,6 +5,11 @@
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 8, "ms": 500, "tint": "#f2f6ff" }
+    ]
+  },
   "effects": [
     { "costFractionOfMax": 0.01, "costFractionOfMaxPerLevel": 0.0025, "type": "dash", "dashDistance": 2.5, "dashDistancePerLevel": 0.25 }
   ]

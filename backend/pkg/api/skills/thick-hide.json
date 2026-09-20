@@ -1,5 +1,5 @@
 {
-  "_comment": "Bear kill-drop passive (content pass C2): first authored resist_passive. Multiplies incoming physical-tagged damage (0.85 = take 85%, stronger per level). physical is the implicit default tag, so this resists most of the zone — deliberate (plan-content-zones12.md §5). All values [PLACEHOLDER]",
+  "_comment": "A resist_passive that multiplies incoming physical-tagged damage, 0.85 meaning 85 percent taken, stronger per level. Since physical is the implicit default damage tag, this resists most damage sources in the zone, which is deliberate. All values placeholder.",
   "id": 43,
   "name": "ThickHide",
   "icon": "lorc/bordered-shield",

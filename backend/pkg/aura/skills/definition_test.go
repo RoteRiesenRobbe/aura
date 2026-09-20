@@ -405,12 +405,16 @@ func TestParse_VarianceDefaultsToZero(t *testing.T) {
 func TestParse_VarianceValidOnAllRollingEffects(t *testing.T) {
 	// Damage and heal amounts both roll (decision C1): damage_aura,
 	// instant_damage, heal_aura and self_heal all accept a variance band.
-	for _, effect := range []string{
-		`{"type": "instant_damage", "radius": 1, "targetsEnemies": true, "damageHP": 25, "variance": 0.1}`,
-		`{"type": "heal_aura", "radius": 1, "healHP": 6, "variance": 0.1}`,
-		`{"type": "self_heal", "healHP": 20, "variance": 0.1}`,
+	// The category rides each case since the category rule landed: heal_aura
+	// is an aura, the other two are casts, and a wrapper category that fits
+	// them all no longer exists.
+	for _, tc := range []struct{ category, effect string }{
+		{"cooldown", `{"type": "instant_damage", "radius": 1, "targetsEnemies": true, "damageHP": 25, "variance": 0.1}`},
+		{"active_aura", `{"type": "heal_aura", "radius": 1, "healHP": 6, "variance": 0.1}`},
+		{"cooldown", `{"type": "self_heal", "healHP": 20, "variance": 0.1}`},
 	} {
-		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"effects":[` + effect + `]}`))
+		effect := tc.effect
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"` + tc.category + `","maxLevel":1,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
 		def, err := raw.mapToSkillDefinition(nil)
 		require.NoError(t, err, "variance must be accepted on %s", effect)
@@ -1338,6 +1342,27 @@ func TestMap_SpawnEffectRequiresAnchorIsOptIn(t *testing.T) {
 		"absent = ungated, so every shipped summon keeps firing unbound")
 }
 
+// follows is the spell's statement that the summon is a PET
+// (plan-summon-follows.md D1): it sets a runtime flag on the summon that the
+// follow check reads, so "does this thing trail its caster" is a fact about the
+// SPELL rather than about the mob's authored role. Absent means false, which is
+// every totem and every portal.
+func TestMap_SpawnEffectFollowsIsOptIn(t *testing.T) {
+	pet := mustParse(t, []byte(`{
+      "id": 23, "name": "SummonCompanion", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 450,
+      "effects": [{"type": "spawn", "spawnMob": "Companion", "ttlTicks": 900, "follows": true}]
+    }`))
+	require.NotNil(t, pet.Effects[0].Spawn)
+	assert.True(t, pet.Effects[0].Spawn.Follows)
+
+	plain := mustParse(t, []byte(`{
+      "id": 24, "name": "SummonTotem", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 450,
+      "effects": [{"type": "spawn", "spawnMob": "Totem", "ttlTicks": 300}]
+    }`))
+	assert.False(t, plain.Effects[0].Spawn.Follows,
+		"absent = a summon that stands where it was placed")
+}
+
 // spawn_at_anchor is spawn's remote twin (plan-portal-spells.md D4, C2): the
 // same SpawnParams payload, placed at the caster's bound campfire instead of
 // beside the caster. Sharing the payload is what buys the boot-time spawnMob
@@ -1360,6 +1385,8 @@ func TestMap_SpawnAtAnchorEffect(t *testing.T) {
 
 // ⭐ THE ANCHOR REQUIREMENT IS INHERENT TO THIS TYPE, so `requiresAnchor` is NOT
 // on its key row and authoring it hard-fails at boot (plan-portal-spells.md C2).
+// `follows` is refused for the mirror-image reason: a portal is a door, planted
+// where the campfire is (plan-summon-follows.md L4).
 // The opt-in exists on plain `spawn` only because anchor-free content shares that
 // type (FireTotem); no anchor-free spawn_at_anchor can exist - without an anchor
 // there is no place to put the summon at all - so an authored flag could only
@@ -1371,6 +1398,7 @@ func TestMap_SpawnAtAnchorRefusesTheOptInAndPowerKeys(t *testing.T) {
 		`{"type": "spawn_at_anchor", "spawnMob": "PortalSummon", "ttlTicks": 900, "requiresAnchor": true}`,
 		`{"type": "spawn_at_anchor", "spawnMob": "PortalSummon", "ttlTicks": 900, "requiresAnchor": false}`,
 		`{"type": "spawn_at_anchor", "spawnMob": "PortalSummon", "ttlTicks": 900, "powerPerOwnerLevel": 0.1}`,
+		`{"type": "spawn_at_anchor", "spawnMob": "PortalSummon", "ttlTicks": 900, "follows": true}`,
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":25,"name":"X","category":"cooldown","maxLevel":1,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
@@ -1456,17 +1484,19 @@ func TestMap_ProjectileEffectInvalid(t *testing.T) {
 	}
 }
 
-// ⭐ THREE OF SPAWN'S KEYS ARE DELIBERATELY MISSING from projectile's row, and
+// ⭐ FOUR OF SPAWN'S KEYS ARE DELIBERATELY MISSING from projectile's row, and
 // the allowlist turns each into a boot failure rather than a silent no-op:
 // requiresAnchor (a throw needs no campfire, it needs a direction),
 // powerPerOwnerLevel (the thrown thing's damage is its own authored burst, not a
-// scaled aura) and ttlTicksPerLevel (the throw skills are maxLevel 1 in the
-// prototype, so a per-level slope could only ever read as dead authoring).
+// scaled aura), ttlTicksPerLevel (the throw skills are maxLevel 1 in the
+// prototype, so a per-level slope could only ever read as dead authoring) and
+// follows (a bomb is a bomb, plan-summon-follows.md L4).
 func TestMap_ProjectileRefusesTheSummonOnlyKeys(t *testing.T) {
 	for _, effect := range []string{
 		`{"type": "projectile", "spawnMob": "ProjectileBomb", "forwardUnits": 3.0, "ttlTicks": 900, "armTicks": 45, "requiresAnchor": true}`,
 		`{"type": "projectile", "spawnMob": "ProjectileBomb", "forwardUnits": 3.0, "ttlTicks": 900, "armTicks": 45, "powerPerOwnerLevel": 0.1}`,
 		`{"type": "projectile", "spawnMob": "ProjectileBomb", "forwardUnits": 3.0, "ttlTicks": 900, "armTicks": 45, "ttlTicksPerLevel": 30}`,
+		`{"type": "projectile", "spawnMob": "ProjectileBomb", "forwardUnits": 3.0, "ttlTicks": 900, "armTicks": 45, "follows": true}`,
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":26,"name":"X","category":"cooldown","maxLevel":1,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
@@ -1543,11 +1573,12 @@ func TestParse_PayloadlessTypesStillParse(t *testing.T) {
 	// §27.3.1 regression: light_aura and recall are the two types the payload
 	// switch intentionally handles with no payload. They must keep parsing
 	// (the default: branch hard-fails only a type forgotten from the switch).
-	for _, effect := range []string{
-		`{"type": "light_aura", "radius": 4}`,
-		`{"type": "recall"}`,
+	for _, tc := range []struct{ category, effect string }{
+		{"active_aura", `{"type": "light_aura", "radius": 4}`},
+		{"cooldown", `{"type": "recall"}`},
 	} {
-		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[` + effect + `]}`))
+		effect := tc.effect
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"` + tc.category + `","maxLevel":1,"cooldownTicks":300,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
 		_, err = raw.mapToSkillDefinition(nil)
 		require.NoError(t, err, "payload-less type must still parse: %s", effect)

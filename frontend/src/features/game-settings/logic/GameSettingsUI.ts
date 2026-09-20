@@ -1,6 +1,6 @@
 import '../assets/gameSettings.less';
 import * as Preloading from '../../core/logic/Preloading';
-import {GameSettings} from './GameSettings';
+import {GameSettings, VfxDensity} from './GameSettings';
 import {BackendStateChangedEvent, DevelopSetupEvent} from '../../core/logic/Events';
 import {parseInt} from 'lodash';
 import {preventShortcutPropagation, resetFocus} from '../../common/logic/Utils';
@@ -51,6 +51,7 @@ function setupPanel() {
         .forEach(preventShortcutPropagation);
 
     setupAudioSettings();
+    setupGraphicsSettings();
     AccountSettings.setup(panelElement);
 }
 
@@ -83,6 +84,19 @@ function setupAudioSettings() {
 }
 
 
+/**
+ * How much skill VFX dressing draws (plan-skill-vfx.md §7.3). The engine reads
+ * `gameSettings.vfx.density` and subscribes to GameSettingChangedEvent, so this
+ * control's only job is to write the value.
+ */
+function setupGraphicsSettings() {
+    setupRadioGroup<VfxDensity>(
+        'vfxDensity',
+        () => gameSettings.vfx.density,
+        value => (gameSettings.vfx.density = value),
+    );
+}
+
 function setupToggle(
     selector: string,
     getValue: () => boolean,
@@ -92,6 +106,28 @@ function setupToggle(
     toggle.checked = getValue();
     toggle.addEventListener('change', () => {
         setValue(toggle.checked);
+    });
+}
+
+/**
+ * A named radio group bound to one string setting. `change` for the same reason
+ * the checkboxes use it: MouseManager preventDefaults `mousedown` on the
+ * document element, which suppresses the synthetic `click` (see CLAUDE.md's HUD
+ * event rule). An unknown stored value simply leaves every radio unchecked.
+ */
+function setupRadioGroup<T extends string>(
+    name: string,
+    getValue: () => T,
+    setValue: (value: T) => void,
+) {
+    const radios = rootElement.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`);
+    radios.forEach((radio) => {
+        radio.checked = radio.value === getValue();
+        radio.addEventListener('change', () => {
+            if (radio.checked) {
+                setValue(radio.value as T);
+            }
+        });
     });
 }
 

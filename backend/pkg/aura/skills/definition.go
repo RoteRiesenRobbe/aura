@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strings"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 )
@@ -188,30 +189,6 @@ var selectorMap = map[string]Selector{
 	"nearest":       SelectorNearest,
 	"lowest_health": SelectorLowestHealth,
 	"all":           SelectorAll,
-}
-
-// HitStyle is a per-effect override for the aura-hit VFX (item 11 Step 4). The
-// default, HitStyleAuto, derives the style from the effect's tick cadence (see
-// sys.auraHitStyleFor); the explicit values pin a style regardless of cadence so
-// each aura is individually configurable via its JSON `hitStyle` field. Kept in
-// this package (not model) to avoid the skills↔model import cycle; sys maps it
-// to model.AuraHitStyle.
-type HitStyle int
-
-const (
-	HitStyleAuto  HitStyle = iota // default: derive from tick cadence
-	HitStyleSlash                 // always a discrete slash
-	HitStyleFire                  // always a sustained fire/spark
-	HitStyleNone                  // never show a hit VFX
-)
-
-// hitStyleMap parses the JSON `hitStyle` field. Absent/"auto" → cadence-derived.
-var hitStyleMap = map[string]HitStyle{
-	"":      HitStyleAuto,
-	"auto":  HitStyleAuto,
-	"slash": HitStyleSlash,
-	"fire":  HitStyleFire,
-	"none":  HitStyleNone,
 }
 
 // DamageTagPhysical is the reserved default damage tag (item 11 Phase 2).
@@ -435,10 +412,6 @@ type DamageParams struct {
 	// amount. 0 = static (the default); valid range 0 <= v < 1. The roll
 	// happens before the target's mitigation (decision C3).
 	Variance float32 `json:"variance"`
-
-	// Per-effect aura-hit VFX override (item 11 Step 4). HitStyleAuto
-	// (default) derives the style from the tick cadence.
-	HitStyle HitStyle `json:"hitStyle"`
 
 	// Mob casters only: damage dealt to structures (placeables) per tick.
 	// Structures read this via MobTouches double dispatch.
@@ -953,6 +926,14 @@ type SpawnParams struct {
 	// never seen a campfire. The gate belongs to the content, not to `spawn`.
 	RequiresAnchor bool `json:"requiresAnchor,omitempty"`
 
+	// Follows is the spell's statement that this summon is a PET
+	// (plan-summon-follows.md D1): the summon builder copies it onto a runtime
+	// flag on the spawned mob, and the mob's follow check reads that flag beside
+	// charm's leader link. Absent means false, which is every totem, every
+	// portal and every thrown bomb. It is authored on the SPELL, not on the mob,
+	// so any mob in the picker can be summoned as a companion.
+	Follows bool `json:"follows,omitempty"`
+
 	// ForwardUnits and ArmTicks are the PROJECTILE placement's two extra knobs
 	// (plan-prototype-projectile.md D2), unauthorable on either spawn form: how
 	// far ahead of the caster the thrown entity lands, and how long its own
@@ -1103,6 +1084,14 @@ type SkillDefinition struct {
 	// this is presentation, and the scope is a property of the SKILL (D8).
 	TargetFactions []string `json:"targetFactions,omitempty"`
 
+	// Visual is the authored `visual` block, nil when the skill authors none
+	// (plan-skill-vfx.md C0). See visual.go for the vocabulary and the rules.
+	//
+	// ⚑ omitempty and public on purpose: GET /skills marshals this struct
+	// verbatim, so the client's renderer reads the layers straight off the
+	// catalog and a skill with no dressing serves no key at all.
+	Visual *VisualDef `json:"visual,omitempty"`
+
 	Effects []EffectDef `json:"effects"`
 }
 
@@ -1174,8 +1163,6 @@ type effectDef struct {
 	TickInterval         *int `json:"tickInterval"` // nil → default 1
 	TickIntervalPerLevel int  `json:"tickIntervalPerLevel"`
 
-	HitStyle string `json:"hitStyle"` // "" → auto (cadence-derived)
-
 	Stat              string  `json:"stat"`
 	StatBonus         float32 `json:"statBonus"`
 	StatBonusPerLevel float32 `json:"statBonusPerLevel"`
@@ -1196,6 +1183,7 @@ type effectDef struct {
 	TTLTicksPerLevel   int     `json:"ttlTicksPerLevel"`
 	PowerPerOwnerLevel float32 `json:"powerPerOwnerLevel"`
 	RequiresAnchor     bool    `json:"requiresAnchor"`
+	Follows            bool    `json:"follows"`      // spawn: the summon follows and fights for its caster
 	ForwardUnits       float32 `json:"forwardUnits"` // projectile: throw distance ahead of the caster
 	ArmTicks           int     `json:"armTicks"`     // projectile: ticks before the carried burst may fire
 
@@ -1256,6 +1244,11 @@ type skillDefinition struct {
 	// Faction names this skill is allowed to reach (plan-faction-flips D8).
 	TargetFactions []string `json:"targetFactions"`
 
+	// Kept raw for the same reason the effects are: the per-layer key
+	// allowlist (visual.go) can only hard-fail a key the kind does not read if
+	// it still sees the authored object.
+	Visual json.RawMessage `json:"visual"`
+
 	// Kept raw so mapping can hard-fail keys the effect type does not read
 	// (see effectKeys).
 	Effects []json.RawMessage `json:"effects"`
@@ -1278,7 +1271,7 @@ var (
 	// ride only here — dots are deliberately excluded in v1 (§3.3; add to
 	// keysDotPayload + DotParams when content wants a burning execute).
 	keysDamagePayload = []string{
-		"damageHP", "damageHPPerLevel", "damageTags", "gateKey", "variance", "hitStyle", "targetsStructures", "structureDamageFraction",
+		"damageHP", "damageHPPerLevel", "damageTags", "gateKey", "variance", "targetsStructures", "structureDamageFraction",
 		"executeBelowFraction", "executeBonusFactor", "berserkerMaxBonusFactor", "critChance", "critChancePerLevel", "critFactor", "lifestealFraction",
 	}
 	keysResistPayload = []string{"resistTags", "resistFactor", "resistFactorPerLevel"}
@@ -1327,8 +1320,8 @@ var effectKeys = map[EffectType][]string{
 	EffectTypeInstantDot: mergeKeys(keysGeometry, keysCapped, keysTargetFlags, keysDotPayload),
 	// No geometry/cadence/targeting: a spawn fires at the caster's position on
 	// cooldown activation — placement is the spawn site's business.
-	EffectTypeSpawn: {"spawnMob", "ttlTicks", "ttlTicksPerLevel", "powerPerOwnerLevel", "requiresAnchor"},
-	// The remote twin (plan-portal-spells.md D4/C2). ⭐ TWO KEYS ARE
+	EffectTypeSpawn: {"spawnMob", "ttlTicks", "ttlTicksPerLevel", "powerPerOwnerLevel", "requiresAnchor", "follows"},
+	// The remote twin (plan-portal-spells.md D4/C2). ⭐ THREE KEYS ARE
 	// DELIBERATELY MISSING from spawn's row above, and their absence is the
 	// documentation:
 	//   - `requiresAnchor`: the anchor gate is this TYPE's, not the content's.
@@ -1339,9 +1332,12 @@ var effectKeys = map[EffectType][]string{
 	//     failure instead of a silent no-op.
 	//   - `powerPerOwnerLevel`: nothing placed at a campfire fights. Add it the
 	//     day an anchored summon does, and re-derive its scaling then.
+	//   - `follows`: a portal is a door. It is planted at a fixed place on
+	//     purpose, so a pet flag could only ever contradict the placement
+	//     (plan-summon-follows.md §4, L4).
 	EffectTypeSpawnAtAnchor: {"spawnMob", "ttlTicks", "ttlTicksPerLevel"},
 	// The THROWN twin (plan-prototype-projectile.md D2). Its two own keys are
-	// the placement (`forwardUnits`) and the fuse (`armTicks`); THREE of spawn's
+	// the placement (`forwardUnits`) and the fuse (`armTicks`); FOUR of spawn's
 	// are deliberately missing, each for a reason the allowlist turns into a
 	// boot failure instead of a silent no-op:
 	//   - `requiresAnchor`: a throw needs a direction, never a campfire.
@@ -1350,6 +1346,9 @@ var effectKeys = map[EffectType][]string{
 	//     nothing here. Add it the day a projectile carries a scaled aura.
 	//   - `ttlTicksPerLevel`: the throw skills are maxLevel 1 in the prototype,
 	//     so a per-level slope could only ever read as dead authoring.
+	//   - `follows`: a bomb is a bomb. It is thrown to a spot and detonates
+	//     there; a pet flag on it would be a leak, not a feature
+	//     (plan-summon-follows.md §4, L4).
 	EffectTypeProjectile: {"spawnMob", "forwardUnits", "ttlTicks", "armTicks"},
 	// Threat ops (chunk 7): a query circle (geometry) of enemy mobs; taunt
 	// carries a threatMargin, detaunt is a bare single-entry removal.
@@ -1431,9 +1430,8 @@ var effectKeys = map[EffectType][]string{
 	// payload. Its list is NARROWER than keysDamagePayload by three
 	// deliberate omissions, not by oversight. No gateKey: a lock-and-key hit
 	// names the targets it may touch, and a reflect never chooses — it answers
-	// whoever hit you. No variance/hitStyle: both are properties of a swing
-	// the wearer takes, and the reflect has no swing of its own to roll or
-	// draw. No structure keys: a wall cannot damage you, so it can never be
+	// whoever hit you. No variance: it is a property of a swing the wearer
+	// takes, and the reflect has no swing of its own to roll. No structure keys: a wall cannot damage you, so it can never be
 	// the attacker. What is left is the amount, its slope and its damage type.
 	EffectTypeRetaliateDamage: {"damageHP", "damageHPPerLevel", "damageTags"},
 	// Retaliate burst (PO 2026-08-17): the PERCENTAGE reflect, and structurally
@@ -1479,6 +1477,95 @@ var effectKeys = map[EffectType][]string{
 var factionScopedEffects = map[EffectType]bool{
 	EffectTypeCalm:  true,
 	EffectTypeCharm: true,
+}
+
+// effectCategories is the skill CATEGORY each effect type is legal on, and the
+// third thing the loader refuses that the JSON shape cannot express (after the
+// key allowlist and the faction allowlist).
+//
+// ⭐ Why it has to exist (PO finding 2026-09-12): a `stat_multiplier` authored
+// on an active aura loads clean and does NOTHING. The rule was real but lived
+// only inside three switch statements that each drop what they do not handle:
+//
+//   - sys.applyAuraEffect ticks the eight OUTPUT auras; light_aura is not one
+//     of them because it is read as a radius (EquippedSkill.LightRadius), not
+//     applied.
+//   - sys.fireCooldown (activation) handles the 21 cast effects.
+//   - SkillComponent.recomputeDerived folds the four equip-time passives, and
+//     it walks PassiveSlots ONLY - which is exactly why the PO's stat bonus on
+//     an aura reached nothing.
+//
+// A default: that silently ignores an effect is the right runtime shape (the
+// alternative is a panic in the tick loop), so the guard belongs at load time
+// where a content mistake still has an author looking at it. All 105 shipped
+// skill files fit this table exactly, measured before it was written.
+//
+// light_aura is the one type two categories share: the active aura lights
+// while it is the one switched on, and every equipped passive lights alongside
+// it (SkillComponent.LightRadius walks both lists). A cooldown cannot carry it
+// - the radius is read per equipped skill, never per cast.
+var effectCategories = map[EffectType][]SkillCategory{
+	// The eight output auras sys.applyAuraEffect dispatches, plus light.
+	EffectTypeDamageAura: {SkillCategoryActiveAura},
+	EffectTypeHealAura:   {SkillCategoryActiveAura},
+	EffectTypeSlowAura:   {SkillCategoryActiveAura},
+	EffectTypeResistAura: {SkillCategoryActiveAura},
+	EffectTypeDotAura:    {SkillCategoryActiveAura},
+	EffectTypeShieldAura: {SkillCategoryActiveAura},
+	EffectTypeHotAura:    {SkillCategoryActiveAura},
+	EffectTypeSpeedAura:  {SkillCategoryActiveAura},
+	EffectTypeLightAura:  {SkillCategoryActiveAura, SkillCategoryPassive},
+
+	// The cast effects, fired on activation.
+	EffectTypeSelfHeal:       {SkillCategoryCooldown},
+	EffectTypeSpawn:          {SkillCategoryCooldown},
+	EffectTypeSpawnAtAnchor:  {SkillCategoryCooldown},
+	EffectTypeProjectile:     {SkillCategoryCooldown},
+	EffectTypeTaunt:          {SkillCategoryCooldown},
+	EffectTypeDetaunt:        {SkillCategoryCooldown},
+	EffectTypeInstantShield:  {SkillCategoryCooldown},
+	EffectTypeInstantResist:  {SkillCategoryCooldown},
+	EffectTypeCalm:           {SkillCategoryCooldown},
+	EffectTypeStun:           {SkillCategoryCooldown},
+	EffectTypeCharm:          {SkillCategoryCooldown},
+	EffectTypeRecall:         {SkillCategoryCooldown},
+	EffectTypeInstantHot:     {SkillCategoryCooldown},
+	EffectTypeRevive:         {SkillCategoryCooldown},
+	EffectTypeDash:           {SkillCategoryCooldown},
+	EffectTypeTickRate:       {SkillCategoryCooldown},
+	EffectTypeSpeedBurst:     {SkillCategoryCooldown},
+	EffectTypeLifestealBurst: {SkillCategoryCooldown},
+	EffectTypeRetaliateBurst: {SkillCategoryCooldown},
+	EffectTypeInstantDamage:  {SkillCategoryCooldown},
+	EffectTypeInstantDot:     {SkillCategoryCooldown},
+
+	// The equip-time folds recomputeDerived reads.
+	EffectTypeStatMultiplier:  {SkillCategoryPassive},
+	EffectTypeResistPassive:   {SkillCategoryPassive},
+	EffectTypeRetaliateSlow:   {SkillCategoryPassive},
+	EffectTypeRetaliateDamage: {SkillCategoryPassive},
+}
+
+// legalCategoryNames lists, in the fixture's sorted order, the authored
+// category names an effect type may appear under. Names rather than enums
+// because both readers are humans: the loader's refusal text and the editor's
+// generated vocabulary.
+// indefiniteArticle keeps the refusal readable for the one category that
+// starts with a vowel. The editor's flag line words it identically.
+func indefiniteArticle(category string) string {
+	if category != "" && strings.ContainsRune("aeiou", rune(category[0])) {
+		return "an"
+	}
+	return "a"
+}
+
+func legalCategoryNames(t EffectType) []string {
+	names := make([]string, 0, len(effectCategories[t]))
+	for _, c := range effectCategories[t] {
+		names = append(names, skillCategoryNames[c])
+	}
+	slices.Sort(names)
+	return names
 }
 
 func mergeKeys(groups ...[]string) []string {
@@ -1584,11 +1671,24 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		return nil, fmt.Errorf("skill %q: castInterruptedByDamage requires castTicks > 0", s.Name)
 	}
 
+	visual, err := parseVisual(s.Visual, s.Category)
+	if err != nil {
+		return nil, fmt.Errorf("skill %q: %w", s.Name, err)
+	}
+
 	effects := make([]EffectDef, 0, len(s.Effects))
 	for _, rawEffect := range s.Effects {
 		effect, err := mapEffect(rawEffect)
 		if err != nil {
 			return nil, fmt.Errorf("skill %q: %w", s.Name, err)
+		}
+		// An effect on a category that never dispatches it loads clean and
+		// does nothing (see effectCategories for the three switches that used
+		// to hold this rule alone).
+		if !slices.Contains(effectCategories[effect.Type], category) {
+			return nil, fmt.Errorf("skill %q: effect type %q is not legal on %s %s skill (legal on: %s)",
+				s.Name, effectTypeNames[effect.Type], indefiniteArticle(s.Category), s.Category,
+				strings.Join(legalCategoryNames(effect.Type), ", "))
 		}
 		// A faction-scoped effect without an allowlist would reach every
 		// faction — see factionScopedEffects for why that is a hard-fail and
@@ -1624,6 +1724,7 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		CastInterruptedByDamage: s.CastInterruptedByDamage,
 		TargetFactionMask:       targetFactionMask,
 		TargetFactions:          targetFactionNames,
+		Visual:                  visual,
 		Effects:                 effects,
 	}, nil
 }
@@ -1861,10 +1962,6 @@ func (e *effectDef) damageParams() (*DamageParams, error) {
 		return nil, err
 	}
 
-	hitStyle, ok := hitStyleMap[e.HitStyle]
-	if !ok {
-		return nil, fmt.Errorf("unknown hitStyle: %q", e.HitStyle)
-	}
 	if err := validateVariance(e.Variance); err != nil {
 		return nil, err
 	}
@@ -1917,7 +2014,6 @@ func (e *effectDef) damageParams() (*DamageParams, error) {
 		Tags:                    tags,
 		GateKey:                 e.GateKey,
 		Variance:                e.Variance,
-		HitStyle:                hitStyle,
 		StructureDamageFraction: e.StructureDamageFraction,
 		ExecuteBelowFraction:    e.ExecuteBelowFraction,
 		ExecuteBonusFactor:      e.ExecuteBonusFactor,
@@ -2058,6 +2154,7 @@ func (e *effectDef) spawnParams() (*SpawnParams, error) {
 		TTLTicksPerLevel:   e.TTLTicksPerLevel,
 		PowerPerOwnerLevel: e.PowerPerOwnerLevel,
 		RequiresAnchor:     e.RequiresAnchor,
+		Follows:            e.Follows,
 	}, nil
 }
 

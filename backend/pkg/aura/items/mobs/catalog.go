@@ -19,8 +19,10 @@ import (
 // Deliberately a MINIMAL projection, not the whole MobDefinition: drops,
 // resistances, skill loadouts and HP would all leak through a public endpoint
 // and hand players an out-of-game answer key (zero-hint policy — the
-// spellbook's unlock sources are meant to be discovered). Only what the
-// nameplate renders is served.
+// spellbook's unlock sources are meant to be discovered). What is served is
+// what the client has to RENDER and cannot get any other way: the nameplate's
+// four facts, and since C2b the one aura id behind a mob's ambient VFX (see
+// AuraSkillID, which states why an id is not a hint).
 type CatalogEntry struct {
 	ID          MobID  `json:"id"`
 	Name        string `json:"name"`
@@ -50,6 +52,36 @@ type CatalogEntry struct {
 	// appears inside the dialogue window. Independent of CombatTarget on
 	// purpose — a future hostile that also talks would carry both.
 	Conversant bool `json:"conversant"`
+	// AuraSkillID is the id of the ONE skill of category active_aura this
+	// species authors, 0 for none (plan-skill-vfx.md §12d.2).
+	//
+	// The one field here that is not a nameplate fact, and it is here because
+	// there is nowhere else: a skill's `ambient` VFX layers draw "while this is
+	// the actor's running aura", which for a player rides `Character.
+	// active_skill_id` on the wire, and `Mob` has no such field. A species'
+	// loadout never changes after boot, so the aura id travels once, with the
+	// rest of the per-species metadata, instead of 30x/s per mob.
+	//
+	// ⚑ SINGULAR, because every species authors at most one active aura
+	// (pinned by TestContent_EverySpeciesAuthorsAtMostOneActiveAura). A second
+	// one would be silently dropped here.
+	//
+	// It does not breach the zero-hint policy the rest of this projection
+	// guards: the aura is visible in-world the moment the mob runs it (its ring
+	// and now its dressing), and an id names no drop, no unlock and no number.
+	// The loadout proper - levels, damage, the other skills - still stays off.
+	AuraSkillID skills.SkillID `json:"auraSkillId"`
+}
+
+// activeAuraSkillID is the species' running aura, or 0. First match wins; that
+// it can only ever BE one match is the content pin's job, not this loop's.
+func activeAuraSkillID(d *MobDefinition) skills.SkillID {
+	for _, s := range d.Skills {
+		if s.Def != nil && s.Def.Category == skills.SkillCategoryActiveAura {
+			return s.Def.ID
+		}
+	}
+	return 0
 }
 
 // CatalogJSON marshals every loaded mob definition sorted by ID. Legacy
@@ -72,6 +104,7 @@ func CatalogJSON(r Registry) ([]byte, error) {
 			// is still the test for "is prey", it is just spelled differently.
 			CombatTarget: d.IsCombatTarget(),
 			Conversant:   d.Interaction != nil,
+			AuraSkillID:  activeAuraSkillID(d),
 		})
 	}
 	return json.Marshal(entries)

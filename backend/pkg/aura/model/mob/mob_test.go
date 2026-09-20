@@ -255,7 +255,7 @@ func TestMob_PlayerTouches_ImmuneTagNoHit(t *testing.T) {
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"fire"}})
 
 	assert.Equal(t, m.MaxHealth(), m.Health())
-	assert.Zero(t, m.DamageTaken())
+	assert.Zero(t, damageTaken(m))
 	assert.NotContains(t, m.StatusEffects().Effects(), model.StatusEffectDamagedAmbient)
 }
 
@@ -267,7 +267,7 @@ func TestMob_PlayerTouches_GateClosedIsANonEvent(t *testing.T) {
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, GateKey: "harvest"})
 
 	assert.Equal(t, m.MaxHealth(), m.Health())
-	assert.Zero(t, m.DamageTaken())
+	assert.Zero(t, damageTaken(m))
 	assert.NotContains(t, m.StatusEffects().Effects(), model.StatusEffectDamagedAmbient,
 		"a gate-closed hit is a non-event like a fully resisted one")
 }
@@ -338,7 +338,7 @@ func TestMob_Invulnerable_PlayerHitIsNonEvent(t *testing.T) {
 	m.PlayerTouches(p, model.Damage{HP: 10, Tags: []string{"physical"}})
 
 	assert.Equal(t, m.MaxHealth(), m.Health())
-	assert.Zero(t, m.DamageTaken())
+	assert.Zero(t, damageTaken(m))
 	assert.NotContains(t, m.StatusEffects().Effects(), model.StatusEffectDamagedAmbient)
 	assert.False(t, m.HasThreat(p.Basic().ID()),
 		"an immune hit builds no threat")
@@ -400,26 +400,12 @@ func TestMob_DamageTaken_AccumulatesAndResets(t *testing.T) {
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10})
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 5})
 
-	assert.Equal(t, m.MaxHealth()-m.Health(), m.DamageTaken(),
+	assert.Equal(t, m.MaxHealth()-m.Health(), damageTaken(m),
 		"DamageTaken sums the actual health lost this tick")
-	assert.NotZero(t, m.DamageTaken())
+	assert.NotZero(t, damageTaken(m))
 
 	m.ResetTickNumbers()
-	assert.Zero(t, m.DamageTaken(), "reset clears the per-tick accumulator")
-}
-
-func TestMob_AuraHitStyle_SetAndReset(t *testing.T) {
-	m := newTestMob()
-
-	assert.Equal(t, model.AuraHitStyleNone, m.AuraHitStyle(), "no aura hit yet")
-
-	m.NoteAuraHit(model.AuraHitStyleSlash)
-	assert.Equal(t, model.AuraHitStyleSlash, m.AuraHitStyle(),
-		"NoteAuraHit records the style for this tick")
-
-	m.ResetTickNumbers()
-	assert.Equal(t, model.AuraHitStyleNone, m.AuraHitStyle(),
-		"reset clears the per-tick aura-hit style")
+	assert.Zero(t, damageTaken(m), "reset clears the per-tick accumulator")
 }
 
 // --- kill rewards (participation XP, roadmap item 10) ---
@@ -828,7 +814,7 @@ func TestMob_TakingDamageEntersCombatWithoutAnAggroTarget(t *testing.T) {
 	m := newTestMob()
 	require.False(t, m.InCombat(), "idle mob starts out of combat")
 
-	m.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+	m.takeDamage(model.Damage{HP: 5}, 0, model.StatusEffectDamagedAmbient)
 
 	assert.Nil(t, m.aggroTarget, "nothing was acquired — this is the healer case")
 	assert.True(t, m.InCombat(), "being hit IS combat, target or no target")
@@ -837,7 +823,7 @@ func TestMob_TakingDamageEntersCombatWithoutAnAggroTarget(t *testing.T) {
 func TestMob_DamagedMobDoesNotRegenerate(t *testing.T) {
 	m := newTestMob()
 	m.health = m.MaxHealth() / 2
-	m.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+	m.takeDamage(model.Damage{HP: 5}, 0, model.StatusEffectDamagedAmbient)
 	wounded := m.Health()
 
 	m.Update(0) // no aggro target: the old gate regenerated here
@@ -849,7 +835,7 @@ func TestMob_DamagedMobDoesNotRegenerate(t *testing.T) {
 func TestMob_RegenResumesAfterTheCombatGraceExpires(t *testing.T) {
 	m := newTestMob()
 	m.health = m.MaxHealth() / 2
-	m.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+	m.takeDamage(model.Damage{HP: 5}, 0, model.StatusEffectDamagedAmbient)
 	wounded := m.Health()
 
 	for i := 0; i < constant.CombatRegenGraceTicks; i++ {
@@ -873,11 +859,11 @@ func TestMob_EachHitRefreshesTheCombatWindow(t *testing.T) {
 
 	// Hit once, run most of the window down, hit again: the second hit must
 	// restamp, not top up a nearly-expired window.
-	m.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+	m.takeDamage(model.Damage{HP: 5}, 0, model.StatusEffectDamagedAmbient)
 	for i := 0; i < constant.CombatRegenGraceTicks-1; i++ {
 		m.Update(0)
 	}
-	m.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+	m.takeDamage(model.Damage{HP: 5}, 0, model.StatusEffectDamagedAmbient)
 	wounded := m.Health()
 
 	for i := 0; i < constant.CombatRegenGraceTicks; i++ {
@@ -1688,19 +1674,19 @@ func TestMob_Heal_ClampsRecordsAndReturnsDelta(t *testing.T) {
 	m := newTestMob() // maxHealth 100 (default), health 100
 	m.health = 60
 
-	healed := m.Heal(30)
+	healed := m.Heal(model.Healing{HP: 30, Caster: newFakeAuraPlayer()})
 	assert.Equal(t, vitals.VitalSign(30), healed)
 	assert.Equal(t, vitals.VitalSign(90), m.Health())
-	assert.Equal(t, vitals.VitalSign(30), m.HealReceived())
+	assert.Equal(t, vitals.VitalSign(30), healReceived(m))
 
 	// Over-heal clamps at maxHealth; only the applied delta accumulates.
-	healed = m.Heal(50)
+	healed = m.Heal(model.Healing{HP: 50, Caster: newFakeAuraPlayer()})
 	assert.Equal(t, vitals.VitalSign(10), healed)
 	assert.Equal(t, vitals.VitalSign(100), m.Health())
-	assert.Equal(t, vitals.VitalSign(40), m.HealReceived())
+	assert.Equal(t, vitals.VitalSign(40), healReceived(m))
 
 	m.ResetTickNumbers()
-	assert.Zero(t, m.HealReceived())
+	assert.Zero(t, healReceived(m))
 }
 
 // --- support mobs: seek-healer aura gating + movement (chunk 8) ---
@@ -1989,9 +1975,9 @@ type leechPlayer struct {
 	healed []uint32
 }
 
-func (l *leechPlayer) Heal(hp uint32) vitals.VitalSign {
-	l.healed = append(l.healed, hp)
-	return vitals.VitalSign(hp)
+func (l *leechPlayer) Heal(h model.Healing) vitals.VitalSign {
+	l.healed = append(l.healed, h.HP)
+	return vitals.VitalSign(h.HP)
 }
 
 func newLeechPlayer() *leechPlayer {
@@ -2010,9 +1996,9 @@ type fakeLeechSource struct {
 func (f *fakeLeechSource) Basic() ecs.BasicEntity { return f.basic }
 func (f *fakeLeechSource) Faction() model.Faction { return model.FactionAligned }
 func (f *fakeLeechSource) HealthRatio() float32   { return f.ratio }
-func (f *fakeLeechSource) Heal(hp uint32) vitals.VitalSign {
-	f.healed = append(f.healed, hp)
-	return vitals.VitalSign(hp)
+func (f *fakeLeechSource) Heal(h model.Healing) vitals.VitalSign {
+	f.healed = append(f.healed, h.HP)
+	return vitals.VitalSign(h.HP)
 }
 
 func TestMob_PlayerTouches_LifestealHealsToucher(t *testing.T) {
@@ -2098,13 +2084,13 @@ func TestMob_CritTaken_AccumulatesAndResets(t *testing.T) {
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Crit: true})
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 5})
 
-	assert.Equal(t, vitals.VitalSign(10), m.CritTaken(),
+	assert.Equal(t, vitals.VitalSign(10), critTaken(m),
 		"only crit-flagged hits land on the crit accumulator")
-	assert.Equal(t, vitals.VitalSign(15), m.DamageTaken(),
+	assert.Equal(t, vitals.VitalSign(15), damageTaken(m),
 		"crit damage still counts as damage taken")
 
 	m.ResetTickNumbers()
-	assert.Zero(t, m.CritTaken())
+	assert.Zero(t, critTaken(m))
 }
 
 // --- shield absorb step (plan-skill-vocab chunk 2, F6 §3.1/8-9) ---
@@ -2116,8 +2102,8 @@ func TestMob_TakeDamage_ShieldAbsorbsBeforeHP(t *testing.T) {
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 8, Crit: true})
 
 	assert.Equal(t, vitals.VitalSign(100), m.Health(), "HP untouched while the shield holds")
-	assert.Zero(t, m.DamageTaken(), "damage numbers show real HP loss only")
-	assert.Zero(t, m.CritTaken())
+	assert.Zero(t, damageTaken(m), "damage numbers show real HP loss only")
+	assert.Zero(t, critTaken(m))
 	assert.Equal(t, vitals.VitalSign(12), m.ShieldHP(), "the pool drained by the absorbed amount")
 	assert.True(t, m.tookDamage, "being beaten on your shield is combat — the leash signal widens to dealt (§3.1)")
 }
@@ -2129,7 +2115,7 @@ func TestMob_TakeDamage_PartialAbsorbSpillsToHP(t *testing.T) {
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 8})
 
 	assert.Equal(t, vitals.VitalSign(97), m.Health(), "the spill hits HP")
-	assert.Equal(t, vitals.VitalSign(3), m.DamageTaken())
+	assert.Equal(t, vitals.VitalSign(3), damageTaken(m))
 	assert.Zero(t, m.ShieldHP(), "the broken pool is gone")
 }
 
@@ -2146,7 +2132,7 @@ func TestMob_TakeDamage_ShieldAfterResist(t *testing.T) {
 
 	assert.Equal(t, vitals.VitalSign(92), m.Health())
 	assert.Zero(t, m.ShieldHP())
-	assert.Equal(t, vitals.VitalSign(8), m.DamageTaken())
+	assert.Equal(t, vitals.VitalSign(8), damageTaken(m))
 }
 
 func TestMob_ThreatCountsAbsorbedDamage(t *testing.T) {

@@ -520,11 +520,10 @@ type Mob struct {
 	// (3b).
 	leashTicks int
 
-	// role is the authored actor discriminator (chunk 2): creature, structure or
-	// follower. It answers "what is this", which used to be read off incidental
-	// values — a structure by its speed being 0, a follower by having an owner
-	// and a non-zero velocity. Orthogonal to the loadout slots below and to
-	// ownership: a totem is a structure WITH an owner.
+	// role is the authored actor discriminator (chunk 2): creature or structure.
+	// It answers "what is this", which used to be read off incidental values —
+	// a structure by its speed being 0. Orthogonal to the loadout slots below
+	// and to ownership: a totem is a structure WITH an owner.
 	role mobs.Role
 
 	// Loadout slots (round 3, see support.go). supportSlot/combatSlot are the
@@ -608,30 +607,23 @@ type Mob struct {
 	// polls for expiry, because charm's expiry has to act.
 	charmer model.PlayerEntity
 
-	// damageTaken accumulates health lost this tick (VitalSign units) for the
-	// floating damage number (roadmap item 11); reset every tick.
-	damageTaken vitals.VitalSign
+	// follows is the SPELL's statement that this summon is a pet
+	// (plan-summon-follows.md D1), set only by the summon builder from the
+	// spawn effect's authored `follows` key and never persisted. It is the
+	// second of the two ways into isFollower, beside charm.
+	//
+	// ⚑ Deliberately not the charmer link (plan L1: EndCharm reverts faction,
+	// and the removal fan-out calls it whenever any entity leaves the world, so
+	// a summon riding charmer would flip back to its species faction mid-TTL),
+	// and deliberately not the role (plan L2: role is never written after
+	// construction, entity-model chunk 2).
+	follows bool
 
-	// critTaken is the crit-flagged share of damageTaken (plan-skill-vocab
-	// chunk 1, §4.3), wire crit_taken; reset every tick alongside it.
-	critTaken vitals.VitalSign
-
-	// immuneHit records that a hit landed this tick and was fully mitigated -
-	// scripted invulnerability or resistances multiplied out to zero - for the
-	// floating "Immune" label (plan-immune-feedback.md); wire immune_hit,
-	// reset every tick alongside damageTaken. A gate-key miss does NOT set it
-	// (D1: a gated skill's non-target was never immune), nor does a hit whose
-	// authored damage is already 0 (a no-op, not immunity).
-	immuneHit bool
-
-	// healReceived accumulates health restored this tick (VitalSign units) for
-	// the floating heal number of a mob-cast heal (mob-depth chunk 8); mirrors
-	// damageTaken and resets every tick alongside it.
-	healReceived vitals.VitalSign
-
-	// auraHitStyle is the aura-hit VFX a damage aura stamped on this mob this
-	// tick (item 11 Step 4); reset every tick alongside damageTaken.
-	auraHitStyle model.AuraHitStyle
+	// skillEvents are this tick's attributed hits and casts (plan-skill-vfx.md
+	// C1): every landing recorded inside takeDamage / Heal, plus every cast
+	// this mob fired. Truncated with [:0] in ResetTickNumbers, never niled, so
+	// the steady state allocates nothing.
+	skillEvents []model.SkillEvent
 
 	// dwellRadius is the campfire bind radius (chunk 4), 0 for every mob that
 	// is not a respawn anchor; set post-construction by cmd/aurad.
@@ -923,8 +915,8 @@ func (m *Mob) Sensor() phy.DynamicCollider { return m.aggroAura }
 
 // Interaction is the conversation this actor carries, nil for the overwhelming
 // majority that carry none. It is the Conversant capability the interaction
-// system asserts on — never a type test, so a creature, a structure and a
-// follower can each talk without a branch.
+// system asserts on — never a type test, so a creature and a structure can
+// each talk without a branch.
 func (m *Mob) Interaction() *mobs.Interaction { return m.definition.Interaction }
 
 // aggroSensorMask derives the aggro sensor's collision mask from the aggro
@@ -949,6 +941,32 @@ func (m *Mob) SetOwner(o model.PlayerEntity) {
 // Owner is the summoning player, nil for world mobs (model.Owned).
 func (m *Mob) Owner() model.PlayerEntity {
 	return m.owner
+}
+
+// OwnedBy reports whether this mob was summoned by the entity with the given
+// id. The removal fan-out holds ecs ids, not player refs: this is the query it
+// needs to find whose summons to retire, and it is CharmedBy's twin
+// (plan-summon-follows.md C3).
+func (m *Mob) OwnedBy(id uint64) bool {
+	return m.owner != nil && m.owner.Basic().ID() == id
+}
+
+// ExpireWithOwner retires this summon because its owner left the world: died,
+// disconnected or took a flight (plan-summon-follows.md C3, PO R1/R2: EVERY
+// owned summon goes, pets, totems, portals and thrown bombs alike, so nothing
+// keeps standing for the rest of its TTL with nobody behind it).
+//
+// It is the TTL expiry's twin, deliberately the same two lines: health to 0 so
+// the next Update reports a death (Update's first check), which grants no kill
+// rewards (those only flow through PlayerTouches) and lets stale threat rows
+// pointing at this summon read as dead and prune themselves. The removal itself
+// belongs to MobSystem.Update's deferred sweep, never to the caller.
+//
+// Idempotent: a flight takeoff calls the departure hook directly and a
+// mid-flight disconnect calls it again for the same player, so the second pass
+// must find nothing left to do.
+func (m *Mob) ExpireWithOwner() {
+	m.health = 0
 }
 
 // SetTTLTicks arms the spawned-entity lifetime (spawn site only; 0 = none).
@@ -1087,6 +1105,10 @@ func (m *Mob) Update(dt float32) bool {
 	// death; kill rewards only flow through PlayerTouches, so none are
 	// granted. Health is zeroed so stale threat-table refs to the removed
 	// summon read as dead and get pruned (chunk 3a).
+	//
+	// ⚑ ExpireWithOwner is this block's twin: the same zeroing, reached from
+	// the departure fan-out instead of from the clock, when the owner leaves
+	// the world before the TTL runs out (plan-summon-follows.md C3).
 	if m.ttlTicks > 0 {
 		m.ttlTicks--
 		if m.ttlTicks == 0 {
@@ -1436,7 +1458,8 @@ func (m *Mob) updateAggro() {
 	// Followers (chunk 6) are owner-centric: acquisition from the owner's
 	// combat signals, stickiness bounded by the owner tether — no sensor
 	// (its mask sees the player layer), no threat retention (hits on the
-	// companion never re-target it, §3.6), no leash (the tether replaces it).
+	// companion never re-target it, §3.6; an idle one does acquire its own
+	// attacker, as the last resort), no leash (the tether replaces it).
 	case m.isFollower():
 		m.tookDamage = false
 		m.updateCompanionTargeting()
@@ -1895,7 +1918,12 @@ func (m *Mob) Invulnerable() bool {
 // shield-absorbed damage + actual HP lost after clamping — the
 // post-mitigation threat credit (chunk 3a, widened to absorbs per §4.2(a))
 // and the lifesteal base (F6 §3.1/9).
-func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.VitalSign {
+//
+// source is the acting entity's id: the summon itself on an owned cast, the
+// toucher otherwise; it is what the recorded hit event is attributed to
+// (plan-skill-vfx.md D9). The *Touches wrappers resolve it, because only they
+// can see both the payload's Source and the toucher.
+func (m *Mob) takeDamage(damage model.Damage, source uint64, s model.StatusEffect) vitals.VitalSign {
 	// Conditional immunity (encounter-controller chunk 9b): while set, every
 	// hit is a non-event exactly like a fully resisted tag — no HP loss, no
 	// floating number, no combat signal, no status effect, and no threat
@@ -1907,7 +1935,8 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vital
 	// starts at sensor acquisition; revisit for the real boss content.
 	if m.invulnerable {
 		if damage.HP > 0 {
-			m.immuneHit = true // a real hit bounced; a 0-HP touch is a no-op
+			// A real hit bounced; a 0-HP touch is a no-op, not immunity.
+			m.noteHit(source, damage.SkillID, model.HitKindImmune, 0)
 		}
 		return 0
 	}
@@ -1934,7 +1963,7 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vital
 	// genuinely zeroed the hit - that, and only that, stamps "Immune".
 	if vitals.HP(hp32) <= 0 {
 		if damage.HP > 0 {
-			m.immuneHit = true
+			m.noteHit(source, damage.SkillID, model.HitKindImmune, 0)
 		}
 		return 0
 	}
@@ -1947,11 +1976,19 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vital
 	before := m.health
 	m.health = m.health.Sub(hp)
 	loss := before - m.health // actual loss after clamping at 0
-	// The floating-number accumulators show real HP loss only; absorbed
-	// damage reads as the shield bar dropping.
-	m.damageTaken += loss
-	if damage.Crit {
-		m.critTaken += loss // crit_taken wire accumulator (chunk 1, §4.3)
+	// One event per landing (§12a.3): a hit that got through reports the REAL
+	// HP loss, absorbed share excluded (the shield bar already shows that);
+	// a hit the shield ate whole reports the absorb instead, so the landing is
+	// never silent.
+	switch {
+	case loss > 0:
+		kind := model.HitKindDamage
+		if damage.Crit {
+			kind = model.HitKindCrit
+		}
+		m.noteHit(source, damage.SkillID, kind, loss)
+	case absorbed > 0:
+		m.noteHit(source, damage.SkillID, model.HitKindAbsorb, absorbed)
 	}
 	dealt := absorbed + loss // "damage dealt", F6 §3.1/9 — feeds threat + lifesteal
 	if dealt > 0 {
@@ -1967,23 +2004,37 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vital
 	return dealt
 }
 
-// DamageTaken is the health lost this tick (VitalSign units); floating damage
-// number source (roadmap item 11).
-func (m *Mob) DamageTaken() vitals.VitalSign {
-	return m.damageTaken
+// noteHit records one landing on this mob (plan-skill-vfx.md D9). Called only
+// from inside takeDamage / Heal, which is the point: every acting site in the
+// game ends in one of those two, so a new damage path cannot forget it.
+func (m *Mob) noteHit(source uint64, id skills.SkillID, kind model.HitKind, amount vitals.VitalSign) {
+	m.noteSkillEvent(model.SkillEvent{
+		Source:  source,
+		Victim:  m.Basic().ID(),
+		SkillID: id,
+		Amount:  amount,
+		Kind:    kind,
+	})
 }
 
-// CritTaken is the crit-flagged share of this tick's damage taken (chunk 1,
-// §4.3); serialized as the crit_taken wire field so the client pops it big.
-func (m *Mob) CritTaken() vitals.VitalSign {
-	return m.critTaken
+// SkillEvents are this tick's attributed hits and casts (plan-skill-vfx.md
+// C1); the codec concatenates them into GameState.skill_events.
+func (m *Mob) SkillEvents() []model.SkillEvent {
+	return m.skillEvents
 }
 
-// ImmuneHit reports that a hit was fully mitigated this tick
-// (plan-immune-feedback.md); serialized as the immune_hit wire field, drives
-// the floating "Immune" label.
-func (m *Mob) ImmuneHit() bool {
-	return m.immuneHit
+// noteSkillEvent records one hit or cast. It is the ONLY writer: every funnel
+// and the FIRED stamp go through here, so "what does the wire carry" has one
+// answer to read.
+func (m *Mob) noteSkillEvent(e model.SkillEvent) {
+	m.skillEvents = append(m.skillEvents, e)
+}
+
+// NoteSkillFired records that this mob's skill went off this tick
+// (model.SkillFiredNotifier), targets or not: the only way another player's
+// client can see a cast at all.
+func (m *Mob) NoteSkillFired(id skills.SkillID) {
+	m.noteSkillEvent(model.SkillEvent{Source: m.Basic().ID(), SkillID: id, Fired: true})
 }
 
 // Heal restores up to hp absolute HP, capped at maxHealth, records the
@@ -1992,30 +2043,16 @@ func (m *Mob) ImmuneHit() bool {
 // player's Heal. A dead mob (health 0) is not revived by a heal aura: the
 // eligibility predicate never selects a zero-ratio target, and AddCapped on a
 // live pool is the only path here.
-func (m *Mob) Heal(hp uint32) vitals.VitalSign {
+func (m *Mob) Heal(h model.Healing) vitals.VitalSign {
 	before := m.health
-	m.health = m.health.AddCapped(hp, m.MaxHealth())
+	m.health = m.health.AddCapped(h.HP, m.MaxHealth())
 	healed := m.health - before
-	m.healReceived += healed
+	// A heal that restored nothing (already full) is not a landing: no event,
+	// exactly as the old accumulator added nothing.
+	if healed > 0 && h.Caster != nil {
+		m.noteHit(h.Caster.Basic().ID(), h.SkillID, model.HitKindHeal, healed)
+	}
 	return healed
-}
-
-// HealReceived is the health restored this tick (VitalSign units); floating
-// heal number source for mob-cast heals (mob-depth chunk 8).
-func (m *Mob) HealReceived() vitals.VitalSign {
-	return m.healReceived
-}
-
-// AuraHitStyle is the aura-hit VFX stamped on this mob this tick (item 11
-// Step 4); serialized as the mob's aura_hit_style wire field.
-func (m *Mob) AuraHitStyle() model.AuraHitStyle {
-	return m.auraHitStyle
-}
-
-// NoteAuraHit records the aura-hit VFX style for this tick; called by the
-// SkillSystem when a damage aura strikes this mob.
-func (m *Mob) NoteAuraHit(style model.AuraHitStyle) {
-	m.auraHitStyle = style
 }
 
 // ApplyResist grants a transient tag-resistance buff from a resist aura
@@ -2132,19 +2169,19 @@ func (m *Mob) DueBuffEvents() ([]skills.DotHit, []skills.HotEvent) {
 // the transient buff store; called by the StatusEffectsSystem at the start
 // of each tick.
 func (m *Mob) ResetTickNumbers() {
-	m.damageTaken = 0
-	m.critTaken = 0
-	m.immuneHit = false
-	m.healReceived = 0
-	m.auraHitStyle = model.AuraHitStyleNone
+	// Truncate, never nil: the slice keeps its capacity across ticks, so a mob
+	// in a steady fight allocates nothing (the idle-loop alloc pins).
+	m.skillEvents = m.skillEvents[:0]
 	m.buffs.Tick()
 }
 
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
-	lost := m.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
+	damage := model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit, SkillID: factors.SkillID}
+	// Factors carries no Source, so the toucher IS the acting entity.
+	lost := m.takeDamage(damage, model.ActingSourceID(nil, e), model.StatusEffectDamagedAmbient)
 	// Mob-cast lifesteal (chunk 1): Factors carries no Source — the mob is
 	// always its own recipient.
-	model.ApplyLifesteal(lost, factors.Lifesteal, nil, e)
+	model.ApplyLifesteal(lost, factors.Lifesteal, factors.SkillID, nil, e)
 	// Mob-vs-mob hits build threat too; noteThreat's faction gate keeps
 	// same-faction splash off the table.
 	if source, ok := e.(model.Combatant); ok {
@@ -2178,15 +2215,18 @@ func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
 // latches deathRewardGiven — harmless, because latching only matters to stop a
 // later poke from paying out, and there is nothing to pay.
 func (m *Mob) AreaTouches(_ model.AreaSource, damage model.Damage) {
-	m.takeDamage(damage, model.StatusEffectDamagedAmbient)
+	// ⚑ SOURCE 0, the "nobody" id ActingSourceID already returns for an absent
+	// toucher (plan-skill-vfx.md C1): the hit still reaches the client as a
+	// SkillEvent, but it is attributed to no entity, because an area is a place.
+	m.takeDamage(damage, 0, model.StatusEffectDamagedAmbient)
 }
 
 func (m *Mob) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	m.noteParticipant(p)
-	lost := m.takeDamage(damage, model.StatusEffectDamagedAmbient)
+	lost := m.takeDamage(damage, model.ActingSourceID(damage.Source, p), model.StatusEffectDamagedAmbient)
 	// Lifesteal heal-back (chunk 1, F6 §3.1/9): the living Source (a summon
 	// leeches for itself, §4.2) else the toucher, from the dealt amount.
-	model.ApplyLifesteal(lost, damage.Lifesteal, damage.Source, p)
+	model.ApplyLifesteal(lost, damage.Lifesteal, damage.SkillID, damage.Source, p)
 	// Threat credits the hit's source entity — a summon builds its own threat
 	// while XP rides the toucher (chunk 3a, gotcha #9; the stores stay
 	// separate). A dot whose summon has expired falls back to the toucher:

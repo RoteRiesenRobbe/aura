@@ -214,7 +214,7 @@ func TestApplyDamageAura_CapHitsOnlyNearest(t *testing.T) {
 	far := &touchRecorder{}
 	set := setOf(colliderAt(vec(1, 0), near), colliderAt(vec(20, 0), far))
 
-	applyDamageAura(caster, 1, cappedDamageEffect(skills.SelectorNearest, 1), set, testRNG())
+	applyDamageAura(caster, testSkillID, 1, cappedDamageEffect(skills.SelectorNearest, 1), set, testRNG())
 
 	assert.Len(t, near.touches, 1, "the closest target is hit")
 	assert.Empty(t, far.touches, "the capped-out target is spared")
@@ -226,7 +226,7 @@ func TestApplyDamageAura_UncappedHitsAll(t *testing.T) {
 	b := &touchRecorder{}
 	set := setOf(colliderAt(vec(1, 0), a), colliderAt(vec(20, 0), b))
 
-	applyDamageAura(caster, 1, cappedDamageEffect(skills.SelectorNearest, 0), set, testRNG())
+	applyDamageAura(caster, testSkillID, 1, cappedDamageEffect(skills.SelectorNearest, 0), set, testRNG())
 
 	assert.Len(t, a.touches, 1)
 	assert.Len(t, b.touches, 1)
@@ -251,7 +251,7 @@ func TestApplyHealAura_LowestHealthHealsMostWounded(t *testing.T) {
 		colliderAt(vec(20, 0), model.PlayerEntity(farWounded)),
 	)
 
-	testSkillSystem().applyHealAura(caster, 1, effect, set)
+	testSkillSystem().applyHealAura(caster, testSkillID, 1, effect, set)
 
 	assert.Equal(t, farWoundedStart.Add(10), farWounded.vitalSigns.Health,
 		"the most-wounded ally is healed")
@@ -267,7 +267,7 @@ func TestApplyHealAura_RecordsHealReceivedNumber(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	before := ally.vitalSigns.Health
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), setOf(colliderAt(vec(1, 0), model.PlayerEntity(ally))))
+	testSkillSystem().applyHealAura(caster, testSkillID, 1, healEffect(), setOf(colliderAt(vec(1, 0), model.PlayerEntity(ally))))
 
 	assert.Equal(t, ally.vitalSigns.Health-before, ally.healReceived)
 	assert.NotZero(t, ally.healReceived)
@@ -283,36 +283,9 @@ func TestApplyDamageAura_CapGrowsWithLevel(t *testing.T) {
 	// maxTargets 1 at L1, +1 per level → 2 targets at L2.
 	effect := cappedDamageEffect(skills.SelectorNearest, 1)
 	effect.MaxTargetsPerLevel = 1
-	applyDamageAura(caster, 2, effect, set, testRNG())
+	applyDamageAura(caster, testSkillID, 2, effect, set, testRNG())
 
 	assert.Len(t, near.touches, 1)
 	assert.Len(t, mid.touches, 1)
 	assert.Empty(t, far.touches)
-}
-
-// --- aura-hit style resolution (item 11 Step 4) ---
-
-func TestAuraHitStyleFor_AutoDerivesFromCadence(t *testing.T) {
-	slow := skills.EffectDef{Type: skills.EffectTypeDamageAura, TickInterval: auraSlashTickThreshold, Damage: &skills.DamageParams{}}
-	fast := skills.EffectDef{Type: skills.EffectTypeDamageAura, TickInterval: 1, Damage: &skills.DamageParams{}}
-
-	assert.Equal(t, model.AuraHitStyleSlash, auraHitStyleFor(slow, 1),
-		"a slow-tick aura reads as slash under HitStyleAuto")
-	assert.Equal(t, model.AuraHitStyleFire, auraHitStyleFor(fast, 1),
-		"a fast-tick aura reads as fire under HitStyleAuto")
-}
-
-func TestAuraHitStyleFor_ExplicitOverrideBeatsCadence(t *testing.T) {
-	// A fast-tick aura that pins slash, and a slow-tick aura that pins fire:
-	// the explicit hitStyle must win over the cadence default.
-	pinnedSlash := skills.EffectDef{Type: skills.EffectTypeDamageAura, TickInterval: 1, Damage: &skills.DamageParams{HitStyle: skills.HitStyleSlash}}
-	pinnedFire := skills.EffectDef{Type: skills.EffectTypeDamageAura, TickInterval: auraSlashTickThreshold, Damage: &skills.DamageParams{HitStyle: skills.HitStyleFire}}
-
-	assert.Equal(t, model.AuraHitStyleSlash, auraHitStyleFor(pinnedSlash, 1))
-	assert.Equal(t, model.AuraHitStyleFire, auraHitStyleFor(pinnedFire, 1))
-}
-
-func TestAuraHitStyleFor_NoneSuppressesVFX(t *testing.T) {
-	effect := skills.EffectDef{Type: skills.EffectTypeDamageAura, TickInterval: 1, Damage: &skills.DamageParams{HitStyle: skills.HitStyleNone}}
-	assert.Equal(t, model.AuraHitStyleNone, auraHitStyleFor(effect, 1))
 }

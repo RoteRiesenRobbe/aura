@@ -15,6 +15,7 @@ import {
     TravelDirection,
 } from '../../../../conversation/logic/ConversationModel';
 import {QuestProgress} from '../../../../journal/logic/JournalModel';
+import {SkillEventData} from '../../SkillEventNumbers';
 
 export class Spectator {
     id: number;
@@ -102,6 +103,12 @@ export class GameStateMessage {
     // content arrives on open and on anything that changes availability (a
     // grant), plus the heartbeat.
     conversation: ConversationTree | undefined;
+    // Every skill landing (and every cast) inside the viewport this tick
+    // (plan-skill-vfx.md C1, D5). Empty on a quiet tick: the field is simply
+    // absent on the wire then, which is the common case. Unlike the
+    // change-only block above, an empty list means "nothing happened", never
+    // "unchanged": these are events, not state.
+    skillEvents: SkillEventData[];
     // the owning player's running + completed quests, ids only (chunk C3); the
     // titles and diary prose come from the /quests catalog. Rides the same
     // change-only gate as the spellbook block above.
@@ -125,6 +132,8 @@ export class GameStateMessage {
         for (let i = 0; i < gameState.entitiesLength(); ++i) {
             this.entities.push(unmarshalWrappedEntity(gameState.entities(i)));
         }
+
+        this.skillEvents = unmarshalSkillEvents(gameState);
 
         // The owner-only "slow" block (chunk 3): all built together, all
         // gated behind ONE explicit server flag.
@@ -227,6 +236,32 @@ function unmarshalDiscoveredCampfires(gameState: AuraApi.GameState): string[] | 
         ids.push(gameState.discoveredCampfires(i));
     }
     return ids;
+}
+
+/**
+ * Read this tick's skill events out of a snapshot (plan-skill-vfx.md C1).
+ *
+ * ⚑ Returns `[]` for an absent vector, the opposite of the campfire one-shots
+ * above: these are events, so "nothing arrived" genuinely means "nothing
+ * landed this tick", which is most ticks. Nothing to carry forward.
+ *
+ * The two entity ids are `ulong` → bigint in the generated binding; narrowed
+ * to numbers here, exactly as the entity ids they are looked up against are.
+ */
+function unmarshalSkillEvents(gameState: AuraApi.GameState): SkillEventData[] {
+    const events: SkillEventData[] = [];
+    for (let i = 0; i < gameState.skillEventsLength(); ++i) {
+        const e = gameState.skillEvents(i);
+        events.push({
+            source: Number(e.source()),
+            victim: Number(e.victim()),
+            skillId: e.skillId(),
+            amount: e.amount(),
+            kind: e.kind(),
+            fired: e.fired(),
+        });
+    }
+    return events;
 }
 
 /**
@@ -366,7 +401,6 @@ function unmarshalEntity(entity, eType) {
         aabb: unmarshalAABB(entity.aabb()),
         rotation: undefined,
         isSpectator: undefined,
-        isHit: undefined,
         name: undefined,
         health: undefined,
         maxHealth: undefined,
@@ -377,14 +411,9 @@ function unmarshalEntity(entity, eType) {
         activeSkillId: undefined,
         statusEffects: undefined,
         burstRadius: undefined,
-        damageTaken: undefined,
-        critTaken: undefined,
-        immuneHit: undefined,
         costPaid: undefined,
         shieldHp: undefined,
-        healReceived: undefined,
         xpGained: undefined,
-        auraHitStyle: undefined,
         xpInLevel: undefined,
         xpForNextLevel: undefined,
         campfireBound: undefined,
@@ -415,6 +444,11 @@ function unmarshalEntity(entity, eType) {
         flying: undefined,
         flightDest: undefined,
         flightArrivalTick: undefined,
+        // MOBS only (plan-skill-vfx.md C1, §12a.5): the entity an owned summon
+        // is credited to, 0 for a world mob. The only reader is the skill-event
+        // attribution: a summon's hits carry the SUMMON as their source, so
+        // this is what makes them the owner's numbers.
+        ownerId: undefined,
     };
 
     if (eType === AuraApi.AnyEntity.Mob) {
@@ -422,15 +456,10 @@ function unmarshalEntity(entity, eType) {
         result.health = entity.health();
         result.maxHealth = entity.maxHealth();
         result.burstRadius = entity.burstRadius();
-        result.damageTaken = entity.damageTaken();
-        // crit-flagged share of damageTaken — rendered big (skill-vocab chunk 1)
-        result.critTaken = entity.critTaken();
-        // a hit was fully mitigated this tick - the floating "Immune" label
-        result.immuneHit = entity.immuneHit();
         // current absorb capacity, 0 = unshielded (skill-vocab chunk 2)
         result.shieldHp = entity.shieldHp();
-        result.healReceived = entity.healReceived();
-        result.auraHitStyle = entity.auraHitStyle();
+        // 0 for every world mob; a summoned or charmed one carries its owner.
+        result.ownerId = Number(entity.ownerId());
         // effective radius of the active aura in px, 0 while gated — drives
         // the ring visibility (mob-depth chunk 3c).
         result.auraRadius = entity.auraRadius();
@@ -468,7 +497,6 @@ function unmarshalEntity(entity, eType) {
         result.isSpectator = false;
 
         result.rotation = entity.rotation();
-        result.isHit = entity.isHit();
 
         result.name = entity.name();
 
@@ -481,18 +509,11 @@ function unmarshalEntity(entity, eType) {
         result.lightRadius = entity.lightRadius();
         result.activeSkillId = entity.activeSkillId();
         result.burstRadius = entity.burstRadius();
-        result.damageTaken = entity.damageTaken();
-        // crit-flagged share of damageTaken — rendered big (skill-vocab chunk 1)
-        result.critTaken = entity.critTaken();
-        // a hit was fully mitigated this tick - the floating "Immune" label
-        result.immuneHit = entity.immuneHit();
         // resource cost paid this tick — the blue number (round-7 item 7)
         result.costPaid = entity.costPaid();
         // current absorb capacity, 0 = unshielded (skill-vocab chunk 2)
         result.shieldHp = entity.shieldHp();
-        result.healReceived = entity.healReceived();
         result.xpGained = entity.xpGained();
-        result.auraHitStyle = entity.auraHitStyle();
         result.xpInLevel = entity.xpInLevel();
         result.xpForNextLevel = entity.xpForNextLevel();
         // one-tick stamp: a campfire became the respawn anchor (chunk 4)

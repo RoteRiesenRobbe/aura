@@ -12,7 +12,7 @@ import (
 // These pin the vocabulary itself; the behavioural half lives in model/mob.
 
 func TestParseRole_AcceptsEveryAuthorableRole(t *testing.T) {
-	for _, name := range []string{"creature", "structure", "follower"} {
+	for _, name := range []string{"creature", "structure"} {
 		role, ok := ParseRole(name)
 		assert.True(t, ok, "role %q must be authorable", name)
 		assert.Equal(t, Role(name), role)
@@ -36,11 +36,11 @@ func TestParseRole_RejectsUnknown(t *testing.T) {
 // is authorable exactly when the table knows it, so the loader, the sim and the
 // CLI cannot drift apart.
 func TestRoles_CoversEveryRoleConstant(t *testing.T) {
-	for _, role := range []Role{RoleCreature, RoleStructure, RoleFollower} {
+	for _, role := range []Role{RoleCreature, RoleStructure} {
 		_, ok := roles[string(role)]
 		assert.True(t, ok, "role %q is a constant with no table entry", role)
 	}
-	assert.Len(t, roles, 3, "a new role needs a behaviour in model/mob — it is not just a label")
+	assert.Len(t, roles, 2, "a new role needs a behaviour in model/mob — it is not just a label")
 }
 
 func TestMapMobDefinition_RoleDefaultsToCreature(t *testing.T) {
@@ -62,7 +62,6 @@ func TestMapMobDefinition_AuthoredRolesResolve(t *testing.T) {
 	for name, want := range map[string]Role{
 		"creature":  RoleCreature,
 		"structure": RoleStructure,
-		"follower":  RoleFollower,
 	} {
 		raw, err := parseMobDefinition([]byte(`{
 		  "id": 61,
@@ -114,24 +113,23 @@ func TestMapMobDefinition_StructureMayOmitAggroRadius(t *testing.T) {
 	assert.Zero(t, def.Body.AggroRadius)
 }
 
-// It stays required for everything that moves — a creature or a follower
-// without a sensor is an authoring mistake, not a design (PO 2026-07-27).
-func TestMapMobDefinition_MovingRolesStillRequireAggroRadius(t *testing.T) {
-	for _, role := range []string{"creature", "follower"} {
-		raw, err := parseMobDefinition([]byte(`{
-		  "id": 64,
-		  "name": "Wolf",
-		  "type": "MOB",
-		  "role": "` + role + `",
-		  "factors": {"baseMaxHealth": 30, "speed": 0.7},
-		  "body": {"radius": 0.3}
-		}`))
-		require.NoError(t, err)
+// It stays required for a creature: one without a sensor is an authoring
+// mistake, not a design (PO 2026-07-27). ⚑ C2 narrowed the loop from two roles
+// to one: creature is now the only non-structure role there is.
+func TestMapMobDefinition_CreatureStillRequiresAggroRadius(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 64,
+	  "name": "Wolf",
+	  "type": "MOB",
+	  "role": "creature",
+	  "factors": {"baseMaxHealth": 30, "speed": 0.7},
+	  "body": {"radius": 0.3}
+	}`))
+	require.NoError(t, err)
 
-		_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
-		require.Error(t, err, "role %q", role)
-		assert.Contains(t, err.Error(), "aggroRadius")
-	}
+	_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "aggroRadius")
 }
 
 // D3 (PO 2026-07-27): a stationary CREATURE is a legal, wanted config — a

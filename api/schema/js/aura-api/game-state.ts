@@ -9,6 +9,7 @@ import { Conversation } from '../aura-api/conversation.js';
 import { Entity } from '../aura-api/entity.js';
 import { Player, unionToPlayer, unionListToPlayer } from '../aura-api/player.js';
 import { QuestProgress } from '../aura-api/quest-progress.js';
+import { SkillEvent } from '../aura-api/skill-event.js';
 
 
 export class GameState {
@@ -248,8 +249,18 @@ ownerState():boolean {
   return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
 }
 
+skillEvents(index: number, obj?:SkillEvent):SkillEvent|null {
+  const offset = this.bb!.__offset(this.bb_pos, 60);
+  return offset ? (obj || new SkillEvent()).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
+}
+
+skillEventsLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 60);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(28);
+  builder.startObject(29);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -495,6 +506,22 @@ static addConversationEntityId(builder:flatbuffers.Builder, conversationEntityId
 
 static addOwnerState(builder:flatbuffers.Builder, ownerState:boolean) {
   builder.addFieldInt8(27, +ownerState, +false);
+}
+
+static addSkillEvents(builder:flatbuffers.Builder, skillEventsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(28, skillEventsOffset, 0);
+}
+
+static createSkillEventsVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startSkillEventsVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
 }
 
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {

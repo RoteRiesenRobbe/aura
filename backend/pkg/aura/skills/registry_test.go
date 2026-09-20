@@ -150,8 +150,9 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// + Bloodthirst, the R3 lifesteal_burst cooldown — the rider Reaper dropped
 	// in §5.6, re-shaped as a six-second window you spend a cooldown on
 	// (2026-08-01)
-	// − Recall, RETIRED 2026-08-03 (R4 C1, plan-downtime.md D7): it became a
-	// baseline utility outside the skill catalog; id 28 stays burned.
+	// − Recall, 2026-08-03 (R4 C1, plan-downtime.md D7): it became a baseline
+	// utility outside the skill catalog and its file left the tree, id 28 kept
+	// free. RESTORED 2026-09-18 (the last entry below).
 	// + CampAura, the R4 C2 mini-campfire's heal + dim light (2026-08-03) —
 	// mob content, referenced only by camp.json, which applyCamp builds from
 	// Go rather than from a spawn effect.
@@ -167,7 +168,8 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// source kind rather than six exceptions.
 	// − the FIVE legacy mob skills (zone-editor C3, 2026-08-16): the legacy
 	// roster retired and its auras with it (Dodo/SaberToothCat/Mammoth/
-	// AngryMammoth auras + AngryMammothStomp), 95 → 90.
+	// AngryMammoth auras + AngryMammothStomp), 95 → 90. RESTORED 2026-09-18
+	// (the last entry below).
 	// + FireVulnerability, the first vulnerability aura (plan-effect-types.md
 	// C1, 2026-08-16), id 66: resist_aura with a factor above 1 aimed at
 	// enemies. Pure content on an existing effect type; SKILL cheat only, no
@@ -212,7 +214,32 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// `projectile` effect authored twice, differing only in the TTL that makes
 	// one a waiting mine and the other a timed bang (D5). All three are SKILL
 	// cheat only and stay that way for as long as the prototype is unmerged.
-	assert.Len(t, r.All(), 105)
+	// + SummonSpider (2026-09-12), id 152: a `spawn` cooldown of the wild
+	// `Spider`, and the PO's first spell authored end to end in the content
+	// editor's Skills tab, at the C4 look. SKILL cheat only, no unlock source.
+	// It stood where it spawned, because the permission to follow a caster
+	// lived on the MOB's role and a wild species had none. Retired
+	// 2026-09-13 by docs/archive/plan-summon-follows.md: the SPELL's
+	// `follows` key carries it now, and the PO ticked it on this very
+	// skill during the walk. 105 → 106.
+	// + the SEVEN restored files (plan-content-editor.md §B12 C5, 2026-09-18):
+	// the registry lock was cut for the rule "ids are forever, so nothing is
+	// ever deleted", and every skill file ever deleted comes back under it -
+	// Wild id 3, Recall id 28 and the five mob-only skills ids 101-105.
+	// 106 → 113.
+	// + LightningStrike (plan-skill-vfx.md C2a, 2026-09-19), id 76: an active
+	// aura that hits the nearest three inside a Long-Range Strike ring for
+	// well under half its damage per hit, and the first content the `beam`
+	// kind's chain + flash visuals are authored against. SKILL cheat only, no
+	// unlock source, until the PO places it. 113 → 114 (76 player + 38 mob).
+	// + TWO more of the same shape (plan-skill-vfx.md C2b, §12d.1, 2026-09-20),
+	// the content C2b's three new kinds are authored against: WhirlingAxes id
+	// 77, a cooldown on Shockwave's numbers whose two axes orbit the caster for
+	// the length of the flourish, and Firebolt id 78, an active aura on
+	// Long-Range Strike's numbers retagged to fire so a projectile has an
+	// element to take its colour from. Both SKILL cheat only, no unlock source,
+	// until the PO places them. 114 → 116 (78 player + 38 mob).
+	assert.Len(t, r.All(), 116)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)
@@ -226,4 +253,43 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	heal, err := r.GetByName("Heal")
 	require.NoError(t, err)
 	assert.Equal(t, SkillID(2), heal.ID)
+}
+
+// TestRegistry_CollectsEveryBrokenFile pins the per-file collection the spell
+// builder's -validate seam needs (plan-content-editor.md §B5 C2, PO ruling
+// 2026-09-11): the walk used to return on the first bad file, so an author
+// fixing one typo learned about the next one only on the next run. Every
+// broken file is now reported in one pass.
+func TestRegistry_CollectsEveryBrokenFile(t *testing.T) {
+	fsys := fstest.MapFS{
+		"damage.json":     {Data: damageAuraJSON},
+		"broken-one.json": {Data: []byte(`{invalid`)},
+		"broken-two.json": {Data: []byte(`{"id": 77, "name": "Nope", "category": "active_aura", "maxLevel": 1, "effects": [{"type": "damage_aura", "noSuchKey": true}]}`)},
+	}
+	_, err := RegistryFromFS(fsys, nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "broken-one.json")
+	assert.Contains(t, err.Error(), "broken-two.json")
+}
+
+// A file that failed to load must not be INSERTED, or continuing the walk would
+// invent findings out of the first one. broken.json is walked first (MapFS
+// sorts), claims damage.json's id AND name, and fails on an unknown effect key:
+// if it were inserted anyway, damage.json would report a duplicate id that no
+// author can act on. The only finding must be the broken file's own.
+func TestRegistry_BrokenFileDoesNotPoisonDuplicateChecks(t *testing.T) {
+	fsys := fstest.MapFS{
+		"damage.json": {Data: damageAuraJSON},
+		"broken.json": {Data: []byte(`{
+  "id": 1,
+  "name": "Damage",
+  "category": "active_aura",
+  "maxLevel": 1,
+  "effects": [{"type": "damage_aura", "targetsMobs": true, "noSuchKeyAtAll": true}]
+}`)},
+	}
+	_, err := RegistryFromFS(fsys, nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "broken.json")
+	assert.NotContains(t, err.Error(), "duplicate")
 }

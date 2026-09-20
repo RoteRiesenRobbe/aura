@@ -6,7 +6,8 @@
 // presses the always-present Recall button and lands back at their bound
 // fire; moving mid-cast cancels it and goes nowhere; the cast bar labels the
 // wind-up "Recall"; and the Town Crier no longer offers to teach (D8 — the
-// Recall teaching died with the skill).
+// Recall teaching went with the utility; the skill file itself is back since
+// 2026-09-18, cheat-only).
 //
 //   1  join fresh, dwell at the spawn fire long enough to bind (~1.7 s of
 //      consecutive dwell; we give it several times that), record HOME
@@ -18,7 +19,7 @@
 //   4  press again and stand still: ~10 s later we are within jitter of HOME
 //   5  talk to the Town Crier: root has quest + lore rows, NO "Teach me
 //      something." (its teachings node held only Recall and was deleted with
-//      it — the empty-destination prune deliberately spares authored-empty
+//      the teaching — the empty-destination prune deliberately spares authored-empty
 //      nodes, so the row had to go in content, and this leg is what notices
 //      if it ever comes back)
 //

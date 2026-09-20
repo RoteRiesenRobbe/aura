@@ -1,0 +1,25 @@
+{
+  "id": 152,
+  "name": "SummonSpider",
+  "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 6, "ms": 450, "scale": 0.7, "tint": "#cfd6e6" }
+    ]
+  },
+  "effects": [
+    {
+      "type": "spawn",
+      "spawnMob": "Spider",
+      "ttlTicks": 1800,
+      "ttlTicksPerLevel": 150,
+      "costFractionOfMax": 0.05,
+      "costFractionOfMaxPerLevel": 0.0075,
+      "powerPerOwnerLevel": 0.05,
+      "follows": true
+    }
+  ],
+  "category": "cooldown",
+  "icon": "delapouite/knocked-out-stars",
+  "_comment": "Summon a Spider to fight for you"
+}

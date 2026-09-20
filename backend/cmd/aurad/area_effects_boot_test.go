@@ -87,25 +87,20 @@ func TestLoadZones_RunsTheAreaEffectCheck(t *testing.T) {
 	require.NotEmpty(t, realName, "the content must author at least one area-applicable skill")
 
 	t.Run("a known effect boots", func(t *testing.T) {
-		require.NotPanics(t, func() {
-			zones := loadZones(zoneFSWithEffect(realName), "hazards", mr, pr, sr)
-			require.Len(t, zones, 1)
-			assert.Equal(t, realName, zones[0].Atmospheres[0].Effect)
-		})
+		zones, err := loadZones(zoneFSWithEffect(realName), "hazards", mr, pr, sr)
+		require.NoError(t, err)
+		require.Len(t, zones, 1)
+		assert.Equal(t, realName, zones[0].Atmospheres[0].Effect)
 	})
 
-	// ⛔ A PANIC, not a warning — the loader ethos for placed content. An area
+	// ⛔ A FINDING, not a warning — the loader ethos for placed content. An area
 	// effect is placed by construction, so a name that resolves to nothing is a
-	// hazard that draws, reads as dangerous and does nothing at all.
+	// hazard that draws, reads as dangerous and does nothing at all. The boot is
+	// what panics on it (aurad.go); this pins that the check ran and reported.
 	t.Run("an unknown effect refuses the boot", func(t *testing.T) {
-		defer func() {
-			r := recover()
-			require.NotNil(t, r, "loadZones must refuse an unknown effect")
-			err, ok := r.(error)
-			require.True(t, ok, "the panic value should be the loader's error")
-			assert.Contains(t, err.Error(), "NoSuchSkill")
-			assert.Contains(t, err.Error(), "api/skills/")
-		}()
-		loadZones(zoneFSWithEffect("NoSuchSkill"), "hazards", mr, pr, sr)
+		_, err := loadZones(zoneFSWithEffect("NoSuchSkill"), "hazards", mr, pr, sr)
+		require.Error(t, err, "loadZones must refuse an unknown effect")
+		assert.Contains(t, err.Error(), "NoSuchSkill")
+		assert.Contains(t, err.Error(), "api/skills/")
 	})
 }

@@ -28,7 +28,7 @@ func burstWearer(t *testing.T, fraction float32, tags []string) *player {
 	t.Helper()
 	p := hittablePlayer(t)
 	p.ApplyReflect(burstSource, fraction, tags, 300)
-	live, _ := p.ReflectBurst()
+	_, live, _ := p.ReflectBurst()
 	require.NotZero(t, live, "precondition: the burst is up")
 	return p
 }

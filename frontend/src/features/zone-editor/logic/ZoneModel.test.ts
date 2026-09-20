@@ -125,8 +125,8 @@ describe('kindOf', () => {
     });
 
     it('classifies a non-structure role without interaction as combat', () => {
-        // role has values beyond structure/follower (Wanderer authors
-        // "creature"); anything unrecognized must fall through, never throw.
+        // structure is the only role that buys a kind (Wanderer authors
+        // "creature"); anything else must fall through, never throw.
         expect(kindOf({role: 'creature'})).toBe('combat');
     });
 
@@ -142,8 +142,11 @@ describe('kindOf', () => {
         expect(kindOf({role: 'structure'})).toBe('fixture');
     });
 
-    it('classifies role follower as companion', () => {
-        expect(kindOf({role: 'follower'})).toBe('companion');
+    // plan-summon-follows.md C2 retired `role: "follower"` along with the
+    // 'companion' kind it derived: a retired role is an unrecognized one, and
+    // an unrecognized role falls through to combat rather than throwing.
+    it('classifies the retired follower role as combat', () => {
+        expect(kindOf({role: 'follower'})).toBe('combat');
     });
 
 });

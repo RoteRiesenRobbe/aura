@@ -19,13 +19,12 @@ import (
 // after boot, so the payload is marshaled exactly once.
 
 // Enum → wire-string tables, derived from the parse maps so the two
-// directions can never drift. The "" alias keys (selector, hitStyle) are
-// skipped — they parse as defaults but are not names.
+// directions can never drift. The "" alias key (selector) is skipped: it
+// parses as a default but is not a name.
 var (
 	skillCategoryNames = reverseNames(skillCategoryMap)
 	effectTypeNames    = reverseNames(effectTypeMap)
 	selectorNames      = reverseNames(selectorMap)
-	hitStyleNames      = reverseNames(hitStyleMap)
 )
 
 func reverseNames[T comparable](m map[string]T) map[T]string {
@@ -50,7 +49,6 @@ func marshalEnum[T comparable](names map[T]string, value T) ([]byte, error) {
 func (c SkillCategory) MarshalJSON() ([]byte, error) { return marshalEnum(skillCategoryNames, c) }
 func (t EffectType) MarshalJSON() ([]byte, error)    { return marshalEnum(effectTypeNames, t) }
 func (s Selector) MarshalJSON() ([]byte, error)      { return marshalEnum(selectorNames, s) }
-func (h HitStyle) MarshalJSON() ([]byte, error)      { return marshalEnum(hitStyleNames, h) }
 
 // DeriveDisplayName splits a CamelCase registry name into spaced words
 // ("SummonTotem" → "Summon Totem"). Computed server-side so the client never

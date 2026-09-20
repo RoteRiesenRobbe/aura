@@ -51,10 +51,6 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 		"Rockfall", "SpikeBarricade", "Totem", "Turnip", "WarbannerTotem",
 	}, byRole[RoleStructure], "the authored structures")
 
-	assert.ElementsMatch(t, []string{
-		"Companion", "MedicCompanion", "ShieldbearerCompanion", "SoldierCompanion",
-	}, byRole[RoleFollower], "the authored followers")
-
 	// 36 before chunk 3a, plus the 14 merged NPCs: D4 authors them as creatures
 	// that simply state speed 0, so that content can later give one a loadout
 	// and a walk without changing what it IS. +1 for the AscensionStone and +1
@@ -75,8 +71,13 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// a fifth time, for the pair's other portal.
 	// 46 → 48 with the CaveMouth and CaveExit (plan-underworld.md U3): the
 	// memorial recipe a sixth and seventh time, for the two ends of a passage.
-	assert.Len(t, byRole[RoleCreature], 48, "everything else is a creature")
-	assert.Len(t, byRole, 3, "no def carries a role outside the three")
+	// 48 → 52 with plan-summon-follows.md C2, which retired the third role:
+	// Companion, MedicCompanion, ShieldbearerCompanion and SoldierCompanion
+	// authored `role: "follower"` purely as a label once `follows` on the spell
+	// took over the behaviour, so they drop the key and are creatures like any
+	// other mob that walks and fights.
+	assert.Len(t, byRole[RoleCreature], 52, "everything else is a creature")
+	assert.Len(t, byRole, 2, "no def carries a role outside the two")
 }
 
 // The sensor rule the roles buy: a structure authors none (the ten 0.1 dummies

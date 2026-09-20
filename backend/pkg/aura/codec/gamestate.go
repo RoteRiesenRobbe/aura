@@ -50,19 +50,11 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	AuraApi.CharacterAddLightRadius(builder, f32ToU16Px(p.LightRadius()))
 	AuraApi.CharacterAddBurstRadius(builder, f32ToU16Px(p.BurstRadius()))
 	AuraApi.CharacterAddActiveSkillId(builder, ActiveSkillID(p.SkillComponent()))
-	// Floating-number sources (item 11): damage/heal in absolute HP, XP raw.
-	AuraApi.CharacterAddDamageTaken(builder, p.DamageTaken().UInt32())
-	// Crit-flagged share of damage taken (skill-vocab chunk 1, §4.3).
-	AuraApi.CharacterAddCritTaken(builder, p.CritTaken().UInt32())
-	// A fully mitigated hit this tick - the floating "Immune" label.
-	AuraApi.CharacterAddImmuneHit(builder, p.ImmuneHit())
 	// Resource cost paid this tick (round-7 item 7) — the blue number.
 	AuraApi.CharacterAddCostPaid(builder, p.CostPaid().UInt32())
 	// Current total absorb capacity — a live value (skill-vocab chunk 2).
 	AuraApi.CharacterAddShieldHp(builder, p.ShieldHP().UInt32())
-	AuraApi.CharacterAddHealReceived(builder, p.HealReceived().UInt32())
 	AuraApi.CharacterAddXpGained(builder, u64ToU32Clamped(p.XpGained()))
-	AuraApi.CharacterAddAuraHitStyle(builder, byte(p.AuraHitStyle()))
 	// One-tick stamp: a campfire became the respawn anchor (chunk 4).
 	AuraApi.CharacterAddCampfireBound(builder, p.CampfireBound())
 	// In-combat flag — drives the HUD combat indicator.
@@ -403,6 +395,7 @@ func QuestProgressMarshalFlatbuf(entries []quests.ProgressEntry, builder *flatbu
 // MarshalFlatbuf implements FlatbufCodec for GameState
 func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	entities := EntitiesMarshalFlatbuf(gs.Entities, builder)
+	skillEvents := SkillEventsMarshalFlatbuf(gs.Entities, gs.Player, builder)
 	character := CharacterMarshalFlatbuf(gs.Player, builder)
 	sc := gs.Player.SkillComponent()
 
@@ -449,6 +442,8 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	AuraApi.GameStateAddPlayer(builder, character)
 
 	AuraApi.GameStateAddEntities(builder, entities)
+	// Everything skills did this tick that this viewer can see (C1, D5).
+	AuraApi.GameStateAddSkillEvents(builder, skillEvents)
 	AuraApi.GameStateAddSpellbook(builder, spellbook)
 	AuraApi.GameStateAddSpellbookLevels(builder, spellbookLevels)
 	AuraApi.GameStateAddAuraSlots(builder, auraSlots)
@@ -576,6 +571,9 @@ func CharacterGameStateMessageMarshalFlatbuf(builder *flatbuffers.Builder, g *Ch
 // MarshalFlatbuf implements FlatbufCodec for GameState
 func (gs *SpectatorGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	entities := EntitiesMarshalFlatbuf(gs.Entities, builder)
+	// A spectator has no own list to add (nil own): they are not an entity
+	// anything can hit.
+	skillEvents := SkillEventsMarshalFlatbuf(gs.Entities, nil, builder)
 	spectator := SpectatorMarshalFlatbuf(builder, gs.Spectator)
 
 	AuraApi.GameStateStart(builder)
@@ -583,6 +581,7 @@ func (gs *SpectatorGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	AuraApi.GameStateAddPlayerType(builder, AuraApi.PlayerSpectator)
 	AuraApi.GameStateAddPlayer(builder, spectator)
 	AuraApi.GameStateAddEntities(builder, entities)
+	AuraApi.GameStateAddSkillEvents(builder, skillEvents)
 
 	return AuraApi.GameStateEnd(builder)
 }
@@ -590,6 +589,67 @@ func (gs *SpectatorGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 func SpectatorGameStateMessageMarshalFlatbuf(builder *flatbuffers.Builder, g *SpectatorGameState) flatbuffers.UOffsetT {
 	gs := g.MarshalFlatbuf(builder)
 	return ServerMessageWrapFlatbufMarshal(builder, gs, AuraApi.ServerMessageBodyGameState)
+}
+
+// skillEventSource is the per-entity event list the encoder concatenates
+// (plan-skill-vfx.md C1). Both MobEntity and PlayerEntity declare it; this is
+// the shape the vector builder reads, so it needs neither.
+type skillEventSource interface {
+	SkillEvents() []model.SkillEvent
+}
+
+// SkillEventsMarshalFlatbuf builds GameState.skill_events for ONE viewer: every
+// hit and cast recorded this tick on an entity that viewer can see, plus own's
+// own list (plan-skill-vfx.md §12a.1).
+//
+// ⚑ THE PER-VIEWER FILTER IS `entities` ITSELF. The list the caller passes is
+// already the viewport set (core/net.go builds it from Viewport().Collisions()),
+// so "ship an event when its victim, or its caster on a FIRED, is in view" costs
+// nothing extra and has nothing to keep in sync. own is passed separately
+// because the viewport sensor shares the body's collision Group: a player is
+// never in their own set, and dropping their list would silence every number
+// for the hits they take. nil own (a spectator) simply adds none.
+//
+// Must be called before GameStateStart, like every other vector here.
+func SkillEventsMarshalFlatbuf(entities []model.Entity, own model.PlayerEntity, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	var offsets []flatbuffers.UOffsetT
+	appendFrom := func(src skillEventSource) {
+		for _, e := range src.SkillEvents() {
+			AuraApi.SkillEventStart(builder)
+			AuraApi.SkillEventAddSource(builder, e.Source)
+			AuraApi.SkillEventAddVictim(builder, e.Victim)
+			AuraApi.SkillEventAddSkillId(builder, uint16(e.SkillID))
+			AuraApi.SkillEventAddAmount(builder, e.Amount.UInt32())
+			AuraApi.SkillEventAddKind(builder, AuraApi.HitKind(e.Kind))
+			AuraApi.SkillEventAddFired(builder, e.Fired)
+			offsets = append(offsets, AuraApi.SkillEventEnd(builder))
+		}
+	}
+	if own != nil {
+		appendFrom(own)
+	}
+	for _, e := range entities {
+		if src, ok := e.(skillEventSource); ok {
+			appendFrom(src)
+		}
+	}
+
+	// ⚑ A quiet tick returns 0, the "absent field" offset (the homeCampfire
+	// convention above): PrependUOffsetTSlot omits it, so a snapshot with
+	// nothing to report pays neither the empty vector nor its vtable slot. The
+	// overwhelming majority of ticks are quiet, and §5.3's perf leg measures
+	// exactly this baseline.
+	if len(offsets) == 0 {
+		return 0
+	}
+
+	AuraApi.GameStateStartSkillEventsVector(builder, len(offsets))
+	// Prepend in reverse so index 0 lands at the lowest address: the
+	// EntitiesMarshalFlatbuf rule, and the rule for every vector in this file.
+	for i := len(offsets) - 1; i >= 0; i-- {
+		builder.PrependUOffsetT(offsets[i])
+	}
+	return builder.EndVector(len(offsets))
 }
 
 // EntitiesMarshalFlatbuf marshals a list of Entity interfaces

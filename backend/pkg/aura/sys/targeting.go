@@ -37,33 +37,6 @@ func effectiveTickInterval(e skills.EffectDef, level int) int {
 	return skills.EffectiveTickInterval(e, level, 1.0)
 }
 
-// auraSlashTickThreshold is the effective tick interval at or above which a
-// damage aura reads as a discrete slash rather than sustained fire (item 11
-// Step 4). [PLACEHOLDER] — content picks its style purely by its tickInterval,
-// so new slow/fast auras and cooldowns fall on the right side automatically.
-const auraSlashTickThreshold = 15
-
-// auraHitStyleFor resolves a damage effect's hit VFX. A per-effect override
-// (JSON `hitStyle`) wins when set; otherwise HitStyleAuto derives the style from
-// the effective tick cadence — slow-tick auras stamp a slash, fast-tick auras a
-// fire/spark. This keeps the cadence default while letting each aura pin its own
-// style in content.
-func auraHitStyleFor(e skills.EffectDef, level int) model.AuraHitStyle {
-	switch e.Damage.HitStyle {
-	case skills.HitStyleSlash:
-		return model.AuraHitStyleSlash
-	case skills.HitStyleFire:
-		return model.AuraHitStyleFire
-	case skills.HitStyleNone:
-		return model.AuraHitStyleNone
-	}
-	// HitStyleAuto: derive from cadence.
-	if effectiveTickInterval(e, level) >= auraSlashTickThreshold {
-		return model.AuraHitStyleSlash
-	}
-	return model.AuraHitStyleFire
-}
-
 // effectCollisions narrows the shared aura sensor's collision set to the
 // targets one effect can actually reach (atmosphere & recovery chunk 2). The
 // sensor sizes to the MAX effect radius over the skill (component.go), so a

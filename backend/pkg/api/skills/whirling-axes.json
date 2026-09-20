@@ -1,0 +1,31 @@
+{
+  "_comment": "A cooldown that throws two axes into a spin around the caster and hits everything in the ring once, on Shockwave's numbers and cadence: the orbiting axes are the flourish of that one hit, not a lasting field. All values placeholder. No unlock source yet - cheat-only (SKILL) until it is placed.",
+  "id": 77,
+  "name": "WhirlingAxes",
+  "icon": "lorc/scythe",
+  "displayName": "Whirling Axes",
+  "category": "cooldown",
+  "maxLevel": 5,
+  "cooldownTicks": 240,
+  "cooldownTicksPerLevel": -10,
+  "visual": {
+    "layers": [
+      { "kind": "orbit", "on": "fired", "count": 2, "ms": 1200 },
+      { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
+    ]
+  },
+  "effects": [
+    {
+      "type": "instant_damage",
+      "costFractionOfMax": 0.0487,
+      "costFractionOfMaxPerLevel": 0.005525,
+      "radius": 2.0,
+      "radiusPerLevel": 0.05,
+      "damageHP": 44,
+      "damageHPPerLevel": 5,
+      "damageTags": ["physical"],
+      "targetsEnemies": true,
+      "targetsAllies": false
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "_comment": "The spellbook cooldown form of the recall effect: a 10-second channel, interrupted by damage, that returns the caster to their bound campfire. The free baseline Recall on the utility bar is the version players actually get; this is the same effect as a skill. All values placeholder.",
+  "id": 28,
+  "name": "Recall",
+  "icon": "lorc/return-arrow",
+  "category": "cooldown",
+  "maxLevel": 1,
+  "cooldownTicks": 9000,
+  "castTicks": 300,
+  "castInterruptedByDamage": true,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 8, "ms": 500, "tint": "#9f7bff" }
+    ]
+  },
+  "effects": [
+    {
+      "type": "recall",
+      "costFractionOfMax": 0.05
+    }
+  ]
+}

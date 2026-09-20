@@ -76,16 +76,20 @@ faction and skills without a schema append (see §5).
      load**; raw absolute numbers sized to a zone are a review reject.
      (Absent `tier`/`curveLevel` default to `normal`/1 — for synthetic/test
      defs only, content always authors them explicitly.)
-   - **`role` — what the actor IS** (`creature` / `structure` / `follower`;
-     absent = `creature`). `creature` chases what it aggros and its aura runs
-     only while it has a target; `structure` does not chase and its aura is
-     **always on** (totems, campfires, gate obstacles); `follower`
-     acquires from its owner's combat signals and trails the owner (the
-     companion summons). ⚑ **Role is not a speed.** A stationary creature (a
-     hazard that gates its aura on aggro) and a moving structure are both
+   - **`role` — what the actor IS** (`creature` / `structure`; absent =
+     `creature`). `creature` chases what it aggros and its aura runs only
+     while it has a target; `structure` does not chase and its aura is
+     **always on** (totems, campfires, gate obstacles). ⭐ **There is no role
+     for a pet** (plan-summon-follows.md C2, 2026-09-13, PO: one concept, not
+     two). A summon follows its caster because its SPELL authors
+     `follows: true` on the `spawn` effect, so any mob in the picker is a
+     candidate and the four companion mobs are ordinary creatures. A third
+     role, `follower`, used to carry that permission and was retired once the
+     spell key took it over. ⚑ **Role is not a speed.** A stationary creature
+     (a hazard that gates its aura on aggro) and a moving structure are both
      legal and neither is warned about — author the role you mean. Before
-     chunk 2 this was inferred (`speed: 0` = structure, owner + moving =
-     follower), which is why old defs carried a dummy `aggroRadius`.
+     chunk 2 this was inferred (`speed: 0` = structure), which is why old defs
+     carried a dummy `aggroRadius`.
    - ⭐ **THE ARCHETYPE RULE — the Wolf is the unit, and strength must be paid
      for** (D6, `plan-world-replacement.md` §3.8, PO 2026-08-06). Read every
      species' numbers as **ratios to one reference mob**:
@@ -159,9 +163,10 @@ faction and skills without a schema append (see §5).
      so a physical entry anywhere re-calibrates the tier thresholds — a test
      (`TestNoCuratedResistanceTouchesPhysical`) makes that a deliberate act
      rather than a surprise.
-   - `body`: `radius`, `aggroRadius` (required and `> 0` for `creature` and
-     `follower`; **omit it on a `structure`** — a structure acquires nothing,
-     and requiring one is what produced the old `0.1` dummies)
+   - `body`: `radius`, `aggroRadius` (required and `> 0` for a `creature`,
+     which is every mob that is not a `structure`, pets included; **omit it on
+     a `structure`** — a structure acquires nothing, and requiring one is what
+     produced the old `0.1` dummies)
    - **Solid-obstacle mobs (campfire/bramble pattern):** optional
      `body.collisionLayer` / `collisionMask` override the defaults (layer
      34 = Viewport|Action, mask 80 = MobStatic|Border). Campfire `32/16` =
@@ -362,6 +367,15 @@ specific to the talking half:
 
 ## 2. New ability (aura / passive / cooldown)
 
+⭐ **A player ability can now be authored in the content editor's Skills tab**
+(`node tools/content-editor/server.mjs`, spell builder C4): "+ New" writes
+`api/skills/<kebab-name>.json`, the form offers only what the loader accepts
+(its field lists are generated from Go's own tables), the icon and `spawnMob`
+values are picked from the real sets, the save is validated by the real loader
+through `aurad -validate`, and the post-save checklist names the registry pin
+and the other bookkeeping below. Hand-authoring the JSON is still perfectly
+fine, and everything in this section is what the tab writes.
+
 If it composes an **already-supported effect type**, this is mostly JSON with no
 wire changes — skills ride the existing spellbook stream. A **brand-new effect
 type** is Go work (payload struct + `effectKeys` allowlist + validator in
@@ -421,11 +435,42 @@ the dispatch sites themselves:
   never charge (pinned by `TestNoCostOnAnEffectThatCanNeverBeCharged`).
 
 **Living reference content:** the three cheat-only kitchen-sink skills author
-every one of these at once and carry the landmine notes in their `_comment`s -
+every one of these at once (the landmine notes they used to carry in their
+`_comment`s live in the gotchas list below, since the 2026-09-11 comment
+ruling) -
 `api/skills/omni-aura.json` (all 9 aura types, every damage rider),
 `api/skills/omni-passive.json` (the full passive fold),
 `api/skills/omni-strike.json` (16 cooldown types in one cast). `SKILL OmniAura`
 / `OmniPassive` / `OmniStrike`; no unlock source, ever.
+
+### The `_comment` field: authoring notes, not a session ledger
+
+*(PO ruling 2026-09-11, during the spell builder C1 look: the shipped
+comments had grown into chunk retrospectives, 832 characters at the median,
+unreadable as content.)* A skill file's `_comment` is read by the next
+person who opens the file, in the content editor or an IDE. It answers two
+questions and nothing else:
+
+1. **What is this skill**, in one or two sentences an author can check
+   against the fields below it (which effect does what, to whom, how often).
+2. **Which values are placeholder** (usually "all values placeholder").
+
+Plus, only when a number in THIS file depends on something non-obvious,
+**at most one landmine sentence** with a pointer to the doc that holds the
+reasoning (ThrowBomb's `ttlTicks = armTicks + 1`, SummonCompanion's
+cooldown-at-least-the-TTL convention).
+
+Banned in a `_comment`: dates, commit hashes, session or chunk names, "PO
+ruled", the ⚑ ⭐ ⛔ glyphs, ALL-CAPS emphasis, em dashes, any history of how
+the numbers got there, and **where the skill is obtained** ("cheat-only",
+"dropped by wolves", "milestone at 5"): placement lives in the mob, milestone
+and recipe files and goes stale here (the rewrite pass found two such claims
+already wrong). That record belongs in the plan doc's ledger; a
+content file is not where a session writes its memoirs. Keep it under ~400
+characters. `_comment` is also not `description`: that field is the
+player-facing tooltip line, this one is for authors.
+
+The loader ignores the field; nothing reads it but people.
 
 Multi-effect gotchas the limit-test pass hit, beyond the ordering rule below:
 
@@ -507,6 +552,233 @@ Two things keep the surface small, and neither removes it:
 A Warbanner that heals before it damages is a different skill at 5 % health than
 one that damages before it heals.
 
+### Mob attacks hit one target (PO ruling 2026-09-19)
+
+A mob fights one versus one, WoW style. **Every mob attack authors
+`"selector": "nearest"` and `"maxTargets"` explicitly, and the cap is 1 unless
+the world itself explains more.** "Nearest" is the ruled pick (not the aggro
+target): a mob may chase one player and hit the one who steps in between, which
+is the intended body-block.
+
+| Cap | Needs this in-world reason | Examples |
+|---|---|---|
+| 1 | none, the default | every beast (one mouth, one horn), one-weapon humanoids, a single shot (`BanditVolley`, `KoboldVolley`), `GiantVenomSpit` |
+| 2 | two weapons, visible on the portrait | `BanditBlades`, `SoldierBlades` |
+| 3 | a sweeping cleave | `OrcCleave`, `WarlordCleave` |
+| uncapped | a PLACE or an AoE EVENT, not an attacker | `PoisonPoolAura`, `SpikeBarricadeAura`, the fire totem and fire elemental, `BombBurst`, `AngryMammothStomp` (a telegraphed ground stomp) |
+
+An uncapped attack writes `"selector": "all"`, so every mob attack carries a
+`selector` line and a forgotten cap is greppable. The loader itself still reads
+an absent `maxTargets` as "everything in range" and loads it clean, so check it
+in review. The rule covers damage and DoT
+effects; heal and shield auras keep their own caps. It applies to mob-vs-mob
+and summons as well, since it is the same effect path. A cap cuts a mob's total
+output against a group, so an elite or boss meant to threaten several players
+needs a lore-backed multi-target attack, not an uncapped bite.
+
+### Visuals: the `visual` key
+
+*(`plan-skill-vfx.md` C0 + C2a + C2b, 2026-09-20. All seven kinds draw; none is
+a stub any more.)*
+
+A skill may carry one optional top-level `visual` block, placed immediately
+before `effects` (which for a plain aura is right after `maxLevel`, and for a
+cooldown after `targetFactions`). It says what the skill LOOKS like, on the
+SKILL and never per effect: a skill with a damage effect and a slow effect has
+one look. Mobs use the same key on their own files, so a visual on
+`api/skills/mobs/wolf-bite.json` dresses every wolf.
+
+```json
+"visual": {
+  "layers": [
+    { "kind": "projectile", "on": "hit", "speed": 900 },
+    { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
+  ]
+}
+```
+
+Each layer names a **kind** (what moves) and an **`on`** (the moment it
+plays). The seven kinds are ENGINE code and the set is CLOSED: each one is a
+renderer class with its own math, so an eighth is a plan amendment, not a
+content decision. Everything else is a parameter.
+
+| kind | plays on | its own keys | what it is |
+|---|---|---|---|
+| `impact` | hit | `ms`, `curve` | a small round burst ON the victim, opt-in, tinted by damage type |
+| `strike` | hit | `ms`, `curve` | a weapon that starts at the ATTACKER and travels into the victim |
+| `projectile` | hit | `speed` | a body flying caster→victim at constant speed |
+| `beam` | hit | `ms`, `width`, `curve`, `chain` | a body stretched caster→victim with an envelope |
+| `cast-pose` | fired, hit | `ms` | a body shown ON the caster at RELEASE, `ms` of follow-through (the bow). On `hit` it AIMS at the victim and shows only when something was hit |
+| `orbit` | fired, ambient | `ms`, `count` | N bodies circling the caster |
+| `emitter` | ambient, fired, hit | `ms`, `count`, `motion` | particles from a point or a disc |
+
+Legal on every layer: `kind` and `on` (both required), plus `body`, `tint`
+(lowercase `#rrggbb`) and `scale`. Every number is a **[PLACEHOLDER]** like all
+the others; `ms`, `speed`, `width` and `scale` must be > 0 when authored and
+`count` >= 1, and omitting one means "the kind's own default" rather than zero.
+**Units are screen-space: `speed` is px per second, `width` is px** (a world
+unit is 120 px; a lightning bolt is ~5, a flame pillar ~14), `ms` is
+milliseconds, `scale` is a plain multiplier.
+
+⭐ **`tint` only where the palette has no answer.** A layer's colour derives
+from the skill's first damage-tagged effect (`fire`, `frost`, `nature`,
+`poison`, `bleed`, `physical`), so a damaging skill authors no `tint` and gets
+recoloured for free when its tags are retuned. Heals, shields, wards, summons,
+portals and control cooldowns carry no damage type, so those DO author one -
+and so does a debuff that wants to read as a debuff rather than as its element.
+⚑ Check the effect, not the flavour: Retribution's `retaliate_burst` authors
+`damageTags`, so it takes the palette's fire and needs no `tint`, while
+Bloodthirst's `lifesteal_burst` carries no tags and does.
+
+**Closed value sets, and `curve` belongs to the KIND** (C2a): an `impact`
+curves `burst` or `snap`, a `strike` curves `thrust` / `swing` / `overhead`
+(absent = `thrust`), a `beam` curves `flash` (attack → peak → fade, the
+lightning envelope) or `extend` (extend → retract, the flame pillar), absent =
+`flash`. Borrowing another kind's word is a hard-fail naming both sets, because
+a beam authoring `thrust` would otherwise load clean and draw its default
+forever. `motion` is one of `swirl` / `rise` / `burst` and is the `emitter`'s
+alone.
+
+⭐ **The `strike`'s style also picks the weapon.** There is one placeholder per
+style and the style chooses it: a **spear** for `thrust` (a quick straight stab
+out and back), a **blade** for `swing` (the weapon pivots at the attacker and
+sweeps through the victim), a **hammer** for `overhead` (a visible wind-up above
+the attacker, then down onto the victim, slow and heavy). **Author no `body`** -
+the artist's sprite replaces the placeholder under the same style later, and
+`ms` is the whole motion ([PLACEHOLDER] today: thrust 200, swing 280, overhead
+460). A `strike` is anchored at the ATTACKER, which is the half of a melee hit
+an `impact` cannot draw; an `impact` beside one starts at the strike's contact
+moment, as it already waits for a projectile's arrival.
+
+`chain` (bool) is the `beam`'s alone: one tick's hits of one caster and one
+skill draw as a single caster→v1→v2→v3 polyline instead of a fan, each hop a
+short delay after the last. ⛑ **VISUAL ONLY.** Every victim is already inside
+the caster's ring and the server never reads the key; it does not add range, a
+jump distance, or a target. A real chain selector would be gameplay work, and
+nobody has asked for it.
+
+The three moments:
+
+- **`ambient`** - while this is the actor's running aura.
+- **`fired`** - a cast or an aura tick went off, targets or not.
+- **`hit`** - once per victim of a landing. A `hit` layer on an aura that
+  strikes three targets draws three times in one tick; that is the intent, not
+  a special case.
+
+⭐ **Nothing draws by default.** A skill with no `visual` draws nothing at all -
+the old cadence-derived slash/fire lever (`hitStyle`) is gone, and C2a
+deliberately shipped no engine fallback in its place (PO 2026-09-19). So
+**every aura and cooldown that CAN author a look authors one** (PO 2026-09-20,
+C2b's batch scope), by reach and flavour. The rule since the C2a amendment, and
+`impact` is now OPT-IN rather than the default dressing on everything:
+
+- **A weapon-wielder's plain hit is a `strike` ALONE** - no `impact` beside it.
+  A spear or a stab is `thrust`, a blade or a cleave is `swing`, a maul or a
+  pick is `overhead`. The swing plus the number is the whole hit, the WoW model.
+- **An animal's bite, gore or swipe is `impact` / `snap` alone.** It wields
+  nothing, so there is no weapon to start at the attacker.
+- **Elemental, poison, AoE, DoT and cooldown hits are `impact` / `burst`**, and
+  so is a **missile's arrival**: ranged reach, volleys and spits are a
+  `projectile` plus an `impact` / `burst`.
+
+**The three ambient / fired kinds, and what their numbers mean** (C2b, the
+§12d.3 table). All distances are PIXELS, all durations milliseconds, and
+nothing is random: a layer's particles are index-seeded, so two clients draw
+the same thing.
+
+| kind | key | meaning |
+|---|---|---|
+| `emitter` | `count` | `ambient`: particles ALIVE at once, a steady loop · `fired` / `hit`: particles in the one burst. Default 8. |
+| `emitter` | `ms` | ONE particle's lifetime, on every trigger. Default 900. A `fired` / `hit` emitter lives exactly `ms`. |
+| `emitter` | `motion` | `swirl` circles the anchor at ~70 % of its radius, drifting outward · `rise` starts inside the anchor's disc and drifts UP ~40 px · `burst` flies radially outward ~1.5× the anchor radius. All fade. Default `rise`. |
+| `emitter` | anchor | `ambient` / `fired`: the caster · `hit`: the victim. |
+| `orbit` | `count` | bodies, evenly spaced. Default 2. |
+| `orbit` | `ms` | `fired`: the layer's whole DURATION, fading in and out inside it · `ambient`: **ignored**, the layer lives as long as the aura runs, so leave it unauthored there. Default 1200. |
+| `orbit` | speed | not authored: one revolution per 800 ms, radius = anchor radius + 14 px, both [PLACEHOLDER]. |
+| `cast-pose` | `ms` | how long the body shows AFTER its moment (the cast, or the landing). Default 500. |
+| all three | `scale` | multiplies the body size (particle radius, orbit body, pose body). |
+
+⭐ **`cast-pose` shows at RELEASE, not during a wind-up.** FIRED is emitted when
+a cast is CONSUMED (and on an aura beat), so the bow appears as the arrow
+leaves and `ms` is its follow-through. Nothing draws a pre-cast pose; a cast
+BAR is `plan-entity-presentation.md`'s, not this key's.
+
+⭐ **A weapon pose belongs on `hit`, not `fired`** (PO 2026-09-20, the bow). On
+`hit` the pose rotates toward the victim, never shows on a beat that hit
+nobody, and a multi-target beat draws ONE pose (aimed at the first victim)
+while every victim still gets its arrow. On `fired` it cannot aim (a cast names
+no direction) and faces +X; and on an AURA a `fired` layer costs a FIRED event
+per beat on the wire. Keep `fired` for a cooldown's pose that needs no aim.
+
+⭐ **Two bodies means two layers.** A body list does not exist, so the heal
+idiom is a pair of `emitter` / `rise` layers on one skill: a slow wide mist
+(higher `scale`, longer `ms`, fewer particles) and quicker small motes
+(`scale` under 1, shorter `ms`), each with its own `tint`. The same pair in
+warm orange is the campfire.
+
+⭐ **D2, enforced at load:** `ambient` is legal only on an **active aura** (it
+is the only category that is ever "running"), and a **passive** may author
+`hit` layers only (it is neither switched on nor cast, so its hit moments are
+all it has). A **cooldown** may author `fired` and `hit`. The loader hard-fails
+anything else, naming the skill and the layer index, because the alternative is
+a file that loads clean and draws nothing.
+
+⚑ **Some skills are undressable, and that is the rule working.** A passive gets
+the `hit` moment alone, so a passive that never hits anything has no moment to
+author: Torch (a passive `light_aura`) cannot be given the glow Lantern gets,
+the stat and resist passives stay bare, and FrostShield's `retaliate_slow`
+deals no damage, so no HIT event is ever recorded for it and it stays bare too.
+Do not reach for `ambient` to work around this - the loader refuses it. If a
+passive genuinely needs a look, the fix is a plan amendment, not a layer.
+
+⚑ **`body` is UNCHECKED today.** It names a frame in the art atlas, and the
+atlas does not exist until `plan-skill-vfx.md` C3. An absent `body` draws the
+kind's procedural placeholder, which is the right thing to author right now: a
+body named before the atlas exists becomes a `-validate` ERROR the moment C3
+arms the check. Every skill that ships a `visual` today authors none.
+
+⚑ The content editor's Skills tab does NOT render `visual` until C3. It is
+hidden and preserved untouched on round trip, exactly like `legacy`, so a
+hand-authored block survives a save from the tab.
+
+### Retiring a skill: never delete the file
+
+*(PO ruling 2026-09-18, `plan-content-editor.md` §B12 C5, which replaced the
+planned registry lock with this rule.)* A skill's `id` and its level are
+**persisted per character** (`game.character_spellbook`). Nothing in the game
+reconciles a spellbook row against the content at load (`backlog.md` §61 is
+unbuilt), so the content tree has to hold still under the rows instead. Three
+rules, and they are the whole mechanism:
+
+1. **A skill file is never deleted.** A skill nobody should obtain any more
+   stays on disk and is retired by removing it from every unlock source
+   instead: the mob `unlocks[]` entries, `api/milestones/`, an NPC's
+   `teach_skill` row, and any recipe that produces it. It then still exists for
+   the loader, for the `SKILL` cheat and for every character who already holds
+   it, and for nobody else. (Check the sources with
+   `tools/content-editor/skill-references.mjs`, or grep the `name` across
+   `api/`.)
+2. **An `id` never changes**, and because of rule 1 it is never re-minted
+   either: with nothing ever leaving the disk, "highest id on disk plus one" is
+   a safe new id, which is exactly how the content editor assigns one. A
+   re-minted id would hand a stranger's skill to every character that held the
+   old one, silently, at their next load.
+3. **`maxLevel` never decreases.** Adjust the per-level numbers instead. A
+   lowered cap orphans every persisted row above it, and nothing clamps them.
+   The editor's confirm on a lowering save is the reminder, not a gate.
+
+The `name` key is different: it is the internal reference key (mob unlocks,
+milestones, NPC teaching, recipes, the `SKILL` cheat) and may change freely as
+long as every reference moves in the same edit. The editor refuses a rename
+while references exist, for that reason. `displayName` is the player-facing
+label and derives from `name` when absent.
+
+⚑ History, so the restored files are not mistaken for dead weight: seven skill
+files were deleted before this rule existed and were restored 2026-09-18 (Wild
+id 3, Recall id 28, and the five mob-only skills ids 101-105, whose species
+are no longer in the roster). Two further deletions were renames that kept the id
+(Light 6 became Lantern, TurnipPull 41 became Harvest) and needed nothing.
+
 ### Backend / data
 
 1. **`api/skills/newskill.json`** — copy `api/skills/damage.json`:
@@ -551,7 +823,7 @@ one that damages before it heals.
      `base + (level−1) × perLevel` (e.g. `damageHP` + `damageHPPerLevel`)
    - targeting is faction-relative: `targetsEnemies` / `targetsAllies`
      (+ `selector`, `maxTargets`, `tickInterval`, optional `variance`,
-     `damageTags`, `hitStyle`)
+     `damageTags`)
 2. **Pick an unlock source:**
    - **Milestone** — add to `api/milestones/milestone-unlocks.json`.
      (Moved out of `backend/pkg/aura/skills/` on 2026-07-21 — it is now ordinary
@@ -608,7 +880,7 @@ payload): `radius`, `radiusPerLevel`, `tickInterval`, `tickIntervalPerLevel`,
 | `damageTags` | `damage.tags` | ⚑ also `dot.tags` on the dot types. **Closed vocabulary** (D4): `physical` `fire` `frost` `nature` `poison` `bleed` — anything else hard-fails |
 | `gateKey` (string) | `damage.gateKey` | ⚑ the lock-and-key mechanism, **not** a damage type. Closed vocabulary: `harvest` `smash`. Mutually exclusive with `damageTags` — a gated hit declares no type |
 | `variance` | `<payload>.variance` | damage / dot / heal / hot / selfHeal |
-| `hitStyle`, `structureDamageFraction` | `damage.hitStyle`, `damage.structureDamageFraction` | damage_aura, instant_damage |
+| `structureDamageFraction` | `damage.structureDamageFraction` | damage_aura, instant_damage |
 | `executeBelowFraction`, `executeBonusFactor`, `berserkerMaxBonusFactor`, `critChance`, `critChancePerLevel`, `critFactor`, `lifestealFraction` | `damage.<same name>` | damage_aura, instant_damage |
 | `damageHP` / `damageHPPerLevel` | `dot.hp` / `dot.hpPerLevel` | ⚑ dot_aura, instant_dot — **same authored key, different path** |
 | `dotTicks` / `dotTickInterval` | `dot.tickCount` / `dot.interval` | dot_aura, instant_dot |
@@ -626,7 +898,7 @@ payload): `radius`, `radiusPerLevel`, `tickInterval`, `tickIntervalPerLevel`,
 | `buffLifetimeMatchesInterval` | `resist.buffLifetimeMatchesInterval` | ⚑ resist_aura only, and it is a PRICING lever, not a duration knob: it drops the standard interval + 1 buff lifetime so every application at base cadence is fresh work and is charged (plan-effect-types.md D7). Default false = the shipped behaviour |
 | `stat` / `statBonus` / `statBonusPerLevel` | `stat.name` / `stat.bonus` / `stat.bonusPerLevel` | stat_multiplier |
 | `targetsSelf` | `<payload>.targetsSelf` | ⚑ resist / shield / hot — inside the payload, unlike the other target flags |
-| `spawnMob` / `ttlTicks` / `ttlTicksPerLevel` / `powerPerOwnerLevel` / `requiresAnchor` | `spawn.mobName` / `spawn.ttlTicks` / … | ⚑ spawn AND spawn_at_anchor share the `spawn` payload, but NOT the key row. `spawn` takes all five: `requiresAnchor` is its OPT-IN campfire gate (the portal's destination is the caster's fire, while FireTotem must keep casting unbound). `spawn_at_anchor` takes only the first three - it places its summon AT the anchor, so the gate is inherent to the TYPE and authoring `requiresAnchor` (either value) hard-fails, as does `powerPerOwnerLevel` (nothing placed at a campfire fights). Its placement is a 2.5 u ring around the fire that never overlaps a bind circle (`sys.anchorSpawnOffset`, plan-portal-spells.md D8) |
+| `spawnMob` / `ttlTicks` / `ttlTicksPerLevel` / `powerPerOwnerLevel` / `requiresAnchor` / `follows` | `spawn.mobName` / `spawn.ttlTicks` / … | ⚑ spawn AND spawn_at_anchor share the `spawn` payload, but NOT the key row. `spawn` takes all six: `requiresAnchor` is its OPT-IN campfire gate (the portal's destination is the caster's fire, while FireTotem must keep casting unbound), and ⭐ `follows: true` is what makes the summon a PET (plan-summon-follows.md D1) - it trails its caster and takes its fights, and any mob in the picker qualifies, because nothing on the MOB grants or withholds the permission (C2 retired the `follower` role that once did). `follows` is on the `spawn` row ALONE: a portal is a door, a bomb is a bomb, so authoring it on `spawn_at_anchor` or `projectile` hard-fails. `spawn_at_anchor` takes only the first three - it places its summon AT the anchor, so the gate is inherent to the TYPE and authoring `requiresAnchor` (either value) hard-fails, as does `powerPerOwnerLevel` (nothing placed at a campfire fights). Its placement is a 2.5 u ring around the fire that never overlaps a bind circle (`sys.anchorSpawnOffset`, plan-portal-spells.md D8). ⚑ **`ttlTicks` is not the only end**: every OWNED summon - pet, totem, portal, thrown bomb - expires the moment its owner leaves the world, whether they die, disconnect or take a flight (plan-summon-follows.md C3, PO 2026-09-13: one rule, so nothing a player placed outlives them) |
 | `threatMargin` | `threat.margin` | taunt (detaunt ignores it) |
 | `reviveHealthFraction` | `revive.healthFraction` | revive |
 | `dashDistance` / `dashDistancePerLevel` | `dash.distance` / `dash.distancePerLevel` | dash |
@@ -655,12 +927,13 @@ Three distinct VFX surfaces — **all pure frontend, no backend, no wire.**
   `frontend/src/features/game-objects/assets/effects/damageAura.svg` and
   `healAura.svg`, referenced in `Graphics.ts` as `character.damageAuraFile` /
   `healAuraFile`. Replace the SVG (keep the filename, or repoint the `require`).
-- **Per-hit VFX** (slash streak / fire cluster on each aura tick): **not an
-  asset** — drawn programmatically in
-  `frontend/src/features/game-objects/logic/_GameObject.ts` →
-  `buildAuraHitFx(style)` (see `showAuraHit` above it). Edit that method to change
-  the look. *Which* style plays (1 = slash, 2 = fire) is chosen **server-side**
-  from the effect's `hitStyle` override or its `tickInterval` cadence.
+- **Per-hit VFX** (what a landing looks like): ⭐ **the lever is the skill's
+  `visual` key** (§2 "Visuals", `plan-skill-vfx.md`), not drawing code. Author
+  the layers on the skill file; every skill gets its own look, for mobs too,
+  and the renderer is `SkillFx` on its own layer below darkness (C2a).
+  ⚑ **There is no default.** The old `hitStyle` lever - one server-chosen byte
+  of slash-or-fire, derived from the tick cadence - is **deleted end to end** by
+  C2a (D7), and nothing replaced it: a skill with no `visual` draws nothing.
 - **Cooldown burst** (gold ring on cooldown activation): also programmatic in
   `_GameObject.ts`.
 
@@ -1032,6 +1305,19 @@ forget:
   `validate.mjs` and asserting zero false positives against every real
   `api/*/*.json` file) is the way to confirm a rule port is still accurate —
   see its README.
+- ⭐ **NO LONGER TRUE FOR SKILLS** (spell builder C0, 2026-09-10). The bullet
+  above still holds for mobs, NPCs, quests, factions, recipes and milestones,
+  but the Skills tab does not mirror anything: it renders from
+  `api/skill-vocabulary.json`, a GENERATED file carrying Go's own tables (the
+  per-effect-type key allowlist, the 16 top-level keys, the categories, the
+  cost keys, the per-type category table, the retired-key hints), whose only
+  writer is the golden test
+  `UPDATE_SKILL_VOCABULARY=1 go test -count=1 ./pkg/aura/skills/` (from
+  `backend/`). So a new effect key or type reaches the form with no editor
+  work, but the fixture must be regenerated and committed, or the Go suite is
+  red and `npm run smoke` in `tools/content-editor/` reddens on the drift too.
+  A skill save then runs no JS rule port at all: it is validated by the real
+  loader through `aurad -validate` (the editor's save seam).
 
 ## Quick reference: what touches the wire?
 

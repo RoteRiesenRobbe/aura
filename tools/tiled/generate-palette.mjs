@@ -126,7 +126,6 @@ function readProps() {
 function kindOf(def) {
     if (def.interaction != null) { return 'talker'; }
     if (def.role === 'structure') { return 'fixture'; }
-    if (def.role === 'follower') { return 'companion'; }
     return 'combat';
 }
 
@@ -314,7 +313,6 @@ const KIND_COLOUR = {
     combat: '#ff4caf50',    // the in-game editor's marker colours, verbatim
     talker: '#ffe91e63',
     fixture: '#ff9e9e9e',
-    companion: '#ff795548',
 };
 
 function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {

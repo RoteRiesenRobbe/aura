@@ -157,23 +157,17 @@ type player struct {
 	// lazily initialized by NoteHealedBy
 	recentHealers map[uint64]*healerEntry
 
-	// per-tick floating-number accumulators (roadmap item 11): health lost,
-	// healing received (VitalSign units), and XP gained this tick; reset each
-	// tick by ResetTickNumbers.
-	damageTaken  vitals.VitalSign
-	critTaken    vitals.VitalSign // crit-flagged share of damageTaken (chunk 1)
-	// immuneHit records a fully mitigated hit this tick for the floating
-	// "Immune" label (plan-immune-feedback.md); wire immune_hit. God mode
-	// short-circuits earlier and never sets it (D6); a gate-key miss and a
-	// 0-HP hit stay silent (non-target / no-op, not immunity).
-	immuneHit bool
-	costPaid     vitals.VitalSign // resource cost paid this tick (round-7 item 7)
-	healReceived vitals.VitalSign
-	xpGained     uint64
+	// skillEvents are this tick's attributed hits and casts (plan-skill-vfx.md
+	// C1): every landing recorded inside takeDamage / Heal, plus every cast
+	// this player fired. Truncated with [:0] in ResetTickNumbers, never niled,
+	// so the steady state allocates nothing.
+	skillEvents []model.SkillEvent
 
-	// auraHitStyle is the aura-hit VFX a damage aura stamped on this player this
-	// tick (item 11 Step 4); reset each tick alongside the accumulators above.
-	auraHitStyle model.AuraHitStyle
+	// per-tick accumulators (roadmap item 11, round-7 item 7): the resource
+	// cost paid and the XP gained this tick; reset each tick by
+	// ResetTickNumbers.
+	costPaid vitals.VitalSign
+	xpGained uint64
 
 	// campfireBound is stamped the tick a campfire dwell completes (chunk 4):
 	// the fire became this player's respawn anchor. Reset each tick alongside
@@ -368,7 +362,11 @@ func (p *player) HealthRatio() float32 {
 // Returns the "damage dealt" that feeds lifesteal and threat: shield-absorbed
 // damage + actual HP lost after clamping — overkill never counts
 // (plan-skill-vocab chunk 2, F6 §3.1/9; mirrors the mob site).
-func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) vitals.VitalSign {
+//
+// source is the acting entity's id, resolved by the *Touches wrappers: the
+// payload's Source on an owned cast, the toucher otherwise. It is what the
+// recorded hit event is attributed to (plan-skill-vfx.md D9).
+func (p *player) takeDamage(damage model.Damage, source uint64, s model.StatusEffect) vitals.VitalSign {
 	// A gated hit (content pass C1) damages only mobs that name its key, and a
 	// player has no gateKeys at all — so it never damages a player (defensive;
 	// nothing casts gated damage at players under no-PvP).
@@ -394,7 +392,7 @@ func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vi
 	// that, and only that, stamps "Immune" (plan-immune-feedback.md §2).
 	if vitals.HP(hp32) <= 0 {
 		if damage.HP > 0 {
-			p.immuneHit = true
+			p.noteHit(source, damage.SkillID, model.HitKindImmune, 0)
 		}
 		return 0
 	}
@@ -408,11 +406,19 @@ func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vi
 	h := p.PlayerVitalSigns.Health
 	p.PlayerVitalSigns.Health = h.Sub(hp)
 	loss := h - p.PlayerVitalSigns.Health // actual loss after clamping
-	// The floating-number accumulators show real HP loss only; absorbed
-	// damage reads as the shield bar dropping.
-	p.damageTaken += loss
-	if damage.Crit {
-		p.critTaken += loss // crit_taken wire accumulator (chunk 1, §4.3)
+	// One event per landing (§12a.3), the mob funnel's rule verbatim: a hit
+	// that got through reports the REAL HP loss and leaves the absorbed share
+	// off the wire (the shield bar shows that); a hit the shield ate whole
+	// reports the absorb, so the landing is never silent.
+	switch {
+	case loss > 0:
+		kind := model.HitKindDamage
+		if damage.Crit {
+			kind = model.HitKindCrit
+		}
+		p.noteHit(source, damage.SkillID, kind, loss)
+	case absorbed > 0:
+		p.noteHit(source, damage.SkillID, model.HitKindAbsorb, absorbed)
 	}
 	p.StatusEffects().Add(s)
 	// Taking harm enters combat (chunk 1): the take-harm direction, stamped
@@ -430,20 +436,36 @@ func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vi
 	return dealt
 }
 
-// DamageTaken / HealReceived / XpGained expose the per-tick floating-number
-// accumulators (roadmap item 11).
-func (p *player) DamageTaken() vitals.VitalSign { return p.damageTaken }
+// SkillEvents are this tick's attributed hits and casts (plan-skill-vfx.md
+// C1); the codec concatenates them into GameState.skill_events.
+func (p *player) SkillEvents() []model.SkillEvent { return p.skillEvents }
 
-// CritTaken is the crit-flagged share of this tick's damage taken (chunk 1,
-// §4.3); serialized as the crit_taken wire field so the client pops it big.
-func (p *player) CritTaken() vitals.VitalSign    { return p.critTaken }
+// noteSkillEvent records one hit or cast. The ONLY writer, so "what does the
+// wire carry" has one answer to read.
+func (p *player) noteSkillEvent(e model.SkillEvent) {
+	p.skillEvents = append(p.skillEvents, e)
+}
 
-// ImmuneHit reports that a hit was fully mitigated this tick
-// (plan-immune-feedback.md); serialized as the immune_hit wire field, drives
-// the floating "Immune" label.
-func (p *player) ImmuneHit() bool { return p.immuneHit }
-func (p *player) HealReceived() vitals.VitalSign { return p.healReceived }
-func (p *player) XpGained() uint64               { return p.xpGained }
+// noteHit records one landing on this player. Called only from inside
+// takeDamage / Heal (D9): every acting site ends in one of those two, so a new
+// damage path cannot forget the event.
+func (p *player) noteHit(source uint64, id skills.SkillID, kind model.HitKind, amount vitals.VitalSign) {
+	p.noteSkillEvent(model.SkillEvent{
+		Source:  source,
+		Victim:  p.Basic().ID(),
+		SkillID: id,
+		Amount:  amount,
+		Kind:    kind,
+	})
+}
+
+// NoteSkillFired records that this player's skill went off this tick
+// (model.SkillFiredNotifier), targets or not.
+func (p *player) NoteSkillFired(id skills.SkillID) {
+	p.noteSkillEvent(model.SkillEvent{Source: p.Basic().ID(), SkillID: id, Fired: true})
+}
+
+func (p *player) XpGained() uint64 { return p.xpGained }
 
 // CostPaid is the resource cost charged this tick (round-7 item 7): the
 // damage-taken twin for what the player SPENT — serialized as the cost_paid
@@ -454,27 +476,20 @@ func (p *player) NoteCostPaid(paid vitals.VitalSign) {
 	p.costPaid += paid
 }
 
-// NoteHealReceived records healing applied to this player this tick; the
-// SkillSystem calls it when a heal aura lands.
-func (p *player) NoteHealReceived(delta vitals.VitalSign) {
-	p.healReceived += delta
-}
-
-// Heal restores up to hp absolute HP, capped at MaxHealth, records the
-// floating heal number, and returns the HP actually restored (model.Healable;
-// mob-depth chunk 8). It centralizes the heal write the SkillSystem used to do
-// inline, so a heal aura can target players and mobs through one seam.
-func (p *player) Heal(hp uint32) vitals.VitalSign {
+// Heal restores up to h.HP absolute HP, capped at MaxHealth, records the hit
+// event, and returns the HP actually restored (model.Healable; mob-depth
+// chunk 8). It centralizes the heal write the SkillSystem used to do inline,
+// so a heal aura can target players and mobs through one seam.
+func (p *player) Heal(h model.Healing) vitals.VitalSign {
 	before := p.PlayerVitalSigns.Health
-	p.PlayerVitalSigns.Health = before.AddCapped(hp, p.MaxHealth())
+	p.PlayerVitalSigns.Health = before.AddCapped(h.HP, p.MaxHealth())
 	healed := p.PlayerVitalSigns.Health - before
-	p.NoteHealReceived(healed)
+	// A heal that restored nothing (already full) is not a landing.
+	if healed > 0 && h.Caster != nil {
+		p.noteHit(h.Caster.Basic().ID(), h.SkillID, model.HitKindHeal, healed)
+	}
 	return healed
 }
-
-// AuraHitStyle is the aura-hit VFX stamped on this player this tick (item 11
-// Step 4); serialized as the Character aura_hit_style wire field.
-func (p *player) AuraHitStyle() model.AuraHitStyle { return p.auraHitStyle }
 
 // CampfireBound reports whether a campfire dwell completed this tick
 // (chunk 4); serialized as the Character campfire_bound wire field.
@@ -615,10 +630,6 @@ func (p *player) NoteActivationRejected(skill skills.SkillID, reason model.Activ
 	p.rejectedReason = reason
 }
 
-// NoteAuraHit records the aura-hit VFX style for this tick; the SkillSystem
-// calls it when a damage aura strikes this player.
-func (p *player) NoteAuraHit(style model.AuraHitStyle) { p.auraHitStyle = style }
-
 // ApplyResist grants a transient tag-resistance buff from a resist aura
 // (item 11 Phase 2); re-applied each aura tick, it expires on the same
 // per-tick lifecycle as the floating-number accumulators.
@@ -706,7 +717,7 @@ func (p *player) ApplyReflect(source skills.SkillID, fraction float32, tags []st
 
 // ReflectBurst is the share of an incoming hit this player currently bounces
 // back and the damage type it bounces back as; 0 and nil with no burst up.
-func (p *player) ReflectBurst() (float32, []string) {
+func (p *player) ReflectBurst() (skills.SkillID, float32, []string) {
 	return p.buffs.ReflectBurst()
 }
 
@@ -734,13 +745,11 @@ func (p *player) DueBuffEvents() ([]skills.DotHit, []skills.HotEvent) {
 // the transient buff store; called by the StatusEffectsSystem at the start
 // of each tick.
 func (p *player) ResetTickNumbers() {
-	p.damageTaken = 0
-	p.critTaken = 0
-	p.immuneHit = false
+	// Truncate, never nil: the slice keeps its capacity across ticks, so a
+	// player in a steady fight allocates nothing (the idle-loop alloc pins).
+	p.skillEvents = p.skillEvents[:0]
 	p.costPaid = 0
-	p.healReceived = 0
 	p.xpGained = 0
-	p.auraHitStyle = model.AuraHitStyleNone
 	p.campfireBound = false
 	p.homeCampfire = ""
 	p.discoveredCampfires = nil
@@ -774,10 +783,12 @@ func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {
 	// percentage reflect takes its share of the swing as the mob authored it
 	// (PO ruling 1), not of whatever survives this player's mitigation.
 	p.retaliate(e, factors.Damage)
-	dealt := p.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
+	damage := model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit, SkillID: factors.SkillID}
+	// Factors carries no Source, so the toucher IS the acting entity.
+	dealt := p.takeDamage(damage, model.ActingSourceID(nil, e), model.StatusEffectDamagedAmbient)
 	// Mob-cast lifesteal (chunk 1): Factors carries no Source — the mob is
 	// always its own recipient.
-	model.ApplyLifesteal(dealt, factors.Lifesteal, nil, e)
+	model.ApplyLifesteal(dealt, factors.Lifesteal, factors.SkillID, nil, e)
 }
 
 // slowable is the CC door a mob exposes; players carry none (the get-CC'd
@@ -872,7 +883,7 @@ func (p *player) retaliate(attacker model.MobEntity, incoming float32) {
 			// already stamped this mob for the DEFEND signal a few lines up;
 			// the reflect is the player fighting back, and a companion reading
 			// it as "my owner attacked that" is correct.
-			target.PlayerTouches(p, model.Damage{HP: d.Damage, Tags: d.Tags})
+			target.PlayerTouches(p, model.Damage{HP: d.Damage, Tags: d.Tags, SkillID: d.Source})
 		}
 	}
 	// The percentage reflect (retaliate_burst / Retribution), an INDEPENDENT
@@ -887,17 +898,17 @@ func (p *player) retaliate(attacker model.MobEntity, incoming float32) {
 	// the flat passive: that one fires on being swung at, this one needs an
 	// amount to take a percentage of.
 	if incoming > 0 {
-		if fraction, tags := p.buffs.ReflectBurst(); fraction > 0 {
+		if source, fraction, tags := p.buffs.ReflectBurst(); fraction > 0 {
 			if target, ok := attacker.(reflectable); ok && target.HealthRatio() > 0 {
-				target.PlayerTouches(p, model.Damage{HP: fraction * incoming, Tags: tags})
+				target.PlayerTouches(p, model.Damage{HP: fraction * incoming, Tags: tags, SkillID: source})
 			}
 		}
 	}
 }
 
 func (p *player) PlayerTouches(other model.PlayerEntity, damage model.Damage) {
-	dealt := p.takeDamage(damage, model.StatusEffectDamagedAmbient)
-	model.ApplyLifesteal(dealt, damage.Lifesteal, damage.Source, other)
+	dealt := p.takeDamage(damage, model.ActingSourceID(damage.Source, other), model.StatusEffectDamagedAmbient)
+	model.ApplyLifesteal(dealt, damage.Lifesteal, damage.SkillID, damage.Source, other)
 }
 
 // AreaTouches applies a hit from a PLACE — lava, a bog, miasma
@@ -919,7 +930,10 @@ func (p *player) PlayerTouches(other model.PlayerEntity, damage model.Damage) {
 // asymmetry that buys is the wanted one — god ignores a hazard and still takes a
 // healing spring, because a heal never enters this path at all.
 func (p *player) AreaTouches(_ model.AreaSource, damage model.Damage) {
-	p.takeDamage(damage, model.StatusEffectDamagedAmbient)
+	// ⚑ SOURCE 0, the "nobody" id ActingSourceID already returns for an absent
+	// toucher (plan-skill-vfx.md C1): the hit still reaches the client as a
+	// SkillEvent, but it is attributed to no entity, because an area is a place.
+	p.takeDamage(damage, 0, model.StatusEffectDamagedAmbient)
 }
 
 func (p *player) Name() string {

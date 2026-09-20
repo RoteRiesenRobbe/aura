@@ -116,14 +116,21 @@ func TestScalingProfile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	factionsRegistry := loadFactions(content.factions)
-	skillsRegistry := loadSkills(content.skills, factionsRegistry)
+	factionsRegistry, err := loadFactions(content.factions)
+	requireNoErr(t, err)
+	skillsRegistry, err := loadSkills(content.skills, factionsRegistry)
+	requireNoErr(t, err)
 	levelCurve := config.LevelCurve()
-	mobsRegistry := loadMobs(skillsRegistry, factionsRegistry, levelCurve, content.mobs)
-	milestoneUnlocks := loadMilestoneUnlocks(content.milestones, skillsRegistry)
-	recipeRegistry := loadRecipes(content.recipes, skillsRegistry)
-	questsRegistry := loadQuests(content.quests, mobsRegistry)
-	propsRegistry := loadProps(content.props)
+	mobsRegistry, err := loadMobs(skillsRegistry, factionsRegistry, levelCurve, content.mobs)
+	requireNoErr(t, err)
+	milestoneUnlocks, err := loadMilestoneUnlocks(content.milestones, skillsRegistry)
+	requireNoErr(t, err)
+	recipeRegistry, err := loadRecipes(content.recipes, skillsRegistry)
+	requireNoErr(t, err)
+	questsRegistry, err := loadQuests(content.quests, mobsRegistry)
+	requireNoErr(t, err)
+	propsRegistry, err := loadProps(content.props)
+	requireNoErr(t, err)
 
 	// Fixed process-level knobs, once, like main().
 	mob.SeedProcess(12345)
@@ -169,7 +176,8 @@ func TestScalingProfile(t *testing.T) {
 
 	var results []scaleResult
 	for _, r := range runs {
-		zone := loadZone(content.zones, "world", mobsRegistry, propsRegistry)
+		zone, err := loadZone(content.zones, "world", mobsRegistry, propsRegistry)
+		requireNoErr(t, err)
 		res := runScale(t, config, mobsRegistry, skillsRegistry, milestoneUnlocks,
 			recipeRegistry, questsRegistry, zone, playerAura, r.mode, r.mult)
 		results = append(results, res)
@@ -472,5 +480,14 @@ func runScale(t *testing.T, config *cfg.Config,
 		AvgVisiblePerPlayer:  float64(visibleSum) / float64(measureTicks) / float64(nPlayers),
 		SnapshotBytesPerTick: float64(snapBytes) / float64(measureTicks) / float64(nPlayers),
 		RemoveEntityUs:       float64(churnTotal.Microseconds()) / churnReps,
+	}
+}
+
+// requireNoErr keeps the loader calls above one line each now that every loadX
+// returns an error instead of panicking (spell builder C2).
+func requireNoErr(t *testing.T, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatal(err)
 	}
 }

@@ -31,11 +31,13 @@ import (
 func main() {
 	logging.SetupLogging()
 
-	var dev, help bool
+	var dev, help, validate bool
 	var contentDir, startZone, profileAddr string
+
 	flag.StringVar(&profileAddr, "profile", "", "serve net/http/pprof + /tickstats on this address for capacity checks (e.g. :6060); off by default, see devops/loadtest.md")
 	flag.BoolVar(&dev, "dev", false, "Serve frontend directly")
 	flag.BoolVar(&help, "help", false, "Show usage help")
+	flag.BoolVar(&validate, "validate", false, "Load all content, print every finding to stdout and exit (0 clean, 1 findings); starts no server and needs no database")
 	flag.StringVar(&contentDir, "content", "", "Load items/mobs/skills/recipes/zones/props from this api/-layout directory instead of the embedded copies (e.g. ../api); skips cp-defs + rebuild for content edits")
 	flag.StringVar(&startZone, "start-zone", "", "Name the PRIMARY zone by file stem (e.g. 'world' for world.json) — where fresh characters spawn; overrides game.startZone. Every zone file in the directory loads regardless")
 	flag.Parse()
@@ -45,6 +47,15 @@ func main() {
 	if help {
 		flag.Usage()
 		os.Exit(1)
+	}
+
+	// ⭐ THE -validate BRANCH SITS HERE, BEFORE openDatabase AND BEFORE THE
+	// TOKENS FILE (plan-content-editor.md §B4.9, D9). A content check must run
+	// with no AURA_DB_URL, no AURA_JWT_KEY and no live server, because the whole
+	// point is that the content editor can ask it on every candidate save. It
+	// also writes nothing: no conf.json, no tokens.list.
+	if validate {
+		os.Exit(validateMain(os.Stdout, contentDir, startZone))
 	}
 
 	content := embeddedContent()
@@ -75,33 +86,40 @@ func main() {
 	// the chunk that gives shutdown something to do.
 	defer db.Close()
 
-	// Factions load FIRST: since plan-faction-flips chunk 2 a skill may author
-	// a targetFactions allowlist, resolved to bits at load (D8 — the faction
-	// registry is boot-only, so names have exactly one chance to become bits).
-	// Factions themselves depend on nothing.
-	factionsRegistry := loadFactions(content.factions)
-	skillsRegistry := loadSkills(content.skills, factionsRegistry)
 	levelCurve := config.LevelCurve()
-	mobsRegistry := loadMobs(skillsRegistry, factionsRegistry, levelCurve, content.mobs)
-	milestoneUnlocks := loadMilestoneUnlocks(content.milestones, skillsRegistry)
-	recipeRegistry := loadRecipes(content.recipes, skillsRegistry)
-	questsRegistry := loadQuests(content.quests, mobsRegistry)
-	ascensionCatalog := loadAscensionCatalog(content.ascension, skillsRegistry, mobsRegistry, questsRegistry)
-	propsRegistry := loadProps(content.props)
 	// Every zone file in the directory loads. The only choice left is which of
 	// them is PRIMARY, and the flag beats the conf.
 	if startZone == "" {
 		startZone = config.Game.StartZone
 	}
-	// ⚑ Placed here, not in the game: everything below takes RESOLVED geometry
-	// with each zone's Origin already applied (plan-underworld.md U1).
-	zones := loadZones(content.zones, startZone, mobsRegistry, propsRegistry, skillsRegistry)
-	// ⛔ AFTER loadZones, and the ordering is load-bearing: loadZones is what
-	// calls world.Place, and an unplaced shape's points are ZONE-LOCAL. Collect
-	// before that and every hazard in a placed zone acts at the wrong spot —
-	// silently, because the overworld's origin is {0,0} and would look perfect
-	// (plan-area-effects.md E2, placeOne's note).
+	// ⚑ ONE load sequence, shared with -validate (content.go): the dependency
+	// order between the registries lives there and nowhere else. A boot is the
+	// consumer that refuses to continue on a finding - all of them, listed,
+	// rather than only the first one a loader happened to hit.
+	//
+	// ⚑ Zones come out PLACED, with each zone's Origin already applied
+	// (plan-underworld.md U1): everything below takes RESOLVED geometry.
+	loaded, findings := loadContent(content, config, startZone)
+	if len(findings) > 0 {
+		for _, f := range findings {
+			slog.Error("content finding", slog.String("detail", f))
+		}
+		panic(fmt.Sprintf("%d content finding(s); run `aurad -validate -content <dir>` for the list", len(findings)))
+	}
+	skillsRegistry := loaded.skills
+	mobsRegistry := loaded.mobs
+	milestoneUnlocks := loaded.milestones
+	recipeRegistry := loaded.recipes
+	questsRegistry := loaded.quests
+	ascensionCatalog := loaded.ascension
+	zones := loaded.zones
+	// ⛔ AFTER the zone load, and the ordering is load-bearing: loadZones is
+	// what calls world.Place, and an unplaced shape's points are ZONE-LOCAL.
+	// Collect before that and every hazard in a placed zone acts at the wrong
+	// spot — silently, because the overworld's origin is {0,0} and would look
+	// perfect (plan-area-effects.md E2, placeOne's note).
 	areaEffects := world.CollectAreaEffects(zones)
+
 	// The primary zone. It is what a fresh character spawns in, what names the
 	// world on the wire, and whose bounds size the client's camera and map —
 	// deliberately NOT a union of everything loaded (L13).

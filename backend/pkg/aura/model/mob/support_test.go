@@ -25,7 +25,7 @@ func TestMob_LoneHealerUnderFireIsKillable(t *testing.T) {
 	// pattern that used to be unwinnable.
 	start := m.Health()
 	for i := 0; i < 20; i++ {
-		m.takeDamage(model.Damage{HP: 2}, model.StatusEffectDamagedAmbient)
+		m.takeDamage(model.Damage{HP: 2}, 0, model.StatusEffectDamagedAmbient)
 		m.Update(0)
 	}
 

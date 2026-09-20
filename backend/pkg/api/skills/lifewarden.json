@@ -1,10 +1,16 @@
 {
-  "_comment": "Lifewarden (content pass C7, plan-content-zones12.md §13): Vanguard L5 + Heal L5 combo — the BEST HEAL AURA in the game (§A ceiling trio, specialist shape): bigger heal than both parents, TWO targets, zero self-cost (Heal pays 18 HP), wider radius. Secret recipe. All values [PLACEHOLDER] pending C8",
+  "_comment": "A heal_aura combination result: heals two targets at once with no self-cost, and a bigger heal amount and radius than its parent skills. All values placeholder.",
   "id": 53,
   "name": "Lifewarden",
   "icon": "delapouite/healing",
   "category": "active_aura",
   "maxLevel": 10,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "ambient", "motion": "rise", "count": 5, "ms": 1600, "scale": 1.6, "tint": "#4fbf6a" },
+      { "kind": "emitter", "on": "ambient", "motion": "rise", "count": 4, "ms": 1000, "scale": 0.7, "tint": "#bff0c4" }
+    ]
+  },
   "effects": [
     {
       "type": "heal_aura",

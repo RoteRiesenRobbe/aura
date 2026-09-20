@@ -14,9 +14,11 @@
 // ⚑ The starting aura is pre-equipped but NOT active - the long-held `1`
 //   (~1.4 s, rAF-sampled) switches it on, and `.auraSlot.activeSlot` is the
 //   confirmation gate.
-// ⚑ The "no damage number" half is scoped BY POSITION (within ~2.5 u of a
-//   bramble): mobs fight each other elsewhere in the viewport, so a global
-//   "no red text" assert would flake on an unrelated wolf.
+// ⚑ The "no damage number" half is scoped BY POSITION (over a bramble's own
+//   head: within 0.3 u of its x, up to 1.5 u above it): mobs fight each other
+//   elsewhere in the viewport, so a global "no red text" assert would flake
+//   on an unrelated wolf, and a 2.5 u radius admitted a wolf at melee with the
+//   bot (2026-09-13). The "Immune" half keeps the wider 2.5 u radius.
 // Tri-state: a warp that lands off-target or an aura that never activates is
 // INCONCLUSIVE, not red.
 import { createRequire } from 'node:module';
@@ -123,6 +125,15 @@ const watch = await page.evaluate(({ brambles }) => new Promise((resolve) => {
     const wx = node.position.x / 120, wy = node.position.y / 120;
     return brambles.some(([bx, by]) => Math.hypot(wx - bx, wy - by) < 2.5);
   };
+  // A number OVER a bramble: it spawns within a lane's half-gap of the
+  // bramble's x and rises from one prop-size above its y. Tighter than
+  // nearWall on purpose (2026-09-13): a mob that wanders to melee with the bot
+  // stands ~2.3 u from the wall, and its own damage numbers scored as the D9
+  // guard broken three runs in a row on a long-lived server.
+  const overWall = (node) => {
+    const wx = node.position.x / 120, wy = node.position.y / 120;
+    return brambles.some(([bx, by]) => Math.abs(wx - bx) < 0.3 && by - wy > 0 && by - wy < 1.5);
+  };
   const visit = (node) => {
     if (node.text !== undefined && !seen.has(node)) {
       const t = String(node.text);
@@ -131,7 +142,7 @@ const watch = await page.evaluate(({ brambles }) => new Promise((resolve) => {
         out.immune++;
         if (nearWall(node)) out.immuneNear++;
         if (hex(node.style?.fill) === GREY) out.immuneGrey++;
-      } else if (/^-\d+$/.test(t) && nearWall(node)) {
+      } else if (/^-\d+$/.test(t) && overWall(node)) {
         seen.add(node);
         out.damageNear++;
         out.samples.push('damage text near wall: ' + t);

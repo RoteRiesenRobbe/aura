@@ -1,5 +1,33 @@
 # Plan: Content tooling — editors, validation, and the authoring pipeline
 
+> ⛔ **ARCHIVED 2026-09-08 - SUPERSEDED, never executed.** PO ruling: the web
+> content editor (`tools/content-editor/`, `docs/plan-content-editor.md`) is
+> the primary content tool, and this plan's remaining pieces either died or
+> moved there. Where each piece went:
+>
+> - **C3** (text-only quest/dialogue form) - superseded by the shipped editor,
+>   which edits structure in full (Part A).
+> - **C1** (dev save endpoint + in-game zone editor retrofit) and **C2**
+>   (in-game drag-to-move) - placement is Tiled's (`archive/plan-tiled-authoring.md`);
+>   PO 2026-09-08: map and placement are not a reason to keep this plan. Dead.
+> - **C0's CI gate** - dead on the standing lock (NO CI BY CHOICE, PO 2026-08-12).
+> - **C0's `aurad -validate`** - moved: `plan-content-editor.md` Part B **D9 / C2**,
+>   where the editor validates a candidate save with the REAL loaders instead
+>   of a JS port of the rules.
+> - **C0's D5 registry lock + tombstones** - moved: `plan-content-editor.md`
+>   Part B **C5**, beside the Skills tab's auto-assigned id.
+> - **D5 rule 3, load-time reconciliation** - runtime Go touching persisted
+>   state, no editor consequence: `backlog.md` **§61**.
+> - **D7** (authoring is AI-side) - narrowed the same day for skills
+>   (Part B banner); **D8** reversed for skills; **D9** answered by Tiled;
+>   **D10** overtaken by the editor. **D4** (no hot reload) and **D5** (the
+>   three content-vs-persisted rules) stand and are restated where they moved.
+>
+> Everything below is the record as it stood. Read it for *why*, not for
+> current state.
+
+> *(Original banner follows.)*
+
 > **Status: DESIGNED 2026-08-05 (D1–D6) — RE-SCOPED 2026-08-09 (D7–D10), no
 > chunk built.** ⚑ **D7 narrowed 2026-09-08 for SKILLS** (`plan-content-editor.md` Part B:
 > PO ruled that humans author skills in the content editor; bulk world
