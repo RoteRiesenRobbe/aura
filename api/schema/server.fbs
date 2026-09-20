@@ -123,7 +123,22 @@ enum EntityType : ushort {
   // load, the same static path `zone.campfires` uses and for the same reason
   // (a streamed light pops a dark pocket lit as its source enters the
   // viewport). This value exists only so the SPRITE resolves.
-  Torch = 84
+  Torch = 84,
+
+  // ── Farm BUILDINGS. Same generic path as the dressing above — one
+  // api/props/*.json and one SVG each — but they are the largest props in
+  // the game (6x4 and 5x4 against the house's 4x3), so a placement is a
+  // landmark rather than scatter. ⚑ Both are rect-bodied, which since C2b
+  // means the authored rotation turns the COLLIDER with the sprite: the
+  // mill is meant to be turned so its wheel reaches the river.
+  Barn = 85,
+  Mill = 86,
+
+  // ⚑ The wrecked twin of Cart (82), and a SEPARATE entityType rather than a
+  // flag on that one: an entityType is what picks the SPRITE, and these are
+  // two drawings. Same 2.2x1.3 body, so a placement swaps between them
+  // without moving anything.
+  BurntCart = 87
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

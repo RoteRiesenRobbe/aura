@@ -31,9 +31,9 @@ Rendered 2026-09-20 from 201 rows.
 | --- | ---: | --- |
 | ✅ drawn | 88 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 21 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 24 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 11 | a stock/borrowed texture stands in (the pd* set) |
-| ❌ missing | 43 | nothing exists |
+| ❌ missing | 40 | nothing exists |
 | ⚙️ code | 14 | drawn procedurally in code, no art file |
 | ⛔ blocked | 5 | cannot be delivered until engine work lands |
 | — n/a | 10 | a constraint or a number to judge, not a file to draw |
@@ -165,14 +165,14 @@ of which **7 are P0**:
 | ❌ | **Bush** | — | P1 |  |  | Shrub filler between trees. Non-blocking — fills space without adding colliders. |
 | ❌ | **Fern** | — | P2 |  |  | Z2 — Forest-floor filler, Zone 2. |
 | 🟡 | **Haystack** | `haystack.svg` | P1 |  | 204 | Z1 — Farmland vocabulary. Zone 1. Placeholder SVG (body r0.85): ragged straw mound, top-down. The first draft read as a TREE STUMP - a clean circle, concentric rings and even radial lines are growth rings; irregularity is what makes it straw. |
-| 🟡 | **Cart** | `cart.svg` | P1 |  | 264x156 | Z1 — Farm cart. Doubles as the burnt-cart POI when wrecked. Placeholder SVG (body 2.2x1.3 rect; the viewBox carries the aspect, like house.svg). The shaft points WEST in every placement - rect props never rotate. |
-| ❌ | **Burnt cart** | — | P1 |  |  | Z1 — The bandit breadcrumb POI in Zone 1 — the story beat with no mob attached. |
+| 🟡 | **Cart** | `cart.svg` | P1 |  | 264x156 | Z1 — Farm cart. Doubles as the burnt-cart POI when wrecked. Placeholder SVG (body 2.2x1.3 rect; the viewBox carries the aspect, like house.svg). The shaft points WEST in the art; a rect prop turns with its collider (plan-prop-scale.md C2b), so rotate the placement to aim it. |
+| 🟡 | **Burnt cart** | `burntCart.svg` | P1 |  | 264x156 | Z1 |
 | ❌ | **Plough** | — | P2 |  |  | Z1 — Farmland dressing. |
 | 🟡 | **Well** | `well.svg` | P1 |  | 168 | Z1 — Village centre landmark. Placeholder SVG (body r0.7): stone ring, open shaft, thin winding beam. No roof - it would hide the hole that identifies it. |
 | ❌ | **Trough** | — | P3 |  |  | Z1 — Farmyard dressing. |
-| ❌ | **Barn** | — | P1 |  |  | Z1 — Second building type. The village is 12 copies of House today. |
+| 🟡 | **Barn** | `barn.svg` | P1 |  | 720x480 | Z1 |
 | ❌ | **Cottage variant** | — | P1 |  |  | Z1 — Third building type, so the village stops being one sprite tiled. |
-| ❌ | **Mill** | — | P2 |  |  | Z1 — The Zone 1 river POI. A landmark, not scatter. |
+| 🟡 | **Mill** | `mill.svg` | P2 |  | 600x480 | Z1 |
 | ❌ | **Bridge deck** | — | P1 |  |  | Z1 — The river crossing. ⚑ Must author crossesPaths:true and blocksMovement:false — both, or it walls its own deck (plan-world-paths L9). |
 | 🟡 | **Fence post** | `fencePost.svg` | P2 |  | 53 | Terminates hedgerow/fence paths, which have no end-cap art. Placeholder SVG (body r0.22): the post END GRAIN, seen top-down. No rail stubs - a path leaves in any direction and a prop rotation is never applied. |
 | ❌ | **Gate** | — | P2 |  |  | Z1 — Field gate on the fence line. |

@@ -71,5 +71,8 @@ export enum EntityType {
   Haystack = 81,
   Cart = 82,
   Well = 83,
-  Torch = 84
+  Torch = 84,
+  Barn = 85,
+  Mill = 86,
+  BurntCart = 87
 }

@@ -656,6 +656,12 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     // overlay from zone.props at load (DarknessOverlay.resetZone), never from
     // this snapshot, so there is nothing special about its render class.
     [AuraApi.EntityType.Torch]: Props.genericPropClasses.Torch,
+    // The farm buildings. Generic too — being the biggest props in the game
+    // is a matter of their authored body, not of a render class.
+    [AuraApi.EntityType.Barn]: Props.genericPropClasses.Barn,
+    [AuraApi.EntityType.Mill]: Props.genericPropClasses.Mill,
+    // The bandit-breadcrumb POI: Cart's wreck, a second sprite on the same body.
+    [AuraApi.EntityType.BurntCart]: Props.genericPropClasses.BurntCart,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

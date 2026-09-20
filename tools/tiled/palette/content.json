@@ -20,14 +20,17 @@
       "Land"
     ],
     "AuraPropType": [
+      "Barn",
       "Boulder",
       "Bridge",
+      "BurntCart",
       "Cart",
       "Crate",
       "FencePost",
       "GateWall",
       "Haystack",
       "House",
+      "Mill",
       "Rock",
       "Tombstone",
       "Torch",
@@ -300,6 +303,10 @@
     "Land"
   ],
   "PROP_SIZE": {
+    "Barn": {
+      "w": 6,
+      "h": 4
+    },
     "Boulder": {
       "w": 2.2,
       "h": 2.2
@@ -307,6 +314,10 @@
     "Bridge": {
       "w": 5,
       "h": 2
+    },
+    "BurntCart": {
+      "w": 2.2,
+      "h": 1.3
     },
     "Cart": {
       "w": 2.2,
@@ -331,6 +342,10 @@
     "House": {
       "w": 4,
       "h": 3
+    },
+    "Mill": {
+      "w": 5,
+      "h": 4
     },
     "Rock": {
       "w": 1.07,

@@ -1,0 +1,6 @@
+{
+  "name": "Barn",
+  "entityType": "Barn",
+  "sprite": "barn.svg",
+  "body": { "width": 6, "height": 4 }
+}
