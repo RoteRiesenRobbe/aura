@@ -443,10 +443,17 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // dropped default and a kept one reach the same answer; 'blocksMovement'
         // defaults to false, which the converter maps back to "not authored"
         // and omits from the JSON entirely.
+        // ⚑ 'alignTexture' obeys the same C6 rule: false is exactly "not
+        // authored", so it is safe as a bool where a tri-state knob would have
+        // needed an enum. It turns the TILE to run along the path — rails,
+        // ruts, strata — because a profile is world-aligned and carries no
+        // rotation. The ANGLE is not here and must never be: it is derived from
+        // the drawn geometry, so a property could only contradict the shape.
         classType('AuraPath', '#ff03a9f4',
             [member('profile', 'string', PROFILE_UNSET, 'AuraTerrainProfile'),
                 member('width', 'float', 0),
                 member('blocksMovement', 'bool', false),
+                member('alignTexture', 'bool', false),
                 ...OUTLINE_MEMBERS, EFFECT_MEMBER]),
         // ⚑ A filled AREA, sharing the paths layer and told apart by this class
         // (plan-zone-polygons.md D5). It has NO width member on purpose: a

@@ -495,6 +495,9 @@ var AuraConvert = (function () {
                         closed: p2.closed ? true : undefined,
                         outlineProfile: p2.outlineProfile || undefined,
                         outlineWidth: p2.outlineProfile ? round(p2.outlineWidth, 2) : undefined,
+                        // Turn the tile to run along the path. Tri-state like
+                        // the two above, and key order follows zone.go.
+                        alignTexture: p2.alignTexture ? true : undefined,
                         // The area effect (plan-area-effects.md E1). Key order
                         // follows zone.go's struct order like everything else
                         // here, and absent stays absent: no shipped path names
@@ -753,6 +756,7 @@ var AuraConvert = (function () {
             // Only when true, so the Properties panel shows the class default
             // for an ordinary path and the round-trip stays byte-identical.
             if (p2.blocksMovement) { o.properties.blocksMovement = true; }
+            if (p2.alignTexture) { o.properties.alignTexture = true; }
             writeOutline(o, p2);
             writeEffect(o, p2);
             return o;
@@ -1081,6 +1085,7 @@ var AuraConvert = (function () {
                     outlineWidth: readOutlineProfile(o) !== undefined
                         ? (typeof get(o, 'outlineWidth') === 'number' ? get(o, 'outlineWidth') : 0)
                         : undefined,
+                    alignTexture: get(o, 'alignTexture') ? true : undefined,
                     effect: readEffect(o),
                 };
             }),

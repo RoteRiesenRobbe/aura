@@ -27,6 +27,7 @@
       "Cart",
       "Crate",
       "FencePost",
+      "Gate",
       "GateWall",
       "Haystack",
       "House",
@@ -139,6 +140,7 @@
       "Wasteland",
       "Mountains",
       "Ice",
+      "Fence",
       "Wall",
       "Road",
       "Water",
@@ -331,6 +333,10 @@
       "w": 0.44,
       "h": 0.44
     },
+    "Gate": {
+      "w": 2,
+      "h": 1.6
+    },
     "GateWall": {
       "w": 2.4,
       "h": 2.4
@@ -520,6 +526,7 @@
     "Wasteland",
     "Mountains",
     "Ice",
+    "Fence",
     "Wall",
     "Road",
     "Water",

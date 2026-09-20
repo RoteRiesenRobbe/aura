@@ -118,15 +118,73 @@ export function loadZoneTextures(
 export function regionPaint(
     region: Region,
     profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
-): { texture: Texture, matrix: Matrix } | { color: number } | null {
+    // Radians to turn the TILE by, for a path that asked to run its texture
+    // along itself (Paths.textureAngle). 0 — every region, every polygon and
+    // every path that did not ask — leaves the matrix exactly as it was.
+    angle = 0,
+    // A point the tile's MIDDLE ROW is slid onto, along the path's normal —
+    // see `tileMatrix`. Null for everything that is not an aligned path.
+    anchor: { x: number, y: number } | null = null,
+): { texture: Texture, matrix: Matrix, scale: number } | { color: number } | null {
     const spec = regionPaintSpec(region, isTextureUsable, profiles);
     if (spec === null) {
         return null;
     }
     if ('texture' in spec) {
-        return {texture: loaded[spec.texture], matrix: new Matrix().scale(spec.scale, spec.scale)};
+        const texture = loaded[spec.texture];
+        return {
+            texture,
+            matrix: tileMatrix(spec.scale, angle, anchor, texture.height),
+            scale: spec.scale,
+        };
     }
     return {color: spec.color};
+}
+
+/**
+ * The texture→local transform for one surface: scale, turn, and register.
+ *
+ * ⚑ Written out term by term rather than composed from `Matrix.scale().rotate()`
+ * because the two methods do not compose in the order the name suggests, and a
+ * silently transposed matrix here is a tile drawn at the right size in the
+ * wrong direction — which looks like the ANGLE being wrong rather than the
+ * multiplication. With no angle and no anchor it reduces to exactly
+ * `new Matrix().scale(s, s)`, which is what every shipped surface had.
+ *
+ * ⭐ THE ANCHOR TERM IS WHAT LETS A DIRECTIONAL TILE HAVE STRUCTURE. Turning
+ * the tile is only half of alignment: the tile still phases from the world
+ * origin, so the window a stroke reveals lands at an arbitrary offset ACROSS
+ * the ribbon, and a tile can therefore put nothing at a known height. The
+ * first fence tile was built under that limit — macro pattern along the path
+ * only — and came out a boardwalk, because a fence is mostly GAPS and a gap is
+ * structure across the ribbon.
+ *
+ * The fix is a translation along the path's NORMAL, and only along it: slide
+ * the tile until its middle row sits on the anchor. Sliding along the normal
+ * cannot disturb the phase ALONG the path, so the posts do not move.
+ *
+ *   n = (−sin θ, cos θ)                     the unit normal
+ *   we want  uv_y(anchor) = height / 2      the tile's middle row
+ *   uv_y     = (P·n − t·n) / scale          with t = c·n
+ *   ⟹  c    = P·n − scale · height / 2
+ */
+function tileMatrix(
+    scale: number,
+    angle: number,
+    anchor: { x: number, y: number } | null,
+    texHeight: number,
+): Matrix {
+    if (angle === 0 && anchor === null) { return new Matrix().scale(scale, scale); }
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    let tx = 0, ty = 0;
+    if (anchor !== null) {
+        const nx = -sin, ny = cos;
+        const c = anchor.x * nx + anchor.y * ny - scale * texHeight / 2;
+        tx = c * nx;
+        ty = c * ny;
+    }
+    return new Matrix(scale * cos, scale * sin, -scale * sin, scale * cos, tx, ty);
 }
 
 /**
@@ -361,16 +419,20 @@ export function advanceSurfaceScroll(scrollers: ScrollingSurface[], deltaMS: num
  */
 function scrollingSurface(
     footprint: Footprint,
-    paint: { texture: Texture, matrix: Matrix } | { color: number },
+    paint: { texture: Texture, matrix: Matrix, scale: number } | { color: number },
     scrollPx: { x: number, y: number },
 ): ScrollingSurface | null {
     if (!('texture' in paint)) { return null; }
-    // ⚑ The scale is read back off the matrix `regionPaint` just built
-    // (`new Matrix().scale(s, s)` → `a === d === s`) rather than resolved a
-    // second time from the profile table. Two lookups is two chances to
-    // disagree, and a mismatch here is a tile drawn at the wrong size ONLY
-    // while it moves — the worst kind of bug to catch in a screenshot.
-    const scale = paint.matrix.a;
+    // ⭐ The scale is CARRIED on the paint rather than read back off the
+    // matrix, and that changed when `alignTexture` landed. It used to be
+    // `paint.matrix.a`, which is only the scale while the matrix is a pure
+    // `scale(s, s)`; the moment a rotation joins it `a` becomes `s·cos θ`, so
+    // a turned tile would have drifted at the WRONG SIZE — and only while it
+    // moved, which is the worst kind of bug to catch in a screenshot. Nothing
+    // authors a drifting aligned surface today (see paintSurface), so this
+    // was a trap armed for whoever did it next rather than a live defect.
+    // One value, resolved once, is what makes it un-armable.
+    const scale = paint.scale;
     const sprite = new TilingSprite({
         texture: paint.texture,
         width: footprint.width,
@@ -402,7 +464,7 @@ type DrawSurface = (g: Graphics, style: object) => Graphics;
  *  which is the hard kind of wrong. */
 function addFeathered(
     container: Container,
-    paint: { texture: Texture, matrix: Matrix } | { color: number },
+    paint: { texture: Texture, matrix: Matrix, scale: number } | { color: number },
     mask: BlendMask,
     out: PaintedSurfaces,
 ): void {
@@ -448,14 +510,33 @@ function paintSurface(
     // two namespaces are disjoint, so a miss resolves to the DEFAULT profile
     // rather than throwing.
     profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
+    // A path that asked to run its texture along itself; 0 for everything else.
+    angle = 0,
+    // The anchor its angle came from, so the tile registers ACROSS the ribbon.
+    anchor: { x: number, y: number } | null = null,
 ): void {
-    const paint = regionPaint(surface, profiles);
-    if (paint === null) { return; }
-
     const authored = regionScroll(surface, profiles);
     const scrollPx = {x: meter2px(authored.x), y: meter2px(authored.y)};
+    const drifts = scrollPx.x !== 0 || scrollPx.y !== 0;
 
-    if (scrollPx.x !== 0 || scrollPx.y !== 0) {
+    // ⛔ A DRIFTING SURFACE IS NEVER TURNED, and this is a real limit rather
+    // than an oversight. The drift wraps `tilePosition` at `texture.width *
+    // scale` — the tile's period along the LOCAL x-axis — and once the tile is
+    // rotated that is no longer its period, so the pattern would JUMP once per
+    // wrap. Making the two work together means tracking the period along the
+    // turned axes, which is a chunk and has no consumer: the only profiles
+    // that scroll are Water, Bog and Lava, and none of them is directional.
+    // ⚑ Refused loudly rather than silently, because "my fence does not line
+    // up" would otherwise be a debugging session over a profile key nobody
+    // looked at. Once per path at zone load, and paths are few.
+    if (drifts && angle !== 0) {
+        console.warn(`RegionPaint: path profile "${surface.profile}" both scrolls and asks for `
+            + `alignTexture — the tile stays world-aligned (a drifting tile cannot be turned).`);
+    }
+    const paint = regionPaint(surface, profiles, drifts ? 0 : angle, drifts ? null : anchor);
+    if (paint === null) { return; }
+
+    if (drifts) {
         // ⚑ A feathered surface reuses the MASK's footprint rather than
         // measuring its own. They must be the same box: the sprite is masked by
         // that sprite, and a different one would slide the water half a band
@@ -759,6 +840,10 @@ function paintOutline(
     closed: boolean,
     renderer: Renderer,
     out: PaintedSurfaces,
+    // The body's tile angle, so a rim follows the shape its surface does.
+    angle = 0,
+    // The anchor its angle came from, so the tile registers ACROSS the ribbon.
+    anchor: { x: number, y: number } | null = null,
 ): void {
     const width = surface.outlineWidth;
     if (!surface.outlineProfile || !width) { return; }
@@ -772,7 +857,7 @@ function paintOutline(
     const mask = blend > 0
         ? buildBlendMask(renderer, points, blend, g => draw(g, {color: 0xffffff}), width / 2)
         : null;
-    paintSurface(container, rim, points, draw, mask, width / 2, out);
+    paintSurface(container, rim, points, draw, mask, width / 2, out, TERRAIN_PROFILES, angle, anchor);
 }
 
 /**
@@ -847,10 +932,18 @@ export function paintPaths(
             ? buildBlendMask(renderer, path.points, blend,
                 g => draw(g, {color: 0xffffff}), path.width / 2)
             : null;
-        paintSurface(container, path, path.points, draw, mask, path.width / 2, out);
+        // ⚑ `textureAngle` is 0/undefined for every path that did not author
+        // `alignTexture`, so this argument changes nothing for a road or a
+        // river — the whole feature is inert until a path asks.
+        paintSurface(container, path, path.points, draw, mask, path.width / 2, out,
+            TERRAIN_PROFILES, path.textureAngle || 0, path.textureAnchor || null);
         // ⚑ The outline follows the path's OWN closure: a ring road's rim has to
         // close with it, or the seam shows as a notch in the kerb.
-        paintOutline(container, path, path.points, path.closed === true, renderer, out);
+        // ⭐ ...and its ANGLE, for the same reason: a fence with an aligned rail
+        // texture and a world-aligned kerb would disagree with itself along its
+        // whole length, which is more obviously wrong than either alone.
+        paintOutline(container, path, path.points, path.closed === true, renderer, out,
+            path.textureAngle || 0, path.textureAnchor || null);
     });
     return out;
 }

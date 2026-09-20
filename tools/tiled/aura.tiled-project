@@ -46,6 +46,7 @@
                 "Cart",
                 "Crate",
                 "FencePost",
+                "Gate",
                 "GateWall",
                 "Haystack",
                 "House",
@@ -193,6 +194,7 @@
                 "Wasteland",
                 "Mountains",
                 "Ice",
+                "Fence",
                 "Wall",
                 "Road",
                 "Water",
@@ -470,6 +472,11 @@
                 },
                 {
                     "name": "blocksMovement",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "alignTexture",
                     "type": "bool",
                     "value": false
                 },

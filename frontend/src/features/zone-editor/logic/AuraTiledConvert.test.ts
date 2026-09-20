@@ -1867,6 +1867,10 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             profile: 'Water', points: [{x: 1, y: 1}, {x: 5, y: 2}, {x: 4, y: 6}],
             width: 3, blocksMovement: true, closed: true,
             outlineProfile: 'Coast', outlineWidth: 0.5,
+            // ⚑ TRUE for the same tri-state reason blocksMovement is: false is
+            // the authored default and emits no key at all, so a fixture that
+            // left it off would let this pin pass while every writer dropped it.
+            alignTexture: true,
             effect: 'Blight',
         }],
         // ⚑ blocksMovement TRUE for the same tri-state reason as the path above:

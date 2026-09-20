@@ -74,5 +74,6 @@ export enum EntityType {
   Torch = 84,
   Barn = 85,
   Mill = 86,
-  BurntCart = 87
+  BurntCart = 87,
+  Gate = 88
 }

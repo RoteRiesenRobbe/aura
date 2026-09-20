@@ -138,7 +138,13 @@ enum EntityType : ushort {
   // flag on that one: an entityType is what picks the SPRITE, and these are
   // two drawings. Same 2.2x1.3 body, so a placement swaps between them
   // without moving anything.
-  BurntCart = 87
+  BurntCart = 87,
+
+  // ⭐ The break in a `Fence` path, and the one prop in this group that does
+  // NOT block: the fence is the wall, the gate is the door. It is drawn
+  // standing OPEN for exactly that reason (see gate.svg), so walking through
+  // it is what the picture promises and what the collider allows.
+  Gate = 88
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

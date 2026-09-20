@@ -184,3 +184,105 @@ describe('path outlines', () => {
         expect(s).not.toHaveProperty('outlineWidth');
     });
 });
+
+describe('alignTexture turns the tile along the path', () => {
+    const line = (pts: [number, number][]) => pts.map(([x, y]) => ({x, y}));
+
+    it('is absent unless the path asks, so no shipped path changes', () => {
+        const [p] = toPaths([{profile: 'Road', points: line([[0, 0], [10, 0]]), width: 1.5}]);
+        expect(p.textureAngle).toBeUndefined();
+    });
+
+    it('is 0 for a west-to-east run — the world axis the tile already uses', () => {
+        const [p] = toPaths([{
+            profile: 'Wall', points: line([[0, 0], [10, 0]]), width: 0.4, alignTexture: true,
+        }]);
+        expect(p.textureAngle).toBeCloseTo(0, 6);
+    });
+
+    it('is a quarter turn for a north-to-south run', () => {
+        const [p] = toPaths([{
+            profile: 'Wall', points: line([[0, 0], [0, 10]]), width: 0.4, alignTexture: true,
+        }]);
+        expect(p.textureAngle).toBeCloseTo(Math.PI / 2, 6);
+    });
+
+    // ⭐ The whole reason the derivation is "longest segment" and not the
+    // chord: on an L the chord points diagonally and NO leg follows it.
+    it('follows the LONGEST leg of a bend, not the chord across it', () => {
+        const [p] = toPaths([{
+            profile: 'Wall',
+            points: line([[0, 0], [20, 0], [20, 3]]),
+            width: 0.4,
+            alignTexture: true,
+        }]);
+        expect(p.textureAngle).toBeCloseTo(0, 6);       // the 20-long leg
+        const [q] = toPaths([{
+            profile: 'Wall',
+            points: line([[0, 0], [3, 0], [3, 20]]),
+            width: 0.4,
+            alignTexture: true,
+        }]);
+        expect(q.textureAngle).toBeCloseTo(Math.PI / 2, 6); // now the 20-long leg
+    });
+
+    // A ring's wraparound leg is as real as any other, so it is measured too.
+    it('measures a closed path\'s wraparound segment', () => {
+        const [p] = toPaths([{
+            profile: 'Wall',
+            points: line([[0, 0], [4, 0], [4, 4]]),
+            width: 0.4,
+            closed: true,
+            alignTexture: true,
+        }]);
+        // The closing leg (4,4)->(0,0) is the longest at length 5.66.
+        expect(p.textureAngle).toBeCloseTo(Math.atan2(-4, -4), 6);
+    });
+
+    // ⚑ The origin offset must not tilt anything: it translates, and a
+    // translation cannot change a direction.
+    it('is unchanged by the zone origin', () => {
+        const def = {
+            profile: 'Wall', points: line([[0, 0], [6, 6]]), width: 0.4, alignTexture: true,
+        };
+        const [a] = toPaths([def]);
+        const [b] = toPaths([def], {x: 5000, y: 3000});
+        expect(b.textureAngle).toBeCloseTo(a.textureAngle!, 6);
+        expect(a.textureAngle).toBeCloseTo(Math.PI / 4, 6);
+    });
+});
+
+describe('the alignment anchor registers the tile across the ribbon', () => {
+    const line = (pts: [number, number][]) => pts.map(([x, y]) => ({x, y}));
+    const PX = 120;
+
+    it('is absent unless the path asks', () => {
+        const [p] = toPaths([{profile: 'Road', points: line([[0, 0], [10, 0]]), width: 1.5}]);
+        expect(p.textureAnchor).toBeUndefined();
+    });
+
+    // ⭐ Angle and anchor have to describe ONE line, or the tile is turned to
+    // match one leg and slid to sit on another.
+    it('sits on the same segment the angle came from', () => {
+        const [p] = toPaths([{
+            profile: 'Fence',
+            points: line([[0, 0], [3, 0], [3, 20]]),
+            width: 0.4,
+            alignTexture: true,
+        }]);
+        expect(p.textureAngle).toBeCloseTo(Math.PI / 2, 6);   // the 20-long leg
+        expect(p.textureAnchor).toEqual({x: 3 * PX, y: 0});   // ...and its start
+    });
+
+    // ⚑ In world PIXELS and shifted by the zone origin, like every other
+    // coordinate this module emits — an anchor in the wrong space would slide
+    // the fence off its own collider by the whole origin offset.
+    it('is in world pixels, origin included', () => {
+        const def = {
+            profile: 'Fence', points: line([[2, 1], [9, 1]]), width: 0.4, alignTexture: true,
+        };
+        expect(toPaths([def])[0].textureAnchor).toEqual({x: 2 * PX, y: 1 * PX});
+        expect(toPaths([def], {x: 5000, y: 3000})[0].textureAnchor)
+            .toEqual({x: 5002 * PX, y: 3001 * PX});
+    });
+});

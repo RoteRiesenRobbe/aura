@@ -662,6 +662,9 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Mill]: Props.genericPropClasses.Mill,
     // The bandit-breadcrumb POI: Cart's wreck, a second sprite on the same body.
     [AuraApi.EntityType.BurntCart]: Props.genericPropClasses.BurntCart,
+    // The gap in a fence. Generic — what makes it passable is its definition
+    // (`blocksMovement: false`), never a class.
+    [AuraApi.EntityType.Gate]: Props.genericPropClasses.Gate,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

@@ -42,6 +42,23 @@ export interface Path extends Region, Outlined {
      * looks like one in Tiled's object list; the filled sibling is its own type.
      */
     closed?: boolean;
+    /**
+     * Radians to turn this path's TILE by, so the texture runs ALONG the path
+     * rather than along the world axes. Absent = no rotation, which is every
+     * path before `alignTexture` and every one that does not ask for it.
+     *
+     * ⛔ DERIVED, never authored — see {@link textureAngle}. The zone file
+     * carries the flag; the number is this module's answer to it.
+     */
+    textureAngle?: number;
+    /**
+     * A point on the same segment `textureAngle` came from, in world pixels.
+     * The renderer slides the tile along the path's NORMAL so the tile's
+     * middle row lands on this point — which is what registers the texture
+     * ACROSS the ribbon and lets a tile draw a rail, a gap or a post standing
+     * proud of one. Absent whenever `textureAngle` is.
+     */
+    textureAnchor?: { x: number, y: number };
 }
 
 /** Authored shape, straight out of the zone file: server units. */
@@ -53,6 +70,81 @@ export interface PathDefinition {
     closed?: boolean;
     outlineProfile?: string;
     outlineWidth?: number;
+    /** Turn the tile to run along the path (world.Path.AlignTexture). */
+    alignTexture?: boolean;
+}
+
+/**
+ * The angle a path's tile is turned by when `alignTexture` is set: the
+ * direction of its LONGEST SEGMENT, in radians.
+ *
+ * ⭐ THE LONGEST SEGMENT, not the chord from first point to last and not an
+ * average of all of them, and the choice is the whole content of this
+ * function. A straight run — which is what a fence between two corner posts
+ * IS — has one segment, so all three agree and the answer is exact. They only
+ * differ on a BENT path, and there:
+ *
+ *   - the CHORD is wrong on an L, where it points diagonally and no leg
+ *     follows it;
+ *   - an AVERAGE is wrong on EVERY leg at once, which is worse than being
+ *     wrong on one;
+ *   - the LONGEST leg is exactly right on the leg the eye spends most of its
+ *     time on, and wrong on the short ones.
+ *
+ * ⚑ So a bent fence is authored as one path PER STRAIGHT LEG. That is not a
+ * workaround for this function, it is how a fence is actually built: the
+ * corner is where the post goes.
+ *
+ * ⚑ A closed path also measures its wraparound segment, because for a ring
+ * that leg is as real as any other.
+ *
+ * Returns 0 for anything with fewer than two points, which `toPaths` drops
+ * anyway.
+ */
+export function textureAngle(points: { x: number, y: number }[], closed = false): number {
+    return textureAlignment(points, closed).angle;
+}
+
+/**
+ * The angle AND the anchor an aligned path hands the renderer.
+ *
+ * ⭐ THE ANCHOR IS WHAT MAKES A FENCE POSSIBLE, and it arrived a draft late.
+ * Turning the tile is only half the job: the tile still phases from the WORLD
+ * ORIGIN, so the window the stroke reveals lands at an arbitrary offset ACROSS
+ * the ribbon. A tile therefore could not put anything at a known height —
+ * no gap, no rail, no post standing proud of one — and a fence with no gaps
+ * is a boardwalk, which is exactly what the first fence tile looked like
+ * (PO: "not like a fence at all").
+ *
+ * With an anchor the renderer can slide the tile along the path's NORMAL so
+ * the tile's middle row sits on the centreline. The texture is then registered
+ * across the ribbon, structure in Y becomes legal, and the tile can be mostly
+ * transparent with the ground showing through — which is what a fence is.
+ *
+ * ⚑ The anchor is a point on the SAME segment the angle came from, because the
+ * two have to describe one line: a bend gets its dominant leg registered and
+ * the short one is wrong, the same caveat the angle already carries, answered
+ * the same way — one path per straight leg.
+ */
+export function textureAlignment(points: { x: number, y: number }[], closed = false):
+    { angle: number, anchor: { x: number, y: number } } {
+    let best = -1;
+    let angle = 0;
+    let anchor = points[0] ?? {x: 0, y: 0};
+    const last = closed ? points.length : points.length - 1;
+    for (let i = 0; i < last; i++) {
+        const a = points[i];
+        const b = points[(i + 1) % points.length];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const len = dx * dx + dy * dy;
+        if (len > best) {
+            best = len;
+            angle = Math.atan2(dy, dx);
+            anchor = a;
+        }
+    }
+    return best > 0 ? {angle, anchor} : {angle: 0, anchor};
 }
 
 let paths: Path[] = [];
@@ -72,9 +164,15 @@ export function toPaths(defs: PathDefinition[] | undefined, origin?: {x: number,
     const ox = origin ? origin.x : 0;
     const oy = origin ? origin.y : 0;
     return (defs || [])
-        .map(p => ({
+        .map(p => {
+            const points = (p.points || [])
+                .map(pt => ({x: meter2px(pt.x + ox), y: meter2px(pt.y + oy)}));
+            const align = p.alignTexture === true
+                ? textureAlignment(points, p.closed === true)
+                : null;
+            return {
             profile: p.profile,
-            points: (p.points || []).map(pt => ({x: meter2px(pt.x + ox), y: meter2px(pt.y + oy)})),
+            points,
             width: typeof p.width === 'number' && isFinite(p.width) && p.width > 0
                 ? meter2px(p.width)
                 : 0,
@@ -83,8 +181,16 @@ export function toPaths(defs: PathDefinition[] | undefined, origin?: {x: number,
             // would close the ring — Pixi's own default is true, which is the
             // opposite of what a path means.
             closed: p.closed === true,
+            // ⚑ Computed here and not at paint time so there is exactly one
+            // answer per path: the world and the full-screen map both paint
+            // from this array, and two derivations is two chances to disagree
+            // about which way a fence runs. Absent unless asked for, so an
+            // unaligned path carries no key and costs nothing.
+            textureAngle: align ? align.angle : undefined,
+            textureAnchor: align ? align.anchor : undefined,
             ...outlineOf(p),
-        }))
+        };
+        })
         // A path needs two points to be a line and a width to be visible, and a
         // CLOSED one needs three to be a ring. All three are server-validated;
         // this is the client's own degrade path, and it drops one path rather
