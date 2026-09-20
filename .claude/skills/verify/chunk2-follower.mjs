@@ -266,8 +266,12 @@ await fireQ();
 
 let sawFloaters = 0;
 let presentDuringFight = false;
-for (let i = 0; i < 14; i++) {
-  await page.waitForTimeout(1500);
+// ⚑ Sample FAST (250 ms). Since skill-VFX C1 only own-caused numbers draw, and
+// since the single-target ruling (2026-09-19) mobs bite one victim, so the only
+// numbers here are the companion's own sparse hits. A 1.5 s poll missed every
+// one of them and reported "no combat" while XP was rising (2026-09-20).
+for (let i = 0; i < 84; i++) {
+  await page.waitForTimeout(250);
   sawFloaters = Math.max(sawFloaters, (await floaters()) ?? 0);
   if ((await gapToCompanion()) !== null) presentDuringFight = true;
 }
