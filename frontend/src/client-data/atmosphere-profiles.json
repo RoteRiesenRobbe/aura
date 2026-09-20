@@ -12,7 +12,7 @@
 
   "Cave Air":           { "darkness": 1, "blend": 2, "color": "#000000" },
   "Gloom":              { "darkness": 0.55, "blend": 2, "color": "#0b0d12" },
-  "Canopy":             { "darkness": 1, "blend": 0, "color": "#0f1a10" },
+  "Canopy":             { "darkness": 0.35, "blend": 1, "color": "#0f1a10", "sight": 2 },
   "Storm Sky":          { "darkness": 0.28, "blend": 2, "color": "#161b26" },
 
   "_comment_haze_family": "The suspended-matter half — each carries its own tile, because D14 makes `color` a FALLBACK and NEVER a tint, so two profiles naming one tile are identical on screen and every distinct look costs a PNG. ⚑ The tiles come from two generators, split by what the air IS: `tools/make-fog-tile.mjs` builds DENSITY FIELDS (Fog, Miasma — a wave sum covering every pixel) and `tools/make-precipitation-tiles.mjs` builds PARTICLES (Rain, Snow, Ash Fall, Sandstorm, Fairy Dust — discrete marks on a mostly-empty tile). Each script carries one constant block per tile; a new one of either family is a block, not a script.",
