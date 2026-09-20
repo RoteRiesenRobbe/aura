@@ -4,6 +4,11 @@
   "name": "RallyDrum",
   "category": "active_aura",
   "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "orbit", "on": "ambient", "count": 3, "tint": "#9fc6ff" }
+    ]
+  },
   "effects": [
     {
       "type": "shield_aura",

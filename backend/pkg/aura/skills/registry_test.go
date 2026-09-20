@@ -232,7 +232,14 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// well under half its damage per hit, and the first content the `beam`
 	// kind's chain + flash visuals are authored against. SKILL cheat only, no
 	// unlock source, until the PO places it. 113 → 114 (76 player + 38 mob).
-	assert.Len(t, r.All(), 114)
+	// + TWO more of the same shape (plan-skill-vfx.md C2b, §12d.1, 2026-09-20),
+	// the content C2b's three new kinds are authored against: WhirlingAxes id
+	// 77, a cooldown on Shockwave's numbers whose two axes orbit the caster for
+	// the length of the flourish, and Firebolt id 78, an active aura on
+	// Long-Range Strike's numbers retagged to fire so a projectile has an
+	// element to take its colour from. Both SKILL cheat only, no unlock source,
+	// until the PO places them. 114 → 116 (78 player + 38 mob).
+	assert.Len(t, r.All(), 116)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

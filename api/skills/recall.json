@@ -8,6 +8,11 @@
   "cooldownTicks": 9000,
   "castTicks": 300,
   "castInterruptedByDamage": true,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 8, "ms": 500, "tint": "#9f7bff" }
+    ]
+  },
   "effects": [
     {
       "type": "recall",

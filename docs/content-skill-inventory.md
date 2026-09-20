@@ -14,7 +14,7 @@ and nobody owes a regeneration as part of a content edit. Run the command
 whenever you want a current picture. The content tree, the loader and its tests
 are the truth about what the game does; this page never is.
 
-Generated 2026-09-19 from api/ at 6dbd3b92.
+Generated 2026-09-20 from api/ at 5a8fd2e6.
 
 Every number here is **[PLACEHOLDER]** by project rule. Per-ability design
 intent lives in `content-auras.md` / `content-passives.md` /
@@ -36,9 +36,9 @@ marked because the code already knows them: **test rig** (`TEST_RIG_SKILLS`,
 kitchen-sink rigs that must never gain a source) and **prototype** (a skill
 using an effect type in `HIDDEN_EFFECT_TYPES`, parked pending a verdict).
 
-**114 skills = 76 player (29 auras, 11 passives, 36 cooldowns) + 38 mob-only.**
+**116 skills = 78 player (30 auras, 11 passives, 37 cooldowns) + 38 mob-only.**
 
-## Auras (29)
+## Auras (30)
 
 | ID | Name | MaxLv | Icon | Cost | Timing | Effects | Faction scope | Sources | Description |
 |---|---|---|---|---|---|---|---|---|---|
@@ -67,6 +67,7 @@ using an effect type in `HIDDEN_EFFECT_TYPES`, parked pending a verdict).
 | 71 | FlyYouFools "Fly, You Fools!" | 5 | lorc/wingfoot | 3% +0.4%/L of max |  | speed_aura: radius 2.5 u, tick interval 30t (1 s), allies, speed factor ×1.3 +0.05/L |  | **Cheat only** (`SKILL FlyYouFools`) |  |
 | 73 | OmniAura | 5 | lorc/star-swirl | 0.2% +0.05%/L of max · 0.2% of max |  | damage_aura: radius 2.5 u, tick interval 40t (1.33 s), selector nearest, max targets 3 +1/L, enemies, damage HP 3 +0.25/L, damage tags fire, variance 15%, structures, structure damage fraction 50%, execute below fraction 20%, execute bonus factor ×1.5, berserker max bonus factor ×0.5, crit chance 10% +2%/L, crit factor ×2, lifesteal fraction 10% · dot_aura: radius 2.5 u, tick interval 40t (1.33 s), selector nearest, max targets 2, enemies, damage HP 1 +0.25/L, damage tags poison, variance 10%, dot ticks 3, dot tick interval 30t (1 s) · slow_aura: radius 2.5 u, tick interval 40t (1.33 s), enemies, slow fraction 30% +2%/L · heal_aura: radius 2.5 u, tick interval 40t (1.33 s), selector lowest_health, max targets 1, heal HP 5 +0.5/L, variance 10% · hot_aura: radius 2.5 u, tick interval 40t (1.33 s), selector nearest, max targets 2, heal HP 3 +0.3/L, hot ticks 3, hot tick interval 30t (1 s) · shield_aura: radius 2.5 u, tick interval 40t (1.33 s), allies, shield HP 10 +1/L, self · resist_aura: radius 2.5 u, tick interval 40t (1.33 s), allies, resist tags *, resist factor ×0.5, self · speed_aura: radius 2.5 u, tick interval 40t (1.33 s), allies, speed factor ×1.3 +0.05/L · light_aura: radius 3 u +0.25/L |  | **Cheat only** (`SKILL OmniAura`) · **test rig** |  |
 | 76 | LightningStrike "Lightning Strike" | 10 | lorc/star-swirl | 1.16% +0.1867%/L of max |  | damage_aura: radius 2.6 u +0.0444/L, tick interval 40t (1.33 s), selector nearest, max targets 3, enemies, damage HP 4 +0.65/L, damage tags nature, variance 15% |  | **Cheat only** (`SKILL LightningStrike`) |  |
+| 78 | Firebolt "Firebolt" | 10 | carl-olsen/flame | 1.16% +0.1867%/L of max |  | damage_aura: radius 2.6 u +0.0444/L, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 9 +1.4444/L, damage tags fire, variance 15% |  | **Cheat only** (`SKILL Firebolt`) |  |
 | 141 | Frostbite | 10 | lorc/snowflake-1 |  |  | damage_aura: radius 1 u, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 14 +0.2222/L, damage tags frost, variance 15% |  | Ascension via AscensionStone |  |
 | 142 | Blight | 10 | lorc/vine-leaf | 0.78% +0.195%/L of max |  | dot_aura: radius 1 u, tick interval 20t (0.67 s), selector nearest, max targets 1, enemies, damage HP 10.5 +2.6111/L, damage tags nature, dot ticks 3, dot tick interval 60t (2 s) |  | Ascension via AscensionStone (kills_this_life DireWolf 20) |  |
 | 145 | Venomward | 5 | lorc/bordered-shield | 1.8% +0.225%/L of max |  | resist_aura: radius 1.5 u, tick interval 30t (1 s), allies, resist tags poison, resist factor ×0.6 -0.05/L, self |  | Ascension via AscensionStone |  |
@@ -88,7 +89,7 @@ using an effect type in `HIDDEN_EFFECT_TYPES`, parked pending a verdict).
 | 136 | Strong | 5 | lorc/muscle-up |  |  | stat_multiplier: stat damageDealt, stat bonus 4% +2%/L |  | NPC: CityGuard @L3 |  |
 | 139 | FrostShield | 5 | lorc/shield-reflect |  |  | retaliate_slow: slow fraction 10% +5%/L, slow duration ticks 150t (5 s) |  | Drop: Troll 0.2 · Ascension via AscensionStone (bloodline_ascensions 3) · Ascension via FrontAscensionStone (bloodline_ascensions 3) | Being hit is enough - it fires even when the hit is fully absorbed. |
 
-## Cooldowns (36)
+## Cooldowns (37)
 
 | ID | Name | MaxLv | Icon | Cost | Timing | Effects | Faction scope | Sources | Description |
 |---|---|---|---|---|---|---|---|---|---|
@@ -120,6 +121,7 @@ using an effect type in `HIDDEN_EFFECT_TYPES`, parked pending a verdict).
 | 69 | Sanctuary | 3 | lorc/bordered-shield | 4% +0.5%/L of max | CD 900t (30 s) | instant_resist: radius 1.5 u, selector nearest, max targets 1 +1/L, allies, resist tags *, resist factor ×0, resist duration ticks 150t (5 s) |  | **Cheat only** (`SKILL Sanctuary`) |  |
 | 72 | Onward | 5 | lorc/wingfoot | 3% +0.4%/L of max | CD 900t (30 s) -60/L | speed_burst: radius 3 u, speed factor ×1.4 +0.05/L, speed duration ticks 150t (5 s) +15/L, allies |  | **Cheat only** (`SKILL Onward`) |  |
 | 75 | OmniStrike | 5 | lorc/star-swirl | 1% +0.1%/L of max · 0.5% of max · 1% of max | CD 300t (10 s) -10/L · cast 30t (1 s) | instant_damage: radius 2.5 u +0.1/L, selector nearest, max targets 3 +1/L, enemies, damage HP 15 +2/L, damage tags fire, variance 15%, structures, structure damage fraction 50%, execute below fraction 25%, execute bonus factor ×1.5, berserker max bonus factor ×0.5, crit chance 15%, crit factor ×2, lifesteal fraction 20% · instant_dot: radius 2.5 u, enemies, damage HP 4 +0.5/L, damage tags poison, dot ticks 4, dot tick interval 30t (1 s) · stun: radius 2.5 u, selector nearest, max targets 1 +1/L, enemies, stun ticks 60t (2 s) +6/L · calm: radius 4 u, enemies, calm ticks 300t (10 s) +30/L · charm: radius 4 u, selector nearest, max targets 1, enemies, charm ticks 600t (20 s) +60/L · detaunt: radius 3 u, enemies · taunt: radius 3 u, enemies, threat margin 50 · self_heal: heal fraction of max 8% +1%/L, variance 10% · instant_hot: radius 2.5 u, allies, heal HP 3 +0.3/L, hot ticks 4, hot tick interval 30t (1 s), self · instant_shield: radius 2.5 u, allies, shield HP 15 +2/L, shield duration ticks 300t (10 s), self · instant_resist: radius 2.5 u, allies, resist tags *, resist factor ×0, resist duration ticks 90t (3 s), self · speed_burst: radius 2.5 u, speed factor ×1.5 +0.05/L, speed duration ticks 150t (5 s) +15/L, allies, self · lifesteal_burst: lifesteal fraction 30% +5%/L, lifesteal duration ticks 150t (5 s) · retaliate_burst: reflect fraction 25% +5%/L, reflect duration ticks 300t (10 s), damage tags fire · spawn: spawn mob Totem, TTL ticks 300t (10 s) +30/L, power per owner level 5% · dash: dash distance 2 u +0.25/L | aligned/bandit/elemental/human_army/kobold/orc/spider/townsfolk/troll/wildlife_predator/wildlife_prey | **Cheat only** (`SKILL OmniStrike`) · **test rig** | Cheat-only test rig. Its calm breaks on any damage, its stun does not, a charm keeps the mob's own level and ends by turning on you, its leech follows whatever aura is on, and its reflect shares the hit as thrown. |
+| 77 | WhirlingAxes "Whirling Axes" | 5 | lorc/scythe | 4.87% +0.5525%/L of max | CD 240t (8 s) -10/L | instant_damage: radius 2 u +0.05/L, enemies, damage HP 44 +5/L, damage tags physical |  | **Cheat only** (`SKILL WhirlingAxes`) |  |
 | 140 | Paralyze | 5 | delapouite/knocked-out-stars | 3% +0.5%/L of max | CD 900t (30 s) | stun: radius 2.5 u, selector nearest, max targets 1, enemies, stun ticks 90t (3 s) +6/L |  | Drop: GiantSpider 0.2 | Damage does not break it, your own aura included. |
 | 143 | RimeBurst "Rime-Burst" | 5 | lorc/snowflake-1 | 2.14% +0.2425%/L of max | CD 300t (10 s) -10/L | instant_damage: radius 1.5 u +0.05/L, enemies, damage HP 22 +2.5/L, damage tags frost |  | Ascension via AscensionStone · Ascension via FrontAscensionStone |  |
 | 144 | Envenom | 5 | lorc/poison-bottle | 1.84% +0.2325%/L of max | CD 300t (10 s) -10/L | instant_dot: radius 1.5 u +0.05/L, enemies, damage HP 6.3 +0.8/L, damage tags poison, dot ticks 3, dot tick interval 30t (1 s) |  | Ascension via AscensionStone |  |
@@ -179,7 +181,7 @@ is not placed yet, or dead content.
 
 ## Reachability
 
-Counts are source ROWS across the 76 player skills, so a skill with two
+Counts are source ROWS across the 78 player skills, so a skill with two
 teachers counts twice.
 
 - **Milestone:** 3
@@ -189,9 +191,9 @@ teachers counts twice.
 - **Recipe:** 11
 - **Ascension:** 11
 
-### Cheat only (19)
+### Cheat only (21)
 
-- **Unplaced (14)**, finished abilities with no source yet: Aegis, Bloodthirst, FireShield, FireVulnerability, FlyYouFools, LightningStrike, Onward, OpenPortal, PullThrough, Recall, Retribution, Sanctuary, SummonSpider, Wild
+- **Unplaced (16)**, finished abilities with no source yet: Aegis, Bloodthirst, FireShield, FireVulnerability, Firebolt, FlyYouFools, LightningStrike, Onward, OpenPortal, PullThrough, Recall, Retribution, Sanctuary, SummonSpider, WhirlingAxes, Wild
 - **Test rigs (3)**, tooling that must never gain a source: OmniAura, OmniPassive, OmniStrike
 - **Prototypes (2)**, parked with delete among the verdicts on offer: ThrowBomb, ThrowMine
 

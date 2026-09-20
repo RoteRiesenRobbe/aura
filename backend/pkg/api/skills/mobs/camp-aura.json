@@ -4,6 +4,12 @@
   "name": "CampAura",
   "category": "active_aura",
   "maxLevel": 1,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "ambient", "motion": "rise", "count": 5, "ms": 1600, "scale": 1.6, "tint": "#d8843a" },
+      { "kind": "emitter", "on": "ambient", "motion": "rise", "count": 4, "ms": 1000, "scale": 0.7, "tint": "#f2c98a" }
+    ]
+  },
   "effects": [
     {
       "type": "heal_aura",

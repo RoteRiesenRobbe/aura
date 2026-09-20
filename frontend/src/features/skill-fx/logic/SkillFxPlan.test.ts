@@ -8,7 +8,15 @@ import {
     flightMs,
     STRIKE_CURVE_MS,
 } from './SkillFxMath';
-import {PlanPoint, planSpawns, PointOf, SkillVisual, SpawnPlan, VisualOf} from './SkillFxPlan';
+import {
+    planAmbient,
+    PlanPoint,
+    planSpawns,
+    PointOf,
+    SkillVisual,
+    SpawnPlan,
+    VisualOf,
+} from './SkillFxPlan';
 
 // The manager's decisions, without a renderer (the C2a ledger's open gap):
 // which layers an event draws, what it draws them between, and when.
@@ -351,6 +359,49 @@ describe('planSpawns: chained beams', () => {
     });
 });
 
+describe('planSpawns: the cast-pose on a hit (PO 2026-09-20)', () => {
+    const BOW: { [skillId: number]: VisualLayer[] } = {
+        [SKILL]: [
+            {kind: 'cast-pose', on: 'hit', ms: 250},
+            {kind: 'projectile', on: 'hit', speed: PROJECTILE_SPEED},
+        ],
+    };
+
+    it('aims the pose at the victim: from the caster, to the one it hit', () => {
+        const pose = planSpawns([hit()], visuals(BOW), NEAR)
+            .filter(entry => entry.def.kind === 'cast-pose');
+        expect(pose).toHaveLength(1);
+        expect(pose[0].from).toBe(CASTER);
+        expect(pose[0].victim).toBe(A);
+    });
+
+    it('draws ONE bow for a multi-target beat, and an arrow per victim', () => {
+        const plan = planSpawns([hit({victim: A}), hit({victim: B})], visuals(BOW), NEAR);
+        expect(kinds(plan).filter(k => k === 'cast-pose')).toHaveLength(1);
+        expect(kinds(plan).filter(k => k === 'projectile')).toHaveLength(2);
+        expect(plan.find(entry => entry.def.kind === 'cast-pose').victim).toBe(A);
+    });
+
+    it('gives two archers a bow each', () => {
+        const plan = planSpawns(
+            [hit({victim: A}), hit({source: OTHER_CASTER, victim: B})], visuals(BOW), NEAR);
+        expect(kinds(plan).filter(k => k === 'cast-pose')).toHaveLength(2);
+    });
+
+    it('draws no pose on a beat that hit nobody', () => {
+        expect(planSpawns([fired()], visuals(BOW), NEAR)).toEqual([]);
+    });
+});
+
+describe('planSpawns: the skill\'s reach (PO 2026-09-20)', () => {
+    it('carries the reach to every layer, and 0 for a skill that has none', () => {
+        const ORBIT: VisualLayer[] = [{kind: 'orbit', on: 'fired', count: 2}];
+        const withReach: VisualOf = () => ({layers: ORBIT, baseColor: COLOR, reachPx: 240});
+        expect(planSpawns([fired()], withReach, NEAR)[0].reachPx).toBe(240);
+        expect(planSpawns([fired()], visuals({[SKILL]: ORBIT}), NEAR)[0].reachPx).toBe(0);
+    });
+});
+
 describe('planSpawns: seeds', () => {
     const twoLayers = visuals({
         [SKILL]: [{kind: 'impact', on: 'hit'}, {kind: 'beam', on: 'hit'}],
@@ -375,5 +426,62 @@ describe('planSpawns: seeds', () => {
         const first = planSpawns([hit({victim: A})], twoLayers, NEAR);
         const second = planSpawns([hit({victim: A})], twoLayers, NEAR);
         expect(second[0].seed).toBe(first[0].seed + 1);
+    });
+});
+
+// --- C2b: ambient state and the density slider ------------------------------
+
+describe('planAmbient', () => {
+    const LAYERS: VisualLayer[] = [
+        {kind: 'emitter', on: 'ambient', motion: 'rise'},
+        {kind: 'orbit', on: 'ambient', count: 3},
+        {kind: 'impact', on: 'hit'},
+        {kind: 'emitter', on: 'fired', motion: 'burst'},
+    ];
+
+    it('holds the ambient layers and nothing else', () => {
+        expect(planAmbient(LAYERS, 'full', false).map(l => l.kind)).toEqual(['emitter', 'orbit']);
+    });
+
+    // PO 2026-09-20 (§12d.1): `low` drops ambient EMITTERS for other actors,
+    // and only those - an orbit still draws on everyone.
+    it('keeps another actor\'s ambient orbit but drops its emitter at low', () => {
+        expect(planAmbient(LAYERS, 'low', false).map(l => l.kind)).toEqual(['orbit']);
+    });
+
+    it('keeps the OWN character\'s ambient emitter at low', () => {
+        expect(planAmbient(LAYERS, 'low', true).map(l => l.kind)).toEqual(['emitter', 'orbit']);
+    });
+
+    // `off` is literal (§12d.1): no authored layer draws at all.
+    it('holds nothing at off, own character included', () => {
+        expect(planAmbient(LAYERS, 'off', true)).toEqual([]);
+        expect(planAmbient(LAYERS, 'off', false)).toEqual([]);
+    });
+
+    it('returns nothing for a skill that authors no ambient layer', () => {
+        expect(planAmbient([{kind: 'impact', on: 'hit'}], 'full', true)).toEqual([]);
+    });
+});
+
+describe('planSpawns: density', () => {
+    const both = visuals({
+        [SKILL]: [{kind: 'projectile', on: 'hit'}, {kind: 'impact', on: 'hit'}],
+    });
+
+    it('plans every layer at full and at low - only emitters thin, and by count', () => {
+        expect(kinds(planSpawns([hit()], both, NEAR, 'full'))).toEqual(['projectile', 'impact']);
+        expect(kinds(planSpawns([hit()], both, NEAR, 'low'))).toEqual(['projectile', 'impact']);
+    });
+
+    it('plans nothing at all at off', () => {
+        expect(planSpawns([hit(), fired()], both, NEAR, 'off')).toEqual([]);
+    });
+
+    it('spends no seed on a snapshot it refused to plan', () => {
+        const before = planSpawns([hit()], both, NEAR, 'full');
+        planSpawns([hit(), hit({victim: B})], both, NEAR, 'off');
+        const after = planSpawns([hit()], both, NEAR, 'full');
+        expect(after[0].seed).toBe(before[0].seed + 1);
     });
 });

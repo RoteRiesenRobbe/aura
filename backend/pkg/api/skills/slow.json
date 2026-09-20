@@ -5,6 +5,11 @@
   "icon": "lorc/snail",
   "category": "active_aura",
   "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "ambient", "motion": "swirl", "count": 6, "ms": 1100, "tint": "#9fd8ff" }
+    ]
+  },
   "effects": [
     {
       "type": "slow_aura",

@@ -5,6 +5,11 @@
   "category": "cooldown",
   "maxLevel": 1,
   "cooldownTicks": 900,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 8, "ms": 600, "tint": "#e0552a" }
+    ]
+  },
   "effects": [
     {
       "type": "tick_rate",

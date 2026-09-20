@@ -7,6 +7,7 @@ import {Player} from "../../../player/logic/Player";
 import {IGame} from "../../../core/logic/IGame";
 import {SkillEventData} from "../../../backend/logic/SkillEventNumbers";
 import * as SkillFx from "../../../skill-fx/logic/SkillFx";
+import {GameSettings} from "../../../game-settings/logic/GameSettings";
 
 // The last non-empty skill-event list and a running total (plan-skill-vfx.md
 // C1). Floating numbers are transient PIXI.Text with no DOM of their own, so a
@@ -35,6 +36,7 @@ function setup() {
         layers: undefined,
         skillEvents: undefined,
         skillFx: undefined,
+        settings: undefined,
     };
 
     consoleCommands.run = Console.run;
@@ -46,6 +48,12 @@ function setup() {
     // above: an Fx is a pooled Graphics with no DOM, so a harness can only
     // screenshot it and hope; the counters are what the client decided.
     consoleCommands.skillFx = () => SkillFx.counters();
+    // The live settings object (plan-skill-vfx.md C2b). It is the on-change
+    // PROXY, so `window.game.settings().vfx.density = 'low'` fires
+    // GameSettingChangedEvent and persists exactly as the settings panel does
+    // - which is what lets the harness drive the density slider without
+    // reloading the page to rewrite localStorage.
+    consoleCommands.settings = () => GameSettings.get();
     PlayerCreatedEvent.subscribe((player: Player) => {
         consoleCommands.character = player.character;
         return true;

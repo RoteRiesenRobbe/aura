@@ -8,6 +8,11 @@
   "cooldownTicks": 1200,
   "castTicks": 75,
   "castInterruptedByDamage": true,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 6, "ms": 450, "scale": 0.7, "tint": "#9f7bff" }
+    ]
+  },
   "effects": [
     {
       "type": "spawn_at_anchor",

@@ -70,4 +70,37 @@
         margin-inline-start: 0.1em;
         border-inline-start: 2px solid currentColor;
     }
+
+    // Skill effects (plan-skill-vfx.md C2b): three named steps in one row, so
+    // the group reads as one choice rather than three unrelated toggles. The
+    // fieldset carries no chrome of its own - the group's own left rule is the
+    // only border in here.
+    //
+    // ⚑ The flex row is an inner div, not the fieldset: a <legend> is not a
+    // flex item in any engine, so a flex fieldset leaves it laid out by its own
+    // rules and the row jumps around between browsers.
+    .radio-row {
+        border: none;
+        margin: 0;
+        padding: 0;
+
+        > legend {
+            padding: 0;
+        }
+
+        .radio-options {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 0.2rem 0.9rem;
+        }
+    }
+
+    // Shared with the Account group's note (accountScreens.less), restated here
+    // because that rule is scoped to #accountSettings.
+    .settingNote {
+        margin: 0.4rem 0 0;
+        font-size: 0.85rem;
+        opacity: 0.85;
+    }
 }

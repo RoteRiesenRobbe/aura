@@ -6,6 +6,11 @@
   "displayName": "Fly, You Fools!",
   "category": "active_aura",
   "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "ambient", "motion": "swirl", "count": 6, "ms": 1100, "tint": "#f2f6ff" }
+    ]
+  },
   "effects": [
     {
       "type": "speed_aura",

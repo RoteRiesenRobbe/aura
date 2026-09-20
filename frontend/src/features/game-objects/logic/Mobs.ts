@@ -406,6 +406,15 @@ export abstract class Mob extends GameObject
     // never re-equip, and the interval guard still covers the aura-gating edge.
     setAuraTick(interval: number, phase: number): boolean {
         SkillFx.setGlowTick(this, interval, phase);
+        // The ambient half (plan-skill-vfx.md C2b). A mob carries no active
+        // skill id on the wire, so the SPECIES answers it: every species
+        // authors at most one active aura and the /mobs catalog ships its id
+        // (§12d.2). Gated exactly as the glow is - a mob's ambient draws
+        // while its aura runs, so a pre-aggro gated mob draws none.
+        // ⚑ Re-read per tick on purpose: the catalog may still have been
+        // loading when setMobId ran, and this is what heals that.
+        SkillFx.setAmbient(
+            this, interval > 0 ? (mobDefinition(this.plateMobId)?.auraSkillId ?? 0) : 0, false);
         const landed = this.auraBeat.observe(0, interval, phase);
         // The ring stack is created lazily with the first visible radius; a
         // gated aura has no ring to pulse.

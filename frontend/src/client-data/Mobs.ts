@@ -38,6 +38,10 @@ export interface MobDefinition {
     // difficulty tint — so "Return to the Lamplighter" in a full journal is
     // actionable in-world (intake round 9 item 1).
     conversant: boolean;
+    // Server-derived: the id of the ONE active-aura skill this species authors,
+    // 0 for none. The Mob wire table carries no active skill id, so a mob's
+    // `ambient` VFX layers resolve through this (plan-skill-vfx.md §12d.2).
+    auraSkillId: number;
 }
 
 const catalog = new Map<number, MobDefinition>();

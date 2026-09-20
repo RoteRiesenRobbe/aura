@@ -7,6 +7,11 @@
   "maxLevel": 5,
   "cooldownTicks": 1200,
   "cooldownTicksPerLevel": -50,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "rise", "count": 8, "ms": 600, "tint": "#4fbf6a" }
+    ]
+  },
   "effects": [
     {
       "type": "instant_hot",

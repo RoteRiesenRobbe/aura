@@ -580,7 +580,8 @@
       "hit"
     ],
     "cast-pose": [
-      "fired"
+      "fired",
+      "hit"
     ],
     "emitter": [
       "ambient",

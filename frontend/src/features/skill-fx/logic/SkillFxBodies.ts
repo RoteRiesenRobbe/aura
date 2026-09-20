@@ -55,26 +55,55 @@ export function drawImpactBurstPlaceholder(g: Graphics, color: number, sizePx: n
     return g.stroke({color, width: width * 0.8, alpha: 0.8});
 }
 
+/** Bone and its outline: pale and dark together read on fur, grass and dirt alike. */
+const TOOTH = 0xf4f0e4;
+const TOOTH_OUTLINE = 0x2a2320;
+const JAW_TEETH = 8;
+const JAW_SEGMENTS = 10;
+const JAW_HALF_WIDTH_FACTOR = 1.15;
+
 /**
- * `impact` / `snap`: two opposing jaw arcs above and below the victim's centre.
- * The Fx closes them by scaling the whole body down, so the bite reads as teeth
- * meeting rather than as a mark appearing.
+ * `impact` / `snap`: ONE jaw, a lens-shaped gum with a row of teeth, long fangs
+ * in the middle and short ones at the corners (PO 2026-09-20: "should read more
+ * like actual jaws"). `side` -1 is the upper jaw (−y is up), +1 the lower one.
+ *
+ * The bite line is the body's own y = 0, so the Fx draws each jaw ONCE and
+ * closes the pair by MOVING them together: the teeth keep their size and
+ * nothing is rebuilt per frame. The skill's colour is the gum line, so a poison
+ * bite still reads as poison.
  */
-export function drawImpactSnapPlaceholder(g: Graphics, color: number, sizePx: number): Graphics {
-    const r = Math.max(9, sizePx);
-    const width = Math.max(2.5, r * 0.2);
-    const span = Math.PI * 0.55;
+export function drawImpactJawPlaceholder(
+    g: Graphics, color: number, sizePx: number, side: -1 | 1,
+): Graphics {
+    const r = Math.max(10, sizePx);
+    const halfWidth = r * JAW_HALF_WIDTH_FACTOR;
+    const outline = Math.max(1.5, r * 0.07);
+    const toothLen = (x: number) => r * 0.5 * (0.3 + 0.7 * (1 - Math.abs(x) / halfWidth));
+    const gum = (x: number) => r * 0.22 * (1 - (x / halfWidth) ** 2);
+    const outer = () => {
+        g.moveTo(-halfWidth, 0);
+        for (let i = 1; i <= JAW_SEGMENTS; i++) {
+            const x = -halfWidth + (2 * halfWidth * i) / JAW_SEGMENTS;
+            g.lineTo(x, side * (toothLen(x) + gum(x)));
+        }
+    };
     g.clear();
-    // Upper jaw, then the lower one. Each arc is moved to explicitly: an arc
-    // continued from an open path draws the line into it as well.
-    for (const centre of [-Math.PI / 2, Math.PI / 2]) {
-        const from = centre - span / 2;
-        g.moveTo(Math.cos(from) * r, Math.sin(from) * r)
-            .arc(0, 0, r, from, centre + span / 2)
-            .stroke({color, width, alpha: 0.95});
+    outer();
+    // Back along the teeth: root, tip, root... every tip on the bite line.
+    for (let i = JAW_TEETH * 2 - 1; i >= 1; i--) {
+        const x = -halfWidth + (2 * halfWidth * i) / (JAW_TEETH * 2);
+        g.lineTo(x, i % 2 === 1 ? 0 : side * toothLen(x));
     }
-    return g;
+    g.closePath()
+        .fill({color: TOOTH, alpha: 0.97})
+        .stroke({color: TOOTH_OUTLINE, width: outline, alpha: 0.95});
+    // The gum line, in the skill's colour.
+    outer();
+    return g.stroke({color, width: outline * 1.6, alpha: 0.9});
 }
+
+/** How far each jaw sits from the bite line when wide open, in victim radii. */
+export const JAW_OPEN_GAP_FACTOR = 0.75;
 
 /** `projectile`: a filled dot with a short trail behind it (−X). */
 export function drawProjectilePlaceholder(g: Graphics, color: number, sizePx: number): Graphics {
@@ -169,22 +198,123 @@ export function drawBladePlaceholder(
         .fill({color: WOOD});
 }
 
-/** `strike` / `overhead`: a long shaft with a blocky head at the far end. */
+/**
+ * `strike` / `overhead`: a shaft with a HAMMER HEAD at the far end - a heavy
+ * block set ACROSS the shaft, clearly wider than the handle (PO 2026-09-20:
+ * "reads like an actual hammer head"). The head is sized off the weapon's
+ * length, not its thickness, so it stays a hammer at any reach.
+ */
 export function drawHammerPlaceholder(
     g: Graphics, accent: number, lengthPx: number, thicknessPx: number,
 ): Graphics {
-    const shaft = Math.max(2, thicknessPx * 0.7);
-    const headLen = Math.min(lengthPx * 0.26, thicknessPx * 6);
-    const headHalf = thicknessPx * 1.9;
+    const shaft = Math.max(3, thicknessPx * 0.8);
+    // Along the shaft, and across it: a maul is broader than it is deep.
+    const headLen = Math.max(16, lengthPx * 0.2);
+    const headHalf = Math.max(14, lengthPx * 0.19);
     const base = lengthPx - headLen;
+    const face = headHalf * 0.3;
     return g.clear()
-        .rect(0, -shaft / 2, lengthPx - headLen * 0.4, shaft)
+        .rect(0, -shaft / 2, base + headLen * 0.5, shaft)
         .fill({color: WOOD, alpha: 0.95})
         .rect(base, -headHalf, headLen, headHalf * 2)
+        .fill({color: STEEL, alpha: 0.97})
+        // The two striking faces take the accent: in an arc it is a SIDE of
+        // the head that lands, whichever way the hammer was raised.
+        .rect(base, -headHalf, headLen, face)
+        .fill({color: accent, alpha: 0.9})
+        .rect(base, headHalf - face, headLen, face)
+        .fill({color: accent, alpha: 0.9})
+        .rect(base, -headHalf, headLen, headHalf * 2)
+        .stroke({color: TOOTH_OUTLINE, width: Math.max(1.5, headLen * 0.08), alpha: 0.9});
+}
+
+// --- the C2b placeholders ---------------------------------------------------
+//
+// Ugly on purpose (§12d.4). All three are drawn around the ORIGIN so the kind
+// only has to position, rotate, scale and fade them.
+
+/**
+ * `cast-pose`: a small bow, drawn as an arc with its string, opening along +X.
+ *
+ * Drawn opening along +X; the kind rotates it. On `hit` it aims at the victim
+ * (PO 2026-09-20). On `fired` there is nothing to aim at (a Character keeps a
+ * fixed portrait rotation and the wire heading is discarded client-side,
+ * `Character.ts:88`), so it stays facing +X.
+ */
+export function drawCastPoseBowPlaceholder(g: Graphics, color: number, sizePx: number): Graphics {
+    const r = Math.max(10, sizePx);
+    const span = Math.PI * 0.6;
+    const from = -span / 2;
+    const to = span / 2;
+    return g.clear()
+        .moveTo(Math.cos(from) * r, Math.sin(from) * r)
+        .arc(0, 0, r, from, to)
+        .stroke({color: WOOD, width: Math.max(2.5, r * 0.16), alpha: 0.95})
+        // The string, and the accent nock that says whose spell this is.
+        .moveTo(Math.cos(from) * r, Math.sin(from) * r)
+        .lineTo(Math.cos(to) * r, Math.sin(to) * r)
+        .stroke({color: PALE_WOOD, width: Math.max(1, r * 0.06), alpha: 0.8})
+        .circle(r * 0.35, 0, Math.max(2, r * 0.13))
+        .fill({color, alpha: 0.9});
+}
+
+/**
+ * `orbit`: the §4.1 placeholder wedge - an axe head on a short haft, pointing
+ * outward along +X so a ring of them reads as blades rather than as dots.
+ */
+export function drawOrbitWedgePlaceholder(g: Graphics, color: number, sizePx: number): Graphics {
+    const r = Math.max(7, sizePx);
+    return g.clear()
+        .rect(-r * 0.9, -r * 0.12, r * 1.2, r * 0.24)
+        .fill({color: WOOD, alpha: 0.95})
+        .poly([r * 0.25, -r * 0.55, r, 0, r * 0.25, r * 0.55])
         .fill({color: STEEL, alpha: 0.95})
-        // The striking face takes the accent: it is the end that lands.
-        .rect(lengthPx - headLen * 0.3, -headHalf, headLen * 0.3, headHalf * 2)
-        .fill({color: accent, alpha: 0.9});
+        .poly([r * 0.25, -r * 0.55, r, 0, r * 0.25, r * 0.55])
+        .stroke({color, width: Math.max(1.5, r * 0.18), alpha: 0.95});
+}
+
+/**
+ * A cast's `orbit` at the skill's reach: a HELD axe, its haft starting at the
+ * wielder and its head sweeping along the inside of the range ring (PO
+ * 2026-09-20: the effect starts at the player and shows where someone could be
+ * hit). Drawn along +X from 0 to `lengthPx`, the bit on the +Y side, which is
+ * the side that LEADS a clockwise orbit on screen.
+ */
+export function drawHeldAxePlaceholder(g: Graphics, color: number, lengthPx: number): Graphics {
+    const length = Math.max(30, lengthPx);
+    const haft = Math.max(4, length * 0.035);
+    const head = Math.max(18, length * 0.2);
+    const bit = [
+        length - head, 0,
+        length - head * 1.15, head * 0.95,
+        length * 0.995, head * 0.8,
+        length, 0,
+    ];
+    return g.clear()
+        .rect(0, -haft / 2, length, haft)
+        .fill({color: WOOD, alpha: 0.95})
+        .poly(bit)
+        .fill({color: STEEL, alpha: 0.95})
+        .poly(bit)
+        .stroke({color, width: Math.max(2, head * 0.1), alpha: 0.95});
+}
+
+/**
+ * `emitter`: one particle, a filled dot with a soft halo, drawn at unit size so
+ * the Fx can scale it per frame without a redraw.
+ *
+ * ⚑ A Graphics, not a `Particle` in a `ParticleContainer`: pixi.js 8.4.1 (the
+ * installed version) ships neither, and the manager holds no renderer to
+ * `generateTexture` a sprite from. At these counts (≤ 12 a layer) the pooled
+ * Graphics the other kinds already use is the simpler answer.
+ */
+export function drawParticlePlaceholder(g: Graphics, color: number, radiusPx: number): Graphics {
+    const r = Math.max(1.5, radiusPx);
+    return g.clear()
+        .circle(0, 0, r * 1.8)
+        .fill({color, alpha: 0.22})
+        .circle(0, 0, r)
+        .fill({color, alpha: 0.9});
 }
 
 /** `beam` / `extend`: a soft ribbon, tapering toward its far end. */

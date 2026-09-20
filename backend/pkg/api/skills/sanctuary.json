@@ -7,6 +7,11 @@
   "maxLevel": 3,
   "cooldownTicks": 900,
   "cooldownTicksPerLevel": 0,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 8, "ms": 600, "tint": "#e8d9a0" }
+    ]
+  },
   "effects": [
     {
       "type": "instant_resist",

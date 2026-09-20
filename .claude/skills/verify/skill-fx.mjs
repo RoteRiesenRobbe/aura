@@ -8,9 +8,19 @@
 // Legs: 0 nothing draws without a skill event · 1 Damage -> strike, anchored
 // at the attacker (§12c; the wolves' own wolf-bite impacts land here too,
 // which is the mob half) ·
-// 2 LongRangeStrike -> projectile + impact · 3 LightningStrike -> chained
-// beam · 4 skillFx sits below darkness · 5 a bandit's swing lands on the own
-// player · 6 a troll's overhead lands on the own player.
+// 2 LongRangeStrike -> cast-pose + projectile + impact · 3 LightningStrike ->
+// chained beam · 4 skillFx sits below darkness · 5 a bandit's swing lands on
+// the own player · 6 a troll's overhead lands on the own player.
+//
+// C2b legs (§12d.6), all of them between leg 4 and legs 5+6 ON PURPOSE: legs
+// 5+6 level the player with an XP cheat to survive a camp, and a levelled
+// player one-shots everything a fight leg needs.
+// 7 a campfire's ambient mist draws with no combat at all · 8 Frostbite's
+// ambient swirl appears on the own player and is DISPOSED when the aura is
+// switched off · 9 density `low` keeps the own emitter and drops another
+// actor's · 10 density `off`: a real fight spawns 0 Fx and holds 0 ambient
+// while the wind-up glow keeps running · 11 Heal's two ambient rise emitters ·
+// 12 Whirling Axes (cheat-only cooldown) -> an orbit on the cast.
 //
 // ⚑ GOD is survival only, it never touches OUR outgoing damage - but it DOES
 //   short-circuit the player's own takeDamage, so a god-mode player is never
@@ -25,7 +35,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { joinAsNewCharacter } from './lib/join.mjs';
 import { botName } from './botname.mjs';
-import { showSkillRowAt, closeSpellbook } from './lib/spellbook.mjs';
+import { showSkillRow, showSkillRowAt, closeSpellbook } from './lib/spellbook.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -143,10 +153,12 @@ async function isSlotActive(slot) {
 }
 
 // The manager's counters, flattened: {impact, projectile, beam, ..., evicted}.
+// `ambient` (live ambient layers) and `glows` (live wind-up rings) are C2b's;
+// an ambient spawn ALSO increments its kind, so a delta on `emitter` sees it.
 async function fxCounts() {
   return page.evaluate(() => {
     const s = window.game.skillFx();
-    return { ...s.spawnedByKind, evicted: s.evicted, live: s.live };
+    return { ...s.spawnedByKind, evicted: s.evicted, live: s.live, ambient: s.ambient, glows: s.glows };
   });
 }
 function delta(a, b) {
@@ -259,8 +271,73 @@ await warpTo(OPEN_GROUND, 'open ground');
   else pass(`leg 0: ${n} FX for ${events} skill events in view`);
 }
 
+// --- C2b helpers ------------------------------------------------------------
+
+// The density slider, driven through the live settings object (the on-change
+// proxy), so the write fires GameSettingChangedEvent exactly as the settings
+// panel's control does. Returns what the MANAGER ended up on, not what we
+// asked for: a write the manager never saw is the failure this catches.
+async function setDensity(value) {
+  await page.evaluate((v) => { window.game.settings().vfx.density = v; }, value);
+  await page.waitForTimeout(500);
+  return page.evaluate(() => window.game.skillFx().density);
+}
+
+// Every aura slot off. The ambient legs need a known floor: whatever `ambient`
+// reads then belongs to somebody else.
+async function deactivateAllAuras() {
+  for (let slot = 0; slot < 3; slot++) {
+    if (await isSlotActive(slot)) {
+      await page.keyboard.down(String(slot + 1));
+      await page.waitForTimeout(1400);
+      await page.keyboard.up(String(slot + 1));
+      await page.waitForTimeout(600);
+    }
+  }
+  return !(await Promise.all([0, 1, 2].map(isSlotActive))).some(Boolean);
+}
+
+// ⚑ Tri-state, like every other slot move here: a long hold can land two edges
+// under throttled rAF and toggle the slot straight back on. An aura that
+// stayed on would redden the ambient legs for a HARNESS reason.
+async function aurasOff(legLabel) {
+  if (await deactivateAllAuras()) return true;
+  console.log(`INCONCLUSIVE: ${legLabel}: an aura slot would not switch off`);
+  inconclusive = true;
+  return false;
+}
+
+// Equip by SKILL ID rather than by row text: "Heal" is a substring of half the
+// support book, and the slot li carries `data-skill-id` (HUD.renderSlotToken),
+// which is an exact answer where a label match is a guess.
+// ⚑ Click the NAME at box.x+25, never the row centre - the mid-row spend
+// button has precedence (the open-portal lesson).
+async function equipById(skillId, slot, listId) {
+  if (!(await calm())) return { ok: false, why: 'the combat window never closed' };
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (!(await showSkillRow(page, skillId))) return { ok: false, why: 'the skill is not in the book' };
+    const row = await page.locator(`#spellbookList li[data-skill-id="${skillId}"]`).first().boundingBox().catch(() => null);
+    if (!row) return { ok: false, why: 'the row never got a box' };
+    await page.mouse.click(row.x + 25, row.y + row.height / 2);
+    await page.waitForTimeout(700);
+    const slotEl = await page.$(`#${listId} li[data-slot="${slot}"]`);
+    if (!slotEl) return { ok: false, why: `${listId} has no slot ${slot}` };
+    const sb = await slotEl.boundingBox();
+    await page.mouse.click(sb.x + sb.width / 2, sb.y + sb.height / 2);
+    // POLLED: the equip is a server round trip and the slot repaints when the
+    // answer lands (the pull-through lesson).
+    for (let i = 0; i < 25; i++) {
+      const held = await page.evaluate(({ listId, slot }) =>
+        document.querySelector(`#${listId} li[data-slot="${slot}"]`)?.dataset.skillId ?? '', { listId, slot });
+      if (held === String(skillId)) return { ok: true };
+      await page.waitForTimeout(300);
+    }
+  }
+  return { ok: false, why: 'the slot never took the skill' };
+}
+
 // One aura leg: equip (when named), warp to the camp, watch, judge one kind.
-async function auraLeg(n, { skill, skillId, nameRe, slot, camp, campLabel, kind, shot, forbid, wantImpact = true }) {
+async function auraLeg(n, { skill, skillId, nameRe, slot, camp, campLabel, kind, shot, forbid, alsoWant, wantImpact = true }) {
   console.log(`\n== LEG ${n}: ${skill ?? 'Damage'} -> ${kind} (14 s) ==`);
   if (inconclusive) return;
   if (!(await warpTo(camp, campLabel))) return;
@@ -274,6 +351,11 @@ async function auraLeg(n, { skill, skillId, nameRe, slot, camp, campLabel, kind,
   if ((run.fx[kind] ?? 0) >= 2) pass(`leg ${n}: ${run.fx[kind]} ${kind} layers spawned`);
   else fail(`leg ${n}: expected >=2 ${kind}, saw ${JSON.stringify(run.fx)}`);
   if (wantImpact && (run.fx.impact ?? 0) < 1) fail(`leg ${n}: no impact spawned`);
+  // The other kinds this skill's `visual` authors (C2b: the bow's cast-pose).
+  for (const k of alsoWant ?? []) {
+    if ((run.fx[k] ?? 0) >= 1) pass(`leg ${n}: ${run.fx[k]} ${k} layer(s) spawned alongside`);
+    else fail(`leg ${n}: expected a ${k}, saw ${JSON.stringify(run.fx)}`);
+  }
   for (const k of forbid ?? []) if ((run.fx[k] ?? 0) > 0) fail(`leg ${n}: a ${k} spawned where none is authored (${run.fx[k]})`);
 }
 
@@ -291,8 +373,11 @@ for (const [skill, nameRe, slot] of [['LongRangeStrike', /Long-?Range Strike/i, 
 
 await auraLeg(1, { skillId: 1, slot: 0, camp: WOLF_CAMP, campLabel: 'the wolf camp', kind: 'strike',
   shot: 'leg1-strike.png', forbid: ['projectile', 'beam'], wantImpact: false });
+// ⚑ The bow is Long-Range Strike's since C2b (§12d.1, PO): a `cast-pose` on
+// every FIRED beat, so leg 2 now judges three kinds at once.
 await auraLeg(2, { skill: 'LongRangeStrike', skillId: 45, nameRe: /Long-?Range Strike/i, slot: 1, camp: KOBOLD_CAMP,
-  campLabel: 'the kobold camp', kind: 'projectile', shot: 'leg2-projectile.png', forbid: ['beam'] });
+  campLabel: 'the kobold camp', kind: 'projectile', shot: 'leg2-projectile.png', forbid: ['beam'],
+  alsoWant: ['cast-pose'] });
 await auraLeg(3, { skill: 'LightningStrike', skillId: 76, nameRe: /Lightning Strike/i, slot: 2, camp: WOLF_CAMP_WEST,
   campLabel: 'the western wolf camp', kind: 'beam', shot: 'leg3-chain-beam.png' });
 
@@ -310,6 +395,192 @@ if (order.fx >= 0 && order.dark >= 0 && order.fx < order.dark) {
   fail(`leg 4: layer order wrong: ${JSON.stringify(order)}`);
 }
 
+// === C2b: the ambient reconciler, the two new state kinds, and the slider ===
+//
+// All of it runs HERE, before the XP cheat: legs 5+6 level the player to
+// survive a camp, and a levelled player one-shots everything a fight leg needs.
+// The venue is the quiet campfire (spawnpoint-2), the one place in the world
+// with a permanent ambient aura and no camp in aggro range.
+const QUIET_CAMPFIRE = { x: 44, y: 10.5 };
+const FROSTBITE = 141, HEAL = 2, WHIRLING_AXES = 77;
+
+// LEG 7 - ambient is STATE: a campfire's mist draws with no combat at all.
+console.log('\n== LEG 7: a campfire\'s ambient layers, no combat ==');
+if (!inconclusive && await warpTo(QUIET_CAMPFIRE, 'the quiet campfire') && await aurasOff('leg 7')) {
+  await closeSpellbook(page);
+  await page.mouse.move(800, 200);
+  await page.waitForTimeout(2_500);
+  const state = await fxCounts();
+  const events = await page.evaluate(() => window.game.skillEvents().total ?? 0);
+  console.log(`leg 7: ${JSON.stringify(state)} (skill events so far ${events})`);
+  if (state.ambient > 0) pass(`leg 7: ${state.ambient} ambient layer(s) live with every own aura off`);
+  else { console.log('INCONCLUSIVE: leg 7 saw no ambient layer - is a campfire actually in view?'); inconclusive = true; }
+}
+
+// LEG 8 - the own player's swirl: on with the aura, GONE when it is switched
+// off. The negative half is the point: ambient is reconciled, not spawned.
+console.log('\n== LEG 8: Frostbite\'s ambient swirl on the own player ==');
+if (!inconclusive) {
+  await runCommand(`SKILL Frostbite`);
+  await page.waitForTimeout(1_500);
+  const eq = await equipById(FROSTBITE, 1, 'auraSlotList');
+  if (!eq.ok) { console.log(`INCONCLUSIVE: Frostbite equip did not land: ${JSON.stringify(eq)}`); inconclusive = true; }
+  else {
+    await closeSpellbook(page);
+    const off0 = (await fxCounts()).ambient;
+    if (!(await activateAuraSlot(1))) { console.log('INCONCLUSIVE: leg 8 Frostbite never went active'); inconclusive = true; }
+    else {
+      await page.waitForTimeout(1_500);
+      const on = (await fxCounts()).ambient;
+      await page.mouse.move(800, 200);
+      await page.screenshot({ path: join(outdir, 'leg8-ambient-full.png') });
+      const wentOff = await deactivateAllAuras();
+      await page.waitForTimeout(1_500);
+      const off1 = (await fxCounts()).ambient;
+      console.log(`leg 8: ambient off=${off0} on=${on} off-again=${off1}`);
+      if (on > off0) pass(`leg 8: switching the aura on added ${on - off0} ambient layer(s)`);
+      else fail(`leg 8: the aura went active and ambient did not move (${off0} -> ${on})`);
+      // The negative half is the point: ambient is RECONCILED, not spawned.
+      if (!wentOff) { console.log('INCONCLUSIVE: leg 8 the aura would not switch back off'); inconclusive = true; }
+      else if (off1 <= off0) pass('leg 8: switching it off disposed them again');
+      else fail(`leg 8: ambient survived the switch-off (${on} -> ${off1}, floor ${off0})`);
+    }
+  }
+}
+
+// LEG 9 - `low` (PO, §12d.1): another actor's ambient EMITTER goes, the own
+// one stays, and an ambient ORBIT would stay for everyone.
+console.log('\n== LEG 9: density low keeps the own emitter, drops the campfire\'s ==');
+if (!inconclusive) {
+  if (!(await isSlotActive(1)) && !(await activateAuraSlot(1))) {
+    console.log('INCONCLUSIVE: leg 9 Frostbite never went active'); inconclusive = true;
+  } else {
+    await page.waitForTimeout(1_200);
+    const full = (await fxCounts()).ambient;
+    if ((await setDensity('low')) !== 'low') { console.log('INCONCLUSIVE: leg 9 the manager never saw the density write'); inconclusive = true; }
+    else {
+      await page.waitForTimeout(1_200);
+      const low = (await fxCounts()).ambient;
+      await page.mouse.move(800, 200);
+      await page.screenshot({ path: join(outdir, 'leg9-ambient-low.png') });
+      console.log(`leg 9: ambient full=${full} low=${low}`);
+      if (low > 0) pass(`leg 9: the own character keeps ${low} ambient layer(s) at low`);
+      else fail('leg 9: low disposed the OWN character\'s ambient emitter too');
+      if (low < full) pass(`leg 9: ${full - low} of someone else's ambient layer(s) dropped at low`);
+      else console.log(`INCONCLUSIVE: leg 9 nothing dropped (${full} -> ${low}) - no other ambient emitter in view`);
+    }
+  }
+}
+
+// LEG 10 - `off` is literal (PO, §12d.1): a real fight draws NOTHING, ambient
+// holds nothing, and the wind-up glow - combat information, not dressing -
+// keeps running.
+console.log('\n== LEG 10: density off draws nothing, the glow lives ==');
+if (!inconclusive) {
+  if ((await setDensity('off')) !== 'off') { console.log('INCONCLUSIVE: leg 10 the manager never saw the density write'); inconclusive = true; }
+  else if (await warpTo(KOBOLD_CAMP, 'the kobold camp')) {
+    await page.mouse.move(800, 200);
+    const a = await fxCounts();
+    const e0 = await page.evaluate(() => window.game.skillEvents().total ?? 0);
+    if (!(await isSlotActive(1)) && !(await activateAuraSlot(1))) {
+      console.log('INCONCLUSIVE: leg 10 the aura never stayed active'); inconclusive = true;
+    } else {
+      await page.waitForTimeout(10_000);
+      const b = await fxCounts();
+      const d = delta(a, b);
+      const events = (await page.evaluate(() => window.game.skillEvents().total ?? 0)) - e0;
+      const drawn = ['impact', 'strike', 'projectile', 'beam', 'cast-pose', 'orbit', 'emitter']
+        .reduce((sum, k) => sum + (d[k] ?? 0), 0);
+      console.log(`leg 10: fx ${JSON.stringify(d)}, skill events ${events}, ambient ${b.ambient}, glows ${b.glows}`);
+      if (events < 3) { console.log(`INCONCLUSIVE: leg 10 saw only ${events} skill events, starved venue`); inconclusive = true; }
+      else {
+        if (drawn === 0) pass(`leg 10: 0 Fx spawned across ${events} skill events at off`);
+        else fail(`leg 10: ${drawn} Fx spawned at off: ${JSON.stringify(d)}`);
+        if (b.ambient === 0) pass('leg 10: the reconciler holds nothing at off');
+        else fail(`leg 10: ${b.ambient} ambient layer(s) survived off`);
+        if (b.glows > 0) pass(`leg 10: ${b.glows} wind-up glow(s) still running - the slider never touches it`);
+        else fail('leg 10: off took the wind-up glow with it');
+      }
+    }
+    if ((await setDensity('full')) !== 'full') { console.log('INCONCLUSIVE: density never went back to full'); inconclusive = true; }
+  }
+}
+
+// LEG 11 - Heal's two rise emitters (§4.3's green crosses and mist, authored
+// as two ambient emitter layers because no `body` exists before the atlas).
+console.log('\n== LEG 11: Heal\'s ambient rise emitters ==');
+if (!inconclusive && await warpTo(QUIET_CAMPFIRE, 'the quiet campfire') && await aurasOff('leg 11')) {
+  await runCommand(`SKILL Heal`);
+  await page.waitForTimeout(1_500);
+  const eq = await equipById(HEAL, 2, 'auraSlotList');
+  if (!eq.ok) { console.log(`INCONCLUSIVE: Heal equip did not land: ${JSON.stringify(eq)}`); inconclusive = true; }
+  else {
+    await closeSpellbook(page);
+    const before = await fxCounts();
+    if (!(await activateAuraSlot(2))) { console.log('INCONCLUSIVE: leg 11 Heal never went active'); inconclusive = true; }
+    else {
+      await page.waitForTimeout(1_500);
+      const after = await fxCounts();
+      const spawned = (after.emitter ?? 0) - (before.emitter ?? 0);
+      await page.mouse.move(800, 200);
+      await page.screenshot({ path: join(outdir, 'leg11-heal-rise.png') });
+      console.log(`leg 11: emitter spawns ${spawned}, ambient ${before.ambient} -> ${after.ambient}`);
+      if (spawned >= 2) pass(`leg 11: Heal spawned ${spawned} ambient emitter layers`);
+      else fail(`leg 11: expected 2 emitter layers from Heal, saw ${spawned}`);
+    }
+  }
+}
+
+// LEG 12 - Whirling Axes (id 77, cheat-only cooldown): an `orbit` on the CAST,
+// the flourish of its one instant hit. A cooldown is fired by clicking its
+// slot, not by the rAF-sampled Q hotkey.
+console.log('\n== LEG 12: Whirling Axes -> an orbit on the cast ==');
+if (!inconclusive) {
+  await runCommand(`SKILL WhirlingAxes`);
+  await page.waitForTimeout(1_500);
+  const eq = await equipById(WHIRLING_AXES, 0, 'cooldownSlotList');
+  if (!eq.ok) { console.log(`INCONCLUSIVE: Whirling Axes equip did not land: ${JSON.stringify(eq)}`); inconclusive = true; }
+  else {
+    await closeSpellbook(page);
+    await deactivateAllAuras();
+    if (!(await warpTo(KOBOLD_CAMP, 'the kobold camp'))) { /* warpTo already scored it */ }
+    else {
+      await page.mouse.move(800, 200);
+      const a = await fxCounts();
+      const slot = await page.$('#cooldownSlotList li[data-slot="0"]');
+      const sb = await slot.boundingBox();
+      // ⚑ The same armed shot as watchedLeg: a fixed-time capture misses a
+      // 1.2 s orbit, so the page clock slows 8x the instant the orbit spawns.
+      const armed = page.evaluate(() => new Promise((resolve) => {
+        const base0 = window.game.skillFx().spawnedByKind.orbit ?? 0;
+        const started = Date.now();
+        const poll = setInterval(() => {
+          if ((window.game.skillFx().spawnedByKind.orbit ?? 0) > base0) {
+            clearInterval(poll);
+            const real = performance.now.bind(performance);
+            const base = real();
+            window.__realNow = real;
+            performance.now = () => base + (real() - base) / 8;
+            resolve(true);
+          } else if (Date.now() - started > 5_000) { clearInterval(poll); resolve(false); }
+        }, 5);
+      }));
+      await page.mouse.click(sb.x + sb.width / 2, sb.y + sb.height / 2);
+      await page.mouse.move(800, 200);
+      if (await armed) {
+        await page.waitForTimeout(1_200);
+        await page.screenshot({ path: join(outdir, 'leg12-orbit.png') });
+        await page.evaluate(() => { if (window.__realNow) { performance.now = window.__realNow; window.__realNow = null; } });
+      }
+      await page.waitForTimeout(1_400);
+      const d = delta(a, await fxCounts());
+      console.log(`leg 12: fx ${JSON.stringify(d)}`);
+      if ((d.orbit ?? 0) >= 1) pass(`leg 12: ${d.orbit} orbit layer(s) spawned on the cast`);
+      else { console.log(`INCONCLUSIVE: leg 12 no orbit - did the cast go off at all? ${JSON.stringify(d)}`); inconclusive = true; }
+    }
+  }
+}
+
 // LEGS 5+6 - a MOB's strike on the own player (D3: mobs author through the
 // same vocabulary). The count proves a strike spawned; WHICH style is the
 // screenshot's to show: a Bandit swings a blade, a Troll brings a hammer down.
@@ -320,14 +591,7 @@ async function mobStrikeLeg(n, spot, label, shot, waitMs) {
   await page.mouse.move(800, 200);
   // Own aura OFF (its beams would bury the mob's weapon), then let the camera
   // finish its slow glide across the map before anything is photographed.
-  for (let slot = 0; slot < 3; slot++) {
-    if (await isSlotActive(slot)) {
-      await page.keyboard.down(String(slot + 1));
-      await page.waitForTimeout(1400);
-      await page.keyboard.up(String(slot + 1));
-      await page.waitForTimeout(600);
-    }
-  }
+  await deactivateAllAuras();
   await page.waitForFunction(() => {
     const c = window.game.character;
     const g = c.shape.getGlobalPosition();

@@ -5,6 +5,11 @@
   "icon": "lorc/bordered-shield",
   "category": "active_aura",
   "maxLevel": 3,
+  "visual": {
+    "layers": [
+      { "kind": "orbit", "on": "ambient", "count": 2, "tint": "#e8d9a0" }
+    ]
+  },
   "effects": [
     {
       "type": "resist_aura",

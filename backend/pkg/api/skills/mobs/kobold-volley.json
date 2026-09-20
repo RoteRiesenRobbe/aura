@@ -6,6 +6,7 @@
   "maxLevel": 5,
   "visual": {
     "layers": [
+      { "kind": "cast-pose", "on": "hit", "ms": 500 },
       { "kind": "projectile", "on": "hit", "speed": 900 },
       { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
     ]

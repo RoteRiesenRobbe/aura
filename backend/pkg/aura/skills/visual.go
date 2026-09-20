@@ -149,14 +149,15 @@ var (
 	// visualTriggersByKind: which moments a kind can play at. An `impact`
 	// needs a victim, so it is a hit and nothing else, and a `strike` travels
 	// INTO one, so it has no moment without a victim either; a `cast-pose` is
-	// worn for the duration of a cast, so it is fired; only `emitter` spans
-	// all three.
+	// worn at a cast (fired, facing +X: a cast names no direction) or at a
+	// landing (hit, PO 2026-09-20: the bow shows only when damage is done and
+	// AIMS at the victim); only `emitter` spans all three.
 	visualTriggersByKind = map[string][]string{
 		"impact":     {"hit"},
 		"strike":     {"hit"},
 		"projectile": {"hit"},
 		"beam":       {"hit"},
-		"cast-pose":  {"fired"},
+		"cast-pose":  {"fired", "hit"},
 		"orbit":      {"fired", "ambient"},
 		"emitter":    {"ambient", "fired", "hit"},
 	}

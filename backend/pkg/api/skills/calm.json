@@ -8,6 +8,11 @@
   "cooldownTicks": 600,
   "description": "Any damage breaks it, including your own aura.",
   "targetFactions": ["wildlife_prey", "wildlife_predator"],
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 8, "ms": 500, "tint": "#bfe3ff" }
+    ]
+  },
   "effects": [
     {
       "type": "calm",

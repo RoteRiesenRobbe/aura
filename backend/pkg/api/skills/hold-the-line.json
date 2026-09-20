@@ -7,6 +7,11 @@
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 2400,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 6, "ms": 450, "scale": 0.7, "tint": "#cfd6e6" }
+    ]
+  },
   "effects": [
     {
       "type": "detaunt",

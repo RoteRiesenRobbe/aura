@@ -20,13 +20,13 @@ describe('the kind registry', () => {
         expect([...VISUAL_KINDS].sort()).toEqual(Object.keys(KIND_REGISTRY).sort());
     });
 
-    it('builds impact, strike, projectile and beam for real, and stubs the rest', () => {
-        // C2a's scope, asserted so C2b's first change is visible here.
-        const real = Object.keys(KIND_REGISTRY).filter(k => !KIND_REGISTRY[k].stub).sort();
-        expect(real).toEqual(['beam', 'impact', 'projectile', 'strike']);
-    });
-
-    it('draws nothing for a stub rather than throwing', () => {
-        expect(KIND_REGISTRY['orbit'].spawn(null as any)).toBeNull();
+    // C2b filled in the last three (cast-pose, orbit, emitter), so the `stub`
+    // flag and its two cases are gone: every registered kind draws. What a kind
+    // draws needs Pixi Graphics and a stage, which is the harness's job
+    // (.claude/skills/verify/skill-fx.mjs), not a jsdom unit's.
+    it('registers a real handler for every one of them', () => {
+        for (const kind of VISUAL_KINDS) {
+            expect(typeof KIND_REGISTRY[kind].spawn).toBe('function');
+        }
     });
 });

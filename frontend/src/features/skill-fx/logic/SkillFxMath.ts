@@ -13,8 +13,11 @@
  *
  * Every constant below is [PLACEHOLDER] until the PO look.
  */
+import type {VfxDensity} from '../../game-settings/logic/GameSettings';
 
 // --- shared -----------------------------------------------------------------
+
+const TAU = Math.PI * 2;
 
 export function clamp01(v: number): number {
     if (!Number.isFinite(v)) {
@@ -88,9 +91,21 @@ export interface ImpactPhase {
 
 /** The snap's close share: the jaws shut in the first half, then fade. */
 const SNAP_CLOSE_FRACTION = 0.5;
+/** The snap's `scale` runs from wide open down by this much as the jaws shut. */
+const SNAP_OPEN_SCALE = 1.3;
+const SNAP_CLOSE_TRAVEL = 0.75;
 /** How far a burst ring grows, as a share of the victim's radius. */
 const BURST_START_SCALE = 0.3;
 const BURST_END_SCALE = 0.9;
+
+/**
+ * How far open the jaws are for a snap's `scale`: 1 = wide open, 0 = shut. The
+ * jaws close by MOVING, not by shrinking, so the renderer wants the travel
+ * rather than the size (PO 2026-09-20).
+ */
+export function snapOpenOf(scale: number): number {
+    return clamp01((scale - (SNAP_OPEN_SCALE - SNAP_CLOSE_TRAVEL)) / SNAP_CLOSE_TRAVEL);
+}
 
 /**
  * One impact body over time. `snap` closes two jaws onto the victim's centre
@@ -111,7 +126,7 @@ export function impactPhase(curve: ImpactCurve, elapsedMs: number, totalMs: numb
         const alpha = p <= SNAP_CLOSE_FRACTION
             ? 1
             : 1 - (p - SNAP_CLOSE_FRACTION) / (1 - SNAP_CLOSE_FRACTION);
-        return {scale: 1.3 - 0.75 * close, alpha, done: false};
+        return {scale: SNAP_OPEN_SCALE - SNAP_CLOSE_TRAVEL * close, alpha, done: false};
     }
     return {
         scale: BURST_START_SCALE + (BURST_END_SCALE - BURST_START_SCALE) * easeOutCubic(p),
@@ -161,11 +176,15 @@ export const SWING_HALF_ARC_RAD = (50 * Math.PI) / 180;
 const SWING_FADE_FRACTION = 0.6;
 
 /** The overhead's wind-up share, its hold after landing, and its geometry. */
-const OVERHEAD_WINDUP_FRACTION = 0.45;
+export const OVERHEAD_WINDUP_FRACTION = 0.45;
 const OVERHEAD_HOLD_FRACTION = 0.82;
 const OVERHEAD_RAISE_SCALE = 1.3;
-const OVERHEAD_DRAW_BACK = 0.25;
-const OVERHEAD_WINDUP_EXTEND = 0.72;
+/**
+ * How far off the aim the raised weapon is held: a quarter turn (PO 2026-09-20,
+ * from a sketch: the hammer stands 90 degrees off the line to the victim, then
+ * swings down onto it).
+ */
+export const OVERHEAD_RAISE_RAD = Math.PI / 2;
 
 const STRIKE_CONTACT_FRACTION: Record<StrikeCurve, number> = {
     thrust: THRUST_CONTACT_FRACTION,
@@ -244,28 +263,34 @@ export function strikePhase(curve: StrikeCurve, elapsedMs: number, totalMs: numb
             };
         }
         case 'overhead': {
+            // A held weapon pivoting at the hand: it never stretches and never
+            // leaves it. `angleOffset` assumes the +1 side; the caller picks
+            // the side with overheadSide, NOT swingDirection.
             if (p < OVERHEAD_WINDUP_FRACTION) {
-                // Drawn back behind the attacker and raised toward the camera.
+                // Raised a quarter turn off the aim, lifting toward the camera.
                 const u = easeOutCubic(p / OVERHEAD_WINDUP_FRACTION);
                 return {
-                    extend: OVERHEAD_WINDUP_EXTEND,
-                    angleOffset: 0,
-                    offset: -OVERHEAD_DRAW_BACK * u,
+                    extend: 1,
+                    angleOffset: -OVERHEAD_RAISE_RAD,
+                    offset: 0,
                     scale: 1 + (OVERHEAD_RAISE_SCALE - 1) * u,
                     alpha: 1,
                     done: false,
                 };
             }
             if (p < OVERHEAD_CONTACT_FRACTION) {
-                // The fall: heavy, so it accelerates into the victim.
-                const u = easeInCubic(
-                    (p - OVERHEAD_WINDUP_FRACTION)
-                    / (OVERHEAD_CONTACT_FRACTION - OVERHEAD_WINDUP_FRACTION));
+                // The fall: heavy, so it accelerates down onto the victim.
+                const t = (p - OVERHEAD_WINDUP_FRACTION)
+                    / (OVERHEAD_CONTACT_FRACTION - OVERHEAD_WINDUP_FRACTION);
+                const u = easeInCubic(t);
                 return {
-                    extend: OVERHEAD_WINDUP_EXTEND + (1 - OVERHEAD_WINDUP_EXTEND) * u,
-                    angleOffset: 0,
-                    offset: -OVERHEAD_DRAW_BACK * (1 - u),
-                    scale: OVERHEAD_RAISE_SCALE - (OVERHEAD_RAISE_SCALE - 1) * u,
+                    extend: 1,
+                    angleOffset: -OVERHEAD_RAISE_RAD * (1 - u),
+                    offset: 0,
+                    // Back to its own size EARLY in the fall (ease-out against
+                    // the angle's ease-in), so the raise never carries the
+                    // head past its reach as the weapon comes onto the aim.
+                    scale: OVERHEAD_RAISE_SCALE - (OVERHEAD_RAISE_SCALE - 1) * easeOutCubic(t),
                     alpha: 1,
                     done: false,
                 };
@@ -292,6 +317,16 @@ export function strikePhase(curve: StrikeCurve, elapsedMs: number, totalMs: numb
             };
         }
     }
+}
+
+/**
+ * Which side of the aim an overhead is raised on: the one that puts the raised
+ * weapon toward the TOP of the screen (−y), so "overhead" reads as overhead
+ * whichever way the victim stands. The raised weapon sits at
+ * `aim - side * OVERHEAD_RAISE_RAD`, whose y is `-side * cos(aim)`.
+ */
+export function overheadSide(aimRad: number): 1 | -1 {
+    return Math.cos(aimRad) >= 0 ? 1 : -1;
 }
 
 /** Which way a swing sweeps, alternating per landing so a fight is not a metronome. */
@@ -471,4 +506,193 @@ export function windUpGlowAlpha(interval: number, phase: number): number {
     }
     const fraction = Math.min(phase / interval, 1);
     return GLOW_BASE_ALPHA + fraction * (GLOW_MAX_ALPHA - GLOW_BASE_ALPHA);
+}
+
+// --- orbit (C2b) ------------------------------------------------------------
+//
+// N bodies circling the caster (§4.1). Everything below is in the anchor's own
+// frame: the kind adds the anchor's position each frame, so an orbit follows a
+// caster who is walking without the math knowing where anyone is.
+
+/** One revolution takes this long, whatever the count. [PLACEHOLDER] */
+export const ORBIT_PERIOD_MS = 800;
+/** How far outside the anchor's own radius the bodies circle. [PLACEHOLDER] */
+export const ORBIT_RADIUS_PAD_PX = 14;
+/** Bodies when a layer authors no `count` (§12d.3). */
+export const ORBIT_DEFAULT_COUNT = 2;
+/** A `fired` orbit's whole duration when it authors no `ms` (§12d.3). */
+export const ORBIT_DEFAULT_MS = 1200;
+/** The fade in AND out at each end of a fired orbit. [PLACEHOLDER] */
+export const ORBIT_FADE_MS = 150;
+
+/** Where body `index` of `count` sits, relative to the anchor's centre. */
+export function orbitPoint(
+    index: number, count: number, elapsedMs: number, radiusPx: number,
+): { x: number, y: number } {
+    const n = count > 0 ? count : 1;
+    const a = (index / n) * TAU + (elapsedMs / ORBIT_PERIOD_MS) * TAU;
+    return {x: Math.cos(a) * radiusPx, y: Math.sin(a) * radiusPx};
+}
+
+/**
+ * An orbit body's visibility. `ms` 0 is the AMBIENT case (§12d.3: the layer
+ * lives while the aura runs, so its duration is not the layer's business): it
+ * fades in once and then stays lit until the reconciler disposes it.
+ */
+export function orbitAlpha(elapsedMs: number, ms: number): number {
+    if (elapsedMs <= 0) {
+        return 0;
+    }
+    if (ms <= 0) {
+        return clamp01(elapsedMs / ORBIT_FADE_MS);
+    }
+    if (elapsedMs >= ms) {
+        return 0;
+    }
+    // A layer shorter than two fades still gets both, just narrower ones.
+    const fade = Math.min(ORBIT_FADE_MS, ms / 2);
+    return Math.min(clamp01(elapsedMs / fade), clamp01((ms - elapsedMs) / fade));
+}
+
+// --- cast-pose (C2b) --------------------------------------------------------
+
+/** How long a pose shows after the FIRED moment when it authors no `ms` (§12d.3). */
+export const CAST_POSE_DEFAULT_MS = 500;
+/** The share of its life a pose is held at full before it fades. [PLACEHOLDER] */
+const CAST_POSE_HOLD_FRACTION = 0.6;
+
+/**
+ * ⚑ A pose shows at RELEASE, not before it (§12d.4): FIRED is emitted when a
+ * cast is consumed, so the bow appears as the arrow leaves. There is no
+ * wind-up half here and nothing reads `cast_skill_id`.
+ */
+export function castPoseAlpha(elapsedMs: number, ms: number): number {
+    const total = ms > 0 ? ms : CAST_POSE_DEFAULT_MS;
+    if (elapsedMs < 0 || elapsedMs >= total) {
+        return 0;
+    }
+    const p = elapsedMs / total;
+    return p <= CAST_POSE_HOLD_FRACTION
+        ? 1
+        : 1 - (p - CAST_POSE_HOLD_FRACTION) / (1 - CAST_POSE_HOLD_FRACTION);
+}
+
+// --- emitter (C2b) ----------------------------------------------------------
+//
+// Particles from a point or a disc (§4.1), in the anchor's own frame like the
+// orbit. The three motions are §12d.3's, and nothing here is random: a
+// particle's direction comes from its INDEX through the golden angle, which
+// spreads any count evenly without ever repeating a direction.
+
+/** The three authored motions (§12d.3); absent = `rise`. */
+export type EmitterMotion = 'swirl' | 'rise' | 'burst';
+
+/** Particles when a layer authors no `count`: alive at once (ambient) or in the burst. */
+export const EMITTER_DEFAULT_COUNT = 8;
+/** ONE PARTICLE's lifetime when a layer authors no `ms`, all triggers (§12d.3). */
+export const EMITTER_DEFAULT_MS = 900;
+/** The share of a life spent fading in - a looping stream must never pop. */
+export const EMITTER_FADE_IN_FRACTION = 0.15;
+/** `swirl`: the share of the anchor radius it circles at, and how far it drifts out. */
+export const SWIRL_RADIUS_FRACTION = 1.15;
+const SWIRL_DRIFT_FRACTION = 0.5;
+/** `swirl`: revolutions over one particle lifetime. [PLACEHOLDER] */
+const SWIRL_TURNS = 0.75;
+/** `rise`: how far UP (−y) a particle drifts over its life, in px (§12d.3). */
+export const RISE_DRIFT_PX = 55;
+/** `rise`: the share of the anchor's disc the start points are spread over. */
+const RISE_SPREAD_FRACTION = 1.1;
+/** `burst`: the reach, as a multiple of the anchor radius (§12d.3). */
+export const BURST_REACH_FACTOR = 1.5;
+/** Every motion tapers its body toward the end of a life. [PLACEHOLDER] */
+const PARTICLE_END_SCALE = 0.6;
+
+export interface EmitterParticle {
+    /** offset from the anchor's centre, px */
+    x: number;
+    y: number;
+    alpha: number;
+    /** multiplies the body size */
+    scale: number;
+}
+
+/**
+ * Where particle `index` of `count` is, `elapsedMs` into the layer.
+ *
+ * `loop` is the AMBIENT variant: particle i is phase-offset by `i / count` of a
+ * lifetime and wraps forever, so `count` particles are alive at once as a
+ * steady stream. Without it (a `fired` / `hit` burst) every particle shares one
+ * phase and the whole layer is over after `ms`.
+ */
+export function emitterParticle(
+    motion: EmitterMotion, index: number, count: number,
+    elapsedMs: number, ms: number, radiusPx: number, loop = false,
+): EmitterParticle {
+    const total = ms > 0 ? ms : EMITTER_DEFAULT_MS;
+    const n = count > 0 ? count : 1;
+    const raw = elapsedMs / total;
+    const p = loop ? wrap01(raw + index / n) : clamp01(raw);
+    const alpha = particleAlpha(p);
+    const scale = 1 - (1 - PARTICLE_END_SCALE) * p;
+    // The golden angle: any count of indices lands evenly around the circle.
+    const heading = index * GOLDEN_ANGLE;
+    switch (motion) {
+        case 'swirl': {
+            const r = radiusPx * (SWIRL_RADIUS_FRACTION + SWIRL_DRIFT_FRACTION * p);
+            const a = heading + p * SWIRL_TURNS * TAU;
+            return {x: Math.cos(a) * r, y: Math.sin(a) * r, alpha, scale};
+        }
+        case 'burst': {
+            const r = radiusPx * BURST_REACH_FACTOR * easeOutCubic(p);
+            return {x: Math.cos(heading) * r, y: Math.sin(heading) * r, alpha, scale};
+        }
+        default: {
+            // Sunflower sampling: evenly covers the disc, index-derived, and
+            // the start point holds still while only the drift moves.
+            const r = radiusPx * RISE_SPREAD_FRACTION * Math.sqrt((index % n + 0.5) / n);
+            return {
+                x: Math.cos(heading) * r,
+                y: Math.sin(heading) * r - RISE_DRIFT_PX * p,
+                alpha,
+                scale,
+            };
+        }
+    }
+}
+
+/** Which motion a layer authors; absent or unknown = `rise` (§12d.3). */
+export function emitterMotionOf(motion: string | undefined): EmitterMotion {
+    return motion === 'swirl' || motion === 'burst' ? motion : 'rise';
+}
+
+function wrap01(v: number): number {
+    if (!Number.isFinite(v)) {
+        return 0;
+    }
+    const f = v % 1;
+    return f < 0 ? f + 1 : f;
+}
+
+/** 0 at both ends, so a looped respawn neither pops in nor snaps out. */
+function particleAlpha(p: number): number {
+    if (p <= EMITTER_FADE_IN_FRACTION) {
+        return p / EMITTER_FADE_IN_FRACTION;
+    }
+    return 1 - (p - EMITTER_FADE_IN_FRACTION) / (1 - EMITTER_FADE_IN_FRACTION);
+}
+
+// --- the density slider (D1, §12d.1) ----------------------------------------
+
+/**
+ * How many of an emitter's authored particles this density draws: all of them
+ * at `full`, 40 % rounded (never below one) at `low`, none at `off`.
+ *
+ * ⚑ A layer that authored NO particles gets none back: the PO's floor of one
+ * is "never thin a visible emitter into nothing", not "invent a particle".
+ */
+export function densityCount(count: number, density: VfxDensity): number {
+    if (count <= 0 || density === 'off') {
+        return 0;
+    }
+    return density === 'low' ? Math.max(1, Math.round(count * 0.4)) : count;
 }

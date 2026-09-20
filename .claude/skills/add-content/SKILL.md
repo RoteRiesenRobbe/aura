@@ -45,17 +45,25 @@ the bottom. Trust the code over the manual if a path has drifted.
   hashes, chunk names, rulings, glyphs, history or placement claims (where
   it is obtained lives in the mob/milestone/recipe files). The ledger prose you are
   tempted to write there goes in the plan doc.
-- **A damaging skill with no `visual` draws NOTHING** (`plan-skill-vfx.md`
-  C2a, PO 2026-09-19). The old cadence-derived slash/fire lever (`hitStyle`) is
-  deleted end to end and no engine fallback replaced it, so every new damaging
-  skill authors a `visual` block. A weapon-wielder's plain hit is a `strike`
+- **A skill with no `visual` draws NOTHING** (`plan-skill-vfx.md` C2a + C2b, PO
+  2026-09-19/20). The old cadence-derived slash/fire lever (`hitStyle`) is
+  deleted end to end and no engine fallback replaced it, so **every new aura
+  and cooldown that CAN author a look authors one** - not only the damaging
+  ones. A weapon-wielder's plain hit is a `strike`
   ALONE (`thrust` spear / `swing` blade / `overhead` hammer, chosen by `curve`,
   which also picks the placeholder weapon); an animal's bite or gore is
   `impact` / `snap` alone; elemental, AoE, DoT and cooldown hits and a missile's
   arrival are `impact` / `burst`; ranged reach is a `projectile` plus that
-  `impact`. ⚑ `impact` is OPT-IN and anchored at the VICTIM, a `strike` at the
+  `impact`. A non-damaging aura or cooldown dresses its own moment instead: an
+  `emitter` (`swirl` / `rise` / `burst` particles), an `orbit` (N bodies
+  circling), a `cast-pose` (a body worn at RELEASE, never a wind-up).
+  ⚑ `impact` is OPT-IN and anchored at the VICTIM, a `strike` at the
   ATTACKER. ⚑ `curve` belongs to the KIND and `chain` is the `beam`'s
-  alone and VISUAL ONLY - it changes no targeting. ⚑ Author no `body`.
+  alone and VISUAL ONLY - it changes no targeting. ⚑ Author no `body`, and no
+  `tint` on anything that carries damage tags (the palette derives it).
+  ⚑ **A passive gets the `hit` moment alone** (D2, load-enforced), so a passive
+  that never hits - Torch, the stat/resist passives, FrostShield's damageless
+  `retaliate_slow` - is UNDRESSABLE by rule, not by oversight.
   `docs/manual-content-authoring.md` §2 "Visuals" has the tables.
 - **A mob attack hits ONE target unless the world explains more** (PO ruling
   2026-09-19, `docs/manual-content-authoring.md` §2 "Mob attacks hit one

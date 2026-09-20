@@ -564,8 +564,8 @@ needs a lore-backed multi-target attack, not an uncapped bite.
 
 ### Visuals: the `visual` key
 
-*(`plan-skill-vfx.md` C0 + C2a, 2026-09-19. C2a draws `impact`, `projectile`
-and `beam`; the other four kinds are authorable but still stubs until C2b.)*
+*(`plan-skill-vfx.md` C0 + C2a + C2b, 2026-09-20. All seven kinds draw; none is
+a stub any more.)*
 
 A skill may carry one optional top-level `visual` block, placed immediately
 before `effects` (which for a plain aura is right after `maxLevel`, and for a
@@ -594,7 +594,7 @@ content decision. Everything else is a parameter.
 | `strike` | hit | `ms`, `curve` | a weapon that starts at the ATTACKER and travels into the victim |
 | `projectile` | hit | `speed` | a body flying caster→victim at constant speed |
 | `beam` | hit | `ms`, `width`, `curve`, `chain` | a body stretched caster→victim with an envelope |
-| `cast-pose` | fired | `ms` | a body worn ON the caster while it casts (the bow) |
+| `cast-pose` | fired, hit | `ms` | a body shown ON the caster at RELEASE, `ms` of follow-through (the bow). On `hit` it AIMS at the victim and shows only when something was hit |
 | `orbit` | fired, ambient | `ms`, `count` | N bodies circling the caster |
 | `emitter` | ambient, fired, hit | `ms`, `count`, `motion` | particles from a point or a disc |
 
@@ -605,6 +605,16 @@ the others; `ms`, `speed`, `width` and `scale` must be > 0 when authored and
 **Units are screen-space: `speed` is px per second, `width` is px** (a world
 unit is 120 px; a lightning bolt is ~5, a flame pillar ~14), `ms` is
 milliseconds, `scale` is a plain multiplier.
+
+⭐ **`tint` only where the palette has no answer.** A layer's colour derives
+from the skill's first damage-tagged effect (`fire`, `frost`, `nature`,
+`poison`, `bleed`, `physical`), so a damaging skill authors no `tint` and gets
+recoloured for free when its tags are retuned. Heals, shields, wards, summons,
+portals and control cooldowns carry no damage type, so those DO author one -
+and so does a debuff that wants to read as a debuff rather than as its element.
+⚑ Check the effect, not the flavour: Retribution's `retaliate_burst` authors
+`damageTags`, so it takes the palette's fire and needs no `tint`, while
+Bloodthirst's `lifesteal_burst` carries no tags and does.
 
 **Closed value sets, and `curve` belongs to the KIND** (C2a): an `impact`
 curves `burst` or `snap`, a `strike` curves `thrust` / `swing` / `overhead`
@@ -641,12 +651,12 @@ The three moments:
   strikes three targets draws three times in one tick; that is the intent, not
   a special case.
 
-⭐ **Nothing draws by default.** A skill with no `visual` draws no hit VFX at
-all - the old cadence-derived slash/fire lever (`hitStyle`) is gone, and C2a
+⭐ **Nothing draws by default.** A skill with no `visual` draws nothing at all -
+the old cadence-derived slash/fire lever (`hitStyle`) is gone, and C2a
 deliberately shipped no engine fallback in its place (PO 2026-09-19). So
-**every damaging skill authors a `visual`**, by reach and flavour. The rule
-since the C2a amendment, and `impact` is now OPT-IN rather than the default
-dressing on everything:
+**every aura and cooldown that CAN author a look authors one** (PO 2026-09-20,
+C2b's batch scope), by reach and flavour. The rule since the C2a amendment, and
+`impact` is now OPT-IN rather than the default dressing on everything:
 
 - **A weapon-wielder's plain hit is a `strike` ALONE** - no `impact` beside it.
   A spear or a stab is `thrust`, a blade or a cleave is `swing`, a maul or a
@@ -657,7 +667,40 @@ dressing on everything:
   so is a **missile's arrival**: ranged reach, volleys and spits are a
   `projectile` plus an `impact` / `burst`.
 
-Heal, shield and light auras wait for C2b's kinds.
+**The three ambient / fired kinds, and what their numbers mean** (C2b, the
+§12d.3 table). All distances are PIXELS, all durations milliseconds, and
+nothing is random: a layer's particles are index-seeded, so two clients draw
+the same thing.
+
+| kind | key | meaning |
+|---|---|---|
+| `emitter` | `count` | `ambient`: particles ALIVE at once, a steady loop · `fired` / `hit`: particles in the one burst. Default 8. |
+| `emitter` | `ms` | ONE particle's lifetime, on every trigger. Default 900. A `fired` / `hit` emitter lives exactly `ms`. |
+| `emitter` | `motion` | `swirl` circles the anchor at ~70 % of its radius, drifting outward · `rise` starts inside the anchor's disc and drifts UP ~40 px · `burst` flies radially outward ~1.5× the anchor radius. All fade. Default `rise`. |
+| `emitter` | anchor | `ambient` / `fired`: the caster · `hit`: the victim. |
+| `orbit` | `count` | bodies, evenly spaced. Default 2. |
+| `orbit` | `ms` | `fired`: the layer's whole DURATION, fading in and out inside it · `ambient`: **ignored**, the layer lives as long as the aura runs, so leave it unauthored there. Default 1200. |
+| `orbit` | speed | not authored: one revolution per 800 ms, radius = anchor radius + 14 px, both [PLACEHOLDER]. |
+| `cast-pose` | `ms` | how long the body shows AFTER its moment (the cast, or the landing). Default 500. |
+| all three | `scale` | multiplies the body size (particle radius, orbit body, pose body). |
+
+⭐ **`cast-pose` shows at RELEASE, not during a wind-up.** FIRED is emitted when
+a cast is CONSUMED (and on an aura beat), so the bow appears as the arrow
+leaves and `ms` is its follow-through. Nothing draws a pre-cast pose; a cast
+BAR is `plan-entity-presentation.md`'s, not this key's.
+
+⭐ **A weapon pose belongs on `hit`, not `fired`** (PO 2026-09-20, the bow). On
+`hit` the pose rotates toward the victim, never shows on a beat that hit
+nobody, and a multi-target beat draws ONE pose (aimed at the first victim)
+while every victim still gets its arrow. On `fired` it cannot aim (a cast names
+no direction) and faces +X; and on an AURA a `fired` layer costs a FIRED event
+per beat on the wire. Keep `fired` for a cooldown's pose that needs no aim.
+
+⭐ **Two bodies means two layers.** A body list does not exist, so the heal
+idiom is a pair of `emitter` / `rise` layers on one skill: a slow wide mist
+(higher `scale`, longer `ms`, fewer particles) and quicker small motes
+(`scale` under 1, shorter `ms`), each with its own `tint`. The same pair in
+warm orange is the campfire.
 
 ⭐ **D2, enforced at load:** `ambient` is legal only on an **active aura** (it
 is the only category that is ever "running"), and a **passive** may author
@@ -666,11 +709,19 @@ all it has). A **cooldown** may author `fired` and `hit`. The loader hard-fails
 anything else, naming the skill and the layer index, because the alternative is
 a file that loads clean and draws nothing.
 
+⚑ **Some skills are undressable, and that is the rule working.** A passive gets
+the `hit` moment alone, so a passive that never hits anything has no moment to
+author: Torch (a passive `light_aura`) cannot be given the glow Lantern gets,
+the stat and resist passives stay bare, and FrostShield's `retaliate_slow`
+deals no damage, so no HIT event is ever recorded for it and it stays bare too.
+Do not reach for `ambient` to work around this - the loader refuses it. If a
+passive genuinely needs a look, the fix is a plan amendment, not a layer.
+
 ⚑ **`body` is UNCHECKED today.** It names a frame in the art atlas, and the
 atlas does not exist until `plan-skill-vfx.md` C3. An absent `body` draws the
 kind's procedural placeholder, which is the right thing to author right now: a
 body named before the atlas exists becomes a `-validate` ERROR the moment C3
-arms the check. The 59 skills that ship a `visual` today author none.
+arms the check. Every skill that ships a `visual` today authors none.
 
 ⚑ The content editor's Skills tab does NOT render `visual` until C3. It is
 hidden and preserved untouched on round trip, exactly like `legacy`, so a

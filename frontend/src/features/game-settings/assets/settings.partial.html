@@ -32,6 +32,38 @@
         </div>
 
         <!--
+          Skill effects (plan-skill-vfx.md §7.3, §12d.1). Radios rather than a
+          slider: the three steps are named behaviours, not a continuum, and a
+          radio's `change` event is the one HUD-safe listener here - MouseManager
+          preventDefaults `mousedown` on the document, which eats the synthetic
+          `click` the audio toggles would otherwise have used.
+        -->
+        <h3>Graphics</h3>
+        <div class="setting-group">
+            <fieldset id="vfxDensity" class="radio-row">
+                <legend>Skill effects</legend>
+                <div class="radio-options">
+                    <div>
+                        <input type="radio" name="vfxDensity" id="vfxDensityOff" value="off" />
+                        <label for="vfxDensityOff">Off</label>
+                    </div>
+                    <div>
+                        <input type="radio" name="vfxDensity" id="vfxDensityLow" value="low" />
+                        <label for="vfxDensityLow">Low</label>
+                    </div>
+                    <div>
+                        <input type="radio" name="vfxDensity" id="vfxDensityFull" value="full" />
+                        <label for="vfxDensityFull">Full</label>
+                    </div>
+                </div>
+            </fieldset>
+            <p class="settingNote">
+                Off keeps hit numbers and the aura ring; they are information,
+                not dressing.
+            </p>
+        </div>
+
+        <!--
           Account (plan-accounts-frontend.md §4, §5.4, §10b ruling 3 & 6).
 
           ⚑ There is deliberately NO "Log in" here. Login is reachable only

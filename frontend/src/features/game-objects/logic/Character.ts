@@ -265,6 +265,11 @@ export class Character extends GameObject
     // the HUD.
     setAuraTick(interval: number, phase: number, activeSkillId: number = 0): boolean {
         SkillFx.setGlowTick(this, interval, phase);
+        // The ambient half of the same fan-out (plan-skill-vfx.md C2b): the
+        // active aura's `on: ambient` layers. Fed off the skill id rather than
+        // the interval, because the wire already sends 0 for "no aura is
+        // running" (codec ActiveSkillID) and a light aura ticks at no cadence.
+        SkillFx.setAmbient(this, activeSkillId, this.isPlayerCharacter);
         const landed = this.auraBeat.observe(activeSkillId, interval, phase);
         this.auraRings.beat(landed);
         return landed;

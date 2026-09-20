@@ -467,11 +467,20 @@ builder C1 lesson: a chunk whose purpose is a look is not done without one).
   victim-anchored wedge, so §12c added the caster-anchored `strike` (replacing
   `arc-swing`, still seven kinds) and made `impact` a small opt-in round burst.
   28 files were re-authored for it the same day.
-- **C2b · The other three kinds + the slider** (`arc-swing` became C2a's
-  `strike`, §12c). `cast-pose`,
-  `orbit`, `emitter`; the density setting (§7.3) with mobile default; the
-  nine PO examples authored with placeholders as the acceptance set.
-  Screenshots + PO play. **Schema: NONE.**
+- **C2b · The other three kinds + the slider.** ✅ **BUILT 2026-09-20, PO look
+  PASSED** (spec: §12d, the look amendments: §12d.7, ledger: §13). `cast-pose`,
+  `orbit`, `emitter` real and the stubs deleted; the **ambient reconciler**
+  (`SkillFx.setAmbient`, keyed by GameObject like the glows), so a running aura
+  finally dresses itself; the density setting (§7.3) Off / Low / Full with its
+  mobile default; every aura and cooldown that CAN author a look has one. Two
+  cheat-only skills (Whirling Axes 77, Firebolt 78). **Schema: NOT NONE, as
+  §12d.2 corrects: CATALOG one field (`auraSkillId` on HTTP `/mobs`), CONTENT
+  `visual` on 46 more files + two new skills; DB, WIRE and CONF NONE.**
+
+  ⚑ **The look rounds moved the vocabulary again** (§12d.7): `cast-pose` is now
+  legal on `hit` as well as `fired` and the bow moved there (only when damage is
+  done, aimed at the victim), and a weapon is **HELD**: hilt in the hand, length
+  = the skill's reach, passing through closer mobs by PO ruling.
 - **C3 · Art.** Atlas contract doc, first artist sheets in-repo, the body
   resolver's ERROR path armed in `-validate`; the spell builder's Visuals
   section renders `visual` (that chunk lives in `plan-content-editor.md`'s
@@ -486,14 +495,22 @@ C0 and C1 can be built in either order; C2a needs both.
 
 1. ~~`visual` per skill or per effect?~~ ✅ **RESOLVED 2026-09-19 (PO): per
    SKILL**, one top-level key, never per effect. Built that way in C0.
-2. What does `low` cut? Proposal in §7.3.
-3. Mobile default `low`? Proposal yes.
-4. Default dressings for heal / shield / light auras that author no
-   `visual`: none (plain ring as today) vs a category default. Proposal:
-   none; content authors what it wants, the ring stays the baseline.
-5. Does the `AuraRings` tint follow the layer palette, or stay the category
-   colour? Proposal: stays; the ring is gameplay information (range +
-   category), the layers are dressing.
+2. ~~What does `low` cut?~~ ✅ **RESOLVED 2026-09-20 (PO): particle counts
+   × 0.4 (`max(1, round(count * 0.4))`) and `ambient` EMITTER layers only for
+   the OWN character**; every hit kind, orbit and cast-pose is untouched.
+   `off` is literal: no authored layer draws at all, the glow and the numbers
+   stay. §12d.1, built in C2b.
+3. ~~Mobile default `low`?~~ ✅ **RESOLVED 2026-09-20 (PO): yes**, desktop
+   `full`, a stored choice always wins. §12d.1, built in C2b.
+4. ~~Default dressings for heal / shield / light auras that author no
+   `visual`?~~ ✅ **RESOLVED 2026-09-20 (PO): none, ever.** No engine default;
+   C2b authored every aura and cooldown that CAN carry a look instead
+   (§12d.5's table), so the question is moot rather than answered "none by
+   accident". Stat / resist passives stay bare by D2.
+5. ~~Does the `AuraRings` tint follow the layer palette?~~ ✅ **RESOLVED
+   2026-09-20 (PO): it stays the CATEGORY colour.** The ring is gameplay
+   information (range + category), the layers are dressing; `AuraRings` was
+   not touched in C2b.
 6. ~~Where does the `hitStyle` content deletion land, C0 or C2?~~
    ✅ **RESOLVED 2026-09-19 (PO): C2, with the code.** C0 touched `hitStyle`
    nowhere: not the Go enum, not `effectKeys`, not the two authored values,
@@ -528,6 +545,9 @@ C0 and C1 can be built in either order; C2a needs both.
   on a passive would load clean, draw nothing, and look like a renderer bug.
   ⚑ This is a LOAD rule, not a renderer rule; C2a still has to decide what an
   `ambient` layer does while an aura is equipped but not switched on.
+  ✅ **ANSWERED 2026-09-20 in C2b (§12d.4): it draws NOTHING.** The ambient
+  reconciler is fed `active_skill_id`, which is 0 while the aura is equipped
+  but off, and 0 disposes.
 
 ## 11. Docs this plan amends (C0's first task)
 
@@ -584,6 +604,27 @@ All ✅ **DONE 2026-09-19** unless marked otherwise.
   from the D6 aura-RANGE case, which is in the viewport and draws.
 - **The stun/slow conflation** (§40 update box) is NOT this plan's; a HIT
   event carries no applied-effect kind. Stays with §39.
+- ⚑ **A mob's `ambient` draws only while `aura_tick_interval > 0`** (C2b,
+  §12d.2), and that field is 0 for every effect type outside
+  `skills.HasVisibleTickCadence` (light, resist, speed, slow). A future mob
+  whose only aura is one of those loads clean, validates clean and draws NO
+  ambient, silently. No such mob exists at C2b (every mob aura in the batch
+  leads with a heal or a shield). The day one does, gate the mob feed on
+  something else (`aura_radius > 0`, or an `active_skill_id` on `Mob`), do not
+  widen `HasVisibleTickCadence`: that list drives the wind-up glow.
+- ⚑ **`auraSkillId` assumes ONE active aura per species and that a running
+  mob aura IS that one** (C2b, §12d.2). The catalog test makes a second
+  authored aura loud. What it cannot catch is a mob that SWITCHES auras at
+  runtime: it would wear the first aura's ambient look the whole time. That
+  day the answer is a wire field (`Mob.active_skill_id`, the `Character`
+  precedent), not a cleverer catalog.
+- ⚑ **`Event.trigger` UNSUBSCRIBES any listener that returns `true`**
+  (`core/logic/Events.ts:67`). `BrowserConsole` uses that on purpose as a
+  one-shot; copied into a settings listener it makes the listener work exactly
+  once and then go dead, which for the density slider read as "the first
+  change works, every later one does nothing". A long-lived
+  `GameSettingChangedEvent` listener returns nothing (`Audio.ts` / `Music.ts`
+  are the idiom). Hit and fixed in C2b.
 
 ## 12a. C1 execution spec (2026-09-19, re-verified against HEAD `9ebb1dab`)
 
@@ -986,7 +1027,349 @@ AoE and cooldown hits keep `impact`/`burst`. A missile's arrival is
 overhead mace `strike`/overhead (+ `impact`), the wolf bite stays
 `impact`/snap.
 
+## 12d. C2b execution spec (2026-09-20, re-verified against HEAD `5a8fd2e6`)
+
+Planned in the executing session; the PO answered the open questions up front
+(below). Everything not marked PO is an implementation call.
+
+### 12d.1 PO calls (2026-09-20)
+
+- ⭐ **§10 Q2, `low`: particle counts × 0.4 (`max(1, round(count * 0.4))`)
+  and `ambient` EMITTER layers draw only for the OWN character.** Every hit
+  kind, every orbit and every cast-pose is unchanged for everyone.
+- ⭐ **`off` is literal: no authored layer draws at all**, old kinds included
+  (strike, projectile, beam, impact). The wind-up glow and the floating
+  numbers stay; they are combat information, not dressing.
+- ⭐ **§10 Q3: mobile defaults to `low`**, desktop to `full`; a stored choice
+  always wins.
+- ⭐ **Batch scope: every aura and cooldown that CAN author a look gets one**
+  (the C2a precedent), by the written rule of §12d.5. Stat / resist passives
+  stay bare: D2 gives a passive the `hit` moment alone and they never hit.
+  That makes §10 Q4 (a category default) moot: **no engine default, ever.**
+- ⭐ **§10 Q5: the ring stays the category colour.** `AuraRings` is untouched.
+- ⭐ **The bow: Long-Range Strike and the two mob volleys** (`bandit-volley`,
+  `kobold-volley`) gain a `cast-pose`. **Suppression stays a bolt** (PO: it
+  is the "Frost Bolt" type spell, no bow).
+- ⭐ **Two new cheat-only skills** (the Lightning Strike precedent, no unlock
+  source, all numbers [PLACEHOLDER], registry pin 114 → 116):
+  **Whirling Axes** (id 77, cooldown): ONE `instant_damage` around the caster
+  at cast, numbers cloned from Shockwave, and the two axes orbit ~1.2 s as the
+  flourish of that hit (`orbit` on `fired` + `impact` per victim). PO chose
+  this over an active aura and over a new timed-damage effect type.
+  **Firebolt** (id 78, active aura): `fire`, ranged ring, nearest 1, numbers
+  cloned from Long-Range Strike; `projectile` + `impact`.
+- ⭐ **Delete both prototype branches** (`prototype/skill-visuals`,
+  `prototype/attack-lines`, local + origin): YES, at the END of the session,
+  after the PO look, by the lead and never by an agent.
+
+### 12d.2 Schema, corrected
+
+§9 said "Schema: NONE". It is not. **CATALOG: one field on the HTTP `/mobs`
+catalog (`auraSkillId`). CONTENT: `visual` on ~45 files, two new skills.
+DB NONE · WIRE NONE · CONF NONE.** Client-side only: one new `vfx` block in
+the browser-local `gameSettings` JSON.
+
+Why: `ambient` is STATE, resolved per §4.2 "from `active_skill_id` / the mob
+def". `Character` has `active_skill_id` (`server.fbs:355`); **`Mob` has no
+such field and the client `MobDefinition` carries no skills.** Every species
+authors at most ONE `active_aura` skill (checked over all of `api/mobs/`
+2026-09-20), so the species' aura skill id rides the catalog: Go serializer in
+`items/mobs/catalog.go` + its test, mirror in `client-data/Mobs.ts`. 0 = the
+species has no active aura. A mob's ambient is on exactly while its glow would
+be: `aura_tick_interval > 0` (so a pre-aggro gated mob draws none). ⚑ If a
+species ever authors two active auras this breaks; the catalog test pins "at
+most one" so that day is loud.
+
+### 12d.3 Units and per-trigger semantics (settled BEFORE the halves split)
+
+The C2a `width` lesson: two halves disagreed and a 0.35 px beam shipped.
+
+| Kind | Key | Meaning |
+| --- | --- | --- |
+| `emitter` | `count` | `ambient`: particles ALIVE at once (a steady loop) · `fired` / `hit`: particles in the one burst. Default 8. |
+| `emitter` | `ms` | one particle's lifetime, all triggers. Default 900. A `fired` / `hit` emitter lives exactly `ms`. |
+| `emitter` | `motion` | `swirl` = circles the anchor at ~70 % of the anchor's radius, slowly drifting outward, fading · `rise` = starts inside the anchor's disc, drifts UP (−y) ~40 px over its life, fading · `burst` = flies radially outward from the centre ~1.5× the anchor radius, fading. Default `rise`. |
+| `emitter` | anchor | `ambient` / `fired`: the caster · `hit`: the victim. |
+| `orbit` | `count` | bodies, evenly spaced. Default 2. |
+| `orbit` | `ms` | `fired`: the layer's whole DURATION (fade in/out inside it) · `ambient`: ignored for duration, the layer lives while the aura runs. Default 1200. |
+| `orbit` | speed | not authored: one revolution per 800 ms [PLACEHOLDER], radius = anchor radius + 14 px. |
+| `cast-pose` | `ms` | how long the body shows AFTER the FIRED moment. Default 250. |
+| all | `scale` | multiplies the body size (particle radius, orbit body, pose body). |
+
+All distances PIXELS, all durations ms, nothing random (index-seeded, the
+§7.2 rule). An emitter's two-body example (§4.3 heal: cross + mist) is TWO
+emitter layers, not a body list.
+
+### 12d.4 Engine (half A)
+
+All under `frontend/src/features/skill-fx/logic/` unless named.
+
+- `SkillFxMath.ts` + test, RED-FIRST: `orbitPoint(index, count, elapsedMs,
+  radiusPx)`, `orbitAlpha(elapsedMs, ms)`, `emitterParticle(motion, index,
+  count, elapsedMs, ms, radiusPx)` → `{x, y, alpha, scale}` (looping for
+  ambient: particle i is phase-offset by `i / count` of a lifetime),
+  `castPoseAlpha(elapsedMs, ms)`, `densityCount(count, density)`.
+- `SkillFxKinds.ts`: `CastPoseFx`, `OrbitFx`, `EmitterFx` replace the three
+  stubs; `stubHandler` / `warnedStubs` / the `stub` flag are deleted. The
+  seven-name pin stays green by construction.
+- ⚑ **Pixi v8 `ParticleContainer` takes textured `Particle`s, not
+  `Graphics`.** One small white circle texture (and one cross texture for the
+  heal) generated ONCE at `setup()` via `renderer.generateTexture`, tinted per
+  particle. If `ParticleContainer` fights the pools or the layer order, plain
+  pooled `Sprite`s off the same textures are acceptable at these counts
+  (≤ 12 per emitter); say which in the ledger.
+- Placeholder bodies (`SkillFxBodies.ts`): cast-pose = a small bow arc held
+  at the caster's edge, rotated toward the caster's facing if cheaply known,
+  else +X · orbit = two axe-ish wedges (the §4.1 placeholder), tinted ·
+  emitter = the circle; `body: "cross"` is NOT authored (C0: no `body` before
+  the atlas), so the heal's crosses are a second emitter layer whose `tint`
+  differs, circles both. Ugly on purpose.
+- **`on: fired` layers** already flow through `planSpawns` (caster at both
+  ends). Orbit / cast-pose / emitter on `fired` spawn from it; they follow the
+  caster's anchor per frame and STOP with their owner (§7.1): when the anchor's
+  shape leaves the stage they dispose, unlike a bolt.
+- ⭐ **The ambient reconciler, a NEW mechanism** (events cannot carry state).
+  Modelled on the `glows` Map: keyed by GameObject, fed by
+  `SkillFx.setAmbient(owner, skillId, radiusPx)` from the same sites that feed
+  the glow (`Character.ts:254/267` with `active_skill_id`; `Mobs.ts:367-408`
+  with `mobDefinition(id).auraSkillId` when `interval > 0`, else 0; the own
+  Character through the same `Character` path). A change of skill id disposes
+  the old layers and spawns the new skill's `ambient` layers; 0 disposes.
+  Positioned per frame on `PrerenderEvent`, dropped when the shape leaves the
+  stage, cleared by `reset()`. **§10.1's carried question is answered here:
+  equipped-but-off draws nothing** (`active_skill_id` 0).
+- **Budget:** ambient layers are NOT under the 96 cap (they are state, like
+  the glow; a campfire's mist must not be evicted by a combat burst). Counted
+  separately in `counters()` as `ambient`. Fired/hit layers stay under it.
+- **Density** (`SkillFxDensity.ts` or inside the manager): reads
+  `GameSettings.get().vfx.density`, subscribes to `GameSettingChangedEvent`.
+  `off`: `onSnapshot` spawns nothing, the reconciler holds nothing, a switch to
+  `off` disposes everything live at once; glow untouched. `low`:
+  `densityCount` on emitters, ambient EMITTER layers only when the owner is the
+  own character. `planSpawns` gains the density decision only if it stays pure
+  (pass the density in); test it there.
+- ⚑ **`cast-pose` shows at RELEASE.** FIRED is emitted when a cast is consumed
+  (`sys/skills.go:2104`) and on an aura beat (`:305`), so the bow appears as the
+  arrow leaves. Nobody builds a pre-cast pose off `cast_skill_id`.
+- `counters()` gains `ambient` and `density`.
+
+### 12d.5 Slider + content (half B)
+
+**Slider.** `GameSettings.ts`: `public readonly vfx = new VfxSettings()`,
+`density: 'off' | 'low' | 'full'`, default `isMobile() ? 'low' : 'full'`
+computed at construction (the `_merge` lets a stored value win). UI: a
+three-way control in `settings.partial.html` + `GameSettingsUI.ts` beside the
+audio block, labelled "Skill effects", `pointerdown`-safe per CLAUDE.md's HUD
+rule (check how the existing toggles listen and match it). Vitest: the default
+by platform, the stored-value-wins merge.
+
+**Catalog.** `auraSkillId` per §12d.2, red-first in `catalog_test.go`.
+
+**Content rule (all [PLACEHOLDER], no `body`; `tint` only where the palette
+has no answer, i.e. non-damage skills, which have no damage type):**
+
+| Family | Look | Files |
+| --- | --- | --- |
+| heal auras | `emitter` ambient `rise` ×2 (green mist + pale-green "crosses") | heal, lifewarden, rejuvenation · mobs: bandit-heal, healer-aura, camp-aura, campfire-aura (campfires: warm orange mist instead) |
+| shield auras | `orbit` ambient, count 3, pale blue | mobs: rally-drum, warbanner-shield |
+| resist auras | `orbit` ambient, count 2, tint by the resisted type | aegis, fire-ward, venomward, fire-vulnerability (red, it is a debuff) |
+| light | `emitter` ambient `rise`, count 4, warm yellow, sparse | lantern (⚑ `torch` is a passive: undressable under D2, by rule) |
+| speed / slow auras | `emitter` ambient `swirl`, white / frost | fly-you-fools, slow |
+| self cooldowns (heal, shield, resist, hot, haste, speed) | `emitter` fired `rise` or `burst` in the family colour | first-aid, recover, barrier, sanctuary, haste, swift, onward, bloodthirst, retribution · mobs: warlord-frenzy |
+| control cooldowns | `emitter` fired `burst` | taunt, fade, calm, charm-beast, charm-elemental, paralyze, revive, recall, dash |
+| summons / portals / throws | `emitter` fired `burst`, small | call-for-aid, field-medics, hold-the-line, fire-totem, summon-companion, summon-totem, summonspider, open-portal, pull-through, throw-bomb, throw-mine |
+| the bow (⚑ SUPERSEDED, see below) | + `cast-pose` fired ms 250 | long-range-strike · mobs: bandit-volley, kobold-volley (⚑ flips their `HasFired`: one FIRED per beat each, by PO call) |
+| NEW Whirling Axes (77) | `orbit` fired count 2 ms 1200 + `impact` hit burst | whirling-axes.json |
+| NEW Firebolt (78) | `projectile` + `impact` burst | firebolt.json |
+| bare, by rule | stat / resist passives and torch: D2 gives a passive `hit` alone and they never hit | antivenom, discipline, hardy, keen-eye, strong, thick-hide, tough, torch |
+
+⚑ **The bow row is SUPERSEDED by §12d.7:** the PO look moved all three files to
+`cast-pose` on **`hit`**, ms **500**, and un-did their `HasFired` flips (no
+FIRED per beat).
+
+`frost-shield` (passive, `retaliate_slow`): author `impact` on `hit` only if a
+HIT event actually exists for it (check `sys/` first); otherwise bare and say
+so. The agent runs `aurad -validate -content ../api` after the batch, then
+`make -C backend build` before any Go test. `TestVisual_TheNinePOExamples`
+already covers the vocabulary; the content pin is the registry count 116 and
+the new ids in the census tests.
+
+Docs in the same half: `manual-content-authoring.md` §2 (the §12d.3 table,
+the torch rule, the two-layer heal idiom), the `add-content` skill if it names
+kinds as stubs, `tools/content-editor/README.md` only if it lists catalog
+fields.
+
+### 12d.6 Verify tail C2b owes
+
+`go build` / `go vet` / `go test -count=1 ./...` · `make -C backend build` ·
+`-validate` 0 both ways · `npm run smoke` · editor `node --test` · inventory
+regenerated · frontend `npm test` / `typecheck` / `build` · real boot + join ·
+`skill-fx.mjs` gains legs: a campfire's ambient mist in view with NO combat ·
+Frostbite's swirl on the own player, gone when the aura is switched off ·
+Long-Range Strike: cast-pose + projectile + impact · Whirling Axes: an orbit
+on the cast · Heal: the rise emitter · density `off`: a fight spawns 0 Fx and
+0 ambient while the glow lives · density `low`: another actor's ambient
+emitter absent, own present · 0 console errors · `hygiene-wire-prune` clean ·
+screenshots at `full` and `low` for the look. Mutation ×3 minimum. ⛔ Not
+wrapped, not committed, branches not deleted before the PO look.
+
+### 12d.7 Amendments from the PO look (2026-09-20)
+
+Several rounds the same day, each one built and re-walked. ⭐ = a PO ruling.
+
+1. ⭐ **The bow moved from `fired` to `hit`.** "Only when damage is done, aimed
+   at the victim, and bigger." `cast-pose` is now legal on `hit` as well as
+   `fired` (vocabulary widened, fixture regenerated), the three bow files moved
+   there, and their `HasFired` flips were **un-done**: no FIRED event per aura
+   beat any more. One pose per (source, skill) per snapshot, aimed at the FIRST
+   victim, size 1.1 × the caster's radius. Then: "linger twice as long" → the
+   three files and the `cast-pose` default both go **ms 500** (§12d.3's table
+   said 250).
+2. ⭐ **Whirling Axes must show the REAL range and start at the player.** A
+   `cast`-side `orbit` on a skill with a reach now draws HELD axes: the haft
+   comes out of the hand and the bit rides the inside of the range ring. New
+   `reachPx` on the plan entries, resolved from the skill's widest effect radius
+   **at LEVEL 1** (other actors' skill levels are not on the wire). Ambient
+   orbits are unchanged: anchor radius + pad.
+3. ⭐ **Heal and campfire motes were "too massive"**: a particle's radius is
+   0.16 × the anchor radius with a 6 px cap, before `scale`.
+4. ⭐ **The bite must read as jaws.** Two toothed jaws (8 teeth, the middle
+   pair long fangs), each drawn ONCE and closed by TRANSLATION (`snapOpenOf`);
+   the lead's own perf review flagged the first per-frame-redraw version.
+5. ⭐ **A weapon is HELD.** First ruling: "size must not depend on distance."
+   An hour later, having walked the fixed-size version: "the hilt must never
+   float; start at the player and extend to max range, I would rather it go
+   through mobs." So a strike's length = the skill's reach minus the hand
+   offset, the stab grows out of the hand (x-stretch, the C2a look), and the
+   blade **passes through closer victims BY RULING**.
+6. ⭐ **The overhead swing, from a PO sketch.** The hammer is raised 90° off
+   the aim on the screen-UP side (`overheadSide`, latched once per swing),
+   holds there through the wind-up, then swings down accelerating; the contact
+   moment is unchanged. Red-first rewrite, and the "never past the victim
+   before contact" invariant is now measured along the aim.
+7. ⭐ **The hammer head was enlarged**: a block ACROSS the shaft, sized off the
+   weapon's length.
+
+⚑ **Two spec paragraphs went stale.** §12d.4's `ParticleContainer` paragraph is
+moot: **pixi.js 8.4.1 ships no `ParticleContainer` / `Particle`**, so particles
+are pooled `Graphics` (≤ 12 per layer), which is the "acceptable at these
+counts" fallback that paragraph already allowed. §12d.4's "`cast-pose` shows at
+RELEASE" still holds for a `fired` pose; the bow simply is not one any more.
+
 ## 13. Ledger
+
+### C2b ledger (2026-09-20) - the other three kinds + the density slider
+
+✅ **BUILT 2026-09-20** `[uncommitted]`, **PO look PASSED**. Spec: §12d, with
+the PO's calls up front in §12d.1 and the seven amendments the look rounds
+forced in §12d.7. Built by two Opus agents in parallel (engine half / slider +
+catalog + content half) plus the lead's fixes; the lead reran every verify step
+at the final tree.
+
+**Schema: DB NONE · WIRE NONE · CONF NONE · CATALOG one field, `auraSkillId`,
+on the HTTP `/mobs` catalog.** §9 said "Schema: NONE" and was wrong: `Mob`
+carries no `active_skill_id` and the mob catalog served no skills at all, so a
+mob's running aura had no id client-side. Every species authors at most ONE
+active aura (pinned by the catalog test), so the id rides the catalog.
+**CONTENT:** `visual` on 46 more files + the bow layer on 3, **two new
+cheat-only skills** (Whirling Axes id 77 cooldown, Firebolt id 78 active aura),
+registry pin **114 → 116** (78 player + 38 mob), 107 of 116 skills dressed, 129
+layers; vocabulary: `cast-pose` is legal on `hit` as well as `fired` (fixture
+regenerated). Client-only: a `vfx.density` block in the browser-local
+`gameSettings` JSON.
+
+**What was built**
+
+- The three remaining kinds are real: `CastPoseFx`, `OrbitFx`, `EmitterFx`;
+  `stubHandler` / `warnedStubs` / the `stub` flag are deleted.
+- ⭐ **The ambient reconciler**, the chunk's one new mechanism (events cannot
+  carry state): `SkillFx.setAmbient(owner, skillId, own)`, keyed by GameObject
+  exactly like the glows, fed from `Character.setAuraTick` with
+  `active_skill_id` ALONE and from `Mobs.setAuraTick` with
+  `mobDefinition().auraSkillId` gated on `interval > 0`. A skill-id change
+  disposes the old layers and spawns the new ones; 0 disposes.
+  ⚑ **The character feed is deliberately NOT interval-gated**, or Lantern (a
+  light aura, no visible tick cadence) would never draw.
+- **Ambient layers are NOT under the 96 budget** (they are state, like the
+  glow: a campfire's mist must not be evicted by a combat burst) and are
+  counted separately. `counters()` gained `ambient`, `glows` and `density`;
+  `window.game.settings()` exists for the harness.
+- The **density slider** Off / Low / Full in the settings panel, labelled
+  "Skill effects": `low` = particle counts × 0.4 (min 1) + ambient EMITTERS
+  only for the own character, `off` = no authored layer at all (the wind-up
+  glow and the floating numbers stay), mobile default `low`, a stored value
+  always wins.
+- A per-skill cache of look / colour / reach in `visualOf`, which **never
+  caches an unknown skill**: the catalog loads async, so an early miss must
+  not be remembered.
+
+**Implementation calls (not PO calls)**
+
+- ⚑ **pixi.js 8.4.1 has NO `ParticleContainer` / `Particle`.** Particles are
+  pooled `Graphics`, ≤ 12 per layer (the fallback §12d.4 allowed).
+- ⭐ **A placeholder judged by COUNTERS can be invisible in PIXELS.** The first
+  emitters passed 13 harness legs while being 4 px dots hidden behind the
+  sprite. The lead found it in a screenshot, not in an assertion; leg 12's shot
+  now arms on the orbit spawn counter (the C2a trick).
+- `cast-pose` on `fired` shows at RELEASE (FIRED is emitted on a consumed
+  cast). `scale` multiplies the BODY, never the spread. `ms` is deliberately
+  not authored on ambient orbits: the layer lives while the aura runs.
+- **`frost-shield` stays BARE**: a `retaliate_slow` records no HIT event at
+  all (`noteHit` is written only in `takeDamage` / `Heal`), so an authored
+  `impact` would never draw. `torch` and the stat / resist passives are
+  undressable under D2, by rule.
+- Icons: Whirling Axes `lorc/scythe`, Firebolt `carl-olsen/flame`.
+
+**Red→green, stated honestly.** The overhead rewrite (§12d.7 item 6) WAS
+red-first. ⚑ **The lead's `cast-pose` plan tests were written AFTER the code**,
+not red-first. **Mutation ×5, each reverted by hand:** two against the agents'
+work (math, plan) and three content ones (`cast-pose` on `hit` before the
+ruling made it legal, an `ambient` on a cooldown, `curve` on an emitter: all
+three refused by Go AND by smoke). ⚑ Disclosed: one agent accidentally
+imported the harness during a syntax check; it died on connection refused, no
+side effect.
+
+**Verify tail** (lead, final tree): `go build` / `go vet` clean ·
+`go test -count=1 ./...` **35 packages ok, 0 failures** (DB tests skip, no
+`-race`) · `make -C backend build` · `-validate` **0 findings both ways** ·
+`npm run smoke` **0 findings / 116 files / 173 effects / 129 layers** · editor
+`node --test` 2/2 · inventory regenerated · frontend `npm test` **812 / 44**
+(was 772 / 43), `typecheck` + prod build clean · real boot `count=116` skills,
+63 mobs, `/mobs` serves `auraSkillId` (Campfire 109).
+
+**Harness gate.** `skill-fx.mjs` **PASS, 13 legs / 18 assertions**, run three
+times (twice mid-session, once at the final tree; that last run's first attempt
+hit the documented post-restart join race and the rerun passed). New legs: 7 a
+campfire's ambient mist with NO combat · 8 Frostbite's swirl on and disposed
+when the aura goes off · 9 density `low` · 10 density `off` (0 Fx across a real
+fight, the glows alive) · 11 Heal's two emitters · 12 Whirling Axes' orbit; leg
+2 also asserts the cast-pose. **Not run:** `hygiene-wire-prune.mjs` (no wire
+change) · `content-editor-skills-tab.mjs` · a two-window leg · loadbot · a real
+phone. ⚑ Harness residue: `hrnss_*` characters are still in the dev DB (the
+cleanup wants `aurad` stopped; not done).
+
+**⭐ The PO look, several rounds in one day.** Each verdict was built and
+re-walked the same session: §12d.7 is the list. On the bow after the move to
+`hit`: *"the bow works now"*. On the overhead swing: *"that works well"*.
+Final: ⭐ **"works, I think with this the chunk is done."**
+
+**Still open after the wrap** (none of it blocks C3):
+
+- **C3 (art) and C4 (world scale)** are the remaining chunks.
+- ⚑ **Ambient layers are UNBUDGETED and UNMEASURED.** They sit outside the 96
+  cap by design and nobody has counted them at density 10× or on a phone; that
+  is C4's first question, not a C2b defect.
+- The reach used by a held weapon or the axes is the **LEVEL 1** radius, so a
+  levelled skill's body ends slightly inside its real ring. Exact for the OWN
+  player is possible later (the own skill levels are known client-side); for
+  other actors it needs the wire.
+- Three new traps are recorded in §12 Landmines, not repeated here: a mob's
+  ambient is gated on `aura_tick_interval > 0` · `auraSkillId` assumes ONE
+  active aura per species and cannot see a runtime switch · `Event.trigger`
+  UNSUBSCRIBES a listener that returns `true` (it made the density slider work
+  exactly once).
+- Carried from C2a: Lightning Strike still wears `lorc/star-swirl` ·
+  `hygiene-wire-prune` unrun · no everyday player skill authors `overhead`.
 
 ### C2a ledger (2026-09-19) - the engine + three kinds
 
@@ -1101,10 +1484,10 @@ ingame look passes"**. C2a is done.
 
 **Still open after the wrap** (none of it blocks C2b):
 
-- ⛔ **A PO yes/no on deleting `prototype/skill-visuals` and
-  `prototype/attack-lines`** (local + origin). Both are quarried out now (the
-  math module came over, backlog §57's shipped version IS this chunk), but a
-  branch deletion is a PO ask, **never autonomous**.
+- ✅ ~~A PO yes/no on deleting `prototype/skill-visuals` and
+  `prototype/attack-lines`~~ **ANSWERED 2026-09-20 (PO): YES**, local + origin,
+  by the lead right after the C2b commit. Both were quarried out (the math
+  module came over, backlog §57's shipped version IS this chunk).
 - Lightning Strike wears `lorc/star-swirl`: a real lightning glyph needs a
   fetch + a client icon write, a follow-up.
 - **No everyday player skill authors `overhead`** - only Harvest and Pickaxe,

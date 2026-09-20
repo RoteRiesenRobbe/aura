@@ -8,6 +8,11 @@
   "cooldownTicks": 3600,
   "description": "It keeps its own level, and turns on you when the charm ends.",
   "targetFactions": ["wildlife_prey", "wildlife_predator"],
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 8, "ms": 500, "tint": "#e06ad0" }
+    ]
+  },
   "effects": [
     {
       "type": "charm",

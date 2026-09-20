@@ -5,6 +5,11 @@
   "icon": "lorc/lantern-flame",
   "category": "active_aura",
   "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "ambient", "motion": "rise", "count": 4, "ms": 1800, "tint": "#ffd88a" }
+    ]
+  },
   "effects": [
     {
       "type": "light_aura",

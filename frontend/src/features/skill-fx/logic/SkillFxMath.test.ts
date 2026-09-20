@@ -3,24 +3,41 @@ import {
     BEAM_EXTEND_FADE_FRACTION,
     beamExtend,
     beamFlash,
+    BURST_REACH_FACTOR,
+    CAST_POSE_DEFAULT_MS,
+    castPoseAlpha,
     chainOrder,
     clamp01,
     contactMs,
+    densityCount,
+    EMITTER_DEFAULT_MS,
+    EMITTER_FADE_IN_FRACTION,
+    emitterParticle,
     flightMs,
     GLOW_BASE_ALPHA,
     GLOW_MAX_ALPHA,
     IMPACT_CURVE_MS,
     impactPhase,
     jaggedPolyline,
+    ORBIT_FADE_MS,
+    ORBIT_PERIOD_MS,
+    orbitAlpha,
+    orbitPoint,
     PROJECTILE_MAX_MS,
     PROJECTILE_MIN_MS,
     PROJECTILE_SPEED_PX_PER_S,
     projectilePoint,
+    RISE_DRIFT_PX,
+    OVERHEAD_RAISE_RAD,
+    OVERHEAD_WINDUP_FRACTION,
+    overheadSide,
     STRIKE_CURVE_MS,
+    SWIRL_RADIUS_FRACTION,
     StrikeCurve,
     strikePhase,
     swingDirection,
     SWING_HALF_ARC_RAD,
+    snapOpenOf,
     windUpGlowAlpha,
 } from './SkillFxMath';
 
@@ -109,8 +126,10 @@ describe('strikePhase', () => {
     // weapon's far end (its head) sits at offset + extend * scale. That head is
     // the invariant every style is judged by: never past the victim before
     // contact, exactly on the victim at contact.
-    const head = (p: { extend: number, offset: number, scale: number }) =>
-        p.offset + p.extend * p.scale;
+    // Measured ALONG THE AIM: a weapon held off to the side (the swing's arc,
+    // the raised overhead) reaches only its projection toward the victim.
+    const head = (p: { extend: number, offset: number, scale: number, angleOffset: number }) =>
+        (p.offset + p.extend * p.scale) * Math.cos(p.angleOffset);
 
     const samples = (curve: StrikeCurve, total: number, count: number) =>
         Array.from({length: count + 1}, (_, i) => strikePhase(curve, (total * i) / count, total));
@@ -155,22 +174,33 @@ describe('strikePhase', () => {
         expect(end.alpha).toBeGreaterThan(0);
     });
 
-    it('winds the overhead up before it falls, and lands on the victim', () => {
+    it('raises the overhead a quarter turn off the aim, then swings it down onto the victim', () => {
         const total = STRIKE_CURVE_MS.overhead;
         const contact = contactMs('overhead', total);
-        // Raised toward the camera during the wind-up, back to its own size on
-        // the landing.
+        // PO 2026-09-20: the hammer starts 90 degrees off the line to the
+        // victim and HOLDS there for the wind-up...
+        expect(strikePhase('overhead', 0, total).angleOffset).toBeCloseTo(-OVERHEAD_RAISE_RAD);
+        expect(strikePhase('overhead', contact * 0.4, total).angleOffset)
+            .toBeCloseTo(-OVERHEAD_RAISE_RAD);
+        // ...raised toward the camera while it is up there...
         expect(strikePhase('overhead', contact * 0.5, total).scale).toBeGreaterThan(1);
+        // ...then falls, accelerating, and is ON the aim at its own size at contact.
+        const early = strikePhase('overhead', contact * 0.75, total).angleOffset;
+        const late = strikePhase('overhead', contact * 0.95, total).angleOffset;
+        expect(early).toBeLessThan(late);
+        expect(late).toBeLessThan(0);
+        // Heavy: halfway through the fall's TIME it has covered under half the arc.
+        const fallStart = total * OVERHEAD_WINDUP_FRACTION;
+        expect(strikePhase('overhead', (fallStart + contact) / 2, total).angleOffset)
+            .toBeLessThan(-OVERHEAD_RAISE_RAD / 2);
+        expect(strikePhase('overhead', contact, total).angleOffset).toBeCloseTo(0);
         expect(strikePhase('overhead', contact, total).scale).toBeCloseTo(1);
-        expect(strikePhase('overhead', contact, total).extend).toBeCloseTo(1);
-        // Pulled back behind the attacker while winding up.
-        expect(strikePhase('overhead', total * 0.4, total).offset).toBeLessThan(0);
-        expect(strikePhase('overhead', contact, total).offset).toBeCloseTo(0);
-        // And never reaches past the victim before it lands.
-        for (let i = 0; i < 20; i++) {
-            expect(head(strikePhase('overhead', (contact * i) / 20, total))).toBeLessThan(1);
-        }
-        expect(head(strikePhase('overhead', contact, total))).toBeCloseTo(1);
+        // It is a held, fixed-size weapon the whole way: it pivots, never
+        // stretches and never leaves the hand.
+        samples('overhead', total, 10).slice(0, 10).forEach((p) => {
+            expect(p.extend).toBeCloseTo(1);
+            expect(p.offset).toBeCloseTo(0);
+        });
         // Holds a beat on the victim, then fades.
         expect(strikePhase('overhead', contact + 1, total).alpha).toBe(1);
         expect(strikePhase('overhead', total * 0.95, total).alpha).toBeLessThan(1);
@@ -344,5 +374,186 @@ describe('windUpGlowAlpha', () => {
     });
     it('is 0 without an active aura, which is the hidden state', () => {
         expect(windUpGlowAlpha(0, 12)).toBe(0);
+    });
+});
+
+// --- C2b: the other three kinds --------------------------------------------
+
+describe('orbitPoint', () => {
+    it('spaces the bodies evenly around the anchor', () => {
+        const a = orbitPoint(0, 2, 0, 100);
+        const b = orbitPoint(1, 2, 0, 100);
+        expect(a.x).toBeCloseTo(100);
+        expect(a.y).toBeCloseTo(0);
+        expect(b.x).toBeCloseTo(-100);
+        expect(b.y).toBeCloseTo(0);
+    });
+
+    it('completes exactly one revolution per ORBIT_PERIOD_MS', () => {
+        const start = orbitPoint(0, 3, 0, 80);
+        const round = orbitPoint(0, 3, ORBIT_PERIOD_MS, 80);
+        expect(round.x).toBeCloseTo(start.x);
+        expect(round.y).toBeCloseTo(start.y);
+        const half = orbitPoint(0, 3, ORBIT_PERIOD_MS / 2, 80);
+        expect(half.x).toBeCloseTo(-80);
+    });
+
+    it('stays on the radius it was given', () => {
+        for (const ms of [0, 137, 640, 3_000]) {
+            const p = orbitPoint(1, 4, ms, 55);
+            expect(Math.hypot(p.x, p.y)).toBeCloseTo(55);
+        }
+    });
+
+    it('treats a count of 0 as a single body rather than dividing by zero', () => {
+        const p = orbitPoint(0, 0, 0, 30);
+        expect(Number.isFinite(p.x) && Number.isFinite(p.y)).toBe(true);
+    });
+});
+
+describe('orbitAlpha', () => {
+    it('fades in, holds, and fades out inside a fired layer lifetime', () => {
+        expect(orbitAlpha(0, 1_200)).toBe(0);
+        expect(orbitAlpha(ORBIT_FADE_MS, 1_200)).toBeCloseTo(1);
+        expect(orbitAlpha(600, 1_200)).toBeCloseTo(1);
+        expect(orbitAlpha(1_200 - ORBIT_FADE_MS / 2, 1_200)).toBeCloseTo(0.5);
+        expect(orbitAlpha(1_200, 1_200)).toBe(0);
+        expect(orbitAlpha(5_000, 1_200)).toBe(0);
+    });
+
+    it('never fades out for an ambient layer, which lives while the aura runs', () => {
+        expect(orbitAlpha(0, 0)).toBe(0);
+        expect(orbitAlpha(ORBIT_FADE_MS, 0)).toBeCloseTo(1);
+        expect(orbitAlpha(600_000, 0)).toBeCloseTo(1);
+    });
+});
+
+describe('castPoseAlpha', () => {
+    it('holds the body, then fades it out over the tail of its ms', () => {
+        expect(castPoseAlpha(0, 250)).toBeCloseTo(1);
+        expect(castPoseAlpha(150, 250)).toBeCloseTo(1);
+        expect(castPoseAlpha(250, 250)).toBe(0);
+        // Halfway down the fade tail.
+        expect(castPoseAlpha(200, 250)).toBeCloseTo(0.5);
+    });
+
+    it('falls back to the default lifetime when the layer authors no ms', () => {
+        expect(castPoseAlpha(CAST_POSE_DEFAULT_MS - 1, 0)).toBeGreaterThan(0);
+        expect(castPoseAlpha(CAST_POSE_DEFAULT_MS, 0)).toBe(0);
+    });
+});
+
+describe('emitterParticle', () => {
+    it('rises: starts inside the anchor disc and drifts up by RISE_DRIFT_PX', () => {
+        const start = emitterParticle('rise', 0, 8, 0, 900, 40);
+        expect(Math.hypot(start.x, start.y)).toBeLessThanOrEqual(40);
+        const end = emitterParticle('rise', 0, 8, 899, 900, 40);
+        expect(end.y).toBeCloseTo(start.y - RISE_DRIFT_PX, 0);
+        expect(end.x).toBeCloseTo(start.x);
+    });
+
+    it('swirls: circles at ~70 % of the anchor radius and drifts outward', () => {
+        const start = emitterParticle('swirl', 0, 8, 0, 900, 100);
+        expect(Math.hypot(start.x, start.y)).toBeCloseTo(100 * SWIRL_RADIUS_FRACTION);
+        const late = emitterParticle('swirl', 0, 8, 810, 900, 100);
+        expect(Math.hypot(late.x, late.y)).toBeGreaterThan(Math.hypot(start.x, start.y));
+    });
+
+    it('bursts: flies radially outward to ~1.5x the anchor radius', () => {
+        const start = emitterParticle('burst', 3, 8, 0, 900, 30);
+        expect(Math.hypot(start.x, start.y)).toBeCloseTo(0);
+        const end = emitterParticle('burst', 3, 8, 899, 900, 30);
+        expect(Math.hypot(end.x, end.y)).toBeCloseTo(30 * BURST_REACH_FACTOR, 0);
+        // Radially outward: the direction never changes over the life.
+        const mid = emitterParticle('burst', 3, 8, 450, 900, 30);
+        expect(Math.atan2(mid.y, mid.x)).toBeCloseTo(Math.atan2(end.y, end.x));
+    });
+
+    it('fades in from nothing and out to nothing, so a looped respawn never pops', () => {
+        expect(emitterParticle('rise', 0, 8, 0, 900, 40).alpha).toBe(0);
+        expect(emitterParticle('rise', 0, 8, 900 * EMITTER_FADE_IN_FRACTION, 900, 40).alpha)
+            .toBeCloseTo(1);
+        expect(emitterParticle('rise', 0, 8, 900, 900, 40).alpha).toBe(0);
+    });
+
+    it('is deterministic: the same arguments always give the same particle', () => {
+        expect(emitterParticle('swirl', 5, 8, 321, 900, 40))
+            .toEqual(emitterParticle('swirl', 5, 8, 321, 900, 40));
+    });
+
+    it('spreads a burst over distinct directions per index', () => {
+        const angles = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+            const p = emitterParticle('burst', i, 8, 450, 900, 30);
+            return Math.atan2(p.y, p.x).toFixed(4);
+        });
+        expect(new Set(angles).size).toBe(8);
+    });
+
+    it('loops for ambient: particle i is phase-offset by i / count of a lifetime', () => {
+        // Particle 2 of 4, half a lifetime in, sits where particle 0 sits a
+        // full half-life plus 2/4 in - one steady stream, never all at once.
+        const looped = emitterParticle('rise', 2, 4, 0, 900, 40, true);
+        const plain = emitterParticle('rise', 2, 4, 900 * 0.5, 900, 40);
+        expect(looped.y).toBeCloseTo(plain.y);
+        // And it never dies: a lifetime later it is back at its own start.
+        const wrapped = emitterParticle('rise', 2, 4, 900, 900, 40, true);
+        expect(wrapped.y).toBeCloseTo(looped.y);
+    });
+
+    it('falls back to the default lifetime when the layer authors no ms', () => {
+        expect(emitterParticle('rise', 0, 8, EMITTER_DEFAULT_MS, 0, 40).alpha).toBe(0);
+        expect(emitterParticle('rise', 0, 8, EMITTER_DEFAULT_MS / 2, 0, 40).alpha)
+            .toBeGreaterThan(0);
+    });
+});
+
+describe('densityCount', () => {
+    // The PO's rule (§12d.1): `low` is 40 % of every emitter, never zero.
+    it('keeps every particle at full', () => {
+        expect(densityCount(8, 'full')).toBe(8);
+        expect(densityCount(1, 'full')).toBe(1);
+    });
+    it('thins to 40 %, rounded, with a floor of one', () => {
+        expect(densityCount(8, 'low')).toBe(3);
+        expect(densityCount(12, 'low')).toBe(5);
+        expect(densityCount(2, 'low')).toBe(1);
+        expect(densityCount(1, 'low')).toBe(1);
+    });
+    it('draws nothing at off', () => {
+        expect(densityCount(8, 'off')).toBe(0);
+    });
+    it('never invents a particle for a layer that authored none', () => {
+        expect(densityCount(0, 'low')).toBe(0);
+        expect(densityCount(-3, 'full')).toBe(0);
+    });
+});
+
+describe('snapOpenOf', () => {
+    it('reads wide open at the start of a snap and shut once it has closed', () => {
+        expect(snapOpenOf(impactPhase('snap', 0, 200).scale)).toBe(1);
+        expect(snapOpenOf(impactPhase('snap', 100, 200).scale)).toBeCloseTo(0, 5);
+        expect(snapOpenOf(impactPhase('snap', 180, 200).scale)).toBeCloseTo(0, 5);
+    });
+
+    it('closes monotonically', () => {
+        const at = (ms: number) => snapOpenOf(impactPhase('snap', ms, 200).scale);
+        expect(at(20)).toBeGreaterThan(at(50));
+        expect(at(50)).toBeGreaterThan(at(90));
+    });
+});
+
+describe('overheadSide', () => {
+    // The raised hammer sits at aim - side * 90 degrees, and -y is UP on screen.
+    const raisedY = (aim: number) => Math.sin(aim - overheadSide(aim) * OVERHEAD_RAISE_RAD);
+
+    it('raises the hammer toward the TOP of the screen whichever way the victim is', () => {
+        for (const aim of [0, 0.6, -0.6, Math.PI, Math.PI - 0.6, -Math.PI + 0.6, 2.5, -2.5]) {
+            expect(raisedY(aim)).toBeLessThan(0);
+        }
+    });
+
+    it('still answers for a victim straight above or below', () => {
+        expect(Math.abs(overheadSide(Math.PI / 2))).toBe(1);
+        expect(Math.abs(overheadSide(-Math.PI / 2))).toBe(1);
     });
 });

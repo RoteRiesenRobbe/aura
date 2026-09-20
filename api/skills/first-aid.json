@@ -7,6 +7,11 @@
   "maxLevel": 5,
   "cooldownTicks": 900,
   "cooldownTicksPerLevel": 0,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "rise", "count": 8, "ms": 600, "tint": "#4fbf6a" }
+    ]
+  },
   "effects": [
     {
       "type": "self_heal",

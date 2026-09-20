@@ -10,6 +10,11 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-09-20, the skill VFX C2b wrap rotated the cap, so SKILL VFX C1
+moved here verbatim.)*
+
+- **Prior: SKILL VFX C1, the wire** ✅ 2026-09-19 `194a0cd5` (ledger: `docs/plan-skill-vfx.md` §13 C1, spec §12a): ⭐ **a per-hit `SkillEvent` (FIRED + HIT) recorded INSIDE the four damage/heal funnels**, on a per-entity list the codec concatenates per viewer (no game-wide sink; a quiet tick ships nothing). Payloads carry caster + skill id; ⚑ `DueBuffEvents` DID discard the DoT's skill id (fixed). ⭐ **Floating numbers are own-caused only (D6)**: other players' and mob-vs-mob numbers are gone, by ruling. PO calls: FIRED on every consumed cast + flagged auras · `Mob.owner_id` = the CREDITED player (a charm counts) · one event per landing (a full absorb draws a grey "Absorbed"). ⚑ Departures: `aura_hit_style` NOT deprecated (C2's lever) · `MobJuice` out of scope. **Schema DB/conf/content NONE; WIRE appended (enum + table + vector + `Mob.owner_id`) + 5 field names deprecated.** Verified: 35 pkgs 0 failures · determinism + guardrails + alloc pins · `-validate` 0 both ways · smoke 0/113 · frontend 694/39 · mutation ×9 · `immune-feedback` PASS, `hygiene-wire-prune` clean, `r3-lifesteal-burst` 7/7 · ⭐ **loadbot A/B/A/B at 50 combat bots: C1 inside the baseline spread, D10 STANDS**. ⚑ A dropped FlatBuffers accessor is a RUNTIME break on the client (`tsc` + vitest stayed green). ⭐ **PO walk: "everything works as intended"** (two windows, summon incl.).
+
 *(2026-09-20, the mob single-target wrap rotated the cap, so SKILL VFX C0
 moved here verbatim.)*
 

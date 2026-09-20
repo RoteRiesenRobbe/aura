@@ -7,6 +7,11 @@
   "maxLevel": 5,
   "cooldownTicks": 600,
   "cooldownTicksPerLevel": -30,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 8, "ms": 600, "tint": "#f2f6ff" }
+    ]
+  },
   "effects": [
     {
       "type": "speed_burst",

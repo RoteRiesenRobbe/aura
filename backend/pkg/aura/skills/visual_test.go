@@ -349,6 +349,9 @@ func TestVisual_D2TriggersByCategory(t *testing.T) {
 		{category: "passive", on: "fired", kind: "cast-pose", ok: false},
 		{category: "cooldown", on: "ambient", kind: "emitter", ok: false},
 		{category: "cooldown", on: "fired", kind: "cast-pose", ok: true},
+		// PO 2026-09-20: the bow shows only when damage is done and aims at
+		// the victim, so a cast-pose has a hit moment too.
+		{category: "active_aura", on: "hit", kind: "cast-pose", ok: true},
 		{category: "cooldown", on: "hit", kind: "impact", ok: true},
 		{category: "cooldown", on: "hit", kind: "strike", ok: true},
 		{category: "active_aura", on: "ambient", kind: "emitter", ok: true},

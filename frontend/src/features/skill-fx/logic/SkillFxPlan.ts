@@ -24,6 +24,7 @@
  */
 import type {VisualLayer} from '../../../client-data/Skills';
 import type {SkillEventData} from '../../backend/logic/SkillEventNumbers';
+import type {VfxDensity} from '../../game-settings/logic/GameSettings';
 import {CHAIN_HOP_STAGGER_MS, chainOrder, flightMs, strikeContactMsOf} from './SkillFxMath';
 
 /** Where an entity is, in world space - the only geometry the plan needs. */
@@ -37,6 +38,8 @@ export interface SkillVisual {
     layers: readonly VisualLayer[];
     /** the skill's damage-type colour; a layer's own `tint` still overrides it */
     baseColor: number;
+    /** the skill's authored reach in px, 0 for none: a cast's `orbit` circles AT it */
+    reachPx?: number;
 }
 
 /** undefined = this skill authors no visual at all. */
@@ -55,6 +58,8 @@ export interface SpawnPlan {
     /** ms after the snapshot's own moment */
     delayMs: number;
     baseColor: number;
+    /** the skill's reach in px, 0 for none (see SkillVisual) */
+    reachPx: number;
     /** per LANDING, so one landing's layers share a bolt shape and a sweep direction */
     seed: number;
 }
@@ -68,10 +73,13 @@ let seedCounter = 0;
 
 /** One event resolved against the client's world: who, where, which layers. */
 interface Landing {
+    /** `source:skill`, the key one snapshot's poses are deduplicated on */
+    castKey: string;
     source: number;
     victim: number;
     layers: readonly VisualLayer[];
     baseColor: number;
+    reachPx: number;
     seed: number;
     /** where the caster is */
     casterAt: PlanPoint;
@@ -89,7 +97,14 @@ interface ChainVictim extends PlanPoint {
  */
 export function planSpawns(
     events: readonly SkillEventData[], visualOf: VisualOf, pointOf: PointOf,
+    density: VfxDensity = 'full',
 ): SpawnPlan[] {
+    // `off` is literal (PO, §12d.1): no authored layer draws, old kinds
+    // included. Before the seed counter moves, so a session spent at `off`
+    // does not silently advance every later swing's direction.
+    if (density === 'off') {
+        return [];
+    }
     const chained = new Map<string, Landing[]>();
     const plain: Landing[] = [];
     events.forEach((event) => {
@@ -111,7 +126,8 @@ export function planSpawns(
     });
 
     const plan: SpawnPlan[] = [];
-    plain.forEach(landing => emit(plan, landing, landing.source, landing.casterAt, 0));
+    const posed = new Set<string>();
+    plain.forEach(landing => emit(plan, posed, landing, landing.source, landing.casterAt, 0));
 
     chained.forEach((group) => {
         // The hop order is over POSITIONS, so the ordered victims come back as
@@ -122,13 +138,32 @@ export function planSpawns(
             const previous = index === 0 ? null : hops[index - 1].to.landing;
             const landing = hop.to.landing;
             emit(
-                plan, landing,
+                plan, posed, landing,
                 previous === null ? landing.source : previous.victim,
                 previous === null ? landing.casterAt : previous.at,
                 index * CHAIN_HOP_STAGGER_MS);
         });
     });
     return plan;
+}
+
+/**
+ * Which of a skill's layers the ambient reconciler holds for one owner
+ * (plan-skill-vfx.md §12d.4). Ambient is STATE, not an event, so this is the
+ * whole of the deciding: everything else about it is the Pixi half's.
+ *
+ * The density rules are the PO's (§12d.1): `off` draws no authored layer at
+ * all, and `low` drops ambient EMITTERS for everyone but the own character -
+ * an ambient ORBIT still draws on every actor, at every density but `off`.
+ */
+export function planAmbient(
+    layers: readonly VisualLayer[], density: VfxDensity, own: boolean,
+): VisualLayer[] {
+    if (density === 'off') {
+        return [];
+    }
+    return layers.filter(l =>
+        l.on === 'ambient' && !(density === 'low' && !own && l.kind === 'emitter'));
 }
 
 function isChainedBeam(def: VisualLayer): boolean {
@@ -161,10 +196,12 @@ function landingFor(
         return null;
     }
     return {
+        castKey: `${event.source}:${event.skillId}`,
         source: event.source,
         victim,
         layers,
         baseColor: visual.baseColor,
+        reachPx: visual.reachPx ?? 0,
         seed: seedCounter++,
         casterAt,
         at,
@@ -178,10 +215,19 @@ function landingFor(
  * later of the two wins - the mark belongs to whatever touched the victim last.
  */
 function emit(
-    plan: SpawnPlan[], landing: Landing, from: number, fromAt: PlanPoint, baseDelayMs: number,
+    plan: SpawnPlan[], posed: Set<string>, landing: Landing,
+    from: number, fromAt: PlanPoint, baseDelayMs: number,
 ): void {
     const arrival = Math.max(projectileFlightMs(landing, fromAt), strikeContactMs(landing));
     landing.layers.forEach((def) => {
+        // An archer holds ONE bow: a multi-target beat draws its pose once,
+        // aimed at the first victim, while every victim still gets its arrow.
+        if (def.kind === 'cast-pose') {
+            if (posed.has(landing.castKey)) {
+                return;
+            }
+            posed.add(landing.castKey);
+        }
         plan.push({
             def,
             source: landing.source,
@@ -189,6 +235,7 @@ function emit(
             victim: landing.victim,
             delayMs: baseDelayMs + (def.kind === 'impact' ? arrival : 0),
             baseColor: landing.baseColor,
+            reachPx: landing.reachPx,
             seed: landing.seed,
         });
     });

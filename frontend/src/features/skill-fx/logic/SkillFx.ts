@@ -16,17 +16,25 @@
  * It also owns the wind-up glow (D7): the ring highlight that used to be an
  * AuraTickIndicator on each entity's own shape now lives on this layer,
  * positioned per frame. One module owns the beat from wind-up to impact. The
- * glow is readability, not dressing: it is NOT authored content and NOT under
- * the budget.
+ * glow is readability, not dressing: it is NOT authored content, NOT under the
+ * budget and NOT under the density slider.
+ *
+ * Since C2b it owns a second, event-free mechanism beside the glow: the
+ * AMBIENT RECONCILER (§12d.4). An `on: ambient` layer is STATE ("while this
+ * aura is the actor's active one"), and no event can carry state, so it is fed
+ * the way the glow already is - from the per-snapshot aura fan-out, keyed by
+ * game object.
  */
 import {Container, Graphics} from 'pixi.js';
 import type {GameObject} from '../../game-objects/logic/_GameObject';
-import {PrerenderEvent} from '../../core/logic/Events';
+import {GameSettingChangedEvent, PrerenderEvent} from '../../core/logic/Events';
 import type {SkillEventData} from '../../backend/logic/SkillEventNumbers';
-import {skillDefinition} from '../../../client-data/Skills';
+import {meter2px} from '../../../client-data/BasicConfig';
+import {skillDefinition, SkillDefinition} from '../../../client-data/Skills';
+import {GameSettings, VfxDensity} from '../../game-settings/logic/GameSettings';
 import {GLOW_COLOR, GLOW_WIDTH_PX, windUpGlowAlpha} from './SkillFxMath';
 import {clearPools, Fx, FxAnchor, kindHandler, VISUAL_KINDS} from './SkillFxKinds';
-import {planSpawns, PointOf, SkillVisual} from './SkillFxPlan';
+import {planAmbient, planSpawns, PointOf, SkillVisual} from './SkillFxPlan';
 import {parseTint, skillFxColor} from './SkillFxPalette';
 
 /**
@@ -39,6 +47,9 @@ export const FX_BUDGET = 96;
 
 let layer: Container = null;
 let subscribed = false;
+
+/** The live slider (§12d.1), mirrored here so no hot path reads a proxy. */
+let density: VfxDensity = 'full';
 
 /** Oldest first - the eviction order is the array order. */
 const live: Fx[] = [];
@@ -58,6 +69,16 @@ export function setup(fxLayer: Container): void {
     layer = fxLayer;
     if (!subscribed) {
         PrerenderEvent.subscribe(update);
+        // The slider is browser-local state, read once here and then only on
+        // change - GameSettings.get() parses localStorage on its first call.
+        density = GameSettings.get().vfx.density;
+        // ⚑ Returns nothing on purpose: a listener that returns TRUE is
+        // UNSUBSCRIBED by Event.trigger, so the slider would work exactly once.
+        GameSettingChangedEvent.subscribe((change) => {
+            if (change.path === 'vfx.density') {
+                applyDensity();
+            }
+        });
         subscribed = true;
     }
 }
@@ -70,14 +91,27 @@ export function setup(fxLayer: Container): void {
 export function reset(): void {
     live.forEach(fx => fx.dispose());
     live.length = 0;
+    ambients.forEach(dropAmbient);
+    ambients.clear();
     glows.forEach(dropGlow);
     glows.clear();
     clearPools();
 }
 
 /** The harness surface (`window.game.skillFx()`). */
-export function counters(): { live: number, spawnedByKind: { [kind: string]: number }, evicted: number } {
-    return {live: live.length, spawnedByKind: {...spawnedByKind}, evicted};
+export function counters(): {
+    live: number,
+    /** live AMBIENT layers, which are state and sit outside the budget */
+    ambient: number,
+    /** live wind-up glows - readability, untouched by the slider */
+    glows: number,
+    spawnedByKind: { [kind: string]: number },
+    evicted: number,
+    density: VfxDensity,
+} {
+    let ambient = 0;
+    ambients.forEach(entry => ambient += entry.layers.length);
+    return {live: live.length, ambient, glows: glows.size, spawnedByKind: {...spawnedByKind}, evicted, density};
 }
 
 // --- the feed ---------------------------------------------------------------
@@ -130,7 +164,7 @@ export function onSnapshot(events: readonly SkillEventData[], resolve: ResolveEn
         return anchor;
     };
 
-    planSpawns(events, visualOf, pointOf).forEach((entry) => {
+    planSpawns(events, visualOf, pointOf, density).forEach((entry) => {
         const def = entry.def;
         const handler = kindHandler(def.kind);
         spawnedByKind[def.kind] = (spawnedByKind[def.kind] ?? 0) + 1;
@@ -145,6 +179,8 @@ export function onSnapshot(events: readonly SkillEventData[], resolve: ResolveEn
             def,
             startAtMs: now + entry.delayMs,
             seed: entry.seed,
+            density,
+            reachPx: entry.reachPx,
         });
         if (fx !== null) {
             push(fx);
@@ -152,11 +188,41 @@ export function onSnapshot(events: readonly SkillEventData[], resolve: ResolveEn
     });
 }
 
-/** The catalog half of the plan's input: a skill's layers and its colour. */
+/**
+ * A skill's look, colour and reach never change while the page lives, and
+ * visualOf is asked once per EVENT, so each skill is resolved once.
+ *
+ * ⚑ Only a skill the catalog actually HOLDS is cached: the catalog loads
+ * asynchronously, and caching the "unknown skill" answer before it landed
+ * would blank that skill's VFX for the rest of the session.
+ */
+const visuals = new Map<number, SkillVisual | undefined>();
+
+/** The catalog half of the plan's input: a skill's layers, colour and reach. */
 function visualOf(skillId: number): SkillVisual | undefined {
+    if (visuals.has(skillId)) {
+        return visuals.get(skillId);
+    }
     const def = skillDefinition(skillId);
-    const layers = def?.visual?.layers;
-    return layers ? {layers, baseColor: skillFxColor(def, undefined)} : undefined;
+    if (!def) {
+        return undefined;
+    }
+    const layers = def.visual?.layers;
+    const visual = layers
+        ? {layers, baseColor: skillFxColor(def, undefined), reachPx: reachPxOf(def)}
+        : undefined;
+    visuals.set(skillId, visual);
+    return visual;
+}
+
+/**
+ * The skill's authored reach in px: the widest effect radius at level 1. The
+ * per-level growth is small and another actor's skill level is not on the wire,
+ * so the base radius is the honest common answer. [PLACEHOLDER]
+ */
+function reachPxOf(def: SkillDefinition): number {
+    const radius = Math.max(0, ...def.effects.map(effect => effect.radius ?? 0));
+    return meter2px(radius);
 }
 
 function push(fx: Fx): void {
@@ -174,12 +240,16 @@ function push(fx: Fx): void {
  */
 function anchorFor(obj: GameObject): FxAnchor {
     let last = {x: obj.shape.position.x, y: obj.shape.position.y};
+    const onStage = (): boolean => {
+        const shape = obj.shape;
+        return !!shape && !shape.destroyed && shape.parent !== null;
+    };
     return {
         radiusPx: obj.size,
+        alive: onStage,
         point() {
-            const shape = obj.shape;
-            if (shape && !shape.destroyed && shape.parent !== null) {
-                last = {x: shape.position.x, y: shape.position.y};
+            if (onStage()) {
+                last = {x: obj.shape.position.x, y: obj.shape.position.y};
             }
             return last;
         },
@@ -196,7 +266,150 @@ function update(): void {
             live.splice(i, 1);
         }
     }
+    updateAmbients(now);
     updateGlows();
+}
+
+// --- the ambient reconciler (§12d.4) ----------------------------------------
+
+interface Ambient {
+    /** the last skill id this owner was reconciled to; never 0 while held */
+    skillId: number;
+    /** the own character, which is the only actor `low` keeps emitters for */
+    own: boolean;
+    anchor: FxAnchor;
+    layers: Fx[];
+}
+
+/**
+ * Keyed by the game object for the glow's reason: a viewport re-entry builds a
+ * NEW GameObject, so an id key would hand the fresh entity the dead one's mist.
+ */
+const ambients = new Map<GameObject, Ambient>();
+
+/**
+ * What this actor's active aura is, right now: a skill id, or 0 for none.
+ *
+ * Fed from the same per-snapshot sites as the wind-up glow - a Character with
+ * its `active_skill_id`, a Mob with its species' `auraSkillId` while its aura
+ * is ungated - which means this runs per entity per snapshot and MUST be free
+ * when nothing changed. It is: an unchanged id returns on the first compare.
+ *
+ * ⚑ §10.1's carried question is answered here. An aura that is EQUIPPED but
+ * not switched on sends `active_skill_id` 0, so it draws nothing: ambient
+ * means "the aura is running", never "the aura is in the loadout".
+ */
+export function setAmbient(owner: GameObject, skillId: number, own: boolean): void {
+    const held = ambients.get(owner);
+    if (held) {
+        if (held.skillId === skillId) {
+            return;
+        }
+        // A switch: the old aura's layers go with it, whatever they were.
+        dropAmbient(held);
+        if (skillId === 0) {
+            ambients.delete(owner);
+            return;
+        }
+        held.skillId = skillId;
+        spawnAmbient(held);
+        return;
+    }
+    if (skillId === 0 || layer === null) {
+        return;
+    }
+    const entry: Ambient = {skillId, own, anchor: anchorFor(owner), layers: []};
+    ambients.set(owner, entry);
+    spawnAmbient(entry);
+}
+
+/**
+ * ⚑ Ambient layers are NOT under FX_BUDGET (§12d.4): they are state, like the
+ * glow, and a campfire's mist must not be evicted by a combat burst. They are
+ * counted separately by counters().
+ */
+function spawnAmbient(entry: Ambient): void {
+    const visual = visualOf(entry.skillId);
+    if (!visual || layer === null) {
+        return;
+    }
+    const now = performance.now();
+    planAmbient(visual.layers, density, entry.own).forEach((def) => {
+        const handler = kindHandler(def.kind);
+        if (!handler) {
+            return;
+        }
+        spawnedByKind[def.kind] = (spawnedByKind[def.kind] ?? 0) + 1;
+        const fx = handler.spawn({
+            layer,
+            // An ambient layer has one end: the actor it belongs to.
+            source: entry.anchor,
+            victim: entry.anchor,
+            color: parseTint(def.tint) ?? visual.baseColor,
+            def,
+            startAtMs: now,
+            seed: 0,
+            density,
+            // An ambient orbit hugs its owner: the ring already draws the range.
+            reachPx: 0,
+        });
+        if (fx !== null) {
+            entry.layers.push(fx);
+        }
+    });
+}
+
+function dropAmbient(entry: Ambient): void {
+    entry.layers.forEach(fx => fx.dispose());
+    entry.layers.length = 0;
+}
+
+function updateAmbients(now: number): void {
+    if (ambients.size === 0) {
+        return;
+    }
+    ambients.forEach((entry, owner) => {
+        // The entity left the viewport, died, or faded out. Dropped rather
+        // than hidden - a re-entry brings a new GameObject and re-registers.
+        if (!entry.anchor.alive()) {
+            dropAmbient(entry);
+            ambients.delete(owner);
+            return;
+        }
+        for (let i = entry.layers.length - 1; i >= 0; i--) {
+            if (!entry.layers[i].update(now)) {
+                entry.layers[i].dispose();
+                entry.layers.splice(i, 1);
+            }
+        }
+    });
+}
+
+/**
+ * A slider change, applied at once rather than at the next cast (§12d.4).
+ *
+ * `off` disposes everything LIVE on the spot: the PO's ruling is literal, and
+ * letting a bolt already in flight finish would leave the world dressed for
+ * seconds after the player asked for it to stop. Ambient is rebuilt in every
+ * direction, so a switch back to `full` brings the mist straight back without
+ * waiting for the actor to change aura.
+ *
+ * ⚑ The wind-up glow is untouched by all of this. It is combat information.
+ */
+function applyDensity(): void {
+    const next = GameSettings.get().vfx.density;
+    if (next === density) {
+        return;
+    }
+    density = next;
+    if (density === 'off') {
+        live.forEach(fx => fx.dispose());
+        live.length = 0;
+    }
+    ambients.forEach((entry) => {
+        dropAmbient(entry);
+        spawnAmbient(entry);
+    });
 }
 
 // --- the wind-up glow (D7) --------------------------------------------------

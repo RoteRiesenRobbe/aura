@@ -1,14 +1,13 @@
 {
-  "_comment": "A damage_aura with a much larger ring than melee auras but lower damage per hit, capped at one target: it trades throughput for range as a positioning choice, not a straight upgrade. All values placeholder.",
-  "id": 45,
-  "name": "LongRangeStrike",
-  "icon": "lorc/broadsword",
-  "displayName": "Long-Range Strike",
+  "_comment": "An active aura on Long-Range Strike's ring, cadence and damage, retagged to fire: the same ranged single-target trade at a damage type mobs can resist, so the pick is the element rather than the reach. All values placeholder. No unlock source yet - cheat-only (SKILL) until it is placed.",
+  "id": 78,
+  "name": "Firebolt",
+  "icon": "carl-olsen/flame",
+  "displayName": "Firebolt",
   "category": "active_aura",
   "maxLevel": 10,
   "visual": {
     "layers": [
-      { "kind": "cast-pose", "on": "hit", "ms": 500 },
       { "kind": "projectile", "on": "hit", "speed": 900 },
       { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
     ]
@@ -22,7 +21,7 @@
       "radiusPerLevel": 0.0444,
       "damageHP": 9,
       "damageHPPerLevel": 1.4444,
-      "damageTags": ["physical"],
+      "damageTags": ["fire"],
       "variance": 0.15,
       "targetsEnemies": true,
       "targetsAllies": false,

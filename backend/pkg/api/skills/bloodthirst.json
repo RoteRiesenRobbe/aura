@@ -8,6 +8,11 @@
   "cooldownTicks": 900,
   "cooldownTicksPerLevel": -60,
   "description": "Works with whichever aura you have on.",
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "rise", "count": 8, "ms": 600, "tint": "#c0324a" }
+    ]
+  },
   "effects": [
     {
       "type": "lifesteal_burst",

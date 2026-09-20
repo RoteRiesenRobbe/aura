@@ -4,6 +4,12 @@
   "name": "BanditHeal",
   "category": "active_aura",
   "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "ambient", "motion": "rise", "count": 5, "ms": 1600, "scale": 1.6, "tint": "#4fbf6a" },
+      { "kind": "emitter", "on": "ambient", "motion": "rise", "count": 4, "ms": 1000, "scale": 0.7, "tint": "#bff0c4" }
+    ]
+  },
   "effects": [
     {
       "type": "heal_aura",

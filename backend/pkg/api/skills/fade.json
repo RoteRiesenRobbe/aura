@@ -7,6 +7,11 @@
   "maxLevel": 5,
   "cooldownTicks": 300,
   "cooldownTicksPerLevel": -10,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 8, "ms": 500, "tint": "#8a8fb0" }
+    ]
+  },
   "effects": [
     {
       "type": "detaunt",
