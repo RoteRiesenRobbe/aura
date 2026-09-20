@@ -31,6 +31,7 @@ import {
     OVERHEAD_RAISE_RAD,
     OVERHEAD_WINDUP_FRACTION,
     overheadSide,
+    percentileOf,
     STRIKE_CURVE_MS,
     SWIRL_RADIUS_FRACTION,
     StrikeCurve,
@@ -555,5 +556,34 @@ describe('overheadSide', () => {
     it('still answers for a victim straight above or below', () => {
         expect(Math.abs(overheadSide(Math.PI / 2))).toBe(1);
         expect(Math.abs(overheadSide(-Math.PI / 2))).toBe(1);
+    });
+});
+
+describe('percentileOf', () => {
+    // The C4 instrument's only arithmetic (§12e.4): nearest-rank over an
+    // already-sorted sample, which is what a fixed ring hands it after one
+    // sort at call time.
+    const sorted = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+    it('answers the nearest rank, never an interpolated value', () => {
+        expect(percentileOf(sorted, 0.5)).toBe(5);
+        expect(percentileOf(sorted, 0.95)).toBe(10);
+        expect(percentileOf(sorted, 0.9)).toBe(9);
+    });
+
+    it('reads the ends exactly', () => {
+        expect(percentileOf(sorted, 0)).toBe(1);
+        expect(percentileOf(sorted, 1)).toBe(10);
+    });
+
+    it('answers a one-sample and an empty ring without throwing', () => {
+        expect(percentileOf([42], 0.95)).toBe(42);
+        expect(percentileOf([], 0.5)).toBe(0);
+    });
+
+    it('clamps a quantile outside 0..1 rather than reading past the array', () => {
+        expect(percentileOf(sorted, -1)).toBe(1);
+        expect(percentileOf(sorted, 7)).toBe(10);
+        expect(percentileOf(sorted, NaN)).toBe(1);
     });
 });

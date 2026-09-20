@@ -429,6 +429,16 @@ export function skillDefinition(id: number): SkillDefinition | undefined {
     return catalog.get(id);
 }
 
+/**
+ * Every skill the catalog holds, mob-embedded ones included, in the order the
+ * server served them. EMPTY until the fetch lands, which is also how a caller
+ * asks "is the catalog up yet" (the C4 stress driver refuses to start on an
+ * empty answer rather than round-robin over nothing).
+ */
+export function allSkillDefinitions(): SkillDefinition[] {
+    return [...catalog.values()];
+}
+
 export function skillDisplayName(id: number): string {
     return catalog.get(id)?.displayName ?? `Skill #${id}`;
 }

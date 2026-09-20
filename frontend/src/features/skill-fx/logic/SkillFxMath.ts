@@ -696,3 +696,22 @@ export function densityCount(count: number, density: VfxDensity): number {
     }
     return density === 'low' ? Math.max(1, Math.round(count * 0.4)) : count;
 }
+
+// --- the C4 instrument (§12e.4) ---------------------------------------------
+
+/**
+ * The q-th percentile of an ALREADY SORTED sample, by nearest rank.
+ *
+ * Nearest rank rather than an interpolated percentile on purpose: the samples
+ * are frame times off a ring, and an interpolated p95 invents a duration no
+ * frame ever took. An empty sample answers 0 - "nothing was measured" is the
+ * honest reading of a window the manager never ran in.
+ */
+export function percentileOf(sorted: readonly number[], q: number): number {
+    if (sorted.length === 0) {
+        return 0;
+    }
+    const clamped = Number.isFinite(q) ? Math.min(1, Math.max(0, q)) : 0;
+    const rank = Math.ceil(clamped * sorted.length) - 1;
+    return sorted[Math.min(sorted.length - 1, Math.max(0, rank))];
+}
