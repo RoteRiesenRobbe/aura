@@ -1260,7 +1260,7 @@ RELEASE" still holds for a `fired` pose; the bow simply is not one any more.
 
 ### C2b ledger (2026-09-20) - the other three kinds + the density slider
 
-✅ **BUILT 2026-09-20** `[uncommitted]`, **PO look PASSED**. Spec: §12d, with
+✅ **BUILT 2026-09-20** `5fae4fe2`, **PO look PASSED**. Spec: §12d, with
 the PO's calls up front in §12d.1 and the seven amendments the look rounds
 forced in §12d.7. Built by two Opus agents in parallel (engine half / slider +
 catalog + content half) plus the lead's fixes; the lead reran every verify step
