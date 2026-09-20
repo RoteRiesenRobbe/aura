@@ -153,7 +153,10 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 	// 34 → 36 with the CaveMouth and CaveExit (plan-underworld.md U3): two more
 	// objects that talk, both off the nameplate and the XP path like every other
 	// fixture here.
-	assert.Len(t, free, 36, "every xpFactor-0 species: %v", free)
+	// 36 → 41 with the north pasture (content-zone-design-guide.md §2.4): the
+	// Shepherd, three named sheep and the generic flock, all off the nameplate and
+	// the XP path — a shepherd's livestock is not prey.
+	assert.Len(t, free, 41, "every xpFactor-0 species: %v", free)
 
 	// ⚑ Exactly ONE structure pays anything, and it is the harvest chore's
 	// target: the Turnip at 0.05 (PO 2026-08-05, the one §3.4 curation pulled

@@ -1,0 +1,77 @@
+{
+  "_comment": "The north pasture's NPC (content-zone-design-guide.md §2.4). Copied field for field from farmer.json — faction townsfolk (friendlyToPlayers ⇒ player damage skips it), collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) and deliberately NOT Action(2) so no aura on either side can target it, mask 16 = Border only so nothing pushes it, role creature + speed 0 (D4: an NPC is an actor that authors no movement), xpFactor 0 to keep it off the nameplate path, aggroRadius 1.0 required-but-inert since interaction.range 2.0 is the wider of the two and sizes the one sensor. ⚑ QUESTS: offers and turns in `the-strays` (four talk_to targets: the named sheep Baabara, Woolliam and Lambert, plus the Dog) behind its own root row per the Q4 tree shape. Quest rows carry NO quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule), so Accept vanishes once taken and the turn-in appears exactly when walkable. ⭐ THE QUEST IS THE POI'S WHOLE POINT and the design is in the WALK, not the text: the four targets are spread across the pasture, so collecting them means crossing a field of Stags and Boars — which are `wildlife_prey`, hostileTo [], and therefore never initiate. The player learns 'not everything alive is an enemy' by walking through the proof, one POI after the broken fence taught them the opposite. That is why this quest authors ZERO combat and why its targets are unkillable by construction. ⚑ TEACHES NOTHING, deliberately — the TownCrier precedent; the pasture's teacher is the Dog standing in it, and the quest's job is to lead the player to it. ⛑ entityType Farmer is a DELIBERATE REUSE and placeholder art (the standing call): a bespoke shepherd costs a wire enum value that can never be reclaimed plus an exhaustive client Record entry. It earns its own sprite at the Zone 1 art pass. ⚑ TEXT is plain (PO 2026-08-02): no lore or stylized wording yet. All values [PLACEHOLDER].",
+  "id": 75,
+  "name": "Shepherd",
+  "type": "MOB",
+  "entityType": "Farmer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          "I keep the flock on this pasture."
+        ],
+        "options": [
+          {
+            "text": "Do you have a task for me?",
+            "next": "strays"
+          }
+        ]
+      },
+      {
+        "id": "strays",
+        "lines": [
+          "Three of my sheep wandered off and the dog went after them.",
+          "Baabara, Woolliam and Lambert. Find them out on the pasture, and the dog with them, then come back to me.",
+          "Nothing out there will trouble you. The stags and the boars keep to themselves."
+        ],
+        "options": [
+          {
+            "text": "I'll do it.",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "the-strays",
+                "line": "Good."
+              }
+            ]
+          },
+          {
+            "text": "I found Baabara, Woolliam and Lambert, and the dog.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "the-strays",
+                "fromStage": "report",
+                "toStage": "done",
+                "line": "Good."
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 180,
+                "line": "Here is your reward."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

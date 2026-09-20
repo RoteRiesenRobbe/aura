@@ -1,0 +1,40 @@
+{
+  "_comment": "The north pasture's quest (content-zone-design-guide.md §2.4, the 'teaches neutral' POI). Offered and turned in by the Shepherd. ⭐ THE LESSON IS THE WALK, NOT THE TEXT: the four targets are spread across the pasture, so collecting them means crossing a field of Stags and Boars — `wildlife_prey`, hostileTo [], so they never initiate — and the player learns that not everything alive is an enemy by walking through the proof rather than being told. Spreading them is therefore the POINT, not decoration: a tight cluster would teach nothing. It sits one POI after the broken fence, which taught the opposite with Wolves (`wildlife_predator`, hostileTo [aligned, wildlife_prey]). ZERO COMBAT, and unfailable by construction: every target is faction townsfolk on collisionLayer 97 without Action(2), so no aura can reach them. ⭐ FOUR talk_to OBJECTIVES IN ONE STAGE — the village-welcome shape, which authored two; nothing caps the list. THREE SEPARATE, NAMED SHEEP rather than one definition with count 3, because talk_to is keyed by the DEFINITION id and never the spawn (see baabara.json for the full reasoning): three spawns of one definition are one key, so a count would be satisfied by the first. Naming them is what makes three files honest — they are specific animals the shepherd knows, not three species, and the generic Sheep beside them is the flock they left. ⭐ The fourth target re-homes the Dog: it teaches SummonCompanion and until now stood alone in open country teaching nobody, so the quest's real payload is leading the player to a teacher. The teaching stays UNGATED — no quest_at_stage on a teach row — which is both simpler and needs no mechanism this repo has not already shipped. Reward 180 XP on the turn-in row (shepherd.json) = the L9 half-level rule at L2, 0.5 x 300 x 1.2^1, the same price boars-in-the-field pays; four objectives do not make it a bigger quest, only a wider walk. Thresholds count SINCE STAGE ENTRY (N4/D4), so a player who already met the dog must talk to it again. ⭐ THE SEARCH IS MECHANICAL, NOT NARRATED: the generic Sheep authors no interaction, so only the three named ones answer — the player finds them by seeing which sheep carries an interact badge. ⚑ THIS STAGE MUST AUTHOR A `tracker` AND THAT IS NOT DECORATION: the derived journal line is hardcoded 'Talk to the ' + name (quests/ledger.go) with no displayName field, so proper names render as 'Talk to the Baabara'. An authored tracker wins outright and replaces every derived line — at the cost of the per-objective ✓ ticks, which is the accepted trade (PO 2026-09-20). It carries no {n}/{m} because talk_to is not countable. Quest text is otherwise plain (PO 2026-08-02); the sheep names are content, not lore prose.",
+  "id": "the-strays",
+  "title": "The Strays",
+  "stages": [
+    {
+      "id": "find",
+      "journal": "The shepherd's three sheep — Baabara, Woolliam and Lambert — have wandered off across the pasture, and the dog with them.",
+      "objectives": [
+        {
+          "kind": "talk_to",
+          "npc": "Baabara"
+        },
+        {
+          "kind": "talk_to",
+          "npc": "Woolliam"
+        },
+        {
+          "kind": "talk_to",
+          "npc": "Lambert"
+        },
+        {
+          "kind": "talk_to",
+          "npc": "Dog"
+        }
+      ],
+      "next": "report",
+      "tracker": "Find Baabara, Woolliam and Lambert, and the dog"
+    },
+    {
+      "id": "report",
+      "journal": "Baabara, Woolliam and Lambert are found and the dog is with them; the Shepherd waits on the pasture.",
+      "tracker": "Return to the Shepherd"
+    },
+    {
+      "id": "done",
+      "journal": "Done. Reported back to the Shepherd."
+    }
+  ]
+}

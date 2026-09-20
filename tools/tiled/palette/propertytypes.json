@@ -73,6 +73,7 @@
         "AlphaWolf",
         "ArmySoldier",
         "AscensionStone",
+        "Baabara",
         "Bandit",
         "BanditHealer",
         "BanditPyromancer",
@@ -103,6 +104,7 @@
         "Hermit",
         "Kobold",
         "KoboldRanged",
+        "Lambert",
         "LamplessTraveller",
         "Lamplighter",
         "Marauder",
@@ -119,6 +121,8 @@
         "RallyDrummer",
         "Rockfall",
         "Shaman",
+        "Sheep",
+        "Shepherd",
         "ShieldbearerCompanion",
         "SoldierCompanion",
         "Spider",
@@ -132,7 +136,8 @@
         "VillageHealer",
         "Wanderer",
         "WarbannerTotem",
-        "Wolf"
+        "Wolf",
+        "Woolliam"
       ],
       "valuesAsFlags": false
     },

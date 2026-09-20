@@ -48,6 +48,7 @@
       "AlphaWolf",
       "ArmySoldier",
       "AscensionStone",
+      "Baabara",
       "Bandit",
       "BanditHealer",
       "BanditPyromancer",
@@ -78,6 +79,7 @@
       "Hermit",
       "Kobold",
       "KoboldRanged",
+      "Lambert",
       "LamplessTraveller",
       "Lamplighter",
       "Marauder",
@@ -94,6 +96,8 @@
       "RallyDrummer",
       "Rockfall",
       "Shaman",
+      "Sheep",
+      "Shepherd",
       "ShieldbearerCompanion",
       "SoldierCompanion",
       "Spider",
@@ -107,7 +111,8 @@
       "VillageHealer",
       "Wanderer",
       "WarbannerTotem",
-      "Wolf"
+      "Wolf",
+      "Woolliam"
     ],
     "AuraPatrolMode": [
       "pingpong",
@@ -379,6 +384,7 @@
     "AlphaWolf": "combat",
     "ArmySoldier": "combat",
     "AscensionStone": "talker",
+    "Baabara": "talker",
     "Bandit": "combat",
     "BanditHealer": "combat",
     "BanditPyromancer": "combat",
@@ -409,6 +415,7 @@
     "Hermit": "talker",
     "Kobold": "combat",
     "KoboldRanged": "combat",
+    "Lambert": "talker",
     "LamplessTraveller": "talker",
     "Lamplighter": "talker",
     "Marauder": "combat",
@@ -425,6 +432,8 @@
     "RallyDrummer": "combat",
     "Rockfall": "fixture",
     "Shaman": "talker",
+    "Sheep": "combat",
+    "Shepherd": "talker",
     "ShieldbearerCompanion": "combat",
     "SoldierCompanion": "combat",
     "Spider": "combat",
@@ -438,12 +447,14 @@
     "VillageHealer": "talker",
     "Wanderer": "talker",
     "WarbannerTotem": "fixture",
-    "Wolf": "combat"
+    "Wolf": "combat",
+    "Woolliam": "talker"
   },
   "MOB_SPEED": {
     "AlphaWolf": 0.5,
     "ArmySoldier": 0.6,
     "AscensionStone": 0,
+    "Baabara": 0,
     "Bandit": 0.55,
     "BanditHealer": 0.6,
     "BanditPyromancer": 0.55,
@@ -474,6 +485,7 @@
     "Hermit": 0,
     "Kobold": 0.6,
     "KoboldRanged": 0.55,
+    "Lambert": 0,
     "LamplessTraveller": 0,
     "Lamplighter": 0,
     "Marauder": 0.5,
@@ -490,6 +502,8 @@
     "RallyDrummer": 0.45,
     "Rockfall": 0,
     "Shaman": 0,
+    "Sheep": 0,
+    "Shepherd": 0,
     "ShieldbearerCompanion": 1.2,
     "SoldierCompanion": 1.2,
     "Spider": 0.55,
@@ -503,7 +517,8 @@
     "VillageHealer": 0,
     "Wanderer": 0.5,
     "WarbannerTotem": 0,
-    "Wolf": 0.7
+    "Wolf": 0.7,
+    "Woolliam": 0
   },
   "PROFILE_NAMES": [
     "Fields",

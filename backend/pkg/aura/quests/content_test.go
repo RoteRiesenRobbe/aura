@@ -77,6 +77,9 @@ var expectedQuests = map[string]string{
 	"alpha-wolves-at-the-village": "Alpha Wolves at the Village",
 	"bears-at-the-walls":          "Bears at the Walls",
 	"thin-the-orc-line":           "Thin the Orc Line",
+
+	// The north pasture's talk_to quest (content-zone-design-guide.md §2.4).
+	"the-strays": "The Strays",
 }
 
 func TestContent_QuestCensus(t *testing.T) {
@@ -321,6 +324,10 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		"alpha-wolves-at-the-village": 1900, // L15 alpha wolves
 		"bears-at-the-walls":          2300, // L16 bears
 		"thin-the-orc-line":           4800, // L20 elite orcs
+
+		// The north pasture (content-zone-design-guide.md §2.4): the same L2
+		// price the boars pay, for a quest that spends no combat at all.
+		"the-strays": 180, // L2, ½ × 300 × 1.2
 	}, total)
 }
 

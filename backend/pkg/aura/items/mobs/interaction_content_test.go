@@ -82,6 +82,29 @@ var expectedConversants = []string{
 	// and world.CrossValidateTravelAnchors warns at boot until a zone places them.
 	"CaveMouth",
 	"CaveExit",
+
+	// The north pasture (content-zone-design-guide.md §2.4, the "teaches neutral"
+	// POI). The Shepherd offers and turns in `the-strays`; the three sheep are
+	// three of its four talk_to targets and are the first conversants that exist
+	// ONLY to be talked to — one node, no options, no teaching, no quest.
+	//
+	// ⚑ THREE DEFINITIONS RATHER THAN ONE WITH count 3, and the reason is
+	// structural: talk_to is keyed by the DEFINITION id, never the spawn, so
+	// three spawns of one definition are one key and a count would be satisfied
+	// by the first. See api/mobs/baabara.json.
+	//
+	// ⭐ THE GENERIC `Sheep` IS DELIBERATELY ABSENT FROM THIS LIST. It authors no
+	// interaction at all, so the three named strays are the only sheep that
+	// answer — which is how the player finds them. A flock member turning up
+	// here later would mean someone gave the scenery a voice and quietly broke
+	// that search.
+	//
+	// All four are unattackable by the standing two knobs, which is what makes
+	// that quest zero-combat by construction rather than by convention.
+	"Shepherd",
+	"Baabara",
+	"Woolliam",
+	"Lambert",
 }
 
 func conversants(t *testing.T) map[string]*MobDefinition {
