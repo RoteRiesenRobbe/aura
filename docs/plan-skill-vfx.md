@@ -1,6 +1,6 @@
 # Plan: Skill VFX - what a hit, a cast and a running aura look like, for everyone
 
-> **Status: C4 BUILT 2026-09-20 `[uncommitted]` (world scale, a measurement
+> **Status: C4 BUILT 2026-09-20 `d8e1628d` (world scale, a measurement
 > chunk: 10× `full` = 0.7–1.0 ms p95 of `update()`, ambient unbudgeted by
 > ruling, eviction at 96 from ≈ 145–190 events/s; ⚑ the cap 96 vs 192 and the
 > mobile fill rate are OPEN on the PO's real-phone check). **C3 (art) is the
@@ -1467,7 +1467,7 @@ a fix or a lower cap rather than a table.
 
 ### C4 ledger (2026-09-20) - world scale
 
-✅ **BUILT 2026-09-20** `[uncommitted]`. Spec: §12e, the departures and the PO's
+✅ **BUILT 2026-09-20** `d8e1628d`. Spec: §12e, the departures and the PO's
 rulings: §12e.8. A MEASUREMENT chunk: no look, a table. Built by one Opus agent
 in two rounds (the instrument + legs 1–6, then the ceiling leg the PO asked
 for); the lead reran the build, test and typecheck steps at the final tree and
