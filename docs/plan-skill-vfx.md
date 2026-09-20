@@ -1,12 +1,17 @@
 # Plan: Skill VFX - what a hit, a cast and a running aura look like, for everyone
 
-> **Status: C2b BUILT 2026-09-20 `5fae4fe2`, PO look PASSED ("works, I think
+> **Status: C4 BUILT 2026-09-20 `[uncommitted]` (world scale, a measurement
+> chunk: 10× `full` = 0.7–1.0 ms p95 of `update()`, ambient unbudgeted by
+> ruling, eviction at 96 from ≈ 145–190 events/s; ⚑ the cap 96 vs 192 and the
+> mobile fill rate are OPEN on the PO's real-phone check). **C3 (art) is the
+> last chunk.**
+> C2b BUILT 2026-09-20 `5fae4fe2`, PO look PASSED ("works, I think
 > with this the chunk is done"): the other three kinds `cast-pose` / `orbit` /
 > `emitter`, the AMBIENT reconciler that dresses a running aura, the density
 > slider Off / Low / Full with its mobile default, `visual` on 46 more files
 > and two cheat-only skills (Whirling Axes 77, Firebolt 78), and the look
 > rounds' rulings: the bow on `hit`, a HELD weapon whose length is the skill's
-> reach. **C3 (art) and C4 (world scale) are what is left.**
+> reach.
 > C2a BUILT 2026-09-19 `512d4afd`, PO look PASSED (the engine:
 > the `SkillFx` manager on its own layer below darkness, budget + pools, the
 > math module, placeholder bodies, `impact` / `projectile` / `beam` plus the
@@ -16,7 +21,7 @@
 > inside the four funnels, `Mob.owner_id`, five field names deprecated, numbers
 > own-caused only, loadbot: D10 stands). C0 SHIPPED 2026-09-19 `e8f7b6b4` (the `visual` key, one per SKILL: seven
 > closed kinds, three triggers, load-time validation, six generated fixture
-> lists, six content files authored). C3 + C4 unbuilt.** Designed 2026-09-11
+> lists, six content files authored). C3 unbuilt.** Designed 2026-09-11
 > (D1-D10 PO-ruled in one sitting; everything in §4-§7 that is not a D-number
 > is still a proposal with options). Line refs pinned to `df746e53`;
 > re-verify before executing. Ledger: §13.
@@ -495,9 +500,15 @@ builder C1 lesson: a chunk whose purpose is a look is not done without one).
   resolver's ERROR path armed in `-validate`; the spell builder's Visuals
   section renders `visual` (that chunk lives in `plan-content-editor.md`'s
   ledger, cited here). **Schema: NONE.**
-- **C4 · World scale.** Density 10× harness with the slider at each level,
-  frame-time before/after, the cap tuned, mobile fill-rate check on a real
-  phone. **Schema: NONE.**
+- **C4 · World scale.** ✅ **BUILT 2026-09-20** (spec: §12e, departures + PO
+  rulings: §12e.8, ledger: §13). A dev-only instrument + a client-side stress
+  driver (a real 10× server is tick-starved, so it cannot be the load) + the
+  seven-leg `skill-fx-scale.mjs`. 10× `full` costs 0.7–1.0 ms p95 of
+  `update()`; ambient is the dominant share and stays UNBUDGETED by ruling; at
+  96 eviction starts ≈ 145–190 events/s, about 10× above the 10× world.
+  ⚑ **Two things stay OPEN on the PO's real phone: the cap (96 vs 192) and the
+  mobile fill rate**, which a 3 fps headless page cannot judge. **Schema:
+  NONE, and it held.**
 
 C0 and C1 can be built in either order; C2a needs both.
 
@@ -1266,7 +1277,345 @@ are pooled `Graphics` (≤ 12 per layer), which is the "acceptable at these
 counts" fallback that paragraph already allowed. §12d.4's "`cast-pose` shows at
 RELEASE" still holds for a `fired` pose; the bow simply is not one any more.
 
+## 12e. C4 execution spec (2026-09-20, re-verified against HEAD `4949f596`)
+
+World scale: what the SkillFx layer costs when the world is ten times as busy,
+with the slider at each level, and what that says about the cap. A MEASUREMENT
+chunk: its deliverable is a table and a recommendation, not a look.
+
+### 12e.1 Calls made in planning (lead, 2026-09-20; none is a PO number)
+
+- ⭐ **The 10× load is a CLIENT-SIDE stress driver, not a 10× server.** The
+  server's density ceiling is ≈5.8× (`plan-world-scale.md` §11; PhysicsSystem
+  74 % of the tick at 10×), so a real boot at 10× is tick-starved and would
+  emit FEWER events per wall second than a healthy busy world. Measuring the
+  client against it measures a broken server. It also keeps the schema line
+  honest: no `aurad` flag, no scaled zone.
+- ⭐ **"10×" is grounded in a measured 1×**, not guessed: leg 1 records the real
+  rates at a busy real venue (events per second through `onSnapshot`, ambient
+  owners in view), and the stress legs multiply THOSE.
+- **Headless numbers are ratios and counts, never absolutes**
+  (`project_mobile_layout`, `project_input_jitter`). The table reports
+  `full / off` and `low / off`, the manager's own `update()` CPU milliseconds
+  (comparable in headless), display-object counts, and eviction counts.
+  `off` is the control: same entities, zero authored layers.
+- **The cap is a PO number.** C4 measures 96 and two alternatives and PROPOSES;
+  `FX_BUDGET` changes only on a PO answer.
+- **The real phone is PO-owed.** A headless phone viewport at DPR 3 gives a
+  fill-rate RATIO and nothing more; the ledger lists the real device under
+  "Not run".
+
+### 12e.2 Schema
+
+**DB NONE · WIRE NONE · CONF NONE · CATALOG NONE · CONTENT NONE.** Client-only,
+dev-only. ⚑ §9 said NONE for C2a and C2b and was wrong both times; if the
+executing agent finds itself touching Go, `api/` or an `.fbs`, it stops and
+reports instead.
+
+### 12e.3 The ambient census (done in planning, from disk)
+
+18 skills author an `ambient` layer, every one an active aura. The heaviest
+owner holds **12 Graphics** (`frostbite`, `hoarfrost`: one emitter × 12); the
+heal family holds 9 (5 + 4); an orbit holds 2–3. Six of the 18 are mob or
+place auras (`bandit-heal`, `camp-aura`, `campfire-aura`, `healer-aura`,
+`rally-drum`, `warbanner-shield`), so the unbudgeted population in view is
+"players with an aura on + those species", and under `low` only the OWN
+emitters survive. The question C4 answers is therefore narrow: **what do N
+owners × ≤ 12 pooled Graphics cost per frame**, and is that ever comparable
+to the budgeted 96. If it is not, the ruling "ambient stays unbudgeted" gets
+its number and no cap is built (rule over machine).
+
+### 12e.4 Half A: the instrument (frontend, dev-only)
+
+All of it reachable ONLY through the `?develop` console surface
+(`BrowserConsole.ts`, beside `skillFx`), none of it on a production path.
+
+1. **Frame cost.** `SkillFx.update()` times itself ONLY while measuring is on
+   (two `performance.now()` calls, a fixed ring of the last 600 samples, no
+   per-frame allocation). `window.game.skillFxMeasure(on)` toggles and clears;
+   `window.game.skillFxStats()` returns `{frames, updateMs: {p50, p95, max},
+   liveMax, ambientMax, displayObjects}` where `displayObjects` is a recursive
+   child count under the `skillFx` layer taken at call time. The percentile
+   math is a pure function in `SkillFxMath.ts` with vitest pins (red-first).
+2. **The rate probe.** While measuring, `onSnapshot` counts events in and Fx
+   spawned, so leg 1 can read a REAL venue's events per second.
+3. **The budget override.** `FX_BUDGET` stays the exported default; the live
+   cap becomes a module `let`, set by `window.game.skillFxBudget(n)`, restored
+   by `reset()`. No setting, no persistence.
+4. **The stress driver**, its own file `SkillFxStress.ts`:
+   `window.game.skillFxStress({eventsPerSec, ambientOwners, seconds})`. It
+   feeds the REAL paths, `onSnapshot` and `setAmbient`, never a side door:
+   - events: synthetic `SkillEventData` between stress actors, the skill ids
+     drawn round-robin from every catalog skill whose `visual` authors a
+     `fired` or `hit` layer, so the kind mix is the authored mix;
+   - actors and ambient owners: minimal GameObject-shaped stubs laid on a
+     deterministic grid across the current viewport, resolved through the
+     `ResolveEntity` seam. ⚑ The reconciler and the glows are keyed by
+     GameObject, and `anchorFor` reads `shape.position`, `shape.destroyed`,
+     `shape.parent` and `size`: the stub must satisfy exactly those, and the
+     agent reads `anchorFor` + `spawnAmbient` before shaping it. Ambient skill
+     ids round-robin over the 18 of §12e.3, `own: false` for all but one, so
+     `low` shows its real cut;
+   - it stops itself after `seconds`, disposes its stubs' ambients, and leaves
+     the counters readable. Deterministic (no `Math.random` in placement or
+     selection), so two runs are comparable.
+   The scheduling maths (how many events this frame for a rate and a delta,
+   carry the remainder) is a pure function with vitest pins.
+
+⚑ Landmines: `Event.trigger` UNSUBSCRIBES a listener that returns `true` ·
+`visualOf` never caches an unknown skill, the catalog loads async, so the
+driver refuses to start before `Skills` is loaded · the frontend pin is
+812 / 44 and will move, record the new one.
+
+### 12e.5 Half B: the harness, `.claude/skills/verify/skill-fx-scale.mjs`
+
+Reuses `skill-fx.mjs`'s launch flags (load-bearing), join lib and tri-state.
+Measure windows of 10 s after a 2 s warm-up. Legs:
+
+1. **Real 1×.** GOD, warp to a busy camp with a campfire in view, own aura on,
+   fight for the window: record events per second, ambient owners, `live`
+   max. This defines 1×. Inconclusive (not red) when the venue is empty.
+2. **Synthetic 1× vs real 1×**, density `full`: the driver at leg 1's rates
+   must land within the same order on `updateMs` p50, or the driver is not
+   honest and the run stops there.
+3. **10× × three densities.** `off`, `low`, `full` at ten times leg 1:
+   `updateMs` p50 / p95 / max, rAF-delta p50 / p95, `liveMax`, `ambientMax`,
+   `displayObjects`, `evicted`. Screenshots at 10× `full` and 10× `low`.
+4. **Ambient alone.** 10× ambient owners, zero events, `full`: the unbudgeted
+   question of §12e.3 in isolation, against leg 3's event-only share.
+5. **The cap.** 10× `full` at budget 48, 96, 192: `evicted` per second and
+   `updateMs` p95 for each.
+6. **Phone shape.** Viewport 390 × 844, DPR 3, touch: 10× at `low` (the mobile
+   default) and `full`, reported ONLY as ratios against the same page's `off`.
+
+Output: a JSON file plus a markdown table printed at the end; the table goes
+into the §13 ledger verbatim. Assertions are few and structural (the driver
+reached its rate, `off` spawned 0, the stats are non-empty); the numbers are
+findings, not pass/fail, except one guard: **`full` 10× `updateMs` p95 under
+the 16.7 ms frame** is reported as PASS / OVER, because over it the chunk owes
+a fix or a lower cap rather than a table.
+
+### 12e.6 What happens with the numbers
+
+- `updateMs` p95 at 10× `full` comfortably inside a frame and eviction rare:
+  96 is proposed to stand, ambient stays unbudgeted, both with their numbers.
+- Eviction constant at 10×, or p95 over budget: the agent does NOT tune. It
+  reports the profile's top cost, and the lead brings the PO a choice (cap
+  value, a per-kind particle trim under load, an ambient cap) as a prompt.
+
+### 12e.7 Verify tail C4 owes
+
+`go build ./...` (nothing Go changed, stated) · frontend `npm test` +
+`typecheck` + prod build · `make -C backend build` before any harness run ·
+`skill-fx.mjs` still 13 legs PASS (the instrument must not disturb the engine)
+· `skill-fx-scale.mjs` run twice, the two tables within noise of each other ·
+⛔ NOT run, PO-owed: a real phone. ⚑ `hrnss_*` residue: cleanup only with
+`aurad` stopped.
+
+### 12e.8 Departures as built, and the PO's rulings (2026-09-20)
+
+**Departures** (each the executing agent's call, reviewed by the lead):
+
+- ⭐ **Leg 1's venue is the western bandit camp (26.0, 20.7), with NO campfire
+  in view.** All five campfires sit in quiet corners; the camp was picked from
+  `api/zones/world.json` for 13 spawns within 8 u around BOTH ambient-aura
+  species (RallyDrummer, BanditHealer). The tables are built on ITS 1×
+  (1.3–1.5 events/s); the busier east camp gave 4.2–4.3 in two pilots, and its
+  10× (≈ 43/s) reached the same conclusions.
+- ⭐ **Leg 1 runs LEVELLED and with GOD OFF.** GOD short-circuits the player's
+  own `takeDamage`, and in a camp the mob→player stream is most of the
+  traffic: GOD on / L1 = 1.0 events/s, GOD on / L30 = 0.1, GOD off / L30 = 4.3.
+- ⭐ **The 10× ambient owner count is PINNED at 50, not measured × 10**, the one
+  place §12e.1's "multiply THOSE" is not followed. The live count swings 0–6
+  inside one window as mobs die and respawn, so two runs compared nothing on
+  the column C4 exists to read. 50 = 10 × the five owners the census expects;
+  the measured count rides in the table beside it. The EVENT rate is measured
+  and multiplied, as specified.
+- `stats()` carries six keys beyond §12e.4's five (`eventsIn`, `fxSpawned`,
+  `ambientOwners`, `ambientOwnersMax`, `budget`, `measuring`).
+- **One production-module touch:** `allSkillDefinitions()` in
+  `client-data/Skills.ts`, read-only, no hot path; it doubles as the driver's
+  "catalog loaded?" test. The alternative was probing ids blindly.
+- `window.game.skillFxStress` is one function, three behaviours by argument:
+  options = start, nothing = status, `null` = stop early.
+- No 8× clock trick for the screenshots: the instrument, the driver and every
+  Fx clock read `performance.now`, so slowing it would corrupt the window.
+- ⚑ `reset()` restores the budget override, so a death mid-leg silently drops
+  a 48 / 192 setting. The stress legs run on open ground for that reason.
+
+**PO rulings on the first tables** (2026-09-20, asked as prompts):
+
+1. **The cap:** leg 5 was a NULL result (live Fx peaked at 6–15 against 96,
+   zero evictions everywhere, so 48 / 96 / 192 could not be ranked). PO: **add
+   a ceiling-finding leg** (leg 7: ramp the rate until 96 evicts and until
+   `update()` p95 nears a frame, then compare the three caps where they
+   differ). `FX_BUDGET` moves only on the PO's answer to THAT table.
+   ⭐ **Answered the same day on leg 7's table: "decide after the phone
+   check."** 96 stays in code, the cap is OPEN (§13 C4).
+2. **Ambient stays UNBUDGETED**, now with its number: 50 owners = 70 layers,
+   ≈ 320 Graphics, `update()` p95 0.4–0.6 ms. It IS the dominant SkillFx cost
+   (≈ 93 % of the layer's display objects, about half its frame time) and it
+   is still under a millisecond. No ambient cap is built.
+3. **The real phone is PO-owed**; C4 is recorded BUILT with it under "Not
+   run". The headless page renders at ≈ 3 fps (software GL), which is exactly
+   why fill rate cannot be judged there; the phone rAF ratios inverted between
+   the two runs and are noise.
+4. `harnessdb -cleanup` approved for this session's `hrnss_*` residue, run by
+   the lead with `aurad` stopped.
+
 ## 13. Ledger
+
+### C4 ledger (2026-09-20) - world scale
+
+✅ **BUILT 2026-09-20** `[uncommitted]`. Spec: §12e, the departures and the PO's
+rulings: §12e.8. A MEASUREMENT chunk: no look, a table. Built by one Opus agent
+in two rounds (the instrument + legs 1–6, then the ceiling leg the PO asked
+for); the lead reran the build, test and typecheck steps at the final tree and
+ran the DB cleanup.
+
+**Schema: DB NONE · WIRE NONE · CONF NONE · CATALOG NONE · CONTENT NONE**, and
+this time §9's "NONE" held: no Go, no `api/`, no `.fbs` touched. Client-only,
+and everything new is reachable only through the `?develop` console, with one
+production-module touch (`allSkillDefinitions()` in `client-data/Skills.ts`,
+read-only, no hot path).
+
+**What was built**
+
+- **The instrument** in `SkillFx.ts`: `setMeasuring` + a 600-sample
+  `Float64Array` ring around the whole `update()` body, a SECOND ring around
+  `onSnapshot` (added in round two, see the ceiling), the rate probe
+  (`eventsIn`, `fxSpawned`), window high-water marks (`liveMax`, `ambientMax`,
+  `ambientOwnersMax`), a recursive `displayObjects` count, and the budget as a
+  module `let` behind the unchanged `FX_BUDGET` default (`setBudget`, restored
+  by `reset()`). Console: `skillFxMeasure` / `skillFxStats` / `skillFxBudget` /
+  `skillFxStress`.
+- **The stress driver**, `SkillFxStress.ts`: wire-shaped events between
+  GameObject-shaped stubs on a deterministic viewport grid, fed through the
+  REAL `onSnapshot` and `setAmbient`; the skill mix is every catalog skill
+  authoring a `fired` or `hit` layer, round-robin; refuses to start before the
+  catalog is loaded. Pure parts pinned: `stressSchedule`, `percentileOf`,
+  `eventLifetimeMs` / `estimateLiveFx` (Little's law: the mix is **445.7 ms of
+  Fx life and 1.13 layers per event**, deterministic).
+- **The harness**, `.claude/skills/verify/skill-fx-scale.mjs`: seven legs, JSON
+  + markdown tables, `AURA_FXSCALE_RAMP_ONLY=1` runs legs 1, 2 and 7.
+
+**Legs 1–6, run A** (run B agreed within noise on every column that matters:
+10× `full` p50 0.4 / 0.4 ms, p95 1.0 / 0.7 ms, ambient max 70 / 19 / 0 in both,
+display objects 344 / 59 / 1 vs 327 / 55 / 2, evicted 0 everywhere). 1× =
+**1.5 events/s** (run B 1.3), 5 ambient owners, the western bandit camp.
+Times are ms.
+
+| leg | what | density | budget | frames | events/s in | Fx/s | update p50 | update p95 | update max | rAF p50 | rAF p95 | live max | ambient max | ambient owners | display objs | evicted/s |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | real 1x, busy camp, full | full | 96 | 33 | 1.5 | 3.4 | 0 | 0.1 | 0.2 | 308.7 | 321.4 | 7 | 0 | 5 | 10 | 0 |
+| 2 | synthetic 1x, open ground, full | full | 96 | 35 | 2.9 | 2.9 | 0.1 | 0.2 | 0.3 | 289.9 | 319 | 4 | 7 | 10 | 31 | 0 |
+| 3 | 10x off | off | 96 | 35 | 15.3 | 0 | 0 | 0.1 | 0.3 | 287.1 | 304.9 | 0 | 0 | 51 | 1 | 0 |
+| 3 | 10x low | low | 96 | 35 | 15.2 | 17.4 | 0.2 | 0.4 | 0.4 | 290.6 | 299.7 | 7 | 19 | 51 | 59 | 0 |
+| 3 | 10x full | full | 96 | 32 | 15.2 | 17.4 | 0.4 | 1 | 1 | 313.3 | 334.3 | 6 | 70 | 51 | 344 | 0 |
+| 4 | ambient alone, 50 owners, full | full | 96 | 33 | 0 | 0 | 0.3 | 0.4 | 0.5 | 312.7 | 321.2 | 0 | 70 | 51 | 317 | 0 |
+| 5 | 10x full, budget 48 | full | 48 | 32 | 16.4 | 18.6 | 0.3 | 0.5 | 0.6 | 316.9 | 333.7 | 6 | 70 | 54 | 349 | 0 |
+| 5 | 10x full, budget 96 | full | 96 | 32 | 15.2 | 17.4 | 0.3 | 0.4 | 0.7 | 314.7 | 330.1 | 6 | 70 | 52 | 343 | 0 |
+| 5 | 10x full, budget 192 | full | 192 | 32 | 15.1 | 17.3 | 0.3 | 0.6 | 4.5 | 315.1 | 327.4 | 6 | 70 | 51 | 351 | 0 |
+| 6 | phone 10x off | off | 96 | 26 | 15.6 | 0 | 0 | 0.1 | 0.2 | 495.7 | 558.8 | 0 | 0 | 54 | 3 | 0 |
+| 6 | phone 10x low | low | 96 | 27 | 15.2 | 17.3 | 0.2 | 0.7 | 1.4 | 473.7 | 519 | 7 | 19 | 51 | 56 | 0 |
+| 6 | phone 10x full | full | 96 | 27 | 16.1 | 17.8 | 0.5 | 0.9 | 2.1 | 271 | 503.2 | 7 | 70 | 53 | 353 | 0 |
+
+**Leg 7, the ceiling** (`full`, 50 ambient owners, budget 96, 2 s + 6 s per
+step, ×2 per step). Run 1, 1× = 1.2 events/s:
+
+| step | events/s asked | events/s in | Fx/s | live max | est. live | evicted/s | update p50 | update p95 | snapshot p50 | snapshot p95 | display objs | frames |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 10x | 12 | 12.5 | 14.17 | 4 | 5.3 | 0 | 0.4 | 0.9 | 0.3 | 0.5 | 351 | 13 |
+| 20x | 24 | 25.67 | 29.17 | 5 | 10.7 | 0 | 0.5 | 0.9 | 0.8 | 3.2 | 379 | 11 |
+| 40x | 48 | 51.83 | 58.33 | 18 | 21.4 | 0 | 0.5 | 0.9 | 0.7 | 2.1 | 479 | 13 |
+| 80x | 96 | 101.5 | 114.5 | 36 | 42.8 | 0 | 0.7 | 1.2 | 0.8 | 1.2 | 583 | 16 |
+| 160x | 192 | 202.17 | 228.5 | 50 | 85.6 | 85.67 | 0.9 | 1.7 | 2.2 | 3.1 | 599 | 16 |
+| 320x | 384 | 400.17 | 453.33 | 50 | 171.1 | 317.67 | 0.6 | 0.9 | 4.5 | 8.3 | 608 | 16 |
+| 640x | 768 | 779.33 | 881.5 | 49 | 342.3 | 787.33 | 0.6 | 0.9 | 7.9 | 16.2 | 581 | 16 |
+| 1280x | 1536 | 1549.17 | 1753.5 | 48 | 684.5 | 1698.83 | 0.6 | 0.9 | 16 | 25.4 | 561 | 16 |
+
+Run 2 (1× = 1.8 events/s) evicted first at 144 events/s (17/s), a third
+supplementary ramp at 176. **The caps where they finally differ:**
+
+| budget | evicted/s (run 1 @ 192 ev/s · run 2 @ 144 ev/s) | update p95 | display objects |
+|---|---|---|---|
+| 48 | 152.2 · 103.0 | 0.7 · 0.6 | 386 · 416 |
+| 96 | 71.5 · 20.5 | 27.2* · 2.5 | 615 · 681 |
+| 192 | **0 · 0** | 8.0* · 2.3 | 698 · 747 |
+
+(* one stalled frame in a 16-frame window; p50 was 0.9 and 1.6 ms.) One step
+higher (384 / 288 events/s) even 192 evicts.
+
+**Findings**
+
+- ⭐ **The frame guard PASSES with a wide margin**: 10× `full` `update()` p95 is
+  0.7–1.0 ms, about 5 % of a 16.7 ms frame.
+- ⭐ **C2b's "unbudgeted and unmeasured" has its number.** Ambient IS the
+  dominant SkillFx cost (leg 4: ≈ 93 % of the layer's display objects, about
+  half its frame time) and it is 0.4–0.6 ms p95 at 50 owners. **PO: ambient
+  stays unbudgeted, no cap is built.**
+- ⭐ **The slider is a real cost lever**: display objects 344 → 59 → 1, ambient
+  layers 70 → 19 → 0 (`full` → `low` → `off`).
+- ⭐ **Leg 5 was a NULL result, which is why leg 7 exists**: at 10× live Fx
+  peak at 6–8 (15 at the east camp's 43/s), so no cap was ever reached.
+- ⭐ **At 96, eviction starts at ≈ 145–190 events/s**, about 100× one player's
+  measured fight and 10× above the 10× world. Live Fx grow roughly linearly
+  with the rate (4–8 at 10×, 18–24 at 40×, 36–47 at 80×); Little's law on the
+  authored mix puts 96 live Fx at a steady ≈ 215 events/s, bracketing the
+  measurement from above (a 3 fps page delivers events in batches, so
+  concurrency runs ahead of the mean).
+- ⭐ **Once the cap binds, the FRAME cost plateaus** (p50 0.6–0.9 ms up to
+  1536 events/s): the cap does its job. **The honest ceiling is the SPAWN
+  path**: `onSnapshot` p95 reaches a frame at ≈ 1500 events/s. A cap bounds
+  what is drawn, not the planning, spawning and disposing of what the wire
+  hands over.
+- ⚑ **A p95 over 14–35 frames is the second-highest sample.** The headless
+  page renders at ≈ 3 fps (software GL, even with the load-bearing flags), so
+  one stall crosses any threshold; read p50 beside it. It is also why FILL
+  RATE cannot be judged headless: the phone rAF ratios inverted between runs
+  (0.55 / 0.96, then 0.99 / 0.57) and are noise.
+- ⚑ Leg 2 (the driver's honesty gate) passed by its floor clause in both runs:
+  Chromium coarsens `performance.now` to ≈ 0.1 ms, so the driver is honest at
+  the clock's resolution, no better. Real traffic bled into run A's leg 2
+  (≈ 1.4 events/s) and run B's leg 4 (0.6).
+
+**PO rulings** (§12e.8 holds the list): ambient unbudgeted · the phone is
+PO-owed · ⭐ **the cap is OPEN: "decide after the phone check"**, `FX_BUDGET`
+stays 96 [PLACEHOLDER] in code, and the PO's real-device walk at 10× and above
+decides between 96 and 192 (192 is cheap in `update()` terms and doubles the
+worst-case Graphics on screen, which is the cost only a phone can price).
+
+**Red→green, stated honestly.** Red-first: `percentileOf` (4 pins) and
+`stressSchedule` (6 pins). ⚑ **Implementation-first, pinned after and
+mutation-checked**: `eventLifetimeMs` / `estimateLiveFx` (7 pins). ⚑ Exercised
+ONLY by the harness, no unit test: the rings, `stats()`, the budget `let`, and
+the whole Pixi half of the driver.
+
+**Verify tail** (lead, final tree): `go build ./...` clean, nothing Go changed
+· frontend `npm test` **829 / 45** (was 812 / 44), `typecheck` + prod build
+clean. By the agent: `make -C backend build` before every run ·
+`skill-fx-scale.mjs` **PASS** twice for legs 1–6 and twice with leg 7, every
+run on a fresh restart, no inconclusive leg · `skill-fx.mjs` **PASS, 13 legs /
+18 assertions**, rerun after each round's frontend edits. `harnessdb -cleanup`
+by the lead with `aurad` stopped: 24 anonymous harness accounts removed.
+⛔ **NOT run:** a real phone (PO-owed) · `hygiene-wire-prune` · two-window ·
+loadbot · Go tests (nothing Go changed).
+
+**How the PO drives it on a phone** (a `?develop` build, in the console):
+`game.skillFxMeasure(true)`, then
+`game.skillFxStress({eventsPerSec: 15, ambientOwners: 50, seconds: 30})` for
+10×, `eventsPerSec: 150` for the eviction point, with the slider at each
+level; `game.skillFxStats()` reads the window, `game.skillFxBudget(192)`
+tries the other cap.
+
+**Still open after the wrap**
+
+- ⭐ **The cap (96 vs 192) and the mobile fill-rate verdict**, both on the PO's
+  phone check.
+- **C3 (art)** is the last chunk.
+- ⚑ The 1× baseline is ONE player's fight. Many players in one viewport is a
+  different multiplier than mob density, and nothing measured it; the driver
+  can (raise `eventsPerSec`), a real crowd has not.
 
 ### C2b ledger (2026-09-20) - the other three kinds + the density slider
 

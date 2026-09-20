@@ -11,8 +11,9 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
 *(2026-09-20, the Status collapse after the C2b wrap shortened the two `Prior` entries in
-CLAUDE.md to their headlines. Their FULL text, as it stood, is kept here verbatim; both are
-still listed in CLAUDE.md in the short form.)*
+CLAUDE.md to their headlines. Their FULL text, as it stood, is kept here verbatim. The
+skill VFX C4 wrap then rotated the cap again: MOB ATTACKS is still listed in CLAUDE.md in
+the short form, SKILL VFX C2a has left Status entirely and lives only here.)*
 
 - **Prior: MOB ATTACKS HIT ONE TARGET, and the companion defends itself** ✅ 2026-09-19 `de57fd4f` (ledger: this entry + `manual-content-authoring.md` §2 "Mob attacks hit one target"; no plan doc): ⭐ **a mob fights one versus one, WoW style** (PO ruling), every attack authoring `selector` + `maxTargets`, cap **1** unless the world explains more (2 = two weapons, 3 = a cleave, uncapped = a PLACE or a telegraphed AoE, now explicit as `all`). ⭐ The target is the **NEAREST, not the aggro pick**, so threat steers only where a mob WALKS and a body-block is intended; authored per file, **no loader default and no validator** (rule over machine). PO departures: volleys became single shots, `GiantVenomSpit` 2 → 1, `AngryMammothStomp` stays uncapped. ⭐ **The consequence the PO walked into: a mob spent its one hit on a companion, which never answered** (§3.6: it took targets only from its owner's signals); its own `highestThreatTarget()` is now the third and LAST candidate, same filters, idle-only, allocation-free. ⚑ An absent `maxTargets` loads clean as "hits everyone", silent BY CHOICE · the group effect is UNMEASURED, elite/boss re-pricing owed (watch item). **Schema DB/wire/conf NONE; content: 21 mob skill files + copies.** Verified: 35 pkgs uncached 0 failures · red-first (the old §3.6 pin flipped to a retaliation pin, + 2 new) · `-validate` 0 both ways · smoke 0/114 · real boot `count=114`. `chunk2-follower.mjs` **6/6** (its number poll went 1.5 s → 250 ms: single-target hits are sparse). ⛔ NOT run: frontend. ⭐ **PO walk 2026-09-20: "walked it, works."**
 
