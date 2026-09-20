@@ -763,3 +763,44 @@ func TestZone_AcceptsUnknownRegionProfile(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "no-such-profile", z.Regions[0].Profile)
 }
+
+// ⛔ A DOT-DIRECTORY IS NOT A ZONE (PO 2026-09-20). zoneStems walks the whole
+// tree, so before this rule an editor's or a human's backup folder inside
+// api/zones/ was discovered as a zone and LOADED — and because a backup is by
+// construction a copy of a zone already in the set, it arrived at the SAME
+// origin and refused the boot on the L1 separation rule. `.backup/world_bkp.json`
+// did exactly that.
+//
+// ⚑ It also closes an asymmetry rather than inventing a rule: the embedded copy
+// is `//go:embed *.json`, flat, so a subdirectory never reached an embedded
+// boot at all. Only `-content ../api` walked it, which is the configuration the
+// PO develops in — so the trap was invisible to every other way of running.
+func TestZoneStems_SkipsDotDirectories(t *testing.T) {
+	const doc = `{
+		"name": "Scaffold",
+		"bounds": { "width": 60, "height": 40 },
+		"campfires": [{ "id": "spawnpoint-1", "x": 0, "y": 0, "startingSpawn": true }]
+	}`
+	fsys := fstest.MapFS{
+		"world.json":              {Data: []byte(doc)},
+		".backup/world_bkp.json":  {Data: []byte(doc)},
+		".trash/old/ancient.json": {Data: []byte(doc)},
+	}
+
+	_, stems, err := zoneStems(fsys)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"world"}, stems, "only the top-level zone is a zone")
+
+	// The end-to-end shape: the boot no longer trips over the backup's origin.
+	zones, err := LoadAllZonesFS(fsys, "world", newFakeMobRegistry(), newFakePropRegistry())
+	require.NoError(t, err)
+	require.Len(t, zones, 1)
+
+	// ⚑ An ORDINARY subdirectory still loads. The rule is about the dot, not
+	// about nesting — a zone set someone chooses to organise into folders is
+	// not what this refuses.
+	fsys["region-a/outpost.json"] = &fstest.MapFile{Data: []byte(doc)}
+	_, stems, err = zoneStems(fsys)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"outpost", "world"}, stems)
+}

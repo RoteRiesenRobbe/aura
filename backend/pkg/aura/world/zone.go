@@ -642,7 +642,25 @@ func zoneStems(fileSystem fs.FS) (paths map[string]string, stems []string, err e
 		if err != nil {
 			return fmt.Errorf("cannot read %q: %w", p, err)
 		}
-		if d.IsDir() || !strings.HasSuffix(p, ".json") {
+		// ⛔ A DOT-DIRECTORY IS NOT PART OF THE ZONE SET (PO 2026-09-20). The walk
+		// recurses, so a backup or scratch folder someone drops inside api/zones/
+		// used to be DISCOVERED AND LOADED — and a backup is a copy of a zone that
+		// is already in the set, so it arrived at the same origin and refused the
+		// boot on the L1 separation rule, naming a file nobody thought was a zone.
+		//
+		// ⚑ It matches `//go:embed *.json`, which is FLAT: a subdirectory never
+		// reached an embedded boot at all, so only `-content ../api` ever walked
+		// one. Skipping the dot closes that asymmetry rather than adding a rule.
+		//
+		// ⚑ The dot is the whole test. An ordinary subdirectory still loads, so a
+		// zone set organised into folders keeps working.
+		if d.IsDir() {
+			if p != "." && strings.HasPrefix(path.Base(p), ".") {
+				return fs.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(p, ".json") {
 			return nil
 		}
 		stem := strings.TrimSuffix(path.Base(p), ".json")
