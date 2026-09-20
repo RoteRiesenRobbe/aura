@@ -26,6 +26,9 @@ import * as SkillFx from '../../skill-fx/logic/SkillFx';
 import * as Regions from '../../regions/logic/Regions';
 import {Region} from '../../regions/logic/Regions';
 import * as Paths from '../../paths/logic/Paths';
+import * as Polygons from '../../polygons/logic/Polygons';
+import * as Atmospheres from '../../atmospheres/logic/Atmospheres';
+import * as Clearings from '../../atmospheres/logic/Clearings';
 import * as RegionPaint from '../../regions/logic/RegionPaint';
 import {GameState, IGame, IGameLayers} from './IGame';
 import {gameObjectId} from '../../common/logic/Types';
@@ -246,11 +249,31 @@ export class Game implements IGame {
                 // Roads and rivers (plan-world-paths.md C1): OVER the region
                 // ground, UNDER the texture blobs. A road lies ON the field it
                 // crosses, and the blobs keep doing edge treatment on top of
-                // both. A bridge is a PROP (D6) and therefore an entity, so it
-                // draws far above this — nothing here has to know about it.
+                // both. A bridge is a PROP (D6) and therefore an entity — but an
+                // entity you WALK ON, so it draws on `decks` a few lines below,
+                // never in the `resources` layers with the trees (PO 2026-09-16).
+                // Filled masses (plan-zone-polygons.md P2): OVER the region
+                // ground, UNDER the paths. Material, then masses, then ribbons —
+                // a rock sits on the field, and a road still runs over the rock.
+                polygons: createNamedContainer('polygons'),
                 paths: createNamedContainer('paths'),
                 textures: createNamedContainer('textures'),
                 resourceSpots: createNamedContainer('resourceSpots'),
+                // Bridges, docks, plank walkways — anything a character stands
+                // ON TOP OF, i.e. every prop definition authoring
+                // `underfoot: true` (PO 2026-09-16, plan-world-paths.md D6).
+                //
+                // ⭐ THE LAST TERRAIN LAYER, AND THEREFORE STILL UNDER EVERY
+                // ENTITY — which is the entire point. A prop drawn in the
+                // `resources` layers is drawn above `characters`, so a bridge
+                // there would cover the player crossing it: the campfire defect
+                // (see the mobs-under-characters note below), applied to world
+                // geometry. The server refuses `crossesPaths` without
+                // `underfoot` so the two cannot drift apart.
+                //
+                // ⚑ ABOVE `resourceSpots`: a deck hides the ground scuffing it
+                // is laid over, not the other way round.
+                decks: createNamedContainer('decks'),
             },
             // No `placeables` group: the Berryhunter build/placeable feature is
             // gone (backlog §26/§28), so all seven of its containers rendered
@@ -278,6 +301,21 @@ export class Game implements IGame {
             // at most the local player: a flyer is removed from everyone
             // else's snapshot (D13), so no remote character can ever reach it.
             flyers: createNamedContainer('flyers'),
+            // The HAZE half of the atmospheres — fog, smoke, dust — in its OWN
+            // filtered container, added BEFORE the darkness so it draws UNDER
+            // it (PO 2026-09-14).
+            //
+            // ⭐ Both halves of that sentence are load-bearing. Its own filter
+            // is what puts it in a separate render target, out of reach of the
+            // darkness layer's erase holes: a lantern cuts the black and leaves
+            // the fog. And drawing it UNDER means fog is only visible where
+            // there is light to see it by — an unlit smoky cave reads black,
+            // and its fog appears inside the lantern pocket.
+            //
+            // ⚑ Gated like the darkness: a zone that authors no haze never
+            // renders it, so the second render target costs nothing until
+            // someone asks for fog.
+            haze: createNamedContainer('haze'),
             // Skill VFX (plan-skill-vfx.md C2a): above every entity, below
             // darkness: a fireball must not be the first thing to light a
             // dark area (§6.5, the attack-lines precedent). Also carries the
@@ -315,9 +353,11 @@ export class Game implements IGame {
         this.cameraGroup.addChild(
             this.layers.terrain.ground,
             this.layers.terrain.regions,
+            this.layers.terrain.polygons,
             this.layers.terrain.paths,
             this.layers.terrain.textures,
             this.layers.terrain.resourceSpots,
+            this.layers.terrain.decks,
         );
 
         // Corpses below the living
@@ -365,6 +405,7 @@ export class Game implements IGame {
         this.cameraGroup.addChild(this.layers.skillFx);
 
         // Darkness overlay above every entity
+        this.cameraGroup.addChild(this.layers.haze);
         this.cameraGroup.addChild(this.layers.darkness);
 
         // Character Additions
@@ -382,7 +423,7 @@ export class Game implements IGame {
 
         Camera.setup(this);
         GroundTextureManager.setup(this);
-        DarknessOverlay.setup(this.layers.darkness);
+        DarknessOverlay.setup(this.layers.darkness, this.layers.haze);
 
         GameObject.setup();
         // ⚑ AFTER GameObject.setup(), and that ordering is load-bearing: both
@@ -594,6 +635,7 @@ export class Game implements IGame {
         // readability overlays (name plates, chat, floating numbers, vitals).
         const nightExempt = new Set<Container>([
             this.layers.mobs.campfire,
+            this.layers.haze,
             this.layers.darkness,
             this.layers.characterAdditions.namePlates,
             this.layers.characterAdditions.chatMessages,
@@ -656,7 +698,6 @@ export class Game implements IGame {
         this.layers.terrain.ground.removeChildren().forEach(c => c.destroy());
         GroundTextureManager.clear();
         GroundTextureManager.loadZone(zoneName);
-        DarknessOverlay.loadZone(zoneName);
 
         // Shallow-water beach ring OUTSIDE the physical bounds (C2 fix: the
         // old inset ring sat inside the wall, so the last 2 units of walkable
@@ -681,18 +722,61 @@ export class Game implements IGame {
         const zoneData = GroundTextureManager.getZoneData(zoneName);
         const origin = rect ? {x: rect.originX, y: rect.originY} : undefined;
         Regions.loadRegions(zoneData?.regions, origin);
+        Polygons.loadPolygons(zoneData?.polygons, origin);
         Paths.loadPaths(zoneData?.paths, origin);
+        // The AIR over an area (plan-region-atmosphere.md A0) — loaded beside
+        // its three siblings and for the same reason: it is client-visual, so
+        // the server leaves it zone-local and the origin goes in HERE.
+        //
+        // ⚑ Loaded here, PAINTED by paintTerrainSurfaces below — into the
+        // darkness layer rather than a terrain one. Until a profile authors
+        // `darkness` or `haze` there is nothing to paint, which keeps the feature
+        // inert in every zone that does not ask for it.
+        Atmospheres.loadAtmospheres(zoneData?.atmospheres, origin);
+        // The HOLES cut in that air (A4) — loaded beside the array they cut and
+        // before DarknessOverlay.loadZone for the same L13 reason it is.
+        Clearings.loadClearings(zoneData?.clearings, origin);
+        // ⛔ AFTER the four load* calls, never before them
+        // (plan-region-atmosphere.md L13). loadZone asks
+        // `Atmospheres.loadedAtmospheres()` whether this zone is dark at all,
+        // and it used to run 24 lines further up — where that list still held
+        // the PREVIOUS zone's shapes, or nothing at all on the first load. The
+        // failure is invisible in `world` (which authors none) and wrong in the
+        // underworld, which is L5 arriving through a different door.
+        //
+        // ⚑ Nothing else in loadZone cares about the order: dark circles and
+        // campfires come from the bundled zone data, which GroundTextureManager
+        // loaded above.
+        DarknessOverlay.loadZone(zoneName);
         this.paintTerrainSurfaces();
         // The zone's ground tiles (C4). Loaded HERE and not through Preloading:
         // the preload gate blocks boot, and by the time a zone is known it has
         // long since passed (§4.9). Until they land — and forever, if a file is
         // missing — every region paints its fallback colour (D14), so this is a
         // repaint of something already correct, never a blank world.
-        // ⚑ BOTH arrays, or a zone whose only textured profile is a river
-        // loads nothing and the water paints its fallback colour forever.
-        RegionPaint.loadZoneTextures(
-            (Regions.loadedRegions() as Region[]).concat(Paths.loadedPaths()),
-        ).then((landed) => {
+        // ⚑ EVERY array, or a zone whose only textured profile is a river — or
+        // a fog bank — loads nothing and paints its fallback colour forever.
+        // ⛔ `atmospheres` was the fourth to be added and the easiest to forget,
+        // because it is the one surface NOT drawn into a terrain layer: a
+        // textured fog would have kept its flat fallback for the life of the
+        // session, and nothing anywhere would have said why.
+        //
+        // ⭐ TWO calls since the 2026-09-15 table split, and it must stay two: a
+        // tile is named by a PROFILE, and the ground and the air keep separate
+        // profile namespaces. Concatenating the four arrays into one call would
+        // look up `Fog` in the terrain table, miss, and silently leave the bank
+        // on its fallback colour — the very failure the comment above records,
+        // reintroduced by a tidier-looking line.
+        Promise.all([
+            RegionPaint.loadZoneTextures(
+                (Regions.loadedRegions() as Region[])
+                    .concat(Polygons.loadedPolygons())
+                    .concat(Paths.loadedPaths()),
+            ),
+            RegionPaint.loadZoneTextures(
+                Atmospheres.loadedAtmospheres(), Regions.ATMOSPHERE_PROFILES),
+        ]).then(([groundLanded, airLanded]) => {
+            const landed = groundLanded || airLanded;
             if (!landed) { return; }
             // ⚑ A late texture load must not repaint a zone the player has
             // since left: the promise outlives the swap that started it.
@@ -764,6 +848,7 @@ export class Game implements IGame {
 
     private paintTerrainSurfaces(): void {
         const layer = this.layers.terrain.regions;
+        const polygonLayer = this.layers.terrain.polygons;
         const pathLayer = this.layers.terrain.paths;
         // ⚑ Bare `destroy()`, deliberately: with no options Pixi frees the
         // Graphics' OWN context (its geometry) and leaves textures alone, which
@@ -771,6 +856,7 @@ export class Game implements IGame {
         // profile and by the map's bake. Passing `{texture: false}` would read
         // as the safer call and actually leak the context instead.
         layer.removeChildren().forEach(child => child.destroy());
+        polygonLayer.removeChildren().forEach(child => child.destroy());
         pathLayer.removeChildren().forEach(child => child.destroy());
         // ⚑ …but a C5 blend mask is NOT shared, and the line above deliberately
         // does not free it. One RenderTexture per feathered region per paint,
@@ -780,15 +866,57 @@ export class Game implements IGame {
         // handed them back; nothing else holds a reference.
         this.regionMasks.forEach(texture => texture.destroy(true));
         const painted = RegionPaint.paintTerrainSurfaces(
-            layer, pathLayer,
-            Regions.loadedRegions(), Paths.loadedPaths(),
+            layer, polygonLayer, pathLayer,
+            Regions.loadedRegions(), Polygons.loadedPolygons(), Paths.loadedPaths(),
             this.application.renderer);
-        this.regionMasks = painted.masks;
+        // The AIR, painted into the DARKNESS layer rather than a terrain one
+        // (plan-region-atmosphere.md A1) — the same `paintSurface`, so fog gets
+        // its texture, its soft edge and its drift from the shipped machinery.
+        //
+        // ⭐ Painted HERE and not inside DarknessOverlay.loadZone, which runs
+        // once, because this method runs a SECOND time the moment the zone's
+        // ground tiles land — and a fog bank that names a texture would
+        // otherwise keep its fallback colour for the life of the session, the
+        // same trap the region tiles already document. The overlay owns the
+        // ORDER (its container sits between the dark circles and every erase
+        // hole); this owns the GPU resources, where the destroy-and-replace
+        // discipline above already lives.
+        //
+        // ⚑ The container is null until the first loadZone, which is why this
+        // is a guard and not an assertion: paintTerrainSurfaces is also reached
+        // from the resize redraw.
+        const air = this.paintAtmosphereSurfaces();
+        this.regionMasks = painted.masks.concat(air.masks);
         // ⚑ The scrollers need no freeing of their own - their sprites are the
         // layer's children and died in the removeChildren above - but the
         // reference MUST be replaced, or the frame loop keeps writing
         // tilePosition on destroyed sprites from the previous pass.
-        this.regionScrollers = painted.scrollers;
+        // ⚑ BOTH sets, or an authored fog drift renders perfectly and never
+        // moves (L16) — a silent failure, because a still fog bank is exactly
+        // what an unauthored one looks like. They ride the one array that
+        // `loop` already advances behind the `paused` guard (L8).
+        this.regionScrollers = painted.scrollers.concat(air.scrollers);
+    }
+
+    /** Repaints the darkness layer's atmosphere container. See the call site in
+     *  {@link paintTerrainSurfaces} for why it lives on that pass and not on
+     *  the overlay's own load. */
+    private paintAtmosphereSurfaces(): RegionPaint.PaintedSurfaces {
+        const container = DarknessOverlay.atmosphereContainer();
+        const haze = DarknessOverlay.hazeContainer();
+        if (container === null || haze === null) {
+            return {masks: [], scrollers: []};
+        }
+        // Emptied IN PLACE, never re-parented — the container's position
+        // between the dark circles and the erase holes is what keeps a
+        // campfire's glow from being sealed over by the fog.
+        container.removeChildren().forEach(child => child.destroy({children: true}));
+        // ⚑ The haze layer is emptied in place for the same reason — it is a
+        // long-lived child of the camera group, not something to re-parent.
+        haze.removeChildren().forEach(child => child.destroy({children: true}));
+        return RegionPaint.paintAtmospheres(
+            container, haze, Atmospheres.loadedAtmospheres(),
+            Clearings.loadedClearings(), this.application.renderer);
     }
 
     private createBackground() {

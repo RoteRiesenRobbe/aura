@@ -476,7 +476,7 @@ export abstract class GameObject {
         // Tested at the ENTITY's position, matching the name-plate precedent
         // rather than the label's own offset position. That distinction
         // decides the local player's case: the own character always carries a
-        // light (Player.MIN_SELF_LIGHT_PX), so own numbers always render,
+        // light (Regions.SELF_SIGHT_FLOOR_PX), so own numbers always render,
         // while a number over an unlit mob is suppressed. Testing the label
         // position instead would put the test right at the edge of that small
         // self-light and make the player's own feedback flicker on geometry.

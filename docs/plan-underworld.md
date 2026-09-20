@@ -2,9 +2,10 @@
 
 **Status:** designed 2026-09-07 (PO session, 6 rulings taken). **U1 + U2 + U3 +
 U3b + U4a + U4b SHIPPED 2026-09-08**, and the underworld is **LIVE** — two
-passages, walkable both ways, behind a directional curtain. **U0 not started**;
-U5 is now a fill-in-the-room pass rather than a build-it-from-nothing one. All
-numbers **[PLACEHOLDER]**.
+passages, walkable both ways, behind a directional curtain. **U0 not started**.
+⛔ **U5 DROPPED 2026-09-10 (PO): level authoring is manual.** Filling a room is
+the PO's own work in Tiled, not a chunk — see §7.3 for what U5 was carrying
+that does **not** drop with it. All numbers **[PLACEHOLDER]**.
 
 ### Ledger — U4b, the directional curtain (2026-09-08)
 
@@ -375,7 +376,8 @@ Entering needs three content edits U3 deliberately does not make — a
 `CaveMouth` spawn + a `surface-return` anchor in `world.json`, an
 `underworld.json` with the `underworld-entry` anchor and a `CaveExit`, and both
 listed in `game.zones`. Where a cave mouth stands is a **content judgement**
-(U5), and `world.json` is under active authoring. ⚑ **The three edits are
+(U5 — ⛔ **dropped 2026-09-10, level authoring is manual**, §7.3), and
+`world.json` is under active authoring. ⚑ **The three edits are
 coupled**: the moment a zone places a cave mouth, the boot refuses until its
 destination exists — which is the pass working, but it means there is no
 half-on state to ship. ⚑ **Still owed with them: the L8 campfire check** — an
@@ -1021,11 +1023,10 @@ does not degrade with world size; what degrades is legibility).
 | **U3** ✅ | `TravelAnchor` mode + the zone-anchor table + **two** `CaveMouth` defs (L6, L7) + `world.CrossValidateTravelAnchors`. ⭐ Anchor mode is resolved **above** `destination`'s `owner == nil` guard — a zone-placed door has no owner. | ✅ Go tests incl. the refuse-at-boot path · ⛔ **in-game round trip + the L8 campfire check are OWED**: they need the three coupled content edits U3 leaves to U5 (see the ledger) |
 | **U4a** ✅ | **The map follows you across** (§5.3): the zone-origin term on every world→map conversion, `switchZone` instead of `setup()`, per-zone fog, and the discovered set surviving a crossing. ⭐ A BUG FIX — U2/U3b shipped a map that is wrong in any zone away from `{0,0}`. | ✅ tsc · vitest 650/650 · mutation-verified · ⛔ in-game owed |
 | **U4b** ✅ | **D7**'s appended `ConversationOption.travel:ubyte`, derived server-side by comparing the two zones' `OriginY` (⚑ **`anchor` mode only** — L15, with the client repairing a lateral on arrival) + the directional curtain (§5.1). ⚑ Per-zone map bake and `MapFog` were **U4a**, not this. | ✅ codec round-trip ×4 values · `go test -count=1 ./...` EXIT 0 · tsc · **vitest 663/663** · prod build · **mutation-verified ×2** · ⛔ in-game owed, and **Q5 is now live** — the shipped portal pair gets the lateral crossfade |
-| **U5** ⚑ *(half done by U3b)* | **Content**: author `api/zones/underworld.json` — bounds, entry/exit anchors, the two `CaveMouth`s, darkness, campfires, a first pocket of mobs. ⭐ **Cave walls as blocking `paths`, not props** (§7.1 item 1) — the single biggest perf decision in the feature, and it is a content one. | in-game |
+| **U5** ⛔ **DROPPED 2026-09-10 (PO)** | ~~**Content**: author `api/zones/underworld.json`~~ — **level authoring is manual**. The room is the PO’s work in Tiled, not a chunk. ⚑ **Two things U5 was carrying do NOT drop with it — see §7.3**: the owed in-game pass (U3/U4a/U4b all deferred their verification into U5) and the **L8 campfire check**. ⭐ The walls-as-`paths` perf ruling (§7.1 item 1) survives as **authoring guidance to the PO**, not as a chunk. | — |
 | **U6** *(deferred — §7.2)* | **Build-time zone placement**: an authored `depth`, an auto-assigned `origin`, and a GENERATED placement file both sides read so the wire cost stays zero. ⚑ PO-asked 2026-09-08; deferred with two named triggers, not dropped. | `go test` · `verify.sh` · a boot whose placement file is deliberately stale must still be REFUSED |
 
-U1–U3 are each small and independently verifiable; **U1 ships inert**. U5 is a
-content pass and wants its own session.
+U1–U3 are each small and independently verifiable; **U1 ships inert**.
 
 ⚑ **U1 wants a mutation-verified test for the separation assert.** Every one of
 L1/L4/L5/L5b/L13 is a *silent* failure — a wrong-but-plausible position, a
@@ -1039,6 +1040,43 @@ the seam is BOOT TIME** ([[project-zone-edit-half-live]]) — the client bundles
 `api/zones` through webpack and HMR re-reads it on every save, while `aurad`
 read the zone once, at boot. Cost a debugging session on 2026-09-07 (water drew,
 did not block). This will bite constantly while authoring a second zone.
+
+---
+
+## 7.3 What U5 was carrying, and what happens to it (PO 2026-09-10)
+
+⛔ **U5 is dropped: level authoring is manual.** Filling the underworld is the
+PO's own work in Tiled and was never engineering. But U5 had quietly become the
+bag three shipped chunks dropped their leftovers into, so the drop needs three
+explicit re-homings — otherwise the chunk vanishes and takes them with it.
+
+1. ⛔ **The owed in-game pass is NOT content and does NOT drop.** U3, U4a and
+   U4b each shipped with *"in-game owed"* and each pointed at U5, because U5 was
+   the first chunk that would put a walkable room in front of a human. **Nothing
+   in U1→U4b has been walked in-game by anyone.** ⚑ The precedent is U2, which
+   shipped with no in-game pass and produced **three browser-only defects** (a
+   fog mask destroyed with its terrain layer, an unconditional
+   `snapshot.player.position` deref, a camera clamp taking a SIZE where it
+   needed a RECTANGLE). This is now owed **against whatever room the PO
+   authors**, not against a chunk of ours.
+2. ⚑ **The L8 campfire check rides with it.** An entrance standing inside a
+   campfire's dwell circle loses every `E` press to the client's synthesized
+   flight offer — and an exit is exactly where a cave's fire wants to stand. It
+   is a **layout** trap, so it belongs to manual authoring: it is the one thing
+   the PO must actively look for while placing a fire near a mouth.
+3. ⭐ **The walls-as-`paths` ruling becomes authoring guidance, not a chunk**
+   (§7.1 item 1). It was always *"a content decision, not code"* — the drop
+   changes only who reads it. Restated for the person in Tiled: **cave walls
+   drawn as blocking `paths` stream nothing**, because path corridors are
+   deliberately off `LayerViewportCollision` while the 777 props are on it. Same
+   for §7.1 item 4 — **author sparse**, and note the reason is not local:
+   underworld mobs make **surface** deaths and disconnects slower, and dormancy
+   does not save you.
+
+⚑ **Still true and now unowned by any chunk:** the coupled-edit rule (§5). The
+moment a zone places a `CaveMouth`, **the boot refuses until its destination
+anchor exists** — there is no half-authored state. That is the validation
+working as designed, and it is the first thing manual authoring will hit.
 
 ---
 

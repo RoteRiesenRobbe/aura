@@ -30,7 +30,7 @@ func TestRunValidate_RealApiIsClean(t *testing.T) {
 	config := mustDefaultConfig(t)
 
 	var out bytes.Buffer
-	code := runValidate(&out, src, config, resolveZoneList("", "", config))
+	code := runValidate(&out, src, config, config.Game.StartZone)
 	assert.Equal(t, validateExitClean, code, "api/ must validate clean:\n%s", out.String())
 	assert.Equal(t, "0 finding(s)\n", out.String())
 }
@@ -91,7 +91,7 @@ func TestRunValidate_IndependentStagesBothReportAndDependentsSkip(t *testing.T) 
 // broken validator: same exit code an unloadable file gets.
 func TestValidateMain_MissingContentDirIsAFinding(t *testing.T) {
 	var out bytes.Buffer
-	code := validateMain(&out, filepath.Join(t.TempDir(), "nope"), "", "")
+	code := validateMain(&out, filepath.Join(t.TempDir(), "nope"), "")
 	assert.Equal(t, validateExitFindings, code)
 	assert.Contains(t, out.String(), "content: ")
 }
@@ -145,7 +145,7 @@ func validateDir(t *testing.T, dir string) (string, int) {
 	require.NoError(t, err)
 	config := mustDefaultConfig(t)
 	var out bytes.Buffer
-	code := runValidate(&out, src, config, resolveZoneList("", "", config))
+	code := runValidate(&out, src, config, config.Game.StartZone)
 	return out.String(), code
 }
 

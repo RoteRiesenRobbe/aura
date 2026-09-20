@@ -21,7 +21,7 @@
  * containment test is a distance-to-polyline this module deliberately does not
  * build. When an audio consumer wants "am I on a road", that is its own chunk.
  */
-import {Region} from '../../regions/logic/Regions';
+import {Outlined, outlineOf, Region} from '../../regions/logic/Regions';
 import {meter2px} from '../../../client-data/BasicConfig';
 
 /**
@@ -31,9 +31,17 @@ import {meter2px} from '../../../client-data/BasicConfig';
  * unchanged — which is what makes "one profile table, two shapes" true in the
  * type system rather than only in the comments.
  */
-export interface Path extends Region {
+export interface Path extends Region, Outlined {
     /** Stroke width in world PIXELS (the zone authors server units). */
     width: number;
+    /**
+     * Joins the last point back to the first — a moat, a ring road, a circular
+     * town wall (plan-zone-polygons.md P1).
+     *
+     * ⛔ Still a STROKE. A closed path is not a filled shape, however much it
+     * looks like one in Tiled's object list; the filled sibling is its own type.
+     */
+    closed?: boolean;
 }
 
 /** Authored shape, straight out of the zone file: server units. */
@@ -42,6 +50,9 @@ export interface PathDefinition {
     points: { x: number, y: number }[];
     width: number;
     blocksMovement?: boolean;
+    closed?: boolean;
+    outlineProfile?: string;
+    outlineWidth?: number;
 }
 
 let paths: Path[] = [];
@@ -67,11 +78,18 @@ export function toPaths(defs: PathDefinition[] | undefined, origin?: {x: number,
             width: typeof p.width === 'number' && isFinite(p.width) && p.width > 0
                 ? meter2px(p.width)
                 : 0,
+            // ⚑ Normalised to a real boolean rather than carried through: it
+            // reaches Pixi as `poly(points, closed)`, and an undefined there
+            // would close the ring — Pixi's own default is true, which is the
+            // opposite of what a path means.
+            closed: p.closed === true,
+            ...outlineOf(p),
         }))
-        // A path needs two points to be a line and a width to be visible. Both
-        // are server-validated; this is the client's own degrade path, and it
-        // drops one path rather than the zone (D11's posture).
-        .filter(p => p.points.length >= 2 && p.width > 0);
+        // A path needs two points to be a line and a width to be visible, and a
+        // CLOSED one needs three to be a ring. All three are server-validated;
+        // this is the client's own degrade path, and it drops one path rather
+        // than the zone (D11's posture).
+        .filter(p => p.points.length >= (p.closed ? 3 : 2) && p.width > 0);
 }
 
 /** Installs the loaded zone's paths.

@@ -2,5 +2,5 @@
   "name": "Tree",
   "entityType": "RoundTree",
   "sprite": "roundTree.png",
-  "body": { "radius": 1.4, "collisionFactor": 0.714286 }
+  "body": { "radius": 1, "collisionFactor": 0.714286 }
 }

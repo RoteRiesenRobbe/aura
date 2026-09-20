@@ -68,6 +68,16 @@ type GameConfig struct {
 	// same spot on death.
 	Spawns []world.Spawn
 
+	// AreaEffects is every effect-bearing shape in the loaded set, flattened
+	// into WORLD coordinates (plan-area-effects.md E2) — the ZoneAnchors
+	// precedent two fields down, and for the same reason: the consumer asks
+	// "what is at this point", never "which file authored it".
+	//
+	// ⚑ Empty is the shipped world and must stay free: no zone authors an
+	// `effect`, so AreaEffectSystem returns on a length check and the feature
+	// costs nothing until someone draws one (D10).
+	AreaEffects []world.PlacedAreaEffect
+
 	// ZoneAnchors is every loaded zone's named anchors, flattened into one
 	// lookup in WORLD coordinates (plan-underworld.md U3). It is what an
 	// anchor-mode travel_to row resolves its destination against.

@@ -12,6 +12,7 @@ import {Container, Graphics, Text} from 'pixi.js';
 import {meter2px} from '../../../client-data/BasicConfig';
 import * as TextDisplay from '../../../client-data/TextDisplay';
 import {requireAll} from '../../common/logic/Utils';
+import {propBlocksMovement} from '../../game-objects/logic/Props';
 import {IGame} from '../../core/logic/IGame';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
 import {capabilitiesOf, kindOf, MobCapabilities, MobKind, ZoneAnchor, ZoneCampfire, ZoneDarkArea, ZoneData, ZoneModel, ZoneProp, ZoneSpawn} from './ZoneModel';
@@ -560,7 +561,12 @@ function redrawBounds() {
 
 function drawPropMarker(prop: ZoneProp, selected: boolean): Container {
     let def = propTypeByName(prop.type);
-    let color = prop.blocksMovement ? COLOR_BLOCKING : COLOR_DECORATIVE;
+    // ⛔ RESOLVED, never coerced. blocksMovement is tri-state: undefined means
+    // "inherit the type", and the type's own default is BLOCKING — so a bare
+    // `prop.blocksMovement ? …` would paint every freshly placed prop as
+    // decorative while the server happily collides with it.
+    let blocks = propBlocksMovement(prop.type, prop.blocksMovement);
+    let color = blocks ? COLOR_BLOCKING : COLOR_DECORATIVE;
 
     let marker = new Container();
     let graphic: Graphics;
@@ -571,14 +577,14 @@ function drawPropMarker(prop: ZoneProp, selected: boolean): Container {
         let hhPx = meter2px(Math.max(def.height / 2, MIN_HIT_RADIUS));
         graphic = new Graphics()
             .rect(-hwPx, -hhPx, hwPx * 2, hhPx * 2)
-            .fill({color, alpha: prop.blocksMovement ? 0.25 : 0.1})
+            .fill({color, alpha: blocks ? 0.25 : 0.1})
             .stroke({width: selected ? 6 : 3, color: selected ? COLOR_SELECTED : color});
         labelOffsetPx = hhPx;
     } else {
         let radiusPx = meter2px(Math.max(def ? def.radius : MIN_HIT_RADIUS, MIN_HIT_RADIUS));
         graphic = new Graphics()
             .circle(0, 0, radiusPx)
-            .fill({color, alpha: prop.blocksMovement ? 0.25 : 0.1})
+            .fill({color, alpha: blocks ? 0.25 : 0.1})
             .stroke({width: selected ? 6 : 3, color: selected ? COLOR_SELECTED : color})
             // Rotation tick, so authored rotation is visible even on circles.
             .moveTo(0, 0)

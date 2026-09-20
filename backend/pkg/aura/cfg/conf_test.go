@@ -95,7 +95,7 @@ func TestUnknownKeys(t *testing.T) {
 
 	t.Run("a fully known conf reports nothing", func(t *testing.T) {
 		unknown, err := UnknownKeys([]byte(
-			`{"server":{"port":2000,"tlsHost":"","frontendDir":"x"},"game":{"zone":"world","player":{"critChance":0.05},"mob":{"healthGainTick":0.1},"combat":{"defaultCritFactor":2}}}`))
+			`{"server":{"port":2000,"tlsHost":"","frontendDir":"x"},"game":{"startZone":"world","player":{"critChance":0.05},"mob":{"healthGainTick":0.1},"combat":{"defaultCritFactor":2}}}`))
 		require.NoError(t, err)
 		assert.Empty(t, unknown)
 	})

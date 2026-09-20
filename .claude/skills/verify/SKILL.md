@@ -22,17 +22,30 @@ the webpack **prod build**, not just a dev server. Game URL:
 ⚑ **Since step 8a chunk 1c, `aurad` REFUSES TO BOOT without `AURA_DB_URL` and
 `AURA_JWT_KEY`.** An unset `AURA_DB_URL` exits 1 with an explicit message; an
 unset `AURA_JWT_KEY` panics. Neither looks like a harness problem, so check the
-log's first lines before chasing anything else. The canonical source for both is
-the gitignored **`backend/.env.local`** (`cp backend/.env.local.example` to
-create it) — source it before launching `aurad` by hand:
+log's first lines before chasing anything else.
+
+⭐ **DOCKER IS OPTIONAL — the requirement is a reachable PostgreSQL, not a
+container** (PO correction 2026-09-12). Two equivalent setups:
 
 ```bash
+# (a) Docker
 make -C backend db-up && set -a && . backend/.env.local && set +a
+# (b) Windows / native Postgres — no container, no .env.local needed
+./scripts/dev-restart-windows.sh server
 ```
 
-`scripts/dev-restart.sh` does this for you. On the Windows dev box they may also
-be set at User scope, but a shell opened before that does not see them — read
-them back with `[Environment]::GetEnvironmentVariable('NAME','User')`.
+⛔ **On the Windows dev box `docker` is not on PATH at all, and the game boots
+fine.** Never record "could not verify in-game: no Docker on this host" — it has
+been written into the status history more than once and it was wrong every time.
+Run (b) instead, or say plainly that you chose not to.
+
+⚑ **`backend/.env.local` is ONE source, not the canonical one.** The three
+variables may be exported at machine scope instead — which is how the Windows
+box is configured, so the file is legitimately ABSENT there while every boot
+works. `dev-restart*.sh` source the file when present and let an exported value
+win. **Run `env | grep AURA_` before concluding anything is unset**; a shell
+opened before the variables were set at User scope will not see them, and
+`[Environment]::GetEnvironmentVariable('NAME','User')` reads them back.
 
 ⚑ **Harness runs now leave residue in a DURABLE database.** Every script creates
 `hrnss_*` characters, and since the dev DB moved to a named volume they no longer
@@ -119,10 +132,11 @@ bash .claude/skills/run-simharness/setup-browser.sh   # idempotent; ends by laun
 
 Two Windows-specific gotchas, both of which look like a broken harness:
 
-- ⚑ **`./aurad` needs `-zone world` here** — the local `conf.json` names no zone,
-  so the command above becomes
-  `./aurad -dev -zone world -content ../api`. Without it the boot **panics in
-  `loadZone`**, which reads as a content problem rather than a missing flag.
+- ⚑ **No zone flag is needed any more.** Every `.json` in `api/zones/` loads on
+  every boot — the directory IS the zone list — and `game.startZone` (Go default
+  `"world"`) only names which one a fresh character spawns in. The old
+  `-zone world` workaround is gone with the flag; `-start-zone` overrides the
+  conf if you ever need a different primary.
 - ⚑ **Run the scripts from Git Bash, not PowerShell.** They resolve playwright
   through `join(process.env.HOME, '.cache/aurahunter-run')`, and `HOME` is set by
   Git Bash but usually *not* by PowerShell — where the join throws before
@@ -322,6 +336,10 @@ reads a pip is reading the OLD aura's buff and blaming the new one. Wait out
 the buff lifetime plus margin (16 s here) before asserting absence.
 
 So: restart `aurad`, run one script, read its result, then the next.
+| `p3-filled-polygon.mjs` | **a filled polygon BLOCKS and, above all, LETS GO** (plan-zone-polygons.md P2-P4): a body warped INSIDE a mass is ejected out of it, the CONCAVE NOTCH is open ground, and the mass walls from outside. ⭐ **Leg 1 is the reason this script exists and it found a real defect**: the interior fill's boxes were capped at 8 u, and two ABUTTING SolidAABBs push in OPPOSITE directions at their shared seam — `resolveSolidAABB` ejects a centre inside a box along its least-penetration axis and pushes a centre outside one away from its nearest point — so a character parked on the seam and drifted 0.27 u in six seconds. No Go test can see that: the geometry was correct, the RESOLUTION was not. ⚑ **It is an A/B**: `blocking` then `decor` against the same probe, or "I was stopped" proves nothing. ⚑ The probe is a **concave L** on purpose — the shape a convex phy polygon could not express without decomposition, and its notch is where a point-in-polygon bug shows as invisible collision in open ground. ⚑ Needs a **temporary probe polygon in `api/zones/world.json`** and a server restart per mode ([[project-zone-edit-half-live]]). ⚑ Venue is **(-23, 14)**, the most open tile in the zone. ⚑ Boundary: winding, under-cover and the stroke/fill gap are Go pins, exhaustively; this owns only what a live physics loop does with them | `PolygonColliders`, `fillAt`'s merge (⛔ especially any cap put back on it), `appendPolygonBoundary`, `windingNormalised`, `polygonInterior`'s coarsening, `toPolygons`, `paintPolygons` |
+| `p3-diagonal-slide.mjs` | **a DIAGONAL wall behaves like a wall** (plan-zone-polygons.md P3 rider): pushing into a slanted face slides along it with no direction REVERSALS — the zigzag as a number rather than a feeling — and the hold-off is within a loose sanity bound. ⛔ **Read the boundary before trusting it**: the EXACT "nothing pokes out" bound is `TestNothingPokesOutOfASlantedFace`, which measures the emitted geometry; sampling a SLIDING player is far too noisy to gate on and read 0.74 u against a build Go measures at 0.06. ⭐⭐ **Its probe must stay AWKWARD** — no edge axis-aligned, at 45°, or on a grid line. The first version used a 45° diamond on whole units, whose edges pass through the sample grid CORNERS, and a deliberately broken build scored CLEAN on it. ⚑ Its slide bar is DERIVED from the walking pace and the face slope; a hardcoded 2.5 u went red at 2.45 on a healthy wall. ⚑ Needs a temporary probe polygon in `api/zones/world.json` + a server restart ([[project-zone-edit-half-live]]) | `appendPolygonBoundary`, `strokeThickness`, `fillAt`'s wholly-inside test, the joint-circle inset, `polygonCellSize`/`polygonBoundaryThickness` |
+| `a5-darkness-blend.mjs` | **the SOFT BORDER on the darkness half of an atmosphere, and on a clearing's rim** (2026-09-17): `blend` reaching `paintAir`'s `flat` branch, and `CLEARING_FADE` reaching `cutHole`. Four subjects/modes: `on` / `off` / `clearing-on` / `clearing-off`. ⭐ **The pixel leg is the point and it is a NUMBER**: per-column mean luminance down a tall strip across an axis-aligned VERTICAL edge, reported as the 20→80 % transition width, so a ramp and a step differ by ~30× (measured 3 px → 100 px for the bank, 3 px → 104 px for the clearing rim). ⛔⛔ **Its structural leg is deliberately NOT "is the erase masked", and that wording is a scar**: the first clearing build masked an erase-blended rect, that assertion PASSED, and the cave rendered SOLID BLACK — in PixiJS a masked object draws through a filter pass and **the blend mode does not survive it**. The leg now asks which KIND of node the hole is (a ramped erase SPRITE vs a hard erase Graphics), which is the thing that actually differs. ⚑ It counts erase nodes **inside `DarknessOverlay`'s atmosphere container only** — the layer also holds campfire glows and the player's own lantern, which are erase sprites too. ⚑ **It needs a temporary probe shape** and a server restart ([[project-zone-edit-half-live]]): nothing shipped authors an axis-aligned atmosphere, and the underworld's `Cave Air` quad is LARGER THAN ITS ZONE, so its edges sit where the camera clamps and leave the screen entirely — the script refuses rather than measures when that happens. ⚑ The player's own light is not a confound here (`SELF_SIGHT_FLOOR_PX` = 40 px = 0.33 u), which is the opposite of `a4-clearing`'s venue problem. ⚑ Boundary: `a4-clearing` owns whether a clearing cuts a hole AND whether the sim agrees; this owns only how the edges of both LOOK | `paintAir`'s `flat` branch, `buildBlendMask`/`addFeathered`, `cutHole`, `CLEARING_FADE`, the `blend` values on the darkness profiles in `atmosphere-profiles.json` |
+| `p1-closed-path.mjs` | **a closed path is a RING, in the world** (plan-zone-polygons.md P1): the WRAPAROUND segment — the one from the last point back to the first — walls, and the closing side DRAWS. ⚑ **It is an A/B and only the A/B proves anything**: run `closed` then `open` against the same four probe points. A single run asserting "I was stopped" cannot tell the wraparound from any other segment, and a three-sided pen looks completely correct from every direction but one. ⚑ Both runs carry the **east-side control** (an ordinary segment, walled in both modes), so a stale server, a missed warp or a dead collider fails them too. ⚑ It needs a **temporary probe ring in `api/zones/world.json`** and a server restart per mode — [[project-zone-edit-half-live]] means the ring renders on a webpack reload while the collider is still the one the running server booted with. ⚑ Venue is **(-23, 14)**, the same most-open tile `swift-cooldown` measures pace on, for the same reason. ⚑ Boundary: `Path.Closed`'s parsing and corridor counts are Go pins, exhaustively; this owns only that the wraparound reaches the physics space and the stroke reaches the screen | `Path.Closed`, `appendPathCorridors`'s segment count / seam joint, `toPaths`, `paintPaths`'s `poly(points, closed)` |
 | `mob-separation.mjs` | soft separation, by screenshot | `steer`, `AppendCircleDynamics`, the separation weight |
 | `ctxloss-warning.mjs` | the WebGL context-loss banner; `clean` must report **0** warnings | the client boot path |
 

@@ -7,6 +7,14 @@ import {regionBlend, regionPaintSpec, regionScroll, Profile} from '../../regions
 // full-screen map both read it and a disagreement is invisible in either alone.
 const PX = 120;
 
+// One outlined path, varying only the outline fields.
+function outlinedPath(over: Record<string, unknown>) {
+    return toPaths([{
+        profile: 'Water', width: 4, points: [{x: 0, y: 0}, {x: 4, y: 0}],
+        ...over,
+    } as never]);
+}
+
 describe('toPaths', () => {
     it('converts server units to world pixels, points and width alike', () => {
         const [path] = toPaths([
@@ -46,6 +54,34 @@ describe('toPaths', () => {
     it('never emits a non-finite width', () => {
         toPaths([{profile: 'Road', width: Infinity, points: [{x: 0, y: 0}, {x: 1, y: 0}]}])
             .forEach(p => expect(Number.isFinite(p.width)).toBe(true));
+    });
+
+    // ---- closed paths (plan-zone-polygons.md P1) --------------------------
+
+    // ⚑ Normalised to a real boolean, never carried through as undefined: it
+    // reaches Pixi as `poly(points, closed)`, whose own default is TRUE — the
+    // opposite of what a path means. An undefined would close every road.
+    it('normalises closed to a boolean, defaulting to open', () => {
+        const [open] = toPaths([{profile: 'Road', width: 1, points: [{x: 0, y: 0}, {x: 1, y: 0}]}]);
+        expect(open.closed).toBe(false);
+
+        const [ring] = toPaths([{
+            profile: 'Road', width: 1, closed: true,
+            points: [{x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: 1}],
+        }]);
+        expect(ring.closed).toBe(true);
+    });
+
+    // THREE for a ring, TWO for a line — the server refuses a two-point ring,
+    // so this is the client's own degrade path for a hand-edited file, and it
+    // drops one path rather than the zone.
+    it('drops a two-point ring but keeps a two-point line', () => {
+        const kept = toPaths([
+            {profile: 'Road', width: 1, closed: true, points: [{x: 0, y: 0}, {x: 1, y: 0}]},
+            {profile: 'Road', width: 1, points: [{x: 0, y: 0}, {x: 1, y: 0}]},
+        ]);
+        expect(kept).toHaveLength(1);
+        expect(kept[0].closed).toBe(false);
     });
 
     // blocksMovement is read by the SERVER alone. It must not reach the drawn
@@ -111,5 +147,40 @@ describe('a path wears the region profile table unchanged', () => {
     it('defaults an undeclared blend to a hard edge', () => {
         const [bare] = toPaths([{profile: 'Bare', width: 2, points: [{x: 0, y: 0}, {x: 1, y: 0}]}]);
         expect(regionBlend(bare, profiles)).toBe(0);
+    });
+});
+
+// ---- outlines (plan-zone-polygons.md D3) ---------------------------------
+
+describe('path outlines', () => {
+    it('converts the outline width to world pixels too', () => {
+        const [s] = outlinedPath({outlineProfile: 'Coast', outlineWidth: 1.5});
+        expect(s.outlineProfile).toBe('Coast');
+        expect(s.outlineWidth).toBe(1.5 * PX);
+    });
+
+    // ⚑ HALF-authored degrades to NO outline, never to half of one. The server
+    // refuses both halves, so this is the client's degrade path for a
+    // hand-edited file — and either half alone would draw nothing anyway, so
+    // the only question is whether the absence is deliberate.
+    it('drops a half-authored outline entirely', () => {
+        for (const half of [
+            {outlineProfile: 'Coast'},
+            {outlineWidth: 1.5},
+            {outlineProfile: 'Coast', outlineWidth: 0},
+            {outlineProfile: 'Coast', outlineWidth: NaN},
+            {outlineProfile: '', outlineWidth: 2},
+        ]) {
+            const [s] = outlinedPath(half);
+            expect(s).not.toHaveProperty('outlineProfile');
+            expect(s).not.toHaveProperty('outlineWidth');
+        }
+    });
+
+    // The common case: no outline authored at all, and neither key appears.
+    it('leaves an un-outlined shape with neither key', () => {
+        const [s] = outlinedPath({});
+        expect(s).not.toHaveProperty('outlineProfile');
+        expect(s).not.toHaveProperty('outlineWidth');
     });
 });

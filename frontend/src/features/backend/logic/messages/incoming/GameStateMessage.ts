@@ -642,6 +642,20 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.FireTotem]: Mobs.FireTotem,
     [AuraApi.EntityType.NpcPlaceholder]: Mobs.NpcPlaceholder,
     [AuraApi.EntityType.Tombstone]: Props.genericPropClasses.Tombstone,
+    // A bridge deck. Generic like every other simple prop — what makes it a
+    // bridge is its DEFINITION (`crossesPaths` + `underfoot`), never a class.
+    [AuraApi.EntityType.Bridge]: Props.genericPropClasses.Bridge,
+    // Farmland dressing for Zone 1 — five ordinary blocking props, each one
+    // api/props/*.json and one SVG, all on the generic path.
+    [AuraApi.EntityType.Crate]: Props.genericPropClasses.Crate,
+    [AuraApi.EntityType.FencePost]: Props.genericPropClasses.FencePost,
+    [AuraApi.EntityType.Haystack]: Props.genericPropClasses.Haystack,
+    [AuraApi.EntityType.Cart]: Props.genericPropClasses.Cart,
+    [AuraApi.EntityType.Well]: Props.genericPropClasses.Well,
+    // Generic like the rest — a torch's LIGHT is punched into the darkness
+    // overlay from zone.props at load (DarknessOverlay.resetZone), never from
+    // this snapshot, so there is nothing special about its render class.
+    [AuraApi.EntityType.Torch]: Props.genericPropClasses.Torch,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

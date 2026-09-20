@@ -2194,6 +2194,33 @@ func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
 	m.tryGrantKillRewards()
 }
 
+// AreaTouches applies a hit from a PLACE (plan-area-effects.md E2/D13), the
+// mob half of the player's method — and it is SHORTER than PlayerTouches for
+// reasons that are each a ruling rather than an omission.
+//
+// ⭐ takeDamage still runs, so D11 costs nothing: a mob's authored
+// factors.resistances mitigates an area exactly as it mitigates a skill, and a
+// `0` is immunity. That is the whole of the PO's 2026-09-16 answer, and there is
+// no area-effect-specific code in the path that implements it.
+//
+// ⛔ NO PARTICIPANT, NO THREAT, NO KILL REWARDS, and the last one is the one to
+// think about. A mob that dies in lava pays nobody: noteParticipant records who
+// gets XP, noteThreat records who it should chase, and tryGrantKillRewards hands
+// out the kill — all three need somebody, and a place is not somebody. So a mob
+// burned to death by an area simply dies. ⚑ That is also the anti-exploit: if an
+// area credited its kills to the nearest player, a hazard would become an XP
+// farm nobody had to fight.
+//
+// ⚑ tryGrantKillRewards is NOT called, which means a mob killed here never
+// latches deathRewardGiven — harmless, because latching only matters to stop a
+// later poke from paying out, and there is nothing to pay.
+func (m *Mob) AreaTouches(_ model.AreaSource, damage model.Damage) {
+	// ⚑ SOURCE 0, the "nobody" id ActingSourceID already returns for an absent
+	// toucher (plan-skill-vfx.md C1): the hit still reaches the client as a
+	// SkillEvent, but it is attributed to no entity, because an area is a place.
+	m.takeDamage(damage, 0, model.StatusEffectDamagedAmbient)
+}
+
 func (m *Mob) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	m.noteParticipant(p)
 	lost := m.takeDamage(damage, model.ActingSourceID(damage.Source, p), model.StatusEffectDamagedAmbient)

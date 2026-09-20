@@ -46,7 +46,7 @@ type loadedContent struct {
 // ⚑ It builds registries only. Everything the boot does with them afterwards
 // (the ECS world, campfires, the encounter registration) stays in main: those
 // need a game, and -validate must not build one.
-func loadContent(src contentSources, config *cfg.Config, zoneList []string) (loadedContent, []string) {
+func loadContent(src contentSources, config *cfg.Config, startZone string) (loadedContent, []string) {
 	var out loadedContent
 	var findings []string
 
@@ -123,7 +123,7 @@ func loadContent(src contentSources, config *cfg.Config, zoneList []string) (loa
 	// too, not only the files.
 	if !okMobs || !okProps {
 		skip("zones", missing(input{okMobs, "mobs"}, input{okProps, "props"})...)
-	} else if out.zones, err = loadZones(src.zones, zoneList, out.mobs, out.props); err != nil {
+	} else if out.zones, err = loadZones(src.zones, startZone, out.mobs, out.props, out.skills); err != nil {
 		fail("zones", err)
 	}
 
@@ -185,8 +185,8 @@ func flattenJoined(err error) []error {
 // both handler branches (pkg/logging), so a caller may read stdout as a clean
 // finding list while the loaders' own counts and warnings still reach a human.
 // The trailing summary line is the only non-finding line, and it is last.
-func runValidate(w io.Writer, src contentSources, config *cfg.Config, zoneList []string) int {
-	_, findings := loadContent(src, config, zoneList)
+func runValidate(w io.Writer, src contentSources, config *cfg.Config, startZone string) int {
+	_, findings := loadContent(src, config, startZone)
 	for _, f := range findings {
 		fmt.Fprintln(w, f)
 	}
@@ -209,7 +209,7 @@ const (
 // config and the zone set exactly as a boot would, then validate. It returns
 // before anything a boot does with the world, and in particular before
 // openDatabase, so it needs neither AURA_DB_URL nor AURA_JWT_KEY (D9).
-func validateMain(w io.Writer, contentDir, zoneNames, zoneName string) int {
+func validateMain(w io.Writer, contentDir, startZone string) int {
 	src := embeddedContent()
 	if contentDir != "" {
 		disk, err := diskContent(contentDir)
@@ -232,7 +232,12 @@ func validateMain(w io.Writer, contentDir, zoneNames, zoneName string) int {
 		slog.Error("cannot read config for -validate", slog.Any("err", err))
 		return validateExitBroken
 	}
-	return runValidate(w, src, config, resolveZoneList(zoneNames, zoneName, config))
+	// Every zone file in the directory loads; the flag beats the conf on which
+	// of them is PRIMARY (plan-zone-naming, the directory is the zone list).
+	if startZone == "" {
+		startZone = config.Game.StartZone
+	}
+	return runValidate(w, src, config, startZone)
 }
 
 // validateConf resolves the config a -validate run measures against, the same
@@ -261,25 +266,3 @@ func validateConf() (*cfg.Config, error) {
 	return config, nil
 }
 
-// resolveZoneList picks the zone set, most specific first: -zones, then -zone,
-// then the conf's zones list, then its single zone. An empty result is valid -
-// it means "the sole zone in the directory", which is what every conf did
-// before the field existed.
-//
-// ⚑ ONE copy, shared by the boot and -validate, so the two cannot end up
-// validating and running different sets of zones.
-func resolveZoneList(zoneNames, zoneName string, config *cfg.Config) []string {
-	if list := splitZoneList(zoneNames); len(list) > 0 {
-		return list
-	}
-	if zoneName != "" {
-		return []string{zoneName}
-	}
-	if len(config.Game.Zones) > 0 {
-		return config.Game.Zones
-	}
-	if config.Game.Zone != "" {
-		return []string{config.Game.Zone}
-	}
-	return nil
-}

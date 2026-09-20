@@ -23,6 +23,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 	"github.com/RoteRiesenRobbe/aura/pkg/logging"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -31,14 +32,14 @@ func main() {
 	logging.SetupLogging()
 
 	var dev, help, validate bool
-	var contentDir, zoneName, zoneNames, profileAddr string
+	var contentDir, startZone, profileAddr string
+
 	flag.StringVar(&profileAddr, "profile", "", "serve net/http/pprof + /tickstats on this address for capacity checks (e.g. :6060); off by default, see devops/loadtest.md")
 	flag.BoolVar(&dev, "dev", false, "Serve frontend directly")
 	flag.BoolVar(&help, "help", false, "Show usage help")
 	flag.BoolVar(&validate, "validate", false, "Load all content, print every finding to stdout and exit (0 clean, 1 findings); starts no server and needs no database")
 	flag.StringVar(&contentDir, "content", "", "Load items/mobs/skills/recipes/zones/props from this api/-layout directory instead of the embedded copies (e.g. ../api); skips cp-defs + rebuild for content edits")
-	flag.StringVar(&zoneName, "zone", "", "Select which zone to load by file stem (e.g. 'scaffold' for scaffold.json); overrides game.zone in conf.json. Empty loads the sole zone when only one exists")
-	flag.StringVar(&zoneNames, "zones", "", "Load several zones TOGETHER, comma-separated by file stem, first is primary (e.g. 'world,underworld'); overrides -zone and game.zones")
+	flag.StringVar(&startZone, "start-zone", "", "Name the PRIMARY zone by file stem (e.g. 'world' for world.json) — where fresh characters spawn; overrides game.startZone. Every zone file in the directory loads regardless")
 	flag.Parse()
 	if profileAddr != "" {
 		startProfileServer(profileAddr)
@@ -54,7 +55,7 @@ func main() {
 	// point is that the content editor can ask it on every candidate save. It
 	// also writes nothing: no conf.json, no tokens.list.
 	if validate {
-		os.Exit(validateMain(os.Stdout, contentDir, zoneNames, zoneName))
+		os.Exit(validateMain(os.Stdout, contentDir, startZone))
 	}
 
 	content := embeddedContent()
@@ -86,24 +87,39 @@ func main() {
 	defer db.Close()
 
 	levelCurve := config.LevelCurve()
+	// Every zone file in the directory loads. The only choice left is which of
+	// them is PRIMARY, and the flag beats the conf.
+	if startZone == "" {
+		startZone = config.Game.StartZone
+	}
 	// ⚑ ONE load sequence, shared with -validate (content.go): the dependency
 	// order between the registries lives there and nowhere else. A boot is the
 	// consumer that refuses to continue on a finding - all of them, listed,
 	// rather than only the first one a loader happened to hit.
-	world, findings := loadContent(content, config, resolveZoneList(zoneNames, zoneName, config))
+	//
+	// ⚑ Zones come out PLACED, with each zone's Origin already applied
+	// (plan-underworld.md U1): everything below takes RESOLVED geometry.
+	loaded, findings := loadContent(content, config, startZone)
 	if len(findings) > 0 {
 		for _, f := range findings {
 			slog.Error("content finding", slog.String("detail", f))
 		}
 		panic(fmt.Sprintf("%d content finding(s); run `aurad -validate -content <dir>` for the list", len(findings)))
 	}
-	skillsRegistry := world.skills
-	mobsRegistry := world.mobs
-	milestoneUnlocks := world.milestones
-	recipeRegistry := world.recipes
-	questsRegistry := world.quests
-	ascensionCatalog := world.ascension
-	zones := world.zones
+	skillsRegistry := loaded.skills
+	mobsRegistry := loaded.mobs
+	milestoneUnlocks := loaded.milestones
+	recipeRegistry := loaded.recipes
+	questsRegistry := loaded.quests
+	ascensionCatalog := loaded.ascension
+	zones := loaded.zones
+	// ⛔ AFTER the zone load, and the ordering is load-bearing: loadZones is
+	// what calls world.Place, and an unplaced shape's points are ZONE-LOCAL.
+	// Collect before that and every hazard in a placed zone acts at the wrong
+	// spot — silently, because the overworld's origin is {0,0} and would look
+	// perfect (plan-area-effects.md E2, placeOne's note).
+	areaEffects := world.CollectAreaEffects(zones)
+
 	// The primary zone. It is what a fresh character spawns in, what names the
 	// world on the wire, and whose bounds size the client's camera and map —
 	// deliberately NOT a union of everything loaded (L13).
@@ -184,6 +200,9 @@ func main() {
 		// because it needs the RESOLVED zone: the bridge test reads
 		// Def.CrossesPaths (plan-world-paths.md C2).
 		core.PathCorridors(allCorridors(zones)),
+		// The shapes that ACT on what stands in them (plan-area-effects.md E2).
+		// Collected above, after Place, because they carry world coordinates.
+		core.AreaEffects(areaEffects),
 	)
 	if err != nil {
 		panic(err)

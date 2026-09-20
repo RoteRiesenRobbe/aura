@@ -911,6 +911,31 @@ func (p *player) PlayerTouches(other model.PlayerEntity, damage model.Damage) {
 	model.ApplyLifesteal(dealt, damage.Lifesteal, damage.SkillID, damage.Source, other)
 }
 
+// AreaTouches applies a hit from a PLACE — lava, a bog, miasma
+// (plan-area-effects.md E2/D13). The area-effect twin of PlayerTouches, and
+// what it does NOT do is the interesting half.
+//
+// ⭐ It goes through takeDamage like every other hit, which is the whole reason
+// D13 exists rather than a health deduction: resistances (authored and buffed),
+// passive damage reduction, shields, the combat stamp and the floating damage
+// number all ride that one path. An area's fire hurts a fire-resistant player
+// less, with no code here saying so.
+//
+// ⛔ NO LIFESTEAL, because there is nobody to heal. PlayerTouches ends in
+// ApplyLifesteal against the toucher; a place cannot be healed, and passing the
+// victim would make standing in lava heal you.
+//
+// ⚑ GOD is already handled and deliberately not re-checked here: takeDamage
+// short-circuits on IsGod() before the absorb step, so L4 costs nothing. The
+// asymmetry that buys is the wanted one — god ignores a hazard and still takes a
+// healing spring, because a heal never enters this path at all.
+func (p *player) AreaTouches(_ model.AreaSource, damage model.Damage) {
+	// ⚑ SOURCE 0, the "nobody" id ActingSourceID already returns for an absent
+	// toucher (plan-skill-vfx.md C1): the hit still reaches the client as a
+	// SkillEvent, but it is attributed to no entity, because an area is a place.
+	p.takeDamage(damage, 0, model.StatusEffectDamagedAmbient)
+}
+
 func (p *player) Name() string {
 	return p.name
 }

@@ -31,6 +31,7 @@ import {isMobile} from '../../user-interface/logic/Mobile';
 import * as Regions from '../../regions/logic/Regions';
 import {paintTerrainSurfaces} from '../../regions/logic/RegionPaint';
 import * as Paths from '../../paths/logic/Paths';
+import * as Polygons from '../../polygons/logic/Polygons';
 import {resizeTerrain} from './MapScale';
 
 /**
@@ -110,8 +111,9 @@ export function bakeTerrain(
     // frame. Not an L2 parity break — L2 is about the map drawing the same
     // WORLD, and it does.
     const {masks: regionMasks} = paintTerrainSurfaces(
-        scratch, scratch,
-        Regions.toRegions(zone.regions), Paths.toPaths(zone.paths),
+        scratch, scratch, scratch,
+        Regions.toRegions(zone.regions), Polygons.toPolygons(zone.polygons),
+        Paths.toPaths(zone.paths),
         renderer);
 
     let unknownTypes = 0;

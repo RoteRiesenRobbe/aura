@@ -21,7 +21,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **⭐ SKILL VFX owes C3 (art) and ONE PO phone check** (`docs/plan-skill-vfx.md` §9; C0-C2b + C4 built, C4 2026-09-20): **C3** = the atlas contract doc, the first artist sheets in-repo, the body resolver's ERROR path armed in `-validate`, the editor's Visuals section; every body is a procedural placeholder until then. ⚑ **The phone check decides the Fx cap (96 vs 192) and the mobile fill rate**: on a `?develop` build, `game.skillFxStress({eventsPerSec: 15, ambientOwners: 50, seconds: 30})` with the slider at each level (the C4 ledger has the recipe). ⚑ Unmeasured: many PLAYERS in one viewport, a different multiplier than mob density. **Schema: NONE.**
 
-- **⭐ THE UNDERWORLD owes U5 (content) + U0, and one PO look** (`docs/plan-underworld.md`): the engine is done end to end; U5 fills the room, its biggest decision CONTENT - cave walls as blocking `paths`, not props (§7.1). ⚑ Q5 wants eyes first (the curtain also changes the portal pair and campfire recall). ⛔ Nothing in U1→U4b walked in-game. **U0** = `plan-world-scale.md` S1.
+- **⭐ THE UNDERWORLD owes U0 + an in-game pass** (`docs/plan-underworld.md`): the engine is done end to end. ⛔ **U5 (the content chunk) is DROPPED 2026-09-10 (PO): level authoring is manual** — filling a room is the PO’s own Tiled work and was never engineering. ⚑ **§7.3 is the record, because U5 had become the bag three shipped chunks dropped their leftovers into**: the **owed in-game pass** does NOT drop with it (U3/U4a/U4b each deferred their verification into U5), the **L8 campfire check** rides with authoring (a fire’s dwell circle over a cave mouth eats every `E` press), and the **walls-as-`paths` ruling** (§7.1 item 1 — path corridors are off `LayerViewportCollision` and stream nothing, unlike the 777 props) becomes **authoring guidance to the PO**, not a chunk. ⚑ **Q5 wants eyes before anything else**: the curtain is derived from the grant kind, so the **shipped** portal pair and campfire recall stop being hard cuts and get a lateral crossfade — free, probably an improvement, but a change to something already PO-verified. ⛔ **Nothing in U1→U4b has been walked in-game by me**, and U2 alone produced three browser-only defects. ⚑ **U6 = build-time zone placement is DESIGNED, NOT BUILT** (§7.2, PO-asked 2026-09-08): an authored `depth`, an auto-assigned origin, and a GENERATED placement file both sides read so the ⛔ **wire cost stays ZERO** — which is the constraint that picks the design, because a BOOT-time packer would force the origins onto the wire. ⚑ Deferred with two named triggers: a dungeon growing and forcing neighbours to be re-spaced, or the zone count passing ~10. ⭐ It REVERSES U4b's "no separate depth int" on purpose, and the reversal is sound: once the geometry is derived FROM the depth, the two cannot disagree. ⚑ Also owed: the **D6 amendment note** in `plan-release-map.md` §8 (✅ done 2026-09-08), and **U0** = `plan-world-scale.md` **S1** (lazy zone bundling — ⭐ its `ensureZoneLoaded` await seam is *exactly* what the curtain now hides, so the curtain is the load screen S1 always wanted).
+
+- **⭐ LINE OF SIGHT is now its OWN plan, and it is what is next** (`docs/plan-line-of-sight.md`, split out of `plan-region-atmosphere.md` 2026-09-16 on PO ask; B1→B2→B3, nothing built). ⛔ **Today every light is an UNCONDITIONAL CIRCLE**, so a lantern erases darkness straight through a cave wall — that is what B fixes. **B1 next**: `Occluders.ts`, pure segment derivation from props (a new `occludesSight` DEFINITION flag per D8, not a placement one), blocking paths incl. P1’s `closed` wraparound, blocking polygons and the border; no rendering, 100 % vitest-reachable. ⭐ **§3 is MEASURED**: the sweep is **quadratic in segments per light and linear in lights**, so D9 as designed (local player, r 4, worst case 11 segments in the underworld) is **0.34 % of a frame and free**, while 20 campfire-radius lights in a dense cave are **17 % on a DESKTOP** and the mobile ceiling is 3-5× slower. ⭐ New **D19** is the answer and is designed in from B2 rather than retrofitted: **a static light over static occluders has a static visibility polygon and is CACHED**, so only MOVING lights pay per frame. ⚑ **§7 holds 4 open PO calls**, and Q3 is the one B3 needs: is an ally’s torch shining through a wall, beside your correctly shadowed one, worse than neither of you having shadows? ⛔ **B clips LIGHT, never AURAS** (aura LoS cut 2026-07-10). ⚑ **`plan-region-atmosphere.md` now has NO CHUNKS AT ALL** — A3 moved to `docs/cleanup.md` entry 1 on 2026-09-16 (PO ask), because re-authoring 35 circles was never engineering and a retirement belongs with the thing being retired. ⭐ **That entry also reopens the PRIOR question the old framing skipped: should `darkAreas` be retired at all?** It argues the case both ways — against it, a circle cannot carry fog art, drift or `sight` and two sources of dark geometry is the duplication D0 exists to avoid; for it, a circle is FAR cheaper to author (one drag vs three placed vertices) and its `EDGE_FADE` radial falloff is not what `blend` draws — plus a third option that may beat both: **teach the atmospheres layer the ELLIPSE tool**, keeping circle ergonomics with one primitive, at the cost of one branch in `closedAreaPoints` (Tiled’s ellipse already round-trips through both writers, since `darkAreas` itself is written as one). ⛔ **The plan stays OUT of `archive/` regardless, because what is left is JUDGEMENT rather than chunks**: every number in `atmosphere-profiles.json` is still [PLACEHOLDER], the look sitting has not happened, and `sight` is authored by NOTHING so D7’s `max()` has never been exercised by real content.
+
+- **⭐ ZONE POLYGONS: all four chunks shipped, and what is left is JUDGEMENT** (`docs/plan-zone-polygons.md` §12 "What is OWED"): the engine is done end to end and **inert at HEAD** — no zone authors a polygon, so the PO has not seen one. ⭐ **The PO has now walked one** (2026-09-10) and it found a real collider defect on diagonal walls, fixed the same session — see the §12 P3 rider. ⚑ **The three [PLACEHOLDER] numbers want tuning in front of the game and are COUPLED**: interior cell **0.5 u** · boundary thickness **1 u**, ⛔ the safety-critical one (L11), **NOT checked against flight or knockback** · body cap **256**. The stroke must stay `>= cell * sqrt(2)` to bridge the band the fill cannot reach, so raising the cell means thickening the stroke. ⚑ The PO's `Wall` profile authors `"texture": "null"` as a STRING rather than JSON `null` — it works by accident (no such tile, so D14 falls back to the colour) and is worth correcting. ⚑ The D6 **coarsening path has never been seen in-game** — the WARN log and the non-blocking Tiled notice are both untested against a real oversized shape. ⭐ **The first content consumer is already named: cave walls as blocking polygons** (`plan-underworld.md` §7.1 item 1), which is what the primitive was built for. ⚑ Also owed: `c3-zone-editor-level`, deferred through P1-P4.
 
 - **⭐ WORLD LOOK, two live threads.** `docs/plan-world-paths.md` §12 owes **C4 only**: re-author the 372 `Sand` blobs as paths (PO-ruled 2026-09-07), a CONTENT judgement, not a transform of blob positions. ⏸ `docs/plan-region-primitive.md` (C1-C5 all shipped, C5 `4937a977`) stays live for the OPEN look sitting it arms: texture picks, the 0.35 scale, the seam, blend width, mask density, the `Water` drift, judged in-game. ⚑ Audio consumers unscheduled.
 
@@ -47,7 +51,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Open PO calls:** five. ⭐ Spell builder §B11 Q7: Go validation on save for EVERY editor tab, retiring `validate.mjs`'s 637-line JS port (`docs/archive/plan-content-editor.md`) · ⭐ Should `EntitiesMarshalFlatbuf`'s `default:` stop panicking? (`recover()` swallows it, which is how the corpse bug hid eight weeks) · the portal pair's COST · does a QUEST turn-in row advertise the ability it pays? · should FireShield's flat reflect scale?
 - **Standing locks:** **NO CI BY CHOICE** (PO 2026-08-12; revisit at roadmap step 9), the per-chunk local verify tail is the gate. The balance FINALs (growth 1.12 × maxLevel 30, regen + taper, campfire, the free base damage aura, downtime 10 s + chain 20) are guardrail-asserted in `cmd/simharness/guardrail_test.go`; drop + milestone tables TUNING-OPEN. Day/night cycle OFF (re-enabling means collapsing the ~25 per-layer filter passes).
 - **Content rules:** new mobs **must** author tier + baseline (raw `maxHealth` hard-fails) and price XP with `factors.xpFactor` (absent → 1, `0` = pays nothing AND no nameplate, **no species authors 0.5**); tier ≥ elite **must** author `factors.ccImmune`. A skill `_comment` is an authoring note, never a session ledger. **A skill file is never deleted, an `id` never changes, `maxLevel` never decreases** (retire by removing unlock sources; `manual-content-authoring.md` §2 "Retiring a skill"). Full rules: the `add-content` skill.
-- **Gotchas & dev tools:** **A shape removed from `phy.Space` is purged from every other shape's collision set on the spot** (§54); never "optimize" that sweep away. ⚑ A content edit does NOT invalidate the Go test cache (`-count=1`), and without `-content ../api` everything reads the EMBEDDED copy (`make -C backend build` after ANY `api/` edit). ⚑ **A ZONE edit is HALF-LIVE**: restart the server after a Tiled save. ⚑ `aurad -validate -content ../api` checks all content, no DB. ⚑ The starting aura is pre-equipped but NOT active: the first `1` switches it on. ⚑ **GOD short-circuits the player's `takeDamage`**: no mob VFX and no number draws on a god-mode player. **Cheats:** GOD, WARP `<x·120> <y·120>`, SPEED, XP, SKILL, ANNOUNCE, THREAT, QUEST.
+- **Gotchas & dev tools:** **A shape removed from `phy.Space` is purged from every other shape's collision set on the spot** (§54); never "optimize" that sweep away. ⚑ A content edit does NOT invalidate the Go test cache (`-count=1`), and without `-content ../api` everything reads the EMBEDDED copy (`make -C backend build` after ANY `api/` edit). ⚑ **A ZONE edit is HALF-LIVE**: restart the server after a Tiled save. ⚑ **And since 2026-09-10 the DIRECTORY IS THE ZONE LIST**: a new `.json` in `api/zones/` loads on the next boot with no conf edit — and a half-authored one now REFUSES the boot instead of being ignored, so park WIP outside the directory. `game.startZone` names only which zone a fresh character spawns in. ⚑ `aurad -validate -content ../api` checks all content, no DB. ⚑ The starting aura is pre-equipped but NOT active: the first `1` switches it on. ⚑ **GOD short-circuits the player's `takeDamage`**: no mob VFX and no number draws on a god-mode player. **Cheats:** GOD, WARP `<x·120> <y·120>`, SPEED, XP, SKILL, ANNOUNCE, THREAT, QUEST.
 
 ## Development Principles
 
@@ -140,22 +144,51 @@ make -C backend dev
 ### Local database — required for EVERY boot
 
 `aurad` **refuses to boot** without `AURA_DB_URL`, and panics without `AURA_JWT_KEY` (step 8a
-chunk 1c). That includes headless harness runs. One-time setup:
+chunk 1c). That includes headless harness runs.
+
+> ⭐ **DOCKER IS OPTIONAL. What aurad needs is a reachable PostgreSQL, not a container**
+> (recorded 2026-09-12, PO correction). The `make db-up` target below is *one* way to get one
+> and the only one this file used to mention, which is how "no Docker on this host" became a
+> recorded reason for not booting the game — **three times, and wrongly each time.** A native
+> Postgres serving `AURA_DB_URL` is fully equivalent; nothing in the server, the harness or
+> the test suite can tell the difference.
+>
+> ⚑ **The Windows dev box runs exactly that** and needs no Docker at all:
+> `scripts/dev-restart-windows.sh` builds, boots and health-checks `aurad` against a native
+> service (`ensure_db()` starts it if it is not already listening, and no-ops when something
+> already answers on the port). ⛔ **`docker` is not even on PATH there** — so if you are on
+> that machine and a doc, a status entry or your own earlier note says the game cannot be
+> booted for want of Docker, **that note is wrong: run the script.**
+>
+> ⚑ **And the environment may already be set.** `AURA_DB_URL` / `AURA_TEST_DB_URL` /
+> `AURA_JWT_KEY` can come from `backend/.env.local` **or** from exported machine-scope
+> variables — the Windows box uses the latter, so `backend/.env.local` is legitimately
+> ABSENT there. ⛔ A missing `.env.local` is therefore NOT evidence that the game cannot
+> boot. Check `env | grep AURA_` before concluding anything.
+
+One-time setup, either way:
 
 ```bash
-make -C backend db-up                                   # Docker Postgres, named volume, both DBs
+# (a) Docker — one command, nothing to install, used by the Linux/WSL setup
+make -C backend db-up                                   # container, named volume, both DBs
+
+# (b) Native Postgres — install once, then create the role and the two databases
+#     (any Postgres ≥ 14; the Windows box runs 18 as a Windows service)
+createuser -s aura && createdb -O aura aura && createdb -O aura aura_test
+
+# …then EITHER export the three variables at machine scope, OR:
 cp backend/.env.local.example backend/.env.local        # then put a real random key in it
 ```
 
-`scripts/dev-restart.sh` sources `backend/.env.local` automatically (an already-exported value
-still wins), so a plain restart works in any shell. `backend/.env.local` is **gitignored** —
-credentials never live in the repo.
+`scripts/dev-restart.sh` and `scripts/dev-restart-windows.sh` both source `backend/.env.local`
+automatically **and** let an already-exported value win, so a plain restart works in any shell
+under either setup. `backend/.env.local` is **gitignored** — credentials never live in the repo.
 
 **Two databases on one server, and the split is load-bearing:**
 
 | Database | Role |
 | --- | --- |
-| `aura` | durable dev data — characters survive restarts and container removal |
+| `aura` | durable dev data — characters survive restarts, and container removal where there is a container |
 | `aura_test` | **disposable** — `AURA_TEST_DB_URL` points here |
 
 > ⛔ **Never point `AURA_TEST_DB_URL` at `aura`.** Every DB-touching test calls `store.Rollback`,
@@ -172,9 +205,10 @@ them — but **stop `aurad` first**: it holds live sessions the DELETE never rea
 under a running server has already corrupted save games once.
 
 ⚑ **Dump before any migration test against real data**, and stop `aurad` first so it flushes
-(`💾 flushed N live character(s) for shutdown`):
+(`💾 flushed N live character(s) for shutdown`). Docker:
 `docker exec aura-dev-db pg_dump -U aura -d aura --clean --if-exists > /tmp/aura-dev-backup.sql`.
-Full runbook: `docs/manual-db-migrations.md` §4.
+Native: `pg_dump "$AURA_DB_URL" --clean --if-exists > /tmp/aura-dev-backup.sql` — same file, and
+it restores into either. Full runbook: `docs/manual-db-migrations.md` §4.
 
 ### Frontend (Node 20 / npm 10)
 

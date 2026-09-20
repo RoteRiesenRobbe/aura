@@ -945,3 +945,107 @@ resolves them through the same alias. Prepend the native path:
 `phy/solid_aabb_test.go` (5 new pins) · `model/prop/prop.go` (`NewRect` takes an
 angle) · `model/prop/prop_test.go` (call sites) · `world/zone_body_test.go` (the
 replaced pin + the behavioural one) · `world/zone.go` · `manual-tiled-editor.md`.
+
+### C3 — the DROP size, the hole C1's design left open ✅ 2026-09-17
+
+⭐ **C1's rule is "the box IS the scale", and it was only ever half true.** It
+holds for a placement the converter round-tripped out of `world.json` — and says
+nothing about where the box comes from when you drag a *new* one in. Tiled sizes
+an inserted tile object by the tile **image's** natural pixel size, so the art
+was deciding the multiplier: `roundTree.png` is 512² against a Tree body of
+336 px, and **every tree ever dragged out of the palette authored
+`"scale": 1.524`** — all four in `world.json` carry exactly that. Silent, because
+the file stays valid and byte-stable; C1's own §9.1 never asked the question.
+
+⛔ **Three of the seven props could not be dragged in AT ALL.** House, Bridge and
+Tombstone have an image aspect their body does not share, so the proportions
+check (the one C1 added so a box could not lose an axis) **refused the save**.
+That is the part that says this was never a look nit: the primitive had a
+placement gesture that did not work.
+
+⚑ **Terrain is the same bug with no body to be wrong about.** A patch's world
+size *is* its box, so a dragged one inherited its image: 0.42 for the twelve
+100² SVG textures, 1.07 for the two 256² PNGs — a **2.56×** split nobody
+authored.
+
+⭐ **The fix is generated Tiled object TEMPLATES** (`palette/templates/`, written
+by `generate-palette.mjs` from the same `wUnits`/`hUnits` the tilesets use). A
+template carries its own width/height, so the drop is right to the pixel, and it
+is **insert-time only**: `world.json` stores nothing about templates, so the zone
+format is untouched and no serializer moved. ⚑ **Measured, not assumed** — a
+template instance exported through the real Tiled binary resolves `o.tile`,
+comes back named, and writes **no `scale` key**; all seven props and a terrain
+patch at `"size": 1`.
+
+⚑ **`verify.sh` cannot cover this and the reason is structural**: headless
+`--export-map` has no way to perform a drag, and by the time a map is on disk a
+template instance is an ordinary tile object. So the pin is STATIC (five vitest
+legs over the generated `.tx`: one per type, gids matching the tsx, prop boxes
+equal to `PROP_SIZE × PX`, every texture sharing one box) and the **drag is
+footer item 6**, the same posture the enum dropdown takes.
+
+⚑ **The terrain canonical size is `1` (a 2 u square) and is [PLACEHOLDER]** — the
+test pins the *invariants* (all sixteen identical, serializes clean) rather than
+the number, so a look call does not redden a suite.
+
+⚑ **OWED: the prop BODIES themselves.** `scale 1` now means 1, which is the
+first time the authored numbers can be judged at all — a Tree is 2.8 u across
+against a 0.5 u player collider. Retuning them is a PO look call, and the blast
+radius is at its smallest right now (4 trees and 1 bridge in `world.json`).
+
+**Schema: DB/WIRE/CONF/CONTENT/ZONE FORMAT all NONE.**
+
+**Files:** `tools/tiled/generate-palette.mjs` (`writeTemplates`, `patchProject`
+gains the folder) · `tools/tiled/palette/templates/**` (generated, 23 `.tx`) ·
+`tools/tiled/aura.tiled-project` · `AuraTiledConvert.test.ts` (the static pin) ·
+`tools/tiled/verify.sh` (templates in the idempotency leg + footer 6) ·
+`manual-tiled-editor.md`.
+
+#### C3 rider — the escape hatch, and why the templates were not enough ⚑ 2026-09-17
+
+⛔ **The PO's first report after C3 shipped was "tree got even bigger in tiled
+lol", and it was not a regression — it was the templates being the wrong half of
+the fix on their own.** C3 landed with the Tree body retuned 2.8 → 2.0 u, and a
+tileset drag still hands out the raw 512 px image: the multiplier went from
+**1.524 to 2.133**, worse by exactly the 1.4× the body shrank. ⭐ **Shrinking a
+body makes the WRONG gesture worse in lockstep** — which is the part neither the
+design nor the ledger predicted.
+
+⭐ **The lesson is about the GESTURE, not the geometry.** A template needs
+Tiled's *Insert Template* tool (pick it in the Project or Templates view, then
+place), and every zone authored so far was authored by dragging a tile. Betting
+a primitive on the author changing muscle memory is a bet it loses the first
+time they are in a hurry. **Map ▸ Fit to true size (`Ctrl+Alt+F`)** makes the old
+gesture recoverable instead: select, press, one undo step.
+
+⚑ **Resize about the CENTRE.** A tile object anchors bottom-left, so writing
+`width`/`height` alone slides the art up and right by half the change — over a
+unit on a tree, enough to walk a placed forest off its layout. The action reuses
+`C.tileCentre`/`C.tileAnchor`, the converter's own pair, so it rotates correctly
+and is not a second copy of the maths.
+
+⛔ **It refuses what it does not know, and that is a deliberate departure from
+`propSize()`.** That helper answers `{w:1,h:1}` for an unknown name — correct for
+a CONVERSION, where the geometry still round-trips — and catastrophic for a
+RESIZE, where it would squash an unrecognised prop into a 120 px box that looks
+authored. The raw table is exported (`C.propSizes()`) and unknown names are named
+in the message rather than resized. Same rule for anything off the props/terrain
+layers: a region is geometry the author drew and has no "true size".
+
+⚑ **`TERRAIN_SIZE` moved into `content.json`** so the templates and the action
+read ONE number. A texture has no body, so the canonical size is the only thing
+"true size" can mean for one, and two declarations would drift the day the
+[PLACEHOLDER] look call is made — with the symptom being a patch that changes
+size when you "fix" it.
+
+⚑ **Headless load is the only leg a script can run.** `--export-map` has no menus
+and no selection, so the file guards on `typeof tiled.registerAction` and falls
+straight through; what `verify.sh` actually proves is that its 23 legs still pass
+with the third extension file loaded. The behaviour is footer item 7.
+
+**Files:** `tools/tiled/extensions/aura-zone/aura-fit-size.js` (new) ·
+`aura-convert.js` (`propSizes`/`terrainSize` exports, `TERRAIN_SIZE` in
+`useContent`) · `generate-palette.mjs` (publishes `TERRAIN_SIZE`) ·
+`AuraTiledConvert.test.ts` (2 pins) · `verify.sh` (footer 7) ·
+`manual-tiled-editor.md` · `install.sh` + `aura-world-format.js` header (the
+extension is three files now).

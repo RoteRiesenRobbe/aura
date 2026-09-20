@@ -1,7 +1,7 @@
 package main
 
 import (
-	"strings"
+	"log/slog"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
@@ -9,27 +9,11 @@ import (
 
 // The boot-time flattening of a placed zone set (plan-underworld.md U1).
 //
-// ⭐ These six functions are the entire cost of holding more than one zone.
+// ⭐ These functions are the entire cost of holding more than one zone.
 // Everything downstream — the physics space, the mob system, the AOI query,
 // every aura — takes flat lists of world-coordinate geometry and has no idea
 // zones exist. world.Place has already applied each Origin by the time any of
 // these run, so concatenating is genuinely all there is to do.
-
-// splitZoneList parses the -zones flag: comma-separated file stems, order
-// significant, blanks and stray whitespace forgiven.
-func splitZoneList(raw string) []string {
-	if strings.TrimSpace(raw) == "" {
-		return nil
-	}
-	parts := strings.Split(raw, ",")
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		if p = strings.TrimSpace(p); p != "" {
-			out = append(out, p)
-		}
-	}
-	return out
-}
 
 // wallsFor turns the placed set into one border rectangle per zone.
 //
@@ -121,18 +105,29 @@ func allAnchors(zones []*world.Zone) map[string]world.Point {
 	return out
 }
 
-// allCorridors builds each zone's blocking-path collision bodies and
-// concatenates them. Per zone rather than over a merged path list because
-// world.PathCorridors resolves bridges against that zone's own props
+// allCorridors builds each zone's blocking-path and blocking-polygon collision
+// bodies and concatenates them. Per zone rather than over a merged list because
+// both builders resolve bridges against that zone's own props
 // (plan-world-paths.md C2) — merging first would let a bridge in one zone clear
 // a river in another.
+//
+// ⚑ It also LOGS every polygon whose interior had to be coarsened to fit the cap
+// (plan-zone-polygons.md D6). That log is not decoration: the accepted cost of
+// never refusing to boot is that one rock's collision is blockier than every
+// other rock's and nothing on screen says so, and this is half of what defeats
+// that. The other half is the non-blocking notice in Tiled.
 func allCorridors(zones []*world.Zone) []world.Corridor {
-	if len(zones) == 1 {
-		return world.PathCorridors(zones[0])
-	}
 	var out []world.Corridor
 	for _, z := range zones {
 		out = append(out, world.PathCorridors(z)...)
+		bodies, coarsened := world.PolygonColliders(z)
+		out = append(out, bodies...)
+		for _, c := range coarsened {
+			slog.Warn("polygon collider coarsened to fit the body cap",
+				"zone", z.ID, "polygon", c.Index,
+				"cell", c.Cell, "authoredCell", c.FromCell,
+				"bodies", c.Bodies, "wouldHaveBeen", c.FromBodies)
+		}
 	}
 	return out
 }

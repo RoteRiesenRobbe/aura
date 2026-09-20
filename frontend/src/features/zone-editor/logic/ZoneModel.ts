@@ -27,7 +27,18 @@ export interface ZoneProp {
     x: number;
     y: number;
     rotation: number; // radians
-    blocksMovement: boolean;
+    // TRI-STATE since 2026-09-17: undefined = inherit the prop TYPE's own
+    // blocksMovement (api/props/<type>.json), which itself defaults to BLOCKING.
+    //
+    // ⭐ It used to be a required boolean, and that was the bug: a prop dragged
+    // fresh in Tiled carried no property at all, the converter read absent as
+    // false, and you got a tree you could walk through. Whether a prop is solid
+    // is a fact about the type; a placement only overrides it.
+    //
+    // ⛔ Anything that READS this must resolve it against the definition rather
+    // than coerce it — `!prop.blocksMovement` is now wrong for an inheriting
+    // prop of a blocking type. See propBlocks() in ZoneEditor.
+    blocksMovement?: boolean;
     // Tri-state per-placement size multiplier on the prop TYPE's body
     // (plan-prop-scale.md C1): undefined = inherit the body verbatim. The
     // in-game editor never authors it — Tiled and the placement scripts do —
@@ -151,6 +162,75 @@ export interface ZonePath {
     points: { x: number, y: number }[];
     width: number;
     blocksMovement?: boolean;
+    // A second surface along the boundary (plan-zone-polygons.md D3). Carried,
+    // never edited, like everything else here.
+    outlineProfile?: string;
+    outlineWidth?: number;
+    // Tri-state for the same reason blocksMovement is: false is the authored
+    // default, so an open path must export with no key at all.
+    closed?: boolean;
+    // An authored skill applied to whatever stands in this shape
+    // (plan-area-effects.md E1). Carried, never edited, like everything else
+    // here. Absent = inert, which is every path in every shipped zone.
+    effect?: string;
+}
+
+// A filled mass — a rock, a building footprint, a lake (plan-zone-polygons.md
+// P2).
+//
+// ⚑ Carried, never edited, exactly like ZoneRegion and ZonePath: polygons are
+// placed in Tiled and everything here exists so an in-game save carries them
+// through untouched (L1). blocksMovement is tri-state for the same reason it is
+// on a path.
+export interface ZonePolygon {
+    profile: string;
+    points: { x: number, y: number }[];
+    blocksMovement?: boolean;
+    outlineProfile?: string;
+    outlineWidth?: number;
+    // The lava pool, the bog (plan-area-effects.md E1). ⚑ On the SHAPE and never
+    // on the profile (D2): the profile tables are client-side, so a profile key
+    // would make the look table gameplay-authoritative — and a profile is a
+    // MATERIAL, so a zone-1 pool and a zone-5 pool wearing the same "Lava" would
+    // have to hurt identically.
+    effect?: string;
+}
+
+// The AIR over an area — how dark this place is, how far you see inside it, and
+// what the murk looks like (plan-region-atmosphere.md A0).
+//
+// ⚑ Carried, never edited, exactly like ZoneRegion, ZonePath and ZonePolygon.
+//
+// ⛔ TWO fields, and the shortness is the ruling (D15): an atmosphere is NOT a
+// ZonePolygon. No blocksMovement, no outline, no width — a polygon is a wall you
+// walk into, an atmosphere is air you walk through, and they share a shape and
+// nothing else. Adding a collision field here would make it survive a round-trip
+// and do nothing, which is worse than it being refused.
+export interface ZoneAtmosphere {
+    profile: string;
+    points: { x: number, y: number }[];
+    // ⚑ THE ONE KEY THE D15 NOTE ABOVE DOES NOT REFUSE (plan-area-effects.md
+    // D1). blocksMovement, outline and width all describe a WALL and would
+    // round-trip into a file that no longer boots. An area effect describes no
+    // wall — it is a region of space acting on what stands in it, which air does
+    // as readily as ground. Lava is ground, miasma is air, one key covers both.
+    effect?: string;
+}
+
+// A HOLE cut in that air — the lit pocket at a cave mouth, the gap in a fog
+// bank (plan-region-atmosphere.md A4).
+//
+// ⚑ Carried, never edited, exactly like the four shapes above it.
+//
+// ⛔ TWO fields and NO PROFILE, and the absence is the ruling (L7). A clearing
+// paints nothing, so there is no look to name. This is the whole of A4: the
+// erase used to be an atmosphere whose profile authored `darkness: 0`, one key
+// doing two jobs — *how much* and *which operation* — and the PO rejected it on
+// sight. Carrying a profile here would re-create the ambiguity in the one writer
+// nobody re-reads.
+export interface ZoneClearing {
+    clears: 'darkness' | 'haze' | 'both';
+    points: { x: number, y: number }[];
 }
 
 export interface ZoneData {
@@ -174,6 +254,9 @@ export interface ZoneData {
     // Omitted when empty so pre-step-5 zones round-trip diff-clean.
     regions?: ZoneRegion[];
     paths?: ZonePath[];
+    polygons?: ZonePolygon[];
+    atmospheres?: ZoneAtmosphere[];
+    clearings?: ZoneClearing[];
     // Omitted when empty so pre-C6 zones round-trip diff-clean.
     anchors?: ZoneAnchor[];
 }
@@ -276,6 +359,9 @@ export class ZoneModel {
     regions: ZoneRegion[] = [];
     // Carried, never edited — see ZonePath and the region field above.
     paths: ZonePath[] = [];
+    polygons: ZonePolygon[] = [];
+    atmospheres: ZoneAtmosphere[] = [];
+    clearings: ZoneClearing[] = [];
     // Carried, never edited — see ZoneData.origin. undefined means the zone
     // authors no origin at all, which must serialize back to NO KEY rather
     // than to {x: 0, y: 0}, or every existing zone file gains a line on its
@@ -322,6 +408,27 @@ export class ZoneModel {
             points: (p.points || []).map(pt => ({...pt})),
             width: p.width,
             blocksMovement: p.blocksMovement,
+            closed: p.closed,
+            outlineProfile: p.outlineProfile,
+            outlineWidth: p.outlineWidth,
+            effect: p.effect,
+        }));
+        model.polygons = (data.polygons || []).map(g => ({
+            profile: g.profile,
+            points: (g.points || []).map(pt => ({...pt})),
+            blocksMovement: g.blocksMovement,
+            outlineProfile: g.outlineProfile,
+            outlineWidth: g.outlineWidth,
+            effect: g.effect,
+        }));
+        model.atmospheres = (data.atmospheres || []).map(a => ({
+            profile: a.profile,
+            points: (a.points || []).map(pt => ({...pt})),
+            effect: a.effect,
+        }));
+        model.clearings = (data.clearings || []).map(c => ({
+            clears: c.clears,
+            points: (c.points || []).map(pt => ({...pt})),
         }));
         model.origin = data.origin ? {x: data.origin.x, y: data.origin.y} : undefined;
         return model;
@@ -513,6 +620,57 @@ export class ZoneModel {
                     points: p.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
                     width: round(p.width, 2),
                     blocksMovement: p.blocksMovement ? true : undefined,
+                    closed: p.closed ? true : undefined,
+                    // ⚑ The pair is all-or-nothing: a width without a profile
+                    // draws nothing and the server refuses it, so the profile
+                    // gates both keys.
+                    outlineProfile: p.outlineProfile || undefined,
+                    outlineWidth: p.outlineProfile ? round(p.outlineWidth || 0, 2) : undefined,
+                    // ⚑ Absent stays absent (plan-area-effects.md D10): no
+                    // shipped path names an effect, so an empty string here must
+                    // serialize to no key at all or every existing zone changes.
+                    effect: p.effect || undefined,
+                }))
+                : undefined,
+            // ⚑ Named here or the whitelist eats it (L1) — the fifth time this
+            // comment has had to be written, after spawn.level, prop.scale,
+            // regions and paths. This editor cannot author a polygon either.
+            polygons: this.polygons.length > 0
+                ? this.polygons.map(g => ({
+                    profile: g.profile,
+                    points: g.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
+                    blocksMovement: g.blocksMovement ? true : undefined,
+                    outlineProfile: g.outlineProfile || undefined,
+                    outlineWidth: g.outlineProfile ? round(g.outlineWidth || 0, 2) : undefined,
+                    effect: g.effect || undefined,
+                }))
+                : undefined,
+            // ⚑ Named here or the whitelist eats it (L1) — the SIXTH time this
+            // comment has had to be written, after spawn.level, prop.scale,
+            // regions, paths and polygons. This editor cannot author an
+            // atmosphere either, so a missing line here deletes somebody else's
+            // work in Tiled and every test stays green.
+            //
+            // ⛔ NO blocksMovement and NO outline to carry (D15) — an atmosphere
+            // is air. ⚑ `effect` is the one addition that ruling does not turn
+            // away (plan-area-effects.md D1): it describes no wall, it describes
+            // a region of space acting on what stands in it.
+            atmospheres: this.atmospheres.length > 0
+                ? this.atmospheres.map(a => ({
+                    profile: a.profile,
+                    points: a.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
+                    effect: a.effect || undefined,
+                }))
+                : undefined,
+            // ⚑ The SEVENTH time the L1 comment above has had to be written. This
+            // editor cannot author a clearing either, so a missing line here
+            // deletes somebody else's Tiled work with every test still green.
+            //
+            // ⛔ Two keys and NO profile (L7) — a clearing paints nothing.
+            clearings: this.clearings.length > 0
+                ? this.clearings.map(c => ({
+                    clears: c.clears,
+                    points: c.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
                 }))
                 : undefined,
             // Omitted (undefined key) while empty, so pre-C6 zones round-trip

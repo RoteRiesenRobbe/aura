@@ -23,10 +23,15 @@ import {
     Assets, BlurFilter, Container, Graphics, Matrix, Renderer, RenderTexture, Sprite, Texture,
     TilingSprite,
 } from 'pixi.js';
+import {Clearing, clearsDarkness, clearsHaze} from '../../atmospheres/logic/Clearings';
 import {
-    neededTextures, Region, regionBlend, RegionPoint, regionPaintSpec, regionScroll,
+    ATMOSPHERE_PROFILES, AtmosphereProfile, declaresDarkness, declaresHaze,
+    neededTextures, Outlined, Region, regionBlend,
+    regionDarkness, regionHaze, RegionPoint, regionPaintSpec, regionScroll,
+    TERRAIN_PROFILES,
 } from './Regions';
 import {Path} from '../../paths/logic/Paths';
+import {Polygon} from '../../polygons/logic/Polygons';
 import {meter2px} from '../../../client-data/BasicConfig';
 import {isMobile} from '../../user-interface/logic/Mobile';
 
@@ -69,8 +74,11 @@ export function isTextureUsable(name: string): boolean {
  * all flat colours loads nothing and resolves `false`, so the feature costs
  * exactly zero until a texture is authored.
  */
-export function loadZoneTextures(regions: Region[]): Promise<boolean> {
-    const wanted = neededTextures(regions).filter(name => loaded[name] === undefined);
+export function loadZoneTextures(
+    regions: Region[],
+    profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
+): Promise<boolean> {
+    const wanted = neededTextures(regions, profiles).filter(name => loaded[name] === undefined);
     if (wanted.length === 0) {
         return Promise.resolve(false);
     }
@@ -107,8 +115,11 @@ export function loadZoneTextures(regions: Region[]): Promise<boolean> {
  * its own pixel size. No `tint` and no `color` is set beside the texture: D14
  * ruled colour is the fallback, never a tint.
  */
-export function regionPaint(region: Region): { texture: Texture, matrix: Matrix } | { color: number } | null {
-    const spec = regionPaintSpec(region, isTextureUsable);
+export function regionPaint(
+    region: Region,
+    profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
+): { texture: Texture, matrix: Matrix } | { color: number } | null {
+    const spec = regionPaintSpec(region, isTextureUsable, profiles);
     if (spec === null) {
         return null;
     }
@@ -431,11 +442,17 @@ function paintSurface(
     mask: BlendMask | null,
     extraMargin: number,
     out: PaintedSurfaces,
+    // ⛔ WHICH TABLE names this surface's profile. Ground by default because
+    // that is nearly every caller; the atmosphere path passes its own, and
+    // getting it wrong costs fog its texture, blend and drift silently — the
+    // two namespaces are disjoint, so a miss resolves to the DEFAULT profile
+    // rather than throwing.
+    profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
 ): void {
-    const paint = regionPaint(surface);
+    const paint = regionPaint(surface, profiles);
     if (paint === null) { return; }
 
-    const authored = regionScroll(surface);
+    const authored = regionScroll(surface, profiles);
     const scrollPx = {x: meter2px(authored.x), y: meter2px(authored.y)};
 
     if (scrollPx.x !== 0 || scrollPx.y !== 0) {
@@ -511,6 +528,286 @@ export function paintRegions(
 }
 
 /**
+ * Draws every ATMOSPHERE into `container`, in AUTHORED ORDER
+ * (plan-region-atmosphere.md A1). The container is the DARKNESS layer, not a
+ * terrain one — which is the whole reason this works: `paintSurface` takes its
+ * container as an argument, so pointing it somewhere else is free.
+ *
+ * ⭐ THE REUSE IS THE DESIGN (D12). Everything fog needs already shipped for
+ * ground:
+ *   - `scroll` → the drift, so an animated fog bank is a profile edit
+ *   - `texture` + `scale` → what the murk looks like, with `color` as D14's
+ *     fallback, so flat pitch-black is the SAME code path with no texture
+ *   - `blend` → the soft edge, via the same `buildBlendMask` a region uses
+ * No new vocabulary, no second drawing system, and the feathering chunk this
+ * plan had deferred (A1b) does not need to exist.
+ *
+ * ⭐ Only shapes whose profile DECLARES the dial for a layer are drawn into
+ * it at all. One that says nothing is transparent, not a hole — see
+ * {@link declaresDarkness}. ⭐ `darkness: 0` is now simply a DECLARATION of
+ * zero (A4): it paints nothing and it STOPS the resolve there, which is what
+ * lets a pure fog profile say "and it is not dark in here".
+ *
+ * ⛔ THE HOLES ARE A SEPARATE PASS AND IT RUNS LAST (A4/D17). A clearing is its
+ * own class with its own array, so it cannot be interleaved with the air by
+ * authoring order — and it should not be: "cuts a hole in whatever is already
+ * there" is the reading two separate arrays support without inventing an
+ * ordering key, and it is what an author means by drawing one. ⚑ Before A4 this
+ * was a branch INSIDE the paint loop keyed on `opacity === 0`; that magic value
+ * is exactly what the PO rejected on 2026-09-16.
+ *
+ * ⚑ Each shape gets its OWN Container carrying `alpha = <the dial>`, because the
+ * paint may be SEVERAL children (a drifting sprite plus its mask) and the
+ * opacity belongs to the group, not to whichever child happens to be first.
+ */
+export function paintAtmospheres(
+    darknessContainer: Container,
+    hazeContainer: Container,
+    atmospheres: Region[],
+    clearings: Clearing[],
+    renderer: Renderer,
+): PaintedSurfaces {
+    const out: PaintedSurfaces = {masks: [], scrollers: []};
+    atmospheres.forEach((atmosphere) => {
+        // ⚑ BOTH, independently. A profile authoring both is the smoky cave:
+        // the same polygon is painted into both layers, so a lantern cuts the
+        // black and leaves the fog lit. Their opacities then COMPOUND rather
+        // than max, which is the thing to remember when tuning.
+        if (declaresDarkness(atmosphere)) {
+            paintAir(darknessContainer, atmosphere, regionDarkness(atmosphere),
+                renderer, out, true);
+        }
+        if (declaresHaze(atmosphere)) {
+            paintAir(hazeContainer, atmosphere, regionHaze(atmosphere),
+                renderer, out, false);
+        }
+    });
+    // ⛔ AFTER the whole loop, never inside it (D17). Appending a hole while
+    // banks are still to come would let a later bank fill it in, which is the
+    // one thing an author who drew a clearing did not ask for — and
+    // `Clearings.clearsAt` has no way to express "except the banks after it", so
+    // the drawing and the sim would answer differently. They agree here by
+    // construction, which is the property D3 had and A4 must not lose.
+    clearings.forEach((clearing) => {
+        if (clearsDarkness(clearing)) {
+            cutHole(darknessContainer, clearing, renderer, out);
+        }
+        if (clearsHaze(clearing)) { cutHole(hazeContainer, clearing, renderer, out); }
+    });
+    return out;
+}
+
+/** How wide a clearing's edge ramps, in WORLD UNITS.
+ *
+ *  ⚑ A constant rather than a profile value, and that is FORCED rather than
+ *  chosen: a clearing names NO profile (L7), so unlike every other soft edge in
+ *  this file the band cannot come from the look table. [PLACEHOLDER], like every
+ *  number in atmosphere-profiles.json — and it wants judging beside the 2-unit
+ *  `EDGE_FADE` on DarknessOverlay's authored circles, which is the other
+ *  hand-authored rim living in this same layer. */
+const CLEARING_FADE = 2;
+
+/**
+ * One clearing's hole in one layer.
+ *
+ * ⭐ A stencil-shaped erase, exactly like a light hole — the same blend mode the
+ * campfire glow and the player's own lantern already use, so nothing new
+ * composites here and the three kinds of hole stack the way they always did.
+ *
+ * ⛔ NO texture, NO scroll, NO colour, and the shortness is still the ruling
+ * (L7). A clearing names no profile because it paints nothing: there is no look
+ * to author, so there is nothing to read. The soft EDGE is the one exception and
+ * it comes from {@link CLEARING_FADE} rather than from a profile — a hard-rimmed
+ * hole inside a soft-rimmed bank is the mismatch that would show.
+ *
+ * ⛔⛔ THE RAMP IS THE SPRITE, NOT A MASK ON A SHAPE — and that is MEASURED
+ * rather than preferred (2026-09-17). The obvious build reused
+ * {@link addFeathered} and set `blendMode = 'erase'` on the rect it returns; in
+ * PixiJS a masked object is drawn through a filter pass and the BLEND MODE DOES
+ * NOT SURVIVE IT, so the erase silently stopped erasing and the cave read SOLID
+ * BLACK — with the mask correctly built, correctly attached, and a structural
+ * "is it masked?" assertion passing on that very build. Only the pixels caught
+ * it.
+ *
+ * ⭐ What works is what the LIGHT HOLES have always done: a sprite whose own
+ * alpha ramps, erase-blended, with no mask anywhere. {@link buildBlendMask}
+ * already rasterises exactly that — a white silhouette, blurred, on transparent
+ * — so the hole IS that texture, drawn directly. It is also the cheaper of the
+ * two: one sprite, and no filter pass.
+ */
+function cutHole(
+    container: Container,
+    clearing: Clearing,
+    renderer: Renderer,
+    out: PaintedSurfaces,
+): void {
+    const draw: DrawSurface = (g, style) => g.poly(clearing.points).fill(style);
+    const ramp = buildBlendMask(renderer, clearing.points, CLEARING_FADE,
+        g => draw(g, {color: 0xffffff}));
+    if (ramp === null) {
+        // Sub-texel band or a degenerate shape — take the hard edge honestly,
+        // exactly as buildBlendMask's own bail-out intends.
+        const hole = draw(new Graphics(), {color: 0xffffff});
+        hole.blendMode = 'erase';
+        container.addChild(hole);
+        return;
+    }
+    ramp.sprite.blendMode = 'erase';
+    container.addChild(ramp.sprite);
+    // ⚑ Ours to free, on the same schedule as every other blend mask: the sprite
+    // dies with its container, the RenderTexture behind it does not.
+    out.masks.push(ramp.texture);
+}
+
+/**
+ * One atmosphere layer's share of one shape.
+ *
+ * ⛔ `opacity === 0` NO LONGER ERASES HERE (A4). It draws nothing at all, which
+ * is the honest reading of "this air declares zero darkness" — the ERASE is
+ * {@link cutHole}, reachable only by an AuraClearing, and that split is the
+ * whole of A4: one key had been doing two jobs, *how much* and *which
+ * operation*. ⚑ The early return is KEPT rather than deleted, because a
+ * zero-alpha Container full of children is a real cost for a shape nobody can
+ * see.
+ *
+ * ⛔ `flat` is what keeps DARKNESS colour-only. Darkness has no texture in the
+ * world and none here: honouring `texture`/`scroll` on both halves would draw
+ * one profile's tile TWICE and compound it against itself. Haze owns the tile
+ * and the drift; darkness owns a colour.
+ *
+ * ⚑ `blend` is the ONE look key BOTH halves read, which is why the mask is
+ * built ABOVE the branch rather than inside it. It used to be haze's alone, and
+ * that was the gap: a dark bank had no soft edge to author.
+ *
+ * ⚑ Each shape gets its OWN Container carrying `alpha`, because the paint may
+ * be SEVERAL children (a drifting sprite plus its mask) and the opacity belongs
+ * to the group, not to whichever child happens to be first.
+ */
+function paintAir(
+    container: Container,
+    atmosphere: Region,
+    opacity: number,
+    renderer: Renderer,
+    out: PaintedSurfaces,
+    flat: boolean,
+): void {
+    const draw: DrawSurface = (g, style) => g.poly(atmosphere.points).fill(style);
+    if (opacity <= 0) {
+        // Declared zero: there is nothing to draw. ⛔ NOT an erase — that is
+        // cutHole's job and an AuraClearing's alone (A4).
+        return;
+    }
+    const group = new Container();
+    group.alpha = opacity;
+    container.addChild(group);
+
+    const blend = regionBlend(atmosphere, ATMOSPHERE_PROFILES);
+    const mask = blend > 0
+        ? buildBlendMask(renderer, atmosphere.points, blend, g => draw(g, {color: 0xffffff}))
+        : null;
+
+    if (flat) {
+        // Colour only — the profile's own colour if it authored one, else black,
+        // which is what darkness IS.
+        //
+        // ⚑ `() => false` says NO TEXTURE IS EVER USABLE here, which walks the
+        // same D14 fallback a missing tile file takes and hands back the colour.
+        // Cheaper than a second accessor, and it makes the colour-only rule a
+        // property of the CALL rather than a branch someone can forget.
+        const spec = regionPaintSpec(atmosphere, () => false, ATMOSPHERE_PROFILES);
+        const color = spec !== null && 'color' in spec ? spec.color : 0x000000;
+        // ⛔ `addFeathered`, NOT `paintSurface`, however close the two look from
+        // here: paintSurface would honour `texture` and `scroll`, which is the one
+        // thing `flat` exists to prevent. Feather the COLOUR and borrow nothing
+        // else.
+        if (mask === null) {
+            group.addChild(draw(new Graphics(), {color}));
+            return;
+        }
+        addFeathered(group, {color}, mask, out);
+        return;
+    }
+
+    paintSurface(group, atmosphere, atmosphere.points, draw, mask, 0, out,
+        ATMOSPHERE_PROFILES);
+}
+
+/**
+ * Draws ONE surface's outline, if it authored one (plan-zone-polygons.md D3).
+ *
+ * ⭐ The outline is a SECOND SURFACE with a SECOND PROFILE, run through the same
+ * `paintSurface` the body just used. That is what makes it carry its own blend:
+ * a wall names an outline profile with `blend: 0` and gets a hard rim, a
+ * riverbank names one with `blend: 0.3` and gets a soft one, and neither
+ * constrains the surface underneath. ⭐ It also gets `scroll` for free, which is
+ * how a lake's shoreline can drift with the lake.
+ *
+ * ⚑ THE FOOTPRINT MUST GROW BY HALF THE OUTLINE WIDTH. A stroke centred on the
+ * boundary overhangs it by `outlineWidth / 2`, and a mask sized to the blend
+ * alone CLIPS it — which reads in-game as the BLEND being broken, not the box
+ * being too small. Identical trap to the one C1 hit and fixed for a path's own
+ * stroke; the machinery was already there, it just needed the third term.
+ *
+ * ⛔ Drawn per object immediately after that object's body, never in a second
+ * pass over everything: array order governs overlap exactly as it does for every
+ * other surface, so a later object's body covers an earlier object's outline.
+ */
+function paintOutline(
+    container: Container,
+    surface: Outlined,
+    points: RegionPoint[],
+    closed: boolean,
+    renderer: Renderer,
+    out: PaintedSurfaces,
+): void {
+    const width = surface.outlineWidth;
+    if (!surface.outlineProfile || !width) { return; }
+    // A surface of its own, so every profile lookup below reads the OUTLINE's
+    // entry and not the body's.
+    const rim: Region = {profile: surface.outlineProfile, points};
+    const draw: DrawSurface = (g, style) => g
+        .poly(points, closed)
+        .stroke({...style, width, cap: PATH_CAP, join: PATH_JOIN});
+    const blend = regionBlend(rim);
+    const mask = blend > 0
+        ? buildBlendMask(renderer, points, blend, g => draw(g, {color: 0xffffff}), width / 2)
+        : null;
+    paintSurface(container, rim, points, draw, mask, width / 2, out);
+}
+
+/**
+ * Draws every polygon into `container`, in AUTHORED ORDER (plan-zone-polygons.md
+ * P2).
+ *
+ * ⭐ The draw is BYTE-FOR-BYTE a region's — same callback, same mask, same
+ * helper — and that is the claim this primitive rests on. What differs is not
+ * the drawing but the MEANING: a region is a material `Regions.resolve()`
+ * answers with, a polygon is a thing. ⛔ Which is why this is a second function
+ * over a second array and not a longer `regions` list: sharing the draw call is
+ * free, sharing the lookup would put cave walls in the footstep table.
+ */
+export function paintPolygons(
+    container: Container,
+    polygons: Polygon[],
+    renderer: Renderer,
+): PaintedSurfaces {
+    const out: PaintedSurfaces = {masks: [], scrollers: []};
+    polygons.forEach((polygon) => {
+        // No second argument: `poly()` closes by construction, and a polygon is
+        // closed by definition. An OPEN filled shape is not a thing this
+        // primitive can express, deliberately — that shape is a path.
+        const draw: DrawSurface = (g, style) => g.poly(polygon.points).fill(style);
+        const blend = regionBlend(polygon);
+        const mask = blend > 0
+            ? buildBlendMask(renderer, polygon.points, blend, g => draw(g, {color: 0xffffff}))
+            : null;
+        paintSurface(container, polygon, polygon.points, draw, mask, 0, out);
+        paintOutline(container, polygon, polygon.points, true, renderer, out);
+    });
+    return out;
+}
+
+/**
  * The stroke geometry every path is drawn with. Round on both counts (D10):
  * a butt cap reads as a river snipped off with scissors, and a mitre join
  * spikes outward at a sharp bend in a way no riverbank does.
@@ -532,10 +829,12 @@ export function paintPaths(
 ): PaintedSurfaces {
     const out: PaintedSurfaces = {masks: [], scrollers: []};
     paths.forEach((path) => {
-        // `false` is the whole difference from a region: an OPEN polyline. Pixi
-        // would happily close it, and a closed river is a lake.
+        // The closePath flag is the whole difference from a region — and it is
+        // still a STROKE either way, which is why a closed river is a moat and
+        // not a lake. Pixi's own default here is `true`, so the argument is
+        // never left off: an omitted one would silently close every road.
         const draw: DrawSurface = (g, style) => g
-            .poly(path.points, false)
+            .poly(path.points, path.closed === true)
             .stroke({...style, width: path.width, cap: PATH_CAP, join: PATH_JOIN});
 
         const blend = regionBlend(path);
@@ -549,6 +848,9 @@ export function paintPaths(
                 g => draw(g, {color: 0xffffff}), path.width / 2)
             : null;
         paintSurface(container, path, path.points, draw, mask, path.width / 2, out);
+        // ⚑ The outline follows the path's OWN closure: a ring road's rim has to
+        // close with it, or the seam shows as a notch in the kerb.
+        paintOutline(container, path, path.points, path.closed === true, renderer, out);
     });
     return out;
 }
@@ -557,15 +859,16 @@ export function paintPaths(
  * ⭐ THE entry point both draw sites use — the world (Game.paintTerrainSurfaces)
  * and the full-screen map (MapTerrain.bakeTerrain).
  *
- * Regions first, then paths: a road lies ON the field it crosses. Taking both
- * arrays through ONE function is not tidiness — plan-region-primitive.md L2
- * records that a draw site left behind does not degrade, it produces a MAP THAT
- * IS A WRONG DRAWING OF THE WORLD, in a form no single screenshot catches. That
- * lesson cost a chunk once; a third surface added later cannot repeat it,
- * because there is only one place to add it.
+ * Regions, then polygons, then paths: material, then masses, then ribbons — so
+ * a road still runs on top of everything. Taking all three arrays through ONE
+ * function is not tidiness — plan-region-primitive.md L2 records that a draw
+ * site left behind does not degrade, it produces a MAP THAT IS A WRONG DRAWING
+ * OF THE WORLD, in a form no single screenshot catches. That lesson cost a
+ * chunk once; ⭐ the third surface arrived at plan-zone-polygons.md P2 and cost
+ * exactly one line per draw site, which is the whole point of this shape.
  *
- * Two containers so the world can keep its layers separate; the map passes the
- * same scratch container twice, and gets the same order either way.
+ * Three containers so the world can keep its layers separate; the map passes
+ * the same scratch container three times, and gets the same order either way.
  *
  * ⚑ EVERYTHING IT RETURNS IS THE CALLER'S — see {@link PaintedSurfaces}.
  *
@@ -577,15 +880,20 @@ export function paintPaths(
  */
 export function paintTerrainSurfaces(
     regionContainer: Container,
+    polygonContainer: Container,
     pathContainer: Container,
     regions: Region[],
+    polygons: Polygon[],
     paths: Path[],
     renderer: Renderer,
 ): PaintedSurfaces {
-    const fromRegions = paintRegions(regionContainer, regions, renderer);
-    const fromPaths = paintPaths(pathContainer, paths, renderer);
+    const painted = [
+        paintRegions(regionContainer, regions, renderer),
+        paintPolygons(polygonContainer, polygons, renderer),
+        paintPaths(pathContainer, paths, renderer),
+    ];
     return {
-        masks: fromRegions.masks.concat(fromPaths.masks),
-        scrollers: fromRegions.scrollers.concat(fromPaths.scrollers),
+        masks: painted.flatMap(p => p.masks),
+        scrollers: painted.flatMap(p => p.scrollers),
     };
 }

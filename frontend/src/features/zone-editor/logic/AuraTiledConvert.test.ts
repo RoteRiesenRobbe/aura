@@ -12,7 +12,7 @@
  * QJSEngine and cannot use ESM), hence createRequire rather than import.
  */
 import {createRequire} from 'node:module';
-import {readFileSync} from 'node:fs';
+import {readdirSync, readFileSync} from 'node:fs';
 import {describe, expect, it} from 'vitest';
 // The third whitelist. C2 brought it under the same pin: two of the three
 // serializers being complete is not the invariant — all three are.
@@ -79,6 +79,23 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
     // Counts are DERIVED from the file, never hardcoded: world.json is live
     // content and every authored edit would otherwise turn this red. What is
     // being asserted is "no array loses objects", not any particular census.
+    //
+    // ⭐ A LAYER IS NOT ALWAYS ONE ARRAY, and this is the only structural fact
+    // this test has to state rather than derive. Two layers carry two classes
+    // each: `paths` holds AuraPath + AuraPolygon (zone-polygons D5) and, since
+    // A4, `atmospheres` holds AuraAtmosphere + AuraClearing.
+    //
+    // ⛔ THE PATHS ROW WAS ALREADY WRONG AND NOBODY KNEW, which is the durable
+    // point. This test has asserted layer-count == same-named-array-count since
+    // before D5 shipped, and it kept passing only because no zone authors a
+    // polygon yet — authoring one would have reddened it with nothing broken.
+    // A4 made the same latent defect fire at once, because world.json DOES
+    // author a clearing. The bug was found by content, not by the suite.
+    const SHARED_LAYERS: Record<string, string[]> = {
+        paths: ['polygons', 'paths'],
+        atmospheres: ['atmospheres', 'clearings'],
+    };
+
     it('maps every array onto its own layer, losing nothing', () => {
         const src = JSON.parse(worldText);
         const model = C.zoneToModel(src);
@@ -87,8 +104,28 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
             counts[l.name] = l.objects.length;
         });
         const expected: Record<string, number> = {};
-        C.LAYERS.forEach((name: string) => { expected[name] = (src[name] || []).length; });
+        C.LAYERS.forEach((name: string) => {
+            expected[name] = (SHARED_LAYERS[name] || [name])
+                .reduce((n, array) => n + (src[array] || []).length, 0);
+        });
         expect(counts).toEqual(expected);
+    });
+
+    // ⚑ The guard on the map above: a layer that stops being shared, or an array
+    // that moves off one, would make the sum silently wrong in the other
+    // direction and this test would go back to passing for the wrong reason.
+    it('every array named in SHARED_LAYERS is real, and includes the layer itself', () => {
+        const src = JSON.parse(worldText);
+        Object.keys(SHARED_LAYERS).forEach((layerName) => {
+            const arrays = SHARED_LAYERS[layerName];
+            expect(C.LAYERS).toContain(layerName);
+            arrays.forEach(a => {
+                expect(src[a] === undefined || Array.isArray(src[a])).toBe(true);
+            });
+            // The layer's own name must be one of the arrays it carries, or the
+            // reduce above would be counting a layer that has no array at all.
+            expect(arrays).toContain(layerName);
+        });
     });
 
     it('terrain paint order is preserved as index draw order', () => {
@@ -133,6 +170,68 @@ describe('AuraConvert — the tri-state fields', () => {
         expect(out.spawns[0].level).toBe(13);
         expect(out.spawns[0].idleSpeedFactor).toBe(0.1);
     });
+
+    /* ---- a prop's blocksMovement, the newest tri-state ---------------------
+     * ⭐ THE DEFAULT IS THE SERVER'S TO APPLY, not this file's. Absent means
+     * "ask api/props/<type>.json", so the one thing these legs must prove is
+     * that absent STAYS absent through a full round-trip — a converter that
+     * helpfully filled in a bool would freeze today's answer into the zone and
+     * re-typing the prop would stop moving its placements.
+     */
+    const propZone = (over: Record<string, unknown> = {}) =>
+        zone({props: [{type: 'Tree', x: 0, y: 0, rotation: 0, ...over}]});
+
+    it('⭐ an inheriting prop keeps NO blocksMovement key at all', () => {
+        const out = roundTrip(propZone());
+        expect('blocksMovement' in out.props[0]).toBe(false);
+        expect(JSON.stringify(out)).not.toContain('blocksMovement');
+    });
+
+    it('an explicit blocking prop survives as true', () => {
+        const out = roundTrip(propZone({blocksMovement: true}));
+        expect(out.props[0].blocksMovement).toBe(true);
+    });
+
+    it('an explicit walk-through prop survives as false — it is an OVERRIDE', () => {
+        const out = roundTrip(propZone({blocksMovement: false}));
+        expect(out.props[0].blocksMovement).toBe(false);
+        expect('blocksMovement' in out.props[0]).toBe(true);
+    });
+
+    /* ⛔ THE SHADOWING RULE, and it is invisible from the file it protects: an
+     * object-level property SHADOWS the class member that declares its enum, and
+     * the Properties panel then degrades from a dropdown to a free-text box. So
+     * an inheriting prop must reach Tiled carrying NOTHING, and the member is
+     * what shows '(inherit)'. Measured in the GUI during C6; the same trap the
+     * spawn sentinels exist to avoid. */
+    it('⛔ zoneToModel sets no property on an inheriting prop, so the dropdown survives', () => {
+        const m = C.zoneToModel(propZone()) as {layers: {name: string; objects:
+            {properties: Record<string, unknown>; enums: Record<string, string>}[]}[]};
+        const o = m.layers.filter(l => l.name === 'props')[0].objects[0];
+        expect('blocksMovement' in o.properties).toBe(false);
+        // …but the enum is still declared, so a value SET later is written typed.
+        expect(o.enums.blocksMovement).toBe(C.PROP_BLOCKS_ENUM);
+    });
+
+    it('an authored prop reaches Tiled as the enum STRING, not a bool', () => {
+        const m = C.zoneToModel(propZone({blocksMovement: false})) as {layers:
+            {name: string; objects: {properties: Record<string, unknown>}[]}[]};
+        const o = m.layers.filter(l => l.name === 'props')[0].objects[0];
+        expect(o.properties.blocksMovement).toBe(C.PROP_WALK_THROUGH);
+    });
+
+    /* ⚑ A Tiled that never loaded the project degrades a typed value to whatever
+     * the writer put there (tiled.propertyValue throws on an unregistered type,
+     * measured during the atmosphere split). A zone opened that way must still
+     * round-trip, which is why readPropBlocks accepts a raw bool. */
+    it('a raw boolean property still reads, for a project-less Tiled', () => {
+        const m = C.zoneToModel(propZone()) as {layers: {name: string; objects:
+            {properties: Record<string, unknown>}[]}[]};
+        const o = m.layers.filter(l => l.name === 'props')[0].objects[0];
+        o.properties.blocksMovement = false;
+        expect((C.modelToZone(m) as {props: {blocksMovement: unknown}[]})
+            .props[0].blocksMovement).toBe(false);
+    });
 });
 
 describe('AuraConvert — terrain geometry', () => {
@@ -176,6 +275,135 @@ describe('AuraConvert — terrain geometry', () => {
     });
 });
 
+/* ---- the generated object templates ---------------------------------------
+ * ⭐ WHY THEY EXIST: Tiled inserts a tile object at the tile IMAGE's natural
+ * pixel size, and the box IS the scale (plan-prop-scale.md C1). roundTree.png
+ * is 512² against a 336 px body, so every tree ever DRAGGED out of the palette
+ * authored `"scale": 1.524` — silently, on every placement. House, Bridge and
+ * Tombstone were worse off: their image aspect is not their body aspect, so the
+ * proportions check REFUSED the save and they could not be dragged in at all.
+ *
+ * ⛔ verify.sh cannot cover this. It drives headless --export-map, which has no
+ * way to perform a drag, and a template is insert-time only — by the time a map
+ * is on disk the objects are ordinary tile objects. So the pin is STATIC (the
+ * boxes are right, the gids point where they claim) and the drag itself is a
+ * human check in verify.sh's footer, the same posture the enum dropdown takes.
+ */
+describe('AuraConvert — the generated object templates', () => {
+    const dir = nodeRequire.resolve('../../../../../tools/tiled/palette/content.json')
+        .replace(/content\.json$/, 'templates');
+
+    function templates(kind: 'props' | 'terrain') {
+        return readdirSync(dir + '/' + kind).map(f => {
+            const text = readFileSync(dir + '/' + kind + '/' + f, 'utf8');
+            const obj = /<object name="([^"]*)" class="([^"]*)" gid="(\d+)" width="([\d.]+)" height="([\d.]+)"\/>/
+                .exec(text);
+            const set = /<tileset firstgid="1" source="[^"]*\/([^"/]+)"\/>/.exec(text);
+            expect(obj, `${kind}/${f} has no parsable object`).toBeTruthy();
+            expect(set, `${kind}/${f} has no parsable tileset`).toBeTruthy();
+            return {
+                file: f, tsx: set![1], name: obj![1], cls: obj![2],
+                gid: +obj![3], w: +obj![4], h: +obj![5],
+            };
+        });
+    }
+
+    // type -> tile id, straight out of the tsx the template points at. The
+    // template's gid is firstgid(1) + that id, and nothing else guarantees the
+    // two orderings stay together.
+    function tileIds(tsx: string) {
+        const text = readFileSync(dir.replace(/templates$/, '') + tsx, 'utf8');
+        const out: Record<string, number> = {};
+        const re = /<tile id="(\d+)"[^>]*>\s*<properties>\s*<property name="auraType" value="([^"]*)"/g;
+        let m;
+        while ((m = re.exec(text))) { out[m[2]] = +m[1]; }
+        return out;
+    }
+
+    // Through the real derivation, never a reimplementation of it: drop the
+    // template's box onto a placement and ask the serializer what it authors.
+    function authored(kind: 'props' | 'terrain', name: string, w: number, h: number) {
+        const z = kind === 'props'
+            ? zone({props: [{type: name, x: 0, y: 0, rotation: 0, blocksMovement: false}]})
+            : zone({terrain: [{type: name, x: 0, y: 0, size: 1, rotation: 0, flipped: 'none'}]});
+        const model = C.zoneToModel(z) as {layers: {name: string;
+            objects: {width: number; height: number}[]}[]};
+        const o = model.layers.filter(l => l.name === kind)[0].objects[0];
+        o.width = w;
+        o.height = h;
+        return JSON.parse(C.serializeZone(C.modelToZone(model)));
+    }
+
+    it('there is exactly one template per prop and per texture', () => {
+        expect(templates('props').map(t => t.name).sort())
+            .toEqual(Object.keys(content.PROP_SIZE).sort());
+        expect(templates('terrain').map(t => t.name).sort())
+            .toEqual([...content.TERRAIN_TYPES].sort());
+    });
+
+    it('each gid points at the tile its own tileset holds for that name', () => {
+        (['props', 'terrain'] as const).forEach(kind => {
+            templates(kind).forEach(t => {
+                const ids = tileIds(t.tsx);
+                expect(t.gid, `${kind}/${t.file} gid`).toBe(ids[t.name] + 1);
+            });
+        });
+    });
+
+    // ⭐ THE POINT OF THE WHOLE THING: a dragged prop authors no `scale` key.
+    it('a prop dropped from its template authors NO scale', () => {
+        templates('props').forEach(t => {
+            const sz = content.PROP_SIZE[t.name];
+            expect({w: t.w, h: t.h}, `${t.file} box`)
+                .toEqual({w: +(sz.w * C.PX).toFixed(4), h: +(sz.h * C.PX).toFixed(4)});
+            expect(authored('props', t.name, t.w, t.h).props[0].scale,
+                `${t.file} must inherit its type body`).toBeUndefined();
+        });
+    });
+
+    /* ⚑ Terrain has no type body to be right about — the box IS the size — so
+     * a dragged patch used to inherit its IMAGE's size: 0.42 for the twelve
+     * 100² SVG textures against 1.07 for the two 256² PNGs, a 2.56× split with
+     * nothing behind it. One canonical box is the fix, and the NUMBER is a
+     * [PLACEHOLDER] look call, so this pins the invariants rather than the
+     * value: every texture starts the same, and it serializes clean. */
+    it('every texture template shares one box, and it round-trips clean', () => {
+        const all = templates('terrain');
+        const [first] = all;
+        all.forEach(t => expect({w: t.w, h: t.h}, `${t.file} box`)
+            .toEqual({w: first.w, h: first.h}));
+        expect(first.w).toBe(first.h);
+        const size = authored('terrain', first.name, first.w, first.h).terrain[0].size;
+        expect(size).toBeGreaterThan(0);
+        expect(size, 'a box that serializes to float dust is a box nobody can retype')
+            .toBe(Math.round(size * 100) / 100);
+        // ⭐ ONE number, two consumers. The templates are cut at it and the "fit
+        // to true size" action resizes to it, so the generator publishes it
+        // through content.json instead of each side declaring its own. Two
+        // copies would drift the day the look call is made, and the symptom
+        // would be a patch that changes size when you fix it.
+        expect(size, 'the templates and content.TERRAIN_SIZE must be the same number')
+            .toBe(content.TERRAIN_SIZE);
+        expect(C.terrainSize()).toBe(content.TERRAIN_SIZE);
+    });
+
+    /* ⛔ The fit action's lookup must NOT be propSize()'s. That helper answers
+     * {w:1,h:1} for an unknown name, which is right for a CONVERSION — the
+     * geometry still round-trips — and catastrophic for a RESIZE, where it
+     * would squash an unrecognised prop to a 120 px box that looks deliberate.
+     * So the raw table is exported and the action refuses instead. */
+    it('exposes the raw tables the fit action refuses on, not a fallback', () => {
+        expect(Object.keys(C.propSizes()).sort())
+            .toEqual(Object.keys(content.PROP_SIZE).sort());
+        expect(C.propSizes().NoSuchProp).toBeUndefined();
+    });
+
+    it('the class matches the layer the template belongs on', () => {
+        templates('props').forEach(t => expect(t.cls, t.file).toBe('AuraProp'));
+        templates('terrain').forEach(t => expect(t.cls, t.file).toBe('AuraTerrain'));
+    });
+});
+
 describe('AuraConvert — the generated palette (C2)', () => {
     it('draws each prop at its TYPE body size, in px', () => {
         const model = C.zoneToModel(zone({
@@ -185,13 +413,22 @@ describe('AuraConvert — the generated palette (C2)', () => {
             ],
         }));
         const [house, tree] = model.layers[1].objects;
-        // house.json body 4x3 units; tree.json radius 1.4 -> 2.8x2.8 units.
-        // ⚑ The tree's 1.4 is its VISUAL radius since C1b — the authored body
-        // is now what the sprite is drawn at, and the 1.0 trunk collider is
-        // body.collisionFactor. That is precisely what makes this box match
-        // the game: before C1b it drew the collider and was 29% too small.
-        expect({w: house.width, h: house.height}).toEqual({w: 4 * 120, h: 3 * 120});
-        expect({w: tree.width, h: tree.height}).toEqual({w: 2.8 * 120, h: 2.8 * 120});
+        // ⚑ DERIVED from the palette, never typed: a body is a [PLACEHOLDER]
+        // look call the PO retunes in front of the game, and a test that names
+        // the number turns every such retune into a red suite. What is being
+        // pinned is that the box IS the body — a rect's own w/h, a circle's
+        // 2*radius — at PX.
+        // ⚑ That radius is the VISUAL one since C1b: the authored body is what
+        // the sprite is drawn at, and the smaller trunk collider is
+        // body.collisionFactor. Before C1b this box drew the COLLIDER and the
+        // editor was 29% too small.
+        const px = (u: number) => u * C.PX;
+        expect({w: house.width, h: house.height})
+            .toEqual({w: px(content.PROP_SIZE.House.w), h: px(content.PROP_SIZE.House.h)});
+        expect({w: tree.width, h: tree.height})
+            .toEqual({w: px(content.PROP_SIZE.Tree.w), h: px(content.PROP_SIZE.Tree.h)});
+        // …and the circle really is square, which is the half a rect cannot say.
+        expect(tree.width).toBe(tree.height);
     });
 
     it('every prop type in world.json has a palette size', () => {
@@ -246,9 +483,8 @@ describe('AuraConvert — the generated palette (C2)', () => {
     });
 
     it('scale round-trips through the box for both body shapes', () => {
-        // Tree is a circle (visual r 1.4 → a 2.8×2.8-unit box), House a 4×3
-        // rect. One multiplier has to serve both, which is why it is not
-        // terrain's absolute size.
+        // Tree is a circle, House a rect. One multiplier has to serve both,
+        // which is why it is not terrain's absolute size.
         const src = zone({props: [
             {type: 'Tree', x: 0, y: 0, rotation: 0, blocksMovement: true, scale: 2.5},
             {type: 'House', x: 4, y: 1, rotation: 0, blocksMovement: true, scale: 0.5},
@@ -256,8 +492,10 @@ describe('AuraConvert — the generated palette (C2)', () => {
         const model = C.zoneToModel(src);
         // The box really is the scaled physics footprint — what you see is
         // what blocks, at the size it blocks.
+        const box = (t: string, s: number) =>
+            [content.PROP_SIZE[t].w * C.PX * s, content.PROP_SIZE[t].h * C.PX * s];
         expect(model.layers[1].objects.map((o: {width: number; height: number}) =>
-            [o.width, o.height])).toEqual([[840, 840], [240, 180]]);
+            [o.width, o.height])).toEqual([box('Tree', 2.5), box('House', 0.5)]);
         expect(roundTrip(src).props.map((p: {scale?: number}) => p.scale)).toEqual([2.5, 0.5]);
     });
 
@@ -458,6 +696,33 @@ describe('AuraConvert — save-time validation (C4)', () => {
         return zone({spawns: [{mob: 'Wolf', x: 0, y: 0, angle: 0, ...over}]});
     }
 
+    /* ⛔ PRESENT AND WRONG IS REFUSED; ABSENT IS THE DEFAULT — the same
+     * asymmetry `clears` records. An absent property is Tiled dropping a value
+     * still at its member default, invisible to the author and required to
+     * round-trip. A value that is present and unrecognised is somebody having
+     * typed it, and a prop that quietly stopped blocking looks on screen exactly
+     * like one that still does. */
+    it('refuses a blocksMovement Tiled cannot map, and says what it takes', () => {
+        const m = modelOf(zone({props: [{type: 'Tree', x: 0, y: 0, rotation: 0}]})) as unknown as
+            {layers: {name: string; objects: {properties: Record<string, unknown>}[]}[]};
+        m.layers.filter(l => l.name === 'props')[0].objects[0]
+            .properties.blocksMovement = 'solid-ish';
+        const e = C.validateModel(m) as string[];
+        expect(e).toHaveLength(1);
+        expect(e[0]).toContain('blocksMovement');
+        expect(e[0]).toContain(C.PROP_BLOCKS_INHERIT);
+    });
+
+    it('accepts all three values, and an absent one', () => {
+        C.PROP_BLOCKS_VALUES.forEach((v: string) => {
+            const m = modelOf(zone({props: [{type: 'Tree', x: 0, y: 0, rotation: 0}]})) as unknown as
+                {layers: {name: string; objects: {properties: Record<string, unknown>}[]}[]};
+            m.layers.filter(l => l.name === 'props')[0].objects[0].properties.blocksMovement = v;
+            expect(C.validateModel(m), v).toEqual([]);
+        });
+        expect(errs(zone({props: [{type: 'Tree', x: 0, y: 0, rotation: 0}]}))).toEqual([]);
+    });
+
     // ⭐ These exist because the first cut of the paths leg called get() —
     // modelToZone's local property reader — inside validateModel, where it does
     // not exist. Every save from Tiled threw "get is not defined", and the whole
@@ -492,6 +757,359 @@ describe('AuraConvert — save-time validation (C4)', () => {
 
     it('a path naming a profile that does not exist is refused', () => {
         expect(only(pathZone({profile: 'Nope'}))).toContain('unknown profile "Nope"');
+    });
+
+    // ⭐ P1: a POLYGON on the paths layer is now legal and IS the closed flag.
+    // Before this it was refused outright ("a closed river is a lake"), which
+    // is the assertion this replaces — the fill it was protecting against is
+    // AuraPolygon's job, not a shape rule's.
+    it('a path drawn as a closed polygon validates cleanly', () => {
+        const z = pathZone({points: [{x: 0, y: 0}, {x: 5, y: 0}, {x: 5, y: 5}], closed: true});
+        expect(C.validateModel(C.zoneToModel(z))).toEqual([]);
+    });
+
+    it('a closed path needs three points to be a ring', () => {
+        expect(only(pathZone({points: [{x: 0, y: 0}, {x: 5, y: 0}], closed: true})))
+            .toContain('at least 3 points');
+    });
+
+    // ⭐ The shape IS the flag, in both directions: a closed path must come back
+    // out of the Tiled model as a polygon and go back into the file as
+    // `closed: true`, with no property anywhere in between. A `closed` property
+    // in the Properties panel would be a second source of truth that could
+    // contradict the shape it was drawn as.
+    it('a closed path round-trips through the SHAPE, not through a property', () => {
+        const z = pathZone({points: [{x: 0, y: 0}, {x: 5, y: 0}, {x: 5, y: 5}], closed: true});
+        const model = C.zoneToModel(z);
+        const obj = model.layers.find((l: {name: string}) => l.name === 'paths').objects[0];
+        expect(obj.shape).toBe('polygon');
+        expect(obj.properties).not.toHaveProperty('closed');
+        expect(C.modelToZone(model).paths[0].closed).toBe(true);
+    });
+
+    // And the other way: an open path must not grow the key at all, or every
+    // decorative road in every shipped zone gains a "closed": false nobody
+    // wrote and every zone file changes on the next save.
+    it('an open path emits no closed key', () => {
+        const out = JSON.parse(C.serializeZone(C.modelToZone(C.zoneToModel(pathZone()))));
+        expect(out.paths[0]).not.toHaveProperty('closed');
+    });
+
+    // ---- polygons, sharing the paths layer (plan-zone-polygons.md D5) -----
+
+    function polyZone(over: Record<string, unknown> = {}) {
+        return zone({
+            polygons: [{
+                profile: 'Fields',
+                points: [{x: 0, y: 0}, {x: 5, y: 0}, {x: 5, y: 5}],
+                ...over,
+            }],
+        });
+    }
+
+    it('a well-formed polygon validates cleanly', () => {
+        expect(errs(polyZone())).toEqual([]);
+    });
+
+    it('a polygon needs three points to enclose an area', () => {
+        expect(only(polyZone({points: [{x: 0, y: 0}, {x: 5, y: 0}]})))
+            .toContain('at least 3 points');
+    });
+
+    it('a polygon naming a profile that does not exist is refused', () => {
+        expect(only(polyZone({profile: 'Nope'}))).toContain('unknown profile "Nope"');
+    });
+
+    // ⭐ L2b — THE one check the layer-per-type scheme got for free. Two classes
+    // share this layer and modelToZone routes by class, so an object that is
+    // NEITHER lands in neither array and vanishes on the next save with every
+    // other check green.
+    it('an object on the paths layer with no recognised class is refused by id', () => {
+        const model = C.zoneToModel(polyZone());
+        const layer = model.layers.find((l: {name: string}) => l.name === 'paths');
+        layer.objects.push({
+            shape: 'polygon', layer: 'paths', name: 'stray', cls: '', id: 4242,
+            x: 0, y: 0, width: 0, height: 0, rotation: 0, flipH: false, flipV: false,
+            polygon: [{x: 0, y: 0}, {x: 10, y: 0}, {x: 10, y: 10}], properties: {},
+        });
+        const msg = C.validateModel(model).join(' | ');
+        expect(msg).toContain('AuraPath');
+        expect(msg).toContain('AuraPolygon');
+        expect(msg).toContain('DROPPED on save');
+    });
+
+    // ⭐ The two classes must not read each other's objects. A polygon read as a
+    // path would come back width-less (and be refused for it, which at least is
+    // loud); a path read as a polygon would come back as a filled shape, which
+    // is not loud at all.
+    it('paths and polygons on one layer round-trip into their own arrays', () => {
+        const z = zone({
+            paths: [{profile: 'Road', points: [{x: 0, y: 0}, {x: 5, y: 2}], width: 3}],
+            polygons: [{profile: 'Water', points: [{x: 1, y: 1}, {x: 6, y: 1}, {x: 6, y: 6}]}],
+        });
+        const model = C.zoneToModel(z);
+        const layer = model.layers.find((l: {name: string}) => l.name === 'paths');
+        expect(layer.objects.map((o: {cls: string}) => o.cls)).toEqual(['AuraPolygon', 'AuraPath']);
+
+        const back = C.modelToZone(model);
+        expect(back.paths).toHaveLength(1);
+        expect(back.paths[0].profile).toBe('Road');
+        expect(back.polygons).toHaveLength(1);
+        expect(back.polygons[0].profile).toBe('Water');
+        expect(back.polygons[0]).not.toHaveProperty('width');
+    });
+
+    // ---- A4: the SECOND shared layer, and its own class split -------------
+    //
+    // ⛔ THESE LEGS EXIST BECAUSE A MUTATION SURVIVED WITHOUT THEM. Pointing
+    // modelToZone's `atmospheres` back at the whole layer — the exact defect
+    // zone-polygons D5 produced on the paths layer — left the completeness pin,
+    // the round-trip pin and all 133 other legs GREEN, because the pin compares
+    // KEYS and both keys were still emitted. What it actually does is hand every
+    // clearing back a second time as an atmosphere whose profile is the string
+    // "darkness", which no profile table contains: the fog bank grows a shape
+    // that paints nothing, and the file on disk quietly gains it on every save.
+
+    function airZone() {
+        return zone({
+            atmospheres: [{
+                profile: 'Fog',
+                points: [{x: 0, y: 0}, {x: 6, y: 0}, {x: 6, y: 6}],
+            }],
+            clearings: [{
+                clears: 'darkness',
+                points: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 3}],
+            }],
+        });
+    }
+
+    it('air and clearings on one layer round-trip into their own arrays', () => {
+        const model = C.zoneToModel(airZone());
+        const layer = model.layers.find((l: {name: string}) => l.name === 'atmospheres');
+        // ⚑ ATMOSPHERES FIRST, THEN CLEARINGS — D17's order, so the canvas shows
+        // the z-order the client draws and the resolver answers.
+        expect(layer.objects.map((o: {cls: string}) => o.cls))
+            .toEqual(['AuraAtmosphere', 'AuraClearing']);
+
+        const back = C.modelToZone(model);
+        expect(back.atmospheres).toHaveLength(1);
+        expect(back.atmospheres[0].profile).toBe('Fog');
+        expect(back.clearings).toHaveLength(1);
+        expect(back.clearings[0].clears).toBe('darkness');
+        // ⛔ L7 on the wire: a clearing paints nothing, so it must come back with
+        // NO profile. zone.go refuses the key by name, so a converter that added
+        // one would write a file that no longer boots.
+        expect(back.clearings[0]).not.toHaveProperty('profile');
+    });
+
+    it('an object on the atmospheres layer with no recognised class is refused by id', () => {
+        const model = C.zoneToModel(airZone());
+        const layer = model.layers.find((l: {name: string}) => l.name === 'atmospheres');
+        layer.objects.push({
+            shape: 'polygon', layer: 'atmospheres', name: 'stray', cls: '', id: 4243,
+            x: 0, y: 0, width: 0, height: 0, rotation: 0, flipH: false, flipV: false,
+            polygon: [{x: 0, y: 0}, {x: 10, y: 0}, {x: 10, y: 10}], properties: {},
+        });
+        const msg = C.validateModel(model).join(' | ');
+        expect(msg).toContain('AuraAtmosphere');
+        expect(msg).toContain('AuraClearing');
+        expect(msg).toContain('DROPPED on save');
+    });
+
+    // ⭐ The C6 rule with no sentinel available. Tiled may DROP a property still
+    // sitting at its declared default, so an absent `clears` has to read back as
+    // that same default — otherwise a freshly drawn clearing becomes a different
+    // clearing the first time it is saved. The palette's member default and
+    // aura-convert's CLEARS_DEFAULT are the two halves that must agree.
+    it('an absent clears reads back as the palette default', () => {
+        const model = C.zoneToModel(airZone());
+        const layer = model.layers.find((l: {name: string}) => l.name === 'atmospheres');
+        const hole = layer.objects.find((o: {cls: string}) => o.cls === 'AuraClearing');
+        delete hole.properties.clears;
+        expect(C.validateModel(model)).toEqual([]);
+        expect(C.modelToZone(model).clearings[0].clears).toBe('both');
+    });
+
+    // ⛔ REFUSED, never defaulted — the asymmetry with the leg above is the
+    // point. Absent is Tiled being tidy; present-and-wrong is the author having
+    // typed something, and a clearing that silently cleared nothing looks on
+    // screen exactly like one drawn in the wrong place.
+    it('a clears value outside the closed set is refused by id', () => {
+        const model = C.zoneToModel(airZone());
+        const layer = model.layers.find((l: {name: string}) => l.name === 'atmospheres');
+        const hole = layer.objects.find((o: {cls: string}) => o.cls === 'AuraClearing');
+        hole.properties.clears = 'sight';
+        const msg = C.validateModel(model).join(' | ');
+        expect(msg).toContain('clears');
+        expect(msg).toContain('darkness, haze, both');
+    });
+
+    // ⚑ A clearing is air, so it refuses everything an atmosphere refuses. The
+    // serializer must not grow a collision key "for symmetry with polygons".
+    it('a clearing serializes exactly two keys', () => {
+        const out = JSON.parse(C.serializeZone(C.modelToZone(C.zoneToModel(airZone()))));
+        expect(Object.keys(out.clearings[0]).sort()).toEqual(['clears', 'points']);
+    });
+
+    it('a decorative polygon emits no blocksMovement key', () => {
+        const out = JSON.parse(C.serializeZone(C.modelToZone(C.zoneToModel(polyZone()))));
+        expect(out.polygons[0]).not.toHaveProperty('blocksMovement');
+    });
+
+    // ---- outlines, on both surface types (plan-zone-polygons.md D3) -------
+
+    it('an outline round-trips on a path and on a polygon alike', () => {
+        const z = zone({
+            paths: [{
+                profile: 'Road', points: [{x: 0, y: 0}, {x: 5, y: 0}], width: 2,
+                outlineProfile: 'Desert', outlineWidth: 0.5,
+            }],
+            polygons: [{
+                profile: 'Water', points: [{x: -8, y: -4}, {x: -2, y: -4}, {x: -2, y: 2}],
+                outlineProfile: 'Coast', outlineWidth: 1.25,
+            }],
+        });
+        const back = C.modelToZone(C.zoneToModel(z));
+        expect(back.paths[0].outlineProfile).toBe('Desert');
+        expect(back.paths[0].outlineWidth).toBe(0.5);
+        expect(back.polygons[0].outlineProfile).toBe('Coast');
+        expect(back.polygons[0].outlineWidth).toBe(1.25);
+    });
+
+    // ⚑ Tri-state, like every other optional key: a shape with no outline must
+    // not grow two keys nobody wrote, or every zone file changes on the next
+    // save.
+    it('a shape with no outline emits neither key', () => {
+        const out = JSON.parse(C.serializeZone(C.modelToZone(C.zoneToModel(pathZone()))));
+        expect(out.paths[0]).not.toHaveProperty('outlineProfile');
+        expect(out.paths[0]).not.toHaveProperty('outlineWidth');
+    });
+
+    // ⭐ Both half-authored forms fail SILENTLY in game — a named profile with no
+    // width strokes zero pixels, a width with no profile strokes nothing — so
+    // both are refused rather than absorbed. Mirrors validateOutline in zone.go.
+    it('refuses a half-authored outline, both ways round', () => {
+        expect(only(pathZone({outlineProfile: 'Desert', outlineWidth: 0})))
+            .toContain('a zero-wide outline draws nothing');
+
+        // ⚑ The other half has to be built on the MODEL, not in a zone file: a
+        // width with no profile is a mistake you can only make in Tiled's
+        // Properties panel, because both writers gate the width on the profile
+        // and would drop it on the way in. That is the point of checking it
+        // here — this is the only layer that can still see it.
+        const model = C.zoneToModel(pathZone());
+        const obj = model.layers.find((l: {name: string}) => l.name === 'paths').objects[0];
+        obj.properties.outlineWidth = 2;
+        expect(C.validateModel(model).join(' | ')).toContain('no outlineProfile is chosen');
+    });
+
+    it('refuses an outline profile that does not exist', () => {
+        expect(only(pathZone({outlineProfile: 'Nope', outlineWidth: 1})))
+            .toContain('unknown outline profile "Nope"');
+    });
+
+    // ⚑ The placeholder is LEGAL on outlineProfile and refused on profile — the
+    // same sentinel meaning two different things, because Tiled has no nullable
+    // enum. This is the pin that keeps someone from "tidying" that up.
+    it('the profile placeholder means NO OUTLINE, not a mistake', () => {
+        const z = pathZone();
+        const model = C.zoneToModel(z);
+        const obj = model.layers.find((l: {name: string}) => l.name === 'paths').objects[0];
+        obj.properties.outlineProfile = C.PROFILE_UNSET;
+        obj.properties.outlineWidth = 0;
+        expect(C.validateModel(model)).toEqual([]);
+        expect(C.modelToZone(model).paths[0].outlineProfile).toBeUndefined();
+    });
+
+    // ---- ⭐ RECTANGLES on the three closed-area layers ---------------------
+    //
+    // ⛔ THIS BLOCK EXISTS BECAUSE A REAL BOOT BROKE (2026-09-14). The
+    // atmospheres layer was added without a validateModel leg — the only shape
+    // layer without one — so Tiled happily saved three objects with no vertices
+    // and aurad died on "needs at least 3 points to enclose an area, got 0".
+    // Save-time validation exists precisely to catch what the server would
+    // reject while the author is still looking at the object.
+    //
+    // ⭐ The PO's instinct was the right one: "i used rectangle in tiled,
+    // assuming it would convert to a polygon cleanly". A rect IS a closed area,
+    // so all three closed-area layers now accept one and convert it to its four
+    // corners; the refusal that used to greet it was the wrong call.
+
+    // Where each closed-area type lives, and the class Tiled marks it with.
+    const CLOSED_AREAS: [string, string, string][] = [
+        ['regions', 'AuraRegion', 'Swamp'],
+        ['paths', 'AuraPolygon', 'Mountains'],
+        ['atmospheres', 'AuraAtmosphere', 'Fog'],
+    ];
+
+    // A Tiled object as the format writer hands it back, on the given layer.
+    function areaObject(layer: string, cls: string, profile: string,
+                        over: Record<string, unknown> = {}) {
+        return {
+            shape: 'rect', layer, cls, name: profile, id: 4242,
+            x: 1200, y: 600, width: 600, height: 360, rotation: 0,
+            flipH: false, flipV: false, properties: {profile},
+            ...over,
+        };
+    }
+
+    function withArea(layer: string, cls: string, profile: string,
+                      over: Record<string, unknown> = {}) {
+        const model = C.zoneToModel(zone());
+        model.layers.find((l: {name: string}) => l.name === layer)
+            .objects.push(areaObject(layer, cls, profile, over));
+        return model;
+    }
+
+    CLOSED_AREAS.forEach(([layer, cls, profile]) => {
+        it(`a RECTANGLE on the ${layer} layer converts to four corners`, () => {
+            const model = withArea(layer, cls, profile);
+            expect(C.validateModel(model)).toEqual([]);
+
+            const back = C.modelToZone(model);
+            const key = layer === 'paths' ? 'polygons' : layer;
+            const pts = back[key][back[key].length - 1].points;
+            // 1200,600 px at 120 px/u is (10, 5) from the top-left of a 20x10
+            // zone, i.e. (0, 0) in world units; the rect is 5 x 3 u.
+            expect(pts).toEqual([
+                {x: 0, y: 0}, {x: 5, y: 0}, {x: 5, y: 3}, {x: 0, y: 3},
+            ]);
+        });
+
+        it(`a rectangle with NO SIZE on ${layer} is refused, not silently empty`, () => {
+            // ⛔ The case the point count CANNOT catch, and it is worse than the
+            // crash it replaces: a rect always yields four corners, so a 0x0 one
+            // passes "at least 3 points" on both sides, boots, and then draws
+            // nothing, blocks nothing and says nothing.
+            const msg = C.validateModel(withArea(layer, cls, profile,
+                {width: 0, height: 0})).join(' | ');
+            expect(msg).toContain('no size');
+        });
+
+        it(`an ELLIPSE on ${layer} is refused by name`, () => {
+            const msg = C.validateModel(withArea(layer, cls, profile,
+                {shape: 'ellipse'})).join(' | ');
+            expect(msg).toContain('POLYGON or a RECTANGLE');
+            expect(msg).toContain('an ellipse');
+        });
+
+        it(`a vertex-less POLYGON on ${layer} is refused — the boot that broke`, () => {
+            const msg = C.validateModel(withArea(layer, cls, profile,
+                {shape: 'polygon', polygon: []})).join(' | ');
+            expect(msg).toContain('at least 3 points');
+        });
+    });
+
+    // ⚑ A rect anchors at its TOP-LEFT and rotates about that — the plain-rect
+    // convention, NOT the tile convention the boxed objects use. Getting it
+    // wrong would put a rotated area's corners somewhere plausible and wrong.
+    it('a rotated rectangle rotates about its top-left corner', () => {
+        const back = C.modelToZone(withArea('atmospheres', 'AuraAtmosphere', 'Fog',
+            {rotation: 90}));
+        // A 5 x 3 rect turned a quarter turn spans 3 across and 5 down.
+        expect(back.atmospheres[back.atmospheres.length - 1].points).toEqual([
+            {x: 0, y: 0}, {x: 0, y: 5}, {x: -3, y: 5}, {x: -3, y: 0},
+        ]);
     });
 
     it('the shipped world.json has nothing to complain about', () => {
@@ -605,7 +1223,148 @@ describe('AuraConvert — save-time validation (C4)', () => {
     it('rejects an unknown profile name, now that the palette carries the vocabulary', () => {
         const msg = only(region({profile: 'no-such-profile'}));
         expect(msg).toContain('unknown profile "no-such-profile"');
-        expect(msg).toContain('profiles.json');
+        // ⛔ The FULL filename, not a substring of it: since the 2026-09-15
+        // split there are two tables, and 'profiles.json' alone matches both.
+        expect(msg).toContain('terrain-profiles.json');
+    });
+
+    // ⭐ THE SPLIT’S OWN CHECK (PO 2026-09-15). The ground and the air keep
+    // separate profile namespaces, and this is the pair of messages that makes
+    // a crossed name say WHERE the name actually lives rather than the true but
+    // useless "unknown profile". ⚑ Both names are DERIVED from the palette, so
+    // renaming a profile cannot redden this.
+    describe('a profile from the OTHER table is refused by name (2026-09-15)', () => {
+        const AN_AIR_PROFILE = (content.AIR_PROFILE_NAMES as string[])[0];
+
+        it('refuses an atmosphere profile on a region, and says so', () => {
+            const msg = only(region({profile: AN_AIR_PROFILE}));
+            expect(msg).toContain('"' + AN_AIR_PROFILE + '" is an atmosphere profile');
+            expect(msg).toContain('atmosphere-profiles.json');
+            expect(msg).toContain('needs one from terrain-profiles.json');
+        });
+
+        it('refuses a terrain profile on an atmosphere, and says so', () => {
+            const msg = only(zone({
+                atmospheres: [{
+                    profile: A_REAL_PROFILE,
+                    points: [{x: 0, y: 0}, {x: 2, y: 0}, {x: 2, y: 2}],
+                }],
+            }));
+            expect(msg).toContain('"' + A_REAL_PROFILE + '" is a terrain profile');
+            expect(msg).toContain('terrain-profiles.json');
+            expect(msg).toContain('needs one from atmosphere-profiles.json');
+        });
+
+        // ⚑ The two lists must be disjoint or the messages above are
+        // nonsense — a name in both would resolve differently per call site.
+        it('keeps the two vocabularies disjoint', () => {
+            const ground = content.PROFILE_NAMES as string[];
+            const air = content.AIR_PROFILE_NAMES as string[];
+            expect(ground.filter(n => air.indexOf(n) >= 0)).toEqual([]);
+            expect(air.length).toBeGreaterThan(0);
+        });
+    });
+
+    // ⭐ WHICH ENUM EACH CLASS MEMBER DECLARES — pinned HERE because nothing
+    // else can see it. ⛔ Measured 2026-09-16, not assumed: verify.sh’s Tiled
+    // round-trip CANNOT catch this. Headless --export-map loads no project, so
+    // tiled.propertyValue throws and aura-world-format.js falls back to writing
+    // the bare string (its typedValue), which round-trips whatever the member
+    // says. Pointing AuraAtmosphere.profile back at AuraProfile was mutation-
+    // tested against the full verify.sh and every leg stayed GREEN — the only
+    // visible symptom is the wrong DROPDOWN in the GUI, which is why this pin
+    // exists and why verify.sh’s footer now asks a human to look.
+    describe('the generated palette wires each class to its own vocabulary', () => {
+        const types = nodeRequire('../../../../../tools/tiled/palette/propertytypes.json')
+            .propertyTypes as {name: string; type: string; values?: string[];
+                members?: {name: string; value?: unknown; propertyType?: string}[]}[];
+        const classOf = (name: string) => {
+            const found = types.filter(t => t.name === name)[0];
+            expect(found, name + ' is missing from the palette').toBeTruthy();
+            return found;
+        };
+        const memberType = (cls: string, member: string) => {
+            const m = (classOf(cls).members || []).filter(x => x.name === member)[0];
+            expect(m, cls + '.' + member + ' is missing').toBeTruthy();
+            return m.propertyType;
+        };
+
+        it('gives the atmosphere layer the AIR enum', () => {
+            expect(memberType('AuraAtmosphere', 'profile')).toBe('AuraAtmosphereProfile');
+        });
+
+        // ⚑ And the ground classes keep the ground one. Asserting only the
+        // atmosphere would pass a palette that had moved EVERYTHING to the air
+        // enum, which is the same bug wearing the other shoe.
+        it('leaves every ground surface on the terrain enum', () => {
+            expect(memberType('AuraRegion', 'profile')).toBe('AuraProfile');
+            expect(memberType('AuraPath', 'profile')).toBe('AuraProfile');
+            expect(memberType('AuraPolygon', 'profile')).toBe('AuraProfile');
+        });
+
+        // ⚑ An outline is a GROUND surface even on a shape that is not — it
+        // strokes the boundary, so it paints from the terrain table.
+        it('keeps outlines on the terrain enum, on both surface types', () => {
+            expect(memberType('AuraPath', 'outlineProfile')).toBe('AuraProfile');
+            expect(memberType('AuraPolygon', 'outlineProfile')).toBe('AuraProfile');
+        });
+
+        // ⭐ The area effect (plan-area-effects.md E1) — a THIRD vocabulary, and
+        // not a profile table at all: an effect names an authored SKILL. Pinned
+        // here for the same measured reason the two above are: verify.sh cannot
+        // see which enum a member declares.
+        it('gives every effect-bearing shape the skill enum', () => {
+            expect(memberType('AuraPath', 'effect')).toBe('AuraEffect');
+            expect(memberType('AuraPolygon', 'effect')).toBe('AuraEffect');
+            expect(memberType('AuraAtmosphere', 'effect')).toBe('AuraEffect');
+        });
+
+        // ⛔ AND THE TWO SHAPES THAT MUST NOT HAVE ONE, which is the half a
+        // "does it exist" pin would miss. A region is the MATERIAL UNDERFOOT —
+        // the footsteps/music/colour lookup — so an effect there would be a
+        // property of every patch of that material rather than of a place. A
+        // clearing paints nothing and names nothing (A4/L7); an erase that also
+        // burned you is one shape doing two jobs, which is the ambiguity A4
+        // exists to have removed.
+        it('gives NO effect member to a region or a clearing', () => {
+            ['AuraRegion', 'AuraClearing'].forEach(cls => {
+                const names = (classOf(cls).members || []).map(m => m.name);
+                expect(names, cls).not.toContain('effect');
+            });
+        });
+
+        // ⭐ The enum VALUES must match the name lists the converter validates
+        // against, or the dropdown offers something the save then refuses.
+        // Both carry the placeholder at index 0 and the names after it.
+        it('offers exactly the names the converter will accept', () => {
+        const values = (name: string) => classOf(name).values as string[];
+            expect(values('AuraProfile').slice(1))
+                .toEqual(content.PROFILE_NAMES as string[]);
+            expect(values('AuraAtmosphereProfile').slice(1))
+                .toEqual(content.AIR_PROFILE_NAMES as string[]);
+        });
+
+        // ⚑ The effect enum carries its own placeholder at index 0, and the
+        // placeholder MEANS something different from the profile one: there it
+        // is a mistake the save refuses, here it is "this shape is decorative",
+        // which is every shape in every shipped zone.
+        it('leads the effect dropdown with the no-effect placeholder', () => {
+            const vals = classOf('AuraEffect').values as string[];
+            expect(vals[0]).toBe(C.EFFECT_UNSET);
+            expect(vals.slice(1)).toEqual(content.EFFECT_NAMES as string[]);
+        });
+
+        // ⭐ And the class DEFAULT is that placeholder, on all three. The C6 rule
+        // with no spare value available: Tiled may DROP a property still at its
+        // class default, so the default and "absent" have to reach the same
+        // answer. A default naming a real skill would arm every shape in the
+        // world with a hazard nobody drew.
+        it('defaults every effect member to the placeholder', () => {
+            ['AuraPath', 'AuraPolygon', 'AuraAtmosphere'].forEach(cls => {
+                const m = (classOf(cls).members || []).filter(x => x.name === 'effect')[0];
+                expect(m.value, cls).toBe(C.EFFECT_UNSET);
+            });
+        });
     });
 
     // The dropdown the generator emits, exercised end to end: every name it
@@ -628,6 +1387,159 @@ describe('AuraConvert — save-time validation (C4)', () => {
     // must never be reported as "unknown profile", and neither as "empty".
     it('an unknown profile is not reported as an empty one', () => {
         expect(only(region({profile: 'no-such-profile'}))).not.toContain('must not be empty');
+    });
+
+    /**
+     * ⭐ AREA EFFECTS (plan-area-effects.md E1) — one optional key on three
+     * shapes, inert until authored.
+     *
+     * ⛔ Every leg here uses a DIFFERENT effect per shape, deliberately. The
+     * three arrays are read by three separate branches of modelToZone, and a
+     * reader cross-wired to the wrong shape would round-trip a single shared
+     * name perfectly — the trap the shared-layer fixtures in verify.sh each
+     * document in their own words.
+     */
+    describe('an area effect on a shape (E1)', () => {
+        // Derived from the palette, never typed: the dropdown IS the vocabulary
+        // the validator checks against, so a hand-written name here would go red
+        // the next time somebody renames a skill and look like a converter bug.
+        const EFFECTS = content.EFFECT_NAMES as string[];
+        const [E_PATH, E_POLY, E_AIR] = [EFFECTS[0], EFFECTS[1], EFFECTS[2]];
+
+        const shaped = (over: Record<string, unknown> = {}) => zone({
+            paths: [{profile: A_REAL_PROFILE, width: 2,
+                points: [{x: 0, y: 0}, {x: 4, y: 0}], effect: E_PATH}],
+            polygons: [{profile: A_REAL_PROFILE,
+                points: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}], effect: E_POLY}],
+            atmospheres: [{profile: (content.AIR_PROFILE_NAMES as string[])[0],
+                points: [{x: 1, y: 1}, {x: 5, y: 1}, {x: 5, y: 5}], effect: E_AIR}],
+            ...over,
+        });
+
+        it('⭐ each shape keeps its OWN effect through a full round-trip', () => {
+            const back = roundTrip(shaped());
+            expect(back.paths[0].effect).toBe(E_PATH);
+            expect(back.polygons[0].effect).toBe(E_POLY);
+            expect(back.atmospheres[0].effect).toBe(E_AIR);
+        });
+
+        it('marks the property so Tiled sets it as a TYPED value', () => {
+            const m = C.zoneToModel(shaped()) as
+                {layers: {name: string; objects: {cls: string; enums: Record<string, string>}[]}[]};
+            const objs = m.layers.flatMap(l => l.objects)
+                .filter(o => o.enums && o.enums.effect);
+            expect(objs).toHaveLength(3);
+            objs.forEach(o => expect(o.enums.effect, o.cls).toBe('AuraEffect'));
+        });
+
+        // ⭐ D10, and it is the acceptance criterion for the chunk: the feature
+        // costs exactly zero until authored. A decorative shape must not grow an
+        // "effect": "(no effect)" nobody wrote, or every shipped zone changes on
+        // its next save.
+        it('⭐ a decorative shape grows no key at all', () => {
+            const back = roundTrip(zone({
+                paths: [{profile: A_REAL_PROFILE, width: 2,
+                    points: [{x: 0, y: 0}, {x: 4, y: 0}]}],
+                polygons: [{profile: A_REAL_PROFILE,
+                    points: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}]}],
+                atmospheres: [{profile: (content.AIR_PROFILE_NAMES as string[])[0],
+                    points: [{x: 1, y: 1}, {x: 5, y: 1}, {x: 5, y: 5}]}],
+            }));
+            expect(Object.keys(back.paths[0])).not.toContain('effect');
+            expect(Object.keys(back.polygons[0])).not.toContain('effect');
+            expect(Object.keys(back.atmospheres[0])).not.toContain('effect');
+        });
+
+        // ⚑ The C6 rule with no spare value available: Tiled is free to DROP a
+        // property still sitting at its class default, so the sentinel and an
+        // absent property have to reach the same answer. They do — both mean
+        // "no effect" — which is what keeps a freshly drawn shape unchanged.
+        it('the placeholder means NO EFFECT, and reads back as absent', () => {
+            const model = C.zoneToModel(shaped());
+            model.layers.forEach((l: {objects: {properties: Record<string, unknown>}[]}) =>
+                l.objects.forEach(o => {
+                    if (o.properties && o.properties.effect !== undefined) {
+                        o.properties.effect = C.EFFECT_UNSET;
+                    }
+                }));
+            expect(C.validateModel(model)).toEqual([]);
+            const back = C.modelToZone(model);
+            expect(back.paths[0].effect).toBeUndefined();
+            expect(back.polygons[0].effect).toBeUndefined();
+            expect(back.atmospheres[0].effect).toBeUndefined();
+        });
+
+        // ⚑ Tiled hands a typed enum property back as an INDEX into the declared
+        // values, never as the string — the same trap the profile legs exist
+        // for, on a third enum.
+        it('decodes a typed enum index back to its name', () => {
+            const values = content.ENUM_VALUES.AuraEffect as string[];
+            const model = C.zoneToModel(shaped());
+            const obj = model.layers.find((l: {name: string}) => l.name === 'atmospheres')
+                .objects[0];
+            obj.properties.effect = {
+                value: values.indexOf(E_AIR), typeId: 0, typeName: 'AuraEffect',
+            };
+            expect(C.modelToZone(model).atmospheres[0].effect).toBe(E_AIR);
+        });
+
+        // ⭐ THE LEG L5 DEMANDS, WRITTEN THE DAY THE KEY LANDS. The atmospheres
+        // layer shipped with NO validateModel leg at all, and the missing leg —
+        // not the bad shape — is what let a vertex-less object refuse the PO's
+        // boot. The server refuses an unknown effect too
+        // (world.CrossValidateAreaEffects); this says so hours earlier, with an
+        // id that goes into Edit ▸ Select Object by Id.
+        (['paths', 'polygons', 'atmospheres'] as const).forEach(array => {
+            it('refuses an unknown effect on ' + array + ', by id', () => {
+                const over: Record<string, unknown> = {};
+                const base = shaped()[array] as Record<string, unknown>[];
+                over[array] = [{...base[0], effect: 'NoSuchSkill'}];
+                const msg = only(shaped(over));
+                expect(msg).toContain('unknown effect "NoSuchSkill"');
+                // ⚑ It has to say WHERE effects live. "unknown effect" alone is
+                // true and useless — the crossed-profile message's posture.
+                expect(msg).toContain('api/skills/');
+            });
+        });
+
+        it('refuses an effect with stray whitespace rather than trimming it', () => {
+            const msg = only(shaped({polygons: [{profile: A_REAL_PROFILE,
+                points: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}],
+                effect: ' ' + E_POLY}]}));
+            expect(msg).toContain('stray whitespace');
+        });
+
+        // The dropdown exercised end to end: every name the generator offers has
+        // to pass the check that reads its output back. The profile legs' own
+        // posture, derived from the content and never a second list.
+        it('accepts every effect the palette actually offers', () => {
+            expect(EFFECTS.length).toBeGreaterThan(0);
+            EFFECTS.forEach(effect => expect(
+                errs(zone({polygons: [{profile: A_REAL_PROFILE,
+                    points: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}], effect}]})),
+                effect).toEqual([]));
+        });
+
+        // ⛔ THE DRIFT GUARD, AND IT CAUGHT A REAL BUG WHILE E1 WAS BEING
+        // WRITTEN. api/skills/ has a mobs/ SUBDIRECTORY, and the Go registry
+        // walks the tree (skills.RegistryFromFS uses fs.WalkDir) while the first
+        // cut of readEffects did a flat readdir — so the palette offered 72 of
+        // 105 names and Tiled would have REFUSED a name the server accepts.
+        // Derived from the directory, never a count.
+        it('⭐ offers every skill the SERVER loads, subdirectories included', () => {
+            const dir = nodeRequire.resolve('../../../../../api/skills/damage.json')
+                .replace(/damage\.json$/, '');
+            const names: string[] = [];
+            (function walk(d: string) {
+                for (const entry of readdirSync(d, {withFileTypes: true})) {
+                    const abs = d + '/' + entry.name;
+                    if (entry.isDirectory()) { walk(abs); continue; }
+                    if (!entry.name.endsWith('.json')) { continue; }
+                    names.push(JSON.parse(readFileSync(abs, 'utf8')).name);
+                }
+            })(dir);
+            expect([...EFFECTS].sort()).toEqual(names.sort());
+        });
     });
 
     it('refuses a patrol route drawn as a closed polygon instead of dropping its waypoints', () => {
@@ -699,9 +1611,9 @@ describe('AuraConvert — save-time validation (C4)', () => {
         expect(C.validateModel(m)).toEqual([]);
         const o = (m as unknown as {layers: {name: string; objects: {width: number; height: number}[]}[]})
             .layers.filter(l => l.name === 'props')[0].objects[0];
-        // Tree's visual body is r 1.4 → a 2.8-unit (336 px) box. 11× is past
-        // the rail of 10.
-        o.width = 336 * 11; o.height = 336 * 11;
+        // 11× the type's own box is past the rail of 10, whatever that box is.
+        o.width = content.PROP_SIZE.Tree.w * C.PX * 11;
+        o.height = content.PROP_SIZE.Tree.h * C.PX * 11;
         const msg = C.validateModel(m).join(' ');
         expect(msg).toContain('scale 11 must be in (0, 10]');
     });
@@ -828,9 +1740,64 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         // ⚑ blocksMovement is tri-state on a path (false = absent), so the
         // fixture has to author it TRUE or the key never appears and the pin
         // passes while the writers quietly disagree about it.
+        // ⚑ closed is tri-state for the same reason, and it is DERIVED from the
+        // Tiled shape rather than from a property — so a fixture that left it
+        // out would exercise the polyline branch only, and both writers could
+        // quietly drop every moat in the world with this pin still green.
+        // ⚑ The outline pair is authored on BOTH types, not just one: they are
+        // the same two keys read by the same helper, so a fixture that exercised
+        // only the path would leave the polygon's half of that helper untested
+        // and this pin green.
+        // ⚑ `effect` is authored on ALL THREE shapes that can carry one, with a
+        // DIFFERENT name on each (plan-area-effects.md E1). One would satisfy
+        // this pin — it compares key SETS — while two of the three writers
+        // quietly dropped it, which is exactly the hole the pin exists to close
+        // one level up. The per-array legs below assert the values.
         paths: [{
-            profile: 'Water', points: [{x: 1, y: 1}, {x: 5, y: 2}],
-            width: 3, blocksMovement: true,
+            profile: 'Water', points: [{x: 1, y: 1}, {x: 5, y: 2}, {x: 4, y: 6}],
+            width: 3, blocksMovement: true, closed: true,
+            outlineProfile: 'Coast', outlineWidth: 0.5,
+            effect: 'Blight',
+        }],
+        // ⚑ blocksMovement TRUE for the same tri-state reason as the path above:
+        // false is the authored default, so a decorative fixture would never
+        // emit the key and this pin would pass while both writers dropped it.
+        polygons: [{
+            profile: 'Mountains',
+            points: [{x: 2, y: 1}, {x: 6, y: 1}, {x: 6, y: 5}],
+            blocksMovement: true,
+            outlineProfile: 'Ice', outlineWidth: 1.25,
+            effect: 'Immolate',
+        }],
+        // ⛔ NO blocksMovement, NO outline, NO width — the D15 ruling in the
+        // fixture. An atmosphere is air, and authoring one of those here "for
+        // symmetry" would make this pin demand that both writers round-trip a
+        // key zone.go refuses by name, i.e. demand they produce a zone file that
+        // no longer boots. ⚑ `effect` below is the ONE addition that ruling does
+        // not turn away (plan-area-effects.md D1): it describes no wall.
+        //
+        // ⚑ It has its OWN Tiled layer rather than riding `paths` by class
+        // (D16), so this is also the fixture that proves the ninth layer is
+        // read back — a converter that forgot to add it to LAYERS would lose
+        // every shape on it and nothing else would notice.
+        atmospheres: [{
+            profile: 'CaveAir',
+            points: [{x: 1, y: 2}, {x: 7, y: 2}, {x: 7, y: 6}],
+            effect: 'Envenom',
+        }],
+        // ⛔ TWO keys and NO PROFILE — the A4 ruling in the fixture (L7). A
+        // clearing paints nothing, so there is no look to name, and authoring a
+        // profile here "for symmetry with the atmosphere above" would demand
+        // both writers round-trip a key zone.go refuses by name.
+        //
+        // ⚑ It SHARES the atmospheres layer with the shape above it and is told
+        // apart by CLASS (zone-polygons D5's scheme, not D16's), so this is also
+        // the fixture that proves the split survives a round-trip: a converter
+        // that read the layer whole would hand both objects back as atmospheres
+        // and lose the clears value with nothing else noticing.
+        clearings: [{
+            clears: 'darkness' as const,
+            points: [{x: 3, y: 3}, {x: 5, y: 3}, {x: 5, y: 5}],
         }],
         anchors: [{name: 'a', x: 8, y: 8}],
     };
@@ -979,11 +1946,42 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
         names.forEach(n => expect(JSON.stringify(byName(n).members), n).toBe(shape));
     });
 
-    // ⚑ The reason AuraProp stays memberless: blocksMovement is a bool with no
-    // spare value, so it has no sentinel — a default would risk flipping props.
+    // ⚑ These four stay memberless: none of them has a per-placement knob at
+    // all, so there is nothing a member could carry.
+    //
+    // ⛔ AuraProp CAME OFF THIS LIST on 2026-09-17, and the reason it was ever on
+    // it is the interesting half. blocksMovement is a BOOL, which has no spare
+    // value to serve as an inherit sentinel — so a member defaulting to true,
+    // plus a Tiled that drops default-valued properties, would have flipped all
+    // 777 props to false. Sound reasoning, steep price: a freshly dragged prop
+    // showed an EMPTY Properties panel and saved as non-blocking. The fix was to
+    // stop asking a bool to carry three answers — see the AuraProp block below.
     it('gives the OTHER classes no members, deliberately', () => {
-        ['AuraProp', 'AuraTerrain', 'AuraCampfire', 'AuraDarkArea', 'AuraAnchor']
+        ['AuraTerrain', 'AuraCampfire', 'AuraDarkArea', 'AuraAnchor']
             .forEach(n => expect(byName(n).members ?? [], n).toEqual([]));
+    });
+
+    /* ⭐ THE PIN THE WHOLE PROP DESIGN RESTS ON, and the same one the spawn
+     * sentinels get above: the palette's class default and the converter's
+     * "absent" reading must be the SAME value. Equal, the design is immune to
+     * which way Tiled behaves — a kept '(inherit)' and a dropped property reach
+     * the same answer. Unequal, a freshly drawn prop is silently rewritten on
+     * its first save, and nothing else in the suite would say so. */
+    it("⭐ AuraProp's class default IS the converter's inherit sentinel", () => {
+        const members = byName('AuraProp').members ?? [];
+        expect(members.length, 'AuraProp carries exactly one member').toBe(1);
+        expect(members[0].name).toBe('blocksMovement');
+        expect(members[0].propertyType).toBe(C.PROP_BLOCKS_ENUM);
+        expect(members[0].value, 'class default must equal PROP_BLOCKS_INHERIT')
+            .toBe(C.PROP_BLOCKS_INHERIT);
+    });
+
+    // ⚑ And the enum behind it must actually offer the three values the
+    // converter maps, with the sentinel leading so it is the natural default.
+    it('offers inherit, blocks and walk-through, sentinel first', () => {
+        const values = byName(C.PROP_BLOCKS_ENUM).values ?? [];
+        expect(values).toEqual(C.PROP_BLOCKS_VALUES);
+        expect(values[0]).toBe(C.PROP_BLOCKS_INHERIT);
     });
 
     it('offers every mob in the dropdown, with the unset default first', () => {

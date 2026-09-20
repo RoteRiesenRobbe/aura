@@ -85,9 +85,18 @@ fix and save again.
 
 ### Terrain
 
-Drag a texture from the **aura-terrain** tileset onto the `terrain` layer.
+Drag a texture from the **Templates** view onto the `terrain` layer.
 Rotate and scale freely. Horizontal and vertical flip (X / Y) both work.
 
+- ⭐ **Drag from Templates, not from the aura-terrain tileset.** A terrain patch
+  has no type size to be right about — the box *is* the size — so a tile dragged
+  straight off the tileset inherits its **image's** pixel size, and the images do
+  not agree: twelve of the sixteen textures are 100×100 SVGs (`size` 0.42) and
+  two are 256×256 PNGs (`size` 1.07). Dropping Sand next to Grass gave you a
+  patch **2.56× larger** for no reason anyone authored. Every template starts at
+  `size` 1 instead — a 2 u square — and you scale from there. A patch dropped
+  the old way is fixed the same way a prop is: **Map ▸ Fit to true size**
+  (`Ctrl+Alt+F`), see Props below.
 - ⚑ **Both flips at once is not expressible** in the zone format. Use one flip
   plus 180° of rotation; the save refuses otherwise.
 - ⚑ **Order within the layer is paint order** — the array's order is what
@@ -96,10 +105,29 @@ Rotate and scale freely. Horizontal and vertical flip (X / Y) both work.
 
 ### Props
 
-Drag from the **aura-props** tileset. Each prop draws at its **visual
-footprint** — the same size it is in game, to the pixel — so the editor is
-WYSIWYG.
+Drag from the **Templates** view. Each prop draws at its **visual footprint** —
+the same size it is in game, to the pixel — so the editor is WYSIWYG.
 
+- ⛔ **Drag from Templates, never from the aura-props tileset**, and this is not
+  a style preference. Tiled sizes a tile object it inserts by the tile
+  **image's** pixel size, and the art knows nothing about world units:
+  `roundTree.png` is 512×512 against a Tree body of 336 px, so **every tree ever
+  dragged off the tileset authored `"scale": 1.524`** — 52 % oversized, silently,
+  on every placement. House, Bridge and Tombstone were worse: their image aspect
+  is not their body aspect, so the proportions check below **refused the save**
+  and they could not be dragged in at all. A template carries the box; a tileset
+  tile carries only the picture. (Fixed 2026-09-17; the tileset is still there
+  because the templates are built on it, but it is not the thing to drag.)
+- ⭐ **If you dragged one anyway: Map ▸ Fit to true size (`Ctrl+Alt+F`).** Select
+  the props or textures — `Edit ▸ Select All` takes the whole layer — and each
+  snaps to its true box, **about its centre**, in one undo step. That is the
+  escape hatch for everything already placed the old way, and it is why a
+  tileset drag is no longer a trap: it is one keystroke from right.
+  - ⚑ It leaves anything that is **not** a prop or a texture alone, and names it
+    in the message. A region or a route is geometry you drew; only a prop and a
+    patch have a "true size" to be snapped to.
+  - ⚑ It is **not** a way to clear a deliberate `scale` on one prop and keep it
+    on another — it resets everything selected. Select deliberately.
 - ⭐ **Resize a prop to scale it.** The box *is* the size: drag a corner handle
   and the placement gets a `scale` multiplier on its type's body. That is how
   you get one big old tree among saplings, without touching `api/props/`.
@@ -131,10 +159,29 @@ WYSIWYG.
   - The in-game editor has its own prop rotation box and always had; it now
     means something there too. ⚑ It reads and writes **whole degrees**, so
     opening a Tiled-rotated prop in it and saving quantises the angle to 1°.
-- `blocksMovement` is a checkbox in the Properties panel. ⚑ A **newly dragged**
-  prop has no such property yet, so it saves as `false` — non-blocking. Add it
-  (Properties panel ▸ **+** ▸ bool ▸ `blocksMovement`) on anything meant to be
-  solid, or you get a tree you can walk through.
+- ⭐ **A prop BLOCKS unless you say otherwise, and you rarely need to say
+  anything.** `blocksMovement` is a dropdown in the Properties panel with three
+  values, and a freshly dragged prop arrives at **`(inherit)`**:
+  - **`(inherit)`** — take whatever `api/props/<type>.json` says, which for
+    every shipped prop is *blocking*. Leave it here. The zone file then carries
+    no key at all, so retuning the type later moves every placement of it.
+  - **`blocks`** / **`walk through`** — override this ONE placement, for the
+    one rock that really is different from every other rock.
+
+  ⚑ **This is new as of 2026-09-17, and the old behaviour was the opposite.**
+  `AuraProp` carried no properties at all, so a newly dragged prop showed an
+  **empty** Properties panel and saved as non-blocking — a tree you could walk
+  through, with nothing said. If you placed props before that date, check them.
+- ⚑ **A prop's full editable set, in one place**, because only one of the five
+  is a property:
+  - **which prop** — the template you dragged in.
+  - **position** — drag it.
+  - **rotation** — the rotation handle, or `Rotation` in the Object section.
+  - **size** — resize the box. There is deliberately no `scale` property: the
+    box *is* the scale, and a second place to say it would be a second source of
+    truth that can disagree with what you see.
+  - **`blocksMovement`** — the dropdown above, and the only custom property a
+    prop has.
 
 ### Spawns
 
@@ -239,11 +286,52 @@ footsteps and atmosphere are later consumers of the same region.
   nothing else still takes the surrounding region's music once music exists —
   that is the point of profiles, and why regions may overlap freely.
 - **A profile is not a Tiled thing.** The dropdown is generated from
-  `frontend/src/client-data/profiles.json`; adding a profile means editing that
-  file and re-running the generator (§6). The save refuses a name that is not
-  in it, because the client would silently paint nothing.
+  `frontend/src/client-data/terrain-profiles.json`; adding a profile means
+  editing that file and re-running the generator (§6). The save refuses a name
+  that is not in it, because the client would silently paint nothing.
+- ⭐ **There are TWO profile tables, and two dropdowns** (2026-09-15). The
+  ground — `regions`, `paths`, `polygons`, and the `outlineProfile` of the last
+  two — reads `terrain-profiles.json` (`AuraProfile`). The **air** —
+  `atmospheres` — reads `atmosphere-profiles.json` (`AuraAtmosphereProfile`).
+  They used to be one file and therefore one dropdown, which made two silent
+  mistakes possible: a ground profile on a fog bank drew **nothing**, and an
+  atmosphere profile on a region painted **grey mud**. Neither is offerable now,
+  and if one reaches the file by hand the save names the table it belongs to.
 - The in-game zone editor has **no region tool** — it carries regions through
   untouched, so a region drawn here survives an in-game save.
+
+### Area effects — making a shape *do* something
+
+A **path**, a **polygon** and an **atmosphere** each carry an optional
+`effect` in the Properties panel. Pick a skill from the dropdown and whatever
+stands inside the shape gets it: lava burns, a bog rots, miasma poisons — and a
+healing spring heals, because the same machinery runs both directions.
+
+- **It sits on the SHAPE, never on the profile.** `Lava` the *material* is
+  authored once and looks the same everywhere; how much a particular pool hurts
+  is authored on that pool. So a zone-1 pool and a zone-5 pool can wear the same
+  profile at different strengths, and tuning one never touches the other.
+- ⚑ **`(no effect)` is the default and it means exactly that.** Unlike
+  `(pick a profile)`, it is not a mistake — nearly every shape in the world is
+  decorative, and one left alone writes no `effect` key at all.
+- ⚑ **The dropdown is the skill roster** (`api/skills/`, the mob skills
+  included). A name that is not in it is refused at save time, and the server
+  refuses the boot on it too — an area whose effect resolves to nothing would
+  draw, read as dangerous, and do nothing.
+- ⛔ **The visible edge is not the effect edge.** A profile's blend band is
+  centred on the polygon you drew, so the art spills about half a band *outside*
+  the shape. For a hazard that is the forgiving direction — you see it before it
+  touches you. For something *beneficial* it is the wrong way round: a player
+  standing in the visible halo gets nothing. Give a kind area a small blend, or
+  draw its shape a little larger than its art suggests.
+- ⛔ **Restart the server.** A shape drawn in Tiled renders instantly through
+  HMR and does nothing until `aurad` is restarted — it reads the zone once, at
+  boot. Geometry that looks right and behaves wrong has already cost one
+  debugging session.
+- **Regions and clearings have no `effect` field**, deliberately. A region is
+  the *material underfoot* — footsteps, music, ground colour — not a place; a
+  clearing only erases atmosphere, and an erase that also burned you would be one
+  shape doing two jobs.
 
 ### Campfires, dark areas, anchors
 
@@ -297,8 +385,15 @@ node tools/tiled/generate-palette.mjs   # then reopen the zone
 ```
 
 No reinstall, no hand-import. The generator reads `api/`, the client's
-`Graphics.ts` and `client-data/profiles.json` — the same sources the game loads
-— and **fails loudly** rather than shipping a gap.
+`Graphics.ts` and both `client-data/*-profiles.json` tables — the same sources
+the game loads — and **fails loudly** rather than shipping a gap, including if
+a profile name appears in **both** tables (they are separate namespaces).
+
+⚑ It also writes the **object templates** (`palette/templates/`, regenerated
+wholesale so a retired prop takes its template with it) and adds that folder to
+the project, which is what puts them in the Templates view. A prop whose `body`
+you changed gets a new template box in the same command — which is exactly why
+the ⛑ note below matters.
 
 ⚑ **This also runs automatically** as a `prebuild`/`pretest` npm hook
 (`frontend/package.json`), so `npm run build` and `npm test` regenerate the
@@ -307,10 +402,15 @@ frontend build. It does NOT run `tools/tiled/verify.sh`'s full round-trip
 (that needs the real Tiled binary installed and stays a manual step); it only
 guarantees the generated files are never behind what `api/` currently says.
 
-⚑ A **region profile** is the same job: add it to
-`frontend/src/client-data/profiles.json`, regenerate, reopen. Until you do, the
-name is not in the dropdown and the save refuses it — deliberately, because a
-profile the client cannot resolve paints nothing and says nothing.
+⚑ A **skill** is the same job with no extra step: `api/skills/*.json` is read
+straight off disk (subdirectories included, so the mob skills are offered too),
+so a new one turns up in the `effect` dropdown the moment you regenerate.
+
+⚑ A **profile** is the same job: add it to
+`frontend/src/client-data/terrain-profiles.json` (ground) or
+`atmosphere-profiles.json` (air), regenerate, reopen. Until you do, the name is
+not in the dropdown and the save refuses it — deliberately, because a profile
+the client cannot resolve paints nothing and says nothing.
 
 ⛑ **Close the zone before you regenerate, and reopen it after.** If a prop
 type's body changes size, every prop of that type in an already-open document
@@ -346,6 +446,8 @@ after touching anything under `tools/tiled/`.
 |---|---|
 | Install | `bash tools/tiled/install.sh`, once ever |
 | Open | `tools/tiled/aura.tiled-project`, then `world.json` from the folder list |
+| Place a prop or a texture | Drag it from the **Templates** view — **not** the tileset, which drops it at the art's pixel size |
+| Fix one dropped at the wrong size | Select it, **Map ▸ Fit to true size** (`Ctrl+Alt+F`) |
 | Move / rotate / scale a texture | Select Objects (S), drag or use the handles |
 | Scale a prop | Select Objects (S), drag a corner handle with **Shift** held |
 | Place a mob | Insert Point on `spawns`, set `mob` in the Properties panel |
@@ -353,7 +455,10 @@ after touching anything under `tools/tiled/`.
 | Make it wander | `wanderRadius` above 0, and no route |
 | Make it stand still | `wanderRadius` **0** — not `-1`, which means inherit |
 | Paint an area's ground | Insert Polygon on `regions`, then pick `profile` |
-| Add a new profile | edit `frontend/src/client-data/profiles.json`, then regenerate the palette |
+| Add a new ground profile | edit `frontend/src/client-data/terrain-profiles.json`, then regenerate the palette |
+| Add a new atmosphere profile | edit `frontend/src/client-data/atmosphere-profiles.json`, then regenerate the palette |
+| Make a pool burn / a spring heal | set `effect` on the path, polygon or atmosphere — then **restart the server** |
+| Make a shape purely decorative | leave `effect` at `(no effect)` |
 | Use the species defaults | leave the sentinels alone (`-1` / `0` / `pingpong`) |
 | Find the object an error names | Edit ▸ Select Object by Id |
 | Save | Ctrl+S — it writes `api/zones/world.json` in place |

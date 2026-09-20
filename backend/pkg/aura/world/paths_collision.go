@@ -63,6 +63,12 @@ func PathCorridors(z *Zone) []Corridor {
 		if !p.BlocksMovement || len(p.Points) < 2 || p.Width <= 0 {
 			continue
 		}
+		// A ring needs three points; validate() refuses fewer, and this is the
+		// belt for the hand-edited file that never went through it — a 2-point
+		// "ring" would lay its wraparound straight back over its one segment.
+		if p.Closed && len(p.Points) < 3 {
+			continue
+		}
 		out = appendPathCorridors(out, p, bridges)
 	}
 	return out
@@ -82,9 +88,21 @@ func crossingProps(z *Zone) []*Prop {
 
 func appendPathCorridors(out []Corridor, p *Path, bridges []*Prop) []Corridor {
 	half := p.Width / 2
+	n := len(p.Points)
 
-	for i := 0; i+1 < len(p.Points); i++ {
-		a, b := p.Points[i], p.Points[i+1]
+	// A CLOSED path walks one segment MORE than it has gaps: the wraparound
+	// from the last point back to the first (plan-zone-polygons.md P1). Every
+	// vertex of a ring is therefore a bend, INCLUDING the seam at point 0 —
+	// the one joint an open path never needs, and the one a reader would forget,
+	// because it is the only bend whose two segments are not adjacent in the
+	// array.
+	segments := n - 1
+	if p.Closed {
+		segments = n
+	}
+
+	for i := 0; i < segments; i++ {
+		a, b := p.Points[i], p.Points[(i+1)%n]
 		dx, dy := b.X-a.X, b.Y-a.Y
 		length := float32(math.Hypot(float64(dx), float64(dy)))
 		if length == 0 {
@@ -128,7 +146,13 @@ func appendPathCorridors(out []Corridor, p *Path, bridges []*Prop) []Corridor {
 		// away: two rects meeting at an angle leave a wedge open on the OUTER
 		// corner, and a circle of the same half-width fills it for either turn
 		// direction without knowing which way the bend goes.
-		if i+2 < len(p.Points) && !coveredByBridge(b.X, b.Y, bridges) {
+		//
+		// ⚑ An OPEN path's last segment ends in a CAP, not a bend, so it gets
+		// no joint. A closed one has a segment after every segment, seam
+		// included — which is why this asks "is there a next SEGMENT" rather
+		// than "is there a next point".
+		hasNextSegment := i+1 < segments || p.Closed
+		if hasNextSegment && !coveredByBridge(b.X, b.Y, bridges) {
 			out = append(out, Corridor{X: b.X, Y: b.Y, Radius: half})
 		}
 	}

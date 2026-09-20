@@ -514,6 +514,20 @@ func (s *SkillSystem) tickBuffEvents(e skillEntity) {
 				target.PlayerTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags, Source: source, Lifesteal: lifesteal, SkillID: hit.Source})
 			case model.MobEntity:
 				target.MobTouches(caster, mobs.Factors{Damage: damageHP, DamageTags: hit.Tags, Lifesteal: lifesteal, SkillID: hit.Source})
+			// ⭐ THE THIRD SOURCE (plan-area-effects.md E2/D13): a hit from a
+			// PLACE. Before E2 this switch had two cases and a silent
+			// `default: continue`, which is exactly what made an area effect
+			// unbuildable on a synthetic caster — the buff applied, the buff
+			// ticked, and every event was discarded with nothing thrown.
+			//
+			// ⛔ NO LIFESTEAL AND NO Source. There is nobody to heal and nobody
+			// to credit; both fields exist to name an entity, and an area is a
+			// place. The target's own resistances still apply, inside its
+			// AreaTouches.
+			case model.AreaSource:
+				if hittable, ok := target.(model.AreaHittable); ok {
+					hittable.AreaTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags})
+				}
 			default:
 				continue
 			}

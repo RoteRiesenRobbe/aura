@@ -5940,3 +5940,80 @@ explicit, tested policy. Nothing enforces one today.
   skill"). Under that rule an unknown persisted id should never arise at all,
   so the remaining trigger is the first time content is **actually** retired
   (the rule held only by hand), or the first persisted level found above a cap.
+## 62. Other animations on atmospheres and polygons than `scroll`
+
+**PO-asked 2026-09-16**, verbatim: *"Can we design other animations on
+atmosphere and polys than scroll?"* ⚑ Filed in `docs/cleanup.md` first and moved
+here the same day — it is an unscoped idea with no superseded code behind it,
+which is this file's job and not that register's.
+
+### Answered by current state — what `scroll` is today
+
+One vector, one behaviour, and it is the only animation any painted surface has.
+
+- `scroll: {x, y}` translates a `TilingSprite`'s texture origin at a constant
+  rate — two number writes per surface per frame in
+  `RegionPaint.advanceSurfaceScroll`, called from `Game.loop` **below** the
+  `paused` guard, so a pause does not bank up motion and the river never jumps
+  on resume.
+- It is authored on the **profile**, not the shape, so every shape naming that
+  profile drifts together.
+- It reaches atmospheres, regions, polygons, paths and outlines **identically**,
+  because `paintSurface` takes its container as an argument. ⭐ That uniformity
+  is the asset: a second animation authored the same way would arrive on all
+  five shape families at once, for free, the way `texture` / `scale` / `blend`
+  already did.
+
+### Why it is worth asking — the gaps are already documented
+
+`frontend/src/client-data/atmosphere-profiles.json` records its own limits in
+`_comment_precipitation`, and every one of them is a *missing animation* rather
+than a missing dial:
+
+- **`Fairy Dust` does not work as designed and says so** — one vector per
+  profile drifts the whole sheet together, so motes rise as a sheet instead of
+  fluttering. The shipped workaround is authoring two overlapping banks.
+- A fog bank cannot **breathe** — no pulse on opacity, so a bank's thickness is
+  constant for the life of the zone.
+- Nothing can rotate, shimmer, flicker, gust or vary its rate; the sandstorm
+  blows at exactly 6.5 u/s forever.
+
+### Candidate shapes, so a design pass is not a blank page
+
+1. **A second `scroll` layer** at a different rate — the classic parallax trick,
+   buys the fluttering `Fairy Dust` wants, invents no new concept. Costs one
+   more sprite per surface.
+2. **A periodic modulation** — something like `pulse: {key, amplitude, periodS}`
+   over `haze`, `scale`, or the scroll rate itself.
+3. **A shader / filter pass** — the most expressive, the only one that buys real
+   turbulence, and the only one that puts a second rendering system *beside* the
+   shipped `texture`/`blend`/`scroll` machinery rather than inside it.
+
+### ⚑ Landmines — each one ships green and silent
+
+- ⛔ **A modulated `haze` or `darkness` breaks the drawing/lookup agreement over
+  TIME.** `_comment_one_key_each` already measures the overlap half of this:
+  `paintAtmospheres` compounds every shape on screen while `resolveIn` returns
+  the first shape that *declares* the key. A value that changes per frame adds a
+  second axis of disagreement, and on `darkness` it would make the **sim's**
+  answer depend on the frame — `inDarkness()` is a `> 0` test today, which is
+  the only reason the existing disagreement is quiet.
+- ⛔ **Profile-scoped, not shape-scoped.** An animation authored per shape would
+  be the first presentation property that is, and it splits the look table.
+- ⛔ **Mobile.** The perf ceiling is already "works for now" (PO). Every
+  candidate above adds either a sprite or a filter pass *per surface*, and a
+  zone laying a weather front over a fog bank over a region pays for all of them.
+
+### When to look at it
+
+⭐ **At the look sitting** — the one already owed on every [PLACEHOLDER] number
+in `atmosphere-profiles.json`. That is the first moment anybody judges this art
+in front of the game, and the only moment at which *"this fog would read better
+if it pulsed"* is a statement about something seen rather than imagined.
+
+### Schema impact
+
+**DB NONE · FlatBuffers NONE · conf NONE · content NONE** — the profile tables
+are client-side (`plan-region-atmosphere.md` D12) and nothing leaves the client.
+A new profile key is a **zone-format** question only if a shape ever authors one
+directly, which candidate shapes 1–3 above all avoid by staying on the profile.

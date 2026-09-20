@@ -24,7 +24,7 @@
  * Nothing is copied and nothing is rasterised: Tiled ships Qt's SVG image
  * plugin, so the 14 SVG textures load as-is (measured in C0).
  */
-import {readFileSync, writeFileSync, mkdirSync, existsSync} from 'node:fs';
+import {readFileSync, writeFileSync, mkdirSync, rmSync, existsSync} from 'node:fs';
 import {readdirSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
@@ -32,6 +32,18 @@ import path from 'node:path';
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..', '..');
 const PALETTE = path.join(ROOT, 'tools', 'tiled', 'palette');
 const TOOLS = path.join(ROOT, 'tools', 'tiled');
+// Relative to aura.tiled-project, which sits in TOOLS — see patchProject.
+const TEMPLATE_FOLDER = 'palette/templates';
+const TEMPLATES = path.join(PALETTE, 'templates');
+
+// ⚑ Terrain carries no type body to be right about: a patch’s world size IS the
+// box it is drawn at, so a dragged one used to inherit its IMAGE’s size — 0.42
+// for the twelve 100² SVG textures and 1.07 for the two 256² PNGs (Flowers,
+// Sand), a 2.56× split with nothing behind it. One canonical side instead, so
+// every texture starts the same and the author scales from a known number.
+// `size` is a HALF extent (aura-convert.js: side = size * 2 * PX), so this is
+// 2 u across and writes a clean "size": 1. [PLACEHOLDER] — a look call.
+const TERRAIN_TEMPLATE_SIZE = 1;
 
 // The converter owns the inherit sentinels (C6). Reading them from it keeps the
 // palette’s class defaults and the converter’s omit rules a SINGLE definition
@@ -40,6 +52,8 @@ const C = createRequire(import.meta.url)(
     path.join(TOOLS, 'extensions', 'aura-zone', 'aura-convert.js'));
 const MOB_UNSET = C.MOB_UNSET;
 const PROFILE_UNSET = C.PROFILE_UNSET;
+const EFFECT_UNSET = C.EFFECT_UNSET;
+const PROP_BLOCKS_INHERIT = C.PROP_BLOCKS_INHERIT;
 
 function fail(msg) {
     console.error('generate-palette: ' + msg);
@@ -125,25 +139,80 @@ function readMobs() {
     }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Region profiles (plan-region-primitive.md D12). ⚑ The ONE reason that table
-// is JSON and not TypeScript: the client imports it and this Node script reads
-// it, so the Tiled dropdown and what the client can actually resolve are the
-// same list by construction. A .ts table would have forced a hand-kept enum
-// here — the exact drift this generator's header forbids.
+// The effect vocabulary an area may name (plan-area-effects.md E1/D3). An
+// `effect` on a shape names an AUTHORED SKILL — never a raw number, because a
+// bare magnitude would invent a second damage pipeline with no damage type, no
+// resistances and no immunity rails. So the dropdown is the skill roster, read
+// from the same api/skills/ the server loads.
 //
-// ⚑ Authored order, not sorted: profiles.json is a hand-written table and its
-// order is the author's grouping. content.json's ENUM_VALUES is derived from
-// what is emitted here, so the two orderings cannot drift — which matters,
-// because Tiled hands an enum property back as an INDEX into this list.
+// ⭐ It offers EVERY skill, and that is deliberate rather than lax. Filtering to
+// "skills carrying an effect type an area can apply" would bake E2's ruling into
+// E1's palette a chunk early — E2 is what decides which effect types an area
+// consumes, and until it does there is no rule to filter by. The boot-time check
+// (world.CrossValidateAreaEffects) takes the same posture: existence only.
+//
+// ⛔ IT RECURSES, AND THAT IS NOT A DETAIL. api/skills/ has a mobs/ SUBDIRECTORY
+// holding 33 more definitions, and the Go registry walks the tree
+// (skills.RegistryFromFS uses fs.WalkDir), so the server knows all of them. A
+// flat readdir here offered 72 of 105 — which would make Tiled REFUSE a name the
+// server accepts, the palette drifting from the content it is generated from,
+// which is the exact failure this file's header forbids. ⚑ It also matters on
+// the merits: an area effect has no caster (L2), so a mob-flavoured aura is
+// often the better fit for a lava pool than a player skill.
+//
+// ⚑ SORTED, unlike the profile tables. Those are hand-written tables whose order
+// is the author's grouping; this is a hundred-odd files across two directories,
+// where walk order is an accident and alphabetical is the only stable thing to
+// show a person hunting for a name. ⚑ Names are unique across the whole tree —
+// the registry hard-fails on a duplicate — so flattening two directories into
+// one list is faithful rather than lossy.
+function readEffects() {
+    const root = path.join(ROOT, 'api', 'skills');
+    const out = [];
+    (function walk(dir) {
+        for (const entry of readdirSync(dir, {withFileTypes: true})) {
+            const abs = path.join(dir, entry.name);
+            if (entry.isDirectory()) { walk(abs); continue; }
+            if (!entry.name.endsWith('.json')) { continue; }
+            const def = JSON.parse(readFileSync(abs, 'utf8'));
+            if (!def.name) { fail('skill file has no name: ' + path.relative(ROOT, abs)); }
+            out.push(def.name);
+        }
+    })(root);
+    if (out.length === 0) { fail('parsed zero skills from api/skills'); }
+    const seen = new Set();
+    for (const n of out) {
+        if (seen.has(n)) { fail('duplicate skill name: ' + n); }
+        seen.add(n);
+    }
+    return out.sort((a, b) => a.localeCompare(b));
+}
+
+// Profile tables (plan-region-primitive.md D12). ⚑ The ONE reason they are JSON
+// and not TypeScript: the client imports them and this Node script reads them,
+// so the Tiled dropdown and what the client can actually resolve are the same
+// list by construction. A .ts table would have forced a hand-kept enum here —
+// the exact drift this generator's header forbids.
+//
+// ⭐ TWO tables since 2026-09-15, and the split is the whole point: they used to
+// share one file and therefore ONE dropdown, so a ground profile could be named
+// on an atmosphere (drawing nothing) and an atmosphere profile on a region
+// (painting grey mud). Two files means two enums — AuraProfile for the ground,
+// AuraAtmosphereProfile for the air — and neither mistake is offerable.
+//
+// ⚑ Authored order, not sorted: each is a hand-written table and its order is
+// the author's grouping. content.json's ENUM_VALUES is derived from what is
+// emitted here, so the two orderings cannot drift — which matters, because
+// Tiled hands an enum property back as an INDEX into this list.
 //
 // ⚑ '_'-prefixed keys are documentation (the repo's _comment convention),
 // skipped here exactly as Regions.buildProfiles skips them client-side.
-function readProfiles() {
-    const file = path.join(ROOT, 'frontend/src/client-data/profiles.json');
+function readProfileTable(name) {
+    const file = path.join(ROOT, 'frontend/src/client-data/' + name);
     if (!existsSync(file)) { fail('profile table not found: ' + path.relative(ROOT, file)); }
     const table = JSON.parse(readFileSync(file, 'utf8'));
     const out = Object.keys(table).filter(k => k.charAt(0) !== '_');
-    if (out.length === 0) { fail('parsed zero region profiles from ' + path.relative(ROOT, file)); }
+    if (out.length === 0) { fail('parsed zero profiles from ' + path.relative(ROOT, file)); }
     return out;
 }
 
@@ -168,6 +237,55 @@ function tileset(name, cls, tiles) {
         + ` <grid orientation="orthogonal" width="1" height="1"/>\n${body}\n</tileset>\n`;
 }
 
+// ⭐ Object templates — what makes a DRAGGED piece land at its true size.
+//
+// ⛔ The tileset alone cannot do this. Tiled inserts a tile object at the tile
+// IMAGE's natural pixel size, and the art has no idea what a world unit is:
+// roundTree.png is 512², while the Tree body (radius 1.4) is 336 px at PX=120.
+// So every tree ever dragged out of the palette arrived at scale 1.524 — the
+// box IS the scale (plan-prop-scale.md C1), so an oversized box is an authored
+// multiplier, silently, on every placement. Three of the seven props were worse
+// off still: House, Bridge and Tombstone have an image aspect their body does
+// not share, so the proportions check REFUSED the save and they could not be
+// dragged in at all.
+//
+// A template carries its own width/height, so the drop is right to the pixel.
+//
+// ⚑ Templates are INSERT-TIME ONLY. world.json stores nothing about them and
+// the zone format is untouched: an instance is read back through the ordinary
+// tile-object path — MEASURED against the real binary, not assumed, because
+// aura-world-format.js identifies a tile object by `o.tile.property('auraType')`
+// and an unresolved tile would have refused the save.
+function templateFileName(type) {
+    return type.replace(/[^A-Za-z0-9]+/g, '-') + '.tx';
+}
+
+// 3.21 * 120 is 385.20000000000005 in IEEE-754, and that is what would land in
+// the file. Trim it: readPropScale rounds to 3 places, so 385.2 still derives
+// EXACTLY 1 and the placement authors no `scale` key at all.
+const px = units => Number((units * C.PX).toFixed(4));
+
+function writeTemplates(dir, tilesetFile, cls, tiles, sizeUnits) {
+    // Regenerated wholesale, so a retired prop takes its template with it
+    // rather than lingering in the Templates view pointing at a gid that moved.
+    rmSync(dir, {recursive: true, force: true});
+    mkdirSync(dir, {recursive: true});
+    tiles.forEach((t, i) => {
+        const {w, h} = sizeUnits(t);
+        writeFileSync(path.join(dir, templateFileName(t.type)),
+            `<?xml version="1.0" encoding="UTF-8"?>\n`
+            + `<!-- GENERATED by tools/tiled/generate-palette.mjs — do not hand-edit. -->\n`
+            + `<template>\n`
+            // firstgid 1 + the tile's own index: tileset() emits ids 0..n-1 in
+            // this same array order, so the two cannot drift apart without the
+            // pin in AuraTiledConvert.test.ts going red.
+            + ` <tileset firstgid="1" source="../${tilesetFile}"/>\n`
+            + ` <object name="${xmlEscape(t.type)}" class="${cls}" gid="${i + 1}"`
+            + ` width="${px(w)}" height="${px(h)}"/>\n`
+            + `</template>\n`);
+    });
+}
+
 // Tiled custom types. ⚑ Enums only for the free-text fields, plus one class per
 // spawn kind, carrying a COLOUR and — since C6 — the typed spawn form.
 //
@@ -179,16 +297,25 @@ function tileset(name, cls, tiles) {
 // that merely equals its class default, the converter sees it absent and
 // reaches the same answer. The design does not depend on which Tiled does.
 //
-// ⚑ Which is exactly why AuraProp gets NO members. `blocksMovement` is a bool
-// with no spare value, so it has no sentinel — a default of true and a Tiled
-// that omits default-valued properties would flip all 777 props to false.
+// ⭐ AuraProp carried NO members for exactly that reason until 2026-09-17:
+// `blocksMovement` is a bool with no spare value, so it had no sentinel, and a
+// member defaulting to true plus a Tiled that omits default-valued properties
+// would have flipped all 777 props to false. The reasoning was sound and the
+// price was steep — a freshly dragged prop showed an EMPTY Properties panel and
+// saved as non-blocking, which is a tree you can walk through with nothing said.
+//
+// ⭐ THE FIX IS TO STOP ASKING A BOOL TO CARRY THREE ANSWERS. The member is an
+// ENUM now — (inherit) / blocks / walk through — so the sentinel exists and the
+// C6 rule is satisfied the ordinary way. Whether a prop is solid is a fact about
+// the TYPE (api/props/<name>.json, absent = blocking); the placement only
+// OVERRIDES it, which is why "(inherit)" has to be sayable at all.
 const KIND_COLOUR = {
     combat: '#ff4caf50',    // the in-game editor's marker colours, verbatim
     talker: '#ffe91e63',
     fixture: '#ff9e9e9e',
 };
 
-function propertyTypes(terrain, props, mobs, profiles) {
+function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
     let id = 0;
     const enumType = (name, values) => ({
         id: ++id, name, type: 'enum', storageType: 'string',
@@ -201,6 +328,40 @@ function propertyTypes(terrain, props, mobs, profiles) {
 
     const member = (name, type, value, propertyType) =>
         propertyType ? {name, type, propertyType, value} : {name, type, value};
+
+    // A second surface along the shape's boundary — a riverbank, a mortar edge,
+    // a cliff lip (plan-zone-polygons.md D3). On BOTH surface classes, because
+    // they carry exactly the same pair.
+    //
+    // ⚑ Leaving outlineProfile at the placeholder means NO OUTLINE here, which
+    // is legal — unlike `profile`, where the same sentinel is refused. Tiled has
+    // no nullable enum, so one value has to mean "unset" on both members and the
+    // validator decides what unset means per member.
+    // ⛔ outlineWidth is DECORATION and never touches collision (L4). On a
+    // polygon it is also the ONLY width there is, which is the thing an author
+    // reaching for "how wide is my wall" will find (L7).
+    const OUTLINE_MEMBERS = [
+        member('outlineProfile', 'string', PROFILE_UNSET, 'AuraProfile'),
+        member('outlineWidth', 'float', 0),
+    ];
+
+    // The area effect (plan-area-effects.md E1). ONE member, shared by the three
+    // shapes that may carry one, because they carry exactly the same key.
+    //
+    // ⚑ EFFECT_UNSET means NO EFFECT here — the outlineProfile reading of the
+    // sentinel, not the profile one. Tiled has no nullable enum and a class
+    // member always has a value, so one entry has to stand for "unset" and the
+    // validator decides per member what unset means. On 'profile' it is a
+    // mistake the save refuses; here it is the overwhelmingly common case and
+    // perfectly legal, which is what keeps every existing shape unchanged.
+    //
+    // ⛔ NOT on AuraRegion and NOT on AuraClearing, and both omissions are
+    // rulings. A region is the MATERIAL UNDERFOOT — the footsteps/music/colour
+    // lookup — and an effect is a thing in a place, not a property of every
+    // patch of that material. A clearing paints nothing and carries no profile
+    // at all (A4/L7); an erase that also burned you would be one shape doing two
+    // jobs, which is the ambiguity A4 exists to have removed.
+    const EFFECT_MEMBER = member('effect', 'string', EFFECT_UNSET, 'AuraEffect');
 
     // ⭐ The defaults are READ FROM the converter, never retyped here. They must
     // equal its inherit sentinels exactly, and the cheapest way to guarantee
@@ -218,6 +379,11 @@ function propertyTypes(terrain, props, mobs, profiles) {
     const types = [
         enumType('AuraTerrainType', terrain.map(t => t.type)),
         enumType('AuraPropType', props.map(p => p.type)),
+        // ⚑ The sentinel leads the list so it is the natural default, like
+        // AuraMobName's — but it means the OPPOSITE of MOB_UNSET's: "(pick a
+        // mob)" refuses the save, "(inherit)" is the correct answer for almost
+        // every prop ever placed. It is the EFFECT_UNSET reading of a sentinel.
+        enumType(C.PROP_BLOCKS_ENUM, C.PROP_BLOCKS_VALUES),
         // MOB_UNSET leads the list so it is the natural default: a hand-drawn
         // spawn that nobody has assigned refuses the save instead of silently
         // becoming whichever mob happens to sort first.
@@ -228,8 +394,38 @@ function propertyTypes(terrain, props, mobs, profiles) {
         // unassigned region would otherwise repaint that ground in whichever
         // profile happens to lead the table.
         enumType('AuraProfile', [PROFILE_UNSET].concat(profiles)),
+        // ⭐ The AIR's own vocabulary, separate since 2026-09-15. Same sentinel,
+        // same rule, a different list — which is what makes naming `Forest` on
+        // a fog bank impossible rather than merely wrong.
+        enumType('AuraAtmosphereProfile', [PROFILE_UNSET].concat(airProfiles)),
+        // ⭐ A4's vocabulary, and the ONE enum here that is not a profile table:
+        // it names which LAYERS a hole cuts. Mirrors world.ClearsDarkness /
+        // ClearsHaze / ClearsBoth in zone.go, which refuses anything outside it.
+        //
+        // ⛔ NO PROFILE_UNSET SENTINEL, and that is the difference from every
+        // enum above it. A sentinel exists where "unassigned" is a real state the
+        // save must refuse — a region with no profile repaints the ground in
+        // whichever name sorts first. A clearing has no such state: it always
+        // cuts something, 'both' is the honest default, and offering an
+        // unassigned entry would invent a broken shape the author can pick.
+        enumType('AuraClears', ['darkness', 'haze', 'both']),
+        // ⭐ The AREA-EFFECT vocabulary (plan-area-effects.md E1) — the skill
+        // roster, because an area's 'effect' names an authored skill (D3).
+        //
+        // ⚑ EFFECT_UNSET leads the list like MOB_UNSET and PROFILE_UNSET do, but
+        // for the OPPOSITE reason: those lead so an unassigned object refuses the
+        // save, this leads so an unassigned object is INERT. Absent = no effect
+        // is the whole of D10, and a shape that grew a random skill because one
+        // sorted first would be a hazard nobody drew.
+        enumType('AuraEffect', [EFFECT_UNSET].concat(effects)),
         classType('AuraTerrain', '#ff8bc34a'),
-        classType('AuraProp', '#fff44336'),
+        // ⭐ ONE member, and the enum above is what makes it safe — see the
+        // block comment over KIND_COLOUR. The default IS C.PROP_BLOCKS_INHERIT,
+        // which aura-convert.js's readPropBlocks maps back to "not authored";
+        // a vitest pins the two together, because the whole design rests on
+        // them being equal.
+        classType('AuraProp', '#fff44336',
+            [member('blocksMovement', 'string', PROP_BLOCKS_INHERIT, C.PROP_BLOCKS_ENUM)]),
         classType('AuraCampfire', '#ffff9800'),
         classType('AuraDarkArea', '#ff673ab7'),
         classType('AuraAnchor', '#ff00bcd4'),
@@ -250,7 +446,64 @@ function propertyTypes(terrain, props, mobs, profiles) {
         classType('AuraPath', '#ff03a9f4',
             [member('profile', 'string', PROFILE_UNSET, 'AuraProfile'),
                 member('width', 'float', 0),
-                member('blocksMovement', 'bool', false)]),
+                member('blocksMovement', 'bool', false),
+                ...OUTLINE_MEMBERS, EFFECT_MEMBER]),
+        // ⚑ A filled AREA, sharing the paths layer and told apart by this class
+        // (plan-zone-polygons.md D5). It has NO width member on purpose: a
+        // polygon has no stroke to be wide, and an author who reaches for "how
+        // wide is my wall" should find nothing rather than a field that quietly
+        // means something else (L7). ⛔ A blocking polygon can SEAL A REGION OFF
+        // rather than merely across — a path can only cut a line, a polygon has
+        // an inside — and no automated check catches that (L3).
+        classType('AuraPolygon', '#ff8d6e63',
+            [member('profile', 'string', PROFILE_UNSET, 'AuraProfile'),
+                member('blocksMovement', 'bool', false),
+                ...OUTLINE_MEMBERS, EFFECT_MEMBER]),
+        // ⭐ The AIR over an area (plan-region-atmosphere.md A0) — and the ONE
+        // class with a layer of its own rather than a share of `paths` (D16),
+        // because `darkAreas` (the primitive it retires) already has one, and
+        // because an atmosphere COVERS the walls it darkens while a polygon sits
+        // beside them — Tiled toggles visibility per layer and never per class.
+        //
+        // ⛔ ONE member, and the emptiness is the ruling (D15). No
+        // blocksMovement, no outline, no width: a polygon is a wall you walk
+        // into, an atmosphere is air you walk through. An author reaching for
+        // "how solid is my fog" must find NOTHING here rather than a field that
+        // quietly means something else — the same L7 argument the polygon's
+        // missing `width` records, applied to collision instead of geometry.
+        // zone.go refuses every one of those keys by name, so a member added
+        // here would round-trip into a zone file that no longer boots.
+        // ⛔ AuraAtmosphereProfile, NOT AuraProfile. The member name is the
+        // same because the ZONE KEY is the same (`profile`); only the
+        // vocabulary behind it differs.
+        // ⚑ TWO members now, and 'effect' is the ONE key D15 does not refuse —
+        // see zone.go's Atmosphere.Effect for why. Everything D15 turned away
+        // (blocksMovement, outline, width) describes a WALL; an area effect
+        // describes a region of space acting on what stands in it, which air
+        // does as readily as ground.
+        classType('AuraAtmosphere', '#ff9e9e9e',
+            [member('profile', 'string', PROFILE_UNSET, 'AuraAtmosphereProfile'),
+                EFFECT_MEMBER]),
+        // ⭐ THE HOLE (plan-region-atmosphere.md A4) — the second class on the
+        // atmospheres layer, told apart from the air it cuts by CLASS the way
+        // AuraPolygon is told from AuraPath (zone-polygons D5).
+        //
+        // ⛔ NO PROFILE MEMBER, AND THE EMPTINESS IS THE RULING (L7). This is
+        // the whole of A4: the PO rejected 'darkness: 0 means erase' because one
+        // key was doing two jobs, "how much" and "which operation". The class now
+        // carries the operation and a profile carries only the look — so
+        // 'darkness: 0' on an AuraAtmosphereProfile became a plain DECLARATION of
+        // zero, which is legal, useful, and unsayable before. An author reaching
+        // here for "what colour is my clearing" must find NOTHING.
+        //
+        // ⚑ 'both' is the default and it must stay equal to CLEARS_DEFAULT in
+        // aura-convert.js. The C6 rule applies with no sentinel available: a
+        // Tiled that DROPS a default-valued property and one that KEEPS it have
+        // to reach the same answer, and readClears supplies exactly this value
+        // when the property is absent. Changing one side alone would silently
+        // rewrite every freshly drawn clearing on its first save.
+        classType('AuraClearing', '#ffffeb3b',
+            [member('clears', 'string', 'both', 'AuraClears')]),
     ];
     for (const kind of Object.keys(KIND_COLOUR)) {
         types.push(classType('AuraSpawn' + kind[0].toUpperCase() + kind.slice(1),
@@ -266,7 +519,7 @@ function propertyTypes(terrain, props, mobs, profiles) {
 // the extension carries no content at all and is installed once per machine and
 // never again; being JSON means the extension parses it with JSON.parse rather
 // than eval'ing a script it read off disk.
-function contentJson(terrain, props, mobs, profiles, types) {
+function contentJson(terrain, props, mobs, profiles, airProfiles, effects, types) {
     const sizes = {};
     props.forEach(p => { sizes[p.type] = {w: p.wUnits, h: p.hUnits}; });
     const kinds = {};
@@ -284,12 +537,28 @@ function contentJson(terrain, props, mobs, profiles, types) {
         ENUM_VALUES: enums,
         TERRAIN_TYPES: terrain.map(t => t.type),
         PROP_SIZE: sizes,
+        // ⚑ The SAME number the terrain templates are cut at, published so the
+        // "fit to true size" action does not declare a second one. A prop has
+        // its body to be measured against; a texture has nothing, so this is
+        // the only thing "true size" can mean for one.
+        TERRAIN_SIZE: TERRAIN_TEMPLATE_SIZE,
         MOB_KIND: kinds,
         MOB_SPEED: speeds,
         // ⚑ The profile names WITHOUT the sentinel, which ENUM_VALUES carries
-        // at index 0. The converter checks membership against this: the
+        // at index 0. The converter checks membership against these: the
         // placeholder is not a profile, and earns its own message.
+        //
+        // ⭐ TWO lists, so the converter can say WHICH vocabulary a name belongs
+        // to. Naming `Fog` on a region is no longer "unknown profile" — it is
+        // "that is an atmosphere profile", which is the error an author can
+        // actually act on.
         PROFILE_NAMES: profiles,
+        AIR_PROFILE_NAMES: airProfiles,
+        // ⚑ The effect names WITHOUT the sentinel, the same rule the two profile
+        // lists follow: ENUM_VALUES carries the placeholder at index 0, and the
+        // converter checks membership against this list so the placeholder earns
+        // its own (legal) answer rather than "unknown effect".
+        EFFECT_NAMES: effects,
     }, null, 2) + '\n';
 }
 
@@ -303,6 +572,13 @@ function contentJson(terrain, props, mobs, profiles, types) {
 function patchProject(file, types) {
     const project = JSON.parse(readFileSync(file, 'utf8'));
     project.propertyTypes = types;
+    // ⚑ The Templates view lists what it finds in the PROJECT's folders, so the
+    // generated templates stay invisible until this entry exists. Pushed rather
+    // than assigned, for the same reason the array is patched and not rewritten:
+    // `folders` is the author's own setting and only this one entry is ours.
+    const folders = project.folders || [];
+    if (folders.indexOf(TEMPLATE_FOLDER) < 0) { folders.push(TEMPLATE_FOLDER); }
+    project.folders = folders;
     return JSON.stringify(project, null, 4) + '\n';
 }
 
@@ -311,14 +587,32 @@ function patchProject(file, types) {
 const terrain = readTerrainTypes();
 const props = readProps();
 const mobs = readMobs();
-const profiles = readProfiles();
+const profiles = readProfileTable('terrain-profiles.json');
+const airProfiles = readProfileTable('atmosphere-profiles.json');
+// ⛔ The two namespaces must stay DISJOINT: every accessor picks its table by
+// call site, so a name in both would make "which Fog?" depend on which lookup
+// ran. Regions.test.ts pins the same thing client-side; this is the half that
+// fires before a bad palette can reach Tiled.
+const clash = profiles.filter(n => airProfiles.indexOf(n) >= 0);
+if (clash.length > 0) {
+    fail('profile name in BOTH tables: ' + clash.join(', ')
+        + ' — terrain-profiles.json and atmosphere-profiles.json are separate'
+        + ' namespaces, so rename one.');
+}
 
-const types = propertyTypes(terrain, props, mobs, profiles);
+const effects = readEffects();
+
+const types = propertyTypes(terrain, props, mobs, profiles, airProfiles, effects);
 
 mkdirSync(PALETTE, {recursive: true});
 writeFileSync(path.join(PALETTE, 'terrain.tsx'), tileset('aura-terrain', 'AuraTerrain', terrain));
 writeFileSync(path.join(PALETTE, 'props.tsx'), tileset('aura-props', 'AuraProp', props));
-writeFileSync(path.join(PALETTE, 'content.json'), contentJson(terrain, props, mobs, profiles, types));
+writeTemplates(path.join(TEMPLATES, 'props'), '../props.tsx', 'AuraProp', props,
+    p => ({w: p.wUnits, h: p.hUnits}));
+writeTemplates(path.join(TEMPLATES, 'terrain'), '../terrain.tsx', 'AuraTerrain', terrain,
+    () => ({w: TERRAIN_TEMPLATE_SIZE * 2, h: TERRAIN_TEMPLATE_SIZE * 2}));
+writeFileSync(path.join(PALETTE, 'content.json'),
+    contentJson(terrain, props, mobs, profiles, airProfiles, effects, types));
 writeFileSync(path.join(TOOLS, 'aura.tiled-project'), patchProject(path.join(TOOLS, 'aura.tiled-project'), types));
 // ⚑ Kept as well as the project copy, and deliberately: project-embedded types
 // apply only while the PROJECT is open. Opening api/zones/world.json on its own
@@ -328,7 +622,11 @@ writeFileSync(path.join(PALETTE, 'propertytypes.json'), JSON.stringify({property
 const kindCounts = mobs.reduce((a, m) => (a[m.kind] = (a[m.kind] || 0) + 1, a), {});
 console.log(`terrain.tsx        ${terrain.length} textures`);
 console.log(`props.tsx          ${props.length} props (${props.map(p => p.type).join(', ')})`);
+console.log(`templates          ${props.length + terrain.length} .tx (${props.length} props at their body size,`
+    + ` ${terrain.length} textures at size ${TERRAIN_TEMPLATE_SIZE}) → palette/templates/`);
 const nEnum = types.filter(t => t.type === 'enum').length;
 console.log(`custom types       ${types.length} (${nEnum} enums + ${types.length - nEnum} classes) → aura.tiled-project + palette/propertytypes.json`);
 console.log(`content.json       ${terrain.length} textures, ${props.length} props, ${mobs.length} mobs ${JSON.stringify(kindCounts)}`);
-console.log(`region profiles    ${profiles.length} (${profiles.join(', ')}) → AuraProfile + AuraRegion + AuraPath`);
+console.log(`terrain profiles   ${profiles.length} (${profiles.join(', ')}) → AuraProfile + AuraRegion + AuraPath + AuraPolygon`);
+console.log(`air profiles       ${airProfiles.length} (${airProfiles.join(', ')}) → AuraAtmosphereProfile + AuraAtmosphere`);
+console.log(`area effects       ${effects.length} skills → AuraEffect + AuraPath + AuraPolygon + AuraAtmosphere`);

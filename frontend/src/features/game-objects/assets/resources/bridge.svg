@@ -1,0 +1,75 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200">
+  <!-- Placeholder bridge art (plan-world-paths.md D6): a top-down plank deck
+       with two side rails and a stone abutment at each end, 5:2 to match the
+       rect body in api/props/bridge.json — the render class scales width and
+       height independently, so keep the aspect in sync.
+
+       ⚑ The LONG axis is the crossing: planks run across it, rails run along
+       it, and the abutments are the two bank ends. A placement rotates the
+       whole sprite, and `crossesPaths` clears the corridor through the same
+       rotated footprint, so a river at any angle works.
+
+       Palette borrowed from the existing props on purpose — the deck browns
+       are house.svg's timber, the abutments are gateWall.svg's stone. -->
+
+  <!-- Deck, end to end. Drawn first so the rails and abutments sit on it. -->
+  <rect x="34" y="16" width="432" height="168" rx="4" fill="#8a6a44" stroke="#463a2b" stroke-width="6"/>
+
+  <!-- Planks: across the direction of travel, the way a real deck is laid. -->
+  <g stroke="#5f4526" stroke-width="4" opacity="0.55">
+    <line x1="60"  y1="20" x2="60"  y2="180"/>
+    <line x1="86"  y1="20" x2="86"  y2="180"/>
+    <line x1="112" y1="20" x2="112" y2="180"/>
+    <line x1="138" y1="20" x2="138" y2="180"/>
+    <line x1="164" y1="20" x2="164" y2="180"/>
+    <line x1="190" y1="20" x2="190" y2="180"/>
+    <line x1="216" y1="20" x2="216" y2="180"/>
+    <line x1="242" y1="20" x2="242" y2="180"/>
+    <line x1="268" y1="20" x2="268" y2="180"/>
+    <line x1="294" y1="20" x2="294" y2="180"/>
+    <line x1="320" y1="20" x2="320" y2="180"/>
+    <line x1="346" y1="20" x2="346" y2="180"/>
+    <line x1="372" y1="20" x2="372" y2="180"/>
+    <line x1="398" y1="20" x2="398" y2="180"/>
+    <line x1="424" y1="20" x2="424" y2="180"/>
+  </g>
+
+  <!-- A few boards weathered darker, so the deck is not a perfect comb. -->
+  <g fill="#7a5c3a" opacity="0.7">
+    <rect x="114" y="20" width="22" height="160"/>
+    <rect x="244" y="20" width="22" height="160"/>
+    <rect x="374" y="20" width="22" height="160"/>
+  </g>
+
+  <!-- The two long beams under the rails, the deck's spine. -->
+  <g fill="#6e5a44" stroke="#463a2b" stroke-width="5">
+    <rect x="40" y="10" width="420" height="26" rx="4"/>
+    <rect x="40" y="164" width="420" height="26" rx="4"/>
+  </g>
+
+  <!-- Rail posts, paired across the deck. -->
+  <g fill="#5a4029" stroke="#463a2b" stroke-width="3">
+    <rect x="96"  y="6"   width="20" height="34" rx="3"/>
+    <rect x="240" y="6"   width="20" height="34" rx="3"/>
+    <rect x="384" y="6"   width="20" height="34" rx="3"/>
+    <rect x="96"  y="160" width="20" height="34" rx="3"/>
+    <rect x="240" y="160" width="20" height="34" rx="3"/>
+    <rect x="384" y="160" width="20" height="34" rx="3"/>
+  </g>
+
+  <!-- Stone abutments: where the deck meets each bank. -->
+  <g fill="#7d7a72" stroke="#4a4842" stroke-width="6">
+    <rect x="4"   y="4" width="46" height="192" rx="5"/>
+    <rect x="450" y="4" width="46" height="192" rx="5"/>
+  </g>
+  <g stroke="#4a4842" stroke-width="4" opacity="0.8">
+    <line x1="4"   y1="68"  x2="50"  y2="68"/>
+    <line x1="4"   y1="132" x2="50"  y2="132"/>
+    <line x1="27"  y1="4"   x2="27"  y2="68"/>
+    <line x1="27"  y1="132" x2="27"  y2="196"/>
+    <line x1="450" y1="68"  x2="496" y2="68"/>
+    <line x1="450" y1="132" x2="496" y2="132"/>
+    <line x1="473" y1="4"   x2="473" y2="68"/>
+    <line x1="473" y1="132" x2="473" y2="196"/>
+  </g>
+</svg>

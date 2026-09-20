@@ -149,3 +149,63 @@ func TestPropRegistry_RejectsDuplicateName(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "duplicate")
 }
+
+// ⭐ A PROP BLOCKS UNLESS ITS TYPE SAYS OTHERWISE, and this is the pin that says
+// so. The default is absent-means-true rather than the Go zero value, which is
+// why PropDefinition.BlocksMovement is a pointer: every one of the six shipped
+// defs authors nothing and every one of them keeps blocking.
+func TestPropDefinition_BlocksByDefault(t *testing.T) {
+	def, err := parsePropDefinition([]byte(`{
+		"name": "Rock", "entityType": "Stone", "sprite": "stone.png",
+		"body": { "radius": 1 }
+	}`))
+	require.NoError(t, err)
+	assert.Nil(t, def.BlocksMovement, "an unauthored def must stay unauthored")
+	assert.True(t, def.Blocks(), "absent must resolve to blocking")
+}
+
+// A type that does NOT block says so once, for every placement of it.
+func TestPropDefinition_WalkThroughIsAuthorable(t *testing.T) {
+	def, err := parsePropDefinition([]byte(`{
+		"name": "Flower", "entityType": "Stone", "sprite": "stone.png",
+		"body": { "radius": 0.3 },
+		"blocksMovement": false
+	}`))
+	require.NoError(t, err)
+	require.NotNil(t, def.BlocksMovement)
+	assert.False(t, def.Blocks())
+}
+
+// Authoring the default explicitly is legal and means exactly what it says —
+// there is no third value hiding in the bool.
+func TestPropDefinition_BlockingIsAuthorableExplicitly(t *testing.T) {
+	def, err := parsePropDefinition([]byte(`{
+		"name": "Rock", "entityType": "Stone", "sprite": "stone.png",
+		"body": { "radius": 1 },
+		"blocksMovement": true
+	}`))
+	require.NoError(t, err)
+	require.NotNil(t, def.BlocksMovement)
+	assert.True(t, def.Blocks())
+}
+
+// ⛔ A hand-built definition — every test registry in this package builds one —
+// must reach the SAME answer as an authored file. The default lives in Blocks()
+// and nowhere else, so a struct literal cannot accidentally mean walk-through.
+func TestPropDefinition_ZeroValueBlocks(t *testing.T) {
+	assert.True(t, (&PropDefinition{Name: "Rock"}).Blocks())
+}
+
+// ⛔ A bridge that blocks is a bridge you cannot cross. zone.go already refuses
+// that combination per PLACEMENT; said at the TYPE it is refused once, for every
+// placement there will ever be — which is the level the flag actually lives at.
+func TestPropDefinition_CrossesPathsMustNotBlock(t *testing.T) {
+	_, err := parsePropDefinition([]byte(`{
+		"name": "Bridge", "entityType": "House", "sprite": "bridge.png",
+		"body": { "width": 6, "height": 2 },
+		"crossesPaths": true, "underfoot": true
+	}`))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "blocksMovement")
+	assert.Contains(t, err.Error(), "crossesPaths")
+}

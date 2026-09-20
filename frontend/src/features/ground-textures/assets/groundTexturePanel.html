@@ -185,11 +185,17 @@
                     <input type="number" id="zoneEditor_propRotation" class="zoneEditor-inline" step="1" value="0"/>
                 </div>
 
+                <!-- TRI-STATE, and a checkbox cannot say "inherit": a prop's
+                     blocksMovement defaults to whatever api/props/<type>.json
+                     says, and opening a prop in a two-state box would turn every
+                     inherited value into an explicit one on the next save. -->
                 <div class="group">
-                    <label>
-                        <input type="checkbox" id="zoneEditor_blocksMovement" checked/>
-                        blocks movement
-                    </label>
+                    <label for="zoneEditor_blocksMovement">Blocks movement</label>
+                    <select id="zoneEditor_blocksMovement" class="zoneEditor-inline">
+                        <option value="inherit">from prop type</option>
+                        <option value="blocks">blocks</option>
+                        <option value="walk">walk through</option>
+                    </select>
                 </div>
 
                 <div class="group">

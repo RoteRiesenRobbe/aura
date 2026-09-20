@@ -12,15 +12,27 @@ All paths relative to the **repo root**.
 ## 0. The database must be up (every boot, no exceptions)
 
 `aurad` **refuses to boot** without `AURA_DB_URL` and panics without `AURA_JWT_KEY`. Neither
-failure looks like a database problem in the log, so check this first when a restart dies:
+failure looks like a database problem in the log, so check this first when a restart dies.
+
+⭐ **DOCKER IS OPTIONAL — what is needed is a reachable PostgreSQL** (PO correction
+2026-09-12). Either of these satisfies it, and nothing downstream can tell them apart:
 
 ```bash
-make -C backend db-up     # idempotent — starts the container, creates aura + aura_test
+make -C backend db-up     # (a) Docker: idempotent, starts the container, creates aura + aura_test
+./scripts/dev-restart-windows.sh server   # (b) Windows/native: ensure_db() starts the Postgres
+                                          #     SERVICE if nothing is listening, then boots aurad
 ```
 
-`dev-restart.sh` sources the gitignored `backend/.env.local` for both variables, so you do not
-export anything by hand. If that file is missing the script exits with the `cp
-backend/.env.local.example …` command to run.
+⛔ **On the Windows dev box `docker` is not on PATH and there is no container** — the game
+still builds, boots and serves. If you are about to write "not booted: no Docker on this
+host", **you are wrong; run option (b).** That exact sentence has been recorded as a reason
+for skipping an in-game pass more than once, and it was false every time.
+
+⚑ **`backend/.env.local` is not the only source, and its absence proves nothing.** The three
+variables may instead be exported at machine scope — which is how the Windows box is set up,
+so that file is legitimately missing there while everything works. `dev-restart.sh` and
+`dev-restart-windows.sh` both source the file when it exists and let an exported value win.
+**Check `env | grep AURA_` before concluding the environment is unconfigured.**
 
 ⚑ **`AURA_JWT_KEY` must stay STABLE across restarts.** Generating a fresh one per boot invalidates
 every issued token, so the PO gets logged out of a character the database still holds — which

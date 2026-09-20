@@ -245,12 +245,14 @@ func loadZone(fsys fs.FS, name string, mr mobs.Registry, pr world.PropRegistry) 
 	return zone, nil
 }
 
-// loadZones parses and PLACES the set of zones the server runs, in the order
-// given — the first is the primary zone (plan-underworld.md U1). Curated
-// content: any validation failure, including the placement rules, aborts
-// startup.
-func loadZones(fsys fs.FS, names []string, mr mobs.Registry, pr world.PropRegistry) ([]*world.Zone, error) {
-	zones, err := world.LoadZonesFS(fsys, names, mr, pr)
+// loadZones parses and PLACES every zone in the directory, with startZone
+// first as the primary zone (plan-underworld.md U1). Curated content: any
+// validation failure, including the placement rules, is a finding — and since
+// the directory is now the zone list, that includes a WIP file nobody selected.
+func loadZones(fsys fs.FS, startZone string, mr mobs.Registry, pr world.PropRegistry,
+	sr skills.Registry) ([]*world.Zone, error) {
+	zones, err := world.LoadAllZonesFS(fsys, startZone, mr, pr)
+
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +294,29 @@ func loadZones(fsys fs.FS, names []string, mr mobs.Registry, pr world.PropRegist
 	for _, w := range anchorWarnings {
 		slog.Warn("unreachable travel destination", slog.String("detail", w))
 	}
+	// Does every area effect a shape names exist (plan-area-effects.md E1)?
+	//
+	// ⚑ HERE for the reason the anchor pass above is here, one registry over:
+	// the effect name is authored in api/zones/, the skills registry is built
+	// long before any zone, and the zone loader does not take it. This is the
+	// first point at which both exist.
+	//
+	// ⛔ A hard FINDING, unlike the anchor WARNINGS above it: an area effect
+	// is placed by construction, so a name that resolves to nothing is a hazard
+	// that draws, reads as dangerous and does nothing.
+	if err := world.CrossValidateAreaEffects(sr, zones); err != nil {
+		return nil, err
+	}
+	// ⚑ SECOND, and deliberately a separate pass (plan-area-effects.md E2): the
+	// one above asks whether the name resolves, this asks whether what it
+	// resolves to can actually be applied by an area. Running them in this order
+	// keeps one mistake to one message — a typo reports as a typo, not as
+	// "carries no dot_aura".
+	if err := world.CrossValidateAreaEffectShapes(sr, zones); err != nil {
+		return nil, err
+	}
 	return zones, nil
+
 }
 
 // loadMilestoneUnlocks parses the milestone-unlock table and resolves skill

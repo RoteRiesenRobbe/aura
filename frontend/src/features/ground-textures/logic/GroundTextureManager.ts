@@ -128,10 +128,55 @@ interface RegionDefinition {
 // shape in this file — this interface describes what the CLIENT can rely on
 // finding, which is why blocksMovement is absent: it is read by the server
 // alone, and nothing here draws differently because a river blocks.
+// A filled mass — rock, building, lake (plan-zone-polygons.md P2). Mirrors
+// PolygonDefinition in features/polygons; declared here for the same reason the
+// two above are, so this view of the zone file stays one readable block.
+interface PolygonDefinition {
+    profile: string;
+    points: { x: number, y: number }[];
+    blocksMovement?: boolean;
+}
+
 interface PathDefinition {
     profile: string;
     points: { x: number, y: number }[];
     width: number;
+}
+
+// The AIR over an area (plan-region-atmosphere.md A0). Declared locally like
+// every other shape in this file, so this view of the zone file stays one
+// readable block.
+//
+// ⛔ TWO fields, and the shortness is the ruling (D15): an atmosphere is NOT a
+// polygon. It never blocks, takes no outline and has no width — a polygon is a
+// wall you walk into, an atmosphere is air you walk through. The absence of
+// blocksMovement here is for the same reason PathDefinition omits it, and then
+// some: there is no such key anywhere in the format for this shape.
+interface AtmosphereDefinition {
+    profile: string;
+    points: { x: number, y: number }[];
+}
+
+// The HOLES cut in that air (plan-region-atmosphere.md A4). Declared locally
+// like every shape above it.
+//
+// ⛔ TWO fields and NO PROFILE, and the absence IS the ruling (L7). A clearing
+// paints nothing, so an author reaching for "what colour is my clearing" must
+// find NOTHING rather than a field that quietly means something else — which is
+// the whole of A4, where the PO rejected `darkness: 0` meaning ERASE because
+// one key was doing two jobs, *how much* and *which operation*.
+interface ClearingDefinition {
+    clears: 'darkness' | 'haze' | 'both';
+    points: { x: number, y: number }[];
+}
+
+/** A placed prop, as much of one as a client-visual consumer needs: which
+ *  type it is and where it stands. The prop's own size, sprite and collision
+ *  live in api/props/ and are nobody's business here. */
+export interface ZonePropPoint {
+    type: string;
+    x: number;
+    y: number;
 }
 
 interface CampfireDefinition {
@@ -174,9 +219,33 @@ export interface ZoneJSON {
     // read-only view of the zone file — an array not named here simply never
     // reaches the renderer, with no error anywhere.
     paths?: PathDefinition[];
+    // Filled masses — rock, buildings, lakes — read by Polygons.loadPolygons
+    // (plan-zone-polygons.md P2). Same posture as the two above.
+    polygons?: PolygonDefinition[];
+    // The AIR over an area — read by Atmospheres.loadAtmospheres
+    // (plan-region-atmosphere.md A0). ⛔ NOT a polygon: it never blocks, takes
+    // no outline, and draws on top of everything rather than into the ground
+    // (D15). ⚑ The warning in the `paths` note applies to it exactly — an array
+    // not named HERE never reaches the renderer, with no error anywhere.
+    atmospheres?: AtmosphereDefinition[];
+    // The HOLES cut in that air, read by Clearings.loadClearings
+    // (plan-region-atmosphere.md A4). ⛔ It names NO profile: a clearing paints
+    // nothing, so there is no look to author (L7). ⚑ Same warning as every
+    // array above — one not named HERE never reaches the renderer, silently.
+    clearings?: ClearingDefinition[];
     // World campfires (chunk 2): read by the darkness overlay for their
     // static glow (chunk 4 follow-up).
     campfires?: CampfireDefinition[];
+    // Placed props. ⭐ The client normally learns about props from the WIRE,
+    // as streamed entities, and does not read this array to draw them — it is
+    // named here for the one thing a streamed prop cannot do: a `Torch` casts
+    // a STATIC light, and a static light has to be punched into the darkness
+    // at zone load rather than when its source drifts into the viewport
+    // (DarknessOverlay.resetZone, and the same reason `campfires` is here).
+    // ⚑ So this is a deliberately PARTIAL view: only the fields that question
+    // needs, on purpose, because anything more would be a second definition of
+    // a prop competing with api/props/.
+    props?: ZonePropPoint[];
 }
 
 // Bundle every zone's data straight from the repo api/ (chunk 6, §7.4) — same

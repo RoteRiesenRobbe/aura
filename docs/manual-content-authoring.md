@@ -304,8 +304,22 @@ behavior — movement blockers + visuals). One JSON per type in `api/props/`:
 - The wire carries a single size scalar (max half-extent for rects); a
   non-square rect prop's aspect comes from its own `body` in `api/props/`,
   read at build time — no schema change needed to retune it.
-- Placement: `zone.props` entries (`type`, `x`, `y`, `blocksMovement`) via the
-  zone editor — rect props draw and hit-test as rectangles there.
+- ⭐ **`blocksMovement` is a fact about the TYPE, and absent means `true`.** A
+  prop is solid unless its definition says otherwise, so none of the shipped
+  props author the key at all. A decorative type — a flowerbed, a rug, a fallen
+  leaf pile — authors `"blocksMovement": false` once, for every placement there
+  will ever be.
+  - ⛔ **A `crossesPaths` type MUST author `"blocksMovement": false`**, and the
+    boot refuses it otherwise. A bridge that blocks is a bridge you cannot
+    cross: it clears the water under its deck and then walls that same deck with
+    its own body.
+- Placement: `zone.props` entries (`type`, `x`, `y`, optional
+  `blocksMovement`) via the zone editor — rect props draw and hit-test as
+  rectangles there.
+  - ⚑ The placement key is a **tri-state OVERRIDE**: absent inherits the type.
+    That is what makes re-typing a prop move every placement of it — the same
+    property `scale` has by being a multiplier. Author it only where one
+    particular rock really is different from every other rock.
 - **Every new `api/props/*.json` file needs the Tiled palette regenerated**,
   regardless of whether the entityType is new or reused: `node
   tools/tiled/generate-palette.mjs` (`docs/manual-tiled-editor.md` §6), then

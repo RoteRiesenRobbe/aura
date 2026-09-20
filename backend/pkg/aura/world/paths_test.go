@@ -58,6 +58,9 @@ func TestPathValidationNamesTheIndex(t *testing.T) {
 		{"negative width",
 			`{"profile":"Road","width":-3,"points":[{"x":0,"y":0},{"x":1,"y":1}]}`,
 			"path 0: width must be positive, got -3"},
+		{"a two-point ring",
+			`{"profile":"Road","width":2,"closed":true,"points":[{"x":0,"y":0},{"x":1,"y":1}]}`,
+			"path 0: a closed path needs at least 3 points to make a ring, got 2"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -76,6 +79,105 @@ func TestTwoPointPathIsValid(t *testing.T) {
 	_, err := parseZone([]byte(`{"name":"P","bounds":{"width":60,"height":40},
 		"paths":[{"profile":"Road","width":2,"points":[{"x":0,"y":0},{"x":5,"y":0}]}]}`))
 	require.NoError(t, err)
+}
+
+// ---- closed paths (plan-zone-polygons.md P1) ------------------------------
+
+// The shape is the flag in Tiled; in the FILE it is one derived bool, and its
+// zero value is the one every zone shipped before this authored.
+func TestClosedPathParses(t *testing.T) {
+	z, err := parseZone([]byte(`{"name":"P","bounds":{"width":60,"height":40},"paths":[
+		{"profile":"Road","width":2,"closed":true,
+		 "points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}]},
+		{"profile":"Road","width":2,"points":[{"x":0,"y":0},{"x":5,"y":0}]}
+	]}`))
+	require.NoError(t, err)
+	require.Len(t, z.Paths, 2)
+	assert.True(t, z.Paths[0].Closed)
+	assert.False(t, z.Paths[1].Closed, "open is the default, as it always was")
+}
+
+// THREE for a ring, TWO for a line — the same split regions and paths already
+// have, now inside one type.
+func TestThreePointRingIsValid(t *testing.T) {
+	_, err := parseZone([]byte(`{"name":"P","bounds":{"width":60,"height":40},
+		"paths":[{"profile":"Road","width":2,"closed":true,
+		"points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}]}]}`))
+	require.NoError(t, err)
+}
+
+// A square ring, 20 a side, width 4. Every side must be walled, INCLUDING the
+// wraparound from the last point back to the first.
+//
+// ⭐ Mutation-verified: drop the `if p.Closed { segments = n }` and the covered
+// length falls to 60 — three sides walled and the fourth wide open, which is
+// exactly the shape of bug a moat cannot afford.
+const ringPoints = `"points":[{"x":-10,"y":-10},{"x":10,"y":-10},{"x":10,"y":10},{"x":-10,"y":10}]`
+
+func TestClosedPathWallsTheWraparound(t *testing.T) {
+	z := blockingZone(t, `{"profile":"Road","width":4,"blocksMovement":true,"closed":true,`+ringPoints+`}`)
+	cs := PathCorridors(z)
+
+	var covered float32
+	rects := 0
+	for _, c := range cs {
+		if c.IsCircle() {
+			continue
+		}
+		rects++
+		covered += c.Length
+		assert.LessOrEqual(t, c.Length, float32(maxCorridorSegment))
+	}
+	assert.InDelta(t, 80, covered, 1e-3, "all four sides of the ring")
+	assert.Equal(t, 12, rects, "4 sides x ceil(20/8) pieces")
+}
+
+// Every vertex of a ring is a bend — there is no end cap to leave open — so the
+// SEAM at point 0 gets a joint like any other corner. It is the only bend whose
+// two segments are not adjacent in the array, which is why it is the one a
+// reader forgets.
+func TestClosedPathJointsEveryVertexIncludingTheSeam(t *testing.T) {
+	ring := PathCorridors(blockingZone(t,
+		`{"profile":"Road","width":4,"blocksMovement":true,"closed":true,`+ringPoints+`}`))
+	open := PathCorridors(blockingZone(t,
+		`{"profile":"Road","width":4,"blocksMovement":true,`+ringPoints+`}`))
+
+	assert.Len(t, circlesIn(ring), 4, "four corners, seam included")
+	assert.Len(t, circlesIn(open), 2, "an open path caps its ends, it does not joint them")
+
+	// And the seam joint really is AT point 0, not merely a fourth circle
+	// somewhere.
+	seam := false
+	for _, c := range circlesIn(ring) {
+		if math.Abs(float64(c.X+10)) < 1e-4 && math.Abs(float64(c.Y+10)) < 1e-4 {
+			seam = true
+			assert.InDelta(t, 2, c.Radius, 1e-4, "half the path width")
+		}
+	}
+	assert.True(t, seam, "no joint at the first point — the seam is open")
+}
+
+// A bridge over the WRAPAROUND clears it exactly as it clears any other
+// segment: the seam is a segment like the rest, not a special case bolted on.
+func TestBridgeClearsTheWraparoundSegment(t *testing.T) {
+	// The ring's fourth segment runs north-to-south down x = -10. A deck across
+	// it at the midpoint.
+	z := blockingZone(t, `{"profile":"Road","width":4,"blocksMovement":true,"closed":true,`+ringPoints+`}`,
+		Prop{Type: "Bridge", X: -10, Y: 0, Def: bridgeDef(10, 4)})
+
+	var covered float32
+	for _, c := range PathCorridors(z) {
+		if !c.IsCircle() {
+			covered += c.Length
+		}
+	}
+	assert.InDelta(t, 76, covered, 2*clearStep, "the deck opens a 4-unit gap in the seam side")
+}
+
+// A decorative ring is still exactly free.
+func TestNonBlockingClosedPathEmitsNothing(t *testing.T) {
+	assert.Empty(t, PathCorridors(blockingZone(t,
+		`{"profile":"Road","width":4,"closed":true,`+ringPoints+`}`)))
 }
 
 // ---- corridors (C2) -------------------------------------------------------
@@ -279,6 +381,16 @@ func gapIn(cs []Corridor, at float32, span func(Corridor) (float32, float32)) fl
 		return 0
 	}
 	return right - left
+}
+
+func circlesIn(cs []Corridor) []Corridor {
+	var out []Corridor
+	for _, c := range cs {
+		if c.IsCircle() {
+			out = append(out, c)
+		}
+	}
+	return out
 }
 
 func min32(a, b float32) float32 {
