@@ -1,5 +1,5 @@
 {
-  "_comment": "A kobold's melee jab: 4 HP plus 0.8 per level within a 0.8-unit ring every 15 ticks. Small and fast, the contrast to KoboldVolley's large slow hit; weak alone but dangerous in a swarm. All values placeholder.",
+  "_comment": "A kobold's melee jab: 4 HP plus 0.8 per level to the nearest enemy within a 0.8-unit ring every 15 ticks. Small and fast, the contrast to KoboldVolley's large slow hit; weak alone but dangerous in a swarm. All values placeholder.",
   "id": 115,
   "name": "KoboldStab",
   "category": "active_aura",
@@ -19,6 +19,8 @@
       "variance": 0.15,
       "targetsAllies": false,
       "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 1,
       "tickInterval": 15
     }
   ]

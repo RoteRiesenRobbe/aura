@@ -16,7 +16,8 @@
       "radius": 2.5,
       "damageHP": 20,
       "targetsAllies": false,
-      "targetsEnemies": true
+      "targetsEnemies": true,
+      "selector": "all"
     }
   ]
 }

@@ -18,6 +18,8 @@
       "damageHPPerLevel": 0.0,
       "targetsAllies": false,
       "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 1,
       "tickInterval": 48
     }
   ]

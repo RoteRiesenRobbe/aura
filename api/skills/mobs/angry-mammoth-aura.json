@@ -1,5 +1,5 @@
 {
-  "_comment": "A mob-only boss aura: fire damage of 8 HP plus 2 per level inside a 3.0-unit ring (growing 0.25 per level) every 20 ticks, also hitting structures at 67 percent. All values placeholder. Kept on disk because a skill id is never deleted (docs/manual-content-authoring.md, \"Retiring a skill\").",
+  "_comment": "A mob-only boss aura: fire damage of 8 HP plus 2 per level to the nearest enemy inside a 3.0-unit ring (growing 0.25 per level) every 20 ticks, also hitting structures at 67 percent. All values placeholder. Kept on disk because a skill id is never deleted (docs/manual-content-authoring.md, \"Retiring a skill\").",
   "id": 104,
   "name": "AngryMammothAura",
   "category": "active_aura",
@@ -21,6 +21,8 @@
       "targetsAllies": false,
       "targetsEnemies": true,
       "targetsStructures": true,
+      "selector": "nearest",
+      "maxTargets": 1,
       "tickInterval": 20
     }
   ]

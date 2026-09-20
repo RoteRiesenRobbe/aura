@@ -10,6 +10,11 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-09-20, the mob single-target wrap rotated the cap, so SKILL VFX C0
+moved here verbatim.)*
+
+- **Prior: SKILL VFX C0, the `visual` vocabulary** ✅ 2026-09-19 `e8f7b6b4` (ledger: `docs/plan-skill-vfx.md` §13 C0): ⭐ **one optional top-level `visual` key per SKILL** (§10 Q1, PO), `layers[]` of seven closed kinds × three moments, validated at load in `skills/visual.go` (unknown kind / trigger / key, ranges, tint, empty layers) and ⭐ **D2 enforced by CATEGORY**: active aura any moment, cooldown `fired` + `hit`, passive `hit` only. The fixture gains six lists, `smoke.mjs` a leg (k), the Skills tab hides + round-trips the key, the HTTP catalog serves it (no `.fbs`). ⚑ Two departures, both PO calls 2026-09-19: **`hitStyle` stays until C2** (§10 Q6) and **`body` is unchecked, not warned** (the loader has no warning channel; C3 arms the ERROR). ⚑ Author NO `body` before the atlas exists. **Schema DB/wire/conf NONE; content: `visual` on the prototype's five skills + `wolf-bite`, 10 placeholder layers.** Verified: 35 pkgs 0 failures · red-first (24 subtests) · ⭐ the nine §4.3 PO examples load · `-validate` 0 both ways · smoke 0/113 · editor 2/2 · frontend 678/38 · mutation ×3 red. ⛔ No runtime surface: the PO look is C2a's.
+
 *(2026-09-19, the skill VFX C2a wrap rotated the cap, so SPELL BUILDER C5
 moved here verbatim.)*
 

@@ -1,5 +1,5 @@
 {
-  "_comment": "An orc soldier's melee cut: 9 HP plus 1.5 per level within a 1.0-unit ring every 25 ticks, plain physical with no bleed tag. All values placeholder.",
+  "_comment": "An orc soldier's melee cut: 9 HP plus 1.5 per level to the 2 nearest enemies (one per blade) within a 1.0-unit ring every 25 ticks, plain physical with no bleed tag. All values placeholder.",
   "id": 125,
   "name": "SoldierBlades",
   "category": "active_aura",
@@ -19,6 +19,8 @@
       "variance": 0.15,
       "targetsAllies": false,
       "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 2,
       "tickInterval": 25
     }
   ]

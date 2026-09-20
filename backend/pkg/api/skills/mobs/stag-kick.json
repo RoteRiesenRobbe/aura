@@ -1,5 +1,5 @@
 {
-  "_comment": "A stag's kick: 3 HP plus 0.5 per level within a 0.8-unit ring every 40 ticks. Token defense for a prey mob that otherwise always flees; barely more than a nuisance. All values placeholder.",
+  "_comment": "A stag's kick: 3 HP plus 0.5 per level to the nearest enemy within a 0.8-unit ring every 40 ticks. Token defense for a prey mob that otherwise always flees; barely more than a nuisance. All values placeholder.",
   "id": 113,
   "name": "StagKick",
   "category": "active_aura",
@@ -18,6 +18,8 @@
       "damageHPPerLevel": 0.5,
       "targetsAllies": false,
       "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 1,
       "tickInterval": 40
     }
   ]

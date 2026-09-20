@@ -1458,7 +1458,8 @@ func (m *Mob) updateAggro() {
 	// Followers (chunk 6) are owner-centric: acquisition from the owner's
 	// combat signals, stickiness bounded by the owner tether — no sensor
 	// (its mask sees the player layer), no threat retention (hits on the
-	// companion never re-target it, §3.6), no leash (the tether replaces it).
+	// companion never re-target it, §3.6; an idle one does acquire its own
+	// attacker, as the last resort), no leash (the tether replaces it).
 	case m.isFollower():
 		m.tookDamage = false
 		m.updateCompanionTargeting()

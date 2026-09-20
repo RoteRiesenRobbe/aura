@@ -1,5 +1,5 @@
 {
-  "_comment": "An elite wolf's bite: 14 HP plus 2 per level within a 1.2-unit ring every 50 ticks, dealing 1.5x damage against targets below 35% HP and healing the wolf for half the damage dealt. The radius keeps its reach inside the player's own melee range. All values placeholder.",
+  "_comment": "An elite wolf's bite: 14 HP plus 2 per level to the nearest enemy within a 1.2-unit ring every 50 ticks, dealing 1.5x damage against targets below 35% HP and healing the wolf for half the damage dealt. The radius keeps its reach inside the player's own melee range. All values placeholder.",
   "id": 114,
   "name": "EliteWolfBite",
   "category": "active_aura",
@@ -22,6 +22,8 @@
       "variance": 0.15,
       "targetsAllies": false,
       "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 1,
       "tickInterval": 50
     }
   ]

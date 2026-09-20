@@ -1,5 +1,5 @@
 {
-  "_comment": "A wolf pack's bite: 6 HP plus 1 per level within a 1.0-unit ring every 24 ticks. The first real combat pressure past the starting farm area. All values placeholder.",
+  "_comment": "A wolf pack's bite: 6 HP plus 1 per level to the nearest enemy within a 1.0-unit ring every 24 ticks. The first real combat pressure past the starting farm area. All values placeholder.",
   "id": 110,
   "name": "WolfBite",
   "category": "active_aura",
@@ -19,6 +19,8 @@
       "variance": 0.15,
       "targetsAllies": false,
       "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 1,
       "tickInterval": 24
     }
   ]

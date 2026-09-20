@@ -20,6 +20,7 @@
       "variance": 0.15,
       "targetsAllies": false,
       "targetsEnemies": true,
+      "selector": "all",
       "tickInterval": 20
     }
   ]

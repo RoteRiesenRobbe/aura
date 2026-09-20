@@ -57,6 +57,13 @@ the bottom. Trust the code over the manual if a path has drifted.
   ATTACKER. ⚑ `curve` belongs to the KIND and `chain` is the `beam`'s
   alone and VISUAL ONLY - it changes no targeting. ⚑ Author no `body`.
   `docs/manual-content-authoring.md` §2 "Visuals" has the tables.
+- **A mob attack hits ONE target unless the world explains more** (PO ruling
+  2026-09-19, `docs/manual-content-authoring.md` §2 "Mob attacks hit one
+  target"). Author `"selector": "nearest"` + `"maxTargets"` explicitly on every
+  mob damage/DoT effect: 1 by default, 2 for two visible weapons, 3 for a
+  cleave; uncapped only for a PLACE (pool, barricade, totem) or a telegraphed
+  AoE event (a stomp, a bomb), written as `"selector": "all"`. ⚑ An absent `maxTargets` silently means "hits
+  everyone", so a forgotten cap loads clean.
 - **A skill file is never deleted, an `id` never changes, a `maxLevel` never
   decreases** (PO ruling 2026-09-18, `docs/manual-content-authoring.md`,
   "Retiring a skill: never delete the file"). Skill ids and levels are

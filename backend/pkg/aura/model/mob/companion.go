@@ -148,7 +148,7 @@ func (m *Mob) updateFollow() {
 // updateCompanionTargeting replaces sensor acquisition, threat retention and
 // the leash for followers (§3.6): hold the sticky target while it lives
 // within the owner tether; otherwise acquire from the owner's combat signals,
-// defend before assist. setAggroTarget/resetAggro keep driving the aura gate.
+// defend before assist, and retaliate against its own attacker last. setAggroTarget/resetAggro keep driving the aura gate.
 func (m *Mob) updateCompanionTargeting() {
 	if m.aggroTarget != nil {
 		if m.aggroTarget.HealthRatio() == 0 || !m.withinOwnerTether(m.aggroTarget) {
@@ -162,7 +162,10 @@ func (m *Mob) updateCompanionTargeting() {
 		return
 	}
 	// Defend beats assist: protecting the owner is the more urgent signal.
-	for _, t := range [...]model.Combatant{signals.RecentAttacker(), signals.RecentAttackTarget()} {
+	// The companion's own attacker comes last: a single-target mob can spend
+	// its one hit on the companion and never touch the owner, so without it
+	// the companion would be bitten to death with no signal ever firing.
+	for _, t := range [...]model.Combatant{signals.RecentAttacker(), signals.RecentAttackTarget(), m.highestThreatTarget()} {
 		if t == nil || t.HealthRatio() == 0 || t.Faction() == m.faction {
 			continue
 		}

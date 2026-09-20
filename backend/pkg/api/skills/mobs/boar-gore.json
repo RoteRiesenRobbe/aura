@@ -1,5 +1,5 @@
 {
-  "_comment": "A boar's tusk gore: physical and bleed damage within a 0.9-unit ring every 30 ticks, 6 HP plus 1.5 per level. The bleed tag means Thick Hide, and any future bleed resist, reduces it. All values placeholder.",
+  "_comment": "A boar's tusk gore: physical and bleed damage to the nearest enemy within a 0.9-unit ring every 30 ticks, 6 HP plus 1.5 per level. The bleed tag means Thick Hide, and any future bleed resist, reduces it. All values placeholder.",
   "id": 112,
   "name": "BoarGore",
   "category": "active_aura",
@@ -20,6 +20,8 @@
       "variance": 0.15,
       "targetsAllies": false,
       "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 1,
       "tickInterval": 30
     }
   ]

@@ -20,6 +20,7 @@
       "damageHPPerLevel": 2,
       "damageTags": ["fire"],
       "targetsEnemies": true,
+      "selector": "all",
       "targetsAllies": false
     },
     {
@@ -32,6 +33,7 @@
       "dotTicks": 3,
       "dotTickInterval": 30,
       "targetsEnemies": true,
+      "selector": "all",
       "targetsAllies": false
     }
   ]

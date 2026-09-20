@@ -1,5 +1,5 @@
 {
-  "_comment": "A spider's bite: 7 HP plus 1.2 per level within a 1.0-unit ring every 30 ticks, healing the spider for 40% of the damage dealt. Lifesteal only rides direct damage, which is why the venom spider carries a dot instead of this. All values placeholder.",
+  "_comment": "A spider's bite: 7 HP plus 1.2 per level to the nearest enemy within a 1.0-unit ring every 30 ticks, healing the spider for 40% of the damage dealt. Lifesteal only rides direct damage, which is why the venom spider carries a dot instead of this. All values placeholder.",
   "id": 117,
   "name": "SpiderBite",
   "category": "active_aura",
@@ -20,6 +20,8 @@
       "variance": 0.15,
       "targetsAllies": false,
       "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 1,
       "tickInterval": 30
     }
   ]

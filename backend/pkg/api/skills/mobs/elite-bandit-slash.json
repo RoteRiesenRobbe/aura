@@ -1,5 +1,5 @@
 {
-  "_comment": "An elite bandit's slash: 17.5 HP plus 2.5 per level within a 1.2-unit ring every 40 ticks, with a 25% chance to crit for double damage. The radius keeps the elite's reach inside the player's own melee range, matching its facetank identity. All values placeholder.",
+  "_comment": "An elite bandit's slash: 17.5 HP plus 2.5 per level to the nearest enemy within a 1.2-unit ring every 40 ticks, with a 25% chance to crit for double damage. The radius keeps the elite's reach inside the player's own melee range, matching its facetank identity. All values placeholder.",
   "id": 123,
   "name": "EliteBanditSlash",
   "category": "active_aura",
@@ -21,6 +21,8 @@
       "variance": 0.15,
       "targetsAllies": false,
       "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 1,
       "tickInterval": 40
     }
   ]

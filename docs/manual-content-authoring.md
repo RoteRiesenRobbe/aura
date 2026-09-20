@@ -538,6 +538,30 @@ Two things keep the surface small, and neither removes it:
 A Warbanner that heals before it damages is a different skill at 5 % health than
 one that damages before it heals.
 
+### Mob attacks hit one target (PO ruling 2026-09-19)
+
+A mob fights one versus one, WoW style. **Every mob attack authors
+`"selector": "nearest"` and `"maxTargets"` explicitly, and the cap is 1 unless
+the world itself explains more.** "Nearest" is the ruled pick (not the aggro
+target): a mob may chase one player and hit the one who steps in between, which
+is the intended body-block.
+
+| Cap | Needs this in-world reason | Examples |
+|---|---|---|
+| 1 | none, the default | every beast (one mouth, one horn), one-weapon humanoids, a single shot (`BanditVolley`, `KoboldVolley`), `GiantVenomSpit` |
+| 2 | two weapons, visible on the portrait | `BanditBlades`, `SoldierBlades` |
+| 3 | a sweeping cleave | `OrcCleave`, `WarlordCleave` |
+| uncapped | a PLACE or an AoE EVENT, not an attacker | `PoisonPoolAura`, `SpikeBarricadeAura`, the fire totem and fire elemental, `BombBurst`, `AngryMammothStomp` (a telegraphed ground stomp) |
+
+An uncapped attack writes `"selector": "all"`, so every mob attack carries a
+`selector` line and a forgotten cap is greppable. The loader itself still reads
+an absent `maxTargets` as "everything in range" and loads it clean, so check it
+in review. The rule covers damage and DoT
+effects; heal and shield auras keep their own caps. It applies to mob-vs-mob
+and summons as well, since it is the same effect path. A cap cuts a mob's total
+output against a group, so an elite or boss meant to threaten several players
+needs a lore-backed multi-target attack, not an uncapped bite.
+
 ### Visuals: the `visual` key
 
 *(`plan-skill-vfx.md` C0 + C2a, 2026-09-19. C2a draws `impact`, `projectile`

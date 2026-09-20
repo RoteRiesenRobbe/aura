@@ -14,7 +14,7 @@ and nobody owes a regeneration as part of a content edit. Run the command
 whenever you want a current picture. The content tree, the loader and its tests
 are the truth about what the game does; this page never is.
 
-Generated 2026-09-19 from api/ at 83aadd66.
+Generated 2026-09-19 from api/ at 6dbd3b92.
 
 Every number here is **[PLACEHOLDER]** by project rule. Per-ability design
 intent lives in `content-auras.md` / `content-passives.md` /
@@ -138,33 +138,33 @@ is not placed yet, or dead content.
 
 | ID | Name | MaxLv | Timing | Effects | Carried by |
 |---|---|---|---|---|---|
-| 101 | DodoAura | 5 |  | damage_aura: radius 0.6 u, tick interval 48t (1.6 s), enemies, damage HP 4 | none |
-| 102 | SaberToothCatAura | 5 |  | damage_aura: radius 1 u, tick interval 20t (0.67 s), enemies, damage HP 8 | none |
-| 103 | MammothAura | 5 |  | damage_aura: radius 1 u, tick interval 40t (1.33 s), enemies, damage HP 12 | none |
-| 104 | AngryMammothAura | 5 |  | damage_aura: radius 3 u +0.25/L, tick interval 20t (0.67 s), enemies, damage HP 8 +2/L, damage tags fire, structures, structure damage fraction 67% | none |
-| 105 | AngryMammothStomp | 1 | CD 450t (15 s) | instant_damage: radius 2.5 u, enemies, damage HP 20 | none |
+| 101 | DodoAura | 5 |  | damage_aura: radius 0.6 u, tick interval 48t (1.6 s), selector nearest, max targets 1, enemies, damage HP 4 | none |
+| 102 | SaberToothCatAura | 5 |  | damage_aura: radius 1 u, tick interval 20t (0.67 s), selector nearest, max targets 1, enemies, damage HP 8 | none |
+| 103 | MammothAura | 5 |  | damage_aura: radius 1 u, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 12 | none |
+| 104 | AngryMammothAura | 5 |  | damage_aura: radius 3 u +0.25/L, tick interval 20t (0.67 s), selector nearest, max targets 1, enemies, damage HP 8 +2/L, damage tags fire, structures, structure damage fraction 67% | none |
+| 105 | AngryMammothStomp | 1 | CD 450t (15 s) | instant_damage: radius 2.5 u, selector all, enemies, damage HP 20 | none |
 | 106 | TotemAura | 3 |  | dot_aura: radius 1.5 u, tick interval 60t (2 s), selector nearest, max targets 1, enemies, damage HP 8 +2/L, damage tags fire, dot ticks 3, dot tick interval 60t (2 s) | Totem L1 |
 | 107 | CompanionAura | 3 |  | damage_aura: radius 0.8 u, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 10 +2/L | Companion L1 |
 | 108 | HealerAura | 3 |  | heal_aura: radius 2 u, tick interval 60t (2 s), selector lowest_health, max targets 1, heal HP 12 +4/L | MedicCompanion L1 |
 | 109 | CampfireAura | 1 |  | heal_aura: radius 1.5 u, tick interval 60t (2 s), max targets 0, heal fraction of max 12% · light_aura: radius 7 u | Campfire L1 |
-| 110 | WolfBite | 5 |  | damage_aura: radius 1 u, tick interval 24t (0.8 s), enemies, damage HP 6 +1/L, variance 15% | AlphaWolf L1 · DireWolf L1 · Wolf L1 |
-| 111 | BearSwipe | 5 |  | damage_aura: radius 1.1 u, tick interval 60t (2 s), enemies, damage HP 16 +2.5/L, variance 10%, berserker max bonus factor ×1 | Bear L1 · DireBear L1 |
-| 112 | BoarGore | 5 |  | damage_aura: radius 0.9 u, tick interval 30t (1 s), enemies, damage HP 6 +1.5/L, damage tags physical/bleed, variance 15% | Boar L1 |
-| 113 | StagKick | 5 |  | damage_aura: radius 0.8 u, tick interval 40t (1.33 s), enemies, damage HP 3 +0.5/L | Stag L1 |
-| 114 | EliteWolfBite | 5 |  | damage_aura: radius 1.2 u, tick interval 50t (1.67 s), enemies, damage HP 14 +2/L, variance 15%, execute below fraction 35%, execute bonus factor ×1.5, lifesteal fraction 50% | EliteWolf L1 |
-| 115 | KoboldStab | 5 |  | damage_aura: radius 0.8 u, tick interval 15t (0.5 s), enemies, damage HP 4 +0.8/L, variance 15% | Kobold L1 |
-| 116 | KoboldVolley | 5 |  | damage_aura: radius 2.2 u, tick interval 60t (2 s), selector all, enemies, damage HP 7 +1.2/L, variance 15% | KoboldRanged L1 |
-| 117 | SpiderBite | 5 |  | damage_aura: radius 1 u, tick interval 30t (1 s), enemies, damage HP 7 +1.2/L, variance 15%, lifesteal fraction 40% | Spider L1 |
+| 110 | WolfBite | 5 |  | damage_aura: radius 1 u, tick interval 24t (0.8 s), selector nearest, max targets 1, enemies, damage HP 6 +1/L, variance 15% | AlphaWolf L1 · DireWolf L1 · Wolf L1 |
+| 111 | BearSwipe | 5 |  | damage_aura: radius 1.1 u, tick interval 60t (2 s), selector nearest, max targets 1, enemies, damage HP 16 +2.5/L, variance 10%, berserker max bonus factor ×1 | Bear L1 · DireBear L1 |
+| 112 | BoarGore | 5 |  | damage_aura: radius 0.9 u, tick interval 30t (1 s), selector nearest, max targets 1, enemies, damage HP 6 +1.5/L, damage tags physical/bleed, variance 15% | Boar L1 |
+| 113 | StagKick | 5 |  | damage_aura: radius 0.8 u, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 3 +0.5/L | Stag L1 |
+| 114 | EliteWolfBite | 5 |  | damage_aura: radius 1.2 u, tick interval 50t (1.67 s), selector nearest, max targets 1, enemies, damage HP 14 +2/L, variance 15%, execute below fraction 35%, execute bonus factor ×1.5, lifesteal fraction 50% | EliteWolf L1 |
+| 115 | KoboldStab | 5 |  | damage_aura: radius 0.8 u, tick interval 15t (0.5 s), selector nearest, max targets 1, enemies, damage HP 4 +0.8/L, variance 15% | Kobold L1 |
+| 116 | KoboldVolley | 5 |  | damage_aura: radius 2.2 u, tick interval 60t (2 s), selector nearest, max targets 1, enemies, damage HP 7 +1.2/L, variance 15% | KoboldRanged L1 |
+| 117 | SpiderBite | 5 |  | damage_aura: radius 1 u, tick interval 30t (1 s), selector nearest, max targets 1, enemies, damage HP 7 +1.2/L, variance 15%, lifesteal fraction 40% | Spider L1 |
 | 118 | VenomSpit | 5 |  | dot_aura: radius 1 u, tick interval 50t (1.67 s), selector nearest, max targets 1, enemies, damage HP 5 +1/L, damage tags poison, variance 15%, dot ticks 4, dot tick interval 45t (1.5 s) | VenomSpider L1 |
-| 119 | PoisonPoolAura | 5 |  | damage_aura: radius 1.1 u, tick interval 20t (0.67 s), enemies, damage HP 5 +1/L, damage tags poison, variance 15% | PoisonPool L1 |
-| 120 | BanditBlades | 5 |  | damage_aura: radius 1 u, tick interval 25t (0.83 s), enemies, damage HP 11.25 +1.88/L, damage tags physical/bleed, variance 15% | Bandit L1 · Marauder L3 |
-| 121 | BanditVolley | 5 |  | damage_aura: radius 2.5 u, tick interval 60t (2 s), selector all, enemies, damage HP 10 +1.62/L, variance 15% | BanditRanged L1 |
+| 119 | PoisonPoolAura | 5 |  | damage_aura: radius 1.1 u, tick interval 20t (0.67 s), selector all, enemies, damage HP 5 +1/L, damage tags poison, variance 15% | PoisonPool L1 |
+| 120 | BanditBlades | 5 |  | damage_aura: radius 1 u, tick interval 25t (0.83 s), selector nearest, max targets 2, enemies, damage HP 11.25 +1.88/L, damage tags physical/bleed, variance 15% | Bandit L1 · Marauder L3 |
+| 121 | BanditVolley | 5 |  | damage_aura: radius 2.5 u, tick interval 60t (2 s), selector nearest, max targets 1, enemies, damage HP 10 +1.62/L, variance 15% | BanditRanged L1 |
 | 122 | BanditHeal | 5 |  | heal_aura: radius 1 u, tick interval 60t (2 s), selector lowest_health, max targets 1, heal HP 14 +4/L | BanditHealer L1 |
-| 123 | EliteBanditSlash | 5 |  | damage_aura: radius 1.2 u, tick interval 40t (1.33 s), enemies, damage HP 17.5 +2.5/L, variance 15%, crit chance 25%, crit factor ×2 | EliteBandit L1 |
+| 123 | EliteBanditSlash | 5 |  | damage_aura: radius 1.2 u, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 17.5 +2.5/L, variance 15%, crit chance 25%, crit factor ×2 | EliteBandit L1 |
 | 124 | RallyDrum | 5 |  | shield_aura: radius 4 u, tick interval 30t (1 s), allies, shield HP 15 +4/L | RallyDrummer L1 · ShieldbearerCompanion L1 |
-| 125 | SoldierBlades | 5 |  | damage_aura: radius 1 u, tick interval 25t (0.83 s), enemies, damage HP 9 +1.5/L, variance 15% | ArmySoldier L1 · SoldierCompanion L1 |
+| 125 | SoldierBlades | 5 |  | damage_aura: radius 1 u, tick interval 25t (0.83 s), selector nearest, max targets 2, enemies, damage HP 9 +1.5/L, variance 15% | ArmySoldier L1 · SoldierCompanion L1 |
 | 126 | OrcCleave | 5 |  | damage_aura: radius 1.3 u, tick interval 35t (1.17 s), selector nearest, max targets 3, enemies, damage HP 16 +2.5/L, variance 15% | Orc L1 |
-| 127 | SpikeBarricadeAura | 5 |  | damage_aura: radius 1 u, tick interval 20t (0.67 s), enemies, damage HP 6 +1/L, damage tags physical/bleed, variance 15% | SpikeBarricade L1 |
+| 127 | SpikeBarricadeAura | 5 |  | damage_aura: radius 1 u, tick interval 20t (0.67 s), selector all, enemies, damage HP 6 +1/L, damage tags physical/bleed, variance 15% | SpikeBarricade L1 |
 | 128 | WarlordCleave | 5 |  | damage_aura: radius 1.6 u, tick interval 90t (3 s), selector nearest, max targets 3, enemies, damage HP 50 +7.5/L, variance 15% · dot_aura: radius 1.6 u, tick interval 90t (3 s), selector nearest, max targets 1, enemies, damage HP 11 +2/L, damage tags physical/bleed, variance 15%, dot ticks 4, dot tick interval 45t (1.5 s) | OrcWarlord L1 |
 | 129 | WarlordFrenzy | 1 | CD 900t (30 s) | tick_rate: tick rate factor ×0.5, tick rate duration ticks 300t (10 s) | OrcWarlord L1 |
 | 130 | WarbannerShield | 5 |  | shield_aura: radius 4 u, tick interval 30t (1 s), allies, shield HP 20 +5/L | WarbannerTotem L1 |
@@ -173,9 +173,9 @@ is not placed yet, or dead content.
 | 133 | EmberAura | 5 |  | dot_aura: radius 3 u, tick interval 50t (1.67 s), selector nearest, max targets 1, enemies, damage HP 7.5 +1.88/L, damage tags fire, variance 15%, dot ticks 3, dot tick interval 40t (1.33 s) | BanditPyromancer L1 |
 | 134 | FireElementalAura | 5 |  | dot_aura: radius 2 u, tick interval 60t (2 s), selector all, enemies, damage HP 7 +1.8/L, damage tags fire, variance 15%, dot ticks 3, dot tick interval 60t (2 s) · light_aura: radius 2.5 u | FireElemental L1 · GreaterFireElemental L1 |
 | 135 | FireTotemAura | 3 |  | dot_aura: radius 2.5 u, tick interval 60t (2 s), selector all, enemies, damage HP 6 +2/L, damage tags fire, dot ticks 3, dot tick interval 60t (2 s) · light_aura: radius 3 u | FireTotem L1 |
-| 137 | GiantVenomSpit | 5 |  | damage_aura: radius 1.6 u, tick interval 40t (1.33 s), selector nearest, max targets 2, enemies, damage HP 3.5 +0.7/L, damage tags poison, variance 15% · dot_aura: radius 1.6 u, tick interval 40t (1.33 s), selector nearest, max targets 2, enemies, damage HP 6 +1.2/L, damage tags poison, variance 15%, dot ticks 5, dot tick interval 45t (1.5 s) | GiantSpider L1 |
+| 137 | GiantVenomSpit | 5 |  | damage_aura: radius 1.6 u, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 3.5 +0.7/L, damage tags poison, variance 15% · dot_aura: radius 1.6 u, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 6 +1.2/L, damage tags poison, variance 15%, dot ticks 5, dot tick interval 45t (1.5 s) | GiantSpider L1 |
 | 138 | CampAura | 1 |  | heal_aura: radius 0.75 u, tick interval 60t (2 s), max targets 0, heal fraction of max 12% · light_aura: radius 2 u | Camp L1 |
-| 149 | BombBurst | 5 | CD 300t (10 s) -10/L | instant_damage: radius 2 u +0.05/L, enemies, damage HP 18 +2/L, damage tags fire · instant_dot: radius 2 u +0.05/L, enemies, damage HP 5 +0.6/L, damage tags fire, dot ticks 3, dot tick interval 30t (1 s) | ProjectileBomb L1 |
+| 149 | BombBurst | 5 | CD 300t (10 s) -10/L | instant_damage: radius 2 u +0.05/L, selector all, enemies, damage HP 18 +2/L, damage tags fire · instant_dot: radius 2 u +0.05/L, selector all, enemies, damage HP 5 +0.6/L, damage tags fire, dot ticks 3, dot tick interval 30t (1 s) | ProjectileBomb L1 |
 
 ## Reachability
 
