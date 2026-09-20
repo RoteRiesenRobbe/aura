@@ -21,6 +21,9 @@
 > is still a proposal with options). Line refs pinned to `df746e53`;
 > re-verify before executing. Ledger: §13.
 >
+> ⚑ **Both prototype branches are DELETED** (`prototype/skill-visuals` and `prototype/attack-lines`; verified 2026-09-20: neither exists locally nor on origin). Every mention of them in this repo is HISTORY, and a `git show prototype/...` line in an old spec no longer resolves. Everything
+> worth keeping was quarried into `frontend/src/features/skill-fx/` by C2a.
+>
 > Origin: the PO picked the parked `prototype/skill-visuals` branch back up
 > ("I like the general direction and want to really build something like
 > this") and widened it: per ability AND per mob, visible to the own player
@@ -417,8 +420,8 @@ work for the audio lane, fed by the HIT event when it has an owner.
   `tookDamage` / `inCombatTicks`: those are SIM state that happens to sit
   beside the accumulators (`mob.go:1960-1966`).
 - `AuraTickIndicator.ts` (absorbed, D7).
-- `prototype/skill-visuals` (after C2) and, for its shipped purpose,
-  backlog §57's `prototype/attack-lines` (§11).
+- ✅ `prototype/skill-visuals` and backlog §57's `prototype/attack-lines`:
+  **both branches are GONE** (verified 2026-09-20, local + origin).
 
 ## 9. Chunks
 
@@ -1066,8 +1069,8 @@ Planned in the executing session; the PO answered the open questions up front
   **Firebolt** (id 78, active aura): `fire`, ranged ring, nearest 1, numbers
   cloned from Long-Range Strike; `projectile` + `impact`.
 - ⭐ **Delete both prototype branches** (`prototype/skill-visuals`,
-  `prototype/attack-lines`, local + origin): YES, at the END of the session,
-  after the PO look, by the lead and never by an agent.
+  `prototype/attack-lines`, local + origin): YES. ⚑ At the wrap both turned out
+  to be ALREADY GONE (no local ref, not on origin), so nothing was deleted.
 
 ### 12d.2 Schema, corrected
 
@@ -1492,9 +1495,10 @@ ingame look passes"**. C2a is done.
 **Still open after the wrap** (none of it blocks C2b):
 
 - ✅ ~~A PO yes/no on deleting `prototype/skill-visuals` and
-  `prototype/attack-lines`~~ **ANSWERED 2026-09-20 (PO): YES**, local + origin,
-  by the lead right after the C2b commit. Both were quarried out (the math
-  module came over, backlog §57's shipped version IS this chunk).
+  `prototype/attack-lines`~~ **ANSWERED 2026-09-20 (PO): YES, and MOOT**: at the
+  C2b wrap neither branch existed any more, locally or on origin. Both were
+  quarried out first (the math module came over, backlog §57's shipped version
+  IS this chunk).
 - Lightning Strike wears `lorc/star-swirl`: a real lightning glyph needs a
   fetch + a client icon write, a follow-up.
 - **No everyday player skill authors `overhead`** - only Harvest and Pickaxe,
