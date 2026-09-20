@@ -33,11 +33,17 @@
       "values": [
         "Boulder",
         "Bridge",
+        "Cart",
+        "Crate",
+        "FencePost",
         "GateWall",
+        "Haystack",
         "House",
         "Rock",
         "Tombstone",
-        "Tree"
+        "Torch",
+        "Tree",
+        "Well"
       ],
       "valuesAsFlags": false
     },
@@ -158,6 +164,10 @@
         "(pick a profile)",
         "Fields",
         "Suburbs",
+        "Ploughed",
+        "Ploughed Cross",
+        "Wheat",
+        "Wheat Cross",
         "Forest",
         "Swamp",
         "Coastal Cliff",

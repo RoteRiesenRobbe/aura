@@ -170,6 +170,15 @@ interface ClearingDefinition {
     points: { x: number, y: number }[];
 }
 
+/** A placed prop, as much of one as a client-visual consumer needs: which
+ *  type it is and where it stands. The prop's own size, sprite and collision
+ *  live in api/props/ and are nobody's business here. */
+export interface ZonePropPoint {
+    type: string;
+    x: number;
+    y: number;
+}
+
 interface CampfireDefinition {
     x: number;
     y: number;
@@ -227,6 +236,16 @@ export interface ZoneJSON {
     // World campfires (chunk 2): read by the darkness overlay for their
     // static glow (chunk 4 follow-up).
     campfires?: CampfireDefinition[];
+    // Placed props. ⭐ The client normally learns about props from the WIRE,
+    // as streamed entities, and does not read this array to draw them — it is
+    // named here for the one thing a streamed prop cannot do: a `Torch` casts
+    // a STATIC light, and a static light has to be punched into the darkness
+    // at zone load rather than when its source drifts into the viewport
+    // (DarknessOverlay.resetZone, and the same reason `campfires` is here).
+    // ⚑ So this is a deliberately PARTIAL view: only the fields that question
+    // needs, on purpose, because anything more would be a second definition of
+    // a prop competing with api/props/.
+    props?: ZonePropPoint[];
 }
 
 // Bundle every zone's data straight from the repo api/ (chunk 6, §7.4) — same

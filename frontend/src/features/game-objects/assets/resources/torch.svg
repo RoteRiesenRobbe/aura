@@ -1,0 +1,59 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder torch art: TRUE top-down — a small fire in a ring of
+       stones, which is what a campfire looks like from straight above. It is
+       deliberately the SAME fire as the big one (the palette is lifted from
+       mobs/campfire.svg: #5e2404 logs, #e2691e flame, #f5b52e, #ffe08a), just
+       smaller, so a player reads "fire, but little" without being told.
+
+       ⚑ The campfire's own art is a circular MEDALLION, because a campfire is
+       a mob and mobs are portraits. A torch is a PROP, and props are
+       top-down — so this does not copy that drawing, only its colours.
+
+       ⚑ The glow drawn here is COSMETIC. The light this thing actually casts
+       is a hole punched in the darkness overlay at half the campfire's
+       radius, and nothing about that comes from this file. -->
+
+  <!-- the warm pool on the ground, biggest and faintest first -->
+  <circle cx="50" cy="50" r="48" fill="#e2691e" opacity="0.1"/>
+  <circle cx="50" cy="50" r="38" fill="#e2691e" opacity="0.12"/>
+
+  <!-- scorched earth under the fire -->
+  <circle cx="50" cy="51" r="27" fill="#2e2318" opacity="0.7"/>
+
+  <!-- the stone ring -->
+  <g fill="#8d8a82" stroke="#4a483f" stroke-width="3">
+    <ellipse cx="50" cy="22" rx="10" ry="7.5"/>
+    <ellipse cx="74" cy="34" rx="9" ry="7"/>
+    <ellipse cx="78" cy="60" rx="8.5" ry="7.5"/>
+    <ellipse cx="60" cy="78" rx="9.5" ry="7"/>
+    <ellipse cx="34" cy="76" rx="8.5" ry="7"/>
+    <ellipse cx="21" cy="52" rx="8" ry="8"/>
+    <ellipse cx="26" cy="29" rx="8.5" ry="7"/>
+  </g>
+  <!-- top-left faces of the stones catch the firelight from below AND the
+       sun from above; keep it simple and just lift them -->
+  <g fill="#b7b4a9" opacity="0.45">
+    <ellipse cx="48" cy="20" rx="6" ry="3.5"/>
+    <ellipse cx="24" cy="27" rx="5" ry="3"/>
+    <ellipse cx="19" cy="50" rx="4.5" ry="3.5"/>
+  </g>
+
+  <!-- the sticks, crossed over the embers -->
+  <g stroke-linecap="round">
+    <line x1="32" y1="63" x2="68" y2="40" stroke="#4e1700" stroke-width="7"/>
+    <line x1="36" y1="38" x2="66" y2="64" stroke="#5e2404" stroke-width="7"/>
+    <line x1="50" y1="34" x2="52" y2="68" stroke="#4e1700" stroke-width="6"/>
+  </g>
+
+  <!-- embers and flame, seen from directly above: concentric heat, not a
+       flame shape — from overhead a small fire is a bright hole -->
+  <circle cx="50" cy="50" r="15" fill="#a34a10" opacity="0.85"/>
+  <circle cx="50" cy="50" r="11" fill="#e2691e"/>
+  <circle cx="49" cy="49" r="7" fill="#f5b52e"/>
+  <circle cx="49" cy="48" r="3.4" fill="#ffe08a"/>
+
+  <!-- a few sparks, so it does not read as a painted disc -->
+  <circle cx="66" cy="28" r="2" fill="#f5b52e" opacity="0.9"/>
+  <circle cx="30" cy="44" r="1.6" fill="#ffe08a" opacity="0.8"/>
+  <circle cx="63" cy="70" r="1.8" fill="#e2691e" opacity="0.9"/>
+</svg>

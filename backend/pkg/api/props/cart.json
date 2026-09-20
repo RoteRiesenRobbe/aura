@@ -1,0 +1,6 @@
+{
+  "name": "Cart",
+  "entityType": "Cart",
+  "sprite": "cart.svg",
+  "body": { "width": 2.2, "height": 1.3 }
+}

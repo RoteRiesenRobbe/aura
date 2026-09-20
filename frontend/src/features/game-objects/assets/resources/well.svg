@@ -1,0 +1,71 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder well art: TRUE top-down, which is the view a well is
+       actually BUILT for — a ring of stone around a dark hole. The roof most
+       drawings give it would hide the one thing that identifies it, so there
+       is none.
+
+       It is the village-centre landmark, so it has to read from a distance
+       on three cues, in this order: a pale stone ring, a DARK CENTRE large
+       enough to be the subject rather than a dot, and one beam crossing it.
+       ⛔ The first draft failed on the second and third — a heavy windlass
+       drum on a thick beam read as a dumbbell lying on a plate, and the
+       shaft was too small to be a hole. The beam is now thin, the drum is
+       barely wider than it, and the opening is over half the rim. -->
+
+  <!-- ground shadow, offset down-right (light from the top-left) -->
+  <circle cx="53" cy="54" r="43" fill="#000000" opacity="0.26"/>
+
+  <!-- trodden earth around the base, where the village queues -->
+  <circle cx="50" cy="51" r="45" fill="#5a4632" opacity="0.35"/>
+
+  <!-- the stone rim -->
+  <circle cx="50" cy="50" r="42" fill="#8d8a82" stroke="#4a483f" stroke-width="5"/>
+  <!-- the individual blocks: radial joints, only across the ring itself -->
+  <g stroke="#4a483f" stroke-width="2.6" opacity="0.65">
+    <line x1="50" y1="9" x2="50" y2="31"/>
+    <line x1="79" y1="21" x2="64" y2="36"/>
+    <line x1="91" y1="50" x2="69" y2="50"/>
+    <line x1="79" y1="79" x2="64" y2="64"/>
+    <line x1="50" y1="91" x2="50" y2="69"/>
+    <line x1="21" y1="79" x2="36" y2="64"/>
+    <line x1="9" y1="50" x2="31" y2="50"/>
+    <line x1="21" y1="21" x2="36" y2="36"/>
+  </g>
+  <!-- top-left arc catches the light; bottom-right sits in its own shade -->
+  <path d="M50,8 A42,42 0 0,0 8,50" fill="none" stroke="#b7b4a9" stroke-width="7" opacity="0.5"/>
+  <path d="M50,92 A42,42 0 0,0 92,50" fill="none" stroke="#5f5d55" stroke-width="7" opacity="0.45"/>
+
+  <!-- the opening: better than half the rim, so it reads as a HOLE -->
+  <circle cx="50" cy="50" r="31" fill="#2a2620" stroke="#4a483f" stroke-width="4"/>
+  <!-- the shaft wall, lit a little on the far side the sun reaches -->
+  <path d="M50,21 A29,29 0 0,0 21,50" fill="none" stroke="#6a655b" stroke-width="5" opacity="0.5"/>
+  <!-- water, far enough down to be dark but unmistakably water -->
+  <circle cx="50" cy="50" r="21" fill="#173243"/>
+  <circle cx="50" cy="50" r="21" fill="none" stroke="#0d1a24" stroke-width="3" opacity="0.8"/>
+  <ellipse cx="43" cy="43" rx="8" ry="5" fill="#4c7f9c" opacity="0.45"
+           transform="rotate(-32 43 43)"/>
+  <ellipse cx="57" cy="57" rx="5" ry="3" fill="#356d8a" opacity="0.3"
+           transform="rotate(-32 57 57)"/>
+
+  <!-- the winding beam: thin, so the hole stays the subject -->
+  <rect x="7" y="47" width="86" height="7" rx="3.5"
+        fill="#7a5730" stroke="#402a13" stroke-width="3"/>
+  <rect x="9" y="48" width="82" height="2" fill="#a3763f" opacity="0.5"/>
+  <!-- the drum, barely proud of the beam, with the rope wound on it -->
+  <rect x="41" y="45" width="19" height="11" rx="3"
+        fill="#6b4c2a" stroke="#402a13" stroke-width="2.6"/>
+  <g stroke="#3a2a14" stroke-width="1.5" opacity="0.65">
+    <line x1="46" y1="46" x2="46" y2="55"/>
+    <line x1="50" y1="46" x2="50" y2="55"/>
+    <line x1="54" y1="46" x2="54" y2="55"/>
+  </g>
+  <!-- the crank handle, off the west end -->
+  <path d="M10,50 L4,58 L11,62" fill="none" stroke="#402a13"
+        stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- the bucket, hanging over the rim on the near side -->
+  <path d="M60,55 L69,64" stroke="#5b5a56" stroke-width="1.8" opacity="0.85"/>
+  <circle cx="72" cy="67" r="8" fill="#6b4c2a" stroke="#402a13" stroke-width="3"/>
+  <circle cx="72" cy="67" r="4" fill="#2a2620" opacity="0.75"/>
+  <path d="M64,64 Q72,57 80,64" fill="none" stroke="#5b5a56" stroke-width="2" opacity="0.9"/>
+</svg>

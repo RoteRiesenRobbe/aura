@@ -1,0 +1,6 @@
+{
+  "name": "Haystack",
+  "entityType": "Haystack",
+  "sprite": "haystack.svg",
+  "body": { "radius": 0.85, "collisionFactor": 0.88 }
+}

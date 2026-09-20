@@ -1,0 +1,6 @@
+{
+  "name": "FencePost",
+  "entityType": "FencePost",
+  "sprite": "fencePost.svg",
+  "body": { "radius": 0.22, "collisionFactor": 0.9 }
+}

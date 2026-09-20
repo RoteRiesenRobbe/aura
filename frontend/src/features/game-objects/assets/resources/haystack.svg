@@ -1,0 +1,78 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder haystack art: TRUE top-down — a stack seen straight down is
+       a mound of loose straw with the point of the cone at its centre.
+
+       ⛔ THE FIRST DRAFT WAS A TREE STUMP, and the reason is worth keeping:
+       it used a clean circle, concentric rings and evenly spaced radial
+       lines, which is precisely the drawing of GROWTH RINGS. What separates
+       straw from timber here is IRREGULARITY — a ragged rim with strands
+       overhanging it, strokes of uneven length and angle, and not one
+       concentric circle anywhere. Symmetric overall, because a prop's
+       authored rotation is never applied, and a round stack is the one farm
+       shape that does not care. -->
+
+  <!-- ground shadow, offset down-right (light from the top-left) -->
+  <circle cx="53" cy="54" r="42" fill="#000000" opacity="0.24"/>
+
+  <!-- strands that have escaped the stack, breaking the silhouette -->
+  <g stroke="#a8842f" stroke-width="1.8" stroke-linecap="round" opacity="0.8">
+    <line x1="6" y1="56" x2="17" y2="53"/>
+    <line x1="9" y1="38" x2="20" y2="42"/>
+    <line x1="30" y1="6" x2="34" y2="17"/>
+    <line x1="62" y1="4" x2="59" y2="16"/>
+    <line x1="93" y1="42" x2="82" y2="45"/>
+    <line x1="88" y1="70" x2="78" y2="65"/>
+    <line x1="58" y1="96" x2="55" y2="85"/>
+    <line x1="26" y1="90" x2="32" y2="80"/>
+  </g>
+
+  <!-- the body: a ragged rim, never a circle -->
+  <path d="M91.9,50.0 L92.7,55.9 L92.9,62.0 L89.7,67.2 L84.7,71.1 L83.2,77.0 L79.2,81.3
+           L71.4,80.3 L68.7,86.2 L64.6,91.1 L59.6,96.1 L52.8,90.4 L47.0,93.3 L41.7,89.7
+           L35.1,91.9 L30.6,87.5 L23.6,87.3 L22.9,79.0 L16.2,77.5 L13.5,72.2 L10.8,67.0
+           L11.4,60.8 L9.5,55.6 L8.0,50.0 L4.3,43.7 L12.2,39.4 L11.9,33.5 L12.7,27.3
+           L18.1,24.1 L22.7,20.8 L24.9,14.5 L32.7,16.7 L36.3,11.3 L41.6,9.8 L46.9,4.4
+           L52.5,12.7 L59.1,6.4 L64.5,9.3 L69.4,12.6 L73.6,16.6 L79.2,18.8 L80.2,25.4
+           L87.5,27.2 L88.3,33.4 L90.8,38.6 L87.5,44.8 Z"
+        fill="#a8842f" stroke="#5e4614" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- the upper tier, also ragged and pushed up-left into the light -->
+  <path d="M77.0,50.0 L73.3,54.4 L74.2,59.4 L73.2,64.4 L69.2,67.5 L66.4,71.7 L63.1,76.2
+           L56.4,72.6 L52.5,77.0 L47.7,75.0 L41.8,78.9 L37.5,75.1 L31.8,74.1 L31.4,67.0
+           L27.7,63.8 L23.8,60.1 L22.4,55.2 L22.8,50.0 L21.5,44.7 L27.7,41.4 L24.1,33.9
+           L29.2,31.0 L33.9,28.7 L38.6,27.1 L42.1,22.1 L47.4,22.1 L52.6,21.6 L56.9,25.8
+           L62.7,24.4 L64.8,30.4 L71.1,30.8 L73.3,35.6 L75.1,40.3 L73.7,45.6 Z"
+        fill="#c49a34" transform="translate(-2,-2)" opacity="0.95"/>
+
+  <!-- the crown: where the cone comes to a point, lit from the top-left -->
+  <path d="M44,44 L52,40 L57,46 L52,53 L44,52 Z" fill="#dcb948"/>
+  <path d="M46,45 L52,42 L54,46 L50,50 Z" fill="#edcf6a" opacity="0.9"/>
+
+  <!-- straw: strokes of uneven length and angle, several crossing the rim -->
+  <g stroke="#7d6020" stroke-width="1.7" stroke-linecap="round" opacity="0.5">
+    <line x1="49" y1="47" x2="53" y2="88"/>
+    <line x1="49" y1="47" x2="74" y2="79"/>
+    <line x1="49" y1="47" x2="86" y2="59"/>
+    <line x1="49" y1="47" x2="83" y2="35"/>
+    <line x1="49" y1="47" x2="70" y2="17"/>
+    <line x1="49" y1="47" x2="44" y2="13"/>
+    <line x1="49" y1="47" x2="21" y2="26"/>
+    <line x1="49" y1="47" x2="13" y2="47"/>
+    <line x1="49" y1="47" x2="19" y2="69"/>
+    <line x1="49" y1="47" x2="33" y2="84"/>
+  </g>
+  <g stroke="#dcb948" stroke-width="1.5" stroke-linecap="round" opacity="0.75">
+    <line x1="50" y1="46" x2="64" y2="84"/>
+    <line x1="50" y1="46" x2="89" y2="68"/>
+    <line x1="50" y1="46" x2="91" y2="46"/>
+    <line x1="50" y1="46" x2="60" y2="8"/>
+    <line x1="50" y1="46" x2="30" y2="13"/>
+    <line x1="50" y1="46" x2="9" y2="33"/>
+    <line x1="50" y1="46" x2="7" y2="60"/>
+    <line x1="50" y1="46" x2="40" y2="92"/>
+  </g>
+
+  <!-- shade along the bottom-right, away from the light -->
+  <path d="M50,93 A43,43 0 0,0 93,50" fill="none" stroke="#5e4614"
+        stroke-width="9" opacity="0.25"/>
+</svg>

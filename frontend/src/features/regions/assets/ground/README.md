@@ -101,6 +101,89 @@ fallback and **never** a tint, so the tile's own colour is the only lever, and
 adding *density* to fix a *contrast* fault just walks a tile toward the other
 family (which is exactly how the sandstorm tripped the coverage ceiling).
 
+### `forest-` / `wall-placeholder.png` — GENERATED, not from a pack
+
+| | |
+|---|---|
+| Source | `tools/make-cellular-tiles.mjs` in this repo |
+| Author | generated procedurally; no third-party asset involved |
+| Licence | same as the repo — nothing to attribute |
+
+⭐ **The fourth family: CELLULAR fields.** A jittered lattice makes the tile out
+of PIECES rather than out of waves or marks — a leaf is a piece, a stone is a
+piece — and it gets used the two ways a lattice gets used, which is the whole
+content of that script:
+
+- **`course()` CUTS**: rows of varying height split into a per-row number of
+  columns at jittered joints. Every pixel belongs to a stone; the borders are
+  the mortar.
+- **`leafCover()` PLACES**: each cell is a SLOT that may or may not hold a leaf,
+  and most of the tile is the duff between them.
+
+⛔ **Two things the tuning taught, and neither is guessable from the code.**
+① A packed Voronoi of leaves renders as **crazy paving** — every cell outlined,
+no gaps — because litter does not tessellate; the lattice had to stop *cutting*
+and start *placing*. Random scatter is not the fix either (leaves collide), so
+the lattice stayed for its free spacing. ② A Voronoi of a **staggered** lattice
+— the half-row offset every masonry pattern starts from — is a **hexagonal**
+tiling, and the first wall came out as a bathroom floor. Jitter only makes the
+hexagons wobbly. A wall needs a rectangular cut, which is why there are two
+partitions in one script instead of one parameterised one.
+
+⭐ **That script adds a check its three siblings lack, and it earned its keep on
+the first run: it measures the rendered tile's MEAN COLOUR against the
+profile's `color`** and fails past 12/255. The others report where the mean sits
+on a *ramp*, which only proves a tile is internally consistent — D14 is a claim
+about the IMAGE, since `color` is what paints while the texture loads. The
+forest tile failed it at 13/255 (a shadow pass and a second leaf layer pulling
+the average warm) and was re-tuned green until it passed. ⚑ Which is also why
+`Forest` is a **moss floor with scattered leaves** and not the brown carpet its
+one-line brief in `docs/art/assets.csv` asks for: the profile's colour is green,
+and a brown tile under a green fallback flips the hue of Zone 2's whole floor
+the moment the texture loads. Re-colouring the profile is the alternative, and
+it is a one-line change if the look sitting wants it.
+
+⚑ **Seamless by construction like the others, but proved differently per
+partition**: waves need integer wave numbers, a lattice needs its jitter hashed
+from the cell index taken MODULO the lattice size, and a course needs integer
+row and column counts with the row heights renormalised to land exactly on 750.
+
+### The field tiles — GENERATED, not from a pack
+
+| | |
+|---|---|
+| Source | `tools/make-field-tiles.mjs` → `ploughed`, `ploughed-cross`, `wheat`, `wheat-cross` |
+| Author | generated procedurally; no third-party asset involved |
+| Licence | same as the repo — nothing to attribute |
+
+⚑ **Not a fifth technique.** A furrow is a RIDGED field — water's `1 - |sin|`
+trick pointed along one axis instead of clustered into a swell — and the rest
+is ordinary wave sums. It is its own script because one named
+`make-water-tile` has no business owning a wheat field.
+
+⭐ **Each material ships TWICE, once per row direction**, and that is the
+interesting constraint rather than an indulgence: a profile carries
+`texture`/`scale`/`blend`/`color`/`scroll` and **no rotation**, so every plot
+wearing one profile has its rows running the same way in world space. One
+direction across a whole valley reads as a printing error. Turning a wave 90°
+is just swapping `(kx, ky)`, so the variant costs nothing and stays exactly
+periodic — and any INTEGER pair is a legal direction, so a diagonal plot is one
+constant block away.
+
+⛔ **THE LESSON BOTH TILES TAUGHT, and it is the one to carry to the next
+material: a sum of smooth waves is SMOOTH, and smooth ground reads as CLOTH.**
+The plough went through two drafts of soft tan ribbons (corduroy) and the wheat
+through one of flat mustard, and no amount of contrast or extra frequencies
+fixed either. What fixed both was one signed `detail` pass — `ridged` at high
+sharpness, which is a net of hard thin lines — subtracted for the plough (the
+crevices between clods) and added for the wheat (heads catching the light).
+⚑ Same mechanism, opposite sign; nothing else in that script can make a hard
+edge.
+
+⚑ **Row spacing is the number to judge, not the colour**: at `scale: 0.35` a
+tile spans 2.19 u, so the plough's 5 rows sit **0.44 u** apart against a 0.5 u
+player and the drill's 14 sit **0.16 u** apart. Re-tune `scale` and both move.
+
 ⚑ **Anything not named `pdNNN` came from somewhere else — record it here when
 you add it.** A tile with no provenance is one nobody can safely ship later.
 

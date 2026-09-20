@@ -86,6 +86,12 @@ const BESPOKE_ENTITY_TYPES = new Set(['RoundTree', 'Stone', 'PropPlaceholder']);
 
 // Escape hatch for a future prop whose SVG needs extra rasterisation
 // crispness beyond the derived (body units × PX_PER_UNIT). Empty today.
+//
+// ⚑ The torch briefly used it, at a 0.13 u body: the derived 31 px bake was
+// thin for the one small prop a player deliberately looks at. Doubling the
+// body to 0.26 u (PO 2026-09-20) made the derived value 62 px and the entry
+// redundant, so it came back out rather than sitting here agreeing with the
+// default.
 const MAX_SIZE_OVERRIDE: Partial<Record<string, number>> = {};
 
 // Confirmed by measuring every existing simple prop's hand-authored maxSize

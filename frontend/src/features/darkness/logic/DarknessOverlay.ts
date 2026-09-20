@@ -69,6 +69,19 @@ const campfireAura = require('../../../../../api/skills/mobs/campfire-aura.json'
 const CAMPFIRE_LIGHT_RADIUS: number =
     campfireAura.effects.find((e) => e.type === 'light_aura')?.radius ?? 0;
 
+/** The prop type whose placements cast a static light. Matched against the
+ *  `type` in `zone.props`, which is the prop's `name` in api/props/. */
+const TORCH_PROP_TYPE = 'Torch';
+/**
+ * A torch lights HALF as far as a campfire (PO 2026-09-20), and it is written
+ * as a fraction rather than as 3.5 deliberately: the two are the same kind of
+ * thing, so the small one should follow the big one when the big one is
+ * retuned. Same argument the campfire radius above makes for reading its own
+ * value out of the skill definition instead of restating it. [PLACEHOLDER].
+ */
+const TORCH_LIGHT_FRACTION = 0.3;
+const TORCH_LIGHT_RADIUS: number = CAMPFIRE_LIGHT_RADIUS * TORCH_LIGHT_FRACTION;
+
 interface LightSource {
     // Minimal structural slice of GameObject — id + world-positioned shape.
     object: { id: gameObjectId, shape: Container };
@@ -231,21 +244,52 @@ export function loadZone(zoneName: string) {
     // hole for an in-range fire overlaps this one; double-erase clamps, the
     // result is identical.
     if (active) {
-        const campfires = getZoneData(zoneName)?.campfires || [];
+        const zone = getZoneData(zoneName);
+        const campfires = zone?.campfires || [];
         campfires.forEach((fire) => {
-            const sprite = new Sprite(texture(DarknessVisuals.LIGHT_CORE_FRACTION));
-            sprite.anchor.set(0.5);
-            sprite.blendMode = 'erase';
-            sprite.position.set(meter2px(fire.x + ox), meter2px(fire.y + oy));
-            sprite.width = sprite.height = 2 * meter2px(CAMPFIRE_LIGHT_RADIUS);
-            layer.addChild(sprite);
-            staticLights.push({
-                x: meter2px(fire.x + ox),
-                y: meter2px(fire.y + oy),
-                radiusSq: meter2px(CAMPFIRE_LIGHT_RADIUS) ** 2,
-            });
+            punchStaticLight(fire.x + ox, fire.y + oy, CAMPFIRE_LIGHT_RADIUS);
+        });
+        // Torches (PO 2026-09-20) — a small permanent fire, lighting half as
+        // far as a campfire. ⭐ They are read from `zone.props` rather than
+        // from the wire for exactly the reason the campfires are: a light
+        // that arrived with its entity would pop a dark pocket lit the moment
+        // its source drifted into the interest range, which is the defect the
+        // static-glow path exists to fix. A torch's own sprite still streams
+        // like any other prop; only its LIGHT is authored-static.
+        //
+        // ⛔ And the hole is only half the job. `isHidden` answers gameplay
+        // questions (a nameplate in the dark) off `staticLights`, so a torch
+        // that painted a hole without registering one would light the picture
+        // and leave the sim insisting the lit pocket is dark — the A4 seam
+        // verbatim (see the comment on `inDarkness`). `punchStaticLight` does
+        // both, which is why it exists rather than two call sites.
+        (zone?.props || []).forEach((prop) => {
+            if (prop.type === TORCH_PROP_TYPE) {
+                punchStaticLight(prop.x + ox, prop.y + oy, TORCH_LIGHT_RADIUS);
+            }
         });
     }
+}
+
+/**
+ * One authored, never-moving light: the erase hole the player SEES and the
+ * circle `isHidden` ANSWERS FROM, written together so neither can be added
+ * without the other. Positions are world units; the caller has already
+ * applied the zone origin.
+ */
+function punchStaticLight(x: number, y: number, radius: number) {
+    const px = meter2px(x);
+    const py = meter2px(y);
+    const radiusPx = meter2px(radius);
+
+    const sprite = new Sprite(texture(DarknessVisuals.LIGHT_CORE_FRACTION));
+    sprite.anchor.set(0.5);
+    sprite.blendMode = 'erase';
+    sprite.position.set(px, py);
+    sprite.width = sprite.height = 2 * radiusPx;
+    layer.addChild(sprite);
+
+    staticLights.push({x: px, y: py, radiusSq: radiusPx ** 2});
 }
 
 /**

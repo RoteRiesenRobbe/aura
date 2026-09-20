@@ -1,0 +1,6 @@
+{
+  "name": "Torch",
+  "entityType": "Torch",
+  "sprite": "torch.svg",
+  "body": { "radius": 0.26, "collisionFactor": 0.85 }
+}

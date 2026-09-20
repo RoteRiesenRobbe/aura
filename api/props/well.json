@@ -1,0 +1,6 @@
+{
+  "name": "Well",
+  "entityType": "Well",
+  "sprite": "well.svg",
+  "body": { "radius": 0.7, "collisionFactor": 0.95 }
+}

@@ -103,7 +103,27 @@ enum EntityType : ushort {
   // which clears the blocking path corridor under its footprint, and
   // `underfoot`, which is what puts the sprite on the client's `decks` layer
   // BELOW the characters instead of above them with the trees.
-  Bridge = 78
+  Bridge = 78,
+
+  // ── Farmland dressing (docs/art/assets.csv, the Zone 1 prop vocabulary).
+  // Five ordinary blocking props with no behaviour of their own: each is one
+  // api/props/*.json naming its own sprite, rendered by Props.ts's generic
+  // SimpleProp. They are here only because an entityType is what a prop
+  // instance puts ON THE WIRE, so new art needs a value to resolve back to.
+  Crate = 79,
+  // ⚑ A fence/hedgerow is authored as a blocking PATH; this is the END CAP
+  // those paths have no art for, not the fence itself.
+  FencePost = 80,
+  Haystack = 81,
+  Cart = 82,
+  Well = 83,
+  // A small permanent fire, and the one prop in this group that is not just
+  // dressing: it LIGHTS. ⚑ The light itself never touches this wire — the
+  // client punches it into the darkness overlay from `zone.props` at zone
+  // load, the same static path `zone.campfires` uses and for the same reason
+  // (a streamed light pops a dark pocket lit as its source enters the
+  // viewport). This value exists only so the SPRITE resolves.
+  Torch = 84
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

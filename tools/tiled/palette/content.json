@@ -22,11 +22,17 @@
     "AuraPropType": [
       "Boulder",
       "Bridge",
+      "Cart",
+      "Crate",
+      "FencePost",
       "GateWall",
+      "Haystack",
       "House",
       "Rock",
       "Tombstone",
-      "Tree"
+      "Torch",
+      "Tree",
+      "Well"
     ],
     "AuraPropBlocks": [
       "(inherit)",
@@ -112,6 +118,10 @@
       "(pick a profile)",
       "Fields",
       "Suburbs",
+      "Ploughed",
+      "Ploughed Cross",
+      "Wheat",
+      "Wheat Cross",
       "Forest",
       "Swamp",
       "Coastal Cliff",
@@ -287,9 +297,25 @@
       "w": 5,
       "h": 2
     },
+    "Cart": {
+      "w": 2.2,
+      "h": 1.3
+    },
+    "Crate": {
+      "w": 0.9,
+      "h": 0.9
+    },
+    "FencePost": {
+      "w": 0.44,
+      "h": 0.44
+    },
     "GateWall": {
       "w": 2.4,
       "h": 2.4
+    },
+    "Haystack": {
+      "w": 1.7,
+      "h": 1.7
     },
     "House": {
       "w": 4,
@@ -303,9 +329,17 @@
       "w": 0.8,
       "h": 0.8
     },
+    "Torch": {
+      "w": 0.52,
+      "h": 0.52
+    },
     "Tree": {
       "w": 2,
       "h": 2
+    },
+    "Well": {
+      "w": 1.4,
+      "h": 1.4
     }
   },
   "TERRAIN_SIZE": 1,
@@ -442,6 +476,10 @@
   "PROFILE_NAMES": [
     "Fields",
     "Suburbs",
+    "Ploughed",
+    "Ploughed Cross",
+    "Wheat",
+    "Wheat Cross",
     "Forest",
     "Swamp",
     "Coastal Cliff",

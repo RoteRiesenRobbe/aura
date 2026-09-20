@@ -14,7 +14,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-09-16 from 198 rows.
+Rendered 2026-09-20 from 201 rows.
 
 ---
 
@@ -22,7 +22,7 @@ Rendered 2026-09-16 from 198 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 164 |
+| Art | 167 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -31,9 +31,9 @@ Rendered 2026-09-16 from 198 rows.
 | --- | ---: | --- |
 | ✅ drawn | 88 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 11 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 21 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 11 | a stock/borrowed texture stands in (the pd* set) |
-| ❌ missing | 50 | nothing exists |
+| ❌ missing | 43 | nothing exists |
 | ⚙️ code | 14 | drawn procedurally in code, no art file |
 | ⛔ blocked | 5 | cannot be delivered until engine work lands |
 | — n/a | 10 | a constraint or a number to judge, not a file to draw |
@@ -41,11 +41,11 @@ Rendered 2026-09-16 from 198 rows.
 | Priority | Rows | Rule |
 | --- | ---: | --- |
 | **P0** | 27 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
-| **P1** | 41 | high — shared art, or 20+ placements, or a named gameplay gap |
+| **P1** | 44 | high — shared art, or 20+ placements, or a named gameplay gap |
 | **P2** | 65 | normal — placed but not everywhere |
 | **P3** | 65 | low — unplaced, deferred, or already fine |
 
-**86 rows need work** (missing, shared, placeholder, stock or blocked),
+**89 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **7 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -53,7 +53,7 @@ of which **7 are P0**:
 | ⚠️ | **AscensionStone** | NPC | shared | ⭐ The meta-progression altar, where a max-level character is spent. The game's most significant object currently looks like a road sign. Owes a site, not just a prop. |
 | ⚠️ | **Boulder** | Prop | shared | Large blocking rock. Shadow baked in, never rotated. |
 | ❌ | **Ability icons** | UI | missing | ⭐ 59 authored abilities and not one icon. The ability bar, spellbook and every tooltip render text. Listed for sizing: after the mob roster this is the largest art job in the project, and the one players stare at constantly. |
-| ❌ | **Forest** | Terrain profile | missing | Zone 2 base ground. NO texture at all — flat colour today. Leaf litter and roots. |
+| 🟡 | **Forest** | Terrain profile | placeholder | Zone 2 base ground. GENERATED placeholder (tools/make-cellular-tiles.mjs): moss duff |
 | 🟡 | **Road** | Terrain profile | stock | Every road in the game. Borrows the desert tile (pd106). Dirt/packed earth wanted. |
 | 🟡 | **Fog** | Atmosphere | placeholder | Haze 0.5 on a placeholder tile. Drifting suspended matter, nothing erases it but a clearing. |
 | ❌ | **Tree variant 2** | Prop | missing | Second tree silhouette. Tree is 74 % of all props and there is ONE drawing — variety here changes the world more than any other single asset. |
@@ -146,7 +146,7 @@ of which **7 are P0**:
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 33
+## Prop — 34
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -164,21 +164,22 @@ of which **7 are P0**:
 | ❌ | **Fallen log** | — | P2 |  |  | Lying trunk. Also the cheapest non-blocking landmark in a lane. |
 | ❌ | **Bush** | — | P1 |  |  | Shrub filler between trees. Non-blocking — fills space without adding colliders. |
 | ❌ | **Fern** | — | P2 |  |  | Z2 — Forest-floor filler, Zone 2. |
-| ❌ | **Haystack** | — | P1 |  |  | Z1 — Farmland vocabulary. Zone 1. |
-| ❌ | **Cart** | — | P1 |  |  | Z1 — Farm cart. Doubles as the burnt-cart POI when wrecked. |
+| 🟡 | **Haystack** | `haystack.svg` | P1 |  | 204 | Z1 — Farmland vocabulary. Zone 1. Placeholder SVG (body r0.85): ragged straw mound, top-down. The first draft read as a TREE STUMP - a clean circle, concentric rings and even radial lines are growth rings; irregularity is what makes it straw. |
+| 🟡 | **Cart** | `cart.svg` | P1 |  | 264x156 | Z1 — Farm cart. Doubles as the burnt-cart POI when wrecked. Placeholder SVG (body 2.2x1.3 rect; the viewBox carries the aspect, like house.svg). The shaft points WEST in every placement - rect props never rotate. |
 | ❌ | **Burnt cart** | — | P1 |  |  | Z1 — The bandit breadcrumb POI in Zone 1 — the story beat with no mob attached. |
 | ❌ | **Plough** | — | P2 |  |  | Z1 — Farmland dressing. |
-| ❌ | **Well** | — | P1 |  |  | Z1 — Village centre landmark. |
+| 🟡 | **Well** | `well.svg` | P1 |  | 168 | Z1 — Village centre landmark. Placeholder SVG (body r0.7): stone ring, open shaft, thin winding beam. No roof - it would hide the hole that identifies it. |
 | ❌ | **Trough** | — | P3 |  |  | Z1 — Farmyard dressing. |
 | ❌ | **Barn** | — | P1 |  |  | Z1 — Second building type. The village is 12 copies of House today. |
 | ❌ | **Cottage variant** | — | P1 |  |  | Z1 — Third building type, so the village stops being one sprite tiled. |
 | ❌ | **Mill** | — | P2 |  |  | Z1 — The Zone 1 river POI. A landmark, not scatter. |
 | ❌ | **Bridge deck** | — | P1 |  |  | Z1 — The river crossing. ⚑ Must author crossesPaths:true and blocksMovement:false — both, or it walls its own deck (plan-world-paths L9). |
-| ❌ | **Fence post** | — | P2 |  |  | Terminates hedgerow/fence paths, which have no end-cap art. |
+| 🟡 | **Fence post** | `fencePost.svg` | P2 |  | 53 | Terminates hedgerow/fence paths, which have no end-cap art. Placeholder SVG (body r0.22): the post END GRAIN, seen top-down. No rail stubs - a path leaves in any direction and a prop rotation is never applied. |
 | ❌ | **Gate** | — | P2 |  |  | Z1 — Field gate on the fence line. |
 | ❌ | **Palisade segment** | — | P1 |  |  | Z2 — Bandit camp wall, Zone 2. Must tile — several sit shoulder to shoulder. |
 | ❌ | **Tent** | — | P2 |  |  | Z2 — Bandit camp. |
-| ❌ | **Crate** | — | P3 |  |  | Z1 — Camp/village clutter. |
+| 🟡 | **Crate** | `crate.svg` | P3 |  | 108 | Z1 — Camp/village clutter. Placeholder SVG (body 0.9x0.9 rect): lid boards, iron banding, top-down. |
+| 🟡 | **Torch** | `torch.svg` | P1 |  | 62 | Z1 — The only prop that EMITS LIGHT. Half a campfire radius (3.5 u), punched into the darkness overlay from zone.props at load - never streamed, or a dark pocket pops lit the moment the torch enters the viewport. Placeholder SVG (body r0.26, about a player wide): a tiny campfire from above, palette lifted from mobs/campfire.svg. Draws at 62 px: doubled from r0.13 on 2026-09-20 because a torch is the one small prop a player looks at. |
 | ❌ | **Signpost art** | — | P1 |  |  | Z2 — ForestSign exists as an NPC but wears signpost.svg alongside three monuments — see the shared-art warning. |
 | ❌ | **Mushroom cluster** | — | P3 |  |  | Z2 — Forest floor dressing, Zone 2. |
 | ❌ | **Mossy rock** | — | P2 |  |  | Z2 — Rock variant for the forest. Rock and Boulder are the same SVG scaled. |
@@ -241,13 +242,15 @@ of which **7 are P0**:
 | ✅ | **Settings icon** | `settings-icon.svg` | P3 |  |  | Gear. |
 | ✅ | **Day cycle icon** | `cycle-icon.svg` | P3 |  |  | Day/night indicator — the cycle is switched off at config level, so this is dark code. |
 
-## Terrain profile — 21
+## Terrain profile — 23
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
 | ✅ | **Fields** | `Grass6.jpg` | P0 |  | seamless tile, 512² suggested | Zone 1 base ground. Shares Grass6 with Suburbs — the two must stop looking identical. |
 | ✅ | **Suburbs** | `Grass6.jpg` | P1 |  | seamless tile, 512² suggested | Village/settled ground. Shares Grass6 with Fields. |
-| ❌ | **Forest** | — | P0 |  | seamless tile, 512² suggested | Zone 2 base ground. NO texture at all — flat colour today. Leaf litter and roots. |
+| 🟡 | **Ploughed** | `ploughed-placeholder.png` | P1 |  | seamless tile 750² | Z1 — Field plots, worn by POLYGONS on the Fields region (zone guide 2.2), not by regions. GENERATED placeholder (tools/make-field-tiles.mjs): furrow ridges with crevices between the clods. blend 0 - a field plot has straight man-made edges. Ships TWICE, as Ploughed and Ploughed Cross, because a profile has no rotation knob and one row direction everywhere reads as a printing error. scale 1 (NOT the usual 0.35): a tile covers 6.25 u and repeats ~1.7x on screen, where 0.35 repeated five times and read as corduroy. Furrows 0.57 u apart, soft rather than crisp, with sparse dark blotches breaking them - tuned against a reference image the PO supplied. Clods are a cellular lattice, now almost silent. |
+| 🟡 | **Wheat** | `wheat-placeholder.png` | P1 |  | seamless tile 750² | Z1 — Standing crop, same posture as Ploughed: a polygon plot, blend 0, and a Wheat Cross twin for the other row direction. GENERATED placeholder (tools/make-field-tiles.mjs), tuned against a tabletop static-grass reference the PO supplied: a dense flock of ~0.05 u TUFTS (the cellular lattice, not waves - wave marks read as squiggles or as ribbed card), with the drills deciding how much crop stands so bare earth shows between them. scale 1, drills 0.5 u apart. Fallback colour moved to #b08f4c with the art. |
+| 🟡 | **Forest** | `forest-placeholder.png` | P0 |  | seamless tile, 512² suggested | Zone 2 base ground. GENERATED placeholder (tools/make-cellular-tiles.mjs): moss duff |
 | 🟡 | **Swamp** | `pd161.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #585044. All numbers [PLACEHOLDER]. |
 | ✅ | **Coastal Cliff** | `sand.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #9c8f74. All numbers [PLACEHOLDER]. |
 | ✅ | **Coast** | `sand.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #dfc78d. All numbers [PLACEHOLDER]. |
@@ -261,7 +264,7 @@ of which **7 are P0**:
 | 🟡 | **Wasteland** | `pd119.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #9a682f. All numbers [PLACEHOLDER]. |
 | 🟡 | **Mountains** | `pd196.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #736d66. All numbers [PLACEHOLDER]. |
 | ❌ | **Ice** | — | P2 |  | seamless tile, 512² suggested | No texture — flat colour. |
-| ❌ | **Wall** | — | P2 |  | seamless tile, 512² suggested | No texture — flat colour. Worn by polygon outlines and blocking masses. |
+| 🟡 | **Wall** | `wall-placeholder.png` | P2 |  | seamless tile, 512² suggested | Worn by polygon outlines and blocking masses. GENERATED placeholder (tools/make-cellular-tiles.mjs): fieldstone courses of varied height with mortar joints. At scale 1 a stone is ~0.69 u |
 | 🟡 | **Road** | `pd106.jpg` | P0 |  | seamless tile, 512² suggested | Every road in the game. Borrows the desert tile (pd106). Dirt/packed earth wanted. |
 | 🟡 | **Water** | `water-placeholder.png` | P1 |  | seamless tile, 512² suggested | Rivers and ponds. Placeholder PNG. Drift is authored; the tile is not. |
 | 🟡 | **Bog** | `bog-placeholder.png` | P2 |  | seamless tile, 512² suggested | Swamp water. Placeholder PNG. First area-effect consumer when that ships. |
