@@ -1,6 +1,13 @@
 # Plan: Skill VFX - what a hit, a cast and a running aura look like, for everyone
 
-> **Status: C2a BUILT 2026-09-19 `512d4afd`, PO look PASSED (the engine:
+> **Status: C2b BUILT 2026-09-20 `5fae4fe2`, PO look PASSED ("works, I think
+> with this the chunk is done"): the other three kinds `cast-pose` / `orbit` /
+> `emitter`, the AMBIENT reconciler that dresses a running aura, the density
+> slider Off / Low / Full with its mobile default, `visual` on 46 more files
+> and two cheat-only skills (Whirling Axes 77, Firebolt 78), and the look
+> rounds' rulings: the bow on `hit`, a HELD weapon whose length is the skill's
+> reach. **C3 (art) and C4 (world scale) are what is left.**
+> C2a BUILT 2026-09-19 `512d4afd`, PO look PASSED (the engine:
 > the `SkillFx` manager on its own layer below darkness, budget + pools, the
 > math module, placeholder bodies, `impact` / `projectile` / `beam` plus the
 > amendment's caster-anchored `strike`, the `hitStyle` lever deleted end to end,
@@ -9,7 +16,7 @@
 > inside the four funnels, `Mob.owner_id`, five field names deprecated, numbers
 > own-caused only, loadbot: D10 stands). C0 SHIPPED 2026-09-19 `e8f7b6b4` (the `visual` key, one per SKILL: seven
 > closed kinds, three triggers, load-time validation, six generated fixture
-> lists, six content files authored). C2b-C4 unbuilt.** Designed 2026-09-11
+> lists, six content files authored). C3 + C4 unbuilt.** Designed 2026-09-11
 > (D1-D10 PO-ruled in one sitting; everything in §4-§7 that is not a D-number
 > is still a proposal with options). Line refs pinned to `df746e53`;
 > re-verify before executing. Ledger: §13.
@@ -28,7 +35,7 @@
 > does not exist, because nothing here attaches to the sprite (§7.1).
 >
 > **Schema, whole plan: DB NONE · WIRE one enum + one table + one appended vector +
-> `Mob.owner_id`, five field names deprecated (C1) + `aura_hit_style` deprecated on Mob and Character (C2a), all as built · CONTENT one new top-level skill key (C0), then the `strike` kind, the two `beam` keys and `visual` on 59 skills (C2a) · CONF NONE.**
+> `Mob.owner_id`, five field names deprecated (C1) + `aura_hit_style` deprecated on Mob and Character (C2a), NONE in C2b, all as built · CATALOG one field, `auraSkillId` on the HTTP `/mobs` catalog (C2b) · CONTENT one new top-level skill key (C0), then the `strike` kind, the two `beam` keys and `visual` on 59 skills (C2a), then `cast-pose` on `hit`, `visual` on 46 more files and two new skills, 107 of 116 skills dressed / 129 layers (C2b) · CONF NONE.**
 > All numbers [PLACEHOLDER].
 
 ---
