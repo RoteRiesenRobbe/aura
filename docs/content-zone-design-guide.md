@@ -49,7 +49,7 @@ here needs Go.
 | Layer / array | What it is | Use it for |
 |---|---|---|
 | `regions` | Filled area naming a **terrain profile** — the ground | The zone's base ground (Fields, Forest, Suburbs) |
-| `paths` | Stroked line or **closed ring**, a profile + width, optionally blocking | Roads, rivers, hedgerows, fences, cliff edges, cave walls |
+| `paths` | Stroked line or **closed ring**, a profile + width, optionally blocking, optionally **`alignTexture`** (runs the tile *along* the path — required by `Fence`, wrong for everything else) | Roads, rivers, hedgerows, fences, cliff edges, cave walls |
 | `polygons` | Filled closed area, optionally **blocking**, with an outline | Ponds, rock masses, building footprints, walls of a hideout |
 | `atmospheres` | The **air** over an area — `darkness` and/or `haze`, plus `sight` | Canopy gloom, forest fog, a dark tunnel, weather |
 | `clearings` | A closed area that **erases** atmosphere (`darkness`/`haze`/`both`) | A sunlit glade in the canopy, a lit camp inside the gloom |
@@ -125,10 +125,25 @@ Authoring shape:
 - A **Water** path for the river along the south, blocking, with one **bridge
   gap** on the road. The gap is the only crossing — that is what makes the south
   a pocket rather than an escape.
-- **Hedgerow / fence** = closed `paths` at low width with a `Wall`-ish profile,
-  blocking, ringing each field. They do the single most valuable job in a
-  starter zone: **they make the space read as cultivated** and they gently rail
-  the player along the road without a wall.
+- **Hedgerow / fence** = `paths` wearing the **`Fence`** profile, **blocking**,
+  ringing each field. They do the single most valuable job in a starter zone:
+  **they make the space read as cultivated** and they gently rail the player
+  along the road without a wall.
+  - ⛔ **`alignTexture: true` is not optional on a `Fence` path.** It is the
+    only directional profile in the table: without the flag the rails lie
+    *across* the fence, and nothing warns you.
+  - ⚑ **Width `0.40`, and one path PER STRAIGHT LEG** — not one closed ring
+    per field. The angle is derived from a path's longest segment, so a bend
+    gets its dominant leg and the short one is wrong. That is also how a fence
+    is built: the corner is where the post goes.
+  - ⚑ `blocksMovement` defaults to **false**, so an unset fence is decorative
+    and the wolves walk straight through it.
+- **A gate** is the `Gate` prop dropped in a GAP between two fence legs. It is
+  the one prop here that does not block — the fence is the wall, the gate is
+  the door — and it is drawn standing open to say so. Rotate it to match the
+  fence's direction.
+- **The broken fence POI** is two legs with a gap and the wolves in the gap.
+  No damaged art needed, and it reads better than any would.
 - **Field plots** = `polygons` with the Fields/Suburbs profile at a different
   tint, non-blocking, rectangular-ish and *aligned to each other*. Straight
   parallel edges are the whole visual language of farmland; anywhere else in the

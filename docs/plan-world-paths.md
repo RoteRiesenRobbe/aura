@@ -208,6 +208,9 @@ Opt-in per profile (`"scroll": {"x": …, "y": …}`, **[PLACEHOLDER]**); absent
 - **FlatBuffers: NONE.** Paths never reach the wire — the client reads its bundled zone copy (as it does for `regions`, `terrain`, `darkAreas`), and the colliders are deliberately off `LayerViewportCollision`.
 - **conf: NONE.**
 - **Content:** one new zone array. Backward compatible — an absent `paths` is no paths.
+- ⚑ **Amended 2026-09-20** by the `alignTexture` rider at the end of this doc:
+  one additive key on a path, omitted when false, so every zone file is still
+  byte-identical. DB / FlatBuffers / conf all still NONE.
 
 ---
 
@@ -324,3 +327,70 @@ Both writers must emit **byte-identical** output; that is `aura-convert.js`'s st
 **Verified:** `tsc --noEmit` clean · **vitest 620/620** (was 602; +18) · `webpack --config webpack.prod.js` compiled (3 pre-existing size warnings only). **Mutation-verified twice**: rejecting the authored `{0,0}` in `parseScroll` reddens *"KEEPS an authored zero vector"*; returning the shared `DEFAULT_PROFILE.scroll` object reddens *"never hands back the shared default object"* and *"never borrows the drift"*.
 
 **⛔ Not in-game-verified by me** — the PO has water authored in `world.json` and is looking at it. ⚑ The pixi half (`advanceSurfaceScroll`, the `TilingSprite` phase and wrap) is **untestable in vitest** by the same house split that leaves `buildBlendMask` untested: `RegionPaint.ts` reaches webpack's `require.context` at import. The pure half — parse, totality, the anti-aliasing of the shared default — is covered.
+
+### Rider — `alignTexture`, shipped 2026-09-20 `30c2434e`
+
+Not a chunk from §5: a field added to the primitive after the fact, on a PO
+ask ("is it possible to add a flag to paths to make them path aligned?").
+Recorded here because §6's schema table and §4's design entries are where the
+next reader will look for what a path can carry.
+
+**What it is.** `alignTexture: true` on a path TURNS its tile to run along the
+path and REGISTERS it across the path. Absent on every shipped path, so no
+zone file changed a byte and every road and river paints exactly as before.
+
+⭐ **Why the profile table could not answer it.** A tile is phased from the
+WORLD ORIGIN and never rotated, so a directional material — fence rails, cart
+ruts, a palisade, strata in a cliff — is right on an east-west run and crosses
+its own shape on a north-south one. D3 already settled the shape of the fix:
+`width` sits beside the points rather than in the profile because it is
+GEOMETRY, and a direction is geometry for the same reason. A profile is a
+MATERIAL and must not grow a rotation knob.
+
+⛔ **The ANGLE is never authored, only the flag.** Both the angle and the
+registration anchor are derived from the path's LONGEST SEGMENT, for the
+reason `Closed` records in `zone.go`: an authored angle can contradict the
+shape it was drawn as, and then the file disagrees with itself about which way
+the fence runs. ⚑ The consequence the author has to know: **one path per
+straight leg**, because a bend gets its dominant leg's angle and the short leg
+is wrong. That is also how a fence is built.
+
+⭐ **Registration is the half that matters, and it arrived a draft late.**
+Turning alone leaves the tile phasing from the world origin, so the window a
+stroke reveals sits at an arbitrary offset ACROSS the ribbon and the tile can
+put nothing at a known height. The first fence tile was built under that limit
+— macro pattern along the path only — and came out a BOARDWALK (PO: "not like
+a fence at all"). **A fence is mostly GAPS, and a gap is structure across the
+ribbon.** `RegionPaint.tileMatrix` now slides the tile along the path's normal
+until its middle row sits on the anchor. ⚑ The general lesson: when a tile
+cannot be made to read, check whether what is stopping it is a CONSTRAINT YOU
+ACCEPTED rather than the art.
+
+⛔ **A drifting surface is never turned**, and it warns once at zone load
+rather than misbehaving quietly. The drift wraps `tilePosition` at the tile's
+period along the LOCAL x-axis, which stops being its period once the tile is
+rotated, so the pattern would jump once per wrap. C3's three scrollers
+(`Water`, `Bog`, `Lava`) are the only ones, and none is directional. ⚑ Making
+the two work together means tracking the period along the turned axes — a
+chunk, with no consumer.
+
+⚑ **A C3 trap closed on the way past.** `scrollingSurface` read the scale back
+off `paint.matrix.a`, which is only the scale while the matrix is a pure
+`scale(s, s)`; with a rotation it becomes `s·cos θ`. Never a live defect — it
+was armed for whoever added rotation next. The scale is carried explicitly now.
+
+**Schema: DB none · FlatBuffers none · conf none · ZONE FORMAT one additive
+key**, omitted when false, through all four writers plus the `AuraPath` class.
+
+⛔ **Two process notes.** ① The Tiled extension is a COPY — the first
+round-trip silently dropped the new key because `tools/tiled/install.sh` had
+not been re-run after editing `aura-convert.js`. ② Registration shipped broken
+through one whole in-game pass (a scripted edit failed to match, so
+`paintPaths` never passed the anchor) and only showed because the probe used
+deliberately AWKWARD offsets, y = 13.37 and 16.11, instead of round numbers.
+Round coordinates would have looked perfect and broken on the first real fence.
+
+**First consumer: the `Fence` profile** (`tools/make-fence-tile.mjs`), and the
+named next ones are a `Road` with ruts along it, a palisade, and a cliff edge
+with strata. ⚑ `Road` is still `stock` at P0 in `docs/art/assets.csv` and is
+the biggest one.
