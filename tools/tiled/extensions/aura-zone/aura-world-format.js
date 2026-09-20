@@ -186,6 +186,22 @@
             // terrain array order IS paint order, so the canvas must draw by
             // index rather than Tiled's default y-sort.
             group.drawOrder = ObjectGroup.IndexOrder;
+            /* ⭐ The big background layers open LOCKED (plan-zone-naming.md D2).
+             * Which ones is the converter's call, not this file's — the spec
+             * carries the flag so the pure converter stays the single source and
+             * vitest can see it, exactly as drawOrder already does.
+             *
+             * ⛔ This assignment IS the persistence. Tiled's session file does
+             * not store layer lock or visibility, and a zone file has no layer
+             * records to store it in, so whatever the spec says is the state on
+             * every open — a hand-unlock in the Layers panel lasts until the
+             * file is closed and no longer. (Measured on Tiled 1.12.2; the
+             * ObjectGroup API does carry both `locked` and `visible`.)
+             *
+             * ⚑ Locked, never hidden: a locked layer still DRAWS at full
+             * opacity and merely refuses selection, which is the whole point —
+             * hiding it would take away the thing you are authoring against. */
+            if (spec.locked) { group.locked = true; }
 
             for (var j = 0; j < spec.objects.length; j++) {
                 var src = spec.objects[j];

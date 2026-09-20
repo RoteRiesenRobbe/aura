@@ -165,7 +165,7 @@
         },
         {
             "id": 7,
-            "name": "AuraProfile",
+            "name": "AuraTerrainProfile",
             "type": "enum",
             "storageType": "string",
             "values": [
@@ -438,7 +438,7 @@
                 {
                     "name": "profile",
                     "type": "string",
-                    "propertyType": "AuraProfile",
+                    "propertyType": "AuraTerrainProfile",
                     "value": "(pick a profile)"
                 }
             ]
@@ -457,7 +457,7 @@
                 {
                     "name": "profile",
                     "type": "string",
-                    "propertyType": "AuraProfile",
+                    "propertyType": "AuraTerrainProfile",
                     "value": "(pick a profile)"
                 },
                 {
@@ -473,7 +473,7 @@
                 {
                     "name": "outlineProfile",
                     "type": "string",
-                    "propertyType": "AuraProfile",
+                    "propertyType": "AuraTerrainProfile",
                     "value": "(pick a profile)"
                 },
                 {
@@ -503,7 +503,7 @@
                 {
                     "name": "profile",
                     "type": "string",
-                    "propertyType": "AuraProfile",
+                    "propertyType": "AuraTerrainProfile",
                     "value": "(pick a profile)"
                 },
                 {
@@ -514,7 +514,7 @@
                 {
                     "name": "outlineProfile",
                     "type": "string",
-                    "propertyType": "AuraProfile",
+                    "propertyType": "AuraTerrainProfile",
                     "value": "(pick a profile)"
                 },
                 {

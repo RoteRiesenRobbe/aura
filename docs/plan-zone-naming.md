@@ -1,6 +1,6 @@
 # Plan: Zone / level-editor naming, and the Tiled layer order
 
-**Status:** designed 2026-09-20 (PO session), nothing built. **2 chunks: N1 → N2.**
+**Status:** designed 2026-09-20 (PO session). **N1 BUILT 2026-09-20** (ledger §10, uncommitted); **N2 unstarted.**
 
 PO ask, verbatim: *"i want to plan changing some namings of zone / level editor
 elements to better match the intention … i also want to reorder the layers in
@@ -327,4 +327,72 @@ regenerate the palette, and re-run `verify.sh` through real Tiled.
 
 ## 10. Chunk ledgers
 
-*(none yet — N1 unstarted)*
+### N1 — layer order, locks, and `AuraTerrainProfile` ✅ 2026-09-20 (uncommitted)
+
+The Tiled layer stack is now the client's own draw order read bottom-first, the
+two big background layers open locked, and the ground profile enum is
+`AuraTerrainProfile`. **Not one byte of any zone file changed**, which is the
+claim the whole chunk rests on and which `verify.sh` proves through real Tiled.
+
+**Schema: DB / WIRE / CONF / CONTENT / ZONE FORMAT — ALL NONE.**
+
+⭐ **The strongest evidence is a leg that was already there.** `regions` and
+`atmospheres` are both locked, and both still round-trip **byte-identically**
+through a real Tiled `--export-map`. That is what proves a locked layer is still
+read, still written and still saved — the one behaviour worth being nervous
+about, confirmed by the existing suite rather than by a new assertion.
+
+⚑ **`group.locked` is honoured in `aura-world-format.js`, and NOTHING automated
+can see it.** `--export-map` never builds a Layers panel, so the padlock itself
+is only checkable by eye — [[project-tiled-roundtrip-blind-spot]] again. New
+**footer items 8 and 9** in `verify.sh` are the check, and item 9 deliberately
+tells the reader to unlock, reopen, and expect the padlock BACK, so the one
+surprising behaviour is documented where it will be met.
+
+⭐ **A PRE-EXISTING TEST DEFECT FELL OUT, and it is the durable part.**
+`terrain paint order is preserved as index draw order` read its fixture out of
+the live `world.json` and indexed `src.terrain[last]`. The PO's current
+authoring leaves `terrain` **empty**, so `last` was `-1`, `objects[0]` was
+`undefined`, and the test died on `.name` with a message naming nothing about
+paint order. ⚑ It is [[feedback-tests-derive-not-hardcode]] read one turn too
+literally: deriving from live content protects against a *census* changing but
+not against the content being *empty*, and "is order preserved" never needed
+real content to be true at all. Now three blobs of known, different types.
+⛔ **Confirmed pre-existing, not caused here** — it fails identically with every
+change of this chunk stashed.
+
+⚑ **The nine positional layer pins are gone.** `layers[0]`/`[1]`/`[2]` meant
+terrain/props/spawns and turned a free presentational change into nine red tests
+that said nothing about what they guarded. They now go through `layerNamed`, and
+the order has **one** test, where a reader will look for it.
+
+⚑ **A stash flips line endings and fakes a stale palette.** During the Go
+baseline comparison, `git stash push`/`pop` rewrote `aura.tiled-project`,
+`content.json` and `propertytypes.json` with CRLF while the generator writes LF —
+so `verify.sh`'s palette leg reported **STALE** with the content identical.
+Re-running cleared it. Worth knowing before diagnosing that leg for real.
+
+**Changed:** `aura-convert.js` (stack order + `locked` flags + `LAYERS`
+whitelist reordered to match + `REGION_ENUMS.profile`) · `aura-world-format.js`
+(`group.locked`) · `generate-palette.mjs` (6 sites) · regenerated
+`aura.tiled-project`, `palette/content.json`, `palette/propertytypes.json` (the
+enum keeps id **7** — no id churn) · `AuraTiledConvert.test.ts` · `verify.sh`
+footer · `manual-tiled-editor.md` §2 (⚑ its table said *"seven object layers"*
+and listed seven; there are **nine**, and it predated polygons, atmospheres and
+clearings entirely) · a comment in `terrain-profiles.json`.
+
+**Verified:** `go build ./...` **EXIT 0** · `go vet ./...` **EXIT 0** · tsc
+**EXIT 0** · **vitest 969/969** (converter file 174/174, +4 new legs) · prod
+build compiled · **`verify.sh` all green, 24 legs through real Tiled** including
+both locked layers round-tripping byte-identically · **mutation-verified ×5, all
+five caught by the intended leg**: reordering the stack, dropping `locked` from
+`regions`, locking a third layer, hiding a layer, and desyncing the `LAYERS`
+whitelist from the stack.
+
+⚑ **`go test ./...` is RED and none of it is this chunk.** Three packages fail
+(`cmd/aurad`, `cmd/simharness`, `pkg/aura/world`) — the failing set is
+**identical with this chunk's changes stashed**, so it is the PO's uncommitted
+content, not N1. N1 touches no Go at all.
+
+**Owed:** the human checks (footer items 8 and 9) have not been run — the PO has
+not opened Tiled since. Open call #2 in §9 is live until they do.

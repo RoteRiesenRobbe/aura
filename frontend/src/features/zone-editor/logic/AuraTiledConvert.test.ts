@@ -50,6 +50,30 @@ function roundTrip(z: unknown) {
     return JSON.parse(C.serializeZone(C.modelToZone(C.zoneToModel(z))));
 }
 
+/* ⭐ Reach for a layer BY NAME, never by index (plan-zone-naming.md N1).
+ *
+ * ⛔ Nine assertions in this file used to say `layers[0]` for terrain, `[1]` for
+ * props and `[2]` for spawns — a positional pin over an order that is PURE
+ * PRESENTATION. The zone file stores arrays, not layers, and modelToZone reads
+ * them back by name, so the stack can be reordered for authoring ergonomics
+ * without a single byte of content moving. Those pins turned that free change
+ * into nine red tests that said nothing about the behaviour they were guarding.
+ *
+ * The ORDER still has a test — one, deliberately, in the stack-order block,
+ * which is where a reader looking for it will go.
+ *
+ * ⚑ Loosely typed on purpose, matching the rest of this file: `C` comes through
+ * createRequire and is untyped, so every existing assertion reaches into the
+ * model structurally. Narrowing only here would make the helper the one thing
+ * that has to know a layer's full shape. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function layerNamed(m: any, name: string): any {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const found = m.layers.find((l: any) => l.name === name);
+    if (!found) { throw new Error(`no layer named "${name}"`); }
+    return found;
+}
+
 describe('AuraConvert — byte-stability against the shipped world.json', () => {
     it('the canonical serializer reproduces world.json exactly', () => {
         expect(C.serializeZone(JSON.parse(worldText))).toBe(worldText);
@@ -128,15 +152,101 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
         });
     });
 
+    /* ⛔ THE FIXTURE IS SYNTHETIC ON PURPOSE, and the reason is a defect this
+     * test HAD (found during plan-zone-naming.md N1). It used to read the blob
+     * list out of the live world.json and index `src.terrain[last]` — so the day
+     * an authoring session left `terrain` EMPTY, `last` went to -1,
+     * `objects[0]` was undefined and the test died on `.name` with a message
+     * naming nothing about paint order.
+     *
+     * ⚑ It is the [[feedback-tests-derive-not-hardcode]] rule read one turn too
+     * literally: deriving from live content protects against a CENSUS changing,
+     * but it cannot protect against the content being empty — and "is order
+     * preserved" never needed real content to be true. Three blobs of known,
+     * DIFFERENT types say it exactly, and no authoring edit can touch it.
+     *
+     * The byte-stability tests above still read the real world.json, which is
+     * the thing they are actually about. */
     it('terrain paint order is preserved as index draw order', () => {
-        const src = JSON.parse(worldText);
+        const src = zone({
+            terrain: [
+                {type: 'Land', x: 0, y: 0, size: 1, rotation: 0, flipped: 'none'},
+                {type: 'Sand', x: 1, y: 1, size: 1, rotation: 0, flipped: 'none'},
+                {type: 'Pebble', x: 2, y: 2, size: 1, rotation: 0, flipped: 'none'},
+            ],
+        }) as {terrain: {type: string}[]};
         const model = C.zoneToModel(src);
-        const terrain = model.layers.find((l: {name: string}) => l.name === 'terrain');
+        const terrain = layerNamed(model, 'terrain');
         expect(terrain.drawOrder).toBe('index');
         // array order is paint order, so object order must match file order
-        const last = src.terrain.length - 1;
-        expect(terrain.objects[0].name).toBe(src.terrain[0].type);
-        expect(terrain.objects[last].name).toBe(src.terrain[last].type);
+        expect(terrain.objects.map(o => o.name))
+            .toEqual(src.terrain.map(t => t.type));
+    });
+
+    /* ⭐ THE STACK IS THE CLIENT'S DRAW ORDER, BOTTOM-FIRST
+     * (plan-zone-naming.md D1). Tiled's layer list is bottom-to-top, so index 0
+     * is the lowest layer — and it has to be `regions`, because in game a region
+     * is the ground the texture blobs are scattered ON.
+     *
+     * ⚑ This is the ONE test that pins the order, on purpose. It used to be
+     * pinned incidentally by nine `layers[0]`-style assertions scattered through
+     * the file (see layerNamed above), which is how a free, presentational
+     * change came to look like nine broken tests.
+     *
+     * ⛔ Hardcoded rather than derived, and that is the exception this file's
+     * "derive, never hardcode" rule wants: the order IS the decision. Deriving
+     * it from C.LAYERS would only assert that two copies of the same list agree,
+     * which is what the next test is for. */
+    it('the layer stack is the client draw order, bottom-first', () => {
+        const model = C.zoneToModel(JSON.parse(worldText));
+        expect(model.layers.map((l: {name: string}) => l.name)).toEqual([
+            'regions',      // terrain.regions — the ground itself
+            'paths',        // terrain.polygons + terrain.paths
+            'terrain',      // terrain.textures — blobs ON the ground
+            'props',        // resources.* / terrain.decks
+            'spawns',       // mobs.*
+            'campfires',    // not rendered from this array
+            'darkAreas',    // darkness
+            'atmospheres',  // haze + darkness
+            'anchors',      // not rendered
+        ]);
+    });
+
+    // The whitelist and the stack are two lists of the same names, and
+    // aura-world-format.js rejects an unknown layer off the whitelist. Letting
+    // them drift would leave two different answers to "what layers are there".
+    it('the LAYERS whitelist matches the stack, order included', () => {
+        const model = C.zoneToModel(JSON.parse(worldText));
+        expect(model.layers.map((l: {name: string}) => l.name)).toEqual(C.LAYERS);
+    });
+
+    /* ⭐ The two big background layers open LOCKED (D2) — a screen-sized region
+     * or fog bank otherwise eats every click aimed at a prop under it, and a
+     * stray drag moves a vertex nobody meant to touch.
+     *
+     * ⚑ Pinned as an EXACT SET, not as "regions is locked": the failure worth
+     * catching is a third layer quietly gaining the flag, which would make a
+     * layer uneditable with nothing on screen saying why.
+     *
+     * ⛔ This asserts the CONVERTER's intent and cannot reach the Tiled GUI.
+     * Whether Tiled honours it is aura-world-format.js's `group.locked` line and
+     * is verifiable only by eye — verify.sh cannot see a Layers panel
+     * ([[project-tiled-roundtrip-blind-spot]]). */
+    it('regions and atmospheres — and only those — open locked', () => {
+        const model = C.zoneToModel(JSON.parse(worldText));
+        const locked = model.layers
+            .filter((l: {locked?: boolean}) => l.locked)
+            .map((l: {name: string}) => l.name);
+        expect(locked).toEqual(['regions', 'atmospheres']);
+    });
+
+    // Nothing ships hidden: a hidden layer takes away the thing you are
+    // authoring against, which is strictly worse than one you have to unlock.
+    it('no layer ships hidden', () => {
+        const model = C.zoneToModel(JSON.parse(worldText));
+        model.layers.forEach((l: {visible?: boolean}) => {
+            expect(l.visible).toBeUndefined();
+        });
     });
 });
 
@@ -239,7 +349,7 @@ describe('AuraConvert — terrain geometry', () => {
         const model = C.zoneToModel(zone({
             terrain: [{type: 'Land', x: 0, y: 0, size: 1.75, rotation: 0, flipped: 'none'}],
         }));
-        const o = model.layers[0].objects[0];
+        const o = layerNamed(model, 'terrain').objects[0];
         expect(o.width).toBe(420);
         expect(o.height).toBe(420);
     });
@@ -260,7 +370,7 @@ describe('AuraConvert — terrain geometry', () => {
         const model = C.zoneToModel(zone({
             terrain: [{type: 'Land', x: 0, y: 0, size: 1, rotation: 0, flipped: 'horizontal'}],
         }));
-        model.layers[0].objects[0].flipV = true;
+        layerNamed(model, 'terrain').objects[0].flipV = true;
         expect(() => C.modelToZone(model)).toThrow(/both-axes flip/);
     });
 
@@ -268,7 +378,7 @@ describe('AuraConvert — terrain geometry', () => {
         const model = C.zoneToModel(zone({
             terrain: [{type: 'Land', x: 0, y: 0, size: 1, rotation: 0, flipped: 'vertical'}],
         }));
-        const o = model.layers[0].objects[0];
+        const o = layerNamed(model, 'terrain').objects[0];
         expect(o.shape).toBe('tile');
         expect({h: o.flipH, v: o.flipV}).toEqual({h: false, v: true});
         expect(o.properties.flipped).toBeUndefined();
@@ -412,7 +522,7 @@ describe('AuraConvert — the generated palette (C2)', () => {
                 {type: 'Tree', x: 0, y: 0, rotation: 0, blocksMovement: true},
             ],
         }));
-        const [house, tree] = model.layers[1].objects;
+        const [house, tree] = layerNamed(model, 'props').objects;
         // ⚑ DERIVED from the palette, never typed: a body is a [PLACEHOLDER]
         // look call the PO retunes in front of the game, and a test that names
         // the number turns every such retune into a red suite. What is being
@@ -448,7 +558,7 @@ describe('AuraConvert — the generated palette (C2)', () => {
                 {mob: 'Farmer', x: 0, y: 0, angle: 0},  // talker (authors an interaction)
             ],
         }));
-        expect(model.layers[2].objects.map((o: {cls: string}) => o.cls))
+        expect(layerNamed(model, 'spawns').objects.map((o: {cls: string}) => o.cls))
             .toEqual(['AuraSpawnCombat', 'AuraSpawnTalker']);
     });
 
@@ -459,7 +569,7 @@ describe('AuraConvert — the generated palette (C2)', () => {
     it('resizing a prop authors scale, and the centre still comes back', () => {
         const src = zone({props: [{type: 'House', x: 3, y: -4, rotation: 0, blocksMovement: true}]});
         const model = C.zoneToModel(src);
-        const o = model.layers[1].objects[0];
+        const o = layerNamed(model, 'props').objects[0];
         // House is 4×3 units = 480×360 px. Double it, about its centre.
         // ⚑ A tile object anchors BOTTOM-left, so the bottom edge moves DOWN
         // (+y) while the left edge moves left — getting this backwards is
@@ -494,7 +604,7 @@ describe('AuraConvert — the generated palette (C2)', () => {
         // what blocks, at the size it blocks.
         const box = (t: string, s: number) =>
             [content.PROP_SIZE[t].w * C.PX * s, content.PROP_SIZE[t].h * C.PX * s];
-        expect(model.layers[1].objects.map((o: {width: number; height: number}) =>
+        expect(layerNamed(model, 'props').objects.map((o: {width: number; height: number}) =>
             [o.width, o.height])).toEqual([box('Tree', 2.5), box('House', 0.5)]);
         expect(roundTrip(src).props.map((p: {scale?: number}) => p.scale)).toEqual([2.5, 0.5]);
     });
@@ -524,7 +634,7 @@ describe('AuraConvert — patrol routes and the remaining arrays', () => {
             patrolMode: 'loop',
         };
         const model = C.zoneToModel(zone({bounds: {width: 188, height: 144}, spawns: [s]}));
-        const o = model.layers[2].objects[0];
+        const o = layerNamed(model, 'spawns').objects[0];
         expect(o.shape).toBe('polyline');
         // One vertex per waypoint — no prepended origin. This spawn's route does
         // not start at its own spawn point (5 of the 7 in world.json don't), so
@@ -547,7 +657,7 @@ describe('AuraConvert — patrol routes and the remaining arrays', () => {
             waypoints: [{x: -42.37, y: 26.86}, {x: -42.05, y: 21.18}],
         };
         const model = C.zoneToModel(zone({spawns: [s]}));
-        const o = model.layers[2].objects[0];
+        const o = layerNamed(model, 'spawns').objects[0];
         expect(o.polygon).toHaveLength(2);
         expect(o.polygon[0]).toEqual({x: 0, y: 0});
         expect(roundTrip(zone({spawns: [s]})).spawns[0]).toEqual(s);
@@ -624,12 +734,12 @@ describe('AuraConvert — patrol routes and the remaining arrays', () => {
     // class member that declares the enum, and the Properties panel degrades
     // from a dropdown to a free-text box. The spawn's mob carries the same
     // marker for the same reason.
-    it('marks profile as an AuraProfile enum so the panel keeps the dropdown', () => {
+    it('marks profile as an AuraTerrainProfile enum so the panel keeps the dropdown', () => {
         const m = C.zoneToModel(zone({
             regions: [{profile: 'swamp', points: [{x: 0, y: 0}, {x: 2, y: 0}, {x: 2, y: 2}]}],
         }));
         const o = m.layers.filter(l => l.name === 'regions')[0].objects[0];
-        expect(o.enums).toEqual({profile: 'AuraProfile'});
+        expect(o.enums).toEqual({profile: 'AuraTerrainProfile'});
     });
 
     // ⚑ And the other half of that defect: Tiled hands a typed enum property
@@ -637,13 +747,13 @@ describe('AuraConvert — patrol routes and the remaining arrays', () => {
     // that took the raw value would write the number 2 into the zone file as a
     // profile name — which zone.go accepts (D8) and the client cannot resolve.
     it('decodes a profile handed back as an enum index', () => {
-        const values = (content.ENUM_VALUES as Record<string, string[]>).AuraProfile;
+        const values = (content.ENUM_VALUES as Record<string, string[]>).AuraTerrainProfile;
         const wanted = values[values.length - 1];
         const m = C.zoneToModel(zone({
             regions: [{profile: 'swamp', points: [{x: 0, y: 0}, {x: 2, y: 0}, {x: 2, y: 2}]}],
         })) as {layers: {name: string, objects: {properties: Record<string, unknown>}[]}[]};
         m.layers.filter(l => l.name === 'regions')[0].objects[0].properties.profile =
-            {typeName: 'AuraProfile', typeId: 1, value: values.indexOf(wanted)};
+            {typeName: 'AuraTerrainProfile', typeId: 1, value: values.indexOf(wanted)};
         expect(C.modelToZone(m).regions[0].profile).toBe(wanted);
     });
 
@@ -1218,7 +1328,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
     // ⭐ C2 inverts C1's posture here, deliberately: while the palette was free
     // text there was no vocabulary to check a name against, so an unknown one
     // could only be absorbed by the client (D11 — it costs that region's look
-    // and nothing else). The generated AuraProfile enum IS that vocabulary, so
+    // and nothing else). The generated AuraTerrainProfile enum IS that vocabulary, so
     // the typo is now caught where it was written, with the object id.
     it('rejects an unknown profile name, now that the palette carries the vocabulary', () => {
         const msg = only(region({profile: 'no-such-profile'}));
@@ -1270,7 +1380,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
     // round-trip CANNOT catch this. Headless --export-map loads no project, so
     // tiled.propertyValue throws and aura-world-format.js falls back to writing
     // the bare string (its typedValue), which round-trips whatever the member
-    // says. Pointing AuraAtmosphere.profile back at AuraProfile was mutation-
+    // says. Pointing AuraAtmosphere.profile back at AuraTerrainProfile was mutation-
     // tested against the full verify.sh and every leg stayed GREEN — the only
     // visible symptom is the wrong DROPDOWN in the GUI, which is why this pin
     // exists and why verify.sh’s footer now asks a human to look.
@@ -1297,16 +1407,16 @@ describe('AuraConvert — save-time validation (C4)', () => {
         // atmosphere would pass a palette that had moved EVERYTHING to the air
         // enum, which is the same bug wearing the other shoe.
         it('leaves every ground surface on the terrain enum', () => {
-            expect(memberType('AuraRegion', 'profile')).toBe('AuraProfile');
-            expect(memberType('AuraPath', 'profile')).toBe('AuraProfile');
-            expect(memberType('AuraPolygon', 'profile')).toBe('AuraProfile');
+            expect(memberType('AuraRegion', 'profile')).toBe('AuraTerrainProfile');
+            expect(memberType('AuraPath', 'profile')).toBe('AuraTerrainProfile');
+            expect(memberType('AuraPolygon', 'profile')).toBe('AuraTerrainProfile');
         });
 
         // ⚑ An outline is a GROUND surface even on a shape that is not — it
         // strokes the boundary, so it paints from the terrain table.
         it('keeps outlines on the terrain enum, on both surface types', () => {
-            expect(memberType('AuraPath', 'outlineProfile')).toBe('AuraProfile');
-            expect(memberType('AuraPolygon', 'outlineProfile')).toBe('AuraProfile');
+            expect(memberType('AuraPath', 'outlineProfile')).toBe('AuraTerrainProfile');
+            expect(memberType('AuraPolygon', 'outlineProfile')).toBe('AuraTerrainProfile');
         });
 
         // ⭐ The area effect (plan-area-effects.md E1) — a THIRD vocabulary, and
@@ -1338,7 +1448,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
         // Both carry the placeholder at index 0 and the names after it.
         it('offers exactly the names the converter will accept', () => {
         const values = (name: string) => classOf(name).values as string[];
-            expect(values('AuraProfile').slice(1))
+            expect(values('AuraTerrainProfile').slice(1))
                 .toEqual(content.PROFILE_NAMES as string[]);
             expect(values('AuraAtmosphereProfile').slice(1))
                 .toEqual(content.AIR_PROFILE_NAMES as string[]);
@@ -1376,7 +1486,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
         names.forEach(profile => expect(errs(region({profile})), profile).toEqual([]));
     });
 
-    // The AuraProfile default, mirroring AuraMobName's: a class member cannot
+    // The AuraTerrainProfile default, mirroring AuraMobName's: a class member cannot
     // be empty, so a freshly drawn region would otherwise silently become
     // whichever profile happens to sort first.
     it('refuses to save a region nobody assigned a profile to', () => {
