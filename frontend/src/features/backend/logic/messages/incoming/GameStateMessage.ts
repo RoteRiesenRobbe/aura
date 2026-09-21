@@ -666,6 +666,13 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     // (`blocksMovement: false`), never a class.
     [AuraApi.EntityType.Gate]: Props.genericPropClasses.Gate,
     [AuraApi.EntityType.Stump]: Props.genericPropClasses.Stump,
+    // The forest set. Generic every one of them — a tree variant is a second
+    // DRAWING, not a second behaviour, and none of these needs the bespoke
+    // Tree class (whose only job is the resource-spot decal).
+    [AuraApi.EntityType.PineTree]: Props.genericPropClasses.PineTree,
+    [AuraApi.EntityType.Bush]: Props.genericPropClasses.Bush,
+    [AuraApi.EntityType.DeadTree]: Props.genericPropClasses.DeadTree,
+    [AuraApi.EntityType.FallenLog]: Props.genericPropClasses.FallenLog,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

@@ -76,5 +76,9 @@ export enum EntityType {
   Mill = 86,
   BurntCart = 87,
   Gate = 88,
-  Stump = 89
+  Stump = 89,
+  PineTree = 90,
+  Bush = 91,
+  DeadTree = 92,
+  FallenLog = 93
 }

@@ -149,7 +149,33 @@ enum EntityType : ushort {
   // A cut stump — farm edge and forest floor both. Blocking, and smaller than
   // it looks: the collider is 0.41 against a 0.55 visual, because the root
   // flare and the chips around it are art rather than obstacle.
-  Stump = 89
+  Stump = 89,
+
+  // ⭐ THE FOREST SET. Tree (2) was ~46 % of every prop placed and there was
+  // exactly ONE drawing of it, so these four exist to break that up — and the
+  // rule they were drawn to is that a variant must differ in SILHOUETTE, never
+  // just in colour, because the eye counts outlines long before it compares
+  // hues. Spiked wheel, lumpy clump, bare branch diagram, long bar.
+  //
+  // ⚑ All four are GENERIC props (Props.ts), not Tree subclasses, so none of
+  // them gets the `treeSpot` litter decal. That decal draws at 0.7 x the crown
+  // and is covered by it, so its absence does not show.
+  PineTree = 90,
+
+  // ⚑ The understorey, and the one prop here that does NOT block: its whole
+  // value is that it can be scattered by the hundred without adding a collider
+  // to walk around. A placement can still override that.
+  Bush = 91,
+
+  // ⛔ Collider 0.33 against a 0.95 visual — BRANCHES ARE AIR. Blocking out to
+  // the drip line would make it the most obstructive prop in the game while
+  // looking like the most passable.
+  DeadTree = 92,
+
+  // ⚑ Rect-bodied, so since C2b the authored rotation turns the COLLIDER with
+  // the sprite — which is the point, a log should be able to lie across a lane
+  // at any angle. The baked shadow turns with it, the same trade Cart takes.
+  FallenLog = 93
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

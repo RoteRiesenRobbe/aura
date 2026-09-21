@@ -1,0 +1,6 @@
+{
+  "name": "DeadTree",
+  "entityType": "DeadTree",
+  "sprite": "deadTree.svg",
+  "body": { "radius": 0.95, "collisionFactor": 0.35 }
+}

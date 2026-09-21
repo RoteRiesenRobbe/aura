@@ -1,0 +1,87 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- Placeholder BUSH art (docs/art/assets.csv prop-bush): the UNDERSTOREY.
+       Trees with nothing between them is an orchard, not a wood.
+
+       ⭐ IT MUST NOT READ AS A SMALL TREE, and that is the whole difficulty,
+       because a small green blob IS a small tree to the eye. Three things
+       keep them apart, and none of them is the size:
+         1. NO CENTRE. A tree is radial — crown around a trunk, one bright
+            point in the middle. A bush has no axis, so the lobes here are
+            deliberately OFF-BALANCE, with the pale one up-left rather than
+            in the middle. Centre the highlight and it becomes a sapling.
+         2. A LUMPY OUTLINE. A tree's silhouette is one closed curve. This is
+            five overlapping lobes with leaf marks breaking the rim, so the
+            edge is ragged everywhere instead of smooth everywhere.
+         3. A WARMER, YELLOWER GREEN than either tree (#4a8a2e against
+            roundTree's #21790f and the conifer's #1b5230). Scrub in the light
+            gap between trees really is yellower, and it separates the layers.
+
+       ⭐ NON-BLOCKING BY DEFINITION (`blocksMovement: false`), and that is the
+       point of the asset rather than a detail of it: it is the only forest
+       filler that can be scattered by the hundred without adding one collider
+       to walk around. ⚑ A placement can still override it (zone.go Prop's
+       tri-state) if the PO wants one specific thicket to be solid.
+
+       ⚑ The shadow is SMALL and SOFT. A bush is knee-high; a tree-sized drop
+       shadow under it would put it back in the canopy layer it is here to
+       avoid.
+
+       Circle body r 0.45, square viewBox, so the SVG bake needs no
+       `preserveAspectRatio` (see house.svg and a95a2f0d for when it does).
+       Light from the top-left, like everything else here. -->
+
+  <!-- ground shadow: tight, offset down-right, and weak -->
+  <ellipse cx="64" cy="66" rx="48" ry="44" fill="#000000" opacity="0.20"/>
+
+  <!-- a couple of bare twigs showing through at the base, drawn UNDER the
+       foliage so they only peek out between lobes -->
+  <g stroke="#4a3b26" stroke-width="3" stroke-linecap="round" opacity="0.8">
+    <path d="M60,66 L44,92"/>
+    <path d="M60,66 L78,90"/>
+    <path d="M60,66 L84,58"/>
+  </g>
+
+  <!-- ⭐ FIVE LOBES, unequal and off-centre. The dark one sits bottom-right
+       (away from the light) and the pale one up-left; putting the pale lobe in
+       the middle is what made the first sketch a sapling. -->
+  <g stroke="#23491a" stroke-width="2.4" stroke-linejoin="round">
+    <ellipse cx="44" cy="72" rx="27" ry="23" fill="#2f5e20" transform="rotate(-14 44 72)"/>
+    <ellipse cx="76" cy="70" rx="25" ry="22" fill="#2a5a1d" transform="rotate(21 76 70)"/>
+    <ellipse cx="68" cy="44" rx="26" ry="22" fill="#3d7526" transform="rotate(-8 68 44)"/>
+    <ellipse cx="42" cy="46" rx="24" ry="21" fill="#4a8a2e" transform="rotate(16 42 46)"/>
+    <ellipse cx="58" cy="58" rx="22" ry="19" fill="#427e29"/>
+  </g>
+
+  <!-- the one lobe in full light, up-left and small -->
+  <ellipse cx="41" cy="42" rx="14" ry="11" fill="#5b9c37" opacity="0.85"
+           transform="rotate(16 41 42)"/>
+
+  <!-- ⭐ LEAF MARKS ON THE RIM. These do the silhouette work: a closed curve
+       with twenty small ellipses straddling it stops being a closed curve.
+       Sizes vary so it reads as foliage and not as a scalloped border. -->
+  <g fill="#3a7024" stroke="#23491a" stroke-width="1.4">
+    <ellipse cx="20" cy="56" rx="7.5" ry="4.6" transform="rotate(-28 20 56)"/>
+    <ellipse cx="24" cy="82" rx="7" ry="4.3" transform="rotate(34 24 82)"/>
+    <ellipse cx="44" cy="96" rx="8" ry="4.8" transform="rotate(-12 44 96)"/>
+    <ellipse cx="70" cy="94" rx="7.2" ry="4.4" transform="rotate(22 70 94)"/>
+    <ellipse cx="92" cy="82" rx="7.6" ry="4.6" transform="rotate(-36 92 82)"/>
+    <ellipse cx="99" cy="60" rx="7" ry="4.2" transform="rotate(18 99 60)"/>
+    <ellipse cx="90" cy="34" rx="7.8" ry="4.7" transform="rotate(-24 90 34)"/>
+    <ellipse cx="68" cy="21" rx="7.4" ry="4.5" transform="rotate(12 68 21)"/>
+    <ellipse cx="42" cy="22" rx="7.6" ry="4.6" transform="rotate(-18 42 22)"/>
+    <ellipse cx="23" cy="34" rx="6.8" ry="4.2" transform="rotate(38 23 34)"/>
+  </g>
+  <!-- a few brighter leaves catching the light, up-left only -->
+  <g fill="#63a83c" opacity="0.9">
+    <ellipse cx="34" cy="30" rx="5.6" ry="3.2" transform="rotate(-20 34 30)"/>
+    <ellipse cx="52" cy="24" rx="5.2" ry="3" transform="rotate(10 52 24)"/>
+    <ellipse cx="25" cy="48" rx="5" ry="2.9" transform="rotate(-34 25 48)"/>
+  </g>
+
+  <!-- the gaps between lobes, which is where a bush is see-through -->
+  <g stroke="#1d3d15" stroke-width="2.6" stroke-linecap="round" opacity="0.55" fill="none">
+    <path d="M58,38 L62,60"/>
+    <path d="M46,62 L62,66"/>
+    <path d="M66,62 L80,56"/>
+  </g>
+</svg>

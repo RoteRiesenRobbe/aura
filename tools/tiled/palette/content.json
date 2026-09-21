@@ -24,14 +24,18 @@
       "Boulder",
       "Bridge",
       "BurntCart",
+      "Bush",
       "Cart",
       "Crate",
+      "DeadTree",
+      "FallenLog",
       "FencePost",
       "Gate",
       "GateWall",
       "Haystack",
       "House",
       "Mill",
+      "PineTree",
       "Rock",
       "Stump",
       "Tombstone",
@@ -327,6 +331,10 @@
       "w": 2.2,
       "h": 1.3
     },
+    "Bush": {
+      "w": 0.9,
+      "h": 0.9
+    },
     "Cart": {
       "w": 2.2,
       "h": 1.3
@@ -334,6 +342,14 @@
     "Crate": {
       "w": 0.9,
       "h": 0.9
+    },
+    "DeadTree": {
+      "w": 1.9,
+      "h": 1.9
+    },
+    "FallenLog": {
+      "w": 2.4,
+      "h": 0.7
     },
     "FencePost": {
       "w": 0.44,
@@ -358,6 +374,10 @@
     "Mill": {
       "w": 5,
       "h": 4
+    },
+    "PineTree": {
+      "w": 1.8,
+      "h": 1.8
     },
     "Rock": {
       "w": 1.07,
