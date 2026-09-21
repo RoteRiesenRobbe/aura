@@ -57,6 +57,11 @@ type game struct {
 
 	joinQueue chan model.Client
 
+	// tourPlan + tourRnd feed every pre-join spectator its start-screen tour.
+	// The rng is shared and only ever touched from the game loop.
+	tourPlan *spectator.TourPlan
+	tourRnd  *rand.Rand
+
 	boundsWidth  float32
 	boundsHeight float32
 }
@@ -147,6 +152,17 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	if len(walls) == 0 {
 		walls = []cfg.PlacedBounds{{Bounds: gc.Bounds, ZoneID: gc.ZoneName}}
 	}
+	// The start-screen tour sweeps the PRIMARY zone only (walls[0]): the
+	// client's camera clamps to the starting zone, and NewTourPlan drops the
+	// other zones' spawns by itself.
+	spawnPoints := make([]phy.Vec2f, 0, len(gc.Spawns))
+	for _, sp := range gc.Spawns {
+		spawnPoints = append(spawnPoints, phy.Vec2f{X: sp.X, Y: sp.Y})
+	}
+	g.tourPlan = spectator.NewTourPlan(
+		phy.Vec2f{X: walls[0].OriginX, Y: walls[0].OriginY},
+		walls[0].Width, walls[0].Height, spawnPoints)
+
 	for _, w := range walls {
 		wall := phy.NewInvAABB(phy.Vec2f{X: w.OriginX, Y: w.OriginY}, w.Width, w.Height)
 		wall.Shape().Layer = int(model.LayerBorderCollision)
@@ -179,6 +195,9 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	g.AddSystem(i)
 
 	m := sys.NewMobSystem(g, rnd.Int63(), gc.Spawns, p.Space())
+	// Drawn AFTER the mob system's seed, so a seeded run from before the tour
+	// existed still replays the same mobs.
+	g.tourRnd = rand.New(rand.NewSource(rnd.Int63()))
 	g.AddSystem(m)
 
 	// Conversations (plan-entity-model.md chunk 3a): actors carrying an
@@ -640,7 +659,7 @@ func (g *game) runTick() {
 	// accept at most one player per tick
 	select {
 	case client := <-g.joinQueue:
-		s := spectator.NewSpectator(phy.VEC2F_ZERO, client)
+		s := spectator.NewTouringSpectator(g.tourPlan.NewTour(g.tourRnd), client)
 		g.AddEntity(s)
 	default:
 	}

@@ -43,6 +43,19 @@ const MAX_VISIBLE_WIDTH = meter2px(18);
  */
 export const FLIGHT_VIEWPORT_SCALE = 1.2;
 
+/**
+ * How far the start screen's touring spectator is zoomed out, relative to the
+ * DEFAULT zoom level (never the player's own pick, so the backdrop looks the
+ * same to everyone).
+ *
+ * ⚑ SYNCED WITH BACKEND: `TourViewportScale` in
+ * `backend/pkg/aura/model/spectator/tour.go`, the flight discipline above:
+ * the server grows the spectator's AOI box by this factor, and
+ * `TestTourViewportScale_MatchesTheClient` reads this file. Retune BOTH.
+ * [PLACEHOLDER]
+ */
+export const SPECTATE_VIEWPORT_SCALE = 2;
+
 const DEFAULT_LEVEL_INDEX = 1;
 
 let currentIndex = DEFAULT_LEVEL_INDEX;
@@ -65,8 +78,25 @@ export function isFlightZoom(): boolean {
     return flightZoom;
 }
 
+/**
+ * The start-screen tour's override, the `flightZoom` pattern. Owned by the
+ * client-side `Spectator`: on while a TOURING spectator exists, off for the
+ * death spectators, whose server-side AOI box is the ordinary one.
+ */
+let spectateZoom = false;
+
+export function setSpectateZoom(active: boolean): void {
+    spectateZoom = active;
+}
+
 /** The visible-height/width pair in force right now, in world px. */
 export function visibleBounds(): { height: number, width: number } {
+    if (spectateZoom) {
+        return {
+            height: ZOOM_LEVEL_HEIGHTS[DEFAULT_LEVEL_INDEX] * SPECTATE_VIEWPORT_SCALE,
+            width: MAX_VISIBLE_WIDTH * SPECTATE_VIEWPORT_SCALE,
+        };
+    }
     if (flightZoom) {
         return {
             height: ZOOM_LEVEL_HEIGHTS[ZOOM_LEVEL_HEIGHTS.length - 1] * FLIGHT_VIEWPORT_SCALE,

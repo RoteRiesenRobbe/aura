@@ -95,7 +95,7 @@ export interface IGame {
 
     removePlayer(): void;
 
-    createSpectator(x: number, y: number): void;
+    createSpectator(x: number, y: number, touring?: boolean): void;
 
     startRendering(gameInformation: WelcomeMessage): void;
 }

@@ -568,6 +568,9 @@ export class Game implements IGame {
             // Dead reconnect (plan-reconnect-token.md): the Obituary arrives
             // before any player was created this page load — the spectator
             // from the first GameState is already in place, nothing to remove.
+            // It was created as the start screen's TOURING spectator, though,
+            // and the server has just replaced that with one on the death spot.
+            this.spectator?.stopTouring();
             return;
         }
         BeforeDeathEvent.trigger(this);
@@ -586,8 +589,8 @@ export class Game implements IGame {
         this.state = GameState.RENDERING;
     }
 
-    createSpectator(x: number, y: number): void {
-        this.spectator = new Spectator(this, x, y);
+    createSpectator(x: number, y: number, touring: boolean = false): void {
+        this.spectator = new Spectator(this, x, y, touring);
     }
 
     startRendering(gameInformation: WelcomeMessage): void {

@@ -80,3 +80,32 @@ describe('Zoom flight override', () => {
         expect(Zoom.getLevelNumber()).toBe(level);
     });
 });
+
+describe('Zoom spectate override', () => {
+    afterEach(() => {
+        Zoom.setSpectateZoom(false);
+    });
+
+    it('zooms out from the DEFAULT level, whatever the player picked, inside what the server streams', () => {
+        const byDefault = Zoom.visibleBounds(); // every suite above restores the default level
+
+        while (Zoom.canZoomIn()) {
+            Zoom.zoomIn();
+        }
+        Zoom.setSpectateZoom(true);
+        const fromNearest = Zoom.visibleBounds();
+        Zoom.setSpectateZoom(false);
+        while (Zoom.canZoomOut()) {
+            Zoom.zoomOut();
+        }
+        Zoom.setSpectateZoom(true);
+        const fromFurthest = Zoom.visibleBounds();
+        Zoom.setSpectateZoom(false);
+        Zoom.zoomIn(); // back to the default level
+
+        expect(fromNearest).toEqual(fromFurthest);
+        expect(fromNearest.height).toBeCloseTo(byDefault.height * Zoom.SPECTATE_VIEWPORT_SCALE, 5);
+        expect(fromNearest.width).toBeLessThanOrEqual(BasicConfig.VIEWPORT.WIDTH * Zoom.SPECTATE_VIEWPORT_SCALE);
+        expect(fromNearest.height).toBeLessThanOrEqual(BasicConfig.VIEWPORT.HEIGHT * Zoom.SPECTATE_VIEWPORT_SCALE);
+    });
+});
