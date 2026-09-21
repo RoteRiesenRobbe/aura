@@ -194,6 +194,17 @@ trade-offs (light aura vs. damage aura).
 
 ## 6. ~~Line-of-sight for auras~~ — CUT (2026-07-10)
 
+> ⚑ **Prototyped 2026-08-15, and the cut stands (PO verdict recorded 2026-09-21).**
+> Branch `prototype/aura-los` (`c42e1100`, local + origin, deliberately never
+> merged; its plan doc `plan-prototype-aura-los.md` lives ONLY on that branch)
+> made every movement-blocking prop block every aura effect, with shadow wedges
+> behind occluders, so the PO could feel what the cut gave up. **Verdict: "we
+> don't need it yet, or it is just a different game entirely."** The branch is
+> parked, not merged and not deleted. ⚑ The branch's own §10 still reads
+> "pending"; this note is the record. The later, separate LIGHT-only plan
+> (`plan-line-of-sight.md`) is not covered by this cut and its inclusion is not
+> ruled either way.
+
 > **Cut entirely (2026-07-10).** Auras pass through walls and every
 > environment object; walls/props remain **movement** blockers (that
 > mechanic stays fully intact). Decision prep + full rationale:

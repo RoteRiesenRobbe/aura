@@ -4,6 +4,13 @@
 > 2026-09-16 (PO-asked) with every section below carried VERBATIM from it.** All
 > numbers **[PLACEHOLDER]** unless marked measured.
 >
+> ⏸ **UNSCHEDULED, and inclusion is NOT RULED (PO 2026-09-21).** Nothing here
+> is "next". The one line-of-sight idea that was actually prototyped (AURAS,
+> branch `prototype/aura-los`, 2026-08-15) came back with the PO verdict *"we
+> don't need it yet, or it is just a different game entirely"* (`roadmap.md`
+> item 6). Whether that verdict also covers this light-only variant is an open
+> PO call, and B1 does not start without it.
+>
 > ⭐ **This is the second half of the PO's original atmosphere ask**, and their
 > words are still the brief:
 > *"we can then also extend this to limit surrounding darken reveal only until we
