@@ -14,7 +14,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-09-21 from 202 rows.
+Rendered 2026-09-21 from 203 rows.
 
 ---
 
@@ -22,7 +22,7 @@ Rendered 2026-09-21 from 202 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 168 |
+| Art | 169 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -31,7 +31,7 @@ Rendered 2026-09-21 from 202 rows.
 | --- | ---: | --- |
 | ✅ drawn | 88 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 32 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 33 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 34 | nothing exists |
 | ⚙️ code | 14 | drawn procedurally in code, no art file |
@@ -41,11 +41,11 @@ Rendered 2026-09-21 from 202 rows.
 | Priority | Rows | Rule |
 | --- | ---: | --- |
 | **P0** | 27 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
-| **P1** | 44 | high — shared art, or 20+ placements, or a named gameplay gap |
+| **P1** | 45 | high — shared art, or 20+ placements, or a named gameplay gap |
 | **P2** | 66 | normal — placed but not everywhere |
 | **P3** | 65 | low — unplaced, deferred, or already fine |
 
-**90 rows need work** (missing, shared, placeholder, stock or blocked),
+**91 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **7 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -146,7 +146,7 @@ of which **7 are P0**:
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 34
+## Prop — 35
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -162,6 +162,7 @@ of which **7 are P0**:
 | 🟡 | **Dead tree** | `deadTree.svg` | P1 |  | 228 | ⭐ The strongest silhouette in the forest set, and it is free: a LIVING tree from above is an opaque disc of leaves that hides its own structure, and a dead one IS the structure - the only forest prop that is neither round nor green. ⭐ The CAST SHADOW is the asset, not decoration: a flat branch diagram on flat ground reads as a crack in the earth, so the same limb geometry is drawn twice through <use> (never copied - a shadow out of step with its branches is worse than none), plus a third scaled-up pass for the dark outline, because a <use> cannot widen the strokes it references. ⛔ Collider 0.33 against a 0.95 visual - BRANCHES ARE AIR; blocking to the drip line would make it the most obstructive prop in the game while looking like the most passable. Grey-brown not black, to survive Canopy 0.22. ⛔ Plain href, never xlink:href - see pipeline.md 2. Placeholder SVG. |
 | 🟡 | **Stump** | `stump.svg` | P2 |  | 132 | Z1 — Cut stump - reads as people work here at a farm edge and as decay in the forest. Placeholder SVG (body r0.55, collider 0.41: the root flare and the chips are art, not obstacle). ⭐ It has to say CUT, not BROKEN, and the rings do not do that - three things do: the FELLING NOTCH biting in from the rim (a snapped tree has a ragged spike, a felled one a clean V), the SAW KERF (straight parallel lines at one angle, indifferent to the centre, crossing the concentric rings), and the CHIPS thrown onto the grass. Rings are 2px off-centre or they read as a machined target. ⛔ The thick DARK BARK RING is load-bearing: haystack.svg was misread as a stump once, because a pale disc with radial lines IS a stump - the rim is what tells them apart. |
 | 🟡 | **Fallen log** | `fallenLog.svg` | P2 |  | 288 x 84 |  |
+| 🟡 | **BrokenFence** | `brokenFence.svg` | P1 |  | 240 x 192 | Z1 |
 | 🟡 | **Bush** | `bush.svg` | P1 |  | 108 | The understorey - trees with nothing between them is an orchard. ⭐ NON-BLOCKING by definition, which IS the asset: the only forest filler that can be scattered by the hundred without adding a collider. A placement can still override it. ⛔ The hard part is that it must not read as a SMALL TREE, and size does not achieve that - three things do: no centre (the lobes are off-balance, the pale one up-left; centre the highlight and it is a sapling), a lumpy outline (five overlapping lobes with leaf marks straddling the rim), and a warmer yellower green than either tree. Placeholder SVG, body r0.45. |
 | ❌ | **Fern** | — | P2 |  |  | Z2 — Forest-floor filler, Zone 2. |
 | 🟡 | **Haystack** | `haystack.svg` | P1 |  | 204 | Z1 — Farmland vocabulary. Zone 1. Placeholder SVG (body r0.85): ragged straw mound, top-down. The first draft read as a TREE STUMP - a clean circle, concentric rings and even radial lines are growth rings; irregularity is what makes it straw. |

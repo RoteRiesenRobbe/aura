@@ -1,0 +1,187 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" preserveAspectRatio="none">
+  <!-- Placeholder BROKEN FENCE art: the story beat at the fence line
+       (docs/art/assets.csv prop-broken-fence). Something came THROUGH here.
+
+       ⭐ THE JOB IS ONE WORD: *BROKEN*, and the enemy is not "undamaged" — it
+       is **UNFINISHED** and **REMOVED**. A gap in a fence with tidy ends is a
+       gate you have not hung yet, or a panel someone carried off. Three cues
+       do the whole job and none of them is damage in general:
+         1. A SNAPPED POST, still rooted. Its top is a jagged crown of
+            splinters, which is the exact opposite of fencePost.svg's clean
+            squared end grain, and the two sit side by side here so the eye
+            can make that comparison without being told.
+         2. A RAIL STILL ATTACHED AT ONE END and swung DOWN into the gap. ⭐ A
+            fence's entire visual language is STRAIGHT and PARALLEL, so the
+            one diagonal in the picture is the break. Nothing else needs to
+            say it.
+         3. THE PIECES ARE STILL HERE. Removed means gone; broken means the
+            top of the post and half a rail are lying where they fell.
+
+       ⭐ AND IT HAS A DIRECTION, which is what makes it a story instead of an
+       accident: everything loose is pushed to the INSIDE (south, down the
+       sprite), because whatever did this came from the field edge and went in.
+       Reverse the prop's rotation and the break points the other way, which is
+       a real authoring lever, not a bug.
+
+       ⭐ THE FLEECE IS THE STORY. A tuft caught on a splinter is the only mark
+       here that names what was taken, and it is what turns "damaged fence"
+       into "something got the sheep" without a line of text. It is small on
+       purpose: found, not announced.
+
+       ⚑ NON-BLOCKING (`blocksMovement: false`, and absent means BLOCKING so it
+       is said out loud in api/props/broken-fence.json). The wolves got in
+       through here and the player has to be able to follow — a break you
+       cannot walk through is a wall with a picture of a hole on it.
+
+       ⚑ SAME BODY AS THE GATE (2.0 x 1.6) and the fence line on the sprite's
+       OWN CENTRELINE at y=80, so the two are interchangeable: author the gap
+       once and drop either prop in it.
+       ⚑ Posts are the fence's own width, NOT the gate's chunkier hanging
+       posts — this was a plain run of fence, not a gateway.
+
+       ⛔ `preserveAspectRatio="none"` IS LOAD-BEARING on the non-square
+       viewBox. The SVG bake is SQUARE (one `maxSize` for both axes), so the
+       default `xMidYMid meet` letterboxes it and SimpleProp.initShape then
+       stretches the square back out to the body aspect, squashing the art.
+       Firefox shows it; other engines hide it (a95a2f0d).
+       ⛔ Plain `href` only, never `xlink:href` (pipeline.md §2): an undeclared
+       namespace prefix makes the file fail to load outright.
+
+       ⚑ A rect prop turns with its collider (plan-prop-scale.md C2b), so this
+       is rotated to its fence's direction; the baked shadows turn with it,
+       the same trade Cart and Gate take knowingly.
+
+       ⚑ Timber palette shared with gate.svg and tools/make-fence-tile.mjs, so
+       the break is the same wood as the fence it interrupts. -->
+
+  <defs>
+    <!-- ⛔ Bare earth OPAQUE, never a brown wash: a low-opacity brown over
+         grass only dims the grass, and dim grass reads as shade. This cost
+         burntCart.svg and gate.svg one redraw each. -->
+    <radialGradient id="bfChurn">
+      <stop offset="0" stop-color="#6d5a3e" stop-opacity="0.95"/>
+      <stop offset="0.5" stop-color="#75613f" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#75613f" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- THE CHURNED GROUND, offset SOUTH of the line: the ground is torn where
+       something crossed, not where the fence stood. -->
+  <ellipse cx="104" cy="92" rx="66" ry="48" fill="url(#bfChurn)"/>
+  <!-- gouges raked through it, all running the same way (in, and south) -->
+  <g stroke="#4c3d27" stroke-width="4" stroke-linecap="round" opacity="0.55" fill="none">
+    <path d="M84,70 Q96,96 104,126"/>
+    <path d="M100,68 Q112,94 122,120"/>
+    <path d="M116,72 Q126,96 132,116"/>
+  </g>
+
+  <!-- ============================ THE STANDING HALF ==================== -->
+  <!-- shadows first, down-right -->
+  <rect x="17" y="69" width="26" height="30" rx="4" fill="#000000" opacity="0.26"/>
+  <rect x="44" y="72" width="30" height="13" rx="6" fill="#000000" opacity="0.22"/>
+
+  <!-- the intact post, squared top and end grain — the control sample -->
+  <rect x="12" y="64" width="26" height="30" rx="4"
+        fill="#6f5735" stroke="#2f2418" stroke-width="4.5"/>
+  <rect x="15" y="67" width="20" height="5" rx="2" fill="#a68a63" opacity="0.5"/>
+  <ellipse cx="25" cy="79" rx="7" ry="7" fill="none" stroke="#503a1e"
+           stroke-width="1.8" opacity="0.65"/>
+
+  <!-- the surviving rail running off west, straight and level: the fence as
+       it is supposed to be, so the break has something to break FROM -->
+  <rect x="0" y="73" width="46" height="12" rx="4" fill="#3a2d1c"/>
+  <rect x="0" y="75" width="44" height="8" rx="3" fill="#8a7150"/>
+  <rect x="0" y="76" width="42" height="2.6" rx="1.3" fill="#bda986" opacity="0.5"/>
+
+  <!-- ============================ THE BREAK ============================ -->
+  <!-- ⭐ THE HANGING RAIL: still nailed to the intact post, swung down into
+       the gap. The one diagonal in a picture made of straight lines. -->
+  <g transform="rotate(34 42 79)">
+    <rect x="40" y="72" width="86" height="13" rx="4" fill="#000000" opacity="0.2"
+          transform="translate(4,5)"/>
+    <rect x="40" y="72" width="86" height="13" rx="4" fill="#3a2d1c"/>
+    <rect x="41" y="74" width="82" height="9" rx="3" fill="#82694a"/>
+    <rect x="41" y="75" width="78" height="2.6" rx="1.3" fill="#b5a07c" opacity="0.45"/>
+    <!-- snapped end: splinters, not a saw cut -->
+    <path d="M126,72 L140,76 L130,79 L143,83 L126,85 Z"
+          fill="#cbb287" stroke="#5c4a33" stroke-width="2" stroke-linejoin="round"/>
+    <!-- the nail that is still holding, at the post end -->
+    <circle cx="46" cy="79" r="3" fill="#4a4844" stroke="#23211e" stroke-width="1.6"/>
+  </g>
+
+  <!-- ⭐ THE SNAPPED POST, still rooted: a jagged crown where fencePost.svg
+       has a clean squared top. Shorter than the intact one, because you are
+       looking down at a stump instead of at a post top. -->
+  <rect x="147" y="72" width="26" height="28" rx="4" fill="#000000" opacity="0.26"/>
+  <path d="M143,66 L157,62 L162,70 L172,63 L169,74 L176,80 L166,88 L170,96
+           L154,94 L144,88 Z"
+        fill="#5f4a2c" stroke="#2f2418" stroke-width="4" stroke-linejoin="round"/>
+  <!-- pale torn heartwood inside the crown -->
+  <path d="M150,70 L160,68 L164,76 L158,86 L149,82 Z" fill="#b89a68"/>
+  <g stroke="#7b6138" stroke-width="1.8" stroke-linecap="round">
+    <path d="M152,72 L161,78"/>
+    <path d="M151,79 L159,83"/>
+  </g>
+  <!-- long splinters standing out of the fracture, leaning the way it fell -->
+  <g fill="#cbb287" stroke="#5c4a33" stroke-width="1.8" stroke-linejoin="round">
+    <path d="M160,68 L176,58 L170,71 Z"/>
+    <path d="M164,76 L184,74 L172,83 Z"/>
+    <path d="M158,86 L170,100 L156,96 Z"/>
+  </g>
+
+  <!-- the rail that ran east, snapped clean off its post and dropped -->
+  <g transform="rotate(-9 188 88)">
+    <rect x="176" y="82" width="34" height="12" rx="4" fill="#000000" opacity="0.2"
+          transform="translate(4,5)"/>
+    <rect x="176" y="82" width="34" height="12" rx="4" fill="#3a2d1c"/>
+    <rect x="177" y="84" width="32" height="8" rx="3" fill="#82694a"/>
+    <path d="M176,82 L166,86 L177,89 L167,93 L176,94 Z"
+          fill="#cbb287" stroke="#5c4a33" stroke-width="1.8" stroke-linejoin="round"/>
+  </g>
+
+  <!-- ⭐ THE PIECES ARE STILL HERE — this is what separates BROKEN from
+       REMOVED. The post top that came off, lying south of the line where it
+       was pushed, and a length of shattered rail beside it. -->
+  <g transform="rotate(-24 116 132)">
+    <rect x="96" y="124" width="40" height="17" rx="4" fill="#000000" opacity="0.22"
+          transform="translate(4,5)"/>
+    <rect x="96" y="124" width="40" height="17" rx="4"
+          fill="#6a5333" stroke="#2f2418" stroke-width="3.5"/>
+    <rect x="99" y="127" width="30" height="4" rx="2" fill="#a68a63" opacity="0.45"/>
+    <path d="M136,124 L148,129 L138,133 L149,138 L136,141 Z"
+          fill="#c2a97e" stroke="#5c4a33" stroke-width="2" stroke-linejoin="round"/>
+  </g>
+  <g transform="rotate(16 70 122)">
+    <rect x="46" y="117" width="48" height="10" rx="4" fill="#000000" opacity="0.2"
+          transform="translate(3,4)"/>
+    <rect x="46" y="117" width="48" height="10" rx="4" fill="#7a6344"/>
+    <rect x="47" y="118" width="44" height="2.4" rx="1.2" fill="#b5a07c" opacity="0.4"/>
+  </g>
+  <!-- small debris, all south of the line -->
+  <g fill="#8a7150" opacity="0.9">
+    <rect x="86" y="108" width="13" height="5" rx="2.5" transform="rotate(-38 92 110)"/>
+    <rect x="138" y="112" width="11" height="4.4" rx="2.2" transform="rotate(27 143 114)"/>
+    <rect x="112" y="144" width="15" height="5" rx="2.5" transform="rotate(-12 119 146)"/>
+  </g>
+
+  <!-- ⭐ THE FLEECE, caught on a splinter of the snapped post. Small, off to
+       one side, and the only thing in the picture that is not wood or earth —
+       which is exactly why it is the first thing the eye asks about. -->
+  <g transform="rotate(-14 180 72)">
+    <ellipse cx="180" cy="73" rx="11" ry="8" fill="#b9b1a1" opacity="0.55"/>
+    <ellipse cx="179" cy="71" rx="10" ry="7.2" fill="#ded8ca"/>
+    <g fill="#f0ece1">
+      <circle cx="174" cy="69" r="3.4"/>
+      <circle cx="180" cy="67" r="3.8"/>
+      <circle cx="185" cy="70" r="3.1"/>
+      <circle cx="177" cy="73" r="3.3"/>
+      <circle cx="183" cy="74" r="2.9"/>
+    </g>
+    <!-- a few strands pulled out along the grain of the splinter -->
+    <g stroke="#cdc6b6" stroke-width="1.5" stroke-linecap="round" fill="none">
+      <path d="M170,71 L162,68"/>
+      <path d="M171,75 L163,75"/>
+      <path d="M188,72 L195,69"/>
+    </g>
+  </g>
+</svg>

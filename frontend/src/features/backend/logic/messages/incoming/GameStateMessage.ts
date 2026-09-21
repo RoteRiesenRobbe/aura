@@ -672,7 +672,10 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.PineTree]: Props.genericPropClasses.PineTree,
     [AuraApi.EntityType.Bush]: Props.genericPropClasses.Bush,
     [AuraApi.EntityType.DeadTree]: Props.genericPropClasses.DeadTree,
-    [AuraApi.EntityType.FallenLog]: Props.genericPropClasses.FallenLog,
+    [AuraApi.EntityType.FallenLog]: Props.genericPropClasses.FallenLog,
+    // Generic, like the Gate it shares a body with — what makes it passable is
+    // its definition (`blocksMovement: false`), never a class.
+    [AuraApi.EntityType.BrokenFence]: Props.genericPropClasses.BrokenFence,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

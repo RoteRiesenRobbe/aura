@@ -142,8 +142,21 @@ Authoring shape:
   the one prop here that does not block — the fence is the wall, the gate is
   the door — and it is drawn standing open to say so. Rotate it to match the
   fence's direction.
-- **The broken fence POI** is two legs with a gap and the wolves in the gap.
-  No damaged art needed, and it reads better than any would.
+- **The broken fence POI** is two fence legs with a gap, the **`BrokenFence`**
+  prop in the gap, and the wolves beyond it.
+  - ⚑ **This bullet used to say "no damaged art needed, and it reads better
+    than any would."** That was wrong, and the reason it was wrong is worth
+    keeping: a bare gap is **indistinguishable from a gate gap or an
+    unfinished run**. The break has to be *drawn* or the player reads a hole,
+    not a story (PO 2026-09-21).
+  - ⚑ It has the **same 2.0 × 1.6 body as `Gate`, on the same centreline**, and
+    is non-blocking for the same reason — the wolves got in through it, so the
+    player must be able to follow. Author the gap once and drop **either** prop
+    in it: the gate is the way in you *built*, the break is the way in
+    something *made*.
+  - ⭐ **It has a direction.** Everything loose in the art is pushed to one
+    side, so the prop's rotation says which way the thing came through. Point
+    it *into* the field.
 - **Field plots** = `polygons` with the Fields/Suburbs profile at a different
   tint, non-blocking, rectangular-ish and *aligned to each other*. Straight
   parallel edges are the whole visual language of farmland; anywhere else in the
@@ -171,7 +184,7 @@ that is what makes Zone 2's canopy land. Two exceptions worth having:
 | **Village square** | Hub, respawn, quest wall | Campfire (`startingSpawn`), 4–6 Houses, Farmer, Town Crier, village healer |
 | **Turnip field** | The first 90 seconds | Turnip harvest-mobs, Farmer's chore quest |
 | **North pasture** | Teaches *neutral* | Stags + boars, zero hostiles, a herder NPC |
-| **The broken fence** | Teaches *hostile* | 2–3 Wolves that got in; visible from the road |
+| **The broken fence** | Teaches *hostile* | 2–3 Wolves that got in through a `BrokenFence`; visible from the road |
 | **Burnt cart / looted wagon** | The bandit breadcrumb | Prop dressing + a corpse + a signpost. No mob. |
 | **Mill on the river** | Soft dead end, side reward | Miller NPC, a boar sounder, a chest-equivalent |
 | **Treeline gate** | The door | Signpost, a guard or wanderer who warns you, the Zone 2 quest giver |
