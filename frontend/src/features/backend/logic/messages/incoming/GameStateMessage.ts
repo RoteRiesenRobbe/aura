@@ -665,6 +665,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     // The gap in a fence. Generic — what makes it passable is its definition
     // (`blocksMovement: false`), never a class.
     [AuraApi.EntityType.Gate]: Props.genericPropClasses.Gate,
+    [AuraApi.EntityType.Stump]: Props.genericPropClasses.Stump,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

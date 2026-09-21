@@ -31,9 +31,9 @@ Rendered 2026-09-20 from 202 rows.
 | --- | ---: | --- |
 | ✅ drawn | 88 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 26 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 27 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 11 | a stock/borrowed texture stands in (the pd* set) |
-| ❌ missing | 39 | nothing exists |
+| ❌ missing | 38 | nothing exists |
 | ⚙️ code | 14 | drawn procedurally in code, no art file |
 | ⛔ blocked | 5 | cannot be delivered until engine work lands |
 | — n/a | 10 | a constraint or a number to judge, not a file to draw |
@@ -160,7 +160,7 @@ of which **7 are P0**:
 | ❌ | **Tree variant 2** | — | P0 |  |  | Second tree silhouette. Tree is 74 % of all props and there is ONE drawing — variety here changes the world more than any other single asset. |
 | ❌ | **Tree variant 3** | — | P1 |  |  | Third tree silhouette. |
 | ❌ | **Dead tree** | — | P1 |  |  | Bare//dead trunk for the Woodland deep wood and blighted edges. |
-| ❌ | **Stump** | — | P2 |  |  | Z1 — Cut stump. Reads as "people work here" at a farm edge and as decay in the forest. |
+| 🟡 | **Stump** | `stump.svg` | P2 |  | 132 | Z1 — Cut stump - reads as people work here at a farm edge and as decay in the forest. Placeholder SVG (body r0.55, collider 0.41: the root flare and the chips are art, not obstacle). ⭐ It has to say CUT, not BROKEN, and the rings do not do that - three things do: the FELLING NOTCH biting in from the rim (a snapped tree has a ragged spike, a felled one a clean V), the SAW KERF (straight parallel lines at one angle, indifferent to the centre, crossing the concentric rings), and the CHIPS thrown onto the grass. Rings are 2px off-centre or they read as a machined target. ⛔ The thick DARK BARK RING is load-bearing: haystack.svg was misread as a stump once, because a pale disc with radial lines IS a stump - the rim is what tells them apart. |
 | ❌ | **Fallen log** | — | P2 |  |  | Lying trunk. Also the cheapest non-blocking landmark in a lane. |
 | ❌ | **Bush** | — | P1 |  |  | Shrub filler between trees. Non-blocking — fills space without adding colliders. |
 | ❌ | **Fern** | — | P2 |  |  | Z2 — Forest-floor filler, Zone 2. |

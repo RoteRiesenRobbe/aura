@@ -144,7 +144,12 @@ enum EntityType : ushort {
   // NOT block: the fence is the wall, the gate is the door. It is drawn
   // standing OPEN for exactly that reason (see gate.svg), so walking through
   // it is what the picture promises and what the collider allows.
-  Gate = 88
+  Gate = 88,
+
+  // A cut stump — farm edge and forest floor both. Blocking, and smaller than
+  // it looks: the collider is 0.41 against a 0.55 visual, because the root
+  // flare and the chips around it are art rather than obstacle.
+  Stump = 89
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

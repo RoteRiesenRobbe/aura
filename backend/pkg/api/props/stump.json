@@ -1,0 +1,6 @@
+{
+  "name": "Stump",
+  "entityType": "Stump",
+  "sprite": "stump.svg",
+  "body": { "radius": 0.55, "collisionFactor": 0.75 }
+}
