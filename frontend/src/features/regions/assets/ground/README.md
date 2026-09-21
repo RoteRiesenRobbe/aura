@@ -101,7 +101,7 @@ fallback and **never** a tint, so the tile's own colour is the only lever, and
 adding *density* to fix a *contrast* fault just walks a tile toward the other
 family (which is exactly how the sandstorm tripped the coverage ceiling).
 
-### `forest-` / `wall-placeholder.png` — GENERATED, not from a pack
+### `forest-` / `wall-` / `road-placeholder.png` — GENERATED, not from a pack
 
 | | |
 |---|---|
@@ -147,6 +147,48 @@ it is a one-line change if the look sitting wants it.
 partition**: waves need integer wave numbers, a lattice needs its jitter hashed
 from the cell index taken MODULO the lattice size, and a course needs integer
 row and column counts with the row heights renormalised to land exactly on 750.
+
+⭐ **`road-placeholder.png` is the family's third tile and the second customer
+of PLACES** (2026-09-21). Until then `Road` was `"texture": "pd106"` — the
+**desert** tile, borrowed, so every lane in the game was golden sandstone. The
+pebbles pressed into the lane *are* the forest's leaves at a sixth of the fill
+with `elong` near 1; everything beneath them is a wave sum, because packed
+earth has no pieces in it. ⚑ **The test for this family is whether the thing
+you would name if you pointed at the surface is a countable object.**
+
+⭐ **IT SHIPPED AT A SIXTH OF ITS FIRST DETAIL, and that is the note to carry to
+the next ground tile.** The first cut passed every check here and still came
+back *"reads a little messy"* — so coverage went 9 % → 2.5 %, the bed ramp
+narrowed, the tooth halved and the cracks dropped to a sixth. This is the lava
+lesson arriving from the other side: **a ground tile is looked THROUGH, not at.
+Every mark on it is repeated nine times across a screen, so the right amount of
+detail is far less than a single tile viewed alone will ever suggest** — and a
+tile that looks slightly *empty* on its own is usually the one that is right in
+the world.
+
+⛔ **Three faults this tile hit, and all three are about what a REPEATED field
+does that a single tile never shows.** ① **Diagonal banding**: six bed waves
+with only two slow ones painted a corduroy stripe running north-east, repeating
+once per tile and louder than anything else on the road. Two slow waves cannot
+make a blotch — they make an interference *fringe*, and a fringe has a
+direction; nine waves over eight bearings make patches. ② **A grey pebble reads
+BLUE** against warm brown, so the coarse grade came out as blue beads on mud
+(pebbledash render). Both grades are warm now, and each straddles the bed's
+dominant tone, because a layer that is only ever *lighter* than its ground is
+confetti however well it is shaded. ③ **Mud cracks as a ridged field make
+closed loops**, and a visible closed loop on the ground is a creature's track —
+they read as **worm trails** until sharpened right down and faded almost out,
+which is also the physically right answer: a road that is driven on is packed,
+so a crack is the exception on it, not the pattern.
+
+⛔ **NO CART RUTS IN IT, and the reason is authoring rather than art.** A rut is
+DIRECTIONAL and would have to be baked along one tile axis, which only lands
+correctly under a path's `alignTexture` flag (`docs/plan-world-paths.md`) — and
+that flag turns the tile along the path's **longest segment**, so it wants one
+path per straight leg. All three `Road` paths in `world.json` are 4–7 point
+meanders on a single path, so a baked rut would run due east while the road
+went north. ⭐ Ruts are a **second tile** for when a road is authored leg by
+leg; this one has to work on a curve.
 
 ### The field tiles — GENERATED, not from a pack
 

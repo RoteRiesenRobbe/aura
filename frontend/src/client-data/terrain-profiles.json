@@ -38,7 +38,7 @@
   "Fence":              { "texture": "fence-placeholder", "scale": 1, "blend": 0, "color": "#7c6547" },
 
   "Wall":               { "texture": "wall-placeholder", "scale": 0.3, "blend": 0, "color": "#7d7d80" },
-  "Road":               { "texture": "pd106", "scale": 0.35, "blend": 0.3, "color": "#c2a878" },
+  "Road":               { "texture": "road-placeholder", "scale": 0.35, "blend": 0.3, "color": "#856743" },
   "Water":              { "texture": "water-placeholder", "scale": 0.35, "blend": 0.3, "color": "#2a63a8", "scroll": { "x": 0.2, "y": 0.15 } },
   "Bog":                { "texture": "bog-placeholder", "scale": 0.35, "blend": 0.3, "color": "#22291a", "scroll": { "x": 0.04, "y": 0.03 } },
   "Lava":               { "texture": "lava-placeholder", "scale": 0.35, "blend": 0.2, "color": "#8f2d0a", "scroll": { "x": 0.05, "y": 0.02 } }
