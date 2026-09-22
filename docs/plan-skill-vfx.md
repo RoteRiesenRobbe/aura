@@ -1985,7 +1985,7 @@ screenshots of the rim bite, looked at; the PO look.
 
 ### C3a ledger (2026-09-22) - the art path, plus the §12g amendment
 
-✅ **BUILT 2026-09-22** `[uncommitted]`. Spec: §12f (C3a) and §12g (the PO-look amendment, built into the
+✅ **BUILT 2026-09-22** `e4bc8534`. Spec: §12f (C3a) and §12g (the PO-look amendment, built into the
 same chunk by PO call §12g.1 item 5). Two sessions: the first (09-21) built
 the folder, the manifest, the validator, the sprite path, the pilot art, the
 briefing, and the Go + content half of §12g; the second (09-22) found the
