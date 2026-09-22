@@ -27,12 +27,24 @@ import (
 //     is a client class with its own math; a new kind is a plan amendment plus
 //     a renderer, not a content decision. Everything else about a layer is a
 //     parameter, which is why the tunables are few and shared.
-//   - **`body` is UNCHECKED here** (C0 scope). It names an atlas frame, and
-//     the atlas does not exist until C3; an absent body draws the kind's
-//     procedural placeholder. The ERROR path for a body no sheet carries is
-//     C3's, and mapToSkillDefinition has no warning channel to degrade
-//     through in the meantime, so C0 neither checks nor warns: a typo'd body
-//     draws the placeholder and is caught when the atlas arrives.
+//   - ⭐ **An ATTACK is authored, the HIT MARK is not** (C3a amendment,
+//     plan-skill-vfx.md §12g.1, PO 2026-09-21). Everything a file can say is
+//     drawn FROM the attacker, facing the enemy. The one look that sits ON the
+//     victim - the little mark a landed damage hit leaves, coloured by the
+//     damage type - is drawn by the engine on every hit and can no longer be
+//     authored at all: the `impact` kind and its `snap` curve are gone, and a
+//     file that still names either hard-fails here. It is the only engine
+//     default in the whole vocabulary, ruled deliberately (it REVERSES §10 Q4)
+//     because a mark every damaging skill wants is not a content decision.
+//   - **`body` is UNCHECKED here, and CHECKED ELSEWHERE** (C3a). It names a
+//     PNG in frontend/src/features/skill-fx/assets/bodies/, and an absent
+//     body draws the kind's procedural placeholder. This package stays
+//     ignorant of the art folder - it has no business knowing a frontend
+//     directory exists, and mapToSkillDefinition has no warning channel to
+//     degrade through - so the name is resolved by the `skill bodies` stage
+//     in cmd/aurad (validateSkillBodies, against the generated list
+//     api/skill-fx/bodies.json), where a finding per problem is possible.
+//     A typo is a content finding there, at boot and under `aurad -validate`.
 //
 // Every refusal below is a hard-fail at content load, naming the skill, the
 // layer index and the rule, like the effect key allowlist it is modelled on.
@@ -66,14 +78,15 @@ type VisualLayer struct {
 	// (visualTriggersByKind) on a skill of this category (D2). Required.
 	On string `json:"on"`
 
-	// Body names an atlas frame; absent draws the kind's placeholder.
-	// UNCHECKED in C0, see the file comment.
+	// Body names a PNG in the client's bodies folder; absent draws the kind's
+	// placeholder. Unchecked in THIS package, resolved by cmd/aurad's
+	// `skill bodies` stage - see the file comment.
 	Body string `json:"body,omitempty"`
 
 	MS     int     `json:"ms,omitempty"`     // duration in milliseconds [PLACEHOLDER per skill]
 	Speed  float32 `json:"speed,omitempty"`  // projectile travel speed
-	Curve  string  `json:"curve,omitempty"`  // impact / strike / beam, one of the KIND's visualCurvesByKind set
-	Count  int     `json:"count,omitempty"`  // orbit / emitter: how many bodies
+	Curve  string  `json:"curve,omitempty"`  // strike / beam, one of the KIND's visualCurvesByKind set
+	Count  int     `json:"count,omitempty"`  // orbit / emitter: how many bodies; wave: how many rings (1..3)
 	Motion string  `json:"motion,omitempty"` // emitter only, one of visualMotions
 	Width  float32 `json:"width,omitempty"`  // beam only
 	Tint   string  `json:"tint,omitempty"`   // overrides the palette; lowercase #rrggbb
@@ -98,12 +111,14 @@ const visualTriggerFired = "fired"
 // api/skill-vocabulary.json (vocabulary_test.go), so the content editor and
 // its smoke script read Go's own words rather than a hand-typed copy.
 var (
-	// visualKinds, in the order of plan-skill-vfx.md §4.1. `strike` took
-	// `arc-swing`'s slot in the C2a amendment (§12c.1): the attacker's half of
-	// a melee hit had no kind at all, because `impact` is anchored at the
-	// VICTIM, and the arc was only one of the three weapon motions a melee
-	// skill wants. Still seven.
-	visualKinds = []string{"impact", "strike", "projectile", "beam", "cast-pose", "orbit", "emitter"}
+	// visualKinds, in the order of plan-skill-vfx.md §4.1: the four that reach
+	// OUT from the actor first, then the three that dress the actor itself.
+	// `strike` took `arc-swing`'s slot in the C2a amendment (§12c.1), and the
+	// C3a amendment (§12g.2) swapped `impact` out for `wave` - the attacker's
+	// side of a hit is the only side a file draws now, and the mammoth's stomp
+	// wanted rings leaving the caster. Still seven, and they went seven, six,
+	// seven within one session.
+	visualKinds = []string{"strike", "projectile", "beam", "wave", "cast-pose", "orbit", "emitter"}
 
 	// visualTriggers: ambient = while this is the actor's running aura,
 	// fired = a cast or an aura tick went off (targets or not), hit = once
@@ -111,23 +126,28 @@ var (
 	visualTriggers = []string{"ambient", visualTriggerFired, "hit"}
 
 	// visualCurvesByKind: `curve` picks a motion shape, and the shapes are
-	// per KIND because they are per renderer (C2a, PO 2026-09-19). An impact
-	// bursts or snaps on the victim; a strike thrusts, swings or comes down
-	// overhead from the attacker, and the style also picks the placeholder
-	// weapon (spear / blade / hammer); a beam either flashes (attack → peak →
-	// fade, the lightning envelope) or extends (extend → retract, the flame
-	// pillar). A shared set would let a beam author "thrust", load clean and
-	// draw its default forever. Only the kinds whose visualKeysByKind row
-	// carries "curve" have a row here, both ways.
+	// per KIND because they are per renderer (C2a, PO 2026-09-19). A strike
+	// thrusts, swings, comes down overhead or bites, and the style also picks
+	// the placeholder weapon (spear / blade / hammer / a mirrored pair of
+	// jaws); a beam either flashes (attack → peak → fade, the lightning
+	// envelope) or extends (extend → retract, the flame pillar). A shared set
+	// would let a beam author "thrust", load clean and draw its default
+	// forever. Only the kinds whose visualKeysByKind row carries "curve" have
+	// a row here, both ways.
 	//
-	// ⚑ `thrust` MOVED from impact to strike in the C2a amendment (§12c.1),
-	// so it is now a refusal on an impact rather than its default motion.
+	// ⚑ `bite` is the C3a amendment's (§12g.1 item 3): the bite used to be an
+	// `impact` `snap` on the bitten, and is now two jaws hinged at the BITER,
+	// reaching over the victim and closing. Both of those words left the
+	// vocabulary with the kind, so either one is a refusal naming this set.
 	visualCurvesByKind = map[string][]string{
-		"impact": {"burst", "snap"},
-		"strike": {"thrust", "swing", "overhead"},
+		"strike": {"thrust", "swing", "overhead", "bite"},
 		"beam":   {"flash", "extend"},
 	}
 
+	// visualMotions is the EMITTER's, and its "burst" is a particle spray -
+	// unrelated to the `burst` curve the retired `impact` kind used to carry
+	// (§12g). Two vocabularies, one word, no overlap: this one is only ever
+	// read from a `motion` key.
 	visualMotions = []string{"swirl", "rise", "burst"}
 
 	// The keys legal on EVERY layer, in the order the editor will draw them.
@@ -137,26 +157,37 @@ var (
 	// the kind's own. Same shape and same purpose as effectKeys, and the same
 	// rule: a key a kind does not read is a hard-fail, not a silent no-op.
 	visualKeysByKind = map[string][]string{
-		"impact":     mergeKeys(visualKeysCommon, []string{"ms", "curve"}),
 		"strike":     mergeKeys(visualKeysCommon, []string{"ms", "curve"}),
 		"projectile": mergeKeys(visualKeysCommon, []string{"speed"}),
 		"beam":       mergeKeys(visualKeysCommon, []string{"ms", "width", "curve", "chain"}),
+		"wave":       mergeKeys(visualKeysCommon, []string{"ms", "count"}),
 		"cast-pose":  mergeKeys(visualKeysCommon, []string{"ms"}),
 		"orbit":      mergeKeys(visualKeysCommon, []string{"ms", "count"}),
 		"emitter":    mergeKeys(visualKeysCommon, []string{"ms", "count", "motion"}),
 	}
 
-	// visualTriggersByKind: which moments a kind can play at. An `impact`
-	// needs a victim, so it is a hit and nothing else, and a `strike` travels
-	// INTO one, so it has no moment without a victim either; a `cast-pose` is
-	// worn at a cast (fired, facing +X: a cast names no direction) or at a
-	// landing (hit, PO 2026-09-20: the bow shows only when damage is done and
-	// AIMS at the victim); only `emitter` spans all three.
+	// visualCountMaxByKind is the upper half of the `count` range, for the
+	// kinds that have one. Only the wave does: its rings are staggered across
+	// its own `ms`, so past three they overlap into a smear rather than
+	// reading as a pulse (§12g.2, [PLACEHOLDER]). An orbit's bodies and an
+	// emitter's particles have no ceiling worth guessing at, so they keep the
+	// bare ">= 1" rule and no row here.
+	visualCountMaxByKind = map[string]int{"wave": 3}
+
+	// visualTriggersByKind: which moments a kind can play at. A `strike`
+	// travels INTO a victim, so it has no moment without one, and the same
+	// goes for the projectile and the beam; a `wave` is the mirror image of
+	// that - it leaves the caster once per cast and reaches whatever the skill
+	// reaches, so `fired` is its only moment and drawing one per victim would
+	// stack whole ring sets on one spot (§12g.2); a `cast-pose` is worn at a
+	// cast (fired, facing +X: a cast names no direction) or at a landing (hit,
+	// PO 2026-09-20: the bow shows only when damage is done and AIMS at the
+	// victim); only `emitter` spans all three.
 	visualTriggersByKind = map[string][]string{
-		"impact":     {"hit"},
 		"strike":     {"hit"},
 		"projectile": {"hit"},
 		"beam":       {"hit"},
+		"wave":       {visualTriggerFired},
 		"cast-pose":  {"fired", "hit"},
 		"orbit":      {"fired", "ambient"},
 		"emitter":    {"ambient", "fired", "hit"},
@@ -300,9 +331,16 @@ func parseVisualLayer(raw json.RawMessage, categoryName string) (VisualLayer, er
 	if _, authored := keys["scale"]; authored && layer.Scale <= 0 {
 		return VisualLayer{}, visualPositiveErr(layer.Kind, "scale", layer.Scale)
 	}
-	if _, authored := keys["count"]; authored && layer.Count < 1 {
-		return VisualLayer{}, fmt.Errorf(`kind %q: "count" must be >= 1 when authored, got %d (omit it for the kind's default)`,
-			layer.Kind, layer.Count)
+	if _, authored := keys["count"]; authored {
+		ceiling, capped := visualCountMaxByKind[layer.Kind]
+		if layer.Count < 1 || (capped && layer.Count > ceiling) {
+			bound := ">= 1"
+			if capped {
+				bound = fmt.Sprintf("1..%d", ceiling)
+			}
+			return VisualLayer{}, fmt.Errorf(`kind %q: "count" must be %s when authored, got %d (omit it for the kind's default)`,
+				layer.Kind, bound, layer.Count)
+		}
 	}
 
 	if _, authored := keys["tint"]; authored && !visualTintPattern.MatchString(layer.Tint) {

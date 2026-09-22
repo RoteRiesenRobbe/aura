@@ -19,7 +19,7 @@ import (
 // contentSubdirs is the api/ layout diskContent insists on. The copy helper
 // below reproduces exactly these, never api/schema/ or the loose fixture jsons
 // beside them, which is the same set the editor's seam copies.
-var contentSubdirs = []string{"mobs", "skills", "recipes", "zones", "props", "factions", "milestones", "quests", "ascension"}
+var contentSubdirs = []string{"mobs", "skills", "recipes", "zones", "props", "factions", "milestones", "quests", "ascension", "skill-fx"}
 
 // ⭐ THE REAL CONTENT MUST VALIDATE CLEAN. This is the pin that makes
 // `aurad -validate` worth running at all: if it reported findings against the
@@ -156,10 +156,10 @@ func mustDefaultConfig(t *testing.T) *cfg.Config {
 	return config
 }
 
-// copyRealContent copies api/'s nine content directories into a temp tree the
+// copyRealContent copies api/'s ten content directories into a temp tree the
 // test may vandalise.
 //
-// ⚑ It copies EVERY file, not only *.json: diskContent stats each of the nine
+// ⚑ It copies EVERY file, not only *.json: diskContent stats each of the ten
 // subdirectories, so one that ended up with no files would fail the stat and
 // the test would be measuring a missing directory instead of the file it broke.
 func copyRealContent(t *testing.T) string {

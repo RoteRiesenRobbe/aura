@@ -62,6 +62,9 @@
 // 10x something is always on screen.
 // ⚑ AURA_FXSCALE_RAMP_ONLY=1 runs legs 1, 2 and 7 only (leg 1 defines the 1x,
 // leg 2 is the honesty gate), for a ceiling re-run without legs 3-6.
+// ⚑ AURA_FXSCALE_SKILL_IDS=1,45,110 points the synthetic driver at the
+// body-carrying skills only (C3a); see the constant below for what that does
+// and does NOT make comparable.
 import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -105,6 +108,27 @@ const note = (msg) => { console.log('INCONCLUSIVE: ' + msg); inconclusive = true
 const WARMUP_MS = 2_000;
 const WINDOW_MS = 10_000;
 const FRAME_BUDGET_MS = 16.7;
+
+// ⭐ AURA_FXSCALE_SKILL_IDS=1,45,110 restricts the synthetic driver's round
+// robin to those catalog skills (C3a, §12f.6): every C4 number was measured on
+// Graphics placeholders, and the three pilot bodies ride exactly those three
+// ids (`sword` on Damage 1, `arrow` on Long-Range Strike 45, `wolf-jaw` on the
+// wolves' bite 110), so this is how the sprite path is priced against them.
+// ⚑ Unset = the whole catalog, byte-identical to what C4 ran. ⚑ None of those
+// three authors an AMBIENT layer, so a restricted run also carries no ambient
+// owners whatever `ambientOwners` asks for - and ambient was ~93 % of C4's
+// display objects, so a restricted `10x full` row is NOT comparable to C4's
+// unrestricted one. Run both in the same session and compare those two.
+// ⚑ `filter(Boolean)` BEFORE Number: `''.split(',')` is `['']` and `Number('')`
+// is 0, so an unset variable would otherwise ask the driver for skill id 0 and
+// the run would stop at "none of skillIds [0] authors a fired or hit layer".
+const askedIds = (process.env.AURA_FXSCALE_SKILL_IDS ?? '')
+  .split(',').map(s => s.trim()).filter(Boolean)
+  .map(Number).filter(n => Number.isFinite(n));
+const SKILL_IDS = askedIds.length > 0 ? askedIds : null;
+if (SKILL_IDS !== null) {
+  console.log(`⚑ the stress driver is restricted to skill ids [${SKILL_IDS.join(', ')}]`);
+}
 
 // The venue: the western bandit camp, 13 spawns within 8 u (8 Bandits, 2
 // BanditRanged, a BanditPyromancer, an OrcGrunt, a DireWolf) around BOTH of
@@ -259,9 +283,15 @@ async function measure(page, { warmupMs = WARMUP_MS, windowMs = WINDOW_MS, shot 
 
 /** Start the driver, measure, stop it. `seconds` must cover warm-up + window. */
 async function stressed(page, { eventsPerSec, ambientOwners, shot, warmupMs = WARMUP_MS, windowMs = WINDOW_MS }) {
+  const opts = { eventsPerSec, ambientOwners, seconds: (warmupMs + windowMs) / 1000 + 4 };
+  // ⚑ Set only when asked: the driver reads an absent `skillIds` as "the whole
+  // catalog", which is what C4 measured, and Playwright's serialiser would
+  // carry an explicit `undefined` into the page as a present key.
+  if (SKILL_IDS !== null) {
+    opts.skillIds = SKILL_IDS;
+  }
   const started = await page.evaluate(
-    (opts) => window.game.skillFxStress(opts),
-    { eventsPerSec, ambientOwners, seconds: (warmupMs + windowMs) / 1000 + 4 });
+    (o) => window.game.skillFxStress(o), opts);
   if (started.ok === false) {
     note(`the stress driver refused to start: ${started.why}`);
     return null;
@@ -677,6 +707,8 @@ const belowEviction = firstEvicting
 
 const report = {
   when: new Date().toISOString(),
+  // null = the whole catalog (C4's own run); a list = a C3a sprite-path run.
+  skillIds: SKILL_IDS,
   baseline,
   ten: TEN,
   frameGuard: { budgetMs: FRAME_BUDGET_MS, p95: full10?.updateP95 ?? null, verdict: guard },

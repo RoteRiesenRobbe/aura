@@ -33,7 +33,7 @@ import {meter2px} from '../../../client-data/BasicConfig';
 import {skillDefinition, SkillDefinition} from '../../../client-data/Skills';
 import {GameSettings, VfxDensity} from '../../game-settings/logic/GameSettings';
 import {GLOW_COLOR, GLOW_WIDTH_PX, percentileOf, windUpGlowAlpha} from './SkillFxMath';
-import {clearPools, Fx, FxAnchor, kindHandler, VISUAL_KINDS} from './SkillFxKinds';
+import {clearPools, Fx, FxAnchor, kindHandler, spriteSpawns, VISUAL_KINDS} from './SkillFxKinds';
 import {planAmbient, planSpawns, PointOf, SkillVisual} from './SkillFxPlan';
 import {parseTint, skillFxColor} from './SkillFxPalette';
 
@@ -114,12 +114,22 @@ export function counters(): {
     /** live wind-up glows - readability, untouched by the slider */
     glows: number,
     spawnedByKind: { [kind: string]: number },
+    /**
+     * Spawns that drew ART rather than a placeholder (C3a, §12f.4 D) - one per
+     * Fx, whatever its body count. It is a SHARE of `spawnedByKind`'s total,
+     * never a kind of its own: a harness leg proves a body-carrying skill moved
+     * this and a bare one did not.
+     */
+    sprites: number,
     evicted: number,
     density: VfxDensity,
 } {
     let ambient = 0;
     ambients.forEach(entry => ambient += entry.layers.length);
-    return {live: live.length, ambient, glows: glows.size, spawnedByKind: {...spawnedByKind}, evicted, density};
+    return {
+        live: live.length, ambient, glows: glows.size,
+        spawnedByKind: {...spawnedByKind}, sprites: spriteSpawns(), evicted, density,
+    };
 }
 
 // --- the instrument (§12e.4) ------------------------------------------------
@@ -350,9 +360,14 @@ export function onSnapshot(events: readonly SkillEventData[], resolve: ResolveEn
  * asynchronously, and caching the "unknown skill" answer before it landed
  * would blank that skill's VFX for the rest of the session.
  */
-const visuals = new Map<number, SkillVisual | undefined>();
+const visuals = new Map<number, SkillVisual>();
 
-/** The catalog half of the plan's input: a skill's layers, colour and reach. */
+/**
+ * The catalog half of the plan's input: a skill's layers, colour and reach.
+ * ⭐ A held skill with no `visual` answers an EMPTY layer list rather than
+ * undefined (§12g): the engine's hit mark draws on its damage hits too, in the
+ * skill's damage-type colour, and only a skill the catalog lacks is unknown.
+ */
 function visualOf(skillId: number): SkillVisual | undefined {
     if (visuals.has(skillId)) {
         return visuals.get(skillId);
@@ -361,10 +376,11 @@ function visualOf(skillId: number): SkillVisual | undefined {
     if (!def) {
         return undefined;
     }
-    const layers = def.visual?.layers;
-    const visual = layers
-        ? {layers, baseColor: skillFxColor(def, undefined), reachPx: reachPxOf(def)}
-        : undefined;
+    const visual = {
+        layers: def.visual?.layers ?? [],
+        baseColor: skillFxColor(def, undefined),
+        reachPx: reachPxOf(def),
+    };
     visuals.set(skillId, visual);
     return visual;
 }

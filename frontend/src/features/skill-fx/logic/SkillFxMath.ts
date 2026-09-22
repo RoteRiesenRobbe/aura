@@ -66,21 +66,24 @@ export function projectilePoint(
     return {x: fromX + (toX - fromX) * eased, y: fromY + (toY - fromY) * eased};
 }
 
-// --- impact curves ----------------------------------------------------------
+// --- the automatic hit mark (§12g.1 call 2) ---------------------------------
+//
+// ⭐ NO CONTENT AUTHORS THIS. Since the C3a amendment the engine draws one
+// round mark on the victim of every landed DAMAGE hit, the `impact` kind is out
+// of the authoring vocabulary, and the `snap` curve is gone with it (the bite
+// became a `strike` curve, drawn from the BITER). So there is one look and one
+// number here, and the curve parameter that used to pick between them is gone.
+
+/** How long the mark lives. [PLACEHOLDER] - today's `burst` default, unmoved. */
+export const HIT_MARK_MS = 220;
 
 /**
- * The `impact` kind's curve set (api/skill-vocabulary.json `visualCurves`).
- *
- * ⚑ `thrust` LEFT this set at the C2a amendment (§12c.1) and is now a `strike`
- * style: an impact is a small ROUND mark on the victim, never directional.
+ * The mark's kind name, which it keeps although no file may author it: the
+ * harness counters and every C4 number read `spawnedByKind.impact`. Defined
+ * HERE rather than in SkillFxKinds because the planner (pure, no Pixi) is the
+ * one that puts the mark into a landing.
  */
-export type ImpactCurve = 'burst' | 'snap';
-
-/** Default lifetime per curve when the layer authors no `ms`. */
-export const IMPACT_CURVE_MS: Record<ImpactCurve, number> = {
-    burst: 220,
-    snap: 180,
-};
+export const HIT_MARK_KIND = 'impact';
 
 export interface ImpactPhase {
     /** body size as a share of the victim's own radius */
@@ -89,45 +92,22 @@ export interface ImpactPhase {
     done: boolean;
 }
 
-/** The snap's close share: the jaws shut in the first half, then fade. */
-const SNAP_CLOSE_FRACTION = 0.5;
-/** The snap's `scale` runs from wide open down by this much as the jaws shut. */
-const SNAP_OPEN_SCALE = 1.3;
-const SNAP_CLOSE_TRAVEL = 0.75;
-/** How far a burst ring grows, as a share of the victim's radius. */
+/** How far the mark's ring grows, as a share of the victim's radius. */
 const BURST_START_SCALE = 0.3;
 const BURST_END_SCALE = 0.9;
 
 /**
- * How far open the jaws are for a snap's `scale`: 1 = wide open, 0 = shut. The
- * jaws close by MOVING, not by shrinking, so the renderer wants the travel
- * rather than the size (PO 2026-09-20).
+ * The mark over time: a small ring expanding outward from a third to nine
+ * tenths of the victim's own radius while it fades. It is never rotated and
+ * never directional - the attacker's half of the beat is the `strike`,
+ * `projectile` or `beam` the content authors from the ATTACKER (§12g.1).
  */
-export function snapOpenOf(scale: number): number {
-    return clamp01((scale - (SNAP_OPEN_SCALE - SNAP_CLOSE_TRAVEL)) / SNAP_CLOSE_TRAVEL);
-}
-
-/**
- * One impact body over time. `snap` closes two jaws onto the victim's centre
- * (bites, gore); `burst` expands a small ring outward while fading (spells,
- * elemental hits, AoE, DoT applications, a missile's arrival).
- *
- * An unknown or legacy `curve` draws a burst rather than throwing: content can
- * outlive a vocabulary change, and a stale file must still show a hit.
- */
-export function impactPhase(curve: ImpactCurve, elapsedMs: number, totalMs: number): ImpactPhase {
-    const total = totalMs > 0 ? totalMs : (IMPACT_CURVE_MS[curve] ?? IMPACT_CURVE_MS.burst);
+export function impactPhase(elapsedMs: number, totalMs: number): ImpactPhase {
+    const total = totalMs > 0 ? totalMs : HIT_MARK_MS;
     if (elapsedMs >= total) {
         return {scale: BURST_END_SCALE, alpha: 0, done: true};
     }
     const p = clamp01(elapsedMs / total);
-    if (curve === 'snap') {
-        const close = easeOutCubic(clamp01(p / SNAP_CLOSE_FRACTION));
-        const alpha = p <= SNAP_CLOSE_FRACTION
-            ? 1
-            : 1 - (p - SNAP_CLOSE_FRACTION) / (1 - SNAP_CLOSE_FRACTION);
-        return {scale: SNAP_OPEN_SCALE - SNAP_CLOSE_TRAVEL * close, alpha, done: false};
-    }
     return {
         scale: BURST_START_SCALE + (BURST_END_SCALE - BURST_START_SCALE) * easeOutCubic(p),
         alpha: 1 - p,
@@ -142,14 +122,19 @@ export function impactPhase(curve: ImpactCurve, elapsedMs: number, totalMs: numb
 // Everything below is in reach units - fractions of the caster→victim gap - so
 // one set of numbers drives a spear at 40 px and a hammer at 200.
 
-/** The `strike` kind's curve set (PO 2026-09-19, §12c.1). */
-export type StrikeCurve = 'thrust' | 'swing' | 'overhead';
+/**
+ * The `strike` kind's curve set (PO 2026-09-19, §12c.1), joined by `bite` at
+ * the C3a amendment (§12g.1 call 3): an attack is drawn from the ATTACKER, so
+ * the wolf's jaws became a weapon it holds rather than a mark on its victim.
+ */
+export type StrikeCurve = 'thrust' | 'swing' | 'overhead' | 'bite';
 
 /** Default lifetime per style when the layer authors no `ms`. */
 export const STRIKE_CURVE_MS: Record<StrikeCurve, number> = {
     thrust: 200,
     swing: 280,
     overhead: 460,
+    bite: 260,
 };
 
 export interface StrikePhase {
@@ -186,10 +171,20 @@ const OVERHEAD_RAISE_SCALE = 1.3;
  */
 export const OVERHEAD_RAISE_RAD = Math.PI / 2;
 
+/**
+ * The bite: how wide the jaws gape ([PLACEHOLDER] 35 degrees either side of the
+ * aim), when they are shut, and how long they hold shut before fading.
+ */
+export const BITE_OPEN_RAD = (35 * Math.PI) / 180;
+const BITE_CLOSE_FRACTION = 0.5;
+const BITE_HOLD_FRACTION = 0.8;
+
 const STRIKE_CONTACT_FRACTION: Record<StrikeCurve, number> = {
     thrust: THRUST_CONTACT_FRACTION,
     swing: SWING_CONTACT_FRACTION,
     overhead: OVERHEAD_CONTACT_FRACTION,
+    // The jaws meeting IS the contact: the mark lands as they shut.
+    bite: BITE_CLOSE_FRACTION,
 };
 
 /**
@@ -205,7 +200,7 @@ export function contactMs(curve: StrikeCurve, totalMs: number): number {
 
 /** Which weapon style a `strike` layer authors; absent = thrust (PO 2026-09-19). */
 export function strikeCurveOf(curve: string | undefined): StrikeCurve {
-    return curve === 'swing' || curve === 'overhead' ? curve : 'thrust';
+    return curve === 'swing' || curve === 'overhead' || curve === 'bite' ? curve : 'thrust';
 }
 
 /**
@@ -301,6 +296,27 @@ export function strikePhase(curve: StrikeCurve, elapsedMs: number, totalMs: numb
                 : 1 - (p - OVERHEAD_HOLD_FRACTION) / (1 - OVERHEAD_HOLD_FRACTION);
             return {extend: 1, angleOffset: 0, offset: 0, scale: 1, alpha, done: false};
         }
+        case 'bite': {
+            // ⚑ `angleOffset` is the OPEN ANGLE here, not a sweep: the caller
+            // draws ONE jaw body twice, turning the upper one by −angleOffset
+            // and the lower one by +angleOffset about the same hinge, so the
+            // pair gapes and closes. It is never multiplied by swingDirection.
+            //
+            // Ease-IN, so the jaws hang open and then SLAM shut rather than
+            // drifting together (§12g.2).
+            const close = easeInCubic(clamp01(p / BITE_CLOSE_FRACTION));
+            const alpha = p <= BITE_HOLD_FRACTION
+                ? 1
+                : 1 - (p - BITE_HOLD_FRACTION) / (1 - BITE_HOLD_FRACTION);
+            return {
+                extend: 1,
+                angleOffset: BITE_OPEN_RAD * (1 - close),
+                offset: 0,
+                scale: 1,
+                alpha,
+                done: false,
+            };
+        }
         default: {
             // The prototype's stab: out fast, then pulled back while fading.
             if (p <= THRUST_CONTACT_FRACTION) {
@@ -332,6 +348,85 @@ export function overheadSide(aimRad: number): 1 | -1 {
 /** Which way a swing sweeps, alternating per landing so a fight is not a metronome. */
 export function swingDirection(seed: number): 1 | -1 {
     return Math.abs(Math.round(seed)) % 2 === 0 ? 1 : -1;
+}
+
+// --- wave (§12g.2) ----------------------------------------------------------
+//
+// ⭐ The kind the PO asked for on 2026-09-21 for the mammoth's stomp: rings
+// expanding from the CASTER out to the skill's reach and fading, on `fired`
+// only - once per cast, never per victim. Everything below is in SHARES: the
+// radius is a share of the reach and the width a multiplier, so one set of
+// numbers drives a stomp at 90 px and one at 400.
+
+/** A `wave` layer's whole duration when it authors no `ms`. [PLACEHOLDER] */
+export const WAVE_DEFAULT_MS = 500;
+/** Rings when a layer authors no `count`, and the ceiling on what it may ask for. */
+export const WAVE_DEFAULT_COUNT = 1;
+export const WAVE_MAX_COUNT = 3;
+/**
+ * The share of the layer the ring STARTS are spread over: the last ring is
+ * under way by the halfway mark, so a triple stomp still reads as one beat.
+ */
+const WAVE_STAGGER_SPAN = 0.5;
+/** The stroke thins to this share of its width as a ring reaches full size. */
+const WAVE_END_WIDTH = 0.3;
+
+export interface WaveRing {
+    /** 0..1 share of the skill's reach */
+    radius: number;
+    alpha: number;
+    /** multiplies the layer's stroke width: a ring thins as it grows */
+    width: number;
+    /** false before this ring's stagger has elapsed, and once it is over */
+    visible: boolean;
+}
+
+/** How many rings a `wave` layer draws: absent = one, capped at three. */
+export function waveCountOf(count: number | undefined): number {
+    if (!Number.isFinite(count) || !(count > 0)) {
+        return WAVE_DEFAULT_COUNT;
+    }
+    return Math.min(WAVE_MAX_COUNT, Math.max(1, Math.floor(count)));
+}
+
+/** A `wave` layer's whole duration: the authored `ms`, else the default. */
+export function waveTotalMsOf(ms: number | undefined): number {
+    return ms && ms > 0 ? ms : WAVE_DEFAULT_MS;
+}
+
+/**
+ * Where ring `index` of `count` is, `elapsedMs` into the layer.
+ *
+ * ⚑ ONE SPEED for every ring: the starts are staggered across the first
+ * WAVE_STAGGER_SPAN of the layer and each ring then runs for the SAME share of
+ * it, so the last one finishes exactly at `ms` and the rings chase each other
+ * out rather than catching up. With `count` 1 that share is the whole layer,
+ * which is why `ms` means what an author expects on the common case.
+ */
+export function waveRing(
+    index: number, count: number, elapsedMs: number, totalMs: number,
+): WaveRing {
+    const total = totalMs > 0 ? totalMs : WAVE_DEFAULT_MS;
+    const n = count > 0 ? count : 1;
+    const startFraction = (WAVE_STAGGER_SPAN * index) / n;
+    const lifeFraction = 1 - (WAVE_STAGGER_SPAN * (n - 1)) / n;
+    const p = (clamp01(elapsedMs / total) - startFraction) / lifeFraction;
+    if (p < 0) {
+        // Waiting its turn: this ring has not left the caster yet.
+        return {radius: 0, alpha: 0, width: 1, visible: false};
+    }
+    if (p >= 1 || elapsedMs >= total) {
+        // Spent, at full size: a ring that has arrived is not drawn, but it
+        // must not report itself back at the caster either.
+        return {radius: 1, alpha: 0, width: WAVE_END_WIDTH, visible: false};
+    }
+    // Decelerating: a shock front goes out hard and runs out of push.
+    return {
+        radius: easeOutCubic(p),
+        alpha: 1 - p,
+        width: WAVE_END_WIDTH + (1 - WAVE_END_WIDTH) * (1 - p),
+        visible: true,
+    };
 }
 
 // --- beam envelopes ---------------------------------------------------------
@@ -695,6 +790,70 @@ export function densityCount(count: number, density: VfxDensity): number {
         return 0;
     }
     return density === 'low' ? Math.max(1, Math.round(count * 0.4)) : count;
+}
+
+// --- sizing an ART body (C3a, §12f.4 D) -------------------------------------
+//
+// A placeholder is DRAWN at the size it wants, so its display object sits at
+// scale 1 and the kinds never had sizing arithmetic. A PNG is drawn at whatever
+// size the artist chose, so every sprite branch needs a scale factor, and the
+// factor is the only new number C3a adds to the drawing.
+//
+// ⭐ The rule (§12f.2, lead call): a weapon scales UNIFORMLY, only a beam
+// stretches. Pulling a sword to a 3 u reach along X alone would make it a
+// plank; pulling a beam is what a beam IS.
+
+/**
+ * The uniform factor that makes a texture `extentPx` wide across, keeping its
+ * aspect - the strike's reach, the held orbit's haft, the burst's diameter.
+ *
+ * An unmeasured texture (width 0, or a frame that has not decoded) answers 1:
+ * the sprite then draws at its own size, which is wrong but visible, and a
+ * visible wrong size is what a body-sizing mistake should look like.
+ */
+export function spriteScaleToExtent(textureExtentPx: number, extentPx: number): number {
+    if (!(textureExtentPx > 0) || !Number.isFinite(extentPx) || extentPx <= 0) {
+        return 1;
+    }
+    return extentPx / textureExtentPx;
+}
+
+/**
+ * The two scale factors of a `beam` body: stretched along the caster→victim
+ * span and held at the authored `width` across it. The ONE kind that is allowed
+ * to distort its body, which is why it is its own function rather than a second
+ * caller of {@link spriteScaleToExtent}.
+ */
+export function beamSpriteScale(
+    textureWidthPx: number, textureHeightPx: number, spanPx: number, widthPx: number,
+): { x: number, y: number } {
+    return {
+        // ⚑ A span of 0 collapses the body rather than falling back to "own
+        // size". The fallback is right for an authored extent that came out
+        // nonsense; it is wrong here, because an `extend` beam's FIRST FRAME
+        // legitimately has extent 0 and would pop the whole texture onto the
+        // caster for one frame before shrinking.
+        x: spanPx > 0 ? spriteScaleToExtent(textureWidthPx, spanPx) : 0,
+        y: spriteScaleToExtent(textureHeightPx, widthPx),
+    };
+}
+
+/**
+ * A `bite` drawn from ONE jaw PNG: the artist delivers the UPPER jaw with its
+ * HINGE on the left edge and its bite line on the BOTTOM edge (§12g.2), and the
+ * lower jaw is that same texture MIRRORED through the bite line.
+ *
+ * With the sprite anchored at (0, 1) - the hinge, on the bite line - a negative
+ * y scale flips the picture about that line without moving the hinge, so both
+ * jaws pivot on the same point in the attacker's mouth and the closing math in
+ * StrikeFx does not fork. `lengthPx` is the strike's own reach rule, so the
+ * scale stays UNIFORM (§12f.2: only a beam stretches).
+ */
+export function biteJawScale(
+    textureWidthPx: number, lengthPx: number, lower: boolean,
+): { x: number, y: number } {
+    const s = spriteScaleToExtent(textureWidthPx, lengthPx);
+    return {x: s, y: lower ? -s : s};
 }
 
 // --- the C4 instrument (§12e.4) ---------------------------------------------

@@ -1,11 +1,31 @@
 /**
- * Skill VFX bodies (plan-skill-vfx.md C2a, §6): a layer's `body` names an
- * entry in the art atlas, and every kind ships a procedural placeholder so a
- * skill is authorable before any art exists.
+ * Skill VFX bodies (plan-skill-vfx.md C3a, §6 + §12f): a layer's `body` names a
+ * PNG in `features/skill-fx/assets/bodies/`, and every kind ships a procedural
+ * placeholder so a skill is authorable before any art exists.
  *
- * ⚑ NO ATLAS EXISTS YET, so every lookup is the placeholder. A named `body`
- * logs once per name in dev and still draws it: authoring a body ahead of the
- * art is a content mistake this makes visible without breaking the draw.
+ * ⭐ Since C3a the art is REAL: the file name IS the link ("body": "arrow"
+ * draws `arrow.png`), and a resolved body draws as a pooled Sprite instead of
+ * the Graphics below. There is no packer and no atlas - the FOLDER is the
+ * contract (§12f.2), discovered by webpack, with `api/skill-fx/bodies.json` as
+ * Go's copy of the same list. A name the folder lacks logs once and still draws
+ * its placeholder: authoring a body ahead of the art stays visible without
+ * breaking the draw.
+ *
+ * ⚑ THE SPLIT, and why it is here. This module holds no webpack and no
+ * `Assets`: it is in the vitest graph (SkillFxKinds.test.ts reaches it through
+ * SkillFxKinds), and vitest is not webpack, so a `require.context` at import
+ * would redden the suite. The discovery half lives in {@link SkillFxBodyFiles},
+ * which is imported for its side effect by Game.ts alone and feeds this one
+ * through `declareBodies` + `setBodyTexture`. What stays here is pure: a name
+ * table, a texture table, and the lookup the kinds call.
+ *
+ * ⚑ The bodies load through `Preloading`, which BLOCKS BOOT until they land -
+ * the opposite of RegionPaint.ts, whose header explains why a tile per profile
+ * across every zone must NOT. Three small PNGs are nothing, and a body that
+ * arrived late would draw a placeholder for the first fight of the session.
+ * ⭐ Named trigger for moving to lazy loading: the folder passing roughly the
+ * ~16 bodies that also trigger the packer (§12f.2), or one body big enough to
+ * be felt on the start screen.
  *
  * The placeholders are deliberately plain Graphics - a ring, a dot, a kinked
  * line, a ribbon, three blocky weapons - tinted by SkillFxPalette. They are
@@ -13,19 +33,67 @@
  * [PLACEHOLDER].
  */
 import {Graphics} from 'pixi.js';
+import type {Texture} from 'pixi.js';
 import {jaggedPolyline, JAG_AMPLITUDE_PX, JAG_SEGMENTS} from './SkillFxMath';
+
+/** Every name the bodies folder holds, whether or not its texture has landed. */
+const knownBodies = new Set<string>();
+/** Bodies whose texture finished loading. Nothing else is drawable. */
+const bodyTextures: { [name: string]: Texture } = {};
 
 /** Named bodies already warned about, so the log is once per name, not per hit. */
 const warnedBodies = new Set<string>();
 
 /**
- * Whether a named body resolves to atlas art. Always false today; the one
- * place C2b's atlas has to change.
+ * The body name a webpack `require.context` key stands for: `./wolf-jaw.png`
+ * is the body `wolf-jaw`. Pure, and the one piece of the discovery half that
+ * can be unit-tested - the context itself cannot.
+ *
+ * ⚑ LOWERCASE `.png` only, and deliberately so: the `require.context` regex in
+ * {@link SkillFxBodyFiles} and `tools/make-skill-fx-manifest.mjs` both match
+ * lowercase, so a file named `Arrow.PNG` is not a body anywhere - webpack never
+ * hands it over and the manifest never lists it. Folding the case HERE alone
+ * would invent a name the other two do not know.
  */
-export function resolveBody(body: string | undefined): null {
-    if (body && !warnedBodies.has(body)) {
+export function bodyNameOf(key: string): string {
+    return key.replace(/^\.\//, '').replace(/\.png$/, '');
+}
+
+/**
+ * What the folder holds, called once at import by {@link SkillFxBodyFiles}.
+ * Separate from {@link setBodyTexture} on purpose: a name is known the moment
+ * webpack has seen the file, while its texture is known only after it decodes,
+ * and only the first of those two decides whether a `body` is a content typo.
+ */
+export function declareBodies(names: readonly string[]): void {
+    names.forEach(name => knownBodies.add(name));
+}
+
+/** One decoded body texture. A file that failed to load never calls this. */
+export function setBodyTexture(name: string, texture: Texture): void {
+    bodyTextures[name] = texture;
+}
+
+/**
+ * The texture a layer's `body` draws, or null for "draw the placeholder".
+ *
+ * Null covers three cases and only one of them is a mistake: no `body` authored
+ * at all (most layers, and the procedural look is the intended one for `flash`
+ * and particles by ruling), a body still decoding, and a body the folder does
+ * not hold - which warns, once per name.
+ */
+export function resolveBody(body: string | undefined): Texture | null {
+    if (!body) {
+        return null;
+    }
+    const texture = bodyTextures[body];
+    if (texture) {
+        return texture;
+    }
+    if (!knownBodies.has(body) && !warnedBodies.has(body)) {
         warnedBodies.add(body);
-        console.warn(`[skill-fx] body "${body}" has no atlas entry yet - drawing the placeholder`);
+        console.warn(`[skill-fx] body "${body}" is not a PNG in features/skill-fx/assets/bodies `
+            + `- drawing the placeholder`);
     }
     return null;
 }
@@ -33,15 +101,19 @@ export function resolveBody(body: string | undefined): null {
 // --- the placeholders -------------------------------------------------------
 
 /**
- * `impact` / `burst`: a ring with short radial ticks, centred on the victim and
- * NEVER rotated by the caster's direction (§12c.1: an impact is a small round
- * mark, the swing is what points). `sizePx` is the victim's own radius, so a
- * burst on a boar reads at the same weight as one on a wolf; the Fx scales the
- * whole thing outward as it fades.
+ * The engine's hit mark (§12g.1 call 2): a ring with short radial ticks,
+ * centred on the victim and NEVER rotated by the caster's direction (§12c.1: a
+ * hit is a small round mark, the attack is what points). `sizePx` is the
+ * victim's own radius, so a mark on a boar reads at the same weight as one on
+ * a wolf; the Fx scales the whole thing outward as it fades.
+ *
+ * ⚑ Not a placeholder in the sense of the others: no artist replaces it, the
+ * mark is code-drawn for good. It keeps the suffix because the SHAPE is still
+ * [PLACEHOLDER] until the PO has looked at it on a phone.
  */
 export const BURST_TICKS = 7;
 
-export function drawImpactBurstPlaceholder(g: Graphics, color: number, sizePx: number): Graphics {
+export function drawHitMarkPlaceholder(g: Graphics, color: number, sizePx: number): Graphics {
     const r = Math.max(9, sizePx);
     const width = Math.max(2, r * 0.14);
     g.clear().circle(0, 0, r).stroke({color, width, alpha: 0.95});
@@ -58,52 +130,45 @@ export function drawImpactBurstPlaceholder(g: Graphics, color: number, sizePx: n
 /** Bone and its outline: pale and dark together read on fur, grass and dirt alike. */
 const TOOTH = 0xf4f0e4;
 const TOOTH_OUTLINE = 0x2a2320;
-const JAW_TEETH = 8;
-const JAW_SEGMENTS = 10;
-const JAW_HALF_WIDTH_FACTOR = 1.15;
+const JAW_TEETH = 6;
+/** The jaw's height at the hinge, as a share of its length. */
+const JAW_ROOT_HEIGHT_RATIO = 0.3;
 
 /**
- * `impact` / `snap`: ONE jaw, a lens-shaped gum with a row of teeth, long fangs
- * in the middle and short ones at the corners (PO 2026-09-20: "should read more
- * like actual jaws"). `side` -1 is the upper jaw (−y is up), +1 the lower one.
+ * `strike` / `bite` (§12g.2): ONE upper jaw, hinged at the LEFT edge and
+ * reaching right to `lengthPx`, a tapering snout with a row of teeth whose tips
+ * all sit on the bite line y = 0 (PO 2026-09-20: "should read more like actual
+ * jaws"). The lower jaw is this same body with its y scale negated, so the Fx
+ * draws the pair once and closes it by rotating both about the hinge; nothing
+ * is rebuilt per frame. The skill's colour is the gum line, so a poison bite
+ * still reads as poison.
  *
- * The bite line is the body's own y = 0, so the Fx draws each jaw ONCE and
- * closes the pair by MOVING them together: the teeth keep their size and
- * nothing is rebuilt per frame. The skill's colour is the gum line, so a poison
- * bite still reads as poison.
+ * Same frame as the `wolf-jaw.png` contract (`docs/art/skill-vfx-asset-spec.md`):
+ * hinge at (0, 0), snout toward +x, the picture ABOVE the bite line (−y).
  */
-export function drawImpactJawPlaceholder(
-    g: Graphics, color: number, sizePx: number, side: -1 | 1,
-): Graphics {
-    const r = Math.max(10, sizePx);
-    const halfWidth = r * JAW_HALF_WIDTH_FACTOR;
-    const outline = Math.max(1.5, r * 0.07);
-    const toothLen = (x: number) => r * 0.5 * (0.3 + 0.7 * (1 - Math.abs(x) / halfWidth));
-    const gum = (x: number) => r * 0.22 * (1 - (x / halfWidth) ** 2);
-    const outer = () => {
-        g.moveTo(-halfWidth, 0);
-        for (let i = 1; i <= JAW_SEGMENTS; i++) {
-            const x = -halfWidth + (2 * halfWidth * i) / JAW_SEGMENTS;
-            g.lineTo(x, side * (toothLen(x) + gum(x)));
-        }
-    };
-    g.clear();
-    outer();
-    // Back along the teeth: root, tip, root... every tip on the bite line.
-    for (let i = JAW_TEETH * 2 - 1; i >= 1; i--) {
-        const x = -halfWidth + (2 * halfWidth * i) / (JAW_TEETH * 2);
-        g.lineTo(x, i % 2 === 1 ? 0 : side * toothLen(x));
+export function drawStrikeJawPlaceholder(g: Graphics, color: number, lengthPx: number): Graphics {
+    const len = Math.max(24, lengthPx);
+    const root = len * JAW_ROOT_HEIGHT_RATIO;
+    const outline = Math.max(1.5, len * 0.03);
+    // The muzzle line, thick at the hinge and thinning to the snout.
+    const gum = (x: number) => -root * (0.45 + 0.55 * (1 - x / len));
+    const fang = (i: number) => (i === 1 || i === JAW_TEETH - 2) ? 1 : 0.6;
+    g.clear().moveTo(0, gum(0)).lineTo(len, gum(len) * 0.35);
+    // Back along the teeth toward the hinge: root, tip, root... every tip on
+    // the bite line, the long fangs second from each end.
+    for (let i = JAW_TEETH - 1; i >= 0; i--) {
+        const x0 = (len * i) / JAW_TEETH;
+        const x1 = (len * (i + 1)) / JAW_TEETH;
+        const rootY = gum((x0 + x1) / 2) * (1 - fang(i) * 0.6);
+        g.lineTo(x1, rootY).lineTo((x0 + x1) / 2, 0).lineTo(x0, rootY);
     }
     g.closePath()
         .fill({color: TOOTH, alpha: 0.97})
         .stroke({color: TOOTH_OUTLINE, width: outline, alpha: 0.95});
     // The gum line, in the skill's colour.
-    outer();
-    return g.stroke({color, width: outline * 1.6, alpha: 0.9});
+    return g.moveTo(0, gum(0)).lineTo(len, gum(len) * 0.35)
+        .stroke({color, width: outline * 1.6, alpha: 0.9});
 }
-
-/** How far each jaw sits from the bite line when wide open, in victim radii. */
-export const JAW_OPEN_GAP_FACTOR = 0.75;
 
 /** `projectile`: a filled dot with a short trail behind it (−X). */
 export function drawProjectilePlaceholder(g: Graphics, color: number, sizePx: number): Graphics {
@@ -315,6 +380,26 @@ export function drawParticlePlaceholder(g: Graphics, color: number, radiusPx: nu
         .fill({color, alpha: 0.22})
         .circle(0, 0, r)
         .fill({color, alpha: 0.9});
+}
+
+/** A `wave` ring's stroke at full strength; it thins as the ring runs out (§12g.2). */
+export const WAVE_STROKE_PX = 6;
+
+/**
+ * `wave`: one ring of a shock front, REDRAWN per frame because both its radius
+ * and its stroke change every frame (the beam precedent: a shape whose geometry
+ * moves is cheaper to redraw than to fake with scale, and a scaled stroke would
+ * thicken as the ring grew, the opposite of what a front does). Code-drawn for
+ * good: the briefing lists the wave among the procedural looks, so this is
+ * not a placeholder.
+ */
+export function drawWaveRing(
+    g: Graphics, color: number, radiusPx: number, strokeShare: number,
+): Graphics {
+    const width = Math.max(1, WAVE_STROKE_PX * strokeShare);
+    return g.clear()
+        .circle(0, 0, Math.max(1, radiusPx))
+        .stroke({color, width, alpha: 0.9});
 }
 
 /** `beam` / `extend`: a soft ribbon, tapering toward its far end. */

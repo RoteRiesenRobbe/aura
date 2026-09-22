@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
-import {estimateLiveFx, eventLifetimeMs, stressSchedule} from './SkillFxStress';
-import {BEAM_CURVE_MS, flightMs, IMPACT_CURVE_MS} from './SkillFxMath';
+import {estimateLiveFx, eventLifetimeMs, restrictToIds, stressSchedule} from './SkillFxStress';
+import {BEAM_CURVE_MS, flightMs, HIT_MARK_MS, WAVE_DEFAULT_MS} from './SkillFxMath';
 
 /**
  * The stress driver's only arithmetic (plan-skill-vfx.md §12e.4): how many
@@ -70,14 +70,14 @@ describe('stressSchedule', () => {
  */
 describe('eventLifetimeMs', () => {
     it('counts an authored duration over the kind default', () => {
-        expect(eventLifetimeMs([{kind: 'impact', on: 'hit', ms: 250}], 100)).toBe(250);
+        expect(eventLifetimeMs([{kind: 'beam', on: 'hit', ms: 250}], 100)).toBe(250);
     });
 
     it('falls back to the kind default, per curve', () => {
-        expect(eventLifetimeMs([{kind: 'impact', on: 'hit'}], 100)).toBe(IMPACT_CURVE_MS.burst);
-        expect(eventLifetimeMs([{kind: 'impact', on: 'hit', curve: 'snap'}], 100))
-            .toBe(IMPACT_CURVE_MS.snap);
         expect(eventLifetimeMs([{kind: 'beam', on: 'hit'}], 100)).toBe(BEAM_CURVE_MS.flash);
+        expect(eventLifetimeMs([{kind: 'beam', on: 'hit', curve: 'extend'}], 100))
+            .toBe(BEAM_CURVE_MS.extend);
+        expect(eventLifetimeMs([{kind: 'wave', on: 'fired'}], 100)).toBe(WAVE_DEFAULT_MS);
     });
 
     it('gives a bolt its FLIGHT, which is what a projectile lives for', () => {
@@ -86,15 +86,25 @@ describe('eventLifetimeMs', () => {
             .toBe(flightMs(350, 700));
     });
 
-    it('charges the impact its WAIT as well as its life', () => {
+    // §12g: the mark is the engine's, so it is not in `layers` - the caller
+    // says whether the event is a landed damage hit, and the estimate adds it.
+    it('charges a damage hit the mark, even on a skill that authors nothing', () => {
+        expect(eventLifetimeMs([], 100, true)).toBe(HIT_MARK_MS);
+        expect(eventLifetimeMs([{kind: 'beam', on: 'hit'}], 100, true))
+            .toBe(BEAM_CURVE_MS.flash + HIT_MARK_MS);
+    });
+
+    it('charges no mark unless told the hit landed damage', () => {
+        expect(eventLifetimeMs([{kind: 'beam', on: 'hit'}], 100)).toBe(BEAM_CURVE_MS.flash);
+        expect(eventLifetimeMs([], 100, false)).toBe(0);
+    });
+
+    it('charges the mark its WAIT as well as its life', () => {
         // An Fx enters the budget at spawn, not at its first visible frame, so
-        // an impact waiting for the bolt occupies a slot for the whole flight.
+        // a mark waiting for the bolt occupies a slot for the whole flight.
         const flight = flightMs(350, 700);
-        const layers = [
-            {kind: 'projectile', on: 'hit', speed: 700},
-            {kind: 'impact', on: 'hit', ms: 200},
-        ];
-        expect(eventLifetimeMs(layers, 350)).toBe(flight + flight + 200);
+        const layers = [{kind: 'projectile', on: 'hit', speed: 700}];
+        expect(eventLifetimeMs(layers, 350, true)).toBe(flight + flight + HIT_MARK_MS);
     });
 
     it('counts no ambient layer: an event never spawns one', () => {
@@ -113,5 +123,32 @@ describe('estimateLiveFx', () => {
         expect(estimateLiveFx(0, 300)).toBe(0);
         expect(estimateLiveFx(40, 0)).toBe(0);
         expect(estimateLiveFx(NaN, 300)).toBe(0);
+    });
+});
+
+/**
+ * The `skillIds` filter (C3a): every number in C4's table was measured on
+ * Graphics placeholders, so a rerun has to be pointable at the skills that
+ * carry a body. The default must stay exactly what C4 ran.
+ */
+describe('restrictToIds', () => {
+    const defs = [{id: 3}, {id: 7}, {id: 11}, {id: 19}];
+
+    it('keeps the list untouched when no ids are asked for', () => {
+        expect(restrictToIds(defs, undefined)).toEqual(defs);
+        expect(restrictToIds(defs, [])).toEqual(defs);
+    });
+
+    it('hands back a COPY, so a filtered run cannot mutate the catalog list', () => {
+        expect(restrictToIds(defs, undefined)).not.toBe(defs);
+    });
+
+    it('keeps only the wanted ids, in the order the list already had', () => {
+        expect(restrictToIds(defs, [19, 3])).toEqual([{id: 3}, {id: 19}]);
+    });
+
+    it('ignores an id no skill carries, rather than inventing an entry', () => {
+        expect(restrictToIds(defs, [7, 9999])).toEqual([{id: 7}]);
+        expect(restrictToIds(defs, [9999])).toEqual([]);
     });
 });

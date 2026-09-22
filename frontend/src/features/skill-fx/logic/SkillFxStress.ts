@@ -28,10 +28,11 @@ import {
     CAST_POSE_DEFAULT_MS,
     EMITTER_DEFAULT_MS,
     flightMs,
-    IMPACT_CURVE_MS,
+    HIT_MARK_MS,
     ORBIT_DEFAULT_MS,
     strikeContactMsOf,
     strikeTotalMsOf,
+    waveTotalMsOf,
 } from './SkillFxMath';
 import {onSnapshot, setAmbient} from './SkillFx';
 
@@ -55,6 +56,13 @@ export interface StressOptions {
     ambientOwners?: number;
     /** how long it runs before stopping itself */
     seconds?: number;
+    /**
+     * Restrict the round robin to these catalog skill ids (C3a): every C4
+     * number was measured on Graphics placeholders, and re-running a leg
+     * against a body-carrying skill is how the sprite path is priced against
+     * them. Absent or empty = the whole catalog, exactly as C4 measured it.
+     */
+    skillIds?: number[];
 }
 
 /**
@@ -86,32 +94,38 @@ export function stressSchedule(
  * counted from the moment it enters `live` to the moment it leaves.
  *
  * ⚑ The delay counts. An Fx is pushed into `live` at SPAWN time even when its
- * first visible frame is 400 ms away, so an `impact` waiting for its bolt to
+ * first visible frame is 400 ms away, so the hit mark waiting for its bolt to
  * arrive occupies the budget for the whole flight - which is exactly the thing
  * a cap has to be sized against.
  *
+ * ⭐ `damageHit` says whether the event is a landed Damage hit (§12g): the mark
+ * is the ENGINE'S and never in `layers`, so the estimate adds its life and its
+ * wait when told to. Every real strike now draws one, which is why the C4
+ * numbers owe a rerun.
+ *
  * ⚑ It is an ESTIMATE, and the curve fallbacks below mirror the private
- * `impactCurveOf` / `beamCurveOf` in SkillFxKinds. If those rules ever move,
- * this drifts - it is a sanity number printed beside a measured one, never a
- * substitute for it.
+ * `beamCurveOf` in SkillFxKinds. If those rules ever move, this drifts - it is
+ * a sanity number printed beside a measured one, never a substitute for it.
  *
  * `ambient` layers count 0: they are state, they are not spawned by an event,
  * and they never end on a clock.
  */
-export function eventLifetimeMs(layers: readonly VisualLayer[], distPx: number): number {
+export function eventLifetimeMs(
+    layers: readonly VisualLayer[], distPx: number, damageHit = false,
+): number {
     const bolt = layers.find(layer => layer.kind === 'projectile');
     const weapon = layers.find(layer => layer.kind === 'strike');
-    // The implicit sequencing of SkillFxPlan: an impact starts when whatever
+    // The implicit sequencing of SkillFxPlan: the mark starts when whatever
     // touched the victim actually got there, the later of the two.
     const arrival = Math.max(
         bolt ? flightMs(distPx, bolt.speed ?? 0) : 0,
         weapon ? strikeContactMsOf(weapon.curve, weapon.ms) : 0);
-    let total = 0;
+    let total = damageHit ? HIT_MARK_MS + arrival : 0;
     for (const layer of layers) {
         if (layer.on === 'ambient') {
             continue;
         }
-        total += layerLifetimeMs(layer, distPx) + (layer.kind === 'impact' ? arrival : 0);
+        total += layerLifetimeMs(layer, distPx);
     }
     return total;
 }
@@ -125,8 +139,8 @@ function layerLifetimeMs(def: VisualLayer, distPx: number): number {
             return flightMs(distPx, def.speed ?? 0);
         case 'strike':
             return strikeTotalMsOf(def.curve, def.ms);
-        case 'impact':
-            return authored || IMPACT_CURVE_MS[def.curve === 'snap' ? 'snap' : 'burst'];
+        case 'wave':
+            return waveTotalMsOf(def.ms);
         case 'beam':
             return authored || BEAM_CURVE_MS[def.curve === 'extend' ? 'extend' : 'flash'];
         case 'cast-pose':
@@ -216,7 +230,7 @@ export interface StressStatus {
     ambientSkills: number;
     /** mean Fx-milliseconds one synthetic event spawns, over the round robin */
     meanEventMs: number;
-    /** mean layers one synthetic event spawns */
+    /** mean Fx one synthetic event spawns: its layers, plus the mark on a hit (§12g) */
     layersPerEvent: number;
     /** Little's law against the requested rate, beside the measured liveMax */
     estimatedLive: number;
@@ -257,11 +271,27 @@ export function start(options: StressOptions = {}): StressStatus {
     if (Game === null) {
         return {...status(), ok: false, why: 'the game has not set up yet'};
     }
+    const wanted = options.skillIds;
     eventSkills = catalog.filter(def => authors(def, 'fired') || authors(def, 'hit'))
         .sort((a, b) => a.id - b.id);
     ambientSkills = catalog.filter(def => authors(def, 'ambient')).sort((a, b) => a.id - b.id);
     if (eventSkills.length === 0) {
         return {...status(), ok: false, why: 'no catalog skill authors a fired or hit layer'};
+    }
+    // ⚑ Applied AFTER the "does the catalog author anything at all" test, so
+    // the two failures stay distinguishable: an empty catalog and a filter that
+    // matched nothing are different mistakes and say so.
+    if (wanted && wanted.length > 0) {
+        eventSkills = restrictToIds(eventSkills, wanted);
+        // An ambient list emptied by the filter is fine - `tick` already feeds
+        // aura id 0 when there is nothing to hold, which is "no running aura".
+        ambientSkills = restrictToIds(ambientSkills, wanted);
+        if (eventSkills.length === 0) {
+            return {
+                ...status(), ok: false,
+                why: `none of skillIds [${wanted.join(', ')}] authors a fired or hit layer`,
+            };
+        }
     }
 
     ratePerSec = options.eventsPerSec ?? 0;
@@ -301,6 +331,26 @@ export function stop(): StressStatus {
     ambientStubs = [];
     byId.clear();
     return status();
+}
+
+/**
+ * The `skillIds` filter (C3a): the skills in `defs` whose id is wanted, in the
+ * order `defs` already had them, so the round robin's walk is unchanged apart
+ * from the skills it skips.
+ *
+ * An absent or empty list is "no filter" rather than "nothing": the driver's
+ * default behaviour must stay byte-identical to what C4 measured, and
+ * `skillIds: []` from a harness is far more likely to be a mistake than a
+ * request for a run that feeds nothing.
+ */
+export function restrictToIds<T extends { id: number }>(
+    defs: readonly T[], ids: readonly number[] | undefined,
+): T[] {
+    if (!ids || ids.length === 0) {
+        return defs.slice();
+    }
+    const wanted = new Set(ids);
+    return defs.filter(def => wanted.has(def.id));
 }
 
 function authors(def: SkillDefinition, on: string): boolean {
@@ -348,9 +398,11 @@ function measureTheMix(): void {
     const steps = eventSkills.length * 2;
     for (let n = 0; n < steps; n++) {
         const def = eventSkills[n % eventSkills.length];
-        const layers = layersAt(def, firedAt(def, n));
-        msTotal += eventLifetimeMs(layers, meanDistPx);
-        layerTotal += layers.length;
+        const isFired = firedAt(def, n);
+        const layers = layersAt(def, isFired);
+        // Every fed hit is a Damage hit (nextEvent), so each one draws the mark.
+        msTotal += eventLifetimeMs(layers, meanDistPx, !isFired);
+        layerTotal += layers.length + (isFired ? 0 : 1);
     }
     meanEventMs = steps === 0 ? 0 : msTotal / steps;
     layersPerEvent = steps === 0 ? 0 : layerTotal / steps;

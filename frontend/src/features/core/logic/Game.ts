@@ -23,6 +23,11 @@ import {Camera} from '../../camera/logic/Camera';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import * as SkillFx from '../../skill-fx/logic/SkillFx';
+// Side effect only (plan-skill-vfx.md C3a): discovers the skill-VFX body PNGs
+// through webpack and registers them as preloads. It lives OUTSIDE SkillFx.ts
+// because that module is in the vitest graph and this one holds a
+// `require.context`, which vitest cannot resolve.
+import '../../skill-fx/logic/SkillFxBodyFiles';
 import * as Regions from '../../regions/logic/Regions';
 import {Region} from '../../regions/logic/Regions';
 import * as Paths from '../../paths/logic/Paths';

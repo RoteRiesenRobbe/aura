@@ -299,7 +299,12 @@ export interface VisualLayer {
     kind: string;
     /** 'ambient' | 'fired' | 'hit' - which moment spawns this layer */
     on: string;
-    /** atlas entry; absent (and, until the atlas exists, always) → the kind's placeholder */
+    /**
+     * the PNG this layer draws, named without its extension: `"arrow"` draws
+     * `features/skill-fx/assets/bodies/arrow.png` (C3a, §12f.2 - the folder is
+     * the contract, there is no atlas). Absent, or a name the folder does not
+     * hold → the kind's procedural placeholder
+     */
     body?: string;
     /** '#rrggbb', overriding the damage-type palette */
     tint?: string;

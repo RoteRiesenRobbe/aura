@@ -16,7 +16,7 @@ import {
     flightMs,
     GLOW_BASE_ALPHA,
     GLOW_MAX_ALPHA,
-    IMPACT_CURVE_MS,
+    HIT_MARK_MS,
     impactPhase,
     jaggedPolyline,
     ORBIT_FADE_MS,
@@ -38,7 +38,15 @@ import {
     strikePhase,
     swingDirection,
     SWING_HALF_ARC_RAD,
-    snapOpenOf,
+    BITE_OPEN_RAD,
+    beamSpriteScale,
+    biteJawScale,
+    spriteScaleToExtent,
+    waveCountOf,
+    waveRing,
+    waveTotalMsOf,
+    WAVE_DEFAULT_MS,
+    WAVE_MAX_COUNT,
     windUpGlowAlpha,
 } from './SkillFxMath';
 
@@ -82,42 +90,24 @@ describe('projectilePoint', () => {
 });
 
 describe('impactPhase', () => {
-    it('snaps shut: the jaws close and hold, then fade', () => {
-        const total = IMPACT_CURVE_MS.snap;
-        expect(impactPhase('snap', 0, total).scale).toBeCloseTo(1.3);
-        const shut = impactPhase('snap', total * 0.5, total);
-        expect(shut.scale).toBeCloseTo(0.55);
-        expect(shut.alpha).toBe(1);
-        expect(impactPhase('snap', total * 0.75, total).alpha).toBeCloseTo(0.5);
-        expect(impactPhase('snap', total, total).done).toBe(true);
-    });
-
+    // ⭐ The ENGINE'S OWN hit mark since §12g.1 call 2: no content authors it,
+    // there is one look, and the curve parameter is gone with `snap`.
     it('bursts outward from a third to nine tenths of the victim while fading', () => {
-        const total = IMPACT_CURVE_MS.burst;
-        const start = impactPhase('burst', 0, total);
+        const total = HIT_MARK_MS;
+        const start = impactPhase(0, total);
         expect(start.scale).toBeCloseTo(0.3);
         expect(start.alpha).toBe(1);
-        const mid = impactPhase('burst', total * 0.5, total);
+        const mid = impactPhase(total * 0.5, total);
         expect(mid.scale).toBeGreaterThan(start.scale);
         expect(mid.alpha).toBeCloseTo(0.5);
         // The ring never grows past the victim's own silhouette.
-        expect(impactPhase('burst', total * 0.999, total).scale).toBeLessThanOrEqual(0.9);
-        expect(impactPhase('burst', total, total).done).toBe(true);
+        expect(impactPhase(total * 0.999, total).scale).toBeLessThanOrEqual(0.9);
+        expect(impactPhase(total, total).done).toBe(true);
     });
 
-    it('falls back to burst for a legacy or unknown curve, never throwing', () => {
-        const total = IMPACT_CURVE_MS.burst;
-        // `thrust` moved to the `strike` kind (§12c.1); a stale content file
-        // must still draw something.
-        expect(impactPhase('thrust' as never, total * 0.5, total))
-            .toEqual(impactPhase('burst', total * 0.5, total));
-        expect(impactPhase('nonsense' as never, 0, total).done).toBe(false);
-    });
-
-    it('is done past its total whatever the curve', () => {
-        for (const curve of ['snap', 'burst'] as const) {
-            expect(impactPhase(curve, 10_000, IMPACT_CURVE_MS[curve]).done).toBe(true);
-        }
+    it('takes the mark default for a zero total, and is done past it', () => {
+        expect(impactPhase(100, 0)).toEqual(impactPhase(100, HIT_MARK_MS));
+        expect(impactPhase(10_000, HIT_MARK_MS).done).toBe(true);
     });
 });
 
@@ -207,8 +197,52 @@ describe('strikePhase', () => {
         expect(strikePhase('overhead', total * 0.95, total).alpha).toBeLessThan(1);
     });
 
+    // ⭐ The `bite` curve (§12g.2): ONE jaw body drawn twice, the second
+    // mirrored, both hinged at the hand and aimed at the victim. `angleOffset`
+    // is the OPEN ANGLE here, applied +to the lower jaw and −to the upper one -
+    // it is never multiplied by swingDirection, or a bite would sometimes open
+    // backwards.
+    it('opens the jaws wide, snaps them shut, holds, then fades', () => {
+        const total = STRIKE_CURVE_MS.bite;
+        const shut = contactMs('bite', total);
+        const start = strikePhase('bite', 0, total);
+        expect(start.angleOffset).toBeCloseTo(BITE_OPEN_RAD);
+        expect(start.alpha).toBe(1);
+        // Shut exactly at the contact moment, which is when the mark lands.
+        expect(strikePhase('bite', shut, total).angleOffset).toBeCloseTo(0);
+        // ...and it stays shut for the rest of the layer.
+        expect(strikePhase('bite', total * 0.9, total).angleOffset).toBeCloseTo(0);
+        // Held closed for a beat, then faded out.
+        expect(strikePhase('bite', shut + 1, total).alpha).toBe(1);
+        expect(strikePhase('bite', total * 0.95, total).alpha).toBeLessThan(1);
+        expect(strikePhase('bite', total * 0.95, total).alpha).toBeGreaterThan(0);
+    });
+
+    it('closes the bite monotonically, and SNAPS: slow first, fast at the end', () => {
+        const total = STRIKE_CURVE_MS.bite;
+        const shut = contactMs('bite', total);
+        let previous = BITE_OPEN_RAD + 1;
+        for (let i = 0; i <= 20; i++) {
+            const open = strikePhase('bite', (shut * i) / 20, total).angleOffset;
+            expect(open).toBeLessThanOrEqual(previous);
+            previous = open;
+        }
+        // Ease-IN: halfway through the closing TIME, less than half the angle
+        // has been given up - the jaws are still gaping, then they slam.
+        expect(strikePhase('bite', shut * 0.5, total).angleOffset)
+            .toBeGreaterThan(BITE_OPEN_RAD / 2);
+    });
+
+    it('keeps the bite a held pair: it pivots, it never stretches', () => {
+        samples('bite', STRIKE_CURVE_MS.bite, 10).slice(0, 10).forEach((p) => {
+            expect(p.extend).toBeCloseTo(1);
+            expect(p.offset).toBeCloseTo(0);
+            expect(p.scale).toBeCloseTo(1);
+        });
+    });
+
     it('never swings the wrong way: no style reaches past the victim before contact', () => {
-        for (const curve of ['thrust', 'swing', 'overhead'] as const) {
+        for (const curve of ['thrust', 'swing', 'overhead', 'bite'] as const) {
             const total = STRIKE_CURVE_MS[curve];
             const contact = contactMs(curve, total);
             for (let i = 0; i <= 20; i++) {
@@ -218,7 +252,7 @@ describe('strikePhase', () => {
     });
 
     it('is done at its total and past it, whatever the curve', () => {
-        for (const curve of ['thrust', 'swing', 'overhead'] as const) {
+        for (const curve of ['thrust', 'swing', 'overhead', 'bite'] as const) {
             const total = STRIKE_CURVE_MS[curve];
             expect(strikePhase(curve, total, total).done).toBe(true);
             expect(strikePhase(curve, 10_000, total).done).toBe(true);
@@ -234,7 +268,7 @@ describe('strikePhase', () => {
 
 describe('contactMs', () => {
     it('sits inside each style and follows the authored total', () => {
-        for (const curve of ['thrust', 'swing', 'overhead'] as const) {
+        for (const curve of ['thrust', 'swing', 'overhead', 'bite'] as const) {
             const contact = contactMs(curve, 1000);
             expect(contact).toBeGreaterThan(0);
             expect(contact).toBeLessThan(1000);
@@ -529,17 +563,86 @@ describe('densityCount', () => {
     });
 });
 
-describe('snapOpenOf', () => {
-    it('reads wide open at the start of a snap and shut once it has closed', () => {
-        expect(snapOpenOf(impactPhase('snap', 0, 200).scale)).toBe(1);
-        expect(snapOpenOf(impactPhase('snap', 100, 200).scale)).toBeCloseTo(0, 5);
-        expect(snapOpenOf(impactPhase('snap', 180, 200).scale)).toBeCloseTo(0, 5);
+describe('waveRing', () => {
+    // The `wave` kind (§12g.2, the mammoth stomp): `count` rings expanding from
+    // the CASTER to the skill's reach, staggered across the first half of `ms`.
+    // `radius` is a share of the reach, so one set of numbers drives a stomp at
+    // 90 px and one at 400.
+    const TOTAL = 600;
+
+    it('starts the first ring at the caster and grows it to the reach', () => {
+        const start = waveRing(0, 1, 0, TOTAL);
+        expect(start.radius).toBeCloseTo(0);
+        expect(start.alpha).toBeCloseTo(1);
+        expect(start.visible).toBe(true);
+        expect(waveRing(0, 1, TOTAL * 0.999, TOTAL).radius).toBeCloseTo(1, 2);
     });
 
-    it('closes monotonically', () => {
-        const at = (ms: number) => snapOpenOf(impactPhase('snap', ms, 200).scale);
-        expect(at(20)).toBeGreaterThan(at(50));
-        expect(at(50)).toBeGreaterThan(at(90));
+    it('expands monotonically and fades while it does', () => {
+        let radius = -1;
+        let alpha = 2;
+        for (let i = 0; i <= 20; i++) {
+            const ring = waveRing(0, 1, (TOTAL * i) / 20, TOTAL);
+            expect(ring.radius).toBeGreaterThanOrEqual(radius);
+            expect(ring.alpha).toBeLessThanOrEqual(alpha + 1e-9);
+            radius = ring.radius;
+            alpha = ring.alpha;
+        }
+        expect(alpha).toBeCloseTo(0, 2);
+    });
+
+    it('thins the stroke as the ring grows', () => {
+        expect(waveRing(0, 1, TOTAL * 0.9, TOTAL).width)
+            .toBeLessThan(waveRing(0, 1, 0, TOTAL).width);
+        expect(waveRing(0, 1, TOTAL * 0.9, TOTAL).width).toBeGreaterThan(0);
+    });
+
+    it('staggers the later rings across the FIRST HALF, and ends them together', () => {
+        // Three rings: the last one starts a third of the way in, and every
+        // ring is over at the layer's own `ms` - they travel at one speed.
+        expect(waveRing(1, 3, 0, TOTAL).visible).toBe(false);
+        expect(waveRing(2, 3, 0, TOTAL).visible).toBe(false);
+        expect(waveRing(1, 3, TOTAL / 6, TOTAL).visible).toBe(true);
+        expect(waveRing(2, 3, TOTAL / 3, TOTAL).visible).toBe(true);
+        // ONE SPEED: ring 2, a third of a total behind ring 0, is exactly where
+        // ring 0 was a third of a total earlier. Rings chase, they never catch.
+        expect(waveRing(2, 3, TOTAL / 3 + 100, TOTAL).radius)
+            .toBeCloseTo(waveRing(0, 3, 100, TOTAL).radius, 6);
+        expect(waveRing(2, 3, TOTAL * 0.999, TOTAL).radius).toBeCloseTo(1, 2);
+    });
+
+    it('gives a single ring the whole of the layer, not half of it', () => {
+        // The stagger span is a share of `ms`, so one ring spends all of it.
+        expect(waveRing(0, 1, TOTAL * 0.6, TOTAL).visible).toBe(true);
+        expect(waveRing(0, 1, TOTAL * 0.95, TOTAL).radius).toBeLessThan(1);
+        expect(waveRing(0, 1, TOTAL * 0.95, TOTAL).visible).toBe(true);
+    });
+
+    it('is invisible past the end rather than drawing a frozen ring', () => {
+        expect(waveRing(0, 1, TOTAL, TOTAL).visible).toBe(false);
+        expect(waveRing(0, 3, TOTAL * 2, TOTAL).visible).toBe(false);
+    });
+
+    it('takes the default total for a zero ms and survives a zero count', () => {
+        expect(waveRing(0, 1, 100, 0)).toEqual(waveRing(0, 1, 100, WAVE_DEFAULT_MS));
+        expect(Number.isFinite(waveRing(0, 0, 100, TOTAL).radius)).toBe(true);
+    });
+});
+
+describe('waveCountOf / waveTotalMsOf', () => {
+    it('draws one ring when the layer authors no count, and caps at the maximum', () => {
+        expect(waveCountOf(undefined)).toBe(1);
+        expect(waveCountOf(2)).toBe(2);
+        expect(waveCountOf(99)).toBe(WAVE_MAX_COUNT);
+        expect(waveCountOf(0)).toBe(1);
+        expect(waveCountOf(-4)).toBe(1);
+        expect(waveCountOf(2.4)).toBe(2);
+    });
+
+    it('takes the authored ms over the default', () => {
+        expect(waveTotalMsOf(undefined)).toBe(WAVE_DEFAULT_MS);
+        expect(waveTotalMsOf(0)).toBe(WAVE_DEFAULT_MS);
+        expect(waveTotalMsOf(900)).toBe(900);
     });
 });
 
@@ -585,5 +688,86 @@ describe('percentileOf', () => {
         expect(percentileOf(sorted, -1)).toBe(1);
         expect(percentileOf(sorted, 7)).toBe(10);
         expect(percentileOf(sorted, NaN)).toBe(1);
+    });
+});
+
+// --- sizing an ART body (C3a, §12f.4 D) -------------------------------------
+//
+// A placeholder is drawn at the size it wants and sits at scale 1; a PNG is
+// drawn at whatever size the artist chose, so every sprite branch needs one of
+// these three factors. They are the whole of what C3a adds to the arithmetic.
+
+describe('spriteScaleToExtent', () => {
+    it('makes a texture exactly as long as the reach it is handed', () => {
+        expect(spriteScaleToExtent(64, 192)).toBe(3);
+        expect(spriteScaleToExtent(200, 50)).toBe(0.25);
+    });
+
+    it('is UNIFORM: one factor, so the caller cannot flatten a sword', () => {
+        // §12f.2: a weapon scales uniformly, only a beam stretches. The proof
+        // is that this answers a scalar and never a pair.
+        expect(typeof spriteScaleToExtent(64, 192)).toBe('number');
+    });
+
+    it('answers 1 for an unmeasured texture, so a body still draws', () => {
+        expect(spriteScaleToExtent(0, 192)).toBe(1);
+        expect(spriteScaleToExtent(NaN, 192)).toBe(1);
+    });
+
+    it('answers 1 for a nonsense extent rather than collapsing the body', () => {
+        expect(spriteScaleToExtent(64, 0)).toBe(1);
+        expect(spriteScaleToExtent(64, -10)).toBe(1);
+        expect(spriteScaleToExtent(64, NaN)).toBe(1);
+    });
+});
+
+describe('beamSpriteScale', () => {
+    it('stretches along the span and holds the authored width across it', () => {
+        const s = beamSpriteScale(32, 8, 320, 4);
+        expect(s.x).toBe(10);
+        expect(s.y).toBe(0.5);
+    });
+
+    it('is the ONE kind allowed to distort: x and y move independently', () => {
+        const near = beamSpriteScale(32, 8, 64, 4);
+        const far = beamSpriteScale(32, 8, 640, 4);
+        expect(far.x).toBeGreaterThan(near.x);
+        expect(far.y).toBe(near.y);
+    });
+
+    it('draws NOTHING at a zero span, rather than a full-width texture', () => {
+        // The first frame of an `extend` has extent 0. Falling back to "own
+        // size" there - right for a reach that was authored wrong - would pop
+        // the whole body onto the caster for one frame and then collapse it.
+        expect(beamSpriteScale(32, 8, 0, 4).x).toBe(0);
+        expect(beamSpriteScale(32, 8, -10, 4).x).toBe(0);
+    });
+
+    it('degrades to 1 on an unmeasured texture in either axis', () => {
+        expect(beamSpriteScale(0, 0, 320, 4)).toEqual({x: 1, y: 1});
+    });
+});
+
+describe('biteJawScale', () => {
+    // ONE jaw PNG, hinge on the LEFT edge, bite line on the bottom one
+    // (§12g.2). Anchored at (0, 1) a negative y flips the picture about that
+    // line without moving the hinge, so the lower jaw is the same drawing.
+    it('sizes both jaws to the strike\'s reach, uniformly', () => {
+        expect(biteJawScale(50, 100, false).x).toBe(2);
+        expect(biteJawScale(50, 100, true).x).toBe(2);
+        expect(Math.abs(biteJawScale(50, 100, true).y)).toBe(2);
+    });
+
+    it('draws the upper jaw as the artist drew it', () => {
+        expect(biteJawScale(50, 100, false)).toEqual({x: 2, y: 2});
+    });
+
+    it('MIRRORS the lower jaw through the bite line, and only in y', () => {
+        const lower = biteJawScale(50, 100, true);
+        expect(lower).toEqual({x: 2, y: -2});
+    });
+
+    it('keeps the mirror on an unmeasured texture', () => {
+        expect(biteJawScale(0, 100, true)).toEqual({x: 1, y: -1});
     });
 });

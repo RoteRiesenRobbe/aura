@@ -22,6 +22,18 @@ don't draw it.
 > implementation; start there if you are working on medallions. Design
 > rationale: `../plan-entity-medallions.md`.
 
+> ⭐ **New 2026-09-21: skill VFX bodies have their own delivery contract,
+> `skill-vfx-asset-spec.md`** (the file name IS the link: `"body": "arrow"`
+> draws `arrow.png`, committed into
+> `frontend/src/features/skill-fx/assets/bodies/`, one script run, and the
+> server's `-validate` refuses a name the folder lacks). It covers the eight
+> body-carrying kinds with an orientation and anchor rule each, the
+> full-colour-or-white-for-tinting rule, the reserved frame naming, and a
+> first wanted list of 17 drawings derived from the 129 authored layers.
+> ⚑ Some looks are deliberately code-drawn for good and must NOT be drawn
+> (the lightning beam, generic sparks); the spec says which. Design
+> rationale: `../plan-skill-vfx.md` §4 and §12f.
+
 ---
 
 ## ⭐ The Portrait Rule — governs every creature

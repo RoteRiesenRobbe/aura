@@ -161,10 +161,19 @@ func TestDiskContent_MissingSubdirFails(t *testing.T) {
 // directories by hand, because a hand-maintained list here would need the same
 // edit it exists to catch. contentSources' field names ARE the directory names,
 // which is what makes the comparison possible at all — keep it that way.
+//
+// ⚑ …with ONE named exception, and it is spelled out rather than normalised
+// away. api/skill-fx/ is hyphenated (plan-skill-vfx.md C3a) and no Go
+// identifier can be, so the mapping below translates that one directory. A
+// general de-hyphenating rule would let a future `skill_fx` or `skillfx` field
+// satisfy the test by accident, which is the silent class this pin exists to
+// catch: a new hyphenated directory gets its own line here instead.
 func TestContentSources_CoverEveryApiSubdirectory(t *testing.T) {
 	// schema/ holds the .fbs protocol definitions, which are compiled into
 	// bindings at build time and never loaded as content.
 	const notContent = "schema"
+
+	fieldFor := map[string]string{"skill-fx": "skillFx"}
 
 	dirEntries, err := os.ReadDir("../../../api")
 	require.NoError(t, err)
@@ -183,7 +192,11 @@ func TestContentSources_CoverEveryApiSubdirectory(t *testing.T) {
 	}
 
 	for _, dir := range authored {
-		assert.True(t, wired[dir],
+		field := dir
+		if mapped, ok := fieldFor[dir]; ok {
+			field = mapped
+		}
+		assert.True(t, wired[field],
 			"api/%s/ is not a contentSources field — every edit in it silently no-ops. "+
 				"Add it to contentSources, embeddedContent, diskContent and the Makefile's cp-defs", dir)
 	}

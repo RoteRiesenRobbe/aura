@@ -6,11 +6,17 @@
 // poll cannot miss a 180 ms impact.
 //
 // Legs: 0 nothing draws without a skill event · 1 Damage -> strike, anchored
-// at the attacker (§12c; the wolves' own wolf-bite impacts land here too,
-// which is the mob half) ·
-// 2 LongRangeStrike -> cast-pose + projectile + impact · 3 LightningStrike ->
+// at the attacker (§12c; the wolves' own bite strikes land here too, which is
+// the mob half), plus the engine's hit mark on every sword hit ·
+// 2 LongRangeStrike -> cast-pose + projectile + the mark · 3 LightningStrike ->
 // chained beam · 4 skillFx sits below darkness · 5 a bandit's swing lands on
 // the own player · 6 a troll's overhead lands on the own player.
+//
+// ⭐ §12g (the C3a amendment): the round mark on the victim is the ENGINE'S,
+// drawn on every landed Damage/Crit hit and authored by no file, and it still
+// counts as `impact` in the manager's counters. So `wantImpact` now asserts
+// the automatic mark on every damage leg, leg 10 proves `off` hides it along
+// with everything else, and leg 15 proves a HEAL landing draws none.
 //
 // C2b legs (§12d.6), all of them between leg 4 and legs 5+6 ON PURPOSE: legs
 // 5+6 level the player with an XP cheat to survive a camp, and a levelled
@@ -21,6 +27,14 @@
 // actor's · 10 density `off`: a real fight spawns 0 Fx and holds 0 ambient
 // while the wind-up glow keeps running · 11 Heal's two ambient rise emitters ·
 // 12 Whirling Axes (cheat-only cooldown) -> an orbit on the cast.
+//
+// C3a legs (§12f.6 + §12g.5): 13 the three pilot BODIES draw as sprites rather
+// than placeholders, re-read off legs 1-3's own windows through the `sprites`
+// counter, with Lightning Strike as the bodiless control and the page's
+// `[skill-fx] body ...` warnings as the other failure mode · 14 the wolves'
+// `bite` strike draws its jaw PNG from the WOLF, photographed, which needs GOD
+// off like legs 5+6 · 15 (inside leg 11, Heal still on) `DAMAGE 90` at the
+// quiet campfire, and the heal landings that follow draw no mark.
 //
 // ⚑ GOD is survival only, it never touches OUR outgoing damage - but it DOES
 //   short-circuit the player's own takeDamage, so a god-mode player is never
@@ -67,8 +81,16 @@ const browser = await chromium.launch({
 const page = await (await browser.newContext({ viewport: { width: 1600, height: 900 } })).newPage();
 const errors = [];
 let inconclusive = false;
+// C3a: every `[skill-fx] body ...` line the page logged - an unknown name and a
+// texture that failed to decode both warn through it. ⚑ They are console
+// WARNINGS, which the error collector below does not see, and a body that never
+// resolves is otherwise invisible: its layer silently draws the placeholder.
+const bodyWarnings = [];
 page.on('pageerror', e => errors.push('pageerror: ' + e.message));
-page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+page.on('console', m => {
+  if (m.type() === 'error') errors.push('console: ' + m.text());
+  if (/\[skill-fx\] body/.test(m.text())) bodyWarnings.push(m.text());
+});
 const fail = (msg) => { errors.push('CHECK FAILED: ' + msg); };
 const pass = (msg) => { console.log('PASS: ' + msg); };
 
@@ -155,10 +177,15 @@ async function isSlotActive(slot) {
 // The manager's counters, flattened: {impact, projectile, beam, ..., evicted}.
 // `ambient` (live ambient layers) and `glows` (live wind-up rings) are C2b's;
 // an ambient spawn ALSO increments its kind, so a delta on `emitter` sees it.
+// ⚑ `sprites` (C3a) is a SHARE of the kind counts, never a kind of its own: one
+// per Fx that resolved its `body` to a PNG, whatever its body count.
 async function fxCounts() {
   return page.evaluate(() => {
     const s = window.game.skillFx();
-    return { ...s.spawnedByKind, evicted: s.evicted, live: s.live, ambient: s.ambient, glows: s.glows };
+    return {
+      ...s.spawnedByKind, evicted: s.evicted, live: s.live,
+      ambient: s.ambient, glows: s.glows, sprites: s.sprites,
+    };
   });
 }
 function delta(a, b) {
@@ -336,6 +363,11 @@ async function equipById(skillId, slot, listId) {
   return { ok: false, why: 'the slot never took the skill' };
 }
 
+// Every scored aura leg's watch window, kept for LEG 13 (C3a): the three pilot
+// bodies ride skills legs 1-3 already fight with, so the sprite leg reads those
+// same windows instead of re-fighting three camps.
+const legRuns = {};
+
 // One aura leg: equip (when named), warp to the camp, watch, judge one kind.
 async function auraLeg(n, { skill, skillId, nameRe, slot, camp, campLabel, kind, shot, forbid, alsoWant, wantImpact = true }) {
   console.log(`\n== LEG ${n}: ${skill ?? 'Damage'} -> ${kind} (14 s) ==`);
@@ -348,9 +380,14 @@ async function auraLeg(n, { skill, skillId, nameRe, slot, camp, campLabel, kind,
   console.log(`leg ${n}: fx ${JSON.stringify(run.fx)}, skill events ${run.events}`);
   if (run.events < 3) { console.log(`INCONCLUSIVE: leg ${n} saw only ${run.events} skill events, starved venue`); inconclusive = true; return; }
   if (!run.ids[skillId]) { console.log(`INCONCLUSIVE: leg ${n}: skill ${skillId} never landed a hit in the window`); inconclusive = true; return; }
+  legRuns[n] = run;
   if ((run.fx[kind] ?? 0) >= 2) pass(`leg ${n}: ${run.fx[kind]} ${kind} layers spawned`);
   else fail(`leg ${n}: expected >=2 ${kind}, saw ${JSON.stringify(run.fx)}`);
-  if (wantImpact && (run.fx.impact ?? 0) < 1) fail(`leg ${n}: no impact spawned`);
+  // §12g: the mark is the engine's, so every damage leg owes at least one.
+  if (wantImpact) {
+    if ((run.fx.impact ?? 0) >= 1) pass(`leg ${n}: ${run.fx.impact} hit mark(s) drawn by the engine`);
+    else fail(`leg ${n}: no hit mark spawned across ${run.events} skill events`);
+  }
   // The other kinds this skill's `visual` authors (C2b: the bow's cast-pose).
   for (const k of alsoWant ?? []) {
     if ((run.fx[k] ?? 0) >= 1) pass(`leg ${n}: ${run.fx[k]} ${k} layer(s) spawned alongside`);
@@ -372,7 +409,7 @@ for (const [skill, nameRe, slot] of [['LongRangeStrike', /Long-?Range Strike/i, 
 }
 
 await auraLeg(1, { skillId: 1, slot: 0, camp: WOLF_CAMP, campLabel: 'the wolf camp', kind: 'strike',
-  shot: 'leg1-strike.png', forbid: ['projectile', 'beam'], wantImpact: false });
+  shot: 'leg1-strike.png', forbid: ['projectile', 'beam'] });
 // ⚑ The bow is Long-Range Strike's since C2b (§12d.1, PO): a `cast-pose` on
 // every FIRED beat, so leg 2 now judges three kinds at once.
 await auraLeg(2, { skill: 'LongRangeStrike', skillId: 45, nameRe: /Long-?Range Strike/i, slot: 1, camp: KOBOLD_CAMP,
@@ -393,6 +430,93 @@ if (order.fx >= 0 && order.dark >= 0 && order.fx < order.dark) {
   pass(`leg 4: skillFx (index ${order.fx}) renders below darkness (index ${order.dark})`);
 } else {
   fail(`leg 4: layer order wrong: ${JSON.stringify(order)}`);
+}
+
+// LEG 13 - C3a (§12f.6): an authored `body` draws the PNG, not the placeholder.
+//
+// ⚑ It re-reads legs 1-3's OWN watch windows rather than fighting three more
+// camps: those three legs already run exactly the three skills the pilot bodies
+// were authored on (`sword` on Damage, `arrow` on Long-Range Strike, `wolf-jaw`
+// on the wolves' bite), at exactly the right venues, with the id sampler saying
+// which skills landed. A separate fight would measure the same thing twice and
+// cost another 45 s.
+// The three claims: a body-carrying layer takes the sprite branch · nothing
+// else in that window did · a skill with no body on any layer spawns only
+// Graphics (Lightning Strike, whose beams AND impacts are both bodiless).
+//
+// ⚑ This leg NEVER raises the global `inconclusive` flag, unlike every other
+// one here, and that is deliberate: the flag gates the eight legs that follow,
+// and leg 13 measures nothing of its own - it re-reads windows legs 1-3 already
+// scored. A bookkeeping ambiguity here must not cost the C2b legs their run.
+console.log('\n== LEG 13: the pilot bodies draw as SPRITES (C3a) ==');
+{
+  const sword = legRuns[1], arrow = legRuns[2], bare = legRuns[3];
+  if (!sword || !arrow || !bare) {
+    // Whichever of legs 1-3 did not score has already raised the flag.
+    console.log('NOTE: leg 13 needs legs 1-3 scored, and one of them was not');
+  } else {
+    // Leg 1: the sword thrusts AND the wolves' bites (a `strike` since §12g)
+    // carry a body, so most strikes in that window are sprites - but NOT an
+    // equality: the wolf camp's boars gore too (id 112, a bodiless `thrust`;
+    // measured 29 sprites for 34 strikes), and the id sampler polls rather
+    // than counts. The upper bound is the sharp half: the marks (`impact`)
+    // are code-drawn and must add nothing.
+    console.log(`leg 13a: leg 1 sprites ${sword.fx.sprites}, strike ${sword.fx.strike}, marks ${sword.fx.impact ?? 0}, boar gores in the window ${sword.ids[112] ?? 0}`);
+    if (sword.fx.sprites >= 1 && sword.fx.sprites * 2 >= sword.fx.strike) {
+      pass(`leg 13a: ${sword.fx.sprites} of ${sword.fx.strike} strike(s) drew a PNG (the rest are the boars' gore)`);
+    } else {
+      fail(`leg 13a: ${sword.fx.strike} strike(s) but only ${sword.fx.sprites} sprite spawn(s) - a body never resolved`);
+    }
+    if (sword.fx.sprites <= sword.fx.strike) {
+      pass('leg 13a: no kind beyond the strikes took the sprite branch - the marks stayed Graphics');
+    } else {
+      fail(`leg 13a: ${sword.fx.sprites} sprite spawns for ${sword.fx.strike} strikes`);
+    }
+    // Leg 2: the arrow. ⚑ The tight claim - "the cast-pose beside it stayed
+    // Graphics" - is NOT asserted here as an equality: the kobold camp has a
+    // Dire Wolf in it, so the wolves' own body-carrying bite (a `strike` since
+    // §12g) lands in this window too (measured: ids 110 present), and the id
+    // sampler polls rather than counting, so the two cannot be told apart to
+    // the unit. The bound below is what this venue can honestly say; leg 13c
+    // owns the bare case.
+    const bareLayers = (arrow.fx['cast-pose'] ?? 0) + (arrow.fx.impact ?? 0);
+    const ceiling = arrow.fx.projectile + (arrow.fx.strike ?? 0);
+    console.log(`leg 13b: leg 2 sprites ${arrow.fx.sprites}, projectile ${arrow.fx.projectile}, strike ${arrow.fx.strike ?? 0}, `
+      + `cast-pose+marks ${bareLayers}, other body-carrying skills in the window ${JSON.stringify({1: arrow.ids[1] ?? 0, 110: arrow.ids[110] ?? 0, 114: arrow.ids[114] ?? 0})}`);
+    if (arrow.fx.sprites >= arrow.fx.projectile && arrow.fx.projectile > 0) {
+      pass(`leg 13b: ${arrow.fx.projectile} projectile(s) drew the "arrow" PNG`);
+    } else {
+      fail(`leg 13b: ${arrow.fx.projectile} projectile(s) but only ${arrow.fx.sprites} sprite spawn(s)`);
+    }
+    if (arrow.fx.sprites <= ceiling) {
+      pass(`leg 13b: no sprite spawn beyond the projectile and the wolves' bite - the ${arrow.fx['cast-pose'] ?? 0} cast-pose layer(s) and ${arrow.fx.impact ?? 0} mark(s) stayed Graphics`);
+    } else {
+      fail(`leg 13b: ${arrow.fx.sprites} sprite spawns against a ceiling of ${ceiling} - a bodiless layer drew art`);
+    }
+    // Leg 3: a whole skill with no `body` on any layer - beams AND the engine's
+    // marks beside them. The strongest control in the set, because it is an
+    // equality with zero on the right.
+    console.log(`leg 13c: leg 3 sprites ${bare.fx.sprites}, beam ${bare.fx.beam}, marks ${bare.fx.impact ?? 0}, `
+      + `other body-carrying skills in the window ${JSON.stringify({1: bare.ids[1] ?? 0, 110: bare.ids[110] ?? 0, 114: bare.ids[114] ?? 0})}`);
+    if (bare.fx.beam < 2) {
+      console.log('NOTE: leg 13c: the beam leg never spawned enough to control against');
+    } else if (bare.ids[1] || bare.ids[110] || bare.ids[114]) {
+      // ⚑ 114 is EliteWolfBite, the Dire Wolf's, also on `wolf-jaw`: the
+      // western wolf camp has one, and run 3 (2026-09-22) read 1 sprite with
+      // neither 1 nor 110 sampled because it was not on this list.
+      console.log('NOTE: leg 13c: a body-carrying skill landed in the beam window, so a sprite spawn here would not be Lightning Strike\'s');
+    } else if (bare.fx.sprites === 0) {
+      pass(`leg 13c: Lightning Strike's ${bare.fx.beam} beam(s) and ${bare.fx.impact ?? 0} mark(s) spawned 0 sprites`);
+    } else {
+      fail(`leg 13c: ${bare.fx.sprites} sprite spawn(s) from a skill that authors no body`);
+    }
+  }
+  // ⚑ The warning is the OTHER failure mode: an unknown name and a texture that
+  // failed to decode both log one line and then draw the placeholder, which is
+  // indistinguishable from "the art is not wired up yet" on a screenshot.
+  const pilots = bodyWarnings.filter(w => /sword|arrow|wolf-jaw/.test(w));
+  if (pilots.length === 0) pass('leg 13: no body warning for sword, arrow or wolf-jaw');
+  else fail(`leg 13: the page warned about a pilot body: ${JSON.stringify(pilots)}`);
 }
 
 // === C2b: the ambient reconciler, the two new state kinds, and the slider ===
@@ -527,6 +651,45 @@ if (!inconclusive && await warpTo(QUIET_CAMPFIRE, 'the quiet campfire') && await
       console.log(`leg 11: emitter spawns ${spawned}, ambient ${before.ambient} -> ${after.ambient}`);
       if (spawned >= 2) pass(`leg 11: Heal spawned ${spawned} ambient emitter layers`);
       else fail(`leg 11: expected 2 emitter layers from Heal, saw ${spawned}`);
+
+      // LEG 15 - §12g.1 call 2: a HEAL landing draws no mark. Same venue, Heal
+      // still on: the DAMAGE cheat writes the pool directly (no hit event, and
+      // it works under GOD), so the next Heal tick and the campfire's own heal
+      // LAND - a heal on a full player is not a landing (player.go) - and the
+      // quiet campfire has no mob to add a damage hit to the window. ⚑ An
+      // earlier draft rode leg 14's wolf bites; a level-30 pool had regenerated
+      // to full before Heal came on, and the leg judged nothing.
+      console.log('\n== LEG 15: a heal landing draws no hit mark ==');
+      const a15 = await fxCounts();
+      await page.evaluate(() => {
+        window.__fxKinds = {};
+        window.__fxSampler = setInterval(() => {
+          for (const e of window.game.skillEvents().last ?? []) {
+            if (!e.fired) window.__fxKinds[e.kind] = (window.__fxKinds[e.kind] ?? 0) + 1;
+          }
+        }, 30);
+      });
+      await runCommand('DAMAGE 90');
+      await page.waitForTimeout(6_000);
+      const kinds = await page.evaluate(() => { clearInterval(window.__fxSampler); return window.__fxKinds; });
+      const d15 = delta(a15, await fxCounts());
+      // HitKind: Damage 0, Crit 1, Heal 2, Absorb 3, Immune 4 (server.fbs).
+      const heals = kinds[2] ?? 0, damage = (kinds[0] ?? 0) + (kinds[1] ?? 0);
+      console.log(`leg 15: fx ${JSON.stringify(d15)}, hit kinds (sampled) ${JSON.stringify(kinds)}`);
+      // A damage hit sharing the window can only ADD marks, so zero marks is
+      // a clean pass whatever else landed (run 3 sampled 5 damage hits between
+      // entities the client did not hold, and 0 marks); the ambiguity only
+      // matters when a mark DID draw.
+      if (heals === 0) {
+        console.log('INCONCLUSIVE: leg 15: no heal landed in 6 s after DAMAGE 90');
+        inconclusive = true;
+      } else if ((d15.impact ?? 0) === 0) {
+        pass(`leg 15: ${heals} heal landing(s) drew 0 hit marks`);
+      } else if (damage > 0) {
+        console.log(`NOTE: leg 15: ${d15.impact} mark(s) with ${damage} damage landing(s) in the window, not attributable`);
+      } else {
+        fail(`leg 15: ${d15.impact} hit mark(s) drawn across ${heals} heal landing(s) and no damage`);
+      }
     }
   }
 }
@@ -635,6 +798,76 @@ if (!inconclusive) {
   await runCommand('XP 100000000');
   await page.waitForTimeout(3_000);
 }
+// LEG 14 - C3a + §12g: the MOB half of the sprite path, and the only pilot
+// body no earlier leg can prove on its own. `wolf-jaw` is authored on the
+// wolves' bite, a `strike` with `curve: bite` drawn FROM THE WOLF (§12g.1 call
+// 3), which reaches the own player only with GOD off (the same reason legs 5+6
+// drop it). With the own aura off, every `strike` in this window is a wolf's,
+// so every sprite in the window is a wolf's jaw (the boars' gore is bodiless);
+// leg 1's window sees the same bites mixed in with the player's own sword.
+// ⚑ Also the bite's PHOTOGRAPH (§12g.5 "looked at"): armed on the strike
+// counter with the page clock slowed 8x, the leg 12 recipe, because a 200 ms
+// bite is over before a fixed-time capture lands.
+console.log('\n== LEG 14: the wolves\' bite draws the "wolf-jaw" PNG from the WOLF ==');
+if (!inconclusive) {
+  if (await warpTo(WOLF_CAMP, 'the wolf camp')) {
+    await page.mouse.move(800, 200);
+    await deactivateAllAuras();
+    await runCommand('GOD off');
+    const a = await fxCounts();
+    await page.evaluate(() => {
+      window.__fxSkillIds = {};
+      window.__fxSampler = setInterval(() => {
+        for (const e of window.game.skillEvents().last ?? []) {
+          if (!e.fired) window.__fxSkillIds[e.skillId] = (window.__fxSkillIds[e.skillId] ?? 0) + 1;
+        }
+      }, 30);
+    });
+    const armed = page.evaluate(() => new Promise((resolve) => {
+      const base0 = window.game.skillFx().spawnedByKind.strike ?? 0;
+      const started = Date.now();
+      const poll = setInterval(() => {
+        if ((window.game.skillFx().spawnedByKind.strike ?? 0) > base0) {
+          clearInterval(poll);
+          const real = performance.now.bind(performance);
+          const base = real();
+          window.__realNow = real;
+          performance.now = () => base + (real() - base) / 8;
+          resolve(true);
+        } else if (Date.now() - started > 12_000) { clearInterval(poll); resolve(false); }
+      }, 5);
+    }));
+    if (await armed) {
+      // 1.0 s of slowed clock = 125 ms into a 200 ms bite: the jaws mid-close.
+      await page.waitForTimeout(1_000);
+      await page.screenshot({ path: join(outdir, 'leg14-wolf-bite.png') });
+      await page.evaluate(() => { if (window.__realNow) { performance.now = window.__realNow; window.__realNow = null; } });
+    }
+    await page.waitForTimeout(6_000);
+    const ids = await page.evaluate(() => { clearInterval(window.__fxSampler); return window.__fxSkillIds; });
+    const d = delta(a, await fxCounts());
+    await runCommand('GOD');
+    console.log(`leg 14: fx ${JSON.stringify(d)}, hit skill ids (sampled) ${JSON.stringify(ids)}`);
+    if (!ids[110] && !ids[114]) {
+      console.log('INCONCLUSIVE: leg 14: no wolf bite landed in the window');
+      inconclusive = true;
+    } else {
+      // ⚑ Not an equality: the wolf camp's boars gore too (id 112, a bodiless
+      // `thrust`, measured 6 of 25 sampled hits), and the id sampler polls
+      // rather than counts. The wolves are the majority of the window, so
+      // "most strikes are sprites and none of the marks is" is what this
+      // venue can honestly say.
+      if ((d.strike ?? 0) >= 1 && d.sprites >= 1 && d.sprites <= d.strike && d.sprites * 2 >= d.strike) {
+        pass(`leg 14: ${d.strike} strike(s) from the wolves (and the boars), ${d.sprites} on the sprite path`);
+      } else {
+        fail(`leg 14: wolf bites landed and drew ${d.sprites} sprite(s) for ${d.strike ?? 0} strike(s)`);
+      }
+      if ((d.impact ?? 0) >= 1) pass(`leg 14: ${d.impact} hit mark(s) on the bitten player`);
+      else fail(`leg 14: wolf bites landed on the player and drew no hit mark`);
+    }
+  }
+}
+
 await mobStrikeLeg(6, { x: 20.5, y: 33.5 }, 'the trolls (overhead)', 'leg6-mob-overhead.png', 1_700);
 await mobStrikeLeg(5, { x: 26.5, y: 22.5 }, 'the bandit camp (swing)', 'leg5-mob-swing.png', 700);
 
