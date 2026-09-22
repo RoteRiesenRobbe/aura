@@ -1,0 +1,7 @@
+{
+  "name": "CaveMouth",
+  "entityType": "CaveMouth",
+  "sprite": "caveMouth.svg",
+  "body": { "width": 3, "height": 2.4 },
+  "blocksMovement": false
+}

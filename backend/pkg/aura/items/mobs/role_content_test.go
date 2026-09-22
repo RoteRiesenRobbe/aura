@@ -81,7 +81,11 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// Lambert) and the generic Sheep flock they wandered off from — all on the
 	// standing talkable-NPC shape, role creature + speed 0. ⚑ The flock is here but
 	// NOT in the conversant census: it authors no interaction, by design.
-	assert.Len(t, byRole[RoleCreature], 57, "everything else is a creature")
+	// 57 → 60 with the Mill on the river (content-zone-design-guide.md §2.4)
+	// and the farmland's Farmhand: the Miller on the standing talkable-NPC shape
+	// (role creature + speed 0), the Farmhand on the same one, and the AlphaBoar,
+	// which is an ordinary walking creature — Zone 1's one elite.
+	assert.Len(t, byRole[RoleCreature], 60, "everything else is a creature")
 	assert.Len(t, byRole, 2, "no def carries a role outside the two")
 }
 

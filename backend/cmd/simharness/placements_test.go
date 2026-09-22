@@ -229,7 +229,17 @@ func TestMobSpecOf_LevelScalesHPValuesOnly(t *testing.T) {
 			// rounds the live one, so a preset keeping the fraction would model
 			// a mob the server cannot spawn), and half an HP is a large
 			// relative error on a 1-HP Totem.
-			assert.InDelta(t, float64(home.MaxHealth)*ratio, float64(placed.MaxHealth), 1.0,
+			//
+			// ⚑ And the tolerance is DERIVED, not 1.0 — that flat number was
+			// wrong and only ever passed by luck of where each baseline's
+			// rounding landed. BOTH sides are rounded, and the left one is then
+			// multiplied by the ratio, so the worst case is half an HP scaled up
+			// (0.5 × ratio) plus half an HP on the right. At growth 1.12 over
+			// five levels that is 1.38, and a baseline landing near the middle of
+			// its rounding step blows straight through 1.0 while being perfectly
+			// correct — which is exactly what the AlphaBoar's 250 does
+			// (441 × 1.7623 = 777.19 against a rounded 776).
+			assert.InDelta(t, float64(home.MaxHealth)*ratio, float64(placed.MaxHealth), 0.5*ratio+0.5,
 				"%s: max HP rides f(level)", def.Name)
 		}
 		if home.Aura.DamageHP > 0 {

@@ -156,7 +156,11 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 	// 36 → 41 with the north pasture (content-zone-design-guide.md §2.4): the
 	// Shepherd, three named sheep and the generic flock, all off the nameplate and
 	// the XP path — a shepherd's livestock is not prey.
-	assert.Len(t, free, 41, "every xpFactor-0 species: %v", free)
+	// 41 → 43 with the Miller and the Farmhand (content-zone-design-guide.md
+	// §2.4), both off the nameplate and the XP path like every other NPC.
+	// ⚑ The AlphaBoar beside them is deliberately NOT here: it is the thing you
+	// are sent to kill.
+	assert.Len(t, free, 43, "every xpFactor-0 species: %v", free)
 
 	// ⚑ Exactly ONE structure pays anything, and it is the harvest chore's
 	// target: the Turnip at 0.05 (PO 2026-08-05, the one §3.4 curation pulled

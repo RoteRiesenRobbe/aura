@@ -121,6 +121,17 @@ export const GraphicsConfig = {
             maxSize: <number> 56,
         },
 
+        // Zone 1's one elite. Sized from docs/art/assets.csv's 104-124, which
+        // is that tracker's DPR-2 column and therefore halves to these: bigger
+        // than the Boar it leads (46-56), just under the EliteWolf (56-64).
+        // The tier has to be legible at a glance from across the field.
+        alphaBoar: {
+            file: require('../features/game-objects/assets/mobs/wildboar_alpha.png'),
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
+            minSize: <number> 52,
+            maxSize: <number> 62,
+        },
+
         // First medallion-layered COMBAT mob. Unlike the NPCs it rolls its size
         // per instance (randomInt(minSize, maxSize)), and the border rides that
         // same roll, so frame and portrait stay registered at any size.

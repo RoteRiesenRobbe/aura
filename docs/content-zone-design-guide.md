@@ -194,9 +194,17 @@ that is what makes Zone 2's canopy land. Two exceptions worth having:
 Existing: `Turnip`, `Boar`, `Stag`, `Wolf`, `Bandit` (traces only), `Farmer`,
 `TownCrier`, `VillageHealer`, `Wanderer`, `Dog`, `Campfire`.
 
-**Missing and needed**: an **Alpha Boar** (elite-tier tusker for the sounder —
-`entityType` variant of Boar, no new sprite needed), and a **Herder/Shepherd**
-NPC (reskin of Farmer is fine).
+~~**Missing and needed**: an **Alpha Boar** … and a **Herder/Shepherd** NPC~~ —
+**both now authored.** The `Shepherd` shipped with the north pasture as a Farmer
+reskin, exactly as this line proposed. The **`AlphaBoar`** shipped as Zone 1's one
+elite (curveLevel 6, `wildlife_prey` so the mill fight is *chosen*, paying for
+4.55× the Wolf's HP with 0.71× its speed) — but ⭐ **with its OWN sprite, not the
+`entityType`-variant shortcut this line proposed**: `wildboar_alpha.png` already
+existed, and an elite whose only tell is the health bar is one the player cannot
+decide to avoid from across the field. Its POI partner, the **`Miller`**, is a
+Farmer reskin like the Shepherd and offers `the-sounder-at-the-mill`.
+⚑ **Neither the Miller nor the Alpha Boar is PLACED yet** — spawn placement is
+the PO's editor work; the mill POI takes exactly one of each.
 
 ### 2.6 Quests (from the bible, mapped to what exists)
 

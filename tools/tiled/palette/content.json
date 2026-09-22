@@ -27,6 +27,8 @@
       "BurntCart",
       "Bush",
       "Cart",
+      "CaveMouth",
+      "Cottage",
       "Crate",
       "DeadTree",
       "FallenLog",
@@ -36,6 +38,7 @@
       "Haystack",
       "House",
       "Mill",
+      "Palisade",
       "PineTree",
       "Rock",
       "Stump",
@@ -51,6 +54,7 @@
     ],
     "AuraMobName": [
       "(pick a mob)",
+      "AlphaBoar",
       "AlphaWolf",
       "ArmySoldier",
       "AscensionStone",
@@ -75,6 +79,7 @@
       "EliteWolf",
       "Emberkeeper",
       "Farmer",
+      "Farmhand",
       "FireElemental",
       "FireTotem",
       "ForestSign",
@@ -91,6 +96,7 @@
       "Marauder",
       "MedicCompanion",
       "MemorialStone",
+      "Miller",
       "Miner",
       "Orc",
       "OrcGrunt",
@@ -180,6 +186,7 @@
     "AuraEffect": [
       "(no effect)",
       "Aegis",
+      "AlphaBoarGore",
       "AngryMammothAura",
       "AngryMammothStomp",
       "Antivenom",
@@ -344,6 +351,14 @@
       "w": 2.2,
       "h": 1.3
     },
+    "CaveMouth": {
+      "w": 3,
+      "h": 2.4
+    },
+    "Cottage": {
+      "w": 3,
+      "h": 2.6
+    },
     "Crate": {
       "w": 0.9,
       "h": 0.9
@@ -380,6 +395,10 @@
       "w": 5,
       "h": 4
     },
+    "Palisade": {
+      "w": 2.4,
+      "h": 0.8
+    },
     "PineTree": {
       "w": 1.8,
       "h": 1.8
@@ -411,6 +430,7 @@
   },
   "TERRAIN_SIZE": 1,
   "MOB_KIND": {
+    "AlphaBoar": "combat",
     "AlphaWolf": "combat",
     "ArmySoldier": "combat",
     "AscensionStone": "talker",
@@ -435,6 +455,7 @@
     "EliteWolf": "combat",
     "Emberkeeper": "talker",
     "Farmer": "talker",
+    "Farmhand": "talker",
     "FireElemental": "combat",
     "FireTotem": "fixture",
     "ForestSign": "talker",
@@ -451,6 +472,7 @@
     "Marauder": "combat",
     "MedicCompanion": "combat",
     "MemorialStone": "talker",
+    "Miller": "talker",
     "Miner": "talker",
     "Orc": "combat",
     "OrcGrunt": "combat",
@@ -481,6 +503,7 @@
     "Woolliam": "talker"
   },
   "MOB_SPEED": {
+    "AlphaBoar": 0.5,
     "AlphaWolf": 0.5,
     "ArmySoldier": 0.6,
     "AscensionStone": 0,
@@ -505,6 +528,7 @@
     "EliteWolf": 0.52,
     "Emberkeeper": 0,
     "Farmer": 0,
+    "Farmhand": 0.7,
     "FireElemental": 0.55,
     "FireTotem": 0,
     "ForestSign": 0,
@@ -521,6 +545,7 @@
     "Marauder": 0.5,
     "MedicCompanion": 1.2,
     "MemorialStone": 0,
+    "Miller": 0,
     "Miner": 0,
     "Orc": 0.5,
     "OrcGrunt": 0.6,
@@ -593,6 +618,7 @@
   ],
   "EFFECT_NAMES": [
     "Aegis",
+    "AlphaBoarGore",
     "AngryMammothAura",
     "AngryMammothStomp",
     "Antivenom",

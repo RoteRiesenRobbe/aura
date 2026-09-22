@@ -105,6 +105,18 @@ var expectedConversants = []string{
 	"Baabara",
 	"Woolliam",
 	"Lambert",
+	// The Mill on the river (content-zone-design-guide.md §2.4): the POI is a
+	// soft dead end, so the Miller IS its reason to walk down there. Same
+	// talkable-NPC shape as the Shepherd above, and he offers the zone's only
+	// elite fight.
+	"Miller",
+	// The farmland's flavour NPC, and the only conversant in the game that asks
+	// for nothing: one root node, no options — the baabara.json terminal-node
+	// shape. The Farmer beside him already carries two quests and a teaching.
+	// ⭐ He is also the first conversant that WALKS (speed 0.7 on a waypoint
+	// route), which is why the census below is worth re-reading: every other
+	// entry here authors speed 0, and nothing in this file requires that.
+	"Farmhand",
 }
 
 func conversants(t *testing.T) map[string]*MobDefinition {

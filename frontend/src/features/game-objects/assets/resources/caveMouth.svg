@@ -1,0 +1,132 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 300 240" preserveAspectRatio="none">
+  <!-- Placeholder CAVE MOUTH art (docs/art/assets.csv prop-cave-mouth-frame):
+       the tunnel entrance in Zone 2. It is currently a pile of boulders, and
+       the door to the underworld deserves to read as a door.
+
+       ⭐ A HOLE READS AS A HOLE BECAUSE IT HAS NO FLOOR. That is the entire
+       problem this prop solves and almost all of the drawing effort: the
+       opening is a radial gradient running to FLAT BLACK at its far edge,
+       with no texture, no detail and no rim light in it anywhere. Put one
+       pebble in there and it stops being a hole and becomes a dark grey
+       puddle. ⚑ The near lip is darkened too — that is the overhang's own
+       shadow falling into the mouth, and it is what gives the opening depth
+       rather than just darkness.
+
+       ⭐ THE ROCK IS DELIBERATELY PALE. Instinct says a cave is dark, so the
+       frame should be dark too — but this prop's whole job is to be FOUND,
+       it sits under the Cave Air / Gloom atmospheres, and dark rock around a
+       black hole on dark ground is an invisible landmark. The contrast IS the
+       signage.
+
+       ⚑ IT HAS A FACING. The mouth opens SOUTH (down the sprite) and the worn
+       path runs out that way, so the prop's rotation aims the entrance at
+       wherever the player approaches from. Rect body, so since C2b the
+       authored rotation turns the collider with the sprite; the baked shadows
+       turn too, the trade Cart and Gate already take.
+
+       ⛔ NON-BLOCKING, AND THIS ONE IS NOT OPTIONAL. The travel is triggered
+       by walking onto a named anchor — `surface-west` / `surface-east` in
+       world.json, paired with `under-west` / `under-east` in tunnel.json — so
+       a blocking frame is a door that cannot be opened. ⚑ A rect collider
+       cannot be "solid rock with a hole in it", so if you want the shoulders
+       to actually stop the player, wall them with a blocking polygon or a
+       couple of Boulders; this prop is the picture, not the geometry.
+
+       ⛔ `preserveAspectRatio="none"` is mandatory on the non-square viewBox
+       (a95a2f0d); the aspect must stay 5:4 to match the 3.0 x 2.4 body.
+       ⛔ Plain `href` only, never `xlink:href` (pipeline.md §2).
+
+       Light from the top-left, like everything else here. -->
+
+  <defs>
+    <!-- ⭐ THE VOID. Offset UP from the opening's centre so the darkest point
+         is at the BACK of the mouth, not its middle — a symmetric gradient
+         reads as a black disc lying on the ground. -->
+    <radialGradient id="caveVoid" cx="0.5" cy="0.62" r="0.62">
+      <stop offset="0" stop-color="#2a2622"/>
+      <stop offset="0.45" stop-color="#14120f"/>
+      <stop offset="1" stop-color="#000000"/>
+    </radialGradient>
+    <!-- bare trodden earth at the threshold. ⛔ Opaque, never a brown wash: a
+         low-opacity brown over grass only dims the grass, and dim grass reads
+         as shade (burntCart.svg and gate.svg each cost a redraw to learn). -->
+    <radialGradient id="caveWorn">
+      <stop offset="0" stop-color="#6f5c42" stop-opacity="0.95"/>
+      <stop offset="0.55" stop-color="#77644a" stop-opacity="0.78"/>
+      <stop offset="1" stop-color="#77644a" stop-opacity="0"/>
+    </radialGradient>
+    <!-- the rock mass, lit from the top-left across the whole outcrop -->
+    <linearGradient id="caveRock" x1="40" y1="20" x2="260" y2="210"
+                    gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#a9a49a"/>
+      <stop offset="0.55" stop-color="#8b867c"/>
+      <stop offset="1" stop-color="#6a655d"/>
+    </linearGradient>
+  </defs>
+
+  <!-- the path worn out of the mouth, south. Drawn first, under everything. -->
+  <ellipse cx="150" cy="214" rx="76" ry="30" fill="url(#caveWorn)"/>
+
+  <!-- ground shadow of the whole outcrop, offset down-right -->
+  <path d="M42,36 L266,30 L286,132 L246,206 L170,196 L136,208 L64,190 L30,120 Z"
+        transform="translate(10,11)" fill="#000000" opacity="0.28"/>
+
+  <!-- ⭐ THE OUTCROP: a horseshoe of rock, open to the SOUTH. Angular, because
+       a smooth arch reads as a built tunnel and this is a cave. -->
+  <path d="M42,36 L266,30 L286,132 L246,206 L188,198 L196,140 L150,116 L104,140
+           L112,198 L54,190 L30,120 Z"
+        fill="url(#caveRock)" stroke="#413d37" stroke-width="7"
+        stroke-linejoin="round"/>
+
+  <!-- the blocks it is made of: a few hard creases, none of them parallel -->
+  <g stroke="#4d4942" stroke-width="4" opacity="0.6" fill="none" stroke-linecap="round">
+    <path d="M86,32 L96,92 L54,122"/>
+    <path d="M150,30 L142,74"/>
+    <path d="M206,32 L200,86 L246,110"/>
+    <path d="M30,120 L84,132"/>
+    <path d="M286,132 L232,146"/>
+    <path d="M112,198 L92,160"/>
+    <path d="M188,198 L214,164"/>
+  </g>
+  <!-- the faces that catch the light, up-left only -->
+  <g fill="#c2bcb0" opacity="0.4">
+    <path d="M48,42 L88,36 L94,82 L58,74 Z"/>
+    <path d="M98,34 L146,32 L140,70 L102,66 Z"/>
+    <path d="M36,112 L82,124 L66,150 L34,132 Z"/>
+  </g>
+
+  <!-- ⭐ THE OPENING. Drawn AFTER the rock so nothing can sit in front of the
+       dark, and with no stroke of its own — a rimmed hole is a well. -->
+  <path d="M104,140 L150,116 L196,140 L188,198 L112,198 Z" fill="url(#caveVoid)"/>
+  <!-- the overhang's shadow falling into the near lip: this is the depth cue -->
+  <path d="M104,140 L150,116 L196,140 L192,158 L150,138 L108,158 Z"
+        fill="#000000" opacity="0.55"/>
+  <!-- two teeth of rock breaking the mouth's outline, so it is not a neat
+       pentagon. A cave mouth is a collapse, not a cut. -->
+  <path d="M120,134 L134,126 L131,146 Z" fill="#7d7870"/>
+  <path d="M178,140 L166,130 L170,150 Z" fill="#6e6a62"/>
+
+  <!-- scree spilling out of the mouth and down the path -->
+  <g fill="#8b867c" stroke="#4d4942" stroke-width="2" stroke-linejoin="round">
+    <path d="M122,200 L138,196 L142,210 L126,212 Z"/>
+    <path d="M160,202 L176,198 L180,212 L164,214 Z"/>
+    <path d="M100,186 L112,184 L114,196 L102,198 Z"/>
+    <path d="M192,182 L204,180 L206,192 L194,194 Z"/>
+  </g>
+  <g fill="#7a756c" opacity="0.9">
+    <ellipse cx="148" cy="222" rx="9" ry="5"/>
+    <ellipse cx="116" cy="224" rx="6" ry="3.6"/>
+    <ellipse cx="184" cy="220" rx="7" ry="4.2"/>
+    <ellipse cx="166" cy="232" rx="5" ry="3"/>
+  </g>
+
+  <!-- a little moss and scrub on the top of the outcrop, where the light and
+       the rain get to it — and none at all near the mouth, which is dry -->
+  <g fill="#566b36" opacity="0.5">
+    <ellipse cx="72" cy="58" rx="20" ry="11" transform="rotate(-14 72 58)"/>
+    <ellipse cx="232" cy="52" rx="16" ry="9" transform="rotate(11 232 52)"/>
+    <ellipse cx="258" cy="120" rx="13" ry="8" transform="rotate(-22 258 120)"/>
+    <ellipse cx="46" cy="104" rx="11" ry="7" transform="rotate(18 46 104)"/>
+  </g>
+</svg>

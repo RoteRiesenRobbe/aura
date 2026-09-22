@@ -1,0 +1,31 @@
+{
+  "_comment": "⭐ ZONE 1'S ONE ELITE, and the first elite a new player meets (content-zone-design-guide.md §2.4, the Mill on the river POI — a soft dead end whose reward is optional). curveLevel 6 puts it at the top of Z1's range, above EliteWolf's cL5. ⚑ FACTION wildlife_prey, NOT predator, and the reason is mechanical rather than flavour: wildlife_predator is hostileTo wildlife_prey, so an alpha authored as a predator would hunt the sounder it leads. Prey also means it never initiates — the mill fight is CHOSEN, which is what lets a level-3 player walk past the zone's one elite instead of being ambushed by it. It still retaliates: the threat table does not care about factions. ⭐ IT PAYS FOR ITS HP WITH SPEED, per the archetype rule (D6): 4.55x the Wolf's baseline at 0.71x its speed, which is also slower than the Boar it leads (0.55) — a tusker's threat is the blow, not the chase, and AlphaBoarGore is the other half of that shape (half the Boar's cadence at nearly three times the hit). ⚑ NO maxHealthVariance, deliberately breaking with EliteWolf/AlphaWolf: variance is a population spread, and one spawn is not a population — it would just be a coin flip on the zone's only elite fight. ⚑ ccImmune true is REQUIRED at tier elite (the loader refuses the boot without it). ⭐ DROPS: ThickHide is the point of the table — until now its only source was the DireBear, three zones away, and this is the mob whose own bleed tag is what Thick Hide answers. Hardy is the Z1 line-mate it shares with EliteWolf, so that slot shifts no reachability. All values [PLACEHOLDER].",
+  "id": 81,
+  "name": "AlphaBoar",
+  "type": "MOB",
+  "faction": "wildlife_prey",
+  "tier": "elite",
+  "curveLevel": 6,
+  "factors": {
+    "baseMaxHealth": 250,
+    "speed": 0.5,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.25,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900,
+    "ccImmune": true
+  },
+  "body": {
+    "radius": 0.5,
+    "aggroRadius": 2.2
+  },
+  "skills": [
+    { "skillName": "AlphaBoarGore", "level": 1 }
+  ],
+  "unlocks": [
+    { "skillName": "ThickHide", "chance": 0.25 },
+    { "skillName": "Hardy", "chance": 0.15 }
+  ]
+}

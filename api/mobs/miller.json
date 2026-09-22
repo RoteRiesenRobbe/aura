@@ -1,0 +1,74 @@
+{
+  "_comment": "The Mill on the river's NPC (content-zone-design-guide.md §2.4). Copied field for field from shepherd.json, which copied farmer.json — faction townsfolk (friendlyToPlayers ⇒ player damage skips it), collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) and deliberately NOT Action(2) so no aura on either side can target it, mask 16 = Border only so nothing pushes it, role creature + speed 0 (D4: an NPC is an actor that authors no movement), xpFactor 0 to keep it off the nameplate path, aggroRadius 1.0 required-but-inert since interaction.range 2.0 is the wider of the two and sizes the one sensor. ⚑ QUESTS: offers and turns in `the-sounder-at-the-mill`, the zone's only elite fight, behind its own root row per the Q4 tree shape. No quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule). ⭐ HE IS THE POI'S ONE JOB: the mill is a soft dead end, so the only reason to walk down here is that someone down here asks for something. ⚑ TEACHES NOTHING, deliberately — the TownCrier/Shepherd precedent; the reward is XP and the elite's own drop table. ⛑ entityType Farmer is a DELIBERATE REUSE and placeholder art (the standing call, as for the Shepherd): a bespoke miller costs a wire enum value that can never be reclaimed plus an exhaustive client Record entry. He earns his own sprite at the Zone 1 art pass. ⚑ TEXT is plain (PO 2026-08-02): no lore or stylized wording yet. All values [PLACEHOLDER].",
+  "id": 80,
+  "name": "Miller",
+  "type": "MOB",
+  "entityType": "Farmer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1.0
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2.0,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          "I grind what the farm brings me, when the farm brings me anything."
+        ],
+        "options": [
+          { "text": "Do you have a task for me?", "next": "sounder" }
+        ]
+      },
+      {
+        "id": "sounder",
+        "lines": [
+          "A sounder of boars has settled by the mill and I cannot work around them.",
+          "The big one leads them. Kill it and the rest will scatter.",
+          "It is bigger than anything else in this zone. Do not take it lightly."
+        ],
+        "options": [
+          {
+            "text": "I'll do it.",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "the-sounder-at-the-mill",
+                "line": "Good."
+              }
+            ]
+          },
+          {
+            "text": "I killed the alpha boar.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "the-sounder-at-the-mill",
+                "fromStage": "report",
+                "toStage": "done",
+                "line": "Good."
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 370,
+                "line": "Here is your reward."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

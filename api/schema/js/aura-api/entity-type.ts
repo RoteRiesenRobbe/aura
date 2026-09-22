@@ -81,5 +81,9 @@ export enum EntityType {
   Bush = 91,
   DeadTree = 92,
   FallenLog = 93,
-  BrokenFence = 94
+  BrokenFence = 94,
+  AlphaBoar = 95,
+  Cottage = 96,
+  Palisade = 97,
+  CaveMouth = 98
 }

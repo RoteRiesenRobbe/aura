@@ -99,5 +99,9 @@ func TestCCImmune_ContentCensus(t *testing.T) {
 		"Orc":                  true,
 		"GreaterFireElemental": true,
 		"OrcWarlord":           true,
+		// Zone 1's one elite, and the first elite a new player meets
+		// (content-zone-design-guide.md §2.4, the Mill POI). It is the
+		// lowest-curveLevel entry in this table by four levels.
+		"AlphaBoar": true,
 	}, immune, "every elite/boss names its CC stance; adding one is fine, adding it AND this line is the ceremony")
 }

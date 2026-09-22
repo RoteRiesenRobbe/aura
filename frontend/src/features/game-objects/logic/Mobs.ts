@@ -717,6 +717,26 @@ export class Boar extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Boar, file('boar'), maxSize('boar'));
 
+const alphaBoarBorder = registerBorder(GraphicsConfig.mobs.alphaBoar.borderFile, maxSize('alphaBoar'));
+
+export class AlphaBoar extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('alphaBoar'), maxSize('alphaBoar')),
+            AlphaBoar.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), alphaBoarBorder, size);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(AlphaBoar, file('alphaBoar'), maxSize('alphaBoar'));
+
 const stagBorder = registerBorder(GraphicsConfig.mobs.stag.borderFile, maxSize('stag'));
 
 export class Stag extends Mob {

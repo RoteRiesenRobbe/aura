@@ -184,7 +184,38 @@ enum EntityType : ushort {
   // "unfinished": a tidy gap is a gate you have not hung yet, so the art
   // turns on a snapped post, a rail swung down off the line, and the pieces
   // still lying where they fell.
-  BrokenFence = 94
+  BrokenFence = 94,
+
+  // ⭐ Zone 1's ONE elite, and the first elite a new player meets. It gets
+  // its own value rather than riding Boar (28) as an entityType variant -
+  // which the zone design guide had pencilled in as the cheap option -
+  // because the art already exists (wildboar_alpha.png) and because an elite
+  // that reads as "a boar, but the health bar is wrong" is exactly the
+  // readability failure the per-tier-sprite ruling (2026-07-21, AlphaWolf)
+  // exists to prevent: the player must be able to decide NOT to fight it
+  // from across the field.
+  AlphaBoar = 95,
+
+  // ⚑ The village's THIRD building, after House (25) and Barn (85). It
+  // separates from the house on MATERIAL first — thatched hip against tiled
+  // gable — because two buildings can share a footprint and still not be
+  // confusable if they are made of different stuff.
+  Cottage = 96,
+
+  // ⚑ The bandit camp's wall, and the second prop after GateWall (49) that
+  // has to TILE. Its stake spacing straddles the seam so a run keeps its
+  // rhythm across a join, which is why the art is GENERATED
+  // (tools/make-palisade.mjs) rather than drawn: that spacing is arithmetic,
+  // and arithmetic rots the moment someone nudges a circle by two pixels.
+  Palisade = 97,
+
+  // ⛔ The door to the underworld, and NON-BLOCKING is not optional: travel
+  // fires from walking onto a named anchor (`surface-west`/`surface-east` in
+  // world.json, paired with the tunnel zone's `under-*`), so a blocking frame
+  // is a door that cannot be opened. ⚑ A rect collider cannot be "rock with a
+  // hole in it", so wall the shoulders with a polygon or a couple of Boulders
+  // if you want them solid — this prop is the picture, not the geometry.
+  CaveMouth = 98
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

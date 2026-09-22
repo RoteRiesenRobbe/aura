@@ -14,7 +14,7 @@ and nobody owes a regeneration as part of a content edit. Run the command
 whenever you want a current picture. The content tree, the loader and its tests
 are the truth about what the game does; this page never is.
 
-Generated 2026-09-20 from api/ at 5a8fd2e6.
+Generated 2026-09-21 from api/ at b35556f6.
 
 Every number here is **[PLACEHOLDER]** by project rule. Per-ability design
 intent lives in `content-auras.md` / `content-passives.md` /
@@ -36,7 +36,7 @@ marked because the code already knows them: **test rig** (`TEST_RIG_SKILLS`,
 kitchen-sink rigs that must never gain a source) and **prototype** (a skill
 using an effect type in `HIDDEN_EFFECT_TYPES`, parked pending a verdict).
 
-**116 skills = 78 player (30 auras, 11 passives, 37 cooldowns) + 38 mob-only.**
+**117 skills = 78 player (30 auras, 11 passives, 37 cooldowns) + 39 mob-only.**
 
 ## Auras (30)
 
@@ -78,8 +78,8 @@ using an effect type in `HIDDEN_EFFECT_TYPES`, parked pending a verdict).
 | ID | Name | MaxLv | Icon | Cost | Timing | Effects | Faction scope | Sources | Description |
 |---|---|---|---|---|---|---|---|---|---|
 | 11 | Tough | 5 | lorc/bordered-shield |  |  | stat_multiplier: stat damageReduction, stat bonus 10% +5%/L |  | Drop: Orc 0.2 · Drop: Troll 0.4 |  |
-| 42 | Hardy | 5 | sbed/health-increase |  |  | stat_multiplier: stat maxHealth, stat bonus 8% +4%/L |  | Drop: EliteWolf 0.2 |  |
-| 43 | ThickHide | 5 | lorc/bordered-shield |  |  | resist_passive: resist tags physical, resist factor ×0.85 -0.025/L |  | Drop: DireBear 0.2 |  |
+| 42 | Hardy | 5 | sbed/health-increase |  |  | stat_multiplier: stat maxHealth, stat bonus 8% +4%/L |  | Drop: AlphaBoar 0.15 · Drop: EliteWolf 0.2 |  |
+| 43 | ThickHide | 5 | lorc/bordered-shield |  |  | resist_passive: resist tags physical, resist factor ×0.85 -0.025/L |  | Drop: AlphaBoar 0.25 · Drop: DireBear 0.2 |  |
 | 46 | Torch | 5 | lorc/lantern-flame |  |  | light_aura: radius 2.5 u +0.25/L |  | NPC: Emberkeeper @L1 · NPC: Lamplighter |  |
 | 47 | Antivenom | 5 | lorc/bordered-shield |  |  | resist_passive: resist tags poison, resist factor ×0.7 -0.05/L |  | Drop: VenomSpider 0.25 |  |
 | 60 | KeenEye | 5 | lorc/muscle-up |  |  | stat_multiplier: stat critChance, stat bonus 2% +2%/L |  | Drop: AlphaWolf 0.12 · Drop: DireWolf 0.1 · Drop: EliteWolf 0.2 · Ascension via AscensionStone · Ascension via FrontAscensionStone |  |
@@ -131,7 +131,7 @@ using an effect type in `HIDDEN_EFFECT_TYPES`, parked pending a verdict).
 | 151 | ThrowBomb | 1 | lorc/land-mine | 3.65% of max | CD 300t (10 s) | projectile: spawn mob ProjectileBomb, forward units 3 u, TTL ticks 46t (1.53 s), arm ticks 45t (1.5 s) |  | **Cheat only** (`SKILL ThrowBomb`) · **prototype** |  |
 | 152 | SummonSpider | 5 | delapouite/knocked-out-stars | 5% +0.75%/L of max |  | spawn: spawn mob Spider, TTL ticks 1800t (60 s) +150/L, power per owner level 5%, follows |  | **Cheat only** (`SKILL SummonSpider`) |  |
 
-## Mob-only skills (38)
+## Mob-only skills (39)
 
 Loaded from `api/skills/mobs/`. They share the id and name space with the
 player skills but never reach a spellbook: a mob carries one through its
@@ -178,6 +178,7 @@ is not placed yet, or dead content.
 | 137 | GiantVenomSpit | 5 |  | damage_aura: radius 1.6 u, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 3.5 +0.7/L, damage tags poison, variance 15% · dot_aura: radius 1.6 u, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 6 +1.2/L, damage tags poison, variance 15%, dot ticks 5, dot tick interval 45t (1.5 s) | GiantSpider L1 |
 | 138 | CampAura | 1 |  | heal_aura: radius 0.75 u, tick interval 60t (2 s), max targets 0, heal fraction of max 12% · light_aura: radius 2 u | Camp L1 |
 | 149 | BombBurst | 5 | CD 300t (10 s) -10/L | instant_damage: radius 2 u +0.05/L, selector all, enemies, damage HP 18 +2/L, damage tags fire · instant_dot: radius 2 u +0.05/L, selector all, enemies, damage HP 5 +0.6/L, damage tags fire, dot ticks 3, dot tick interval 30t (1 s) | ProjectileBomb L1 |
+| 153 | AlphaBoarGore | 5 |  | damage_aura: radius 1.1 u, tick interval 60t (2 s), selector nearest, max targets 1, enemies, damage HP 16 +2.5/L, damage tags physical/bleed, variance 15% | AlphaBoar L1 |
 
 ## Reachability
 
@@ -185,7 +186,7 @@ Counts are source ROWS across the 78 player skills, so a skill with two
 teachers counts twice.
 
 - **Milestone:** 3
-- **Kill drop:** 28
+- **Kill drop:** 30
 - **NPC teaching:** 18
 - **Quest reward:** 3
 - **Recipe:** 11
@@ -243,7 +244,7 @@ teachers counts twice.
 - **AscensionStone**: Blight (kills_this_life DireWolf 20) · Envenom · FrostShield (bloodline_ascensions 3) · Frostbite · KeenEye · Lantern (quest_at_stage the-lost-lamp completed) · RimeBurst · Venomward
 - **FrontAscensionStone**: FrostShield (bloodline_ascensions 3) · KeenEye · RimeBurst
 
-### Quest XP (14 rows)
+### Quest XP (16 rows)
 
 Not a skill source, but it falls out of the same interaction walk and it is the
 other half of a turn-in row's payout.
@@ -257,6 +258,8 @@ other half of a turn-in row's payout.
 - `kobolds-on-the-road`: 450 XP at Wanderer
 - `spiders-in-the-diggings`: 930 XP at Miner
 - `the-lost-lamp`: 700 XP at LamplessTraveller
+- `the-sounder-at-the-mill`: 370 XP at Miller
+- `the-strays`: 180 XP at Shepherd
 - `thin-the-orc-line`: 4800 XP at FrontCaptain
 - `turnip-chore`: 150 XP at Farmer
 - `village-welcome`: 150 XP at Hermit

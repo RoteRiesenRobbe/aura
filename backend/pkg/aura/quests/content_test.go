@@ -80,6 +80,11 @@ var expectedQuests = map[string]string{
 
 	// The north pasture's talk_to quest (content-zone-design-guide.md §2.4).
 	"the-strays": "The Strays",
+
+	// The Mill on the river (content-zone-design-guide.md §2.4), and the only
+	// kill quest in the game whose count is 1: Zone 1's one elite is a NAMED
+	// fight, not a cull.
+	"the-sounder-at-the-mill": "The Sounder at the Mill",
 }
 
 func TestContent_QuestCensus(t *testing.T) {
@@ -328,6 +333,12 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		// The north pasture (content-zone-design-guide.md §2.4): the same L2
 		// price the boars pay, for a quest that spends no combat at all.
 		"the-strays": 180, // L2, ½ × 300 × 1.2
+
+		// The mill (content-zone-design-guide.md §2.4). ⚑ The rule prices the
+		// TARGET'S LEVEL, not its tier, so the zone's one elite pays exactly what
+		// the Lamplighter's three dire wolves pay — the elite premium is in the
+		// drop table, not here. Revisit if elite kills are ever re-priced.
+		"the-sounder-at-the-mill": 370, // L6, ½ × 300 × 1.2^5
 	}, total)
 }
 

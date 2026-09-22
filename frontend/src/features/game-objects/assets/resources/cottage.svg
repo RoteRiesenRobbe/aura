@@ -1,0 +1,146 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 300 260" preserveAspectRatio="none">
+  <!-- Placeholder COTTAGE art (docs/art/assets.csv prop-cottage-variant): the
+       third building type, so the village stops being one sprite tiled.
+       House is 12 copies of one drawing; Barn and Mill broke that open at the
+       farm, and this closes it in the village itself.
+
+       ⭐ IT SEPARATES FROM house.svg ON MATERIAL FIRST, SHAPE SECOND, and that
+       order is deliberate. The house is a TILED GABLE: two big rectangles of
+       red clay either side of one long ridge, with straight courses ruled
+       across them. This is a THATCHED HIP: four soft straw faces meeting at a
+       SHORT ridge, no straight line anywhere, and a pale gold instead of a
+       red brown. Two buildings can share a footprint and still not be
+       confusable if they are made of different stuff.
+
+       ⭐ THE RAGGED EAVE IS THE TELL, and it is the one thing a tiled roof can
+       never have. Thatch is cut straw hanging past the wall, so the roof does
+       not END, it FRAYS. Drawn as a heavy DASHED stroke run round the eave
+       line: each dash is a bundle of straw ends seen from above, which is a
+       comb of exactly the right coarseness for about four markup lines.
+
+       ⚑ FOUR SEPARATE GRADIENTS, one per face, each dark at its eave and pale
+       at the ridge. A hipped roof painted flat reads as an OPEN CRATE looked
+       into from above, which is exactly what mill.svg's first draft did in
+       game (2026-09-20) and had to be re-cut for. ⚑ The north and west faces
+       also run lighter overall, because the light is from the top-left and a
+       roof is the one prop with four faces to prove it on.
+
+       ⚑ SMALLER THAN THE HOUSE (3.0 x 2.6 against 4 x 3) and much squarer. A
+       cottage is a cottage partly because it is not big, and the near-square
+       plan is what the hip needs anyway: hip a long rectangle and the ridge
+       grows until it is a gable again.
+
+       ⚑ The chimney is STONE and oversized on purpose. A thatched cottage
+       lives or dies on its chimney being obviously non-flammable, and at this
+       size it is also the only hard-edged object on the roof, so it gives the
+       eye somewhere to land.
+
+       ⛔ `preserveAspectRatio="none"` IS MANDATORY on the non-square viewBox:
+       the SVG bake is SQUARE, so the default `xMidYMid meet` letterboxes it
+       and SimpleProp.initShape then stretches that square out to the body
+       aspect, squashing the art. Firefox shows it, other engines hide it
+       (a95a2f0d). The viewBox aspect must stay 15:13 to match the body.
+       ⛔ Plain `href` only, never `xlink:href` (pipeline.md §2).
+
+       Light from the top-left, like everything else here. -->
+
+  <defs>
+    <!-- One gradient per face: dark at the eave, pale at the ridge. -->
+    <linearGradient id="cotN" x1="0" y1="10" x2="0" y2="130" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9a8149"/><stop offset="1" stop-color="#e2cd92"/>
+    </linearGradient>
+    <linearGradient id="cotS" x1="0" y1="250" x2="0" y2="130" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#78633a"/><stop offset="1" stop-color="#c6ae76"/>
+    </linearGradient>
+    <linearGradient id="cotW" x1="10" y1="0" x2="110" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#937943"/><stop offset="1" stop-color="#dcc68a"/>
+    </linearGradient>
+    <linearGradient id="cotE" x1="290" y1="0" x2="190" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7d6739"/><stop offset="1" stop-color="#cdb57c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ground shadow, offset down-right -->
+  <rect x="16" y="18" width="292" height="252" rx="18" fill="#000000" opacity="0.26"/>
+
+  <!-- ⭐ THE FRAYED EAVE, drawn UNDER the roof so only the fringe shows past
+       it. A dashed stroke is a comb of straw ends; a solid one is a gutter. -->
+  <rect x="10" y="10" width="280" height="240" rx="14" fill="#6d5a33"/>
+  <rect x="10" y="10" width="280" height="240" rx="14" fill="none"
+        stroke="#a98d52" stroke-width="20" stroke-dasharray="7 5"/>
+  <rect x="10" y="10" width="280" height="240" rx="14" fill="none"
+        stroke="#4e4126" stroke-width="3"/>
+
+  <!-- THE FOUR THATCH FACES. Ridge is SHORT and runs east-west at y=130,
+       from x=110 to x=190; the hips run from its ends to the four corners. -->
+  <path d="M18,18 L282,18 L190,130 L110,130 Z" fill="url(#cotN)"/>
+  <path d="M18,242 L282,242 L190,130 L110,130 Z" fill="url(#cotS)"/>
+  <path d="M18,18 L110,130 L18,242 Z" fill="url(#cotW)"/>
+  <path d="M282,18 L190,130 L282,242 Z" fill="url(#cotE)"/>
+
+  <!-- the hip lines: where two faces meet, thatch is rolled into a raised
+       spine, so these are PALE, not dark. A dark crease here reads as a gap. -->
+  <g stroke="#e8d5a2" stroke-width="5" stroke-linecap="round" opacity="0.65" fill="none">
+    <path d="M18,18 L110,130"/>
+    <path d="M282,18 L190,130"/>
+    <path d="M18,242 L110,130"/>
+    <path d="M282,242 L190,130"/>
+  </g>
+
+  <!-- THATCH COURSES: the overlapping layers, run PARALLEL TO EACH EAVE and
+       dashed, so they read as laid bundles rather than as ruled tile rows
+       (which is exactly what house.svg has, and what this must not). -->
+  <g stroke="#7f6a3c" stroke-width="2.6" stroke-dasharray="9 7" opacity="0.5" fill="none">
+    <path d="M30,46 L270,46"/>
+    <path d="M46,76 L254,76"/>
+    <path d="M64,104 L236,104"/>
+    <path d="M30,214 L270,214"/>
+    <path d="M46,186 L254,186"/>
+    <path d="M64,158 L236,158"/>
+    <path d="M46,40 L46,220"/>
+    <path d="M74,66 L74,194"/>
+    <path d="M254,40 L254,220"/>
+    <path d="M226,66 L226,194"/>
+  </g>
+
+  <!-- ⭐ THE RIDGE CAP: a real thatch ridge is pinned down with bent hazel
+       spars in a zig-zag, and that cross-hatch is the most recognisable mark
+       on a thatched roof from any angle. -->
+  <rect x="100" y="118" width="100" height="24" rx="12" fill="#6e5a33"/>
+  <rect x="103" y="121" width="94" height="18" rx="9" fill="#b49760"/>
+  <g stroke="#5d4c2b" stroke-width="2.6" stroke-linecap="round">
+    <path d="M110,121 L122,139"/>
+    <path d="M122,121 L110,139"/>
+    <path d="M134,121 L146,139"/>
+    <path d="M146,121 L134,139"/>
+    <path d="M158,121 L170,139"/>
+    <path d="M170,121 L158,139"/>
+    <path d="M182,121 L192,139"/>
+    <path d="M192,121 L182,139"/>
+  </g>
+
+  <!-- THE STONE CHIMNEY, off the west end of the ridge. Chunky, hard-edged
+       and the only grey thing here — a thatched roof needs its fire to be
+       visibly stone. -->
+  <rect x="62" y="104" width="50" height="46" rx="5" fill="#000000" opacity="0.28"/>
+  <rect x="56" y="98" width="50" height="46" rx="5"
+        fill="#7e7a72" stroke="#3f3d38" stroke-width="5"/>
+  <rect x="60" y="102" width="42" height="10" rx="3" fill="#9b968c" opacity="0.6"/>
+  <g stroke="#55524b" stroke-width="2.4" opacity="0.7">
+    <path d="M56,116 L106,116"/>
+    <path d="M56,130 L106,130"/>
+    <path d="M78,102 L78,116"/>
+    <path d="M90,116 L90,130"/>
+  </g>
+  <!-- the flue, looking straight down into soot -->
+  <rect x="70" y="112" width="22" height="18" rx="4" fill="#211f1c"/>
+
+  <!-- moss and weathering on the shaded south face — thatch goes green there
+       long before it goes anywhere else -->
+  <g fill="#5f7340" opacity="0.4">
+    <ellipse cx="128" cy="206" rx="34" ry="14" transform="rotate(-4 128 206)"/>
+    <ellipse cx="212" cy="184" rx="22" ry="10" transform="rotate(7 212 184)"/>
+    <ellipse cx="72" cy="176" rx="16" ry="9" transform="rotate(-12 72 176)"/>
+  </g>
+</svg>

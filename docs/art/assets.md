@@ -29,11 +29,11 @@ Rendered 2026-09-21 from 203 rows.
 
 | State | Rows | Means |
 | --- | ---: | --- |
-| ✅ drawn | 88 | has its own art today |
+| ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 33 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 36 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
-| ❌ missing | 34 | nothing exists |
+| ❌ missing | 30 | nothing exists |
 | ⚙️ code | 14 | drawn procedurally in code, no art file |
 | ⛔ blocked | 5 | cannot be delivered until engine work lands |
 | — n/a | 10 | a constraint or a number to judge, not a file to draw |
@@ -45,7 +45,7 @@ Rendered 2026-09-21 from 203 rows.
 | **P2** | 66 | normal — placed but not everywhere |
 | **P3** | 65 | low — unplaced, deferred, or already fine |
 
-**91 rows need work** (missing, shared, placeholder, stock or blocked),
+**90 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **7 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -98,7 +98,7 @@ of which **7 are P0**:
 | ✅ | **Troll** | `troll.svg` | P2 | 6 | 128–144 | Solitary bruiser at the map outskirts. Nothing else in the world looks like it should. |
 | ✅ | **Turnip** | `turnip.svg` | P2 | 6 | 40–52 | Smallest sprite in the game. Immune to everything but Harvest. A plant you pull, not a creature you kill. |
 | ❌ | **Goblin** | — | P1 |  | 60–76 | Z2 Woodland — Named in the world bible beside Kobold; no definition and no art exist. Must read as a DIFFERENT species from Kobold at the same size, not a recolour. |
-| ❌ | **AlphaBoar** | — | P2 |  | 104–124 | Z1 Farmland — Elite tusker leading the sounder. Can ship as an entityType variant of Boar, but deserves its own silhouette — it is the first elite a new player meets. |
+| ✅ | **AlphaBoar** | `wildboar_alpha.png` | P2 |  | 104–124 | Z1 Farmland — Elite tusker leading the sounder, and the first elite a new player meets. It got its OWN silhouette rather than the entityType-variant shortcut this row used to allow — a mob whose only tell is the health bar is one the player cannot decide to avoid. Rendered at 52-62 (this column is DPR-2). Placement is the PO's: the mill POI takes exactly one. |
 | ❌ | **BanditLeader** | — | P2 |  | 100–116 | Z2 bandit camp — Named elite leading the Woodland camp. Content on top of EliteBandit — art optional, but a named antagonist with the generic elite face is a missed beat. |
 
 ## Hazard — 4
@@ -172,19 +172,19 @@ of which **7 are P0**:
 | 🟡 | **Well** | `well.svg` | P1 |  | 168 | Z1 — Village centre landmark. Placeholder SVG (body r0.7): stone ring, open shaft, thin winding beam. No roof - it would hide the hole that identifies it. |
 | ❌ | **Trough** | — | P3 |  |  | Z1 — Farmyard dressing. |
 | 🟡 | **Barn** | `barn.svg` | P1 |  | 720x480 | Z1 |
-| ❌ | **Cottage variant** | — | P1 |  |  | Z1 — Third building type, so the village stops being one sprite tiled. |
+| 🟡 | **Cottage variant** | `cottage.svg` | P1 |  | 360 x 312 | Z1 — ⭐ The village's third building, so it stops being 12 copies of House. It separates from house.svg on MATERIAL first and shape second: the house is a TILED GABLE (two red rectangles either side of one long ridge, straight courses ruled across), this is a THATCHED HIP (four soft straw faces to a short ridge, pale gold, no straight line anywhere). Two buildings can share a footprint and still not be confusable if they are made of different stuff. ⭐ The RAGGED EAVE is the tell a tiled roof can never have - thatch frays rather than ends, drawn as a heavy DASHED stroke round the eave line so each dash is a bundle of straw ends. ⛑ Four separate gradients, one per face, dark at the eave and pale at the ridge: a hipped roof painted flat reads as an OPEN CRATE looked into from above, which is exactly what mill.svg had to be re-cut for. ⛑ Smaller and squarer than the house (3.0x2.6 vs 4x3) - hip a long rectangle and the ridge grows until it is a gable again. Stone chimney oversized on purpose: a thatched cottage needs its fire to be visibly non-flammable. Placeholder SVG. |
 | 🟡 | **Mill** | `mill.svg` | P2 |  | 600x480 | Z1 |
 | ❌ | **Bridge deck** | — | P1 |  |  | Z1 — The river crossing. ⚑ Must author crossesPaths:true and blocksMovement:false — both, or it walls its own deck (plan-world-paths L9). |
 | 🟡 | **Fence post** | `fencePost.svg` | P2 |  | 53 | Terminates hedgerow/fence paths, which have no end-cap art. Placeholder SVG (body r0.22): the post END GRAIN, seen top-down. No rail stubs - a path leaves in any direction and a prop rotation is never applied. |
 | 🟡 | **Gate** | `gate.svg` | P2 |  | 240x192 | Z1 |
-| ❌ | **Palisade segment** | — | P1 |  |  | Z2 — Bandit camp wall, Zone 2. Must tile — several sit shoulder to shoulder. |
+| 🟡 | **Palisade segment** | `palisade.svg` | P1 |  | 288 x 96 | Z2 |
 | ❌ | **Tent** | — | P2 |  |  | Z2 — Bandit camp. |
 | 🟡 | **Crate** | `crate.svg` | P3 |  | 108 | Z1 — Camp/village clutter. Placeholder SVG (body 0.9x0.9 rect): lid boards, iron banding, top-down. |
 | 🟡 | **Torch** | `torch.svg` | P1 |  | 62 | Z1 — The only prop that EMITS LIGHT. Half a campfire radius (3.5 u), punched into the darkness overlay from zone.props at load - never streamed, or a dark pocket pops lit the moment the torch enters the viewport. Placeholder SVG (body r0.26, about a player wide): a tiny campfire from above, palette lifted from mobs/campfire.svg. Draws at 62 px: doubled from r0.13 on 2026-09-20 because a torch is the one small prop a player looks at. |
 | ❌ | **Signpost art** | — | P1 |  |  | Z2 — ForestSign exists as an NPC but wears signpost.svg alongside three monuments — see the shared-art warning. |
 | ❌ | **Mushroom cluster** | — | P3 |  |  | Z2 — Forest floor dressing, Zone 2. |
 | ❌ | **Mossy rock** | — | P2 |  |  | Z2 — Rock variant for the forest. Rock and Boulder are the same SVG scaled. |
-| ❌ | **Cave mouth frame** | — | P1 |  |  | Z2 — The tunnel entrance in Zone 2 — currently boulders. The door to the underworld deserves to read as a door. |
+| 🟡 | **Cave mouth frame** | `caveMouth.svg` | P1 |  | 360 x 288 | Z2 |
 
 ## Ground decal — 16
 

@@ -1,0 +1,6 @@
+{
+  "name": "Palisade",
+  "entityType": "Palisade",
+  "sprite": "palisade.svg",
+  "body": { "width": 2.4, "height": 0.8 }
+}

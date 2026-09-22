@@ -1,0 +1,23 @@
+{
+  "_comment": "The Miller's kill quest and the Mill-on-the-river POI's whole reason to exist (content-zone-design-guide.md §2.4: soft dead end, side reward). Target: the single AlphaBoar spawn at the mill — Zone 1's one elite. ⭐ COUNT 1, and that is the design rather than a shortcut: every other kill quest in the game is a cull (6 boars, 8 wolves) and this one is a NAMED FIGHT, which is how the player learns that an elite is a different kind of thing from more of the same. It leans on the respawn only if they lose. Reward on the turn-in row (miller.json): 370 XP = the L9 half-level rule at L6, the same number the Lamplighter pays. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet).",
+  "id": "the-sounder-at-the-mill",
+  "title": "The Sounder at the Mill",
+  "stages": [
+    {
+      "id": "cull",
+      "journal": "Kill the alpha boar leading the sounder by the mill.",
+      "tracker": "Kill the alpha boar ({n}/{m})",
+      "objectives": [{ "kind": "kill", "species": "AlphaBoar", "count": 1 }],
+      "next": "report"
+    },
+    {
+      "id": "report",
+      "journal": "The alpha boar is dead; the Miller waits by his mill.",
+      "tracker": "Return to the Miller"
+    },
+    {
+      "id": "done",
+      "journal": "Done. Reported back to the Miller."
+    }
+  ]
+}

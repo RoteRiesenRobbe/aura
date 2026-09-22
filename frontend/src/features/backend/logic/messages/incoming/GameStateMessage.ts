@@ -595,6 +595,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Wolf]: Mobs.Wolf,
     [AuraApi.EntityType.Bear]: Mobs.Bear,
     [AuraApi.EntityType.Boar]: Mobs.Boar,
+    [AuraApi.EntityType.AlphaBoar]: Mobs.AlphaBoar,
     [AuraApi.EntityType.Stag]: Mobs.Stag,
     [AuraApi.EntityType.EliteWolf]: Mobs.EliteWolf,
     [AuraApi.EntityType.Bramble]: Mobs.Bramble,
@@ -676,6 +677,12 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     // Generic, like the Gate it shares a body with — what makes it passable is
     // its definition (`blocksMovement: false`), never a class.
     [AuraApi.EntityType.BrokenFence]: Props.genericPropClasses.BrokenFence,
+    // The village's third building, the camp wall, and the door to the
+    // underworld. Generic — what makes the cave mouth walkable is its
+    // definition (`blocksMovement: false`), never a class.
+    [AuraApi.EntityType.Cottage]: Props.genericPropClasses.Cottage,
+    [AuraApi.EntityType.Palisade]: Props.genericPropClasses.Palisade,
+    [AuraApi.EntityType.CaveMouth]: Props.genericPropClasses.CaveMouth,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,
