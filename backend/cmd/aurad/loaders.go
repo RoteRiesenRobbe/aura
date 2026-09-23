@@ -113,6 +113,42 @@ func diskContent(dir string) (contentSources, error) {
 	return c, nil
 }
 
+// The debug zone set (`-debug-zones`): a complete, separate zone list under
+// zones/.debug/, with its own primary. Only the zone ROOT and the default
+// primary change; every other content directory loads as usual. Switching
+// needs a restart, because the server holds exactly one world.
+const (
+	debugZonesDir  = ".debug"
+	debugStartZone = "world_debug"
+)
+
+// useDebugZones re-roots c's zones at zones/.debug/. A missing directory is a
+// hard failure, like any other missing content directory.
+func useDebugZones(c contentSources) (contentSources, error) {
+	if _, err := fs.Stat(c.zones, debugZonesDir); err != nil {
+		return contentSources{}, fmt.Errorf("debug zone set zones/%s: %w", debugZonesDir, err)
+	}
+	sub, err := fs.Sub(c.zones, debugZonesDir)
+	if err != nil {
+		return contentSources{}, err
+	}
+	c.zones = sub
+	return c, nil
+}
+
+// resolveStartZone picks the PRIMARY zone: an explicit -start-zone wins, then
+// -debug-zones' own primary, then game.startZone.
+func resolveStartZone(flagZone string, debugZones bool, confZone string) string {
+	switch {
+	case flagZone != "":
+		return flagZone
+	case debugZones:
+		return debugStartZone
+	default:
+		return confZone
+	}
+}
+
 //go:embed conf.default.json
 var defaultConfig []byte
 

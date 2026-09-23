@@ -2,9 +2,11 @@ package zones
 
 import "embed"
 
-// Zones are flat (no subdirectories), so a bare *.json pattern is correct here.
-// Chunk 2 ships exactly one zone (zone.json); the loader hard-fails on more
-// than one until multiple zones are supported.
+// The zone set is the flat *.json files; every one of them loads. The
+// .debug/ set rides the same FS for `aurad -debug-zones`, and must be named
+// explicitly because a bare directory pattern skips dot directories. The zone
+// loader's own walk skips dot directories too, so it never leaks into the
+// main set.
 //
-//go:embed *.json
+//go:embed *.json .debug/*.json
 var Zones embed.FS

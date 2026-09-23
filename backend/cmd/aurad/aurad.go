@@ -31,7 +31,7 @@ import (
 func main() {
 	logging.SetupLogging()
 
-	var dev, help, validate bool
+	var dev, help, validate, debugZones bool
 	var contentDir, startZone, profileAddr string
 
 	flag.StringVar(&profileAddr, "profile", "", "serve net/http/pprof + /tickstats on this address for capacity checks (e.g. :6060); off by default, see devops/loadtest.md")
@@ -40,6 +40,7 @@ func main() {
 	flag.BoolVar(&validate, "validate", false, "Load all content, print every finding to stdout and exit (0 clean, 1 findings); starts no server and needs no database")
 	flag.StringVar(&contentDir, "content", "", "Load items/mobs/skills/recipes/zones/props from this api/-layout directory instead of the embedded copies (e.g. ../api); skips cp-defs + rebuild for content edits")
 	flag.StringVar(&startZone, "start-zone", "", "Name the PRIMARY zone by file stem (e.g. 'world' for world.json) — where fresh characters spawn; overrides game.startZone. Every zone file in the directory loads regardless")
+	flag.BoolVar(&debugZones, "debug-zones", false, "Load the zone set from zones/.debug/ instead of zones/, with world_debug as the primary zone (unless -start-zone names another); every other content directory is unchanged")
 	flag.Parse()
 	if profileAddr != "" {
 		startProfileServer(profileAddr)
@@ -55,7 +56,7 @@ func main() {
 	// point is that the content editor can ask it on every candidate save. It
 	// also writes nothing: no conf.json, no tokens.list.
 	if validate {
-		os.Exit(validateMain(os.Stdout, contentDir, startZone))
+		os.Exit(validateMain(os.Stdout, contentDir, startZone, debugZones))
 	}
 
 	content := embeddedContent()
@@ -68,9 +69,17 @@ func main() {
 		}
 		contentSource = contentDir
 	}
+	if debugZones {
+		var err error
+		if content, err = useDebugZones(content); err != nil {
+			slog.Error("failed to open the debug zone set", slog.Any("err", err))
+			panic(err)
+		}
+	}
 	// The boot log states the content source so a stale-server/stale-content
-	// mixup is visible at a glance (see the testing gotcha in CLAUDE.md).
-	slog.Info("Loading content", slog.String("source", contentSource))
+	// mixup is visible at a glance (see the testing gotcha in CLAUDE.md), and
+	// which zone set is live, so the debug world is never mistaken for the main.
+	slog.Info("Loading content", slog.String("source", contentSource), slog.Bool("debugZones", debugZones))
 
 	config := loadConf()
 
@@ -88,10 +97,8 @@ func main() {
 
 	levelCurve := config.LevelCurve()
 	// Every zone file in the directory loads. The only choice left is which of
-	// them is PRIMARY, and the flag beats the conf.
-	if startZone == "" {
-		startZone = config.Game.StartZone
-	}
+	// them is PRIMARY: -start-zone, then -debug-zones' own, then the conf.
+	startZone = resolveStartZone(startZone, debugZones, config.Game.StartZone)
 	// ⚑ ONE load sequence, shared with -validate (content.go): the dependency
 	// order between the registries lives there and nowhere else. A boot is the
 	// consumer that refuses to continue on a finding - all of them, listed,
