@@ -8,8 +8,7 @@
   "maxLevel": 10,
   "visual": {
     "layers": [
-      { "kind": "beam", "on": "hit", "curve": "flash", "chain": true, "tint": "#cfe8ff", "ms": 260, "width": 5 },
-      { "kind": "impact", "on": "hit", "curve": "burst", "ms": 160 }
+      { "kind": "beam", "on": "hit", "curve": "flash", "chain": true, "tint": "#cfe8ff", "ms": 260, "width": 5 }
     ]
   },
   "effects": [

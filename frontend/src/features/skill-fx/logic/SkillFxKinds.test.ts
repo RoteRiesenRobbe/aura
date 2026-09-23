@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {readFileSync} from 'fs';
-import {KIND_REGISTRY, VISUAL_KINDS} from './SkillFxKinds';
+import {HIT_MARK_KIND, KIND_REGISTRY, kindHandler, VISUAL_KINDS} from './SkillFxKinds';
 
 // The registry IS the closed vocabulary (§7.2), so it is pinned against the
 // authored fixture in BOTH directions: a kind the content loader accepts but
@@ -28,5 +28,23 @@ describe('the kind registry', () => {
         for (const kind of VISUAL_KINDS) {
             expect(typeof KIND_REGISTRY[kind].spawn).toBe('function');
         }
+    });
+});
+
+// §12g.1 call 2: the hit mark is the ENGINE'S. It is drawable, so the manager
+// can spawn what the planner emits, but it is OUTSIDE the registry, so the pin
+// above cannot see it and no content can name it.
+describe('the hit mark', () => {
+    it('is not an authorable kind', () => {
+        expect(vocabulary.visualKinds).not.toContain(HIT_MARK_KIND);
+        expect(KIND_REGISTRY[HIT_MARK_KIND]).toBeUndefined();
+    });
+
+    it('still has a handler, answered by name', () => {
+        expect(typeof kindHandler(HIT_MARK_KIND)?.spawn).toBe('function');
+    });
+
+    it('answers nothing for a name nobody registered', () => {
+        expect(kindHandler('snap')).toBeUndefined();
     });
 });

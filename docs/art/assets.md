@@ -14,7 +14,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-09-21 from 203 rows.
+Rendered 2026-09-23 from 221 rows.
 
 ---
 
@@ -22,7 +22,7 @@ Rendered 2026-09-21 from 203 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 169 |
+| Art | 187 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -31,27 +31,31 @@ Rendered 2026-09-21 from 203 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 36 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 39 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
-| ❌ missing | 30 | nothing exists |
+| ❌ missing | 45 | nothing exists |
 | ⚙️ code | 14 | drawn procedurally in code, no art file |
 | ⛔ blocked | 5 | cannot be delivered until engine work lands |
 | — n/a | 10 | a constraint or a number to judge, not a file to draw |
 
 | Priority | Rows | Rule |
 | --- | ---: | --- |
-| **P0** | 27 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
-| **P1** | 45 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 66 | normal — placed but not everywhere |
-| **P3** | 65 | low — unplaced, deferred, or already fine |
+| **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
+| **P1** | 53 | high — shared art, or 20+ placements, or a named gameplay gap |
+| **P2** | 70 | normal — placed but not everywhere |
+| **P3** | 67 | low — unplaced, deferred, or already fine |
 
-**90 rows need work** (missing, shared, placeholder, stock or blocked),
-of which **7 are P0**:
+**108 rows need work** (missing, shared, placeholder, stock or blocked),
+of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
 | --- | --- | --- | --- | --- |
 | ⚠️ | **AscensionStone** | NPC | shared | ⭐ The meta-progression altar, where a max-level character is spent. The game's most significant object currently looks like a road sign. Owes a site, not just a prop. |
 | ⚠️ | **Boulder** | Prop | shared | Large blocking rock. Shadow baked in, never rotated. |
+| 🟡 | **sword (strike)** | VFX | placeholder | ⭐ The single most-drawn skill body: every melee thrust and swing in the game, players and humanoid mobs alike. Engineering ships a plain generated placeholder under this exact name in C3a; the artist overwrites it. Spec: skill-vfx-asset-spec.md §4 + §7. |
+| 🟡 | **wolf-jaw (strike bite)** | VFX | placeholder | ⭐ One upper jaw, hinged at its bottom-left corner: the engine mirrors it, swings both halves about the hinge and closes them over the victim from the WOLF's side. Serves WolfBite (Wolf, DireWolf, AlphaWolf) and EliteWolfBite - 187 placements. Generated placeholder ships in C3a. Spec: §4 (the bite diagram). |
+| 🟡 | **arrow (projectile)** | VFX | placeholder | ⭐ Every arrow and bolt in the game: LongRangeStrike, BanditVolley, KoboldVolley, Suppression. Generated placeholder ships in C3a. Spec: §4. |
+| ❌ | **bow (cast-pose)** | VFX | missing | Worn on the caster as the arrow leaves, aimed at the victim. Pairs with fxbody-arrow on the same three skills; without it the bow stays a code-drawn rectangle. Spec: §4. |
 | ❌ | **Ability icons** | UI | missing | ⭐ 59 authored abilities and not one icon. The ability bar, spellbook and every tooltip render text. Listed for sizing: after the mob roster this is the largest art job in the project, and the one players stare at constantly. |
 | 🟡 | **Forest** | Terrain profile | placeholder | Zone 2 base ground. GENERATED placeholder (tools/make-cellular-tiles.mjs): moss duff |
 | 🟡 | **Road** | Terrain profile | placeholder | Every road in the game. GENERATED placeholder (tools/make-cellular-tiles.mjs, the cellular family's third tile): packed brown earth with two warm grades of pebble pressed into it and hairline dried-mud cracks, all of it DELIBERATELY QUIET. ⛔ It USED TO BORROW pd106, the DESERT tile, so every lane was golden sandstone - that was the whole brief. ⛑ Three faults worth not repeating, all of them only visible once the tile REPEATS: too few slow bed waves paint a diagonal corduroy stripe; a neutral-grey pebble reads BLUE against warm brown; and mud cracks as a ridged field make closed loops that read as worm trails until they are thin and faint. ⛔ NO CART RUTS - a rut is directional and would need alignTexture, which wants one path per straight leg, and all three Road paths are multi-point meanders. Ruts are a second tile. ⭐ It ships at a SIXTH of its first pass' detail (PO: reads a little messy) - a ground tile is looked THROUGH, not at, and every mark repeats nine times across a screen, so one that looks slightly empty alone is the one that is right in the world. Real art wanted. |
@@ -215,7 +219,7 @@ of which **7 are P0**:
 | ⚙️ | **Player hands** | — | P3 |  | tiny | Two circles drawn procedurally, skin #f2a586 + black outline. If the avatar's shape changes, these move or go. |
 | ✅ | **Corpse / gravestone** | `corpse.svg` | P3 |  | 100 | The marker at a death spot. Placeholder — death is a real beat in a game with a sacrifice loop. |
 
-## VFX — 11
+## VFX — 29
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -230,6 +234,24 @@ of which **7 are P0**:
 | ⚙️ | **Campfire dwell ring** | — | P3 |  |  | Fills while you rest at a fire — the recovery timer made visible. |
 | ⚙️ | **Ascension channel** | — | P0 |  |  | ⭐ The 10 s channel that ends a character. The most important moment in the progression loop — and currently only the channelling player can see it. |
 | ⚙️ | **Darkness overlay** | — | P3 |  |  | The mask itself. A constraint on art rather than an asset. |
+| 🟡 | **sword (strike)** | `sword.png` | P0 | 15 | 128 x 32 | ⭐ The single most-drawn skill body: every melee thrust and swing in the game, players and humanoid mobs alike. Engineering ships a plain generated placeholder under this exact name in C3a; the artist overwrites it. Spec: skill-vfx-asset-spec.md §4 + §7. |
+| 🟡 | **wolf-jaw (strike bite)** | `wolf-jaw.png` | P0 | 2 | 128 x 48 | ⭐ One upper jaw, hinged at its bottom-left corner: the engine mirrors it, swings both halves about the hinge and closes them over the victim from the WOLF's side. Serves WolfBite (Wolf, DireWolf, AlphaWolf) and EliteWolfBite - 187 placements. Generated placeholder ships in C3a. Spec: §4 (the bite diagram). |
+| 🟡 | **arrow (projectile)** | `arrow.png` | P0 | 4 | 96 x 24 | ⭐ Every arrow and bolt in the game: LongRangeStrike, BanditVolley, KoboldVolley, Suppression. Generated placeholder ships in C3a. Spec: §4. |
+| ❌ | **bow (cast-pose)** | — | P0 | 3 | 96 x 32 | Worn on the caster as the arrow leaves, aimed at the victim. Pairs with fxbody-arrow on the same three skills; without it the bow stays a code-drawn rectangle. Spec: §4. |
+| ❌ | **maul (strike overhead)** | — | P1 | 2 | 128 x 32 | The heavy overhead weapon: TrollSmash, WarlordCleave. Must read as slow and heavy beside the sword. Spec: §4 + §7. |
+| ❌ | **ward-shard (orbit, white for tinting)** | — | P1 | 6 | 128 x 32 | One near-white drawing circling the caster, recoloured per skill by the layer tint: Aegis, FireWard, FireVulnerability, Venomward, RallyDrum, WarbannerShield. ⚑ Draw it white or light grey - the tint is a multiply and can only darken. Spec: §3. |
+| ❌ | **heal-cross (emitter particle, white for tinting)** | — | P1 | 5 | 16 x 16 | The rising heal mote, the PO example ("green crosses and mist"): Heal, Lifewarden, Rejuvenation, BanditHeal, HealerAura. Judge it at 8 px, not at 100 %. The wide mist half of each pair stays code-drawn. Spec: §3 + §7. |
+| ❌ | **spider-fang (strike bite)** | — | P1 | 1 | 128 x 48 | SpiderBite - Spider, 17 placements. Same hinged mirrored-jaw rule as wolf-jaw, but chelicerae rather than a canine jaw; it must differ from wolf-jaw in near-darkness. Spec: §4. |
+| ❌ | **venom-glob (projectile)** | — | P1 | 3 | 96 x 24 | The spider spit: VenomSpit, GiantVenomSpit, and since the 2026-09-21 amendment PoisonPoolAura, whose pool now spits a glob at each victim instead of marking it. 26 placements. Full colour (poison green), no tint. Spec: §4. |
+| ❌ | **axe (orbit, fired)** | — | P1 | 1 | 128 x 32 | The spinning axes cooldown (WhirlingAxes), one of the PO nine. ⚑ No unlock source in content today, so it is reachable only by dev command. Spec: §7. |
+| ❌ | **claw (strike swing)** | — | P1 | 1 | 128 x 32 | BearSwipe - Bear + DireBear, 24 placements. Renamed from bear-claw and raised a band by the 2026-09-21 amendment: a swipe is an ATTACK now, held and swung from the bear, so without this file the bear swings the placeholder BLADE. A raking paw, gripped at the left edge like a weapon. Spec: §4 + §7. |
+| ❌ | **tusk (strike thrust)** | — | P1 | 1 | 128 x 32 | BoarGore - Boar, 58 placements, plus the two retired mammoth auras. Renamed from boar-tusk and raised a band by the 2026-09-21 amendment: without this file the boar gores with the placeholder SPEAR. Spec: §4 + §7. |
+| ❌ | **ember (emitter particle)** | — | P2 | 3 | 16 x 16 | The warm rising mote at every campfire and camp, and the Lantern aura: CampfireAura, CampAura, Lantern. Campfires are how players navigate. Spec: §7. |
+| ❌ | **sickle (strike overhead)** | — | P2 | 1 | 128 x 32 | The gathering aura Harvest, which only damages harvestable nodes. A tool, not a weapon. Spec: §7. |
+| ❌ | **pickaxe (strike overhead)** | — | P2 | 1 | 128 x 32 | The Pickaxe aura, which only breaks rock nodes. A tool, not a weapon. Spec: §7. |
+| ❌ | **firebolt (projectile)** | — | P3 | 1 | 96 x 24 | Firebolt. Full colour, no tint. ⚑ No unlock source in content today (dev command only), hence P3. Spec: §7. |
+| ❌ | **flame-pillar (beam, extend)** | — | P2 | 4 | 64 x 16 | The extending flame pillar. Raised a band by the 2026-09-21 amendment, which gave the same tongue of flame to FireElementalAura, EmberAura and FireTotemAura (8 placements plus the summoned fire totem) beside the dev-only OmniAura. ⚑ A beam body is PULLED between caster and victim: nothing in it may read as squashed. ⛔ The other beam, the lightning flash, is procedural on purpose and must NOT be drawn. Spec: §4 + §5. |
+| ❌ | **spear (strike thrust, optional split)** | — | P3 |  | 128 x 32 | An optional later split of fxbody-sword for the 8 stabbing skills, if one blade is not enough. Not owed; listed so the option is on the record. Spec: §7. |
 
 ## UI — 7
 

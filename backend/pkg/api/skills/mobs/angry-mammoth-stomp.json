@@ -7,7 +7,7 @@
   "cooldownTicks": 450,
   "visual": {
     "layers": [
-      { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
+      { "kind": "wave", "on": "fired", "ms": 500, "count": 2 }
     ]
   },
   "effects": [

@@ -496,10 +496,10 @@
   ],
   "resistWildcard": "*",
   "visualKinds": [
-    "impact",
     "strike",
     "projectile",
     "beam",
+    "wave",
     "cast-pose",
     "orbit",
     "emitter"
@@ -539,15 +539,6 @@
       "count",
       "motion"
     ],
-    "impact": [
-      "kind",
-      "on",
-      "body",
-      "tint",
-      "scale",
-      "ms",
-      "curve"
-    ],
     "orbit": [
       "kind",
       "on",
@@ -573,6 +564,15 @@
       "scale",
       "ms",
       "curve"
+    ],
+    "wave": [
+      "kind",
+      "on",
+      "body",
+      "tint",
+      "scale",
+      "ms",
+      "count"
     ]
   },
   "visualTriggersByKind": {
@@ -588,9 +588,6 @@
       "fired",
       "hit"
     ],
-    "impact": [
-      "hit"
-    ],
     "orbit": [
       "fired",
       "ambient"
@@ -600,6 +597,9 @@
     ],
     "strike": [
       "hit"
+    ],
+    "wave": [
+      "fired"
     ]
   },
   "visualCurves": {
@@ -607,14 +607,11 @@
       "flash",
       "extend"
     ],
-    "impact": [
-      "burst",
-      "snap"
-    ],
     "strike": [
       "thrust",
       "swing",
-      "overhead"
+      "overhead",
+      "bite"
     ]
   },
   "visualMotions": [

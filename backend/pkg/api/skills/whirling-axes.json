@@ -10,8 +10,7 @@
   "cooldownTicksPerLevel": -10,
   "visual": {
     "layers": [
-      { "kind": "orbit", "on": "fired", "count": 2, "ms": 1200 },
-      { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
+      { "kind": "orbit", "on": "fired", "count": 2, "ms": 1200 }
     ]
   },
   "effects": [

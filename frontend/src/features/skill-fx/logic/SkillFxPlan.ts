@@ -12,20 +12,41 @@
  * 1. `on: hit` draws once per HIT event whatever its HitKind (an Immune or an
  *    Absorb landing still landed); `on: fired` draws on a cast, with the caster
  *    at both ends. A skill with no `visual`, or none on this trigger, draws
- *    nothing - there is no engine default.
+ *    no AUTHORED layer - there is no engine default for those.
  * 2. An event naming an entity the client does not hold is skipped silently:
  *    there is nothing to draw between two points when one is unknown.
  * 3. A chain is a property of one (source, skill) GROUP within one snapshot, so
  *    it cannot be decided event by event: the group is ordered caster → nearest
  *    → nearest-to-that, hop N is anchored at victim N-1 and waits N staggers.
- * 4. Implicit sequencing, no `delay` key anywhere in the vocabulary: an
- *    `impact` starts when whatever touched the victim actually got there - the
+ * 4. Implicit sequencing, no `delay` key anywhere in the vocabulary: the hit
+ *    mark starts when whatever touched the victim actually got there - the
  *    projectile's arrival, the strike's contact moment, the later of the two.
+ * 5. ⭐ The hit mark is the ENGINE'S (§12g.1 call 2, the one exception to "no
+ *    engine default"): every landed Damage or Crit hit plans one on the victim,
+ *    LAST in the landing, whether or not the skill authors anything, and no
+ *    file may author it (the server refuses `impact` at load). A Heal, an
+ *    Absorb or an Immune landing draws none, and neither does a cast.
  */
 import type {VisualLayer} from '../../../client-data/Skills';
+import {AuraApi} from '../../backend/logic/AuraApi';
 import type {SkillEventData} from '../../backend/logic/SkillEventNumbers';
 import type {VfxDensity} from '../../game-settings/logic/GameSettings';
-import {CHAIN_HOP_STAGGER_MS, chainOrder, flightMs, strikeContactMsOf} from './SkillFxMath';
+import {
+    CHAIN_HOP_STAGGER_MS,
+    chainOrder,
+    flightMs,
+    HIT_MARK_KIND,
+    strikeContactMsOf,
+} from './SkillFxMath';
+import {NEUTRAL_COLOR} from './SkillFxPalette';
+
+/** The one layer no content authors: the planner appends it to a damage landing. */
+const HIT_MARK_LAYER: VisualLayer = {kind: HIT_MARK_KIND, on: 'hit'};
+
+function drawsHitMark(event: SkillEventData): boolean {
+    return !event.fired
+        && (event.kind === AuraApi.HitKind.Damage || event.kind === AuraApi.HitKind.Crit);
+}
 
 /** Where an entity is, in world space - the only geometry the plan needs. */
 export interface PlanPoint {
@@ -42,7 +63,10 @@ export interface SkillVisual {
     reachPx?: number;
 }
 
-/** undefined = this skill authors no visual at all. */
+/**
+ * undefined = the catalog does not hold this skill. A held skill with no
+ * `visual` answers an EMPTY layer list, so its hit mark still gets its colour.
+ */
 export type VisualOf = (skillId: number) => SkillVisual | undefined;
 /** undefined = this client does not hold that entity. */
 export type PointOf = (entityId: number) => PlanPoint | undefined;
@@ -174,14 +198,14 @@ function landingFor(
     event: SkillEventData, visualOf: VisualOf, pointOf: PointOf,
 ): Landing | null {
     const visual = visualOf(event.skillId);
-    const authored = visual?.layers;
-    if (!authored || authored.length === 0) {
-        return null;
-    }
     // `on: hit` draws once per HIT event whatever its HitKind - an Immune or
-    // Absorb landing still landed.
+    // Absorb landing still landed. The mark is the one thing that reads the
+    // kind, and it goes LAST so the authored layers keep their order.
     const trigger = event.fired ? 'fired' : 'hit';
-    const layers = authored.filter(l => l.on === trigger);
+    const layers = (visual?.layers ?? []).filter(l => l.on === trigger);
+    if (drawsHitMark(event)) {
+        layers.push(HIT_MARK_LAYER);
+    }
     if (layers.length === 0) {
         return null;
     }
@@ -200,8 +224,10 @@ function landingFor(
         source: event.source,
         victim,
         layers,
-        baseColor: visual.baseColor,
-        reachPx: visual.reachPx ?? 0,
+        // A skill the catalog does not hold still marks its hits: neutral,
+        // because nobody knows its damage type.
+        baseColor: visual?.baseColor ?? NEUTRAL_COLOR,
+        reachPx: visual?.reachPx ?? 0,
         seed: seedCounter++,
         casterAt,
         at,
@@ -209,10 +235,10 @@ function landingFor(
 }
 
 /**
- * One landing's layers, with the implicit sequencing applied: an `impact` on
- * the same trigger as a `projectile` starts when the bolt ARRIVES, and one
- * beside a `strike` when the weapon reaches the victim. With both authored, the
- * later of the two wins - the mark belongs to whatever touched the victim last.
+ * One landing's layers, with the implicit sequencing applied: the hit mark
+ * beside a `projectile` starts when the bolt ARRIVES, and one beside a `strike`
+ * when the weapon reaches the victim. With both authored, the later of the two
+ * wins - the mark belongs to whatever touched the victim last.
  */
 function emit(
     plan: SpawnPlan[], posed: Set<string>, landing: Landing,
@@ -233,7 +259,7 @@ function emit(
             source: landing.source,
             from,
             victim: landing.victim,
-            delayMs: baseDelayMs + (def.kind === 'impact' ? arrival : 0),
+            delayMs: baseDelayMs + (def.kind === HIT_MARK_KIND ? arrival : 0),
             baseColor: landing.baseColor,
             reachPx: landing.reachPx,
             seed: landing.seed,

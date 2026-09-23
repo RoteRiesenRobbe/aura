@@ -78,6 +78,15 @@ func loadContent(src contentSources, config *cfg.Config, startZone string) (load
 		okSkills = true
 	}
 
+	// The art check (plan-skill-vfx.md §12f.4 E). It is a LEAF: nothing else
+	// reads the body list, so it sits directly behind its only input rather
+	// than at the end, where a reader would have to work out what it needed.
+	if !okSkills {
+		skip("skill bodies", "skills")
+	} else if err = validateSkillBodies(src.skillFx, out.skills); err != nil {
+		fail("skill bodies", err)
+	}
+
 	if !okSkills || !okFactions {
 		skip("mobs", missing(input{okSkills, "skills"}, input{okFactions, "factions"})...)
 	} else if out.mobs, err = loadMobs(out.skills, out.factions, config.LevelCurve(), src.mobs); err != nil {

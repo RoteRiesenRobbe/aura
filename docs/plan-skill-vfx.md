@@ -1,12 +1,17 @@
 # Plan: Skill VFX - what a hit, a cast and a running aura look like, for everyone
 
-> **Status: C2b BUILT 2026-09-20 `5fae4fe2`, PO look PASSED ("works, I think
+> **Status: C4 BUILT 2026-09-20 `d8e1628d` (world scale, a measurement
+> chunk: 10× `full` = 0.7–1.0 ms p95 of `update()`, ambient unbudgeted by
+> ruling, eviction at 96 from ≈ 145–190 events/s; ⚑ the cap 96 vs 192 and the
+> mobile fill rate are OPEN on the PO's real-phone check). **C3 (art) is the
+> last chunk.**
+> C2b BUILT 2026-09-20 `5fae4fe2`, PO look PASSED ("works, I think
 > with this the chunk is done"): the other three kinds `cast-pose` / `orbit` /
 > `emitter`, the AMBIENT reconciler that dresses a running aura, the density
 > slider Off / Low / Full with its mobile default, `visual` on 46 more files
 > and two cheat-only skills (Whirling Axes 77, Firebolt 78), and the look
 > rounds' rulings: the bow on `hit`, a HELD weapon whose length is the skill's
-> reach. **C3 (art) and C4 (world scale) are what is left.**
+> reach.
 > C2a BUILT 2026-09-19 `512d4afd`, PO look PASSED (the engine:
 > the `SkillFx` manager on its own layer below darkness, budget + pools, the
 > math module, placeholder bodies, `impact` / `projectile` / `beam` plus the
@@ -16,7 +21,7 @@
 > inside the four funnels, `Mob.owner_id`, five field names deprecated, numbers
 > own-caused only, loadbot: D10 stands). C0 SHIPPED 2026-09-19 `e8f7b6b4` (the `visual` key, one per SKILL: seven
 > closed kinds, three triggers, load-time validation, six generated fixture
-> lists, six content files authored). C3 + C4 unbuilt.** Designed 2026-09-11
+> lists, six content files authored). C3 unbuilt.** Designed 2026-09-11
 > (D1-D10 PO-ruled in one sitting; everything in §4-§7 that is not a D-number
 > is still a proposal with options). Line refs pinned to `df746e53`;
 > re-verify before executing. Ledger: §13.
@@ -193,6 +198,17 @@ phase fields. `MobJuice.ts` plays the hit sounds. `AuraRings.ts` and
 Kinds are ENGINE code and closed. A new kind is a plan amendment, not
 content. Everything else is a parameter.
 
+⚑ **AMENDED 2026-09-21 (§12g), still seven.** The `impact` row above leaves the
+AUTHORING vocabulary: the round mark on the victim became the ENGINE's, drawn
+automatically on every landed damage hit and authorable by nobody, so a file
+that names `impact` hard-fails at load. Its `snap` curve moved to `strike` as
+`bite` (one jaw drawn twice, hinged at the ATTACKER, closing over the victim).
+A new kind takes the empty seat:
+
+| Kind | Trigger | What moves | Placeholder body |
+| --- | --- | --- | --- |
+| `wave` | fired | `count` rings (1-3) expanding from the CASTER to the skill's reach and fading; once per cast, never per victim | tinted rings |
+
 ### 4.2 Layers, triggers, bodies, palette
 
 A skill carries one new top-level key, `visual`, holding a list of layers:
@@ -207,13 +223,19 @@ A skill carries one new top-level key, `visual`, holding a list of layers:
 }
 ```
 
+⚑ **This example is SUPERSEDED by §12g (2026-09-21)**: neither `impact` nor
+`snap` is authorable any more. The live idiom for the same skill is the
+`cast-pose` plus the `projectile` alone, and the arrival is the engine's mark.
+
 - **`on`** binds a layer to a moment: `ambient` (while the aura is the
   actor's active aura, from `active_skill_id` / the mob def), `fired` (a
   FIRED event: a cast went off, targets or not), `hit` (a HIT event: once
   per victim). A layer with `on: hit` on a three-target aura draws three
   times in one tick; that is the flame-pillar case, no special casing.
 - **`body`** names an entry in the atlas (§6). Absent → the kind's
-  placeholder. A `sheet` body plays frames (the wolf teeth).
+  placeholder. A `sheet` body plays frames (the wolf teeth). ⚑ §12f.2: frame
+  playback is NOT built in C3 (the bite is one mirrored jaw); the naming is
+  reserved in the artist briefing.
 - **Palette** derives from the skill's damage type by default (`fire`,
   `frost`, `nature`, `poison`, `bleed`, `physical`: six, from the
   vocabulary fixture) and from the category for heal / shield / light;
@@ -244,6 +266,15 @@ skill with two effects (damage + slow) has one look.
 Every one of the nine is covered by the seven kinds with zero engine
 special-casing, which is the test the vocabulary has to keep passing.
 
+⚑ **AMENDED 2026-09-21 (§12g).** Five of these rows decompose into an `impact`
+layer, and that layer is now the ENGINE's automatic hit mark rather than
+anything the file authors: the overhead mace, the firebolt, the arrow and the
+whirling axes each lose their `impact` and keep the rest, and the **wolf bite
+becomes a `strike` with `curve: bite`** (a sheet body was never built; C3's one
+mirrored jaw became the bite's own shape). The test the table exists to run
+still passes - the nine are still covered with no special-casing - but read the
+Layers column against §12g before copying an idiom out of it.
+
 ### 4.4 What the prototype's four map to
 
 `field-ice` → `emitter` (`motion: swirl`, ambient) · `strike-sword` →
@@ -251,6 +282,8 @@ special-casing, which is the test the vocabulary has to keep passing.
 caster-anchored sword onto the victim-anchored `impact`) ·
 `projectile-fire` / `projectile-frost` → `projectile` + `impact` with the
 palette doing the colour. The impact-deferred number does not survive (D6).
+⚑ **AMENDED 2026-09-21 (§12g)**: the `+ impact` in that last mapping is the
+engine's automatic mark now, not a layer the projectile skills author.
 
 ## 5. The wire (D5, D10)
 
@@ -334,6 +367,21 @@ measurement is what rules D10's fallback in or out.
 - **Placeholders are Graphics primitives** as the prototype's, deliberately
   ugly enough not to be mistaken for art, tinted by the palette so a
   placeholder firebolt still reads as fire.
+
+**⭐ Amendment 2026-09-21 (C3a as built): the "atlas" is a FOLDER, not a
+spritesheet.** The three bullets above stand as written, with one substitution:
+there is **no packer and no frames JSON**. A body is ONE PNG in
+`frontend/src/features/skill-fx/assets/bodies/`, bundled by webpack and
+discovered through `require.context` (the `RegionPaint.ts` precedent), plus a
+GENERATED name list, `api/skill-fx/bodies.json`, which exists so **Go** can
+check an authored `body` without reading the art folder. The folder is the one
+source; the list is the server's copy of it, written by
+`tools/make-skill-fx-manifest.mjs` and pinned by a Go test that fails on drift
+in either direction. The resolver bullet is unchanged and is now ARMED: an
+unknown `body` is a `loadContent` finding, so `-validate` and the boot both
+refuse it. ⚑ **The artist's side is identical under either design** (single
+PNGs, committed in-repo, `docs/art/skill-vfx-asset-spec.md`), which is why the
+packer can be deferred without a contract change; §12f.2 names its trigger.
 
 ## 7. The client engine
 
@@ -495,9 +543,23 @@ builder C1 lesson: a chunk whose purpose is a look is not done without one).
   resolver's ERROR path armed in `-validate`; the spell builder's Visuals
   section renders `visual` (that chunk lives in `plan-content-editor.md`'s
   ledger, cited here). **Schema: NONE.**
-- **C4 · World scale.** Density 10× harness with the slider at each level,
-  frame-time before/after, the cap tuned, mobile fill-rate check on a real
-  phone. **Schema: NONE.**
+
+  ⚑ **Specced 2026-09-21 as C3a + C3b (§12f).** C3a = the artist briefing,
+  an engineering-drawn pilot batch, the client sprite path and the validator;
+  C3b = the editor's READ-ONLY Visuals section. The art is a folder of single
+  PNGs plus a generated name list for Go, no packer yet (§12f.2 names the
+  trigger). ✅ **C3a BUILT 2026-09-22, together with the §12g amendment**
+  (attacks from the attacker, the hit mark automatic, `wave`): §13 C3a ledger.
+  ⏸ C3b not started.
+- **C4 · World scale.** ✅ **BUILT 2026-09-20** (spec: §12e, departures + PO
+  rulings: §12e.8, ledger: §13). A dev-only instrument + a client-side stress
+  driver (a real 10× server is tick-starved, so it cannot be the load) + the
+  seven-leg `skill-fx-scale.mjs`. 10× `full` costs 0.7–1.0 ms p95 of
+  `update()`; ambient is the dominant share and stays UNBUDGETED by ruling; at
+  96 eviction starts ≈ 145–190 events/s, about 10× above the 10× world.
+  ⚑ **Two things stay OPEN on the PO's real phone: the cap (96 vs 192) and the
+  mobile fill rate**, which a 3 fps headless page cannot judge. **Schema:
+  NONE, and it held.**
 
 C0 and C1 can be built in either order; C2a needs both.
 
@@ -517,6 +579,14 @@ C0 and C1 can be built in either order; C2a needs both.
    C2b authored every aura and cooldown that CAN carry a look instead
    (§12d.5's table), so the question is moot rather than answered "none by
    accident". Stat / resist passives stay bare by D2.
+   ⭐ **REVERSED IN PART 2026-09-21 (PO, §12g.1 item 2), for the HIT MARK
+   alone**: the engine now draws a round mark on the victim on every landed
+   damage hit, coloured by the damage type, with no `visual` involved. That is
+   a deliberate exception and the only one - it is universal combat feedback
+   rather than a dressing, it cannot be authored at all (the `impact` kind is
+   gone from the vocabulary), and "none, ever" still governs every other
+   moment. A heal, a shield or a light aura with no `visual` still draws
+   nothing.
 5. ~~Does the `AuraRings` tint follow the layer palette?~~ ✅ **RESOLVED
    2026-09-20 (PO): it stays the CATEGORY colour.** The ring is gameplay
    information (range + category), the layers are dressing; `AuraRings` was
@@ -1006,6 +1076,12 @@ placeholder for a missing weapon sprite into an accidental general indicator.
   becomes a small ROUND burst on the victim, tinted by damage type, never
   directional. Its curves are **`burst` | `snap`**; `thrust` moves to
   `strike`. The wedge placeholder is deleted.
+  ⚑ **SUPERSEDED 2026-09-21 (§12g.1).** The PO took the next step: that small
+  round mark is no longer authored at all. The engine draws it on EVERY landed
+  damage hit (no opt-in, no `curve`, no file), `snap` became the `strike`'s
+  `bite`, and the `impact` kind left the vocabulary. This bullet is kept
+  because it is the reasoning the later ruling grew out of, not because any of
+  it is still authorable.
 - ⭐ **The flinch is NOT built** (a nudge of the victim's sprite on every hit):
   it transforms the entity sprite, which this plan does not touch. Carried as
   §10 Q10 for `plan-entity-presentation.md`.
@@ -1014,6 +1090,10 @@ placeholder for a missing weapon sprite into an accidental general indicator.
   victim / the hammer landing), as it already waits for a projectile.
 
 ### 12c.2 Content, every pick (all [PLACEHOLDER])
+
+⚑ **The rule below is SUPERSEDED by §12g.3 (2026-09-21)**, which deletes every
+`impact` layer this table placed and gives each animal, place and missile an
+attacker-anchored attack instead. Kept as the C2a record.
 
 Rule: a weapon-wielder's plain hit is `strike` ALONE. An animal's bite, gore
 or swipe is `impact`/`snap` alone (it wields nothing). Elemental, poison,
@@ -1266,7 +1346,972 @@ are pooled `Graphics` (≤ 12 per layer), which is the "acceptable at these
 counts" fallback that paragraph already allowed. §12d.4's "`cast-pose` shows at
 RELEASE" still holds for a `fired` pose; the bow simply is not one any more.
 
+## 12e. C4 execution spec (2026-09-20, re-verified against HEAD `4949f596`)
+
+World scale: what the SkillFx layer costs when the world is ten times as busy,
+with the slider at each level, and what that says about the cap. A MEASUREMENT
+chunk: its deliverable is a table and a recommendation, not a look.
+
+### 12e.1 Calls made in planning (lead, 2026-09-20; none is a PO number)
+
+- ⭐ **The 10× load is a CLIENT-SIDE stress driver, not a 10× server.** The
+  server's density ceiling is ≈5.8× (`plan-world-scale.md` §11; PhysicsSystem
+  74 % of the tick at 10×), so a real boot at 10× is tick-starved and would
+  emit FEWER events per wall second than a healthy busy world. Measuring the
+  client against it measures a broken server. It also keeps the schema line
+  honest: no `aurad` flag, no scaled zone.
+- ⭐ **"10×" is grounded in a measured 1×**, not guessed: leg 1 records the real
+  rates at a busy real venue (events per second through `onSnapshot`, ambient
+  owners in view), and the stress legs multiply THOSE.
+- **Headless numbers are ratios and counts, never absolutes**
+  (`project_mobile_layout`, `project_input_jitter`). The table reports
+  `full / off` and `low / off`, the manager's own `update()` CPU milliseconds
+  (comparable in headless), display-object counts, and eviction counts.
+  `off` is the control: same entities, zero authored layers.
+- **The cap is a PO number.** C4 measures 96 and two alternatives and PROPOSES;
+  `FX_BUDGET` changes only on a PO answer.
+- **The real phone is PO-owed.** A headless phone viewport at DPR 3 gives a
+  fill-rate RATIO and nothing more; the ledger lists the real device under
+  "Not run".
+
+### 12e.2 Schema
+
+**DB NONE · WIRE NONE · CONF NONE · CATALOG NONE · CONTENT NONE.** Client-only,
+dev-only. ⚑ §9 said NONE for C2a and C2b and was wrong both times; if the
+executing agent finds itself touching Go, `api/` or an `.fbs`, it stops and
+reports instead.
+
+### 12e.3 The ambient census (done in planning, from disk)
+
+18 skills author an `ambient` layer, every one an active aura. The heaviest
+owner holds **12 Graphics** (`frostbite`, `hoarfrost`: one emitter × 12); the
+heal family holds 9 (5 + 4); an orbit holds 2–3. Six of the 18 are mob or
+place auras (`bandit-heal`, `camp-aura`, `campfire-aura`, `healer-aura`,
+`rally-drum`, `warbanner-shield`), so the unbudgeted population in view is
+"players with an aura on + those species", and under `low` only the OWN
+emitters survive. The question C4 answers is therefore narrow: **what do N
+owners × ≤ 12 pooled Graphics cost per frame**, and is that ever comparable
+to the budgeted 96. If it is not, the ruling "ambient stays unbudgeted" gets
+its number and no cap is built (rule over machine).
+
+### 12e.4 Half A: the instrument (frontend, dev-only)
+
+All of it reachable ONLY through the `?develop` console surface
+(`BrowserConsole.ts`, beside `skillFx`), none of it on a production path.
+
+1. **Frame cost.** `SkillFx.update()` times itself ONLY while measuring is on
+   (two `performance.now()` calls, a fixed ring of the last 600 samples, no
+   per-frame allocation). `window.game.skillFxMeasure(on)` toggles and clears;
+   `window.game.skillFxStats()` returns `{frames, updateMs: {p50, p95, max},
+   liveMax, ambientMax, displayObjects}` where `displayObjects` is a recursive
+   child count under the `skillFx` layer taken at call time. The percentile
+   math is a pure function in `SkillFxMath.ts` with vitest pins (red-first).
+2. **The rate probe.** While measuring, `onSnapshot` counts events in and Fx
+   spawned, so leg 1 can read a REAL venue's events per second.
+3. **The budget override.** `FX_BUDGET` stays the exported default; the live
+   cap becomes a module `let`, set by `window.game.skillFxBudget(n)`, restored
+   by `reset()`. No setting, no persistence.
+4. **The stress driver**, its own file `SkillFxStress.ts`:
+   `window.game.skillFxStress({eventsPerSec, ambientOwners, seconds})`. It
+   feeds the REAL paths, `onSnapshot` and `setAmbient`, never a side door:
+   - events: synthetic `SkillEventData` between stress actors, the skill ids
+     drawn round-robin from every catalog skill whose `visual` authors a
+     `fired` or `hit` layer, so the kind mix is the authored mix;
+   - actors and ambient owners: minimal GameObject-shaped stubs laid on a
+     deterministic grid across the current viewport, resolved through the
+     `ResolveEntity` seam. ⚑ The reconciler and the glows are keyed by
+     GameObject, and `anchorFor` reads `shape.position`, `shape.destroyed`,
+     `shape.parent` and `size`: the stub must satisfy exactly those, and the
+     agent reads `anchorFor` + `spawnAmbient` before shaping it. Ambient skill
+     ids round-robin over the 18 of §12e.3, `own: false` for all but one, so
+     `low` shows its real cut;
+   - it stops itself after `seconds`, disposes its stubs' ambients, and leaves
+     the counters readable. Deterministic (no `Math.random` in placement or
+     selection), so two runs are comparable.
+   The scheduling maths (how many events this frame for a rate and a delta,
+   carry the remainder) is a pure function with vitest pins.
+
+⚑ Landmines: `Event.trigger` UNSUBSCRIBES a listener that returns `true` ·
+`visualOf` never caches an unknown skill, the catalog loads async, so the
+driver refuses to start before `Skills` is loaded · the frontend pin is
+812 / 44 and will move, record the new one.
+
+### 12e.5 Half B: the harness, `.claude/skills/verify/skill-fx-scale.mjs`
+
+Reuses `skill-fx.mjs`'s launch flags (load-bearing), join lib and tri-state.
+Measure windows of 10 s after a 2 s warm-up. Legs:
+
+1. **Real 1×.** GOD, warp to a busy camp with a campfire in view, own aura on,
+   fight for the window: record events per second, ambient owners, `live`
+   max. This defines 1×. Inconclusive (not red) when the venue is empty.
+2. **Synthetic 1× vs real 1×**, density `full`: the driver at leg 1's rates
+   must land within the same order on `updateMs` p50, or the driver is not
+   honest and the run stops there.
+3. **10× × three densities.** `off`, `low`, `full` at ten times leg 1:
+   `updateMs` p50 / p95 / max, rAF-delta p50 / p95, `liveMax`, `ambientMax`,
+   `displayObjects`, `evicted`. Screenshots at 10× `full` and 10× `low`.
+4. **Ambient alone.** 10× ambient owners, zero events, `full`: the unbudgeted
+   question of §12e.3 in isolation, against leg 3's event-only share.
+5. **The cap.** 10× `full` at budget 48, 96, 192: `evicted` per second and
+   `updateMs` p95 for each.
+6. **Phone shape.** Viewport 390 × 844, DPR 3, touch: 10× at `low` (the mobile
+   default) and `full`, reported ONLY as ratios against the same page's `off`.
+
+Output: a JSON file plus a markdown table printed at the end; the table goes
+into the §13 ledger verbatim. Assertions are few and structural (the driver
+reached its rate, `off` spawned 0, the stats are non-empty); the numbers are
+findings, not pass/fail, except one guard: **`full` 10× `updateMs` p95 under
+the 16.7 ms frame** is reported as PASS / OVER, because over it the chunk owes
+a fix or a lower cap rather than a table.
+
+### 12e.6 What happens with the numbers
+
+- `updateMs` p95 at 10× `full` comfortably inside a frame and eviction rare:
+  96 is proposed to stand, ambient stays unbudgeted, both with their numbers.
+- Eviction constant at 10×, or p95 over budget: the agent does NOT tune. It
+  reports the profile's top cost, and the lead brings the PO a choice (cap
+  value, a per-kind particle trim under load, an ambient cap) as a prompt.
+
+### 12e.7 Verify tail C4 owes
+
+`go build ./...` (nothing Go changed, stated) · frontend `npm test` +
+`typecheck` + prod build · `make -C backend build` before any harness run ·
+`skill-fx.mjs` still 13 legs PASS (the instrument must not disturb the engine)
+· `skill-fx-scale.mjs` run twice, the two tables within noise of each other ·
+⛔ NOT run, PO-owed: a real phone. ⚑ `hrnss_*` residue: cleanup only with
+`aurad` stopped.
+
+### 12e.8 Departures as built, and the PO's rulings (2026-09-20)
+
+**Departures** (each the executing agent's call, reviewed by the lead):
+
+- ⭐ **Leg 1's venue is the western bandit camp (26.0, 20.7), with NO campfire
+  in view.** All five campfires sit in quiet corners; the camp was picked from
+  `api/zones/world.json` for 13 spawns within 8 u around BOTH ambient-aura
+  species (RallyDrummer, BanditHealer). The tables are built on ITS 1×
+  (1.3–1.5 events/s); the busier east camp gave 4.2–4.3 in two pilots, and its
+  10× (≈ 43/s) reached the same conclusions.
+- ⭐ **Leg 1 runs LEVELLED and with GOD OFF.** GOD short-circuits the player's
+  own `takeDamage`, and in a camp the mob→player stream is most of the
+  traffic: GOD on / L1 = 1.0 events/s, GOD on / L30 = 0.1, GOD off / L30 = 4.3.
+- ⭐ **The 10× ambient owner count is PINNED at 50, not measured × 10**, the one
+  place §12e.1's "multiply THOSE" is not followed. The live count swings 0–6
+  inside one window as mobs die and respawn, so two runs compared nothing on
+  the column C4 exists to read. 50 = 10 × the five owners the census expects;
+  the measured count rides in the table beside it. The EVENT rate is measured
+  and multiplied, as specified.
+- `stats()` carries six keys beyond §12e.4's five (`eventsIn`, `fxSpawned`,
+  `ambientOwners`, `ambientOwnersMax`, `budget`, `measuring`).
+- **One production-module touch:** `allSkillDefinitions()` in
+  `client-data/Skills.ts`, read-only, no hot path; it doubles as the driver's
+  "catalog loaded?" test. The alternative was probing ids blindly.
+- `window.game.skillFxStress` is one function, three behaviours by argument:
+  options = start, nothing = status, `null` = stop early.
+- No 8× clock trick for the screenshots: the instrument, the driver and every
+  Fx clock read `performance.now`, so slowing it would corrupt the window.
+- ⚑ `reset()` restores the budget override, so a death mid-leg silently drops
+  a 48 / 192 setting. The stress legs run on open ground for that reason.
+
+**PO rulings on the first tables** (2026-09-20, asked as prompts):
+
+1. **The cap:** leg 5 was a NULL result (live Fx peaked at 6–15 against 96,
+   zero evictions everywhere, so 48 / 96 / 192 could not be ranked). PO: **add
+   a ceiling-finding leg** (leg 7: ramp the rate until 96 evicts and until
+   `update()` p95 nears a frame, then compare the three caps where they
+   differ). `FX_BUDGET` moves only on the PO's answer to THAT table.
+   ⭐ **Answered the same day on leg 7's table: "decide after the phone
+   check."** 96 stays in code, the cap is OPEN (§13 C4).
+2. **Ambient stays UNBUDGETED**, now with its number: 50 owners = 70 layers,
+   ≈ 320 Graphics, `update()` p95 0.4–0.6 ms. It IS the dominant SkillFx cost
+   (≈ 93 % of the layer's display objects, about half its frame time) and it
+   is still under a millisecond. No ambient cap is built.
+3. **The real phone is PO-owed**; C4 is recorded BUILT with it under "Not
+   run". The headless page renders at ≈ 3 fps (software GL), which is exactly
+   why fill rate cannot be judged there; the phone rAF ratios inverted between
+   the two runs and are noise.
+4. `harnessdb -cleanup` approved for this session's `hrnss_*` residue, run by
+   the lead with `aurad` stopped.
+
+## 12f. C3 execution spec (2026-09-21, re-verified against HEAD `e3a9de66`)
+
+C3 is cut in two (PO 2026-09-21): **C3a** = the artist briefing + the sprite
+path + the validator + a pilot batch, one PO look; **C3b** = the editor's
+read-only Visuals section, its own session. They share no code. Nothing below
+is built.
+
+### 12f.1 PO calls (2026-09-21)
+
+1. **The first PNGs are an engineering pilot.** Two or three plain but real
+   PNGs, generated by a checked-in script, so the whole path is seen working
+   in-game. The artist later overwrites them under the same file names with no
+   code change. C3 does not wait on real art.
+2. **The art lives in the frontend, Go reads a generated name list.** PNGs
+   under `frontend/src/features/skill-fx/assets/bodies/`, bundled by webpack
+   like every other texture; a generated `api/skill-fx/bodies.json` carries the
+   body NAMES for Go, and a pin fails when folder and list drift. No new
+   endpoint, aurad serves no binary art.
+3. **The editor section is READ-ONLY** (answers `plan-content-editor.md` Q3
+   for now): it lists a skill's layers and shows a thumbnail where a body
+   resolves. `visual` stays hand-authored, hidden and preserved raw on save.
+4. **C3a + C3b**, separate sessions.
+
+### 12f.2 Calls made in planning (lead; none is a PO number, each revisable)
+
+- **No packer in C3a: the "atlas" is a FOLDER plus a manifest.** §6 says one
+  spritesheet, PNG + JSON frames. With three pilot bodies a packer is machinery
+  ahead of need: Pixi v8 batches several textures per draw batch (16 from
+  memory, ⚑ verify at C3a start), and a packer
+  must decode artist PNGs, which the zero-dependency tile generators in
+  `tools/` never had to. One PNG per body, loaded through `Preloading`.
+  ⚑ Named trigger for building the packer: the body count passing ~16, or the
+  phone check showing batch breaks. The artist's side does not change either
+  way (they commit single PNGs in both designs), so the contract survives it.
+- ⭐ **The batch limit is NOT a fixed 16, and it is the weakest device that
+  decides** (2026-09-21, verified at HEAD against the installed Pixi
+  **8.4.1**, which supersedes the "16 from memory" in the bullet above). Pixi
+  reads it from the GPU:
+  `rendering/batcher/gl/utils/maxRecommendedTextures.mjs` asks WebGL for
+  `MAX_TEXTURE_IMAGE_UNITS` and then lowers it through
+  `checkMaxIfStatementsInShader`, which compiles a probe shader and backs off
+  until it links. Desktop typically lands on 16; a phone may well land on 8,
+  and the number is discovered per device at runtime, so nothing in the repo
+  can be read to learn it. **The packer trigger therefore reads: the body
+  count passing the batch limit of the weakest target device, or the phone
+  check showing batch breaks** - and the phone check (§9, cap 96 vs 192) is
+  the first place that number becomes observable, so the two questions ride
+  the same session.
+- ⭐ **The manifest lists file STEMS VERBATIM and the validator matches
+  verbatim.** No normalisation, no case folding, no extension games: the body
+  for `wolf-jaw.png` is `wolf-jaw`, and the body for `Wolf_Jaw.png` is
+  `Wolf_Jaw`. The consequence worth writing down is the reserved frame naming:
+  a delivered `foo_0.png` lists as the body `foo_0` and does NOT stand in for
+  `foo`. **No frame logic exists anywhere** - not in the script, not in the
+  validator, not in the client - until playback is built, which is why the
+  artist briefing states "do not deliver frames yet" as a rule rather than as
+  advice.
+- **Frame playback is NOT built.** §4.2 promises "a `sheet` body plays frames",
+  but no shipped look needs it: the wolf bite's `snap` is ONE jaw body drawn
+  twice, mirrored, closing by moving (`ImpactFx`, `SkillFxKinds.ts`). The
+  contract RESERVES the naming (`<body>_0.png`, `<body>_1.png`, ...) so an
+  artist can deliver frames later; the engine learns to play them when a body
+  asks for it.
+- ⭐ **A body is drawn in FULL COLOUR and shown AS DRAWN** (PO 2026-09-21,
+  overruling the lead's first draft, which had every body greyscale and
+  palette-tinted: "PNGs are already in color, that makes the artist's life
+  easier"). The rule, and it needs NO new vocabulary key:
+  - a layer WITH a resolved body gets **no palette tint** (the damage-type
+    colour is for placeholders, which stay tinted exactly as today);
+  - an authored `tint` on the layer still applies, as a multiply, body or not.
+    So ONE white / light-grey PNG plus a `tint` per skill is still how an
+    artist makes a fire sword and a frost sword from one drawing, when they
+    WANT that; it is an option, never a requirement.
+  ⚑ A multiply can only darken, so `tint` on already-coloured art muddies it:
+  the briefing says "draw it white if you want it tinted". ⚑ Pixi's default
+  `tint` is `0xffffff` (no change), so the sprite branch sets `tint` only when
+  the layer authors one; `ctx.color` is NOT passed to a sprite.
+- ⭐ **What is ART and what is CODE, asked by the PO 2026-09-21 and recorded so
+  nobody rebuilds anything.** A PNG is the PICTURE; the MOTION is a coded
+  curve (`thrust` / `swing` / `overhead`, `burst` / `snap`, `flash` /
+  `extend`). A new picture is free; a new motion is one curve in
+  `SkillFxMath.ts` plus a branch, never a redo (wire, anchors, reach, pools,
+  budget and slider are motion-agnostic). PNG stays the base for every route
+  to richer weapon animation, and each route is ADDITIVE:
+  - a **rigid** weapon (sword, mace, spear): a coded curve moving one PNG, as
+    built. Fits any reach and direction, smallest art;
+  - a **flexible** weapon (whip, flail chain): one PNG laid along a coded
+    curve, Pixi's built-in `MeshRope` (present in 8.4.1). A new curve, not a
+    new system;
+  - a **one-off flourish** the artist wants to own frame by frame (a claw
+    rake, an explosion): frame playback, Pixi's built-in `AnimatedSprite`
+    over the reserved `<body>_<n>.png` naming.
+  Skeletal animation (Spine and the like) is the one route NOT planned: a
+  runtime dependency and an artist tool licence for entities that are portrait
+  icons with no limbs. ⚑ **Some kinds are better WITHOUT a body, for good**:
+  the `flash` beam (lightning) is a jagged line re-drawn from a per-spawn
+  seed, so every bolt differs, fits any distance and chains between victims,
+  which no single PNG can do; particles and ribbons are similar. "Placeholder"
+  is the wrong word for those: the procedural look is tuned, not replaced.
+- **The check lives in `loadContent` (`cmd/aurad/content.go`), not in
+  `mapToSkillDefinition`.** The boot and `-validate` share that one function,
+  it already collects findings without stopping at the first, and the `skills`
+  package stays ignorant of the art folder. `visual.go`'s "body is UNCHECKED
+  here" comment stays true and gains a pointer to the new stage.
+- **A weapon scales UNIFORMLY, a beam stretches.** A `strike` / held `orbit`
+  body is scaled so its LENGTH equals the reach, aspect kept; only a `beam`
+  body is stretched in X alone. Stretching a sword to 3 u would make a plank.
+
+### 12f.3 Schema
+
+DB, WIRE, CONF: **NONE**. CATALOG: **NONE** (`body` already rides `visual` on
+GET /skills). CONTENT: `body` authored on three skill files; one new GENERATED
+file `api/skill-fx/bodies.json`, in its OWN one-file directory because every
+piece of the plumbing is per directory (`contentSources` is one `fs.FS` per
+dir, `cp-defs` copies dirs, `diskContent` stats a dir; the two top-level JSON
+files in `api/` are read by Go TESTS only, never by the boot). BUILD: a tenth
+`cp -rf` argument, a tenth embed package, a tenth struct field, exactly as
+`ascension` was the ninth. ⚑ Check `backend/pkg/api/`'s partial gitignore
+covers the new directory. ⚑ "NONE" was a guess twice
+in this plan (§12b.2, §12d.2): re-check at the end of the chunk.
+
+### 12f.4 C3a, the pieces
+
+**A. The artist briefing, `docs/art/skill-vfx-asset-spec.md`.** Modelled on
+`medallion-asset-spec.md`: if a committed PNG follows every rule, it works
+in-game with zero code negotiation. Plain language. Contents:
+
+- The file name IS the link: `"body": "arrow"` draws `arrow.png`. Lowercase,
+  hyphens, no spaces. Transparent background, PNG, committed straight into
+  `frontend/src/features/skill-fx/assets/bodies/`, then one script run
+  (`node tools/make-skill-fx-manifest.mjs`), which anyone can do for them.
+- Full colour, shown as drawn (§12f.2). The one exception the artist may
+  choose: a white / light-grey body that a skill file tints, for one drawing
+  in several elements.
+- One row per kind, with a small diagram each:
+
+  | Kind | How the PNG is used | Rule for the drawing |
+  | --- | --- | --- |
+  | `strike` | held in the hand, scaled so its length = the skill's reach | points right, GRIP AT THE LEFT EDGE, vertically centred |
+  | `orbit` (held) | same as `strike`, circling | same as `strike` |
+  | `projectile` | flies caster to victim, rotated to the travel direction | points right, centred |
+  | `beam` | STRETCHED between caster and victim, as thick as `width` px | must survive being pulled long: no detail that reads as "squashed" |
+  | `impact` burst | centred on the victim, sized to the victim | round, centred, never directional |
+  | `impact` snap | ONE jaw, drawn twice (mirrored), closing on the victim | the UPPER jaw, teeth pointing down, bite line at the bottom edge |
+  | `cast-pose` | shown on the caster, rotated toward the victim | points right, centred |
+  | `emitter` | ONE particle, drawn many times, small | reads at 8 to 16 px |
+
+  ⚑ **AMENDED 2026-09-21 (§12g): the two `impact` rows are gone.** The burst is
+  the engine's hit mark and is never drawn by an artist; the snap became a
+  `strike` `bite` row with the same jaw rule plus a HINGE AT THE LEFT EDGE and
+  a snout pointing right. Eight rows became seven, and the shipped briefing is
+  the authority on all of them.
+
+- Canvas sizes per row ([PLACEHOLDER] until the pilot is judged, the
+  medallion precedent), the reserved frame naming, and the first wanted list
+  by name (derived from the 129 authored layers: one body per distinct look,
+  NOT one per skill).
+- `docs/art/README.md` gains the pointer, `assets.csv` gains the body rows.
+
+**B. The pilot, `tools/make-skill-fx-pilot.mjs`.** Zero-dependency PNG writer
+like `make-fog-tile.mjs`, deterministic, checked in as a script because a
+placeholder's job is to be re-tuned. Three bodies, picked to cover the three
+anchor rules: `sword` (`api/skills/damage.json`, `strike` thrust: grip-left,
+uniform scale), `arrow` (`api/skills/long-range-strike.json`, `projectile`:
+centred, rotated), `wolf-jaw` (`api/skills/mobs/wolf-bite.json`, `impact`
+snap: mirrored pair).
+Deliberately plain but IN COLOUR (wood and steel, not the palette red), so a
+screenshot tells the sprite path from the Graphics placeholder at a glance and
+proves the no-tint rule at the same time.
+
+**C. The manifest, `tools/make-skill-fx-manifest.mjs`.** Scans the bodies
+folder, writes `api/skill-fx/bodies.json` (`_comment` naming its single
+writer, sorted names). ⚑ The client does NOT read the list: it takes the
+folder through webpack's `require.context` + `Assets.load` (the
+`RegionPaint.ts` precedent, which discovers its PNG folder the same way), so
+the folder is the one source
+and the list is Go's copy of it. Pins: a Go test (the
+`shared_constants_test.go` pattern, reading `../../../frontend/...`) fails
+when folder and list differ in either direction.
+
+**D. The client sprite path.**
+
+- `SkillFxBodies.ts`: a `registerBodyTextures()` preload (`require.context`
+  over `assets/bodies/*.png`, each through `Preloading.registerPreload` +
+  `Assets.load`), and `resolveBody(body): Texture | null`. The dev-only
+  "no atlas entry" warning stays for a name the folder lacks. The
+  `require.context` call sits in its own tiny module so vitest never imports
+  it; the name-from-path function is pure and tested.
+- `SkillFxKinds.ts`: the seven `resolveBody` sites (`ImpactFx`, `StrikeFx`,
+  `ProjectileFx`, `BeamFx`, `CastPoseFx`, `OrbitFx`, `EmitterFx`) each gain a
+  sprite branch beside the placeholder: texture present → a pooled `Sprite`
+  (`acquireSprite` / `releaseSprite`, own pools, same cap), `tint` set ONLY
+  from an authored `def.tint` and reset to `0xffffff` on acquire (§12f.2),
+  anchored and sized per §12f.4 A's table; absent → today's code, untouched.
+  ⚑ The per-frame math (position, rotation, alpha, the snap's closing, the
+  beam envelope) already drives a display object and should not fork: type the
+  field as the common base and branch only at construction and at the one
+  place a kind redraws per frame (the `flash` beam's jagged polyline: with a
+  body it is a stretched sprite and the jag is not drawn).
+- Sizing math that is new (uniform scale to a reach, mirrored jaw offset for a
+  sprite with a bottom-edge bite line) goes in `SkillFxMath.ts`, red-first.
+- The dev instrument (`window.game.skillFx()`) gains a `sprites` counter so a
+  harness can tell a sprite spawn from a Graphics spawn.
+
+**E. The validator.** `contentSources` gains the bodies list; `loadContent`
+gains a stage after skills: every authored `body` must be in the list, one
+finding per miss naming skill, layer index and body. Skipped-with-a-finding
+when skills did not load (the function's own rule). Red-first Go tests: an
+unknown body is a finding, a known one is clean, an absent `body` is clean,
+both embedded and `-content`. ⚑ Embedded-content tests are honest only after
+`cp-defs` (the portal-spells lesson).
+
+**F. Docs the chunk flips.** `manual-content-authoring.md` §2: "author no
+`body` before the atlas" becomes "a `body` must name a PNG in the bodies
+folder, and how to add one"; `SkillFxBodies.ts` header; `visual.go:30-35`;
+§6 of this plan (folder + manifest, the packer's trigger); the `add-content`
+skill if it repeats the old rule.
+
+### 12f.5 C3b, the editor's Visuals section (outline, re-verify at its session)
+
+`tools/content-editor/public/app.js` `skillVisualsSection()` stops being the
+disabled stub: one row per layer (kind, trigger, body, the tunables the kind
+reads, from the fixture's per-kind key table so it cannot drift from Go), a
+thumbnail when the body is in `api/skill-fx/bodies.json` (the editor server
+serves the PNG from the frontend folder, read-only), "placeholder" otherwise,
+and "no visual" for a bare skill. `skill-presentation.mjs` keeps
+`visual: hidden`, `save-skill.mjs` is NOT touched, and a save-round-trip test
+pins that `visual` still comes back byte-identical. `plan-content-editor.md`
+§B4.8 / the D3 row / Q3 get the ruling; its ledger records the chunk, cited
+from here. **Schema: NONE.**
+
+### 12f.6 Verify tail C3a owes
+
+`make -C backend build` (so `cp-defs` runs) · `go build ./...` · `go test
+-count=1 -timeout 60s ./...` · `aurad -validate` embedded AND `-content
+../api`, both 0, plus one deliberate typo'd body proving exit 1 · editor
+`smoke.mjs` (the three authored bodies must not redden it) · frontend
+`npm test` + `npm run typecheck` · `skill-fx.mjs` with a new leg: each pilot
+skill spawns a SPRITE (`sprites` counter), a bare skill still spawns Graphics
+· one rerun of `skill-fx-scale.mjs` with the stress driver pointed at a
+body-carrying skill, because every C4 number was measured on Graphics ·
+⭐ **screenshots, looked at** (arm on the spawn counter, slow the page clock:
+the C2a recipe), then the PO look. A visual chunk is not done on counters
+(C2b). Not in C3: the phone check (cap 96 vs 192), the flinch (§10 Q10).
+
+## 12g. C3a amendment: attacks stem from the attacker, the hit mark is automatic (PO look 2026-09-21)
+
+The PO looked at the C3a pilot in-game and ruled the vocabulary inconsistent:
+an attack was sometimes drawn from the attacker (`strike`, `projectile`,
+`beam`) and sometimes ON the victim (`impact` `snap`, the bite), while the
+round `burst` was an authored extra that weapon strikes did not have. Built in
+the same session as C3a, the §12c precedent. ✅ **BUILT 2026-09-22** (the Go
+and content half on 09-21, the client half, the harness and the tail on
+09-22): the §13 C3a ledger records both, and its departures list is there.
+
+### 12g.1 PO calls (2026-09-21)
+
+1. **Two moments, one rule each.** An ATTACK is drawn from the attacker,
+   facing the enemy, for players and mobs alike. A HIT is a mark on the
+   victim, one look, coloured by the damage type.
+2. ⭐ **The hit mark is AUTOMATIC**: the engine draws it on every landed
+   damage hit; no skill file authors it. This REVERSES §10 Q4 ("no engine
+   default, ever") for this one case, on purpose. It also closes the C3a
+   burst-versus-no-tint question: the mark is code-drawn for good and the
+   artist never draws one.
+3. **`snap` is removed.** The bite becomes an attack: two jaws hinged at the
+   biter, reaching over the victim and closing on it (PO mockup: the jaw pair
+   opens from the attacker's side and engulfs the victim).
+4. ⭐ **Every damaging mob skill gets an attack**, including the places and
+   bodies (totems, pools, the fire elemental, the bomb). None may be left
+   with only a hit mark.
+5. Amend C3a now, one wrap and one commit for both.
+
+### 12g.2 Calls made in planning (lead, each revisable)
+
+- **`impact` leaves the AUTHORING vocabulary entirely** (Go `visualKinds`,
+  `visualCurvesByKind`, the keys and triggers tables, the fixture, the editor
+  smoke). `ImpactFx` stays in the client as the engine's own mark. A file that
+  still authors `impact` hard-fails at load, so content and code land
+  together. Seven kinds become six.
+- **When the mark draws**: on a hit event whose `HitKind` is `Damage` or
+  `Crit`, never on `Heal`, `Absorb` or `Immune`. DoT ticks are ordinary hits
+  on the wire (§12a) and draw it, exactly as an authored `hit` impact did.
+  Colour = the skill's palette colour (`SkillFxPalette`, first damage tag,
+  neutral when untagged or the skill is unknown). Size, duration and the
+  `burst` curve are today's defaults (200 ms). A crit draws the same mark
+  (YAGNI; the number already says crit).
+- **Slider and budget**: the mark is dressing, so `off` hides it (glow and
+  numbers stay) and `low` keeps it. It counts inside the Fx cap like any hit
+  Fx. ⚑ More hits draw a mark than before (every strike now does), so one
+  `skill-fx-scale.mjs` rerun is owed.
+- **The bite is a new `strike` curve, `bite`**, beside `thrust` / `swing` /
+  `overhead`: ONE jaw body drawn twice, the second mirrored in Y, both hinged
+  at the strike's hand point and aimed at the victim, rotating from an open
+  angle ([PLACEHOLDER] ±35°) to closed over `ms`, fading at the end. Length =
+  the strike's own rule (the skill's reach, uniform scale). The math is a pure
+  function in `SkillFxMath.ts`, red-first. Placeholder without a body: two
+  tapered wedges with teeth ticks, palette-tinted.
+- **The jaw PNG contract barely moves**: still the UPPER jaw, teeth down, bite
+  line at the bottom edge; new: HINGE AT THE LEFT EDGE, snout pointing right
+  (anchor (0, 1)). The pilot `wolf-jaw.png` is redrawn as a tapering snout
+  ([PLACEHOLDER] 128x48) instead of the box.
+- ⭐ **A new kind, `wave`** (PO 2026-09-21, asked for the mammoth stomp): one
+  or more rings expanding from the CASTER out to the skill's reach and fading,
+  trigger `fired` only (once per cast, never per victim). Keys: the common
+  ones plus `ms` and `count` (rings, staggered; [PLACEHOLDER] default 1, max
+  3). Code-drawn, palette-tinted; `body` is legal by the common keys but no
+  art is wanted (the briefing lists it with the procedural-for-good looks).
+  `low` leaves it alone. So the kinds go seven, six, seven. Authored on the
+  stomp only; the player AoE bursts (`shockwave`, `nova-burst`, ...) are
+  obvious next users but are NOT touched without a PO pick.
+- **A skill whose only layer was an `impact` loses its `visual` key** when no
+  layer remains (15 player skills look the same as before through the
+  automatic mark).
+
+### 12g.3 Content, every pick (all [PLACEHOLDER], PO may overrule any row)
+
+All 42 `impact` layers are deleted. The seven `snap` skills and the
+attack-less damaging mob skills author:
+
+| Skill file (`api/skills/mobs/`) | New attack layer | Why |
+| --- | --- | --- |
+| `wolf-bite`, `elite-wolf-bite` | `strike` `bite`, body `wolf-jaw` | the bite |
+| `spider-bite`, `saber-tooth-cat-aura` | `strike` `bite`, no body | a bite, own art later |
+| `bear-swipe` | `strike` `swing` | a paw swipe |
+| `boar-gore`, `dodo-aura` | `strike` `thrust` | tusks, a peck |
+| `stag-kick` | `strike` `thrust` | a kick |
+| `mammoth-aura`, `angry-mammoth-aura` | `strike` `thrust` | tusks |
+| `angry-mammoth-stomp` | `wave` on `fired`, `count` 2 | PO 2026-09-21: AoE waves from the entity |
+| `spike-barricade-aura` | `strike` `thrust` | a spike jabs out |
+| `fire-elemental-aura`, `ember-aura`, `fire-totem-aura` | `beam` `extend` | a tongue of flame to the victim |
+| `totem-aura` | `beam` `flash` | a bolt from the totem |
+| `poison-pool-aura` | `projectile` | a glob spat from the pool |
+| `bomb-burst` | `beam` `flash` | the blast reaches each victim |
+
+`bandit-volley`, `kobold-volley`, the two venom spits keep their projectile
+and lose only the authored burst.
+
+### 12g.4 Schema
+
+DB, WIRE, CONF: **NONE**. CATALOG: no field change (`visual` content differs).
+VOCABULARY: kind `impact` removed, kind `wave` added, curve `bite` added to `strike`. CONTENT:
+about 60 skill files lose or swap a layer.
+
+### 12g.5 Verify tail the amendment owes
+
+The C3a tail again (§12f.6), plus: a Go red-first test that an authored
+`impact` and an authored `snap` are refused; the fixture pin; `skill-fx.mjs`
+reworked (every leg that counted `impact` spawns now counts the automatic
+mark; leg 14 becomes "the wolf's `bite` strike draws `wolf-jaw` from the
+WOLF"; new: a sword hit draws a mark, a heal draws none, `off` hides it);
+screenshots of the bite from a wolf, looked at; the scale rerun; the artist
+briefing (`snap` and `burst` rows out, a `strike` `bite` row in, wanted list
+re-derived), the manual, the `add-content` skill, §4.1 and §10 Q4 amended.
+
+## 12h. Amendment: a DoT draws on APPLICATION, the rim bite, cooldown waves (PO look 2026-09-23)
+
+The PO played C3a (2026-09-23) and ruled three things. **Nothing below is
+built**; this is the spec for one chunk, `C3a-ii`, to run before C3b.
+
+### 12h.1 PO calls (2026-09-23)
+
+1. **A DoT draws its projectile on application AND on every refresh, never
+   on a tick.** The Giant Spider's spit, Immolate, the Pyromancer's ember: the
+   spit / fireball / beam is the *application* being drawn; the ticks that
+   follow "just tick there" (the engine's mark only). Today every DoT tick is
+   an ordinary hit on the wire and application emits nothing, so an `on: hit`
+   projectile repeats per tick and the damage keeps coming after the spider
+   stops. PO picked "also on every refresh" over "ignite + re-ignite only":
+   standing in a spitter's range re-draws the spit each `tickInterval`.
+2. **The Giant Spider gets a general auto-attack**: two big white FANGS
+   clamping the player from either side. **The Bandit Pyromancer gets damage
+   per tick** beside its DoT. Rationale (PO): under rule 1 a DoT-only aura
+   draws once per application and then nothing, so it cannot be a mob's whole
+   kit.
+3. **The bite is too long, "a crocodile attack"**: of nine natural-weapon
+   options ranked in session (feedback.md 2026-09-23), the PO picked **the
+   rim bite only**: short jaws at the VICTIM's rim, on the point nearest the
+   attacker, opening along the attack line. The attacker-token lunge is NOT
+   scheduled (the PO liked it; decide after seeing the rim bite).
+4. **`wave` on Nova Burst AND Shockwave.** And a standing note: **every skill
+   gets a placeholder `visual` for testing purposes**, cooldowns included
+   (today six cooldowns author none and show the mark alone).
+
+### 12h.2 Design (lead, each revisable)
+
+- **Wire: two `HitKind` values, no field change.** `Applied = 5` (a DoT/HoT
+  was applied or refreshed on this victim by this skill) and `Tick = 6` (a
+  DoT/HoT tick landed). Appending enum values renumbers nothing; both sides
+  are regenerated. `applyDotEffect` already knows ignite vs refresh; it notes
+  `Applied` on every target it touched (rule 1 says refresh too). The tick
+  path marks its `model.Damage` (`Tick bool`, beside `Crit`) so `takeDamage`
+  notes `Tick` instead of `Damage`; a crit tick stays `Tick`. HoT ticks note
+  `Tick` too, and a HoT application `Applied`, for symmetry, and because the
+  planner reads the KIND, not the effect type. ⚑ `amount` stays the
+  post-mitigation number on a tick and 0 on an `Applied`.
+- **Client, numbers**: `SkillEventNumbers` treats `Tick` exactly as `Damage`
+  (a red number per tick, unchanged) and draws nothing for `Applied`.
+- **Client, planner**: a new trigger `applied` (vocabulary
+  `visualTriggers`, per-kind `visualTriggersByKind`: `projectile`, `beam`,
+  `cast-pose`, `emitter`, `strike`). An `Applied` event plans that skill's
+  `on: applied` layers between caster and victim, with the same implicit
+  sequencing; **no mark** (nothing landed). A `Tick` event plans the mark
+  ALONE, never an `on: hit` layer. `Damage`/`Crit` unchanged. ⚑ A DoT whose
+  effect also carries a `damage_aura` (the Giant Spider) lands a `Damage` hit
+  per aura tick AND an `Applied` per refresh in the same snapshot: the
+  spider's spit moves to `on: applied` and its new fangs go `on: hit`, so
+  the two never double-draw.
+- **The rim bite** (`strike` `bite` only): the jaw pair is anchored at the
+  point on the VICTIM's rim nearest the attacker (victim position minus
+  victim radius along the attack line), opens along that line toward the
+  victim's centre, and its length is **victim radius × [PLACEHOLDER] 1.4**
+  (bounded below by `STRIKE_MIN_LENGTH_PX`), never the reach. The other three
+  curves keep the held-weapon rule. `biteJawScale` and the PNG contract are
+  unchanged (hinge at the left edge is now the rim point). Four wolves bite
+  at four spots around the ring, each pointing back at its wolf.
+- **Content**: `giant-venom-spit` becomes `damage_aura` + `dot_aura` with
+  `projectile` on `applied` and `strike` `bite` (`body: spider-fang`, white
+  tint until the art lands; the placeholder wedge pair is tinted white
+  through `tint`) on `hit`; `ember-aura` gains a `damage_aura` beside its
+  `dot_aura`, beam on `hit`, an `emitter` burst on `applied` [PLACEHOLDER];
+  `venom-spit`, `immolate` (a `projectile` on `applied`, none today),
+  `blight`, `wildfire`, `envenom`, `ignite`, `nova-burst`'s DoT half: their
+  DoT layer moves to `applied`. `nova-burst` and `shockwave`: `wave` on
+  `fired`, `count` [PLACEHOLDER] 1 and 2. The remaining bare cooldowns
+  (`damage-burst`, `rime-burst`) and every other visual-less skill get a
+  placeholder layer, per call 4: the census is done at the session, not here.
+- **Editor / validator**: the trigger table gains `applied`; `-validate`
+  refuses `applied` on a skill with no DoT/HoT effect (the event would never
+  fire) - the D2 per-category table stays.
+
+### 12h.3 Schema
+
+DB NONE · CONF NONE · **WIRE: two `HitKind` enum values** (`api/schema`
+regenerated both sides, `hygiene-wire-prune.mjs` owed) · VOCABULARY: trigger
+`applied` · CATALOG: none · CONTENT: ~12 skill files + the placeholder census.
+
+### 12h.4 Verify tail
+
+Go red-first: `applyDotEffect` notes `Applied` per target, a tick notes
+`Tick`, a crit tick stays `Tick`, mitigation on a tick still `Immune`; the
+planner: `Applied` plans `on: applied` and no mark, `Tick` plans the mark
+alone, a `Damage` beside an `Applied` in one snapshot draws each once; the
+rim bite maths pure in `SkillFxMath` (anchor point, length rule);
+`skill-fx.mjs`: leg 14 re-reads (jaw length < reach), a new leg at the
+venom spiders (one projectile per application, marks per tick, `wolf-jaw`
+untouched), a cooldown wave leg on Shockwave; `hygiene-wire-prune.mjs`;
+screenshots of the rim bite, looked at; the PO look.
+
 ## 13. Ledger
+
+### C3a ledger (2026-09-22) - the art path, plus the §12g amendment
+
+✅ **BUILT 2026-09-22** `e4bc8534`. Spec: §12f (C3a) and §12g (the PO-look amendment, built into the
+same chunk by PO call §12g.1 item 5). Two sessions: the first (09-21) built
+the folder, the manifest, the validator, the sprite path, the pilot art, the
+briefing, and the Go + content half of §12g; the second (09-22) found the
+client half of §12g unfinished (no `wave` handler, no automatic mark in the
+planner, 4 red vitest cases, 5 typecheck errors), finished it red-first, redrew
+the jaw pilot to the §12g.2 frame, reworked the harness and ran the tail.
+
+**Schema: DB NONE · WIRE NONE · CONF NONE.** CATALOG: no field change
+(`visual` content differs). VOCABULARY: kind `impact` REMOVED, kind `wave`
+ADDED, curve `bite` added to `strike` (seven kinds, still). CONTENT: a new
+content directory `api/skill-fx/` (one generated file, `bodies.json`; it is
+the TENTH `contentSources` entry, `cp-defs` copies it, `loaders_test.go`'s
+coverage pin knows its hyphenated name by exception), 42 `impact` layers
+deleted, 17 mob attacks re-authored per §12g.3, `wolf-bite` +
+`elite-wolf-bite` carry `body: wolf-jaw`, Damage carries `sword`,
+LongRangeStrike carries `arrow`. Pin unchanged at 116 skills.
+
+**What was built (C3a, §12f.4)**
+
+- **A. The briefing**, `docs/art/skill-vfx-asset-spec.md` (482 lines) + the
+  `assets.md` / `assets.csv` rows (198 → 219). Amended for §12g before
+  anything was drawn: the `snap` and `burst` rows are out, `strike` `bite` is
+  in with the hinge-at-the-left contract, the wanted list is re-derived.
+- **B. The pilot**, `tools/make-skill-fx-pilot.mjs` → `sword.png` 128×32,
+  `arrow.png` 96×24, `wolf-jaw.png` **128×48** (redrawn 09-22 as a
+  bottom-left-hinged tapering snout; the 09-21 file was the old centred 64×32
+  box, and the generator's own anchor assertion now checks BOTH the bite line
+  and the hinge corner carry paint - the first draft failed it). Deterministic,
+  checked in as a script like the tile generators.
+- **C. The manifest**, `tools/make-skill-fx-manifest.mjs` → `api/skill-fx/bodies.json`,
+  file STEMS verbatim, and `TestSkillFxBodies_MatchTheArtFolder` fails on drift
+  either way.
+- **D. The client sprite path**: `SkillFxBodyFiles.ts` (webpack
+  `require.context` + `Preloading`, imported for its side effect by Game.ts
+  alone, OUTSIDE the vitest graph) feeds `SkillFxBodies.ts` (pure: name table,
+  texture table, `resolveBody`). Every kind but `wave` forks at CONSTRUCTION
+  between a pooled Sprite and the Graphics placeholder; sprite pools sit beside
+  the Graphics pools with the same cap; a sprite takes NO palette tint, only
+  an authored `tint` (§12f.2). `spriteSpawns()` is the harness counter.
+- **E. The validator**: `validateSkillBodies` in `loadContent` (a finding per
+  problem, not a die-on-first), so `-validate` AND the boot refuse an unknown
+  body, naming the list, the folder and the script in the message.
+
+**What was built (§12g, the amendment)**
+
+- **The automatic hit mark.** `SkillFxPlan.ts` appends `{kind: 'impact', on:
+  'hit'}` LAST to every landing whose event is `Damage` or `Crit` and not
+  `fired`, whatever the skill authors (an empty visual, or none on the
+  trigger, no longer returns null). `visualOf` in `SkillFx.ts` answers an
+  EMPTY layer list for a held skill without `visual`, so the mark keeps the
+  damage-type colour; only an unknown skill id is undefined, and its mark is
+  `NEUTRAL_COLOR`. The `emit` arrival rule (bolt flight / strike contact, the
+  later) applies to it unchanged. `off` hides it with everything else
+  (`planSpawns` returns [] first), `low` keeps it, it counts inside the cap.
+  `ImpactFx` is OUT of `KIND_REGISTRY` (the vocabulary pin cannot see it) and
+  `kindHandler(HIT_MARK_KIND)` answers for it by name; `HIT_MARK_KIND` lives
+  in `SkillFxMath.ts` because the pure planner is the one that emits it.
+- **`wave`**: `WaveFx`, source-anchored, `fired` only, `count` rings (1-3,
+  `waveCountOf`) redrawn per frame (`drawWaveRing`, stroke `WAVE_STROKE_PX` 6
+  thinning to `WAVE_END_WIDTH`), radius = the skill's reach (fallback 2.5
+  caster radii), follows the caster and stops with it, no sprite branch,
+  slider-inert. Authored on `angry-mammoth-stomp` only.
+- **`bite`**: `StrikeFx` draws ONE jaw twice, the second with a negated y
+  scale, both hinged at the hand point and rotating ±open over `ms`
+  (`biteJawScale`, `strikePhase` `bite`); placeholder `drawStrikeJawPlaceholder`
+  is a left-hinged wedge with teeth in the same frame as the PNG.
+- Go: `impact` and `snap` refused at load (red-first cases in
+  `visual_test.go`), `wave` keys/triggers/`HasFired`, `bite` in the curve table.
+- `SkillFxStress.ts`: `eventLifetimeMs(layers, dist, damageHit)` charges the
+  mark's life + wait on a damage hit, `wave` has a lifetime, `layersPerEvent`
+  counts the mark.
+
+**Calls made while building (lead, none a PO number)**
+
+- Rings FOLLOW the caster per frame rather than pinning where the cast fired,
+  the same rule as every caster-anchored kind; a moving stomper is not a case
+  content has.
+- `body` on a `wave` is legal by the common keys and IGNORED by the client;
+  the validator still checks the name. Documented in the Kinds header.
+- The jaw's placeholder length rule is the strike's (reach, uniform), so a
+  bite on a 1 u wolf and a 2.5 u mammoth read at their own reach.
+- The stress driver's skill mix is unchanged from C4 (skills authoring a
+  `fired`/`hit` layer): a bare-skill hit now also costs a mark, and the mix
+  does not include bare skills. Comparable only to itself, as §12e.5 says.
+
+**Verify tail (§12f.6 + §12g.5), run at the final tree**
+
+- `make -C backend build` (cp-defs bundles the TENTH dir) · `go build ./...`
+  clean · `go test -count=1 ./...`: **35 packages ok, 1 red** (`pkg/aura/world`,
+  see Findings: red at HEAD too).
+- `aurad -validate` embedded **0** · `-content ../api` **0** · with
+  `wolf-jaw` typo'd to `wolf-jaws`: **1 finding, exit 1**, the message names
+  the list, the folder and the manifest script.
+- Editor `npm run smoke`: **0 findings across 116 files / 105 visual layers /
+  7 kinds**.
+- Frontend `npm test` **1036 / 0** (51 files) · `npm run typecheck` **0**
+  errors.
+- `skill-fx.mjs`, 16 legs, three runs after one join-race death: run 2 **27
+  PASS / 1 red** (leg 14's equality, the boars), run 3 **27 PASS / 2 red**
+  (13a the boars, 13c EliteWolfBite) with leg 14 **86 strikes, 78 sprites,
+  86 marks** on the redrawn jaw and leg 15 **7 heals, 0 marks**; run 4 with
+  the three bounds fixed: **RESULT PASS, 29 PASS / 0 red**, leg 14 59 strikes /
+  52 sprites / 59 marks, leg 15 12 heals / 0 marks, 13c NOTE (46 wolf bites
+  in the beam window).
+- `skill-fx-scale.mjs` with `AURA_FXSCALE_SKILL_IDS=1,45,110` (the sprite
+  path, no ambient, comparable only to itself): **PASS**. 1× = 1.8 events/s
+  at the western bandit camp; 10× `full` update p50 0.1 / p95 **0.3 ms**,
+  display objects 27; the three caps agree within noise (p95 0.2 / 0.2 /
+  0.2); phone-shaped 10× `full` p95 0.9 ms; eviction begins at **80× = 144
+  events/s** (C4: 145-190), and the ramp's 640× step reads p95 1.1 ms in
+  `update()` with 15.6 ms in `onSnapshot`. ⭐ Fx/s at 10× is **42** against
+  C4's 17: the mix is 2.33 Fx per event now, because every damage hit spawns
+  the mark beside its strike or bolt. Sprites cost nothing this instrument
+  can see; the phone is still the only place fill rate and batching show.
+  ⚑ This run does NOT carry ambient and is NOT the §12g-owed rerun; that one
+  is the next bullet.
+- `skill-fx-scale.mjs` DEFAULT mix (the §12g-owed rerun, comparable to C4):
+  **PASS**. 10× `full`: update p50 0.5 / p95 **1.4 ms** (C4: 0.4 / 1.0; 24
+  frames, so p95 is the second-highest sample), display objects **332** (344),
+  Fx/s 19.6 (17.4), the three caps 0.6 / 0.5 / 0.5 ms; phone-shaped 10×
+  `full` p95 1.0 ms (0.9); eviction begins at **160× = 176 events/s** (C4:
+  145-190). The mark adds about 13 % more Fx per event to this mix and the
+  numbers move within C4's run-to-run noise. ⚑ 1× read 1.1 events/s this
+  time (C4: 1.5 / 1.3): the camp's population, not the code.
+- ⭐ **`wave` seen to execute**, `skill-fx-wave-probe.mjs` (new): the stress
+  driver pointed at the stomp alone (`skillIds: [105]`), open ground, GOD;
+  **7 waves through the real `onSnapshot`, 0 page errors, PASS**, and
+  `wave-stomp.png` shows the two-ring fronts expanding from the stubs. ⚑ The
+  probe's negative claim ("a fired stomp spawns nothing else") is only
+  scorable when a 12 s control window at the same spot is quiet, and it was
+  not (10 to 42 real strikes + marks from fights at the viewport's edge): it
+  goes NOTE. No placed mob authors `wave` yet, so this probe is the kind's
+  only harness until the mammoth is placed.
+- Screenshots looked at: `wave-stomp.png` (above), `leg1-strike.png` (the steel sword in the hand,
+  aimed at the wolf), `leg2-projectile.png` (the arrow, small at this zoom),
+  `leg14-wolf-bite.png` (run 2 on the old box jaw, run 3 on the snout: jaw
+  pairs hinged at each wolf, opening over the player and over a stag, the
+  engine's white ring on each victim). The jaws are LONG - a bite's length is
+  the skill's reach, the strike rule - which is the PO's to judge.
+- `harnessdb -cleanup` after the last run, server stopped first.
+
+**Findings**
+
+- ⚑ `TestPropContent_C1bMigrationPreservesLookAndCollision` (`pkg/aura/world`)
+  is RED and was red at HEAD `cf6dd6ef` before this chunk (verified in a
+  throwaway worktree): a props migration pin last moved by the `29cb9c76` art
+  commit. Not this chunk's; unowned.
+- ⚑ The first `skill-fx.mjs` run after the boot died at join
+  (`#characterCreation` 120 s timeout), the documented race; the rerun scored.
+- ⚑ **The wolf camp has BOARS** (id 112, `BoarGore`, a bodiless `thrust`),
+  so "every strike in this window carries a body" is false there: run 3 read
+  29 sprites for 34 strikes in leg 1 and 78 for 86 in leg 14. Legs 13a and 14
+  are BOUNDS now (`sprites <= strike`, `sprites * 2 >= strike`); the sharp
+  half is the upper bound, which is what says the marks stayed Graphics.
+- ⚑ **`EliteWolfBite` is 114 and carries `wolf-jaw` too**: the western wolf
+  camp's Dire Wolf put 1 sprite into Lightning Strike's bodiless-control
+  window with neither 1 nor 110 sampled, and leg 13c went red for it. The
+  sampler lists 114 now; 13c goes NOTE when any of the three landed.
+- ⚑ **A heal on a FULL player is not a landing**, and a level-30 pool
+  regenerates in the seconds between "GOD on" and "Heal on": the first leg-15
+  draft rode leg 14's wolf bites and judged nothing. It now sits inside leg
+  11 at the quiet campfire with `DAMAGE 90` (writes the pool directly, no hit
+  event, works under GOD): 7 heal landings, 0 marks. ⚑ 5 damage hits between
+  entities the client did not hold shared that window and drew nothing, which
+  is rule 2 of the planner; a damage hit can only ADD marks, so zero is a pass
+  whatever else landed.
+
+**Not run / owed**
+
+- The PO look at the bite screenshot and the pilot art in-game (the counters
+  say sprite; the pixels are the PO's).
+- The phone check (§9): the Fx cap 96 vs 192, the fill rate, and now the
+  batch limit that decides the packer trigger (§12f.2).
+- C3b (§12f.5), the editor's read-only Visuals section.
+
+### C4 ledger (2026-09-20) - world scale
+
+✅ **BUILT 2026-09-20** `d8e1628d`. Spec: §12e, the departures and the PO's
+rulings: §12e.8. A MEASUREMENT chunk: no look, a table. Built by one Opus agent
+in two rounds (the instrument + legs 1–6, then the ceiling leg the PO asked
+for); the lead reran the build, test and typecheck steps at the final tree and
+ran the DB cleanup.
+
+**Schema: DB NONE · WIRE NONE · CONF NONE · CATALOG NONE · CONTENT NONE**, and
+this time §9's "NONE" held: no Go, no `api/`, no `.fbs` touched. Client-only,
+and everything new is reachable only through the `?develop` console, with one
+production-module touch (`allSkillDefinitions()` in `client-data/Skills.ts`,
+read-only, no hot path).
+
+**What was built**
+
+- **The instrument** in `SkillFx.ts`: `setMeasuring` + a 600-sample
+  `Float64Array` ring around the whole `update()` body, a SECOND ring around
+  `onSnapshot` (added in round two, see the ceiling), the rate probe
+  (`eventsIn`, `fxSpawned`), window high-water marks (`liveMax`, `ambientMax`,
+  `ambientOwnersMax`), a recursive `displayObjects` count, and the budget as a
+  module `let` behind the unchanged `FX_BUDGET` default (`setBudget`, restored
+  by `reset()`). Console: `skillFxMeasure` / `skillFxStats` / `skillFxBudget` /
+  `skillFxStress`.
+- **The stress driver**, `SkillFxStress.ts`: wire-shaped events between
+  GameObject-shaped stubs on a deterministic viewport grid, fed through the
+  REAL `onSnapshot` and `setAmbient`; the skill mix is every catalog skill
+  authoring a `fired` or `hit` layer, round-robin; refuses to start before the
+  catalog is loaded. Pure parts pinned: `stressSchedule`, `percentileOf`,
+  `eventLifetimeMs` / `estimateLiveFx` (Little's law: the mix is **445.7 ms of
+  Fx life and 1.13 layers per event**, deterministic).
+- **The harness**, `.claude/skills/verify/skill-fx-scale.mjs`: seven legs, JSON
+  + markdown tables, `AURA_FXSCALE_RAMP_ONLY=1` runs legs 1, 2 and 7.
+
+**Legs 1–6, run A** (run B agreed within noise on every column that matters:
+10× `full` p50 0.4 / 0.4 ms, p95 1.0 / 0.7 ms, ambient max 70 / 19 / 0 in both,
+display objects 344 / 59 / 1 vs 327 / 55 / 2, evicted 0 everywhere). 1× =
+**1.5 events/s** (run B 1.3), 5 ambient owners, the western bandit camp.
+Times are ms.
+
+| leg | what | density | budget | frames | events/s in | Fx/s | update p50 | update p95 | update max | rAF p50 | rAF p95 | live max | ambient max | ambient owners | display objs | evicted/s |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | real 1x, busy camp, full | full | 96 | 33 | 1.5 | 3.4 | 0 | 0.1 | 0.2 | 308.7 | 321.4 | 7 | 0 | 5 | 10 | 0 |
+| 2 | synthetic 1x, open ground, full | full | 96 | 35 | 2.9 | 2.9 | 0.1 | 0.2 | 0.3 | 289.9 | 319 | 4 | 7 | 10 | 31 | 0 |
+| 3 | 10x off | off | 96 | 35 | 15.3 | 0 | 0 | 0.1 | 0.3 | 287.1 | 304.9 | 0 | 0 | 51 | 1 | 0 |
+| 3 | 10x low | low | 96 | 35 | 15.2 | 17.4 | 0.2 | 0.4 | 0.4 | 290.6 | 299.7 | 7 | 19 | 51 | 59 | 0 |
+| 3 | 10x full | full | 96 | 32 | 15.2 | 17.4 | 0.4 | 1 | 1 | 313.3 | 334.3 | 6 | 70 | 51 | 344 | 0 |
+| 4 | ambient alone, 50 owners, full | full | 96 | 33 | 0 | 0 | 0.3 | 0.4 | 0.5 | 312.7 | 321.2 | 0 | 70 | 51 | 317 | 0 |
+| 5 | 10x full, budget 48 | full | 48 | 32 | 16.4 | 18.6 | 0.3 | 0.5 | 0.6 | 316.9 | 333.7 | 6 | 70 | 54 | 349 | 0 |
+| 5 | 10x full, budget 96 | full | 96 | 32 | 15.2 | 17.4 | 0.3 | 0.4 | 0.7 | 314.7 | 330.1 | 6 | 70 | 52 | 343 | 0 |
+| 5 | 10x full, budget 192 | full | 192 | 32 | 15.1 | 17.3 | 0.3 | 0.6 | 4.5 | 315.1 | 327.4 | 6 | 70 | 51 | 351 | 0 |
+| 6 | phone 10x off | off | 96 | 26 | 15.6 | 0 | 0 | 0.1 | 0.2 | 495.7 | 558.8 | 0 | 0 | 54 | 3 | 0 |
+| 6 | phone 10x low | low | 96 | 27 | 15.2 | 17.3 | 0.2 | 0.7 | 1.4 | 473.7 | 519 | 7 | 19 | 51 | 56 | 0 |
+| 6 | phone 10x full | full | 96 | 27 | 16.1 | 17.8 | 0.5 | 0.9 | 2.1 | 271 | 503.2 | 7 | 70 | 53 | 353 | 0 |
+
+**Leg 7, the ceiling** (`full`, 50 ambient owners, budget 96, 2 s + 6 s per
+step, ×2 per step). Run 1, 1× = 1.2 events/s:
+
+| step | events/s asked | events/s in | Fx/s | live max | est. live | evicted/s | update p50 | update p95 | snapshot p50 | snapshot p95 | display objs | frames |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 10x | 12 | 12.5 | 14.17 | 4 | 5.3 | 0 | 0.4 | 0.9 | 0.3 | 0.5 | 351 | 13 |
+| 20x | 24 | 25.67 | 29.17 | 5 | 10.7 | 0 | 0.5 | 0.9 | 0.8 | 3.2 | 379 | 11 |
+| 40x | 48 | 51.83 | 58.33 | 18 | 21.4 | 0 | 0.5 | 0.9 | 0.7 | 2.1 | 479 | 13 |
+| 80x | 96 | 101.5 | 114.5 | 36 | 42.8 | 0 | 0.7 | 1.2 | 0.8 | 1.2 | 583 | 16 |
+| 160x | 192 | 202.17 | 228.5 | 50 | 85.6 | 85.67 | 0.9 | 1.7 | 2.2 | 3.1 | 599 | 16 |
+| 320x | 384 | 400.17 | 453.33 | 50 | 171.1 | 317.67 | 0.6 | 0.9 | 4.5 | 8.3 | 608 | 16 |
+| 640x | 768 | 779.33 | 881.5 | 49 | 342.3 | 787.33 | 0.6 | 0.9 | 7.9 | 16.2 | 581 | 16 |
+| 1280x | 1536 | 1549.17 | 1753.5 | 48 | 684.5 | 1698.83 | 0.6 | 0.9 | 16 | 25.4 | 561 | 16 |
+
+Run 2 (1× = 1.8 events/s) evicted first at 144 events/s (17/s), a third
+supplementary ramp at 176. **The caps where they finally differ:**
+
+| budget | evicted/s (run 1 @ 192 ev/s · run 2 @ 144 ev/s) | update p95 | display objects |
+|---|---|---|---|
+| 48 | 152.2 · 103.0 | 0.7 · 0.6 | 386 · 416 |
+| 96 | 71.5 · 20.5 | 27.2* · 2.5 | 615 · 681 |
+| 192 | **0 · 0** | 8.0* · 2.3 | 698 · 747 |
+
+(* one stalled frame in a 16-frame window; p50 was 0.9 and 1.6 ms.) One step
+higher (384 / 288 events/s) even 192 evicts.
+
+**Findings**
+
+- ⭐ **The frame guard PASSES with a wide margin**: 10× `full` `update()` p95 is
+  0.7–1.0 ms, about 5 % of a 16.7 ms frame.
+- ⭐ **C2b's "unbudgeted and unmeasured" has its number.** Ambient IS the
+  dominant SkillFx cost (leg 4: ≈ 93 % of the layer's display objects, about
+  half its frame time) and it is 0.4–0.6 ms p95 at 50 owners. **PO: ambient
+  stays unbudgeted, no cap is built.**
+- ⭐ **The slider is a real cost lever**: display objects 344 → 59 → 1, ambient
+  layers 70 → 19 → 0 (`full` → `low` → `off`).
+- ⭐ **Leg 5 was a NULL result, which is why leg 7 exists**: at 10× live Fx
+  peak at 6–8 (15 at the east camp's 43/s), so no cap was ever reached.
+- ⭐ **At 96, eviction starts at ≈ 145–190 events/s**, about 100× one player's
+  measured fight and 10× above the 10× world. Live Fx grow roughly linearly
+  with the rate (4–8 at 10×, 18–24 at 40×, 36–47 at 80×); Little's law on the
+  authored mix puts 96 live Fx at a steady ≈ 215 events/s, bracketing the
+  measurement from above (a 3 fps page delivers events in batches, so
+  concurrency runs ahead of the mean).
+- ⭐ **Once the cap binds, the FRAME cost plateaus** (p50 0.6–0.9 ms up to
+  1536 events/s): the cap does its job. **The honest ceiling is the SPAWN
+  path**: `onSnapshot` p95 reaches a frame at ≈ 1500 events/s. A cap bounds
+  what is drawn, not the planning, spawning and disposing of what the wire
+  hands over.
+- ⚑ **A p95 over 14–35 frames is the second-highest sample.** The headless
+  page renders at ≈ 3 fps (software GL, even with the load-bearing flags), so
+  one stall crosses any threshold; read p50 beside it. It is also why FILL
+  RATE cannot be judged headless: the phone rAF ratios inverted between runs
+  (0.55 / 0.96, then 0.99 / 0.57) and are noise.
+- ⚑ Leg 2 (the driver's honesty gate) passed by its floor clause in both runs:
+  Chromium coarsens `performance.now` to ≈ 0.1 ms, so the driver is honest at
+  the clock's resolution, no better. Real traffic bled into run A's leg 2
+  (≈ 1.4 events/s) and run B's leg 4 (0.6).
+
+**PO rulings** (§12e.8 holds the list): ambient unbudgeted · the phone is
+PO-owed · ⭐ **the cap is OPEN: "decide after the phone check"**, `FX_BUDGET`
+stays 96 [PLACEHOLDER] in code, and the PO's real-device walk at 10× and above
+decides between 96 and 192 (192 is cheap in `update()` terms and doubles the
+worst-case Graphics on screen, which is the cost only a phone can price).
+
+**Red→green, stated honestly.** Red-first: `percentileOf` (4 pins) and
+`stressSchedule` (6 pins). ⚑ **Implementation-first, pinned after and
+mutation-checked**: `eventLifetimeMs` / `estimateLiveFx` (7 pins). ⚑ Exercised
+ONLY by the harness, no unit test: the rings, `stats()`, the budget `let`, and
+the whole Pixi half of the driver.
+
+**Verify tail** (lead, final tree): `go build ./...` clean, nothing Go changed
+· frontend `npm test` **829 / 45** (was 812 / 44), `typecheck` + prod build
+clean. By the agent: `make -C backend build` before every run ·
+`skill-fx-scale.mjs` **PASS** twice for legs 1–6 and twice with leg 7, every
+run on a fresh restart, no inconclusive leg · `skill-fx.mjs` **PASS, 13 legs /
+18 assertions**, rerun after each round's frontend edits. `harnessdb -cleanup`
+by the lead with `aurad` stopped: 24 anonymous harness accounts removed.
+⛔ **NOT run:** a real phone (PO-owed) · `hygiene-wire-prune` · two-window ·
+loadbot · Go tests (nothing Go changed).
+
+**How the PO drives it on a phone** (a `?develop` build, in the console):
+`game.skillFxMeasure(true)`, then
+`game.skillFxStress({eventsPerSec: 15, ambientOwners: 50, seconds: 30})` for
+10×, `eventsPerSec: 150` for the eviction point, with the slider at each
+level; `game.skillFxStats()` reads the window, `game.skillFxBudget(192)`
+tries the other cap.
+
+**Still open after the wrap**
+
+- ⭐ **The cap (96 vs 192) and the mobile fill-rate verdict**, both on the PO's
+  phone check.
+- **C3 (art)** is the last chunk.
+- ⚑ The 1× baseline is ONE player's fight. Many players in one viewport is a
+  different multiplier than mob density, and nothing measured it; the driver
+  can (raise `eventsPerSec`), a real crowd has not.
 
 ### C2b ledger (2026-09-20) - the other three kinds + the density slider
 

@@ -7,11 +7,6 @@
   "maxLevel": 5,
   "cooldownTicks": 300,
   "cooldownTicksPerLevel": -10,
-  "visual": {
-    "layers": [
-      { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
-    ]
-  },
   "effects": [
     {
       "type": "instant_damage",

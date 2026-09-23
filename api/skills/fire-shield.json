@@ -6,11 +6,6 @@
   "category": "passive",
   "maxLevel": 5,
   "description": "Being hit is enough - it fires even when the hit is fully absorbed.",
-  "visual": {
-    "layers": [
-      { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
-    ]
-  },
   "effects": [
     {
       "type": "retaliate_damage",

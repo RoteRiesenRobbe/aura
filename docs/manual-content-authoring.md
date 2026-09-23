@@ -578,8 +578,16 @@ needs a lore-backed multi-target attack, not an uncapped bite.
 
 ### Visuals: the `visual` key
 
-*(`plan-skill-vfx.md` C0 + C2a + C2b, 2026-09-20. All seven kinds draw; none is
-a stub any more.)*
+*(`plan-skill-vfx.md` C0 + C2a + C2b + C3a, last amended 2026-09-21. All seven
+kinds draw; none is a stub any more.)*
+
+⭐ **Two moments, and only one of them is yours** (PO ruling 2026-09-21,
+`plan-skill-vfx.md` §12g). An **attack** is drawn from the ATTACKER, facing the
+enemy, for players and mobs alike: that is what you author. A **hit** is the
+round mark on the victim, and the **engine draws it automatically** on every
+landed damage hit, coloured by the damage type. The old victim-anchored
+`impact` kind is gone from the vocabulary; a file that still authors it
+hard-fails at load.
 
 A skill may carry one optional top-level `visual` block, placed immediately
 before `effects` (which for a plain aura is right after `maxLevel`, and for a
@@ -591,8 +599,8 @@ one look. Mobs use the same key on their own files, so a visual on
 ```json
 "visual": {
   "layers": [
-    { "kind": "projectile", "on": "hit", "speed": 900 },
-    { "kind": "impact", "on": "hit", "curve": "burst", "ms": 200 }
+    { "kind": "cast-pose", "on": "hit", "body": "bow", "ms": 250 },
+    { "kind": "projectile", "on": "hit", "speed": 900, "body": "arrow" }
   ]
 }
 ```
@@ -604,8 +612,8 @@ content decision. Everything else is a parameter.
 
 | kind | plays on | its own keys | what it is |
 |---|---|---|---|
-| `impact` | hit | `ms`, `curve` | a small round burst ON the victim, opt-in, tinted by damage type |
-| `strike` | hit | `ms`, `curve` | a weapon that starts at the ATTACKER and travels into the victim |
+| `strike` | hit | `ms`, `curve` | a weapon or a pair of jaws that starts at the ATTACKER and travels into the victim |
+| `wave` | fired | `ms`, `count` | rings spreading from the CASTER out to the skill's reach and fading, once per cast |
 | `projectile` | hit | `speed` | a body flying caster→victim at constant speed |
 | `beam` | hit | `ms`, `width`, `curve`, `chain` | a body stretched caster→victim with an envelope |
 | `cast-pose` | fired, hit | `ms` | a body shown ON the caster at RELEASE, `ms` of follow-through (the bow). On `hit` it AIMS at the victim and shows only when something was hit |
@@ -630,11 +638,11 @@ and so does a debuff that wants to read as a debuff rather than as its element.
 `damageTags`, so it takes the palette's fire and needs no `tint`, while
 Bloodthirst's `lifesteal_burst` carries no tags and does.
 
-**Closed value sets, and `curve` belongs to the KIND** (C2a): an `impact`
-curves `burst` or `snap`, a `strike` curves `thrust` / `swing` / `overhead`
-(absent = `thrust`), a `beam` curves `flash` (attack → peak → fade, the
-lightning envelope) or `extend` (extend → retract, the flame pillar), absent =
-`flash`. Borrowing another kind's word is a hard-fail naming both sets, because
+**Closed value sets, and `curve` belongs to the KIND** (C2a): a `strike` curves
+`thrust` / `swing` / `overhead` / `bite` (absent = `thrust`), a `beam` curves
+`flash` (attack → peak → fade, the lightning envelope) or `extend` (extend →
+retract, the flame pillar), absent = `flash`. A `wave` has no curve at all.
+Borrowing another kind's word is a hard-fail naming both sets, because
 a beam authoring `thrust` would otherwise load clean and draw its default
 forever. `motion` is one of `swirl` / `rise` / `burst` and is the `emitter`'s
 alone.
@@ -643,12 +651,33 @@ alone.
 style and the style chooses it: a **spear** for `thrust` (a quick straight stab
 out and back), a **blade** for `swing` (the weapon pivots at the attacker and
 sweeps through the victim), a **hammer** for `overhead` (a visible wind-up above
-the attacker, then down onto the victim, slow and heavy). **Author no `body`** -
-the artist's sprite replaces the placeholder under the same style later, and
-`ms` is the whole motion ([PLACEHOLDER] today: thrust 200, swing 280, overhead
-460). A `strike` is anchored at the ATTACKER, which is the half of a melee hit
-an `impact` cannot draw; an `impact` beside one starts at the strike's contact
-moment, as it already waits for a projectile's arrival.
+the attacker, then down onto the victim, slow and heavy), and a **pair of
+tapered jaws** for `bite`. **A `body` is optional**: without one the style's
+placeholder draws, with one the named PNG is held in the hand instead, scaled
+so its LENGTH equals the skill's reach. `ms` is the whole motion ([PLACEHOLDER]
+today: thrust 200, swing 280, overhead 460). A `strike` is anchored at the
+ATTACKER, always.
+
+⭐ **`bite` is the animal's attack, and it uses ONE body twice** (2026-09-21).
+The named PNG is the upper jaw; the engine mirrors a second copy below it,
+hinges both at the attacker's mouth and rotates them shut over the victim
+across `ms`. It replaced the old victim-anchored snap, so a bite now visibly
+comes from the biter:
+
+```json
+{ "kind": "strike", "on": "hit", "body": "wolf-jaw", "curve": "bite", "ms": 200 }
+```
+
+⭐ **`wave` is the AoE attack that has no weapon** (2026-09-21, the mammoth
+stomp). One to three rings spread from the caster out to the skill's reach and
+fade. It is **`fired` only** - once per cast, never once per victim - and is
+code-drawn and palette-tinted, so no artist draws one:
+
+```json
+{ "kind": "wave", "on": "fired", "ms": 500, "count": 2 }
+```
+
+`count` is the number of rings, staggered ([PLACEHOLDER] default 1, max 3).
 
 `chain` (bool) is the `beam`'s alone: one tick's hits of one caster and one
 skill draw as a single caster→v1→v2→v3 polyline instead of a fan, each hop a
@@ -665,21 +694,48 @@ The three moments:
   strikes three targets draws three times in one tick; that is the intent, not
   a special case.
 
-⭐ **Nothing draws by default.** A skill with no `visual` draws nothing at all -
-the old cadence-derived slash/fire lever (`hitStyle`) is gone, and C2a
-deliberately shipped no engine fallback in its place (PO 2026-09-19). So
+⭐ **Nothing AUTHORED draws by default.** A skill with no `visual` draws no
+layer at all - the old cadence-derived slash/fire lever (`hitStyle`) is gone,
+and C2a deliberately shipped no engine fallback in its place (PO 2026-09-19).
+⚑ **One exception since 2026-09-21, and only one:** the engine's hit mark,
+which lands on every damage hit whatever the file says (below). So
 **every aura and cooldown that CAN author a look authors one** (PO 2026-09-20,
-C2b's batch scope), by reach and flavour. The rule since the C2a amendment, and
-`impact` is now OPT-IN rather than the default dressing on everything:
+C2b's batch scope), by reach and flavour.
 
-- **A weapon-wielder's plain hit is a `strike` ALONE** - no `impact` beside it.
-  A spear or a stab is `thrust`, a blade or a cleave is `swing`, a maul or a
-  pick is `overhead`. The swing plus the number is the whole hit, the WoW model.
-- **An animal's bite, gore or swipe is `impact` / `snap` alone.** It wields
-  nothing, so there is no weapon to start at the attacker.
-- **Elemental, poison, AoE, DoT and cooldown hits are `impact` / `burst`**, and
-  so is a **missile's arrival**: ranged reach, volleys and spits are a
-  `projectile` plus an `impact` / `burst`.
+⛔ **NEVER AUTHOR A HIT MARK. THE ENGINE DRAWS IT** (PO ruling 2026-09-21).
+Every landed damage hit gets a round mark on the victim, in the damage type's
+colour, without a single line of content. There is no kind for it and no way to
+ask for one: the `impact` kind was removed from the vocabulary and a file that
+authors it hard-fails at load. What you author is the **attack**, and the
+attack always stems from the attacker.
+
+⚑ **The corollary, and it looks like a regression until you know the rule:** a
+skill whose entire look WAS the mark now authors **no `visual` at all**. Twelve
+player skills (Blight, Ignite, Immolate, NovaBurst, Shockwave, Wildfire and
+their kin) went from one layer to none in the amendment and look exactly the
+same in-game. That does not weaken the C2b rule above; the engine's mark simply
+IS their look, so there is nothing left for the file to say.
+
+⭐ **Every damaging MOB skill authors an attack that stems from the mob** (PO
+ruling 2026-09-21, a written rule with no validator behind it - the loader will
+happily accept a damaging mob skill with no `visual`, and the reviewer is what
+catches it). A place or a totem is not exempt: a poison pool spits a glob, a
+fire totem reaches out with a tongue of flame, a bomb's blast reaches each
+victim. Pick one of four:
+
+- **A weapon-wielder's hit is a `strike`.** A spear or a stab is `thrust`, a
+  blade or a cleave is `swing`, a maul or a pick is `overhead`. The swing plus
+  the number plus the engine's mark is the whole hit, the WoW model.
+- **An animal's attack is a `strike` too.** A bite is `curve: bite`, a paw
+  swipe is `swing`, tusks, a kick and a peck are `thrust`. It wields nothing,
+  so the body is its own jaw, claw or tusk; without one it borrows the style's
+  placeholder weapon, which is why an animal wants its body sooner than a
+  soldier does.
+- **Reach at a distance is a `projectile` or a `beam`.** Volleys and spits fly
+  (`projectile`, alone now - the arrival needs no layer); a tongue of flame or
+  a bolt from a totem stretches (`beam`, `extend` or `flash`).
+- **An AoE that comes off the ground is a `wave`** on `fired`: the stomp, and
+  anything else where the whole ring should feel it at once.
 
 **The three ambient / fired kinds, and what their numbers mean** (C2b, the
 §12d.3 table). All distances are PIXELS, all durations milliseconds, and
@@ -731,13 +787,44 @@ deals no damage, so no HIT event is ever recorded for it and it stays bare too.
 Do not reach for `ambient` to work around this - the loader refuses it. If a
 passive genuinely needs a look, the fix is a plan amendment, not a layer.
 
-⚑ **`body` is UNCHECKED today.** It names a frame in the art atlas, and the
-atlas does not exist until `plan-skill-vfx.md` C3. An absent `body` draws the
-kind's procedural placeholder, which is the right thing to author right now: a
-body named before the atlas exists becomes a `-validate` ERROR the moment C3
-arms the check. Every skill that ships a `visual` today authors none.
+⭐ **`body` names a PNG, and the name is the whole link** (C3a, 2026-09-21,
+which reversed the old "author no `body`" rule). `"body": "arrow"` draws
+`arrow.png` from `frontend/src/features/skill-fx/assets/bodies/`; an absent
+`body` still draws the kind's procedural placeholder, which stays a perfectly
+good thing to author. **An unknown name is a hard error**: `aurad -validate`
+and the boot both reject a skill naming a body the folder does not carry,
+saying which skill and which layer index. There is no silent fallback in
+shipped content.
 
-⚑ The content editor's Skills tab does NOT render `visual` until C3. It is
+**Adding a body is three steps and none of them is code:**
+
+1. Commit the PNG into `frontend/src/features/skill-fx/assets/bodies/`.
+   Lowercase, hyphens, no spaces, no underscores, transparent background.
+2. Run `node tools/make-skill-fx-manifest.mjs`, which rewrites
+   `api/skill-fx/bodies.json` (the server's copy of the folder listing). A Go
+   test fails if the two drift, so this step is not optional.
+3. `make -C backend build`, so `cp-defs` copies the new list into the embedded
+   content. (Or boot with `-content ../api` and skip it, as with any other
+   `api/` edit.)
+
+⭐ **A body is drawn in FULL COLOUR and shown AS DRAWN** (PO 2026-09-21), so a
+layer that resolves a body gets **no damage-type palette tint** - the palette
+colours placeholders, not art. An authored `tint` still applies to either, as a
+multiply, which is why the one white-art idiom works: a near-white PNG plus a
+per-skill `tint` makes one drawing serve several elements. ⚑ The corollary
+bites where it is least expected: putting one shared white body on a
+damage-tagged skill's `projectile` or `emitter` REPLACES its element colour
+with white. Check what the layer looks like today before naming a body on it.
+The engine's hit mark is unaffected either way: it is never a body and always
+takes the damage type's colour.
+
+⚑ **Frame playback is not built.** `<body>_0.png`, `<body>_1.png`, … is
+RESERVED naming only; the manifest lists file stems verbatim, so `sword_0.png`
+would simply be a body called `sword_0`. The full artist-facing contract,
+including the orientation and anchor rule per kind, is
+`docs/art/skill-vfx-asset-spec.md`.
+
+⚑ The content editor's Skills tab does NOT render `visual` until C3b. It is
 hidden and preserved untouched on round trip, exactly like `legacy`, so a
 hand-authored block survives a save from the tab.
 
@@ -931,9 +1018,12 @@ Three distinct VFX surfaces — **all pure frontend, no backend, no wire.**
   `visual` key** (§2 "Visuals", `plan-skill-vfx.md`), not drawing code. Author
   the layers on the skill file; every skill gets its own look, for mobs too,
   and the renderer is `SkillFx` on its own layer below darkness (C2a).
-  ⚑ **There is no default.** The old `hitStyle` lever - one server-chosen byte
-  of slash-or-fire, derived from the tick cadence - is **deleted end to end** by
-  C2a (D7), and nothing replaced it: a skill with no `visual` draws nothing.
+  ⚑ **There is no authorable default.** The old `hitStyle` lever - one
+  server-chosen byte of slash-or-fire, derived from the tick cadence - is
+  **deleted end to end** by C2a (D7), and nothing replaced it: a skill with no
+  `visual` draws no layer. ⭐ The one thing the engine does draw by itself is
+  the **hit mark** on every landed damage hit, coloured by the damage type
+  (PO 2026-09-21); it is not authorable and never was a layer.
 - **Cooldown burst** (gold ring on cooldown activation): also programmatic in
   `_GameObject.ts`.
 

@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	_ "embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -22,6 +23,7 @@ import (
 	aprops "github.com/RoteRiesenRobbe/aura/pkg/api/props"
 	aquests "github.com/RoteRiesenRobbe/aura/pkg/api/quests"
 	arecipes "github.com/RoteRiesenRobbe/aura/pkg/api/recipes"
+	askillfx "github.com/RoteRiesenRobbe/aura/pkg/api/skill-fx"
 	askills "github.com/RoteRiesenRobbe/aura/pkg/api/skills"
 	azones "github.com/RoteRiesenRobbe/aura/pkg/api/zones"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
@@ -51,6 +53,10 @@ type contentSources struct {
 	milestones fs.FS
 	quests     fs.FS
 	ascension  fs.FS
+	// skillFx is the one field whose name is not spelled exactly like its
+	// directory: api/skill-fx/ is hyphenated and a Go identifier cannot be.
+	// The coverage test knows about the exception by name (loaders_test.go).
+	skillFx fs.FS
 }
 
 func embeddedContent() contentSources {
@@ -64,12 +70,13 @@ func embeddedContent() contentSources {
 		milestones: amilestones.Milestones,
 		quests:     aquests.Quests,
 		ascension:  aascension.Ascension,
+		skillFx:    askillfx.SkillFx,
 	}
 }
 
 // diskContent loads content from dir, which must have the repo api/ layout
 // (mobs/, skills/, recipes/, zones/, props/, factions/, milestones/, quests/,
-// ascension/).
+// ascension/, skill-fx/).
 // Missing subdirectories hard-fail here — content errors are loud, matching
 // the registry ethos.
 func diskContent(dir string) (contentSources, error) {
@@ -108,6 +115,9 @@ func diskContent(dir string) (contentSources, error) {
 		return contentSources{}, err
 	}
 	if c.ascension, err = sub("ascension"); err != nil {
+		return contentSources{}, err
+	}
+	if c.skillFx, err = sub("skill-fx"); err != nil {
 		return contentSources{}, err
 	}
 	return c, nil
@@ -442,6 +452,84 @@ func (g catalogGates) ResolveSpecies(name string) (mobs.MobID, error) {
 
 func (g catalogGates) CheckQuestStage(questID, stage string) error {
 	return quests.CheckStageRef(g.quests, questID, stage)
+}
+
+// skillFxBodiesFile is the one file api/skill-fx/ carries: the GENERATED list
+// of body names, written by tools/make-skill-fx-manifest.mjs.
+const skillFxBodiesFile = "bodies.json"
+
+// validateSkillBodies is the `skill bodies` stage (plan-skill-vfx.md §12f.4 E):
+// every authored visual layer `body` must name a PNG the art folder carries.
+//
+// ⭐ THE ART IS NOT HERE AND NEVER WILL BE. The PNGs live in the frontend and
+// webpack bundles them like every other texture; Go sees only the generated
+// NAME list, which is the whole reason a check is possible at all. aurad
+// serves no binary art and gains no endpoint for it.
+//
+// ⚑ It lives in loadContent rather than in mapToSkillDefinition for two
+// reasons: the skills package stays ignorant of the art folder (it has no
+// business knowing a frontend directory exists), and this function is the one
+// place that can collect a finding per problem instead of dying on the first.
+//
+// Returns one joined error per unknown body, which stageFindings flattens into
+// one finding line each.
+func validateSkillBodies(fsys fs.FS, registry skills.Registry) error {
+	raw, err := fs.ReadFile(fsys, skillFxBodiesFile)
+	if err != nil {
+		return fmt.Errorf("cannot read %s: %w - generate it with `node tools/make-skill-fx-manifest.mjs`",
+			skillFxBodiesFile, err)
+	}
+	var list struct {
+		Bodies []string `json:"bodies"`
+	}
+	if err := json.Unmarshal(raw, &list); err != nil {
+		return fmt.Errorf("cannot parse %s: %w (it is generated - do not hand-edit it)", skillFxBodiesFile, err)
+	}
+	known := make(map[string]bool, len(list.Bodies))
+	for _, name := range list.Bodies {
+		known[name] = true
+	}
+
+	// ⚑ Collected and SORTED before they are reported: All() walks a map, so
+	// an unsorted sweep prints the same problems in a different order on every
+	// run, and the editor's seam shows these lines to whoever pressed Save.
+	type miss struct {
+		skill string
+		layer int
+		body  string
+	}
+	var misses []miss
+	for _, def := range registry.All() {
+		if def.Visual == nil {
+			continue
+		}
+		for i, layer := range def.Visual.Layers {
+			// An ABSENT body is the normal case and draws the kind's
+			// procedural placeholder - only a named one has to resolve.
+			if layer.Body == "" || known[layer.Body] {
+				continue
+			}
+			misses = append(misses, miss{skill: def.Name, layer: i, body: layer.Body})
+		}
+	}
+	sort.Slice(misses, func(a, b int) bool {
+		if misses[a].skill != misses[b].skill {
+			return misses[a].skill < misses[b].skill
+		}
+		return misses[a].layer < misses[b].layer
+	})
+
+	problems := make([]error, 0, len(misses))
+	for _, m := range misses {
+		problems = append(problems, fmt.Errorf(
+			"skill %q layer %d: body %q is not one of the %d names in api/skill-fx/%s - "+
+				"the list is generated from the PNGs in frontend/src/features/skill-fx/assets/bodies/, "+
+				"so either fix the spelling or add the file and re-run `node tools/make-skill-fx-manifest.mjs`",
+			m.skill, m.layer, m.body, len(list.Bodies), skillFxBodiesFile))
+	}
+	slog.Info("Checked skill visual bodies",
+		slog.Int("bodies", len(list.Bodies)), slog.Int("unknown", len(misses)))
+	return errors.Join(problems...)
 }
 
 // loadConf parses the config file

@@ -38,7 +38,7 @@ const API = path.join(ROOT, 'api');
 // tree gets. api/schema/ (FlatBuffers sources) and the loose fixture jsons
 // beside it (shared-constants.json, skill-vocabulary.json) are not content and
 // the loader never reads them.
-export const CONTENT_SUBDIRS = ['mobs', 'skills', 'recipes', 'zones', 'props', 'factions', 'milestones', 'quests', 'ascension'];
+export const CONTENT_SUBDIRS = ['mobs', 'skills', 'recipes', 'zones', 'props', 'factions', 'milestones', 'quests', 'ascension', 'skill-fx'];
 
 export const MISSING_BINARY_MESSAGE = 'build aurad first: make -C backend build';
 

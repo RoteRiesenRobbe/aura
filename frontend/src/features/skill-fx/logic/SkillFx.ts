@@ -32,8 +32,8 @@ import type {SkillEventData} from '../../backend/logic/SkillEventNumbers';
 import {meter2px} from '../../../client-data/BasicConfig';
 import {skillDefinition, SkillDefinition} from '../../../client-data/Skills';
 import {GameSettings, VfxDensity} from '../../game-settings/logic/GameSettings';
-import {GLOW_COLOR, GLOW_WIDTH_PX, windUpGlowAlpha} from './SkillFxMath';
-import {clearPools, Fx, FxAnchor, kindHandler, VISUAL_KINDS} from './SkillFxKinds';
+import {GLOW_COLOR, GLOW_WIDTH_PX, percentileOf, windUpGlowAlpha} from './SkillFxMath';
+import {clearPools, Fx, FxAnchor, kindHandler, spriteSpawns, VISUAL_KINDS} from './SkillFxKinds';
 import {planAmbient, planSpawns, PointOf, SkillVisual} from './SkillFxPlan';
 import {parseTint, skillFxColor} from './SkillFxPalette';
 
@@ -44,6 +44,13 @@ import {parseTint, skillFxColor} from './SkillFxPalette';
  * by dropping its oldest frames rather than by dropping frames.
  */
 export const FX_BUDGET = 96;
+
+/**
+ * The cap the budget is actually kept at. It is the exported default until a
+ * dev session moves it (§12e.4: C4 measures 48 / 96 / 192 and PROPOSES; the
+ * value in FX_BUDGET changes on a PO answer, not on a measurement).
+ */
+let budget = FX_BUDGET;
 
 let layer: Container = null;
 let subscribed = false;
@@ -89,6 +96,7 @@ export function setup(fxLayer: Container): void {
  * respawn. The frame subscription stays - setup() runs once per page.
  */
 export function reset(): void {
+    budget = FX_BUDGET;
     live.forEach(fx => fx.dispose());
     live.length = 0;
     ambients.forEach(dropAmbient);
@@ -106,12 +114,152 @@ export function counters(): {
     /** live wind-up glows - readability, untouched by the slider */
     glows: number,
     spawnedByKind: { [kind: string]: number },
+    /**
+     * Spawns that drew ART rather than a placeholder (C3a, §12f.4 D) - one per
+     * Fx, whatever its body count. It is a SHARE of `spawnedByKind`'s total,
+     * never a kind of its own: a harness leg proves a body-carrying skill moved
+     * this and a bare one did not.
+     */
+    sprites: number,
     evicted: number,
     density: VfxDensity,
 } {
     let ambient = 0;
     ambients.forEach(entry => ambient += entry.layers.length);
-    return {live: live.length, ambient, glows: glows.size, spawnedByKind: {...spawnedByKind}, evicted, density};
+    return {
+        live: live.length, ambient, glows: glows.size,
+        spawnedByKind: {...spawnedByKind}, sprites: spriteSpawns(), evicted, density,
+    };
+}
+
+// --- the instrument (§12e.4) ------------------------------------------------
+//
+// Dev-only, reachable through `window.game.skillFxMeasure/skillFxStats/
+// skillFxBudget` and nothing else. It exists because C4's question is "what
+// does this layer COST when the world is ten times as busy", and the counters
+// above answer how much was drawn, never how long drawing it took.
+//
+// ⚑ Off, it is two boolean tests per frame. On, it is two performance.now()
+// calls and a write into a preallocated ring - no allocation per frame, or the
+// instrument would be measuring itself.
+
+/** Frame samples kept, ~20 s at 30 fps and ~3 min at a headless 3 fps. */
+const MEASURE_SAMPLES = 600;
+
+let measuring = false;
+const updateMsRing = new Float64Array(MEASURE_SAMPLES);
+/**
+ * The SPAWN side, timed separately (§12e leg 7): `update()` is the per-frame
+ * cost, but spawning and evicting happen in `onSnapshot`, on the socket's
+ * thread of control. Without this ring a rate high enough to evict looks FREE,
+ * because the eviction work is the one thing the frame clock never sees.
+ */
+const snapshotMsRing = new Float64Array(MEASURE_SAMPLES);
+let snapNext = 0;
+let snapFull = false;
+let snapshotCalls = 0;
+/** where the next sample lands; also the count until the ring has wrapped */
+let ringNext = 0;
+let ringFull = false;
+let measuredFrames = 0;
+let liveMax = 0;
+let ambientMax = 0;
+let ambientOwnersMax = 0;
+/** the rate probe: what came IN through onSnapshot and what it drew */
+let eventsIn = 0;
+let fxSpawned = 0;
+
+/** Start or stop measuring; either way the window starts empty. */
+export function setMeasuring(on: boolean): boolean {
+    measuring = on;
+    ringNext = 0;
+    ringFull = false;
+    snapNext = 0;
+    snapFull = false;
+    snapshotCalls = 0;
+    measuredFrames = 0;
+    liveMax = 0;
+    ambientMax = 0;
+    ambientOwnersMax = 0;
+    eventsIn = 0;
+    fxSpawned = 0;
+    return measuring;
+}
+
+/**
+ * Move the live cap. A value of 0 or less restores the exported default, which
+ * `reset()` also does - there is no setting behind this and nothing persists.
+ */
+export function setBudget(n: number): number {
+    budget = Number.isFinite(n) && n > 0 ? Math.round(n) : FX_BUDGET;
+    return budget;
+}
+
+/**
+ * What the window measured. `displayObjects` is counted HERE rather than per
+ * frame: it is a recursive walk of the layer, which is exactly the kind of
+ * work that would show up as the manager's own cost if it ran every frame.
+ */
+export function stats(): {
+    measuring: boolean,
+    frames: number,
+    updateMs: { p50: number, p95: number, max: number },
+    /** one onSnapshot call: planning, spawning and whatever it evicted */
+    snapshotMs: { p50: number, p95: number, max: number },
+    snapshotCalls: number,
+    liveMax: number,
+    ambientMax: number,
+    /** how many actors the reconciler holds layers for, right now */
+    ambientOwners: number,
+    /** ...and the most it held at once during the window, which is the honest
+     * "ambient owners in view" reading: an instant sample at a camp swings
+     * between 0 and 6 as mobs die, walk out of the viewport and respawn */
+    ambientOwnersMax: number,
+    displayObjects: number,
+    /** skill events handed to onSnapshot while measuring */
+    eventsIn: number,
+    /** Fx those events actually spawned (a skill with no `visual` draws none) */
+    fxSpawned: number,
+    budget: number,
+} {
+    const sorted = sortedRing(updateMsRing, ringFull ? MEASURE_SAMPLES : ringNext);
+    const snaps = sortedRing(snapshotMsRing, snapFull ? MEASURE_SAMPLES : snapNext);
+    return {
+        measuring,
+        frames: measuredFrames,
+        updateMs: {
+            p50: percentileOf(sorted, 0.5),
+            p95: percentileOf(sorted, 0.95),
+            max: percentileOf(sorted, 1),
+        },
+        snapshotMs: {
+            p50: percentileOf(snaps, 0.5),
+            p95: percentileOf(snaps, 0.95),
+            max: percentileOf(snaps, 1),
+        },
+        snapshotCalls,
+        liveMax,
+        ambientMax,
+        ambientOwners: ambients.size,
+        ambientOwnersMax,
+        displayObjects: layer === null ? 0 : countChildren(layer),
+        eventsIn,
+        fxSpawned,
+        budget,
+    };
+}
+
+/** The filled part of a ring, ascending - one allocation per stats() call. */
+function sortedRing(ring: Float64Array, n: number): number[] {
+    return Array.prototype.slice.call(ring, 0, n).sort((a: number, b: number) => a - b);
+}
+
+function countChildren(node: Container): number {
+    let total = node.children.length;
+    for (const child of node.children) {
+        total += countChildren(child as Container);
+    }
+    return total;
 }
 
 // --- the feed ---------------------------------------------------------------
@@ -136,6 +284,10 @@ export type ResolveEntity = (id: number) => GameObject | undefined;
 export function onSnapshot(events: readonly SkillEventData[], resolve: ResolveEntity): void {
     if (layer === null || events.length === 0) {
         return;
+    }
+    const enteredAt = measuring ? performance.now() : 0;
+    if (measuring) {
+        eventsIn += events.length;
     }
     const now = performance.now();
 
@@ -184,8 +336,20 @@ export function onSnapshot(events: readonly SkillEventData[], resolve: ResolveEn
         });
         if (fx !== null) {
             push(fx);
+            if (measuring) {
+                fxSpawned++;
+            }
         }
     });
+    if (measuring) {
+        snapshotMsRing[snapNext] = performance.now() - enteredAt;
+        snapNext++;
+        if (snapNext >= MEASURE_SAMPLES) {
+            snapNext = 0;
+            snapFull = true;
+        }
+        snapshotCalls++;
+    }
 }
 
 /**
@@ -196,9 +360,14 @@ export function onSnapshot(events: readonly SkillEventData[], resolve: ResolveEn
  * asynchronously, and caching the "unknown skill" answer before it landed
  * would blank that skill's VFX for the rest of the session.
  */
-const visuals = new Map<number, SkillVisual | undefined>();
+const visuals = new Map<number, SkillVisual>();
 
-/** The catalog half of the plan's input: a skill's layers, colour and reach. */
+/**
+ * The catalog half of the plan's input: a skill's layers, colour and reach.
+ * ⭐ A held skill with no `visual` answers an EMPTY layer list rather than
+ * undefined (§12g): the engine's hit mark draws on its damage hits too, in the
+ * skill's damage-type colour, and only a skill the catalog lacks is unknown.
+ */
 function visualOf(skillId: number): SkillVisual | undefined {
     if (visuals.has(skillId)) {
         return visuals.get(skillId);
@@ -207,10 +376,11 @@ function visualOf(skillId: number): SkillVisual | undefined {
     if (!def) {
         return undefined;
     }
-    const layers = def.visual?.layers;
-    const visual = layers
-        ? {layers, baseColor: skillFxColor(def, undefined), reachPx: reachPxOf(def)}
-        : undefined;
+    const visual = {
+        layers: def.visual?.layers ?? [],
+        baseColor: skillFxColor(def, undefined),
+        reachPx: reachPxOf(def),
+    };
     visuals.set(skillId, visual);
     return visual;
 }
@@ -226,7 +396,7 @@ function reachPxOf(def: SkillDefinition): number {
 }
 
 function push(fx: Fx): void {
-    while (live.length >= FX_BUDGET) {
+    while (live.length >= budget) {
         live.shift().dispose();
         evicted++;
     }
@@ -259,6 +429,9 @@ function anchorFor(obj: GameObject): FxAnchor {
 // --- the per-frame update ---------------------------------------------------
 
 function update(): void {
+    // The whole body is the manager's own per-frame cost: the ambient
+    // reconciler and the glow ride this frame too, and §12e's question about
+    // the UNBUDGETED layers is only answerable if they are inside the clock.
     const now = performance.now();
     for (let i = live.length - 1; i >= 0; i--) {
         if (!live[i].update(now)) {
@@ -268,6 +441,31 @@ function update(): void {
     }
     updateAmbients(now);
     updateGlows();
+    if (measuring) {
+        sample(performance.now() - now);
+    }
+}
+
+/** One frame's cost into the ring, plus the two high-water marks. */
+function sample(ms: number): void {
+    updateMsRing[ringNext] = ms;
+    ringNext++;
+    if (ringNext >= MEASURE_SAMPLES) {
+        ringNext = 0;
+        ringFull = true;
+    }
+    measuredFrames++;
+    if (live.length > liveMax) {
+        liveMax = live.length;
+    }
+    let ambient = 0;
+    ambients.forEach(entry => ambient += entry.layers.length);
+    if (ambient > ambientMax) {
+        ambientMax = ambient;
+    }
+    if (ambients.size > ambientOwnersMax) {
+        ambientOwnersMax = ambients.size;
+    }
 }
 
 // --- the ambient reconciler (§12d.4) ----------------------------------------

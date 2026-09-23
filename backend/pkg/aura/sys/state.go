@@ -433,7 +433,25 @@ func (s *ConnectionStateSystem) AppendWakePositions(dst []phy.Vec2f) []phy.Vec2f
 		dst = append(dst, p.Position())
 	}
 	for _, sp := range s.spectators {
-		dst = append(dst, sp.Position())
+		pos := sp.Position()
+		scale := sp.ViewportScale()
+		if scale <= 1 {
+			dst = append(dst, pos)
+			continue
+		}
+		// ⚑ The touring spectator's AOI box is LARGER than the wake volume
+		// (MobWakeMargin × the ordinary viewport), so one wake position would
+		// leave the outer band of the start screen mob-less: a dormant mob is
+		// out of the space and in no viewport at all. Four positions, one per
+		// quadrant centre, tile the scaled box with ordinary wake volumes and
+		// leave the seam a list of points.
+		qx := constant.ViewPortWidth / 2 * scale / 2
+		qy := constant.ViewPortHeight / 2 * scale / 2
+		dst = append(dst,
+			phy.Vec2f{X: pos.X - qx, Y: pos.Y - qy},
+			phy.Vec2f{X: pos.X + qx, Y: pos.Y - qy},
+			phy.Vec2f{X: pos.X - qx, Y: pos.Y + qy},
+			phy.Vec2f{X: pos.X + qx, Y: pos.Y + qy})
 	}
 	return dst
 }
@@ -493,6 +511,7 @@ func (s *ConnectionStateSystem) Update(dt float32) {
 	// the second dying player twice (double obituary/spectator/corpse).
 	spectators := append([]model.Spectator(nil), s.spectators...)
 	for _, sp := range spectators {
+		sp.Advance(dt)
 		if s.tryRespawn(sp) {
 			continue
 		}

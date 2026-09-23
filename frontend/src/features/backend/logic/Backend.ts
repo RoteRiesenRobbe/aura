@@ -328,7 +328,13 @@ export class Backend implements IBackend {
                 let gameState = new GameStateMessage(serverMessage.body(new AuraApi.GameState()));
                 if (this.state === BackendState.WELCOMED) {
                     this.setState(BackendState.SPECTATING);
-                    this.game.createSpectator(gameState.player.x, gameState.player.y);
+                    // ⚑ `.position`, not `.x`/`.y`: the spectator message has no
+                    // such fields, and the old read only worked because undefined
+                    // coerced to the (0, 0) the server happened to send.
+                    this.game.createSpectator(gameState.player.position.x, gameState.player.position.y, true);
+                }
+                if (this.state === BackendState.SPECTATING) {
+                    this.game.spectator?.onServerPosition(gameState.player.position.x, gameState.player.position.y);
                 }
                 if (Develop.isActive()) {
                     Develop.get().logServerTick(gameState, timeSinceLastMessage);

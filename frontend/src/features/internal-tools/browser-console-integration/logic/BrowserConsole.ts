@@ -8,6 +8,7 @@ import {Player} from "../../../player/logic/Player";
 import {IGame} from "../../../core/logic/IGame";
 import {SkillEventData} from "../../../backend/logic/SkillEventNumbers";
 import * as SkillFx from "../../../skill-fx/logic/SkillFx";
+import * as SkillFxStress from "../../../skill-fx/logic/SkillFxStress";
 import {GameSettings} from "../../../game-settings/logic/GameSettings";
 
 // The last non-empty skill-event list and a running total (plan-skill-vfx.md
@@ -38,6 +39,10 @@ function setup() {
         darkness: undefined,
         skillEvents: undefined,
         skillFx: undefined,
+        skillFxMeasure: undefined,
+        skillFxStats: undefined,
+        skillFxBudget: undefined,
+        skillFxStress: undefined,
         settings: undefined,
     };
 
@@ -50,6 +55,25 @@ function setup() {
     // above: an Fx is a pooled Graphics with no DOM, so a harness can only
     // screenshot it and hope; the counters are what the client decided.
     consoleCommands.skillFx = () => SkillFx.counters();
+    // The C4 instrument (plan-skill-vfx.md §12e.4), dev-only like everything
+    // else on this object: what the layer COSTS, which the counters above
+    // cannot answer. Measuring is off by default and times nothing until it is
+    // switched on; the budget override lives only in memory and `reset()` (or
+    // a 0) puts FX_BUDGET back.
+    consoleCommands.skillFxMeasure = (on?: boolean) => SkillFx.setMeasuring(on !== false);
+    consoleCommands.skillFxStats = () => SkillFx.stats();
+    consoleCommands.skillFxBudget = (n: number) => SkillFx.setBudget(n);
+    // The 10x world, fed through the manager's real entry points and nothing
+    // else (§12e.1: a real 10x server is tick-starved, so it would measure a
+    // broken server rather than a busy world).
+    // Called with options it starts, with nothing it reports, with null it
+    // stops early - the driver otherwise stops itself after `seconds`.
+    consoleCommands.skillFxStress = (options?: SkillFxStress.StressOptions | null) => {
+        if (options === undefined) {
+            return SkillFxStress.status();
+        }
+        return options === null ? SkillFxStress.stop() : SkillFxStress.start(options);
+    };
     // The live settings object (plan-skill-vfx.md C2b). It is the on-change
     // PROXY, so `window.game.settings().vfx.density = 'low'` fires
     // GameSettingChangedEvent and persists exactly as the settings panel does

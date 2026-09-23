@@ -45,22 +45,44 @@ the bottom. Trust the code over the manual if a path has drifted.
   hashes, chunk names, rulings, glyphs, history or placement claims (where
   it is obtained lives in the mob/milestone/recipe files). The ledger prose you are
   tempted to write there goes in the plan doc.
-- **A skill with no `visual` draws NOTHING** (`plan-skill-vfx.md` C2a + C2b, PO
-  2026-09-19/20). The old cadence-derived slash/fire lever (`hitStyle`) is
-  deleted end to end and no engine fallback replaced it, so **every new aura
-  and cooldown that CAN author a look authors one** - not only the damaging
-  ones. A weapon-wielder's plain hit is a `strike`
-  ALONE (`thrust` spear / `swing` blade / `overhead` hammer, chosen by `curve`,
-  which also picks the placeholder weapon); an animal's bite or gore is
-  `impact` / `snap` alone; elemental, AoE, DoT and cooldown hits and a missile's
-  arrival are `impact` / `burst`; ranged reach is a `projectile` plus that
-  `impact`. A non-damaging aura or cooldown dresses its own moment instead: an
-  `emitter` (`swirl` / `rise` / `burst` particles), an `orbit` (N bodies
-  circling), a `cast-pose` (a body worn at RELEASE, never a wind-up).
-  ⚑ `impact` is OPT-IN and anchored at the VICTIM, a `strike` at the
-  ATTACKER. ⚑ `curve` belongs to the KIND and `chain` is the `beam`'s
-  alone and VISUAL ONLY - it changes no targeting. ⚑ Author no `body`, and no
+- **A skill with no `visual` draws no LAYER** (`plan-skill-vfx.md` C2a + C2b +
+  C3a, PO 2026-09-19/20/21). The old cadence-derived slash/fire lever
+  (`hitStyle`) is deleted end to end and no engine fallback replaced it, so
+  **every new aura and cooldown that CAN author a look authors one** - not only
+  the damaging ones.
+  ⛔ **NEVER AUTHOR A HIT MARK - THE ENGINE DRAWS IT** (PO ruling 2026-09-21,
+  `plan-skill-vfx.md` §12g). Every landed damage hit gets a round mark on the
+  victim in the damage type's colour, from code, with no content involved; the
+  `impact` kind is REMOVED from the vocabulary and authoring it hard-fails at
+  load. ⚑ A skill whose whole look was that mark now authors no `visual` at
+  all, and that is correct, not an omission.
+  ⭐ **Every damaging MOB skill authors an attack that stems from the mob**
+  (same ruling; a written rule, **no validator** - the loader accepts a bare
+  damaging mob skill, so the reviewer is the gate). A place or a totem too: a
+  pool spits, a totem reaches out, a bomb's blast reaches each victim. Four
+  shapes: a `strike` (a weapon-wielder's hit - `thrust` spear / `swing` blade /
+  `overhead` hammer / `bite` jaws, chosen by `curve`, which also picks the
+  placeholder; an animal uses one too, its own jaw, claw or tusk as the
+  `body`); a `projectile` (a volley or a spit, ALONE - the arrival needs no
+  layer); a `beam` (`extend` a tongue of flame, `flash` a bolt); or a `wave`
+  (`on: fired` only, `ms` + `count` 1-3 rings from the caster to the skill's
+  reach, for an AoE stomp). A non-damaging aura or cooldown dresses its own
+  moment instead: an `emitter` (`swirl` / `rise` / `burst` particles), an
+  `orbit` (N bodies circling), a `cast-pose` (a body worn at RELEASE, never a
+  wind-up).
+  ⚑ Every attack kind is anchored at the ATTACKER - there is no victim-anchored
+  kind any more. ⚑ `curve` belongs to the KIND and `chain` is the `beam`'s
+  alone and VISUAL ONLY - it changes no targeting. ⚑ Author no
   `tint` on anything that carries damage tags (the palette derives it).
+  ⚑ **`body` is optional and CHECKED since C3a** (2026-09-21): it names a PNG
+  in `frontend/src/features/skill-fx/assets/bodies/` (`"body": "arrow"` →
+  `arrow.png`), and an unknown name is a `-validate` / boot ERROR, not a silent
+  placeholder. Omitting it draws the kind's procedural placeholder, which is
+  still fine. Adding a new one = drop the PNG, run
+  `node tools/make-skill-fx-manifest.mjs`, `make -C backend build`. ⚑ A
+  resolved body turns the damage-type palette tint OFF (art carries its own
+  colour), so do not put one shared white body on a damage-tagged layer.
+  Artist contract: `docs/art/skill-vfx-asset-spec.md`.
   ⚑ **A passive gets the `hit` moment alone** (D2, load-enforced), so a passive
   that never hits - Torch, the stat/resist passives, FrostShield's damageless
   `retaliate_slow` - is UNDRESSABLE by rule, not by oversight.
@@ -105,9 +127,9 @@ the bottom. Trust the code over the manual if a path has drifted.
   or `visual.go` needs the vocabulary fixture regenerated** (`effectKeys`,
   `effectCategories`, `costKeys`, the categories, the top-level key list, and
   the six VFX lists `visualKinds`, `visualTriggers`, `visualKeys`,
-  `visualTriggersByKind`, `visualCurves` - keyed BY KIND since C2a, because an
-  impact curves `burst`/`snap`, a strike `thrust`/`swing`/`overhead` and a beam
-  `flash`/`extend` - and
+  `visualTriggersByKind`, `visualCurves` - keyed BY KIND since C2a, because a
+  strike curves `thrust`/`swing`/`overhead`/`bite`, a beam `flash`/`extend` and
+  a wave not at all - and
   `visualMotions`): the golden test fails
   until you run `UPDATE_SKILL_VOCABULARY=1 go test -count=1
   ./pkg/aura/skills/` from `backend/` and commit `api/skill-vocabulary.json`.
