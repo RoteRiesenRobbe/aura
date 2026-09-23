@@ -622,6 +622,7 @@ func SkillEventsMarshalFlatbuf(entities []model.Entity, own model.PlayerEntity, 
 			AuraApi.SkillEventAddAmount(builder, e.Amount.UInt32())
 			AuraApi.SkillEventAddKind(builder, AuraApi.HitKind(e.Kind))
 			AuraApi.SkillEventAddFired(builder, e.Fired)
+			AuraApi.SkillEventAddPhase(builder, AuraApi.HitPhase(e.Phase))
 			offsets = append(offsets, AuraApi.SkillEventEnd(builder))
 		}
 	}

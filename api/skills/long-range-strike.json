@@ -9,7 +9,7 @@
   "visual": {
     "layers": [
       { "kind": "cast-pose", "on": "hit", "ms": 500 },
-      { "kind": "projectile", "on": "hit", "body": "arrow", "scale": 0.6, "speed": 900 }
+      { "kind": "projectile", "on": "hit", "body": "arrow", "scale": 0.6, "speed": 650 }
     ]
   },
   "effects": [

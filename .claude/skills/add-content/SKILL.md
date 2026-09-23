@@ -54,14 +54,15 @@ the bottom. Trust the code over the manual if a path has drifted.
   `plan-skill-vfx.md` §12g). Every landed damage hit gets a round mark on the
   victim in the damage type's colour, from code, with no content involved; the
   `impact` kind is REMOVED from the vocabulary and authoring it hard-fails at
-  load. ⚑ A skill whose whole look was that mark now authors no `visual` at
-  all, and that is correct, not an omission.
+  load. ⚑ Since §12h (PO 2026-09-23) **every skill carries at least a
+  placeholder `visual`**, except the passives that never record a landing
+  (see below).
   ⭐ **Every damaging MOB skill authors an attack that stems from the mob**
   (same ruling; a written rule, **no validator** - the loader accepts a bare
   damaging mob skill, so the reviewer is the gate). A place or a totem too: a
   pool spits, a totem reaches out, a bomb's blast reaches each victim. Four
   shapes: a `strike` (a weapon-wielder's hit - `thrust` spear / `swing` blade /
-  `overhead` hammer / `bite` jaws, chosen by `curve`, which also picks the
+  `overhead` hammer / `bite` jaws / `pincer` fangs, chosen by `curve`, which also picks the
   placeholder; an animal uses one too, its own jaw, claw or tusk as the
   `body`); a `projectile` (a volley or a spit, ALONE - the arrival needs no
   layer); a `beam` (`extend` a tongue of flame, `flash` a bolt); or a `wave`
@@ -83,9 +84,19 @@ the bottom. Trust the code over the manual if a path has drifted.
   resolved body turns the damage-type palette tint OFF (art carries its own
   colour), so do not put one shared white body on a damage-tagged layer.
   Artist contract: `docs/art/skill-vfx-asset-spec.md`.
+  ⭐ **An over-time effect draws on `applied`, never on `hit`** (§12h, PO
+  2026-09-23): the fourth moment `applied` plays once per victim each time a
+  `dot_aura` / `instant_dot` / `hot_aura` / `instant_hot` is applied OR
+  refreshed, anchored exactly like `hit`; the ticks draw the engine's mark
+  alone. So a spit or a fireball that lights a DoT goes on `applied`, and a
+  skill with a `damage_aura` beside its DoT authors the direct look on `hit`.
+  `-validate` refuses `applied` on a skill with none of those four effects;
+  `wave` and `orbit` take no `applied`; a passive none (D2).
   ⚑ **A passive gets the `hit` moment alone** (D2, load-enforced), so a passive
-  that never hits - Torch, the stat/resist passives, FrostShield's damageless
-  `retaliate_slow` - is UNDRESSABLE by rule, not by oversight.
+  that never records a landing - Hardy, Tough, Strong, Thick Hide, Keen Eye,
+  Discipline, Antivenom, Torch, Frost Shield (damageless `retaliate_slow`) -
+  stays WITHOUT `visual`, by rule, not by oversight. Fire Shield and Omni
+  Passive reflect a real hit under their own id, so they can draw on `hit`.
   `docs/manual-content-authoring.md` §2 "Visuals" has the tables.
 - **A mob attack hits ONE target unless the world explains more** (PO ruling
   2026-09-19, `docs/manual-content-authoring.md` §2 "Mob attacks hit one
@@ -128,7 +139,7 @@ the bottom. Trust the code over the manual if a path has drifted.
   `effectCategories`, `costKeys`, the categories, the top-level key list, and
   the six VFX lists `visualKinds`, `visualTriggers`, `visualKeys`,
   `visualTriggersByKind`, `visualCurves` - keyed BY KIND since C2a, because a
-  strike curves `thrust`/`swing`/`overhead`/`bite`, a beam `flash`/`extend` and
+  strike curves `thrust`/`swing`/`overhead`/`bite`/`pincer`, a beam `flash`/`extend` and
   a wave not at all - and
   `visualMotions`): the golden test fails
   until you run `UPDATE_SKILL_VOCABULARY=1 go test -count=1

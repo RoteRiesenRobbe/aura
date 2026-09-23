@@ -5,6 +5,11 @@
   "icon": "lorc/vine-leaf",
   "category": "active_aura",
   "maxLevel": 10,
+  "visual": {
+    "layers": [
+      { "kind": "projectile", "on": "applied", "speed": 650 }
+    ]
+  },
   "effects": [
     {
       "type": "dot_aura",

@@ -1,8 +1,8 @@
 /**
- * Generates the three PILOT BODIES for the skill-VFX sprite path
- * (plan-skill-vfx.md §12f.4 B, C3a).
+ * Generates the four PILOT BODIES for the skill-VFX sprite path
+ * (plan-skill-vfx.md §12f.4 B, C3a; the fourth from §12h.5 item 3, C3a-ii).
  *
- *     sword · arrow · wolf-jaw
+ *     sword · arrow · wolf-jaw · spider-fang
  *
  * ⭐ Checked in as a script, not just images, exactly as `make-fog-tile.mjs`
  * and `make-water-tile.mjs` are and for the same reason: a placeholder's whole
@@ -20,12 +20,15 @@
  * tint. Wood and steel rather than the damage-type red is what tells the
  * sprite path from the Graphics placeholder at a glance in a screenshot.
  *
- * ⚑ The three cover the three anchor rules of the asset spec's table, which is
- * why these three and not three prettier ones:
+ * ⚑ The first three cover the three anchor rules of the asset spec's table,
+ * which is why these three and not three prettier ones:
  *   sword     `strike`, grip at the LEFT EDGE, scaled uniformly to the reach
  *   arrow     `projectile`, centred, rotated to the travel direction
  *   wolf-jaw  `strike` bite, the UPPER jaw, HINGE at the bottom-left corner,
  *             snout pointing right, the bite line at the BOTTOM edge (§12g.2)
+ * The fourth, spider-fang, is the Giant Spider's bite on the wolf-jaw
+ * contract. It is WHITE on purpose (the PO asked for "two big white fangs"),
+ * so it is the one pilot a per-skill `tint` could recolour.
  *
  * ⚑ Every canvas size below is [PLACEHOLDER] and is exactly what the PO look
  * is for - the asset spec's size column copies whatever survives it. They are
@@ -49,7 +52,7 @@ const BODIES = join(dirname(fileURLToPath(import.meta.url)),
 
 /**
  * Supersampling factor per axis. 4 means 16 samples a pixel, which is plenty
- * for shapes this size and costs nothing on three tiny canvases - the edges
+ * for shapes this size and costs nothing on four tiny canvases - the edges
  * are straight lines and shallow tapers, not hair.
  */
 const SS = 4;
@@ -165,6 +168,27 @@ const TEETH = [
     {cx: 116, hw: 3.0, tip: 45.0},
 ];
 
+/**
+ * The spider fang. ONE upper fang on the wolf-jaw contract (§12g.2, §12h.5):
+ * HINGED AT THE BOTTOM-LEFT CORNER, the bite line on the BOTTOM edge, the
+ * curved point at the right touching that edge. The engine mirrors it into
+ * the lower fang, so the pair clamps the victim from either side.
+ */
+const FANG_W = 96, FANG_H = 40;
+/** Where the point sits: a hair short of the right edge, so it antialiases. */
+const FANG_TIP_X = 94;
+/** The outer (top) edge: high and thick at the hinge, sweeping down to the point. */
+const fangTop = (x) => 2 + (FANG_H - 2) * (x / FANG_TIP_X) ** 2.2;
+/**
+ * The inner (bite) edge: ON the bite line at the hinge and at the point,
+ * arched up between them, which is what makes it a hooked fang rather than a
+ * wedge.
+ */
+const fangBottom = (x) => FANG_H
+    - 10 * Math.sin(Math.PI * x / FANG_TIP_X) * (1 - x / FANG_TIP_X) ** 0.3;
+const inFang = (x, y) => x >= 0 && x <= FANG_TIP_X && y >= fangTop(x) && y <= fangBottom(x);
+const FANG_WHITE = [0xff, 0xff, 0xff];
+
 const BODIES_SPEC = [
     {
         file: 'sword.png',
@@ -261,6 +285,15 @@ const BODIES_SPEC = [
                     tooth(t.cx, t.hw, gumBottom(t.cx) - 2, t.tip)(x, y)
                     && x > t.cx + t.hw * 0.25),
             },
+        ],
+    },
+    {
+        file: 'spider-fang.png',
+        anchor: 'hinge',
+        w: FANG_W,
+        h: FANG_H,
+        layers: [
+            {color: FANG_WHITE, in: inFang},
         ],
     },
 ];

@@ -5,6 +5,7 @@
 import * as flatbuffers from 'flatbuffers';
 
 import { HitKind } from '../aura-api/hit-kind.js';
+import { HitPhase } from '../aura-api/hit-phase.js';
 
 
 export class SkillEvent {
@@ -55,8 +56,13 @@ fired():boolean {
   return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
 }
 
+phase():HitPhase {
+  const offset = this.bb!.__offset(this.bb_pos, 16);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : HitPhase.Direct;
+}
+
 static startSkillEvent(builder:flatbuffers.Builder) {
-  builder.startObject(6);
+  builder.startObject(7);
 }
 
 static addSource(builder:flatbuffers.Builder, source:bigint) {
@@ -83,12 +89,16 @@ static addFired(builder:flatbuffers.Builder, fired:boolean) {
   builder.addFieldInt8(5, +fired, +false);
 }
 
+static addPhase(builder:flatbuffers.Builder, phase:HitPhase) {
+  builder.addFieldInt8(6, phase, HitPhase.Direct);
+}
+
 static endSkillEvent(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createSkillEvent(builder:flatbuffers.Builder, source:bigint, victim:bigint, skillId:number, amount:number, kind:HitKind, fired:boolean):flatbuffers.Offset {
+static createSkillEvent(builder:flatbuffers.Builder, source:bigint, victim:bigint, skillId:number, amount:number, kind:HitKind, fired:boolean, phase:HitPhase):flatbuffers.Offset {
   SkillEvent.startSkillEvent(builder);
   SkillEvent.addSource(builder, source);
   SkillEvent.addVictim(builder, victim);
@@ -96,6 +106,7 @@ static createSkillEvent(builder:flatbuffers.Builder, source:bigint, victim:bigin
   SkillEvent.addAmount(builder, amount);
   SkillEvent.addKind(builder, kind);
   SkillEvent.addFired(builder, fired);
+  SkillEvent.addPhase(builder, phase);
   return SkillEvent.endSkillEvent(builder);
 }
 }

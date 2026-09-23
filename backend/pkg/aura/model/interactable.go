@@ -30,6 +30,12 @@ type Damage struct {
 	// applied caster-side.
 	Crit bool
 
+	// Tick marks one tick of a damage-over-time effect (plan-skill-vfx.md
+	// §12h). Presentational, like Crit: set by the SkillSystem's
+	// tickBuffEvents, it is the phase the funnel notes (HitPhaseTick), so the
+	// client draws the engine's mark alone and not the skill's authored look.
+	Tick bool
+
 	// GateKey makes this a lock-and-key hit (content pass C1, the chore gate;
 	// the damage-type/gate-key split is plan-numbers-rewrite D4): the target
 	// takes damage only if its authored factors.gateKeys name this key —

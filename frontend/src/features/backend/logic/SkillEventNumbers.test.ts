@@ -16,6 +16,7 @@ function hit(overrides: Partial<SkillEventData> = {}): SkillEventData {
         amount: 12,
         kind: AuraApi.HitKind.Damage,
         fired: false,
+        phase: AuraApi.HitPhase.Direct,
         ...overrides,
     };
 }
@@ -110,5 +111,47 @@ describe('skillEventNumber', () => {
         expect(skillEventNumber(OWN, hit({amount: 0}), 0)).toBeNull();
         expect(skillEventNumber(OWN, hit({amount: 0, kind: AuraApi.HitKind.Crit}), 0)).toBeNull();
         expect(skillEventNumber(OWN, hit({amount: 0, kind: AuraApi.HitKind.Heal}), 0)).toBeNull();
+    });
+});
+
+// §12h call 1: an over-time effect draws its APPLICATION as VFX and its ticks
+// as numbers. The application moved no health, so it prints nothing; a tick
+// prints exactly what the same kind prints as a direct hit.
+describe('skillEventNumber: the over-time phase (§12h)', () => {
+    const applied = AuraApi.HitPhase.Applied;
+    const tick = AuraApi.HitPhase.Tick;
+
+    it('draws nothing for a DoT application, even the own player\'s', () => {
+        expect(skillEventNumber(OWN, hit({phase: applied, amount: 0}), 0)).toBeNull();
+    });
+
+    it('draws nothing for a HoT application', () => {
+        expect(skillEventNumber(OWN,
+            hit({phase: applied, amount: 0, kind: AuraApi.HitKind.Heal}), 0)).toBeNull();
+    });
+
+    it('draws nothing for an application even when an amount rides along', () => {
+        expect(skillEventNumber(OWN, hit({phase: applied, amount: 9}), 0)).toBeNull();
+    });
+
+    it('draws a Damage tick as damage', () => {
+        expect(skillEventNumber(OWN, hit({phase: tick}), 0))
+            .toEqual({target: 'victim', kind: 'damage'});
+    });
+
+    it('draws a Crit tick as a crit', () => {
+        expect(skillEventNumber(OWN, hit({phase: tick, kind: AuraApi.HitKind.Crit}), 0))
+            .toEqual({target: 'victim', kind: 'crit'});
+    });
+
+    it('draws a Heal tick as a heal', () => {
+        expect(skillEventNumber(OWN, hit({phase: tick, kind: AuraApi.HitKind.Heal}), 0))
+            .toEqual({target: 'victim', kind: 'heal'});
+    });
+
+    it('draws an Immune tick as the immune word', () => {
+        expect(skillEventNumber(OWN,
+            hit({phase: tick, kind: AuraApi.HitKind.Immune, amount: 0}), 0))
+            .toEqual({target: 'victim', kind: 'immune'});
     });
 });

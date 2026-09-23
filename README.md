@@ -160,6 +160,41 @@ Debugging in IntelliJ might be possible, but has not yet been tested.
 6. profit!
 
 
+## Icons (PONETI pack)
+
+Icons added through the pack manifest come from the **"6000 Fantasy Icons" pack
+by PONETI** on the Unity Asset Store (the existing skill glyphs are separate
+CC BY SVGs, see `frontend/src/client-data/icons/NOTICE.md`). The pack is licensed
+per seat (Extension Asset, `THIRD_PARTY.md`) and this repo is public, so
+**neither the PNGs nor the atlases built from them are in git**, and they never
+may be.
+
+**You do not need the pack to build or run Aura.** Without it the build prints
+one notice line and the game simply has no pack icons; every other feature
+works. The pre-commit hook still applies (install it once per clone with
+`git config core.hooksPath .githooks`): it refuses a commit that stages a pack
+file or a generated atlas.
+
+**Seat holder only** (the one machine that builds with the icons):
+
+1. Export the PNGs from the Unity package to any folder *outside* the repo (the
+   layout inside does not matter; the manifest names each icon by relative path).
+2. Set `AURA_ICON_PACK_DIR` to that folder, the same way as `AURA_DB_URL`: the
+   commented line in `backend/.env.local.example`, or a machine-scope variable.
+   IntelliJ run configurations need it in their **Environment variables** field.
+
+`npm run build` and `npm run start` then run `tools/pack-icons.mjs`, which reads
+`frontend/src/client-data/icons/pack-manifest.json` (the only icon data that is
+committed) and packs the listed icons into `frontend/dist/icons/` as atlases plus
+an `icons.json` lookup. With the variable set, a missing folder or a manifest
+entry without a file fails the build with the fix named. To use a new icon, add
+a line to the manifest; never copy the PNG into the repo. Both scripts have a
+`--self-test` that runs without the pack.
+
+⚑ How other developers get the icons on their machines is an OPEN decision: a
+private repo mounted as a submodule, or an encrypted copy, both need a private
+channel and are recorded as options in `THIRD_PARTY.md`.
+
 ## Running the Project
 
 ### Windows Environment

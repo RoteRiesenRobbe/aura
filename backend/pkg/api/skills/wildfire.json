@@ -5,6 +5,11 @@
   "icon": "carl-olsen/flame",
   "category": "active_aura",
   "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "projectile", "on": "applied", "speed": 900 }
+    ]
+  },
   "effects": [
     {
       "type": "dot_aura",

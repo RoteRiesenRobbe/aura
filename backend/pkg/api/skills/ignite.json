@@ -7,6 +7,11 @@
   "maxLevel": 5,
   "cooldownTicks": 300,
   "cooldownTicksPerLevel": -10,
+  "visual": {
+    "layers": [
+      { "kind": "beam", "on": "applied", "curve": "extend", "ms": 300, "width": 14 }
+    ]
+  },
   "effects": [
     {
       "type": "instant_dot",

@@ -15,6 +15,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      # The PONETI icon pack is licensed per seat and must never be tracked
+      # (THIRD_PARTY.md). The pre-commit hook is the first line; this is the
+      # backstop for a --no-verify commit. Needs no npm install.
+      - id: check-icon-leak
+        name: Check no icon-pack file or atlas is tracked
+        run: node tools/check-icon-leak.mjs --tree
       - id: go-setup
         name: Set up Go
         uses: actions/setup-go@v5
@@ -69,6 +75,8 @@ jobs:
         run: npm install && npm run typecheck
       - id: build-frontend
         working-directory: frontend
+        # No AURA_ICON_PACK_DIR here, so this artifact has no pack icons
+        # (tools/pack-icons.mjs writes an empty lookup and carries on).
         run: npm run build
       - id: upload-frontend-artifacts
         name: Upload assets

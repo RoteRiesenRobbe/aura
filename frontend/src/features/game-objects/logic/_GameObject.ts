@@ -423,8 +423,9 @@ export abstract class GameObject {
         const radius = radiusPx > 0 ? radiusPx : this.size * 1.2;
         const ring = new Graphics()
             .circle(0, 0, radius)
-            .fill({color: 0xFFD700, alpha: 0.18})
-            .stroke({color: 0xFFD700, width: 5, alpha: 1});
+            // Halved with the aura rings at the C3a-ii look (PO 2026-09-23).
+            .fill({color: 0xFFD700, alpha: 0.09})
+            .stroke({color: 0xFFD700, width: 2.5, alpha: 0.5});
         this.burstRing = ring;
         this.shape.addChild(ring);
 

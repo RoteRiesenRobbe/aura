@@ -6,7 +6,7 @@
   "maxLevel": 5,
   "visual": {
     "layers": [
-      { "kind": "projectile", "on": "hit", "speed": 900 }
+      { "kind": "projectile", "on": "applied", "speed": 900 }
     ]
   },
   "effects": [

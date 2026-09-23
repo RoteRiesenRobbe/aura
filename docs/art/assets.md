@@ -14,7 +14,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-09-21 from 219 rows.
+Rendered 2026-09-22 from 219 rows.
 
 ---
 
@@ -31,9 +31,9 @@ Rendered 2026-09-21 from 219 rows.
 | --- | ---: | --- |
 | ✅ drawn | 88 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 24 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 25 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 11 | a stock/borrowed texture stands in (the pd* set) |
-| ❌ missing | 58 | nothing exists |
+| ❌ missing | 57 | nothing exists |
 | ⚙️ code | 14 | drawn procedurally in code, no art file |
 | ⛔ blocked | 5 | cannot be delivered until engine work lands |
 | — n/a | 10 | a constraint or a number to judge, not a file to draw |
@@ -240,7 +240,7 @@ of which **11 are P0**:
 | ❌ | **maul (strike overhead)** | — | P1 | 2 | 128 x 32 | The heavy overhead weapon: TrollSmash, WarlordCleave. Must read as slow and heavy beside the sword. Spec: §4 + §7. |
 | ❌ | **ward-shard (orbit, white for tinting)** | — | P1 | 6 | 128 x 32 | One near-white drawing circling the caster, recoloured per skill by the layer tint: Aegis, FireWard, FireVulnerability, Venomward, RallyDrum, WarbannerShield. ⚑ Draw it white or light grey - the tint is a multiply and can only darken. Spec: §3. |
 | ❌ | **heal-cross (emitter particle, white for tinting)** | — | P1 | 5 | 16 x 16 | The rising heal mote, the PO example ("green crosses and mist"): Heal, Lifewarden, Rejuvenation, BanditHeal, HealerAura. Judge it at 8 px, not at 100 %. The wide mist half of each pair stays code-drawn. Spec: §3 + §7. |
-| ❌ | **spider-fang (strike bite)** | — | P1 | 1 | 128 x 48 | SpiderBite - Spider, 17 placements. Same hinged mirrored-jaw rule as wolf-jaw, but chelicerae rather than a canine jaw; it must differ from wolf-jaw in near-darkness. Spec: §4. |
+| 🟡 | **spider-fang (strike bite)** | `spider-fang.png` | P1 | 1 | 96 x 40 | One upper fang on the wolf-jaw hinge contract, WHITE (the PO's "two big white fangs"): the engine mirrors it and clamps the pair on the victim's rim. Serves GiantVenomSpit (GiantSpider, 5 placements); SpiderBite (Spider, 17 placements) still draws the bodiless placeholder and could share it. Chelicerae rather than a canine jaw; it must differ from wolf-jaw in near-darkness. Generated placeholder ships in C3a-ii. Spec: §4. |
 | ❌ | **venom-glob (projectile)** | — | P1 | 3 | 96 x 24 | The spider spit: VenomSpit, GiantVenomSpit, and since the 2026-09-21 amendment PoisonPoolAura, whose pool now spits a glob at each victim instead of marking it. 26 placements. Full colour (poison green), no tint. Spec: §4. |
 | ❌ | **axe (orbit, fired)** | — | P1 | 1 | 128 x 32 | The spinning axes cooldown (WhirlingAxes), one of the PO nine. ⚑ No unlock source in content today, so it is reachable only by dev command. Spec: §7. |
 | ❌ | **claw (strike swing)** | — | P1 | 1 | 128 x 32 | BearSwipe - Bear + DireBear, 24 placements. Renamed from bear-claw and raised a band by the 2026-09-21 amendment: a swipe is an ATTACK now, held and swung from the bear, so without this file the bear swings the placeholder BLADE. A raking paw, gripped at the left edge like a weapon. Spec: §4 + §7. |

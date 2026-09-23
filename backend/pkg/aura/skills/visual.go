@@ -106,6 +106,16 @@ type VisualLayer struct {
 // literal repeated in two packages.
 const visualTriggerFired = "fired"
 
+// visualTriggerApplied is the moment an over-time effect is applied or
+// refreshed on a victim (plan-skill-vfx.md §12h, PO 2026-09-23). Go branches
+// on it once: the loader refuses it on a skill with no over-time effect.
+const visualTriggerApplied = "applied"
+
+// overTimeEffectTypes are the effects whose application notes an Applied
+// event (the ApplyDot / ApplyHot funnels), so the only ones an `applied`
+// layer can ever draw on.
+var overTimeEffectTypes = []EffectType{EffectTypeDotAura, EffectTypeInstantDot, EffectTypeHotAura, EffectTypeInstantHot}
+
 // The closed tables. visualKinds and visualTriggers are the vocabulary; the
 // per-kind maps say what each kind accepts. All six ride the generated
 // api/skill-vocabulary.json (vocabulary_test.go), so the content editor and
@@ -122,8 +132,11 @@ var (
 
 	// visualTriggers: ambient = while this is the actor's running aura,
 	// fired = a cast or an aura tick went off (targets or not), hit = once
-	// per victim of a landing.
-	visualTriggers = []string{"ambient", visualTriggerFired, "hit"}
+	// per victim of a direct landing, applied = once per victim each time an
+	// over-time effect is applied or refreshed (§12h: a DoT or HoT draws its
+	// look there, and its ticks draw the engine's mark alone). `applied`
+	// anchors exactly like `hit`; only the moment differs.
+	visualTriggers = []string{"ambient", visualTriggerFired, "hit", visualTriggerApplied}
 
 	// visualCurvesByKind: `curve` picks a motion shape, and the shapes are
 	// per KIND because they are per renderer (C2a, PO 2026-09-19). A strike
@@ -139,8 +152,10 @@ var (
 	// `impact` `snap` on the bitten, and is now two jaws hinged at the BITER,
 	// reaching over the victim and closing. Both of those words left the
 	// vocabulary with the kind, so either one is a refusal naming this set.
+	// `pincer` (PO look 2026-09-23) is the spider's pair: one fang hinged on
+	// EACH side of the victim's rim, pointing inward, closing across it.
 	visualCurvesByKind = map[string][]string{
-		"strike": {"thrust", "swing", "overhead", "bite"},
+		"strike": {"thrust", "swing", "overhead", "bite", "pincer"},
 		"beam":   {"flash", "extend"},
 	}
 
@@ -182,15 +197,16 @@ var (
 	// stack whole ring sets on one spot (§12g.2); a `cast-pose` is worn at a
 	// cast (fired, facing +X: a cast names no direction) or at a landing (hit,
 	// PO 2026-09-20: the bow shows only when damage is done and AIMS at the
-	// victim); only `emitter` spans all three.
+	// victim); only `emitter` spans ambient, fired and hit. Every kind with a
+	// victim end also takes `applied` (§12h); `wave` and `orbit` have none.
 	visualTriggersByKind = map[string][]string{
-		"strike":     {"hit"},
-		"projectile": {"hit"},
-		"beam":       {"hit"},
+		"strike":     {"hit", visualTriggerApplied},
+		"projectile": {"hit", visualTriggerApplied},
+		"beam":       {"hit", visualTriggerApplied},
 		"wave":       {visualTriggerFired},
-		"cast-pose":  {"fired", "hit"},
+		"cast-pose":  {"fired", "hit", visualTriggerApplied},
 		"orbit":      {"fired", "ambient"},
-		"emitter":    {"ambient", "fired", "hit"},
+		"emitter":    {"ambient", "fired", "hit", visualTriggerApplied},
 	}
 
 	// visualTriggersByCategory is D2, enforced at load (PO 2026-09-19).
@@ -202,10 +218,11 @@ var (
 	// never the running aura, so ambient is not its moment either. Only an
 	// active aura has all three. Authoring the wrong one would load clean and
 	// draw nothing, which is exactly the silent class this project keeps
-	// paying for, so it is a refusal instead.
+	// paying for, so it is a refusal instead. `applied` (§12h) belongs to the
+	// two categories that can carry an over-time effect.
 	visualTriggersByCategory = map[string][]string{
-		"active_aura": {"ambient", "fired", "hit"},
-		"cooldown":    {"fired", "hit"},
+		"active_aura": {"ambient", "fired", "hit", visualTriggerApplied},
+		"cooldown":    {"fired", "hit", visualTriggerApplied},
 		"passive":     {"hit"},
 	}
 
@@ -250,6 +267,25 @@ func parseVisual(raw json.RawMessage, categoryName string) (*VisualDef, error) {
 		}
 	}
 	return def, nil
+}
+
+// checkAppliedHasAnOverTimeEffect refuses an `applied` layer on a skill whose
+// effects never apply anything over time: the event would never fire, so the
+// layer would load clean and draw nothing (§12h). It runs after the effects
+// are mapped, which parseVisual cannot see.
+func checkAppliedHasAnOverTimeEffect(visual *VisualDef, effects []EffectDef) error {
+	if visual == nil || !slices.ContainsFunc(visual.Layers, func(l VisualLayer) bool { return l.On == visualTriggerApplied }) {
+		return nil
+	}
+	if slices.ContainsFunc(effects, func(e EffectDef) bool { return slices.Contains(overTimeEffectTypes, e.Type) }) {
+		return nil
+	}
+	names := make([]string, len(overTimeEffectTypes))
+	for i, t := range overTimeEffectTypes {
+		names[i] = effectTypeNames[t]
+	}
+	return fmt.Errorf(`visual: an "applied" layer needs an over-time effect (%s) - nothing else is ever applied, so the layer would never draw`,
+		strings.Join(names, ", "))
 }
 
 func parseVisualLayer(raw json.RawMessage, categoryName string) (VisualLayer, error) {

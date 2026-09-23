@@ -648,6 +648,15 @@ table QuestProgress {
 // model.HitKind constants mirror these one for one and a codec test pins the
 // pairing, so a renumber cannot silently redraw a heal as a crit.
 enum HitKind : ubyte { Damage = 0, Crit = 1, Heal = 2, Absorb = 3, Immune = 4 }
+// WHEN in an effect's life a landing happened (plan-skill-vfx.md §12h, C3a-ii):
+// a direct hit, the APPLICATION (or refresh) of an over-time effect, or one of
+// its ticks. A second axis beside `kind` on purpose: `kind` keeps saying what
+// happened to the pool (a HoT tick is still a Heal, and its number stays
+// green), `phase` says which authored moment draws it (`applied` draws the
+// spit / the fireball, a tick draws the engine's mark alone, never an `on: hit`
+// layer). Encoding "DamageTick / HealTick / ..." into `kind` would have made
+// every consumer enumerate the product. Explicit values, the HitKind contract.
+enum HitPhase : ubyte { Direct = 0, Applied = 1, Tick = 2 }
 // One thing a skill did this tick: a cast that went off (`fired`), or a single
 // landing on a single victim (D5: honest attribution, no client-side
 // inference). The four per-tick aggregates this replaces (damage_taken,
@@ -655,9 +664,11 @@ enum HitKind : ubyte { Damage = 0, Crit = 1, Heal = 2, Absorb = 3, Immune = 4 }
 // above; they could not say WHO dealt a hit or WHICH skill dealt it, which is
 // everything the VFX engine needs.
 //
-// DoT and HoT ticks, lifesteal heals and reflects are ordinary hits here: the
-// caster travels in the buff payload, so a burn keeps its source and its skill
-// after the victim walks out of range (D6's case 1).
+// DoT and HoT ticks, lifesteal heals and reflects are ordinary hits here (with
+// `phase` = Tick on the over-time ticks): the caster travels in the buff
+// payload, so a burn keeps its source and its skill after the victim walks out
+// of range (D6's case 1). An over-time APPLICATION is an event of its own
+// (`phase` = Applied, amount 0), noted by the victim's ApplyDot / ApplyHot.
 table SkillEvent {
   // The casting entity: the summon itself on an owned cast, the reflecting
   // player on a reflect. Never 0. The client resolves own-caused through
@@ -676,6 +687,11 @@ table SkillEvent {
   // authored `visual` carries an `on: fired` layer; nothing else would ever
   // look at it, and a 30 Hz aura would otherwise bill an event per tick.
   fired:bool = false;
+  // Direct on an ordinary hit and on FIRED (the default, so it costs nothing on
+  // the wire there); Applied when an over-time effect was applied or refreshed
+  // on `victim` (amount 0, kind = the effect's nature: Damage for a DoT, Heal
+  // for a HoT); Tick on one of its ticks (kind and amount as any landing).
+  phase:HitPhase = Direct;
 }
 
 table GameState {

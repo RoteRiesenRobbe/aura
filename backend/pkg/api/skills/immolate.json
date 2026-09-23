@@ -5,6 +5,11 @@
   "icon": "carl-olsen/flame",
   "category": "active_aura",
   "maxLevel": 10,
+  "visual": {
+    "layers": [
+      { "kind": "beam", "on": "applied", "curve": "extend", "ms": 300, "width": 14 }
+    ]
+  },
   "effects": [
     {
       "type": "dot_aura",

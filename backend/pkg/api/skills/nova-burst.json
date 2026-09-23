@@ -7,6 +7,12 @@
   "maxLevel": 5,
   "cooldownTicks": 300,
   "cooldownTicksPerLevel": -10,
+  "visual": {
+    "layers": [
+      { "kind": "wave", "on": "fired", "ms": 450, "count": 1 },
+      { "kind": "emitter", "on": "applied", "motion": "burst", "count": 6, "ms": 450, "scale": 0.7 }
+    ]
+  },
   "effects": [
     {
       "type": "instant_damage",

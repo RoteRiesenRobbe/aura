@@ -578,8 +578,8 @@ needs a lore-backed multi-target attack, not an uncapped bite.
 
 ### Visuals: the `visual` key
 
-*(`plan-skill-vfx.md` C0 + C2a + C2b + C3a, last amended 2026-09-21. All seven
-kinds draw; none is a stub any more.)*
+*(`plan-skill-vfx.md` C0 + C2a + C2b + C3a + C3a-ii, last amended 2026-09-23. All
+seven kinds draw; none is a stub any more.)*
 
 ⭐ **Two moments, and only one of them is yours** (PO ruling 2026-09-21,
 `plan-skill-vfx.md` §12g). An **attack** is drawn from the ATTACKER, facing the
@@ -600,7 +600,7 @@ one look. Mobs use the same key on their own files, so a visual on
 "visual": {
   "layers": [
     { "kind": "cast-pose", "on": "hit", "body": "bow", "ms": 250 },
-    { "kind": "projectile", "on": "hit", "speed": 900, "body": "arrow" }
+    { "kind": "projectile", "on": "hit", "speed": 650, "body": "arrow" }
   ]
 }
 ```
@@ -612,13 +612,13 @@ content decision. Everything else is a parameter.
 
 | kind | plays on | its own keys | what it is |
 |---|---|---|---|
-| `strike` | hit | `ms`, `curve` | a weapon or a pair of jaws that starts at the ATTACKER and travels into the victim |
+| `strike` | hit, applied | `ms`, `curve` | a weapon or a pair of jaws that starts at the ATTACKER and travels into the victim |
 | `wave` | fired | `ms`, `count` | rings spreading from the CASTER out to the skill's reach and fading, once per cast |
-| `projectile` | hit | `speed` | a body flying caster→victim at constant speed |
-| `beam` | hit | `ms`, `width`, `curve`, `chain` | a body stretched caster→victim with an envelope |
-| `cast-pose` | fired, hit | `ms` | a body shown ON the caster at RELEASE, `ms` of follow-through (the bow). On `hit` it AIMS at the victim and shows only when something was hit |
+| `projectile` | hit, applied | `speed` | a body flying caster→victim at constant speed (px/s, absent = 500); every bolt is drawn 1.3× its size by an engine knob (PO 2026-09-23) |
+| `beam` | hit, applied | `ms`, `width`, `curve`, `chain` | a body stretched caster→victim with an envelope |
+| `cast-pose` | fired, hit, applied | `ms` | a body shown ON the caster at RELEASE, `ms` of follow-through (the bow). On `hit` it AIMS at the victim and shows only when something was hit |
 | `orbit` | fired, ambient | `ms`, `count` | N bodies circling the caster |
-| `emitter` | ambient, fired, hit | `ms`, `count`, `motion` | particles from a point or a disc |
+| `emitter` | ambient, fired, hit, applied | `ms`, `count`, `motion` | particles from a point or a disc |
 
 Legal on every layer: `kind` and `on` (both required), plus `body`, `tint`
 (lowercase `#rrggbb`) and `scale`. Every number is a **[PLACEHOLDER]** like all
@@ -639,7 +639,7 @@ and so does a debuff that wants to read as a debuff rather than as its element.
 Bloodthirst's `lifesteal_burst` carries no tags and does.
 
 **Closed value sets, and `curve` belongs to the KIND** (C2a): a `strike` curves
-`thrust` / `swing` / `overhead` / `bite` (absent = `thrust`), a `beam` curves
+`thrust` / `swing` / `overhead` / `bite` / `pincer` (absent = `thrust`), a `beam` curves
 `flash` (attack → peak → fade, the lightning envelope) or `extend` (extend →
 retract, the flame pillar), absent = `flash`. A `wave` has no curve at all.
 Borrowing another kind's word is a hard-fail naming both sets, because
@@ -659,10 +659,19 @@ today: thrust 200, swing 280, overhead 460). A `strike` is anchored at the
 ATTACKER, always.
 
 ⭐ **`bite` is the animal's attack, and it uses ONE body twice** (2026-09-21).
-The named PNG is the upper jaw; the engine mirrors a second copy below it,
-hinges both at the attacker's mouth and rotates them shut over the victim
-across `ms`. It replaced the old victim-anchored snap, so a bite now visibly
-comes from the biter:
+The named PNG is the upper jaw; the engine mirrors a second copy below it and
+rotates them shut across `ms`. ⭐ **Since C3a-ii the bite is the RIM BITE** (PO
+2026-09-23, "the held-length jaw read as a crocodile"): both jaws hinge on the
+VICTIM's rim at the point nearest the attacker and close toward the victim's
+centre, and their length is the victim's radius × 0.8 [PLACEHOLDER] (never the
+reach, floor 20 px; 1.4 was "still quite long" at the PO look), so four wolves
+bite at four spots around the ring, each pair pointing back at its wolf. ⭐
+**`pincer` is the spider's pair** (PO look 2026-09-23, "two tusks gripping from
+either side, faced inwards"): the same one-body-twice contract and the same
+length rule, but one fang hinges on EACH side of the victim's rim, perpendicular
+to the attack line, points inward, and the pair gapes back toward the attacker
+and closes across the victim (`giant-venom-spit`). The `strike` rule "anchored
+at the attacker, length = reach" holds for `thrust` / `swing` / `overhead` only:
 
 ```json
 { "kind": "strike", "on": "hit", "body": "wolf-jaw", "curve": "bite", "ms": 200 }
@@ -686,13 +695,30 @@ the caster's ring and the server never reads the key; it does not add range, a
 jump distance, or a target. A real chain selector would be gameplay work, and
 nobody has asked for it.
 
-The three moments:
+The four moments:
 
 - **`ambient`** - while this is the actor's running aura.
 - **`fired`** - a cast or an aura tick went off, targets or not.
-- **`hit`** - once per victim of a landing. A `hit` layer on an aura that
-  strikes three targets draws three times in one tick; that is the intent, not
-  a special case.
+- **`hit`** - once per victim of a direct landing. A `hit` layer on an aura
+  that strikes three targets draws three times in one tick; that is the
+  intent, not a special case.
+- **`applied`** - once per victim each time an over-time effect (`dot_aura`,
+  `instant_dot`, `hot_aura`, `instant_hot`) is applied **or refreshed** on it
+  (PO 2026-09-23, `plan-skill-vfx.md` §12h). It anchors exactly like `hit`
+  (the victim end: a projectile or beam runs caster to victim, a cast-pose
+  aims at the victim, an emitter sits on the victim); only the moment differs.
+  A dot_aura refreshes every `tickInterval` while its target stays in range,
+  so the look redraws at that cadence.
+
+⭐ **An over-time effect's TICKS draw no authored layer.** A DoT tick draws the
+engine's hit mark alone (and its red number), a HoT tick only its green number.
+So the spit, the fireball or the ember of a DoT belongs on `applied`, never on
+`hit`: on `hit` it would only ever play for the skill's direct damage. A skill
+that carries both (a `damage_aura` beside a `dot_aura`) authors its direct look
+on `hit` and its application look on `applied`, and the two never double-draw.
+⛔ The loader refuses an `applied` layer on a skill with none of the four
+over-time effects: nothing would ever be applied, so it would never draw.
+`wave` and `orbit` have no victim end and take no `applied`.
 
 ⭐ **Nothing AUTHORED draws by default.** A skill with no `visual` draws no
 layer at all - the old cadence-derived slash/fire lever (`hitStyle`) is gone,
@@ -710,11 +736,14 @@ authors it hard-fails at load. What you author is the **attack**, and the
 attack always stems from the attacker.
 
 ⚑ **The corollary, and it looks like a regression until you know the rule:** a
-skill whose entire look WAS the mark now authors **no `visual` at all**. Twelve
+skill whose entire look WAS the mark authors **no mark of its own**. Twelve
 player skills (Blight, Ignite, Immolate, NovaBurst, Shockwave, Wildfire and
-their kin) went from one layer to none in the amendment and look exactly the
-same in-game. That does not weaken the C2b rule above; the engine's mark simply
-IS their look, so there is nothing left for the file to say.
+their kin) went from one layer to none in the §12g amendment and looked exactly
+the same in-game; since C3a-ii (PO 2026-09-23, "every skill gets a placeholder
+`visual`") each carries an ATTACK again, a bolt on `applied` or a `wave` on
+`fired`, and the mark still comes from the engine. The only skills with no
+`visual` at all are the nine passives that never record a landing (see the
+bare-passive rule under the per-category table below).
 
 ⭐ **Every damaging MOB skill authors an attack that stems from the mob** (PO
 ruling 2026-09-21, a written rule with no validator behind it - the loader will
@@ -744,10 +773,10 @@ the same thing.
 
 | kind | key | meaning |
 |---|---|---|
-| `emitter` | `count` | `ambient`: particles ALIVE at once, a steady loop · `fired` / `hit`: particles in the one burst. Default 8. |
-| `emitter` | `ms` | ONE particle's lifetime, on every trigger. Default 900. A `fired` / `hit` emitter lives exactly `ms`. |
+| `emitter` | `count` | `ambient`: particles ALIVE at once, a steady loop · `fired` / `hit` / `applied`: particles in the one burst. Default 8. |
+| `emitter` | `ms` | ONE particle's lifetime, on every trigger. Default 900. A `fired` / `hit` / `applied` emitter lives exactly `ms`. |
 | `emitter` | `motion` | `swirl` circles the anchor at ~70 % of its radius, drifting outward · `rise` starts inside the anchor's disc and drifts UP ~40 px · `burst` flies radially outward ~1.5× the anchor radius. All fade. Default `rise`. |
-| `emitter` | anchor | `ambient` / `fired`: the caster · `hit`: the victim. |
+| `emitter` | anchor | `ambient` / `fired`: the caster · `hit` / `applied`: the victim. |
 | `orbit` | `count` | bodies, evenly spaced. Default 2. |
 | `orbit` | `ms` | `fired`: the layer's whole DURATION, fading in and out inside it · `ambient`: **ignored**, the layer lives as long as the aura runs, so leave it unauthored there. Default 1200. |
 | `orbit` | speed | not authored: one revolution per 800 ms, radius = anchor radius + 14 px, both [PLACEHOLDER]. |
@@ -775,15 +804,20 @@ warm orange is the campfire.
 ⭐ **D2, enforced at load:** `ambient` is legal only on an **active aura** (it
 is the only category that is ever "running"), and a **passive** may author
 `hit` layers only (it is neither switched on nor cast, so its hit moments are
-all it has). A **cooldown** may author `fired` and `hit`. The loader hard-fails
+all it has). A **cooldown** may author `fired`, `hit` and `applied`; an
+**active aura** all four. The loader hard-fails
 anything else, naming the skill and the layer index, because the alternative is
 a file that loads clean and draws nothing.
 
 ⚑ **Some skills are undressable, and that is the rule working.** A passive gets
-the `hit` moment alone, so a passive that never hits anything has no moment to
-author: Torch (a passive `light_aura`) cannot be given the glow Lantern gets,
-the stat and resist passives stay bare, and FrostShield's `retaliate_slow`
-deals no damage, so no HIT event is ever recorded for it and it stays bare too.
+the `hit` moment alone, so **a passive that never records a landing has no
+moment and stays without `visual`** (PO 2026-09-23): Hardy, Tough, Strong,
+Thick Hide, Keen Eye, Discipline, Antivenom, Torch (a passive `light_aura`
+cannot be given the glow Lantern gets) and Frost Shield (its `retaliate_slow`
+deals no damage, so no hit event is ever recorded for it). Fire Shield and
+Omni Passive are the exceptions that prove it: their reflect lands a real hit
+under their own skill id, so they CAN draw on `hit`. Every other skill carries
+at least a placeholder `visual` (§12h, for testing).
 Do not reach for `ambient` to work around this - the loader refuses it. If a
 passive genuinely needs a look, the fix is a plan amendment, not a layer.
 

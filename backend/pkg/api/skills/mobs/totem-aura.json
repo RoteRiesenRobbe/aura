@@ -6,7 +6,7 @@
   "maxLevel": 3,
   "visual": {
     "layers": [
-      { "kind": "beam", "on": "hit", "curve": "flash", "ms": 260, "width": 5 }
+      { "kind": "beam", "on": "applied", "curve": "flash", "ms": 260, "width": 5 }
     ]
   },
   "effects": [

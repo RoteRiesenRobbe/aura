@@ -31,6 +31,13 @@ export interface SkillEventData {
     kind: AuraApi.HitKind;
     /** true = a cast went off, false = a hit landed */
     fired: boolean;
+    /**
+     * WHEN in an over-time effect's life this event sits (plan-skill-vfx.md
+     * §12h): `Direct` for an ordinary hit and every FIRED event, `Applied` when
+     * a DoT/HoT was applied or refreshed (amount 0, kind = the effect's nature),
+     * `Tick` for one of its ticks landing (kind and amount as any landing).
+     */
+    phase: AuraApi.HitPhase;
 }
 
 /**
@@ -63,6 +70,12 @@ export function skillEventNumber(
 ): SkillNumberDraw | null {
     // The cast beat carries no number of its own; C2a gives it VFX.
     if (event.fired) {
+        return null;
+    }
+    // An over-time effect being applied or refreshed moved no health (§12h):
+    // its VFX draws the application, its TICKS carry the numbers. Explicit and
+    // first, so the rule never rests on the wire's amount being 0.
+    if (event.phase === AuraApi.HitPhase.Applied) {
         return null;
     }
     // ⚑ 0 is "no owner" on the wire, so it must never match an own id - a

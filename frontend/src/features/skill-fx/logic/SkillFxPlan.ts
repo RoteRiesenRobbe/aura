@@ -7,7 +7,7 @@
  * a renderer, a Pixi container or a GameObject is - `SkillFx.ts` turns a plan
  * into anchors, spawns and budget, and only that half needs a browser.
  *
- * The four rules, in one place:
+ * The rules, in one place:
  *
  * 1. `on: hit` draws once per HIT event whatever its HitKind (an Immune or an
  *    Absorb landing still landed); `on: fired` draws on a cast, with the caster
@@ -26,6 +26,15 @@
  *    LAST in the landing, whether or not the skill authors anything, and no
  *    file may author it (the server refuses `impact` at load). A Heal, an
  *    Absorb or an Immune landing draws none, and neither does a cast.
+ * 6. ⭐ An over-time effect draws its look on APPLICATION, not per tick
+ *    (§12h call 1). The wire's `phase` is a second axis beside the HitKind:
+ *    `Applied` (a DoT/HoT applied or refreshed) plans the skill's
+ *    `on: applied` layers between caster and victim and NO mark, whatever the
+ *    kind, since nothing landed; `Tick` plans NO authored layer, only the
+ *    mark when the tick is Damage or Crit (a heal tick draws nothing); `Direct`
+ *    is rules 1 and 5 unchanged. The trigger is part of the chain key and the
+ *    pose key, so an application and a direct hit of one skill in one
+ *    snapshot never chain together or share a pose.
  */
 import type {VisualLayer} from '../../../client-data/Skills';
 import {AuraApi} from '../../backend/logic/AuraApi';
@@ -45,7 +54,27 @@ const HIT_MARK_LAYER: VisualLayer = {kind: HIT_MARK_KIND, on: 'hit'};
 
 function drawsHitMark(event: SkillEventData): boolean {
     return !event.fired
+        && event.phase !== AuraApi.HitPhase.Applied
         && (event.kind === AuraApi.HitKind.Damage || event.kind === AuraApi.HitKind.Crit);
+}
+
+/**
+ * Which authored moment an event is (rule 6), or null for a TICK: a tick of an
+ * over-time effect draws no authored layer at all, only the engine's mark. A
+ * FIRED event is checked first because a cast is always `Direct` on the wire.
+ */
+function triggerOf(event: SkillEventData): 'fired' | 'hit' | 'applied' | null {
+    if (event.fired) {
+        return 'fired';
+    }
+    switch (event.phase) {
+        case AuraApi.HitPhase.Applied:
+            return 'applied';
+        case AuraApi.HitPhase.Tick:
+            return null;
+        default:
+            return 'hit';
+    }
 }
 
 /** Where an entity is, in world space - the only geometry the plan needs. */
@@ -97,7 +126,11 @@ let seedCounter = 0;
 
 /** One event resolved against the client's world: who, where, which layers. */
 interface Landing {
-    /** `source:skill`, the key one snapshot's poses are deduplicated on */
+    /**
+     * `source:skill:trigger`, the key one snapshot's poses are deduplicated on
+     * and chains are grouped by (rule 6: an application never shares either
+     * with a direct hit of the same skill)
+     */
     castKey: string;
     source: number;
     victim: number;
@@ -137,7 +170,7 @@ export function planSpawns(
             return;
         }
         if (!event.fired && landing.layers.some(isChainedBeam)) {
-            const key = `${event.source}:${event.skillId}`;
+            const key = landing.castKey;
             const group = chained.get(key);
             if (group) {
                 group.push(landing);
@@ -200,9 +233,12 @@ function landingFor(
     const visual = visualOf(event.skillId);
     // `on: hit` draws once per HIT event whatever its HitKind - an Immune or
     // Absorb landing still landed. The mark is the one thing that reads the
-    // kind, and it goes LAST so the authored layers keep their order.
-    const trigger = event.fired ? 'fired' : 'hit';
-    const layers = (visual?.layers ?? []).filter(l => l.on === trigger);
+    // kind, and it goes LAST so the authored layers keep their order. An
+    // application or a tick picks its trigger by phase (rule 6).
+    const trigger = triggerOf(event);
+    const layers = trigger === null
+        ? []
+        : (visual?.layers ?? []).filter(l => l.on === trigger);
     if (drawsHitMark(event)) {
         layers.push(HIT_MARK_LAYER);
     }
@@ -220,7 +256,7 @@ function landingFor(
         return null;
     }
     return {
-        castKey: `${event.source}:${event.skillId}`,
+        castKey: `${event.source}:${event.skillId}:${trigger}`,
         source: event.source,
         victim,
         layers,

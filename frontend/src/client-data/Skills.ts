@@ -297,7 +297,11 @@ export interface SkillEffect {
  */
 export interface VisualLayer {
     kind: string;
-    /** 'ambient' | 'fired' | 'hit' - which moment spawns this layer */
+    /**
+     * 'ambient' | 'fired' | 'hit' | 'applied' - which moment spawns this layer.
+     * `applied` (§12h) = an over-time effect applied or refreshed on the victim;
+     * it anchors exactly like `hit` and differs only in WHEN it fires
+     */
     on: string;
     /**
      * the PNG this layer draws, named without its extension: `"arrow"` draws

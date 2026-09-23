@@ -22,6 +22,7 @@ export { EntityType } from './aura-api/entity-type.js';
 export { Equip } from './aura-api/equip.js';
 export { GameState } from './aura-api/game-state.js';
 export { HitKind } from './aura-api/hit-kind.js';
+export { HitPhase } from './aura-api/hit-phase.js';
 export { Input } from './aura-api/input.js';
 export { Interact } from './aura-api/interact.js';
 export { Join } from './aura-api/join.js';

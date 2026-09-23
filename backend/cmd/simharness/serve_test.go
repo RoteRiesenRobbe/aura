@@ -115,10 +115,13 @@ func TestLoadPlayerAuraPresets_EmbeddedContent(t *testing.T) {
 
 // dot_aura content derives into presets (C8 full-roster pass): a dot-only
 // mob must NOT read as a harmless turret. BanditPyromancer's EmberAura
-// (7.5 HP ×1.7623 power scale at cL6, 3 events every 40 ticks, applied on a
-// 50-tick aura cadence, r3) and VenomSpider's VenomSpit (5 HP ×1.4049 at
+// (dot 7.5 HP ×1.7623 power scale at cL6, 3 events every 40 ticks, applied on
+// a 50-tick aura cadence, r3) and VenomSpider's VenomSpit (5 HP ×1.4049 at
 // cL4, 4 events every 45 ticks) are the pins. EmberAura went 6 → 7.5 with the
-// playtest-1 Pass A Z2 damage pass (×1.25, PO 2026-07-22).
+// playtest-1 Pass A Z2 damage pass (×1.25, PO 2026-07-22). Since skill-VFX
+// C3a-ii (PO 2026-09-23) EmberAura also carries a damage_aura (6 HP
+// [PLACEHOLDER], same cadence), so the pyromancer is the two-payload shape:
+// DamageHP is the direct hit and DotHP the burn. VenomSpit stays dot-only.
 func TestLoadMobPresets_DotAuraMobsDerive(t *testing.T) {
 	presets, _, err := loadPresets("", 0)
 	require.NoError(t, err)
@@ -130,7 +133,8 @@ func TestLoadMobPresets_DotAuraMobsDerive(t *testing.T) {
 
 	pyro, ok := byName["BanditPyromancer"]
 	require.True(t, ok, "roster must contain BanditPyromancer")
-	assert.InDelta(t, 7.5*1.7623417, pyro.Aura.DamageHP, 1e-3)
+	assert.InDelta(t, 6*1.7623417, pyro.Aura.DamageHP, 1e-3, "the direct payload")
+	assert.InDelta(t, 7.5*1.7623417, pyro.Aura.DotHP, 1e-3, "the burn keeps its own field beside a direct hit")
 	assert.Equal(t, 3, pyro.Aura.DotTicks)
 	assert.Equal(t, 40, pyro.Aura.DotTickInterval)
 	assert.Equal(t, 50, pyro.Aura.TickInterval)

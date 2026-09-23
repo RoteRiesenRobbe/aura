@@ -35,3 +35,10 @@ scripts/__pycache__/
 # Tiled writes a per-user session file next to the project (open files, zoom,
 # last-used tool). Local state, never shared.
 tools/tiled/*.tiled-session
+
+# PONETI icon pack (THIRD_PARTY.md): the raw PNGs live OUTSIDE the repo under
+# AURA_ICON_PACK_DIR and the atlases tools/pack-icons.mjs builds from them are
+# build output. Belt and braces on top of frontend/dist/ and .githooks/pre-commit.
+**/icons/atlas-*.png
+**/icons/icons.json
+frontend/node_modules/.cache/aura-icon-pack-hashes.json

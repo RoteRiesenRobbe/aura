@@ -136,7 +136,7 @@ for (const name of Object.keys(effectCategories)) {
 // arriving in the fixture without a plan amendment is exactly what this should
 // stop, and a kind quietly lost is the same finding from the other side.
 const VISUAL_KINDS = 7;
-const VISUAL_TRIGGERS = 3;
+const VISUAL_TRIGGERS = 4;
 const visualKinds = vocabulary.visualKinds || [];
 const visualTriggers = vocabulary.visualTriggers || [];
 const visualKeys = vocabulary.visualKeys || {};
@@ -149,7 +149,7 @@ if (visualKinds.length !== VISUAL_KINDS) {
   finding('api/skill-vocabulary.json', `visualKinds has ${visualKinds.length} entries, not the ${VISUAL_KINDS} closed kinds of plan-skill-vfx.md §4.1 - a kind is a renderer class, so adding or dropping one is a plan amendment, not a table edit`);
 }
 if (visualTriggers.length !== VISUAL_TRIGGERS) {
-  finding('api/skill-vocabulary.json', `visualTriggers has ${visualTriggers.length} entries, not the ${VISUAL_TRIGGERS} moments (ambient, fired, hit)`);
+  finding('api/skill-vocabulary.json', `visualTriggers has ${visualTriggers.length} entries, not the ${VISUAL_TRIGGERS} moments (ambient, fired, hit, applied)`);
 }
 for (const kind of visualKinds) {
   if (!Array.isArray(visualKeys[kind]) || visualKeys[kind].length === 0) {

@@ -10,6 +10,10 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+*(2026-09-23, the skill-VFX C3a-ii wrap: the C2b entry fell off the cap of three and moved here verbatim.)*
+
+- **Prior: SKILL VFX C2b, the other three kinds + the density slider** ✅ 2026-09-20 `5fae4fe2` (ledger: `docs/plan-skill-vfx.md` §13 C2b, spec §12d + look amendments §12d.7): ⭐ **`cast-pose`, `orbit` and `emitter` are real**, and ⭐ **an AMBIENT RECONCILER** (`SkillFx.setAmbient`, keyed by GameObject like the glows) finally dresses a RUNNING aura: fed from `Character` with `active_skill_id` alone (⚑ NOT interval-gated, or Lantern would never draw) and from `Mobs` with the catalog's new `auraSkillId` when `interval > 0`; ambient layers sit OUTSIDE the 96 budget, by design. ⭐ **Density Off / Low / Full**: `low` = counts ×0.4 + ambient emitters own-character only, `off` = no authored layer at all (glow + numbers stay), mobile default `low`. PO look, several rounds: ⭐ **the bow moved to `hit`** (only when damage lands, aimed at the victim; `cast-pose` is legal on `hit` now) and ⭐ **a weapon is HELD** (hilt in the hand, length = the skill's reach, through closer mobs BY RULING). ⚑ A placeholder judged by COUNTERS can be invisible in PIXELS (the first emitters passed 13 harness legs as 4 px dots). **Schema DB/wire/conf NONE; CATALOG one field, `auraSkillId` on `/mobs`; content: `visual` on 46 more files + 2 cheat-only skills (77, 78), pin 114 → 116, 129 layers.** Verified: 35 pkgs 0 failures · `-validate` 0 both ways · smoke 0/116 · editor 2/2 · frontend 812/44 · mutation ×5 · real boot `count=116` · `skill-fx.mjs` **13 legs PASS**. ⛔ NOT run: `hygiene-wire-prune`, two-window, loadbot, a phone. ⭐ **PO: "works, I think with this the chunk is done."**
+
 *(2026-09-20, the merge of the zone/atmosphere line into main. Both lines shipped in parallel,
 so the cap of three could not hold six entries: the three newest by date stayed in CLAUDE.md and
 these three moved here verbatim. Their OPEN work is still listed under CLAUDE.md "Next".)*

@@ -1702,6 +1702,9 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		}
 		effects = append(effects, effect)
 	}
+	if err := checkAppliedHasAnOverTimeEffect(visual, effects); err != nil {
+		return nil, fmt.Errorf("skill %q: %w", s.Name, err)
+	}
 
 	displayName := s.DisplayName
 	if displayName == "" {

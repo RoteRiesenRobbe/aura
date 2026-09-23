@@ -6,7 +6,8 @@
   "maxLevel": 5,
   "visual": {
     "layers": [
-      { "kind": "projectile", "on": "hit", "speed": 900 }
+      { "kind": "projectile", "on": "applied", "speed": 650 },
+      { "kind": "strike", "on": "hit", "curve": "pincer", "body": "spider-fang", "tint": "#ffffff", "ms": 260 }
     ]
   },
   "effects": [

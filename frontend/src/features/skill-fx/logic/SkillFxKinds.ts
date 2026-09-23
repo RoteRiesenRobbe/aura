@@ -39,7 +39,14 @@ import {
     beamExtend,
     beamFlash,
     beamSpriteScale,
+    BITE_MIN_LENGTH_PX,
+    biteHingePoint,
     biteJawScale,
+    biteLengthPx,
+    pincerHingePoints,
+    PROJECTILE_SIZE_FACTOR,
+    landsOnVictim,
+    STRIKE_MIN_LENGTH_PX,
     spriteScaleToExtent,
     CAST_POSE_DEFAULT_MS,
     castPoseAlpha,
@@ -359,8 +366,6 @@ class ImpactFx implements Fx {
  * share of the attacker's radius. [PLACEHOLDER]
  */
 const STRIKE_FALLBACK_LENGTH_FACTOR = 1.5;
-/** The shortest weapon drawn, whatever the reach. */
-const STRIKE_MIN_LENGTH_PX = 40;
 /** Weapon thickness as a share of its length, and its floor in px. */
 const STRIKE_THICKNESS_RATIO = 0.055;
 const STRIKE_MIN_THICKNESS_PX = 4;
@@ -381,6 +386,10 @@ const STRIKE_HAND_OFFSET = 0.6;
  * The attacker's end is re-read per frame and the aim follows the victim, so
  * the weapon tracks both and finishes toward the last known position of
  * whichever of them despawns first. The body is drawn once.
+ *
+ * ⭐ The `bite` is the exception (§12h call 3, the RIM BITE): not a weapon in
+ * a hand but a pair of jaws at the VICTIM's rim, on the point nearest the
+ * attacker, sized to the victim (`biteLengthPx`), never to the reach.
  */
 class StrikeFx implements Fx {
     private readonly g: Container;
@@ -402,16 +411,18 @@ class StrikeFx implements Fx {
         this.curve = strikeCurveOf(ctx.def.curve);
         this.totalMs = strikeTotalMsOf(ctx.def.curve, ctx.def.ms);
         const handPx = ctx.source.radiusPx * STRIKE_HAND_OFFSET;
-        this.lengthPx = Math.max(
-            STRIKE_MIN_LENGTH_PX,
-            ctx.reachPx > 0
-                ? ctx.reachPx - handPx
-                : ctx.source.radiusPx * STRIKE_FALLBACK_LENGTH_FACTOR);
+        this.lengthPx = this.curve === 'bite' || this.curve === 'pincer'
+            ? biteLengthPx(ctx.victim.radiusPx, BITE_MIN_LENGTH_PX)
+            : Math.max(
+                STRIKE_MIN_LENGTH_PX,
+                ctx.reachPx > 0
+                    ? ctx.reachPx - handPx
+                    : ctx.source.radiusPx * STRIKE_FALLBACK_LENGTH_FACTOR);
         this.sweepDirection = swingDirection(ctx.seed);
         const texture = bodyTextureFor(ctx.def);
-        if (this.curve === 'bite') {
+        if (this.curve === 'bite' || this.curve === 'pincer') {
             // ONE jaw body drawn TWICE, the second mirrored through the bite
-            // line, both hinged where a held weapon's grip sits. The scale
+            // line, both hinged on the victim's rim (§12h). The scale
             // carries the mirror, so it is set ONCE here and `update` never
             // touches it - the generic path below would wipe the negative y.
             this.g = this.jaw(texture, false);
@@ -446,18 +457,32 @@ class StrikeFx implements Fx {
             return false;
         }
         const from = this.ctx.source.point();
-        const aim = angle(from, this.ctx.victim.point());
+        const to = this.ctx.victim.point();
+        const aim = angle(from, to);
         const handPx = this.ctx.source.radiusPx * STRIKE_HAND_OFFSET;
         if (this.lowerJaw !== null) {
-            // The bite: both jaws hinge on the SAME point - the hand - and
-            // gape symmetrically about the aim, so `angleOffset` is the open
-            // angle rather than a sweep and `sweepDirection` stays out of it.
-            const x = from.x + Math.cos(aim) * handPx;
-            const y = from.y + Math.sin(aim) * handPx;
-            this.g.position.set(x, y);
-            this.lowerJaw.position.set(x, y);
-            this.g.rotation = aim - phase.angleOffset;
-            this.lowerJaw.rotation = aim + phase.angleOffset;
+            if (this.curve === 'pincer') {
+                // The pincer (PO look 2026-09-23): a fang on EACH side of the
+                // victim, hinged on the rim perpendicular to the attack line,
+                // pointing inward; both gape back toward the attacker by the
+                // open angle and swing in to meet at the centre.
+                const p = pincerHingePoints(from, to, this.ctx.victim.radiusPx);
+                this.g.position.set(p.left.x, p.left.y);
+                this.lowerJaw.position.set(p.right.x, p.right.y);
+                this.g.rotation = p.leftInward + phase.angleOffset;
+                this.lowerJaw.rotation = p.rightInward - phase.angleOffset;
+            } else {
+                // The rim bite (§12h call 3): both jaws hinge on the SAME point,
+                // the victim's rim nearest the attacker, re-read per frame because
+                // the victim moves, and gape symmetrically about the attack line
+                // toward the victim's centre. `angleOffset` is the open angle
+                // rather than a sweep, so `sweepDirection` stays out of it.
+                const hinge = biteHingePoint(from, to, this.ctx.victim.radiusPx);
+                this.g.position.set(hinge.x, hinge.y);
+                this.lowerJaw.position.set(hinge.x, hinge.y);
+                this.g.rotation = aim - phase.angleOffset;
+                this.lowerJaw.rotation = aim + phase.angleOffset;
+            }
             this.g.alpha = phase.alpha;
             this.lowerJaw.alpha = phase.alpha;
             this.g.visible = true;
@@ -554,12 +579,13 @@ class ProjectileFx implements Fx {
             // sized to anything in the world: an arrow is an arrow whoever it
             // is aimed at, and the briefing's canvas sizes are what set it.
             const sprite = acquireSprite('projectile', texture);
-            sprite.scale.set(scaleOf(ctx.def));
+            sprite.scale.set(scaleOf(ctx.def) * PROJECTILE_SIZE_FACTOR);
             sprite.tint = spriteTint(ctx.def);
             this.g = sprite;
         } else {
             this.g = drawProjectilePlaceholder(
-                acquire('projectile'), ctx.color, ctx.victim.radiusPx * scaleOf(ctx.def));
+                acquire('projectile'), ctx.color,
+                ctx.victim.radiusPx * scaleOf(ctx.def) * PROJECTILE_SIZE_FACTOR);
         }
         this.g.visible = false;
         ctx.layer.addChild(this.g);
@@ -757,7 +783,7 @@ class CastPoseFx implements Fx {
             return false;
         }
         const at = this.ctx.source.point();
-        // On `hit` the pose AIMS at its victim (PO 2026-09-20); on `fired`
+        // On `hit` and `applied` the pose AIMS at its victim (PO 2026-09-20); on `fired`
         // source and victim are one anchor, the angle is 0 and it faces +X.
         const to = this.ctx.victim.point();
         const angle = Math.atan2(to.y - at.y, to.x - at.x);
@@ -895,7 +921,7 @@ const PARTICLE_MAX_RADIUS_PX = 6;
  * stream, phase-offset so they never arrive together - while `fired` and `hit`
  * are one burst that is over after `ms`.
  *
- * The anchor is the caster for `ambient` / `fired` and the victim for `hit`
+ * The anchor is the caster for `ambient` / `fired` and the victim for `hit` and `applied`
  * (§12d.3), and like the other two owner-anchored kinds it stops with it.
  */
 class EmitterFx implements Fx {
@@ -909,7 +935,7 @@ class EmitterFx implements Fx {
     private readonly bodyScale: number;
 
     constructor(private readonly ctx: FxSpawnContext) {
-        this.anchor = ctx.def.on === 'hit' ? ctx.victim : ctx.source;
+        this.anchor = landsOnVictim(ctx.def.on) ? ctx.victim : ctx.source;
         this.motion = emitterMotionOf(ctx.def.motion);
         this.loop = ctx.def.on === 'ambient';
         // ⚑ The ONE place the slider touches a body count (§12d.1).

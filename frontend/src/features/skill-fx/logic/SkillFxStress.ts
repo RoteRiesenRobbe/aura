@@ -505,5 +505,6 @@ function nextEvent(): SkillEventData {
         amount: 1,
         kind: AuraApi.HitKind.Damage,
         fired: isFired,
+        phase: AuraApi.HitPhase.Direct,
     };
 }

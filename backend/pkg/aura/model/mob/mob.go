@@ -1936,7 +1936,7 @@ func (m *Mob) takeDamage(damage model.Damage, source uint64, s model.StatusEffec
 	if m.invulnerable {
 		if damage.HP > 0 {
 			// A real hit bounced; a 0-HP touch is a no-op, not immunity.
-			m.noteHit(source, damage.SkillID, model.HitKindImmune, 0)
+			m.noteHit(source, damage.SkillID, model.HitKindImmune, model.PhaseOf(damage.Tick), 0)
 		}
 		return 0
 	}
@@ -1963,7 +1963,7 @@ func (m *Mob) takeDamage(damage model.Damage, source uint64, s model.StatusEffec
 	// genuinely zeroed the hit - that, and only that, stamps "Immune".
 	if vitals.HP(hp32) <= 0 {
 		if damage.HP > 0 {
-			m.noteHit(source, damage.SkillID, model.HitKindImmune, 0)
+			m.noteHit(source, damage.SkillID, model.HitKindImmune, model.PhaseOf(damage.Tick), 0)
 		}
 		return 0
 	}
@@ -1986,9 +1986,9 @@ func (m *Mob) takeDamage(damage model.Damage, source uint64, s model.StatusEffec
 		if damage.Crit {
 			kind = model.HitKindCrit
 		}
-		m.noteHit(source, damage.SkillID, kind, loss)
+		m.noteHit(source, damage.SkillID, kind, model.PhaseOf(damage.Tick), loss)
 	case absorbed > 0:
-		m.noteHit(source, damage.SkillID, model.HitKindAbsorb, absorbed)
+		m.noteHit(source, damage.SkillID, model.HitKindAbsorb, model.PhaseOf(damage.Tick), absorbed)
 	}
 	dealt := absorbed + loss // "damage dealt", F6 §3.1/9 — feeds threat + lifesteal
 	if dealt > 0 {
@@ -2007,13 +2007,14 @@ func (m *Mob) takeDamage(damage model.Damage, source uint64, s model.StatusEffec
 // noteHit records one landing on this mob (plan-skill-vfx.md D9). Called only
 // from inside takeDamage / Heal, which is the point: every acting site in the
 // game ends in one of those two, so a new damage path cannot forget it.
-func (m *Mob) noteHit(source uint64, id skills.SkillID, kind model.HitKind, amount vitals.VitalSign) {
+func (m *Mob) noteHit(source uint64, id skills.SkillID, kind model.HitKind, phase model.HitPhase, amount vitals.VitalSign) {
 	m.noteSkillEvent(model.SkillEvent{
 		Source:  source,
 		Victim:  m.Basic().ID(),
 		SkillID: id,
 		Amount:  amount,
 		Kind:    kind,
+		Phase:   phase,
 	})
 }
 
@@ -2050,7 +2051,7 @@ func (m *Mob) Heal(h model.Healing) vitals.VitalSign {
 	// A heal that restored nothing (already full) is not a landing: no event,
 	// exactly as the old accumulator added nothing.
 	if healed > 0 && h.Caster != nil {
-		m.noteHit(h.Caster.Basic().ID(), h.SkillID, model.HitKindHeal, healed)
+		m.noteHit(h.Caster.Basic().ID(), h.SkillID, model.HitKindHeal, model.PhaseOf(h.Tick), healed)
 	}
 	return healed
 }
@@ -2069,6 +2070,12 @@ func (m *Mob) ApplyResist(source skills.SkillID, tags []string, factor float32, 
 // Reports whether this application ignited the mob rather than refreshing a
 // burn already running (§5.1).
 func (m *Mob) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) bool {
+	// Every call notes Applied, ignite and refresh alike (plan-skill-vfx.md
+	// §12h, PO 2026-09-23): the skill's `applied` look draws on application
+	// and on every refresh. Noted here, in the funnel, not at the callers (D9).
+	if e, ok := model.AppliedEvent(dot.Caster, m.Basic().ID(), source, model.HitKindDamage); ok {
+		m.noteSkillEvent(e)
+	}
 	return m.buffs.ApplyDot(source, dot, ticks)
 }
 
@@ -2077,6 +2084,12 @@ func (m *Mob) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) boo
 // SkillSystem via DueBuffEvents.
 // Reports whether the buff was genuinely new rather than a refresh (§5.2).
 func (m *Mob) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) bool {
+	// Every call notes Applied, ignite and refresh alike (plan-skill-vfx.md
+	// §12h, PO 2026-09-23): the skill's `applied` look draws on application
+	// and on every refresh. Noted here, in the funnel, not at the callers (D9).
+	if e, ok := model.AppliedEvent(hot.Caster, m.Basic().ID(), source, model.HitKindHeal); ok {
+		m.noteSkillEvent(e)
+	}
 	return m.buffs.ApplyHot(source, hot, ticks)
 }
 
@@ -2176,7 +2189,7 @@ func (m *Mob) ResetTickNumbers() {
 }
 
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
-	damage := model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit, SkillID: factors.SkillID}
+	damage := model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit, Tick: factors.Tick, SkillID: factors.SkillID}
 	// Factors carries no Source, so the toucher IS the acting entity.
 	lost := m.takeDamage(damage, model.ActingSourceID(nil, e), model.StatusEffectDamagedAmbient)
 	// Mob-cast lifesteal (chunk 1): Factors carries no Source — the mob is

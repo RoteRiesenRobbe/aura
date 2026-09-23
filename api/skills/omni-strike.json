@@ -23,6 +23,11 @@
     "wildlife_predator",
     "wildlife_prey"
   ],
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "hit", "motion": "burst", "count": 6, "ms": 450, "scale": 0.7 }
+    ]
+  },
   "effects": [
     {
       "type": "instant_damage",
