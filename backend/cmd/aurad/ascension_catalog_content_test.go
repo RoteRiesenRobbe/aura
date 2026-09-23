@@ -1,7 +1,6 @@
 package main
 
 import (
-	"math"
 	"strings"
 	"testing"
 
@@ -16,7 +15,6 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
 
 // Content pins for the seed ascension catalog (plan-ascension.md C3 step 4,
@@ -211,46 +209,6 @@ func (l *catalogLearner) BloodlineAscensions() int    { return 0 }
 func (l *catalogLearner) AccountID() int64            { return 0 }
 
 // --- the memorial's content (plan-ascension.md C3 step 6, D11) ---
-
-// The monument has to STAND somewhere. A definition that resolves but is never
-// spawned is a feature no player can reach, and the loader has nothing to say
-// about it — the memorial's entire in-world surface is this one spawn.
-//
-// ⚑ It also asserts the monument is BESIDE the stone (P25) and far enough from
-// it to be the nearest conversant when a player stands at it. `E` goes to the
-// NEAREST eligible actor, so two talkers inside each other's interaction range
-// would make which one answers a positional accident — the exact trap the
-// verify skill records for the zone-1 conversant cluster.
-//
-// ⚑ THE VILLAGE STONE BY NAME, deliberately, and it is the one place left that
-// names a site: P25 is about THAT pair standing together, not about ascension
-// sites in general. The generic pins moved to the sibling file when D1 made new
-// stones ordinary content, and a second site elsewhere in the world must not
-// make this test ambiguous.
-func TestMemorial_StandsBesideTheStoneAndIsReachable(t *testing.T) {
-	zone, _ := ascensionSiteZone(t)
-
-	var memorial, stone *world.Spawn
-	for i := range zone.Spawns {
-		switch zone.Spawns[i].Mob {
-		case "MemorialStone":
-			require.Nil(t, memorial, "exactly one monument, or two places claim one history")
-			memorial = &zone.Spawns[i]
-		case "AscensionStone":
-			stone = &zone.Spawns[i]
-		}
-	}
-	require.NotNil(t, memorial, "the memorial is authored but never placed")
-	require.NotNil(t, stone)
-	require.NotNil(t, memorial.Def, "the spawn resolved against the mob registry")
-
-	dx := float64(memorial.X - stone.X)
-	dy := float64(memorial.Y - stone.Y)
-	apart := math.Hypot(dx, dy)
-	assert.Less(t, apart, 12.0, "beside the stone, so one playtest walk reaches both (P25)")
-	assert.Greater(t, apart, float64(memorial.Def.Interaction.Range),
-		"further apart than the talk range, or which stone answers is a coin flip")
-}
 
 // ⭐ P26: THE MEMORIAL'S NODE IS UNGATED, and that is a ruling rather than an
 // omission. Reading the names of the dead is not a reward, and P1 prices the

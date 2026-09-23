@@ -130,12 +130,9 @@ func TestAscensionSites_StandClearOfEveryOtherConversant(t *testing.T) {
 	zone, registry := ascensionSiteZone(t)
 	authored := ascensionSiteDefs(t, registry)
 
-	// Further apart than the wider of the two talk ranges, which is the rule the
-	// memorial pin already applies to the pair it owns. ⚑ It is NOT a comfortable
-	// margin: the village stone and the monument stand 3.0 units apart by design
-	// (P25 wanted them beside each other), so this is deliberately the weakest
-	// assertion that still makes "which one answers" a decision rather than a
-	// coin flip.
+	// Further apart than the wider of the two talk ranges. ⚑ It is NOT a
+	// comfortable margin: it is deliberately the weakest assertion that still
+	// makes "which one answers" a decision rather than a coin flip.
 
 	for i := range zone.Spawns {
 		site := &zone.Spawns[i]
