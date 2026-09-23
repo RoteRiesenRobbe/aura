@@ -3,6 +3,7 @@
   "id": 71,
   "name": "FlyYouFools",
   "icon": "lorc/wingfoot",
+  "packIcon": "fleeing",
   "displayName": "Fly, You Fools!",
   "category": "active_aura",
   "maxLevel": 5,

@@ -28,6 +28,9 @@ import * as SkillFx from '../../skill-fx/logic/SkillFx';
 // because that module is in the vitest graph and this one holds a
 // `require.context`, which vitest cannot resolve.
 import '../../skill-fx/logic/SkillFxBodyFiles';
+// The icon-pack lookup and atlases (PackIconFiles.ts): a preload so no HUD
+// token is built before the lookup is known. The promise never rejects.
+import {packIconsReady} from '../../../client-data/icons/PackIconFiles';
 import * as Regions from '../../regions/logic/Regions';
 import {Region} from '../../regions/logic/Regions';
 import * as Paths from '../../paths/logic/Paths';
@@ -52,6 +55,8 @@ import {
 } from './Events';
 import {createNamedContainer} from '../../pixi-js/logic/CustomData';
 import {registerPreload} from './Preloading';
+
+registerPreload(packIconsReady);
 import {installContextLossWarning} from './ContextLossWarning';
 import {isMobile} from '../../user-interface/logic/Mobile';
 

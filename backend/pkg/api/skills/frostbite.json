@@ -3,6 +3,7 @@
   "id": 141,
   "name": "Frostbite",
   "icon": "lorc/snowflake-1",
+  "packIcon": "frozen-hand",
   "category": "active_aura",
   "maxLevel": 10,
   "visual": {

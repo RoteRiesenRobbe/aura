@@ -341,6 +341,10 @@ export interface SkillDefinition {
     // which are in the catalog but never render a row - skillIcon treats "" and
     // a missing catalog entry the same way.
     icon: string;
+    // The pack-manifest name of the icon-pack art drawn INSTEAD of `icon` when
+    // this build carries the atlases (README "Icons (PONETI pack)"); EMPTY when
+    // the skill authors none. `icon` stays the fallback everywhere.
+    packIcon: string;
     category: SkillCategory;
     maxLevel: number;
     legacy: boolean;
@@ -478,6 +482,11 @@ export function skillDisplayNameFor(name: string): string {
  */
 export function skillIcon(id: number): string | null {
     return catalog.get(id)?.icon || null;
+}
+
+/** The skill's icon-pack name (Skills `packIcon`), or null: the glyph then draws. */
+export function skillPackIcon(id: number): string | null {
+    return catalog.get(id)?.packIcon || null;
 }
 
 export function skillMaxLevel(id: number): number {

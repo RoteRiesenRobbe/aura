@@ -3,6 +3,7 @@
   "id": 54,
   "name": "Shockwave",
   "icon": "lorc/broadsword",
+  "packIcon": "hammer-ground",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 240,

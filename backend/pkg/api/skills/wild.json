@@ -3,6 +3,7 @@
   "id": 3,
   "name": "Wild",
   "icon": "lorc/broadsword",
+  "packIcon": "claws",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

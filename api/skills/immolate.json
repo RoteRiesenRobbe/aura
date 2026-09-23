@@ -3,6 +3,7 @@
   "id": 5,
   "name": "Immolate",
   "icon": "carl-olsen/flame",
+  "packIcon": "fire-ring",
   "category": "active_aura",
   "maxLevel": 10,
   "visual": {

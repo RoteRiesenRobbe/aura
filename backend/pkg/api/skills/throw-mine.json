@@ -3,6 +3,7 @@
   "id": 150,
   "name": "ThrowMine",
   "icon": "lorc/land-mine",
+  "packIcon": "fire-trap",
   "category": "cooldown",
   "maxLevel": 1,
   "cooldownTicks": 300,

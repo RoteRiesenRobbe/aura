@@ -3,6 +3,7 @@
   "id": 74,
   "name": "OmniPassive",
   "icon": "lorc/star-swirl",
+  "packIcon": "arcane-scroll",
   "category": "passive",
   "maxLevel": 5,
   "description": "Cheat-only test rig. Its retaliates fire on any hit, even one that is fully absorbed.",

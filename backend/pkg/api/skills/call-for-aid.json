@@ -3,6 +3,7 @@
   "id": 51,
   "name": "CallForAid",
   "icon": "lorc/totem-head",
+  "packIcon": "three-soldiers",
   "displayName": "Call for Aid",
   "category": "cooldown",
   "maxLevel": 5,

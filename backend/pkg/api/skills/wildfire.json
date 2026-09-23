@@ -3,11 +3,12 @@
   "id": 58,
   "name": "Wildfire",
   "icon": "carl-olsen/flame",
+  "packIcon": "fire-wall",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {
     "layers": [
-      { "kind": "projectile", "on": "applied", "speed": 900 }
+      { "kind": "projectile", "on": "applied", "speed": 650 }
     ]
   },
   "effects": [

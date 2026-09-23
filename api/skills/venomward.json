@@ -3,6 +3,7 @@
   "id": 145,
   "name": "Venomward",
   "icon": "lorc/bordered-shield",
+  "packIcon": "hooded-nature",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

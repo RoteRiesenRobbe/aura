@@ -3,6 +3,7 @@
   "id": 6,
   "name": "Lantern",
   "icon": "lorc/lantern-flame",
+  "packIcon": "lantern",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

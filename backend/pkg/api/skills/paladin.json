@@ -3,6 +3,7 @@
   "id": 30,
   "name": "Paladin",
   "icon": "delapouite/knight-banner",
+  "packIcon": "paladin-helm",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

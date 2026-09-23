@@ -39,8 +39,12 @@ function anchor(mob: keyof typeof GraphicsConfig.mobs) {
     return GraphicsConfig.mobs[mob].anchor;
 }
 
-function file(mob: keyof typeof GraphicsConfig.mobs) {
-    return GraphicsConfig.mobs[mob].file;
+// The portrait source for a mob: its committed art, plus the pack-manifest
+// name that overrides it when the icon pack is loaded (Graphics.ts `packIcon`,
+// Preloading.PortraitSource). One helper, so the registrations below did not
+// change when the pack arrived.
+function file(mob: keyof typeof GraphicsConfig.mobs): Preloading.PortraitSource {
+    return {file: GraphicsConfig.mobs[mob].file, packIcon: GraphicsConfig.mobs[mob].packIcon};
 }
 
 /**
@@ -528,6 +532,9 @@ Preloading.registerGameObjectSVG(Totem, file('totem'), maxSize('totem'));
 // The player-summoned companion (mob-depth chunk 6): follows its owner and
 // assists in combat. Fixed size, no hit sound — the base Damaged flash
 // suffices for the placeholder art.
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const companionBorder = registerBorder(GraphicsConfig.mobs.companion.borderFile, maxSize('companion'));
+
 export class Companion extends Mob {
     static svg: PIXI.Texture;
 
@@ -535,6 +542,11 @@ export class Companion extends Mob {
         super(id, Game.layers.mobs.companion, x, y,
             randomInt(minSize('companion'), maxSize('companion')),
             Companion.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), companionBorder, size);
     }
 }
 
@@ -759,6 +771,9 @@ Preloading.registerGameObjectSVG(EliteWolf, file('eliteWolf'), maxSize('eliteWol
 
 // The Harvest-gated destructible wall segment: a stationary solid mob,
 // never moves or fights back (solid-mob pattern, plan-content-zones12.md §4).
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const brambleBorder = registerBorder(GraphicsConfig.mobs.bramble.borderFile, maxSize('bramble'));
+
 export class Bramble extends Mob {
     static svg: PIXI.Texture;
 
@@ -766,6 +781,11 @@ export class Bramble extends Mob {
         super(id, Game.layers.mobs.wildlife, x, y,
             randomInt(minSize('bramble'), maxSize('bramble')),
             Bramble.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), brambleBorder, size);
     }
 }
 
@@ -814,6 +834,9 @@ export class KoboldRanged extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(KoboldRanged, file('koboldRanged'), maxSize('koboldRanged'));
 
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const spiderBorder = registerBorder(GraphicsConfig.mobs.spider.borderFile, maxSize('spider'));
+
 export class Spider extends Mob {
     static svg: PIXI.Texture;
 
@@ -821,6 +844,11 @@ export class Spider extends Mob {
         super(id, Game.layers.mobs.wildlife, x, y,
             randomInt(minSize('spider'), maxSize('spider')),
             Spider.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), spiderBorder, size);
     }
 }
 
@@ -892,6 +920,9 @@ export class Bandit extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Bandit, file('bandit'), maxSize('bandit'));
 
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const banditRangedBorder = registerBorder(GraphicsConfig.mobs.banditRanged.borderFile, maxSize('banditRanged'));
+
 export class BanditRanged extends Mob {
     static svg: PIXI.Texture;
 
@@ -900,10 +931,18 @@ export class BanditRanged extends Mob {
             randomInt(minSize('banditRanged'), maxSize('banditRanged')),
             BanditRanged.svg);
     }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), banditRangedBorder, size);
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(BanditRanged, file('banditRanged'), maxSize('banditRanged'));
+
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const banditHealerBorder = registerBorder(GraphicsConfig.mobs.banditHealer.borderFile, maxSize('banditHealer'));
 
 export class BanditHealer extends Mob {
     static svg: PIXI.Texture;
@@ -913,10 +952,18 @@ export class BanditHealer extends Mob {
             randomInt(minSize('banditHealer'), maxSize('banditHealer')),
             BanditHealer.svg);
     }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), banditHealerBorder, size);
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(BanditHealer, file('banditHealer'), maxSize('banditHealer'));
+
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const eliteBanditBorder = registerBorder(GraphicsConfig.mobs.eliteBandit.borderFile, maxSize('eliteBandit'));
 
 export class EliteBandit extends Mob {
     static svg: PIXI.Texture;
@@ -926,10 +973,18 @@ export class EliteBandit extends Mob {
             randomInt(minSize('eliteBandit'), maxSize('eliteBandit')),
             EliteBandit.svg);
     }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), eliteBanditBorder, size);
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(EliteBandit, file('eliteBandit'), maxSize('eliteBandit'));
+
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const rallyDrummerBorder = registerBorder(GraphicsConfig.mobs.rallyDrummer.borderFile, maxSize('rallyDrummer'));
 
 export class RallyDrummer extends Mob {
     static svg: PIXI.Texture;
@@ -939,12 +994,20 @@ export class RallyDrummer extends Mob {
             randomInt(minSize('rallyDrummer'), maxSize('rallyDrummer')),
             RallyDrummer.svg);
     }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), rallyDrummerBorder, size);
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(RallyDrummer, file('rallyDrummer'), maxSize('rallyDrummer'));
 
 // --- C5 the front (content pass C5) ---
+
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const armySoldierBorder = registerBorder(GraphicsConfig.mobs.armySoldier.borderFile, maxSize('armySoldier'));
 
 export class ArmySoldier extends Mob {
     static svg: PIXI.Texture;
@@ -953,6 +1016,11 @@ export class ArmySoldier extends Mob {
         super(id, Game.layers.mobs.wildlife, x, y,
             randomInt(minSize('armySoldier'), maxSize('armySoldier')),
             ArmySoldier.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), armySoldierBorder, size);
     }
 }
 
@@ -979,6 +1047,9 @@ export class Orc extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Orc, file('orc'), maxSize('orc'));
 
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const trollBorder = registerBorder(GraphicsConfig.mobs.troll.borderFile, maxSize('troll'));
+
 export class Troll extends Mob {
     static svg: PIXI.Texture;
 
@@ -987,10 +1058,18 @@ export class Troll extends Mob {
             randomInt(minSize('troll'), maxSize('troll')),
             Troll.svg);
     }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), trollBorder, size);
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Troll, file('troll'), maxSize('troll'));
+
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const banditPyromancerBorder = registerBorder(GraphicsConfig.mobs.banditPyromancer.borderFile, maxSize('banditPyromancer'));
 
 export class BanditPyromancer extends Mob {
     static svg: PIXI.Texture;
@@ -999,6 +1078,11 @@ export class BanditPyromancer extends Mob {
         super(id, Game.layers.mobs.wildlife, x, y,
             randomInt(minSize('banditPyromancer'), maxSize('banditPyromancer')),
             BanditPyromancer.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), banditPyromancerBorder, size);
     }
 }
 
@@ -1020,6 +1104,9 @@ Preloading.registerGameObjectSVG(SpikeBarricade, file('spikeBarricade'), maxSize
 
 // --- C6 Orc Warlord arena (content pass C6) ---
 
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const orcWarlordBorder = registerBorder(GraphicsConfig.mobs.orcWarlord.borderFile, maxSize('orcWarlord'));
+
 export class OrcWarlord extends Mob {
     static svg: PIXI.Texture;
 
@@ -1027,6 +1114,11 @@ export class OrcWarlord extends Mob {
         super(id, Game.layers.mobs.wildlife, x, y,
             randomInt(minSize('orcWarlord'), maxSize('orcWarlord')),
             OrcWarlord.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), orcWarlordBorder, size);
     }
 }
 
@@ -1046,6 +1138,9 @@ export class WarbannerTotem extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(WarbannerTotem, file('warbannerTotem'), maxSize('warbannerTotem'));
 
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const orcGruntBorder = registerBorder(GraphicsConfig.mobs.orcGrunt.borderFile, maxSize('orcGrunt'));
+
 export class OrcGrunt extends Mob {
     static svg: PIXI.Texture;
 
@@ -1054,10 +1149,18 @@ export class OrcGrunt extends Mob {
             randomInt(minSize('orcGrunt'), maxSize('orcGrunt')),
             OrcGrunt.svg);
     }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), orcGruntBorder, size);
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(OrcGrunt, file('orcGrunt'), maxSize('orcGrunt'));
+
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const soldierCompanionBorder = registerBorder(GraphicsConfig.mobs.soldierCompanion.borderFile, maxSize('soldierCompanion'));
 
 export class SoldierCompanion extends Mob {
     static svg: PIXI.Texture;
@@ -1067,10 +1170,18 @@ export class SoldierCompanion extends Mob {
             randomInt(minSize('soldierCompanion'), maxSize('soldierCompanion')),
             SoldierCompanion.svg);
     }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), soldierCompanionBorder, size);
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(SoldierCompanion, file('soldierCompanion'), maxSize('soldierCompanion'));
+
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const shieldbearerCompanionBorder = registerBorder(GraphicsConfig.mobs.shieldbearerCompanion.borderFile, maxSize('shieldbearerCompanion'));
 
 export class ShieldbearerCompanion extends Mob {
     static svg: PIXI.Texture;
@@ -1079,6 +1190,11 @@ export class ShieldbearerCompanion extends Mob {
         super(id, Game.layers.mobs.wildlife, x, y,
             randomInt(minSize('shieldbearerCompanion'), maxSize('shieldbearerCompanion')),
             ShieldbearerCompanion.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), shieldbearerCompanionBorder, size);
     }
 }
 
@@ -1102,6 +1218,9 @@ Preloading.registerGameObjectSVG(MedicCompanion, file('medicCompanion'), maxSize
 // own sprites (were Wolf/Bear entityType reskins), plus the three farm-band
 // normals. All share the wildlife layer. ---
 
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const giantSpiderBorder = registerBorder(GraphicsConfig.mobs.giantSpider.borderFile, maxSize('giantSpider'));
+
 export class GiantSpider extends Mob {
     static svg: PIXI.Texture;
 
@@ -1109,6 +1228,11 @@ export class GiantSpider extends Mob {
         super(id, Game.layers.mobs.wildlife, x, y,
             randomInt(minSize('giantSpider'), maxSize('giantSpider')),
             GiantSpider.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), giantSpiderBorder, size);
     }
 }
 
@@ -1198,6 +1322,9 @@ Preloading.registerGameObjectSVG(DireBear, file('direBear'), maxSize('direBear')
 // Fire elementals (2026-07-21): high-band burn hazards, reusing the shared
 // `wildlife` layer like the orcs and marauders — no new layer, so no Game.ts
 // container/addChild pair is needed.
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const fireElementalBorder = registerBorder(GraphicsConfig.mobs.fireElemental.borderFile, maxSize('fireElemental'));
+
 export class FireElemental extends Mob {
     static svg: PIXI.Texture;
 
@@ -1205,6 +1332,11 @@ export class FireElemental extends Mob {
         super(id, Game.layers.mobs.wildlife, x, y,
             randomInt(minSize('fireElemental'), maxSize('fireElemental')),
             FireElemental.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), fireElementalBorder, size);
     }
 }
 
@@ -1263,6 +1395,15 @@ function npcCfg(npc: keyof typeof GraphicsConfig.npcs) {
     return GraphicsConfig.npcs[npc];
 }
 
+// The portrait source for an NPC, the twin of file() above: the committed art
+// plus the optional pack-manifest name (Graphics.ts `packIcon`) that overrides
+// it when the icon pack is loaded. The npcs map is a union of hand-written
+// entries, only some of which carry a packIcon, hence the narrowing.
+function npcFile(npc: keyof typeof GraphicsConfig.npcs): Preloading.PortraitSource {
+    const cfg: { file: string, packIcon?: string } = npcCfg(npc);
+    return {file: cfg.file, packIcon: cfg.packIcon};
+}
+
 // Addressed directly rather than via npcCfg(): that helper returns the union of
 // every npc entry, and only the medallion NPCs carry a borderFile.
 const farmerBorder = registerBorder(
@@ -1282,7 +1423,7 @@ export class Farmer extends Mob {
 }
 
 // noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Farmer, npcCfg('farmer').file, npcCfg('farmer').maxSize);
+Preloading.registerGameObjectSVG(Farmer, npcFile('farmer'), npcCfg('farmer').maxSize);
 
 // The "missing art" marker for an NPC definition whose entityType names no
 // drawn sprite yet. Kept deliberately un-gamelike so unconfigured content
@@ -1298,7 +1439,7 @@ export class NpcPlaceholder extends Mob {
 }
 
 // noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(NpcPlaceholder, npcCfg('placeholder').file, npcCfg('placeholder').maxSize);
+Preloading.registerGameObjectSVG(NpcPlaceholder, npcFile('placeholder'), npcCfg('placeholder').maxSize);
 
 export class Signpost extends Mob {
     static svg: PIXI.Texture;
@@ -1309,7 +1450,7 @@ export class Signpost extends Mob {
 }
 
 // noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Signpost, npcCfg('signpost').file, npcCfg('signpost').maxSize);
+Preloading.registerGameObjectSVG(Signpost, npcFile('signpost'), npcCfg('signpost').maxSize);
 
 const hermitBorder = registerBorder(
     GraphicsConfig.npcs.hermit.borderFile, GraphicsConfig.npcs.hermit.maxSize);
@@ -1328,7 +1469,10 @@ export class Hermit extends Mob {
 }
 
 // noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Hermit, npcCfg('hermit').file, npcCfg('hermit').maxSize);
+Preloading.registerGameObjectSVG(Hermit, npcFile('hermit'), npcCfg('hermit').maxSize);
+
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const wandererBorder = registerBorder(GraphicsConfig.npcs.wanderer.borderFile, npcCfg('wanderer').maxSize);
 
 export class Wanderer extends Mob {
     static svg: PIXI.Texture;
@@ -1336,10 +1480,18 @@ export class Wanderer extends Mob {
     constructor(id: number, x: number, y: number, size: number) {
         super(id, Game.layers.resources.trees, x, y, size, Wanderer.svg);
     }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), wandererBorder, size);
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Wanderer, npcCfg('wanderer').file, npcCfg('wanderer').maxSize);
+Preloading.registerGameObjectSVG(Wanderer, npcFile('wanderer'), npcCfg('wanderer').maxSize);
+
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const travellerBorder = registerBorder(GraphicsConfig.npcs.traveller.borderFile, npcCfg('traveller').maxSize);
 
 export class Traveller extends Mob {
     static svg: PIXI.Texture;
@@ -1347,10 +1499,15 @@ export class Traveller extends Mob {
     constructor(id: number, x: number, y: number, size: number) {
         super(id, Game.layers.resources.trees, x, y, size, Traveller.svg);
     }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), travellerBorder, size);
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Traveller, npcCfg('traveller').file, npcCfg('traveller').maxSize);
+Preloading.registerGameObjectSVG(Traveller, npcFile('traveller'), npcCfg('traveller').maxSize);
 
 const townCrierBorder = registerBorder(
     GraphicsConfig.npcs.townCrier.borderFile, GraphicsConfig.npcs.townCrier.maxSize);
@@ -1369,7 +1526,7 @@ export class TownCrier extends Mob {
 }
 
 // noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(TownCrier, npcCfg('townCrier').file, npcCfg('townCrier').maxSize);
+Preloading.registerGameObjectSVG(TownCrier, npcFile('townCrier'), npcCfg('townCrier').maxSize);
 
 export class DogNpc extends Mob {
     static svg: PIXI.Texture;
@@ -1380,7 +1537,10 @@ export class DogNpc extends Mob {
 }
 
 // noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(DogNpc, npcCfg('dogNpc').file, npcCfg('dogNpc').maxSize);
+Preloading.registerGameObjectSVG(DogNpc, npcFile('dogNpc'), npcCfg('dogNpc').maxSize);
+
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const minerBorder = registerBorder(GraphicsConfig.npcs.miner.borderFile, npcCfg('miner').maxSize);
 
 export class Miner extends Mob {
     static svg: PIXI.Texture;
@@ -1388,10 +1548,15 @@ export class Miner extends Mob {
     constructor(id: number, x: number, y: number, size: number) {
         super(id, Game.layers.resources.trees, x, y, size, Miner.svg);
     }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), minerBorder, size);
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Miner, npcCfg('miner').file, npcCfg('miner').maxSize);
+Preloading.registerGameObjectSVG(Miner, npcFile('miner'), npcCfg('miner').maxSize);
 
 const cityGuardBorder = registerBorder(
     GraphicsConfig.npcs.cityGuard.borderFile, GraphicsConfig.npcs.cityGuard.maxSize);
@@ -1410,7 +1575,10 @@ export class CityGuard extends Mob {
 }
 
 // noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(CityGuard, npcCfg('cityGuard').file, npcCfg('cityGuard').maxSize);
+Preloading.registerGameObjectSVG(CityGuard, npcFile('cityGuard'), npcCfg('cityGuard').maxSize);
+
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const villageHealerBorder = registerBorder(GraphicsConfig.npcs.villageHealer.borderFile, npcCfg('villageHealer').maxSize);
 
 export class VillageHealer extends Mob {
     static svg: PIXI.Texture;
@@ -1418,10 +1586,18 @@ export class VillageHealer extends Mob {
     constructor(id: number, x: number, y: number, size: number) {
         super(id, Game.layers.resources.trees, x, y, size, VillageHealer.svg);
     }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), villageHealerBorder, size);
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(VillageHealer, npcCfg('villageHealer').file, npcCfg('villageHealer').maxSize);
+Preloading.registerGameObjectSVG(VillageHealer, npcFile('villageHealer'), npcCfg('villageHealer').maxSize);
+
+// Medallion frame over the pack portrait (Graphics.ts `borderFile`, pipeline.md §4).
+const frontCaptainBorder = registerBorder(GraphicsConfig.npcs.frontCaptain.borderFile, npcCfg('frontCaptain').maxSize);
 
 export class FrontCaptain extends Mob {
     static svg: PIXI.Texture;
@@ -1429,7 +1605,12 @@ export class FrontCaptain extends Mob {
     constructor(id: number, x: number, y: number, size: number) {
         super(id, Game.layers.resources.trees, x, y, size, FrontCaptain.svg);
     }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), frontCaptainBorder, size);
+    }
 }
 
 // noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(FrontCaptain, npcCfg('frontCaptain').file, npcCfg('frontCaptain').maxSize);
+Preloading.registerGameObjectSVG(FrontCaptain, npcFile('frontCaptain'), npcCfg('frontCaptain').maxSize);

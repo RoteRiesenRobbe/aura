@@ -13,21 +13,40 @@
 // SkillIcons.generated.ts - no runtime request, ever.
 
 import {SKILL_GLYPHS} from '../../../../client-data/icons/SkillIcons.generated';
+import {hasPackIcon, packIconRegion, packIconStyle, packLookup} from '../../../../client-data/icons/PackIcons';
 
 /** The class every token carries, and what the harness asserts against. */
 export const TOKEN_CLASS = 'ink-token';
 
+/** A pack icon's token carries this too; its child draws the atlas region. */
+export const PACK_TOKEN_CLASS = 'packIcon';
+
 /**
- * Build a token for a glyph path ("author/name"), falling back to `fallback`'s
- * first character when the path is null or names a glyph that is not bundled.
+ * Build a token for a skill: the icon-pack portrait named by `packIcon` when
+ * this build loaded it (drawn from the atlas as a background sprite), else the
+ * glyph at `iconPath` ("author/name"), else `fallback`'s first character when
+ * the path is null or names a glyph that is not bundled.
  *
- * The unbundled case is a content typo - both completeness pins (the Go content
- * test and SkillIcons.test.ts) exist to catch it before it ships - so the
- * fallback is a safety net, not a normal path.
+ * The pack icon is optional art on top: a build without the atlases (README
+ * "Icons (PONETI pack)") draws the glyph and looks exactly as it did before
+ * the pack. The unbundled-glyph case is a content typo - both completeness
+ * pins (the Go content test and SkillIcons.test.ts) exist to catch it before
+ * it ships - so the letter is a safety net, not a normal path.
  */
-export function createIconToken(iconPath: string | null, fallback: string): HTMLElement {
+export function createIconToken(iconPath: string | null, fallback: string, packIcon: string | null = null): HTMLElement {
     const token = document.createElement('span');
     token.className = TOKEN_CLASS;
+
+    const region = packIconRegion(packIcon);
+    const lookup = packLookup();
+    if (region && lookup) {
+        token.classList.add(PACK_TOKEN_CLASS);
+        const image = document.createElement('span');
+        image.className = 'packImage';
+        Object.assign(image.style, packIconStyle(region, lookup.atlasSize));
+        token.appendChild(image);
+        return token;
+    }
 
     const glyph = iconPath ? SKILL_GLYPHS[iconPath] : undefined;
     if (!glyph) {
@@ -47,7 +66,7 @@ export function createIconToken(iconPath: string | null, fallback: string): HTML
     return token;
 }
 
-/** Whether a glyph path is one this build can actually draw. */
-export function hasGlyph(iconPath: string | null): boolean {
-    return !!iconPath && iconPath in SKILL_GLYPHS;
+/** Whether a glyph path, or the pack icon that outranks it, is one this build can actually draw. */
+export function hasGlyph(iconPath: string | null, packIcon: string | null = null): boolean {
+    return (!!iconPath && iconPath in SKILL_GLYPHS) || hasPackIcon(packIcon);
 }

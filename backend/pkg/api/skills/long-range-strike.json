@@ -3,13 +3,14 @@
   "id": 45,
   "name": "LongRangeStrike",
   "icon": "lorc/broadsword",
+  "packIcon": "spear-thrust",
   "displayName": "Long-Range Strike",
   "category": "active_aura",
   "maxLevel": 10,
   "visual": {
     "layers": [
       { "kind": "cast-pose", "on": "hit", "ms": 500 },
-      { "kind": "projectile", "on": "hit", "body": "arrow", "scale": 0.6, "speed": 900 }
+      { "kind": "projectile", "on": "hit", "body": "arrow", "scale": 0.6, "speed": 650 }
     ]
   },
   "effects": [

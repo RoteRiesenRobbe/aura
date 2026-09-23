@@ -3,6 +3,7 @@
   "id": 29,
   "name": "Rejuvenation",
   "icon": "delapouite/healing",
+  "packIcon": "glowing-leaf",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

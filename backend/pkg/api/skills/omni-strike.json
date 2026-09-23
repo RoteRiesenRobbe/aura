@@ -3,6 +3,7 @@
   "id": 75,
   "name": "OmniStrike",
   "icon": "lorc/star-swirl",
+  "packIcon": "arcane-orb",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,

@@ -3,6 +3,7 @@
   "id": 8,
   "name": "Bloodthirst",
   "icon": "lorc/life-tap",
+  "packIcon": "fangs",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 900,

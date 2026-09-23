@@ -3,6 +3,7 @@
   "id": 45,
   "name": "LongRangeStrike",
   "icon": "lorc/broadsword",
+  "packIcon": "spear-thrust",
   "displayName": "Long-Range Strike",
   "category": "active_aura",
   "maxLevel": 10,

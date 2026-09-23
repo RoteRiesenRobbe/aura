@@ -3,6 +3,7 @@
   "id": 63,
   "name": "CharmBeast",
   "icon": "lorc/charm",
+  "packIcon": "mind-control",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 3600,

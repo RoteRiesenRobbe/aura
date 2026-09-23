@@ -3,6 +3,7 @@
   "id": 42,
   "name": "Hardy",
   "icon": "sbed/health-increase",
+  "packIcon": "torso",
   "category": "passive",
   "maxLevel": 5,
   "effects": [

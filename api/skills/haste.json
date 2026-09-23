@@ -2,6 +2,7 @@
   "id": 34,
   "name": "Haste",
   "icon": "lorc/stopwatch",
+  "packIcon": "clock",
   "category": "cooldown",
   "maxLevel": 1,
   "cooldownTicks": 300,

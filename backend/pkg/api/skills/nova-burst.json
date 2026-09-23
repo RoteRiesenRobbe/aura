@@ -3,6 +3,7 @@
   "id": 20,
   "name": "NovaBurst",
   "icon": "carl-olsen/flame",
+  "packIcon": "blast-rings",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,

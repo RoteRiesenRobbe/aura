@@ -1065,6 +1065,25 @@ Three distinct VFX surfaces — **all pure frontend, no backend, no wire.**
 
 ## 4. Replacing mob / player icons
 
+### From the PONETI icon pack (2026-09-23)
+
+A portrait can come from the licensed **"6000 Fantasy Icons" pack** instead of
+a file in the tree (README "Icons (PONETI pack)", `THIRD_PARTY.md`): add the
+PNG to `frontend/src/client-data/icons/pack-manifest.json` under a name that
+describes the picture (`portrait-troll`, not `troll`), repack
+(`node tools/pack-icons.mjs`, seat holder only; the atlases stay out of git
+while the repo is public), then set `packIcon: '<name>'` on the entry in
+`Graphics.ts` (`character` or any `mobs.<mob>`). Keep the entry's `file`: it
+is the fallback on every build without the atlases, and the pack PNG never
+enters the repo. The square icon is clipped to a circle at load so it sits
+under the round medallion frame. A skill takes the same manifest name as
+`"packIcon": "<name>"` beside its `"icon"` glyph: the HUD token draws the pack
+icon where the atlases are loaded and the glyph everywhere else, so `icon`
+stays required and `packIcon` is optional. `PackIcons.test.ts` pins every
+`packIcon` against the manifest and every manifest entry against a user.
+Only the seat holder can pick a pack icon; a new skill authored elsewhere
+ships with its glyph until then.
+
 ### Portrait style checklist (applies to every creature/humanoid icon)
 
 The world is top-down, but creatures and humanoids are **portrait icons**, not

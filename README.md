@@ -169,11 +169,13 @@ per seat (Extension Asset, `THIRD_PARTY.md`) and this repo is public, so
 **neither the PNGs nor the atlases built from them are in git**, and they never
 may be.
 
-**You do not need the pack to build or run Aura.** Without it the build prints
-one notice line and the game simply has no pack icons; every other feature
-works. The pre-commit hook still applies (install it once per clone with
-`git config core.hooksPath .githooks`): it refuses a commit that stages a pack
-file or a generated atlas.
+**You do not need the pack to build or run Aura.** Without the atlases the
+build prints one notice line and the game draws the game-icons glyphs and the
+committed portraits instead; every other feature works. The atlases stay out
+of git while this repository is public, and for now only the seat holder's
+machine and the deployed server carry them (`THIRD_PARTY.md`, PO 2026-09-24). The pre-commit hook still applies (install it once
+per clone with `git config core.hooksPath .githooks`): it refuses a commit
+that stages a raw pack file or a generated atlas.
 
 **Seat holder only** (the one machine that builds with the icons):
 
@@ -185,15 +187,21 @@ file or a generated atlas.
 
 `npm run build` and `npm run start` then run `tools/pack-icons.mjs`, which reads
 `frontend/src/client-data/icons/pack-manifest.json` (the only icon data that is
-committed) and packs the listed icons into `frontend/dist/icons/` as atlases plus
-an `icons.json` lookup. With the variable set, a missing folder or a manifest
-entry without a file fails the build with the fix named. To use a new icon, add
-a line to the manifest; never copy the PNG into the repo. Both scripts have a
+committed) and packs the listed icons into `frontend/icons-prebuilt/` (local,
+gitignored) as atlases plus an `icons.json` lookup, then copies that set into
+`frontend/dist/icons/`, so a later build without the pack still serves them.
+With the variable set, a missing folder or a manifest entry without a file
+fails the build with the fix named. To use a new icon, add a line to the
+manifest and repack; never copy the PNG into the repo. Both scripts have a
 `--self-test` that runs without the pack.
 
-⚑ How other developers get the icons on their machines is an OPEN decision: a
-private repo mounted as a submodule, or an encrypted copy, both need a private
-channel and are recorded as options in `THIRD_PARTY.md`.
+Two places consume a manifest name, both as a `packIcon` beside the art it
+falls back to: a skill's `"packIcon": "<name>"` beside its `"icon"` glyph (the
+HUD token draws the pack icon when the atlases are loaded, the glyph
+otherwise) and a `packIcon: '<name>'` beside `file` on a `Graphics.ts` entry (a
+creature's portrait, clipped round under its medallion frame). Manifest names
+describe the picture (`fire-ring`, `portrait-troll`), not the skill.
+`manual-content-authoring.md` §4 has the details.
 
 ## Running the Project
 

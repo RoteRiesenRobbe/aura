@@ -3,6 +3,7 @@
   "id": 22,
   "name": "Ignite",
   "icon": "carl-olsen/flame",
+  "packIcon": "burning-knight",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,

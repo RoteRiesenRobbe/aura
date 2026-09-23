@@ -3,6 +3,7 @@
   "id": 40,
   "name": "FireWard",
   "icon": "lorc/bordered-shield",
+  "packIcon": "hooded-fire",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

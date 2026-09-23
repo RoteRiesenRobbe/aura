@@ -3,6 +3,7 @@
   "id": 57,
   "name": "FieldMedics",
   "icon": "lorc/totem-head",
+  "packIcon": "medic-cross",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 2400,

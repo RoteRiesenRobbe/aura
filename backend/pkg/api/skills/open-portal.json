@@ -3,6 +3,7 @@
   "id": 147,
   "name": "OpenPortal",
   "icon": "lorc/magic-portal",
+  "packIcon": "portal",
   "category": "cooldown",
   "maxLevel": 1,
   "cooldownTicks": 1200,

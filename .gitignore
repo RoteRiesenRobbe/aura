@@ -37,8 +37,11 @@ scripts/__pycache__/
 tools/tiled/*.tiled-session
 
 # PONETI icon pack (THIRD_PARTY.md): the raw PNGs live OUTSIDE the repo under
-# AURA_ICON_PACK_DIR and the atlases tools/pack-icons.mjs builds from them are
-# build output. Belt and braces on top of frontend/dist/ and .githooks/pre-commit.
+# AURA_ICON_PACK_DIR. The atlases tools/pack-icons.mjs builds from them land in
+# frontend/icons-prebuilt/ (the local build, copied to frontend/dist/icons/ on
+# every run) and stay out of git while the repo is public: they are a download
+# of licensed art. Belt and braces on top of .githooks/pre-commit.
+frontend/icons-prebuilt/
 **/icons/atlas-*.png
 **/icons/icons.json
 frontend/node_modules/.cache/aura-icon-pack-hashes.json

@@ -3,6 +3,7 @@
   "id": 68,
   "name": "Retribution",
   "icon": "lorc/shield-reflect",
+  "packIcon": "deflect",
   "displayName": "Retribution",
   "category": "cooldown",
   "maxLevel": 5,

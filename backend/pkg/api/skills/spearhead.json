@@ -3,6 +3,7 @@
   "id": 52,
   "name": "Spearhead",
   "icon": "lorc/broadsword",
+  "packIcon": "raised-sword",
   "category": "active_aura",
   "maxLevel": 10,
   "visual": {

@@ -3,6 +3,7 @@
   "id": 21,
   "name": "FirstAid",
   "icon": "delapouite/healing",
+  "packIcon": "bandages",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 900,

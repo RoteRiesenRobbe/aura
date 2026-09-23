@@ -2,6 +2,7 @@
   "id": 33,
   "name": "Dash",
   "icon": "lorc/wingfoot",
+  "packIcon": "dash-swirl",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,

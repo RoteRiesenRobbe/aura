@@ -48,6 +48,7 @@ export const SKILL_PRESENTATION = {
   name: { control: 'text', hint: 'The reference key everywhere: mob skills[]/unlocks[], milestones, NPC grants, recipes, the SKILL cheat.' },
   displayName: { control: 'text', hint: 'Optional; blank derives one from the name (CamelCase → spaces).' },
   icon: { control: 'icon', hint: 'Required: pick one of the vendored glyphs. An unvendored value renders as a letter fallback and reddens SkillIcons.test.ts.' },
+  packIcon: { control: 'text', hint: 'Optional: a pack-manifest name (frontend/src/client-data/icons/pack-manifest.json) drawn INSTEAD of the glyph where the icon-pack atlases are loaded; the glyph stays the fallback. Seat holder only (README "Icons (PONETI pack)"); an unknown name reddens PackIcons.test.ts.' },
   description: { control: 'textarea', hint: 'Optional tooltip flavor line.' },
   category: { control: 'select', options: 'categories' },
   maxLevel: { control: 'number', unit: 'count', hint: 'Never decreases on a shipped skill (persisted levels may exceed a lowered cap).' },

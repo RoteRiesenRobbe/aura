@@ -21,5 +21,6 @@
   ],
   "category": "cooldown",
   "icon": "delapouite/knocked-out-stars",
+  "packIcon": "spiders",
   "_comment": "Summon a Spider to fight for you"
 }

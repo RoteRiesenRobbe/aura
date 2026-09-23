@@ -3,6 +3,7 @@
   "id": 143,
   "name": "RimeBurst",
   "icon": "lorc/snowflake-1",
+  "packIcon": "frost-nova",
   "displayName": "Rime-Burst",
   "category": "cooldown",
   "maxLevel": 5,

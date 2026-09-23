@@ -3,6 +3,7 @@
   "id": 23,
   "name": "SummonTotem",
   "icon": "lorc/totem-head",
+  "packIcon": "totem-blue",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 450,

@@ -63,7 +63,7 @@
 // row already had at C3 and a page of eight still occupies exactly the space it
 // did (measured both ways at 1280x900 - the row pitch does not move). Smaller
 // only costs legibility. C5 re-sizes this for the slots.
-@ink-token-size: 2.2rem;
+@ink-token-size: 3.5rem; // 2.2 until the PO's 2026-09-24 look: the pack art wants room
 
 .ink-token {
 	flex: 0 0 auto;
@@ -86,6 +86,34 @@
 		width: 68%;
 		height: 68%;
 		fill: currentColor;
+	}
+
+	// A PONETI pack icon (PackIcons.ts): full-colour art cropped out of the
+	// atlas by IconToken's inline percentages, so it needs no size of its own
+	// and follows @ink-token-size like the svg does.
+	> .packImage {
+		display: block;
+		width: 100%;
+		height: 100%;
+		background-repeat: no-repeat;
+	}
+
+	// The pack art fills the token edge to edge (PO look 2, 2026-09-24: the
+	// moss well and the wide ink ring cost a third of the pixels), inside a
+	// THIN frame in the spirit of the WoW Classic spellbook slot (PO look 3):
+	// a 3px stone-brown line, bevelled like the WoW slot: a parchment
+	// highlight on the top-left edge, a shadow on the bottom-right, so it
+	// reads as a raised frame instead of a black line that sinks into the
+	// art's own dark border (PO look 4). [PLACEHOLDER] every value. The glyph
+	// and letter tokens keep the C4 box.
+	&.packIcon {
+		background: none;
+		border: 3px solid mix(@wood, #9a9088, 45%);
+		border-radius: 4px;
+		box-shadow:
+			inset 1px 1px 0 1px fade(@parchment, 45%),
+			inset -1px -1px 0 1px fade(@ink, 70%);
+		overflow: hidden;
 	}
 
 	// No bundled glyph: the skill's initial in the same token, so a row is
@@ -687,9 +715,18 @@
 
 // The @panel-* vocabulary lives in ../../assets/variables.less since C6.
 
+// The book's page geometry (PO 2026-09-24): a FIXED page, never a scrolling
+// one. Width for two-word names on one line where they fit; a row tall enough
+// for a two-line name so a wrap never grows it; the page exactly PAGE_SIZE rows
+// tall (Spellbook.ts) whatever the names do. All three [PLACEHOLDER].
+@book-width:      26rem;  // 34 read as too wide (PO look 2): the room goes to the icon, not the gap
+@book-row-height: 4rem;   // = the 3.5rem token + padding, and > two 1.15-line text lines
+@book-page-rows:  8;      // = PAGE_SIZE
+
 #spellbook {
 	.ink-panel-chrome();
 	min-width: @panel-min-width;
+	width: @book-width;
 
 	// ⚑ Explicit, not inherited from the bare `.hidden` class: an id selector
 	// beats it, so the moment any rule here (or in HUD.mobile.less) sets a
@@ -785,7 +822,10 @@
 		// and the passives below have to stay on screen. Pages are what keeps
 		// the list short now - this clamp is the backstop, not the reading
 		// mechanism (see the SimpleBar note in HUD.ts).
-		max-height: calc(100vh - 30rem);
+		// A page's worth of rows, FIXED (PO 2026-09-24): the old viewport-
+		// relative max-height is what let a two-line name push the page into
+		// scrolling, and the height must not follow the names either.
+		height: (@book-row-height * @book-page-rows);
 		// Disables SimpleBar's horizontal axis (its recalculate() reads the
 		// host overflow-x) — its scrollbar-hiding trick otherwise fakes ~20px
 		// of x-overflow and renders a pointless horizontal bar. overflow-y
@@ -874,14 +914,18 @@
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-			gap: 0.5rem;
+			gap: 0.6rem;
+			// Fixed, border-box: eight rows are always eight row-heights, so
+			// the page below never has anything to scroll (PO 2026-09-24).
+			box-sizing: border-box;
+			height: @book-row-height;
 			// The right padding keeps the +/− buttons out from under SimpleBar's
 			// overlay scrollbar (F3 feel pass — the PO reported it sitting on
 			// them). Same fix and the same 0.8rem as .conversationBody above;
 			// it lives on the ROW rather than the scroll host because SimpleBar
 			// positions its track against the host's padding box, so padding
 			// there moves the bar instead of the content.
-			padding: 0.4rem 0.8rem 0.4rem 0;
+			padding: 0.25rem 0.8rem 0.25rem 0;
 			border-bottom: 1px solid @panel-row-divider;
 
 			&:last-child {
@@ -949,6 +993,11 @@
 			> .skillName {
 				flex: 1;
 				min-width: 0;
+				// Two lines at most inside the fixed row; a third is clipped
+				// rather than pushing the page into a scrollbar.
+				line-height: 1.15;
+				max-height: 2.3em;
+				overflow: hidden;
 			}
 
 			> .skillControls {
@@ -1212,7 +1261,7 @@
 	text-transform: uppercase;
 }
 
-@slot-size:   52px;
+@slot-size:   64px; // was 52 until the PO's 2026-09-24 look: more of the pack art
 @slot-well:   #0e1811; // the board's slot interior
 @slot-rim:    #8a5a2b; // the ACTIVE aura's wooden rim (the medallions' D12 rule)
 @slot-gap:    12px;
@@ -1220,7 +1269,7 @@
 // The glyph inside a slot - C4's `.ink-token` RE-SIZED, per the C4 rule. Named
 // because the cooldown digits are sized off it: the PO's ask at the C5 look was
 // that they read "as big as the icon".
-@slot-glyph:  26px;
+@slot-glyph:  32px;
 
 // The three icon-slot containers: the ability bar (both families + divider),
 // the utility island beside it, and the passive island. One chrome, one gap,
@@ -1337,13 +1386,28 @@
 		border-radius: 0;
 		box-shadow: none;
 
-		> svg {
+		> svg,
+		> .packImage {
 			width: 100%;
 			height: 100%;
 		}
 
 		&.letterFallback {
 			font-size: 18px;
+		}
+
+		// A pack icon FILLS the slot's well (PO 2026-09-24): the square art
+		// grows to the slot's inner diameter and the token clips it round, so
+		// the picture reads as the medallion's face rather than a square
+		// floating in a circle. The hotkey chip and beat pip are absolutely
+		// positioned siblings, so they keep painting over it. The radius is
+		// inherited, not stated: the desktop slot is a circle, the phone's tile
+		// a rounded square (HUD.mobile.less), and the clip follows either.
+		&.packIcon {
+			width: 100%;
+			height: 100%;
+			border-radius: inherit;
+			overflow: hidden;
 		}
 	}
 

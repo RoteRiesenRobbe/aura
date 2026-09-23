@@ -3,6 +3,7 @@
   "id": 56,
   "name": "HoldTheLine",
   "icon": "lorc/totem-head",
+  "packIcon": "shield-wall",
   "displayName": "Hold the Line",
   "category": "cooldown",
   "maxLevel": 5,

@@ -3,6 +3,7 @@
   "id": 26,
   "name": "Fade",
   "icon": "delapouite/invisible",
+  "packIcon": "hooded-shadow",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,

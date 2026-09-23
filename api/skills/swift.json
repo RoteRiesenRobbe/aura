@@ -3,6 +3,7 @@
   "id": 10,
   "name": "Swift",
   "icon": "lorc/wingfoot",
+  "packIcon": "running-man",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 600,

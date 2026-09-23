@@ -3,6 +3,7 @@
   "id": 44,
   "name": "Berserker",
   "icon": "lorc/broadsword",
+  "packIcon": "frenzy-swirl",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

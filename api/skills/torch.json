@@ -3,6 +3,7 @@
   "id": 46,
   "name": "Torch",
   "icon": "lorc/lantern-flame",
+  "packIcon": "torch",
   "category": "passive",
   "maxLevel": 5,
   "effects": [

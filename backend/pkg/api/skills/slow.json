@@ -3,6 +3,7 @@
   "id": 4,
   "name": "Slow",
   "icon": "lorc/snail",
+  "packIcon": "bound-feet",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

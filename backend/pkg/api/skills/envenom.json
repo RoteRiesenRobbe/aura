@@ -3,13 +3,14 @@
   "id": 144,
   "name": "Envenom",
   "icon": "lorc/poison-bottle",
+  "packIcon": "poison-dagger",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,
   "cooldownTicksPerLevel": -10,
   "visual": {
     "layers": [
-      { "kind": "projectile", "on": "applied", "speed": 900 }
+      { "kind": "projectile", "on": "applied", "speed": 650 }
     ]
   },
   "effects": [

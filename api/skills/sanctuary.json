@@ -3,6 +3,7 @@
   "id": 69,
   "name": "Sanctuary",
   "icon": "lorc/bordered-shield",
+  "packIcon": "cross-shield",
   "category": "cooldown",
   "maxLevel": 3,
   "cooldownTicks": 900,

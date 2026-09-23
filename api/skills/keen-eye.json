@@ -3,6 +3,7 @@
   "id": 60,
   "name": "KeenEye",
   "icon": "lorc/muscle-up",
+  "packIcon": "crosshair",
   "category": "passive",
   "maxLevel": 5,
   "effects": [

@@ -3,6 +3,7 @@
   "id": 1,
   "name": "Damage",
   "icon": "lorc/broadsword",
+  "packIcon": "sword-grip",
   "category": "active_aura",
   "maxLevel": 10,
   "visual": {
