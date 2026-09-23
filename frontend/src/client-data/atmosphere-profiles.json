@@ -17,7 +17,7 @@
 
   "_comment_haze_family": "The suspended-matter half — each carries its own tile, because D14 makes `color` a FALLBACK and NEVER a tint, so two profiles naming one tile are identical on screen and every distinct look costs a PNG. ⚑ The tiles come from two generators, split by what the air IS: `tools/make-fog-tile.mjs` builds DENSITY FIELDS (Fog, Miasma — a wave sum covering every pixel) and `tools/make-precipitation-tiles.mjs` builds PARTICLES (Rain, Snow, Ash Fall, Sandstorm, Fairy Dust — discrete marks on a mostly-empty tile). Each script carries one constant block per tile; a new one of either family is a block, not a script.",
 
-  "Fog":                { "texture": "fog-placeholder", "scale": 0.35, "blend": 2, "color": "#c4cbd2", "haze": 0.5, "scroll": { "x": 0.4, "y": 0.15 } },
+  "Fog":                { "texture": "fog-placeholder", "scale": 1, "blend": 2, "color": "#c4cbd2", "haze": 0.5, "scroll": { "x": 0.4, "y": 0.15 } },
   "Miasma":             { "texture": "miasma-placeholder", "scale": 0.35, "blend": 3, "color": "#7c8a4e", "haze": 0.45, "scroll": { "x": 0.12, "y": 0.06 } },
   "Rain":               { "texture": "rain-placeholder", "scale": 0.35, "blend": 3, "color": "#9fb4c8", "haze": 0.42, "scroll": { "x": 0.9, "y": 5.5 } },
   "Snow":               { "texture": "snow-placeholder", "scale": 0.35, "blend": 3, "color": "#f2f7fd", "haze": 0.38, "scroll": { "x": 0.5, "y": 1.6 } },
