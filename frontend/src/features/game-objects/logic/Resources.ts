@@ -56,7 +56,7 @@ export abstract class Tree extends Resource {
 
     // ⭐ No padding factor here any more (plan-prop-scale.md C1b). The sprite is
     // drawn at exactly the streamed radius, which is the prop type's VISUAL body
-    // from api/props/tree.json (1.4 units); the smaller trunk collider is
+    // from api/props/tree.json (1.0 unit); the smaller trunk collider is
     // `body.collisionFactor` server-side. Two reasons the factor moved into
     // content: the Tiled box is sized from the same authored body, so the editor
     // now matches the game pixel for pixel — and the old form
