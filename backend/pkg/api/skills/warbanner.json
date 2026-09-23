@@ -3,6 +3,7 @@
   "id": 55,
   "name": "Warbanner",
   "icon": "delapouite/knight-banner",
+  "packIcon": "war-banner",
   "category": "active_aura",
   "maxLevel": 10,
   "visual": {

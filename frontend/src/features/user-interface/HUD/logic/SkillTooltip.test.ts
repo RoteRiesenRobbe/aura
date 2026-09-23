@@ -31,7 +31,7 @@ function effect(partial: Partial<SkillEffect> & { type: string }): SkillEffect {
 
 function skill(partial: Partial<SkillDefinition> & { effects: SkillEffect[] }): SkillDefinition {
     return {
-        id: 1, name: 'Test', displayName: 'Test', icon: 'lorc/broadsword',
+        id: 1, name: 'Test', displayName: 'Test', icon: 'lorc/broadsword', packIcon: '',
         category: 'aura', maxLevel: 3,
         legacy: false,
         cooldownTicks: 0, cooldownTicksPerLevel: 0,

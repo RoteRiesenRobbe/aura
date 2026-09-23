@@ -17,3 +17,7 @@
 #    D6) compares against the file on disk, so a CRLF checkout would report
 #    ~14600 differences with nothing edited.
 api/zones/*.json text eol=lf
+
+# 3. Git hooks. Same shebang problem as the shell scripts, and the files carry
+#    no .sh extension.
+.githooks/* text eol=lf

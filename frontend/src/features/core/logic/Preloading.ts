@@ -3,6 +3,17 @@ import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
 import {PreloadingProgressedEvent, PreloadingStartedEvent, StartScreenDomReadyEvent} from './Events';
 import {Assets, Texture} from 'pixi.js';
 import {ISvgContainer} from "./ISvgContainer";
+import {packIconTexture, packIconsReady} from '../../../client-data/icons/PackIconFiles';
+
+/**
+ * A portrait source that may be OVERRIDDEN by an icon-pack portrait: `file` is
+ * the committed art and the fallback, `packIcon` names a pack-manifest entry
+ * (Graphics.ts `packIcon`). Without the pack on this machine only `file` draws.
+ */
+export interface PortraitSource {
+    file: string | { default: string; };
+    packIcon?: string;
+}
 
 
 const promises = [];
@@ -51,10 +62,11 @@ export function registerPreload(preloadingPromise: Promise<any>) {
 
 export function registerGameObjectSVG(
     gameObjectClass: ISvgContainer,
-    svgPath: string | { default: string; },
+    svgPath: string | { default: string; } | PortraitSource,
     maxSize: number,
 ) {
-    const src = htmlModuleToString(svgPath);
+    const portrait = isPortraitSource(svgPath) ? svgPath : {file: svgPath};
+    const src = htmlModuleToString(portrait.file);
     let sourceScale = Constants.GRAPHICS_RESOLUTION * (2 * Constants.GRAPHIC_BASE_SIZE);
     if (isNumber(maxSize)) {
         // Scale sourceScale according to the maximum required graphic size
@@ -84,14 +96,23 @@ export function registerGameObjectSVG(
      * 2.5× too flat in Firefox while Chrome looked correct.
      */
     const isVector = src.startsWith('data:image/svg') || /\.svg(\?|$)/i.test(src);
+    const fileTexture = Assets.load(isVector
+        ? {src, data: {width: sourceScale, height: sourceScale}}
+        : {src},
+    );
+    // The pack portrait wins when this build loaded it; the file is always
+    // loaded too, so a pack that fails to land costs nothing but the swap.
+    // packIconsReady never rejects, and packIconTexture answers null rather
+    // than throwing, so the file path stays the one that can fail here.
     return registerPreload(
-        Assets.load(isVector
-            ? {src, data: {width: sourceScale, height: sourceScale}}
-            : {src},
-        ).then((texture: Texture) => {
-            gameObjectClass.svg = texture;
+        Promise.all([fileTexture, packIconsReady]).then(([texture]: [Texture, void]) => {
+            gameObjectClass.svg = (portrait.packIcon && packIconTexture(portrait.packIcon)) || texture;
         }),
     );
+}
+
+function isPortraitSource(source: string | { default: string; } | PortraitSource): source is PortraitSource {
+    return typeof source === 'object' && source !== null && 'file' in source;
 }
 
 export function renderPartial(

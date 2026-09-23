@@ -5,10 +5,14 @@
   "scripts": {
     "prebuild": "node ../tools/tiled/generate-palette.mjs",
     "build": "webpack --config webpack.prod.js",
+    "postbuild": "node ../tools/pack-icons.mjs",
     "typecheck": "tsc --noEmit",
     "pretest": "node ../tools/tiled/generate-palette.mjs",
     "test": "vitest run",
+    "prestart": "node ../tools/pack-icons.mjs",
     "start": "webpack serve --config webpack.dev.js",
+    "icons": "node ../tools/pack-icons.mjs",
+    "check-icon-leak": "node ../tools/check-icon-leak.mjs --staged",
     "analyze": "webpack --config webpack.analysis.js",
     "visualize": "webpack  --config webpack.visualize.js"
   },
@@ -55,6 +59,7 @@
     "less-loader": "^12.2.0",
     "mini-css-extract-plugin": "^2.9.0",
     "mini-svg-data-uri": "^1.4.4",
+    "sharp": "^0.33.5",
     "source-map-loader": "^5.0.0",
     "style-loader": "^4.0.0",
     "terser-webpack-plugin": "^5.3.11",

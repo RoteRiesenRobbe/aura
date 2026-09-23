@@ -259,6 +259,7 @@ function unmarshalSkillEvents(gameState: AuraApi.GameState): SkillEventData[] {
             amount: e.amount(),
             kind: e.kind(),
             fired: e.fired(),
+            phase: e.phase(),
         });
     }
     return events;

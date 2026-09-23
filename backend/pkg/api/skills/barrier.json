@@ -3,6 +3,7 @@
   "id": 27,
   "name": "Barrier",
   "icon": "lorc/energy-shield",
+  "packIcon": "red-bubble",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,

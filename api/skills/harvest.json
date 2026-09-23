@@ -3,6 +3,7 @@
   "id": 41,
   "name": "Harvest",
   "icon": "lorc/scythe",
+  "packIcon": "sickle-wheat",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

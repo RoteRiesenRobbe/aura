@@ -12,7 +12,7 @@ import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
 import {
     skillDisplayName,
-    skillIcon,
+    skillIcon, skillPackIcon,
     skillMaxLevel,
     skillCategory,
     skillPointCost,
@@ -828,7 +828,7 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
             // `.spendBtn` and the row's own dataset all stay where they were -
             // which is why the 32-script sweep survives this chunk untouched.
             const displayName = skillDisplayName(id);
-            li.appendChild(createIconToken(skillIcon(id), displayName));
+            li.appendChild(createIconToken(skillIcon(id), displayName, skillPackIcon(id)));
 
             const name = document.createElement('span');
             name.className = 'skillName';
@@ -955,14 +955,14 @@ function renderSlotToken(li: HTMLElement, skillId: number) {
     const existing = li.querySelector(':scope > .ink-token');
     const stale = !!existing
         && existing.classList.contains('letterFallback')
-        && hasGlyph(skillIcon(skillId));
+        && hasGlyph(skillIcon(skillId), skillPackIcon(skillId));
     if (li.dataset.skillId === next && !stale) {
         return;
     }
     li.dataset.skillId = next;
     existing?.remove();
     if (skillId !== 0) {
-        li.insertBefore(createIconToken(skillIcon(skillId), skillDisplayName(skillId)),
+        li.insertBefore(createIconToken(skillIcon(skillId), skillDisplayName(skillId), skillPackIcon(skillId)),
             li.firstChild);
     }
 }

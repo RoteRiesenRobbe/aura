@@ -3,8 +3,14 @@
   "id": 142,
   "name": "Blight",
   "icon": "lorc/vine-leaf",
+  "packIcon": "poison-cloud",
   "category": "active_aura",
   "maxLevel": 10,
+  "visual": {
+    "layers": [
+      { "kind": "projectile", "on": "applied", "speed": 650 }
+    ]
+  },
   "effects": [
     {
       "type": "dot_aura",

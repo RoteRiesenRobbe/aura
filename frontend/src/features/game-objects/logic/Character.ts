@@ -347,7 +347,8 @@ export class Character extends GameObject
 }
 
 // noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Character.avatar, GraphicsConfig.character.file, GraphicsConfig.character.size);
+Preloading.registerGameObjectSVG(Character.avatar,
+    {file: GraphicsConfig.character.file, packIcon: GraphicsConfig.character.packIcon}, GraphicsConfig.character.size);
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Character.border, GraphicsConfig.character.borderFile, GraphicsConfig.character.size);
 

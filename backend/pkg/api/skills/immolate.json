@@ -3,8 +3,14 @@
   "id": 5,
   "name": "Immolate",
   "icon": "carl-olsen/flame",
+  "packIcon": "fire-ring",
   "category": "active_aura",
   "maxLevel": 10,
+  "visual": {
+    "layers": [
+      { "kind": "beam", "on": "applied", "curve": "extend", "ms": 300, "width": 14 }
+    ]
+  },
   "effects": [
     {
       "type": "dot_aura",

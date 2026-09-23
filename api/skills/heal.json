@@ -3,6 +3,7 @@
   "id": 2,
   "name": "Heal",
   "icon": "delapouite/healing",
+  "packIcon": "heal-crosses",
   "category": "active_aura",
   "maxLevel": 10,
   "visual": {

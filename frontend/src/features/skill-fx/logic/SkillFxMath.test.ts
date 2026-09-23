@@ -25,6 +25,7 @@ import {
     orbitPoint,
     PROJECTILE_MAX_MS,
     PROJECTILE_MIN_MS,
+    PROJECTILE_SIZE_FACTOR,
     PROJECTILE_SPEED_PX_PER_S,
     projectilePoint,
     RISE_DRIFT_PX,
@@ -40,8 +41,16 @@ import {
     SWING_HALF_ARC_RAD,
     BITE_OPEN_RAD,
     beamSpriteScale,
+    biteHingePoint,
     biteJawScale,
+    biteLengthPx,
+    BITE_LENGTH_FACTOR,
+    BITE_MIN_LENGTH_PX,
+    pincerHingePoints,
+    landsOnVictim,
     spriteScaleToExtent,
+    STRIKE_MIN_LENGTH_PX,
+    strikeCurveOf,
     waveCountOf,
     waveRing,
     waveTotalMsOf,
@@ -49,6 +58,8 @@ import {
     WAVE_MAX_COUNT,
     windUpGlowAlpha,
 } from './SkillFxMath';
+import {meter2px} from '../../../client-data/BasicConfig';
+import wolfBite from '../../../../../api/skills/mobs/wolf-bite.json';
 
 describe('clamp01', () => {
     it('clamps and rejects non-finite input', () => {
@@ -62,6 +73,9 @@ describe('clamp01', () => {
 describe('flightMs', () => {
     it('clamps point-blank to the minimum', () => {
         expect(flightMs(0, PROJECTILE_SPEED_PX_PER_S)).toBe(PROJECTILE_MIN_MS);
+        // The PO look (2026-09-23): "30 % bigger in general and a bit slower".
+        expect(PROJECTILE_SIZE_FACTOR).toBe(1.3);
+        expect(PROJECTILE_SPEED_PX_PER_S).toBe(500);
     });
     it('clamps extreme range to the maximum', () => {
         expect(flightMs(100_000, PROJECTILE_SPEED_PX_PER_S)).toBe(PROJECTILE_MAX_MS);
@@ -242,7 +256,7 @@ describe('strikePhase', () => {
     });
 
     it('never swings the wrong way: no style reaches past the victim before contact', () => {
-        for (const curve of ['thrust', 'swing', 'overhead', 'bite'] as const) {
+        for (const curve of ['thrust', 'swing', 'overhead', 'bite', 'pincer'] as const) {
             const total = STRIKE_CURVE_MS[curve];
             const contact = contactMs(curve, total);
             for (let i = 0; i <= 20; i++) {
@@ -252,7 +266,7 @@ describe('strikePhase', () => {
     });
 
     it('is done at its total and past it, whatever the curve', () => {
-        for (const curve of ['thrust', 'swing', 'overhead', 'bite'] as const) {
+        for (const curve of ['thrust', 'swing', 'overhead', 'bite', 'pincer'] as const) {
             const total = STRIKE_CURVE_MS[curve];
             expect(strikePhase(curve, total, total).done).toBe(true);
             expect(strikePhase(curve, 10_000, total).done).toBe(true);
@@ -268,7 +282,7 @@ describe('strikePhase', () => {
 
 describe('contactMs', () => {
     it('sits inside each style and follows the authored total', () => {
-        for (const curve of ['thrust', 'swing', 'overhead', 'bite'] as const) {
+        for (const curve of ['thrust', 'swing', 'overhead', 'bite', 'pincer'] as const) {
             const contact = contactMs(curve, 1000);
             expect(contact).toBeGreaterThan(0);
             expect(contact).toBeLessThan(1000);
@@ -769,5 +783,112 @@ describe('biteJawScale', () => {
 
     it('keeps the mirror on an unmeasured texture', () => {
         expect(biteJawScale(0, 100, true)).toEqual({x: 1, y: -1});
+    });
+});
+
+describe('biteHingePoint (the rim bite, §12h call 3)', () => {
+    it('sits on the victim\'s rim, on the point nearest the attacker', () => {
+        const hinge = biteHingePoint({x: 0, y: 0}, {x: 100, y: 0}, 30);
+        expect(hinge.x).toBeCloseTo(70);
+        expect(hinge.y).toBeCloseTo(0);
+    });
+
+    it('is exactly one victim radius from the victim, toward the attacker, at any angle', () => {
+        const caster = {x: -40, y: 250};
+        const victim = {x: 60, y: 10};
+        const hinge = biteHingePoint(caster, victim, 24);
+        expect(Math.hypot(hinge.x - victim.x, hinge.y - victim.y)).toBeCloseTo(24);
+        // On the segment victim -> caster: the same direction, not the far side.
+        const toCaster = Math.atan2(caster.y - victim.y, caster.x - victim.x);
+        expect(Math.atan2(hinge.y - victim.y, hinge.x - victim.x)).toBeCloseTo(toCaster);
+    });
+
+    it('falls back to the victim point when attacker and victim coincide', () => {
+        expect(biteHingePoint({x: 5, y: 7}, {x: 5, y: 7}, 30)).toEqual({x: 5, y: 7});
+    });
+
+    it('is the victim point for a victim with no radius', () => {
+        const hinge = biteHingePoint({x: 0, y: 0}, {x: 100, y: 0}, 0);
+        expect(hinge.x).toBeCloseTo(100);
+        expect(hinge.y).toBeCloseTo(0);
+    });
+});
+
+describe('biteLengthPx (the rim bite, §12h call 3, shortened at the PO look)', () => {
+    it('is the victim\'s radius times the factor', () => {
+        expect(BITE_LENGTH_FACTOR).toBe(0.8);
+        expect(biteLengthPx(60, BITE_MIN_LENGTH_PX)).toBeCloseTo(48);
+    });
+
+    it('floors at the bite\'s own minimum, half the weapon floor', () => {
+        expect(BITE_MIN_LENGTH_PX).toBe(20);
+        expect(BITE_MIN_LENGTH_PX).toBeLessThan(STRIKE_MIN_LENGTH_PX);
+        expect(biteLengthPx(10, BITE_MIN_LENGTH_PX)).toBe(20);
+        expect(biteLengthPx(0, BITE_MIN_LENGTH_PX)).toBe(20);
+    });
+
+    it('draws the wolf\'s jaws on a player well SHORTER than the wolf\'s reach ("a crocodile attack")', () => {
+        // The C3a bite spanned the reach; the PO ruled it too long, and the
+        // first rim bite (1.4, 42 px) "still quite long". The victim is a
+        // player: Graphics.ts PLAYER_COLLIDER_RADIUS_METERS, 0.25 u.
+        const playerRadiusPx = meter2px(0.25);
+        const reachPx = meter2px(wolfBite.effects[0].radius);
+        const jawPx = biteLengthPx(playerRadiusPx, BITE_MIN_LENGTH_PX);
+        expect(playerRadiusPx).toBe(30);
+        expect(reachPx).toBe(120);
+        expect(jawPx).toBeCloseTo(24);
+        expect(jawPx).toBeLessThan(playerRadiusPx);
+    });
+});
+
+describe('pincerHingePoints (the spider\'s fangs, PO look 2026-09-23)', () => {
+    it('puts one hinge on each side of the victim, on the rim, perpendicular to the attack line', () => {
+        const p = pincerHingePoints({x: 0, y: 0}, {x: 100, y: 0}, 30);
+        expect(p.left.x).toBeCloseTo(100);
+        expect(p.left.y).toBeCloseTo(-30);
+        expect(p.right.x).toBeCloseTo(100);
+        expect(p.right.y).toBeCloseTo(30);
+    });
+
+    it('points each fang INWARD, at the victim\'s centre', () => {
+        const p = pincerHingePoints({x: 0, y: 0}, {x: 100, y: 0}, 30);
+        expect(p.leftInward).toBeCloseTo(Math.PI / 2);
+        expect(p.rightInward).toBeCloseTo(-Math.PI / 2);
+        // At any angle: from the hinge, the inward direction reaches the centre.
+        const caster = {x: -40, y: 250};
+        const victim = {x: 60, y: 10};
+        const q = pincerHingePoints(caster, victim, 24);
+        for (const [hinge, inward] of [[q.left, q.leftInward], [q.right, q.rightInward]] as const) {
+            expect(Math.hypot(hinge.x - victim.x, hinge.y - victim.y)).toBeCloseTo(24);
+            expect(hinge.x + Math.cos(inward) * 24).toBeCloseTo(victim.x);
+            expect(hinge.y + Math.sin(inward) * 24).toBeCloseTo(victim.y);
+        }
+    });
+
+    it('falls back to the victim point when attacker and victim coincide', () => {
+        const p = pincerHingePoints({x: 5, y: 7}, {x: 5, y: 7}, 30);
+        expect(p.left).toEqual({x: 5, y: 7});
+        expect(p.right).toEqual({x: 5, y: 7});
+    });
+
+    it('is a strike curve with the bite\'s motion', () => {
+        expect(strikeCurveOf('pincer')).toBe('pincer');
+        expect(STRIKE_CURVE_MS.pincer).toBe(STRIKE_CURVE_MS.bite);
+        const total = STRIKE_CURVE_MS.pincer;
+        expect(contactMs('pincer', total)).toBe(contactMs('bite', total));
+        expect(strikePhase('pincer', 0, total).angleOffset).toBeCloseTo(BITE_OPEN_RAD);
+        expect(strikePhase('pincer', contactMs('pincer', total), total).angleOffset).toBeCloseTo(0);
+    });
+});
+
+describe('landsOnVictim (which end a layer anchors at)', () => {
+    it('anchors a hit and an application on the victim (§12h: applied anchors like hit)', () => {
+        expect(landsOnVictim('hit')).toBe(true);
+        expect(landsOnVictim('applied')).toBe(true);
+    });
+
+    it('anchors a cast and an ambient layer on the caster', () => {
+        expect(landsOnVictim('fired')).toBe(false);
+        expect(landsOnVictim('ambient')).toBe(false);
     });
 });

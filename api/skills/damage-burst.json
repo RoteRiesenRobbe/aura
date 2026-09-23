@@ -3,11 +3,17 @@
   "id": 49,
   "name": "DamageBurst",
   "icon": "lorc/broadsword",
+  "packIcon": "crit-blade",
   "displayName": "Damage-Burst",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,
   "cooldownTicksPerLevel": -10,
+  "visual": {
+    "layers": [
+      { "kind": "wave", "on": "fired", "ms": 450, "count": 1 }
+    ]
+  },
   "effects": [
     {
       "type": "instant_damage",

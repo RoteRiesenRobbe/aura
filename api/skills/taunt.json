@@ -3,6 +3,7 @@
   "id": 25,
   "name": "Taunt",
   "icon": "lorc/shouting",
+  "packIcon": "angry-face",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,

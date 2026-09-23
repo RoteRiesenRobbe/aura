@@ -3,9 +3,15 @@
   "id": 67,
   "name": "FireShield",
   "icon": "lorc/shield-reflect",
+  "packIcon": "hooded-flame",
   "category": "passive",
   "maxLevel": 5,
   "description": "Being hit is enough - it fires even when the hit is fully absorbed.",
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "hit", "motion": "burst", "count": 6, "ms": 400, "scale": 0.7 }
+    ]
+  },
   "effects": [
     {
       "type": "retaliate_damage",

@@ -10,6 +10,7 @@
     "name",
     "displayName",
     "icon",
+    "packIcon",
     "description",
     "category",
     "maxLevel",
@@ -507,7 +508,8 @@
   "visualTriggers": [
     "ambient",
     "fired",
-    "hit"
+    "hit",
+    "applied"
   ],
   "visualKeys": {
     "beam": [
@@ -577,26 +579,31 @@
   },
   "visualTriggersByKind": {
     "beam": [
-      "hit"
+      "hit",
+      "applied"
     ],
     "cast-pose": [
       "fired",
-      "hit"
+      "hit",
+      "applied"
     ],
     "emitter": [
       "ambient",
       "fired",
-      "hit"
+      "hit",
+      "applied"
     ],
     "orbit": [
       "fired",
       "ambient"
     ],
     "projectile": [
-      "hit"
+      "hit",
+      "applied"
     ],
     "strike": [
-      "hit"
+      "hit",
+      "applied"
     ],
     "wave": [
       "fired"
@@ -611,7 +618,8 @@
       "thrust",
       "swing",
       "overhead",
-      "bite"
+      "bite",
+      "pincer"
     ]
   },
   "visualMotions": [

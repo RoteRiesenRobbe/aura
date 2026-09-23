@@ -34,6 +34,10 @@ export const GraphicsConfig = {
          */
         size: <number> meter2px(PLAYER_COLLIDER_RADIUS_METERS),
         file: require('../features/game-objects/assets/characters/player.png'),
+        // Optional icon-pack portrait (README "Icons (PONETI pack)"): the
+        // pack-manifest name that replaces `file` when the pack is loaded on
+        // this machine. `file` stays the fallback everywhere else.
+        packIcon: <string | undefined> undefined,
         // Medallion frame over the avatar portrait — same two-layer shape as the
         // farmer/hermit/stag, but drawn in Character.initShape because the
         // avatar has its own group (aura rings + actualShape) to sit inside.
@@ -55,6 +59,10 @@ export const GraphicsConfig = {
         [key: string]:
             {
                 file: string,
+                // Optional icon-pack portrait: a pack-manifest name that
+                // replaces `file` when the pack is loaded on this machine
+                // (README "Icons (PONETI pack)"); `file` stays the fallback.
+                packIcon?: string,
                 // Optional medallion frame drawn over the portrait — see the
                 // `farmer` entry below and docs/art/pipeline.md §4.
                 borderFile?: string,
@@ -71,6 +79,8 @@ export const GraphicsConfig = {
 
         companion: {
             file: require('../features/game-objects/assets/mobs/companion.svg'),
+            packIcon: 'portrait-hound',
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
             minSize: <number> 40,
             maxSize: <number> 40,
         },
@@ -151,6 +161,8 @@ export const GraphicsConfig = {
 
         bramble: {
             file: require('../features/game-objects/assets/mobs/bramble.svg'),
+            packIcon: 'portrait-carnivorous-plant',
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
             minSize: <number> 58,
             maxSize: <number> 66,
         },
@@ -172,6 +184,8 @@ export const GraphicsConfig = {
 
         spider: {
             file: require('../features/game-objects/assets/mobs/spider.svg'),
+            packIcon: 'portrait-spider',
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
             minSize: <number> 38,
             maxSize: <number> 46,
         },
@@ -204,30 +218,40 @@ export const GraphicsConfig = {
 
         banditRanged: {
             file: require('../features/game-objects/assets/mobs/banditRanged.svg'),
+            packIcon: 'portrait-crossbowman',
+            borderFile: require('../features/game-objects/assets/border/leatherBorder_01.png'),
             minSize: <number> 36,
             maxSize: <number> 42,
         },
 
         banditHealer: {
             file: require('../features/game-objects/assets/mobs/banditHealer.svg'),
+            packIcon: 'portrait-plague-doctor',
+            borderFile: require('../features/game-objects/assets/border/leatherBorder_01.png'),
             minSize: <number> 36,
             maxSize: <number> 42,
         },
 
         eliteBandit: {
             file: require('../features/game-objects/assets/mobs/eliteBandit.svg'),
+            packIcon: 'portrait-assassin',
+            borderFile: require('../features/game-objects/assets/border/leatherBorder_01.png'),
             minSize: <number> 50,
             maxSize: <number> 58,
         },
 
         rallyDrummer: {
             file: require('../features/game-objects/assets/mobs/rallyDrummer.svg'),
+            packIcon: 'portrait-feathered-chief',
+            borderFile: require('../features/game-objects/assets/border/leatherBorder_01.png'),
             minSize: <number> 44,
             maxSize: <number> 50,
         },
 
         armySoldier: {
             file: require('../features/game-objects/assets/mobs/armySoldier.svg'),
+            packIcon: 'portrait-footman',
+            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             minSize: <number> 36,
             maxSize: <number> 42,
         },
@@ -247,6 +271,8 @@ export const GraphicsConfig = {
 
         orcWarlord: {
             file: require('../features/game-objects/assets/mobs/orcWarlord.svg'),
+            packIcon: 'portrait-orc-warlord',
+            borderFile: require('../features/game-objects/assets/border/leatherBorder_02.png'),
             minSize: <number> 78,
             maxSize: <number> 84,
         },
@@ -259,18 +285,24 @@ export const GraphicsConfig = {
 
         orcGrunt: {
             file: require('../features/game-objects/assets/mobs/orcGrunt.svg'),
+            packIcon: 'portrait-orc-green',
+            borderFile: require('../features/game-objects/assets/border/leatherBorder_02.png'),
             minSize: <number> 42,
             maxSize: <number> 48,
         },
 
         soldierCompanion: {
             file: require('../features/game-objects/assets/mobs/soldierCompanion.svg'),
+            packIcon: 'portrait-plate-knight',
+            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             minSize: <number> 34,
             maxSize: <number> 38,
         },
 
         shieldbearerCompanion: {
             file: require('../features/game-objects/assets/mobs/shieldbearerCompanion.svg'),
+            packIcon: 'portrait-armored-knight',
+            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             minSize: <number> 38,
             maxSize: <number> 42,
         },
@@ -283,12 +315,16 @@ export const GraphicsConfig = {
 
         troll: {
             file: require('../features/game-objects/assets/mobs/troll.svg'),
+            packIcon: 'portrait-troll',
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
             minSize: <number> 64,
             maxSize: <number> 72,
         },
 
         banditPyromancer: {
             file: require('../features/game-objects/assets/mobs/banditPyromancer.svg'),
+            packIcon: 'portrait-cultist',
+            borderFile: require('../features/game-objects/assets/border/leatherBorder_01.png'),
             minSize: <number> 46,
             maxSize: <number> 52,
         },
@@ -312,6 +348,8 @@ export const GraphicsConfig = {
 
         giantSpider: {
             file: require('../features/game-objects/assets/mobs/giantSpider.svg'),
+            packIcon: 'portrait-blue-spider',
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
             minSize: <number> 58,
             maxSize: <number> 68,
         },
@@ -332,6 +370,8 @@ export const GraphicsConfig = {
 
         fireElemental: {
             file: require('../features/game-objects/assets/mobs/fireElemental.svg'),
+            packIcon: 'portrait-fire-elemental',
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
             minSize: <number> 52,
             maxSize: <number> 62,
         },
@@ -387,10 +427,14 @@ export const GraphicsConfig = {
         },
         wanderer: {
             file: require('../features/game-objects/assets/resources/wanderer.svg'),
+            packIcon: 'portrait-hooded-woman',
+            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             maxSize: <number> 60,
         },
         traveller: {
             file: require('../features/game-objects/assets/resources/traveller.svg'),
+            packIcon: 'portrait-turban-elder',
+            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             maxSize: <number> 60,
         },
         townCrier: {
@@ -404,6 +448,8 @@ export const GraphicsConfig = {
         },
         miner: {
             file: require('../features/game-objects/assets/resources/miner.svg'),
+            packIcon: 'portrait-dwarf',
+            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             maxSize: <number> 60,
         },
         cityGuard: {
@@ -413,10 +459,14 @@ export const GraphicsConfig = {
         },
         villageHealer: {
             file: require('../features/game-objects/assets/resources/villageHealer.svg'),
+            packIcon: 'portrait-alchemist',
+            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             maxSize: <number> 60,
         },
         frontCaptain: {
             file: require('../features/game-objects/assets/resources/frontCaptain.svg'),
+            packIcon: 'portrait-gold-helm',
+            borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             maxSize: <number> 60,
         },
     },

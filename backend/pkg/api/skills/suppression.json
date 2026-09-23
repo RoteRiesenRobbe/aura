@@ -3,11 +3,12 @@
   "id": 59,
   "name": "Suppression",
   "icon": "lorc/snowflake-1",
+  "packIcon": "frost-chain",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {
     "layers": [
-      { "kind": "projectile", "on": "hit", "speed": 700 }
+      { "kind": "projectile", "on": "hit", "speed": 500 }
     ]
   },
   "effects": [

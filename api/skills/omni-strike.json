@@ -3,6 +3,7 @@
   "id": 75,
   "name": "OmniStrike",
   "icon": "lorc/star-swirl",
+  "packIcon": "arcane-orb",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,
@@ -23,6 +24,11 @@
     "wildlife_predator",
     "wildlife_prey"
   ],
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "hit", "motion": "burst", "count": 6, "ms": 450, "scale": 0.7 }
+    ]
+  },
   "effects": [
     {
       "type": "instant_damage",

@@ -392,7 +392,7 @@ func (p *player) takeDamage(damage model.Damage, source uint64, s model.StatusEf
 	// that, and only that, stamps "Immune" (plan-immune-feedback.md §2).
 	if vitals.HP(hp32) <= 0 {
 		if damage.HP > 0 {
-			p.noteHit(source, damage.SkillID, model.HitKindImmune, 0)
+			p.noteHit(source, damage.SkillID, model.HitKindImmune, model.PhaseOf(damage.Tick), 0)
 		}
 		return 0
 	}
@@ -416,9 +416,9 @@ func (p *player) takeDamage(damage model.Damage, source uint64, s model.StatusEf
 		if damage.Crit {
 			kind = model.HitKindCrit
 		}
-		p.noteHit(source, damage.SkillID, kind, loss)
+		p.noteHit(source, damage.SkillID, kind, model.PhaseOf(damage.Tick), loss)
 	case absorbed > 0:
-		p.noteHit(source, damage.SkillID, model.HitKindAbsorb, absorbed)
+		p.noteHit(source, damage.SkillID, model.HitKindAbsorb, model.PhaseOf(damage.Tick), absorbed)
 	}
 	p.StatusEffects().Add(s)
 	// Taking harm enters combat (chunk 1): the take-harm direction, stamped
@@ -449,13 +449,14 @@ func (p *player) noteSkillEvent(e model.SkillEvent) {
 // noteHit records one landing on this player. Called only from inside
 // takeDamage / Heal (D9): every acting site ends in one of those two, so a new
 // damage path cannot forget the event.
-func (p *player) noteHit(source uint64, id skills.SkillID, kind model.HitKind, amount vitals.VitalSign) {
+func (p *player) noteHit(source uint64, id skills.SkillID, kind model.HitKind, phase model.HitPhase, amount vitals.VitalSign) {
 	p.noteSkillEvent(model.SkillEvent{
 		Source:  source,
 		Victim:  p.Basic().ID(),
 		SkillID: id,
 		Amount:  amount,
 		Kind:    kind,
+		Phase:   phase,
 	})
 }
 
@@ -486,7 +487,7 @@ func (p *player) Heal(h model.Healing) vitals.VitalSign {
 	healed := p.PlayerVitalSigns.Health - before
 	// A heal that restored nothing (already full) is not a landing.
 	if healed > 0 && h.Caster != nil {
-		p.noteHit(h.Caster.Basic().ID(), h.SkillID, model.HitKindHeal, healed)
+		p.noteHit(h.Caster.Basic().ID(), h.SkillID, model.HitKindHeal, model.PhaseOf(h.Tick), healed)
 	}
 	return healed
 }
@@ -644,6 +645,12 @@ func (p *player) ApplyResist(source skills.SkillID, tags []string, factor float3
 // Reports whether this application ignited the player rather than refreshing a
 // burn already running (§5.1).
 func (p *player) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) bool {
+	// Every call notes Applied, ignite and refresh alike (plan-skill-vfx.md
+	// §12h, PO 2026-09-23): the skill's `applied` look draws on application
+	// and on every refresh. Noted here, in the funnel, not at the callers (D9).
+	if e, ok := model.AppliedEvent(dot.Caster, p.Basic().ID(), source, model.HitKindDamage); ok {
+		p.noteSkillEvent(e)
+	}
 	return p.buffs.ApplyDot(source, dot, ticks)
 }
 
@@ -653,6 +660,12 @@ func (p *player) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) 
 // DueBuffEvents.
 // Reports whether the buff was genuinely new rather than a refresh (§5.2).
 func (p *player) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) bool {
+	// Every call notes Applied, ignite and refresh alike (plan-skill-vfx.md
+	// §12h, PO 2026-09-23): the skill's `applied` look draws on application
+	// and on every refresh. Noted here, in the funnel, not at the callers (D9).
+	if e, ok := model.AppliedEvent(hot.Caster, p.Basic().ID(), source, model.HitKindHeal); ok {
+		p.noteSkillEvent(e)
+	}
 	return p.buffs.ApplyHot(source, hot, ticks)
 }
 
@@ -783,7 +796,7 @@ func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {
 	// percentage reflect takes its share of the swing as the mob authored it
 	// (PO ruling 1), not of whatever survives this player's mitigation.
 	p.retaliate(e, factors.Damage)
-	damage := model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit, SkillID: factors.SkillID}
+	damage := model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit, Tick: factors.Tick, SkillID: factors.SkillID}
 	// Factors carries no Source, so the toucher IS the acting entity.
 	dealt := p.takeDamage(damage, model.ActingSourceID(nil, e), model.StatusEffectDamagedAmbient)
 	// Mob-cast lifesteal (chunk 1): Factors carries no Source — the mob is

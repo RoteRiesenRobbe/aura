@@ -3,6 +3,7 @@
   "id": 64,
   "name": "BindElemental",
   "icon": "lorc/charm",
+  "packIcon": "mind-eye",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 4200,

@@ -17,6 +17,7 @@ import (
 
 	"github.com/EngoEngine/ecs"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -189,4 +190,134 @@ func TestMob_SkillEventResetAllocatesNothing(t *testing.T) {
 	})
 
 	assert.Zero(t, allocs, "the reset runs per entity per tick - it must truncate, never re-make")
+}
+
+// --- the phase axis (plan-skill-vfx.md §12h): WHEN in an effect's life ---
+
+// PO 2026-09-23: an over-time effect draws its look on application AND on every
+// refresh, so the funnel notes Applied on every ApplyDot call, ignite or not.
+func TestMob_ApplyDotNotesAppliedOnIgniteAndOnRefresh(t *testing.T) {
+	m := newTestMob()
+	caster := newFakeAuraPlayer()
+	dot := skills.DotBuff{HP: 5, Tags: []string{"fire"}, Interval: 1, Caster: caster}
+
+	require.True(t, m.ApplyDot(141, dot, 5), "precondition: the first call ignites")
+	require.False(t, m.ApplyDot(141, dot, 5), "precondition: the second call refreshes")
+
+	require.Len(t, m.SkillEvents(), 2, "one Applied per call, ignite and refresh alike")
+	for _, e := range m.SkillEvents() {
+		assert.Equal(t, model.HitPhaseApplied, e.Phase)
+		assert.Equal(t, model.HitKindDamage, e.Kind, "a DoT's nature is damage")
+		assert.Equal(t, caster.Basic().ID(), e.Source)
+		assert.Equal(t, m.Basic().ID(), e.Victim)
+		assert.Equal(t, skills.SkillID(141), e.SkillID)
+		assert.Zero(t, e.Amount, "nothing landed yet")
+		assert.False(t, e.Fired)
+	}
+}
+
+// A place has no id and no point to draw from, so its application is silent.
+func TestMob_ApplyDotFromACasterWithNoIDNotesNothing(t *testing.T) {
+	m := newTestMob()
+	m.ApplyDot(141, skills.DotBuff{HP: 5, Interval: 1, Caster: "a bog"}, 5)
+	assert.Empty(t, m.SkillEvents())
+}
+
+func TestMob_ApplyHotNotesHealApplied(t *testing.T) {
+	m := newTestMob()
+	caster := newFakeAuraPlayer()
+
+	m.ApplyHot(72, skills.HotBuff{HP: 5, Interval: 1, Caster: caster}, 5)
+
+	require.Len(t, m.SkillEvents(), 1)
+	e := m.SkillEvents()[0]
+	assert.Equal(t, model.HitPhaseApplied, e.Phase)
+	assert.Equal(t, model.HitKindHeal, e.Kind, "a HoT's nature is healing")
+	assert.Equal(t, caster.Basic().ID(), e.Source)
+	assert.Zero(t, e.Amount)
+}
+
+func TestMob_DirectHitIsPhaseDirect(t *testing.T) {
+	m := newTestMob()
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"physical"}})
+
+	require.Len(t, m.SkillEvents(), 1)
+	assert.Equal(t, model.HitPhaseDirect, m.SkillEvents()[0].Phase)
+}
+
+func TestMob_DotTickNotesDamageTick(t *testing.T) {
+	m := newTestMob()
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"physical"}, Tick: true})
+
+	require.Len(t, m.SkillEvents(), 1)
+	assert.Equal(t, model.HitKindDamage, m.SkillEvents()[0].Kind)
+	assert.Equal(t, model.HitPhaseTick, m.SkillEvents()[0].Phase)
+}
+
+func TestMob_CritTickStaysCritAndTick(t *testing.T) {
+	m := newTestMob()
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"physical"}, Crit: true, Tick: true})
+
+	require.Len(t, m.SkillEvents(), 1)
+	assert.Equal(t, model.HitKindCrit, m.SkillEvents()[0].Kind)
+	assert.Equal(t, model.HitPhaseTick, m.SkillEvents()[0].Phase)
+}
+
+func TestMob_ImmuneTickNotesImmuneTick(t *testing.T) {
+	m := newTestMob()
+	m.SetInvulnerable(true)
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tick: true})
+
+	require.Len(t, m.SkillEvents(), 1)
+	assert.Equal(t, model.HitKindImmune, m.SkillEvents()[0].Kind)
+	assert.Equal(t, model.HitPhaseTick, m.SkillEvents()[0].Phase)
+}
+
+func TestMob_FullyResistedTickNotesImmuneTick(t *testing.T) {
+	m := newTestMob()
+	m.buffs.ApplyResist(4, []string{"fire"}, 0, 5)
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"fire"}, Tick: true})
+
+	require.Len(t, m.SkillEvents(), 1)
+	assert.Equal(t, model.HitKindImmune, m.SkillEvents()[0].Kind)
+	assert.Equal(t, model.HitPhaseTick, m.SkillEvents()[0].Phase)
+}
+
+func TestMob_AbsorbedTickNotesAbsorbTick(t *testing.T) {
+	m := newTestMob()
+	m.ApplyShield(4, 50, 5)
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"physical"}, Tick: true})
+
+	require.Len(t, m.SkillEvents(), 1)
+	assert.Equal(t, model.HitKindAbsorb, m.SkillEvents()[0].Kind)
+	assert.Equal(t, model.HitPhaseTick, m.SkillEvents()[0].Phase)
+}
+
+// MobTouches rebuilds its Damage from Factors, so the flag must be threaded.
+func TestMob_MobTouchesThreadsTheTickFlag(t *testing.T) {
+	m := newTestMob()
+	attacker := newTestMob()
+	m.MobTouches(attacker, mobs.Factors{Damage: 10, DamageTags: []string{"physical"}, Tick: true})
+
+	require.Len(t, m.SkillEvents(), 1)
+	assert.Equal(t, model.HitPhaseTick, m.SkillEvents()[0].Phase)
+}
+
+func TestMob_HotTickNotesHealTick(t *testing.T) {
+	m := newTestMob()
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 50, Tags: []string{"physical"}})
+	m.ResetTickNumbers()
+
+	m.Heal(model.Healing{HP: 20, Caster: newFakeAuraPlayer(), SkillID: 9, Tick: true})
+
+	require.Len(t, m.SkillEvents(), 1)
+	assert.Equal(t, model.HitKindHeal, m.SkillEvents()[0].Kind)
+	assert.Equal(t, model.HitPhaseTick, m.SkillEvents()[0].Phase)
+}
+
+func TestMob_FiredIsPhaseDirect(t *testing.T) {
+	m := newTestMob()
+	m.NoteSkillFired(42)
+	require.Len(t, m.SkillEvents(), 1)
+	assert.Equal(t, model.HitPhaseDirect, m.SkillEvents()[0].Phase)
 }

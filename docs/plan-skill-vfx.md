@@ -1981,7 +1981,232 @@ venom spiders (one projectile per application, marks per tick, `wolf-jaw`
 untouched), a cooldown wave leg on Shockwave; `hygiene-wire-prune.mjs`;
 screenshots of the rim bite, looked at; the PO look.
 
+### 12h.5 Corrections at the execution session (lead + PO, 2026-09-23)
+
+Re-verified against HEAD `d4975274` before building. Three things in §12h.2
+did not survive the tree, and the PO ruled on each before code was written.
+
+1. **HoTs are IN, and the wire grew a second AXIS instead of two `HitKind`
+   values.** §12h.2 had HoT ticks note `Tick` "for symmetry" AND the numbers
+   module treat `Tick` as Damage, which together would have drawn a Rejuvenation
+   tick as a RED number. PO: "I would want a system for hots as well. effect on
+   application and reapplication and tick if in range, but heal numbers should
+   stay green. This shouldn't be hard coded either, should be a smart system."
+   So `HitKind` is UNCHANGED (it keeps saying what happened to the pool) and
+   `SkillEvent` gains `phase:HitPhase = Direct` with `HitPhase { Direct = 0,
+   Applied = 1, Tick = 2 }` (server.fbs, regenerated both sides). An `Applied`
+   carries `kind` = the effect's nature (Damage for a DoT, Heal for a HoT) and
+   `amount` 0; a `Tick` carries kind and amount as any landing. The numbers
+   module therefore needs NO per-effect rule: a heal tick is a `Heal` and stays
+   green, a DoT tick is a `Damage`/`Crit` and stays red, and an `Applied` draws
+   no number at all. The planner reads `phase` for the MOMENT and `kind` for the
+   MARK. Encoding "DamageTick / HealTick / HealApplied ..." into `kind` would
+   have made every consumer enumerate the product. The default `Direct` costs
+   nothing on the wire for ordinary hits and casts.
+   `Applied` is noted INSIDE `Mob.ApplyDot` / `player.ApplyDot` / `ApplyHot`
+   (the funnel, D9), on every call, ignite and refresh alike; the tick flag
+   rides `Damage.Tick`, `mobs.Factors.Tick` and `Healing.Tick` from
+   `tickBuffEvents` / `tickHotEvents`, and the funnel notes the phase in EVERY
+   branch (a mitigated tick is `Immune` + `Tick`, a shielded one `Absorb` +
+   `Tick`). The validator's rule is "an `applied` layer needs a DoT OR HoT
+   effect", as §12h.2 first had it.
+2. **Call 4's "every skill gets a placeholder" cannot reach nine passives, and
+   the PO left them bare.** D2 pins passives to `hit`, and `noteHit` is written
+   only in `takeDamage` / `Heal`: Hardy, Tough, Strong, Thick Hide, Keen Eye,
+   Discipline, Antivenom, Torch and Frost Shield (`retaliate_slow`, the C2b
+   note) never record a landing, so a `hit` layer on them is dead content. PO:
+   "Leave them bare, write the rule." Fire Shield and Omni Passive reflect
+   through `PlayerTouches` with a SkillID and DO get a `hit` placeholder. The
+   rule lives in the manual's Visuals section. D2 is not amended.
+3. **`body: spider-fang` needs a real file.** §12h.2 authored it "until the art
+   lands", but C3a made `-validate` and the boot refuse a body the folder does
+   not hold. PO: generate a pilot PNG, the sword / arrow / wolf-jaw precedent.
+   `tools/make-skill-fx-pilot.mjs` gains a fourth body, one white curved fang on
+   the wolf-jaw hinge contract; `bodies.json` is regenerated.
+
+Wording: §12h.2 says the DoT layer of immolate, blight, wildfire, envenom,
+ignite and nova-burst "moves to `applied`". None of the six authors a `visual`
+at HEAD (the C3a-ii census); those are NEW `applied` layers. The ones that
+MOVE an existing layer are `venom-spit` (118), `giant-venom-spit` (137) and
+three the spec never named: `fire-elemental-aura`, `fire-totem-aura` and
+`totem-aura`, each a DoT-only aura whose `on: hit` beam would never have drawn
+again once a DoT-only skill sends no Direct event (found by the harness's venom
+spider leg, agent C). `ember-aura` (133) keeps its beam on `hit` for its NEW
+`damage_aura` and adds an `applied` burst.
+
+§12h.3 schema line, corrected: **WIRE: one enum (`HitPhase`) + one field
+(`SkillEvent.phase`)**, not two `HitKind` values. DB NONE, CONF NONE stand.
+
 ## 13. Ledger
+
+### C3a-ii ledger (2026-09-23) - a DoT draws on application, the rim bite, cooldown waves
+
+✅ **BUILT 2026-09-23** `814f8055`. Spec: §12h, corrected at the session
+by §12h.5 (three PO answers before any code). Three Opus agents off scratchpad
+briefs (Go + wire + vocabulary + docs · client planner + rim bite · pilot art +
+content + harness), the lead regenerated the wire first, reviewed both diffs,
+fixed the one red the content caused and reran the tail.
+
+**Schema: DB NONE · CONF NONE · WIRE: one enum + one field.** `HitPhase {
+Direct = 0, Applied = 1, Tick = 2 }` and `SkillEvent.phase` (default `Direct`,
+so an ordinary hit and every FIRED cost nothing extra); `HitKind` UNCHANGED.
+VOCABULARY: trigger `applied` (five kind rows, `active_aura` + `cooldown`).
+CATALOG NONE. CONTENT: 19 skill files, `api/skill-fx/bodies.json` (4 bodies),
+one PNG; the pin stays 116.
+
+**What was built**
+
+- **The second axis** (§12h.5 item 1). `model.HitPhase`, `SkillEvent.Phase`,
+  `Damage.Tick` / `mobs.Factors.Tick` / `Healing.Tick`; `tickBuffEvents` sets
+  the flag on all three caster shapes (player, mob, area) and `tickHotEvents`
+  on the heal; both funnels note `PhaseOf(tick)` in EVERY branch (a mitigated
+  tick is `Immune` + `Tick`, a shielded one `Absorb` + `Tick`). `Applied` is
+  noted INSIDE `Mob.ApplyDot` / `player.ApplyDot` / `ApplyHot` on every call,
+  ignite and refresh alike (`model.AppliedEvent`; a caster with no entity id,
+  the area source, notes nothing). Encoder + `TestHitPhase_MirrorsTheWireEnum`
+  + a round trip. 23 new Go phase tests across mob / player / sys.
+- **The vocabulary + validator.** `applied` on `strike`, `projectile`, `beam`,
+  `cast-pose`, `emitter` (not `wave`, `orbit`); the D2 table gains it for auras
+  and cooldowns, passives stay `hit`; `checkAppliedHasAnOverTimeEffect` runs
+  AFTER the effects loop (parseVisual runs before it) and refuses `applied` on a
+  skill with no dot_aura / instant_dot / hot_aura / instant_hot. Fixture
+  regenerated (`UPDATE_SKILL_VOCABULARY=1`), editor smoke expects four moments.
+- **The planner.** `triggerOf(event)`: fired → `fired`, `Applied` → `applied`,
+  `Tick` → NO authored layer, `Direct` → `hit`; the mark is Damage/Crit on
+  Direct and Tick, never on Applied; the pose key and the chain key carry the
+  trigger. The numbers module returns null for `Applied` explicitly and treats
+  a `Tick` as its kind (a HoT tick stays green with no rule at all). `applied`
+  anchors as `hit` through one pure `landsOnVictim`. 27 new vitest cases.
+- **The rim bite.** `biteHingePoint` (the victim's rim point nearest the
+  attacker, re-read per frame) and `biteLengthPx` (max(40, victim radius ×
+  `BITE_LENGTH_FACTOR` 1.4 [PLACEHOLDER])) in `SkillFxMath.ts`; `StrikeFx`'s
+  bite branch alone uses them, the three held curves are untouched. The test
+  says it in the PO's terms: a 30 px player gives a 42 px jaw against the
+  wolf's 120 px reach.
+- **The fang.** `tools/make-skill-fx-pilot.mjs` body four, `spider-fang.png`
+  96×40, one white hooked upper fang on the wolf-jaw hinge contract; manifest,
+  briefing, `assets.csv` / `assets.md` follow.
+- **Content.** `giant-venom-spit`: spit → `applied`, fangs (`strike` `bite`,
+  `body: spider-fang`, white) on `hit`. `ember-aura`: NEW `damage_aura` (6 HP
+  +1/level, every 50 ticks, r3, nearest 1 [PLACEHOLDER], roughly doubling the
+  pyromancer's output, UNMEASURED), beam stays on `hit`, emitter burst on
+  `applied`. `venom-spit`, `fire-elemental-aura`, `fire-totem-aura`,
+  `totem-aura`: the existing layer → `applied`. NEW: projectile on `applied` for
+  `immolate`, `blight`, `wildfire`, `envenom`, `ignite`; `wave` on `fired` for
+  `nova-burst` (1, + an `applied` burst for its DoT), `shockwave` (2),
+  `damage-burst` (1), `rime-burst` (1); `hit` bursts on `omni-strike`,
+  `fire-shield`, `omni-passive`; an `applied` burst on `rejuvenation` (the HoT
+  half). Nine no-landing passives stay bare by PO ruling.
+- **Harness.** `skill-fx.mjs` legs 16 (venom spiders), 17 (giant spiders), 18
+  (pyromancer), 19 (Shockwave); leg 14 now MEASURES the rim bite off the live
+  jaw sprites; GOD-off legs rest at the campfire to 95 % Focus first, and a
+  death marks the run inconclusive. `verify` SKILL.md row: 20 legs.
+
+**Calls made while building (lead + agents, none a PO number)**
+
+- Two axes instead of two `HitKind` values (§12h.5 item 1): the PO's "smart
+  system" for HoTs is the ONE place the sign is known, the kind; the phase says
+  the moment. No consumer enumerates the product.
+- Three more DoT-only mob auras moved to `applied` (agent C): a DoT-only skill
+  sends NO Direct event, so their `on: hit` beams would have gone silent; the
+  rule "every damaging mob skill has an attack" outranked "only three move".
+- The simharness pin `TestLoadMobPresets_DotAuraMobsDerive` now reads the
+  pyromancer as the two-payload shape (`DamageHP` direct, `DotHP` burn).
+- The stress driver still emits `Direct` only: skills that author ONLY
+  `applied` layers (venom-spit, immolate, ...) drop out of its mix on their
+  own, so `skill-fx-scale.mjs` is comparable only to itself again.
+
+**Verify tail (§12h.4), run at the final tree**
+
+- `go build ./...` clean · `go test -count=1 ./...`: **35 packages ok, 1 red**
+  (`pkg/aura/world`, the Tree/Boulder prop pin, red at HEAD too).
+- `make -C backend build` · `aurad -validate` embedded **0** · `-content ../api`
+  **0** · probe: `applied` on `damage.json` → exit 1 naming the four effect
+  types; `spider-fang` authored before the PNG → exit 1 naming the 3 bodies.
+- Editor `npm run smoke`: **0 findings / 116 files / 121 layers / 7 kinds**.
+- Frontend `npm test` **1063 / 0** (51 files) · `npm run typecheck` 0.
+- `skill-fx.mjs` run 7: **RESULT PASS, 44 PASS / 3 NOTE / 0 FAIL**. Leg 14:
+  96 strikes / 84 sprites / 96 marks, jaws 42 px, hinges at 1.00 radii, every
+  pair opens toward the centre (56 samples). Leg 16: VenomSpit Applied 6 /
+  Direct 0, 9 projectiles ≤ a cadence bound of 10, 8 ticks, 12 marks. Leg 17:
+  17 of 17 strikes drew the fang PNG, 17 spits for 17 fang pairs (no spit per
+  tick). Leg 18: EmberAura Direct 6 / Applied 6 / Tick 3, 8 beams, 8 bursts.
+  Leg 19: 2 waves for 2 casts. Runs 1-6: a join race, a wolf in the spider
+  bound (bound now census-gated), three player deaths (the campfire rest).
+- `hygiene-wire-prune.mjs`: joins, 615 sprites, 0 console errors.
+- `skill-fx-wave-probe.mjs`: **PASS**, 29 waves through the real `onSnapshot`, a fired stomp spawned nothing but its wave.
+- `skill-fx-scale.mjs` (default mix, ambient included, run last by the lead):
+  **RESULT PASS**. 1× = 1.6 events/s at the western bandit camp; 10× `full`
+  update p95 **0.7 ms** (C4: 0.7-1.0), 25.5 Fx/s, ~357 display objects; the
+  three caps agree (p95 0.7 / 0.7 / 0.5); phone-shaped 10× p95 1.2 ms;
+  eviction begins at **80× = 128 events/s** (C3a: 144, C4: 145-190) with the
+  mix shifted by the `applied`-only skills leaving the driver (comparable only
+  to itself, as §12e.5 says).
+- Screenshots looked at (lead + agent C): the wolf jaws are short, hinged on
+  the player's rim on the wolf's side, reaching over the token, "not a
+  crocodile"; the spider fangs are a white pair at the rim, but at this size
+  the two merge into one wedge and the hook is not legible; the Shockwave ring
+  shows faintly inside the range circle.
+
+**Findings**
+
+- ⚑ **The in-page census misses snapshots** (headless stalls): it polls
+  `skillEvents().total` and sees only the LAST snapshot since its poll, so an
+  exact per-skill event count never ran on a complete window. Legs 16/17 score
+  a cadence bound instead; an exact count needs a client hook that pushes every
+  event. Owed, small, not blocking.
+- ⚑ A DoT-only aura sends NO `Direct` event at all now: any `on: hit` layer on
+  one is dead content. The validator does not catch this (it only knows the
+  effect list, not whether a `hit` will ever fire); the manual says it.
+- ⚑ White tint on a poison-tagged layer (the fangs) goes against the manual's
+  "no white body on a tagged layer" note; the PO's white-fang ruling wins.
+
+**The PO look, round 1 (2026-09-23, same session), four rulings, all built**
+
+- **"The jaws are still quite long, they should be shorter overall."**
+  `BITE_LENGTH_FACTOR` 1.4 → **0.8** and a bite-specific floor
+  `BITE_MIN_LENGTH_PX` **20** (the 40 px weapon floor was binding: a 30 px
+  player got 42 either way). A player's jaw is 24 px now, under its own radius.
+- **"The fangs should be like two tusks gripping from either side, faced
+  inwards, like the two front fangs of a spider."** A fifth `strike` curve,
+  **`pincer`**: the bite's one-body-twice contract and length rule, but the two
+  fangs hinge on EACH side of the victim's rim (perpendicular to the attack
+  line, `pincerHingePoints`), point inward, gape back toward the attacker by
+  the bite's open angle and close across the victim. Go curve table + fixture,
+  `giant-venom-spit` authors it. The rim `bite` is unchanged for the wolves.
+- **"The hit VFX are hard to see with the still very prominent aura rings:
+  reduce aura and cooldown ring intensity, size of the outer ring, coloring
+  inside etc., all elements by 50 %."** `AuraRings.ts`: band width 4 → 2,
+  band alpha 0.75 → 0.375, interior fill 0.1 → 0.05, beat pulse 0.06 → 0.03;
+  the cooldown burst ring (`_GameObject.showBurstRing`): fill 0.18 → 0.09,
+  stroke 5 → 2.5 at alpha 1 → 0.5. ⚑ **The RADIUS of both rings is untouched**:
+  the outer edge IS the true aura / burst radius (triage item 7, the
+  gameplay-critical line), so "size of the outer ring" was read as its
+  thickness, not its reach. If the PO meant the reach circle itself, that is a
+  different conversation (it would misstate the range).
+- **"Ignite and Immolate should be a beam, more fitting for fire DoT
+  spells."** Both author `beam` `extend` on `applied` (Ember Aura's shape).
+- **"Make the projectiles 30 % bigger in general and a bit slower as well."**
+  An engine knob `PROJECTILE_SIZE_FACTOR` 1.3 on every bolt body (PNG and
+  placeholder), the default speed 700 → 500 px/s, and every authored `speed`
+  900 → 650 and 700 → 500 (11 layers). The manual's row says both.
+- Envenom question (PO): it authors a bolt on `applied`, which only draws when
+  a hostile is inside the 1.5 u circle at cast time; the yellow ring alone is
+  the burst ring of a cast that poisoned nobody.
+- Verified after the round: vitest 201 skill-fx cases (the bite numbers
+  re-pinned, 4 pincer cases), full suite 1067 + typecheck 0, Go skills /
+  aurad / simharness ok, `-validate` 0 both ways, editor smoke 0, server
+  restarted.
+
+**Not run / owed**
+
+- ~~The PO look, round 2~~ PASSED 2026-09-23 ("works"): the shorter jaws, the
+  pincer fangs, the half-strength rings, the fire beams, the bigger slower
+  bolts. ⚑ The pincer was not photographed headless; the harness leg 17
+  counters still hold (a strike is a strike).
+- The phone check (§9): the cap 96 vs 192, the fill rate, the packer trigger.
+- C3b (§12f.5), the editor's Visuals section (`applied` is a fourth column).
+- The pyromancer re-price (its output roughly doubled, unmeasured).
 
 ### C3a ledger (2026-09-22) - the art path, plus the §12g amendment
 

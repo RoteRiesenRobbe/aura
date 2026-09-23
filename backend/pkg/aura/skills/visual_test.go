@@ -611,3 +611,67 @@ func mustParseVisual(t *testing.T, raw, category string) *VisualDef {
 	require.NotNil(t, def)
 	return def
 }
+
+// --- the `applied` trigger (plan-skill-vfx.md §12h, PO 2026-09-23) ---
+
+// visualSkillWith is visualSkill with one authored effect, for the rules that
+// read the effects: `applied` only fires where an over-time effect exists.
+func visualSkillWith(category, visual, effect string) []byte {
+	return []byte(fmt.Sprintf(
+		`{"id":1,"name":"Fixture","category":%q,"maxLevel":1,"visual":%s,"effects":[%s]}`,
+		category, visual, effect))
+}
+
+const (
+	appliedDotAura    = `{"type":"dot_aura","radius":1,"tickInterval":20,"targetsEnemies":true,"damageHP":5,"dotTicks":3,"dotTickInterval":30}`
+	appliedHotAura    = `{"type":"hot_aura","radius":1,"tickInterval":20,"healHP":5,"hotTicks":3,"hotTickInterval":30}`
+	appliedDamageAura = `{"type":"damage_aura","radius":1,"tickInterval":20,"targetsEnemies":true,"damageHP":5}`
+)
+
+// An over-time skill may author `applied` for every kind that draws toward a
+// victim: the look plays on application and on every refresh, and the ticks
+// draw the engine's mark alone.
+func TestVisual_AppliedLoadsOnAnOverTimeSkill(t *testing.T) {
+	for _, effect := range []string{appliedDotAura, appliedHotAura} {
+		for _, kind := range []string{"strike", "projectile", "beam", "cast-pose", "emitter"} {
+			visual := fmt.Sprintf(`{"layers":[{"kind":%q,"on":"applied"}]}`, kind)
+			def := mustParse(t, visualSkillWith("active_aura", visual, effect))
+			require.NotNil(t, def.Visual, kind)
+			assert.Equal(t, "applied", def.Visual.Layers[0].On)
+			assert.False(t, def.Visual.HasFired, "an applied layer is not a fired one")
+		}
+	}
+}
+
+// Without an over-time effect nothing is ever applied, so the layer would load
+// clean and never draw: the silent class, refused by name instead.
+func TestVisual_AppliedRefusedWithoutAnOverTimeEffect(t *testing.T) {
+	raw, err := parseSkillDefinition(visualSkillWith("active_aura",
+		`{"layers":[{"kind":"projectile","on":"applied"}]}`, appliedDamageAura))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	require.Error(t, err)
+	msg := err.Error()
+	assert.Contains(t, msg, `"Fixture"`, "the refusal names the skill")
+	for _, t4 := range []string{"dot_aura", "instant_dot", "hot_aura", "instant_hot"} {
+		assert.Contains(t, msg, t4, "the refusal names the effect types that fire it")
+	}
+}
+
+func TestVisual_AppliedRefusals(t *testing.T) {
+	// D2: a passive dresses its hit alone.
+	msg := visualErr(t, "passive", `{"layers":[{"kind":"strike","on":"applied"}]}`)
+	assert.Contains(t, msg, "D2")
+	// The kind table: a wave leaves the caster once per cast, an orbit
+	// circles the actor; neither has a victim end to draw an application at.
+	for _, kind := range []string{"wave", "orbit"} {
+		msg := visualErr(t, "active_aura", fmt.Sprintf(`{"layers":[{"kind":%q,"on":"applied"}]}`, kind))
+		assert.Contains(t, msg, `no "applied" moment`, kind)
+	}
+}
+
+func TestVisual_AppliedCategoryRows(t *testing.T) {
+	assert.Contains(t, visualTriggersByCategory["active_aura"], "applied")
+	assert.Contains(t, visualTriggersByCategory["cooldown"], "applied")
+	assert.NotContains(t, visualTriggersByCategory["passive"], "applied")
+}

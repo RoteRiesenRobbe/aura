@@ -3,6 +3,7 @@
   "id": 136,
   "name": "Strong",
   "icon": "lorc/muscle-up",
+  "packIcon": "flex",
   "category": "passive",
   "maxLevel": 5,
   "effects": [

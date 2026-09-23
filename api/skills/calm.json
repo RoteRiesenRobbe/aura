@@ -3,6 +3,7 @@
   "id": 62,
   "name": "Calm",
   "icon": "delapouite/peace-dove",
+  "packIcon": "praying",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 600,

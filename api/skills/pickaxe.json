@@ -3,6 +3,7 @@
   "id": 48,
   "name": "Pickaxe",
   "icon": "lorc/mining",
+  "packIcon": "pickaxe-dig",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

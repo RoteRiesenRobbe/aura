@@ -3,6 +3,7 @@
   "id": 76,
   "name": "LightningStrike",
   "icon": "lorc/star-swirl",
+  "packIcon": "lightning-skull",
   "displayName": "Lightning Strike",
   "category": "active_aura",
   "maxLevel": 10,

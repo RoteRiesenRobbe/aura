@@ -99,6 +99,71 @@ func TestSkillEvents_HotTickNamesTheSkillThatAppliedIt(t *testing.T) {
 	assert.NotZero(t, hitAmountOf(events, model.HitKindHeal))
 }
 
+// --- the phase axis (§12h): every tick path marks its landing a Tick ---
+
+// phasesOf lists the non-fired events' phases, in order.
+func phasesOf(events []model.SkillEvent) []model.HitPhase {
+	var out []model.HitPhase
+	for _, e := range events {
+		if !e.Fired {
+			out = append(out, e.Phase)
+		}
+	}
+	return out
+}
+
+// A DoT tick is a Tick whichever of the three caster shapes lit it: a player,
+// a mob, or a place. Each case builds its own payload in tickBuffEvents, so
+// each is pinned on its own.
+func TestSkillEvents_DotTickIsATickForEveryCasterShape(t *testing.T) {
+	cases := map[string]any{
+		"player": newFakePlayer(),
+		"mob":    mob.NewMob(testMobDef(), 0, nil),
+		"area":   fakeAreaSource{name: "TestBurn"},
+	}
+	for name, caster := range cases {
+		t.Run(name, func(t *testing.T) {
+			s := testSkillSystem()
+			target := mob.NewMob(testMobDef(), 0, nil)
+			target.ApplyDot(141, skills.DotBuff{HP: 5, Tags: []string{"fire"}, Interval: 1, Caster: caster}, 5)
+
+			target.ResetTickNumbers()
+			s.tickBuffEvents(target)
+
+			assert.Equal(t, []model.HitPhase{model.HitPhaseTick}, phasesOf(eventsOf(t, target)))
+		})
+	}
+}
+
+func TestSkillEvents_HotTickIsATick(t *testing.T) {
+	s := testSkillSystem()
+	caster := newFakePlayer()
+	target := mob.NewMob(testMobDef(), 0, nil)
+	target.PlayerTouches(caster, model.Damage{HP: 50, Tags: []string{"physical"}})
+	target.ApplyHot(72, skills.HotBuff{HP: 5, Interval: 1, Caster: caster}, 5)
+
+	target.ResetTickNumbers()
+	s.tickBuffEvents(target)
+
+	assert.Equal(t, []model.HitPhase{model.HitPhaseTick}, phasesOf(eventsOf(t, target)))
+}
+
+// The aura path reaches ApplyDot per target, so the application is noted there
+// without applyDotEffect doing anything itself (the funnel, D9).
+func TestSkillEvents_DotAuraNotesAppliedPerTarget(t *testing.T) {
+	caster := newFakePlayer()
+	a := mob.NewMob(testMobDef(), 0, nil)
+	b := mob.NewMob(testMobDef(), 0, nil)
+	applyDotEffect(caster, 141, 1, dotEffect(), colliderSetOf(a, b))
+
+	for _, target := range []*mob.Mob{a, b} {
+		events := eventsOf(t, target)
+		require.Len(t, events, 1)
+		assert.Equal(t, model.HitPhaseApplied, events[0].Phase)
+		assert.Equal(t, caster.Basic().ID(), events[0].Source)
+	}
+}
+
 // --- FIRED (§12a.4) ---
 
 // firedVisual is the minimal `visual` that makes an aura worth a beat event:

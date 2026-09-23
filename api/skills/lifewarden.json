@@ -3,6 +3,7 @@
   "id": 53,
   "name": "Lifewarden",
   "icon": "delapouite/healing",
+  "packIcon": "healing-staff",
   "category": "active_aura",
   "maxLevel": 10,
   "visual": {

@@ -3,6 +3,7 @@
   "id": 140,
   "name": "Paralyze",
   "icon": "delapouite/knocked-out-stars",
+  "packIcon": "stone-hand",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 900,

@@ -67,15 +67,15 @@ const AURA_CATEGORY_STYLES: readonly AuraCategoryStyle[] = [
     {bit: AuraCategoryBit.Light, color: AURA_CATEGORY_COLORS.light},
 ];
 
-/** Thickness of one category band, in px. [PLACEHOLDER] */
-const BAND_WIDTH = 4;
+/** Thickness of one category band, in px. [PLACEHOLDER] Halved with every other ring element at the C3a-ii look (PO 2026-09-23: the rings drowned the hit VFX). */
+const BAND_WIDTH = 2;
 /** Opacity of a category band. [PLACEHOLDER] */
-const BAND_ALPHA = 0.75;
+const BAND_ALPHA = 0.375;
 /** Opacity of the interior area wash. [PLACEHOLDER] */
-const FILL_ALPHA = 0.1;
+const FILL_ALPHA = 0.05;
 
 /** Ring pulse overshoot on the beat (N5/D3): scale peaks at 1 + this. [PLACEHOLDER] */
-const PULSE_AMPLITUDE = 0.06;
+const PULSE_AMPLITUDE = 0.03;
 /** Per-snapshot pulse decay (~30 Hz → settles in ~250 ms). [PLACEHOLDER] */
 const PULSE_DECAY = 0.82;
 

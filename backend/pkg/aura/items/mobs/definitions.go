@@ -162,6 +162,7 @@ type Factors struct {
 	SkillID                 skills.SkillID
 	Lifesteal               float32
 	Crit                    bool
+	Tick                    bool // the Damage.Tick twin (plan-skill-vfx.md §12h): set on a DoT tick; payload-only
 	GateKey                 string
 	Speed                   float32
 	DeltaPhi                float32

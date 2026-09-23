@@ -142,6 +142,36 @@ func TestHitKind_MirrorsTheWireEnum(t *testing.T) {
 	assert.Len(t, AuraApi.EnumNamesHitKind, 5, "a new kind needs a model constant too")
 }
 
+// HitPhase is the second axis (plan-skill-vfx.md §12h): WHEN a landing
+// happened (direct, an over-time effect applied, one of its ticks), kept apart
+// from WHAT it did, so the client never guesses whether a tick is a heal.
+func TestHitPhase_MirrorsTheWireEnum(t *testing.T) {
+	assert.Equal(t, AuraApi.HitPhaseDirect, AuraApi.HitPhase(model.HitPhaseDirect))
+	assert.Equal(t, AuraApi.HitPhaseApplied, AuraApi.HitPhase(model.HitPhaseApplied))
+	assert.Equal(t, AuraApi.HitPhaseTick, AuraApi.HitPhase(model.HitPhaseTick))
+	assert.Len(t, AuraApi.EnumNamesHitPhase, 3, "a new phase needs a model constant too")
+}
+
+func TestSkillEventsMarshal_ThePhaseRoundTrips(t *testing.T) {
+	victim := &eventRecorder{basic: ecs.NewBasic(), events: []model.SkillEvent{
+		{Source: 7, Victim: 9, SkillID: 141, Amount: 12, Kind: model.HitKindDamage},
+		{Source: 7, Victim: 9, SkillID: 141, Kind: model.HitKindDamage, Phase: model.HitPhaseApplied},
+		{Source: 7, Victim: 9, SkillID: 141, Amount: 4, Kind: model.HitKindCrit, Phase: model.HitPhaseTick},
+		{Source: 8, Victim: 9, SkillID: 60, Amount: 3, Kind: model.HitKindHeal, Phase: model.HitPhaseTick},
+	}}
+
+	out := decodeSkillEvents(t, []model.Entity{victim}, nil)
+
+	require.Len(t, out, 4)
+	assert.Equal(t, AuraApi.HitPhaseDirect, out[0].Phase(), "Direct is the default and costs nothing on the wire")
+	assert.Equal(t, AuraApi.HitPhaseApplied, out[1].Phase())
+	assert.Zero(t, out[1].Amount(), "an application carries no amount")
+	assert.Equal(t, AuraApi.HitPhaseTick, out[2].Phase())
+	assert.Equal(t, AuraApi.HitKindCrit, out[2].Kind(), "the phase leaves the kind alone")
+	assert.Equal(t, AuraApi.HitPhaseTick, out[3].Phase())
+	assert.Equal(t, AuraApi.HitKindHeal, out[3].Kind())
+}
+
 // ownEventPlayer is the own-player shape the encoder needs: a PlayerEntity that
 // answers SkillEvents(). Everything else stays nil, which is the point - the
 // vector builder reads exactly one method off the own player.

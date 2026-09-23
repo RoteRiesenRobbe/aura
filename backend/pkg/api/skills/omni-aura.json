@@ -3,6 +3,7 @@
   "id": 73,
   "name": "OmniAura",
   "icon": "lorc/star-swirl",
+  "packIcon": "magic-burst",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

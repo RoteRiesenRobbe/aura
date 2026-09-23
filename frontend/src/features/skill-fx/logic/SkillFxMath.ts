@@ -19,6 +19,15 @@ import type {VfxDensity} from '../../game-settings/logic/GameSettings';
 
 const TAU = Math.PI * 2;
 
+/**
+ * Whether a layer on this trigger belongs to the VICTIM's end (an emitter
+ * sits on it). `applied` anchors exactly like `hit` (§12h): it differs only in
+ * WHEN it fires. `fired` and `ambient` belong to the caster.
+ */
+export function landsOnVictim(on: string): boolean {
+    return on === 'hit' || on === 'applied';
+}
+
 export function clamp01(v: number): number {
     if (!Number.isFinite(v)) {
         return 0;
@@ -41,8 +50,17 @@ function easeInOutCubic(p: number): number {
 
 // --- projectiles ------------------------------------------------------------
 
-/** Flight speed when a `projectile` layer authors none, and the clamps. */
-export const PROJECTILE_SPEED_PX_PER_S = 700;
+/**
+ * Flight speed when a `projectile` layer authors none, and the clamps.
+ * [PLACEHOLDER] 700 → 500 at the C3a-ii look (PO 2026-09-23: "a bit slower").
+ */
+export const PROJECTILE_SPEED_PX_PER_S = 500;
+/**
+ * Every projectile body, PNG or placeholder, is drawn this much larger than
+ * its own size × the layer's `scale`. [PLACEHOLDER] (PO 2026-09-23: "30 %
+ * bigger in general"), a global knob so no file has to re-author `scale`.
+ */
+export const PROJECTILE_SIZE_FACTOR = 1.3;
 export const PROJECTILE_MIN_MS = 140;
 export const PROJECTILE_MAX_MS = 900;
 
@@ -127,7 +145,7 @@ export function impactPhase(elapsedMs: number, totalMs: number): ImpactPhase {
  * the C3a amendment (§12g.1 call 3): an attack is drawn from the ATTACKER, so
  * the wolf's jaws became a weapon it holds rather than a mark on its victim.
  */
-export type StrikeCurve = 'thrust' | 'swing' | 'overhead' | 'bite';
+export type StrikeCurve = 'thrust' | 'swing' | 'overhead' | 'bite' | 'pincer';
 
 /** Default lifetime per style when the layer authors no `ms`. */
 export const STRIKE_CURVE_MS: Record<StrikeCurve, number> = {
@@ -135,6 +153,7 @@ export const STRIKE_CURVE_MS: Record<StrikeCurve, number> = {
     swing: 280,
     overhead: 460,
     bite: 260,
+    pincer: 260,
 };
 
 export interface StrikePhase {
@@ -179,12 +198,89 @@ export const BITE_OPEN_RAD = (35 * Math.PI) / 180;
 const BITE_CLOSE_FRACTION = 0.5;
 const BITE_HOLD_FRACTION = 0.8;
 
+/** The shortest weapon drawn, whatever the reach. */
+export const STRIKE_MIN_LENGTH_PX = 40;
+/** The shortest jaw or fang drawn: a bite is sized to its victim, so it floors lower. [PLACEHOLDER] */
+export const BITE_MIN_LENGTH_PX = 20;
+
+/**
+ * The rim bite's jaw length as a share of the VICTIM's radius (§12h call 3).
+ * [PLACEHOLDER] (PO 2026-09-23: the reach-long C3a bite was "too long, a
+ * crocodile attack"; the first rim bite at 1.4 was "still quite long").
+ */
+export const BITE_LENGTH_FACTOR = 0.8;
+
+/**
+ * Where a `bite`'s jaws hinge (§12h call 3, the RIM BITE): the point on the
+ * VICTIM's rim nearest the attacker, so the pair opens along the attack line
+ * toward the victim's centre and four wolves bite at four spots around the
+ * ring, each pointing back at its wolf. Attacker and victim on one point have
+ * no attack line: the victim point itself, rather than a NaN.
+ */
+export function biteHingePoint(
+    casterAt: { x: number, y: number }, victimAt: { x: number, y: number }, victimRadiusPx: number,
+): { x: number, y: number } {
+    const dx = casterAt.x - victimAt.x;
+    const dy = casterAt.y - victimAt.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist === 0) {
+        return {x: victimAt.x, y: victimAt.y};
+    }
+    return {
+        x: victimAt.x + (dx / dist) * victimRadiusPx,
+        y: victimAt.y + (dy / dist) * victimRadiusPx,
+    };
+}
+
+/**
+ * A `pincer`'s two fangs (PO look 2026-09-23, the Giant Spider: "two tusks
+ * gripping from either side, faced inwards"): one hinge on EACH side of the
+ * victim, on the rim, perpendicular to the attack line, and for each the angle
+ * that points straight at the victim's centre. The fangs gape away from that
+ * inward line toward the attacker and swing in to meet. Attacker and victim on
+ * one point have no attack line: both hinges are the victim point.
+ */
+export function pincerHingePoints(
+    casterAt: { x: number, y: number }, victimAt: { x: number, y: number }, victimRadiusPx: number,
+): { left: { x: number, y: number }, right: { x: number, y: number }, leftInward: number, rightInward: number } {
+    const dx = victimAt.x - casterAt.x;
+    const dy = victimAt.y - casterAt.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist === 0) {
+        return {left: {...victimAt}, right: {...victimAt}, leftInward: 0, rightInward: Math.PI};
+    }
+    const aim = Math.atan2(dy, dx);
+    const leftSide = aim - Math.PI / 2;
+    const rightSide = aim + Math.PI / 2;
+    return {
+        left: {
+            x: victimAt.x + Math.cos(leftSide) * victimRadiusPx,
+            y: victimAt.y + Math.sin(leftSide) * victimRadiusPx,
+        },
+        right: {
+            x: victimAt.x + Math.cos(rightSide) * victimRadiusPx,
+            y: victimAt.y + Math.sin(rightSide) * victimRadiusPx,
+        },
+        leftInward: rightSide,
+        rightInward: leftSide,
+    };
+}
+
+/**
+ * A `bite`'s (or `pincer`'s) jaw length (§12h call 3): sized to what is
+ * BITTEN, never to the skill's reach, and never shorter than `minPx`.
+ */
+export function biteLengthPx(victimRadiusPx: number, minPx: number): number {
+    return Math.max(minPx, victimRadiusPx * BITE_LENGTH_FACTOR);
+}
+
 const STRIKE_CONTACT_FRACTION: Record<StrikeCurve, number> = {
     thrust: THRUST_CONTACT_FRACTION,
     swing: SWING_CONTACT_FRACTION,
     overhead: OVERHEAD_CONTACT_FRACTION,
     // The jaws meeting IS the contact: the mark lands as they shut.
     bite: BITE_CLOSE_FRACTION,
+    pincer: BITE_CLOSE_FRACTION,
 };
 
 /**
@@ -200,7 +296,9 @@ export function contactMs(curve: StrikeCurve, totalMs: number): number {
 
 /** Which weapon style a `strike` layer authors; absent = thrust (PO 2026-09-19). */
 export function strikeCurveOf(curve: string | undefined): StrikeCurve {
-    return curve === 'swing' || curve === 'overhead' || curve === 'bite' ? curve : 'thrust';
+    return curve === 'swing' || curve === 'overhead' || curve === 'bite' || curve === 'pincer'
+        ? curve
+        : 'thrust';
 }
 
 /**
@@ -296,7 +394,8 @@ export function strikePhase(curve: StrikeCurve, elapsedMs: number, totalMs: numb
                 : 1 - (p - OVERHEAD_HOLD_FRACTION) / (1 - OVERHEAD_HOLD_FRACTION);
             return {extend: 1, angleOffset: 0, offset: 0, scale: 1, alpha, done: false};
         }
-        case 'bite': {
+        case 'bite':
+        case 'pincer': {
             // ⚑ `angleOffset` is the OPEN ANGLE here, not a sweep: the caller
             // draws ONE jaw body twice, turning the upper one by −angleOffset
             // and the lower one by +angleOffset about the same hinge, so the
@@ -845,9 +944,10 @@ export function beamSpriteScale(
  *
  * With the sprite anchored at (0, 1) - the hinge, on the bite line - a negative
  * y scale flips the picture about that line without moving the hinge, so both
- * jaws pivot on the same point in the attacker's mouth and the closing math in
- * StrikeFx does not fork. `lengthPx` is the strike's own reach rule, so the
- * scale stays UNIFORM (§12f.2: only a beam stretches).
+ * jaws pivot on the same point (the victim's rim since §12h, `biteHingePoint`)
+ * and the closing math in StrikeFx does not fork. `lengthPx` is the bite's own
+ * length rule (`biteLengthPx`), so the scale stays UNIFORM (§12f.2: only a
+ * beam stretches).
  */
 export function biteJawScale(
     textureWidthPx: number, lengthPx: number, lower: boolean,

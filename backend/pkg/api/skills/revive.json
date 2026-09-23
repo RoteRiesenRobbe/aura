@@ -3,6 +3,7 @@
   "id": 32,
   "name": "Revive",
   "icon": "lorc/ankh",
+  "packIcon": "rising-hand",
   "category": "cooldown",
   "maxLevel": 1,
   "cooldownTicks": 600,

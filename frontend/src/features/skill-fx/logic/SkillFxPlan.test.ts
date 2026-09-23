@@ -48,6 +48,7 @@ function hit(overrides: Partial<SkillEventData> = {}): SkillEventData {
         amount: 12,
         kind: AuraApi.HitKind.Damage,
         fired: false,
+        phase: AuraApi.HitPhase.Direct,
         ...overrides,
     };
 }
@@ -537,5 +538,117 @@ describe('planSpawns: density', () => {
         planSpawns([hit(), hit({victim: B})], bolt, NEAR, 'off');
         const after = planSpawns([hit()], bolt, NEAR, 'full');
         expect(after[0].seed).toBe(before[0].seed + 1);
+    });
+});
+
+// §12h call 1: an over-time effect draws its authored look on APPLICATION and
+// on every refresh (the spit, the fireball), and its ticks "just tick there":
+// the engine's mark alone. The phase is a second axis beside the HitKind.
+describe('planSpawns: the over-time phase (§12h)', () => {
+    /** A DoT/HoT applied or refreshed on the victim: nothing landed, amount 0. */
+    function applied(overrides: Partial<SkillEventData> = {}): SkillEventData {
+        return hit({phase: AuraApi.HitPhase.Applied, amount: 0, ...overrides});
+    }
+
+    /** One tick of an over-time effect landing. */
+    function tick(overrides: Partial<SkillEventData> = {}): SkillEventData {
+        return hit({phase: AuraApi.HitPhase.Tick, ...overrides});
+    }
+
+    /** The Giant Spider's shape: the spit on application, the fangs on the hit. */
+    const SPIDER = visuals({
+        [SKILL]: [
+            {kind: 'projectile', on: 'applied', speed: PROJECTILE_SPEED},
+            {kind: 'strike', on: 'hit', curve: 'bite'},
+        ],
+    });
+
+    it('plans only the on:applied layers for an application, and no mark', () => {
+        const plan = planSpawns([applied()], SPIDER, NEAR);
+        expect(kinds(plan)).toEqual(['projectile']);
+        expect(plan[0].from).toBe(CASTER);
+        expect(plan[0].victim).toBe(A);
+        expect(plan[0].delayMs).toBe(0);
+    });
+
+    it('draws no mark on an application whatever its kind', () => {
+        for (const kind of [AuraApi.HitKind.Damage, AuraApi.HitKind.Crit, AuraApi.HitKind.Heal]) {
+            expect(kinds(planSpawns([applied({kind})], SPIDER, NEAR))).toEqual(['projectile']);
+        }
+    });
+
+    it('plans the mark ALONE for a Damage tick, never an on:hit layer', () => {
+        const plan = planSpawns([tick()], SPIDER, NEAR);
+        expect(kinds(plan)).toEqual([HIT_MARK_KIND]);
+        expect(plan[0].victim).toBe(A);
+        expect(plan[0].delayMs).toBe(0);
+    });
+
+    it('plans the mark alone for a Crit tick', () => {
+        expect(kinds(planSpawns([tick({kind: AuraApi.HitKind.Crit})], SPIDER, NEAR)))
+            .toEqual([HIT_MARK_KIND]);
+    });
+
+    it('plans nothing for a Heal, an Absorb or an Immune tick', () => {
+        const hot = visuals({[SKILL]: [
+            {kind: 'emitter', on: 'hit'},
+            {kind: 'emitter', on: 'applied'},
+        ]});
+        for (const kind of [AuraApi.HitKind.Heal, AuraApi.HitKind.Absorb, AuraApi.HitKind.Immune]) {
+            expect(planSpawns([tick({kind})], hot, NEAR)).toEqual([]);
+        }
+    });
+
+    it('draws a direct hit and an application of one skill in one snapshot once each', () => {
+        const plan = planSpawns([hit(), applied()], SPIDER, NEAR);
+        expect(kinds(plan).sort()).toEqual([HIT_MARK_KIND, 'projectile', 'strike'].sort());
+        // The mark belongs to the fangs, not to the spit that landed nothing.
+        expect(delayOf(plan, HIT_MARK_KIND))
+            .toBe(contactMs('bite', STRIKE_CURVE_MS.bite));
+    });
+
+    it('plans nothing for an application of a skill the catalog does not hold', () => {
+        expect(planSpawns([applied()], visuals({}), NEAR)).toEqual([]);
+    });
+
+    it('plans nothing for an application when the skill authors no on:applied layer', () => {
+        expect(planSpawns([applied()], visuals({[SKILL]: [{kind: 'beam', on: 'hit'}]}), NEAR))
+            .toEqual([]);
+    });
+
+    it('draws ONE on:applied cast-pose per cast, like a hit', () => {
+        const poses = visuals({[SKILL]: [
+            {kind: 'cast-pose', on: 'applied'},
+            {kind: 'projectile', on: 'applied', speed: PROJECTILE_SPEED},
+        ]});
+        const plan = planSpawns([applied({victim: A}), applied({victim: B})], poses, NEAR);
+        expect(kinds(plan).filter(k => k === 'cast-pose')).toHaveLength(1);
+        expect(kinds(plan).filter(k => k === 'projectile')).toHaveLength(2);
+        expect(plan.find(entry => entry.def.kind === 'cast-pose').victim).toBe(A);
+    });
+
+    it('keeps an on:hit pose and an on:applied pose of one skill apart', () => {
+        const poses = visuals({[SKILL]: [
+            {kind: 'cast-pose', on: 'hit'},
+            {kind: 'cast-pose', on: 'applied'},
+        ]});
+        const plan = planSpawns([hit(), applied()], poses, NEAR);
+        expect(plan.filter(entry => entry.def.kind === 'cast-pose').map(entry => entry.def.on).sort())
+            .toEqual(['applied', 'hit']);
+    });
+
+    it('chains on:applied beams among themselves, never with the direct hits', () => {
+        const both = visuals({[SKILL]: [
+            {kind: 'beam', on: 'hit', chain: true},
+            {kind: 'beam', on: 'applied', chain: true},
+        ]});
+        const plan = planSpawns(
+            [hit({victim: A}), hit({victim: B}), applied({victim: A}), applied({victim: B})],
+            both, CHAIN_WORLD);
+        for (const on of ['hit', 'applied']) {
+            const beams = plan.filter(entry => entry.def.kind === 'beam' && entry.def.on === on);
+            expect(beams.map(entry => [entry.from, entry.victim])).toEqual([[CASTER, A], [A, B]]);
+            expect(beams.map(entry => entry.delayMs)).toEqual([0, CHAIN_HOP_STAGGER_MS]);
+        }
     });
 });

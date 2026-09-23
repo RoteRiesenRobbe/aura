@@ -3,6 +3,7 @@
   "id": 151,
   "name": "ThrowBomb",
   "icon": "lorc/land-mine",
+  "packIcon": "bomb",
   "category": "cooldown",
   "maxLevel": 1,
   "cooldownTicks": 300,

@@ -3,6 +3,7 @@
   "id": 65,
   "name": "Discipline",
   "icon": "lorc/meditation",
+  "packIcon": "meditation",
   "category": "passive",
   "maxLevel": 5,
   "effects": [

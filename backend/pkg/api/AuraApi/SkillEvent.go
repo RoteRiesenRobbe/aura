@@ -113,8 +113,20 @@ func (rcv *SkillEvent) MutateFired(n bool) bool {
 	return rcv._tab.MutateBoolSlot(14, n)
 }
 
+func (rcv *SkillEvent) Phase() HitPhase {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		return HitPhase(rcv._tab.GetByte(o + rcv._tab.Pos))
+	}
+	return 0
+}
+
+func (rcv *SkillEvent) MutatePhase(n HitPhase) bool {
+	return rcv._tab.MutateByteSlot(16, byte(n))
+}
+
 func SkillEventStart(builder *flatbuffers.Builder) {
-	builder.StartObject(6)
+	builder.StartObject(7)
 }
 func SkillEventAddSource(builder *flatbuffers.Builder, source uint64) {
 	builder.PrependUint64Slot(0, source, 0)
@@ -133,6 +145,9 @@ func SkillEventAddKind(builder *flatbuffers.Builder, kind HitKind) {
 }
 func SkillEventAddFired(builder *flatbuffers.Builder, fired bool) {
 	builder.PrependBoolSlot(5, fired, false)
+}
+func SkillEventAddPhase(builder *flatbuffers.Builder, phase HitPhase) {
+	builder.PrependByteSlot(6, byte(phase), 0)
 }
 func SkillEventEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

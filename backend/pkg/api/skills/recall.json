@@ -3,6 +3,7 @@
   "id": 28,
   "name": "Recall",
   "icon": "lorc/return-arrow",
+  "packIcon": "rune-ring",
   "category": "cooldown",
   "maxLevel": 1,
   "cooldownTicks": 9000,

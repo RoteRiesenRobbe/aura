@@ -3,6 +3,7 @@
   "id": 31,
   "name": "Recover",
   "icon": "delapouite/healing",
+  "packIcon": "heartbeat",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 1200,

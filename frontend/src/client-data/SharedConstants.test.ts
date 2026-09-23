@@ -137,7 +137,7 @@ function fixtureSkill(type: string): SkillDefinition {
         ...EFFECT_FIXTURES[type],
     };
     return {
-        id: 1, name: 'Fixture', displayName: 'Fixture', icon: '',
+        id: 1, name: 'Fixture', displayName: 'Fixture', icon: '', packIcon: '',
         category: 'aura', maxLevel: 3, legacy: false,
         cooldownTicks: 0, cooldownTicksPerLevel: 0,
         castTicks: 0, castTicksPerLevel: 0, castInterruptedByDamage: false,

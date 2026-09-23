@@ -2001,7 +2001,7 @@ function effectCard(effect, i, ctx) {
 // 4. Visuals (D3, §B4.8): coming soon, nothing rendered, nothing written.
 function skillVisualsSection() {
   const col = skillSection('Visuals');
-  col.body.appendChild(el('div', { class: 'visuals-placeholder', text: 'Coming soon. The vocabulary exists (plan-skill-vfx.md C0: the top-level `visual` key, seven kinds, three moments) and is authored by hand for now; this section renders it from C3 on. `visual` is not shown here and is preserved untouched on save.' }));
+  col.body.appendChild(el('div', { class: 'visuals-placeholder', text: 'Coming soon. The vocabulary exists (plan-skill-vfx.md C0: the top-level `visual` key, seven kinds, four moments) and is authored by hand for now; this section renders it from C3 on. `visual` is not shown here and is preserved untouched on save.' }));
   return col.section;
 }
 

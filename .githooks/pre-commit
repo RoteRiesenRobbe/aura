@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+# Refuses a commit carrying a PONETI icon-pack file or a generated atlas.
+# One-time install per clone:   git config core.hooksPath .githooks
+# The actual rules live in tools/check-icon-leak.mjs (run it with --self-test).
+root="$(git rev-parse --show-toplevel)"
+
+# The content rule needs AURA_ICON_PACK_DIR. A commit from IntelliJ or a fresh
+# shell has not sourced backend/.env.local, so do it here; an exported value wins.
+if [ -z "${AURA_ICON_PACK_DIR:-}" ] && [ -f "$root/backend/.env.local" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    . "$root/backend/.env.local"
+    set +a
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+    echo "pre-commit: node is not on PATH, so the icon-leak check cannot run (see README 'Icons (PONETI pack)')." >&2
+    exit 1
+fi
+exec node "$root/tools/check-icon-leak.mjs" --staged

@@ -3,6 +3,7 @@
   "id": 47,
   "name": "Antivenom",
   "icon": "lorc/bordered-shield",
+  "packIcon": "antidote-vial",
   "category": "passive",
   "maxLevel": 5,
   "effects": [

@@ -3,6 +3,7 @@
   "id": 70,
   "name": "Aegis",
   "icon": "lorc/bordered-shield",
+  "packIcon": "magic-shield",
   "category": "active_aura",
   "maxLevel": 3,
   "visual": {

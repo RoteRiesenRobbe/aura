@@ -3,6 +3,7 @@
   "id": 146,
   "name": "Hoarfrost",
   "icon": "lorc/snowflake-1",
+  "packIcon": "ice-aura",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

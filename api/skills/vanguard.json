@@ -3,6 +3,7 @@
   "id": 50,
   "name": "Vanguard",
   "icon": "delapouite/knight-banner",
+  "packIcon": "lion-shield",
   "category": "active_aura",
   "maxLevel": 10,
   "visual": {

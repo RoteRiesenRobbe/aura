@@ -1012,6 +1012,14 @@ type SkillDefinition struct {
 	// client accessor treats "" exactly like a missing entry.
 	Icon string `json:"icon"`
 
+	// PackIcon names an entry of frontend/src/client-data/icons/pack-manifest.json:
+	// the licensed PONETI icon the client draws INSTEAD of Icon when the build
+	// carries the atlases (README "Icons (PONETI pack)", THIRD_PARTY.md). Optional;
+	// Icon stays the fallback on every build without them, so a skill is never
+	// worse off for naming one. Served verbatim, validated only for shape here
+	// (skill_icon_content_test.go); PackIcons.test.ts pins it against the manifest.
+	PackIcon string `json:"packIcon"`
+
 	// Description is the standalone design-ruling prose the client used to
 	// hardcode in its per-effect-type tooltip switch (UI pass C8, ruling D1),
 	// moved out of code and into content: one optional authored sentence or two
@@ -1229,6 +1237,7 @@ type skillDefinition struct {
 	Name        string `json:"name"`
 	DisplayName string `json:"displayName"` // absent → derived CamelCase→spaces
 	Icon        string `json:"icon"`        // absent → no glyph (mob-embedded skills, UI pass C4)
+	PackIcon    string `json:"packIcon"`    // absent → the glyph alone (README "Icons (PONETI pack)")
 	Description string `json:"description"` // absent → no prose block (UI pass C8, D1)
 	Category    string `json:"category"`
 	MaxLevel    int    `json:"maxLevel"`
@@ -1702,6 +1711,9 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		}
 		effects = append(effects, effect)
 	}
+	if err := checkAppliedHasAnOverTimeEffect(visual, effects); err != nil {
+		return nil, fmt.Errorf("skill %q: %w", s.Name, err)
+	}
 
 	displayName := s.DisplayName
 	if displayName == "" {
@@ -1713,6 +1725,7 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		Name:                    s.Name,
 		DisplayName:             displayName,
 		Icon:                    s.Icon,
+		PackIcon:                s.PackIcon,
 		Description:             s.Description,
 		Category:                category,
 		MaxLevel:                s.MaxLevel,

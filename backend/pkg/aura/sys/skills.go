@@ -511,9 +511,9 @@ func (s *SkillSystem) tickBuffEvents(e skillEntity) {
 			lifesteal := casterLifesteal(storedCaster)
 			switch caster := storedCaster.(type) {
 			case model.PlayerEntity:
-				target.PlayerTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags, Source: source, Lifesteal: lifesteal, SkillID: hit.Source})
+				target.PlayerTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags, Source: source, Lifesteal: lifesteal, SkillID: hit.Source, Tick: true})
 			case model.MobEntity:
-				target.MobTouches(caster, mobs.Factors{Damage: damageHP, DamageTags: hit.Tags, Lifesteal: lifesteal, SkillID: hit.Source})
+				target.MobTouches(caster, mobs.Factors{Damage: damageHP, DamageTags: hit.Tags, Lifesteal: lifesteal, SkillID: hit.Source, Tick: true})
 			// ⭐ THE THIRD SOURCE (plan-area-effects.md E2/D13): a hit from a
 			// PLACE. Before E2 this switch had two cases and a silent
 			// `default: continue`, which is exactly what made an area effect
@@ -526,7 +526,7 @@ func (s *SkillSystem) tickBuffEvents(e skillEntity) {
 			// AreaTouches.
 			case model.AreaSource:
 				if hittable, ok := target.(model.AreaHittable); ok {
-					hittable.AreaTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags})
+					hittable.AreaTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags, Tick: true})
 				}
 			default:
 				continue
@@ -556,7 +556,7 @@ func (s *SkillSystem) tickHotEvents(e skillEntity, hots []skills.HotEvent) {
 	for _, hit := range hots {
 		healHP := vitals.HP(vitals.RollVariance(hit.HP, hit.Variance, s.rng))
 		healer, _ := hit.Caster.(model.Combatant)
-		healed := target.Heal(model.Healing{HP: healHP, Caster: healer, SkillID: hit.Source})
+		healed := target.Heal(model.Healing{HP: healHP, Caster: healer, SkillID: hit.Source, Tick: true})
 		if healed <= 0 {
 			continue // already full, or a dead target this tick — not a heal
 		}

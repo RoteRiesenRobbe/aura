@@ -3,6 +3,7 @@
   "id": 7,
   "name": "Reaper",
   "icon": "lorc/bleeding-wound",
+  "packIcon": "scythe",
   "category": "active_aura",
   "maxLevel": 10,
   "visual": {

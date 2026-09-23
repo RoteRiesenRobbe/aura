@@ -3,6 +3,7 @@
   "id": 43,
   "name": "ThickHide",
   "icon": "lorc/bordered-shield",
+  "packIcon": "thick-skin",
   "category": "passive",
   "maxLevel": 5,
   "effects": [

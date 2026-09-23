@@ -236,3 +236,110 @@ func TestPlayer_LifestealHealNamesTheHittingSkill(t *testing.T) {
 	assert.Equal(t, skills.SkillID(141), e.SkillID)
 	assert.Equal(t, p.Basic().ID(), e.Source, "the leecher heals itself")
 }
+
+// --- the phase axis (plan-skill-vfx.md §12h), the mob file's twin ---
+
+func TestPlayer_ApplyDotNotesAppliedOnIgniteAndOnRefresh(t *testing.T) {
+	p := hittablePlayer(t)
+	caster := newFakeAttackerMob()
+	dot := skills.DotBuff{HP: 5, Tags: []string{"poison"}, Interval: 1, Caster: caster}
+
+	require.True(t, p.ApplyDot(55, dot, 5), "precondition: the first call ignites")
+	require.False(t, p.ApplyDot(55, dot, 5), "precondition: the second call refreshes")
+
+	require.Len(t, p.SkillEvents(), 2, "one Applied per call, ignite and refresh alike")
+	for _, e := range p.SkillEvents() {
+		assert.Equal(t, model.HitPhaseApplied, e.Phase)
+		assert.Equal(t, model.HitKindDamage, e.Kind)
+		assert.Equal(t, caster.Basic().ID(), e.Source)
+		assert.Equal(t, p.Basic().ID(), e.Victim)
+		assert.Equal(t, skills.SkillID(55), e.SkillID)
+		assert.Zero(t, e.Amount)
+	}
+}
+
+func TestPlayer_ApplyDotFromACasterWithNoIDNotesNothing(t *testing.T) {
+	p := hittablePlayer(t)
+	p.ApplyDot(55, skills.DotBuff{HP: 5, Interval: 1, Caster: "a bog"}, 5)
+	assert.Empty(t, p.SkillEvents())
+}
+
+func TestPlayer_ApplyHotNotesHealApplied(t *testing.T) {
+	p := hittablePlayer(t)
+	healer := newTestPlayer(nil)
+
+	p.ApplyHot(72, skills.HotBuff{HP: 5, Interval: 1, Caster: healer}, 5)
+
+	require.Len(t, p.SkillEvents(), 1)
+	e := p.SkillEvents()[0]
+	assert.Equal(t, model.HitPhaseApplied, e.Phase)
+	assert.Equal(t, model.HitKindHeal, e.Kind)
+	assert.Equal(t, healer.Basic().ID(), e.Source)
+	assert.Zero(t, e.Amount)
+}
+
+func TestPlayer_DirectHitIsPhaseDirect(t *testing.T) {
+	p := hittablePlayer(t)
+	p.takeDamage(model.Damage{HP: 10}, 7, model.StatusEffectDamagedAmbient)
+	require.Len(t, p.SkillEvents(), 1)
+	assert.Equal(t, model.HitPhaseDirect, p.SkillEvents()[0].Phase)
+}
+
+func TestPlayer_DotTickNotesDamageTick(t *testing.T) {
+	p := hittablePlayer(t)
+	p.takeDamage(model.Damage{HP: 10, Tick: true}, 7, model.StatusEffectDamagedAmbient)
+	require.Len(t, p.SkillEvents(), 1)
+	assert.Equal(t, model.HitKindDamage, p.SkillEvents()[0].Kind)
+	assert.Equal(t, model.HitPhaseTick, p.SkillEvents()[0].Phase)
+}
+
+func TestPlayer_CritTickStaysCritAndTick(t *testing.T) {
+	p := hittablePlayer(t)
+	p.takeDamage(model.Damage{HP: 10, Crit: true, Tick: true}, 7, model.StatusEffectDamagedAmbient)
+	require.Len(t, p.SkillEvents(), 1)
+	assert.Equal(t, model.HitKindCrit, p.SkillEvents()[0].Kind)
+	assert.Equal(t, model.HitPhaseTick, p.SkillEvents()[0].Phase)
+}
+
+func TestPlayer_FullyResistedTickNotesImmuneTick(t *testing.T) {
+	p := hittablePlayer(t)
+	p.buffs.ApplyResist(4, []string{"fire"}, 0, 5)
+	p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}, Tick: true}, 7, model.StatusEffectDamagedAmbient)
+	require.Len(t, p.SkillEvents(), 1)
+	assert.Equal(t, model.HitKindImmune, p.SkillEvents()[0].Kind)
+	assert.Equal(t, model.HitPhaseTick, p.SkillEvents()[0].Phase)
+}
+
+func TestPlayer_AbsorbedTickNotesAbsorbTick(t *testing.T) {
+	p := hittablePlayer(t)
+	p.buffs.ApplyShield(4, 50, 5)
+	p.takeDamage(model.Damage{HP: 30, Tick: true}, 7, model.StatusEffectDamagedAmbient)
+	require.Len(t, p.SkillEvents(), 1)
+	assert.Equal(t, model.HitKindAbsorb, p.SkillEvents()[0].Kind)
+	assert.Equal(t, model.HitPhaseTick, p.SkillEvents()[0].Phase)
+}
+
+func TestPlayer_MobTouchesThreadsTheTickFlag(t *testing.T) {
+	p := hittablePlayer(t)
+	p.MobTouches(newFakeAttackerMob(), mobs.Factors{Damage: 10, DamageTags: []string{"physical"}, Tick: true})
+	require.Len(t, p.SkillEvents(), 1)
+	assert.Equal(t, model.HitPhaseTick, p.SkillEvents()[0].Phase)
+}
+
+func TestPlayer_HotTickNotesHealTick(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.PlayerVitalSigns.Health = p.MaxHealth().Sub(40)
+
+	p.Heal(model.Healing{HP: 30, Caster: newTestPlayer(nil), SkillID: 72, Tick: true})
+
+	require.Len(t, p.SkillEvents(), 1)
+	assert.Equal(t, model.HitKindHeal, p.SkillEvents()[0].Kind)
+	assert.Equal(t, model.HitPhaseTick, p.SkillEvents()[0].Phase)
+}
+
+func TestPlayer_FiredIsPhaseDirect(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.NoteSkillFired(45)
+	require.Len(t, p.SkillEvents(), 1)
+	assert.Equal(t, model.HitPhaseDirect, p.SkillEvents()[0].Phase)
+}
