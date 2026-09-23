@@ -27,9 +27,10 @@ import {Clearing, clearsDarkness, clearsHaze} from '../../atmospheres/logic/Clea
 import {
     ATMOSPHERE_PROFILES, AtmosphereProfile, declaresDarkness, declaresHaze,
     neededTextures, Outlined, Region, regionBlend,
-    regionDarkness, regionHaze, RegionPoint, regionPaintSpec, regionScroll,
-    TERRAIN_PROFILES,
+    regionDarkness, regionHaze, RegionPoint, regionPaintSpec, regionScroll, regionWobble,
+    regionWobbleSize, TERRAIN_PROFILES,
 } from './Regions';
+import {applyMaskNoise, maskDensity} from './MaskNoise';
 import {Path} from '../../paths/logic/Paths';
 import {ribbonGeometry} from '../../paths/logic/PathRibbon';
 import {Polygon} from '../../polygons/logic/Polygons';
@@ -199,32 +200,6 @@ function tileMatrix(
     return new Matrix(scale * cos, scale * sin, -scale * sin, scale * cos, tx, ty);
 }
 
-/**
- * Texels per WORLD UNIT in a blend mask (C5).
- *
- * The mask holds nothing but a low-frequency alpha ramp, which is where the
- * cost of this feature goes away - `MapFog` states the same economy for the
- * same reason (1024 texels across a 144-unit world). At 6 per unit the shipped
- * 1.5-unit band is 9 texels wide, and one texel covers 20 screen px at native
- * zoom: enough segments that the bilinear upscale of a Gaussian ramp reads as a
- * ramp rather than as steps.
- *
- * Halved on mobile, exactly as `MapFog.fogWidth` and `MapTerrain.bakeWidth` are
- * halved and for the same reason: the phone is the platform already at its
- * render ceiling, and this is the axis that costs only VRAM.
- */
-function maskTexelsPerUnit(): number {
-    return isMobile() ? 3 : 6;
-}
-
-/**
- * Hard cap on either side of a mask texture. A region the size of the world
- * (144 units) asks for 882 texels at the density above, so nothing shipped is
- * near this - it is here so that an author who draws one enormous polygon gets
- * a coarser band instead of a texture no GL implementation will allocate.
- */
-const MASK_MAX_TEXELS = 2048;
-
 /** A region's mask footprint in WORLD PX: its bounding box, grown outward. */
 interface Footprint {
     x: number;
@@ -260,6 +235,26 @@ function footprintOf(points: RegionPoint[], margin: number): Footprint | null {
     };
 }
 
+/** A surface's two wobble keys, read together because they are only ever
+ *  consumed together (plan-ground-noise.md W1). */
+interface Wobble {
+    wobble: number;
+    wobbleSize: number;
+}
+
+const NO_WOBBLE: Wobble = {wobble: 0, wobbleSize: 0};
+
+/** Both wobble keys off the surface's OWN profile, in the table it names. */
+function wobbleOf(
+    surface: Region,
+    profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
+): Wobble {
+    return {
+        wobble: regionWobble(surface, profiles),
+        wobbleSize: regionWobbleSize(surface, profiles),
+    };
+}
+
 /** A built mask: the sprite to hang on the region, and the texture behind it. */
 interface BlendMask {
     sprite: Sprite;
@@ -292,24 +287,28 @@ function buildBlendMask(
     blend: number,
     draw: (g: Graphics) => void,
     extraMargin: number = 0,
+    // The profile's `wobble` (0…1) and `wobbleSize` (world units, 0 = derive
+    // from the band) — plan-ground-noise.md W1. `wobble` 0 bakes exactly the C5
+    // mask: same density, no extra pass.
+    {wobble, wobbleSize}: Wobble = NO_WOBBLE,
 ): BlendMask | null {
     const bandPx = meter2px(blend);
-    // Half a band of actual outward bleed, plus the BlurFilter's own padding - 
+    // Half a band of actual outward bleed, plus the BlurFilter's own padding -
     // `updatePadding()` reserves 2 × strength texels, and strength is half the
     // band, so that padding is one full band. 1.5 covers both with the rounding
     // slack that keeps the ramp from touching the texture edge.
     const footprint = footprintOf(points, bandPx * 1.5 + extraMargin);
     if (footprint === null) { return null; }
 
-    // ⚑ ONE density variable feeds BOTH the texture size and the blur strength.
-    // Splitting them is the bug this comment exists to prevent: a region large
-    // enough to hit the cap gets a coarser texture, and a strength computed off
-    // the uncapped density would then draw a band several times too wide.
-    let texelsPerPx = maskTexelsPerUnit() / meter2px(1);
-    const longestPx = Math.max(footprint.width, footprint.height);
-    if (longestPx * texelsPerPx > MASK_MAX_TEXELS) {
-        texelsPerPx = MASK_MAX_TEXELS / longestPx;
-    }
+    // ⚑ ONE density variable feeds the texture size, the blur strength AND the
+    // noise grain. Splitting them is the bug this comment exists to prevent: a
+    // region large enough to hit the cap gets a coarser texture, and a strength
+    // computed off the uncapped density would then draw a band several times
+    // too wide. `maskDensity` owns the rule; see MaskNoise.ts.
+    const unitPx = meter2px(1);
+    const density = maskDensity(blend, wobble,
+        Math.max(footprint.width, footprint.height) / unitPx, isMobile(), wobbleSize);
+    const texelsPerPx = density.texelsPerUnit / unitPx;
 
     // Sub-texel band: the blur would round to nothing and we would pay a mask
     // and a filter pass for a hard edge. Take the hard edge honestly instead.
@@ -349,11 +348,23 @@ function buildBlendMask(
     });
     holder.destroy({children: true});
 
-    const sprite = new Sprite(texture);
+    // ⭐ The wobble is a SECOND bake over the blurred ramp, never a change to
+    // it: `null` back (no WebGL) leaves the clean mask standing.
+    let result = texture;
+    if (wobble > 0) {
+        const noisy = applyMaskNoise(renderer, texture, footprint, texelsPerPx, wobble,
+            density.grainUnits * unitPx);
+        if (noisy !== null) {
+            texture.destroy(true);
+            result = noisy;
+        }
+    }
+
+    const sprite = new Sprite(result);
     sprite.position.set(footprint.x, footprint.y);
     sprite.width = footprint.width;
     sprite.height = footprint.height;
-    return {sprite, texture, footprint};
+    return {sprite, texture: result, footprint};
 }
 
 /** What one paint pass produced, and ALL OF IT IS THE CALLER'S TO OWN.
@@ -613,7 +624,8 @@ export function paintRegions(
         const draw: DrawSurface = (g, style) => g.poly(region.points).fill(style);
         const blend = regionBlend(region);
         const mask = blend > 0
-            ? buildBlendMask(renderer, region.points, blend, g => draw(g, {color: 0xffffff}))
+            ? buildBlendMask(renderer, region.points, blend, g => draw(g, {color: 0xffffff}), 0,
+                wobbleOf(region))
             : null;
         paintSurface(container, region, region.points, draw, mask, 0, out);
     });
@@ -796,7 +808,8 @@ function paintAir(
 
     const blend = regionBlend(atmosphere, ATMOSPHERE_PROFILES);
     const mask = blend > 0
-        ? buildBlendMask(renderer, atmosphere.points, blend, g => draw(g, {color: 0xffffff}))
+        ? buildBlendMask(renderer, atmosphere.points, blend, g => draw(g, {color: 0xffffff}), 0,
+            wobbleOf(atmosphere, ATMOSPHERE_PROFILES))
         : null;
 
     if (flat) {
@@ -874,7 +887,8 @@ function paintOutline(
         .stroke({...style, width, cap: PATH_CAP, join: PATH_JOIN});
     const blend = regionBlend(rim);
     const mask = blend > 0
-        ? buildBlendMask(renderer, points, blend, g => draw(g, {color: 0xffffff}), width / 2)
+        ? buildBlendMask(renderer, points, blend, g => draw(g, {color: 0xffffff}), width / 2,
+            wobbleOf(rim))
         : null;
     paintSurface(container, rim, points, draw, mask, width / 2, out, TERRAIN_PROFILES, angle, anchor);
 }
@@ -903,7 +917,8 @@ export function paintPolygons(
         const draw: DrawSurface = (g, style) => g.poly(polygon.points).fill(style);
         const blend = regionBlend(polygon);
         const mask = blend > 0
-            ? buildBlendMask(renderer, polygon.points, blend, g => draw(g, {color: 0xffffff}))
+            ? buildBlendMask(renderer, polygon.points, blend, g => draw(g, {color: 0xffffff}), 0,
+                wobbleOf(polygon))
             : null;
         paintSurface(container, polygon, polygon.points, draw, mask, 0, out);
         paintOutline(container, polygon, polygon.points, true, renderer, out);
@@ -969,7 +984,8 @@ function paintRibbon(
         .poly(points, closed)
         .stroke({...style, width, cap: PATH_CAP, join: PATH_JOIN});
     const mask = blend > 0
-        ? buildBlendMask(renderer, points, blend, g => draw(g, {color: 0xffffff}), width / 2)
+        ? buildBlendMask(renderer, points, blend, g => draw(g, {color: 0xffffff}), width / 2,
+            wobbleOf(surface))
         : null;
 
     // ⚑ The overdraw mirrors `buildBlendMask`'s own outward margin. Content has
@@ -1058,7 +1074,7 @@ export function paintPaths(
         // wrong rather than the box being too small.
         const mask = blend > 0
             ? buildBlendMask(renderer, path.points, blend,
-                g => draw(g, {color: 0xffffff}), path.width / 2)
+                g => draw(g, {color: 0xffffff}), path.width / 2, wobbleOf(path))
             : null;
         // ⚑ `textureAngle` is 0/undefined for every path that did not author
         // `alignTexture`, so this argument changes nothing for a road or a
