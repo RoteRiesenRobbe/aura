@@ -20,8 +20,8 @@
  * TOP-LEFT CROP for rasters (Preloading.ts:63-75).
  */
 import {
-    Assets, BlurFilter, Container, Graphics, Matrix, Renderer, RenderTexture, Sprite, Texture,
-    TilingSprite,
+    Assets, BlurFilter, Container, Graphics, Matrix, Mesh, MeshGeometry, Renderer, RenderTexture,
+    Sprite, Texture, TilingSprite,
 } from 'pixi.js';
 import {Clearing, clearsDarkness, clearsHaze} from '../../atmospheres/logic/Clearings';
 import {
@@ -31,6 +31,7 @@ import {
     TERRAIN_PROFILES,
 } from './Regions';
 import {Path} from '../../paths/logic/Paths';
+import {ribbonGeometry} from '../../paths/logic/PathRibbon';
 import {Polygon} from '../../polygons/logic/Polygons';
 import {meter2px} from '../../../client-data/BasicConfig';
 import {isMobile} from '../../user-interface/logic/Mobile';
@@ -94,6 +95,17 @@ export function loadZoneTextures(
             return Promise.resolve();
         }
         return Assets.load(url).then((texture: Texture) => {
+            // ⛔ REPEAT HAS TO BE SET BY HAND, and only a MESH reveals that.
+            // Pixi flips `clamp-to-edge` to `repeat` itself inside
+            // `convertFillInputToFillStyle`, so every Graphics fill and stroke
+            // has always tiled for free — but a Mesh never goes through that
+            // function. Without this line an aligned path's ribbon clamps, and
+            // clamping does not look like a wrap-mode bug: it smears the tile's
+            // last pixel column down the whole run, which reads as the texture
+            // simply being wrong. Free and harmless for the Graphics callers,
+            // which were already setting it on first use.
+            texture.source.style.addressMode = 'repeat';
+            texture.source.style.update();
             loaded[name] = texture;
             landed = true;
         }).catch((error: unknown) => {
@@ -844,12 +856,19 @@ function paintOutline(
     angle = 0,
     // The anchor its angle came from, so the tile registers ACROSS the ribbon.
     anchor: { x: number, y: number } | null = null,
+    // ⭐ Whether the BODY was drawn as a ribbon mesh. The rim has to make the
+    // same choice: a face that follows its bends beside a kerb that does not
+    // would disagree with itself along the shape's whole length, which is more
+    // obviously wrong than either alone — the same pairing the `angle` argument
+    // was added for.
+    aligned = false,
 ): void {
     const width = surface.outlineWidth;
     if (!surface.outlineProfile || !width) { return; }
     // A surface of its own, so every profile lookup below reads the OUTLINE's
     // entry and not the body's.
     const rim: Region = {profile: surface.outlineProfile, points};
+    if (paintRibbon(container, rim, points, closed, width, aligned, renderer, out)) { return; }
     const draw: DrawSurface = (g, style) => g
         .poly(points, closed)
         .stroke({...style, width, cap: PATH_CAP, join: PATH_JOIN});
@@ -893,9 +912,104 @@ export function paintPolygons(
 }
 
 /**
+ * Paints ONE aligned surface as a RIBBON MESH instead of a textured stroke, and
+ * says whether it did. `false` means "not my case" and the caller falls back to
+ * {@link paintSurface} unchanged.
+ *
+ * ⭐ WHY A MESH AT ALL — the full argument lives in `PathRibbon.ts`, but the
+ * short of it: a stroke carries ONE matrix, so the tile is a world-space
+ * pattern seen through the stroke's silhouette and it walks off the ribbon as
+ * soon as the ribbon turns. Arc-length UVs follow the bend instead.
+ *
+ * ⛔ THE THREE CASES IT REFUSES, each for its own reason:
+ *
+ *  1. **A path that never asked to align.** A road wants its tile square to the
+ *     world, which is exactly what the matrix already does, and cheaper: one
+ *     Graphics against a geometry buffer.
+ *  2. **A colour fallback** (D14, texture missing or still loading). A flat
+ *     colour has no phase and no direction, so there is nothing for UVs to do.
+ *  3. ⚑ **A DRIFTING profile.** Not because a mesh cannot scroll — a mesh is
+ *     precisely what CAN, and the `tilePosition`-period argument recorded in
+ *     {@link paintSurface} stops applying the moment `TilingSprite` is out of
+ *     the picture. It refuses because the drifting branch has no mesh
+ *     implementation yet, which is a different sentence from the one that is
+ *     written there, and the only aligned-and-drifting path in the game (the
+ *     river) is therefore unchanged by this chunk. ⭐ That is the follow-up
+ *     this design opens, not a limit it inherits.
+ */
+function paintRibbon(
+    container: Container,
+    surface: Region,
+    points: RegionPoint[],
+    closed: boolean,
+    width: number,
+    aligned: boolean,
+    renderer: Renderer,
+    out: PaintedSurfaces,
+): boolean {
+    if (!aligned) { return false; }
+    const authored = regionScroll(surface, TERRAIN_PROFILES);
+    if (authored.x !== 0 || authored.y !== 0) { return false; }
+
+    const paint = regionPaint(surface, TERRAIN_PROFILES);
+    if (paint === null || !('texture' in paint)) { return false; }
+    const {texture, scale} = paint;
+
+    // ⚑ One tile spans `scale × its own pixel size` in world px — the same
+    // reading `tileMatrix`'s `scale(s, s)` has, so a profile's `scale` means
+    // the same thing on both sides of this branch and switching a path between
+    // them does not resize its texture.
+    const tileW = texture.width * scale;
+    const tileH = texture.height * scale;
+
+    const blend = regionBlend(surface);
+    // The mask is built off the CENTRELINE stroke, exactly as the stroke path
+    // builds it, so the feathered silhouette is identical either way.
+    const draw: DrawSurface = (g, style) => g
+        .poly(points, closed)
+        .stroke({...style, width, cap: PATH_CAP, join: PATH_JOIN});
+    const mask = blend > 0
+        ? buildBlendMask(renderer, points, blend, g => draw(g, {color: 0xffffff}), width / 2)
+        : null;
+
+    // ⚑ The overdraw mirrors `buildBlendMask`'s own outward margin. Content has
+    // to reach at least as far as the blur does, because masked alpha is
+    // content × mask: a ribbon that stopped at its rim would multiply the
+    // outward half of the ramp by nothing and end the edge in a 50 % step —
+    // the same trap `addFeathered` exists to dodge for regions.
+    const overdraw = mask !== null ? meter2px(blend) * 1.5 : 0;
+    const ribbon = ribbonGeometry(points, width, closed, tileW, tileH, overdraw);
+    if (ribbon === null) { return false; }
+
+    const mesh = new Mesh({
+        geometry: new MeshGeometry({
+            positions: ribbon.positions,
+            uvs: ribbon.uvs,
+            indices: ribbon.indices,
+        }),
+        texture,
+    });
+    container.addChild(mesh);
+    if (mask !== null) {
+        // ⚑ The mask sprite must be IN the scene graph to have a world
+        // transform — a detached mask silently masks NOTHING. Same note as
+        // `addFeathered`.
+        container.addChild(mask.sprite);
+        mesh.mask = mask.sprite;
+        out.masks.push(mask.texture);
+    }
+    return true;
+}
+
+/**
  * The stroke geometry every path is drawn with. Round on both counts (D10):
  * a butt cap reads as a river snipped off with scissors, and a mitre join
  * spikes outward at a sharp bend in a way no riverbank does.
+ *
+ * ⚑ Still the geometry for every NON-aligned path, and for the aligned ones
+ * {@link paintRibbon} hands back. An aligned path drawn as a mesh has flat ends
+ * rather than round caps — which is the honest shape for a rock face, and has
+ * no effect on the fences, whose caps are hidden under their own end posts.
  */
 const PATH_CAP = 'round';
 const PATH_JOIN = 'round';
@@ -921,6 +1035,20 @@ export function paintPaths(
         const draw: DrawSurface = (g, style) => g
             .poly(path.points, path.closed === true)
             .stroke({...style, width: path.width, cap: PATH_CAP, join: PATH_JOIN});
+
+        // ⭐ `textureAngle` is present on exactly the paths that authored
+        // `alignTexture`, so it doubles as the "this one wants to follow its own
+        // ribbon" flag. ⚑ Its VALUE is no longer read for those: the mesh takes
+        // the direction from the geometry, per vertex, which is the whole point.
+        // It stays load-bearing for the drifting fallback below, which is still
+        // a matrix.
+        const aligned = path.textureAngle !== undefined;
+        if (paintRibbon(container, path, path.points, path.closed === true,
+            path.width, aligned, renderer, out)) {
+            paintOutline(container, path, path.points, path.closed === true, renderer, out,
+                path.textureAngle || 0, path.textureAnchor || null, aligned);
+            return;
+        }
 
         const blend = regionBlend(path);
         // ⚑ The footprint has to grow by HALF THE STROKE on top of the blend
