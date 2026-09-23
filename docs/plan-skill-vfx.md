@@ -2041,7 +2041,7 @@ spider leg, agent C). `ember-aura` (133) keeps its beam on `hit` for its NEW
 
 ### C3a-ii ledger (2026-09-23) - a DoT draws on application, the rim bite, cooldown waves
 
-✅ **BUILT 2026-09-23** `[uncommitted]`. Spec: §12h, corrected at the session
+✅ **BUILT 2026-09-23** `814f8055`. Spec: §12h, corrected at the session
 by §12h.5 (three PO answers before any code). Three Opus agents off scratchpad
 briefs (Go + wire + vocabulary + docs · client planner + rim bite · pilot art +
 content + harness), the lead regenerated the wire first, reviewed both diffs,
