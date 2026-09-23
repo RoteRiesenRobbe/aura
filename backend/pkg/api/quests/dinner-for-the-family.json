@@ -1,0 +1,27 @@
+{
+  "_comment": "⭐ THE OPENING ARC (content-zone-design-guide.md §2.0) — the first quest in the game, and the one that hands the player their whole starting kit. Eliza offers and turns it in; the `gather` stage runs BOTH errands in parallel — talk to Hendrik + 3 stags, talk to Benjamin + 6 beets — and each talk is where one skill is taught: Wild from the father, Harvest from the uncle, then FirstAid from the mother on the turn-in. ⚑ PARALLEL MEANS UNORDERED: objectives in one stage are AND-ed with no order, so a player can kill stags before visiting Hendrik; the talk still has to happen. The beets are ordered anyway, by content: a Beet authors the Turnip's harvest lock, so no combat aura touches one until Harvest is learned. ⚑ NO TRACKER on `gather`, deliberately: a stage tracker replaces ALL derived lines with one and substitutes {n}/{m} from the first countable objective only, so it could show the stags or the beets but never both. Reward 150 XP = the L9 half-level rule at L1, the price village-welcome and turnip-chore pay. ⚑ TARGET LEVELS: authored for Stag spawns at level 1-2 near the homestead — the north-pasture herd is L14. Text deliberately plain (PO 2026-08-02).",
+  "id": "dinner-for-the-family",
+  "title": "Dinner for the Family",
+  "stages": [
+    {
+      "id": "gather",
+      "journal": "Eliza needs meat and beets for dinner. Hendrik hunts; Benjamin grows beets.",
+      "objectives": [
+        { "kind": "talk_to", "npc": "Hendrik" },
+        { "kind": "kill", "species": "Stag", "count": 3 },
+        { "kind": "talk_to", "npc": "Benjamin" },
+        { "kind": "harvest", "species": "Beet", "count": 6 }
+      ],
+      "next": "home"
+    },
+    {
+      "id": "home",
+      "journal": "Meat and beets. Eliza is waiting on the pot.",
+      "tracker": "Bring it all home to Eliza"
+    },
+    {
+      "id": "done",
+      "journal": "Dinner. Afterwards Eliza points east down the road, to Reinhard's farm."
+    }
+  ]
+}

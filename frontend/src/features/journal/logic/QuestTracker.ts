@@ -71,10 +71,10 @@ export function update(progress: QuestProgress[]) {
         title.textContent = row.title;
         li.appendChild(title);
 
-        if (row.line !== null) {
+        for (const text of row.lines) {
             const line = document.createElement('div');
             line.className = 'questTrackerLine';
-            line.textContent = row.line;
+            line.textContent = text;
             li.appendChild(line);
         }
 

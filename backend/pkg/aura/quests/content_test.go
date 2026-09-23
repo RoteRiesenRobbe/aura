@@ -85,6 +85,19 @@ var expectedQuests = map[string]string{
 	// kill quest in the game whose count is 1: Zone 1's one elite is a NAMED
 	// fight, not a cull.
 	"the-sounder-at-the-mill": "The Sounder at the Mill",
+
+	// ⭐ THE OPENING ARC (content-zone-design-guide.md §2.0): the first quest
+	// in the game, and the only one whose stages exist to hand over the
+	// starting kit — Wild at the father, Harvest at the uncle, FirstAid on the
+	// mother's turn-in. Its one objective stage runs both errands in parallel,
+	// a talk_to on each teacher beside the kill and the harvest, which is what
+	// makes those teachers unskippable rather than optional scenery.
+	"dinner-for-the-family": "Dinner for the Family",
+
+	// Reinhard's THIRD quest (content-zone-design-guide.md §2.4) — he is the
+	// first three-offer giver, where the Farmer he used to be was the first
+	// two-offer one.
+	"giant-rats-in-the-barn": "Giant Rats in the Barn",
 }
 
 func TestContent_QuestCensus(t *testing.T) {
@@ -339,6 +352,17 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		// the Lamplighter's three dire wolves pay — the elite premium is in the
 		// drop table, not here. Revisit if elite kills are ever re-priced.
 		"the-sounder-at-the-mill": 370, // L6, ½ × 300 × 1.2^5
+
+		// ⭐ The opening arc (content-zone-design-guide.md §2.0). ⚑ L1 content,
+		// so the L9 rule bottoms out at the same 150 village-welcome and
+		// turnip-chore pay — ½ × 300 × 1.2^0, with no level to inflate it. The
+		// real reward is the three skills, which this pin cannot see.
+		"dinner-for-the-family": 150, // L1, ½ × 300
+
+		// ⚑ The same 180 the boars pay, and deliberately: the L9 rule prices the
+		// TARGET'S LEVEL, and the GiantRat is curveLevel 2 exactly like the Boar.
+		// What differs between those two quests is the fight, not the payout.
+		"giant-rats-in-the-barn": 180, // L2 giant rats, ½ × 300 × 1.2
 	}, total)
 }
 
@@ -393,7 +417,7 @@ func TestContent_VillageWelcomeRequiresFreshTalksForAVeteran(t *testing.T) {
 	// started", and a talk target must be spoken to again.
 	mr, qr := contentRegistries(t)
 
-	farmer, err := mr.GetByName("Farmer")
+	farmer, err := mr.GetByName("Reinhard")
 	require.NoError(t, err)
 	crier, err := mr.GetByName("TownCrier")
 	require.NoError(t, err)

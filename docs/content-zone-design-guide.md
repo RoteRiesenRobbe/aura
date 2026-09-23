@@ -87,6 +87,85 @@ here needs Go.
 **Level range** 1–6 [PLACEHOLDER]. **Theme**: open, bright, legible. The zone
 whose job is to teach, not to threaten.
 
+### 2.0 The opening arc — home, before the village exists
+
+⭐ **This is the first five minutes of the game, and it is a POI the player
+starts *inside*, not one they walk to.** A homestead west of Reinhard's farm,
+off the road's west end. Three relatives live here, and between them they hand
+over the entire starting kit. The quest is `dinner-for-the-family`.
+
+**The design problem it solves.** Before this existed a new character spawned in
+the village square holding exactly one skill — the level-1 `Damage` milestone —
+and every teacher was optional scenery. Nothing in the world *required* the
+player to learn anything, so the first hour taught by accident or not at all.
+The arc makes the three foundational verbs — **fight, gather, heal** — into
+three errands for three people you are related to.
+
+The quest has **one objective stage, and both errands run in parallel inside it**:
+
+| Stage | Objective | Who | What it teaches | Why it cannot be skipped |
+|---|---|---|---|---|
+| `gather` | talk | **Hendrik**, your father, a hunter | **Wild** @L1 | Soft — a `talk_to` objective. You must open his panel; taking the skill is your choice |
+| | kill 3× **Stag** | | that a fleeing target is a *positioning* problem | — |
+| | talk | **Benjamin**, your uncle | **Harvest** @L1 | Soft — a `talk_to` objective |
+| | harvest 6× **Beet** | | that not everything is killed | ⛔ **Hard.** A Beet carries the Turnip's `{"*": 0}` + `gateKeys: ["harvest"]` lock, so **no combat aura can touch one** until Harvest is learned |
+| `home` | talk | **Eliza**, your mother | **FirstAid** + 150 XP on the turn-in | — |
+| `done` | — | — | — | Her completed-greeting points east to Reinhard |
+
+⭐ **The two lessons are deliberately asymmetric, and that asymmetry is the
+teaching.** Hendrik's Wild is an *upgrade you may decline* — `Damage` alone
+kills a stag, so the lesson is "there is a wider ring, and it costs resource."
+Benjamin's Harvest is a *key*: swinging at a beet does literally nothing. The
+player meets an optional trade and an absolute lock inside the same five
+minutes, which is the whole shape of the game's skill economy in miniature.
+
+⚑ **Parallel means unordered.** A stage's objectives are AND-ed with no order,
+so the player can do either errand first — and can kill the stags *before*
+visiting Hendrik (the talk still has to happen before the stage completes).
+The beets need no ordering rule: the harvest lock orders them by itself.
+
+⚑ **`gather` authors no `tracker`, and must not.** A stage tracker replaces
+every derived line with ONE, and substitutes `{n}/{m}` from the **first
+countable** objective only — it could show the stags or the beets, never both.
+Left underived, the journal shows one line per objective, each with its own
+live count and a ✓ on a finished talk. ⚑ The cost is the deriver's wording:
+`Talk to the Hendrik`, `0/3 Stag slain`, `0/6 Beet harvested`. Fixing that
+needs a per-objective tracker in the quest format, which does not exist yet.
+
+**The stag is the right first target and the reason is mechanical.** It authors
+`fleeBelowHealthRatio: 1`, so it bolts the instant it is hurt and **never
+fights back** — there is no lethality at any level. It moves at
+`0.055 × 0.85 = 0.04675`/tick against the player's `0.05`: a 7 % edge, so the
+kill is a chase the player wins by *staying in the ring*, not by out-damaging
+anything. That is the first lesson an aura game should teach.
+
+⛔ **PLACEMENT — the one thing this arc needs and does not have.** Author the
+homestead stags at **level 1–2**. Spawn level is a per-spawn override, so this
+is a placement decision and touches no definition:
+
+| Stag spawn level | HP | L1 player's Damage aura |
+|---|---|---|
+| **1** | 35 | 3 ticks = **4.0 s of contact** |
+| 14 *(the north-pasture herd)* | 153 | 11 ticks = **14.7 s of contact** |
+
+A level-14 stag is killable at level 1 — it cannot hurt you — but it is
+**eleven re-closes of a 1-unit ring** per animal, and that is not the game's
+first fight. The pasture herd stays where it is; the homestead needs its own
+low-level spawns (**3–4**, for a count of 3), plus a **Beet patch of 8–10** (for 6).
+
+⚑ **Cast the homestead with three reskins, not three sprites.** Eliza reuses
+`VillageHealer`, Hendrik reuses `Wanderer`, Benjamin reuses `Farmer`, and the
+Beet reuses `Turnip` — the standing placeholder-art call (Shepherd / Miller /
+Farmhand precedent). Four bespoke sprites for the tutorial would spend four
+wire enum values that can never be reclaimed, before anyone has seen whether
+the arc works.
+
+⭐ **The handoff is content, not a corridor.** Eliza's greeting after dinner is
+a `quest_at_stage … completed` node sitting **above** her unconditional root
+(L3: a conditional node must outrank the greeting), and it says to follow the
+road east to Reinhard. That is the seam between §2.0 and the rest of the zone:
+the arc does not gate the road, it *aims* the player down it.
+
 ### 2.1 Story beat, restated as a *spatial* problem
 
 The bible says: the villages are idyllic, but predators are being pushed out of
@@ -181,8 +260,10 @@ that is what makes Zone 2's canopy land. Two exceptions worth having:
 
 | POI | Purpose | Contents |
 |---|---|---|
-| **Village square** | Hub, respawn, quest wall | Campfire (`startingSpawn`), 4–6 Houses, Farmer, Town Crier, village healer |
-| **Turnip field** | The first 90 seconds | Turnip harvest-mobs, Farmer's chore quest |
+| **The homestead** *(§2.0)* | ⭐ The opening arc — where the player starts, and the whole starting kit | Eliza, Hendrik, Benjamin; 3–4 **L1–2** Stags; an 8–10 **Beet** patch. The road east leaves from here |
+| **Village square** | Hub, respawn, quest wall | Campfire (`startingSpawn`), 4–6 Houses, Reinhard, Town Crier, village healer |
+| **Turnip field** | The first 90 seconds | Turnip harvest-mobs, Reinhard's chore quest |
+| **Reinhard's barn** | ⭐ The zone's first *aggressive* fight | `Barn` prop + 10–12 **GiantRat**; `giant-rats-in-the-barn` on Reinhard. ⚑ His boars are prey faction and wait to be provoked — a rat comes at you |
 | **North pasture** | Teaches *neutral* | Stags + boars, zero hostiles, a herder NPC |
 | **The broken fence** | Teaches *hostile* | 2–3 Wolves that got in through a `BrokenFence`; visible from the road |
 | **Burnt cart / looted wagon** | The bandit breadcrumb | Prop dressing + a corpse + a signpost. No mob. |
@@ -191,8 +272,16 @@ that is what makes Zone 2's canopy land. Two exceptions worth having:
 
 ### 2.5 Cast (zone 1)
 
-Existing: `Turnip`, `Boar`, `Stag`, `Wolf`, `Bandit` (traces only), `Farmer`,
+Existing: `Turnip`, `Beet`, `Boar`, `Stag`, `Wolf`, `GiantRat`, `Bandit` (traces only),
+`Reinhard` (the Farmer, **renamed 2026-09-23**), `Eliza`, `Hendrik`, `Benjamin`,
 `TownCrier`, `VillageHealer`, `Wanderer`, `Dog`, `Campfire`.
+
+⚑ **`Farmer` is now two different things and the distinction bites.** `Reinhard`
+is the DEFINITION NAME — what zone spawns, quest `talk_to` targets and
+`GetByName` resolve against. `Farmer` survives as the **wire EntityType**, worn
+as an `entityType` override by Reinhard himself, Benjamin, the Miller, the
+Shepherd and the Farmhand. Renaming the def silently broke his sprite, because
+a def with no override resolves its art BY NAME; the override is the repair.
 
 ~~**Missing and needed**: an **Alpha Boar** … and a **Herder/Shepherd** NPC~~ —
 **both now authored.** The `Shepherd` shipped with the north pasture as a Farmer
@@ -208,11 +297,26 @@ the PO's editor work; the mill POI takes exactly one of each.
 
 ### 2.6 Quests (from the bible, mapped to what exists)
 
+0. ⭐ **The opening arc** — `dinner-for-the-family.json` ships (§2.0). It runs
+   *before* everything below and is the only quest in the zone that exists to
+   hand over skills rather than to reward a deed. It ends by pointing at (2).
 1. **MAIN: Report to the City** — accepted in the village, completes three zones
    later. Its Zone 1 leg is simply "reach the treeline"; the map does the rest.
 2. **Tend to the Farm** — `turnip-chore.json` ships; keep it.
 3. **Kill the Wildlife** — `boars-in-the-field.json` + `wolves-on-the-road.json`
    ship; keep both, they are exactly the bible's beat.
+3b. ⭐ **Giant rats in the barn** — `giant-rats-in-the-barn.json` ships, and it
+   makes Reinhard the zone's first **three-offer giver**. Its job is the
+   *escalation the other two do not teach*: the turnips do not fight, the
+   boars fight back, and the rats come to you. ⚑ **'Between boar and wolf' is
+   a threat profile, not a curve slot** — both of those author `curveLevel: 2`,
+   so there is no level gap to sit in. The GiantRat is cL2 too, and what sits
+   between them is speed (0.62 vs 0.55 / 0.7), sensor (2.2 vs 1.5 / 3) and
+   body (0.25 vs 0.4 / 0.3), with 45 HP — below both, because a rat is a barn
+   full of them rather than a duel.
+   ⛑ **It has no art**: it draws `NpcPlaceholder` (red `?` on a purple disc)
+   until an `EntityType` is appended and `api/schema/make.sh` is run — flatc
+   is not installed on the dev box. Do not ship it to players as-is.
 4. **Talk to People** — a 3-NPC "meet the village" chain. Cheap, and it is what
    makes a village feel inhabited. `village-welcome.json` is the seed.
 5. **Bandit breadcrumb** — *new*: investigate the burnt cart, follow the tracks

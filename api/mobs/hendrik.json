@@ -1,0 +1,66 @@
+{
+  "_comment": "The player's FATHER and the game's first combat teacher (content-zone-design-guide.md §2.0), one of the two parallel errands in the opening arc `dinner-for-the-family`. Standing talkable-NPC shape from miller.json — faction townsfolk, collisionLayer 97 (deliberately NOT Action(2)), mask 16, role creature + speed 0 (D4), xpFactor 0, aggroRadius 1.0 inert behind interaction.range 2.0. ⭐ TEACHES Wild @L1, the game's FIRST TAUGHT COMBAT SKILL: a fresh spellbook holds exactly the level-1 Damage milestone, and Wild is a damage aura with a wider ring (1.4 u vs Damage's 1.0) bought with a resource cost per hit — so the first lesson a player is taught is a TRADE, not a bigger number. ⚑ It also places an orphan: Wild had NO source anywhere in the game before this. ⭐ An `advice` info row hangs off root, ungated — durable character, not quest state (the content-npcs.md rule). ⚑ NO QUEST ROWS AT ALL, deliberately — the arc's `gather` stage carries a `talk_to` objective on him, which is satisfied by opening the panel, so the teaching row is the whole reason to come and nothing has to be wired to the quest. ⛑ entityType Wanderer is a DELIBERATE REUSE and placeholder art. ⚑ TEXT HAS A VOICE, by PO ask 2026-09-23 — the opening family is the one exception to the plain-text pass (PO 2026-08-02): he is stern, just and wise — short sentences, no comfort, fair to the stag. The PLAYER'S rows stay on the plain conventions ('Do you have a task for me?', 'Teach me something.', a teach row names its skill) so the panel reads the same as everywhere else. ⚑ UNPLACED: the PO places the spawn in the editor. All values [PLACEHOLDER].",
+  "id": 84,
+  "name": "Hendrik",
+  "type": "MOB",
+  "entityType": "Wanderer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": { "baseMaxHealth": 200, "xpFactor": 0, "speed": 0 },
+  "body": { "radius": 0.35, "collisionLayer": 97, "collisionMask": 16, "aggroRadius": 1 },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          "Your mother wants meat. Then you'll earn it, not be handed it.",
+          "Ask what you need to ask. I'll answer straight."
+        ],
+        "options": [
+          { "text": "Teach me something.", "next": "teachings" },
+          { "text": "How do I hunt a stag?", "next": "stags" },
+          { "text": "What should I know before I leave?", "next": "advice" }
+        ]
+      },
+      {
+        "id": "teachings",
+        "lines": [ "I'll teach you one thing. Learn it properly." ],
+        "options": [
+          {
+            "text": "Wild",
+            "grants": [
+              {
+                "kind": "teach_skill",
+                "skill": "Wild",
+                "requiredLevel": 1,
+                "line": "I'll teach you Wild. It reaches further than what you have now, and every blow costs you a little of yourself. Only one aura burns at a time, so choose it when the reach is worth the price."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "stags",
+        "lines": [
+          "A stag will start to run the moment you hurt it.",
+          "You won't win by hitting harder. You win by staying close.",
+          "Don't give up the chase, and don't be cruel about it."
+        ],
+        "options": []
+      },
+      {
+        "id": "advice",
+        "lines": [
+          "Take only what you need, from the land or from anyone.",
+          "Pay what you owe, even when nobody is counting.",
+          "And when you're wrong, say so quickly. It costs less that way."
+        ],
+        "options": []
+      }
+    ]
+  }
+}

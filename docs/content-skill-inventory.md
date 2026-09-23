@@ -14,7 +14,7 @@ and nobody owes a regeneration as part of a content edit. Run the command
 whenever you want a current picture. The content tree, the loader and its tests
 are the truth about what the game does; this page never is.
 
-Generated 2026-09-21 from api/ at b35556f6.
+Generated 2026-09-23 from api/ at c2e2e9b4.
 
 Every number here is **[PLACEHOLDER]** by project rule. Per-ability design
 intent lives in `content-auras.md` / `content-passives.md` /
@@ -36,7 +36,7 @@ marked because the code already knows them: **test rig** (`TEST_RIG_SKILLS`,
 kitchen-sink rigs that must never gain a source) and **prototype** (a skill
 using an effect type in `HIDDEN_EFFECT_TYPES`, parked pending a verdict).
 
-**117 skills = 78 player (30 auras, 11 passives, 37 cooldowns) + 39 mob-only.**
+**118 skills = 78 player (30 auras, 11 passives, 37 cooldowns) + 40 mob-only.**
 
 ## Auras (30)
 
@@ -44,7 +44,7 @@ using an effect type in `HIDDEN_EFFECT_TYPES`, parked pending a verdict).
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | Damage | 10 | lorc/broadsword |  |  | damage_aura: radius 1 u, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 14 +0.2222/L, damage tags physical, variance 15% |  | MS L1 |  |
 | 2 | Heal | 10 | delapouite/healing | 10% -0.8889%/L of max |  | heal_aura: radius 1.5 u +0.0444/L, tick interval 80t (2.67 s), selector lowest_health, max targets 1, heal HP 12 +2.6667/L |  | NPC: Hermit @L3 |  |
-| 3 | Wild | 5 | lorc/broadsword | 0.82% +0.195%/L of max |  | damage_aura: radius 1.4 u +0.05/L, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 10 +2.4/L, damage tags physical |  | **Cheat only** (`SKILL Wild`) |  |
+| 3 | Wild | 5 | lorc/broadsword | 0.82% +0.195%/L of max |  | damage_aura: radius 1.4 u +0.05/L, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 10 +2.4/L, damage tags physical |  | NPC: Hendrik @L1 |  |
 | 4 | Slow | 5 | lorc/snail | 1.8% +0.225%/L of max |  | slow_aura: radius 1.5 u, tick interval 30t (1 s), enemies, slow fraction 10% +10%/L |  | Drop: BanditRanged 0.2 · Quest: wolves-on-the-road via Shaman |  |
 | 5 | Immolate | 10 | carl-olsen/flame | 0.78% +0.195%/L of max |  | dot_aura: radius 1 u, tick interval 20t (0.67 s), selector nearest, max targets 1, enemies, damage HP 10.5 +2.6111/L, damage tags fire, dot ticks 3, dot tick interval 60t (2 s) |  | NPC: Emberkeeper @L12 |  |
 | 6 | Lantern | 5 | lorc/lantern-flame |  |  | light_aura: radius 4 u +0.5/L |  | Quest: the-lost-lamp via LamplessTraveller · Ascension via AscensionStone (quest_at_stage the-lost-lamp completed) |  |
@@ -52,7 +52,7 @@ using an effect type in `HIDDEN_EFFECT_TYPES`, parked pending a verdict).
 | 29 | Rejuvenation | 5 | delapouite/healing | 3.06% +0.765%/L of max |  | hot_aura: radius 2.5 u +0.1/L, tick interval 60t (2 s), heal HP 4 +1/L, hot ticks 6, hot tick interval 60t (2 s) |  | Drop: OrcWarlord 0.25 |  |
 | 30 | Paladin | 5 | delapouite/knight-banner | 0.75% +0.1625%/L of max · 0.2% +0.0992%/L of max |  | damage_aura: radius 1 u, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 10 +2.5/L, damage tags physical · heal_aura: radius 1 u, tick interval 40t (1.33 s), selector lowest_health, max targets 1, heal HP 2.6667 +1.3333/L |  | Recipe: Damage 5 + Heal 5 |  |
 | 40 | FireWard | 5 | lorc/bordered-shield | 1.8% +0.225%/L of max |  | resist_aura: radius 1.5 u, tick interval 30t (1 s), allies, resist tags fire, resist factor ×0.6 -0.05/L, self |  | Drop: FireElemental 0.35 |  |
-| 41 | Harvest | 5 | lorc/scythe |  |  | damage_aura: radius 1 u, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 14 +3.2/L, gate key harvest, variance 15% |  | NPC: Farmer @L1 |  |
+| 41 | Harvest | 5 | lorc/scythe |  |  | damage_aura: radius 1 u, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 14 +3.2/L, gate key harvest, variance 15% |  | NPC: Benjamin @L1 · NPC: Reinhard @L1 |  |
 | 44 | Berserker | 5 | lorc/broadsword | 0.82% +0.195%/L of max |  | damage_aura: radius 1 u, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 11 +2.6/L, damage tags physical, variance 15%, berserker max bonus factor ×1 |  | Drop: DireBear 0.15 |  |
 | 45 | LongRangeStrike "Long-Range Strike" | 10 | lorc/broadsword | 1.16% +0.1867%/L of max |  | damage_aura: radius 2.6 u +0.0444/L, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 9 +1.4444/L, damage tags physical, variance 15% |  | Drop: DireWolf 0.2 |  |
 | 48 | Pickaxe | 5 | lorc/mining |  |  | damage_aura: radius 1 u, tick interval 40t (1.33 s), selector nearest, max targets 1, enemies, damage HP 14 +3.2/L, gate key smash, variance 15% |  | NPC: Miner @L4 |  |
@@ -96,7 +96,7 @@ using an effect type in `HIDDEN_EFFECT_TYPES`, parked pending a verdict).
 | 8 | Bloodthirst | 5 | lorc/life-tap | 2% +0.25%/L of max | CD 900t (30 s) -60/L | lifesteal_burst: lifesteal fraction 30% +5%/L, lifesteal duration ticks 180t (6 s) |  | **Cheat only** (`SKILL Bloodthirst`) | Works with whichever aura you have on. |
 | 10 | Swift | 5 | lorc/wingfoot | 1.5% +0.375%/L of max | CD 600t (20 s) -30/L | speed_burst: speed factor ×1.5 +0.05/L, speed duration ticks 150t (5 s) +15/L, self |  | Drop: AlphaWolf 0.15 · Drop: DireWolf 0.12 · Drop: EliteWolf 0.25 · Drop: Wolf 0.04 |  |
 | 20 | NovaBurst | 5 | carl-olsen/flame | 1.99% +0.2225%/L of max · 1.66% +0.2%/L of max | CD 300t (10 s) -10/L | instant_damage: radius 2 u +0.05/L, enemies, damage HP 18 +2/L, damage tags fire · instant_dot: radius 2 u +0.05/L, enemies, damage HP 5 +0.6/L, damage tags fire, dot ticks 3, dot tick interval 30t (1 s) |  | Drop: BanditPyromancer 0.3 |  |
-| 21 | FirstAid | 5 | delapouite/healing | 0% of max | CD 900t (30 s) | self_heal: heal fraction of max 20% +2.5%/L |  | NPC: Hermit @L2 · NPC: VillageHealer @L2 |  |
+| 21 | FirstAid | 5 | delapouite/healing | 0% of max | CD 900t (30 s) | self_heal: heal fraction of max 20% +2.5%/L |  | NPC: Hermit @L2 · NPC: VillageHealer @L2 · Quest: dinner-for-the-family via Eliza |  |
 | 22 | Ignite | 5 | carl-olsen/flame | 1.84% +0.2325%/L of max | CD 300t (10 s) -10/L | instant_dot: radius 1.5 u +0.05/L, enemies, damage HP 6.3 +0.8/L, damage tags fire, dot ticks 3, dot tick interval 30t (1 s) |  | NPC: Emberkeeper @L7 |  |
 | 23 | SummonTotem | 5 | lorc/totem-head | 2% +0.375%/L of max | CD 450t (15 s) | spawn: spawn mob Totem, TTL ticks 300t (10 s) +30/L, power per owner level 5% |  | NPC: Shaman @L5 |  |
 | 24 | SummonCompanion | 5 | lorc/totem-head | 5% +0.75%/L of max | CD 2400t (80 s) | spawn: spawn mob Companion, TTL ticks 1800t (60 s) +150/L, power per owner level 5%, follows |  | NPC: Dog |  |
@@ -131,7 +131,7 @@ using an effect type in `HIDDEN_EFFECT_TYPES`, parked pending a verdict).
 | 151 | ThrowBomb | 1 | lorc/land-mine | 3.65% of max | CD 300t (10 s) | projectile: spawn mob ProjectileBomb, forward units 3 u, TTL ticks 46t (1.53 s), arm ticks 45t (1.5 s) |  | **Cheat only** (`SKILL ThrowBomb`) · **prototype** |  |
 | 152 | SummonSpider | 5 | delapouite/knocked-out-stars | 5% +0.75%/L of max |  | spawn: spawn mob Spider, TTL ticks 1800t (60 s) +150/L, power per owner level 5%, follows |  | **Cheat only** (`SKILL SummonSpider`) |  |
 
-## Mob-only skills (39)
+## Mob-only skills (40)
 
 Loaded from `api/skills/mobs/`. They share the id and name space with the
 player skills but never reach a spellbook: a mob carries one through its
@@ -179,6 +179,7 @@ is not placed yet, or dead content.
 | 138 | CampAura | 1 |  | heal_aura: radius 0.75 u, tick interval 60t (2 s), max targets 0, heal fraction of max 12% · light_aura: radius 2 u | Camp L1 |
 | 149 | BombBurst | 5 | CD 300t (10 s) -10/L | instant_damage: radius 2 u +0.05/L, selector all, enemies, damage HP 18 +2/L, damage tags fire · instant_dot: radius 2 u +0.05/L, selector all, enemies, damage HP 5 +0.6/L, damage tags fire, dot ticks 3, dot tick interval 30t (1 s) | ProjectileBomb L1 |
 | 153 | AlphaBoarGore | 5 |  | damage_aura: radius 1.1 u, tick interval 60t (2 s), selector nearest, max targets 1, enemies, damage HP 16 +2.5/L, damage tags physical/bleed, variance 15% | AlphaBoar L1 |
+| 154 | RatBite | 5 |  | damage_aura: radius 0.9 u, tick interval 22t (0.73 s), selector nearest, max targets 1, enemies, damage HP 5 +0.9/L, variance 15% | GiantRat L1 |
 
 ## Reachability
 
@@ -187,14 +188,14 @@ teachers counts twice.
 
 - **Milestone:** 3
 - **Kill drop:** 30
-- **NPC teaching:** 18
-- **Quest reward:** 3
+- **NPC teaching:** 20
+- **Quest reward:** 4
 - **Recipe:** 11
 - **Ascension:** 11
 
-### Cheat only (21)
+### Cheat only (20)
 
-- **Unplaced (16)**, finished abilities with no source yet: Aegis, Bloodthirst, FireShield, FireVulnerability, Firebolt, FlyYouFools, LightningStrike, Onward, OpenPortal, PullThrough, Recall, Retribution, Sanctuary, SummonSpider, WhirlingAxes, Wild
+- **Unplaced (15)**, finished abilities with no source yet: Aegis, Bloodthirst, FireShield, FireVulnerability, Firebolt, FlyYouFools, LightningStrike, Onward, OpenPortal, PullThrough, Recall, Retribution, Sanctuary, SummonSpider, WhirlingAxes
 - **Test rigs (3)**, tooling that must never gain a source: OmniAura, OmniPassive, OmniStrike
 - **Prototypes (2)**, parked with delete among the verdicts on offer: ThrowBomb, ThrowMine
 
@@ -212,16 +213,18 @@ teachers counts twice.
 - **Barrier** = Hardy 3 + Tough 3 (every ingredient has a source: yes)
 - **Hoarfrost** = Frostbite 5 + FrostShield 5 (every ingredient has a source: yes)
 
-### NPC teachings (18 across 10 teachers)
+### NPC teachings (20 across 12 teachers)
 
+- **Benjamin**: Harvest @L1
 - **CityGuard**: Strong @L3
 - **Dog**: SummonCompanion
 - **Emberkeeper**: BindElemental @L15 · Ignite @L7 · Immolate @L12 · Torch @L1
-- **Farmer**: Harvest @L1
 - **FrontCaptain**: Vanguard @L15
+- **Hendrik**: Wild @L1
 - **Hermit**: Calm @L10 · CharmBeast @L10 · FirstAid @L2 · Heal @L3
 - **Lamplighter**: Torch
 - **Miner**: Pickaxe @L4
+- **Reinhard**: Harvest @L1
 - **Shaman**: Recover @L4 · SummonTotem @L5
 - **VillageHealer**: FirstAid @L2 · Revive @L8
 
@@ -233,8 +236,9 @@ teachers counts twice.
 | L5 | Discipline |
 | L7 | Haste |
 
-### Quest rewards (3)
+### Quest rewards (4)
 
+- **FirstAid**: `dinner-for-the-family`, on the turn-in row at Eliza
 - **Lantern**: `the-lost-lamp`, on the turn-in row at LamplessTraveller
 - **Slow**: `wolves-on-the-road`, on the turn-in row at Shaman
 - **Taunt**: `wolves-on-the-road`, on the turn-in row at CityGuard
@@ -244,7 +248,7 @@ teachers counts twice.
 - **AscensionStone**: Blight (kills_this_life DireWolf 20) · Envenom · FrostShield (bloodline_ascensions 3) · Frostbite · KeenEye · Lantern (quest_at_stage the-lost-lamp completed) · RimeBurst · Venomward
 - **FrontAscensionStone**: FrostShield (bloodline_ascensions 3) · KeenEye · RimeBurst
 
-### Quest XP (16 rows)
+### Quest XP (18 rows)
 
 Not a skill source, but it falls out of the same interaction walk and it is the
 other half of a turn-in row's payout.
@@ -252,16 +256,18 @@ other half of a turn-in row's payout.
 - `alpha-wolves-at-the-village`: 1900 XP at VillageHealer
 - `bandits-at-the-shrine`: 1250 XP at Emberkeeper
 - `bears-at-the-walls`: 2300 XP at CityGuard
-- `boars-in-the-field`: 180 XP at Farmer
+- `boars-in-the-field`: 180 XP at Reinhard
+- `dinner-for-the-family`: 150 XP at Eliza
 - `dire-wolves-at-the-camp`: 930 XP at Shaman
 - `dire-wolves-in-the-forest`: 370 XP at Lamplighter
+- `giant-rats-in-the-barn`: 180 XP at Reinhard
 - `kobolds-on-the-road`: 450 XP at Wanderer
 - `spiders-in-the-diggings`: 930 XP at Miner
 - `the-lost-lamp`: 700 XP at LamplessTraveller
 - `the-sounder-at-the-mill`: 370 XP at Miller
 - `the-strays`: 180 XP at Shepherd
 - `thin-the-orc-line`: 4800 XP at FrontCaptain
-- `turnip-chore`: 150 XP at Farmer
+- `turnip-chore`: 150 XP at Reinhard
 - `village-welcome`: 150 XP at Hermit
 - `wolves-on-the-road`: 400 XP at CityGuard
 - `wolves-on-the-road`: 400 XP at Shaman

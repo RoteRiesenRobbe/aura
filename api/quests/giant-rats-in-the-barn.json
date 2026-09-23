@@ -1,0 +1,23 @@
+{
+  "_comment": "Reinhard's THIRD quest (content-zone-design-guide.md §2.4), and the first three-offer giver in the game — he already carries `turnip-chore` (harvest, L1) and `boars-in-the-field` (kill, L2), each behind its own root row per the Q4 tree shape. ⭐ It is the zone's first AGGRESSIVE fight: the boars he sends you after are prey faction and wait to be provoked, while a GiantRat hunts you, so the same giver teaches 'a thing that comes at you' one quest after 'a thing you go at'. Reward 180 XP = the L9 half-level rule at L2 (0.5 x 300 x 1.2), the same price the boars pay — the rule prices the TARGET'S LEVEL, and a rat and a boar are both cL2. ⚑ PLACEMENT: 10-12 GiantRat spawns inside/around the Barn prop (EntityType 85), count 8 so the fight has headroom without clearing the room to the last animal; the PO places them. Text deliberately plain (PO 2026-08-02).",
+  "id": "giant-rats-in-the-barn",
+  "title": "Giant Rats in the Barn",
+  "stages": [
+    {
+      "id": "clear",
+      "journal": "Kill 8 giant rats in Reinhard's barn.",
+      "tracker": "{n}/{m} giant rats killed",
+      "objectives": [{ "kind": "kill", "species": "GiantRat", "count": 8 }],
+      "next": "report"
+    },
+    {
+      "id": "report",
+      "journal": "The barn is quiet. Reinhard is out in his field.",
+      "tracker": "Return to Reinhard"
+    },
+    {
+      "id": "done",
+      "journal": "Done. The barn is Reinhard's again."
+    }
+  ]
+}

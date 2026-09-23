@@ -1,0 +1,27 @@
+{
+  "_comment": "A barn rat's bite: 5 HP plus 0.9 per level to the nearest enemy within a 0.9-unit ring every 22 ticks. Faster and weaker per bite than WolfBite, which is the GiantRat's whole identity — it wins by numbers and by not letting go. All values placeholder.",
+  "id": 154,
+  "name": "RatBite",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "impact", "on": "hit", "curve": "snap", "ms": 140 }
+    ]
+  },
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 0.9,
+      "radiusPerLevel": 0.0,
+      "damageHP": 5,
+      "damageHPPerLevel": 0.9,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 22
+    }
+  ]
+}

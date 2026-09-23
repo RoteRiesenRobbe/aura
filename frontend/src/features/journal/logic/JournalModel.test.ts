@@ -186,28 +186,31 @@ describe('JournalModel', () => {
     });
 
     // The tracker (2026-08-23): the always-on right-side strip under the map
-    // button. One row per RUNNING quest, carrying the LAST of the current
-    // stage's server-composed lines - "the last current line", PO mockup.
+    // button. One row per RUNNING quest, carrying EVERY line of the current
+    // stage, server-composed and verbatim. It carried only the last line until
+    // 2026-09-23 (PO), when the first parallel stage (dinner-for-the-family:
+    // stags AND beets) hid one of its two counters.
     describe('questTrackerRows', () => {
         it('tracks running quests only', () => {
             const rows = questTrackerRows([choiceRunning, cullDone], catalogOf());
             expect(rows.map(r => r.questId)).toEqual(['choice']);
         });
 
-        it('picks the last objective line of the current stage, verbatim', () => {
+        it('carries every objective line of the current stage, in order, verbatim', () => {
             const rows = questTrackerRows([{questId: 'wolf-cull', stages: ['cull'], completed: false,
                 objectives: ['2/3 Wolf slain', 'Talk to the Farmer ✓']}], catalogOf());
-            expect(rows).toEqual([{questId: 'wolf-cull', title: 'The Wolf Cull', line: 'Talk to the Farmer ✓'}]);
+            expect(rows).toEqual([{questId: 'wolf-cull', title: 'The Wolf Cull',
+                lines: ['2/3 Wolf slain', 'Talk to the Farmer ✓']}]);
         });
 
-        it('carries null for a stage with no objective lines - the title stands alone', () => {
+        it('carries no lines for a stage with no objective lines - the title stands alone', () => {
             const rows = questTrackerRows([choiceRunning], catalogOf());
-            expect(rows).toEqual([{questId: 'choice', title: 'The Choice', line: null}]);
+            expect(rows).toEqual([{questId: 'choice', title: 'The Choice', lines: []}]);
         });
 
         it('keeps an unknown quest visible under its id, like the journal list', () => {
             const rows = questTrackerRows([{questId: 'ghost-quest', stages: ['gone'], completed: false, objectives: []}], catalogOf());
-            expect(rows).toEqual([{questId: 'ghost-quest', title: 'ghost-quest', line: null}]);
+            expect(rows).toEqual([{questId: 'ghost-quest', title: 'ghost-quest', lines: []}]);
         });
 
         it('shows nothing while the catalog is not ready - the journal panel owns saying why', () => {

@@ -178,11 +178,13 @@ func TestLoadPlacements_ZoneWithoutCombatSpawnsFailsLoudly(t *testing.T) {
 		copyContentDir(t, filepath.Join(repoAPIDir(t), name), filepath.Join(dir, name))
 	}
 	require.NoError(t, os.Mkdir(filepath.Join(dir, "zones"), 0o755))
-	// Farmer is xpFactor 0 (an NPC), so this zone is valid and has zero prey.
+	// Reinhard is xpFactor 0 (an NPC), so this zone is valid and has zero prey.
+	// ⚑ He was "Farmer" until 2026-09-23; the fixture names a REAL def because
+	// it copies the repo's api/mobs, so a def rename reaches in here.
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "zones", "npcville.json"), []byte(`{
 		"name": "NPCville",
 		"bounds": {"width": 100, "height": 100},
-		"spawns": [{"mob": "Farmer", "x": 0, "y": 0, "respawnTicks": 600}]
+		"spawns": [{"mob": "Reinhard", "x": 0, "y": 0, "respawnTicks": 600}]
 	}`), 0o644))
 
 	_, err := loadPlacements(dir, "npcville")

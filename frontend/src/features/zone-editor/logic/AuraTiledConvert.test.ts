@@ -267,7 +267,7 @@ describe('AuraConvert — the tri-state fields', () => {
 
     it('a talker keeps NO respawn keys (an absent key means respawn-next-tick)', () => {
         const out = JSON.stringify(roundTrip(zone({
-            spawns: [{mob: 'Farmer', x: -57, y: 28.6, angle: 0}],
+            spawns: [{mob: 'Reinhard', x: -57, y: 28.6, angle: 0}],
         })));
         expect(out).not.toContain('respawnTicks');
         expect(out).not.toContain('respawnVariancePct');
@@ -555,7 +555,7 @@ describe('AuraConvert — the generated palette (C2)', () => {
         const model = C.zoneToModel(zone({
             spawns: [
                 {mob: 'Wolf', x: 0, y: 0, angle: 0},    // combat
-                {mob: 'Farmer', x: 0, y: 0, angle: 0},  // talker (authors an interaction)
+                {mob: 'Reinhard', x: 0, y: 0, angle: 0}, // talker (authors an interaction)
             ],
         }));
         expect(layerNamed(model, 'spawns').objects.map((o: {cls: string}) => o.cls))

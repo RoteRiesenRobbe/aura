@@ -5,16 +5,16 @@
   "stages": [
     {
       "id": "meet",
-      "journal": "Talk to the Farmer and the Town Crier.",
+      "journal": "Talk to Reinhard and the Town Crier.",
       "objectives": [
-        { "kind": "talk_to", "npc": "Farmer" },
+        { "kind": "talk_to", "npc": "Reinhard" },
         { "kind": "talk_to", "npc": "TownCrier" }
       ],
       "next": "back"
     },
     {
       "id": "back",
-      "journal": "The Farmer and the Town Crier have been met; the Hermit waits nearby.",
+      "journal": "Reinhard and the Town Crier have been met; the Hermit waits nearby.",
       "tracker": "Return to the Hermit"
     },
     {

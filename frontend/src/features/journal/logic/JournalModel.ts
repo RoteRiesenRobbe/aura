@@ -74,16 +74,18 @@ export interface JournalView {
     detail: JournalDetailView | null;
 }
 
-/** One row of the quest tracker: a running quest and its last objective line. */
+/** One row of the quest tracker: a running quest and its objective lines. */
 export interface QuestTrackerRow {
     questId: string;
     title: string;
     /**
-     * The LAST of the current stage's server-composed objective lines
-     * ("the last current line", PO mockup 2026-08-23), verbatim like the
-     * journal's - or null when the stage has none, and the title stands alone.
+     * EVERY line of the current stage, server-composed and verbatim like the
+     * journal's - empty when the stage has none, and the title stands alone.
+     * ⚑ Until 2026-09-23 this was only the LAST line ("the last current line",
+     * PO mockup 2026-08-23); the first parallel stage (dinner-for-the-family,
+     * stags AND beets) hid one of its two counters, so the PO widened it.
      */
-    line: string | null;
+    lines: string[];
 }
 
 /**
@@ -102,7 +104,7 @@ export function questTrackerRows(progress: QuestProgress[], catalog: JournalCata
         questId: p.questId,
         // The id as a last-resort title, same rule as the journal list.
         title: catalog.title(p.questId) ?? p.questId,
-        line: p.objectives.length > 0 ? p.objectives[p.objectives.length - 1] : null,
+        lines: p.objectives ?? [],
     }));
 }
 
