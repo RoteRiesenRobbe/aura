@@ -5,6 +5,21 @@
 > `node tools/asset-tracker.mjs`. Edit the CSV, or edit the Google Sheet and
 > export it back over the CSV.
 
+> ⚑ **`current_file` and `format` DRIFT, and nothing here catches it.**
+> Both columns are hand-typed and are never checked against disk, so when art
+> is repainted the tracker keeps naming the old file. Found 2026-09-24:
+> **25 rows still said `.svg` / `SVG`** — Tree, Boulder, Rock, 13 mobs,
+> Campfire + Camp and 7 NPCs — a month after the painted PNGs landed
+> (`abe150ac`, 2026-08-21). Corrected the same day against the real load
+> paths (`client-data/Graphics.ts` and `api/props/*.json` `sprite`), not
+> against "a .png exists next to it".
+>
+> ⭐ **Next iteration: make this checkable.** The audit is mechanical — parse
+> `Graphics.ts` + `api/props/*.json`, compare to `current_file`, fail
+> `--check` on a mismatch. Until that exists, **re-audit these two columns by
+> hand after any art commit**, and treat a `.svg` in a row whose art you know
+> is painted as stale rather than as fact.
+
 **To share with an artist or musician:** Google Sheets → File → Import →
 Upload → `assets.csv` → *Replace current sheet*. Freeze the header row, filter
 on `kind` / `priority` / `state`, and hand over the tab. The `owner` and
@@ -14,7 +29,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-09-23 from 221 rows.
+Rendered 2026-09-24 from 221 rows.
 
 ---
 
@@ -72,28 +87,28 @@ of which **11 are P0**:
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
-| ✅ | **Wolf** | `wolf.svg` | P0 | 109 | 76–92 | ⭐ Most-placed mob in the game. Lean forest wolf hunting prey and players. Sets the baseline read for "enemy". |
-| ✅ | **DireWolf** | `direWolf.svg` | P1 | 43 | 96–112 | Heavier dark-forest wolf. Same bite; the step-up is pure stats. |
-| ✅ | **EliteWolf** | `eliteWolf.svg` | P2 | 9 | 112–128 | The "something big" the forest sign warns about. Gets a silver ring. |
-| ✅ | **AlphaWolf** | `alphaWolf.svg` | P2 | 16 | 116–136 | Apex of the line. Fast chaser near the village. |
-| ✅ | **Bear** | `bear.svg` | P2 | 16 | 140–164 | Slow heavy tank that rages below half HP — no visual tell for that yet. |
-| ✅ | **DireBear** | `direBear.svg` | P2 | 8 | 156–180 | Largest non-boss wildlife in the game. |
-| ✅ | **Boar** | `wildboar.svg` | P1 | 58 | 92–112 | Passive until hit, then gores. Must not look hostile — that's the point. |
-| ✅ | **Stag** | `stag.svg` | P1 | 35 | 84–100 | Bolts on any damage, drops nothing. Carries the peaceful-world tone. |
+| ✅ | **Wolf** | `wolf.png` | P0 | 109 | 76–92 | ⭐ Most-placed mob in the game. Lean forest wolf hunting prey and players. Sets the baseline read for "enemy". |
+| ✅ | **DireWolf** | `direWolf.png` | P1 | 43 | 96–112 | Heavier dark-forest wolf. Same bite; the step-up is pure stats. |
+| ✅ | **EliteWolf** | `eliteWolf.png` | P2 | 9 | 112–128 | The "something big" the forest sign warns about. Gets a silver ring. |
+| ✅ | **AlphaWolf** | `alphaWolf.png` | P2 | 16 | 116–136 | Apex of the line. Fast chaser near the village. |
+| ✅ | **Bear** | `bear.png` | P2 | 16 | 140–164 | Slow heavy tank that rages below half HP — no visual tell for that yet. |
+| ✅ | **DireBear** | `direBear.png` | P2 | 8 | 156–180 | Largest non-boss wildlife in the game. |
+| ✅ | **Boar** | `wildboar.png` | P1 | 58 | 92–112 | Passive until hit, then gores. Must not look hostile — that's the point. |
+| ✅ | **Stag** | `stag.png` | P1 | 35 | 84–100 | Bolts on any damage, drops nothing. Carries the peaceful-world tone. |
 | ✅ | **Spider** | `spider.svg` | P2 | 17 | 76–92 | Tunnel spider, lifesteal bite. Staged in daylight at the west mouth first. |
 | ✅ | **VenomSpider** | `venomSpider.svg` | P2 | 6 | 84–100 | Deep-dark poison. Must differ from Spider in near-darkness, 8 px apart. |
 | ✅ | **GiantSpider** | `giantSpider.svg` | P2 | 5 | 116–136 | Fastest normal mob in the game (0.95). Should look fast. |
-| ✅ | **Kobold** | `kobold.svg` | P1 | 20 | 60–72 | Weak swarm melee, flees at 25 %. Reads as a crowd — silhouette over detail. |
-| ✅ | **KoboldRanged** | `koboldRanged.svg` | P2 | 6 | 60–72 | Back-line volley. Same size as melee, so the drawing carries the difference. |
-| ✅ | **Bandit** | `bandit.svg` | P1 | 21 | 72–84 | The baseline human enemy. Blades + bleed. Never flees. |
+| ✅ | **Kobold** | `kobold.png` | P1 | 20 | 60–72 | Weak swarm melee, flees at 25 %. Reads as a crowd — silhouette over detail. |
+| ✅ | **KoboldRanged** | `koboldRanged.png` | P2 | 6 | 60–72 | Back-line volley. Same size as melee, so the drawing carries the difference. |
+| ✅ | **Bandit** | `bandit.png` | P1 | 21 | 72–84 | The baseline human enemy. Blades + bleed. Never flees. |
 | ✅ | **BanditRanged** | `banditRanged.svg` | P2 | 4 | 72–84 | Crossbow volley from behind the line. |
 | ✅ | **BanditHealer** | `banditHealer.svg` | P0 | 3 | 72–84 | ⭐ Never attacks; out-heals a solo player. The encounter assumes you can spot it in a crowd instantly. Highest readability need on the list. |
 | ✅ | **BanditPyromancer** | `banditPyromancer.svg` | P2 | 3 | 92–104 | Fire mage hanging back behind the melee. |
 | ✅ | **RallyDrummer** | `rallyDrummer.svg` | P0 | 1 | 88–100 | ⭐ Shields allies, never itself. Second kill-priority — same crowd problem. |
 | ✅ | **EliteBandit** | `eliteBandit.svg` | P2 | 1 | 100–116 | Camp leader, crits. Silver ring. |
-| ✅ | **Marauder** | `marauder.svg` | P2 | 10 | 88–104 | Veteran outlaw past the camp — with no elite frame to lean on. |
+| ✅ | **Marauder** | `marauder.png` | P2 | 10 | 88–104 | Veteran outlaw past the camp — with no elite frame to lean on. |
 | ✅ | **OrcGrunt** | `orcGrunt.svg` | P2 | 3 | 84–96 | Reinforcement wave add at the boss. |
-| ✅ | **Orc** | `orc.svg` | P0 | 12 | 104–120 | ⭐ Must read hostile while standing next to friendly soldiers. Faction contrast is the design job. |
+| ✅ | **Orc** | `orc.png` | P0 | 12 | 104–120 | ⭐ Must read hostile while standing next to friendly soldiers. Faction contrast is the design job. |
 | ✅ | **OrcWarlord** | `orcWarlord.svg` | P0 |  | 156–168 | ⭐ The world boss and the v1 completion beat. Only boss in the game. Gold ring. |
 | ✅ | **WarbannerTotem** | `warbannerTotem.svg` | P3 |  | 100–108 | Two banners make the boss invulnerable. Must read "break me" across an arena. |
 | ✅ | **ArmySoldier** | `armySoldier.svg` | P0 | 18 | 72–84 | ⭐ The only friendly combatant in the world. Currently the same size as a Bandit — the friend/foe read is entirely on the art. |
@@ -118,8 +133,8 @@ of which **11 are P0**:
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
-| ✅ | **Campfire** | `campfire.svg` | P0 | 5 | 120 | ⭐ The most important friendly object in the game — bind point, respawn point, heal, fast-travel node. Players navigate by these. |
-| ⚠️ | **Camp** | `campfire.svg` | P1 |  | 60 | Your own temporary fire. Size is currently the only cue it's temporary — own art is a gameplay fix, not polish. |
+| ✅ | **Campfire** | `campfire.png` | P0 | 5 | 120 | ⭐ The most important friendly object in the game — bind point, respawn point, heal, fast-travel node. Players navigate by these. |
+| ⚠️ | **Camp** | `campfire.png` | P1 |  | 60 | Your own temporary fire. Size is currently the only cue it's temporary — own art is a gameplay fix, not polish. |
 | ✅ | **Totem** | `totem.svg` | P3 |  | 100 | Stationary aura carrier. |
 | ✅ | **FireTotem** | `fireTotem.svg` | P3 |  | 100 | Identical size to Totem — they're siblings, differ by drawing only. |
 | ✅ | **Companion** | `companion.svg` | P3 |  | 80 | Design intent: reuses the Dog look. |
@@ -131,18 +146,18 @@ of which **11 are P0**:
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
-| ✅ | **Farmer** | `farmer.svg` | P0 |  |  | Z1 farm field — ⭐ The first NPC a player ever meets. Teaches Harvest; gives the first two quests. |
-| ✅ | **Hermit** | `hermit.svg` | P3 |  |  | Z1 village — The quest hub. Teaches First Aid, Heal, Calm, Charm Beast. |
-| ✅ | **TownCrier** | `townCrier.svg` | P3 |  |  | Z1 village centre — The village-arrival anchor. Teaches Recall. |
+| ✅ | **Farmer** | `farmer.png` | P0 |  |  | Z1 farm field — ⭐ The first NPC a player ever meets. Teaches Harvest; gives the first two quests. |
+| ✅ | **Hermit** | `hermit.png` | P3 |  |  | Z1 village — The quest hub. Teaches First Aid, Heal, Calm, Charm Beast. |
+| ✅ | **TownCrier** | `townCrier.png` | P3 |  |  | Z1 village centre — The village-arrival anchor. Teaches Recall. |
 | ✅ | **Dog** | `dogNpc.svg` | P3 |  |  | Z1 forest clearing — Says "Woof." Teaches Summon Companion. Only non-human talker. |
 | ✅ | **Miner** | `miner.svg` | P3 |  |  | Z1 tunnel west mouth — Teaches Pickaxe — the key handed out just before its lock. |
 | ✅ | **Wanderer** | `wanderer.svg` | P0 |  |  | Z1–2 roads — ⭐ The only NPC in the game that walks. Worth a walking pose. |
 | ✅ | **LamplessTraveller** | `traveller.svg` | P3 |  |  | Z1 tunnel road — Trades his lamp for kobold kills. The turn-in is the only source of the Lantern aura in the world. |
-| ⚠️ | **Lamplighter** | `hermit.svg` | P1 |  |  | Z1 deep NW forest — The forest hermit. Teaches Torch — carry your own light. |
-| ⚠️ | **Shaman** | `hermit.svg` | P1 |  |  | Z2 approach — Teaches Summon Totem, at his own fire. |
-| ⚠️ | **Emberkeeper** | `hermit.svg` | P1 |  |  | Z2 north — The fire ladder in one NPC: Torch → Ignite → Immolate. |
+| ⚠️ | **Lamplighter** | `hermit.png` | P1 |  |  | Z1 deep NW forest — The forest hermit. Teaches Torch — carry your own light. |
+| ⚠️ | **Shaman** | `hermit.png` | P1 |  |  | Z2 approach — Teaches Summon Totem, at his own fire. |
+| ⚠️ | **Emberkeeper** | `hermit.png` | P1 |  |  | Z2 north — The fire ladder in one NPC: Torch → Ignite → Immolate. |
 | ✅ | **VillageHealer** | `villageHealer.svg` | P3 |  |  | Z2 village campfire — Teaches Revive — the group-support capstone. |
-| ✅ | **CityGuard** | `cityGuard.svg` | P3 |  |  | Z2 City Gates — Teaches Strong. Gates shut while the front burns; Zone 3 teaser. |
+| ✅ | **CityGuard** | `cityGuard.png` | P3 |  |  | Z2 City Gates — Teaches Strong. Gates shut while the front burns; Zone 3 teaser. |
 | ✅ | **FrontCaptain** | `frontCaptain.svg` | P3 |  |  | Z2 front staging — Teaches Vanguard @L20. The last giver before the world boss — should look like the end of the road. |
 | ✅ | **ForestSign** | `signpost.svg` | P3 |  |  | Z1 dark-forest edge — "DANGER! STAY AWAY!" Points at the Elite Wolf — deliberately the only warning. |
 | ⚠️ | **AscensionStone** | `signpost.svg` | P0 |  |  | Z1 village — ⭐ The meta-progression altar, where a max-level character is spent. The game's most significant object currently looks like a road sign. Owes a site, not just a prop. |
@@ -154,10 +169,10 @@ of which **11 are P0**:
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
-| ✅ | **Tree** | `roundTree.svg` | P0 | 573 | 492 | ⭐ Highest-value asset in the project. Every forest, farm edge, city street and tunnel approach. 2–4 variants would change the world's look more than anything else. Fixed rotation. |
+| ✅ | **Tree** | `roundTree.png` | P0 | 573 | 492 | ⭐ Highest-value asset in the project. Every forest, farm edge, city street and tunnel approach. 2–4 variants would change the world's look more than anything else. Fixed rotation. |
 | ✅ | **Tree ground spot** | `treeSpot.svg` | P0 | 573 | 344 | The dark decal under every tree — what makes it feel planted. Randomly rotated. Re-cut it if the tree silhouette changes. |
-| ⚠️ | **Boulder** | `stone.svg` | P0 | 116 | 456 | Large blocking rock. Shadow baked in, never rotated. |
-| ⚠️ | **Rock** | `stone.svg` | P1 | 52 | 192 | Same SVG as Boulder, just shrunk. Two real silhouettes = cheapest environment win after trees. |
+| ⚠️ | **Boulder** | `stone.png` | P0 | 116 | 456 | Large blocking rock. Shadow baked in, never rotated. |
+| ⚠️ | **Rock** | `stone.png` | P1 | 52 | 192 | Same SVG as Boulder, just shrunk. Two real silhouettes = cheapest environment win after trees. |
 | ✅ | **Mineral ground spot** | `stoneSpot.svg` | P0 | 168 | ~0.7× | The decal under every rock and boulder. |
 | ✅ | **House** | `house.svg` | P0 | 12 | 480 × 360 | ⭐ The only building in the game — the whole village is 12 copies. Aspect is load-bearing: anything not 4:3 visibly squashes. |
 | ✅ | **GateWall** | `gateWall.svg` | P1 | 24 | 288 × 288 | Rampart block for the city gate flanks and blocked roads. Must tile seamlessly — 24 sit shoulder to shoulder. |
