@@ -5,20 +5,22 @@
 > `node tools/asset-tracker.mjs`. Edit the CSV, or edit the Google Sheet and
 > export it back over the CSV.
 
-> ⚑ **`current_file` and `format` DRIFT, and nothing here catches it.**
-> Both columns are hand-typed and are never checked against disk, so when art
-> is repainted the tracker keeps naming the old file. Found 2026-09-24:
-> **25 rows still said `.svg` / `SVG`** — Tree, Boulder, Rock, 13 mobs,
-> Campfire + Camp and 7 NPCs — a month after the painted PNGs landed
-> (`abe150ac`, 2026-08-21). Corrected the same day against the real load
-> paths (`client-data/Graphics.ts` and `api/props/*.json` `sprite`), not
-> against "a .png exists next to it".
+> ⚑ **`current_file` and `format` were WRONG FROM BIRTH — not drifted.**
+> Found 2026-09-24: **25 rows said `.svg` / `SVG`** — Tree, Boulder, Rock,
+> 13 mobs, Campfire + Camp and 7 NPCs. The painted PNGs had landed on
+> 2026-08-21 (`abe150ac`), a month *before* this tracker was created
+> (`2d99ba95`, 2026-09-16), and both files already sat side by side in the
+> tree at that commit. So the initial rows were sourced from something stale
+> (the old README tables, most likely) rather than from the real load paths,
+> and the error was copied forward. The 25 are corrected; **nothing else has
+> been audited.**
 >
-> ⭐ **Next iteration: make this checkable.** The audit is mechanical — parse
-> `Graphics.ts` + `api/props/*.json`, compare to `current_file`, fail
-> `--check` on a mismatch. Until that exists, **re-audit these two columns by
-> hand after any art commit**, and treat a `.svg` in a row whose art you know
-> is painted as stale rather than as fact.
+> ⭐ **Next iteration: assume any hand-typed column may never have been
+> right.** Both columns are still unchecked against disk. The audit is
+> mechanical — parse `client-data/Graphics.ts` + `api/props/*.json`
+> `sprite`, compare, fail `--check` on a mismatch — and it should sweep
+> **every** row once, not just watch future art commits. ⛔ Judge a row
+> against those load paths, never against "a .png exists next to it".
 
 **To share with an artist or musician:** Google Sheets → File → Import →
 Upload → `assets.csv` → *Replace current sheet*. Freeze the header row, filter
