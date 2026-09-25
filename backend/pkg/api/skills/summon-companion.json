@@ -3,7 +3,7 @@
   "id": 24,
   "name": "SummonCompanion",
   "icon": "lorc/totem-head",
-  "packIcon": "panther",
+  "packIcon": "hound-pair",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 2400,

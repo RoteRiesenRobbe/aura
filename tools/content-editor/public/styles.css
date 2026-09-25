@@ -298,7 +298,31 @@ input:disabled, select:disabled, textarea:disabled { opacity: 0.85; color: var(-
 .sources-panel ul { margin: 0; padding-left: 16px; }
 .sources-panel .cheat-only { color: var(--warn); }
 .sources-panel code { background: var(--bg-card-2); border-radius: 3px; padding: 0 4px; font-size: 11px; }
-.visuals-placeholder { font-size: 12px; color: var(--text-dim); font-style: italic; }
+/* The Visuals section (plan-skill-vfx.md §12f.5 C3b): one card per layer, the
+   effect card's idioms; the look hints join the red hint box in grey. */
+.errors-inline .hint { font-size: 11px; color: var(--text-dim); font-style: italic; padding: 3px 0; border-top: 1px dashed var(--border); }
+.layer-row { margin-bottom: 10px; }
+.layer-row .card-head { flex-wrap: wrap; }
+.layer-pick { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
+.body-thumb { width: 40px; height: 40px; object-fit: contain; background: var(--bg-card-2); border: 1px solid var(--border); border-radius: 4px; }
+.layer-row .card-actions { margin-left: auto; }
+.layer-swatch { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; color: var(--text-dim); }
+.layer-swatch .swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--border); flex: 0 0 auto; }
+.mob-look { margin-bottom: 12px; }
+.mob-look .card-head { flex-wrap: wrap; }
+.mob-look .card-head .card-actions { margin-left: auto; align-items: center; }
+.mob-look .file-path { color: var(--text-dim); font-size: 11px; }
+.mob-look .look-dirty { color: var(--warn); font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
+.mob-look.player-look { font-size: 12px; color: var(--text-dim); }
+/* The live preview (plan-skill-vfx.md §12f.7 C3c): the game renderer in an
+   iframe, borderless on a rounded dark ground; the status line and the
+   "start the dev server" note wear the grey hint look. */
+.fx-preview, .fx-gallery { display: block; border: 0; border-radius: 6px; background: #0d0f14; }
+.fx-preview-wrap { margin-top: 8px; }
+.fx-gallery-wrap { margin-bottom: 10px; }
+.layer-row .hint, .fx-gallery-wrap .hint { font-size: 11px; color: var(--text-dim); font-style: italic; margin-top: 4px; }
+.fx-preview-toggle.active, .fx-gallery-toggle.active { border-color: var(--accent); color: var(--accent); }
+.stat-section-head .fx-gallery-toggle { margin-left: auto; font-size: 11px; }
 
 /* ---- Skills tab, C4: the badges, the two pickers, the checklist ---------- */
 /* A row's name and its badges are separate spans, so the name stays the row's

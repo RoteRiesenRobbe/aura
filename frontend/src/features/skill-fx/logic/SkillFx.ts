@@ -363,6 +363,16 @@ export function onSnapshot(events: readonly SkillEventData[], resolve: ResolveEn
 const visuals = new Map<number, SkillVisual>();
 
 /**
+ * Drop one skill's cached look, so the next event re-reads the catalog
+ * (plan-skill-vfx.md §12f.7). Only the dev-only VFX preview calls it: it
+ * re-registers the SAME id on every edit, which the page-life cache above would
+ * otherwise never see.
+ */
+export function forgetVisual(skillId: number): void {
+    visuals.delete(skillId);
+}
+
+/**
  * The catalog half of the plan's input: a skill's layers, colour and reach.
  * ⭐ A held skill with no `visual` answers an EMPTY layer list rather than
  * undefined (§12g): the engine's hit mark draws on its damage hits too, in the

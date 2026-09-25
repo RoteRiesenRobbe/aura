@@ -20,12 +20,17 @@
 //
 // Entry shape:
 //   control  'number' | 'bool' | 'text' | 'textarea' | 'select' | 'multi'
-//            | 'mob' | 'icon' | 'effects'   (required on every entry)
+//            | 'mob' | 'icon' | 'effects' | 'visual'   (required on every entry;
+//            'effects' and 'visual' are drawn by their own sections)
 //   unit     'ticks' | 'units' | 'hp' | 'fraction' | 'factor' | 'count'
-//            (numbers only; 'ticks' renders seconds beside the value, D5)
+//            (numbers only; 'ticks' renders seconds beside the value, D5);
+//            the layer table adds 'ms', 'px/s' and 'px', shown verbatim
 //   options  for select/multi: the NAME of the vocabulary list to offer
 //            ('selectors', 'statNames', 'gateKeys', 'categories',
-//            'damageTypes', 'resistTags', 'factions')
+//            'damageTypes', 'resistTags', 'factions', 'visualMotions');
+//            the layer builder may pass the list itself (a kind's curves)
+//   max      numbers only: the input's `max` (a layer's count ceiling)
+//   pattern  text only: the input's `pattern`, with `placeholder`
 //   group    'shared' | 'payload' (effect keys only; §B4.3's two groups)
 //   section  'identity' | 'category' (TOP-LEVEL keys only; which block of the
 //            skill form the key is drawn in, §B4.3 items 1 and 2). Absent =
@@ -59,8 +64,34 @@ export const SKILL_PRESENTATION = {
   castTicksPerLevel: { control: 'number', section: 'category' },
   castInterruptedByDamage: { control: 'bool', section: 'category', hint: 'Only legal when castTicks > 0 (loader rule).' },
   targetFactions: { control: 'multi', options: 'factions', section: 'category', hint: 'Faction allowlist; MANDATORY when any effect is calm or charm, and then it gates EVERY effect of the skill.' },
-  visual: { control: 'text', hidden: true, hint: 'The skill VFX layer list (plan-skill-vfx.md C0). Authored by hand for now and preserved untouched on save; the tab renders it from C3 on.' },
+  visual: { control: 'visual', hint: 'The skill VFX layer list (plan-skill-vfx.md C0), drawn by the Visuals section from LAYER_PRESENTATION. A skill with no layers omits the key.' },
   effects: { control: 'effects' },
+};
+
+// The twelve keys of one `visual.layers[]` entry (fixture `visualKeys`, the
+// union over the seven kinds), drawn by the Visuals section's layer builder
+// (plan-skill-vfx.md §12f.5 C3b). ⚑ A SEPARATE lookup, never merged into the
+// tables above: no name collides today, but a future effect key called `scale`
+// or `count` must not lend a layer its unit, so keyField takes the table as a
+// parameter. `kind`, `on` and `body` are drawn by the row head itself; they
+// are here so smoke (d) pins the table against visualKeys both ways. `curve`'s
+// set belongs to the KIND, so the builder passes that list per row, and
+// `count`'s ceiling (visualCountMaxByKind) likewise. Every number is
+// presence-gated in Go (> 0 when authored); blank means the kind's own
+// default, a [PLACEHOLDER] client constant deliberately not copied here.
+export const LAYER_PRESENTATION = {
+  kind: { control: 'select', label: 'Kind', hint: 'One of the seven renderer kinds; the list offers the kinds this category can play.' },
+  on: { control: 'select', label: 'Moment', hint: 'When the layer plays: ambient, fired, hit or applied.' },
+  body: { control: 'select', label: 'Body', hint: 'A PNG from the body folder; none draws the kind\'s placeholder shape.' },
+  curve: { control: 'select', label: 'Curve', hint: 'The motion curve, out of this kind\'s own set.' },
+  motion: { control: 'select', options: 'visualMotions', label: 'Motion', hint: 'How the emitter\'s particles move.' },
+  ms: { control: 'number', unit: 'ms', label: 'Duration', hint: 'Blank = the kind\'s default.' },
+  speed: { control: 'number', unit: 'px/s', label: 'Speed', hint: 'Travel speed; blank = the kind\'s default.' },
+  width: { control: 'number', unit: 'px', label: 'Width', hint: 'Beam width; blank = the kind\'s default.' },
+  count: { control: 'number', unit: 'count', label: 'Count', hint: 'How many; blank = the kind\'s default.' },
+  tint: { control: 'text', pattern: '#[0-9a-f]{6}', placeholder: '#rrggbb', label: 'Tint', hint: 'Lowercase #rrggbb; blank takes the palette colour from the skill\'s damage type.' },
+  scale: { control: 'number', unit: 'factor', label: 'Scale', hint: 'Size multiplier; blank = the kind\'s default.' },
+  chain: { control: 'bool', label: 'Chain', hint: 'Draws one tick\'s hits as a single polyline through the victims instead of a fan from the caster. Visual only.' },
 };
 
 // The cost pair, legal on every effect type (fixture `costKeys`).

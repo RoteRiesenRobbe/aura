@@ -1214,16 +1214,18 @@ if (!inconclusive) {
     await runCommand('GOD');
     console.log(`leg 14: fx ${JSON.stringify(d)}, hit skill ids (sampled) ${JSON.stringify(ids)}`);
     // §12h call 3, the RIM BITE: the jaws hinge on the player's rim (not at
-    // the wolf's mouth), are sized to the PLAYER (max(40, r x 1.4)) rather than
+    // the wolf's mouth), are sized to the PLAYER (max(20, r x 0.8), the round-1 rule) rather than
     // to the wolf's 1.0 u reach (120 px), and open toward the player's centre.
     const js = jawSummary(jawRun.samples);
     console.log(`leg 14: rim-bite jaws ${JSON.stringify(js)}`);
     if (!jawRun.layer) fail('leg 14: the skillFx layer was not found for the jaw probe');
     else if (!js) console.log('NOTE: leg 14: the jaw probe caught no jaw at the player (the counters above still judge the leg)');
     else {
-      const want = Math.max(40, js.size * 1.4);
+      // PO look round 1 (2026-09-23, §12h.5): 0.8 x the VICTIM's radius, floor 20 px
+      // (SkillFxMath BITE_LENGTH_FACTOR / BITE_MIN_LENGTH_PX); 1.4 read as a crocodile.
+      const want = Math.max(20, js.size * 0.8);
       if (js.lenMax < 120 && Math.abs(js.lenMax - want) < 2 && Math.abs(js.lenMin - want) < 2) {
-        pass(`leg 14: every jaw is ${js.lenMin}-${js.lenMax} px, max(40, ${js.size} x 1.4) = ${want.toFixed(1)}, under the 120 px reach`);
+        pass(`leg 14: every jaw is ${js.lenMin}-${js.lenMax} px, max(20, ${js.size} x 0.8) = ${want.toFixed(1)}, under the 120 px reach`);
       } else fail(`leg 14: jaw length ${js.lenMin}-${js.lenMax} px, wanted ${want.toFixed(1)} and < 120`);
       if (js.rimMin > 0.8 && js.rimMax < 1.2) pass(`leg 14: every hinge sits on the player's rim (${js.rimMin}-${js.rimMax} radii from the centre)`);
       else fail(`leg 14: hinges at ${js.rimMin}-${js.rimMax} player radii, not on the rim`);

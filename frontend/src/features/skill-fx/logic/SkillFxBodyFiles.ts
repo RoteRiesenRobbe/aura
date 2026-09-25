@@ -5,7 +5,8 @@
  * asset set through webpack's `require.context` and the GPU through `Assets`.
  * It is kept as thin as that implies - a name table, a loader, and the two
  * calls that hand both to the pure module - and it is imported for its SIDE
- * EFFECT by Game.ts and by nothing else. The RegionPaint.ts precedent, which
+ * EFFECT by Game.ts, and by the dev-only VFX preview page (§12f.7), which has
+ * no preload cycle and awaits {@link loadSkillFxBodies} itself. The RegionPaint.ts precedent, which
  * discovers its own PNG folder the same way.
  *
  * ⚑ Nothing may import this from inside the vitest graph: vitest is not
@@ -35,21 +36,25 @@ filesContext.keys().forEach((key: string) => {
 const NAMES = Object.keys(FILES);
 declareBodies(NAMES);
 
+/**
+ * Load every body PNG and hand each texture to the pure module. Never rejects:
+ * a body that fails to decode simply never lands, and its layers draw their
+ * placeholder - the same degrade path an unknown body name takes.
+ */
+export function loadSkillFxBodies(): Promise<void> {
+    return Promise.all(NAMES.map(name => Assets.load(FILES[name])
+        .then((texture: Texture) => setBodyTexture(name, texture))
+        .catch((error: unknown) => {
+            console.warn(`[skill-fx] body "${name}" failed to load `
+                + `- drawing its placeholder instead.`, error);
+        }))).then(() => undefined);
+}
+
 // Through Preloading, so a body is never missing from the first fight of a
 // session (the header of SkillFxBodies says why that is right here and wrong
 // for RegionPaint's per-zone tiles).
 //
-// ⚑ The `.catch` is load-bearing, not tidiness: Preloading waits on a
-// `Promise.all`, so ONE rejected texture would hang the start screen forever.
-// A body that fails to decode simply never lands, and its layers draw their
-// placeholder - the same degrade path an unknown body name takes.
-NAMES.forEach((name) => {
-    registerPreload(
-        Assets.load(FILES[name])
-            .then((texture: Texture) => setBodyTexture(name, texture))
-            .catch((error: unknown) => {
-                console.warn(`[skill-fx] body "${name}" failed to load `
-                    + `- drawing its placeholder instead.`, error);
-            }),
-    );
-});
+// ⚑ The per-body `.catch` inside loadSkillFxBodies is load-bearing, not
+// tidiness: Preloading waits on a `Promise.all`, so ONE rejected texture would
+// hang the start screen forever.
+registerPreload(loadSkillFxBodies());

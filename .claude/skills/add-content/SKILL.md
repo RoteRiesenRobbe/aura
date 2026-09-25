@@ -49,7 +49,10 @@ the bottom. Trust the code over the manual if a path has drifted.
   C3a, PO 2026-09-19/20/21). The old cadence-derived slash/fire lever
   (`hitStyle`) is deleted end to end and no engine fallback replaced it, so
   **every new aura and cooldown that CAN author a look authors one** - not only
-  the damaging ones.
+  the damaging ones. ⭐ Since C3b (2026-09-25) the look is BUILT IN THE EDITOR:
+  the Skills tab's Visuals section for a player skill, the "Skill looks" block
+  on the mob's page for a mob skill; its pickers only offer what the loader
+  accepts, and the save runs through the seam. Hand-authoring stays fine.
   ⛔ **NEVER AUTHOR A HIT MARK - THE ENGINE DRAWS IT** (PO ruling 2026-09-21,
   `plan-skill-vfx.md` §12g). Every landed damage hit gets a round mark on the
   victim in the damage type's colour, from code, with no content involved; the
@@ -137,11 +140,12 @@ the bottom. Trust the code over the manual if a path has drifted.
 - **A change to the SKILL tables in `backend/pkg/aura/skills/definition.go`
   or `visual.go` needs the vocabulary fixture regenerated** (`effectKeys`,
   `effectCategories`, `costKeys`, the categories, the top-level key list, and
-  the six VFX lists `visualKinds`, `visualTriggers`, `visualKeys`,
+  the nine VFX lists `visualKinds`, `visualTriggers`, `visualKeys`,
   `visualTriggersByKind`, `visualCurves` - keyed BY KIND since C2a, because a
   strike curves `thrust`/`swing`/`overhead`/`bite`/`pincer`, a beam `flash`/`extend` and
-  a wave not at all - and
-  `visualMotions`): the golden test fails
+  a wave not at all - `visualMotions`, and since C3b `visualTriggersByCategory`,
+  `visualCountMaxByKind`, `visualAppliedEffectTypes`, which the editor's
+  pickers read): the golden test fails
   until you run `UPDATE_SKILL_VOCABULARY=1 go test -count=1
   ./pkg/aura/skills/` from `backend/` and commit `api/skill-vocabulary.json`.
   The content editor's Skills tab renders its whole form from that fixture, so

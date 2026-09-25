@@ -2,7 +2,9 @@
 /**
  * Unit checks for the skill save path (spell builder C3): the three guards
  * that run BEFORE the seam, the seam's two answers, and the shared reference
- * scan both the guard and the tab's panel read.
+ * scan both the guard and the tab's panel read. Plus saveSkillVisual, the Mobs
+ * tab's `visual`-only route (plan-skill-vfx.md §12f.5 C3b): its path guard,
+ * the one-key write, the placement before `effects`, and the deletion.
  *
  * ⚑ NOT ONE REPO FILE IS WRITTEN. Every case copies api/ into a temp tree and
  * points saveSkill's injected root at it, so "a clean candidate is written in
@@ -16,19 +18,20 @@
  *
  * smoke.mjs calls selfTestFindings() as leg (h) instead of spawning this.
  */
-import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listJsonFiles } from './files.mjs';
 import { collectSkillReferences } from './skill-references.mjs';
-import { saveSkill } from './save-skill.mjs';
+import { saveSkill, saveSkillVisual } from './save-skill.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
 
 const OMNI = 'api/skills/omni-aura.json';   // cheat-only (no reference anywhere) AND authors visual + _comment
 const DAMAGE = 'api/skills/damage.json';    // the level-1 milestone unlock
+const WOLF_BITE = 'api/skills/mobs/wolf-bite.json'; // a mob skill with _comment, visual, then effects
 
 const trees = [];
 function tempTree() {
@@ -148,7 +151,8 @@ export function selfTestFindings() {
   }
 
   // --- a clean candidate is written IN PLACE: _comment and the keys the form
-  // never renders (visual, §B4.8 / L8) survive the round trip ---
+  // does not touch survive the round trip. `visual` is rendered since C3b and
+  // still round-trips because the client mutates the raw object in place ---
   {
     const root = tempTree();
     const deps = { ...readersFor(root), validateCandidate: fakeSeam({ ok: true, findings: [] }) };
@@ -160,7 +164,7 @@ export function selfTestFindings() {
     const after = readRaw(root, OMNI);
     if (after.effects[0].damageHP !== 7) fail('clean write', 'the edit was not written');
     if (after._comment !== before._comment) fail('clean write', '_comment did not survive the round trip');
-    if (JSON.stringify(after.visual) !== JSON.stringify(before.visual)) fail('clean write', 'visual (never rendered, §B4.8) did not survive the round trip');
+    if (JSON.stringify(after.visual) !== JSON.stringify(before.visual)) fail('clean write', 'visual did not survive the round trip');
     if (JSON.stringify(after.effects[1]) !== JSON.stringify(before.effects[1])) fail('clean write', 'an untouched effect changed');
   }
 
@@ -247,6 +251,95 @@ export function selfTestFindings() {
     const checklist = result.checklist || [];
     if (checklist.length !== 1) fail('edit(checklist)', `${checklist.length} item(s), expected 1: ${JSON.stringify(checklist)}`);
     if (!(checklist[0] || '').includes('dev-restart-windows.sh')) fail('edit(checklist)', `the one item is not the restart line: ${JSON.stringify(checklist[0])}`);
+  }
+
+  // --- saveSkillVisual (plan-skill-vfx.md §12f.5 C3b): the Mobs tab's narrow
+  // route. It writes ONE key of ONE mob-embedded skill, so the path guard is
+  // api/skills/mobs/<slug>.json and nothing else ---
+  const LAYER = { kind: 'strike', on: 'hit', body: 'wolf-jaw', curve: 'bite', ms: 210 };
+  {
+    const root = tempTree();
+    const deps = { root, validateCandidate: fakeSeam({ ok: true, findings: [] }) };
+    const visual = { layers: [LAYER] };
+    expectRefusal('visual path guard(player skill)', saveSkillVisual({ file: DAMAGE, visual }, deps), 'guard', 'api/skills/mobs/');
+    expectRefusal('visual path guard(api/mobs/wolf.json)', saveSkillVisual({ file: 'api/mobs/wolf.json', visual }, deps), 'guard', 'api/skills/mobs/');
+    expectRefusal('visual path guard(../ escape)', saveSkillVisual({ file: '../backend/conf.json', visual }, deps), 'guard');
+    expectRefusal('visual path guard(missing file)', saveSkillVisual({ file: 'api/skills/mobs/no-such-skill.json', visual }, deps), 'guard', 'does not exist');
+    if (deps.validateCandidate.calls.length !== 0) fail('visual path guard', 'the seam ran despite a refused path');
+  }
+
+  // Writes ONLY `visual`: every other key byte-identical, _comment kept, key
+  // order kept, and the seam saw the candidate it wrote.
+  {
+    const root = tempTree();
+    const deps = { root, validateCandidate: fakeSeam({ ok: true, findings: [] }) };
+    const before = readRaw(root, WOLF_BITE);
+    const result = saveSkillVisual({ file: WOLF_BITE, visual: { layers: [LAYER] } }, deps);
+    if (result.ok !== true) fail('visual write', `expected ok:true, got ${JSON.stringify(result)}`);
+    else if (JSON.stringify(result.warnings) !== '[]') fail('visual write', `expected warnings [], got ${JSON.stringify(result.warnings)}`);
+    const after = readRaw(root, WOLF_BITE);
+    if (JSON.stringify(after.visual) !== JSON.stringify({ layers: [LAYER] })) fail('visual write', `visual was not written (got ${JSON.stringify(after.visual)})`);
+    if (JSON.stringify(Object.keys(after)) !== JSON.stringify(Object.keys(before))) fail('visual write', `key order changed: ${JSON.stringify(Object.keys(before))} became ${JSON.stringify(Object.keys(after))}`);
+    for (const key of Object.keys(before)) {
+      if (key === 'visual') continue;
+      if (JSON.stringify(after[key]) !== JSON.stringify(before[key])) fail('visual write', `"${key}" changed although only visual was saved`);
+    }
+    const seen = deps.validateCandidate.calls[0];
+    if (deps.validateCandidate.calls.length !== 1) fail('visual write', `the seam ran ${deps.validateCandidate.calls.length} time(s), expected 1`);
+    else if (seen.file !== WOLF_BITE || JSON.stringify(seen.raw) !== JSON.stringify(after)) fail('visual write', 'the seam did not judge the object that was written');
+  }
+
+  // A NEW visual on a file that has none lands immediately before `effects`
+  // (the manual's placement rule). Every shipped mob skill authors a look, so
+  // the bare file is manufactured inside the temp tree.
+  {
+    const root = tempTree();
+    const deps = { root, validateCandidate: fakeSeam({ ok: true, findings: [] }) };
+    const bare = readRaw(root, WOLF_BITE);
+    delete bare.visual;
+    writeFileSync(path.join(root, ...WOLF_BITE.split('/')), JSON.stringify(bare, null, 2) + '\n');
+    const result = saveSkillVisual({ file: WOLF_BITE, visual: { layers: [LAYER] } }, deps);
+    if (result.ok !== true) fail('visual insert', `expected ok:true, got ${JSON.stringify(result)}`);
+    const keys = Object.keys(readRaw(root, WOLF_BITE));
+    const expected = Object.keys(bare).flatMap((k) => (k === 'effects' ? ['visual', 'effects'] : [k]));
+    if (JSON.stringify(keys) !== JSON.stringify(expected)) fail('visual insert', `expected key order ${JSON.stringify(expected)}, got ${JSON.stringify(keys)}`);
+  }
+
+  // An empty layer list DELETES the key: Go refuses "layers": [], and a bare
+  // skill omits `visual` altogether.
+  for (const [label, visual] of [['empty layers', { layers: [] }], ['null', null]]) {
+    const root = tempTree();
+    const deps = { root, validateCandidate: fakeSeam({ ok: true, findings: [] }) };
+    const before = readRaw(root, WOLF_BITE);
+    const result = saveSkillVisual({ file: WOLF_BITE, visual }, deps);
+    if (result.ok !== true) fail(`visual delete(${label})`, `expected ok:true, got ${JSON.stringify(result)}`);
+    const after = readRaw(root, WOLF_BITE);
+    if ('visual' in after) fail(`visual delete(${label})`, `the key survived as ${JSON.stringify(after.visual)}`);
+    const expected = Object.keys(before).filter((k) => k !== 'visual');
+    if (JSON.stringify(Object.keys(after)) !== JSON.stringify(expected)) fail(`visual delete(${label})`, `key order changed: ${JSON.stringify(Object.keys(after))}`);
+  }
+
+  // A seam finding refuses without writing.
+  {
+    const root = tempTree();
+    const finding = 'skills: cannot map "mobs/wolf-bite.json": visual: an "applied" layer needs an over-time effect';
+    const deps = { root, validateCandidate: fakeSeam({ ok: false, findings: [finding] }) };
+    const bytes = readFileSync(path.join(root, ...WOLF_BITE.split('/')), 'utf8');
+    const result = saveSkillVisual({ file: WOLF_BITE, visual: { layers: [{ ...LAYER, on: 'applied' }] } }, deps);
+    expectRefusal('visual seam refusal', result, 'validate', finding);
+    if (readFileSync(path.join(root, ...WOLF_BITE.split('/')), 'utf8') !== bytes) fail('visual seam refusal', 'the file was written despite a finding');
+  }
+
+  // A THROWING seam propagates (L12), and nothing is written.
+  {
+    const root = tempTree();
+    const deps = { root, validateCandidate: fakeSeam(() => { throw new Error('build aurad first: make -C backend build'); }) };
+    const bytes = readFileSync(path.join(root, ...WOLF_BITE.split('/')), 'utf8');
+    let threw = null;
+    try { saveSkillVisual({ file: WOLF_BITE, visual: { layers: [LAYER] } }, deps); } catch (err) { threw = err; }
+    if (!threw) fail('visual throwing seam', 'the throw was swallowed - a seam that could not answer would read as a pass');
+    else if (!String(threw.message).includes('build aurad first')) fail('visual throwing seam', `the throw lost its message (${JSON.stringify(threw.message)})`);
+    if (readFileSync(path.join(root, ...WOLF_BITE.split('/')), 'utf8') !== bytes) fail('visual throwing seam', 'the file was written despite the seam not answering');
   }
 
   // --- the shared reference scan, against the REAL content ---

@@ -401,7 +401,7 @@ let levelCurve: LevelCurve = {growth: 0, maxLevel: 0};
 
 // The server's category vocabulary → the client's (the HUD panels and equip
 // guards say 'aura').
-const CATEGORY_MAP: { [server: string]: SkillCategory } = {
+export const CATEGORY_MAP: { [server: string]: SkillCategory } = {
     active_aura: 'aura',
     passive: 'passive',
     cooldown: 'cooldown',
@@ -440,6 +440,26 @@ loadSkillCatalog();
 
 export function skillDefinition(id: number): SkillDefinition | undefined {
     return catalog.get(id);
+}
+
+/**
+ * Upsert one definition into the catalog, by id AND by name, as if the server
+ * had served it (plan-skill-vfx.md §12f.7). The PREVIEW / TEST SEAM: the dev-only
+ * VFX preview page registers a synthetic skill through it, and vitest uses it to
+ * stand a skill up without a fetch. The game never calls it; its catalog comes
+ * from GET /skills alone.
+ *
+ * ⚑ A later `loadSkillCatalog()` clears the whole catalog, a registered
+ * definition included: this is a seam for pages that never load the real one.
+ */
+export function registerSkillDefinition(def: SkillDefinition): void {
+    const previous = catalog.get(def.id);
+    if (previous && byName.get(previous.name) === previous) {
+        // Renamed under the same id: the old name must not keep answering.
+        byName.delete(previous.name);
+    }
+    catalog.set(def.id, def);
+    byName.set(def.name, def);
 }
 
 /**

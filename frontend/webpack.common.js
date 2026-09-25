@@ -5,10 +5,14 @@ const FaviconWebpackPlugin = require('favicons-webpack-plugin');
 
 
 module.exports = {
-	entry: './src/index.ts',
+	// Named, because webpack.dev.js adds a second, dev-only entry (the VFX
+	// preview, plan-skill-vfx.md §12f.7) and webpack-merge only merges two
+	// OBJECT entries. The game page is scoped to its own chunk below.
+	entry: {main: './src/index.ts'},
 	plugins: [
 		new HtmlWebpackPlugin({
 			title: 'Aura',
+			chunks: ['main'],
 			xhtml: true,
 			meta: {
 				viewport: 'width=device-width, initial-scale=1, user-scalable=no, interactive-widget=resizes-content',

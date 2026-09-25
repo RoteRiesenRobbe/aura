@@ -4,6 +4,7 @@
  */
 
 const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { merge } = require('webpack-merge');
 const common = require('./webpack.common.js');
 
@@ -16,6 +17,20 @@ module.exports = (env) => {
 
 	return merge(common, {
 		mode: 'development',
+
+		// The live skill-VFX preview (plan-skill-vfx.md §12f.7): the real
+		// SkillFx renderer fed without a server, iframed by the content editor.
+		// DEV ONLY by construction: it lives here and nowhere else, so the
+		// deploy bundle never carries it and the deployed aurad never serves it.
+		entry: {'fx-preview': './src/fx-preview.ts'},
+		plugins: [
+			new HtmlWebpackPlugin({
+				filename: 'fx-preview.html',
+				template: './src/fx-preview.html',
+				chunks: ['fx-preview'],
+				title: 'Aura VFX preview',
+			}),
+		],
 
 		// Webpack's default dev cache is memory-only, so every dev-server restart
 		// rebuilt all ~2200 modules from scratch — a measured 47 s, which is what

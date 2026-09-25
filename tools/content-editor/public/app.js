@@ -4,9 +4,10 @@ import {
   ROLES, TIERS, DAMAGE_TYPES, RESIST_WILDCARD, GATE_KEYS, COLLISION_LAYER_BITS, RESERVED_FACTION_NAMES, TRAVEL_MODES,
 } from '/validate.mjs';
 import {
-  EFFECT_TYPE_NOTES, EFFECT_TYPE_DEFAULTS, CATEGORY_LABELS, HIDDEN_EFFECT_TYPES, TEST_RIG_SKILLS,
+  EFFECT_TYPE_NOTES, EFFECT_TYPE_DEFAULTS, CATEGORY_LABELS, HIDDEN_EFFECT_TYPES, TEST_RIG_SKILLS, LAYER_PRESENTATION,
   resolveAt, scalingPairs, presentationFor, labelFor, ticksToSecondsLabel, formatNumber,
 } from '/skill-presentation.mjs';
+import { skillFxColor, skillVisualHints, legalKinds, legalMoments, paletteTagOf } from '/skill-visual-hints.mjs';
 import { collectSkillReferences } from '/skill-references.mjs';
 
 /* ---- tiny DOM helper ------------------------------------------------- */
@@ -45,6 +46,18 @@ const state = {
   skills: [],     // [{file, raw}], BOTH api/skills/*.json and api/skills/mobs/*.json (§B10 L6); the tab shows only the former
   skillVocabulary: null, // the generated fixture merged with shared-constants (vocabulary.mjs); the Skills form renders FROM this
   skillIcons: {},  // {key: {viewBox, body}} - the VENDORED glyph set, parsed off the generated client artifact (C4, §B4.4)
+  skillFxBodies: [], // the body stems a visual layer may name (api/skill-fx/bodies.json, plan-skill-vfx.md §12f.5 C3b)
+  skillFxPalette: { damageTypes: {}, neutral: '#e8e8e8' }, // SkillFxPalette.ts's hexes, parsed server-side (skill-fx.mjs)
+  // The Mobs tab's look editor (C3b): a WORKING COPY per mob-skill file, kept
+  // here rather than in a closure so collapsing a section (a re-render) does
+  // not lose an unsaved look; Reset drops it. Plus each block's last feedback.
+  mobLookDrafts: new Map(), // skill file -> deep clone of its raw
+  mobLookFeedback: new Map(), // skill file -> {cls, text}
+  // The live preview (plan-skill-vfx.md §12f.7 C3c): which layer rows have
+  // their preview open (`<file>#<index>`) and whether the gallery is open.
+  // UI state only, so a re-render keeps it and Reset leaves it alone.
+  fxPreviewOpen: new Set(),
+  fxGalleryOpen: false,
   ticksPerSecond: 30,
   entityTypes: [],
   pristine: new Map(), // file -> JSON string at load/save time
@@ -359,6 +372,8 @@ async function loadAll() {
   state.skills = data.skills;
   state.skillVocabulary = data.skillVocabulary;
   state.skillIcons = data.skillIcons || {};
+  state.skillFxBodies = data.skillFxBodies || [];
+  if (data.skillFxPalette) state.skillFxPalette = data.skillFxPalette;
   state.ticksPerSecond = data.ticksPerSecond;
   state.entityTypes = data.entityTypes;
   for (const m of state.mobs) markPristine(m.file);
@@ -685,6 +700,7 @@ function renderMobEditor(entry) {
   editorRoot.appendChild(factorsSection(mob, refreshErrors));
   editorRoot.appendChild(bodySection(mob, refreshErrors));
   editorRoot.appendChild(skillsSection(mob, refreshErrors));
+  editorRoot.appendChild(mobSkillLooksSection(mob));
   editorRoot.appendChild(unlocksSection(mob, refreshErrors));
   editorRoot.appendChild(dialogueTreeSection(mob, refreshErrors));
 
@@ -1706,7 +1722,7 @@ function renderSkillEditor(entry) {
 
   const hintBox = el('div', { class: 'errors-inline' });
   const ctx = {
-    vocab, skill, effects, entry, readOnly,
+    vocab, skill, effects, entry, readOnly, fxFile: entry.file,
     previews: [],
     // A value edit: the object is already mutated, so refresh what READS it.
     onEdit() {
@@ -1714,12 +1730,16 @@ function renderSkillEditor(entry) {
       refreshHints();
       for (const refresh of ctx.previews) refresh();
     },
-    // A shape edit: rebuild the form.
-    onStructural() { rerenderSkillEditor(); },
+    // A shape edit: rebuild the form (and the sidebar, whose dirty dot a
+    // re-render of the editor alone would leave stale).
+    onStructural() { sidebarBumpDirty(); rerenderSkillEditor(); },
   };
   function refreshHints() {
     hintBox.innerHTML = '';
     for (const line of skillHints(ctx)) hintBox.appendChild(el('div', { class: 'err-line', text: line }));
+    // The look's hints are GREY, never red: advice, not a loader refusal in
+    // waiting (class 5, the stale states, says the loader refuses in words).
+    for (const h of skillVisualHints(skill, vocab)) hintBox.appendChild(el('div', { class: 'hint', text: h.text }));
   }
 
   const comment = skillCommentSection(ctx);
@@ -1735,7 +1755,7 @@ function renderSkillEditor(entry) {
   editorRoot.appendChild(skillIdentitySection(ctx));
   editorRoot.appendChild(skillCategorySection(ctx));
   editorRoot.appendChild(skillEffectsSection(ctx));
-  editorRoot.appendChild(skillVisualsSection());
+  editorRoot.appendChild(skillVisualsSection(ctx));
   editorRoot.appendChild(skillSourcesSection(skill));
   editorRoot.appendChild(skillAfterSavingSection(ctx));
   refreshHints();
@@ -1810,7 +1830,7 @@ function skillHints(ctx) {
 // category block's nor `effects`, in the fixture's own order.
 function skillIdentitySection(ctx) {
   const col = skillSection('Identity');
-  const keys = ctx.vocab.topLevelKeys.filter((k) => k !== 'effects' && sectionOf(k) !== 'category');
+  const keys = ctx.vocab.topLevelKeys.filter((k) => k !== 'effects' && k !== 'visual' && sectionOf(k) !== 'category');
   col.body.appendChild(el('div', { class: 'stat-grid' }, keyFields(keys, ctx.skill, ctx)));
   return col.section;
 }
@@ -1998,11 +2018,397 @@ function effectCard(effect, i, ctx) {
   return card;
 }
 
-// 4. Visuals (D3, §B4.8): coming soon, nothing rendered, nothing written.
-function skillVisualsSection() {
+// 4. Visuals (plan-skill-vfx.md §12f.5 C3b): the layer builder. One row per
+// `visual.layers[]` entry, and legality BY CONSTRUCTION: the pickers offer
+// only what Go's fixture says loads (the kind's moments cut by the category's,
+// `applied` only with an over-time effect, a kind only when it has a legal
+// moment), and the seam stays the last word on save. The Mobs tab draws the
+// same builder over a working copy of a mob skill (mobSkillLooksSection).
+function skillVisualsSection(ctx) {
   const col = skillSection('Visuals');
-  col.body.appendChild(el('div', { class: 'visuals-placeholder', text: 'Coming soon. The vocabulary exists (plan-skill-vfx.md C0: the top-level `visual` key, seven kinds, four moments) and is authored by hand for now; this section renders it from C3 on. `visual` is not shown here and is preserved untouched on save.' }));
+  col.section.classList.add('visuals-section');
+  // "Show all kinds" (C3c): ONE gallery iframe of the seven kinds, the
+  // newcomer's legend. The click must not reach the head's collapse toggle.
+  col.section.querySelector('.stat-section-head').appendChild(el('button', {
+    class: 'fx-gallery-toggle' + (state.fxGalleryOpen ? ' active' : ''),
+    onclick: (e) => { e.stopPropagation(); state.fxGalleryOpen = !state.fxGalleryOpen; rerenderSkillEditor(); },
+  }, state.fxGalleryOpen ? 'Hide all kinds' : 'Show all kinds'));
+  if (state.fxGalleryOpen) col.body.appendChild(fxGallery());
+  col.body.appendChild(visualBuilder(ctx));
   return col.section;
+}
+
+// The builder body: the rows, "+ Add layer", and hint (4) in place for a bare
+// aura or cooldown. `ctx` is the skill form's (skill, vocab, readOnly, onEdit,
+// onStructural, previews); a structural change re-renders the whole editor.
+function visualBuilder(ctx) {
+  const { skill } = ctx;
+  const wrap = el('div', { class: 'visual-builder' });
+  const layers = Array.isArray(skill.visual?.layers) ? skill.visual.layers : [];
+  layers.forEach((layer, i) => wrap.appendChild(layerRow(layer, i, layers, ctx)));
+  if (layers.length === 0) {
+    const bare = skillVisualHints(skill, ctx.vocab).find((h) => h.cls === 4);
+    wrap.appendChild(el('div', { class: 'grant-hint', text: bare ? bare.text : 'No layers: this skill draws nothing of its own (the engine\'s hit mark still plays).' }));
+  }
+  if (!ctx.readOnly) wrap.appendChild(el('button', { class: 'add-row', onclick: () => addLayer(ctx) }, '+ Add layer'));
+  return wrap;
+}
+
+// A NEW `visual` lands immediately before `effects` (every shipped file's
+// order; prettyJson keeps key order): the keys from `effects` on are taken out
+// and put back behind it, in place, so every reference to the object stays good.
+function insertVisual(raw, visual) {
+  if ('visual' in raw || !('effects' in raw)) { raw.visual = visual; return; }
+  const tail = [];
+  let after = false;
+  for (const key of Object.keys(raw)) {
+    if (key === 'effects') after = true;
+    if (after) { tail.push([key, raw[key]]); delete raw[key]; }
+  }
+  raw.visual = visual;
+  for (const [key, value] of tail) raw[key] = value;
+}
+
+// Seeds { kind, on } with the first kind legal for the category and its first
+// legal moment, so a fresh row is born loadable.
+function addLayer(ctx) {
+  const kind = legalKinds(ctx.vocab, ctx.skill)[0];
+  if (!kind) return;
+  const layer = { kind, on: legalMoments(ctx.vocab, kind, ctx.skill)[0] };
+  if (Array.isArray(ctx.skill.visual?.layers)) ctx.skill.visual.layers.push(layer);
+  else insertVisual(ctx.skill, { layers: [layer] });
+  ctx.onStructural();
+}
+
+function moveLayer(layers, i, delta, ctx) {
+  const j = i + delta;
+  if (j < 0 || j >= layers.length) return;
+  [layers[i], layers[j]] = [layers[j], layers[i]];
+  remapFxOpen(ctx, layers.length, (k) => (k === i ? j : k === j ? i : k));
+  ctx.onStructural();
+}
+
+// Deleting the last layer deletes `visual` itself: Go refuses "layers": [].
+function removeLayer(layers, i, ctx) {
+  const layer = layers[i];
+  const authored = layer && typeof layer === 'object' ? Object.keys(layer).filter((k) => k !== 'kind' && k !== 'on') : [];
+  if (authored.length > 0 && !confirm(`Delete layer #${i} (${(layer && layer.kind) || 'no kind'}) and the ${authored.length} key(s) it authors?\n\n${authored.join(', ')}`)) return;
+  layers.splice(i, 1);
+  remapFxOpen(ctx, layers.length + 1, (k) => (k === i ? -1 : k > i ? k - 1 : k));
+  if (layers.length === 0) delete ctx.skill.visual;
+  ctx.onStructural();
+}
+
+// The changeEffectType idiom one level down: keys the new kind does not read
+// are named in a confirm and dropped; `on` moves to the new kind's first legal
+// moment when the new kind lacks it. Nothing to drop means no confirm.
+function changeLayerKind(layer, next, ctx, selectEl, previous) {
+  const allowed = ctx.vocab.visualKeys[next] || [];
+  const dropped = Object.keys(layer).filter((k) => k !== 'kind' && k !== 'on' && !allowed.includes(k));
+  if (dropped.length > 0) {
+    if (!confirm(`Changing this layer from "${previous || '(none)'}" to "${next}" deletes ${dropped.length} authored key(s) the new kind does not read:\n\n${dropped.join('\n')}\n\nContinue?`)) {
+      selectEl.value = previous || '';
+      return;
+    }
+    for (const k of dropped) delete layer[k];
+  }
+  layer.kind = next;
+  const moments = legalMoments(ctx.vocab, next, ctx.skill);
+  if (!moments.includes(layer.on)) layer.on = moments[0] ?? (ctx.vocab.visualTriggersByKind[next] || [])[0];
+  ctx.onStructural();
+}
+
+// The numeric layer keys, for the swatch line's "default" words.
+const LAYER_NUMBER_KEYS = Object.keys(LAYER_PRESENTATION).filter((k) => LAYER_PRESENTATION[k].control === 'number');
+
+function layerRow(layer, i, layers, ctx) {
+  const { vocab, readOnly } = ctx;
+  const row = el('div', { class: 'card layer-row' });
+  if (layer === null || typeof layer !== 'object') {
+    row.appendChild(el('div', { class: 'err-line', text: `visual.layers[${i}] is not an object` }));
+    return row;
+  }
+  const kind = layer.kind;
+  const known = !!vocab.visualKeys[kind];
+
+  // The pickers. A CURRENT value the rules no longer allow stays in its list
+  // (the effect card's posture): dropping it would silently rewrite the file,
+  // and hint (5) says what is wrong with it.
+  const kinds = legalKinds(vocab, ctx.skill);
+  if (kind !== undefined && !kinds.includes(kind)) kinds.push(kind);
+  const kindSelect = select([...(kind === undefined ? [''] : []), ...kinds], kind ?? '', (v) => changeLayerKind(layer, v, ctx, kindSelect, kind), (v) => v || '— kind —', 'layer-kind');
+  const moments = known ? legalMoments(vocab, kind, ctx.skill) : [];
+  if (layer.on !== undefined && !moments.includes(layer.on)) moments.push(layer.on);
+  const onSelect = select([...(layer.on === undefined ? [''] : []), ...moments], layer.on ?? '', (v) => { setKey(layer, 'on', v === '' ? undefined : v); ctx.onStructural(); }, (v) => v || '— moment —', 'layer-on');
+  const bodies = [...state.skillFxBodies];
+  if (layer.body !== undefined && !bodies.includes(layer.body)) bodies.push(layer.body);
+  const bodySelect = select(['', ...bodies], layer.body ?? '', (v) => { setKey(layer, 'body', v === '' ? undefined : v); ctx.onStructural(); }, (v) => v || 'none (placeholder)', 'layer-body');
+  for (const s of [kindSelect, onSelect, bodySelect]) s.disabled = readOnly;
+
+  row.appendChild(el('div', { class: 'card-head' }, [
+    el('span', { class: 'idx', text: '#' + i }),
+    el('label', { class: 'layer-pick' }, ['kind', kindSelect]),
+    el('label', { class: 'layer-pick' }, ['moment', onSelect]),
+    el('label', { class: 'layer-pick' }, ['body', bodySelect]),
+    layer.body ? el('img', { class: 'body-thumb', src: `/api/skill-fx/body/${encodeURIComponent(layer.body)}.png`, alt: layer.body, title: layer.body }) : null,
+    fxPreviewToggle(ctx, i),
+    readOnly ? null : el('div', { class: 'card-actions' }, [
+      el('button', { title: 'Move up', onclick: () => moveLayer(layers, i, -1, ctx) }, '↑'),
+      el('button', { title: 'Move down', onclick: () => moveLayer(layers, i, 1, ctx) }, '↓'),
+      el('button', { class: 'danger', onclick: () => removeLayer(layers, i, ctx) }, 'Delete'),
+    ]),
+  ]));
+
+  if (!known) {
+    row.appendChild(el('div', { class: 'err-line', text: `Unknown kind "${kind}" - the kinds are engine code and closed: ${vocab.visualKinds.join(', ')}. The loader refuses this file.` }));
+    return row;
+  }
+
+  // The kind's own keys, through the form's own field machinery (the
+  // absent-vs-0 tri-state, the unauthored dimming), with the LAYER table:
+  // `curve` offers this kind's set, `count` carries this kind's ceiling.
+  const lookup = (key) => {
+    const entry = LAYER_PRESENTATION[key];
+    if (key === 'curve') return { ...entry, options: vocab.visualCurves[kind] || [] };
+    if (key === 'count' && vocab.visualCountMaxByKind?.[kind] !== undefined) return { ...entry, max: vocab.visualCountMaxByKind[kind] };
+    return entry;
+  };
+  const rest = vocab.visualKeys[kind].filter((k) => k !== 'kind' && k !== 'on' && k !== 'body');
+  if (rest.length) row.appendChild(el('div', { class: 'stat-grid' }, keyFields(rest, layer, ctx, lookup)));
+
+  // The swatch line: the colour the engine will draw this layer in, and which
+  // numbers fall to the kind's default. Refreshed on every value edit (a tint
+  // keystroke is not a re-render), the livePreview way.
+  const build = () => {
+    const { hex, reason } = skillFxColor(ctx.skill, layer, state.skillFxPalette);
+    const defaults = rest.filter((k) => LAYER_NUMBER_KEYS.includes(k) && layer[k] === undefined);
+    return el('div', { class: 'layer-swatch' }, [
+      el('span', { class: 'swatch', style: `background:${hex}`, title: hex }),
+      el('span', { text: reason }),
+      defaults.length ? el('span', { class: 'layer-defaults', text: `· ${defaults.join(', ')}: default` }) : null,
+    ]);
+  };
+  let swatch = build();
+  ctx.previews.push(() => { const next = build(); swatch.replaceWith(next); swatch = next; });
+  row.appendChild(swatch);
+  if (state.fxPreviewOpen.has(fxKey(ctx, i))) row.appendChild(fxRowPreview(row, ctx, i));
+  return row;
+}
+
+/* ---- the live preview (plan-skill-vfx.md §12f.7 C3c) ----------------------
+ * The GAME's renderer draws the layer being edited, in a dev-only page of the
+ * frontend dev server (fx-preview.html), iframed here. One message each way:
+ * the page says `aura-fx-preview-ready` once loaded, the editor answers with
+ * the skill's look and re-sends it, debounced, on every value edit. A
+ * structural edit re-renders the form, which reloads the frames, and each
+ * posts again on its own ready with its CURRENT index. No probing, no retry:
+ * a frame silent for 3 s becomes one line saying what to start. */
+const FX_PREVIEW_ORIGIN = (() => {
+  const raw = new URLSearchParams(location.search).get('fx') || 'http://localhost:2001';
+  try { return new URL(raw).origin; } catch { return 'http://localhost:2001'; }
+})();
+const FX_READY_TIMEOUT_MS = 3000;
+const FX_POST_DEBOUNCE_MS = 150;
+const FX_UNAVAILABLE_NOTE = `the preview needs the frontend dev server on ${FX_PREVIEW_ORIGIN} (./scripts/dev-restart.sh frontend)`;
+const fxFrames = []; // [{ iframe, onReady }], pruned once a re-render detaches the frame
+let fxPostTimer = null;
+
+window.addEventListener('message', (event) => {
+  if (event.origin !== FX_PREVIEW_ORIGIN || !event.data || event.data.type !== 'aura-fx-preview-ready') return;
+  for (let k = fxFrames.length - 1; k >= 0; k--) if (!fxFrames[k].iframe.isConnected) fxFrames.splice(k, 1);
+  const frame = fxFrames.find((f) => event.source === f.iframe.contentWindow);
+  if (frame) frame.onReady();
+});
+
+function fxKey(ctx, i) { return `${ctx.fxFile}#${i}`; }
+
+// A move or a delete re-numbers the rows: the open state follows its layer.
+function remapFxOpen(ctx, count, to) {
+  const open = [];
+  for (let k = 0; k < count; k++) if (state.fxPreviewOpen.delete(fxKey(ctx, k))) open.push(to(k));
+  for (const k of open) if (k >= 0) state.fxPreviewOpen.add(fxKey(ctx, k));
+}
+
+function fxPreviewToggle(ctx, i) {
+  const open = state.fxPreviewOpen.has(fxKey(ctx, i));
+  return el('button', {
+    class: 'fx-preview-toggle' + (open ? ' active' : ''),
+    title: 'Draw this layer live with the game renderer (needs the frontend dev server)',
+    onclick: () => {
+      if (open) state.fxPreviewOpen.delete(fxKey(ctx, i)); else state.fxPreviewOpen.add(fxKey(ctx, i));
+      rerenderSkillEditor();
+    },
+  }, open ? 'Hide preview' : 'Preview');
+}
+
+// The four facts the preview builds its synthetic definition from (§12f.7.2),
+// read at POST time: the skill object is mutated in place by every edit.
+function fxPreviewMessage(ctx, i) {
+  const radii = (Array.isArray(ctx.skill.effects) ? ctx.skill.effects : []).map((e) => (e && typeof e.radius === 'number' ? e.radius : 0));
+  return {
+    type: 'aura-fx-preview',
+    visual: ctx.skill.visual,
+    layerIndex: i,
+    category: ctx.skill.category,
+    paletteTag: paletteTagOf(ctx.skill)?.tag ?? null,
+    reachUnits: Math.max(0, ...radii),
+  };
+}
+
+// An iframe of fx-preview.html plus its status, swapped for the note when no
+// ready message arrives in time. `holder` carries data-fx-state
+// (waiting -> ready | unavailable) for the harness.
+function fxFrame(holder, iframe, status, onReady) {
+  holder.setAttribute('data-fx-state', 'waiting');
+  const frame = {
+    iframe,
+    ready: false,
+    onReady() {
+      clearTimeout(timer);
+      frame.ready = true;
+      holder.setAttribute('data-fx-state', 'ready');
+      if (onReady) onReady();
+    },
+  };
+  const timer = setTimeout(() => {
+    // The registry is pruned HERE and in the message listener, never at
+    // registration: a render builds its subtree detached and attaches it
+    // afterwards, so at registration time every frame of the render in
+    // progress reads as disconnected, and pruning then dropped the gallery
+    // the moment a row registered after it (found by the C3c harness).
+    const at = fxFrames.indexOf(frame);
+    if (at >= 0 && (!iframe.isConnected || holder.getAttribute('data-fx-state') !== 'waiting')) fxFrames.splice(at, 1);
+    if (!iframe.isConnected || holder.getAttribute('data-fx-state') !== 'waiting') return;
+    holder.setAttribute('data-fx-state', 'unavailable');
+    const note = el('div', { class: 'hint fx-unavailable', text: FX_UNAVAILABLE_NOTE });
+    iframe.replaceWith(note);
+    status.remove();
+  }, FX_READY_TIMEOUT_MS);
+  fxFrames.push(frame);
+  return frame;
+}
+
+function fxRowPreview(row, ctx, i) {
+  const wrap = el('div', { class: 'fx-preview-wrap' });
+  const iframe = el('iframe', { class: 'fx-preview', src: `${FX_PREVIEW_ORIGIN}/fx-preview.html`, width: '240', height: '120', title: `preview of layer #${i}` });
+  const status = el('div', { class: 'hint fx-status', text: `loading the preview from ${FX_PREVIEW_ORIGIN}...` });
+  const post = () => { if (iframe.contentWindow) iframe.contentWindow.postMessage(fxPreviewMessage(ctx, i), FX_PREVIEW_ORIGIN); };
+  const frame = fxFrame(row, iframe, status, () => { status.textContent = `ready: layer #${i}, live from the game renderer (unsaved edits included)`; post(); });
+  frame.post = post;
+  // A value edit (a tint keystroke, an ms) re-sends, debounced; every open
+  // frame posts ITS row's current look.
+  ctx.previews.push(() => {
+    clearTimeout(fxPostTimer);
+    fxPostTimer = setTimeout(() => {
+      for (const f of fxFrames) if (f.post && f.ready && f.iframe.isConnected) f.post();
+    }, FX_POST_DEBOUNCE_MS);
+  });
+  wrap.append(iframe, status);
+  return wrap;
+}
+
+function fxGallery() {
+  const wrap = el('div', { class: 'fx-gallery-wrap' });
+  const iframe = el('iframe', { class: 'fx-gallery', src: `${FX_PREVIEW_ORIGIN}/fx-preview.html?gallery`, width: '100%', height: '220', title: 'every kind, drawn by the game renderer' });
+  const status = el('div', { class: 'hint fx-status', text: `loading the gallery from ${FX_PREVIEW_ORIGIN}...` });
+  fxFrame(wrap, iframe, status, () => { status.textContent = 'ready: one canonical layer per kind, live from the game renderer'; });
+  wrap.append(iframe, status);
+  return wrap;
+}
+
+// The Mobs tab's half (C3b): one look block per carried MOB skill, the same
+// builder over a WORKING COPY, saved alone through /api/save/skill-visual
+// (the `visual` key of that file and nothing else). A carried PLAYER skill's
+// look belongs to the Skills tab, so it gets a jump instead.
+function mobSkillLooksSection(mob) {
+  const col = statSection('Skill looks');
+  const seen = new Set();
+  for (const row of Array.isArray(mob.skills) ? mob.skills : []) {
+    const name = row && row.skillName;
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    const entry = state.skills.find((s) => s.raw.name === name);
+    if (!entry) continue;
+    if (entry.file.startsWith('api/skills/mobs/')) col.body.appendChild(mobLookBlock(mob, entry));
+    else {
+      col.body.appendChild(el('div', { class: 'card mob-look player-look' }, [
+        el('span', { text: `${name} is a player skill: edit its look in the Skills tab. ` }),
+        refLink('open it', () => jumpTo('skill', entry.file)),
+      ]));
+    }
+  }
+  if (seen.size === 0) col.body.appendChild(el('div', { class: 'grant-hint', text: 'This mob carries no skill, so it has no look to edit.' }));
+  return col.section;
+}
+
+function mobLookBlock(mob, entry) {
+  const vocab = state.skillVocabulary;
+  if (!state.mobLookDrafts.has(entry.file)) state.mobLookDrafts.set(entry.file, JSON.parse(JSON.stringify(entry.raw)));
+  const draft = state.mobLookDrafts.get(entry.file);
+  const block = el('div', { class: 'card mob-look', 'data-skill': entry.raw.name });
+  const fbState = state.mobLookFeedback.get(entry.file);
+  const fb = el('span', { class: 'look-feedback save-feedback' + (fbState ? ' ' + fbState.cls : ''), text: fbState ? fbState.text : '' });
+  const dirtyMark = el('span', { class: 'look-dirty', text: 'unsaved' });
+  const refreshDirty = () => { dirtyMark.hidden = JSON.stringify(draft.visual ?? null) === JSON.stringify(entry.raw.visual ?? null); };
+
+  block.appendChild(el('div', { class: 'card-head' }, [
+    el('strong', { text: entry.raw.name }),
+    el('span', { class: 'file-path', text: entry.file }),
+    dirtyMark,
+    el('div', { class: 'card-actions' }, [
+      fb,
+      el('button', { class: 'look-reset', onclick: () => resetMobLook(entry) }, 'Reset'),
+      el('button', { class: 'primary look-save', onclick: () => saveMobLook(entry) }, 'Save look'),
+    ]),
+  ]));
+  const others = state.mobs.filter((m) => m.raw !== mob && Array.isArray(m.raw.skills) && m.raw.skills.some((s) => s && s.skillName === entry.raw.name)).map((m) => m.raw.name);
+  if (others.length) block.appendChild(el('div', { class: 'grant-hint', text: `also ${others.join(', ')}: one look for all of them.` }));
+  if (!vocab) return block;
+
+  const hintBox = el('div', { class: 'errors-inline' });
+  const ctx = {
+    vocab, skill: draft, effects: Array.isArray(draft.effects) ? draft.effects : [], entry: null, readOnly: false, fxFile: entry.file,
+    previews: [],
+    onEdit() {
+      refreshHints();
+      refreshDirty();
+      for (const refresh of ctx.previews) refresh();
+    },
+    onStructural() { rerenderSkillEditor(); },
+  };
+  function refreshHints() {
+    hintBox.innerHTML = '';
+    for (const h of skillVisualHints(draft, vocab)) hintBox.appendChild(el('div', { class: 'hint', text: h.text }));
+  }
+  block.appendChild(hintBox);
+  block.appendChild(visualBuilder(ctx));
+  refreshHints();
+  refreshDirty();
+  return block;
+}
+
+function resetMobLook(entry) {
+  state.mobLookDrafts.delete(entry.file);
+  state.mobLookFeedback.delete(entry.file);
+  rerenderSkillEditor();
+}
+
+// The HTTP-status branch of saveSkill (L12): a 200 {ok:false} is a refusal, a
+// non-200 is the validator failing to answer at all.
+async function saveMobLook(entry) {
+  const draft = state.mobLookDrafts.get(entry.file) || entry.raw;
+  const show = (cls, text) => { state.mobLookFeedback.set(entry.file, { cls, text }); rerenderSkillEditor(); };
+  const res = await fetch('/api/save/skill-visual', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: entry.file, visual: draft.visual ?? null }) });
+  let body = null;
+  try { body = await res.json(); } catch { body = null; }
+  const errors = (body && body.errors) || [];
+  if (!res.ok) return show('err', `the validator could not run (HTTP ${res.status}), nothing was written: ${errors.join(' · ') || 'no message'}`);
+  if (!body || body.ok !== true) return show('err', (body && body.stage === 'validate' ? 'refused by aurad -validate: ' : 'refused: ') + (errors.join(' · ') || 'no message'));
+  if (draft.visual) insertVisual(entry.raw, JSON.parse(JSON.stringify(draft.visual)));
+  else delete entry.raw.visual;
+  markPristine(entry.file);
+  state.mobLookDrafts.delete(entry.file);
+  show('ok', body.warnings && body.warnings.length ? 'saved: ' + body.warnings.join(' · ') : 'saved');
 }
 
 // 5. Obtained via (D6, §B4.6): every placement of this skill - milestone rows,
@@ -2142,17 +2548,21 @@ function renderChecklist(items) {
 // `<key>PerLevel` sibling is also in the list renders as a pair; the sibling
 // is skipped on its own turn; hidden keys are skipped outright (§B4.8) and,
 // because every edit is in place, survive untouched.
-function keyFields(keys, obj, ctx) {
+//
+// `lookup` is the presentation table as a function of the key: the skill
+// tables by default, a visual layer's own (LAYER_PRESENTATION, per row) in the
+// Visuals section, so a layer key never borrows an effect key's unit (C3b).
+function keyFields(keys, obj, ctx, lookup = presentationFor) {
   const set = new Set(keys);
   const out = [];
   for (const key of keys) {
-    const entry = presentationFor(key) || {};
+    const entry = lookup(key) || {};
     if (entry.hidden) continue;
     if (key.endsWith('PerLevel') && set.has(key.slice(0, -'PerLevel'.length))) continue;
     if (set.has(key + 'PerLevel')) {
-      out.push(el('div', { class: 'pair' }, [keyField(key, obj, ctx), keyField(key + 'PerLevel', obj, ctx, entry.unit)]));
+      out.push(el('div', { class: 'pair' }, [keyField(key, obj, ctx, undefined, lookup), keyField(key + 'PerLevel', obj, ctx, entry.unit, lookup)]));
     } else {
-      out.push(keyField(key, obj, ctx));
+      out.push(keyField(key, obj, ctx, undefined, lookup));
     }
   }
   return out;
@@ -2161,11 +2571,11 @@ function keyFields(keys, obj, ctx) {
 // One labeled control for `key` on `obj`. `unitOverride` lets a per-level
 // field borrow its base's unit. No presentation entry ⇒ a plain text input
 // (§B3: never silently unauthorable).
-function keyField(key, obj, ctx, unitOverride) {
-  const entry = presentationFor(key) || { control: 'text' };
+function keyField(key, obj, ctx, unitOverride, lookup = presentationFor) {
+  const entry = lookup(key) || { control: 'text' };
   const unit = entry.unit || unitOverride;
   const wrap = el('div', { class: 'field', title: key });
-  wrap.appendChild(el('label', { text: labelFor(key) }));
+  wrap.appendChild(el('label', { text: entry.label || labelFor(key) }));
   const row = el('div', { class: 'field-row' });
   const seconds = el('span', { class: 'seconds' });
   const markAuthored = () => wrap.classList.toggle('unauthored', obj[key] === undefined);
@@ -2207,6 +2617,7 @@ function fieldControl(entry, key, obj, ctx, onSet) {
   switch (entry.control) {
     case 'number':
       control = nullableNumberInput(value, (v) => onSet(Number.isFinite(v) ? v : undefined), '—');
+      if (entry.max !== undefined) control.max = entry.max;
       break;
     case 'bool':
       // Every skill bool is a plain Go bool (definition.go), so absent IS
@@ -2253,7 +2664,8 @@ function fieldControl(entry, key, obj, ctx, onSet) {
       control = el('input', {
         type: 'text',
         value: value === undefined ? '' : typeof value === 'string' ? value : JSON.stringify(value),
-        placeholder: '—',
+        placeholder: entry.placeholder || '—',
+        pattern: entry.pattern,
         oninput: (e) => onSet(e.target.value === '' ? undefined : e.target.value),
       });
   }
@@ -2263,10 +2675,13 @@ function fieldControl(entry, key, obj, ctx, onSet) {
 
 // The option list behind a select/multi entry, by the NAME the presentation
 // table gives - every list comes from the served vocabulary or the loaded
-// content, never a literal here.
+// content, never a literal here. The layer builder passes a kind's own list
+// (its curves) as the array itself.
 function optionList(name, ctx) {
   const { vocab } = ctx;
+  if (Array.isArray(name)) return [...name];
   switch (name) {
+    case 'visualMotions': return [...(vocab.visualMotions || [])];
     case 'categories': return [...vocab.categories];
     case 'selectors': return [...vocab.selectors];
     case 'statNames': return [...vocab.statNames];

@@ -626,5 +626,30 @@
     "swirl",
     "rise",
     "burst"
+  ],
+  "visualTriggersByCategory": {
+    "active_aura": [
+      "ambient",
+      "fired",
+      "hit",
+      "applied"
+    ],
+    "cooldown": [
+      "fired",
+      "hit",
+      "applied"
+    ],
+    "passive": [
+      "hit"
+    ]
+  },
+  "visualCountMaxByKind": {
+    "wave": 3
+  },
+  "visualAppliedEffectTypes": [
+    "dot_aura",
+    "hot_aura",
+    "instant_dot",
+    "instant_hot"
   ]
 }

@@ -371,6 +371,14 @@ ordinary form work.
   kinds, three triggers), and that plan's C3 is where the Visuals section
   starts rendering it. Until then `visual` behaves exactly like `legacy`:
   hidden in the tab, preserved untouched on round trip.
+  ⭐ **Update 2026-09-25 (`plan-skill-vfx.md` C3b, §12f.5):** the Visuals
+  section is a BUILDER now, not "coming soon" and not the read-only list the
+  2026-09-21 outline had. It writes the `visual` key (layers, kinds, moments,
+  bodies, the kind's own numbers), the pickers offer only what the loader
+  accepts (the fixture exports Go's per-category moment table, the count
+  ceiling and the over-time types `applied` needs) and the save goes through
+  the same seam. Mob skills stay out of the Skills tab, but their LOOK is
+  edited from the Mobs tab through a narrow `visual`-only save route.
 - **D4 - `archive/plan-content-tooling.md` D7 re-ruled** (banner above): humans
   author skills in the tool.
 - **D5 - Numbers: plain fields + a per-level preview table.** Base and
@@ -581,7 +589,7 @@ plan docs 2026-09-08:
 
 | Out | Why | Handling |
 |---|---|---|
-| **Visuals** | no VFX ruling exists (`plan-entity-presentation.md` §39, `prototype/skill-visuals` parked) | disabled section. ⭐ **2026-09-19:** the ruling exists (`plan-skill-vfx.md` C0, the `visual` key); the section renders it at that plan's C3, and until then the key is hidden and preserved like `legacy` |
+| **Visuals** | no VFX ruling exists (`plan-entity-presentation.md` §39, `prototype/skill-visuals` parked) | disabled section. ⭐ **2026-09-19:** the ruling exists (`plan-skill-vfx.md` C0, the `visual` key); the section renders it at that plan's C3, and until then the key is hidden and preserved like `legacy`. ✅ **IN since 2026-09-25** (`plan-skill-vfx.md` C3b, §12f.5): a layer builder that writes the key, legality by construction from the fixture, the seam as the last word |
 | **`hitStyle`** | the one visual lever; goes with VFX | ✅ **resolved 2026-09-19**: DELETED end to end by `plan-skill-vfx.md` C2a (D7), both authored values with it. `visual` is the hidden-and-preserved key now |
 | **`projectile`** type + `forwardUnits`, `armTicks` | `plan-prototype-projectile.md` PARKED 2026-08-20, P2/P3-or-delete hangs on the owed second pass | type hidden from the picker; `ThrowBomb` / `ThrowMine` open **read-only** with a banner |
 | **`legacy`** flag | no file authors it; the proving-grounds content it marked was deleted at zone-editor C3 | not rendered, preserved |
@@ -829,11 +837,21 @@ repo, so it needs no cp-defs/embed entry"*).
 1. **Mob-embedded skills: hidden (proposal 4) or shown read-only?** Read-only
    costs nothing once C1 exists and would let the PO see WolfBite's numbers
    next to Damage's. Hidden keeps D2 literal.
+   ⭐ **Amended 2026-09-25 (PO, `plan-skill-vfx.md` §12f.5):** still hidden
+   from the Skills tab, but a mob skill's LOOK (its `visual` key alone) is
+   edited from the Mobs tab, one block per carried skill, saved through
+   `POST /api/save/skill-visual` and the seam. The numbers stay hand-authored.
 2. **Rename: refuse or cascade?** Refuse is one rule; cascade edits up to
    five other content kinds in one save and the harness scripts stay stale.
 3. **What does the Visuals section become once VFX is ruled?** Whichever tier
    §39 funds, the builder writes a key; the fixture pattern carries a
    `visuals` vocabulary the same way. Not this plan's call.
+   ✅ **ANSWERED 2026-09-25 (`plan-skill-vfx.md` C3b, §12f.5):** exactly that.
+   The builder writes the top-level `visual` key and the vocabulary rides the
+   generated fixture (`visualKinds`, `visualTriggers`, `visualKeys`,
+   `visualTriggersByKind`, `visualCurves`, `visualMotions`, plus the three C3b
+   exports). The 2026-09-21 "read-only for now" was reversed at the C3b
+   session on the coworker-gap argument.
 4. **Should `description` get a length hint?** 10 skills author one; nine
    are 38-85 characters, `OmniStrike`'s is 213. Whether the tooltip wraps that
    gracefully is a UI-pass question, not this tool's; a soft warning at most.
@@ -1744,3 +1762,17 @@ after the rewritten leg · no new em dash in any edited file.
 ruling. Archived 2026-09-18. Open beside it, both PO calls: §B11 Q7 (Go
 validation for every tab, retiring `validate.mjs`'s port) and `backlog.md`
 §61 (load-time reconciliation, now without a trigger date).
+
+#### C3b rider (2026-09-25, `plan-skill-vfx.md` C3b) - the Visuals section is a BUILDER
+
+Built and recorded in `plan-skill-vfx.md` §12f.5 (spec) and §13 C3b (ledger);
+this is a pointer, not a second ledger. The D3 "coming soon" section writes
+the `visual` key now: layer rows with kind / moment / body pickers that offer
+only what the loader accepts (three new fixture exports carry Go's
+per-category moment table, the count ceiling and the over-time types
+`applied` needs), a manifest-guarded body PNG route, a colour swatch and five
+soft hints. Mob skills stay out of the Skills tab (Q1) but their look is
+edited from the Mobs tab through `POST /api/save/skill-visual`, which assigns
+only that file's `visual`. The 2026-09-21 read-only ruling was reversed by the
+PO at that session. **Schema NONE** at every layer; `[uncommitted]` at the
+time of writing.

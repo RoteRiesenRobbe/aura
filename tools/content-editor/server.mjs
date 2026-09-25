@@ -42,7 +42,8 @@ import { readSkillVocabulary } from './vocabulary.mjs';
 import { listJsonFiles } from './files.mjs';
 import { readSkillIcons } from './skill-icons.mjs';
 import { validateCandidate } from './aurad-validate.mjs';
-import { saveSkill } from './save-skill.mjs';
+import { saveSkill, saveSkillVisual } from './save-skill.mjs';
+import { readSkillFxBodies, readSkillFxPalette, SKILL_FX_BODIES_DIR } from './skill-fx.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -152,13 +153,16 @@ function sendJson(res, status, body) {
   res.end(buf);
 }
 
-const STATIC_TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css' };
+const STATIC_TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.png': 'image/png' };
 
 function serveStatic(res, abs) {
   try {
     const buf = readFileSync(abs);
     const type = STATIC_TYPES[path.extname(abs)] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': `${type}; charset=utf-8`, 'Content-Length': buf.length });
+    // A charset only means something on text: a PNG served as
+    // "image/png; charset=utf-8" is a lie some consumers choke on.
+    const contentType = type.startsWith('text/') ? `${type}; charset=utf-8` : type;
+    res.writeHead(200, { 'Content-Type': contentType, 'Content-Length': buf.length });
     res.end(buf);
   } catch {
     res.writeHead(404); res.end('not found');
@@ -294,10 +298,16 @@ const server = createServer(async (req, res) => {
       // a broken parse throws and takes this whole response down, because an
       // empty icon picker that silently offers nothing is the worse failure.
       const skillIcons = readSkillIcons(ROOT);
+      // The Visuals section's body stems and the engine's colour rule
+      // (plan-skill-vfx.md §12f.5 C3b). ⚑ Same posture again: a missing or
+      // empty body manifest, or a palette that no longer parses to exactly the
+      // fixture's damage types, throws and takes this whole response down.
+      const skillFxBodies = readSkillFxBodies(ROOT);
+      const skillFxPalette = readSkillFxPalette(ROOT);
       return sendJson(res, 200, {
         mobs, quests, skills, skillNames, skillMaxLevels, factions, recipes,
         milestones: { file: milestones.file, raw: milestones.raw }, entityTypes,
-        skillVocabulary, skillIcons, ticksPerSecond,
+        skillVocabulary, skillIcons, ticksPerSecond, skillFxBodies, skillFxPalette,
       });
     }
     if (req.method === 'GET' && url.pathname === '/api/validate') {
@@ -363,6 +373,13 @@ const server = createServer(async (req, res) => {
         root: ROOT, readMobs, readRecipes, readMilestonesEntry, validateCandidate,
       }));
     }
+    // The Mobs tab's look editor (plan-skill-vfx.md §12f.5 C3b): writes ONLY the
+    // `visual` key of one api/skills/mobs/<slug>.json, through the same seam.
+    // ⚑ A throw is a 500 by the catch below, the same L12 contract as above.
+    if (req.method === 'POST' && url.pathname === '/api/save/skill-visual') {
+      const body = await readBody(req);
+      return sendJson(res, 200, saveSkillVisual({ file: body.file, visual: body.visual }, { root: ROOT, validateCandidate }));
+    }
     if (req.method === 'POST' && url.pathname === '/api/save/milestones') {
       const body = await readBody(req);
       return sendJson(res, 200, saveMilestones(body.raw));
@@ -373,8 +390,19 @@ const server = createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/skill-presentation.mjs') {
       return serveStatic(res, path.join(HERE, 'skill-presentation.mjs'));
     }
+    if (req.method === 'GET' && url.pathname === '/skill-visual-hints.mjs') {
+      return serveStatic(res, path.join(HERE, 'skill-visual-hints.mjs'));
+    }
     if (req.method === 'GET' && url.pathname === '/skill-references.mjs') {
       return serveStatic(res, path.join(HERE, 'skill-references.mjs'));
+    }
+    // A body thumbnail (C3b). The stem must be IN the generated manifest,
+    // verbatim, or it is a 404: no listing, no other extension, and no path
+    // arithmetic on user input (the manifest lookup is the whole guard).
+    const bodyPng = /^\/api\/skill-fx\/body\/([^/]+)\.png$/.exec(url.pathname);
+    if (req.method === 'GET' && bodyPng) {
+      if (!readSkillFxBodies(ROOT).includes(bodyPng[1])) { res.writeHead(404); return res.end('not found'); }
+      return serveStatic(res, path.join(ROOT, SKILL_FX_BODIES_DIR, `${bodyPng[1]}.png`));
     }
     if (req.method === 'GET') {
       const rel = url.pathname === '/' ? '/index.html' : url.pathname;

@@ -77,6 +77,14 @@ type skillVocabulary struct {
 	// offer a beam envelope on an impact and the loader would refuse it.
 	VisualCurves  map[string][]string `json:"visualCurves"`
 	VisualMotions []string            `json:"visualMotions"`
+	// The three rules the editor's layer builder needs to offer only what
+	// loads (plan-skill-vfx.md §12f.5 C3b, piece A): which moments each skill
+	// category may author (D2), the `count` ceiling per kind, and the effect
+	// types an `applied` layer needs one of. Go keeps owning them; the picker
+	// only reads them, and the seam refuses whatever a stale state slips past.
+	VisualTriggersByCategory map[string][]string `json:"visualTriggersByCategory"`
+	VisualCountMaxByKind     map[string]int      `json:"visualCountMaxByKind"`
+	VisualAppliedEffectTypes []string            `json:"visualAppliedEffectTypes"`
 }
 
 // topLevelKeys reflects skillDefinition's json tags in struct order: the 16
@@ -168,6 +176,34 @@ func buildSkillVocabulary(t *testing.T) skillVocabulary {
 		require.Contains(t, visualKinds, kind, "visualCurvesByKind names %q, which is not a visual kind", kind)
 	}
 
+	// The builder's three rules (C3b). Every category needs a moment row (or
+	// the editor could author no look on it), every moment named is a real
+	// trigger, a count ceiling only makes sense on a kind that reads `count`,
+	// and every applied type must be a named effect type.
+	require.ElementsMatch(t, sortedKeys(skillCategoryMap), mapKeys(visualTriggersByCategory),
+		"visualTriggersByCategory must name exactly the skill categories")
+	for category, moments := range visualTriggersByCategory {
+		require.NotEmpty(t, moments, "skill category %q has an empty visualTriggersByCategory row", category)
+		for _, on := range moments {
+			require.Contains(t, visualTriggers, on, "visualTriggersByCategory.%s names %q, which is not one of the triggers", category, on)
+		}
+	}
+	for kind, ceiling := range visualCountMaxByKind {
+		require.Contains(t, visualKinds, kind, "visualCountMaxByKind names %q, which is not a visual kind", kind)
+		require.True(t, slices.Contains(visualKeysByKind[kind], "count"),
+			"visualCountMaxByKind caps kind %q, which does not read count", kind)
+		require.GreaterOrEqual(t, ceiling, 1, "visualCountMaxByKind.%s is below the count floor of 1", kind)
+	}
+	appliedTypes := make([]string, 0, len(overTimeEffectTypes))
+	for _, effectType := range overTimeEffectTypes {
+		name, ok := effectTypeNames[effectType]
+		require.True(t, ok, "overTimeEffectTypes names an effect type with no JSON name")
+		_, known := effectTypeMap[name]
+		require.True(t, known, "over-time effect type %q is not a fixture effect type", name)
+		appliedTypes = append(appliedTypes, name)
+	}
+	slices.Sort(appliedTypes)
+
 	return skillVocabulary{
 		Comment:          vocabularyComment,
 		Categories:       sortedKeys(skillCategoryMap),
@@ -189,6 +225,11 @@ func buildSkillVocabulary(t *testing.T) skillVocabulary {
 		VisualTriggersByKind: visualTriggersByKind,
 		VisualCurves:         visualCurvesByKind,
 		VisualMotions:        visualMotions,
+		// Map values keep Go's order (ambient, fired, hit, applied); the
+		// applied list is sorted because it is a set, not a sequence.
+		VisualTriggersByCategory: visualTriggersByCategory,
+		VisualCountMaxByKind:     visualCountMaxByKind,
+		VisualAppliedEffectTypes: appliedTypes,
 	}
 }
 

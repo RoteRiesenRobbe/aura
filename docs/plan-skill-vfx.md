@@ -550,7 +550,14 @@ builder C1 lesson: a chunk whose purpose is a look is not done without one).
   PNGs plus a generated name list for Go, no packer yet (§12f.2 names the
   trigger). ✅ **C3a BUILT 2026-09-22, together with the §12g amendment**
   (attacks from the attacker, the hit mark automatic, `wave`): §13 C3a ledger.
-  ⏸ C3b not started.
+  ⭐ **C3b RE-SPECCED 2026-09-25 as a BUILDER (§12f.5, PO): the section
+  writes `visual`, mob looks are edited from the Mobs tab, legality by
+  construction.** ✅ **BUILT the same session**: §13 C3b ledger.
+  ⭐ **C3c SPECCED 2026-09-25 (§12f.7, PO at the C3b QA): a LIVE kind preview
+  from the real renderer**, a dev-only second webpack entry iframed into the
+  Visuals row plus a seven-kind gallery, so a newcomer sees what an emitter
+  or an orbit looks like and the author sees the layer being edited.
+  ✅ **BUILT the same day**: §13 C3c ledger.
 - **C4 · World scale.** ✅ **BUILT 2026-09-20** (spec: §12e, departures + PO
   rulings: §12e.8, ledger: §13). A dev-only instrument + a client-side stress
   driver (a real 10× server is tick-starved, so it cannot be the load) + the
@@ -1550,9 +1557,12 @@ is built.
    like every other texture; a generated `api/skill-fx/bodies.json` carries the
    body NAMES for Go, and a pin fails when folder and list drift. No new
    endpoint, aurad serves no binary art.
-3. **The editor section is READ-ONLY** (answers `plan-content-editor.md` Q3
+3. ~~**The editor section is READ-ONLY** (answers `plan-content-editor.md` Q3
    for now): it lists a skill's layers and shows a thumbnail where a body
-   resolves. `visual` stays hand-authored, hidden and preserved raw on save.
+   resolves. `visual` stays hand-authored, hidden and preserved raw on save.~~
+   ⭐ **REVERSED 2026-09-25 (PO, §12f.5): editable, this chunk.** The
+   coworker gap decided it (a skill made in the editor would ship with no
+   look).
 4. **C3a + C3b**, separate sessions.
 
 ### 12f.2 Calls made in planning (lead; none is a PO number, each revisable)
@@ -1750,18 +1760,272 @@ folder, and how to add one"; `SkillFxBodies.ts` header; `visual.go:30-35`;
 §6 of this plan (folder + manifest, the packer's trigger); the `add-content`
 skill if it repeats the old rule.
 
-### 12f.5 C3b, the editor's Visuals section (outline, re-verify at its session)
+### 12f.5 C3b execution spec (2026-09-25, re-verified against HEAD `448f6e44`)
 
-`tools/content-editor/public/app.js` `skillVisualsSection()` stops being the
-disabled stub: one row per layer (kind, trigger, body, the tunables the kind
-reads, from the fixture's per-kind key table so it cannot drift from Go), a
-thumbnail when the body is in `api/skill-fx/bodies.json` (the editor server
-serves the PNG from the frontend folder, read-only), "placeholder" otherwise,
-and "no visual" for a bare skill. `skill-presentation.mjs` keeps
-`visual: hidden`, `save-skill.mjs` is NOT touched, and a save-round-trip test
-pins that `visual` still comes back byte-identical. `plan-content-editor.md`
-§B4.8 / the D3 row / Q3 get the ruling; its ledger records the chunk, cited
-from here. **Schema: NONE.**
+⭐ **The read-only ruling is REVERSED** (PO 2026-09-25, overruling §12f.1
+item 3 from 2026-09-21). The 2026-09-21 outline said "lists a skill's layers
+and shows a thumbnail". At this session's opening the PO was shown the
+consequence in plain words: a coworker who creates a skill in the editor
+gets a skill with NO look and has to hand-edit the JSON, which is a content
+gap on every new skill once anyone but the PO authors. The PO ruled
+**editable, this chunk**. The four other calls of the same prompt round:
+
+1. **Mob skill looks are edited from the MOBS tab, `visual` key only.** The
+   Skills tab keeps hiding `api/skills/mobs/` (§B11 Q1 stands); a mob's page
+   gains one block per carried skill, the same layer builder, saving ONLY
+   that file's `visual` through a new narrow route and the same Go seam.
+   The read-only alternative would have left the wolf jaw and spider fang
+   thumbnails visible nowhere: only two player skills author a body today,
+   both the `sword`, against three mob skills.
+2. **Legality BY CONSTRUCTION, the seam stays the last word.** Go's fixture
+   writer exports the rules the form was missing (the per-category moment
+   table, the count ceiling, the over-time types `applied` needs), so the
+   pickers offer only what loads and `applied` is greyed out on a skill with
+   no DoT/HoT. The `effectCategories` precedent (C3 rider, §B12 C3): Go owns
+   the rule, the picker only reads it, and the seam refuses whatever a stale
+   state slips through.
+3. **A bare aura or cooldown gets a SOFT HINT, never a refusal.** "No look
+   yet; every aura and cooldown that can carry one authors one (PO
+   2026-09-20)". A rule, not a machine (`feedback_rule_over_machine`): Go
+   accepts bare files, so an editor fence would be half a fence, and a
+   coworker prototyping numbers first must not have to invent a look.
+4. **One row per layer**, the moment is one column and `applied` is simply a
+   legal value there (the C3a-ii ledger's "fourth column" was loose wording,
+   not a per-moment grid). Two helper lines were asked for: the colour the
+   engine will use, and soft hints for the mistakes the last two sessions
+   made by hand.
+
+Session shape (PO): this spec first, then the build in the same session,
+stoppable after any piece.
+
+#### 12f.5.1 What exists at HEAD (re-verified)
+
+- `skillVisualsSection()` (`tools/content-editor/public/app.js:2002`) is one
+  placeholder div. `skill-presentation.mjs` carries `visual: { hidden }`;
+  `save-skill.mjs` round-trips the whole raw object, so `visual` already
+  survives a save byte-identical (`save-skill.test.mjs:163` pins it).
+- `/api/data` serves the fixture whole: `visualKinds` (7), `visualTriggers`
+  (4), `visualKeys`, `visualTriggersByKind`, `visualCurves`,
+  `visualMotions`. NOT in the fixture, Go-only (`skills/visual.go`):
+  `visualTriggersByCategory` (D2), `visualCountMaxByKind` (`wave: 3`),
+  `overTimeEffectTypes` (the four `applied` needs), the `> 0` presence-gated
+  range rule and the lowercase `#rrggbb` tint pattern.
+- The editor server serves static files from `public/` only, with a
+  `startsWith` guard, and its content-type table knows html / js / css. The
+  four body PNGs are checked in under
+  `frontend/src/features/skill-fx/assets/bodies/`; `api/skill-fx/bodies.json`
+  is Go's generated copy of the stems. Neither is the gitignored icon atlas.
+- The colour rule is `SkillFxPalette.ts`: a layer's authored `tint` wins,
+  else the FIRST effect carrying damage tags (`damage`, `dot`,
+  `retaliateDamage`, `retaliateBurst`, in that order) decides by its first
+  tag through `DAMAGE_TYPE_COLORS` (six hexes), else `NEUTRAL_COLOR`
+  `#e8e8e8`. The hexes live in TypeScript only.
+- `readSkills()` reads BOTH skill folders into `state.skills`; the Skills tab
+  filters by `PLAYER_SKILL_FILE`. A mob's `skills[]` names a skill by NAME,
+  so a mob page can resolve each carried skill's file entry from
+  `state.skills` without a new request. `saveSkill` refuses any file outside
+  `api/skills/<slug>.json` (D2), so the mob block cannot reuse it.
+- The browser-side verify recipe exists:
+  `.claude/skills/verify/content-editor-skills-tab.mjs` (sweep, edit legs
+  through the seam, screenshots), PO-looked at C1 to C4.
+
+#### 12f.5.2 The pieces
+
+**A. Go: the fixture exports the three missing rules.** `vocabulary_test.go`
+gains `visualTriggersByCategory` (map category → moments),
+`visualCountMaxByKind` (map kind → ceiling; only `wave` today) and
+`visualAppliedEffectTypes` (the over-time type NAMES, from
+`overTimeEffectTypes` through `effectTypeNames`). Consistency asserts in
+the same test: every `categories` entry has a moment row, every moment it
+names is a real trigger, every count-ceiling kind reads `count`, every
+applied type is a fixture effect type. Regenerated with
+`UPDATE_SKILL_VOCABULARY=1`. ⚑ Additive keys only: `SkillFxPalette.test.ts`
+reads `damageTypes` off this file and must stay green untouched. **No
+change to `visual.go`'s rules.** ⚑ `-race` needs the MSYS PATH prefix on
+Windows; here it is plain `go test`.
+
+**B. Server: bodies and colours on `/api/data`, one PNG route, one save
+route.**
+
+- `skill-fx.mjs` (new, node-only, the `skill-icons.mjs` posture): `readSkillFxBodies(root)`
+  parses `api/skill-fx/bodies.json` and THROWS on a missing or empty list
+  (a silently empty body picker is the worse failure);
+  `readSkillFxPalette(root)` parses `DAMAGE_TYPE_COLORS` and
+  `NEUTRAL_COLOR` out of `SkillFxPalette.ts` by line regex and throws when
+  the keys are not exactly the fixture's `damageTypes` (the editor's twin of
+  `SkillFxPalette.test.ts`; parsed, not imported, because this tool has no
+  build step). Both ride `/api/data` as `skillFxBodies` and `skillFxPalette`.
+- `GET /api/skill-fx/body/<stem>.png`: the stem must be IN the manifest,
+  verbatim (§12f.2), else 404; the file is read from the frontend folder;
+  `STATIC_TYPES` learns `.png` (and the charset suffix is dropped for
+  binaries). No listing, no other extension, no path arithmetic on user
+  input.
+- `POST /api/save/skill-visual` → `saveSkillVisual({ file, visual }, deps)`
+  in `save-skill.mjs`, beside `saveSkill` and sharing its `refuse` /
+  `prettyJson` / seam shape. Guards: the path is
+  `api/skills/mobs/<slug>.json` and nothing else (the Skills tab writes
+  player files whole; this route exists for the folder that tab never
+  writes), the file exists, it parses. Then the on-disk raw is copied, its
+  `visual` replaced by the candidate (DELETED when the candidate has no
+  layers, so a bare skill omits the key as the loader's message asks), the
+  seam validates the candidate, the file is written. Every other key,
+  `_comment` first, is untouched by construction: nothing but `visual` is
+  assigned, and on a file that had none the object is rebuilt once so the
+  key lands before `effects` (the manual's placement rule, the same rebuild
+  the client does in C). ⚑ Verified at HEAD: `candidateSegments` accepts
+  `api/skills/mobs/<slug>.json` as three segments, so the seam needs no
+  change for this folder. Answers `{ ok, warnings: [] }` or `{ ok: false, stage, errors }`;
+  a seam throw is the 500 of L12, exactly as `/api/save/skill`.
+
+**C. Client: the layer builder, `skillVisualsSection(ctx)`.**
+
+- Rendered from `ctx.skill.visual?.layers`, one `.layer-row` per layer,
+  editable unless `ctx.readOnly` (the parked-type rule keeps its reach):
+  **kind** (select over the `visualKinds` that have at least one moment legal
+  for the skill's category, so a passive is never offered a `wave`; a change drops the keys the new kind
+  does not read after a confirm naming them, the `changeEffectType` idiom,
+  and resets `on` when the new kind lacks it) · **moment** (select over
+  `visualTriggersByKind[kind] ∩ visualTriggersByCategory[category]`,
+  `applied` present only when an effect's type is in
+  `visualAppliedEffectTypes`; an unset or unknown category answers the
+  kind's own list, the `legalEffectTypes` posture) · **body** (select: "none
+  (placeholder)" + the manifest stems; a 40 px thumbnail from the PNG route
+  beside it when set) · then the kind's own keys from `visualKeys[kind]`
+  minus `kind` / `on` / `body`, through `keyFields` so the absent-vs-0
+  tri-state, the unauthored dimming and the `unauthored` styling are the
+  form's own; `curve` and `motion` are selects over the kind's set, `tint` a
+  text input with an `#rrggbb` pattern, `count` a number with the ceiling as
+  its `max`. An omitted number shows the form's usual `—` placeholder and the row's
+  colour swatch line says "default" for it; the numbers themselves are
+  [PLACEHOLDER] client constants and are deliberately not copied here.
+- Row controls as the effect cards have them: move up / down, delete with a
+  confirm when the row authors more than kind + on, "+ Add layer" seeding
+  `{ kind: <first kind legal for the category>, on: <its first legal moment> }`.
+  Deleting the last layer deletes `visual` itself (Go refuses `"layers": []`).
+  ⚑ `visual` sits before `effects` in every shipped file; `prettyJson`
+  preserves key order, so a NEW `visual` on a file that had none is inserted
+  before `effects` client-side (rebuild the object once), not appended.
+- **Presentation**: `skill-presentation.mjs` gets `visual: { control:
+  'visual', hint }` (rendered by a dedicated section, the `effects` posture)
+  and the twelve layer keys (`kind`, `on`, `body`, `curve`, `motion`, `ms`,
+  `speed`, `width`, `count`, `tint`, `scale`, `chain`) get entries in a
+  second table `LAYER_PRESENTATION` with units (`ms`, px/s, px, count,
+  factor). It is a SEPARATE lookup, never merged into `SKILL_PRESENTATION`:
+  no name collides today (checked at HEAD against `effectKeys`, `costKeys`
+  and `topLevelKeys`), but a future effect key called `scale` or `count`
+  must not lend a layer its unit, so `keyField` takes the table as a
+  parameter. smoke (d) pins the layer table against `visualKeys` both ways,
+  exactly as it pins the skill table, and its `control` list learns
+  `'visual'`.
+- **The two helper lines, per row and per skill:**
+  - the colour swatch: `tint` if authored ("authored tint"), else the palette
+    colour with its reason ("fire, from the first damage-tagged effect"),
+    else neutral ("neutral grey: no tint and no damage tags"). The rule is
+    mirrored in `skill-visual-hints.mjs` (browser + node, no `node:`
+    imports) so smoke can pin it against the shipped content.
+  - `skillVisualHints(skill, vocab)` in that same module, grey `.hint`
+    lines, never blocking: (1) a damage-tagged skill authoring a `tint`
+    (redundant, the palette already colours it); (2) an untagged skill with
+    layers and no `tint` (draws neutral grey); (3) every effect is an
+    over-time type and a layer is on `hit` (a DoT-only skill sends no direct
+    landing, the C3a-ii finding: move it to `applied`); (4) an active aura or
+    cooldown with no layers (the PO 2026-09-20 rule); (5) the two STALE
+    states the pickers cannot prevent, worded as the loader words them, the
+    `illegalTypeLine` idiom: a moment illegal for the current category (after
+    a category change) and `applied` with no over-time effect left (after an
+    effect deletion). The section's hints join `skillHints(ctx)` in the
+    existing hint box.
+- **The Mobs tab block** (`mobSkillLooksSection(mob)`): under Skills, one
+  sub-block per `skills[]` row whose name resolves to a `state.skills` entry
+  under `api/skills/mobs/`: the file path, the same layer builder over a
+  WORKING COPY of that entry's `visual`, its own Save / Reset (it writes a
+  different file than the mob's Save, so it cannot share that button), a
+  one-line note when the skill is carried by more than one mob ("also
+  WolfPack, ElderWolf: one look for all of them"), and the same helper lines
+  (the colour needs the skill's effects, which the entry carries). A
+  `skills[]` row naming a PLAYER skill (a mob carrying `Damage`) shows
+  "edit its look in the Skills tab" and a jump link. Save posts to
+  `/api/save/skill-visual`, on ok replaces the entry's `visual` and marks
+  the entry pristine; a refusal renders in the block's own feedback span
+  with the same `refused:` / `refused by aurad -validate:` / 500 wording
+  the Skills tab uses.
+- Stale comments retired with the stub: the section's own, the hint in
+  `skill-presentation.mjs`, smoke (k)'s "does not render `visual` until C3",
+  `skill-inventory.mjs`'s `SKIPPED_TOP` note (it stays skipped there: the
+  inventory is a numbers document).
+
+**D. Tests.**
+
+- Go: the fixture test's new asserts (A); `go test ./pkg/aura/skills/` green
+  after regeneration, and `cmd/aurad` untouched.
+- `save-skill.test.mjs`, new cases over the temp tree: `saveSkillVisual`
+  refuses a player-skill path and a path outside `skills/mobs/`, refuses a
+  missing file, writes ONLY `visual` (every other key byte-identical,
+  `_comment` included, key order kept), deletes the key on an empty layer
+  list, refuses on a seam finding without writing, lets a seam throw out.
+  The existing round-trip pin at line 163 keeps its assertion and loses its
+  "never rendered" comment: `visual` is rendered now and still round-trips
+  because the client mutates it in place.
+- `smoke.mjs`: (d) covers `LAYER_PRESENTATION`; (k) gains the three new
+  fixture keys and their consistency; a new (l): the palette parse yields
+  exactly `damageTypes`, and `skillVisualHints` over every shipped skill
+  reports NO stale-state hint (5) and no hint (3) (the content is clean at
+  HEAD; (1), (2) and (4) are counted and printed, not asserted, because the
+  PO may keep a redundant tint on purpose).
+- `content-editor-skills-tab.mjs`, new legs: on Damage the Visuals section
+  renders one row (`strike`, `hit`, body `sword`) and the thumbnail
+  `<img>` has `naturalWidth > 0`; on OmniPassive the moment picker offers
+  `hit` alone; on Damage `applied` is absent from the picker (no over-time
+  effect) and on Blight (a `dot_aura`) present; "+ Add layer" marks dirty
+  and Reset drops it; an added `wave` on `fired` is SAVED through the seam,
+  the file on disk carries exactly that layer, and the harness restores the
+  original bytes (the description-edit pattern); a candidate with `applied`
+  on Damage posted straight at `/api/validate/candidate` is refused naming
+  the over-time rule; in the Mobs tab, Wolf shows the WolfBite block with
+  the `wolf-jaw` thumbnail, an `ms` edit saves through
+  `/api/save/skill-visual`, the mob file is untouched, the skill file
+  carries the change, bytes restored. Screenshots: Damage, Blight, Wolf.
+  ⚑ Every write is restored in a `finally`; if the run dies mid-leg:
+  `git checkout api/skills/damage.json api/skills/mobs/wolf-bite.json`.
+
+**E. Docs.** This plan: §9's C3 bullet ("⏸ C3b not started" → specced +
+built), §12f.1 item 3 marked reversed with a pointer here, the §13 C3b
+ledger. `docs/archive/plan-content-editor.md`: the D3 line and the §B4.8
+Visuals row (the section is a builder since C3b, the key is written), §B11
+Q3 answered ("the builder writes it; the vocabulary rides the fixture as Q3
+guessed"), Q1 amended (mob skills still hidden from the tab, their LOOK is
+edited from the Mobs tab), a B12 ledger entry cited from here.
+`manual-content-authoring.md` §2's editor paragraph and the Visuals section
+gain one sentence each (authored in the editor's Visuals section, Skills tab
+for player skills, Mobs tab for mob skills; hand-authoring still fine).
+`tools/content-editor/README.md` Scope: `visual` in, the PNG route, the
+second save route. CLAUDE.md Status at wrap (cap 3).
+
+#### 12f.5.3 Schema
+
+DB, WIRE, CONF: **NONE.** CATALOG: NONE (`visual` already rides GET
+/skills). VOCABULARY FIXTURE: three additive keys, regenerated. CONTENT:
+none at rest (the harness writes and restores). ⚑ "NONE" was a guess twice
+in this plan: re-check at the end of the chunk.
+
+#### 12f.5.4 Verify tail C3b owes
+
+`UPDATE_SKILL_VOCABULARY=1 go test -count=1 ./pkg/aura/skills/` then the
+plain run · `go build ./...` · `make -C backend build` (the seam is as
+fresh as the binary) · `go test -count=1 -timeout 60s ./...` (`world` is
+red at HEAD, known) · `aurad -validate -content ../api` 0 · editor
+`npm run smoke` 0 findings · `node save-skill.test.mjs` · frontend `npm
+test` (the palette pin) + `npm run typecheck` (nothing in `frontend/src`
+changes; run it anyway, the bodies folder is read by both) · the Playwright
+harness with the new legs, exit 0, then **screenshots, looked at** · `git
+status` shows no content diff · the PO look: add a layer to a skill in the
+editor, save, restart aurad, see it in-game. ⚑ The dev server reads
+`-content ../api`, so a saved look is live on restart with no rebuild.
+
+Not in C3b: the phone check (§9), the pyromancer re-price, frame playback,
+a PNG upload (the artist commits the PNG, the manifest script runs, then
+the look can name it: a body can only be picked once it is on disk, by
+Go's rule, and that order is the workflow, not a gap).
 
 ### 12f.6 Verify tail C3a owes
 
@@ -1776,6 +2040,162 @@ body-carrying skill, because every C4 number was measured on Graphics ·
 ⭐ **screenshots, looked at** (arm on the spawn counter, slow the page clock:
 the C2a recipe), then the PO look. A visual chunk is not done on counters
 (C2b). Not in C3: the phone check (cap 96 vs 192), the flinch (§10 Q10).
+
+### 12f.7 C3c execution spec (2026-09-25, planned at the C3b QA, re-verified against HEAD `448f6e44` + the uncommitted C3b tree)
+
+**The ask (PO, at the C3b QA):** *"is it possible for us to render an example
+of each of the kinds? So someone new knows what an emitter or orbit look
+like."* Three answers were put in front of the PO with their drift behaviour:
+a hand-drawn legend (cheap, offline, and a SECOND drawing of the look that
+goes stale silently: the bite changed twice and the bolt grew 1.3× inside two
+weeks), one line of words per kind (no drift, no picture), and **the real
+renderer, live** (the C4 stress driver proved `SkillFx` can be fed without a
+server; a dev-only page in the client, iframed into the editor, draws the
+layer BEING EDITED, so it cannot drift because it is the code). **PO: the
+live preview.** Not started; nothing below is built.
+
+#### 12f.7.1 What exists (re-verified)
+
+- `SkillFx.onSnapshot(events, resolve)` and `setAmbient(owner, skillId, own)`
+  are the whole feed; `SkillFxStress.ts` already drives them with STUB game
+  objects (`{ id, shape: { position, destroyed, parent }, size }` cast to
+  `GameObject`), deterministic, no server. `setup(layer)` subscribes to
+  `PrerenderEvent` for its per-frame update and reads the density from
+  `GameSettings` once.
+- `visualOf(skillId)` resolves a skill through the CATALOG
+  (`Skills.ts` `skillDefinition`, a private `Map` filled by `GET /skills`)
+  into `{ layers, baseColor: skillFxColor(def), reachPx: widest effect
+  radius at level 1 }` and CACHES it for the page's life. The palette reads
+  the catalog shape (`effect.damage.tags`), not the raw file.
+- Bodies load through `SkillFxBodyFiles.ts` (`require.context` +
+  `registerPreload`), which only runs inside the game's preload cycle.
+- The client has ONE webpack entry (`src/index.ts`, every feature imported
+  for its side effects, a WebSocket on `ModulesLoadedEvent`); `webpack.dev.js`
+  merges `webpack.common.js` and serves `dist/` on 2001. Nothing in the
+  bundle is reachable without booting the game.
+- The editor is a no-build vanilla-JS page on 4610; its Visuals row is
+  `layerRow()` in `app.js` (C3b) and `skill-visual-hints.mjs` already
+  computes the palette tag and the reach-bearing effects for the swatch.
+
+#### 12f.7.2 Calls made in planning (lead; each revisable, none a PO number)
+
+- **A second, DEV-ONLY webpack entry, not a query flag on the game.** The
+  game entry imports every feature for its side effects, so a `?fx-preview`
+  branch would still connect a WebSocket and mount the HUD. `fx-preview.ts`
+  imports Pixi, `SkillFx`, the bodies loader and nothing else; it is added
+  to `entry` + a second `HtmlWebpackPlugin` (`fx-preview.html`, `chunks`
+  scoped) **in `webpack.dev.js` only**, so the deploy bundle never carries
+  it and the deployed aurad never serves it. ⚑ `webpack.common.js`'s
+  `HtmlWebpackPlugin` must gain `chunks: ['main']` (and the entry a name) or
+  the game page would also load the preview chunk.
+- **Three small seams in the client, all additive:**
+  1. `Skills.ts` `registerSkillDefinition(def)`: an upsert into the catalog
+     Map, exported for the preview and tests; the game never calls it.
+  2. `SkillFx.forgetVisual(skillId)`: one `Map.delete` on the `visuals`
+     cache, so a re-registered preview def is re-read (the cache is by id
+     and the preview edits the same id on every keystroke).
+  3. `SkillFxBodyFiles.ts` exports `loadSkillFxBodies(): Promise<void>` (the
+     `Assets.load` + `setBodyTexture` loop it already runs); the preload
+     registration calls it, the preview awaits it directly.
+- **The synthetic definition is built IN the preview from four facts the
+  editor already knows**, never from the raw file: `{ visual, category,
+  paletteTag | null, reachUnits }`. The preview registers
+  `{ id: PREVIEW_SKILL_ID, category, visual, effects: [{ type:
+  'damage_aura', radius: reachUnits, damage: paletteTag ? { tags:
+  [paletteTag] } : undefined }] }` (cast; the planner reads `radius` and the
+  palette reads `damage.tags`, nothing else). ⚑ The colour must NOT be
+  forged as a `tint`: a layer with a resolved body takes no palette tint
+  (§12f.2), so a forged tint would recolour a body the game leaves as drawn.
+  The editor's `paletteTagOf` (C3b) is the source of the tag.
+- **Two stubs, one loop.** Caster at the left, victim at the right, both
+  `STUB_RADIUS_PX` (26, the stress driver's), distance = `reachPx` (floor
+  1 u, cap 4 u [PLACEHOLDER]); the fx container is SCALED to fit the canvas
+  (kinds draw in world px, so scaling the container is exact). Two thin
+  rings mark the stubs. Per layer moment: `fired` → one FIRED event per
+  cycle; `hit` → one Direct Damage HIT (the engine's hit mark draws too, on
+  purpose: that IS what a hit looks like); `applied` → one `Applied` event
+  and no mark; `ambient` → `setAmbient(caster, id, true)` once, no loop.
+  Cycle = the layer's own duration (the C4 `eventLifetimeMs` helper, which
+  already prices every kind) + 600 ms gap [PLACEHOLDER]. Density forced to
+  `full` (the preview shows what the author authored, not the viewer's
+  slider). ⚑ The pincer / bite hinge on the VICTIM's rim, so the victim stub
+  must carry `size`.
+- **Two modes of one page.** `fx-preview.html` (no query) waits for
+  `postMessage` and previews ONE layer; `fx-preview.html?gallery` draws the
+  seven kinds side by side from a fixed table `GALLERY_LAYERS` (one canonical
+  layer per kind, the manual's own examples: a `thrust` strike, a `fired`
+  wave, a projectile, an `extend` beam, a cast-pose, an orbit, a `swirl`
+  emitter), each labelled, each on its own loop. The gallery is the
+  newcomer's legend; the row preview is the author's mirror.
+- **The protocol, one message each way.** Editor → preview: `{ type:
+  'aura-fx-preview', visual, layerIndex, category, paletteTag, reachUnits }`,
+  debounced 150 ms after any edit of the row, re-sent on the ready message;
+  preview → editor: `{ type: 'aura-fx-preview-ready' }` once loaded. The
+  preview accepts a message only from an `http://localhost` /
+  `http://127.0.0.1` origin (dev-only, still no reason to accept anything).
+  The row previews ITS layer alone (`visual.layers[layerIndex]` becomes the
+  only layer of the synthetic def), so a three-layer skill has three small
+  previews, not one busy one. ⚑ `layerIndex` is re-derived after a move or a
+  delete (rows re-render, C3b's `onStructural`).
+- **The editor side.** Each `.layer-row` gains a 240 × 120 px [PLACEHOLDER]
+  iframe at `FX_PREVIEW_ORIGIN + '/fx-preview.html'`, collapsed behind a
+  "Preview" toggle that is remembered in `state` (seven iframes on a
+  seven-layer skill is seven WebGL contexts: closed by default, open on
+  click, and the section header offers "Show all kinds", which opens ONE
+  gallery iframe above the rows). `FX_PREVIEW_ORIGIN` defaults to
+  `http://localhost:2001` and is overridable by `?fx=<origin>` on the editor
+  URL. When no ready message arrives within 3 s the frame is replaced by one
+  line: "the preview needs the frontend dev server on 2001
+  (`./scripts/dev-restart.sh frontend`)". No probing, no retries, no server
+  change on 4610: the editor server is not touched at all.
+- **Not in C3c:** the prod bundle (dev only by construction), the mobile
+  slider look (`full` only), sound, a preview of the ENGINE hit mark alone
+  (it rides every `hit` preview anyway), frame playback (not built anywhere),
+  the deployed server.
+
+#### 12f.7.3 Schema
+
+DB, WIRE, CONF, CATALOG, VOCABULARY, CONTENT: **NONE.** Build: one dev-only
+entry + one HTML template; `webpack.prod.js` unchanged. ⚑ Re-check at the
+end of the chunk, as every C-chunk did.
+
+#### 12f.7.4 Tests
+
+- vitest (pure): the synthetic-definition builder (a tag becomes
+  `damage.tags`, a null tag becomes no payload, the reach becomes `radius`,
+  the chosen layer is the ONLY layer), the cycle length per kind (against
+  `eventLifetimeMs`), the fit scale for a given reach and canvas, the origin
+  guard, the gallery table naming every kind in `VISUAL_KINDS` exactly once
+  (a completeness pin: an eighth kind reddens it).
+- `registerSkillDefinition` + `forgetVisual`: a vitest case that registers,
+  resolves, re-registers with another layer and sees the new one (through
+  `onSnapshot`'s `counters()` by kind, the C4 posture; no WebGL needed for
+  the plan half). ⚑ If the kind's `spawn` needs a renderer, pin at the
+  planner level instead and let Playwright own the pixels.
+- Playwright, a new `skill-fx-preview.mjs` in `.claude/skills/verify/`:
+  `fx-preview.html?gallery` on 2001 spawns at least one Fx per kind within
+  two cycles (`window.__fxPreview.counters()` exposes `SkillFx.counters()`),
+  screenshot; `fx-preview.html` alone spawns nothing until a message arrives,
+  then a posted `wave` layer spawns a `wave`; a posted message from a
+  foreign origin is ignored (⚑ as built: a host page on `http://127.0.0.2`,
+  because Chrome will not embed a localhost frame under a `data:` parent). Editor
+  harness `content-editor-skills-tab.mjs`, one more leg: the Damage row's
+  Preview toggle opens an iframe whose `src` starts with the origin and the
+  ready handshake arrives (NOTE, not FAIL, when 2001 is down, with the
+  reason printed). Screenshots: the gallery, Blight's row preview open.
+
+#### 12f.7.5 Verify tail
+
+`npm test` + `npm run typecheck` · `npm run build` (prod) then `ls dist/ |
+grep fx-preview` prints NOTHING (the dev-only proof) · `npm run start`, the
+Playwright script above, exit 0 · editor smoke 0 + the editor harness 0 ·
+screenshots looked at · the PO look: open a skill, toggle Preview, change
+the curve from thrust to swing and watch the row preview change without a
+save; open "Show all kinds". Nothing under `api/` changes, `git status`
+proves it. Docs: this plan (§9 C3 bullet, a C3c ledger), the editor README
+(the preview and its dev-server requirement), `manual-content-authoring.md`
+"Visuals" (one sentence: the editor shows each kind live), the verify
+skill's Coverage map (the new script), CLAUDE.md Status at wrap.
 
 ## 12g. C3a amendment: attacks stem from the attacker, the hit mark is automatic (PO look 2026-09-21)
 
@@ -2039,6 +2459,280 @@ spider leg, agent C). `ember-aura` (133) keeps its beam on `hit` for its NEW
 
 ## 13. Ledger
 
+### C3c ledger (2026-09-25) - a live kind preview from the real renderer
+
+✅ **BUILT 2026-09-25** `[uncommitted]`. Spec: §12f.7, written at the C3b QA
+after the PO asked for an example of each kind ("so someone new knows what an
+emitter or orbit look like"); the PO chose the live renderer over a hand-drawn
+legend and one line of words. Two Opus agents in parallel on a file split
+(client page + seams + tests + `skill-fx-preview.mjs` · editor iframe +
+gallery + harness leg + docs), the lead ran the tail with both halves live.
+
+**Schema: DB NONE · WIRE NONE · CONF NONE · CATALOG NONE · VOCABULARY NONE ·
+CONTENT NONE.** BUILD: one dev-only entry + template in `webpack.dev.js`;
+`webpack.prod.js` untouched and the prod `dist/` carries no preview file.
+
+**What was built**
+
+- **The page** (`frontend/src/fx-preview.ts` + `fx-preview.html`, a second
+  entry added in `webpack.dev.js` ONLY; `webpack.common.js` names its entry
+  `main` and scopes the game's HtmlWebpackPlugin to it). Two stubs the
+  stress driver's shape (size 26, `parent: {}`), rings, a `fitScale`d scene,
+  `PrerenderEvent.trigger(ticker.deltaMS)`, the loops chained with
+  `setTimeout` and cleared on every message; message mode runs `reset` →
+  `forgetVisual` → `registerSkillDefinition` → loop; `?gallery` draws
+  seven 200 px slots (skill ids base + 1..7, stub ids base + 2 × slot).
+  ⭐ **The ready message is posted FIRST, before the renderer and the
+  bodies boot, in both modes**, and a layer that arrives before boot waits
+  in `pendingMessage` (lead fix, below). `window.__fxPreview` is the
+  harness surface. Density is forced to `full` on the settings proxy's
+  TARGET, so nothing fires or persists into the 2001 origin's stored
+  settings that the dev game shares.
+- **The pure half** (`SkillFxPreview.ts`, 24 vitest cases):
+  `buildPreviewDefinition` (the chosen layer becomes the ONLY layer, the
+  tag becomes `damage.tags`, never a tint, the reach becomes `radius`, an
+  optional id per gallery slot), `previewCycleMs(layer, distPx)` (C4's
+  `eventLifetimeMs`, imported, plus 600 ms; a bolt's life is its flight so
+  the distance is an input), `previewDistancePx` (1–4 u), `fitScale`,
+  `isTrustedOrigin`, `parsePreviewMessage` (null on a wrong type, a bad
+  index, an unknown kind or moment, a non-finite reach; accepts
+  `active_aura` or `aura` and a null category for a draft), `GALLERY_LAYERS`
+  (one canonical layer per kind, the fire palette, reach 1 u; a completeness
+  pin over `VISUAL_KINDS`). A real-manager case registers a skill, runs
+  `onSnapshot`, re-registers the same id and sees it stale without
+  `forgetVisual` and fresh after it (Pixi spawns under jsdom).
+- **Three additive seams**: `Skills.ts` `registerSkillDefinition` (upserts
+  `catalog` AND `byName`, drops a stale name on a rename; `CATEGORY_MAP`
+  exported), `SkillFx.forgetVisual`, `SkillFxBodyFiles.loadSkillFxBodies`
+  (the preload now registers ONE promise for all bodies, so the start
+  screen's bar ticks once for them: a visible game-side effect, harmless).
+- `.claude/skills/verify/skill-fx-preview.mjs`, 14 PASS lines: every kind
+  spawns in the gallery plus the engine mark, density `full`, seven labelled
+  slots all looping, nothing before a message then a posted wave draws
+  waves only, a malformed message ignored, the handshake from both modes
+  matched by `event.source`, an untrusted origin ignored with a trusted
+  control drawing. Coverage-map row added.
+
+- **The editor** (`app.js`, `styles.css`): `FX_PREVIEW_ORIGIN` from `?fx=`
+  or `http://localhost:2001`; a Preview toggle in every layer row's head
+  (read-only skills too), remembered in `state.fxPreviewOpen` per
+  `<file>#<index>` and moved along by `moveLayer` / `removeLayer`; when open
+  a 240 × 120 `iframe.fx-preview` + status line, `data-fx-state`
+  `waiting → ready | unavailable`, the 3 s note naming
+  `./scripts/dev-restart.sh frontend`. One module-level `message` listener
+  matches origin + `event.source === iframe.contentWindow` against a frame
+  registry. On ready the editor posts `{ visual, layerIndex, category,
+  paletteTag, reachUnits }` (built at post time, `reachUnits` = the widest
+  effect radius); a value edit re-posts to every ready frame debounced
+  150 ms through `ctx.previews`; a structural edit re-renders, which
+  reloads the frames. "Show all kinds" in the Visuals header opens ONE
+  `?gallery` frame above the rows (Skills tab only; the Mobs-tab block has
+  row previews, no gallery). Harness part 2e: both handshakes, the
+  debounced re-post path, Reset with a preview open, both closed leaves no
+  iframe, `Damage-preview.png`; a missing page is a NOTE, never a problem.
+  README + the manual's one sentence.
+
+**Findings**
+
+- ⚑ **Prune a registry on the event, never at registration.** The editor
+  pruned disconnected frames when a new frame registered; a render builds
+  its subtree DETACHED and attaches it afterwards, so at registration every
+  frame of the render in progress reads as disconnected, and a row
+  registering after the gallery dropped the gallery's entry: its ready
+  message then matched nothing and the frame was swapped for the note. The
+  agent's own leg saw only NOTE lines (2001 had no page yet); the lead's
+  rerun with the page live showed the row passing and the gallery failing,
+  and a probe in the live editor (gallery alone: ready in 1 s; row first,
+  then gallery: three readies, gallery `unavailable`) isolated the order.
+  Pruning moved to the timeout and the message handler.
+- ⚑ **Say "ready" before booting the renderer.** The page first posted ready
+  after `app.init` + the bodies + seven gallery slots; standalone that is
+  0.7 s, under two WebGL contexts in a headless editor page it can pass 3 s.
+  Ready now goes out first and an early layer waits in `pendingMessage`.
+  The editor's 3 s window is a page-alive check, not a render-done one.
+- ⚑ **`skill-fx.mjs` leg 14 was RED AT HEAD since `814f8055`**: the jaw
+  length still asserted the pre-round-1 rule (1.4 × radius, floor 40) while
+  the same commit shipped 0.8 × radius, floor 20 after the PO look; the
+  C3a-ii ledger's "44 PASS" predates that round and "leg 17 counters still
+  hold" did not cover leg 14. Fixed here (the harness gate rule: a stale
+  leg is rewritten in the chunk that finds it). Every other leg passed
+  with the bodies loading through the new `loadSkillFxBodies` (62 sprite
+  spawns in leg 14, 18 in leg 17).
+- ⚑ The preview frame logs one `GET /skills` 404: `Skills.ts` fetches the
+  catalog at import time from the page's own origin and the dev server has
+  no such route. The preview never needs the catalog (the fetch rejects
+  into the designed degrade path); the editor harness prints it as a NOTE.
+- ⚑ **A single gallery frame shows several empty slots**: a 200 ms thrust
+  is visible a fifth of its 800 ms cycle. The per-slot armed screenshots
+  and the counters prove every kind draws; whether the gallery should loop
+  tighter (a shorter gap, or a hold on the last frame) is a look question
+  for the PO, [PLACEHOLDER] 600 ms gap.
+- ⚑ Chrome refuses to embed a `localhost` frame under a `data:` or a
+  public-address parent (Private Network Access), so the foreign-origin leg
+  hosts its page on `http://127.0.0.2:<port>`; §12f.7.4's "data: page" was
+  amended. A parent on another localhost port (the editor's case) embeds
+  fine.
+- ⚑ `npm run build` would wipe `frontend/dist/icons/` (`output.clean`), the
+  local PONETI atlases the dev server serves: the prod-build proof ran with
+  `--output-path` into the scratchpad instead (`dist/` is gitignored).
+
+**Verified**
+
+- Frontend `npm test` **1097/0** (53 files, +24 preview cases) · `npm run
+  typecheck` clean · prod build into the scratchpad: no `fx-preview` file,
+  the game page loads `runtime` / `vendors` / `main` only · dev server
+  restarted, `/fx-preview.html` served, `/` references no preview chunk.
+- `skill-fx-preview.mjs` **RESULT: PASS** (14 legs), run by the agent twice
+  and by the lead after the ready-first change; readiness measured 0.27 s
+  (row) / 0.71 s (gallery) standalone.
+- Editor harness `content-editor-skills-tab.mjs`, lead rerun with the page
+  live: **0 problem(s)**, `PASS Damage row 0 preview: the preview answered
+  the handshake`, `PASS the gallery: the preview answered the handshake`.
+- ⭐ `skill-fx.mjs` (the game, real aurad + dev server): **RESULT: PASS**, 20
+  legs, 3 NOTEs (13c, 16, 17, as before), after the leg-14 rule fix.
+- Editor `npm run smoke` 0 findings · `save-skill.test.mjs` 0 · `git
+  status`: no diff under `api/` beyond C3b's fixture.
+
+**Not run / owed**
+
+- The PO look: toggle Preview on a row, change the curve, watch it; open
+  "Show all kinds".
+- The phone check (§9), unchanged.
+
+### C3b ledger (2026-09-25) - the editor's Visuals section, a BUILDER
+
+✅ **BUILT 2026-09-25** `[uncommitted]`. Spec: §12f.5, written at the session
+after eight PO choice prompts (the read-only ruling of §12f.1 item 3
+REVERSED: editable, this chunk; mob looks from the Mobs tab, `visual` key
+only; legality by construction; a soft hint for a bare aura/cooldown; one
+row per layer; colour line + soft hints; spec first, build the same
+session). Two Opus agents off scratchpad briefs (Go fixture + server +
+save path + its tests · client builder + Mobs block + hints module +
+harness legs), the lead reviewed both diffs and ran the tail.
+
+**Schema: DB NONE · WIRE NONE · CONF NONE · CATALOG NONE.** VOCABULARY
+FIXTURE: three additive keys (`visualTriggersByCategory`,
+`visualCountMaxByKind`, `visualAppliedEffectTypes`), regenerated. CONTENT:
+none at rest (every harness write restored; `git status` clean under
+`api/`). ⚑ One embedded file synced by `make build`
+(`backend/pkg/api/skills/summon-companion.json`, `packIcon` `panther` →
+`hound-pair`): `072110f0` changed the `api/` copy and never re-embedded it.
+
+**What was built**
+
+- **A. Go, the fixture exports** (`vocabulary_test.go`; `visual.go`
+  UNTOUCHED): the D2 per-category moment table, the count ceiling
+  (`wave: 3`) and the four over-time type names `applied` needs, with
+  consistency asserts (categories both ways, every moment a real trigger,
+  a capped kind reads `count`, every applied type a fixture effect type).
+- **B. Server** (`server.mjs`, new `skill-fx.mjs`, `save-skill.mjs`):
+  `/api/data` carries `skillFxBodies` (the manifest stems) and
+  `skillFxPalette` (the six hexes + neutral, parsed out of
+  `SkillFxPalette.ts`'s `DAMAGE_TYPE_COLORS` block by line regex and
+  refused unless the keys are exactly the fixture's `damageTypes`); both
+  throw and take the response down, the vocabulary/icons posture.
+  `GET /api/skill-fx/body/<stem>.png` serves a body only when the stem is in
+  the manifest verbatim (404 otherwise, `..` variants included), as
+  `image/png` with no charset (binaries lost the `; charset=utf-8` suffix).
+  `POST /api/save/skill-visual` → `saveSkillVisual`: guards (a
+  `skills/mobs/<slug>` path and nothing else, exists, parses), copies the
+  on-disk object, assigns ONLY `visual` (deleted when the candidate has no
+  layers; a NEW one inserted before `effects`), seam, write. A seam throw is
+  the L12 500.
+- **C. Client** (`app.js`, `styles.css`, `skill-presentation.mjs`, new
+  `skill-visual-hints.mjs`): `skillVisualsSection(ctx)` is a builder, one
+  `.layer-row` per layer: kind (only kinds with a moment legal for the
+  category), moment (`visualTriggersByKind ∩ visualTriggersByCategory`,
+  `applied` only with an over-time effect; a stale current value stays
+  listed so hint 5 can name it), body ("none (placeholder)" + the manifest,
+  a 40 px thumbnail off the PNG route), then the kind's own keys through
+  `keyField` with a `lookup` parameter and the new `LAYER_PRESENTATION`
+  table (curve / motion selects, `tint` with an `#rrggbb` pattern, `count`
+  with the ceiling as `max`). Move / delete-with-confirm / "+ Add layer"
+  (first legal kind + moment); the last deletion removes `visual`; a NEW
+  `visual` is inserted before `effects`. The swatch line ("physical, from
+  the first damage-tagged effect · scale: default") and the five soft hints
+  join the hint box as GREY `.hint` lines. **The Mobs tab** gains "Skill
+  looks" after Skills: one block per carried mob skill over a working copy
+  (`state.mobLookDrafts`, survives a section collapse), its own Save look /
+  Reset / feedback, an "unsaved" marker, the "also AlphaWolf, DireWolf: one
+  look for all of them" note, a jump for a player skill; refusals use the
+  Skills tab's three wordings. Read-only (parked) skills get disabled
+  controls and no buttons.
+- ⭐ **The colour mirror reads the RAW file, not the catalog**, so it
+  re-applies Go's normalisation (`definition.go`): a damage / dot /
+  retaliate payload with no `damageTags` is `physical`, a gate-keyed hit
+  carries none and is skipped, the first tagged payload's first tag decides,
+  a `tint` wins. WolfBite therefore reads physical in the editor as it draws
+  in game. The hexes are never copied: they arrive parsed from the `.ts`.
+- **Tests**: smoke (d) pins `LAYER_PRESENTATION` against `visualKeys` both
+  ways and gained a `CONTROLS` check over all four tables (there was none);
+  (l) asserts NO hint of class 3 (a `hit` layer on a DoT-only skill) or 5
+  (stale moment / stale `applied`) over every shipped skill and prints 1 / 2
+  / 4. Harness part 2d, six legs, and two more screenshots (Blight,
+  `Wolf-mobs-tab`).
+
+**Findings**
+
+- ⚑ **The visual-only save still reformats the file** the way every editor
+  save does: `prettyJson` folds a one-element `layers` onto one line and
+  writes `1.0` as `1`. That is the §B11 Q6 ruling ("absorbed per file on
+  first save") reaching the 38 mob skill files; the per-key values are
+  identical, the text is not. Recorded so nobody reads the first mob-skill
+  diff as a bug.
+- ⚑ `curl -I` (HEAD) answers 405 on every editor route: the server matches
+  methods exactly. Probe headers with `curl -s -D - -o /dev/null`.
+- ⚑ **`onStructural` never bumped the dirty dot.** "+ Add effect" (shipped
+  since C3) and "+ Add layer" rebuilt the form without `sidebarBumpDirty()`;
+  the value-edit path had it, the shape-edit path did not. Fixed in passing
+  (one call); the harness leg that Resets an added layer is what caught it.
+- ⚑ The hint census over shipped content, counted not asserted: two
+  redundant tints (LightningStrike, GiantVenomSpit: tagged AND tinted), two
+  neutral greys (Harvest, Pickaxe: gate-keyed, so correctly untyped), zero
+  bare auras / cooldowns. Falsified by hand: a passive with `applied` raises
+  both class-5 hints, Blight with a `hit` layer raises class 3.
+- ⚑ `skill-inventory.mjs` keeps skipping `visual` (a numbers document); its
+  comment was retired.
+
+**Verified**
+
+- Go: `UPDATE_SKILL_VOCABULARY=1` regen then `skills` + `cmd/aurad` ok; full
+  suite **35 ok, `world` red at HEAD** (known) · `go build ./...` ·
+  `make -C backend build`.
+- `aurad -validate` **0** embedded AND `-content ../api`.
+- Frontend `npm test` **1073/0** (52 files; `SkillFxPalette.test.ts` reads `damageTypes` off the fixture) + `npm run typecheck` clean.
+- `save-skill.test.mjs` 0 findings (the new `saveSkillVisual` cases: two
+  path refusals + a `../` escape + a missing file, none reaching the seam;
+  only `visual` written, `_comment` and key order kept; a new `visual` lands
+  before `effects`; empty layers and null both delete the key; a seam
+  finding refuses without a write; a seam throw propagates).
+- Editor `npm run smoke` **0 findings / 116 files / 121 layers / 7 kinds**
+  incl. the new (k) keys and (l); falsified: an extra `arcane` damage type in
+  a temp fixture makes the palette parse throw.
+- Live server: `/api/data` carries the five new values; `sword.png` 200 +
+  byte-identical, `nope.png` / `../../x.png` / `..%2F` 404; a real
+  `ms: 210` save on WolfBite answered ok and diffed that line (plus the
+  reformat above); `applied` on WolfBite refused by the seam naming the
+  over-time rule with no further diff; a player path refused at stage
+  guard; file restored.
+- Editor harness `content-editor-skills-tab.mjs`, rerun by the lead:
+  **0 problem(s), exit 0**, all C1-C4 legs plus 2d: Damage renders
+  strike / hit / sword with a loaded thumbnail; moments offered Damage
+  `hit`, Blight `hit, applied`; a new layer on OmniPassive offers five kinds
+  (no `wave`, no `orbit`) and `hit` alone; `applied` on Damage refused by
+  the seam naming the over-time rule; a `wave` on `fired` SAVED onto
+  `damage.json` through the seam and restored; the Wolf block saved
+  `ms: 210` onto `wolf-bite.json` with `wolf.json` untouched and restored.
+  Screenshots Damage / Blight / Wolf-mobs-tab, looked at by both the agent
+  and the lead (nothing overflows, swatch legible).
+- `git status`: no diff under `api/skills`, `api/mobs`; the only `api/`
+  change is the regenerated fixture.
+
+**Not run / owed**
+
+- The PO look: add a layer in the editor, save, restart aurad, see it.
+- The phone check (§9) and the pyromancer re-price, unchanged from C3a-ii.
+
 ### C3a-ii ledger (2026-09-23) - a DoT draws on application, the rim bite, cooldown waves
 
 ✅ **BUILT 2026-09-23** `814f8055`. Spec: §12h, corrected at the session
@@ -2205,7 +2899,8 @@ one PNG; the pin stays 116.
   bolts. ⚑ The pincer was not photographed headless; the harness leg 17
   counters still hold (a strike is a strike).
 - The phone check (§9): the cap 96 vs 192, the fill rate, the packer trigger.
-- C3b (§12f.5), the editor's Visuals section (`applied` is a fourth column).
+- ~~C3b (§12f.5), the editor's Visuals section (`applied` is a fourth column).~~
+  ✅ BUILT 2026-09-25 as a builder, §13 C3b ledger (the moment is one column).
 - The pyromancer re-price (its output roughly doubled, unmeasured).
 
 ### C3a ledger (2026-09-22) - the art path, plus the §12g amendment

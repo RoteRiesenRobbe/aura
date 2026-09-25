@@ -371,9 +371,10 @@ specific to the talking half:
 (`node tools/content-editor/server.mjs`, spell builder C4): "+ New" writes
 `api/skills/<kebab-name>.json`, the form offers only what the loader accepts
 (its field lists are generated from Go's own tables), the icon and `spawnMob`
-values are picked from the real sets, the save is validated by the real loader
-through `aurad -validate`, and the post-save checklist names the registry pin
-and the other bookkeeping below. Hand-authoring the JSON is still perfectly
+values are picked from the real sets, the look (`visual`, the Visuals section
+below) is built from the same generated tables, the save is validated by the
+real loader through `aurad -validate`, and the post-save checklist names the
+registry pin and the other bookkeeping below. Hand-authoring the JSON is still perfectly
 fine, and everything in this section is what the tab writes.
 
 If it composes an **already-supported effect type**, this is mostly JSON with no
@@ -578,8 +579,19 @@ needs a lore-backed multi-target attack, not an uncapped bite.
 
 ### Visuals: the `visual` key
 
-*(`plan-skill-vfx.md` C0 + C2a + C2b + C3a + C3a-ii, last amended 2026-09-23. All
+*(`plan-skill-vfx.md` C0 + C2a + C2b + C3a + C3a-ii + C3b, last amended 2026-09-25. All
 seven kinds draw; none is a stub any more.)*
+
+⭐ **Since C3b the look is authored in the content editor too**: the Skills
+tab's Visuals section for a player skill, a per-skill block on the mob's page
+in the Mobs tab for a mob skill (that block writes only the skill file's
+`visual` key). The pickers offer only what the loader accepts and the save runs
+through `aurad -validate`; hand-authoring the JSON below stays perfectly fine
+and produces the same file.
+Each layer row also has a "Preview" toggle that draws that layer live with the
+game's own renderer (unsaved edits included), and "Show all kinds" in the
+section header draws one example of every kind; both need the frontend dev
+server on 2001 (`./scripts/dev-restart.sh frontend`).
 
 ⭐ **Two moments, and only one of them is yours** (PO ruling 2026-09-21,
 `plan-skill-vfx.md` §12g). An **attack** is drawn from the ATTACKER, facing the

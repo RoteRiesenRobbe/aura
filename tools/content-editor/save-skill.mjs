@@ -1,5 +1,7 @@
 /**
- * Saving one player skill (spell builder C3, plan-content-editor.md §B5).
+ * Saving one player skill (spell builder C3, plan-content-editor.md §B5), and
+ * the `visual` key of one mob skill (saveSkillVisual, plan-skill-vfx.md
+ * §12f.5 C3b).
  *
  * ⭐ THIS IS NOT saveOne. The four older kinds run validate.mjs's hand port of
  * the Go rules before writing; a skill runs NO JS port (D9). Its gate is the
@@ -153,4 +155,71 @@ export function saveSkill({ file, raw, isNew }, deps) {
   // the number the registry pin needs (§B4.7).
   const skillCount = listJsonFiles(path.join(root, 'api', SKILLS_DIR)).length;
   return { ok: true, warnings: [], checklist: checklistFor(!!isNew, skillCount), skillCount };
+}
+
+// The Mobs tab's look editor writes here (plan-skill-vfx.md §12f.5 C3b): the
+// folder the Skills tab never writes, and in it only the `visual` key.
+const MOB_SKILLS_SUBDIR = 'mobs';
+
+/**
+ * Writes ONE key, `visual`, of one mob-embedded skill
+ * (api/skills/mobs/<slug>.json). The Skills tab writes player files whole
+ * through saveSkill; this route exists because a mob's look is edited from the
+ * Mobs tab, which must not be able to touch the skill's numbers.
+ *
+ * Every other key, `_comment` first, is untouched by construction: the on-disk
+ * object is copied and nothing but `visual` is assigned. A visual with no
+ * layers DELETES the key (Go refuses `"layers": []`, and a bare skill omits
+ * it). A NEW visual on a file that had none is inserted immediately before
+ * `effects` (the manual's placement rule; appended when there is no
+ * `effects`), rebuilding the object once because prettyJson keeps key order.
+ *
+ * `deps`: { root, validateCandidate }. Returns { ok: true, warnings: [] } or
+ * { ok: false, stage, errors }; a seam throw propagates (L12), exactly as in
+ * saveSkill.
+ */
+export function saveSkillVisual({ file, visual }, deps) {
+  const { root, validateCandidate } = deps;
+
+  let segments;
+  try {
+    segments = candidateSegments(file);
+  } catch (err) {
+    return refuse('guard', err.message);
+  }
+  if (segments.length !== 3 || segments[0] !== SKILLS_DIR || segments[1] !== MOB_SKILLS_SUBDIR) {
+    return refuse('guard', `${file} is not a mob skill: this route writes the visual of api/skills/mobs/<slug>.json only (player skills are saved whole from the Skills tab).`);
+  }
+  const abs = path.join(root, ...file.split('/'));
+  if (!existsSync(abs)) {
+    return refuse('guard', `${file} does not exist - a look is saved onto a shipped mob skill, never into a new file.`);
+  }
+  let onDisk;
+  try {
+    onDisk = JSON.parse(readFileSync(abs, 'utf8'));
+  } catch (err) {
+    return refuse('guard', `${file} is not readable as JSON (${err.message}) - fix it by hand before saving over it.`);
+  }
+
+  const bare = visual == null || !Array.isArray(visual.layers) || visual.layers.length === 0;
+  let raw;
+  if (bare) {
+    raw = { ...onDisk };
+    delete raw.visual;
+  } else if ('visual' in onDisk) {
+    raw = { ...onDisk, visual };
+  } else {
+    raw = {};
+    for (const [key, value] of Object.entries(onDisk)) {
+      if (key === 'effects') raw.visual = visual;
+      raw[key] = value;
+    }
+    if (!('visual' in raw)) raw.visual = visual;
+  }
+
+  const { ok, findings } = validateCandidate({ file, raw });
+  if (!ok) return { ok: false, stage: 'validate', errors: findings };
+
+  writeFileSync(abs, prettyJson(raw) + '\n', 'utf8');
+  return { ok: true, warnings: [] };
 }

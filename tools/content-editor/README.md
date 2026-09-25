@@ -72,7 +72,20 @@ instead seeds the Wolf-shaped archetype baseline (HP 55 / speed 0.7 / aggro
 unset, so it fails validation loudly until you either point it at existing
 art or walk the manual 5-file path. NPCs and Mobs are the SAME editor —
 selecting a plain (non-dialogue) mob shows its stats plus a "+ Add dialogue
-tree" button that promotes it into an NPC in place.
+tree" button that promotes it into an NPC in place. A skill's `visual`
+look is in scope too (plan-skill-vfx.md §12f.5 C3b): player skills author it
+in the Skills tab and save whole through `POST /api/save/skill`, while a
+mob skill's look is edited from the Mobs tab and saved through
+`POST /api/save/skill-visual`, which writes ONLY the `visual` key of one
+`api/skills/mobs/<slug>.json` through the same `aurad -validate` seam. Body
+thumbnails come from `GET /api/skill-fx/body/<stem>.png`, which serves a
+stem only when `api/skill-fx/bodies.json` lists it. Each layer row's "Preview"
+toggle (and the Visuals header's "Show all kinds" gallery) iframes the dev-only
+`fx-preview.html` page of the frontend dev server, which draws the layer with
+the game's own renderer from a `postMessage` of the unsaved look
+(plan-skill-vfx.md §12f.7 C3c); it needs `./scripts/dev-restart.sh frontend`
+running on 2001 (`?fx=<origin>` on the editor URL points it elsewhere), and
+shows a one-line note instead when nothing answers within 3 s.
 
 All six content kinds this tool edits — mobs (and by extension NPCs),
 quests, factions, recipes, milestones, and player skills — are genuinely,

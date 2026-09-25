@@ -1,5 +1,6 @@
-// Spell builder C1+C3+C4 (plan-content-editor.md §B5, §B12): the CONTENT EDITOR's
-// Skills tab, editable and saving through the aurad seam. Needs the editor AND
+// Spell builder C1+C3+C4 (plan-content-editor.md §B5, §B12) and the skill-VFX
+// layer builder C3b (plan-skill-vfx.md §12f.5): the CONTENT EDITOR's Skills tab,
+// editable and saving through the aurad seam, plus the Mobs tab's look block. Needs the editor AND
 // a built, mtime-fresh `backend/aurad` (the save legs run `aurad -validate`);
 // no DB, no frontend build:
 //
@@ -43,12 +44,33 @@
 //      the rendered checklist carries the registry-pin count (recounted here),
 //      the badge is gone; and a NEW file reusing id 1, posted straight at the
 //      API, is refused BY THE SEAM naming the duplicate.
-//   3. screenshots of Damage / OmniStrike / ThrowBomb / NovaBurst for the PO.
+//   2d. the C3b VISUALS section: Damage renders one layer row (strike / hit /
+//      sword) whose thumbnail LOADS (naturalWidth > 0) and whose moment picker
+//      has no `applied` (no over-time effect), Blight's (a dot_aura) has it;
+//      "+ Add layer" on OmniPassive offers the moment `hit` alone and no
+//      wave / orbit kind, marks dirty, and Reset drops it; a candidate with an
+//      `applied` layer on Damage, posted straight at /api/validate/candidate,
+//      is refused naming `applied`; a wave on fired added to Damage is SAVED
+//      and the file on disk carries exactly that extra layer; in the Mobs tab,
+//      Wolf shows the WolfBite look block (1 row, body wolf-jaw, thumbnail
+//      loaded), an `ms` edit saves through /api/save/skill-visual, the skill
+//      file carries it and api/mobs/wolf.json is byte-identical.
+//   2e. the C3c LIVE PREVIEW (plan-skill-vfx.md §12f.7): Damage's row 0
+//      "Preview" opens an iframe.fx-preview on the frontend dev server's
+//      fx-preview.html, and the row settles on data-fx-state ready (the page
+//      answered the handshake) or unavailable (its one-line note); "Show all
+//      kinds" opens the ?gallery iframe the same way. Unavailable is a NOTE,
+//      never a problem: 2001 may be down. Reset with a preview open must not
+//      throw. Damage-preview.png is taken here, with the preview open.
+//   3. screenshots of Damage / OmniStrike / ThrowBomb / NovaBurst / Blight, and
+//      Wolf in the Mobs tab (Wolf-mobs-tab.png), for the PO.
 //
-// ⚑ Part 2 WRITES api/skills/damage.json once and restores it itself, and part
-// 2c WRITES AND DELETES api/skills/harness-test-skill.json (its cleanup is in a
-// finally block; a leftover file reddens the Go registry count pin for
-// everyone). If the run dies mid-leg: `git checkout api/skills/damage.json` and
+// ⚑ Parts 2 and 2d WRITE api/skills/damage.json and 2d WRITES
+// api/skills/mobs/wolf-bite.json, each restored byte for byte in a finally;
+// part 2c WRITES AND DELETES api/skills/harness-test-skill.json (its cleanup is
+// in a finally block; a leftover file reddens the Go registry count pin for
+// everyone). If the run dies mid-leg: `git checkout api/skills/damage.json
+// api/skills/mobs/wolf-bite.json api/mobs/wolf.json` and
 // `rm -f api/skills/harness-test-skill.json`.
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
@@ -86,7 +108,14 @@ const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), pro
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
 const page = await (await browser.newContext({ viewport: { width: 1400, height: 2400 } })).newPage();
 const problems = [];
-page.on('console', (m) => { if (m.type() === 'error') problems.push(`console.error: ${m.text()}`); });
+// The preview frames load from the frontend dev server (2e), which may be down
+// or may not serve fx-preview.html yet: their errors are NOTEs, not problems.
+const FX_ORIGIN = 'http://localhost:2001';
+page.on('console', (m) => {
+  if (m.type() !== 'error') return;
+  if ((m.location()?.url || '').startsWith(FX_ORIGIN) || m.text().includes(FX_ORIGIN)) { console.log(`NOTE preview frame console.error: ${m.text().slice(0, 160)}`); return; }
+  problems.push(`console.error: ${m.text()}`);
+});
 page.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`));
 
 await page.goto(url);
@@ -530,6 +559,204 @@ try {
   else console.log(`cleanup: ${NEW_REL} deleted`);
 }
 
+/* ---- 2d. the Visuals section, the layer builder (plan-skill-vfx.md §12f.5 C3b) */
+const visuals = () => page.locator('#editor-root .visuals-section');
+const layerRows = () => visuals().locator('.layer-row');
+const optionsOf = (loc) => loc.evaluate((n) => [...n.options].map((o) => o.value));
+// A thumbnail counts once it has LOADED with real pixels: a 404 or a refused
+// stem leaves naturalWidth at 0.
+const thumbWidth = (loc) => loc.evaluate((i) => (i.complete ? i.naturalWidth : new Promise((r) => { i.onload = () => r(i.naturalWidth); i.onerror = () => r(0); })));
+
+// Reloaded first: part 2 restored damage.json on DISK, but the page still holds
+// its saved description marker in memory, and a whole-file save below would
+// write it back out.
+await page.goto(url);
+await page.waitForFunction(() => document.querySelectorAll('#npc-list li').length > 0);
+await page.click('#sidebar-tabs .tab-btn[data-tab="skill"]');
+await page.waitForSelector('#skill-list li.list-group');
+
+// Damage: one row, strike on hit with the sword body, thumbnail loaded.
+await open('Damage');
+const dmgRows = await layerRows().count();
+if (dmgRows !== 1) problems.push(`Damage's Visuals section has ${dmgRows} layer row(s), expected 1`);
+const row0 = layerRows().first();
+const dmgPick = { kind: await row0.locator('select.layer-kind').inputValue(), on: await row0.locator('select.layer-on').inputValue(), body: await row0.locator('select.layer-body').inputValue() };
+if (JSON.stringify(dmgPick) !== JSON.stringify({ kind: 'strike', on: 'hit', body: 'sword' })) problems.push(`Damage's layer 0 reads ${JSON.stringify(dmgPick)}, expected strike / hit / sword`);
+const swordThumb = row0.locator('img.body-thumb');
+const swordWidth = (await swordThumb.count()) ? await thumbWidth(swordThumb) : 0;
+if (!(swordWidth > 0)) problems.push(`Damage's sword thumbnail did not load (naturalWidth ${swordWidth})`);
+const dmgSwatch = (await row0.locator('.layer-swatch').innerText()).trim();
+console.log(`Damage visuals: ${JSON.stringify(dmgPick)}, thumbnail ${swordWidth}px, swatch "${dmgSwatch}"`);
+// `applied` needs an over-time effect, and Damage has none.
+const dmgMoments = await optionsOf(row0.locator('select.layer-on'));
+if (dmgMoments.includes('applied')) problems.push(`Damage (no over-time effect) offers "applied": ${JSON.stringify(dmgMoments)}`);
+
+// Blight (a dot_aura): `applied` is offered.
+await open('Blight');
+const blightMoments = await optionsOf(layerRows().first().locator('select.layer-on'));
+if (!blightMoments.includes('applied')) problems.push(`Blight (a dot_aura) does not offer "applied": ${JSON.stringify(blightMoments)}`);
+console.log(`moments offered: Damage ${dmgMoments.join(',')} · Blight ${blightMoments.join(',')}`);
+
+// OmniPassive: a passive dresses its hit moments alone, so a new row offers
+// `hit` and nothing else, and no kind that cannot play at `hit`.
+await open('OmniPassive');
+const passiveRowsBefore = await layerRows().count();
+await visuals().locator('button.add-row', { hasText: 'Add layer' }).click();
+await page.waitForTimeout(200);
+if (await layerRows().count() !== passiveRowsBefore + 1) problems.push(`"+ Add layer" on OmniPassive: ${passiveRowsBefore} -> ${await layerRows().count()} row(s)`);
+const newRow = layerRows().last();
+const passiveMoments = await optionsOf(newRow.locator('select.layer-on'));
+if (JSON.stringify(passiveMoments) !== JSON.stringify(['hit'])) problems.push(`OmniPassive's new layer offers moments ${JSON.stringify(passiveMoments)}, expected exactly ["hit"]`);
+const passiveKinds = await optionsOf(newRow.locator('select.layer-kind'));
+if (passiveKinds.includes('wave') || passiveKinds.includes('orbit')) problems.push(`OmniPassive's kind picker offers a kind with no hit moment: ${JSON.stringify(passiveKinds)}`);
+if (await page.locator('#skill-list li.dirty').count() === 0) problems.push('"+ Add layer" produced no dirty marker');
+console.log(`OmniPassive new layer: kinds ${passiveKinds.join(',')} · moments ${passiveMoments.join(',')}`);
+await reset();
+if (await layerRows().count() !== passiveRowsBefore) problems.push('Reset did not drop the added layer');
+if (await page.locator('#skill-list li.dirty').count() !== 0) problems.push('Reset after "+ Add layer" left a dirty marker');
+
+// A candidate with `applied` on Damage, posted straight at the seam: refused,
+// naming the over-time rule (the picker never offers it, the seam is the judge).
+const appliedRaw = JSON.parse(readFileSync(DAMAGE_FILE, 'utf8'));
+appliedRaw.visual.layers.push({ kind: 'strike', on: 'applied' });
+const appliedRes = await (await fetch(`${url}/api/validate/candidate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: 'api/skills/damage.json', raw: appliedRaw }) })).json();
+if (appliedRes.ok !== false) problems.push(`an "applied" layer on Damage was ACCEPTED by the seam: ${JSON.stringify(appliedRes).slice(0, 200)}`);
+else if (!(appliedRes.findings || []).some((f) => f.includes('applied'))) problems.push(`the seam refused the "applied" candidate without naming it: ${JSON.stringify(appliedRes.findings)}`);
+console.log('applied candidate:', ((appliedRes.findings || [])[0] || '(none)').slice(0, 140));
+
+// A real save: Damage gains a wave on fired, through the seam, and the file on
+// disk carries exactly that layer. ⚑ WRITES api/skills/damage.json, restored.
+const visualBytes = readFileSync(DAMAGE_FILE, 'utf8');
+const visualOriginal = JSON.parse(visualBytes);
+try {
+  await open('Damage');
+  await visuals().locator('button.add-row', { hasText: 'Add layer' }).click();
+  await page.waitForTimeout(200);
+  // strike -> wave drops nothing (a fresh row authors kind + on only), so no
+  // confirm fires; `on` moves to wave's only moment on its own.
+  await layerRows().last().locator('select.layer-kind').selectOption('wave');
+  await page.waitForTimeout(200);
+  await layerRows().last().locator('select.layer-on').selectOption('fired');
+  await page.waitForTimeout(200);
+  await save().click();
+  await page.waitForFunction(() => /refused|saved|could not/.test(document.getElementById('save-feedback').textContent), null, { timeout: 30000 });
+  const waveFb = await feedback();
+  console.log('wave save:', waveFb.slice(0, 90));
+  if (!waveFb.startsWith('saved')) problems.push(`the wave layer was not saved: ${waveFb.slice(0, 200)}`);
+  const written = JSON.parse(readFileSync(DAMAGE_FILE, 'utf8'));
+  const layersOut = written.visual?.layers || [];
+  if (layersOut.length !== visualOriginal.visual.layers.length + 1) problems.push(`damage.json has ${layersOut.length} layer(s) after the save, expected ${visualOriginal.visual.layers.length + 1}`);
+  if (JSON.stringify(layersOut[layersOut.length - 1]) !== JSON.stringify({ kind: 'wave', on: 'fired' })) problems.push(`the saved last layer is ${JSON.stringify(layersOut[layersOut.length - 1])}, expected {"kind":"wave","on":"fired"}`);
+  const expectVisual = { ...visualOriginal, visual: { layers: [...visualOriginal.visual.layers, { kind: 'wave', on: 'fired' }] } };
+  if (JSON.stringify(written) !== JSON.stringify(expectVisual)) problems.push('damage.json differs from the original beyond the added layer (or its key order moved)');
+} finally {
+  writeFileSync(DAMAGE_FILE, visualBytes, 'utf8');
+}
+if (readFileSync(DAMAGE_FILE, 'utf8') !== visualBytes) problems.push('damage.json was not restored byte for byte after the wave leg');
+// The page still holds the saved wave in memory: reload it off the restored disk.
+await page.goto(url);
+await page.waitForFunction(() => document.querySelectorAll('#npc-list li').length > 0);
+
+// The Mobs tab: Wolf carries WolfBite (a mob skill), whose look is edited in a
+// block of its own and saved alone through /api/save/skill-visual.
+// ⚑ WRITES api/skills/mobs/wolf-bite.json, restored; wolf.json must not move.
+const WOLF_FILE = join(REPO, 'api', 'mobs', 'wolf.json');
+const WOLF_BITE_FILE = join(REPO, 'api', 'skills', 'mobs', 'wolf-bite.json');
+async function openMob(name) {
+  await page.click('#sidebar-tabs .tab-btn[data-tab="mob"]');
+  const row = page.locator('#mob-list .group-items li .item-name').filter({ hasText: new RegExp(`^\\s*${name}\\s*$`) });
+  if (await row.count() === 0) { problems.push(`the Mobs tab has no "${name}"`); return false; }
+  await row.first().click();
+  await page.waitForTimeout(200);
+  return true;
+}
+const wolfBytes = readFileSync(WOLF_FILE, 'utf8');
+const biteBytes = readFileSync(WOLF_BITE_FILE, 'utf8');
+try {
+  await openMob('Wolf');
+  const look = page.locator('#editor-root .mob-look[data-skill="WolfBite"]');
+  if (await look.count() !== 1) problems.push(`Wolf shows ${await look.count()} WolfBite look block(s), expected 1`);
+  else {
+    const rows = await look.locator('.layer-row').count();
+    const body = await look.locator('select.layer-body').first().inputValue();
+    const jaw = look.locator('img.body-thumb').first();
+    const jawWidth = (await jaw.count()) ? await thumbWidth(jaw) : 0;
+    if (rows !== 1) problems.push(`the WolfBite block has ${rows} layer row(s), expected 1`);
+    if (body !== 'wolf-jaw') problems.push(`the WolfBite block's body is "${body}", expected wolf-jaw`);
+    if (!(jawWidth > 0)) problems.push(`the wolf-jaw thumbnail did not load (naturalWidth ${jawWidth})`);
+    const note = await look.locator('.grant-hint').first().innerText().catch(() => '');
+    console.log(`Wolf look block: ${rows} row, body ${body}, thumbnail ${jawWidth}px, note "${note.trim().slice(0, 80)}"`);
+
+    await look.locator('.field[title="ms"] input').first().fill('210');
+    await page.waitForTimeout(150);
+    await look.locator('button.look-save').click();
+    await page.waitForFunction(() => /refused|saved|could not/.test((document.querySelector('#editor-root .mob-look[data-skill="WolfBite"] .look-feedback') || {}).textContent || ''), null, { timeout: 30000 });
+    const lookFb = (await page.locator('#editor-root .mob-look[data-skill="WolfBite"] .look-feedback').innerText()).trim();
+    console.log('WolfBite look save:', lookFb.slice(0, 90));
+    if (!lookFb.startsWith('saved')) problems.push(`the WolfBite look was not saved: ${lookFb.slice(0, 200)}`);
+    const bite = JSON.parse(readFileSync(WOLF_BITE_FILE, 'utf8'));
+    if (bite.visual?.layers?.[0]?.ms !== 210) problems.push(`wolf-bite.json's layer 0 ms is ${bite.visual?.layers?.[0]?.ms}, expected 210`);
+    const biteOriginal = JSON.parse(biteBytes);
+    biteOriginal.visual.layers[0].ms = 210;
+    if (JSON.stringify(bite) !== JSON.stringify(biteOriginal)) problems.push('wolf-bite.json differs from the original beyond visual.layers[0].ms');
+    if (readFileSync(WOLF_FILE, 'utf8') !== wolfBytes) problems.push('saving the WolfBite look touched api/mobs/wolf.json');
+  }
+} finally {
+  writeFileSync(WOLF_BITE_FILE, biteBytes, 'utf8');
+  if (readFileSync(WOLF_FILE, 'utf8') !== wolfBytes) writeFileSync(WOLF_FILE, wolfBytes, 'utf8');
+}
+if (readFileSync(WOLF_BITE_FILE, 'utf8') !== biteBytes) problems.push('wolf-bite.json was not restored byte for byte');
+await page.click('#sidebar-tabs .tab-btn[data-tab="skill"]');
+
+/* ---- 2e. the live preview (plan-skill-vfx.md §12f.7 C3c) ----------------- */
+// The frame either answers the handshake (ready) or is swapped for the note
+// after 3 s (unavailable); stuck on `waiting` past 4 s is the only failure.
+async function fxSettle(holder, what) {
+  // Re-queried on every poll (a locator, not a held node): a re-render swaps
+  // the row, and a stale node would read `waiting` forever.
+  let settled = null;
+  for (const t0 = Date.now(); Date.now() - t0 < 4000;) {
+    settled = await holder.getAttribute('data-fx-state').catch(() => null);
+    if (settled !== 'waiting') break;
+    await page.waitForTimeout(50);
+  }
+  if (settled === 'ready') console.log(`PASS ${what}: the preview answered the handshake`);
+  else if (settled === 'unavailable') console.log(`NOTE preview unavailable: ${what} got no ready message in 3 s ("${(await holder.locator('.fx-unavailable').innerText()).trim()}")`);
+  else problems.push(`${what}: data-fx-state is "${settled}" after 4 s, expected ready or unavailable`);
+  return settled;
+}
+await open('Damage');
+const fxRow = layerRows().first();
+await fxRow.locator('button.fx-preview-toggle').click();
+await page.waitForTimeout(100);
+const fxSrc = await fxRow.locator('iframe.fx-preview').getAttribute('src').catch(() => null);
+if (!fxSrc || !fxSrc.startsWith(FX_ORIGIN)) problems.push(`Damage's row preview: iframe.fx-preview src is ${JSON.stringify(fxSrc)}, expected it to start with ${FX_ORIGIN}`);
+else console.log(`row preview src: ${fxSrc}`);
+await fxSettle(fxRow, 'Damage row 0 preview');
+await visuals().locator('button.fx-gallery-toggle').click();
+await page.waitForTimeout(100);
+const gallery = visuals().locator('.fx-gallery-wrap');
+const gallerySrc = await gallery.locator('iframe.fx-gallery').getAttribute('src').catch(() => null);
+if (!gallerySrc || !gallerySrc.includes('?gallery')) problems.push(`"Show all kinds": iframe.fx-gallery src is ${JSON.stringify(gallerySrc)}, expected ?gallery`);
+else console.log(`gallery src: ${gallerySrc}`);
+if (await gallery.count()) await fxSettle(gallery, 'the gallery');
+// The row's preview survives the gallery's re-render (the toggles are state).
+if (await layerRows().first().locator('.fx-preview-wrap').count() !== 1) problems.push('opening the gallery closed the row preview');
+await page.screenshot({ path: join(outdir, 'Damage-preview.png'), fullPage: true });
+// A value edit with the preview open (the debounced re-post path), then Reset:
+// the toggles are UI state, so both stay open, and nothing throws.
+const errorsBeforeReset = problems.length;
+const fxMs = layerRows().first().locator('.field[title="ms"] input');
+if (await fxMs.count()) { await fxMs.first().fill('250'); await page.waitForTimeout(300); }
+await reset();
+if (problems.length !== errorsBeforeReset) problems.push('Reset with a preview open raised an error (above)');
+if (await layerRows().first().locator('.fx-preview-wrap').count() !== 1) problems.push('Reset closed the row preview (it is UI state and should stay)');
+// Close both, so the screenshots below show the form as it was.
+await layerRows().first().locator('button.fx-preview-toggle').click();
+await visuals().locator('button.fx-gallery-toggle').click();
+await page.waitForTimeout(100);
+if (await page.locator('#editor-root iframe').count() !== 0) problems.push('closing the preview and the gallery left an iframe behind');
+
 /* ---- 3. screenshots ---------------------------------------------------- */
 // Reloaded first, so the shots show the tree as it is ON DISK: the edit legs
 // left their in-memory markers behind (a restored description, the deleted
@@ -542,10 +769,12 @@ await page.waitForSelector('#skill-list li.list-group');
 if (await page.locator('#skill-list .group-items li .item-name').filter({ hasText: /^\s*HarnessTestSkill\s*$/ }).count() !== 0) {
   problems.push('HarnessTestSkill is still in the sidebar after a reload - the file was not deleted');
 }
-for (const name of ['Damage', 'OmniStrike', 'ThrowBomb', 'NovaBurst']) {
+for (const name of ['Damage', 'OmniStrike', 'ThrowBomb', 'NovaBurst', 'Blight']) {
   await open(name);
   await page.screenshot({ path: join(outdir, `${name}.png`), fullPage: true });
 }
+// C3b: the Mobs tab's look block, on Wolf.
+if (await openMob('Wolf')) await page.screenshot({ path: join(outdir, 'Wolf-mobs-tab.png'), fullPage: true });
 
 await browser.close();
 for (const p of problems) console.log('PROBLEM', p);

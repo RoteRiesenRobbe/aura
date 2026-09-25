@@ -7,8 +7,8 @@
  *
  *     node tools/content-editor/smoke.mjs      # or: npm run smoke
  *
- * Eleven findings classes (plan-content-editor.md §B5 C0, §B8; (k) is
- * plan-skill-vfx.md C0):
+ * Twelve findings classes (plan-content-editor.md §B5 C0, §B8; (k) is
+ * plan-skill-vfx.md C0, extended with (l) by C3b):
  *
  *   (a) every effect's keys are inside effectKeys[type] plus the cost keys
  *       plus "type", and its TYPE is one effectCategories allows on the file's
@@ -33,7 +33,10 @@
  *       unit and a control, not a guess), and every entry names a live key
  *       (a Go rename cannot leave a stale row). Type notes must name live
  *       types too, and each EFFECT_TYPE_DEFAULTS entry must be a type its own
- *       category may legally author. C1, §B4.2.
+ *       category may legally author. C1, §B4.2. C3b adds the layer table
+ *       (LAYER_PRESENTATION) against the union of visualKeys, both ways, and
+ *       pins every table's `control` to the ones the form draws ('visual'
+ *       among them).
  *   (e) every `*PerLevel` key's base is in the same type's list - the pairing
  *       the per-level preview (D5) relies on.
  *   (f) the SAVE SEAM end to end (C2, §B4.9): `aurad -validate` over the real
@@ -63,12 +66,21 @@
  *       FIXTURE half: the six generated lists exist and agree with each other
  *       (seven kinds, three triggers, a key row and a trigger row per kind,
  *       every named trigger a real one, and a curve set for exactly the kinds
- *       that read `curve`). The CONTENT half: every authored layer names a
- *       known kind, a moment that kind has, only keys that kind reads, and a
- *       curve out of that kind's own set - the (a)/(b) checks one level down. The Skills tab does
- *       not render `visual` until C3, so until then this is the only JS-side
- *       reader of the key, and a hand-typed layer has nothing else to catch
- *       it before the loader does.
+ *       that read `curve`), plus the layer builder's three rules (C3b): a
+ *       moment row for exactly the vocabulary's categories, each moment a
+ *       real trigger; a count ceiling only on a kind that reads `count`; and
+ *       every applied type a fixture effect type. The CONTENT half: every
+ *       authored layer names a known kind, a moment that kind has, only keys
+ *       that kind reads, and a curve out of that kind's own set - the (a)/(b)
+ *       checks one level down, for layers typed by hand.
+ *   (l) the Visuals section's helper data (plan-skill-vfx.md §12f.5 C3b): the
+ *       palette parsed out of SkillFxPalette.ts (skill-fx.mjs) names exactly
+ *       the fixture's damageTypes, each a lowercase #rrggbb, plus a neutral.
+ *       A parse failure is a finding, never a crash without a summary line.
+ *       And skillVisualHints (skill-visual-hints.mjs) over every shipped skill,
+ *       both folders, reports no stale-state hint (5) and no hit layer on an
+ *       over-time-only skill (3); hints (1) redundant tint, (2) neutral grey
+ *       and (4) bare aura or cooldown are counted and printed, not asserted.
  *
  * ⚑ No underscore exemption at EFFECT level, on purpose: no shipped effect
  * carries a _comment (measured) and Go's validateEffectKeys would refuse one,
@@ -80,8 +92,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listJsonFiles } from './files.mjs';
 import { readSkillVocabulary } from './vocabulary.mjs';
-import { SKILL_PRESENTATION, COST_PRESENTATION, EFFECT_PRESENTATION, EFFECT_TYPE_NOTES, EFFECT_TYPE_DEFAULTS, TEST_RIG_SKILLS, orphanPerLevelKeys } from './skill-presentation.mjs';
+import { SKILL_PRESENTATION, COST_PRESENTATION, EFFECT_PRESENTATION, LAYER_PRESENTATION, EFFECT_TYPE_NOTES, EFFECT_TYPE_DEFAULTS, TEST_RIG_SKILLS, orphanPerLevelKeys } from './skill-presentation.mjs';
+import { skillVisualHints } from './skill-visual-hints.mjs';
 import { readSkillIcons, SKILL_ICONS_FILE, REGEN_ICONS } from './skill-icons.mjs';
+import { readSkillFxPalette, SKILL_FX_PALETTE_FILE } from './skill-fx.mjs';
 import { validateCandidate } from './aurad-validate.mjs';
 import { selfTestFindings as seamSelfTestFindings } from './aurad-validate.test.mjs';
 import { selfTestFindings as saveSkillSelfTestFindings } from './save-skill.test.mjs';
@@ -188,6 +202,52 @@ for (const kind of visualKinds) {
 for (const kind of Object.keys(visualCurves)) {
   if (!visualKinds.includes(kind)) finding('api/skill-vocabulary.json', `visualCurves names "${kind}", which visualKinds does not - regenerate the fixture`);
 }
+// (k) the layer builder's three rules (C3b). The pickers read them to offer
+// only what loads, so a missing row would silently offer nothing (or all).
+const visualTriggersByCategory = vocabulary.visualTriggersByCategory || {};
+const visualCountMaxByKind = vocabulary.visualCountMaxByKind || {};
+const visualAppliedEffectTypes = vocabulary.visualAppliedEffectTypes || [];
+for (const category of vocabulary.categories) {
+  const moments = visualTriggersByCategory[category];
+  if (!Array.isArray(moments) || moments.length === 0) {
+    finding('api/skill-vocabulary.json', `visualTriggersByCategory has no row for category "${category}" - the builder could offer no moment on it (${REGEN_VOCABULARY})`);
+    continue;
+  }
+  for (const on of moments) {
+    if (!visualTriggers.includes(on)) finding('api/skill-vocabulary.json', `visualTriggersByCategory.${category} names "${on}", which visualTriggers does not carry`);
+  }
+}
+for (const category of Object.keys(visualTriggersByCategory)) {
+  if (!vocabulary.categories.includes(category)) finding('api/skill-vocabulary.json', `visualTriggersByCategory names "${category}", which is not a skill category - regenerate the fixture`);
+}
+for (const [kind, ceiling] of Object.entries(visualCountMaxByKind)) {
+  if (!visualKinds.includes(kind)) finding('api/skill-vocabulary.json', `visualCountMaxByKind names "${kind}", which visualKinds does not`);
+  else if (!(visualKeys[kind] || []).includes('count')) finding('api/skill-vocabulary.json', `visualCountMaxByKind caps "${kind}", which does not read "count"`);
+  if (!Number.isInteger(ceiling) || ceiling < 1) finding('api/skill-vocabulary.json', `visualCountMaxByKind.${kind} is ${JSON.stringify(ceiling)}, not an integer >= 1`);
+}
+if (visualAppliedEffectTypes.length === 0) {
+  finding('api/skill-vocabulary.json', `visualAppliedEffectTypes is missing or empty - the builder would never offer "applied" (${REGEN_VOCABULARY})`);
+}
+for (const type of visualAppliedEffectTypes) {
+  if (!(type in vocabulary.effectKeys)) finding('api/skill-vocabulary.json', `visualAppliedEffectTypes names "${type}", which effectKeys does not`);
+}
+
+// (l) part 1: the palette the colour swatch reads. readSkillFxPalette throws
+// on a key mismatch by design; the throw becomes a finding here so the summary
+// line still prints (leg (f)'s posture).
+try {
+  const palette = readSkillFxPalette(ROOT);
+  const parsed = Object.keys(palette.damageTypes).sort();
+  const expected = [...vocabulary.damageTypes].sort();
+  if (JSON.stringify(parsed) !== JSON.stringify(expected)) {
+    finding(SKILL_FX_PALETTE_FILE, `the palette names [${parsed.join(', ')}], the vocabulary's damageTypes are [${expected.join(', ')}]`);
+  }
+  for (const [type, hex] of Object.entries({ ...palette.damageTypes, neutral: palette.neutral })) {
+    if (!/^#[0-9a-f]{6}$/.test(hex)) finding(SKILL_FX_PALETTE_FILE, `${type} parsed as ${JSON.stringify(hex)}, not a lowercase #rrggbb`);
+  }
+} catch (err) {
+  finding(SKILL_FX_PALETTE_FILE, String(err?.message || err));
+}
 
 // (d) presentation completeness, both directions, per table.
 const PRESENTATION_FILE = 'tools/content-editor/skill-presentation.mjs';
@@ -205,6 +265,16 @@ const allEffectKeys = [...new Set(Object.values(vocabulary.effectKeys).flat())];
 presentationCheck('SKILL_PRESENTATION', SKILL_PRESENTATION, vocabulary.topLevelKeys);
 presentationCheck('COST_PRESENTATION', COST_PRESENTATION, costKeys);
 presentationCheck('EFFECT_PRESENTATION', EFFECT_PRESENTATION, allEffectKeys);
+// The layer table (C3b) against the union of every kind's key row.
+presentationCheck('LAYER_PRESENTATION', LAYER_PRESENTATION, [...new Set(Object.values(visualKeys).flat())]);
+// Every control a table names is one the form can draw ('effects' and
+// 'visual' by their own sections).
+const CONTROLS = ['number', 'bool', 'text', 'textarea', 'select', 'multi', 'mob', 'icon', 'effects', 'visual'];
+for (const [tableName, table] of [['SKILL_PRESENTATION', SKILL_PRESENTATION], ['COST_PRESENTATION', COST_PRESENTATION], ['EFFECT_PRESENTATION', EFFECT_PRESENTATION], ['LAYER_PRESENTATION', LAYER_PRESENTATION]]) {
+  for (const [key, entry] of Object.entries(table)) {
+    if (entry.control && !CONTROLS.includes(entry.control)) finding(PRESENTATION_FILE, `${tableName}.${key} has control "${entry.control}", which the form does not draw (expected one of ${CONTROLS.join(', ')})`);
+  }
+}
 for (const type of Object.keys(EFFECT_TYPE_NOTES)) {
   if (!(type in vocabulary.effectKeys)) finding(PRESENTATION_FILE, `EFFECT_TYPE_NOTES names "${type}", which is not an effect type in the vocabulary`);
 }
@@ -243,6 +313,8 @@ const playerSkillNames = [];
 let fileCount = 0;
 let effectCount = 0;
 let visualLayerCount = 0;
+// (l) part 2: the look hints by class over every shipped skill (both folders).
+const hintCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
 
 for (const abs of listJsonFiles(SKILLS_DIR)) {
   const rel = path.relative(ROOT, abs).split(path.sep).join('/');
@@ -307,6 +379,15 @@ for (const abs of listJsonFiles(SKILLS_DIR)) {
     if (layer.curve !== undefined && !curves.includes(layer.curve)) {
       finding(rel, `visual.layers[${i}] (${layer.kind}) authors curve "${layer.curve}", which is not one of that kind's curves (${curves.join(', ') || 'none - this kind reads no curve'})`);
     }
+  }
+
+  // (l) part 2: the Visuals section's hints. (5), the stale states, and (3),
+  // a hit layer on a skill that never lands directly, are loader refusals or
+  // dead layers, so shipped content earns none; (1), (2) and (4) are advice
+  // the PO may overrule on purpose, counted and printed only.
+  for (const hint of skillVisualHints(raw, vocabulary)) {
+    hintCounts[hint.cls] += 1;
+    if (hint.cls === 3 || hint.cls === 5) finding(rel, `look hint (${hint.cls}): ${hint.text}`);
   }
 
   // (a) effect keys.
@@ -398,5 +479,6 @@ for (const line of seamSelfTestFindings()) finding('aurad-validate.test.mjs', li
 for (const line of saveSkillSelfTestFindings()) finding('save-skill.test.mjs', line);
 
 for (const line of findings) console.log(line);
+console.log(`look hints (counted, not asserted): (1) redundant tint ${hintCounts[1]} · (2) neutral grey ${hintCounts[2]} · (4) bare aura/cooldown ${hintCounts[4]}`);
 console.log(`${findings.length} finding(s) across ${fileCount} skill file(s) / ${effectCount} effect(s) / ${visualLayerCount} visual layer(s), ${fixtureTypes.length} effect type(s) and ${visualKinds.length} visual kind(s) in the vocabulary, ${glyphCount} vendored glyph(s)`);
 process.exit(findings.length > 0 ? 1 : 0);

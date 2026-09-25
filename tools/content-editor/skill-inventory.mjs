@@ -310,8 +310,9 @@ function build() {
     'castInterruptedByDamage', 'targetFactions', 'effects',
   ]);
   // 'legacy' is a retired flag, never shown to a reader; 'visual' is the VFX
-  // layer list (plan-skill-vfx.md C0), which says nothing about what a skill
-  // DOES and stays out of the inventory until there is art to point at (C3).
+  // layer list (plan-skill-vfx.md C0, authored in the editor's Visuals section
+  // since C3b), which says nothing about what a skill DOES: this is a numbers
+  // document, so the look stays out of it on purpose.
   const SKIPPED_TOP = new Set(['legacy', 'visual']);
   for (const key of vocabulary.topLevelKeys) {
     if (!RENDERED_TOP.has(key) && !SKIPPED_TOP.has(key)) {
