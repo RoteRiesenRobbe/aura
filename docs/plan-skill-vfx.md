@@ -2562,7 +2562,7 @@ CONTENT NONE.** BUILD: one dev-only entry + template in `webpack.dev.js`;
   catalog at import time from the page's own origin and the dev server has
   no such route. The preview never needs the catalog (the fetch rejects
   into the designed degrade path); the editor harness prints it as a NOTE.
-- ⚑ **PO look, first round (2026-09-25, `[fix commit]`): the gallery was a
+- ⚑ **PO look, first round (2026-09-25, `e58f7537`): the gallery was a
   FIXED 1400 px strip and the wave slot was cut off at 100 % zoom** in a
   788 px editor column. It now fills its frame: `resizeTo: window` in both
   modes, a slot is width / 7, `layoutGallery` re-lays on resize; the
