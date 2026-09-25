@@ -1,6 +1,11 @@
 # Plan: Skill VFX - what a hit, a cast and a running aura look like, for everyone
 
-> **Status: C4 BUILT 2026-09-20 `d8e1628d` (world scale, a measurement
+> **Status: C3 (a, a-ii, b, c) is BUILT and LOOKED: C3b + C3c BUILT
+> 2026-09-25 `8bb084ca`, PO look DONE 2026-09-25 (`e58f7537` gallery fit,
+> `38bd586f` Immolate under the guardrail). The doc stays live for what is
+> outside every chunk: the phone check (cap 96 vs 192, fill rate, the §12f.2
+> packer trigger), the pyromancer re-price, the flinch (§10 Q10).
+> C4 BUILT 2026-09-20 `d8e1628d` (world scale, a measurement
 > chunk: 10× `full` = 0.7–1.0 ms p95 of `update()`, ambient unbudgeted by
 > ruling, eviction at 96 from ≈ 145–190 events/s; ⚑ the cap 96 vs 192 and the
 > mobile fill rate are OPEN on the PO's real-phone check). **C3 (art) is the
@@ -557,7 +562,10 @@ builder C1 lesson: a chunk whose purpose is a look is not done without one).
   from the real renderer**, a dev-only second webpack entry iframed into the
   Visuals row plus a seven-kind gallery, so a newcomer sees what an emitter
   or an orbit looks like and the author sees the layer being edited.
-  ✅ **BUILT the same day**: §13 C3c ledger.
+  ✅ **BUILT the same day**: §13 C3c ledger. ⭐ **PO look at C3b + C3c
+  DONE 2026-09-25** (the gallery fit `e58f7537`, Immolate reauthored through
+  the builder, `38bd586f` after the ceiling guardrail). C3 is closed; the
+  phone check was never inside it (§12f.5.4, §12f.7).
 - **C4 · World scale.** ✅ **BUILT 2026-09-20** (spec: §12e, departures + PO
   rulings: §12e.8, ledger: §13). A dev-only instrument + a client-side stress
   driver (a real 10× server is tick-starved, so it cannot be the load) + the
@@ -2603,8 +2611,21 @@ CONTENT NONE.** BUILD: one dev-only entry + template in `webpack.dev.js`;
 
 **Not run / owed**
 
-- The PO look: toggle Preview on a row, change the curve, watch it; open
-  "Show all kinds".
+- ~~The PO look: toggle Preview on a row, change the curve, watch it; open
+  "Show all kinds".~~ DONE 2026-09-25 (PO): one fix came out of it, the
+  gallery fit (`e58f7537`, the bullet above), and Immolate was reauthored
+  through the builder in the same session (`beam` on `applied` →
+  `wave` on `fired`, radius 1 → 2, targets 1 → 2, in the editor formatter's
+  style). ⭐ **The layer change overrides the C3a-ii round-1 beam ruling
+  for Immolate, by PO ruling 2026-09-25** (`feedback.md`: an editor change
+  is intentional, a later change overrides an earlier ruling; Ignite stays
+  a beam). ⚑ The first save carried
+  `maxTargetsPerLevel: 1`, which `-validate` accepts (the save route runs
+  it) and only `TestGuardrails_CeilingOrdering` in `cmd/simharness` refused
+  (ten targets at L10 outranks Vanguard); `38bd586f` set two flat targets,
+  the most the §A ceiling allows for an int growth. No save path runs the
+  simharness guardrails; `go test ./cmd/simharness` after an editor
+  session is the only net.
 - The phone check (§9), unchanged.
 
 ### C3b ledger (2026-09-25) - the editor's Visuals section, a BUILDER
@@ -2738,7 +2759,10 @@ none at rest (every harness write restored; `git status` clean under
 
 **Not run / owed**
 
-- The PO look: add a layer in the editor, save, restart aurad, see it.
+- ~~The PO look: add a layer in the editor, save, restart aurad, see it.~~
+  DONE 2026-09-25 (PO): the builder was used for real in the look session,
+  Immolate's layer was changed through it (details in the C3c ledger's owed
+  list, with the guardrail rider).
 - The phone check (§9) and the pyromancer re-price, unchanged from C3a-ii.
 
 ### C3a-ii ledger (2026-09-23) - a DoT draws on application, the rim bite, cooldown waves
