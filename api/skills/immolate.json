@@ -22,9 +22,8 @@
       "targetsEnemies": true,
       "targetsAllies": false,
       "selector": "nearest",
-      "maxTargets": 1,
-      "tickInterval": 20,
-      "maxTargetsPerLevel": 1
+      "maxTargets": 2,
+      "tickInterval": 20
     }
   ]
 }
