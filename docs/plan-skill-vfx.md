@@ -2461,7 +2461,7 @@ spider leg, agent C). `ember-aura` (133) keeps its beam on `hit` for its NEW
 
 ### C3c ledger (2026-09-25) - a live kind preview from the real renderer
 
-✅ **BUILT 2026-09-25** `[uncommitted]`. Spec: §12f.7, written at the C3b QA
+✅ **BUILT 2026-09-25** `8bb084ca`. Spec: §12f.7, written at the C3b QA
 after the PO asked for an example of each kind ("so someone new knows what an
 emitter or orbit look like"); the PO chose the live renderer over a hand-drawn
 legend and one line of words. Two Opus agents in parallel on a file split
@@ -2601,7 +2601,7 @@ CONTENT NONE.** BUILD: one dev-only entry + template in `webpack.dev.js`;
 
 ### C3b ledger (2026-09-25) - the editor's Visuals section, a BUILDER
 
-✅ **BUILT 2026-09-25** `[uncommitted]`. Spec: §12f.5, written at the session
+✅ **BUILT 2026-09-25** `8bb084ca`. Spec: §12f.5, written at the session
 after eight PO choice prompts (the read-only ruling of §12f.1 item 3
 REVERSED: editable, this chunk; mob looks from the Mobs tab, `visual` key
 only; legality by construction; a soft hint for a bare aura/cooldown; one

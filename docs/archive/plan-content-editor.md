@@ -1774,5 +1774,5 @@ per-category moment table, the count ceiling and the over-time types
 soft hints. Mob skills stay out of the Skills tab (Q1) but their look is
 edited from the Mobs tab through `POST /api/save/skill-visual`, which assigns
 only that file's `visual`. The 2026-09-21 read-only ruling was reversed by the
-PO at that session. **Schema NONE** at every layer; `[uncommitted]` at the
+PO at that session. **Schema NONE** at every layer; `8bb084ca` at the
 time of writing.
