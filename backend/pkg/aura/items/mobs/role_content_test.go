@@ -46,8 +46,12 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// and it is a structure for the same reason the totems are: no AI, no chase,
 	// no aggro sensor, and its loadout is its entire behaviour. Unlike the two
 	// portals it is not a creature - it does not talk, it detonates.
+	//
+	// ⚑ Beet joins with the opening arc (content-zone-design-guide.md §2.0): it
+	// is the Turnip copied field for field, harvest lock included, one POI
+	// earlier on the road — a structure for the same reason the Turnip is.
 	assert.ElementsMatch(t, []string{
-		"Bramble", "Camp", "Campfire", "FireTotem", "PoisonPool", "ProjectileBomb",
+		"Beet", "Bramble", "Camp", "Campfire", "FireTotem", "PoisonPool", "ProjectileBomb",
 		"Rockfall", "SpikeBarricade", "Totem", "Turnip", "WarbannerTotem",
 	}, byRole[RoleStructure], "the authored structures")
 
@@ -76,7 +80,22 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// authored `role: "follower"` purely as a label once `follows` on the spell
 	// took over the behaviour, so they drop the key and are creatures like any
 	// other mob that walks and fights.
-	assert.Len(t, byRole[RoleCreature], 52, "everything else is a creature")
+	// 52 → 57 with the north pasture (content-zone-design-guide.md §2.4): the
+	// Shepherd, the three named strays he sends you after (Baabara, Woolliam,
+	// Lambert) and the generic Sheep flock they wandered off from — all on the
+	// standing talkable-NPC shape, role creature + speed 0. ⚑ The flock is here but
+	// NOT in the conversant census: it authors no interaction, by design.
+	// 57 → 60 with the Mill on the river (content-zone-design-guide.md §2.4)
+	// and the farmland's Farmhand: the Miller on the standing talkable-NPC shape
+	// (role creature + speed 0), the Farmhand on the same one, and the AlphaBoar,
+	// which is an ordinary walking creature — Zone 1's one elite.
+	// 60 → 63 with the hunting family (content-npcs.md): Mother, Father and
+	// Hunter, all three on the standing talkable-NPC shape — role creature +
+	// speed 0, like every conversant except the Farmhand, who walks.
+	// 63 → 64 with the GiantRat (content-zone-design-guide.md §2.4): an
+	// ordinary walking, fighting creature — Zone 1's first AGGRESSIVE mob
+	// (wildlife_predator, where the Boar it sits beside is prey faction).
+	assert.Len(t, byRole[RoleCreature], 64, "everything else is a creature")
 	assert.Len(t, byRole, 2, "no def carries a role outside the two")
 }
 

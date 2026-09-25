@@ -39,15 +39,28 @@
             "type": "enum",
             "storageType": "string",
             "values": [
+                "Barn",
                 "Boulder",
                 "Bridge",
+                "BrokenFence",
+                "BurntCart",
+                "Bush",
                 "Cart",
+                "CaveMouth",
+                "Cottage",
                 "Crate",
+                "DeadTree",
+                "FallenLog",
                 "FencePost",
+                "Gate",
                 "GateWall",
                 "Haystack",
                 "House",
+                "Mill",
+                "Palisade",
+                "PineTree",
                 "Rock",
+                "Stump",
                 "Tombstone",
                 "Torch",
                 "Tree",
@@ -74,14 +87,18 @@
             "storageType": "string",
             "values": [
                 "(pick a mob)",
+                "AlphaBoar",
                 "AlphaWolf",
                 "ArmySoldier",
                 "AscensionStone",
+                "Baabara",
                 "Bandit",
                 "BanditHealer",
                 "BanditPyromancer",
                 "BanditRanged",
                 "Bear",
+                "Beet",
+                "Benjamin",
                 "Boar",
                 "Bramble",
                 "Camp",
@@ -95,23 +112,28 @@
                 "Dog",
                 "EliteBandit",
                 "EliteWolf",
+                "Eliza",
                 "Emberkeeper",
-                "Farmer",
+                "Farmhand",
                 "FireElemental",
                 "FireTotem",
                 "ForestSign",
                 "FrontAscensionStone",
                 "FrontCaptain",
+                "GiantRat",
                 "GiantSpider",
                 "GreaterFireElemental",
+                "Hendrik",
                 "Hermit",
                 "Kobold",
                 "KoboldRanged",
+                "Lambert",
                 "LamplessTraveller",
                 "Lamplighter",
                 "Marauder",
                 "MedicCompanion",
                 "MemorialStone",
+                "Miller",
                 "Miner",
                 "Orc",
                 "OrcGrunt",
@@ -121,8 +143,11 @@
                 "PortalSummon",
                 "ProjectileBomb",
                 "RallyDrummer",
+                "Reinhard",
                 "Rockfall",
                 "Shaman",
+                "Sheep",
+                "Shepherd",
                 "ShieldbearerCompanion",
                 "SoldierCompanion",
                 "Spider",
@@ -136,7 +161,8 @@
                 "VillageHealer",
                 "Wanderer",
                 "WarbannerTotem",
-                "Wolf"
+                "Wolf",
+                "Woolliam"
             ],
             "valuesAsFlags": false
         },
@@ -165,7 +191,7 @@
         },
         {
             "id": 7,
-            "name": "AuraProfile",
+            "name": "AuraTerrainProfile",
             "type": "enum",
             "storageType": "string",
             "values": [
@@ -190,6 +216,9 @@
                 "Wasteland",
                 "Mountains",
                 "Ice",
+                "Fence",
+                "Cliff",
+                "Cliff Smooth",
                 "Wall",
                 "Road",
                 "Water",
@@ -239,6 +268,7 @@
             "values": [
                 "(no effect)",
                 "Aegis",
+                "AlphaBoarGore",
                 "AngryMammothAura",
                 "AngryMammothStomp",
                 "Antivenom",
@@ -313,6 +343,7 @@
                 "PoisonPoolAura",
                 "PullThrough",
                 "RallyDrum",
+                "RatBite",
                 "Reaper",
                 "Recall",
                 "Recover",
@@ -438,7 +469,7 @@
                 {
                     "name": "profile",
                     "type": "string",
-                    "propertyType": "AuraProfile",
+                    "propertyType": "AuraTerrainProfile",
                     "value": "(pick a profile)"
                 }
             ]
@@ -457,7 +488,7 @@
                 {
                     "name": "profile",
                     "type": "string",
-                    "propertyType": "AuraProfile",
+                    "propertyType": "AuraTerrainProfile",
                     "value": "(pick a profile)"
                 },
                 {
@@ -471,9 +502,14 @@
                     "value": false
                 },
                 {
+                    "name": "alignTexture",
+                    "type": "bool",
+                    "value": false
+                },
+                {
                     "name": "outlineProfile",
                     "type": "string",
-                    "propertyType": "AuraProfile",
+                    "propertyType": "AuraTerrainProfile",
                     "value": "(pick a profile)"
                 },
                 {
@@ -503,7 +539,7 @@
                 {
                     "name": "profile",
                     "type": "string",
-                    "propertyType": "AuraProfile",
+                    "propertyType": "AuraTerrainProfile",
                     "value": "(pick a profile)"
                 },
                 {
@@ -514,7 +550,7 @@
                 {
                     "name": "outlineProfile",
                     "type": "string",
-                    "propertyType": "AuraProfile",
+                    "propertyType": "AuraTerrainProfile",
                     "value": "(pick a profile)"
                 },
                 {

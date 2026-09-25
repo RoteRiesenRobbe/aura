@@ -4,13 +4,13 @@
 // What it proves: talking stopped being something that happens TO a player who
 // walked too close and became something a player DOES.
 //
-//   1. Farmer, approach  → the E badge lights and NOTHING is said. This is the
+//   1. Reinhard, approach  → the E badge lights and NOTHING is said. This is the
 //                          L18 check and the one most worth having: a missing
 //                          guard does NOT present as an empty conversation
 //                          (every conversant authors lore lines, so the bubble
 //                          would look fine) — it presents as the pre-3b ambush.
 //                          Assert on the SPELLBOOK, not on the bubble.
-//   2. Farmer, press E   → the panel OPENS on the Farmer and teaches nothing by
+//   2. Reinhard, press E   → the panel OPENS on the Reinhard and teaches nothing by
 //                          itself; pressing E again closes it
 //   3. walk away         → the badge goes out
 //   4. return, press E   → the badge re-lights and the verb still opens
@@ -55,7 +55,7 @@ const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), pro
 const w = (x, y) => `${Math.round(x) * 120} ${Math.round(y) * 120}`;
 // ⚑ The badge lifecycle runs on the EMBERKEEPER because it is ISOLATED — 30.5
 // units from the nearest other conversant. The town cluster cannot host these
-// checks: Farmer (-57, 28.6), Hermit (-54.9, 25.6) and TownCrier (-55.7, 22.0)
+// checks: Reinhard (-57, 28.6), Hermit (-54.9, 25.6) and TownCrier (-55.7, 22.0)
 // stand within ~3 units of each other, so the server offers whichever is
 // nearest (the Hermit, from the old warp point) and "walk away until the badge
 // goes out" just walks into the next one's range. That cost 3 of 14 checks on
@@ -149,7 +149,7 @@ const walkTo = async (key, seconds) => {
 //
 // ⚑ A fixed walk duration cannot hit these actors: the talk sensor is ~1 unit
 // wide, and headless walking speed swings with rAF throttling — measured at
-// ~0.5 units/s near the Farmer and ~1.5 units/s near the Emberkeeper in the
+// ~0.5 units/s near the Reinhard and ~1.5 units/s near the Emberkeeper in the
 // same session. A 5 s walk that lands on one overshoots straight past the
 // other, and the badge blinking on and back off inside one burst reads exactly
 // like "the badge never lit" (observed on runs 1 and 2 of this script).
@@ -275,7 +275,7 @@ await page.screenshot({ path: `/tmp/chunk3b-${label}-5-town.png` });
 
 check('A second, different conversant is offered and opens on the key',
   townBadges > 0 && townPanel !== null
-    && /Farmer|Hermit|Town ?Crier/i.test(townPanel.actor)
+    && /Reinhard|Hermit|Town ?Crier/i.test(townPanel.actor)
     && !/Emberkeeper/i.test(townPanel.actor),
   `badges ${townBadges}; panel actor ${JSON.stringify(townPanel?.actor)}`);
 await press('e'); // close before the rebind section

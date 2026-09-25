@@ -22,7 +22,13 @@ var AuraConvert = (function () {
     var PX = 120;
 
     // Layer name selects the world.json array (D5).
-    var LAYERS = ['terrain', 'props', 'spawns', 'campfires', 'darkAreas', 'regions', 'paths', 'atmospheres', 'anchors'];
+    //
+    // ⚑ Listed in the STACK order zoneToModel emits (plan-zone-naming.md D1),
+    // bottom-first. Order is irrelevant HERE — this is a whitelist, walked only
+    // to answer "is this a layer we know?" — but a whitelist that disagrees with
+    // the stack is a second, wrong answer to "what order are the layers in" for
+    // the next reader. Keep the two in step.
+    var LAYERS = ['regions', 'paths', 'terrain', 'props', 'spawns', 'campfires', 'darkAreas', 'atmospheres', 'anchors'];
 
     // ZoneModel's rounding helper, verbatim.
     function round(value, digits) {
@@ -240,7 +246,7 @@ var AuraConvert = (function () {
     // not a mob name, so validation refuses the save until one is picked.
     var MOB_UNSET = '(pick a mob)';
 
-    // The AuraProfile default, for exactly the same reason (C2): a region drawn
+    // The AuraTerrainProfile default, for exactly the same reason (C2): a region drawn
     // on the canvas and never assigned would otherwise take whichever profile
     // leads the table and repaint that ground silently. Not a profile name, so
     // validation refuses the save until one is picked.
@@ -253,7 +259,7 @@ var AuraConvert = (function () {
     // not a profile table: an AuraClearing names no profile at all (A4/L7), so
     // its one member points at a closed set of LAYER NAMES instead.
     var REGION_ENUMS = {
-        profile: 'AuraProfile', air: 'AuraAtmosphereProfile', clears: 'AuraClears',
+        profile: 'AuraTerrainProfile', air: 'AuraAtmosphereProfile', clears: 'AuraClears',
         effect: 'AuraEffect',
     };
     /* The AuraEffect default (plan-area-effects.md E1). A class member cannot be
@@ -489,6 +495,9 @@ var AuraConvert = (function () {
                         closed: p2.closed ? true : undefined,
                         outlineProfile: p2.outlineProfile || undefined,
                         outlineWidth: p2.outlineProfile ? round(p2.outlineWidth, 2) : undefined,
+                        // Turn the tile to run along the path. Tri-state like
+                        // the two above, and key order follows zone.go.
+                        alignTexture: p2.alignTexture ? true : undefined,
                         // The area effect (plan-area-effects.md E1). Key order
                         // follows zone.go's struct order like everything else
                         // here, and absent stays absent: no shipped path names
@@ -698,7 +707,7 @@ var AuraConvert = (function () {
         // ⚑ The PROFILE is both the object's Name (a readable label in the
         // layer list) and a typed property; readRegion lets the property win,
         // mirroring how a spawn's mob works. C2 turns that property into a
-        // generated AuraProfile enum — here it is still free text.
+        // generated AuraTerrainProfile enum — here it is still free text.
         var regions = (z.regions || []).map(function (r) {
             var pts = r.points || [];
             var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
@@ -747,6 +756,7 @@ var AuraConvert = (function () {
             // Only when true, so the Properties panel shows the class default
             // for an ordinary path and the round-trip stays byte-identical.
             if (p2.blocksMovement) { o.properties.blocksMovement = true; }
+            if (p2.alignTexture) { o.properties.alignTexture = true; }
             writeOutline(o, p2);
             writeEffect(o, p2);
             return o;
@@ -867,7 +877,55 @@ var AuraConvert = (function () {
             // back exactly as it found it.
             originX: z.origin ? z.origin.x : undefined,
             originY: z.origin ? z.origin.y : undefined,
+            /* ⭐ THE STACK IS THE CLIENT'S DRAW ORDER, BOTTOM-FIRST
+             * (plan-zone-naming.md D1). Tiled's layer list is bottom-to-top, and
+             * this array is that list — so the order below is read against
+             * Game.ts's cameraGroup.addChild calls, layer for layer:
+             *
+             *   regions     -> layers.terrain.regions      the ground itself
+             *   paths       -> terrain.polygons + .paths   masses, then ribbons
+             *   terrain     -> layers.terrain.textures     blobs ON the ground
+             *   props       -> resources.* / terrain.decks
+             *   spawns      -> layers.mobs.*
+             *   campfires   -> (not rendered from this array at all)
+             *   darkAreas   -> layers.darkness
+             *   atmospheres -> layers.haze + layers.darkness
+             *   anchors     -> (not rendered)
+             *
+             * ⭐ THIS IS FREE, WHICH IS WHY IT COULD BE FIXED AT ALL: the zone
+             * file stores ARRAYS, never layers, and modelToZone reads them back
+             * BY NAME (see `get` below) rather than by index. So the stack is
+             * pure presentation — not one byte of any zone file depends on it.
+             *
+             * ⚑ It used to be almost exactly inverted — terrain at the bottom
+             * with regions ABOVE it, when in game a region is the ground the
+             * blobs are scattered ON. The cost was ergonomic and daily: a
+             * screen-sized region polygon drawn over the props won every click
+             * aimed at one of them.
+             *
+             * ⚑ campfires above spawns is arbitrary (both are points, neither
+             * occludes the other, and campfires are not rendered from here);
+             * their relative order is simply preserved.
+             */
             layers: [
+                // Region array order is resolution order (D0: the LAST
+                // containing region that declares a property wins), so this
+                // layer draws by index for the same reason terrain does.
+                //
+                // ⭐ LOCKED (plan-zone-naming.md D2). Being at the bottom stops
+                // a region winning a click aimed at something above it; the lock
+                // is what stops a region VERTEX being dragged by accident while
+                // working on a layer above. Unlock in the Layers panel to edit —
+                // and see the locked note on the atmospheres layer below for why
+                // that unlock does not survive a reopen.
+                {name: 'regions', drawOrder: 'index', locked: true, objects: regions},
+                // Path array order is draw order too — a bridge road drawn over
+                // a river is authored by putting it later in the array.
+                // ⚑ POLYGONS FIRST, then paths — the draw order is regions →
+                // polygons → paths (masses under ribbons), and modelToZone
+                // splits them back out by class with each array's own order
+                // intact, so the round-trip stays byte-identical.
+                {name: 'paths', drawOrder: 'index', objects: polygons.concat(paths)},
                 // terrain array order IS paint order (GroundTextureManager), so
                 // the layer must draw by index or the canvas lies about which
                 // piece covers which.
@@ -876,17 +934,6 @@ var AuraConvert = (function () {
                 {name: 'spawns', drawOrder: 'index', objects: spawns},
                 {name: 'campfires', drawOrder: 'index', objects: campfires},
                 {name: 'darkAreas', drawOrder: 'index', objects: darkAreas},
-                // Region array order is resolution order (D0: the LAST
-                // containing region that declares a property wins), so this
-                // layer draws by index for the same reason terrain does.
-                {name: 'regions', drawOrder: 'index', objects: regions},
-                // Path array order is draw order too — a bridge road drawn over
-                // a river is authored by putting it later in the array.
-                // ⚑ POLYGONS FIRST, then paths — the draw order is regions →
-                // polygons → paths (masses under ribbons), and modelToZone
-                // splits them back out by class with each array's own order
-                // intact, so the round-trip stays byte-identical.
-                {name: 'paths', drawOrder: 'index', objects: polygons.concat(paths)},
                 // Atmosphere array order is draw order AND resolution order,
                 // regions' rule exactly (D0/D3: the last declaring shape wins,
                 // and a gloom:0 clearing erases the bank it sits inside), so
@@ -899,7 +946,20 @@ var AuraConvert = (function () {
                 // back out by class with each array's own order intact, so the
                 // round-trip stays byte-identical — the paths layer's rule
                 // exactly.
-                {name: 'atmospheres', drawOrder: 'index',
+                //
+                // ⭐ LOCKED (D2), and this is the layer that NEEDS it: an
+                // atmosphere is the air over everything, so unlike a region it
+                // cannot be demoted under the props — the stack cannot help it
+                // and the lock is the only thing that can.
+                //
+                // ⛔ THE LOCK CANNOT PERSIST, AND THAT IS MEASURED, NOT ASSUMED.
+                // The zone file has no layer records and Tiled's session file
+                // stores only expandedObjectLayers/scale/selectedLayer/
+                // viewCenter — no `locked`, no `visible`. So this flag IS the
+                // state on every open, and a hand-unlock is gone the next time
+                // the file is opened. Accepted cost, recorded rather than
+                // smoothed over (plan-zone-naming.md §2 fact 3).
+                {name: 'atmospheres', drawOrder: 'index', locked: true,
                     objects: atmospheres.concat(clearings)},
                 {name: 'anchors', drawOrder: 'index', objects: anchors},
             ],
@@ -1025,6 +1085,7 @@ var AuraConvert = (function () {
                     outlineWidth: readOutlineProfile(o) !== undefined
                         ? (typeof get(o, 'outlineWidth') === 'number' ? get(o, 'outlineWidth') : 0)
                         : undefined,
+                    alignTexture: get(o, 'alignTexture') ? true : undefined,
                     effect: readEffect(o),
                 };
             }),
@@ -1486,7 +1547,7 @@ var AuraConvert = (function () {
         // because the profile table lives in the client, so a typo reaches the
         // browser and resolves to the default (D11) — the region simply does
         // not paint, at load, with nothing said anywhere. The generated
-        // AuraProfile enum is that vocabulary, so the typo becomes an error
+        // AuraTerrainProfile enum is that vocabulary, so the typo becomes an error
         // where it was written, naming the object id.
         //
         // ⚑ Skipped when no palette is loaded, exactly like every other content

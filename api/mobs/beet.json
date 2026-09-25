@@ -1,0 +1,22 @@
+{
+  "_comment": "The opening arc's harvest-mob (content-zone-design-guide.md §2.0), the Turnip's twin one POI earlier on the road. Copied field for field from turnip.json — role structure + speed 0, no skills, no faction, no aggroRadius: it can neither move nor fight back. The wildcard resistance blocks every damage tag except 'harvest', so ONLY Harvest pops it and every combat aura does nothing — a deterministic gate, and the reason Benjamin cannot be skipped. xpFactor 0.05 = one token, the Turnip's price (PO 2026-07-21: enough to reward the pop without reviving the shared-XP AFK cheese). ⛑ entityType Turnip is a DELIBERATE REUSE and placeholder art — a beet that looks like a turnip costs nothing, while its own sprite costs a wire enum value that can never be reclaimed plus a client Record entry. It earns its own art at the Zone 1 art pass. ⚑ It is the SECOND paying structure in the game; the pin in xpfactor_test.go named exactly one until now. ⚑ UNPLACED: the PO places the patch in the editor. All values [PLACEHOLDER].",
+  "id": 85,
+  "name": "Beet",
+  "type": "MOB",
+  "entityType": "Turnip",
+  "role": "structure",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 20,
+    "maxHealthVariance": 0.1,
+    "xpFactor": 0.05,
+    "speed": 0,
+    "resistances": { "*": 0 },
+    "gateKeys": ["harvest"]
+  },
+  "body": {
+    "radius": 0.15
+  },
+  "skills": []
+}

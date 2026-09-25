@@ -76,6 +76,20 @@ const (
 	EntityTypeCart                  EntityType = 82
 	EntityTypeWell                  EntityType = 83
 	EntityTypeTorch                 EntityType = 84
+	EntityTypeBarn                  EntityType = 85
+	EntityTypeMill                  EntityType = 86
+	EntityTypeBurntCart             EntityType = 87
+	EntityTypeGate                  EntityType = 88
+	EntityTypeStump                 EntityType = 89
+	EntityTypePineTree              EntityType = 90
+	EntityTypeBush                  EntityType = 91
+	EntityTypeDeadTree              EntityType = 92
+	EntityTypeFallenLog             EntityType = 93
+	EntityTypeBrokenFence           EntityType = 94
+	EntityTypeAlphaBoar             EntityType = 95
+	EntityTypeCottage               EntityType = 96
+	EntityTypePalisade              EntityType = 97
+	EntityTypeCaveMouth             EntityType = 98
 )
 
 var EnumNamesEntityType = map[EntityType]string{
@@ -148,6 +162,20 @@ var EnumNamesEntityType = map[EntityType]string{
 	EntityTypeCart:                  "Cart",
 	EntityTypeWell:                  "Well",
 	EntityTypeTorch:                 "Torch",
+	EntityTypeBarn:                  "Barn",
+	EntityTypeMill:                  "Mill",
+	EntityTypeBurntCart:             "BurntCart",
+	EntityTypeGate:                  "Gate",
+	EntityTypeStump:                 "Stump",
+	EntityTypePineTree:              "PineTree",
+	EntityTypeBush:                  "Bush",
+	EntityTypeDeadTree:              "DeadTree",
+	EntityTypeFallenLog:             "FallenLog",
+	EntityTypeBrokenFence:           "BrokenFence",
+	EntityTypeAlphaBoar:             "AlphaBoar",
+	EntityTypeCottage:               "Cottage",
+	EntityTypePalisade:              "Palisade",
+	EntityTypeCaveMouth:             "CaveMouth",
 }
 
 var EnumValuesEntityType = map[string]EntityType{
@@ -220,6 +248,20 @@ var EnumValuesEntityType = map[string]EntityType{
 	"Cart":                  EntityTypeCart,
 	"Well":                  EntityTypeWell,
 	"Torch":                 EntityTypeTorch,
+	"Barn":                  EntityTypeBarn,
+	"Mill":                  EntityTypeMill,
+	"BurntCart":             EntityTypeBurntCart,
+	"Gate":                  EntityTypeGate,
+	"Stump":                 EntityTypeStump,
+	"PineTree":              EntityTypePineTree,
+	"Bush":                  EntityTypeBush,
+	"DeadTree":              EntityTypeDeadTree,
+	"FallenLog":             EntityTypeFallenLog,
+	"BrokenFence":           EntityTypeBrokenFence,
+	"AlphaBoar":             EntityTypeAlphaBoar,
+	"Cottage":               EntityTypeCottage,
+	"Palisade":              EntityTypePalisade,
+	"CaveMouth":             EntityTypeCaveMouth,
 }
 
 func (v EntityType) String() string {

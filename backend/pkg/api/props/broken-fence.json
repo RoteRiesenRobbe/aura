@@ -1,0 +1,7 @@
+{
+  "name": "BrokenFence",
+  "entityType": "BrokenFence",
+  "sprite": "brokenFence.svg",
+  "body": { "width": 2, "height": 1.6 },
+  "blocksMovement": false
+}

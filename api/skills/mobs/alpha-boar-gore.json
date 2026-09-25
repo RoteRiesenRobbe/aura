@@ -1,0 +1,28 @@
+{
+  "_comment": "An alpha boar's tusk gore: physical and bleed damage to the nearest enemy within a 1.1-unit ring every 60 ticks, 16 HP plus 2.5 per level. Half the Boar's cadence at nearly three times the hit — the elite's threat is the single blow, not the grind. The bleed tag means Thick Hide, which this mob also drops, reduces it. All values placeholder.",
+  "id": 153,
+  "name": "AlphaBoarGore",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "visual": {
+    "layers": [
+      { "kind": "strike", "on": "hit", "curve": "thrust", "ms": 200, "scale": 1.6 }
+    ]
+  },
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.1,
+      "radiusPerLevel": 0.0,
+      "damageHP": 16,
+      "damageHPPerLevel": 2.5,
+      "damageTags": ["physical", "bleed"],
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 60
+    }
+  ]
+}

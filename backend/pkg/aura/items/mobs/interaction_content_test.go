@@ -32,7 +32,7 @@ import (
 // on it only reported that authoring had happened. The census below is the part
 // that still earns its keep: it says WHO can talk, which no other test does.
 var expectedConversants = []string{
-	"Farmer", "Hermit", "Lamplighter", "Dog", "Miner", "CityGuard",
+	"Reinhard", "Hermit", "Lamplighter", "Dog", "Miner", "CityGuard",
 	"VillageHealer", "FrontCaptain", "Shaman", "Wanderer",
 	"LamplessTraveller", // pure flavour, and that is a first-class case
 	"TownCrier",
@@ -82,6 +82,57 @@ var expectedConversants = []string{
 	// and world.CrossValidateTravelAnchors warns at boot until a zone places them.
 	"CaveMouth",
 	"CaveExit",
+
+	// The north pasture (content-zone-design-guide.md §2.4, the "teaches neutral"
+	// POI). The Shepherd offers and turns in `the-strays`; the three sheep are
+	// three of its four talk_to targets and are the first conversants that exist
+	// ONLY to be talked to — one node, no options, no teaching, no quest.
+	//
+	// ⚑ THREE DEFINITIONS RATHER THAN ONE WITH count 3, and the reason is
+	// structural: talk_to is keyed by the DEFINITION id, never the spawn, so
+	// three spawns of one definition are one key and a count would be satisfied
+	// by the first. See api/mobs/baabara.json.
+	//
+	// ⭐ THE GENERIC `Sheep` IS DELIBERATELY ABSENT FROM THIS LIST. It authors no
+	// interaction at all, so the three named strays are the only sheep that
+	// answer — which is how the player finds them. A flock member turning up
+	// here later would mean someone gave the scenery a voice and quietly broke
+	// that search.
+	//
+	// All four are unattackable by the standing two knobs, which is what makes
+	// that quest zero-combat by construction rather than by convention.
+	"Shepherd",
+	"Baabara",
+	"Woolliam",
+	"Lambert",
+	// The Mill on the river (content-zone-design-guide.md §2.4): the POI is a
+	// soft dead end, so the Miller IS its reason to walk down there. Same
+	// talkable-NPC shape as the Shepherd above, and he offers the zone's only
+	// elite fight.
+	"Miller",
+	// The farmland's flavour NPC, and the only conversant in the game that asks
+	// for nothing: one root node, no options — the baabara.json terminal-node
+	// shape. The Farmer beside him already carries two quests and a teaching.
+	// ⭐ He is also the first conversant that WALKS (speed 0.7 on a waypoint
+	// route), which is why the census below is worth re-reading: every other
+	// entry here authors speed 0, and nothing in this file requires that.
+	"Farmhand",
+	// ⭐ THE OPENING CAST (content-zone-design-guide.md §2.0) — the three NPCs a
+	// new character meets before the village exists to them. Eliza the mother
+	// offers and turns in `dinner-for-the-family`; her husband Hendrik and his
+	// brother Benjamin carry NO quest rows at all, because the arc reaches them
+	// through `talk_to` objectives — opening the panel IS the objective. What they
+	// carry instead is a teaching each, and between the three of them they hand
+	// over the player's entire starting kit: Wild, Harvest, FirstAid.
+	//
+	// ⚑ Benjamin is the first conversant in the game the player cannot skip: a
+	// Beet authors the Turnip's harvest lock, so the beet objective is
+	// unfinishable until Harvest is learned — from him, or from Reinhard down
+	// the road, which is the only thing keeping a lost Benjamin from
+	// soft-locking the opening.
+	"Eliza",
+	"Hendrik",
+	"Benjamin",
 }
 
 func conversants(t *testing.T) map[string]*MobDefinition {

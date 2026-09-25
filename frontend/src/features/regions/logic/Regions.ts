@@ -69,6 +69,21 @@ export interface TerrainProfile {
     // edge with no knowledge of its neighbours - which is what makes "region
     // meets region" and "region meets bare land" the same code path.
     blend?: number;
+    // How much the soft border BREAKS UP, 0…1 (plan-ground-noise.md W1). `0`
+    // is the clean Gaussian ramp C5 shipped; higher lets the edge wander
+    // further inside the `blend` band and draws it crisper, so a road's side
+    // reads as ground giving way rather than as a soft ruler. Inert without a
+    // `blend`: there is no band to wander in.
+    //
+    // ⭐ The noise is keyed to WORLD position, so on average the 50 % line still
+    // sits on the authored one (D22) and two abutting surfaces agree.
+    wobble?: number;
+    // The BLOTCH size of that wobble, in WORLD UNITS (D2, amended 2026-09-23).
+    // Absent = derived from the band (half its width), so `blend` alone sets
+    // both the room to wander and the lump size. Authoring it decouples the
+    // two: big lumps on a narrow soft edge, or fine fraying on a wide one.
+    // ⚑ It never widens the band — the wander still lives inside `blend`.
+    wobbleSize?: number;
     // How fast this profile's TILE drifts, in world UNITS PER SECOND (C3/D9).
     // Absent or {0,0} = still, which is every profile shipped before this and
     // the reason the feature costs exactly zero until it is authored.
@@ -196,6 +211,13 @@ export const DEFAULT_PROFILE: Required<Profile> = {
     // and a blur pass under every region in every zone that never asked for
     // one - the feature has to cost exactly zero until it is authored.
     blend: 0,
+    // The world before ground-noise W1: a clean ramp. ⚑ A non-zero default
+    // would put a second bake pass under every feathered surface that never
+    // asked for one.
+    wobble: 0,
+    // ⚑ 0 is not a size: it means "derive the grain from the band", which is
+    // why the parser drops an authored 0 rather than keeping it.
+    wobbleSize: 0,
     // The world before C3: nothing moves. ⚑ A non-zero default would put a
     // TilingSprite and a per-frame write under every textured region in every
     // zone that never asked for one.
@@ -350,7 +372,7 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
         if (name.charAt(0) === '_') { return; }
         const entry = raw[name] as {
             color?: unknown, texture?: unknown, scale?: unknown, blend?: unknown,
-            scroll?: unknown, darkness?: unknown, haze?: unknown, sight?: unknown,
+            wobble?: unknown, wobbleSize?: unknown, scroll?: unknown, darkness?: unknown, haze?: unknown, sight?: unknown,
         };
         const profile: Profile = {};
         if (entry && 'color' in entry) {
@@ -376,6 +398,16 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
         if (entry && 'blend' in entry) {
             const parsed = parseBlend(entry.blend);
             if (parsed !== undefined) { profile.blend = parsed; }
+        }
+        if (entry && 'wobble' in entry) {
+            // An opacity-shaped dial: 0…1, `0` kept, out-of-range dropped.
+            const parsed = parseOpacity(entry.wobble);
+            if (parsed !== undefined) { profile.wobble = parsed; }
+        }
+        if (entry && 'wobbleSize' in entry) {
+            // A length, and a zero one means nothing — `parseScale`'s shape.
+            const parsed = parseScale(entry.wobbleSize);
+            if (parsed !== undefined) { profile.wobbleSize = parsed; }
         }
         if (entry && 'darkness' in entry) {
             const parsed = parseOpacity(entry.darkness);
@@ -635,6 +667,35 @@ export function regionBlend(
     // An unknown profile, or one transparent to `blend`, ends at the default - 
     // D11's totality, restated at the one layer that can hand a number to Pixi.
     return typeof blend === 'number' ? blend : DEFAULT_PROFILE.blend;
+}
+
+/**
+ * How much this surface's soft border breaks up, 0…1 (plan-ground-noise.md W1).
+ * `0` is the clean ramp and costs the bake nothing extra.
+ *
+ * ⚑ Its OWN profile's value, else the shipped default — {@link regionBlend}'s
+ * rule for regionBlend's reason: the edge belongs to the shape being drawn.
+ */
+export function regionWobble(
+    region: Region,
+    profiles: { [name: string]: TerrainProfile } = TERRAIN_PROFILES,
+): number {
+    const profile = profiles[region.profile];
+    const wobble = profile && 'wobble' in profile ? profile.wobble : DEFAULT_PROFILE.wobble;
+    return typeof wobble === 'number' ? wobble : DEFAULT_PROFILE.wobble;
+}
+
+/**
+ * The wobble's blotch size in world units, or `0` for "derive it from the band"
+ * (D2 amended). Same own-profile rule as {@link regionWobble}.
+ */
+export function regionWobbleSize(
+    region: Region,
+    profiles: { [name: string]: TerrainProfile } = TERRAIN_PROFILES,
+): number {
+    const profile = profiles[region.profile];
+    const size = profile && 'wobbleSize' in profile ? profile.wobbleSize : DEFAULT_PROFILE.wobbleSize;
+    return typeof size === 'number' ? size : DEFAULT_PROFILE.wobbleSize;
 }
 
 /**

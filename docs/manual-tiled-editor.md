@@ -48,17 +48,38 @@ double-click `world.json` in the project's folder list on the left.
 > but you get plain text fields instead of dropdowns. If you prefer that flow,
 > import `tools/tiled/palette/propertytypes.json` once via View ▸ Custom Types.
 
-You should see seven object layers, and no tile layers:
+You should see nine object layers, and no tile layers. They are listed here in
+the order Tiled shows them — **top of the panel is the top of the stack**, so
+read the table bottom-up to walk from the ground to the sky:
 
-| Layer | What it holds | Shape |
-|---|---|---|
-| `terrain` | ground textures | tile object (the art itself) |
-| `props` | trees, stones, houses, walls | tile object at its true physics size |
-| `spawns` | every mob and NPC | point, or a **polyline** if it patrols |
-| `campfires` | bind points / starting spawns | point |
-| `darkAreas` | the unlit circles | ellipse |
-| `regions` | named areas that carry their own look | **polygon** |
-| `anchors` | named positions the content refers to | point |
+| Layer | What it holds | Shape | |
+|---|---|---|---|
+| `anchors` | named positions the content refers to | point | |
+| `atmospheres` | the air over an area — fog, gloom, canopy — and the **clearings** that cut holes in it | **polygon** | 🔒 |
+| `darkAreas` | the unlit circles (the older primitive `atmospheres` is replacing) | ellipse | |
+| `campfires` | bind points / starting spawns | point | |
+| `spawns` | every mob and NPC | point, or a **polyline** if it patrols | |
+| `props` | trees, stones, houses, walls | tile object at its true physics size | |
+| `terrain` | ground textures | tile object (the art itself) | |
+| `paths` | roads and rivers, **plus** the filled masses (`AuraPolygon`) that share this layer | polyline, or **polygon** | |
+| `regions` | named areas that carry their own look | **polygon** | 🔒 |
+
+⭐ **The stack is the order the game draws in**, bottom-first: a region is the
+ground, the masses and roads lie on it, the texture blobs scatter over those,
+then the props and mobs stand on top, and the air is above everything. What you
+see stacked in Tiled is what you will see stacked in game.
+
+### 🔒 Two layers open locked
+
+`regions` and `atmospheres` are the big ones — a single region polygon can cover
+the whole screen — so they open **locked**: still fully visible, but they will
+not swallow a click aimed at a prop underneath, and you cannot drag one of their
+vertices by accident.
+
+To edit one, click the lock in the **Layers** panel. ⚑ **It re-locks when you
+next open the file**, and that is not a bug we can fix: a zone file stores
+*arrays*, not layers, so there is nowhere to write the unlocked state down.
+Tiled's own session file does not carry layer locks either.
 
 ## 3. Edit
 

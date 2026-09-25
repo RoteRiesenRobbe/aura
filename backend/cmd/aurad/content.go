@@ -218,7 +218,7 @@ const (
 // config and the zone set exactly as a boot would, then validate. It returns
 // before anything a boot does with the world, and in particular before
 // openDatabase, so it needs neither AURA_DB_URL nor AURA_JWT_KEY (D9).
-func validateMain(w io.Writer, contentDir, startZone string) int {
+func validateMain(w io.Writer, contentDir, startZone string, debugZones bool) int {
 	src := embeddedContent()
 	if contentDir != "" {
 		disk, err := diskContent(contentDir)
@@ -232,6 +232,15 @@ func validateMain(w io.Writer, contentDir, startZone string) int {
 		}
 		src = disk
 	}
+	if debugZones {
+		var err error
+		if src, err = useDebugZones(src); err != nil {
+			// Same posture as a missing content directory above.
+			fmt.Fprintf(w, "content: %v\n", err)
+			fmt.Fprintln(w, "1 finding(s)")
+			return validateExitFindings
+		}
+	}
 	config, err := validateConf()
 	if err != nil {
 		// The conf is the validator's own input, not the content under test:
@@ -243,10 +252,7 @@ func validateMain(w io.Writer, contentDir, startZone string) int {
 	}
 	// Every zone file in the directory loads; the flag beats the conf on which
 	// of them is PRIMARY (plan-zone-naming, the directory is the zone list).
-	if startZone == "" {
-		startZone = config.Game.StartZone
-	}
-	return runValidate(w, src, config, startZone)
+	return runValidate(w, src, config, resolveStartZone(startZone, debugZones, config.Game.StartZone))
 }
 
 // validateConf resolves the config a -validate run measures against, the same

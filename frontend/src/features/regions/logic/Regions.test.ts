@@ -8,6 +8,8 @@ import {
     regionBlend,
     regionPaintSpec,
     regionScroll,
+    regionWobble,
+    regionWobbleSize,
     resolveIn,
 } from './Regions';
 
@@ -293,6 +295,100 @@ describe('regionBlend — how wide this region feathers its own edge (C5)', () =
         // borrow structurally impossible rather than merely avoided.
         expect(regionBlend({profile: 'hard', points: []}, BLEND)).toBe(0);
         expect(regionBlend({profile: 'quiet', points: []}, BLEND)).toBe(0);
+    });
+});
+
+// plan-ground-noise.md W1. A dial in 0…1, and the same trap as `blend`: `0` is
+// an authored VALUE ("a clean ramp, explicitly"), so it must survive the parser.
+describe('PROFILES — the wobble key (ground-noise W1)', () => {
+    it('KEEPS an authored 0, which is the clean ramp and not a missing value', () => {
+        const profiles = buildProfiles({clean: {wobble: 0}});
+        expect('wobble' in profiles.clean).toBe(true);
+        expect(profiles.clean.wobble).toBe(0);
+    });
+
+    it.each([0.6, 1])('keeps %s', (wobble) => {
+        expect(buildProfiles({rough: {wobble}}).rough.wobble).toBe(wobble);
+    });
+
+    // ⚑ DROPPED, not clamped — the parseOpacity posture. A `2` means the unit
+    // was misunderstood, and falling back to the clean ramp shows that at once.
+    it.each([
+        ['a negative value', -0.1],
+        ['a value above 1', 1.5],
+        ['NaN', Number.NaN],
+        ['a string', '0.5'],
+        ['a null', null],
+    ])('drops %s instead of declaring it', (_label, wobble) => {
+        expect('wobble' in buildProfiles({bad: {wobble}}).bad).toBe(false);
+    });
+
+    it('defaults to the clean ramp — the feature costs nothing until authored', () => {
+        expect(DEFAULT_PROFILE.wobble).toBe(0);
+    });
+});
+
+// ⚑ Its OWN profile's value, never a resolve() chain — regionBlend's rule, for
+// regionBlend's reason: the edge belongs to the shape being drawn.
+describe('regionWobble — how much this surface breaks up its own edge (ground-noise W1)', () => {
+    const WOBBLE = buildProfiles({
+        rough: {blend: 1, wobble: 0.7},
+        clean: {blend: 1, wobble: 0},
+        quiet: {color: '#111111'},
+    });
+
+    it('returns the value the profile declares', () => {
+        expect(regionWobble({profile: 'rough', points: []}, WOBBLE)).toBe(0.7);
+        expect(regionWobble({profile: 'clean', points: []}, WOBBLE)).toBe(0);
+    });
+
+    it.each([
+        ['a profile transparent to wobble', 'quiet'],
+        ['an unknown profile name', 'no-such-profile'],
+    ])('falls back to the default (0) for %s', (_label, profile) => {
+        expect(regionWobble({profile, points: []}, WOBBLE)).toBe(DEFAULT_PROFILE.wobble);
+    });
+});
+
+// ⚑ Unlike `blend` and `wobble`, `0` is NOT a value here: a zero-sized blotch
+// is meaningless, and the shipped default 0 already means "derive it from the
+// band". An authored 0 is therefore dropped, and lands on the same meaning.
+describe('PROFILES — the wobbleSize key (ground-noise W1, D2 amended)', () => {
+    it('keeps a positive size in world units', () => {
+        expect(buildProfiles({lumpy: {wobbleSize: 0.8}}).lumpy.wobbleSize).toBe(0.8);
+    });
+
+    it.each([
+        ['a zero', 0],
+        ['a negative value', -0.5],
+        ['NaN', Number.NaN],
+        ['an infinite value', Number.POSITIVE_INFINITY],
+        ['a string', '0.5'],
+        ['a null', null],
+    ])('drops %s instead of declaring it', (_label, wobbleSize) => {
+        expect('wobbleSize' in buildProfiles({bad: {wobbleSize}}).bad).toBe(false);
+    });
+
+    it('defaults to 0, which means "derive the grain from the band"', () => {
+        expect(DEFAULT_PROFILE.wobbleSize).toBe(0);
+    });
+});
+
+describe('regionWobbleSize — the blotch size this surface authors, if any', () => {
+    const SIZES = buildProfiles({
+        lumpy: {blend: 0.5, wobble: 0.6, wobbleSize: 1.2},
+        derived: {blend: 0.5, wobble: 0.6},
+    });
+
+    it('returns the size the profile declares', () => {
+        expect(regionWobbleSize({profile: 'lumpy', points: []}, SIZES)).toBe(1.2);
+    });
+
+    it.each([
+        ['a profile transparent to wobbleSize', 'derived'],
+        ['an unknown profile name', 'no-such-profile'],
+    ])('falls back to 0 (derive) for %s', (_label, profile) => {
+        expect(regionWobbleSize({profile, points: []}, SIZES)).toBe(0);
     });
 });
 

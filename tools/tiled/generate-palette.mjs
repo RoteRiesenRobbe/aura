@@ -197,7 +197,7 @@ function readEffects() {
 // ⭐ TWO tables since 2026-09-15, and the split is the whole point: they used to
 // share one file and therefore ONE dropdown, so a ground profile could be named
 // on an atmosphere (drawing nothing) and an atmosphere profile on a region
-// (painting grey mud). Two files means two enums — AuraProfile for the ground,
+// (painting grey mud). Two files means two enums — AuraTerrainProfile for the ground,
 // AuraAtmosphereProfile for the air — and neither mistake is offerable.
 //
 // ⚑ Authored order, not sorted: each is a hand-written table and its order is
@@ -341,7 +341,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
     // polygon it is also the ONLY width there is, which is the thing an author
     // reaching for "how wide is my wall" will find (L7).
     const OUTLINE_MEMBERS = [
-        member('outlineProfile', 'string', PROFILE_UNSET, 'AuraProfile'),
+        member('outlineProfile', 'string', PROFILE_UNSET, 'AuraTerrainProfile'),
         member('outlineWidth', 'float', 0),
     ];
 
@@ -393,7 +393,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // Same sentinel-leads rule as AuraMobName, for the same reason: an
         // unassigned region would otherwise repaint that ground in whichever
         // profile happens to lead the table.
-        enumType('AuraProfile', [PROFILE_UNSET].concat(profiles)),
+        enumType('AuraTerrainProfile', [PROFILE_UNSET].concat(profiles)),
         // ⭐ The AIR's own vocabulary, separate since 2026-09-15. Same sentinel,
         // same rule, a different list — which is what makes naming `Forest` on
         // a fog bank impossible rather than merely wrong.
@@ -436,17 +436,24 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // the save refuses it — so a Tiled that drops a default-valued property
         // and a Tiled that keeps it reach the same answer.
         classType('AuraRegion', '#ffcddc39',
-            [member('profile', 'string', PROFILE_UNSET, 'AuraProfile')]),
+            [member('profile', 'string', PROFILE_UNSET, 'AuraTerrainProfile')]),
         // A path wears the same profile vocabulary as a region and adds its own
         // geometry. ⚑ Both extra members obey the C6 rule the AuraRegion note
         // above states: 'width' defaults to 0, which the save REFUSES, so a
         // dropped default and a kept one reach the same answer; 'blocksMovement'
         // defaults to false, which the converter maps back to "not authored"
         // and omits from the JSON entirely.
+        // ⚑ 'alignTexture' obeys the same C6 rule: false is exactly "not
+        // authored", so it is safe as a bool where a tri-state knob would have
+        // needed an enum. It turns the TILE to run along the path — rails,
+        // ruts, strata — because a profile is world-aligned and carries no
+        // rotation. The ANGLE is not here and must never be: it is derived from
+        // the drawn geometry, so a property could only contradict the shape.
         classType('AuraPath', '#ff03a9f4',
-            [member('profile', 'string', PROFILE_UNSET, 'AuraProfile'),
+            [member('profile', 'string', PROFILE_UNSET, 'AuraTerrainProfile'),
                 member('width', 'float', 0),
                 member('blocksMovement', 'bool', false),
+                member('alignTexture', 'bool', false),
                 ...OUTLINE_MEMBERS, EFFECT_MEMBER]),
         // ⚑ A filled AREA, sharing the paths layer and told apart by this class
         // (plan-zone-polygons.md D5). It has NO width member on purpose: a
@@ -456,7 +463,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // rather than merely across — a path can only cut a line, a polygon has
         // an inside — and no automated check catches that (L3).
         classType('AuraPolygon', '#ff8d6e63',
-            [member('profile', 'string', PROFILE_UNSET, 'AuraProfile'),
+            [member('profile', 'string', PROFILE_UNSET, 'AuraTerrainProfile'),
                 member('blocksMovement', 'bool', false),
                 ...OUTLINE_MEMBERS, EFFECT_MEMBER]),
         // ⭐ The AIR over an area (plan-region-atmosphere.md A0) — and the ONE
@@ -473,7 +480,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // missing `width` records, applied to collision instead of geometry.
         // zone.go refuses every one of those keys by name, so a member added
         // here would round-trip into a zone file that no longer boots.
-        // ⛔ AuraAtmosphereProfile, NOT AuraProfile. The member name is the
+        // ⛔ AuraAtmosphereProfile, NOT AuraTerrainProfile. The member name is the
         // same because the ZONE KEY is the same (`profile`); only the
         // vocabulary behind it differs.
         // ⚑ TWO members now, and 'effect' is the ONE key D15 does not refuse —
@@ -627,6 +634,6 @@ console.log(`templates          ${props.length + terrain.length} .tx (${props.le
 const nEnum = types.filter(t => t.type === 'enum').length;
 console.log(`custom types       ${types.length} (${nEnum} enums + ${types.length - nEnum} classes) → aura.tiled-project + palette/propertytypes.json`);
 console.log(`content.json       ${terrain.length} textures, ${props.length} props, ${mobs.length} mobs ${JSON.stringify(kindCounts)}`);
-console.log(`terrain profiles   ${profiles.length} (${profiles.join(', ')}) → AuraProfile + AuraRegion + AuraPath + AuraPolygon`);
+console.log(`terrain profiles   ${profiles.length} (${profiles.join(', ')}) → AuraTerrainProfile + AuraRegion + AuraPath + AuraPolygon`);
 console.log(`air profiles       ${airProfiles.length} (${airProfiles.join(', ')}) → AuraAtmosphereProfile + AuraAtmosphere`);
 console.log(`area effects       ${effects.length} skills → AuraEffect + AuraPath + AuraPolygon + AuraAtmosphere`);

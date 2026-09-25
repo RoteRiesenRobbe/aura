@@ -615,6 +615,9 @@ export class Game implements IGame {
         // Which zones exist this boot, and which one we start in
         // (plan-underworld.md U2). The tracker answers "where am I" from
         // position alone; nothing about a zone change rides the wire.
+        // ⚑ FIRST: which bundled zone set (main or `.debug/`) every read below
+        // resolves against. The tracker is the first to read zone data.
+        GroundTextureManager.selectZoneSet(gameInformation.zoneName);
         this.activeZone = new ActiveZoneTracker(gameInformation.zoneNames, gameInformation.zoneName);
         const start = this.activeZone.active;
         const mapWidth = start ? meter2px(start.width) : gameInformation.mapWidth;

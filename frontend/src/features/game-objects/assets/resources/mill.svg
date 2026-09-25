@@ -1,0 +1,172 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 400" preserveAspectRatio="none">
+  <!-- Placeholder watermill art: TRUE top-down, the river POI of zone 1
+       (content-zone-design-guide.md §2.4 "Mill on the river").
+
+       ⭐ THE ONE THING WORTH KNOWING BEFORE EDITING THIS FILE: a water wheel
+       is a VERTICAL disc, so from directly above you do not see a circle —
+       you see it EDGE-ON, as a narrow slab whose long axis is the diameter.
+       Drawing the wheel as a disc would be the isometric cheat this game's
+       art direction refuses, and it would be the only object in the scene
+       lying about its own view.
+
+       ⛔ Honest is not the same as LEGIBLE, and the first draft proved it: a
+       slab with evenly-drawn slats between two rails renders as a LADDER
+       lying in the grass. Two things fix it, and both are true of the real
+       object:
+         1. THE PADDLES OVERHANG. A paddle board is wider than the shrouds it
+            is pegged between, so the silhouette is a COMB, not a rectangle.
+            A ladder has no overhang; this is the cue that separates them.
+         2. THE SPACING BUNCHES. Paddles sit evenly around a circular rim,
+            and a circle projected onto one axis crowds at its two extremes
+            and opens in the middle. Even rungs are a boardwalk; these are
+            the shadow a turning wheel actually casts.
+       ⚑ The first draft also CAPPED both ends with stone, which framed the
+       slab and pushed it further toward "gate". The pit walls are now short
+       spurs off the mill wall, clearly part of the building.
+
+       ⚑ The wheel is on the EAST side and stays there — but a rect prop's
+       body and sprite both carry the authored rotation (plan-prop-scale.md
+       C2b), so the mill is TURNED in Tiled to put the wheel in the river,
+       whichever way the river runs. That is why there is no second sprite,
+       unlike the field textures, which have no rotation knob at all.
+
+       ⛔ NO WATER IS PAINTED HERE. The river is already a `Water` path under
+       the prop, and a painted-in stream would be a second blue at a
+       different hue that only lines up if the mill is placed perfectly. The
+       churn foam is the exception: foam is made BY the wheel.
+
+       Against the house and the barn it reads by MATERIAL first — the only
+       stone-walled, SLATE-roofed building in the village, and the only
+       hipped roof (four slopes meeting a short ridge) where both of those
+       are gabled.
+       ⚑ viewBox aspect MUST stay 5:4 to match api/props/mill.json. -->
+
+  <!-- ground shadow for the house, offset down-right (light from top-left) -->
+  <rect x="24" y="24" width="330" height="380" rx="10" fill="#000000" opacity="0.26"/>
+  <!-- ...and for the wheel, which stands clear of it -->
+  <rect x="362" y="88" width="106" height="244" rx="6" fill="#000000" opacity="0.22"/>
+
+  <!-- the stone walls, showing as a band past the eaves -->
+  <rect x="10" y="10" width="330" height="380" rx="8"
+        fill="#7b7264" stroke="#433d34" stroke-width="7"/>
+  <!-- a few courses in that band, so it reads as masonry and not as trim -->
+  <g stroke="#4f4940" stroke-width="2.4" opacity="0.65">
+    <line x1="10" y1="90" x2="24" y2="90"/><line x1="10" y1="170" x2="24" y2="170"/>
+    <line x1="10" y1="250" x2="24" y2="250"/><line x1="10" y1="330" x2="24" y2="330"/>
+    <line x1="326" y1="90" x2="340" y2="90"/><line x1="326" y1="170" x2="340" y2="170"/>
+    <line x1="326" y1="250" x2="340" y2="250"/><line x1="326" y1="330" x2="340" y2="330"/>
+  </g>
+
+  <!-- HIPPED SLATE ROOF: four faces meeting a short north-south ridge.
+       North and west take the light; east and south sit in their shade.
+
+       ⛔ EACH FACE IS RAMPED, dark at the eave and light at the ridge, and
+       that is a deliberate lie worth keeping. Flat-shaded faces are what a
+       real hip roof looks like from straight above — and in-game they read
+       as an OPEN CRATE, because four flat quads meeting at a centre line is
+       equally a box seen into. Nothing about the drawing resolved which way
+       it pointed. The ramp puts the brightest pixels along the ridge, and
+       an edge that gets lighter as it rises is the one cue that says
+       CONVEX. (Measured in-game 2026-09-20: the flat version read as a
+       crate at both 0 and -1.2 rad.) -->
+  <defs>
+    <linearGradient id="millN" x1="0" y1="22" x2="0" y2="108" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4e555d"/><stop offset="1" stop-color="#8a949e"/>
+    </linearGradient>
+    <linearGradient id="millW" x1="22" y1="0" x2="175" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#454c54"/><stop offset="1" stop-color="#7c858f"/>
+    </linearGradient>
+    <linearGradient id="millE" x1="328" y1="0" x2="175" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2f353c"/><stop offset="1" stop-color="#5a616a"/>
+    </linearGradient>
+    <linearGradient id="millS" x1="0" y1="378" x2="0" y2="292" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#282d34"/><stop offset="1" stop-color="#4e555d"/>
+    </linearGradient>
+  </defs>
+  <polygon points="22,22 328,22 175,108" fill="url(#millN)"/>
+  <polygon points="22,22 175,108 175,292 22,378" fill="url(#millW)"/>
+  <polygon points="328,22 175,108 175,292 328,378" fill="url(#millE)"/>
+  <polygon points="22,378 328,378 175,292" fill="url(#millS)"/>
+
+  <!-- slate courses, running parallel to each eave -->
+  <g stroke="#2b3036" stroke-width="2.2" opacity="0.45">
+    <line x1="60" y1="43" x2="60" y2="357"/>
+    <line x1="98" y1="65" x2="98" y2="335"/>
+    <line x1="136" y1="86" x2="136" y2="314"/>
+    <line x1="290" y1="43" x2="290" y2="357"/>
+    <line x1="252" y1="65" x2="252" y2="335"/>
+    <line x1="214" y1="86" x2="214" y2="314"/>
+    <line x1="72" y1="50" x2="278" y2="50"/>
+    <line x1="122" y1="78" x2="228" y2="78"/>
+    <line x1="72" y1="350" x2="278" y2="350"/>
+    <line x1="122" y1="322" x2="228" y2="322"/>
+  </g>
+
+  <!-- the four hips and the ridge -->
+  <g stroke="#2b3036" stroke-width="4" opacity="0.9">
+    <line x1="22" y1="22" x2="175" y2="108"/>
+    <line x1="328" y1="22" x2="175" y2="108"/>
+    <line x1="22" y1="378" x2="175" y2="292"/>
+    <line x1="328" y1="378" x2="175" y2="292"/>
+  </g>
+  <!-- the ridge, the brightest line on the building: it is the top -->
+  <rect x="169" y="106" width="12" height="188" rx="5" fill="#97a1aa" stroke="#2b3036" stroke-width="3"/>
+  <rect x="171" y="109" width="5" height="182" fill="#b0b9c2" opacity="0.45"/>
+
+  <!-- NORTH gable: the sack-hoist bay, where grain comes up off the cart.
+       Its beam reaches out past the eave with the tackle still on it. -->
+  <rect x="140" y="20" width="70" height="26" rx="3" fill="#241d14" stroke="#2b3036" stroke-width="4"/>
+  <rect x="166" y="2" width="18" height="30" rx="4" fill="#5a4b3a" stroke="#2e2619" stroke-width="3.4"/>
+  <circle cx="175" cy="10" r="6" fill="#3f3a32" stroke="#23190f" stroke-width="2.6"/>
+
+  <!-- the wheel-pit spur walls: short stubs off the mill's east wall, so the
+       stonework belongs to the BUILDING and does not frame the wheel -->
+  <rect x="330" y="58" width="42" height="24" rx="4" fill="#7b7264" stroke="#433d34" stroke-width="5"/>
+  <rect x="330" y="318" width="42" height="24" rx="4" fill="#7b7264" stroke="#433d34" stroke-width="5"/>
+
+  <!-- THE WHEEL. Paddles FIRST and full width, so they overhang the shrouds
+       laid on top of them — that overhang is the comb silhouette. Spacing
+       from evenly-spaced points on a rim, projected: crowded at both ends,
+       open across the middle where the hub is. -->
+  <!-- the sole boards: the closed cylinder the paddles are pegged to, which
+       is also what stops the grass showing through the middle of the wheel -->
+  <rect x="382" y="78" width="46" height="244" rx="4" fill="#2f2618"/>
+  <g stroke="#3b3024" stroke-width="7" stroke-linecap="round">
+    <line x1="352" y1="80" x2="458" y2="80"/>
+    <line x1="352" y1="87" x2="458" y2="87"/>
+    <line x1="352" y1="99" x2="458" y2="99"/>
+    <line x1="352" y1="114" x2="458" y2="114"/>
+    <line x1="352" y1="132" x2="458" y2="132"/>
+    <line x1="352" y1="153" x2="458" y2="153"/>
+    <line x1="352" y1="176" x2="458" y2="176"/>
+    <line x1="352" y1="224" x2="458" y2="224"/>
+    <line x1="352" y1="247" x2="458" y2="247"/>
+    <line x1="352" y1="268" x2="458" y2="268"/>
+    <line x1="352" y1="286" x2="458" y2="286"/>
+    <line x1="352" y1="301" x2="458" y2="301"/>
+    <line x1="352" y1="313" x2="458" y2="313"/>
+    <line x1="352" y1="320" x2="458" y2="320"/>
+  </g>
+  <!-- the two shrouds (the wheel's rims), narrower than the paddles -->
+  <rect x="378" y="76" width="14" height="248" rx="5" fill="#6d5738" stroke="#241a0e" stroke-width="4"/>
+  <rect x="418" y="76" width="14" height="248" rx="5" fill="#4a3a22" stroke="#241a0e" stroke-width="4"/>
+
+  <!-- the axle, out of the mill wall and straight through the hub -->
+  <rect x="326" y="192" width="120" height="16" rx="6"
+        fill="#4a3b2a" stroke="#23190f" stroke-width="4"/>
+  <circle cx="405" cy="200" r="19" fill="#3a2d1d" stroke="#23190f" stroke-width="5"/>
+  <circle cx="400" cy="195" r="6" fill="#8b7757" opacity="0.5"/>
+
+  <!-- churn foam on the downstream flank — made by the wheel, so it is the
+       one piece of water this sprite is allowed to own -->
+  <g fill="#e3f0f5">
+    <ellipse cx="472" cy="118" rx="16" ry="9" opacity="0.5"/>
+    <ellipse cx="480" cy="160" rx="12" ry="7" opacity="0.4"/>
+    <ellipse cx="471" cy="206" rx="19" ry="10" opacity="0.55"/>
+    <ellipse cx="482" cy="252" rx="13" ry="8" opacity="0.42"/>
+    <ellipse cx="470" cy="296" rx="16" ry="9" opacity="0.5"/>
+    <ellipse cx="478" cy="330" rx="10" ry="6" opacity="0.32"/>
+    <ellipse cx="345" cy="238" rx="9" ry="6" opacity="0.3"/>
+    <ellipse cx="347" cy="288" rx="7" ry="5" opacity="0.24"/>
+  </g>
+</svg>

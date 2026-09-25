@@ -596,6 +596,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Wolf]: Mobs.Wolf,
     [AuraApi.EntityType.Bear]: Mobs.Bear,
     [AuraApi.EntityType.Boar]: Mobs.Boar,
+    [AuraApi.EntityType.AlphaBoar]: Mobs.AlphaBoar,
     [AuraApi.EntityType.Stag]: Mobs.Stag,
     [AuraApi.EntityType.EliteWolf]: Mobs.EliteWolf,
     [AuraApi.EntityType.Bramble]: Mobs.Bramble,
@@ -657,6 +658,32 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     // overlay from zone.props at load (DarknessOverlay.resetZone), never from
     // this snapshot, so there is nothing special about its render class.
     [AuraApi.EntityType.Torch]: Props.genericPropClasses.Torch,
+    // The farm buildings. Generic too — being the biggest props in the game
+    // is a matter of their authored body, not of a render class.
+    [AuraApi.EntityType.Barn]: Props.genericPropClasses.Barn,
+    [AuraApi.EntityType.Mill]: Props.genericPropClasses.Mill,
+    // The bandit-breadcrumb POI: Cart's wreck, a second sprite on the same body.
+    [AuraApi.EntityType.BurntCart]: Props.genericPropClasses.BurntCart,
+    // The gap in a fence. Generic — what makes it passable is its definition
+    // (`blocksMovement: false`), never a class.
+    [AuraApi.EntityType.Gate]: Props.genericPropClasses.Gate,
+    [AuraApi.EntityType.Stump]: Props.genericPropClasses.Stump,
+    // The forest set. Generic every one of them — a tree variant is a second
+    // DRAWING, not a second behaviour, and none of these needs the bespoke
+    // Tree class (whose only job is the resource-spot decal).
+    [AuraApi.EntityType.PineTree]: Props.genericPropClasses.PineTree,
+    [AuraApi.EntityType.Bush]: Props.genericPropClasses.Bush,
+    [AuraApi.EntityType.DeadTree]: Props.genericPropClasses.DeadTree,
+    [AuraApi.EntityType.FallenLog]: Props.genericPropClasses.FallenLog,
+    // Generic, like the Gate it shares a body with — what makes it passable is
+    // its definition (`blocksMovement: false`), never a class.
+    [AuraApi.EntityType.BrokenFence]: Props.genericPropClasses.BrokenFence,
+    // The village's third building, the camp wall, and the door to the
+    // underworld. Generic — what makes the cave mouth walkable is its
+    // definition (`blocksMovement: false`), never a class.
+    [AuraApi.EntityType.Cottage]: Props.genericPropClasses.Cottage,
+    [AuraApi.EntityType.Palisade]: Props.genericPropClasses.Palisade,
+    [AuraApi.EntityType.CaveMouth]: Props.genericPropClasses.CaveMouth,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

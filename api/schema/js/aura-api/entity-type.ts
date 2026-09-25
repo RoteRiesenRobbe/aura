@@ -71,5 +71,19 @@ export enum EntityType {
   Haystack = 81,
   Cart = 82,
   Well = 83,
-  Torch = 84
+  Torch = 84,
+  Barn = 85,
+  Mill = 86,
+  BurntCart = 87,
+  Gate = 88,
+  Stump = 89,
+  PineTree = 90,
+  Bush = 91,
+  DeadTree = 92,
+  FallenLog = 93,
+  BrokenFence = 94,
+  AlphaBoar = 95,
+  Cottage = 96,
+  Palisade = 97,
+  CaveMouth = 98
 }

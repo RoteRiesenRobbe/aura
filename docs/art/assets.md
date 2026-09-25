@@ -5,6 +5,23 @@
 > `node tools/asset-tracker.mjs`. Edit the CSV, or edit the Google Sheet and
 > export it back over the CSV.
 
+> ⚑ **`current_file` and `format` were WRONG FROM BIRTH — not drifted.**
+> Found 2026-09-24: **25 rows said `.svg` / `SVG`** — Tree, Boulder, Rock,
+> 13 mobs, Campfire + Camp and 7 NPCs. The painted PNGs had landed on
+> 2026-08-21 (`abe150ac`), a month *before* this tracker was created
+> (`2d99ba95`, 2026-09-16), and both files already sat side by side in the
+> tree at that commit. So the initial rows were sourced from something stale
+> (the old README tables, most likely) rather than from the real load paths,
+> and the error was copied forward. The 25 are corrected; **nothing else has
+> been audited.**
+>
+> ⭐ **Next iteration: assume any hand-typed column may never have been
+> right.** Both columns are still unchecked against disk. The audit is
+> mechanical — parse `client-data/Graphics.ts` + `api/props/*.json`
+> `sprite`, compare, fail `--check` on a mismatch — and it should sweep
+> **every** row once, not just watch future art commits. ⛔ Judge a row
+> against those load paths, never against "a .png exists next to it".
+
 **To share with an artist or musician:** Google Sheets → File → Import →
 Upload → `assets.csv` → *Replace current sheet*. Freeze the header row, filter
 on `kind` / `priority` / `state`, and hand over the tab. The `owner` and
@@ -14,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-09-22 from 219 rows.
+Rendered 2026-09-24 from 221 rows.
 
 ---
 
@@ -22,18 +39,18 @@ Rendered 2026-09-22 from 219 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 185 |
+| Art | 187 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
 
 | State | Rows | Means |
 | --- | ---: | --- |
-| ✅ drawn | 88 | has its own art today |
+| ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 25 | a placeholder file ships; it is not the real thing |
-| 🟡 stock | 11 | a stock/borrowed texture stands in (the pd* set) |
-| ❌ missing | 57 | nothing exists |
+| 🟡 placeholder | 40 | a placeholder file ships; it is not the real thing |
+| 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
+| ❌ missing | 44 | nothing exists |
 | ⚙️ code | 14 | drawn procedurally in code, no art file |
 | ⛔ blocked | 5 | cannot be delivered until engine work lands |
 | — n/a | 10 | a constraint or a number to judge, not a file to draw |
@@ -41,11 +58,11 @@ Rendered 2026-09-22 from 219 rows.
 | Priority | Rows | Rule |
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
-| **P1** | 52 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 69 | normal — placed but not everywhere |
+| **P1** | 53 | high — shared art, or 20+ placements, or a named gameplay gap |
+| **P2** | 70 | normal — placed but not everywhere |
 | **P3** | 67 | low — unplaced, deferred, or already fine |
 
-**107 rows need work** (missing, shared, placeholder, stock or blocked),
+**108 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -58,9 +75,9 @@ of which **11 are P0**:
 | ❌ | **bow (cast-pose)** | VFX | missing | Worn on the caster as the arrow leaves, aimed at the victim. Pairs with fxbody-arrow on the same three skills; without it the bow stays a code-drawn rectangle. Spec: §4. |
 | ❌ | **Ability icons** | UI | missing | ⭐ 59 authored abilities and not one icon. The ability bar, spellbook and every tooltip render text. Listed for sizing: after the mob roster this is the largest art job in the project, and the one players stare at constantly. |
 | 🟡 | **Forest** | Terrain profile | placeholder | Zone 2 base ground. GENERATED placeholder (tools/make-cellular-tiles.mjs): moss duff |
-| 🟡 | **Road** | Terrain profile | stock | Every road in the game. Borrows the desert tile (pd106). Dirt/packed earth wanted. |
+| 🟡 | **Road** | Terrain profile | placeholder | Every road in the game. GENERATED placeholder (tools/make-cellular-tiles.mjs, the cellular family's third tile): packed brown earth with two warm grades of pebble pressed into it and hairline dried-mud cracks, all of it DELIBERATELY QUIET. ⛔ It USED TO BORROW pd106, the DESERT tile, so every lane was golden sandstone - that was the whole brief. ⛑ Three faults worth not repeating, all of them only visible once the tile REPEATS: too few slow bed waves paint a diagonal corduroy stripe; a neutral-grey pebble reads BLUE against warm brown; and mud cracks as a ridged field make closed loops that read as worm trails until they are thin and faint. ⛔ NO CART RUTS - a rut is directional and would need alignTexture, which wants one path per straight leg, and all three Road paths are multi-point meanders. Ruts are a second tile. ⭐ It ships at a SIXTH of its first pass' detail (PO: reads a little messy) - a ground tile is looked THROUGH, not at, and every mark repeats nine times across a screen, so one that looks slightly empty alone is the one that is right in the world. Real art wanted. |
 | 🟡 | **Fog** | Atmosphere | placeholder | Haze 0.5 on a placeholder tile. Drifting suspended matter, nothing erases it but a clearing. |
-| ❌ | **Tree variant 2** | Prop | missing | Second tree silhouette. Tree is 74 % of all props and there is ONE drawing — variety here changes the world more than any other single asset. |
+| 🟡 | **Tree variant 2** | Prop | placeholder | ⭐ The second tree silhouette, and the rule it was drawn to: a variant must differ in SILHOUETTE, never just in colour - the eye counts outlines long before it compares hues. roundTree is a smooth circle, this is a SPIKED WHEEL (four concentric whorls of drooping branch tips, which is what a spruce is from straight above). Placeholder SVG, body r0.9 vs the round tree 1.0, collider half that (the trunk). ⛑ The tiers are concentric, NOT offset toward the light - nudging them up-left fakes height and draws a LEANING tree, so the depth is a radial gradient plus a shade crescent instead. Colder and darker than roundTree #21790f, but held light enough to survive the Canopy darkness 0.22. Generic prop, so no treeSpot decal (hidden under the crown anyway). |
 
 ---
 
@@ -72,28 +89,28 @@ of which **11 are P0**:
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
-| ✅ | **Wolf** | `wolf.svg` | P0 | 109 | 76–92 | ⭐ Most-placed mob in the game. Lean forest wolf hunting prey and players. Sets the baseline read for "enemy". |
-| ✅ | **DireWolf** | `direWolf.svg` | P1 | 43 | 96–112 | Heavier dark-forest wolf. Same bite; the step-up is pure stats. |
-| ✅ | **EliteWolf** | `eliteWolf.svg` | P2 | 9 | 112–128 | The "something big" the forest sign warns about. Gets a silver ring. |
-| ✅ | **AlphaWolf** | `alphaWolf.svg` | P2 | 16 | 116–136 | Apex of the line. Fast chaser near the village. |
-| ✅ | **Bear** | `bear.svg` | P2 | 16 | 140–164 | Slow heavy tank that rages below half HP — no visual tell for that yet. |
-| ✅ | **DireBear** | `direBear.svg` | P2 | 8 | 156–180 | Largest non-boss wildlife in the game. |
-| ✅ | **Boar** | `wildboar.svg` | P1 | 58 | 92–112 | Passive until hit, then gores. Must not look hostile — that's the point. |
-| ✅ | **Stag** | `stag.svg` | P1 | 35 | 84–100 | Bolts on any damage, drops nothing. Carries the peaceful-world tone. |
+| ✅ | **Wolf** | `wolf.png` | P0 | 109 | 76–92 | ⭐ Most-placed mob in the game. Lean forest wolf hunting prey and players. Sets the baseline read for "enemy". |
+| ✅ | **DireWolf** | `direWolf.png` | P1 | 43 | 96–112 | Heavier dark-forest wolf. Same bite; the step-up is pure stats. |
+| ✅ | **EliteWolf** | `eliteWolf.png` | P2 | 9 | 112–128 | The "something big" the forest sign warns about. Gets a silver ring. |
+| ✅ | **AlphaWolf** | `alphaWolf.png` | P2 | 16 | 116–136 | Apex of the line. Fast chaser near the village. |
+| ✅ | **Bear** | `bear.png` | P2 | 16 | 140–164 | Slow heavy tank that rages below half HP — no visual tell for that yet. |
+| ✅ | **DireBear** | `direBear.png` | P2 | 8 | 156–180 | Largest non-boss wildlife in the game. |
+| ✅ | **Boar** | `wildboar.png` | P1 | 58 | 92–112 | Passive until hit, then gores. Must not look hostile — that's the point. |
+| ✅ | **Stag** | `stag.png` | P1 | 35 | 84–100 | Bolts on any damage, drops nothing. Carries the peaceful-world tone. |
 | ✅ | **Spider** | `spider.svg` | P2 | 17 | 76–92 | Tunnel spider, lifesteal bite. Staged in daylight at the west mouth first. |
 | ✅ | **VenomSpider** | `venomSpider.svg` | P2 | 6 | 84–100 | Deep-dark poison. Must differ from Spider in near-darkness, 8 px apart. |
 | ✅ | **GiantSpider** | `giantSpider.svg` | P2 | 5 | 116–136 | Fastest normal mob in the game (0.95). Should look fast. |
-| ✅ | **Kobold** | `kobold.svg` | P1 | 20 | 60–72 | Weak swarm melee, flees at 25 %. Reads as a crowd — silhouette over detail. |
-| ✅ | **KoboldRanged** | `koboldRanged.svg` | P2 | 6 | 60–72 | Back-line volley. Same size as melee, so the drawing carries the difference. |
-| ✅ | **Bandit** | `bandit.svg` | P1 | 21 | 72–84 | The baseline human enemy. Blades + bleed. Never flees. |
+| ✅ | **Kobold** | `kobold.png` | P1 | 20 | 60–72 | Weak swarm melee, flees at 25 %. Reads as a crowd — silhouette over detail. |
+| ✅ | **KoboldRanged** | `koboldRanged.png` | P2 | 6 | 60–72 | Back-line volley. Same size as melee, so the drawing carries the difference. |
+| ✅ | **Bandit** | `bandit.png` | P1 | 21 | 72–84 | The baseline human enemy. Blades + bleed. Never flees. |
 | ✅ | **BanditRanged** | `banditRanged.svg` | P2 | 4 | 72–84 | Crossbow volley from behind the line. |
 | ✅ | **BanditHealer** | `banditHealer.svg` | P0 | 3 | 72–84 | ⭐ Never attacks; out-heals a solo player. The encounter assumes you can spot it in a crowd instantly. Highest readability need on the list. |
 | ✅ | **BanditPyromancer** | `banditPyromancer.svg` | P2 | 3 | 92–104 | Fire mage hanging back behind the melee. |
 | ✅ | **RallyDrummer** | `rallyDrummer.svg` | P0 | 1 | 88–100 | ⭐ Shields allies, never itself. Second kill-priority — same crowd problem. |
 | ✅ | **EliteBandit** | `eliteBandit.svg` | P2 | 1 | 100–116 | Camp leader, crits. Silver ring. |
-| ✅ | **Marauder** | `marauder.svg` | P2 | 10 | 88–104 | Veteran outlaw past the camp — with no elite frame to lean on. |
+| ✅ | **Marauder** | `marauder.png` | P2 | 10 | 88–104 | Veteran outlaw past the camp — with no elite frame to lean on. |
 | ✅ | **OrcGrunt** | `orcGrunt.svg` | P2 | 3 | 84–96 | Reinforcement wave add at the boss. |
-| ✅ | **Orc** | `orc.svg` | P0 | 12 | 104–120 | ⭐ Must read hostile while standing next to friendly soldiers. Faction contrast is the design job. |
+| ✅ | **Orc** | `orc.png` | P0 | 12 | 104–120 | ⭐ Must read hostile while standing next to friendly soldiers. Faction contrast is the design job. |
 | ✅ | **OrcWarlord** | `orcWarlord.svg` | P0 |  | 156–168 | ⭐ The world boss and the v1 completion beat. Only boss in the game. Gold ring. |
 | ✅ | **WarbannerTotem** | `warbannerTotem.svg` | P3 |  | 100–108 | Two banners make the boss invulnerable. Must read "break me" across an arena. |
 | ✅ | **ArmySoldier** | `armySoldier.svg` | P0 | 18 | 72–84 | ⭐ The only friendly combatant in the world. Currently the same size as a Bandit — the friend/foe read is entirely on the art. |
@@ -102,7 +119,7 @@ of which **11 are P0**:
 | ✅ | **Troll** | `troll.svg` | P2 | 6 | 128–144 | Solitary bruiser at the map outskirts. Nothing else in the world looks like it should. |
 | ✅ | **Turnip** | `turnip.svg` | P2 | 6 | 40–52 | Smallest sprite in the game. Immune to everything but Harvest. A plant you pull, not a creature you kill. |
 | ❌ | **Goblin** | — | P1 |  | 60–76 | Z2 Woodland — Named in the world bible beside Kobold; no definition and no art exist. Must read as a DIFFERENT species from Kobold at the same size, not a recolour. |
-| ❌ | **AlphaBoar** | — | P2 |  | 104–124 | Z1 Farmland — Elite tusker leading the sounder. Can ship as an entityType variant of Boar, but deserves its own silhouette — it is the first elite a new player meets. |
+| ✅ | **AlphaBoar** | `wildboar_alpha.png` | P2 |  | 104–124 | Z1 Farmland — Elite tusker leading the sounder, and the first elite a new player meets. It got its OWN silhouette rather than the entityType-variant shortcut this row used to allow — a mob whose only tell is the health bar is one the player cannot decide to avoid. Rendered at 52-62 (this column is DPR-2). Placement is the PO's: the mill POI takes exactly one. |
 | ❌ | **BanditLeader** | — | P2 |  | 100–116 | Z2 bandit camp — Named elite leading the Woodland camp. Content on top of EliteBandit — art optional, but a named antagonist with the generic elite face is a missed beat. |
 
 ## Hazard — 4
@@ -118,8 +135,8 @@ of which **11 are P0**:
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
-| ✅ | **Campfire** | `campfire.svg` | P0 | 5 | 120 | ⭐ The most important friendly object in the game — bind point, respawn point, heal, fast-travel node. Players navigate by these. |
-| ⚠️ | **Camp** | `campfire.svg` | P1 |  | 60 | Your own temporary fire. Size is currently the only cue it's temporary — own art is a gameplay fix, not polish. |
+| ✅ | **Campfire** | `campfire.png` | P0 | 5 | 120 | ⭐ The most important friendly object in the game — bind point, respawn point, heal, fast-travel node. Players navigate by these. |
+| ⚠️ | **Camp** | `campfire.png` | P1 |  | 60 | Your own temporary fire. Size is currently the only cue it's temporary — own art is a gameplay fix, not polish. |
 | ✅ | **Totem** | `totem.svg` | P3 |  | 100 | Stationary aura carrier. |
 | ✅ | **FireTotem** | `fireTotem.svg` | P3 |  | 100 | Identical size to Totem — they're siblings, differ by drawing only. |
 | ✅ | **Companion** | `companion.svg` | P3 |  | 80 | Design intent: reuses the Dog look. |
@@ -131,18 +148,18 @@ of which **11 are P0**:
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
-| ✅ | **Farmer** | `farmer.svg` | P0 |  |  | Z1 farm field — ⭐ The first NPC a player ever meets. Teaches Harvest; gives the first two quests. |
-| ✅ | **Hermit** | `hermit.svg` | P3 |  |  | Z1 village — The quest hub. Teaches First Aid, Heal, Calm, Charm Beast. |
-| ✅ | **TownCrier** | `townCrier.svg` | P3 |  |  | Z1 village centre — The village-arrival anchor. Teaches Recall. |
+| ✅ | **Farmer** | `farmer.png` | P0 |  |  | Z1 farm field — ⭐ The first NPC a player ever meets. Teaches Harvest; gives the first two quests. |
+| ✅ | **Hermit** | `hermit.png` | P3 |  |  | Z1 village — The quest hub. Teaches First Aid, Heal, Calm, Charm Beast. |
+| ✅ | **TownCrier** | `townCrier.png` | P3 |  |  | Z1 village centre — The village-arrival anchor. Teaches Recall. |
 | ✅ | **Dog** | `dogNpc.svg` | P3 |  |  | Z1 forest clearing — Says "Woof." Teaches Summon Companion. Only non-human talker. |
 | ✅ | **Miner** | `miner.svg` | P3 |  |  | Z1 tunnel west mouth — Teaches Pickaxe — the key handed out just before its lock. |
 | ✅ | **Wanderer** | `wanderer.svg` | P0 |  |  | Z1–2 roads — ⭐ The only NPC in the game that walks. Worth a walking pose. |
 | ✅ | **LamplessTraveller** | `traveller.svg` | P3 |  |  | Z1 tunnel road — Trades his lamp for kobold kills. The turn-in is the only source of the Lantern aura in the world. |
-| ⚠️ | **Lamplighter** | `hermit.svg` | P1 |  |  | Z1 deep NW forest — The forest hermit. Teaches Torch — carry your own light. |
-| ⚠️ | **Shaman** | `hermit.svg` | P1 |  |  | Z2 approach — Teaches Summon Totem, at his own fire. |
-| ⚠️ | **Emberkeeper** | `hermit.svg` | P1 |  |  | Z2 north — The fire ladder in one NPC: Torch → Ignite → Immolate. |
+| ⚠️ | **Lamplighter** | `hermit.png` | P1 |  |  | Z1 deep NW forest — The forest hermit. Teaches Torch — carry your own light. |
+| ⚠️ | **Shaman** | `hermit.png` | P1 |  |  | Z2 approach — Teaches Summon Totem, at his own fire. |
+| ⚠️ | **Emberkeeper** | `hermit.png` | P1 |  |  | Z2 north — The fire ladder in one NPC: Torch → Ignite → Immolate. |
 | ✅ | **VillageHealer** | `villageHealer.svg` | P3 |  |  | Z2 village campfire — Teaches Revive — the group-support capstone. |
-| ✅ | **CityGuard** | `cityGuard.svg` | P3 |  |  | Z2 City Gates — Teaches Strong. Gates shut while the front burns; Zone 3 teaser. |
+| ✅ | **CityGuard** | `cityGuard.png` | P3 |  |  | Z2 City Gates — Teaches Strong. Gates shut while the front burns; Zone 3 teaser. |
 | ✅ | **FrontCaptain** | `frontCaptain.svg` | P3 |  |  | Z2 front staging — Teaches Vanguard @L20. The last giver before the world boss — should look like the end of the road. |
 | ✅ | **ForestSign** | `signpost.svg` | P3 |  |  | Z1 dark-forest edge — "DANGER! STAY AWAY!" Points at the Elite Wolf — deliberately the only warning. |
 | ⚠️ | **AscensionStone** | `signpost.svg` | P0 |  |  | Z1 village — ⭐ The meta-progression altar, where a max-level character is spent. The game's most significant object currently looks like a road sign. Owes a site, not just a prop. |
@@ -150,44 +167,45 @@ of which **11 are P0**:
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 34
+## Prop — 35
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
-| ✅ | **Tree** | `roundTree.svg` | P0 | 573 | 492 | ⭐ Highest-value asset in the project. Every forest, farm edge, city street and tunnel approach. 2–4 variants would change the world's look more than anything else. Fixed rotation. |
+| ✅ | **Tree** | `roundTree.png` | P0 | 573 | 492 | ⭐ Highest-value asset in the project. Every forest, farm edge, city street and tunnel approach. 2–4 variants would change the world's look more than anything else. Fixed rotation. |
 | ✅ | **Tree ground spot** | `treeSpot.svg` | P0 | 573 | 344 | The dark decal under every tree — what makes it feel planted. Randomly rotated. Re-cut it if the tree silhouette changes. |
-| ⚠️ | **Boulder** | `stone.svg` | P0 | 116 | 456 | Large blocking rock. Shadow baked in, never rotated. |
-| ⚠️ | **Rock** | `stone.svg` | P1 | 52 | 192 | Same SVG as Boulder, just shrunk. Two real silhouettes = cheapest environment win after trees. |
+| ⚠️ | **Boulder** | `stone.png` | P0 | 116 | 456 | Large blocking rock. Shadow baked in, never rotated. |
+| ⚠️ | **Rock** | `stone.png` | P1 | 52 | 192 | Same SVG as Boulder, just shrunk. Two real silhouettes = cheapest environment win after trees. |
 | ✅ | **Mineral ground spot** | `stoneSpot.svg` | P0 | 168 | ~0.7× | The decal under every rock and boulder. |
 | ✅ | **House** | `house.svg` | P0 | 12 | 480 × 360 | ⭐ The only building in the game — the whole village is 12 copies. Aspect is load-bearing: anything not 4:3 visibly squashes. |
 | ✅ | **GateWall** | `gateWall.svg` | P1 | 24 | 288 × 288 | Rampart block for the city gate flanks and blocked roads. Must tile seamlessly — 24 sit shoulder to shoulder. |
-| ❌ | **Tree variant 2** | — | P0 |  |  | Second tree silhouette. Tree is 74 % of all props and there is ONE drawing — variety here changes the world more than any other single asset. |
+| 🟡 | **Tree variant 2** | `pineTree.svg` | P0 |  | 216 | ⭐ The second tree silhouette, and the rule it was drawn to: a variant must differ in SILHOUETTE, never just in colour - the eye counts outlines long before it compares hues. roundTree is a smooth circle, this is a SPIKED WHEEL (four concentric whorls of drooping branch tips, which is what a spruce is from straight above). Placeholder SVG, body r0.9 vs the round tree 1.0, collider half that (the trunk). ⛑ The tiers are concentric, NOT offset toward the light - nudging them up-left fakes height and draws a LEANING tree, so the depth is a radial gradient plus a shade crescent instead. Colder and darker than roundTree #21790f, but held light enough to survive the Canopy darkness 0.22. Generic prop, so no treeSpot decal (hidden under the crown anyway). |
 | ❌ | **Tree variant 3** | — | P1 |  |  | Third tree silhouette. |
-| ❌ | **Dead tree** | — | P1 |  |  | Bare//dead trunk for the Woodland deep wood and blighted edges. |
-| ❌ | **Stump** | — | P2 |  |  | Z1 — Cut stump. Reads as "people work here" at a farm edge and as decay in the forest. |
-| ❌ | **Fallen log** | — | P2 |  |  | Lying trunk. Also the cheapest non-blocking landmark in a lane. |
-| ❌ | **Bush** | — | P1 |  |  | Shrub filler between trees. Non-blocking — fills space without adding colliders. |
+| 🟡 | **Dead tree** | `deadTree.svg` | P1 |  | 228 | ⭐ The strongest silhouette in the forest set, and it is free: a LIVING tree from above is an opaque disc of leaves that hides its own structure, and a dead one IS the structure - the only forest prop that is neither round nor green. ⭐ The CAST SHADOW is the asset, not decoration: a flat branch diagram on flat ground reads as a crack in the earth, so the same limb geometry is drawn twice through <use> (never copied - a shadow out of step with its branches is worse than none), plus a third scaled-up pass for the dark outline, because a <use> cannot widen the strokes it references. ⛔ Collider 0.33 against a 0.95 visual - BRANCHES ARE AIR; blocking to the drip line would make it the most obstructive prop in the game while looking like the most passable. Grey-brown not black, to survive Canopy 0.22. ⛔ Plain href, never xlink:href - see pipeline.md 2. Placeholder SVG. |
+| 🟡 | **Stump** | `stump.svg` | P2 |  | 132 | Z1 — Cut stump - reads as people work here at a farm edge and as decay in the forest. Placeholder SVG (body r0.55, collider 0.41: the root flare and the chips are art, not obstacle). ⭐ It has to say CUT, not BROKEN, and the rings do not do that - three things do: the FELLING NOTCH biting in from the rim (a snapped tree has a ragged spike, a felled one a clean V), the SAW KERF (straight parallel lines at one angle, indifferent to the centre, crossing the concentric rings), and the CHIPS thrown onto the grass. Rings are 2px off-centre or they read as a machined target. ⛔ The thick DARK BARK RING is load-bearing: haystack.svg was misread as a stump once, because a pale disc with radial lines IS a stump - the rim is what tells them apart. |
+| 🟡 | **Fallen log** | `fallenLog.svg` | P2 |  | 288 x 84 |  |
+| 🟡 | **BrokenFence** | `brokenFence.svg` | P1 |  | 240 x 192 | Z1 |
+| 🟡 | **Bush** | `bush.svg` | P1 |  | 108 | The understorey - trees with nothing between them is an orchard. ⭐ NON-BLOCKING by definition, which IS the asset: the only forest filler that can be scattered by the hundred without adding a collider. A placement can still override it. ⛔ The hard part is that it must not read as a SMALL TREE, and size does not achieve that - three things do: no centre (the lobes are off-balance, the pale one up-left; centre the highlight and it is a sapling), a lumpy outline (five overlapping lobes with leaf marks straddling the rim), and a warmer yellower green than either tree. Placeholder SVG, body r0.45. |
 | ❌ | **Fern** | — | P2 |  |  | Z2 — Forest-floor filler, Zone 2. |
 | 🟡 | **Haystack** | `haystack.svg` | P1 |  | 204 | Z1 — Farmland vocabulary. Zone 1. Placeholder SVG (body r0.85): ragged straw mound, top-down. The first draft read as a TREE STUMP - a clean circle, concentric rings and even radial lines are growth rings; irregularity is what makes it straw. |
-| 🟡 | **Cart** | `cart.svg` | P1 |  | 264x156 | Z1 — Farm cart. Doubles as the burnt-cart POI when wrecked. Placeholder SVG (body 2.2x1.3 rect; the viewBox carries the aspect, like house.svg). The shaft points WEST in every placement - rect props never rotate. |
-| ❌ | **Burnt cart** | — | P1 |  |  | Z1 — The bandit breadcrumb POI in Zone 1 — the story beat with no mob attached. |
+| 🟡 | **Cart** | `cart.svg` | P1 |  | 264x156 | Z1 — Farm cart. Doubles as the burnt-cart POI when wrecked. Placeholder SVG (body 2.2x1.3 rect; the viewBox carries the aspect, like house.svg). The shaft points WEST in the art; a rect prop turns with its collider (plan-prop-scale.md C2b), so rotate the placement to aim it. |
+| 🟡 | **Burnt cart** | `burntCart.svg` | P1 |  | 264x156 | Z1 |
 | ❌ | **Plough** | — | P2 |  |  | Z1 — Farmland dressing. |
 | 🟡 | **Well** | `well.svg` | P1 |  | 168 | Z1 — Village centre landmark. Placeholder SVG (body r0.7): stone ring, open shaft, thin winding beam. No roof - it would hide the hole that identifies it. |
 | ❌ | **Trough** | — | P3 |  |  | Z1 — Farmyard dressing. |
-| ❌ | **Barn** | — | P1 |  |  | Z1 — Second building type. The village is 12 copies of House today. |
-| ❌ | **Cottage variant** | — | P1 |  |  | Z1 — Third building type, so the village stops being one sprite tiled. |
-| ❌ | **Mill** | — | P2 |  |  | Z1 — The Zone 1 river POI. A landmark, not scatter. |
+| 🟡 | **Barn** | `barn.svg` | P1 |  | 720x480 | Z1 |
+| 🟡 | **Cottage variant** | `cottage.svg` | P1 |  | 360 x 312 | Z1 — ⭐ The village's third building, so it stops being 12 copies of House. It separates from house.svg on MATERIAL first and shape second: the house is a TILED GABLE (two red rectangles either side of one long ridge, straight courses ruled across), this is a THATCHED HIP (four soft straw faces to a short ridge, pale gold, no straight line anywhere). Two buildings can share a footprint and still not be confusable if they are made of different stuff. ⭐ The RAGGED EAVE is the tell a tiled roof can never have - thatch frays rather than ends, drawn as a heavy DASHED stroke round the eave line so each dash is a bundle of straw ends. ⛑ Four separate gradients, one per face, dark at the eave and pale at the ridge: a hipped roof painted flat reads as an OPEN CRATE looked into from above, which is exactly what mill.svg had to be re-cut for. ⛑ Smaller and squarer than the house (3.0x2.6 vs 4x3) - hip a long rectangle and the ridge grows until it is a gable again. Stone chimney oversized on purpose: a thatched cottage needs its fire to be visibly non-flammable. Placeholder SVG. |
+| 🟡 | **Mill** | `mill.svg` | P2 |  | 600x480 | Z1 |
 | ❌ | **Bridge deck** | — | P1 |  |  | Z1 — The river crossing. ⚑ Must author crossesPaths:true and blocksMovement:false — both, or it walls its own deck (plan-world-paths L9). |
 | 🟡 | **Fence post** | `fencePost.svg` | P2 |  | 53 | Terminates hedgerow/fence paths, which have no end-cap art. Placeholder SVG (body r0.22): the post END GRAIN, seen top-down. No rail stubs - a path leaves in any direction and a prop rotation is never applied. |
-| ❌ | **Gate** | — | P2 |  |  | Z1 — Field gate on the fence line. |
-| ❌ | **Palisade segment** | — | P1 |  |  | Z2 — Bandit camp wall, Zone 2. Must tile — several sit shoulder to shoulder. |
+| 🟡 | **Gate** | `gate.svg` | P2 |  | 240x192 | Z1 |
+| 🟡 | **Palisade segment** | `palisade.svg` | P1 |  | 288 x 96 | Z2 |
 | ❌ | **Tent** | — | P2 |  |  | Z2 — Bandit camp. |
 | 🟡 | **Crate** | `crate.svg` | P3 |  | 108 | Z1 — Camp/village clutter. Placeholder SVG (body 0.9x0.9 rect): lid boards, iron banding, top-down. |
 | 🟡 | **Torch** | `torch.svg` | P1 |  | 62 | Z1 — The only prop that EMITS LIGHT. Half a campfire radius (3.5 u), punched into the darkness overlay from zone.props at load - never streamed, or a dark pocket pops lit the moment the torch enters the viewport. Placeholder SVG (body r0.26, about a player wide): a tiny campfire from above, palette lifted from mobs/campfire.svg. Draws at 62 px: doubled from r0.13 on 2026-09-20 because a torch is the one small prop a player looks at. |
 | ❌ | **Signpost art** | — | P1 |  |  | Z2 — ForestSign exists as an NPC but wears signpost.svg alongside three monuments — see the shared-art warning. |
 | ❌ | **Mushroom cluster** | — | P3 |  |  | Z2 — Forest floor dressing, Zone 2. |
 | ❌ | **Mossy rock** | — | P2 |  |  | Z2 — Rock variant for the forest. Rock and Boulder are the same SVG scaled. |
-| ❌ | **Cave mouth frame** | — | P1 |  |  | Z2 — The tunnel entrance in Zone 2 — currently boulders. The door to the underworld deserves to read as a door. |
+| 🟡 | **Cave mouth frame** | `caveMouth.svg` | P1 |  | 360 x 288 | Z2 |
 
 ## Ground decal — 16
 
@@ -264,7 +282,7 @@ of which **11 are P0**:
 | ✅ | **Settings icon** | `settings-icon.svg` | P3 |  |  | Gear. |
 | ✅ | **Day cycle icon** | `cycle-icon.svg` | P3 |  |  | Day/night indicator — the cycle is switched off at config level, so this is dark code. |
 
-## Terrain profile — 23
+## Terrain profile — 24
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -287,7 +305,8 @@ of which **11 are P0**:
 | 🟡 | **Mountains** | `pd196.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #736d66. All numbers [PLACEHOLDER]. |
 | ❌ | **Ice** | — | P2 |  | seamless tile, 512² suggested | No texture — flat colour. |
 | 🟡 | **Wall** | `wall-placeholder.png` | P2 |  | seamless tile, 512² suggested | Worn by polygon outlines and blocking masses. GENERATED placeholder (tools/make-cellular-tiles.mjs): fieldstone courses of varied height with mortar joints. At scale 1 a stone is ~0.69 u |
-| 🟡 | **Road** | `pd106.jpg` | P0 |  | seamless tile, 512² suggested | Every road in the game. Borrows the desert tile (pd106). Dirt/packed earth wanted. |
+| 🟡 | **Fence** | `fence-placeholder.png` | P2 |  | RGBA tile 750x96 | Z1 — ⭐ The FIRST directional tile: WRONG unless its path authors alignTexture true, which turns the tile along the path AND registers it across the path. Generated by tools/make-fence-tile.mjs, the fifth technique family. ⛔ The first cut was OPAQUE and read as a boardwalk (PO: not like a fence at all) - because registration did not exist yet, so nothing could sit at a known height across the ribbon, and A FENCE IS MOSTLY GAPS. It is now RGBA, alone among the ground tiles: a thin rail with posts standing proud of it and grass showing through. ⚑ The tile PIXEL HEIGHT is load-bearing - fence in the middle 48 of 96 rows, so width 0.40 reveals exactly the fence; safe to 0.80. Posts every 2.08 u. No baked shadow (the tile turns with its path). Author one path per straight leg. |
+| 🟡 | **Road** | `road-placeholder.png` | P0 |  | seamless tile 750² | Every road in the game. GENERATED placeholder (tools/make-cellular-tiles.mjs, the cellular family's third tile): packed brown earth with two warm grades of pebble pressed into it and hairline dried-mud cracks, all of it DELIBERATELY QUIET. ⛔ It USED TO BORROW pd106, the DESERT tile, so every lane was golden sandstone - that was the whole brief. ⛑ Three faults worth not repeating, all of them only visible once the tile REPEATS: too few slow bed waves paint a diagonal corduroy stripe; a neutral-grey pebble reads BLUE against warm brown; and mud cracks as a ridged field make closed loops that read as worm trails until they are thin and faint. ⛔ NO CART RUTS - a rut is directional and would need alignTexture, which wants one path per straight leg, and all three Road paths are multi-point meanders. Ruts are a second tile. ⭐ It ships at a SIXTH of its first pass' detail (PO: reads a little messy) - a ground tile is looked THROUGH, not at, and every mark repeats nine times across a screen, so one that looks slightly empty alone is the one that is right in the world. Real art wanted. |
 | 🟡 | **Water** | `water-placeholder.png` | P1 |  | seamless tile, 512² suggested | Rivers and ponds. Placeholder PNG. Drift is authored; the tile is not. |
 | 🟡 | **Bog** | `bog-placeholder.png` | P2 |  | seamless tile, 512² suggested | Swamp water. Placeholder PNG. First area-effect consumer when that ships. |
 | 🟡 | **Lava** | `lava-placeholder.png` | P3 |  | seamless tile, 512² suggested | Placeholder PNG. No zone authors it yet. |

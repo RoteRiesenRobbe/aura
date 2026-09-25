@@ -1,0 +1,68 @@
+{
+  "_comment": "The player's UNCLE and the game's first gathering teacher (content-zone-design-guide.md §2.0), one of the two parallel errands in the opening arc `dinner-for-the-family`. Standing talkable-NPC shape from miller.json — faction townsfolk, collisionLayer 97 (deliberately NOT Action(2)), mask 16, role creature + speed 0 (D4), xpFactor 0, aggroRadius 1.0 inert behind interaction.range 2.0. ⭐ TEACHES Harvest @L1, and here it is LOAD-BEARING rather than optional: the Beet authors the same `{\"*\": 0, gateKeys: [harvest]}` lock as the Turnip, so no combat aura can touch one and the arc's beet objective is UNFINISHABLE until Harvest is learned. That makes him the first NPC in the game the player cannot skip. ⚑ Reinhard down the road also teaches Harvest @L1 for his turnip chore — kept on purpose, because a player who somehow reaches the farm first must not be stuck; the two-teacher precedent is Torch's. ⭐ An `advice` info row hangs off root, ungated — durable character, not quest state (the content-npcs.md rule). ⭐ His `beets` node carries the one piece of MECHANICAL advice the arc gives: Harvest is an active aura, so it must be SWITCHED ON in place of the Damage aura, and it reaches only the nearest beet. ⚑ NO QUEST ROWS — the arc's `gather` stage carries a `talk_to` objective on him, satisfied by opening the panel. ⛑ entityType Farmer is a DELIBERATE REUSE and placeholder art. ⚑ TEXT HAS A VOICE, by PO ask 2026-09-23 — the opening family is the one exception to the plain-text pass (PO 2026-08-02): he is quirky, gives life advice and harvesting advice, and ends every piece of advice with 'Always remember this.' The PLAYER'S rows stay on the plain conventions ('Do you have a task for me?', 'Teach me something.', a teach row names its skill) so the panel reads the same as everywhere else. ⚑ UNPLACED: the PO places the spawn in the editor. All values [PLACEHOLDER].",
+  "id": 83,
+  "name": "Benjamin",
+  "type": "MOB",
+  "entityType": "Farmer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": { "baseMaxHealth": 200, "xpFactor": 0, "speed": 0 },
+  "body": { "radius": 0.35, "collisionLayer": 97, "collisionMask": 16, "aggroRadius": 1 },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          "Ah! My brother's child! Eliza sent you for beets, didn't she? She always sends someone for beets.",
+          "A beet is a very honest vegetable. Always remember this."
+        ],
+        "options": [
+          { "text": "Teach me something.", "next": "teachings" },
+          { "text": "Can't I just pull them up?", "next": "beets" },
+          { "text": "Any advice?", "next": "advice" }
+        ]
+      },
+      {
+        "id": "teachings",
+        "lines": [
+          "Oh, a student! Wonderful. Sit. No, stand. Harvesting is done standing. Always remember this."
+        ],
+        "options": [
+          {
+            "text": "Harvest",
+            "grants": [
+              {
+                "kind": "teach_skill",
+                "skill": "Harvest",
+                "requiredLevel": 1,
+                "line": "I'll teach you Harvest. Swinging at a beet does nothing; you have to ask it nicely. Always remember this."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "beets",
+        "lines": [
+          "Pull them up? With those hands? The beet will laugh at you.",
+          "Learn Harvest, then make it your active aura. You can only wear one at a time, so put your fists away first.",
+          "Stand close. Harvest reaches the nearest beet and nothing further, one at a time. Always remember this."
+        ],
+        "options": []
+      },
+      {
+        "id": "advice",
+        "lines": [
+          "If you're lost, follow the road. Roads were built by people who knew where they were going.",
+          "Never trust a man who doesn't like soup. Always remember this.",
+          "And write to your mother. She worries."
+        ],
+        "options": []
+      }
+    ]
+  }
+}

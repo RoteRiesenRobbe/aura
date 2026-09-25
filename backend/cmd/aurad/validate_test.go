@@ -91,7 +91,7 @@ func TestRunValidate_IndependentStagesBothReportAndDependentsSkip(t *testing.T) 
 // broken validator: same exit code an unloadable file gets.
 func TestValidateMain_MissingContentDirIsAFinding(t *testing.T) {
 	var out bytes.Buffer
-	code := validateMain(&out, filepath.Join(t.TempDir(), "nope"), "")
+	code := validateMain(&out, filepath.Join(t.TempDir(), "nope"), "", false)
 	assert.Equal(t, validateExitFindings, code)
 	assert.Contains(t, out.String(), "content: ")
 }

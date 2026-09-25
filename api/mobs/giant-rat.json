@@ -1,0 +1,28 @@
+{
+  "_comment": "Zone 1 barn vermin (content-zone-design-guide.md §2.4), the target of Reinhard's `giant-rats-in-the-barn`. ⭐ 'BETWEEN BOAR AND WOLF' IS A THREAT PROFILE, NOT A CURVE SLOT — both of those author curveLevel 2, so there is no level gap to sit in and this one is cL2 as well. What sits between them is everything else: speed 0.62 (Boar 0.55, Wolf 0.7), aggroRadius 2.2 (Boar 1.5, Wolf 3) and body radius 0.25 (Boar 0.4, Wolf 0.3). ⚑ It is AGGRESSIVE, which is the half it takes from the wolf: faction wildlife_predator, so it hunts the player rather than waiting to be provoked like the prey-faction Boar. baseMaxHealth 45 is BELOW both on purpose — a rat is not a duel, it is a barn full of them, and the quest asks for 8. Its RatBite is faster and weaker per bite than WolfBite (5 HP/22t vs 6 HP/24t), capped at maxTargets 1 per the one-target ruling. No drops: vermin pay XP and nothing else. ⛑ ART IS OWED AND THE PLACEHOLDER IS DELIBERATE: entityType NpcPlaceholder draws the red '?' on a purple disc, because a new EntityType needs `api/schema/make.sh` and flatc is not installed on this box. Do NOT ship it to players like this — the follow-up is enum append at the END of server.fbs, ./make.sh, giantRat.svg, a render class and ONE gameObjectClasses line (a missing entry is a tsc error, not a silent desync). ⚑ Reusing Boar or Wolf art instead would have been worse: it would read as that animal and the barn fight would lie about what is in it. All values [PLACEHOLDER].",
+  "id": 86,
+  "name": "GiantRat",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "faction": "wildlife_predator",
+  "tier": "normal",
+  "curveLevel": 2,
+  "factors": {
+    "baseMaxHealth": 45,
+    "maxHealthVariance": 0.1,
+    "speed": 0.62,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 2,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 120,
+    "idleDwellMaxTicks": 500
+  },
+  "body": {
+    "radius": 0.25,
+    "aggroRadius": 2.2
+  },
+  "skills": [
+    { "skillName": "RatBite", "level": 1 }
+  ]
+}

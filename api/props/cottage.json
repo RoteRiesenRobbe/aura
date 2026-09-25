@@ -1,0 +1,6 @@
+{
+  "name": "Cottage",
+  "entityType": "Cottage",
+  "sprite": "cottage.svg",
+  "body": { "width": 3, "height": 2.6 }
+}

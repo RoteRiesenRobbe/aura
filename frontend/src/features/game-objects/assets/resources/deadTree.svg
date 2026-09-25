@@ -1,0 +1,124 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Placeholder DEAD TREE art (docs/art/assets.csv prop-dead-tree): the bare
+       trunk for the deep wood and the blighted edge.
+
+       ⭐ THIS IS THE STRONGEST SILHOUETTE IN THE FOREST SET, and it costs
+       nothing to get: a living tree from above is an opaque disc of leaves
+       that HIDES its own structure, and a dead one is the structure. So it is
+       the only forest prop that is neither round nor green, which is exactly
+       what one part of a wood needs to stop looking like every other part.
+
+       ⭐ THE CAST SHADOW IS THE ASSET, not decoration. A flat brown branch
+       diagram on flat ground reads as a crack in the earth or a painted rune.
+       Offsetting the SAME limb geometry down-right in black is the whole of
+       the 3-D read, which is why the limbs live in `<defs>` and are drawn
+       TWICE through `<use>` rather than copied: a shadow that has drifted out
+       of step with the branches casting it is worse than none.
+
+       ⛔ THE COLLIDER IS TINY — 0.33 u against a 0.95 u visual
+       (collisionFactor 0.35). Branches are AIR. A dead tree that blocks out
+       to its own drip line would be the most obstructive prop in the game
+       while looking like the most passable, and a player would be stopped by
+       a gap they can see through.
+
+       ⚑ Grey-brown, never black: at the Canopy darkness (0.22) a near-black
+       prop on dark ground disappears entirely, and this one is meant to be a
+       landmark.
+
+       ⚑ Generic prop, so no `treeSpot` decal — and here that is right rather
+       than merely harmless: the spot is leaf litter, and a dead tree has no
+       leaves to have dropped.
+
+       Circle body r 0.95, square viewBox, so the SVG bake needs no
+       `preserveAspectRatio` (see house.svg and a95a2f0d for when it does).
+       Light from the top-left, like everything else here. -->
+
+  <defs>
+    <!-- ⭐ ONE definition, drawn twice. `<use>` inherits the stroke colour set
+         on the reference, and each path keeps its own stroke-width, so the
+         taper survives while the colour does not.
+
+         ⛔ PLAIN `href`, NEVER `xlink:href`, and this cost the first version of
+         this file: `xlink:` is a NAMESPACE PREFIX, so using it without
+         `xmlns:xlink` on the root makes the document not well-formed XML. The
+         browser then fails the whole parse and the prop does not load at all —
+         `[Loader.load] Failed to load data:image/svg+xml,...`, which names the
+         data URI and not the attribute, so it reads like an encoding problem.
+         ⚑ roundTree.svg and stone.svg DO carry the xlink form, which is what
+         makes it easy to copy: they are machine exports and they declare the
+         namespace. Plain `href` is SVG 2, needs no declaration, and is what
+         every browser this ships to resolves. -->
+    <g id="deadLimbs" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <!-- five primaries out of the trunk, each forking once or twice.
+           ⚑ Deliberately UNEVEN in length and spacing: five limbs at equal
+           angles is a snowflake, and a snowflake is not a tree. -->
+      <path d="M100,100 L74,74 L52,58" stroke-width="13"/>
+      <path d="M74,74 L58,80 L40,80" stroke-width="8"/>
+      <path d="M52,58 L46,40" stroke-width="6"/>
+      <path d="M52,58 L32,50" stroke-width="5"/>
+
+      <path d="M100,100 L128,80 L154,66" stroke-width="12"/>
+      <path d="M128,80 L140,60 L146,42" stroke-width="7"/>
+      <path d="M154,66 L172,60" stroke-width="5"/>
+      <path d="M154,66 L166,80" stroke-width="4.5"/>
+
+      <path d="M100,100 L118,128 L130,152" stroke-width="11"/>
+      <path d="M118,128 L142,138 L160,140" stroke-width="7"/>
+      <path d="M130,152 L124,172" stroke-width="5"/>
+      <path d="M160,140 L176,134" stroke-width="4"/>
+
+      <path d="M100,100 L78,124 L62,146" stroke-width="10"/>
+      <path d="M78,124 L56,126 L38,120" stroke-width="6.5"/>
+      <path d="M62,146 L66,168" stroke-width="4.5"/>
+      <path d="M38,120 L24,126" stroke-width="3.5"/>
+
+      <path d="M100,100 L104,72 L96,48" stroke-width="9"/>
+      <path d="M104,72 L122,56" stroke-width="5.5"/>
+      <path d="M96,48 L102,28" stroke-width="4"/>
+      <path d="M96,48 L80,34" stroke-width="3.5"/>
+    </g>
+  </defs>
+
+  <!-- THE CAST SHADOW: the same limbs, down-right, soft and weak -->
+  <g transform="translate(9,10)" opacity="0.30">
+    <use href="#deadLimbs" stroke="#000000"/>
+    <ellipse cx="100" cy="100" rx="26" ry="24" fill="#000000"/>
+  </g>
+
+  <!-- ⭐ THE DARK OUTLINE PASS, and the trick is worth keeping: a `<use>`
+       CANNOT widen the strokes it references, because stroke-width is set per
+       path inside the group. Scaling the whole reference up ~5 % about the
+       centre widens every limb proportionally instead, which is exactly the
+       outline wanted — and it stays in step with the limbs for free, the same
+       reason the shadow is a `<use>` and not a copy. Without it a limb reads
+       as a bent WIRE rather than as wood. -->
+  <g transform="translate(100,100) scale(1.055) translate(-100,-100)">
+    <use href="#deadLimbs" stroke="#2a2218"/>
+  </g>
+  <use href="#deadLimbs" stroke="#4a3d2d"/>
+
+  <!-- The lit flank — hand-placed for the same stroke-width reason, and only
+       down the up-left side of the four biggest limbs, which is where the
+       light is anyway. -->
+
+  <g fill="none" stroke="#7a6749" stroke-linecap="round" opacity="0.75">
+    <path d="M92,92 L72,70 L54,56" stroke-width="3.4"/>
+    <path d="M108,94 L128,76 L152,63" stroke-width="3"/>
+    <path d="M96,106 L76,120 L61,142" stroke-width="2.6"/>
+    <path d="M98,94 L102,70 L95,50" stroke-width="2.4"/>
+  </g>
+
+  <!-- THE TRUNK, seen end-on from above: a broken-off top, so the eye is
+       looking down into splintered heartwood rather than at a sawn disc. -->
+  <circle cx="100" cy="100" r="25" fill="#4a3c2c" stroke="#2c2318" stroke-width="3"/>
+  <circle cx="98" cy="98" r="17" fill="#6a5740"/>
+  <!-- splinters standing up out of the break -->
+  <g fill="#8a7454" stroke="#3a2f22" stroke-width="1.6" stroke-linejoin="round">
+    <path d="M98,98 L112,84 L116,96 Z"/>
+    <path d="M98,98 L86,82 L96,80 Z"/>
+    <path d="M98,98 L84,110 L92,116 Z"/>
+    <path d="M98,98 L114,108 L106,116 Z"/>
+  </g>
+  <!-- the heart, rotted out — a dead standing trunk is usually hollow -->
+  <ellipse cx="99" cy="99" rx="6" ry="5.2" fill="#241c13"/>
+</svg>

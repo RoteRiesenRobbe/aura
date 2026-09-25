@@ -1,0 +1,23 @@
+{
+  "_comment": "The flock — ordinary pasture scenery, and the thing Baabara, Woolliam and Lambert wandered off from. Same body as the three named strays (faction townsfolk so player damage skips it, collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) and deliberately NOT Action(2) so no aura can target it, mask 16 = Border only, role creature + speed 0, xpFactor 0 to keep it off the nameplate path), so a player cannot kill the shepherd's livestock any more than they can kill him. ⭐ IT AUTHORS NO `interaction`, AND THAT IS THE WHOLE DESIGN (PO 2026-09-20): the flock says nothing, so the three sheep that DO answer are exactly the three `the-strays` wants. The player finds them by walking up to sheep and seeing which one has an interact badge — which is the quest's search made mechanical instead of narrated, and it costs no engine work at all. ⚑ It is therefore NOT a conversant and is absent from the interaction census by design; it is only in the role and xpFactor censuses. ⚑ Place as many as the pasture wants — unlike the named three, this one is a species and repeats freely. ⛑ entityType Stag is a DELIBERATE REUSE and placeholder art, matching the named three; all four earn their own sprite at the Zone 1 art pass. All values [PLACEHOLDER].",
+  "id": 78,
+  "name": "Sheep",
+  "type": "MOB",
+  "entityType": "Stag",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1.0
+  },
+  "skills": []
+}

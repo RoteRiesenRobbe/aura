@@ -1,0 +1,119 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" preserveAspectRatio="none">
+  <!-- Placeholder barn art: TRUE top-down, so what you see is almost entirely
+       ROOF — the same honest view house.svg takes.
+
+       ⚑ The whole job of this sprite is to NOT read as a second House, and at
+       the distance the camera sits that is decided by SILHOUETTE long before
+       it is decided by colour. Four cues, in the order they survive being
+       small:
+         1. SIZE and ASPECT — 6x4 against the house's 4x3, so it is half again
+            as long and the biggest thing in the village.
+         2. The LEAN-TO down the north side. This is the strongest one and it
+            was added after the first draft rendered: a barn under a single
+            symmetric roof is just a long house, because the eye reads the
+            RIDGE POSITION, and a centred ridge is what a house has. The
+            lean-to pushes the main ridge off-centre and puts a second, lower
+            roof plane along one flank — a shape no dwelling has.
+         3. The GAMBREL break. A house roof is one slope per side; a barn roof
+            kinks, so each side of the main roof shows TWO bands.
+         4. TWO RIDGE CUPOLAS, each a miniature gabled roof of its own.
+            Nothing else in the game has a small roof sitting on a roof.
+       ⛔ Colour is deliberately LAST: the house is already a warm terracotta,
+       so barn-red alone would be a shade difference and nothing more.
+
+       ⚑ A rect prop's body and sprite both carry the authored rotation
+       (plan-prop-scale.md C2b), so this can be turned to face a road — its
+       baked shadow turns with it, which is the price. The viewBox aspect MUST
+       stay 3:2 to match api/props/barn.json: Props.ts stretches the sprite to
+       the body box, so a mismatch shears the art. -->
+
+  <!-- ground shadow, offset down-right (light from the top-left) -->
+  <rect x="20" y="20" width="576" height="376" rx="12" fill="#000000" opacity="0.26"/>
+
+  <!-- the walls, seen only as the sliver of timber past the eaves -->
+  <rect x="6" y="6" width="576" height="376" rx="10"
+        fill="#4a3524" stroke="#2b1f14" stroke-width="7"/>
+
+  <!-- THE LEAN-TO: a shallow single pitch down the north flank, roofed in
+       weathered board rather than tile because it was added to the barn
+       later, the way every real one was. -->
+  <rect x="18" y="18" width="552" height="68" fill="#8a6a50"/>
+  <g stroke="#4f3a28" stroke-width="3" opacity="0.5">
+    <line x1="90" y1="20" x2="90" y2="84"/><line x1="162" y1="20" x2="162" y2="84"/>
+    <line x1="234" y1="20" x2="234" y2="84"/><line x1="306" y1="20" x2="306" y2="84"/>
+    <line x1="378" y1="20" x2="378" y2="84"/><line x1="450" y1="20" x2="450" y2="84"/>
+    <line x1="522" y1="20" x2="522" y2="84"/>
+  </g>
+
+  <!-- MAIN ROOF, ridge at y=234 — pushed south of centre by the lean-to.
+       North bands take the light; south bands sit in their own shade. -->
+  <rect x="18" y="86" width="552" height="74" fill="#a84438"/>
+  <rect x="18" y="160" width="552" height="74" fill="#bc5245"/>
+  <rect x="18" y="234" width="552" height="74" fill="#8f372c"/>
+  <rect x="18" y="308" width="552" height="74" fill="#6b2620"/>
+
+  <!-- where the lean-to meets the main roof: a hard shadowed junction, the
+       line that tells the two planes apart -->
+  <rect x="12" y="80" width="564" height="10" fill="#3a2a1c" opacity="0.85"/>
+
+  <!-- the gambrel kinks, one per side of the main roof -->
+  <g stroke="#5e241c" stroke-width="4" opacity="0.8">
+    <line x1="18" y1="160" x2="570" y2="160"/>
+    <line x1="18" y1="308" x2="570" y2="308"/>
+  </g>
+
+  <!-- roof boarding, running down the slope like the house's does -->
+  <g stroke="#5e241c" stroke-width="3" opacity="0.42">
+    <line x1="66" y1="88" x2="66" y2="380"/><line x1="114" y1="88" x2="114" y2="380"/>
+    <line x1="162" y1="88" x2="162" y2="380"/><line x1="210" y1="88" x2="210" y2="380"/>
+    <line x1="258" y1="88" x2="258" y2="380"/><line x1="306" y1="88" x2="306" y2="380"/>
+    <line x1="354" y1="88" x2="354" y2="380"/><line x1="402" y1="88" x2="402" y2="380"/>
+    <line x1="450" y1="88" x2="450" y2="380"/><line x1="498" y1="88" x2="498" y2="380"/>
+    <line x1="546" y1="88" x2="546" y2="380"/>
+  </g>
+
+  <!-- the ridge cap: thin and dark, so it separates the slopes instead of
+       becoming a pipe laid across the roof (which the first draft did) -->
+  <rect x="14" y="229" width="560" height="10" fill="#5a3d26" stroke="#2b1f14" stroke-width="3"/>
+
+  <!-- the two cupolas. Each is a little GABLED ROOF of its own — lit half,
+       shaded half, ridge between — which is what makes it read as a
+       structure rather than as a plate nailed to the roof. -->
+  <g>
+    <rect x="152" y="208" width="52" height="26" fill="#a8783f" stroke="#2b1f14" stroke-width="4"/>
+    <rect x="152" y="234" width="52" height="26" fill="#6e4a30" stroke="#2b1f14" stroke-width="4"/>
+    <g stroke="#2e1f12" stroke-width="2.6" opacity="0.55">
+      <line x1="165" y1="212" x2="165" y2="256"/>
+      <line x1="178" y1="212" x2="178" y2="256"/>
+      <line x1="191" y1="212" x2="191" y2="256"/>
+    </g>
+  </g>
+  <g>
+    <rect x="396" y="208" width="52" height="26" fill="#a8783f" stroke="#2b1f14" stroke-width="4"/>
+    <rect x="396" y="234" width="52" height="26" fill="#6e4a30" stroke="#2b1f14" stroke-width="4"/>
+    <g stroke="#2e1f12" stroke-width="2.6" opacity="0.55">
+      <line x1="409" y1="212" x2="409" y2="256"/>
+      <line x1="422" y1="212" x2="422" y2="256"/>
+      <line x1="435" y1="212" x2="435" y2="256"/>
+    </g>
+  </g>
+
+  <!-- WEST gable: the loft door stands open, and the hoist beam reaches out
+       past the wall with its tackle still hanging below. -->
+  <rect x="6" y="198" width="30" height="72" rx="3" fill="#241a12" stroke="#2b1f14" stroke-width="4"/>
+  <rect x="0" y="226" width="48" height="16" rx="4" fill="#6e4a30" stroke="#2b1f14" stroke-width="4"/>
+  <line x1="9" y1="240" x2="9" y2="282" stroke="#8a8578" stroke-width="2.6"/>
+  <circle cx="9" cy="290" r="8" fill="#4a3524" stroke="#23190f" stroke-width="3"/>
+
+  <!-- SOUTH side: the big sliding doors, shut. The one place the wall shows
+       through instead of the roof, and the reason the barn has a FRONT. -->
+  <rect x="204" y="330" width="192" height="8" rx="4" fill="#5e4429"/>
+  <rect x="212" y="338" width="176" height="44" rx="3"
+        fill="#2a1e14" stroke="#23190f" stroke-width="4"/>
+  <g stroke="#4a3524" stroke-width="3" opacity="0.8">
+    <line x1="238" y1="340" x2="238" y2="380"/><line x1="264" y1="340" x2="264" y2="380"/>
+    <line x1="334" y1="340" x2="334" y2="380"/><line x1="360" y1="340" x2="360" y2="380"/>
+  </g>
+  <!-- the gap where the two leaves meet -->
+  <line x1="300" y1="338" x2="300" y2="382" stroke="#12100a" stroke-width="5"/>
+</svg>

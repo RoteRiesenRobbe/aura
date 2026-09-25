@@ -153,20 +153,38 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 	// 34 → 36 with the CaveMouth and CaveExit (plan-underworld.md U3): two more
 	// objects that talk, both off the nameplate and the XP path like every other
 	// fixture here.
-	assert.Len(t, free, 36, "every xpFactor-0 species: %v", free)
+	// 36 → 41 with the north pasture (content-zone-design-guide.md §2.4): the
+	// Shepherd, three named sheep and the generic flock, all off the nameplate and
+	// the XP path — a shepherd's livestock is not prey.
+	// 41 → 43 with the Miller and the Farmhand (content-zone-design-guide.md
+	// §2.4), both off the nameplate and the XP path like every other NPC.
+	// ⚑ The AlphaBoar beside them is deliberately NOT here: it is the thing you
+	// are sent to kill.
+	// 43 → 46 with the hunting family (content-npcs.md): Mother, Father and
+	// Hunter, all three off the nameplate and the XP path like every other NPC.
+	// ⚑ The Stag they send you after is deliberately NOT here: it is the thing
+	// you are sent to kill.
+	assert.Len(t, free, 46, "every xpFactor-0 species: %v", free)
 
-	// ⚑ Exactly ONE structure pays anything, and it is the harvest chore's
-	// target: the Turnip at 0.05 (PO 2026-08-05, the one §3.4 curation pulled
-	// into C1 — under the bare migration rule a vegetable would have paid a
-	// full at-level kill). Braziers, totems, camps and barricades pay nothing,
-	// and a new one that accidentally omits xpFactor lands here.
+	// ⚑ Exactly TWO structures pay anything, and both are harvest targets: the
+	// Turnip at 0.05 (PO 2026-08-05, the one §3.4 curation pulled into C1 —
+	// under the bare migration rule a vegetable would have paid a full at-level
+	// kill) and the Beet at the same price, its twin one POI earlier on the road
+	// (content-zone-design-guide.md §2.0). Braziers, totems, camps and
+	// barricades pay nothing, and a new one that accidentally omits xpFactor
+	// lands here.
+	//
+	// ⚠ ElementsMatch, NOT Equal. registry.Mobs() ranges a MAP, so this slice
+	// comes out in a random order — which an Equal could not tell while the
+	// expectation held exactly one name. The Beet is the second, so an ordered
+	// assertion here would have become a coin-flip flake rather than a failure.
 	var payingStructures []string
 	for _, def := range contentRegistry(t).Mobs() {
 		if def.Role == RoleStructure && def.Factors.XPFactor > 0 {
 			payingStructures = append(payingStructures, def.Name)
 		}
 	}
-	assert.Equal(t, []string{"Turnip"}, payingStructures)
+	assert.ElementsMatch(t, []string{"Beet", "Turnip"}, payingStructures)
 }
 
 // A new tier added without a kill-XP weight would silently pay like a normal.

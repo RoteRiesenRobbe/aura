@@ -169,6 +169,12 @@ export interface ZonePath {
     // Tri-state for the same reason blocksMovement is: false is the authored
     // default, so an open path must export with no key at all.
     closed?: boolean;
+    // Turn this path's tile to run ALONG the path (world.Path.AlignTexture).
+    // Tri-state like the two above: absent is the authored default, so every
+    // road and river exports with no key. ⛔ Only the FLAG is carried — the
+    // angle itself is derived from the geometry at load (Paths.textureAngle)
+    // and never stored, so nothing here can contradict the drawn shape.
+    alignTexture?: boolean;
     // An authored skill applied to whatever stands in this shape
     // (plan-area-effects.md E1). Carried, never edited, like everything else
     // here. Absent = inert, which is every path in every shipped zone.
@@ -411,6 +417,7 @@ export class ZoneModel {
             closed: p.closed,
             outlineProfile: p.outlineProfile,
             outlineWidth: p.outlineWidth,
+            alignTexture: p.alignTexture,
             effect: p.effect,
         }));
         model.polygons = (data.polygons || []).map(g => ({
@@ -626,6 +633,10 @@ export class ZoneModel {
                     // gates both keys.
                     outlineProfile: p.outlineProfile || undefined,
                     outlineWidth: p.outlineProfile ? round(p.outlineWidth || 0, 2) : undefined,
+                    // ⚑ Tri-state like blocksMovement and closed: false must
+                    // export as NO KEY, or every path in every shipped zone
+                    // grows an "alignTexture": false nobody wrote.
+                    alignTexture: p.alignTexture ? true : undefined,
                     // ⚑ Absent stays absent (plan-area-effects.md D10): no
                     // shipped path names an effect, so an empty string here must
                     // serialize to no key at all or every existing zone changes.

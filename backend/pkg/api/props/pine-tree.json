@@ -1,0 +1,6 @@
+{
+  "name": "PineTree",
+  "entityType": "PineTree",
+  "sprite": "pineTree.svg",
+  "body": { "radius": 0.9, "collisionFactor": 0.5 }
+}

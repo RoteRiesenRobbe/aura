@@ -1,15 +1,16 @@
-<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 130">
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 130" preserveAspectRatio="none">
   <!-- Placeholder farm-cart art: TRUE top-down. The viewBox is 220x130 to
        match the 2.2 x 1.3 rect body in api/props/cart.json — the render class
        scales width and height independently, so the two must stay in sync
        (the same note house.svg carries, and the same trap).
 
-       ⚑ The shaft points WEST and every cart in the game will, because a
-       rect prop's rotation is never applied. It is drawn anyway: without it
-       this is a box with wheels, and the cart has to read as a cart for the
-       burnt-cart POI to land. Few placements, so one orientation is a price
-       worth paying — if a zone ever wants a yard full of them, the shaft is
-       what to cut first. -->
+       ⚑ The shaft points WEST in the ART, but a placement is free to turn:
+       a rect prop's collider and sprite BOTH carry the authored rotation
+       (plan-prop-scale.md C2b). ⛔ An earlier version of this note claimed
+       rect props never rotate, which was simply wrong and would have cost
+       every cart in the game its orientation. The shaft is drawn because
+       without it this is a box with wheels, and the cart has to read as a
+       cart for burntCart.svg — its wreck, same body — to land. -->
 
   <!-- ground shadow, offset down-right (light from the top-left) -->
   <rect x="34" y="20" width="176" height="100" rx="8" fill="#000000" opacity="0.22"/>

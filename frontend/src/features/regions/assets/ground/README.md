@@ -101,7 +101,7 @@ fallback and **never** a tint, so the tile's own colour is the only lever, and
 adding *density* to fix a *contrast* fault just walks a tile toward the other
 family (which is exactly how the sandstorm tripped the coverage ceiling).
 
-### `forest-` / `wall-placeholder.png` — GENERATED, not from a pack
+### `forest-` / `wall-` / `road-placeholder.png` — GENERATED, not from a pack
 
 | | |
 |---|---|
@@ -147,6 +147,48 @@ it is a one-line change if the look sitting wants it.
 partition**: waves need integer wave numbers, a lattice needs its jitter hashed
 from the cell index taken MODULO the lattice size, and a course needs integer
 row and column counts with the row heights renormalised to land exactly on 750.
+
+⭐ **`road-placeholder.png` is the family's third tile and the second customer
+of PLACES** (2026-09-21). Until then `Road` was `"texture": "pd106"` — the
+**desert** tile, borrowed, so every lane in the game was golden sandstone. The
+pebbles pressed into the lane *are* the forest's leaves at a sixth of the fill
+with `elong` near 1; everything beneath them is a wave sum, because packed
+earth has no pieces in it. ⚑ **The test for this family is whether the thing
+you would name if you pointed at the surface is a countable object.**
+
+⭐ **IT SHIPPED AT A SIXTH OF ITS FIRST DETAIL, and that is the note to carry to
+the next ground tile.** The first cut passed every check here and still came
+back *"reads a little messy"* — so coverage went 9 % → 2.5 %, the bed ramp
+narrowed, the tooth halved and the cracks dropped to a sixth. This is the lava
+lesson arriving from the other side: **a ground tile is looked THROUGH, not at.
+Every mark on it is repeated nine times across a screen, so the right amount of
+detail is far less than a single tile viewed alone will ever suggest** — and a
+tile that looks slightly *empty* on its own is usually the one that is right in
+the world.
+
+⛔ **Three faults this tile hit, and all three are about what a REPEATED field
+does that a single tile never shows.** ① **Diagonal banding**: six bed waves
+with only two slow ones painted a corduroy stripe running north-east, repeating
+once per tile and louder than anything else on the road. Two slow waves cannot
+make a blotch — they make an interference *fringe*, and a fringe has a
+direction; nine waves over eight bearings make patches. ② **A grey pebble reads
+BLUE** against warm brown, so the coarse grade came out as blue beads on mud
+(pebbledash render). Both grades are warm now, and each straddles the bed's
+dominant tone, because a layer that is only ever *lighter* than its ground is
+confetti however well it is shaded. ③ **Mud cracks as a ridged field make
+closed loops**, and a visible closed loop on the ground is a creature's track —
+they read as **worm trails** until sharpened right down and faded almost out,
+which is also the physically right answer: a road that is driven on is packed,
+so a crack is the exception on it, not the pattern.
+
+⛔ **NO CART RUTS IN IT, and the reason is authoring rather than art.** A rut is
+DIRECTIONAL and would have to be baked along one tile axis, which only lands
+correctly under a path's `alignTexture` flag (`docs/plan-world-paths.md`) — and
+that flag turns the tile along the path's **longest segment**, so it wants one
+path per straight leg. All three `Road` paths in `world.json` are 4–7 point
+meanders on a single path, so a baked rut would run due east while the road
+went north. ⭐ Ruts are a **second tile** for when a road is authored leg by
+leg; this one has to work on a curve.
 
 ### The field tiles — GENERATED, not from a pack
 
@@ -224,3 +266,53 @@ multiplier is against the file's own pixels, not a fixed size.
 `require.context` pulls **every** matching file in this folder into the build,
 so an unused tile still ships to `dist` even though nothing ever fetches it.
 Delete tiles no profile names. Any `pdNNN` can be recovered from the pack above.
+
+### `fence-placeholder.png` — GENERATED, and the first DIRECTIONAL tile
+
+| | |
+|---|---|
+| Source | `tools/make-fence-tile.mjs` in this repo |
+| Author | generated procedurally; no third-party asset involved |
+| Licence | same as the repo — nothing to attribute |
+
+⭐ **The fifth family, defined by a dependency rather than a technique: it
+assumes its path authored `alignTexture: true`.** That flag **turns** the tile
+to run along the path and **registers** it across the path — the tile's middle
+row lands on the centreline. Every tile above is world-aligned and therefore
+had to look the same in every direction. A fence has a direction. ⛔ Forget the
+flag and the rails lie *across* the fence, with nothing to warn you.
+
+⛔ **THE FIRST VERSION OF THIS TILE WAS A BOARDWALK, and that is the lesson.**
+`alignTexture` originally only *turned* the tile. Without registration the
+window a stroke reveals lands at an arbitrary offset across the ribbon, so the
+tile could put nothing at a known height, and the only legal picture was a
+pattern **along** the path: a solid ribbon, punctuated by posts. It was
+seamless, and it was honest about the projection — a post-and-rail fence really
+does project to one line from directly overhead — and the verdict was *"not
+like a fence at all"*. ⭐ **A fence is mostly GAPS, and a gap is structure
+across the ribbon.** No amount of tuning reaches that from a solid ribbon; the
+constraint itself had to go, and it did (`Paths.textureAlignment` now hands
+over an anchor and `RegionPaint.tileMatrix` slides the tile along the path's
+normal). ⚑ The general lesson, worth more than the tile: when a tile cannot be
+made to read, check whether the thing stopping it is a **constraint you
+accepted** rather than the art.
+
+⚑ **This tile's HEIGHT is load-bearing, which no other tile's is.**
+Registration puts the middle row on the path, so a stroke of width W reveals
+`TILE_H/2 ± W·120/(2·scale)` and nothing else. The fence lives in the middle 48
+of 96 rows and the transparent margin is headroom: at `scale: 1` it is exact at
+`width: 0.40` and safe up to 0.80. ⛔ **So this profile's `scale` is not free** —
+changing it rescales the fence itself, which is why the generator reads it and
+refuses a tile that would not fit.
+
+⚑ **RGBA, alone among the ground tiles.** They are opaque because they *are*
+the ground; this is an object standing on it, and the grass has to show through.
+
+⛔ **No baked shadow.** The tile turns with its path, so a shadow along one edge
+would point south-east on an east-west fence and north-east on a north-south
+one. The posts and a dark outline carry the depth instead.
+
+⚑ **Judge it as a 48-pixel band, never as the raw image.** Its check is
+`assertRegistered`: the ink must fit the authored width, be centred (the middle
+row is what lands on the centreline, so an off-centre fence hangs out of its
+own collider) and leave the wrap rows clear.

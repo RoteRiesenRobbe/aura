@@ -9,7 +9,7 @@
 // chunk3b-ii-conversation.mjs. It never asserts how much quest content exists.
 //
 // Legs:
-//   A  boars-in-the-field on the Farmer, END TO END. The hunt warps stop to
+//   A  boars-in-the-field on the Reinhard, END TO END. The hunt warps stop to
 //      stop across the authored L2-boar spawn points around the farm (boars
 //      are retaliation-only prey — they do not come to us, so a wander circuit
 //      is the wrong tool). Tri-state: a hunt that does not reach six kills in
@@ -45,10 +45,10 @@ const libDir = join(workdir, 'libs/usr/lib/x86_64-linux-gnu');
 const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), process.env.LD_LIBRARY_PATH || ''].join(':') };
 
 // Whole units (WARP granularity). Standing ON the NPC is what makes the server
-// offer THAT one (conversant-cluster gotcha — the Farmer shares the village
+// offer THAT one (conversant-cluster gotcha — the Reinhard shares the village
 // with the Hermit and the TownCrier ~3 units away).
 const AT = {
-  Farmer: { x: -57, y: 29 },
+  Reinhard: { x: -57, y: 29 },
   Lamplighter: { x: -66, y: -28 },
   Miner: { x: -27, y: -26 },
   Wanderer: { x: -16, y: 31 }, // authored point; the actor is never exactly here
@@ -271,16 +271,16 @@ check('the four C1 kill quests are served (by name, never by count)',
   Array.isArray(catalog) && C1_IDS.every((id) => catalog.some((q) => q.id === id)),
   Array.isArray(catalog) ? catalog.map((q) => q.id).join(', ') : String(catalog));
 
-// --- leg A: boars-in-the-field on the Farmer, end to end ---------------------
+// --- leg A: boars-in-the-field on the Reinhard, end to end ---------------------
 
 try {
-  await warpTo(AT.Farmer);
-  const farmer = await talkTo('Farmer');
-  check('A1 the Farmer carries BOTH quest rows at root (the first two-offer giver)',
-    farmer?.actor === 'Farmer'
-    && farmer.rows.some((r) => r.includes('Do you have a task for me'))
-    && farmer.rows.some((r) => r.includes('Anything else that needs doing')),
-    `actor=${farmer?.actor} rows=${JSON.stringify(farmer?.rows)}`);
+  await warpTo(AT.Reinhard);
+  const reinhard = await talkTo('Reinhard');
+  check('A1 the Reinhard carries BOTH quest rows at root (the first two-offer giver)',
+    reinhard?.actor === 'Reinhard'
+    && reinhard.rows.some((r) => r.includes('Do you have a task for me'))
+    && reinhard.rows.some((r) => r.includes('Anything else that needs doing')),
+    `actor=${reinhard?.actor} rows=${JSON.stringify(reinhard?.rows)}`);
 
   await clickRow('Anything else that needs doing');
   const node = await panel();
@@ -302,7 +302,7 @@ try {
   // and sends Leave to the NPC. So the panel has to be re-opened before it can
   // be read - sampling here used to return null and score the show-rule red.
   await page.keyboard.press('KeyJ');
-  const reOpened = await talkTo('Farmer');
+  const reOpened = await talkTo('Reinhard');
   check('A4 the Accept row VANISHED the moment the quest started (Q1 show-rule)',
     reOpened !== null && !reOpened.rows.some((r) => r.includes("I'll do it")),
     `rows=${JSON.stringify(reOpened?.rows)}`);
@@ -333,11 +333,11 @@ try {
       hunted.entries[1] === prose('boars-in-the-field', 'report'),
       `entries=${JSON.stringify(hunted.entries)}`);
     check('A7 ...and the report stage shows its authored tracker',
-      (hunted.objectives ?? []).some((o) => o.includes('Return to the Farmer')),
+      (hunted.objectives ?? []).some((o) => o.includes('Return to the Reinhard')),
       `objectives=${JSON.stringify(hunted.objectives)}`);
 
-    await warpTo(AT.Farmer);
-    await talkTo('Farmer');
+    await warpTo(AT.Reinhard);
+    await talkTo('Reinhard');
     await clickRow('Anything else that needs doing');
     const turnIn = await panel();
     check('A8 the turn-in row appeared behind the same row, exactly when walkable (show-rule)',
@@ -353,9 +353,9 @@ try {
       inList(done?.completed ?? [], titleOf('boars-in-the-field')) && xpAfter - xpBefore === 180,
       `XP ${xpBefore} → ${xpAfter}, completed=${JSON.stringify((done?.completed ?? []).map((q) => q.title))}`);
 
-    // Same C2 D1 consequence as A4: the journal read above left the Farmer.
+    // Same C2 D1 consequence as A4: the journal read above left the Reinhard.
     await page.keyboard.press('KeyJ');
-    const after = await talkTo('Farmer');
+    const after = await talkTo('Reinhard');
     check('A10 the row is CLOSED after completion — no re-accept, no second payment (show-rule)',
       after !== null
       && !after.rows.some((r) => r.includes('I killed the 6 boars'))

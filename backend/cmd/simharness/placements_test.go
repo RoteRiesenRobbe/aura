@@ -178,11 +178,13 @@ func TestLoadPlacements_ZoneWithoutCombatSpawnsFailsLoudly(t *testing.T) {
 		copyContentDir(t, filepath.Join(repoAPIDir(t), name), filepath.Join(dir, name))
 	}
 	require.NoError(t, os.Mkdir(filepath.Join(dir, "zones"), 0o755))
-	// Farmer is xpFactor 0 (an NPC), so this zone is valid and has zero prey.
+	// Reinhard is xpFactor 0 (an NPC), so this zone is valid and has zero prey.
+	// ⚑ He was "Farmer" until 2026-09-23; the fixture names a REAL def because
+	// it copies the repo's api/mobs, so a def rename reaches in here.
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "zones", "npcville.json"), []byte(`{
 		"name": "NPCville",
 		"bounds": {"width": 100, "height": 100},
-		"spawns": [{"mob": "Farmer", "x": 0, "y": 0, "respawnTicks": 600}]
+		"spawns": [{"mob": "Reinhard", "x": 0, "y": 0, "respawnTicks": 600}]
 	}`), 0o644))
 
 	_, err := loadPlacements(dir, "npcville")
@@ -229,7 +231,17 @@ func TestMobSpecOf_LevelScalesHPValuesOnly(t *testing.T) {
 			// rounds the live one, so a preset keeping the fraction would model
 			// a mob the server cannot spawn), and half an HP is a large
 			// relative error on a 1-HP Totem.
-			assert.InDelta(t, float64(home.MaxHealth)*ratio, float64(placed.MaxHealth), 1.0,
+			//
+			// ⚑ And the tolerance is DERIVED, not 1.0 — that flat number was
+			// wrong and only ever passed by luck of where each baseline's
+			// rounding landed. BOTH sides are rounded, and the left one is then
+			// multiplied by the ratio, so the worst case is half an HP scaled up
+			// (0.5 × ratio) plus half an HP on the right. At growth 1.12 over
+			// five levels that is 1.38, and a baseline landing near the middle of
+			// its rounding step blows straight through 1.0 while being perfectly
+			// correct — which is exactly what the AlphaBoar's 250 does
+			// (441 × 1.7623 = 777.19 against a rounded 776).
+			assert.InDelta(t, float64(home.MaxHealth)*ratio, float64(placed.MaxHealth), 0.5*ratio+0.5,
 				"%s: max HP rides f(level)", def.Name)
 		}
 		if home.Aura.DamageHP > 0 {

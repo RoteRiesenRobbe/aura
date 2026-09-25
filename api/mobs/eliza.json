@@ -1,0 +1,76 @@
+{
+  "_comment": "⭐ THE FIRST NPC IN THE GAME (content-zone-design-guide.md §2.0): the player's mother, at the homestead the road to Reinhard's farm starts from. Standing talkable-NPC shape copied field for field from miller.json — faction townsfolk (friendlyToPlayers ⇒ player damage skips it), collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) and deliberately NOT Action(2) so no aura on either side can target it, mask 16 = Border only, role creature + speed 0 (D4), xpFactor 0 to keep it off the nameplate path, aggroRadius 1.0 required-but-inert since interaction.range 2.0 sizes the one sensor. ⚑ QUESTS: offers and turns in `dinner-for-the-family`, the game's opening arc — she sends the player to her husband Hendrik for meat and her brother-in-law Benjamin for beets, and each errand is where one of the three starting skills is taught. ⭐ SHE TEACHES FirstAid ON THE TURN-IN ROW rather than from a `Teach me something.` node: it is the dinner's reward, the-lost-lamp/Lantern shape, so the mother patches you up after your first hunt instead of drilling you beforehand. ⚑ FirstAid also has two village teachers (Hermit, VillageHealer @L2) — the two-teacher precedent is Torch's; hers is the EARLIEST and free, which is the point. ⭐ HER COMPLETED GREETING IS THE HANDOFF: a `quest_at_stage completed` node sitting ABOVE the unconditional root (L3 — conditional nodes must outrank the greeting) points the player down the road to Reinhard. ⛑ entityType VillageHealer is a DELIBERATE REUSE and placeholder art. ⚑ TEXT HAS A VOICE, by PO ask 2026-09-23 — the opening family is the one exception to the plain-text pass (PO 2026-08-02): she is warm, and worried about the player leaving home. The PLAYER'S rows stay on the plain conventions ('Do you have a task for me?', 'Teach me something.', a teach row names its skill) so the panel reads the same as everywhere else. ⚑ UNPLACED: the PO places the spawn in the editor. All values [PLACEHOLDER].",
+  "id": 82,
+  "name": "Eliza",
+  "type": "MOB",
+  "entityType": "VillageHealer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": { "baseMaxHealth": 200, "xpFactor": 0, "speed": 0 },
+  "body": { "radius": 0.35, "collisionLayer": 97, "collisionMask": 16, "aggroRadius": 1 },
+  "skills": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root_fed",
+        "conditions": [ { "kind": "quest_at_stage", "quest": "dinner-for-the-family", "stage": "completed" } ],
+        "lines": [
+          "You ate everything. Good. You'll need it.",
+          "Reinhard's farm is east, down the road. He's a fair man, and he'll give you work.",
+          "Stay on the road, and come home when you can. I mean that."
+        ],
+        "options": []
+      },
+      {
+        "id": "root",
+        "lines": [
+          "There you are. Come here, let me look at you.",
+          "Taller than your father already. I don't know when that happened."
+        ],
+        "options": [ { "text": "Do you have a task for me?", "next": "dinner" } ]
+      },
+      {
+        "id": "dinner",
+        "lines": [
+          "One last dinner at home before you go. I want to do this properly.",
+          "Your father is out hunting down south by the lake. Help him find his game.",
+          "And your uncle Benjamin has beets. Six. Don't let him talk your ear off.",
+          "Come back to me when you have both. Then we eat."
+        ],
+        "options": [
+          {
+            "text": "I'll do it.",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "dinner-for-the-family",
+                "line": "Thank you. Go on, before I change my mind about letting you out of the house."
+              }
+            ]
+          },
+          {
+            "text": "I have the meat and the beets.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "dinner-for-the-family",
+                "fromStage": "home",
+                "toStage": "done",
+                "line": "Look at that. Sit, sit. It's nearly ready."
+              },
+              {
+                "kind": "teach_skill",
+                "skill": "FirstAid",
+                "line": "Before you go anywhere: I'll teach you First Aid. You won't have me out there to patch you up."
+              },
+              { "kind": "grant_xp", "xp": 150, "line": "Now eat. Slowly. I want to remember this." }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,147 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 130" preserveAspectRatio="none">
+  <!-- Placeholder BURNT CART art: the Zone 1 bandit breadcrumb
+       (content-zone-design-guide.md §2.4 "Burnt cart / looted wagon" — prop
+       dressing plus a corpse and a signpost, no mob). TRUE top-down, and the
+       viewBox stays 220x130 to match the 2.2 x 1.3 rect body in
+       api/props/burnt-cart.json, which is the SAME body cart.json carries —
+       this is meant to be a drop-in swap for a cart that has a story.
+
+       ⭐ IT ONLY WORKS IF IT READS AS THE CART FIRST AND THE WRECK SECOND.
+       A pile of charcoal is not a breadcrumb; the player has to recognise
+       what was destroyed. So the skeleton is deliberately cart.svg's — same
+       bed footprint, same wheel positions, same iron braces in the same four
+       corners — and the destruction is applied ON TOP of it:
+
+         1. THE IRON SURVIVES. Corner braces, tyres and the axle stub are the
+            only things still their own colour, because iron does not burn.
+            They are what identifies the object, and they cost nothing:
+            leaving them bright is both accurate and the legibility fix.
+         2. ONE WHEEL CAME OFF and lies FLAT in the grass. That is the one
+            place this sprite gets to draw a wheel as a real circle with
+            spokes — every standing wheel is edge-on from above — so it is
+            the loudest "this is a wagon" signal on the tile, and it only
+            exists because the thing is broken.
+         3. THE FIRE HAS A DIRECTION. The east end is eaten through to holes
+            and the west end is merely scorched, because a fire that damages
+            everything evenly reads as a texture rather than an event.
+         4. THE SCORCH SPREADS PAST THE CART. At distance the dark ground
+            ring is what says "burnt" before any detail resolves.
+
+       ⛔ NO EMBERS, ON PURPOSE. A glow would date the fire to minutes ago
+       and put the player on alert for a fight that the POI explicitly does
+       not have. This is days cold.
+
+       ⚑ A rect prop's body and sprite both carry the authored rotation
+       (plan-prop-scale.md C2b), so the shaft can be aimed down a road. -->
+
+  <!-- The scorch on the ground, worst at the east end where it started.
+       ⛔ It is an OPAQUE ASH GREY, not a dark wash. The first draft used a
+       near-black at 0.4 and it simply dimmed the grass under it — a dark
+       green patch reads as shade, which is the one thing burnt ground must
+       not read as. Burnt ground has lost its colour; that is the cue. -->
+  <defs>
+    <radialGradient id="scorchOuter">
+      <stop offset="0" stop-color="#4c4438" stop-opacity="0.96"/>
+      <stop offset="0.6" stop-color="#4c4438" stop-opacity="0.88"/>
+      <stop offset="1" stop-color="#4c4438" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="scorchCore">
+      <stop offset="0" stop-color="#2b2620" stop-opacity="0.95"/>
+      <stop offset="0.65" stop-color="#2b2620" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#2b2620" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="112" cy="66" rx="107" ry="63" fill="url(#scorchOuter)"/>
+  <ellipse cx="152" cy="62" rx="66" ry="52" fill="url(#scorchCore)"/>
+  <!-- pale ash blown clear of the heat -->
+  <g fill="#c4bcae">
+    <ellipse cx="34" cy="24" rx="16" ry="9" opacity="0.24"/>
+    <ellipse cx="200" cy="106" rx="14" ry="8" opacity="0.2"/>
+    <ellipse cx="96" cy="122" rx="20" ry="7" opacity="0.18"/>
+  </g>
+
+  <!-- THE WHEEL THAT CAME OFF, lying flat: rim, hub, spokes, and a burnt
+       gap where two spokes and a stretch of felloe are gone. -->
+  <ellipse cx="30" cy="106" rx="23" ry="21" fill="#000000" opacity="0.2"/>
+  <circle cx="28" cy="104" r="20" fill="none" stroke="#2f2823" stroke-width="7"/>
+  <!-- the iron tyre, still on the surviving half of the rim -->
+  <path d="M28,84 A20,20 0 1,1 12,113" fill="none" stroke="#6a6862" stroke-width="3.4" opacity="0.9"/>
+  <g stroke="#2f2823" stroke-width="3.4" stroke-linecap="round">
+    <line x1="28" y1="104" x2="28" y2="86"/>
+    <line x1="28" y1="104" x2="42" y2="90"/>
+    <line x1="28" y1="104" x2="46" y2="104"/>
+    <line x1="28" y1="104" x2="14" y2="90"/>
+    <line x1="28" y1="104" x2="10" y2="104"/>
+    <line x1="28" y1="104" x2="16" y2="117"/>
+  </g>
+  <!-- one spoke snapped short -->
+  <line x1="28" y1="104" x2="34" y2="114" stroke="#2f2823" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="28" cy="104" r="5.5" fill="#4a423a" stroke="#241f1a" stroke-width="2.6"/>
+
+  <!-- the three wheels still on their axles, edge-on and charred. The NW one
+       kept its shape; the two on the fire's side are burnt to stubs. -->
+  <rect x="52" y="6" width="40" height="17" rx="8" fill="#332b25" stroke="#1a1614" stroke-width="3"/>
+  <rect x="146" y="7" width="30" height="15" rx="7" fill="#26201b" stroke="#141110" stroke-width="3"/>
+  <rect x="150" y="108" width="26" height="14" rx="7" fill="#26201b" stroke="#141110" stroke-width="3"/>
+  <!-- iron tyres, the part of a wheel that outlasts the wood -->
+  <g stroke="#6a6862" stroke-width="2.6" opacity="0.85">
+    <line x1="54" y1="9" x2="90" y2="9"/>
+    <line x1="148" y1="10" x2="174" y2="10"/>
+    <line x1="152" y1="111" x2="174" y2="111"/>
+  </g>
+  <!-- the bare axle stub where the loose wheel used to sit -->
+  <rect x="52" y="104" width="26" height="9" rx="4" fill="#5b5a56" stroke="#2b2724" stroke-width="3"/>
+
+  <!-- THE BED. Ragged along the east edge, where the fire ate through. -->
+  <polygon points="30,18 148,18 157,31 146,44 165,53 150,70 168,85 148,98 156,112 30,112"
+           fill="#3b3129" stroke="#1f1a16" stroke-width="4" stroke-linejoin="round"/>
+
+  <!-- floor planks. Sooty brown at the west, pure char at the east, so the
+       eye can still tell it was timber. -->
+  <g stroke="#221c17" stroke-width="3" opacity="0.85">
+    <line x1="34" y1="42" x2="150" y2="42"/>
+    <line x1="34" y1="65" x2="160" y2="65"/>
+    <line x1="34" y1="88" x2="152" y2="88"/>
+  </g>
+  <rect x="34" y="22" width="52" height="17" fill="#6b5030" opacity="0.4"/>
+  <rect x="34" y="46" width="44" height="16" fill="#6b5030" opacity="0.3"/>
+  <rect x="34" y="92" width="48" height="16" fill="#6b5030" opacity="0.26"/>
+
+  <!-- burnt clean through: the ground shows, with an ash lip round each hole -->
+  <polygon points="108,34 128,30 140,44 130,58 112,56 102,44"
+           fill="#120f0c" stroke="#4e4840" stroke-width="2.2" opacity="0.95"/>
+  <polygon points="96,74 118,70 132,82 120,96 100,94 90,84"
+           fill="#120f0c" stroke="#4e4840" stroke-width="2.2" opacity="0.95"/>
+  <polygon points="146,56 160,60 156,74 142,72"
+           fill="#120f0c" stroke="#4e4840" stroke-width="1.8" opacity="0.9"/>
+
+  <!-- side rails: intact at the west, snapped and splintered heading east -->
+  <rect x="30" y="18" width="88" height="9" rx="4" fill="#453729" stroke="#1f1a16" stroke-width="3"/>
+  <polygon points="118,18 136,20 130,28 118,27" fill="#2b231c" stroke="#1f1a16" stroke-width="2.4"/>
+  <rect x="30" y="103" width="72" height="9" rx="4" fill="#453729" stroke="#1f1a16" stroke-width="3"/>
+  <polygon points="102,104 120,101 126,111 102,112" fill="#2b231c" stroke="#1f1a16" stroke-width="2.4"/>
+  <rect x="30" y="18" width="10" height="94" rx="4" fill="#453729" stroke="#1f1a16" stroke-width="3"/>
+
+  <!-- the shafts: the near one burnt to a stub, the far one splintered off -->
+  <rect x="34" y="46" width="18" height="8" rx="4" fill="#332b25" stroke="#1f1a16" stroke-width="3"/>
+  <polygon points="52,76 26,74 14,79 26,82 52,84" fill="#453729" stroke="#1f1a16" stroke-width="3"
+           stroke-linejoin="round"/>
+
+  <!-- the iron corner braces, the one thing fire leaves alone -->
+  <g fill="#6a6862" stroke="#2b2724" stroke-width="2">
+    <rect x="33" y="21" width="13" height="10" rx="2"/>
+    <rect x="33" y="99" width="13" height="10" rx="2"/>
+    <rect x="137" y="24" width="13" height="10" rx="2" transform="rotate(14 143 29)"/>
+    <rect x="139" y="96" width="13" height="10" rx="2" transform="rotate(-9 145 101)"/>
+  </g>
+
+  <!-- charcoal spilled out of the bed, and one warped iron band -->
+  <g fill="#1c1814">
+    <rect x="170" y="44" width="11" height="7" rx="3" transform="rotate(24 175 47)"/>
+    <rect x="182" y="70" width="9" height="6" rx="3" transform="rotate(-16 186 73)"/>
+    <rect x="60" y="120" width="10" height="6" rx="3" transform="rotate(8 65 123)"/>
+    <rect x="196" y="28" width="8" height="6" rx="3" transform="rotate(-30 200 31)"/>
+  </g>
+  <path d="M176,86 Q192,94 186,106" fill="none" stroke="#6a6862" stroke-width="3" opacity="0.8"
+        stroke-linecap="round"/>
+</svg>

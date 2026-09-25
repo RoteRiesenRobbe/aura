@@ -350,6 +350,37 @@ type Path struct {
 	// so all four writers stay a one-line mapping each.
 	OutlineProfile string  `json:"outlineProfile,omitempty"`
 	OutlineWidth   float32 `json:"outlineWidth,omitempty"`
+	// AlignTexture turns this path's TILE to run along the path instead of
+	// along the world axes, AND registers it across the path — the tile's
+	// middle row lands on the centreline. Absent = world-aligned, which is
+	// every path authored before this and every road and river after it.
+	//
+	// ⭐ THE REGISTRATION IS THE HALF THAT MATTERS FOR ART, and it was added
+	// a draft late. Turning alone leaves the tile phasing from the world
+	// origin, so the window a stroke reveals sits at an arbitrary offset
+	// across the ribbon and the tile can put nothing at a known height — no
+	// gap, no rail, no post standing proud of one. The first fence tile was
+	// built under that limit and came out a boardwalk. A fence is mostly
+	// GAPS, and a gap is structure across the ribbon.
+	//
+	// ⭐ It exists because a tile is phased from the WORLD ORIGIN and never
+	// rotated (RegionPaint.regionPaint), so a directional material — fence
+	// rails, cart ruts, a palisade, strata in a cliff — is correct on an
+	// east-west run and crosses its own shape on a north-south one. The
+	// profile table has no rotation knob and should not grow one: a profile
+	// is a MATERIAL and this is GEOMETRY, which is the same argument Width
+	// already makes two fields up.
+	//
+	// ⛔ THE ANGLE ITSELF IS NEVER AUTHORED, only this flag. It is derived
+	// client-side from the path's own longest segment, for the reason Closed
+	// records: an authored angle can contradict the shape it was drawn as,
+	// and then the file disagrees with itself about which way the fence runs.
+	//
+	// ⚑ The server reads nothing here — like Profile, it is pure presentation
+	// and lives in this struct only so the zone file round-trips. It is
+	// declared all the same, because DisallowUnknownFields turns an unknown
+	// key into a REFUSED BOOT rather than an ignored one.
+	AlignTexture bool `json:"alignTexture,omitempty"`
 	// Effect names an authored skill applied to whatever stands inside this
 	// shape — a lava river, a stream that heals (plan-area-effects.md E1).
 	// Absent = inert, which is every path authored before this.

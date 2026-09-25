@@ -83,6 +83,17 @@ export function registerGameObjectSVG(
      * Painted art therefore ships as PNG (see Graphics.ts `farmer`) and
      * `maxSize` stops meaning anything for it: the texture is whatever the
      * file holds, and only the entity's `size` scales the sprite.
+     *
+     * ⛔ The bake is SQUARE, so a sprite whose viewBox is NOT square must
+     * author `preserveAspectRatio="none"` on its root `<svg>` — without it
+     * the two engines disagree and only one of them looks right. Chromium
+     * re-renders the vector straight into the square destination rect
+     * (stretched, filling it); Firefox honours the default `xMidYMid meet`
+     * and LETTERBOXES the art inside that square. The stretch is the one this
+     * pipeline wants: Props.ts squashes the square sprite back to the body's
+     * aspect afterwards, undoing it exactly. Letterboxed art gets squashed a
+     * second time instead — measured on `bridge.svg` (5:2), which came out
+     * 2.5× too flat in Firefox while Chrome looked correct.
      */
     const isVector = src.startsWith('data:image/svg') || /\.svg(\?|$)/i.test(src);
     const fileTexture = Assets.load(isVector

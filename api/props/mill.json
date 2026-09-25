@@ -1,0 +1,6 @@
+{
+  "name": "Mill",
+  "entityType": "Mill",
+  "sprite": "mill.svg",
+  "body": { "width": 5, "height": 4 }
+}

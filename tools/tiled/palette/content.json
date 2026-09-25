@@ -20,15 +20,28 @@
       "Land"
     ],
     "AuraPropType": [
+      "Barn",
       "Boulder",
       "Bridge",
+      "BrokenFence",
+      "BurntCart",
+      "Bush",
       "Cart",
+      "CaveMouth",
+      "Cottage",
       "Crate",
+      "DeadTree",
+      "FallenLog",
       "FencePost",
+      "Gate",
       "GateWall",
       "Haystack",
       "House",
+      "Mill",
+      "Palisade",
+      "PineTree",
       "Rock",
+      "Stump",
       "Tombstone",
       "Torch",
       "Tree",
@@ -41,14 +54,18 @@
     ],
     "AuraMobName": [
       "(pick a mob)",
+      "AlphaBoar",
       "AlphaWolf",
       "ArmySoldier",
       "AscensionStone",
+      "Baabara",
       "Bandit",
       "BanditHealer",
       "BanditPyromancer",
       "BanditRanged",
       "Bear",
+      "Beet",
+      "Benjamin",
       "Boar",
       "Bramble",
       "Camp",
@@ -62,23 +79,28 @@
       "Dog",
       "EliteBandit",
       "EliteWolf",
+      "Eliza",
       "Emberkeeper",
-      "Farmer",
+      "Farmhand",
       "FireElemental",
       "FireTotem",
       "ForestSign",
       "FrontAscensionStone",
       "FrontCaptain",
+      "GiantRat",
       "GiantSpider",
       "GreaterFireElemental",
+      "Hendrik",
       "Hermit",
       "Kobold",
       "KoboldRanged",
+      "Lambert",
       "LamplessTraveller",
       "Lamplighter",
       "Marauder",
       "MedicCompanion",
       "MemorialStone",
+      "Miller",
       "Miner",
       "Orc",
       "OrcGrunt",
@@ -88,8 +110,11 @@
       "PortalSummon",
       "ProjectileBomb",
       "RallyDrummer",
+      "Reinhard",
       "Rockfall",
       "Shaman",
+      "Sheep",
+      "Shepherd",
       "ShieldbearerCompanion",
       "SoldierCompanion",
       "Spider",
@@ -103,7 +128,8 @@
       "VillageHealer",
       "Wanderer",
       "WarbannerTotem",
-      "Wolf"
+      "Wolf",
+      "Woolliam"
     ],
     "AuraPatrolMode": [
       "pingpong",
@@ -114,7 +140,7 @@
       "horizontal",
       "vertical"
     ],
-    "AuraProfile": [
+    "AuraTerrainProfile": [
       "(pick a profile)",
       "Fields",
       "Suburbs",
@@ -136,6 +162,9 @@
       "Wasteland",
       "Mountains",
       "Ice",
+      "Fence",
+      "Cliff",
+      "Cliff Smooth",
       "Wall",
       "Road",
       "Water",
@@ -164,6 +193,7 @@
     "AuraEffect": [
       "(no effect)",
       "Aegis",
+      "AlphaBoarGore",
       "AngryMammothAura",
       "AngryMammothStomp",
       "Antivenom",
@@ -238,6 +268,7 @@
       "PoisonPoolAura",
       "PullThrough",
       "RallyDrum",
+      "RatBite",
       "Reaper",
       "Recall",
       "Recover",
@@ -300,6 +331,10 @@
     "Land"
   ],
   "PROP_SIZE": {
+    "Barn": {
+      "w": 6,
+      "h": 4
+    },
     "Boulder": {
       "w": 2.2,
       "h": 2.2
@@ -308,17 +343,49 @@
       "w": 5,
       "h": 2
     },
+    "BrokenFence": {
+      "w": 2,
+      "h": 1.6
+    },
+    "BurntCart": {
+      "w": 2.2,
+      "h": 1.3
+    },
+    "Bush": {
+      "w": 0.9,
+      "h": 0.9
+    },
     "Cart": {
       "w": 2.2,
       "h": 1.3
+    },
+    "CaveMouth": {
+      "w": 3,
+      "h": 2.4
+    },
+    "Cottage": {
+      "w": 3,
+      "h": 2.6
     },
     "Crate": {
       "w": 0.9,
       "h": 0.9
     },
+    "DeadTree": {
+      "w": 1.9,
+      "h": 1.9
+    },
+    "FallenLog": {
+      "w": 2.4,
+      "h": 0.7
+    },
     "FencePost": {
       "w": 0.44,
       "h": 0.44
+    },
+    "Gate": {
+      "w": 2,
+      "h": 1.6
     },
     "GateWall": {
       "w": 2.4,
@@ -332,9 +399,25 @@
       "w": 4,
       "h": 3
     },
+    "Mill": {
+      "w": 5,
+      "h": 4
+    },
+    "Palisade": {
+      "w": 2.4,
+      "h": 0.8
+    },
+    "PineTree": {
+      "w": 1.8,
+      "h": 1.8
+    },
     "Rock": {
       "w": 1.07,
       "h": 1.07
+    },
+    "Stump": {
+      "w": 1.1,
+      "h": 1.1
     },
     "Tombstone": {
       "w": 0.8,
@@ -355,14 +438,18 @@
   },
   "TERRAIN_SIZE": 1,
   "MOB_KIND": {
+    "AlphaBoar": "combat",
     "AlphaWolf": "combat",
     "ArmySoldier": "combat",
     "AscensionStone": "talker",
+    "Baabara": "talker",
     "Bandit": "combat",
     "BanditHealer": "combat",
     "BanditPyromancer": "combat",
     "BanditRanged": "combat",
     "Bear": "combat",
+    "Beet": "fixture",
+    "Benjamin": "talker",
     "Boar": "combat",
     "Bramble": "fixture",
     "Camp": "fixture",
@@ -376,23 +463,28 @@
     "Dog": "talker",
     "EliteBandit": "combat",
     "EliteWolf": "combat",
+    "Eliza": "talker",
     "Emberkeeper": "talker",
-    "Farmer": "talker",
+    "Farmhand": "talker",
     "FireElemental": "combat",
     "FireTotem": "fixture",
     "ForestSign": "talker",
     "FrontAscensionStone": "talker",
     "FrontCaptain": "talker",
+    "GiantRat": "combat",
     "GiantSpider": "combat",
     "GreaterFireElemental": "combat",
+    "Hendrik": "talker",
     "Hermit": "talker",
     "Kobold": "combat",
     "KoboldRanged": "combat",
+    "Lambert": "talker",
     "LamplessTraveller": "talker",
     "Lamplighter": "talker",
     "Marauder": "combat",
     "MedicCompanion": "combat",
     "MemorialStone": "talker",
+    "Miller": "talker",
     "Miner": "talker",
     "Orc": "combat",
     "OrcGrunt": "combat",
@@ -402,8 +494,11 @@
     "PortalSummon": "talker",
     "ProjectileBomb": "fixture",
     "RallyDrummer": "combat",
+    "Reinhard": "talker",
     "Rockfall": "fixture",
     "Shaman": "talker",
+    "Sheep": "combat",
+    "Shepherd": "talker",
     "ShieldbearerCompanion": "combat",
     "SoldierCompanion": "combat",
     "Spider": "combat",
@@ -417,17 +512,22 @@
     "VillageHealer": "talker",
     "Wanderer": "talker",
     "WarbannerTotem": "fixture",
-    "Wolf": "combat"
+    "Wolf": "combat",
+    "Woolliam": "talker"
   },
   "MOB_SPEED": {
+    "AlphaBoar": 0.5,
     "AlphaWolf": 0.5,
     "ArmySoldier": 0.6,
     "AscensionStone": 0,
+    "Baabara": 0,
     "Bandit": 0.55,
     "BanditHealer": 0.6,
     "BanditPyromancer": 0.55,
     "BanditRanged": 0.6,
     "Bear": 0.4,
+    "Beet": 0,
+    "Benjamin": 0,
     "Boar": 0.55,
     "Bramble": 0,
     "Camp": 0,
@@ -441,23 +541,28 @@
     "Dog": 0,
     "EliteBandit": 0.52,
     "EliteWolf": 0.52,
+    "Eliza": 0,
     "Emberkeeper": 0,
-    "Farmer": 0,
+    "Farmhand": 0.7,
     "FireElemental": 0.55,
     "FireTotem": 0,
     "ForestSign": 0,
     "FrontAscensionStone": 0,
     "FrontCaptain": 0,
+    "GiantRat": 0.62,
     "GiantSpider": 0.95,
     "GreaterFireElemental": 0.45,
+    "Hendrik": 0,
     "Hermit": 0,
     "Kobold": 0.6,
     "KoboldRanged": 0.55,
+    "Lambert": 0,
     "LamplessTraveller": 0,
     "Lamplighter": 0,
     "Marauder": 0.5,
     "MedicCompanion": 1.2,
     "MemorialStone": 0,
+    "Miller": 0,
     "Miner": 0,
     "Orc": 0.5,
     "OrcGrunt": 0.6,
@@ -467,8 +572,11 @@
     "PortalSummon": 0,
     "ProjectileBomb": 0,
     "RallyDrummer": 0.45,
+    "Reinhard": 0,
     "Rockfall": 0,
     "Shaman": 0,
+    "Sheep": 0,
+    "Shepherd": 0,
     "ShieldbearerCompanion": 1.2,
     "SoldierCompanion": 1.2,
     "Spider": 0.55,
@@ -482,7 +590,8 @@
     "VillageHealer": 0,
     "Wanderer": 0.5,
     "WarbannerTotem": 0,
-    "Wolf": 0.7
+    "Wolf": 0.7,
+    "Woolliam": 0
   },
   "PROFILE_NAMES": [
     "Fields",
@@ -505,6 +614,9 @@
     "Wasteland",
     "Mountains",
     "Ice",
+    "Fence",
+    "Cliff",
+    "Cliff Smooth",
     "Wall",
     "Road",
     "Water",
@@ -526,6 +638,7 @@
   ],
   "EFFECT_NAMES": [
     "Aegis",
+    "AlphaBoarGore",
     "AngryMammothAura",
     "AngryMammothStomp",
     "Antivenom",
@@ -600,6 +713,7 @@
     "PoisonPoolAura",
     "PullThrough",
     "RallyDrum",
+    "RatBite",
     "Reaper",
     "Recall",
     "Recover",

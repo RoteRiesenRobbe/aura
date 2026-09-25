@@ -6,6 +6,10 @@
 #   ./scripts/dev-restart.sh frontend   # webpack dev server only
 #   ./scripts/dev-restart.sh all        # both
 #
+#   A second arg `debug` (e.g. `server debug`) boots the DEBUG zone set,
+#   api/zones/.debug/ with world_debug primary (`aurad -debug-zones`). The
+#   client follows the server on its own; switching back is a plain restart.
+#
 # Why this script exists: the kill step has to be `pkill -x <name>` (name-exact).
 # `pkill -f <pattern>` matches the *full command line*, which includes the shell
 # running the restart — so it kills itself before starting anything and the old
@@ -40,6 +44,16 @@ fi
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="${AURA_LOG_DIR:-/tmp/aura-dev}"
 mkdir -p "$LOG_DIR"
+
+# Which zone set aurad boots: `debug` as the second arg adds -debug-zones.
+case "${2:-}" in
+"") ZONE_FLAG="" ; ZONE_SET="main (api/zones/)" ;;
+debug) ZONE_FLAG="-debug-zones" ; ZONE_SET="DEBUG (api/zones/.debug/)" ;;
+*)
+	echo -e "${RED}usage: $0 [server|frontend|all] [debug]${RESET}" >&2
+	exit 2
+	;;
+esac
 
 # Every aurad boot needs AURA_DB_URL and AURA_JWT_KEY — an unset AURA_DB_URL is
 # FATAL (cmd/aurad/database.go). The script used to inherit them from whatever
@@ -110,8 +124,9 @@ restart_server() {
 	pkill -x aurad.exe 2>/dev/null || true
 	kill_port 2000 "aurad"
 	cd "$REPO/backend"
-	echo -e "${BLUE}  ▶ [aurad]${RESET} Launching ./aurad in background (logs: $LOG_DIR/server.log)..."
-	setsid nohup ./aurad -dev -content ../api >"$LOG_DIR/server.log" 2>&1 </dev/null &
+	echo -e "${BLUE}  ▶ [aurad]${RESET} Launching ./aurad in background, zone set ${BOLD}${ZONE_SET}${RESET} (logs: $LOG_DIR/server.log)..."
+	# shellcheck disable=SC2086 # ZONE_FLAG is empty or one word, on purpose
+	setsid nohup ./aurad -dev -content ../api $ZONE_FLAG >"$LOG_DIR/server.log" 2>&1 </dev/null &
 	if ! wait_for_http http://localhost:2000/ 20 "aurad"; then
 		echo -e "${RED}!! [aurad] aurad did not come up — last 20 log lines:${RESET}" >&2
 		tail -20 "$LOG_DIR/server.log" >&2 || true
@@ -181,7 +196,7 @@ all)
 	echo -e "${BOLD}====================================================================${RESET}"
 	;;
 *)
-	echo -e "${RED}usage: $0 [server|frontend|all]${RESET}" >&2
+	echo -e "${RED}usage: $0 [server|frontend|all] [debug]${RESET}" >&2
 	exit 2
 	;;
 esac

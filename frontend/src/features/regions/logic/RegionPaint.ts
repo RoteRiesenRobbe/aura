@@ -20,17 +20,19 @@
  * TOP-LEFT CROP for rasters (Preloading.ts:63-75).
  */
 import {
-    Assets, BlurFilter, Container, Graphics, Matrix, Renderer, RenderTexture, Sprite, Texture,
-    TilingSprite,
+    Assets, BlurFilter, Container, Graphics, Matrix, Mesh, MeshGeometry, Renderer, RenderTexture,
+    Sprite, Texture, TilingSprite,
 } from 'pixi.js';
 import {Clearing, clearsDarkness, clearsHaze} from '../../atmospheres/logic/Clearings';
 import {
     ATMOSPHERE_PROFILES, AtmosphereProfile, declaresDarkness, declaresHaze,
     neededTextures, Outlined, Region, regionBlend,
-    regionDarkness, regionHaze, RegionPoint, regionPaintSpec, regionScroll,
-    TERRAIN_PROFILES,
+    regionDarkness, regionHaze, RegionPoint, regionPaintSpec, regionScroll, regionWobble,
+    regionWobbleSize, TERRAIN_PROFILES,
 } from './Regions';
+import {applyMaskNoise, maskDensity} from './MaskNoise';
 import {Path} from '../../paths/logic/Paths';
+import {ribbonGeometry} from '../../paths/logic/PathRibbon';
 import {Polygon} from '../../polygons/logic/Polygons';
 import {meter2px} from '../../../client-data/BasicConfig';
 import {isMobile} from '../../user-interface/logic/Mobile';
@@ -94,6 +96,17 @@ export function loadZoneTextures(
             return Promise.resolve();
         }
         return Assets.load(url).then((texture: Texture) => {
+            // ⛔ REPEAT HAS TO BE SET BY HAND, and only a MESH reveals that.
+            // Pixi flips `clamp-to-edge` to `repeat` itself inside
+            // `convertFillInputToFillStyle`, so every Graphics fill and stroke
+            // has always tiled for free — but a Mesh never goes through that
+            // function. Without this line an aligned path's ribbon clamps, and
+            // clamping does not look like a wrap-mode bug: it smears the tile's
+            // last pixel column down the whole run, which reads as the texture
+            // simply being wrong. Free and harmless for the Graphics callers,
+            // which were already setting it on first use.
+            texture.source.style.addressMode = 'repeat';
+            texture.source.style.update();
             loaded[name] = texture;
             landed = true;
         }).catch((error: unknown) => {
@@ -118,42 +131,74 @@ export function loadZoneTextures(
 export function regionPaint(
     region: Region,
     profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
-): { texture: Texture, matrix: Matrix } | { color: number } | null {
+    // Radians to turn the TILE by, for a path that asked to run its texture
+    // along itself (Paths.textureAngle). 0 — every region, every polygon and
+    // every path that did not ask — leaves the matrix exactly as it was.
+    angle = 0,
+    // A point the tile's MIDDLE ROW is slid onto, along the path's normal —
+    // see `tileMatrix`. Null for everything that is not an aligned path.
+    anchor: { x: number, y: number } | null = null,
+): { texture: Texture, matrix: Matrix, scale: number } | { color: number } | null {
     const spec = regionPaintSpec(region, isTextureUsable, profiles);
     if (spec === null) {
         return null;
     }
     if ('texture' in spec) {
-        return {texture: loaded[spec.texture], matrix: new Matrix().scale(spec.scale, spec.scale)};
+        const texture = loaded[spec.texture];
+        return {
+            texture,
+            matrix: tileMatrix(spec.scale, angle, anchor, texture.height),
+            scale: spec.scale,
+        };
     }
     return {color: spec.color};
 }
 
 /**
- * Texels per WORLD UNIT in a blend mask (C5).
+ * The texture→local transform for one surface: scale, turn, and register.
  *
- * The mask holds nothing but a low-frequency alpha ramp, which is where the
- * cost of this feature goes away - `MapFog` states the same economy for the
- * same reason (1024 texels across a 144-unit world). At 6 per unit the shipped
- * 1.5-unit band is 9 texels wide, and one texel covers 20 screen px at native
- * zoom: enough segments that the bilinear upscale of a Gaussian ramp reads as a
- * ramp rather than as steps.
+ * ⚑ Written out term by term rather than composed from `Matrix.scale().rotate()`
+ * because the two methods do not compose in the order the name suggests, and a
+ * silently transposed matrix here is a tile drawn at the right size in the
+ * wrong direction — which looks like the ANGLE being wrong rather than the
+ * multiplication. With no angle and no anchor it reduces to exactly
+ * `new Matrix().scale(s, s)`, which is what every shipped surface had.
  *
- * Halved on mobile, exactly as `MapFog.fogWidth` and `MapTerrain.bakeWidth` are
- * halved and for the same reason: the phone is the platform already at its
- * render ceiling, and this is the axis that costs only VRAM.
+ * ⭐ THE ANCHOR TERM IS WHAT LETS A DIRECTIONAL TILE HAVE STRUCTURE. Turning
+ * the tile is only half of alignment: the tile still phases from the world
+ * origin, so the window a stroke reveals lands at an arbitrary offset ACROSS
+ * the ribbon, and a tile can therefore put nothing at a known height. The
+ * first fence tile was built under that limit — macro pattern along the path
+ * only — and came out a boardwalk, because a fence is mostly GAPS and a gap is
+ * structure across the ribbon.
+ *
+ * The fix is a translation along the path's NORMAL, and only along it: slide
+ * the tile until its middle row sits on the anchor. Sliding along the normal
+ * cannot disturb the phase ALONG the path, so the posts do not move.
+ *
+ *   n = (−sin θ, cos θ)                     the unit normal
+ *   we want  uv_y(anchor) = height / 2      the tile's middle row
+ *   uv_y     = (P·n − t·n) / scale          with t = c·n
+ *   ⟹  c    = P·n − scale · height / 2
  */
-function maskTexelsPerUnit(): number {
-    return isMobile() ? 3 : 6;
+function tileMatrix(
+    scale: number,
+    angle: number,
+    anchor: { x: number, y: number } | null,
+    texHeight: number,
+): Matrix {
+    if (angle === 0 && anchor === null) { return new Matrix().scale(scale, scale); }
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    let tx = 0, ty = 0;
+    if (anchor !== null) {
+        const nx = -sin, ny = cos;
+        const c = anchor.x * nx + anchor.y * ny - scale * texHeight / 2;
+        tx = c * nx;
+        ty = c * ny;
+    }
+    return new Matrix(scale * cos, scale * sin, -scale * sin, scale * cos, tx, ty);
 }
-
-/**
- * Hard cap on either side of a mask texture. A region the size of the world
- * (144 units) asks for 882 texels at the density above, so nothing shipped is
- * near this - it is here so that an author who draws one enormous polygon gets
- * a coarser band instead of a texture no GL implementation will allocate.
- */
-const MASK_MAX_TEXELS = 2048;
 
 /** A region's mask footprint in WORLD PX: its bounding box, grown outward. */
 interface Footprint {
@@ -190,6 +235,26 @@ function footprintOf(points: RegionPoint[], margin: number): Footprint | null {
     };
 }
 
+/** A surface's two wobble keys, read together because they are only ever
+ *  consumed together (plan-ground-noise.md W1). */
+interface Wobble {
+    wobble: number;
+    wobbleSize: number;
+}
+
+const NO_WOBBLE: Wobble = {wobble: 0, wobbleSize: 0};
+
+/** Both wobble keys off the surface's OWN profile, in the table it names. */
+function wobbleOf(
+    surface: Region,
+    profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
+): Wobble {
+    return {
+        wobble: regionWobble(surface, profiles),
+        wobbleSize: regionWobbleSize(surface, profiles),
+    };
+}
+
 /** A built mask: the sprite to hang on the region, and the texture behind it. */
 interface BlendMask {
     sprite: Sprite;
@@ -222,24 +287,28 @@ function buildBlendMask(
     blend: number,
     draw: (g: Graphics) => void,
     extraMargin: number = 0,
+    // The profile's `wobble` (0…1) and `wobbleSize` (world units, 0 = derive
+    // from the band) — plan-ground-noise.md W1. `wobble` 0 bakes exactly the C5
+    // mask: same density, no extra pass.
+    {wobble, wobbleSize}: Wobble = NO_WOBBLE,
 ): BlendMask | null {
     const bandPx = meter2px(blend);
-    // Half a band of actual outward bleed, plus the BlurFilter's own padding - 
+    // Half a band of actual outward bleed, plus the BlurFilter's own padding -
     // `updatePadding()` reserves 2 × strength texels, and strength is half the
     // band, so that padding is one full band. 1.5 covers both with the rounding
     // slack that keeps the ramp from touching the texture edge.
     const footprint = footprintOf(points, bandPx * 1.5 + extraMargin);
     if (footprint === null) { return null; }
 
-    // ⚑ ONE density variable feeds BOTH the texture size and the blur strength.
-    // Splitting them is the bug this comment exists to prevent: a region large
-    // enough to hit the cap gets a coarser texture, and a strength computed off
-    // the uncapped density would then draw a band several times too wide.
-    let texelsPerPx = maskTexelsPerUnit() / meter2px(1);
-    const longestPx = Math.max(footprint.width, footprint.height);
-    if (longestPx * texelsPerPx > MASK_MAX_TEXELS) {
-        texelsPerPx = MASK_MAX_TEXELS / longestPx;
-    }
+    // ⚑ ONE density variable feeds the texture size, the blur strength AND the
+    // noise grain. Splitting them is the bug this comment exists to prevent: a
+    // region large enough to hit the cap gets a coarser texture, and a strength
+    // computed off the uncapped density would then draw a band several times
+    // too wide. `maskDensity` owns the rule; see MaskNoise.ts.
+    const unitPx = meter2px(1);
+    const density = maskDensity(blend, wobble,
+        Math.max(footprint.width, footprint.height) / unitPx, isMobile(), wobbleSize);
+    const texelsPerPx = density.texelsPerUnit / unitPx;
 
     // Sub-texel band: the blur would round to nothing and we would pay a mask
     // and a filter pass for a hard edge. Take the hard edge honestly instead.
@@ -279,11 +348,23 @@ function buildBlendMask(
     });
     holder.destroy({children: true});
 
-    const sprite = new Sprite(texture);
+    // ⭐ The wobble is a SECOND bake over the blurred ramp, never a change to
+    // it: `null` back (no WebGL) leaves the clean mask standing.
+    let result = texture;
+    if (wobble > 0) {
+        const noisy = applyMaskNoise(renderer, texture, footprint, texelsPerPx, wobble,
+            density.grainUnits * unitPx);
+        if (noisy !== null) {
+            texture.destroy(true);
+            result = noisy;
+        }
+    }
+
+    const sprite = new Sprite(result);
     sprite.position.set(footprint.x, footprint.y);
     sprite.width = footprint.width;
     sprite.height = footprint.height;
-    return {sprite, texture, footprint};
+    return {sprite, texture: result, footprint};
 }
 
 /** What one paint pass produced, and ALL OF IT IS THE CALLER'S TO OWN.
@@ -361,16 +442,20 @@ export function advanceSurfaceScroll(scrollers: ScrollingSurface[], deltaMS: num
  */
 function scrollingSurface(
     footprint: Footprint,
-    paint: { texture: Texture, matrix: Matrix } | { color: number },
+    paint: { texture: Texture, matrix: Matrix, scale: number } | { color: number },
     scrollPx: { x: number, y: number },
 ): ScrollingSurface | null {
     if (!('texture' in paint)) { return null; }
-    // ⚑ The scale is read back off the matrix `regionPaint` just built
-    // (`new Matrix().scale(s, s)` → `a === d === s`) rather than resolved a
-    // second time from the profile table. Two lookups is two chances to
-    // disagree, and a mismatch here is a tile drawn at the wrong size ONLY
-    // while it moves — the worst kind of bug to catch in a screenshot.
-    const scale = paint.matrix.a;
+    // ⭐ The scale is CARRIED on the paint rather than read back off the
+    // matrix, and that changed when `alignTexture` landed. It used to be
+    // `paint.matrix.a`, which is only the scale while the matrix is a pure
+    // `scale(s, s)`; the moment a rotation joins it `a` becomes `s·cos θ`, so
+    // a turned tile would have drifted at the WRONG SIZE — and only while it
+    // moved, which is the worst kind of bug to catch in a screenshot. Nothing
+    // authors a drifting aligned surface today (see paintSurface), so this
+    // was a trap armed for whoever did it next rather than a live defect.
+    // One value, resolved once, is what makes it un-armable.
+    const scale = paint.scale;
     const sprite = new TilingSprite({
         texture: paint.texture,
         width: footprint.width,
@@ -402,7 +487,7 @@ type DrawSurface = (g: Graphics, style: object) => Graphics;
  *  which is the hard kind of wrong. */
 function addFeathered(
     container: Container,
-    paint: { texture: Texture, matrix: Matrix } | { color: number },
+    paint: { texture: Texture, matrix: Matrix, scale: number } | { color: number },
     mask: BlendMask,
     out: PaintedSurfaces,
 ): void {
@@ -448,14 +533,33 @@ function paintSurface(
     // two namespaces are disjoint, so a miss resolves to the DEFAULT profile
     // rather than throwing.
     profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
+    // A path that asked to run its texture along itself; 0 for everything else.
+    angle = 0,
+    // The anchor its angle came from, so the tile registers ACROSS the ribbon.
+    anchor: { x: number, y: number } | null = null,
 ): void {
-    const paint = regionPaint(surface, profiles);
-    if (paint === null) { return; }
-
     const authored = regionScroll(surface, profiles);
     const scrollPx = {x: meter2px(authored.x), y: meter2px(authored.y)};
+    const drifts = scrollPx.x !== 0 || scrollPx.y !== 0;
 
-    if (scrollPx.x !== 0 || scrollPx.y !== 0) {
+    // ⛔ A DRIFTING SURFACE IS NEVER TURNED, and this is a real limit rather
+    // than an oversight. The drift wraps `tilePosition` at `texture.width *
+    // scale` — the tile's period along the LOCAL x-axis — and once the tile is
+    // rotated that is no longer its period, so the pattern would JUMP once per
+    // wrap. Making the two work together means tracking the period along the
+    // turned axes, which is a chunk and has no consumer: the only profiles
+    // that scroll are Water, Bog and Lava, and none of them is directional.
+    // ⚑ Refused loudly rather than silently, because "my fence does not line
+    // up" would otherwise be a debugging session over a profile key nobody
+    // looked at. Once per path at zone load, and paths are few.
+    if (drifts && angle !== 0) {
+        console.warn(`RegionPaint: path profile "${surface.profile}" both scrolls and asks for `
+            + `alignTexture — the tile stays world-aligned (a drifting tile cannot be turned).`);
+    }
+    const paint = regionPaint(surface, profiles, drifts ? 0 : angle, drifts ? null : anchor);
+    if (paint === null) { return; }
+
+    if (drifts) {
         // ⚑ A feathered surface reuses the MASK's footprint rather than
         // measuring its own. They must be the same box: the sprite is masked by
         // that sprite, and a different one would slide the water half a band
@@ -520,7 +624,8 @@ export function paintRegions(
         const draw: DrawSurface = (g, style) => g.poly(region.points).fill(style);
         const blend = regionBlend(region);
         const mask = blend > 0
-            ? buildBlendMask(renderer, region.points, blend, g => draw(g, {color: 0xffffff}))
+            ? buildBlendMask(renderer, region.points, blend, g => draw(g, {color: 0xffffff}), 0,
+                wobbleOf(region))
             : null;
         paintSurface(container, region, region.points, draw, mask, 0, out);
     });
@@ -703,7 +808,8 @@ function paintAir(
 
     const blend = regionBlend(atmosphere, ATMOSPHERE_PROFILES);
     const mask = blend > 0
-        ? buildBlendMask(renderer, atmosphere.points, blend, g => draw(g, {color: 0xffffff}))
+        ? buildBlendMask(renderer, atmosphere.points, blend, g => draw(g, {color: 0xffffff}), 0,
+            wobbleOf(atmosphere, ATMOSPHERE_PROFILES))
         : null;
 
     if (flat) {
@@ -759,20 +865,32 @@ function paintOutline(
     closed: boolean,
     renderer: Renderer,
     out: PaintedSurfaces,
+    // The body's tile angle, so a rim follows the shape its surface does.
+    angle = 0,
+    // The anchor its angle came from, so the tile registers ACROSS the ribbon.
+    anchor: { x: number, y: number } | null = null,
+    // ⭐ Whether the BODY was drawn as a ribbon mesh. The rim has to make the
+    // same choice: a face that follows its bends beside a kerb that does not
+    // would disagree with itself along the shape's whole length, which is more
+    // obviously wrong than either alone — the same pairing the `angle` argument
+    // was added for.
+    aligned = false,
 ): void {
     const width = surface.outlineWidth;
     if (!surface.outlineProfile || !width) { return; }
     // A surface of its own, so every profile lookup below reads the OUTLINE's
     // entry and not the body's.
     const rim: Region = {profile: surface.outlineProfile, points};
+    if (paintRibbon(container, rim, points, closed, width, aligned, renderer, out)) { return; }
     const draw: DrawSurface = (g, style) => g
         .poly(points, closed)
         .stroke({...style, width, cap: PATH_CAP, join: PATH_JOIN});
     const blend = regionBlend(rim);
     const mask = blend > 0
-        ? buildBlendMask(renderer, points, blend, g => draw(g, {color: 0xffffff}), width / 2)
+        ? buildBlendMask(renderer, points, blend, g => draw(g, {color: 0xffffff}), width / 2,
+            wobbleOf(rim))
         : null;
-    paintSurface(container, rim, points, draw, mask, width / 2, out);
+    paintSurface(container, rim, points, draw, mask, width / 2, out, TERRAIN_PROFILES, angle, anchor);
 }
 
 /**
@@ -799,7 +917,8 @@ export function paintPolygons(
         const draw: DrawSurface = (g, style) => g.poly(polygon.points).fill(style);
         const blend = regionBlend(polygon);
         const mask = blend > 0
-            ? buildBlendMask(renderer, polygon.points, blend, g => draw(g, {color: 0xffffff}))
+            ? buildBlendMask(renderer, polygon.points, blend, g => draw(g, {color: 0xffffff}), 0,
+                wobbleOf(polygon))
             : null;
         paintSurface(container, polygon, polygon.points, draw, mask, 0, out);
         paintOutline(container, polygon, polygon.points, true, renderer, out);
@@ -808,9 +927,105 @@ export function paintPolygons(
 }
 
 /**
+ * Paints ONE aligned surface as a RIBBON MESH instead of a textured stroke, and
+ * says whether it did. `false` means "not my case" and the caller falls back to
+ * {@link paintSurface} unchanged.
+ *
+ * ⭐ WHY A MESH AT ALL — the full argument lives in `PathRibbon.ts`, but the
+ * short of it: a stroke carries ONE matrix, so the tile is a world-space
+ * pattern seen through the stroke's silhouette and it walks off the ribbon as
+ * soon as the ribbon turns. Arc-length UVs follow the bend instead.
+ *
+ * ⛔ THE THREE CASES IT REFUSES, each for its own reason:
+ *
+ *  1. **A path that never asked to align.** A road wants its tile square to the
+ *     world, which is exactly what the matrix already does, and cheaper: one
+ *     Graphics against a geometry buffer.
+ *  2. **A colour fallback** (D14, texture missing or still loading). A flat
+ *     colour has no phase and no direction, so there is nothing for UVs to do.
+ *  3. ⚑ **A DRIFTING profile.** Not because a mesh cannot scroll — a mesh is
+ *     precisely what CAN, and the `tilePosition`-period argument recorded in
+ *     {@link paintSurface} stops applying the moment `TilingSprite` is out of
+ *     the picture. It refuses because the drifting branch has no mesh
+ *     implementation yet, which is a different sentence from the one that is
+ *     written there, and the only aligned-and-drifting path in the game (the
+ *     river) is therefore unchanged by this chunk. ⭐ That is the follow-up
+ *     this design opens, not a limit it inherits.
+ */
+function paintRibbon(
+    container: Container,
+    surface: Region,
+    points: RegionPoint[],
+    closed: boolean,
+    width: number,
+    aligned: boolean,
+    renderer: Renderer,
+    out: PaintedSurfaces,
+): boolean {
+    if (!aligned) { return false; }
+    const authored = regionScroll(surface, TERRAIN_PROFILES);
+    if (authored.x !== 0 || authored.y !== 0) { return false; }
+
+    const paint = regionPaint(surface, TERRAIN_PROFILES);
+    if (paint === null || !('texture' in paint)) { return false; }
+    const {texture, scale} = paint;
+
+    // ⚑ One tile spans `scale × its own pixel size` in world px — the same
+    // reading `tileMatrix`'s `scale(s, s)` has, so a profile's `scale` means
+    // the same thing on both sides of this branch and switching a path between
+    // them does not resize its texture.
+    const tileW = texture.width * scale;
+    const tileH = texture.height * scale;
+
+    const blend = regionBlend(surface);
+    // The mask is built off the CENTRELINE stroke, exactly as the stroke path
+    // builds it, so the feathered silhouette is identical either way.
+    const draw: DrawSurface = (g, style) => g
+        .poly(points, closed)
+        .stroke({...style, width, cap: PATH_CAP, join: PATH_JOIN});
+    const mask = blend > 0
+        ? buildBlendMask(renderer, points, blend, g => draw(g, {color: 0xffffff}), width / 2,
+            wobbleOf(surface))
+        : null;
+
+    // ⚑ The overdraw mirrors `buildBlendMask`'s own outward margin. Content has
+    // to reach at least as far as the blur does, because masked alpha is
+    // content × mask: a ribbon that stopped at its rim would multiply the
+    // outward half of the ramp by nothing and end the edge in a 50 % step —
+    // the same trap `addFeathered` exists to dodge for regions.
+    const overdraw = mask !== null ? meter2px(blend) * 1.5 : 0;
+    const ribbon = ribbonGeometry(points, width, closed, tileW, tileH, overdraw);
+    if (ribbon === null) { return false; }
+
+    const mesh = new Mesh({
+        geometry: new MeshGeometry({
+            positions: ribbon.positions,
+            uvs: ribbon.uvs,
+            indices: ribbon.indices,
+        }),
+        texture,
+    });
+    container.addChild(mesh);
+    if (mask !== null) {
+        // ⚑ The mask sprite must be IN the scene graph to have a world
+        // transform — a detached mask silently masks NOTHING. Same note as
+        // `addFeathered`.
+        container.addChild(mask.sprite);
+        mesh.mask = mask.sprite;
+        out.masks.push(mask.texture);
+    }
+    return true;
+}
+
+/**
  * The stroke geometry every path is drawn with. Round on both counts (D10):
  * a butt cap reads as a river snipped off with scissors, and a mitre join
  * spikes outward at a sharp bend in a way no riverbank does.
+ *
+ * ⚑ Still the geometry for every NON-aligned path, and for the aligned ones
+ * {@link paintRibbon} hands back. An aligned path drawn as a mesh has flat ends
+ * rather than round caps — which is the honest shape for a rock face, and has
+ * no effect on the fences, whose caps are hidden under their own end posts.
  */
 const PATH_CAP = 'round';
 const PATH_JOIN = 'round';
@@ -837,6 +1052,20 @@ export function paintPaths(
             .poly(path.points, path.closed === true)
             .stroke({...style, width: path.width, cap: PATH_CAP, join: PATH_JOIN});
 
+        // ⭐ `textureAngle` is present on exactly the paths that authored
+        // `alignTexture`, so it doubles as the "this one wants to follow its own
+        // ribbon" flag. ⚑ Its VALUE is no longer read for those: the mesh takes
+        // the direction from the geometry, per vertex, which is the whole point.
+        // It stays load-bearing for the drifting fallback below, which is still
+        // a matrix.
+        const aligned = path.textureAngle !== undefined;
+        if (paintRibbon(container, path, path.points, path.closed === true,
+            path.width, aligned, renderer, out)) {
+            paintOutline(container, path, path.points, path.closed === true, renderer, out,
+                path.textureAngle || 0, path.textureAnchor || null, aligned);
+            return;
+        }
+
         const blend = regionBlend(path);
         // ⚑ The footprint has to grow by HALF THE STROKE on top of the blend
         // band: footprintOf measures the CENTRELINE's bounding box, and the
@@ -845,12 +1074,20 @@ export function paintPaths(
         // wrong rather than the box being too small.
         const mask = blend > 0
             ? buildBlendMask(renderer, path.points, blend,
-                g => draw(g, {color: 0xffffff}), path.width / 2)
+                g => draw(g, {color: 0xffffff}), path.width / 2, wobbleOf(path))
             : null;
-        paintSurface(container, path, path.points, draw, mask, path.width / 2, out);
+        // ⚑ `textureAngle` is 0/undefined for every path that did not author
+        // `alignTexture`, so this argument changes nothing for a road or a
+        // river — the whole feature is inert until a path asks.
+        paintSurface(container, path, path.points, draw, mask, path.width / 2, out,
+            TERRAIN_PROFILES, path.textureAngle || 0, path.textureAnchor || null);
         // ⚑ The outline follows the path's OWN closure: a ring road's rim has to
         // close with it, or the seam shows as a notch in the kerb.
-        paintOutline(container, path, path.points, path.closed === true, renderer, out);
+        // ⭐ ...and its ANGLE, for the same reason: a fence with an aligned rail
+        // texture and a world-aligned kerb would disagree with itself along its
+        // whole length, which is more obviously wrong than either alone.
+        paintOutline(container, path, path.points, path.closed === true, renderer, out,
+            path.textureAngle || 0, path.textureAnchor || null);
     });
     return out;
 }

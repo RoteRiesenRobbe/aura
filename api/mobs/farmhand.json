@@ -1,0 +1,36 @@
+{
+  "_comment": "Zone 1 farmland flavour NPC (content-npcs.md), and ⭐ THE FIRST NPC IN THE GAME THAT WALKS. Every conversant before him authors speed 0 under D4 (an NPC is an actor that authors no movement) — but D4's point was that an NPC is an ordinary actor rather than a kind of its own, so `content can later give one a loadout and a walk without changing what it IS` (role_content_test). This is that content: speed 0.7 and a 10-waypoint boustrophedon route at idleSpeedFactor 0.2, so he works the field in parallel rows instead of standing in it. ⚑ THAT is why aggroRadius 3 rather than the standing 1.0: senseRadius is max(aggro, interaction.range), and a man crossing a field should notice you before you are close enough to talk. Otherwise the usual unattackable shape — faction townsfolk (friendlyToPlayers ⇒ player damage skips it), collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) and deliberately NOT Action(2) so no aura on either side can target it, mask 16 = Border only so nothing pushes it, xpFactor 0 to keep it off both the XP path and the nameplate. ⭐ ONE ROOT NODE AND NO OPTIONS, deliberately: the Farmer on the same field already carries two quests and a teaching, so a second giver here would be noise. He is there so the farm reads as WORKED rather than staffed by exactly one man — the baabara.json / forest-sign.json terminal-node shape. ⛑ entityType Farmer is a DELIBERATE REUSE and placeholder art (the standing call, as for the Shepherd and the Miller): a bespoke farmhand costs a wire enum value that can never be reclaimed plus an exhaustive client Record entry. He earns his own sprite at the Zone 1 art pass. ⚑ TEXT is plain (PO 2026-08-02): no lore or stylized wording yet. All values [PLACEHOLDER].",
+  "id": 79,
+  "name": "Farmhand",
+  "type": "MOB",
+  "entityType": "Farmer",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 55,
+    "xpFactor": 0,
+    "speed": 0.7
+  },
+  "body": {
+    "radius": 0.3,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 3
+  },
+  "skills": [],
+  "unlocks": [],
+  "interaction": {
+    "range": 2,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          "I do the work the farmer has no hands left for."
+        ],
+        "options": []
+      }
+    ]
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "_comment": "One of the shepherd's three named strays — a talk_to target for `the-strays`, and the north pasture's zero-combat lesson. Copied field for field from dog.json, which is the game's only other talkable animal: faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. Those two knobs are what make the quest zero-combat BY CONSTRUCTION rather than by hoping the player behaves: the animal cannot be killed, so the objective cannot be failed. role creature + speed 0 (D4): an NPC is an actor that authors no movement. xpFactor 0 keeps it off the nameplate path. aggroRadius 1.0 is required-but-inert; interaction.range 2.0 is the wider of the two and sizes the one sensor. ⭐ WHY THREE DEFINITIONS AND NOT ONE WITH count 3: talk_to is keyed by the DEFINITION id, never the spawn — sys/interaction.go stamps a.MobID(), and quests.talkedTo persists as a sorted array of those ids — so three spawns of one definition are ONE key, and talking to any one would satisfy all three at once. A count there is unsatisfiable-or-instant, never 1-of-3, which is why quests.go firstCountable skips talk_to entirely. The engine could be taught to count DISTINCT ENTITIES instead, but entity ids are process-local by design (L12), so the count would not survive a restart — deferred until a second quest needs it. ⭐ NAMING THEM IS WHAT MAKES THREE FILES HONEST (PO 2026-09-20): three sheep SPECIES was a workaround wearing a costume, while three named individuals is what the content actually is — Baabara, Woolliam and Lambert are specific animals the shepherd knows, and the generic `Sheep` beside them is the flock they wandered off from. ⚑ THE NAMES FORCE THE QUEST'S `tracker`: the derived journal line is hardcoded 'Talk to the ' + name (quests/ledger.go) with no displayName field anywhere, so 'Talk to the Baabara' would read wrong. An authored tracker wins outright and replaces every derived line, which is why the-strays authors one — at the cost of the per-objective ✓ ticks. ⚑ ONE NODE, NO OPTIONS — an authored-empty node is a legal lore leaf (the empty-destination prune spares it), and talking is all this quest needs: the ledger stamps NoteTalkedTo on session-open, not on a row click. ⭐ AND IT IS WHAT MAKES THEM FINDABLE: the generic Sheep authors NO interaction at all, so the three that answer are exactly the three the quest wants. ⛑ entityType Stag is a DELIBERATE REUSE and placeholder art, the standing call (Signpost is worn by five definitions, the Hermit sprite by two): a bespoke sheep costs a wire enum value that can never be reclaimed plus an exhaustive client Record entry, and a quadruped grazer is the closest thing in the set. All four sheep earn their own sprite at the Zone 1 art pass. All values [PLACEHOLDER].",
+  "id": 77,
+  "name": "Lambert",
+  "type": "MOB",
+  "entityType": "Stag",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1.0
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2.0,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          "Baa! Baa!"
+        ]
+      }
+    ]
+  }
+}

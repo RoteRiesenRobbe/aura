@@ -4,6 +4,7 @@ import {groundTextureTypes} from './GroundTextureTypes';
 import {IGame} from "../../core/logic/IGame";
 import {meter2px} from '../../../client-data/BasicConfig';
 import { Container } from 'pixi.js';
+import {pickZoneSet} from './ZoneSets';
 
 
 const textures: GroundTexture[] = [];
@@ -251,12 +252,27 @@ export interface ZoneJSON {
 // Bundle every zone's data straight from the repo api/ (chunk 6, §7.4) — same
 // convention as the zone editor. Keyed by file stem so the client can render
 // the terrain of whichever zone the server selected (Welcome.zoneName).
-const zonesContext = require.context('../../../../../api/zones', false, /\.json$/);
-const zonesByStem: { [stem: string]: ZoneJSON } = {};
-zonesContext.keys().forEach((key: string) => {
-    const stem = key.replace(/^\.\//, '').replace(/\.json$/, '');
-    zonesByStem[stem] = zonesContext(key) as ZoneJSON;
-});
+// ⚑ TWO sets: the main one and `.debug/` (`aurad -debug-zones`). Which one is
+// live is the server's call, read off Welcome.zoneName by selectZoneSet.
+function bundleByStem(context: __WebpackModuleApi.RequireContext): { [stem: string]: ZoneJSON } {
+    const byStem: { [stem: string]: ZoneJSON } = {};
+    context.keys().forEach((key: string) => {
+        const stem = key.replace(/^\.\//, '').replace(/\.json$/, '');
+        byStem[stem] = context(key) as ZoneJSON;
+    });
+    return byStem;
+}
+const mainZonesByStem = bundleByStem(require.context('../../../../../api/zones', false, /\.json$/));
+const debugZonesByStem = bundleByStem(require.context('../../../../../api/zones/.debug', false, /\.json$/));
+let zonesByStem = mainZonesByStem;
+
+/**
+ * Points every zone-data read at the set the server is running, named by its
+ * primary zone (Welcome.zoneName). Call it before anything reads zone data.
+ */
+export function selectZoneSet(primaryZoneName: string): void {
+    zonesByStem = pickZoneSet(primaryZoneName, mainZonesByStem, debugZonesByStem);
+}
 
 /**
  * Bundled zone data by file stem — other client-visual zone consumers (the

@@ -1,0 +1,134 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder TREE STUMP art: TRUE top-down, and for once that is the
+       lucky view — a stump is the one forest object whose most legible face
+       points straight at this camera. No projection argument to fight.
+
+       ⭐ IT HAS TO SAY *CUT*, NOT *BROKEN*, because that is the whole job it
+       does in content: "people work here" at a farm edge, and decay in the
+       forest (docs/art/assets.csv prop-stump). Three things carry that, and
+       none of them is the rings:
+         1. THE FELLING NOTCH — the wedge taken out of the south-west side
+            before the back cut. A snapped tree has a ragged spike; a felled
+            one has a clean V, and nothing else in nature makes that shape.
+         2. THE SAW KERF — faint parallel lines straight across the face, all
+            at ONE angle. Growth rings are concentric and organic; a saw is
+            dead straight and does not care where the centre is. The two
+            patterns crossing is the read.
+         3. THE CHIPS thrown clear onto the grass around it.
+       ⚑ The growth rings matter less than any of those — they say "this was
+       a tree", which the silhouette already said.
+
+       ⚑ RINGS ARE OFF-CENTRE ON PURPOSE. A real trunk grows faster on its lit
+       side, so perfectly concentric rings read as a machined target. Two
+       pixels of offset is all it takes.
+
+       ⛔ Careful with the SIZE of the pale face: haystack.svg's first draft
+       was read as a tree stump (2026-09-20) because a big flat disc with
+       radial lines on it IS a stump to the eye. What keeps the two apart here
+       is the DARK BARK RING — a haystack has no rim — so the bark stays thick
+       and stays dark.
+
+       Circle body (r 0.55), so the viewBox is square and the SVG bake needs
+       no `preserveAspectRatio` (see house.svg and a95a2f0d for when it does).
+       Light from the top-left, like everything else here. -->
+
+  <defs>
+    <!-- the cut face, so the saw marks and rings cannot spill onto the bark -->
+    <clipPath id="stumpFace">
+      <circle cx="50" cy="50" r="31"/>
+    </clipPath>
+  </defs>
+
+  <!-- ground shadow, offset down-right -->
+  <ellipse cx="54" cy="55" rx="41" ry="39" fill="#000000" opacity="0.26"/>
+
+  <!-- chips and sawdust thrown clear when it came down -->
+  <g fill="#c2a163">
+    <rect x="8" y="16" width="9" height="4" rx="2" transform="rotate(-28 12 18)" opacity="0.85"/>
+    <rect x="86" y="30" width="8" height="4" rx="2" transform="rotate(37 90 32)" opacity="0.8"/>
+    <rect x="76" y="86" width="10" height="4" rx="2" transform="rotate(-14 81 88)" opacity="0.85"/>
+    <rect x="14" y="82" width="7" height="3.5" rx="1.7" transform="rotate(22 17 84)" opacity="0.75"/>
+    <ellipse cx="90" cy="62" rx="4" ry="2.4" opacity="0.6"/>
+    <ellipse cx="22" cy="8" rx="3.4" ry="2" opacity="0.55"/>
+  </g>
+
+  <!-- THE ROOT FLARE: the base is never a clean circle, it buttresses out
+       where the big roots leave. Drawn under the bark so it reads as the
+       same mass swelling, not as a collar. -->
+  <path d="M50,8 C68,8 78,16 84,30 C92,40 92,58 84,70 C76,86 62,92 50,92
+           C36,92 22,85 15,70 C7,58 8,38 16,28 C24,14 34,8 50,8 Z"
+        fill="#4a3a26" stroke="#2a1f14" stroke-width="3"/>
+  <!-- four roots pushing out under the grass -->
+  <g fill="#41321f" opacity="0.9">
+    <path d="M16,28 L4,20 L10,32 L18,36 Z"/>
+    <path d="M84,30 L96,24 L92,38 L82,38 Z"/>
+    <path d="M84,70 L95,78 L84,82 L78,76 Z"/>
+    <path d="M18,72 L8,80 L20,84 L26,77 Z"/>
+  </g>
+
+  <!-- the bark ring: thick and DARK, which is what keeps this from reading as
+       a haystack. Rough on the outside, because bark is. -->
+  <circle cx="50" cy="50" r="37" fill="#5a4630" stroke="#2a1f14" stroke-width="4"/>
+  <g stroke="#33261a" stroke-width="2.4" opacity="0.75">
+    <line x1="50" y1="13" x2="50" y2="21"/>
+    <line x1="76" y1="24" x2="70" y2="30"/>
+    <line x1="87" y1="50" x2="79" y2="50"/>
+    <line x1="76" y1="76" x2="70" y2="70"/>
+    <line x1="50" y1="87" x2="50" y2="79"/>
+    <line x1="24" y1="76" x2="30" y2="70"/>
+    <line x1="13" y1="50" x2="21" y2="50"/>
+    <line x1="24" y1="24" x2="30" y2="30"/>
+  </g>
+  <!-- the lit side of the rim, and its own shade opposite -->
+  <path d="M50,13 A37,37 0 0,0 13,50" fill="none" stroke="#7b6142" stroke-width="5" opacity="0.5"/>
+  <path d="M50,87 A37,37 0 0,0 87,50" fill="none" stroke="#3a2c1d" stroke-width="5" opacity="0.45"/>
+
+  <!-- THE CUT FACE -->
+  <circle cx="50" cy="50" r="31" fill="#bb9a63" stroke="#6b5231" stroke-width="2.6"/>
+  <g clip-path="url(#stumpFace)">
+    <!-- lit from the top-left across the face as well -->
+    <circle cx="42" cy="42" r="26" fill="#cbab74" opacity="0.45"/>
+
+    <!-- growth rings, centred 2 px off so they are not a target -->
+    <g fill="none" stroke="#8a6f43" stroke-width="1.6" opacity="0.8">
+      <circle cx="48" cy="48" r="26"/>
+      <circle cx="48" cy="48" r="21.5"/>
+      <circle cx="48" cy="48" r="17"/>
+      <circle cx="48" cy="48" r="12.5"/>
+      <circle cx="48" cy="48" r="8"/>
+    </g>
+    <circle cx="48" cy="48" r="4.5" fill="#9a7c4b" opacity="0.9"/>
+
+    <!-- ⭐ THE SAW KERF: straight, parallel, one angle, indifferent to the
+         centre. This is the line that says a person did it. -->
+    <g stroke="#a07f48" stroke-width="1.4" opacity="0.55">
+      <line x1="10" y1="26" x2="94" y2="46"/>
+      <line x1="10" y1="34" x2="94" y2="54"/>
+      <line x1="10" y1="42" x2="94" y2="62"/>
+      <line x1="10" y1="50" x2="94" y2="70"/>
+      <line x1="10" y1="58" x2="94" y2="78"/>
+      <line x1="10" y1="66" x2="94" y2="86"/>
+    </g>
+
+    <!-- drying checks: cracks that open from the heart outwards -->
+    <path d="M48,48 L60,24" fill="none" stroke="#6b5231" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M48,48 L26,60 L20,66" fill="none" stroke="#6b5231" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M48,48 L66,70" fill="none" stroke="#6b5231" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+
+  <!-- ⭐ THE FELLING NOTCH: the wedge cut out before the back cut. Pale
+       exposed wood inside a hard-edged V that nothing natural makes.
+       ⚑ It bites in from the RIM and stops short of the heart — a real notch
+       is about a third of the diameter. The first cut ran it to the centre
+       and ate the rings, which made it read as a slice taken out of a pie. -->
+  <path d="M41,58 L15,63 L34,84 Z" fill="#c9ab76" stroke="#6b5231" stroke-width="2.6"
+        stroke-linejoin="round"/>
+  <path d="M41,58 L17,63" fill="none" stroke="#8a6f43" stroke-width="1.6" opacity="0.7"/>
+
+  <!-- a little moss on the shaded flank — the decay half of the brief -->
+  <g fill="#5d7340" opacity="0.55">
+    <ellipse cx="72" cy="74" rx="9" ry="6" transform="rotate(-32 72 74)"/>
+    <ellipse cx="80" cy="60" rx="5" ry="3.4" transform="rotate(-18 80 60)"/>
+  </g>
+</svg>

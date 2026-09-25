@@ -81,6 +81,35 @@ You **do** need:
   This is the one thing a swap can legitimately require.
 - Square canvas, transparent background, and the Portrait Rule for creatures.
 
+### ⛔ Two ways a hand-written SVG fails to load at all
+
+Both produce the *same* unhelpful console line, which names the data URI and
+never the attribute that caused it:
+
+```
+[Loader.load] Failed to load data:image/svg+xml,%3csvg width='100%25' …
+```
+
+Webpack inlines every prop SVG as a **data URI**, and Pixi hands that to an
+`<img>`. An `<img>` parses SVG as **strict XML**, so anything that is merely
+*sloppy* in an HTML context is fatal here — the whole prop silently never
+appears.
+
+- ⛔ **`xlink:href` without `xmlns:xlink` on the root.** `xlink:` is a namespace
+  prefix; undeclared, the document is not well-formed and the parse dies with
+  `unbound namespace prefix`. ⚑ **This is easy to copy into a new file**, because
+  `roundTree.svg` and `stone.svg` both use the `xlink` form — they are machine
+  exports from Affinity and they *do* declare the namespace. **Write plain
+  `href`** on `<use>`: it is SVG 2, needs no declaration, and every browser this
+  ships to resolves it. (Cost: one prop, 2026-09-21.)
+- ⛔ **A literal `--` inside an XML comment** ends the comment early. The long
+  authoring notes at the top of every placeholder make this easy to hit; use an
+  em dash.
+
+⚑ **Well-formedness is not the same question as "does it render"**, so check the
+loader path, not a parser: encode the file as a data URI, set it as an
+`<img>.src`, and wait for `onload`. That is exactly what `Preloading` does.
+
 ### Three traps
 
 - **Read the `Graphics.ts` entry, never the filename.** The two outright liars
