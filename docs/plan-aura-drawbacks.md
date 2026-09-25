@@ -1,7 +1,7 @@
 # Plan: aura drawbacks and the player CC doors
 
 > **Status: DESIGNED 2026-09-25 (PO session, seven rulings taken as choice
-> prompts, §2), nothing built, 3 chunks (§7).** Line refs pinned to HEAD
+> prompts, §2), nothing built, 2 chunks (§7; C3 merged into C2 the same day).** Line refs pinned to HEAD
 > `38bd586f`; re-verify before executing. Ledgers: §11.
 >
 > Origin: the PO at the skill-VFX C3b/C3c wrap (`docs/feedback.md` row
@@ -11,7 +11,7 @@
 > through auras. To me it seems we will need the 'while active' self modifier
 > for that."*
 >
-> **Schema, whole plan: DB NONE · wire +1 enum value (C3: the stunned press's
+> **Schema, whole plan: DB NONE · wire +1 enum value (C2: the stunned press's
 > rejection reason, `ActivationRejection`) · content +1 category on one effect
 > type, +1 effect type, +1 mob, +2 or +3 skill files, pin 116 → 118 or 119.**
 > All numbers [PLACEHOLDER].
@@ -67,7 +67,7 @@ nothing, because `recomputeDerived` walks `PassiveSlots` only. The
   `instant_resist` twin, so a mob (or a player) can slow through a cooldown
   as well as through `slow_aura`.
 - **D4 · The player stun door is BUILT with the slow door**, not merely
-  designed. This closes `plan-cc-and-retaliation.md` §8 Q3 ("can a mob stun a
+  designed, and in the SAME chunk (C2, merged 2026-09-25). This closes `plan-cc-and-retaliation.md` §8 Q3 ("can a mob stun a
   player?"): yes.
 - **D5 · A max-HP drawback clamps current HP to the shrunken pool and accepts
   the hysteresis.** The player gains the mob's per-tick shrink clamp
@@ -222,13 +222,13 @@ so the input step stops; `SkillSystem.processEntity` (`sys/skills.go:230-236`)
 already returns early for any `stunSuppressible` entity, so the player's aura
 stops ticking and their cooldown timers freeze, the mob rule A6.
 
-**What does NOT follow, and C3 adds:** the input-side activations. A stunned
+**What does NOT follow, and C2 adds:** the input-side activations. A stunned
 player must be refused at the press for a cooldown activation, flight takeoff
 and interaction (`core/input.go`, the sites that read the wire command), with
 `ActivationRejected` carrying a reason so the HUD can say why (the existing
 rejection channel, `player.go:580`). ⚑ **That reason is a wire enum**
 (`model/player.go:35-48` mirrors `AuraApi.ActivationRejection`,
-`server.fbs:837`), and none of the shipped values fits a stun, so C3 adds
+`server.fbs:837`), and none of the shipped values fits a stun, so C2 adds
 `ActivationRejectionStunned`: +1 enum value in `server.fbs`, regenerated
 bindings, and the client's feedback string. The plan's only wire change. An aura SWITCH while stunned is allowed:
 it is a state flip, not a cast, and the switched-to aura does not tick until
@@ -358,7 +358,7 @@ in-game judgement.
 - **DB: NONE, all chunks.** `DerivedStats` is recomputed from the persisted
   loadout on load (`persist.go:542` → `SetActiveAura` → fold); buffs are not
   persisted; the new content is files.
-- **Wire: NONE in C1 and C2, +1 enum value in C3** (`ActivationRejectionStunned`,
+- **Wire: NONE in C1, +1 enum value in C2** (`ActivationRejectionStunned`,
   §3.3). The fold is invisible on the wire beyond the values it already
   changes (`max_health`, position deltas, the owner block's revision). A
   player slow and stun ride `Character.applied_effects`' existing Slow bit.
@@ -384,7 +384,7 @@ in-game judgement.
 - **With the skill-VFX ambient reconciler.** A drawback draws nothing; an
   aura's `visual` is unaffected. The editor's Visuals builder needs no row.
 - **With `plan-cc-and-retaliation.md`.** §8 Q3 is resolved by D4 (this plan,
-  C3). Stun A5/A6 (threat kept, timers frozen) hold for players where they
+  C2). Stun A5/A6 (threat kept, timers frozen) hold for players where they
   apply (a player has no threat table).
 - **With CC immunity.** Players have none. A future "CC resistance" passive is
   a `Derived` field read by the two doors, one chunk, not designed here.
@@ -399,7 +399,7 @@ in-game judgement.
 ## 7. Chunk breakdown
 
 Each chunk is its own execution session, plan-first, TDD, with the verify
-tail below. Order is the order written; C2 and C3 are both scheduled (D4).
+tail below. Two sessions: C1, then C2 (the CC doors, D4).
 
 ### C1: the while-active fold (§3.1, §3.6)
 
@@ -421,40 +421,36 @@ In-game: equip the drawback aura, switch on: the tooltip states the drawback,
 the walk slows or the pool shrinks, the cost floats bigger; switch off:
 instant restore, HP stays where it was.
 
-### C2: the player slow door, `instant_slow`, the web (§3.2, §3.4a, §3.5)
+### C2: the player CC doors, `instant_slow`, the spider's web and Paralyze (§3.2-§3.5)
 
-Go: `player.ApplySlow` + GOD refusal; the target-side combat stamp;
-`instant_slow` end to end; the `slow_aura` bound; the mob-spawn combat guard;
-the real-entity capability pin extended. Frontend: the two `instant_slow`
-hand-syncs. Content: `spider-web`, `spider-web-aura`, `SpiderWeb`, the
-GiantSpider slot; census and placement pins re-derived. Docs: the manual's
-cooldown list, `content-mobs.md`'s spider row.
+Merged from two chunks on 2026-09-25 (PO: "rather too few than too many"):
+the stun door is the slow door's shape on the same file, the same capability
+pin and the same GOD refusal, and the spider file is edited once for both
+cooldowns.
+
+Go: `player.ApplySlow` and `player.ApplyStun` / `Stunned`, both refused under
+GOD; the target-side combat stamp; `instant_slow` end to end; the `slow_aura`
+bound; the mob-spawn combat guard; the press-side refusals for a stunned
+player with `ActivationRejectionStunned` (+1 wire enum value, regenerated
+bindings); the real-entity capability pin extended with both doors.
+Frontend: the two `instant_slow` hand-syncs, the rejection string. Content:
+`spider-web`, `spider-web-aura`, `SpiderWeb`, GiantSpider's two new cooldown
+slots (the web, Paralyze); census and placement pins re-derived. Docs: the
+manual's cooldown list and stun paragraph, `content-mobs.md`'s spider row.
 
 Tests: a mob `slow_aura` slows a real `*player` (the fake-passes-real-fails
-trap, `self_buff_capabilities_test.go:26-30`); GOD refuses; a slowed player is
-in combat; `instant_slow` hits, refreshes, is consumed only on a hit; an idle
-spider drops no web, an aggroed one does, the web expires; the web's aura
-slows a player inside and frees them within one lifetime outside.
+trap, `self_buff_capabilities_test.go:26-30`); GOD refuses both doors; a
+slowed player is in combat; `instant_slow` hits, refreshes, is consumed only
+on a hit; an idle spider drops no web, an aggroed one does, the web expires;
+the web's aura slows a player inside and frees them within one lifetime
+outside; a stunned player does not move, does not tick their aura, cannot
+press a cooldown, cannot take off, CAN switch auras; the stun expires on its
+own and dies with the character; the spider's Paralyze fires only on a hit.
 
 In-game: fight a giant spider: a web appears near it, walking through it is
-visibly slower with the pip lit, stepping out frees you; wander past a spider
-out of aggro: no webs.
-
-### C3: the player stun door and the spider's Paralyze (§3.3, §3.4b)
-
-Go: `player.ApplyStun` / `Stunned` + GOD refusal; the press-side refusals
-with a rejection reason; the capability pin extended. Content: GiantSpider
-equips Paralyze. Docs: `plan-cc-and-retaliation.md` §8 Q3 resolved by
-pointer, the manual's stun paragraph.
-
-Tests: a stunned player does not move, does not tick their aura, cannot press
-a cooldown, cannot take off, CAN switch auras; the stun expires on its own
-and dies with the character; GOD refuses; the spider's Paralyze fires only
-on a hit.
-
-In-game: the spider's Paralyze lands: input dead for the duration, the slow
-pip lit, the HUD names the refusal on a press; the stun ends; a respawn is
-clean.
+visibly slower with the pip lit, stepping out frees you; its Paralyze lands:
+input dead for the duration, the HUD names the refusal on a press, the stun
+ends, a respawn is clean; wander past a spider out of aggro: no webs.
 
 ### Verify tail, every chunk
 
@@ -515,7 +511,7 @@ in-game checklist above · the schema line restated in the ledger.
   add the bound BEFORE lifting the floor, or a negative passive bonus that
   loads today becomes live the same commit.
 - **L2 · The fake-passes-real-fails trap** (`self_buff_capabilities_test.go`):
-  every test in C2/C3 that puts a slow or stun on a player must use the real
+  every test in C2 that puts a slow or stun on a player must use the real
   `*player`, and the real-entity pin must gain both doors, or a green suite
   proves nothing (it happened for lifesteal, R3).
 - **L3 · `persist.go:542` runs `SetActiveAura` after equip.** If the fold

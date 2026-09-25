@@ -494,7 +494,7 @@ Order is C1 → C2 → C3. C1 and C2 are each a session; C3 is larger.
    cooldown, radius 2.5, GiantSpider drop at 0.2.** ⚑ D10 carries an assumption:
    the ruling said "the elite spiders" and no elite-tier spider exists — see D10.
 3. ✅ **RESOLVED 2026-09-25 by `docs/plan-aura-drawbacks.md` D4: yes, a mob can
-   stun a player; the player stun door is its C3, the slow door its C2.**
+   stun a player; both player CC doors are its C2.**
    (was: ⚑ **STILL OPEN, deliberately — the plan's only surviving design question.
    Is the stun player-cast only, or can a mob stun a player?** §3.3 scopes it
    mobs-only for v1 and the mechanism does not care — but "a mob stuns you" is
