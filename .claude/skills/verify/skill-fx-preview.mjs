@@ -84,6 +84,9 @@ try {
   // --- leg 1: the gallery -------------------------------------------------
   const gallery = await context.newPage();
   collect(gallery, 'gallery');
+  // The editor's gallery iframe is 100 % wide x 220 px; the gallery lays its
+  // seven slots across whatever width it gets, so 1400 wide = 200 px slots.
+  await gallery.setViewportSize({ width: 1400, height: 220 });
   await gallery.goto(`${base}/fx-preview.html?gallery`, { waitUntil: 'domcontentloaded' });
   await gallery.waitForFunction(() => window.__fxPreview?.ready === true, null, { timeout: 30_000 });
   const mode = await gallery.evaluate(() => window.__fxPreview.mode);
@@ -136,9 +139,27 @@ try {
     }), kind);
     if (!armed) { fail(`slot ${kind}: no spawn within 10 s to photograph`); continue; }
     await gallery.waitForTimeout(800);
-    await gallery.screenshot({ path: join(outdir, `gallery-slot-${slot + 1}-${kind}.png`), clip: { x: slot * 200, y: 0, width: 200, height: 218 } });
+    await gallery.screenshot({ path: join(outdir, `gallery-slot-${slot + 1}-${kind}.png`), clip: { x: slot * 200, y: 0, width: 200, height: 220 } });
     await gallery.evaluate(() => { if (window.__realNow) { performance.now = window.__realNow; window.__realNow = null; } });
   }
+  // The gallery FITS ITS FRAME (PO, 2026-09-25: at 100 % zoom the fixed 1400 px
+  // strip cut the wave off): at 700 px wide the canvas is 700 px and the seven
+  // label cells span exactly the width, nothing overflows.
+  await gallery.setViewportSize({ width: 700, height: 220 });
+  await gallery.waitForTimeout(500);
+  const fit = await gallery.evaluate(() => {
+    const canvas = document.querySelector('canvas');
+    const cells = [...document.querySelectorAll('#fx-label span')];
+    return {
+      canvasCss: canvas ? canvas.getBoundingClientRect().width : -1,
+      cells: cells.length,
+      cellSum: cells.reduce((sum, c) => sum + c.getBoundingClientRect().width, 0),
+      scrollW: document.documentElement.scrollWidth,
+    };
+  });
+  if (Math.abs(fit.canvasCss - 700) <= 2 && fit.cells === KINDS.length && Math.abs(fit.cellSum - 700) <= 4 && fit.scrollW <= 700) pass(`the gallery fits a 700 px frame: canvas ${fit.canvasCss} px, ${fit.cells} cells spanning ${fit.cellSum.toFixed(0)} px, no overflow`);
+  else fail(`the gallery does not fit a 700 px frame: ${JSON.stringify(fit)}`);
+  await gallery.setViewportSize({ width: 1400, height: 220 });
   await gallery.waitForTimeout(3_000);
   const g2 = await gallery.evaluate(() => window.__fxPreview.counters());
   const looping = KINDS.filter(k => (g2.spawnedByKind[k] ?? 0) > (g1.spawnedByKind[k] ?? 0));

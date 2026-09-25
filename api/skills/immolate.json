@@ -6,28 +6,25 @@
   "packIcon": "fire-ring",
   "category": "active_aura",
   "maxLevel": 10,
-  "visual": {
-    "layers": [
-      { "kind": "beam", "on": "applied", "curve": "extend", "ms": 300, "width": 14 }
-    ]
-  },
+  "visual": { "layers": [ { "kind": "wave", "on": "fired", "ms": 300 } ] },
   "effects": [
     {
       "type": "dot_aura",
       "costFractionOfMax": 0.0078,
       "costFractionOfMaxPerLevel": 0.00195,
-      "radius": 1.0,
-      "radiusPerLevel": 0.0,
+      "radius": 2,
+      "radiusPerLevel": 0,
       "damageHP": 10.5,
       "damageHPPerLevel": 2.6111,
-      "damageTags": ["fire"],
+      "damageTags": [ "fire" ],
       "dotTicks": 3,
       "dotTickInterval": 60,
       "targetsEnemies": true,
       "targetsAllies": false,
       "selector": "nearest",
       "maxTargets": 1,
-      "tickInterval": 20
+      "tickInterval": 20,
+      "maxTargetsPerLevel": 1
     }
   ]
 }

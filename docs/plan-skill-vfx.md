@@ -2562,6 +2562,14 @@ CONTENT NONE.** BUILD: one dev-only entry + template in `webpack.dev.js`;
   catalog at import time from the page's own origin and the dev server has
   no such route. The preview never needs the catalog (the fetch rejects
   into the designed degrade path); the editor harness prints it as a NOTE.
+- ⚑ **PO look, first round (2026-09-25, `[fix commit]`): the gallery was a
+  FIXED 1400 px strip and the wave slot was cut off at 100 % zoom** in a
+  788 px editor column. It now fills its frame: `resizeTo: window` in both
+  modes, a slot is width / 7, `layoutGallery` re-lays on resize; the
+  harness sets the gallery page to the iframe's 1400 × 220 and pins the fit
+  at 700 px (canvas 700, seven cells spanning 700, no overflow). ⚑ Running
+  the preview harness and vitest CONCURRENTLY made one leg of each miss
+  once (timing under load); sequentially both pass every time.
 - ⚑ **A single gallery frame shows several empty slots**: a 200 ms thrust
   is visible a fifth of its 800 ms cycle. The per-slot armed screenshots
   and the counters prove every kind draws; whether the gallery should loop

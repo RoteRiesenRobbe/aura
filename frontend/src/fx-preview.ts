@@ -51,8 +51,8 @@ import {
 
 /** Stub entity ids, far above anything the server hands out; slot N owns base + 2N, +1. */
 const STUB_ID_BASE = 980_000;
-/** One gallery slot, in screen px. [PLACEHOLDER] */
-const GALLERY_SLOT_PX = 200;
+/** The gallery is ONE row of seven slots that shares the frame's width: a slot is width / 7. */
+const GALLERY_SLOTS = VISUAL_KINDS.length;
 /** The label strip under the scene, in screen px. */
 const LABEL_PX = 18;
 
@@ -208,17 +208,37 @@ function applyMessage(msg: PreviewMessage): void {
 
 // --- gallery mode -----------------------------------------------------------
 
-function startGallery(): void {
+const gallerySlots: Slot[] = [];
+const galleryCells: HTMLSpanElement[] = [];
+
+/**
+ * The gallery fits the FRAME: seven slots across whatever width the editor
+ * gives the iframe (the PO's 100 % zoom cut the wave off at a fixed 1400 px),
+ * re-laid on every resize. The label strip sits under the scene.
+ */
+function layoutGallery(): void {
+    const slotW = app.screen.width / GALLERY_SLOTS;
+    const slotH = Math.max(40, app.screen.height - LABEL_PX);
     const distPx = previewDistancePx(GALLERY_REACH_UNITS);
-    const scale = fitScale(distPx, GALLERY_SLOT_PX, GALLERY_SLOT_PX);
+    const scale = fitScale(distPx, slotW, slotH);
     scene.scale.set(scale);
     scene.position.set(0, 0);
     rings.clear();
-    label.textContent = '';
-    // The label strip sits under the fixed-size canvas, not at the window's foot.
-    label.style.top = `${GALLERY_SLOT_PX}px`;
+    gallerySlots.forEach((slot, index) => {
+        // The caster at the slot's centre, in world px (the scene is scaled).
+        place(slot, (index + 0.5) * slotW / scale, slotH / 2 / scale);
+    });
+    for (const cell of galleryCells) {
+        cell.style.width = `${slotW}px`;
+    }
+    label.style.top = `${slotH}px`;
     label.style.bottom = 'auto';
     label.style.padding = '0';
+}
+
+function startGallery(): void {
+    const distPx = previewDistancePx(GALLERY_REACH_UNITS);
+    label.textContent = '';
     VISUAL_KINDS.forEach((kind, index) => {
         const layer = GALLERY_LAYERS[kind];
         const skillId = PREVIEW_SKILL_ID + 1 + index;
@@ -231,14 +251,15 @@ function startGallery(): void {
             caster: makeStub(STUB_ID_BASE + index * 2),
             victim: makeStub(STUB_ID_BASE + index * 2 + 1),
         };
-        // The caster at the slot's centre, in world px (the scene is scaled).
-        place(slot, (index + 0.5) * GALLERY_SLOT_PX / scale, GALLERY_SLOT_PX / 2 / scale);
+        gallerySlots.push(slot);
         const cell = document.createElement('span');
-        cell.style.width = `${GALLERY_SLOT_PX}px`;
         cell.textContent = `${kind} (${layer.on})`;
         label.appendChild(cell);
-        loop(slot);
+        galleryCells.push(cell);
     });
+    layoutGallery();
+    app.renderer.on('resize', layoutGallery);
+    gallerySlots.forEach(loop);
 }
 
 // --- boot -------------------------------------------------------------------
@@ -268,9 +289,9 @@ async function boot(): Promise<void> {
     await app.init({
         background: 0x101418,
         antialias: true,
-        ...(gallery
-            ? {width: VISUAL_KINDS.length * GALLERY_SLOT_PX, height: GALLERY_SLOT_PX + LABEL_PX}
-            : {width: 480, height: 240, resizeTo: window}),
+        // Both modes fill the frame the editor gives them; the gallery re-lays
+        // its seven slots on resize (layoutGallery).
+        width: 480, height: 240, resizeTo: window,
     });
     document.getElementById('fx-root').appendChild(app.canvas);
 
