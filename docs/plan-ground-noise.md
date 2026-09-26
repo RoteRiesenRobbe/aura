@@ -1,6 +1,6 @@
 # Ground noise — wobbly blend edges (W1) and texture overlays (W2)
 
-Designed and W1 built 2026-09-23 (PO session). **W1 SHIPPED, look sitting owed · W1b + W1c BUILT 2026-09-26, look sitting owed
+Designed and W1 built 2026-09-23 (PO session). **W1 SHIPPED, look sitting owed · W1b + W1c SHIPPED 2026-09-26 `a4ad7f0c`, look sitting owed
 (§6, §7) · W2 designed, not built.**
 
 ## 1. Why
@@ -289,7 +289,7 @@ blend bakes exactly what it did.
   against the pre-W1c bundle was shot.
 - ⚑ OWED: the look sitting's judgement of the finest fade (0.125 u desktop), and the phone (0.25 u there).
 
-## 8. W1b + W1c ledger — the review pass and the wrap (2026-09-26, `[uncommitted]`)
+## 8. W1b + W1c ledger — the review pass and the wrap (2026-09-26, `a4ad7f0c`)
 
 A hostile review of the combined W1b + W1c diff, the same day, before the wrap. What it found and did:
 
