@@ -28,9 +28,9 @@ import {
     ATMOSPHERE_PROFILES, AtmosphereProfile, declaresDarkness, declaresHaze,
     neededTextures, Outlined, Region, regionBlend,
     regionDarkness, regionHaze, RegionPoint, regionPaintSpec, regionScroll, regionWobble,
-    regionWobbleSize, TERRAIN_PROFILES,
+    TERRAIN_PROFILES, Wobble,
 } from './Regions';
-import {applyMaskNoise, maskDensity} from './MaskNoise';
+import {applyMaskNoise, maskBand, maskDensity, noiseShape} from './MaskNoise';
 import {Path} from '../../paths/logic/Paths';
 import {ribbonGeometry} from '../../paths/logic/PathRibbon';
 import {Polygon} from '../../polygons/logic/Polygons';
@@ -235,25 +235,8 @@ function footprintOf(points: RegionPoint[], margin: number): Footprint | null {
     };
 }
 
-/** A surface's two wobble keys, read together because they are only ever
- *  consumed together (plan-ground-noise.md W1). */
-interface Wobble {
-    wobble: number;
-    wobbleSize: number;
-}
-
-const NO_WOBBLE: Wobble = {wobble: 0, wobbleSize: 0};
-
-/** Both wobble keys off the surface's OWN profile, in the table it names. */
-function wobbleOf(
-    surface: Region,
-    profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
-): Wobble {
-    return {
-        wobble: regionWobble(surface, profiles),
-        wobbleSize: regionWobbleSize(surface, profiles),
-    };
-}
+/** A straight edge: what a mask gets when nothing names a profile (cutHole). */
+const NO_WOBBLE: Wobble = {reach: 0, size: 0, roughness: 0};
 
 /** A built mask: the sprite to hang on the region, and the texture behind it. */
 interface BlendMask {
@@ -261,6 +244,9 @@ interface BlendMask {
     /** ⚑ The CALLER's to free. Nothing else references it. */
     texture: RenderTexture;
     footprint: Footprint;
+    /** The band it was blurred to, world px. ⚑ Wider than the blend when the
+     *  edge wobbles (D3), so a caller overdrawing to the ramp reads THIS. */
+    bandPx: number;
 }
 
 /**
@@ -287,12 +273,17 @@ function buildBlendMask(
     blend: number,
     draw: (g: Graphics) => void,
     extraMargin: number = 0,
-    // The profile's `wobble` (0…1) and `wobbleSize` (world units, 0 = derive
-    // from the band) — plan-ground-noise.md W1. `wobble` 0 bakes exactly the C5
-    // mask: same density, no extra pass.
-    {wobble, wobbleSize}: Wobble = NO_WOBBLE,
+    // The profile's wobble keys (plan-ground-noise.md W1b). A reach of 0 bakes
+    // exactly the C5 mask: same band, same density, no extra pass.
+    wobble: Wobble = NO_WOBBLE,
 ): BlendMask | null {
-    const bandPx = meter2px(blend);
+    // ⭐ D3: the blur makes room for BOTH the fade and the wander, and the
+    // noise pass narrows the fade back to `blend`. A straight edge's band is
+    // the blend exactly — unless it is finer than any mask can draw, when W1c
+    // widens it to the finest one can.
+    const mobile = isMobile();
+    const band = maskBand(blend, wobble.reach, mobile);
+    const bandPx = meter2px(band);
     // Half a band of actual outward bleed, plus the BlurFilter's own padding -
     // `updatePadding()` reserves 2 × strength texels, and strength is half the
     // band, so that padding is one full band. 1.5 covers both with the rounding
@@ -306,12 +297,14 @@ function buildBlendMask(
     // computed off the uncapped density would then draw a band several times
     // too wide. `maskDensity` owns the rule; see MaskNoise.ts.
     const unitPx = meter2px(1);
-    const density = maskDensity(blend, wobble,
-        Math.max(footprint.width, footprint.height) / unitPx, isMobile(), wobbleSize);
+    const density = maskDensity(band, wobble.reach,
+        Math.max(footprint.width, footprint.height) / unitPx, mobile, wobble.size);
     const texelsPerPx = density.texelsPerUnit / unitPx;
 
     // Sub-texel band: the blur would round to nothing and we would pay a mask
     // and a filter pass for a hard edge. Take the hard edge honestly instead.
+    // ⚑ Since W1c the density follows the band, so this is reachable only at
+    // the MASK_MAX_TEXELS cap, on a shape a few hundred units long.
     const bandTexels = bandPx * texelsPerPx;
     if (bandTexels < 1) { return null; }
 
@@ -349,11 +342,16 @@ function buildBlendMask(
     holder.destroy({children: true});
 
     // ⭐ The wobble is a SECOND bake over the blurred ramp, never a change to
-    // it: `null` back (no WebGL) leaves the clean mask standing.
+    // it: `null` back (no WebGL) leaves the clean mask standing. ⚑ That ramp is
+    // the whole BAND wide, so off WebGL a wobbly edge degrades to a straight
+    // one fading over the band rather than over `blend`. Both Applications are
+    // WebGL, so this is the D11 floor, not a look anyone sees.
     let result = texture;
-    if (wobble > 0) {
-        const noisy = applyMaskNoise(renderer, texture, footprint, texelsPerPx, wobble,
-            density.grainUnits * unitPx);
+    if (wobble.reach > 0) {
+        const shape = noiseShape(blend, band, wobble.reach, density.texelsPerUnit,
+            density.grainUnits, wobble.roughness);
+        const noisy = applyMaskNoise(renderer, texture, footprint, texelsPerPx,
+            density.grainUnits * unitPx, shape);
         if (noisy !== null) {
             texture.destroy(true);
             result = noisy;
@@ -364,7 +362,33 @@ function buildBlendMask(
     sprite.position.set(footprint.x, footprint.y);
     sprite.width = footprint.width;
     sprite.height = footprint.height;
-    return {sprite, texture: result, footprint};
+    return {sprite, texture: result, footprint, bandPx};
+}
+
+/**
+ * The mask a PROFILED surface paints through, or `null` for a hard straight
+ * edge — the one decision all six feathered call sites share.
+ *
+ * ⭐ `blend` OR `wobbleReach` (D3). A `blend: 0` edge that wanders is crisp
+ * but not straight, and only a mask can draw that. Neither = the maskless C4
+ * path, so the feature still costs exactly zero until authored.
+ *
+ * ⛔ `profiles` is WHICH TABLE names this surface's profile — ground unless the
+ * caller is the air; see {@link paintSurface}.
+ */
+function surfaceMask(
+    renderer: Renderer,
+    surface: Region,
+    points: RegionPoint[],
+    draw: DrawSurface,
+    extraMargin: number,
+    profiles: { [name: string]: AtmosphereProfile } = TERRAIN_PROFILES,
+): BlendMask | null {
+    const blend = regionBlend(surface, profiles);
+    const wobble = regionWobble(surface, profiles);
+    if (blend <= 0 && wobble.reach <= 0) { return null; }
+    return buildBlendMask(renderer, points, blend, g => draw(g, {color: 0xffffff}), extraMargin,
+        wobble);
 }
 
 /** What one paint pass produced, and ALL OF IT IS THE CALLER'S TO OWN.
@@ -622,11 +646,7 @@ export function paintRegions(
     const out: PaintedSurfaces = {masks: [], scrollers: []};
     regions.forEach((region) => {
         const draw: DrawSurface = (g, style) => g.poly(region.points).fill(style);
-        const blend = regionBlend(region);
-        const mask = blend > 0
-            ? buildBlendMask(renderer, region.points, blend, g => draw(g, {color: 0xffffff}), 0,
-                wobbleOf(region))
-            : null;
+        const mask = surfaceMask(renderer, region, region.points, draw, 0);
         paintSurface(container, region, region.points, draw, mask, 0, out);
     });
     return out;
@@ -806,11 +826,7 @@ function paintAir(
     group.alpha = opacity;
     container.addChild(group);
 
-    const blend = regionBlend(atmosphere, ATMOSPHERE_PROFILES);
-    const mask = blend > 0
-        ? buildBlendMask(renderer, atmosphere.points, blend, g => draw(g, {color: 0xffffff}), 0,
-            wobbleOf(atmosphere, ATMOSPHERE_PROFILES))
-        : null;
+    const mask = surfaceMask(renderer, atmosphere, atmosphere.points, draw, 0, ATMOSPHERE_PROFILES);
 
     if (flat) {
         // Colour only — the profile's own colour if it authored one, else black,
@@ -885,11 +901,7 @@ function paintOutline(
     const draw: DrawSurface = (g, style) => g
         .poly(points, closed)
         .stroke({...style, width, cap: PATH_CAP, join: PATH_JOIN});
-    const blend = regionBlend(rim);
-    const mask = blend > 0
-        ? buildBlendMask(renderer, points, blend, g => draw(g, {color: 0xffffff}), width / 2,
-            wobbleOf(rim))
-        : null;
+    const mask = surfaceMask(renderer, rim, points, draw, width / 2);
     paintSurface(container, rim, points, draw, mask, width / 2, out, TERRAIN_PROFILES, angle, anchor);
 }
 
@@ -915,11 +927,7 @@ export function paintPolygons(
         // closed by definition. An OPEN filled shape is not a thing this
         // primitive can express, deliberately — that shape is a path.
         const draw: DrawSurface = (g, style) => g.poly(polygon.points).fill(style);
-        const blend = regionBlend(polygon);
-        const mask = blend > 0
-            ? buildBlendMask(renderer, polygon.points, blend, g => draw(g, {color: 0xffffff}), 0,
-                wobbleOf(polygon))
-            : null;
+        const mask = surfaceMask(renderer, polygon, polygon.points, draw, 0);
         paintSurface(container, polygon, polygon.points, draw, mask, 0, out);
         paintOutline(container, polygon, polygon.points, true, renderer, out);
     });
@@ -977,23 +985,19 @@ function paintRibbon(
     const tileW = texture.width * scale;
     const tileH = texture.height * scale;
 
-    const blend = regionBlend(surface);
     // The mask is built off the CENTRELINE stroke, exactly as the stroke path
     // builds it, so the feathered silhouette is identical either way.
     const draw: DrawSurface = (g, style) => g
         .poly(points, closed)
         .stroke({...style, width, cap: PATH_CAP, join: PATH_JOIN});
-    const mask = blend > 0
-        ? buildBlendMask(renderer, points, blend, g => draw(g, {color: 0xffffff}), width / 2,
-            wobbleOf(surface))
-        : null;
+    const mask = surfaceMask(renderer, surface, points, draw, width / 2);
 
     // ⚑ The overdraw mirrors `buildBlendMask`'s own outward margin. Content has
     // to reach at least as far as the blur does, because masked alpha is
     // content × mask: a ribbon that stopped at its rim would multiply the
     // outward half of the ramp by nothing and end the edge in a 50 % step —
     // the same trap `addFeathered` exists to dodge for regions.
-    const overdraw = mask !== null ? meter2px(blend) * 1.5 : 0;
+    const overdraw = mask !== null ? mask.bandPx * 1.5 : 0;
     const ribbon = ribbonGeometry(points, width, closed, tileW, tileH, overdraw);
     if (ribbon === null) { return false; }
 
@@ -1066,16 +1070,12 @@ export function paintPaths(
             return;
         }
 
-        const blend = regionBlend(path);
         // ⚑ The footprint has to grow by HALF THE STROKE on top of the blend
         // band: footprintOf measures the CENTRELINE's bounding box, and the
         // ribbon reaches half a width past it on every side. Without this the
         // mask clips the river's own banks — which looks like the blend being
         // wrong rather than the box being too small.
-        const mask = blend > 0
-            ? buildBlendMask(renderer, path.points, blend,
-                g => draw(g, {color: 0xffffff}), path.width / 2, wobbleOf(path))
-            : null;
+        const mask = surfaceMask(renderer, path, path.points, draw, path.width / 2);
         // ⚑ `textureAngle` is 0/undefined for every path that did not author
         // `alignTexture`, so this argument changes nothing for a road or a
         // river — the whole feature is inert until a path asks.

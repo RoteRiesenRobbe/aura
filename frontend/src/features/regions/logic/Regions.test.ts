@@ -9,9 +9,10 @@ import {
     regionPaintSpec,
     regionScroll,
     regionWobble,
-    regionWobbleSize,
     resolveIn,
 } from './Regions';
+import terrainProfilesJson from '../../../client-data/terrain-profiles.json';
+import atmosphereProfilesJson from '../../../client-data/atmosphere-profiles.json';
 
 // The resolution rule (D0) and the fallback chain (D11), pinned against a
 // hand-written table so the palette (C3, a taste decision) can change freely
@@ -298,61 +299,69 @@ describe('regionBlend — how wide this region feathers its own edge (C5)', () =
     });
 });
 
-// plan-ground-noise.md W1. A dial in 0…1, and the same trap as `blend`: `0` is
-// an authored VALUE ("a clean ramp, explicitly"), so it must survive the parser.
-describe('PROFILES — the wobble key (ground-noise W1)', () => {
-    it('KEEPS an authored 0, which is the clean ramp and not a missing value', () => {
-        const profiles = buildProfiles({clean: {wobble: 0}});
-        expect('wobble' in profiles.clean).toBe(true);
-        expect(profiles.clean.wobble).toBe(0);
+// plan-ground-noise.md W1b (D3). `wobbleReach` is a LENGTH, so it takes
+// `wobbleSize`'s shape: a zero reach is no wobble, which absence already says,
+// and an authored 0 is dropped onto that same meaning.
+describe('PROFILES — the wobbleReach key (ground-noise W1b)', () => {
+    it.each([0.1, 0.6, 2])('keeps a positive reach of %s world units', (wobbleReach) => {
+        expect(buildProfiles({rough: {wobbleReach}}).rough.wobbleReach).toBe(wobbleReach);
     });
 
-    it.each([0.6, 1])('keeps %s', (wobble) => {
-        expect(buildProfiles({rough: {wobble}}).rough.wobble).toBe(wobble);
+    // ⚑ DROPPED, not clamped — the parse posture every length here shares.
+    it.each([
+        ['a zero', 0],
+        ['a negative value', -0.1],
+        ['NaN', Number.NaN],
+        ['an infinite value', Number.POSITIVE_INFINITY],
+        ['a string', '0.5'],
+        ['a null', null],
+    ])('drops %s instead of declaring it', (_label, wobbleReach) => {
+        expect('wobbleReach' in buildProfiles({bad: {wobbleReach}}).bad).toBe(false);
     });
 
-    // ⚑ DROPPED, not clamped — the parseOpacity posture. A `2` means the unit
-    // was misunderstood, and falling back to the clean ramp shows that at once.
+    it('defaults to a straight edge — the feature costs nothing until authored', () => {
+        expect(DEFAULT_PROFILE.wobbleReach).toBe(0);
+    });
+
+    // ⛔ W1's 0…1 dial is RETIRED, not aliased: a profile still naming it would
+    // otherwise go quietly straight. The raw-JSON guard below is what catches it.
+    it('no longer declares the W1 `wobble` dial', () => {
+        expect('wobble' in buildProfiles({old: {wobble: 0.6}}).old).toBe(false);
+        expect('wobble' in DEFAULT_PROFILE).toBe(false);
+    });
+});
+
+// ⚑ Unlike the reach, `0` IS a value here: a smooth lump is a real look, so an
+// authored 0 must survive the parser (the `blend: 0` trap, again).
+describe('PROFILES — the wobbleRoughness key (ground-noise W1b)', () => {
+    it('KEEPS an authored 0, which is smooth lumps and not a missing value', () => {
+        const profiles = buildProfiles({smooth: {wobbleRoughness: 0}});
+        expect('wobbleRoughness' in profiles.smooth).toBe(true);
+        expect(profiles.smooth.wobbleRoughness).toBe(0);
+    });
+
+    it.each([0.3, 1])('keeps %s', (wobbleRoughness) => {
+        expect(buildProfiles({frayed: {wobbleRoughness}}).frayed.wobbleRoughness).toBe(wobbleRoughness);
+    });
+
     it.each([
         ['a negative value', -0.1],
         ['a value above 1', 1.5],
         ['NaN', Number.NaN],
         ['a string', '0.5'],
         ['a null', null],
-    ])('drops %s instead of declaring it', (_label, wobble) => {
-        expect('wobble' in buildProfiles({bad: {wobble}}).bad).toBe(false);
+    ])('drops %s instead of declaring it', (_label, wobbleRoughness) => {
+        expect('wobbleRoughness' in buildProfiles({bad: {wobbleRoughness}}).bad).toBe(false);
     });
 
-    it('defaults to the clean ramp — the feature costs nothing until authored', () => {
-        expect(DEFAULT_PROFILE.wobble).toBe(0);
-    });
-});
-
-// ⚑ Its OWN profile's value, never a resolve() chain — regionBlend's rule, for
-// regionBlend's reason: the edge belongs to the shape being drawn.
-describe('regionWobble — how much this surface breaks up its own edge (ground-noise W1)', () => {
-    const WOBBLE = buildProfiles({
-        rough: {blend: 1, wobble: 0.7},
-        clean: {blend: 1, wobble: 0},
-        quiet: {color: '#111111'},
-    });
-
-    it('returns the value the profile declares', () => {
-        expect(regionWobble({profile: 'rough', points: []}, WOBBLE)).toBe(0.7);
-        expect(regionWobble({profile: 'clean', points: []}, WOBBLE)).toBe(0);
-    });
-
-    it.each([
-        ['a profile transparent to wobble', 'quiet'],
-        ['an unknown profile name', 'no-such-profile'],
-    ])('falls back to the default (0) for %s', (_label, profile) => {
-        expect(regionWobble({profile, points: []}, WOBBLE)).toBe(DEFAULT_PROFILE.wobble);
+    it("defaults to W1's fixed octave mix, so an edge that does not author it looks as W1 drew it", () => {
+        expect(DEFAULT_PROFILE.wobbleRoughness).toBe(0.5);
     });
 });
 
-// ⚑ Unlike `blend` and `wobble`, `0` is NOT a value here: a zero-sized blotch
-// is meaningless, and the shipped default 0 already means "derive it from the
-// band". An authored 0 is therefore dropped, and lands on the same meaning.
+// ⚑ Unlike `wobbleRoughness`, `0` is NOT a value here: a zero-sized blotch is
+// meaningless, and the shipped default 0 already means "derive it from the
+// reach". An authored 0 is therefore dropped, and lands on the same meaning.
 describe('PROFILES — the wobbleSize key (ground-noise W1, D2 amended)', () => {
     it('keeps a positive size in world units', () => {
         expect(buildProfiles({lumpy: {wobbleSize: 0.8}}).lumpy.wobbleSize).toBe(0.8);
@@ -369,26 +378,63 @@ describe('PROFILES — the wobbleSize key (ground-noise W1, D2 amended)', () => 
         expect('wobbleSize' in buildProfiles({bad: {wobbleSize}}).bad).toBe(false);
     });
 
-    it('defaults to 0, which means "derive the grain from the band"', () => {
+    it('defaults to 0, which means "derive the grain from the reach"', () => {
         expect(DEFAULT_PROFILE.wobbleSize).toBe(0);
     });
 });
 
-describe('regionWobbleSize — the blotch size this surface authors, if any', () => {
-    const SIZES = buildProfiles({
-        lumpy: {blend: 0.5, wobble: 0.6, wobbleSize: 1.2},
-        derived: {blend: 0.5, wobble: 0.6},
+// ⚑ Its OWN profile's values, never a resolve() chain — regionBlend's rule, for
+// regionBlend's reason: the edge belongs to the shape being drawn.
+describe('regionWobble — the three wobble keys this surface authors (ground-noise W1b)', () => {
+    const WOBBLE = buildProfiles({
+        full: {blend: 0, wobbleReach: 0.3, wobbleSize: 1.2, wobbleRoughness: 0},
+        reachOnly: {blend: 1, wobbleReach: 0.2},
+        quiet: {color: '#111111'},
     });
 
-    it('returns the size the profile declares', () => {
-        expect(regionWobbleSize({profile: 'lumpy', points: []}, SIZES)).toBe(1.2);
+    it('returns every value the profile declares', () => {
+        expect(regionWobble({profile: 'full', points: []}, WOBBLE))
+            .toEqual({reach: 0.3, size: 1.2, roughness: 0});
+    });
+
+    it('fills each key the profile omits from the default, one key at a time', () => {
+        expect(regionWobble({profile: 'reachOnly', points: []}, WOBBLE)).toEqual({
+            reach: 0.2,
+            size: DEFAULT_PROFILE.wobbleSize,
+            roughness: DEFAULT_PROFILE.wobbleRoughness,
+        });
     });
 
     it.each([
-        ['a profile transparent to wobbleSize', 'derived'],
+        ['a profile transparent to every wobble key', 'quiet'],
         ['an unknown profile name', 'no-such-profile'],
-    ])('falls back to 0 (derive) for %s', (_label, profile) => {
-        expect(regionWobbleSize({profile, points: []}, SIZES)).toBe(0);
+    ])('falls back to the defaults (a straight edge) for %s', (_label, profile) => {
+        expect(regionWobble({profile, points: []}, WOBBLE)).toEqual({
+            reach: DEFAULT_PROFILE.wobbleReach,
+            size: DEFAULT_PROFILE.wobbleSize,
+            roughness: DEFAULT_PROFILE.wobbleRoughness,
+        });
+    });
+});
+
+// ⭐ The parser DROPS what it does not know, so the parsed tables cannot show a
+// retired or misspelt key — it is simply absent, and the surface quietly draws
+// without it. Only the RAW files can. `DEFAULT_PROFILE` is `Required<Profile>`,
+// so its keys ARE the vocabulary: a key added to the type is legal here with no
+// second list to maintain.
+describe('the shipped profile files author only keys the parser knows', () => {
+    it.each([
+        ['terrain-profiles.json', terrainProfilesJson],
+        ['atmosphere-profiles.json', atmosphereProfilesJson],
+    ])('%s', (_file, raw) => {
+        const offenders: string[] = [];
+        Object.keys(raw).forEach((name) => {
+            if (name.charAt(0) === '_') { return; }
+            Object.keys((raw as { [k: string]: unknown })[name] as object).forEach((key) => {
+                if (!(key in DEFAULT_PROFILE)) { offenders.push(name + '.' + key); }
+            });
+        });
+        expect(offenders).toEqual([]);
     });
 });
 

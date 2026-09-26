@@ -22,8 +22,15 @@
  * the same `paintTerrainSurfaces`) draws the SAME edge the world does — L2's
  * map parity with no extra code.
  *
- * ⚑ `maskDensity` is pure and vitest-reachable; `applyMaskNoise` needs a GPU
- * and is judged by eye and by the harness.
+ * ⭐ W1b (D3) SPLIT THE KNOBS. W1 read `blend` as both the fade and the room to
+ * wander, and `wobble` as both the wander and the crispness. Now `blend` is
+ * the fade ONLY, `wobbleReach` is how far the edge wanders in world units, and
+ * `wobbleRoughness` is the octave mix W1 hardcoded. The bake blurs to a band
+ * wide enough for both ({@link maskBand}) and derives the shader's uniforms so
+ * each knob moves one look ({@link noiseShape}).
+ *
+ * ⚑ `maskBand`, `maskDensity` and `noiseShape` are pure and vitest-reachable;
+ * `applyMaskNoise` needs a GPU and is judged by eye and by the harness.
  */
 import {
     Container, GlProgram, Mesh, MeshGeometry, Renderer, RendererType, RenderTexture, Shader,
@@ -46,14 +53,20 @@ import {
 export const BASE_TEXELS_PER_UNIT = {desktop: 6, mobile: 3};
 
 /**
- * The ceiling a WOBBLY mask may raise its density to. [PLACEHOLDER]
+ * The ceiling ANY mask may raise its density to. [PLACEHOLDER]
  *
- * ⚑ Noise is not a low-frequency ramp: a narrow road's grain is a fraction of
- * a unit, which the base density cannot draw. The ceiling is what keeps a long
- * diagonal river — whose mask is its whole bounding BOX — from asking for a
- * texture the size of the map. VRAM is the axis this spends.
+ * ⚑ Two things the base density cannot draw raise it: a narrow road's noise
+ * grain (W1) and a narrow fade (W1c). The ceiling is what keeps a long diagonal
+ * river — whose mask is its whole bounding BOX — from asking for a texture the
+ * size of the map. VRAM is the axis this spends. ⚑ It also sets the finest
+ * fade any mask draws: {@link MIN_BAND_TEXELS} of these.
  */
-export const WOBBLE_MAX_TEXELS_PER_UNIT = {desktop: 16, mobile: 8};
+export const MAX_TEXELS_PER_UNIT = {desktop: 16, mobile: 8};
+
+/** The fewest texels a band may span (W1c). [PLACEHOLDER]. Below about one the
+ *  blur rounds to nothing; at two the bilinear upscale still reads as a ramp.
+ *  A band finer than this at the ceiling is WIDENED to it (see maskBand). */
+export const MIN_BAND_TEXELS = 2;
 
 /**
  * Hard cap on either side of a mask texture. A region the size of the world
@@ -67,11 +80,53 @@ export const MASK_MAX_TEXELS = 2048;
  *  turn into per-texel speckle, which reads as a rendering fault, not ground. */
 export const MIN_GRAIN_TEXELS = 3;
 
-/** Noise grain as a fraction of the blend band, for a profile that does not
- *  author `wobbleSize`. [PLACEHOLDER]. ⚑ D2 first ruled ONE knob with the grain
- *  always derived; the PO amended it the same day, once the coupling was
- *  spelled out (a wider band meant bigger lumps whether you wanted them or not). */
-export const GRAIN_PER_BAND = 0.5;
+/** Noise grain as a multiple of the reach, for a profile that does not author
+ *  `wobbleSize`. [PLACEHOLDER]. ⚑ W1 derived it from the BAND (½ of it); since
+ *  D3 the band is the fade and the reach is the room, so the lump follows the
+ *  room. At 1 a lump is about as wide as the edge travels. */
+export const GRAIN_PER_REACH = 1;
+
+/** The band the bake blurs to, as a multiple of the reach. [PLACEHOLDER] but
+ *  NOT free: {@link noiseShape} solves the amplitude against it, and below ~2.5
+ *  the ramp is too steep for the `4m(1 − m)` bump to let the edge travel its
+ *  full reach. At 3 the needed amplitude is 1.2. */
+export const BAND_PER_REACH = 3;
+
+/** The octaves' frequencies, relative to the grain. ⭐ The SHADER is built from
+ *  this array, so the octave-drop rule and the GLSL cannot disagree. The
+ *  offsets de-correlate the octaves' lattices. ⛔ Exactly THREE: the weights
+ *  ride a `vec3` uniform and the fbm names three terms, so a fourth entry
+ *  would be weighed here and never drawn (MaskNoise.test.ts pins the count). */
+export const OCTAVE_SCALES = [1, 2.03, 4.01];
+const OCTAVE_OFFSETS = [0, 17.1, 41.7];
+
+/** An octave finer than this many texels is DROPPED rather than drawn: below
+ *  it the lattice aliases into speckle, which reads as a rendering fault, not
+ *  ground. [PLACEHOLDER]. ⚑ The cheaper of §6.2's two answers: a rough surface
+ *  does not raise the density, so on a narrow edge at the ceiling roughness has
+ *  little room to show. `MAX_TEXELS_PER_UNIT` is the knob if it must. */
+export const MIN_OCTAVE_TEXELS = 2;
+
+/** The stretch that spreads W1's fbm back out to fill 0…1, at W1's octave mix
+ *  (gain ½). Every other mix is stretched to the SAME spread (see noiseShape). */
+export const NOISE_STRETCH = 1.8;
+
+/**
+ * The band the bake blurs to, in world units: the fade, widened to give the
+ * wander room when the reach needs more than the fade has.
+ *
+ * ⭐ W1c: a band finer than the densest mask can draw is widened to the finest
+ * it CAN draw, never dropped to a hard edge — an author who wrote a `blend`
+ * asked for some softness. The floor is per device, as the ceiling is.
+ *
+ * ⚑ `reach` 0 returns the blend exactly whenever the mask can draw it, so a
+ * straight edge is C5's mask; a surface with neither key gets 0 (no mask).
+ */
+export function maskBand(blend: number, reach: number, mobile: boolean): number {
+    const band = reach > 0 ? Math.max(blend, BAND_PER_REACH * reach) : blend;
+    if (band <= 0) { return 0; }
+    return Math.max(band, MIN_BAND_TEXELS / MAX_TEXELS_PER_UNIT[mobile ? 'mobile' : 'desktop']);
+}
 
 /**
  * The density a mask is baked at, and the noise grain drawn into it.
@@ -81,29 +136,34 @@ export const GRAIN_PER_BAND = 0.5;
  * off the uncapped density would draw a band or a blotch several times too
  * wide. That is why the grain is re-derived AFTER the cap.
  *
- * @param blend         the band width, world units
- * @param wobble        0…1; 0 returns exactly the C5 density and no grain
+ * ⭐ W1c: the density follows the BAND exactly as it follows the grain, so a
+ * narrow fade gets the texels to draw it. A band of C5's width or wider bakes
+ * at the base, as it always did.
+ *
+ * @param band          world units, from {@link maskBand}
+ * @param reach         world units; 0 means no grain
  * @param longestUnits  the footprint's longer side, world units
  * @param wobbleSize    the profile's authored grain, world units; 0 derives it
- *                      from the band (D2 amended)
+ *                      from the reach
  */
 export function maskDensity(
-    blend: number,
-    wobble: number,
+    band: number,
+    reach: number,
     longestUnits: number,
     mobile: boolean,
     wobbleSize: number = 0,
 ): { texelsPerUnit: number, grainUnits: number } {
     const device = mobile ? 'mobile' : 'desktop';
-    let texelsPerUnit = BASE_TEXELS_PER_UNIT[device];
-    let grainTarget = 0;
-    if (wobble > 0 && blend > 0) {
-        grainTarget = wobbleSize > 0 ? wobbleSize : blend * GRAIN_PER_BAND;
-        texelsPerUnit = Math.min(
-            Math.max(texelsPerUnit, MIN_GRAIN_TEXELS / grainTarget),
-            WOBBLE_MAX_TEXELS_PER_UNIT[device],
-        );
+    let wanted = BASE_TEXELS_PER_UNIT[device];
+    if (band > 0) {
+        wanted = Math.max(wanted, MIN_BAND_TEXELS / band);
     }
+    let grainTarget = 0;
+    if (reach > 0) {
+        grainTarget = wobbleSize > 0 ? wobbleSize : reach * GRAIN_PER_REACH;
+        wanted = Math.max(wanted, MIN_GRAIN_TEXELS / grainTarget);
+    }
+    let texelsPerUnit = Math.min(wanted, MAX_TEXELS_PER_UNIT[device]);
     if (longestUnits * texelsPerUnit > MASK_MAX_TEXELS) {
         texelsPerUnit = MASK_MAX_TEXELS / longestUnits;
     }
@@ -111,6 +171,73 @@ export function maskDensity(
         ? Math.max(grainTarget, MIN_GRAIN_TEXELS / texelsPerUnit)
         : 0;
     return {texelsPerUnit, grainUnits};
+}
+
+/** The noise pass's uniforms. */
+export interface NoiseShape {
+    /** How hard the noise pushes the ramp; solved so the edge travels `reach`. */
+    amp: number;
+    /** The threshold's half-width in ramp units: the fade, as a share of the band. */
+    soft: number;
+    /** One per {@link OCTAVE_SCALES} entry, summing to 1. */
+    weights: number[];
+    /** Spreads the weighted sum back out, to the same spread at every mix. */
+    stretch: number;
+}
+
+function spreadOf(weights: number[]): number {
+    return Math.sqrt(weights.reduce((sum, w) => sum + w * w, 0));
+}
+
+/** W1's mix, gain ½ over the three octaves, and the spread NOISE_STRETCH was
+ *  tuned at. */
+const W1_SPREAD = spreadOf([4 / 7, 2 / 7, 1 / 7]);
+
+/**
+ * The shader's uniforms for one mask: each of D3's three knobs moves ONE look.
+ *
+ * ⭐ THE FADE (`soft`). The ramp crosses the band at one per band, so a
+ *   threshold half-width of `blend / (2·band)` fades over exactly `blend`
+ *   world units. With no reach the band IS the blend and this is ½, the
+ *   identity remap, so the knob converges on C5. A `blend` of 0 is floored at
+ *   one texel, the crispest edge the mask can draw.
+ *
+ * ⭐ THE REACH (`amp`). Along the ramp m ≈ ½ − d/band, and the shader moves the
+ *   edge to where d/band = amp·(n − ½)·4m(1 − m). At the noise's extreme
+ *   (n − ½ = ½) solving for d = reach gives amp = 2x / (1 − 4x²), x = reach/band.
+ *   ⚑ "Linear ramp" is W1's own reading of the blurred band; the Gaussian's
+ *   tails make the real excursion a little shorter. Judged by eye.
+ *
+ * ⭐ THE ROUGHNESS (`weights`, `stretch`). The octave gain: weights 1, g, g²,
+ *   normalised. ⛔ More equal-weight octaves NARROW the sum (central limit), so
+ *   without a matching stretch a rougher edge would also wander LESS. The
+ *   stretch hands back W1's spread at every gain. An octave under
+ *   {@link MIN_OCTAVE_TEXELS} is dropped BEFORE normalising, so the spread
+ *   survives that too.
+ */
+export function noiseShape(
+    blend: number,
+    band: number,
+    reach: number,
+    texelsPerUnit: number,
+    grainUnits: number,
+    roughness: number,
+): NoiseShape {
+    const soft = Math.min(0.5, Math.max(blend, 1 / texelsPerUnit) / (2 * band));
+    const x = reach / band;
+    const amp = 2 * x / (1 - 4 * x * x);
+
+    const grainTexels = grainUnits * texelsPerUnit;
+    const raw = OCTAVE_SCALES.map((scale, i) =>
+        i === 0 || grainTexels / scale >= MIN_OCTAVE_TEXELS ? Math.pow(roughness, i) : 0);
+    const total = raw.reduce((a, b) => a + b, 0);
+    const weights = raw.map(w => w / total);
+    return {amp, soft, weights, stretch: NOISE_STRETCH * W1_SPREAD / spreadOf(weights)};
+}
+
+/** A JS number as a GLSL float literal (`1` alone is an int in GLSL ES 1.0). */
+function glsl(value: number): string {
+    return Number.isInteger(value) ? value.toFixed(1) : String(value);
 }
 
 // GLSL ES 1.0 so it runs on WebGL1 and 2 alike. ⚑ Pixi 8's mesh pipe feeds
@@ -137,16 +264,16 @@ void main() {
 }
 `;
 
-// ⭐ THE WHOLE LOOK, in four lines of main():
+// ⭐ THE WHOLE LOOK, in four lines of main() — every uniform from noiseShape:
 //   m = the blurred ramp, 0.5 on the authored line (D22)
-//   n = value-noise fbm keyed to world px, stretched to fill 0…1
-//   v = m + wobble·(n − ½)·4m(1 − m)
+//   n = value-noise fbm keyed to world px, weighted per octave, stretched
+//   v = m + amp·(n − ½)·4m(1 − m)
 //   a = linear remap of v around ½ with half-width s
 // ⚑ The 4m(1 − m) bump is what keeps the blotches INSIDE the band: it is 1 on
 // the line and 0 where the ramp is flat, so noise can never lift a far-outside
 // texel to visible and leave a patch floating at the footprint's rectangular
-// edge. ⚑ And the remap with s = ½ is the identity, so wobble → 0 converges on
-// the clean ramp continuously rather than jumping.
+// edge. ⚑ And the remap with s = ½ is the identity, so a reach → 0 inside a
+// band that is all fade converges on the clean ramp rather than jumping.
 const FRAGMENT = `
 precision highp float;
 
@@ -154,9 +281,11 @@ varying vec2 vUV;
 varying vec2 vWorld;
 
 uniform sampler2D uTexture;
-uniform float uWobble;
+uniform float uAmp;
 uniform float uSoft;
 uniform float uGrain;
+uniform vec3 uWeights;
+uniform float uStretch;
 
 // Dave Hoskins' hash12: no sin(), so it holds precision at world-px scale.
 float hash12(vec2 p) {
@@ -173,31 +302,25 @@ float valueNoise(vec2 p) {
                mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y);
 }
 
+// The weights sum to 1, so this stays in 0…1 whatever the mix.
 float fbm(vec2 p) {
-    float sum = 0.5 * valueNoise(p);
-    sum += 0.25 * valueNoise(p * 2.03 + 17.1);
-    sum += 0.125 * valueNoise(p * 4.01 + 41.7);
-    return sum / 0.875;
+    return uWeights.x * valueNoise(p * ${glsl(OCTAVE_SCALES[0])} + ${glsl(OCTAVE_OFFSETS[0])})
+        + uWeights.y * valueNoise(p * ${glsl(OCTAVE_SCALES[1])} + ${glsl(OCTAVE_OFFSETS[1])})
+        + uWeights.z * valueNoise(p * ${glsl(OCTAVE_SCALES[2])} + ${glsl(OCTAVE_OFFSETS[2])});
 }
 
 void main() {
     float m = texture2D(uTexture, vUV).a;
-    // fbm crowds the middle of its range; stretch it back out so the knob's
-    // top end actually reaches the edge of the band.
-    float n = clamp((fbm(vWorld / uGrain) - 0.5) * 1.8 + 0.5, 0.0, 1.0);
-    float v = m + uWobble * (n - 0.5) * 4.0 * m * (1.0 - m);
+    // fbm crowds the middle of its range; stretch it back out so the reach's
+    // extreme is actually reached.
+    float n = clamp((fbm(vWorld / uGrain) - 0.5) * uStretch + 0.5, 0.0, 1.0);
+    float v = m + uAmp * (n - 0.5) * 4.0 * m * (1.0 - m);
     float a = clamp((v - 0.5) / (2.0 * uSoft) + 0.5, 0.0, 1.0);
     // Premultiplied white, exactly what the blurred silhouette was: the mask
     // filter reads .r and .a, and both must carry the value.
     gl_FragColor = vec4(a);
 }
 `;
-
-/** The edge's half-width after the threshold, in ramp units: ½ (the clean ramp,
- *  unchanged) at wobble 0, narrowing to a crisp edge at 1. [PLACEHOLDER] */
-function softness(wobble: number): number {
-    return 0.5 + (0.06 - 0.5) * wobble;
-}
 
 let warnedRenderer = false;
 
@@ -213,14 +336,15 @@ let warnedRenderer = false;
  *                      which is what makes the shader's `vWorld` world px
  * @param texelsPerPx   the SAME density the input was baked at
  * @param grainPx       the noise grain, world px
+ * @param shape         the uniforms {@link noiseShape} derived for this mask
  */
 export function applyMaskNoise(
     renderer: Renderer,
     blurred: RenderTexture,
     footprint: { x: number, y: number, width: number, height: number },
     texelsPerPx: number,
-    wobble: number,
     grainPx: number,
+    shape: NoiseShape,
 ): RenderTexture | null {
     // ⛔ GLSL only. Both Applications take Pixi 8's default (WebGL) preference;
     // should that ever change, the wobble degrades to the clean ramp (D11's
@@ -249,9 +373,11 @@ export function applyMaskNoise(
         resources: {
             uTexture: blurred.source,
             noiseUniforms: new UniformGroup({
-                uWobble: {value: wobble, type: 'f32'},
-                uSoft: {value: softness(wobble), type: 'f32'},
+                uAmp: {value: shape.amp, type: 'f32'},
+                uSoft: {value: shape.soft, type: 'f32'},
                 uGrain: {value: grainPx, type: 'f32'},
+                uWeights: {value: new Float32Array(shape.weights), type: 'vec3<f32>'},
+                uStretch: {value: shape.stretch, type: 'f32'},
             }),
         },
     });

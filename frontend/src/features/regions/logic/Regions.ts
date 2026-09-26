@@ -68,22 +68,28 @@ export interface TerrainProfile {
     // ⚑ Per PROFILE, never per region (D2), and it feathers the region's OWN
     // edge with no knowledge of its neighbours - which is what makes "region
     // meets region" and "region meets bare land" the same code path.
+    //
+    // ⭐ ONLY the fade (plan-ground-noise.md D3). Since W1b it no longer also
+    // sets how far a wobbly edge may wander — that is `wobbleReach` — so a
+    // `blend: 0` edge can wander and stay crisp.
     blend?: number;
-    // How much the soft border BREAKS UP, 0…1 (plan-ground-noise.md W1). `0`
-    // is the clean Gaussian ramp C5 shipped; higher lets the edge wander
-    // further inside the `blend` band and draws it crisper, so a road's side
-    // reads as ground giving way rather than as a soft ruler. Inert without a
-    // `blend`: there is no band to wander in.
+    // How far the edge WANDERS either side of the authored line, in WORLD
+    // UNITS (plan-ground-noise.md W1b, D3; replaces W1's 0…1 `wobble`).
+    // Absent = a straight edge and no noise pass at all, so the feature costs
+    // exactly zero until authored. Independent of `blend`: any mix of a soft
+    // or crisp fade with a straight or wandering line is legal.
     //
     // ⭐ The noise is keyed to WORLD position, so on average the 50 % line still
     // sits on the authored one (D22) and two abutting surfaces agree.
-    wobble?: number;
-    // The BLOTCH size of that wobble, in WORLD UNITS (D2, amended 2026-09-23).
-    // Absent = derived from the band (half its width), so `blend` alone sets
-    // both the room to wander and the lump size. Authoring it decouples the
-    // two: big lumps on a narrow soft edge, or fine fraying on a wide one.
-    // ⚑ It never widens the band — the wander still lives inside `blend`.
+    wobbleReach?: number;
+    // The BLOTCH size of that wander, in WORLD UNITS (D2, amended 2026-09-23).
+    // Absent = derived from the reach (MaskNoise's GRAIN_PER_REACH).
     wobbleSize?: number;
+    // How FRAYED each blotch is, 0…1 (W1b): 0 = smooth lumps only, 1 = the
+    // fine octaves as strong as the coarse one. Absent = ½, W1's fixed mix. It
+    // never changes how far the edge wanders — MaskNoise re-normalises the
+    // noise's spread for exactly that.
+    wobbleRoughness?: number;
     // How fast this profile's TILE drifts, in world UNITS PER SECOND (C3/D9).
     // Absent or {0,0} = still, which is every profile shipped before this and
     // the reason the feature costs exactly zero until it is authored.
@@ -211,13 +217,16 @@ export const DEFAULT_PROFILE: Required<Profile> = {
     // and a blur pass under every region in every zone that never asked for
     // one - the feature has to cost exactly zero until it is authored.
     blend: 0,
-    // The world before ground-noise W1: a clean ramp. ⚑ A non-zero default
-    // would put a second bake pass under every feathered surface that never
+    // The world before ground-noise W1: a straight edge. ⚑ A non-zero default
+    // would put a mask and a second bake pass under every surface that never
     // asked for one.
-    wobble: 0,
-    // ⚑ 0 is not a size: it means "derive the grain from the band", which is
+    wobbleReach: 0,
+    // ⚑ 0 is not a size: it means "derive the grain from the reach", which is
     // why the parser drops an authored 0 rather than keeping it.
     wobbleSize: 0,
+    // W1's fixed octave mix (gain ½), so an edge that authors only a reach
+    // looks the way W1 drew it. Inert while `wobbleReach` is 0.
+    wobbleRoughness: 0.5,
     // The world before C3: nothing moves. ⚑ A non-zero default would put a
     // TilingSprite and a per-frame write under every textured region in every
     // zone that never asked for one.
@@ -372,7 +381,7 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
         if (name.charAt(0) === '_') { return; }
         const entry = raw[name] as {
             color?: unknown, texture?: unknown, scale?: unknown, blend?: unknown,
-            wobble?: unknown, wobbleSize?: unknown, scroll?: unknown, darkness?: unknown, haze?: unknown, sight?: unknown,
+            wobbleReach?: unknown, wobbleSize?: unknown, wobbleRoughness?: unknown, scroll?: unknown, darkness?: unknown, haze?: unknown, sight?: unknown,
         };
         const profile: Profile = {};
         if (entry && 'color' in entry) {
@@ -399,15 +408,22 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
             const parsed = parseBlend(entry.blend);
             if (parsed !== undefined) { profile.blend = parsed; }
         }
-        if (entry && 'wobble' in entry) {
-            // An opacity-shaped dial: 0…1, `0` kept, out-of-range dropped.
-            const parsed = parseOpacity(entry.wobble);
-            if (parsed !== undefined) { profile.wobble = parsed; }
+        if (entry && 'wobbleReach' in entry) {
+            // A length, and a zero one is a straight edge, which absence
+            // already says — `parseScale`'s shape, 0 dropped onto the default.
+            const parsed = parseScale(entry.wobbleReach);
+            if (parsed !== undefined) { profile.wobbleReach = parsed; }
         }
         if (entry && 'wobbleSize' in entry) {
             // A length, and a zero one means nothing — `parseScale`'s shape.
             const parsed = parseScale(entry.wobbleSize);
             if (parsed !== undefined) { profile.wobbleSize = parsed; }
+        }
+        if (entry && 'wobbleRoughness' in entry) {
+            // An opacity-shaped dial: 0…1, `0` kept (smooth lumps are a look),
+            // out-of-range dropped.
+            const parsed = parseOpacity(entry.wobbleRoughness);
+            if (parsed !== undefined) { profile.wobbleRoughness = parsed; }
         }
         if (entry && 'darkness' in entry) {
             const parsed = parseOpacity(entry.darkness);
@@ -669,33 +685,35 @@ export function regionBlend(
     return typeof blend === 'number' ? blend : DEFAULT_PROFILE.blend;
 }
 
+/** A surface's three wobble keys, read together because they are only ever
+ *  consumed together (plan-ground-noise.md W1b). */
+export interface Wobble {
+    /** World units; 0 = a straight edge and no noise pass. */
+    reach: number;
+    /** World units; 0 = derive it from the reach. */
+    size: number;
+    /** 0…1, the octave gain. */
+    roughness: number;
+}
+
 /**
- * How much this surface's soft border breaks up, 0…1 (plan-ground-noise.md W1).
- * `0` is the clean ramp and costs the bake nothing extra.
+ * How this surface's edge wanders (plan-ground-noise.md W1b). A reach of `0`
+ * is a straight edge and costs the bake nothing extra.
  *
- * ⚑ Its OWN profile's value, else the shipped default — {@link regionBlend}'s
- * rule for regionBlend's reason: the edge belongs to the shape being drawn.
+ * ⚑ Its OWN profile's values, else the shipped default, one key at a time —
+ * {@link regionBlend}'s rule for regionBlend's reason: the edge belongs to the
+ * shape being drawn.
  */
 export function regionWobble(
     region: Region,
     profiles: { [name: string]: TerrainProfile } = TERRAIN_PROFILES,
-): number {
+): Wobble {
     const profile = profiles[region.profile];
-    const wobble = profile && 'wobble' in profile ? profile.wobble : DEFAULT_PROFILE.wobble;
-    return typeof wobble === 'number' ? wobble : DEFAULT_PROFILE.wobble;
-}
-
-/**
- * The wobble's blotch size in world units, or `0` for "derive it from the band"
- * (D2 amended). Same own-profile rule as {@link regionWobble}.
- */
-export function regionWobbleSize(
-    region: Region,
-    profiles: { [name: string]: TerrainProfile } = TERRAIN_PROFILES,
-): number {
-    const profile = profiles[region.profile];
-    const size = profile && 'wobbleSize' in profile ? profile.wobbleSize : DEFAULT_PROFILE.wobbleSize;
-    return typeof size === 'number' ? size : DEFAULT_PROFILE.wobbleSize;
+    const own = (key: 'wobbleReach' | 'wobbleSize' | 'wobbleRoughness'): number => {
+        const value = profile && key in profile ? profile[key] : DEFAULT_PROFILE[key];
+        return typeof value === 'number' ? value : DEFAULT_PROFILE[key];
+    };
+    return {reach: own('wobbleReach'), size: own('wobbleSize'), roughness: own('wobbleRoughness')};
 }
 
 /**
