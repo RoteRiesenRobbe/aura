@@ -13,7 +13,7 @@
 >
 > **Schema, whole plan: DB NONE · wire +1 enum value (C2: the stunned press's
 > rejection reason, `ActivationRejection`) · content +1 category on one effect
-> type, +1 effect type, +1 mob, +2 or +3 skill files, pin 116 → 118 or 119.**
+> type, +1 effect type, +1 mob, +2 or +3 skill files, pin 118 → 120 or 121.**
 > All numbers [PLACEHOLDER].
 
 ---
@@ -292,7 +292,7 @@ comes from the spider first.
 
 ⚑ **Content census pins.** A new mob file reddens the three `items/mobs`
 census tests and the three `cmd/simharness` placement pins (CLAUDE.md, Open
-items); a new skill file moves the registry pin 116 → 119. Both are the
+items); the new skill files move the registry pin 118 → 120 or 121. Both are the
 chunk's bookkeeping, not defects.
 
 ### 3.5 GOD and cheats
@@ -368,8 +368,8 @@ in-game judgement.
   vocabulary golden moves); `instant_slow` (+1 effect type, `effectTypeMap`
   34 → 35); `SpiderWeb` (+1 mob, census pins); `spider-web`,
   `spider-web-aura` (+2 mob skills) and the first drawback aura (+1 skill or
-  an edit, §8 Q1); registry pin 116 (78 player + 38 mob,
-  `skills/registry_test.go:241`) → 118 or 119; GiantSpider +2 cooldown slots.
+  an edit, §8 Q1); registry pin 118 (78 player + 40 mob,
+  `skills/registry_test.go:244`) → 120 or 121; GiantSpider +2 cooldown slots.
 
 ## 6. Interplay
 

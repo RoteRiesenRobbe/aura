@@ -239,7 +239,8 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// Long-Range Strike's numbers retagged to fire so a projectile has an
 	// element to take its colour from. Both SKILL cheat only, no unlock source,
 	// until the PO places them. 114 → 116 (78 player + 38 mob).
-	// 117 → 118 with RatBite (the GiantRat's bite, 2026-09-23).
+	// 116 → 117 with AlphaBoarGore (the alpha boar's gore, 2026-09-22).
+	// 117 → 118 with RatBite (the GiantRat's bite, 2026-09-23), 78 player + 40 mob.
 	assert.Len(t, r.All(), 118)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {

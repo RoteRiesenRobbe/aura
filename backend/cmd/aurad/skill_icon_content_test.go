@@ -19,7 +19,7 @@ import (
 //
 // ⚑ Scoped to the TOP LEVEL of api/skills on purpose. api/skills/mobs holds the
 // mob-embedded skills, which author no icon by the same ruling: they are in the
-// 116-entry catalog but never appear in a spellbook. Walking the loaded registry
+// loaded catalog but never appear in a spellbook. Walking the loaded registry
 // instead of the directory would fail by construction.
 //
 // ⚑ This reads the repo's api/ tree, not the embedded copy. Content edits do not
