@@ -20,7 +20,8 @@
 //      targetFactions) are printed, not asserted: they move with content.
 //   2. the EDIT legs on Damage, OmniPassive and OmniAura: the type picker is
 //      FILTERED by the skill's category (C3 rider: an aura is not offered
-//      stat_multiplier, a passive is not offered damage_aura) · a blanked number marks the file
+//      retaliate_slow, a passive is not offered damage_aura; since aura
+//      drawbacks C1 an aura IS offered stat_multiplier) · a blanked number marks the file
 //      dirty · add effect then Reset restores the card count · a rename is
 //      refused as a GUARD (200, stage guard) · an illegal cost is refused BY
 //      THE SEAM ("refused by aurad -validate") · a real description edit is
@@ -162,8 +163,9 @@ console.log(`${items.length} skills in the sidebar`);
 
 // C4: the test-rig badge, in the sidebar. A name list in skill-presentation.mjs
 // (nothing in the content marks a cheat rig), so both halves are asserted: the
-// three rows carry it and no other row does.
-const RIGS = ['OmniAura', 'OmniPassive', 'OmniStrike'];
+// listed rows carry it and no other row does. OverchargeAura is the aura
+// drawbacks rig (plan-aura-drawbacks.md C1).
+const RIGS = ['OmniAura', 'OmniPassive', 'OmniStrike', 'OverchargeAura'];
 const badgedRows = await page.$$eval('#skill-list .group-items li', (els) => els
   .filter((li) => li.querySelector('.rig-badge'))
   .map((li) => li.querySelector('.item-name').textContent.trim()).sort());
@@ -248,7 +250,11 @@ const cards = await page.locator('#editor-root .effect-card').count();
 const pickerOptions = () => page.locator('#editor-root .effect-card .type-select').first()
   .evaluate((n) => [...n.options].map((o) => o.value));
 const auraTypes = await pickerOptions();
-if (auraTypes.includes('stat_multiplier')) problems.push('Damage (an active_aura) offers stat_multiplier in the type picker');
+// ⚑ The refused type was stat_multiplier until plan-aura-drawbacks.md C1 made
+// it legal on an aura (the while-active self modifier); retaliate_slow is
+// passive-only and carries the negative half now.
+if (auraTypes.includes('retaliate_slow')) problems.push('Damage (an active_aura) offers retaliate_slow in the type picker');
+if (!auraTypes.includes('stat_multiplier')) problems.push('Damage (an active_aura) does not offer stat_multiplier in the type picker');
 if (!auraTypes.includes('damage_aura')) problems.push('Damage (an active_aura) does not offer damage_aura in the type picker');
 
 // a blanked number marks the file dirty; a typed 0 stays a value

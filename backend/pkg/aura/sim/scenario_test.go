@@ -11,6 +11,7 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDefinition_DamageOnly(t *testing.T) {
@@ -102,4 +103,43 @@ func TestPlayerAt_ScalesBothDamagePayloads(t *testing.T) {
 
 	assert.InDelta(t, 10*f, float64(p.Aura.DamageHP), 0.001)
 	assert.InDelta(t, 20*f, float64(p.Aura.DotHP), 0.001)
+}
+
+// The sim knob (plan-aura-drawbacks.md D6): a selfModifier on the aura folds
+// through the real SkillComponent while the aura is active, so it moves a TTK
+// with no re-modelled math. +100 % damage dealt halves exactPlayer's four
+// hits to two: death on tick 6 instead of 12.
+func TestSelfModifier_MovesTheTTK(t *testing.T) {
+	p := exactPlayer()
+	p.Aura.SelfModifier = map[string]float32{"damageDealt": 1}
+
+	r := RunFight(TTK(p, turretMob(0, 1), 0.5), 1)
+
+	assert.Equal(t, OutcomeMobDied, r.Outcome)
+	assert.Equal(t, 6, r.Ticks)
+}
+
+// A drawback on the player's aura is the fold the live game runs: a -0.4
+// maxHealth modifier shrinks the sim player's pool while the aura is on.
+func TestSelfModifier_ShrinksThePoolWhileActive(t *testing.T) {
+	p := exactPlayer()
+	p.Aura.SelfModifier = map[string]float32{"maxHealth": -0.4}
+
+	w := NewWorld(TTK(p, turretMob(0, 1), 0.5), 1)
+
+	assert.EqualValues(t, 60, w.Player.MaxHealth())
+}
+
+// An unknown stat is an error, never a silent drop.
+func TestSelfModifier_UnknownStatIsAnError(t *testing.T) {
+	a := exactPlayer().Aura
+	a.SelfModifier = map[string]float32{"movmentSpeed": -0.2}
+
+	err := a.Validate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "movmentSpeed")
+	assert.Panics(t, func() { a.definition(1, "X") }, "the world builder refuses it too")
+
+	a.SelfModifier = map[string]float32{"movementSpeed": -0.2}
+	assert.NoError(t, a.Validate())
 }

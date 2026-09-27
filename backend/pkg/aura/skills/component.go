@@ -166,7 +166,8 @@ type SkillComponent struct {
 // Revision is the persisted-state change counter. See the field.
 func (sc *SkillComponent) Revision() uint64 { return sc.revision }
 
-// DerivedStats accumulates stat_multiplier bonuses from equipped passives.
+// DerivedStats accumulates stat_multiplier bonuses from equipped passives and
+// from the active aura while it is switched on (plan-aura-drawbacks.md D1).
 // Bonuses are additive multipliers on the base value: effective = base × (1 + bonus).
 // Per skill, the contribution is Scaled(StatBonus, StatBonusPerLevel, level);
 // across skills and effects, contributions to the same stat stack linearly.
@@ -266,19 +267,14 @@ func (d DerivedStats) MaxHealthFactor() float32 {
 	return 1 + d.MaxHealthBonus
 }
 
-// DamageReductionFactor is the multiplier a damage-reduction passive puts on
+// DamageReductionFactor is the multiplier a damage-reduction bonus puts on
 // incoming damage: damage × (1 − bonus). 100% reduction is the natural cap
-// (clamped here, so no call site has to re-check it); a negative bonus cannot
-// be authored, and would read as increased damage taken if it ever were.
+// (clamped here, so no call site has to re-check it). A negative bonus is
+// "more damage taken" and is live: an active aura's drawback authors it,
+// bounded at -1 (2x) by the loader (plan-aura-drawbacks.md §3.1). A passive's
+// sign is not bounded, and no shipped passive authors a negative one.
 func (d DerivedStats) DamageReductionFactor() float32 {
-	r := d.DamageReductionBonus
-	if r > 1 {
-		r = 1
-	}
-	if r < 0 {
-		r = 0
-	}
-	return 1 - r
+	return 1 - min(d.DamageReductionBonus, 1)
 }
 
 // MovementSpeedFactor is the multiplier a movement-speed passive puts on the
@@ -295,19 +291,14 @@ func (d DerivedStats) DamageFactor() float32 {
 	return 1 + d.DamageDealtBonus
 }
 
-// CostFactor is the multiplier a cost-reduction passive puts on an effect's
-// resource cost: cost × (1 − bonus). Clamped to [0, 1] like
-// DamageReductionFactor, so a stacked build can reach free but never a refund,
-// and no call site has to re-check it.
+// CostFactor is the multiplier a cost-reduction bonus puts on an effect's
+// resource cost: cost × (1 − bonus). Clamped at 1 like DamageReductionFactor,
+// so a stacked build can reach free but never a refund, and no call site has
+// to re-check it. A negative bonus is a cost multiplier and is live, the
+// active-aura drawback's shape, bounded at -1 (2x) by the loader
+// (plan-aura-drawbacks.md §3.1).
 func (d DerivedStats) CostFactor() float32 {
-	r := d.CostReductionBonus
-	if r > 1 {
-		r = 1
-	}
-	if r < 0 {
-		r = 0
-	}
-	return 1 - r
+	return 1 - min(d.CostReductionBonus, 1)
 }
 
 // AscensionPick is one player's choice at one ascension site: the reward key,
@@ -449,6 +440,7 @@ func (sc *SkillComponent) CancelCastOnDamage() {
 func (sc *SkillComponent) EquipAura(slot int, def *SkillDefinition, level int) {
 	sc.AuraSlots[slot] = &EquippedSkill{Def: def, Level: level}
 	sc.revision++
+	sc.recomputeDerived() // replacing the ACTIVE aura swaps its self modifier
 }
 
 // UnequipAura removes the skill from the given aura slot.
@@ -459,6 +451,7 @@ func (sc *SkillComponent) UnequipAura(slot int) {
 		sc.ActiveAuraSlot = -1
 	}
 	sc.revision++
+	sc.recomputeDerived()
 }
 
 // EquipPassive installs a skill into the given passive slot. All equipped
@@ -624,21 +617,7 @@ func (sc *SkillComponent) recomputeDerived() {
 		for _, e := range es.Def.Effects {
 			switch e.Type {
 			case EffectTypeStatMultiplier:
-				bonus := e.Stat.BonusAt(es.Level)
-				switch e.Stat.Name {
-				case StatMovementSpeed:
-					d.MovementSpeedBonus += bonus
-				case StatMaxHealth:
-					d.MaxHealthBonus += bonus
-				case StatDamageReduction:
-					d.DamageReductionBonus += bonus
-				case StatCritChance:
-					d.CritChanceBonus += bonus
-				case StatDamageDealt:
-					d.DamageDealtBonus += bonus
-				case StatCostReduction:
-					d.CostReductionBonus += bonus
-				}
+				d.addStat(e.Stat, es.Level)
 			case EffectTypeRetaliateSlow:
 				// Strongest wins, and it wins WHOLESALE — fraction, duration
 				// and source all come from the same passive. Slows never stack
@@ -688,7 +667,39 @@ func (sc *SkillComponent) recomputeDerived() {
 			}
 		}
 	}
+	// The while-active self modifier (plan-aura-drawbacks.md D1): the ACTIVE
+	// aura's stat_multiplier effects fold beside the passives, and nothing else
+	// of an aura's does (its other effects are output effects, ticked by
+	// sys.applyAuraEffect). Only the active slot (A1): an equipped aura that is
+	// switched off costs its loadout nothing.
+	if slot := sc.ActiveAuraSlot; slot >= 0 && sc.AuraSlots[slot] != nil {
+		es := sc.AuraSlots[slot]
+		for _, e := range es.Def.Effects {
+			if e.Type == EffectTypeStatMultiplier {
+				d.addStat(e.Stat, es.Level)
+			}
+		}
+	}
 	sc.Derived = d
+}
+
+// addStat folds one stat_multiplier at the given skill level.
+func (d *DerivedStats) addStat(p *StatParams, level int) {
+	bonus := p.BonusAt(level)
+	switch p.Name {
+	case StatMovementSpeed:
+		d.MovementSpeedBonus += bonus
+	case StatMaxHealth:
+		d.MaxHealthBonus += bonus
+	case StatDamageReduction:
+		d.DamageReductionBonus += bonus
+	case StatCritChance:
+		d.CritChanceBonus += bonus
+	case StatDamageDealt:
+		d.DamageDealtBonus += bonus
+	case StatCostReduction:
+		d.CostReductionBonus += bonus
+	}
 }
 
 // SetActiveAura switches which aura slot is active and resets that slot's
@@ -704,6 +715,10 @@ func (sc *SkillComponent) SetActiveAura(slot int) {
 	if slot >= 0 && sc.AuraSlots[slot] != nil {
 		sc.AuraSlots[slot].TickAccumulator = 0
 	}
+	// The single choke point every switch passes (players, mobs, flight,
+	// persist load, the sim): the active aura's self modifier is on or off
+	// from this instant.
+	sc.recomputeDerived()
 }
 
 // LightRadius is the entity's total emitted light: the maximum over the

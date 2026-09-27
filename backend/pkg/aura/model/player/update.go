@@ -9,6 +9,17 @@ func (p *player) Update(dt float32) {
 
 	p.tickRecentHealers()
 
+	// The mob's per-tick shrink clamp, given to the player (plan-aura-drawbacks.md
+	// D5/A2): MaxHealth is derived and current HP is absolute, so a pool that
+	// shrinks (an active aura's maxHealth drawback, an unequipped passive) would
+	// otherwise leave an over-full bar and free effective HP. One rule here
+	// covers every way the pool can shrink; it only ever lowers HP, so
+	// switching the drawback off leaves HP where it is, room to regenerate
+	// into. Above the GOD gate, like the mob's: the fold is not GOD-gated.
+	if maxHP := p.MaxHealth(); p.PlayerVitalSigns.Health > maxHP {
+		p.PlayerVitalSigns.Health = maxHP
+	}
+
 	if !p.isGod {
 		p.updateVitalSigns(dt)
 	}

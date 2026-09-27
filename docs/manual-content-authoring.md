@@ -421,7 +421,9 @@ the dispatch sites themselves:
 - **`active_aura`** (`sys.applyAuraEffect`): `damage_aura`, `heal_aura`,
   `dot_aura`, `hot_aura`, `shield_aura`, `slow_aura`, `resist_aura`,
   `speed_aura` - plus `light_aura`, which never ticks (rendering-only, streams
-  as the wire `light_radius`).
+  as the wire `light_radius`), and `stat_multiplier`, which never ticks either:
+  it is the **while-active self modifier** below (`recomputeDerived`, since
+  plan-aura-drawbacks.md C1).
 - **`cooldown`** (`sys.fireCooldown`): `instant_damage`, `instant_dot`,
   `instant_hot`, `instant_shield`, `instant_resist`, `self_heal`, `spawn`,
   `spawn_at_anchor`, `projectile`, `taunt`, `detaunt`, `calm`, `stun`, `charm`,
@@ -434,6 +436,52 @@ the dispatch sites themselves:
   light is read per equipped skill, so passives glow too). Passives have no
   cadence and no fire: a `costFractionOfMax` on a passive effect parses but can
   never charge (pinned by `TestNoCostOnAnEffectThatCanNeverBeCharged`).
+
+⚑ Since 2026-09-12 the pairing IS validated: the loader refuses any type on a
+category `effectCategories` (`skills/definition.go`) does not list, and the
+editor's picker reads the same table from `api/skill-vocabulary.json`. The
+paragraph above describes why the table exists; the lists above are what it says.
+
+#### While active: `stat_multiplier` on an aura (plan-aura-drawbacks.md C1)
+
+A `stat_multiplier` on an `active_aura` folds into the caster's derived stats
+**while that aura is the active one**, beside the passives, and drops out the
+instant the aura is switched off, switched to another slot, unequipped or
+replaced (`SetActiveAura` and the aura equip/unequip recompute). An equipped
+aura that is not switched on costs nothing. Both signs are legal: a negative
+bonus is a **drawback** that offsets a stronger aura (a slower walk, a smaller
+pool, more damage taken, dearer costs), a positive one is a stance bonus.
+Balance is content judgement; the loader only bounds the degenerate values,
+at **every level** from 1 to `maxLevel` [PLACEHOLDER bounds]:
+
+| Stat | Legal bonus on an aura | Why |
+| --- | --- | --- |
+| `movementSpeed`, `maxHealth` | `[-0.9, +1]` | -1 would be a stun or a dead pool through the back door |
+| `damageReduction`, `costReduction` | `[-1, +1]` | damage taken and cost cap at 2x; +1 is fully mitigated / free |
+| `damageDealt`, `critChance` | unbounded | no degenerate value |
+
+The passive form keeps its old rule (any non-zero bonus loads). Things to know
+before authoring one:
+
+- **Max health clamps, with hysteresis.** A `maxHealth` drawback shrinks the
+  pool at switch-on and current HP is clamped to it on the next tick (the
+  player's per-tick clamp, the mob's rule). Switching off does NOT refill: HP
+  stays where it is and regenerates into the restored pool.
+- **Costs interact both ways.** A negative `costReduction` multiplies every
+  cost (the aura's own and every cooldown's): the aura still never kills its
+  caster (the never-kill floor), but a cooldown whose multiplied cost is not
+  affordable is REJECTED at the press, so a doubled cost can make a cooldown
+  uncastable at low HP. The other way round, every cost is a fraction of max
+  HP, so a `maxHealth` drawback lowers every cost proportionally.
+- **It shows on the tooltip only.** No pip, no ring change, no `visual` row.
+- **Mobs share it.** A mob aura carrying a `stat_multiplier` re-prices that
+  mob (pool, speed, damage) the moment it switches on; see the `add-content`
+  skill.
+- The rig: `api/skills/overcharge-aura.json` (`SKILL OverchargeAura`, no
+  unlock source) carries one drawback of each bounded stat.
+- A `resist_aura` with `targetsSelf` and a factor above 1 (a per-tag
+  self-curse) also loads, but no shipped file authors it and a census test
+  (`cmd/aurad/self_curse_content_test.go`) makes the first one a decision.
 
 **Living reference content:** the three cheat-only kitchen-sink skills author
 every one of these at once (the landmine notes they used to carry in their

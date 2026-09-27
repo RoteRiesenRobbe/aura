@@ -240,7 +240,7 @@ export const HIDDEN_EFFECT_TYPES = ['projectile'];
 // A NAME list, not a rule, because there is nothing in the files that marks
 // them - which is exactly why the badge is worth having. smoke.mjs asserts
 // every name here is a player skill on disk, so a rename cannot leave it stale.
-export const TEST_RIG_SKILLS = ['OmniAura', 'OmniPassive', 'OmniStrike'];
+export const TEST_RIG_SKILLS = ['OmniAura', 'OmniPassive', 'OmniStrike', 'OverchargeAura'];
 
 // Level-scaling resolution, the same formula as skills/scaling.go:
 // base + (level-1) × perLevel. Both halves default to 0 when unauthored, so

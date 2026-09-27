@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 
-import {SkillDefinition, SkillEffect, roundHP} from '../../../../client-data/Skills';
+import {SkillCategory, SkillDefinition, SkillEffect, roundHP} from '../../../../client-data/Skills';
 import {loadMobCatalog} from '../../../../client-data/Mobs';
 import {formatSkillTooltip} from './SkillTooltip';
 
@@ -297,6 +297,82 @@ describe('passive stat labels (round-7 item 10)', () => {
         expect(statLine('critChance', 0.02)).toBe('Crit chance: +2% → 5%');
         expect(statLine('damageDealt', 0.04)).toBe('All damage: +4% → 7%');
         expect(statLine('movementSpeed', 0.1)).toBe('Movement speed: +10% → 13%');
+    });
+});
+
+// plan-aura-drawbacks.md C1 (D1, D2): stat_multiplier is legal on an ACTIVE
+// aura, where it holds only while the aura is on, and the bonus may be
+// negative. A negative bonus used to print a doubled sign ("+-30%"), and on a
+// reduction stat it said the opposite of what the player feels.
+describe('stat_multiplier drawbacks and while-active modifiers', () => {
+    const statLine = (category: SkillCategory, name: string, bonus: number, bonusPerLevel: number = 0) => lines(skill({
+        maxLevel: 5, category,
+        effects: [effect({type: 'stat_multiplier', stat: {name, bonus, bonusPerLevel}})],
+    }), 1, 1)[0];
+
+    it('reads a negative bonus as a drawback with one sign, on every stat', () => {
+        // The reduction stats are labelled as what the player takes/pays, so a
+        // negative bonus there is MORE damage taken and HIGHER costs.
+        expect(statLine('passive', 'movementSpeed', -0.3)).toBe('Movement speed: −30%');
+        expect(statLine('passive', 'maxHealth', -0.3)).toBe('Max Focus: −30%');
+        expect(statLine('passive', 'damageDealt', -0.3)).toBe('All damage: −30%');
+        expect(statLine('passive', 'critChance', -0.3)).toBe('Crit chance: −30%');
+        expect(statLine('passive', 'damageReduction', -0.25)).toBe('Damage taken: +25%');
+        expect(statLine('passive', 'costReduction', -0.5)).toBe('All costs: +50%');
+    });
+
+    it('says an aura modifier holds while active, for both signs', () => {
+        expect(statLine('aura', 'movementSpeed', -0.3)).toBe('Movement speed: −30% while active');
+        expect(statLine('aura', 'maxHealth', -0.3)).toBe('Max Focus: −30% while active');
+        expect(statLine('aura', 'damageDealt', -0.3)).toBe('All damage: −30% while active');
+        expect(statLine('aura', 'critChance', -0.3)).toBe('Crit chance: −30% while active');
+        expect(statLine('aura', 'damageReduction', -0.25)).toBe('Damage taken: +25% while active');
+        expect(statLine('aura', 'costReduction', -0.5)).toBe('All costs: +50% while active');
+
+        expect(statLine('aura', 'movementSpeed', 0.3)).toBe('Movement speed: +30% while active');
+        expect(statLine('aura', 'maxHealth', 0.3)).toBe('Max Focus: +30% while active');
+        expect(statLine('aura', 'damageDealt', 0.3)).toBe('All damage: +30% while active');
+        expect(statLine('aura', 'critChance', 0.3)).toBe('Crit chance: +30% while active');
+        expect(statLine('aura', 'damageReduction', 0.25)).toBe('Damage taken: −25% while active');
+        expect(statLine('aura', 'costReduction', 0.5)).toBe('All costs: −50% while active');
+    });
+
+    it('scales a drawback through the level preview with the sign on the first value', () => {
+        expect(statLine('aura', 'movementSpeed', -0.2, -0.05)).toBe('Movement speed: −20% → 25% while active');
+        expect(statLine('aura', 'damageReduction', -0.2, -0.05)).toBe('Damage taken: +20% → 25% while active');
+    });
+
+    it('signs the next value on its own only when it crosses zero', () => {
+        // Loadable (the bound is per level, not one side of zero), authored by
+        // nothing today.
+        expect(statLine('aura', 'movementSpeed', -0.05, 0.1)).toBe('Movement speed: −5% → +5% while active');
+        expect(statLine('aura', 'costReduction', 0.05, -0.1)).toBe('All costs: −5% → +5% while active');
+        expect(statLine('aura', 'movementSpeed', -0.1, 0.1)).toBe('Movement speed: −10% → +0% while active');
+    });
+
+    it('marks a drawback in the Focus color, never a bonus', () => {
+        const overcharge = skill({
+            displayName: 'Overcharge', category: 'aura', maxLevel: 5,
+            effects: [
+                effect({type: 'damage_aura', radius: 3, tickInterval: 30, targetsEnemies: true,
+                    costFractionOfMax: 0.01, damage: damageParams(20)}),
+                effect({type: 'stat_multiplier', stat: {name: 'movementSpeed', bonus: -0.3, bonusPerLevel: 0}}),
+                effect({type: 'stat_multiplier', stat: {name: 'maxHealth', bonus: -0.2, bonusPerLevel: 0}}),
+                effect({type: 'stat_multiplier', stat: {name: 'damageReduction', bonus: -0.25, bonusPerLevel: 0}}),
+                effect({type: 'stat_multiplier', stat: {name: 'costReduction', bonus: -0.5, bonusPerLevel: 0}}),
+                effect({type: 'stat_multiplier', stat: {name: 'damageDealt', bonus: 0.2, bonusPerLevel: 0}}),
+            ],
+        });
+        const content = formatSkillTooltip(overcharge, 1, 1, 100);
+        expect(content.lines.filter(l => l.labelColor === 'crimson').map(l => l.text)).toEqual([
+            'Movement speed: −30% while active',
+            'Max Focus: −20% while active',
+            'Damage taken: +25% while active',
+            'All costs: +50% while active',
+            'Costs you: 1 Focus every 1s',
+        ]);
+        const stance = content.lines.find(l => l.text.startsWith('All damage'));
+        expect(stance).toEqual({text: 'All damage: +20% while active'});
     });
 });
 

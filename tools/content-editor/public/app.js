@@ -1912,10 +1912,11 @@ function removeEffect(ctx, i) {
 
 // ⭐ The category rule (C3 rider, PO 2026-09-12), carried here by the fixture's
 // `effectCategories` - Go owns it, the picker only reads it. A stat_multiplier
-// on an active aura used to LOAD and then do nothing: the aura tick dispatcher
-// handles eight types and drops the rest, and stat bonuses are summed over
-// passive slots only. The loader now refuses it; these two functions make sure
-// the builder cannot author it in the first place.
+// on an active aura used to LOAD and then do nothing, because stat bonuses were
+// summed over passive slots only (it is legal and live since
+// plan-aura-drawbacks.md C1, a while-active self modifier). The loader refuses
+// every pairing the table does not list; these two functions make sure the
+// builder cannot author one in the first place.
 //
 // An unset or unknown category answers "every type": the fixture cannot say
 // which are legal, and hiding everything would be worse than offering too much.

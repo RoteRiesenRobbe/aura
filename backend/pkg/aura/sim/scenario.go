@@ -4,7 +4,12 @@
 // distributions over N seeded runs. Chunk 1: explicit-input 1v1 TTK / TTD.
 package sim
 
-import "github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+import (
+	"fmt"
+	"slices"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+)
 
 // AuraSpec is one synthetic damage aura, given as explicit numbers — the
 // "these numbers" half of the tool's number→outcome question. It maps onto a
@@ -63,6 +68,26 @@ type AuraSpec struct {
 	// carries both; 0 = the dot is free, the D5 "sum of the effects' costs"
 	// rule with one term authored.
 	DotCostFractionOfMax float32 `json:"dotCostFractionOfMax,omitempty"`
+
+	// SelfModifier is the aura's while-active self modifier
+	// (plan-aura-drawbacks.md D6): stat name to bonus, folded onto the
+	// synthetic definition as stat_multiplier effects, so the caster's real
+	// SkillComponent folds it while the aura is on, exactly as the live game
+	// does. A negative bonus is a drawback. ⚑ The loader's active-aura bounds
+	// are NOT applied here: the sim is a what-if tool and may price a value
+	// content could not author.
+	SelfModifier map[string]float32 `json:"selfModifier,omitempty"`
+}
+
+// Validate reports an unknown SelfModifier stat name, which would otherwise
+// fold into nothing.
+func (a AuraSpec) Validate() error {
+	for name := range a.SelfModifier {
+		if !skills.ValidStat(name) {
+			return fmt.Errorf("selfModifier: unknown stat %q", name)
+		}
+	}
+	return nil
 }
 
 // HasDirect reports whether the spec carries a direct-hit payload. A dot-only
@@ -157,6 +182,23 @@ func (a AuraSpec) definition(id skills.SkillID, name string) *skills.SkillDefini
 			Interval:  dotInterval,
 		}
 		effects = append(effects, dot)
+	}
+
+	if err := a.Validate(); err != nil {
+		panic(err) // callers validate first (the explorer's runRequest); a CLI typo stops here
+	}
+	// Sorted, so the effect order (and so the fold's float summation order)
+	// is the same every run.
+	stats := make([]string, 0, len(a.SelfModifier))
+	for name := range a.SelfModifier {
+		stats = append(stats, name)
+	}
+	slices.Sort(stats)
+	for _, name := range stats {
+		effects = append(effects, skills.EffectDef{
+			Type: skills.EffectTypeStatMultiplier,
+			Stat: &skills.StatParams{Name: name, Bonus: a.SelfModifier[name]},
+		})
 	}
 
 	return &skills.SkillDefinition{

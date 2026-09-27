@@ -1,7 +1,9 @@
 # Plan: aura drawbacks and the player CC doors
 
-> **Status: DESIGNED 2026-09-25 (PO session, seven rulings taken as choice
-> prompts, §2), nothing built, 2 chunks (§7; C3 merged into C2 the same day).** Line refs pinned to HEAD
+> **Status: C1 BUILT and PO-PASSED 2026-09-27 (the while-active fold, §11,
+> `[uncommitted]`); C2 (the player CC doors, the last chunk) not started.**
+> Designed 2026-09-25 (PO session, seven rulings taken as choice prompts, §2),
+> 2 chunks (§7; C3 merged into C2 the same day). Line refs pinned to HEAD
 > `38bd586f`; re-verify before executing. Ledgers: §11.
 >
 > Origin: the PO at the skill-VFX C3b/C3c wrap (`docs/feedback.md` row
@@ -540,4 +542,198 @@ in-game checklist above · the schema line restated in the ledger.
 
 ## 11. Chunk ledgers
 
-(none yet)
+### C1: the while-active fold (built and PO-passed 2026-09-27, `[uncommitted]`)
+
+**Built, in the plan's L1 order (bound before floor):**
+
+- **Loader bound** (`skills/definition.go`, `checkWhileActiveBounds`, called in
+  the effects loop right after the category check): a `stat_multiplier` on an
+  `active_aura` must stay within `[-0.9, +1]` for `movementSpeed` and
+  `maxHealth`, `[-1, +1]` for `damageReduction` and `costReduction`, at EVERY
+  level 1..maxLevel [PLACEHOLDER]. The refusal names skill, stat, bonus, level
+  and bound. ⚑ `damageDealt` and `critChance` are deliberately UNBOUNDED on an
+  aura, as §3.1 wrote it (pinned by a test, not left implicit). The passive
+  form is untouched (A8); no shipped file authors a negative bonus anywhere.
+- **Category** `effectCategories[stat_multiplier]` = `{active_aura, passive}`;
+  the table comment and `api/skill-vocabulary.json` (regenerated, +1 line)
+  follow. The editor's picker comment (`public/app.js`) no longer claims the
+  loader refuses it.
+- **The fold** (`skills/component.go`): the six-stat switch is now
+  `DerivedStats.addStat`, called for every passive and then for the ACTIVE
+  aura slot only (slot -1 and a nil slot guarded). From an aura, only
+  `stat_multiplier` folds. `SetActiveAura` recomputes; so do `EquipAura` and
+  `UnequipAura` (⚑ **a gap the plan did not name**: replacing the aura in the
+  active slot kept the OLD aura's fold, and unequipping the active aura reset
+  `ActiveAuraSlot` to -1 but left its fold live). Level changes already
+  recomputed.
+- **Floors lifted:** `DamageReductionFactor` and `CostFactor` are
+  `1 - min(bonus, 1)`; the lower clamp is gone, the comments no longer claim a
+  loader rule that never existed. No test pinned the floor
+  (`TestCostReductionPassive_ClampsAtFreeNeverARefund` pins the UPPER clamp
+  and is unchanged).
+- **D5 clamp** (`model/player/update.go`, `player.Update`): current HP is
+  clamped to `MaxHealth()` every tick, ABOVE the GOD gate (the mob clamps
+  unconditionally too, and §3.5 says the fold is not GOD-gated), so a GOD
+  player never shows an over-full bar. It only lowers HP.
+- **D6 sim knob** (`sim/scenario.go`): `AuraSpec.SelfModifier map[string]float32`
+  (`selfModifier,omitempty`), folded onto the synthetic definition as
+  `stat_multiplier` effects in SORTED key order. `AuraSpec.Validate()` refuses
+  an unknown stat through the new exported `skills.ValidStat`; `definition()`
+  panics on the same check (the CLI path), and the explorer's four endpoints
+  (`/run`, `/curve`, `/matrix`, `/chain`) report it as a 400. ⚑ The sim does NOT
+  apply the loader's aura bounds: it is a what-if tool. `cmd/simharness`
+  `auraSpecOf` maps an authored aura's `stat_multiplier` effects (at the asked
+  level) into `SelfModifier` and skips the radius check for them, so
+  `-player-aura OverchargeAura:5` runs and carries the drawback into the
+  artifact. ⚑ The web explorer's form has no `selfModifier` (nor cost) knob:
+  picking the Overcharge preset there drops the drawback. UI left out, as
+  scoped.
+- **Content** (§8 Q1 option (a)): `api/skills/overcharge-aura.json`, id 79,
+  `OverchargeAura`, cheat-only (`SKILL OverchargeAura`, no unlock source), a
+  paid `damage_aura` (8 +1/level HP, radius 2.5, 1 target, 40 ticks,
+  `costFractionOfMax` 0.01 +0.001) plus four flat drawbacks:
+  `movementSpeed -0.3`, `maxHealth -0.2`, `damageReduction -0.25`,
+  `costReduction -0.5`, all [PLACEHOLDER]. Icon `lorc/life-tap` (an existing
+  glyph), pack icon `lightning-skull` (an existing manifest entry), a
+  placeholder `beam`/`flash` look (the §12h every-skill-has-a-visual rule;
+  the editor smoke's "bare aura" hint is back to 0). Badged as a test rig in
+  the editor (`TEST_RIG_SKILLS`). At L5 its sustained EV is 0.3/tick, far
+  under the strongest non-ceiling (Wildfire 1.267).
+- **Tooltip** (`SkillTooltip.ts`, its own agent, in parallel): a negative
+  bonus reads as a drawback with ONE sign (it printed `+-30%`), the two
+  reduction stats flip to what the player feels (`Damage taken: +25%`,
+  `All costs: +50%`), an aura's line ends in " while active" on both signs,
+  and a drawback's label is tinted with the cost line's Focus colour
+  (`FOCUS_COLOR_CSS`; the theme has no penalty colour and none was added).
+  Positive passives render byte-identical. A bonus crossing zero across levels
+  renders `−5% → +5%`. 5 new vitest cases, all red first. ⚑ Crimson now means
+  "cost line or drawback line"; ⚑ the rig shows " while active" four times,
+  once per line. Both are PO looks.
+- **Docs:** manual §2 (the category list, a "While active" subsection with the
+  bound table, the clamp and its hysteresis, the cost interplay both ways,
+  tooltip-only, mobs share it); the `add-content` skill (L4, and the Tiled
+  palette pin below).
+
+**Tests (red first where it could be seen):** `skills/while_active_test.go`
+(12 of its 14 red before the code; the other two, switching to another slot and the self-targeted `resist_aura`, were trivially green: the loader shape, the bounds each stat each
+side plus the same value loading on a passive, every-level, edges, the
+unbounded pair, cooldown still refused, the self-targeted `resist_aura` above
+1 still loading, fold on/off/-1, only the active slot, composes with a passive,
+unequip/replace refolds, follows the level, negative factors live);
+`model/player/drawback_test.go` (the clamp trio red before `Update` changed;
+the damage-taken test on a REAL player was green on its first run because the
+fold and the floor had already landed); `model/mob/drawback_test.go` (REAL
+mob, damage taken and pool, green on first run for the same reason);
+`sys/skill_cost_test.go` (+3: the multiplied cost, the never-kill floor, a
+cooldown made unaffordable by `canAfford`); `sys/persist_drawback_test.go`
+(a cold join through the real JSON loader and `joinWithState` lands the fold,
+no DB needed); `sim/scenario_test.go` (+3: TTK 12 → 6 ticks at
+`damageDealt +1`, the pool shrinks, the unknown stat; red as a build failure);
+`cmd/simharness` (+2: `auraSpecOf` maps the modifier, `/run` 400s a typo; both
+red); `cmd/aurad/self_curse_content_test.go` (no shipped `resist_aura` with
+`targetsSelf` exceeds 1 at any level; four carriers censused, so it is not
+vacuous). The 2026-09-12 refusal row in `effect_categories_test.go` became a
+`retaliate_slow`-on-an-aura row.
+
+**Pins touched:** registry 118 → 119 (79 player + 40 mob,
+`skills/registry_test.go`); the vocabulary golden (+1 category); the Tiled
+palette (`tools/tiled/palette/content.json`, `propertytypes.json`,
+`aura.tiled-project`, +1 name each, via `node tools/tiled/generate-palette.mjs`),
+⚑ which the add-content skill did not list: every new skill file reddens
+`AuraTiledConvert.test.ts` "offers every skill the SERVER loads" until it is
+regenerated.
+
+**`SetActiveAura` per-tick check (the allocation risk):** no caller re-asserts
+an unchanged slot every tick. The client sends the aura command only on change
+(`NO_ACTIVE_AURA_CHANGE` is the default on the wire, `InputMessage.ts`); the
+mob AI's `applyMode` switches only when `slot != ActiveAuraSlot`; a structure
+switches once at construction; flight, equip, persist load and the sim are
+events. `recomputeDerived` allocates only when a `resist_passive` is equipped
+(the `Resistances` map), and only at those edges. Nothing changed there.
+
+**Findings:**
+
+- ⚑ `TestGuardrails_CeilingOrdering` prices an aura from its damage, crit
+  and cadence only: a POSITIVE `damageDealt` self modifier (D2's stance aura)
+  multiplies real output but is invisible to that EV, so the first stance
+  aura could outdamage the ceiling while the guardrail reads it as under. No
+  content does this yet; the guardrail should fold `SelfModifier` before one
+  ships.
+- The client's cost number needs nothing: `GameState.cost_factor` is a float
+  the server fills from `Derived.CostFactor()`, so a 1.5 reaches the HUD as is.
+- ⚑ The manual's "Category-vs-type pairing is validated NOWHERE" paragraph was
+  stale since 2026-09-12; a correcting note now follows it.
+- ⚑ The simharness placement pins (3) and `world`'s
+  `TestPropContent_C1bMigrationPreservesLookAndCollision` are red at HEAD
+  `56ebb5a7` too, measured on a `git archive HEAD` copy with `cp-defs`: not
+  this chunk's.
+- ⚑ `accounts.TestRepeatedFailuresAreThrottled` failed once in the full parallel
+  run WITHOUT `-race` (a wall-clock assert under load), then passed 3/3 alone.
+  The known-inconclusive entry says "`-race` only"; it is load, not race.
+
+**Verify (2026-09-27):** `go build ./...` OK · `make -C backend build` OK ·
+`go test -count=1 -timeout 60s ./...` 33 ok, red only in `cmd/simharness`
+(the 3 placement pins, red at HEAD) and `world` (red at HEAD), plus the one
+`accounts` timing flake above; `store` + `accounts` ran against `aura_test` ·
+`aurad -validate` 0 findings, `-validate -content ../api` 0 findings ·
+`go test ./cmd/simharness/` guardrails all PASS (ceiling: Wildfire 1.267 below
+Vanguard 1.340 / Warbanner 1.430 / Spearhead 2.280) · editor `smoke.mjs` 0
+findings across 119 skill files, `aurad-validate.test.mjs` and
+`save-skill.test.mjs` 0 findings · frontend `vitest` 1176/1176 and
+`typecheck` clean (after the palette regen; with the parallel tooltip work in
+the tree) · `tools/tiled/verify.sh` NOT run (Tiled is not installed here) ·
+the `verify` skill's headless harnesses RUN, one at a time on a restarted
+server (boot log: 119 skills): the new `c1-aura-drawback.mjs` **16/16** (the
+four drawback lines; pool 2675 → 2140 with Focus clamped to it; cost 27 → 32;
+switch-off restores the pool to 2675 at once and leaves Focus at 2140; walk
+1.31 → 1.03 → 1.32 u/s, 0.78× against an authored 0.7, headless pace noise) ·
+`round4-tooltip` all checks passed (after the documented first-run join
+timeout) · `r1-focus-cost` all checks passed · `chunk4-persistence` 16/16 ·
+`content-editor-skills-tab` 0 problems.
+
+**Harness pins this chunk reversed, rewritten with it:**
+`content-editor-skills-tab.mjs` asserted that an aura is NOT offered
+`stat_multiplier` (the 2026-09-12 rider) and that exactly the three Omni rows
+carry the rig badge. It now asserts an aura IS offered `stat_multiplier` and
+is not offered `retaliate_slow`, and the rig list names `OverchargeAura`.
+⚑ `c1-aura-drawback.mjs` at a 1600×900 viewport walked a 1.05 u/s baseline
+and scored both pace legs INCONCLUSIVE; at 1280×800 the baseline is 1.31. The
+headless frame time moves the measured pace, so the viewport is part of the
+venue. ⚑ The webpack dev server kept a STALE type error from a mid-edit state
+of `SkillTooltip.test.ts` ("Errors while compiling. Reload prevented.") while
+`tsc --noEmit` was clean; a frontend restart cleared it.
+
+**Schema:** DB NONE · wire NONE · conf NONE · content +1 category on one
+effect type (`stat_multiplier` on `active_aura`), +1 skill
+(`OverchargeAura`, id 79), registry pin 119.
+
+**In-game checklist, walked by the PO 2026-09-27** (§7 C1 plus L9):
+
+PO verdict on the checklist as a whole, verbatim: *"looks good, seems to
+work."* The PO did not name which items were walked one by one. Two looks were
+put to the PO with it: (a) the drawback label uses the cost line's crimson, so
+crimson now means "cost or drawback"; (b) " while active" repeats on all four
+drawback lines of the rig. No objection was raised to either and no separate
+ruling was given; both stand as built. Item 5 was flagged beforehand as hard to
+hit by hand; it is pinned by Go tests in `sys/skill_cost_test.go`. L9 (item 6,
+the camera cap) drew no report.
+
+1. `SKILL OverchargeAura`, equip it, hover: the tooltip states the four
+   drawbacks as drawbacks (the parallel tooltip work).
+2. Switch it on (`1`): the walk is visibly slower, the pool shrinks to 80 %
+   and a full bar drops to it on the next tick, the cost float on each hit is
+   bigger than with the aura off: x1.2 NET on this rig, not x1.5, because the
+   x1.5 cost multiplier meets a pool 20 % smaller and every cost is a fraction
+   of max (measured headless at level 30: 27 → 32 Focus).
+3. Take a hit while it runs, with GOD OFF (GOD short-circuits `takeDamage`):
+   the damage number is x1.25.
+4. Switch it off: speed and pool restore instantly, HP stays where it was and
+   regenerates out of combat.
+5. Press a costed cooldown at low HP with the aura on: it can be refused where
+   it was affordable with the aura off.
+6. L9: with the aura on (and with SPEED on top), does the camera vehicle
+   (`Camera.ts:37`, `movementSpeed x 2`, a constant) still track smoothly?
+7. Log out and back in with the aura on: the drawback is on after the load.
+8. Die with the aura on: the respawn keeps the loadout AND the active slot
+   (`SetSkillComponent`), so the "full" respawn bar is the shrunken 80 % pool.
+   Consistent with D5, noted so it is seen once rather than reported as a bug.

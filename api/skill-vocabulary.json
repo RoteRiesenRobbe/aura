@@ -459,6 +459,7 @@
       "cooldown"
     ],
     "stat_multiplier": [
+      "active_aura",
       "passive"
     ],
     "stun": [
