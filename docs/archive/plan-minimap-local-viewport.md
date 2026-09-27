@@ -1,6 +1,11 @@
 # Plan: Minimap Local Viewport (Radar Mode)
 
-> **Status: M1 + M2 + M3 BUILT 2026-09-27 (all chunks). PO 2026-09-27: "looks good". The Map button overlapping the disc's ring predates this plan (C6's margin vs world-map C1's `#mapButton` top) and was left as is.**
+> **Status: COMPLETE, archived 2026-09-27. M1 + M2 + M3 built and shipped in `8f9b83a2`
+> (merged `962f1dfd`). PO 2026-09-27: "looks good".** The Map button overlapping the disc's
+> ring predates this plan (C6's margin vs world-map C1's `#mapButton` top) and was left as
+> is by the PO. Harness residue cleared (`harnessdb -cleanup`, 15 accounts).
+> ⚑ Nothing below is owed; the placeholders (steps 30/50/100, wheel 100 px / 300 ms,
+> pointer 10 / 24 px, ring margin 10 m) are tuning, not open chunks.
 > M3: vitest 1336/0 + typecheck clean; `m3-home-pointer.mjs` 7/7. The pointer aims at
 > `MapCampfires.homeMarker()` (the marker AS DRAWN, so D12's discovered + active-zone rules
 > come free) via the pure `rimPoint`, on the stage, per frame. ⚑ Its margin is **24 px, not
