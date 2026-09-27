@@ -9,6 +9,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
 	"github.com/google/uuid"
 )
@@ -210,7 +211,14 @@ func (i *PlayerInputSystem) Update(dt float32) {
 		// committed flight (D11), Camp would place a mini-camp in mid-air.
 		// The press is still drained, so a stale one dies here.
 		if u := p.Client().NextUseUtility(); u != nil && p.VitalSigns().Health != 0 && !p.Flying() {
-			p.SkillComponent().RequestUtilityCast(u.Kind)
+			if stunned(p) {
+				// Refused, not queued (plan-aura-drawbacks.md C2): see the
+				// cooldown presses in updateInput. A utility is no catalog
+				// skill, so the id slot carries 0.
+				p.NoteActivationRejected(0, model.ActivationRejectedStunned)
+			} else {
+				p.SkillComponent().RequestUtilityCast(u.Kind)
+			}
 		}
 		// Flight requests (plan-flight-paths.md C2) — validated on server
 		// state alone; refusal is silent (§4.4).
@@ -380,6 +388,13 @@ func (i *PlayerInputSystem) tryStartFlight(p model.PlayerEntity, req *model.Star
 		// never an error — the home_campfire_id rule (§5).
 		return
 	}
+	// A stunned player cannot take off (plan-aura-drawbacks.md C2, P3). Checked
+	// LAST, so the reason floats only for a request that would otherwise have
+	// flown; an invalid one stays silent, the rule above.
+	if stunned(p) {
+		p.NoteActivationRejected(0, model.ActivationRejectedStunned)
+		return
+	}
 
 	// Takeoff. The one-shot §4.2 gates first: a running cast dies, the aura
 	// goes out synchronously (a merely skipped aura would keep streaming its
@@ -448,8 +463,21 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 	// Cooldown activations: queued here, fired by the SkillSystem later in
 	// this same tick (update runs before skills). Invalid indices are dropped
 	// by RequestCooldownActivation.
+	//
+	// A stunned player's press is refused here and never queued: the stun gate
+	// skips the queue's only consumer, so a queued press would fire the moment
+	// the stun ends (plan-aura-drawbacks.md C2). Noted once per press, with the
+	// slot's skill; an empty or crafted slot is dropped silently, as above. The
+	// aura switch above stays allowed while stunned (A7): it is a state flip,
+	// and the aura does not tick until the stun ends anyway.
+	sc := p.SkillComponent()
+	held := stunned(p)
 	for _, slot := range next.CooldownActivations {
-		p.SkillComponent().RequestCooldownActivation(slot)
+		if !held {
+			sc.RequestCooldownActivation(slot)
+		} else if slot >= 0 && slot < skills.MaxCooldownSlots && sc.CooldownSlots[slot] != nil {
+			p.NoteActivationRejected(sc.CooldownSlots[slot].Def.ID, model.ActivationRejectedStunned)
+		}
 	}
 
 	// do we even have inputs?
@@ -482,6 +510,14 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 			p.SetPosition(next)
 		}
 	}
+}
+
+// stunned reads the player's stun through a structural assert, the house
+// pattern: model.PlayerEntity stays narrow, and an input fake that lacks the
+// read is simply never stunned.
+func stunned(p model.PlayerEntity) bool {
+	s, ok := p.(interface{ Stunned() bool })
+	return ok && s.Stunned()
 }
 
 func input2vec(i *model.PlayerInput) phy.Vec2f {

@@ -613,6 +613,49 @@ describe('stun', () => {
     });
 });
 
+// instant_slow (plan-aura-drawbacks.md C2, D3): the instant_resist twin, a
+// cooldown that slows whatever it selects for its own lifetime. The main line
+// is the slow_aura line plus the instant_shield duration; radius and target
+// cap are the shared generic lines every capped cooldown gets.
+describe('instant_slow', () => {
+    const slowCooldown = (slow: object, extra: Partial<SkillEffect> = {}) => skill({
+        displayName: 'Snare', category: 'cooldown', maxLevel: 5, cooldownTicks: 600,
+        effects: [effect({
+            type: 'instant_slow',
+            radius: 3, targetsEnemies: true,
+            slow: {fraction: 0.4, fractionPerLevel: 0, durationTicks: 90, durationTicksPerLevel: 0, ...slow},
+            ...extra,
+        })],
+    });
+
+    it('states the slow and how long it holds at level 1', () => {
+        expect(lines(slowCooldown({}), 1, 1)).toEqual([
+            'Slow: 40% for 3s',
+            'Radius: 3 m',
+            'Targets: all enemies in range',
+            'Cooldown: 20s',
+        ]);
+    });
+
+    it('previews the next level on both the fraction and the duration', () => {
+        // 0.3 + 0.05/level and 60 + 15 ticks/level: rank 2 is 35% for 75 ticks
+        // (2.5s), rank 3 is 40% for 90 ticks (3s).
+        const scaled = slowCooldown({fraction: 0.3, fractionPerLevel: 0.05, durationTicks: 60, durationTicksPerLevel: 15});
+        expect(lines(scaled, 2, 1)).toContain('Slow: 35% → 40% for 2.5s → 3s');
+        expect(lines(scaled, 5, 1)).toContain('Slow: 50% for 4s');
+    });
+
+    it('states a target cap the way the other capped cooldowns do', () => {
+        const capped = slowCooldown({}, {maxTargets: 2, selector: 'nearest'});
+        expect(lines(capped, 1, 1)).toEqual([
+            'Slow: 40% for 3s',
+            'Radius: 3 m',
+            'Targets: nearest 2 enemies',
+            'Cooldown: 20s',
+        ]);
+    });
+});
+
 // retaliate_slow (FrostShield, plan-cc-and-retaliation.md C2) — the mirror of
 // the lifesteal case, and the tooltip has to say something lifesteal's does
 // not: the effect lands on somebody ELSE. A player reading "Slow: 10%" on a

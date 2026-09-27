@@ -3018,6 +3018,11 @@ func TestCooldown_MobCastSpawnHasNoOwner(t *testing.T) {
 	caster := mob.NewMob(casterDef, 0, nil)
 	caster.SetPosition(phy.Vec2f{X: 5, Y: 5})
 
+	// In a fight: since the A5 spawn guard (plan-aura-drawbacks.md C2) a mob
+	// places a summon only while InCombat, because a spawn always "hits" and an
+	// idle mob would otherwise drop one every time the cooldown came up.
+	caster.AreaTouches(nil, model.Damage{HP: 1})
+
 	sk := NewSkillSystem(phy.NewSpace(), g)
 	sk.rng = testRNG()
 	sk.AddEntity(caster)

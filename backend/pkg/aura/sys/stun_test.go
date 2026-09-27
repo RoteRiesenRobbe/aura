@@ -27,10 +27,10 @@ import (
 const sysStunSource = skills.SkillID(210)
 
 // stunnableCaster is a caster that can answer the gate. The gate asks a
-// CAPABILITY, not an entity kind — real players carry no stun door
-// (plan-skill-vocab §3.1 leaves the get-CC'd direction inert), so wrapping the
-// double here rather than teaching fakePlayer to be stunnable keeps that
-// asymmetry honest.
+// CAPABILITY, not an entity kind. Real players carry a stun door since
+// plan-aura-drawbacks.md C2 (pinned on the REAL type in
+// self_buff_capabilities_test.go); the wrapper stays so the double only
+// answers the gate where a test asks it to.
 type stunnableCaster struct{ *fakePlayer }
 
 func (c *stunnableCaster) Stunned() bool { return c.buffs.Stunned() }
@@ -126,8 +126,9 @@ type stunRecorder struct {
 
 func (r *stunRecorder) Basic() ecs.BasicEntity { return r.basic }
 func (r *stunRecorder) Faction() model.Faction { return r.faction }
-func (r *stunRecorder) ApplyStun(source skills.SkillID, ticks int) {
+func (r *stunRecorder) ApplyStun(source skills.SkillID, ticks int) bool {
 	r.ticks = append(r.ticks, ticks)
+	return true
 }
 
 // friendlyStunTarget is a stunnable mob on a friendly-to-players faction — the

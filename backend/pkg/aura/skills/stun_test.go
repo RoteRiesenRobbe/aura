@@ -101,7 +101,9 @@ func TestStun_BothHalvesExpireTogether(t *testing.T) {
 func TestStun_RefreshTakesTheLongerRemainder(t *testing.T) {
 	var b Buffs
 	b.ApplyStun(stunSource, 10)
-	b.ApplyStun(stunSource, 40)
+	// 80, not 40: since D10 (plan-aura-drawbacks.md C2) the second stun on the
+	// ladder lands at half, so this is the 40-tick application it always was.
+	b.ApplyStun(stunSource, 80)
 	for i := 0; i < 20; i++ {
 		b.Tick()
 	}

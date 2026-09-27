@@ -66,6 +66,13 @@ type Conversant interface {
 //
 // It embeds learner because applying a conversation IS the evaluator's job:
 // the player the message names is the player whose spellbook it mutates.
+// activationRejecter is the rejection stamp, asserted rather than declared on
+// interactor: the stun refusal is its only reader here, and every interactor
+// double would otherwise have to grow it.
+type activationRejecter interface {
+	NoteActivationRejected(skill skills.SkillID, reason model.ActivationRejection)
+}
+
 type interactor interface {
 	learner
 	Basic() ecs.BasicEntity
@@ -627,6 +634,16 @@ func (s *InteractionSystem) handleInteracts() {
 			// Out of range, or naming someone the player was never offered.
 			// Silent: a stale keypress from a player who just walked away is
 			// ordinary, not an error.
+			continue
+		}
+		// A stunned player can neither open a conversation nor take a row
+		// (plan-aura-drawbacks.md C2, P3). Checked after the range match, so a
+		// stale keypress stays silent and only a press that would have worked
+		// floats the reason; a Close (above) is never refused.
+		if st, ok := p.(stunSuppressible); ok && st.Stunned() {
+			if r, ok := p.(activationRejecter); ok {
+				r.NoteActivationRejected(0, model.ActivationRejectedStunned)
+			}
 			continue
 		}
 

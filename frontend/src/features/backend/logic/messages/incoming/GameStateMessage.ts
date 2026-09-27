@@ -608,6 +608,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Spider]: Mobs.Spider,
     [AuraApi.EntityType.VenomSpider]: Mobs.VenomSpider,
     [AuraApi.EntityType.PoisonPool]: Mobs.PoisonPool,
+    [AuraApi.EntityType.SpiderWeb]: Mobs.SpiderWeb,
     [AuraApi.EntityType.Rockfall]: Mobs.Rockfall,
     [AuraApi.EntityType.Miner]: Mobs.Miner,
     [AuraApi.EntityType.Bandit]: Mobs.Bandit,

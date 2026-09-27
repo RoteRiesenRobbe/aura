@@ -219,18 +219,27 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 	//     with them exactly where they were. That is intended: a stun costs you
 	//     time. Do not "fix" it.
 	//   - BEFORE notePresence. A stunned entity is not offered as an aura
-	//     participant. Mobs-only content today and mobs are not XP
-	//     participants, so the visible consequence is nil — recorded because it
-	//     is the ordering that would matter first if a player-facing stun ships.
+	//     participant. Since players can be stunned (plan-aura-drawbacks.md
+	//     C2), a stunned player's aura-presence credit pauses with the stun,
+	//     which is the same "a stun costs you time" reading as the cooldowns.
 	//   - BEFORE TickAccumulator++ (A6). The cadence freezes, so the aura
 	//     resumes on the beat it was interrupted rather than having silently
 	//     advanced through the stun and firing the instant it ends.
 	//
 	// ⚑ It asks a CAPABILITY, not an entity kind — free, and it avoids an
-	// entity-kind branch. It is NOT a promise that player stuns work: players
-	// carry no stun door at all (plan-skill-vocab §3.1), so nothing can put one
-	// on them.
+	// entity-kind branch. Players answer it too since plan-aura-drawbacks.md C2
+	// (the player stun door, D4).
+	//
+	// ⚑ The pending queues are DROPPED here, not kept. processCooldowns is
+	// their only consumer, and this return skips it, so a press queued this
+	// tick (the input system runs first, a stun can land later in this same
+	// pass) would otherwise sit there and fire the moment the stun ends. The
+	// input system refuses presses from a stunned player; this covers the
+	// press that was already queued when the stun landed.
 	if st, ok := e.(stunSuppressible); ok && st.Stunned() {
+		sc := e.SkillComponent()
+		sc.PendingCooldowns = sc.PendingCooldowns[:0]
+		sc.PendingUtilities = sc.PendingUtilities[:0]
 		return
 	}
 
@@ -1382,6 +1391,41 @@ func (s *SkillSystem) applyInstantResist(e skillEntity, source skills.SkillID, l
 	return hitAny
 }
 
+// applyInstantSlow fires an instant_slow cooldown (plan-aura-drawbacks.md C2,
+// D3), the applyInstantResist twin with no self half: a one-shot query circle
+// whose selected, eligible targets are slowed for the authored lifetime (+1 to
+// survive the tick boundary, the instant_resist convention). Each target's own
+// door decides the rest: a ccImmune mob and a GOD player refuse it.
+//
+// ⚑ The bool is a hit when ANY target was selected, the applyStun shape, not
+// "freshly slowed" as the plan first wrote it. processCooldowns consumes a
+// MOB's cooldown only on true, and fresh-only would let a mob whose cooldown
+// is shorter than its slow re-fire every tick onto a target it is refreshing,
+// never consuming. A player pays on cast, hit or whiff (D9), so for players
+// the answer only paces nothing.
+//
+// Slowing a hostile is combat entry for the caster (noteHarmDealt skips a mob
+// caster); the target side is stamped inside the player's door.
+func (s *SkillSystem) applyInstantSlow(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
+	if effect.Slow == nil {
+		return false
+	}
+	fraction := effect.Slow.FractionAt(level)
+	ticks := effect.Slow.TicksAt(level) + 1
+
+	casterPos := e.AuraCollider().Position()
+	eligible := eligibleByTargetFlags[slowable](effect, e, e.Basic().ID(), true)
+	candidates := s.queryInstantTargets(e, effect, level)
+	targets := selectTargets(candidates, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		c.Shape().UserData.(slowable).ApplySlow(source, fraction, ticks)
+	}
+	if len(targets) > 0 {
+		noteHarmDealt(e)
+	}
+	return len(targets) > 0
+}
+
 // applyInstantHot fires an instant_hot cooldown (plan-skill-vocab §3.7, cases
 // 2 + 3), the applyInstantShield twin: the caster's own heal-over-time buff on
 // targetsSelf plus a one-shot query circle of eligible allies (targetsAllies).
@@ -1416,9 +1460,11 @@ func (s *SkillSystem) applyInstantHot(e skillEntity, source skills.SkillID, leve
 }
 
 // slowable is implemented by entities whose movement can be slowed by a
-// slow_aura (mobs). The slow is transient: it must be re-applied every tick
+// slow_aura or an instant_slow (mobs, and players since plan-aura-drawbacks.md
+// C2). An aura's slow is transient: it must be re-applied every tick
 // the target stays in range, and wears off on its own shortly after (buff
-// lifetime = effect tick interval + 1, the aura convention).
+// lifetime = effect tick interval + 1, the aura convention); an instant_slow
+// authors its lifetime outright.
 // Reports whether the application was genuinely new (R2 / §5.2).
 type slowable interface {
 	ApplySlow(source skills.SkillID, fraction float32, ticks int) bool
@@ -1431,6 +1477,43 @@ type slowable interface {
 type despawnOnCooldownFire interface {
 	DespawnOnCooldownFire() bool
 	SetTTLTicks(int)
+}
+
+// placesAnEntity reports whether a cooldown's effects include one that places
+// a new entity: spawn, spawn_at_anchor, projectile. These are the effect types
+// that report a hit with no target at all (placement succeeding IS the hit), so
+// the mob rule "keep it ready until a target wanders into range" can never
+// hold them back, and a mob would drop one every time the cooldown came up,
+// in or out of a fight, forever (plan-aura-drawbacks.md A5).
+//
+// ⚑ All three, not only spawn: a mob reaches spawn_at_anchor and projectile
+// through the same processCooldowns path, and none of them has a target to
+// wait for. The self-buff cooldowns (tick_rate, speed_burst, ...) also "hit"
+// with nobody around, but they place nothing in the world, and the one shipped
+// (the warlord's frenzy) is authored to fire that way; they are left alone.
+func placesAnEntity(def *skills.SkillDefinition) bool {
+	for _, effect := range def.Effects {
+		switch effect.Type {
+		case skills.EffectTypeSpawn, skills.EffectTypeSpawnAtAnchor, skills.EffectTypeProjectile:
+			return true
+		}
+	}
+	return false
+}
+
+// mobInCombat is the A5 spawn guard's read: the mob's own InCombat (an aggro
+// target, or damaged within the regen grace), P1. Asserted rather than added to
+// model.MobEntity, the house pattern; a mob without the read reads as idle and
+// places nothing, the safe answer.
+//
+// ⚑ It is also what keeps a SLEEPING mob from placing anything. Dormancy takes
+// a mob out of phy.Space and skips its Update, but the SkillSystem keeps its
+// own entity list and has no dormancy check, so a dormant mob's cooldowns
+// still come up and fire here. A dormant mob is Pristine, and Pristine
+// requires !InCombat, so this guard answers for it too.
+func mobInCombat(m model.MobEntity) bool {
+	c, ok := m.(interface{ InCombat() bool })
+	return ok && c.InCombat()
 }
 
 // processCooldowns ticks all cooldown slots down and fires cooldown skills:
@@ -1458,9 +1541,12 @@ func (s *SkillSystem) processCooldowns(e skillEntity, sc *skills.SkillComponent)
 	// loadout keeps recovering.
 	sc.TickCooldowns()
 
-	if _, isMob := e.(model.MobEntity); isMob {
+	if m, isMob := e.(model.MobEntity); isMob {
 		for i, es := range sc.CooldownSlots {
 			if es == nil || sc.SlotCooldownRemaining(i) > 0 {
+				continue
+			}
+			if placesAnEntity(es.Def) && !mobInCombat(m) {
 				continue
 			}
 			// Only consume the cooldown when the burst actually hit something,
@@ -2025,6 +2111,11 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 				hitAny = true
 			}
 
+		case skills.EffectTypeInstantSlow:
+			if s.applyInstantSlow(e, es.Def.ID, es.Level, effect) {
+				hitAny = true
+			}
+
 		case skills.EffectTypeCharm:
 			if s.applyCharm(e, es.Def.ID, es.Level, effect) {
 				hitAny = true
@@ -2491,17 +2582,18 @@ func (s *SkillSystem) applyCalm(e skillEntity, source skills.SkillID, level int,
 }
 
 // stunSuppressible is the cast-suppression read (plan-cc-and-retaliation.md
-// C3): an entity that can report being held. Only mobs implement it, which is
-// the whole players-are-never-stunned rule — no branch needed.
+// C3): an entity that can report being held. Mobs and, since
+// plan-aura-drawbacks.md C2, players implement it.
 type stunSuppressible interface {
 	Stunned() bool
 }
 
 // stunnable is the stun capability: an entity whose actions can be halted.
-// Like charmable, only Mob implements it, so the capability check inside
-// eligibleByTargetFlags IS the "a player is not a valid target" rule.
+// Mobs and players implement it (plan-aura-drawbacks.md C2, D4); who may
+// actually be held is each door's business (ccImmune, GOD, the DR ladder),
+// which is why it reports whether the stun landed.
 type stunnable interface {
-	ApplyStun(source skills.SkillID, ticks int)
+	ApplyStun(source skills.SkillID, ticks int) bool
 }
 
 // applyStun fires a stun cooldown (plan-cc-and-retaliation.md C3): a query
@@ -2511,8 +2603,10 @@ type stunnable interface {
 //
 //   - No player-caster requirement. Charm's payload is a PLAYER link, so a mob
 //     caster whiffs; a stun's payload is a timer on the target and works from
-//     either side. No content authors a mob stun today, and the D1 immunity
-//     gate on the Mob door is what decides who can be held.
+//     either side, and since plan-aura-drawbacks.md C2 it reaches players too.
+//     Each door decides who can be held (ccImmune on the mob, GOD on the
+//     player, the shared DR ladder on both); a refusal still counts as a hit
+//     here, so a mob's stun is consumed on a selected target, immune or not.
 //   - Nothing is reverted on expiry. The buff store aging the entry out IS the
 //     end of the stun — there is no charm-style link to unwind, which is why
 //     this needs no polling anywhere.
@@ -2911,9 +3005,8 @@ func applySlowAura(e skillEntity, source skills.SkillID, level int, effect skill
 		}
 	}
 	// CC'ing a hostile enters combat (chunk 1); a mob caster is skipped by
-	// noteHarmDealt. The player TARGET of a slow would also enter combat, but
-	// players carry no ApplySlow today (the get-CC'd direction stays inert —
-	// §3.1), so only the caster side is stamped here.
+	// noteHarmDealt. The player TARGET side is stamped inside the player's own
+	// ApplySlow door (plan-aura-drawbacks.md C2), which covers every caller.
 	if slowedAny {
 		noteHarmDealt(e)
 	}

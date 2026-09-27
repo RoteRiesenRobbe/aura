@@ -202,6 +202,15 @@ export const GraphicsConfig = {
             maxSize: <number> 70,
         },
 
+        // Drawn at the web AURA's radius (1.5 m = 180 px), not its 0.5 m body
+        // like the pool: the picture is how a player reads where the slow is.
+        // Fixed size, so every web promises the same area.
+        spiderWeb: {
+            file: require('../features/game-objects/assets/mobs/spiderWeb.svg'),
+            minSize: <number> 180,
+            maxSize: <number> 180,
+        },
+
         rockfall: {
             file: require('../features/game-objects/assets/mobs/rockfall.svg'),
             minSize: <number> 58,

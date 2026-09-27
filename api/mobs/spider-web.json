@@ -1,0 +1,22 @@
+{
+  "_comment": "A sticky web a giant spider spins mid-fight: a stationary structure created only by the SpinWeb cooldown, never placed in a zone. It slows whatever is hostile to the spider while stood in, grants nothing, cannot be hit or killed (collisionLayer 32, Viewport only) and pushes nothing (mask 16, Border only). All values placeholder.",
+  "id": 87,
+  "name": "SpiderWeb",
+  "type": "MOB",
+  "role": "structure",
+  "tier": "normal",
+  "curveLevel": 9,
+  "factors": {
+    "baseMaxHealth": 50,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.5,
+    "collisionLayer": 32,
+    "collisionMask": 16
+  },
+  "skills": [
+    { "skillName": "SpiderWebAura", "level": 1 }
+  ]
+}

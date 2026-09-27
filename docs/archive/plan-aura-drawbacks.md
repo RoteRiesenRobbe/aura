@@ -1,10 +1,14 @@
 # Plan: aura drawbacks and the player CC doors
 
-> **Status: C1 BUILT and PO-PASSED 2026-09-27 (the while-active fold, §11,
-> `d1f0521c`); C2 (the player CC doors, the last chunk) not started.**
+> **Status: COMPLETE, archived 2026-09-27. Both chunks built and PO-passed
+> 2026-09-27: C1, the while-active fold (`d1f0521c`), and C2, the player CC
+> doors (`[uncommitted]` at the time of archiving; PO: "done, tested, works.").**
 > Designed 2026-09-25 (PO session, seven rulings taken as choice prompts, §2),
-> 2 chunks (§7; C3 merged into C2 the same day). Line refs pinned to HEAD
-> `38bd586f`; re-verify before executing. Ledgers: §11.
+> 2 chunks (§7; C3 merged into C2 the same day). The design's line refs were
+> pinned to HEAD `38bd586f` at design time and are not maintained. Ledgers: §11.
+> The two C2 findings put to the PO were ruled the same day, both stand as
+> built (a stun cast that does not land still burns its cooldown; the web
+> keeps its health bar and ring).
 >
 > Origin: the PO at the skill-VFX C3b/C3c wrap (`docs/feedback.md` row
 > 2026-09-25), verbatim: *"I want to ensure we can author auras with drawbacks
@@ -13,9 +17,10 @@
 > through auras. To me it seems we will need the 'while active' self modifier
 > for that."*
 >
-> **Schema, whole plan: DB NONE · wire +1 enum value (C2: the stunned press's
-> rejection reason, `ActivationRejection`) · content +1 category on one effect
-> type, +1 effect type, +1 mob, +2 or +3 skill files, pin 118 → 120 or 121.**
+> **Schema, whole plan: DB NONE · wire +2 enum values (C2:
+> `ActivationRejection.Stunned` and, missed at design time, the web's
+> `EntityType.SpiderWeb`) · content +1 category on one effect type, +1 effect
+> type, +1 mob, +3 skill files, pin 118 → 121.**
 > All numbers [PLACEHOLDER].
 
 ---
@@ -88,6 +93,37 @@ nothing, because `recomputeDerived` walks `PassiveSlots` only. The
   slowed; (b) **Paralyze**: the spider casts the stun it already drops
   (`api/mobs/giant-spider.json:29`), the CC plan's D10 assumption made real.
   Numbers [PLACEHOLDER], the PO re-prices in the editor.
+
+**Added at the C2 execution session (PO 2026-09-27, choice prompts):**
+
+- **D8 · The web gets its own placeholder art.** A new `SpiderWeb`
+  `EntityType` (99) with a placeholder SVG, real art owed, per the 2026-07-21
+  "every mob gets unique art" ruling. Against: reusing the poison pool's
+  sprite through an `entityType` override (no wire change, but the web reads
+  as a green puddle). ⚑ This makes the plan's wire line **+2 enum values**,
+  which the design session missed: a new mob always needs a sprite.
+- **D9 · A stun cancels a running cast.** A stun landing on a player mid-cast
+  (a slot cast, Recall, the ascension channel) cancels it through the ordinary
+  `CancelCast`: no cooldown consumed, no cost paid, the ascension pick dies
+  with its channel. Against: freeze and resume, which is what the stun gate
+  does with no extra code (the mob rule A6) and would let a Recall complete
+  right after a stun ends.
+- **D10 · Stuns diminish, the WoW ladder, for everyone.** Asked about chained
+  stuns, the PO ruled, verbatim: *"We will need some form of diminishing
+  returns on being stunned."* Successive stuns on one entity land at 100 %,
+  50 %, 25 % of the asked duration, the fourth is refused; the ladder resets
+  540 ticks [PLACEHOLDER, 18 s] after the last landed stun ended. It lives in
+  the shared buff store, so players AND mobs follow it (several players
+  chaining Paralyze on a normal mob now diminish; a solo player never notices,
+  the 30 s cooldown outlasts the reset). Elites and bosses stay fully immune.
+  **Slows never diminish** (WoW's rule, and an aura re-applies its slow every
+  interval, so a slow ladder would make a player immune to the web they stand
+  in). ⚑ Stricter than WoW, where mob CC on players largely ignores DR.
+- **D11 · The web lands near the spider**, on the existing summon ring, tuned
+  in the in-game pass (§8 Q5 stays a content look). Against: a new spawn key
+  dropping the summon at the aggro target's feet, which would unlock every
+  "mob throws a hazard at you" and make the slow felt by a kiting player. Not
+  built; it is the natural next step if the web proves easy to ignore.
 
 ## 3. The design
 
@@ -464,6 +500,14 @@ in-game checklist above · the schema line restated in the ledger.
 
 ## 8. Open questions (carried, not blocking C1)
 
+> **Where each stands at the archive (2026-09-27):** Q1 answered at C1 by
+> option (a), the cheat-only rig `OverchargeAura`. Q2 the bounds shipped as
+> [PLACEHOLDER] numbers. Q3 answered in part: a landed stun floats "Stunned"
+> (C2); the pip is still the slow pip, a stun-specific read stays §39's.
+> Q4 left open as recommended, pinned as unauthored
+> (`cmd/aurad/self_curse_content_test.go`). Q5 the summon ring stands as built
+> (D11); the PO's C2 pass drew no comment on it.
+
 1. **Which PLAYER aura carries the first drawback?** C1's in-game check is a
    player switching a drawback on and off, so the carrier must be a player
    aura. Options: (a) a NEW cheat-only aura authored for the check (no unlock
@@ -737,3 +781,219 @@ the camera cap) drew no report.
 8. Die with the aura on: the respawn keeps the loadout AND the active slot
    (`SetSkillComponent`), so the "full" respawn bar is the shrunken 80 % pool.
    Consistent with D5, noted so it is seen once rather than reported as a bug.
+
+### C2: the player CC doors (built and PO-passed 2026-09-27, `[uncommitted]`)
+
+Built by four Opus subagents (backend; frontend; content, pins and docs; the
+headless harness) under one orchestrator, which did the wire step and verified
+every report independently. Rulings D8-D11 (§2) were taken at the start of the
+session.
+
+**Built:**
+
+- **Wire** (`api/schema/server.fbs`, one regen of Go and TS):
+  `ActivationRejection.Stunned = 5`, `EntityType.SpiderWeb = 99` (D8).
+- **The player slow door** (`model/player/player.go`, `ApplySlow`): the mob's
+  door minus `ccImmune`, refused under GOD, and every application (fresh or
+  refresh) stamps the in-combat window INSIDE the door, so every caller is
+  covered (A4).
+- **The player stun door** (`ApplyStun`, `Stunned`): refused under GOD or by the
+  DR ladder. A LANDED stun cancels the running cast (D9), enters combat (P2)
+  and notes the `Stunned` reason once with skill id 0 (P5), so the HUD floats
+  "Stunned" on the landing tick.
+- **Stun diminishing returns** (D10, `skills/buffs.go`): two plain int fields
+  on `Buffs`, `StunDRImmuneAfter = 3`, `StunDRResetTicks = 540`, both
+  [PLACEHOLDER]. `ApplyStun` now reports whether the stun landed (on `Buffs`,
+  `Mob`, the player and the `stunnable` interface). The window ages only while
+  unstunned, so it counts from the END of the last landed stun; a refusal
+  restarts nothing; the mob's `ccImmune` gate runs before the ladder and does
+  not advance it; `Cleanse()` does not reset it (a cleanse that reset DR would
+  be an exploit).
+- **No press survives a stun.** ⚑ **A gap the plan did not name:** the stun
+  gate returns before `processCooldowns`, the only consumer of the press
+  queues, so a stunned player's presses would have queued and ALL FIRED when
+  the stun ended. Two halves: `core/input.go` refuses a cooldown press (noted
+  with the slot's skill id), a utility press and a takeoff (id 0), and
+  `sys/interaction.go` refuses opening a conversation or taking a row (id 0;
+  Close is always honoured); and the stun gate itself truncates both pending
+  queues, which covers a press queued in the same tick the stun lands. An aura
+  switch stays allowed (A7).
+- **`instant_slow`** end to end: the enum (appended last), `effectTypeMap`
+  34 → 35, `effectKeys`, cooldown-only `effectCategories`, the builder,
+  `aura_category.go`, `applyInstantSlow` and its `fireCooldown` case, the
+  vocabulary golden, and `api/shared-constants.json` `effectTypes`.
+  `SlowParams` gains `DurationTicks` / `DurationTicksPerLevel` (sidecar
+  `slow.durationTicks`, `slow.durationTicksPerLevel`; 0 on the aura form). The
+  buff lives `TicksAt(level) + 1`, the `instant_resist` convention.
+- **The slow bounds** (`checkSlowBounds`): `slow_aura` and `instant_slow`
+  refuse a fraction outside (0, 1] at every level; `instant_slow` also a
+  duration under 1. No shipped file is refused.
+- **The mob spawn guard (A5, P1):** in the mob branch of `processCooldowns`, a
+  cooldown containing `spawn`, `spawn_at_anchor` or `projectile` (every type
+  that places an entity and reports a hit with no target) fires only while the
+  mob is `InCombat()`. Self-buff cooldowns are untouched.
+- **The capability pin:** `TestRealEntitiesSatisfyTheCCDoors` (real `*player`
+  and `*mob.Mob` must satisfy `slowable`, `stunnable`, `stunSuppressible`).
+- **Frontend:** the `Stunned` rejection string; `SlowParams` duration fields;
+  the tooltip's `instant_slow` case (`Slow: 30% → 35% for 4s → 4.4s`) and its
+  tint-table entry; the `SpiderWeb` sprite class (the `PoisonPool` pattern, the
+  under-the-walkers layer), its `Graphics.ts` entry and `gameObjectClasses`
+  line; a placeholder `spiderWeb.svg`. ⚑ The web is drawn at the AURA's radius
+  (180 px = 1.5 u at 120 px per unit, min = max), not at its 0.5 u body like
+  the pool, because the picture is how a player reads where the slow is. If the
+  aura radius moves, 180 must follow it (radius × 120).
+- **Content:** `SpiderWeb` (mob 87, structure, curveLevel 9, pool 50,
+  `xpFactor` 0, body 0.5, layer 32, mask 16); `SpinWeb` (skill 155, cooldown
+  600 ticks, `spawn` of `SpiderWeb`, TTL 240); `SpiderWebAura` (skill 156,
+  `slow_aura` radius 1.5, fraction 0.4, interval 10, so the slow outlives the
+  web's edge by 11 ticks); GiantSpider equips `SpinWeb` and `Paralyze` (the
+  player file, A6) at level 1; OmniStrike carries an `instant_slow` (P4). All
+  [PLACEHOLDER]. ⚑ The cooldown is `SpinWeb` in `spin-web.json`, not the
+  plan's `spider-web.json`: shipped files follow filename = kebab(name).
+- **Docs:** manual (effect type count and lists, the key table, a "Crowd
+  control on players" subsection), `content-mobs.md`, `content-cooldowns.md`,
+  the `add-content` skill (four landmines), a supersession note in
+  `plan-prototype-projectile.md`.
+
+**Deviations from the plan text, deliberate:**
+
+- `instant_slow` reports a hit when at least one target was SELECTED (the
+  `applyStun` shape), not "only when freshly slowed" (§3.2). Fresh-only would
+  let a mob whose cooldown is shorter than its slow refresh forever without
+  consuming.
+- The spawn guard reads `InCombat()` (aggro target OR recently damaged), wider
+  than §3.4's "has an aggro target", to reuse an existing read (P1).
+
+**Pins moved (re-derived from the failure output):** registry 119 → 121
+(79 player + 42 mob); `xpfactor_test.go` 46 → 47; `role_content_test.go`
+structures + `SpiderWeb`; the vocabulary golden; the Tiled palette (+1 mob,
++2 skills). Existing tests whose expectations changed:
+`TestStun_RefreshTakesTheLongerRemainder` (second application 40 → 80, because
+the second step of the ladder lands at half) and
+`TestCooldown_MobCastSpawnHasNoOwner` (the caster takes 1 HP first so it is in
+combat under A5; every enlistment assertion kept).
+
+**Findings:**
+
+- ⚑ **The plan's §3.4 dormancy question, answered:** the SkillSystem keeps its
+  own entity list with no dormancy check, so a sleeping mob's cooldowns still
+  run. The A5 guard is the only thing that stops a sleeping spider spinning
+  webs (a dormant mob is never in combat). Confirmed by reading, not by a test.
+- ⚑ **GiantSpider is placed only in the DEBUG zone set**
+  (`api/zones/.debug/world_debug.json`, 5 spawns near (35, -33)); the live
+  `world.json` has none. The in-game pass and `c2-player-cc.mjs` need
+  `./scripts/dev-restart.sh server debug`, or a spider placed in Tiled.
+- ⚑ **A stun cast is consumed on a target it did not stun.** `applyStun`
+  reports "a target was selected", so a Paralyze aimed at a GOD player or at
+  one immune under DR still burns the 30 s cooldown. For DR that is how the
+  ladder protects; under GOD it is a cheat artefact (after GOD goes off the
+  spider has no stun for a while). §3.5's "returning not fresh" does not reach
+  the cooldown. ⭐ Ruled by the PO 2026-09-27: it stands as built.
+- ⚑ **Simultaneous stuns burn ladder steps.** Several spiders firing in the
+  same moment each land a step; a shorter stun landing inside a longer one
+  floats "Stunned" again and changes nothing visible (seen headless: floats at
+  +218 and +225 inside one 45-tick hold). Player-favourable, by the letter of
+  D10.
+- ⚑ **Both doors stamp combat, and combat closes an open NPC panel** (the
+  existing D21 rule), so a web slow or a stun ends a conversation.
+- ⚑ **The web draws an overhead health bar and its aura ring**, as the poison
+  pool does, only larger (the bar is 161 px wide under an unkillable web). The
+  ring measures about 1.75 u, which is the 1.5 u aura plus the player's 0.25 u
+  collider (collision is shape against shape). A PO look.
+- ⚑ **A web stays visible about 1 s after the server removes it** (the
+  client's despawn fade), so the picture briefly promises a slow that is gone.
+- ⚑ **`SpiderWeb` is offered in the Tiled palette** as a placeable fixture. A
+  web placed in a zone would be permanent and on the default hostile faction.
+- ⚑ The client does not dedupe rejection texts: one float per tick that
+  carries a reason. The server side is one-shot per landing and once per press
+  (pinned); a client that re-sent a press every tick would stack texts.
+- The three placement pins are red because the rebuilt world tenants only 5 of
+  the 20 level rungs; the `world` prop pin fails on Tree and Boulder drift.
+  Neither is a roster list, neither is this chunk's.
+- `npm run inventory` fails on a pre-existing generator gap (`packIcon`), so
+  `content-skill-inventory.md` is stale (it still says 118).
+- Stale docs seen and left: the Giant spider row in `content-mobs.md` ("slow
+  lurker", "VenomSpit", "XP 205", "No drops yet"), the manual's `ccImmune`
+  bullet (omits stun), OmniStrike's `_comment` (omits two spawn types).
+- ⛔ **A process failure, recorded:** the orchestrator ran
+  `harnessdb -cleanup` while the PO's dev `aurad` was running (an earlier
+  process check had wrongly come back empty). 18 harness accounts were
+  removed. No harness character had joined that server run and the PO's
+  character (account 59, character 750) was verified intact, so no damage was
+  found, but the standing rule was broken.
+
+**Verify (2026-09-27, run by the orchestrator after the last agent):**
+`go build ./...` OK · `go test -count=1 -timeout 180s ./...` 34 ok, red only
+the four baseline tests (3 `cmd/simharness` placement pins, `world`
+`TestPropContent_C1bMigrationPreservesLookAndCollision`), all red at HEAD
+before the chunk; `store` + `accounts` ran against `aura_test` · `-race` on
+`sys`, `skills`, `model/...`, `core` ok (backend agent) · `aurad -validate` 0
+findings in all four modes (embedded, `-content ../api`, `-debug-zones`, both)
+· simharness guardrails all PASS · frontend `vitest` 1179/1179, `typecheck`
+clean · editor `smoke.mjs` 0 findings (121 skills, 35 effect types),
+`aurad-validate.test.mjs` and `save-skill.test.mjs` 0 findings ·
+`tools/tiled/verify.sh` NOT run (Tiled is not installed here) · headless, on a
+debug-zone boot (121 skills, 77 mobs): the new `c2-player-cc.mjs` **22 PASS /
+0 FAIL / 1 INCONCLUSIVE** on two fresh-server runs · regressions
+`c1-aura-drawback.mjs` 16/16, `round4-tooltip`, `r1-focus-cost`,
+`c2-frost-shield.mjs` 7/7.
+
+**Headless measurements:** idle spiders spun nothing in 26 s; the first web
+appeared 3.3 s after aggro, 1.0 to 1.3 u from the nearest spider, and lived
+238 to 250 snapshots; walk 1.50 u/s outside, 0.90 inside (0.60x), 1.50 after
+leaving, the slow bit dark 10 to 12 snapshots past the edge; Paralyze held 90
+snapshots with 0.00 u drift; a press during the stun was refused and did not
+fire afterwards; an aura switch worked while stunned; the ladder showed 90
+then 45 in two of the runs; GOD for 34 s beside a spider: no slow, no stun.
+
+**NOT verified:** death while STUNNED (only while slowed); an isolated 25 %
+third stun and a refused fourth; OmniStrike's `instant_slow` fired at a mob in
+the client (catalog and tooltip only; the Go tests cover the mechanic); the
+camera under a stun; takeoff and interaction refusals in the client (Go tests
+only).
+
+**Schema:** DB NONE · conf NONE · **wire +2 enum values**
+(`ActivationRejection.Stunned`, `EntityType.SpiderWeb`) · content +1 effect
+type (`instant_slow`, 35), +1 mob (`SpiderWeb`, 77), +2 skills (`SpinWeb` 155,
+`SpiderWebAura` 156), registry pin 121, GiantSpider +2 cooldown slots.
+
+**Owed:** nothing. `harnessdb -cleanup` was run at the wrap with `aurad`
+stopped first; the commit was asked for by the PO the same day.
+
+**In-game checklist, walked by the PO 2026-09-27** (debug zone set, GOD OFF
+for every CC item):
+
+PO verdict on the checklist as a whole, verbatim: *"done, tested, works."*
+The PO was handed the 11 items below with setup notes, on a debug-zone boot,
+and did not name which items were walked one by one. Two calls were put to
+the PO with the checklist: (a) a stun cast that does not land (GOD, DR-immune
+or `ccImmune` target) still burns its cooldown; (b) the web draws an overhead
+health bar and its aura ring although it cannot be killed. The first verdict
+did not address them, so they were held open and put again. ⭐ **PO ruling
+2026-09-27, verbatim: "both verdicts are fine"**: both stand as built. A stun
+cast is spent when a target is selected, whether or not the stun lands; the
+web (and the poison pool with it) keeps its health bar and ring. §8 Q5 (web placement, item 2) drew
+no comment either: the summon ring stands as built (D11). Not verified
+headless and not specifically reported by the PO: death while stunned, an
+isolated third stun and a refused fourth on the ladder, takeoff and
+interaction refusals in the client, the camera under a stun; covered by Go
+tests only where "NOT verified" above says so.
+
+1. Walk past the spider pack outside aggro: no webs anywhere.
+2. Engage a giant spider: a web appears beside it within a few seconds and
+   fades after about 8 s. Does the placement read well (§8 Q5, D11)?
+3. Walk through the web: visibly slower (0.6x), the slow pip lit; step out:
+   free in under half a second. Does the drawn web match where the slow ends?
+4. The web's health bar and ring: acceptable on an unkillable web, or hide?
+5. Paralyze lands: "Stunned" floats, input is dead for about 3 s, the pip is
+   the slow pip. Press a cooldown: refused, "Stunned" floats again. Switch the
+   aura: allowed.
+6. Be stunned mid-Recall: the cast is cancelled, not resumed (D9).
+7. Fight several spiders: the second stun is about half as long, the third a
+   quarter, then none for a while (D10).
+8. Stand in a web with an NPC panel open: the panel closes (combat). Wanted?
+9. `GOD`, then walk the web and stand beside the spider: nothing lands. After
+   `GOD` off the spider's Paralyze may be on cooldown (finding above).
+10. Die while stunned or slowed: the respawn is clean.
+11. `SKILL OmniStrike`, fire it at a mob: the mob is slowed; the tooltip shows
+    the `Slow:` line.

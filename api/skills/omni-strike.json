@@ -78,6 +78,16 @@
       "stunTicksPerLevel": 6
     },
     {
+      "type": "instant_slow",
+      "radius": 2.5,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "slowFraction": 0.3,
+      "slowFractionPerLevel": 0.05,
+      "slowDurationTicks": 120,
+      "slowDurationTicksPerLevel": 12
+    },
+    {
       "type": "calm",
       "radius": 4.0,
       "targetsEnemies": true,

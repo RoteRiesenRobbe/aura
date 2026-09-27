@@ -684,6 +684,45 @@ func (p *player) ApplySpeed(source skills.SkillID, factor float32, ticks int) bo
 	return p.buffs.ApplySpeed(source, factor, ticks)
 }
 
+// ApplySlow is the player's slow door (plan-aura-drawbacks.md C2, §3.2): the
+// mob's door minus its ccImmune gate (players are never immune). Reports
+// whether the slow was genuinely new rather than a refresh (§5.2).
+//
+// GOD refuses it, mirroring takeDamage (A3). Otherwise every application,
+// fresh or refresh, stamps the in-combat window here in the door, so every
+// caller is covered: a slowed player is in combat before the first bite (A4).
+func (p *player) ApplySlow(source skills.SkillID, fraction float32, ticks int) bool {
+	if p.IsGod() {
+		return false
+	}
+	p.NoteCombatAction()
+	return p.buffs.ApplySlow(source, fraction, ticks)
+}
+
+// ApplyStun is the player's stun door (§3.3): movement stops through
+// MovementFactor and the SkillSystem's stun gate stops the cast half. The buff
+// store's diminishing-returns ladder (D10) may shorten or refuse it; GOD
+// refuses it outright. Reports whether the stun LANDED.
+//
+// A landed stun does three things a refused one never does: it cancels the
+// running cast (D9: slot, utility or the ascension channel, no cooldown
+// consumed), enters combat (P2), and notes the Stunned reason once so the HUD
+// floats it on this tick's snapshot instead of waiting for a press (P5). The
+// reason is cleared by ResetTickNumbers, so it is one float per landing.
+func (p *player) ApplyStun(source skills.SkillID, ticks int) bool {
+	if p.IsGod() || !p.buffs.ApplyStun(source, ticks) {
+		return false
+	}
+	p.skills.CancelCast()
+	p.NoteCombatAction()
+	p.NoteActivationRejected(0, model.ActivationRejectedStunned)
+	return true
+}
+
+// Stunned reports whether this player is held: read by the SkillSystem's stun
+// gate and by the input system's press refusals.
+func (p *player) Stunned() bool { return p.buffs.Stunned() }
+
 // MovementFactor is this player's transient movement-speed multiplier: speed
 // buffs composed with the strongest active slow, 1.0 with nothing applied.
 //
@@ -804,9 +843,10 @@ func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {
 	model.ApplyLifesteal(dealt, factors.Lifesteal, factors.SkillID, nil, e)
 }
 
-// slowable is the CC door a mob exposes; players carry none (the get-CC'd
-// direction stays inert, plan-skill-vocab §3.1), so this is asserted rather
-// than required on model.MobEntity. sys/skills.go declares the same shape at
+// slowable is the CC door the retaliating player looks for on its ATTACKER.
+// Mobs carry it, and since plan-aura-drawbacks.md C2 players do too, but
+// model.MobEntity does not declare it, so it is asserted rather than required
+// there. sys/skills.go declares the same shape at
 // its own point of use — one method is not a type worth sharing across
 // packages.
 type slowable interface {
