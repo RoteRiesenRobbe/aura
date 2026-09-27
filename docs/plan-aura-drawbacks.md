@@ -1,7 +1,7 @@
 # Plan: aura drawbacks and the player CC doors
 
 > **Status: C1 BUILT and PO-PASSED 2026-09-27 (the while-active fold, §11,
-> `[uncommitted]`); C2 (the player CC doors, the last chunk) not started.**
+> `d1f0521c`); C2 (the player CC doors, the last chunk) not started.**
 > Designed 2026-09-25 (PO session, seven rulings taken as choice prompts, §2),
 > 2 chunks (§7; C3 merged into C2 the same day). Line refs pinned to HEAD
 > `38bd586f`; re-verify before executing. Ledgers: §11.
@@ -542,7 +542,7 @@ in-game checklist above · the schema line restated in the ledger.
 
 ## 11. Chunk ledgers
 
-### C1: the while-active fold (built and PO-passed 2026-09-27, `[uncommitted]`)
+### C1: the while-active fold (built and PO-passed 2026-09-27, `d1f0521c`)
 
 **Built, in the plan's L1 order (bound before floor):**
 
