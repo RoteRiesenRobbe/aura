@@ -2,7 +2,7 @@
  * Generates the PLACEHOLDER RIDGED-FIELD tiles for the terrain profiles
  * (plan-world-paths.md — the C3 blocker was "there is no water tile").
  *
- *     water · bog · lava
+ *     water · bog · lava · ice
  *
  * ⭐ Checked in as a script, not just images, because a placeholder's whole job
  * is to be re-tuned: change a constant, re-run, look at it again. The committed
@@ -131,6 +131,48 @@ const LAVA_WARP = [
     [-1, 2, 0.50, 5.4],
 ];
 
+/**
+ * ⭐ Lava's network again, re-phased and carrying MORE high-frequency weight:
+ * frozen ground fractures into smaller, more angular plates than cooling crust,
+ * and the extra fine waves are what put kinks in the lines.
+ */
+const ICE_CRACK = [
+    [1, 0, 1.00, 4.1],
+    [0, 1, 0.94, 1.2],
+    [1, 1, 0.82, 5.5],
+    [1, -1, 0.78, 2.4],
+    [2, 1, 0.66, 0.3],
+    [-1, 2, 0.62, 3.7],
+    [2, -2, 0.52, 1.9],
+    [3, 1, 0.42, 4.6],
+    [1, 3, 0.38, 2.9],
+    [3, -2, 0.32, 0.8],
+    [4, 3, 0.26, 5.2],
+    [-3, 4, 0.22, 1.6],
+    [5, 2, 0.18, 3.4],
+    [2, 6, 0.15, 0.7],
+    [6, -5, 0.11, 4.9],
+    [7, 3, 0.08, 2.2],
+];
+
+const ICE_WARP = [
+    [1, 2, 1.00, 0.4],
+    [2, -1, 0.66, 3.3],
+    [-2, 1, 0.44, 5.9],
+];
+
+/** Broad, slow, isotropic: where the ice is clear (bluer) and where it is
+ *  frosted over (whiter). Smooth on purpose, never passed through `ridged`, so
+ *  it draws no lines of its own (see the ice block's `tone`). */
+const ICE_TONE = [
+    [1, 0, 1.00, 2.6],
+    [0, 1, 0.90, 0.9],
+    [1, 1, 0.60, 4.3],
+    [-1, 1, 0.55, 1.8],
+    [2, 1, 0.30, 3.9],
+    [1, -2, 0.26, 5.6],
+];
+
 /* ---- the tiles ----------------------------------------------------------- */
 
 // ⚑ EVERY NUMBER here is [PLACEHOLDER]. ⚑ `ramp[0]` is the tile's DOMINANT
@@ -216,6 +258,46 @@ const TILES = [
         // field with bright veins repeated nine times reads as ground.
         gamma: 1.5,
     },
+    {
+        // ⭐ LAVA INVERTED: the same crack network, but the SURFACE is the
+        // light part and the cracks the dark one, so the ramp runs from the
+        // profile's pale #dfeaf2 down to a deep glacial blue where the ice has
+        // split. Sharper than lava so the lines stay hairline: a crack in ice
+        // is a thin shadow, not a glowing vein.
+        //
+        // ⭐ THE ONLY TILE WITH A `tone`, and it needs one: ice without it is a
+        // flat white sheet with a net drawn on it. `tone` adds a SMOOTH field
+        // (never ridged, so no lines) that lifts the ramp position by at most
+        // `strength`: patches of bluer clear ice among the frosted white.
+        // ⚑ Keep it well under the mid stop (t = 0.5), or the patches read as
+        // smeared cracks.
+        file: 'ice-placeholder.png',
+        ramp: [[0xdf, 0xea, 0xf2], [0xb0, 0xcb, 0xdf], [0x68, 0x8e, 0xb2]],
+        waves: ICE_CRACK,
+        warp: ICE_WARP,
+        warpStrength: 52,
+        warpOffset: [0.41, 0.17],
+        sharpness: [12.0, 16.0],
+        fineOffset: [173, -41],
+        mix: [0.62, 0.38],
+        gamma: 2.0,
+        tone: {waves: ICE_TONE, strength: 0.16},
+    },
+    {
+        // ⭐ Water's SWELL at a bog's sharpness: the waves keep their one
+        // direction, which in snow is the wind, and the low exponent turns
+        // crests into soft drifts. Two close stops so it stays near-white.
+        file: 'snow-ground-placeholder.png',
+        ramp: [[0xee, 0xf3, 0xf8], [0xc4, 0xd2, 0xe0]],
+        waves: SWELL,
+        warp: WARP,
+        warpStrength: 40,
+        warpOffset: [0.29, 0.63],
+        sharpness: [2.0, 3.0],
+        fineOffset: [83, -19],
+        mix: [0.75, 0.25],
+        gamma: 2.2,
+    },
 ];
 
 /* ---- the field ----------------------------------------------------------- */
@@ -254,7 +336,9 @@ function rampAt(stops, t) {
     return [0, 1, 2].map(c => Math.round(a[c] + (b[c] - a[c]) * local));
 }
 
-function pixel(tile, x, y) {
+/** The ramp position 0…1 at a pixel, shared by the writer and the report so the
+ *  numbers `reportSpread` prints are the ones that were painted. */
+function rampPosition(tile, x, y) {
     // ⚑ The warp is itself built from integer-frequency sines, so warping the
     // sample point keeps the whole composition exactly periodic over the tile.
     // A warp from any non-tiling source would break the seam invisibly here and
@@ -270,7 +354,16 @@ function pixel(tile, x, y) {
 
     t = Math.pow(t, tile.gamma);
 
-    return rampAt(tile.ramp, t);
+    // Ice only: a smooth low-frequency lift. Integer wave numbers like
+    // everything else here, so it tiles for free.
+    if (tile.tone) {
+        t = Math.min(1, t + tile.tone.strength * (sum(tile.tone.waves, x, y) + 1) / 2);
+    }
+    return t;
+}
+
+function pixel(tile, x, y) {
+    return rampAt(tile.ramp, rampPosition(tile, x, y));
 }
 
 /* ---- checks -------------------------------------------------------------- */
@@ -308,21 +401,19 @@ function assertSeamless(tile) {
  */
 function reportSpread(tile) {
     let min = 1, max = 0, total = 0, n = 0;
+    const rgb = [0, 0, 0];
     for (let y = 0; y < SIZE; y += 5) {
         for (let x = 0; x < SIZE; x += 5) {
-            const wx = x + tile.warpStrength * sum(tile.warp, x, y);
-            const wy = y + tile.warpStrength * sum(tile.warp,
-                x + SIZE * tile.warpOffset[0], y + SIZE * tile.warpOffset[1]);
-            let t = tile.mix[0] * ridged(tile.waves, wx, wy, tile.sharpness[0])
-                + tile.mix[1] * ridged(tile.waves,
-                    wx * 2.0 + tile.fineOffset[0], wy * 2.0 + tile.fineOffset[1],
-                    tile.sharpness[1]);
-            t = Math.pow(t, tile.gamma);
+            const t = rampPosition(tile, x, y);
             min = Math.min(min, t); max = Math.max(max, t); total += t; n++;
+            rampAt(tile.ramp, t).forEach((v, c) => { rgb[c] += v; });
         }
     }
+    // The mean COLOUR too: D14 wants the profile's `color` near it, so the hue
+    // does not jump when the tile lands.
+    const hex = '#' + rgb.map(v => Math.round(v / n).toString(16).padStart(2, '0')).join('');
     console.log(`  ramp: min ${min.toFixed(3)}  mean ${(total / n).toFixed(3)}`
-        + `  max ${max.toFixed(3)}`);
+        + `  max ${max.toFixed(3)}  mean colour ${hex}`);
 }
 
 /* ---- a minimal PNG writer ------------------------------------------------ */

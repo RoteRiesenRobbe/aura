@@ -33,7 +33,7 @@ JPEG), renamed from `461223NNN.jpg`:
 CC0 asks for nothing, so this is not a legal obligation: it is here so the next
 person can find the other ~90 tiles instead of guessing where these came from.
 
-### `water-` / `bog-` / `lava-placeholder.png` — GENERATED, not from a pack
+### `water-` / `bog-` / `lava-` / `ice-` / `snow-ground-placeholder.png` — GENERATED, not from a pack
 
 | | |
 |---|---|
@@ -46,11 +46,13 @@ person can find the other ~90 tiles instead of guessing where these came from.
 of them with real art is a one-line `terrain-profiles.json` edit plus deleting
 the file.
 
-⭐ **All three come out of ONE generator because they are the same technique:
+⭐ **All five come out of ONE generator because they are the same technique:
 RIDGED fields.** A smooth wave sum pushed through `1 - |sin|` raised to a power,
-so `sharpness` alone spans three materials that look nothing alike — 4.2 is a
-wave crest, 1.4 a broad scum blotch, 7 a thin bright crack. Opaque RGB, because
-all three are ground.
+so `sharpness` alone spans materials that look nothing alike — 4.2 is a
+wave crest, 1.4 a broad scum blotch, 7 a thin bright crack, 12 a hairline crack
+in ice (dark on light, with a smooth `tone` lift for clear vs. frosted
+patches), and 2 on the water swell a wind-blown snow drift. Opaque RGB,
+because all five are ground.
 
 ⛔ **Two things the tuning taught, both recorded in the script:** a bog at a
 midtone gamma reads as a *mossy lawn*, because a bog is dark and wet with scum
