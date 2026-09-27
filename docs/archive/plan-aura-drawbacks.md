@@ -2,7 +2,7 @@
 
 > **Status: COMPLETE, archived 2026-09-27. Both chunks built and PO-passed
 > 2026-09-27: C1, the while-active fold (`d1f0521c`), and C2, the player CC
-> doors (`[uncommitted]` at the time of archiving; PO: "done, tested, works.").**
+> doors (`a9b990f0`; PO: "done, tested, works.").**
 > Designed 2026-09-25 (PO session, seven rulings taken as choice prompts, §2),
 > 2 chunks (§7; C3 merged into C2 the same day). The design's line refs were
 > pinned to HEAD `38bd586f` at design time and are not maintained. Ledgers: §11.
@@ -782,7 +782,7 @@ the camera cap) drew no report.
    (`SetSkillComponent`), so the "full" respawn bar is the shrunken 80 % pool.
    Consistent with D5, noted so it is seen once rather than reported as a bug.
 
-### C2: the player CC doors (built and PO-passed 2026-09-27, `[uncommitted]`)
+### C2: the player CC doors (built and PO-passed 2026-09-27, `a9b990f0`)
 
 Built by four Opus subagents (backend; frontend; content, pins and docs; the
 headless harness) under one orchestrator, which did the wire step and verified
