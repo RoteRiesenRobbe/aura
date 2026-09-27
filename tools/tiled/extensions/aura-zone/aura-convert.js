@@ -402,6 +402,8 @@ var AuraConvert = (function () {
             // which is meaningless. It rides as a map property, like the
             // bounds it belongs beside.
             origin: z.origin !== undefined ? z.origin : undefined,
+            // The zone's base fill (PO 2026-09-27); undefined = black, no key.
+            ground: z.ground ? z.ground : undefined,
             terrain: z.terrain.map(function (t) {
                 return {
                     type: t.type,
@@ -877,6 +879,8 @@ var AuraConvert = (function () {
             // back exactly as it found it.
             originX: z.origin ? z.origin.x : undefined,
             originY: z.origin ? z.origin.y : undefined,
+            // A map property like the origin; undefined = the zone authors none.
+            ground: z.ground ? z.ground : undefined,
             /* ⭐ THE STACK IS THE CLIENT'S DRAW ORDER, BOTTOM-FIRST
              * (plan-zone-naming.md D1). Tiled's layer list is bottom-to-top, and
              * this array is that list — so the order below is read against
@@ -995,6 +999,7 @@ var AuraConvert = (function () {
                 || (m.originY !== undefined && m.originY !== null)
                 ? {x: Number(m.originX) || 0, y: Number(m.originY) || 0}
                 : undefined,
+            ground: readGround(m.ground),
             terrain: layer('terrain').map(function (o, i) {
                 if (o.flipH && o.flipV) {
                     throw new Error('terrain[' + i + '] "' + o.name + '": world.json has no'
@@ -1156,6 +1161,15 @@ var AuraConvert = (function () {
         o.properties.outlineWidth = src.outlineWidth;
         o.enums = o.enums || {};
         o.enums.outlineProfile = REGION_ENUMS.profile;
+    }
+
+    /* The zone's base fill, a MAP property (PO 2026-09-27). PROFILE_UNSET is
+     * what the dropdown shows when nothing is picked, and it reads back as
+     * ABSENT — the black default — so an unset zone gains no key. */
+    function readGround(v) {
+        v = v !== undefined && v !== null ? plainValue(v) : undefined;
+        if (v === undefined || v === '' || v === PROFILE_UNSET) { return undefined; }
+        return v;
     }
 
     function readOutlineProfile(o) {

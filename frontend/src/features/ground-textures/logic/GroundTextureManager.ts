@@ -211,6 +211,9 @@ export interface ZoneJSON {
     // position, which is the whole of the client's zone handling — see
     // features/zones/logic/ActiveZone.ts.
     origin?: ZoneOriginJSON;
+    // The terrain profile the zone is filled with, inside AND beyond its
+    // bounds, beneath every region and polygon. Absent = black (PO 2026-09-27).
+    ground?: string;
     terrain?: GroundTextureDefinition[];
     darkAreas?: DarkAreaDefinition[];
     // Ground-colour/presentation polygons, read by Regions.loadZone

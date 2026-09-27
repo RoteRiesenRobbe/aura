@@ -685,6 +685,66 @@ export function loadRegions(defs: RegionDefinition[] | undefined, origin?: {x: n
     regions = toRegions(defs, origin);
 }
 
+/** A rectangle in world pixels. */
+export interface PixelRect {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+}
+
+/**
+ * The zone's `ground` (PO 2026-09-27) as a region FIRST in authored order,
+ * covering `rect` — the zone's bounds and whatever lies beyond them that the
+ * camera can show.
+ *
+ * ⭐ First is the whole design: D0's last-wins rule then makes every authored
+ * region and polygon (painted on the layers above) win inside itself, so the
+ * ground only shows — and only answers {@link resolve} — where nothing else
+ * does. A feathered region's soft edge fades INTO it, as it used to fade into
+ * the green land fill this replaces.
+ *
+ * Absent ground = the regions unchanged; the flat fill is then
+ * {@link groundColor}'s black.
+ */
+export function withGround(inRegions: Region[], ground: string | undefined, rect: PixelRect): Region[] {
+    if (!ground) {
+        return inRegions;
+    }
+    const base: Region = {
+        profile: ground,
+        points: [
+            {x: rect.left, y: rect.top}, {x: rect.right, y: rect.top},
+            {x: rect.right, y: rect.bottom}, {x: rect.left, y: rect.bottom},
+        ],
+    };
+    return [base].concat(inRegions);
+}
+
+/** Adds the zone's ground beneath the loaded regions ({@link withGround}).
+ *  ⚑ AFTER {@link loadRegions}, which replaces the list. */
+export function loadGround(ground: string | undefined, rect: PixelRect) {
+    regions = withGround(regions, ground, rect);
+}
+
+/** Black: what a zone that names no `ground` is filled with (PO 2026-09-27). */
+export const GROUND_DEFAULT_COLOR = 0x000000;
+
+/**
+ * The flat colour behind everything — the screen backdrop past the edge of the
+ * painted ground, and the minimap's base fill. The ground profile's own
+ * `color` (under a texture that is the texture's fallback, D14, and the nearest
+ * flat stand-in for it); black when the zone names none, the profile is
+ * unknown, or it declares no colour.
+ */
+export function groundColor(
+    ground: string | undefined,
+    profiles: { [name: string]: TerrainProfile } = TERRAIN_PROFILES,
+): number {
+    const color = ground ? profiles[ground]?.color : undefined;
+    return typeof color === 'number' ? color : GROUND_DEFAULT_COLOR;
+}
+
 /** What a region paints, as data — a tile, a flat colour, or nothing.
  *  Turned into a PixiJS fill by RegionPaint; kept pixi-free here so the D14
  *  ruling below can be pinned by a unit test. */

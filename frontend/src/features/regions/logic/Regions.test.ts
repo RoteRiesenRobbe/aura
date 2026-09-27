@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {
     buildProfiles,
     DEFAULT_PROFILE,
+    groundColor,
     neededTextures,
     OVERLAY_DEFAULTS,
     Profile,
@@ -12,6 +13,7 @@ import {
     regionScroll,
     regionWobble,
     resolveIn,
+    withGround,
 } from './Regions';
 import terrainProfilesJson from '../../../client-data/terrain-profiles.json';
 import atmosphereProfilesJson from '../../../client-data/atmosphere-profiles.json';
@@ -664,5 +666,42 @@ describe('regionScroll — how fast this surface drifts (world-paths C3)', () =>
         // structurally impossible rather than merely avoided.
         expect(regionScroll({profile: 'pond', points: []}, SCROLL)).toEqual({x: 0, y: 0});
         expect(regionScroll({profile: 'quiet', points: []}, SCROLL)).toEqual({x: 0, y: 0});
+    });
+});
+
+// ---- the zone's ground (PO 2026-09-27) --------------------------------------
+
+describe('withGround — the zone fill sits beneath every authored region', () => {
+    const rect = {left: -100, top: -100, right: 100, bottom: 100};
+
+    it('absent ground leaves the regions untouched', () => {
+        const regions = [square('swamp', 0, 0)];
+        expect(withGround(regions, undefined, rect)).toEqual(regions);
+    });
+
+    it('paints only where no region does: an authored region wins inside itself', () => {
+        const regions = withGround([square('swamp', 0, 0)], 'bog', rect);
+        expect(resolve({x: 5, y: 5}, regions)).toBe(0x111111);
+        expect(resolve({x: 50, y: 50}, regions)).toBe(0x222222);
+    });
+
+    it('covers the whole rectangle it is given, outside the zone included', () => {
+        const regions = withGround([], 'bog', rect);
+        expect(resolve({x: -99, y: 99}, regions)).toBe(0x222222);
+    });
+});
+
+describe('groundColor — the flat fill behind everything', () => {
+    it('is black when the zone names no ground', () => {
+        expect(groundColor(undefined, PROFILES)).toBe(0x000000);
+    });
+
+    it('is black for a profile with no colour, or an unknown one', () => {
+        expect(groundColor('quiet', PROFILES)).toBe(0x000000);
+        expect(groundColor('nope', PROFILES)).toBe(0x000000);
+    });
+
+    it("is the profile's colour otherwise", () => {
+        expect(groundColor('bog', PROFILES)).toBe(0x222222);
     });
 });

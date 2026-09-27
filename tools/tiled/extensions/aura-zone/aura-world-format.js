@@ -175,6 +175,18 @@
         if (model.originY !== undefined && model.originY !== null) {
             map.setProperty('originY', model.originY);
         }
+        /* The zone's base fill (PO 2026-09-27), the same bridge as the origin.
+         * ⚑ Written ALWAYS, unlike the origin: an unset zone gets the
+         * PROFILE_UNSET placeholder so Map Properties shows a ready dropdown
+         * instead of a key the author has to know to add. It reads back as
+         * absent (readGround), so the file still gains no key. Typed for the
+         * reason typedValue documents; bare string without the project. */
+        var ground = model.ground ? model.ground : C.PROFILE_UNSET;
+        try {
+            map.setProperty('ground', tiled.propertyValue('AuraTerrainProfile', ground));
+        } catch (e) {
+            map.setProperty('ground', ground);
+        }
         // Whichever of the repo's two writers last touched this file decides
         // whether it ends in a newline; we reproduce what we found rather than
         // taking a side (see endsWithNewline in aura-convert.js).
@@ -326,6 +338,9 @@
         var oy = map.property('originY');
         if (ox !== undefined && ox !== null) { model.originX = ox; }
         if (oy !== undefined && oy !== null) { model.originY = oy; }
+        // The ground bridge's other half; the converter decodes the enum and
+        // drops the placeholder.
+        model.ground = map.property('ground');
 
         // Normally already warm from read(); the fallback covers a map built
         // from scratch inside Tiled and saved straight to a zone path.

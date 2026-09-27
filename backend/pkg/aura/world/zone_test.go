@@ -804,3 +804,22 @@ func TestZoneStems_SkipsDotDirectories(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"outpost", "world"}, stems)
 }
+
+// ---- the zone's base ground (PO 2026-09-27) --------------------------------
+
+// `ground` names the terrain profile a zone fills with, inside its bounds AND
+// beyond them. It is client-visual only, so the server merely has to ACCEPT the
+// key: the decoder refuses unknown fields, and a zone file authoring `ground`
+// would otherwise fail the boot.
+func TestZoneGroundParses(t *testing.T) {
+	z, err := parseZone([]byte(`{"name":"Barn","bounds":{"width":10,"height":10},"ground":"Wall"}`))
+	require.NoError(t, err)
+	assert.Equal(t, "Wall", z.Ground)
+}
+
+// Absent is the default (black on the client), and nothing else changes.
+func TestZoneGroundIsOptional(t *testing.T) {
+	z, err := parseZone([]byte(`{"name":"World","bounds":{"width":10,"height":10}}`))
+	require.NoError(t, err)
+	assert.Equal(t, "", z.Ground)
+}

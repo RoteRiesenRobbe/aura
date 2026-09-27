@@ -26,7 +26,6 @@ import {getZoneData} from '../../ground-textures/logic/GroundTextureManager';
 import {groundTextureTypes} from '../../ground-textures/logic/GroundTextureTypes';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import {meter2px} from '../../../client-data/BasicConfig';
-import {GraphicsConfig} from '../../../client-data/Graphics';
 import {isMobile} from '../../user-interface/logic/Mobile';
 import * as Regions from '../../regions/logic/Regions';
 import {paintTerrainSurfaces} from '../../regions/logic/RegionPaint';
@@ -73,14 +72,13 @@ export function bakeTerrain(
 
     const scratch = new Container();
 
-    // The land the pieces sit on. Without it the map is terrain floating on
-    // the overlay's black, which reads as holes in the world rather than as
-    // ground. Matches the world renderer's own land fill (Game.startRendering);
-    // its shallow-water margin is deliberately skipped — the map is bounded by
-    // the world, and a beach ring outside those bounds would just be a border.
+    // The zone's ground colour under everything (black when it names none),
+    // the world renderer's backdrop (Game.renderZone). The textured ground
+    // rides the region list below, clipped to the bounds: the map is bounded
+    // by the zone and shows nothing past it.
     scratch.addChild(new Graphics()
         .rect(-mapWidth / 2, -mapHeight / 2, mapWidth, mapHeight)
-        .fill(GraphicsConfig.landColor));
+        .fill(Regions.groundColor(zone.ground)));
 
     // Region ground, between the land fill and the pieces — the same sandwich
     // the world renderer builds (Game.startRendering), through the same one
@@ -112,7 +110,10 @@ export function bakeTerrain(
     // WORLD, and it does.
     const {masks: regionMasks} = paintTerrainSurfaces(
         scratch, scratch, scratch,
-        Regions.toRegions(zone.regions), Polygons.toPolygons(zone.polygons),
+        Regions.withGround(Regions.toRegions(zone.regions), zone.ground, {
+            left: -mapWidth / 2, top: -mapHeight / 2, right: mapWidth / 2, bottom: mapHeight / 2,
+        }),
+        Polygons.toPolygons(zone.polygons),
         Paths.toPaths(zone.paths),
         renderer);
 
