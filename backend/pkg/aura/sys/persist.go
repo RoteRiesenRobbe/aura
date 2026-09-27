@@ -325,7 +325,7 @@ func (s *ConnectionStateSystem) saveCharacter(p model.PlayerEntity) {
 		return
 	}
 	s.saves.Save(characterState(characterID, p.Name(), s.anchors[p.Client().UUID()],
-		s.DiscoveredCampfires(p.Client().UUID()),
+		s.DiscoveredCampfires(p.Client().UUID()), s.fog[p.Client().UUID()].Chunks(),
 		p.Progression(), p.SkillComponent(), p.QuestLedger()))
 }
 
@@ -343,7 +343,7 @@ func (s *ConnectionStateSystem) saveStash(stash reconnectStash) {
 		return
 	}
 	s.saves.Save(characterState(stash.characterID, stash.name, stash.anchor,
-		sortedSet(stash.discovered),
+		sortedSet(stash.discovered), stash.fog.Chunks(),
 		stash.progression, stash.skills, stash.quests))
 }
 
@@ -360,7 +360,7 @@ func (s *ConnectionStateSystem) saveStash(stash reconnectStash) {
 // because a character's bind and its discovered set are CONNECTION state
 // (s.anchors, s.discovered), not player state — and the session-expiry save has
 // neither, only a stash.
-func characterState(characterID int64, name, homeCampfireID string, discovered []string,
+func characterState(characterID int64, name, homeCampfireID string, discovered []string, fog []persist.FogChunk,
 	prog model.PlayerProgression, sc *skills.SkillComponent, ledger *quests.Ledger) persist.CharacterState {
 
 	state := persist.CharacterState{
@@ -368,6 +368,7 @@ func characterState(characterID int64, name, homeCampfireID string, discovered [
 		Name:                name,
 		HomeCampfireID:      homeCampfireID,
 		DiscoveredCampfires: discovered,
+		MapFog:              fog,
 		Level:               int(prog.Level),
 		Experience:          int64(prog.Experience),
 		ActiveAuraSlot:      persist.NoActiveAura,

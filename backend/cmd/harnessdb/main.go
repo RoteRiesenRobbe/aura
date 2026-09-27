@@ -203,6 +203,8 @@ func runCleanup(ctx context.Context, db *store.Store) error {
 		// cleanup after the migration failed on this exact foreign key. Any new
 		// character-scoped table is this tool's problem on the day it ships.
 		"game.character_campfires",
+		// Migration 000003 (plan-map-fog-persistence.md F1, L1): the map reveal.
+		"game.character_map_fog",
 	} {
 		if _, err := tx.Exec(ctx, "DELETE FROM "+table+ofTheseAccounts, ids); err != nil {
 			return fmt.Errorf("%s: %w", table, err)

@@ -109,6 +109,16 @@ type CharacterState struct {
 	// same rule HomeCampfireID above documents, for the same reason.
 	DiscoveredCampfires []string `json:"discoveredCampfires"`
 
+	// MapFog is the map area this character has revealed, as the explored fog
+	// chunks only (plan-map-fog-persistence.md D2), sorted by SortFogChunks.
+	//
+	// ⚑ SORTED, for the SortCampfires reason: Fingerprint() marshals it.
+	//
+	// ⚑ It only ever GROWS, like the discovered set, so the save path upserts
+	// and never deletes. Each chunk carries the grid it was drawn on, and a
+	// chunk from another grid is skipped at seed time, never an error (D10).
+	MapFog []FogChunk `json:"mapFog"`
+
 	// Spellbook is skill id → level, mirroring SkillComponent.Spellbook.
 	//
 	// ⚑ An EMPTY spellbook means "this character has never been saved", and the
@@ -127,6 +137,30 @@ type CharacterState struct {
 	// else needs a key/value home. Teaching this package what a quest is would
 	// make every new flag kind a change here as well as there.
 	Flags map[string]json.RawMessage `json:"flags"`
+}
+
+// FogChunk is one explored chunk of a character's map reveal: a coverage
+// bitmap of CellSize-unit cells, ChunkCells on a side, at chunk index (X, Y)
+// in WORLD coordinates (plan-map-fog-persistence.md D9, no zone id anywhere).
+// Bits is row-major, LSB-first within a byte; package mapfog owns the math.
+type FogChunk struct {
+	X          int16  `json:"x"`
+	Y          int16  `json:"y"`
+	CellSize   int16  `json:"cellSize"`
+	ChunkCells int16  `json:"chunkCells"`
+	Bits       []byte `json:"bits"`
+}
+
+// SortFogChunks orders chunks by (x, y), matching the load query's
+// `ORDER BY chunk_x, chunk_y`, for the same round-trip reason SortLoadout
+// exists.
+func SortFogChunks(chunks []FogChunk) {
+	sort.Slice(chunks, func(i, j int) bool {
+		if chunks[i].X != chunks[j].X {
+			return chunks[i].X < chunks[j].X
+		}
+		return chunks[i].Y < chunks[j].Y
+	})
 }
 
 // SortLoadout orders slots by (type, index) — the same order the load query's

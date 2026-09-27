@@ -1,6 +1,6 @@
 # Plan: Map Fog Persistence
 
-> **Status: DESIGNED 2026-09-27, nothing built, 2 chunks.** Design approved by
+> **Status: COMPLETE 2026-09-27, archived: F1 + F2 built, PO in-game pass "works fine"** (commit `[uncommitted]`; ledger: §9). Design approved by
 > the PO in chat the same day ("design sounds good. add it to a plan"); the
 > three §6 questions ruled the same day; then **revised the same day to
 > CHUNKED, EXPLORED-ONLY storage keyed by WORLD coordinates** (PO: "ok, you
@@ -295,3 +295,126 @@ typecheck`, and the schema line in the ledger.
   keeps its own map; D9 only changes where the reveal is stored.
 - **`archive/plan-world-map.md`** §4.2 / C1: the session-only ruling this plan
   reverses.
+
+---
+
+## 9. Chunk ledger
+
+### F1 — server track + persist ✅ 2026-09-27 `[uncommitted]`
+
+**Schema: DB +1 table (`000003_character_map_fog` pair) · wire NONE · conf
+NONE · content NONE.**
+
+What shipped:
+- `pkg/aura/mapfog` (new): the cell/chunk math (`math.Floor` both levels),
+  `MarkAt` (fixed 20 × 12 AOI from `constant.ViewPort*`, gated on a cell
+  change), `Seed` (union; skips a foreign grid or a wrong-sized bitmap),
+  `Chunks` (sorted COPY, safe to hand to the writer goroutine). A position
+  whose chunk an `int16` cannot name (NaN, a runaway teleport) marks nothing.
+- `persist.FogChunk` + `CharacterState.MapFog` + `SortFogChunks`.
+- `store`: upsert per explored chunk (`ON CONFLICT … DO UPDATE`, overwrite,
+  never delete); load returns every row whatever its grid, `ORDER BY chunk_x,
+  chunk_y`.
+- `sys`: `ConnectionStateSystem.fog`, with every seam `discovered` has: ticket
+  seed at join (union), reconnect stash on BOTH the alive and dead paths,
+  re-added after death's removal fan-out, dropped on disconnect;
+  `trackMapFog()` runs each tick after the dwell tracker; `characterState`
+  takes the chunks, so the interval, forced, disconnect, flush and
+  session-expiry saves all carry them. `saveWatch` is untouched (D6).
+- `cmd/harnessdb -cleanup` owns the table (L1); `manual-tiled-editor.md` §6
+  carries L8's one line.
+
+Findings:
+- ⚑ **§4.2 said "a fog component on the player"; it is CONNECTION state**
+  beside `s.discovered`, because the discovered set it was meant to sit next
+  to lives there, and the stash/death seams already exist for it. A player
+  field would have needed its own carry through `deadState` and the stash.
+- ⚑ **Save = OR** (§4.3's open pick), after the review below reversed a first
+  "overwrite": the rows are read `FOR UPDATE` in the save transaction and ORed
+  in Go (Postgres has no `bytea` OR). The PK excludes the grid, so after a
+  deliberate grid change a new chunk at the same `(x, y)` REPLACES the
+  old-grid row: D10's reset, row by row.
+- ⚑ **Bit order is LSB-first within a byte**, row-major within the chunk
+  (`TestBitLayout_RowMajorLSBFirst`). F2's decoder must match it.
+- ⚑ The game-side round-trip test (`TestCharacterStateRoundTripsThroughAPlayer`)
+  can no longer assert equality for the fog: a restored player reveals its own
+  jittered spawn view on its first tick, so it asserts COVERAGE for that field.
+- ⚑ A mark is **11 × 7 cells, always**, derived from the CELL, not the exact
+  position (review fix 2 below); §D5's "~66" becomes 77.
+
+**Review fixes (same day, before F2):**
+1. **A stale snapshot could shrink the stored reveal.** `/select` can read the
+   row while the character's previous save is still queued (the writer in
+   backoff after a database blip); the new session, seeded from that stale
+   load, would then overwrite the newer bits. Fixed by ORing on save, pinned
+   by `TestMapFogSaveGrowsAndNeverShrinks`'s stale-snapshot leg. Level/XP share
+   the stale-read hazard (pre-existing, not this plan's); for a set that only
+   grows it was avoidable.
+2. **The per-cell gate under-revealed the far edge.** The rectangle came from
+   the exact position but was only marked on entering a cell, so a cell
+   entered exactly on its line (a warp to whole coordinates) and crossed
+   without leaving it kept a sliver up to one cell wide fogged. Now the
+   rectangle is `ceil(half-AOI / cell)` cells either side of the centre's
+   cell, which also stays right if the [PLACEHOLDER] cell size stops dividing
+   the half-AOI (`TestMarkAt_EnteringACellOnItsLineStillCoversTheWholeCell`).
+3. Left as is (low): rows on an old grid stay in the table forever, loaded and
+   skipped; each save upserts every explored chunk, one statement each.
+
+Verified: `go build ./...` · `go test ./...` all green except the `world` +
+3 `cmd/simharness` placement pins that CLAUDE.md Status records red at HEAD
+(content roster, unrelated) · `mapfog` 15 cases · `sys` 9 new map-fog cases ·
+`store` against `aura_test` (round trip with negative chunk indices;
+grows-never-shrinks; foreign grid returned as stored) · aurad booted,
+`🗄️ database schema ready version=3` · a 2-bot `loadbot -disperse` session
+wrote one 512-byte row each at chunk (−2, 0) through the real disconnect save
+(~200 cells set) · `harnessdb -cleanup` ran clean afterwards (aurad stopped
+first, then restarted). No in-game look: F1 has no visible surface.
+
+### F2 — wire + client restore ✅ 2026-09-27 `[uncommitted]`
+
+**Schema: DB NONE · wire +2 tables (`FogChunk`, `MapFog`), +1 `GameState`
+field (`map_fog`, appended) · conf NONE · content NONE.**
+
+What shipped:
+- `server.fbs` per §4.4; Go + TS bindings regenerated (flatc v24.3.25, the
+  diff is additive only).
+- `codec.MapFogMarshalFlatbuf`; the grid is read off the chunks, which all
+  come from one live `mapfog.Fog`.
+- `PlayerEntity.MapFog/NoteMapFog`, a one-shot reset with the campfire pair;
+  `ConnectionStateSystem.publishMapFog` at the four ENTERING sites (join,
+  reattach, respawn, revive), not at a dwell.
+- Client: `map/logic/FogReveal.ts` (pure: `mergeMapFog` = D8's union,
+  `zoneCellMask` = one zone's cells, origin included, clipped per cell for
+  L7); `MapFog.applyRevealed` paints the mask in ONE draw (a canvas of one
+  texel per cell, stretched with nearest sampling, `clear: false`);
+  `MiniMap.setMapFog` merges, paints every existing zone fog, and a zone fog
+  created later (the underworld, first entered this session) is painted on
+  creation. `setup()` (a new Welcome) drops the held copy with the fogs.
+
+Findings:
+- ⚑ `MapFog` now knows its zone's ORIGIN (constructor arg): placing a world
+  cell on a zone-local texture needs it, and a fog of a zone that is not the
+  current one must be paintable when a publication lands.
+- ⚑ `hasRevealedAnything` now also counts a restored reveal.
+- ⚑ The bits are COPIED out of the message buffer at decode.
+
+Verified: `go test ./...` (same 4 known reds only; new: codec round trip +
+empty-is-absent, 3 sys publication cases) · `npm test` **1299/1299** (new:
+`FogReveal.test.ts` 9, incl. the LSB-first layout, negative indices, a
+non-zero origin, a chunk straddling two zones) · `npm run typecheck` · prod
+build · **`.claude/skills/verify/f2-map-fog-persistence.mjs` 10/10**: warp
+~140 u from the only starting fire, leave to character-select, play again;
+the MapFog object is a NEW one (control), the publication arrived, the
+visited spot is revealed, a never-visited spot is fogged, and edge probes put
+the restored 11 × 7 cells exactly where they were seen · `harnessdb -cleanup`
+clean. Regression runs: `c1-world-map` 10/12 (6 + 7, letterbox click
+open/close; this diff touches no input or overlay code, and the 540 × 360
+world changed the letterbox; not re-run at HEAD) · `c2-campfire-markers`
+12/17 (its fire coordinates predate the 540 × 360 world: it hardcodes
+spawnpoint-2 at (44, 10.5), now at (−154, 10.5); content drift).
+
+⭐ **PO in-game pass 2026-09-27: "works fine"** (§7's check; which of its legs
+the PO walked was not itemised). The plan is complete and archived the same
+day. Carried forward, not owed here: D3's cell size is judged at
+`plan-minimap-local-viewport.md`'s look sitting (§8), and L8's remap recipe is
+built only when ground actually moves (`manual-tiled-editor.md` §6).

@@ -20,6 +20,7 @@ import {
 import {StartFlightMessage} from '../../backend/logic/messages/outgoing/StartFlightMessage';
 import {bakeTerrain, destroyTerrain} from './MapTerrain';
 import {MapFog} from './MapFog';
+import {MapFogData, mergeMapFog} from './FogReveal';
 import {MapCampfires} from './MapCampfires';
 import {MapPlayers} from './MapPlayers';
 
@@ -93,7 +94,7 @@ export class MiniMap {
     private zoneOriginX = 0;
     private zoneOriginY = 0;
     /**
-     * Session-only fog over the terrain — see MapFog's header — kept PER ZONE.
+     * The fog over the terrain — see MapFog's header — kept PER ZONE.
      *
      * ⭐ One fog per zone rather than one fog, because setupTerrain rebuilds on
      * every crossing and a single instance would be destroyed with it: walk down
@@ -104,6 +105,13 @@ export class MiniMap {
     private fogByZone: Map<string, MapFog> = new Map();
     /** The active zone's fog — an alias into fogByZone, never a second owner. */
     private fog: MapFog = null;
+    /**
+     * Every stored-reveal publication received since this join, merged
+     * (plan-map-fog-persistence.md F2, D8). Kept for the WHOLE world, not per
+     * zone: a zone whose fog does not exist yet (the underworld, until first
+     * entered this session) takes its cells from here the moment it is created.
+     */
+    private storedFog: MapFogData | null = null;
     /** Discovered-campfire markers, drawn in BOTH states — see MapCampfires. */
     private campfires: MapCampfires = null;
     /**
@@ -193,6 +201,9 @@ export class MiniMap {
         });
         this.fogByZone.clear();
         this.fog = null;
+        // The stored reveal belongs to the previous character too. The join's
+        // own publication follows this Welcome and restores the right one.
+        this.storedFog = null;
 
         this.stage = this.application.stage;
 
@@ -343,6 +354,23 @@ export class MiniMap {
     }
 
     /**
+     * Applies a server publication of the stored map reveal
+     * (plan-map-fog-persistence.md F2).
+     *
+     * ⚑ Called every tick with whatever the snapshot carried, which is almost
+     * always nothing: a one-shot on entering the world (D7). What arrives is
+     * MERGED into what is held (D8) and painted into every zone fog that
+     * already exists; a zone seen later is painted when its fog is created.
+     */
+    public setMapFog(published: MapFogData | undefined) {
+        if (!published) {
+            return;
+        }
+        this.storedFog = mergeMapFog(this.storedFog, published);
+        this.fogByZone.forEach(fog => fog.applyRevealed(this.application.renderer, this.storedFog));
+    }
+
+    /**
      * Re-bakes the current zone's terrain. The ONE caller is the region ground
      * tiles landing after the first bake (plan-region-primitive.md C4): the map
      * would otherwise show the fallback colours for the rest of the session,
@@ -413,8 +441,13 @@ export class MiniMap {
         // Kept across crossings and rebuilt only the first time a zone is seen.
         this.fog = this.fogByZone.get(zoneName);
         if (!this.fog) {
-            this.fog = new MapFog(this.application.renderer, this.mapWidth, this.mapHeight);
+            this.fog = new MapFog(this.application.renderer, this.mapWidth, this.mapHeight,
+                this.zoneOriginX, this.zoneOriginY);
             this.fogByZone.set(zoneName, this.fog);
+            // A zone first seen after the publication arrived (F2, §4.5).
+            if (this.storedFog) {
+                this.fog.applyRevealed(this.application.renderer, this.storedFog);
+            }
         }
         layer.addChild(this.fog.mask);
         this.terrain.mask = this.fog.mask;

@@ -504,8 +504,21 @@ func (rcv *GameState) SkillEventsLength() int {
 	return 0
 }
 
+func (rcv *GameState) MapFog(obj *MapFog) *MapFog {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(62))
+	if o != 0 {
+		x := rcv._tab.Indirect(o + rcv._tab.Pos)
+		if obj == nil {
+			obj = new(MapFog)
+		}
+		obj.Init(rcv._tab.Bytes, x)
+		return obj
+	}
+	return nil
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(29)
+	builder.StartObject(30)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -623,6 +636,9 @@ func GameStateAddSkillEvents(builder *flatbuffers.Builder, skillEvents flatbuffe
 }
 func GameStateStartSkillEventsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
+}
+func GameStateAddMapFog(builder *flatbuffers.Builder, mapFog flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(29, flatbuffers.UOffsetT(mapFog), 0)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

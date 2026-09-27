@@ -515,6 +515,9 @@ export class Backend implements IBackend {
             // session, and the map is the thing that knows what to do with it.
             this.game.miniMap.setDiscoveredCampfires(
                 snapshot.discoveredCampfires, snapshot.homeCampfire);
+            // The stored map reveal (plan-map-fog-persistence.md F2): the same
+            // pass-through, undefineds included — the map merges what arrives.
+            this.game.miniMap.setMapFog(snapshot.mapFog);
 
             // Rejection feedback (chunk 4, §3.5): one-tick stamp → floating
             // text over the own character (the campfire-bound rendering path).

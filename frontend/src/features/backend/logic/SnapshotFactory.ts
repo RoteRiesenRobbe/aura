@@ -5,6 +5,7 @@ import {ConversationTree} from '../../conversation/logic/ConversationModel';
 import {QuestProgress} from '../../journal/logic/JournalModel';
 import {SkillEventData} from './SkillEventNumbers';
 import {GameStateMessage} from './messages/incoming/GameStateMessage';
+import {MapFogData} from '../../map/logic/FogReveal';
 
 
 let lastGameState;
@@ -38,6 +39,9 @@ export class Snapshot {
     // published this tick, which is the case on all but two ticks of a session.
     discoveredCampfires: string[] | undefined;
     homeCampfire: string | undefined;
+    // The stored map reveal (plan-map-fog-persistence.md F2), the same
+    // one-shot: undefined = not published this tick.
+    mapFog: MapFogData | undefined;
     activationRejectedSkillId: number; // one-tick rejection feedback; 0 = none
     activationRejectedReason: number;
     interactableEntityId: number; // conversant in talking range (3b-i); 0 = none
@@ -110,6 +114,9 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
         // would turn every tick into a redraw of markers nobody moved.
         snapshot.discoveredCampfires = gameState.discoveredCampfires;
         snapshot.homeCampfire = gameState.homeCampfire;
+        // The campfire pair's one-shot twin, carried verbatim for the same
+        // reason (plan-map-fog-persistence.md F2).
+        snapshot.mapFog = gameState.mapFog;
         snapshot.activationRejectedSkillId = gameState.activationRejectedSkillId;
         snapshot.activationRejectedReason = gameState.activationRejectedReason;
         // Always carried, like the scalars above: it is live state, so "absent"

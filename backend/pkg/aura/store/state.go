@@ -102,7 +102,7 @@ func (s *Store) SaveCharacter(ctx context.Context, state persist.CharacterState)
 		}
 	}
 
-	// ⚑ THE ONE COLLECTION THAT IS NOT DELETED FIRST, deliberately. Discovery is
+	// ⚑ NOT DELETED FIRST, deliberately (nor is the map fog below). Discovery is
 	// monotonic — a character never un-discovers a campfire — so there is no
 	// removal for a snapshot to represent, and delete-and-reinsert would reset
 	// every row's discovered_at on every save. ON CONFLICT DO NOTHING is
@@ -113,6 +113,35 @@ func (s *Store) SaveCharacter(ctx context.Context, state persist.CharacterState)
 			 ON CONFLICT (character_id, campfire_id) DO NOTHING`,
 			state.CharacterID, campfireID); err != nil {
 			return fmt.Errorf("saving discovered campfire %q: %w", campfireID, err)
+		}
+	}
+
+	// The map reveal is monotonic too (plan-map-fog-persistence.md), but a
+	// chunk's bits DO change as it fills in, so each explored chunk is upserted
+	// and a chunk the snapshot lacks simply stays.
+	//
+	// ⚑ THE STORED BITS ARE ORed IN, never overwritten. "The live set was
+	// seeded from the load" is not enough: /select can read a row while this
+	// character's previous save is still queued (a database that just came
+	// back while the writer is in backoff), and that session's next save would
+	// then overwrite the newer bits with its stale ones. Postgres has no bytea
+	// OR, so the rows are read under FOR UPDATE and merged here — one query per
+	// save. A row on another grid is NOT merged: its bits name other cells, so
+	// the snapshot's chunk replaces it (D10).
+	if len(state.MapFog) > 0 {
+		if err := mergeStoredFog(ctx, tx, state.CharacterID, state.MapFog); err != nil {
+			return err
+		}
+	}
+	for _, chunk := range state.MapFog {
+		if _, err := tx.Exec(ctx,
+			`INSERT INTO game.character_map_fog (character_id, chunk_x, chunk_y, cell_size, chunk_cells, bits)
+			 VALUES ($1, $2, $3, $4, $5, $6)
+			 ON CONFLICT (character_id, chunk_x, chunk_y) DO UPDATE
+			    SET cell_size = EXCLUDED.cell_size, chunk_cells = EXCLUDED.chunk_cells,
+			        bits = EXCLUDED.bits, updated_at = now()`,
+			state.CharacterID, chunk.X, chunk.Y, chunk.CellSize, chunk.ChunkCells, chunk.Bits); err != nil {
+			return fmt.Errorf("saving map fog chunk (%d, %d): %w", chunk.X, chunk.Y, err)
 		}
 	}
 
@@ -130,6 +159,45 @@ func (s *Store) SaveCharacter(ctx context.Context, state persist.CharacterState)
 
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("committing a character save: %w", err)
+	}
+	return nil
+}
+
+// mergeStoredFog ORs each stored chunk on the same grid into the snapshot's
+// chunk at the same (x, y), in place.
+//
+// ⚑ It writes into the snapshot's Bits. Those are the writer's own copy
+// (mapfog.Fog.Chunks copies), never the loop's live bitmap, so this is safe —
+// and a retried save simply ORs the same bits again.
+func mergeStoredFog(ctx context.Context, tx pgx.Tx, characterID int64, chunks []persist.FogChunk) error {
+	type key struct{ x, y int16 }
+	byKey := make(map[key]*persist.FogChunk, len(chunks))
+	for i := range chunks {
+		byKey[key{chunks[i].X, chunks[i].Y}] = &chunks[i]
+	}
+	rows, err := tx.Query(ctx,
+		`SELECT chunk_x, chunk_y, cell_size, chunk_cells, bits FROM game.character_map_fog
+		  WHERE character_id = $1 FOR UPDATE`, characterID)
+	if err != nil {
+		return fmt.Errorf("reading stored map fog to merge: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var stored persist.FogChunk
+		if err := rows.Scan(&stored.X, &stored.Y, &stored.CellSize, &stored.ChunkCells, &stored.Bits); err != nil {
+			return fmt.Errorf("reading a stored map fog chunk: %w", err)
+		}
+		chunk := byKey[key{stored.X, stored.Y}]
+		if chunk == nil || chunk.CellSize != stored.CellSize || chunk.ChunkCells != stored.ChunkCells ||
+			len(chunk.Bits) != len(stored.Bits) {
+			continue
+		}
+		for i, b := range stored.Bits {
+			chunk.Bits[i] |= b
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("reading stored map fog to merge: %w", err)
 	}
 	return nil
 }
@@ -250,6 +318,28 @@ func (s *Store) LoadCharacterState(ctx context.Context, accountID, characterID i
 	rows.Close()
 	if err := rows.Err(); err != nil {
 		return persist.CharacterState{}, fmt.Errorf("loading discovered campfires: %w", err)
+	}
+
+	// ORDER BY matches persist.SortFogChunks. Every row comes back, whatever its
+	// grid: skipping a foreign grid is the game's call at seed time (D10), not
+	// the store's, which knows nothing about the grid the server draws on.
+	rows, err = s.Pool.Query(ctx,
+		`SELECT chunk_x, chunk_y, cell_size, chunk_cells, bits FROM game.character_map_fog
+		  WHERE character_id = $1 ORDER BY chunk_x, chunk_y`, characterID)
+	if err != nil {
+		return persist.CharacterState{}, fmt.Errorf("loading map fog: %w", err)
+	}
+	for rows.Next() {
+		var chunk persist.FogChunk
+		if err := rows.Scan(&chunk.X, &chunk.Y, &chunk.CellSize, &chunk.ChunkCells, &chunk.Bits); err != nil {
+			rows.Close()
+			return persist.CharacterState{}, fmt.Errorf("reading a map fog chunk: %w", err)
+		}
+		state.MapFog = append(state.MapFog, chunk)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return persist.CharacterState{}, fmt.Errorf("loading map fog: %w", err)
 	}
 
 	rows, err = s.Pool.Query(ctx,

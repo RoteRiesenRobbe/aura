@@ -8,6 +8,7 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -434,6 +435,9 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 		homeCampfire = builder.CreateString(home)
 	}
 	discoveredCampfires := DiscoveredCampfiresMarshalFlatbuf(gs.Player.DiscoveredCampfires(), builder)
+	// The stored map reveal (plan-map-fog-persistence.md F2): the same one-shot
+	// shape, published on entering the world only.
+	mapFog := MapFogMarshalFlatbuf(gs.Player.MapFog(), builder)
 
 	AuraApi.GameStateStart(builder)
 	AuraApi.GameStateAddTick(builder, gs.Tick)
@@ -538,6 +542,9 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	}
 	if discoveredCampfires != 0 {
 		AuraApi.GameStateAddDiscoveredCampfires(builder, discoveredCampfires)
+	}
+	if mapFog != 0 {
+		AuraApi.GameStateAddMapFog(builder, mapFog)
 	}
 
 	return AuraApi.GameStateEnd(builder)
@@ -828,4 +835,36 @@ type CharacterGameState struct {
 	// only close signal (chunk 3, D3) and an absent tree must not be
 	// confusable with a closed panel.
 	SkipConversationTree bool
+}
+
+// MapFogMarshalFlatbuf builds the owning character's map reveal
+// (plan-map-fog-persistence.md F2), or 0 when there is nothing to publish.
+//
+// ⚑ The grid comes off the chunks themselves: they are all snapshots of ONE
+// live mapfog.Fog, so they share the server's grid by construction, and this
+// package stays free of the grid constants.
+func MapFogMarshalFlatbuf(chunks []persist.FogChunk, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if len(chunks) == 0 {
+		return 0
+	}
+	offsets := make([]flatbuffers.UOffsetT, len(chunks))
+	for i, c := range chunks {
+		bits := builder.CreateByteVector(c.Bits)
+		AuraApi.FogChunkStart(builder)
+		AuraApi.FogChunkAddX(builder, c.X)
+		AuraApi.FogChunkAddY(builder, c.Y)
+		AuraApi.FogChunkAddBits(builder, bits)
+		offsets[i] = AuraApi.FogChunkEnd(builder)
+	}
+	AuraApi.MapFogStartChunksVector(builder, len(offsets))
+	for k := len(offsets) - 1; k >= 0; k-- {
+		builder.PrependUOffsetT(offsets[k])
+	}
+	vector := builder.EndVector(len(offsets))
+
+	AuraApi.MapFogStart(builder)
+	AuraApi.MapFogAddCellSize(builder, uint8(chunks[0].CellSize))
+	AuraApi.MapFogAddChunkCells(builder, uint8(chunks[0].ChunkCells))
+	AuraApi.MapFogAddChunks(builder, vector)
+	return AuraApi.MapFogEnd(builder)
 }

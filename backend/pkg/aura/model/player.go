@@ -5,6 +5,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -170,6 +171,12 @@ type PlayerEntity interface {
 	HomeCampfire() string
 	DiscoveredCampfires() []string
 	NoteCampfireState(home string, discovered []string)
+	// MapFog / NoteMapFog carry the character's stored map reveal
+	// (plan-map-fog-persistence.md F2): the explored chunks, published on
+	// entering the world only (D7), serialized as the owner-only map_fog.
+	// A one-shot with the campfire pair's lifecycle, cleared per tick.
+	MapFog() []persist.FogChunk
+	NoteMapFog(chunks []persist.FogChunk)
 	// The Camp baseline utility's charge store (plan-downtime.md C2, D3):
 	// per-session, refilled to a level-derived cap by dwelling at a REAL
 	// campfire, spent at channel completion. Serialized as camp_charges.

@@ -10,11 +10,11 @@
  *
  * Two properties, both PO-chosen, that explain every line below:
  *
- *   · ⚑ SESSION-ONLY. The reveal lives in this object and nowhere else — no
- *     wire field, no column, no migration. That is what keeps C1 free of the
- *     schema change §8 promised it would not make. Persistence can join part
- *     2's migration, which already stores discovered campfires. Logging in
- *     re-fogs the world; that is the accepted cost, not a bug.
+ *   · ⚑ PERSISTED BY THE SERVER, NOT BY THIS OBJECT (plan-map-fog-persistence.md,
+ *     which REVERSES the old "session-only" half of this ruling). The server
+ *     tracks the reveal from the character's position and publishes the stored
+ *     copy once on entering the world; applyRevealed paints it in. Everything
+ *     else here is still the live, local reveal — the client never uploads it.
  *   · ⚑ A REVEAL IS THE AOI. The stamp is the 20 × 12 unit rectangle the
  *     server actually streams (BasicConfig.VIEWPORT), so the map shows exactly
  *     what the character has laid eyes on — the same rule the props obey.
@@ -30,9 +30,10 @@
  * unbounded work that grows for as long as someone plays.
  */
 
-import {Container, Graphics, Renderer, RenderTexture, Sprite} from 'pixi.js';
-import {BasicConfig, meter2px} from '../../../client-data/BasicConfig';
+import {Container, Graphics, Renderer, RenderTexture, Sprite, Texture} from 'pixi.js';
+import {BasicConfig, meter2px, px2meter} from '../../../client-data/BasicConfig';
 import {isMobile} from '../../user-interface/logic/Mobile';
+import {MapFogData, zoneCellMask} from './FogReveal';
 
 /**
  * Texel width of the fog texture. The reveal is a hard-edged rectangle, so
@@ -61,10 +62,17 @@ export class MapFog {
     private readonly texelsPerPx: number;
     private readonly mapWidth: number;
     private readonly mapHeight: number;
+    /** The zone's origin in px — what places a WORLD cell on this zone's texture. */
+    private readonly originX: number;
+    private readonly originY: number;
+    /** Whether a stored reveal has painted anything (see hasRevealedAnything). */
+    private restoredAnything = false;
 
-    constructor(renderer: Renderer, mapWidth: number, mapHeight: number) {
+    constructor(renderer: Renderer, mapWidth: number, mapHeight: number, originX = 0, originY = 0) {
         this.mapWidth = mapWidth;
         this.mapHeight = mapHeight;
+        this.originX = originX;
+        this.originY = originY;
 
         const width = fogWidth();
         this.texelsPerPx = width / mapWidth;
@@ -120,9 +128,63 @@ export class MapFog {
         renderer.render({container: this.stamp, target: this.texture, clear: false});
     }
 
+    /**
+     * Paints the server's stored reveal into this zone's texture
+     * (plan-map-fog-persistence.md F2, §4.5).
+     *
+     * ⭐ ONE DRAW, whatever was explored: the zone's revealed cells become one
+     * texel each of a small canvas, which is stretched onto the texture with
+     * NEAREST sampling so every cell lands as a hard square like a live stamp.
+     * Drawn with `clear: false`, so it UNIONS with the live stamps (D8), and
+     * applying the same publication twice changes nothing.
+     *
+     * ⚑ Only this zone's cells are taken (L7): a stored chunk can straddle two
+     * zones, and zoneCellMask clips to this one's rectangle, origin included.
+     */
+    applyRevealed(renderer: Renderer, data: MapFogData) {
+        const mask = zoneCellMask(data, {
+            originX: px2meter(this.originX),
+            originY: px2meter(this.originY),
+            width: px2meter(this.mapWidth),
+            height: px2meter(this.mapHeight),
+        });
+        if (mask.count === 0) {
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = mask.cols;
+        canvas.height = mask.rows;
+        const context = canvas.getContext('2d');
+        const pixels = context.createImageData(mask.cols, mask.rows);
+        for (let i = 0; i < mask.revealed.length; i++) {
+            if (mask.revealed[i]) {
+                pixels.data.set([255, 255, 255, 255], i * 4);
+            }
+        }
+        context.putImageData(pixels, 0, 0);
+
+        const texture = Texture.from(canvas);
+        texture.source.scaleMode = 'nearest';
+        const sprite = new Sprite(texture);
+        // World px of the mask's first cell → this zone's corner-origined
+        // texture: subtract the origin, add half the zone (the revealAt rule).
+        const cellPx = meter2px(data.cellSize);
+        sprite.position.set(
+            (mask.cellX0 * cellPx - this.originX + this.mapWidth / 2) * this.texelsPerPx,
+            (mask.cellY0 * cellPx - this.originY + this.mapHeight / 2) * this.texelsPerPx,
+        );
+        sprite.scale.set(cellPx * this.texelsPerPx);
+        renderer.render({container: sprite, target: this.texture, clear: false});
+
+        sprite.destroy();
+        texture.destroy(true);
+        this.restoredAnything = true;
+    }
+
     /** Whether anything has been revealed yet — the map is blank before this. */
     get hasRevealedAnything(): boolean {
-        return this.revealedCells.size > 0;
+        return this.restoredAnything || this.revealedCells.size > 0;
     }
 
     destroy() {

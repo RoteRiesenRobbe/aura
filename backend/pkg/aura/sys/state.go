@@ -10,6 +10,7 @@ import (
 	"github.com/EngoEngine/ecs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/auth"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/mapfog"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/minions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
@@ -91,7 +92,10 @@ type reconnectStash struct {
 	// reload does not lose the fires found since the last save. Unlike
 	// campCharges above this is stashed on BOTH the alive and the dead path:
 	// discovery is persisted progress, and death does not take it.
-	discovered     stringSet
+	discovered stringSet
+	// fog is discovered's twin for the map reveal (plan-map-fog-persistence.md
+	// F1), stashed on both paths for the same reason.
+	fog            *mapfog.Fog
 	dead           bool
 	disconnectTick uint64
 
@@ -216,6 +220,14 @@ type ConnectionStateSystem struct {
 	// ⚑ It only ever GROWS within a session. Nothing un-discovers a fire, which
 	// is what lets the save path insert instead of replacing (store.SaveCharacter).
 	discovered map[uuid.UUID]stringSet
+	// fog is the map area each client's character has revealed
+	// (plan-map-fog-persistence.md F1), marked from its position every tick.
+	//
+	// ⚑ CONNECTION STATE WITH discovered's FOUR SEAMS, for discovered's reason:
+	// seeded from the play ticket at join, carried through the reconnect stash,
+	// re-added after death's removal fan-out, dropped on disconnect. It only
+	// ever grows, which is what lets the save path upsert and never delete.
+	fog map[uuid.UUID]*mapfog.Fog
 	// dwell tracks a player's bind progress at ONE campfire, keyed by player
 	// entity ID (reset on leave or on reaching a different fire, dropped on
 	// removal).
@@ -320,6 +332,32 @@ func (s *ConnectionStateSystem) discoveredFor(client uuid.UUID) stringSet {
 	return set
 }
 
+// fogFor is a client's map reveal, created empty on first touch.
+func (s *ConnectionStateSystem) fogFor(client uuid.UUID) *mapfog.Fog {
+	fog, ok := s.fog[client]
+	if !ok {
+		fog = mapfog.New()
+		s.fog[client] = fog
+	}
+	return fog
+}
+
+// trackMapFog marks each player's AOI into its reveal
+// (plan-map-fog-persistence.md D4/D5). One comparison per player per tick
+// unless the player entered a new cell.
+//
+// ⚑ It never forces a save (D6): exploring would otherwise write constantly.
+// The reveal rides the interval, logout, session expiry and shutdown flush.
+//
+// ⚑ Flyers are marked like walkers, with the fixed AOI (D11); mapfog reads the
+// constants, never the scaled flight viewport. Spectators, the start-screen
+// tour included, are not in s.players and reveal nothing (L4).
+func (s *ConnectionStateSystem) trackMapFog() {
+	for _, p := range s.players {
+		s.fogFor(p.Client().UUID()).MarkAt(p.Position())
+	}
+}
+
 // DiscoveredCampfires is a client's discovered set as a sorted slice — the form
 // both the wire and the save snapshot want.
 //
@@ -368,6 +406,21 @@ func (s *ConnectionStateSystem) publishCampfireState(p model.PlayerEntity) {
 	p.NoteCampfireState(s.anchors[client], s.DiscoveredCampfires(client))
 }
 
+// publishMapFog stamps the owning client's whole map reveal onto the player,
+// for this tick's GameState (plan-map-fog-persistence.md F2, D7).
+//
+// ⚑ ENTERING THE WORLD ONLY (join, reattach, respawn, revive), never per tick
+// and never at a dwell: the client keeps revealing locally exactly as before,
+// so it only needs what it cannot know, the stored reveal. The client merges,
+// so a respawn re-sending what it already drew is harmless.
+//
+// ⚑ At the same sites as publishCampfireState, and for L5's reason: a one-shot
+// stamped here inherits the StatusEffects → ConnectionState → Net ordering that
+// already gets the campfire pair onto the wire in the same tick.
+func (s *ConnectionStateSystem) publishMapFog(p model.PlayerEntity) {
+	p.NoteMapFog(s.fog[p.Client().UUID()].Chunks())
+}
+
 func NewConnectionStateSystem(g model.Game) *ConnectionStateSystem {
 	return &ConnectionStateSystem{
 		game:            g,
@@ -375,6 +428,7 @@ func NewConnectionStateSystem(g model.Game) *ConnectionStateSystem {
 		deadByClient:    map[uuid.UUID]deadState{},
 		anchors:         map[uuid.UUID]string{},
 		discovered:      map[uuid.UUID]stringSet{},
+		fog:             map[uuid.UUID]*mapfog.Fog{},
 		dwell:           map[uint64]dwellProgress{},
 		tokenByClient:   map[uuid.UUID]string{},
 		stashByToken:    map[string]reconnectStash{},
@@ -526,6 +580,7 @@ func (s *ConnectionStateSystem) Update(dt float32) {
 	}
 
 	s.trackCampfireDwell()
+	s.trackMapFog()
 	// ⚑ AFTER the join/death loops and the dwell tracker, never inside them —
 	// §4 Rule 2. A snapshot taken mid-tick can catch a player whose health has
 	// been decremented but whose death has not been processed yet; taken here it
@@ -680,6 +735,7 @@ func (s *ConnectionStateSystem) tryRespawn(sp model.Spectator) bool {
 	// constructor stamped the base pool before +maxHealth passives were back.
 	p.VitalSigns().Health = p.MaxHealth()
 	s.publishCampfireState(p)
+	s.publishMapFog(p)
 	s.game.AddEntity(p)
 	return true
 }
@@ -917,8 +973,12 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 	for _, id := range ticket.State.DiscoveredCampfires {
 		set.add(id)
 	}
+	// The map reveal the same way: UNION, and a chunk from another grid is
+	// skipped inside Seed, never a refused join (D10).
+	s.fogFor(client.UUID()).Seed(ticket.State.MapFog)
 
 	s.publishCampfireState(p)
+	s.publishMapFog(p)
 	s.game.AddEntity(p)
 }
 
@@ -959,6 +1019,10 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 			set.add(id)
 		}
 	}
+	// …and the map reveal, for the same silent-loss reason.
+	if stash.fog.Len() > 0 {
+		s.fogFor(client.UUID()).Seed(stash.fog.Chunks())
+	}
 	sendAcceptMessage(client, token)
 
 	if stash.dead {
@@ -997,6 +1061,7 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 	}
 	p.VitalSigns().Health = health
 	s.publishCampfireState(p)
+	s.publishMapFog(p)
 	s.game.AddEntity(p)
 }
 
@@ -1020,6 +1085,7 @@ func (s *ConnectionStateSystem) handleDeath(p model.PlayerEntity) {
 	name := p.Name()
 	anchor, hasAnchor := s.anchors[client.UUID()]
 	discovered := s.discovered[client.UUID()]
+	fog := s.fog[client.UUID()]
 	token, hasToken := s.tokenByClient[client.UUID()]
 	account := s.accountByClient[client.UUID()]
 	character := s.characterByClient[client.UUID()]
@@ -1038,6 +1104,10 @@ func (s *ConnectionStateSystem) handleDeath(p model.PlayerEntity) {
 	// to dying survive it for the same reason.
 	if len(discovered) > 0 {
 		s.discovered[client.UUID()] = discovered
+	}
+	// Nor re-fog the map (plan-map-fog-persistence.md D12).
+	if fog != nil {
+		s.fog[client.UUID()] = fog
 	}
 	if hasToken {
 		delete(s.stashByToken, token)
@@ -1195,6 +1265,7 @@ func (s *ConnectionStateSystem) ReviveAtCorpse(corpseID uint64, healthFraction f
 	// the restored loadout.
 	p.VitalSigns().Health = vitals.VitalSign(float32(p.MaxHealth()) * healthFraction)
 	s.publishCampfireState(p)
+	s.publishMapFog(p)
 	s.game.AddEntity(p)
 	return true
 }
@@ -1318,6 +1389,7 @@ func (s *ConnectionStateSystem) removeFromSpectators(e ecs.BasicEntity) {
 				position:       dead.corpse.Position(),
 				anchor:         s.anchors[client],
 				discovered:     s.discovered[client],
+				fog:            s.fog[client],
 				dead:           true,
 				disconnectTick: s.game.Ticks(),
 				accountID:      s.accountByClient[client],
@@ -1341,6 +1413,7 @@ func (s *ConnectionStateSystem) removeFromSpectators(e ecs.BasicEntity) {
 		delete(s.deadByClient, client)
 		delete(s.anchors, client)
 		delete(s.discovered, client)
+		delete(s.fog, client)
 	}
 }
 
@@ -1387,6 +1460,7 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 			position:       position,
 			anchor:         s.anchors[clientUUID],
 			discovered:     s.discovered[clientUUID],
+			fog:            s.fog[clientUUID],
 			disconnectTick: s.game.Ticks(),
 			accountID:      s.accountByClient[clientUUID],
 			characterID:    s.characterByClient[clientUUID],
@@ -1406,6 +1480,7 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 	delete(s.characterByClient, clientUUID)
 	delete(s.anchors, clientUUID)
 	delete(s.discovered, clientUUID)
+	delete(s.fog, clientUUID)
 	delete(s.dwell, p.Basic().ID())
 	s.players = append(arr[:idx], arr[idx+1:]...)
 }
