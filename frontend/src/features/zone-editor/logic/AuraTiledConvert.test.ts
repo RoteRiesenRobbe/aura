@@ -251,6 +251,19 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
 });
 
 describe('AuraConvert — the tri-state fields', () => {
+    it('a zone ground survives the round trip', () => {
+        expect(roundTrip(zone({ground: 'Wall'})).ground).toBe('Wall');
+    });
+
+    it('a zone without ground gains no key, and the Tiled placeholder reads back as absent', () => {
+        expect('ground' in roundTrip(zone())).toBe(false);
+        // What the map property holds when the author picked nothing: the
+        // bridge writes the placeholder so Map Properties shows a dropdown.
+        const model = C.zoneToModel(zone());
+        model.ground = C.PROFILE_UNSET;
+        expect('ground' in JSON.parse(C.serializeZone(C.modelToZone(model)))).toBe(false);
+    });
+
     it('an inheriting spawn keeps wanderRadius absent, not zero', () => {
         const out = roundTrip(zone({spawns: [{mob: 'Wolf', x: 1, y: 2, angle: 0}]}));
         expect('wanderRadius' in out.spawns[0]).toBe(false);
@@ -1826,6 +1839,9 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         // quietly dropped it — the same trap paths.blocksMovement documents
         // two fields down.
         origin: {x: 500, y: -500},
+        // ⚑ Authored for the same reason: absent is the default (black), so a
+        // fixture without it would let both writers drop every zone's ground.
+        ground: 'Wall',
         terrain: [{type: 'Green Grass 1', x: 0, y: 0, size: 1, rotation: 0.5, flipped: 'horizontal'}],
         props: [{type: 'Tree', x: 1, y: 1, rotation: 0.25, blocksMovement: true, scale: 2.5}],
         spawns: [{

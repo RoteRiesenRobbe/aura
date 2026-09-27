@@ -16,6 +16,7 @@ import {
 } from '../../../../conversation/logic/ConversationModel';
 import {QuestProgress} from '../../../../journal/logic/JournalModel';
 import {SkillEventData} from '../../SkillEventNumbers';
+import {MapFogData} from '../../../../map/logic/FogReveal';
 
 export class Spectator {
     id: number;
@@ -84,6 +85,10 @@ export class GameStateMessage {
     // the markers on every tick but two.
     discoveredCampfires: string[] | undefined;
     homeCampfire: string | undefined;
+    // The character's stored map reveal (plan-map-fog-persistence.md F2): the
+    // same one-shot lifecycle as the campfire pair — undefined means "no
+    // change", published only on entering the world.
+    mapFog: MapFogData | undefined;
     // one-tick rejection feedback: a cooldown activation refused by its
     // precondition — which skill and why (0 = none)
     activationRejectedSkillId: number;
@@ -204,6 +209,7 @@ export class GameStateMessage {
         this.campCharges = gameState.campCharges();
         this.homeCampfire = gameState.homeCampfire() ?? undefined;
         this.discoveredCampfires = unmarshalDiscoveredCampfires(gameState);
+        this.mapFog = unmarshalMapFog(gameState);
 
         this.activationRejectedSkillId = gameState.activationRejectedSkillId();
         this.activationRejectedReason = gameState.activationRejectedReason();
@@ -236,6 +242,30 @@ function unmarshalDiscoveredCampfires(gameState: AuraApi.GameState): string[] | 
         ids.push(gameState.discoveredCampfires(i));
     }
     return ids;
+}
+
+/**
+ * Read the stored map reveal out of a snapshot (plan-map-fog-persistence.md F2).
+ *
+ * ⚑ `undefined` for an absent TABLE — "not published this tick", the case on
+ * every tick but the one entering the world. Presence is the table itself, out
+ * of band of its contents, so no emptiness has to be interpreted.
+ *
+ * The bits are COPIED out of the message buffer: the view bitsArray() returns
+ * aliases a buffer the socket layer is free to reuse.
+ */
+function unmarshalMapFog(gameState: AuraApi.GameState): MapFogData | undefined {
+    const fog = gameState.mapFog();
+    if (!fog) {
+        return undefined;
+    }
+    const chunks = [];
+    const chunk = new AuraApi.FogChunk();
+    for (let i = 0; i < fog.chunksLength(); ++i) {
+        fog.chunks(i, chunk);
+        chunks.push({x: chunk.x(), y: chunk.y(), bits: (chunk.bitsArray() ?? new Uint8Array(0)).slice()});
+    }
+    return {cellSize: fog.cellSize(), chunkCells: fog.chunkCells(), chunks};
 }
 
 /**

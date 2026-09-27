@@ -7,6 +7,7 @@ import * as flatbuffers from 'flatbuffers';
 import { ActivationRejection } from '../aura-api/activation-rejection.js';
 import { Conversation } from '../aura-api/conversation.js';
 import { Entity } from '../aura-api/entity.js';
+import { MapFog } from '../aura-api/map-fog.js';
 import { Player, unionToPlayer, unionListToPlayer } from '../aura-api/player.js';
 import { QuestProgress } from '../aura-api/quest-progress.js';
 import { SkillEvent } from '../aura-api/skill-event.js';
@@ -259,8 +260,13 @@ skillEventsLength():number {
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
+mapFog(obj?:MapFog):MapFog|null {
+  const offset = this.bb!.__offset(this.bb_pos, 62);
+  return offset ? (obj || new MapFog()).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(29);
+  builder.startObject(30);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -522,6 +528,10 @@ static createSkillEventsVector(builder:flatbuffers.Builder, data:flatbuffers.Off
 
 static startSkillEventsVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(4, numElems, 4);
+}
+
+static addMapFog(builder:flatbuffers.Builder, mapFogOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(29, mapFogOffset, 0);
 }
 
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {

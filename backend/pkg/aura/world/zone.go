@@ -618,7 +618,12 @@ type Zone struct {
 	// cannot disagree with the geometry — because the geometry is derived from
 	// it — and this contract is deleted. Do not build a second consumer of
 	// "+Y is deeper" without reading that section first.
-	Origin    Point            `json:"origin"`
+	Origin Point `json:"origin"`
+	// Ground names the terrain profile this zone is filled with, inside its
+	// bounds AND beyond them, beneath every region and polygon (PO 2026-09-27).
+	// Absent = black. Client-visual only and unvalidated against the profile
+	// table, Region's D8 posture verbatim: the server never reads it.
+	Ground    string           `json:"ground,omitempty"`
 	Terrain   []TerrainTexture `json:"terrain"`
 	Props     []Prop           `json:"props"`
 	Spawns    []Spawn          `json:"spawns"`

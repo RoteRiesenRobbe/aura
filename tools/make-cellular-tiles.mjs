@@ -5,7 +5,7 @@
  * `state: stock`, borrowing the desert tile, which is a different fault with
  * the same fix).
  *
- *     forest · wall · road
+ *     forest · wall · road · stones (the first OVERLAY tile, ground-noise W2)
  *
  * ⭐ Checked in as a script, not just images, because a placeholder's whole job
  * is to be re-tuned: change a constant, re-run, look at it again. The committed
@@ -432,6 +432,47 @@ const TILES = [
             },
         ],
         shadowColor: [0x3a, 0x2c, 0x1d],
+    },
+    {
+        // ⭐ THE ROAD'S PEBBLES TURNED UP UNTIL THEY ARE THE MATERIAL — the
+        // road comment's own warning read the other way round: "past ~20 %
+        // coverage this stops being a dirt road and becomes gravel". Gravel is
+        // what this tile is FOR. It is the first OVERLAY tile
+        // (plan-ground-noise.md W2): it is never seen as a whole surface, only
+        // in noise patches over another profile — stones showing through grass —
+        // so it can be busy in a way a ground tile repeated nine times across a
+        // screen cannot, because a patch shows a piece of it and stops.
+        //
+        // ⚑ The stones are a WARM grey, for the road's reason: a neutral grey
+        // beside warm ground reads blue. The earth between them is dark and
+        // thin, because in a stony patch the ground is what shows BETWEEN the
+        // stones, not the other way round.
+        file: 'stones-placeholder.png',
+        profileColor: [0x60, 0x57, 0x4b],
+        paint: 'earth',
+        warp: {waves: EARTH_WARP, strength: 12, offset: [0.19, 0.83]},
+        bed: {
+            waves: BED,
+            ramp: [[0x3e, 0x35, 0x2a], [0x4e, 0x44, 0x37], [0x5e, 0x53, 0x44]],
+            grit: 0.2,
+            gamma: 1.0,
+        },
+        cracks: {waves: CRACKS, sharpness: 44, strength: 0, color: [0x3a, 0x2c, 0x1d]},
+        layers: [
+            {
+                n: 11, jitter: 0.46, elong: 1.35, radius: 0.44, sizeVar: 0.6,
+                fill: 0.7, salt: 210,
+                ramp: [[0x6c, 0x66, 0x5c], [0x9e, 0x97, 0x8a]],
+                rim: 0.34, shadow: [4, 5], shadowStrength: 0.42,
+            },
+            {
+                n: 23, jitter: 0.46, elong: 1.2, radius: 0.38, sizeVar: 0.7,
+                fill: 0.55, salt: 260,
+                ramp: [[0x78, 0x71, 0x66], [0xae, 0xa7, 0x99]],
+                rim: 0.28, shadow: [2, 3], shadowStrength: 0.34,
+            },
+        ],
+        shadowColor: [0x2a, 0x23, 0x1b],
     },
 ];
 

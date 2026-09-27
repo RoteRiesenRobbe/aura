@@ -251,6 +251,10 @@ export interface ZoneData {
     // fromJSON -> getZoneAsJSON. Dropping it would silently move a whole zone
     // on top of another one on the next in-game save (L3).
     origin?: ZoneOrigin;
+    // The terrain profile the zone is filled with, inside AND beyond its
+    // bounds, beneath every region and polygon. Absent = black. Carried, never
+    // edited — Tiled authors it as a map property.
+    ground?: string;
     terrain: ZoneTerrain[];
     props: ZoneProp[];
     spawns: ZoneSpawn[];
@@ -373,6 +377,8 @@ export class ZoneModel {
     // than to {x: 0, y: 0}, or every existing zone file gains a line on its
     // next save.
     origin?: ZoneOrigin;
+    // Carried, never edited — see ZoneData.ground. undefined = no key.
+    ground?: string;
     // 0 until the first mint, which seeds it from the loaded zone.
     private nextSpawnPointNumber: number = 0;
 
@@ -438,6 +444,7 @@ export class ZoneModel {
             points: (c.points || []).map(pt => ({...pt})),
         }));
         model.origin = data.origin ? {x: data.origin.x, y: data.origin.y} : undefined;
+        model.ground = data.ground || undefined;
         return model;
     }
 
@@ -529,6 +536,7 @@ export class ZoneModel {
             // Omitted when absent so every zone that authors no origin — which
             // is all of them today — round-trips diff-clean.
             ...(this.origin ? {origin: {x: this.origin.x, y: this.origin.y}} : {}),
+            ...(this.ground ? {ground: this.ground} : {}),
             terrain: this.terrain.map(t => ({
                 type: t.type,
                 x: round(t.x, 2),

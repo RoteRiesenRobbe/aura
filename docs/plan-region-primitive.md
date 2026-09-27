@@ -636,7 +636,8 @@ as natural or as a soft ruler is exactly the judgement to make in front of the
 game, once. Noise displacement is a second decision with its own knob, and it
 can be added inside the same mask generation without touching a line of the rest.
 ⭐ **Built 2026-09-23 as `plan-ground-noise.md` W1**, exactly there: the profile key `wobble`, a
-bake-time noise pass over the blurred mask.
+bake-time noise pass over the blurred mask. (W1b, 2026-09-26, replaced `wobble` with `wobbleReach` /
+`wobbleSize` / `wobbleRoughness`; W1c made the mask density follow a narrow `blend`.)
 
 **Schema NONE, no zone-file field, no whitelist, no Tiled change** — same as C4.
 The authored shape does not move; this is one more presentation property.

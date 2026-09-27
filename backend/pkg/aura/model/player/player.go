@@ -13,6 +13,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -185,6 +186,9 @@ type player struct {
 	// Absent therefore always means "no change", never "cleared".
 	homeCampfire        string
 	discoveredCampfires []string
+	// mapFog is the stored map reveal (plan-map-fog-persistence.md F2), the
+	// campfire pair's twin: published on entering the world, reset each tick.
+	mapFog []persist.FogChunk
 
 	// campCharges is how many Camp baseline-utility charges this player is
 	// holding (plan-downtime.md C2, D3). Deliberately NOT a per-tick
@@ -522,6 +526,14 @@ func (p *player) NoteCampfireState(home string, discovered []string) {
 	p.discoveredCampfires = discovered
 }
 
+// MapFog is the stored map reveal published this tick; nil when there is
+// nothing to publish.
+func (p *player) MapFog() []persist.FogChunk { return p.mapFog }
+
+// NoteMapFog publishes the map reveal to this tick's GameState; the
+// ConnectionStateSystem calls it on entering the world (D7).
+func (p *player) NoteMapFog(chunks []persist.FogChunk) { p.mapFog = chunks }
+
 // CampCharges is how many Camp charges this player holds (C2); serialized as
 // the own-player camp_charges wire field.
 func (p *player) CampCharges() int { return p.campCharges }
@@ -805,6 +817,7 @@ func (p *player) ResetTickNumbers() {
 	p.campfireBound = false
 	p.homeCampfire = ""
 	p.discoveredCampfires = nil
+	p.mapFog = nil
 	p.rejectedSkill = 0
 	p.rejectedReason = model.ActivationRejectedNone
 	p.interactableEntityID = 0

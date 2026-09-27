@@ -12,8 +12,6 @@ const PLAYER_COLLIDER_RADIUS_METERS = 0.25;
 
 export const GraphicsConfig = {
 
-    deepWaterColor: <color> 0x1C57B5,
-    shallowWaterColor: <color> 0x287aff,
     // Derived from Theme so the page background (LESS @land-color) and the
     // terrain stay one fact; the LESS side is pinned by Theme.test.ts.
     landColor: <color> LAND_COLOR,

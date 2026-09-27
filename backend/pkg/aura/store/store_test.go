@@ -82,6 +82,8 @@ func TestMigrateCreatesTheWholeSchema(t *testing.T) {
 		// 000002 (plan-world-map.md C2): the per-character discovered-campfire
 		// set — the map's markers, and flight's future network.
 		"character_campfires",
+		// 000003 (plan-map-fog-persistence.md F1): the explored map-fog chunks.
+		"character_map_fog",
 	}
 	for _, table := range want {
 		t.Run(table, func(t *testing.T) {

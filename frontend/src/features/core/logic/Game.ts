@@ -40,7 +40,6 @@ import * as Clearings from '../../atmospheres/logic/Clearings';
 import * as RegionPaint from '../../regions/logic/RegionPaint';
 import {GameState, IGame, IGameLayers} from './IGame';
 import {gameObjectId} from '../../common/logic/Types';
-import {GraphicsConfig} from '../../../client-data/Graphics';
 import {setGrayKnobs} from '../../../client-data/Mobs';
 import {IBackend} from '../../backend/logic/IBackend';
 import {
@@ -58,6 +57,7 @@ import {registerPreload} from './Preloading';
 
 registerPreload(packIconsReady);
 import {installContextLossWarning} from './ContextLossWarning';
+import {SPECTATE_VIEWPORT_SCALE} from '../../camera/logic/Zoom';
 import {isMobile} from '../../user-interface/logic/Mobile';
 
 /**
@@ -104,6 +104,11 @@ export class Game implements IGame {
     /** The blend-mask textures the last region paint created (C5) - GPU memory
      *  nothing else references, freed by the next paint. See {@link paintRegions}. */
     private regionMasks: RenderTexture[] = [];
+
+    /** The flat colour behind everything: the current zone's {@link Regions.groundColor}.
+     *  Black until a zone names a ground (PO 2026-09-27). */
+    private backdropColor: number = Regions.GROUND_DEFAULT_COLOR;
+    private redrawBackdrop: () => void = () => undefined;
 
     /** The drifting terrain surfaces the last paint created (world-paths C3) -
      *  advanced once per frame in {@link loop}.
@@ -714,19 +719,16 @@ export class Game implements IGame {
         this.layers.terrain.ground.removeChildren().forEach(c => c.destroy());
         GroundTextureManager.clear();
         GroundTextureManager.loadZone(zoneName);
+        const zoneData = GroundTextureManager.getZoneData(zoneName);
 
-        // Shallow-water beach ring OUTSIDE the physical bounds (C2 fix: the
-        // old inset ring sat inside the wall, so the last 2 units of walkable
-        // land rendered as water). Land now fills the exact bounds the border
-        // collision uses — this zone's, at this zone's origin.
-        const waterMargin = 240;
-        this.layers.terrain.ground.addChild(new Graphics()
-            .rect(originX - width / 2 - waterMargin, originY - height / 2 - waterMargin,
-                width + 2 * waterMargin, height + 2 * waterMargin)
-            .fill(GraphicsConfig.shallowWaterColor));
-        this.layers.terrain.ground.addChild(new Graphics()
-            .rect(originX - width / 2, originY - height / 2, width, height)
-            .fill(GraphicsConfig.landColor));
+        // ⭐ THE ZONE'S GROUND, inside its bounds AND beyond them (PO
+        // 2026-09-27). The flat part is the screen backdrop in the ground's
+        // colour — black when the zone names none, which replaced the old
+        // deep-water backdrop, shallow-water ring and green land fill. The
+        // textured part is a region under every authored one (see
+        // Regions.withGround below).
+        this.backdropColor = Regions.groundColor(zoneData?.ground);
+        this.redrawBackdrop();
 
         // Region ground, painted over the base fill in AUTHORED ORDER — the
         // same order the resolution rule reads (D0), so what you see on top is
@@ -735,9 +737,18 @@ export class Game implements IGame {
         //
         // ⚑ The origin goes in HERE, not on the server: regions and paths are
         // client-visual, so world.Place leaves them zone-local deliberately.
-        const zoneData = GroundTextureManager.getZoneData(zoneName);
         const origin = rect ? {x: rect.originX, y: rect.originY} : undefined;
         Regions.loadRegions(zoneData?.regions, origin);
+        // The ground, FIRST in authored order so every region and polygon wins
+        // inside itself. It reaches as far past the bounds as the camera can
+        // ever show: the clamp centres a zone smaller than the view, and the
+        // widest view is the spectate zoom's (Zoom.ts) — half of it past each
+        // edge. Past that the flat backdrop above still has the right colour.
+        const reach = Constants.VIEWPORT.WIDTH * SPECTATE_VIEWPORT_SCALE / 2;
+        Regions.loadGround(zoneData?.ground, {
+            left: originX - width / 2 - reach, top: originY - height / 2 - reach,
+            right: originX + width / 2 + reach, bottom: originY + height / 2 + reach,
+        });
         Polygons.loadPolygons(zoneData?.polygons, origin);
         Paths.loadPaths(zoneData?.paths, origin);
         // The AIR over an area (plan-region-atmosphere.md A0) — loaded beside
@@ -936,18 +947,19 @@ export class Game implements IGame {
     }
 
     private createBackground() {
-        this.application.renderer.background.color = GraphicsConfig.deepWaterColor;
-        // Screen-sized deep-water backdrop (also carries the night tint, see
-        // DayCycle) — must follow every canvas resize.
-        const waterRect = new Graphics();
-        const redraw = () => {
-            waterRect.clear()
+        // Screen-sized backdrop in the zone's ground colour (also carries the
+        // night tint, see DayCycle) — must follow every canvas resize, and
+        // every zone swap (renderZone).
+        const backdrop = new Graphics();
+        this.redrawBackdrop = () => {
+            this.application.renderer.background.color = this.backdropColor;
+            backdrop.clear()
                 .rect(0, 0, this.width, this.height)
-                .fill(GraphicsConfig.deepWaterColor);
+                .fill(this.backdropColor);
         };
-        redraw();
-        this.application.renderer.on('resize', redraw);
-        this.layers.terrain.water.addChild(waterRect);
+        this.redrawBackdrop();
+        this.application.renderer.on('resize', this.redrawBackdrop);
+        this.layers.terrain.water.addChild(backdrop);
     }
 }
 

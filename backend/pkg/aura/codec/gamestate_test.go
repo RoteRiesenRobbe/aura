@@ -7,6 +7,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/corpse"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/prop"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -920,4 +921,41 @@ func TestEntitiesMarshalFlatbuf_EveryStreamedEntityTypeHasACase(t *testing.T) {
 			}, "%s has no case in EntitiesMarshalFlatbuf — it will abort every tick it is visible in", name)
 		})
 	}
+}
+
+// --- the persisted map reveal (plan-map-fog-persistence.md F2) ---
+
+// The chunks survive the trip with their negative indices and their bits, and
+// the grid rides beside them (§4.4: the client hand-syncs nothing).
+func TestMapFogMarshalFlatbuf_RoundTrip(t *testing.T) {
+	chunks := []persist.FogChunk{
+		{X: -3, Y: -2, CellSize: 2, ChunkCells: 64, Bits: []byte{0x81, 0x00, 0x7f}},
+		{X: 0, Y: 1, CellSize: 2, ChunkCells: 64, Bits: []byte{0x01}},
+	}
+	b := flatbuffers.NewBuilder(256)
+	fog := MapFogMarshalFlatbuf(chunks, b)
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddMapFog(b, fog)
+	gs := AuraApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	result := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).MapFog(nil)
+	require.NotNil(t, result)
+	assert.Equal(t, uint8(2), result.CellSize())
+	assert.Equal(t, uint8(64), result.ChunkCells())
+	require.Equal(t, 2, result.ChunksLength())
+	var c AuraApi.FogChunk
+	require.True(t, result.Chunks(&c, 0))
+	assert.Equal(t, int16(-3), c.X())
+	assert.Equal(t, int16(-2), c.Y())
+	assert.Equal(t, []byte{0x81, 0x00, 0x7f}, c.BitsBytes())
+	require.True(t, result.Chunks(&c, 1))
+	assert.Equal(t, int16(1), c.Y())
+}
+
+// Nothing to publish writes nothing: absent is "no change" (D7), so an empty
+// table must not appear on an ordinary tick.
+func TestMapFogMarshalFlatbuf_EmptyIsAbsent(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+	assert.Zero(t, MapFogMarshalFlatbuf(nil, b))
 }

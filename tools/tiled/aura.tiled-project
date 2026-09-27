@@ -198,6 +198,7 @@
             "values": [
                 "(pick a profile)",
                 "Fields",
+                "FieldsForestBlend",
                 "Suburbs",
                 "Ploughed",
                 "Ploughed Cross",
@@ -224,7 +225,8 @@
                 "Road",
                 "Water",
                 "Bog",
-                "Lava"
+                "Lava",
+                "Stones"
             ],
             "valuesAsFlags": false
         },

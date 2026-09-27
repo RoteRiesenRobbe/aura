@@ -106,22 +106,46 @@ func TestCharacterStateRoundTripsThroughAPlayer(t *testing.T) {
 	origin.QuestLedger().NoteTalkedTo(11)
 
 	saved := characterState(99, origin.Name(), s.anchors[originClient.UUID()],
-		s.DiscoveredCampfires(originClient.UUID()),
+		s.DiscoveredCampfires(originClient.UUID()), s.fog[originClient.UUID()].Chunks(),
 		origin.Progression(), origin.SkillComponent(), origin.QuestLedger())
 
 	// Apply it to a brand-new player and snapshot again.
 	restoredClient := newFakeClient()
 	restored := joinWithState(t, s, g, restoredClient, "Fred", saved)
 	reSaved := characterState(99, "Barney", s.anchors[restoredClient.UUID()],
-		s.DiscoveredCampfires(restoredClient.UUID()),
+		s.DiscoveredCampfires(restoredClient.UUID()), s.fog[restoredClient.UUID()].Chunks(),
 		restored.Progression(), restored.SkillComponent(), restored.QuestLedger())
 
+	// ⚑ The map fog is the one field a join adds to by itself: the restored
+	// player reveals its own spawn view on its first tick (a jittered spawn can
+	// land in a neighbouring cell), so it must COVER what was saved, not equal it.
+	require.NotEmpty(t, saved.MapFog, "the origin player revealed something")
+	assertFogCovers(t, reSaved.MapFog, saved.MapFog)
+	reSaved.MapFog = saved.MapFog
 	assert.Equal(t, saved, reSaved, "a restored character must snapshot identically")
 	assert.Equal(t, uint32(9), restored.Progression().Level)
 	assert.Equal(t, uint64(4321), restored.Progression().Experience)
 	assert.Equal(t, 1, restored.SkillComponent().ActiveAuraSlot)
 	assert.Equal(t, uint64(1), restored.QuestLedger().KillCount(7))
 	assert.True(t, restored.QuestLedger().HasTalkedTo(11))
+}
+
+// assertFogCovers checks every bit set in want is set in got.
+func assertFogCovers(t *testing.T, got, want []persist.FogChunk) {
+	t.Helper()
+	byKey := map[[2]int16][]byte{}
+	for _, c := range got {
+		byKey[[2]int16{c.X, c.Y}] = c.Bits
+	}
+	for _, w := range want {
+		g, ok := byKey[[2]int16{w.X, w.Y}]
+		if !assert.True(t, ok, "chunk (%d, %d) lost", w.X, w.Y) {
+			continue
+		}
+		for i := range w.Bits {
+			assert.Equal(t, w.Bits[i], g[i]&w.Bits[i], "chunk (%d, %d) byte %d lost bits", w.X, w.Y, i)
+		}
+	}
 }
 
 // TestColdJoinWithNoSavedStateKeepsTheFreshComponent: an empty spellbook means
@@ -407,7 +431,7 @@ func TestCharacterStateEncodesTheQuestLedgerAsThreeRows(t *testing.T) {
 	ledger.NoteKill(3)
 	ledger.NoteTalkedTo(9)
 
-	state := characterState(7, "Barney", "", nil, model.PlayerProgression{Level: 1},
+	state := characterState(7, "Barney", "", nil, nil, model.PlayerProgression{Level: 1},
 		skills.NewSkillComponent(true), ledger)
 
 	assert.Equal(t, json.RawMessage(`{"3":1}`), state.Flags[quests.FlagKillCounts])

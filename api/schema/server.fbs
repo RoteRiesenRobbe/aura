@@ -795,6 +795,28 @@ table SkillEvent {
   phase:HitPhase = Direct;
 }
 
+// --- the persisted map reveal (plan-map-fog-persistence.md F2, §4.4) ---
+
+// One explored chunk of the character's map reveal: chunk_cells² coverage bits
+// at world-space chunk index (x, y). Row-major within the chunk, LSB-first
+// within a byte: bit i of the chunk is (bits[i >> 3] >> (i & 7)) & 1, and cell
+// (cx, cy) of the world is bit (cy - y·n)·n + (cx - x·n) of chunk
+// (floor(cx / n), floor(cy / n)), n = chunk_cells. Indices may be negative.
+table FogChunk {
+  x:short;
+  y:short;
+  bits:[ubyte];
+}
+
+// Every chunk the owning character has explored, and the grid they are drawn
+// on. ⭐ THE GRID TRAVELS IN THE MESSAGE, so the server's constants are the one
+// source and the client has nothing to hand-sync.
+table MapFog {
+  cell_size:ubyte;    // world units per cell side
+  chunk_cells:ubyte;  // cells per chunk side
+  chunks:[FogChunk];  // explored chunks only
+}
+
 table GameState {
   tick:ulong;
 
@@ -998,6 +1020,16 @@ table GameState {
   // landed), so it costs nothing while the world is quiet. Appended at the
   // table end so existing field IDs stay stable.
   skill_events:[SkillEvent];
+
+  // The owning character's stored map reveal (plan-map-fog-persistence.md F2,
+  // D7). Own player only, and a ONE-SHOT with discovered_campfires' lifecycle:
+  // published on entering the world (join, reconnect, respawn, revive), absent
+  // on every other tick. ⚑ Absent means "no change", never "cleared" — the
+  // reveal only grows, and the client MERGES what arrives into what it has
+  // (D8), so a repeat publication is harmless. Presence is the table itself,
+  // out of band of its contents. Appended at the table end so existing field
+  // IDs stay stable.
+  map_fog:MapFog;
 }
 
 table Welcome {

@@ -101,7 +101,7 @@ fallback and **never** a tint, so the tile's own colour is the only lever, and
 adding *density* to fix a *contrast* fault just walks a tile toward the other
 family (which is exactly how the sandstorm tripped the coverage ceiling).
 
-### `forest-` / `wall-` / `road-placeholder.png` — GENERATED, not from a pack
+### `forest-` / `wall-` / `road-` / `stones-placeholder.png` — GENERATED, not from a pack
 
 | | |
 |---|---|
@@ -189,6 +189,15 @@ path per straight leg. All three `Road` paths in `world.json` are 4–7 point
 meanders on a single path, so a baked rut would run due east while the road
 went north. ⭐ Ruts are a **second tile** for when a road is authored leg by
 leg; this one has to work on a curve.
+
+⭐ **`stones-placeholder.png` is the family's fourth tile and the first OVERLAY
+tile** (`docs/plan-ground-noise.md` W2, 2026-09-26): the road's pebbles turned up
+until they ARE the material (≈ 45 % stones over thin dark earth, where the road
+has 2.5 %). ⚑ It breaks the road's "looked THROUGH, not at" rule on purpose: it
+is meant to be painted only in noise PATCHES over another profile (named in its
+`overlay`; none does yet), so a patch shows a piece of it and stops, where a ground surface
+repeats every mark nine times across a screen. The stones are a warm grey, for
+the road's blue-bead reason.
 
 ### The field tiles — GENERATED, not from a pack
 

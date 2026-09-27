@@ -35,7 +35,11 @@ func TestCharacterStateRoundTrips(t *testing.T) {
 		// persist.SortCampfires have to agree, or the round-trip equality below
 		// fails for a reason that has nothing to do with persistence.
 		DiscoveredCampfires: []string{"spawnpoint-1", "spawnpoint-3"},
-		Spellbook:           map[int32]int{1: 3, 7: 1, 42: 9},
+		// Negative indices on purpose: world.json spans the origin (L3).
+		MapFog: []persist.FogChunk{
+			fogChunk(-3, -2, 0x81), fogChunk(-3, 1, 0x01), fogChunk(0, -1, 0xf0),
+		},
+		Spellbook: map[int32]int{1: 3, 7: 1, 42: 9},
 		Loadout: []persist.LoadoutSlot{
 			{Type: persist.SlotAura, Index: 2, SkillID: 42},
 			{Type: persist.SlotCooldown, Index: 0, SkillID: 7},
@@ -79,6 +83,8 @@ func TestCharacterStateRoundTrips(t *testing.T) {
 		"discovery only grows: a save must never remove a discovered campfire")
 
 	saved.DiscoveredCampfires = loaded.DiscoveredCampfires
+	// The map fog is upserted and never deleted; the second save still carries
+	// it, so it is unchanged.
 	assert.Equal(t, saved, loaded, "a save must replace the previous one, not add to it")
 }
 
@@ -104,9 +110,60 @@ func TestLoadCharacterStateOfANeverSavedCharacter(t *testing.T) {
 	assert.Equal(t, persist.NoActiveAura, loaded.ActiveAuraSlot)
 	assert.Empty(t, loaded.HomeCampfireID, "a character that never dwelled at a fire loads unbound")
 	assert.Empty(t, loaded.DiscoveredCampfires, "and has discovered nothing — an empty map")
+	assert.Empty(t, loaded.MapFog, "and has revealed nothing")
 	assert.Empty(t, loaded.Spellbook, "an empty spellbook is what marks a character as never saved")
 	assert.Empty(t, loaded.Loadout)
 	assert.Empty(t, loaded.Flags)
+}
+
+// fogChunk is a chunk on the stored grid with its first byte set to first.
+func fogChunk(x, y int16, first byte) persist.FogChunk {
+	bits := make([]byte, 64*64/8)
+	bits[0] = first
+	return persist.FogChunk{X: x, Y: y, CellSize: 2, ChunkCells: 64, Bits: bits}
+}
+
+// TestMapFogSaveGrowsAndNeverShrinks: plan-map-fog-persistence.md F1. A chunk's
+// bits are overwritten by a later save (in play they only ever gain bits), a
+// chunk the later snapshot lacks is kept, and a row on another grid comes back
+// from the load as stored: skipping it is the game's call at seed time (D10),
+// not the store's.
+func TestMapFogSaveGrowsAndNeverShrinks(t *testing.T) {
+	db, ctx := freshSchema(t)
+	accountID := newAccount(t, db, "secret-fog")
+	created, err := db.CreateCharacter(ctx, character("Wilma", accountID))
+	require.NoError(t, err)
+
+	state := persist.CharacterState{
+		CharacterID: created.ID, Level: 1, ActiveAuraSlot: persist.NoActiveAura,
+		MapFog: []persist.FogChunk{fogChunk(-1, -1, 0x01), fogChunk(2, 0, 0x02)},
+	}
+	require.NoError(t, db.SaveCharacter(ctx, state))
+
+	// The next snapshot fills one chunk further, omits another, adds a third.
+	foreign := persist.FogChunk{X: 5, Y: 5, CellSize: 4, ChunkCells: 32, Bits: make([]byte, 32*32/8)}
+	state.MapFog = []persist.FogChunk{fogChunk(-1, -1, 0x03), foreign}
+	require.NoError(t, db.SaveCharacter(ctx, state))
+
+	loaded, err := db.LoadCharacterState(ctx, accountID, created.ID)
+	require.NoError(t, err)
+	assert.Equal(t, []persist.FogChunk{fogChunk(-1, -1, 0x03), fogChunk(2, 0, 0x02), foreign}, loaded.MapFog,
+		"filled chunk grown, omitted chunk kept, foreign grid returned as stored, sorted by (x, y)")
+
+	// ⚑ A STALE SNAPSHOT MUST NOT SHRINK A CHUNK. A session seeded from a load
+	// that raced a still-pending save carries fewer bits than the row; the save
+	// ORs, so the row keeps them. And a chunk on a different grid at the same
+	// (x, y) is REPLACED, not ORed: its bits mean different cells (D10).
+	state.MapFog = []persist.FogChunk{fogChunk(-1, -1, 0x04), fogChunk(2, 0, 0x00)}
+	require.NoError(t, db.SaveCharacter(ctx, state))
+	regridded := persist.FogChunk{X: 5, Y: 5, CellSize: 2, ChunkCells: 64, Bits: fogChunk(5, 5, 0x10).Bits}
+	state.MapFog = []persist.FogChunk{regridded}
+	require.NoError(t, db.SaveCharacter(ctx, state))
+
+	loaded, err = db.LoadCharacterState(ctx, accountID, created.ID)
+	require.NoError(t, err)
+	assert.Equal(t, []persist.FogChunk{fogChunk(-1, -1, 0x07), fogChunk(2, 0, 0x02), regridded}, loaded.MapFog,
+		"a save only ever adds bits; a regridded chunk replaces the old one")
 }
 
 // TestLoadCharacterStateChecksOwnership: the load path is a second reader of a

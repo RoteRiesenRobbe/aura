@@ -123,6 +123,31 @@ that still names `darkAreas` would be refused at boot by
 `DisallowUnknownFields` — the failure is loud, but it is a failure of *shipped
 content*, which is the one kind this project does not accept casually.
 
+### 2. Ground noise on the PHONE — the edge knobs and the overlays, never seen there
+
+⚑ Not a superseded implementation like entry 1: a check the PO parked here
+(2026-09-27), kept to this file's rule that a row carries a trigger.
+
+| | |
+|---|---|
+| **What** | `docs/plan-ground-noise.md` W1b + W1c (wobbly edges, the finest fade: ≈ 0.25 u on a phone vs 0.125 u desktop) and W2 (overlays: one more mask texture and one more masked draw per overlaid surface; `FieldsForestBlend` is the first). All of it is desktop-judged only. |
+| **Why it matters** | Mobile halves the mask density (`BASE_TEXELS_PER_UNIT` 3, ceiling 8), so edges and patches bake coarser there, and the extra masks are VRAM on the platform already at its render ceiling. The W2 estimate: ≈ 0.9 MB of patch masks per four large overlaid regions on mobile (not a GPU reading). |
+| **Trigger** | ⭐ **The next time the game is opened on a phone for any reason** (the skill-VFX and icon-pack phone checks ride the same visit). Look at a road edge, a field plot, a soft biome border and a `FieldsForestBlend` region; watch the frame rate there. |
+| **Closes when** | Judged fine (delete this row), or a finding lands in `plan-ground-noise.md` with its own fix. |
+
+### 3. Ground overlays PER OBJECT — an open PO decision
+
+⚑ Not a superseded implementation either: a decision the PO parked here
+(2026-09-27). Nothing is built; both halves are options, not plans.
+
+| | |
+|---|---|
+| **Today** | `docs/plan-ground-noise.md` W2: an overlay's `coverage` / `size` / `roughness` live on the PROFILE (D2's rule: looks are per profile, never per region), and the patch LAYOUT is one world-keyed noise field. Every shape wearing a profile gets the same settings; a different look is a second profile (`FieldsForestBlend` is `Fields` + `Forest` patches). |
+| **Option A: per-object settings** | Optional overlay `coverage` / `size` / `roughness` on the region, polygon or path itself (set in Tiled), falling back to the profile's. ⭐ Runtime cost NONE: every surface already bakes its own patch mask. The cost is plumbing: a new zone field in the three serializers (`zone.go` · `aura-convert.js` · `ZoneModel`), Tiled class members with a safe "not authored" default, validation. About one chunk. ⛔ **Breaks D2**, so it needs that ruling amended first. |
+| **Option B: per-object layout** | A per-shape noise offset (a seed derived from the shape, nothing to author): each shape gets its own patch layout. One uniform, a few lines. ⚑ Loses the property that two touching shapes with the same overlay continue each other's patches across the seam; map parity survives. Only worth it if repetition across shapes is ever SEEN, which world-keyed noise makes unlikely. |
+| **Trigger** | ⭐ **The first time a second profile is made ONLY to change an overlay's numbers** (A), or repetition between shapes is noticed in-game (B). Until then, extra profiles are free and cover it. |
+| **Closes when** | The PO rules either option in (it becomes a `plan-ground-noise.md` chunk) or out (delete this row). |
+
 ---
 
 

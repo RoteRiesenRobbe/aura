@@ -445,6 +445,15 @@ to `aura-convert.js` and to `ZoneModel.getZoneAsJSON` in the same change, or
 one editor silently deletes what the other wrote. `npm test` goes red by design
 if you forget (the completeness pin in `AuraTiledConvert.test.ts`).
 
+⚑ **Resizing a zone is free; MOVING ground is not.** Each character's
+uncovered map is stored in world coordinates (`plan-map-fog-persistence.md`
+D9), so changing a zone's `bounds` keeps everyone's reveal, but changing its
+`origin`, or cutting an area of `world.json` out into its own zone file (which
+must move it, D9), leaves the stored reveal at the old position. When that
+happens, ship a one-off migration in the same commit that shifts
+`game.character_map_fog` inside the moved rectangle (recipe: that plan's §5
+L8; offsets in multiples of 2 u are lossless, of 128 u move whole chunks).
+
 ⚑ And if you edit the extension's **own code**, re-run `bash tools/tiled/install.sh`
 and restart Tiled. The installer *copies*, so Tiled keeps running the version it
 was given — this bites hardest in `verify.sh`, which drives the same installed
