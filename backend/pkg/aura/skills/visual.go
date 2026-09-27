@@ -23,9 +23,10 @@ import (
 //   - **On the SKILL, never per effect** (§10 Q1, PO 2026-09-19). A hit event
 //     carries the skill id, so the skill is the level the renderer can resolve
 //     for free; a skill with two effects (damage + slow) has one look.
-//   - **The seven kinds are ENGINE CODE and the set is CLOSED** (D4). Each one
+//   - **The eight kinds are ENGINE CODE and the set is CLOSED** (D4). Each one
 //     is a client class with its own math; a new kind is a plan amendment plus
-//     a renderer, not a content decision. Everything else about a layer is a
+//     a renderer, not a content decision (the eighth, `lunge`, was one:
+//     plan-natural-weapons.md §3.1). Everything else about a layer is a
 //     parameter, which is why the tunables are few and shared.
 //   - ⭐ **An ATTACK is authored, the HIT MARK is not** (C3a amendment,
 //     plan-skill-vfx.md §12g.1, PO 2026-09-21). Everything a file can say is
@@ -128,7 +129,12 @@ var (
 	// side of a hit is the only side a file draws now, and the mammoth's stomp
 	// wanted rings leaving the caster. Still seven, and they went seven, six,
 	// seven within one session.
-	visualKinds = []string{"strike", "projectile", "beam", "wave", "cast-pose", "orbit", "emitter"}
+	//
+	// `lunge` is the eighth (plan-natural-weapons.md §3.1, PO 2026-09-27), and
+	// the only kind that draws nothing: it moves the attacker's OWN token a
+	// short way toward the victim and back, the natural-weapon attack of a mob
+	// fighting with its body.
+	visualKinds = []string{"strike", "projectile", "beam", "wave", "cast-pose", "orbit", "emitter", "lunge"}
 
 	// visualTriggers: ambient = while this is the actor's running aura,
 	// fired = a cast or an aura tick went off (targets or not), hit = once
@@ -179,6 +185,11 @@ var (
 		"cast-pose":  mergeKeys(visualKeysCommon, []string{"ms"}),
 		"orbit":      mergeKeys(visualKeysCommon, []string{"ms", "count"}),
 		"emitter":    mergeKeys(visualKeysCommon, []string{"ms", "count", "motion"}),
+		// Written out, NOT merged from visualKeysCommon: a lunge draws
+		// nothing, so `body` and `tint` are keys it does not read, and a key
+		// a kind does not read is a hard-fail. `scale` multiplies the jab's
+		// distance (plan-natural-weapons.md §3.1).
+		"lunge": {"kind", "on", "ms", "scale"},
 	}
 
 	// visualCountMaxByKind is the upper half of the `count` range, for the
@@ -198,7 +209,9 @@ var (
 	// cast (fired, facing +X: a cast names no direction) or at a landing (hit,
 	// PO 2026-09-20: the bow shows only when damage is done and AIMS at the
 	// victim); only `emitter` spans ambient, fired and hit. Every kind with a
-	// victim end also takes `applied` (§12h); `wave` and `orbit` have none.
+	// victim end also takes `applied` (§12h); `wave` and `orbit` have none. A
+	// `lunge` is the attacker's body jabbing at a victim, so it has the
+	// strike's moments and no others (plan-natural-weapons.md §3.1).
 	visualTriggersByKind = map[string][]string{
 		"strike":     {"hit", visualTriggerApplied},
 		"projectile": {"hit", visualTriggerApplied},
@@ -207,6 +220,7 @@ var (
 		"cast-pose":  {"fired", "hit", visualTriggerApplied},
 		"orbit":      {"fired", "ambient"},
 		"emitter":    {"ambient", "fired", "hit", visualTriggerApplied},
+		"lunge":      {"hit", visualTriggerApplied},
 	}
 
 	// visualTriggersByCategory is D2, enforced at load (PO 2026-09-19).

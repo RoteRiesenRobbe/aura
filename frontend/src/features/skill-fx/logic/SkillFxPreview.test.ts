@@ -1,4 +1,4 @@
-import {describe, expect, it} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {Container} from 'pixi.js';
 import {readFileSync} from 'fs';
 import {
@@ -16,7 +16,8 @@ import {
 import {VISUAL_KINDS} from './SkillFxKinds';
 import {eventLifetimeMs} from './SkillFxStress';
 import {skillFxColor} from './SkillFxPalette';
-import {flightMs} from './SkillFxMath';
+import {flightMs, lungeContactMsOf, lungeTotalMsOf} from './SkillFxMath';
+import {PrerenderEvent} from '../../core/logic/Events';
 import {registerSkillDefinition, skillDefinition, skillDisplayNameFor, SkillDefinition, VisualLayer} from '../../../client-data/Skills';
 import {counters, forgetVisual, onSnapshot, reset, setup} from './SkillFx';
 import {AuraApi} from '../../backend/logic/AuraApi';
@@ -268,5 +269,136 @@ describe('registerSkillDefinition + forgetVisual', () => {
         expect(skillDisplayNameFor('PreviewB')).toBe('VFX preview');
         // the stale name falls back to itself, as an unknown name does
         expect(skillDisplayNameFor('PreviewA')).toBe('PreviewA');
+    });
+});
+
+/**
+ * The lunge through the REAL manager (plan-natural-weapons.md §3.2), on a stub
+ * with a `setBodyOffset` of its own, which is exactly how the preview page
+ * shows it (§10 L10). Every one of the four reset paths must leave the body at
+ * EXACT zero (§10 L2); the frame clock is `performance.now()`, driven here by
+ * hand and advanced by triggering the frame event the manager listens on.
+ */
+describe('the lunge through the manager', () => {
+    const LUNGE_ID = PREVIEW_SKILL_ID + 60;
+    const CASTER = 71;
+    const VICTIM = 72;
+
+    interface LungeStub {
+        id: number;
+        size: number;
+        shape: { position: { x: number, y: number }, destroyed: boolean, parent: object };
+        offsets: { x: number, y: number }[];
+        setBodyOffset(x: number, y: number): void;
+    }
+
+    function stub(id: number, x: number): LungeStub {
+        const s: LungeStub = {
+            id, size: 30, offsets: [],
+            shape: {position: {x, y: 0}, destroyed: false, parent: {}},
+            setBodyOffset: (dx, dy) => s.offsets.push({x: dx, y: dy}),
+        };
+        return s;
+    }
+
+    let clock = 10_000;
+    beforeEach(() => {
+        vi.spyOn(performance, 'now').mockImplementation(() => clock);
+        setup(new Container());
+        registerSkillDefinition(buildPreviewDefinition(message({
+            visual: {layers: [{kind: 'lunge', on: 'hit'}]}, layerIndex: 0,
+        }), LUNGE_ID));
+        reset();
+    });
+    afterEach(() => {
+        reset();
+        vi.restoreAllMocks();
+    });
+
+    function world() {
+        const caster = stub(CASTER, 0);
+        const victim = stub(VICTIM, 100);
+        const byId = new Map<number, LungeStub>([[CASTER, caster], [VICTIM, victim]]);
+        const bite = () => onSnapshot([{
+            source: CASTER, victim: VICTIM, skillId: LUNGE_ID, amount: 1,
+            kind: AuraApi.HitKind.Damage, fired: false, phase: AuraApi.HitPhase.Direct,
+        }], id => byId.get(id) as unknown as GameObject);
+        return {caster, victim, bite};
+    }
+
+    function frameAt(ms: number): void {
+        clock = ms;
+        PrerenderEvent.trigger(16);
+    }
+
+    function last(s: LungeStub): { x: number, y: number } {
+        return s.offsets[s.offsets.length - 1];
+    }
+
+    it('keeps the lunge OUT of the budget, and counts it', () => {
+        const {bite} = world();
+        const before = counters();
+        bite();
+        const after = counters();
+        expect(after.spawnedByKind.lunge - before.spawnedByKind.lunge).toBe(1);
+        expect(after.lunges).toBe(1);
+        // Only the engine's hit mark entered `live`.
+        expect(after.live - before.live).toBe(1);
+    });
+
+    it('jabs the attacker toward the victim, and only the attacker', () => {
+        const {caster, victim, bite} = world();
+        const start = clock;
+        const nudgesBefore = counters().lungeNudges;
+        bite();
+        frameAt(start + lungeContactMsOf(undefined));
+        expect(last(caster).x).toBeGreaterThan(0);
+        expect(last(caster).y).toBe(0);
+        expect(victim.offsets).toEqual([]);
+        expect(counters().lungeNudges).toBeGreaterThan(nudgesBefore);
+        // The logical position is never touched.
+        expect(caster.shape.position).toEqual({x: 0, y: 0});
+    });
+
+    it('reset path 1: the lunge ends, at exact zero', () => {
+        const {caster, bite} = world();
+        const start = clock;
+        bite();
+        frameAt(start + lungeContactMsOf(undefined));
+        frameAt(start + lungeTotalMsOf(undefined));
+        expect(last(caster)).toEqual({x: 0, y: 0});
+        expect(counters().lunges).toBe(0);
+    });
+
+    it('reset path 2: a new lunge replaces the running one, from zero', () => {
+        const {caster, bite} = world();
+        const start = clock;
+        bite();
+        frameAt(start + lungeContactMsOf(undefined));
+        expect(last(caster).x).toBeGreaterThan(0);
+        bite();
+        expect(last(caster)).toEqual({x: 0, y: 0});
+        expect(counters().lunges).toBe(1);
+    });
+
+    it('reset path 3: the attacker leaves the stage mid-jab', () => {
+        const {caster, bite} = world();
+        const start = clock;
+        bite();
+        frameAt(start + lungeContactMsOf(undefined));
+        caster.shape.parent = null;
+        frameAt(start + lungeContactMsOf(undefined) + 16);
+        expect(last(caster)).toEqual({x: 0, y: 0});
+        expect(counters().lunges).toBe(0);
+    });
+
+    it('reset path 4: the manager\'s reset()', () => {
+        const {caster, bite} = world();
+        const start = clock;
+        bite();
+        frameAt(start + lungeContactMsOf(undefined));
+        reset();
+        expect(last(caster)).toEqual({x: 0, y: 0});
+        expect(counters().lunges).toBe(0);
     });
 });

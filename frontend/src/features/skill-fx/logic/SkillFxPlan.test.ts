@@ -7,6 +7,7 @@ import {
     contactMs,
     flightMs,
     HIT_MARK_KIND,
+    lungeContactMsOf,
     STRIKE_CURVE_MS,
 } from './SkillFxMath';
 import {NEUTRAL_COLOR} from './SkillFxPalette';
@@ -650,5 +651,161 @@ describe('planSpawns: the over-time phase (§12h)', () => {
             expect(beams.map(entry => [entry.from, entry.victim])).toEqual([[CASTER, A], [A, B]]);
             expect(beams.map(entry => entry.delayMs)).toEqual([0, CHAIN_HOP_STAGGER_MS]);
         }
+    });
+});
+
+// plan-natural-weapons.md §3.1: the attacker's own token jabs at its victim.
+// A lunge is planned like any authored layer, with three rules of its own: its
+// contact joins the arrival, one per ATTACKER per snapshot, and it is the one
+// layer `off` still plans.
+describe('planSpawns: the lunge (plan-natural-weapons.md §3.1)', () => {
+    const LUNGE: VisualLayer = {kind: 'lunge', on: 'hit', ms: 220};
+    const bite = visuals({[SKILL]: [LUNGE]});
+
+    function lunges(plan: readonly SpawnPlan[]): SpawnPlan[] {
+        return plan.filter(entry => entry.def.kind === 'lunge');
+    }
+
+    it('plans the lunge from the attacker to its victim, at no delay', () => {
+        const plan = planSpawns([hit()], bite, NEAR);
+        expect(kinds(plan)).toEqual(['lunge', HIT_MARK_KIND]);
+        expect(plan[0].from).toBe(CASTER);
+        expect(plan[0].victim).toBe(A);
+        expect(plan[0].delayMs).toBe(0);
+    });
+
+    it('starts the mark at the lunge\'s contact moment', () => {
+        expect(delayOf(planSpawns([hit()], bite, NEAR), HIT_MARK_KIND))
+            .toBe(lungeContactMsOf(220));
+        const unauthored = visuals({[SKILL]: [{kind: 'lunge', on: 'hit'}]});
+        expect(delayOf(planSpawns([hit()], unauthored, NEAR), HIT_MARK_KIND))
+            .toBe(lungeContactMsOf(undefined));
+    });
+
+    it('waits for the LATEST of a projectile, a strike and a lunge', () => {
+        // A slow lunge outlasts a thrust (90 ms) and a point-blank bolt.
+        const slow = planSpawns([hit()], visuals({[SKILL]: [
+            {kind: 'strike', on: 'hit'},
+            {kind: 'projectile', on: 'hit', speed: 100_000},
+            {kind: 'lunge', on: 'hit', ms: 2_000},
+        ]}), NEAR);
+        expect(delayOf(slow, HIT_MARK_KIND)).toBe(lungeContactMsOf(2_000));
+        // And a slow overhead outlasts the default lunge.
+        const heavy = planSpawns([hit()], visuals({[SKILL]: [
+            {kind: 'lunge', on: 'hit'},
+            {kind: 'strike', on: 'hit', curve: 'overhead', ms: 2_000},
+        ]}), NEAR);
+        expect(delayOf(heavy, HIT_MARK_KIND)).toBe(contactMs('overhead', 2_000));
+    });
+
+    it('jabs ONCE per attacker in a snapshot, at the first victim', () => {
+        const plan = planSpawns([hit({victim: A}), hit({victim: B})], bite, NEAR);
+        expect(lunges(plan)).toHaveLength(1);
+        expect(lunges(plan)[0].victim).toBe(A);
+        // Both victims still get their mark.
+        expect(plan.filter(entry => entry.def.kind === HIT_MARK_KIND)).toHaveLength(2);
+    });
+
+    it('jabs once per attacker even across two of its skills', () => {
+        const plan = planSpawns([hit({victim: A}), hit({skillId: OTHER_SKILL, victim: B})],
+            visuals({[SKILL]: [LUNGE], [OTHER_SKILL]: [LUNGE]}), NEAR);
+        expect(lunges(plan)).toHaveLength(1);
+        expect(lunges(plan)[0].victim).toBe(A);
+    });
+
+    it('gives two attackers a lunge each', () => {
+        const plan = planSpawns(
+            [hit({victim: A}), hit({source: OTHER_CASTER, victim: B})], bite, NEAR);
+        expect(lunges(plan).map(entry => entry.from)).toEqual([CASTER, OTHER_CASTER]);
+    });
+
+    // §10 L11: the pose dedup is keyed on the bare castKey. A lunge pushed
+    // through the same set would drop the pose, or be dropped by it.
+    it('does NOT share the pose\'s dedup: a pose and a lunge on one skill both plan', () => {
+        const plan = planSpawns([hit()], visuals({[SKILL]: [
+            {kind: 'cast-pose', on: 'hit'},
+            LUNGE,
+        ]}), NEAR);
+        expect(kinds(plan)).toEqual(['cast-pose', 'lunge', HIT_MARK_KIND]);
+    });
+
+    it('moves the ATTACKER on every chain hop, never the previous victim', () => {
+        const plan = planSpawns([hit({victim: C}), hit({victim: A}), hit({victim: B})],
+            visuals({[SKILL]: [{kind: 'beam', on: 'hit', chain: true}, LUNGE]}), CHAIN_WORLD);
+        expect(lunges(plan)).toHaveLength(1);
+        expect(lunges(plan)[0].from).toBe(CASTER);
+        expect(lunges(plan)[0].source).toBe(CASTER);
+    });
+
+    // Rule 1: the attack happened, whatever the HitKind.
+    it('still lunges on an Immune and an Absorb landing', () => {
+        for (const kind of [AuraApi.HitKind.Immune, AuraApi.HitKind.Absorb]) {
+            expect(kinds(planSpawns([hit({kind, amount: 0})], bite, NEAR))).toEqual(['lunge']);
+        }
+    });
+
+    // Rule 6: a tick of an over-time effect plans no authored layer.
+    it('plans no lunge on a Tick', () => {
+        const plan = planSpawns([hit({phase: AuraApi.HitPhase.Tick})], visuals({[SKILL]: [
+            LUNGE, {kind: 'lunge', on: 'applied'},
+        ]}), NEAR);
+        expect(kinds(plan)).toEqual([HIT_MARK_KIND]);
+    });
+
+    it('plans an on:applied lunge on an application', () => {
+        const plan = planSpawns([hit({phase: AuraApi.HitPhase.Applied, amount: 0})],
+            visuals({[SKILL]: [{kind: 'lunge', on: 'applied'}]}), NEAR);
+        expect(kinds(plan)).toEqual(['lunge']);
+        expect(plan[0].from).toBe(CASTER);
+    });
+});
+
+// D4 and §10 L3: the lunge is the one layer `off` does not cut, because it
+// costs no fill rate. Everything else stays literal: no other authored layer,
+// no mark, and no seed spent on a snapshot that drew no swing.
+describe('planSpawns: the lunge at density off', () => {
+    const spider = visuals({[SKILL]: [
+        {kind: 'lunge', on: 'hit'},
+        {kind: 'strike', on: 'hit', curve: 'pincer'},
+        {kind: 'projectile', on: 'applied', speed: PROJECTILE_SPEED},
+    ]});
+
+    it('plans the lunge layers and nothing else', () => {
+        const plan = planSpawns([hit()], spider, NEAR, 'off');
+        expect(kinds(plan)).toEqual(['lunge']);
+        expect(plan[0].from).toBe(CASTER);
+        expect(plan[0].victim).toBe(A);
+        expect(plan[0].delayMs).toBe(0);
+        expect(plan[0].baseColor).toBe(COLOR);
+    });
+
+    it('gives every entry seed 0', () => {
+        const plan = planSpawns([hit({victim: A}), hit({source: OTHER_CASTER, victim: B})],
+            spider, NEAR, 'off');
+        expect(plan.map(entry => entry.seed)).toEqual([0, 0]);
+    });
+
+    it('still jabs once per attacker', () => {
+        expect(planSpawns([hit({victim: A}), hit({victim: B})], spider, NEAR, 'off'))
+            .toHaveLength(1);
+    });
+
+    it('plans no lunge on a Tick, and nothing for an application without one', () => {
+        expect(planSpawns([hit({phase: AuraApi.HitPhase.Tick})], spider, NEAR, 'off')).toEqual([]);
+        expect(planSpawns([hit({phase: AuraApi.HitPhase.Applied, amount: 0})], spider, NEAR, 'off'))
+            .toEqual([]);
+    });
+
+    it('skips an entity the client does not hold', () => {
+        expect(planSpawns([hit({victim: UNKNOWN})], spider, NEAR, 'off')).toEqual([]);
+        expect(planSpawns([hit({source: UNKNOWN})], spider, NEAR, 'off')).toEqual([]);
+    });
+
+    it('spends no seed: a session at off does not move later swings', () => {
+        const before = planSpawns([hit()], spider, NEAR, 'full');
+        const atOff = planSpawns([hit(), hit({victim: B})], spider, NEAR, 'off');
+        expect(atOff).toHaveLength(1);
+        const after = planSpawns([hit()], spider, NEAR, 'full');
+        expect(after[0].seed).toBe(before[0].seed + 1);
     });
 });

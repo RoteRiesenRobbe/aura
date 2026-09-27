@@ -10,7 +10,7 @@
  * Two modes of one page:
  * - `fx-preview.html`: waits for the editor's `aura-fx-preview` message and
  *   loops that ONE layer between a caster (left) and a victim (right).
- * - `fx-preview.html?gallery`: the seven kinds side by side from
+ * - `fx-preview.html?gallery`: the eight kinds side by side from
  *   `GALLERY_LAYERS`, each labelled, each on its own loop (the newcomer's legend).
  *
  * `window.__fxPreview` is the harness surface (.claude/skills/verify/skill-fx-preview.mjs).
@@ -51,15 +51,24 @@ import {
 
 /** Stub entity ids, far above anything the server hands out; slot N owns base + 2N, +1. */
 const STUB_ID_BASE = 980_000;
-/** The gallery is ONE row of seven slots that shares the frame's width: a slot is width / 7. */
+/** The gallery is ONE row of slots, one per kind, sharing the frame's width. */
 const GALLERY_SLOTS = VISUAL_KINDS.length;
 /** The label strip under the scene, in screen px. */
 const LABEL_PX = 18;
 
+/**
+ * What the manager reads off a game object, plus its drawn STAND-IN: the ring
+ * that is this stub's body. `setBodyOffset` moves the ring off the logical
+ * position and leaves `shape.position` alone, exactly as a Mob's token moves
+ * (plan-natural-weapons.md §3.2), so a `lunge` shows here (§10 L10).
+ */
 interface Stub {
     id: number;
     shape: { position: { x: number, y: number }, destroyed: boolean, parent: object };
     size: number;
+    ring: Graphics;
+    offset: { x: number, y: number };
+    setBodyOffset(x: number, y: number): void;
 }
 
 /** One caster/victim pair looping one layer. */
@@ -77,15 +86,31 @@ const mode: 'gallery' | 'message' = new URLSearchParams(window.location.search).
 const stubsById = new Map<number, Stub>();
 const timers: number[] = [];
 let scene: Container = null;
-let rings: Graphics = null;
+let rings: Container = null;
 let label: HTMLElement = null;
 
 function makeStub(id: number): Stub {
-    // ⚑ `parent` must be a non-null object: `anchorFor`'s liveness test is
-    // `shape.parent !== null`, so a null one is born despawned (SkillFxStress).
-    const stub: Stub = {id, shape: {position: {x: 0, y: 0}, destroyed: false, parent: {}}, size: PREVIEW_STUB_RADIUS_PX};
+    const ring = new Graphics()
+        .circle(0, 0, PREVIEW_STUB_RADIUS_PX)
+        .stroke({width: 1.5, color: 0x8b949e, alpha: 0.6});
+    rings.addChild(ring);
+    const stub: Stub = {
+        // ⚑ `parent` must be a non-null object: `anchorFor`'s liveness test is
+        // `shape.parent !== null`, so a null one is born despawned (SkillFxStress).
+        id, shape: {position: {x: 0, y: 0}, destroyed: false, parent: {}}, size: PREVIEW_STUB_RADIUS_PX,
+        ring, offset: {x: 0, y: 0},
+        setBodyOffset(x: number, y: number) {
+            stub.offset = {x, y};
+            drawStub(stub);
+        },
+    };
     stubsById.set(id, stub);
     return stub;
+}
+
+/** The stand-in at its logical position plus its body offset. */
+function drawStub(stub: Stub): void {
+    stub.ring.position.set(stub.shape.position.x + stub.offset.x, stub.shape.position.y + stub.offset.y);
 }
 
 function asGameObject(stub: Stub): GameObject {
@@ -131,16 +156,14 @@ function stopLoops(): void {
     timers.length = 0;
 }
 
-/** Place a slot's stubs in world px, caster at (x, y), and ring them. */
+/** Place a slot's stubs in world px, caster at (x, y), and move their rings. */
 function place(slot: Slot, x: number, y: number): void {
     slot.caster.shape.position.x = x;
     slot.caster.shape.position.y = y;
     slot.victim.shape.position.x = x + slot.distPx;
     slot.victim.shape.position.y = y;
-    for (const stub of [slot.caster, slot.victim]) {
-        rings.circle(stub.shape.position.x, stub.shape.position.y, stub.size)
-            .stroke({width: 1.5, color: 0x8b949e, alpha: 0.6});
-    }
+    drawStub(slot.caster);
+    drawStub(slot.victim);
 }
 
 // --- message mode -----------------------------------------------------------
@@ -159,7 +182,6 @@ function layoutSingle(): void {
     // The caster at the centre: a wave or an orbit spreads to the reach in
     // every direction, the victim sits at the reach on the right.
     scene.position.set(w / 2, h / 2);
-    rings.clear();
     place(single, 0, 0);
 }
 
@@ -212,7 +234,7 @@ const gallerySlots: Slot[] = [];
 const galleryCells: HTMLSpanElement[] = [];
 
 /**
- * The gallery fits the FRAME: seven slots across whatever width the editor
+ * The gallery fits the FRAME: one slot per kind across whatever width the editor
  * gives the iframe (the PO's 100 % zoom cut the wave off at a fixed 1400 px),
  * re-laid on every resize. The label strip sits under the scene.
  */
@@ -223,7 +245,6 @@ function layoutGallery(): void {
     const scale = fitScale(distPx, slotW, slotH);
     scene.scale.set(scale);
     scene.position.set(0, 0);
-    rings.clear();
     gallerySlots.forEach((slot, index) => {
         // The caster at the slot's centre, in world px (the scene is scaled).
         place(slot, (index + 0.5) * slotW / scale, slotH / 2 / scale);
@@ -290,13 +311,13 @@ async function boot(): Promise<void> {
         background: 0x101418,
         antialias: true,
         // Both modes fill the frame the editor gives them; the gallery re-lays
-        // its seven slots on resize (layoutGallery).
+        // its slots on resize (layoutGallery).
         width: 480, height: 240, resizeTo: window,
     });
     document.getElementById('fx-root').appendChild(app.canvas);
 
     scene = new Container();
-    rings = new Graphics();
+    rings = new Container();
     const fxLayer = new Container();
     scene.addChild(rings, fxLayer);
     app.stage.addChild(scene);

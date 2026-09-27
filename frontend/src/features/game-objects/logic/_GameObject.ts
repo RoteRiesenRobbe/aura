@@ -82,6 +82,32 @@ export function hpToDisplay(hp: number): number {
     return Math.max(1, Math.round(hp));
 }
 
+/**
+ * The label of the TOKEN container (plan-natural-weapons.md §3.2, PO ruling
+ * D9): the portrait and its frames, as one node under `shape`, so a lunge
+ * moves the whole medallion and nothing hung beside it.
+ */
+export const TOKEN_LABEL = 'token';
+
+/**
+ * `setBodyOffset` for an entity with a token container. Guarded: a destroyed
+ * container has no position to write (Pixi nulls it on destroy).
+ */
+export function writeTokenOffset(token: Container | undefined, x: number, y: number): void {
+    if (!token || token.destroyed) {
+        return;
+    }
+    token.position.set(x, y);
+}
+
+/** `bodyOffset` for an entity with a token container: (0, 0) when there is none. */
+export function readTokenOffset(token: Container | undefined): { x: number, y: number } {
+    if (!token || token.destroyed) {
+        return {x: 0, y: 0};
+    }
+    return {x: token.position.x, y: token.position.y};
+}
+
 export abstract class GameObject {
     readonly id: number;
 
@@ -277,6 +303,23 @@ export abstract class GameObject {
 
     getRotationShape(): Container {
         return this.shape;
+    }
+
+    /**
+     * Moves the drawn TOKEN off the logical position by (x, y) px, and nothing
+     * else (plan-natural-weapons.md §3.2): `shape.position`, the collider, the
+     * camera and every overlay stay where the server says the entity is.
+     *
+     * ⚑ The one write a skill VFX makes to an entity sprite, and the manager
+     * (SkillFx, the `lunge`) is its only caller. A no-op here: only an entity
+     * with a token container (Mob, Character) can jab.
+     */
+    setBodyOffset(x: number, y: number): void {
+    }
+
+    /** The token's current offset, (0, 0) for an entity without one. The harness reads it. */
+    bodyOffset(): { x: number, y: number } {
+        return {x: 0, y: 0};
     }
 
     show() {

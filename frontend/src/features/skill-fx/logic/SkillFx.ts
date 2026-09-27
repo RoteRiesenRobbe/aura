@@ -24,6 +24,13 @@
  * aura is the actor's active one"), and no event can carry state, so it is fed
  * the way the glow already is - from the per-snapshot aura fan-out, keyed by
  * game object.
+ *
+ * The third thing outside the budget and the slider, with the glow and the
+ * ambient layers, is the LUNGE (plan-natural-weapons.md §3.1, D4): it draws
+ * nothing, so it costs no fill rate, and an evicted lunge would park a body
+ * beside its collider. It is also the ONE exception to "nothing on any entity
+ * sprite" (§3.2): it moves the attacker's token through `setBodyOffset`, and
+ * this module is the only writer. Kept one per attacker, keyed by game object.
  */
 import {Container, Graphics} from 'pixi.js';
 import type {GameObject} from '../../game-objects/logic/_GameObject';
@@ -66,6 +73,19 @@ VISUAL_KINDS.forEach(kind => spawnedByKind[kind] = 0);
 let evicted = 0;
 
 /**
+ * The running lunge of each attacker, OUTSIDE `live` (D4: no budget, no `off`
+ * sweep). Keyed by the game object for the glow's reason: a viewport re-entry
+ * builds a NEW GameObject, which must not inherit the old one's jab.
+ */
+const lunges = new Map<GameObject, Fx>();
+/**
+ * How many NON-ZERO body offsets the manager has written since the page
+ * loaded. Monotonic and never reset, so a harness leg reads it before and
+ * after its window.
+ */
+let lungeNudges = 0;
+
+/**
  * ⚑ Call this AFTER GameObject.setup(). Listeners fire in subscription order,
  * and the wind-up glow reads each entity's INTERPOLATED position: subscribed
  * first, it would read the position moveInterpolatedObjects is about to
@@ -99,6 +119,9 @@ export function reset(): void {
     budget = FX_BUDGET;
     live.forEach(fx => fx.dispose());
     live.length = 0;
+    // Each dispose puts its body back at zero (§3.2's fourth reset path).
+    lunges.forEach(fx => fx.dispose());
+    lunges.clear();
     ambients.forEach(dropAmbient);
     ambients.clear();
     glows.forEach(dropGlow);
@@ -123,12 +146,17 @@ export function counters(): {
     sprites: number,
     evicted: number,
     density: VfxDensity,
+    /** running lunges, one per attacker, outside the budget (plan-natural-weapons.md §3.1) */
+    lunges: number,
+    /** non-zero body offsets written since the page loaded; never reset */
+    lungeNudges: number,
 } {
     let ambient = 0;
     ambients.forEach(entry => ambient += entry.layers.length);
     return {
         live: live.length, ambient, glows: glows.size,
         spawnedByKind: {...spawnedByKind}, sprites: spriteSpawns(), evicted, density,
+        lunges: lunges.size, lungeNudges,
     };
 }
 
@@ -334,11 +362,20 @@ export function onSnapshot(events: readonly SkillEventData[], resolve: ResolveEn
             density,
             reachPx: entry.reachPx,
         });
-        if (fx !== null) {
+        if (fx === null) {
+            return;
+        }
+        if (def.kind === 'lunge') {
+            // One body per attacker: the old jab puts its body back at zero
+            // FIRST, then the new one starts from there (§3.1).
+            const attacker = objectOf(entry.source);
+            lunges.get(attacker)?.dispose();
+            lunges.set(attacker, fx);
+        } else {
             push(fx);
-            if (measuring) {
-                fxSpawned++;
-            }
+        }
+        if (measuring) {
+            fxSpawned++;
         }
     });
     if (measuring) {
@@ -433,6 +470,13 @@ function anchorFor(obj: GameObject): FxAnchor {
             }
             return last;
         },
+        // The lunge's one write (plan-natural-weapons.md §3.2).
+        nudge(dx: number, dy: number) {
+            if (dx !== 0 || dy !== 0) {
+                lungeNudges++;
+            }
+            obj.setBodyOffset(dx, dy);
+        },
     };
 }
 
@@ -449,6 +493,7 @@ function update(): void {
             live.splice(i, 1);
         }
     }
+    updateLunges(now);
     updateAmbients(now);
     updateGlows();
     if (measuring) {
@@ -476,6 +521,19 @@ function sample(ms: number): void {
     if (ambients.size > ambientOwnersMax) {
         ambientOwnersMax = ambients.size;
     }
+}
+
+/** A finished lunge is disposed, which is what puts its body back at zero. */
+function updateLunges(now: number): void {
+    if (lunges.size === 0) {
+        return;
+    }
+    lunges.forEach((fx, attacker) => {
+        if (!fx.update(now)) {
+            fx.dispose();
+            lunges.delete(attacker);
+        }
+    });
 }
 
 // --- the ambient reconciler (§12d.4) ----------------------------------------
@@ -603,6 +661,8 @@ function updateAmbients(now: number): void {
  * waiting for the actor to change aura.
  *
  * ⚑ The wind-up glow is untouched by all of this. It is combat information.
+ * So are the running lunges: they play at `off` too (plan-natural-weapons.md
+ * D4), and cutting one here would only snap a body home early.
  */
 function applyDensity(): void {
     const next = GameSettings.get().vfx.density;

@@ -6,6 +6,7 @@
   "maxLevel": 5,
   "visual": {
     "layers": [
+      { "kind": "lunge", "on": "hit", "ms": 220 },
       { "kind": "strike", "on": "hit", "curve": "bite", "ms": 200 }
     ]
   },

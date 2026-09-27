@@ -44,7 +44,12 @@ const base = (process.argv[2] || 'http://localhost:2001').replace(/\/$/, '');
 const outdir = process.argv[3] || '/tmp/skill-fx-preview';
 mkdirSync(outdir, { recursive: true });
 
-const KINDS = ['strike', 'projectile', 'beam', 'cast-pose', 'orbit', 'emitter', 'wave'];
+// The eighth, `lunge` (docs/plan-natural-weapons.md §3.1), draws nothing: it
+// moves the CASTER's stand-in ring toward the victim's through the stub's
+// `setBodyOffset` (§10 L10), counted by the manager's `lungeNudges`.
+const KINDS = ['strike', 'projectile', 'beam', 'cast-pose', 'orbit', 'emitter', 'wave', 'lunge'];
+// The gallery shares its width between the slots: 1400 px / 8 = 175 px.
+const SLOT_PX = 1400 / KINDS.length;
 const WAVE_MESSAGE = {
   type: 'aura-fx-preview',
   visual: { layers: [{ kind: 'wave', on: 'fired' }] },
@@ -85,7 +90,7 @@ try {
   const gallery = await context.newPage();
   collect(gallery, 'gallery');
   // The editor's gallery iframe is 100 % wide x 220 px; the gallery lays its
-  // seven slots across whatever width it gets, so 1400 wide = 200 px slots.
+  // slots across whatever width it gets, so 1400 wide = SLOT_PX per slot.
   await gallery.setViewportSize({ width: 1400, height: 220 });
   await gallery.goto(`${base}/fx-preview.html?gallery`, { waitUntil: 'domcontentloaded' });
   await gallery.waitForFunction(() => window.__fxPreview?.ready === true, null, { timeout: 30_000 });
@@ -102,10 +107,16 @@ try {
   console.log(`gallery counters: ${JSON.stringify(g1.spawnedByKind)} live ${g1.live} density ${g1.density}`);
   if (allKinds) pass('the gallery spawned every kind at least once, plus the engine hit mark');
   else fail(`a kind never spawned in the gallery: missing ${KINDS.filter(k => !(g1.spawnedByKind[k] >= 1)).join(', ') || 'impact'}`);
+  // The lunge slot: the manager's non-zero writes go to the caster stub's
+  // `setBodyOffset`, whose only job is redrawing its ring off the logical
+  // position (fx-preview.ts `drawStub`). A lunge that spawned and nudged
+  // nothing would be the L10 failure: a kind that shows nothing.
+  if ((g1.spawnedByKind.lunge ?? 0) >= 1 && (g1.lungeNudges ?? 0) >= 1) pass(`the lunge slot moved its caster's stand-in: ${g1.spawnedByKind.lunge} lunge(s), ${g1.lungeNudges} non-zero offset(s)`);
+  else fail(`the lunge slot: ${g1.spawnedByKind.lunge ?? 0} lunge(s), ${g1.lungeNudges ?? 0} non-zero offset(s)`);
   if (g1.density === 'full') pass('the preview draws at density full');
   else fail(`the preview draws at density ${g1.density}`);
   const labels = await gallery.$$eval('#fx-label span', s => s.map(e => e.textContent));
-  if (labels.length === KINDS.length && KINDS.every((k, i) => labels[i].startsWith(k))) pass(`seven labelled slots: ${labels.join(' | ')}`);
+  if (labels.length === KINDS.length && KINDS.every((k, i) => labels[i].startsWith(k))) pass(`${KINDS.length} labelled slots: ${labels.join(' | ')}`);
   else fail(`gallery labels: ${JSON.stringify(labels)}`);
   // Several frames: a 200 ms layer is only on some of them. Look at them.
   for (let i = 0; i < 4; i++) {
@@ -139,11 +150,11 @@ try {
     }), kind);
     if (!armed) { fail(`slot ${kind}: no spawn within 10 s to photograph`); continue; }
     await gallery.waitForTimeout(800);
-    await gallery.screenshot({ path: join(outdir, `gallery-slot-${slot + 1}-${kind}.png`), clip: { x: slot * 200, y: 0, width: 200, height: 220 } });
+    await gallery.screenshot({ path: join(outdir, `gallery-slot-${slot + 1}-${kind}.png`), clip: { x: Math.round(slot * SLOT_PX), y: 0, width: Math.round(SLOT_PX), height: 220 } });
     await gallery.evaluate(() => { if (window.__realNow) { performance.now = window.__realNow; window.__realNow = null; } });
   }
   // The gallery FITS ITS FRAME (PO, 2026-09-25: at 100 % zoom the fixed 1400 px
-  // strip cut the wave off): at 700 px wide the canvas is 700 px and the seven
+  // strip cut the wave off): at 700 px wide the canvas is 700 px and the
   // label cells span exactly the width, nothing overflows.
   await gallery.setViewportSize({ width: 700, height: 220 });
   await gallery.waitForTimeout(500);

@@ -1,4 +1,4 @@
-import {GameObject} from './_GameObject';
+import {GameObject, readTokenOffset, TOKEN_LABEL, writeTokenOffset} from './_GameObject';
 import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
 import {isDefined} from '../../common/logic/Utils';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
@@ -59,6 +59,10 @@ export class Character extends GameObject
     movementSpeed: number;
 
     actualShape: Container;
+    // The portrait and the medallion frame as ONE node, the only thing a
+    // lunge moves (plan-natural-weapons.md §3.2, D9). Assigned in initShape,
+    // so declared WITHOUT an initializer (an `= null` would overwrite it).
+    private token: Container;
     private auraRings: AuraRingStack;
     // The overhead health/shield bar + effect pips (shared component since
     // plan-code-health.md C5). Created in initHealthBar (constructor body),
@@ -114,19 +118,32 @@ export class Character extends GameObject
         this.auraRings = new AuraRingStack();
         group.addChild(this.auraRings.container);
 
+        // The token (plan-natural-weapons.md §3.2, D9): portrait and frame,
+        // above the aura rings, which stay on the logical position.
+        this.token = createNamedContainer(TOKEN_LABEL);
+        group.addChild(this.token);
+
         this.actualShape = createNamedContainer('actualShape');
         this.actualShape.addChild(super.initShape(svg, 0, 0, size, rotation));
-        group.addChild(this.actualShape);
+        this.token.addChild(this.actualShape);
 
-        // On `group`, deliberately NOT on `actualShape`: the damage flash is
+        // In the token, deliberately NOT in `actualShape`: the damage flash is
         // bound to actualShape (see createStatusEffects), so a frame inside it
         // would flash red with the portrait. Added last so it draws on top.
         // Truthiness, not isDefined — the preload may not have resolved yet.
         if (Character.border.svg) {
-            group.addChild(createInjectedSVG(Character.border.svg, 0, 0, size, 0));
+            this.token.addChild(createInjectedSVG(Character.border.svg, 0, 0, size, 0));
         }
 
         return group;
+    }
+
+    override setBodyOffset(x: number, y: number): void {
+        writeTokenOffset(this.token, x, y);
+    }
+
+    override bodyOffset(): { x: number, y: number } {
+        return readTokenOffset(this.token);
     }
 
     createStatusEffects() {
@@ -325,6 +342,8 @@ export class Character extends GameObject
     // hide() is terminal for a Character (viewport removal / death both build
     // a fresh instance on return) — release the overlay plate with it.
     override hide() {
+        // A body parked mid-jab must not outlive the entity (§3.2 reset paths).
+        this.setBodyOffset(0, 0);
         super.hide();
         if (this.plateSubToken !== null) {
             this.plateSubToken.unsubscribe();

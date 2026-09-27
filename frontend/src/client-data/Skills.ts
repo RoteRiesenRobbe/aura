@@ -291,9 +291,10 @@ export interface SkillEffect {
 // --- the visual vocabulary (plan-skill-vfx.md C0/C2a) -----------------------
 
 /**
- * One authored VFX layer. The seven `kind` names are ENGINE code and closed -
- * `impact`, `strike`, `projectile`, `beam`, `cast-pose`, `orbit`, `emitter`
- * (SkillFxKinds pins them against api/skill-vocabulary.json); everything else
+ * One authored VFX layer. The eight `kind` names are ENGINE code and closed -
+ * `strike`, `projectile`, `beam`, `cast-pose`, `orbit`, `emitter`, `wave`,
+ * `lunge` (SkillFxKinds pins them against api/skill-vocabulary.json; the hit
+ * mark `impact` is the engine's own and no file names it); everything else
  * is a parameter, and which parameters a kind reads is that kind's business.
  *
  * ⚑ A hand mirror of the Go `skills.VisualLayer`, with no completeness pin

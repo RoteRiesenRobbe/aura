@@ -13,8 +13,9 @@ import (
 // plan-skill-vfx.md C0. The vocabulary's acceptance set is §4.3's nine PO
 // examples at the bottom of this file: every one of them must load, with the
 // one engine-drawn exception the C3a amendment ruled (§12g.1 item 2 - the hit
-// mark on the victim is code, not content), or the seven kinds are the wrong
-// seven.
+// mark on the victim is code, not content), or the seven drawn kinds are the
+// wrong seven. The eighth, `lunge`, draws nothing and joined later for the
+// natural weapons (plan-natural-weapons.md §3.1).
 
 // visualSkill wraps a `visual` block in the smallest skill file that parses.
 // Effects are deliberately empty: nothing here is about effects, and an empty
@@ -155,6 +156,41 @@ func TestVisual_Wave(t *testing.T) {
 	assert.Equal(t, 2, def.Visual.Layers[0].Count)
 	assert.Equal(t, 0, def.Visual.Layers[1].Count, "an unauthored count stays zero and the renderer draws the one ring it defaults to")
 	assert.True(t, def.Visual.HasFired, "a wave is a `fired` layer, so the skill bills a FIRED event")
+}
+
+// The lunge (plan-natural-weapons.md §3.1, PO 2026-09-27): the attacker's own
+// token jabs toward the victim and snaps back. It draws nothing, so it reads
+// only `ms` and `scale` (the distance multiplier), and both stay optional.
+func TestVisual_Lunge(t *testing.T) {
+	def := mustParse(t, visualSkill("active_aura", `{
+	  "layers": [
+	    { "kind": "lunge", "on": "hit", "ms": 220, "scale": 1.6 },
+	    { "kind": "lunge", "on": "hit" }
+	  ]
+	}`))
+	require.NotNil(t, def.Visual)
+	require.Len(t, def.Visual.Layers, 2)
+
+	assert.Equal(t, "lunge", def.Visual.Layers[0].Kind)
+	assert.Equal(t, 220, def.Visual.Layers[0].MS)
+	assert.InDelta(t, 1.6, def.Visual.Layers[0].Scale, 1e-6)
+	assert.Equal(t, 0, def.Visual.Layers[1].MS, "an unauthored ms stays zero and the renderer supplies the kind's default")
+	assert.Zero(t, def.Visual.Layers[1].Scale, "an unauthored scale stays zero and the renderer jabs the default distance")
+	assert.False(t, def.Visual.HasFired, "a lunge is a `hit` layer, so the skill bills no FIRED event")
+
+	// Written out, not merged from the common keys: a lunge draws nothing, so
+	// `body` and `tint` are keys it does not read (§3.1).
+	assert.Equal(t, []string{"kind", "on", "ms", "scale"}, visualKeysByKind["lunge"])
+}
+
+// Every kind with a victim end takes `applied` too (§12h), the lunge included:
+// the attacker jabs when its over-time effect is applied or refreshed.
+func TestVisual_LungeOnApplied(t *testing.T) {
+	def := mustParse(t, visualSkillWith("active_aura",
+		`{"layers":[{"kind":"lunge","on":"applied","ms":220}]}`, appliedDotAura))
+	require.NotNil(t, def.Visual)
+	assert.Equal(t, "lunge", def.Visual.Layers[0].Kind)
+	assert.Equal(t, "applied", def.Visual.Layers[0].On)
 }
 
 // The overwhelmingly common case: no `visual` at all. Nothing else changes.
@@ -320,6 +356,54 @@ func TestVisual_Refusals(t *testing.T) {
 			category: "active_aura",
 			visual:   `{"layers":[{"kind":"strike","on":"hit","chain":true}]}`,
 			contains: []string{`"Fixture"`, "visual layer 0", `"chain"`},
+		},
+		{
+			// A lunge is the attacker's body jabbing INTO a victim
+			// (plan-natural-weapons.md §3.1), so like a strike it has no
+			// moment without one.
+			name:     "a lunge on the fired moment",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"lunge","on":"fired"}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"lunge"`, `"fired"`, "(it plays on: hit, applied)"},
+		},
+		{
+			name:     "a lunge on the ambient moment",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"lunge","on":"ambient"}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"lunge"`, `"ambient"`, "(it plays on: hit, applied)"},
+		},
+		{
+			// A lunge draws nothing, so the keys every DRAWN kind shares are
+			// keys it does not read, and a key a kind does not read is a
+			// hard-fail (§3.1).
+			name:     "a body on a lunge",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"lunge","on":"hit","body":"wolf-jaw"}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"lunge"`, `field "body"`, "(it reads: kind, on, ms, scale)"},
+		},
+		{
+			name:     "a tint on a lunge",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"lunge","on":"hit","tint":"#3fa9f5"}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"lunge"`, `field "tint"`, "(it reads: kind, on, ms, scale)"},
+		},
+		{
+			name:     "a curve on a lunge",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"lunge","on":"hit","curve":"thrust"}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"lunge"`, `field "curve"`, "(it reads: kind, on, ms, scale)"},
+		},
+		{
+			name:     "lunge ms zero",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"lunge","on":"hit","ms":0}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"lunge"`, `"ms" must be > 0`},
+		},
+		{
+			name:     "lunge scale zero",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"lunge","on":"hit","scale":0}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"lunge"`, `"scale" must be > 0`},
 		},
 		{
 			name:     "motion outside its set",

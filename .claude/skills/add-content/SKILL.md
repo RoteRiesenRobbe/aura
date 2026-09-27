@@ -63,11 +63,15 @@ the bottom. Trust the code over the manual if a path has drifted.
   ⭐ **Every damaging MOB skill authors an attack that stems from the mob**
   (same ruling; a written rule, **no validator** - the loader accepts a bare
   damaging mob skill, so the reviewer is the gate). A place or a totem too: a
-  pool spits, a totem reaches out, a bomb's blast reaches each victim. Four
+  pool spits, a totem reaches out, a bomb's blast reaches each victim. Five
   shapes: a `strike` (a weapon-wielder's hit - `thrust` spear / `swing` blade /
   `overhead` hammer / `bite` jaws / `pincer` fangs, chosen by `curve`, which also picks the
-  placeholder; an animal uses one too, its own jaw, claw or tusk as the
-  `body`); a `projectile` (a volley or a spit, ALONE - the arrival needs no
+  placeholder); a `lunge` (a mob attacking with its BODY: its token jabs at the
+  victim and snaps back, draws nothing, keys `kind`/`on`/`ms`/`scale` only,
+  plays even at density `off`; never a borrowed `thrust`/`swing` on an animal,
+  `plan-natural-weapons.md`. The mark on the victim, `maul`, is the next chunk
+  and not built: until then a biter keeps its `strike` `bite`/`pincer` beside
+  the lunge); a `projectile` (a volley or a spit, ALONE - the arrival needs no
   layer); a `beam` (`extend` a tongue of flame, `flash` a bolt); or a `wave`
   (`on: fired` only, `ms` + `count` 1-3 rings from the caster to the skill's
   reach, for an AoE stomp). A non-damaging aura or cooldown dresses its own

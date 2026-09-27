@@ -1,5 +1,5 @@
 import {IVector} from "../../core/logic/Vector";
-import {GameObject} from './_GameObject';
+import {GameObject, readTokenOffset, TOKEN_LABEL, writeTokenOffset} from './_GameObject';
 import * as Preloading from '../../core/logic/Preloading';
 import {random, randomInt} from '../../common/logic/Utils';
 import {GraphicsConfig} from '../../../client-data/Graphics';
@@ -60,6 +60,10 @@ function file(mob: keyof typeof GraphicsConfig.mobs): Preloading.PortraitSource 
  * (docs/art/pipeline.md §4). Both layers draw at the same `size` off the same
  * square canvas, which is what makes them register — including on a combat mob
  * whose size is rolled per instance.
+ *
+ * Since plan-natural-weapons.md (PO ruling D9) "the outer group" means the
+ * group's TOKEN container, the sibling of the portrait that a lunge moves, so
+ * the frame jabs with the face it frames. `withBorder` finds it by label.
  */
 function registerBorder(borderFile: string, size: number): ISvgContainer {
     const holder: ISvgContainer = {svg: undefined};
@@ -72,7 +76,10 @@ function withBorder(group: PIXI.Container, border: ISvgContainer, size: number):
     // Truthiness, not isDefined: the holder starts as `undefined` and the
     // preload may not have resolved by the time the first entity is built.
     if (border.svg) {
-        group.addChild(createInjectedSVG(border.svg, 0, 0, size, 0));
+        // Every caller hands in a Mob.initShape group, which always holds the
+        // token: a missing one throws here rather than drawing a frame that
+        // stays behind when the body jabs.
+        group.getChildByLabel(TOKEN_LABEL).addChild(createInjectedSVG(border.svg, 0, 0, size, 0));
     }
     return group;
 }
@@ -103,6 +110,10 @@ export abstract class Mob extends GameObject
     implements OverheadVitals, AuraDisplay, LevelDisplay, MobPlate, Interactable {
 
     protected actualShape: PIXI.Container;
+    // The portrait, the tier frame and the species border as ONE node
+    // (plan-natural-weapons.md §3.2, D9): the only thing a lunge moves.
+    // Declared WITHOUT an initializer, like actualShape (see tierFrame below).
+    private token: PIXI.Container;
     private auraRings: AuraRingStack = null;
     // The overhead health/shield bar + effect pips (shared component since
     // plan-code-health.md C5). Created in initHealthBar (constructor body,
@@ -340,6 +351,8 @@ export abstract class Mob extends GameObject
     // builds a fresh one if the mob re-enters the viewport, so the overlay
     // plate is released with it (the Character.hide precedent).
     override hide() {
+        // A body parked mid-jab must not outlive the entity (§3.2 reset paths).
+        this.setBodyOffset(0, 0);
         super.hide();
         if (this.interactBadge !== null) {
             this.interactBadge.destroy();
@@ -430,9 +443,16 @@ export abstract class Mob extends GameObject
         const group = new PIXI.Container();
         group.position.set(x, y);
 
+        // The token (plan-natural-weapons.md §3.2, D9): portrait, tier frame
+        // and species border (withBorder) in this draw order, under `group` at
+        // the portrait's old place, so the rings, the bar and the badge
+        // around it stay on the logical position while a lunge moves it.
+        this.token = createNamedContainer(TOKEN_LABEL);
+        group.addChild(this.token);
+
         this.actualShape = new PIXI.Container();
         this.actualShape.addChild(super.initShape(svg, 0, 0, size, rotation, anchor));
-        group.addChild(this.actualShape);
+        this.token.addChild(this.actualShape);
 
         // Tier frame ring (triage item 15) — drawn over the portrait so it reads
         // against dark mob art. Sized from the mob's own graphic, and left
@@ -440,9 +460,17 @@ export abstract class Mob extends GameObject
         this.tierFrame = new PIXI.Graphics();
         this.tierFrame.visible = false;
         this.tierFrameRadius = size;
-        group.addChild(this.tierFrame);
+        this.token.addChild(this.tierFrame);
 
         return group;
+    }
+
+    override setBodyOffset(x: number, y: number): void {
+        writeTokenOffset(this.token, x, y);
+    }
+
+    override bodyOffset(): { x: number, y: number } {
+        return readTokenOffset(this.token);
     }
 
     /**

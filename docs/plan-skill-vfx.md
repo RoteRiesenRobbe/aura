@@ -188,7 +188,7 @@ phase fields. `MobJuice.ts` plays the hit sounds. `AuraRings.ts` and
 
 ## 4. The vocabulary (D4)
 
-### 4.1 Seven kinds
+### 4.1 Eight kinds
 
 | Kind | Trigger | What moves | Placeholder body |
 | --- | --- | --- | --- |
@@ -213,6 +213,13 @@ A new kind takes the empty seat:
 | Kind | Trigger | What moves | Placeholder body |
 | --- | --- | --- | --- |
 | `wave` | fired | `count` rings (1-3) expanding from the CASTER to the skill's reach and fading; once per cast, never per victim | tinted rings |
+
+⚑ **AMENDED 2026-09-27, eight** (`plan-natural-weapons.md` §3.1, PO): the
+natural-weapon attack gets its own kind, the only one that draws nothing.
+
+| Kind | Trigger | What moves | Placeholder body |
+| --- | --- | --- | --- |
+| `lunge` | hit / applied | the ATTACKER's own token jabs a fixed distance toward the victim and snaps back, translation only; plays at density `off` and sits outside the Fx budget | none (an existing sprite moves) |
 
 ### 4.2 Layers, triggers, bodies, palette
 
@@ -397,8 +404,21 @@ packer can be deferred without a contract change; §12f.2 names its trigger.
 from the source and victim game objects' current positions (they follow a
 moving victim); they are NOT children of any entity sprite. That is how
 §39's "seventh independently-anchored overlay" objection is met: nothing
-new hangs off the sprite, the medallion refactor (C0 sub-containers) can
-land later without touching this.
+new hangs off the sprite. One of the medallion refactor's sub-containers
+(C0) exists since `plan-natural-weapons.md` C1 (2026-09-27): a `token`
+container under the group holds the portrait, species border and tier frame;
+the rest of that refactor can still land later without touching this.
+
+⚑ **One named exception, the body-offset seam** (`plan-natural-weapons.md`
+§3.2): a `lunge` parents nothing either, but it WRITES to an entity. The
+manager is the only writer (`anchorFor` implements `FxAnchor.nudge` through
+`GameObject.setBodyOffset`); it writes the local offset of the TOKEN
+container (portrait, species border and tier frame together, that plan's D9),
+never the logical `shape.position`, so the collider, the camera, the health
+bar, the aura rings and the nameplate stay put. Four reset paths bring the
+offset back to EXACT zero: the lunge ends, the lunge is replaced, the
+attacker is hidden (`hide()`: death or leaving the viewport), and the
+manager's `reset()`.
 
 Death or despawn of the source or victim: a `projectile` and a `beam`
 finish toward the last known position (a bolt in flight does not vanish
@@ -2341,7 +2361,8 @@ built**; this is the spec for one chunk, `C3a-ii`, to run before C3b.
    attacker, opening along the attack line. The attacker-token lunge is NOT
    scheduled (the PO liked it; decide after seeing the rim bite).
    ⚑ **SUPERSEDED 2026-09-27**: the lunge IS scheduled and the rim bite
-   retires, both in `plan-natural-weapons.md` (designed, nothing built).
+   retires, both in `plan-natural-weapons.md` (C1 the lunge built
+   2026-09-27; the rim bite retires at C2).
 4. **`wave` on Nova Burst AND Shockwave.** And a standing note: **every skill
    gets a placeholder `visual` for testing purposes**, cooldowns included
    (today six cooldowns author none and show the mark alone).
