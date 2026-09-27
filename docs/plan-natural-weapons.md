@@ -2,7 +2,7 @@
 
 > **Status: DESIGNED 2026-09-27 (PO session, nine rulings taken as choice
 > prompts, §2), 2 chunks (§7). C1 (the `lunge`) BUILT 2026-09-27,
-> `[uncommitted]` (ledger §11 C1), PO look verdict not recorded. C2 (the
+> `413a7fd4` (ledger §11 C1), PO look verdict not recorded. C2 (the
 > `maul`) OPEN.** Line refs re-verified by C1 at `8e49a12b`; C2 re-verifies
 > them before executing.
 >
@@ -471,7 +471,7 @@ old rim-bite leg (leg 14) is rewritten.
 
 ## 11. Chunk ledgers
 
-### C1: the lunge (built 2026-09-27, `[uncommitted]`, PO look verdict not recorded)
+### C1: the lunge (built 2026-09-27, `413a7fd4`, PO look verdict not recorded)
 
 Built from an execution brief the lead wrote: Opus agents executed five
 packages (the Go vocabulary and fixture first; then the client, the docs, and
