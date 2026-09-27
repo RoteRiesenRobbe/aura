@@ -1,6 +1,6 @@
 # Plan: Map Fog Persistence
 
-> **Status: COMPLETE 2026-09-27, archived: F1 + F2 built, PO in-game pass "works fine"** (commit `[uncommitted]`; ledger: §9). Design approved by
+> **Status: COMPLETE 2026-09-27, archived: F1 + F2 built, PO in-game pass "works fine"** (commit `376268a4`; ledger: §9). Design approved by
 > the PO in chat the same day ("design sounds good. add it to a plan"); the
 > three §6 questions ruled the same day; then **revised the same day to
 > CHUNKED, EXPLORED-ONLY storage keyed by WORLD coordinates** (PO: "ok, you
@@ -300,7 +300,7 @@ typecheck`, and the schema line in the ledger.
 
 ## 9. Chunk ledger
 
-### F1 — server track + persist ✅ 2026-09-27 `[uncommitted]`
+### F1 — server track + persist ✅ 2026-09-27 `376268a4`
 
 **Schema: DB +1 table (`000003_character_map_fog` pair) · wire NONE · conf
 NONE · content NONE.**
@@ -370,7 +370,7 @@ wrote one 512-byte row each at chunk (−2, 0) through the real disconnect save
 (~200 cells set) · `harnessdb -cleanup` ran clean afterwards (aurad stopped
 first, then restarted). No in-game look: F1 has no visible surface.
 
-### F2 — wire + client restore ✅ 2026-09-27 `[uncommitted]`
+### F2 — wire + client restore ✅ 2026-09-27 `376268a4`
 
 **Schema: DB NONE · wire +2 tables (`FogChunk`, `MapFog`), +1 `GameState`
 field (`map_fog`, appended) · conf NONE · content NONE.**
