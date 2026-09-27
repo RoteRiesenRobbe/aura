@@ -274,6 +274,11 @@ var validStats = map[string]bool{
 	StatCostReduction:   true,
 }
 
+// ValidStat reports whether name is a stat_multiplier stat the fold applies.
+// For builders that construct a StatParams without the JSON loader (the sim's
+// selfModifier), so an unknown name is an error there too, not a silent drop.
+func ValidStat(name string) bool { return validStats[name] }
+
 // EffectDef holds the parameters of one effect within a skill: the shared
 // core (geometry, cadence, targeting) plus exactly ONE per-type payload —
 // the pointer matching Type is non-nil, every other one nil. Parsing
@@ -1500,19 +1505,22 @@ var factionScopedEffects = map[EffectType]bool{
 //     of them because it is read as a radius (EquippedSkill.LightRadius), not
 //     applied.
 //   - sys.fireCooldown (activation) handles the 21 cast effects.
-//   - SkillComponent.recomputeDerived folds the four equip-time passives, and
-//     it walks PassiveSlots ONLY - which is exactly why the PO's stat bonus on
-//     an aura reached nothing.
+//   - SkillComponent.recomputeDerived folds the four equip-time passives. It
+//     walked PassiveSlots ONLY, which is exactly why the PO's stat bonus on an
+//     aura reached nothing; since plan-aura-drawbacks.md C1 it also folds the
+//     ACTIVE aura's stat_multiplier effects (and nothing else of an aura's),
+//     so that authoring is now legal and live.
 //
 // A default: that silently ignores an effect is the right runtime shape (the
 // alternative is a panic in the tick loop), so the guard belongs at load time
 // where a content mistake still has an author looking at it. All 105 shipped
 // skill files fit this table exactly, measured before it was written.
 //
-// light_aura is the one type two categories share: the active aura lights
-// while it is the one switched on, and every equipped passive lights alongside
-// it (SkillComponent.LightRadius walks both lists). A cooldown cannot carry it
-// - the radius is read per equipped skill, never per cast.
+// light_aura and stat_multiplier are the two types two categories share: the
+// active aura lights (or folds its stat bonus) while it is the one switched on,
+// and every equipped passive does alongside it (SkillComponent.LightRadius and
+// recomputeDerived walk both). A cooldown cannot carry either - both are read
+// per equipped skill, never per cast.
 var effectCategories = map[EffectType][]SkillCategory{
 	// The eight output auras sys.applyAuraEffect dispatches, plus light.
 	EffectTypeDamageAura: {SkillCategoryActiveAura},
@@ -1548,8 +1556,9 @@ var effectCategories = map[EffectType][]SkillCategory{
 	EffectTypeInstantDamage:  {SkillCategoryCooldown},
 	EffectTypeInstantDot:     {SkillCategoryCooldown},
 
-	// The equip-time folds recomputeDerived reads.
-	EffectTypeStatMultiplier:  {SkillCategoryPassive},
+	// The folds recomputeDerived reads. stat_multiplier also folds from the
+	// ACTIVE aura while it is switched on (plan-aura-drawbacks.md D1).
+	EffectTypeStatMultiplier:  {SkillCategoryActiveAura, SkillCategoryPassive},
 	EffectTypeResistPassive:   {SkillCategoryPassive},
 	EffectTypeRetaliateSlow:   {SkillCategoryPassive},
 	EffectTypeRetaliateDamage: {SkillCategoryPassive},
@@ -1698,6 +1707,11 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 			return nil, fmt.Errorf("skill %q: effect type %q is not legal on %s %s skill (legal on: %s)",
 				s.Name, effectTypeNames[effect.Type], indefiniteArticle(s.Category), s.Category,
 				strings.Join(legalCategoryNames(effect.Type), ", "))
+		}
+		if effect.Type == EffectTypeStatMultiplier && category == SkillCategoryActiveAura {
+			if err := checkWhileActiveBounds(effect.Stat, s.MaxLevel); err != nil {
+				return nil, fmt.Errorf("skill %q: %w", s.Name, err)
+			}
 		}
 		// A faction-scoped effect without an allowlist would reach every
 		// faction — see factionScopedEffects for why that is a hard-fail and
@@ -2584,6 +2598,35 @@ func (e *effectDef) statParams() (*StatParams, error) {
 		Bonus:         e.StatBonus,
 		BonusPerLevel: e.StatBonusPerLevel,
 	}, nil
+}
+
+// whileActiveBounds is the legal range of a stat_multiplier's bonus on an
+// ACTIVE AURA, at every level (plan-aura-drawbacks.md §3.1 item 5,
+// [PLACEHOLDER] numbers). Movement and pool stop at -0.9, because -1 is a stun
+// or a dead pool through the back door; the two reductions stop at -1, so
+// damage taken and cost cap at 2x. +1 is the ceiling everywhere (fully
+// mitigated, free). damageDealt and critChance are deliberately absent: neither
+// has a degenerate value. The PASSIVE form is not bounded here (A8): a passive
+// loads any non-zero bonus, as it always has.
+var whileActiveBounds = map[string][2]float32{
+	StatMovementSpeed:   {-0.9, 1},
+	StatMaxHealth:       {-0.9, 1},
+	StatDamageReduction: {-1, 1},
+	StatCostReduction:   {-1, 1},
+}
+
+func checkWhileActiveBounds(p *StatParams, maxLevel int) error {
+	bound, ok := whileActiveBounds[p.Name]
+	if !ok {
+		return nil
+	}
+	for level := 1; level <= maxLevel; level++ {
+		if b := p.BonusAt(level); b < bound[0] || b > bound[1] {
+			return fmt.Errorf("stat_multiplier %s on an active aura: bonus %v at level %d is outside [%v, %v]",
+				p.Name, b, level, bound[0], bound[1])
+		}
+	}
+	return nil
 }
 
 // validateTags rejects empty and duplicate tag entries (shared by damageTags

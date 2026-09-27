@@ -440,8 +440,11 @@ function selfTargetLine(effect: SkillEffect, verb: string): string {
 
 function effectBlock(effect: SkillEffect, level: number, maxLevel: number, powerScale: number,
                      isCosted: boolean, suppressCadence: boolean,
-                     damageFactor: number = 1, spawnCount: number = 1): EffectBlock {
+                     damageFactor: number = 1, spawnCount: number = 1,
+                     whileActive: boolean = false): EffectBlock {
     const lines: string[] = [];
+    // Overrides the type's category color on the first line (a drawback).
+    let labelColor: string | undefined;
 
     // Cadence folds into the main line instead of its own "Ticks every" line
     // (PO text-size pass 2026-07-21): hit auras read "every Xs", state/
@@ -532,8 +535,24 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
         case 'stat_multiplier': {
             const stat = effect.stat;
             const label = STAT_LABELS[stat.name] ?? stat.name;
-            const sign = REDUCTION_STATS.has(stat.name) ? '−' : '+';
-            lines.push(`${label}: ${sign}${prog(stat.bonus, stat.bonusPerLevel, level, maxLevel, pct)}`);
+            // The signed change the player feels: a reduction stat's label is
+            // what they take/pay, so its bonus reads inverted. A negative bonus
+            // (a drawback, plan-aura-drawbacks.md D2) is then "Damage taken:
+            // +25%", not a doubled sign.
+            const felt = (n: number) => REDUCTION_STATS.has(stat.name) ? -n : n;
+            const sign = (n: number) => felt(n) < 0 ? '−' : '+';
+            const current = scaled(stat.bonus, stat.bonusPerLevel, level);
+            const lead = sign(current);
+            // Sign on the first value only, the ward shape; a next value
+            // carries its own sign only when it crosses zero.
+            const render = (n: number) => (sign(n) === lead ? '' : sign(n)) + pct(Math.abs(n));
+            // An active aura's modifier holds only while it is on (D1).
+            const scope = whileActive ? ' while active' : '';
+            lines.push(`${label}: ${lead}${prog(stat.bonus, stat.bonusPerLevel, level, maxLevel, render)}${scope}`);
+            // A drawback is a price, so it wears the cost line's Focus color.
+            if (current < 0) {
+                labelColor = FOCUS_COLOR_CSS;
+            }
             break;
         }
         case 'dot_aura':
@@ -786,7 +805,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
         generics.targets = targets;
     }
 
-    const color = effectColor(effect.type);
+    const color = labelColor ?? effectColor(effect.type);
     const rendered: TooltipLine[] = lines.map((text, i) =>
         i === 0 && color ? {text, labelColor: color} : {text});
 
@@ -923,7 +942,7 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
     const blocks = renderEffects.map(({effect, count}) => {
         const block = effectBlock(effect, level, previewMax, powerScale,
             perEffectCost && scaled(effect.costFractionOfMax, effect.costFractionOfMaxPerLevel, level) > 0,
-            sharedCadence !== null, damageFactor, count);
+            sharedCadence !== null, damageFactor, count, def.category === 'aura');
         // Both placements carry the same payload, so both get the loadout
         // lines. Omitting the remote one would lose an anchored summon's
         // abilities silently the day one has any (plan-portal-spells.md D11).

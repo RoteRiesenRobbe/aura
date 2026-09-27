@@ -335,3 +335,55 @@ func equippedCooldown(effects ...skills.EffectDef) *skills.EquippedSkill {
 		Level: 1,
 	}
 }
+
+// --- plan-aura-drawbacks.md C1: a cost MULTIPLIER while an aura runs ---
+
+// withCostDrawback equips an active aura whose only effect is a while-active
+// costReduction drawback and switches it on, so the fold reads it.
+func withCostDrawback(caster *fakePlayer, bonus float32) {
+	caster.sc.EquipAura(0, &skills.SkillDefinition{
+		ID: 901, Name: "Overdrawn", Category: skills.SkillCategoryActiveAura, MaxLevel: 1,
+		Effects: []skills.EffectDef{{
+			Type: skills.EffectTypeStatMultiplier,
+			Stat: &skills.StatParams{Name: skills.StatCostReduction, Bonus: bonus},
+		}},
+	}, 1)
+	caster.sc.SetActiveAura(0)
+}
+
+func TestCostDrawback_RaisesTheCost(t *testing.T) {
+	caster := newFakePlayer()
+	withCostDrawback(caster, -0.5)
+	target := &touchRecorder{}
+
+	testSkillSystem().applyAuraEffect(caster, 1, 1, costed(damageEffect(1), 0.2), colliderSetOf(target))
+
+	assert.Equal(t, vitals.VitalSign(70), caster.vitalSigns.Health, "20 HP × (1 + 0.5) = 30")
+}
+
+// The never-kill floor still holds against a multiplied cost.
+func TestCostDrawback_MeetsTheNeverKillFloor(t *testing.T) {
+	caster := newFakePlayer()
+	withCostDrawback(caster, -1)
+	caster.vitalSigns.Health = 30 // the doubled 40-HP cost would kill
+	target := &touchRecorder{}
+
+	testSkillSystem().applyAuraEffect(caster, 1, 1, costed(damageEffect(1), 0.2), colliderSetOf(target))
+
+	assert.Equal(t, vitals.VitalSign(1), caster.vitalSigns.Health, "clamped, never killed")
+}
+
+// A doubled cost can make a cooldown uncastable at an HP where the list price
+// was affordable (canAfford rejects rather than discounts, D9).
+func TestCostDrawback_CanMakeACooldownUnaffordable(t *testing.T) {
+	caster := newFakePlayer()
+	caster.vitalSigns.Health = 30
+	es := equippedCooldown(costed(tauntEffect(), 0.2))
+	require.Equal(t, model.ActivationRejectedNone, testSkillSystem().activationPrecondition(caster, es),
+		"20 HP at 30 HP: affordable at list price")
+
+	withCostDrawback(caster, -1)
+
+	assert.Equal(t, model.ActivationRejectedNotEnoughResource,
+		testSkillSystem().activationPrecondition(caster, es), "40 HP at 30 HP: rejected")
+}

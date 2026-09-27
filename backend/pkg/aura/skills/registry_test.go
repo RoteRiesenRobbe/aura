@@ -239,8 +239,13 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// Long-Range Strike's numbers retagged to fire so a projectile has an
 	// element to take its colour from. Both SKILL cheat only, no unlock source,
 	// until the PO places them. 114 → 116 (78 player + 38 mob).
-	// 117 → 118 with RatBite (the GiantRat's bite, 2026-09-23).
-	assert.Len(t, r.All(), 118)
+	// 116 → 117 with AlphaBoarGore (the alpha boar's gore, 2026-09-22).
+	// 117 → 118 with RatBite (the GiantRat's bite, 2026-09-23), 78 player + 40 mob.
+	// + OverchargeAura (plan-aura-drawbacks.md C1, 2026-09-27), id 79: a paid
+	// damage aura carrying one while-active drawback of each bounded stat, the
+	// rig the fold's in-game check switches on and off. SKILL cheat only, no
+	// unlock source. 118 → 119 (79 player + 40 mob).
+	assert.Len(t, r.All(), 119)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

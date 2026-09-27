@@ -48,8 +48,11 @@ func TestEffectCategories_NamesOnlyRealCategories(t *testing.T) {
 }
 
 // (c) The refusal itself, on the two mistakes that motivated the rule: a
-// passive-only effect on an aura (the PO's own), and an aura-only effect on a
-// cooldown (the same mistake read the other way).
+// passive-only effect on an aura, and an aura-only effect on a cooldown (the
+// same mistake read the other way). The PO's own 2026-09-12 case, a
+// stat_multiplier on an aura, is no longer a mistake: since
+// plan-aura-drawbacks.md C1 it loads AND acts (while_active_test.go), so the
+// passive-only row is now a retaliate_slow.
 func TestMap_EffectTypeIllegalForCategoryIsRefused(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -57,7 +60,7 @@ func TestMap_EffectTypeIllegalForCategoryIsRefused(t *testing.T) {
 		effect   string
 		names    string
 	}{
-		{"stat_multiplier on an aura", "active_aura", `{"type":"stat_multiplier","stat":"maxHealth","statBonus":0.1}`, "passive"},
+		{"retaliate_slow on an aura", "active_aura", `{"type":"retaliate_slow","slowFraction":0.3,"slowDurationTicks":30}`, "passive"},
 		{"damage_aura on a cooldown", "cooldown", `{"type":"damage_aura","radius":1,"damageHP":5,"targetsEnemies":true}`, "active_aura"},
 	}
 	for _, tc := range cases {

@@ -387,3 +387,18 @@ func TestHandleRun_RejectsBadInput(t *testing.T) {
 	handleRun(w, req)
 	assert.Equal(t, http.StatusMethodNotAllowed, w.Code, "GET is not a run")
 }
+
+// An unknown selfModifier stat is a 400 with the name, not a panic in the
+// world builder (plan-aura-drawbacks.md D6).
+func TestHandleRun_RejectsAnUnknownSelfModifierStat(t *testing.T) {
+	w := postRun(t, `{
+		"player": {"maxHealth": 100, "aura": {"damageHP": 10, "tickInterval": 3, "radius": 1.0, "maxTargets": 1,
+		           "selfModifier": {"movmentSpeed": -0.2}}},
+		"mob": {"maxHealth": 40, "speed": 0, "bodyRadius": 0.2, "aggroRadius": 2.4,
+		        "aura": {"damageHP": 5, "tickInterval": 2, "radius": 1.0, "maxTargets": 1}},
+		"runs": 5, "seed": 1, "distance": 0.3, "maxSeconds": 60
+	}`)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "movmentSpeed")
+}

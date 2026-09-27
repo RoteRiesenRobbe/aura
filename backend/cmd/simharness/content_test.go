@@ -171,3 +171,19 @@ func TestMobSpecOf_GiantSpiderCarriesBiteAndVenom(t *testing.T) {
 	assert.True(t, spec.Aura.HasDirect())
 	assert.Greater(t, spec.Speed, float32(0.9), "it must out-walk the player to land any of it")
 }
+
+// A player aura carrying a while-active drawback (plan-aura-drawbacks.md D6)
+// maps the drawback into SelfModifier at the asked level, and a stat_multiplier
+// has no radius, so it must not trip the shared-sensor geometry check.
+func TestAuraSpecOf_MapsTheWhileActiveModifier(t *testing.T) {
+	spec, err := auraSpecOf(auraDef(
+		directEffect(3),
+		skills.EffectDef{Type: skills.EffectTypeStatMultiplier, Stat: &skills.StatParams{Name: skills.StatDamageReduction, Bonus: -0.2, BonusPerLevel: -0.1}},
+		skills.EffectDef{Type: skills.EffectTypeStatMultiplier, Stat: &skills.StatParams{Name: skills.StatMovementSpeed, Bonus: -0.3}},
+	), 3, 1)
+	require.NoError(t, err)
+
+	assert.InDelta(t, -0.4, spec.SelfModifier[skills.StatDamageReduction], 1e-6, "-0.2 + 2 × -0.1 at level 3")
+	assert.InDelta(t, -0.3, spec.SelfModifier[skills.StatMovementSpeed], 1e-6)
+	assert.Equal(t, float32(1.6), spec.Radius, "the damage payload's geometry, untouched")
+}

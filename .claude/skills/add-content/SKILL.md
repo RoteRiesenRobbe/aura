@@ -108,6 +108,13 @@ the bottom. Trust the code over the manual if a path has drifted.
   cleave; uncapped only for a PLACE (pool, barricade, totem) or a telegraphed
   AoE event (a stomp, a bomb), written as `"selector": "all"`. ⚑ An absent `maxTargets` silently means "hits
   everyone", so a forgotten cap loads clean.
+- **A `stat_multiplier` on an active aura is a while-active self modifier**
+  (`plan-aura-drawbacks.md` C1, manual §2 "While active"): it folds only while
+  that aura is switched on, both signs load, bounded per stat at every level.
+  ⚑ **L4: on a MOB aura it re-prices the mob the moment the aura switches on**
+  (pool, speed, damage taken or dealt), outside the tier + baseline pricing
+  and invisible to the placement numbers; nothing ships one, so authoring the
+  first is a re-price of every placement of that species, not a tweak.
 - **A skill file is never deleted, an `id` never changes, a `maxLevel` never
   decreases** (PO ruling 2026-09-18, `docs/manual-content-authoring.md`,
   "Retiring a skill: never delete the file"). Skill ids and levels are
@@ -188,6 +195,11 @@ at HEAD (this bit C2 — "Part 1 never bumped the pinned count"). After adding:
   species). They are *supposed* to break; add the name and bump the counts with a
   line saying what the def is. ⚑ They read `api/` from disk, so **`go test
   -count=1`** or a stale green hides all three.
+- **Any new skill file (player or mob) regenerates the Tiled palette:** the
+  zone editor's `AuraEffect` dropdown lists every skill the server loads, and
+  `frontend/.../AuraTiledConvert.test.ts` ("offers every skill the SERVER
+  loads") reddens until `node tools/tiled/generate-palette.mjs` rewrites
+  `tools/tiled/palette/*.json` + `aura.tiled-project` (commit those).
 - **Sim-harness presets** auto-derive player auras (§A "never a surprise") —
   if you added a player-facing aura/recipe result, confirm the preset appears
   (see the run-simharness skill).

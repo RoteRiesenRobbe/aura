@@ -476,6 +476,15 @@ Since death has the same effect, you can respec for free right after dying.
 
 **Repeatable, with a reward catalog.** Sacrificing is possible multiple times per account. Each sacrifice lets the player **choose one reward from a curated catalog** — not a fixed drop. Deliberate consequence: players who enjoy leveling and sacrifice alts repeatedly are a feature, not an exploit — they populate the early zones, and since rewards carry no power, it stays harmless.
 
+> ⚑ **RETIRED 2026-09-27 (PO, `plan-world-effects.md` D2 + D16).** The
+> "breadth, never power" rule below, its forbidden list and its design test no
+> longer govern: an ascension may grant power, including faster leveling, both
+> as timed effects (on the whole server and on the heir) and as the permanent
+> gift. PO: *"it is not a hard rule, it's one old idea that we are now going
+> against... repeatedly leveling through the game is part of the game and
+> players should be able to increase that."* The text is kept for its
+> rationale.
+
 **Rewards are breadth, never power.** Three sanctioned categories:
 
 1. **Side-grade auras** with unique mechanics — something *different*, never something *better*. Calibration reference: Purple Rain (Appendix A) — unique, desirable, zero meta pressure.

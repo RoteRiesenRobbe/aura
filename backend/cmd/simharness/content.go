@@ -443,6 +443,15 @@ func auraSpecOf(def *skills.SkillDefinition, level int, powerScale float32) (sim
 				return spec, fmt.Errorf("%s: two dot_aura payloads on one skill — not modellable by a single AuraSpec", def.Name)
 			}
 			dot = e
+		case e.Type == skills.EffectTypeStatMultiplier:
+			// The while-active self modifier (plan-aura-drawbacks.md D6): the
+			// sim folds it through the same SkillComponent. No geometry, so it
+			// skips the radius check below.
+			if spec.SelfModifier == nil {
+				spec.SelfModifier = make(map[string]float32)
+			}
+			spec.SelfModifier[e.Stat.Name] += e.Stat.BonusAt(level)
+			continue
 		default:
 			continue // light/resist/buff riders carry no damage
 		}

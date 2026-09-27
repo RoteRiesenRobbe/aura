@@ -42,6 +42,18 @@ func (r *runRequest) validate() error {
 	if _, ok := mobs.ParseRole(r.Mob.Role); !ok {
 		return fmt.Errorf("mob.role %q must be one of %s", r.Mob.Role, mobs.RoleNames())
 	}
+	return validateAuras(r.Player, r.Mob)
+}
+
+// validateAuras reports a typo'd selfModifier stat on either side as a 400
+// rather than a panic in the world builder (plan-aura-drawbacks.md D6).
+func validateAuras(p sim.PlayerSpec, m sim.MobSpec) error {
+	if err := p.Aura.Validate(); err != nil {
+		return fmt.Errorf("player.aura.%w", err)
+	}
+	if err := m.Aura.Validate(); err != nil {
+		return fmt.Errorf("mob.aura.%w", err)
+	}
 	return nil
 }
 
@@ -144,7 +156,7 @@ func validateCurve(cfg *sim.CurveConfig) error {
 	if fights > 100_000 {
 		return fmt.Errorf("battery too large: %d fights (max 100000) — lower runs, the level span or the gap range", fights)
 	}
-	return nil
+	return validateAuras(cfg.Fixture.Player, cfg.Fixture.Mob)
 }
 
 // handleCurve is the chunk-2 endpoint: a sim.CurveConfig in, the full curve
@@ -196,7 +208,7 @@ func validateMatrix(cfg *sim.MatrixConfig) error {
 	if fights > 100_000 {
 		return fmt.Errorf("battery too large: %d fight-equivalents (max 100000) — lower runs, candidates or the pack range", fights)
 	}
-	return nil
+	return validateAuras(cfg.Player, cfg.Mob)
 }
 
 // handleMatrix is the chunk-3 endpoint: a sim.MatrixConfig in, the build ×
@@ -259,7 +271,7 @@ func validateChain(cfg *sim.ChainConfig) error {
 	if cycles > 25_000 {
 		return fmt.Errorf("battery too large: %d chain cycles (max 25000) — lower runs, chainFights or the brackets", cycles)
 	}
-	return nil
+	return validateAuras(cfg.Player, cfg.Mob)
 }
 
 // handleChain is the chunk-4 endpoint: a sim.ChainConfig in, the chain
