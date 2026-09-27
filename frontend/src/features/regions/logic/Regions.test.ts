@@ -3,9 +3,11 @@ import {
     buildProfiles,
     DEFAULT_PROFILE,
     neededTextures,
+    OVERLAY_DEFAULTS,
     Profile,
     Region,
     regionBlend,
+    regionOverlay,
     regionPaintSpec,
     regionScroll,
     regionWobble,
@@ -444,6 +446,10 @@ describe('neededTextures — what the zone has to load, and nothing more', () =>
         alsoTiled: {texture: 'pd185'},
         other: {texture: 'pd186'},
         flat: {color: '#333333'},
+        stones: {texture: 'stones-tile'},
+        stony: {texture: 'pd185', overlay: {profile: 'stones', coverage: 0.3}},
+        stonyFlat: {color: '#333333', overlay: {profile: 'stones', coverage: 0.3}},
+        brokenOverlay: {color: '#333333', overlay: {profile: 'no-such-profile', coverage: 0.3}},
     });
 
     it('deduplicates, and ignores flat and unknown profiles', () => {
@@ -456,6 +462,132 @@ describe('neededTextures — what the zone has to load, and nothing more', () =>
 
     it('asks for nothing when no region is textured', () => {
         expect(neededTextures([square('flat', 0, 0)], PAINT)).toEqual([]);
+    });
+
+    // ⚑ ground-noise W2: the overlay's tile is only ever named INDIRECTLY, by
+    // the profile the overlay names. Missed here, the patches paint their
+    // fallback colour for the life of the session.
+    it("loads an overlay's tile too, even under a flat base", () => {
+        expect(neededTextures([square('stony', 0, 0)], PAINT).sort()).toEqual(['pd185', 'stones-tile']);
+        expect(neededTextures([square('stonyFlat', 0, 0)], PAINT)).toEqual(['stones-tile']);
+    });
+
+    it('asks for nothing for an overlay naming an unknown profile', () => {
+        expect(neededTextures([square('brokenOverlay', 0, 0)], PAINT)).toEqual([]);
+    });
+});
+
+// plan-ground-noise.md W2: a second profile painted over the surface in
+// world-keyed noise patches. Same drop-not-clamp posture as every other key.
+describe('PROFILES — the overlay key (ground-noise W2)', () => {
+    const parse = (overlay: unknown) => buildProfiles({p: {overlay}}).p.overlay;
+
+    it('keeps a well-formed overlay, with and without its own patch keys', () => {
+        expect(parse({profile: 'Stones', coverage: 0.3}))
+            .toEqual({profile: 'Stones', coverage: 0.3});
+        expect(parse({profile: 'Stones', coverage: 0.3, size: 2, roughness: 0}))
+            .toEqual({profile: 'Stones', coverage: 0.3, size: 2, roughness: 0});
+    });
+
+    it.each([
+        ['a non-object', 'Stones'],
+        ['null', null],
+        ['no profile', {coverage: 0.3}],
+        ['an empty profile name', {profile: '', coverage: 0.3}],
+        ['a non-string profile', {profile: 3, coverage: 0.3}],
+        ['no coverage', {profile: 'Stones'}],
+        ['a coverage over 1', {profile: 'Stones', coverage: 1.5}],
+        ['a negative coverage', {profile: 'Stones', coverage: -0.1}],
+        ['a non-finite coverage', {profile: 'Stones', coverage: NaN}],
+    ])('drops the WHOLE overlay for %s', (_label, raw) => {
+        expect(parse(raw)).toBeUndefined();
+    });
+
+    it('drops an unusable size or roughness, and keeps the overlay', () => {
+        [0, -1, NaN, '2'].forEach((size) => {
+            expect(parse({profile: 'Stones', coverage: 0.3, size})).toEqual({profile: 'Stones', coverage: 0.3});
+        });
+        [-0.1, 1.5, NaN, '0.5'].forEach((roughness) => {
+            expect(parse({profile: 'Stones', coverage: 0.3, roughness}))
+                .toEqual({profile: 'Stones', coverage: 0.3});
+        });
+    });
+
+    it('defaults to no overlay — the feature costs nothing until authored', () => {
+        expect(DEFAULT_PROFILE.overlay).toBeNull();
+    });
+});
+
+describe('regionOverlay — the patches this surface paints (ground-noise W2)', () => {
+    const OVERLAID = buildProfiles({
+        stones: {texture: 'stones-tile', color: '#777777'},
+        full: {overlay: {profile: 'stones', coverage: 0.4, size: 2, roughness: 0}},
+        bare: {overlay: {profile: 'stones', coverage: 0.4}},
+        none: {overlay: {profile: 'stones', coverage: 0}},
+        broken: {overlay: {profile: 'no-such-profile', coverage: 0.4}},
+        inherited: {overlay: {profile: 'toString', coverage: 0.4}},
+        quiet: {color: '#111111'},
+    });
+    const at = (profile: string) => regionOverlay({profile, points: []}, OVERLAID);
+
+    it('returns every value the overlay declares', () => {
+        expect(at('full')).toEqual({profile: 'stones', coverage: 0.4, size: 2, roughness: 0});
+    });
+
+    // D4: the patch keys are the OVERLAY's own, never the base's wobble keys.
+    it('fills an omitted size and roughness from the overlay defaults', () => {
+        expect(at('bare')).toEqual({
+            profile: 'stones', coverage: 0.4,
+            size: OVERLAY_DEFAULTS.size, roughness: OVERLAY_DEFAULTS.roughness,
+        });
+    });
+
+    it.each([
+        ['no overlay', 'quiet'],
+        ['an unknown surface profile', 'no-such-profile'],
+        ['a coverage of 0, which paints nothing', 'none'],
+        ['an overlay naming a profile the table does not have', 'broken'],
+        ['an overlay naming an Object.prototype member', 'inherited'],
+    ])('is null for %s', (_label, profile) => {
+        expect(at(profile)).toBeNull();
+    });
+});
+
+// ⛔ Ground only: paintAir never draws an overlay, but neededTextures would
+// still download its tile. An authored one is a silent no-op, so it is red.
+describe('the shipped atmosphere profiles author no overlay (ground-noise W2)', () => {
+    it('atmosphere-profiles.json', () => {
+        const raw = atmosphereProfilesJson as { [k: string]: unknown };
+        const offenders = Object.keys(raw).filter(name => name.charAt(0) !== '_'
+            && 'overlay' in (raw[name] as object));
+        expect(offenders).toEqual([]);
+    });
+});
+
+// ⭐ The parse above drops a broken overlay SILENTLY, so only the raw file can
+// show one: every authored overlay must survive the parser and name a real
+// ground profile, or a look sitting judges patches that are not there.
+describe('the shipped terrain profiles author only working overlays (ground-noise W2)', () => {
+    it('every overlay parses, uses known keys and names a terrain profile', () => {
+        const raw = terrainProfilesJson as { [k: string]: unknown };
+        const parsed = buildProfiles(raw);
+        const known = ['profile', 'coverage', 'size', 'roughness'];
+        const offenders: string[] = [];
+        Object.keys(raw).forEach((name) => {
+            if (name.charAt(0) === '_') { return; }
+            const authored = (raw[name] as { overlay?: object }).overlay;
+            if (authored === undefined) { return; }
+            Object.keys(authored).forEach((key) => {
+                if (known.indexOf(key) < 0) { offenders.push(name + '.overlay.' + key); }
+            });
+            const overlay = parsed[name].overlay;
+            if (!overlay) {
+                offenders.push(name + '.overlay (dropped by the parser)');
+            } else if (!Object.prototype.hasOwnProperty.call(parsed, overlay.profile)) {
+                offenders.push(name + '.overlay.profile "' + overlay.profile + '" is not a terrain profile');
+            }
+        });
+        expect(offenders).toEqual([]);
     });
 });
 

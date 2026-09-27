@@ -105,7 +105,44 @@ export interface TerrainProfile {
     // vector shared by every shape on the profile — and that is the accepted
     // limit, not an oversight (D9).
     scroll?: { x: number, y: number };
+    // A SECOND profile painted over this one in world-keyed noise PATCHES —
+    // stones showing through grass (plan-ground-noise.md W2). Absent = none, and
+    // no extra mask, draw or texture load at all.
+    //
+    // ⭐ It names ANOTHER profile, as `outlineProfile` does, so the patches take
+    // that profile's `texture`, `scale`, `color` (D14) and `scroll` (D5) with no
+    // new look vocabulary. Nothing else of it is read: its own blend, wobble and
+    // overlay are ignored, so an overlay can never recurse.
+    //
+    // ⭐ The patch keys are the overlay's OWN (D4), never the base's wobble keys:
+    // patch size and edge fraying are different looks. See {@link Overlay}.
+    //
+    // ⛔ Ground only. An atmosphere profile's overlay is parsed (the parser does
+    // not know which table it is building) and never drawn.
+    overlay?: Overlay | null;
 }
+
+/** An authored overlay, as the parser keeps it: the two required keys and
+ *  whichever optional ones parsed. {@link regionOverlay} fills the rest. */
+export interface Overlay {
+    /** A terrain profile name — the patches' paint. */
+    profile: string;
+    /** 0…1, roughly the share of the surface the patches cover. Exact at 0, ½
+     *  and 1 (MaskNoise.patchThreshold); in between it is judged by eye. */
+    coverage: number;
+    /** The patch size, WORLD UNITS. */
+    size?: number;
+    /** 0…1, how frayed a patch's outline is — the wobble's octave gain. */
+    roughness?: number;
+}
+
+/** A surface's overlay with every key filled — what the renderer reads. */
+export type ResolvedOverlay = Required<Overlay>;
+
+/** What an overlay that omits its patch keys gets. [PLACEHOLDER], both. ⚑ The
+ *  size is a PATCH, so it is far coarser than a wobble's lump: about a stride
+ *  across, where a stony patch in a field reads as a patch and not as grit. */
+export const OVERLAY_DEFAULTS = {size: 1.5, roughness: 0.5};
 
 /**
  * The AIR over an area: every terrain key, plus the three only air answers.
@@ -231,6 +268,10 @@ export const DEFAULT_PROFILE: Required<Profile> = {
     // TilingSprite and a per-frame write under every textured region in every
     // zone that never asked for one.
     scroll: {x: 0, y: 0},
+    // The world before ground-noise W2: one paint per surface. ⚑ A non-null
+    // default would put a second mask and a second masked draw under every
+    // surface that never asked for one.
+    overlay: null,
     // The world before atmosphere: nothing is dark except the authored
     // `darkAreas` circles. ⚑ A non-zero default would black out every zone the
     // moment A1 shipped — the feature has to cost exactly zero until a profile
@@ -352,6 +393,33 @@ function parseScroll(raw: unknown): { x: number, y: number } | undefined {
     return {x, y};
 }
 
+/** An overlay needs a profile to paint and a coverage to cut at; without
+ *  either the WHOLE overlay is dropped, since half of one draws nothing. The
+ *  two patch keys are optional and drop alone, like any other key.
+ *
+ *  ⚑ `coverage: 0` is KEPT, by the same rule as `blend: 0`: it is a value, and
+ *  {@link regionOverlay} is where it becomes "no patches". ⚑ Whether the named
+ *  profile EXISTS is not checked here — the parser builds the very table it
+ *  would be checked against; {@link regionOverlay} answers that. */
+function parseOverlay(raw: unknown): Overlay | undefined {
+    if (typeof raw !== 'object' || raw === null) {
+        return undefined;
+    }
+    const {profile, coverage, size, roughness} =
+        raw as { profile?: unknown, coverage?: unknown, size?: unknown, roughness?: unknown };
+    const cut = parseOpacity(coverage);
+    if (typeof profile !== 'string' || profile === '' || cut === undefined) {
+        return undefined;
+    }
+    const overlay: Overlay = {profile, coverage: cut};
+    const parsedSize = parseScale(size);
+    if (parsedSize !== undefined) { overlay.size = parsedSize; }
+    // Smooth patches are a look, so 0 is kept — wobbleRoughness's rule.
+    const parsedRoughness = parseOpacity(roughness);
+    if (parsedRoughness !== undefined) { overlay.roughness = parsedRoughness; }
+    return overlay;
+}
+
 /**
  * Builds the profile table from authored JSON.
  *
@@ -381,7 +449,8 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
         if (name.charAt(0) === '_') { return; }
         const entry = raw[name] as {
             color?: unknown, texture?: unknown, scale?: unknown, blend?: unknown,
-            wobbleReach?: unknown, wobbleSize?: unknown, wobbleRoughness?: unknown, scroll?: unknown, darkness?: unknown, haze?: unknown, sight?: unknown,
+            wobbleReach?: unknown, wobbleSize?: unknown, wobbleRoughness?: unknown, scroll?: unknown,
+            overlay?: unknown, darkness?: unknown, haze?: unknown, sight?: unknown,
         };
         const profile: Profile = {};
         if (entry && 'color' in entry) {
@@ -440,6 +509,10 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
         if (entry && 'scroll' in entry) {
             const parsed = parseScroll(entry.scroll);
             if (parsed !== undefined) { profile.scroll = parsed; }
+        }
+        if (entry && 'overlay' in entry) {
+            const parsed = parseOverlay(entry.overlay);
+            if (parsed !== undefined) { profile.overlay = parsed; }
         }
         out[name] = profile;
     });
@@ -717,6 +790,37 @@ export function regionWobble(
 }
 
 /**
+ * The patches this surface paints over itself, every key filled, or `null` for
+ * none (plan-ground-noise.md W2).
+ *
+ * ⚑ Its OWN profile's overlay, never a resolve() chain — {@link regionBlend}'s
+ * rule: a field drawn inside a stony one must not inherit its stones.
+ *
+ * `null` too for a `coverage` of 0 (nothing to paint) and for an overlay naming
+ * a profile the table does not have: without that check the miss would fall to
+ * the DEFAULT profile and paint patches of bare land colour — plausible enough
+ * on screen to pass for a look.
+ */
+export function regionOverlay(
+    region: Region,
+    profiles: { [name: string]: TerrainProfile } = TERRAIN_PROFILES,
+): ResolvedOverlay | null {
+    const profile = profiles[region.profile];
+    const overlay = profile ? profile.overlay : undefined;
+    // ⚑ An OWN key: `in` would accept `toString` and hand a function to the paint.
+    if (!overlay || overlay.coverage <= 0
+        || !Object.prototype.hasOwnProperty.call(profiles, overlay.profile)) {
+        return null;
+    }
+    return {
+        profile: overlay.profile,
+        coverage: overlay.coverage,
+        size: overlay.size !== undefined ? overlay.size : OVERLAY_DEFAULTS.size,
+        roughness: overlay.roughness !== undefined ? overlay.roughness : OVERLAY_DEFAULTS.roughness,
+    };
+}
+
+/**
  * How far the local player sees unaided at `point`, in world units — the LAST
  * containing atmosphere that declares `sight`, else the shipped floor
  * (plan-region-atmosphere.md A2).
@@ -875,17 +979,26 @@ export function regionScroll(
 
 /** The texture names the given regions' profiles ask for, deduplicated — what
  *  the loader has to fetch for this zone, and nothing else (⛔ never every
- *  zone's set: §4.9's boot-blocking trap). */
+ *  zone's set: §4.9's boot-blocking trap).
+ *
+ *  ⚑ Including the tile of each surface's OVERLAY profile (W2), which no shape
+ *  names directly: miss it and the patches paint their fallback colour for the
+ *  life of the session. */
 export function neededTextures(
     inRegions: Region[],
     profiles: { [name: string]: TerrainProfile } = TERRAIN_PROFILES,
 ): string[] {
     const seen: { [name: string]: true } = {};
-    inRegions.forEach((region) => {
-        const profile = profiles[region.profile];
+    const add = (name: string) => {
+        const profile = profiles[name];
         if (profile && typeof profile.texture === 'string') {
             seen[profile.texture] = true;
         }
+    };
+    inRegions.forEach((region) => {
+        add(region.profile);
+        const overlay = regionOverlay(region, profiles);
+        if (overlay !== null) { add(overlay.profile); }
     });
     return Object.keys(seen);
 }

@@ -29,12 +29,17 @@
  * wide enough for both ({@link maskBand}) and derives the shader's uniforms so
  * each knob moves one look ({@link noiseShape}).
  *
- * ⚑ `maskBand`, `maskDensity` and `noiseShape` are pure and vitest-reachable;
- * `applyMaskNoise` needs a GPU and is judged by eye and by the harness.
+ * ⭐ W2 IS THE SAME PASS IN A SECOND MODE: an overlay's PATCH mask (stones
+ * showing through grass) is the surface's own mask times the noise cut at a
+ * coverage threshold ({@link applyPatchNoise}). One program, one `uMode`.
+ *
+ * ⚑ `maskBand`, `maskDensity`, `noiseShape`, `octaveMix`, `patchThreshold`,
+ * `overlayDensity` and `snapToTexels` are pure and vitest-reachable; the two `apply*` passes need
+ * a GPU and are judged by eye and by the harness.
  */
 import {
     Container, GlProgram, Mesh, MeshGeometry, Renderer, RendererType, RenderTexture, Shader,
-    UniformGroup,
+    Texture, UniformGroup,
 } from 'pixi.js';
 
 /**
@@ -89,8 +94,14 @@ export const GRAIN_PER_REACH = 1;
 /** The band the bake blurs to, as a multiple of the reach. [PLACEHOLDER] but
  *  NOT free: {@link noiseShape} solves the amplitude against it, and below ~2.5
  *  the ramp is too steep for the `4m(1 − m)` bump to let the edge travel its
- *  full reach. At 3 the needed amplitude is 1.2. */
-export const BAND_PER_REACH = 3;
+ *  full reach. ⛔ And not too LOW either (PO 2026-09-27, "cubey"): near its
+ *  extreme the edge moves ever less per unit of noise (the bump flattens), so
+ *  a tight band piles the edge into flat runs at ±reach with steep steps
+ *  between — at 3 the response at the extreme was a fifth of the centre's, and
+ *  a crisp edge read as blocks. At 6 it is about two thirds (amplitude 0.375).
+ *  ⚑ At 10 the wander flattens and stray specks detach from the edge: the bump
+ *  reaches too far from the line. Judged in-game, not solved. */
+export const BAND_PER_REACH = 6;
 
 /** The octaves' frequencies, relative to the grain. ⭐ The SHADER is built from
  *  this array, so the octave-drop rule and the GLSL cannot disagree. The
@@ -143,8 +154,22 @@ export function maskBand(blend: number, reach: number, mobile: boolean): number 
  * @param band          world units, from {@link maskBand}
  * @param reach         world units; 0 means no grain
  * @param longestUnits  the footprint's longer side, world units
+ * ⭐ And, on a wobbly edge, it follows the FADE and the ROUGHNESS (2026-09-27,
+ * the PO's `blend: 0` Road still read blended): the band is the ROOM the edge
+ * wanders in, far wider than a crisp fade, so a density sized off the band drew
+ * "crisp" over ~0.3 u, and dropped every fine octave, which left roughness
+ * inert. Both are clamped by the same ceiling as everything else.
+ *
+ * @param band          world units, from {@link maskBand}
+ * @param reach         world units; 0 means no grain
+ * @param longestUnits  the footprint's longer side, world units
  * @param wobbleSize    the profile's authored grain, world units; 0 derives it
  *                      from the reach
+ * @param fade          the profile's `blend`, world units; 0 = as crisp as the
+ *                      ceiling allows. Only read with a reach: a straight edge's
+ *                      fade IS its band.
+ * @param roughness     the wobble's octave gain; above 0 the finest octave must
+ *                      be drawable ({@link octaveTexelsNeeded})
  */
 export function maskDensity(
     band: number,
@@ -152,6 +177,8 @@ export function maskDensity(
     longestUnits: number,
     mobile: boolean,
     wobbleSize: number = 0,
+    fade: number = band,
+    roughness: number = 0,
 ): { texelsPerUnit: number, grainUnits: number } {
     const device = mobile ? 'mobile' : 'desktop';
     let wanted = BASE_TEXELS_PER_UNIT[device];
@@ -161,7 +188,11 @@ export function maskDensity(
     let grainTarget = 0;
     if (reach > 0) {
         grainTarget = wobbleSize > 0 ? wobbleSize : reach * GRAIN_PER_REACH;
-        wanted = Math.max(wanted, MIN_GRAIN_TEXELS / grainTarget);
+        wanted = Math.max(wanted, MIN_GRAIN_TEXELS / grainTarget,
+            // A fade of 0 asks for Infinity, which the ceiling below turns into
+            // "as crisp as any mask can be".
+            fade > 0 ? MIN_BAND_TEXELS / fade : Infinity,
+            octaveTexelsNeeded(grainTarget, roughness));
     }
     let texelsPerUnit = Math.min(wanted, MAX_TEXELS_PER_UNIT[device]);
     if (longestUnits * texelsPerUnit > MASK_MAX_TEXELS) {
@@ -171,6 +202,30 @@ export function maskDensity(
         ? Math.max(grainTarget, MIN_GRAIN_TEXELS / texelsPerUnit)
         : 0;
     return {texelsPerUnit, grainUnits};
+}
+
+/**
+ * A mask box side, grown to a WHOLE number of texels at `texelsPerPx`.
+ *
+ * ⛔ Load-bearing since W2, wrong since C5: a mask texture is rounded UP to whole
+ * texels, and the sprite used to be stretched back over the UNROUNDED box, so
+ * every mask sat up to a texel short at its bottom and right edges. A soft fade
+ * hid it; the first hard edge under an overlay showed it as a strip of bare base
+ * along the edge. Snapping the box instead makes the texture, the box, the
+ * sprite and the noise quad's UVs all one size.
+ */
+export function snapToTexels(lengthPx: number, texelsPerPx: number): number {
+    // The epsilon keeps an exact fit from rounding up a whole extra texel.
+    return Math.max(1, Math.ceil(lengthPx * texelsPerPx - 1e-9)) / texelsPerPx;
+}
+
+/** Texels per unit a grain needs for its FINEST octave to be drawn rather than
+ *  dropped ({@link MIN_OCTAVE_TEXELS}), or 0 when roughness is 0: smooth lumps
+ *  have no fine octave to draw. Shared by the wobble and the overlay's patches. */
+function octaveTexelsNeeded(grainUnits: number, roughness: number): number {
+    return roughness > 0
+        ? MIN_OCTAVE_TEXELS * OCTAVE_SCALES[OCTAVE_SCALES.length - 1] / grainUnits
+        : 0;
 }
 
 /** The noise pass's uniforms. */
@@ -226,14 +281,80 @@ export function noiseShape(
     const soft = Math.min(0.5, Math.max(blend, 1 / texelsPerUnit) / (2 * band));
     const x = reach / band;
     const amp = 2 * x / (1 - 4 * x * x);
+    return {amp, soft, ...octaveMix(grainUnits * texelsPerUnit, roughness)};
+}
 
-    const grainTexels = grainUnits * texelsPerUnit;
+/**
+ * The ROUGHNESS rule on its own: the octave weights and the stretch that keeps
+ * the noise's spread fixed. Shared by the wobble and the overlay's patches
+ * (W2), so a patch's `roughness` means exactly what `wobbleRoughness` means.
+ *
+ * @param grainTexels  the coarse octave's size in texels, for the octave drop
+ */
+export function octaveMix(grainTexels: number, roughness: number): { weights: number[], stretch: number } {
     const raw = OCTAVE_SCALES.map((scale, i) =>
         i === 0 || grainTexels / scale >= MIN_OCTAVE_TEXELS ? Math.pow(roughness, i) : 0);
     const total = raw.reduce((a, b) => a + b, 0);
     const weights = raw.map(w => w / total);
-    return {amp, soft, weights, stretch: NOISE_STRETCH * W1_SPREAD / spreadOf(weights)};
+    return {weights, stretch: NOISE_STRETCH * W1_SPREAD / spreadOf(weights)};
 }
+
+/** How soft a patch's outline is, in NOISE units (the cut is a smoothstep over
+ *  `threshold ± PATCH_SOFT`). [PLACEHOLDER]. The noise crosses its range over
+ *  about half a grain, so this fades a patch over roughly an eighth of its size:
+ *  soft enough not to read as a cut-out, crisp enough to read as a patch. */
+export const PATCH_SOFT = 0.06;
+
+/**
+ * Where the stretched noise is cut for a given `coverage` (W2): a texel shows
+ * the overlay where n clears it.
+ *
+ * ⭐ Mapped onto `[−soft, 1 + soft]` rather than `[0, 1]`, so that coverage 1
+ * covers EVERY noise value, the smoothstep's lower tail included, and 0 covers
+ * none. ⚑ Exact at 0, ½ and 1 (the stretched noise is symmetric about ½); in
+ * between the covered share bends with the noise's distribution — "about a
+ * third" at 0.33, judged by eye rather than solved.
+ */
+export function patchThreshold(coverage: number, soft: number): number {
+    return (1 - coverage) * (1 + 2 * soft) - soft;
+}
+
+/**
+ * The density an OVERLAY mask is baked at, and the patch grain drawn into it.
+ *
+ * The {@link maskDensity} rule with the patch in the grain's seat — and ⚑ never
+ * coarser than the base mask it reads (`baseTexelsPerUnit`, 0 for a surface
+ * with none): a narrow wobbly road bakes dense, and resampling its edge coarser
+ * would let the patches spill past the edge the base draws. The same cap, and
+ * the grain re-derived after it, for the same one-density-variable reason.
+ */
+export function overlayDensity(
+    sizeUnits: number,
+    longestUnits: number,
+    mobile: boolean,
+    baseTexelsPerUnit: number,
+    roughness: number = 0,
+): { texelsPerUnit: number, grainUnits: number } {
+    const device = mobile ? 'mobile' : 'desktop';
+    const wanted = Math.max(BASE_TEXELS_PER_UNIT[device], MIN_GRAIN_TEXELS / sizeUnits, baseTexelsPerUnit,
+        octaveTexelsNeeded(sizeUnits, roughness));
+    let texelsPerUnit = Math.min(wanted, MAX_TEXELS_PER_UNIT[device]);
+    if (longestUnits * texelsPerUnit > MASK_MAX_TEXELS) {
+        texelsPerUnit = MASK_MAX_TEXELS / longestUnits;
+    }
+    return {texelsPerUnit, grainUnits: Math.max(sizeUnits, MIN_GRAIN_TEXELS / texelsPerUnit)};
+}
+
+/** Where the patch mode reads the noise lattice, in grains. Any far, irrational
+ *  -looking offset de-correlates it from the wobble. */
+const PATCH_LATTICE_OFFSET = [311.7, 173.3];
+
+/** The noise warp, both modes: its frequency relative to the grain, and how
+ *  far it pushes the sample point, in grains. [PLACEHOLDER], both — enough to
+ *  bend the lattice's straight runs into curves (see the shader's fbm), not so
+ *  much that a patch or a lump smears into a streak. */
+const WARP_SCALE = 0.6;
+const WARP_STRENGTH = 1.2;
 
 /** A JS number as a GLSL float literal (`1` alone is an int in GLSL ES 1.0). */
 function glsl(value: number): string {
@@ -286,6 +407,10 @@ uniform float uSoft;
 uniform float uGrain;
 uniform vec3 uWeights;
 uniform float uStretch;
+// 0 = the wobble (W1), 1 = an overlay's patches (W2). A bake-time branch, so
+// it costs nothing a frame.
+uniform float uMode;
+uniform float uThreshold;
 
 // Dave Hoskins' hash12: no sin(), so it holds precision at world-px scale.
 float hash12(vec2 p) {
@@ -302,20 +427,49 @@ float valueNoise(vec2 p) {
                mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y);
 }
 
-// The weights sum to 1, so this stays in 0…1 whatever the mix.
+vec2 turn(vec2 p, float angle) {
+    float c = cos(angle);
+    float s = sin(angle);
+    return vec2(c * p.x - s * p.y, s * p.x + c * p.y);
+}
+
+// ⛔ VALUE NOISE LIVES ON A SQUARE LATTICE, and anything cut crisply out of it
+// traces that lattice. The patches showed it first (an "L" in a field of
+// grass), then the crisp wobbly Road (2026-09-27: straight runs and right-angled
+// steps along the edge, once a blend-0 edge could finally draw crisp). Two
+// fixes, both needed: each octave is TURNED to its own angle, so no two share a
+// grid, and the sample point is WARPED by a slower noise, which bends what grid
+// is left into curves. Neither changes the noise's distribution, so the
+// stretch, the reach solve and the coverage cut all still hold. The weights sum
+// to 1, so this stays in 0…1 whatever the mix.
 float fbm(vec2 p) {
-    return uWeights.x * valueNoise(p * ${glsl(OCTAVE_SCALES[0])} + ${glsl(OCTAVE_OFFSETS[0])})
-        + uWeights.y * valueNoise(p * ${glsl(OCTAVE_SCALES[1])} + ${glsl(OCTAVE_OFFSETS[1])})
-        + uWeights.z * valueNoise(p * ${glsl(OCTAVE_SCALES[2])} + ${glsl(OCTAVE_OFFSETS[2])});
+    vec2 warp = vec2(valueNoise(p * ${glsl(WARP_SCALE)} + 5.3),
+                     valueNoise(p * ${glsl(WARP_SCALE)} + 91.7)) - 0.5;
+    p += warp * ${glsl(WARP_STRENGTH)};
+    return uWeights.x * valueNoise(turn(p, 0.61) * ${glsl(OCTAVE_SCALES[0])} + ${glsl(OCTAVE_OFFSETS[0])})
+        + uWeights.y * valueNoise(turn(p, 1.93) * ${glsl(OCTAVE_SCALES[1])} + ${glsl(OCTAVE_OFFSETS[1])})
+        + uWeights.z * valueNoise(turn(p, 2.87) * ${glsl(OCTAVE_SCALES[2])} + ${glsl(OCTAVE_OFFSETS[2])});
 }
 
 void main() {
     float m = texture2D(uTexture, vUV).a;
-    // fbm crowds the middle of its range; stretch it back out so the reach's
-    // extreme is actually reached.
-    float n = clamp((fbm(vWorld / uGrain) - 0.5) * uStretch + 0.5, 0.0, 1.0);
-    float v = m + uAmp * (n - 0.5) * 4.0 * m * (1.0 - m);
-    float a = clamp((v - 0.5) / (2.0 * uSoft) + 0.5, 0.0, 1.0);
+    vec2 p = vWorld / uGrain;
+    float a;
+    if (uMode < 0.5) {
+        // fbm crowds the middle of its range; stretch it back out so the
+        // reach's extreme is actually reached.
+        float n = clamp((fbm(p) - 0.5) * uStretch + 0.5, 0.0, 1.0);
+        float v = m + uAmp * (n - 0.5) * 4.0 * m * (1.0 - m);
+        a = clamp((v - 0.5) / (2.0 * uSoft) + 0.5, 0.0, 1.0);
+    } else {
+        // ⚑ Read from a far-off corner of the lattice, so a patch grain equal
+        // to the wobble's lump does not lay the stones along the edge.
+        vec2 q = p + vec2(${glsl(PATCH_LATTICE_OFFSET[0])}, ${glsl(PATCH_LATTICE_OFFSET[1])});
+        float n = clamp((fbm(q) - 0.5) * uStretch + 0.5, 0.0, 1.0);
+        // ⭐ The patches TIMES the surface's own mask, so they die out at the
+        // edge the base draws — wobble and all — instead of spilling past it.
+        a = m * smoothstep(uThreshold - uSoft, uThreshold + uSoft, n);
+    }
     // Premultiplied white, exactly what the blurred silhouette was: the mask
     // filter reads .r and .a, and both must carry the value.
     gl_FragColor = vec4(a);
@@ -346,13 +500,72 @@ export function applyMaskNoise(
     grainPx: number,
     shape: NoiseShape,
 ): RenderTexture | null {
+    return bakeNoisePass(renderer, blurred, footprint, texelsPerPx,
+        {width: blurred.width, height: blurred.height}, {
+            uAmp: shape.amp, uSoft: shape.soft, uGrain: grainPx,
+            uWeights: shape.weights, uStretch: shape.stretch, uMode: 0, uThreshold: 0,
+        });
+}
+
+/**
+ * Bakes an OVERLAY's patch mask (W2) into a new texture, or returns `null`
+ * (no WebGL: the overlay is then not drawn at all — a surface without its
+ * stones is the honest degrade, a full-cover overlay is not).
+ *
+ * ⭐ The input is the SURFACE's own mask — its blurred, wobbled edge — and the
+ * output is that mask times the patches. It is sampled by UV over the
+ * footprint, so the two may differ in resolution. `null` means the surface has
+ * a HARD edge and no mask: the patches then cover the whole footprint, and the
+ * caller clips them with the shape's own geometry — a low-resolution silhouette
+ * here would soften the one edge that was authored crisp.
+ *
+ * ⚑ The output is `ceil(footprint × texelsPerPx)` texels, which may overhang the
+ * footprint by a sliver when the footprint was snapped at the BASE mask's
+ * density: size its sprite by the texture, never by the footprint.
+ *
+ * ⚑ The input is NOT freed here, exactly as {@link applyMaskNoise}.
+ */
+export function applyPatchNoise(
+    renderer: Renderer,
+    surfaceMask: RenderTexture | null,
+    footprint: { x: number, y: number, width: number, height: number },
+    texelsPerPx: number,
+    grainPx: number,
+    mix: { weights: number[], stretch: number },
+    coverage: number,
+): RenderTexture | null {
+    return bakeNoisePass(renderer, surfaceMask !== null ? surfaceMask : Texture.WHITE, footprint,
+        texelsPerPx, {
+            width: Math.max(1, Math.ceil(footprint.width * texelsPerPx - 1e-9)),
+            height: Math.max(1, Math.ceil(footprint.height * texelsPerPx - 1e-9)),
+        }, {
+            uAmp: 0, uSoft: PATCH_SOFT, uGrain: grainPx,
+            uWeights: mix.weights, uStretch: mix.stretch, uMode: 1,
+            uThreshold: patchThreshold(coverage, PATCH_SOFT),
+        });
+}
+
+/** The one pass both modes run: a footprint quad, the shared program, one
+ *  set of uniforms. */
+function bakeNoisePass(
+    renderer: Renderer,
+    input: Texture,
+    footprint: { x: number, y: number, width: number, height: number },
+    texelsPerPx: number,
+    size: { width: number, height: number },
+    uniforms: {
+        uAmp: number, uSoft: number, uGrain: number, uWeights: number[], uStretch: number,
+        uMode: number, uThreshold: number,
+    },
+): RenderTexture | null {
     // ⛔ GLSL only. Both Applications take Pixi 8's default (WebGL) preference;
     // should that ever change, the wobble degrades to the clean ramp (D11's
     // posture) instead of breaking the paint.
     if (renderer.type !== RendererType.WEBGL) {
         if (!warnedRenderer) {
             warnedRenderer = true;
-            console.warn('MaskNoise: the blend wobble needs WebGL; drawing clean soft edges.');
+            console.warn('MaskNoise: the blend wobble and ground overlays need WebGL; '
+                + 'drawing clean soft edges and no overlays.');
         }
         return null;
     }
@@ -371,20 +584,23 @@ export function applyMaskNoise(
             preferredFragmentPrecision: 'highp',
         }),
         resources: {
-            uTexture: blurred.source,
+            uTexture: input.source,
             noiseUniforms: new UniformGroup({
-                uAmp: {value: shape.amp, type: 'f32'},
-                uSoft: {value: shape.soft, type: 'f32'},
-                uGrain: {value: grainPx, type: 'f32'},
-                uWeights: {value: new Float32Array(shape.weights), type: 'vec3<f32>'},
-                uStretch: {value: shape.stretch, type: 'f32'},
+                uAmp: {value: uniforms.uAmp, type: 'f32'},
+                uSoft: {value: uniforms.uSoft, type: 'f32'},
+                uGrain: {value: uniforms.uGrain, type: 'f32'},
+                uWeights: {value: new Float32Array(uniforms.uWeights), type: 'vec3<f32>'},
+                uStretch: {value: uniforms.uStretch, type: 'f32'},
+                uMode: {value: uniforms.uMode, type: 'f32'},
+                uThreshold: {value: uniforms.uThreshold, type: 'f32'},
             }),
         },
     });
 
-    const output = RenderTexture.create({width: blurred.width, height: blurred.height});
+    const output = RenderTexture.create(size);
     // The same holder transform the silhouette was drawn with, so texel (i, j)
-    // of the output lies exactly over texel (i, j) of the input.
+    // of the output lies exactly over texel (i, j) of the input. (The patch
+    // pass may bake at another density; the input is read by UV either way.)
     const holder = new Container();
     holder.addChild(new Mesh({geometry, shader}));
     holder.scale.set(texelsPerPx);

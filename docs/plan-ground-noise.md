@@ -1,7 +1,7 @@
 # Ground noise — wobbly blend edges (W1) and texture overlays (W2)
 
 Designed and W1 built 2026-09-23 (PO session). **W1 SHIPPED, look sitting owed · W1b + W1c SHIPPED 2026-09-26 `a4ad7f0c`, look sitting owed
-(§6, §7) · W2 designed, not built.**
+(§6, §7) · W2 BUILT 2026-09-26 `[uncommitted]`, look sitting owed (§9).**
 
 ## 1. Why
 
@@ -100,7 +100,7 @@ bank can wobble too). `cutHole` passes 0, because a clearing names no profile (A
   - The map view has not been checked by eye. It matches the world by construction (same bake, world-keyed noise).
   - VRAM for long diagonal wobbly paths is unmeasured. The cap bounds it at 2048² per mask.
 
-## 5. W2 — texture overlay (designed, NOT built)
+## 5. W2 — texture overlay (designed; BUILT 2026-09-26, ledger §9)
 
 - **Key:** `"overlay": { "profile": "<Name>", "coverage": 0…1 }` on a terrain profile.
   - It names ANOTHER terrain profile, as `outlineProfile` does, so the overlay reuses `texture`/`scale`/`color` and the
@@ -326,3 +326,130 @@ A hostile review of the combined W1b + W1c diff, the same day, before the wrap. 
 
 **OWED (all the PO's):** the look sitting across all four knobs (roughness 0 / 0.5 / 1, a `blend: 0` +
 `wobbleReach` plot, the finest fade), and the phone.
+
+## 9. W2 as built — the overlay (2026-09-26, `[uncommitted]`)
+
+⚑ **Built before W1's look sitting, at the PO's request** ("Implement it", the same day D4-D7 were ruled): D1's
+"W2 after W1 is judged" was the PO's to waive.
+
+**The key**, on a terrain profile: `"overlay": { "profile", "coverage", "size"?, "roughness"? }`.
+- `profile` + `coverage` (0…1) are required; either missing or unusable drops the WHOLE overlay. `size` (world units,
+  default 1.5) and `roughness` (0…1, default 0.5) are the overlay's OWN (D4) and drop alone. `coverage: 0` parses and
+  paints nothing.
+- `regionOverlay` returns `null` for an overlay naming a profile the table lacks: without it the miss would paint
+  patches of the DEFAULT (bare land) colour, plausible enough to pass for a look. A content test fails on one.
+- The named profile lends ONLY its paint (texture, scale, colour, drift). Its own blend, wobble and overlay are ignored,
+  so an overlay never recurses. Ground only: an atmosphere profile's overlay is parsed and never drawn.
+- `neededTextures` loads each overlay profile's tile too; missed, the patches paint their fallback colour forever.
+
+**The bake** (`MaskNoise.applyPatchNoise`, the W1 program with `uMode = 1`): `a = m × smoothstep(t ± PATCH_SOFT, n)`,
+where `m` is the SURFACE's own mask (its fade and wobble), or 1 when the surface has none (a hard edge, clipped by
+the shape's geometry instead, §9.1), and `t = patchThreshold(coverage)` maps coverage onto `[−soft, 1 + soft]` so 1 covers everything and
+0 nothing (exact at 0, ½, 1). Density: `overlayDensity`, the `maskDensity` rule with the patch as the grain, never
+coarser than the base mask it reads. Roughness: `octaveMix`, extracted from `noiseShape` so both modes share it.
+
+⛔ **Found by eye, fixed the same session: thresholded value noise traces its SQUARE lattice.** The first bake drew
+patches with straight runs and right-angled corners (an "L" in the grass, blocky water in the bog). The patch mode now
+turns each octave to its own angle and domain-warps the sample point (`patchFbm`, `PATCH_WARP_*`); neither changes the
+noise's distribution, so the coverage cut and the stretch still hold. ⚑ The wobble mode is untouched, so W1b's edges
+draw exactly as before.
+
+**The paint** (`RegionPaint.paintOverlay`), right after each body, before its outline: the patches are a surface of the
+overlay profile run through the body's own painters. Still → `addFeathered`; drifting → the TilingSprite at the
+OVERLAY's `scroll` (D5); on a path whose body went out as a ribbon mesh → `paintRibbon` with arc-length UVs (D6). To
+make that possible `paintRibbon` now takes a caller-built mask, one mask per path serving either branch. Regions,
+polygons, paths and outlines all honour an overlay.
+
+**Content.** A `Stones` profile and tile (`make-cellular-tiles.mjs`'s fourth tile, ≈ 45 % stones, mean asserted =
+`#60574b`), and `Fields` carries `{ Stones, coverage 0.2, size 1.5, roughness 0.5 }` for the look sitting. Tiled
+palette regenerated (`Stones` appended to the enum). `docs/art/assets.csv` +1 row.
+
+**Numbers** ([PLACEHOLDER]): `OVERLAY_DEFAULTS` size 1.5 / roughness 0.5, `PATCH_SOFT` 0.06, `PATCH_WARP_SCALE` 0.6,
+`PATCH_WARP_STRENGTH` 1.2.
+
+**Cost.** One more mask texture and one masked draw per overlaid surface, none without one. The four `Fields` regions'
+patch masks come to ≈ 3.6 MB desktop / 0.9 MB mobile (estimated from their footprints, not a GPU reading; the map bakes
+its own copy, so about double), plus the `Stones` tile (381 KB download, ≈ 2.1 MB decoded).
+
+**Schema: DB / wire / conf / zone format: ALL NONE.** Client-only presentation keys.
+
+**Verified 2026-09-26:**
+- vitest **1256/1256** (+32: overlay parse, `regionOverlay`, `neededTextures`, the content guard, `patchThreshold`,
+  `overlayDensity`, `octaveMix`), `tsc --noEmit` clean, prod build clean (3 pre-existing size warnings). No Go change.
+- `make-cellular-tiles.mjs`: stones seam exact, mean on the profile; the three existing PNGs byte-identical.
+- Real browser (prod bundle, `aurad -dev`), scratch probe: `Fields` interior and its edge (patches fade out at the
+  band, none past it). With THROWAWAY overlays (reverted) on `Road` (a wobbly stroked path), `Cliff Smooth` (an
+  aligned ribbon, no base mask) and `Bog` (a drifting base, a drifting `Water` overlay): all draw; **0 console / page
+  errors** throughout (the only warnings are the pre-existing `Water` alignTexture ones).
+- ⚑ NOT verified: the drift seen MOVING (the overlay rides the same scroller list as the body, by construction); the
+  full-screen map by eye (the probe's map shot is under unexplored fog; same bake, same world-keyed noise).
+- ⚑ Residue: `hrnss_stone_*` characters in the dev DB (`harnessdb -cleanup`, `aurad` stopped first).
+
+**OWED (the PO's):** the look sitting on `Fields` (coverage, size, roughness, `PATCH_SOFT`, the `Stones` tile itself)
+and the phone; whether D7's `scatter` pattern is still wanted once seen.
+
+### 9.1 W2 review pass (2026-09-27, `[uncommitted]`)
+
+A hostile review of the W2 diff, then the PO's own A/B: a throwaway `Mountains` (hard edge) → `Water` overlay.
+
+- ⛔ **A grey strip of bare base along a HARD edge** (PO screenshot): the patches stopped short of it. Two causes:
+  1. **C5's, not W2's: every mask sat up to a texel short at its bottom and right.** The texture is rounded UP to whole
+     texels, and the sprite was stretched back over the unrounded box. FIXED at the root: `snapToTexels` grows the
+     box to whole texels first, so texture, box, sprite and noise-quad UVs are one size (pinned). ⚑ Every soft edge
+     in the game moves by up to a texel toward where it always should have been.
+  2. **The overlay drew a hard surface through a rasterised silhouette**, whose antialiased rim fades half a texel
+     inside the crisp edge. FIXED: a maskless surface's patches cover the whole box (`applyPatchNoise` with no input
+     samples white) and the shape's own geometry clips them, the stencil a drifting hard body already uses. A ribbon
+     needs neither: the mesh is the body's geometry.
+- **An outline's overlay followed the BODY's ribbon decision**, not the rim's own; the rim can fall back alone. FIXED.
+- **The coverage cut and its softness lived in two places** (caller + shader uniform). `applyPatchNoise` takes
+  `coverage` and derives the cut itself.
+- **A mask was leaked per repaint** for a surface painting nothing (`color: null`) with a blend, pre-existing and now
+  reachable as "stones on bare land". `paintSurface` hands it to `out.masks`.
+- **An atmosphere overlay** is never drawn yet its tile would load: a test now fails on one.
+- **`toString` passed the overlay's profile check** (`in` walks the prototype): own-key checks, pinned.
+- The JSON's "one continuous patch field across a seam" was softened: only for equal `size`, and a huge shape can
+  floor its grain.
+- **Verified:** vitest **1265/1265** (+9), `tsc --noEmit` clean, prod build clean. Real browser at `Mountains`'s
+  bottom and right hard edges (water reaches the edge, no strip, no spill), the `Fields` soft edge and the `Road`
+  stones: **0 console / page errors**.
+- **PO look 2026-09-27:** drift moving and the full-screen map both checked (works); the snapped soft edges look
+  good. **Content, by ruling:** every look-sitting overlay was removed (`Fields`, `Road`, `Mountains` are as at HEAD)
+  and `FieldsForestBlend` added instead: `Fields` with `Forest` patches (coverage 0.2, size 1.5, roughness 0.5), a
+  second profile so no existing field changes. `Stones` stays as a material nothing names yet. The phone check moved
+  to `docs/cleanup.md` entry 2.
+
+### 9.2 A crisp wobbly edge, and roughness that shows (2026-09-27, `[uncommitted]`)
+
+⛔ **PO: "0 blend on the road still looks blended."** W1b's "`blend: 0` draws as crisp as the texture allows" was true
+and useless: the density followed the BAND (the room to wander, 3 × the reach) and the lump, never the FADE, so the
+Road baked at 6 texels/unit and "crisp" spread over ≈ 0.33 u. The same density dropped every fine octave, so
+`wobbleRoughness` was INERT on the Road at every value (measured: coarse octave only at lump 0.25 and 0.5).
+
+- **The rule now (PO: keep the ceiling at 16 / 8):** on a wobbly edge `maskDensity` also wants `MIN_BAND_TEXELS / blend`
+  (a `blend` of 0 asks for the ceiling) and, when roughness > 0, enough texels for the finest octave
+  (`octaveTexelsNeeded`). `overlayDensity` takes the same roughness rule. Straight edges are untouched.
+- **Cost:** in today's content only the Road grows (its 4 masks ≈ 0.2 → 1.6 MB desktop): the fields and `Water` were
+  already at the ceiling through their small lumps.
+- ⚑ The ceiling still bounds both: a crisp edge fades over ≈ 1 texel (0.06 u desktop, 0.125 u phone) plus the bilinear
+  upscale, and a lump under ≈ 0.5 u (1 u on a phone) still loses its finest octave.
+- **Verified:** vitest **1274/1274** (+9), `tsc --noEmit` clean, prod build clean. Not yet judged by eye.
+
+### 9.3 The Road look: "pixelated, cubey" (PO 2026-09-27, `[uncommitted]`)
+
+The crisp Road from §9.2 read as blocks: flat runs along the road with steep steps between. Diagnosed by A/B in the
+browser, not by maths:
+- **Not the resolution** (the PO's guess): tripling the ceiling (48 texels/unit) left the shape identical, only
+  slightly crisper.
+- **The displacement saturates.** The `4m(1 − m)` bump weakens away from the line, so near its extreme the edge moves
+  ever less per unit of noise and piles up at ±reach. At `BAND_PER_REACH` 3 the response at the extreme was about a
+  fifth of the centre's. **Now 6** (about two thirds; amplitude 0.375). 10 went too far: the wander flattened and
+  stray specks detached from the edge.
+- **The lattice.** The wobble's value noise traced its square grid once the edge could draw crisp, the defect §5's
+  patches hit first. Both modes now share ONE `fbm`: octaves turned to their own angles and the sample point warped
+  (`WARP_SCALE` / `WARP_STRENGTH`). The distribution is unchanged, so the reach solve and the coverage cut hold.
+- **Road content (PO-approved by eye):** `blend` 0.08, `wobbleReach` 0.2, `wobbleSize` 0.8, `wobbleRoughness` 0.5
+  (the PO's `scale` 0.5 kept). A finer, tidier alternative seen: 0.06 / 0.15 / 0.6 / 0.4.
+- ⚑ Every wobbly edge changes pattern (not statistics); the field plots and the river were re-shot and read fine.
+- **Verified:** vitest **1274/1274**, `tsc --noEmit` clean, prod build clean; real browser at the long road, the
+  bridge, the field plots and the river: **0 console / page errors**.

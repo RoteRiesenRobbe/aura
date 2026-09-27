@@ -143,6 +143,7 @@
     "AuraTerrainProfile": [
       "(pick a profile)",
       "Fields",
+      "FieldsForestBlend",
       "Suburbs",
       "Ploughed",
       "Ploughed Cross",
@@ -169,7 +170,8 @@
       "Road",
       "Water",
       "Bog",
-      "Lava"
+      "Lava",
+      "Stones"
     ],
     "AuraAtmosphereProfile": [
       "(pick a profile)",
@@ -595,6 +597,7 @@
   },
   "PROFILE_NAMES": [
     "Fields",
+    "FieldsForestBlend",
     "Suburbs",
     "Ploughed",
     "Ploughed Cross",
@@ -621,7 +624,8 @@
     "Road",
     "Water",
     "Bog",
-    "Lava"
+    "Lava",
+    "Stones"
   ],
   "AIR_PROFILE_NAMES": [
     "Cave Air",
