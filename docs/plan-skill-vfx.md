@@ -2340,6 +2340,8 @@ built**; this is the spec for one chunk, `C3a-ii`, to run before C3b.
    rim bite only**: short jaws at the VICTIM's rim, on the point nearest the
    attacker, opening along the attack line. The attacker-token lunge is NOT
    scheduled (the PO liked it; decide after seeing the rim bite).
+   ⚑ **SUPERSEDED 2026-09-27**: the lunge IS scheduled and the rim bite
+   retires, both in `plan-natural-weapons.md` (designed, nothing built).
 4. **`wave` on Nova Burst AND Shockwave.** And a standing note: **every skill
    gets a placeholder `visual` for testing purposes**, cooldowns included
    (today six cooldowns author none and show the mark alone).

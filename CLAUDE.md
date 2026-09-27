@@ -17,7 +17,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Next
 
-- **⭐ NEXT: a PO call, not yet ruled.** Aura drawbacks is complete. Candidates already in this section: the WORLD EFFECTS planning thread, the SKILL VFX phone check, the ICON PACK distribution call.
+- **⭐ NEXT: a PO call, not yet ruled.** Aura drawbacks is complete. Candidates already in this section: NATURAL WEAPONS C1 (designed, ready to build), the WORLD EFFECTS planning thread, the SKILL VFX phone check, the ICON PACK distribution call.
+
+- **⭐ NATURAL WEAPONS: DESIGNED 2026-09-27, nothing built, 2 chunks** (`docs/plan-natural-weapons.md`, PO-ruled D1-D8): C1 the `lunge` (the attacker's token jabs at the victim and snaps back, purely visual, plays at density `off`), C2 the `maul` (the mark ON the victim; `bite` and `pincer` leave `strike`, the rim bite retires). Schema DB/wire/conf NONE, vocabulary +2 kinds. ⚑ C2 opens with the `bite` art contract (§8 Q1; `wolf-jaw` is P0 on the artist's list).
 
 - **⏸ WORLD EFFECTS: design in progress, nothing approved to build** (`docs/plan-world-effects.md`, PO session 2026-09-27, D1-D18): the word is open and blocks its C1. Owes another planning session.
 
