@@ -92,7 +92,9 @@ no-targeting design, recorded in §11.
 - **Slow is mob-only today**: players carry no `ApplySlow` (the inert
   player-CC direction, standing §3.1 watch item). The slow pip reuses the
   `AppliedEffectSlow` wire bit; the `applied_effects` byte is FULL, a
-  frost-specific pip is a §39 conversation.
+  frost-specific pip is a §39 conversation. (Superseded by
+  plan-aura-drawbacks.md C2: players now carry `ApplySlow` and `ApplyStun`,
+  so a slowing projectile would reach them.)
 - **Recorded for the D3 fallback**: the client already sends the mouse-facing
   angle in every input packet (`Controls.ts:264` →
   `codec/client_message.go:29`), and the server currently drops it - nothing

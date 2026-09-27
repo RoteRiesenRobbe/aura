@@ -158,7 +158,7 @@ export const EFFECT_PRESENTATION = {
   shieldDurationTicks: { control: 'number', unit: 'ticks', group: PAYLOAD },
 
   // --- slow / speed / tick rate ---
-  slowFraction: { control: 'number', unit: 'fraction', group: PAYLOAD, hint: 'Movement speed removed; [0, 1).' },
+  slowFraction: { control: 'number', unit: 'fraction', group: PAYLOAD, hint: 'Movement speed removed; the loader wants (0, 1] at every level (1 roots the target).' },
   slowFractionPerLevel: { control: 'number', group: PAYLOAD },
   slowDurationTicks: { control: 'number', unit: 'ticks', group: PAYLOAD },
   slowDurationTicksPerLevel: { control: 'number', group: PAYLOAD },

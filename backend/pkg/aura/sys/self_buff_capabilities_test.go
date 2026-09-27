@@ -93,6 +93,28 @@ func TestRealEntitiesSatisfyTheAreaEffectCapabilities(t *testing.T) {
 	}
 }
 
+// The CC doors (plan-aura-drawbacks.md C2, L2): the same structural-assert
+// class. applySlowAura, applyInstantSlow and applyStun assert slowable and
+// stunnable on every target, and the stun gate asserts stunSuppressible on
+// every caster, so a real type missing one is silently un-CC-able while every
+// test on a double stays green.
+func TestRealEntitiesSatisfyTheCCDoors(t *testing.T) {
+	p := player.New(newStateFakeGame(t), nil, "capability-probe")
+	var m any = &mob.Mob{}
+
+	for _, c := range []struct {
+		name  string
+		holds func(any) bool
+	}{
+		{"slowable", func(e any) bool { _, ok := e.(slowable); return ok }},
+		{"stunnable", func(e any) bool { _, ok := e.(stunnable); return ok }},
+		{"stunSuppressible", func(e any) bool { _, ok := e.(stunSuppressible); return ok }},
+	} {
+		assert.Truef(t, c.holds(p), "*player must satisfy %s, or the CC that needs it lands on nothing", c.name)
+		assert.Truef(t, c.holds(m), "*mob.Mob must satisfy %s, or the CC that needs it lands on nothing", c.name)
+	}
+}
+
 // costPayer is the same structural-assert class with the opposite polarity on
 // mobs: *player must satisfy it (or every cost in the game is silently free —
 // widening the interface for cost_paid is exactly how that would happen), and

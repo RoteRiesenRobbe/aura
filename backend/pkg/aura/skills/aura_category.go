@@ -71,8 +71,8 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	// The thrown twin is a third spawn, and the same answer: the ring belongs to
 	// the projectile that lands, never to the arm that threw it
 	// (plan-prototype-projectile.md D2).
-	EffectTypeProjectile: AuraCategoryNone,
-	EffectTypeTaunt:      AuraCategoryNone,
+	EffectTypeProjectile:    AuraCategoryNone,
+	EffectTypeTaunt:         AuraCategoryNone,
 	EffectTypeDetaunt:       AuraCategoryNone,
 	EffectTypeInstantShield: AuraCategoryNone,
 	EffectTypeRecall:        AuraCategoryNone,
@@ -85,6 +85,9 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	// persistent to outline. The buff it grants shows on the TARGET as the
 	// resist pip, which is the read the resist_aura ring points at anyway.
 	EffectTypeInstantResist: AuraCategoryNone,
+	// The slow cooldown, for the same reason: a one-cast query circle with
+	// nothing persistent to outline. Its tell is the slow pip on the target.
+	EffectTypeInstantSlow: AuraCategoryNone,
 	// A speed burst is self-targeted and projects nothing; its tell is the
 	// applied-effect pip on the caster (plus visibly moving faster).
 	EffectTypeSpeedBurst: AuraCategoryNone,

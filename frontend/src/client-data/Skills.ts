@@ -56,6 +56,11 @@ export interface SelfHealParams {
 export interface SlowParams {
     fraction: number;
     fractionPerLevel: number;
+    // instant_slow only: the granted slow's own lifetime, the ShieldParams
+    // convention. 0 or absent on the aura form, which derives its lifetime
+    // from the tick cadence.
+    durationTicks?: number;
+    durationTicksPerLevel?: number;
 }
 
 export interface ResistParams {
@@ -648,6 +653,8 @@ export const ActivationRejectionMessages: { [reason: number]: string } = {
     [ActivationRejection.NoTarget]: 'No valid target',
     [ActivationRejection.NotEnoughResource]: 'Not enough Focus',
     [ActivationRejection.NoCharges]: 'No camp charges — rest at a campfire',
+    // Also stamped once, with skill id 0, the tick a stun lands on the player.
+    [ActivationRejection.Stunned]: 'Stunned',
 };
 
 // How many Camp charges a character of this level may hold (plan-downtime.md

@@ -245,7 +245,10 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// damage aura carrying one while-active drawback of each bounded stat, the
 	// rig the fold's in-game check switches on and off. SKILL cheat only, no
 	// unlock source. 118 → 119 (79 player + 40 mob).
-	assert.Len(t, r.All(), 119)
+	// + SpinWeb id 155 and SpiderWebAura id 156 (plan-aura-drawbacks.md C2),
+	// two mob skills: the giant spider's web-spinning cooldown and the slow
+	// aura the spawned web carries. 119 → 121 (79 player + 42 mob).
+	assert.Len(t, r.All(), 121)
 
 	for _, name := range []string{"WolfBite", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

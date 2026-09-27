@@ -164,7 +164,9 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 	// Hunter, all three off the nameplate and the XP path like every other NPC.
 	// ⚑ The Stag they send you after is deliberately NOT here: it is the thing
 	// you are sent to kill.
-	assert.Len(t, free, 46, "every xpFactor-0 species: %v", free)
+	// 46 → 47 with the SpiderWeb (plan-aura-drawbacks.md C2): a web the giant
+	// spider spins is a hazard, not prey, like the poison pool it copies.
+	assert.Len(t, free, 47, "every xpFactor-0 species: %v", free)
 
 	// ⚑ Exactly TWO structures pay anything, and both are harvest targets: the
 	// Turnip at 0.05 (PO 2026-08-05, the one §3.4 curation pulled into C1 —

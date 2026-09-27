@@ -215,7 +215,12 @@ enum EntityType : ushort {
   // is a door that cannot be opened. ⚑ A rect collider cannot be "rock with a
   // hole in it", so wall the shoulders with a polygon or a couple of Boulders
   // if you want them solid — this prop is the picture, not the geometry.
-  CaveMouth = 98
+  CaveMouth = 98,
+
+  // The giant spider's web (plan-aura-drawbacks.md C2, D7): a structure mob a
+  // spider drops while it fights, slowing whoever stands in it. Flat on the
+  // ground and walked THROUGH, the poison pool's shape. Placeholder art.
+  SpiderWeb = 99
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the
@@ -246,7 +251,11 @@ enum ActivationRejection : ubyte {
   NotEnoughResource = 3,
   // the Camp baseline utility pressed with an empty charge store
   // (plan-downtime.md C2) — refill by resting at a real campfire
-  NoCharges = 4
+  NoCharges = 4,
+  // the presser is stunned (plan-aura-drawbacks.md C2, D4): a cooldown, a
+  // utility, a flight takeoff or an interaction pressed while held. Also sent
+  // once when the stun LANDS, so the HUD names it before the first press.
+  Stunned = 5
 }
 
 struct AABB {

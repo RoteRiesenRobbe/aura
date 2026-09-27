@@ -30,6 +30,13 @@ import "sort"
 // The zero value is ready to use.
 type Buffs struct {
 	entries map[SkillID][]*buffEntry
+
+	// The stun DR ladder (D10): how many stuns have landed since the ladder
+	// last reset, and how many unstunned ticks have passed since the last one
+	// ended. Plain fields, not an entry: the ladder outlives every stun it
+	// counts, and Tick ages it without allocating.
+	stunSteps     int
+	stunDRElapsed int
 }
 
 type buffEntry struct {
@@ -494,6 +501,15 @@ func (b *Buffs) ApplyShield(source SkillID, hp float32, ticks int) bool {
 // their lifetime expire. Called once per game tick on the ResetTickNumbers
 // hook. Pure aging — acting payloads are driven by DueBuffEvents.
 func (b *Buffs) Tick() {
+	// The DR window runs only while unstunned and is zeroed by every landed
+	// stun, so it measures time since the last landed stun ENDED (D10). Read
+	// before aging, so the tick a stun expires on is not counted as time after.
+	if b.stunSteps > 0 && !b.Stunned() {
+		b.stunDRElapsed++
+		if b.stunDRElapsed >= StunDRResetTicks {
+			b.stunSteps, b.stunDRElapsed = 0, 0
+		}
+	}
 	for source, list := range b.entries {
 		kept := list[:0]
 		for _, e := range list {
@@ -548,19 +564,45 @@ func (b *Buffs) ApplyCalm(source SkillID, ticks int) {
 	b.apply(source, &calmPayload{}, ticks)
 }
 
+// Stun diminishing returns (plan-aura-drawbacks.md C2, PO ruling D10): the WoW
+// ladder, for players and mobs alike, stuns only (a slow never touches it).
+// Successive landed stuns hold for the requested duration halved once per step
+// already on the ladder (100 %, 50 %, 25 %, floored at one tick), and once
+// StunDRImmuneAfter have landed the next is refused outright. The ladder
+// resets when StunDRResetTicks pass after the last landed stun ENDED with no
+// new stun landing. Both [PLACEHOLDER]; package constants rather than conf
+// because the rule is one shared mechanic, not a per-server tuning knob.
+const (
+	StunDRImmuneAfter = 3
+	StunDRResetTicks  = 540 // 18 s at 30 tps
+)
+
 // ApplyStun stuns the entity for ticks (plan-cc-and-retaliation.md C3, D6):
 // movement halts and casting is suppressed until it expires. One stream per
 // source skill, extend-never-shorten, like calm.
-func (b *Buffs) ApplyStun(source SkillID, ticks int) {
+//
+// The duration is first cut by the DR ladder (D10, see StunDRImmuneAfter).
+// Reports whether the stun LANDED: false only when the ladder refuses it, so a
+// refusal changes nothing, the window included. A live re-application from the
+// same source is a landed stun and a step on the ladder even when its shorter
+// duration does not extend the stream.
+func (b *Buffs) ApplyStun(source SkillID, ticks int) bool {
+	if b.stunSteps >= StunDRImmuneAfter {
+		return false
+	}
+	ticks = max(ticks>>b.stunSteps, 1)
+	b.stunSteps++
+	b.stunDRElapsed = 0
 	for _, e := range b.entries[source] {
 		if _, ok := e.payload.(*stunPayload); ok {
 			if ticks > e.ticks {
 				e.ticks = ticks
 			}
-			return
+			return true
 		}
 	}
 	b.apply(source, &stunPayload{}, ticks)
+	return true
 }
 
 // Stunned reports whether any stun application is live. THE read for both

@@ -1286,11 +1286,15 @@ func (m *Mob) ApplySlow(source skills.SkillID, fraction float32, ticks int) bool
 // The fourth CC door, and the one that cashes in C1's design: the gate lives
 // here rather than at the SkillSystem's eligibility layer precisely so a CC
 // invented later inherits immunity without the immunity code changing.
-func (m *Mob) ApplyStun(source skills.SkillID, ticks int) {
+//
+// Reports whether the stun landed. The immunity gate runs BEFORE the store's
+// diminishing-returns ladder (plan-aura-drawbacks.md D10), so a refusal here
+// is never a step on it.
+func (m *Mob) ApplyStun(source skills.SkillID, ticks int) bool {
 	if m.ccImmune() {
-		return
+		return false
 	}
-	m.buffs.ApplyStun(source, ticks)
+	return m.buffs.ApplyStun(source, ticks)
 }
 
 // Stunned reports whether this mob is currently held. Read by the SkillSystem's

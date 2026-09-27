@@ -69,6 +69,7 @@ const (
 	EffectTypeSpeedAura
 	EffectTypeSpawnAtAnchor
 	EffectTypeProjectile
+	EffectTypeInstantSlow
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -169,6 +170,11 @@ var effectTypeMap = map[string]EffectType{
 	// placement decides the payload (a throw needs a distance and an arming
 	// delay, a summon beside you needs neither).
 	"projectile": EffectTypeProjectile,
+	// The slow row's cooldown cell (plan-aura-drawbacks.md C2, D3), the
+	// instant_resist twin: slow_aura's SlowParams payload delivered by a
+	// one-shot, capped query circle with an authored lifetime instead of a
+	// field re-applied every beat.
+	"instant_slow": EffectTypeInstantSlow,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -541,9 +547,24 @@ type SelfHealParams struct {
 
 // SlowParams is the slow_aura payload: movement-speed reduction applied to
 // every slowable target in range (no selector/cap — a slow aura is a zone).
+// instant_slow carries it too (plan-aura-drawbacks.md C2).
 type SlowParams struct {
 	Fraction         float32 `json:"fraction"`
 	FractionPerLevel float32 `json:"fractionPerLevel"`
+
+	// DurationTicks is the lifetime one application grants, authored on
+	// instant_slow only; 0 on slow_aura, which derives its lifetime from the
+	// cadence (the ResistParams.DurationTicks convention). Served under the
+	// same `slow` key, so the client reads both forms from one shape.
+	DurationTicks         int `json:"durationTicks"`
+	DurationTicksPerLevel int `json:"durationTicksPerLevel"`
+}
+
+// TicksAt is instant_slow's level-scaled lifetime, floored at 1, the
+// RetaliateParams.TicksAt rule. The loader already refuses a duration below 1
+// at any level; the floor keeps the firing site honest regardless.
+func (p *SlowParams) TicksAt(level int) int {
+	return max(Scaled(p.DurationTicks, p.DurationTicksPerLevel, level), 1)
 }
 
 // FractionAt is the level-scaled slow fraction; the apply site clamps it to
@@ -1480,6 +1501,13 @@ var effectKeys = map[EffectType][]string{
 	// root/stun conflation the effect exists to end.
 	EffectTypeStun: mergeKeys(keysGeometry, keysCapped, keysTargetFlags,
 		[]string{"stunTicks", "stunTicksPerLevel"}),
+	// Instant slow (plan-aura-drawbacks.md C2): stun's capped query circle with
+	// slow_aura's fraction keys and retaliate_slow's authored lifetime, the one
+	// spelling of the slow axis wherever content meets it. No cadence (it fires
+	// on activation) and no targetsSelf (a self-slow is a drawback, authored as
+	// a stat_multiplier on an aura).
+	EffectTypeInstantSlow: mergeKeys(keysGeometry, keysCapped, keysTargetFlags,
+		[]string{"slowFraction", "slowFractionPerLevel", "slowDurationTicks", "slowDurationTicksPerLevel"}),
 }
 
 // factionScopedEffects are the effect types whose skill MUST author a
@@ -1544,6 +1572,7 @@ var effectCategories = map[EffectType][]SkillCategory{
 	EffectTypeInstantResist:  {SkillCategoryCooldown},
 	EffectTypeCalm:           {SkillCategoryCooldown},
 	EffectTypeStun:           {SkillCategoryCooldown},
+	EffectTypeInstantSlow:    {SkillCategoryCooldown},
 	EffectTypeCharm:          {SkillCategoryCooldown},
 	EffectTypeRecall:         {SkillCategoryCooldown},
 	EffectTypeInstantHot:     {SkillCategoryCooldown},
@@ -1712,6 +1741,9 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 			if err := checkWhileActiveBounds(effect.Stat, s.MaxLevel); err != nil {
 				return nil, fmt.Errorf("skill %q: %w", s.Name, err)
 			}
+		}
+		if err := checkSlowBounds(effect, s.MaxLevel); err != nil {
+			return nil, fmt.Errorf("skill %q: %w", s.Name, err)
 		}
 		// A faction-scoped effect without an allowlist would reach every
 		// faction — see factionScopedEffects for why that is a hard-fail and
@@ -1884,6 +1916,13 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.SelfHeal, err = e.selfHealParams()
 	case EffectTypeSlowAura:
 		def.Slow = &SlowParams{Fraction: e.SlowFraction, FractionPerLevel: e.SlowFractionPerLevel}
+	case EffectTypeInstantSlow:
+		def.Slow = &SlowParams{
+			Fraction:              e.SlowFraction,
+			FractionPerLevel:      e.SlowFractionPerLevel,
+			DurationTicks:         e.SlowDurationTicks,
+			DurationTicksPerLevel: e.SlowDurationTicksPerLevel,
+		}
 	case EffectTypeResistAura, EffectTypeResistPassive, EffectTypeInstantResist:
 		def.Resist, err = e.resistParams(effectType)
 	case EffectTypeStatMultiplier:
@@ -2624,6 +2663,35 @@ func checkWhileActiveBounds(p *StatParams, maxLevel int) error {
 		if b := p.BonusAt(level); b < bound[0] || b > bound[1] {
 			return fmt.Errorf("stat_multiplier %s on an active aura: bonus %v at level %d is outside [%v, %v]",
 				p.Name, b, level, bound[0], bound[1])
+		}
+	}
+	return nil
+}
+
+// checkSlowBounds holds both slow payloads to their legal range at EVERY level
+// 1..maxLevel (plan-aura-drawbacks.md C2): the fraction in (0, 1], and on
+// instant_slow the lifetime >= 1. Checked per level at load, like the
+// while-active bounds, because a perLevel slope can walk a legal level-1 value
+// out of range, and the apply site would otherwise clamp it silently.
+//
+// slow_aura never had a load-time bound (applySlowAura clamps at runtime).
+// Nothing shipped comes near it (the plan's L8 census: 0.5 at most), so the
+// bound refuses no file; it exists because the player door made a slow of 1
+// reachable on a player.
+func checkSlowBounds(e EffectDef, maxLevel int) error {
+	if e.Type != EffectTypeSlowAura && e.Type != EffectTypeInstantSlow {
+		return nil
+	}
+	maxLevel = max(maxLevel, 1)
+	for level := 1; level <= maxLevel; level++ {
+		if f := e.Slow.FractionAt(level); f <= 0 || f > 1 {
+			return fmt.Errorf("%s: slowFraction %v at level %d is outside (0, 1]", effectTypeNames[e.Type], f, level)
+		}
+		if e.Type != EffectTypeInstantSlow {
+			continue
+		}
+		if d := Scaled(e.Slow.DurationTicks, e.Slow.DurationTicksPerLevel, level); d < 1 {
+			return fmt.Errorf("instant_slow: slowDurationTicks %d at level %d must be >= 1", d, level)
 		}
 	}
 	return nil

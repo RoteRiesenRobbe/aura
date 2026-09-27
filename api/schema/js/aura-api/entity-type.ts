@@ -85,5 +85,6 @@ export enum EntityType {
   AlphaBoar = 95,
   Cottage = 96,
   Palisade = 97,
-  CaveMouth = 98
+  CaveMouth = 98,
+  SpiderWeb = 99
 }

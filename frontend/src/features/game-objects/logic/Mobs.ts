@@ -903,6 +903,22 @@ export class PoisonPool extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(PoisonPool, file('poisonPool'), maxSize('poisonPool'));
 
+// The web a giant spider drops mid-fight (plan-aura-drawbacks.md D7): the
+// poison pool's shape, slowing instead of hurting. Flat on the ground, walked
+// through, on the same under-the-walkers layer.
+export class SpiderWeb extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.turnip, x, y,
+            randomInt(minSize('spiderWeb'), maxSize('spiderWeb')),
+            SpiderWeb.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(SpiderWeb, file('spiderWeb'), maxSize('spiderWeb'));
+
 // The Pickaxe-gated destructible tunnel obstacle: a stationary solid mob,
 // never moves or fights back (solid-mob pattern, plan-content-zones12.md §4).
 export class Rockfall extends Mob {

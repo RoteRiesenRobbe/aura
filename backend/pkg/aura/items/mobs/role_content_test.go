@@ -50,9 +50,13 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// ⚑ Beet joins with the opening arc (content-zone-design-guide.md §2.0): it
 	// is the Turnip copied field for field, harvest lock included, one POI
 	// earlier on the road — a structure for the same reason the Turnip is.
+	//
+	// SpiderWeb joins with plan-aura-drawbacks.md C2: the web a giant spider
+	// spins mid-fight, a structure for the poison pool's reason (a planted aura
+	// carrier with no AI), summoned by a mob cooldown rather than placed.
 	assert.ElementsMatch(t, []string{
 		"Beet", "Bramble", "Camp", "Campfire", "FireTotem", "PoisonPool", "ProjectileBomb",
-		"Rockfall", "SpikeBarricade", "Totem", "Turnip", "WarbannerTotem",
+		"Rockfall", "SpiderWeb", "SpikeBarricade", "Totem", "Turnip", "WarbannerTotem",
 	}, byRole[RoleStructure], "the authored structures")
 
 	// 36 before chunk 3a, plus the 14 merged NPCs: D4 authors them as creatures

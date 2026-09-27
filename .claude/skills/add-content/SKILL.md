@@ -115,6 +115,25 @@ the bottom. Trust the code over the manual if a path has drifted.
   (pool, speed, damage taken or dealt), outside the tier + baseline pricing
   and invisible to the placement numbers; nothing ships one, so authoring the
   first is a re-price of every placement of that species, not a tweak.
+- **A mob-cast spawn fires only while the mob is in combat**
+  (`plan-aura-drawbacks.md` C2, A5): a mob cooldown containing `spawn`,
+  `spawn_at_anchor` or `projectile` waits for an aggro target or recent damage,
+  because placing an entity always counts as a hit. Every other mob cooldown
+  fires whenever it is ready and is consumed only when it selects a target. A
+  mob may equip a PLAYER cooldown file as is (the giant spider's `Paralyze`):
+  mobs pay no cost.
+- **A new mob needs a sprite, so it is a wire change** (the 5-file path above)
+  unless it reuses art through `entityType`. Budget the enum value and the
+  regen in the plan; the aura-drawbacks design session missed it.
+- **A new effect TYPE goes in `api/shared-constants.json` `effectTypes` too**,
+  besides the Go tables and the vocabulary golden; Go's
+  `skills/shared_constants_test.go` and the frontend's
+  `SharedConstants.test.ts` both pin that list.
+- **Stuns diminish, for players and mobs** (manual §2, "Crowd control on
+  players"): 100 %, 50 %, 25 %, then refused until 540 ticks after the last
+  stun ended. A design that chains stuns (two sources, several players) will
+  not hold a target down. Slows never diminish. Players can be slowed and
+  stunned since C2; GOD refuses both, so test CC with GOD off.
 - **A skill file is never deleted, an `id` never changes, a `maxLevel` never
   decreases** (PO ruling 2026-09-18, `docs/manual-content-authoring.md`,
   "Retiring a skill: never delete the file"). Skill ids and levels are

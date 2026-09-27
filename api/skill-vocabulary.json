@@ -208,6 +208,19 @@
       "shieldDurationTicks",
       "targetsSelf"
     ],
+    "instant_slow": [
+      "radius",
+      "radiusPerLevel",
+      "selector",
+      "maxTargets",
+      "maxTargetsPerLevel",
+      "targetsEnemies",
+      "targetsAllies",
+      "slowFraction",
+      "slowFractionPerLevel",
+      "slowDurationTicks",
+      "slowDurationTicksPerLevel"
+    ],
     "lifesteal_burst": [
       "lifestealFraction",
       "lifestealFractionPerLevel",
@@ -404,6 +417,9 @@
       "cooldown"
     ],
     "instant_shield": [
+      "cooldown"
+    ],
+    "instant_slow": [
       "cooldown"
     ],
     "lifesteal_burst": [

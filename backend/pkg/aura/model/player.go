@@ -46,6 +46,11 @@ const (
 	// utilities are free (D7); the charge is a separate, per-session currency
 	// refilled by resting at a real campfire.
 	ActivationRejectedNoCharges = ActivationRejection(AuraApi.ActivationRejectionNoCharges)
+	// ActivationRejectedStunned: the presser is held by a stun
+	// (plan-aura-drawbacks.md C2, D4). Unlike the others it is no skill's
+	// precondition: every press is refused while stunned, and the reason is
+	// also noted once as the stun lands.
+	ActivationRejectedStunned = ActivationRejection(AuraApi.ActivationRejectionStunned)
 )
 
 type Players []PlayerEntity

@@ -259,6 +259,11 @@ Mob allegiances live in **`api/factions/*.json`**, one file per faction:
   slowed at all, and **nothing but a comment pins that**. If you are the first
   to give a mob a `slow_aura`, expect it to slow its own pack mates, and route
   the effect through `eligibleByTargetFlags[slowable]` first (backlog §25).
+  **Stale, corrected at plan-aura-drawbacks.md C2:** `applySlowAura` already
+  routes through `eligibleByTargetFlags[slowable]`, so a mob's slow honours the
+  same faction and hostility rules as its damage and spares its own side. And
+  players CAN be slowed (and stunned) since C2; see "Crowd control on players"
+  in §2. The first mob slow aura is the spider web's (`SpiderWebAura`).
 
 ---
 
@@ -389,14 +394,15 @@ error. If the type also puts a buff on an entity, it needs a pip decision in
 `applied_effects.go` (compile-enforced) and a matching entry in `EffectPips.ts`.
 
 Existing effect `type`s to compose (the authoritative list is `effectTypeMap` in
-`backend/pkg/aura/skills/definition.go`, 34 as of 2026-08-19):
+`backend/pkg/aura/skills/definition.go`, 35 since plan-aura-drawbacks.md C2
+added `instant_slow`):
 `damage_aura`, `instant_damage`, `heal_aura`, `self_heal`, `hot_aura`,
 `instant_hot`, `dot_aura`, `instant_dot`, `shield_aura`, `instant_shield`,
 `slow_aura`, `resist_aura`, `resist_passive`, `instant_resist`,
 `stat_multiplier`, `light_aura`, `taunt`, `detaunt`, `spawn`,
 `spawn_at_anchor`, `recall`, `revive`, `dash`, `tick_rate`, `calm`, `charm`,
 `stun`, `speed_aura`, `speed_burst`, `lifesteal_burst`, `retaliate_slow`,
-`retaliate_damage`, `retaliate_burst`, `projectile`.
+`retaliate_damage`, `retaliate_burst`, `projectile`, `instant_slow`.
 
 ⚑ This list had drifted: `retaliate_slow` and `stun` were missing since their
 own chunks (recorded at effect-types C2), and `retaliate_damage` /
@@ -428,7 +434,7 @@ the dispatch sites themselves:
   `instant_hot`, `instant_shield`, `instant_resist`, `self_heal`, `spawn`,
   `spawn_at_anchor`, `projectile`, `taunt`, `detaunt`, `calm`, `stun`, `charm`,
   `dash`, `tick_rate`, `speed_burst`, `lifesteal_burst`, `retaliate_burst`,
-  `recall`, `revive`.
+  `recall`, `revive`, `instant_slow`.
 - **`passive`** (`SkillComponent.recomputeDerived`): `stat_multiplier` (closed
   six-stat vocabulary: `movementSpeed`, `maxHealth`, `damageReduction`,
   `critChance`, `damageDealt`, `costReduction`), `resist_passive`,
@@ -489,7 +495,8 @@ every one of these at once (the landmine notes they used to carry in their
 ruling) -
 `api/skills/omni-aura.json` (all 9 aura types, every damage rider),
 `api/skills/omni-passive.json` (the full passive fold),
-`api/skills/omni-strike.json` (16 cooldown types in one cast). `SKILL OmniAura`
+`api/skills/omni-strike.json` (17 cooldown types in one cast, `instant_slow`
+included since plan-aura-drawbacks.md C2). `SKILL OmniAura`
 / `OmniPassive` / `OmniStrike`; no unlock source, ever.
 
 ### The `_comment` field: authoring notes, not a session ledger
@@ -624,6 +631,51 @@ effects; heal and shield auras keep their own caps. It applies to mob-vs-mob
 and summons as well, since it is the same effect path. A cap cuts a mob's total
 output against a group, so an elite or boss meant to threaten several players
 needs a lore-backed multi-target attack, not an uncapped bite.
+
+### Crowd control on players (plan-aura-drawbacks.md C2)
+
+Since C2 **players can be slowed and stunned** by anything hostile to them: a
+mob's `slow_aura` or `instant_slow`, a mob's `stun`. Before it, every CC effect
+was a mob-only target and no content could put one on a player. What content
+authors should know:
+
+- **GOD refuses both.** A GOD player is never slowed or stunned (the `takeDamage`
+  short-circuit's twin), so test a CC fight with GOD off.
+- **Both are combat.** A slowed or stunned player is in combat (no regen) from
+  the moment it lands, even before the first hit.
+- **A stun on a player** stops movement, stops the player's aura from ticking
+  and freezes their cooldown timers (the mob rule). It cancels a running cast
+  (a slot cast, Recall, the ascension channel) with no cooldown consumed and no
+  cost paid. While stunned the player cannot press a cooldown or a utility,
+  take off, or interact; the press is refused with the "Stunned" reason and the
+  HUD floats "Stunned". Switching auras is still allowed (it is a state flip;
+  the new aura does not tick until the stun ends). The pip is the slow pip.
+- **Stuns diminish, for players AND mobs.** Successive landed stuns on one
+  entity hold 100 %, 50 %, 25 % of the asked duration (floor 1 tick) and the
+  fourth is refused. The ladder resets 540 ticks after the last landed stun
+  ended. Both numbers are [PLACEHOLDER] constants, `StunDRImmuneAfter` and
+  `StunDRResetTicks` in `backend/pkg/aura/skills/buffs.go`. A `ccImmune`
+  species stays fully immune, and an immune refusal does not advance its
+  ladder; a cleanse does not reset it. So a design that relies on chaining
+  stuns (several players, or two stun sources on one mob) will not hold a
+  target down; plan around one full stun per 18 s.
+- **Slows never diminish.** An aura re-applies its slow every interval, so a
+  ladder would make a player immune to the web they stand in. The strongest
+  slow wins; slows from different sources do not stack.
+- **A mob may equip a player cooldown file** as it is, with no mob twin, when
+  its target flags already fit (the giant spider equips `Paralyze`, the same
+  file players get from it): mobs pay no cost, so the cost keys are inert on a
+  mob caster. A mob's cooldown fires whenever it is ready and is consumed only
+  when it selects a target, so a mob `stun` or `instant_slow` waits for someone
+  in range (a stun refused by the target's door still counts as used).
+- **A mob-cast spawn fires only in combat.** A mob fires a cooldown containing
+  `spawn`, `spawn_at_anchor` or `projectile` only while it is in combat (it
+  holds an aggro target, or was damaged recently). Placing an entity always
+  "hits", so without this guard a mob would drop its summon every time the
+  cooldown came up, in or out of a fight; the same rule keeps a sleeping mob
+  from placing anything. A mob-cast summon fights under the caster's faction,
+  binds no owner and lands on the summon ring beside the caster; its
+  `ttlTicks` is its only end.
 
 ### Visuals: the `visual` key
 
@@ -1073,7 +1125,8 @@ payload): `radius`, `radiusPerLevel`, `tickInterval`, `tickIntervalPerLevel`,
 | `hotTicks` / `hotTickInterval` | `hot.tickCount` / `hot.interval` | hot_aura, instant_hot |
 | `shieldHP` / `shieldHPPerLevel` | `shield.hp` / `shield.hpPerLevel` | shield_aura, instant_shield |
 | `shieldDurationTicks` | `shield.durationTicks` | instant_shield only |
-| `slowFraction` / `slowFractionPerLevel` | `slow.fraction` / `slow.fractionPerLevel` | slow_aura |
+| `slowFraction` / `slowFractionPerLevel` | `slow.fraction` / `slow.fractionPerLevel` | slow_aura, instant_slow. The loader wants the fraction in (0, 1] at every level 1..maxLevel on both (1 roots the target). ⚑ On `retaliate_slow` the same two keys land in the `retaliate` payload instead |
+| `slowDurationTicks` / `slowDurationTicksPerLevel` | `slow.durationTicks` / `slow.durationTicksPerLevel` | instant_slow only (the `resistDurationTicks` twin; the aura form derives its lifetime from the cadence, interval + 1). At least 1 at every level; the buff lives the authored ticks + 1. ⚑ `retaliate_slow` authors the same keys into its `retaliate` payload |
 | `resistTags` / `resistFactor` / `resistFactorPerLevel` | `resist.tags` / `resist.factor` / `resist.factorPerLevel` | resist_aura, resist_passive, instant_resist. ⚑ `resistTags` is NOT the closed damage vocabulary: it also accepts the reserved wildcard `"*"`, which covers every hit tag (factor 0 with it = invulnerability). A wildcard must be the ONLY entry - mixed with named tags it would apply twice to those tags, and that hard-fails |
 | `resistDurationTicks` | `resist.durationTicks` | instant_resist only (the `shieldDurationTicks` twin; the aura form derives its lifetime from the cadence) |
 | `buffLifetimeMatchesInterval` | `resist.buffLifetimeMatchesInterval` | ⚑ resist_aura only, and it is a PRICING lever, not a duration knob: it drops the standard interval + 1 buff lifetime so every application at base cadence is fresh work and is charged (plan-effect-types.md D7). Default false = the shipped behaviour |

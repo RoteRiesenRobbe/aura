@@ -110,7 +110,7 @@
     "recall", "hot_aura", "instant_hot", "revive", "dash", "tick_rate",
     "calm", "charm", "speed_burst", "lifesteal_burst", "retaliate_slow",
     "retaliate_damage", "retaliate_burst", "stun", "instant_resist",
-    "speed_aura", "spawn_at_anchor", "projectile"
+    "speed_aura", "spawn_at_anchor", "projectile", "instant_slow"
   ],
   "selectors": ["nearest", "lowest_health", "all"],
   "gateKeys": ["harvest", "smash"],

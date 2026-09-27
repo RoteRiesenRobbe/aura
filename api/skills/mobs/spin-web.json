@@ -1,0 +1,20 @@
+{
+  "_comment": "A cooldown that spins a SpiderWeb beside its caster, a slowing structure that expires after 240 ticks. The cooldown outlasts the web, so one caster has at most one web down at a time. All values placeholder.",
+  "id": 155,
+  "name": "SpinWeb",
+  "category": "cooldown",
+  "maxLevel": 5,
+  "cooldownTicks": 600,
+  "visual": {
+    "layers": [
+      { "kind": "emitter", "on": "fired", "motion": "burst", "count": 6, "ms": 450, "scale": 0.7, "tint": "#e8e8f0" }
+    ]
+  },
+  "effects": [
+    {
+      "type": "spawn",
+      "spawnMob": "SpiderWeb",
+      "ttlTicks": 240
+    }
+  ]
+}

@@ -70,7 +70,7 @@ export const EFFECT_COLOR_KEYS: { [type: string]: keyof typeof AURA_CATEGORY_COL
     dot_aura: 'dot', instant_dot: 'dot',
     heal_aura: 'heal', self_heal: 'heal', hot_aura: 'heal', instant_hot: 'heal',
     shield_aura: 'shield', instant_shield: 'shield',
-    slow_aura: 'slow', retaliate_slow: 'slow', stun: 'slow',
+    slow_aura: 'slow', retaliate_slow: 'slow', stun: 'slow', instant_slow: 'slow',
     // Coloured as damage, not as a passive's absence of colour: this table
     // tints the line by WHAT THE EFFECT DOES, so the tooltip vocabulary matches
     // the in-world rings and pips. (The server's aura_category map answers a
@@ -499,6 +499,16 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
         case 'slow_aura':
             lines.push(`Slow: ${prog(effect.slow.fraction, effect.slow.fractionPerLevel, level, maxLevel, pct)}${refresh}`);
             break;
+        case 'instant_slow': {
+            // The slow_aura line with the instant_shield duration in place of
+            // the cadence. Both halves go through prog(), the speed_burst
+            // rule; who and how many ride the shared radius/targets lines.
+            const slow = effect.slow;
+            const share = prog(slow.fraction, slow.fractionPerLevel, level, maxLevel, pct);
+            const duration = prog(slow.durationTicks ?? 0, slow.durationTicksPerLevel ?? 0, level, maxLevel, ticksToSecs);
+            lines.push(`Slow: ${share} for ${duration}`);
+            break;
+        }
         case 'resist_aura':
         case 'resist_passive':
         case 'instant_resist': {

@@ -99,6 +99,8 @@ const EFFECT_FIXTURES: { [type: string]: Partial<SkillEffect> } = {
     resist_aura: {resist: RESIST, tickInterval: 90},
     resist_passive: {resist: RESIST},
     instant_resist: {resist: RESIST},
+    instant_slow: {slow: {fraction: 0.4, fractionPerLevel: 0.05, durationTicks: 90, durationTicksPerLevel: 0},
+        radius: 3, targetsEnemies: true},
     dot_aura: {dot: DOT, tickInterval: 60},
     instant_dot: {dot: DOT},
     spawn: {spawn: SPAWN},
