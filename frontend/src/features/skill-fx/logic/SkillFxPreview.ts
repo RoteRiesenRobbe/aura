@@ -138,6 +138,8 @@ export const GALLERY_LAYERS: Record<VisualKind, VisualLayer> = {
     'orbit': {kind: 'orbit', on: 'fired'},
     'emitter': {kind: 'emitter', on: 'fired', motion: 'swirl'},
     'wave': {kind: 'wave', on: 'fired'},
+    // Draws nothing of its own: the caster's stand-in jabs (fx-preview.ts).
+    'lunge': {kind: 'lunge', on: 'hit'},
 };
 
 /** The gallery's shared palette tag and reach. [PLACEHOLDER] */

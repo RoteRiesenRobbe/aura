@@ -1,5 +1,5 @@
 /**
- * The seven AUTHORABLE motion kinds (plan-skill-vfx.md §4.1) and the registry
+ * The eight AUTHORABLE motion kinds (plan-skill-vfx.md §4.1) and the registry
  * that IS the closed vocabulary. A kind is ENGINE code: a new one is a plan
  * amendment, not content, which is why SkillFxKinds.test.ts pins this
  * registry's key set against api/skill-vocabulary.json's `visualKinds` in BOTH
@@ -10,11 +10,13 @@
  * skill file names it, so {@link ImpactFx} is still here but is kept OUT of
  * the registry, under {@link HIT_MARK_KIND}, and {@link kindHandler} answers
  * for it by name. `wave` joined in its place (the mammoth's stomp), and the
- * wolf's bite became a `strike` curve drawn from the BITER.
+ * wolf's bite became a `strike` curve drawn from the BITER. `lunge` made it
+ * eight (plan-natural-weapons.md §3.1): the one kind that draws nothing and
+ * moves the attacker's own token instead, through {@link FxAnchor.nudge}.
  *
  * Kinds know nothing about entities: the manager hands them anchors that
  * answer "where is this now" and "is it still on the stage", which is what
- * makes both entity rules the manager's and not seven copies of one:
+ * makes both entity rules the manager's and not eight copies of one:
  *
  * - a `projectile` or a `beam` FINISHES toward the last known position (a bolt
  *   in flight does not vanish when its target dies), and
@@ -28,6 +30,7 @@
  * stays one code path, because two copies of a motion curve would drift the
  * moment one is tuned. The exception is the `wave`, code-drawn for good like
  * the hit mark (§12g.2): `body` is legal on it by the common keys and ignored.
+ * The `lunge` draws nothing at all, so it has neither branch.
  */
 import {Container, Graphics, Sprite, Texture} from 'pixi.js';
 import {VisualLayer} from '../../../client-data/Skills';
@@ -67,6 +70,9 @@ import {
     ORBIT_DEFAULT_COUNT,
     ORBIT_DEFAULT_MS,
     ORBIT_RADIUS_PAD_PX,
+    lungeDistancePx,
+    lungeShare,
+    lungeTotalMsOf,
     orbitAlpha,
     orbitPoint,
     overheadSide,
@@ -94,9 +100,9 @@ import {
     resolveBody,
 } from './SkillFxBodies';
 
-/** The seven AUTHORABLE names, in the fixture's order. */
+/** The eight AUTHORABLE names, in the fixture's order. */
 export const VISUAL_KINDS = [
-    'strike', 'projectile', 'beam', 'cast-pose', 'orbit', 'emitter', 'wave',
+    'strike', 'projectile', 'beam', 'cast-pose', 'orbit', 'emitter', 'wave', 'lunge',
 ] as const;
 
 export type VisualKind = typeof VISUAL_KINDS[number];
@@ -125,6 +131,14 @@ export interface FxAnchor {
     alive(): boolean;
     /** the anchored entity's own radius in px, for sizing a placeholder */
     readonly radiusPx: number;
+    /**
+     * Moves the anchored entity's drawn token by (dx, dy) px off its logical
+     * position (plan-natural-weapons.md §3.2). ⚑ The ONE write a kind may make
+     * to an entity, and only through the manager; only the `lunge` calls it,
+     * and (0, 0) puts the body back. Optional: an anchor that cannot move a
+     * body simply leaves it out.
+     */
+    nudge?(dx: number, dy: number): void;
 }
 
 export interface FxSpawnContext {
@@ -1065,6 +1079,60 @@ class WaveFx implements Fx {
     }
 }
 
+// --- lunge ------------------------------------------------------------------
+
+/**
+ * The attacker's own token jabs at its victim and snaps back
+ * (plan-natural-weapons.md §3.1). It DRAWS NOTHING: no pool, nothing on the
+ * layer, and `color`, `body` and `tint` are not its business (the server
+ * refuses the last two on it).
+ *
+ * The distance is latched at spawn (D7: it does not read the gap); the
+ * direction is re-read per frame from the two logical positions, like a
+ * strike's aim, so the jab follows a victim that moves and keeps aiming at its
+ * last known position once it despawns.
+ *
+ * ⚑ Every end path goes through `dispose`, which puts the body back at EXACT
+ * zero: finished, replaced by the attacker's next lunge, cut by the attacker
+ * leaving the stage, or dropped by the manager's reset (§3.2, §10 L2).
+ */
+class LungeFx implements Fx {
+    private readonly distancePx: number;
+    private readonly totalMs: number;
+
+    constructor(private readonly ctx: FxSpawnContext) {
+        this.distancePx = lungeDistancePx(ctx.source.radiusPx, ctx.def.scale);
+        this.totalMs = lungeTotalMsOf(ctx.def.ms);
+    }
+
+    update(nowMs: number): boolean {
+        const elapsed = nowMs - this.ctx.startAtMs;
+        if (elapsed < 0) {
+            return true;
+        }
+        if (!this.ctx.source.alive() || elapsed >= this.totalMs) {
+            return false;
+        }
+        const from = this.ctx.source.point();
+        const to = this.ctx.victim.point();
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist === 0) {
+            // No attack line: the body stays where it is.
+            this.ctx.source.nudge?.(0, 0);
+            return true;
+        }
+        const d = this.distancePx * lungeShare(elapsed, this.totalMs);
+        this.ctx.source.nudge?.((dx / dist) * d, (dy / dist) * d);
+        return true;
+    }
+
+    dispose(): void {
+        this.ctx.source.nudge?.(0, 0);
+    }
+}
+
 // --- the registry -----------------------------------------------------------
 
 /**
@@ -1079,6 +1147,7 @@ export const KIND_REGISTRY: { [kind: string]: KindHandler } = {
     'orbit': {spawn: ctx => new OrbitFx(ctx)},
     'emitter': {spawn: ctx => new EmitterFx(ctx)},
     'wave': {spawn: ctx => new WaveFx(ctx)},
+    'lunge': {spawn: ctx => new LungeFx(ctx)},
 };
 
 const HIT_MARK_HANDLER: KindHandler = {spawn: ctx => new ImpactFx(ctx)};

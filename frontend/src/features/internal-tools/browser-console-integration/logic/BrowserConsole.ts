@@ -10,6 +10,7 @@ import {SkillEventData} from "../../../backend/logic/SkillEventNumbers";
 import * as SkillFx from "../../../skill-fx/logic/SkillFx";
 import * as SkillFxStress from "../../../skill-fx/logic/SkillFxStress";
 import {GameSettings} from "../../../game-settings/logic/GameSettings";
+import type {GameObject} from "../../../game-objects/logic/_GameObject";
 
 // The last non-empty skill-event list and a running total (plan-skill-vfx.md
 // C1). Floating numbers are transient PIXI.Text with no DOM of their own, so a
@@ -44,6 +45,7 @@ function setup() {
         skillFxBudget: undefined,
         skillFxStress: undefined,
         settings: undefined,
+        bodyOffsets: undefined,
     };
 
     consoleCommands.run = Console.run;
@@ -112,6 +114,22 @@ function setup() {
         // internal-tools surface, read-only, exposed so the harness can ASSERT
         // rather than screenshot. Nothing in the game reads it back.
         consoleCommands.darkness = {isHidden: DarknessOverlay.isHidden};
+        // Every held body drawn OFF its logical position, as {id, x, y}
+        // (plan-natural-weapons.md §3.2). The manager's counters only see its
+        // own writes; this reads the real token node back, so an empty list
+        // with `skillFx().lunges === 0` is the harness's proof that every jab
+        // came home to EXACT zero. The own character is not in the entity map
+        // (Backend.feedSkillFx), so it is asked separately.
+        consoleCommands.bodyOffsets = () => {
+            const held: GameObject[] = [...(game.map?.getObjectsInView() ?? [])];
+            const own = game.player?.character;
+            if (own) {
+                held.push(own);
+            }
+            return held
+                .map(object => ({id: object.id, ...object.bodyOffset()}))
+                .filter(offset => offset.x !== 0 || offset.y !== 0);
+        };
 
         return true;
     });

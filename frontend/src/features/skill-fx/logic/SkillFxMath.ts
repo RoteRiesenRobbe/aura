@@ -528,6 +528,68 @@ export function waveRing(
     };
 }
 
+// --- lunge (plan-natural-weapons.md §3.1) -----------------------------------
+//
+// ⭐ The one kind that draws nothing: the ATTACKER's own token jabs a fixed
+// distance toward its victim and snaps back. Everything below is a SHARE of
+// that distance over time; the manager turns it into a body offset.
+
+/** A `lunge` layer's whole duration when it authors no `ms`. [PLACEHOLDER] */
+export const LUNGE_DEFAULT_MS = 220;
+/** How far the body jabs, as a share of the attacker's own radius (D7). [PLACEHOLDER] */
+export const LUNGE_DISTANCE_FACTOR = 0.8;
+/** The share of the lunge spent going out; the rest is the way back. [PLACEHOLDER] */
+export const LUNGE_OUT_FRACTION = 0.35;
+
+/** A `lunge` layer's whole duration: the authored `ms`, else the default. */
+export function lungeTotalMsOf(ms: number | undefined): number {
+    return ms && ms > 0 ? ms : LUNGE_DEFAULT_MS;
+}
+
+/**
+ * The CONTACT moment, the end of the out phase (77 ms at the default). It
+ * joins the planner's arrival rule, so the hit mark lands as the body gets
+ * there. Lives here for `strikeContactMsOf`'s reason: the planner and the kind
+ * must not disagree about it.
+ */
+export function lungeContactMsOf(ms: number | undefined): number {
+    return lungeTotalMsOf(ms) * LUNGE_OUT_FRACTION;
+}
+
+/**
+ * How far the body jabs, latched when the lunge starts. It does NOT read the
+ * gap to the victim (D7): a mob biting at long reach ends its jab short, and
+ * that is by ruling (§10 L7). Never negative, never NaN.
+ */
+export function lungeDistancePx(radiusPx: number, scale: number | undefined): number {
+    if (!Number.isFinite(radiusPx) || radiusPx <= 0) {
+        return 0;
+    }
+    return radiusPx * LUNGE_DISTANCE_FACTOR * (scale && scale > 0 ? scale : 1);
+}
+
+/**
+ * The body's offset as a share of the distance, `elapsedMs` into a lunge of
+ * `totalMs`: out with an ease-out (the quick jab), back with an ease-in-out
+ * (the snap home).
+ *
+ * ⚑ EXACT at the three moments that matter (§10 L2): 0 at the start, 1 at
+ * contact, 0 at the end. The contact is computed once and both phases divide
+ * by their own span, so no float drift of `elapsed / total` against the out
+ * share can leave a body a hair off its collider.
+ */
+export function lungeShare(elapsedMs: number, totalMs: number): number {
+    if (!Number.isFinite(elapsedMs) || !Number.isFinite(totalMs) || totalMs <= 0
+        || elapsedMs <= 0 || elapsedMs >= totalMs) {
+        return 0;
+    }
+    const contact = totalMs * LUNGE_OUT_FRACTION;
+    if (elapsedMs <= contact) {
+        return easeOutCubic(elapsedMs / contact);
+    }
+    return 1 - easeInOutCubic((elapsedMs - contact) / (totalMs - contact));
+}
+
 // --- beam envelopes ---------------------------------------------------------
 
 /** The `beam` kind's curve set (PO 2026-09-19, §12b.1). */

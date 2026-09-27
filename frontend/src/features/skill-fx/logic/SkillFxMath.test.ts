@@ -58,6 +58,15 @@ import {
     WAVE_MAX_COUNT,
     windUpGlowAlpha,
 } from './SkillFxMath';
+import {
+    LUNGE_DEFAULT_MS,
+    LUNGE_DISTANCE_FACTOR,
+    LUNGE_OUT_FRACTION,
+    lungeContactMsOf,
+    lungeDistancePx,
+    lungeShare,
+    lungeTotalMsOf,
+} from './SkillFxMath';
 import {meter2px} from '../../../client-data/BasicConfig';
 import wolfBite from '../../../../../api/skills/mobs/wolf-bite.json';
 
@@ -890,5 +899,86 @@ describe('landsOnVictim (which end a layer anchors at)', () => {
     it('anchors a cast and an ambient layer on the caster', () => {
         expect(landsOnVictim('fired')).toBe(false);
         expect(landsOnVictim('ambient')).toBe(false);
+    });
+});
+
+// plan-natural-weapons.md §3.1: the attacker's own token jabs at its victim
+// and snaps back. The share is what the manager multiplies the distance by, so
+// its two ends must be EXACT zero (§10 L2: a body left a hair off its collider
+// is a stuck offset), and its peak exactly 1 at the contact moment.
+describe('the lunge (plan-natural-weapons.md §3.1)', () => {
+    it('lasts the authored ms, else the default', () => {
+        expect(lungeTotalMsOf(300)).toBe(300);
+        expect(lungeTotalMsOf(undefined)).toBe(LUNGE_DEFAULT_MS);
+        expect(lungeTotalMsOf(0)).toBe(LUNGE_DEFAULT_MS);
+        expect(lungeTotalMsOf(-5)).toBe(LUNGE_DEFAULT_MS);
+    });
+
+    it('makes contact at the end of the out phase: 77 ms at the default', () => {
+        expect(lungeContactMsOf(undefined)).toBeCloseTo(77, 9);
+        expect(lungeContactMsOf(undefined)).toBe(LUNGE_DEFAULT_MS * LUNGE_OUT_FRACTION);
+        expect(lungeContactMsOf(400)).toBe(400 * LUNGE_OUT_FRACTION);
+    });
+
+    it('jabs a share of the attacker\'s own radius, times the layer scale', () => {
+        expect(lungeDistancePx(36, undefined)).toBeCloseTo(36 * LUNGE_DISTANCE_FACTOR, 9);
+        expect(lungeDistancePx(36, 1.6)).toBeCloseTo(36 * LUNGE_DISTANCE_FACTOR * 1.6, 9);
+        // An unauthored or nonsense scale is 1, like every other kind's.
+        expect(lungeDistancePx(36, 0)).toBe(lungeDistancePx(36, undefined));
+        expect(lungeDistancePx(36, -2)).toBe(lungeDistancePx(36, undefined));
+    });
+
+    it('never jabs a negative or non-finite distance', () => {
+        expect(lungeDistancePx(0, 1)).toBe(0);
+        expect(lungeDistancePx(-10, 1)).toBe(0);
+        expect(lungeDistancePx(NaN, 1)).toBe(0);
+    });
+
+    it('sits at EXACT zero at both ends', () => {
+        const total = LUNGE_DEFAULT_MS;
+        expect(lungeShare(0, total)).toBe(0);
+        expect(lungeShare(-50, total)).toBe(0);
+        expect(lungeShare(total, total)).toBe(0);
+        expect(lungeShare(total + 1, total)).toBe(0);
+    });
+
+    it('peaks at exactly 1 at the contact moment', () => {
+        for (const total of [LUNGE_DEFAULT_MS, 180, 333, 1_000]) {
+            expect(lungeShare(lungeContactMsOf(total), total), `total ${total}`).toBe(1);
+        }
+    });
+
+    it('rises monotonically before contact and falls monotonically after', () => {
+        const total = LUNGE_DEFAULT_MS;
+        const contact = lungeContactMsOf(total);
+        let previous = lungeShare(0, total);
+        for (let t = 1; t <= contact; t++) {
+            const share = lungeShare(t, total);
+            expect(share, `out ${t}`).toBeGreaterThanOrEqual(previous);
+            previous = share;
+        }
+        previous = 1;
+        for (let t = Math.ceil(contact); t <= total; t++) {
+            const share = lungeShare(t, total);
+            expect(share, `back ${t}`).toBeLessThanOrEqual(previous);
+            expect(share).toBeGreaterThanOrEqual(0);
+            previous = share;
+        }
+    });
+
+    it('goes out faster than it comes back (an ease-out jab, an ease-in-out return)', () => {
+        const total = LUNGE_DEFAULT_MS;
+        const contact = lungeContactMsOf(total);
+        // Halfway through the out phase the body is well past half way.
+        expect(lungeShare(contact / 2, total)).toBeGreaterThan(0.5);
+        // Halfway through the return it is exactly half way (the symmetric ease).
+        expect(lungeShare(contact + (total - contact) / 2, total)).toBeCloseTo(0.5, 9);
+    });
+
+    it('answers 0, never NaN, for a degenerate total or a non-finite time', () => {
+        expect(lungeShare(10, 0)).toBe(0);
+        expect(lungeShare(10, -100)).toBe(0);
+        expect(lungeShare(NaN, LUNGE_DEFAULT_MS)).toBe(0);
+        expect(lungeShare(10, NaN)).toBe(0);
     });
 });

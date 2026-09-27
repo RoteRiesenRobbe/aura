@@ -29,6 +29,8 @@ import {
     EMITTER_DEFAULT_MS,
     flightMs,
     HIT_MARK_MS,
+    lungeContactMsOf,
+    lungeTotalMsOf,
     ORBIT_DEFAULT_MS,
     strikeContactMsOf,
     strikeTotalMsOf,
@@ -109,17 +111,25 @@ export function stressSchedule(
  *
  * `ambient` layers count 0: they are state, they are not spawned by an event,
  * and they never end on a clock.
+ *
+ * ⚑ A `lunge` is counted at its own duration although it is NOT a budgeted Fx
+ * (plan-natural-weapons.md §3.1: it lives outside `live`). The preview's loop
+ * length reads this helper, and that is what the lunge is here for. The C4
+ * estimate counts it too and so overstates `live` a little; it is a sanity
+ * number, as above, and is left so.
  */
 export function eventLifetimeMs(
     layers: readonly VisualLayer[], distPx: number, damageHit = false,
 ): number {
     const bolt = layers.find(layer => layer.kind === 'projectile');
     const weapon = layers.find(layer => layer.kind === 'strike');
+    const body = layers.find(layer => layer.kind === 'lunge');
     // The implicit sequencing of SkillFxPlan: the mark starts when whatever
-    // touched the victim actually got there, the later of the two.
+    // touched the victim actually got there, the latest of them.
     const arrival = Math.max(
         bolt ? flightMs(distPx, bolt.speed ?? 0) : 0,
-        weapon ? strikeContactMsOf(weapon.curve, weapon.ms) : 0);
+        weapon ? strikeContactMsOf(weapon.curve, weapon.ms) : 0,
+        body ? lungeContactMsOf(body.ms) : 0);
     let total = damageHit ? HIT_MARK_MS + arrival : 0;
     for (const layer of layers) {
         if (layer.on === 'ambient') {
@@ -141,6 +151,8 @@ function layerLifetimeMs(def: VisualLayer, distPx: number): number {
             return strikeTotalMsOf(def.curve, def.ms);
         case 'wave':
             return waveTotalMsOf(def.ms);
+        case 'lunge':
+            return lungeTotalMsOf(def.ms);
         case 'beam':
             return authored || BEAM_CURVE_MS[def.curve === 'extend' ? 'extend' : 'flash'];
         case 'cast-pose':
@@ -171,7 +183,9 @@ export function estimateLiveFx(eventsPerSec: number, meanEventMs: number): numbe
 
 /**
  * Exactly what `anchorFor` and the reconciler read off a game object, and
- * nothing else: `shape.position`, `shape.destroyed`, `shape.parent`, `size`.
+ * nothing else: `shape.position`, `shape.destroyed`, `shape.parent`, `size`,
+ * plus the one method the manager calls, `setBodyOffset` (a lunge's nudge,
+ * plan-natural-weapons.md §3.2). A stub has no token to move, so it is a no-op.
  * A real GameObject is a PixiJS display tree; standing 40 of those up would
  * measure the entity layer rather than the VFX one.
  *
@@ -183,6 +197,7 @@ interface Stub {
     id: number;
     shape: { position: { x: number, y: number }, destroyed: boolean, parent: object };
     size: number;
+    setBodyOffset(x: number, y: number): void;
 }
 
 let Game: IGame = null;
@@ -437,6 +452,7 @@ function placeStubs(count: number): void {
                 parent: {},
             },
             size: STUB_RADIUS_PX,
+            setBodyOffset: () => undefined,
         };
         allStubs.push(stub);
         byId.set(stub.id, stub);

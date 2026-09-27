@@ -20,7 +20,8 @@
  *    → nearest-to-that, hop N is anchored at victim N-1 and waits N staggers.
  * 4. Implicit sequencing, no `delay` key anywhere in the vocabulary: the hit
  *    mark starts when whatever touched the victim actually got there - the
- *    projectile's arrival, the strike's contact moment, the later of the two.
+ *    projectile's arrival, the strike's contact moment, the lunge's contact
+ *    moment (plan-natural-weapons.md §3.1), the latest of them.
  * 5. ⭐ The hit mark is the ENGINE'S (§12g.1 call 2, the one exception to "no
  *    engine default"): every landed Damage or Crit hit plans one on the victim,
  *    LAST in the landing, whether or not the skill authors anything, and no
@@ -35,6 +36,13 @@
  *    is rules 1 and 5 unchanged. The trigger is part of the chain key and the
  *    pose key, so an application and a direct hit of one skill in one
  *    snapshot never chain together or share a pose.
+ * 7. ⭐ The `lunge` (plan-natural-weapons.md §3.1) moves the ATTACKER's own
+ *    token, so it is planned once per attacker per snapshot, aimed at the
+ *    first victim, with its own dedup set (§10 L11: never the pose's), and it
+ *    is always anchored at the attacker, a chain hop included. It is the one
+ *    layer `off` does not cut (D4: it costs no fill rate): at `off` the plan
+ *    holds the lunge layers and nothing else, each at seed 0, and the seed
+ *    counter does not move (§10 L3).
  */
 import type {VisualLayer} from '../../../client-data/Skills';
 import {AuraApi} from '../../backend/logic/AuraApi';
@@ -45,6 +53,7 @@ import {
     chainOrder,
     flightMs,
     HIT_MARK_KIND,
+    lungeContactMsOf,
     strikeContactMsOf,
 } from './SkillFxMath';
 import {NEUTRAL_COLOR} from './SkillFxPalette';
@@ -157,10 +166,11 @@ export function planSpawns(
     density: VfxDensity = 'full',
 ): SpawnPlan[] {
     // `off` is literal (PO, §12d.1): no authored layer draws, old kinds
-    // included. Before the seed counter moves, so a session spent at `off`
-    // does not silently advance every later swing's direction.
+    // included, but the lunge (rule 7). Before the seed counter moves, so a
+    // session spent at `off` does not silently advance every later swing's
+    // direction.
     if (density === 'off') {
-        return [];
+        return planLungesOnly(events, visualOf, pointOf);
     }
     const chained = new Map<string, Landing[]>();
     const plain: Landing[] = [];
@@ -184,7 +194,8 @@ export function planSpawns(
 
     const plan: SpawnPlan[] = [];
     const posed = new Set<string>();
-    plain.forEach(landing => emit(plan, posed, landing, landing.source, landing.casterAt, 0));
+    const lunged = new Set<number>();
+    plain.forEach(landing => emit(plan, posed, lunged, landing, landing.source, landing.casterAt, 0));
 
     chained.forEach((group) => {
         // The hop order is over POSITIONS, so the ordered victims come back as
@@ -195,7 +206,7 @@ export function planSpawns(
             const previous = index === 0 ? null : hops[index - 1].to.landing;
             const landing = hop.to.landing;
             emit(
-                plan, posed, landing,
+                plan, posed, lunged, landing,
                 previous === null ? landing.source : previous.victim,
                 previous === null ? landing.casterAt : previous.at,
                 index * CHAIN_HOP_STAGGER_MS);
@@ -221,6 +232,47 @@ export function planAmbient(
     }
     return layers.filter(l =>
         l.on === 'ambient' && !(density === 'low' && !own && l.kind === 'emitter'));
+}
+
+/**
+ * The whole plan at `off` (rule 7): each event's `lunge` layers on its own
+ * trigger, one per attacker, and nothing else. A lunge reads no seed (it has
+ * no sweep side), so every entry carries 0 and `seedCounter` is left alone.
+ */
+function planLungesOnly(
+    events: readonly SkillEventData[], visualOf: VisualOf, pointOf: PointOf,
+): SpawnPlan[] {
+    const plan: SpawnPlan[] = [];
+    const lunged = new Set<number>();
+    events.forEach((event) => {
+        const trigger = triggerOf(event);
+        if (trigger === null || lunged.has(event.source)) {
+            return;
+        }
+        const visual = visualOf(event.skillId);
+        const layers = (visual?.layers ?? []).filter(l => l.on === trigger && l.kind === 'lunge');
+        if (layers.length === 0) {
+            return;
+        }
+        // A lunge never sits on `fired` (the vocabulary refuses it), so the
+        // event always names its victim.
+        const victim = event.victim;
+        if (!pointOf(event.source) || !pointOf(victim)) {
+            return;
+        }
+        lunged.add(event.source);
+        plan.push({
+            def: layers[0],
+            source: event.source,
+            from: event.source,
+            victim,
+            delayMs: 0,
+            baseColor: visual.baseColor,
+            reachPx: visual.reachPx ?? 0,
+            seed: 0,
+        });
+    });
+    return plan;
 }
 
 function isChainedBeam(def: VisualLayer): boolean {
@@ -272,15 +324,17 @@ function landingFor(
 
 /**
  * One landing's layers, with the implicit sequencing applied: the hit mark
- * beside a `projectile` starts when the bolt ARRIVES, and one beside a `strike`
- * when the weapon reaches the victim. With both authored, the later of the two
- * wins - the mark belongs to whatever touched the victim last.
+ * beside a `projectile` starts when the bolt ARRIVES, one beside a `strike`
+ * when the weapon reaches the victim, and one beside a `lunge` when the body
+ * does. With several authored, the latest wins - the mark belongs to whatever
+ * touched the victim last.
  */
 function emit(
-    plan: SpawnPlan[], posed: Set<string>, landing: Landing,
+    plan: SpawnPlan[], posed: Set<string>, lunged: Set<number>, landing: Landing,
     from: number, fromAt: PlanPoint, baseDelayMs: number,
 ): void {
-    const arrival = Math.max(projectileFlightMs(landing, fromAt), strikeContactMs(landing));
+    const arrival = Math.max(
+        projectileFlightMs(landing, fromAt), strikeContactMs(landing), lungeContactMs(landing));
     landing.layers.forEach((def) => {
         // An archer holds ONE bow: a multi-target beat draws its pose once,
         // aimed at the first victim, while every victim still gets its arrow.
@@ -290,10 +344,18 @@ function emit(
             }
             posed.add(landing.castKey);
         }
+        // A body jabs once per beat, whichever skill or victim asked (rule 7).
+        if (def.kind === 'lunge') {
+            if (lunged.has(landing.source)) {
+                return;
+            }
+            lunged.add(landing.source);
+        }
         plan.push({
             def,
             source: landing.source,
-            from,
+            // The body that moves is the attacker's, even on a chain hop.
+            from: def.kind === 'lunge' ? landing.source : from,
             victim: landing.victim,
             delayMs: baseDelayMs + (def.kind === HIT_MARK_KIND ? arrival : 0),
             baseColor: landing.baseColor,
@@ -317,4 +379,10 @@ function projectileFlightMs(landing: Landing, fromAt: PlanPoint): number {
 function strikeContactMs(landing: Landing): number {
     const weapon = landing.layers.find(l => l.kind === 'strike');
     return weapon ? strikeContactMsOf(weapon.curve, weapon.ms) : 0;
+}
+
+/** The first `lunge` layer's contact moment, or 0 when there is none. */
+function lungeContactMs(landing: Landing): number {
+    const body = landing.layers.find(l => l.kind === 'lunge');
+    return body ? lungeContactMsOf(body.ms) : 0;
 }

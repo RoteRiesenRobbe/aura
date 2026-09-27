@@ -679,8 +679,9 @@ authors should know:
 
 ### Visuals: the `visual` key
 
-*(`plan-skill-vfx.md` C0 + C2a + C2b + C3a + C3a-ii + C3b, last amended 2026-09-25. All
-seven kinds draw; none is a stub any more.)*
+*(`plan-skill-vfx.md` C0 + C2a + C2b + C3a + C3a-ii + C3b and `plan-natural-weapons.md`
+C1, last amended 2026-09-27. All eight kinds work; none is a stub any more, and the
+eighth, `lunge`, draws nothing by design.)*
 
 ⭐ **Since C3b the look is authored in the content editor too**: the Skills
 tab's Visuals section for a player skill, a per-skill block on the mob's page
@@ -718,8 +719,8 @@ one look. Mobs use the same key on their own files, so a visual on
 ```
 
 Each layer names a **kind** (what moves) and an **`on`** (the moment it
-plays). The seven kinds are ENGINE code and the set is CLOSED: each one is a
-renderer class with its own math, so an eighth is a plan amendment, not a
+plays). The eight kinds are ENGINE code and the set is CLOSED: each one is a
+renderer class with its own math, so a ninth is a plan amendment, not a
 content decision. Everything else is a parameter.
 
 | kind | plays on | its own keys | what it is |
@@ -731,9 +732,12 @@ content decision. Everything else is a parameter.
 | `cast-pose` | fired, hit, applied | `ms` | a body shown ON the caster at RELEASE, `ms` of follow-through (the bow). On `hit` it AIMS at the victim and shows only when something was hit |
 | `orbit` | fired, ambient | `ms`, `count` | N bodies circling the caster |
 | `emitter` | ambient, fired, hit, applied | `ms`, `count`, `motion` | particles from a point or a disc |
+| `lunge` | hit, applied | `ms` | the ATTACKER's own token jabs toward the victim and snaps back; draws nothing, and still plays with the VFX density slider at `off` (below) |
 
 Legal on every layer: `kind` and `on` (both required), plus `body`, `tint`
-(lowercase `#rrggbb`) and `scale`. Every number is a **[PLACEHOLDER]** like all
+(lowercase `#rrggbb`) and `scale`. ⚑ **Except a `lunge`**, which reads only
+`kind`, `on`, `ms` and `scale`: it draws nothing, so `body` and `tint` are keys
+it does not read, and a key a kind does not read is a hard-fail. Every number is a **[PLACEHOLDER]** like all
 the others; `ms`, `speed`, `width` and `scale` must be > 0 when authored and
 `count` >= 1, and omitting one means "the kind's own default" rather than zero.
 **Units are screen-space: `speed` is px per second, `width` is px** (a world
@@ -800,6 +804,27 @@ code-drawn and palette-tinted, so no artist draws one:
 
 `count` is the number of rings, staggered ([PLACEHOLDER] default 1, max 3).
 
+⭐ **`lunge` is the natural weapon's attack: the mob's own body moves**
+(`plan-natural-weapons.md` §3.1, PO 2026-09-27). Nothing is drawn: the
+attacker's whole token (portrait, species border and tier frame) jabs a fixed
+distance toward the victim and snaps back, while its health bar, aura ring and
+nameplate stay where the server says the mob is. The mob never changes
+position; it is purely visual.
+
+```json
+{ "kind": "lunge", "on": "hit", "ms": 220 }
+```
+
+It plays on `hit` or `applied`, and takes four keys: `kind`, `on`, `ms` (the
+whole jab, out and back, [PLACEHOLDER] default 220) and `scale` (multiplies the
+distance, which is the attacker's own radius × 0.8 [PLACEHOLDER] and never
+reads the gap, so a long-reach bite ends short of its victim by design). No
+`body`, no `tint`, no `curve`. The engine's hit mark waits for the jab's
+contact moment, so the mark appears when the body gets there. One jab per
+attacker at a time; a new one restarts it. ⭐ **It is readability, not
+dressing**: it still plays with the VFX density slider at `off` (where every
+other authored layer is hidden) and it is never evicted by the Fx budget.
+
 `chain` (bool) is the `beam`'s alone: one tick's hits of one caster and one
 skill draw as a single caster→v1→v2→v3 polyline instead of a fan, each hop a
 short delay after the last. ⛑ **VISUAL ONLY.** Every victim is already inside
@@ -862,16 +887,20 @@ ruling 2026-09-21, a written rule with no validator behind it - the loader will
 happily accept a damaging mob skill with no `visual`, and the reviewer is what
 catches it). A place or a totem is not exempt: a poison pool spits a glob, a
 fire totem reaches out with a tongue of flame, a bomb's blast reaches each
-victim. Pick one of four:
+victim. Pick one of five:
 
 - **A weapon-wielder's hit is a `strike`.** A spear or a stab is `thrust`, a
   blade or a cleave is `swing`, a maul or a pick is `overhead`. The swing plus
   the number plus the engine's mark is the whole hit, the WoW model.
-- **An animal's attack is a `strike` too.** A bite is `curve: bite`, a paw
-  swipe is `swing`, tusks, a kick and a peck are `thrust`. It wields nothing,
-  so the body is its own jaw, claw or tusk; without one it borrows the style's
-  placeholder weapon, which is why an animal wants its body sooner than a
-  soldier does.
+- **A mob that attacks with its body authors a `lunge`**, never a borrowed
+  weapon `strike`: a bite, tusks, a paw swipe, a kick. It wields nothing, so
+  nothing should leave it; its token jabs instead, and that is what says which
+  of four wolves bit. A `thrust` or `swing` on a boar, a bear or a stag draws a
+  spear or a blade the animal does not own. ⚑ The natural weapon's MARK on the
+  victim (teeth, a gash, a rake, a hoof) is the next chunk
+  (`plan-natural-weapons.md` C2, the `maul` kind) and does not exist yet: until
+  it lands, a biter keeps its `strike` `bite` (or the spider its `pincer`)
+  beside the `lunge`, and every other body attack authors the `lunge` alone.
 - **Reach at a distance is a `projectile` or a `beam`.** Volleys and spits fly
   (`projectile`, alone now - the arrival needs no layer); a tongue of flame or
   a bolt from a totem stretches (`beam`, `extend` or `flash`).

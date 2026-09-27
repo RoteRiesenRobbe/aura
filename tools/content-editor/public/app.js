@@ -7,7 +7,7 @@ import {
   EFFECT_TYPE_NOTES, EFFECT_TYPE_DEFAULTS, CATEGORY_LABELS, HIDDEN_EFFECT_TYPES, TEST_RIG_SKILLS, LAYER_PRESENTATION,
   resolveAt, scalingPairs, presentationFor, labelFor, ticksToSecondsLabel, formatNumber,
 } from '/skill-presentation.mjs';
-import { skillFxColor, skillVisualHints, legalKinds, legalMoments, paletteTagOf } from '/skill-visual-hints.mjs';
+import { skillFxColor, skillVisualHints, legalKinds, legalMoments, paletteTagOf, kindReadsTint } from '/skill-visual-hints.mjs';
 import { collectSkillReferences } from '/skill-references.mjs';
 
 /* ---- tiny DOM helper ------------------------------------------------- */
@@ -2028,7 +2028,7 @@ function effectCard(effect, i, ctx) {
 function skillVisualsSection(ctx) {
   const col = skillSection('Visuals');
   col.section.classList.add('visuals-section');
-  // "Show all kinds" (C3c): ONE gallery iframe of the seven kinds, the
+  // "Show all kinds" (C3c): ONE gallery iframe of the eight kinds, the
   // newcomer's legend. The click must not reach the head's collapse toggle.
   col.section.querySelector('.stat-section-head').appendChild(el('button', {
     class: 'fx-gallery-toggle' + (state.fxGalleryOpen ? ' active' : ''),
@@ -2141,16 +2141,20 @@ function layerRow(layer, i, layers, ctx) {
   const moments = known ? legalMoments(vocab, kind, ctx.skill) : [];
   if (layer.on !== undefined && !moments.includes(layer.on)) moments.push(layer.on);
   const onSelect = select([...(layer.on === undefined ? [''] : []), ...moments], layer.on ?? '', (v) => { setKey(layer, 'on', v === '' ? undefined : v); ctx.onStructural(); }, (v) => v || '— moment —', 'layer-on');
+  // A kind whose key row has no `body` (the lunge draws nothing) gets no body
+  // picker, unless a body is authored by hand: then it stays in view, and the
+  // loader refuses the file.
+  const readsBody = !known || vocab.visualKeys[kind].includes('body') || layer.body !== undefined;
   const bodies = [...state.skillFxBodies];
   if (layer.body !== undefined && !bodies.includes(layer.body)) bodies.push(layer.body);
-  const bodySelect = select(['', ...bodies], layer.body ?? '', (v) => { setKey(layer, 'body', v === '' ? undefined : v); ctx.onStructural(); }, (v) => v || 'none (placeholder)', 'layer-body');
-  for (const s of [kindSelect, onSelect, bodySelect]) s.disabled = readOnly;
+  const bodySelect = readsBody ? select(['', ...bodies], layer.body ?? '', (v) => { setKey(layer, 'body', v === '' ? undefined : v); ctx.onStructural(); }, (v) => v || 'none (placeholder)', 'layer-body') : null;
+  for (const s of [kindSelect, onSelect, bodySelect]) if (s) s.disabled = readOnly;
 
   row.appendChild(el('div', { class: 'card-head' }, [
     el('span', { class: 'idx', text: '#' + i }),
     el('label', { class: 'layer-pick' }, ['kind', kindSelect]),
     el('label', { class: 'layer-pick' }, ['moment', onSelect]),
-    el('label', { class: 'layer-pick' }, ['body', bodySelect]),
+    bodySelect ? el('label', { class: 'layer-pick' }, ['body', bodySelect]) : null,
     layer.body ? el('img', { class: 'body-thumb', src: `/api/skill-fx/body/${encodeURIComponent(layer.body)}.png`, alt: layer.body, title: layer.body }) : null,
     fxPreviewToggle(ctx, i),
     readOnly ? null : el('div', { class: 'card-actions' }, [
@@ -2179,14 +2183,16 @@ function layerRow(layer, i, layers, ctx) {
 
   // The swatch line: the colour the engine will draw this layer in, and which
   // numbers fall to the kind's default. Refreshed on every value edit (a tint
-  // keystroke is not a re-render), the livePreview way.
+  // keystroke is not a re-render), the livePreview way. A kind that does not
+  // read `tint` draws nothing in any colour, so its line has no swatch.
+  const coloured = kindReadsTint(vocab, kind);
   const build = () => {
-    const { hex, reason } = skillFxColor(ctx.skill, layer, state.skillFxPalette);
+    const color = coloured ? skillFxColor(ctx.skill, layer, state.skillFxPalette) : null;
     const defaults = rest.filter((k) => LAYER_NUMBER_KEYS.includes(k) && layer[k] === undefined);
     return el('div', { class: 'layer-swatch' }, [
-      el('span', { class: 'swatch', style: `background:${hex}`, title: hex }),
-      el('span', { text: reason }),
-      defaults.length ? el('span', { class: 'layer-defaults', text: `· ${defaults.join(', ')}: default` }) : null,
+      color ? el('span', { class: 'swatch', style: `background:${color.hex}`, title: color.hex }) : null,
+      color ? el('span', { text: color.reason }) : null,
+      defaults.length ? el('span', { class: 'layer-defaults', text: `${color ? '· ' : ''}${defaults.join(', ')}: default` }) : null,
     ]);
   };
   let swatch = build();

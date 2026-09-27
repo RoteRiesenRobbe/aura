@@ -1,6 +1,13 @@
 import {describe, expect, it} from 'vitest';
 import {estimateLiveFx, eventLifetimeMs, restrictToIds, stressSchedule} from './SkillFxStress';
-import {BEAM_CURVE_MS, flightMs, HIT_MARK_MS, WAVE_DEFAULT_MS} from './SkillFxMath';
+import {
+    BEAM_CURVE_MS,
+    flightMs,
+    HIT_MARK_MS,
+    lungeContactMsOf,
+    lungeTotalMsOf,
+    WAVE_DEFAULT_MS,
+} from './SkillFxMath';
 
 /**
  * The stress driver's only arithmetic (plan-skill-vfx.md §12e.4): how many
@@ -105,6 +112,14 @@ describe('eventLifetimeMs', () => {
         const flight = flightMs(350, 700);
         const layers = [{kind: 'projectile', on: 'hit', speed: 700}];
         expect(eventLifetimeMs(layers, 350, true)).toBe(flight + flight + HIT_MARK_MS);
+    });
+
+    // plan-natural-weapons.md §3.1: a lunge's own duration, and its contact
+    // joins the mark's wait exactly as a strike's does.
+    it('gives a lunge its duration, and the mark its contact moment', () => {
+        expect(eventLifetimeMs([{kind: 'lunge', on: 'hit'}], 100)).toBe(lungeTotalMsOf(undefined));
+        expect(eventLifetimeMs([{kind: 'lunge', on: 'hit', ms: 300}], 100, true))
+            .toBe(lungeTotalMsOf(300) + lungeContactMsOf(300) + HIT_MARK_MS);
     });
 
     it('counts no ambient layer: an event never spawns one', () => {

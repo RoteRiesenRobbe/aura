@@ -64,6 +64,14 @@ export function skillFxColor(skill, layer, palette) {
   return { hex: palette.neutral, reason: 'neutral grey: no tint and no damage tags' };
 }
 
+// Whether a layer of `kind` reads `tint` at all. A kind that draws nothing
+// (the lunge, plan-natural-weapons.md §3.1) has no colour, so the swatch line
+// and hints (1) and (2) skip it. Read from the fixture's key row, never from a
+// kind name.
+export function kindReadsTint(vocab, kind) {
+  return ((vocab.visualKeys || {})[kind] || []).includes('tint');
+}
+
 // The moments a layer of `kind` may play at on this skill: the kind's own set
 // cut by the category's (D2), and `applied` only when an effect applies
 // something over time. An unset or unknown category answers the kind's own
@@ -92,6 +100,7 @@ export function hasOverTimeEffect(vocab, skill) {
  * The grey hint lines for a skill's look, as { cls, text }:
  *   1  a damage-tagged skill authoring a tint (redundant: the palette colours it)
  *   2  an untagged skill with a layer and no tint (draws neutral grey)
+ *   (1 and 2 skip a layer whose kind does not read `tint`: it draws nothing)
  *   3  every effect is over time and a layer is on `hit` (no direct landing
  *      is ever sent: the C3a-ii finding, move it to `applied`)
  *   4  an active aura or cooldown with no layers (the PO 2026-09-20 rule)
@@ -121,10 +130,11 @@ export function skillVisualHints(skill, vocab) {
   layers.forEach((layer, i) => {
     if (!layer || typeof layer !== 'object') return;
     const tinted = typeof layer.tint === 'string' && layer.tint !== '';
-    if (tinted && found) {
+    const coloured = kindReadsTint(vocab, layer.kind);
+    if (coloured && tinted && found) {
       out.push({ cls: 1, text: `visual.layers[${i}] authors tint ${layer.tint}, but the skill is damage-tagged (${found.tag}): the palette already colours it, so the tint only overrides that. Fine if deliberate.` });
     }
-    if (!tinted) untinted.push(i);
+    if (coloured && !tinted) untinted.push(i);
     if (layer.on === 'hit' && allOverTime) {
       out.push({ cls: 3, text: `visual.layers[${i}] (${layer.kind}) plays on "hit", but every effect is over time (${[...new Set(effects.map((e) => e.type))].join(', ')}): such a skill sends no direct landing, so the layer never draws. Move it to "applied".` });
     }

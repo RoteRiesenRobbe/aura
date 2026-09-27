@@ -520,7 +520,8 @@
     "wave",
     "cast-pose",
     "orbit",
-    "emitter"
+    "emitter",
+    "lunge"
   ],
   "visualTriggers": [
     "ambient",
@@ -557,6 +558,12 @@
       "ms",
       "count",
       "motion"
+    ],
+    "lunge": [
+      "kind",
+      "on",
+      "ms",
+      "scale"
     ],
     "orbit": [
       "kind",
@@ -607,6 +614,10 @@
     "emitter": [
       "ambient",
       "fired",
+      "hit",
+      "applied"
+    ],
+    "lunge": [
       "hit",
       "applied"
     ],

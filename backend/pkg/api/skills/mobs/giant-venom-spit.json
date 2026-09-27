@@ -7,6 +7,7 @@
   "visual": {
     "layers": [
       { "kind": "projectile", "on": "applied", "speed": 650 },
+      { "kind": "lunge", "on": "hit", "ms": 220 },
       { "kind": "strike", "on": "hit", "curve": "pincer", "body": "spider-fang", "tint": "#ffffff", "ms": 260 }
     ]
   },

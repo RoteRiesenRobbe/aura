@@ -53,6 +53,33 @@
 // because the counters are per kind, not per skill, and every venue has
 // neighbours (pools spit projectiles, spiders bite).
 //
+// Natural weapons C1 (docs/plan-natural-weapons.md §3.1, §7 "New skill-fx.mjs
+// legs", PO ruling D9): the `lunge`, the eighth kind, draws NOTHING and moves
+// the attacker's token (portrait, tier frame, species border) toward the
+// victim and back. It is read through three surfaces: `spawnedByKind.lunge`,
+// `lungeNudges` (non-zero body offsets the manager wrote, monotonic) and the
+// dev console's `bodyOffsets()` (every held token NOT at exactly (0, 0), read
+// off the real node). 20 sits right after leg 14 at the wolf camp, levelled,
+// GOD off: 20a a real fight at density `full` jabs (the counters rose, a real
+// token moved, and a jab of a standing wolf left its group's position
+// bit-identical) · 20b the fight over, every body is home at EXACT zero ·
+// 20c density `off`: the jab still plays, nothing else spawns, `live` stays 0.
+// A probe inside every window holds the L2 invariant: whenever
+// `skillFx().lunges === 0`, `bodyOffsets()` is empty, read in ONE task.
+// ⚑ L8: since C1 the boar, alpha boar, bear, stag and companion draw no
+// `strike` at all (their borrowed spear and blade are gone, a `lunge` alone),
+// so the boars at the wolf camp no longer thin legs 13a and 14's sprite share.
+// Wolves, rats and spiders still draw their `strike` bite, now beside a lunge.
+// 17 also asserts the giant spider's lunge beside its spit and fangs.
+// ⚑ L6: a 220 ms jab is never sampled from outside the page; every lunge
+// assertion reads counters that count at WRITE time, or an in-page probe.
+//
+// ⛔ Needs the DEBUG zone set (`./scripts/dev-restart.sh server debug`): every
+// venue below is a position in api/zones/.debug/world_debug.json. The rebuilt
+// 500x500 main world (06e5c476) has no camp at any of them, and a run against
+// it lands on empty grass: leg 1 reads 0 skill events and goes INCONCLUSIVE,
+// which gates every leg after it.
+//
 // ⚑ GOD is survival only, it never touches OUR outgoing damage - but it DOES
 //   short-circuit the player's own takeDamage, so a god-mode player is never
 //   the victim of a HIT event and no mob strike draws on them. Legs 5 and 6
@@ -99,6 +126,9 @@ const browser = await chromium.launch({
 const page = await (await browser.newContext({ viewport: { width: 1600, height: 900 } })).newPage();
 const errors = [];
 let inconclusive = false;
+// An inconclusive that must NOT gate the legs after it (leg 20b's settle): it
+// only colours the final RESULT line.
+let lateInconclusive = false;
 // C3a: every `[skill-fx] body ...` line the page logged - an unknown name and a
 // texture that failed to decode both warn through it. ⚑ They are console
 // WARNINGS, which the error collector below does not see, and a body that never
@@ -197,12 +227,15 @@ async function isSlotActive(slot) {
 // an ambient spawn ALSO increments its kind, so a delta on `emitter` sees it.
 // ⚑ `sprites` (C3a) is a SHARE of the kind counts, never a kind of its own: one
 // per Fx that resolved its `body` to a PNG, whatever its body count.
+// ⚑ `lunges` (live jabs) and `lungeNudges` (non-zero body offsets written,
+// monotonic) are natural weapons C1's; a lunge is NOT in `live`.
 async function fxCounts() {
   return page.evaluate(() => {
     const s = window.game.skillFx();
     return {
       ...s.spawnedByKind, evicted: s.evicted, live: s.live,
       ambient: s.ambient, glows: s.glows, sprites: s.sprites,
+      lunges: s.lunges, lungeNudges: s.lungeNudges,
     };
   });
 }
@@ -210,6 +243,15 @@ function delta(a, b) {
   const d = {};
   for (const k of Object.keys(b)) d[k] = (b[k] ?? 0) - (a[k] ?? 0);
   return d;
+}
+// Every field of fxCounts() that is NOT a per-kind spawn count.
+const NOT_KINDS = new Set(['evicted', 'live', 'ambient', 'glows', 'sprites', 'lunges', 'lungeNudges']);
+// The spawns of every kind in a delta, `except` the kinds named. Derived from
+// the counters, not a hand list, so a kind added later is counted too.
+function spawnsIn(d, except = []) {
+  return Object.entries(d)
+    .filter(([k]) => !NOT_KINDS.has(k) && !except.includes(k))
+    .reduce((n, [, v]) => n + (v ?? 0), 0);
 }
 // Watch a leg with the slot active at start AND end (a long hold can land two
 // edges under throttled rAF and toggle the aura straight off again).
@@ -311,7 +353,9 @@ await warpTo(OPEN_GROUND, 'open ground');
   await page.waitForTimeout(5_000);
   const d = delta(a, await fxCounts());
   const events = (await page.evaluate(() => window.game.skillEvents().total ?? 0)) - e0;
-  const n = (d.strike ?? 0) + (d.impact ?? 0) + (d.projectile ?? 0) + (d.beam ?? 0);
+  // + `lunge` (natural weapons C1): event-driven like the four. Not every
+  // kind: an AMBIENT spawn increments its kind too, and needs no event.
+  const n = (d.strike ?? 0) + (d.impact ?? 0) + (d.projectile ?? 0) + (d.beam ?? 0) + (d.lunge ?? 0);
   if (events === 0 && n > 0) fail(`leg 0: ${n} FX spawned with no skill event: ${JSON.stringify(d)}`);
   else pass(`leg 0: ${n} FX for ${events} skill events in view`);
 }
@@ -749,14 +793,18 @@ console.log('\n== LEG 13: the pilot bodies draw as SPRITES (C3a) ==');
     console.log('NOTE: leg 13 needs legs 1-3 scored, and one of them was not');
   } else {
     // Leg 1: the sword thrusts AND the wolves' bites (a `strike` since §12g)
-    // carry a body, so most strikes in that window are sprites - but NOT an
-    // equality: the wolf camp's boars gore too (id 112, a bodiless `thrust`;
-    // measured 29 sprites for 34 strikes), and the id sampler polls rather
-    // than counts. The upper bound is the sharp half: the marks (`impact`)
-    // are code-drawn and must add nothing.
-    console.log(`leg 13a: leg 1 sprites ${sword.fx.sprites}, strike ${sword.fx.strike}, marks ${sword.fx.impact ?? 0}, boar gores in the window ${sword.ids[112] ?? 0}`);
+    // carry a body, so most strikes in that window are sprites. Before
+    // natural weapons C1 the camp's boars thinned the share (id 112, a
+    // bodiless `thrust`; measured 29 sprites for 34 strikes); since C1 their
+    // gore is a `lunge` alone (L8), so the share should now be whole. Kept as
+    // the half-bound all the same: any wandering strike author (a rat's
+    // bodiless bite) can still join the window, and the id sampler polls
+    // rather than counts. The upper bound is the sharp half: the marks
+    // (`impact`) are code-drawn and must add nothing.
+    console.log(`leg 13a: leg 1 sprites ${sword.fx.sprites}, strike ${sword.fx.strike}, marks ${sword.fx.impact ?? 0}, boar gores in the window ${sword.ids[112] ?? 0} (a lunge alone since C1)`);
+    console.log(`NOTE: leg 13a: sprites ${sword.fx.sprites === sword.fx.strike ? '==' : '!='} strikes (${sword.fx.sprites} / ${sword.fx.strike}); with the boars' strike gone an inequality names another strike author in view`);
     if (sword.fx.sprites >= 1 && sword.fx.sprites * 2 >= sword.fx.strike) {
-      pass(`leg 13a: ${sword.fx.sprites} of ${sword.fx.strike} strike(s) drew a PNG (the rest are the boars' gore)`);
+      pass(`leg 13a: ${sword.fx.sprites} of ${sword.fx.strike} strike(s) drew a PNG`);
     } else {
       fail(`leg 13a: ${sword.fx.strike} strike(s) but only ${sword.fx.sprites} sprite spawn(s) - a body never resolved`);
     }
@@ -906,12 +954,15 @@ if (!inconclusive) {
       const b = await fxCounts();
       const d = delta(a, b);
       const events = (await page.evaluate(() => window.game.skillEvents().total ?? 0)) - e0;
-      const drawn = ['impact', 'strike', 'projectile', 'beam', 'cast-pose', 'orbit', 'emitter']
-        .reduce((sum, k) => sum + (d[k] ?? 0), 0);
-      console.log(`leg 10: fx ${JSON.stringify(d)}, skill events ${events}, ambient ${b.ambient}, glows ${b.glows}`);
+      // ⚑ Every kind EXCEPT `lunge` (natural weapons C1, D4): a lunge draws
+      // nothing and plays at `off` by ruling, and this camp holds a Dire Wolf
+      // (leg 13b) whose bite jabs in a mob-vs-mob fight. Derived from the
+      // counters, so `wave` (missing from the old hand list) counts too.
+      const drawn = spawnsIn(d, ['lunge']);
+      console.log(`leg 10: fx ${JSON.stringify(d)}, skill events ${events}, ambient ${b.ambient}, glows ${b.glows}, lunges spawned ${d.lunge ?? 0} (exempt)`);
       if (events < 3) { console.log(`INCONCLUSIVE: leg 10 saw only ${events} skill events, starved venue`); inconclusive = true; }
       else {
-        if (drawn === 0) pass(`leg 10: 0 Fx spawned across ${events} skill events at off`);
+        if (drawn === 0) pass(`leg 10: 0 Fx spawned across ${events} skill events at off (${d.lunge ?? 0} lunge(s) aside, exempt by D4)`);
         else fail(`leg 10: ${drawn} Fx spawned at off: ${JSON.stringify(d)}`);
         if (b.ambient === 0) pass('leg 10: the reconciler holds nothing at off');
         else fail(`leg 10: ${b.ambient} ambient layer(s) survived off`);
@@ -1163,8 +1214,9 @@ if (!inconclusive) {
 // wolves' bite, a `strike` with `curve: bite` drawn FROM THE WOLF (§12g.1 call
 // 3), which reaches the own player only with GOD off (the same reason legs 5+6
 // drop it). With the own aura off, every `strike` in this window is a wolf's,
-// so every sprite in the window is a wolf's jaw (the boars' gore is bodiless);
-// leg 1's window sees the same bites mixed in with the player's own sword.
+// so every sprite in the window is a wolf's jaw (since natural weapons C1 the
+// boars' gore draws no strike at all, a `lunge` alone, L8); leg 1's window
+// sees the same bites mixed in with the player's own sword.
 // ⚑ Also the bite's PHOTOGRAPH (§12g.5 "looked at"): armed on the strike
 // counter with the page clock slowed 8x, the leg 12 recipe, because a 200 ms
 // bite is over before a fixed-time capture lands.
@@ -1236,13 +1288,16 @@ if (!inconclusive) {
       console.log('INCONCLUSIVE: leg 14: no wolf bite landed in the window');
       inconclusive = true;
     } else {
-      // ⚑ Not an equality: the wolf camp's boars gore too (id 112, a bodiless
-      // `thrust`, measured 6 of 25 sampled hits), and the id sampler polls
-      // rather than counts. The wolves are the majority of the window, so
-      // "most strikes are sprites and none of the marks is" is what this
-      // venue can honestly say.
+      // ⚑ Not an equality. Before natural weapons C1 the camp's boars gored
+      // with a bodiless `thrust` (id 112, measured 6 of 25 sampled hits);
+      // since C1 that is a `lunge` alone (L8), so the share should now be
+      // whole, but a wandering strike author can still join the window and
+      // the id sampler polls rather than counts. "Most strikes are sprites
+      // and none of the marks is" stays what this venue can honestly say;
+      // the NOTE prints whether it was exact.
+      console.log(`NOTE: leg 14: sprites ${d.sprites === d.strike ? '==' : '!='} strikes (${d.sprites} / ${d.strike ?? 0}), boar gores sampled ${ids[112] ?? 0} (a lunge alone since C1)`);
       if ((d.strike ?? 0) >= 1 && d.sprites >= 1 && d.sprites <= d.strike && d.sprites * 2 >= d.strike) {
-        pass(`leg 14: ${d.strike} strike(s) from the wolves (and the boars), ${d.sprites} on the sprite path`);
+        pass(`leg 14: ${d.strike} strike(s) from the wolves, ${d.sprites} on the sprite path`);
       } else {
         fail(`leg 14: wolf bites landed and drew ${d.sprites} sprite(s) for ${d.strike ?? 0} strike(s)`);
       }
@@ -1250,6 +1305,271 @@ if (!inconclusive) {
       else fail(`leg 14: wolf bites landed on the player and drew no hit mark`);
     }
   }
+}
+
+// LEG 20 - natural weapons C1 (docs/plan-natural-weapons.md §3.1, §3.2, §7
+// "New skill-fx.mjs legs", §10 L2 + L6): the `lunge`. Same venue and setup as
+// leg 14 (levelled, own auras off, GOD off for each armed window only, since
+// a god-mode player is never the victim of a HIT event and no wolf bite would
+// land on it). Three windows: 20a a fight at `full`, 20b the fight over,
+// 20c a fight at `off`, then 20b's check once more.
+//
+// ⚑ What 20a can and cannot say about the LOGICAL position. The plan asks
+// that a lunging wolf's `shape.position` equal what the snapshot set. The
+// snapshot's position lives in the GameObject's interpolation buffer, and
+// `window.game` hands the harness no entity map (only `bodyOffsets()`'s ids),
+// so that equality is NOT asserted here. What the probe CAN read is the scene
+// graph: the token (label `token`) is a child of the entity's group, which IS
+// `shape`. For a wolf standing still in contact its group's position does not
+// change at all, so a jab whose token moved while the group's position stayed
+// bit-identical over every sample is a correctly named positive: the jab
+// moved the token and left `shape.position` untouched. A jab of a wolf that
+// walked meanwhile proves nothing either way and is only counted.
+//
+// ⚑ L6: nothing here samples the 220 ms motion from Node. `lunge`,
+// `lungeNudges` and `lunges` count at write time; the probe runs in-page every
+// 10 ms and reads `skillFx()` and `bodyOffsets()` in ONE task, which is atomic
+// against the manager's update (a lunge's dispose zeroes its body in the same
+// task that drops it from the map), so "lunges === 0 and a body is off zero"
+// is a stuck offset (L2), never a race.
+async function startLungeProbe() {
+  await page.evaluate(() => {
+    let root = window.__auraRoot;
+    while (root.parent && root.label !== 'cameraGroup') root = root.parent;
+    const p = {
+      samples: 0, withOffset: 0, maxOffset: 0, liveMax: 0, stuck: [],
+      tokens: new Set(), jabs: new Map(), frozen: 0, walked: 0, frozenPeak: 0,
+    };
+    window.__lungeProbe = p;
+    // The token nodes, re-collected every 500 ms: a full scene walk every
+    // 10 ms would stall the page it is measuring.
+    const collect = () => {
+      const walk = (node) => {
+        for (const c of node.children ?? []) {
+          if (c.label === 'token') p.tokens.add(c);
+          else walk(c);
+        }
+      };
+      walk(root);
+    };
+    collect();
+    p.collector = setInterval(collect, 500);
+    // A jab ends when its token is back at exactly (0, 0) or gone.
+    const settle = (node, rec) => {
+      if (rec.peak >= 5 && rec.n >= 2) {
+        if (rec.moved) p.walked++;
+        else { p.frozen++; p.frozenPeak = Math.max(p.frozenPeak, rec.peak); }
+      }
+      p.jabs.delete(node);
+    };
+    p.timer = setInterval(() => {
+      const s = window.game.skillFx();
+      const offs = window.game.bodyOffsets();
+      p.samples++;
+      p.liveMax = Math.max(p.liveMax, s.live);
+      if (offs.length) p.withOffset++;
+      for (const o of offs) p.maxOffset = Math.max(p.maxOffset, Math.hypot(o.x, o.y));
+      if (s.lunges === 0 && offs.length && p.stuck.length < 10) p.stuck.push(offs);
+      for (const node of p.tokens) {
+        if (node.destroyed || !node.parent) {
+          const rec = p.jabs.get(node);
+          if (rec) settle(node, rec);
+          p.tokens.delete(node);
+          continue;
+        }
+        const off = Math.hypot(node.position.x, node.position.y);
+        let rec = p.jabs.get(node);
+        if (off === 0) { if (rec) settle(node, rec); continue; }
+        const gx = node.parent.position.x, gy = node.parent.position.y;
+        if (!rec) { rec = { gx, gy, peak: 0, n: 0, moved: false }; p.jabs.set(node, rec); }
+        rec.n++;
+        rec.peak = Math.max(rec.peak, off);
+        if (gx !== rec.gx || gy !== rec.gy) rec.moved = true;
+      }
+    }, 10);
+  });
+}
+async function stopLungeProbe() {
+  return page.evaluate(() => {
+    const p = window.__lungeProbe;
+    clearInterval(p.timer);
+    clearInterval(p.collector);
+    return {
+      samples: p.samples, withOffset: p.withOffset, maxOffset: +p.maxOffset.toFixed(1),
+      liveMax: p.liveMax, stuck: p.stuck, frozen: p.frozen, walked: p.walked,
+      frozenPeak: +p.frozenPeak.toFixed(1), tokens: p.tokens.size,
+    };
+  });
+}
+// 20b: every body home. Polls in-page for a moment with no running lunge and
+// reads `bodyOffsets()` in that SAME task: it must be empty, exact zero.
+async function bodiesHome(label) {
+  return page.evaluate((timeout) => new Promise((resolve) => {
+    const started = Date.now();
+    const poll = setInterval(() => {
+      const s = window.game.skillFx();
+      if (s.lunges === 0) {
+        clearInterval(poll);
+        resolve({ quiet: true, lunges: 0, offsets: window.game.bodyOffsets(), waited: Date.now() - started });
+      } else if (Date.now() - started > timeout) {
+        clearInterval(poll);
+        resolve({ quiet: false, lunges: s.lunges, offsets: window.game.bodyOffsets(), waited: Date.now() - started });
+      }
+    }, 10);
+  }), 10_000).then((r) => {
+    console.log(`${label}: ${JSON.stringify(r)}`);
+    // ⚑ Not the global flag: a jab between two other actors in view is no
+    // reason to cost legs 6, 5 and 16-18 their run. It still colours RESULT.
+    if (!r.quiet) { console.log(`INCONCLUSIVE: ${label}: a lunge was still running after 10 s (mob-vs-mob in view?)`); lateInconclusive = true; }
+    else if (r.offsets.length === 0) pass(`${label}: no lunge running and every held body at exactly (0, 0)`);
+    else fail(`${label}: no lunge running and ${r.offsets.length} body(ies) parked off zero: ${JSON.stringify(r.offsets)}`);
+    return r;
+  });
+}
+// One GOD-off fight window at the wolf camp: census + lunge probe, optional
+// mid-jab screenshot. Returns null (and marks the run) when nothing usable ran.
+async function lungeWindow(label, ms, shot) {
+  await runCommand('GOD off');
+  const a = await fxCounts();
+  await startCensus();
+  await startLungeProbe();
+  const t0 = Date.now();
+  let shotOffsets = null;
+  if (shot) {
+    // ⚑ The clock is slowed BEFORE arming (the leg 19 lesson): a stalled
+    // headless page polls late, and the jab's 77 ms out phase would be over
+    // before a spawn-armed slowdown began. Armed on a real token 10 px or
+    // more off zero (about a third of a wolf's jab), not on the first nudge,
+    // which can be a pixel.
+    await page.evaluate(() => {
+      const real = performance.now.bind(performance);
+      const base = real();
+      window.__realNow = real;
+      performance.now = () => base + (real() - base) / 8;
+    });
+    const armed = await page.waitForFunction(() =>
+      window.game.bodyOffsets().some(o => Math.hypot(o.x, o.y) >= 10),
+    null, { timeout: 12_000, polling: 5 }).then(() => true).catch(() => false);
+    if (armed) {
+      shotOffsets = await page.evaluate(() => window.game.bodyOffsets());
+      await page.screenshot({ path: join(outdir, shot) });
+      // Cropped around the jabbing token and the player it jabs at.
+      const at = await page.evaluate(() => {
+        let root = window.__auraRoot;
+        while (root.parent && root.label !== 'cameraGroup') root = root.parent;
+        let best = null;
+        const walk = (node) => {
+          for (const c of node.children ?? []) {
+            if (c.label === 'token') {
+              const off = Math.hypot(c.position.x, c.position.y);
+              if (!best || off > best.off) best = { off, g: c.getGlobalPosition() };
+            } else walk(c);
+          }
+        };
+        walk(root);
+        const me = window.game.character.shape.getGlobalPosition();
+        return best && best.off > 0 ? { x: (best.g.x + me.x) / 2, y: (best.g.y + me.y) / 2 } : { x: me.x, y: me.y };
+      });
+      const w = 360, h = 280;
+      const x = Math.max(0, Math.min(1600 - w, Math.round(at.x - w / 2)));
+      const y = Math.max(0, Math.min(900 - h, Math.round(at.y - h / 2)));
+      await page.screenshot({ path: join(outdir, shot.replace('.png', '-closeup.png')), clip: { x, y, width: w, height: h } });
+      console.log(`${label}: shot taken with body offsets ${JSON.stringify(shotOffsets)}`);
+    } else {
+      console.log(`NOTE: ${label}: no token went 10 px off zero within 12 s, no mid-jab shot`);
+    }
+    await restoreClock();
+  }
+  await page.waitForTimeout(Math.max(0, ms - (Date.now() - t0)));
+  const probe = await stopLungeProbe();
+  const census = await stopCensus();
+  const b = await fxCounts();
+  const fx = delta(a, b);
+  await runCommand('GOD');
+  const bites = countOf(census, 110, PHASE.direct) + countOf(census, 114, PHASE.direct);
+  console.log(`${label}: fx ${JSON.stringify(fx)}, ambient ${b.ambient}, live ${b.live}`);
+  console.log(`${label}: wolf bites on the wire ${bites}, census gaps ${census.gaps}, lunge bound ${plannedBound(census, 'lunge')}; probe ${JSON.stringify(probe)}`);
+  if (!(await playerAlive())) {
+    console.log(`INCONCLUSIVE: ${label}: the player DIED in the window; the legs after it cannot run`);
+    inconclusive = true;
+    return null;
+  }
+  if (bites === 0) {
+    console.log(`INCONCLUSIVE: ${label}: no wolf bite landed in the window`);
+    inconclusive = true;
+    return null;
+  }
+  // L2 in every window: a stuck offset is red wherever it is seen.
+  if (probe.stuck.length === 0) pass(`${label}: across ${probe.samples} probe samples, never a body off zero with no lunge running`);
+  else fail(`${label}: ${probe.stuck.length} sample(s) with no lunge running and a body off zero: ${JSON.stringify(probe.stuck)}`);
+  return { fx, b, census, probe, bites };
+}
+
+console.log('\n== LEG 20: natural weapons C1, the wolves\' lunge ==');
+if (!inconclusive) {
+  if (await warpTo(WOLF_CAMP, 'the wolf camp')) {
+    await page.mouse.move(800, 200);
+    await deactivateAllAuras();
+    if ((await setDensity('full')) !== 'full') { console.log('INCONCLUSIVE: leg 20 the density was not full'); inconclusive = true; }
+  }
+}
+// 20a - a real fight at `full`: the jab spawned, a body really moved, and a
+// standing wolf's jab left its logical position alone.
+if (!inconclusive) {
+  console.log('\n-- 20a: a fight at density full --');
+  const run = await lungeWindow('leg 20a', 12_000, 'leg20-wolf-lunge.png');
+  if (run) {
+    const { fx, census, probe } = run;
+    if ((fx.lunge ?? 0) >= 1) pass(`leg 20a: ${fx.lunge} lunge(s) spawned for ${run.bites} wolf bite(s)`);
+    else fail(`leg 20a: ${run.bites} wolf bite(s) and no lunge spawned`);
+    if ((fx.lungeNudges ?? 0) >= 1) pass(`leg 20a: the manager wrote ${fx.lungeNudges} non-zero body offset(s)`);
+    else fail('leg 20a: lunges spawned and not one non-zero body offset was written');
+    if (probe.withOffset >= 1) pass(`leg 20a: a real token node sat off zero in ${probe.withOffset} of ${probe.samples} samples (peak ${probe.maxOffset} px)`);
+    else fail(`leg 20a: bodyOffsets() never listed a body in ${probe.samples} samples`);
+    // One per landing at most (one per attacker per snapshot can only lower
+    // it); exact only on a gap-free census.
+    const bound = plannedBound(census, 'lunge');
+    if (census.gaps > 0) console.log(`NOTE: leg 20a: ${census.gaps} census gap(s), the lunge bound ${bound} is not scored`);
+    else if ((fx.lunge ?? 0) <= bound) pass(`leg 20a: ${fx.lunge ?? 0} lunge(s) <= ${bound}, what the landed skills author`);
+    else fail(`leg 20a: ${fx.lunge} lunge(s) > the authored bound ${bound}`);
+    if (probe.frozen >= 1) pass(`leg 20a: ${probe.frozen} jab(s) moved the token (up to ${probe.frozenPeak} px) with the group's position, i.e. shape.position, bit-identical throughout`);
+    else console.log(`NOTE: leg 20a: no jab of a standing attacker was caught (${probe.walked} jab(s) of a walking one), so the logical-position half judged nothing`);
+  }
+}
+// 20b - the fight over (GOD back on, so no bite lands on the player and no
+// new jab starts at it): every body home at EXACT zero, then the at-rest shot.
+if (!inconclusive) {
+  console.log('\n-- 20b: the fight over, every body home --');
+  await page.waitForTimeout(1_500);
+  const r = await bodiesHome('leg 20b');
+  await page.screenshot({ path: join(outdir, 'leg20-at-rest.png') });
+  const after = await page.evaluate(() => ({ lunges: window.game.skillFx().lunges, offsets: window.game.bodyOffsets() }));
+  console.log(`leg 20b: at the at-rest shot ${JSON.stringify(after)}`);
+}
+// 20c - density `off`: the jab still plays (D4), nothing else spawns.
+if (!inconclusive) {
+  console.log('\n-- 20c: a fight at density off --');
+  if ((await setDensity('off')) !== 'off') { console.log('INCONCLUSIVE: leg 20c the manager never saw the density write'); inconclusive = true; }
+  else {
+    const run = await lungeWindow('leg 20c', 10_000, null);
+    if (run) {
+      const { fx, b, probe } = run;
+      if ((fx.lunge ?? 0) >= 1) pass(`leg 20c: ${fx.lunge} lunge(s) spawned at off`);
+      else fail(`leg 20c: ${run.bites} wolf bite(s) at off and no lunge`);
+      if ((fx.lungeNudges ?? 0) >= 1) pass(`leg 20c: ${fx.lungeNudges} non-zero body offset(s) written at off`);
+      else fail('leg 20c: no body moved at off');
+      const others = spawnsIn(fx, ['lunge']);
+      if (others === 0) pass('leg 20c: no other kind spawned at off (no strike, no jaw, no mark)');
+      else fail(`leg 20c: ${others} non-lunge Fx spawned at off: ${JSON.stringify(fx)}`);
+      if (b.live === 0 && probe.liveMax === 0) pass(`leg 20c: live stayed 0 in all ${probe.samples} samples`);
+      else fail(`leg 20c: live reached ${probe.liveMax} (end ${b.live}) at off`);
+      if (b.ambient === 0) pass('leg 20c: ambient held 0 at off');
+      else fail(`leg 20c: ${b.ambient} ambient layer(s) at off`);
+    }
+    await page.waitForTimeout(1_500);
+    await bodiesHome('leg 20c (after)');
+  }
+  if ((await setDensity('full')) !== 'full') { console.log('INCONCLUSIVE: density never went back to full'); inconclusive = true; }
 }
 
 if (!inconclusive) await restUp('leg 6');
@@ -1341,6 +1661,10 @@ console.log('\n== LEG 17: giant spiders - the "spider-fang" bite on `hit` beside
     else {
       if (fx.sprites >= 1 && fx.sprites <= (fx.strike ?? 0)) pass(`leg 17: ${fx.sprites} of ${fx.strike} strike(s) drew the fang PNG for ${bites} bite(s)`);
       else fail(`leg 17: ${bites} bite(s), ${fx.strike ?? 0} strike(s), ${fx.sprites} sprite(s)`);
+      // Natural weapons C1: the giant spider jabs AND still spits (§7 C1
+      // checklist). Its bite authors a `lunge` on `hit` beside the fangs.
+      if ((fx.lunge ?? 0) >= 1 && (fx.lungeNudges ?? 0) >= 1) pass(`leg 17: ${fx.lunge} lunge(s), ${fx.lungeNudges} body nudge(s) for ${bites} bite(s)`);
+      else fail(`leg 17: ${bites} giant spider bite(s) and lunge ${fx.lunge ?? 0}, nudges ${fx.lungeNudges ?? 0}`);
       if (census.gaps > 0) console.log(`NOTE: leg 17: ${census.gaps} census gap(s), the exact sprite bound is not scored`);
       else if (fx.sprites <= spriteBound) pass(`leg 17: ${fx.sprites} sprite(s) <= ${spriteBound} bodied strikes the landings allow`);
       else fail(`leg 17: ${fx.sprites} sprite(s) > ${spriteBound}`);
@@ -1395,4 +1719,4 @@ if (realErrors.length) {
   console.log(`\nRESULT: FAIL (${realErrors.length})`);
   process.exit(1);
 }
-console.log(inconclusive ? '\nRESULT: INCONCLUSIVE (see above)' : '\nRESULT: PASS');
+console.log(inconclusive || lateInconclusive ? '\nRESULT: INCONCLUSIVE (see above)' : '\nRESULT: PASS');
