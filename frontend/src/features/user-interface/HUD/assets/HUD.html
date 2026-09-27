@@ -25,6 +25,13 @@
             <span class="south">S</span>
             <span class="west">W</span>
         </div>
+        <!-- Radar zoom (plan-minimap-local-viewport.md M2, D10). SIBLINGS of
+             .wrapper, like the compass, on purpose: the open-the-map listener
+             sits on .wrapper, so a zoom press never also opens the map. -->
+        <div class="radarZoom">
+            <button id="radarZoomIn" class="radarZoomButton" title="Zoom in">+</button>
+            <button id="radarZoomOut" class="radarZoomButton" title="Zoom out">&minus;</button>
+        </div>
     </div>
 
     <!-- Deliberately a SIBLING of #minimap rather than a member of

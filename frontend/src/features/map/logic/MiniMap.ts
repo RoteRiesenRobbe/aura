@@ -1,19 +1,24 @@
-import {Application, Container, ContainerChild, Sprite, ViewContainer} from 'pixi.js';
+import {Application, Container, ContainerChild, Graphics, Sprite, ViewContainer} from 'pixi.js';
 import {registerPreload} from '../../core/logic/Preloading';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {IMiniMapRendered, Layer, LevelOfDynamic} from './MiniMapInterfaces';
 import {gameObjectId} from '../../common/logic/Types';
 import {createNamedContainer} from '../../pixi-js/logic/CustomData';
 import {Character} from '../../game-objects/logic/Character';
-import {BasicConfig} from '../../../client-data/BasicConfig';
+import {BasicConfig, meter2px} from '../../../client-data/BasicConfig';
 import {
     CampfireMarker,
+    GROUND_RING_REACH_M,
     MapState,
     RosterPlayer,
+    fixedIconScale,
+    groundRing,
     isInsideDrawnMap,
+    layerOffset,
     mapScale,
     rescaleCoordinate,
     resizeTerrain,
+    rimPoint,
     toZoneLocal,
     worldToMap,
 } from './MapScale';
@@ -21,8 +26,12 @@ import {StartFlightMessage} from '../../backend/logic/messages/outgoing/StartFli
 import {bakeTerrain, destroyTerrain} from './MapTerrain';
 import {MapFog} from './MapFog';
 import {MapFogData, mergeMapFog} from './FogReveal';
-import {MapCampfires} from './MapCampfires';
-import {MapPlayers} from './MapPlayers';
+import {HOME_RING_COLOR, MapCampfires} from './MapCampfires';
+import {DOT_SIZE, MapPlayers} from './MapPlayers';
+import {WHEEL_IDLE, WheelState, accumulateWheel, canStepRadar, snapRadarDiameter, stepRadar} from './RadarZoom';
+import {DevicePrefs} from '../../common/logic/DevicePrefs';
+import {getZoneData} from '../../ground-textures/logic/GroundTextureManager';
+import * as Regions from '../../regions/logic/Regions';
 
 const sizeFactorRelatedToMapSize = 2;
 
@@ -32,6 +41,16 @@ const sizeFactorRelatedToMapSize = 2;
  * the same gesture. [PLACEHOLDER]
  */
 const ARM_TIMEOUT_MS = 4000;
+
+/**
+ * The radar's home-campfire pointer (plan-minimap-local-viewport.md M3): its
+ * length in canvas px, and how far inside the disc's edge it sits. [PLACEHOLDER]
+ * both. ⚑ The margin is sized to clear the COMPASS, not just the round clip:
+ * the N/E/S/W labels are DOM laid over the canvas's outer ~20 px, and at 8 px a
+ * home due south drew its pointer under the S (seen in the M3 harness shot).
+ */
+const HOME_POINTER_SIZE = 10;
+const HOME_POINTER_MARGIN = 24;
 
 /**
  * The map (plan-world-map.md C1, D5) — ONE module with two states: the docked
@@ -74,10 +93,38 @@ export class MiniMap {
     playing: boolean;
     private playerCharacter: Character = null;
     private stateControlsWired = false;
-    /** The baked terrain, drawn only in the full-screen state. Null until a
-     *  zone is loaded, and on any zone the client has no bundled data for. */
+    /** The baked terrain, drawn in both states (plan-minimap-local-viewport.md
+     *  D4). Null until a zone is loaded, and on any zone the client has no
+     *  bundled data for. */
     private terrain: Sprite = null;
     private terrainLayer: Container = null;
+    /**
+     * The zone's ground colour past its bounds, docked only (D7) — a child of
+     * terrainLayer, so it lives and dies with it. Drawn once in px space and
+     * fitted by `scale`, like the terrain sprite.
+     */
+    private groundRingGraphic: Graphics = null;
+    /**
+     * The world position (px) the docked radar is centred on: your character's,
+     * or — once `clear()` has nulled it (reseedMinimap, or a death while
+     * CLEAR_MINIMAP_ON_DEATH is on) — where it last was (D13). ⚑ An ordinary
+     * death does NOT null it: the dead character stays referenced and its
+     * getX/getY keep reading where it fell, which holds the radar by itself.
+     * Null only when there never was one in this zone, which centres the zone.
+     */
+    private lastFocus: {x: number, y: number} | null = null;
+    /**
+     * The docked radar's diameter in metres (plan-minimap-local-viewport.md M2,
+     * D9-D11): one of RadarZoom's steps, remembered per browser. Read once
+     * here, written on every step.
+     */
+    private radarDiameterM = snapRadarDiameter(DevicePrefs.radarDiameterM);
+    /** The wheel gesture in progress over the docked disc (RadarZoom.accumulateWheel). */
+    private wheel: WheelState = WHEEL_IDLE;
+    /** The rim chevron aimed at your bound fire (M3); see setupHomePointer. */
+    private homePointer: Graphics = null;
+    /** Re-greys the ± buttons; set when they are wired. */
+    private renderRadarButtons: () => void = () => undefined;
     /** The zone the terrain above was baked from — kept so {@link rebakeTerrain}
      *  needs no argument nobody else holds. Empty until setup() runs. */
     private zoneName = '';
@@ -186,6 +233,9 @@ export class MiniMap {
         // updateScaling both plot against it.
         this.zoneOriginX = zoneOriginX;
         this.zoneOriginY = zoneOriginY;
+        // A new join may land anywhere; holding the previous character's last
+        // position would open the radar on the wrong ground for a frame.
+        this.lastFocus = null;
         // ⚑ A re-setup is a second JOIN in one page life, and the fog is the
         // previous character's history. Dropping it here is the counterpart to
         // switchZone deliberately keeping it: crossing into a cave is not
@@ -233,6 +283,7 @@ export class MiniMap {
         this.setupPlayers();
         this.stage.addChild(this.layerContainers[Layer.CHARACTER]);
         this.setupCampfires(zoneName);
+        this.setupHomePointer();
 
         this.zoneName = zoneName;
         this.setupTerrain(zoneName);
@@ -263,6 +314,8 @@ export class MiniMap {
         this.zoneOriginX = zoneOriginX;
         this.zoneOriginY = zoneOriginY;
         this.zoneName = zoneName;
+        // The held position belongs to the zone just left (D13).
+        this.lastFocus = null;
         // The fires move, the discovered set does not.
         this.campfires?.setZone(zoneName);
         this.setupTerrain(zoneName);
@@ -297,6 +350,54 @@ export class MiniMap {
             ? this.stage.getChildIndex(characters) + 1
             : this.stage.children.length;
         this.stage.addChildAt(this.campfires.layer, above);
+    }
+
+    /**
+     * Installs the radar's home-campfire pointer (plan-minimap-local-viewport.md
+     * M3, D12): a chevron on the disc's rim, aimed at your bound fire while it
+     * is off the radar.
+     *
+     * ⚑ On the STAGE, never in an offset layer: it is placed in canvas pixels
+     * from the disc centre each frame (updateHomePointer), and a layer that
+     * scrolls with the world would carry it off the rim. Appended last, so it
+     * sits above everything the rim could cover.
+     *
+     * Drawn once pointing along +x; only its position and rotation change.
+     */
+    private setupHomePointer() {
+        this.homePointer?.destroy();
+        const s = HOME_POINTER_SIZE;
+        this.homePointer = new Graphics()
+            .poly([s * 0.6, 0, -s * 0.4, -s * 0.5, -s * 0.4, s * 0.5])
+            .fill(HOME_RING_COLOR)
+            .stroke({width: 1, color: 0x000000, alpha: 0.6});
+        this.homePointer.label = 'homePointer';
+        this.homePointer.visible = false;
+        this.stage.addChild(this.homePointer);
+    }
+
+    /**
+     * Aims the rim pointer for this frame: at the home marker's bearing from
+     * you, while it lies beyond the rim; hidden otherwise, and always hidden
+     * full-screen, where every fire is on the map (D3).
+     */
+    private updateHomePointer() {
+        if (!this.homePointer) {
+            return;
+        }
+        const home = this.state === MapState.DOCKED && this.lastFocus
+            ? this.campfires?.homeMarker() : null;
+        const rim = home && rimPoint(
+            home.x - worldToMap(this.lastFocus.x, this.scale, this.zoneOriginX),
+            home.y - worldToMap(this.lastFocus.y, this.scale, this.zoneOriginY),
+            Math.min(this.width, this.height) / 2,
+            HOME_POINTER_MARGIN,
+        );
+        this.homePointer.visible = !!rim;
+        if (rim) {
+            this.homePointer.position.set(this.width / 2 + rim.x, this.height / 2 + rim.y);
+            this.homePointer.rotation = rim.angle;
+        }
     }
 
     /**
@@ -418,8 +519,10 @@ export class MiniMap {
         this.fog = null;
         if (this.terrainLayer) {
             this.terrainLayer.removeFromParent();
+            // Takes the ground ring with it (a child), so only the alias is ours.
             this.terrainLayer.destroy({children: true});
             this.terrainLayer = null;
+            this.groundRingGraphic = null;
         }
 
         this.terrain = bakeTerrain(
@@ -430,6 +533,14 @@ export class MiniMap {
 
         const layer = createNamedContainer('terrain');
         layer.position.set(this.width / 2, this.height / 2);
+        // ⚑ Built HERE, with the layer, and nowhere else (plan-minimap-local-
+        // viewport.md §3.3): this method re-enters on a crossing AND on
+        // rebakeTerrain, destroying the layer's children each time, so a ring
+        // owned elsewhere would either die under its owner or keep the colour
+        // of a zone already left. Below the terrain, and unmasked: it lies
+        // wholly outside the bounds, where there is nothing to explore.
+        this.groundRingGraphic = this.buildGroundRing(zoneName);
+        layer.addChild(this.groundRingGraphic);
         layer.addChild(this.terrain);
 
         // The fog masks the terrain, so only what the character has walked
@@ -457,6 +568,21 @@ export class MiniMap {
     }
 
     /**
+     * The zone's ground colour past its bounds (D7), in the zone-local px
+     * space the terrain is baked in — the world's own backdrop, so the radar
+     * shows Water past `world`'s edge and black past the barn's. Unscaled here;
+     * updateScaling fits it with the same `scale` as the terrain sprite.
+     */
+    private buildGroundRing(zoneName: string): Graphics {
+        const color = Regions.groundColor(getZoneData(zoneName)?.ground);
+        const ring = new Graphics();
+        for (const rect of groundRing(this.mapWidth, this.mapHeight, meter2px(GROUND_RING_REACH_M))) {
+            ring.rect(rect.x, rect.y, rect.width, rect.height);
+        }
+        return ring.fill(color);
+    }
+
+    /**
      * The ways into the full-screen state (⚑ pointerdown, never click —
      * MouseManager preventDefaults mousedown on the document element, which
      * suppresses the synthetic click; a `click` listener here would silently
@@ -479,6 +605,7 @@ export class MiniMap {
             ?.addEventListener('pointerdown', () => this.toggle());
         HUD.getWorldMapPanel()?.querySelector('.worldMapClose')
             ?.addEventListener('pointerdown', () => this.close());
+        this.wireRadarZoom();
 
         // Click-away dismissal. The overlay is viewport-filling but the MAP
         // inside it is not — the world is 2:1, so there is normally a band of
@@ -497,6 +624,70 @@ export class MiniMap {
             }
             this.pressOnMap(event);
         });
+    }
+
+    /**
+     * The radar's zoom controls (plan-minimap-local-viewport.md M2, D10): the
+     * mouse wheel over the docked disc, and the ± buttons on its rim.
+     *
+     * ⚑ The buttons are SIBLINGS of `#minimap > .wrapper`, like the compass,
+     * and the open-the-map listener sits on the wrapper — so a press on them
+     * never reaches it and needs no stopPropagation. Moving them inside the
+     * wrapper would make every zoom press also open the full-screen map.
+     */
+    private wireRadarZoom() {
+        const disc = document.getElementById('minimap');
+        const zoomIn = document.getElementById('radarZoomIn');
+        const zoomOut = document.getElementById('radarZoomOut');
+
+        // pointerdown, never click: MouseManager's mousedown preventDefault
+        // suppresses the synthetic click on HUD elements.
+        zoomIn?.addEventListener('pointerdown', () => this.zoomRadar(-1));
+        zoomOut?.addEventListener('pointerdown', () => this.zoomRadar(1));
+
+        // ⚑ Not passive: preventDefault is what stops the page from scrolling
+        // under the disc. Ctrl+wheel is left to the global block (Game.ts),
+        // which exists to stop browser zoom and must not also zoom the radar.
+        disc?.addEventListener('wheel', (event: WheelEvent) => {
+            if (event.ctrlKey || this.state !== MapState.DOCKED) {
+                return;
+            }
+            event.preventDefault();
+            const {state, step} = accumulateWheel(this.wheel, event.deltaY, event.deltaMode, event.timeStamp);
+            this.wheel = state;
+            if (step !== 0) {
+                this.zoomRadar(step);
+            }
+        }, {passive: false});
+
+        this.renderRadarButtons = () => {
+            zoomIn?.classList.toggle('inactive', !canStepRadar(this.radarDiameterM, -1));
+            zoomOut?.classList.toggle('inactive', !canStepRadar(this.radarDiameterM, 1));
+        };
+        this.renderRadarButtons();
+    }
+
+    /**
+     * One radar step in (−1, a smaller patch of world) or out (+1). Docked
+     * only: the full-screen map has no zoom (D3).
+     *
+     * ⚑ A step IS a rescale, so it goes through onResize like a window resize
+     * (plan landmine 8): entity icons are kept in canvas px and walked from the
+     * previous scale there. Setting the scale directly would leave every tree
+     * where the old zoom put it.
+     */
+    public zoomRadar(direction: -1 | 1) {
+        if (this.state !== MapState.DOCKED || !this.stage) {
+            return;
+        }
+        const next = stepRadar(this.radarDiameterM, direction);
+        if (next === this.radarDiameterM) {
+            return;
+        }
+        this.radarDiameterM = next;
+        DevicePrefs.radarDiameterM = String(next);
+        this.onResize();
+        this.renderRadarButtons();
     }
 
     /**
@@ -717,36 +908,38 @@ export class MiniMap {
     }
 
     private updateScaling() {
-        Object.values(this.layerContainers).forEach((layerContainer) => {
-            layerContainer.position.set(
-                this.width / 2,
-                this.height / 2,
-            );
-        });
-        this.terrainLayer?.position.set(this.width / 2, this.height / 2);
-        this.campfires?.layer.position.set(this.width / 2, this.height / 2);
-        this.players?.layer.position.set(this.width / 2, this.height / 2);
-
         const previousScale = this.scale;
         this.scale = mapScale(
             this.state,
             {width: this.width, height: this.height},
             {mapWidth: this.mapWidth, mapHeight: this.mapHeight},
+            meter2px(this.radarDiameterM),
         );
         this.iconSizeFactor = this.scale * sizeFactorRelatedToMapSize;
 
+        // After the scale, because the docked offset is measured in it — and
+        // HERE as well as per frame, so a resize or a state toggle never shows
+        // a frame of the world snapped to the zone centre (plan-minimap-local-
+        // viewport.md §3.2).
+        this.positionLayers();
+
         if (this.terrain) {
-            // Two numbers, no rasterisation — see MapTerrain's header. Terrain
-            // is a full-screen-only affordance (the plan's §4.1 table): the
-            // docked minimap has never drawn it and is not gaining it here.
+            // Two numbers, no rasterisation — see MapTerrain's header. Drawn in
+            // both states since plan-minimap-local-viewport.md D4: at radar zoom
+            // the ground is what the disc is for.
             resizeTerrain(this.terrain, this.mapWidth, this.mapHeight, this.scale);
-            this.terrain.visible = this.state === MapState.FULLSCREEN;
             // ⚑ The mask must be fitted to exactly the same rectangle. A mask
             // at a different scale does not look like a scaling bug — it looks
             // like the fog is revealing the wrong places.
             if (this.fog) {
                 resizeTerrain(this.fog.mask, this.mapWidth, this.mapHeight, this.scale);
             }
+        }
+        if (this.groundRingGraphic) {
+            // Drawn in px space, so the scale IS its fit. Docked only (D7): the
+            // full-screen letterbox stays the overlay's own (D3).
+            this.groundRingGraphic.scale.set(this.scale);
+            this.groundRingGraphic.visible = this.state === MapState.DOCKED;
         }
 
         // The markers are placed by the same scale, so they are re-derived here
@@ -764,28 +957,80 @@ export class MiniMap {
         // across a resize or a state toggle, with no wait for the next 1 Hz
         // publication (otherwise opening the map could show a second of dots
         // sitting at their docked-scale positions).
-        this.players?.draw(this.state, this.scale);
+        // ⚑ With the origin: roster positions are WORLD px, and without it a
+        // resize in the underworld drew every dot 300 units off until the next
+        // publication.
+        this.players?.draw(this.state, this.scale, {x: this.zoneOriginX, y: this.zoneOriginY});
+
+        // After the redraws: the pointer aims at the marker AS DRAWN, and a state
+        // toggle must hide or show it without waiting for the next frame.
+        this.updateHomePointer();
 
         return previousScale;
+    }
+
+    /**
+     * Moves every map layer to where it belongs this frame: the canvas centre
+     * full-screen, and under the pinned player docked (layerOffset).
+     *
+     * ⚑ EVERY layer, together. One left behind does not look wrong at the
+     * centre — it looks like fires or dots sliding off their ground as you walk.
+     */
+    private positionLayers() {
+        const offset = layerOffset(
+            this.state,
+            {width: this.width, height: this.height},
+            this.scale,
+            this.lastFocus,
+            {x: this.zoneOriginX, y: this.zoneOriginY},
+        );
+        if (this.layerContainers) {
+            Object.values(this.layerContainers).forEach((layerContainer) => {
+                layerContainer.position.set(offset.x, offset.y);
+            });
+        }
+        this.terrainLayer?.position.set(offset.x, offset.y);
+        this.campfires?.layer.position.set(offset.x, offset.y);
+        this.players?.layer.position.set(offset.x, offset.y);
     }
 
     private onResize() {
         const previousScale = this.updateScaling();
 
         // Adjust all minimap icon's position & size
-        Object.values(this.layerContainers).forEach((layerContainer) => {
-            layerContainer.children.forEach((child) => {
-                this.updateMinimapIconOnResize(child, previousScale);
+        [Layer.CHARACTER, Layer.OTHER].forEach((layer) => {
+            this.layerContainers[layer].children.forEach((child) => {
+                this.updateMinimapIconOnResize(child, previousScale, layer);
             });
         });
     }
 
-    private updateMinimapIconOnResize(child: ContainerChild, previousScale: number) {
+    private updateMinimapIconOnResize(child: ContainerChild, previousScale: number, layer: Layer) {
         child.position.set(
             rescaleCoordinate(child.position.x, previousScale, this.scale),
             rescaleCoordinate(child.position.y, previousScale, this.scale),
         );
-        child.scale.set(this.iconSizeFactor);
+        this.applyIconScale(child, layer);
+    }
+
+    /**
+     * Sizes an entity icon for the current state and scale.
+     *
+     * Trees and stones (Layer.OTHER) stay GEOGRAPHIC — `iconSizeFactor` rides the
+     * scale, so they zoom with the ground they stand on, which is what a radar
+     * should do. ⭐ Your own dot is the exception (plan-minimap-local-viewport.md
+     * D6): it is the only thing on Layer.CHARACTER (every other character opts
+     * out of the minimap), and at radar zoom the geographic rule made it a
+     * ~24 px blob. It is drawn at the roster dots' size instead, per state.
+     */
+    private applyIconScale(icon: ContainerChild, layer: Layer) {
+        if (layer !== Layer.CHARACTER) {
+            icon.scale.set(this.iconSizeFactor);
+            return;
+        }
+        // getLocalBounds is the UNSCALED geometry, so this is stable however
+        // many times it runs.
+        icon.scale.set(fixedIconScale(icon.getLocalBounds().width, DOT_SIZE[this.state]));
     }
 
     public start() {
@@ -827,6 +1072,20 @@ export class MiniMap {
             icon.shape.position.x = worldToMap(icon.gameObject.getX(), this.scale, this.zoneOriginX);
             icon.shape.position.y = worldToMap(icon.gameObject.getY(), this.scale, this.zoneOriginY);
         });
+
+        // The radar follows AFTER the icons are placed, from the same getX/getY,
+        // so your dot never lags a frame behind the centre (plan-minimap-local-
+        // viewport.md landmine 1). Without a character (clear() nulled it)
+        // the last position is simply kept (D13).
+        if (this.playerCharacter) {
+            const x = this.playerCharacter.getX();
+            const y = this.playerCharacter.getY();
+            if (Number.isFinite(x) && Number.isFinite(y)) {
+                this.lastFocus = {x, y};
+            }
+        }
+        this.positionLayers();
+        this.updateHomePointer();
 
         // Icons that have been marked for removal and should now be in range again
         // will actually be removed --> if they are actually in range, they would not be marked anymore
@@ -883,7 +1142,7 @@ export class MiniMap {
             worldToMap(gameObject.getX(), this.scale, this.zoneOriginX),
             worldToMap(gameObject.getY(), this.scale, this.zoneOriginY),
         );
-        minimapIcon.scale.set(this.iconSizeFactor);
+        this.applyIconScale(minimapIcon, gameObject.miniMapLayer);
 
         if (gameObject.miniMapDynamic > LevelOfDynamic.STATIC) {
             this.dynamicIcons[gameObject.miniMapDynamic][gameObject.id] = {

@@ -1,3 +1,5 @@
+import {RADAR_STEPS_M} from './RadarZoom';
+
 /**
  * The map's scale math (plan-world-map.md C1, D5).
  *
@@ -18,27 +20,37 @@
  *     ZONE FILE is already zone-local and must NOT be offset again — see
  *     campfireMarkers.
  *   · ⚑ The world is ORIGIN-CENTRED. `api/zones/world.json` is 144 × 72 with
- *     terrain spanning ±71.5 × ±35.6, and the layer containers are positioned
- *     at the canvas centre (MiniMap.updateScaling). So a map coordinate maps
- *     to a canvas one by multiplying by the scale — no translation term, and
- *     letterboxing in the full-screen state falls out for free rather than
- *     needing an offset of its own.
+ *     terrain spanning ±71.5 × ±35.6, and full-screen positions the layer
+ *     containers at the canvas centre. So a map coordinate maps to a canvas
+ *     one by multiplying by the scale — no translation term, and letterboxing
+ *     falls out for free rather than needing an offset of its own. The docked
+ *     radar's one translation lives in the layer position (layerOffset), never
+ *     in a child's coordinates.
  *   · ⚑ The bounds here are NOT world units. `Welcome.mapWidth` is
  *     `Bounds.Width * Points2px` (core/game.go), so the 144 × 72 zone arrives
  *     as 17280 × 8640 — the client's px space, which is also what `getX()` and
  *     `getY()` return. Bounds and coordinates therefore share one space and
  *     the ratio below is correct; the trap is assuming either is in metres and
  *     "helpfully" converting one of them.
- *   · ⚑ The docked state deliberately ignores height. `scale = width/mapWidth`
- *     is what the minimap has always done; its HUD box is square-ish and the
- *     world is 2:1, so fitting to width is what makes it fill the box. Do not
- *     "fix" this to a min() for symmetry with the full-screen state — that
- *     would shrink today's minimap by half and is a visual change nobody asked
- *     for (§9: the docked state stays as it is).
+ *   · ⭐ The docked state is a RADAR (plan-minimap-local-viewport.md D1/D2):
+ *     it does not fit the zone at all. Its scale is the disc's width over a
+ *     fixed diameter in metres, so every zone and every disc shows the same
+ *     patch of ground, and the layers are OFFSET every frame so the player
+ *     sits at the disc centre (layerOffset). ⛔ This supersedes the old
+ *     "docked fits width, ignores height" rule — a 540 m world squeezed into
+ *     ~200 px was 0.37 px per metre.
  */
 
+/**
+ * How far past each zone edge the docked ground ring reaches, in metres (D7).
+ * It must cover HALF the largest radar diameter, or a player standing on the
+ * edge at the widest zoom sees the ring end inside the disc — so it is derived
+ * from the step table, plus a margin. [PLACEHOLDER] margin.
+ */
+export const GROUND_RING_REACH_M = Math.max(...RADAR_STEPS_M) / 2 + 10;
+
 export enum MapState {
-    /** Today's minimap, in its HUD corner box. */
+    /** The player-centred radar in its HUD corner disc. */
     DOCKED,
     /** The viewport-filling overlay (D5). */
     FULLSCREEN,
@@ -66,23 +78,148 @@ export interface MapBounds {
  * is 2:1 and a viewport rarely is, so one axis has slack and the centred
  * origin splits that slack evenly on both sides.
  *
- * Returns 0 for a degenerate viewport or bounds rather than Infinity/NaN — a
- * pixi canvas measures 0 × 0 while it is display:none (the phone layout keeps
- * the minimap in the layout for exactly this reason, HUD.mobile.less), and a
- * NaN scale silently teleports every icon to the top-left corner.
+ * Docked is the radar: the disc's width spans `radarDiameterPx` of the world,
+ * whatever the zone's size. Only the docked state reads it, and a docked call
+ * without one draws nothing (0) rather than guessing a zoom.
+ *
+ * Returns 0 for a degenerate viewport, bounds or diameter rather than
+ * Infinity/NaN — a pixi canvas measures 0 × 0 while it is display:none (the
+ * phone layout keeps the minimap in the layout for exactly this reason,
+ * HUD.mobile.less), and a NaN scale silently teleports every icon to the
+ * top-left corner.
  */
-export function mapScale(state: MapState, viewport: MapViewport, bounds: MapBounds): number {
+export function mapScale(
+    state: MapState, viewport: MapViewport, bounds: MapBounds, radarDiameterPx: number = 0,
+): number {
     if (!isPositive(bounds.mapWidth) || !isPositive(bounds.mapHeight)) {
         return 0;
     }
 
-    const horizontal = isPositive(viewport.width) ? viewport.width / bounds.mapWidth : 0;
     if (state === MapState.DOCKED) {
-        return horizontal;
+        if (!isPositive(viewport.width) || !isPositive(radarDiameterPx)) {
+            return 0;
+        }
+        return viewport.width / radarDiameterPx;
     }
 
+    const horizontal = isPositive(viewport.width) ? viewport.width / bounds.mapWidth : 0;
     const vertical = isPositive(viewport.height) ? viewport.height / bounds.mapHeight : 0;
     return Math.min(horizontal, vertical);
+}
+
+/**
+ * Where the map's layer containers sit, in canvas pixels
+ * (plan-minimap-local-viewport.md §3.2).
+ *
+ * Full-screen: the canvas centre, always — the flight hit-test and
+ * isInsideDrawnMap both assume a centred map.
+ *
+ * Docked: shifted so that `focusPx` (a WORLD position in px space) lands on the
+ * canvas centre. Every map child is placed at `worldToMap(...)` from the layer
+ * origin, so moving the origin by `−worldToMap(focus)` moves the whole world
+ * under a pinned player.
+ *
+ * ⚑ A null focus (the player has never had a position — D13's fallback) and
+ * any non-finite input give the plain centre: a NaN container position blanks
+ * the whole map silently.
+ *
+ * ⚑ Rounded to whole pixels. The terrain is sampled at ~1 texel per pixel, and
+ * a fractional offset makes it alternate sharp and soft as you walk (landmine
+ * 7). Your own icon is off-centre by under half a pixel in exchange.
+ */
+export function layerOffset(
+    state: MapState,
+    viewport: MapViewport,
+    scale: number,
+    focusPx: {x: number, y: number} | null,
+    originPx: {x: number, y: number} = {x: 0, y: 0},
+): {x: number, y: number} {
+    const centre = {x: viewport.width / 2, y: viewport.height / 2};
+    if (state !== MapState.DOCKED || !focusPx) {
+        return centre;
+    }
+    const x = centre.x - worldToMap(focusPx.x, scale, originPx.x);
+    const y = centre.y - worldToMap(focusPx.y, scale, originPx.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        return centre;
+    }
+    return {x: Math.round(x), y: Math.round(y)};
+}
+
+/** An axis-aligned rectangle in px space, top-left + size. */
+export interface PxRect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+/**
+ * The four rectangles that fill everything within `reachPx` OUTSIDE the zone
+ * rectangle (plan-minimap-local-viewport.md D7, §3.3), in the zone-local px
+ * space the terrain is drawn in — the zone is origin-centred.
+ *
+ * Top and bottom span the full width including the corners; left and right
+ * fill only the band between them, so no two overlap and none touches the
+ * zone's inside.
+ *
+ * ⛔ A ring, not a backdrop: under the zone it would show through the fog and
+ * paint unexplored ground in the ground colour.
+ */
+export function groundRing(mapWidth: number, mapHeight: number, reachPx: number): PxRect[] {
+    if (!isPositive(mapWidth) || !isPositive(mapHeight) || !isPositive(reachPx)) {
+        return [];
+    }
+    const left = -mapWidth / 2;
+    const top = -mapHeight / 2;
+    const outerWidth = mapWidth + 2 * reachPx;
+    return [
+        {x: left - reachPx, y: top - reachPx, width: outerWidth, height: reachPx},
+        {x: left - reachPx, y: -top, width: outerWidth, height: reachPx},
+        {x: left - reachPx, y: top, width: reachPx, height: mapHeight},
+        {x: -left, y: top, width: reachPx, height: mapHeight},
+    ];
+}
+
+/**
+ * Where the home-campfire pointer sits on the radar's rim, or null when the
+ * fire needs none (plan-minimap-local-viewport.md M3, D12, §3.4).
+ *
+ * `(dx, dy)` is the fire's offset from YOU in marker space (canvas px at the
+ * current scale) — the disc centre is where you are. Beyond `radius − margin`
+ * the fire is off the radar (or clipped at its edge), and the pointer is placed
+ * at exactly that distance along the same bearing: the margin is what keeps it
+ * inside the wrapper's round clip. The point is relative to the disc centre;
+ * `angle` (radians, pixi's clockwise-from-+x) is the bearing it points along.
+ *
+ * Null inside the radar, for a degenerate disc, and for any non-finite input —
+ * a NaN pointer would park itself in the corner, looking like a real one.
+ */
+export function rimPoint(
+    dx: number, dy: number, radius: number, margin: number,
+): {x: number, y: number, angle: number} | null {
+    const reach = radius - margin;
+    if (![dx, dy, radius, margin].every(Number.isFinite) || reach <= 0) {
+        return null;
+    }
+    const distance = Math.hypot(dx, dy);
+    if (distance <= reach) {
+        return null;
+    }
+    const angle = Math.atan2(dy, dx);
+    return {x: Math.cos(angle) * reach, y: Math.sin(angle) * reach, angle};
+}
+
+/**
+ * The scale that draws an icon of `naturalDiameter` (its unscaled local size)
+ * at `targetDiameter` canvas pixels — how your own dot stays one size at every
+ * zoom (D6). 0 for a degenerate icon, which hides it rather than blowing it up.
+ */
+export function fixedIconScale(naturalDiameter: number, targetDiameter: number): number {
+    if (!isPositive(naturalDiameter) || !isPositive(targetDiameter)) {
+        return 0;
+    }
+    return targetDiameter / naturalDiameter;
 }
 
 /**

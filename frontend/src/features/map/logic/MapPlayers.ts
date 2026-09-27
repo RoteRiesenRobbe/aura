@@ -24,7 +24,9 @@
  * ⚑ THE DOTS STEP, once a second, while your own dot glides. That asymmetry is
  * the accepted, written-down cost of a 1 Hz roster (core/net.go's
  * rosterIntervalTicks) — interpolating a marker a few pixels across is a moving
- * average nobody has asked for yet.
+ * average nobody has asked for yet. On the docked radar (plan-minimap-local-
+ * viewport.md D14) the step is ~6 px/s at 50 m: accepted, judged in-game, and
+ * the named fix is the live AOI position for a player who is also streamed.
  */
 
 import {Container, Graphics} from 'pixi.js';
@@ -47,8 +49,13 @@ import {MapState, RosterMarker, RosterPlayer, rosterMarkers} from './MapScale';
  * constants stay anyway: they were the sizes the PO looked at and kept, and a
  * dot that grows to 29 px full-screen and shrinks to 4 px docked is a marker
  * whose legibility depends on which state you are in.
+ *
+ * ⭐ Your OWN dot is drawn at this size too since plan-minimap-local-viewport.md
+ * D6: the radar zooms the map ~10×, and the scale-derived own dot would have
+ * zoomed with it into a ~24 px blob. One table is what finally makes the PO's
+ * "same shape and size as your own dot" literally true.
  */
-const DOT_SIZE = {
+export const DOT_SIZE = {
     [MapState.DOCKED]: 7,
     [MapState.FULLSCREEN]: 20,
 };

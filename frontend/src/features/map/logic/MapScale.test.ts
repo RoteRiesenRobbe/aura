@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {
-    MapState, campfireMarkers, isInsideDrawnMap, mapScale, rescaleCoordinate, resizeTerrain,
-    pickCampfireMarker, rosterMarkers, toZoneLocal, worldToMap,
+    MapState, campfireMarkers, fixedIconScale, groundRing, isInsideDrawnMap, layerOffset, mapScale, rimPoint,
+    rescaleCoordinate, resizeTerrain, pickCampfireMarker, rosterMarkers, toZoneLocal, worldToMap,
 } from './MapScale';
 
 // The real world zone (api/zones/world.json) as the CLIENT receives it:
@@ -10,17 +10,39 @@ import {
 // the fixture honest about the space the production caller works in.
 const WORLD = {mapWidth: 17280, mapHeight: 8640};
 
+// The docked radar's diameter in px space: 50 m × 120 px/m
+// (plan-minimap-local-viewport.md D2).
+const RADAR_PX = 50 * 120;
+
 describe('mapScale', () => {
-    describe('docked', () => {
-        it('fits width, ignoring height — the minimap always has', () => {
-            expect(mapScale(MapState.DOCKED, {width: 1728, height: 1728}, WORLD))
-                .toBeCloseTo(0.1, 10);
+    describe('docked (the radar)', () => {
+        it('spans the radar diameter across the disc width', () => {
+            // 200 px over 6000 px of world: 4 px per metre.
+            expect(mapScale(MapState.DOCKED, {width: 200, height: 200}, WORLD, RADAR_PX))
+                .toBeCloseTo(200 / 6000, 10);
+        });
+
+        it('does not depend on the zone size — the same metres in every zone', () => {
+            const huge = {mapWidth: 64800, mapHeight: 43200};
+            expect(mapScale(MapState.DOCKED, {width: 200, height: 200}, huge, RADAR_PX))
+                .toBe(mapScale(MapState.DOCKED, {width: 200, height: 200}, WORLD, RADAR_PX));
         });
 
         it('is unaffected by the box being short', () => {
-            const wide = mapScale(MapState.DOCKED, {width: 288, height: 10}, WORLD);
-            const tall = mapScale(MapState.DOCKED, {width: 288, height: 900}, WORLD);
+            const wide = mapScale(MapState.DOCKED, {width: 288, height: 10}, WORLD, RADAR_PX);
+            const tall = mapScale(MapState.DOCKED, {width: 288, height: 900}, WORLD, RADAR_PX);
             expect(wide).toBe(tall);
+        });
+
+        it('draws nothing without a diameter rather than guessing a zoom', () => {
+            expect(mapScale(MapState.DOCKED, {width: 200, height: 200}, WORLD)).toBe(0);
+            expect(mapScale(MapState.DOCKED, {width: 200, height: 200}, WORLD, NaN)).toBe(0);
+            expect(mapScale(MapState.DOCKED, {width: 200, height: 200}, WORLD, -6000)).toBe(0);
+        });
+
+        it('ignores the diameter full-screen', () => {
+            expect(mapScale(MapState.FULLSCREEN, {width: 1920, height: 1080}, WORLD, RADAR_PX))
+                .toBe(mapScale(MapState.FULLSCREEN, {width: 1920, height: 1080}, WORLD));
         });
     });
 
@@ -63,7 +85,7 @@ describe('mapScale', () => {
         it('is never larger than the docked scale for the same canvas', () => {
             const viewport = {width: 800, height: 600};
             expect(mapScale(MapState.FULLSCREEN, viewport, WORLD))
-                .toBeLessThanOrEqual(mapScale(MapState.DOCKED, viewport, WORLD));
+                .toBeLessThanOrEqual(mapScale(MapState.DOCKED, viewport, WORLD, RADAR_PX));
         });
     });
 
@@ -73,13 +95,13 @@ describe('mapScale', () => {
         // exactly this reason). A NaN/Infinity scale parks every icon in the
         // corner instead of failing loudly, so it is pinned here.
         it('returns 0 for a zero-sized canvas rather than NaN', () => {
-            expect(mapScale(MapState.DOCKED, {width: 0, height: 0}, WORLD)).toBe(0);
+            expect(mapScale(MapState.DOCKED, {width: 0, height: 0}, WORLD, RADAR_PX)).toBe(0);
             expect(mapScale(MapState.FULLSCREEN, {width: 0, height: 0}, WORLD)).toBe(0);
         });
 
         it('returns 0 for zero-sized bounds rather than Infinity', () => {
             const none = {mapWidth: 0, mapHeight: 0};
-            expect(mapScale(MapState.DOCKED, {width: 800, height: 600}, none)).toBe(0);
+            expect(mapScale(MapState.DOCKED, {width: 800, height: 600}, none, RADAR_PX)).toBe(0);
             expect(mapScale(MapState.FULLSCREEN, {width: 800, height: 600}, none)).toBe(0);
         });
 
@@ -136,7 +158,7 @@ describe('rescaleCoordinate', () => {
     });
 
     it('round-trips docked -> fullscreen -> docked', () => {
-        const docked = mapScale(MapState.DOCKED, {width: 200, height: 200}, WORLD);
+        const docked = mapScale(MapState.DOCKED, {width: 200, height: 200}, WORLD, RADAR_PX);
         const full = mapScale(MapState.FULLSCREEN, {width: 1920, height: 1080}, WORLD);
         // The western campfire, in px space: -58.2 world units × 120.
         const start = worldToMap(-6984, docked);
@@ -367,7 +389,7 @@ describe('campfireMarkers', () => {
         // and the ground under them are placed by one scale, so a state toggle
         // cannot slide a fire off the spot it stands on.
         const fractions = [
-            mapScale(MapState.DOCKED, {width: 202, height: 202}, WORLD),
+            mapScale(MapState.DOCKED, {width: 202, height: 202}, WORLD, RADAR_PX),
             mapScale(MapState.FULLSCREEN, {width: 1920, height: 1080}, WORLD),
             mapScale(MapState.FULLSCREEN, {width: 390, height: 844}, WORLD),
         ].map((scale) => {
@@ -475,7 +497,7 @@ describe('rosterMarkers', () => {
         // The same invariant the campfire markers and the terrain are pinned
         // against: one scale places the ground and everything on it.
         const fractions = [
-            mapScale(MapState.DOCKED, {width: 202, height: 202}, WORLD),
+            mapScale(MapState.DOCKED, {width: 202, height: 202}, WORLD, RADAR_PX),
             mapScale(MapState.FULLSCREEN, {width: 1920, height: 1080}, WORLD),
             mapScale(MapState.FULLSCREEN, {width: 390, height: 844}, WORLD),
         ].map((scale) => {
@@ -541,5 +563,131 @@ describe('pickCampfireMarker', () => {
             new Set(['spawnpoint-2']), '', 1, 1);
         expect(pickCampfireMarker(fromZone, {x: 0, y: 0}, 5)).toBeNull();
         expect(pickCampfireMarker(fromZone, {x: 10, y: 0}, 5)?.id).toBe('spawnpoint-2');
+    });
+});
+
+/**
+ * The docked radar's layer position (plan-minimap-local-viewport.md §3.2): the
+ * one translation on the map, which pins the player to the disc centre.
+ */
+describe('layerOffset', () => {
+    const DISC = {width: 200, height: 200};
+    const SCALE = 200 / RADAR_PX;
+
+    it('puts the focus on the canvas centre', () => {
+        const focus = {x: 1200, y: -600};
+        const offset = layerOffset(MapState.DOCKED, DISC, SCALE, focus);
+        // Where the focus itself is drawn: the layer origin plus its map coordinate.
+        expect(offset.x + worldToMap(focus.x, SCALE)).toBeCloseTo(100, 0);
+        expect(offset.y + worldToMap(focus.y, SCALE)).toBeCloseTo(100, 0);
+    });
+
+    it('honours the zone origin — the underworld sits at {0, 300}', () => {
+        const origin = {x: 0, y: 300 * 120};
+        const focus = {x: 1200, y: 300 * 120 + 2400};
+        const offset = layerOffset(MapState.DOCKED, DISC, SCALE, focus, origin);
+        expect(offset.x + worldToMap(focus.x, SCALE, origin.x)).toBeCloseTo(100, 0);
+        expect(offset.y + worldToMap(focus.y, SCALE, origin.y)).toBeCloseTo(100, 0);
+    });
+
+    it('rounds to whole pixels, so the terrain does not shimmer', () => {
+        const offset = layerOffset(MapState.DOCKED, DISC, SCALE, {x: 13, y: 7});
+        expect(Number.isInteger(offset.x)).toBe(true);
+        expect(Number.isInteger(offset.y)).toBe(true);
+    });
+
+    it('is the plain centre full-screen, whatever the focus', () => {
+        expect(layerOffset(MapState.FULLSCREEN, {width: 1920, height: 1080}, 0.1, {x: 5000, y: 5000}))
+            .toEqual({x: 960, y: 540});
+    });
+
+    it('is the plain centre with no focus yet (D13 fallback)', () => {
+        expect(layerOffset(MapState.DOCKED, DISC, SCALE, null)).toEqual({x: 100, y: 100});
+    });
+
+    it('never lets a NaN through', () => {
+        expect(layerOffset(MapState.DOCKED, DISC, SCALE, {x: NaN, y: 0})).toEqual({x: 100, y: 100});
+        expect(layerOffset(MapState.DOCKED, DISC, NaN, {x: 10, y: 0})).toEqual({x: 100, y: 100});
+    });
+});
+
+/** The zone's ground colour past its bounds, docked (D7, §3.3). */
+describe('groundRing', () => {
+    const REACH = 60 * 120;
+    const rects = groundRing(WORLD.mapWidth, WORLD.mapHeight, REACH);
+    const zone = {x: -WORLD.mapWidth / 2, y: -WORLD.mapHeight / 2, width: WORLD.mapWidth, height: WORLD.mapHeight};
+    const overlapArea = (a: typeof zone, b: typeof zone) =>
+        Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x))
+        * Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
+
+    it('never covers the inside of the zone — the fog must stay visible there', () => {
+        rects.forEach(rect => expect(overlapArea(rect, zone)).toBe(0));
+    });
+
+    it('does not overlap itself', () => {
+        for (let i = 0; i < rects.length; i++) {
+            for (let j = i + 1; j < rects.length; j++) {
+                expect(overlapArea(rects[i], rects[j])).toBe(0);
+            }
+        }
+    });
+
+    it('fills exactly the band out to the reach, corners included', () => {
+        const total = rects.reduce((sum, rect) => sum + rect.width * rect.height, 0);
+        const outer = (WORLD.mapWidth + 2 * REACH) * (WORLD.mapHeight + 2 * REACH);
+        expect(total).toBeCloseTo(outer - WORLD.mapWidth * WORLD.mapHeight, 0);
+    });
+
+    it('draws nothing for degenerate input', () => {
+        expect(groundRing(0, WORLD.mapHeight, REACH)).toEqual([]);
+        expect(groundRing(WORLD.mapWidth, WORLD.mapHeight, 0)).toEqual([]);
+    });
+});
+
+/** Your own dot at a fixed size at every zoom (D6). */
+describe('fixedIconScale', () => {
+    it('scales the natural size onto the target', () => {
+        expect(fixedIconScale(360, 7)).toBeCloseTo(7 / 360, 10);
+    });
+
+    it('is 0 for a degenerate icon rather than Infinity', () => {
+        expect(fixedIconScale(0, 7)).toBe(0);
+        expect(fixedIconScale(NaN, 7)).toBe(0);
+    });
+});
+
+/** The home-campfire pointer on the radar's rim (M3, D12, §3.4). */
+describe('rimPoint', () => {
+    const R = 100;
+    const M = 8;
+
+    it('is null while the fire is on the radar', () => {
+        expect(rimPoint(0, 0, R, M)).toBeNull();
+        expect(rimPoint(50, -30, R, M)).toBeNull();
+        expect(rimPoint(R - M, 0, R, M)).toBeNull();
+    });
+
+    it('sits at radius − margin along the bearing to the fire', () => {
+        const p = rimPoint(300, 400, R, M);
+        expect(Math.hypot(p.x, p.y)).toBeCloseTo(R - M, 10);
+        // Same direction as (3, 4).
+        expect(p.x / p.y).toBeCloseTo(300 / 400, 10);
+        expect(p.x).toBeGreaterThan(0);
+        expect(p.angle).toBeCloseTo(Math.atan2(400, 300), 10);
+    });
+
+    it('points the right way in every quadrant', () => {
+        [[1, 0], [0, 1], [-1, 0], [0, -1], [-1, -1]].forEach(([x, y]) => {
+            const p = rimPoint(x * 1000, y * 1000, R, M);
+            expect(Math.sign(Math.round(p.x))).toBe(Math.sign(x));
+            expect(Math.sign(Math.round(p.y))).toBe(Math.sign(y));
+        });
+    });
+
+    it('is null for a degenerate disc or input', () => {
+        expect(rimPoint(500, 0, 0, M)).toBeNull();
+        expect(rimPoint(500, 0, M, M)).toBeNull();
+        expect(rimPoint(NaN, 0, R, M)).toBeNull();
+        expect(rimPoint(500, 0, NaN, M)).toBeNull();
     });
 });

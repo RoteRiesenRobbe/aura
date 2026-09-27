@@ -53,7 +53,8 @@ const MARKER_SIZE = {
  * two readings of one fact look like one fact.
  */
 const HOME_RING_FACTOR = 0.85;
-const HOME_RING_COLOR = BRAND;
+/** Exported for the radar's rim pointer to the same fire (M3). */
+export const HOME_RING_COLOR = BRAND;
 
 /**
  * The armed-destination ring (plan-flight-paths.md C3): the fire a first press
@@ -204,6 +205,19 @@ export class MapCampfires {
         }
         this.armed = campfireId;
         return true;
+    }
+
+    /**
+     * The bound fire's marker as last drawn, in layer coordinates, or null —
+     * what the radar's rim pointer aims at (plan-minimap-local-viewport.md M3).
+     *
+     * ⚑ Read off WHAT WAS DRAWN, so D12's conditions come for free: a marker
+     * exists only for a fire that is discovered AND in the active zone's file,
+     * which is exactly when the pointer may show. Home in another zone is no
+     * marker here, and so no pointer.
+     */
+    homeMarker(): CampfireMarker | null {
+        return this.drawn.find((marker) => marker.home) ?? null;
     }
 
     /** The armed destination, or '' — what the ring on screen is showing. */

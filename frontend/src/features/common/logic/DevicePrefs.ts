@@ -47,6 +47,29 @@ export class DevicePrefs {
     static set developPanelPositionY(y: number) {
         setValue('developPanel.position.y', String(y));
     }
+
+    /**
+     * The docked radar's diameter in metres (plan-minimap-local-viewport.md
+     * D11), RAW: RadarZoom.snapRadarDiameter owns what an odd value means.
+     * ⚑ Guarded, unlike its neighbours: it is read at map construction, and a
+     * storage that throws (a locked-down private window) must cost the player
+     * their preference, never the map.
+     */
+    static get radarDiameterM(): string | null {
+        try {
+            return getString('radarDiameterM', null);
+        } catch {
+            return null;
+        }
+    }
+
+    static set radarDiameterM(metres: string) {
+        try {
+            setValue('radarDiameterM', metres);
+        } catch {
+            // Remembering is a convenience; the zoom itself already applied.
+        }
+    }
 }
 
 function getString(key: string, defaultValue: string | null = ''): string | null {

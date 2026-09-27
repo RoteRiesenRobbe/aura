@@ -520,6 +520,13 @@ html.mobile {
 	&.menuOpen #minimap {
 		opacity: 1;
 		z-index: (@mobile-menu-z + 3);
+
+		// The radar's ± are the phone's only zoom (no wheel, D10), so they alone
+		// take presses out of the disc's inherited `pointer-events: none` — and
+		// only while the sheet is open, when the disc can be seen at all.
+		> .radarZoom {
+			pointer-events: auto;
+		}
 	}
 
 	// The quest tracker is desktop-only (PO 2026-08-23): the right edge

@@ -356,6 +356,50 @@
 		> .west  { left: 1vw; }
 		> .east  { right: 1vw; }
 	}
+
+	// Radar zoom (plan-minimap-local-viewport.md M2, D10): a small ± pair in the
+	// box's lower-left CORNER, which the round disc leaves empty, so the buttons
+	// sit beside the map rather than over it and clear the W and S labels.
+	// Same chrome as #zoomControl's buttons, one size down. ⚑ Placement is a
+	// PO look (plan landmine 9), not a ruling.
+	> .radarZoom {
+		position: absolute;
+		left: -0.2vw;
+		bottom: -0.2vw;
+
+		display: flex;
+		flex-direction: column;
+		gap: 0.3vh;
+
+		> .radarZoomButton {
+			width: (0.34 * @uiElementHeight);
+			height: (0.34 * @uiElementHeight);
+			padding: 0;
+			line-height: 1;
+			background: fade(@ink, 80%);
+			border: 1px solid @panel-border;
+			border-radius: 0.3rem;
+			color: @panel-color;
+			font: inherit;
+			font-size: (0.26 * @uiElementHeight);
+			cursor: pointer;
+
+			&:hover {
+				background: fade(@ink, 95%);
+				color: white;
+			}
+
+			&.inactive {
+				opacity: 0.35;
+				cursor: default;
+
+				&:hover {
+					background: fade(@ink, 80%);
+					color: @panel-color;
+				}
+			}
+		}
+	}
 }
 
 #chat {
