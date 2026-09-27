@@ -166,7 +166,6 @@ export abstract class Mob extends GameObject
         super(id, gameLayer, x, y, size, 0, svg, anchor);
         this.initHealthBar();
         this.isMovable = true;
-        this.visibleOnMinimap = false;
 
         this.plate = createNamedContainer('mobPlate');
         this.plate.position.copyFrom(this.shape.position);

@@ -1,14 +1,13 @@
-import {Container, Graphics, Sprite, Texture, ViewContainer} from 'pixi.js';
+import {Container, Sprite, Texture} from 'pixi.js';
 import {GameObject} from './_GameObject';
 import * as Preloading from '../../core/logic/Preloading';
-import {randomRotation, TwoDimensional} from '../../common/logic/Utils';
+import {randomRotation} from '../../common/logic/Utils';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {IGame} from '../../core/logic/IGame';
 import {GameSetupEvent} from '../../core/logic/Events';
 import {StatusEffect} from './StatusEffect';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
-import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../map/logic/MiniMapInterfaces';
 
 let Game: IGame = null;
 GameSetupEvent.subscribe((game: IGame) => {
@@ -20,7 +19,10 @@ GameSetupEvent.subscribe((game: IGame) => {
 // to the Mob path. The stock/capacity yield pair (and the sprite rescale it
 // drove) went with the pre-accounts hygiene chunk: the server had been sending
 // a constant 1/1 ever since the §26 prune emptied the resource system.
-export abstract class Resource extends GameObject implements IMiniMapRendered {
+//
+// ⚑ Not a live map icon: every placed prop is baked into the map from the zone
+// data instead (MapProps), so the map does not depend on what was streamed.
+export abstract class Resource extends GameObject {
     protected constructor(
         id: number,
         gameLayer: Container,
@@ -40,14 +42,6 @@ export abstract class Resource extends GameObject implements IMiniMapRendered {
         };
     }
 
-    abstract createMinimapIcon(): ViewContainer;
-
-    get miniMapLayer(): Layer {
-        return Layer.OTHER;
-    }
-    get miniMapDynamic(): LevelOfDynamic {
-        return LevelOfDynamic.STATIC;
-    }
 }
 
 export abstract class Tree extends Resource {
@@ -73,13 +67,6 @@ export abstract class Tree extends Resource {
         // glued to the trunk.
         this.resourceSpotTexture = createInjectedSVG(Tree.resourceSpot.svg, x, y, this.size * 0.7, randomRotation());
         Game.layers.terrain.resourceSpots.addChild(this.resourceSpotTexture);
-    }
-
-    createMinimapIcon() {
-        const miniMapCfg = GraphicsConfig.miniMap.icons.tree;
-        return new Graphics()
-            .circle(0, 0, this.size * miniMapCfg.sizeFactor)
-            .fill({color: miniMapCfg.color, alpha: miniMapCfg.alpha});
     }
 
     hide() {
@@ -148,13 +135,6 @@ export class Stone extends Mineral {
 
     constructor(id: number, x: number, y: number, size: number, rotation: number) {
         super(id, x, y, size, rotation, Stone.svg);
-    }
-
-    createMinimapIcon() {
-        const miniMapCfg = GraphicsConfig.miniMap.icons.stone;
-        return new Graphics()
-            .poly(TwoDimensional.makePolygon(this.size * miniMapCfg.sizeFactor, 6, true))
-            .fill({color: miniMapCfg.color, alpha: miniMapCfg.alpha});
     }
 }
 

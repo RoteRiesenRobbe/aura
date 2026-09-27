@@ -22,7 +22,7 @@
  */
 
 import {Container, Graphics, Rectangle, Renderer, Sprite, Texture} from 'pixi.js';
-import {getZoneData} from '../../ground-textures/logic/GroundTextureManager';
+import {getZoneData, ZoneJSON} from '../../ground-textures/logic/GroundTextureManager';
 import {groundTextureTypes} from '../../ground-textures/logic/GroundTextureTypes';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import {meter2px} from '../../../client-data/BasicConfig';
@@ -32,6 +32,10 @@ import {paintTerrainSurfaces} from '../../regions/logic/RegionPaint';
 import * as Paths from '../../paths/logic/Paths';
 import * as Polygons from '../../polygons/logic/Polygons';
 import {resizeTerrain} from './MapScale';
+import {mapPropShapes} from './MapProps';
+import {propDefinition} from '../../game-objects/logic/Props';
+import {GraphicsConfig} from '../../../client-data/Graphics';
+import {TwoDimensional} from '../../common/logic/Utils';
 
 /**
  * Width of the baked texture in texels. The map is only ever drawn smaller
@@ -48,8 +52,16 @@ function bakeWidth(): number {
     return isMobile() ? 1024 : 2048;
 }
 
+/** A baked zone: the sprite, and how many placed props went into it. */
+export interface BakedTerrain {
+    sprite: Sprite;
+    propCount: number;
+}
+
 /**
- * Draws the zone's terrain into a single sprite, sized to the map bounds.
+ * Draws the zone's terrain into a single sprite, sized to the map bounds:
+ * ground, regions, paths, polygons, terrain pieces and, on top, every placed
+ * prop (MapProps).
  *
  * Returns null when the zone is unknown — the same degrade GroundTextureManager
  * takes, and the map is still perfectly usable without terrain under it.
@@ -63,7 +75,7 @@ export function bakeTerrain(
     zoneName: string,
     mapWidth: number,
     mapHeight: number,
-): Sprite | null {
+): BakedTerrain | null {
     const zone = getZoneData(zoneName);
     if (!zone) {
         console.warn(`No bundled zone data for "${zoneName}"; the map shows no terrain.`);
@@ -149,6 +161,8 @@ export function bakeTerrain(
         console.warn(`Map terrain: skipped ${unknownTypes} piece(s) of unknown type.`);
     }
 
+    const propCount = drawProps(scratch, zone.props);
+
     // ⚑ The frame is given explicitly rather than left to the container's own
     // bounds. Terrain does not reach the exact edges (the world zone's
     // furthest piece is at 71.53 of 72), so bounds-derived framing would bake
@@ -180,7 +194,44 @@ export function bakeTerrain(
     terrain.anchor.set(0.5, 0.5);
     terrain.position.set(0, 0);
     resizeTerrain(terrain, mapWidth, mapHeight, 0);
-    return terrain;
+    return {sprite: terrain, propCount};
+}
+
+/**
+ * Every placed prop, as one Graphics on top of the terrain: the map's prop
+ * layer, from the bundled zone data rather than the wire (MapProps' header).
+ * Baked with the rest, so the fog masks it and a crossing re-bakes it.
+ */
+function drawProps(scratch: Container, props: ZoneJSON['props']): number {
+    const icons = GraphicsConfig.miniMap.icons;
+    const {shapes, unknown} = mapPropShapes(props, propDefinition,
+        {tree: icons.tree, stone: icons.stone, prop: icons.prop}, meter2px(1));
+    if (unknown > 0) {
+        console.warn(`Map terrain: skipped ${unknown} prop(s) of a type this build does not know.`);
+    }
+    const g = new Graphics();
+    for (const s of shapes) {
+        if (s.rect) {
+            // Turned about its centre, as the world draws it.
+            const cos = Math.cos(s.rotation);
+            const sin = Math.sin(s.rotation);
+            const corner = (dx: number, dy: number) =>
+                [s.x + dx * cos - dy * sin, s.y + dx * sin + dy * cos];
+            g.poly([
+                ...corner(-s.halfWidth, -s.halfHeight), ...corner(s.halfWidth, -s.halfHeight),
+                ...corner(s.halfWidth, s.halfHeight), ...corner(-s.halfWidth, s.halfHeight),
+            ]);
+        } else if (s.kind === 'stone') {
+            // The stone keeps its old live icon's hexagon, unturned.
+            const hex = TwoDimensional.makePolygon(s.halfWidth, 6, true) as number[];
+            g.poly(hex.map((v, i) => v + (i % 2 === 0 ? s.x : s.y)));
+        } else {
+            g.circle(s.x, s.y, s.halfWidth);
+        }
+        g.fill({color: s.color, alpha: s.alpha});
+    }
+    scratch.addChild(g);
+    return shapes.length;
 }
 
 /** Releases the baked texture. Only the BAKED one is ours to free. */

@@ -5,30 +5,10 @@ export enum Layer {
     OTHER,
 }
 
-export enum LevelOfDynamic {
-    /**
-     * Doesn't move, gets never removed.
-     */
-    STATIC,
-
-    /**
-     * Doesn't change positions, but is just temporary.
-     * The mini map will keep this icon even when out of Area of Interest.
-     */
-    REMOVABLE_REMEMBERED,
-
-    /**
-     * Doesn't change positions, but is just temporary.
-     * The mini map will remove this icon as soon as it is out of Area of Interest.
-     */
-    REMOVABLE_FORGOTTEN,
-
-    /**
-     * It moves. It's not permanent.
-     */
-    DYNAMIC,
-}
-
+/**
+ * A LIVE map icon: it follows its entity every frame and goes when the entity
+ * does. Placed props are not this — they are baked per zone (MapProps).
+ */
 export interface IMiniMapRendered {
     get id(): number;
     getX(): number;
@@ -36,5 +16,4 @@ export interface IMiniMapRendered {
 
     createMinimapIcon(): ViewContainer;
     get miniMapLayer(): Layer
-    get miniMapDynamic(): LevelOfDynamic
 }

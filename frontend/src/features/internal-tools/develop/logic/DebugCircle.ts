@@ -16,7 +16,6 @@ export class DebugCircle extends GameObject {
 
     constructor(id: number, x, y, radius) {
         super(id,undefined, x, y, radius, 0, undefined);
-        this.visibleOnMinimap = false;
 
         this.timeToLife = 60;
 

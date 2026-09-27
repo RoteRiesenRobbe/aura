@@ -11,7 +11,7 @@
  *
  * ⚑ AND IT IS THE *ONLY* SOURCE for other players. §2 of the plan recorded that
  * other characters already appear on the minimap; they never have —
- * `Character.visibleOnMinimap` is false in the constructor and only the local
+ * `visibleOnMinimap` is false by default (GameObject) and only the local
  * `Player` flips it true. So there is nothing to reconcile against, and the
  * landmine-6 arbitration the plan asked for reduces to "skip your own id".
  *

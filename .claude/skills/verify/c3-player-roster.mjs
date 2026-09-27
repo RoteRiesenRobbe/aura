@@ -241,7 +241,11 @@ try {
   const full = await sample(a.page);
   check(full.open === true, '4 the map opened');
   check(full.dots >= 1, '4b the dots survive the state change', `${full.dots} dot(s)`);
-  check(full.scale > dockedScale * 5, '4c and at the full-screen scale',
+  // ⚑ SMALLER, not larger, since plan-minimap-local-viewport.md M1: the docked
+  // map is a radar zoomed to a few tens of metres, the full-screen map fits the
+  // whole zone. This leg asserted "> docked × 5" (the old whole-zone disc) and
+  // stood red from M1 until the map-props bake's run caught it.
+  check(full.scale < dockedScale, '4c and at the full-screen (whole-zone) scale',
     `${dockedScale.toFixed(5)} -> ${full.scale.toFixed(5)}`);
   // ⚑ Re-placed by the new scale rather than stretched from the old one: the
   // dots are redrawn on a state change even though no roster arrived.

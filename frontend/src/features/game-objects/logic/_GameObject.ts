@@ -117,7 +117,10 @@ export abstract class GameObject {
     turnRate: number = Constants.DEFAULT_TURN_RATE;
     isMovable: boolean = false;
     rotateOnPositioning: boolean = false;
-    visibleOnMinimap: boolean = true;
+    // Whether this entity gets a LIVE map icon that follows it. Only your own
+    // character does (Player). Props are on the map all the same, every one of
+    // them, but baked from the zone data (MapProps), not as live icons.
+    visibleOnMinimap: boolean = false;
     shape: Container;
     statusEffects: { [key: string]: StatusEffect };
     activeStatusEffect: StatusEffect = null;

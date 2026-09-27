@@ -172,12 +172,17 @@ interface ClearingDefinition {
 }
 
 /** A placed prop, as much of one as a client-visual consumer needs: which
- *  type it is and where it stands. The prop's own size, sprite and collision
- *  live in api/props/ and are nobody's business here. */
+ *  type it is, where it stands, and the placement's own turn and size. The
+ *  type's body, sprite and collision live in api/props/ and are nobody's
+ *  business here. */
 export interface ZonePropPoint {
     type: string;
     x: number;
     y: number;
+    /** Radians; absent = 0. Read by the map's prop bake (MapProps). */
+    rotation?: number;
+    /** Multiplier on the type's body; absent = 1. Read by the map's prop bake. */
+    scale?: number;
 }
 
 interface CampfireDefinition {
@@ -240,15 +245,15 @@ export interface ZoneJSON {
     // World campfires (chunk 2): read by the darkness overlay for their
     // static glow (chunk 4 follow-up).
     campfires?: CampfireDefinition[];
-    // Placed props. ⭐ The client normally learns about props from the WIRE,
-    // as streamed entities, and does not read this array to draw them — it is
-    // named here for the one thing a streamed prop cannot do: a `Torch` casts
-    // a STATIC light, and a static light has to be punched into the darkness
-    // at zone load rather than when its source drifts into the viewport
-    // (DarknessOverlay.resetZone, and the same reason `campfires` is here).
-    // ⚑ So this is a deliberately PARTIAL view: only the fields that question
-    // needs, on purpose, because anything more would be a second definition of
-    // a prop competing with api/props/.
+    // Placed props. ⭐ The WORLD learns about props from the WIRE, as streamed
+    // entities, and does not read this array to draw them. It is read for what
+    // a streamed prop cannot do: a `Torch` casts a STATIC light, punched into
+    // the darkness at zone load (DarknessOverlay.resetZone), and the MAP draws
+    // every prop of the zone whether or not it was ever streamed to you
+    // (MapTerrain's prop bake — the fog, not the stream, decides what shows).
+    // ⚑ Still a deliberately PARTIAL view: placement fields only, because the
+    // type's own fields here would be a second definition competing with
+    // api/props/.
     props?: ZonePropPoint[];
 }
 

@@ -436,8 +436,8 @@ export interface RosterMarker {
  *
  * ⚑ THE ROSTER IS THE ONLY SOURCE FOR OTHER PLAYERS, which §2 of the plan got
  * wrong: it recorded that other characters already appear on the minimap via
- * their AOI entity icons, but `Character` sets `visibleOnMinimap = false` in its
- * constructor and only the local `Player` flips it true. Nobody but you has ever
+ * their AOI entity icons, but `visibleOnMinimap` is false by default (GameObject),
+ * and only the local `Player` flips it true. Nobody but you has ever
  * been drawn. That is why the plan's landmine 6 ("two sources for the same
  * player") does not bite here — there is no second source to arbitrate against.
  *

@@ -286,13 +286,11 @@ export class EntityManager {
      * sighting only, so an object already in `this.objects` would never get a
      * second one. Anything still in view has to be re-added in the same breath.
      *
-     * ⚑ Why it is needed at all: the pre-join spectator sits at the world
-     * origin (core/game.go), so the client is streamed the ~24 props around
-     * (0,0) and builds STATIC icons for them — and STATIC is documented as
-     * "never removed", so they outlive the spectator and sit on ground the
-     * character has never seen. Harmless while the minimap was 200 px wide;
-     * visibly wrong once the full-screen map draws at ~7× that with fog of war
-     * promising "you see what you have visited".
+     * ⚑ Why it was needed: the pre-join spectator sits at the world origin
+     * (core/game.go), and the props streamed around (0,0) used to become
+     * never-removed map icons on ground the character had never seen. Props
+     * are baked from the zone data now (MapProps) and no live icon outlives its
+     * entity, so today this only resets the map for the new character.
      */
     reseedMinimap() {
         this.miniMap.clear();

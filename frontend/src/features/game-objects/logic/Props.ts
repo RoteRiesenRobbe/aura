@@ -17,7 +17,7 @@
  * Resources.ts (plan-prop-placeholders.md C2), because it is the only render
  * class that needs the prop DEFINITIONS this module already compiles in.
  */
-import {Container, Graphics, Text, Texture, ViewContainer} from 'pixi.js';
+import {Container, Graphics, Text, Texture} from 'pixi.js';
 import * as Preloading from '../../core/logic/Preloading';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import {requireAll} from '../../common/logic/Utils';
@@ -124,7 +124,6 @@ abstract class SimpleProp extends Resource {
     protected constructor(id: number, layer: Container, x: number, y: number,
                           size: number, rotation: number, svg: Texture) {
         super(id, layer, x, y, size, rotation, svg);
-        this.visibleOnMinimap = false;
     }
 
     initShape(svg: Texture, x: number, y: number, size: number, rotation: number): Container {
@@ -136,10 +135,6 @@ abstract class SimpleProp extends Resource {
             sprite.height = size * 2 * (aspect.height / max);
         }
         return sprite;
-    }
-
-    createMinimapIcon(): ViewContainer {
-        throw new Error('Method not implemented.');
     }
 }
 
@@ -228,6 +223,14 @@ for (const def of propDefs) {
 }
 
 /**
+ * The definition a zone placement names, or undefined when this build has never
+ * seen it. The map bakes every placed prop from this (MapProps).
+ */
+export function propDefinition(name: string): PropDefJSON | undefined {
+    return propDefsByName.get(name);
+}
+
+/**
  * Whether a placement of `type` blocks movement — the client-side mirror of the
  * server's world.Prop.Blocks(), and the ONE place the default is applied here.
  *
@@ -287,7 +290,6 @@ export class PropPlaceholder extends Resource {
         // so a labelled square is what the PO will walk across.
         super(id, propLayer(propDefsByName.get(propName)?.underfoot === true),
             x, y, size, rotation, null);
-        this.visibleOnMinimap = false;
 
         // ⚑ The SHAPE needs the definition; the LABEL does not — the wire
         // carries the name itself. So a name this build cannot resolve (a prop
@@ -321,10 +323,6 @@ export class PropPlaceholder extends Resource {
         container.position.set(x, y);
         container.rotation = rotation;
         return container;
-    }
-
-    createMinimapIcon(): ViewContainer {
-        throw new Error('Method not implemented.');
     }
 }
 

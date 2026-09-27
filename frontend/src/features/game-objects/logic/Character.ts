@@ -21,7 +21,7 @@ import {createNamedContainer} from '../../pixi-js/logic/CustomData';
 import {Container, Graphics, Sprite, Text, Texture} from 'pixi.js';
 import * as TextDisplay from '../../../client-data/TextDisplay';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
-import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../map/logic/MiniMapInterfaces';
+import {IMiniMapRendered, Layer} from '../../map/logic/MiniMapInterfaces';
 import {AuraRingStack} from './AuraRings';
 import {OverheadHealthBar} from './OverheadHealthBar';
 import type {AuraDisplay, LevelDisplay, OverheadVitals} from './WireSetters';
@@ -86,7 +86,6 @@ export class Character extends GameObject
         this.isPlayerCharacter = isPlayerCharacter;
         this.movementSpeed = Constants.BASE_MOVEMENT_SPEED;
         this.isMovable = true;
-        this.visibleOnMinimap = false;
         this.turnRate = 0;
 
         // Keep the fixed portrait facing; the wire heading is discarded.
@@ -324,10 +323,6 @@ export class Character extends GameObject
 
     get miniMapLayer(): Layer {
         return Layer.CHARACTER;
-    }
-
-    get miniMapDynamic(): LevelOfDynamic {
-        return LevelOfDynamic.DYNAMIC;
     }
 
     private initHealthBar() {

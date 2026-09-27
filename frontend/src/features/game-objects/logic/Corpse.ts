@@ -21,7 +21,6 @@ export class Corpse extends GameObject {
 
     constructor(id: number, x: number, y: number) {
         super(id, Game.layers.corpses, x, y, GraphicsConfig.corpse.size, 0, Corpse.svg);
-        this.visibleOnMinimap = false;
     }
 }
 

@@ -510,6 +510,8 @@ export const GraphicsConfig = {
     miniMap: {
         /**
          * Every icon has a color and a size. Sizes are scaled just like the mini map.
+         * `tree`, `stone` and `prop` are not live icons any more: they style the
+         * props MapTerrain bakes from the zone data (MapProps).
          */
         icons: <{[key: string]: {color: color, alpha: number, sizeFactor: number}}> {
             character: {
@@ -541,6 +543,17 @@ export const GraphicsConfig = {
                 color: 0x737373,
                 alpha: 1,
                 sizeFactor: 1,
+            },
+            /**
+             * Every other placed prop (buildings, carts, stumps, fences): its
+             * true footprint (sizeFactor 0.5 × MapProps.MAP_ICON_SIZE = 1).
+             * The three prop styles are baked into the terrain from the zone
+             * data (MapProps). [PLACEHOLDER] colour.
+             */
+            prop: {
+                color: 0x4A3A28,
+                alpha: 0.85,
+                sizeFactor: 0.5,
             },
         },
     },

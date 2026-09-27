@@ -1,11 +1,11 @@
 import {Application, Container, ContainerChild, Graphics, Sprite, ViewContainer} from 'pixi.js';
 import {registerPreload} from '../../core/logic/Preloading';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
-import {IMiniMapRendered, Layer, LevelOfDynamic} from './MiniMapInterfaces';
+import {IMiniMapRendered, Layer} from './MiniMapInterfaces';
 import {gameObjectId} from '../../common/logic/Types';
 import {createNamedContainer} from '../../pixi-js/logic/CustomData';
 import {Character} from '../../game-objects/logic/Character';
-import {BasicConfig, meter2px} from '../../../client-data/BasicConfig';
+import {meter2px} from '../../../client-data/BasicConfig';
 import {
     CampfireMarker,
     GROUND_RING_REACH_M,
@@ -77,12 +77,18 @@ export class MiniMap {
     state: MapState = MapState.DOCKED;
 
     /**
-     * All game objects added to the minimap.
+     * Every LIVE entity icon, which today is only your own dot. Each one moves
+     * with its entity and goes when it does.
+     *
+     * ⚑ There is no "static, never removed" kind any more, and that is the
+     * zone-crossing fix: props used to be one, drawn when first streamed and
+     * kept for the page's life, so a crossing left the old zone's trees on the
+     * new zone's map. Props are baked per zone from the zone data now
+     * (MapTerrain, MapProps), where a crossing re-bakes them.
      */
-    registeredGameObjectIds: Set<gameObjectId> = new Set<gameObjectId>();
-
-    dynamicIcons: { [key in LevelOfDynamic]?: { [key: gameObjectId]: MiniMapIcon } };
-    iconsMarkedForRemoval: { [key: gameObjectId]: MiniMapIcon };
+    private icons = new Map<gameObjectId, MiniMapIcon>();
+    /** How many placed props the current zone's bake drew (MapProps). */
+    bakedPropCount = 0;
 
     application: Application;
     stage: Container;
@@ -197,13 +203,6 @@ export class MiniMap {
 
         this.application = new Application();
 
-        this.dynamicIcons = {
-            [LevelOfDynamic.REMOVABLE_REMEMBERED]: {},
-            [LevelOfDynamic.REMOVABLE_FORGOTTEN]: {},
-            [LevelOfDynamic.DYNAMIC]: {},
-        };
-        this.iconsMarkedForRemoval = {};
-
         // noinspection JSIgnoredPromiseFromCall
         registerPreload(this.application.init({
             backgroundAlpha: 0,
@@ -273,8 +272,10 @@ export class MiniMap {
         // fire costs less than a landmark lost under a dot, because the dot
         // moves and the fire is what the map is *for*.
         //
-        // What survives from C2 unchanged: fires must stay above the ~777 prop
-        // icons in Layer.OTHER. Under them, a fire in dense forest is buried —
+        // What survives from C2 unchanged: fires must stay above the props.
+        // Those are baked into the terrain layer now (MapProps), the bottom of
+        // this stack, and Layer.OTHER holds no icon today; the order is kept
+        // for whatever lands there next. Under them, a fire in dense forest is buried —
         // that was the shipped-and-caught bug, reported in-game with one fire
         // clear, one half-covered and one invisible. The harness asserts the
         // whole order as stage indices, because C2's lesson was that every
@@ -525,11 +526,13 @@ export class MiniMap {
             this.groundRingGraphic = null;
         }
 
-        this.terrain = bakeTerrain(
+        const baked = bakeTerrain(
             this.application.renderer, zoneName, this.mapWidth, this.mapHeight);
-        if (!this.terrain) {
+        this.bakedPropCount = baked?.propCount ?? 0;
+        if (!baked) {
             return;
         }
+        this.terrain = baked.sprite;
 
         const layer = createNamedContainer('terrain');
         layer.position.set(this.width / 2, this.height / 2);
@@ -1016,9 +1019,10 @@ export class MiniMap {
     /**
      * Sizes an entity icon for the current state and scale.
      *
-     * Trees and stones (Layer.OTHER) stay GEOGRAPHIC — `iconSizeFactor` rides the
-     * scale, so they zoom with the ground they stand on, which is what a radar
-     * should do. ⭐ Your own dot is the exception (plan-minimap-local-viewport.md
+     * Layer.OTHER icons stay GEOGRAPHIC — `iconSizeFactor` rides the scale, so
+     * they zoom with the ground they stand on, which is what a radar should do
+     * (the trees and stones that were its icons are baked now, MapProps, and
+     * keep exactly that size). ⭐ Your own dot is the exception (plan-minimap-local-viewport.md
      * D6): it is the only thing on Layer.CHARACTER (every other character opts
      * out of the minimap), and at radar zoom the geographic rule made it a
      * ~24 px blob. It is drawn at the roster dots' size instead, per state.
@@ -1068,7 +1072,7 @@ export class MiniMap {
             );
         }
 
-        Object.values(this.dynamicIcons[LevelOfDynamic.DYNAMIC]).forEach((icon: MiniMapIcon) => {
+        this.icons.forEach((icon: MiniMapIcon) => {
             icon.shape.position.x = worldToMap(icon.gameObject.getX(), this.scale, this.zoneOriginX);
             icon.shape.position.y = worldToMap(icon.gameObject.getY(), this.scale, this.zoneOriginY);
         });
@@ -1086,31 +1090,6 @@ export class MiniMap {
         }
         this.positionLayers();
         this.updateHomePointer();
-
-        // Icons that have been marked for removal and should now be in range again
-        // will actually be removed --> if they are actually in range, they would not be marked anymore
-        Object.values(this.iconsMarkedForRemoval).forEach((icon: MiniMapIcon) => {
-            if (this.isInViewport(icon)) {
-                // Is within viewport --> drop
-                icon.shape.removeFromParent();
-                delete this.dynamicIcons[LevelOfDynamic.REMOVABLE_REMEMBERED][icon.gameObjectId];
-                delete this.iconsMarkedForRemoval[icon.gameObjectId];
-            }
-        });
-    }
-
-    private isInViewport(icon: MiniMapIcon) {
-        if (this.playerCharacter === null) {
-            return true;
-        }
-        if (Math.abs(this.playerCharacter.getX() - icon.gameObject.getX()) > (BasicConfig.VIEWPORT.WIDTH / 2)) {
-            return false;
-        }
-        if (Math.abs(this.playerCharacter.getY() - icon.gameObject.getY()) > (BasicConfig.VIEWPORT.HEIGHT / 2)) {
-            return false;
-        }
-
-        return true;
     }
 
     setPlayerCharacter(character: Character) {
@@ -1121,16 +1100,8 @@ export class MiniMap {
      * Adds the icon of the object to the map.
      */
     public add(gameObject: IMiniMapRendered) {
-        if (this.registeredGameObjectIds.has(gameObject.id)) {
+        if (this.icons.has(gameObject.id)) {
             // The object is already on the mini map
-            return;
-        }
-
-        this.registeredGameObjectIds.add(gameObject.id);
-
-        if (gameObject.miniMapDynamic === LevelOfDynamic.REMOVABLE_REMEMBERED &&
-            this.iconsMarkedForRemoval.hasOwnProperty(gameObject.id)) {
-            delete this.iconsMarkedForRemoval[gameObject.id];
             return;
         }
 
@@ -1144,46 +1115,12 @@ export class MiniMap {
         );
         this.applyIconScale(minimapIcon, gameObject.miniMapLayer);
 
-        if (gameObject.miniMapDynamic > LevelOfDynamic.STATIC) {
-            this.dynamicIcons[gameObject.miniMapDynamic][gameObject.id] = {
-                gameObjectId: gameObject.id,
-                shape: minimapIcon,
-                gameObject: gameObject,
-            };
-        }
+        this.icons.set(gameObject.id, {shape: minimapIcon, gameObject});
     }
 
     public remove(gameObject: IMiniMapRendered) {
-        switch (gameObject.miniMapDynamic) {
-            case LevelOfDynamic.STATIC:
-                // Doesn't get removed
-                return;
-
-            case LevelOfDynamic.REMOVABLE_REMEMBERED: {
-                // only remove if within viewport. Otherwise, mark for removal and
-                // remove as soon as in viewport OR de-mark if added again
-                const icon = this.dynamicIcons[LevelOfDynamic.REMOVABLE_REMEMBERED][gameObject.id];
-                if (this.isInViewport(icon)) {
-                    // Is within viewport --> drop
-                    icon.shape.removeFromParent();
-                    delete this.dynamicIcons[LevelOfDynamic.REMOVABLE_REMEMBERED][gameObject.id];
-                } else {
-                    this.iconsMarkedForRemoval[gameObject.id] = icon;
-                }
-                break;
-            }
-
-            case LevelOfDynamic.REMOVABLE_FORGOTTEN:
-            case LevelOfDynamic.DYNAMIC: {
-                // Just remove it - if gone from viewport or actually removed doesn't make a difference
-                const icon = this.dynamicIcons[gameObject.miniMapDynamic][gameObject.id];
-                icon.shape.removeFromParent();
-                delete this.dynamicIcons[gameObject.miniMapDynamic][gameObject.id];
-                break;
-            }
-        }
-
-        this.registeredGameObjectIds.delete(gameObject.id);
+        this.icons.get(gameObject.id)?.shape.removeFromParent();
+        this.icons.delete(gameObject.id);
     }
 
     /**
@@ -1203,12 +1140,7 @@ export class MiniMap {
         this.players?.update([]);
         this.players?.draw(this.state, this.scale);
 
-        this.registeredGameObjectIds.clear();
-
-        this.dynamicIcons[LevelOfDynamic.REMOVABLE_REMEMBERED] = {};
-        this.dynamicIcons[LevelOfDynamic.REMOVABLE_FORGOTTEN] = {};
-        this.dynamicIcons[LevelOfDynamic.DYNAMIC] = {};
-        this.iconsMarkedForRemoval = {};
+        this.icons.clear();
 
         Object.values(this.layerContainers).forEach((layerContainer) => {
             layerContainer.removeChildren();
@@ -1219,7 +1151,6 @@ export class MiniMap {
 }
 
 interface MiniMapIcon {
-    gameObjectId: gameObjectId;
     shape: ViewContainer;
     gameObject: IMiniMapRendered;
 }
