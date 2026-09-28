@@ -4,7 +4,7 @@
 > Designed 2026-09-27 (PO session, nine rulings taken as choice prompts, §2),
 > 2 chunks (§7). **C1 (the `lunge`)** built 2026-09-27, `413a7fd4` (ledger
 > §11 C1), PO look 2026-09-28: "works". **C2 (the `maul`)** built 2026-09-28,
-> `[uncommitted]` (ledger §11 C2), PO look 2026-09-28: "works", and after a
+> `274a6d07` (ledger §11 C2), PO look 2026-09-28: "works", and after a
 > follow-up: "all works, wrap it up". D10 and D11 ruled 2026-09-28; §8 Q6
 > (the fixed orientations of pincer, gore, claw and kick, the lead's calls)
 > and every number stay [PLACEHOLDER].
@@ -646,7 +646,7 @@ numbers or the melee overlap was asked for (§8 Q5 stays [PLACEHOLDER]). The
 same look ruled D10 and D11 for C2. (The wrap, the commit and the push of
 2026-09-27 went out before any look.)
 
-### C2: the maul (built 2026-09-28, `[uncommitted]`, PO look 2026-09-28 "works")
+### C2: the maul (built 2026-09-28, `274a6d07`, PO look 2026-09-28 "works")
 
 Built by one Opus agent from the lead's execution brief; D10, D11 and §8 Q6
 were ruled before the session (§2, §8).
