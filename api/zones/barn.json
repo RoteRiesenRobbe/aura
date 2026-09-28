@@ -9,7 +9,43 @@
     "y": 5000
   },
   "terrain": [],
-  "props": [],
+  "props": [
+    {
+      "type": "GateWall",
+      "x": 4.42,
+      "y": 2.58,
+      "rotation": 0,
+      "scale": 0.347
+    },
+    {
+      "type": "GateWall",
+      "x": 3.61,
+      "y": 2.59,
+      "rotation": 0,
+      "scale": 0.347
+    },
+    {
+      "type": "GateWall",
+      "x": 2.79,
+      "y": 2.57,
+      "rotation": 0,
+      "scale": 0.347
+    },
+    {
+      "type": "GateWall",
+      "x": 2,
+      "y": 2.6,
+      "rotation": 0,
+      "scale": 0.347
+    },
+    {
+      "type": "Torch",
+      "x": -1.26,
+      "y": 3.1,
+      "rotation": 0,
+      "scale": 1.603
+    }
+  ],
   "spawns": [
     {
       "mob": "CaveExit",
@@ -88,6 +124,50 @@
         {
           "x": -5,
           "y": 5
+        }
+      ]
+    }
+  ],
+  "paths": [
+    {
+      "profile": "Wall",
+      "points": [
+        {
+          "x": -5.08,
+          "y": 2.24
+        },
+        {
+          "x": -1.19,
+          "y": 2.22
+        },
+        {
+          "x": -1.17,
+          "y": -0.74
+        }
+      ],
+      "width": 1,
+      "blocksMovement": true
+    }
+  ],
+  "atmospheres": [
+    {
+      "profile": "Gloom",
+      "points": [
+        {
+          "x": -5.82,
+          "y": -5.7
+        },
+        {
+          "x": 5.69,
+          "y": -5.7
+        },
+        {
+          "x": 5.69,
+          "y": 5.88
+        },
+        {
+          "x": -5.82,
+          "y": 5.88
         }
       ]
     }
