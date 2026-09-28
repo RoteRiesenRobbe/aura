@@ -333,7 +333,7 @@ footsteps and atmosphere are later consumers of the same region.
     from one into the next announces nothing.
   - A subtitle with no title is refused at save (and by the server).
   - Anti-spam: the name shows after about a second inside, and the same place
-    is not announced again for about two minutes [PLACEHOLDER numbers,
+    is not announced again for about 30 seconds [PLACEHOLDER numbers,
     `RegionNames.ts`].
 
 ### Area effects — making a shape *do* something

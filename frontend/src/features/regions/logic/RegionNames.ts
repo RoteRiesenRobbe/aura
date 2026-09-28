@@ -17,7 +17,7 @@ export const SETTLE_MS = 1000;
 
 /** The same place is not announced again for this long after its last banner:
  *  walking out and back in says nothing. [PLACEHOLDER] */
-export const REPEAT_COOLDOWN_MS = 120_000;
+export const REPEAT_COOLDOWN_MS = 30_000;
 
 export interface PlaceName {
     title: string;
