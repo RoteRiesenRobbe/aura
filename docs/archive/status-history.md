@@ -10,6 +10,14 @@ since have been closed. The authoritative full ledgers remain the plan-doc
 
 Entries are in the order they appeared (newest first, as of 2026-08-03).
 
+- **Prior: MINIMAP RADAR M1 + M2 + M3, the docked minimap is a player-centred radar** ✅ 2026-09-27 `8f9b83a2` (ledger: `docs/archive/plan-minimap-local-viewport.md`, archived): ⭐ the docked scale is the disc over a fixed diameter in METRES, every layer offset per frame so you sit at the centre; zoom 30/50/100 m (wheel + ±, per browser, `RadarZoom.ts`); a rim chevron points at the home fire while off the radar. ⚑ An ordinary death does NOT null the minimap's character (`CLEAR_MINIMAP_ON_DEATH` off). **Schema DB/wire/conf NONE.** Verified: frontend 1336/0 · `m1`/`m2`/`m3` harnesses 17/17, 15/15, 7/7. ⭐ **PO pass 2026-09-27: "looks good".**
+
+*(2026-09-28, the world-effects planning wrap: the minimap-radar entry moved here verbatim although the cap of three had room, because Status was over its byte budget. Its plan is complete and archived; nothing of it is open.)*
+
+- **Prior: NATURAL WEAPONS C1, the lunge** ✅ 2026-09-27 `413a7fd4` (ledger: `docs/archive/plan-natural-weapons.md` §11 C1): ⭐ an eighth visual kind `lunge`: the attacker's WHOLE token (D9) jabs at the victim and snaps back (220 ms), plays at density `off`, outside the Fx budget; the hit mark waits for contact. Ten mob skills lunge. ⚑ A plan that names a sprite node must list its SIBLINGS (D9). **Schema DB/wire/conf NONE; vocabulary +1 kind; content 10 skill files.** Verified: frontend 1220/0 · `skill-fx.mjs` 21 legs. ⭐ **PO pass 2026-09-28: "works"** (numbers and melee overlap stay [PLACEHOLDER]).
+
+*(2026-09-28, the same wrap: the natural-weapons C1 entry fell off the cap of three and moved here verbatim. Its plan is complete and archived; C2's entry, still in Status, points at the same ledger.)*
+
 - **Prior: MAP FOG PERSISTENCE F1 + F2, the map's reveal survives a login** ✅ 2026-09-27 `376268a4` (ledger: `docs/archive/plan-map-fog-persistence.md` §9, archived): ⭐ the server tracks each character's reveal (`pkg/aura/mapfog`, WORLD-keyed chunks) on the existing save triggers; published once on entering the world (`GameState.map_fog`). ⚑ The save ORs into the stored bits under `FOR UPDATE` (a monotonic set never overwrites). **Schema DB +1 table (`000003`); wire +2 tables, +1 field.** ⭐ **PO pass 2026-09-27: "works fine".**
 
 *(2026-09-28, the natural-weapons C2 wrap: the map-fog-persistence entry fell off the cap of three and moved here verbatim. Its plan is complete and archived; nothing of it is open.)*
