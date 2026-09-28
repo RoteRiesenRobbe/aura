@@ -680,8 +680,9 @@ authors should know:
 ### Visuals: the `visual` key
 
 *(`plan-skill-vfx.md` C0 + C2a + C2b + C3a + C3a-ii + C3b and `plan-natural-weapons.md`
-C1, last amended 2026-09-27. All eight kinds work; none is a stub any more, and the
-eighth, `lunge`, draws nothing by design.)*
+C1 + C2, last amended 2026-09-28. All nine kinds work; none is a stub any more, the
+eighth, `lunge`, draws nothing by design, and the ninth, `maul`, is the one
+authored look drawn ON the victim.)*
 
 ⭐ **Since C3b the look is authored in the content editor too**: the Skills
 tab's Visuals section for a player skill, a per-skill block on the mob's page
@@ -700,7 +701,9 @@ enemy, for players and mobs alike: that is what you author. A **hit** is the
 round mark on the victim, and the **engine draws it automatically** on every
 landed damage hit, coloured by the damage type. The old victim-anchored
 `impact` kind is gone from the vocabulary; a file that still authors it
-hard-fails at load.
+hard-fails at load. ⭐ The one exception is the natural weapon (below): a mob
+fighting with its body authors a `lunge` for its attack and a `maul` for its
+weapon's mark ON the victim, drawn beside the engine's mark.
 
 A skill may carry one optional top-level `visual` block, placed immediately
 before `effects` (which for a plain aura is right after `maxLevel`, and for a
@@ -719,13 +722,13 @@ one look. Mobs use the same key on their own files, so a visual on
 ```
 
 Each layer names a **kind** (what moves) and an **`on`** (the moment it
-plays). The eight kinds are ENGINE code and the set is CLOSED: each one is a
-renderer class with its own math, so a ninth is a plan amendment, not a
+plays). The nine kinds are ENGINE code and the set is CLOSED: each one is a
+renderer class with its own math, so a tenth is a plan amendment, not a
 content decision. Everything else is a parameter.
 
 | kind | plays on | its own keys | what it is |
 |---|---|---|---|
-| `strike` | hit, applied | `ms`, `curve` | a weapon or a pair of jaws that starts at the ATTACKER and travels into the victim |
+| `strike` | hit, applied | `ms`, `curve` | a weapon that starts at the ATTACKER and travels into the victim |
 | `wave` | fired | `ms`, `count` | rings spreading from the CASTER out to the skill's reach and fading, once per cast |
 | `projectile` | hit, applied | `speed` | a body flying caster→victim at constant speed (px/s, absent = 500); every bolt is drawn 1.3× its size by an engine knob (PO 2026-09-23) |
 | `beam` | hit, applied | `ms`, `width`, `curve`, `chain` | a body stretched caster→victim with an envelope |
@@ -733,6 +736,7 @@ content decision. Everything else is a parameter.
 | `orbit` | fired, ambient | `ms`, `count` | N bodies circling the caster |
 | `emitter` | ambient, fired, hit, applied | `ms`, `count`, `motion` | particles from a point or a disc |
 | `lunge` | hit, applied | `ms` | the ATTACKER's own token jabs toward the victim and snaps back; draws nothing, and still plays with the VFX density slider at `off` (below) |
+| `maul` | hit, applied | `ms`, `curve` | the natural weapon's mark drawn ON the victim, screen-aligned: teeth, fangs, tusk gashes, claw rakes, a hoof (below) |
 
 Legal on every layer: `kind` and `on` (both required), plus `body`, `tint`
 (lowercase `#rrggbb`) and `scale`. ⚑ **Except a `lunge`**, which reads only
@@ -755,7 +759,8 @@ and so does a debuff that wants to read as a debuff rather than as its element.
 Bloodthirst's `lifesteal_burst` carries no tags and does.
 
 **Closed value sets, and `curve` belongs to the KIND** (C2a): a `strike` curves
-`thrust` / `swing` / `overhead` / `bite` / `pincer` (absent = `thrust`), a `beam` curves
+`thrust` / `swing` / `overhead` (absent = `thrust`), a `maul` curves `bite` /
+`pincer` / `gore` / `claw` / `kick` (absent = `bite`), a `beam` curves
 `flash` (attack → peak → fade, the lightning envelope) or `extend` (extend →
 retract, the flame pillar), absent = `flash`. A `wave` has no curve at all.
 Borrowing another kind's word is a hard-fail naming both sets, because
@@ -766,32 +771,17 @@ alone.
 ⭐ **The `strike`'s style also picks the weapon.** There is one placeholder per
 style and the style chooses it: a **spear** for `thrust` (a quick straight stab
 out and back), a **blade** for `swing` (the weapon pivots at the attacker and
-sweeps through the victim), a **hammer** for `overhead` (a visible wind-up above
-the attacker, then down onto the victim, slow and heavy), and a **pair of
-tapered jaws** for `bite`. **A `body` is optional**: without one the style's
+sweeps through the victim), and a **hammer** for `overhead` (a visible wind-up
+above the attacker, then down onto the victim, slow and heavy). **A `body` is optional**: without one the style's
 placeholder draws, with one the named PNG is held in the hand instead, scaled
 so its LENGTH equals the skill's reach. `ms` is the whole motion ([PLACEHOLDER]
 today: thrust 200, swing 280, overhead 460). A `strike` is anchored at the
 ATTACKER, always.
 
-⭐ **`bite` is the animal's attack, and it uses ONE body twice** (2026-09-21).
-The named PNG is the upper jaw; the engine mirrors a second copy below it and
-rotates them shut across `ms`. ⭐ **Since C3a-ii the bite is the RIM BITE** (PO
-2026-09-23, "the held-length jaw read as a crocodile"): both jaws hinge on the
-VICTIM's rim at the point nearest the attacker and close toward the victim's
-centre, and their length is the victim's radius × 0.8 [PLACEHOLDER] (never the
-reach, floor 20 px; 1.4 was "still quite long" at the PO look), so four wolves
-bite at four spots around the ring, each pair pointing back at its wolf. ⭐
-**`pincer` is the spider's pair** (PO look 2026-09-23, "two tusks gripping from
-either side, faced inwards"): the same one-body-twice contract and the same
-length rule, but one fang hinges on EACH side of the victim's rim, perpendicular
-to the attack line, points inward, and the pair gapes back toward the attacker
-and closes across the victim (`giant-venom-spit`). The `strike` rule "anchored
-at the attacker, length = reach" holds for `thrust` / `swing` / `overhead` only:
-
-```json
-{ "kind": "strike", "on": "hit", "body": "wolf-jaw", "curve": "bite", "ms": 200 }
-```
+⚑ **A `strike` is a HELD weapon only.** Its old `bite` and `pincer` curves
+moved to the `maul` (`plan-natural-weapons.md` C2): a file still authoring
+`strike` `bite` or `strike` `pincer` hard-fails at load, and the message names
+the `maul`.
 
 ⭐ **`wave` is the AoE attack that has no weapon** (2026-09-21, the mammoth
 stomp). One to three rings spread from the caster out to the skill's reach and
@@ -824,6 +814,34 @@ contact moment, so the mark appears when the body gets there. One jab per
 attacker at a time; a new one restarts it. ⭐ **It is readability, not
 dressing**: it still plays with the VFX density slider at `off` (where every
 other authored layer is hidden) and it is never evicted by the Fx budget.
+
+⭐ **`maul` is the natural weapon's MARK on the victim** (`plan-natural-weapons.md`
+§3.3, PO 2026-09-28). The lunge says who struck; the maul says with what. It is
+drawn centred ON the victim and **screen-aligned** (D10): it never turns toward
+the attacker, so a bite looks the same from every side. It starts when the
+jab's contact moment lands, beside the engine's round mark, and like every
+other authored layer it is hidden at density `off`. Its `curve` picks the
+weapon, each with a code-drawn placeholder tinted by the damage type:
+
+| curve | the mark | a `body` is | default `ms` [PLACEHOLDER] |
+|---|---|---|---|
+| `bite` (absent) | a row of teeth above the centre and one below, closing onto it (the PO's reference: the Pokemon "Bite") | the UPPER row seen from the front, drawn twice (`wolf-jaw`) | 180 |
+| `pincer` | a fang hinged on the victim's rim at screen left and one at screen right, gaping toward the top and swinging down to meet at the centre | ONE fang, drawn twice (`spider-fang`) | 260 |
+| `gore` | two tusk gashes driven in side by side on a fixed diagonal | ONE gash, drawn twice | 200 |
+| `claw` | three claw rakes on a fixed diagonal, one after the other | ONE rake, drawn three times | 240 |
+| `kick` | one upright hoof print punched in with a pop | the print | 180 |
+
+It is sized to the VICTIM (its radius × `scale`), never to the reach. Keys:
+the common ones (`body`, `tint`, `scale`) plus `ms` and `curve`. A natural
+weapon authors the pair:
+
+```json
+{ "kind": "lunge", "on": "hit", "ms": 220 },
+{ "kind": "maul", "on": "hit", "body": "wolf-jaw", "curve": "bite" }
+```
+
+The body contracts (which way up, which point is held) are in
+`docs/art/skill-vfx-asset-spec.md` §4.
 
 `chain` (bool) is the `beam`'s alone: one tick's hits of one caster and one
 skill draw as a single caster→v1→v2→v3 polyline instead of a fan, each hop a
@@ -896,11 +914,10 @@ victim. Pick one of five:
   weapon `strike`: a bite, tusks, a paw swipe, a kick. It wields nothing, so
   nothing should leave it; its token jabs instead, and that is what says which
   of four wolves bit. A `thrust` or `swing` on a boar, a bear or a stag draws a
-  spear or a blade the animal does not own. ⚑ The natural weapon's MARK on the
-  victim (teeth, a gash, a rake, a hoof) is the next chunk
-  (`plan-natural-weapons.md` C2, the `maul` kind) and does not exist yet: until
-  it lands, a biter keeps its `strike` `bite` (or the spider its `pincer`)
-  beside the `lunge`, and every other body attack authors the `lunge` alone.
+  spear or a blade the animal does not own. Beside the lunge it authors a
+  **`maul`**, the weapon's mark ON the victim: `bite` for teeth, `pincer` for
+  a spider's fangs, `gore` for tusks, `claw` for a paw swipe, `kick` for a
+  hoof (`plan-natural-weapons.md` C2).
 - **Reach at a distance is a `projectile` or a `beam`.** Volleys and spits fly
   (`projectile`, alone now - the arrival needs no layer); a tongue of flame or
   a bolt from a totem stretches (`beam`, `extend` or `flash`).

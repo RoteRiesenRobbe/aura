@@ -32,18 +32,18 @@
 // than placeholders, re-read off legs 1-3's own windows through the `sprites`
 // counter, with Lightning Strike as the bodiless control and the page's
 // `[skill-fx] body ...` warnings as the other failure mode · 14 the wolves'
-// `bite` strike draws its jaw PNG from the WOLF, photographed, which needs GOD
-// off like legs 5+6 · 15 (inside leg 11, Heal still on) `DAMAGE 90` at the
-// quiet campfire, and the heal landings that follow draw no mark.
+// bite draws its `wolf-jaw` PNG (a `maul` on the bitten since natural weapons
+// C2), photographed, which needs GOD off like legs 5+6 · 15 (inside leg 11,
+// Heal still on) `DAMAGE 90` at the quiet campfire, and the heal landings that
+// follow draw no mark.
 //
 // C3a-ii legs (§12h, PO 2026-09-23: an over-time effect draws on APPLICATION,
 // the rim bite, cooldown waves). The wire now carries `phase` (Direct 0,
 // Applied 1, Tick 2) on every skill event, counted EXACTLY by an in-page
 // sampler that reads `skillEvents().last` only when `total` moved (the older
 // samplers poll and double-count; they only say which ids landed).
-// 14 also measures the rim bite's geometry off the live jaw sprites (hinged at
-// the player's rim, shorter than the wolf's reach, opening toward the player's
-// centre) and photographs it mid-open · 16 the venom spiders: the spit is an
+// (14 measured the rim bite's geometry here until natural weapons C2 retired
+// it; it measures the maul's now) · 16 the venom spiders: the spit is an
 // `applied` projectile, the ticks draw the mark alone · 17 the giant spiders:
 // the white `spider-fang` sprites on `hit` beside the applied spit,
 // photographed · 18 the pyromancer: its new `damage_aura` lands Direct hits
@@ -53,7 +53,7 @@
 // because the counters are per kind, not per skill, and every venue has
 // neighbours (pools spit projectiles, spiders bite).
 //
-// Natural weapons C1 (docs/plan-natural-weapons.md §3.1, §7 "New skill-fx.mjs
+// Natural weapons C1 (docs/archive/plan-natural-weapons.md §3.1, §7 "New skill-fx.mjs
 // legs", PO ruling D9): the `lunge`, the eighth kind, draws NOTHING and moves
 // the attacker's token (portrait, tier frame, species border) toward the
 // victim and back. It is read through three surfaces: `spawnedByKind.lunge`,
@@ -69,10 +69,26 @@
 // ⚑ L8: since C1 the boar, alpha boar, bear, stag and companion draw no
 // `strike` at all (their borrowed spear and blade are gone, a `lunge` alone),
 // so the boars at the wolf camp no longer thin legs 13a and 14's sprite share.
-// Wolves, rats and spiders still draw their `strike` bite, now beside a lunge.
+// Wolves, rats and spiders drew their `strike` bite beside the lunge until C2.
 // 17 also asserts the giant spider's lunge beside its spit and fangs.
 // ⚑ L6: a 220 ms jab is never sampled from outside the page; every lunge
 // assertion reads counters that count at WRITE time, or an in-page probe.
+//
+// Natural weapons C2 (docs/archive/plan-natural-weapons.md §3.3, PO rulings D10 +
+// D11): the `maul`, the ninth kind, the natural weapon's mark drawn ON the
+// victim, screen-aligned. It took `bite` and `pincer` from the `strike`, so no
+// mob at the wolf camp draws a strike any more: wolves maul `bite` (the
+// `wolf-jaw` PNG, now the front-view upper row of teeth), boars maul `gore`
+// (code-drawn), and the giant spider mauls `pincer` (`spider-fang`). The
+// rim-bite jaw probe is replaced by a MAUL probe that reads the live rows and
+// fangs at the own player in the player's own size units: 14 (rewritten) a
+// wolf bite spawns one `maul` and one engine mark per landing, the rows sit
+// centred on the player, never turned, the upper row above and the mirrored
+// lower one below · 17 the fangs hinge on the player's rim at screen left and
+// right and gape toward the top. ⚑ L8: legs 13a, 13b, 14 and 17 bound their
+// sprite shares by strikes PLUS mauls now, re-derived from api/skills. The
+// "at the contact moment" half is the planner's (SkillFxPlan.test.ts); a
+// headless frame (~300 ms) is too coarse to time a 77 ms delay from here.
 //
 // ⛔ Needs the DEBUG zone set (`./scripts/dev-restart.sh server debug`): every
 // venue below is a position in api/zones/.debug/world_debug.json. The rebuilt
@@ -353,9 +369,10 @@ await warpTo(OPEN_GROUND, 'open ground');
   await page.waitForTimeout(5_000);
   const d = delta(a, await fxCounts());
   const events = (await page.evaluate(() => window.game.skillEvents().total ?? 0)) - e0;
-  // + `lunge` (natural weapons C1): event-driven like the four. Not every
-  // kind: an AMBIENT spawn increments its kind too, and needs no event.
-  const n = (d.strike ?? 0) + (d.impact ?? 0) + (d.projectile ?? 0) + (d.beam ?? 0) + (d.lunge ?? 0);
+  // + `lunge` and `maul` (natural weapons C1, C2): event-driven like the
+  // four. Not every kind: an AMBIENT spawn increments its kind too, and needs
+  // no event.
+  const n = (d.strike ?? 0) + (d.impact ?? 0) + (d.projectile ?? 0) + (d.beam ?? 0) + (d.lunge ?? 0) + (d.maul ?? 0);
   if (events === 0 && n > 0) fail(`leg 0: ${n} FX spawned with no skill event: ${JSON.stringify(d)}`);
   else pass(`leg 0: ${n} FX for ${events} skill events in view`);
 }
@@ -528,72 +545,60 @@ function cadenceBound(census, skillId, phase, windowMs, beatTicks) {
   return { casters, bound: casters * (Math.floor(windowMs / (beatTicks * 1000 / 30)) + 2) };
 }
 
-// The live jaws of a rim bite (§12h call 3), read off the scene: a jaw is the
-// only sprite anchored at (0, 1). Kept per sample: its length in world px,
-// how far its hinge sits from the PLAYER's centre in units of the player's
-// radius (1 = on the rim), and the cosine between the jaw's aim and the
-// hinge -> player-centre line (1 = opening toward the player's centre, i.e.
-// the hinge is on the attacker's side). Jaws hinged far from the player belong
-// to a fight between other actors and are skipped.
-async function startJawProbe() {
+// The live maul bodies at the own player (plan-natural-weapons.md §3.3, D10),
+// read off the scene: a row of teeth (`bite`) is the only sprite anchored at
+// (0.5, 1), a fang (`pincer`) the only one at (0, 1). Kept per sample in units
+// of the PLAYER's size, which is the maul's size rule at scale 1: where the
+// anchor sits relative to the player's centre, the body's rotation, whether it
+// is drawn mirrored, and its drawn width. Bodies far from the player belong to
+// a fight between other actors and are skipped. Code-drawn marks (the gore,
+// the rat's teeth) are Graphics, not sprites, and are not read here.
+async function startMaulProbe() {
   await page.evaluate(() => {
     let n = window.__auraRoot;
     while (n.parent && n.label !== 'cameraGroup') n = n.parent;
     const layer = (n.children ?? []).find(c => c.label === 'skillFx');
-    const probe = { samples: [], layer: !!layer };
-    window.__jaws = probe;
+    const probe = { rows: [], fangs: [], layer: !!layer };
+    window.__mauls = probe;
     if (!layer) return;
     probe.timer = setInterval(() => {
       const ch = window.game.character;
       const size = ch.size;
       const at = layer.toLocal(ch.shape.getGlobalPosition());
-      const seen = new Set();
       const walk = (node) => {
         for (const c of node.children ?? []) {
-          if (c.visible && c.anchor && c.anchor.y === 1 && c.anchor.x === 0 && c.texture && c.alpha > 0) {
-            const key = `${Math.round(c.x)},${Math.round(c.y)}`;
-            if (!seen.has(key)) {
-              seen.add(key);
-              const dx = at.x - c.x, dy = at.y - c.y;
-              const dist = Math.hypot(dx, dy);
-              if (dist < size * 3 && probe.samples.length < 400) {
-                // Both jaws of a pair share the hinge; their mean rotation is
-                // the attack line (upper = aim - open, lower = aim + open).
-                const pair = (node.children ?? []).filter(o => o !== c && o.anchor && o.anchor.y === 1
-                  && Math.abs(o.x - c.x) < 0.5 && Math.abs(o.y - c.y) < 0.5);
-                const rot = pair.length ? (c.rotation + pair[0].rotation) / 2 : c.rotation;
-                probe.samples.push({
-                  len: Math.abs(c.scale.x) * c.texture.width,
-                  rim: dist / size,
-                  cos: dist > 0 ? (Math.cos(rot) * dx + Math.sin(rot) * dy) / dist : 1,
-                  size,
-                });
-              }
-            }
-          }
           walk(c);
+          if (!c.visible || !c.anchor || !c.texture || !(c.alpha > 0) || c.anchor.y !== 1) continue;
+          const list = c.anchor.x === 0.5 ? probe.rows : c.anchor.x === 0 ? probe.fangs : null;
+          const dx = (c.x - at.x) / size, dy = (c.y - at.y) / size;
+          if (!list || Math.hypot(dx, dy) > 3 || list.length >= 400) continue;
+          list.push({ dx, dy, rot: c.rotation, mirrored: c.scale.y < 0, width: Math.abs(c.scale.x) * c.texture.width / size });
         }
       };
       walk(layer);
     }, 10);
   });
 }
-async function stopJawProbe() {
+async function stopMaulProbe() {
   return page.evaluate(() => {
-    const p = window.__jaws;
+    const p = window.__mauls;
     if (p.timer) clearInterval(p.timer);
-    return { layer: p.layer, samples: p.samples };
+    return { layer: p.layer, rows: p.rows, fangs: p.fangs };
   });
 }
-function jawSummary(samples) {
+function range(samples, f) {
   if (!samples.length) return null;
-  const min = (f) => Math.min(...samples.map(f)), max = (f) => Math.max(...samples.map(f));
+  const v = samples.map(f);
+  return [+Math.min(...v).toFixed(3), +Math.max(...v).toFixed(3)];
+}
+function maulSummary(samples) {
+  const upper = samples.filter(s => !s.mirrored), lower = samples.filter(s => s.mirrored);
   return {
-    n: samples.length,
-    lenMin: +min(s => s.len).toFixed(1), lenMax: +max(s => s.len).toFixed(1),
-    rimMin: +min(s => s.rim).toFixed(2), rimMax: +max(s => s.rim).toFixed(2),
-    cosMin: +min(s => s.cos).toFixed(3),
-    size: samples[0].size,
+    n: samples.length, upper: upper.length, lower: lower.length,
+    dx: range(samples, s => s.dx), rot: range(samples, s => s.rot), width: range(samples, s => s.width),
+    upperDy: range(upper, s => s.dy), lowerDy: range(lower, s => s.dy),
+    upperDx: range(upper, s => s.dx), lowerDx: range(lower, s => s.dx),
+    upperRot: range(upper, s => s.rot), lowerRot: range(lower, s => s.rot),
   };
 }
 
@@ -666,8 +671,8 @@ async function restoreClock() {
 
 // One C3a-ii mob leg: warp, own auras off, GOD off for the armed window only
 // (GOD short-circuits the player's takeDamage AND a god player is never the
-// victim of an event), census + optional jaw probe + an armed shot.
-async function mobPhaseLeg(n, spot, label, { ms = 14_000, shot, armOn, shotDelay = 500, jaws = false }) {
+// victim of an event), census + optional maul probe + an armed shot.
+async function mobPhaseLeg(n, spot, label, { ms = 14_000, shot, armOn, shotDelay = 500, mauls = false }) {
   if (inconclusive) return null;
   if (!(await restUp(`leg ${n}`))) return null;
   if (!(await warpTo(spot, label))) return null;
@@ -676,7 +681,7 @@ async function mobPhaseLeg(n, spot, label, { ms = 14_000, shot, armOn, shotDelay
   await runCommand('GOD off');
   const a = await fxCounts();
   await startCensus();
-  if (jaws) await startJawProbe();
+  if (mauls) await startMaulProbe();
   const t0 = Date.now();
   if (shot) {
     const armed = await armShot(armOn, Math.min(12_000, ms - 2_000));
@@ -691,7 +696,7 @@ async function mobPhaseLeg(n, spot, label, { ms = 14_000, shot, armOn, shotDelay
   }
   await page.waitForTimeout(Math.max(0, ms - (Date.now() - t0)));
   const census = await stopCensus();
-  const jawRun = jaws ? await stopJawProbe() : null;
+  const maulRun = mauls ? await stopMaulProbe() : null;
   const fx = delta(a, await fxCounts());
   await runCommand('GOD');
   console.log(`leg ${n}: fx ${JSON.stringify(fx)}`);
@@ -702,7 +707,7 @@ async function mobPhaseLeg(n, spot, label, { ms = 14_000, shot, armOn, shotDelay
     inconclusive = true;
   }
   console.log(`leg ${n}: census (skillId|phase|kind|fired) ${JSON.stringify(census.counts)}, gaps ${census.gaps}`);
-  return { fx, census, jaws: jawRun };
+  return { fx, census, mauls: maulRun };
 }
 
 // One aura leg: equip (when named), warp to the camp, watch, judge one kind.
@@ -792,37 +797,35 @@ console.log('\n== LEG 13: the pilot bodies draw as SPRITES (C3a) ==');
     // Whichever of legs 1-3 did not score has already raised the flag.
     console.log('NOTE: leg 13 needs legs 1-3 scored, and one of them was not');
   } else {
-    // Leg 1: the sword thrusts AND the wolves' bites (a `strike` since §12g)
-    // carry a body, so most strikes in that window are sprites. Before
-    // natural weapons C1 the camp's boars thinned the share (id 112, a
-    // bodiless `thrust`; measured 29 sprites for 34 strikes); since C1 their
-    // gore is a `lunge` alone (L8), so the share should now be whole. Kept as
-    // the half-bound all the same: any wandering strike author (a rat's
-    // bodiless bite) can still join the window, and the id sampler polls
-    // rather than counts. The upper bound is the sharp half: the marks
-    // (`impact`) are code-drawn and must add nothing.
-    console.log(`leg 13a: leg 1 sprites ${sword.fx.sprites}, strike ${sword.fx.strike}, marks ${sword.fx.impact ?? 0}, boar gores in the window ${sword.ids[112] ?? 0} (a lunge alone since C1)`);
-    console.log(`NOTE: leg 13a: sprites ${sword.fx.sprites === sword.fx.strike ? '==' : '!='} strikes (${sword.fx.sprites} / ${sword.fx.strike}); with the boars' strike gone an inequality names another strike author in view`);
-    if (sword.fx.sprites >= 1 && sword.fx.sprites * 2 >= sword.fx.strike) {
-      pass(`leg 13a: ${sword.fx.sprites} of ${sword.fx.strike} strike(s) drew a PNG`);
+    // Leg 1: the sword's strikes carry a body, and so do the wolves' bites
+    // (a `maul` on the bitten since natural weapons C2, `wolf-jaw`); the
+    // boars' gore is a bodiless `maul`, so the maul half is only partly
+    // sprites. The lower bound is on the strikes alone (every strike in this
+    // window is the sword's, unless a wandering weapon-wielder joins), and the
+    // upper bound is the sharp half: strikes plus mauls are the only bodied
+    // spawns, and the marks (`impact`) are code-drawn and must add nothing.
+    const bodiedA = (sword.fx.strike ?? 0) + (sword.fx.maul ?? 0);
+    console.log(`leg 13a: leg 1 sprites ${sword.fx.sprites}, strike ${sword.fx.strike ?? 0}, maul ${sword.fx.maul ?? 0}, marks ${sword.fx.impact ?? 0}, wolf bites sampled ${(sword.ids[110] ?? 0) + (sword.ids[114] ?? 0)}, boar gores sampled ${sword.ids[112] ?? 0}`);
+    if (sword.fx.sprites >= 1 && sword.fx.sprites * 2 >= (sword.fx.strike ?? 0)) {
+      pass(`leg 13a: ${sword.fx.sprites} sprite spawn(s) for ${sword.fx.strike ?? 0} strike(s) and ${sword.fx.maul ?? 0} maul(s) - the bodies resolved`);
     } else {
-      fail(`leg 13a: ${sword.fx.strike} strike(s) but only ${sword.fx.sprites} sprite spawn(s) - a body never resolved`);
+      fail(`leg 13a: ${sword.fx.strike ?? 0} strike(s) but only ${sword.fx.sprites} sprite spawn(s) - a body never resolved`);
     }
-    if (sword.fx.sprites <= sword.fx.strike) {
-      pass('leg 13a: no kind beyond the strikes took the sprite branch - the marks stayed Graphics');
+    if (sword.fx.sprites <= bodiedA) {
+      pass('leg 13a: no kind beyond the strikes and the mauls took the sprite branch - the marks stayed Graphics');
     } else {
-      fail(`leg 13a: ${sword.fx.sprites} sprite spawns for ${sword.fx.strike} strikes`);
+      fail(`leg 13a: ${sword.fx.sprites} sprite spawns for ${bodiedA} strikes and mauls`);
     }
     // Leg 2: the arrow. ⚑ The tight claim - "the cast-pose beside it stayed
     // Graphics" - is NOT asserted here as an equality: the kobold camp has a
-    // Dire Wolf in it, so the wolves' own body-carrying bite (a `strike` since
-    // §12g) lands in this window too (measured: ids 110 present), and the id
-    // sampler polls rather than counting, so the two cannot be told apart to
-    // the unit. The bound below is what this venue can honestly say; leg 13c
-    // owns the bare case.
+    // Dire Wolf in it, so the wolves' own body-carrying bite (a `maul` since
+    // natural weapons C2) lands in this window too (measured: ids 110
+    // present), and the id sampler polls rather than counting, so the two
+    // cannot be told apart to the unit. The bound below is what this venue
+    // can honestly say; leg 13c owns the bare case.
     const bareLayers = (arrow.fx['cast-pose'] ?? 0) + (arrow.fx.impact ?? 0);
-    const ceiling = arrow.fx.projectile + (arrow.fx.strike ?? 0);
-    console.log(`leg 13b: leg 2 sprites ${arrow.fx.sprites}, projectile ${arrow.fx.projectile}, strike ${arrow.fx.strike ?? 0}, `
+    const ceiling = arrow.fx.projectile + (arrow.fx.strike ?? 0) + (arrow.fx.maul ?? 0);
+    console.log(`leg 13b: leg 2 sprites ${arrow.fx.sprites}, projectile ${arrow.fx.projectile}, strike ${arrow.fx.strike ?? 0}, maul ${arrow.fx.maul ?? 0}, `
       + `cast-pose+marks ${bareLayers}, other body-carrying skills in the window ${JSON.stringify({1: arrow.ids[1] ?? 0, 110: arrow.ids[110] ?? 0, 114: arrow.ids[114] ?? 0})}`);
     if (arrow.fx.sprites >= arrow.fx.projectile && arrow.fx.projectile > 0) {
       pass(`leg 13b: ${arrow.fx.projectile} projectile(s) drew the "arrow" PNG`);
@@ -1209,105 +1212,97 @@ if (!inconclusive) {
   await runCommand('XP 100000000');
   await page.waitForTimeout(3_000);
 }
-// LEG 14 - C3a + §12g: the MOB half of the sprite path, and the only pilot
-// body no earlier leg can prove on its own. `wolf-jaw` is authored on the
-// wolves' bite, a `strike` with `curve: bite` drawn FROM THE WOLF (§12g.1 call
-// 3), which reaches the own player only with GOD off (the same reason legs 5+6
-// drop it). With the own aura off, every `strike` in this window is a wolf's,
-// so every sprite in the window is a wolf's jaw (since natural weapons C1 the
-// boars' gore draws no strike at all, a `lunge` alone, L8); leg 1's window
-// sees the same bites mixed in with the player's own sword.
-// ⚑ Also the bite's PHOTOGRAPH (§12g.5 "looked at"): armed on the strike
-// counter with the page clock slowed 8x, the leg 12 recipe, because a 200 ms
-// bite is over before a fixed-time capture lands.
-console.log('\n== LEG 14: the wolves\' bite draws the "wolf-jaw" PNG from the WOLF ==');
+// LEG 14 - C3a + §12g, rewritten for natural weapons C2 (§3.3, §7 "New
+// skill-fx.mjs legs", D10, D11): the wolves' bite is a `lunge` plus a `maul`
+// `bite` drawn ON the bitten player, the `wolf-jaw` PNG as the front-view
+// upper row of teeth and its mirror below. It reaches the own player only with
+// GOD off (the same reason legs 5+6 drop it). With the own aura off nothing at
+// this camp authors a `strike` any more (wolves and boars both maul, L8), so
+// every maul here is a wolf's (bodied) or a boar's gore (code-drawn), and the
+// census says how many of each landed.
+// Asserted: one maul and one engine mark per landing (the counts, exact on a
+// gap-free census), the wolves' mauls on the sprite path, and the maul probe's
+// geometry: the rows sit centred on the player's x, never turned, the upper
+// row at or above the centre and the mirrored lower one at or below it, each
+// 1.6 x the player's size wide (times the 1.3 pop while open).
+// ⚑ Also the bite's PHOTOGRAPH: armed on the maul counter with the page clock
+// slowed 8x, because a 180 ms maul is over before a fixed-time capture lands.
+console.log('\n== LEG 14: the wolves\' bite, a maul of "wolf-jaw" teeth ON the bitten player ==');
 if (!inconclusive) {
   if (await warpTo(WOLF_CAMP, 'the wolf camp')) {
     await page.mouse.move(800, 200);
     await deactivateAllAuras();
     await runCommand('GOD off');
     const a = await fxCounts();
-    await startJawProbe();
-    await page.evaluate(() => {
-      window.__fxSkillIds = {};
-      window.__fxSampler = setInterval(() => {
-        for (const e of window.game.skillEvents().last ?? []) {
-          if (!e.fired) window.__fxSkillIds[e.skillId] = (window.__fxSkillIds[e.skillId] ?? 0) + 1;
-        }
-      }, 30);
-    });
-    const armed = page.evaluate(() => new Promise((resolve) => {
-      const base0 = window.game.skillFx().spawnedByKind.strike ?? 0;
-      const started = Date.now();
-      const poll = setInterval(() => {
-        if ((window.game.skillFx().spawnedByKind.strike ?? 0) > base0) {
-          clearInterval(poll);
-          const real = performance.now.bind(performance);
-          const base = real();
-          window.__realNow = real;
-          performance.now = () => base + (real() - base) / 8;
-          resolve(true);
-        } else if (Date.now() - started > 12_000) { clearInterval(poll); resolve(false); }
-      }, 5);
-    }));
-    if (await armed) {
-      // §12h: the RIM bite, photographed mid-open. 0.35 s of 8x-slowed clock
-      // plus the ~300 ms the capture itself costs lands ~80 ms into a 200 ms
-      // bite, while the jaws still gape.
+    await startCensus();
+    await startMaulProbe();
+    if (await armShot('maul', 12_000)) {
+      // 0.35 s of 8x-slowed clock plus the ~300 ms the capture itself costs
+      // lands ~80 ms into the maul's life, as the rows close (the maul waits
+      // for the lunge's 77 ms contact before its first frame).
       await page.waitForTimeout(350);
       await page.screenshot({ path: join(outdir, 'leg14-wolf-bite.png') });
       await closeUp('leg14-wolf-bite.png');
-      await page.evaluate(() => { if (window.__realNow) { performance.now = window.__realNow; window.__realNow = null; } });
+      await restoreClock();
+    } else {
+      console.log('NOTE: leg 14: no maul armed the shot within 12 s');
     }
     await page.waitForTimeout(6_000);
-    const ids = await page.evaluate(() => { clearInterval(window.__fxSampler); return window.__fxSkillIds; });
-    const jawRun = await stopJawProbe();
+    const census = await stopCensus();
+    const maulRun = await stopMaulProbe();
     const d = delta(a, await fxCounts());
     await runCommand('GOD');
-    console.log(`leg 14: fx ${JSON.stringify(d)}, hit skill ids (sampled) ${JSON.stringify(ids)}`);
-    // §12h call 3, the RIM BITE: the jaws hinge on the player's rim (not at
-    // the wolf's mouth), are sized to the PLAYER (max(20, r x 0.8), the round-1 rule) rather than
-    // to the wolf's 1.0 u reach (120 px), and open toward the player's centre.
-    const js = jawSummary(jawRun.samples);
-    console.log(`leg 14: rim-bite jaws ${JSON.stringify(js)}`);
-    if (!jawRun.layer) fail('leg 14: the skillFx layer was not found for the jaw probe');
-    else if (!js) console.log('NOTE: leg 14: the jaw probe caught no jaw at the player (the counters above still judge the leg)');
-    else {
-      // PO look round 1 (2026-09-23, §12h.5): 0.8 x the VICTIM's radius, floor 20 px
-      // (SkillFxMath BITE_LENGTH_FACTOR / BITE_MIN_LENGTH_PX); 1.4 read as a crocodile.
-      const want = Math.max(20, js.size * 0.8);
-      if (js.lenMax < 120 && Math.abs(js.lenMax - want) < 2 && Math.abs(js.lenMin - want) < 2) {
-        pass(`leg 14: every jaw is ${js.lenMin}-${js.lenMax} px, max(20, ${js.size} x 0.8) = ${want.toFixed(1)}, under the 120 px reach`);
-      } else fail(`leg 14: jaw length ${js.lenMin}-${js.lenMax} px, wanted ${want.toFixed(1)} and < 120`);
-      if (js.rimMin > 0.8 && js.rimMax < 1.2) pass(`leg 14: every hinge sits on the player's rim (${js.rimMin}-${js.rimMax} radii from the centre)`);
-      else fail(`leg 14: hinges at ${js.rimMin}-${js.rimMax} player radii, not on the rim`);
-      if (js.cosMin > 0.9) pass(`leg 14: every pair opens toward the player's centre, hinged on the wolf's side (min cos ${js.cosMin})`);
-      else fail(`leg 14: a jaw pair points away from the player's centre (min cos ${js.cosMin})`);
-    }
-    if (!ids[110] && !ids[114]) {
+    const wolfBites = countOf(census, 110, PHASE.direct) + countOf(census, 114, PHASE.direct);
+    const landings = censusRows(census)
+      .filter(r => !r.fired && r.phase === PHASE.direct && (r.kind === 0 || r.kind === 1))
+      .reduce((n, r) => n + r.n, 0);
+    const maulBound = plannedBound(census, 'maul');
+    const bodiedBound = plannedBound(census, 'maul', { bodied: true });
+    const strikeBound = plannedBound(census, 'strike');
+    console.log(`leg 14: fx ${JSON.stringify(d)}, census (skillId|phase|kind|fired) ${JSON.stringify(census.counts)}, gaps ${census.gaps}`);
+    console.log(`leg 14: wolf bites ${wolfBites}, damage landings ${landings}; maul ${d.maul ?? 0} (bound ${maulBound}), sprites ${d.sprites} (bodied-maul bound ${bodiedBound}), marks ${d.impact ?? 0}, strike ${d.strike ?? 0} (bound ${strikeBound})`);
+    if (wolfBites === 0) {
       console.log('INCONCLUSIVE: leg 14: no wolf bite landed in the window');
       inconclusive = true;
     } else {
-      // ⚑ Not an equality. Before natural weapons C1 the camp's boars gored
-      // with a bodiless `thrust` (id 112, measured 6 of 25 sampled hits);
-      // since C1 that is a `lunge` alone (L8), so the share should now be
-      // whole, but a wandering strike author can still join the window and
-      // the id sampler polls rather than counts. "Most strikes are sprites
-      // and none of the marks is" stays what this venue can honestly say;
-      // the NOTE prints whether it was exact.
-      console.log(`NOTE: leg 14: sprites ${d.sprites === d.strike ? '==' : '!='} strikes (${d.sprites} / ${d.strike ?? 0}), boar gores sampled ${ids[112] ?? 0} (a lunge alone since C1)`);
-      if ((d.strike ?? 0) >= 1 && d.sprites >= 1 && d.sprites <= d.strike && d.sprites * 2 >= d.strike) {
-        pass(`leg 14: ${d.strike} strike(s) from the wolves, ${d.sprites} on the sprite path`);
+      if ((d.maul ?? 0) >= 1) pass(`leg 14: ${d.maul} maul(s) for ${wolfBites} wolf bite(s)`);
+      else fail(`leg 14: ${wolfBites} wolf bite(s) and no maul`);
+      if (census.gaps > 0) {
+        console.log(`NOTE: leg 14: ${census.gaps} census gap(s), the one-per-landing equalities are not scored`);
       } else {
-        fail(`leg 14: wolf bites landed and drew ${d.sprites} sprite(s) for ${d.strike ?? 0} strike(s)`);
+        // One maul per landing: every attacker at this camp authors exactly one.
+        if ((d.maul ?? 0) === maulBound) pass(`leg 14: ${d.maul} maul(s) == ${maulBound}, one per landing the census saw`);
+        else fail(`leg 14: ${d.maul ?? 0} maul(s) where the landings author ${maulBound}`);
+        // ...and one engine mark beside each (D6: the ring keeps drawing).
+        if ((d.impact ?? 0) === landings) pass(`leg 14: ${d.impact} hit mark(s) == ${landings} damage landing(s), one ring beside each maul`);
+        else fail(`leg 14: ${d.impact ?? 0} hit mark(s) for ${landings} damage landing(s)`);
+        // The wolves' mauls are the only bodied layer here, so the sprite
+        // share is exact too.
+        if (d.sprites === bodiedBound && bodiedBound >= 1) pass(`leg 14: ${d.sprites} sprite spawn(s) == ${bodiedBound} wolf maul(s) on "wolf-jaw"`);
+        else fail(`leg 14: ${d.sprites} sprite spawn(s) where the wolf bites author ${bodiedBound} bodied maul(s)`);
       }
-      if ((d.impact ?? 0) >= 1) pass(`leg 14: ${d.impact} hit mark(s) on the bitten player`);
-      else fail(`leg 14: wolf bites landed on the player and drew no hit mark`);
+      if ((d.strike ?? 0) <= strikeBound) pass(`leg 14: ${d.strike ?? 0} strike(s) at the wolf camp - the bite is a strike no more`);
+      else fail(`leg 14: ${d.strike} strike(s) where the landed skills author ${strikeBound}`);
+      // D10 + D11: the rows, read off the live sprites.
+      const m = maulSummary(maulRun.rows);
+      console.log(`leg 14: maul rows at the player ${JSON.stringify(m)}`);
+      if (!maulRun.layer) fail('leg 14: the skillFx layer was not found for the maul probe');
+      else if (m.n === 0 || m.upper === 0 || m.lower === 0) console.log('NOTE: leg 14: the maul probe caught no pair of rows at the player (the counters above still judge the leg)');
+      else {
+        if (Math.max(Math.abs(m.dx[0]), Math.abs(m.dx[1])) < 0.02) pass(`leg 14: every row is centred on the player's x (dx ${m.dx[0]}..${m.dx[1]} sizes)`);
+        else fail(`leg 14: a row sits off the player's centre (dx ${m.dx[0]}..${m.dx[1]} sizes)`);
+        if (m.rot[0] === 0 && m.rot[1] === 0) pass('leg 14: no row is ever turned - screen-aligned (D10)');
+        else fail(`leg 14: a row turned (rotation ${m.rot[0]}..${m.rot[1]}), the mark must not follow the attack line`);
+        if (m.upperDy[1] <= 0.001 && m.lowerDy[0] >= -0.001) pass(`leg 14: the upper row at or above the centre (dy ${m.upperDy[0]}..${m.upperDy[1]}), the mirrored lower one at or below it (dy ${m.lowerDy[0]}..${m.lowerDy[1]})`);
+        else fail(`leg 14: the rows are on the wrong sides (upper dy ${m.upperDy}, lower dy ${m.lowerDy})`);
+        if (m.width[0] > 1.55 && m.width[1] < 2.1) pass(`leg 14: every row is ${m.width[0]}..${m.width[1]} player sizes wide (1.6, x1.3 while open)`);
+        else fail(`leg 14: row width ${m.width[0]}..${m.width[1]} player sizes, wanted 1.6..2.08`);
+      }
     }
   }
 }
 
-// LEG 20 - natural weapons C1 (docs/plan-natural-weapons.md §3.1, §3.2, §7
+// LEG 20 - natural weapons C1 (docs/archive/plan-natural-weapons.md §3.1, §3.2, §7
 // "New skill-fx.mjs legs", §10 L2 + L6): the `lunge`. Same venue and setup as
 // leg 14 (levelled, own auras off, GOD off for each armed window only, since
 // a god-mode player is never the victim of a HIT event and no wolf bite would
@@ -1559,7 +1554,7 @@ if (!inconclusive) {
       if ((fx.lungeNudges ?? 0) >= 1) pass(`leg 20c: ${fx.lungeNudges} non-zero body offset(s) written at off`);
       else fail('leg 20c: no body moved at off');
       const others = spawnsIn(fx, ['lunge']);
-      if (others === 0) pass('leg 20c: no other kind spawned at off (no strike, no jaw, no mark)');
+      if (others === 0) pass('leg 20c: no other kind spawned at off (no strike, no maul, no mark)');
       else fail(`leg 20c: ${others} non-lunge Fx spawned at off: ${JSON.stringify(fx)}`);
       if (b.live === 0 && probe.liveMax === 0) pass(`leg 20c: live stayed 0 in all ${probe.samples} samples`);
       else fail(`leg 20c: live reached ${probe.liveMax} (end ${b.live}) at off`);
@@ -1585,7 +1580,7 @@ await mobStrikeLeg(5, { x: 26.5, y: 22.5 }, 'the bandit camp (swing)', 'leg5-mob
 // at the quiet campfire first (`restUp`).
 // ⚑ Every bound below is scoped to the skills the census saw land: the venom
 // venue has poison pools (119, an `on: hit` projectile) and the giant camp has
-// a venom spider and two small spiders (117, a bodiless `bite`).
+// a venom spider and two small spiders (117, a bodiless `maul` `bite`).
 const VENOM_SPIT = 118, POOL = 119, GIANT_SPIT = 137, EMBER = 133;
 // The venom spider at (6, -25.8), 2.6 u from the nearest pool (radius 1.1),
 // so a player standing here is spat at but not pooled.
@@ -1643,30 +1638,49 @@ console.log('\n== LEG 16: venom spiders - the spit on `applied`, the ticks draw 
 }
 
 // LEG 17 - the giant spiders: two white fangs clamp the victim on every
-// direct bite (`hit`, body `spider-fang`), the spit flies on application.
-// Armed on the SPRITES counter: the fang is the only body at this camp.
-console.log('\n== LEG 17: giant spiders - the "spider-fang" bite on `hit` beside the applied spit ==');
+// direct bite (a `maul` `pincer` on `hit`, body `spider-fang`), the spit flies
+// on application. Armed on the SPRITES counter: the fang is the only body at
+// this camp. Since natural weapons C2 the fangs are SCREEN-ALIGNED (D10, the
+// lead's reading in §8 Q6): hinged on the player's rim at screen left and
+// right, gaping toward the top, swinging down to meet on the centre.
+console.log('\n== LEG 17: giant spiders - the "spider-fang" maul on `hit` beside the applied spit ==');
 {
   const run = await mobPhaseLeg(17, GIANT_SPOT, 'the giant spiders',
-    { ms: 10_000, shot: 'leg17-spider-fang.png', armOn: 'sprites', shotDelay: 500, jaws: true });
+    { ms: 10_000, shot: 'leg17-spider-fang.png', armOn: 'sprites', shotDelay: 500, mauls: true });
   if (run) {
     const { fx, census } = run;
     const bites = countOf(census, GIANT_SPIT, PHASE.direct, [0, 1]);
     const applied = countOf(census, GIANT_SPIT, PHASE.applied);
-    const spriteBound = plannedBound(census, 'strike', { bodied: true });
-    console.log(`leg 17: GiantVenomSpit direct ${bites}, applied ${applied}; strike ${fx.strike ?? 0}, sprites ${fx.sprites}, `
-      + `bodied-strike bound ${spriteBound}, projectile ${fx.projectile ?? 0} (bound ${plannedBound(census, 'projectile')})`);
-    console.log(`leg 17: fang geometry ${JSON.stringify(jawSummary(run.jaws.samples))}`);
+    const spriteBound = plannedBound(census, 'maul', { bodied: true });
+    const f = maulSummary(run.mauls.fangs);
+    console.log(`leg 17: GiantVenomSpit direct ${bites}, applied ${applied}; maul ${fx.maul ?? 0}, sprites ${fx.sprites}, `
+      + `bodied-maul bound ${spriteBound}, projectile ${fx.projectile ?? 0} (bound ${plannedBound(census, 'projectile')})`);
+    console.log(`leg 17: fang geometry (player sizes; upper = unmirrored = the left fang) ${JSON.stringify(f)}`);
     if (bites === 0) { console.log('INCONCLUSIVE: leg 17: no giant spider bite landed'); inconclusive = true; }
     else {
-      if (fx.sprites >= 1 && fx.sprites <= (fx.strike ?? 0)) pass(`leg 17: ${fx.sprites} of ${fx.strike} strike(s) drew the fang PNG for ${bites} bite(s)`);
-      else fail(`leg 17: ${bites} bite(s), ${fx.strike ?? 0} strike(s), ${fx.sprites} sprite(s)`);
+      if (fx.sprites >= 1 && fx.sprites <= (fx.maul ?? 0)) pass(`leg 17: ${fx.sprites} of ${fx.maul} maul(s) drew the fang PNG for ${bites} bite(s)`);
+      else fail(`leg 17: ${bites} bite(s), ${fx.maul ?? 0} maul(s), ${fx.sprites} sprite(s)`);
+      // The fixed frame. The left fang is drawn as the PNG is, the right one
+      // mirrored; rotation 0 points a fang right and −y is up on screen.
+      if (f.n === 0 || f.upper === 0 || f.lower === 0) console.log('NOTE: leg 17: the maul probe caught no pair of fangs at the player (the counters still judge the leg)');
+      else {
+        const onRim = (r, x) => r && Math.abs(r[0] - x) < 0.02 && Math.abs(r[1] - x) < 0.02;
+        if (onRim(f.upperDx, -1) && onRim(f.lowerDx, 1) && Math.max(...f.upperDy.map(Math.abs), ...f.lowerDy.map(Math.abs)) < 0.02) {
+          pass(`leg 17: the fangs hinge on the player's rim at screen left (dx ${f.upperDx}) and right (dx ${f.lowerDx}), level with the centre`);
+        } else fail(`leg 17: fang hinges off the screen-left/right rim: left dx ${f.upperDx} dy ${f.upperDy}, right dx ${f.lowerDx} dy ${f.lowerDy}`);
+        const open = (35 * Math.PI) / 180 + 0.01;
+        if (f.upperRot[0] >= -open && f.upperRot[1] <= 0.01 && f.lowerRot[0] >= Math.PI - 0.01 && f.lowerRot[1] <= Math.PI + open) {
+          pass(`leg 17: both fangs gape toward the top and close to level (left ${f.upperRot}, right ${f.lowerRot} rad), whichever side the spider stands`);
+        } else fail(`leg 17: a fang turned outside the fixed frame: left ${f.upperRot}, right ${f.lowerRot}`);
+        if (f.width[0] > 0.98 && f.width[1] < 1.02) pass(`leg 17: every fang is one player size long (${f.width}), so the points meet on the centre`);
+        else fail(`leg 17: fang length ${f.width} player sizes, wanted 1`);
+      }
       // Natural weapons C1: the giant spider jabs AND still spits (§7 C1
       // checklist). Its bite authors a `lunge` on `hit` beside the fangs.
       if ((fx.lunge ?? 0) >= 1 && (fx.lungeNudges ?? 0) >= 1) pass(`leg 17: ${fx.lunge} lunge(s), ${fx.lungeNudges} body nudge(s) for ${bites} bite(s)`);
       else fail(`leg 17: ${bites} giant spider bite(s) and lunge ${fx.lunge ?? 0}, nudges ${fx.lungeNudges ?? 0}`);
       if (census.gaps > 0) console.log(`NOTE: leg 17: ${census.gaps} census gap(s), the exact sprite bound is not scored`);
-      else if (fx.sprites <= spriteBound) pass(`leg 17: ${fx.sprites} sprite(s) <= ${spriteBound} bodied strikes the landings allow`);
+      else if (fx.sprites <= spriteBound) pass(`leg 17: ${fx.sprites} sprite(s) <= ${spriteBound} bodied mauls the landings allow`);
       else fail(`leg 17: ${fx.sprites} sprite(s) > ${spriteBound}`);
       if (applied === 0) console.log('NOTE: leg 17: no giant spit application in the window');
       else if ((fx.projectile ?? 0) >= 1) pass(`leg 17: ${applied} application(s), ${fx.projectile} projectile(s) beside the fangs`);

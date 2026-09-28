@@ -128,7 +128,7 @@ export function isTrustedOrigin(origin: string): boolean {
  * The newcomer's legend (`?gallery`): one canonical layer per kind, the
  * manual's own examples, every one on its placeholder (no body) so what shows
  * is the kind itself. The table is keyed by kind, and the test pins that it
- * names every kind in VISUAL_KINDS exactly once: an eighth kind reddens it.
+ * names every kind in VISUAL_KINDS exactly once: a tenth kind reddens it.
  */
 export const GALLERY_LAYERS: Record<VisualKind, VisualLayer> = {
     'strike': {kind: 'strike', on: 'hit', curve: 'thrust'},
@@ -140,6 +140,8 @@ export const GALLERY_LAYERS: Record<VisualKind, VisualLayer> = {
     'wave': {kind: 'wave', on: 'fired'},
     // Draws nothing of its own: the caster's stand-in jabs (fx-preview.ts).
     'lunge': {kind: 'lunge', on: 'hit'},
+    // Drawn ON the victim's stand-in, which every slot already has.
+    'maul': {kind: 'maul', on: 'hit', curve: 'bite'},
 };
 
 /** The gallery's shared palette tag and reach. [PLACEHOLDER] */

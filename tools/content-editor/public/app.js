@@ -2028,7 +2028,7 @@ function effectCard(effect, i, ctx) {
 function skillVisualsSection(ctx) {
   const col = skillSection('Visuals');
   col.section.classList.add('visuals-section');
-  // "Show all kinds" (C3c): ONE gallery iframe of the eight kinds, the
+  // "Show all kinds" (C3c): ONE gallery iframe of the nine kinds, the
   // newcomer's legend. The click must not reach the head's collapse toggle.
   col.section.querySelector('.stat-section-head').appendChild(el('button', {
     class: 'fx-gallery-toggle' + (state.fxGalleryOpen ? ' active' : ''),

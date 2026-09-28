@@ -31,6 +31,7 @@ import {
     HIT_MARK_MS,
     lungeContactMsOf,
     lungeTotalMsOf,
+    maulTotalMsOf,
     ORBIT_DEFAULT_MS,
     strikeContactMsOf,
     strikeTotalMsOf,
@@ -135,7 +136,9 @@ export function eventLifetimeMs(
         if (layer.on === 'ambient') {
             continue;
         }
-        total += layerLifetimeMs(layer, distPx);
+        // A maul waits for the same arrival as the mark (plan-natural-weapons.md
+        // §3.3), so it too holds its slot for the wait.
+        total += layerLifetimeMs(layer, distPx) + (layer.kind === 'maul' ? arrival : 0);
     }
     return total;
 }
@@ -153,6 +156,8 @@ function layerLifetimeMs(def: VisualLayer, distPx: number): number {
             return waveTotalMsOf(def.ms);
         case 'lunge':
             return lungeTotalMsOf(def.ms);
+        case 'maul':
+            return maulTotalMsOf(def.curve, def.ms);
         case 'beam':
             return authored || BEAM_CURVE_MS[def.curve === 'extend' ? 'extend' : 'flash'];
         case 'cast-pose':

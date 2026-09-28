@@ -44,11 +44,12 @@ const base = (process.argv[2] || 'http://localhost:2001').replace(/\/$/, '');
 const outdir = process.argv[3] || '/tmp/skill-fx-preview';
 mkdirSync(outdir, { recursive: true });
 
-// The eighth, `lunge` (docs/plan-natural-weapons.md §3.1), draws nothing: it
+// The eighth, `lunge` (docs/archive/plan-natural-weapons.md §3.1), draws nothing: it
 // moves the CASTER's stand-in ring toward the victim's through the stub's
-// `setBodyOffset` (§10 L10), counted by the manager's `lungeNudges`.
-const KINDS = ['strike', 'projectile', 'beam', 'cast-pose', 'orbit', 'emitter', 'wave', 'lunge'];
-// The gallery shares its width between the slots: 1400 px / 8 = 175 px.
+// `setBodyOffset` (§10 L10), counted by the manager's `lungeNudges`. The
+// ninth, `maul` (§3.3), draws its teeth ON the slot's victim stand-in.
+const KINDS = ['strike', 'projectile', 'beam', 'cast-pose', 'orbit', 'emitter', 'wave', 'lunge', 'maul'];
+// The gallery shares its width between the slots: 1400 px / 9 ~ 156 px.
 const SLOT_PX = 1400 / KINDS.length;
 const WAVE_MESSAGE = {
   type: 'aura-fx-preview',

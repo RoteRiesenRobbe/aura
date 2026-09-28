@@ -291,9 +291,9 @@ export interface SkillEffect {
 // --- the visual vocabulary (plan-skill-vfx.md C0/C2a) -----------------------
 
 /**
- * One authored VFX layer. The eight `kind` names are ENGINE code and closed -
+ * One authored VFX layer. The nine `kind` names are ENGINE code and closed -
  * `strike`, `projectile`, `beam`, `cast-pose`, `orbit`, `emitter`, `wave`,
- * `lunge` (SkillFxKinds pins them against api/skill-vocabulary.json; the hit
+ * `lunge`, `maul` (SkillFxKinds pins them against api/skill-vocabulary.json; the hit
  * mark `impact` is the engine's own and no file names it); everything else
  * is a parameter, and which parameters a kind reads is that kind's business.
  *
@@ -324,7 +324,7 @@ export interface VisualLayer {
     speed?: number;
     /** beam: stroke width in px */
     width?: number;
-    /** impact: burst | snap · strike: thrust | swing | overhead · beam: flash | extend */
+    /** strike: thrust | swing | overhead · beam: flash | extend · maul: bite | pincer | gore | claw | kick */
     curve?: string;
     /** orbit / emitter: how many bodies */
     count?: number;

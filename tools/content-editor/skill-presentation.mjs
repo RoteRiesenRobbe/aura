@@ -69,7 +69,7 @@ export const SKILL_PRESENTATION = {
 };
 
 // The twelve keys of one `visual.layers[]` entry (fixture `visualKeys`, the
-// union over the eight kinds), drawn by the Visuals section's layer builder
+// union over the nine kinds), drawn by the Visuals section's layer builder
 // (plan-skill-vfx.md §12f.5 C3b). ⚑ A SEPARATE lookup, never merged into the
 // tables above: no name collides today, but a future effect key called `scale`
 // or `count` must not lend a layer its unit, so keyField takes the table as a
@@ -80,7 +80,7 @@ export const SKILL_PRESENTATION = {
 // presence-gated in Go (> 0 when authored); blank means the kind's own
 // default, a [PLACEHOLDER] client constant deliberately not copied here.
 export const LAYER_PRESENTATION = {
-  kind: { control: 'select', label: 'Kind', hint: 'One of the eight renderer kinds; the list offers the kinds this category can play.' },
+  kind: { control: 'select', label: 'Kind', hint: 'One of the nine renderer kinds; the list offers the kinds this category can play.' },
   on: { control: 'select', label: 'Moment', hint: 'When the layer plays: ambient, fired, hit or applied.' },
   body: { control: 'select', label: 'Body', hint: 'A PNG from the body folder; none draws the kind\'s placeholder shape.' },
   curve: { control: 'select', label: 'Curve', hint: 'The motion curve, out of this kind\'s own set.' },

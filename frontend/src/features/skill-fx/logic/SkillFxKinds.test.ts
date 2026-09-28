@@ -2,7 +2,9 @@ import {describe, expect, it} from 'vitest';
 import {readFileSync} from 'fs';
 import {Container} from 'pixi.js';
 import {Fx, FxAnchor, HIT_MARK_KIND, KIND_REGISTRY, kindHandler, VISUAL_KINDS} from './SkillFxKinds';
-import {lungeContactMsOf, lungeDistancePx, lungeTotalMsOf} from './SkillFxMath';
+import {
+    lungeContactMsOf, lungeDistancePx, lungeTotalMsOf, MAUL_CURVE_MS, MAUL_PARTS, MaulCurve, maulPhase, maulSizePx,
+} from './SkillFxMath';
 import {VisualLayer} from '../../../client-data/Skills';
 
 // The registry IS the closed vocabulary (§7.2), so it is pinned against the
@@ -19,7 +21,7 @@ describe('the kind registry', () => {
         expect(Object.keys(KIND_REGISTRY).sort()).toEqual([...vocabulary.visualKinds].sort());
     });
 
-    it('lists the same eight names it registers', () => {
+    it('lists the same nine names it registers', () => {
         expect([...VISUAL_KINDS].sort()).toEqual(Object.keys(KIND_REGISTRY).sort());
     });
 
@@ -154,5 +156,75 @@ describe('the lunge', () => {
         const fx = spawn(fixed, anchor(100, 0));
         expect(() => fx.update(START + 50)).not.toThrow();
         expect(() => fx.dispose()).not.toThrow();
+    });
+});
+
+// plan-natural-weapons.md §3.3: the maul draws ON the victim, one body per
+// part, and ⭐ SCREEN-ALIGNED (D10): where the attacker stands changes nothing.
+describe('the maul', () => {
+    const START = 1_000;
+
+    function anchor(x: number, y: number, radiusPx = 30): FxAnchor & { at: { x: number, y: number } } {
+        const a = {at: {x, y}, radiusPx, point: () => a.at, alive: () => true};
+        return a;
+    }
+
+    function spawn(layer: Container, source: FxAnchor, victim: FxAnchor, curve: MaulCurve): Fx {
+        return KIND_REGISTRY['maul'].spawn({
+            layer, source, victim, color: 0xff0000, def: {kind: 'maul', on: 'hit', curve},
+            startAtMs: START, seed: 0, density: 'full', reachPx: 0,
+        });
+    }
+
+    it('adds one body per part to the layer, and gives them back on dispose', () => {
+        for (const curve of ['bite', 'pincer', 'gore', 'claw', 'kick'] as const) {
+            const layer = new Container();
+            const fx = spawn(layer, anchor(0, 0), anchor(100, 0), curve);
+            expect(layer.children).toHaveLength(MAUL_PARTS[curve]);
+            fx.dispose();
+            expect(layer.children).toHaveLength(0);
+        }
+    });
+
+    it('places every part on the victim by the phase, in mark sizes', () => {
+        const layer = new Container();
+        const victim = anchor(100, 40, 30);
+        const fx = spawn(layer, anchor(0, 0), victim, 'bite');
+        const at = START + 20;
+        expect(fx.update(at)).toBe(true);
+        const size = maulSizePx(30, undefined);
+        maulPhase('bite', 20, MAUL_CURVE_MS.bite).parts.forEach((part, i) => {
+            expect(layer.children[i].position.x).toBeCloseTo(100 + part.x * size, 9);
+            expect(layer.children[i].position.y).toBeCloseTo(40 + part.y * size, 9);
+        });
+        // The lower row is the upper one mirrored.
+        expect(layer.children[0].scale.y).toBeGreaterThan(0);
+        expect(layer.children[1].scale.y).toBeLessThan(0);
+    });
+
+    it('draws the same mark whichever side the attacker stands on (D10)', () => {
+        for (const curve of ['bite', 'pincer', 'gore', 'claw', 'kick'] as const) {
+            const west = new Container();
+            const east = new Container();
+            spawn(west, anchor(-200, 0), anchor(0, 0), curve).update(START + 50);
+            spawn(east, anchor(150, 90), anchor(0, 0), curve).update(START + 50);
+            west.children.forEach((body, i) => {
+                const other = east.children[i];
+                expect(other.position.x).toBeCloseTo(body.position.x, 9);
+                expect(other.position.y).toBeCloseTo(body.position.y, 9);
+                expect(other.rotation).toBeCloseTo(body.rotation, 9);
+            });
+        }
+    });
+
+    it('follows a victim that moves, and ends at its total', () => {
+        const layer = new Container();
+        const victim = anchor(0, 0);
+        const fx = spawn(layer, anchor(-100, 0), victim, 'kick');
+        victim.at = {x: 50, y: -20};
+        fx.update(START + 10);
+        expect(layer.children[0].position.x).toBeCloseTo(50, 9);
+        expect(layer.children[0].position.y).toBeCloseTo(-20, 9);
+        expect(fx.update(START + MAUL_CURVE_MS.kick)).toBe(false);
     });
 });

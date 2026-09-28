@@ -65,13 +65,14 @@ the bottom. Trust the code over the manual if a path has drifted.
   damaging mob skill, so the reviewer is the gate). A place or a totem too: a
   pool spits, a totem reaches out, a bomb's blast reaches each victim. Five
   shapes: a `strike` (a weapon-wielder's hit - `thrust` spear / `swing` blade /
-  `overhead` hammer / `bite` jaws / `pincer` fangs, chosen by `curve`, which also picks the
-  placeholder); a `lunge` (a mob attacking with its BODY: its token jabs at the
-  victim and snaps back, draws nothing, keys `kind`/`on`/`ms`/`scale` only,
-  plays even at density `off`; never a borrowed `thrust`/`swing` on an animal,
-  `plan-natural-weapons.md`. The mark on the victim, `maul`, is the next chunk
-  and not built: until then a biter keeps its `strike` `bite`/`pincer` beside
-  the lunge); a `projectile` (a volley or a spit, ALONE - the arrival needs no
+  `overhead` hammer, chosen by `curve`, which also picks the placeholder); a
+  `lunge` PLUS a `maul` (a mob attacking with its BODY: the `lunge` jabs its
+  token at the victim and snaps back, draws nothing, keys `kind`/`on`/`ms`/`scale`
+  only, plays even at density `off`; the `maul` draws the weapon's mark ON the
+  victim, screen-aligned, `curve` `bite` teeth / `pincer` fangs / `gore` tusks /
+  `claw` rakes / `kick` hoof; never a borrowed `thrust`/`swing` on an animal,
+  and `strike` `bite`/`pincer` hard-fail since `plan-natural-weapons.md` C2);
+  a `projectile` (a volley or a spit, ALONE - the arrival needs no
   layer); a `beam` (`extend` a tongue of flame, `flash` a bolt); or a `wave`
   (`on: fired` only, `ms` + `count` 1-3 rings from the caster to the skill's
   reach, for an AoE stomp). A non-damaging aura or cooldown dresses its own
@@ -172,8 +173,8 @@ the bottom. Trust the code over the manual if a path has drifted.
   `effectCategories`, `costKeys`, the categories, the top-level key list, and
   the nine VFX lists `visualKinds`, `visualTriggers`, `visualKeys`,
   `visualTriggersByKind`, `visualCurves` - keyed BY KIND since C2a, because a
-  strike curves `thrust`/`swing`/`overhead`/`bite`/`pincer`, a beam `flash`/`extend` and
-  a wave not at all - `visualMotions`, and since C3b `visualTriggersByCategory`,
+  strike curves `thrust`/`swing`/`overhead`, a maul `bite`/`pincer`/`gore`/`claw`/`kick`,
+  a beam `flash`/`extend` and a wave not at all - `visualMotions`, and since C3b `visualTriggersByCategory`,
   `visualCountMaxByKind`, `visualAppliedEffectTypes`, which the editor's
   pickers read): the golden test fails
   until you run `UPDATE_SKILL_VOCABULARY=1 go test -count=1

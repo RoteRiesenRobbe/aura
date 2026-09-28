@@ -188,7 +188,7 @@ phase fields. `MobJuice.ts` plays the hit sounds. `AuraRings.ts` and
 
 ## 4. The vocabulary (D4)
 
-### 4.1 Eight kinds
+### 4.1 Nine kinds
 
 | Kind | Trigger | What moves | Placeholder body |
 | --- | --- | --- | --- |
@@ -220,6 +220,15 @@ natural-weapon attack gets its own kind, the only one that draws nothing.
 | Kind | Trigger | What moves | Placeholder body |
 | --- | --- | --- | --- |
 | `lunge` | hit / applied | the ATTACKER's own token jabs a fixed distance toward the victim and snaps back, translation only; plays at density `off` and sits outside the Fx budget | none (an existing sprite moves) |
+
+⚑ **AMENDED 2026-09-28, nine** (`plan-natural-weapons.md` §3.3, PO D10 +
+D11): the natural weapon's mark on the victim gets its own kind, and `strike`
+loses `bite` and `pincer` (it is a held weapon again; a file that still
+authors either hard-fails at load, naming the `maul`).
+
+| Kind | Trigger | What moves | Placeholder body |
+| --- | --- | --- | --- |
+| `maul` | hit / applied | a mark ON the victim, centred on it and SCREEN-ALIGNED (it reads nothing of the attacker); `curve` picks the mark: `bite`, `pincer`, `gore`, `claw`, `kick`; hidden at density `off`, inside the Fx budget | two rows of teeth, a fang pair, two gashes, three rakes, a hoof print |
 
 ### 4.2 Layers, triggers, bodies, palette
 

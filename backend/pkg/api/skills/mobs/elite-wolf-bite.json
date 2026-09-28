@@ -7,7 +7,7 @@
   "visual": {
     "layers": [
       { "kind": "lunge", "on": "hit", "ms": 220 },
-      { "kind": "strike", "on": "hit", "body": "wolf-jaw", "curve": "bite", "ms": 200 }
+      { "kind": "maul", "on": "hit", "body": "wolf-jaw", "curve": "bite" }
     ]
   },
   "effects": [

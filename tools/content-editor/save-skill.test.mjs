@@ -256,7 +256,7 @@ export function selfTestFindings() {
   // --- saveSkillVisual (plan-skill-vfx.md §12f.5 C3b): the Mobs tab's narrow
   // route. It writes ONE key of ONE mob-embedded skill, so the path guard is
   // api/skills/mobs/<slug>.json and nothing else ---
-  const LAYER = { kind: 'strike', on: 'hit', body: 'wolf-jaw', curve: 'bite', ms: 210 };
+  const LAYER = { kind: 'maul', on: 'hit', body: 'wolf-jaw', curve: 'bite', ms: 210 };
   {
     const root = tempTree();
     const deps = { root, validateCandidate: fakeSeam({ ok: true, findings: [] }) };

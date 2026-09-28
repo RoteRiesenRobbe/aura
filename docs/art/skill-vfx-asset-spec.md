@@ -8,6 +8,11 @@
 > This file is the **artist-facing contract**: if a committed PNG follows
 > every rule here, it draws in-game with zero code negotiation.
 >
+> **Amended 2026-09-28** (`../archive/plan-natural-weapons.md` C2, PO rulings D10 and
+> D11): an animal's bite, fangs, tusks, claws and hoof are `maul` bodies drawn
+> ON the victim, screen-aligned, and `wolf-jaw` is the front-view upper row of
+> teeth (§4). The `strike` is a held weapon only.
+>
 > **What is settled:** the file-name link, the folder, the script, the colour
 > rule, the orientation and anchor per kind, the reserved frame naming.
 > **What is open:** every canvas size in §4 is **[PLACEHOLDER]** until the
@@ -25,15 +30,22 @@
 
 A skill's look is authored in JSON as a short list of **layers**. Each layer
 names a **kind** (what moves) and, optionally, a **body** (the picture that
-moves). There are **seven places a PNG can go**, listed in §4.
+moves). There are **eight places a PNG can go**, listed in §4.
 
 One rule underneath all of them, and it is the reason the list is short
 (`../plan-skill-vfx.md` §12g, PO 2026-09-21): **an attack is always drawn from
 the ATTACKER, facing the enemy** - a held weapon, a flying missile, a stretched
-beam, a pair of jaws, a spreading wave. The other half of a hit, the round mark
-that lands ON the victim, is **drawn by the engine** on every landed damage
-hit, coloured by the damage type. **Nobody draws that mark and no skill file
-authors it** (§5).
+beam, a spreading wave. The other half of a hit, the round mark that lands ON
+the victim, is **drawn by the engine** on every landed damage hit, coloured by
+the damage type. **Nobody draws that mark and no skill file authors it** (§5).
+
+⭐ **One exception, the natural weapons** (`../archive/plan-natural-weapons.md`, PO
+2026-09-27/28). A wolf, a boar or a bear holds nothing, so its attack is its
+own token jabbing at the victim (code, nothing to draw), and its weapon's MARK
+is drawn **on the victim**: teeth snapping shut, fangs, tusk gashes, claw
+rakes, a hoof print (the `maul`). That mark is screen-aligned, the same way up
+whichever side the hit came from, and it is art: `wolf-jaw` and `spider-fang`
+are maul bodies.
 
 Two sentences carry the whole contract:
 
@@ -112,19 +124,23 @@ really for: wards and heal motes.
 
 ---
 
-## 4. The seven body uses, and how each PNG is used
+## 4. The eight body uses, and how each PNG is used
 
 Canvas sizes are **[PLACEHOLDER]** until the pilot is judged. `px` here means
 pixels in the source file; on-screen size is the code's business, not the
 art's (see §5).
 
-Every row here is drawn **from the attacker**. There is no victim-anchored row
-any more: the mark on the victim is the engine's (§5).
+Every row here is drawn **from the attacker**, except the `maul` rows: those
+are the natural weapon's mark drawn ON the victim, screen-aligned (§1). The
+round hit mark on the victim is still the engine's (§5).
 
 | Kind | How the PNG is used | Rule for the drawing | Canvas [PLACEHOLDER] |
 | --- | --- | --- | --- |
 | `strike` | held in the hand, scaled so its LENGTH equals the skill's reach | points right, **grip at the left edge**, vertically centred | 128 × 32 |
-| `strike` `bite` | ONE jaw, drawn twice (the second mirrored), **hinged on the victim's rim** (the point nearest the attacker) and closing toward the victim's centre, sized to the VICTIM, not the reach | the **upper** jaw, **hinge at the left edge**, snout pointing right, teeth pointing down, **bite line on the bottom edge** | 128 × 48 |
+| `maul` `bite` | ONE row of teeth, drawn twice (the second mirrored): a row ABOVE the victim's centre and one BELOW it, closing onto the centre; **the same way up whatever side the bite came from**; sized to the VICTIM (the row is 1.6 × its radius wide) | the **upper row seen from the front**, teeth pointing DOWN, **anchor bottom-centre**, **bite line on the bottom edge**, mirror-symmetric left to right | 128 × 44 |
+| `maul` `pincer` | ONE fang, drawn twice (the second mirrored): **hinged on the victim's rim at screen left and screen right**, both gaping toward the top and swinging down until the points meet on the centre; the fang is as long as the victim's radius | ONE fang, **hinge at the bottom-left corner**, point to the right, **bite line on the bottom edge** | 96 × 40 |
+| `maul` `gore` / `claw` | ONE stroke (a tusk gash, a claw rake), drawn two or three times side by side on a fixed diagonal ON the victim, each growing out of its left edge | points right, **starts at the left edge**, vertically centred | 128 × 32 |
+| `maul` `kick` | ONE hoof print, centred on the victim, upright, punched in with a small pop | upright, centred | 64 × 64 |
 | `orbit` (held) | the same picture, circling the caster | same as `strike` | 128 × 32 |
 | `projectile` | flies caster to victim, rotated to the travel direction | points right, centred | 96 × 24 |
 | `beam` | STRETCHED between caster and victim, as thick as the layer's `width` | must survive being pulled long: no detail that reads as squashed | 64 × 16 |
@@ -149,39 +165,54 @@ the proportions you draw are the proportions on screen.
   left edge = the hand                   points RIGHT (+X)
 ```
 
-**`strike` with `curve: bite`** - the jaws of an animal, and the one row where
-the engine uses your drawing twice. You draw **one jaw, the upper one**, snout
-pointing right, teeth pointing DOWN, and the **bite line is the bottom edge**
-of the canvas. The **hinge is the bottom-left corner**: that corner never
-moves. Since the RIM BITE (PO 2026-09-23, `plan-skill-vfx.md` §12h) it sits on
-the VICTIM's rim, at the point nearest the attacker, and the snout points
-along the attack line toward the victim's centre, so four wolves bite at four
-spots around one victim, each pair pointing back at its wolf. The engine takes
-a second copy, mirrors it in Y below the bite line, and rotates the pair about
-that corner from open to shut over the layer's `ms`. The jaw is scaled
-uniformly to the VICTIM's size ([PLACEHOLDER] 1.4 × its radius, never under
-40 px), not to the skill's reach, so it reads as a short bite rather than a
-crocodile. Nothing may hang below the bite line, and nothing may sit left of
-the hinge.
+**`maul` with `curve: bite`** - the teeth of an animal, drawn ON its victim,
+and one of the two rows where the engine uses your drawing twice (D11, PO
+2026-09-28; the reference is the Pokemon "Bite": two white rows biting down on
+the target). You draw **one row, the upper one, seen from the FRONT**: teeth
+pointing DOWN, and the **bite line is the bottom edge** of the canvas. The
+engine holds it by its **bottom-centre**, puts it above the victim's centre,
+takes a second copy mirrored in Y for the lower row below the centre, and
+moves the two together until the bite lines meet. It is **screen-aligned**:
+the rows are always above and below, never turned toward the wolf (the wolf's
+own jab says who bit). The row is scaled uniformly to the VICTIM (1.6 × its
+radius wide, [PLACEHOLDER]), never to the reach. Keep it **symmetric left to
+right**: the engine does not mirror it that way, and a lopsided row bites
+off-centre. Nothing may hang below the bite line.
 
 ```
-  HINGE (bottom-left corner)            snout points RIGHT (+X)
-   |                                              |
-   v                                              v
   +------------------------------------------------+
-  |  \      /\      /\     /\    /\   /\  /\   /\  |   upper jaw,
-  |   \    /  \    /  \   /  \  /  \ /  \/  \ /  \ |   teeth pointing DOWN
+  |  ~~~~~~~~~~~~~~~~~~~~ gum ~~~~~~~~~~~~~~~~~~~~  |
+  |   v   V   v  v  v  v  v  v   V   v             |   upper row, front view,
+  |       V                      V                 |   teeth pointing DOWN
   +------------------------------------------------+  <- BITE LINE = bottom edge
-   ^
-   the engine mirrors the whole canvas below this line
-   and swings both halves about the hinge until they meet
+                          ^
+                ANCHOR = bottom-centre
 
-  open                               shut
-   \                                  ___
-    \___                             /###\      <- over the victim
-    /###                             \___/
-   /                                  ---
+  the engine mirrors the canvas for the lower row and moves
+  the two rows together until the bite lines meet on the centre
+
+      open                          shut
+   v V v v v v V v
+                                 v V v v v v V v
+       (victim)                  ^ A ^ ^ ^ ^ A ^
+   ^ A ^ ^ ^ ^ A ^
 ```
+
+**`maul` with `curve: pincer`** - the spider's fangs, the other doubled row.
+You draw **one fang**, the point to the right, the **bite line on the bottom
+edge** and the **hinge at the bottom-left corner**, which never moves. The
+engine hinges one copy on the victim's rim at the screen's LEFT and a mirrored
+copy at its RIGHT, both gaping toward the TOP of the screen, and swings them
+down until the points meet on the victim's centre. Scaled so the fang is as
+long as the victim's radius. Nothing may sit left of the hinge.
+
+**`maul` with `curve: gore` or `claw`** - ONE stroke: a tusk gash for `gore`,
+drawn twice side by side; a claw rake for `claw`, drawn three times, one after
+the other. Point it right and start it at the left edge: the engine lays the
+strokes on a fixed diagonal across the victim and grows each out of its left
+edge. **`maul` with `curve: kick`** - one hoof print, upright and centred; the
+engine punches it in with a small pop. No body exists for these three yet, and
+each draws a code placeholder until one does (§7).
 
 **`projectile`** - rotated to point along its flight path, so it must point
 right when unrotated. The canvas centre is the point the engine moves.
@@ -240,9 +271,8 @@ it is a silhouette, not a drawing: a cross, a mote, a snowflake, an ember.
 - **Transparent margin is a cost, not free space.** It still rasterizes. Fill
   the canvas.
 - **On-screen size is not yours to compensate for.** A `strike` or a held
-  `orbit` is scaled *uniformly* to the skill's reach, a jaw pair reaches from
-  the attacker to the victim by the same rule, a `beam` is stretched in X
-  alone. Draw the thing at the canvas size in §4 and let the engine place it.
+  `orbit` is scaled *uniformly* to the skill's reach, a `maul` body uniformly
+  to its VICTIM's size, a `beam` is stretched in X alone. Draw the thing at the canvas size in §4 and let the engine place it.
 - The canvas sizes in §4 are the pilot's question. `pipeline.md` §3.1's rule
   of thumb is "export at least twice the drawn size", and a long weapon can
   draw at 168 px on screen, so 128 px may prove too small. That is exactly
@@ -255,9 +285,9 @@ it is a silhouette, not a drawing: a cross, a mote, a snowflake, an ember.
 Recorded so nobody draws something the engine already owns, or waits for
 something that is free.
 
-**Code owns the motion.** `thrust`, `swing`, `overhead`, `bite` and `pincer` for a
-strike; `flash` and `extend` for a beam; `swirl`, `rise` and `burst` for
-particles. These are curves in the renderer. Asking for a different one is an
+**Code owns the motion.** `thrust`, `swing` and `overhead` for a strike;
+`bite`, `pincer`, `gore`, `claw` and `kick` for a maul; `flash` and `extend`
+for a beam; `swirl`, `rise` and `burst` for particles. These are curves in the renderer. Asking for a different one is an
 engineering request, and a small one.
 
 **Art owns the picture.** Everything in §4.
@@ -342,16 +372,16 @@ screen; the PO's ordering wins over it. "Placed" counts below are placements in
 | Body | Kind | Who would use it | Layers | Priority |
 | --- | --- | --- | --- | --- |
 | `sword` | `strike` (`thrust` + `swing`) | Damage, Berserker, Paladin, Spearhead, Vanguard, Warbanner, Wild, Reaper, KoboldStab, CompanionAura, BanditBlades, EliteBanditSlash, GruntSlash, OrcCleave, SoldierBlades | 15 | **P0** |
-| `wolf-jaw` | `strike` / `bite` | WolfBite (Wolf, DireWolf, AlphaWolf), EliteWolfBite - 187 placements, the most-drawn attack in the game after the sword | 2 | **P0** |
+| `wolf-jaw` | `maul` / `bite` | WolfBite (Wolf, DireWolf, AlphaWolf), EliteWolfBite - 187 placements, the most-drawn attack in the game after the sword | 2 | **P0** |
 | `arrow` | `projectile` | LongRangeStrike, BanditVolley, KoboldVolley, Suppression | 4 | **P0** |
 | `bow` | `cast-pose` | LongRangeStrike, BanditVolley, KoboldVolley | 3 | **P0** |
 | `maul` | `strike` / `overhead` | TrollSmash, WarlordCleave | 2 | P1 |
 | `ward-shard` | `orbit` (ambient, **white for tinting**) | Aegis, FireWard, FireVulnerability, Venomward, RallyDrum, WarbannerShield | 6 | P1 |
 | `heal-cross` | `emitter` / `rise` (**white for tinting**) | Heal, Lifewarden, Rejuvenation, BanditHeal, HealerAura (the small-mote layer of each pair) | 5 | P1 |
 | `venom-glob` | `projectile` | VenomSpit, GiantVenomSpit, **PoisonPoolAura** (new: the pool spits a glob instead of marking its victims) - 26 placements | 3 | P1 |
-| `spider-fang` | `strike` / `bite` | GiantVenomSpit - GiantSpider, 5 placements (a generated WHITE placeholder ships since C3a-ii, authored with `tint: "#ffffff"`); SpiderBite (Spider, 17 placements) still draws the bodiless jaw placeholder and could share it | 1 | P1 |
-| `tusk` (was `boar-tusk`) | `strike` / `thrust` | BoarGore - Boar, 58 placements. Also the two retired mammoth auras, should they ever be placed again | 1 | P1 ⬆ |
-| `claw` (was `bear-claw`) | `strike` / `swing` | BearSwipe - Bear + DireBear, 24 placements | 1 | P1 ⬆ |
+| `spider-fang` | `maul` / `pincer` | GiantVenomSpit - GiantSpider, 5 placements (a generated WHITE placeholder ships since C3a-ii, authored with `tint: "#ffffff"`). SpiderBite (Spider, 17 placements) is a `maul` `bite` since natural-weapons C2 and draws the code-drawn teeth | 1 | P1 |
+| `tusk` (was `boar-tusk`) | `maul` / `gore` (one gash, drawn twice) | BoarGore, AlphaBoarGore - Boar, 58 placements. (The two retired mammoth auras still `thrust`, should they ever be placed again) | 1 | P1 ⬆ |
+| `claw` (was `bear-claw`) | `maul` / `claw` (one rake, drawn three times) | BearSwipe - Bear + DireBear, 24 placements | 1 | P1 ⬆ |
 | `axe` | `orbit` (fired) | WhirlingAxes | 1 | P1 |
 | `flame-pillar` | `beam` / `extend` (**stretches in X**) | **FireElementalAura, EmberAura, FireTotemAura** (new: a tongue of flame reaching each victim), OmniAura - 8 placements plus the summoned fire totem | 4 | P2 ⬆ |
 | `ember` | `emitter` / `rise` | CampfireAura, CampAura, Lantern | 3 | P2 |
@@ -371,7 +401,7 @@ screen; the PO's ordering wins over it. "Placed" counts below are placements in
 | `emitter` / `rise` mist (the wide half of each heal and campfire pair) | 7 | A soft cloud, not a shape. |
 | `beam` / `flash`, the lightning | 3 | Procedural on purpose and final (§5). LightningStrike, plus TotemAura's bolt and BombBurst's blast reach, both new under the amendment. |
 | `wave`, the expanding rings | 1 | Code-drawn for good (§5). AngryMammothStomp today. |
-| Attacks with no body wanted yet | 6 | StagKick and SpikeBarricadeAura thrust with the placeholder weapon (see the open call in §11 item 4); SaberToothCatAura's bite, DodoAura's peck and the two mammoth tusk auras belong to mobs retired in 2026-08 - the skill files survive by rule, but nothing in the world casts them. |
+| Attacks with no body wanted yet | 6 | StagKick draws the code-drawn hoof (`maul` `kick`) and SpikeBarricadeAura thrusts with the placeholder weapon (see §11 item 4); SaberToothCatAura's bite (a `maul` `bite` now), DodoAura's peck and the two mammoth tusk auras belong to mobs retired in 2026-08 - the skill files survive by rule, but nothing in the world casts them. |
 
 ### Notes on the grouping
 
@@ -379,14 +409,14 @@ screen; the PO's ordering wins over it. "Placed" counts below are placements in
   motion, the PNG is the picture, so one blade is genuinely one look, and the
   two curves already read differently on screen. `spear` is the first split to
   make if the stabbing skills want their own silhouette.
-- ⭐ **Animals moved UP, because the amendment hands them a weapon.** Before
-  the ruling a bear's swipe and a boar's gore were victim-side marks that
-  needed no art to look acceptable. They are attacks now, and an attack with
-  no body draws the *style's placeholder weapon*: a boar gores with a spear
-  and a bear swipes with a blade until `tusk` and `claw` exist. That is why
-  both rose a priority band. The jaws do **not** have the same problem: `bite`
-  has its own placeholder (a tapered wedge pair with teeth), so `wolf-jaw` and
-  `spider-fang` keep the priority their placement counts earn them.
+- ⭐ **Animals moved UP, because the amendment handed them a weapon**, and the
+  natural weapons took it away again (`../archive/plan-natural-weapons.md`, 2026-09-27
+  and 28). Under the amendment a boar gored with a placeholder spear and a
+  bear swiped with a blade, which is why `tusk` and `claw` rose a priority
+  band. Since then an animal's token jabs at its victim and its mark is a
+  `maul` ON the victim, each with its own code placeholder (teeth rows, fangs,
+  gashes, rakes, a hoof), so nothing draws a borrowed weapon any more. The
+  band is kept for placement counts, not for a wrong-looking weapon.
 - **Naming rule, so the ids stop churning:** a look used by ONE species keeps
   the species in its name (`wolf-jaw`, `spider-fang`); a look that merges
   several drops it (`sword`, `tusk`, `claw`). `bear-claw` → `claw` and
@@ -411,18 +441,20 @@ Engineering ships three deliberately plain PNGs under the names `sword`,
 `arrow` and `wolf-jaw`, generated by a checked-in script, so the whole path is
 seen working in-game before any real art exists. **The artist overwrites those
 three under the same names**, and nothing else changes. A fourth,
-`spider-fang` (96 × 40, one plain white hooked fang on the `wolf-jaw` hinge
-contract), was added by the same script for the Giant Spider's bite (C3a-ii,
+`spider-fang` (96 × 40, one plain white hooked fang, hinged at its bottom-left
+corner), was added by the same script for the Giant Spider's bite (C3a-ii,
 §12h): the PO asked for "two big white fangs", and `-validate` refuses a body
 the folder does not hold, so the look needed a real file before its art.
 
-They are picked to cover the three anchor rules in one go: grip-at-left with
-uniform scaling (`sword`), centred-and-rotated (`arrow`), and the mirrored jaw
-hinged at its bottom-left corner with its bite line on the bottom edge
-(`wolf-jaw`). Getting those three right proves the contract for every row in
-§4. They ship at the §4 sizes as drawn: `sword` 128 × 32, `arrow` 96 × 24,
-`wolf-jaw` **128 × 48** (the amendment turned the jaw from a box into a
-tapering snout that reaches over the victim, so it grew).
+They are picked to cover the anchor rules in one go: grip-at-left with uniform
+scaling (`sword`), centred-and-rotated (`arrow`), the mirrored row of teeth
+held by its bottom-centre (`wolf-jaw`), and the mirrored fang hinged at its
+bottom-left corner (`spider-fang`). Getting those right proves the contract
+for every row in §4. They ship at the §4 sizes as drawn: `sword` 128 × 32,
+`arrow` 96 × 24, `wolf-jaw` **128 × 44**. ⚑ `wolf-jaw` has been redrawn
+twice: a box, then a tapering snout in profile for the rim bite (128 × 48),
+and since natural-weapons C2 the **front-view upper row** (128 × 44, D11). A
+drawing started under either older contract is void.
 
 **The pilot's job is to lock the §4 canvas sizes.** After the PO looks at the
 three in-game, the sizes that worked are recorded in §4, the [PLACEHOLDER]
@@ -437,8 +469,10 @@ the sizes; that is what a pilot is for.
 2. The canvas matches its row in §4 (or the pilot's recorded size, once §4 is
    locked).
 3. Orientation and anchor match the row's diagram: points right, grip at the
-   left edge for a weapon, **hinge at the left edge** and bite line on the
-   bottom edge for a jaw, centred for everything else. **Nothing pre-rotated.**
+   left edge for a weapon or a maul stroke; a row of teeth seen from the
+   front, **bite line on the bottom edge** and symmetric about its middle;
+   a fang with its **hinge at the bottom-left corner** and bite line on the
+   bottom edge; centred for everything else. **Nothing pre-rotated.**
 4. Full colour, or deliberately near-white because it is meant to be tinted.
    Say which in the commit message.
 5. The file name is lowercase with hyphens, and contains **no underscore**.
@@ -485,7 +519,12 @@ the sizes; that is what a pilot is for.
    and a `spike` (two more P2/P3 rows), give `thrust` a neutral non-weapon
    placeholder, or leave it, on the grounds that a fast spear-shaped streak
    reads as "something hit you" and nobody looks for a hoof. Same question in a
-   milder form for `tusk` and `claw` until those two land.
+   milder form for `tusk` and `claw` until those two land. ⭐ **The stag's half
+   is answered** by natural-weapons C2 (`../archive/plan-natural-weapons.md`): the stag
+   lunges and its mark is the `maul` `kick`, a code-drawn hoof print, so it
+   holds no spear; a `hoof` PNG would now be an optional maul body. The boar
+   and the bear are answered the same way (`gore`, `claw`). SpikeBarricadeAura
+   is a place, not an animal, and still thrusts.
 5. **The untinted frost swirls** (`Frostbite`, `Hoarfrost`, §3). They carry an
    authored `tint` rather than the palette's frost, so a coloured PNG on them
    would fight the authored colour. A content question more than an art one,

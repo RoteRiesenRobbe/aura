@@ -521,7 +521,8 @@
     "cast-pose",
     "orbit",
     "emitter",
-    "lunge"
+    "lunge",
+    "maul"
   ],
   "visualTriggers": [
     "ambient",
@@ -564,6 +565,15 @@
       "on",
       "ms",
       "scale"
+    ],
+    "maul": [
+      "kind",
+      "on",
+      "body",
+      "tint",
+      "scale",
+      "ms",
+      "curve"
     ],
     "orbit": [
       "kind",
@@ -621,6 +631,10 @@
       "hit",
       "applied"
     ],
+    "maul": [
+      "hit",
+      "applied"
+    ],
     "orbit": [
       "fired",
       "ambient"
@@ -642,12 +656,17 @@
       "flash",
       "extend"
     ],
+    "maul": [
+      "bite",
+      "pincer",
+      "gore",
+      "claw",
+      "kick"
+    ],
     "strike": [
       "thrust",
       "swing",
-      "overhead",
-      "bite",
-      "pincer"
+      "overhead"
     ]
   },
   "visualMotions": [

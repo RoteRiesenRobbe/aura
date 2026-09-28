@@ -1,5 +1,5 @@
 /**
- * The eight AUTHORABLE motion kinds (plan-skill-vfx.md §4.1) and the registry
+ * The nine AUTHORABLE motion kinds (plan-skill-vfx.md §4.1) and the registry
  * that IS the closed vocabulary. A kind is ENGINE code: a new one is a plan
  * amendment, not content, which is why SkillFxKinds.test.ts pins this
  * registry's key set against api/skill-vocabulary.json's `visualKinds` in BOTH
@@ -9,14 +9,15 @@
  * LEFT the authoring vocabulary: the round hit mark is the ENGINE'S own and no
  * skill file names it, so {@link ImpactFx} is still here but is kept OUT of
  * the registry, under {@link HIT_MARK_KIND}, and {@link kindHandler} answers
- * for it by name. `wave` joined in its place (the mammoth's stomp), and the
- * wolf's bite became a `strike` curve drawn from the BITER. `lunge` made it
- * eight (plan-natural-weapons.md §3.1): the one kind that draws nothing and
- * moves the attacker's own token instead, through {@link FxAnchor.nudge}.
+ * for it by name. `wave` joined in its place (the mammoth's stomp). `lunge`
+ * made it eight (plan-natural-weapons.md §3.1): the one kind that draws
+ * nothing and moves the attacker's own token instead, through
+ * {@link FxAnchor.nudge}. `maul` made it nine (§3.3): the natural weapon's mark
+ * ON the victim, which took the bite and the pincer back from the `strike`.
  *
  * Kinds know nothing about entities: the manager hands them anchors that
  * answer "where is this now" and "is it still on the stage", which is what
- * makes both entity rules the manager's and not eight copies of one:
+ * makes both entity rules the manager's and not nine copies of one:
  *
  * - a `projectile` or a `beam` FINISHES toward the last known position (a bolt
  *   in flight does not vanish when its target dies), and
@@ -42,11 +43,6 @@ import {
     beamExtend,
     beamFlash,
     beamSpriteScale,
-    BITE_MIN_LENGTH_PX,
-    biteHingePoint,
-    biteJawScale,
-    biteLengthPx,
-    pincerHingePoints,
     PROJECTILE_SIZE_FACTOR,
     landsOnVictim,
     STRIKE_MIN_LENGTH_PX,
@@ -73,6 +69,13 @@ import {
     lungeDistancePx,
     lungeShare,
     lungeTotalMsOf,
+    MAUL_PART_LENGTH,
+    MAUL_PARTS,
+    MaulCurve,
+    maulCurveOf,
+    maulPhase,
+    maulSizePx,
+    maulTotalMsOf,
     orbitAlpha,
     orbitPoint,
     overheadSide,
@@ -91,7 +94,11 @@ import {
     drawHammerPlaceholder,
     drawHitMarkPlaceholder,
     drawHeldAxePlaceholder,
-    drawStrikeJawPlaceholder,
+    drawMaulFangPlaceholder,
+    drawMaulGashPlaceholder,
+    drawMaulHoofPlaceholder,
+    drawMaulRakePlaceholder,
+    drawMaulTeethRowPlaceholder,
     drawOrbitWedgePlaceholder,
     drawParticlePlaceholder,
     drawProjectilePlaceholder,
@@ -100,9 +107,9 @@ import {
     resolveBody,
 } from './SkillFxBodies';
 
-/** The eight AUTHORABLE names, in the fixture's order. */
+/** The nine AUTHORABLE names. */
 export const VISUAL_KINDS = [
-    'strike', 'projectile', 'beam', 'cast-pose', 'orbit', 'emitter', 'wave', 'lunge',
+    'strike', 'projectile', 'beam', 'cast-pose', 'orbit', 'emitter', 'wave', 'lunge', 'maul',
 ] as const;
 
 export type VisualKind = typeof VISUAL_KINDS[number];
@@ -401,9 +408,8 @@ const STRIKE_HAND_OFFSET = 0.6;
  * the weapon tracks both and finishes toward the last known position of
  * whichever of them despawns first. The body is drawn once.
  *
- * ⭐ The `bite` is the exception (§12h call 3, the RIM BITE): not a weapon in
- * a hand but a pair of jaws at the VICTIM's rim, on the point nearest the
- * attacker, sized to the victim (`biteLengthPx`), never to the reach.
+ * (The rim bite and the pincer it drew until plan-natural-weapons.md C2 are
+ * the `maul`'s now: a strike is only ever a held weapon.)
  */
 class StrikeFx implements Fx {
     private readonly g: Container;
@@ -415,36 +421,19 @@ class StrikeFx implements Fx {
     /** the swing's alternating side; an overhead latches its own at first draw */
     private sweepDirection: number;
     private sideLatched = false;
-    /**
-     * A `bite`'s second jaw: the SAME body mirrored in y (§12g.2). Null for
-     * every other curve, which is how `update` knows which geometry it is in.
-     */
-    private lowerJaw: Container | null = null;
 
     constructor(private readonly ctx: FxSpawnContext) {
         this.curve = strikeCurveOf(ctx.def.curve);
         this.totalMs = strikeTotalMsOf(ctx.def.curve, ctx.def.ms);
         const handPx = ctx.source.radiusPx * STRIKE_HAND_OFFSET;
-        this.lengthPx = this.curve === 'bite' || this.curve === 'pincer'
-            ? biteLengthPx(ctx.victim.radiusPx, BITE_MIN_LENGTH_PX)
-            : Math.max(
-                STRIKE_MIN_LENGTH_PX,
-                ctx.reachPx > 0
-                    ? ctx.reachPx - handPx
-                    : ctx.source.radiusPx * STRIKE_FALLBACK_LENGTH_FACTOR);
+        this.lengthPx = Math.max(
+            STRIKE_MIN_LENGTH_PX,
+            ctx.reachPx > 0
+                ? ctx.reachPx - handPx
+                : ctx.source.radiusPx * STRIKE_FALLBACK_LENGTH_FACTOR);
         this.sweepDirection = swingDirection(ctx.seed);
         const texture = bodyTextureFor(ctx.def);
-        if (this.curve === 'bite' || this.curve === 'pincer') {
-            // ONE jaw body drawn TWICE, the second mirrored through the bite
-            // line, both hinged on the victim's rim (§12h). The scale
-            // carries the mirror, so it is set ONCE here and `update` never
-            // touches it - the generic path below would wipe the negative y.
-            this.g = this.jaw(texture, false);
-            this.lowerJaw = this.jaw(texture, true);
-            this.bodyScale = 1;
-            this.lowerJaw.visible = false;
-            ctx.layer.addChild(this.lowerJaw);
-        } else if (texture !== null) {
+        if (texture !== null) {
             const sprite = acquireSprite('strike', texture);
             // The GRIP is the hand: left edge, vertically centred (§12f.4 A).
             sprite.anchor.set(0, 0.5);
@@ -474,35 +463,6 @@ class StrikeFx implements Fx {
         const to = this.ctx.victim.point();
         const aim = angle(from, to);
         const handPx = this.ctx.source.radiusPx * STRIKE_HAND_OFFSET;
-        if (this.lowerJaw !== null) {
-            if (this.curve === 'pincer') {
-                // The pincer (PO look 2026-09-23): a fang on EACH side of the
-                // victim, hinged on the rim perpendicular to the attack line,
-                // pointing inward; both gape back toward the attacker by the
-                // open angle and swing in to meet at the centre.
-                const p = pincerHingePoints(from, to, this.ctx.victim.radiusPx);
-                this.g.position.set(p.left.x, p.left.y);
-                this.lowerJaw.position.set(p.right.x, p.right.y);
-                this.g.rotation = p.leftInward + phase.angleOffset;
-                this.lowerJaw.rotation = p.rightInward - phase.angleOffset;
-            } else {
-                // The rim bite (§12h call 3): both jaws hinge on the SAME point,
-                // the victim's rim nearest the attacker, re-read per frame because
-                // the victim moves, and gape symmetrically about the attack line
-                // toward the victim's centre. `angleOffset` is the open angle
-                // rather than a sweep, so `sweepDirection` stays out of it.
-                const hinge = biteHingePoint(from, to, this.ctx.victim.radiusPx);
-                this.g.position.set(hinge.x, hinge.y);
-                this.lowerJaw.position.set(hinge.x, hinge.y);
-                this.g.rotation = aim - phase.angleOffset;
-                this.lowerJaw.rotation = aim + phase.angleOffset;
-            }
-            this.g.alpha = phase.alpha;
-            this.lowerJaw.alpha = phase.alpha;
-            this.g.visible = true;
-            this.lowerJaw.visible = true;
-            return true;
-        }
         // An overhead is raised toward the top of the screen. Latched once: a
         // victim crossing the vertical mid-swing must not flip the hammer.
         if (this.curve === 'overhead' && !this.sideLatched) {
@@ -521,32 +481,6 @@ class StrikeFx implements Fx {
         return true;
     }
 
-    /**
-     * One jaw of a `bite`, already the right size and the right way up.
-     *
-     * With art: the artist's UPPER jaw, hinge on the left edge and bite line on
-     * the bottom one, so the anchor is (0, 1) and the lower jaw is the same
-     * texture with a negated y scale (§12g.2). Without: two tapered wedges of
-     * teeth, palette-tinted, drawn to the same geometry so the motion tuned on
-     * one reads the same on the other.
-     */
-    private jaw(texture: Texture | null, lower: boolean): Container {
-        if (texture !== null) {
-            const sprite = acquireSprite('strike', texture);
-            sprite.anchor.set(0, 1);
-            const scale = biteJawScale(texture.width, this.lengthPx, lower);
-            sprite.scale.set(scale.x, scale.y);
-            sprite.tint = spriteTint(this.ctx.def);
-            return sprite;
-        }
-        const g = drawStrikeJawPlaceholder(
-            acquire('strike'), this.ctx.color, this.lengthPx * scaleOf(this.ctx.def));
-        if (lower) {
-            g.scale.set(1, -1);
-        }
-        return g;
-    }
-
     private draw(g: Graphics): Graphics {
         const thickness = Math.max(
             STRIKE_MIN_THICKNESS_PX, this.lengthPx * STRIKE_THICKNESS_RATIO) * scaleOf(this.ctx.def);
@@ -562,10 +496,6 @@ class StrikeFx implements Fx {
 
     dispose(): void {
         releaseBody('strike', this.g);
-        if (this.lowerJaw !== null) {
-            releaseBody('strike', this.lowerJaw);
-            this.lowerJaw = null;
-        }
     }
 }
 
@@ -1133,6 +1063,118 @@ class LungeFx implements Fx {
     }
 }
 
+// --- maul -------------------------------------------------------------------
+
+/**
+ * Where each curve's drawing is HELD, as a sprite anchor: the point a part's
+ * position names. The placeholders are drawn in the same frames.
+ */
+const MAUL_ANCHORS: Record<MaulCurve, { x: number, y: number }> = {
+    // Bottom-centre: the row's bite line, under the middle of the row (D11).
+    bite: {x: 0.5, y: 1},
+    // Bottom-left: the fang's hinge on its bite line (the spider-fang contract).
+    pincer: {x: 0, y: 1},
+    // Left edge, vertically centred: a stroke grows out of its start.
+    gore: {x: 0, y: 0.5},
+    claw: {x: 0, y: 0.5},
+    // Centred: the print pops about its middle.
+    kick: {x: 0.5, y: 0.5},
+};
+
+/**
+ * The natural weapon's mark ON the victim (plan-natural-weapons.md §3.3): two
+ * rows of teeth biting down, two fangs closing from either side, two tusk
+ * gashes, three claw rakes, a hoof print. It is the second moment of a natural
+ * weapon's attack; the attacker's `lunge` is the first.
+ *
+ * ⭐ SCREEN-ALIGNED (D10, PO 2026-09-28): it reads the victim's position and
+ * nothing of the attacker's, so it looks the same whichever side the hit came
+ * from. Re-read per frame, so the mark stays on a victim that walks away, and
+ * like the hit mark it finishes at the last known position of one that died.
+ *
+ * Each part is ONE body, a PNG or its placeholder, sized so the drawing's
+ * length is the curve's part length; the phase moves, turns, stretches and
+ * mirrors each part, one code path for both (§12f.4 D).
+ */
+class MaulFx implements Fx {
+    private readonly bodies: Container[] = [];
+    private readonly curve: MaulCurve;
+    private readonly totalMs: number;
+    /** one mark size in px: every part position is in these */
+    private readonly sizePx: number;
+    /** sizes an art body to its part length; 1 for a placeholder, drawn to it */
+    private readonly bodyScale: number;
+
+    constructor(private readonly ctx: FxSpawnContext) {
+        this.curve = maulCurveOf(ctx.def.curve);
+        this.totalMs = maulTotalMsOf(ctx.def.curve, ctx.def.ms);
+        this.sizePx = maulSizePx(ctx.victim.radiusPx, ctx.def.scale);
+        const lengthPx = this.sizePx * MAUL_PART_LENGTH[this.curve];
+        const texture = bodyTextureFor(ctx.def);
+        // ⭐ UNIFORM (§12f.2): the drawing's width becomes the part length and
+        // its aspect is kept; only the phase's `stretch` pulls it along x.
+        this.bodyScale = texture !== null ? spriteScaleToExtent(texture.width, lengthPx) : 1;
+        for (let i = 0; i < MAUL_PARTS[this.curve]; i++) {
+            let body: Container;
+            if (texture !== null) {
+                const sprite = acquireSprite('maul', texture);
+                const anchor = MAUL_ANCHORS[this.curve];
+                sprite.anchor.set(anchor.x, anchor.y);
+                sprite.tint = spriteTint(ctx.def);
+                body = sprite;
+            } else {
+                body = this.draw(acquire('maul'), lengthPx);
+            }
+            body.visible = false;
+            ctx.layer.addChild(body);
+            this.bodies.push(body);
+        }
+    }
+
+    update(nowMs: number): boolean {
+        const elapsed = nowMs - this.ctx.startAtMs;
+        if (elapsed < 0) {
+            return true;
+        }
+        const phase = maulPhase(this.curve, elapsed, this.totalMs);
+        if (phase.done) {
+            return false;
+        }
+        const at = this.ctx.victim.point();
+        phase.parts.forEach((part, i) => {
+            const g = this.bodies[i];
+            g.visible = part.alpha > 0;
+            g.position.set(at.x + part.x * this.sizePx, at.y + part.y * this.sizePx);
+            g.rotation = part.rotation;
+            g.scale.set(
+                this.bodyScale * part.stretch * part.scale,
+                this.bodyScale * part.scale * (part.mirrored ? -1 : 1));
+            g.alpha = part.alpha;
+        });
+        return true;
+    }
+
+    private draw(g: Graphics, lengthPx: number): Graphics {
+        switch (this.curve) {
+            case 'pincer':
+                return drawMaulFangPlaceholder(g, this.ctx.color, lengthPx);
+            case 'gore':
+                return drawMaulGashPlaceholder(g, this.ctx.color, lengthPx);
+            case 'claw':
+                return drawMaulRakePlaceholder(g, this.ctx.color, lengthPx);
+            case 'kick':
+                return drawMaulHoofPlaceholder(g, this.ctx.color, lengthPx);
+            default:
+                return drawMaulTeethRowPlaceholder(g, this.ctx.color, lengthPx);
+        }
+    }
+
+    dispose(): void {
+        this.bodies.forEach(body => releaseBody('maul', body));
+        this.bodies.length = 0;
+    }
+}
+
 // --- the registry -----------------------------------------------------------
 
 /**
@@ -1148,6 +1190,7 @@ export const KIND_REGISTRY: { [kind: string]: KindHandler } = {
     'emitter': {spawn: ctx => new EmitterFx(ctx)},
     'wave': {spawn: ctx => new WaveFx(ctx)},
     'lunge': {spawn: ctx => new LungeFx(ctx)},
+    'maul': {spawn: ctx => new MaulFx(ctx)},
 };
 
 const HIT_MARK_HANDLER: KindHandler = {spawn: ctx => new ImpactFx(ctx)};
