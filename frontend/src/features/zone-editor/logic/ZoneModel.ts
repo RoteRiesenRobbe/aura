@@ -148,6 +148,10 @@ export interface ZoneAnchor {
 export interface ZoneRegion {
     profile: string;
     points: { x: number, y: number }[];
+    // The place's name and the line under it (the region title banner,
+    // 2026-09-28). Carried like everything else here.
+    title?: string;
+    subtitle?: string;
 }
 
 // An open polyline stroked as a road or a river (plan-world-paths.md).
@@ -414,6 +418,8 @@ export class ZoneModel {
         model.regions = (data.regions || []).map(r => ({
             profile: r.profile,
             points: (r.points || []).map(p => ({...p})),
+            title: r.title,
+            subtitle: r.subtitle,
         }));
         model.paths = (data.paths || []).map(p => ({
             profile: p.profile,
@@ -620,6 +626,9 @@ export class ZoneModel {
                 ? this.regions.map(r => ({
                     profile: r.profile,
                     points: r.points.map(p => ({x: round(p.x, 2), y: round(p.y, 2)})),
+                    // Same omit rule as aura-convert.js serializeZone.
+                    title: r.title || undefined,
+                    subtitle: r.title && r.subtitle ? r.subtitle : undefined,
                 }))
                 : undefined,
             // ⚑ Named here or the whitelist eats it (L1) — the fourth time this

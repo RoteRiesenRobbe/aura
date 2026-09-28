@@ -478,6 +478,16 @@
                     "type": "string",
                     "propertyType": "AuraTerrainProfile",
                     "value": "(pick a profile)"
+                },
+                {
+                    "name": "title",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "subtitle",
+                    "type": "string",
+                    "value": ""
                 }
             ]
         },

@@ -320,6 +320,21 @@ footsteps and atmosphere are later consumers of the same region.
   and if one reaches the file by hand the save names the table it belongs to.
 - The in-game zone editor has **no region tool** — it carries regions through
   untouched, so a region drawn here survives an in-game save.
+- ⭐ **Naming a place: `title` and `subtitle`** (2026-09-28). Type a `title` on
+  a region and a player entering it sees that name big at the top of the screen,
+  with the `subtitle` in smaller text under it, for about three seconds. Leave
+  both blank (the default) for ordinary ground.
+  - The name is per REGION, not per profile: two `Forest` regions can be two
+    different woods.
+  - An unnamed region is see-through for names, like an undeclared property:
+    a small unnamed blob inside "Ashen Fields" still counts as Ashen Fields.
+    Where named regions overlap, the **last** one wins, as for everything else.
+  - Several regions with the same title and subtitle are ONE place: walking
+    from one into the next announces nothing.
+  - A subtitle with no title is refused at save (and by the server).
+  - Anti-spam: the name shows after about a second inside, and the same place
+    is not announced again for about two minutes [PLACEHOLDER numbers,
+    `RegionNames.ts`].
 
 ### Area effects — making a shape *do* something
 

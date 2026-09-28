@@ -587,6 +587,36 @@ else
 fi
 
 echo
+echo "REGION TITLES survive real Tiled (the region title banner, 2026-09-28)"
+# ⭐ Two FREE-TEXT members on AuraRegion, the first on that class besides its
+# enum. A titled region, a title-only one and an unnamed one side by side: the
+# unnamed one must grow no key, and the title-only one no subtitle.
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const tri = (n) => [{x: n, y: 0}, {x: n + 6, y: 0}, {x: n + 6, y: 6}];
+fs.writeFileSync("tools/tiled/.verify/region-titles.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    regions: [
+        {profile: "Fields", points: tri(-30), title: "The Farmlands", subtitle: "Where it began"},
+        {profile: "Forest", points: tri(-10), title: "Darkwood"},
+        {profile: "Swamp", points: tri(10)},
+    ],
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/region-titles.json \
+        "$(native "$ROOT/tools/tiled/.verify/region-titles-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/region-titles.json tools/tiled/.verify/region-titles-out.json; then
+    ok "byte-identical — title and subtitle survived, the unnamed region stayed unnamed"
+else
+    bad "region titles did not survive: $(cmp tools/tiled/.verify/region-titles.json \
+        tools/tiled/.verify/region-titles-out.json 2>&1 | head -1)"
+fi
+
+echo
 echo "a half-authored outline (a profile with no width)"
 node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");

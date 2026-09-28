@@ -4,6 +4,7 @@
 import {BackendValidTokenEvent, GameSetupEvent, PlayerCreatedEvent} from '../../../core/logic/Events';
 import * as Console from '../../console/logic/Console';
 import * as DarknessOverlay from '../../../darkness/logic/DarknessOverlay';
+import * as Regions from '../../../regions/logic/Regions';
 import {Player} from "../../../player/logic/Player";
 import {IGame} from "../../../core/logic/IGame";
 import {SkillEventData} from "../../../backend/logic/SkillEventNumbers";
@@ -38,6 +39,7 @@ function setup() {
         miniMap: undefined,
         layers: undefined,
         darkness: undefined,
+        regions: undefined,
         skillEvents: undefined,
         skillFx: undefined,
         skillFxMeasure: undefined,
@@ -114,6 +116,11 @@ function setup() {
         // internal-tools surface, read-only, exposed so the harness can ASSERT
         // rather than screenshot. Nothing in the game reads it back.
         consoleCommands.darkness = {isHidden: DarknessOverlay.isHidden};
+        // The loaded zone's regions, LIVE (the region title banner, 2026-09-28):
+        // `region-banner.mjs` pushes titled regions around the player into this
+        // very array, so the banner is driven through the real lookup without a
+        // zone edit. A zone swap replaces the array, which drops them again.
+        consoleCommands.regions = {loaded: Regions.loadedRegions};
         // Every held body drawn OFF its logical position, as {id, x, y}
         // (plan-natural-weapons.md §3.2). The manager's counters only see its
         // own writes; this reads the real token node back, so an empty list

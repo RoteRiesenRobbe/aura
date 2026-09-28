@@ -283,6 +283,13 @@ type Point struct {
 type Region struct {
 	Profile string  `json:"profile"`
 	Points  []Point `json:"points"`
+	// Title names the PLACE this region is, announced on the client when a
+	// player enters it (the region title banner, 2026-09-28); Subtitle is a
+	// smaller line under it. Client-only like Profile. Per placement, never per
+	// profile: two "Forest" regions can be two different woods. Absent = an
+	// unnamed region, which the name lookup sees straight through.
+	Title    string `json:"title,omitempty"`
+	Subtitle string `json:"subtitle,omitempty"`
 }
 
 // Path is a POLYLINE naming a client-side presentation PROFILE, stroked into
@@ -922,6 +929,10 @@ func (z *Zone) validate() error {
 		if len(z.Regions[i].Points) < 3 {
 			return fmt.Errorf("region %d: needs at least 3 points to enclose an area, got %d",
 				i, len(z.Regions[i].Points))
+		}
+		// A subtitle is the line UNDER a title; alone it would never show.
+		if strings.TrimSpace(z.Regions[i].Subtitle) != "" && strings.TrimSpace(z.Regions[i].Title) == "" {
+			return fmt.Errorf("region %d: subtitle %q needs a title to sit under", i, z.Regions[i].Subtitle)
 		}
 	}
 	// Paths name the INDEX for the same reason regions do: no id, no unique

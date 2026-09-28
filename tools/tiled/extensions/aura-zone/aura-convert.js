@@ -477,6 +477,10 @@ var AuraConvert = (function () {
                         points: r.points.map(function (p2) {
                             return {x: round(p2.x, 2), y: round(p2.y, 2)};
                         }),
+                        // The region title banner (2026-09-28). Absent when
+                        // blank, like zone.go's omitempty.
+                        title: r.title || undefined,
+                        subtitle: r.title && r.subtitle ? r.subtitle : undefined,
                     };
                 })
                 : undefined,
@@ -721,7 +725,11 @@ var AuraConvert = (function () {
                 polygon: pts.map(function (p2) {
                     return {x: px(p2.x, hw) - ox, y: px(p2.y, hh) - oy};
                 }),
-                properties: {profile: r.profile},
+                // The title and subtitle only when authored: absent is the
+                // palette default ('') and reads back as absent (readText).
+                properties: Object.assign({profile: r.profile},
+                    r.title ? {title: r.title} : {},
+                    r.title && r.subtitle ? {subtitle: r.subtitle} : {}),
                 // C2: typed, or the Properties panel degrades to a free-text
                 // box — an object-level PLAIN string shadows the class member
                 // that declares the enum. Same marker, same reason, as a
@@ -1068,6 +1076,8 @@ var AuraConvert = (function () {
                     points: closedAreaPoints(o).map(function (v) {
                         return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
                     }),
+                    title: readText(o, 'title'),
+                    subtitle: readText(o, 'subtitle'),
                 };
             }),
             // ⚑ Split by CLASS, not by layer (D5). An object that is neither is
@@ -1207,6 +1217,16 @@ var AuraConvert = (function () {
             ? plainValue(o.properties.effect) : undefined;
         if (v === undefined || v === '' || v === EFFECT_UNSET) { return undefined; }
         return v;
+    }
+
+    /* A free-text member whose default, '', means NOT AUTHORED — the spawn
+     * `anchor` reading (the class-member sentinel rule): Tiled may drop a
+     * property still at its default, and both readings land on absent.
+     * Surrounding whitespace is trimmed; a blank string is absent. */
+    function readText(o, k) {
+        var v = o.properties && o.properties[k] !== undefined && o.properties[k] !== null
+            ? String(plainValue(o.properties[k])).replace(/^\s+|\s+$/g, '') : '';
+        return v === '' ? undefined : v;
     }
 
     function readRegionProfile(o) {
@@ -1649,6 +1669,11 @@ var AuraConvert = (function () {
         layer('regions').forEach(function (o, i) {
             checkProfile(o, i, profilesKnown);
             checkClosedArea(o, i, 'a region');
+            // Mirrors zone.go: a subtitle is the line UNDER a title.
+            if (readText(o, 'subtitle') !== undefined && readText(o, 'title') === undefined) {
+                bad(o, i, 'has a subtitle but no title; the banner shows the subtitle under'
+                    + ' the title, so give the region a title or clear the subtitle');
+            }
         });
 
         // ⭐ THE SHARED LAYER'S OWN CHECK (L2b, the one cost of D5). Two classes

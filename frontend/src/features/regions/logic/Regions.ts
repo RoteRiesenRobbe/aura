@@ -552,6 +552,12 @@ export interface RegionPoint {
 export interface Region {
     profile: string;
     points: RegionPoint[];
+    /** The place's name, shown on entering it (RegionNames). Per PLACEMENT,
+     *  never per profile: two "Forest" regions can be two different woods.
+     *  Absent = an unnamed region, transparent to the name lookup. */
+    title?: string;
+    /** A smaller line under the title. Only meaningful with one. */
+    subtitle?: string;
 }
 
 let regions: Region[] = [];
@@ -657,6 +663,8 @@ export function outlineOf(def: {outlineProfile?: string, outlineWidth?: number})
 export interface RegionDefinition {
     profile: string;
     points: { x: number, y: number }[];
+    title?: string;
+    subtitle?: string;
 }
 
 /** Authored server units → world pixels. The ONE conversion, so the world and
@@ -670,6 +678,8 @@ export function toRegions(defs: RegionDefinition[] | undefined, origin?: {x: num
             x: meter2px(p.x + (origin ? origin.x : 0)),
             y: meter2px(p.y + (origin ? origin.y : 0)),
         })),
+        ...(r.title ? {title: r.title} : {}),
+        ...(r.title && r.subtitle ? {subtitle: r.subtitle} : {}),
     }));
 }
 

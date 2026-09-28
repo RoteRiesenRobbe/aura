@@ -13,6 +13,7 @@ import {GameObject} from '../../game-objects/logic/_GameObject';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import * as Chat from '../../chat/logic/Chat';
 import * as AlertBanner from '../../user-interface/alert-banner/logic/AlertBanner';
+import * as RegionBanner from '../../user-interface/region-banner/logic/RegionBanner';
 import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
 import {InputManager} from '../../input-system/logic/InputManager';
 import {JoystickManager} from '../../input-system/logic/virtual-joystick/JoystickManager';
@@ -497,6 +498,7 @@ export class Game implements IGame {
 
         Chat.setup(this, Backend);
         AlertBanner.setup();
+        RegionBanner.setup(this);
 
         /*
          * https://trello.com/c/aq5lqJB7/289-schutz-gegen-versehentliches-verlassen-des-spiels

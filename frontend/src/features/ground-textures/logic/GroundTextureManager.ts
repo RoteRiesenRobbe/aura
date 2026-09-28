@@ -123,6 +123,10 @@ interface DarkAreaDefinition {
 interface RegionDefinition {
     profile: string;
     points: { x: number, y: number }[];
+    // The place's name and a smaller line under it, announced on entering
+    // (RegionNames). Optional: most regions are just ground.
+    title?: string;
+    subtitle?: string;
 }
 
 // A road or a river (plan-world-paths.md). Declared locally like every other

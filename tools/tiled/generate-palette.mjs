@@ -435,8 +435,13 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // authored". PROFILE_UNSET is that value — it is not a profile name and
         // the save refuses it — so a Tiled that drops a default-valued property
         // and a Tiled that keeps it reach the same answer.
+        // ⭐ title / subtitle (the region title banner, 2026-09-28) obey the
+        // same rule with '' as the "not authored" value — the spawn `anchor`
+        // reading: aura-convert.js readText maps a blank back to absent.
         classType('AuraRegion', '#ffcddc39',
-            [member('profile', 'string', PROFILE_UNSET, 'AuraTerrainProfile')]),
+            [member('profile', 'string', PROFILE_UNSET, 'AuraTerrainProfile'),
+                member('title', 'string', ''),
+                member('subtitle', 'string', '')]),
         // A path wears the same profile vocabulary as a region and adds its own
         // geometry. ⚑ Both extra members obey the C6 rule the AuraRegion note
         // above states: 'width' defaults to 0, which the save REFUSES, so a
