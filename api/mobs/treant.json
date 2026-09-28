@@ -1,0 +1,35 @@
+{
+  "_comment": "A slow, walking tree. Placeholder: draws NpcPlaceholder (art owed) and borrows DireBear's skill and HP/speed shape until it gets its own. All values [PLACEHOLDER].",
+  "id": 102,
+  "name": "Treant",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "faction": "fey",
+  "tier": "normal",
+  "curveLevel": 14,
+  "factors": {
+    "resistances": {
+      "fire": 1.5,
+      "poison": 0.5
+    },
+    "baseMaxHealth": 284,
+    "maxHealthVariance": 0.1,
+    "speed": 0.4,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.55,
+    "aggroRadius": 3.6
+  },
+  "skills": [
+    {
+      "skillName": "BearSwipe",
+      "level": 1
+    }
+  ]
+}

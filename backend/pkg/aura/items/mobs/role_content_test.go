@@ -99,7 +99,10 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// 63 → 64 with the GiantRat (content-zone-design-guide.md §2.4): an
 	// ordinary walking, fighting creature — Zone 1's first AGGRESSIVE mob
 	// (wildlife_predator, where the Boar it sits beside is prey faction).
-	assert.Len(t, byRole[RoleCreature], 64, "everything else is a creature")
+	// 64 → 82 with the content-world.md placeholder roster: eighteen walking,
+	// fighting creatures for the mercenaries, undead, cult, dragonkin, fey and
+	// desert beasts, all drawn as NpcPlaceholder until their art exists.
+	assert.Len(t, byRole[RoleCreature], 82, "everything else is a creature")
 	assert.Len(t, byRole, 2, "no def carries a role outside the two")
 }
 

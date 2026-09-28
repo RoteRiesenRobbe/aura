@@ -1,0 +1,102 @@
+{
+  "name": "Barn",
+  "bounds": {
+    "width": 10,
+    "height": 10
+  },
+  "origin": {
+    "x": 5000,
+    "y": 5000
+  },
+  "terrain": [],
+  "props": [],
+  "spawns": [
+    {
+      "mob": "CaveExit",
+      "x": 0.11,
+      "y": 4.66,
+      "angle": 0,
+      "anchor": "barn-surface"
+    },
+    {
+      "mob": "GiantRat",
+      "x": 0.41,
+      "y": 1.14,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 1
+    },
+    {
+      "mob": "GiantRat",
+      "x": 2.19,
+      "y": -0.33,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 1
+    },
+    {
+      "mob": "GiantRat",
+      "x": -1.88,
+      "y": -1.34,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 1
+    },
+    {
+      "mob": "GiantRat",
+      "x": -2.15,
+      "y": 1.09,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 1
+    },
+    {
+      "mob": "GiantRat",
+      "x": 0.18,
+      "y": -1.61,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "level": 1
+    }
+  ],
+  "regions": [
+    {
+      "profile": "City",
+      "points": [
+        {
+          "x": -5,
+          "y": -5
+        },
+        {
+          "x": 5,
+          "y": -5
+        },
+        {
+          "x": 5,
+          "y": 5
+        },
+        {
+          "x": -5,
+          "y": 5
+        }
+      ]
+    }
+  ],
+  "anchors": [
+    {
+      "name": "barn-inside",
+      "x": 0.11,
+      "y": 4.4
+    }
+  ]
+}

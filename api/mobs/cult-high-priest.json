@@ -1,0 +1,35 @@
+{
+  "_comment": "Leads a cult settlement. Placeholder: draws NpcPlaceholder (art owed) and borrows EliteBandit's skill and HP/speed shape until it gets its own. All values [PLACEHOLDER].",
+  "id": 97,
+  "name": "CultHighPriest",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "faction": "cult",
+  "tier": "elite",
+  "curveLevel": 25,
+  "factors": {
+    "resistances": {
+      "fire": 0.5
+    },
+    "baseMaxHealth": 324,
+    "maxHealthVariance": 0.1,
+    "speed": 0.52,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900,
+    "ccImmune": true
+  },
+  "body": {
+    "radius": 0.4,
+    "aggroRadius": 3.6
+  },
+  "skills": [
+    {
+      "skillName": "EmberAura",
+      "level": 3
+    }
+  ]
+}

@@ -103,5 +103,14 @@ func TestCCImmune_ContentCensus(t *testing.T) {
 		// (content-zone-design-guide.md §2.4, the Mill POI). It is the
 		// lowest-curveLevel entry in this table by four levels.
 		"AlphaBoar": true,
+		// The content-world.md placeholder roster's elites and its one boss,
+		// immune like every elite before them.
+		"MercenaryCaptain": true,
+		"DeathKnight":      true,
+		"CultHighPriest":   true,
+		"DragonkinWarrior": true,
+		"Dragon":           true,
+		"BlightedTreant":   true,
+		"SandBasilisk":     true,
 	}, immune, "every elite/boss names its CC stance; adding one is fine, adding it AND this line is the ceremony")
 }

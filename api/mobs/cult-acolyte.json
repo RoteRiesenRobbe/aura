@@ -1,0 +1,31 @@
+{
+  "_comment": "Heals the cult's fighters. Placeholder: draws NpcPlaceholder (art owed) and borrows BanditHealer's skill and HP/speed shape until it gets its own. All values [PLACEHOLDER].",
+  "id": 96,
+  "name": "CultAcolyte",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "faction": "cult",
+  "tier": "normal",
+  "curveLevel": 23,
+  "factors": {
+    "baseMaxHealth": 66,
+    "maxHealthVariance": 0.1,
+    "speed": 0.6,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.3,
+    "aggroRadius": 3.6
+  },
+  "skills": [
+    {
+      "skillName": "BanditHeal",
+      "level": 1
+    }
+  ]
+}

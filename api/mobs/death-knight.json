@@ -1,0 +1,36 @@
+{
+  "_comment": "An armoured undead champion. Placeholder: draws NpcPlaceholder (art owed) and borrows EliteBandit's skill and HP/speed shape until it gets its own. All values [PLACEHOLDER].",
+  "id": 94,
+  "name": "DeathKnight",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "faction": "undead",
+  "tier": "elite",
+  "curveLevel": 20,
+  "factors": {
+    "resistances": {
+      "poison": 0,
+      "bleed": 0.5
+    },
+    "baseMaxHealth": 324,
+    "maxHealthVariance": 0.1,
+    "speed": 0.52,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900,
+    "ccImmune": true
+  },
+  "body": {
+    "radius": 0.4,
+    "aggroRadius": 3.6
+  },
+  "skills": [
+    {
+      "skillName": "EliteBanditSlash",
+      "level": 1
+    }
+  ]
+}

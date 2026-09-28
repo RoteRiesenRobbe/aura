@@ -1,0 +1,31 @@
+{
+  "_comment": "A drifting light that pelts intruders. Placeholder: draws NpcPlaceholder (art owed) and borrows KoboldRanged's skill and HP/speed shape until it gets its own. All values [PLACEHOLDER].",
+  "id": 101,
+  "name": "Wisp",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "faction": "fey",
+  "tier": "normal",
+  "curveLevel": 13,
+  "factors": {
+    "baseMaxHealth": 40,
+    "maxHealthVariance": 0.1,
+    "speed": 0.55,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.25,
+    "aggroRadius": 3.6
+  },
+  "skills": [
+    {
+      "skillName": "KoboldVolley",
+      "level": 1
+    }
+  ]
+}

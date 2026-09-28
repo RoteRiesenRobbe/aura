@@ -78,6 +78,10 @@ sibling plan for a reason stated there.
   `maxLevel` stays **30**, deliberately: *"it takes a really long time to reach,
   and the world is too small to hold such a large level band and still give
   options per approximate level range."*
+  ⚑ **LIFTED 2026-09-28 (PO):** the 540 × 360 world holds the full band. The
+  map now follows `content-world.md`'s zone order to level 30 (the Dragon), and
+  `cmd/simharness/placements_test.go` pins rungs 1-30. Placements above 20 are
+  unmeasured by the sim batteries.
   ⚑ **The reasoning is a density argument, and it is the right one.** Spreading
   30 levels over ~10 regions is ~3 levels per region with *one* option each; a
   player at any given level wants **more than one place to go**. Compressing to
