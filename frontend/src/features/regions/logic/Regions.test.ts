@@ -8,6 +8,8 @@ import {
     Profile,
     Region,
     regionBlend,
+    REGION_BLEND_OUTWARD,
+    regionBlendOutward,
     regionOverlay,
     regionPaintSpec,
     regionScroll,
@@ -335,8 +337,39 @@ describe('PROFILES — the wobbleReach key (ground-noise W1b)', () => {
     });
 });
 
+// D23: `false` IS a value here — it is how a region profile opts back into
+// D22's symmetric fade — so an authored false must survive the parser.
+describe('PROFILES — the blendOutward key (D23)', () => {
+    it('keeps a boolean, false included', () => {
+        expect(buildProfiles({out: {blendOutward: true}}).out.blendOutward).toBe(true);
+        expect(buildProfiles({sym: {blendOutward: false}}).sym.blendOutward).toBe(false);
+    });
+    it.each([['a string', 'true'], ['a number', 1], ['null', null]])(
+        'drops %s instead of declaring it', (_label, blendOutward) => {
+            expect('blendOutward' in buildProfiles({bad: {blendOutward}}).bad).toBe(false);
+        });
+    it('an authored value wins over either default', () => {
+        const profiles = buildProfiles({out: {blendOutward: true}, sym: {blendOutward: false}});
+        [true, false].forEach((fallback) => {
+            expect(regionBlendOutward({profile: 'out', points: []}, fallback, profiles)).toBe(true);
+            expect(regionBlendOutward({profile: 'sym', points: []}, fallback, profiles)).toBe(false);
+        });
+    });
+    it('a silent or unknown profile takes the CALLER\'s default (regions outward, polygons not)', () => {
+        const profiles = buildProfiles({silent: {}});
+        expect(REGION_BLEND_OUTWARD).toBe(true);
+        expect(DEFAULT_PROFILE.blendOutward).toBe(false);
+        [true, false].forEach((fallback) => {
+            expect(regionBlendOutward({profile: 'silent', points: []}, fallback, profiles)).toBe(fallback);
+            expect(regionBlendOutward({profile: 'no-such-profile', points: []}, fallback, profiles))
+                .toBe(fallback);
+        });
+    });
+});
+
 // ⚑ Unlike the reach, `0` IS a value here: a smooth lump is a real look, so an
 // authored 0 must survive the parser (the `blend: 0` trap, again).
+
 describe('PROFILES — the wobbleRoughness key (ground-noise W1b)', () => {
     it('KEEPS an authored 0, which is smooth lumps and not a missing value', () => {
         const profiles = buildProfiles({smooth: {wobbleRoughness: 0}});

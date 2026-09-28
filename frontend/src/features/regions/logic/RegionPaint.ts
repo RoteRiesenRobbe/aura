@@ -26,13 +26,13 @@ import {
 import {Clearing, clearsDarkness, clearsHaze} from '../../atmospheres/logic/Clearings';
 import {
     ATMOSPHERE_PROFILES, AtmosphereProfile, declaresDarkness, declaresHaze,
-    neededTextures, Outlined, Region, regionBlend,
+    neededTextures, Outlined, Region, regionBlend, REGION_BLEND_OUTWARD, regionBlendOutward,
     regionDarkness, regionHaze, regionOverlay, RegionPoint, regionPaintSpec, regionScroll, regionWobble,
     ResolvedOverlay, TERRAIN_PROFILES, Wobble,
 } from './Regions';
 import {
-    applyMaskNoise, applyPatchNoise, maskBand, maskDensity, noiseShape, octaveMix, overlayDensity,
-    snapToTexels,
+    applyMaskNoise, applyPatchNoise, maskBand, maskDensity, noiseShape, octaveMix, outwardGrow,
+    overlayDensity, snapToTexels,
 } from './MaskNoise';
 import {Path} from '../../paths/logic/Paths';
 import {ribbonGeometry} from '../../paths/logic/PathRibbon';
@@ -282,7 +282,9 @@ interface BlendMask {
  *
  * ⚑ NO INSET (D22). The blur is symmetric about the authored line, so the 50 %
  * alpha sits ON the polygon someone drew in Tiled and the region spills half a
- * band past it. That is the ruling, not an oversight.
+ * band past it. That is the ruling, not an oversight. ⚑ For a REGION the
+ * silhouette handed in is already dilated (D23, {@link paintFilled}), so the
+ * ramp this draws, centred on THAT edge, lies wholly outside the authored one.
  */
 function buildBlendMask(
     renderer: Renderer,
@@ -777,12 +779,42 @@ export function paintRegions(
 ): PaintedSurfaces {
     const out: PaintedSurfaces = {masks: [], scrollers: []};
     regions.forEach((region) => {
-        const draw: DrawSurface = (g, style) => g.poly(region.points).fill(style);
-        const mask = surfaceMask(renderer, region, region.points, draw, 0);
-        paintSurface(container, region, region.points, draw, mask, 0, out);
-        paintOverlay(container, region, region.points, draw, mask, 0, renderer, out);
+        paintFilled(container, region, region.points, REGION_BLEND_OUTWARD, renderer, out);
     });
     return out;
+}
+
+/**
+ * One FILLED shape — a region or a polygon, which draw byte-for-byte alike —
+ * body, then overlay.
+ *
+ * ⚑ `blendOutward` (D23): the MASK's silhouette is dilated by
+ * a round-joined stroke, so the blur's 50 % line lands `grow` outside the
+ * authored one and the ramp is solid up to it. Only the mask moves: a hard
+ * edge (no mask) keeps drawing `draw`, and the footprint grows by the same
+ * amount so the box never clips the wider spill. ⚑ A polygon's OUTLINE is not
+ * moved with it: it stays centred on the authored line.
+ */
+function paintFilled(
+    container: Container,
+    surface: Region,
+    points: RegionPoint[],
+    // What a profile that says nothing gets: REGION_BLEND_OUTWARD for a
+    // region, false for a polygon (D23).
+    outwardByDefault: boolean,
+    renderer: Renderer,
+    out: PaintedSurfaces,
+): void {
+    const draw: DrawSurface = (g, style) => g.poly(points).fill(style);
+    const grow = regionBlendOutward(surface, outwardByDefault)
+        ? meter2px(outwardGrow(regionBlend(surface), regionWobble(surface).reach, isMobile()))
+        : 0;
+    const maskDraw: DrawSurface = grow > 0
+        ? (g, style) => g.poly(points).fill(style).stroke({...style, width: 2 * grow, join: 'round'})
+        : draw;
+    const mask = surfaceMask(renderer, surface, points, maskDraw, grow);
+    paintSurface(container, surface, points, draw, mask, grow, out);
+    paintOverlay(container, surface, points, draw, mask, grow, renderer, out);
 }
 
 /**
@@ -1066,13 +1098,10 @@ export function paintPolygons(
 ): PaintedSurfaces {
     const out: PaintedSurfaces = {masks: [], scrollers: []};
     polygons.forEach((polygon) => {
-        // No second argument: `poly()` closes by construction, and a polygon is
-        // closed by definition. An OPEN filled shape is not a thing this
-        // primitive can express, deliberately — that shape is a path.
-        const draw: DrawSurface = (g, style) => g.poly(polygon.points).fill(style);
-        const mask = surfaceMask(renderer, polygon, polygon.points, draw, 0);
-        paintSurface(container, polygon, polygon.points, draw, mask, 0, out);
-        paintOverlay(container, polygon, polygon.points, draw, mask, 0, renderer, out);
+        // `poly()` closes by construction, and a polygon is closed by
+        // definition. An OPEN filled shape is not a thing this primitive can
+        // express, deliberately — that shape is a path.
+        paintFilled(container, polygon, polygon.points, false, renderer, out);
         paintOutline(container, polygon, polygon.points, true, renderer, out);
     });
     return out;

@@ -2,7 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {
     BAND_PER_REACH, BASE_TEXELS_PER_UNIT, MASK_MAX_TEXELS, maskBand, maskDensity, MAX_TEXELS_PER_UNIT,
     MIN_BAND_TEXELS, MIN_GRAIN_TEXELS, MIN_OCTAVE_TEXELS, NOISE_STRETCH, noiseShape, OCTAVE_SCALES,
-    octaveMix, overlayDensity, patchThreshold, snapToTexels,
+    octaveMix, OUTWARD_SOLID_BANDS, outwardGrow, overlayDensity, patchThreshold, snapToTexels,
 } from './MaskNoise';
 
 // plan-ground-noise.md W1 + W1b. The ONE density variable every blend mask is
@@ -16,6 +16,24 @@ const W1_WEIGHTS = [4 / 7, 2 / 7, 1 / 7];
 function spread(weights: number[]): number {
     return Math.sqrt(weights.reduce((sum, w) => sum + w * w, 0));
 }
+
+describe('outwardGrow — how far a blendOutward region dilates (2026-09-28 slice)', () => {
+    it('puts the SOLID part of the ramp on the authored line, not its midpoint', () => {
+        expect(OUTWARD_SOLID_BANDS).toBeGreaterThan(0.5);
+        expect(outwardGrow(1.5, 0, false)).toBeCloseTo(1.5 * OUTWARD_SOLID_BANDS, 12);
+    });
+    it('adds the full reach, so a wobble trough cannot pull the fade back inside', () => {
+        expect(outwardGrow(1.5, 0.2, false)).toBeCloseTo(1.5 * OUTWARD_SOLID_BANDS + 0.2, 12);
+        expect(outwardGrow(0, 0.2, false)).toBeCloseTo(0.2, 12);
+    });
+    it('follows W1c: a fade too fine to draw grows by the band actually drawn', () => {
+        expect(outwardGrow(0.01, 0, false))
+            .toBeCloseTo(maskBand(0.01, 0, false) * OUTWARD_SOLID_BANDS, 12);
+    });
+    it('is 0 for a hard straight edge (no mask, nothing to dilate)', () => {
+        expect(outwardGrow(0, 0, false)).toBe(0);
+    });
+});
 
 describe('maskBand — the room the bake blurs to (W1b, D3)', () => {
     it('is exactly the blend when nothing wobbles, so a clean edge is what C5 shipped', () => {
