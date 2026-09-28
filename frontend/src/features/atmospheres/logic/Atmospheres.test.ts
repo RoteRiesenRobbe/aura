@@ -465,7 +465,7 @@ describe('the ground and air profile tables are separate namespaces', () => {
         const offenders: string[] = [];
         Object.keys(TERRAIN_PROFILES).forEach((name) => {
             const profile = TERRAIN_PROFILES[name] as {[k: string]: unknown};
-            ['darkness', 'haze', 'sight'].forEach((key) => {
+            ['darkness', 'haze', 'sight', 'motes'].forEach((key) => {
                 if (key in profile) { offenders.push(name + '.' + key); }
             });
         });

@@ -240,7 +240,38 @@ export interface AtmosphereProfile extends TerrainProfile {
     // Torch 2.5 (+0.25), a campfire 7.0. So ~2 reads as "grope forward", ~4 as
     // "a dim room", and much past ~8 stops being darkness at all.
     sight?: number;
+    // A SWARM of glowing motes that each dance on their own path and swell in
+    // and out of sight — fairy lights (2026-09-29, backlog §62). Absent = none.
+    //
+    // ⭐ It REPLACES the tile, it does not sit on it: one scroll vector moves a
+    // whole sheet together, which is exactly what made the textured Fairy Dust
+    // read as a rising drift rather than fluttering. A profile with `motes`
+    // ignores its `texture` and `scroll`; `color` TINTS each mote (not D14's
+    // fallback wash), `blend` still feathers the swarm's edge, and `haze` is
+    // still the layer opacity — so the swarm lives in the haze layer, under the
+    // darkness, like every other suspended thing.
+    //
+    // ⛔ Haze only. A profile that authors `motes` without `haze` draws nothing:
+    // `haze` is what says "this air paints the suspended-matter layer at all".
+    motes?: Motes | null;
 }
+
+/** One mote swarm's look, every length in WORLD UNITS. All [PLACEHOLDER]. */
+export interface Motes {
+    /** Motes per square world unit. */
+    density: number;
+    /** A mote's glow DIAMETER at full swell. */
+    size: number;
+    /** How far a mote strays from where it was born. */
+    wander: number;
+    /** A mote's typical speed along its path, units per second. */
+    speed: number;
+    /** Seconds from appearing to vanishing; each mote then reappears elsewhere. */
+    life: number;
+}
+
+/** What an authored `motes: {}` means: every key is optional. */
+export const DEFAULT_MOTES: Motes = {density: 0.06, size: 0.35, wander: 0.6, speed: 0.3, life: 5};
 
 /** Every key any profile can carry — the type the generic lookup machinery
  *  ({@link resolveIn}, {@link DEFAULT_PROFILE}) works in, since a terrain table
@@ -300,6 +331,8 @@ export const DEFAULT_PROFILE: Required<Profile> = {
     // a profile default so a region can raise it. Nothing moves until a profile
     // authors otherwise. See {@link SELF_SIGHT_FLOOR_PX}.
     sight: px2meter(SELF_SIGHT_FLOOR_PX),
+    // The world before fairy motes: no swarm, no sprite, no per-frame write.
+    motes: null,
 };
 
 /** `"#2c4028"` → `0x2c4028`. The JSON is written in the notation an artist
@@ -434,6 +467,22 @@ function parseOverlay(raw: unknown): Overlay | undefined {
     return overlay;
 }
 
+/** A mote swarm: an object whose keys are each a positive length/rate. A bad
+ *  or missing key takes {@link DEFAULT_MOTES}'s value rather than dropping the
+ *  swarm, so `{}` is the default fairy dust. Not an object → dropped. */
+export function parseMotes(raw: unknown): Motes | undefined {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+        return undefined;
+    }
+    const entry = raw as { [k: string]: unknown };
+    const out: Motes = {...DEFAULT_MOTES};
+    (Object.keys(DEFAULT_MOTES) as (keyof Motes)[]).forEach((key) => {
+        const parsed = parseScale(entry[key]);
+        if (parsed !== undefined) { out[key] = parsed; }
+    });
+    return out;
+}
+
 /**
  * Builds the profile table from authored JSON.
  *
@@ -464,7 +513,7 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
         const entry = raw[name] as {
             color?: unknown, texture?: unknown, scale?: unknown, blend?: unknown, blendOutward?: unknown,
             wobbleReach?: unknown, wobbleSize?: unknown, wobbleRoughness?: unknown, scroll?: unknown,
-            overlay?: unknown, darkness?: unknown, haze?: unknown, sight?: unknown,
+            overlay?: unknown, darkness?: unknown, haze?: unknown, sight?: unknown, motes?: unknown,
         };
         const profile: Profile = {};
         if (entry && 'color' in entry) {
@@ -530,6 +579,10 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
         if (entry && 'overlay' in entry) {
             const parsed = parseOverlay(entry.overlay);
             if (parsed !== undefined) { profile.overlay = parsed; }
+        }
+        if (entry && 'motes' in entry) {
+            const parsed = parseMotes(entry.motes);
+            if (parsed !== undefined) { profile.motes = parsed; }
         }
         out[name] = profile;
     });
@@ -1082,6 +1135,16 @@ export function regionScroll(
     return scroll === undefined || scroll === null
         ? {...DEFAULT_PROFILE.scroll}
         : {x: scroll.x, y: scroll.y};
+}
+
+/** This atmosphere's own mote swarm, or `null` for none — its OWN profile only,
+ *  for {@link regionScroll}'s reason: the swarm belongs to the shape drawn. */
+export function regionMotes(
+    region: Region,
+    profiles: { [name: string]: AtmosphereProfile } = ATMOSPHERE_PROFILES,
+): Motes | null {
+    const profile = profiles[region.profile];
+    return profile && profile.motes ? {...profile.motes} : null;
 }
 
 /** The texture names the given regions' profiles ask for, deduplicated — what

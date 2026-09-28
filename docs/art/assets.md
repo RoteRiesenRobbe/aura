@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-09-27 from 222 rows.
+Rendered 2026-09-28 from 222 rows.
 
 ---
 
@@ -48,10 +48,10 @@ Rendered 2026-09-27 from 222 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 41 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 40 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
 | ❌ missing | 44 | nothing exists |
-| ⚙️ code | 14 | drawn procedurally in code, no art file |
+| ⚙️ code | 15 | drawn procedurally in code, no art file |
 | ⛔ blocked | 5 | cannot be delivered until engine work lands |
 | — n/a | 10 | a constraint or a number to judge, not a file to draw |
 
@@ -62,7 +62,7 @@ Rendered 2026-09-27 from 222 rows.
 | **P2** | 71 | normal — placed but not everywhere |
 | **P3** | 67 | low — unplaced, deferred, or already fine |
 
-**109 rows need work** (missing, shared, placeholder, stock or blocked),
+**108 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -326,7 +326,7 @@ of which **11 are P0**:
 | 🟡 | **Snow** | `snow-placeholder.png` | P2 |  | seamless tile, 512² suggested | Haze 0.38. Placeholder tile. [PLACEHOLDER] numbers. |
 | 🟡 | **Ash Fall** | `ash-placeholder.png` | P2 |  | seamless tile, 512² suggested | Haze 0.4. Placeholder tile. [PLACEHOLDER] numbers. |
 | 🟡 | **Sandstorm** | `sand-storm-placeholder.png` | P2 |  | seamless tile, 512² suggested | Haze 0.5. Placeholder tile. [PLACEHOLDER] numbers. |
-| 🟡 | **Fairy Dust** | `fairy-placeholder.png` | P2 |  | seamless tile, 512² suggested | Haze 0.75. Placeholder tile. [PLACEHOLDER] numbers. |
+| ⚙️ | **Fairy Dust** | — | P2 |  |  | Haze 0.9. A swarm of procedural glow sprites since 2026-09-29, no art file. [PLACEHOLDER] numbers. |
 
 # Constraint
 

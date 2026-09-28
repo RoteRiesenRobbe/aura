@@ -20,7 +20,7 @@
  * ⭐ A DENSITY FIELD IS THE OTHER HALF OF THE AIR. Every tile here covers EVERY
  * pixel — a sum of waves, with a contrast curve deciding where the banks are.
  * The sibling generator `make-precipitation-tiles.mjs` owns the other family,
- * PARTICLES (rain, snow, ash, sandstorm, fairy dust): discrete marks on a
+ * PARTICLES (rain, snow, ash, sandstorm): discrete marks on a
  * mostly-empty tile, where coverage is the number that matters and a full tile
  * is the failure. ⚑ The split is what the air IS, and it is the line to think
  * along before adding to either — fog with drops in it is two profiles stacked,

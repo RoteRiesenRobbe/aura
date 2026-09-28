@@ -39,6 +39,7 @@ import * as Polygons from '../../polygons/logic/Polygons';
 import * as Atmospheres from '../../atmospheres/logic/Atmospheres';
 import * as Clearings from '../../atmospheres/logic/Clearings';
 import * as RegionPaint from '../../regions/logic/RegionPaint';
+import * as Motes from '../../atmospheres/logic/Motes';
 import {GameState, IGame, IGameLayers} from './IGame';
 import {gameObjectId} from '../../common/logic/Types';
 import {setGrayKnobs} from '../../../client-data/Mobs';
@@ -118,6 +119,8 @@ export class Game implements IGame {
      *  in it are destroyed with the layer on a repaint, and animating a
      *  destroyed sprite is a null write into a freed uniform. */
     private regionScrollers: RegionPaint.ScrollingSurface[] = [];
+    /** The air's mote swarms (backlog §62) — same schedule as the scrollers. */
+    private airSwarms: Motes.MoteSwarm[] = [];
 
     public get width(): number {
         return this.application.renderer.screen.width;
@@ -540,6 +543,7 @@ export class Game implements IGame {
         // a paused game must not advance the water, or the river jumps forward
         // by the whole pause the moment play resumes.
         RegionPaint.advanceSurfaceScroll(this.regionScrollers, this.timeDelta);
+        Motes.advanceMotes(this.airSwarms, this.timeDelta);
         PrerenderEvent.trigger(this.timeDelta);
     }
 
@@ -925,16 +929,17 @@ export class Game implements IGame {
         // what an unauthored one looks like. They ride the one array that
         // `loop` already advances behind the `paused` guard (L8).
         this.regionScrollers = painted.scrollers.concat(air.scrollers);
+        this.airSwarms = air.swarms;
     }
 
     /** Repaints the darkness layer's atmosphere container. See the call site in
      *  {@link paintTerrainSurfaces} for why it lives on that pass and not on
      *  the overlay's own load. */
-    private paintAtmosphereSurfaces(): RegionPaint.PaintedSurfaces {
+    private paintAtmosphereSurfaces(): RegionPaint.PaintedAir {
         const container = DarknessOverlay.atmosphereContainer();
         const haze = DarknessOverlay.hazeContainer();
         if (container === null || haze === null) {
-            return {masks: [], scrollers: []};
+            return {masks: [], scrollers: [], swarms: []};
         }
         // Emptied IN PLACE, never re-parented — the container's position
         // between the dark circles and the erase holes is what keeps a

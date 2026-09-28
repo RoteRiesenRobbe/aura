@@ -27,7 +27,8 @@ import {Clearing, clearsDarkness, clearsHaze} from '../../atmospheres/logic/Clea
 import {
     ATMOSPHERE_PROFILES, AtmosphereProfile, declaresDarkness, declaresHaze,
     neededTextures, Outlined, Region, regionBlend, REGION_BLEND_OUTWARD, regionBlendOutward,
-    regionDarkness, regionHaze, regionOverlay, RegionPoint, regionPaintSpec, regionScroll, regionWobble,
+    regionDarkness, regionHaze, regionMotes, regionOverlay, RegionPoint, regionPaintSpec, regionScroll,
+    regionWobble,
     ResolvedOverlay, TERRAIN_PROFILES, Wobble,
 } from './Regions';
 import {
@@ -35,6 +36,7 @@ import {
     overlayDensity, snapToTexels,
 } from './MaskNoise';
 import {Path} from '../../paths/logic/Paths';
+import {createSwarm, MoteSwarm} from '../../atmospheres/logic/Motes';
 import {ribbonGeometry} from '../../paths/logic/PathRibbon';
 import {Polygon} from '../../polygons/logic/Polygons';
 import {meter2px} from '../../../client-data/BasicConfig';
@@ -534,6 +536,13 @@ export interface PaintedSurfaces {
     scrollers: ScrollingSurface[];
 }
 
+/** What the AIR's paint pass adds: the mote swarms, which only atmospheres
+ *  draw. ⚑ Hand to `Motes.advanceMotes` every frame and DROP on repaint, on
+ *  exactly the schedule of `scrollers`. */
+export interface PaintedAir extends PaintedSurfaces {
+    swarms: MoteSwarm[];
+}
+
 /** One drifting tile surface: the sprite, and how fast its tile moves. */
 export interface ScrollingSurface {
     sprite: TilingSprite;
@@ -856,8 +865,8 @@ export function paintAtmospheres(
     atmospheres: Region[],
     clearings: Clearing[],
     renderer: Renderer,
-): PaintedSurfaces {
-    const out: PaintedSurfaces = {masks: [], scrollers: []};
+): PaintedAir {
+    const out: PaintedAir = {masks: [], scrollers: [], swarms: []};
     atmospheres.forEach((atmosphere) => {
         // ⚑ BOTH, independently. A profile authoring both is the smoky cave:
         // the same polygon is painted into both layers, so a lantern cuts the
@@ -978,7 +987,7 @@ function paintAir(
     atmosphere: Region,
     opacity: number,
     renderer: Renderer,
-    out: PaintedSurfaces,
+    out: PaintedAir,
     flat: boolean,
 ): void {
     const draw: DrawSurface = (g, style) => g.poly(atmosphere.points).fill(style);
@@ -1012,6 +1021,30 @@ function paintAir(
             return;
         }
         addFeathered(group, {color}, mask, out);
+        return;
+    }
+
+    // ⭐ A SWARM REPLACES THE TILE (backlog §62): `texture` and `scroll` are
+    // not read, `color` tints the motes, and the mask feathers the swarm's edge
+    // the way it would a fog bank's.
+    const motes = regionMotes(atmosphere);
+    if (motes !== null) {
+        const profile = ATMOSPHERE_PROFILES[atmosphere.profile];
+        const color = typeof profile.color === 'number' ? profile.color : 0xffffff;
+        const swarm = createSwarm(atmosphere.points, motes, color);
+        if (swarm !== null) {
+            group.addChild(swarm.container);
+            out.swarms.push(swarm);
+        }
+        if (mask !== null) {
+            // ⚑ In the scene graph, or it masks nothing (see addFeathered) —
+            // and pushed even with no swarm, so the RenderTexture is freed.
+            if (swarm !== null) {
+                group.addChild(mask.sprite);
+                swarm.container.mask = mask.sprite;
+            }
+            out.masks.push(mask.texture);
+        }
         return;
     }
 
