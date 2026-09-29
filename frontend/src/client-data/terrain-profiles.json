@@ -32,7 +32,7 @@
   "Derelict Fortress":  { "texture": "pd143", "scale": 0.35, "blend": 1.5, "color": "#4f4f53" },
   "Desert":             { "texture": "pd106", "scale": 0.35, "blend": 1.5, "color": "#dd9a4e" },
   "Wasteland":          { "texture": "pd119", "scale": 0.35, "blend": 1.5, "color": "#9a682f" },
-  "Mountains":          { "texture": "pd196", "scale": 0.35, "blend": 1.5, "color": "#736d66", "overlay": { "profile": "Volcano", "coverage": 0.4, "size": 1.5, "roughness": 0 }  },
+  "Mountains":          { "texture": "pd196", "scale": 0.35, "blend": 1.5, "color": "#736d66" },
   "Ice":                { "texture": "ice-placeholder", "scale": 0.35, "blend": 1.5, "color": "#dfeaf2" },
   "Snowfield":          { "texture": "snow-ground-placeholder", "scale": 0.35, "blend": 1.5, "color": "#eef3f8" },
 
