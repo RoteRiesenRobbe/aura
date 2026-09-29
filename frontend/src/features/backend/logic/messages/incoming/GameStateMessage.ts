@@ -715,6 +715,8 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Cottage]: Props.genericPropClasses.Cottage,
     [AuraApi.EntityType.Palisade]: Props.genericPropClasses.Palisade,
     [AuraApi.EntityType.CaveMouth]: Props.genericPropClasses.CaveMouth,
+    // House's wreck, a second sprite on the same body (BurntCart's pattern).
+    [AuraApi.EntityType.RuinedHouse]: Props.genericPropClasses.RuinedHouse,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

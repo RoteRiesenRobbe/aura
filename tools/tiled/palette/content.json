@@ -41,6 +41,7 @@
       "Palisade",
       "PineTree",
       "Rock",
+      "RuinedHouse",
       "Stump",
       "Tombstone",
       "Torch",
@@ -451,6 +452,10 @@
     "Rock": {
       "w": 1.07,
       "h": 1.07
+    },
+    "RuinedHouse": {
+      "w": 4,
+      "h": 3
     },
     "Stump": {
       "w": 1.1,
