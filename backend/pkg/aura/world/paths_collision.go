@@ -209,9 +209,15 @@ func appendPathCorridors(out []Corridor, p *Path, bridges []*Prop) []Corridor {
 		// ⚑ A joint inside a taper shrinks with it (along is now this joint's
 		// arc position): a full-width circle at a vertex the drawing has
 		// already narrowed would be an invisible wall.
+		//
+		// ⚑ And it shrinks to its clearance from any bridge: a vertex just past
+		// a deck edge would otherwise stamp a half-width disc back over the
+		// walkable deck. A vertex UNDER a deck has no clearance and no joint.
+		// What that gives up is a sliver of the outer wedge beside the deck — a
+		// notch in the bank, never a way across.
 		hasNextSegment := i+1 < segments || p.Closed
-		if hasNextSegment && !coveredByBridge(b.X, b.Y, bridges) {
-			out = append(out, Corridor{X: b.X, Y: b.Y, Radius: half * tp.at(along)})
+		if r := min(half*tp.at(along), bridgeClearance(b.X, b.Y, bridges)); hasNextSegment && r > 0 {
+			out = append(out, Corridor{X: b.X, Y: b.Y, Radius: r})
 		}
 	}
 	return out
@@ -257,18 +263,35 @@ func coveredByBridge(x, y float32, bridges []*Prop) bool {
 // placement's rotation for a rect. Mirrors phy's own rotated-rect test rather
 // than importing it: world cannot import phy.
 func pointInPropBody(x, y float32, p *Prop) bool {
+	return distanceToPropBody(x, y, p) == 0
+}
+
+// bridgeClearance is how far a point is from the nearest bridge's visual
+// footprint: 0 on or under a deck, +Inf with no bridges at all.
+func bridgeClearance(x, y float32, bridges []*Prop) float32 {
+	d := float32(math.Inf(1))
+	for _, b := range bridges {
+		d = min(d, distanceToPropBody(x, y, b))
+	}
+	return d
+}
+
+// distanceToPropBody is the distance from a point to a prop's visual body, 0
+// on or inside it. A body with no size is infinitely far: it covers nothing.
+func distanceToPropBody(x, y float32, p *Prop) float32 {
 	body := p.VisualBody()
 	dx, dy := x-p.X, y-p.Y
 	if body.Radius > 0 {
-		return dx*dx+dy*dy <= body.Radius*body.Radius
+		return max(0, float32(math.Hypot(float64(dx), float64(dy)))-body.Radius)
 	}
 	if body.Width <= 0 || body.Height <= 0 {
-		return false
+		return float32(math.Inf(1))
 	}
 	// Into the rect's own frame: turn the offset back by the prop's angle.
 	sin, cos := math.Sincos(float64(-p.Rotation))
 	lx := dx*float32(cos) - dy*float32(sin)
 	ly := dx*float32(sin) + dy*float32(cos)
-	return lx >= -body.Width/2 && lx <= body.Width/2 &&
-		ly >= -body.Height/2 && ly <= body.Height/2
+	ox := max(0, abs32(lx)-body.Width/2)
+	oy := max(0, abs32(ly)-body.Height/2)
+	return float32(math.Hypot(float64(ox), float64(oy)))
 }

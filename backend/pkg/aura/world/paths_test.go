@@ -342,6 +342,36 @@ func TestCircleBodiedBridgeClears(t *testing.T) {
 	assert.InDelta(t, 6, gapAround(PathCorridors(z), 0), 2*clearStep)
 }
 
+// ⭐ A bend just PAST the deck must not reach back onto it. The joint circle is
+// half the river's width, so a vertex a little beyond the deck edge used to
+// stamp a 1.5-unit disc over the walkable deck (world.json, 2026-09-30: a river
+// straightened with a vertex either side of its bridge lost half the deck). The
+// joint now shrinks to its clearance from the deck.
+func TestBendJointBesideABridgeStaysOffTheDeck(t *testing.T) {
+	// North, straight under the deck, bending 1.2 units past its south edge.
+	river := `{"profile":"Water","width":3,"blocksMovement":true,
+		"points":[{"x":0,"y":-20},{"x":0,"y":2},{"x":3,"y":20}]}`
+	deck := Prop{Type: "Bridge", X: 0, Y: 0, Def: bridgeDef(4, 1.6)}
+	cs := PathCorridors(blockingZone(t, river, deck))
+
+	var joint *Corridor
+	for i := range cs {
+		if cs[i].IsCircle() {
+			joint = &cs[i]
+		}
+	}
+	require.NotNil(t, joint, "the bend keeps a joint: it still fills the wedge")
+	assert.InDelta(t, 2-0.8, joint.Radius, 1e-4, "the joint reaches exactly to the deck edge")
+
+	// And a bend nowhere near a bridge keeps its full half-width.
+	far := PathCorridors(blockingZone(t, river, Prop{Type: "Bridge", X: 0, Y: -15, Def: bridgeDef(4, 1.6)}))
+	for _, c := range far {
+		if c.IsCircle() {
+			assert.InDelta(t, 1.5, c.Radius, 1e-4)
+		}
+	}
+}
+
 // ---- helpers --------------------------------------------------------------
 
 // gapAround measures the unwalled span containing x, along a due-east path.
