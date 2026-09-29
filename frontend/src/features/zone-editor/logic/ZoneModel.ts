@@ -179,6 +179,10 @@ export interface ZonePath {
     // angle itself is derived from the geometry at load (Paths.textureAngle)
     // and never stored, so nothing here can contradict the drawn shape.
     alignTexture?: boolean;
+    // How the stroke turns and stops (world.Path.Corners / Ends). Carried,
+    // never edited; absent = round, and absent must stay absent.
+    corners?: string;
+    ends?: string;
     // An authored skill applied to whatever stands in this shape
     // (plan-area-effects.md E1). Carried, never edited, like everything else
     // here. Absent = inert, which is every path in every shipped zone.
@@ -430,6 +434,8 @@ export class ZoneModel {
             outlineProfile: p.outlineProfile,
             outlineWidth: p.outlineWidth,
             alignTexture: p.alignTexture,
+            corners: p.corners,
+            ends: p.ends,
             effect: p.effect,
         }));
         model.polygons = (data.polygons || []).map(g => ({
@@ -654,6 +660,10 @@ export class ZoneModel {
                     // export as NO KEY, or every path in every shipped zone
                     // grows an "alignTexture": false nobody wrote.
                     alignTexture: p.alignTexture ? true : undefined,
+                    // ⚑ Named here or the whitelist eats it (L1), and absent
+                    // stays absent for alignTexture's reason.
+                    corners: p.corners || undefined,
+                    ends: p.ends || undefined,
                     // ⚑ Absent stays absent (plan-area-effects.md D10): no
                     // shipped path names an effect, so an empty string here must
                     // serialize to no key at all or every existing zone changes.

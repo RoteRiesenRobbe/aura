@@ -1929,6 +1929,13 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             // left it off would let this pin pass while every writer dropped it.
             alignTexture: true,
             effect: 'Blight',
+        }, {
+            // ⚑ A second, OPEN path for the shape keys: `ends` on a ring is
+            // refused (a ring has no ends), so the one above cannot carry it.
+            // Both non-default, or the keys never appear and this pin passes
+            // while a writer drops them.
+            profile: 'Cliff', points: [{x: 1, y: 7}, {x: 6, y: 7}], width: 1,
+            corners: 'sharp', ends: 'point',
         }],
         // ⚑ blocksMovement TRUE for the same tri-state reason as the path above:
         // false is the authored default, so a decorative fixture would never
@@ -2145,6 +2152,49 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
         expect(members[0].propertyType).toBe(C.PROP_BLOCKS_ENUM);
         expect(members[0].value, 'class default must equal PROP_BLOCKS_INHERIT')
             .toBe(C.PROP_BLOCKS_INHERIT);
+    });
+
+    // ⭐ The same pin for a path's corners and ends: the class default must be
+    // the value readPathShape maps back to "not authored", or every path in
+    // the world grows a key on its first save from a Tiled that keeps defaults.
+    it("⭐ AuraPath's corners and ends default to the converter's sentinel", () => {
+        const members = byName('AuraPath').members ?? [];
+        (['corners', 'ends'] as const).forEach((k) => {
+            const m = members.filter(x => x.name === k)[0];
+            expect(m, `AuraPath carries ${k}`).toBeDefined();
+            expect(m.propertyType).toBe(C.PATH_SHAPE_ENUMS[k]);
+            expect(m.value).toBe(C.PATH_SHAPE_DEFAULT);
+            expect(byName(C.PATH_SHAPE_ENUMS[k]).values)
+                .toEqual([C.PATH_SHAPE_DEFAULT].concat(C.PATH_SHAPE_VALUES[k]));
+        });
+    });
+
+    it('round-trips corners and ends, and writes nothing for the default', () => {
+        const line = [{x: 0, y: 0}, {x: 5, y: 0}];
+        const authored = roundTrip(zone({paths: [
+            {profile: 'Cliff', points: line, width: 1, corners: 'sharp', ends: 'point'},
+        ]})).paths[0] as Record<string, unknown>;
+        expect(authored.corners).toBe('sharp');
+        expect(authored.ends).toBe('point');
+
+        const plain = roundTrip(zone({paths: [{profile: 'Road', points: line, width: 1}]}))
+            .paths[0] as Record<string, unknown>;
+        expect('corners' in plain).toBe(false);
+        expect('ends' in plain).toBe(false);
+    });
+
+    it('reads the sentinel back as absent, and refuses ends on a ring', () => {
+        const m = C.zoneToModel(zone({paths: [
+            {profile: 'Road', points: [{x: 0, y: 0}, {x: 5, y: 0}, {x: 5, y: 5}], width: 1, closed: true},
+        ]})) as {layers: {name: string; objects: {properties: Record<string, unknown>}[]}[]};
+        const o = m.layers.filter(l => l.name === 'paths')[0].objects[0];
+        o.properties.corners = C.PATH_SHAPE_DEFAULT;
+        expect((C.modelToZone(m) as {paths: Record<string, unknown>[]}).paths[0].corners)
+            .toBeUndefined();
+
+        o.properties.ends = 'point';
+        const errors = C.validateModel(m) as string[];
+        expect(errors.join('\n')).toContain('closed ring, which has no ends');
     });
 
     // ⚑ And the enum behind it must actually offer the three values the

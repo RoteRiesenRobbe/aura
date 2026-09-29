@@ -1,6 +1,6 @@
 # Plan: World paths — a stroked polyline primitive for roads and water
 
-**Status: C1 + C2 + C3 SHIPPED 2026-09-07; C4 NOT STARTED.** ⭐ **D6 was answered after the first draft and rewrote §4.2: bridges are PROPS, not paths** — which deleted D11's last-wins clearing rule outright. Schema impact: **DB NONE · FlatBuffers NONE · conf NONE · content = one new zone array** (absent = no paths, so every shipped zone stays valid).
+**Status: C1 + C2 + C3 SHIPPED 2026-09-07; C4 NOT STARTED. Rider `corners`/`ends` chunk A SHIPPED 2026-09-29, chunk B HELD (§12).** ⭐ **D6 was answered after the first draft and rewrote §4.2: bridges are PROPS, not paths** — which deleted D11's last-wins clearing rule outright. Schema impact: **DB NONE · FlatBuffers NONE · conf NONE · content = one new zone array** (absent = no paths, so every shipped zone stays valid).
 
 ⭐ **This is the sibling of the region primitive, not a new system.** A region is a closed polygon *filled*; a path is an open polyline *stroked*. The profile table, the paint spec, the blend mask, map parity and the Tiled round-trip are all reused verbatim — Pixi 8's `StrokeStyle extends FillStyle` (verified at HEAD in `frontend/node_modules/pixi.js/lib/scene/graphics/shared/FillTypes.d.ts:43`), so `regionPaint()`'s `{texture, matrix}` output feeds `.stroke({…})` unchanged.
 
@@ -394,3 +394,72 @@ Round coordinates would have looked perfect and broken on the first real fence.
 named next ones are a `Road` with ruts along it, a palisade, and a cliff edge
 with strata. ⚑ `Road` is still `stock` at P0 in `docs/art/assets.csv` and is
 the biggest one.
+
+### Rider — `corners` and `ends`: chunk A SHIPPED 2026-09-29 `[uncommitted]` · chunk B HELD (PO 2026-09-29)
+
+Not a chunk from §5: two fields added on a PO ask. "Paths paint soft (round)
+on the ends and edges unless align texture is on… I would like instead
+controls." The shape of a bend and of an end was a SIDE EFFECT of the render
+branch. The plain stroke hardcoded `cap: 'round'` / `join: 'round'` (D10), and
+the `alignTexture` ribbon mesh only knew mitred corners and flat ends.
+
+**The vocabulary.** Two optional keys on `paths[]`, absent = the default, and
+**one default for every path, aligned or not**:
+
+| key | values | absent |
+|---|---|---|
+| `corners` | `round` · `sharp` | `round` |
+| `ends` | `round` · `flat` · `point` | `round` |
+
+- ⚑ Keeping today's look meant migrating what each aligned path ACTUALLY drew,
+  not what `alignTexture` implies. The 9 open fences and cliffs in `world.json`
+  (mesh: mitred, flat) got `"corners": "sharp", "ends": "flat"`; the closed
+  `Cliff Smooth` ring got `corners` alone; the `Water` river got NOTHING,
+  because a DRIFTING profile never took the mesh and always stroked round.
+- ⛔ `ends` on a CLOSED path refuses the boot. A ring has no ends, and a key
+  that does nothing is the quiet no-op this primitive keeps refusing.
+- ⭐ **`point` tapers INSIDE the drawn length** (PO-ruled). The Tiled endpoint
+  is where the tip is, so COLLISION TAPERS TOO: the corridor sampler emits
+  per-sample rects of the local width inside a taper, and a joint there
+  shrinks with it.
+- The taper runs `2 × width` [PLACEHOLDER, PO-ruled fixed, not authored]
+  along the arc, clamped to half the path so two tapers never overlap.
+  ⚑ The constant lives TWICE (`paths_collision.go`, `Paths.ts`), each side
+  pinned by a test naming the other.
+- ⚑ `sharp` collision stays a joint CIRCLE, so the outer tip of a mitre is
+  not solid. phy has no wedge. This is a known limit, not a defect.
+- ⚑ One key covers both ends. A per-end split (a cliff fading at one end
+  and abutting a wall at the other) is the obvious follow-up and has no
+  consumer yet.
+
+**Chunk A**: vocabulary + validation, tapered collision, the stroke branch
+(`pathSilhouette`, the ONE draw callback, so body, mask, overlay and outline
+agree), and the Tiled round-trip. ⭐ Pulled forward from B because it was
+free once `ribbonGeometry` took width factors: the MESH already draws a
+`sharp` path's `point` ends, and the texture COMPRESSES across the ribbon
+into the tip, so a cliff reads as getting lower rather than cropped. That is
+the cliff fade-out the ask was for. **Chunk B**: the mesh learns `round`
+corners (an outer fan) and `round` ends (a half-disc). Until then an aligned
+path asking for either falls back to the stroke + matrix (`paintRibbon`
+refusal 4): the authored shape wins over following the bends.
+
+⚑ Verified: Go `world` path tests + `-validate` (both zone sets, 0 findings) ·
+frontend 1432/0 + typecheck · Tiled extension reinstalled. ⛔ The in-game
+look is OWED. ⚑ `TestPropContent_C1bMigrationPreservesLookAndCollision`
+(Tree, Boulder) is red at HEAD without this change, so it is not this chunk's.
+
+⛔ **Owed, not run:** the in-game look (the 11 migrated aligned paths unchanged;
+a `point` cliff fading, with and without `alignTexture`; `sharp` on a road;
+walking into a tapered tip) and the two harnesses this chunk owns,
+`c4-region-texture` (`RegionPaint.ts`) and `p1-closed-path`
+(`appendPathCorridors`, `paintPaths`). Both need a prod build + server
+restart, and the PO's own server was live during the wrap. ⚑ The running
+binary predates the keys: a restart must REBUILD (`dev-restart-windows.sh`
+does), or `DisallowUnknownFields` refuses `world.json`.
+
+⏸ **Chunk B is HELD** (PO 2026-09-29): no path is both aligned and round
+after the migration, so it changes nothing shipped. Resume when one is
+authored, e.g. a curved fence with rounded ends.
+
+**Schema: DB none · FlatBuffers none · conf none · ZONE FORMAT two additive
+keys.**

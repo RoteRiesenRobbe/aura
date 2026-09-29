@@ -406,3 +406,112 @@ func max32(a, b float32) float32 {
 	}
 	return b
 }
+
+// ---- corners and ends (plan-world-paths.md, the corners/ends rider) --------
+
+func TestCornersAndEndsParse(t *testing.T) {
+	z, err := parseZone([]byte(`{"name":"P","bounds":{"width":60,"height":40},"paths":[
+		{"profile":"Road","width":2,"corners":"sharp","ends":"point",
+		 "points":[{"x":0,"y":0},{"x":5,"y":0}]},
+		{"profile":"Road","width":2,"points":[{"x":0,"y":0},{"x":5,"y":0}]}
+	]}`))
+	require.NoError(t, err)
+	assert.Equal(t, "sharp", z.Paths[0].Corners)
+	assert.Equal(t, "point", z.Paths[0].Ends)
+	assert.Empty(t, z.Paths[1].Corners, "absent is the default, every path before this")
+	assert.Empty(t, z.Paths[1].Ends)
+}
+
+func TestCornersAndEndsAreClosedVocabularies(t *testing.T) {
+	cases := []struct {
+		name, path, want string
+	}{
+		{"unknown corners",
+			`{"profile":"Road","width":2,"corners":"mitre","points":[{"x":0,"y":0},{"x":1,"y":1}]}`,
+			`path 0: corners "mitre" is not one of round, sharp`},
+		{"unknown ends",
+			`{"profile":"Road","width":2,"ends":"square","points":[{"x":0,"y":0},{"x":1,"y":1}]}`,
+			`path 0: ends "square" is not one of round, flat, point`},
+		// ⛔ A ring has no ends: a key that silently did nothing is refused.
+		{"ends on a ring",
+			`{"profile":"Road","width":2,"closed":true,"ends":"point",` + ringPoints + `}`,
+			`path 0: ends "point" on a closed path, which has no ends`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			doc := `{"name":"P","bounds":{"width":60,"height":40},"paths":[` + c.path + `]}`
+			_, err := parseZone([]byte(doc))
+			assert.EqualError(t, err, c.want)
+		})
+	}
+}
+
+// ⚑ Pinned, because the CLIENT holds the same number (Paths.ts
+// TAPER_LENGTH_PER_WIDTH) and the two must agree about where a cliff's tip is:
+// one draws it, the other walls it.
+func TestTaperLengthIsTwoWidths(t *testing.T) {
+	assert.EqualValues(t, 2, taperLengthPerWidth)
+}
+
+// A 20-unit straight wall, width 2, pointed at both ends: a 4-unit taper at
+// each end, full width in the 12 between.
+func TestPointedEndsTaperTheCorridor(t *testing.T) {
+	z := blockingZone(t, `{"profile":"Rock","width":2,"blocksMovement":true,"ends":"point",
+		"points":[{"x":0,"y":0},{"x":20,"y":0}]}`)
+	cs := PathCorridors(z)
+
+	var covered, full float32
+	for _, c := range cs {
+		require.False(t, c.IsCircle(), "a straight path has no joints")
+		covered += c.Length
+		left, right := c.X-c.Length/2, c.X+c.Length/2
+		if left >= 4-1e-3 && right <= 16+1e-3 {
+			assert.EqualValues(t, 2, c.Width, "the middle is full width")
+			full += c.Length
+			continue
+		}
+		assert.Less(t, c.Width, float32(2), "rect [%g,%g] lies in a taper", left, right)
+		assert.LessOrEqual(t, c.Length, float32(clearStep)+1e-4, "a taper is sampled, not merged")
+		// The width at the rect's middle, falling linearly to the tip.
+		dist := min32(c.X, 20-c.X)
+		assert.InDelta(t, 2*dist/4, c.Width, 1e-3)
+	}
+	assert.InDelta(t, 20, covered, 1e-3, "the whole length is still walled")
+	assert.InDelta(t, 12, full, 1e-3, "the middle stays merged runs")
+}
+
+// Round and flat ends leave the corridor exactly as it always was: collision
+// already stops flat at the endpoint.
+func TestRoundAndFlatEndsDoNotChangeTheCorridor(t *testing.T) {
+	const pts = `"points":[{"x":-10,"y":0},{"x":0,"y":0},{"x":0,"y":10}]}`
+	base := PathCorridors(blockingZone(t, `{"profile":"Rock","width":3,"blocksMovement":true,`+pts))
+	for _, ends := range []string{"round", "flat"} {
+		got := PathCorridors(blockingZone(t,
+			`{"profile":"Rock","width":3,"blocksMovement":true,"ends":"`+ends+`",`+pts))
+		assert.Equal(t, base, got, ends)
+	}
+}
+
+// A taper that runs through a bend shrinks the joint there too: a full-width
+// circle at a vertex the drawing has already narrowed would be an invisible
+// wall.
+func TestTaperShrinksAJointInsideIt(t *testing.T) {
+	// 3 east then 10 north, width 2: total 13, taper 4, so the bend at arc 3
+	// sits three quarters of the way up the first taper.
+	z := blockingZone(t, `{"profile":"Rock","width":2,"blocksMovement":true,"ends":"point",
+		"points":[{"x":0,"y":0},{"x":3,"y":0},{"x":3,"y":10}]}`)
+	joints := circlesIn(PathCorridors(z))
+	require.Len(t, joints, 1)
+	assert.InDelta(t, 0.75, joints[0].Radius, 1e-4, "half of 2 × 3/4")
+}
+
+// A path too short for two full tapers: each gets half the length, so the
+// widest point is the middle and nothing is full width.
+func TestShortPointedPathTapersToItsMiddle(t *testing.T) {
+	z := blockingZone(t, `{"profile":"Rock","width":2,"blocksMovement":true,"ends":"point",
+		"points":[{"x":0,"y":0},{"x":4,"y":0}]}`)
+	for _, c := range PathCorridors(z) {
+		assert.Less(t, c.Width, float32(2))
+		assert.InDelta(t, 2*min32(c.X, 4-c.X)/2, c.Width, 1e-3)
+	}
+}

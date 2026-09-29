@@ -336,6 +336,17 @@
       "Wild",
       "Wildfire",
       "WolfBite"
+    ],
+    "AuraPathCorners": [
+      "(default)",
+      "round",
+      "sharp"
+    ],
+    "AuraPathEnds": [
+      "(default)",
+      "round",
+      "flat",
+      "point"
     ]
   },
   "TERRAIN_TYPES": [

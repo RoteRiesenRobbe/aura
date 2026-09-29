@@ -1,5 +1,6 @@
 import {describe, it, expect} from 'vitest';
-import {ribbonGeometry} from './PathRibbon';
+import {ribbonGeometry, ribbonOutline, taperedCentreline} from './PathRibbon';
+import {TAPER_LENGTH_PER_WIDTH} from './Paths';
 import {RegionPoint} from '../../regions/logic/Regions';
 
 /**
@@ -224,5 +225,75 @@ describe('ribbonGeometry', () => {
             240, false, TILE_W, TILE_H)!;
         expect(r.indices.length).toBe(2 * 6);
         expect(Math.max(...r.indices)).toBe(count(r) - 1);
+    });
+});
+
+describe('taperedCentreline', () => {
+    it('narrows the last 2 × width at each end to a point', () => {
+        // 1000 long, width 100: a 200-long taper at each end, full width between.
+        const t = taperedCentreline([{x: 0, y: 0}, {x: 1000, y: 0}], 100)!;
+        expect(t.points.map(p => p.x)).toEqual([0, 200, 800, 1000]);
+        expect(t.factors).toEqual([0, 1, 1, 0]);
+        expect(t.full).toEqual([1, 2]);
+    });
+
+    it('pins the taper length the server walls', () => {
+        // ⚑ paths_collision.go taperLengthPerWidth holds the same number.
+        expect(TAPER_LENGTH_PER_WIDTH).toBe(2);
+    });
+
+    it('measures the taper along the arc, through a bend', () => {
+        // 150 east then 850 north, width 100: the bend sits at arc 150, three
+        // quarters of the way up the first taper, and the cut lands 50 north.
+        const t = taperedCentreline([{x: 0, y: 0}, {x: 150, y: 0}, {x: 150, y: 850}], 100)!;
+        expect(t.points).toEqual([
+            {x: 0, y: 0}, {x: 150, y: 0}, {x: 150, y: 50}, {x: 150, y: 650}, {x: 150, y: 850},
+        ]);
+        expect(t.factors[1]).toBeCloseTo(0.75, FLOAT32);
+        expect(t.full).toEqual([2, 3]);
+    });
+
+    it('meets in the middle when the path is too short for two tapers', () => {
+        const t = taperedCentreline([{x: 0, y: 0}, {x: 200, y: 0}], 100)!;
+        expect(t.points.map(p => p.x)).toEqual([0, 100, 200]);
+        expect(t.factors).toEqual([0, 1, 0]);
+        expect(t.full).toEqual([1, 1]);
+    });
+
+    it('reuses a vertex the cut lands on rather than doubling it', () => {
+        const t = taperedCentreline([{x: 0, y: 0}, {x: 200, y: 0}, {x: 200, y: 800}], 100)!;
+        expect(t.points).toEqual([{x: 0, y: 0}, {x: 200, y: 0}, {x: 200, y: 600}, {x: 200, y: 800}]);
+        expect(t.full).toEqual([1, 2]);
+    });
+
+    it('refuses what has no length', () => {
+        expect(taperedCentreline([{x: 5, y: 5}, {x: 5, y: 5}], 100)).toBeNull();
+        expect(taperedCentreline([{x: 0, y: 0}, {x: 10, y: 0}], 0)).toBeNull();
+    });
+});
+
+describe('ribbonGeometry with width factors', () => {
+    it('collapses both rims onto the centreline at a factor of 0', () => {
+        const r = ribbonGeometry([{x: 0, y: 0}, {x: 400, y: 0}], 100, false, TILE_W, TILE_H, 0, [0, 1])!;
+        expect(vertex(r, 0)).toMatchObject({x: 0, y: 0});
+        expect(vertex(r, 1)).toMatchObject({x: 0, y: 0});
+        expect(vertex(r, 3).y - vertex(r, 2).y).toBeCloseTo(100, FLOAT32);
+    });
+
+    it('keeps the v band, so the texture compresses into the tip', () => {
+        // ⭐ A cliff narrowing reads as the cliff getting LOWER: the whole face
+        // is still there, squeezed, rather than cropped to its middle rows.
+        const r = ribbonGeometry([{x: 0, y: 0}, {x: 400, y: 0}], 100, false, TILE_W, TILE_H, 0, [0.5, 1])!;
+        expect(vertex(r, 0).v).toBeCloseTo(vertex(r, 2).v, FLOAT32);
+        expect(vertex(r, 1).v).toBeCloseTo(vertex(r, 3).v, FLOAT32);
+    });
+});
+
+describe('ribbonOutline', () => {
+    it('walks one rim out and the other back', () => {
+        const flat = ribbonOutline([{x: 0, y: 0}, {x: 400, y: 0}], 100, [0, 1])!;
+        // tip (both rims), then the far pair on the far side, round to the near side.
+        // (`+ 0` folds the -0 a zero-width rim produces into 0.)
+        expect(flat.map(n => n + 0)).toEqual([0, 0, 400, -50, 400, 50, 0, 0]);
     });
 });

@@ -4799,7 +4799,9 @@
         }
       ],
       "width": 1.5,
-      "alignTexture": true
+      "alignTexture": true,
+      "corners": "sharp",
+      "ends": "flat"
     },
     {
       "profile": "Road",
@@ -4841,7 +4843,9 @@
       ],
       "width": 0.15,
       "blocksMovement": true,
-      "alignTexture": true
+      "alignTexture": true,
+      "corners": "sharp",
+      "ends": "flat"
     },
     {
       "profile": "Fence",
@@ -4857,7 +4861,9 @@
       ],
       "width": 0.15,
       "blocksMovement": true,
-      "alignTexture": true
+      "alignTexture": true,
+      "corners": "sharp",
+      "ends": "flat"
     },
     {
       "profile": "Fence",
@@ -4873,7 +4879,9 @@
       ],
       "width": 0.15,
       "blocksMovement": true,
-      "alignTexture": true
+      "alignTexture": true,
+      "corners": "sharp",
+      "ends": "flat"
     },
     {
       "profile": "Fence",
@@ -4889,7 +4897,9 @@
       ],
       "width": 0.15,
       "blocksMovement": true,
-      "alignTexture": true
+      "alignTexture": true,
+      "corners": "sharp",
+      "ends": "flat"
     },
     {
       "profile": "Fence",
@@ -4905,7 +4915,9 @@
       ],
       "width": 0.15,
       "blocksMovement": true,
-      "alignTexture": true
+      "alignTexture": true,
+      "corners": "sharp",
+      "ends": "flat"
     },
     {
       "profile": "Cliff",
@@ -4969,7 +4981,9 @@
       ],
       "width": 2,
       "blocksMovement": true,
-      "alignTexture": true
+      "alignTexture": true,
+      "corners": "sharp",
+      "ends": "flat"
     },
     {
       "profile": "Cliff Smooth",
@@ -5026,7 +5040,8 @@
       "width": 1.5,
       "blocksMovement": true,
       "closed": true,
-      "alignTexture": true
+      "alignTexture": true,
+      "corners": "sharp"
     },
     {
       "profile": "Cliff",
@@ -5058,7 +5073,9 @@
       ],
       "width": 1.5,
       "blocksMovement": true,
-      "alignTexture": true
+      "alignTexture": true,
+      "corners": "sharp",
+      "ends": "flat"
     },
     {
       "profile": "Cliff",
@@ -5278,7 +5295,9 @@
       ],
       "width": 1.5,
       "blocksMovement": true,
-      "alignTexture": true
+      "alignTexture": true,
+      "corners": "sharp",
+      "ends": "flat"
     },
     {
       "profile": "Road",

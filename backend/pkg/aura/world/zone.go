@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
+	"slices"
 	"sort"
 	"strings"
 
@@ -388,6 +389,22 @@ type Path struct {
 	// declared all the same, because DisallowUnknownFields turns an unknown
 	// key into a REFUSED BOOT rather than an ignored one.
 	AlignTexture bool `json:"alignTexture,omitempty"`
+	// Corners is how the stroke turns at a bend: "round" (absent) or "sharp",
+	// a brick wall's mitre. Ends is how it stops: "round" (absent), "flat", or
+	// "point", which narrows the last 2 × Width of the drawn length to nothing
+	// so a cliff fades out instead of ending in a wall (plan-world-paths.md,
+	// the corners/ends rider).
+	//
+	// ⭐ AUTHORED, NOT A SIDE EFFECT. Both used to follow from the render
+	// branch: a plain stroke was round, an AlignTexture mesh sharp and flat.
+	// One default for every path now, whichever way its texture runs.
+	//
+	// ⚑ The server reads Ends for one value only: "point" tapers the collision
+	// corridor with the drawing (paths_collision.go). Corners never touches
+	// collision — a sharp bend keeps its joint circle, and the outer tip of
+	// the mitre is not solid.
+	Corners string `json:"corners,omitempty"`
+	Ends    string `json:"ends,omitempty"`
 	// Effect names an authored skill applied to whatever stands inside this
 	// shape — a lava river, a stream that heals (plan-area-effects.md E1).
 	// Absent = inert, which is every path authored before this.
@@ -956,6 +973,9 @@ func (z *Zone) validate() error {
 		if z.Paths[i].Width <= 0 {
 			return fmt.Errorf("path %d: width must be positive, got %g", i, z.Paths[i].Width)
 		}
+		if err := validatePathShape(i, &z.Paths[i]); err != nil {
+			return err
+		}
 		if err := validateOutline("path", i, z.Paths[i].OutlineProfile, z.Paths[i].OutlineWidth); err != nil {
 			return err
 		}
@@ -1150,6 +1170,29 @@ func validateEffect(kind string, i int, effect string) error {
 // same way — SILENTLY. A named profile with no width draws a zero-wide stroke,
 // and a width with no profile draws nothing at all, so either mistake looks
 // exactly like the outline feature not working.
+// PathCorners and PathEnds are the closed vocabularies of Path.Corners and
+// Path.Ends; the empty string (absent) is "round" in both.
+var (
+	PathCorners = []string{"round", "sharp"}
+	PathEnds    = []string{"round", "flat", "point"}
+)
+
+// validatePathShape refuses a corners or ends value outside its vocabulary,
+// and any ends on a closed path: a ring has no ends, so the key would silently
+// do nothing.
+func validatePathShape(i int, p *Path) error {
+	if p.Corners != "" && !slices.Contains(PathCorners, p.Corners) {
+		return fmt.Errorf("path %d: corners %q is not one of %s", i, p.Corners, strings.Join(PathCorners, ", "))
+	}
+	if p.Ends != "" && !slices.Contains(PathEnds, p.Ends) {
+		return fmt.Errorf("path %d: ends %q is not one of %s", i, p.Ends, strings.Join(PathEnds, ", "))
+	}
+	if p.Ends != "" && p.Closed {
+		return fmt.Errorf("path %d: ends %q on a closed path, which has no ends", i, p.Ends)
+	}
+	return nil
+}
+
 func validateOutline(kind string, i int, profile string, width float32) error {
 	named := strings.TrimSpace(profile) != ""
 	switch {

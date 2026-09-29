@@ -49,7 +49,7 @@ here needs Go.
 | Layer / array | What it is | Use it for |
 |---|---|---|
 | `regions` | Filled area naming a **terrain profile** — the ground | The zone's base ground (Fields, Forest, Suburbs) |
-| `paths` | Stroked line or **closed ring**, a profile + width, optionally blocking, optionally **`alignTexture`** (runs the tile *along* the path — required by `Fence`, wrong for everything else) | Roads, rivers, hedgerows, fences, cliff edges, cave walls |
+| `paths` | Stroked line or **closed ring**, a profile + width, optionally blocking, optionally **`alignTexture`** (runs the tile *along* the path — required by `Fence`, wrong for everything else), **`corners`** (`round` default · `sharp` for a wall) and **`ends`** (`round` default · `flat` · `point`, which narrows the last 2 × width to nothing so a cliff fades out — collision narrows with it; not on a closed ring) | Roads, rivers, hedgerows, fences, cliff edges, cave walls |
 | `polygons` | Filled closed area, optionally **blocking**, with an outline | Ponds, rock masses, building footprints, walls of a hideout |
 | `atmospheres` | The **air** over an area — `darkness` and/or `haze`, plus `sight` | Canopy gloom, forest fog, a dark tunnel, weather |
 | `clearings` | A closed area that **erases** atmosphere (`darkness`/`haze`/`both`) | A sunlit glade in the canopy, a lit camp inside the gloom |

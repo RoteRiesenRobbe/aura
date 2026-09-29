@@ -418,6 +418,12 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // is the whole of D10, and a shape that grew a random skill because one
         // sorted first would be a hazard nobody drew.
         enumType('AuraEffect', [EFFECT_UNSET].concat(effects)),
+        // How a path turns and stops (plan-world-paths.md, the corners/ends
+        // rider). Mirrors world.PathCorners / PathEnds. The sentinel leads for
+        // AuraPropBlocks' reason: it maps back to "not authored" (round), so a
+        // dropped default and a kept one reach the same answer.
+        enumType(C.PATH_SHAPE_ENUMS.corners, [C.PATH_SHAPE_DEFAULT].concat(C.PATH_SHAPE_VALUES.corners)),
+        enumType(C.PATH_SHAPE_ENUMS.ends, [C.PATH_SHAPE_DEFAULT].concat(C.PATH_SHAPE_VALUES.ends)),
         classType('AuraTerrain', '#ff8bc34a'),
         // ⭐ ONE member, and the enum above is what makes it safe — see the
         // block comment over KIND_COLOUR. The default IS C.PROP_BLOCKS_INHERIT,
@@ -459,6 +465,8 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
                 member('width', 'float', 0),
                 member('blocksMovement', 'bool', false),
                 member('alignTexture', 'bool', false),
+                member('corners', 'string', C.PATH_SHAPE_DEFAULT, C.PATH_SHAPE_ENUMS.corners),
+                member('ends', 'string', C.PATH_SHAPE_DEFAULT, C.PATH_SHAPE_ENUMS.ends),
                 ...OUTLINE_MEMBERS, EFFECT_MEMBER]),
         // ⚑ A filled AREA, sharing the paths layer and told apart by this class
         // (plan-zone-polygons.md D5). It has NO width member on purpose: a
