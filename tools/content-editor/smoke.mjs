@@ -64,7 +64,7 @@
  *       not leave it pointing at nothing.
  *   (k) the `visual` vocabulary, both halves (plan-skill-vfx.md C0). The
  *       FIXTURE half: the six generated lists exist and agree with each other
- *       (eight kinds, three triggers, a key row and a trigger row per kind,
+ *       (nine kinds, three triggers, a key row and a trigger row per kind,
  *       every named trigger a real one, and a curve set for exactly the kinds
  *       that read `curve`), plus the layer builder's three rules (C3b): a
  *       moment row for exactly the vocabulary's categories, each moment a
@@ -146,10 +146,10 @@ for (const name of Object.keys(effectCategories)) {
 }
 
 // (k) the visual vocabulary's fixture half. The counts are pinned outright:
-// the eight kinds are ENGINE code (each one is a renderer class), so a ninth
+// the nine kinds are ENGINE code (each one is a renderer class), so a tenth
 // arriving in the fixture without a plan amendment is exactly what this should
 // stop, and a kind quietly lost is the same finding from the other side.
-const VISUAL_KINDS = 8;
+const VISUAL_KINDS = 9;
 const VISUAL_TRIGGERS = 4;
 const visualKinds = vocabulary.visualKinds || [];
 const visualTriggers = vocabulary.visualTriggers || [];

@@ -23,11 +23,12 @@ import (
 //   - **On the SKILL, never per effect** (§10 Q1, PO 2026-09-19). A hit event
 //     carries the skill id, so the skill is the level the renderer can resolve
 //     for free; a skill with two effects (damage + slow) has one look.
-//   - **The eight kinds are ENGINE CODE and the set is CLOSED** (D4). Each one
+//   - **The nine kinds are ENGINE CODE and the set is CLOSED** (D4). Each one
 //     is a client class with its own math; a new kind is a plan amendment plus
-//     a renderer, not a content decision (the eighth, `lunge`, was one:
-//     plan-natural-weapons.md §3.1). Everything else about a layer is a
-//     parameter, which is why the tunables are few and shared.
+//     a renderer, not a content decision (the eighth and ninth, `lunge` and
+//     `maul`, were one: plan-natural-weapons.md §3.1, §3.3). Everything else
+//     about a layer is a parameter, which is why the tunables are few and
+//     shared.
 //   - ⭐ **An ATTACK is authored, the HIT MARK is not** (C3a amendment,
 //     plan-skill-vfx.md §12g.1, PO 2026-09-21). Everything a file can say is
 //     drawn FROM the attacker, facing the enemy. The one look that sits ON the
@@ -37,6 +38,11 @@ import (
 //     file that still names either hard-fails here. It is the only engine
 //     default in the whole vocabulary, ruled deliberately (it REVERSES §10 Q4)
 //     because a mark every damaging skill wants is not a content decision.
+//     The one authored look on the victim since is the `maul`
+//     (plan-natural-weapons.md §3.3): a natural weapon has nothing leaving the
+//     attacker, so its attack is the attacker's `lunge` and its mark (teeth,
+//     fangs, a gash, a rake, a hoof) is drawn ON the victim, beside the
+//     engine's mark rather than instead of it.
 //   - **`body` is UNCHECKED here, and CHECKED ELSEWHERE** (C3a). It names a
 //     PNG in frontend/src/features/skill-fx/assets/bodies/, and an absent
 //     body draws the kind's procedural placeholder. This package stays
@@ -134,7 +140,12 @@ var (
 	// the only kind that draws nothing: it moves the attacker's OWN token a
 	// short way toward the victim and back, the natural-weapon attack of a mob
 	// fighting with its body.
-	visualKinds = []string{"strike", "projectile", "beam", "wave", "cast-pose", "orbit", "emitter", "lunge"}
+	//
+	// `maul` is the ninth (plan-natural-weapons.md §3.3, C2): the natural
+	// weapon's mark drawn ON the victim, screen-aligned (D10), the lunge's
+	// second moment. It took `bite` and `pincer` from the strike, which is a
+	// held weapon again.
+	visualKinds = []string{"strike", "projectile", "beam", "wave", "cast-pose", "orbit", "emitter", "lunge", "maul"}
 
 	// visualTriggers: ambient = while this is the actor's running aura,
 	// fired = a cast or an aura tick went off (targets or not), hit = once
@@ -146,24 +157,31 @@ var (
 
 	// visualCurvesByKind: `curve` picks a motion shape, and the shapes are
 	// per KIND because they are per renderer (C2a, PO 2026-09-19). A strike
-	// thrusts, swings, comes down overhead or bites, and the style also picks
-	// the placeholder weapon (spear / blade / hammer / a mirrored pair of
-	// jaws); a beam either flashes (attack → peak → fade, the lightning
-	// envelope) or extends (extend → retract, the flame pillar). A shared set
+	// thrusts, swings or comes down overhead, and the style also picks the
+	// placeholder weapon (spear / blade / hammer); a beam either flashes
+	// (attack → peak → fade, the lightning envelope) or extends (extend →
+	// retract, the flame pillar); a maul picks the natural weapon whose mark
+	// lands on the victim (teeth, fangs, tusks, claws, a hoof). A shared set
 	// would let a beam author "thrust", load clean and draw its default
 	// forever. Only the kinds whose visualKeysByKind row carries "curve" have
 	// a row here, both ways.
 	//
-	// ⚑ `bite` is the C3a amendment's (§12g.1 item 3): the bite used to be an
-	// `impact` `snap` on the bitten, and is now two jaws hinged at the BITER,
-	// reaching over the victim and closing. Both of those words left the
-	// vocabulary with the kind, so either one is a refusal naming this set.
-	// `pincer` (PO look 2026-09-23) is the spider's pair: one fang hinged on
-	// EACH side of the victim's rim, pointing inward, closing across it.
+	// ⚑ The bite has moved twice: an `impact` `snap` on the bitten, then a
+	// `strike` `bite` of jaws reaching from the biter (C3a, §12g.1 item 3) with
+	// the spider's `pincer` beside it, and since plan-natural-weapons.md C2 a
+	// `maul` again ON the bitten. A strike authoring either old word is refused
+	// by name (retiredStrikeCurves), so the author learns where it went.
 	visualCurvesByKind = map[string][]string{
-		"strike": {"thrust", "swing", "overhead", "bite", "pincer"},
+		"strike": {"thrust", "swing", "overhead"},
 		"beam":   {"flash", "extend"},
+		"maul":   {"bite", "pincer", "gore", "claw", "kick"},
 	}
+
+	// retiredStrikeCurves are the strike curves that moved to the maul
+	// (plan-natural-weapons.md C2, §10 L4). They get their own refusal ahead
+	// of the generic curve check, because "not one of: thrust, swing,
+	// overhead" would not tell an author that the bite still exists.
+	retiredStrikeCurves = []string{"bite", "pincer"}
 
 	// visualMotions is the EMITTER's, and its "burst" is a particle spray -
 	// unrelated to the `burst` curve the retired `impact` kind used to carry
@@ -190,6 +208,7 @@ var (
 		// a kind does not read is a hard-fail. `scale` multiplies the jab's
 		// distance (plan-natural-weapons.md §3.1).
 		"lunge": {"kind", "on", "ms", "scale"},
+		"maul":  mergeKeys(visualKeysCommon, []string{"ms", "curve"}),
 	}
 
 	// visualCountMaxByKind is the upper half of the `count` range, for the
@@ -211,7 +230,8 @@ var (
 	// victim); only `emitter` spans ambient, fired and hit. Every kind with a
 	// victim end also takes `applied` (§12h); `wave` and `orbit` have none. A
 	// `lunge` is the attacker's body jabbing at a victim, so it has the
-	// strike's moments and no others (plan-natural-weapons.md §3.1).
+	// strike's moments and no others (plan-natural-weapons.md §3.1), and a
+	// `maul` is the mark that jab leaves ON the victim, the same two (§3.3).
 	visualTriggersByKind = map[string][]string{
 		"strike":     {"hit", visualTriggerApplied},
 		"projectile": {"hit", visualTriggerApplied},
@@ -221,6 +241,7 @@ var (
 		"orbit":      {"fired", "ambient"},
 		"emitter":    {"ambient", "fired", "hit", visualTriggerApplied},
 		"lunge":      {"hit", visualTriggerApplied},
+		"maul":       {"hit", visualTriggerApplied},
 	}
 
 	// visualTriggersByCategory is D2, enforced at load (PO 2026-09-19).
@@ -357,6 +378,11 @@ func parseVisualLayer(raw json.RawMessage, categoryName string) (VisualLayer, er
 
 	// The curve set belongs to the KIND, so a value borrowed from another
 	// kind's set is refused by name rather than quietly ignored.
+	if layer.Kind == "strike" && slices.Contains(retiredStrikeCurves, layer.Curve) {
+		return VisualLayer{}, fmt.Errorf(`kind "strike": curve %q moved to the kind "maul" (plan-natural-weapons.md C2) - `+
+			`a strike is a held weapon (%s); an animal's mark on its victim is {"kind": "maul", "curve": %q}, usually beside a "lunge"`,
+			layer.Curve, strings.Join(visualCurvesByKind["strike"], ", "), layer.Curve)
+	}
 	if legal := visualCurvesByKind[layer.Kind]; layer.Curve != "" && !slices.Contains(legal, layer.Curve) {
 		return VisualLayer{}, fmt.Errorf("kind %q: curve %q is not one of: %s",
 			layer.Kind, layer.Curve, strings.Join(legal, ", "))

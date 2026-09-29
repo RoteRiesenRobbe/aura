@@ -28,7 +28,8 @@
  * be felt on the start screen.
  *
  * The placeholders are deliberately plain Graphics - a ring, a dot, a kinked
- * line, a ribbon, three blocky weapons - tinted by SkillFxPalette. They are
+ * line, a ribbon, three blocky weapons, the maul's teeth, fang, gash, rake and
+ * hoof - tinted by SkillFxPalette. They are
  * read as "this is where the art goes", never as art. Every size below is
  * [PLACEHOLDER].
  */
@@ -127,47 +128,170 @@ export function drawHitMarkPlaceholder(g: Graphics, color: number, sizePx: numbe
     return g.stroke({color, width: width * 0.8, alpha: 0.8});
 }
 
+// --- the maul marks (plan-natural-weapons.md §3.3) -------------------------
+//
+// The natural weapon's mark ON the victim, one drawing per PART (a row of
+// teeth, a fang, a gash, a rake, a hoof print); the Fx draws a curve's parts
+// and moves each by the maul's phase. Each is drawn in the SAME frame as the
+// PNG a `body` would put there (`docs/art/skill-vfx-asset-spec.md`), so a
+// motion tuned on the placeholder reads the same with art. The skill's colour
+// is the flesh (the gum, the wound), so a poison bite still reads as poison.
+
 /** Bone and its outline: pale and dark together read on fur, grass and dirt alike. */
 const TOOTH = 0xf4f0e4;
 const TOOTH_OUTLINE = 0x2a2320;
-const JAW_TEETH = 6;
-/** The jaw's height at the hinge, as a share of its length. */
-const JAW_ROOT_HEIGHT_RATIO = 0.3;
+const FANG_TEETH = 6;
+/** The fang's height at the hinge, as a share of its length. */
+const FANG_ROOT_HEIGHT_RATIO = 0.3;
 
 /**
- * `strike` / `bite` (§12g.2): ONE upper jaw, hinged at the LEFT edge and
- * reaching right to `lengthPx`, a tapering snout with a row of teeth whose tips
- * all sit on the bite line y = 0 (PO 2026-09-20: "should read more like actual
- * jaws"). The lower jaw is this same body with its y scale negated, so the Fx
- * draws the pair once and closes it by rotating both about the hinge; nothing
- * is rebuilt per frame. The skill's colour is the gum line, so a poison bite
- * still reads as poison.
+ * `maul` / `pincer`: ONE fang, hinged at the LEFT edge and reaching right to
+ * `lengthPx`, a tapering shape with a row of teeth whose tips all sit on the
+ * bite line y = 0. The other fang is this same body with its y scale negated,
+ * so the Fx draws the pair once and closes it by rotating both about their
+ * hinges; nothing is rebuilt per frame.
  *
- * Same frame as the `wolf-jaw.png` contract (`docs/art/skill-vfx-asset-spec.md`):
- * hinge at (0, 0), snout toward +x, the picture ABOVE the bite line (−y).
+ * Same frame as the `spider-fang.png` contract: hinge at (0, 0), point toward
+ * +x, the picture ABOVE the bite line (−y).
  */
-export function drawStrikeJawPlaceholder(g: Graphics, color: number, lengthPx: number): Graphics {
+export function drawMaulFangPlaceholder(g: Graphics, color: number, lengthPx: number): Graphics {
     const len = Math.max(24, lengthPx);
-    const root = len * JAW_ROOT_HEIGHT_RATIO;
+    const root = len * FANG_ROOT_HEIGHT_RATIO;
     const outline = Math.max(1.5, len * 0.03);
-    // The muzzle line, thick at the hinge and thinning to the snout.
+    // The outer edge, thick at the hinge and thinning to the point.
     const gum = (x: number) => -root * (0.45 + 0.55 * (1 - x / len));
-    const fang = (i: number) => (i === 1 || i === JAW_TEETH - 2) ? 1 : 0.6;
+    const long = (i: number) => (i === 1 || i === FANG_TEETH - 2) ? 1 : 0.6;
     g.clear().moveTo(0, gum(0)).lineTo(len, gum(len) * 0.35);
     // Back along the teeth toward the hinge: root, tip, root... every tip on
-    // the bite line, the long fangs second from each end.
-    for (let i = JAW_TEETH - 1; i >= 0; i--) {
-        const x0 = (len * i) / JAW_TEETH;
-        const x1 = (len * (i + 1)) / JAW_TEETH;
-        const rootY = gum((x0 + x1) / 2) * (1 - fang(i) * 0.6);
+    // the bite line, the long ones second from each end.
+    for (let i = FANG_TEETH - 1; i >= 0; i--) {
+        const x0 = (len * i) / FANG_TEETH;
+        const x1 = (len * (i + 1)) / FANG_TEETH;
+        const rootY = gum((x0 + x1) / 2) * (1 - long(i) * 0.6);
         g.lineTo(x1, rootY).lineTo((x0 + x1) / 2, 0).lineTo(x0, rootY);
     }
     g.closePath()
         .fill({color: TOOTH, alpha: 0.97})
         .stroke({color: TOOTH_OUTLINE, width: outline, alpha: 0.95});
-    // The gum line, in the skill's colour.
+    // The outer edge, in the skill's colour.
     return g.moveTo(0, gum(0)).lineTo(len, gum(len) * 0.35)
         .stroke({color, width: outline * 1.6, alpha: 0.9});
+}
+
+/** Teeth in one row, and the row's height as a share of its width. [PLACEHOLDER] */
+const ROW_TEETH = 8;
+const ROW_HEIGHT_RATIO = 0.34;
+
+/**
+ * `maul` / `bite` (D11, PO 2026-09-28): ONE upper ROW of teeth seen from the
+ * FRONT, `widthPx` wide and centred on x, every tooth hanging DOWN from the gum
+ * with the two long canines' tips ON the bite line y = 0. The lower row is
+ * this same body with its y scale negated, and the pair closes by moving the
+ * rows together, not by turning them.
+ *
+ * Same frame as the `wolf-jaw.png` contract: anchor bottom-centre, the
+ * picture ABOVE the bite line (−y).
+ */
+export function drawMaulTeethRowPlaceholder(g: Graphics, color: number, widthPx: number): Graphics {
+    const w = Math.max(24, widthPx);
+    const h = w * ROW_HEIGHT_RATIO;
+    const half = w / 2;
+    const outline = Math.max(1.5, w * 0.025);
+    // Where the teeth leave the gum: a smile, higher toward the corners.
+    const root = (x: number) => -h * (0.5 + 0.2 * (x / half) ** 2);
+    const band = h * 0.35;
+    g.clear().moveTo(-half, root(-half) - band);
+    for (let i = 1; i <= ROW_TEETH; i++) {
+        const x = -half + (w * i) / ROW_TEETH;
+        g.lineTo(x, root(x) - band);
+    }
+    for (let i = ROW_TEETH; i >= 0; i--) {
+        const x = -half + (w * i) / ROW_TEETH;
+        g.lineTo(x, root(x));
+    }
+    g.closePath()
+        .fill({color, alpha: 0.9})
+        .stroke({color: TOOTH_OUTLINE, width: outline, alpha: 0.9});
+    for (let i = 0; i < ROW_TEETH; i++) {
+        const x0 = -half + (w * i) / ROW_TEETH;
+        const x1 = x0 + w / ROW_TEETH;
+        // The canines second from each end reach the bite line; the rest stop
+        // a little short, so the row reads as a row rather than as a saw.
+        const tip = i === 1 || i === ROW_TEETH - 2 ? 0 : -h * 0.16;
+        g.poly([x0, root(x0), x1, root(x1), (x0 + x1) / 2, tip])
+            .fill({color: TOOTH, alpha: 0.97})
+            .stroke({color: TOOTH_OUTLINE, width: outline, alpha: 0.95});
+    }
+    return g;
+}
+
+/**
+ * `maul` / `gore`: ONE tusk gash, a thin lens drawn along +X from 0 to
+ * `lengthPx` (the stroke's start is the origin, so a gash driven in grows out
+ * of it), in the skill's colour with a dark wound line down its middle.
+ */
+export function drawMaulGashPlaceholder(g: Graphics, color: number, lengthPx: number): Graphics {
+    const len = Math.max(16, lengthPx);
+    const half = Math.max(2.5, len * 0.08);
+    const outline = Math.max(1.2, len * 0.02);
+    const lens = [0, 0, len * 0.3, -half, len, 0, len * 0.3, half];
+    return g.clear()
+        .poly(lens)
+        .fill({color, alpha: 0.95})
+        .poly(lens)
+        .stroke({color: TOOTH_OUTLINE, width: outline, alpha: 0.85})
+        .moveTo(len * 0.1, 0)
+        .lineTo(len * 0.75, 0)
+        .stroke({color: TOOTH_OUTLINE, width: half * 0.6, alpha: 0.7});
+}
+
+/**
+ * `maul` / `claw`: ONE rake, a slash bowed slightly toward −y and pointed at
+ * both ends, drawn along +X from 0 to `lengthPx` (grows out of the origin as
+ * it is raked).
+ */
+export function drawMaulRakePlaceholder(g: Graphics, color: number, lengthPx: number): Graphics {
+    const len = Math.max(16, lengthPx);
+    const thick = Math.max(2, len * 0.06);
+    const bow = len * 0.08;
+    const steps = 10;
+    const centre = (t: number) => -bow * Math.sin(Math.PI * t);
+    const width = (t: number) => thick * Math.sin(Math.PI * t);
+    const outlinePoints: number[] = [];
+    for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        outlinePoints.push(len * t, centre(t) - width(t));
+    }
+    for (let i = steps; i >= 0; i--) {
+        const t = i / steps;
+        outlinePoints.push(len * t, centre(t) + width(t));
+    }
+    return g.clear()
+        .poly(outlinePoints)
+        .fill({color, alpha: 0.95})
+        .poly(outlinePoints)
+        .stroke({color: TOOTH_OUTLINE, width: Math.max(1.2, thick * 0.35), alpha: 0.85});
+}
+
+/**
+ * `maul` / `kick`: ONE hoof print, an open U standing upright (the opening at
+ * the top), `widthPx` wide and centred on the origin, in the skill's colour
+ * over a dark outline.
+ */
+export function drawMaulHoofPlaceholder(g: Graphics, color: number, widthPx: number): Graphics {
+    const r = Math.max(8, widthPx / 2);
+    const stroke = Math.max(3, r * 0.34);
+    const arm = r * 0.55;
+    // The same U twice: the dark outline under the coloured print.
+    const u = (width: number, c: number, alpha: number) => g
+        .moveTo(-r, -arm)
+        .lineTo(-r, 0)
+        .arc(0, 0, r, Math.PI, 0, true)
+        .lineTo(r, -arm)
+        .stroke({color: c, width, alpha, cap: 'round'});
+    g.clear();
+    u(stroke + Math.max(2, r * 0.12), TOOTH_OUTLINE, 0.85);
+    return u(stroke, color, 0.95);
 }
 
 /** `projectile`: a filled dot with a short trail behind it (−X). */

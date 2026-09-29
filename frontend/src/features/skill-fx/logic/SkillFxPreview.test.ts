@@ -158,7 +158,7 @@ describe('isTrustedOrigin', () => {
 });
 
 describe('GALLERY_LAYERS', () => {
-    it('names every kind in VISUAL_KINDS exactly once (an eighth kind reddens this)', () => {
+    it('names every kind in VISUAL_KINDS exactly once (a tenth kind reddens this)', () => {
         expect(Object.keys(GALLERY_LAYERS).sort()).toEqual([...VISUAL_KINDS].sort());
         for (const kind of VISUAL_KINDS) {
             expect(GALLERY_LAYERS[kind].kind).toBe(kind);

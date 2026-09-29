@@ -14,8 +14,8 @@ import (
 // examples at the bottom of this file: every one of them must load, with the
 // one engine-drawn exception the C3a amendment ruled (§12g.1 item 2 - the hit
 // mark on the victim is code, not content), or the seven drawn kinds are the
-// wrong seven. The eighth, `lunge`, draws nothing and joined later for the
-// natural weapons (plan-natural-weapons.md §3.1).
+// wrong seven. The eighth and ninth, `lunge` and `maul`, joined later for the
+// natural weapons (plan-natural-weapons.md §3.1, §3.3).
 
 // visualSkill wraps a `visual` block in the smallest skill file that parses.
 // Effects are deliberately empty: nothing here is about effects, and an empty
@@ -109,33 +109,66 @@ func TestVisual_BeamCurveAndChain(t *testing.T) {
 	assert.False(t, def.Visual.Layers[2].Chain)
 }
 
-// The strike's four styles (C2a amendment, PO 2026-09-19; `bite` added by the
-// C3a amendment, PO 2026-09-21). A weapon starts at the ATTACKER and travels to
-// the victim, and `curve` picks which weapon and which motion: a spear thrust,
-// a blade swing, an overhead hammer, a pair of jaws closing over the victim.
-// Absent means the kind's default (`thrust`), presence-gated like every other
-// tunable, so an unauthored curve stays empty on the struct rather than being
-// filled in here.
+// The strike's three styles (C2a amendment, PO 2026-09-19). A weapon starts at
+// the ATTACKER and travels to the victim, and `curve` picks which weapon and
+// which motion: a spear thrust, a blade swing, an overhead hammer. Absent means
+// the kind's default (`thrust`), presence-gated like every other tunable, so an
+// unauthored curve stays empty on the struct rather than being filled in here.
+// (`bite` and `pincer` left for the `maul` in plan-natural-weapons.md C2: a
+// strike is a HELD weapon again, and an animal's mark on its victim is a maul.)
 func TestVisual_StrikeCurves(t *testing.T) {
 	def := mustParse(t, visualSkill("active_aura", `{
 	  "layers": [
 	    { "kind": "strike", "on": "hit", "curve": "thrust",   "ms": 200 },
 	    { "kind": "strike", "on": "hit", "curve": "swing",    "ms": 280 },
 	    { "kind": "strike", "on": "hit", "curve": "overhead", "ms": 460 },
-	    { "kind": "strike", "on": "hit", "curve": "bite",     "body": "wolf-jaw", "ms": 200 },
 	    { "kind": "strike", "on": "hit" }
 	  ]
 	}`))
 	require.NotNil(t, def.Visual)
-	require.Len(t, def.Visual.Layers, 5)
+	require.Len(t, def.Visual.Layers, 4)
 
 	assert.Equal(t, "thrust", def.Visual.Layers[0].Curve)
 	assert.Equal(t, 200, def.Visual.Layers[0].MS)
 	assert.Equal(t, "swing", def.Visual.Layers[1].Curve)
 	assert.Equal(t, "overhead", def.Visual.Layers[2].Curve)
-	assert.Equal(t, "bite", def.Visual.Layers[3].Curve)
-	assert.Equal(t, "wolf-jaw", def.Visual.Layers[3].Body)
-	assert.Empty(t, def.Visual.Layers[4].Curve, "an unauthored curve stays empty and the renderer supplies the kind's default")
+	assert.Empty(t, def.Visual.Layers[3].Curve, "an unauthored curve stays empty and the renderer supplies the kind's default")
+	assert.Equal(t, []string{"thrust", "swing", "overhead"}, visualCurvesByKind["strike"])
+}
+
+// The maul (plan-natural-weapons.md §3.3, C2): the natural weapon's mark drawn
+// ON the victim, screen-aligned (D10). Five curves, one per weapon; the common
+// keys plus `ms` and `curve`, and all of them optional.
+func TestVisual_Maul(t *testing.T) {
+	def := mustParse(t, visualSkill("active_aura", `{
+	  "layers": [
+	    { "kind": "maul", "on": "hit", "curve": "bite", "body": "wolf-jaw", "ms": 180 },
+	    { "kind": "maul", "on": "hit", "curve": "pincer", "body": "spider-fang", "tint": "#ffffff", "scale": 1.2 },
+	    { "kind": "maul", "on": "hit", "curve": "gore" },
+	    { "kind": "maul", "on": "hit", "curve": "claw" },
+	    { "kind": "maul", "on": "hit", "curve": "kick" },
+	    { "kind": "maul", "on": "hit" }
+	  ]
+	}`))
+	require.NotNil(t, def.Visual)
+	require.Len(t, def.Visual.Layers, 6)
+
+	assert.Equal(t, "maul", def.Visual.Layers[0].Kind)
+	assert.Equal(t, "bite", def.Visual.Layers[0].Curve)
+	assert.Equal(t, "wolf-jaw", def.Visual.Layers[0].Body)
+	assert.Equal(t, 180, def.Visual.Layers[0].MS)
+	assert.Equal(t, "pincer", def.Visual.Layers[1].Curve)
+	assert.Equal(t, "#ffffff", def.Visual.Layers[1].Tint)
+	assert.InDelta(t, 1.2, def.Visual.Layers[1].Scale, 1e-6)
+	assert.Equal(t, "gore", def.Visual.Layers[2].Curve)
+	assert.Equal(t, "claw", def.Visual.Layers[3].Curve)
+	assert.Equal(t, "kick", def.Visual.Layers[4].Curve)
+	assert.Empty(t, def.Visual.Layers[5].Curve, "an unauthored curve stays empty and the renderer supplies the kind's default")
+	assert.False(t, def.Visual.HasFired, "a maul is a `hit` layer, so the skill bills no FIRED event")
+
+	assert.Equal(t, []string{"bite", "pincer", "gore", "claw", "kick"}, visualCurvesByKind["maul"])
+	assert.Equal(t, []string{"kind", "on", "body", "tint", "scale", "ms", "curve"}, visualKeysByKind["maul"])
+	assert.Equal(t, []string{"hit", "applied"}, visualTriggersByKind["maul"])
 }
 
 // The wave (C3a amendment, PO 2026-09-21, asked for the mammoth stomp): rings
@@ -239,13 +272,61 @@ func TestVisual_Refusals(t *testing.T) {
 			contains: []string{`"Fixture"`, "visual layer 0", `"impact"`, "the set is closed"},
 		},
 		{
-			// `snap` went with it: the bite is an attack from the biter now, a
-			// `strike` `bite`, and the old word must not be quietly ignored on
-			// the kind that inherited the bite.
-			name:     "the retired snap curve, on the kind that took the bite",
+			// `snap` went with it, and the old word must not be quietly
+			// ignored on a kind that once carried the bite.
+			name:     "the retired snap curve, on the strike",
 			category: "active_aura",
 			visual:   `{"layers":[{"kind":"strike","on":"hit","curve":"snap","ms":160}]}`,
-			contains: []string{`"Fixture"`, "visual layer 0", `"strike"`, `"snap"`, "thrust", "swing", "overhead", "bite"},
+			contains: []string{`"Fixture"`, "visual layer 0", `"strike"`, `"snap"`, "thrust", "swing", "overhead"},
+		},
+		{
+			// ⭐ plan-natural-weapons.md C2 (§3.3, L4): `bite` and `pincer` left
+			// the strike for the maul. A file still authoring them must
+			// hard-fail, and the refusal names the new home, so content and
+			// code land together and the author knows where the bite went.
+			name:     "the retired strike bite",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"strike","on":"hit","curve":"bite","body":"wolf-jaw","ms":200}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"strike"`, `"bite"`, `"maul"`, "thrust", "swing", "overhead"},
+		},
+		{
+			name:     "the retired strike pincer",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"strike","on":"hit","curve":"pincer","body":"spider-fang"}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"strike"`, `"pincer"`, `"maul"`},
+		},
+		{
+			// A weapon curve on a maul: a strike's word means nothing to it.
+			name:     "a strike curve on a maul",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"maul","on":"hit","curve":"thrust"}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"maul"`, `"thrust"`, "bite", "pincer", "gore", "claw", "kick"},
+		},
+		{
+			// The maul is the mark ON a victim, so like the strike it has no
+			// moment without one.
+			name:     "a maul on the fired moment",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"maul","on":"fired"}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"maul"`, `"fired"`, "(it plays on: hit, applied)"},
+		},
+		{
+			name:     "a maul on the ambient moment",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"maul","on":"ambient"}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"maul"`, `"ambient"`, "(it plays on: hit, applied)"},
+		},
+		{
+			name:     "a key the maul does not accept",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"maul","on":"hit","count":3}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"maul"`, `field "count"`},
+		},
+		{
+			name:     "maul ms zero",
+			category: "active_aura",
+			visual:   `{"layers":[{"kind":"maul","on":"hit","ms":0}]}`,
+			contains: []string{`"Fixture"`, "visual layer 0", `"maul"`, `"ms" must be > 0`},
 		},
 		{
 			name:     "unknown trigger",
@@ -576,9 +657,9 @@ func TestVisual_CurveTableMatchesTheKeyTable(t *testing.T) {
 // ⚑ The C3a amendment (§12g.1 item 2) put ONE engine special case back on
 // purpose, and these layer counts are where it shows: the mark on the victim
 // is drawn by the engine on every landed damage hit, so the four examples that
-// used to author a landing `impact` now say one layer less, and the wolf bite
-// is a `strike` `bite` from the BITER rather than teeth on the bitten. The
-// descriptions are unchanged; what a file has to say about them shrank.
+// used to author a landing `impact` now say one layer less. The wolf bite went
+// the other way (plan-natural-weapons.md): the wolf's body jabs and its teeth
+// close ON the bitten, a `lunge` plus a `maul`. The descriptions are unchanged.
 func TestVisual_TheNinePOExamples(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -600,10 +681,14 @@ func TestVisual_TheNinePOExamples(t *testing.T) {
 			layers: 1,
 		},
 		{
-			name:     "wolf bite, the jaws reach over the victim and close",
+			// plan-natural-weapons.md: the wolf's body jabs (lunge) and its
+			// teeth close ON the victim (maul), two layers since C2.
+			name:     "wolf bite, the wolf jabs and the teeth snap shut on the victim",
 			category: "active_aura",
-			visual:   `{"layers":[{"kind":"strike","on":"hit","body":"wolf-jaw","curve":"bite","ms":200}]}`,
-			layers:   1,
+			visual: `{"layers":[
+			  {"kind":"lunge","on":"hit","ms":220},
+			  {"kind":"maul","on":"hit","body":"wolf-jaw","curve":"bite"}]}`,
+			layers: 2,
 		},
 		{
 			name:     "firebolt, straight line, constant speed",
@@ -717,7 +802,7 @@ const (
 // draw the engine's mark alone.
 func TestVisual_AppliedLoadsOnAnOverTimeSkill(t *testing.T) {
 	for _, effect := range []string{appliedDotAura, appliedHotAura} {
-		for _, kind := range []string{"strike", "projectile", "beam", "cast-pose", "emitter"} {
+		for _, kind := range []string{"strike", "projectile", "beam", "cast-pose", "emitter", "maul"} {
 			visual := fmt.Sprintf(`{"layers":[{"kind":%q,"on":"applied"}]}`, kind)
 			def := mustParse(t, visualSkillWith("active_aura", visual, effect))
 			require.NotNil(t, def.Visual, kind)

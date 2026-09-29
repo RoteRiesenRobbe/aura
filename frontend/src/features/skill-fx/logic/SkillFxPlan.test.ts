@@ -556,11 +556,12 @@ describe('planSpawns: the over-time phase (§12h)', () => {
         return hit({phase: AuraApi.HitPhase.Tick, ...overrides});
     }
 
-    /** The Giant Spider's shape: the spit on application, the fangs on the hit. */
+    /** The Giant Spider's shape: the spit on application, the jab and the fangs on the hit. */
     const SPIDER = visuals({
         [SKILL]: [
             {kind: 'projectile', on: 'applied', speed: PROJECTILE_SPEED},
-            {kind: 'strike', on: 'hit', curve: 'bite'},
+            {kind: 'lunge', on: 'hit'},
+            {kind: 'maul', on: 'hit', curve: 'pincer'},
         ],
     });
 
@@ -602,10 +603,9 @@ describe('planSpawns: the over-time phase (§12h)', () => {
 
     it('draws a direct hit and an application of one skill in one snapshot once each', () => {
         const plan = planSpawns([hit(), applied()], SPIDER, NEAR);
-        expect(kinds(plan).sort()).toEqual([HIT_MARK_KIND, 'projectile', 'strike'].sort());
-        // The mark belongs to the fangs, not to the spit that landed nothing.
-        expect(delayOf(plan, HIT_MARK_KIND))
-            .toBe(contactMs('bite', STRIKE_CURVE_MS.bite));
+        expect(kinds(plan).sort()).toEqual([HIT_MARK_KIND, 'lunge', 'maul', 'projectile'].sort());
+        // The mark belongs to the jab, not to the spit that landed nothing.
+        expect(delayOf(plan, HIT_MARK_KIND)).toBe(lungeContactMsOf(undefined));
     });
 
     it('plans nothing for an application of a skill the catalog does not hold', () => {
@@ -766,7 +766,7 @@ describe('planSpawns: the lunge (plan-natural-weapons.md §3.1)', () => {
 describe('planSpawns: the lunge at density off', () => {
     const spider = visuals({[SKILL]: [
         {kind: 'lunge', on: 'hit'},
-        {kind: 'strike', on: 'hit', curve: 'pincer'},
+        {kind: 'maul', on: 'hit', curve: 'pincer'},
         {kind: 'projectile', on: 'applied', speed: PROJECTILE_SPEED},
     ]});
 
@@ -807,5 +807,67 @@ describe('planSpawns: the lunge at density off', () => {
         expect(atOff).toHaveLength(1);
         const after = planSpawns([hit()], spider, NEAR, 'full');
         expect(after[0].seed).toBe(before[0].seed + 1);
+    });
+});
+
+// plan-natural-weapons.md §3.3 (C2): the maul is the natural weapon's mark ON
+// the victim. It is dressing like any authored layer (hidden at `off`, one per
+// landing, never deduplicated), with one rule of its own: it waits for the
+// landing's arrival beside the engine's mark, so the teeth close as the jab
+// gets there (rule 4; D6: the mark keeps drawing under it).
+describe('planSpawns: the maul (plan-natural-weapons.md §3.3)', () => {
+    const LUNGE: VisualLayer = {kind: 'lunge', on: 'hit', ms: 220};
+    const MAUL: VisualLayer = {kind: 'maul', on: 'hit', curve: 'bite'};
+    const wolf = visuals({[SKILL]: [LUNGE, MAUL]});
+
+    function mauls(plan: readonly SpawnPlan[]): SpawnPlan[] {
+        return plan.filter(entry => entry.def.kind === 'maul');
+    }
+
+    it('starts the maul at the lunge\'s contact moment, with the mark', () => {
+        const plan = planSpawns([hit()], wolf, NEAR);
+        expect(kinds(plan)).toEqual(['lunge', 'maul', HIT_MARK_KIND]);
+        expect(delayOf(plan, 'maul')).toBe(lungeContactMsOf(220));
+        expect(delayOf(plan, 'maul')).toBe(delayOf(plan, HIT_MARK_KIND));
+        expect(delayOf(plan, 'lunge')).toBe(0);
+    });
+
+    it('lands at once on a skill with no lunge (the retired saber-tooth cat)', () => {
+        const plan = planSpawns([hit()], visuals({[SKILL]: [MAUL]}), NEAR);
+        expect(kinds(plan)).toEqual(['maul', HIT_MARK_KIND]);
+        expect(delayOf(plan, 'maul')).toBe(0);
+    });
+
+    it('waits for a projectile\'s arrival like the mark does', () => {
+        const plan = planSpawns([hit()], visuals({[SKILL]: [
+            {kind: 'projectile', on: 'hit', speed: PROJECTILE_SPEED},
+            MAUL,
+        ]}), NEAR);
+        expect(delayOf(plan, 'maul')).toBeGreaterThan(0);
+        expect(delayOf(plan, 'maul')).toBe(delayOf(plan, HIT_MARK_KIND));
+    });
+
+    it('is anchored on the victim of its own landing', () => {
+        const [maul] = mauls(planSpawns([hit()], wolf, NEAR));
+        expect(maul.source).toBe(CASTER);
+        expect(maul.victim).toBe(A);
+    });
+
+    it('marks every victim, while the attacker jabs once', () => {
+        const plan = planSpawns([hit({victim: A}), hit({victim: B})], wolf, NEAR);
+        expect(mauls(plan).map(entry => entry.victim)).toEqual([A, B]);
+        expect(plan.filter(entry => entry.def.kind === 'lunge')).toHaveLength(1);
+    });
+
+    it('still mauls an Immune or an Absorb landing, which draws no mark (rule 1)', () => {
+        for (const kind of [AuraApi.HitKind.Immune, AuraApi.HitKind.Absorb]) {
+            expect(kinds(planSpawns([hit({kind, amount: 0})], wolf, NEAR))).toEqual(['lunge', 'maul']);
+        }
+    });
+
+    it('plans no maul on a Tick, and none at density off (the lunge alone)', () => {
+        expect(kinds(planSpawns([hit({phase: AuraApi.HitPhase.Tick})], wolf, NEAR)))
+            .toEqual([HIT_MARK_KIND]);
+        expect(kinds(planSpawns([hit()], wolf, NEAR, 'off'))).toEqual(['lunge']);
     });
 });

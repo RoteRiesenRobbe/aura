@@ -6,7 +6,8 @@
   "maxLevel": 5,
   "visual": {
     "layers": [
-      { "kind": "lunge", "on": "hit", "ms": 220 }
+      { "kind": "lunge", "on": "hit", "ms": 220 },
+      { "kind": "maul", "on": "hit", "curve": "claw" }
     ]
   },
   "effects": [

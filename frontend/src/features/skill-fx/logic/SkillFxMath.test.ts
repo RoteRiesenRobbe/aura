@@ -39,17 +39,9 @@ import {
     strikePhase,
     swingDirection,
     SWING_HALF_ARC_RAD,
-    BITE_OPEN_RAD,
     beamSpriteScale,
-    biteHingePoint,
-    biteJawScale,
-    biteLengthPx,
-    BITE_LENGTH_FACTOR,
-    BITE_MIN_LENGTH_PX,
-    pincerHingePoints,
     landsOnVictim,
     spriteScaleToExtent,
-    STRIKE_MIN_LENGTH_PX,
     strikeCurveOf,
     waveCountOf,
     waveRing,
@@ -66,6 +58,29 @@ import {
     lungeDistancePx,
     lungeShare,
     lungeTotalMsOf,
+} from './SkillFxMath';
+import {
+    BITE_OPEN_GAP,
+    BITE_OPEN_SCALE,
+    CLAW_ANGLE_RAD,
+    GORE_ANGLE_RAD,
+    KICK_POP_SCALE,
+    MAUL_CURVE_MS,
+    MAUL_MIN_SIZE_PX,
+    MAUL_PART_LENGTH,
+    MAUL_PARTS,
+    MaulCurve,
+    MaulPhase,
+    PINCER_OPEN_RAD,
+    bitePhase,
+    clawPhase,
+    gorePhase,
+    kickPhase,
+    maulCurveOf,
+    maulPhase,
+    maulSizePx,
+    maulTotalMsOf,
+    pincerPhase,
 } from './SkillFxMath';
 import {meter2px} from '../../../client-data/BasicConfig';
 import wolfBite from '../../../../../api/skills/mobs/wolf-bite.json';
@@ -220,52 +235,8 @@ describe('strikePhase', () => {
         expect(strikePhase('overhead', total * 0.95, total).alpha).toBeLessThan(1);
     });
 
-    // ⭐ The `bite` curve (§12g.2): ONE jaw body drawn twice, the second
-    // mirrored, both hinged at the hand and aimed at the victim. `angleOffset`
-    // is the OPEN ANGLE here, applied +to the lower jaw and −to the upper one -
-    // it is never multiplied by swingDirection, or a bite would sometimes open
-    // backwards.
-    it('opens the jaws wide, snaps them shut, holds, then fades', () => {
-        const total = STRIKE_CURVE_MS.bite;
-        const shut = contactMs('bite', total);
-        const start = strikePhase('bite', 0, total);
-        expect(start.angleOffset).toBeCloseTo(BITE_OPEN_RAD);
-        expect(start.alpha).toBe(1);
-        // Shut exactly at the contact moment, which is when the mark lands.
-        expect(strikePhase('bite', shut, total).angleOffset).toBeCloseTo(0);
-        // ...and it stays shut for the rest of the layer.
-        expect(strikePhase('bite', total * 0.9, total).angleOffset).toBeCloseTo(0);
-        // Held closed for a beat, then faded out.
-        expect(strikePhase('bite', shut + 1, total).alpha).toBe(1);
-        expect(strikePhase('bite', total * 0.95, total).alpha).toBeLessThan(1);
-        expect(strikePhase('bite', total * 0.95, total).alpha).toBeGreaterThan(0);
-    });
-
-    it('closes the bite monotonically, and SNAPS: slow first, fast at the end', () => {
-        const total = STRIKE_CURVE_MS.bite;
-        const shut = contactMs('bite', total);
-        let previous = BITE_OPEN_RAD + 1;
-        for (let i = 0; i <= 20; i++) {
-            const open = strikePhase('bite', (shut * i) / 20, total).angleOffset;
-            expect(open).toBeLessThanOrEqual(previous);
-            previous = open;
-        }
-        // Ease-IN: halfway through the closing TIME, less than half the angle
-        // has been given up - the jaws are still gaping, then they slam.
-        expect(strikePhase('bite', shut * 0.5, total).angleOffset)
-            .toBeGreaterThan(BITE_OPEN_RAD / 2);
-    });
-
-    it('keeps the bite a held pair: it pivots, it never stretches', () => {
-        samples('bite', STRIKE_CURVE_MS.bite, 10).slice(0, 10).forEach((p) => {
-            expect(p.extend).toBeCloseTo(1);
-            expect(p.offset).toBeCloseTo(0);
-            expect(p.scale).toBeCloseTo(1);
-        });
-    });
-
     it('never swings the wrong way: no style reaches past the victim before contact', () => {
-        for (const curve of ['thrust', 'swing', 'overhead', 'bite', 'pincer'] as const) {
+        for (const curve of ['thrust', 'swing', 'overhead'] as const) {
             const total = STRIKE_CURVE_MS[curve];
             const contact = contactMs(curve, total);
             for (let i = 0; i <= 20; i++) {
@@ -275,7 +246,7 @@ describe('strikePhase', () => {
     });
 
     it('is done at its total and past it, whatever the curve', () => {
-        for (const curve of ['thrust', 'swing', 'overhead', 'bite', 'pincer'] as const) {
+        for (const curve of ['thrust', 'swing', 'overhead'] as const) {
             const total = STRIKE_CURVE_MS[curve];
             expect(strikePhase(curve, total, total).done).toBe(true);
             expect(strikePhase(curve, 10_000, total).done).toBe(true);
@@ -289,9 +260,21 @@ describe('strikePhase', () => {
     });
 });
 
+describe('strikeCurveOf', () => {
+    // plan-natural-weapons.md C2: the bite and the pincer are the maul's. The
+    // server refuses them on a strike; a stale catalog still draws a weapon.
+    it('reads the three held weapons, and nothing that left for the maul', () => {
+        expect(strikeCurveOf('swing')).toBe('swing');
+        expect(strikeCurveOf('overhead')).toBe('overhead');
+        expect(strikeCurveOf('bite')).toBe('thrust');
+        expect(strikeCurveOf('pincer')).toBe('thrust');
+        expect(strikeCurveOf(undefined)).toBe('thrust');
+    });
+});
+
 describe('contactMs', () => {
     it('sits inside each style and follows the authored total', () => {
-        for (const curve of ['thrust', 'swing', 'overhead', 'bite', 'pincer'] as const) {
+        for (const curve of ['thrust', 'swing', 'overhead'] as const) {
             const contact = contactMs(curve, 1000);
             expect(contact).toBeGreaterThan(0);
             expect(contact).toBeLessThan(1000);
@@ -771,125 +754,6 @@ describe('beamSpriteScale', () => {
     });
 });
 
-describe('biteJawScale', () => {
-    // ONE jaw PNG, hinge on the LEFT edge, bite line on the bottom one
-    // (§12g.2). Anchored at (0, 1) a negative y flips the picture about that
-    // line without moving the hinge, so the lower jaw is the same drawing.
-    it('sizes both jaws to the strike\'s reach, uniformly', () => {
-        expect(biteJawScale(50, 100, false).x).toBe(2);
-        expect(biteJawScale(50, 100, true).x).toBe(2);
-        expect(Math.abs(biteJawScale(50, 100, true).y)).toBe(2);
-    });
-
-    it('draws the upper jaw as the artist drew it', () => {
-        expect(biteJawScale(50, 100, false)).toEqual({x: 2, y: 2});
-    });
-
-    it('MIRRORS the lower jaw through the bite line, and only in y', () => {
-        const lower = biteJawScale(50, 100, true);
-        expect(lower).toEqual({x: 2, y: -2});
-    });
-
-    it('keeps the mirror on an unmeasured texture', () => {
-        expect(biteJawScale(0, 100, true)).toEqual({x: 1, y: -1});
-    });
-});
-
-describe('biteHingePoint (the rim bite, §12h call 3)', () => {
-    it('sits on the victim\'s rim, on the point nearest the attacker', () => {
-        const hinge = biteHingePoint({x: 0, y: 0}, {x: 100, y: 0}, 30);
-        expect(hinge.x).toBeCloseTo(70);
-        expect(hinge.y).toBeCloseTo(0);
-    });
-
-    it('is exactly one victim radius from the victim, toward the attacker, at any angle', () => {
-        const caster = {x: -40, y: 250};
-        const victim = {x: 60, y: 10};
-        const hinge = biteHingePoint(caster, victim, 24);
-        expect(Math.hypot(hinge.x - victim.x, hinge.y - victim.y)).toBeCloseTo(24);
-        // On the segment victim -> caster: the same direction, not the far side.
-        const toCaster = Math.atan2(caster.y - victim.y, caster.x - victim.x);
-        expect(Math.atan2(hinge.y - victim.y, hinge.x - victim.x)).toBeCloseTo(toCaster);
-    });
-
-    it('falls back to the victim point when attacker and victim coincide', () => {
-        expect(biteHingePoint({x: 5, y: 7}, {x: 5, y: 7}, 30)).toEqual({x: 5, y: 7});
-    });
-
-    it('is the victim point for a victim with no radius', () => {
-        const hinge = biteHingePoint({x: 0, y: 0}, {x: 100, y: 0}, 0);
-        expect(hinge.x).toBeCloseTo(100);
-        expect(hinge.y).toBeCloseTo(0);
-    });
-});
-
-describe('biteLengthPx (the rim bite, §12h call 3, shortened at the PO look)', () => {
-    it('is the victim\'s radius times the factor', () => {
-        expect(BITE_LENGTH_FACTOR).toBe(0.8);
-        expect(biteLengthPx(60, BITE_MIN_LENGTH_PX)).toBeCloseTo(48);
-    });
-
-    it('floors at the bite\'s own minimum, half the weapon floor', () => {
-        expect(BITE_MIN_LENGTH_PX).toBe(20);
-        expect(BITE_MIN_LENGTH_PX).toBeLessThan(STRIKE_MIN_LENGTH_PX);
-        expect(biteLengthPx(10, BITE_MIN_LENGTH_PX)).toBe(20);
-        expect(biteLengthPx(0, BITE_MIN_LENGTH_PX)).toBe(20);
-    });
-
-    it('draws the wolf\'s jaws on a player well SHORTER than the wolf\'s reach ("a crocodile attack")', () => {
-        // The C3a bite spanned the reach; the PO ruled it too long, and the
-        // first rim bite (1.4, 42 px) "still quite long". The victim is a
-        // player: Graphics.ts PLAYER_COLLIDER_RADIUS_METERS, 0.25 u.
-        const playerRadiusPx = meter2px(0.25);
-        const reachPx = meter2px(wolfBite.effects[0].radius);
-        const jawPx = biteLengthPx(playerRadiusPx, BITE_MIN_LENGTH_PX);
-        expect(playerRadiusPx).toBe(30);
-        expect(reachPx).toBe(120);
-        expect(jawPx).toBeCloseTo(24);
-        expect(jawPx).toBeLessThan(playerRadiusPx);
-    });
-});
-
-describe('pincerHingePoints (the spider\'s fangs, PO look 2026-09-23)', () => {
-    it('puts one hinge on each side of the victim, on the rim, perpendicular to the attack line', () => {
-        const p = pincerHingePoints({x: 0, y: 0}, {x: 100, y: 0}, 30);
-        expect(p.left.x).toBeCloseTo(100);
-        expect(p.left.y).toBeCloseTo(-30);
-        expect(p.right.x).toBeCloseTo(100);
-        expect(p.right.y).toBeCloseTo(30);
-    });
-
-    it('points each fang INWARD, at the victim\'s centre', () => {
-        const p = pincerHingePoints({x: 0, y: 0}, {x: 100, y: 0}, 30);
-        expect(p.leftInward).toBeCloseTo(Math.PI / 2);
-        expect(p.rightInward).toBeCloseTo(-Math.PI / 2);
-        // At any angle: from the hinge, the inward direction reaches the centre.
-        const caster = {x: -40, y: 250};
-        const victim = {x: 60, y: 10};
-        const q = pincerHingePoints(caster, victim, 24);
-        for (const [hinge, inward] of [[q.left, q.leftInward], [q.right, q.rightInward]] as const) {
-            expect(Math.hypot(hinge.x - victim.x, hinge.y - victim.y)).toBeCloseTo(24);
-            expect(hinge.x + Math.cos(inward) * 24).toBeCloseTo(victim.x);
-            expect(hinge.y + Math.sin(inward) * 24).toBeCloseTo(victim.y);
-        }
-    });
-
-    it('falls back to the victim point when attacker and victim coincide', () => {
-        const p = pincerHingePoints({x: 5, y: 7}, {x: 5, y: 7}, 30);
-        expect(p.left).toEqual({x: 5, y: 7});
-        expect(p.right).toEqual({x: 5, y: 7});
-    });
-
-    it('is a strike curve with the bite\'s motion', () => {
-        expect(strikeCurveOf('pincer')).toBe('pincer');
-        expect(STRIKE_CURVE_MS.pincer).toBe(STRIKE_CURVE_MS.bite);
-        const total = STRIKE_CURVE_MS.pincer;
-        expect(contactMs('pincer', total)).toBe(contactMs('bite', total));
-        expect(strikePhase('pincer', 0, total).angleOffset).toBeCloseTo(BITE_OPEN_RAD);
-        expect(strikePhase('pincer', contactMs('pincer', total), total).angleOffset).toBeCloseTo(0);
-    });
-});
-
 describe('landsOnVictim (which end a layer anchors at)', () => {
     it('anchors a hit and an application on the victim (§12h: applied anchors like hit)', () => {
         expect(landsOnVictim('hit')).toBe(true);
@@ -980,5 +844,287 @@ describe('the lunge (plan-natural-weapons.md §3.1)', () => {
         expect(lungeShare(10, -100)).toBe(0);
         expect(lungeShare(NaN, LUNGE_DEFAULT_MS)).toBe(0);
         expect(lungeShare(10, NaN)).toBe(0);
+    });
+});
+
+// plan-natural-weapons.md §3.3 (C2): the natural weapon's mark ON the victim.
+// Every part is in units of the mark's size and relative to the victim's
+// centre, and ⭐ SCREEN-ALIGNED (D10, PO 2026-09-28): no phase function takes
+// an attacker, so nothing here can turn toward the attack line. The lunge
+// alone says who struck.
+describe('the maul (plan-natural-weapons.md §3.3)', () => {
+    const CURVES: MaulCurve[] = ['bite', 'pincer', 'gore', 'claw', 'kick'];
+
+    const samples = (curve: MaulCurve, count = 40): MaulPhase[] => {
+        const total = MAUL_CURVE_MS[curve];
+        return Array.from({length: count}, (_, i) => maulPhase(curve, (total * i) / count, total));
+    };
+
+    it('reads the curve, absent or unknown = bite', () => {
+        for (const curve of CURVES) {
+            expect(maulCurveOf(curve)).toBe(curve);
+        }
+        expect(maulCurveOf(undefined)).toBe('bite');
+        expect(maulCurveOf('thrust')).toBe('bite');
+    });
+
+    it('lasts the authored ms, else the curve\'s default', () => {
+        expect(maulTotalMsOf('claw', 400)).toBe(400);
+        expect(maulTotalMsOf('claw', undefined)).toBe(MAUL_CURVE_MS.claw);
+        expect(maulTotalMsOf('claw', 0)).toBe(MAUL_CURVE_MS.claw);
+        expect(maulTotalMsOf(undefined, undefined)).toBe(MAUL_CURVE_MS.bite);
+    });
+
+    it('is sized to the VICTIM times the layer scale, with a floor', () => {
+        expect(maulSizePx(40, undefined)).toBe(40);
+        expect(maulSizePx(40, 1.5)).toBe(60);
+        expect(maulSizePx(0, undefined)).toBe(MAUL_MIN_SIZE_PX);
+        expect(maulSizePx(NaN, 2)).toBe(MAUL_MIN_SIZE_PX * 2);
+    });
+
+    it('sizes the wolf\'s teeth on a player to the player, never to the wolf\'s reach', () => {
+        // Graphics.ts PLAYER_COLLIDER_RADIUS_METERS, 0.25 u; the rim bite's
+        // lesson ("a crocodile attack") is that the reach is the wrong ruler.
+        const playerRadiusPx = meter2px(0.25);
+        const reachPx = meter2px(wolfBite.effects[0].radius);
+        expect(maulSizePx(playerRadiusPx, undefined)).toBe(playerRadiusPx);
+        expect(maulSizePx(playerRadiusPx, undefined)).toBeLessThan(reachPx);
+    });
+
+    it('draws the part count of its curve, every frame, all finite', () => {
+        for (const curve of CURVES) {
+            for (const phase of samples(curve)) {
+                expect(phase.parts).toHaveLength(MAUL_PARTS[curve]);
+                for (const part of phase.parts) {
+                    for (const v of [part.x, part.y, part.rotation, part.stretch, part.scale, part.alpha]) {
+                        expect(Number.isFinite(v)).toBe(true);
+                    }
+                    expect(part.alpha).toBeGreaterThanOrEqual(0);
+                    expect(part.alpha).toBeLessThanOrEqual(1);
+                }
+            }
+            expect(MAUL_PART_LENGTH[curve]).toBeGreaterThan(0);
+        }
+    });
+
+    it('is done at its total and past it, and not a moment before', () => {
+        for (const curve of CURVES) {
+            const total = MAUL_CURVE_MS[curve];
+            expect(maulPhase(curve, total, total).done).toBe(true);
+            expect(maulPhase(curve, 10_000, total).done).toBe(true);
+            expect(maulPhase(curve, total * 0.999, total).done).toBe(false);
+        }
+    });
+
+    it('takes the default total for a zero ms, and is deterministic', () => {
+        for (const curve of CURVES) {
+            expect(maulPhase(curve, 50, 0)).toEqual(maulPhase(curve, 50, MAUL_CURVE_MS[curve]));
+            expect(maulPhase(curve, 77, 300)).toEqual(maulPhase(curve, 77, 300));
+        }
+    });
+
+    it('dispatches each curve to its own phase function', () => {
+        expect(maulPhase('bite', 40, 180)).toEqual(bitePhase(40, 180));
+        expect(maulPhase('pincer', 40, 180)).toEqual(pincerPhase(40, 180));
+        expect(maulPhase('gore', 40, 180)).toEqual(gorePhase(40, 180));
+        expect(maulPhase('claw', 40, 180)).toEqual(clawPhase(40, 180));
+        expect(maulPhase('kick', 40, 180)).toEqual(kickPhase(40, 180));
+    });
+
+    it('holds full alpha early and fades out before it ends', () => {
+        for (const curve of CURVES) {
+            const total = MAUL_CURVE_MS[curve];
+            const late = maulPhase(curve, total * 0.97, total).parts;
+            late.forEach(part => expect(part.alpha).toBeLessThan(0.2));
+        }
+    });
+});
+
+describe('bitePhase (D11: two front-view rows of teeth, biting down)', () => {
+    const total = MAUL_CURVE_MS.bite;
+
+    it('puts the UPPER row above the centre and the MIRRORED lower row below it', () => {
+        const [upper, lower] = bitePhase(0, total).parts;
+        expect(upper.y).toBeCloseTo(-BITE_OPEN_GAP);
+        expect(lower.y).toBeCloseTo(BITE_OPEN_GAP);
+        expect(upper.mirrored).toBe(false);
+        expect(lower.mirrored).toBe(true);
+    });
+
+    it('is screen-aligned: both rows centred on x, never turned', () => {
+        for (let i = 0; i <= 20; i++) {
+            for (const part of bitePhase((total * i) / 20, total).parts) {
+                expect(part.x).toBe(0);
+                expect(part.rotation).toBe(0);
+                expect(part.stretch).toBe(1);
+            }
+        }
+    });
+
+    it('closes the rows onto the centre in the first half, and stays shut', () => {
+        const shut = bitePhase(total * 0.5, total).parts;
+        expect(shut[0].y).toBeCloseTo(0);
+        expect(shut[1].y).toBeCloseTo(0);
+        expect(bitePhase(total * 0.8, total).parts[0].y).toBeCloseTo(0);
+        let previous = BITE_OPEN_GAP + 1;
+        for (let i = 0; i <= 20; i++) {
+            const gap = -bitePhase((total * 0.5 * i) / 20, total).parts[0].y;
+            expect(gap).toBeLessThanOrEqual(previous + 1e-12);
+            previous = gap;
+        }
+    });
+
+    it('snaps from a little larger down to its own size as it closes (the first bite)', () => {
+        expect(bitePhase(0, total).parts[0].scale).toBeCloseTo(BITE_OPEN_SCALE);
+        expect(BITE_OPEN_SCALE).toBeGreaterThan(1);
+        expect(bitePhase(total * 0.5, total).parts[0].scale).toBeCloseTo(1);
+    });
+
+    it('holds shut at full alpha, then fades', () => {
+        expect(bitePhase(total * 0.5, total).parts[0].alpha).toBe(1);
+        expect(bitePhase(total * 0.75, total).parts[0].alpha).toBeLessThan(1);
+        expect(bitePhase(total * 0.75, total).parts[0].alpha).toBeGreaterThan(0);
+    });
+});
+
+describe('pincerPhase (the spider\'s fangs, on a fixed frame under D10)', () => {
+    const total = MAUL_CURVE_MS.pincer;
+
+    it('hinges one fang on the victim\'s rim at screen LEFT and one at screen RIGHT', () => {
+        const [left, right] = pincerPhase(0, total).parts;
+        expect({x: left.x, y: left.y}).toEqual({x: -1, y: 0});
+        expect({x: right.x, y: right.y}).toEqual({x: 1, y: 0});
+        expect(left.mirrored).toBe(false);
+        expect(right.mirrored).toBe(true);
+        expect(MAUL_PART_LENGTH.pincer).toBe(1);
+    });
+
+    it('gapes both fangs toward the TOP of the screen', () => {
+        const [left, right] = pincerPhase(0, total).parts;
+        // A fang points along its rotation; up is −y on screen.
+        expect(Math.sin(left.rotation)).toBeCloseTo(-Math.sin(PINCER_OPEN_RAD));
+        expect(Math.sin(right.rotation)).toBeCloseTo(-Math.sin(PINCER_OPEN_RAD));
+        // ...and inward: the left fang leans right, the right one left.
+        expect(Math.cos(left.rotation)).toBeGreaterThan(0);
+        expect(Math.cos(right.rotation)).toBeLessThan(0);
+    });
+
+    it('is mirror-symmetric about the vertical through the centre, every frame', () => {
+        for (let i = 0; i < 20; i++) {
+            const [left, right] = pincerPhase((total * i) / 20, total).parts;
+            expect(right.x).toBeCloseTo(-left.x);
+            expect(Math.cos(right.rotation)).toBeCloseTo(-Math.cos(left.rotation));
+            expect(Math.sin(right.rotation)).toBeCloseTo(Math.sin(left.rotation));
+        }
+    });
+
+    it('swings down until the two tips meet at the centre, then holds', () => {
+        const [left, right] = pincerPhase(total * 0.5, total).parts;
+        const tip = (p: typeof left) => ({
+            x: p.x + Math.cos(p.rotation) * MAUL_PART_LENGTH.pincer,
+            y: p.y + Math.sin(p.rotation) * MAUL_PART_LENGTH.pincer,
+        });
+        expect(tip(left).x).toBeCloseTo(0);
+        expect(tip(left).y).toBeCloseTo(0);
+        expect(tip(right).x).toBeCloseTo(0);
+        expect(tip(right).y).toBeCloseTo(0);
+        expect(pincerPhase(total * 0.7, total).parts[0].rotation).toBeCloseTo(0);
+    });
+
+    it('hangs open, then SLAMS shut (ease-in, the shipped pincer\'s motion)', () => {
+        const opening = (t: number) => -pincerPhase(t, total).parts[0].rotation;
+        expect(opening(total * 0.25)).toBeGreaterThan(PINCER_OPEN_RAD / 2);
+    });
+});
+
+describe('gorePhase (two tusk gashes, side by side)', () => {
+    const total = MAUL_CURVE_MS.gore;
+
+    it('lays both gashes on the same fixed diagonal, parallel', () => {
+        for (let i = 0; i < 10; i++) {
+            const [a, b] = gorePhase((total * i) / 10, total).parts;
+            expect(a.rotation).toBe(GORE_ANGLE_RAD);
+            expect(b.rotation).toBe(GORE_ANGLE_RAD);
+        }
+    });
+
+    it('centres the pair on the victim, one gash either side of the centre', () => {
+        const [a, b] = gorePhase(total * 0.5, total).parts;
+        const half = MAUL_PART_LENGTH.gore / 2;
+        const mid = (p: typeof a) => ({
+            x: p.x + Math.cos(p.rotation) * half,
+            y: p.y + Math.sin(p.rotation) * half,
+        });
+        expect(mid(a).x + mid(b).x).toBeCloseTo(0);
+        expect(mid(a).y + mid(b).y).toBeCloseTo(0);
+        expect(Math.hypot(mid(a).x - mid(b).x, mid(a).y - mid(b).y)).toBeGreaterThan(0.1);
+    });
+
+    it('drives both in from nothing to full length, then holds', () => {
+        const start = gorePhase(0, total).parts;
+        expect(start[0].stretch).toBe(0);
+        expect(start[1].stretch).toBe(0);
+        const driven = gorePhase(total * 0.5, total).parts;
+        expect(driven[0].stretch).toBeCloseTo(1);
+        expect(driven[1].stretch).toBeCloseTo(1);
+        let previous = -1;
+        for (let i = 0; i <= 20; i++) {
+            const stretch = gorePhase((total * 0.5 * i) / 20, total).parts[0].stretch;
+            expect(stretch).toBeGreaterThanOrEqual(previous);
+            previous = stretch;
+        }
+    });
+});
+
+describe('clawPhase (three rakes, one after the other)', () => {
+    const total = MAUL_CURVE_MS.claw;
+
+    it('lays all three on the same fixed diagonal, the other one from the gore\'s', () => {
+        for (const part of clawPhase(total * 0.5, total).parts) {
+            expect(part.rotation).toBe(CLAW_ANGLE_RAD);
+        }
+        expect(CLAW_ANGLE_RAD).not.toBeCloseTo(GORE_ANGLE_RAD);
+    });
+
+    it('rakes them in order: an early frame has the first ahead of the second ahead of the third', () => {
+        const [a, b, c] = clawPhase(total * 0.25, total).parts;
+        expect(a.stretch).toBeGreaterThan(b.stretch);
+        expect(b.stretch).toBeGreaterThan(c.stretch);
+    });
+
+    it('hides a rake that has not started, and has all three full before the fade', () => {
+        const [, , c] = clawPhase(0, total).parts;
+        expect(c.alpha).toBe(0);
+        clawPhase(total * 0.6, total).parts.forEach((part) => {
+            expect(part.stretch).toBeCloseTo(1);
+            expect(part.alpha).toBe(1);
+        });
+    });
+
+    it('spaces the rakes evenly about the centre', () => {
+        const [a, b, c] = clawPhase(total * 0.6, total).parts;
+        expect(b.x - a.x).toBeCloseTo(c.x - b.x);
+        expect(b.y - a.y).toBeCloseTo(c.y - b.y);
+        const half = MAUL_PART_LENGTH.claw / 2;
+        expect(b.x + Math.cos(b.rotation) * half).toBeCloseTo(0);
+        expect(b.y + Math.sin(b.rotation) * half).toBeCloseTo(0);
+    });
+});
+
+describe('kickPhase (a hoof print punched in)', () => {
+    const total = MAUL_CURVE_MS.kick;
+
+    it('is one upright print on the centre', () => {
+        for (let i = 0; i <= 10; i++) {
+            const [hoof] = kickPhase((total * i) / 10, total).parts;
+            expect({x: hoof.x, y: hoof.y, rotation: hoof.rotation}).toEqual({x: 0, y: 0, rotation: 0});
+        }
+    });
+
+    it('pops in large and settles to its own size', () => {
+        expect(kickPhase(0, total).parts[0].scale).toBeCloseTo(KICK_POP_SCALE);
+        expect(KICK_POP_SCALE).toBeGreaterThan(1);
+        expect(kickPhase(total * 0.4, total).parts[0].scale).toBeCloseTo(1);
+        expect(kickPhase(total * 0.4, total).parts[0].alpha).toBe(1);
     });
 });

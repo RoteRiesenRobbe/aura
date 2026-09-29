@@ -5,6 +5,7 @@ import {
     flightMs,
     HIT_MARK_MS,
     lungeContactMsOf,
+    MAUL_CURVE_MS,
     lungeTotalMsOf,
     WAVE_DEFAULT_MS,
 } from './SkillFxMath';
@@ -120,6 +121,15 @@ describe('eventLifetimeMs', () => {
         expect(eventLifetimeMs([{kind: 'lunge', on: 'hit'}], 100)).toBe(lungeTotalMsOf(undefined));
         expect(eventLifetimeMs([{kind: 'lunge', on: 'hit', ms: 300}], 100, true))
             .toBe(lungeTotalMsOf(300) + lungeContactMsOf(300) + HIT_MARK_MS);
+    });
+
+    // plan-natural-weapons.md §3.3: a maul lives its curve's duration, and like
+    // the mark it waits for the lunge's contact inside the budget.
+    it('gives a maul its curve\'s duration plus the arrival it waits for', () => {
+        expect(eventLifetimeMs([{kind: 'maul', on: 'hit', curve: 'claw'}], 100))
+            .toBe(MAUL_CURVE_MS.claw);
+        expect(eventLifetimeMs([{kind: 'lunge', on: 'hit', ms: 300}, {kind: 'maul', on: 'hit'}], 100, true))
+            .toBe(lungeTotalMsOf(300) + MAUL_CURVE_MS.bite + 2 * lungeContactMsOf(300) + HIT_MARK_MS);
     });
 
     it('counts no ambient layer: an event never spawns one', () => {

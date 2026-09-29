@@ -21,7 +21,10 @@
  * 4. Implicit sequencing, no `delay` key anywhere in the vocabulary: the hit
  *    mark starts when whatever touched the victim actually got there - the
  *    projectile's arrival, the strike's contact moment, the lunge's contact
- *    moment (plan-natural-weapons.md §3.1), the latest of them.
+ *    moment (plan-natural-weapons.md §3.1), the latest of them. A `maul`, the
+ *    natural weapon's mark on the victim (§3.3), starts at the same arrival,
+ *    beside the engine's mark; it is dressing like any other layer (`off`
+ *    cuts it, and it is never deduplicated: every victim bears its own).
  * 5. ⭐ The hit mark is the ENGINE'S (§12g.1 call 2, the one exception to "no
  *    engine default"): every landed Damage or Crit hit plans one on the victim,
  *    LAST in the landing, whether or not the skill authors anything, and no
@@ -324,10 +327,10 @@ function landingFor(
 
 /**
  * One landing's layers, with the implicit sequencing applied: the hit mark
- * beside a `projectile` starts when the bolt ARRIVES, one beside a `strike`
- * when the weapon reaches the victim, and one beside a `lunge` when the body
- * does. With several authored, the latest wins - the mark belongs to whatever
- * touched the victim last.
+ * (and a `maul` with it) beside a `projectile` starts when the bolt ARRIVES,
+ * one beside a `strike` when the weapon reaches the victim, and one beside a
+ * `lunge` when the body does. With several authored, the latest wins - the
+ * mark belongs to whatever touched the victim last.
  */
 function emit(
     plan: SpawnPlan[], posed: Set<string>, lunged: Set<number>, landing: Landing,
@@ -357,12 +360,17 @@ function emit(
             // The body that moves is the attacker's, even on a chain hop.
             from: def.kind === 'lunge' ? landing.source : from,
             victim: landing.victim,
-            delayMs: baseDelayMs + (def.kind === HIT_MARK_KIND ? arrival : 0),
+            delayMs: baseDelayMs + (landsAtArrival(def) ? arrival : 0),
             baseColor: landing.baseColor,
             reachPx: landing.reachPx,
             seed: landing.seed,
         });
     });
+}
+
+/** The two marks ON the victim wait for the arrival: the engine's, and a maul (rule 4). */
+function landsAtArrival(def: VisualLayer): boolean {
+    return def.kind === HIT_MARK_KIND || def.kind === 'maul';
 }
 
 /** The first `projectile` layer's flight time from this anchor, or 0 for none. */

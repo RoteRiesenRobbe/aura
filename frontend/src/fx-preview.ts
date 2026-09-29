@@ -10,7 +10,7 @@
  * Two modes of one page:
  * - `fx-preview.html`: waits for the editor's `aura-fx-preview` message and
  *   loops that ONE layer between a caster (left) and a victim (right).
- * - `fx-preview.html?gallery`: the eight kinds side by side from
+ * - `fx-preview.html?gallery`: the nine kinds side by side from
  *   `GALLERY_LAYERS`, each labelled, each on its own loop (the newcomer's legend).
  *
  * `window.__fxPreview` is the harness surface (.claude/skills/verify/skill-fx-preview.mjs).

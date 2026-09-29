@@ -65,7 +65,7 @@ type skillVocabulary struct {
 	DamageTypes      []string            `json:"damageTypes"`
 	ResistWildcard   string              `json:"resistWildcard"`
 	// The `visual` vocabulary (plan-skill-vfx.md C0). Six lists, the same
-	// generated-not-typed rule as effectKeys: the eight kinds are engine code,
+	// generated-not-typed rule as effectKeys: the nine kinds are engine code,
 	// so a kind, a trigger or a tunable added in Go reaches the editor and its
 	// smoke script without anybody retyping it, and a stale copy is impossible.
 	VisualKinds          []string            `json:"visualKinds"`
@@ -147,7 +147,7 @@ func buildSkillVocabulary(t *testing.T) skillVocabulary {
 	}
 	slices.Sort(factionScoped)
 
-	// The visual tables must describe the same eight kinds from every side, or
+	// The visual tables must describe the same nine kinds from every side, or
 	// the editor would offer a kind it cannot render keys for (or refuse one
 	// the loader accepts) and the drift would be silent in both directions.
 	for _, kind := range visualKinds {

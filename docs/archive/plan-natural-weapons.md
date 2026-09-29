@@ -1,10 +1,14 @@
 # Plan: natural weapon attacks (the lunge and the maul)
 
-> **Status: DESIGNED 2026-09-27 (PO session, nine rulings taken as choice
-> prompts, §2), 2 chunks (§7). C1 (the `lunge`) BUILT 2026-09-27,
-> `413a7fd4` (ledger §11 C1), PO look verdict not recorded. C2 (the
-> `maul`) OPEN.** Line refs re-verified by C1 at `8e49a12b`; C2 re-verifies
-> them before executing.
+> **Status: COMPLETE, archived 2026-09-28. Both chunks built and PO-passed.**
+> Designed 2026-09-27 (PO session, nine rulings taken as choice prompts, §2),
+> 2 chunks (§7). **C1 (the `lunge`)** built 2026-09-27, `413a7fd4` (ledger
+> §11 C1), PO look 2026-09-28: "works". **C2 (the `maul`)** built 2026-09-28,
+> `274a6d07` (ledger §11 C2), PO look 2026-09-28: "works", and after a
+> follow-up: "all works, wrap it up". D10 and D11 ruled 2026-09-28; §8 Q6
+> (the fixed orientations of pincer, gore, claw and kick, the lead's calls)
+> and every number stay [PLACEHOLDER].
+> Line refs verified by C1 at `8e49a12b` and corrected by C2 (§11 C2).
 >
 > Origin: the PO, 2026-09-27, verbatim: *"we need to rework natural weapon
 > attacks. that includes the bite of the wolf but also the attack of the boar.
@@ -62,6 +66,8 @@ attacker, the victim and the skill for every landing (§4).
 | D7 | How far does the token lunge? | **A fixed jab**, relative to the attacker's own size, whatever the gap. PO: *"the mob also does not technically change position, it is purely visual"*. |
 | D8 | One build session or two? | **Two chunks**: C1 the lunge, C2 the maul. Each ends in a look. |
 | D9 | Which parts of the token jab? | **The whole token, as one medallion**: the portrait, the species border and the tier frame move together; the health bar, the aura ring and the nameplate stay. Taken as a choice prompt at the C1 session start, because `actualShape` is the portrait alone and the border and the tier frame are its siblings, so moving it would slide the face out of its own frame. |
+| D10 | Is the mark on the victim turned along the attack? (§8 Q2) | **No, every mark is SCREEN-ALIGNED** (PO 2026-09-28 at the C1 look): *"direction is now given by the lunge ... the two jaws exactly on top of the token, biting down, not direction"*. Asked for the other curves as a choice prompt: all of them, one rule. Reverses the lead default of §3.3. |
+| D11 | What draws the wolf's teeth? (§8 Q1) | **Front-view teeth rows, an upper and a lower, biting down** (the first bite; the PO's reference is the Pokemon "Bite" animation, two white rows closing on the target). **`wolf-jaw.png` is regenerated** as the upper row by `tools/make-skill-fx-pilot.mjs`, so the wolves keep an image body (choice prompt 2026-09-28; the lead default, code-drawn teeth, was not taken). |
 
 **The sure list** (put to the PO inside D2's question, not contested): wolf,
 alpha wolf, dire wolf (`WolfBite`), elite wolf (`EliteWolfBite`), giant rat
@@ -163,23 +169,25 @@ drawn permanently beside its collider.
 
 - **Where.** Centred on the VICTIM, re-read per frame (the mark stays on a
   victim that walks away), drawn on `layers.skillFx`, which sits above every
-  token (`Game.ts:399-415`), so the lunging body never covers it. (Trees
+  token (`Game.ts:395-420`), so the lunging body never covers it. (Trees
   still draw above mobs, so a mob lunging under a crown stays under it.)
 - **Size.** `victim radius × scale`, the first bite's rule.
-- **Frame.** Drawn in the ATTACK frame: the x axis is the attacker-to-victim
-  line, so a gash lies along the attack and four wolves leave four
-  differently turned marks. ⚑ The first bite was screen-aligned, never
-  rotated; this is a lead call for the C2 look (§8 Q2).
+- **Frame (D10, PO 2026-09-28).** SCREEN-ALIGNED, every curve: the mark
+  reads the victim's position and nothing of the attacker's, so it looks the
+  same whichever side the hit came from. The lunge alone says who struck.
+  (The design as first written drew the mark in the attack frame; the PO
+  reversed it at the C1 look.) The fixed orientations below are lead calls,
+  [PLACEHOLDER], judged at the C2 look.
 - **Curves** (each a pure phase function in `SkillFxMath.ts`, red-first, and
   a code-drawn placeholder tinted by the damage-type palette):
 
 | Curve | Motion | Placeholder | Default ms [PLACEHOLDER] |
 | --- | --- | --- | --- |
-| `bite` (default) | two jaw rows above and below the centre close onto it, then fade (the C2a `snap`: close in the first half, scale 1.3 to 0.55) | two opposing arcs with teeth ticks | 180 |
-| `pincer` | today's geometry, moved as is: one fang hinged on EACH side of the victim's rim, swinging in to meet at the centre | the tapered wedge pair | 260 |
-| `gore` | two short stabs driven in along the attack line | two parallel tapered gashes | 200 |
-| `claw` | three rakes drawn across the attack line, one after the other | three curved parallel slashes | 240 |
-| `kick` | one mark punched in (a scale pop), then fade | a hoof print (an open U) | 180 |
+| `bite` (default) | a row of teeth ABOVE the centre and one BELOW it (screen up and down) close onto the centre, hold shut, then fade (the C2a `snap`: close in the first half, scale 1.3 to 0.55) | two opposing arcs with teeth ticks | 180 |
+| `pincer` | today's motion on a fixed frame: one fang hinged on the victim's rim at the screen's LEFT and one at its RIGHT, both gaping toward the top and swinging down to meet at the centre | the tapered wedge pair | 260 |
+| `gore` | two short stabs driven in, side by side, on a fixed diagonal | two parallel tapered gashes | 200 |
+| `claw` | three rakes on a fixed diagonal, one after the other | three curved parallel slashes | 240 |
+| `kick` | one mark punched in (a scale pop), then fade | a hoof print (an open U), upright | 180 |
 
 - **Keys.** The common keys plus `ms` and `curve`.
 - **Triggers.** `hit` and `applied`.
@@ -193,10 +201,16 @@ drawn permanently beside its collider.
   §12g.2 precedent). The rim-bite maths (`biteHingePoint`, `biteLengthPx`,
   `BITE_LENGTH_FACTOR`, `BITE_MIN_LENGTH_PX`) is deleted; the pincer maths
   moves with its curve.
-- **Art.** `spider-fang.png` keeps working (the pincer's contract does not
-  move). The `bite`'s art contract is OPEN (§8 Q1): the shipped `wolf-jaw.png`
-  is a tapering snout hinged at its left edge, drawn for the rim bite, and
-  reads wrong as a front-view row of teeth.
+- **Art (D11, PO 2026-09-28).** `spider-fang.png` keeps working (the
+  pincer's contract does not move: one fang, hinge on the left edge, the
+  engine mirrors it). The `bite` gets a NEW contract: the artist draws the
+  UPPER row of teeth seen from the front, teeth pointing down, anchor
+  bottom-centre on the bite line; the engine mirrors it for the lower row.
+  The shipped `wolf-jaw.png` (a tapering snout hinged at its left edge, drawn
+  for the rim bite) is REGENERATED to that contract by
+  `tools/make-skill-fx-pilot.mjs`, and the wolves keep `body: wolf-jaw`. The
+  art spec, `assets.md` and `assets.csv` move with it. ⚑ `wolf-jaw` is P0 on
+  the artist's list: a drawing started under the hinge contract is void.
 
 ### 3.4 Content
 
@@ -218,7 +232,8 @@ beside their lunge):
 
 | Skill file | After C2 | Change |
 | --- | --- | --- |
-| `wolf-bite`, `elite-wolf-bite`, `rat-bite`, `spider-bite` | `lunge` + `maul` `bite` | swap |
+| `wolf-bite`, `elite-wolf-bite` | `lunge` + `maul` `bite`, body `wolf-jaw` KEPT (D11, the regenerated front-view row) | swap |
+| `rat-bite`, `spider-bite` | `lunge` + `maul` `bite` (no body, the code-drawn teeth) | swap |
 | `giant-venom-spit` | `projectile` on `applied` + `lunge` + `maul` `pincer`, body `spider-fang`, white tint | swap |
 | `saber-tooth-cat-aura` (retired, on disk) | `maul` `bite`, forced by the validator; no lunge | swap |
 | `boar-gore`, `alpha-boar-gore` | `lunge` + `maul` `gore` | gain |
@@ -261,10 +276,10 @@ PO's layer and add the new one beside it; flag the conflict once.
   (`Mobs.ts:282`). The damage flash is bound to `actualShape`
   (`Mobs.ts:498`), so an attacker hit mid-lunge flashes where its body is.
 - **The manager reads logical positions.** `anchorFor` answers
-  `obj.shape.position` and `obj.size` (`SkillFx.ts:421-437`), so every other
+  `obj.shape.position` and `obj.size` (`SkillFx.ts:458-480`), so every other
   Fx anchored at a lunging attacker stays on its logical position.
 - **The vocabulary is closed in five places**: the Go tables
-  (`skills/visual.go:123-227`), the generated fixture
+  (`skills/visual.go:126-266`), the generated fixture
   (`api/skill-vocabulary.json`, written by `vocabulary_test.go`), the client
   registry (`SkillFxKinds.ts` `KIND_REGISTRY`, pinned both ways by
   `SkillFxKinds.test.ts`), the editor (`tools/content-editor/`
@@ -277,7 +292,7 @@ PO's layer and add the new one beside it; flag the conflict once.
   `impactPhase`). Seven skills authored it: wolf, elite wolf, spider,
   saber-tooth cat, bear, boar, dodo. It is a quarry for C2's `bite`.
 - **At `off` the planner returns before anything is planned**
-  (`SkillFxPlan.ts:162-164`), deliberately before the seed counter moves.
+  (`SkillFxPlan.ts:175-177`), deliberately before the seed counter moves.
 
 ## 5. Schema impact (stated per the standing rule)
 
@@ -391,8 +406,9 @@ old rim-bite leg (leg 14) is rewritten.
 
 ## 8. Open questions (carried, not blocking C1)
 
-1. **The `bite`'s art contract (blocks C2's content, ruled at its session
-   start).** (a) Front-view teeth rows, the first bite: the artist draws the
+1. **The `bite`'s art contract. RULED 2026-09-28, D11: (a), and
+   `wolf-jaw.png` is regenerated, the wolves keep their `body`.** The
+   question as it stood: (a) Front-view teeth rows, the first bite: the artist draws the
    UPPER row, anchor bottom-centre on the bite line, the engine mirrors it
    below; `wolf-jaw.png` is regenerated by `tools/make-skill-fx-pilot.mjs` or
    the wolves drop `body` and draw the procedural teeth. (b) Keep the hinged
@@ -401,8 +417,9 @@ old rim-bite leg (leg 14) is rewritten.
    ⚑ `wolf-jaw` is P0 on the artist's wanted list: if drawing has started
    under the hinge contract, say so before ruling. Lead default: (a), the
    wolves drop `body` until new art exists.
-2. **Attack frame or screen-aligned** for the maul (§3.3). Lead default: the
-   attack frame. Judged at the C2 look.
+2. **Attack frame or screen-aligned** for the maul (§3.3). **RULED
+   2026-09-28, D10: screen-aligned, every curve.** (The lead default was the
+   attack frame.)
 3. **The kind's name.** `maul` is a working name the PO selected with the
    option; renaming is free until C2 ships and a vocabulary change after.
 4. **Does the ring stay under the maul?** D6 says yes for consistency; the
@@ -413,6 +430,13 @@ old rim-bite leg (leg 14) is rewritten.
    owes a judgement on the OVERLAP at melee range: the jab covers most of the
    gap and the attacker's medallion overlaps the victim's token (§3.1, the
    drawn size is larger than the plan assumed).
+
+6. **The fixed orientations under D10** (§3.3's curve table). The PO ruled
+   screen-aligned and described the bite (rows above and below, biting
+   down). The rest is the lead's reading: the pincer's fangs at the screen's
+   left and right, gaping toward the top (the shipped pincer gaped toward the
+   attacker); the diagonal of the gore and of the claw; the upright hoof.
+   Judged at the C2 look.
 
 ## 9. Proposals adopted without a choice prompt (PO may veto any)
 
@@ -464,14 +488,14 @@ old rim-bite leg (leg 14) is rewritten.
   (`SkillFxPreview.ts`). A lunge previewed on a stub without `nudge` shows
   nothing and looks like a broken kind.
 - **L11, the lunge does NOT share the `posed` set.** `emit` deduplicates a
-  `cast-pose` on the bare `castKey` (`SkillFxPlan.ts:287-292`). A lunge
+  `cast-pose` on the bare `castKey` (`SkillFxPlan.ts:344-349`). A lunge
   pushed through the same set would be dropped, or would drop the pose, on
   any skill that authors both: same key, first kind wins, in silence. Use a
   second set or key on `castKey` plus the kind.
 
 ## 11. Chunk ledgers
 
-### C1: the lunge (built 2026-09-27, `413a7fd4`, PO look verdict not recorded)
+### C1: the lunge (built 2026-09-27, `413a7fd4`, PO look 2026-09-28 "works")
 
 Built from an execution brief the lead wrote: Opus agents executed five
 packages (the Go vocabulary and fixture first; then the client, the docs, and
@@ -616,5 +640,172 @@ the harness and stay owed to the PO's eyes:
 Also owed to that look: §8 Q5, the lunge numbers and the overlap at melee
 range (Findings).
 
-**PO verdict: NONE RECORDED.** The PO ordered the wrap, the commit and the
-push on 2026-09-27 without stating a look verdict.
+**PO verdict 2026-09-28: "works."** Looked on the debug zone set (wolves,
+elite wolves, boar, bear, stag, the companion). No change to the lunge
+numbers or the melee overlap was asked for (§8 Q5 stays [PLACEHOLDER]). The
+same look ruled D10 and D11 for C2. (The wrap, the commit and the push of
+2026-09-27 went out before any look.)
+
+### C2: the maul (built 2026-09-28, `274a6d07`, PO look 2026-09-28 "works")
+
+Built by one Opus agent from the lead's execution brief; D10, D11 and §8 Q6
+were ruled before the session (§2, §8).
+
+**Built:**
+
+- **The kind** `maul`, the ninth visual kind: the natural weapon's mark drawn
+  ON the victim, centred on it, re-read per frame, SCREEN-ALIGNED (D10: no
+  phase function takes an attacker). Keys: the common ones plus `ms` and
+  `curve`; moments `hit` and `applied`. Five curves, each a pure phase
+  function in `SkillFxMath.ts` (`bitePhase`, `pincerPhase`, `gorePhase`,
+  `clawPhase`, `kickPhase`, dispatched by `maulPhase`), all numbers
+  [PLACEHOLDER]:
+  - `bite` 180 ms: an upper row of teeth above the centre and the same row
+    mirrored below, closing onto the centre in the first half (ease-out, the
+    C2a snap), a 1.3 to 1 pop while closing, then a fade. Row width 1.6 x the
+    mark size.
+  - `pincer` 260 ms: a fang hinged on the victim's rim at screen left and its
+    mirror at screen right, gaping 35 degrees toward the top, swinging down
+    (ease-in, the shipped pincer's timing) until the points meet on the centre
+    (fang length = the mark size).
+  - `gore` 200 ms: two gashes side by side (0.36 apart) on a fixed diagonal
+    rising to the upper right (-45 degrees), driven in over the first 35 %.
+  - `claw` 240 ms: three rakes (0.34 apart) on the other diagonal (+45
+    degrees), each starting 12 % after the last and drawn over 30 %.
+  - `kick` 180 ms: one upright hoof print (an open U) popping 1.5 to 1.
+  The mark size is `maulSizePx` = max(12 px, the victim's radius) x `scale`.
+- **`MaulFx`** (`SkillFxKinds.ts`): one body per part, a PNG or its
+  placeholder, one code path for both (the phase moves, turns, stretches and
+  mirrors each part). Sprite anchors per curve: `bite` (0.5, 1), `pincer`
+  (0, 1), `gore` and `claw` (0, 0.5), `kick` (0.5, 0.5). Five code-drawn
+  placeholders in `SkillFxBodies.ts` (a front-view teeth row, the old jaw
+  wedge now as the pincer's fang, a gash, a rake, a hoof), tinted by the
+  damage-type palette.
+- **`strike` is a held weapon again**: `StrikeFx` lost its jaw fork; the rim
+  bite maths (`biteHingePoint`, `biteLengthPx`, `BITE_LENGTH_FACTOR`,
+  `BITE_MIN_LENGTH_PX`, `BITE_OPEN_RAD`, `pincerHingePoints`, `biteJawScale`)
+  is deleted with its tests. The loader refuses `strike` `bite` and `strike`
+  `pincer` with a message naming the `maul`.
+- **Planner:** a `maul` starts at the landing's arrival, beside the engine's
+  mark (on a skill that lunges, the lunge's contact moment; on the saber-tooth
+  cat, at once). Not deduplicated (every victim bears its own), never through
+  the `posed` set (L11). Hidden at `off` and budgeted like every authored
+  layer. `SkillFxStress.eventLifetimeMs` counts its duration plus the arrival
+  it waits for.
+- **Art (D11):** `wolf-jaw.png` regenerated by `tools/make-skill-fx-pilot.mjs`
+  as the front-view UPPER ROW, 128 x 44 [PLACEHOLDER] (was 128 x 48, the hinged
+  snout), bottom edge = bite line, mirror-symmetric; the script gained a `row`
+  anchor check. `sword`, `arrow` and `spider-fang` came out byte-identical
+  (md5 checked). `docs/art/skill-vfx-asset-spec.md` (§1, §4 table and
+  diagrams, §5, §7 rows and notes, §8, §9, §11 item 4), `assets.csv` (the
+  `wolf-jaw`, `spider-fang`, `tusk`, `claw` rows) and the regenerated
+  `assets.md` moved with it. Gore and claw bodies are specified as ONE stroke
+  drawn two or three times (starts at the left edge, points right); the kick
+  as a centred upright print.
+- **Content**, eleven files (+ embedded copies): `wolf-bite` and
+  `elite-wolf-bite` `maul` `bite` body `wolf-jaw`; `rat-bite`, `spider-bite`,
+  `saber-tooth-cat-aura` `maul` `bite`; `giant-venom-spit` `maul` `pincer`
+  body `spider-fang`, tint white; `companion-aura` `maul` `bite`;
+  `boar-gore` and `alpha-boar-gore` `maul` `gore`; `bear-swipe` `maul`
+  `claw`; `stag-kick` `maul` `kick`. The swapped layers dropped their old
+  `ms` (200, and 260 on the pincer) for the curve defaults. No editor
+  conflict: every roster file matched §3.4's "After C1" column.
+- **Vocabulary homes (L1):** `visual.go`, the regenerated fixture, the client
+  registry and its both-ways pin, the editor (smoke kind pin 9, comments,
+  hints), the preview gallery (nine slots, the maul on the slot's victim
+  stand-in). Docs: `manual-content-authoring.md` Visuals, the `add-content`
+  skill, the verify skill's rows.
+- **Harness `skill-fx.mjs`:** the rim-bite jaw probe is replaced by a maul
+  probe (rows and fangs at the own player, in player-size units). Leg 14
+  rewritten: one maul and one mark per landing (exact on a gap-free census),
+  the wolves' mauls on the sprite path, the rows centred, unturned, upper
+  above and mirrored lower below, 1.6 sizes wide. Leg 17: the fangs hinged at
+  screen left and right, gaping toward the top, one size long. Legs 13a, 13b
+  and 17 bound sprites by strikes plus mauls (L8, re-derived from
+  `api/skills`); leg 0 counts mauls; leg 20c names the maul.
+
+**Findings:**
+
+- ⚑ **A body named `maul` is on the artist's wanted list** (art spec §7: the
+  TrollSmash / WarlordCleave overhead weapon). Same word as the new kind; §8
+  Q3 says the kind's name is free until C2 ships. Not renamed; the PO's call.
+- ⚑ **C0 promised the art spec's move to `maul` in C1; it had not happened.**
+  C2 carried it whole.
+- `plan-skill-vfx.md` §4.1 said eight kinds when the build ended (the brief
+  allowed the agent no edit to another plan doc). The lead amended it the
+  same day: nine, with the `maul` row.
+- ⚑ **`content-editor-skills-tab.mjs` has been stale since C1**: it expects
+  the WolfBite look block to have ONE row and saves `ms` onto layer 0, which
+  has been the lunge since C1. Not run, not changed here.
+- The quoted snap numbers (scale 1.3 to 0.55) do not transfer: in the first
+  bite the SCALE was what closed the arcs, while two rows held by their bite
+  lines close by their GAP. Kept: close in the first half, ease-out; the scale
+  is only a 1.3 to 1 pop.
+- The pincer's fang length went from max(20 px, 0.8 r) to r x `scale`: on a
+  rim hinge only a fang as long as the radius meets its twin at the centre.
+- Bears live in the dark caves of the debug world, and skill FX draw below
+  darkness, so a bear's claw on the player is invisible there (the player's
+  own light is 40 px). Photographed on a dire bear in daylight instead.
+- Line references corrected in this doc: `Game.ts:395-420`,
+  `SkillFx.ts:458-480`, `skills/visual.go:126-266`, `SkillFxPlan.ts:175-177`
+  and `:344-349`.
+
+**Verify (2026-09-28):** red first: `visual_test.go` (StrikeCurves, Maul,
+seven refusal cases, the nine PO examples, Applied) and the whole
+`SkillFxMath.test.ts` suite (it failed to load on the missing maul exports),
+then the planner's two arrival tests; the client registry pin and the
+editor smoke went red on the regenerated fixture before the registry moved ·
+`go build ./...` OK · `go test -count=1 ./...` 35 packages ok with the DB
+tests against `aura_test`, red only the ones red at HEAD (proved on a clean
+HEAD worktree): the three `cmd/simharness` placement pins and `pkg/aura/world`
+`TestPropContent_C1bMigrationPreservesLookAndCollision` · `aurad -validate`
+0 findings embedded, with `-content ../api`, and both with `-debug-zones` ·
+frontend `vitest` **1407 passed / 0 failed** (baseline 1384), `typecheck`
+clean · editor `smoke.mjs` 0 findings (121 skill files, 136 visual layers, 9
+kinds), `save-skill.test.mjs` and `aurad-validate.test.mjs` 0 findings ·
+`skill-fx.mjs` on the debug zone set: run 1 INCONCLUSIVE at leg 2 (the
+kobold camp saw 1 skill event, a starved venue, which gated the rest); run 2
+**PASS, 63 PASS lines, 0 fail, 0 inconclusive** (leg 14: 58 mauls, 58 marks,
+58 lunges, 47 sprites; rows dx 0, rotation 0, upper dy -0.29..0, lower
+0..0.29, width 1.6..1.83; leg 17: fangs at dx -1 and +1, dy 0, left
+-0.61..0 rad, right 3.14..3.75 rad, length 1; the one-per-landing equalities
+were NOT scored, 13 and 9 census gaps) · `skill-fx-preview.mjs` PASS 16/16
+three runs out of four; the other run hit the known `Cannot read properties
+of null (reading 'split')` page error while a production build ran beside it
+(C1's finding, cause unproven) · a real boot and join (the harness): content
+source `../api`, 121 skills, 77 mobs, no error or warning in the server log ·
+screenshots looked at by the agent: the wolf's teeth rows closing on the
+player, a boar biting and being gored in a mob fight, the dire bear's three
+rakes on the player, the giant spider's white fangs, and every curve large in
+the preview page.
+
+**Re-run by the lead (2026-09-28, the same tree):** `go build ./...` OK ·
+`go test -count=1 ./...` 35 packages ok, red only the same four tests in
+`pkg/aura/world` and `cmd/simharness` · `-validate` 0 findings, all four ways
+· `vitest` 1407 / 0, `typecheck` clean · editor `smoke.mjs` and
+`save-skill.test.mjs` 0 findings · `skill-fx-preview.mjs` PASS 16/16 ·
+`skill-fx.mjs` twice: run 1 53 PASS / 0 fail, INCONCLUSIVE at leg 17 alone
+(no giant spider bite landed in the window), run 2 **PASS, 63 / 0 / 0**
+(leg 14: rows dx 0, rotation 0, upper dy -0.35..0, lower 0..0.35; leg 17:
+fangs at dx -1 and +1). ⚑ Across the four runs of the day the harness passed
+twice and went inconclusive twice, each time on a starved venue, never on a
+failed assertion. `harnessdb -cleanup` removed 13, with `aurad` stopped.
+
+**Schema:** DB NONE · wire NONE · conf NONE · vocabulary +1 kind (`maul`), +5
+curves, `strike` loses `bite` and `pincer`, fixture regenerated · content 11
+skill files (+ embedded copies) · no new skill, mob or effect type: registry
+pin stays 121, no census change · art: `wolf-jaw.png` regenerated.
+
+**Owed:** the PO's look (the §7 C2 checklist, §8 Q4 the ring under the maul,
+§8 Q6 the fixed orientations, the numbers above). Not proven by the harness:
+the "at the contact moment" timing (the planner test proves it; a headless
+frame is too coarse), the stag's kick in-game (a stag flees and was never
+provoked into kicking; seen only in the preview page), density `off` with a
+maul skill other than the wolf's, the rat, the companion and the saber-tooth
+cat in-game.
+
+**PO verdict 2026-09-28: "works."** Given after the look on the debug zone
+set. The two questions put to that look got no separate answer, so both
+stand as built: the round mark keeps drawing under the maul (D6, §8 Q4) and
+the kind keeps the name `maul` (§8 Q3). The fixed orientations (§8 Q6) and
+the numbers stay [PLACEHOLDER].

@@ -89,8 +89,8 @@ export function projectilePoint(
 // ⭐ NO CONTENT AUTHORS THIS. Since the C3a amendment the engine draws one
 // round mark on the victim of every landed DAMAGE hit, the `impact` kind is out
 // of the authoring vocabulary, and the `snap` curve is gone with it (the bite
-// became a `strike` curve, drawn from the BITER). So there is one look and one
-// number here, and the curve parameter that used to pick between them is gone.
+// lives on as the `maul` `bite`, below). So there is one look and one number
+// here, and the curve parameter that used to pick between them is gone.
 
 /** How long the mark lives. [PLACEHOLDER] - today's `burst` default, unmoved. */
 export const HIT_MARK_MS = 220;
@@ -141,19 +141,17 @@ export function impactPhase(elapsedMs: number, totalMs: number): ImpactPhase {
 // one set of numbers drives a spear at 40 px and a hammer at 200.
 
 /**
- * The `strike` kind's curve set (PO 2026-09-19, §12c.1), joined by `bite` at
- * the C3a amendment (§12g.1 call 3): an attack is drawn from the ATTACKER, so
- * the wolf's jaws became a weapon it holds rather than a mark on its victim.
+ * The `strike` kind's curve set (PO 2026-09-19, §12c.1): a HELD weapon. The
+ * `bite` and the `pincer` it carried from the C3a amendment left for the
+ * `maul` (plan-natural-weapons.md C2), which draws them ON the victim.
  */
-export type StrikeCurve = 'thrust' | 'swing' | 'overhead' | 'bite' | 'pincer';
+export type StrikeCurve = 'thrust' | 'swing' | 'overhead';
 
 /** Default lifetime per style when the layer authors no `ms`. */
 export const STRIKE_CURVE_MS: Record<StrikeCurve, number> = {
     thrust: 200,
     swing: 280,
     overhead: 460,
-    bite: 260,
-    pincer: 260,
 };
 
 export interface StrikePhase {
@@ -190,97 +188,12 @@ const OVERHEAD_RAISE_SCALE = 1.3;
  */
 export const OVERHEAD_RAISE_RAD = Math.PI / 2;
 
-/**
- * The bite: how wide the jaws gape ([PLACEHOLDER] 35 degrees either side of the
- * aim), when they are shut, and how long they hold shut before fading.
- */
-export const BITE_OPEN_RAD = (35 * Math.PI) / 180;
-const BITE_CLOSE_FRACTION = 0.5;
-const BITE_HOLD_FRACTION = 0.8;
-
 /** The shortest weapon drawn, whatever the reach. */
 export const STRIKE_MIN_LENGTH_PX = 40;
-/** The shortest jaw or fang drawn: a bite is sized to its victim, so it floors lower. [PLACEHOLDER] */
-export const BITE_MIN_LENGTH_PX = 20;
-
-/**
- * The rim bite's jaw length as a share of the VICTIM's radius (§12h call 3).
- * [PLACEHOLDER] (PO 2026-09-23: the reach-long C3a bite was "too long, a
- * crocodile attack"; the first rim bite at 1.4 was "still quite long").
- */
-export const BITE_LENGTH_FACTOR = 0.8;
-
-/**
- * Where a `bite`'s jaws hinge (§12h call 3, the RIM BITE): the point on the
- * VICTIM's rim nearest the attacker, so the pair opens along the attack line
- * toward the victim's centre and four wolves bite at four spots around the
- * ring, each pointing back at its wolf. Attacker and victim on one point have
- * no attack line: the victim point itself, rather than a NaN.
- */
-export function biteHingePoint(
-    casterAt: { x: number, y: number }, victimAt: { x: number, y: number }, victimRadiusPx: number,
-): { x: number, y: number } {
-    const dx = casterAt.x - victimAt.x;
-    const dy = casterAt.y - victimAt.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist === 0) {
-        return {x: victimAt.x, y: victimAt.y};
-    }
-    return {
-        x: victimAt.x + (dx / dist) * victimRadiusPx,
-        y: victimAt.y + (dy / dist) * victimRadiusPx,
-    };
-}
-
-/**
- * A `pincer`'s two fangs (PO look 2026-09-23, the Giant Spider: "two tusks
- * gripping from either side, faced inwards"): one hinge on EACH side of the
- * victim, on the rim, perpendicular to the attack line, and for each the angle
- * that points straight at the victim's centre. The fangs gape away from that
- * inward line toward the attacker and swing in to meet. Attacker and victim on
- * one point have no attack line: both hinges are the victim point.
- */
-export function pincerHingePoints(
-    casterAt: { x: number, y: number }, victimAt: { x: number, y: number }, victimRadiusPx: number,
-): { left: { x: number, y: number }, right: { x: number, y: number }, leftInward: number, rightInward: number } {
-    const dx = victimAt.x - casterAt.x;
-    const dy = victimAt.y - casterAt.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist === 0) {
-        return {left: {...victimAt}, right: {...victimAt}, leftInward: 0, rightInward: Math.PI};
-    }
-    const aim = Math.atan2(dy, dx);
-    const leftSide = aim - Math.PI / 2;
-    const rightSide = aim + Math.PI / 2;
-    return {
-        left: {
-            x: victimAt.x + Math.cos(leftSide) * victimRadiusPx,
-            y: victimAt.y + Math.sin(leftSide) * victimRadiusPx,
-        },
-        right: {
-            x: victimAt.x + Math.cos(rightSide) * victimRadiusPx,
-            y: victimAt.y + Math.sin(rightSide) * victimRadiusPx,
-        },
-        leftInward: rightSide,
-        rightInward: leftSide,
-    };
-}
-
-/**
- * A `bite`'s (or `pincer`'s) jaw length (§12h call 3): sized to what is
- * BITTEN, never to the skill's reach, and never shorter than `minPx`.
- */
-export function biteLengthPx(victimRadiusPx: number, minPx: number): number {
-    return Math.max(minPx, victimRadiusPx * BITE_LENGTH_FACTOR);
-}
-
 const STRIKE_CONTACT_FRACTION: Record<StrikeCurve, number> = {
     thrust: THRUST_CONTACT_FRACTION,
     swing: SWING_CONTACT_FRACTION,
     overhead: OVERHEAD_CONTACT_FRACTION,
-    // The jaws meeting IS the contact: the mark lands as they shut.
-    bite: BITE_CLOSE_FRACTION,
-    pincer: BITE_CLOSE_FRACTION,
 };
 
 /**
@@ -296,9 +209,7 @@ export function contactMs(curve: StrikeCurve, totalMs: number): number {
 
 /** Which weapon style a `strike` layer authors; absent = thrust (PO 2026-09-19). */
 export function strikeCurveOf(curve: string | undefined): StrikeCurve {
-    return curve === 'swing' || curve === 'overhead' || curve === 'bite' || curve === 'pincer'
-        ? curve
-        : 'thrust';
+    return curve === 'swing' || curve === 'overhead' ? curve : 'thrust';
 }
 
 /**
@@ -393,28 +304,6 @@ export function strikePhase(curve: StrikeCurve, elapsedMs: number, totalMs: numb
                 ? 1
                 : 1 - (p - OVERHEAD_HOLD_FRACTION) / (1 - OVERHEAD_HOLD_FRACTION);
             return {extend: 1, angleOffset: 0, offset: 0, scale: 1, alpha, done: false};
-        }
-        case 'bite':
-        case 'pincer': {
-            // ⚑ `angleOffset` is the OPEN ANGLE here, not a sweep: the caller
-            // draws ONE jaw body twice, turning the upper one by −angleOffset
-            // and the lower one by +angleOffset about the same hinge, so the
-            // pair gapes and closes. It is never multiplied by swingDirection.
-            //
-            // Ease-IN, so the jaws hang open and then SLAM shut rather than
-            // drifting together (§12g.2).
-            const close = easeInCubic(clamp01(p / BITE_CLOSE_FRACTION));
-            const alpha = p <= BITE_HOLD_FRACTION
-                ? 1
-                : 1 - (p - BITE_HOLD_FRACTION) / (1 - BITE_HOLD_FRACTION);
-            return {
-                extend: 1,
-                angleOffset: BITE_OPEN_RAD * (1 - close),
-                offset: 0,
-                scale: 1,
-                alpha,
-                done: false,
-            };
         }
         default: {
             // The prototype's stab: out fast, then pulled back while fading.
@@ -588,6 +477,284 @@ export function lungeShare(elapsedMs: number, totalMs: number): number {
         return easeOutCubic(elapsedMs / contact);
     }
     return 1 - easeInOutCubic((elapsedMs - contact) / (totalMs - contact));
+}
+
+// --- maul (plan-natural-weapons.md §3.3) ------------------------------------
+//
+// ⭐ The natural weapon's mark drawn ON the victim: teeth, fangs, tusk gashes,
+// claw rakes, a hoof. SCREEN-ALIGNED, every curve (D10, PO 2026-09-28): no
+// function below takes an attacker, so the mark looks the same whichever side
+// the hit came from, and the `lunge` alone says who struck.
+//
+// Everything is in units of the mark's SIZE (`maulSizePx`: the victim's radius
+// times the layer's `scale`) and relative to the victim's centre, so one set
+// of numbers draws the same mark on a rat and on a bear. A mark is a few PARTS,
+// each one drawing of `MAUL_PART_LENGTH` sizes; the kind draws every part and
+// moves it by these numbers, a sprite and a placeholder alike.
+
+/** The `maul` kind's curve set, one per natural weapon (§3.3). */
+export type MaulCurve = 'bite' | 'pincer' | 'gore' | 'claw' | 'kick';
+
+/** Default lifetime per curve when the layer authors no `ms`. [PLACEHOLDER] */
+export const MAUL_CURVE_MS: Record<MaulCurve, number> = {
+    bite: 180,
+    pincer: 260,
+    gore: 200,
+    claw: 240,
+    kick: 180,
+};
+
+/** How many drawings one mark is made of: rows, fangs, gashes, rakes, a print. */
+export const MAUL_PARTS: Record<MaulCurve, number> = {
+    bite: 2,
+    pincer: 2,
+    gore: 2,
+    claw: 3,
+    kick: 1,
+};
+
+/**
+ * How long ONE part's drawing is, in mark sizes, along its own +X: the row's
+ * width, the fang's length (1, so two fangs hinged on the rim meet at the
+ * centre), a gash, a rake, the print's width. The kind sizes a body to it.
+ * [PLACEHOLDER]
+ */
+export const MAUL_PART_LENGTH: Record<MaulCurve, number> = {
+    bite: 1.6,
+    pincer: 1,
+    gore: 1.1,
+    claw: 1.4,
+    kick: 0.9,
+};
+
+/** The smallest victim radius a mark is sized to, in px. [PLACEHOLDER] */
+export const MAUL_MIN_SIZE_PX = 12;
+
+/** One part of a mark at one moment, in mark sizes from the victim's centre. */
+export interface MaulPart {
+    /** where the part's anchor sits */
+    x: number;
+    y: number;
+    /** radians; 0 = the drawing as drawn, pointing +X */
+    rotation: number;
+    /** 0..1 share of its length drawn along its own +X: a gash being driven in */
+    stretch: number;
+    /** uniform size multiplier: a pop */
+    scale: number;
+    alpha: number;
+    /** drawn flipped in y: the lower row of teeth, the right fang */
+    mirrored: boolean;
+}
+
+export interface MaulPhase {
+    parts: MaulPart[];
+    done: boolean;
+}
+
+/** Which natural weapon a `maul` layer authors; absent or unknown = `bite`. */
+export function maulCurveOf(curve: string | undefined): MaulCurve {
+    return curve === 'pincer' || curve === 'gore' || curve === 'claw' || curve === 'kick'
+        ? curve
+        : 'bite';
+}
+
+/** A maul's whole duration: the authored `ms`, else the curve's default. */
+export function maulTotalMsOf(curve: string | undefined, ms: number | undefined): number {
+    return ms && ms > 0 ? ms : MAUL_CURVE_MS[maulCurveOf(curve)];
+}
+
+/** One mark size in px: the victim's radius (floored) times the layer's `scale`. */
+export function maulSizePx(victimRadiusPx: number, scale: number | undefined): number {
+    const r = Number.isFinite(victimRadiusPx) ? Math.max(MAUL_MIN_SIZE_PX, victimRadiusPx) : MAUL_MIN_SIZE_PX;
+    return r * (scale && scale > 0 ? scale : 1);
+}
+
+function maulPart(x: number, y: number, rotation: number, alpha: number, mirrored = false): MaulPart {
+    return {x, y, rotation, stretch: 1, scale: 1, alpha, mirrored};
+}
+
+/** Full until `from`, then a straight fade to nothing at the end. */
+function fadeAfter(p: number, from: number): number {
+    return p <= from ? 1 : 1 - (p - from) / (1 - from);
+}
+
+/** The phase a finished mark answers: its parts at rest and invisible. */
+function doneMaul(curve: MaulCurve): MaulPhase {
+    return {
+        parts: Array.from({length: MAUL_PARTS[curve]}, () => maulPart(0, 0, 0, 0)),
+        done: true,
+    };
+}
+
+/** The bite's rows close in this share of the layer, then hold and fade (the C2a snap). */
+const BITE_CLOSE_FRACTION = 0.5;
+/** How far each row starts from the centre line, in mark sizes. [PLACEHOLDER] */
+export const BITE_OPEN_GAP = 0.6;
+/**
+ * The rows' size while open; they settle to 1 as they shut. [PLACEHOLDER]
+ * ⚑ The first bite (C2a's `snap`) scaled 1.3 to 0.55 because the SCALE was
+ * what closed it; the rows close by their gap, so only the pop is kept.
+ */
+export const BITE_OPEN_SCALE = 1.3;
+
+/**
+ * `bite` (D11): the UPPER row of teeth above the centre and the same drawing
+ * MIRRORED below it, closing onto the centre line (the first bite; the PO's
+ * reference is the Pokemon "Bite": two white rows biting down on the target).
+ * Each row's anchor is its bite line, so a gap of 0 is teeth meeting.
+ */
+export function bitePhase(elapsedMs: number, totalMs: number): MaulPhase {
+    const total = totalMs > 0 ? totalMs : MAUL_CURVE_MS.bite;
+    if (elapsedMs >= total) {
+        return doneMaul('bite');
+    }
+    const p = clamp01(elapsedMs / total);
+    const close = easeOutCubic(clamp01(p / BITE_CLOSE_FRACTION));
+    const gap = BITE_OPEN_GAP * (1 - close);
+    const scale = BITE_OPEN_SCALE - (BITE_OPEN_SCALE - 1) * close;
+    const alpha = fadeAfter(p, BITE_CLOSE_FRACTION);
+    return {
+        parts: [
+            {...maulPart(0, -gap, 0, alpha), scale},
+            {...maulPart(0, gap, 0, alpha, true), scale},
+        ],
+        done: false,
+    };
+}
+
+/** The pincer's gape above the horizontal, and its timing (the shipped pincer's). [PLACEHOLDER] */
+export const PINCER_OPEN_RAD = (35 * Math.PI) / 180;
+const PINCER_CLOSE_FRACTION = 0.5;
+const PINCER_HOLD_FRACTION = 0.8;
+
+/**
+ * `pincer` (the Giant Spider, PO look 2026-09-23, on a fixed frame under D10):
+ * one fang hinged on the victim's rim at screen LEFT, one at screen RIGHT (the
+ * same drawing mirrored), both gaping toward the TOP and swinging down until
+ * the tips meet at the centre. Ease-IN, so they hang open and then slam.
+ */
+export function pincerPhase(elapsedMs: number, totalMs: number): MaulPhase {
+    const total = totalMs > 0 ? totalMs : MAUL_CURVE_MS.pincer;
+    if (elapsedMs >= total) {
+        return doneMaul('pincer');
+    }
+    const p = clamp01(elapsedMs / total);
+    const open = PINCER_OPEN_RAD * (1 - easeInCubic(clamp01(p / PINCER_CLOSE_FRACTION)));
+    const alpha = fadeAfter(p, PINCER_HOLD_FRACTION);
+    return {
+        parts: [
+            // Pointing +X, turned up (−y) by the gape...
+            maulPart(-1, 0, -open, alpha),
+            // ...and its mirror image: pointing −X, turned up by the same.
+            maulPart(1, 0, Math.PI + open, alpha, true),
+        ],
+        done: false,
+    };
+}
+
+/** The gashes' fixed diagonal: rising to the upper right, a tusk ripping up. [PLACEHOLDER] */
+export const GORE_ANGLE_RAD = -Math.PI / 4;
+/** Distance between the two gashes, in mark sizes. [PLACEHOLDER] */
+const GORE_SPACING = 0.36;
+/** The share of the layer the stab takes to drive in; the fade's start. [PLACEHOLDER] */
+const GORE_DRIVE_FRACTION = 0.35;
+const GORE_FADE_FRACTION = 0.6;
+
+/**
+ * Parts laid side by side on one diagonal, centred on the victim: part i of n
+ * starts half a length back from the centre along the diagonal and is offset
+ * across it, so the middle of the row sits on the centre.
+ */
+function parallelStarts(n: number, angle: number, length: number, spacing: number): { x: number, y: number }[] {
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle);
+    return Array.from({length: n}, (_, i) => {
+        const across = (i - (n - 1) / 2) * spacing;
+        return {
+            x: -dx * length / 2 - dy * across,
+            y: -dy * length / 2 + dx * across,
+        };
+    });
+}
+
+/** `gore`: two tusk gashes driven in side by side on a fixed diagonal. */
+export function gorePhase(elapsedMs: number, totalMs: number): MaulPhase {
+    const total = totalMs > 0 ? totalMs : MAUL_CURVE_MS.gore;
+    if (elapsedMs >= total) {
+        return doneMaul('gore');
+    }
+    const p = clamp01(elapsedMs / total);
+    const stretch = easeOutCubic(clamp01(p / GORE_DRIVE_FRACTION));
+    const alpha = fadeAfter(p, GORE_FADE_FRACTION);
+    return {
+        parts: parallelStarts(MAUL_PARTS.gore, GORE_ANGLE_RAD, MAUL_PART_LENGTH.gore, GORE_SPACING)
+            .map(at => ({...maulPart(at.x, at.y, GORE_ANGLE_RAD, alpha), stretch})),
+        done: false,
+    };
+}
+
+/** The rakes' fixed diagonal: falling to the lower right, a swipe from the upper left. [PLACEHOLDER] */
+export const CLAW_ANGLE_RAD = Math.PI / 4;
+const CLAW_SPACING = 0.34;
+/** Each rake starts this share of the layer after the one before, and takes RAKE to draw. [PLACEHOLDER] */
+const CLAW_STAGGER_FRACTION = 0.12;
+const CLAW_RAKE_FRACTION = 0.3;
+const CLAW_FADE_FRACTION = 0.65;
+
+/** `claw`: three rakes on a fixed diagonal, one after the other, then a fade. */
+export function clawPhase(elapsedMs: number, totalMs: number): MaulPhase {
+    const total = totalMs > 0 ? totalMs : MAUL_CURVE_MS.claw;
+    if (elapsedMs >= total) {
+        return doneMaul('claw');
+    }
+    const p = clamp01(elapsedMs / total);
+    const fade = fadeAfter(p, CLAW_FADE_FRACTION);
+    return {
+        parts: parallelStarts(MAUL_PARTS.claw, CLAW_ANGLE_RAD, MAUL_PART_LENGTH.claw, CLAW_SPACING)
+            .map((at, i) => {
+                const since = p - i * CLAW_STAGGER_FRACTION;
+                return {
+                    ...maulPart(at.x, at.y, CLAW_ANGLE_RAD, since < 0 ? 0 : fade),
+                    stretch: easeOutCubic(clamp01(since / CLAW_RAKE_FRACTION)),
+                };
+            }),
+        done: false,
+    };
+}
+
+/** The print lands this much larger and settles to its size over the POP share. [PLACEHOLDER] */
+export const KICK_POP_SCALE = 1.5;
+const KICK_POP_FRACTION = 0.3;
+const KICK_FADE_FRACTION = 0.55;
+
+/** `kick`: one upright hoof print punched in (a scale pop), then a fade. */
+export function kickPhase(elapsedMs: number, totalMs: number): MaulPhase {
+    const total = totalMs > 0 ? totalMs : MAUL_CURVE_MS.kick;
+    if (elapsedMs >= total) {
+        return doneMaul('kick');
+    }
+    const p = clamp01(elapsedMs / total);
+    const scale = KICK_POP_SCALE - (KICK_POP_SCALE - 1) * easeOutCubic(clamp01(p / KICK_POP_FRACTION));
+    return {
+        parts: [{...maulPart(0, 0, 0, fadeAfter(p, KICK_FADE_FRACTION)), scale}],
+        done: false,
+    };
+}
+
+/** One maul over time, whichever its curve. */
+export function maulPhase(curve: MaulCurve, elapsedMs: number, totalMs: number): MaulPhase {
+    switch (curve) {
+        case 'pincer':
+            return pincerPhase(elapsedMs, totalMs);
+        case 'gore':
+            return gorePhase(elapsedMs, totalMs);
+        case 'claw':
+            return clawPhase(elapsedMs, totalMs);
+        case 'kick':
+            return kickPhase(elapsedMs, totalMs);
+        default:
+            return bitePhase(elapsedMs, totalMs);
+    }
 }
 
 // --- beam envelopes ---------------------------------------------------------
@@ -997,25 +1164,6 @@ export function beamSpriteScale(
         x: spanPx > 0 ? spriteScaleToExtent(textureWidthPx, spanPx) : 0,
         y: spriteScaleToExtent(textureHeightPx, widthPx),
     };
-}
-
-/**
- * A `bite` drawn from ONE jaw PNG: the artist delivers the UPPER jaw with its
- * HINGE on the left edge and its bite line on the BOTTOM edge (§12g.2), and the
- * lower jaw is that same texture MIRRORED through the bite line.
- *
- * With the sprite anchored at (0, 1) - the hinge, on the bite line - a negative
- * y scale flips the picture about that line without moving the hinge, so both
- * jaws pivot on the same point (the victim's rim since §12h, `biteHingePoint`)
- * and the closing math in StrikeFx does not fork. `lengthPx` is the bite's own
- * length rule (`biteLengthPx`), so the scale stays UNIFORM (§12f.2: only a
- * beam stretches).
- */
-export function biteJawScale(
-    textureWidthPx: number, lengthPx: number, lower: boolean,
-): { x: number, y: number } {
-    const s = spriteScaleToExtent(textureWidthPx, lengthPx);
-    return {x: s, y: lower ? -s : s};
 }
 
 // --- the C4 instrument (§12e.4) ---------------------------------------------

@@ -20,15 +20,21 @@
  * tint. Wood and steel rather than the damage-type red is what tells the
  * sprite path from the Graphics placeholder at a glance in a screenshot.
  *
- * ⚑ The first three cover the three anchor rules of the asset spec's table,
- * which is why these three and not three prettier ones:
- *   sword     `strike`, grip at the LEFT EDGE, scaled uniformly to the reach
- *   arrow     `projectile`, centred, rotated to the travel direction
- *   wolf-jaw  `strike` bite, the UPPER jaw, HINGE at the bottom-left corner,
- *             snout pointing right, the bite line at the BOTTOM edge (§12g.2)
- * The fourth, spider-fang, is the Giant Spider's bite on the wolf-jaw
- * contract. It is WHITE on purpose (the PO asked for "two big white fangs"),
- * so it is the one pilot a per-skill `tint` could recolour.
+ * ⚑ Each covers one anchor rule of the asset spec's table, which is why these
+ * four and not four prettier ones:
+ *   sword        `strike`, grip at the LEFT EDGE, scaled uniformly to the reach
+ *   arrow        `projectile`, centred, rotated to the travel direction
+ *   wolf-jaw     `maul` bite (plan-natural-weapons.md D11, PO 2026-09-28): the
+ *                UPPER ROW of teeth seen from the FRONT, teeth pointing down,
+ *                anchor BOTTOM-CENTRE on the bite line; the engine mirrors it
+ *                for the lower row and closes the two onto the victim's centre
+ *   spider-fang  `maul` pincer, the Giant Spider's: ONE fang, HINGE at the
+ *                bottom-left corner, the point at the right, the bite line at
+ *                the BOTTOM edge; the engine mirrors it for the other side.
+ *                WHITE on purpose (the PO asked for "two big white fangs"),
+ *                so it is the one pilot a per-skill `tint` could recolour.
+ * (wolf-jaw was a hinged snout in profile for the rim bite until C2; it was
+ * regenerated to the front-view contract, and spider-fang was left as it was.)
  *
  * ⚑ Every canvas size below is [PLACEHOLDER] and is exactly what the PO look
  * is for - the asset spec's size column copies whatever survives it. They are
@@ -126,53 +132,54 @@ function fletchHeight(x) {
 }
 
 /**
- * The wolf jaw. ONE upper jaw, HINGED AT THE BOTTOM-LEFT CORNER, the snout
- * pointing right and tapering, teeth pointing DOWN with every tip on the
- * BOTTOM EDGE - the `strike` `bite` rule (§12g.2): the renderer anchors the
- * sprite at (0, 1), draws it twice with the second copy's y scale negated, and
- * rotates the pair about that corner from open to shut over the victim, so the
- * bottom edge is what meets and the left edge is what never moves.
+ * The wolf's teeth (plan-natural-weapons.md D11). The UPPER ROW seen from the
+ * FRONT, teeth pointing DOWN, the two canines' tips ON the BOTTOM EDGE - the
+ * `maul` `bite` rule: the renderer anchors the sprite at its BOTTOM-CENTRE
+ * (0.5, 1), draws it twice with the second copy's y scale negated (the lower
+ * row), and moves the pair together until the bite lines meet on the victim's
+ * centre. So the bottom edge is what meets, and the drawing must be symmetric
+ * about its vertical middle, or the two rows bite off-centre.
+ *
+ * ⚑ 128 x 44 [PLACEHOLDER]: wide and low, a row rather than a snout. The
+ * width is what the renderer sizes to (1.6 x the victim's radius), so the
+ * height is the only proportion the drawing decides.
  */
-const JAW_W = 128, JAW_H = 48;
-
-/** The muzzle line: the jaw's top edge, high at the hinge, low at the snout. */
-const muzzleTop = (x) => 6 + 26 * (x / JAW_W) ** 1.6;
+const JAW_W = 128, JAW_H = 44;
+const JAW_MID = JAW_W / 2;
 
 /**
- * Where the gum ends and the teeth start, measured up from the bite line:
- * deep at the hinge, shallow at the snout.
+ * Where the teeth leave the gum: lowest in the middle (the incisors) and
+ * rising toward the corners, as a jaw curving away from the viewer does.
  */
-const gumBottom = (x) => JAW_H - 14 + 8 * (x / JAW_W);
-
-/** The snout's rounded end: the jaw stops short of the right edge. */
-const SNOUT_X = 124;
-/** The jaw's root: the first few px reach the bite line, so the hinge corner is flesh. */
-const ROOT_X = 8;
-const inMuzzle = (x, y) => x >= 0 && x < SNOUT_X && y >= muzzleTop(x)
-    && (y <= gumBottom(x) || (x < ROOT_X && y <= JAW_H))
-    && !(x > SNOUT_X - 8 && y < muzzleTop(x) + 4 * (1 - (SNOUT_X - x) / 8));
+const toothRoot = (x) => 22 - 8 * ((x - JAW_MID) / JAW_MID) ** 2;
+/** The gum's top edge, thinning toward the corners. */
+const gumTop = (x) => toothRoot(x) - 14 + 6 * ((x - JAW_MID) / JAW_MID) ** 4;
+const inGum = (x, y) => x >= 2 && x < JAW_W - 2 && y >= gumTop(x) && y <= toothRoot(x) + 1;
 
 /**
- * Seven teeth along the jaw, by tip depth. The two long fangs sit second from
- * each end - the canines - and are the only teeth that reach the bite line
- * with their full width; the rest stop a hair short, so the row reads as a
- * row. Sized to the gum they hang from, which is deeper at the hinge.
+ * The row, by tip depth and mirrored about the middle: six short incisors in
+ * the centre, a long canine either side whose tip is ON the bite line, and a
+ * small cheek tooth at each end. Only the canines reach the bottom edge, so
+ * when the rows close they are what meets and the row reads as a row.
  */
-const TEETH = [
-    {cx: 12, hw: 4.0, tip: 46.0},
-    {cx: 30, hw: 5.5, tip: 47.9},   // canine
-    {cx: 48, hw: 4.0, tip: 45.0},
-    {cx: 66, hw: 3.8, tip: 44.5},
-    {cx: 84, hw: 3.6, tip: 44.0},
-    {cx: 102, hw: 4.6, tip: 47.9},  // canine
-    {cx: 116, hw: 3.0, tip: 45.0},
+const HALF_ROW = [
+    {dx: 6, hw: 5.5, tip: 36.0},
+    {dx: 18, hw: 5.5, tip: 35.5},
+    {dx: 30, hw: 5.0, tip: 34.5},
+    {dx: 44, hw: 7.0, tip: 43.9},   // canine
+    {dx: 57, hw: 4.0, tip: 32.0},
 ];
+const TEETH = HALF_ROW.flatMap((t) => [
+    {cx: JAW_MID - t.dx, hw: t.hw, tip: t.tip},
+    {cx: JAW_MID + t.dx, hw: t.hw, tip: t.tip},
+]);
 
 /**
- * The spider fang. ONE upper fang on the wolf-jaw contract (§12g.2, §12h.5):
- * HINGED AT THE BOTTOM-LEFT CORNER, the bite line on the BOTTOM edge, the
- * curved point at the right touching that edge. The engine mirrors it into
- * the lower fang, so the pair clamps the victim from either side.
+ * The spider fang, the `maul` `pincer` rule: ONE fang HINGED AT THE
+ * BOTTOM-LEFT CORNER, the bite line on the BOTTOM edge, the curved point at
+ * the right touching that edge. The engine anchors it at (0, 1) on the
+ * victim's rim at screen left, mirrors it for the one at screen right, and
+ * swings both about their hinges until the points meet on the centre.
  */
 const FANG_W = 96, FANG_H = 40;
 /** Where the point sits: a hair short of the right edge, so it antialiases. */
@@ -257,33 +264,29 @@ const BODIES_SPEC = [
     },
     {
         file: 'wolf-jaw.png',
-        anchor: 'hinge',
+        anchor: 'row',
         w: JAW_W,
         h: JAW_H,
         layers: [
-            {color: GUM, in: inMuzzle},
-            // The light along the muzzle's top edge, so the taper reads.
-            {
-                color: GUM_LIT,
-                in: (x, y) => inMuzzle(x, y) && y - muzzleTop(x) < 3,
-            },
+            {color: GUM, in: inGum},
             // The lit ridge along the gum line, where the teeth come out.
             {
                 color: GUM_LIT,
-                in: (x, y) => inMuzzle(x, y) && y > gumBottom(x) - 3,
+                in: (x, y) => inGum(x, y) && y > toothRoot(x) - 3,
             },
             {
                 color: IVORY,
                 in: (x, y) => TEETH.some((t) =>
-                    tooth(t.cx, t.hw, gumBottom(t.cx) - 2, t.tip)(x, y)),
+                    tooth(t.cx, t.hw, toothRoot(t.cx) - 2, t.tip)(x, y)),
             },
-            // Shade the near half of each tooth so a row of them reads as a
-            // row rather than as one pale band.
+            // Shade the outer half of each tooth (away from the middle) so a
+            // row of them reads as a row rather than as one pale band, and the
+            // shading stays mirror-symmetric like the row.
             {
                 color: IVORY_SHADE,
                 in: (x, y) => TEETH.some((t) =>
-                    tooth(t.cx, t.hw, gumBottom(t.cx) - 2, t.tip)(x, y)
-                    && x > t.cx + t.hw * 0.25),
+                    tooth(t.cx, t.hw, toothRoot(t.cx) - 2, t.tip)(x, y)
+                    && Math.abs(x - JAW_MID) > Math.abs(t.cx - JAW_MID) + t.hw * 0.25),
             },
         ],
     },
@@ -348,9 +351,9 @@ function reportCoverage(body) {
 /**
  * Proves the anchor rule the kind depends on, rather than trusting the numbers
  * above: a sword whose grip has drifted off the left edge is held in mid-air,
- * a jaw whose teeth stop short of the bottom edge never closes on anything,
- * and an arrow drawn off-centre wobbles as the renderer rotates it. All three
- * are invisible in a coverage percentage and obvious here.
+ * a row of teeth or a fang that stops short of the bottom edge never closes on
+ * anything, and an arrow drawn off-centre wobbles as the renderer rotates it.
+ * All of them are invisible in a coverage percentage and obvious here.
  */
 function assertAnchor(body) {
     const hit = (x, y) => pixel(body, x, y)[3] > 0;
@@ -361,9 +364,35 @@ function assertAnchor(body) {
         throw new Error(`${body.file}: nothing is drawn on the LEFT edge, which is `
             + 'where this kind holds the body (see the asset spec table)');
     }
+    if (body.anchor === 'row') {
+        // A row of teeth: the bottom edge is the bite line, so it must carry
+        // paint (a row that stops short of it never meets its mirror), and the
+        // painted columns must straddle the middle, the point it is held by -
+        // a lopsided row bites off-centre.
+        let bite = false;
+        for (let x = 0; x < body.w; x++) if (hit(x, body.h - 1)) bite = true;
+        if (!bite) {
+            throw new Error(`${body.file}: nothing is drawn on the BOTTOM edge, which is `
+                + 'the bite line the two rows meet on (see the asset spec table)');
+        }
+        let left = body.w, right = -1;
+        for (let x = 0; x < body.w; x++) {
+            for (let y = 0; y < body.h; y++) {
+                if (!hit(x, y)) continue;
+                left = Math.min(left, x); right = Math.max(right, x);
+            }
+        }
+        const off = Math.abs((left + right + 1) / 2 - body.w / 2);
+        if (off > 1) {
+            throw new Error(`${body.file}: the row sits ${off.toFixed(1)} px off the `
+                + 'horizontal centre, and this kind holds it by its bottom-centre');
+        }
+        console.log(`  anchor: the bite line carries paint, columns ${left}-${right}, off by ${off.toFixed(1)} px`);
+        return;
+    }
     if (body.anchor === 'hinge') {
-        // A bite: the bottom edge is the bite line and the bottom-left corner
-        // is the hinge, so BOTH must carry paint - a jaw that stops short of
+        // A fang: the bottom edge is the bite line and the bottom-left corner
+        // is the hinge, so BOTH must carry paint - a fang that stops short of
         // the bite line never closes, and one that starts right of the hinge
         // swings about empty air.
         let bite = false;
