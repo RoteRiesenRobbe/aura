@@ -38,6 +38,7 @@
       "Haystack",
       "House",
       "Mill",
+      "OakTree",
       "Palisade",
       "PineTree",
       "Rock",
@@ -442,6 +443,10 @@
     "Mill": {
       "w": 5,
       "h": 4
+    },
+    "OakTree": {
+      "w": 2,
+      "h": 2
     },
     "Palisade": {
       "w": 2.4,

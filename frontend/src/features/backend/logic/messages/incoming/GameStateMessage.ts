@@ -705,6 +705,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     // DRAWING, not a second behaviour, and none of these needs the bespoke
     // Tree class (whose only job is the resource-spot decal).
     [AuraApi.EntityType.PineTree]: Props.genericPropClasses.PineTree,
+    [AuraApi.EntityType.OakTree]: Props.genericPropClasses.OakTree,
     [AuraApi.EntityType.Bush]: Props.genericPropClasses.Bush,
     [AuraApi.EntityType.DeadTree]: Props.genericPropClasses.DeadTree,
     [AuraApi.EntityType.FallenLog]: Props.genericPropClasses.FallenLog,

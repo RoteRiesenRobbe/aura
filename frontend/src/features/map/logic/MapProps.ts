@@ -59,6 +59,7 @@ export const MAP_ICON_SIZE = 2;
 const KIND_BY_ENTITY_TYPE: Record<string, MapPropKind> = {
     RoundTree: 'tree',
     PineTree: 'tree',
+    OakTree: 'tree',
     Bush: 'tree',
     Stone: 'stone',
 };
