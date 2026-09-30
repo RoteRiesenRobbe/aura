@@ -87,5 +87,7 @@ export enum EntityType {
   Palisade = 97,
   CaveMouth = 98,
   SpiderWeb = 99,
-  RuinedHouse = 100
+  RuinedHouse = 100,
+  BlueMushroom = 101,
+  RedMushroom = 102
 }

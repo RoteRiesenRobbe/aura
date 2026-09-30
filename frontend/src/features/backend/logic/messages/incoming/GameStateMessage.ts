@@ -622,6 +622,8 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Camp]: Mobs.Camp,
     [AuraApi.EntityType.Corpse]: Corpse,
     [AuraApi.EntityType.Turnip]: Mobs.Turnip,
+    [AuraApi.EntityType.BlueMushroom]: Mobs.BlueMushroom,
+    [AuraApi.EntityType.RedMushroom]: Mobs.RedMushroom,
     [AuraApi.EntityType.House]: Props.genericPropClasses.House,
     [AuraApi.EntityType.Wolf]: Mobs.Wolf,
     [AuraApi.EntityType.Bear]: Mobs.Bear,

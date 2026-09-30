@@ -1,0 +1,21 @@
+{
+  "_comment": "A small red forest-floor mushroom, the Turnip's harvest-mob copied field for field: role structure + speed 0, no skills, no faction, no aggroRadius. The wildcard resistance blocks every damage tag except 'harvest', so only Harvest pops it. xpFactor 0.05 = the Turnip's one token. UNPLACED: the PO places it in Tiled. All values [PLACEHOLDER].",
+  "id": 107,
+  "name": "RedMushroom",
+  "type": "MOB",
+  "role": "structure",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 20,
+    "maxHealthVariance": 0.1,
+    "xpFactor": 0.05,
+    "speed": 0,
+    "resistances": { "*": 0 },
+    "gateKeys": ["harvest"]
+  },
+  "body": {
+    "radius": 0.15
+  },
+  "skills": []
+}

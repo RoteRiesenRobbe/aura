@@ -186,7 +186,8 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 			payingStructures = append(payingStructures, def.Name)
 		}
 	}
-	assert.ElementsMatch(t, []string{"Beet", "Turnip"}, payingStructures)
+	// BlueMushroom and RedMushroom: two more harvest targets at the Turnip's price.
+	assert.ElementsMatch(t, []string{"Beet", "BlueMushroom", "RedMushroom", "Turnip"}, payingStructures)
 }
 
 // A new tier added without a kill-XP weight would silently pay like a normal.

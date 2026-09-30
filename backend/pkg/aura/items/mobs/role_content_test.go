@@ -54,9 +54,12 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// SpiderWeb joins with plan-aura-drawbacks.md C2: the web a giant spider
 	// spins mid-fight, a structure for the poison pool's reason (a planted aura
 	// carrier with no AI), summoned by a mob cooldown rather than placed.
+	//
+	// BlueMushroom and RedMushroom are the Turnip twice more on the forest
+	// floor, harvest lock included - structures for the Turnip's reason.
 	assert.ElementsMatch(t, []string{
-		"Beet", "Bramble", "Camp", "Campfire", "FireTotem", "PoisonPool", "ProjectileBomb",
-		"Rockfall", "SpiderWeb", "SpikeBarricade", "Totem", "Turnip", "WarbannerTotem",
+		"Beet", "BlueMushroom", "Bramble", "Camp", "Campfire", "FireTotem", "PoisonPool", "ProjectileBomb",
+		"RedMushroom", "Rockfall", "SpiderWeb", "SpikeBarricade", "Totem", "Turnip", "WarbannerTotem",
 	}, byRole[RoleStructure], "the authored structures")
 
 	// 36 before chunk 3a, plus the 14 merged NPCs: D4 authors them as creatures
