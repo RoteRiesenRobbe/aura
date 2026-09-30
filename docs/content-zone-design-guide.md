@@ -6,38 +6,104 @@ ships today. Exact runtime positions live in the zone JSON authored in Tiled
 (`manual-tiled-editor.md`) and are never mirrored here. Numbers are
 [PLACEHOLDER] unless marked FINAL.
 
+⭐ **This doc is the source of truth for Zone 1 + Zone 2 design intent**
+(PO 2026-09-30). It replaced `content-zone1.md` / `content-zone2.md`, which are
+archived because they describe the old 144×72 world.
+
+## Where each truth lives
+
+One source per thing. When this doc and one of these disagree about the thing
+that source owns, **the source wins** and this doc is the one to fix.
+
+| Question | Source of truth |
+|---|---|
+| What Zones 1 + 2 are *for*: flow, POIs, cast, quests, rules | **this doc** |
+| Where anything actually stands | [`api/zones/world.json`](../api/zones/world.json) (authored in Tiled), plus the interiors [`tunnel.json`](../api/zones/tunnel.json) and [`barn.json`](../api/zones/barn.json). Read it with `node scripts/zone-census.mjs` (per-region census + placement warnings) |
+| The zone list, its order, and which region is which zone | [`content-world.md`](content-world.md) |
+| Mob, NPC, quest and skill definitions | `api/mobs/`, `api/quests/`, `api/skills/`; intent per entry in [`content-mobs.md`](content-mobs.md), [`content-npcs.md`](content-npcs.md) |
+| The story across zones, and the world's tone | [`content-story.md`](content-story.md), [`content-lore.md`](content-lore.md) |
+| The map as a whole: release map, camps, zones as regions (D6) | [`plan-release-map.md`](plan-release-map.md) |
+| Art, animation and audio these zones need | [`art/assets.csv`](art/assets.csv) (§5) |
+| How to author | [`manual-tiled-editor.md`](manual-tiled-editor.md), [`manual-content-authoring.md`](manual-content-authoring.md), the `add-content` skill |
+| How each primitive works (§1) | [`plan-region-primitive.md`](plan-region-primitive.md) · [`plan-world-paths.md`](plan-world-paths.md) · [`plan-zone-polygons.md`](plan-zone-polygons.md) · [`plan-region-atmosphere.md`](plan-region-atmosphere.md) · [`plan-underworld.md`](plan-underworld.md) (interiors and cave doors) · [`plan-area-effects.md`](plan-area-effects.md) (unbuilt) |
+| The OLD world (`-debug-zones`) and why it was built that way | [`archive/content-zone1.md`](archive/content-zone1.md), [`archive/content-zone2.md`](archive/content-zone2.md), [`archive/plan-content-zones12.md`](archive/plan-content-zones12.md) |
+
+⚑ **The "world bible" this guide was written from is not in the repo.**
+Wherever this doc cites it, this doc is the only written record of what it
+says.
+
 ---
 
-## 0. The conflict this doc creates, stated up front
+## 0. Where the zones are, and the conflict that is now closed
 
-The world bible this guide is written from re-labels the zones:
+### 0.1 ✅ CLOSED 2026-09-24: the zone-split conflict
 
-| | this guide | shipped today |
+When this guide was written (2026-09-16), the world bible's **Zone 2 =
+Woodland** collided with the shipped map, whose east half held the village, the
+City Gates, the war front and the Orc Warlord: the bible's **City / Suburbs**
+material, not Woodland. The guide offered three ways to insert Woodland (split
+`world.json`, re-theme its east half, or add a third file) and assumed the
+split.
+
+**None of the three was taken.** The PO rebuilt `world.json` from scratch
+(`06e5c476`, 2026-09-24) as a 540×360 map laid out in the order of
+`content-world.md`, and parked the old 144×72 world as the `-debug-zones` set
+(`api/zones/.debug/world_debug.json`). Woodland now sits between the farmland
+and the City as intended, and the front moved to **The Umberwood**, south of the
+City (`8bc9210c`). This is the release map (PO 2026-09-30,
+`plan-release-map.md` §9).
+
+### 0.2 Which regions are Zone 1 and Zone 2 (PO 2026-09-30)
+
+A zone is a set of **titled regions** in the one `world.json`, not a file.
+Crossing into a region shows its title and subtitle in a banner. ⚑ "Zone" is
+used here as the design label; to the engine a `Zone` is a zone FILE
+(`world`, `barn`, `tunnel`). Where the two could be confused, say **area** for
+the design sense (`plan-underworld.md` §2.1).
+
+| Zone | Region(s) (`title`, `subtitle`, ground profile) | Hostile levels today |
 |---|---|---|
-| Zone 1 | Farmland & Village | village + farm + forest + tunnel (`content-zone1.md`) |
-| Zone 2 | **Woodland** — deep forest, kingsroad, sealed city gate | **village + City Gates + the front** (`content-zone2.md`) |
+| **1 — Farmland & Village** | **Farmlands** ("Home and Hearth", `Fields`) · **Brackenfold Meadows** ("Plough and Bramble", `FieldsForestBlend`) · **Saltgrass Strand** ("Sea and Salt", `Coast`, a thin strip on the north edge) | 3–5 |
+| **2 — Woodland** | **Deep Woods** ("City Outskirts", `Forest`), east of the river | 4–14 |
+| City (next) | **Brunnstedt** ("Walls and Wells", `City`) | none |
 
-The *content* of today's Zone 2 (village, gate line, the war front, the Orc
-Warlord) is the bible's **City / Suburbs** material, not Woodland. So this is
-not a rename — it is an **insertion**: Woodland becomes a new zone between the
-farmland and the city, and today's eastern half of `world.json` slides one slot
-right.
+Interiors off Zone 1, each its own zone file entered through a `CaveMouth`:
+**Reinhard's barn** (`barn.json`, 10×10, the Giant Rats) and **the tunnel**
+(`tunnel.json`, 48×28, Dire Wolves, both mouths in the Farmlands). The
+underworld's two surface exits come up in the Deep Woods.
 
-Three ways to land it, cheapest first:
+⚑ The table's levels are a census of 2026-09-30, not a decision; the
+intended ranges are in §2 and §3. Re-run `node scripts/zone-census.mjs` instead
+of trusting them.
 
-1. **Split `world.json` in two, keep the east half as-is** and re-label it
-   Zone 3 (City approach). Woodland is then a *new* zone file between them.
-   ⚑ This is the only option that costs no re-authoring of shipped content.
-2. **Re-theme the east half into Woodland** — cheapest in files, most expensive
-   in work: the gate line, the front and the Warlord arena all have to go
-   somewhere, and they are the most finished content in the game.
-3. Leave `world.json` alone, build Woodland as a third file, and accept that
-   the label "Zone 2" means two different things in two docs.
+### 0.3 As built vs. this doc (census 2026-09-30)
 
-**This is a PO call, and everything below assumes (1).** It is also already
-technically free: the underworld shipped multi-zone loading, `api/zones/` is the
-zone list since 2026-09-10, and a new `.json` there loads on the next boot with
-no conf edit.
+The map is the PO's work in progress. These are the places where it and the
+intent below currently differ. They are **for the PO to judge**, not errors:
+either the map or this doc moves.
+
+**Zone 1, built:** the homestead with Eliza, Hendrik and Benjamin, the starting
+campfire, level 1–2 stags and a beet patch (§2.0) · Reinhard, the `Barn` prop
+and the barn interior · the mill with the Miller, and the Alpha Boar in the
+meadows · Town Crier, Shepherd, Farmhand · fence paths, gates, wheat and
+ploughed-field polygons · two `BrokenFence` and three `BurntCart` props, a
+`RuinedHouse` · the Memorial Stone.
+
+| Topic | This doc says | The map has |
+|---|---|---|
+| River | Along the **south**, one bridge on the road (§2.2) | Runs **north–south along the Zone 1 / Zone 2 seam**, crossed by several bridges |
+| Atmosphere | Zone 1 has essentially none (§2.3, §4 rule 3) | Farmlands carries `Fairy Dust`, the meadows `Rain` |
+| Village square | 4–6 Houses around the hub (§2.4) | Two Houses and two Cottages, split between the homestead and the farm |
+| Zone 2 content | Kingsroad, wanderer's camp, bandit camp, kobold warren, bear hollow, sealed gate, dark tunnel mouth (§3.2, §3.3) | ~75 Wolves at level 4–5, one Dire Wolf (14), one Kobold (7), the Hermit, the Ascension Stone, two underworld exits. **None of the §3.3 POIs yet** |
+| Zone 2 levels | 6–12 [PLACEHOLDER] | Almost entirely 4–5 |
+| Dark tunnel | Woodland's alternate route into the City, with the light tutorial (§3.2) | A Dire Wolf cave whose both mouths are in the Farmlands |
+| Campfires | Never beside danger (§4 rule 7) | `spawnpoint-4` in the Deep Woods has about 20 hostile Wolves within 12 u (census warning) |
+
+⚑ **"Shipped" in this doc's examples means the OLD world.** The seam ridge,
+the Bandit Horde, the tunnel's lit spider staging area and the north-pasture
+herd were built in the 144×72 map (`archive/content-zone1.md`,
+`archive/content-zone2.md`), which now loads only under `-debug-zones`. The
+patterns still hold; the placements are not in the live map.
 
 ---
 
@@ -139,8 +205,10 @@ fights back** — there is no lethality at any level. It moves at
 kill is a chase the player wins by *staying in the ring*, not by out-damaging
 anything. That is the first lesson an aura game should teach.
 
-⛔ **PLACEMENT — the one thing this arc needs and does not have.** Author the
-homestead stags at **level 1–2**. Spawn level is a per-spawn override, so this
+✅ **PLACEMENT, done in the rebuilt world** (census 2026-09-30: level 1–2 stags
+and a beet patch around the homestead, the start campfire beside it). The
+reasoning stays because it is what the next re-placement must not undo. Author
+the homestead stags at **level 1–2**. Spawn level is a per-spawn override, so this
 is a placement decision and touches no definition:
 
 | Stag spawn level | HP | L1 player's Damage aura |
@@ -187,13 +255,15 @@ has to carry it without a word of text.** The design consequence:
         N  <- open pasture, stags, nothing hostile (the "safe" lesson)
         |
    +====+================+
-   |  VILLAGE  -- road ---+---->  E: outer farms, then the TREELINE (-> Zone 2)
-   |  (campfire,          |
-   |   startingSpawn)     |
-   |      |               |
-   |   TURNIP FIELD       |   S: river + mill, boars, soft dead end
-   +======================+
+   |  HOMESTEAD (start) -> VILLAGE -- road --+-->  E: outer farms, then the TREELINE (-> Zone 2)
+   |  (startingSpawn)      (campfire)        |
+   |      |                                  |
+   |   TURNIP FIELD                          |   S: river + mill, boars, soft dead end
+   +=========================================+
 ```
+
+⚑ The skeleton is intent. The built map runs the river north–south along the
+Zone 1 / Zone 2 seam instead (§0.3).
 
 Authoring shape:
 
@@ -260,10 +330,10 @@ that is what makes Zone 2's canopy land. Two exceptions worth having:
 
 | POI | Purpose | Contents |
 |---|---|---|
-| **The homestead** *(§2.0)* | ⭐ The opening arc — where the player starts, and the whole starting kit | Eliza, Hendrik, Benjamin; 3–4 **L1–2** Stags; an 8–10 **Beet** patch. The road east leaves from here |
-| **Village square** | Hub, respawn, quest wall | Campfire (`startingSpawn`), 4–6 Houses, Reinhard, Town Crier, village healer |
+| **The homestead** *(§2.0)* | ⭐ The opening arc — where the player starts, and the whole starting kit | Eliza, Hendrik, Benjamin; the `startingSpawn` campfire; 3–4 **L1–2** Stags; an 8–10 **Beet** patch. The road east leaves from here |
+| **Village square** | Hub, respawn, quest wall | Campfire, 4–6 Houses, Reinhard, Town Crier, village healer. ⚑ This row used to put the `startingSpawn` fire here, contradicting §2.0; the homestead owns it, as the built map does |
 | **Turnip field** | The first 90 seconds | Turnip harvest-mobs, Reinhard's chore quest |
-| **Reinhard's barn** | ⭐ The zone's first *aggressive* fight | `Barn` prop + 10–12 **GiantRat**; `giant-rats-in-the-barn` on Reinhard. ⚑ His boars are prey faction and wait to be provoked — a rat comes at you |
+| **Reinhard's barn** | ⭐ The zone's first *aggressive* fight | `Barn` prop + 10–12 **GiantRat**; `giant-rats-in-the-barn` on Reinhard. ⭐ Built as an **interior**: the rats live in `barn.json`, entered through a `CaveMouth` at the barn door (the underworld's door mechanism, `plan-underworld.md`). ⚑ His boars are prey faction and wait to be provoked — a rat comes at you |
 | **North pasture** | Teaches *neutral* | Stags + boars, zero hostiles, a herder NPC |
 | **The broken fence** | Teaches *hostile* | 2–3 Wolves that got in through a `BrokenFence`; visible from the road |
 | **Burnt cart / looted wagon** | The bandit breadcrumb | Prop dressing + a corpse + a signpost. No mob. |
@@ -292,8 +362,9 @@ elite (curveLevel 6, `wildlife_prey` so the mill fight is *chosen*, paying for
 existed, and an elite whose only tell is the health bar is one the player cannot
 decide to avoid from across the field. Its POI partner, the **`Miller`**, is a
 Farmer reskin like the Shepherd and offers `the-sounder-at-the-mill`.
-⚑ **Neither the Miller nor the Alpha Boar is PLACED yet** — spawn placement is
-the PO's editor work; the mill POI takes exactly one of each.
+✅ **Both are placed** in the rebuilt world: the Miller at the mill in the
+Farmlands, the Alpha Boar across the river in Brackenfold Meadows (census
+2026-09-30).
 
 ### 2.6 Quests (from the bible, mapped to what exists)
 
@@ -498,7 +569,9 @@ What that list says about these two zones, in one paragraph each:
 
 ## 6. What this guide does *not* decide
 
-- **The zone-split question in §0** — PO call, blocks everything else.
+- ~~**The zone-split question in §0** — PO call, blocks everything else.~~
+  ✅ Closed by the rebuild (§0.1).
+- The **§0.3 divergences**: for each, whether the map or this doc moves.
 - Level ranges, mob counts, respawn timers, campfire spacing — all
   [PLACEHOLDER], tuned in front of the game.
 - Whether `darkAreas` is retired in favour of `atmospheres`
@@ -511,7 +584,17 @@ What that list says about these two zones, in one paragraph each:
 
 ## 7. Seamless adjacency — what one-file-per-zone would actually cost
 
-§0 asks whether to split the world into per-zone files. The blocking question is
+> **✅ ANSWERED 2026-09-24 by the rebuild: option (C), one `world.json` with
+> zones as titled regions.** §7.5's named areas shipped as `regions[].title` +
+> `subtitle` and the region banner (2026-09-28, `8bc9210c`), so the primitive
+> every option needed exists. §7.7 is now the list of costs the chosen option
+> actually carries, and the build-time stitch (§7.4 A, `plan-underworld.md`
+> §7.2 U6) stays the escape hatch if they bite. Interiors (barn, tunnel,
+> underworld) are separate files, per §7.8. Sizes and counts below are the
+> 2026-09-16 snapshot of the old world. The rest of the section is kept as the
+> reasoning.
+
+§0 asked whether to split the world into per-zone files. The blocking question is
 **how adjacent zone files form one contiguous walkable surface with no
 teleport**, because that is precisely what the shipped multi-zone mechanism does
 *not* do: the underworld is isolated by distance and entered through a door.

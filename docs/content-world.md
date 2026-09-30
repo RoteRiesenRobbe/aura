@@ -2,8 +2,15 @@
 
 The zone map skeleton: progression order, scope tiers, connections, and
 locations not yet owned by a zone doc. Conventions → `README.md` → Content.
-Per-zone design intent lives in `content-zone<N>.md`; runtime placement truth
-is the zone JSON authored via the editor (`manual-zone-editor.md`).
+Zone 1 + Zone 2 design intent lives in
+[`content-zone-design-guide.md`](content-zone-design-guide.md) (the old
+`content-zone1.md` / `content-zone2.md` are archived: they describe the
+144×72 world). Runtime placement truth is the zone JSON authored in Tiled
+(`manual-tiled-editor.md`): `api/zones/world.json`, read it with
+`node scripts/zone-census.mjs`.
+
+⭐ **This doc owns the zone list, its order, and which region of `world.json`
+is which zone.** The level design guide and the map both follow it.
 
 ## Zone progression
 
@@ -52,10 +59,13 @@ draws them in one oval. It touches the coast run at 4, the enchanted forest at
 10, and the City directly, so it is the loop's northern shoulder rather than a
 stop on it.
 
-**Faction status against what is built:** Banditen, Kobolde and Elementare are
-shipped content (`api/factions/`, `api/mobs/`). **Söldner, Untote, Kultisten,
-Drachlinge and Drachen have no mob, no faction and no design stub anywhere in
-the repo**, which is everything from roughly zone 11 upward.
+**Faction status against what is built:** every inhabitant group on the list
+now has shipped mobs and a faction (`api/factions/`, `api/mobs/`). Banditen,
+Kobolde and Elementare came first; Söldner (`mercenary`), Untote (`undead`),
+Kultisten (`cult`), Drachlinge + Drachen (`dragonkin`) and the fey creatures
+landed 2026-09-28 (`8bc9210c`, 18 mobs up to the level-30 Dragon) and are
+placed across the rebuilt world. ⚑ They have no design entries yet:
+`content-mobs.md` does not describe them.
 
 ## The connectivity graph
 
@@ -101,22 +111,38 @@ volcano node or a second mountain dungeon reached from the City side.
 
 ## Connections and playfield
 
-**Connections:** the **tunnel Zone 1 ↔ Zone 2** is the first dark area — the
-natural light-role tutorial (GDD §7; detail in `content-zone1.md`). The sketch
-adds a **second, much later tunnel**, City ↔ zone 13, which closes the loop.
+**Connections:** the **dark tunnel** is the first dark area and the natural
+light-role tutorial (GDD §7). The level design guide puts it in Zone 2 as the
+alternate route into the City
+([`content-zone-design-guide.md`](content-zone-design-guide.md) §3.2); ⚑ the
+live `tunnel.json` is not that yet (guide §0.3). The sketch adds a **second,
+much later tunnel**, City ↔ zone 13, which closes the loop.
 
-**The playfield (since step 6 C1):** zones 1+2 ship as ONE zone file,
-`api/zones/world.json` (144×72; west half = Z1, east half = Z2 — design
-labels, not engine objects). It is the boot START ZONE (`game.startZone: "world"`)
-and, since zone-editor C3 retired the proving grounds, the only shipped zone.
+**The playfield (since 2026-09-24):** the PO rebuilt `api/zones/world.json`
+from scratch as ONE 540×360 map, laid out in the order of the list above; it
+is the release map (`plan-release-map.md` §9). Zones are **titled regions**
+inside it (`regions[].title` / `subtitle`, announced by a banner on entry), not
+files: the D6 model, `plan-release-map.md` §8. It is the boot START ZONE
+(`game.startZone: "world"`). Interiors are separate files placed far away in
+the same coordinate space and entered through a door: `barn.json`,
+`tunnel.json`, `underworld.json` (`plan-underworld.md`). The old 144×72 world
+(zones 1+2 as west and east halves) loads only under `-debug-zones`
+(`api/zones/.debug/world_debug.json`).
 
-⚑ **Nothing in the engine supports this map yet, and that is fine at
-Prototype tier.** One zone file loads per boot into one `phy.Space`; there is
-no transition code, and multi-Space sharding is deferred
-(`archive/plan-world-zones.md` §1.2 calls a Space boundary "a hard simulation
-wall"). The measured area ceiling is ~18× today's map at constant density
-(`project_scaling_profile`), the client webpack-bundles **every** zone JSON
-eagerly (`GroundTextureManager`), and zone chat is decided but unbuilt.
+**Region ↔ zone, confirmed (PO 2026-09-30):**
+
+| Zone | Region(s) in `world.json` |
+|---|---|
+| 1 Startdorf mit Wald + Feldern | Farmlands · Brackenfold Meadows · Saltgrass Strand |
+| 2 Wald + Holzfäller | Deep Woods |
+| Stadt | Brunnstedt |
+
+⚑ **The other regions are NOT yet mapped to zone numbers here.** The world
+was placed "in the order of content-world.md" (`8bc9210c`), but a table
+inferred from region names would be a guess, and some regions (Southgate
+Sprawl, Northgate Commons, The Umberwood, Moonveil Grove) have no obvious row.
+PO to confirm before anything relies on it. `node scripts/zone-census.mjs`
+lists every region with its current level range.
 
 ## Unplaced locations (no zone yet)
 
