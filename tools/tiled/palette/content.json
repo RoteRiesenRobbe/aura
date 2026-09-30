@@ -196,11 +196,13 @@
       "Water",
       "Bog",
       "Lava",
-      "Stones"
+      "Stones",
+      "Pit"
     ],
     "AuraAtmosphereProfile": [
       "(pick a profile)",
       "Cave Air",
+      "Darkness",
       "Gloom",
       "Canopy",
       "Storm Sky",
@@ -716,10 +718,12 @@
     "Water",
     "Bog",
     "Lava",
-    "Stones"
+    "Stones",
+    "Pit"
   ],
   "AIR_PROFILE_NAMES": [
     "Cave Air",
+    "Darkness",
     "Gloom",
     "Canopy",
     "Storm Sky",

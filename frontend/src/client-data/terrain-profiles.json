@@ -22,7 +22,7 @@
 
   "Forest":             { "texture": "forest-placeholder", "scale": 0.35, "blend": 1.5, "color": "#2d6b33" },
   "Swamp":              { "texture": "pd161", "scale": 0.35, "blend": 1.5, "color": "#585044" },
-  "Coastal Cliff":      { "texture": "sand", "scale": 0.35, "blend": 0.5, "color": "#9c8f74" },
+  "Coastal Cliff":      { "texture": "pd196", "scale": 0.35, "blend": 0.5, "color": "#9c8f74" },
   "Coast":              { "texture": "sand", "scale": 0.35, "blend": 0.5, "color": "#dfc78d" },
   "Magic Forest":       { "texture": "pd184", "scale": 0.35, "blend": 1, "color": "#6a52d4" },
   "Dead Magic Forest":  { "texture": "pd153", "scale": 0.35, "blend": 1.5, "color": "#3b2d78" },
@@ -55,5 +55,6 @@
   "Lava":               { "texture": "lava-placeholder", "scale": 0.35, "blend": 0.2, "color": "#8f2d0a", "scroll": { "x": 0.05, "y": 0.02 } },
 
   "_comment_stones": "⭐ THE FIRST OVERLAY MATERIAL (plan-ground-noise.md W2): meant to be named by another profile's `overlay` (none does yet) rather than worn by a shape, though a shape may wear it like any other profile. Its tile is tools/make-cellular-tiles.mjs's `stones`, the road's pebbles turned up until they are the material (≈ 45 % stones), so it is busier than a ground tile may be: a patch shows a piece of it and stops, where a surface repeats it nine times across a screen. `color` is the tile's measured mean (the generator asserts it, D14). All values [PLACEHOLDER], the tile is a PLACEHOLDER.",
-  "Stones":             { "texture": "stones-placeholder", "scale": 0.35, "blend": 0.5, "color": "#60574b" }
+  "Stones":             { "texture": "stones-placeholder", "scale": 0.35, "blend": 0.5, "color": "#60574b" },
+  "Pit":             { "texture": null, "blend": 0.5, "color": "#000000" }
 }

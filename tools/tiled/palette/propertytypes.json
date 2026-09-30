@@ -242,7 +242,8 @@
         "Water",
         "Bog",
         "Lava",
-        "Stones"
+        "Stones",
+        "Pit"
       ],
       "valuesAsFlags": false
     },
@@ -254,6 +255,7 @@
       "values": [
         "(pick a profile)",
         "Cave Air",
+        "Darkness",
         "Gloom",
         "Canopy",
         "Storm Sky",
