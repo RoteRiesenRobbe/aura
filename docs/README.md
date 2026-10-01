@@ -5,6 +5,12 @@ Naming convention: core docs unprefixed; `plan-` = execution plan/record per wor
 `content-` = game-content catalogs + per-zone design intent (see Content section for the
 conventions).
 
+**Base language: English** (PO 2026-10-01). Docs, content JSON (including `_comment`
+notes, names and dialogue), code comments and commit messages are written in English.
+German or any other language appears only in localization work (`plan-localization.md`
+and its string tables) and in test fixtures that exist to exercise non-ASCII input. A
+quote from the PO in another language is translated in place and marked "(translated)".
+
 **`docs/` holds live work; `docs/archive/` holds finished work.** A doc moves to
 `archive/` when its work has shipped (or was abandoned/superseded) and won't be resumed —
 it stays readable and is still the rationale record, it just stops competing for attention.

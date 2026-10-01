@@ -26,33 +26,34 @@ is which zone.** The level design guide and the map both follow it.
 > PO photo of the hand-drawn zone proposal. It supersedes the 2026-07-09
 > `zones.png` capture, which was never transcribed and is **no longer in the
 > repo**: the skeleton above is all that survived of it. Do not let this one
-> go the same way. The zone names are kept in the authored German with an
-> English gloss.
+> go the same way. The sketch was in German; the zone names below are its
+> English translations (translated 2026-10-01, the repo's base language is
+> English, see `README.md`, "Base language").
 
 ## The zone list
 
-| # | Zone (as authored) | Gloss | Inhabitants |
+| # | Zone | Notes | Inhabitants |
 |---|---|---|---|
-| 1 | Startdorf mit Wald + Feldern | Starting village, forest and fields | Tiere |
-| 2 | Wald + Holzfäller | Forest and a logging camp | Tiere + Kobolde / small fantasy creatures |
-| 3 | Steilküste | Cliff coast | Tiere + Banditen |
-| 4 | Küstengebiet + Fischer | Coastal region, fishing folk | Tiere + Banditen |
-| 5 + 6 | Gebirgskamm · Felder + Suburbs | Mountain ridge (carries a **mini dungeon**), fields and suburbs. **One big zone**, not two. | Tiere + Banditen · Tiere + Söldner |
-| — | **Stadt** | **The City**, the hub | *(hub, see below)* |
-| 7 | Sumpf | Swamp | Fantasy-Tiere |
-| 8 / 9 | Brachland / Wüste | Wasteland and desert | Wüstenfantasy |
-| 10 | Verwunschener Wald | Enchanted forest | Fantasy-Tiere |
-| 11 | Verfallene Dörfer | Ruined villages | Söldner |
-| 12 | Ödland + Gebirgsausläufer | Badlands and mountain foothills | Söldner + Fantasy |
-| 13 | Verfallene Festung | Ruined fortress | Untote + Fantasy |
-| 14 | Toter Verwunschener Wald | Dead enchanted forest | Untote + corrupted Fantasy-Tiere |
-| 15 | Aschefelder | Ash fields | Untote + Elementare |
-| 16 / 17 / 18 / 19 | Aschefelder + Kultistensiedlungen | Ash fields and cultist settlements | Untote, Kultisten, Elementare, Drachlinge |
-| 20+ | Vulkan + Bergdungeon | Volcano and mountain dungeon | Alles + Drachen |
+| 1 | Starting village, forest and fields | | animals |
+| 2 | Forest and a logging camp | | animals + kobolds / small fantasy creatures |
+| 3 | Cliff coast | | animals + bandits |
+| 4 | Coastal region, fishing folk | | animals + bandits |
+| 5 + 6 | Mountain ridge · fields + suburbs | The ridge carries a **mini dungeon**. **One big zone**, not two. | animals + bandits · animals + mercenaries |
+| — | **The City** | The hub | *(hub, see below)* |
+| 7 | Swamp | | fantasy creatures |
+| 8 / 9 | Wasteland / desert | | desert fantasy |
+| 10 | Enchanted forest | | fantasy creatures |
+| 11 | Ruined villages | | mercenaries |
+| 12 | Badlands + mountain foothills | | mercenaries + fantasy |
+| 13 | Ruined fortress | | undead + fantasy |
+| 14 | Dead enchanted forest | | undead + corrupted fantasy creatures |
+| 15 | Ash fields | | undead + elementals |
+| 16 / 17 / 18 / 19 | Ash fields + cultist settlements | | undead, cultists, elementals, dragonkin |
+| 20+ | Volcano + mountain dungeon | | everything + dragons |
 | 21 | *(unnamed on the sketch)* | A **small high-level zone** hanging off 13, past the fortress. | *(unassigned)* |
 
 **Zones 3, 4 and 5 share one inhabitant entry** in the source (ditto marks
-under zone 3), so the coast run is one continuous Tiere + Banditen band.
+under zone 3), so the coast run is one continuous animals + bandits band.
 
 **5 and 6 are a single large zone** (PO 2026-08-10), which is why the sketch
 draws them in one oval. It touches the coast run at 4, the enchanted forest at
@@ -60,9 +61,9 @@ draws them in one oval. It touches the coast run at 4, the enchanted forest at
 stop on it.
 
 **Faction status against what is built:** every inhabitant group on the list
-now has shipped mobs and a faction (`api/factions/`, `api/mobs/`). Banditen,
-Kobolde and Elementare came first; Söldner (`mercenary`), Untote (`undead`),
-Kultisten (`cult`), Drachlinge + Drachen (`dragonkin`) and the fey creatures
+now has shipped mobs and a faction (`api/factions/`, `api/mobs/`). Bandits,
+kobolds and elementals came first; mercenaries (`mercenary`), undead (`undead`),
+cultists (`cult`), dragonkin + dragons (`dragonkin`) and the fey creatures
 landed 2026-09-28 (`8bc9210c`, 18 mobs up to the level-30 Dragon) and are
 placed across the rebuilt world. ⚑ They have no design entries yet:
 `content-mobs.md` does not describe them.
@@ -74,25 +75,25 @@ with a southern dead-end arm (the swamp and desert) and a late-game tail.
 
 ```mermaid
 graph LR
-  Z1[1 Startdorf] --- Z2[2 Wald]
-  Z2 --- Z3[3 Steilküste]
-  Z3 --- Z4[4 Küstengebiet]
-  Z4 --- Z56[5 + 6 Gebirgskamm<br/>Felder + Suburbs<br/>mini dungeon]
-  Z56 --- Z10[10 Verwunschener Wald]
-  Z10 --- Z11[11 Verfallene Dörfer]
-  Z11 --- Z12[12 Ödland]
-  Z12 --- Z13[13 Verfallene Festung]
-  Z2 --- CITY((Stadt))
+  Z1[1 Starting village] --- Z2[2 Forest]
+  Z2 --- Z3[3 Cliff coast]
+  Z3 --- Z4[4 Coastal region]
+  Z4 --- Z56[5 + 6 Mountain ridge<br/>fields + suburbs<br/>mini dungeon]
+  Z56 --- Z10[10 Enchanted forest]
+  Z10 --- Z11[11 Ruined villages]
+  Z11 --- Z12[12 Badlands]
+  Z12 --- Z13[13 Ruined fortress]
+  Z2 --- CITY((The City))
   Z56 --- CITY
   CITY --- TUN{{Tunnel}}
   TUN --- Z13
   Z13 --- Z21[21 small<br/>high-level zone]
-  Z13 --- Z14[14 Toter Wald]
-  Z14 --- Z15[15 Aschefelder]
-  Z15 --- END[20+ Vulkan<br/>Bergdungeon]
-  END --- Z16[16 · 17 · 18 · 19<br/>Kultistensiedlungen]
-  Z2 --- Z7[7 Sumpf]
-  Z7 --- Z89[8 · 9 Brachland / Wüste]
+  Z13 --- Z14[14 Dead forest]
+  Z14 --- Z15[15 Ash fields]
+  Z15 --- END[20+ Volcano<br/>mountain dungeon]
+  END --- Z16[16 · 17 · 18 · 19<br/>Cultist settlements]
+  Z2 --- Z7[7 Swamp]
+  Z7 --- Z89[8 · 9 Wasteland / desert]
 ```
 
 Consequences the flat list does not show: the **City has three entrances**
@@ -105,8 +106,8 @@ levels-per-zone arithmetic off that is [PLACEHOLDER] thinking, not a decision.
 **21** is a small high-level pocket off 13. Both are optional side content,
 not progression gates.
 
-⚠ **One unconfirmed edge, needs a PO pass:** where the separate "20+ Berg
-Dungeon" box below the City attaches. It may be the same place as the 20+
+⚠ **One unconfirmed edge, needs a PO pass:** where the separate "20+ mountain
+dungeon" box below the City attaches. It may be the same place as the 20+
 volcano node or a second mountain dungeon reached from the City side.
 
 ## Connections and playfield
@@ -133,9 +134,9 @@ the same coordinate space and entered through a door: `barn.json`,
 
 | Zone | Region(s) in `world.json` |
 |---|---|
-| 1 Startdorf mit Wald + Feldern | Farmlands · Brackenfold Meadows · Saltgrass Strand |
-| 2 Wald + Holzfäller | Deep Woods |
-| Stadt | Brunnstedt |
+| 1 Starting village, forest and fields | Farmlands · Brackenfold Meadows · Saltgrass Strand |
+| 2 Forest and a logging camp | Deep Woods |
+| The City | Brunnstedt |
 
 ⚑ **The other regions are NOT yet mapped to zone numbers here.** The world
 was placed "in the order of content-world.md" (`8bc9210c`), but a table

@@ -52,8 +52,8 @@ export class Develop implements IDevelop {
         elementColor: 0xFF0000,
         linewidth: 2,
         /**
-         * Aus wievielen Werten wird maximal der Durchschnitt und die
-         * mittlere absolute Abweichung gebildet
+         * The maximum number of samples the average and the mean
+         * absolute deviation are computed over
          */
         measurementSampleRate: 20,
     };

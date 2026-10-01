@@ -1,5 +1,5 @@
 {
-  "_comment": "Untote: the fortress, the dead enchanted forest and the ash fields (content-world.md zones 13-19). Hostile to players only, so they never fight other mobs off-screen. [PLACEHOLDER]",
+  "_comment": "Undead: the fortress, the dead enchanted forest and the ash fields (content-world.md zones 13-19). Hostile to players only, so they never fight other mobs off-screen. [PLACEHOLDER]",
   "name": "undead",
   "displayName": "Undead",
   "hostileTo": [

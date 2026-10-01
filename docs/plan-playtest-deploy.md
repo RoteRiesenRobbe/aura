@@ -48,7 +48,7 @@ part of this.
 
 ### B. PO-only steps (nobody else can do these)
 
-- [x] Create the VPS: **Hetzner CX23, Ubuntu 26.04, Nürnberg,
+- [x] Create the VPS: **Hetzner CX23, Ubuntu 26.04, Nuremberg,
   `159.69.148.73`** (2026-07-21). No cloud firewall configured (nothing else
   runs on the box; revisit if it ever hosts more).
 - [x] DuckDNS: **`aura-game.duckdns.org`** → VPS IP.
@@ -75,7 +75,7 @@ part of this.
   spawned at the starting campfire, HUD rendered, zero page errors
   (scratchpad `live-smoke.mjs`).
 - [x] PO played live from a normal network, 2026-07-21 — blanket-verified
-  ("hat alles geklappt, wir können spielen"): join, play, cheats via token
+  ("everything worked, we can play", translated): join, play, cheats via token
   link. Live boot counts: 82 skills/14 factions/50 mobs/10 recipes/815 props/
   399 spawns/5 campfires/14 npcs, 0 panics (PO map edits since the triage-pass
   banner account for the prop/spawn delta).
@@ -97,7 +97,7 @@ part of this.
 
 ## Ops & security posture
 
-Audited 2026-07-22 (PO question: "ist der Server sicher?"). Framing: security
+Audited 2026-07-22 (PO question: "is the server secure?", translated). Framing: security
 scales with what there is to lose, and today that is one restartable game
 process with no data behind it. Recorded here so the *next* posture step isn't
 rediscovered from scratch.
@@ -277,7 +277,7 @@ and stay acceptable only while the URL is unlisted:
 - **DEPLOYED + LIVE + PO-VERIFIED 2026-07-21, `a7a2267d`:** `https://aura-game.duckdns.org/`
   (Hetzner CX23 `159.69.148.73`, systemd `aurad`, LE cert, `-content ./api`).
   §A–§D complete: machine checks green incl. live Playwright join smoke, PO
-  played live ("hat alles geklappt, wir können spielen").
+  played live ("everything worked, we can play", translated).
 - **Ops quick-ref:** full update `devops/deploy.sh root@159.69.148.73`;
   map/content only `devops/deploy.sh root@159.69.148.73 --content-only`;
   logs `ssh root@159.69.148.73 journalctl -u aurad -f`. ⚑ **Restarts no longer

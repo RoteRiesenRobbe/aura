@@ -127,11 +127,11 @@ export function getFormattedTime() {
     if (timeOfDay < sunriseStart) {
         result += ' night';
     } else if (timeOfDay < sunriseEnd) {
-        result += ' dawn'; // Morgendämmerung
+        result += ' dawn';
     } else if (timeOfDay < sunsetStart) {
         result += ' day';
     } else if (timeOfDay < sunsetEnd) {
-        result += ' dusk'; // Abendämmerung
+        result += ' dusk';
     } else {
         result += ' night';
     }

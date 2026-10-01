@@ -523,7 +523,8 @@ the numbers got there, and **where the skill is obtained** ("cheat-only",
 and recipe files and goes stale here (the rewrite pass found two such claims
 already wrong). That record belongs in the plan doc's ledger; a
 content file is not where a session writes its memoirs. Keep it under ~400
-characters. `_comment` is also not `description`: that field is the
+characters, and write it in English like every other field (the repo's base
+language, `README.md` "Base language"; German belongs to localization only). `_comment` is also not `description`: that field is the
 player-facing tooltip line, this one is for authors.
 
 The loader ignores the field; nothing reads it but people.

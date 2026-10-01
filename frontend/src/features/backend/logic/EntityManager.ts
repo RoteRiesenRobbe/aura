@@ -67,7 +67,7 @@ export class EntityManager {
     addOrUpdate(entity) {
         let gameObject = this.getObject(entity.id);
         if (gameObject) {
-            // FIXME Der Server sollte mir nur Entities liefern, die sich auch geändert haben
+            // FIXME The server should only send entities that actually changed
             if (gameObject.isMovable) {
                 gameObject.setPosition(entity.position.x, entity.position.y);
                 if (!gameObject.rotateOnPositioning) {

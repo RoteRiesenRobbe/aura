@@ -678,7 +678,7 @@ export class Camp extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Camp, file('camp'), maxSize('camp'));
 
-// The stationary harvest-mob (content pass C1): stands in the Rübenfeld field,
+// The stationary harvest-mob (content pass C1): stands in the turnip field,
 // never moves or fights back — only Harvest damages it (wildcard resist).
 // No hit sound — the base Damaged flash suffices for the placeholder art.
 export class Turnip extends Mob {

@@ -1,5 +1,5 @@
 {
-  "_comment": "Söldner: hired swords of the suburbs, the ruined villages and the badlands (content-world.md zones 5+6, 11, 12). Hostile to players only, so they never fight other mobs off-screen. [PLACEHOLDER]",
+  "_comment": "Mercenaries: hired swords of the suburbs, the ruined villages and the badlands (content-world.md zones 5+6, 11, 12). Hostile to players only, so they never fight other mobs off-screen. [PLACEHOLDER]",
   "name": "mercenary",
   "displayName": "Mercenaries",
   "hostileTo": [

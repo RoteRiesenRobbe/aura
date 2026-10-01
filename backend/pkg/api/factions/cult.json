@@ -1,5 +1,5 @@
 {
-  "_comment": "Kultisten: the ash-field settlements (content-world.md zones 16-19). Hostile to players only, so they never fight other mobs off-screen. [PLACEHOLDER]",
+  "_comment": "Cultists: the ash-field settlements (content-world.md zones 16-19). Hostile to players only, so they never fight other mobs off-screen. [PLACEHOLDER]",
   "name": "cult",
   "displayName": "Cultists",
   "hostileTo": [

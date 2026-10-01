@@ -926,7 +926,7 @@ Far-future; do not build until the no-instances stance is explicitly revisited.
   world state stored without writing every frame (TDD §4.3 open question)?
 - Access-control model (open / friends / private)?
 
-## 12. Völker / races — different starts
+## 12. Races — different starts
 
 **WoW/Gothic fit: low** *(ranked 2026-07-29, PO-confirmed)*
 Selectable races with different **start locations / spawn points**, a lore hook,

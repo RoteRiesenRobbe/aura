@@ -16,7 +16,7 @@ zone-editor C3, 2026-08-16.
 Loose grouping for the eventual full roster (from the 2026-07-09 capture,
 `mobs.jpg`; all undecided):
 
-- **Tiere (animals)** — wolves, boars, … (zone 1 tier)
+- **Animals** — wolves, boars, … (zone 1 tier)
 - **Small Fantasy** — kobolds, … (zone 1–2 tier)
 - **Humanoid** — bandits, guards, mercenaries, … (faction logic → `content-lore.md`)
 - **Fantasy**
