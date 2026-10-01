@@ -4,7 +4,7 @@
 > WORD IS RULED (*world effect*, D19) and the first build is scoped (D23).
 > ⛔ BUILDING IS NOT APPROVED** (PO 2026-09-28: *"Not yet"*). Two things are
 > missing, both named by the PO: **the first content** (Q11), and **the buff
-> tray, which moves OUT of this plan into a new one** (D30, not yet written).
+> tray, which moves OUT of this plan into a new one** (D30; written AND approved 2026-10-01 as `plan-buff-tray.md`).
 >
 > ⚑ **The second session changed the shape, not only the scope**: three picks
 > at the stone instead of two (D20), the *cause* is retired (D21), and the HUD
