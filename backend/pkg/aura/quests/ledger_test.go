@@ -695,6 +695,28 @@ func TestObjectiveLines_TalkToCheckmark(t *testing.T) {
 		l.Snapshot()[0].Objectives, "one done, one open — the stage holds and says which is which")
 }
 
+// An objective-level tracker rewords ONE derived talk_to line and keeps its ✓,
+// where a stage tracker would replace every line and lose the ticks: the shape
+// the-strays needs, whose proper names read wrong as "Talk to the Baabara".
+func TestObjectiveLines_ObjectiveTrackerKeepsCheckmark(t *testing.T) {
+	crier := mobs.MobID(62)
+	l := testLedger(t, &QuestDefinition{
+		ID: "meet", Title: "Meet",
+		Stages: []*Stage{
+			{ID: "go", Journal: "Go.", Objectives: []Objective{
+				{Kind: ObjectiveTalkTo, Target: farmer, TargetName: "Farmer", Count: 1, Tracker: "Find Baabara"},
+				{Kind: ObjectiveTalkTo, Target: crier, TargetName: "Town Crier", Count: 1},
+			}, Next: "back"},
+			{ID: "back", Journal: "Back."},
+		},
+	})
+	require.NoError(t, l.Accept("meet"))
+	assert.Equal(t, []string{"Find Baabara", "Talk to the Town Crier"}, l.Snapshot()[0].Objectives)
+
+	l.NoteTalkedTo(farmer)
+	assert.Equal(t, []string{"Find Baabara ✓", "Talk to the Town Crier"}, l.Snapshot()[0].Objectives)
+}
+
 // The authored override (Q2 ruling: {n}/{m} placeholders): tracker wins over
 // the derived lines, and the placeholders keep the count live — substituted
 // from the stage's first countable objective.

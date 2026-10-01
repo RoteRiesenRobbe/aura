@@ -36,11 +36,17 @@ const (
 // resolved at LOAD through the one display-name path (§35 C3:
 // skills.DeriveDisplayName, the same rule /mobs serves) so the Q2 objective
 // line never touches the mob registry at runtime.
+//
+// Tracker optionally rewords a talk_to objective's derived "Talk to the X"
+// line while keeping its ✓ — the per-objective counterpart of Stage.Tracker,
+// which replaces every line and loses the ticks. talk_to only: a kill/harvest
+// line carries a live count that static text would hide.
 type Objective struct {
 	Kind       ObjectiveKind
 	Target     mobs.MobID
 	TargetName string
 	Count      uint64
+	Tracker    string
 }
 
 // Stage is one node of the quest graph. Either it carries Objectives and a
@@ -190,6 +196,12 @@ func validateQuest(q *QuestDefinition) error {
 			if o.Count == 0 {
 				return fmt.Errorf("quest %q stage %q: objective with count 0", q.ID, s.ID)
 			}
+			if o.Tracker != "" && o.Kind != ObjectiveTalkTo {
+				return fmt.Errorf("quest %q stage %q: an objective tracker rewords a talk_to line only", q.ID, s.ID)
+			}
+			if o.Tracker != "" && s.Tracker != "" {
+				return fmt.Errorf("quest %q stage %q: an objective tracker under a stage tracker is never shown", q.ID, s.ID)
+			}
 		}
 		// Q2: {n}/{m} substitute from a countable (kill/harvest) objective; on
 		// a stage without one they would render literally forever.
@@ -252,6 +264,7 @@ type jsonObjective struct {
 	Species string `json:"species"` // kill / harvest
 	NPC     string `json:"npc"`     // talk_to
 	Count   uint64 `json:"count"`   // absent → 1
+	Tracker string `json:"tracker"` // talk_to only
 }
 
 type jsonStage struct {
@@ -371,5 +384,5 @@ func mapObjective(jo jsonObjective, mr speciesResolver) (Objective, error) {
 	if count == 0 {
 		count = 1
 	}
-	return Objective{Kind: kind, Target: def.ID, TargetName: displayName, Count: count}, nil
+	return Objective{Kind: kind, Target: def.ID, TargetName: displayName, Count: count, Tracker: jo.Tracker}, nil
 }

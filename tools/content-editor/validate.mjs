@@ -149,6 +149,8 @@ export function validateQuest(quest, idx) {
       } else if (o.npc) {
         err(`${q} stage "${s.id}": ${o.kind} names a species, not an npc`);
       }
+      if (o.tracker && o.kind !== 'talk_to') err(`${q} stage "${s.id}": an objective tracker rewords a talk_to line only`);
+      if (o.tracker && s.tracker) err(`${q} stage "${s.id}": an objective tracker under a stage tracker is never shown`);
       if (!name) err(`${q} stage "${s.id}": objective "${o.kind}" without a target`);
       else if (!idx.mobNames.has(name)) err(`${q} stage "${s.id}": objective "${o.kind}" names unknown target "${name}"`);
     }

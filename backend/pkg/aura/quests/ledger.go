@@ -547,7 +547,8 @@ func (l *Ledger) recheck() {
 // objectiveLines composes the current stage's journal lines (Q2/R2): the
 // server sends the finished sentence, the client renders it verbatim. An
 // authored Tracker wins outright, with {n}/{m} substituted live; otherwise one
-// line per objective is derived from its load-resolved display name. Counts
+// line per objective is derived from its load-resolved display name (a talk_to
+// objective's own Tracker rewords its line and keeps the ✓). Counts
 // are since stage entry (N4) and capped at the threshold — the counters keep
 // climbing while a sibling objective holds the stage, the display must not.
 //
@@ -571,6 +572,9 @@ func (l *Ledger) objectiveLines(p *Progress, s *Stage) []string {
 		switch o.Kind {
 		case ObjectiveTalkTo:
 			line := "Talk to the " + o.TargetName
+			if o.Tracker != "" {
+				line = o.Tracker
+			}
 			if l.talkedSince(p, o.Target) {
 				line += " ✓"
 			}

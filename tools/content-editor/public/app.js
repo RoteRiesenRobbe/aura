@@ -1299,6 +1299,15 @@ function objectiveRow(stage, o, oi, onChange, onStructuralChange) {
     onChange();
   }, (v) => v || targetLabel, 'col-flex'));
   wrap.appendChild(numberInput(o.count || 1, (v) => { o.count = v; onChange(); }, 'count', 'col-fixed-sm'));
+  // A talk_to line may be reworded per objective and keep its ✓ ("Find Baabara").
+  if (o.kind === 'talk_to') {
+    wrap.appendChild(el('input', {
+      type: 'text', class: 'col-flex', value: o.tracker || '', placeholder: 'tracker line (optional)',
+      oninput: (e) => { if (e.target.value) o.tracker = e.target.value; else delete o.tracker; onChange(); },
+    }));
+  } else {
+    delete o.tracker;
+  }
   wrap.appendChild(el('button', { class: 'danger', onclick: () => { stage.objectives.splice(oi, 1); onStructuralChange(); } }, '×'));
   return wrap;
 }

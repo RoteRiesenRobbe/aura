@@ -115,6 +115,18 @@ func TestLoad_TrackerRoundTrips(t *testing.T) {
 	assert.Equal(t, "Report back to nobody in particular.", q.Stages[1].Tracker)
 }
 
+// An objective tracker rides a talk_to objective only: it rewords the derived
+// "Talk to the X" line, which is the one line a proper name breaks.
+func TestLoad_ObjectiveTrackerRoundTrips(t *testing.T) {
+	r := loadOne(t, `{"id": "q", "title": "Q", "stages": [
+		{"id": "s", "journal": "j", "objectives": [{"kind": "talk_to", "npc": "TownCrier", "tracker": "Find the crier"}], "next": "t"},
+		{"id": "t", "journal": "done"}
+	]}`)
+	q, err := r.Get("q")
+	require.NoError(t, err)
+	assert.Equal(t, "Find the crier", q.Stages[0].Objectives[0].Tracker)
+}
+
 func loadErr(t *testing.T, quest string) error {
 	t.Helper()
 	_, err := RegistryFromFS(fstest.MapFS{"q.json": &fstest.MapFile{Data: []byte(quest)}}, testMobs())
@@ -165,6 +177,16 @@ func TestLoad_Rejections(t *testing.T) {
 			{"id": "s", "journal": "j", "tracker": "Kill {n} of {m} things"}]}`,
 		"count placeholder on a talk_to-only stage": `{"id": "q", "title": "Q", "stages": [
 			{"id": "s", "journal": "j", "tracker": "{n}/{m} met", "objectives": [{"kind": "talk_to", "npc": "Farmer"}], "next": "t"},
+			{"id": "t", "journal": "done"}]}`,
+		// An objective tracker rewords a talk_to line only; a kill/harvest
+		// line carries a live count the static text would hide.
+		"objective tracker on a kill": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "objectives": [{"kind": "kill", "species": "Wolf", "tracker": "Wolves"}], "next": "t"},
+			{"id": "t", "journal": "done"}]}`,
+		// A stage tracker wins outright, so an objective tracker under it
+		// would be dead text.
+		"objective tracker under a stage tracker": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "tracker": "Go", "objectives": [{"kind": "talk_to", "npc": "Farmer", "tracker": "Find him"}], "next": "t"},
 			{"id": "t", "journal": "done"}]}`,
 	}
 	for name, quest := range cases {
