@@ -187,7 +187,8 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 		}
 	}
 	// BlueMushroom and RedMushroom: two more harvest targets at the Turnip's price.
-	assert.ElementsMatch(t, []string{"Beet", "BlueMushroom", "RedMushroom", "Turnip"}, payingStructures)
+	// Seaweed: the beach's, for the Miller's ring.
+	assert.ElementsMatch(t, []string{"Beet", "BlueMushroom", "RedMushroom", "Seaweed", "Turnip"}, payingStructures)
 }
 
 // A new tier added without a kill-XP weight would silently pay like a normal.

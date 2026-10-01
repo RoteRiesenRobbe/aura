@@ -1307,6 +1307,15 @@ function objectiveRow(stage, o, oi, onChange, onStructuralChange) {
     }));
   } else {
     delete o.tracker;
+    // A find: each credit rolls `chance`, the `guaranteedAt`-th always finds.
+    wrap.appendChild(el('input', {
+      type: 'number', class: 'col-fixed-sm', step: '0.01', min: '0', max: '1', value: o.chance ?? '', placeholder: 'chance', title: 'Chance per credit (0-1); blank = an ordinary count',
+      oninput: (e) => { const v = parseFloat(e.target.value); if (v > 0) o.chance = v; else { delete o.chance; delete o.guaranteedAt; } onChange(); },
+    }));
+    wrap.appendChild(el('input', {
+      type: 'number', class: 'col-fixed-sm', step: '1', min: '0', value: o.guaranteedAt ?? '', placeholder: 'sure at', title: 'With a chance: the Nth credit since stage entry always finds (hidden)',
+      oninput: (e) => { const v = parseInt(e.target.value, 10); if (v > 0) o.guaranteedAt = v; else delete o.guaranteedAt; onChange(); },
+    }));
   }
   wrap.appendChild(el('button', { class: 'danger', onclick: () => { stage.objectives.splice(oi, 1); onStructuralChange(); } }, '×'));
   return wrap;

@@ -238,7 +238,12 @@ enum EntityType : ushort {
   // The third tree silhouette, after RoundTree (a circle) and PineTree (a
   // star): a lumpy cloud of domed clumps. Generic prop like PineTree, and the
   // collider is the TRUNK at the sprite centre, not the lopsided crown.
-  OakTree = 103
+  OakTree = 103,
+
+  // The beach's harvest-mob, the Turnip's pattern: heaps of washed-up kelp
+  // only Harvest can pop, along the tide line of Saltgrass Strand, where the
+  // Miller lost his ring.
+  Seaweed = 104
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

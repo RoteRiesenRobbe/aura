@@ -120,6 +120,14 @@ export const GraphicsConfig = {
             maxSize: <number> 26,
         },
 
+        // The beach's harvest-mob: a heap of washed-up kelp, a little wider
+        // than a Turnip.
+        seaweed: {
+            file: require('../features/game-objects/assets/mobs/seaweed.svg'),
+            minSize: <number> 26,
+            maxSize: <number> 34,
+        },
+
         // Z1 wildlife + brambles (content pass C2).
         wolf: {
             file: require('../features/game-objects/assets/mobs/wolf.png'),

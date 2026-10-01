@@ -41,12 +41,21 @@ const (
 // line while keeping its ✓ — the per-objective counterpart of Stage.Tracker,
 // which replaces every line and loses the ticks. talk_to only: a kill/harvest
 // line carries a live count that static text would hide.
+//
+// Chance > 0 makes a kill/harvest objective a FIND: each credit of the target
+// while the stage is current rolls it, and a hit advances the stage at once.
+// GuaranteedAt > 0 is the hidden pity: the Nth credit since stage entry
+// always finds. A chance objective stands alone in its stage (a hit IS the
+// stage moving, so no "found" state exists to persist) behind an authored
+// stage tracker (the count is hidden, so nothing derives a line).
 type Objective struct {
-	Kind       ObjectiveKind
-	Target     mobs.MobID
-	TargetName string
-	Count      uint64
-	Tracker    string
+	Kind         ObjectiveKind
+	Target       mobs.MobID
+	TargetName   string
+	Count        uint64
+	Tracker      string
+	Chance       float64
+	GuaranteedAt uint64
 }
 
 // Stage is one node of the quest graph. Either it carries Objectives and a
@@ -202,6 +211,9 @@ func validateQuest(q *QuestDefinition) error {
 			if o.Tracker != "" && s.Tracker != "" {
 				return fmt.Errorf("quest %q stage %q: an objective tracker under a stage tracker is never shown", q.ID, s.ID)
 			}
+			if err := validateChance(o, s); err != nil {
+				return fmt.Errorf("quest %q stage %q: %w", q.ID, s.ID, err)
+			}
 		}
 		// Q2: {n}/{m} substitute from a countable (kill/harvest) objective; on
 		// a stage without one they would render literally forever.
@@ -225,11 +237,35 @@ func validateQuest(q *QuestDefinition) error {
 	return validateAcyclicObjectiveChains(q)
 }
 
+// validateChance enforces the chance objective's shape (see Objective).
+func validateChance(o Objective, s *Stage) error {
+	if o.Chance == 0 {
+		if o.GuaranteedAt != 0 {
+			return fmt.Errorf("guaranteedAt needs a chance")
+		}
+		return nil
+	}
+	switch {
+	case o.Chance < 0 || o.Chance > 1:
+		return fmt.Errorf("chance %v is not in (0, 1]", o.Chance)
+	case o.Kind == ObjectiveTalkTo:
+		return fmt.Errorf("a chance rides a kill/harvest objective, not talk_to")
+	case len(s.Objectives) != 1:
+		return fmt.Errorf("a chance objective must be its stage's only objective")
+	case o.Count != 1:
+		return fmt.Errorf("a chance objective takes no count")
+	case s.Tracker == "":
+		return fmt.Errorf("a chance objective's stage must author a tracker (its count is hidden)")
+	}
+	return nil
+}
+
 // firstCountable is the objective whose counters {n}/{m} substitution reads:
-// the first kill/harvest one (talk_to has no meaningful count to show).
+// the first kill/harvest one (talk_to has no meaningful count to show, and a
+// chance objective's count is hidden).
 func firstCountable(s *Stage) *Objective {
 	for i := range s.Objectives {
-		if s.Objectives[i].Kind != ObjectiveTalkTo {
+		if s.Objectives[i].Kind != ObjectiveTalkTo && s.Objectives[i].Chance == 0 {
 			return &s.Objectives[i]
 		}
 	}
@@ -265,6 +301,9 @@ type jsonObjective struct {
 	NPC     string `json:"npc"`     // talk_to
 	Count   uint64 `json:"count"`   // absent → 1
 	Tracker string `json:"tracker"` // talk_to only
+
+	Chance       float64 `json:"chance"`       // kill/harvest: a find rolled per credit
+	GuaranteedAt uint64  `json:"guaranteedAt"` // with chance: the Nth credit always finds
 }
 
 type jsonStage struct {
@@ -384,5 +423,6 @@ func mapObjective(jo jsonObjective, mr speciesResolver) (Objective, error) {
 	if count == 0 {
 		count = 1
 	}
-	return Objective{Kind: kind, Target: def.ID, TargetName: displayName, Count: count, Tracker: jo.Tracker}, nil
+	return Objective{Kind: kind, Target: def.ID, TargetName: displayName, Count: count, Tracker: jo.Tracker,
+		Chance: jo.Chance, GuaranteedAt: jo.GuaranteedAt}, nil
 }

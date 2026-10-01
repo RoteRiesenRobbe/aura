@@ -90,5 +90,6 @@ export enum EntityType {
   RuinedHouse = 100,
   BlueMushroom = 101,
   RedMushroom = 102,
-  OakTree = 103
+  OakTree = 103,
+  Seaweed = 104
 }

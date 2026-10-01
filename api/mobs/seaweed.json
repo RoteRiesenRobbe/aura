@@ -1,0 +1,25 @@
+{
+  "_comment": "The beach's harvest-mob, the Turnip copied field for field: role structure + speed 0, no skills, no faction, no aggroRadius, and the wildcard resistance blocks every damage tag except 'harvest', so only Harvest pops it. xpFactor 0.05 = the Turnip's one token. ⭐ Heaps of washed-up kelp along the tide line of Saltgrass Strand (the beach north of the Farmlands) for the Miller's `the-millers-ring`: each one harvested while that quest's search stage is running rolls a 6 % chance of finding the ring, and the 12th always does. ⚑ THE BEACH IS THE SPECIES: the quest counts this definition, never a position, so placing Seaweed anywhere else makes that spot a ring beach too. ⛑ Its own entityType Seaweed with placeholder art (seaweed.svg); earns its own sprite at the Zone 1 art pass. All values [PLACEHOLDER].",
+  "id": 108,
+  "name": "Seaweed",
+  "type": "MOB",
+  "role": "structure",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 20,
+    "maxHealthVariance": 0.1,
+    "xpFactor": 0.05,
+    "speed": 0,
+    "resistances": {
+      "*": 0
+    },
+    "gateKeys": [
+      "harvest"
+    ]
+  },
+  "body": {
+    "radius": 0.2
+  },
+  "skills": []
+}

@@ -151,11 +151,26 @@ export function validateQuest(quest, idx) {
       }
       if (o.tracker && o.kind !== 'talk_to') err(`${q} stage "${s.id}": an objective tracker rewords a talk_to line only`);
       if (o.tracker && s.tracker) err(`${q} stage "${s.id}": an objective tracker under a stage tracker is never shown`);
+      // A chance objective (a find rolled per credit, the Nth guaranteed);
+      // mirrors quests.go validateChance.
+      if (!o.chance) {
+        if (o.guaranteedAt) err(`${q} stage "${s.id}": guaranteedAt needs a chance`);
+      } else if (o.chance < 0 || o.chance > 1) {
+        err(`${q} stage "${s.id}": chance ${o.chance} is not in (0, 1]`);
+      } else if (o.kind === 'talk_to') {
+        err(`${q} stage "${s.id}": a chance rides a kill/harvest objective, not talk_to`);
+      } else if (objectives.length !== 1) {
+        err(`${q} stage "${s.id}": a chance objective must be its stage's only objective`);
+      } else if ((o.count || 1) !== 1) {
+        err(`${q} stage "${s.id}": a chance objective takes no count`);
+      } else if (!s.tracker) {
+        err(`${q} stage "${s.id}": a chance objective's stage must author a tracker (its count is hidden)`);
+      }
       if (!name) err(`${q} stage "${s.id}": objective "${o.kind}" without a target`);
       else if (!idx.mobNames.has(name)) err(`${q} stage "${s.id}": objective "${o.kind}" names unknown target "${name}"`);
     }
     if (s.tracker && (s.tracker.includes('{n}') || s.tracker.includes('{m}'))) {
-      if (!objectives.some((o) => o.kind !== 'talk_to')) {
+      if (!objectives.some((o) => o.kind !== 'talk_to' && !o.chance)) {
         err(`${q} stage "${s.id}": tracker uses {n}/{m} but the stage has no kill/harvest objective to count`);
       }
     }

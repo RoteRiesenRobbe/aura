@@ -1,0 +1,37 @@
+<svg width="100%" height="100%" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- Placeholder seaweed heap (harvest-mob): a washed-up tangle of kelp on the tide line. Top-down, no avatar disc (it reads as scatter on the sand, not as a creature): a dark mound with wavy fronds spilling out and a few bladder floats. Placeholder art. -->
+  <defs>
+    <radialGradient id="heap" cx="0.42" cy="0.38" r="0.7">
+      <stop offset="0" stop-color="rgb(120,132,58)"/>
+      <stop offset="0.6" stop-color="rgb(72,86,34)"/>
+      <stop offset="1" stop-color="rgb(40,50,22)"/>
+    </radialGradient>
+  </defs>
+  <!-- wet sand shadow -->
+  <ellipse cx="266" cy="282" rx="214" ry="168" fill="rgb(0,0,0)" fill-opacity="0.26"/>
+  <!-- fronds spilling out of the heap -->
+  <g fill="none" stroke="rgb(40,28,28)" stroke-width="34">
+    <path d="M200 250 C140 210 120 300 60 268"/>
+    <path d="M300 220 C360 160 420 230 468 170"/>
+    <path d="M250 300 C270 370 200 400 230 462"/>
+    <path d="M320 300 C390 330 400 400 462 404"/>
+    <path d="M220 200 C200 130 140 140 120 80"/>
+  </g>
+  <g fill="none" stroke="rgb(98,112,44)" stroke-width="20">
+    <path d="M200 250 C140 210 120 300 60 268"/>
+    <path d="M300 220 C360 160 420 230 468 170"/>
+    <path d="M250 300 C270 370 200 400 230 462"/>
+    <path d="M320 300 C390 330 400 400 462 404"/>
+    <path d="M220 200 C200 130 140 140 120 80"/>
+  </g>
+  <!-- the heap -->
+  <path d="M150 250 C140 180 210 150 262 162 C330 150 380 200 372 256 C380 320 320 352 262 340 C196 352 146 316 150 250 Z"
+        fill="url(#heap)" stroke="rgb(40,28,28)" stroke-width="12"/>
+  <path d="M190 236 C220 210 250 250 280 222 C304 204 330 228 340 246" fill="none" stroke="rgb(140,152,72)" stroke-width="10"/>
+  <path d="M188 290 C224 270 250 304 290 284 C312 274 330 290 338 300" fill="none" stroke="rgb(52,64,26)" stroke-width="10"/>
+  <!-- bladder floats -->
+  <circle cx="232" cy="196" r="17" fill="rgb(176,150,60)" stroke="rgb(40,28,28)" stroke-width="6"/>
+  <circle cx="318" cy="274" r="15" fill="rgb(176,150,60)" stroke="rgb(40,28,28)" stroke-width="6"/>
+  <circle cx="420" cy="214" r="12" fill="rgb(176,150,60)" stroke="rgb(40,28,28)" stroke-width="6"/>
+  <circle cx="108" cy="272" r="11" fill="rgb(176,150,60)" stroke="rgb(40,28,28)" stroke-width="6"/>
+</svg>

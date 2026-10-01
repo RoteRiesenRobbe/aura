@@ -721,6 +721,20 @@ export class RedMushroom extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(RedMushroom, file('redMushroom'), maxSize('redMushroom'));
 
+// The beach's harvest-mob (the Miller's ring), the Turnip's pattern.
+export class Seaweed extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.turnip, x, y,
+            randomInt(minSize('seaweed'), maxSize('seaweed')),
+            Seaweed.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Seaweed, file('seaweed'), maxSize('seaweed'));
+
 // --- Z1 wildlife + brambles (content pass C2), sharing the wildlife layer ---
 
 const wolfBorder = registerBorder(GraphicsConfig.mobs.wolf.borderFile, maxSize('wolf'));
