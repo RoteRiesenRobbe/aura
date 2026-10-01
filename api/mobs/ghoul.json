@@ -1,0 +1,34 @@
+{
+  "_comment": "A fast, frail corpse-eater. Placeholder: draws NpcPlaceholder (art owed) and borrows Wolf's skill and HP/speed shape until it gets its own. All values [PLACEHOLDER].",
+  "id": 93,
+  "name": "Ghoul",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "faction": "undead",
+  "tier": "normal",
+  "curveLevel": 19,
+  "factors": {
+    "resistances": {
+      "poison": 0.5
+    },
+    "baseMaxHealth": 55,
+    "maxHealthVariance": 0.1,
+    "speed": 0.7,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.3,
+    "aggroRadius": 3
+  },
+  "skills": [
+    {
+      "skillName": "WolfBite",
+      "level": 1
+    }
+  ]
+}

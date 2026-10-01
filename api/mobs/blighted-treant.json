@@ -1,0 +1,36 @@
+{
+  "_comment": "A treant the blight has turned. Placeholder: draws NpcPlaceholder (art owed) and borrows Troll's skill and HP/speed shape until it gets its own. All values [PLACEHOLDER].",
+  "id": 103,
+  "name": "BlightedTreant",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "faction": "undead",
+  "tier": "elite",
+  "curveLevel": 21,
+  "factors": {
+    "resistances": {
+      "fire": 1.5,
+      "poison": 0.5
+    },
+    "baseMaxHealth": 182,
+    "maxHealthVariance": 0.1,
+    "speed": 0.45,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900,
+    "ccImmune": true
+  },
+  "body": {
+    "radius": 0.55,
+    "aggroRadius": 3.6
+  },
+  "skills": [
+    {
+      "skillName": "TrollSmash",
+      "level": 1
+    }
+  ]
+}

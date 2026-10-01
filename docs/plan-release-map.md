@@ -7,6 +7,13 @@
 > regions with their own look, music and atmosphere; no multi-world, no server
 > hop.
 >
+> ⭐ **2026-09-30 (PO): the map is being built.** The rebuilt 540×360
+> `api/zones/world.json` (PO-authored in Tiled since 2026-09-24) IS the release
+> map. The camp mechanism (§3) is still unbuilt: no pledge quests, no content
+> pin. §9 records what landed; §7 marks the questions the build has answered.
+> Zone 1 + 2 design intent: `content-zone-design-guide.md`; the zone list and
+> region names: `content-world.md`.
+>
 > Supersedes `docs/archive/plan-test-world.md`, dropped the same day. It also
 > carries the ruling that deferred `docs/plan-camps.md`, so read this before
 > either of those.
@@ -261,9 +268,10 @@ settled; the map is not. What a design session owes:
 - **Where it sits in the execution order.** The user's formulation is *the next
   map we build*, after the current prototype work concludes. Whether that is
   before, beside or after step 8b, and how it relates to step 9, is a PO call.
-- **Does it replace `world.json`?** New file, new live world, or a rebuild in
-  place. This decides the deploy story and whether existing characters keep
-  meaningful positions.
+- ~~**Does it replace `world.json`?**~~ ✅ **Answered 2026-09-24: a rebuild in
+  place.** The old world is kept as the `-debug-zones` set
+  (`api/zones/.debug/world_debug.json`). ⚑ Still open: what existing
+  characters' saved positions mean on the new map (the deploy story).
 - **How many camps, and who they are.** The §3 mechanism is camp-count
   agnostic. `plan-camps.md` D5's shipped `human_army` plus one new player-safe
   faction was a two-camp design; the three-camp shape discussed on 2026-08-22
@@ -334,7 +342,7 @@ and remains what `plan-region-primitive.md` implements.
 - The multi-world model was never built: the server loads exactly one zone
   file per process (`world/zone.go:207` `LoadZoneFS`, `-zone` flag), one
   `phy.Space`, and no transition machinery exists anywhere. "Zone 1 / Zone 2"
-  are design labels for areas of the single playfield (`content-zone2.md`).
+  are design labels for areas of the single playfield (`archive/content-zone2.md`, superseded by `content-zone-design-guide.md`).
 - `tdd.md` §4.6 already records the primitive as known-future (decision
   2026-07-09): *a named region inside a zone carrying its own properties*,
   underpinning per-area music, darkness and per-area terrain. Darkness shipped
@@ -406,4 +414,21 @@ nothing in D6's goal requires them.
 
 ## 9. Chunk ledgers
 
-*(appended per execution session - none yet)*
+### 2026-09-30 — the map, recorded (docs only)
+
+Not a chunk of this plan: the map was authored by the PO, outside any chunk,
+and this entry records it so the plan stops saying "nothing built".
+
+- `06e5c476` (2026-09-24): `world.json` rebuilt from scratch; the old 144×72
+  world moved to `-debug-zones` (`5ef77247`); `tunnel.json` added.
+- `8bc9210c` (2026-09-28): 540×360, 18 new mobs to level 30 and 5 new
+  factions placed across it in the order of `content-world.md`; every region
+  carries a `title` + `subtitle` for the region banner (the D6 "zones as
+  coordinate regions" model, realised as titled regions); the front and the
+  Warlord's arena anchors moved to The Umberwood; `barn.json` added.
+- Later commits are PO authoring passes on the same files.
+- ⭐ PO 2026-09-30: this world IS the release map. Zone 1 = Farmlands,
+  Brackenfold Meadows, Saltgrass Strand; Zone 2 = Deep Woods; the City =
+  Brunnstedt (`content-world.md`).
+- ⛔ Not built: §3's camps and pledges, and §3.4's content pin.
+- Schema: NONE.

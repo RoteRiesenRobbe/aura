@@ -309,6 +309,46 @@ var AuraConvert = (function () {
     var PROP_BLOCKS_VALUES = [PROP_BLOCKS_INHERIT, PROP_BLOCKS, PROP_WALK_THROUGH];
     var PROP_BLOCKS_ENUM = 'AuraPropBlocks';
 
+    /* ---- a path's corners and ends (plan-world-paths.md, corners/ends rider)
+     * Two closed vocabularies, mirroring world.PathCorners / PathEnds, which
+     * zone.go refuses anything outside. Absent means 'round' in both.
+     *
+     * ⭐ ENUMS WITH A SENTINEL, for the reason PROP_BLOCKS_INHERIT records: the
+     * member needs a value that maps back to "not authored", or a Tiled that
+     * drops a default-valued property and one that keeps it would disagree
+     * about whether every path in the world grew a key. '(default)' is that
+     * value; picking 'round' explicitly is legal and writes the key.
+     *
+     * ⚑ PATH_SHAPE_DEFAULT must equal the palette members' own default
+     * (generate-palette.mjs reads it from here). */
+    var PATH_SHAPE_DEFAULT = '(default)';
+    var PATH_SHAPE_VALUES = {corners: ['round', 'sharp'], ends: ['round', 'flat', 'point']};
+    var PATH_SHAPE_ENUMS = {corners: 'AuraPathCorners', ends: 'AuraPathEnds'};
+
+    /* Read a path's corners or ends back to the zone value: the sentinel, a
+     * blank and an absent property are all "not authored". An unrecognised
+     * value is returned as-is — validateModel refuses it by object id rather
+     * than this quietly promoting it to the default. */
+    function readPathShape(o, k) {
+        var v = o.properties && o.properties[k] !== undefined && o.properties[k] !== null
+            ? plainValue(o.properties[k]) : undefined;
+        if (v === undefined || v === '' || v === PATH_SHAPE_DEFAULT) { return undefined; }
+        return v;
+    }
+
+    /* The writer's half: only an AUTHORED value becomes a property, so an
+     * ordinary path shows the class member at '(default)' and round-trips
+     * byte-identical (writeOutline's rule, and the shadowing trap the prop
+     * writer records). */
+    function writePathShape(o, src) {
+        ['corners', 'ends'].forEach(function (k) {
+            if (!src[k]) { return; }
+            o.properties[k] = src[k];
+            o.enums = o.enums || {};
+            o.enums[k] = PATH_SHAPE_ENUMS[k];
+        });
+    }
+
     /* Read a prop object's tri-state blocksMovement back to the zone value.
      *
      * ⚑ Absent and '(inherit)' both map to undefined — the serializer drops the
@@ -477,6 +517,10 @@ var AuraConvert = (function () {
                         points: r.points.map(function (p2) {
                             return {x: round(p2.x, 2), y: round(p2.y, 2)};
                         }),
+                        // The region title banner (2026-09-28). Absent when
+                        // blank, like zone.go's omitempty.
+                        title: r.title || undefined,
+                        subtitle: r.title && r.subtitle ? r.subtitle : undefined,
                     };
                 })
                 : undefined,
@@ -500,6 +544,10 @@ var AuraConvert = (function () {
                         // Turn the tile to run along the path. Tri-state like
                         // the two above, and key order follows zone.go.
                         alignTexture: p2.alignTexture ? true : undefined,
+                        // How the stroke turns and stops. Absent = round, so
+                        // absent stays absent.
+                        corners: p2.corners || undefined,
+                        ends: p2.ends || undefined,
                         // The area effect (plan-area-effects.md E1). Key order
                         // follows zone.go's struct order like everything else
                         // here, and absent stays absent: no shipped path names
@@ -721,7 +769,11 @@ var AuraConvert = (function () {
                 polygon: pts.map(function (p2) {
                     return {x: px(p2.x, hw) - ox, y: px(p2.y, hh) - oy};
                 }),
-                properties: {profile: r.profile},
+                // The title and subtitle only when authored: absent is the
+                // palette default ('') and reads back as absent (readText).
+                properties: Object.assign({profile: r.profile},
+                    r.title ? {title: r.title} : {},
+                    r.title && r.subtitle ? {subtitle: r.subtitle} : {}),
                 // C2: typed, or the Properties panel degrades to a free-text
                 // box — an object-level PLAIN string shadows the class member
                 // that declares the enum. Same marker, same reason, as a
@@ -759,6 +811,7 @@ var AuraConvert = (function () {
             // for an ordinary path and the round-trip stays byte-identical.
             if (p2.blocksMovement) { o.properties.blocksMovement = true; }
             if (p2.alignTexture) { o.properties.alignTexture = true; }
+            writePathShape(o, p2);
             writeOutline(o, p2);
             writeEffect(o, p2);
             return o;
@@ -1068,6 +1121,8 @@ var AuraConvert = (function () {
                     points: closedAreaPoints(o).map(function (v) {
                         return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
                     }),
+                    title: readText(o, 'title'),
+                    subtitle: readText(o, 'subtitle'),
                 };
             }),
             // ⚑ Split by CLASS, not by layer (D5). An object that is neither is
@@ -1091,6 +1146,8 @@ var AuraConvert = (function () {
                         ? (typeof get(o, 'outlineWidth') === 'number' ? get(o, 'outlineWidth') : 0)
                         : undefined,
                     alignTexture: get(o, 'alignTexture') ? true : undefined,
+                    corners: readPathShape(o, 'corners'),
+                    ends: readPathShape(o, 'ends'),
                     effect: readEffect(o),
                 };
             }),
@@ -1207,6 +1264,16 @@ var AuraConvert = (function () {
             ? plainValue(o.properties.effect) : undefined;
         if (v === undefined || v === '' || v === EFFECT_UNSET) { return undefined; }
         return v;
+    }
+
+    /* A free-text member whose default, '', means NOT AUTHORED — the spawn
+     * `anchor` reading (the class-member sentinel rule): Tiled may drop a
+     * property still at its default, and both readings land on absent.
+     * Surrounding whitespace is trimmed; a blank string is absent. */
+    function readText(o, k) {
+        var v = o.properties && o.properties[k] !== undefined && o.properties[k] !== null
+            ? String(plainValue(o.properties[k])).replace(/^\s+|\s+$/g, '') : '';
+        return v === '' ? undefined : v;
     }
 
     function readRegionProfile(o) {
@@ -1649,6 +1716,11 @@ var AuraConvert = (function () {
         layer('regions').forEach(function (o, i) {
             checkProfile(o, i, profilesKnown);
             checkClosedArea(o, i, 'a region');
+            // Mirrors zone.go: a subtitle is the line UNDER a title.
+            if (readText(o, 'subtitle') !== undefined && readText(o, 'title') === undefined) {
+                bad(o, i, 'has a subtitle but no title; the banner shows the subtitle under'
+                    + ' the title, so give the region a title or clear the subtitle');
+            }
         });
 
         // ⭐ THE SHARED LAYER'S OWN CHECK (L2b, the one cost of D5). Two classes
@@ -1708,6 +1780,19 @@ var AuraConvert = (function () {
         onLayer('paths', 'AuraPath').forEach(function (o, i) {
             checkProfile(o, i, profilesKnown);
             checkEffect(o, i);
+            // Mirrors validatePathShape in world/zone.go, said while the author
+            // is still looking at the line.
+            ['corners', 'ends'].forEach(function (k) {
+                var v = readPathShape(o, k);
+                if (v !== undefined && !hasValue(PATH_SHAPE_VALUES[k], v)) {
+                    bad(o, i, k + ' ' + JSON.stringify(v) + ' must be one of "' + PATH_SHAPE_DEFAULT
+                        + '", ' + PATH_SHAPE_VALUES[k].join(', '));
+                }
+            });
+            if (o.shape === 'polygon' && readPathShape(o, 'ends') !== undefined) {
+                bad(o, i, 'ends is "' + readPathShape(o, 'ends') + '" but this path is a closed'
+                    + ' ring, which has no ends. Put ends back to "' + PATH_SHAPE_DEFAULT + '"');
+            }
             var n = (o.polygon || []).length;
             // ⭐ BOTH shapes are legal here, and which one it is IS the closed
             // flag (plan-zone-polygons.md P1). A polygon strokes a ring — a moat,
@@ -1916,6 +2001,9 @@ var AuraConvert = (function () {
         PROP_WALK_THROUGH: PROP_WALK_THROUGH,
         PROP_BLOCKS_VALUES: PROP_BLOCKS_VALUES,
         PROP_BLOCKS_ENUM: PROP_BLOCKS_ENUM,
+        PATH_SHAPE_DEFAULT: PATH_SHAPE_DEFAULT,
+        PATH_SHAPE_VALUES: PATH_SHAPE_VALUES,
+        PATH_SHAPE_ENUMS: PATH_SHAPE_ENUMS,
         EFFECT_UNSET: EFFECT_UNSET,
         REGION_ENUMS: REGION_ENUMS,
         readSpawn: readSpawn,

@@ -60,10 +60,8 @@ export interface TerrainProfile {
     // the world C4 shipped, and the reason D5's look stays expressible per
     // profile instead of becoming unreachable.
     //
-    // ⭐ The authored polygon is the band's MIDDLE (D22): the ramp is symmetric,
-    // so a region spills half a band past the line drawn in Tiled. Chosen over
-    // insetting because two regions that ABUT then crossfade instead of opening
-    // a band-wide gutter of base fill between them.
+    // ⭐ WHERE the band sits is `blendOutward` (D23, amending D22): a region's
+    // fade lies OUTSIDE its polygon by default, a polygon's is centred on it.
     //
     // ⚑ Per PROFILE, never per region (D2), and it feathers the region's OWN
     // edge with no knowledge of its neighbours - which is what makes "region
@@ -73,6 +71,19 @@ export interface TerrainProfile {
     // sets how far a wobbly edge may wander — that is `wobbleReach` — so a
     // `blend: 0` edge can wander and stay crisp.
     blend?: number;
+    // Where the fade sits (D23, PO 2026-09-29, amending D22). `true` puts the
+    // whole fade OUTSIDE the authored polygon — solid up to the line, fading
+    // out past it — so two regions painted side by side without overlap leave
+    // no ground showing at their seam (two centred 50 % ramps stack to 75 %,
+    // never 100 %). `false` is D22's ramp, centred on the line.
+    //
+    // ⭐ ABSENT MEANS DIFFERENT THINGS PER SHAPE: outward for a REGION
+    // ({@link REGION_BLEND_OUTWARD}), centred for a POLYGON (DEFAULT_PROFILE).
+    // A seam only closes when BOTH neighbours are outward, so for regions it
+    // has to be the default; a polygon lies ON regions and has no seam, so
+    // there it is an experiment a profile opts into. Paths, outlines and
+    // clearings never read it and stay centred.
+    blendOutward?: boolean;
     // How far the edge WANDERS either side of the authored line, in WORLD
     // UNITS (plan-ground-noise.md W1b, D3; replaces W1's 0…1 `wobble`).
     // Absent = a straight edge and no noise pass at all, so the feature costs
@@ -229,7 +240,38 @@ export interface AtmosphereProfile extends TerrainProfile {
     // Torch 2.5 (+0.25), a campfire 7.0. So ~2 reads as "grope forward", ~4 as
     // "a dim room", and much past ~8 stops being darkness at all.
     sight?: number;
+    // A SWARM of glowing motes that each dance on their own path and swell in
+    // and out of sight — fairy lights (2026-09-29, backlog §62). Absent = none.
+    //
+    // ⭐ It REPLACES the tile, it does not sit on it: one scroll vector moves a
+    // whole sheet together, which is exactly what made the textured Fairy Dust
+    // read as a rising drift rather than fluttering. A profile with `motes`
+    // ignores its `texture` and `scroll`; `color` TINTS each mote (not D14's
+    // fallback wash), `blend` still feathers the swarm's edge, and `haze` is
+    // still the layer opacity — so the swarm lives in the haze layer, under the
+    // darkness, like every other suspended thing.
+    //
+    // ⛔ Haze only. A profile that authors `motes` without `haze` draws nothing:
+    // `haze` is what says "this air paints the suspended-matter layer at all".
+    motes?: Motes | null;
 }
+
+/** One mote swarm's look, every length in WORLD UNITS. All [PLACEHOLDER]. */
+export interface Motes {
+    /** Motes per square world unit. */
+    density: number;
+    /** A mote's glow DIAMETER at full swell. */
+    size: number;
+    /** How far a mote strays from where it was born. */
+    wander: number;
+    /** A mote's typical speed along its path, units per second. */
+    speed: number;
+    /** Seconds from appearing to vanishing; each mote then reappears elsewhere. */
+    life: number;
+}
+
+/** What an authored `motes: {}` means: every key is optional. */
+export const DEFAULT_MOTES: Motes = {density: 0.06, size: 0.35, wander: 0.6, speed: 0.3, life: 5};
 
 /** Every key any profile can carry — the type the generic lookup machinery
  *  ({@link resolveIn}, {@link DEFAULT_PROFILE}) works in, since a terrain table
@@ -254,6 +296,9 @@ export const DEFAULT_PROFILE: Required<Profile> = {
     // and a blur pass under every region in every zone that never asked for
     // one - the feature has to cost exactly zero until it is authored.
     blend: 0,
+    // D22's centred ramp — the POLYGON default. ⛔ A region's default is
+    // REGION_BLEND_OUTWARD, not this (D23).
+    blendOutward: false,
     // The world before ground-noise W1: a straight edge. ⚑ A non-zero default
     // would put a mask and a second bake pass under every surface that never
     // asked for one.
@@ -286,6 +331,8 @@ export const DEFAULT_PROFILE: Required<Profile> = {
     // a profile default so a region can raise it. Nothing moves until a profile
     // authors otherwise. See {@link SELF_SIGHT_FLOOR_PX}.
     sight: px2meter(SELF_SIGHT_FLOOR_PX),
+    // The world before fairy motes: no swarm, no sprite, no per-frame write.
+    motes: null,
 };
 
 /** `"#2c4028"` → `0x2c4028`. The JSON is written in the notation an artist
@@ -420,6 +467,22 @@ function parseOverlay(raw: unknown): Overlay | undefined {
     return overlay;
 }
 
+/** A mote swarm: an object whose keys are each a positive length/rate. A bad
+ *  or missing key takes {@link DEFAULT_MOTES}'s value rather than dropping the
+ *  swarm, so `{}` is the default fairy dust. Not an object → dropped. */
+export function parseMotes(raw: unknown): Motes | undefined {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+        return undefined;
+    }
+    const entry = raw as { [k: string]: unknown };
+    const out: Motes = {...DEFAULT_MOTES};
+    (Object.keys(DEFAULT_MOTES) as (keyof Motes)[]).forEach((key) => {
+        const parsed = parseScale(entry[key]);
+        if (parsed !== undefined) { out[key] = parsed; }
+    });
+    return out;
+}
+
 /**
  * Builds the profile table from authored JSON.
  *
@@ -448,9 +511,9 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
     Object.keys(raw).forEach((name) => {
         if (name.charAt(0) === '_') { return; }
         const entry = raw[name] as {
-            color?: unknown, texture?: unknown, scale?: unknown, blend?: unknown,
+            color?: unknown, texture?: unknown, scale?: unknown, blend?: unknown, blendOutward?: unknown,
             wobbleReach?: unknown, wobbleSize?: unknown, wobbleRoughness?: unknown, scroll?: unknown,
-            overlay?: unknown, darkness?: unknown, haze?: unknown, sight?: unknown,
+            overlay?: unknown, darkness?: unknown, haze?: unknown, sight?: unknown, motes?: unknown,
         };
         const profile: Profile = {};
         if (entry && 'color' in entry) {
@@ -476,6 +539,9 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
         if (entry && 'blend' in entry) {
             const parsed = parseBlend(entry.blend);
             if (parsed !== undefined) { profile.blend = parsed; }
+        }
+        if (entry && typeof entry.blendOutward === 'boolean') {
+            profile.blendOutward = entry.blendOutward;
         }
         if (entry && 'wobbleReach' in entry) {
             // A length, and a zero one is a straight edge, which absence
@@ -513,6 +579,10 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
         if (entry && 'overlay' in entry) {
             const parsed = parseOverlay(entry.overlay);
             if (parsed !== undefined) { profile.overlay = parsed; }
+        }
+        if (entry && 'motes' in entry) {
+            const parsed = parseMotes(entry.motes);
+            if (parsed !== undefined) { profile.motes = parsed; }
         }
         out[name] = profile;
     });
@@ -552,6 +622,12 @@ export interface RegionPoint {
 export interface Region {
     profile: string;
     points: RegionPoint[];
+    /** The place's name, shown on entering it (RegionNames). Per PLACEMENT,
+     *  never per profile: two "Forest" regions can be two different woods.
+     *  Absent = an unnamed region, transparent to the name lookup. */
+    title?: string;
+    /** A smaller line under the title. Only meaningful with one. */
+    subtitle?: string;
 }
 
 let regions: Region[] = [];
@@ -657,6 +733,8 @@ export function outlineOf(def: {outlineProfile?: string, outlineWidth?: number})
 export interface RegionDefinition {
     profile: string;
     points: { x: number, y: number }[];
+    title?: string;
+    subtitle?: string;
 }
 
 /** Authored server units → world pixels. The ONE conversion, so the world and
@@ -670,6 +748,8 @@ export function toRegions(defs: RegionDefinition[] | undefined, origin?: {x: num
             x: meter2px(p.x + (origin ? origin.x : 0)),
             y: meter2px(p.y + (origin ? origin.y : 0)),
         })),
+        ...(r.title ? {title: r.title} : {}),
+        ...(r.title && r.subtitle ? {subtitle: r.subtitle} : {}),
     }));
 }
 
@@ -816,6 +896,26 @@ export function regionBlend(
     // An unknown profile, or one transparent to `blend`, ends at the default - 
     // D11's totality, restated at the one layer that can hand a number to Pixi.
     return typeof blend === 'number' ? blend : DEFAULT_PROFILE.blend;
+}
+
+/** A REGION's `blendOutward` when its profile says nothing (D23): outward, so
+ *  regions painted side by side close their seams without every profile
+ *  having to remember the key. A polygon's is DEFAULT_PROFILE's `false`. */
+export const REGION_BLEND_OUTWARD = true;
+
+/** Whether this surface's fade lies wholly OUTSIDE its polygon (D23). Its own
+ *  profile, else `fallback` — the CALLER's, because the default differs by
+ *  shape ({@link REGION_BLEND_OUTWARD} for a region, `false` for a polygon).
+ *  Otherwise {@link regionBlend}'s rule: the fade belongs to the shape drawn. */
+export function regionBlendOutward(
+    region: Region,
+    fallback: boolean,
+    profiles: { [name: string]: TerrainProfile } = TERRAIN_PROFILES,
+): boolean {
+    const profile = profiles[region.profile];
+    return profile !== undefined && typeof profile.blendOutward === 'boolean'
+        ? profile.blendOutward
+        : fallback;
 }
 
 /** A surface's three wobble keys, read together because they are only ever
@@ -1035,6 +1135,16 @@ export function regionScroll(
     return scroll === undefined || scroll === null
         ? {...DEFAULT_PROFILE.scroll}
         : {x: scroll.x, y: scroll.y};
+}
+
+/** This atmosphere's own mote swarm, or `null` for none — its OWN profile only,
+ *  for {@link regionScroll}'s reason: the swarm belongs to the shape drawn. */
+export function regionMotes(
+    region: Region,
+    profiles: { [name: string]: AtmosphereProfile } = ATMOSPHERE_PROFILES,
+): Motes | null {
+    const profile = profiles[region.profile];
+    return profile && profile.motes ? {...profile.motes} : null;
 }
 
 /** The texture names the given regions' profiles ask for, deduplicated — what

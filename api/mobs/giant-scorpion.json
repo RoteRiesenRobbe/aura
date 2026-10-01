@@ -1,0 +1,34 @@
+{
+  "_comment": "A venomous desert hunter. Placeholder: draws NpcPlaceholder (art owed) and borrows VenomSpider's skill and HP/speed shape until it gets its own. All values [PLACEHOLDER].",
+  "id": 104,
+  "name": "GiantScorpion",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "faction": "wildlife_predator",
+  "tier": "normal",
+  "curveLevel": 14,
+  "factors": {
+    "resistances": {
+      "poison": 0.25
+    },
+    "baseMaxHealth": 72,
+    "maxHealthVariance": 0.1,
+    "speed": 0.6,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.4,
+    "aggroRadius": 2.4
+  },
+  "skills": [
+    {
+      "skillName": "VenomSpit",
+      "level": 1
+    }
+  ]
+}

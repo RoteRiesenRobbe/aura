@@ -286,3 +286,33 @@ describe('the alignment anchor registers the tile across the ribbon', () => {
             .toEqual({x: 5002 * PX, y: 3001 * PX});
     });
 });
+
+describe('toPaths corners and ends', () => {
+    const line = [{x: 0, y: 0}, {x: 10, y: 0}];
+
+    it('defaults both to round for EVERY path, aligned or not', () => {
+        // ⭐ The shape used to follow from the render branch — a plain stroke
+        // round, an aligned mesh sharp and flat. One default now.
+        const [plain] = toPaths([{profile: 'Road', width: 1, points: line}]);
+        const [aligned] = toPaths([{profile: 'Fence', width: 1, points: line, alignTexture: true}]);
+        for (const p of [plain, aligned]) {
+            expect(p.corners).toBe('round');
+            expect(p.ends).toBe('round');
+        }
+    });
+
+    it('carries what the zone authored', () => {
+        const [p] = toPaths([{profile: 'Rock', width: 1, points: line, corners: 'sharp', ends: 'point'}]);
+        expect(p.corners).toBe('sharp');
+        expect(p.ends).toBe('point');
+        const [q] = toPaths([{profile: 'Rock', width: 1, points: line, ends: 'flat'}]);
+        expect(q.ends).toBe('flat');
+    });
+
+    it('degrades an unknown value to the default rather than handing it to Pixi', () => {
+        const [p] = toPaths([{profile: 'Rock', width: 1, points: line,
+            corners: 'bevel', ends: 'square'} as never]);
+        expect(p.corners).toBe('round');
+        expect(p.ends).toBe('round');
+    });
+});

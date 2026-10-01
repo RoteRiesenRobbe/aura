@@ -1,0 +1,36 @@
+{
+  "_comment": "A dragonkin fighter. Placeholder: draws NpcPlaceholder (art owed) and borrows Orc's skill and HP/speed shape until it gets its own. All values [PLACEHOLDER].",
+  "id": 99,
+  "name": "DragonkinWarrior",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "faction": "dragonkin",
+  "tier": "elite",
+  "curveLevel": 27,
+  "factors": {
+    "resistances": {
+      "fire": 0.5,
+      "frost": 1.25
+    },
+    "baseMaxHealth": 420,
+    "maxHealthVariance": 0.1,
+    "speed": 0.5,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900,
+    "ccImmune": true
+  },
+  "body": {
+    "radius": 0.45,
+    "aggroRadius": 3.6
+  },
+  "skills": [
+    {
+      "skillName": "OrcCleave",
+      "level": 1
+    }
+  ]
+}

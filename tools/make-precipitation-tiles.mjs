@@ -3,7 +3,11 @@
  * (plan-region-atmosphere.md A1 — the same "a placeholder profile and asset, I
  * can put it in the map myself" posture as the fog tile).
  *
- *     rain · snow · ash · sandstorm · fairy dust
+ *     rain · snow · ash · sandstorm
+ *
+ * ⚑ Fairy dust USED to be a tile here and is not any more (2026-09-29): a
+ * tile scrolls as one sheet, so its motes rose in lockstep. It is now a swarm
+ * of per-mote sprites (`motes`, frontend/.../atmospheres/logic/Motes.ts).
  *
  * ⭐ Checked in as a script, not just images, exactly as `make-fog-tile.mjs` and
  * `make-water-tile.mjs` are and for the same reason: a placeholder's whole job
@@ -128,40 +132,6 @@ const TILES = [
             minA: 0.35, maxA: 0.90},
         dots: {count: 900, minR: 1.5, maxR: 4.0, minA: 0.25, maxA: 0.70},
     },
-    {
-        // ⭐ Sparse, bright cores in wide dim halos — the closest this system
-        // gets to "glowing", and it is NOT glowing: see `halo` below and the
-        // ⛔ in the profile table. Sparse on purpose, because a mote is a thing
-        // you can pick out individually and 300 of them is a snowfall.
-        // ⛔ GOLD, NOT VIOLET, and that is the second lesson this family taught.
-        // The obvious tint for fairy light is a pale violet-white — and it was
-        // very nearly invisible, because `Magic Forest` is #6a52d4 and pale
-        // violet on violet has almost no contrast at any `haze` worth using.
-        // Warm gold is the COMPLEMENT of that purple, so the motes read at a
-        // glance, and it lands on fireflies and will-o'-the-wisps rather than
-        // on generic sparkle — a better place to be anyway.
-        //
-        // ⚑ THE GENERAL RULE, which cost two of the five tiles a re-tune: pick
-        // the tint against THE GROUND THE AIR WILL SIT OVER, never in the
-        // abstract. Snow-white over green works; sand over sand does not.
-        file: 'fairy-placeholder.png',
-        tint: [0xff, 0xe7, 0xa3],       // warm gold
-        seed: 0x7a1e,
-        // ⛔ FEWER AND BIGGER, after a second look. The draft used 170 motes of
-        // radius 2-5, which at `scale: 0.35` is under 2 world px of core — too
-        // small to resolve as anything, so all that reached the eye was the
-        // halo and the tile read as grubby speckle. A mote has to be a thing
-        // you can SEE, and there is no point lighting a core nobody can find.
-        // ⚑ Count came down with size, and had to: a halo is ~3× its core, so
-        // area grows fast enough that holding the count would have walked
-        // straight past {@link MAX_COVERAGE}, the same trap the sandstorm hit.
-        dots: {count: 90, minR: 5, maxR: 12, minA: 0.65, maxA: 1.00,
-            // ⭐ THE HALO IS THE WHOLE TRICK. A bare dot is a pixel; a bright
-            // core inside a much wider, much fainter disc is what the eye reads
-            // as a light source, even though nothing here emits anything and
-            // the darkness layer above is untouched by all of it.
-            halo: {scale: 2.8, alpha: 0.30}},
-    },
 ];
 
 /* ---- deterministic scatter ----------------------------------------------- */
@@ -202,9 +172,7 @@ function canvas() {
  * two overlapping drops are still one drop's worth of water — adding them would
  * put bright knots wherever the scatter happened to pile up, which reads as a
  * texture defect rather than as heavy rain. The knob for "heavier" is the
- * particle COUNT and the profile's `haze`, never an overlap artefact. ⚑ It is
- * also what lets a fairy mote's core sit inside its own halo without the two
- * summing into a blown-out blob.
+ * particle COUNT and the profile's `haze`, never an overlap artefact.
  *
  * ⭐ And this is THE WRAP. Every write goes through here, which is what makes
  * the tile periodic regardless of where a particle sits — see the header.
@@ -230,7 +198,7 @@ function falloff(dist, radius) {
 
 /* ---- dots ---------------------------------------------------------------- */
 
-/** A soft round disc, optionally inside a wider faint halo. */
+/** A soft round disc. */
 function disc(buf, cx, cy, radius, alpha, ox, oy) {
     const reach = Math.ceil(radius) + 1;
     for (let dy = -reach; dy <= reach; dy++) {
@@ -249,11 +217,6 @@ function drawDots(buf, ox, oy, r, spec) {
         const radius = span(r, spec.minR, spec.maxR);
         const alpha = spec.minA
             + (spec.maxA - spec.minA) * near(radius, spec.minR, spec.maxR);
-        // Halo first, core second: MAX compositing means the core wins its own
-        // pixels and the halo keeps everything outside them.
-        if (spec.halo) {
-            disc(buf, cx, cy, radius * spec.halo.scale, alpha * spec.halo.alpha, ox, oy);
-        }
         disc(buf, cx, cy, radius, alpha, ox, oy);
     }
 }
@@ -391,9 +354,7 @@ function assertSeamless(draw) {
  * marks on empty air: past roughly half the tile they have merged and the
  * result is a flat wash with speckle in it — which is the fog family's job. If
  * a re-tune trips this, the fix is fewer or smaller particles, not a higher
- * ceiling. ⚑ Fairy dust runs the highest of the five because a halo is 3.5×
- * the radius it surrounds, so 150 motes cover far more tile than their cores
- * suggest.
+ * ceiling.
  */
 const MAX_COVERAGE = 0.5;
 function reportCoverage(buf, name) {

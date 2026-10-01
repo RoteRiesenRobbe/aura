@@ -1,0 +1,8 @@
+{
+  "_comment": "Fantasy creatures of the swamp and the enchanted forest (content-world.md zones 7, 10). Hostile to players only, so they never fight other mobs off-screen. [PLACEHOLDER]",
+  "name": "fey",
+  "displayName": "Fey",
+  "hostileTo": [
+    "aligned"
+  ]
+}

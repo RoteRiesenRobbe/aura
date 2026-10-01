@@ -1,0 +1,8 @@
+{
+  "_comment": "Drachlinge and Drachen: the ash-field settlements and the volcano (content-world.md zones 16-20+). Hostile to players only, so they never fight other mobs off-screen. [PLACEHOLDER]",
+  "name": "dragonkin",
+  "displayName": "Dragonkin",
+  "hostileTo": [
+    "aligned"
+  ]
+}

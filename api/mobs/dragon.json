@@ -1,0 +1,36 @@
+{
+  "_comment": "The volcano's dragon. Placeholder: draws NpcPlaceholder (art owed) and borrows OrcWarlord's skill and HP/speed shape until it gets its own. All values [PLACEHOLDER].",
+  "id": 100,
+  "name": "Dragon",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "faction": "dragonkin",
+  "tier": "boss",
+  "curveLevel": 30,
+  "factors": {
+    "resistances": {
+      "fire": 0.25,
+      "frost": 1.25
+    },
+    "baseMaxHealth": 900,
+    "maxHealthVariance": 0,
+    "speed": 0.45,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "ccImmune": true
+  },
+  "body": {
+    "radius": 0.8,
+    "aggroRadius": 4.2
+  },
+  "skills": [
+    {
+      "skillName": "WarlordCleave",
+      "level": 1
+    },
+    {
+      "skillName": "WarlordFrenzy",
+      "level": 1
+    }
+  ]
+}

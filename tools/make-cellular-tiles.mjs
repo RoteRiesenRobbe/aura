@@ -6,6 +6,7 @@
  * the same fix).
  *
  *     forest · wall · road · stones (the first OVERLAY tile, ground-noise W2)
+ *     · cobble (the city street)
  *
  * ⭐ Checked in as a script, not just images, because a placeholder's whole job
  * is to be re-tuned: change a constant, re-run, look at it again. The committed
@@ -474,6 +475,51 @@ const TILES = [
         ],
         shadowColor: [0x2a, 0x23, 0x1b],
     },
+    {
+        // ⭐ THE CITY STREET, and the one tile here where CRAZY PAVING IS THE
+        // BRIEF. The leaf lesson above (a packed Voronoi reads as crazy paving)
+        // is a fault for litter and exactly right for a cobbled lane: every
+        // pixel belongs to a stone, and the dark gritty joints between them are
+        // what the eye reads as "street". ⛔ The lattice is SQUARE, not
+        // staggered — the wall's warning: a Voronoi of a staggered lattice is a
+        // hex floor — and heavily jittered so no row or column survives.
+        //
+        // ⛔ NOT SETTS IN COURSES, for the road's reason: coursed setts are
+        // DIRECTIONAL and would need `alignTexture` (one path per straight
+        // leg), while a city street is drawn as a meander like every other
+        // road. Rounded cobbles have no direction, so this is a drop-in
+        // replacement for `Road` on any path.
+        //
+        // ⭐ COLOUR IS SET BY ITS NEIGHBOURS, not in the abstract (the ground
+        // README's tint rule): `City`'s tile (pd141) measures #847d6b, a warm
+        // grey-tan, and `Wall` is a NEUTRAL #7d7d80. So the cobbles are the
+        // city's own warm grey a step DARKER — the street reads as sunk into
+        // the plaza rather than painted on it — and stay warm, both so they
+        // are not the wall laid flat and because a neutral grey beside warm
+        // ground reads blue.
+        file: 'cobble-placeholder.png',
+        profileColor: [0x76, 0x6f, 0x61],
+        paint: 'cobble',
+        warp: {waves: STONE_WARP, strength: 9, offset: [0.71, 0.37]},
+        // ⚑ At the profile's `scale: 0.5` a tile spans 3.125 u, so 11 cells put
+        // a cobble ~0.28 u across: about ten stones over a 3-unit street, big
+        // enough to read as stone at play zoom rather than as texture grain.
+        cells: {n: 11, jitter: 0.6, round: 0.05, salt: 310},
+        ramp: [[0x5b, 0x55, 0x4b], [0x78, 0x71, 0x63], [0x9a, 0x91, 0x7f]],
+        // ⚑ Per-stone tint held to 0.35: at 0.45 the darkest stones lined up
+        // into a visible stripe once per tile repeat along a long street.
+        base: 0.25,
+        tintWeight: 0.35,
+        grit: {waves: STONE_GRIT, weight: 0.14},
+        // A worn cobble is a low DOME: lifted toward its middle, lit on the
+        // top-left and shaded bottom-right like the wall and the prop art.
+        dome: 0.14,
+        bevel: {width: 0.14, strength: 0.2},
+        // The joints are packed dirt, not mortar — softer and browner than the
+        // wall's near-black line, and wide at the corners where three stones
+        // meet, which is what rounds them off.
+        joint: {width: 0.045, strength: 0.75, color: [0x42, 0x3a, 0x2f]},
+    },
 ];
 
 /* ---- shared machinery ---------------------------------------------------- */
@@ -651,7 +697,62 @@ function course(x, y, cfg) {
     };
 }
 
-/* ---- the three composites -------------------------------------------------- */
+/* ---- partition 3: the lattice CUTS, rounded (cobbles) -------------------- */
+
+/**
+ * A Voronoi of the jittered SQUARE lattice: the nearest point owns the pixel.
+ * `edge` is the distance (in cells) to the stone's own border, 0 on a joint.
+ *
+ * ⛔ NOT F2 − F1, which the first cut used: it is only proportional to the edge
+ * distance, with a factor that depends on how far apart the two points are, so
+ * it painted dark WEDGES reaching into the stones from every corner. The exact
+ * distance to each bisector is cheap once the owner is known.
+ *
+ * ⭐ The bisector distances are then SOFT-MINNED (`round`, in cells) rather
+ * than min'd: near a corner two borders are both close and the soft-min pulls
+ * the edge in, which rounds every corner off. That is the difference between a
+ * cobble and a paving slab.
+ *
+ * `lit` is +1 on the stone's top-left face, −1 on its bottom-right.
+ *
+ * ⚑ A 5×5 search, not 3×3: the owner is always in the 3×3, but a neighbour
+ * whose bisector borders it can sit two cells out. `assertLatticeSound` holds
+ * jitter ≤ 1, which keeps every point inside its own cell.
+ */
+function cells(x, y, cfg) {
+    const cw = SIZE / cfg.n;
+    const cx0 = Math.floor(x / cw), cy0 = Math.floor(y / cw);
+    const pts = [];
+    let own = 0, f1 = Infinity;
+    for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+            const ci = cx0 + dx, cj = cy0 + dy;
+            const wi = mod(ci, cfg.n), wj = mod(cj, cfg.n);
+            const px = (ci + 0.5 + cfg.jitter * (hash(wi, wj, cfg.salt) - 0.5)) * cw;
+            const py = (cj + 0.5 + cfg.jitter * (hash(wi, wj, cfg.salt + 1) - 0.5)) * cw;
+            const d = Math.hypot(x - px, y - py);
+            if (d < f1) { f1 = d; own = pts.length; }
+            pts.push([px, py, hash(wi, wj, cfg.salt + 2)]);
+        }
+    }
+    const [mx, my, tint] = pts[own];
+    let soft = 0;
+    for (let k = 0; k < pts.length; k++) {
+        if (k === own) { continue; }
+        const [sx, sy] = pts[k];
+        const nx = sx - mx, ny = sy - my, len = Math.hypot(nx, ny);
+        const d = (((mx + sx) / 2 - x) * nx + ((my + sy) / 2 - y) * ny) / len / cw;
+        soft += Math.exp(-d / cfg.round);
+    }
+    const ox = x - mx, oy = y - my;
+    return {
+        tint,
+        edge: Math.max(0, -cfg.round * Math.log(soft)),
+        lit: f1 > 0 ? -(ox + oy) / (Math.SQRT2 * f1) : 0,
+    };
+}
+
+/* ---- the four composites ------------------------------------------------- */
 
 /**
  * Litter, painted in the order the material is built: duff, then the roots
@@ -731,7 +832,22 @@ function earth(tile, x, y, wx, wy) {
     return rgb;
 }
 
-const PAINT = {litter, masonry, earth};
+/** Cobbles: masonry's shading on a Voronoi cut, with dirt in the joints. */
+function cobble(tile, x, y, wx, wy) {
+    const stone = cells(wx, wy, tile.cells);
+
+    let t = tile.base + tile.tintWeight * stone.tint;
+    t += tile.grit.weight * (0.5 + 0.5 * sum(tile.grit.waves, x, y));
+    t += tile.dome * smoothstep(0, 0.3, stone.edge);
+    t += tile.bevel.strength * stone.lit * (1 - smoothstep(0, tile.bevel.width, stone.edge));
+
+    let rgb = rampAt(tile.ramp, t);
+    const seam = 1 - smoothstep(tile.joint.width * 0.35, tile.joint.width, stone.edge);
+    if (seam > 0) { rgb = mixRgb(rgb, tile.joint.color, seam * tile.joint.strength); }
+    return rgb;
+}
+
+const PAINT = {litter, masonry, earth, cobble};
 
 function pixel(tile, x, y) {
     const [wx, wy] = warpPoint(tile, x, y);
@@ -753,6 +869,10 @@ function assertLatticeSound(tile) {
             throw new Error(`a leaf reaches ${reach.toFixed(2)} cells from its own centre; `
                 + 'past 1 the 3x3 search can miss it entirely and leaves get clipped.');
         }
+    }
+    if (tile.cells && tile.cells.jitter > 1) {
+        throw new Error(`cell jitter ${tile.cells.jitter} > 1: a point can leave its own `
+            + 'cell and the 5x5 search can miss the second-nearest one.');
     }
     if (tile.course) {
         if (tile.course.jitter > 1) {

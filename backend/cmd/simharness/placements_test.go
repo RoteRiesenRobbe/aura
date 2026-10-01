@@ -76,12 +76,11 @@ func TestLoadPlacements_EnumeratesTheAuthoredWorld(t *testing.T) {
 		assert.True(t, p.Def.IsCombatTarget(), "%s is not prey", p.Def.Name)
 		rungs[p.Level]++
 	}
-	// Every rung 1-20 has a tenant since the world re-placement pass
-	// (plan-world-replacement.md C2); 21-30 is D5's standing gap.
-	for level := 1; level <= 20; level++ {
+	// Every rung 1-30 has a tenant since D5's 21-30 gap was lifted (PO
+	// 2026-09-28, the content-world.md zone order on the 540 x 360 world).
+	for level := 1; level <= 30; level++ {
 		assert.NotZero(t, rungs[level], "rung %d has no tenant", level)
 	}
-	assert.Empty(t, rungs[21], "levels 21-30 are a standing gap (D5), not content")
 }
 
 // L7 — the loader is the one aurad boots with, so a spawn level that the game
@@ -312,7 +311,7 @@ func TestRunPlacementsBattery_ReconcilesAgainstTheAuthoredWorld(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, authoredCombatSpawns(t), report.TotalSpawns, "every combat spawn reaches a row")
-	assert.Len(t, report.Rows, 20, "rungs 1-20 (D5 leaves 21-30 empty)")
+	assert.Len(t, report.Rows, 30, "rungs 1-30 (D5's gap lifted 2026-09-28)")
 
 	for _, row := range report.Rows {
 		assert.Equal(t, row.Level, row.PlayerLevel, "0 = the diagonal")

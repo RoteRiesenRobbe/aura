@@ -1,5 +1,16 @@
 # Content — Zone 1 (village + forest)
 
+> **⛔ SUPERSEDED 2026-09-30. NOT the current Zone 1.** This describes the west
+> half of the OLD 144×72 world built by step 6 (`plan-content-zones12.md`). The
+> PO rebuilt `api/zones/world.json` from scratch on 2026-09-24 (540×360); the old
+> map survives only as the `-debug-zones` set, `api/zones/.debug/world_debug.json`.
+> Every "placement truth: `api/zones/world.json`" below now means **that debug
+> file**.
+>
+> ⭐ **Current Zone 1 design intent: [`../content-zone-design-guide.md`](../content-zone-design-guide.md) §2.**
+> Kept here for the rationale of the beats it shipped (peasant onboarding, the
+> dark forest, the Kobold Hideout, the north tunnel and its spider staging area).
+
 **Design intent only.** This doc holds what Zone 1 is supposed to *be and
 do*; exact runtime positions live in the zone JSON authored via the editor
 (`manual-zone-editor.md`) and are never mirrored here. Conventions →

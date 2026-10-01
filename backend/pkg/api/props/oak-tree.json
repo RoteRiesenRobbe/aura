@@ -1,0 +1,6 @@
+{
+  "name": "OakTree",
+  "entityType": "OakTree",
+  "sprite": "oakTree.png",
+  "body": { "radius": 1, "collisionFactor": 0.45 }
+}

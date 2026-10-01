@@ -24,6 +24,27 @@
 import {Outlined, outlineOf, Region} from '../../regions/logic/Regions';
 import {meter2px} from '../../../client-data/BasicConfig';
 
+/** How a path's stroke turns at a bend: `sharp` is a brick wall's mitre. */
+export type PathCorners = 'round' | 'sharp';
+/** How it stops: `point` narrows the last stretch to nothing, a cliff fading out. */
+export type PathEnds = 'round' | 'flat' | 'point';
+
+/** The two AUTHORED shape knobs (plan-world-paths.md, the corners/ends rider). */
+export interface PathShape {
+    corners: PathCorners;
+    ends: PathEnds;
+}
+
+/**
+ * How far along the arc a pointed end narrows, as a multiple of the path's
+ * width. [PLACEHOLDER] — PO-ruled fixed rather than authored.
+ *
+ * ⚑ The SERVER holds the same number (`paths_collision.go`
+ * taperLengthPerWidth) and walls the taper it draws: change one, change both.
+ * Each side pins it with a test.
+ */
+export const TAPER_LENGTH_PER_WIDTH = 2;
+
 /**
  * A path as the renderer uses it: polyline in WORLD PIXELS.
  *
@@ -31,7 +52,7 @@ import {meter2px} from '../../../client-data/BasicConfig';
  * unchanged — which is what makes "one profile table, two shapes" true in the
  * type system rather than only in the comments.
  */
-export interface Path extends Region, Outlined {
+export interface Path extends Region, Outlined, PathShape {
     /** Stroke width in world PIXELS (the zone authors server units). */
     width: number;
     /**
@@ -72,6 +93,9 @@ export interface PathDefinition {
     outlineWidth?: number;
     /** Turn the tile to run along the path (world.Path.AlignTexture). */
     alignTexture?: boolean;
+    /** world.Path.Corners / Ends; absent = `round`. */
+    corners?: PathCorners;
+    ends?: PathEnds;
 }
 
 /**
@@ -164,7 +188,7 @@ export function toPaths(defs: PathDefinition[] | undefined, origin?: {x: number,
     const ox = origin ? origin.x : 0;
     const oy = origin ? origin.y : 0;
     return (defs || [])
-        .map(p => {
+        .map((p): Path => {
             const points = (p.points || [])
                 .map(pt => ({x: meter2px(pt.x + ox), y: meter2px(pt.y + oy)}));
             const align = p.alignTexture === true
@@ -188,6 +212,14 @@ export function toPaths(defs: PathDefinition[] | undefined, origin?: {x: number,
             // unaligned path carries no key and costs nothing.
             textureAngle: align ? align.angle : undefined,
             textureAnchor: align ? align.anchor : undefined,
+            // ⭐ The default is applied HERE and nowhere else, and it is the
+            // same for every path: the shape used to follow from the render
+            // branch (a plain stroke round, an aligned mesh sharp and flat),
+            // which is exactly what these two keys replaced. An unknown value
+            // (the server refuses it) degrades to the default rather than
+            // reaching Pixi as a cap it does not know.
+            corners: p.corners === 'sharp' ? 'sharp' : 'round',
+            ends: p.ends === 'flat' || p.ends === 'point' ? p.ends : 'round',
             ...outlineOf(p),
         };
         })

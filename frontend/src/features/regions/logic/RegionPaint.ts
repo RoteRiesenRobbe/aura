@@ -26,16 +26,20 @@ import {
 import {Clearing, clearsDarkness, clearsHaze} from '../../atmospheres/logic/Clearings';
 import {
     ATMOSPHERE_PROFILES, AtmosphereProfile, declaresDarkness, declaresHaze,
-    neededTextures, Outlined, Region, regionBlend,
-    regionDarkness, regionHaze, regionOverlay, RegionPoint, regionPaintSpec, regionScroll, regionWobble,
+    neededTextures, Outlined, Region, regionBlend, REGION_BLEND_OUTWARD, regionBlendOutward,
+    regionDarkness, regionHaze, regionMotes, regionOverlay, RegionPoint, regionPaintSpec, regionScroll,
+    regionWobble,
     ResolvedOverlay, TERRAIN_PROFILES, Wobble,
 } from './Regions';
 import {
-    applyMaskNoise, applyPatchNoise, maskBand, maskDensity, noiseShape, octaveMix, overlayDensity,
-    snapToTexels,
+    applyMaskNoise, applyPatchNoise, maskBand, maskDensity, noiseShape, octaveMix, outwardGrow,
+    overlayDensity, snapToTexels,
 } from './MaskNoise';
-import {Path} from '../../paths/logic/Paths';
-import {ribbonGeometry} from '../../paths/logic/PathRibbon';
+import {Path, PathShape} from '../../paths/logic/Paths';
+import {createSwarm, MoteSwarm} from '../../atmospheres/logic/Motes';
+import {
+    MITRE_LIMIT, ribbonGeometry, ribbonOutline, taperedCentreline,
+} from '../../paths/logic/PathRibbon';
 import {Polygon} from '../../polygons/logic/Polygons';
 import {meter2px} from '../../../client-data/BasicConfig';
 import {isMobile} from '../../user-interface/logic/Mobile';
@@ -282,7 +286,9 @@ interface BlendMask {
  *
  * ⚑ NO INSET (D22). The blur is symmetric about the authored line, so the 50 %
  * alpha sits ON the polygon someone drew in Tiled and the region spills half a
- * band past it. That is the ruling, not an oversight.
+ * band past it. That is the ruling, not an oversight. ⚑ For a REGION the
+ * silhouette handed in is already dilated (D23, {@link paintFilled}), so the
+ * ramp this draws, centred on THAT edge, lies wholly outside the authored one.
  */
 function buildBlendMask(
     renderer: Renderer,
@@ -459,7 +465,7 @@ function paintOverlay(
     renderer: Renderer,
     out: PaintedSurfaces,
     // The body's ribbon, when it is a path or an outline; null for a filled shape.
-    ribbon: { closed: boolean, width: number, aligned: boolean } | null = null,
+    ribbon: RibbonSpec | null = null,
     angle = 0,
     anchor: { x: number, y: number } | null = null,
 ): void {
@@ -473,7 +479,7 @@ function paintOverlay(
     if (mask === null) { return; }
     // A ribbon mesh IS the body's geometry, so it clips a hard edge by itself.
     if (ribbon !== null
-        && paintRibbon(container, layer, points, ribbon.closed, ribbon.width, ribbon.aligned, mask, out)) {
+        && paintRibbon(container, layer, points, ribbon, mask, out)) {
         return;
     }
     if (baseMask !== null) {
@@ -530,6 +536,13 @@ export interface PaintedSurfaces {
     /** ⚑ Hand to {@link advanceSurfaceScroll} every frame, and DROP on repaint.
      *  A draw site that bakes a still image (the map) simply ignores these. */
     scrollers: ScrollingSurface[];
+}
+
+/** What the AIR's paint pass adds: the mote swarms, which only atmospheres
+ *  draw. ⚑ Hand to `Motes.advanceMotes` every frame and DROP on repaint, on
+ *  exactly the schedule of `scrollers`. */
+export interface PaintedAir extends PaintedSurfaces {
+    swarms: MoteSwarm[];
 }
 
 /** One drifting tile surface: the sprite, and how fast its tile moves. */
@@ -777,12 +790,42 @@ export function paintRegions(
 ): PaintedSurfaces {
     const out: PaintedSurfaces = {masks: [], scrollers: []};
     regions.forEach((region) => {
-        const draw: DrawSurface = (g, style) => g.poly(region.points).fill(style);
-        const mask = surfaceMask(renderer, region, region.points, draw, 0);
-        paintSurface(container, region, region.points, draw, mask, 0, out);
-        paintOverlay(container, region, region.points, draw, mask, 0, renderer, out);
+        paintFilled(container, region, region.points, REGION_BLEND_OUTWARD, renderer, out);
     });
     return out;
+}
+
+/**
+ * One FILLED shape — a region or a polygon, which draw byte-for-byte alike —
+ * body, then overlay.
+ *
+ * ⚑ `blendOutward` (D23): the MASK's silhouette is dilated by
+ * a round-joined stroke, so the blur's 50 % line lands `grow` outside the
+ * authored one and the ramp is solid up to it. Only the mask moves: a hard
+ * edge (no mask) keeps drawing `draw`, and the footprint grows by the same
+ * amount so the box never clips the wider spill. ⚑ A polygon's OUTLINE is not
+ * moved with it: it stays centred on the authored line.
+ */
+function paintFilled(
+    container: Container,
+    surface: Region,
+    points: RegionPoint[],
+    // What a profile that says nothing gets: REGION_BLEND_OUTWARD for a
+    // region, false for a polygon (D23).
+    outwardByDefault: boolean,
+    renderer: Renderer,
+    out: PaintedSurfaces,
+): void {
+    const draw: DrawSurface = (g, style) => g.poly(points).fill(style);
+    const grow = regionBlendOutward(surface, outwardByDefault)
+        ? meter2px(outwardGrow(regionBlend(surface), regionWobble(surface).reach, isMobile()))
+        : 0;
+    const maskDraw: DrawSurface = grow > 0
+        ? (g, style) => g.poly(points).fill(style).stroke({...style, width: 2 * grow, join: 'round'})
+        : draw;
+    const mask = surfaceMask(renderer, surface, points, maskDraw, grow);
+    paintSurface(container, surface, points, draw, mask, grow, out);
+    paintOverlay(container, surface, points, draw, mask, grow, renderer, out);
 }
 
 /**
@@ -824,8 +867,8 @@ export function paintAtmospheres(
     atmospheres: Region[],
     clearings: Clearing[],
     renderer: Renderer,
-): PaintedSurfaces {
-    const out: PaintedSurfaces = {masks: [], scrollers: []};
+): PaintedAir {
+    const out: PaintedAir = {masks: [], scrollers: [], swarms: []};
     atmospheres.forEach((atmosphere) => {
         // ⚑ BOTH, independently. A profile authoring both is the smoky cave:
         // the same polygon is painted into both layers, so a lantern cuts the
@@ -946,7 +989,7 @@ function paintAir(
     atmosphere: Region,
     opacity: number,
     renderer: Renderer,
-    out: PaintedSurfaces,
+    out: PaintedAir,
     flat: boolean,
 ): void {
     const draw: DrawSurface = (g, style) => g.poly(atmosphere.points).fill(style);
@@ -980,6 +1023,30 @@ function paintAir(
             return;
         }
         addFeathered(group, {color}, mask, out);
+        return;
+    }
+
+    // ⭐ A SWARM REPLACES THE TILE (backlog §62): `texture` and `scroll` are
+    // not read, `color` tints the motes, and the mask feathers the swarm's edge
+    // the way it would a fog bank's.
+    const motes = regionMotes(atmosphere);
+    if (motes !== null) {
+        const profile = ATMOSPHERE_PROFILES[atmosphere.profile];
+        const color = typeof profile.color === 'number' ? profile.color : 0xffffff;
+        const swarm = createSwarm(atmosphere.points, motes, color);
+        if (swarm !== null) {
+            group.addChild(swarm.container);
+            out.swarms.push(swarm);
+        }
+        if (mask !== null) {
+            // ⚑ In the scene graph, or it masks nothing (see addFeathered) —
+            // and pushed even with no swarm, so the RenderTexture is freed.
+            if (swarm !== null) {
+                group.addChild(mask.sprite);
+                swarm.container.mask = mask.sprite;
+            }
+            out.masks.push(mask.texture);
+        }
         return;
     }
 
@@ -1024,18 +1091,22 @@ function paintOutline(
     // obviously wrong than either alone — the same pairing the `angle` argument
     // was added for.
     aligned = false,
+    // ⭐ The BODY's corners and ends, and the width its taper is measured from,
+    // for the same reason: a sharp wall with a rounded kerb, or a cliff whose
+    // lip runs on past the tip of its face, disagrees with itself.
+    shape: PathShape = ROUND_SHAPE,
+    taperWidth = 0,
 ): void {
     const width = surface.outlineWidth;
     if (!surface.outlineProfile || !width) { return; }
     // A surface of its own, so every profile lookup below reads the OUTLINE's
     // entry and not the body's.
     const rim: Region = {profile: surface.outlineProfile, points};
-    const draw: DrawSurface = (g, style) => g
-        .poly(points, closed)
-        .stroke({...style, width, cap: PATH_CAP, join: PATH_JOIN});
+    const spec: RibbonSpec = {closed, width, aligned, shape, taperWidth: taperWidth || width};
+    const draw = pathSilhouette(points, closed, width, shape, spec.taperWidth);
     // ⚑ ONE mask for both branches: the ribbon's silhouette IS this stroke.
     const mask = surfaceMask(renderer, rim, points, draw, width / 2);
-    const rimRibbon = paintRibbon(container, rim, points, closed, width, aligned, mask, out);
+    const rimRibbon = paintRibbon(container, rim, points, spec, mask, out);
     if (!rimRibbon) {
         paintSurface(container, rim, points, draw, mask, width / 2, out, TERRAIN_PROFILES, angle, anchor);
     }
@@ -1045,7 +1116,7 @@ function paintOutline(
     // whether the RIM went out as a ribbon, not the body: the rim can fall back
     // (a drifting or still-loading rim profile) while the body did not.
     paintOverlay(container, rim, points, draw, mask, width / 2, renderer, out,
-        {closed, width, aligned: rimRibbon}, angle, anchor);
+        {...spec, aligned: rimRibbon}, angle, anchor);
 }
 
 /**
@@ -1066,13 +1137,10 @@ export function paintPolygons(
 ): PaintedSurfaces {
     const out: PaintedSurfaces = {masks: [], scrollers: []};
     polygons.forEach((polygon) => {
-        // No second argument: `poly()` closes by construction, and a polygon is
-        // closed by definition. An OPEN filled shape is not a thing this
-        // primitive can express, deliberately — that shape is a path.
-        const draw: DrawSurface = (g, style) => g.poly(polygon.points).fill(style);
-        const mask = surfaceMask(renderer, polygon, polygon.points, draw, 0);
-        paintSurface(container, polygon, polygon.points, draw, mask, 0, out);
-        paintOverlay(container, polygon, polygon.points, draw, mask, 0, renderer, out);
+        // `poly()` closes by construction, and a polygon is closed by
+        // definition. An OPEN filled shape is not a thing this primitive can
+        // express, deliberately — that shape is a path.
+        paintFilled(container, polygon, polygon.points, false, renderer, out);
         paintOutline(container, polygon, polygon.points, true, renderer, out);
     });
     return out;
@@ -1103,21 +1171,25 @@ export function paintPolygons(
  *     written there, and the only aligned-and-drifting path in the game (the
  *     river) is therefore unchanged by this chunk. ⭐ That is the follow-up
  *     this design opens, not a limit it inherits.
+ *  4. ⚑ **A shape the mesh cannot draw yet**: `round` corners or `round` ends
+ *     (plan-world-paths.md, the corners/ends rider, chunk B). The stroke +
+ *     matrix draws them, straight legs exact, so the authored shape wins over
+ *     the bends until the mesh learns them.
  */
 function paintRibbon(
     container: Container,
     surface: Region,
     points: RegionPoint[],
-    closed: boolean,
-    width: number,
-    aligned: boolean,
+    spec: RibbonSpec,
     // ⚑ Built by the CALLER, off the same centreline stroke the fallback draws,
     // so one mask serves either branch — and an overlay can be built from it
     // whichever branch ran. Pushed to `out.masks` only when this returns true.
     mask: BlendMask | null,
     out: PaintedSurfaces,
 ): boolean {
+    const {closed, width, aligned, shape} = spec;
     if (!aligned) { return false; }
+    if (shape.corners !== 'sharp' || (!closed && shape.ends === 'round')) { return false; }
     const authored = regionScroll(surface, TERRAIN_PROFILES);
     if (authored.x !== 0 || authored.y !== 0) { return false; }
 
@@ -1138,7 +1210,12 @@ function paintRibbon(
     // outward half of the ramp by nothing and end the edge in a 50 % step —
     // the same trap `addFeathered` exists to dodge for regions.
     const overdraw = mask !== null ? mask.bandPx * 1.5 : 0;
-    const ribbon = ribbonGeometry(points, width, closed, tileW, tileH, overdraw);
+    // A pointed end narrows the mesh itself, so a HARD edge (no mask) tapers
+    // too; the texture compresses into the tip rather than being cropped.
+    const taper = !closed && shape.ends === 'point' ? taperedCentreline(points, spec.taperWidth) : null;
+    const ribbon = taper !== null
+        ? ribbonGeometry(taper.points, width, false, tileW, tileH, overdraw, taper.factors)
+        : ribbonGeometry(points, width, closed, tileW, tileH, overdraw);
     if (ribbon === null) { return false; }
 
     const mesh = new Mesh({
@@ -1161,18 +1238,75 @@ function paintRibbon(
     return true;
 }
 
+/** A polygon's outline has no authored shape: round, as every stroke was (D10). */
+const ROUND_SHAPE: PathShape = {corners: 'round', ends: 'round'};
+
+/** Everything about a stroked surface a ribbon mesh needs beyond its points. */
+interface RibbonSpec {
+    closed: boolean;
+    /** This stroke's width, world px. */
+    width: number;
+    /** Whether it asked to follow its own run (`alignTexture`). */
+    aligned: boolean;
+    shape: PathShape;
+    /** The width a pointed end's taper LENGTH is measured from; see pathSilhouette. */
+    taperWidth: number;
+}
+
 /**
- * The stroke geometry every path is drawn with. Round on both counts (D10):
- * a butt cap reads as a river snipped off with scissors, and a mitre join
- * spikes outward at a sharp bend in a way no riverbank does.
+ * THE silhouette of a path, or of a path's outline: the ONE draw callback the
+ * body, its blend mask, its overlay and its hard-edge stencil are all cut
+ * from, so an authored corner or end cannot hold in one and not another
+ * (plan-world-paths.md, the corners/ends rider).
  *
- * ⚑ Still the geometry for every NON-aligned path, and for the aligned ones
- * {@link paintRibbon} hands back. An aligned path drawn as a mesh has flat ends
- * rather than round caps — which is the honest shape for a rock face, and has
- * no effect on the fences, whose caps are hidden under their own end posts.
+ * ⭐ `corners` and `ends` are AUTHORED now. They used to follow from the render
+ * branch — this function hardcoded round for both (D10: a butt cap reads as a
+ * river snipped off with scissors) while the aligned mesh only knew sharp and
+ * flat — so "follows the path" and "has corners" came as one package.
+ *
+ * ⚑ `point` is the one Pixi cannot stroke, because a stroke has ONE width. The
+ * full-width middle is still a stroke (butt-capped where the tapers begin, so
+ * the corners there are the authored ones); each taper is a FILLED outline
+ * ({@link ribbonOutline}), whose bends are always mitred.
+ *
+ * @param width        this stroke's width, world px
+ * @param taperWidth   the width the taper's LENGTH is measured from — the
+ *                     path's own, even for its outline, so a rim and its body
+ *                     come to the same tip.
  */
-const PATH_CAP = 'round';
-const PATH_JOIN = 'round';
+function pathSilhouette(
+    points: RegionPoint[],
+    closed: boolean,
+    width: number,
+    shape: PathShape,
+    taperWidth: number,
+): DrawSurface {
+    const line = {
+        width,
+        join: shape.corners === 'sharp' ? 'miter' as const : 'round' as const,
+        // ⚑ In half-widths on both sides of the branch, so a sharp corner
+        // gives up at the same angle drawn as a stroke or as the mesh.
+        miterLimit: MITRE_LIMIT,
+    };
+    const taper = !closed && shape.ends === 'point' ? taperedCentreline(points, taperWidth) : null;
+    if (taper === null) {
+        const cap = shape.ends === 'flat' || shape.ends === 'point' ? 'butt' as const : 'round' as const;
+        return (g, style) => g.poly(points, closed).stroke({...style, ...line, cap});
+    }
+    const [a, b] = taper.full;
+    const middle = taper.points.slice(a, b + 1);
+    const tips = [
+        ribbonOutline(taper.points.slice(0, a + 1), width, taper.factors.slice(0, a + 1)),
+        ribbonOutline(taper.points.slice(b), width, taper.factors.slice(b)),
+    ].filter((t): t is number[] => t !== null);
+    return (g, style) => {
+        if (middle.length >= 2) {
+            g.poly(middle, false).stroke({...style, ...line, cap: 'butt'});
+        }
+        tips.forEach(t => g.poly(t).fill(style));
+        return g;
+    };
+}
 
 /**
  * Draws every path into `container`, in AUTHORED ORDER.
@@ -1192,9 +1326,8 @@ export function paintPaths(
         // still a STROKE either way, which is why a closed river is a moat and
         // not a lake. Pixi's own default here is `true`, so the argument is
         // never left off: an omitted one would silently close every road.
-        const draw: DrawSurface = (g, style) => g
-            .poly(path.points, path.closed === true)
-            .stroke({...style, width: path.width, cap: PATH_CAP, join: PATH_JOIN});
+        const closed = path.closed === true;
+        const draw = pathSilhouette(path.points, closed, path.width, path, path.width);
 
         // ⭐ `textureAngle` is present on exactly the paths that authored
         // `alignTexture`, so it doubles as the "this one wants to follow its own
@@ -1211,8 +1344,8 @@ export function paintPaths(
         // wrong rather than the box being too small. ⚑ ONE mask for both
         // branches: the ribbon's silhouette IS this stroke.
         const mask = surfaceMask(renderer, path, path.points, draw, path.width / 2);
-        const ribbon = paintRibbon(container, path, path.points, path.closed === true,
-            path.width, aligned, mask, out);
+        const spec: RibbonSpec = {closed, width: path.width, aligned, shape: path, taperWidth: path.width};
+        const ribbon = paintRibbon(container, path, path.points, spec, mask, out);
         if (!ribbon) {
             // ⚑ `textureAngle` is 0/undefined for every path that did not author
             // `alignTexture`, so this argument changes nothing for a road or a
@@ -1221,7 +1354,7 @@ export function paintPaths(
                 TERRAIN_PROFILES, path.textureAngle || 0, path.textureAnchor || null);
         }
         paintOverlay(container, path, path.points, draw, mask, path.width / 2, renderer, out,
-            {closed: path.closed === true, width: path.width, aligned: ribbon},
+            {...spec, aligned: ribbon},
             path.textureAngle || 0, path.textureAnchor || null);
         // ⚑ The outline follows the path's OWN closure: a ring road's rim has to
         // close with it, or the seam shows as a notch in the kerb.
@@ -1229,9 +1362,10 @@ export function paintPaths(
         // texture and a world-aligned kerb would disagree with itself along its
         // whole length, which is more obviously wrong than either alone.
         // ⭐ ...and whether the BODY went out as a ribbon mesh, so the rim
-        // follows the same bends.
-        paintOutline(container, path, path.points, path.closed === true, renderer, out,
-            path.textureAngle || 0, path.textureAnchor || null, ribbon);
+        // follows the same bends. ⭐ ...and its corners and ends, tapered over
+        // the PATH's width so the rim comes to the same tip.
+        paintOutline(container, path, path.points, closed, renderer, out,
+            path.textureAngle || 0, path.textureAnchor || null, ribbon, path, path.width);
     });
     return out;
 }

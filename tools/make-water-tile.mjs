@@ -17,7 +17,7 @@
  *   - `make-fog-tile.mjs`                  — SMOOTH density fields (fog, miasma).
  *     RGBA, because they are AIR and the world has to show through.
  *   - `make-precipitation-tiles.mjs`       — PARTICLES (rain, snow, ash,
- *     sandstorm, fairy dust). Discrete marks on a mostly-empty RGBA tile.
+ *     sandstorm). Discrete marks on a mostly-empty RGBA tile.
  *
  * ⭐ SHARPNESS IS THE WHOLE TABLE. The same `ridged()` gives water its swell at
  * 4.2, a bog its broad scum at 1.4, and lava its thin bright veins at 7 — one

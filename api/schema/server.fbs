@@ -220,7 +220,25 @@ enum EntityType : ushort {
   // The giant spider's web (plan-aura-drawbacks.md C2, D7): a structure mob a
   // spider drops while it fights, slowing whoever stands in it. Flat on the
   // ground and walked THROUGH, the poison pool's shape. Placeholder art.
-  SpiderWeb = 99
+  SpiderWeb = 99,
+
+  // ⚑ The wrecked twin of House (25), the way BurntCart (87) is Cart's: a
+  // separate entityType because it is a second DRAWING, on the same 4x3 body
+  // so a placement swaps between them without moving anything. Still solid:
+  // the standing walls and the rubble are what you walk around.
+  RuinedHouse = 100,
+
+  // ⭐ Two forest-floor harvest-mobs, the Turnip's pattern (a structure that
+  // only Harvest can pop). Two values rather than one because the colour IS
+  // the drawing: an entityType picks the sprite, and a blue mushroom and a red
+  // one are told apart from across the clearing by nothing else.
+  BlueMushroom = 101,
+  RedMushroom = 102,
+
+  // The third tree silhouette, after RoundTree (a circle) and PineTree (a
+  // star): a lumpy cloud of domed clumps. Generic prop like PineTree, and the
+  // collider is the TRUNK at the sprite centre, not the lopsided crown.
+  OakTree = 103
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

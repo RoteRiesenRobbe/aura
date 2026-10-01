@@ -44,6 +44,44 @@ const clearStep = 0.5
 // the hash is built for, and buys back tight boxes.
 const maxCorridorSegment = 8
 
+// taperLengthPerWidth is how far along the arc a pointed end (Path.Ends
+// "point") narrows to nothing, as a multiple of the path's width.
+// [PLACEHOLDER] — PO-ruled a fixed number rather than an authored one.
+//
+// ⚑ The client holds the SAME number (frontend Paths.ts
+// TAPER_LENGTH_PER_WIDTH), and the two must agree: one draws the tip, the
+// other walls it. Each side pins it with a test.
+const taperLengthPerWidth = 2
+
+// taper is a pointed path's width profile along its arc: the factor, 1 down to
+// 0, the width is multiplied by at arc position s. The zero value tapers
+// nothing, which is every path that does not author "point".
+type taper struct {
+	length, total float32
+}
+
+// pathTaper measures the taper an open path authoring "point" gets: 2 × width
+// at each end, clamped to half the path so the two never overlap. The taper is
+// INSIDE the drawn length (PO-ruled) — the endpoint is the tip.
+func pathTaper(p *Path) taper {
+	if p.Ends != "point" || p.Closed {
+		return taper{}
+	}
+	var total float32
+	for i := 0; i+1 < len(p.Points); i++ {
+		a, b := p.Points[i], p.Points[i+1]
+		total += float32(math.Hypot(float64(b.X-a.X), float64(b.Y-a.Y)))
+	}
+	return taper{length: min(taperLengthPerWidth*p.Width, total/2), total: total}
+}
+
+func (tp taper) at(s float32) float32 {
+	if tp.length <= 0 {
+		return 1
+	}
+	return max(0, min(1, s/tp.length, (tp.total-s)/tp.length))
+}
+
 // PathCorridors builds the static collision shapes for every blocking path in
 // the zone, minus whatever the bridges clear (D6).
 //
@@ -100,7 +138,11 @@ func appendPathCorridors(out []Corridor, p *Path, bridges []*Prop) []Corridor {
 	if p.Closed {
 		segments = n
 	}
+	tp := pathTaper(p)
 
+	// along is the arc position of the current segment's start, which is what
+	// the taper is measured in.
+	var along float32
 	for i := 0; i < segments; i++ {
 		a, b := p.Points[i], p.Points[(i+1)%n]
 		dx, dy := b.X-a.X, b.Y-a.Y
@@ -126,21 +168,33 @@ func appendPathCorridors(out []Corridor, p *Path, bridges []*Prop) []Corridor {
 		// Walk the samples and merge maximal BLOCKED runs back into single
 		// rects — the sampling exists to find the bridge gaps, not to set the
 		// body count. An unbridged 40-unit segment comes out of here as one run.
+		//
+		// ⭐ Inside a pointed end's taper every sample is its OWN rect, at the
+		// width the drawing has at that sample's middle: the wall narrows with
+		// the cliff instead of standing full width round a tip the eye sees as
+		// nothing. Only full-width samples merge.
 		runStart := -1
 		for s := 0; s <= steps; s++ {
 			blocked := false
+			f := float32(1)
 			if s < steps {
 				t := (float32(s) + 0.5) * step
 				blocked = !coveredByBridge(a.X+ux*t, a.Y+uy*t, bridges)
+				f = tp.at(along + t)
 			}
-			switch {
-			case blocked && runStart < 0:
-				runStart = s
-			case !blocked && runStart >= 0:
+			tapered := blocked && f < 1
+			if runStart >= 0 && (!blocked || tapered) {
 				out = emitRun(out, a.X, a.Y, ux, uy, float32(runStart)*step, float32(s)*step, p.Width, angle)
 				runStart = -1
 			}
+			switch {
+			case tapered:
+				out = emitRun(out, a.X, a.Y, ux, uy, float32(s)*step, float32(s+1)*step, p.Width*f, angle)
+			case blocked && runStart < 0:
+				runStart = s
+			}
 		}
+		along += length
 
 		// The joint at the far end of this segment, where the next one turns
 		// away: two rects meeting at an angle leave a wedge open on the OUTER
@@ -151,9 +205,19 @@ func appendPathCorridors(out []Corridor, p *Path, bridges []*Prop) []Corridor {
 		// no joint. A closed one has a segment after every segment, seam
 		// included — which is why this asks "is there a next SEGMENT" rather
 		// than "is there a next point".
+		//
+		// ⚑ A joint inside a taper shrinks with it (along is now this joint's
+		// arc position): a full-width circle at a vertex the drawing has
+		// already narrowed would be an invisible wall.
+		//
+		// ⚑ And it shrinks to its clearance from any bridge: a vertex just past
+		// a deck edge would otherwise stamp a half-width disc back over the
+		// walkable deck. A vertex UNDER a deck has no clearance and no joint.
+		// What that gives up is a sliver of the outer wedge beside the deck — a
+		// notch in the bank, never a way across.
 		hasNextSegment := i+1 < segments || p.Closed
-		if hasNextSegment && !coveredByBridge(b.X, b.Y, bridges) {
-			out = append(out, Corridor{X: b.X, Y: b.Y, Radius: half})
+		if r := min(half*tp.at(along), bridgeClearance(b.X, b.Y, bridges)); hasNextSegment && r > 0 {
+			out = append(out, Corridor{X: b.X, Y: b.Y, Radius: r})
 		}
 	}
 	return out
@@ -199,18 +263,35 @@ func coveredByBridge(x, y float32, bridges []*Prop) bool {
 // placement's rotation for a rect. Mirrors phy's own rotated-rect test rather
 // than importing it: world cannot import phy.
 func pointInPropBody(x, y float32, p *Prop) bool {
+	return distanceToPropBody(x, y, p) == 0
+}
+
+// bridgeClearance is how far a point is from the nearest bridge's visual
+// footprint: 0 on or under a deck, +Inf with no bridges at all.
+func bridgeClearance(x, y float32, bridges []*Prop) float32 {
+	d := float32(math.Inf(1))
+	for _, b := range bridges {
+		d = min(d, distanceToPropBody(x, y, b))
+	}
+	return d
+}
+
+// distanceToPropBody is the distance from a point to a prop's visual body, 0
+// on or inside it. A body with no size is infinitely far: it covers nothing.
+func distanceToPropBody(x, y float32, p *Prop) float32 {
 	body := p.VisualBody()
 	dx, dy := x-p.X, y-p.Y
 	if body.Radius > 0 {
-		return dx*dx+dy*dy <= body.Radius*body.Radius
+		return max(0, float32(math.Hypot(float64(dx), float64(dy)))-body.Radius)
 	}
 	if body.Width <= 0 || body.Height <= 0 {
-		return false
+		return float32(math.Inf(1))
 	}
 	// Into the rect's own frame: turn the offset back by the prop's angle.
 	sin, cos := math.Sincos(float64(-p.Rotation))
 	lx := dx*float32(cos) - dy*float32(sin)
 	ly := dx*float32(sin) + dy*float32(cos)
-	return lx >= -body.Width/2 && lx <= body.Width/2 &&
-		ly >= -body.Height/2 && ly <= body.Height/2
+	ox := max(0, abs32(lx)-body.Width/2)
+	oy := max(0, abs32(ly)-body.Height/2)
+	return float32(math.Hypot(float64(ox), float64(oy)))
 }

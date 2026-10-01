@@ -741,6 +741,44 @@ describe('AuraConvert — patrol routes and the remaining arrays', () => {
         expect(out.regions.map((r: {profile: string}) => r.profile)).toEqual(['swamp', 'bog', 'ash']);
     });
 
+    // --- the region title banner (2026-09-28) --------------------------------
+
+    const TRI = [{x: 0, y: 0}, {x: 2, y: 0}, {x: 2, y: 2}];
+    const regionObject = (props: Record<string, unknown>) => {
+        const m = C.zoneToModel(zone({regions: [{profile: 'swamp', points: TRI}]})) as
+            {layers: {name: string, objects: {properties: Record<string, unknown>}[]}[]};
+        Object.assign(m.layers.filter(l => l.name === 'regions')[0].objects[0].properties, props);
+        return m;
+    };
+
+    it('carries a region title and subtitle through Tiled', () => {
+        const r = {profile: 'swamp', points: TRI, title: 'The Mire', subtitle: 'Mind your step'};
+        const m = C.zoneToModel(zone({regions: [r]}));
+        const o = m.layers.filter(l => l.name === 'regions')[0].objects[0];
+        expect(o.properties).toEqual({profile: 'swamp', title: 'The Mire', subtitle: 'Mind your step'});
+        expect(roundTrip(zone({regions: [r]})).regions[0]).toEqual(r);
+    });
+
+    // '' is the palette default, i.e. what Tiled holds for a region nobody named.
+    it('reads a blank title or subtitle as not authored', () => {
+        const out = C.modelToZone(regionObject({title: '  ', subtitle: ''}));
+        expect(out.regions[0].title).toBeUndefined();
+        expect(out.regions[0].subtitle).toBeUndefined();
+        expect(C.serializeZone(out)).not.toContain('title');
+    });
+
+    it('trims the title the author typed', () => {
+        expect(C.modelToZone(regionObject({title: ' The Mire '})).regions[0].title).toBe('The Mire');
+    });
+
+    // Mirrors zone.go, which refuses the boot on it.
+    it('refuses a subtitle without a title at save time', () => {
+        expect(C.validateModel(regionObject({subtitle: 'Orphan'})).join(' | '))
+            .toContain('has a subtitle but no title');
+        expect(C.validateModel(regionObject({title: 'The Mire', subtitle: 'Orphan'})).join(' | '))
+            .not.toContain('subtitle');
+    });
+
     // --- the typed profile dropdown (C2) ------------------------------------
 
     // ⚑ The GUI defect this exists for: a PLAIN-STRING property shadows the
@@ -1862,7 +1900,10 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         }],
         campfires: [{id: 'spawnpoint-1', x: 6, y: 6, startingSpawn: true}],
         darkAreas: [{x: 7, y: 7, radius: 2}],
-        regions: [{profile: 'swamp', points: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 2}]}],
+        // ⚑ title AND subtitle are authored: both are omitted when blank, so a
+        // fixture without them would pass this pin while the writers drop them.
+        regions: [{profile: 'swamp', points: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 2}],
+            title: 'The Mire', subtitle: 'Mind your step'}],
         // ⚑ blocksMovement is tri-state on a path (false = absent), so the
         // fixture has to author it TRUE or the key never appears and the pin
         // passes while the writers quietly disagree about it.
@@ -1888,6 +1929,13 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             // left it off would let this pin pass while every writer dropped it.
             alignTexture: true,
             effect: 'Blight',
+        }, {
+            // ⚑ A second, OPEN path for the shape keys: `ends` on a ring is
+            // refused (a ring has no ends), so the one above cannot carry it.
+            // Both non-default, or the keys never appear and this pin passes
+            // while a writer drops them.
+            profile: 'Cliff', points: [{x: 1, y: 7}, {x: 6, y: 7}], width: 1,
+            corners: 'sharp', ends: 'point',
         }],
         // ⚑ blocksMovement TRUE for the same tri-state reason as the path above:
         // false is the authored default, so a decorative fixture would never
@@ -2104,6 +2152,49 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
         expect(members[0].propertyType).toBe(C.PROP_BLOCKS_ENUM);
         expect(members[0].value, 'class default must equal PROP_BLOCKS_INHERIT')
             .toBe(C.PROP_BLOCKS_INHERIT);
+    });
+
+    // ⭐ The same pin for a path's corners and ends: the class default must be
+    // the value readPathShape maps back to "not authored", or every path in
+    // the world grows a key on its first save from a Tiled that keeps defaults.
+    it("⭐ AuraPath's corners and ends default to the converter's sentinel", () => {
+        const members = byName('AuraPath').members ?? [];
+        (['corners', 'ends'] as const).forEach((k) => {
+            const m = members.filter(x => x.name === k)[0];
+            expect(m, `AuraPath carries ${k}`).toBeDefined();
+            expect(m.propertyType).toBe(C.PATH_SHAPE_ENUMS[k]);
+            expect(m.value).toBe(C.PATH_SHAPE_DEFAULT);
+            expect(byName(C.PATH_SHAPE_ENUMS[k]).values)
+                .toEqual([C.PATH_SHAPE_DEFAULT].concat(C.PATH_SHAPE_VALUES[k]));
+        });
+    });
+
+    it('round-trips corners and ends, and writes nothing for the default', () => {
+        const line = [{x: 0, y: 0}, {x: 5, y: 0}];
+        const authored = roundTrip(zone({paths: [
+            {profile: 'Cliff', points: line, width: 1, corners: 'sharp', ends: 'point'},
+        ]})).paths[0] as Record<string, unknown>;
+        expect(authored.corners).toBe('sharp');
+        expect(authored.ends).toBe('point');
+
+        const plain = roundTrip(zone({paths: [{profile: 'Road', points: line, width: 1}]}))
+            .paths[0] as Record<string, unknown>;
+        expect('corners' in plain).toBe(false);
+        expect('ends' in plain).toBe(false);
+    });
+
+    it('reads the sentinel back as absent, and refuses ends on a ring', () => {
+        const m = C.zoneToModel(zone({paths: [
+            {profile: 'Road', points: [{x: 0, y: 0}, {x: 5, y: 0}, {x: 5, y: 5}], width: 1, closed: true},
+        ]})) as {layers: {name: string; objects: {properties: Record<string, unknown>}[]}[]};
+        const o = m.layers.filter(l => l.name === 'paths')[0].objects[0];
+        o.properties.corners = C.PATH_SHAPE_DEFAULT;
+        expect((C.modelToZone(m) as {paths: Record<string, unknown>[]}).paths[0].corners)
+            .toBeUndefined();
+
+        o.properties.ends = 'point';
+        const errors = C.validateModel(m) as string[];
+        expect(errors.join('\n')).toContain('closed ring, which has no ends');
     });
 
     // ⚑ And the enum behind it must actually offer the three values the

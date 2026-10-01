@@ -1,5 +1,17 @@
 # Content — Zone 2 (village + City Gates + the front)
 
+> **⛔ SUPERSEDED 2026-09-30. NOT the current Zone 2.** This describes the east
+> half of the OLD 144×72 world built by step 6 (`plan-content-zones12.md`), which
+> survives only as the `-debug-zones` set, `api/zones/.debug/world_debug.json`.
+> Every `world.json` below now means **that debug file**.
+>
+> ⭐ **Current Zone 2 is Woodland (the Deep Woods region):
+> [`../content-zone-design-guide.md`](../content-zone-design-guide.md) §3.** The
+> content described here (village, City Gates, the front, the Orc Warlord) was
+> always the world bible's City / Suburbs material, not Woodland (guide §0). In
+> the rebuilt world the front moved to **The Umberwood** south of the City
+> (`8bc9210c`), and the Warlord's arena anchors went with it.
+
 **Design intent only.** This doc holds what Zone 2 is supposed to *be and
 do*; exact runtime positions live in the zone JSON (`api/zones/world.json`)
 authored/polished via the zone editor and are never mirrored here.

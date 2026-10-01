@@ -207,6 +207,21 @@ html.mobile {
 		max-width: 90vw;
 	}
 
+	// vh-sized type is tiny on a landscape phone, like the alert banner's
+	// position above. Below the alert line, in rem. [PLACEHOLDER]
+	#regionBanner {
+		top: 10rem;
+		max-width: 90vw;
+
+		.regionTitle {
+			font-size: 2.6rem;
+		}
+
+		.regionSubtitle {
+			font-size: 1.1rem;
+		}
+	}
+
 	/* --- the interact button ------------------------------------------- */
 	// The tappable twin of E, and on mobile the ONLY interact surface — the
 	// badge over the actor's head is suppressed (Backend.applyGameState).

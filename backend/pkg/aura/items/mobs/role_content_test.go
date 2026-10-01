@@ -54,9 +54,12 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// SpiderWeb joins with plan-aura-drawbacks.md C2: the web a giant spider
 	// spins mid-fight, a structure for the poison pool's reason (a planted aura
 	// carrier with no AI), summoned by a mob cooldown rather than placed.
+	//
+	// BlueMushroom and RedMushroom are the Turnip twice more on the forest
+	// floor, harvest lock included - structures for the Turnip's reason.
 	assert.ElementsMatch(t, []string{
-		"Beet", "Bramble", "Camp", "Campfire", "FireTotem", "PoisonPool", "ProjectileBomb",
-		"Rockfall", "SpiderWeb", "SpikeBarricade", "Totem", "Turnip", "WarbannerTotem",
+		"Beet", "BlueMushroom", "Bramble", "Camp", "Campfire", "FireTotem", "PoisonPool", "ProjectileBomb",
+		"RedMushroom", "Rockfall", "SpiderWeb", "SpikeBarricade", "Totem", "Turnip", "WarbannerTotem",
 	}, byRole[RoleStructure], "the authored structures")
 
 	// 36 before chunk 3a, plus the 14 merged NPCs: D4 authors them as creatures
@@ -99,7 +102,10 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// 63 → 64 with the GiantRat (content-zone-design-guide.md §2.4): an
 	// ordinary walking, fighting creature — Zone 1's first AGGRESSIVE mob
 	// (wildlife_predator, where the Boar it sits beside is prey faction).
-	assert.Len(t, byRole[RoleCreature], 64, "everything else is a creature")
+	// 64 → 82 with the content-world.md placeholder roster: eighteen walking,
+	// fighting creatures for the mercenaries, undead, cult, dragonkin, fey and
+	// desert beasts, all drawn as NpcPlaceholder until their art exists.
+	assert.Len(t, byRole[RoleCreature], 82, "everything else is a creature")
 	assert.Len(t, byRole, 2, "no def carries a role outside the two")
 }
 

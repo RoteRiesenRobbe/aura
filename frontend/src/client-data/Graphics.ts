@@ -107,6 +107,19 @@ export const GraphicsConfig = {
             maxSize: <number> 26,
         },
 
+        // The Turnip's forest-floor twins: same body, same size band.
+        blueMushroom: {
+            file: require('../features/game-objects/assets/mobs/blueMushroom.svg'),
+            minSize: <number> 20,
+            maxSize: <number> 26,
+        },
+
+        redMushroom: {
+            file: require('../features/game-objects/assets/mobs/redMushroom.svg'),
+            minSize: <number> 20,
+            maxSize: <number> 26,
+        },
+
         // Z1 wildlife + brambles (content pass C2).
         wolf: {
             file: require('../features/game-objects/assets/mobs/wolf.png'),

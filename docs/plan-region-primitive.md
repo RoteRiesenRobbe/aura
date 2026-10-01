@@ -934,7 +934,38 @@ in passing — each would have to be re-opened as the ruling it is.
   system's native idiom (D0 last-wins): the later region's band then ramps
   over the earlier one at full opacity, a perfect crossfade with zero base
   bleed. Abutment is the degraded case, and symmetric is the mode that
-  fails soft there.
+  fails soft there. ⚠ **AMENDED by D23 (2026-09-29) for regions.**
+
+- **D23 (2026-09-29, PO) — a REGION's fade lies OUTSIDE its polygon; D22
+  stays the polygon default.** The trigger: the PO paints regions side by side
+  WITHOUT overlap, and "a quarter of base bleed" at every seam is a visible
+  line once the ground is `Water` (it moves). Two centred ramps stack to
+  1 − ½·½ = 75 % at the seam, never 100 %, so no band width fixes it.
+  - **What it does.** Before the blur the MASK's silhouette is dilated by a
+    round-joined stroke, `outwardGrow` = ¾ × the drawn fade + `wobbleReach`
+    (MaskNoise.ts). ⚑ ¾, not ½: Pixi's BlurFilter at quality 4 is four 5-tap
+    passes, σ ≈ 0.32 band, so half a band inside the midpoint is only ~94 %
+    and the first cut left the water visible through the seam. ¾ ≈ 99 %. The
+    reach is added whole so a wobble trough cannot pull the fade back inside.
+    Footprint and overdraw grow by the same amount.
+  - **Result.** Each region is solid up to its drawn line; at a shared edge
+    the one on top fades out over the one below, which is still solid there,
+    so no ground shows anywhere. Authored order decides which side the
+    transition sits on. Against bare ground a region reads ~¾ blend larger
+    than drawn (1.1 u at 1.5); `Regions.resolve()` and the server still use the
+    authored polygon — accepted.
+  - ⛔ **Both neighbours must be outward.** An outward region next to a
+    centred one leaves a strip where both are partial and a few percent of
+    ground shows (seen in the slice). That is why it is the region DEFAULT
+    (`REGION_BLEND_OUTWARD`), not an opt-in.
+  - **The key stays.** `blendOutward` per profile (D2): absent = the shape's
+    default (region outward, polygon centred), `false` puts a region back on
+    D22, `true` opts a polygon in (experimental; a polygon lies on regions and
+    has no seam, so there it only moves the edge). ⚑ A polygon's OUTLINE stays
+    centred on the drawn line. Paths, outlines, clearings never read the key.
+  - Schema DB / wire / zone format: NONE; client-only, one profile key.
+    Vertical slice 2026-09-28 (Ice + neighbours, then all regions), PO: "those
+    look good now".
 
 ## 10. Landmines
 

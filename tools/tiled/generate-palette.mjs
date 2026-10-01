@@ -418,6 +418,12 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // is the whole of D10, and a shape that grew a random skill because one
         // sorted first would be a hazard nobody drew.
         enumType('AuraEffect', [EFFECT_UNSET].concat(effects)),
+        // How a path turns and stops (plan-world-paths.md, the corners/ends
+        // rider). Mirrors world.PathCorners / PathEnds. The sentinel leads for
+        // AuraPropBlocks' reason: it maps back to "not authored" (round), so a
+        // dropped default and a kept one reach the same answer.
+        enumType(C.PATH_SHAPE_ENUMS.corners, [C.PATH_SHAPE_DEFAULT].concat(C.PATH_SHAPE_VALUES.corners)),
+        enumType(C.PATH_SHAPE_ENUMS.ends, [C.PATH_SHAPE_DEFAULT].concat(C.PATH_SHAPE_VALUES.ends)),
         classType('AuraTerrain', '#ff8bc34a'),
         // ⭐ ONE member, and the enum above is what makes it safe — see the
         // block comment over KIND_COLOUR. The default IS C.PROP_BLOCKS_INHERIT,
@@ -435,8 +441,13 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // authored". PROFILE_UNSET is that value — it is not a profile name and
         // the save refuses it — so a Tiled that drops a default-valued property
         // and a Tiled that keeps it reach the same answer.
+        // ⭐ title / subtitle (the region title banner, 2026-09-28) obey the
+        // same rule with '' as the "not authored" value — the spawn `anchor`
+        // reading: aura-convert.js readText maps a blank back to absent.
         classType('AuraRegion', '#ffcddc39',
-            [member('profile', 'string', PROFILE_UNSET, 'AuraTerrainProfile')]),
+            [member('profile', 'string', PROFILE_UNSET, 'AuraTerrainProfile'),
+                member('title', 'string', ''),
+                member('subtitle', 'string', '')]),
         // A path wears the same profile vocabulary as a region and adds its own
         // geometry. ⚑ Both extra members obey the C6 rule the AuraRegion note
         // above states: 'width' defaults to 0, which the save REFUSES, so a
@@ -454,6 +465,8 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
                 member('width', 'float', 0),
                 member('blocksMovement', 'bool', false),
                 member('alignTexture', 'bool', false),
+                member('corners', 'string', C.PATH_SHAPE_DEFAULT, C.PATH_SHAPE_ENUMS.corners),
+                member('ends', 'string', C.PATH_SHAPE_DEFAULT, C.PATH_SHAPE_ENUMS.ends),
                 ...OUTLINE_MEMBERS, EFFECT_MEMBER]),
         // ⚑ A filled AREA, sharing the paths layer and told apart by this class
         // (plan-zone-polygons.md D5). It has NO width member on purpose: a

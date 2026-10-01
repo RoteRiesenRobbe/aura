@@ -694,6 +694,33 @@ export class Turnip extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Turnip, file('turnip'), maxSize('turnip'));
 
+// The Turnip's forest-floor twins: Harvest-only, drawn under the walkers.
+export class BlueMushroom extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.turnip, x, y,
+            randomInt(minSize('blueMushroom'), maxSize('blueMushroom')),
+            BlueMushroom.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(BlueMushroom, file('blueMushroom'), maxSize('blueMushroom'));
+
+export class RedMushroom extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.turnip, x, y,
+            randomInt(minSize('redMushroom'), maxSize('redMushroom')),
+            RedMushroom.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(RedMushroom, file('redMushroom'), maxSize('redMushroom'));
+
 // --- Z1 wildlife + brambles (content pass C2), sharing the wildlife layer ---
 
 const wolfBorder = registerBorder(GraphicsConfig.mobs.wolf.borderFile, maxSize('wolf'));

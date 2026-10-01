@@ -57,9 +57,11 @@
                 "Haystack",
                 "House",
                 "Mill",
+                "OakTree",
                 "Palisade",
                 "PineTree",
                 "Rock",
+                "RuinedHouse",
                 "Stump",
                 "Tombstone",
                 "Torch",
@@ -99,6 +101,8 @@
                 "Bear",
                 "Beet",
                 "Benjamin",
+                "BlightedTreant",
+                "BlueMushroom",
                 "Boar",
                 "Bramble",
                 "Camp",
@@ -107,9 +111,16 @@
                 "CaveMouth",
                 "CityGuard",
                 "Companion",
+                "CultAcolyte",
+                "CultHighPriest",
+                "Cultist",
+                "DeathKnight",
                 "DireBear",
                 "DireWolf",
                 "Dog",
+                "Dragon",
+                "DragonkinWarrior",
+                "Drakeling",
                 "EliteBandit",
                 "EliteWolf",
                 "Eliza",
@@ -120,7 +131,9 @@
                 "ForestSign",
                 "FrontAscensionStone",
                 "FrontCaptain",
+                "Ghoul",
                 "GiantRat",
+                "GiantScorpion",
                 "GiantSpider",
                 "GreaterFireElemental",
                 "Hendrik",
@@ -133,6 +146,9 @@
                 "Marauder",
                 "MedicCompanion",
                 "MemorialStone",
+                "Mercenary",
+                "MercenaryCaptain",
+                "MercenaryCrossbowman",
                 "Miller",
                 "Miner",
                 "Orc",
@@ -143,12 +159,16 @@
                 "PortalSummon",
                 "ProjectileBomb",
                 "RallyDrummer",
+                "RedMushroom",
                 "Reinhard",
                 "Rockfall",
+                "SandBasilisk",
                 "Shaman",
                 "Sheep",
                 "Shepherd",
                 "ShieldbearerCompanion",
+                "Skeleton",
+                "SkeletonArcher",
                 "SoldierCompanion",
                 "Spider",
                 "SpiderWeb",
@@ -156,12 +176,14 @@
                 "Stag",
                 "Totem",
                 "TownCrier",
+                "Treant",
                 "Troll",
                 "Turnip",
                 "VenomSpider",
                 "VillageHealer",
                 "Wanderer",
                 "WarbannerTotem",
+                "Wisp",
                 "Wolf",
                 "Woolliam"
             ],
@@ -224,10 +246,12 @@
                 "Cliff Smooth",
                 "Wall",
                 "Road",
+                "Cobblestone",
                 "Water",
                 "Bog",
                 "Lava",
-                "Stones"
+                "Stones",
+                "Pit"
             ],
             "valuesAsFlags": false
         },
@@ -239,6 +263,7 @@
             "values": [
                 "(pick a profile)",
                 "Cave Air",
+                "Darkness",
                 "Gloom",
                 "Canopy",
                 "Storm Sky",
@@ -397,6 +422,31 @@
         },
         {
             "id": 11,
+            "name": "AuraPathCorners",
+            "type": "enum",
+            "storageType": "string",
+            "values": [
+                "(default)",
+                "round",
+                "sharp"
+            ],
+            "valuesAsFlags": false
+        },
+        {
+            "id": 12,
+            "name": "AuraPathEnds",
+            "type": "enum",
+            "storageType": "string",
+            "values": [
+                "(default)",
+                "round",
+                "flat",
+                "point"
+            ],
+            "valuesAsFlags": false
+        },
+        {
+            "id": 13,
             "name": "AuraTerrain",
             "type": "class",
             "color": "#ff8bc34a",
@@ -408,7 +458,7 @@
             "members": []
         },
         {
-            "id": 12,
+            "id": 14,
             "name": "AuraProp",
             "type": "class",
             "color": "#fff44336",
@@ -427,7 +477,7 @@
             ]
         },
         {
-            "id": 13,
+            "id": 15,
             "name": "AuraCampfire",
             "type": "class",
             "color": "#ffff9800",
@@ -439,7 +489,7 @@
             "members": []
         },
         {
-            "id": 14,
+            "id": 16,
             "name": "AuraDarkArea",
             "type": "class",
             "color": "#ff673ab7",
@@ -451,7 +501,7 @@
             "members": []
         },
         {
-            "id": 15,
+            "id": 17,
             "name": "AuraAnchor",
             "type": "class",
             "color": "#ff00bcd4",
@@ -463,7 +513,7 @@
             "members": []
         },
         {
-            "id": 16,
+            "id": 18,
             "name": "AuraRegion",
             "type": "class",
             "color": "#ffcddc39",
@@ -478,11 +528,21 @@
                     "type": "string",
                     "propertyType": "AuraTerrainProfile",
                     "value": "(pick a profile)"
+                },
+                {
+                    "name": "title",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "subtitle",
+                    "type": "string",
+                    "value": ""
                 }
             ]
         },
         {
-            "id": 17,
+            "id": 19,
             "name": "AuraPath",
             "type": "class",
             "color": "#ff03a9f4",
@@ -514,6 +574,18 @@
                     "value": false
                 },
                 {
+                    "name": "corners",
+                    "type": "string",
+                    "propertyType": "AuraPathCorners",
+                    "value": "(default)"
+                },
+                {
+                    "name": "ends",
+                    "type": "string",
+                    "propertyType": "AuraPathEnds",
+                    "value": "(default)"
+                },
+                {
                     "name": "outlineProfile",
                     "type": "string",
                     "propertyType": "AuraTerrainProfile",
@@ -533,7 +605,7 @@
             ]
         },
         {
-            "id": 18,
+            "id": 20,
             "name": "AuraPolygon",
             "type": "class",
             "color": "#ff8d6e63",
@@ -574,7 +646,7 @@
             ]
         },
         {
-            "id": 19,
+            "id": 21,
             "name": "AuraAtmosphere",
             "type": "class",
             "color": "#ff9e9e9e",
@@ -599,7 +671,7 @@
             ]
         },
         {
-            "id": 20,
+            "id": 22,
             "name": "AuraClearing",
             "type": "class",
             "color": "#ffffeb3b",
@@ -618,7 +690,7 @@
             ]
         },
         {
-            "id": 21,
+            "id": 23,
             "name": "AuraSpawnCombat",
             "type": "class",
             "color": "#ff4caf50",
@@ -673,7 +745,7 @@
             ]
         },
         {
-            "id": 22,
+            "id": 24,
             "name": "AuraSpawnTalker",
             "type": "class",
             "color": "#ffe91e63",
@@ -728,7 +800,7 @@
             ]
         },
         {
-            "id": 23,
+            "id": 25,
             "name": "AuraSpawnFixture",
             "type": "class",
             "color": "#ff9e9e9e",

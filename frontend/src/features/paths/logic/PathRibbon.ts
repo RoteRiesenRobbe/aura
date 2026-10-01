@@ -37,6 +37,7 @@
  * half that must touch the GPU is `RegionPaint.paintRibbon`.
  */
 import {RegionPoint} from '../../regions/logic/Regions';
+import {TAPER_LENGTH_PER_WIDTH} from './Paths';
 
 /** A triangle strip over a polyline, in the three buffers a Pixi mesh wants. */
 export interface Ribbon {
@@ -52,13 +53,13 @@ export interface Ribbon {
  * of the half-width.
  *
  * ⛔ A mitre length goes to INFINITY as a corner closes on itself, which is
- * exactly the spike `PATH_CAP`/`PATH_JOIN` chose `round` to avoid — see the D10
+ * exactly the spike a round join avoids — see the D10
  * note in RegionPaint. Clamping trades that spike for a slightly NARROW band on
  * the outside of a hairpin, which is the right way round: a hairpin in authored
  * content is rare and a little pinch there is invisible, while one spike is a
  * rock shard flung across the map.
  */
-const MITRE_LIMIT = 4;
+export const MITRE_LIMIT = 4;
 
 /** The unit normal of the segment a→b, or null if the two coincide. */
 function segmentNormal(a: RegionPoint, b: RegionPoint): { x: number, y: number, len: number } | null {
@@ -76,20 +77,112 @@ function segmentNormal(a: RegionPoint, b: RegionPoint): { x: number, y: number, 
  * leaves behind and what would otherwise put a zero-length segment — and so a
  * NaN normal — into the middle of an otherwise fine path.
  */
-function distinct(points: RegionPoint[], closed: boolean): RegionPoint[] {
-    const out: RegionPoint[] = [];
-    points.forEach((p) => {
-        const last = out[out.length - 1];
-        if (!last || last.x !== p.x || last.y !== p.y) { out.push(p); }
+function distinct(points: RegionPoint[], closed: boolean): number[] {
+    const out: number[] = [];
+    points.forEach((p, i) => {
+        const last = points[out[out.length - 1]];
+        if (!last || last.x !== p.x || last.y !== p.y) { out.push(i); }
     });
     // A closed ring whose last point repeats its first carries the closure in
     // the flag, not in the geometry.
     if (closed && out.length > 1) {
-        const first = out[0];
-        const last = out[out.length - 1];
+        const first = points[out[0]];
+        const last = points[out[out.length - 1]];
         if (first.x === last.x && first.y === last.y) { out.pop(); }
     }
+    // ⚑ INDICES, not points, so a per-point array riding beside the points
+    // (the taper's width factors) is thinned by exactly the same rule.
     return out;
+}
+
+/** A centreline with a pointed end's taper resolved (Paths `ends: point`). */
+export interface TaperedCentreline {
+    /** The centreline, with a vertex inserted wherever a taper begins. */
+    points: RegionPoint[];
+    /** The width factor at each point: 1 at full width, 0 at the tip. */
+    factors: number[];
+    /** The first and last full-width point; equal when the two tapers meet. */
+    full: [number, number];
+}
+
+/**
+ * Resolves the taper a path with `ends: point` narrows by: the last
+ * `TAPER_LENGTH_PER_WIDTH × width` of the drawn length at EACH end, measured
+ * along the arc, falling linearly to nothing at the endpoint.
+ *
+ * ⭐ INSIDE the drawn length, not past it (PO-ruled): the endpoint in Tiled is
+ * where the tip is, and the server narrows the collision the same way
+ * (`paths_collision.go` pathTaper).
+ *
+ * ⚑ Clamped to half the path, so on a short one the two tapers meet in the
+ * middle and nothing is full width, rather than overlapping.
+ *
+ * ⚑ A vertex is inserted where each taper begins, so the linear ramp starts
+ * exactly there and a renderer can split the full-width middle off cleanly.
+ * A cut landing on an existing vertex reuses it instead of doubling it.
+ *
+ * @returns null when there is no length to taper.
+ */
+export function taperedCentreline(points: RegionPoint[], width: number): TaperedCentreline | null {
+    const pts = distinct(points, false).map(i => points[i]);
+    if (pts.length < 2 || !(width > 0)) { return null; }
+    const arc = [0];
+    for (let i = 1; i < pts.length; i++) {
+        arc.push(arc[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+    }
+    const total = arc[arc.length - 1];
+    if (!(total > 0)) { return null; }
+    const taper = Math.min(TAPER_LENGTH_PER_WIDTH * width, total / 2);
+    const cuts = taper < total / 2 ? [taper, total - taper] : [taper];
+
+    // World px: a cut closer than this to a vertex IS that vertex.
+    const EPS = 1e-3;
+    const out: RegionPoint[] = [];
+    const at: number[] = [];
+    for (let i = 0; i < pts.length; i++) {
+        if (i > 0) {
+            cuts.forEach((c) => {
+                if (c > arc[i - 1] + EPS && c < arc[i] - EPS) {
+                    const t = (c - arc[i - 1]) / (arc[i] - arc[i - 1]);
+                    out.push({
+                        x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * t,
+                        y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * t,
+                    });
+                    at.push(c);
+                }
+            });
+        }
+        out.push(pts[i]);
+        at.push(arc[i]);
+    }
+
+    const first = at.findIndex(s => s >= taper - EPS);
+    let last = first;
+    at.forEach((s, i) => { if (s <= total - taper + EPS) { last = i; } });
+    const factors = at.map((s, i) => (i >= first && i <= last)
+        ? 1
+        : Math.max(0, Math.min(1, Math.min(s, total - s) / taper)));
+    return {points: out, factors, full: [first, last]};
+}
+
+/**
+ * The outline of a ribbon as ONE polygon — one rim walked out, the other
+ * walked back — for a fill to draw what a stroke cannot: a width that changes
+ * along the run. The shape a pointed end's taper is drawn as.
+ *
+ * ⚑ Its bends are always MITRED (it is {@link ribbonGeometry}'s rims), so a
+ * `round`-cornered path that bends INSIDE its taper gets a sharp corner there.
+ *
+ * @returns flat `[x0, y0, x1, y1, …]`, or null when there is no ribbon.
+ */
+export function ribbonOutline(points: RegionPoint[], width: number, factors: number[]): number[] | null {
+    const r = ribbonGeometry(points, width, false, 1, 1, 0, factors);
+    if (r === null) { return null; }
+    const n = r.positions.length / 4;
+    const flat: number[] = [];
+    for (let i = 0; i < n; i++) { flat.push(r.positions[i * 4], r.positions[i * 4 + 1]); }
+    for (let i = n - 1; i >= 0; i--) { flat.push(r.positions[i * 4 + 2], r.positions[i * 4 + 3]); }
+    return flat;
 }
 
 /**
@@ -106,6 +199,11 @@ function distinct(points: RegionPoint[], closed: boolean): RegionPoint[] {
  *                   content that stops at the rim would end the outward half of
  *                   the ramp in a step. It widens the GEOMETRY and the `v` range
  *                   together, so the texture does not stretch to fill it.
+ * @param factors    optional width factor per point (a pointed end's taper,
+ *                   {@link taperedCentreline}). It narrows the POSITIONS only:
+ *                   the `v` band stays, so the tile COMPRESSES across the
+ *                   ribbon and a cliff reads as getting lower rather than
+ *                   being cropped to its middle rows. Overdraw is not scaled.
  * @returns the ribbon, or null when there is not enough geometry to build one
  */
 export function ribbonGeometry(
@@ -115,13 +213,17 @@ export function ribbonGeometry(
     tileW: number,
     tileH: number,
     overdraw = 0,
+    factors?: number[],
 ): Ribbon | null {
-    const pts = distinct(points, closed);
+    const kept = distinct(points, closed);
+    const pts = kept.map(i => points[i]);
+    const scaleAt = (i: number) => (factors ? factors[kept[i % kept.length]] : 1);
     const n = pts.length;
     if (n < 2 || !(width > 0) || !(tileW > 0) || !(tileH > 0)) { return null; }
     if (closed && n < 3) { return null; }
 
-    const half = width / 2 + Math.max(0, overdraw);
+    const margin = Math.max(0, overdraw);
+    const half = width / 2 + margin;
     // ⚑ `v` is derived from the SAME half-width the positions use, so overdraw
     // shows more of the tile rather than scaling it. See the param note.
     const vLow = 0.5 - half / tileH;
@@ -211,10 +313,11 @@ export function ribbonGeometry(
         const u = along * uScale;
 
         const o = i * 4;
-        positions[o] = p.x - mx * half;
-        positions[o + 1] = p.y - my * half;
-        positions[o + 2] = p.x + mx * half;
-        positions[o + 3] = p.y + my * half;
+        const reach = factors ? (width / 2) * scaleAt(i) + margin : half;
+        positions[o] = p.x - mx * reach;
+        positions[o + 1] = p.y - my * reach;
+        positions[o + 2] = p.x + mx * reach;
+        positions[o + 3] = p.y + my * reach;
         uvs[o] = u;
         uvs[o + 1] = vLow;
         uvs[o + 2] = u;

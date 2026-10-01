@@ -72,7 +72,7 @@ deterministic, with no RNG anywhere.
 | | |
 |---|---|
 | Source | `tools/make-fog-tile.mjs` → `fog`, `miasma` |
-| | `tools/make-precipitation-tiles.mjs` → `rain`, `snow`, `ash`, `sand-storm`, `fairy` |
+| | `tools/make-precipitation-tiles.mjs` → `rain`, `snow`, `ash`, `sand-storm` |
 | Author | generated procedurally; no third-party asset involved |
 | Licence | same as the repo — nothing to attribute |
 

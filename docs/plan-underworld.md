@@ -596,7 +596,7 @@ The three near-misses, so nobody reaches for them:
   as a place*; never as an engine noun.
 
 ⚑ **The one residual ambiguity is pre-existing and is NOT this plan's to fix.**
-`content-zone2.md:1` uses "zone" the other way — *"Zone 2 is the eastern half of
+`content-zone2.md:1` (archived 2026-09-30, now `archive/content-zone2.md`) uses "zone" the other way — *"Zone 2 is the eastern half of
 the single `world` zone — a design label, not an engine object"* — and
 `content-world.md` sketches 21+ such labels. The code's usage is the one with
 every identifier behind it, so the design labels are the squatter. Cheapest fix,
@@ -1274,7 +1274,7 @@ the first place.
    engine's name for a map/level is `Zone` and always was; "playfield" was an
    invention this doc carried for one day and no longer does. The underworld is
    **a second zone**. §2.1 records why "map", "level" and "layer" were all
-   refused, and parks the pre-existing `content-zone2.md` label collision as
+   refused, and parks the pre-existing `content-zone2.md` label collision (that doc is archived since 2026-09-30) as
    somebody else's cheap fix.
 2. ~~**The D6 amendment.**~~ ⭐ **DONE 2026-09-08** — recorded as
    `plan-release-map.md` **§8.0**, an explicit amendment block: the forbidden

@@ -1,0 +1,327 @@
+{
+  "name": "Barn",
+  "bounds": {
+    "width": 10,
+    "height": 10
+  },
+  "origin": {
+    "x": 5000,
+    "y": 5000
+  },
+  "terrain": [],
+  "props": [
+    {
+      "type": "Torch",
+      "x": -1.26,
+      "y": 3.1,
+      "rotation": 0,
+      "scale": 1.603
+    },
+    {
+      "type": "Haystack",
+      "x": 3.5,
+      "y": -0.59,
+      "rotation": 0,
+      "scale": 0.804
+    },
+    {
+      "type": "Haystack",
+      "x": -3.71,
+      "y": -3.83,
+      "rotation": 0,
+      "scale": 0.941
+    },
+    {
+      "type": "Crate",
+      "x": 4.22,
+      "y": -4.33,
+      "rotation": 0,
+      "scale": 0.926
+    },
+    {
+      "type": "Crate",
+      "x": 3.4,
+      "y": -4.24,
+      "rotation": 0.262,
+      "scale": 0.926
+    },
+    {
+      "type": "Crate",
+      "x": 4.08,
+      "y": -3.5,
+      "rotation": 6.24,
+      "scale": 0.926
+    },
+    {
+      "type": "Crate",
+      "x": -4.27,
+      "y": 0.91,
+      "rotation": 0.311,
+      "scale": 0.926
+    },
+    {
+      "type": "Crate",
+      "x": -4.27,
+      "y": -0.04,
+      "rotation": 6.166,
+      "scale": 0.926
+    },
+    {
+      "type": "Crate",
+      "x": 4.16,
+      "y": 0.81,
+      "rotation": 6.267,
+      "scale": 0.926
+    },
+    {
+      "type": "Crate",
+      "x": 4.36,
+      "y": 4.33,
+      "rotation": 6.267,
+      "scale": 0.926
+    },
+    {
+      "type": "Crate",
+      "x": 3.49,
+      "y": 4.48,
+      "rotation": 6.267,
+      "scale": 0.926
+    },
+    {
+      "type": "Crate",
+      "x": -4,
+      "y": 3.21,
+      "rotation": 6.267,
+      "scale": 0.926
+    },
+    {
+      "type": "Crate",
+      "x": -2.36,
+      "y": -4.32,
+      "rotation": 0.057,
+      "scale": 0.873
+    },
+    {
+      "type": "Crate",
+      "x": -1.39,
+      "y": -4.37,
+      "rotation": 0.262,
+      "scale": 0.926
+    }
+  ],
+  "spawns": [
+    {
+      "mob": "CaveExit",
+      "x": 0.11,
+      "y": 4.66,
+      "angle": 0,
+      "anchor": "barn-surface"
+    },
+    {
+      "mob": "GiantRat",
+      "x": 2.7,
+      "y": -2.81,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "idleSpeedFactor": 0.3,
+      "level": 1
+    },
+    {
+      "mob": "GiantRat",
+      "x": 1.35,
+      "y": -0.7,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "idleSpeedFactor": 0.3,
+      "level": 1
+    },
+    {
+      "mob": "GiantRat",
+      "x": -3.4,
+      "y": -2.2,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "idleSpeedFactor": 0.3,
+      "level": 1
+    },
+    {
+      "mob": "GiantRat",
+      "x": -1.99,
+      "y": -2.65,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "idleSpeedFactor": 0.3,
+      "level": 1
+    },
+    {
+      "mob": "GiantRat",
+      "x": -2.65,
+      "y": 0.3,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "idleSpeedFactor": 0.3,
+      "level": 1
+    },
+    {
+      "mob": "GiantRat",
+      "x": 0.32,
+      "y": -2.22,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "idleSpeedFactor": 0.3,
+      "level": 1
+    },
+    {
+      "mob": "GiantRat",
+      "x": -0.14,
+      "y": -4.1,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "idleSpeedFactor": 0.3,
+      "level": 1
+    },
+    {
+      "mob": "GiantRat",
+      "x": 1.2,
+      "y": -3.72,
+      "angle": 2.496,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2,
+      "idleSpeedFactor": 0.3,
+      "level": 1
+    }
+  ],
+  "regions": [
+    {
+      "profile": "Derelict Fortress",
+      "points": [
+        {
+          "x": -5,
+          "y": -5
+        },
+        {
+          "x": 5,
+          "y": -5
+        },
+        {
+          "x": 5,
+          "y": 5
+        },
+        {
+          "x": -5,
+          "y": 5
+        }
+      ]
+    }
+  ],
+  "paths": [
+    {
+      "profile": "Cobblestone",
+      "points": [
+        {
+          "x": -5,
+          "y": 2
+        },
+        {
+          "x": -1,
+          "y": 2
+        },
+        {
+          "x": -1,
+          "y": -1
+        }
+      ],
+      "width": 1,
+      "blocksMovement": true,
+      "corners": "sharp",
+      "ends": "flat"
+    },
+    {
+      "profile": "Cobblestone",
+      "points": [
+        {
+          "x": 5,
+          "y": 2
+        },
+        {
+          "x": 2,
+          "y": 2
+        }
+      ],
+      "width": 1,
+      "blocksMovement": true,
+      "corners": "sharp",
+      "ends": "flat"
+    },
+    {
+      "profile": "Cobblestone",
+      "points": [
+        {
+          "x": -5.21,
+          "y": -5.21
+        },
+        {
+          "x": 5.23,
+          "y": -5.21
+        },
+        {
+          "x": 5.23,
+          "y": 5.23
+        },
+        {
+          "x": -5.21,
+          "y": 5.23
+        }
+      ],
+      "width": 1,
+      "blocksMovement": true,
+      "closed": true,
+      "corners": "sharp"
+    }
+  ],
+  "atmospheres": [
+    {
+      "profile": "Gloom",
+      "points": [
+        {
+          "x": -5.82,
+          "y": -5.7
+        },
+        {
+          "x": 5.69,
+          "y": -5.7
+        },
+        {
+          "x": 5.69,
+          "y": 5.88
+        },
+        {
+          "x": -5.82,
+          "y": 5.88
+        }
+      ]
+    }
+  ],
+  "anchors": [
+    {
+      "name": "barn-inside",
+      "x": 0.11,
+      "y": 4.4
+    }
+  ]
+}

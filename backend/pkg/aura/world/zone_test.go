@@ -764,6 +764,32 @@ func TestZone_AcceptsUnknownRegionProfile(t *testing.T) {
 	assert.Equal(t, "no-such-profile", z.Regions[0].Profile)
 }
 
+// The region title banner (2026-09-28): a region may name the place it is.
+// Both keys are optional and client-only; the server's part is accepting them
+// (DisallowUnknownFields) and refusing the one shape that could never show.
+func TestRegionTitleAndSubtitle(t *testing.T) {
+	const tri = `[{"x":0,"y":0},{"x":9,"y":0},{"x":9,"y":9}]`
+	parse := func(region string) (*Zone, error) {
+		return parseZone([]byte(`{"name":"R","bounds":{"width":60,"height":40},"regions":[` + region + `]}`))
+	}
+
+	z, err := parse(`{"profile":"Fields","points":` + tri + `,"title":"Farmlands","subtitle":"Where it began"}`)
+	require.NoError(t, err)
+	assert.Equal(t, "Farmlands", z.Regions[0].Title)
+	assert.Equal(t, "Where it began", z.Regions[0].Subtitle)
+
+	z, err = parse(`{"profile":"Fields","points":` + tri + `,"title":"Farmlands"}`)
+	require.NoError(t, err, "a title alone is fine")
+	assert.Empty(t, z.Regions[0].Subtitle)
+
+	z, err = parse(`{"profile":"Fields","points":` + tri + `}`)
+	require.NoError(t, err, "an unnamed region is the common case")
+	assert.Empty(t, z.Regions[0].Title)
+
+	_, err = parse(`{"profile":"Fields","points":` + tri + `,"subtitle":"Orphan"}`)
+	assert.EqualError(t, err, `region 0: subtitle "Orphan" needs a title to sit under`)
+}
+
 // ⛔ A DOT-DIRECTORY IS NOT A ZONE (PO 2026-09-20). zoneStems walks the whole
 // tree, so before this rule an editor's or a human's backup folder inside
 // api/zones/ was discovered as a zone and LOADED — and because a backup is by

@@ -622,6 +622,8 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Camp]: Mobs.Camp,
     [AuraApi.EntityType.Corpse]: Corpse,
     [AuraApi.EntityType.Turnip]: Mobs.Turnip,
+    [AuraApi.EntityType.BlueMushroom]: Mobs.BlueMushroom,
+    [AuraApi.EntityType.RedMushroom]: Mobs.RedMushroom,
     [AuraApi.EntityType.House]: Props.genericPropClasses.House,
     [AuraApi.EntityType.Wolf]: Mobs.Wolf,
     [AuraApi.EntityType.Bear]: Mobs.Bear,
@@ -703,6 +705,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     // DRAWING, not a second behaviour, and none of these needs the bespoke
     // Tree class (whose only job is the resource-spot decal).
     [AuraApi.EntityType.PineTree]: Props.genericPropClasses.PineTree,
+    [AuraApi.EntityType.OakTree]: Props.genericPropClasses.OakTree,
     [AuraApi.EntityType.Bush]: Props.genericPropClasses.Bush,
     [AuraApi.EntityType.DeadTree]: Props.genericPropClasses.DeadTree,
     [AuraApi.EntityType.FallenLog]: Props.genericPropClasses.FallenLog,
@@ -715,6 +718,8 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Cottage]: Props.genericPropClasses.Cottage,
     [AuraApi.EntityType.Palisade]: Props.genericPropClasses.Palisade,
     [AuraApi.EntityType.CaveMouth]: Props.genericPropClasses.CaveMouth,
+    // House's wreck, a second sprite on the same body (BurntCart's pattern).
+    [AuraApi.EntityType.RuinedHouse]: Props.genericPropClasses.RuinedHouse,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

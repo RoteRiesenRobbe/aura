@@ -5942,6 +5942,14 @@ explicit, tested policy. Nothing enforces one today.
   (the rule held only by hand), or the first persisted level found above a cap.
 ## 62. Other animations on atmospheres and polygons than `scroll`
 
+⭐ **PARTLY ANSWERED 2026-09-29: the `motes` atmosphere key** (PO: *"Fairy Dust
+looks very odd… a random movement pattern and a fade in and out by scaling,
+much slower than the current scroll"*). A fourth candidate, none of 1–3 below:
+per-mote sprites (`atmospheres/logic/Motes.ts`), each wandering on its own
+two-harmonic path and swelling in/out by scale, reborn elsewhere per `life`.
+Replaces the tile on `Fairy Dust`; haze-layer only, so the under-darkness
+limit stands. Fog breathing / gusts remain open. Look + phone check owed.
+
 **PO-asked 2026-09-16**, verbatim: *"Can we design other animations on
 atmosphere and polys than scroll?"* ⚑ Filed in `docs/cleanup.md` first and moved
 here the same day — it is an unscoped idea with no superseded code behind it,

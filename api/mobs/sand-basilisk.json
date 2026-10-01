@@ -1,0 +1,35 @@
+{
+  "_comment": "A heavy, venomous desert lizard. Placeholder: draws NpcPlaceholder (art owed) and borrows Troll's skill and HP/speed shape until it gets its own. All values [PLACEHOLDER].",
+  "id": 105,
+  "name": "SandBasilisk",
+  "type": "MOB",
+  "entityType": "NpcPlaceholder",
+  "faction": "wildlife_predator",
+  "tier": "elite",
+  "curveLevel": 17,
+  "factors": {
+    "resistances": {
+      "poison": 0.25
+    },
+    "baseMaxHealth": 182,
+    "maxHealthVariance": 0.1,
+    "speed": 0.45,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900,
+    "ccImmune": true
+  },
+  "body": {
+    "radius": 0.55,
+    "aggroRadius": 3.6
+  },
+  "skills": [
+    {
+      "skillName": "GiantVenomSpit",
+      "level": 1
+    }
+  ]
+}

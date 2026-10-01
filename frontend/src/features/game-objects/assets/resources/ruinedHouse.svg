@@ -1,0 +1,140 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" preserveAspectRatio="none">
+  <!-- Placeholder RUINED HOUSE art: the wrecked twin of house.svg, the way
+       burntCart.svg is cart.svg's. TRUE top-down, and the viewBox stays
+       400x300 to match the 4 x 3 rect body in api/props/ruined-house.json,
+       which is the SAME body house.json carries, so a placement swaps
+       between the two without moving anything.
+
+       ⭐ IT ONLY WORKS IF IT READS AS THE HOUSE FIRST AND THE RUIN SECOND,
+       so the skeleton is house.svg's: same footprint, same ridge line, same
+       red tiled gable, same chimney in the same place. The destruction is
+       applied ON TOP of it:
+
+         1. THE WEST HALF STILL HAS ITS ROOF. Both planes, their tile rows and
+            the ridge are house.svg's own colours, so the eye matches it to
+            the village before it notices anything is wrong.
+         2. THE EAST HALF FELL IN. Top-down a collapse is a HOLE: the wall
+            tops, a dark floor, and the roof lying in a heap inside the walls
+            as red shards. The shards keep the tile colour, which is what
+            says "that was the roof" rather than "that is rubble".
+         3. THE BREAK IS RAGGED, and each plane breaks at a different line,
+            with bare battens sticking out past the last tiles. A straight
+            edge would read as a half-built roof, not a broken one.
+         4. THE CHIMNEY STILL STANDS, alone in the hole with a long shadow.
+            Stone outlasts timber, and a lone chimney is the silhouette a
+            ruin is recognised by.
+         5. ONE WALL IS BREACHED (south-east), its stones spilled outward, so
+            the ruin has a direction and a way the damage came in.
+
+       ⛔ NOT BURNT, on purpose: no scorch, no char. BurntCart already tells
+       the fire story; this is a collapse, old and cold, so it can sit in a
+       raided village or an abandoned hamlet alike. -->
+
+  <!-- the walls: house.svg's footprint, now seen as wall tops -->
+  <rect x="8" y="8" width="384" height="284" rx="10" fill="#6e5a44" stroke="#463a2b" stroke-width="8"/>
+
+  <!-- THE HOLE: the floor inside the walls where the roof came down -->
+  <polygon points="214,24 376,24 376,276 172,276 160,250 184,226 168,200 190,176 176,154 190,146 210,120 196,96 222,70 204,48"
+           fill="#3a3026" stroke="#2a221b" stroke-width="4" stroke-linejoin="round"/>
+  <!-- floor boards, barely visible under the dust -->
+  <g stroke="#2a221b" stroke-width="3" opacity="0.6">
+    <line x1="210" y1="62" x2="376" y2="62"/>
+    <line x1="200" y1="104" x2="376" y2="104"/>
+    <line x1="196" y1="188" x2="376" y2="188"/>
+    <line x1="176" y1="232" x2="376" y2="232"/>
+  </g>
+  <!-- the inner lip of the wall tops, lit where the roof no longer shades them -->
+  <g stroke="#8a7458" stroke-width="4" opacity="0.8" fill="none">
+    <polyline points="214,22 378,22 378,278 300,278"/>
+    <polyline points="346,278 172,278"/>
+  </g>
+
+  <!-- THE BREACH in the south wall: the wall is gone and the ground shows -->
+  <polygon points="298,270 346,270 352,296 292,296" fill="#4a3f33"/>
+  <g fill="#8a8378" stroke="#4a4540" stroke-width="2.4">
+    <rect x="296" y="274" width="14" height="10" rx="3" transform="rotate(-12 303 279)"/>
+    <rect x="314" y="280" width="16" height="11" rx="3" transform="rotate(18 322 285)"/>
+    <rect x="334" y="272" width="12" height="9" rx="3" transform="rotate(-24 340 276)"/>
+    <rect x="304" y="258" width="13" height="9" rx="3" transform="rotate(30 310 262)"/>
+    <rect x="326" y="256" width="11" height="8" rx="3" transform="rotate(-8 331 260)"/>
+    <rect x="342" y="284" width="10" height="7" rx="2" transform="rotate(40 347 287)"/>
+  </g>
+  <!-- the snapped wall ends either side of the gap -->
+  <rect x="286" y="268" width="12" height="24" fill="#5e4c39" stroke="#463a2b" stroke-width="3"/>
+  <rect x="346" y="268" width="12" height="24" fill="#5e4c39" stroke="#463a2b" stroke-width="3"/>
+
+  <!-- rafters: one still spanning ridge to eave, the rest down in the hole -->
+  <rect x="340" y="26" width="10" height="248" fill="#5a4630" stroke="#2e241a" stroke-width="3"/>
+  <rect x="226" y="92" width="112" height="10" rx="2" fill="#4f3d2a" stroke="#2e241a" stroke-width="3"
+        transform="rotate(24 282 97)"/>
+  <rect x="230" y="208" width="96" height="10" rx="2" fill="#4f3d2a" stroke="#2e241a" stroke-width="3"
+        transform="rotate(-32 278 213)"/>
+  <!-- the ridge beam, snapped where the roof ends and dropped into the hole -->
+  <rect x="196" y="150" width="130" height="14" rx="3" fill="#6f5a42" stroke="#463a2b" stroke-width="4"
+        transform="rotate(14 196 157)"/>
+
+  <!-- THE ROOF, in a heap: shards of house.svg's own tiles -->
+  <g stroke="#5e2c20" stroke-width="2">
+    <rect x="236" y="120" width="22" height="12" fill="#a2543f" transform="rotate(-18 247 126)"/>
+    <rect x="262" y="132" width="18" height="11" fill="#b46349" transform="rotate(26 271 137)"/>
+    <rect x="284" y="118" width="24" height="12" fill="#8e4636" transform="rotate(-6 296 124)"/>
+    <rect x="300" y="140" width="20" height="11" fill="#a2543f" transform="rotate(38 310 145)"/>
+    <rect x="248" y="150" width="16" height="10" fill="#b46349" transform="rotate(-40 256 155)"/>
+    <rect x="276" y="160" width="26" height="13" fill="#a2543f" transform="rotate(12 289 166)"/>
+    <rect x="310" y="166" width="18" height="10" fill="#8e4636" transform="rotate(-28 319 171)"/>
+    <rect x="232" y="176" width="20" height="11" fill="#a2543f" transform="rotate(20 242 181)"/>
+    <rect x="258" y="186" width="22" height="12" fill="#8e4636" transform="rotate(-14 269 192)"/>
+    <rect x="290" y="190" width="16" height="10" fill="#b46349" transform="rotate(48 298 195)"/>
+    <rect x="318" y="198" width="20" height="11" fill="#a2543f" transform="rotate(4 328 203)"/>
+    <rect x="270" y="212" width="18" height="10" fill="#b46349" transform="rotate(-36 279 217)"/>
+    <rect x="224" y="216" width="16" height="9" fill="#8e4636" transform="rotate(30 232 220)"/>
+    <rect x="300" y="228" width="22" height="11" fill="#a2543f" transform="rotate(-20 311 233)"/>
+    <rect x="262" y="96" width="18" height="10" fill="#8e4636" transform="rotate(34 271 101)"/>
+    <rect x="312" y="104" width="16" height="10" fill="#b46349" transform="rotate(-44 320 109)"/>
+    <rect x="354" y="140" width="14" height="9" fill="#a2543f" transform="rotate(22 361 144)"/>
+    <rect x="356" y="210" width="14" height="9" fill="#8e4636" transform="rotate(-16 363 214)"/>
+    <rect x="224" y="60" width="14" height="9" fill="#b46349" transform="rotate(10 231 64)"/>
+    <rect x="300" y="52" width="16" height="9" fill="#a2543f" transform="rotate(-24 308 56)"/>
+    <rect x="352" y="60" width="14" height="9" fill="#8e4636" transform="rotate(36 359 64)"/>
+    <rect x="200" y="252" width="16" height="9" fill="#a2543f" transform="rotate(-10 208 256)"/>
+  </g>
+  <!-- tile grit between the shards -->
+  <g fill="#c07a60" opacity="0.5">
+    <circle cx="258" cy="142" r="3"/><circle cx="294" cy="150" r="2.5"/><circle cx="316" cy="186" r="3"/>
+    <circle cx="246" cy="200" r="2.5"/><circle cx="286" cy="226" r="3"/><circle cx="330" cy="130" r="2.5"/>
+    <circle cx="276" cy="112" r="2"/><circle cx="240" cy="236" r="2"/><circle cx="364" cy="176" r="2.5"/>
+  </g>
+
+  <!-- THE STANDING ROOF, west half: house.svg's two planes, broken off -->
+  <polygon points="24,24 214,24 204,48 222,70 196,96 210,120 190,146 24,146"
+           fill="#a2543f" stroke="#7a3d2e" stroke-width="6" stroke-linejoin="round"/>
+  <polygon points="24,154 176,154 190,176 168,200 184,226 160,250 172,276 24,276"
+           fill="#b46349" stroke="#7a3d2e" stroke-width="6" stroke-linejoin="round"/>
+  <g stroke="#7a3d2e" stroke-width="3" opacity="0.55">
+    <line x1="72" y1="26" x2="72" y2="144"/>
+    <line x1="136" y1="26" x2="136" y2="144"/>
+    <line x1="200" y1="26" x2="200" y2="42"/>
+    <line x1="72" y1="156" x2="72" y2="274"/>
+    <line x1="136" y1="156" x2="136" y2="274"/>
+  </g>
+  <!-- bare battens poking out past the last tiles -->
+  <g stroke="#8a6f52" stroke-width="4" stroke-linecap="round">
+    <line x1="210" y1="36" x2="232" y2="36"/>
+    <line x1="214" y1="60" x2="240" y2="60"/>
+    <line x1="204" y1="84" x2="224" y2="84"/>
+    <line x1="204" y1="110" x2="228" y2="110"/>
+    <line x1="182" y1="166" x2="204" y2="166"/>
+    <line x1="180" y1="190" x2="198" y2="190"/>
+    <line x1="176" y1="216" x2="200" y2="216"/>
+    <line x1="170" y1="240" x2="186" y2="240"/>
+    <line x1="166" y1="264" x2="190" y2="264"/>
+  </g>
+  <!-- the ridge, whole as far as the roof is -->
+  <rect x="16" y="142" width="180" height="16" fill="#8a6f52" stroke="#463a2b" stroke-width="4"/>
+
+  <!-- THE CHIMNEY, still standing in the hole: house.svg's, with the shadow
+       of its full height thrown across the heap -->
+  <polygon points="274,20 274,56 312,80 312,44" fill="#000000" opacity="0.3"/>
+  <rect x="230" y="20" width="44" height="36" fill="#54442f" stroke="#463a2b" stroke-width="5"/>
+  <rect x="240" y="28" width="24" height="18" fill="#2a2119"/>
+</svg>

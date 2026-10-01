@@ -139,6 +139,27 @@ export function maskBand(blend: number, reach: number, mobile: boolean): number 
     return Math.max(band, MIN_BAND_TEXELS / MAX_TEXELS_PER_UNIT[mobile ? 'mobile' : 'desktop']);
 }
 
+/** How far inside its 50 % line the blend mask is SOLID (≥ 99 %), in bands.
+ *  ⚑ Not ½, which "one band wide, centred" suggests: Pixi's BlurFilter at
+ *  quality 4 is four 5-tap passes stepping strength/4 texels, so σ ≈ 0.646 ×
+ *  strength, and buildBlendMask's strength is half the band — σ ≈ 0.32 band.
+ *  Half a band in is only ~94 %, and the first cut of the outward slice grew by
+ *  exactly that, leaving the moving water visible through the seam (PO,
+ *  2026-09-28). 0.75 band ≈ 2.3 σ ≈ 99 %. The band is the ramp's SUPPORT, not
+ *  its visible width. */
+export const OUTWARD_SOLID_BANDS = 0.75;
+
+/**
+ * How far a `blendOutward` region's silhouette is dilated before the blur, in
+ * world units (the 2026-09-28 slice): far enough that the ramp is solid ON the
+ * authored line ({@link OUTWARD_SOLID_BANDS} of the fade actually drawn), plus
+ * the whole reach, so a wobble trough cannot pull the fade back inside it and
+ * reopen the seam.
+ */
+export function outwardGrow(blend: number, reach: number, mobile: boolean): number {
+    return maskBand(blend, 0, mobile) * OUTWARD_SOLID_BANDS + reach;
+}
+
 /**
  * The density a mask is baked at, and the noise grain drawn into it.
  *
