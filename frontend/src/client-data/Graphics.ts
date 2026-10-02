@@ -505,28 +505,9 @@ export const GraphicsConfig = {
         size: <number> 50,
     },
 
-    resources: {
-        tree: {
-            spotFile: require('../features/game-objects/assets/resources/treeSpot.svg'),
-            // ⚑ Shared by both files below, and it now means different things to
-            // each: the spot is still SVG and rasterises at 2 × this, while the
-            // PNG ignores it entirely (Preloading.ts). Don't tune it for the tree.
-            maxSize: <number> 210,
-
-            // Painted art ships as PNG — see the `farmer` entry above and
-            // docs/art/pipeline.md §3. 512×512 because a tree draws at 492 px
-            // (radius 1.0 m → size × 1.8 + character.size, Resources.ts), the
-            // largest common asset in the world.
-            roundTreeFile: require('../features/game-objects/assets/resources/roundTree.png'),
-        },
-
-        mineral: {
-            spotFile: require('../features/game-objects/assets/resources/stoneSpot.svg'),
-            maxSize: <number> 142,
-
-            stoneFile: require('../features/game-objects/assets/resources/stone.png'),
-        },
-    },
+    // No `resources` entry: trees and rocks draw through the generic prop path
+    // (Props.ts), which reads each sprite from its api/props/*.json, and their
+    // resource-spot decals were retired (plan-prop-draw-order.md P2, D8).
 
     miniMap: {
         /**

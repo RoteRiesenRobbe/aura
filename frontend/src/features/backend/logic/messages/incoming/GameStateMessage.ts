@@ -1,5 +1,4 @@
 import * as BackendConstants from '../../BackendConstants';
-import * as Resources from '../../../../game-objects/logic/Resources';
 import * as Props from '../../../../game-objects/logic/Props';
 import * as Mobs from '../../../../game-objects/logic/Mobs';
 import {DebugCircle} from '../../../../internal-tools/develop/logic/DebugCircle';
@@ -613,9 +612,9 @@ type GameObjectClass = (new (...args: any[]) => unknown) | undefined;
  */
 const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.DebugCircle]: DebugCircle,
-    [AuraApi.EntityType.RoundTree]: Resources.RoundTree,
+    [AuraApi.EntityType.RoundTree]: Props.genericPropClasses.RoundTree,
     [AuraApi.EntityType.Character]: Character,
-    [AuraApi.EntityType.Stone]: Resources.Stone,
+    [AuraApi.EntityType.Stone]: Props.genericPropClasses.Stone,
     [AuraApi.EntityType.Totem]: Mobs.Totem,
     [AuraApi.EntityType.Companion]: Mobs.Companion,
     [AuraApi.EntityType.Campfire]: Mobs.Campfire,

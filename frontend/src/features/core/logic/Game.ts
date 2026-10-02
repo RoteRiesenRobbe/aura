@@ -277,7 +277,9 @@ export class Game implements IGame {
                 polygons: createNamedContainer('polygons'),
                 paths: createNamedContainer('paths'),
                 textures: createNamedContainer('textures'),
-                resourceSpots: createNamedContainer('resourceSpots'),
+                // No `resourceSpots`: the tree/rock ground decals were retired
+                // with their bespoke classes (plan-prop-draw-order.md P2, D8).
+                // Ground scuffing is authored as a terrain decal where wanted.
             },
             // The two prop containers (plan-prop-draw-order.md D7). Each keeps
             // its props sorted by entity id (OrderedLayer, D6), which is
@@ -294,9 +296,6 @@ export class Game implements IGame {
                 // mobs-under-characters note below), applied to world geometry.
                 // The server refuses `crossesPaths` without `underfoot` so the
                 // two cannot drift apart.
-                //
-                // ⚑ ABOVE `resourceSpots`: a deck hides the ground scuffing it
-                // is laid over, not the other way round.
                 underfoot: createNamedContainer('propsUnderfoot'),
                 // Every other prop: trees, rocks, houses, walls. Above the
                 // characters (you walk behind a tree), below flyers.
@@ -383,7 +382,6 @@ export class Game implements IGame {
             this.layers.terrain.polygons,
             this.layers.terrain.paths,
             this.layers.terrain.textures,
-            this.layers.terrain.resourceSpots,
             this.layers.props.underfoot,
         );
 

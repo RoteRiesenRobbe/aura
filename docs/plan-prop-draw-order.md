@@ -951,3 +951,55 @@ format **NONE**.
   a reorder is half-live like any zone edit.
 - ⚑ Until P3 the order is pure file order, so some overlaps settle the
   "wrong" way once. Don't hand-fix them (§6).
+
+### P2: the legacy classes folded ✅ 2026-10-02 (uncommitted; PO look owed)
+
+**What landed, item by item (§6):**
+
+1. **Classes.** `Resources.ts` is deleted: `Tree` / `RoundTree` / `Mineral` /
+   `Stone` are gone, and `Resource` (with its ordered `show()`) moved verbatim
+   into `Props.ts`. `BESPOKE_ENTITY_TYPES` is now `{PropPlaceholder}` alone, so
+   Tree (`RoundTree`, `roundTree.png`) and Rock + Boulder (`Stone`,
+   `stone.png`) are built by the generic path. `gameObjectClasses` points at
+   `Props.genericPropClasses.RoundTree` / `.Stone`; `index.ts`'s side-effect
+   import now names `Props`.
+2. **Decals (D8).** `terrain.resourceSpots` (container + `cameraGroup` entry),
+   `GraphicsConfig.resources` and the `treeSpot.svg` / `stoneSpot.svg` assets
+   are deleted. Nothing in `frontend/src` read them. ⚑ `wiki-generator/` still
+   reads `GraphicsConfig.resources`, but it was already broken (it imports the
+   long-gone `client-data/Items`), so it is unowned as before.
+3. **`MapProps`** untouched: its style table is keyed by wire names.
+
+- **Why it is the same picture:** a circle body takes no aspect correction, so
+  `SimpleProp.initShape` is exactly `GameObject.initShape`
+  (`createInjectedSVG` at the streamed size and authored rotation), and the
+  PNGs ignore `maxSize`.
+- Stale mentions repointed: `add-content` skill (bespoke classes now extend
+  `Resource` in `Props.ts`). Left as they are, being true history:
+  `server.fbs`'s forest-set comment and `deadTree.svg`'s note on the `treeSpot`
+  decal (`server.fbs` untouched keeps wire **NONE** literal).
+- **TDD:** vitest cannot import `Props.ts` (webpack `require.context`, no
+  shim; `ActiveZone.test.ts` mocks around the same wall), so no unit test.
+  The gate is typecheck + the suite + a grep + the harnesses below.
+
+**Tests:**
+
+- `npm run typecheck` clean. vitest **1466/0** (62 files, unchanged from P1).
+  `go build ./...` clean (no Go change).
+- Grep of `frontend/src` for `resourceSpots`, `Resources.*`, `Mineral`,
+  `GraphicsConfig.resources`, `treeSpot`/`stoneSpot`: only two explanatory
+  comments (`Game.ts`, `deadTree.svg`).
+- **`p1-prop-order.mjs` 10/10** after a restart (Eliza's 12 standing props,
+  trees included, map to `world.json` in file order; oak over cottage; holds
+  after walk-away-and-return).
+- **`bridge-underfoot.mjs` rewritten (rule 8) and PASS:** the deck is above
+  `terrain.textures` (4 < 5) and below characters (13); `resourceSpots` is
+  absent both as a layer key and by label anywhere on the stage, with a
+  control that the same walk finds `characters` exactly once.
+- **One-off probe (not kept):** the generic sprite at every Rock/Boulder
+  placement and Eliza's nearest Tree is on `props.standing` at exactly
+  2 × radius × scale × 120 px with a loaded texture (Boulder 264, Rock 256 at
+  scale 1.994, Tree 240), rotation 0 as authored; no page errors.
+
+**Schema:** DB **NONE** · wire **NONE** · conf **NONE** · content **NONE** ·
+zone format **NONE**.

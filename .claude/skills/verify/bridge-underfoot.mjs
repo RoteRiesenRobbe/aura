@@ -14,6 +14,8 @@
 //      degrade — 0 page errors is what says it did not.
 //   3. Any Bridge actually PLACED in the zone renders on `props.underfoot` and on no
 //      other layer (skipped, loudly, when the zone places none).
+//   4. The deck sits above the last ground layer (`terrain.textures`), and the
+//      retired `resourceSpots` container is gone (plan-prop-draw-order.md P2).
 //
 // ⛔ What it CANNOT show: that the deck reads correctly under a player standing
 // on it. That is a pixel A/B and it needs an authored placement over the river —
@@ -57,7 +59,24 @@ const report = await page.evaluate(() => {
     hasDecks: !!decks,
     inScene: !!parent,
     deckIdx: idx(decks), charIdx: idx(chars), treeIdx: idx(trees),
-    spotIdx: idx(g.layers.terrain.resourceSpots),
+    texturesIdx: idx(g.layers.terrain.textures),
+    // ⚑ plan-prop-draw-order.md P2 (D8) retired the resource-spot decals with
+    // their container. Checked by the layer key AND by name anywhere on the
+    // stage, so a container re-added under another key is caught too.
+    spotsLayer: 'resourceSpots' in g.layers.terrain,
+    // The control: the same walk must find `characters` exactly once, or a 0
+    // for resourceSpots proves nothing.
+    ...(() => {
+      const count = (label) => {
+        let n = 0;
+        const walk = (c) => { if (c.label === label) { n++; } (c.children || []).forEach(walk); };
+        let root = chars;
+        while (root && root.parent) { root = root.parent; }
+        walk(root);
+        return n;
+      };
+      return { spotsByName: count('resourceSpots'), charsByName: count('characters') };
+    })(),
     deckChildren: decks ? decks.children.length : -1,
     treeChildren: trees ? trees.children.length : -1,
   };
@@ -67,14 +86,16 @@ const fail = [];
 if (!report.hasDecks) { fail.push('layers.props.underfoot does not exist'); }
 if (!report.inScene) { fail.push('layers.props.underfoot is not in the scene graph'); }
 if (!(report.deckIdx < report.charIdx)) { fail.push(`decks (${report.deckIdx}) is NOT below characters (${report.charIdx})`); }
-if (!(report.spotIdx < report.deckIdx)) { fail.push(`decks (${report.deckIdx}) is NOT above resourceSpots (${report.spotIdx})`); }
+if (!(report.texturesIdx >= 0 && report.texturesIdx < report.deckIdx)) { fail.push(`decks (${report.deckIdx}) is NOT above terrain.textures (${report.texturesIdx})`); }
+if (report.charsByName !== 1) { fail.push(`the stage walk found ${report.charsByName} 'characters' container(s), expected 1: the resourceSpots check is blind`); }
+if (report.spotsLayer || report.spotsByName) { fail.push(`resourceSpots is back (layer key ${report.spotsLayer}, ${report.spotsByName} container(s) by name)`); }
 if (errors.length) { fail.push(`${errors.length} page error(s): ${errors.slice(0, 3).join(' | ')}`); }
 
 console.log(JSON.stringify(report, null, 2));
 console.log(report.deckChildren > 0
   ? `✓ ${report.deckChildren} object(s) drawn on decks`
   : '⚑ NO BRIDGE PLACED in this zone — the ordering is proven, the bridge itself is not');
-console.log(fail.length ? '✖ FAIL: ' + fail.join('; ') : '✓ PASS: decks is in the scene, above resourceSpots and below characters');
+console.log(fail.length ? '✖ FAIL: ' + fail.join('; ') : '✓ PASS: decks is in the scene, above terrain.textures and below characters; no resourceSpots');
 
 await browser.close();
 process.exit(fail.length ? 1 : 0);

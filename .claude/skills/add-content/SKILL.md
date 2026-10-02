@@ -31,8 +31,8 @@ the bottom. Trust the code over the manual if a path has drifted.
   new art — enum append + regen + **one** `gameObjectClasses` line pointing at
   `Props.genericPropClasses.<EntityType>`. Reusing an existing entityType is
   pure JSON, no frontend touch at all. A prop needing real behavior (decal,
-  custom rotation policy, anything stateful) still gets a hand-written
-  `Resources.ts` class, excluded from the generic path via `Props.ts`'s
+  custom rotation policy, anything stateful) still gets a hand-written class
+  extending `Resource` in `Props.ts`, excluded from the generic path via its
   `BESPOKE_ENTITY_TYPES` set.
 - **A new frontend layer is TWO edits in `core/logic/Game.ts`** —
   `createNamedContainer(...)` **and** `cameraGroup.addChild(...)`. Miss the

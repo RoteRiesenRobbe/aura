@@ -1,21 +1,18 @@
 /**
  * Generic, JSON-driven prop rendering (the collapse of the old per-prop
- * boilerplate: a hand-written Resources.ts class + a Graphics.ts entry per
- * simple prop, one for each of House/GateWall/Tombstone doing the exact same
- * thing). A "simple" prop — no behavior beyond drawing its sprite at its
- * authored size/aspect — needs none of that any more: `api/props/*.json`
- * names its own sprite file, and this module discovers every such prop at
- * build time and derives a render class for it.
+ * boilerplate: a hand-written class + a Graphics.ts entry per simple prop,
+ * one for each of House/GateWall/Tombstone doing the exact same thing). A
+ * "simple" prop — no behavior beyond drawing its sprite at its authored
+ * size/aspect — needs none of that any more: `api/props/*.json` names its own
+ * sprite file, and this module discovers every such prop at build time and
+ * derives a render class for it. Since plan-prop-draw-order.md P2 that is
+ * every prop with art, trees and rocks included; the `Resource` base class
+ * lives here, and Resources.ts is gone.
  *
- * Props with real behavior (Tree/RoundTree, Mineral/Stone — the resource-spot
- * decal, the non-random mineral rotation) keep their bespoke classes in
- * Resources.ts, excluded here by entityType. A future prop needing its own
- * behavior follows the same path: write a class, add its entityType to
- * BESPOKE_ENTITY_TYPES below, give it its own `gameObjectClasses` line.
- *
- * PropPlaceholder is the one bespoke class that lives HERE rather than in
- * Resources.ts (plan-prop-placeholders.md C2), because it is the only render
- * class that needs the prop DEFINITIONS this module already compiles in.
+ * A future prop needing its own behavior: write a class extending Resource,
+ * add its entityType to BESPOKE_ENTITY_TYPES below, give it its own
+ * `gameObjectClasses` line. PropPlaceholder (plan-prop-placeholders.md C2) is
+ * the one such class today.
  */
 import {Container, Graphics, Text, Texture} from 'pixi.js';
 import * as Preloading from '../../core/logic/Preloading';
@@ -23,7 +20,9 @@ import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import {requireAll} from '../../common/logic/Utils';
 import {GameSetupEvent} from '../../core/logic/Events';
 import {IGame} from '../../core/logic/IGame';
-import {Resource} from './Resources';
+import {GameObject} from './_GameObject';
+import {StatusEffect} from './StatusEffect';
+import {addChildOrdered} from './OrderedLayer';
 import * as TextDisplay from '../../../client-data/TextDisplay';
 import {
     LABEL_REFERENCE_FONT_SIZE,
@@ -36,6 +35,43 @@ let Game: IGame = null;
 GameSetupEvent.subscribe((game: IGame) => {
     Game = game;
 });
+
+// The wire table this rides is still called Resource, but nothing harvestable
+// is left on it — props are its only occupants since the actor merge moved NPCs
+// to the Mob path. The stock/capacity yield pair (and the sprite rescale it
+// drove) went with the pre-accounts hygiene chunk: the server had been sending
+// a constant 1/1 ever since the §26 prune emptied the resource system.
+//
+// ⚑ Not a live map icon: every placed prop is baked into the map from the zone
+// data instead (MapProps), so the map does not depend on what was streamed.
+export abstract class Resource extends GameObject {
+    protected constructor(
+        id: number,
+        gameLayer: Container,
+        x: number,
+        y: number,
+        size: number,
+        rotation: number,
+        svg: Texture,
+    ) {
+        super(id, gameLayer, x, y, size, rotation, svg);
+    }
+
+    createStatusEffects() {
+        return {
+            Damaged: StatusEffect.forDamaged(this.shape),
+            DamagedAmbient: StatusEffect.forDamagedOverTime(this.shape),
+        };
+    }
+
+    // ⭐ By entity id, never appended (plan-prop-draw-order.md D6): ids ascend
+    // in zone-file order, so a later prop in the file draws on top, and a prop
+    // that leaves the view and comes back returns to its own slot.
+    show() {
+        addChildOrdered(this.layer, this.shape, this.id);
+    }
+
+}
 
 interface PropDefJSON {
     name: string;
@@ -79,10 +115,12 @@ function propLayer(underfoot: boolean): Container {
     return underfoot ? Game.layers.props.underfoot : Game.layers.props.standing;
 }
 
-// Tree/RoundTree and Mineral/Stone have real behavior (resource-spot decal,
-// authored-not-random rotation) and keep their hand-written Resources.ts
-// classes — never routed through the generic path.
-const BESPOKE_ENTITY_TYPES = new Set(['RoundTree', 'Stone', 'PropPlaceholder']);
+// PropPlaceholder is drawn procedurally (below), never from a sprite.
+// ⚑ Tree and Rock/Boulder used to be excluded here too, for their hand-written
+// Tree/Stone classes and the resource-spot decal; both retired with
+// plan-prop-draw-order.md P2 (D8), so they ride the generic path like
+// everything else.
+const BESPOKE_ENTITY_TYPES = new Set(['PropPlaceholder']);
 
 // Escape hatch for a future prop whose SVG needs extra rasterisation
 // crispness beyond the derived (body units × PX_PER_UNIT). Empty today.
