@@ -261,3 +261,36 @@ func TestZoneSet_NoStartZoneRefusesWhenSeveralZonesExist(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "startZone")
 }
+
+// plan-prop-draw-order.md P1 item 5: props spawn in zone-file order.
+//
+// ⭐ The client stacks props by entity id (D6), and ids come from a global
+// counter in spawn order, so THIS order is the draw order: a prop later in a
+// zone's `props` array draws over an earlier one, and a later zone's props over
+// an earlier zone's. Only the relative order matters; an id is never compared
+// across boots (§7 L1). P3 extends propEntities to the four-layer flatten.
+func TestZoneSet_PropsSpawnInZoneFileOrder(t *testing.T) {
+	def := &world.PropDefinition{Name: "T", Body: world.PropBody{Radius: 1}}
+	placed := func(xs ...float32) []world.Prop {
+		out := make([]world.Prop, len(xs))
+		for i, x := range xs {
+			out[i] = world.Prop{Type: "T", X: x, Def: def}
+		}
+		return out
+	}
+	zones := []*world.Zone{
+		{ID: "world", Props: placed(3, 1, 2)},
+		{ID: "under", Props: placed(20, 10)},
+	}
+
+	got := propEntities(zones)
+	require.Len(t, got, 5)
+	var xs []float32
+	for i, p := range got {
+		xs = append(xs, p.Position().X)
+		if i > 0 {
+			assert.Greater(t, p.Basic().ID(), got[i-1].Basic().ID(), "entity %d", i)
+		}
+	}
+	assert.Equal(t, []float32{3, 1, 2, 20, 10}, xs)
+}

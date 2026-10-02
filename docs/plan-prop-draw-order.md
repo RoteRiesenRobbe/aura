@@ -880,3 +880,74 @@ zone format **NONE**.
 
 **PO GUI check ✅ 2026-10-02:** the refusal dialog names the layer, the
 document stays open, and the save goes through once the group is deleted.
+
+### P1: deterministic order ✅ 2026-10-02 (uncommitted; PO look owed)
+
+**What landed, item by item (§6):**
+
+1. **Ordered insertion (D6).** New `OrderedLayer.ts`: `addChildOrdered`
+   binary-searches the slot by key (upper bound, so equal keys keep arrival
+   order) and calls `addChildAt`. Keys live in a `WeakMap`, and an unkeyed
+   child counts as +∞, so it stays on top. `Resource.show()` uses it with the
+   entity id, which covers every prop class (generated props,
+   `PropPlaceholder`, Tree, Stone) in both containers.
+2. **Containers (D7).** `layers.resources` is gone. `layers.props.standing`
+   (the old `trees` and `minerals`, merged) sits where they sat.
+   `terrain.decks` became `layers.props.underfoot` at the same scene
+   position. `IGameLayers.props` is typed `{underfoot, standing}`. Tree and
+   Stone point at `standing`; their spot decals stay on
+   `terrain.resourceSpots` until P2.
+3. **NPCs (D9).** The twelve NPC classes construct on the new `mobs.npcs`,
+   added last among the mob layers, directly under `characters`.
+4. **Server sort.** `core/net.go`: the two duplicated viewport loops became
+   `entitiesInView`, which sorts by entity id (`slices.SortFunc`, one
+   O(n log n) per viewer per tick).
+5. **Spawn order.** `cmd/aurad/zoneset.go`: `propEntities(zones)` builds the
+   props in zone order, then file order. `aurad.go` adds what it returns.
+   P3 extends it.
+
+- **L6 checked:** nothing in `frontend/src` reads a prop container by child
+  index. Three harnesses named the old containers and were repointed:
+  `bridge-underfoot`, `c3-flight-client` (its layer-index leg) and
+  `hygiene-wire-prune` (a comment). Two stale comments were also updated:
+  `aura-convert.js` (extension reinstalled) and `AuraTiledConvert.test.ts`.
+
+**Tests:**
+
+- Go: `TestEntitiesInView_AreInAscendingIDOrderEveryTime` (core) and
+  `TestZoneSet_PropsSpawnInZoneFileOrder` (cmd/aurad), both red first
+  (undefined), then green. `go build ./...` is clean. Full `go test ./...`
+  green except `world.TestPropContent_C1bMigrationPreservesLookAndCollision`:
+  **red at HEAD too** (run in a clean worktree at `d0155593`); its package
+  depends on nothing P1 touched. Unowned, not P1's.
+- vitest: `OrderedLayer.test.ts`, 3 cases, red first (missing module), then
+  green. Full suite **1466/0** (62 files). `npm run typecheck` clean.
+- **In-game, new harness `p1-prop-order.mjs`: 10/10.** At Eliza's farmhouse,
+  every child of `props.standing` mapped to a `world.json` placement (12 of
+  12) in ascending file order, and the OakTree (#170) drew over the Cottage
+  (#155). It held after a walk-away-and-return (60 u away until both left the
+  snapshot, then back). `npcs < characters < props.standing` held (13 < 14 <
+  15), an NPC near Eliza drew on `mobs.npcs`, and there were no page errors.
+  Expectations are derived from `world.json`.
+- `bridge-underfoot.mjs` PASS (no bridge placed, so only the ordering is
+  proven). `tools/tiled/verify.sh` all green.
+- ⚑ `c3-flight-client.mjs` dies at leg 1, before any prop leg: its campfire
+  venues are coordinates from the old 144×72 map. That predates P1, which only
+  renamed one container read there. Not repaired here.
+
+**Schema:** DB **NONE** · wire **NONE** (the same fields; only the order of
+the entity vector is now fixed) · conf **NONE** · content **NONE** · zone
+format **NONE**.
+
+**PO look ✅ 2026-10-02:**
+
+- The done-when holds: oak and house stay stable across a walk-away, a reload
+  and a server restart, and Raise/Lower in Tiled, then save and restart, flips
+  them.
+- D9 is not visible by eye: NPCs collide, so the player never overlaps one.
+  The harness's layer-order leg is the evidence.
+- PO question: why a restart? The order key is the entity id, which the
+  server assigns at boot from its own copy of the zone (D5, no wire field), so
+  a reorder is half-live like any zone edit.
+- ⚑ Until P3 the order is pure file order, so some overlaps settle the
+  "wrong" way once. Don't hand-fix them (§6).

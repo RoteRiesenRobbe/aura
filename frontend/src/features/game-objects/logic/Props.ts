@@ -63,11 +63,11 @@ type GameObjectClass = new (...args: any[]) => unknown;
  * Which container a prop draws in — the z-order question, and the only thing
  * `underfoot` decides (PO 2026-09-16).
  *
- * ⭐ A prop you WALK ON has to draw BELOW the character walking on it. The
- * `resources` layers are added AFTER `layers.characters` (Game.ts), which is
+ * ⭐ A prop you WALK ON has to draw BELOW the character walking on it.
+ * `props.standing` is added AFTER `layers.characters` (Game.ts), which is
  * right for a tree — you walk behind it — and wrong for a bridge, which would
- * cover the player crossing it. `underfoot` puts it on the last TERRAIN layer
- * instead, under every entity. It is the mobs-under-characters ruling ("a
+ * cover the player crossing it. `underfoot` puts it on `props.underfoot`, the
+ * last TERRAIN slot, under every entity. It is the mobs-under-characters ruling ("a
  * player standing on a campfire must never be covered by its art") applied to
  * world geometry, and the server refuses `crossesPaths` without it.
  *
@@ -76,7 +76,7 @@ type GameObjectClass = new (...args: any[]) => unknown;
  * null until the GameSetupEvent fires.
  */
 function propLayer(underfoot: boolean): Container {
-    return underfoot ? Game.layers.terrain.decks : Game.layers.resources.trees;
+    return underfoot ? Game.layers.props.underfoot : Game.layers.props.standing;
 }
 
 // Tree/RoundTree and Mineral/Stone have real behavior (resource-spot decal,

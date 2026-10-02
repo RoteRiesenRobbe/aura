@@ -5,14 +5,14 @@
 // layers.characters).
 //
 // What this leg can show WITHOUT a placed bridge:
-//   1. ⭐ THE ORDER. `layers.terrain.decks` is in the scene graph and sits
+//   1. ⭐ THE ORDER. `layers.props.underfoot` is in the scene graph and sits
 //      BELOW `layers.characters` in the same parent. That ordering is the whole
-//      fix — a prop on `resources.trees` is added AFTER characters and covers
+//      fix — a prop on `props.standing` is added AFTER characters and covers
 //      them.
 //   2. The client still boots. Props.ts now THROWS on a mixed-underfoot
 //      entityType group at module scope, which would blank the page rather than
 //      degrade — 0 page errors is what says it did not.
-//   3. Any Bridge actually PLACED in the zone renders on `decks` and on no
+//   3. Any Bridge actually PLACED in the zone renders on `props.underfoot` and on no
 //      other layer (skipped, loudly, when the zone places none).
 //
 // ⛔ What it CANNOT show: that the deck reads correctly under a player standing
@@ -44,9 +44,9 @@ await page.waitForTimeout(1500);
 
 const report = await page.evaluate(() => {
   const g = window.game;
-  const decks = g.layers.terrain.decks;
+  const decks = g.layers.props.underfoot;
   const chars = g.layers.characters;
-  const trees = g.layers.resources.trees;
+  const trees = g.layers.props.standing;
   const parent = decks && decks.parent;
   const idx = (c) => (parent ? parent.children.indexOf(c) : -1);
 
@@ -64,8 +64,8 @@ const report = await page.evaluate(() => {
 });
 
 const fail = [];
-if (!report.hasDecks) { fail.push('layers.terrain.decks does not exist'); }
-if (!report.inScene) { fail.push('layers.terrain.decks is not in the scene graph'); }
+if (!report.hasDecks) { fail.push('layers.props.underfoot does not exist'); }
+if (!report.inScene) { fail.push('layers.props.underfoot is not in the scene graph'); }
 if (!(report.deckIdx < report.charIdx)) { fail.push(`decks (${report.deckIdx}) is NOT below characters (${report.charIdx})`); }
 if (!(report.spotIdx < report.deckIdx)) { fail.push(`decks (${report.deckIdx}) is NOT above resourceSpots (${report.spotIdx})`); }
 if (errors.length) { fail.push(`${errors.length} page error(s): ${errors.slice(0, 3).join(' | ')}`); }

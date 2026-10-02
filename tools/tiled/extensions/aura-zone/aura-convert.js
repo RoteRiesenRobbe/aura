@@ -942,7 +942,7 @@ var AuraConvert = (function () {
              *   regions     -> layers.terrain.regions      the ground itself
              *   paths       -> terrain.polygons + .paths   masses, then ribbons
              *   terrain     -> layers.terrain.textures     blobs ON the ground
-             *   props       -> resources.* / terrain.decks
+             *   props       -> props.standing / .underfoot
              *   spawns      -> layers.mobs.*
              *   campfires   -> (not rendered from this array at all)
              *   darkAreas   -> layers.darkness

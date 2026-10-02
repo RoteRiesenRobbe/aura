@@ -25,7 +25,9 @@ export interface IGameLayers {
     corpses: Container,
     characters: Container,
     mobs: Record<string, Container>,
-    resources: Record<string, Container>,
+    // `underfoot` (under every entity) and `standing` (over the characters),
+    // each sorted by entity id (plan-prop-draw-order.md D6/D7).
+    props: {underfoot: Container, standing: Container},
     // A character in flight (C3): above props and boss mobs, below darkness.
     // Holds at most the local player, and only while airborne.
     flyers: Container,

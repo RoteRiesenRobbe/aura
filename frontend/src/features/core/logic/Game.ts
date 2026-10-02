@@ -269,8 +269,8 @@ export class Game implements IGame {
                 // ground, UNDER the texture blobs. A road lies ON the field it
                 // crosses, and the blobs keep doing edge treatment on top of
                 // both. A bridge is a PROP (D6) and therefore an entity — but an
-                // entity you WALK ON, so it draws on `decks` a few lines below,
-                // never in the `resources` layers with the trees (PO 2026-09-16).
+                // entity you WALK ON, so it draws on `props.underfoot`, never
+                // on `props.standing` with the trees (PO 2026-09-16).
                 // Filled masses (plan-zone-polygons.md P2): OVER the region
                 // ground, UNDER the paths. Material, then masses, then ribbons —
                 // a rock sits on the field, and a road still runs over the rock.
@@ -278,21 +278,29 @@ export class Game implements IGame {
                 paths: createNamedContainer('paths'),
                 textures: createNamedContainer('textures'),
                 resourceSpots: createNamedContainer('resourceSpots'),
+            },
+            // The two prop containers (plan-prop-draw-order.md D7). Each keeps
+            // its props sorted by entity id (OrderedLayer, D6), which is
+            // zone-file order, so the stacking is the authored one.
+            props: {
                 // Bridges, docks, plank walkways — anything a character stands
                 // ON TOP OF, i.e. every prop definition authoring
                 // `underfoot: true` (PO 2026-09-16, plan-world-paths.md D6).
                 //
-                // ⭐ THE LAST TERRAIN LAYER, AND THEREFORE STILL UNDER EVERY
-                // ENTITY — which is the entire point. A prop drawn in the
-                // `resources` layers is drawn above `characters`, so a bridge
-                // there would cover the player crossing it: the campfire defect
-                // (see the mobs-under-characters note below), applied to world
-                // geometry. The server refuses `crossesPaths` without
-                // `underfoot` so the two cannot drift apart.
+                // ⭐ ADDED AS THE LAST TERRAIN LAYER, AND THEREFORE STILL UNDER
+                // EVERY ENTITY — which is the entire point. `standing` is drawn
+                // above `characters`, so a bridge there would cover the player
+                // crossing it: the campfire defect (see the
+                // mobs-under-characters note below), applied to world geometry.
+                // The server refuses `crossesPaths` without `underfoot` so the
+                // two cannot drift apart.
                 //
                 // ⚑ ABOVE `resourceSpots`: a deck hides the ground scuffing it
                 // is laid over, not the other way round.
-                decks: createNamedContainer('decks'),
+                underfoot: createNamedContainer('propsUnderfoot'),
+                // Every other prop: trees, rocks, houses, walls. Above the
+                // characters (you walk behind a tree), below flyers.
+                standing: createNamedContainer('propsStanding'),
             },
             // No `placeables` group: the Berryhunter build/placeable feature is
             // gone (backlog §26/§28), so all seven of its containers rendered
@@ -307,10 +315,10 @@ export class Game implements IGame {
                 turnip: createNamedContainer('turnip'),
                 // Z1 wildlife + brambles share one layer (content pass C2).
                 wildlife: createNamedContainer('wildlife'),
-            },
-            resources: {
-                minerals: createNamedContainer('minerals'),
-                trees: createNamedContainer('trees'),
+                // NPCs, under the player like every other mob
+                // (plan-prop-draw-order.md D9). They used to share the props
+                // container and draw over the player.
+                npcs: createNamedContainer('npcs'),
             },
             // A character in FLIGHT, above the props (flight C3, PO
             // pass 2026-08-05). Every other character stays on `characters`,
@@ -376,7 +384,7 @@ export class Game implements IGame {
             this.layers.terrain.paths,
             this.layers.terrain.textures,
             this.layers.terrain.resourceSpots,
-            this.layers.terrain.decks,
+            this.layers.props.underfoot,
         );
 
         // Corpses below the living
@@ -402,16 +410,15 @@ export class Game implements IGame {
             this.layers.mobs.campfire,
             this.layers.mobs.turnip,
             this.layers.mobs.wildlife,
+            this.layers.mobs.npcs,
         );
 
         // Characters above mobs
         this.cameraGroup.addChild(this.layers.characters);
 
-        // Resources
-        this.cameraGroup.addChild(
-            this.layers.resources.minerals,
-            this.layers.resources.trees,
-        );
+        // Props, one container: rocks no longer draw below every other prop,
+        // the id order decides (plan-prop-draw-order.md D7).
+        this.cameraGroup.addChild(this.layers.props.standing);
 
         // …and a flyer above even those. Walking behind a tree is correct;
         // flying behind one breaks the only thing selling the flight, since

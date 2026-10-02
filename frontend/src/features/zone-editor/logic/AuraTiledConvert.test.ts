@@ -203,7 +203,7 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
             'regions',      // terrain.regions — the ground itself
             'paths',        // terrain.polygons + terrain.paths
             'terrain',      // terrain.textures — blobs ON the ground
-            'props',        // resources.* / terrain.decks
+            'props',        // props.standing / props.underfoot
             'spawns',       // mobs.*
             'campfires',    // not rendered from this array
             'darkAreas',    // darkness

@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/prop"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
 
@@ -127,6 +128,24 @@ func allCorridors(zones []*world.Zone) []world.Corridor {
 				"zone", z.ID, "polygon", c.Index,
 				"cell", c.Cell, "authoredCell", c.FromCell,
 				"bodies", c.Bodies, "wouldHaveBeen", c.FromBodies)
+		}
+	}
+	return out
+}
+
+// propEntities builds every zone's props as entities, in zone order and then
+// each zone's file order (plan-prop-draw-order.md P1).
+//
+// ⭐ SPAWN ORDER IS DRAW ORDER. Entity ids come from a global counter, and the
+// client inserts each prop by id (D6), so the order built here is the order
+// the props stack in: later in the file draws on top, which is also what
+// Tiled shows. Building them anywhere else, or in another order, reorders the
+// world. P3 extends this to the four-layer flatten.
+func propEntities(zones []*world.Zone) []*prop.Prop {
+	var out []*prop.Prop
+	for _, z := range zones {
+		for i := range z.Props {
+			out = append(out, prop.FromZone(&z.Props[i]))
 		}
 	}
 	return out

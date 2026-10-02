@@ -153,7 +153,7 @@ const readFlight = (page) => page.evaluate(() => {
       return p?.parent ? p.parent.getChildIndex(p) : null;
     })(),
     propLayerIndex: (() => {
-      const trees = window.game?.layers?.resources?.trees;
+      const trees = window.game?.layers?.props?.standing;
       return trees?.parent ? trees.parent.getChildIndex(trees) : null;
     })(),
     // The E prompt over a campfire (PO 2026-08-05). Counted off the campfire

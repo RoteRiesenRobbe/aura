@@ -8,6 +8,7 @@ import {IGame} from '../../core/logic/IGame';
 import {GameSetupEvent} from '../../core/logic/Events';
 import {StatusEffect} from './StatusEffect';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
+import {addChildOrdered} from './OrderedLayer';
 
 let Game: IGame = null;
 GameSetupEvent.subscribe((game: IGame) => {
@@ -42,6 +43,13 @@ export abstract class Resource extends GameObject {
         };
     }
 
+    // ⭐ By entity id, never appended (plan-prop-draw-order.md D6): ids ascend
+    // in zone-file order, so a later prop in the file draws on top, and a prop
+    // that leaves the view and comes back returns to its own slot.
+    show() {
+        addChildOrdered(this.layer, this.shape, this.id);
+    }
+
 }
 
 export abstract class Tree extends Resource {
@@ -60,7 +68,7 @@ export abstract class Tree extends Resource {
     // argument and dropped its own addend; the tree kept one until now.
     // ⚑ Retuning a tree's on-screen size is now an api/props/tree.json edit.
     protected constructor(id: number, x: number, y: number, size: number, rotation: number, svg: Texture) {
-        super(id, Game.layers.resources.trees, x, y, size, rotation, svg);
+        super(id, Game.layers.props.standing, x, y, size, rotation, svg);
 
         // The spot decal keeps its own random angle: it is ground scuffing, not
         // part of the tree, and turning with the crown would read as a decal
@@ -95,7 +103,7 @@ export abstract class Mineral extends Resource {
     resourceSpotTexture: Sprite;
 
     protected constructor(id: number, x: number, y: number, size: number, rotation: number, svg: Texture) {
-        super(id, Game.layers.resources.minerals, x, y,
+        super(id, Game.layers.props.standing, x, y,
             // ⭐ The 1.07 padding this used to apply now lives in the authored
             // body (api/props/rock.json, boulder.json) with a matching
             // collisionFactor, so the sprite draws at exactly the streamed
