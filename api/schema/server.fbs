@@ -243,7 +243,13 @@ enum EntityType : ushort {
   // The beach's harvest-mob, the Turnip's pattern: heaps of washed-up kelp
   // only Harvest can pop, along the tide line of Saltgrass Strand, where the
   // Miller lost his ring.
-  Seaweed = 104
+  Seaweed = 104,
+
+  // The smashed twin of Crate (79), the way RuinedHouse (100) is House's: a
+  // second DRAWING on the same 0.9x0.9 body, so a placement swaps between them
+  // without moving anything. NON-BLOCKING, unlike its intact twin: the sides
+  // are down and the boards lie flat, so it is debris you walk over.
+  BrokenCrate = 105
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

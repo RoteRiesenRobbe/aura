@@ -721,6 +721,9 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.CaveMouth]: Props.genericPropClasses.CaveMouth,
     // House's wreck, a second sprite on the same body (BurntCart's pattern).
     [AuraApi.EntityType.RuinedHouse]: Props.genericPropClasses.RuinedHouse,
+    // Crate's wreck, the same pattern on the same body; what makes it
+    // walkable is its definition (`blocksMovement: false`), never a class.
+    [AuraApi.EntityType.BrokenCrate]: Props.genericPropClasses.BrokenCrate,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

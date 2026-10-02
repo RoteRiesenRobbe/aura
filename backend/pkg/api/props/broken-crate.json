@@ -1,0 +1,7 @@
+{
+  "name": "BrokenCrate",
+  "entityType": "BrokenCrate",
+  "sprite": "brokenCrate.svg",
+  "body": { "width": 0.9, "height": 0.9 },
+  "blocksMovement": false
+}

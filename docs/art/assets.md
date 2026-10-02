@@ -201,6 +201,7 @@ of which **11 are P0**:
 | 🟡 | **Palisade segment** | `palisade.svg` | P1 |  | 288 x 96 | Z2 |
 | ❌ | **Tent** | — | P2 |  |  | Z2 — Bandit camp. |
 | 🟡 | **Crate** | `crate.svg` | P3 |  | 108 | Z1 — Camp/village clutter. Placeholder SVG (body 0.9x0.9 rect): lid boards, iron banding, top-down. |
+| 🟡 | **BrokenCrate** | `brokenCrate.svg` | P3 |  | 108 | Z1 — Crate's wreck, same 0.9x0.9 body, NON-BLOCKING. Placeholder SVG: lid gone, an L of two sides standing on one bracket, the other two burst outward, straw spilled. |
 | 🟡 | **Torch** | `torch.svg` | P1 |  | 62 | Z1 — The only prop that EMITS LIGHT. Half a campfire radius (3.5 u), punched into the darkness overlay from zone.props at load - never streamed, or a dark pocket pops lit the moment the torch enters the viewport. Placeholder SVG (body r0.26, about a player wide): a tiny campfire from above, palette lifted from mobs/campfire.svg. Draws at 62 px: doubled from r0.13 on 2026-09-20 because a torch is the one small prop a player looks at. |
 | ❌ | **Signpost art** | — | P1 |  |  | Z2 — ForestSign exists as an NPC but wears signpost.svg alongside three monuments — see the shared-art warning. |
 | ❌ | **Mushroom cluster** | — | P3 |  |  | Z2 — Forest floor dressing, Zone 2. |

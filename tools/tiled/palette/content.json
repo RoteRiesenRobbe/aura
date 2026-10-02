@@ -23,6 +23,7 @@
       "Barn",
       "Boulder",
       "Bridge",
+      "BrokenCrate",
       "BrokenFence",
       "BurntCart",
       "Bush",
@@ -386,6 +387,10 @@
     "Bridge": {
       "w": 5,
       "h": 2
+    },
+    "BrokenCrate": {
+      "w": 0.9,
+      "h": 0.9
     },
     "BrokenFence": {
       "w": 2,
