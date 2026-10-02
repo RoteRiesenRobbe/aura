@@ -1,14 +1,18 @@
-# Content — Level design guide, Zone 1 (Farmland & Village) + Zone 2 (Woodland)
+# Content — Level design guide (shared rules for every zone)
 
-**Design intent + authoring guide.** What the first two zones are supposed to
-*be and do*, and how to build them with the primitives the engine actually
-ships today. Exact runtime positions live in the zone JSON authored in Tiled
+**Authoring guide.** How to build a zone with the primitives the engine
+actually ships today, and the level-design rules every zone follows. Exact
+runtime positions live in the zone JSON authored in Tiled
 (`manual-tiled-editor.md`) and are never mirrored here. Numbers are
 [PLACEHOLDER] unless marked FINAL.
 
-⭐ **This doc is the source of truth for Zone 1 + Zone 2 design intent**
-(PO 2026-09-30). It replaced `content-zone1.md` / `content-zone2.md`, which are
-archived because they describe the old 144×72 world.
+⭐ **Each zone's design intent lives in its own doc** (PO 2026-10-02):
+[`content-zone-1-farmland.md`](content-zone-1-farmland.md) and
+[`content-zone-2-woodland.md`](content-zone-2-woodland.md). They were §2 and §3
+of this guide from 2026-09-30, when it replaced the archived
+`content-zone1.md` / `content-zone2.md` (old 144×72 world); §2 and §3 below are
+now pointers. How a zone's XP is budgeted, and how a zone splits into quest
+areas: [`plan-xp-progression.md`](plan-xp-progression.md).
 
 ## Where each truth lives
 
@@ -17,7 +21,9 @@ that source owns, **the source wins** and this doc is the one to fix.
 
 | Question | Source of truth |
 |---|---|
-| What Zones 1 + 2 are *for*: flow, POIs, cast, quests, rules | **this doc** |
+| What a zone is *for*: flow, POIs, cast, quests, its XP budget | its zone doc: [`content-zone-1-farmland.md`](content-zone-1-farmland.md), [`content-zone-2-woodland.md`](content-zone-2-woodland.md) |
+| How to build any zone, and the rules every zone follows | **this doc** |
+| Level bands per zone, quest areas, the quest / kill XP split | [`plan-xp-progression.md`](plan-xp-progression.md) |
 | Where anything actually stands | [`api/zones/world.json`](../api/zones/world.json) (authored in Tiled), plus the interiors [`tunnel.json`](../api/zones/tunnel.json) and [`barn.json`](../api/zones/barn.json). Read it with `node scripts/zone-census.mjs` (per-region census + placement warnings) |
 | The zone list, its order, and which region is which zone | [`content-world.md`](content-world.md) |
 | Mob, NPC, quest and skill definitions | `api/mobs/`, `api/quests/`, `api/skills/`; intent per entry in [`content-mobs.md`](content-mobs.md), [`content-npcs.md`](content-npcs.md) |
@@ -63,7 +69,7 @@ the design sense (`plan-underworld.md` §2.1).
 
 | Zone | Region(s) (`title`, `subtitle`, ground profile) | Hostile levels today |
 |---|---|---|
-| **1 — Farmland & Village** | **Farmlands** ("Home and Hearth", `Fields`) · **Brackenfold Meadows** ("Plough and Bramble", `FieldsForestBlend`) · **Saltgrass Strand** ("Sea and Salt", `Coast`, a thin strip on the north edge) | 3–5 |
+| **1 — Farmland & Village** | **Farmlands** ("Home and Hearth", `Fields`) · **Saltgrass Strand** ("Sea and Salt", `Coast`, a thin strip on the north edge). ⛔ **Brackenfold Meadows** ("Plough and Bramble", `FieldsForestBlend`) is leaving Zone 1 (PO 2026-10-02); the map fix is owed | 3 (Farmlands) |
 | **2 — Woodland** | **Deep Woods** ("City Outskirts", `Forest`), east of the river | 4–14 |
 | City (next) | **Brunnstedt** ("Walls and Wells", `City`) | none |
 
@@ -72,32 +78,14 @@ Interiors off Zone 1, each its own zone file entered through a `CaveMouth`:
 (`tunnel.json`, 48×28, Dire Wolves, both mouths in the Farmlands). The
 underworld's two surface exits come up in the Deep Woods.
 
-⚑ The table's levels are a census of 2026-09-30, not a decision; the
-intended ranges are in §2 and §3. Re-run `node scripts/zone-census.mjs` instead
-of trusting them.
+⚑ The table's levels are a census, not a decision; the intended bands are in
+each zone doc and [`plan-xp-progression.md`](plan-xp-progression.md). Re-run
+`node scripts/zone-census.mjs` instead of trusting them.
 
-### 0.3 As built vs. this doc (census 2026-09-30)
+### 0.3 As built vs. the zone docs
 
-The map is the PO's work in progress. These are the places where it and the
-intent below currently differ. They are **for the PO to judge**, not errors:
-either the map or this doc moves.
-
-**Zone 1, built:** the homestead with Eliza, Hendrik and Benjamin, the starting
-campfire, level 1–2 stags and a beet patch (§2.0) · Reinhard, the `Barn` prop
-and the barn interior · the mill with the Miller, and the Alpha Boar in the
-meadows · Town Crier, Shepherd, Farmhand · fence paths, gates, wheat and
-ploughed-field polygons · two `BrokenFence` and three `BurntCart` props, a
-`RuinedHouse` · the Memorial Stone.
-
-| Topic | This doc says | The map has |
-|---|---|---|
-| River | Along the **south**, one bridge on the road (§2.2) | Runs **north–south along the Zone 1 / Zone 2 seam**, crossed by several bridges |
-| Atmosphere | Zone 1 has essentially none (§2.3, §4 rule 3) | Farmlands carries `Fairy Dust`, the meadows `Rain` |
-| Village square | 4–6 Houses around the hub (§2.4) | Two Houses and two Cottages, split between the homestead and the farm |
-| Zone 2 content | Kingsroad, wanderer's camp, bandit camp, kobold warren, bear hollow, sealed gate, dark tunnel mouth (§3.2, §3.3) | ~75 Wolves at level 4–5, one Dire Wolf (14), one Kobold (7), the Hermit, the Ascension Stone, two underworld exits. **None of the §3.3 POIs yet** |
-| Zone 2 levels | 6–12 [PLACEHOLDER] | Almost entirely 4–5 |
-| Dark tunnel | Woodland's alternate route into the City, with the light tutorial (§3.2) | A Dire Wolf cave whose both mouths are in the Farmlands |
-| Campfires | Never beside danger (§4 rule 7) | `spawnpoint-4` in the Deep Woods has about 20 hostile Wolves within 12 u (census warning) |
+Moved with the zones (2026-10-02): each zone doc carries its own "As built vs.
+this doc" table.
 
 ⚑ **"Shipped" in this doc's examples means the OLD world.** The seam ridge,
 the Bandit Horde, the tunnel's lit spider staging area and the north-pasture
@@ -148,347 +136,15 @@ here needs Go.
 
 ---
 
-## 2. Zone 1 — Farmland & Village
+## 2. Zone 1 — moved to [`content-zone-1-farmland.md`](content-zone-1-farmland.md)
 
-**Level range** 1–6 [PLACEHOLDER]. **Theme**: open, bright, legible. The zone
-whose job is to teach, not to threaten.
+Split out 2026-10-02 (PO: Zones 1 and 2 are separate docs). The section
+numbers there are unchanged, so a citation of "this guide §2.x" (code
+comments, content `_comment`s, SVG headers) means §2.x of that doc.
 
-### 2.0 The opening arc — home, before the village exists
+## 3. Zone 2 — moved to [`content-zone-2-woodland.md`](content-zone-2-woodland.md)
 
-⭐ **This is the first five minutes of the game, and it is a POI the player
-starts *inside*, not one they walk to.** A homestead west of Reinhard's farm,
-off the road's west end. Three relatives live here, and between them they hand
-over the entire starting kit. The quest is `dinner-for-the-family`.
-
-**The design problem it solves.** Before this existed a new character spawned in
-the village square holding exactly one skill — the level-1 `Damage` milestone —
-and every teacher was optional scenery. Nothing in the world *required* the
-player to learn anything, so the first hour taught by accident or not at all.
-The arc makes the three foundational verbs — **fight, gather, heal** — into
-three errands for three people you are related to.
-
-The quest has **one objective stage, and both errands run in parallel inside it**:
-
-| Stage | Objective | Who | What it teaches | Why it cannot be skipped |
-|---|---|---|---|---|
-| `gather` | talk | **Hendrik**, your father, a hunter | **Wild** @L1 | Soft — a `talk_to` objective. You must open his panel; taking the skill is your choice |
-| | kill 3× **Stag** | | that a fleeing target is a *positioning* problem | — |
-| | talk | **Benjamin**, your uncle | **Harvest** @L1 | Soft — a `talk_to` objective |
-| | harvest 6× **Beet** | | that not everything is killed | ⛔ **Hard.** A Beet carries the Turnip's `{"*": 0}` + `gateKeys: ["harvest"]` lock, so **no combat aura can touch one** until Harvest is learned |
-| `home` | talk | **Eliza**, your mother | **FirstAid** + 150 XP on the turn-in | — |
-| `done` | — | — | — | Her completed-greeting points east to Reinhard |
-
-⭐ **The two lessons are deliberately asymmetric, and that asymmetry is the
-teaching.** Hendrik's Wild is an *upgrade you may decline* — `Damage` alone
-kills a stag, so the lesson is "there is a wider ring, and it costs resource."
-Benjamin's Harvest is a *key*: swinging at a beet does literally nothing. The
-player meets an optional trade and an absolute lock inside the same five
-minutes, which is the whole shape of the game's skill economy in miniature.
-
-⚑ **Parallel means unordered.** A stage's objectives are AND-ed with no order,
-so the player can do either errand first — and can kill the stags *before*
-visiting Hendrik (the talk still has to happen before the stage completes).
-The beets need no ordering rule: the harvest lock orders them by itself.
-
-⚑ **`gather` authors no `tracker`, and must not.** A stage tracker replaces
-every derived line with ONE, and substitutes `{n}/{m}` from the **first
-countable** objective only — it could show the stags or the beets, never both.
-Left underived, the journal shows one line per objective, each with its own
-live count and a ✓ on a finished talk. ⚑ The cost is the deriver's wording:
-`Talk to the Hendrik`, `0/3 Stag slain`, `0/6 Beet harvested`. Fixing that
-needs a per-objective tracker in the quest format, which does not exist yet.
-
-**The stag is the right first target and the reason is mechanical.** It authors
-`fleeBelowHealthRatio: 1`, so it bolts the instant it is hurt and **never
-fights back** — there is no lethality at any level. It moves at
-`0.055 × 0.85 = 0.04675`/tick against the player's `0.05`: a 7 % edge, so the
-kill is a chase the player wins by *staying in the ring*, not by out-damaging
-anything. That is the first lesson an aura game should teach.
-
-✅ **PLACEMENT, done in the rebuilt world** (census 2026-09-30: level 1–2 stags
-and a beet patch around the homestead, the start campfire beside it). The
-reasoning stays because it is what the next re-placement must not undo. Author
-the homestead stags at **level 1–2**. Spawn level is a per-spawn override, so this
-is a placement decision and touches no definition:
-
-| Stag spawn level | HP | L1 player's Damage aura |
-|---|---|---|
-| **1** | 35 | 3 ticks = **4.0 s of contact** |
-| 14 *(the north-pasture herd)* | 153 | 11 ticks = **14.7 s of contact** |
-
-A level-14 stag is killable at level 1 — it cannot hurt you — but it is
-**eleven re-closes of a 1-unit ring** per animal, and that is not the game's
-first fight. The pasture herd stays where it is; the homestead needs its own
-low-level spawns (**3–4**, for a count of 3), plus a **Beet patch of 8–10** (for 6).
-
-⚑ **Cast the homestead with three reskins, not three sprites.** Eliza reuses
-`VillageHealer`, Hendrik reuses `Wanderer`, Benjamin reuses `Farmer`, and the
-Beet reuses `Turnip` — the standing placeholder-art call (Shepherd / Miller /
-Farmhand precedent). Four bespoke sprites for the tutorial would spend four
-wire enum values that can never be reclaimed, before anyone has seen whether
-the arc works.
-
-⭐ **The handoff is content, not a corridor.** Eliza's greeting after dinner is
-a `quest_at_stage … completed` node sitting **above** her unconditional root
-(L3: a conditional node must outrank the greeting), and it says to follow the
-road east to Reinhard. That is the seam between §2.0 and the rest of the zone:
-the arc does not gate the road, it *aims* the player down it.
-
-### 2.1 Story beat, restated as a *spatial* problem
-
-The bible says: the villages are idyllic, but predators are being pushed out of
-the forest by bandits hiding in it. **That is a geography statement, and the map
-has to carry it without a word of text.** The design consequence:
-
-- The zone reads **safe in the middle, worse toward the treeline.** Danger is a
-  gradient pointing *at one edge*, and that edge is the door to Zone 2.
-- Wildlife appears **where it does not belong** — a boar in the ploughed field,
-  a wolf at the fence line — not deep in the woods where a player would expect
-  it. The wrongness is the story.
-- Bandits are **never seen in Zone 1**, only their traces: a burnt cart, a
-  looted wagon, tracks leading into the trees. First contact is the woodland
-  edge.
-
-### 2.2 Layout skeleton
-
-```
-        N  <- open pasture, stags, nothing hostile (the "safe" lesson)
-        |
-   +====+================+
-   |  HOMESTEAD (start) -> VILLAGE -- road --+-->  E: outer farms, then the TREELINE (-> Zone 2)
-   |  (startingSpawn)      (campfire)        |
-   |      |                                  |
-   |   TURNIP FIELD                          |   S: river + mill, boars, soft dead end
-   +=========================================+
-```
-
-⚑ The skeleton is intent. The built map runs the river north–south along the
-Zone 1 / Zone 2 seam instead (§0.3).
-
-Authoring shape:
-
-- One `region` of **Fields** over the whole zone. The rest is paint on top.
-- A **Road** path (width ~2–2.5 u) running W→E through the village and out to
-  the treeline. It is the zone's spine and the player's compass: *the road
-  always leads to the next zone.* Keep it unbroken and unambiguous.
-- A **Water** path for the river along the south, blocking, with one **bridge
-  gap** on the road. The gap is the only crossing — that is what makes the south
-  a pocket rather than an escape.
-- **Hedgerow / fence** = `paths` wearing the **`Fence`** profile, **blocking**,
-  ringing each field. They do the single most valuable job in a starter zone:
-  **they make the space read as cultivated** and they gently rail the player
-  along the road without a wall.
-  - ⛔ **`alignTexture: true` is not optional on a `Fence` path.** It is the
-    only directional profile in the table: without the flag the rails lie
-    *across* the fence, and nothing warns you.
-  - ⚑ **Width `0.40`, and one path PER STRAIGHT LEG** — not one closed ring
-    per field. The angle is derived from a path's longest segment, so a bend
-    gets its dominant leg and the short one is wrong. That is also how a fence
-    is built: the corner is where the post goes.
-  - ⚑ `blocksMovement` defaults to **false**, so an unset fence is decorative
-    and the wolves walk straight through it.
-- **A gate** is the `Gate` prop dropped in a GAP between two fence legs. It is
-  the one prop here that does not block — the fence is the wall, the gate is
-  the door — and it is drawn standing open to say so. Rotate it to match the
-  fence's direction.
-- **The broken fence POI** is two fence legs with a gap, the **`BrokenFence`**
-  prop in the gap, and the wolves beyond it.
-  - ⚑ **This bullet used to say "no damaged art needed, and it reads better
-    than any would."** That was wrong, and the reason it was wrong is worth
-    keeping: a bare gap is **indistinguishable from a gate gap or an
-    unfinished run**. The break has to be *drawn* or the player reads a hole,
-    not a story (PO 2026-09-21).
-  - ⚑ It has the **same 2.0 × 1.6 body as `Gate`, on the same centreline**, and
-    is non-blocking for the same reason — the wolves got in through it, so the
-    player must be able to follow. Author the gap once and drop **either** prop
-    in it: the gate is the way in you *built*, the break is the way in
-    something *made*.
-  - ⭐ **It has a direction.** Everything loose in the art is pushed to one
-    side, so the prop's rotation says which way the thing came through. Point
-    it *into* the field.
-- **Field plots** = `polygons` with the Fields/Suburbs profile at a different
-  tint, non-blocking, rectangular-ish and *aligned to each other*. Straight
-  parallel edges are the whole visual language of farmland; anywhere else in the
-  game, straight is wrong.
-- **The treeline** is a thick band of Tree props plus a blocking `polygon` mass
-  behind them, pierced only at the designed crossing(s). **One is a defensible
-  choice *here specifically*** — Zone 1 is the tutorial and a single unambiguous
-  door is a feature — but it is a choice, not a rule; see §4 rule 2. (This is
-  the shipped seam-ridge trick, verified by flood-fill.)
-
-### 2.3 Atmosphere
-
-Zone 1 should be **the only zone with essentially no atmosphere authoring** —
-that is what makes Zone 2's canopy land. Two exceptions worth having:
-
-- A thin `Fog` haze over the river at dawn, low opacity, drifting. Free
-  atmosphere, sells "morning".
-- A shallow `Canopy` band **just inside the treeline**, so walking to the Zone 2
-  door visibly darkens before you arrive. It is a threshold, not a hazard.
-
-### 2.4 Points of interest (5–7, no more)
-
-| POI | Purpose | Contents |
-|---|---|---|
-| **The homestead** *(§2.0)* | ⭐ The opening arc — where the player starts, and the whole starting kit | Eliza, Hendrik, Benjamin; the `startingSpawn` campfire; 3–4 **L1–2** Stags; an 8–10 **Beet** patch. The road east leaves from here |
-| **Village square** | Hub, respawn, quest wall | Campfire, 4–6 Houses, Reinhard, Town Crier, village healer. ⚑ This row used to put the `startingSpawn` fire here, contradicting §2.0; the homestead owns it, as the built map does |
-| **Turnip field** | The first 90 seconds | Turnip harvest-mobs, Reinhard's chore quest |
-| **Reinhard's barn** | ⭐ The zone's first *aggressive* fight | `Barn` prop + 10–12 **GiantRat**; `giant-rats-in-the-barn` on Reinhard. ⭐ Built as an **interior**: the rats live in `barn.json`, entered through a `CaveMouth` at the barn door (the underworld's door mechanism, `plan-underworld.md`). ⚑ His boars are prey faction and wait to be provoked — a rat comes at you |
-| **North pasture** | Teaches *neutral* | Stags + boars, zero hostiles, a herder NPC |
-| **The broken fence** | Teaches *hostile* | 2–3 Wolves that got in through a `BrokenFence`; visible from the road |
-| **Burnt cart / looted wagon** | The bandit breadcrumb | Prop dressing + a corpse + a signpost. No mob. |
-| **Mill on the river** | Soft dead end, side reward | Miller NPC, a boar sounder, a chest-equivalent |
-| **Treeline gate** | The door | Signpost, a guard or wanderer who warns you, the Zone 2 quest giver |
-
-### 2.5 Cast (zone 1)
-
-Existing: `Turnip`, `Beet`, `Boar`, `Stag`, `Wolf`, `GiantRat`, `Bandit` (traces only),
-`Reinhard` (the Farmer, **renamed 2026-09-23**), `Eliza`, `Hendrik`, `Benjamin`,
-`TownCrier`, `VillageHealer`, `Wanderer`, `Dog`, `Campfire`.
-
-⚑ **`Farmer` is now two different things and the distinction bites.** `Reinhard`
-is the DEFINITION NAME — what zone spawns, quest `talk_to` targets and
-`GetByName` resolve against. `Farmer` survives as the **wire EntityType**, worn
-as an `entityType` override by Reinhard himself, Benjamin, the Miller, the
-Shepherd and the Farmhand. Renaming the def silently broke his sprite, because
-a def with no override resolves its art BY NAME; the override is the repair.
-
-~~**Missing and needed**: an **Alpha Boar** … and a **Herder/Shepherd** NPC~~ —
-**both now authored.** The `Shepherd` shipped with the north pasture as a Farmer
-reskin, exactly as this line proposed. The **`AlphaBoar`** shipped as Zone 1's one
-elite (curveLevel 6, `wildlife_prey` so the mill fight is *chosen*, paying for
-4.55× the Wolf's HP with 0.71× its speed) — but ⭐ **with its OWN sprite, not the
-`entityType`-variant shortcut this line proposed**: `wildboar_alpha.png` already
-existed, and an elite whose only tell is the health bar is one the player cannot
-decide to avoid from across the field. Its POI partner, the **`Miller`**, is a
-Farmer reskin like the Shepherd and offers `the-sounder-at-the-mill`.
-✅ **Both are placed** in the rebuilt world: the Miller at the mill in the
-Farmlands, the Alpha Boar across the river in Brackenfold Meadows (census
-2026-09-30).
-
-### 2.6 Quests (from the bible, mapped to what exists)
-
-0. ⭐ **The opening arc** — `dinner-for-the-family.json` ships (§2.0). It runs
-   *before* everything below and is the only quest in the zone that exists to
-   hand over skills rather than to reward a deed. It ends by pointing at (2).
-1. **MAIN: Report to the City** — accepted in the village, completes three zones
-   later. Its Zone 1 leg is simply "reach the treeline"; the map does the rest.
-2. **Tend to the Farm** — `turnip-chore.json` ships; keep it.
-3. **Kill the Wildlife** — `boars-in-the-field.json` + `wolves-on-the-road.json`
-   ship; keep both, they are exactly the bible's beat.
-3b. ⭐ **Giant rats in the barn** — `giant-rats-in-the-barn.json` ships, and it
-   makes Reinhard the zone's first **three-offer giver**. Its job is the
-   *escalation the other two do not teach*: the turnips do not fight, the
-   boars fight back, and the rats come to you. ⚑ **'Between boar and wolf' is
-   a threat profile, not a curve slot** — both of those author `curveLevel: 2`,
-   so there is no level gap to sit in. The GiantRat is cL2 too, and what sits
-   between them is speed (0.62 vs 0.55 / 0.7), sensor (2.2 vs 1.5 / 3) and
-   body (0.25 vs 0.4 / 0.3), with 45 HP — below both, because a rat is a barn
-   full of them rather than a duel.
-   ⛑ **It has no art**: it draws `NpcPlaceholder` (red `?` on a purple disc)
-   until an `EntityType` is appended and `api/schema/make.sh` is run — flatc
-   is not installed on the dev box. Do not ship it to players as-is.
-4. **Talk to People** — a 3-NPC "meet the village" chain. Cheap, and it is what
-   makes a village feel inhabited. `village-welcome.json` is the seed.
-5. **Bandit breadcrumb** — *new*: investigate the burnt cart, follow the tracks
-   to the treeline. Zero combat. This is the quest that hands off to Zone 2.
-
-⚑ The bible's "kill the bandits (and their leader?)" belongs in **Zone 2**, not
-here — killing the antagonist in the tutorial zone spends him.
-
----
-
-## 3. Zone 2 — Woodland
-
-**Level range** 6–12 [PLACEHOLDER]. **Theme**: dark, dense, disorienting, few
-people. The zone whose job is to make the player *want* the city.
-
-### 3.1 The design problem Woodland actually poses
-
-A forest is the hardest zone type in a top-down game, because **trees are both
-the art and the walls**, and a player who cannot see cannot navigate. Three
-rules make it work:
-
-1. **The kingsroad is always findable.** It is wide, it is a distinct profile,
-   and it runs unbroken from the west entrance to the sealed gate in the east.
-   Every time the player is lost, the recovery is "walk until you hit the road".
-2. **Darkness is authored in bands, not blobs.** A corridor of `Canopy`
-   atmosphere along a lane reads as *deep woods*; a circle of darkness in the
-   middle of nowhere reads as a bug.
-3. **Every dark area has a lit destination.** A `clearing` at the end of a dark
-   lane is the reward and the landmark. This is exactly what `zone.clearings`
-   was built for, and Woodland is its first real consumer.
-
-### 3.2 Layout skeleton
-
-```
-   W entrance (from Zone 1)
-        |
-   =====+======= KINGSROAD ==================+
-        |                                    |
-   +----+-----+      +----------+       +====+====+
-   | WANDERER |      | BANDIT   |       | SEALED  |  <- the gate. Shut.
-   |  camp    |      |  CAMP    |       |  GATE   |
-   +----------+      +----------+       +====+====+
-        .  deep wood  .  kobold warren  .    |
-                                        N detour --> (Zone 3)
-                                        + DARK TUNNEL (alt. route)
-```
-
-- **Region**: `Forest` over the whole zone.
-- **Kingsroad**: one `Road` path, width 3 u, W→E, **non-blocking**, dead-ending
-  into the gate. Wide enough to be unmistakable.
-- **The forest mass**: blocking `polygons` — big, chunky, *not* jagged (collider
-  budget) — with Tree props scattered densely on top of and around them. The
-  polygons are the navigation; the props are the look. Never rely on prop
-  colliders to wall a forest.
-- **Lanes**: the negative space between polygons. Author them as deliberate
-  corridors 4–8 u wide, branching off the road, each leading somewhere.
-- **Canopy atmosphere** over everything *except* a band along the road and the
-  clearings. `darkness` moderate + `haze` low; the haze is what makes it feel
-  humid rather than merely dim.
-- **Clearings** at every POI, `clears: both`.
-- **The sealed gate**: GateWall prop line + a blocking polygon behind it, the
-  road dead-ending into it, a guard NPC on the walkable side who explains the
-  seal and points north. This is the bible's beat verbatim.
-- **The dark tunnel** (alternate route into the city): reuse the shipped pattern
-  — boulder-walled corridor, chained darkness, a *lit staging area* at its mouth
-  so the player meets the tunnel's inhabitants in daylight first. It is also the
-  natural home for the light-aura tutorial.
-
-### 3.3 Points of interest
-
-| POI | Purpose | Contents |
-|---|---|---|
-| **West entrance** | Threshold | Signpost, last campfire before the dark, the Zone 1 handoff |
-| **Wanderer's camp** | The bible's "lost friend" quest | Wanderer NPC, campfire, clearing |
-| **The lost friend** | Payoff, deep in the wood | A corpse + a survivor, off-road, dark lane |
-| **Bandit camp** | The zone's group content | Melee/ranged/healer/leader (the shipped horde pattern), palisade = blocking closed path, clearing + firelight |
-| **Kobold warren** | Solo dungeon-lite | Boulder ring, melee front / ranged back, hoard |
-| **Bear hollow** | Environmental danger | A single high-level Bear in a lane you *can* avoid |
-| **Dark tunnel mouth** | Alt route + light tutorial | Staging area, lamplighter/miner NPC, spiders |
-| **The sealed gate** | The wall the zone is about | GateWall line, guard, north detour signpost |
-
-### 3.4 Cast (zone 2)
-
-Existing and reusable: `Wolf`, `DireWolf`, `EliteWolf`, `AlphaWolf`, `Bear`,
-`DireBear`, `Boar`, `Stag`, `Bandit`, `BanditRanged`, `BanditHealer`,
-`EliteBandit`, `Kobold`, `KoboldRanged`, `Spider`, `VenomSpider`, `GiantSpider`,
-`Bramble`, `Wanderer`, `Hermit`, `Miner`, `Lamplighter`, `ForestSign`.
-
-**Missing and needed**: **Goblin** (the bible names it beside Kobold; a distinct
-sprite + definition), and a **bandit leader** as a named elite — `EliteBandit`
-exists and can carry it with a name and a script, so this is content, not art.
-
-### 3.5 Quests
-
-1. **The lost friend** — the wanderer's quest, straight from the bible. Its real
-   job is teaching the player to leave the road.
-2. **Kill the bandits / kill their leader** — the group beat; the shipped horde
-   is the template.
-3. **Clear the warren** — `kobolds-on-the-road.json` ships.
-4. **MAIN leg: find another way in** — the gate guard sends you to the tunnel or
-   north. This is the zone's exit condition.
+Split out the same day, numbers unchanged: "this guide §3.x" means §3.x there.
 
 ---
 
@@ -571,9 +227,10 @@ What that list says about these two zones, in one paragraph each:
 
 - ~~**The zone-split question in §0** — PO call, blocks everything else.~~
   ✅ Closed by the rebuild (§0.1).
-- The **§0.3 divergences**: for each, whether the map or this doc moves.
-- Level ranges, mob counts, respawn timers, campfire spacing — all
-  [PLACEHOLDER], tuned in front of the game.
+- The **as-built divergences** in each zone doc: for each, whether the map or
+  the doc moves.
+- Level bands: `plan-xp-progression.md`. Mob counts, respawn timers, campfire
+  spacing — all [PLACEHOLDER], tuned in front of the game.
 - Whether `darkAreas` is retired in favour of `atmospheres`
   (`docs/cleanup.md` entry 1 argues it both ways, plus a third option: teach the
   atmospheres layer the ellipse tool).

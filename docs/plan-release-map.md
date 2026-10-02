@@ -11,7 +11,8 @@
 > `api/zones/world.json` (PO-authored in Tiled since 2026-09-24) IS the release
 > map. The camp mechanism (§3) is still unbuilt: no pledge quests, no content
 > pin. §9 records what landed; §7 marks the questions the build has answered.
-> Zone 1 + 2 design intent: `content-zone-design-guide.md`; the zone list and
+> Zone 1 + 2 design intent: `content-zone-1-farmland.md`,
+> `content-zone-2-woodland.md`; level bands: `plan-xp-progression.md`; the zone list and
 > region names: `content-world.md`.
 >
 > Supersedes `docs/archive/plan-test-world.md`, dropped the same day. It also
