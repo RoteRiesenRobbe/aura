@@ -37,11 +37,25 @@ type Buffs struct {
 	// counts, and Tick ages it without allocating.
 	stunSteps     int
 	stunDRElapsed int
+
+	// revision counts every change the buff tray can see (plan-buff-tray.md
+	// C1, D15): an insert, a refresh that extends a stream, and every removal
+	// (expiry, drop, a burned shield, a cleanse). The owner-state gate
+	// (core/net.go) compares it once per tick, the SkillComponent.revision
+	// shape. ⛔ Aging is NOT a change: the wire carries an expiry tick, which
+	// only moves when the store does, so Tick() bumps for a deletion only.
+	// Likewise a shield draining, a resist re-stamping its tags and a hot
+	// changing hands on a refresh: none of them move a circle, none bump.
+	revision uint64
 }
 
 type buffEntry struct {
 	payload buffPayload
 	ticks   int
+	// total is the lifetime this stream last started with: set on insert and
+	// on every extending refresh, so a circle fills back up on a refresh (D2)
+	// and (total - ticks) / total is how far it has drained.
+	total int
 }
 
 // buffPayload is the closed set of typed payloads the store carries. appliedBit
@@ -51,6 +65,9 @@ type buffEntry struct {
 type buffPayload interface {
 	isBuffPayload()
 	appliedBit() AppliedEffect
+	// effectKind is the buff tray's bit for this payload (own_effects.go), the
+	// appliedBit rule: a new payload does not build until its kind exists.
+	effectKind() EffectKind
 }
 
 type resistPayload struct {
@@ -239,7 +256,8 @@ func (b *Buffs) apply(source SkillID, payload buffPayload, ticks int) {
 	if b.entries == nil {
 		b.entries = make(map[SkillID][]*buffEntry, 1)
 	}
-	b.entries[source] = append(b.entries[source], &buffEntry{payload: payload, ticks: ticks})
+	b.entries[source] = append(b.entries[source], &buffEntry{payload: payload, ticks: ticks, total: ticks})
+	b.revision++
 }
 
 // ApplyResist grants (or refreshes) a tag-resistance buff from the given
@@ -252,9 +270,7 @@ func (b *Buffs) apply(source SkillID, payload buffPayload, ticks int) {
 func (b *Buffs) ApplyResist(source SkillID, tags []string, factor float32, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*resistPayload); ok && p.factor == factor {
-			if ticks > e.ticks {
-				e.ticks = ticks
-			}
+			b.extend(e, ticks)
 			p.tags = tags
 			return false
 		}
@@ -269,9 +285,7 @@ func (b *Buffs) ApplyResist(source SkillID, tags []string, factor float32, ticks
 func (b *Buffs) ApplySlow(source SkillID, fraction float32, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*slowPayload); ok && p.fraction == fraction {
-			if ticks > e.ticks {
-				e.ticks = ticks
-			}
+			b.extend(e, ticks)
 			return false
 		}
 	}
@@ -292,9 +306,7 @@ func (b *Buffs) ApplySlow(source SkillID, fraction float32, ticks int) bool {
 func (b *Buffs) ApplySpeed(source SkillID, factor float32, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*speedPayload); ok && p.factor == factor {
-			if ticks > e.ticks {
-				e.ticks = ticks
-			}
+			b.extend(e, ticks)
 			return false
 		}
 	}
@@ -310,9 +322,7 @@ func (b *Buffs) ApplySpeed(source SkillID, factor float32, ticks int) bool {
 func (b *Buffs) ApplyLifesteal(source SkillID, fraction float32, ticks int) {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*lifestealPayload); ok && p.fraction == fraction {
-			if ticks > e.ticks {
-				e.ticks = ticks
-			}
+			b.extend(e, ticks)
 			return
 		}
 	}
@@ -364,9 +374,7 @@ func (b *Buffs) LifestealFraction() float32 {
 func (b *Buffs) ApplyReflect(source SkillID, fraction float32, tags []string, ticks int) {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*reflectPayload); ok && p.fraction == fraction {
-			if ticks > e.ticks {
-				e.ticks = ticks
-			}
+			b.extend(e, ticks)
 			p.tags = tags
 			return
 		}
@@ -417,9 +425,7 @@ func (b *Buffs) ReflectBurst() (SkillID, float32, []string) {
 func (b *Buffs) ApplyTickRate(source SkillID, factor float32, ticks int) {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*tickRatePayload); ok && p.factor == factor {
-			if ticks > e.ticks {
-				e.ticks = ticks
-			}
+			b.extend(e, ticks)
 			return
 		}
 	}
@@ -439,9 +445,7 @@ func (b *Buffs) ApplyTickRate(source SkillID, factor float32, ticks int) {
 func (b *Buffs) ApplyDot(source SkillID, dot DotBuff, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*dotPayload); ok && p.dot.HP == dot.HP && p.dot.Caster == dot.Caster {
-			if ticks > e.ticks {
-				e.ticks = ticks
-			}
+			b.extend(e, ticks)
 			p.dot = dot
 			return false
 		}
@@ -460,9 +464,7 @@ func (b *Buffs) ApplyDot(source SkillID, dot DotBuff, ticks int) bool {
 func (b *Buffs) ApplyHot(source SkillID, hot HotBuff, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*hotPayload); ok && p.hot.HP == hot.HP {
-			if ticks > e.ticks {
-				e.ticks = ticks
-			}
+			b.extend(e, ticks)
 			p.hot = hot
 			return false
 		}
@@ -485,9 +487,7 @@ func (b *Buffs) ApplyHot(source SkillID, hot HotBuff, ticks int) bool {
 func (b *Buffs) ApplyShield(source SkillID, hp float32, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*shieldPayload); ok && p.authored == hp {
-			if ticks > e.ticks {
-				e.ticks = ticks
-			}
+			b.extend(e, ticks)
 			restored := p.remaining < p.authored
 			p.remaining = p.authored
 			return restored
@@ -518,6 +518,9 @@ func (b *Buffs) Tick() {
 				kept = append(kept, e)
 			}
 		}
+		if len(kept) != len(list) {
+			b.revision++ // an expiry, the one change aging makes
+		}
 		if len(kept) == 0 {
 			delete(b.entries, source)
 		} else {
@@ -529,6 +532,9 @@ func (b *Buffs) Tick() {
 // Cleanse removes every active buff and debuff (plan-effect-foundations F10:
 // everything is cleansable, no dispel classes in v1).
 func (b *Buffs) Cleanse() {
+	if len(b.entries) > 0 {
+		b.revision++
+	}
 	b.entries = nil
 }
 
@@ -555,9 +561,7 @@ func (b *Buffs) Empty() bool {
 func (b *Buffs) ApplyCalm(source SkillID, ticks int) {
 	for _, e := range b.entries[source] {
 		if _, ok := e.payload.(*calmPayload); ok {
-			if ticks > e.ticks {
-				e.ticks = ticks
-			}
+			b.extend(e, ticks)
 			return
 		}
 	}
@@ -595,9 +599,7 @@ func (b *Buffs) ApplyStun(source SkillID, ticks int) bool {
 	b.stunDRElapsed = 0
 	for _, e := range b.entries[source] {
 		if _, ok := e.payload.(*stunPayload); ok {
-			if ticks > e.ticks {
-				e.ticks = ticks
-			}
+			b.extend(e, ticks)
 			return true
 		}
 	}
@@ -629,9 +631,7 @@ func (b *Buffs) DropCalm() { dropPayload[*calmPayload](b) }
 func (b *Buffs) ApplyCharm(source SkillID, ticks int) {
 	for _, e := range b.entries[source] {
 		if _, ok := e.payload.(*charmPayload); ok {
-			if ticks > e.ticks {
-				e.ticks = ticks
-			}
+			b.extend(e, ticks)
 			return
 		}
 	}
@@ -669,6 +669,9 @@ func dropPayload[T buffPayload](b *Buffs) {
 			if _, ok := e.payload.(T); !ok {
 				kept = append(kept, e)
 			}
+		}
+		if len(kept) != len(list) {
+			b.revision++
 		}
 		if len(kept) == 0 {
 			delete(b.entries, source)
@@ -906,6 +909,9 @@ func (b *Buffs) dropDepletedShields() {
 				continue
 			}
 			kept = append(kept, e)
+		}
+		if len(kept) != len(list) {
+			b.revision++
 		}
 		if len(kept) == 0 {
 			delete(b.entries, source)

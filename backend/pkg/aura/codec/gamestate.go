@@ -230,6 +230,37 @@ func CooldownRemainingMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuf
 	return builder.EndVector(n)
 }
 
+// OwnEffectsMarshalFlatbuf serializes the own player's buff tray
+// (plan-buff-tray.md C1, D15): one OwnEffect struct per circle, with the
+// expiry as an absolute server tick (tick + ticks left) so the client counts
+// down against GameState.tick and nothing here changes while a stream merely
+// ages. Must be called before GameStateStart, like every other vector here,
+// and only inside the owner block: it is what the buff revision gates.
+//
+// ⚑ Empty returns 0, the "absent field" offset (the SkillEvents convention):
+// on a tick that carries owner_state, absent and empty both mean "nothing on
+// you", and the client keys on owner_state, never on this vector's presence.
+func OwnEffectsMarshalFlatbuf(effects []skills.OwnEffect, tick uint64, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	n := len(effects)
+	if n == 0 {
+		return 0
+	}
+	AuraApi.GameStateStartOwnEffectsVector(builder, n)
+	// Prepend in reverse so index 0 lands at the lowest address (the rule for
+	// every vector in this file). A struct is written inline by its Create.
+	for i := n - 1; i >= 0; i-- {
+		e := effects[i]
+		AuraApi.CreateOwnEffect(builder,
+			uint16(e.Skill),
+			AuraApi.EffectKind(e.Kinds),
+			uint16(min(e.Total, 0xFFFF)),
+			model.SourceID(e.Caster),
+			tick+uint64(e.Left),
+		)
+	}
+	return builder.EndVector(n)
+}
+
 // SpellbookLevelsMarshalFlatbuf serializes the per-skill levels as a [ubyte]
 // vector positionally parallel to the spellbook vector (same ascending-ID
 // order from Discovered()). Must be called before GameStateStart.
@@ -406,7 +437,7 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	// per-player-per-tick allocations, not just the bytes — SkipOwnerState's
 	// doc comment on the struct is the authority on exactly what this covers
 	// and why cooldown_remaining_ticks is excluded.
-	var spellbook, spellbookLevels, auraSlots, passiveSlots, cooldownSlots, questProgress flatbuffers.UOffsetT
+	var spellbook, spellbookLevels, auraSlots, passiveSlots, cooldownSlots, questProgress, ownEffects flatbuffers.UOffsetT
 	if !gs.SkipOwnerState {
 		spellbook = SpellbookMarshalFlatbuf(sc, builder)
 		spellbookLevels = SpellbookLevelsMarshalFlatbuf(sc, builder)
@@ -414,6 +445,9 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 		passiveSlots = PassiveSlotsMarshalFlatbuf(sc, builder)
 		cooldownSlots = CooldownSlotsMarshalFlatbuf(sc, builder)
 		questProgress = QuestProgressMarshalFlatbuf(gs.Player.QuestLedger().Snapshot(), builder)
+		// The buff tray (plan-buff-tray.md C1): gated by the buff revision
+		// through the same watch, so it rides here and nowhere else.
+		ownEffects = OwnEffectsMarshalFlatbuf(gs.Player.OwnEffects(), gs.Tick, builder)
 	}
 	cooldownRemaining := CooldownRemainingMarshalFlatbuf(sc, builder)
 
@@ -454,6 +488,7 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	AuraApi.GameStateAddPassiveSlots(builder, passiveSlots)
 	AuraApi.GameStateAddCooldownSlots(builder, cooldownSlots)
 	AuraApi.GameStateAddCooldownRemainingTicks(builder, cooldownRemaining)
+	AuraApi.GameStateAddOwnEffects(builder, ownEffects)
 	if !gs.SkipOwnerState {
 		// The explicit "this tick carries the owner block" flag (chunk 3). The
 		// client cannot infer this from any of the fields below: an empty
@@ -811,11 +846,12 @@ type CharacterGameState struct {
 
 	// SkipOwnerState omits the owner-only "slow" block — spellbook,
 	// spellbook_levels, the three slot vectors, active_aura_slot, skill_points,
-	// cost_factor, damage_factor and quest_progress — from this tick's encode
-	// entirely (plan-server-performance.md chunk 3). These fields change only
-	// on equip, unlock, level-up and quest events; NetSystem sets this once it
-	// has confirmed nothing in that group moved since the last tick it sent one
-	// (SkillComponent.Revision() / quests.Ledger.Revision() / player level all
+	// cost_factor, damage_factor, quest_progress and own_effects, from this
+	// tick's encode entirely (plan-server-performance.md chunk 3). These
+	// fields change only on equip, unlock, level-up, quest and buff events;
+	// NetSystem sets this once it has confirmed nothing in that group moved
+	// since the last tick it sent one (SkillComponent.Revision() /
+	// quests.Ledger.Revision() / Buffs.Revision() / player level all
 	// unchanged) and the resend heartbeat has not elapsed.
 	//
 	// ⚑ Defaults to false (send everything) so any caller that does not know

@@ -10,6 +10,21 @@
     "charm": 64,
     "speed": 128
   },
+  "_effectKindBitsComment": "The buff tray's kind bits (plan-buff-tray.md C1): OwnEffect.kinds is the union of these for the streams live under one circle. Generated on both sides from AuraApi.EffectKind (server.fbs, bit_flags); the Go mirror is skills.EffectKind. Which bits are harmful (slow, dot, stun; D13) is the client's rule and belongs to C2's BuffTray.ts, not here.",
+  "effectKindBits": {
+    "resist": 1,
+    "slow": 2,
+    "speed": 4,
+    "lifesteal": 8,
+    "reflect": 16,
+    "tickRate": 32,
+    "dot": 64,
+    "hot": 128,
+    "shield": 256,
+    "calm": 512,
+    "stun": 1024,
+    "charm": 2048
+  },
   "auraCategoryBits": {
     "damage": 1,
     "heal": 2,

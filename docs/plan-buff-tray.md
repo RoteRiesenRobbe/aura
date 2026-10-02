@@ -1,10 +1,12 @@
 # Plan: the buff tray
 
-> **Status: DESIGNED + APPROVED 2026-10-01 (one PO session, D1-D15 taken as
-> choice prompts after a mockup round), nothing built, 3 chunks + an optional
-> content C0. ⭐ §7 approved the same day, PO: *"All approved though things
-> might change in implementation obviously."*** Line refs come from a survey of
-> HEAD `7455f46e` on 2026-10-01; re-verify before executing.
+> **Status: C1 (server) BUILT 2026-10-02, see §11; C2 (client desktop) next.
+> DESIGNED + APPROVED 2026-10-01 (one PO session, D1-D15 taken as choice
+> prompts after a mockup round), 3 chunks + an optional content C0. ⭐ §7
+> approved the same day, PO: *"All approved though things might change in
+> implementation obviously."*** C1's session added D16-D18 (the circle key is
+> (skill, caster); the entry carries a kinds bitmask). Line refs come from a
+> survey of HEAD `7455f46e` on 2026-10-01; re-verify before executing.
 
 Origin: `plan-world-effects.md` D22 + D30 (PO 2026-09-28, verbatim: *"all
 effects need to be visible inside a hud element. potentiall a buff / debuff HUD
@@ -76,6 +78,9 @@ cooldown slots' remaining ticks.
 | **D13** | **The effect kind decides the side.** Slow, dot, stun and an aura's drawbacks are harmful; everything else is beneficial. World effects carry their own debuff flag. Nothing is authored. |
 | **D14** | The tooltip is **the skill's ability tooltip plus a time line**: the same surface the spellbook and the slots use. |
 | **D15** | ⭐ **Wire: change-only, inside the owner block.** Per effect: skill id, expiry tick, total ticks, kind. The buff store gets a revision counter like the spellbook's, and the existing gate resends the block on apply, refresh or expiry. Zero bytes and zero encode on quiet ticks; the client derives the time left from the snapshot tick it already reads. Taken after the PO asked for a performance-minded comparison (*"can we learn from another mmo like wow?"*, §4). |
+| **D16** | ⭐ **The circle key is (skill, caster)**, amending D11 (PO 2026-10-02, C1's session, "WoW literal shape"): a dot stream is applied and ticks PER CASTER on the server (round-7 item 6, pinned in `buffs_test.go`), so two wolves' dots are two circles, each with its own time. PO: *"if it is the truth meaning two dots two identical enemies would tick independently on the player already"*; confirmed in the code first. Everything with no caster on the server (slow, resist, stun, shield, speed, tick rate, lifesteal, reflect, calm, charm, and hots: only the strongest heals) stays ONE circle per skill. PO: *"for debuff effects like slows, resists, stuns, one circle, that is fine"*. |
+| **D17** | **An entry carries a kinds BITMASK, not one kind** (PO 2026-10-02, after "each skill would get its own entry with all of the effects listed in a text"): `OwnEffect.kinds` is the union of the kinds live under the circle. The side is "harmful if any harmful kind is present" (D13 applied to a mask), so no tie-break was needed; while a skill has dot circles its caster-less kinds ride in each dot circle's mask rather than forming a third circle. The tooltip stays the skill's own text (D14), which already lists every effect. |
+| **D18** | **World effects (lava, the bog) are their own circles too** (PO 2026-10-02: *"circles per effect that comes from the world or other players"*): every placed area effect gets an id at load (`world.PlacedAreaEffect.ID`, a range above 2^32 that entity ids never reach), and a dot's caster resolves to it, so two lava pools draw apart. |
 
 ---
 
@@ -106,26 +111,39 @@ dot, hot, shield, calm, stun, charm (`buffs.go:252-629`). One circle per skill
 Beneficial: the rest. Calm and charm never land on a player today; they are
 classified beneficial-by-default and listed in §10 so nobody is surprised if
 that changes. An active aura's drawbacks (`plan-aura-drawbacks.md` C1, the
-while-active self modifiers) are harmful and permanent.
+while-active self modifiers) are harmful and permanent. Since D17 an entry
+carries a MASK of kinds, so the rule reads: harmful if any harmful bit is set.
+
+**The circle key (D16, as built in C1).** `Buffs.OwnEffects()`
+(`skills/own_effects.go`) groups a skill's streams by the dot streams' caster:
+one `OwnEffect{Skill, Caster, Kinds, Total, Left}` per caster, each with that
+caster's longest dot stream as its wedge and the skill's caster-less kinds
+folded into its mask; a skill with no dot streams is one entry with a nil
+caster and its longest stream. Sorted by skill id, then first application, so
+the bytes are stable. ⚑ At HEAD no mob skill lands a dot together with a slow
+or stun in one skill (the census in C1's session: `venom-spit` is instant
+damage + dot), so the "shared kinds ride in a dot circle" branch is reached
+only by the test skill `omni-aura` and the player's own `wildfire`.
 
 ### 3.2 The wire (D15)
 
 Three additions, all appended, none changing an existing field:
 
 ```
-// common.fbs
-enum EffectKind : ubyte { None = 0, Resist, Slow, Speed, Lifesteal, Reflect,
-                          TickRate, Dot, Hot, Shield, Calm, Stun, Charm }
+// server.fbs (as built in C1; the planning draft said common.fbs, but every
+// enum lives in server.fbs and common.fbs holds only Vec2f)
+enum EffectKind : ushort (bit_flags) { Resist, Slow, Speed, Lifesteal, Reflect,
+                                        TickRate, Dot, Hot, Shield, Calm, Stun, Charm }
 
-// server.fbs
 struct OwnEffect {
   skill_id:ushort;
-  kind:EffectKind;
-  total_ticks:ushort;   // the lifetime this application started with
-  expires_tick:ulong;   // the server tick it ends on; GameState.tick is the clock
+  kinds:EffectKind;     // D17: the union of the kinds live under this circle
+  total_ticks:ushort;   // the lifetime the longest stream started with; a refresh resets it (D2)
+  caster:ulong;         // D16/D18: entity id, area id (> 2^32), or 0 for the skill's shared circle
+  expires_tick:ulong;   // the server tick the longest stream ends on; GameState.tick is the clock
 }
 
-table GameState { ... own_effects:[OwnEffect]; }   // appended at table end
+table GameState { ... own_effects:[OwnEffect]; }   // appended at table end, 24 B per entry
 ```
 
 - **It rides the owner block.** `codec.CharacterGameState.MarshalFlatbuf`
@@ -140,10 +158,15 @@ table GameState { ... own_effects:[OwnEffect]; }   // appended at table end
   `Buffs.Revision()` that every mutation bumps: each `Apply*` (insert, a new
   stream, or a refresh that bumps a stream's ticks) and every DELETION site,
   wherever it lives: expiry in `Tick()` (`buffs.go:522`), `dropPayload`
-  (`:674`, a calm broken by damage or a charm reverted) and
-  `dropDepletedShields` (`:911`, a shield burned down to zero). Same pattern as
+  (`:674`, a calm broken by damage or a charm reverted),
+  `dropDepletedShields` (`:911`, a shield burned down to zero) and, found at
+  C1, `Cleanse()` (no live caller, but it is the store's API). Same pattern as
   `SkillComponent.revision`
-  (`component.go:163-167`, bumped at `:442-480`).
+  (`component.go:163-167`, bumped at `:442-480`). ⛔ Aging is NOT a change:
+  `Tick()` decrements every live entry every tick and bumps only when one
+  expires; a bump per decrement would resend the whole owner block on every
+  tick any buff lives (pinned: `TestBuffs_RevisionDoesNotBumpWhileALiveEffectAges`,
+  `TestNetSystem_OwnEffects_ALiveEffectCostsNothingWhileItAges`).
 - **Expiry, not ticks left.** `expires_tick = game.Tick + ticks` at encode
   time. A per-tick countdown would change every tick and defeat the gate; an
   expiry tick changes only when the store does. The client computes
@@ -311,7 +334,7 @@ membership change.
 | chunk | what | depends on |
 |---|---|---|
 | **C0 (optional, content)** | `icon` (and `packIcon` where the pack has one) on the mob skills that land a timed effect on a player. Census at HEAD, 11 of 42: `bomb-burst`, `ember-aura`, `fire-elemental-aura`, `fire-totem-aura`, `giant-venom-spit`, `rally-drum`, `spider-web-aura`, `totem-aura`, `venom-spit`, `warbanner-shield`, `warlord-cleave`. No mob skill carries an icon today. | nothing; the `add-content` skill |
-| **C1 (server)** | `Buffs.Revision()` bumped on every mutation and expiry; `total` on `buffEntry`; `Buffs.OwnEffects()` projection (one per skill, longest stream, kind); `EffectKind` + `OwnEffect` + `own_effects` on the wire inside the owner block; `ownerStateWatch.buffRev`; the shared-constants pin. | nothing |
+| **C1 (server)** ✅ built 2026-10-02, see §11 (the row below is the planning shape; D16-D18 changed the entry to (skill, caster) + a kinds mask) | `Buffs.Revision()` bumped on every mutation and expiry; `total` on `buffEntry`; `Buffs.OwnEffects()` projection (one per skill, longest stream, kind); `EffectKind` + `OwnEffect` + `own_effects` on the wire inside the owner block; `ownerStateWatch.buffRev`; the shared-constants pin. | nothing |
 | **C2 (client, desktop)** | Decode; `BuffTray.ts` (pure tenant set, ordering, wrap, fraction) + the element above the action bars; circles with icon and wedge; countdown off `snapshot.tick`; hover tooltip with the time line; retire the own player's dots (D10). | C1 |
 | **C3 (client, phone + always-on)** | The phone placement under the bars; the 500 ms hold tooltip in `attachTooltips`; passives and aura drawbacks as permanent circles. | C2 |
 | *(world effects C2)* | World effects and heir buffs as tenants through §3.8. Owned by `plan-world-effects.md`. | C2 here, and that plan's approval |
@@ -390,12 +413,12 @@ membership change.
   rides `owner_state`; on a tick with `owner_state` true and an empty vector
   the tray CLEARS. On a tick without the block the tray keeps counting down
   from the last expiries it was told. Test both.
-- **The revision must bump on every REMOVAL, not only on apply.** Three
+- **The revision must bump on every REMOVAL, not only on apply.** Four
   deletion sites, only one of them an expiry: `Tick()` (`buffs.go:522`),
-  `dropPayload` (`:674`, calm broken by damage, charm reverted) and
-  `dropDepletedShields` (`:911`, a shield absorbed to zero). Miss one and the
-  circle lingers until the 5 s heartbeat. The C1 test lets an effect expire AND
-  burns a shield down early, asserting the resend on that same tick both times.
+  `dropPayload` (`:674`, calm broken by damage, charm reverted),
+  `dropDepletedShields` (`:911`, a shield absorbed to zero) and `Cleanse()`.
+  Miss one and the circle lingers until the 5 s heartbeat. C1's
+  `TestBuffs_RevisionBumpsOnEveryRemoval` covers all four.
 - **A refresh with a WEAKER strength opens a second stream** rather than
   bumping the first (`buffs.go` header). The projection's "longest stream" rule
   keeps the circle honest; a test with two strengths pins it.
@@ -430,4 +453,84 @@ membership change.
 
 ## 11. Chunk ledgers
 
-*(filled in per chunk at execution time)*
+### C1 (server) ✅ BUILT 2026-10-02 `[uncommitted]`
+
+What shipped, against §7's row, with the three rulings the session added
+(D16-D18):
+
+- **The store** (`skills/buffs.go`, new `skills/own_effects.go`): `revision`
+  + `Revision()`; `total` on every stream, set on insert and on an extending
+  refresh; the twelve hand-rolled `if ticks > e.ticks` refresh blocks
+  collapsed into one `extend()` helper that bumps the revision when the expiry
+  moves; a bump at every removal (`Tick()` expiry, `dropPayload`,
+  `dropDepletedShields`, `Cleanse`). `EffectKind` bits with `effectKind()` on
+  the payload interface (a new payload does not build without one).
+  `OwnEffects()` is the D16/D17 projection (§3.1). ⚑ Deliberately NOT bumping:
+  a shield pool draining, a resist refresh re-stamping tags, a hot changing
+  hands on a refresh (none moves a circle).
+- **The caster id**: `model.SourceID(caster)` resolves a dot's caster to an
+  entity id, a placed area's new `world.PlacedAreaEffect.ID` (D18,
+  `AreaIDBase` = 2^32, assigned in `CollectAreaEffects`), or 0;
+  `model.AreaSource` gained `AreaID()`.
+- **The player**: `BuffRevision()` and `OwnEffects()` on `model.PlayerEntity`.
+  Mobs got nothing.
+- **The gate**: `ownerStateWatch.buffRev` (`core/net.go`).
+- **The wire**: `EffectKind` (ushort, `bit_flags`) and `OwnEffect` in
+  `server.fbs` (§3.2), `own_effects` appended after `map_fog`;
+  `codec.OwnEffectsMarshalFlatbuf` inside the owner-block branch, expiry =
+  tick + left, empty = absent (the skill-events convention). Both bindings
+  regenerated and committed.
+- **The pins**: `effectKindBits` in `api/shared-constants.json` with the Go
+  twin (`cmd/aurad/shared_constants_test.go`), the vitest twin against the
+  generated `AuraApi.EffectKind`, and `TestEffectKind_MirrorsTheWireEnum` in
+  `codec` (the HitKind rule).
+
+**Schema impact: DB NONE** (re-verified: `sys/persist.go` has no buff
+reference) · **wire +1 enum, +1 struct, +1 `GameState` field inside the owner
+block** · **conf NONE** · **content NONE**.
+
+**Verified:**
+
+- `go test ./...` green except `world.TestPropContent_C1bMigrationPreservesLookAndCollision`
+  (Tree/Boulder sizes), which fails identically at clean HEAD `114d5073` in a
+  throwaway worktree: pre-existing, not this chunk's. New Go tests: 13 in
+  `skills/own_effects_test.go`, 1 gate leg, 3 wire legs (apply resends on the
+  same tick with an absolute expiry; a 1000-tick effect adds zero resends and
+  byte-stable quiet ticks over 148 ticks; an expiry resends the block empty),
+  2 codec round trips + the enum pin, `model.SourceID`, the area id. The alloc
+  pins stay green.
+- `npm test` 1456/0 (incl. the new twin), `npm run typecheck` clean, prod
+  build clean.
+- `hygiene-wire-prune.mjs` (the plan's required re-run for any `.fbs`
+  change): 694 sprites, 0 console errors, 0 context losses, on a rebuilt
+  `aurad` + `frontend/dist`. ⚑ Its first run after the restart died at join,
+  the documented race; the re-run passed.
+- The buff-store harnesses the verify coverage map names, each alone on a
+  fresh restart, on the DEBUG zone set: `swift-cooldown.mjs` **7/7** ·
+  `chunk2-calm.mjs` **7/7** · `chunk3-charm.mjs` **7/9** (the two red legs are
+  the known "pet died before the charm ran out" pair, CLAUDE.md's 6-8/9) ·
+  `c2-player-cc.mjs` **22 PASS, 1 INCONCLUSIVE, 0 FAIL of 23** (the
+  INCONCLUSIVE is the DR leg, documented never-red; re-run after the pin fix): the own player's Slow pip, the stun doors and the web expiry all
+  hold. ⚑ Its boot leg had a CONTENT COUNT pin (121 skills, 77 mobs) that the
+  PO's mob authoring had already reddened (97 mobs); relaxed to a floor per
+  harness rule 1 in this chunk. ⚑ On the REBUILT MAIN WORLD swift's pace legs
+  read an obstructed baseline and calm/charm found no mob at their venue
+  (precondition legs, not assertions): starved venues, recorded in CLAUDE.md.
+- ⛔ Nothing is VISIBLE yet: C1 has no client consumer. The in-game look is
+  C2's.
+
+**Found on the way:**
+
+- The census in §7 named `venom-spit` as a dot + slow example; it is instant
+  damage + a dot. No mob skill at HEAD lands a dot with a slow or stun.
+- Area effects pass the placed shape as the dot's caster (`sys/areaeffects.go`),
+  which is not an entity: without D18 every pool would have collapsed into
+  one caster-0 circle.
+- `common.fbs` holds only `Vec2f`; every enum lives in `server.fbs` (§3.2
+  corrected).
+
+**For C2:** decode `own_effects` only when `owner_state` is true (absent =
+clear on such a tick, keep counting down otherwise, §10); tenant key =
+`(skill_id, caster)`; side = any of Slow | Dot | Stun set in `kinds` (D13 on a
+mask); `fraction = (expires_tick - tick) / total_ticks` clamped to [0, 1];
+a `caster` above 2^32 is a place (name it by the skill, as the tooltip does).

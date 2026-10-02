@@ -8,6 +8,7 @@ import { ActivationRejection } from '../aura-api/activation-rejection.js';
 import { Conversation } from '../aura-api/conversation.js';
 import { Entity } from '../aura-api/entity.js';
 import { MapFog } from '../aura-api/map-fog.js';
+import { OwnEffect } from '../aura-api/own-effect.js';
 import { Player, unionToPlayer, unionListToPlayer } from '../aura-api/player.js';
 import { QuestProgress } from '../aura-api/quest-progress.js';
 import { SkillEvent } from '../aura-api/skill-event.js';
@@ -265,8 +266,18 @@ mapFog(obj?:MapFog):MapFog|null {
   return offset ? (obj || new MapFog()).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
 }
 
+ownEffects(index: number, obj?:OwnEffect):OwnEffect|null {
+  const offset = this.bb!.__offset(this.bb_pos, 64);
+  return offset ? (obj || new OwnEffect()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 24, this.bb!) : null;
+}
+
+ownEffectsLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 64);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(30);
+  builder.startObject(31);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -532,6 +543,14 @@ static startSkillEventsVector(builder:flatbuffers.Builder, numElems:number) {
 
 static addMapFog(builder:flatbuffers.Builder, mapFogOffset:flatbuffers.Offset) {
   builder.addFieldOffset(29, mapFogOffset, 0);
+}
+
+static addOwnEffects(builder:flatbuffers.Builder, ownEffectsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(30, ownEffectsOffset, 0);
+}
+
+static startOwnEffectsVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(24, numElems, 8);
 }
 
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {

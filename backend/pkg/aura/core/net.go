@@ -34,8 +34,8 @@ const ownerStateHeartbeatTicks = uint64(5 * constant.TicksPerSecond)
 
 // ownerStateWatch is what the last owner-state send for one live connection
 // was taken against — the sys.saveWatch shape and reasoning, applied to the
-// wire instead of to persistence. A change in level, skillRev or questRev
-// forces an immediate resend of the owner-only block; a change in
+// wire instead of to persistence. A change in level, skillRev, questRev or
+// buffRev forces an immediate resend of the owner-only block; a change in
 // conversingWith additionally forces the conversation tree, since a freshly
 // opened conversation needs its tree even when no revision moved. nextForce is
 // the heartbeat baseline underneath all of that.
@@ -43,6 +43,7 @@ type ownerStateWatch struct {
 	level          uint32
 	skillRev       uint64
 	questRev       uint64
+	buffRev        uint64
 	conversingWith uint64
 	nextForce      uint64
 }
@@ -67,7 +68,11 @@ func (n *NetSystem) ownerStateGate(p model.PlayerEntity) (sendOwner, sendConvTre
 		// kill), but the JOURNAL has to show "3/8 slain" ticking over the
 		// moment the kill lands. Watching the save counter here left the
 		// tracker stale for up to the heartbeat.
-		questRev:       p.QuestLedger().DisplayRevision(),
+		questRev: p.QuestLedger().DisplayRevision(),
+		// The buff tray (plan-buff-tray.md C1, D15): own_effects rides the
+		// block, so an application, an extending refresh or a removal in the
+		// buff store resends it on the same tick. Aging does not bump it.
+		buffRev:        p.BuffRevision(),
 		conversingWith: p.ConversingWith(),
 	}
 
@@ -82,7 +87,8 @@ func (n *NetSystem) ownerStateGate(p model.PlayerEntity) (sendOwner, sendConvTre
 	sendOwner = heartbeatDue ||
 		current.level != watch.level ||
 		current.skillRev != watch.skillRev ||
-		current.questRev != watch.questRev
+		current.questRev != watch.questRev ||
+		current.buffRev != watch.buffRev
 	sendConvTree = sendOwner || current.conversingWith != watch.conversingWith
 
 	if sendOwner || sendConvTree {

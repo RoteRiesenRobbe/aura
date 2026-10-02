@@ -150,7 +150,18 @@ type PlacedAreaEffect struct {
 	Zone  string
 	Kind  string
 	Index int
+	// ID is the shape's identity ON THE WIRE (plan-buff-tray.md C1): a dot a
+	// lava pool applies draws as its own circle, keyed by caster, and two pools
+	// of equal strength are two circles. Assigned by CollectAreaEffects in
+	// collection order from AreaIDBase, a range entity ids never reach, so a
+	// client can tell a place from a mob without a second field. Stable for one
+	// boot; nothing persists it.
+	ID uint64
 }
+
+// AreaIDBase is where placed-area ids start: above 2^32, which an
+// ecs.BasicEntity id (a counter from 1) does not reach in a server's lifetime.
+const AreaIDBase = uint64(1) << 32
 
 // AreaEffectName satisfies model.AreaSource structurally, which is what lets a
 // placed shape BE the damage source without this package importing model.
@@ -160,6 +171,9 @@ type PlacedAreaEffect struct {
 // nothing about zones, and neither has to import the other for a lava pool to
 // hit a player.
 func (a *PlacedAreaEffect) AreaEffectName() string { return a.Effect }
+
+// AreaID satisfies the other half of model.AreaSource: see ID.
+func (a *PlacedAreaEffect) AreaID() uint64 { return a.ID }
 
 // CollectAreaEffects flattens every effect-bearing shape in the placed zone set.
 //
@@ -191,6 +205,7 @@ func CollectAreaEffects(zones []*Zone) []PlacedAreaEffect {
 				Zone:   z.ID,
 				Kind:   kind,
 				Index:  i,
+				ID:     AreaIDBase + uint64(len(out)) + 1,
 			})
 		})
 	}

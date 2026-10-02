@@ -417,6 +417,7 @@ func TestAreaEffect_TwoAreasOfEqualStrengthDoNotCollapse(t *testing.T) {
 type fakeAreaSource struct{ name string }
 
 func (f fakeAreaSource) AreaEffectName() string { return f.name }
+func (f fakeAreaSource) AreaID() uint64         { return 0 }
 
 // mobWithResistances builds a real Mob whose species authors the given map.
 func mobWithResistances(t *testing.T, r map[string]float32) *mob.Mob {

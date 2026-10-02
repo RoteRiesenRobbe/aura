@@ -26,15 +26,19 @@ type ownerStatePlayer struct {
 	level          uint32
 	sc             *skills.SkillComponent
 	ledger         *quests.Ledger
+	buffRev        uint64
 	conversingWith uint64
 }
 
-func (p *ownerStatePlayer) Basic() ecs.BasicEntity                { return p.basic }
-func (p *ownerStatePlayer) Client() model.Client                  { return p.client }
-func (p *ownerStatePlayer) Progression() model.PlayerProgression  { return model.PlayerProgression{Level: p.level} }
+func (p *ownerStatePlayer) Basic() ecs.BasicEntity { return p.basic }
+func (p *ownerStatePlayer) Client() model.Client   { return p.client }
+func (p *ownerStatePlayer) Progression() model.PlayerProgression {
+	return model.PlayerProgression{Level: p.level}
+}
 func (p *ownerStatePlayer) SkillComponent() *skills.SkillComponent { return p.sc }
-func (p *ownerStatePlayer) QuestLedger() *quests.Ledger           { return p.ledger }
-func (p *ownerStatePlayer) ConversingWith() uint64                { return p.conversingWith }
+func (p *ownerStatePlayer) QuestLedger() *quests.Ledger            { return p.ledger }
+func (p *ownerStatePlayer) BuffRevision() uint64                   { return p.buffRev }
+func (p *ownerStatePlayer) ConversingWith() uint64                 { return p.conversingWith }
 
 type ownerStateClient struct {
 	model.Client
@@ -217,4 +221,22 @@ func TestOwnerStateHeartbeat_IsFivishSeconds(t *testing.T) {
 	// [PLACEHOLDER] per chunk 3 D2 — pinned against the tick rate so a change
 	// to TicksPerSecond cannot silently retune it.
 	assert.Equal(t, uint64(5*constant.TicksPerSecond), ownerStateHeartbeatTicks)
+}
+
+// The buff tray (plan-buff-tray.md C1, D15): a buff-store revision move is
+// the fourth signal that forces the owner block, so a circle appears, refills
+// or clears on the tick it happened, not at the heartbeat.
+func TestOwnerStateGate_BuffRevisionForcesOwnerState(t *testing.T) {
+	n := &NetSystem{game: &game{Tick: 100}}
+	p := newOwnerStatePlayer()
+	n.ownerStateGate(p)
+
+	n.game.Tick = 101
+	p.buffRev++
+	sendOwner, _ := n.ownerStateGate(p)
+	assert.True(t, sendOwner, "a buff applied, refreshed or removed must resend the owner block on the same tick")
+
+	n.game.Tick = 102
+	sendOwner, _ = n.ownerStateGate(p)
+	assert.False(t, sendOwner, "and the next quiet tick is quiet again")
 }

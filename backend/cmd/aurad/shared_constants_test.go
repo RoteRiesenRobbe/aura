@@ -29,9 +29,10 @@ import (
 // spelled out — a NEW bit therefore needs a fixture entry, this map, and the
 // client table (whose test IS exhaustive over its enum) touched together.
 type sharedConstants struct {
-	AppliedEffectBits map[string]uint8 `json:"appliedEffectBits"`
-	AuraCategoryBits  map[string]uint8 `json:"auraCategoryBits"`
-	TierRanks         map[string]uint8 `json:"tierRanks"`
+	AppliedEffectBits map[string]uint8  `json:"appliedEffectBits"`
+	EffectKindBits    map[string]uint16 `json:"effectKindBits"`
+	AuraCategoryBits  map[string]uint8  `json:"auraCategoryBits"`
+	TierRanks         map[string]uint8  `json:"tierRanks"`
 	ViewportMeters    struct {
 		Width  float64 `json:"width"`
 		Height float64 `json:"height"`
@@ -151,6 +152,22 @@ func TestSharedConstants_MatchGoTables(t *testing.T) {
 		"speed":    uint8(skills.AppliedEffectSpeed),
 	}, fixture.AppliedEffectBits,
 		"skills.AppliedEffect has drifted from api/shared-constants.json — the client colors pips off these bits")
+
+	assert.Equal(t, map[string]uint16{
+		"resist":    uint16(skills.EffectKindResist),
+		"slow":      uint16(skills.EffectKindSlow),
+		"speed":     uint16(skills.EffectKindSpeed),
+		"lifesteal": uint16(skills.EffectKindLifesteal),
+		"reflect":   uint16(skills.EffectKindReflect),
+		"tickRate":  uint16(skills.EffectKindTickRate),
+		"dot":       uint16(skills.EffectKindDot),
+		"hot":       uint16(skills.EffectKindHot),
+		"shield":    uint16(skills.EffectKindShield),
+		"calm":      uint16(skills.EffectKindCalm),
+		"stun":      uint16(skills.EffectKindStun),
+		"charm":     uint16(skills.EffectKindCharm),
+	}, fixture.EffectKindBits,
+		"skills.EffectKind has drifted from api/shared-constants.json: the buff tray sides and names circles off these bits")
 
 	assert.Equal(t, map[string]uint8{
 		"damage": uint8(skills.AuraCategoryDamage),

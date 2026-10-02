@@ -114,6 +114,21 @@ func PhaseOf(tick bool) HitPhase {
 	return HitPhaseDirect
 }
 
+// SourceID is a buff's caster as a wire id (plan-buff-tray.md C1): the
+// applying entity's id, a placed area effect's id (lava, the bog; a range
+// above 2^32, world.AreaIDBase), or 0 for a caster that is neither (a test
+// double, or nil: the skill's shared circle). The buff tray keys its circles
+// by it, so two wolves' dots, or two lava pools', draw apart.
+func SourceID(caster any) uint64 {
+	switch c := caster.(type) {
+	case BasicEntity:
+		return c.Basic().ID()
+	case AreaSource:
+		return c.AreaID()
+	}
+	return 0
+}
+
 // AppliedEvent is the event an over-time effect's application (or refresh)
 // notes on its victim (plan-skill-vfx.md §12h, PO 2026-09-23): the client
 // draws the skill's `applied` look from it, never a number. ok is false when
