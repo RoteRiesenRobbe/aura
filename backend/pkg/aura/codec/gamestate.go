@@ -762,6 +762,12 @@ func PropEntityFlatbufMarshal(e model.PropEntity, builder *flatbuffers.Builder) 
 		AuraApi.ResourceAddPropName(builder, propName)
 	}
 
+	// Which client container the placement draws in (plan-prop-draw-order.md
+	// D4). ⚑ Free when false, which is every placement outside props.underfoot:
+	// the builder omits a default and trims the trailing slot, so
+	// TestPropEntityFlatbufMarshal_RealPropCostsNothing still holds byte for byte.
+	AuraApi.ResourceAddUnderfoot(builder, e.Underfoot())
+
 	return AuraApi.ResourceEnd(builder)
 }
 

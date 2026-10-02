@@ -111,9 +111,14 @@ export class EntityManager {
                     // the classes that take fewer arguments, by exactly the
                     // rule stated above. This line is the one seam every entity
                     // type passes through, so widening it is deliberate.
+                    //
+                    // ⚑ The 7th is the PLACEMENT's `underfoot` flag
+                    // (plan-prop-draw-order.md D4), read by every prop class
+                    // to pick its container, and ignored by everything else
+                    // by the same rule.
                     gameObject = new entity.type(
                         entity.id, entity.position.x, entity.position.y, entity.radius, entity.rotation,
-                        entity.propName);
+                        entity.propName, entity.underfoot);
             }
 
             this.objects[entity.id] = gameObject;

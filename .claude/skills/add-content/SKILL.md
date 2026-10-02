@@ -168,6 +168,12 @@ the bottom. Trust the code over the manual if a path has drifted.
   (`docs/manual-tiled-editor.md` §6). It reads the prop's own `sprite` field —
   no separate map to maintain any more, but a missing/empty `sprite` hard-fails
   at server boot (`world/props.go`), before this script would ever see it.
+- **A prop TYPE has no draw layer; its PLACEMENT does** (`plan-prop-draw-order.md`
+  P3). A zone's `props` is four arrays — `underfoot` · `default` · `buildings` ·
+  `canopy`, bottom to top — and which one a placement sits in is where it draws
+  (manual §1b has the table). Never author `underfoot` on an `api/props/*.json`
+  file: the key is gone and refuses the boot by name. ⛔ A `crossesPaths` type's
+  placements must sit in `props.underfoot`, or the boot and the Tiled save refuse.
 - **A change to the SKILL tables in `backend/pkg/aura/skills/definition.go`
   or `visual.go` needs the vocabulary fixture regenerated** (`effectKeys`,
   `effectCategories`, `costKeys`, the categories, the top-level key list, and

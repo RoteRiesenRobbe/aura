@@ -1,7 +1,8 @@
 # Plan: prop draw order: deterministic stacking, prop layers and area groups authored in Tiled
 
 **Status:** DESIGNED 2026-09-20, **REVISED 2026-10-02** (PO session: D1, D3,
-D4, D8 and D9 ruled the same day), nothing built. Five chunks: P0 → P1 → P2 →
+D4, D8 and D9 ruled the same day). **P0-P3 built and PO-passed (§11); P4
+waits on D10/D13/D14 and `plan-zone-naming.md` N2.** Five chunks: P0 → P1 → P2 →
 P3 → P4. P4 (area groups) was added on 2026-10-02 at the PO's request; its
 decisions D10-D14 are PROPOSED. Line refs come from a survey of HEAD `3bff5220` on 2026-10-02; re-verify
 them before executing.
@@ -1003,3 +1004,173 @@ format **NONE**.
 
 **Schema:** DB **NONE** · wire **NONE** · conf **NONE** · content **NONE** ·
 zone format **NONE**.
+
+### P3: prop layers end to end ✅ 2026-10-02 (PO: "works")
+
+**Preconditions checked:** working tree clean at `815e358c`; `plan-zone-naming.md`
+N2 unstarted (its status line; one branch, no other worktree), so L5 held. L8:
+the byte-stability tests were green before anything changed (vitest 1466/0).
+
+**What landed, item by item (§6):**
+
+1. **Go zone format** (`world/zone.go`). `PropLayers` holds the four arrays and
+   its **field order is the rank** (underfoot, default, buildings, canopy).
+   `flatten` walks it in that order and tags each `Prop.Layer` (`json:"-"`).
+   `Zone.PropLayers` decodes `props`; `parseZone` flattens it into
+   `Zone.Props` (now `json:"-"`) and empties it, so there is one copy and every
+   Go reader iterates `Props` unchanged. An unknown layer key refuses through
+   `DisallowUnknownFields` (D2), and so does the old flat array (L2).
+   - **D4** in `resolve`: a `crossesPaths` placement outside `underfoot`
+     refuses the boot as `prop props.default[0]: "Bridge" crosses paths, so it
+     must be placed in props.underfoot …`.
+   - ⚑ **Beyond the brief:** every prop error (scale, unknown type, the bridge
+     pair) now names `props.<layer>[n]` instead of the flat index, which no
+     author can find in a layered file (`Zone.propRef`).
+2. **Go prop defs** (`world/props.go`): `Underfoot` and the type-level
+   "`crossesPaths` needs `underfoot`" check are gone; a stale `underfoot` key
+   refuses by name. The `crossesPaths` → `blocksMovement: false` check stays.
+3. **Wire:** `Resource.underfoot:bool = false`, appended after `prop_name`.
+   Both binding sets regenerated: TS with `flatc_Windows_v24_3_25.exe` and
+   `make.sh`'s flags, Go with `go generate ./pkg/api`. `prop.FromZone` sets it
+   from `Layer`, `PropEntity` gains `Underfoot()`, and the codec writes it.
+4. **Migration:** `scripts/migrate-prop-layers.mjs`, kept as the record.
+   - D1's table, file order kept inside each layer. It is all-or-nothing, and
+     it refuses an unknown type or any file not already in
+     `JSON.stringify(…, null, 2)` form.
+   - world.json: 182 = underfoot 5 · default 58 · buildings 12 · canopy 107.
+     world_debug: 772. barn 14, koboldCave 24, underworld 2; both tunnels and
+     `.debug/underworld` 0.
+   - Bridge drops `underfoot`.
+   - The embedded copies were refreshed by running the `cp-defs` recipe by
+     hand (`make` is not on this box's bash PATH). ⚑ That also refreshed
+     `backend/pkg/api/props/stump.json`, stale since `815e358c`.
+5. **Converter** (`aura-convert.js`): `PROP_LAYERS` + `PROPS_GROUP`.
+   - `zoneToModel` builds `{name: 'props', layers: [4 object layers]}`, bottom
+     first. `modelToZone` reads them back by name (`subLayerObjects`).
+   - `serializeZone` always writes all four arrays in rank order, empty ones
+     included; ZoneModel does the same.
+   - A `props` that `zoneToModel` cannot map (the flat array, an unknown layer
+     key) refuses to OPEN: a lenient read would lose the props on the next
+     save.
+   - Validation: D4, by object id, naming `props/underfoot` and Move Objects to
+     Layer. The palette's `content.json` gains `CROSSES_PATHS`
+     (`generate-palette.mjs`); nothing else in the palette changed.
+6. **Extension:** `read()` builds a `GroupLayer`; `write()` walks it
+   (`readObjects`, labels `props.<layer>`).
+   - `layerRefusals` relaxes P0 for the `props` group only
+     (`propsGroupRefusals`): any subset of the four object layers, each once;
+     anything else inside it refuses as `props/<name>`.
+   - Also refused: `props` as a plain object layer, a prop layer dragged out of
+     the group, and ⚑ (beyond the brief) **two layers with one name**, at the
+     top level and inside the group, since the writer reads the first by name
+     and the second would vanish.
+   - `aura-fit-size.js` recognises a prop by its layer's PARENT.
+   - **L7 measured** with a throwaway probe extension under `--export-map`
+     (Tiled 1.12.2): `GroupLayer`, `addLayer`, `layerAt` / `layerCount`,
+     `isGroupLayer` and `parentLayer` (on a layer and via `object.layer`) all
+     work headless, and child order is insertion order (index 0 = bottom). The
+     walk is one function of one group, ready for P4.
+7. **Client zone readers:** `features/zones/logic/PropLayers.ts`
+   (`PROP_LAYERS`, `flattenProps`, `groupProps`), pure.
+   - `DarknessOverlay` (torches) and `MapTerrain` (the bake) flatten through
+     it; `ZoneJSON.props` is typed per layer.
+   - `ZoneModel` keeps a flat list in the server's spawn order (rank, then
+     file order) with an in-memory `layer` per prop. `addProp` appends into
+     `default`; `updateProp` KEEPS the layer (the panel rebuilds a prop with
+     none); `getZoneAsJSON` regroups and never writes `layer`.
+8. **Client render:** `Props.ts` picks the container from the streamed
+   `underfoot` per entity (the 7th argument of EntityManager's constructor
+   seam). `PropDefJSON.underfoot` and the "mixes underfoot" throw are gone.
+9. **Other readers:** `p1-prop-order.mjs` (spawn order, labels like
+   `canopy[101]`), `map-props-bake.mjs`, `c2-world-walk.mjs`,
+   `scripts/zone-census.mjs` (`propsOf`), `scripts/probegen.mjs`.
+   `bridge-underfoot.mjs` gained a leg (below).
+   - Left alone, being already-run one-offs: `double-world-vertical`,
+     `recenter-world-y`, `scale-world-15x`; `world-place.py` never touched
+     props.
+   - `cmd/simharness` reads zones through `world`, so it needed nothing. Its
+     four placement tests were red only until the embedded Bridge lost its key.
+10. **Docs:** `manual-content-authoring.md` §1b (no layer on a type, the four
+    arrays and their table, the D4 rule; also the stale `Resources.ts` line P2
+    left behind), the `add-content` skill, and ⚑ `manual-tiled-editor.md` (the
+    layer table and a prop-layer subsection). The last was not in the brief,
+    but it described the old single layer.
+
+**Tests:**
+
+- **Go:**
+  - `zone_props_test.go`: the flatten order across all four layers with keys
+    written in reverse (D5's pin); struct field order = flatten order (so the
+    vitest scrape is valid); an unknown layer and the flat array refused.
+  - `paths_bridge_test.go`: a bridge outside underfoot refused as
+    `props.default[0]`; any prop allowed underfoot, and still blocking; the
+    type key refused.
+  - Codec: `TestPropEntityFlatbufMarshal_UnderfootRidesTheWire`.
+  - 22 inline fixtures moved to the object shape.
+  - ⚑ **TDD, honestly:** the codec test was red first. The flatten tests were
+    written alongside the code; swapping two ranks in `flatten` turned both
+    red, then the swap was reverted.
+  - `go build ./...` clean. `go test ./...` green except the known
+    `world.TestPropContent_C1bMigrationPreservesLookAndCollision` (the same
+    Tree / Boulder messages as at HEAD).
+  - ⚑ `auth.TestMissingAccountStillCostsABcryptCompare` failed once in the
+    PRE-change baseline under full-suite load and passed after: a timing
+    flake, not P3's.
+- **`aurad -validate`:** 0 findings for `-content ../api`, for `-debug-zones`,
+  and for the embedded copy.
+- **vitest 1480/0** (62 files, was 1466). `npm run typecheck` clean.
+  - `AuraTiledConvert.test.ts`: the rank scraped from zone.go's `PropLayers`
+    against BOTH `C.PROP_LAYERS` and the client's `PROP_LAYERS`; a four-layer
+    round-trip; empty arrays written; the open refusals; D4; the group
+    refusals (subset, stray child, flat `props`, stray prop layer, duplicates).
+  - `ZoneModel.test.ts` (L3): flat order, each prop back in its own array,
+    add → `default`, an edit keeps its layer, a removal leaves the right array,
+    no `layer` key in the file.
+  - The real world.json stays byte-stable through both writers.
+- **`tools/tiled/verify.sh`: 28 ✅ / 0 ❌**, extension reinstalled.
+  - New: a stray `props/roofs` layer injected into the TMX group refuses
+    (control: the same map saves); a Bridge in `default` refuses.
+  - The scaled-props fixture now spans all four sub-layers, so a real Tiled
+    save round-trips the group byte-identically.
+  - Footer step 10 lists the GUI checks.
+- **In-game** (`dev-restart-windows.sh all`, webpack dev):
+  - `p1-prop-order.mjs` **10/10**: Eliza's 12 standing props in spawn order;
+    the oak (`canopy[101]`) over the cottage (`buildings[5]`) with no hand
+    edit, held after a walk-away-and-return; `npcs < characters < standing`.
+  - `bridge-underfoot.mjs` **PASS**, including its new leg: the Bridge at
+    `props.underfoot[0]` (-181.02, 8.57) draws on `props.underfoot` and not on
+    `standing`, which is the per-entity wire flag working end to end.
+  - `map-props-bake.mjs` **7/7** (182 of 182 baked; underworld 2 of 2).
+  - `hygiene-wire-prune.mjs`: 698 sprites decoded off the Resource path,
+    0 console errors, 0 WebGL losses.
+- **Wire cost:** `TestPropEntityFlatbufMarshal_RealPropCostsNothing` is green
+  unchanged. Its reference table has no `underfoot` slot, so every placement
+  outside `underfoot` (177 of 182 in world.json) encodes byte-identically.
+
+**Schema:** DB **NONE** · wire **+1 field** (`Resource.underfoot`, zero bytes
+when false) · conf **NONE** · prop defs **−1 key** (Bridge `underfoot`) · zone
+format **BREAKING** (`props` → four arrays; all 16 files, 8 + 8 embedded,
+migrated; no compatibility window, L2).
+
+**PO checks owed** (the server and webpack are already restarted on P3, and
+the extension is installed):
+
+1. Eliza's farmhouse (-238, 15.6): the oak draws over the cottage roof, by
+   layer, with nothing hand-ordered.
+2. In Tiled, every zone (world, barn, koboldCave, tunnel, underworld) shows
+   `props` as a group of canopy · buildings · default · underfoot. Hide
+   `canopy`: the crowns vanish.
+3. Move the torch at `default[57]` (-239.2, 24, by the Gate) into `buildings`
+   with Layer ▸ Move Objects to Layer, save, restart: it draws over the gate.
+4. Move the broken crate at `default[54]` (-194.7, 27.7, by the RuinedHouse)
+   into `underfoot`, save, restart, walk over it: it draws under the player
+   and still blocks.
+5. Drag a Bridge into `default` and save: the save refuses, naming the object.
+   Then revert the test edits, or keep them as authored content.
+
+**PO review ✅ 2026-10-02:** *"works"*. One observation, logged in
+`docs/feedback.md` and out of scope here: the underworld entrances (the
+`CaveMouth` MOB, a travel conversant) now draw UNDER the `CaveMouth` / `Barn`
+prop they stand in. That is P1's D9 (NPCs on `mobs.npcs`, under the
+characters, while props stand above them), not P3. PO: *"not convinced these
+should be NPCs and not a sort of interactable prop? but not for this plan."*

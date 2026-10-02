@@ -101,6 +101,10 @@ func (b PropBody) IsRect() bool {
 // bool invites, and the corridor it would punch is invisible until someone
 // walks there.
 //
+// ⚑ Every placement of such a type must sit in the zone file's props.underfoot
+// (plan-prop-draw-order.md D4; zone.go's resolve refuses anything else): a
+// deck you walk across has to draw below the character on it.
+//
 // ⚑ The footprint that clears is the VISUAL body, not the collision one: the
 // deck you can SEE is the deck you can walk on, and CollisionFactor is a ratio
 // authored so a tree crown can overhang its trunk — meaningless for a prop that
@@ -210,13 +214,10 @@ type propDefinitionDoc struct {
 	Body       PropBody `json:"body"`
 	// ⚑ parsePropDefinition uses DisallowUnknownFields, so this field and the
 	// exported one above must move together or every bridge fails boot by name.
+	// ⚑ There is no `underfoot` key any more: which layer a prop draws in is a
+	// PLACEMENT fact since plan-prop-draw-order.md D4 (the array of the zone
+	// file's `props` it sits in), and a stale key refuses the boot by name.
 	CrossesPaths bool `json:"crossesPaths"`
-	// Underfoot is the prop's Z-ORDER, and the CLIENT ALONE reads it - which
-	// layer a sprite draws in is no business of the server's, so it is parsed
-	// here and never exported, exactly like Sprite above. It is named all the
-	// same for two reasons: DisallowUnknownFields would refuse the boot
-	// otherwise, and the CrossesPaths pairing below has to be checkable.
-	Underfoot bool `json:"underfoot"`
 	// BlocksMovement is TRI-STATE and absent means TRUE (see
 	// PropDefinition.Blocks). ⚑ DisallowUnknownFields again: this field and the
 	// exported one must move together or every prop file fails boot by name.
@@ -256,18 +257,10 @@ func parsePropDefinition(data []byte) (*PropDefinition, error) {
 	if f := doc.Body.CollisionFactor; f != nil && *f <= 0 {
 		return nil, fmt.Errorf("body collisionFactor must be positive, got %g", *f)
 	}
-	// A bridge drawn OVER the player is the defect this pairing exists to make
-	// unsayable (PO 2026-09-16). A prop that clears the corridor under its deck
-	// is by definition a prop you WALK ON, and a prop you walk on has to draw
-	// below the character standing on it - the campfire ruling (Game.ts keeps
-	// layers.mobs under layers.characters), applied to world geometry.
-	// The implication runs ONE WAY: a dock or a plank walkway is underfoot and
-	// crosses nothing, which stays legal - so the render field cannot simply be
-	// derived from this one.
-	if doc.CrossesPaths && !doc.Underfoot {
-		return nil, fmt.Errorf("crossesPaths needs underfoot: a prop you walk across must draw " +
-			"below the character walking on it, or its deck covers them")
-	}
+	// ⚑ "crossesPaths needs underfoot" used to be checked HERE, against a type
+	// key. The layer is per placement now (D4), so zone.go's resolve() checks it
+	// per placement instead.
+	//
 	// ⛔ A bridge that blocks is a bridge you cannot cross: it clears the water
 	// under its deck and then walls that same deck with its own body. zone.go
 	// already refuses that combination per PLACEMENT; said at the TYPE it is

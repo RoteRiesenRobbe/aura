@@ -69,8 +69,65 @@ type Prop struct {
 	BlocksMovement *bool    `json:"blocksMovement"`
 	Scale          *float32 `json:"scale"`
 
+	// Layer is the prop layer the placement was authored in (PropLayerUnderfoot
+	// and the rest): which array of the file's `props` it came from. Set by
+	// PropLayers.flatten at load; not part of the JSON, because in the file the
+	// NESTING is the layer (plan-prop-draw-order.md D3).
+	Layer string `json:"-"`
+
 	// Def is the prop definition resolved from Type; not part of the JSON.
 	Def *PropDefinition `json:"-"`
+}
+
+// The four prop layers (plan-prop-draw-order.md D1), named as the zone file's
+// `props` object keys them.
+const (
+	PropLayerUnderfoot = "underfoot"
+	PropLayerDefault   = "default"
+	PropLayerBuildings = "buildings"
+	PropLayerCanopy    = "canopy"
+)
+
+// PropLayers is the zone file's `props`: one array per prop layer (D3). A
+// higher layer draws over a lower one, and inside a layer the later placement
+// draws on top.
+//
+// ⭐ THE FIELD ORDER IS THE RANK, bottom to top, and flatten below walks it in
+// exactly that order. Nothing else defines it: the server spawns props in the
+// flattened order, entity ids ascend in spawn order, and the client inserts
+// each prop by id (D5/D6), so this order IS the draw order. aura-convert.js and
+// the client's ZoneProps.ts mirror it, and AuraTiledConvert.test.ts scrapes
+// this struct to pin both.
+//
+// ⚑ An unknown key refuses the boot (DisallowUnknownFields), which is what
+// makes the vocabulary fixed (D2).
+type PropLayers struct {
+	Underfoot []Prop `json:"underfoot"`
+	Default   []Prop `json:"default"`
+	Buildings []Prop `json:"buildings"`
+	Canopy    []Prop `json:"canopy"`
+}
+
+// flatten returns every placement in rank order, then file order, each tagged
+// with its layer. This is the []Prop every Go reader iterates.
+func (l PropLayers) flatten() []Prop {
+	ranked := []struct {
+		name  string
+		props []Prop
+	}{
+		{PropLayerUnderfoot, l.Underfoot},
+		{PropLayerDefault, l.Default},
+		{PropLayerBuildings, l.Buildings},
+		{PropLayerCanopy, l.Canopy},
+	}
+	var out []Prop
+	for _, r := range ranked {
+		for _, p := range r.props {
+			p.Layer = r.name
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // Blocks resolves the placement's tri-state override against the type's
@@ -647,15 +704,20 @@ type Zone struct {
 	// bounds AND beyond them, beneath every region and polygon (PO 2026-09-27).
 	// Absent = black. Client-visual only and unvalidated against the profile
 	// table, Region's D8 posture verbatim: the server never reads it.
-	Ground    string           `json:"ground,omitempty"`
-	Terrain   []TerrainTexture `json:"terrain"`
-	Props     []Prop           `json:"props"`
-	Spawns    []Spawn          `json:"spawns"`
-	Campfires []Campfire       `json:"campfires"`
-	DarkAreas []DarkArea       `json:"darkAreas"`
-	Regions   []Region         `json:"regions"`
-	Paths     []Path           `json:"paths"`
-	Polygons  []Polygon        `json:"polygons"`
+	Ground  string           `json:"ground,omitempty"`
+	Terrain []TerrainTexture `json:"terrain"`
+	// PropLayers is `props` exactly as the file nests it. parseZone flattens it
+	// into Props and then empties it, so there is one copy of every placement
+	// and every reader iterates Props.
+	PropLayers PropLayers `json:"props"`
+	// Props is every placement, flattened in draw order (PropLayers.flatten).
+	Props     []Prop     `json:"-"`
+	Spawns    []Spawn    `json:"spawns"`
+	Campfires []Campfire `json:"campfires"`
+	DarkAreas []DarkArea `json:"darkAreas"`
+	Regions   []Region   `json:"regions"`
+	Paths     []Path     `json:"paths"`
+	Polygons  []Polygon  `json:"polygons"`
 	// Atmospheres is client-visual only and the server never reads it past
 	// validation — DarkArea's and Region's posture verbatim.
 	Atmospheres []Atmosphere `json:"atmospheres"`
@@ -878,6 +940,8 @@ func parseZone(data []byte) (*Zone, error) {
 	if err := dec.Decode(&z); err != nil {
 		return nil, fmt.Errorf("cannot parse: %w", err)
 	}
+	z.Props = z.PropLayers.flatten()
+	z.PropLayers = PropLayers{}
 	if err := z.validate(); err != nil {
 		return nil, err
 	}
@@ -896,7 +960,7 @@ func (z *Zone) validate() error {
 		// and negative are nonsense rather than "inherit" — an inheriting prop
 		// authors no key at all.
 		if sc := z.Props[i].Scale; sc != nil && (*sc <= 0 || *sc > MaxPropScale) {
-			return fmt.Errorf("prop %d: scale %g must be in (0, %d]", i, *sc, MaxPropScale)
+			return fmt.Errorf("prop %s: scale %g must be in (0, %d]", z.propRef(i), *sc, MaxPropScale)
 		}
 	}
 	for i := range z.Spawns {
@@ -1128,7 +1192,7 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 		p := &z.Props[i]
 		def, err := pr.GetByName(p.Type)
 		if err != nil {
-			return fmt.Errorf("prop %d: unknown type %q", i, p.Type)
+			return fmt.Errorf("prop %s: unknown type %q", z.propRef(i), p.Type)
 		}
 		p.Def = def
 		// ⛔ A bridge that blocks is a bridge you cannot cross: it clears the
@@ -1137,11 +1201,32 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 		// out loud. Lives here rather than in validate() because it needs the
 		// RESOLVED definition — the same reason the spawn speed check does.
 		if def.CrossesPaths && p.Blocks() {
-			return fmt.Errorf("prop %d: %q crosses paths, so it must not also blocksMovement "+
-				"(it would clear the corridor under its deck and then block the deck)", i, p.Type)
+			return fmt.Errorf("prop %s: %q crosses paths, so it must not also blocksMovement "+
+				"(it would clear the corridor under its deck and then block the deck)", z.propRef(i), p.Type)
+		}
+		// ⛔ A deck that clears the river and draws OVER the player crossing it
+		// is the campfire defect (PO 2026-09-16). Which layer a prop draws in is
+		// a placement fact since D4, so the pairing is checked per placement:
+		// the type says "walk across me", the placement must say "under you".
+		if def.CrossesPaths && p.Layer != PropLayerUnderfoot {
+			return fmt.Errorf("prop %s: %q crosses paths, so it must be placed in props.%s "+
+				"(a deck you walk across must draw below the character on it)",
+				z.propRef(i), p.Type, PropLayerUnderfoot)
 		}
 	}
 	return nil
+}
+
+// propRef names placement i the way the FILE does, props.<layer>[n]. The flat
+// index is a load-time artefact that no author can find in a zone file.
+func (z *Zone) propRef(i int) string {
+	n := 0
+	for j := range i {
+		if z.Props[j].Layer == z.Props[i].Layer {
+			n++
+		}
+	}
+	return fmt.Sprintf("props.%s[%d]", z.Props[i].Layer, n)
 }
 
 // validateEffect is the half of the area-effect check that needs no registry

@@ -461,6 +461,10 @@ function unmarshalEntity(entity, eType) {
         // entityType only, which is the only prop whose shape and label are not
         // implied by its entityType (plan-prop-placeholders.md §4.2).
         propName: undefined,
+        // whether the PROP placement sits in the zone file's props.underfoot,
+        // which picks its container under the characters
+        // (plan-prop-draw-order.md D4). Props only.
+        underfoot: undefined,
         // effective combat level of a MOB instance (plan-mob-levels.md C2).
         // Deliberately NOT the `level` slot above: that one is character-only,
         // and reusing it would make isDefined(entity.level) newly true for
@@ -592,6 +596,9 @@ function unmarshalEntity(entity, eType) {
         // name as "unlabelled", which is exactly right for a prop that streamed
         // no name.
         result.propName = entity.propName() ?? '';
+        // false for every placement outside props.underfoot: the server omits
+        // the default, and an absent bool reads as its default.
+        result.underfoot = entity.underfoot();
     }
 
     if (isFunction(entity.statusEffectsLength) &&
@@ -678,7 +685,8 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.NpcPlaceholder]: Mobs.NpcPlaceholder,
     [AuraApi.EntityType.Tombstone]: Props.genericPropClasses.Tombstone,
     // A bridge deck. Generic like every other simple prop — what makes it a
-    // bridge is its DEFINITION (`crossesPaths` + `underfoot`), never a class.
+    // bridge is its DEFINITION (`crossesPaths`) and its PLACEMENT in
+    // props.underfoot (plan-prop-draw-order.md D4), never a class.
     [AuraApi.EntityType.Bridge]: Props.genericPropClasses.Bridge,
     // Farmland dressing for Zone 1 — five ordinary blocking props, each one
     // api/props/*.json and one SVG, all on the generic path.

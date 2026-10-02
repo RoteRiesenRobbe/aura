@@ -41,8 +41,11 @@
     // published through content.json rather than declared twice.
     function trueBox(o) {
         var layer = o.layer ? o.layer.name : '';
+        // A prop sits in one of the `props` group's sub-layers since
+        // plan-prop-draw-order.md P3, so the group is what says "prop".
+        var parent = o.layer && o.layer.parentLayer ? o.layer.parentLayer.name : '';
         var name = (o.tile && o.tile.property('auraType')) || o.name;
-        if (layer === 'props') {
+        if (parent === C.PROPS_GROUP) {
             var sizes = C.propSizes();
             if (!Object.prototype.hasOwnProperty.call(sizes, name)) { return null; }
             return {w: sizes[name].w * C.PX, h: sizes[name].h * C.PX};

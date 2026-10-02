@@ -9,7 +9,12 @@
     "y": 4000
   },
   "terrain": [],
-  "props": [],
+  "props": {
+    "underfoot": [],
+    "default": [],
+    "buildings": [],
+    "canopy": []
+  },
   "spawns": [
     {
       "mob": "CaveExit",

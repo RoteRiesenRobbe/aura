@@ -48,1094 +48,1205 @@
     },
     {
       "type": "Flowers",
-      "x": -237.77,
-      "y": 16.69,
+      "x": -237.17,
+      "y": 13.79,
       "size": 0.54,
       "rotation": 0,
       "flipped": "none"
     },
     {
       "type": "Flowers",
-      "x": -242.97,
-      "y": 19.19,
+      "x": -242.37,
+      "y": 16.29,
       "size": 0.54,
       "rotation": 1.263,
       "flipped": "none"
     },
     {
       "type": "Leaves",
-      "x": -232.03,
-      "y": 13.92,
+      "x": -231.43,
+      "y": 11.02,
       "size": 0.42,
       "rotation": 0,
       "flipped": "none"
     }
   ],
-  "props": [
-    {
-      "type": "Tree",
-      "x": -179.16,
-      "y": 5.93,
-      "rotation": 0,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -187.88,
-      "y": 32.26,
-      "rotation": 0,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -193.86,
-      "y": 24.61,
-      "rotation": 0,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -185.59,
-      "y": 28.22,
-      "rotation": 0.777,
-      "scale": 0.748
-    },
-    {
-      "type": "Tree",
-      "x": -175.54,
-      "y": 15.42,
-      "rotation": 0,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -235.25,
-      "y": 8.9,
-      "rotation": 0,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -262.52,
-      "y": -8.94,
-      "rotation": 0,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -261.45,
-      "y": 6.66,
-      "rotation": 0,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -229.74,
-      "y": 5.77,
-      "rotation": 0,
-      "scale": 1.661
-    },
-    {
-      "type": "Tree",
-      "x": -253.47,
-      "y": 14.97,
-      "rotation": 0,
-      "scale": 1.661
-    },
-    {
-      "type": "Tree",
-      "x": -249.67,
-      "y": -14.56,
-      "rotation": 0,
-      "scale": 1.661
-    },
-    {
-      "type": "Tree",
-      "x": -235.2,
-      "y": -16.56,
-      "rotation": 0,
-      "scale": 1.661
-    },
-    {
-      "type": "Tree",
-      "x": -252,
-      "y": 3.57,
-      "rotation": 0,
-      "scale": 1.661
-    },
-    {
-      "type": "Tree",
-      "x": -208.27,
-      "y": 23.37,
-      "rotation": 0,
-      "scale": 1.661
-    },
-    {
-      "type": "Tree",
-      "x": -266.67,
-      "y": -3.29,
-      "rotation": 0,
-      "scale": 1.661
-    },
-    {
-      "type": "Tree",
-      "x": -213,
-      "y": 11,
-      "rotation": 0,
-      "scale": 1.661
-    },
-    {
-      "type": "Tree",
-      "x": -175.81,
-      "y": 25.5,
-      "rotation": 1.176,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -168.92,
-      "y": 21.96,
-      "rotation": 1.176,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -164.78,
-      "y": 23.37,
-      "rotation": 1.176,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -165.54,
-      "y": 28.48,
-      "rotation": 1.176,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -154.44,
-      "y": 21.05,
-      "rotation": 1.176,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -149.21,
-      "y": 29.68,
-      "rotation": 1.176,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -138.77,
-      "y": -1.38,
-      "rotation": 1.176,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -149.64,
-      "y": 0.72,
-      "rotation": 1.176,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -170.87,
-      "y": 27.62,
-      "rotation": 1.176,
-      "scale": 1.278
-    },
-    {
-      "type": "Tree",
-      "x": -179.02,
-      "y": -1.31,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -182.91,
-      "y": -3.68,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -230.72,
-      "y": 13.33,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -224.59,
-      "y": 6.7,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -223.45,
-      "y": 2.73,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -228.72,
-      "y": -3.2,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -202.32,
-      "y": 1.6,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -239.18,
-      "y": -10.67,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -229.38,
-      "y": -14.34,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -218.71,
-      "y": -5,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -245.62,
-      "y": -10.87,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -256.1,
-      "y": -4.1,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -266.5,
-      "y": 4.03,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -254.04,
-      "y": 8.77,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -263.84,
-      "y": 17.83,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -255.1,
-      "y": 21.1,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -257.3,
-      "y": 4.17,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -237.69,
-      "y": -6.06,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -256.29,
-      "y": -13.05,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -237.79,
-      "y": 5,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -237.64,
-      "y": 12.08,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -241.54,
-      "y": 20.78,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -235.01,
-      "y": 16.81,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -235.57,
-      "y": 28.51,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -242.31,
-      "y": 30.95,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -233.85,
-      "y": 36.51,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -245.64,
-      "y": 35.85,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -235.11,
-      "y": 32.55,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -248.77,
-      "y": 28.73,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -226.45,
-      "y": 23.25,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -218.67,
-      "y": 23.43,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -218.71,
-      "y": 14.67,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -192.1,
-      "y": -7.91,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -185.61,
-      "y": -7.35,
-      "rotation": 0.599
-    },
-    {
-      "type": "Tree",
-      "x": -177.8,
-      "y": 13.07,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -166.85,
-      "y": 9.94,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -168.53,
-      "y": -1.56,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -130.45,
-      "y": -5.59,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -136.99,
-      "y": 4.67,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -145.69,
-      "y": 9.5,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -136.75,
-      "y": 6.27,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -149.69,
-      "y": 2.74,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -147.89,
-      "y": 7.84,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -133.65,
-      "y": 16.87,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -168.64,
-      "y": 15.19,
-      "rotation": 0,
-      "scale": 0.722
-    },
-    {
-      "type": "Tree",
-      "x": -171.34,
-      "y": 4.36,
-      "rotation": 0,
-      "scale": 0.722
-    },
-    {
-      "type": "Tree",
-      "x": -171.51,
-      "y": 5.54,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -173.27,
-      "y": 23.05,
-      "rotation": 1.109
-    },
-    {
-      "type": "Tree",
-      "x": -172.08,
-      "y": 12.9,
-      "rotation": 1.109
-    },
-    {
-      "type": "Bridge",
-      "x": -181.02,
-      "y": 8.57,
-      "rotation": 6.269,
-      "scale": 0.833
-    },
-    {
-      "type": "Bridge",
-      "x": -177.92,
-      "y": 72.17,
-      "rotation": 0,
-      "scale": 0.833
-    },
-    {
-      "type": "Bridge",
-      "x": -183.79,
-      "y": -14.56,
-      "rotation": 6.229,
-      "scale": 0.833
-    },
-    {
-      "type": "Bridge",
-      "x": -114.12,
-      "y": -103.76,
-      "rotation": 4.723,
-      "scale": 0.833
-    },
-    {
-      "type": "Bridge",
-      "x": -91.81,
-      "y": 3.42,
-      "rotation": 6.27,
-      "scale": 0.833
-    },
-    {
-      "type": "Tree",
-      "x": -178.13,
-      "y": 10.68,
-      "rotation": 0,
-      "scale": 1.682
-    },
-    {
-      "type": "Tree",
-      "x": -152.8,
-      "y": -16.11,
-      "rotation": 0,
-      "scale": 1.682
-    },
-    {
-      "type": "Tree",
-      "x": -153.4,
-      "y": -22.98,
-      "rotation": 0,
-      "scale": 1.682
-    },
-    {
-      "type": "Tree",
-      "x": -156.86,
-      "y": -26.71,
-      "rotation": 0,
-      "scale": 1.682
-    },
-    {
-      "type": "Tree",
-      "x": -124.86,
-      "y": -8.18,
-      "rotation": 0,
-      "scale": 1.682
-    },
-    {
-      "type": "Cart",
-      "x": -187.04,
-      "y": 11.29,
-      "rotation": 0.29
-    },
-    {
-      "type": "Crate",
-      "x": -188.21,
-      "y": 12.42,
-      "rotation": 0
-    },
-    {
-      "type": "Crate",
-      "x": -188.17,
-      "y": 12.41,
-      "rotation": 5.915
-    },
-    {
-      "type": "Crate",
-      "x": -239.34,
-      "y": 16,
-      "rotation": 4.63
-    },
-    {
-      "type": "Crate",
-      "x": -181.53,
-      "y": 24.9,
-      "rotation": 0.053
-    },
-    {
-      "type": "Crate",
-      "x": -182.59,
-      "y": 25.01,
-      "rotation": 6.121
-    },
-    {
-      "type": "Crate",
-      "x": -187.3,
-      "y": 11.23,
-      "rotation": 0.366
-    },
-    {
-      "type": "Well",
-      "x": -192.6,
-      "y": 10.72,
-      "rotation": 0
-    },
-    {
-      "type": "Well",
-      "x": -235.29,
-      "y": 21.46,
-      "rotation": 0
-    },
-    {
-      "type": "Haystack",
-      "x": -186.47,
-      "y": 11.59,
-      "rotation": 0.713,
-      "scale": 0.49
-    },
-    {
-      "type": "Haystack",
-      "x": -186.71,
-      "y": 13.07,
-      "rotation": 0
-    },
-    {
-      "type": "Haystack",
-      "x": -240.67,
-      "y": 15.44,
-      "rotation": 0
-    },
-    {
-      "type": "Haystack",
-      "x": -185.03,
-      "y": 12.75,
-      "rotation": 0
-    },
-    {
-      "type": "Haystack",
-      "x": -194.74,
-      "y": 8.46,
-      "rotation": 0
-    },
-    {
-      "type": "Torch",
-      "x": -174.81,
-      "y": 17.65,
-      "rotation": 0
-    },
-    {
-      "type": "Mill",
-      "x": -180.83,
-      "y": 22.09,
-      "rotation": 6.192
-    },
-    {
-      "type": "Barn",
-      "x": -197.45,
-      "y": 11.35,
-      "rotation": 6.242
-    },
-    {
-      "type": "BurntCart",
-      "x": -176.58,
-      "y": 6.79,
-      "rotation": 6.033
-    },
-    {
-      "type": "FencePost",
-      "x": -184.05,
-      "y": 14.42,
-      "rotation": 1.632
-    },
-    {
-      "type": "FencePost",
-      "x": -189.4,
-      "y": 19.81,
-      "rotation": 1.632
-    },
-    {
-      "type": "FencePost",
-      "x": -226.48,
-      "y": 24.27,
-      "rotation": 0.053
-    },
-    {
-      "type": "FencePost",
-      "x": -189.18,
-      "y": 14.4,
-      "rotation": 1.632
-    },
-    {
-      "type": "FencePost",
-      "x": -199.94,
-      "y": 31.2,
-      "rotation": 0.053
-    },
-    {
-      "type": "FencePost",
-      "x": -246.79,
-      "y": 22.59,
-      "rotation": 0.238
-    },
-    {
-      "type": "Gate",
-      "x": -189.33,
-      "y": 16.98,
-      "rotation": 1.579,
-      "scale": 0.533
-    },
-    {
-      "type": "Gate",
-      "x": -238.2,
-      "y": 24.28,
-      "rotation": 0,
-      "scale": 0.533
-    },
-    {
-      "type": "BurntCart",
-      "x": -151.3,
-      "y": 55.09,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -154.13,
-      "y": 47.93,
-      "rotation": 0
-    },
-    {
-      "type": "Tree",
-      "x": -160.24,
-      "y": 45.64,
-      "rotation": 0
-    },
-    {
-      "type": "Stump",
-      "x": -194.94,
-      "y": -7.18,
-      "rotation": 0
-    },
-    {
-      "type": "Stump",
-      "x": -196.87,
-      "y": -1.94,
-      "rotation": 0
-    },
-    {
-      "type": "Stump",
-      "x": -212.68,
-      "y": -0.29,
-      "rotation": 0
-    },
-    {
-      "type": "Stump",
-      "x": -184.41,
-      "y": -1.04,
-      "rotation": 0
-    },
-    {
-      "type": "Stump",
-      "x": -220,
-      "y": 5.25,
-      "rotation": 0
-    },
-    {
-      "type": "Stump",
-      "x": -172.83,
-      "y": 46.03,
-      "rotation": 0
-    },
-    {
-      "type": "Stump",
-      "x": -166.43,
-      "y": 46.63,
-      "rotation": 0
-    },
-    {
-      "type": "Stump",
-      "x": -173.9,
-      "y": 51.5,
-      "rotation": 0
-    },
-    {
-      "type": "Boulder",
-      "x": 28.77,
-      "y": -12.83,
-      "rotation": 0
-    },
-    {
-      "type": "Boulder",
-      "x": 21.1,
-      "y": -13.9,
-      "rotation": 0
-    },
-    {
-      "type": "Bush",
-      "x": -176.52,
-      "y": 19.58,
-      "rotation": 0
-    },
-    {
-      "type": "Bush",
-      "x": -170.54,
-      "y": 17.41,
-      "rotation": 0
-    },
-    {
-      "type": "Bush",
-      "x": -162.75,
-      "y": 10.6,
-      "rotation": 0
-    },
-    {
-      "type": "Bush",
-      "x": -158.19,
-      "y": 13.97,
-      "rotation": 0
-    },
-    {
-      "type": "Bush",
-      "x": -146.52,
-      "y": 2.7,
-      "rotation": 0
-    },
-    {
-      "type": "FallenLog",
-      "x": -174.02,
-      "y": 9.3,
-      "rotation": 5.811
-    },
-    {
-      "type": "FallenLog",
-      "x": -144.34,
-      "y": 20.05,
-      "rotation": 5.811
-    },
-    {
-      "type": "FallenLog",
-      "x": -144.17,
-      "y": 5.15,
-      "rotation": 5.811
-    },
-    {
-      "type": "FallenLog",
-      "x": -159.3,
-      "y": 4.59,
-      "rotation": 0.575
-    },
-    {
-      "type": "FallenLog",
-      "x": -169.2,
-      "y": 33.22,
-      "rotation": 0.051
-    },
-    {
-      "type": "PineTree",
-      "x": -170.24,
-      "y": 4.82,
-      "rotation": 0
-    },
-    {
-      "type": "PineTree",
-      "x": -137.99,
-      "y": 6.47,
-      "rotation": 0
-    },
-    {
-      "type": "PineTree",
-      "x": -161.23,
-      "y": -2.84,
-      "rotation": 0,
-      "scale": 1.889
-    },
-    {
-      "type": "PineTree",
-      "x": -178.96,
-      "y": 3.89,
-      "rotation": 0,
-      "scale": 1.889
-    },
-    {
-      "type": "PineTree",
-      "x": -158.83,
-      "y": -27.84,
-      "rotation": 0,
-      "scale": 1.889
-    },
-    {
-      "type": "PineTree",
-      "x": -174.03,
-      "y": -15.64,
-      "rotation": 0,
-      "scale": 1.889
-    },
-    {
-      "type": "PineTree",
-      "x": -135.3,
-      "y": -8.84,
-      "rotation": 0,
-      "scale": 1.889
-    },
-    {
-      "type": "DeadTree",
-      "x": -162.98,
-      "y": 6.61,
-      "rotation": 0,
-      "scale": 1.266
-    },
-    {
-      "type": "DeadTree",
-      "x": -154.4,
-      "y": 16.24,
-      "rotation": 0,
-      "scale": 1.266
-    },
-    {
-      "type": "DeadTree",
-      "x": -223.52,
-      "y": -7.54,
-      "rotation": 0,
-      "scale": 1.266
-    },
-    {
-      "type": "Cottage",
-      "x": -188.51,
-      "y": 24.39,
-      "rotation": 6.27
-    },
-    {
-      "type": "Cottage",
-      "x": -240.63,
-      "y": 17.89,
-      "rotation": 4.891
-    },
-    {
-      "type": "CaveMouth",
-      "x": -113.63,
-      "y": -53.21,
-      "rotation": 0,
-      "blocksMovement": true
-    },
-    {
-      "type": "CaveMouth",
-      "x": -162.51,
-      "y": -21.89,
-      "rotation": 0,
-      "blocksMovement": true
-    },
-    {
-      "type": "House",
-      "x": -241.84,
-      "y": -3.06,
-      "rotation": 6.177,
-      "scale": 0.833
-    },
-    {
-      "type": "House",
-      "x": -197.61,
-      "y": 22.7,
-      "rotation": 1.833,
-      "scale": 0.833
-    },
-    {
-      "type": "BrokenFence",
-      "x": -190.91,
-      "y": -5.27,
-      "rotation": 0,
-      "scale": 0.833
-    },
-    {
-      "type": "RuinedHouse",
-      "x": -191.63,
-      "y": 30.62,
-      "rotation": 0.289,
-      "scale": 0.833
-    },
-    {
-      "type": "BrokenFence",
-      "x": -195.03,
-      "y": 31.29,
-      "rotation": 0,
-      "scale": 0.833
-    },
-    {
-      "type": "BurntCart",
-      "x": -188.6,
-      "y": 35.39,
-      "rotation": 5.944,
-      "scale": 0.833
-    },
-    {
-      "type": "Palisade",
-      "x": -89.97,
-      "y": 3.42,
-      "rotation": 4.712,
-      "scale": 0.833
-    },
-    {
-      "type": "OakTree",
-      "x": -147.13,
-      "y": 9,
-      "rotation": 0
-    },
-    {
-      "type": "OakTree",
-      "x": -148.93,
-      "y": -0.9,
-      "rotation": 0
-    },
-    {
-      "type": "OakTree",
-      "x": -150.03,
-      "y": 4.37,
-      "rotation": 0,
-      "scale": 1.4
-    },
-    {
-      "type": "OakTree",
-      "x": -140.27,
-      "y": -2.7,
-      "rotation": 0,
-      "scale": 1.4
-    },
-    {
-      "type": "OakTree",
-      "x": -158.87,
-      "y": 27.67,
-      "rotation": 0,
-      "scale": 1.4
-    },
-    {
-      "type": "OakTree",
-      "x": -243.47,
-      "y": 8.06,
-      "rotation": 0,
-      "scale": 1.4
-    },
-    {
-      "type": "OakTree",
-      "x": -154.4,
-      "y": -16.73,
-      "rotation": 0,
-      "scale": 1.4
-    },
-    {
-      "type": "OakTree",
-      "x": -175.13,
-      "y": -15.06,
-      "rotation": 0,
-      "scale": 1.4
-    },
-    {
-      "type": "OakTree",
-      "x": -151.63,
-      "y": -21.7,
-      "rotation": 0,
-      "scale": 2.1
-    },
-    {
-      "type": "OakTree",
-      "x": -177.67,
-      "y": 15.27,
-      "rotation": 0,
-      "scale": 2.1
-    },
-    {
-      "type": "Torch",
-      "x": -161.44,
-      "y": -19.07,
-      "rotation": 0,
-      "scale": 1.603
-    },
-    {
-      "type": "Rock",
-      "x": -143.1,
-      "y": 17.07,
-      "rotation": 0,
-      "scale": 1.994
-    }
-  ],
+  "props": {
+    "underfoot": [
+      {
+        "type": "Bridge",
+        "x": -181.02,
+        "y": 8.57,
+        "rotation": 6.269,
+        "scale": 0.833
+      },
+      {
+        "type": "Bridge",
+        "x": -177.92,
+        "y": 72.17,
+        "rotation": 0,
+        "scale": 0.833
+      },
+      {
+        "type": "Bridge",
+        "x": -183.79,
+        "y": -14.56,
+        "rotation": 6.229,
+        "scale": 0.833
+      },
+      {
+        "type": "Bridge",
+        "x": -114.12,
+        "y": -103.76,
+        "rotation": 4.723,
+        "scale": 0.833
+      },
+      {
+        "type": "Bridge",
+        "x": -91.81,
+        "y": 3.42,
+        "rotation": 6.27,
+        "scale": 0.833
+      }
+    ],
+    "default": [
+      {
+        "type": "Cart",
+        "x": -187.04,
+        "y": 11.29,
+        "rotation": 0.29
+      },
+      {
+        "type": "Crate",
+        "x": -188.21,
+        "y": 12.42,
+        "rotation": 0
+      },
+      {
+        "type": "Crate",
+        "x": -188.17,
+        "y": 12.41,
+        "rotation": 5.915
+      },
+      {
+        "type": "Crate",
+        "x": -238.74,
+        "y": 13.1,
+        "rotation": 4.63
+      },
+      {
+        "type": "Crate",
+        "x": -181.53,
+        "y": 24.9,
+        "rotation": 0.053
+      },
+      {
+        "type": "Crate",
+        "x": -182.59,
+        "y": 25.01,
+        "rotation": 6.121
+      },
+      {
+        "type": "Crate",
+        "x": -187.3,
+        "y": 11.23,
+        "rotation": 0.366
+      },
+      {
+        "type": "Well",
+        "x": -192.6,
+        "y": 10.72,
+        "rotation": 0
+      },
+      {
+        "type": "Well",
+        "x": -234.69,
+        "y": 18.56,
+        "rotation": 0
+      },
+      {
+        "type": "Haystack",
+        "x": -186.47,
+        "y": 11.59,
+        "rotation": 0.713,
+        "scale": 0.49
+      },
+      {
+        "type": "Haystack",
+        "x": -186.71,
+        "y": 13.07,
+        "rotation": 0
+      },
+      {
+        "type": "Haystack",
+        "x": -240.09,
+        "y": 12.64,
+        "rotation": 0
+      },
+      {
+        "type": "Haystack",
+        "x": -185.03,
+        "y": 12.75,
+        "rotation": 0
+      },
+      {
+        "type": "Haystack",
+        "x": -194.74,
+        "y": 8.46,
+        "rotation": 0
+      },
+      {
+        "type": "Torch",
+        "x": -174.81,
+        "y": 17.65,
+        "rotation": 0
+      },
+      {
+        "type": "BurntCart",
+        "x": -176.58,
+        "y": 6.79,
+        "rotation": 6.033
+      },
+      {
+        "type": "FencePost",
+        "x": -184.05,
+        "y": 14.42,
+        "rotation": 1.632
+      },
+      {
+        "type": "FencePost",
+        "x": -189.4,
+        "y": 19.81,
+        "rotation": 1.632
+      },
+      {
+        "type": "FencePost",
+        "x": -225.08,
+        "y": 21.39,
+        "rotation": 0.053
+      },
+      {
+        "type": "FencePost",
+        "x": -189.18,
+        "y": 14.4,
+        "rotation": 1.632
+      },
+      {
+        "type": "FencePost",
+        "x": -199.94,
+        "y": 31.2,
+        "rotation": 0.053
+      },
+      {
+        "type": "FencePost",
+        "x": -246.19,
+        "y": 19.69,
+        "rotation": 0.238
+      },
+      {
+        "type": "BurntCart",
+        "x": -151.3,
+        "y": 55.09,
+        "rotation": 0
+      },
+      {
+        "type": "Stump",
+        "x": -194.94,
+        "y": -7.18,
+        "rotation": 0
+      },
+      {
+        "type": "Stump",
+        "x": -196.87,
+        "y": -1.94,
+        "rotation": 0
+      },
+      {
+        "type": "Stump",
+        "x": -210.54,
+        "y": -5.87,
+        "rotation": 0
+      },
+      {
+        "type": "Stump",
+        "x": -217.5,
+        "y": -10.11,
+        "rotation": 0,
+        "scale": 1.424
+      },
+      {
+        "type": "Stump",
+        "x": -203.6,
+        "y": -6.34,
+        "rotation": 0
+      },
+      {
+        "type": "Stump",
+        "x": -210.8,
+        "y": -10.27,
+        "rotation": 0
+      },
+      {
+        "type": "Stump",
+        "x": -200.74,
+        "y": -13.67,
+        "rotation": 0
+      },
+      {
+        "type": "Stump",
+        "x": -205.47,
+        "y": -12.54,
+        "rotation": 0
+      },
+      {
+        "type": "Stump",
+        "x": -212.68,
+        "y": -0.29,
+        "rotation": 0
+      },
+      {
+        "type": "Stump",
+        "x": -184.41,
+        "y": -1.04,
+        "rotation": 0
+      },
+      {
+        "type": "Stump",
+        "x": -220,
+        "y": 5.25,
+        "rotation": 0
+      },
+      {
+        "type": "Stump",
+        "x": -172.83,
+        "y": 46.03,
+        "rotation": 0
+      },
+      {
+        "type": "Stump",
+        "x": -166.43,
+        "y": 46.63,
+        "rotation": 0
+      },
+      {
+        "type": "Stump",
+        "x": -173.9,
+        "y": 51.5,
+        "rotation": 0
+      },
+      {
+        "type": "Boulder",
+        "x": 28.77,
+        "y": -12.83,
+        "rotation": 0
+      },
+      {
+        "type": "Boulder",
+        "x": 21.1,
+        "y": -13.9,
+        "rotation": 0
+      },
+      {
+        "type": "Bush",
+        "x": -176.52,
+        "y": 19.58,
+        "rotation": 0
+      },
+      {
+        "type": "Bush",
+        "x": -170.54,
+        "y": 17.41,
+        "rotation": 0
+      },
+      {
+        "type": "Bush",
+        "x": -162.75,
+        "y": 10.6,
+        "rotation": 0
+      },
+      {
+        "type": "Bush",
+        "x": -158.19,
+        "y": 13.97,
+        "rotation": 0
+      },
+      {
+        "type": "Bush",
+        "x": -146.52,
+        "y": 2.7,
+        "rotation": 0
+      },
+      {
+        "type": "FallenLog",
+        "x": -174.02,
+        "y": 9.3,
+        "rotation": 5.811
+      },
+      {
+        "type": "FallenLog",
+        "x": -144.34,
+        "y": 20.05,
+        "rotation": 5.811
+      },
+      {
+        "type": "FallenLog",
+        "x": -144.17,
+        "y": 5.15,
+        "rotation": 5.811
+      },
+      {
+        "type": "FallenLog",
+        "x": -159.3,
+        "y": 4.59,
+        "rotation": 0.575
+      },
+      {
+        "type": "FallenLog",
+        "x": -169.2,
+        "y": 33.22,
+        "rotation": 0.051
+      },
+      {
+        "type": "BrokenFence",
+        "x": -190.91,
+        "y": -5.27,
+        "rotation": 0,
+        "scale": 0.833
+      },
+      {
+        "type": "BrokenFence",
+        "x": -195.03,
+        "y": 31.29,
+        "rotation": 0,
+        "scale": 0.833
+      },
+      {
+        "type": "BurntCart",
+        "x": -188.6,
+        "y": 35.39,
+        "rotation": 5.944,
+        "scale": 0.833
+      },
+      {
+        "type": "Torch",
+        "x": -161.44,
+        "y": -19.07,
+        "rotation": 0,
+        "scale": 1.603
+      },
+      {
+        "type": "Rock",
+        "x": -143.1,
+        "y": 17.07,
+        "rotation": 0,
+        "scale": 1.994
+      },
+      {
+        "type": "BrokenCrate",
+        "x": -194.65,
+        "y": 27.71,
+        "rotation": 5.865
+      },
+      {
+        "type": "BrokenCrate",
+        "x": -196.08,
+        "y": 34.18,
+        "rotation": 0.641
+      },
+      {
+        "type": "Crate",
+        "x": -239.82,
+        "y": 23.87,
+        "rotation": 6.237,
+        "scale": 0.58
+      },
+      {
+        "type": "Torch",
+        "x": -239.23,
+        "y": 24,
+        "rotation": 0
+      }
+    ],
+    "buildings": [
+      {
+        "type": "Mill",
+        "x": -180.83,
+        "y": 22.09,
+        "rotation": 6.192
+      },
+      {
+        "type": "Barn",
+        "x": -197.45,
+        "y": 11.35,
+        "rotation": 6.242
+      },
+      {
+        "type": "Gate",
+        "x": -189.33,
+        "y": 16.98,
+        "rotation": 1.579,
+        "scale": 0.533
+      },
+      {
+        "type": "Gate",
+        "x": -237.6,
+        "y": 21.38,
+        "rotation": 0,
+        "scale": 0.533
+      },
+      {
+        "type": "Cottage",
+        "x": -188.51,
+        "y": 24.39,
+        "rotation": 6.27
+      },
+      {
+        "type": "Cottage",
+        "x": -240.03,
+        "y": 14.99,
+        "rotation": 4.891
+      },
+      {
+        "type": "CaveMouth",
+        "x": -113.63,
+        "y": -53.21,
+        "rotation": 0,
+        "blocksMovement": true
+      },
+      {
+        "type": "CaveMouth",
+        "x": -162.51,
+        "y": -21.89,
+        "rotation": 0,
+        "blocksMovement": true
+      },
+      {
+        "type": "House",
+        "x": -241.84,
+        "y": -3.06,
+        "rotation": 6.177,
+        "scale": 0.833
+      },
+      {
+        "type": "House",
+        "x": -197.61,
+        "y": 22.7,
+        "rotation": 1.833,
+        "scale": 0.833
+      },
+      {
+        "type": "RuinedHouse",
+        "x": -191.63,
+        "y": 30.62,
+        "rotation": 0.289,
+        "scale": 0.833
+      },
+      {
+        "type": "Palisade",
+        "x": -89.97,
+        "y": 3.42,
+        "rotation": 4.712,
+        "scale": 0.833
+      }
+    ],
+    "canopy": [
+      {
+        "type": "Tree",
+        "x": -179.16,
+        "y": 5.93,
+        "rotation": 0,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -187.88,
+        "y": 32.26,
+        "rotation": 0,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -193.86,
+        "y": 24.61,
+        "rotation": 0,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -185.59,
+        "y": 28.22,
+        "rotation": 0.777,
+        "scale": 0.748
+      },
+      {
+        "type": "Tree",
+        "x": -175.54,
+        "y": 15.42,
+        "rotation": 0,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -235.25,
+        "y": 8.9,
+        "rotation": 0,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -262.52,
+        "y": -8.94,
+        "rotation": 0,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -261.45,
+        "y": 6.66,
+        "rotation": 0,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -229.74,
+        "y": 5.77,
+        "rotation": 0,
+        "scale": 1.661
+      },
+      {
+        "type": "Tree",
+        "x": -253.47,
+        "y": 14.97,
+        "rotation": 0,
+        "scale": 1.661
+      },
+      {
+        "type": "Tree",
+        "x": -249.67,
+        "y": -14.56,
+        "rotation": 0,
+        "scale": 1.661
+      },
+      {
+        "type": "Tree",
+        "x": -235.2,
+        "y": -16.56,
+        "rotation": 0,
+        "scale": 1.661
+      },
+      {
+        "type": "Tree",
+        "x": -252,
+        "y": 3.57,
+        "rotation": 0,
+        "scale": 1.661
+      },
+      {
+        "type": "Tree",
+        "x": -208.27,
+        "y": 23.37,
+        "rotation": 0,
+        "scale": 1.661
+      },
+      {
+        "type": "Tree",
+        "x": -266.67,
+        "y": -3.29,
+        "rotation": 0,
+        "scale": 1.661
+      },
+      {
+        "type": "Tree",
+        "x": -213,
+        "y": 11,
+        "rotation": 0,
+        "scale": 1.661
+      },
+      {
+        "type": "Tree",
+        "x": -175.81,
+        "y": 25.5,
+        "rotation": 1.176,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -168.92,
+        "y": 21.96,
+        "rotation": 1.176,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -164.78,
+        "y": 23.37,
+        "rotation": 1.176,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -165.54,
+        "y": 28.48,
+        "rotation": 1.176,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -154.44,
+        "y": 21.05,
+        "rotation": 1.176,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -149.21,
+        "y": 29.68,
+        "rotation": 1.176,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -138.77,
+        "y": -1.38,
+        "rotation": 1.176,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -149.64,
+        "y": 0.72,
+        "rotation": 1.176,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -170.87,
+        "y": 27.62,
+        "rotation": 1.176,
+        "scale": 1.278
+      },
+      {
+        "type": "Tree",
+        "x": -179.02,
+        "y": -1.31,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -182.91,
+        "y": -3.68,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -230.12,
+        "y": 10.43,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -224.59,
+        "y": 6.7,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -223.45,
+        "y": 2.73,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -228.72,
+        "y": -3.2,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -202.32,
+        "y": 1.6,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -239.18,
+        "y": -10.67,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -229.38,
+        "y": -14.34,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -218.71,
+        "y": -5,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -245.62,
+        "y": -10.87,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -256.1,
+        "y": -4.1,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -266.5,
+        "y": 4.03,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -254.04,
+        "y": 8.77,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -263.84,
+        "y": 17.83,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -255.1,
+        "y": 21.1,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -257.3,
+        "y": 4.17,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -237.69,
+        "y": -6.06,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -256.29,
+        "y": -13.05,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -237.74,
+        "y": 5.28,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -237.64,
+        "y": 12.08,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -240.94,
+        "y": 17.88,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -239.41,
+        "y": 5.1,
+        "rotation": 0,
+        "scale": 1.661
+      },
+      {
+        "type": "Tree",
+        "x": -234.41,
+        "y": 13.91,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -234.44,
+        "y": 27.84,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -232.97,
+        "y": 27.64,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -233.3,
+        "y": 29.11,
+        "rotation": 0,
+        "scale": 1.2
+      },
+      {
+        "type": "Tree",
+        "x": -243.34,
+        "y": 27.42,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -243.21,
+        "y": 28.75,
+        "rotation": 0,
+        "scale": 1.233
+      },
+      {
+        "type": "Tree",
+        "x": -231.82,
+        "y": 37.28,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -233.43,
+        "y": 38.03,
+        "rotation": 0,
+        "scale": 1.383
+      },
+      {
+        "type": "Tree",
+        "x": -241.87,
+        "y": 37.48,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -233.41,
+        "y": 31.48,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -248.77,
+        "y": 28.73,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -226.45,
+        "y": 23.25,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -218.67,
+        "y": 23.43,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -218.71,
+        "y": 14.67,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -192.1,
+        "y": -7.91,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -185.61,
+        "y": -7.35,
+        "rotation": 0.599
+      },
+      {
+        "type": "Tree",
+        "x": -177.8,
+        "y": 13.07,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -166.85,
+        "y": 9.94,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -168.53,
+        "y": -1.56,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -130.45,
+        "y": -5.59,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -136.99,
+        "y": 4.67,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -145.69,
+        "y": 9.5,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -136.75,
+        "y": 6.27,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -149.69,
+        "y": 2.74,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -147.89,
+        "y": 7.84,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -133.65,
+        "y": 16.87,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -168.64,
+        "y": 15.19,
+        "rotation": 0,
+        "scale": 0.722
+      },
+      {
+        "type": "Tree",
+        "x": -171.34,
+        "y": 4.36,
+        "rotation": 0,
+        "scale": 0.722
+      },
+      {
+        "type": "Tree",
+        "x": -171.51,
+        "y": 5.54,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -173.27,
+        "y": 23.05,
+        "rotation": 1.109
+      },
+      {
+        "type": "Tree",
+        "x": -172.08,
+        "y": 12.9,
+        "rotation": 1.109
+      },
+      {
+        "type": "Tree",
+        "x": -178.13,
+        "y": 10.68,
+        "rotation": 0,
+        "scale": 1.682
+      },
+      {
+        "type": "Tree",
+        "x": -152.8,
+        "y": -16.11,
+        "rotation": 0,
+        "scale": 1.682
+      },
+      {
+        "type": "Tree",
+        "x": -153.4,
+        "y": -22.98,
+        "rotation": 0,
+        "scale": 1.682
+      },
+      {
+        "type": "Tree",
+        "x": -156.86,
+        "y": -26.71,
+        "rotation": 0,
+        "scale": 1.682
+      },
+      {
+        "type": "Tree",
+        "x": -124.86,
+        "y": -8.18,
+        "rotation": 0,
+        "scale": 1.682
+      },
+      {
+        "type": "Tree",
+        "x": -154.13,
+        "y": 47.93,
+        "rotation": 0
+      },
+      {
+        "type": "Tree",
+        "x": -160.24,
+        "y": 45.64,
+        "rotation": 0
+      },
+      {
+        "type": "PineTree",
+        "x": -170.24,
+        "y": 4.82,
+        "rotation": 0
+      },
+      {
+        "type": "PineTree",
+        "x": -137.99,
+        "y": 6.47,
+        "rotation": 0
+      },
+      {
+        "type": "PineTree",
+        "x": -161.23,
+        "y": -2.84,
+        "rotation": 0,
+        "scale": 1.889
+      },
+      {
+        "type": "PineTree",
+        "x": -178.96,
+        "y": 3.89,
+        "rotation": 0,
+        "scale": 1.889
+      },
+      {
+        "type": "PineTree",
+        "x": -158.83,
+        "y": -27.84,
+        "rotation": 0,
+        "scale": 1.889
+      },
+      {
+        "type": "PineTree",
+        "x": -174.03,
+        "y": -15.64,
+        "rotation": 0,
+        "scale": 1.889
+      },
+      {
+        "type": "PineTree",
+        "x": -135.3,
+        "y": -8.84,
+        "rotation": 0,
+        "scale": 1.889
+      },
+      {
+        "type": "DeadTree",
+        "x": -162.98,
+        "y": 6.61,
+        "rotation": 0,
+        "scale": 1.266
+      },
+      {
+        "type": "DeadTree",
+        "x": -154.4,
+        "y": 16.24,
+        "rotation": 0,
+        "scale": 1.266
+      },
+      {
+        "type": "DeadTree",
+        "x": -224.02,
+        "y": -9.11,
+        "rotation": 0,
+        "scale": 1.652
+      },
+      {
+        "type": "OakTree",
+        "x": -147.13,
+        "y": 9,
+        "rotation": 0
+      },
+      {
+        "type": "OakTree",
+        "x": -148.93,
+        "y": -0.9,
+        "rotation": 0
+      },
+      {
+        "type": "OakTree",
+        "x": -150.03,
+        "y": 4.37,
+        "rotation": 0,
+        "scale": 1.4
+      },
+      {
+        "type": "OakTree",
+        "x": -140.27,
+        "y": -2.7,
+        "rotation": 0,
+        "scale": 1.4
+      },
+      {
+        "type": "OakTree",
+        "x": -158.87,
+        "y": 27.67,
+        "rotation": 0,
+        "scale": 1.4
+      },
+      {
+        "type": "OakTree",
+        "x": -241.64,
+        "y": 13.73,
+        "rotation": 0,
+        "scale": 1.4
+      },
+      {
+        "type": "OakTree",
+        "x": -248.34,
+        "y": 36.76,
+        "rotation": 0,
+        "scale": 1.4
+      },
+      {
+        "type": "OakTree",
+        "x": -154.4,
+        "y": -16.73,
+        "rotation": 0,
+        "scale": 1.4
+      },
+      {
+        "type": "OakTree",
+        "x": -175.13,
+        "y": -15.06,
+        "rotation": 0,
+        "scale": 1.4
+      },
+      {
+        "type": "OakTree",
+        "x": -151.63,
+        "y": -21.7,
+        "rotation": 0,
+        "scale": 2.1
+      },
+      {
+        "type": "OakTree",
+        "x": -177.67,
+        "y": 15.27,
+        "rotation": 0,
+        "scale": 2.1
+      }
+    ]
+  },
   "spawns": [
     {
       "mob": "Wolf",
@@ -1989,20 +2100,20 @@
     },
     {
       "mob": "Hendrik",
-      "x": -239.36,
-      "y": 27.32,
+      "x": -238.76,
+      "y": 24.42,
       "angle": 0
     },
     {
       "mob": "Eliza",
-      "x": -238.58,
-      "y": 18.55,
+      "x": -237.98,
+      "y": 15.65,
       "angle": 0
     },
     {
       "mob": "Benjamin",
-      "x": -234.34,
-      "y": 19.74,
+      "x": -233.74,
+      "y": 16.84,
       "angle": 0
     },
     {
@@ -2440,8 +2551,8 @@
     },
     {
       "mob": "Stag",
-      "x": -245.07,
-      "y": 31.46,
+      "x": -253.2,
+      "y": 30.53,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -2451,8 +2562,8 @@
     },
     {
       "mob": "Stag",
-      "x": -242.53,
-      "y": 32.79,
+      "x": -247.06,
+      "y": 31.32,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -2462,8 +2573,8 @@
     },
     {
       "mob": "Stag",
-      "x": -247.53,
-      "y": 36.69,
+      "x": -241.53,
+      "y": 34.56,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -2473,8 +2584,8 @@
     },
     {
       "mob": "Stag",
-      "x": -240.4,
-      "y": 45.16,
+      "x": -237.63,
+      "y": 37.49,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -2506,8 +2617,8 @@
     },
     {
       "mob": "Stag",
-      "x": -242.03,
-      "y": 35.16,
+      "x": -251.33,
+      "y": 33.46,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -2517,8 +2628,8 @@
     },
     {
       "mob": "Stag",
-      "x": -238.53,
-      "y": 32.76,
+      "x": -240.76,
+      "y": 28.03,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -2528,8 +2639,8 @@
     },
     {
       "mob": "Stag",
-      "x": -239.6,
-      "y": 35.86,
+      "x": -237.6,
+      "y": 29.93,
       "angle": 2.496,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -2539,8 +2650,8 @@
     },
     {
       "mob": "Beet",
-      "x": -229.29,
-      "y": 16.92,
+      "x": -228.69,
+      "y": 14.02,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0.2,
@@ -2548,8 +2659,8 @@
     },
     {
       "mob": "Beet",
-      "x": -230.13,
-      "y": 16.93,
+      "x": -229.53,
+      "y": 14.03,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0.2,
@@ -2557,8 +2668,8 @@
     },
     {
       "mob": "Beet",
-      "x": -230.91,
-      "y": 16.92,
+      "x": -230.31,
+      "y": 14.02,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0.2,
@@ -2566,8 +2677,8 @@
     },
     {
       "mob": "Beet",
-      "x": -231.67,
-      "y": 16.89,
+      "x": -231.07,
+      "y": 13.99,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0.2,
@@ -2575,8 +2686,8 @@
     },
     {
       "mob": "Beet",
-      "x": -232.5,
-      "y": 16.93,
+      "x": -231.9,
+      "y": 14.03,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0.2,
@@ -2584,8 +2695,8 @@
     },
     {
       "mob": "Beet",
-      "x": -232.55,
-      "y": 18.21,
+      "x": -231.95,
+      "y": 15.31,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0.2,
@@ -2593,8 +2704,8 @@
     },
     {
       "mob": "Beet",
-      "x": -231.64,
-      "y": 18.2,
+      "x": -231.04,
+      "y": 15.3,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0.2,
@@ -2602,8 +2713,8 @@
     },
     {
       "mob": "Beet",
-      "x": -230.85,
-      "y": 18.17,
+      "x": -230.25,
+      "y": 15.27,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0.2,
@@ -2611,8 +2722,8 @@
     },
     {
       "mob": "Beet",
-      "x": -230.11,
-      "y": 18.22,
+      "x": -229.51,
+      "y": 15.32,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0.2,
@@ -2620,8 +2731,8 @@
     },
     {
       "mob": "Beet",
-      "x": -229.32,
-      "y": 19.69,
+      "x": -228.72,
+      "y": 16.79,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0.2,
@@ -2629,8 +2740,8 @@
     },
     {
       "mob": "Beet",
-      "x": -229.96,
-      "y": 19.68,
+      "x": -229.36,
+      "y": 16.78,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0.2,
@@ -2638,8 +2749,8 @@
     },
     {
       "mob": "Beet",
-      "x": -230.65,
-      "y": 19.67,
+      "x": -230.05,
+      "y": 16.77,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0.2,
@@ -2647,8 +2758,8 @@
     },
     {
       "mob": "Beet",
-      "x": -231.65,
-      "y": 19.64,
+      "x": -231.05,
+      "y": 16.74,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0.2,
@@ -2656,8 +2767,8 @@
     },
     {
       "mob": "Beet",
-      "x": -232.56,
-      "y": 19.62,
+      "x": -231.96,
+      "y": 16.72,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0.2,
@@ -2665,8 +2776,8 @@
     },
     {
       "mob": "Beet",
-      "x": -229.33,
-      "y": 18.13,
+      "x": -228.73,
+      "y": 15.23,
       "angle": 0,
       "respawnTicks": 600,
       "respawnVariancePct": 0.2,
@@ -2686,6 +2797,26 @@
       "mob": "KoboldRanged",
       "x": -160.66,
       "y": -18.68,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1.5,
+      "level": 7
+    },
+    {
+      "mob": "KoboldRanged",
+      "x": -180.91,
+      "y": -15.19,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1.5,
+      "level": 7
+    },
+    {
+      "mob": "KoboldRanged",
+      "x": -179.95,
+      "y": -14.64,
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -2714,8 +2845,8 @@
     },
     {
       "mob": "Kobold",
-      "x": -165.21,
-      "y": -17,
+      "x": -182.05,
+      "y": -15.18,
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -2724,8 +2855,68 @@
     },
     {
       "mob": "Kobold",
-      "x": -164.28,
-      "y": -17.13,
+      "x": -182.03,
+      "y": -13.92,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1.5,
+      "level": 7
+    },
+    {
+      "mob": "Kobold",
+      "x": -180.49,
+      "y": -12.58,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1.5,
+      "level": 7
+    },
+    {
+      "mob": "Kobold",
+      "x": -172.01,
+      "y": -11.32,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1.5,
+      "level": 7
+    },
+    {
+      "mob": "Kobold",
+      "x": -177.89,
+      "y": -18.47,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1.5,
+      "level": 7
+    },
+    {
+      "mob": "Kobold",
+      "x": -175.52,
+      "y": -17.86,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1.5,
+      "level": 7
+    },
+    {
+      "mob": "Kobold",
+      "x": -175.85,
+      "y": -10.67,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1.5,
+      "level": 7
+    },
+    {
+      "mob": "Kobold",
+      "x": -166.33,
+      "y": -15.92,
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -3916,8 +4107,8 @@
     },
     {
       "mob": "Wolf",
-      "x": -235.53,
-      "y": 43.65,
+      "x": -259.53,
+      "y": 40.85,
       "angle": 2.2,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -3926,8 +4117,8 @@
     },
     {
       "mob": "Wolf",
-      "x": -249.53,
-      "y": 43.38,
+      "x": -265.8,
+      "y": 30.31,
       "angle": 2.2,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
@@ -5004,8 +5195,8 @@
   "campfires": [
     {
       "id": "spawnpoint-1",
-      "x": -237.85,
-      "y": 20.48,
+      "x": -237.25,
+      "y": 17.58,
       "startingSpawn": true
     },
     {
@@ -5030,13 +5221,13 @@
     },
     {
       "id": "spawnpoint-6",
-      "x": -239.63,
-      "y": 72.41
+      "x": -244.43,
+      "y": 86.14
     },
     {
       "id": "spawnpoint-7",
-      "x": -209.63,
-      "y": 72.41
+      "x": -208.16,
+      "y": 86.28
     },
     {
       "id": "spawnpoint-8",
@@ -6580,12 +6771,12 @@
       "profile": "Fence",
       "points": [
         {
-          "x": -238.62,
-          "y": 24.28
+          "x": -238.02,
+          "y": 21.38
         },
         {
-          "x": -246.75,
-          "y": 22.59
+          "x": -246.15,
+          "y": 19.69
         }
       ],
       "width": 0.15,
@@ -6616,12 +6807,12 @@
       "profile": "Fence",
       "points": [
         {
-          "x": -226.49,
-          "y": 24.26
+          "x": -225.17,
+          "y": 21.36
         },
         {
-          "x": -237.82,
-          "y": 24.26
+          "x": -237.22,
+          "y": 21.36
         }
       ],
       "width": 0.15,
@@ -6876,20 +7067,16 @@
       "profile": "Road",
       "points": [
         {
-          "x": -238.18,
-          "y": 23.34
+          "x": -237.53,
+          "y": 20.7
         },
         {
-          "x": -237.77,
-          "y": 22.12
+          "x": -237.23,
+          "y": 19.57
         },
         {
-          "x": -237.32,
-          "y": 20.56
-        },
-        {
-          "x": -236.87,
-          "y": 18.69
+          "x": -237.01,
+          "y": 18.64
         },
         {
           "x": -236.57,
@@ -7339,6 +7526,98 @@
         {
           "x": -154.2,
           "y": -15.97
+        }
+      ],
+      "width": 1.5,
+      "blocksMovement": true,
+      "alignTexture": true,
+      "corners": "sharp",
+      "ends": "point"
+    },
+    {
+      "profile": "Cliff",
+      "points": [
+        {
+          "x": -181.26,
+          "y": -35.91
+        },
+        {
+          "x": -178.63,
+          "y": -35.54
+        },
+        {
+          "x": -174.97,
+          "y": -34.91
+        },
+        {
+          "x": -169.4,
+          "y": -34.34
+        },
+        {
+          "x": -165.46,
+          "y": -34.48
+        },
+        {
+          "x": -161.77,
+          "y": -34.84
+        },
+        {
+          "x": -157.3,
+          "y": -34.54
+        },
+        {
+          "x": -153.33,
+          "y": -34.87
+        },
+        {
+          "x": -143.59,
+          "y": -35.96
+        }
+      ],
+      "width": 1.5,
+      "blocksMovement": true,
+      "alignTexture": true,
+      "corners": "sharp",
+      "ends": "point"
+    },
+    {
+      "profile": "Cliff",
+      "points": [
+        {
+          "x": -140.59,
+          "y": -35.96
+        },
+        {
+          "x": -136.53,
+          "y": -35.44
+        },
+        {
+          "x": -133.29,
+          "y": -35.14
+        },
+        {
+          "x": -126.46,
+          "y": -34.72
+        },
+        {
+          "x": -121.17,
+          "y": -34.48
+        },
+        {
+          "x": -116.25,
+          "y": -34.84
+        },
+        {
+          "x": -110.35,
+          "y": -34.8
+        },
+        {
+          "x": -104.99,
+          "y": -34.87
+        },
+        {
+          "x": -91.99,
+          "y": -35.96
         }
       ],
       "width": 1.5,
@@ -7821,6 +8100,44 @@
       "effect": "Blight"
     },
     {
+      "profile": "Water",
+      "points": [
+        {
+          "x": -226.6,
+          "y": 37.27
+        },
+        {
+          "x": -234.83,
+          "y": 45.55
+        },
+        {
+          "x": -270.67,
+          "y": 47.33
+        },
+        {
+          "x": -271.21,
+          "y": 64.94
+        },
+        {
+          "x": -271.07,
+          "y": 72.27
+        },
+        {
+          "x": -177.94,
+          "y": 73.54
+        },
+        {
+          "x": -177.73,
+          "y": 49.07
+        },
+        {
+          "x": -209.31,
+          "y": 46.56
+        }
+      ],
+      "blocksMovement": true
+    },
+    {
       "profile": "Pit",
       "points": [
         {
@@ -8040,76 +8357,76 @@
       "profile": "Ploughed Cross",
       "points": [
         {
-          "x": -231.87,
-          "y": 16.16
+          "x": -231.27,
+          "y": 13.26
         },
         {
-          "x": -231.32,
-          "y": 16.19
+          "x": -230.72,
+          "y": 13.29
         },
         {
-          "x": -230.43,
-          "y": 16.2
+          "x": -229.83,
+          "y": 13.3
         },
         {
-          "x": -229.43,
-          "y": 16.15
+          "x": -228.83,
+          "y": 13.25
         },
         {
-          "x": -229,
-          "y": 16.12
+          "x": -228.4,
+          "y": 13.22
         },
         {
-          "x": -228.65,
-          "y": 16.18
+          "x": -228.05,
+          "y": 13.28
         },
         {
-          "x": -228.54,
-          "y": 16.42
+          "x": -227.94,
+          "y": 13.52
         },
         {
-          "x": -228.46,
-          "y": 16.91
+          "x": -227.86,
+          "y": 14.01
+        },
+        {
+          "x": -227.78,
+          "y": 17.47
+        },
+        {
+          "x": -227.99,
+          "y": 17.75
         },
         {
           "x": -228.38,
-          "y": 20.37
+          "y": 17.84
         },
         {
-          "x": -228.59,
-          "y": 20.65
+          "x": -232.31,
+          "y": 17.85
         },
         {
-          "x": -228.98,
-          "y": 20.74
+          "x": -232.74,
+          "y": 17.72
         },
         {
-          "x": -232.91,
-          "y": 20.75
+          "x": -232.86,
+          "y": 17.41
         },
         {
-          "x": -233.34,
-          "y": 20.62
+          "x": -232.5,
+          "y": 13.7
         },
         {
-          "x": -233.46,
-          "y": 20.31
+          "x": -232.37,
+          "y": 13.39
         },
         {
-          "x": -233.1,
-          "y": 16.6
+          "x": -232.2,
+          "y": 13.28
         },
         {
-          "x": -232.97,
-          "y": 16.29
-        },
-        {
-          "x": -232.8,
-          "y": 16.18
-        },
-        {
-          "x": -232.28,
-          "y": 16.11
+          "x": -231.68,
+          "y": 13.21
         }
       ]
     }
@@ -8537,20 +8854,20 @@
       "profile": "Rain",
       "points": [
         {
-          "x": -256.42,
-          "y": 46.8
+          "x": -225.09,
+          "y": 28.73
         },
         {
-          "x": -256.42,
-          "y": 97.2
+          "x": -225.09,
+          "y": 79.13
         },
         {
-          "x": -194.12,
-          "y": 97.2
+          "x": -162.79,
+          "y": 79.13
         },
         {
-          "x": -192.02,
-          "y": 46.8
+          "x": -160.69,
+          "y": 28.73
         }
       ]
     },

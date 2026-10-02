@@ -194,66 +194,85 @@
 
         for (var i = 0; i < model.layers.length; i++) {
             var spec = model.layers[i];
-            var group = new ObjectGroup(spec.name);
-            // terrain array order IS paint order, so the canvas must draw by
-            // index rather than Tiled's default y-sort.
-            group.drawOrder = ObjectGroup.IndexOrder;
-            /* ⭐ The big background layers open LOCKED (plan-zone-naming.md D2).
-             * Which ones is the converter's call, not this file's — the spec
-             * carries the flag so the pure converter stays the single source and
-             * vitest can see it, exactly as drawOrder already does.
-             *
-             * ⛔ This assignment IS the persistence. Tiled's session file does
-             * not store layer lock or visibility, and a zone file has no layer
-             * records to store it in, so whatever the spec says is the state on
-             * every open — a hand-unlock in the Layers panel lasts until the
-             * file is closed and no longer. (Measured on Tiled 1.12.2; the
-             * ObjectGroup API does carry both `locked` and `visible`.)
-             *
-             * ⚑ Locked, never hidden: a locked layer still DRAWS at full
-             * opacity and merely refuses selection, which is the whole point —
-             * hiding it would take away the thing you are authoring against. */
-            if (spec.locked) { group.locked = true; }
-
-            for (var j = 0; j < spec.objects.length; j++) {
-                var src = spec.objects[j];
-                var obj = new MapObject(src.name);
-                obj.shape = SHAPE_TO_TILED[src.shape];
-
-                if (src.shape === 'tile') {
-                    var set = palette[src.tileset];
-                    var tile = set.byType[src.tileType];
-                    if (!tile) {
-                        throw new Error('no palette tile for ' + src.tileset + ' type "'
-                            + src.tileType + '" — regenerate with'
-                            + ' node tools/tiled/generate-palette.mjs');
-                    }
-                    obj.tile = tile;
-                    obj.tileFlippedHorizontally = !!src.flipH;
-                    obj.tileFlippedVertically = !!src.flipV;
+            /* ⭐ A spec with `layers` is a GROUP (plan-prop-draw-order.md P3:
+             * `props`, holding one object layer per prop layer). Its children
+             * are added bottom-first, which is Tiled's own order: index 0 draws
+             * lowest. Measured headless on 1.12.2 — GroupLayer, addLayer,
+             * layerAt, isGroupLayer and parentLayer all work under
+             * --export-map. */
+            if (spec.layers) {
+                var gl = new GroupLayer(spec.name);
+                for (var c = 0; c < spec.layers.length; c++) {
+                    gl.addLayer(objectGroup(spec.layers[c], palette));
                 }
-
-                obj.x = src.x;
-                obj.y = src.y;
-                if (src.shape === 'tile' || src.shape === 'rect' || src.shape === 'ellipse') {
-                    obj.width = src.width;
-                    obj.height = src.height;
-                }
-                if (src.rotation) { obj.rotation = src.rotation; }
-                if (src.polygon) { obj.polygon = src.polygon; }
-                // Class drives Tiled's per-object colour; for spawns it is the
-                // derived mob kind, matching the in-game editor's marker palette.
-                if (src.cls) { obj.className = src.cls; }
-                for (var key in src.properties) {
-                    if (Object.prototype.hasOwnProperty.call(src.properties, key)) {
-                        obj.setProperty(key, typedValue(src, key));
-                    }
-                }
-                group.addObject(obj);
+                map.addLayer(gl);
+            } else {
+                map.addLayer(objectGroup(spec, palette));
             }
-            map.addLayer(group);
         }
         return map;
+    }
+
+    // One object layer of the model as Tiled's ObjectGroup.
+    function objectGroup(spec, palette) {
+        var group = new ObjectGroup(spec.name);
+        // terrain array order IS paint order, so the canvas must draw by
+        // index rather than Tiled's default y-sort.
+        group.drawOrder = ObjectGroup.IndexOrder;
+        /* ⭐ The big background layers open LOCKED (plan-zone-naming.md D2).
+         * Which ones is the converter's call, not this file's — the spec
+         * carries the flag so the pure converter stays the single source and
+         * vitest can see it, exactly as drawOrder already does.
+         *
+         * ⛔ This assignment IS the persistence. Tiled's session file does
+         * not store layer lock or visibility, and a zone file has no layer
+         * records to store it in, so whatever the spec says is the state on
+         * every open — a hand-unlock in the Layers panel lasts until the
+         * file is closed and no longer. (Measured on Tiled 1.12.2; the
+         * ObjectGroup API does carry both `locked` and `visible`.)
+         *
+         * ⚑ Locked, never hidden: a locked layer still DRAWS at full
+         * opacity and merely refuses selection, which is the whole point —
+         * hiding it would take away the thing you are authoring against. */
+        if (spec.locked) { group.locked = true; }
+
+        for (var j = 0; j < spec.objects.length; j++) {
+            var src = spec.objects[j];
+            var obj = new MapObject(src.name);
+            obj.shape = SHAPE_TO_TILED[src.shape];
+
+            if (src.shape === 'tile') {
+                var set = palette[src.tileset];
+                var tile = set.byType[src.tileType];
+                if (!tile) {
+                    throw new Error('no palette tile for ' + src.tileset + ' type "'
+                        + src.tileType + '" — regenerate with'
+                        + ' node tools/tiled/generate-palette.mjs');
+                }
+                obj.tile = tile;
+                obj.tileFlippedHorizontally = !!src.flipH;
+                obj.tileFlippedVertically = !!src.flipV;
+            }
+
+            obj.x = src.x;
+            obj.y = src.y;
+            if (src.shape === 'tile' || src.shape === 'rect' || src.shape === 'ellipse') {
+                obj.width = src.width;
+                obj.height = src.height;
+            }
+            if (src.rotation) { obj.rotation = src.rotation; }
+            if (src.polygon) { obj.polygon = src.polygon; }
+            // Class drives Tiled's per-object colour; for spawns it is the
+            // derived mob kind, matching the in-game editor's marker palette.
+            if (src.cls) { obj.className = src.cls; }
+            for (var key in src.properties) {
+                if (Object.prototype.hasOwnProperty.call(src.properties, key)) {
+                    obj.setProperty(key, typedValue(src, key));
+                }
+            }
+            group.addObject(obj);
+        }
+        return group;
     }
 
     /* ---- write: TileMap -> world.json -------------------------------------- */
@@ -284,6 +303,57 @@
         return d;
     }
 
+    /* One object layer as the model's plain objects. `label` is the layer as
+     * validation messages name it: the layer itself, or group.child for a prop
+     * layer (props.canopy), which is also the zone-file path of its array. */
+    function readObjects(layer, label) {
+        var objects = [];
+        for (var j = 0; j < layer.objectCount; j++) {
+            var o = layer.objectAt(j);
+            var out = {
+                shape: shapeFromTiled(o),
+                layer: label,
+                // Carried for validation messages only — Tiled's own object
+                // id is what Edit ▸ Select Object by Id takes, so it is the
+                // one handle that points at the thing you actually dragged.
+                id: o.id,
+                // A tile object's identity is the TILE it carries, not the
+                // object's name — dragging a Sand tile onto the terrain
+                // layer gives an unnamed object, and the tile is what says
+                // what it is.
+                name: (o.tile && o.tile.property('auraType')) || o.name,
+                x: o.x,
+                y: o.y,
+                width: o.width,
+                height: o.height,
+                rotation: o.rotation,
+                flipH: !!o.tileFlippedHorizontally,
+                flipV: !!o.tileFlippedVertically,
+                // ⭐ THE CLASS IS DATA NOW, not only a colour. It has been
+                // WRITTEN since the palette existed (obj.className above)
+                // and never read back, which was harmless while the class
+                // merely tinted the object — every layer held one kind.
+                // plan-zone-polygons.md D5 put TWO classes on the paths
+                // layer and made the class the discriminator, so dropping it
+                // here meant every object came back class-less and the L2b
+                // check refused the whole layer on the next save. ⚑ This is
+                // the FOURTH WRITER the completeness pin cannot see (§6):
+                // the pin exercises the pure converter, never Tiled's own
+                // read/write path, so only a verify.sh leg catches it — and
+                // it caught this one.
+                cls: o.className,
+                properties: o.properties(),
+            };
+            // Both vertex shapes carry their nodes: a route (polyline) and
+            // a region outline (polygon).
+            if (out.shape === 'polyline' || out.shape === 'polygon') {
+                out.polygon = o.polygon;
+            }
+            objects.push(out);
+        }
+        return objects;
+    }
+
     function write(map, fileName) {
         // P0: refuse before anything else, so no layer is ever skipped unseen.
         var described = [];
@@ -291,58 +361,23 @@
         var refusals = C.layerRefusals(described);
         if (refusals.length > 0) { return C.formatLayerRefusals(refusals); }
 
-        // Past the refusal, every object layer is one LAYERS names, and every
-        // other layer is empty.
+        // Past the refusal, every object layer is one LAYERS names, the only
+        // group is `props` holding only prop layers (P3), and every other layer
+        // is empty.
         var layers = [];
         for (var i = 0; i < map.layerCount; i++) {
             var layer = map.layerAt(i);
-            if (!layer.isObjectLayer) { continue; }
-
-            var objects = [];
-            for (var j = 0; j < layer.objectCount; j++) {
-                var o = layer.objectAt(j);
-                var out = {
-                    shape: shapeFromTiled(o),
-                    layer: layer.name,
-                    // Carried for validation messages only — Tiled's own object
-                    // id is what Edit ▸ Select Object by Id takes, so it is the
-                    // one handle that points at the thing you actually dragged.
-                    id: o.id,
-                    // A tile object's identity is the TILE it carries, not the
-                    // object's name — dragging a Sand tile onto the terrain
-                    // layer gives an unnamed object, and the tile is what says
-                    // what it is.
-                    name: (o.tile && o.tile.property('auraType')) || o.name,
-                    x: o.x,
-                    y: o.y,
-                    width: o.width,
-                    height: o.height,
-                    rotation: o.rotation,
-                    flipH: !!o.tileFlippedHorizontally,
-                    flipV: !!o.tileFlippedVertically,
-                    // ⭐ THE CLASS IS DATA NOW, not only a colour. It has been
-                    // WRITTEN since the palette existed (obj.className above)
-                    // and never read back, which was harmless while the class
-                    // merely tinted the object — every layer held one kind.
-                    // plan-zone-polygons.md D5 put TWO classes on the paths
-                    // layer and made the class the discriminator, so dropping it
-                    // here meant every object came back class-less and the L2b
-                    // check refused the whole layer on the next save. ⚑ This is
-                    // the FOURTH WRITER the completeness pin cannot see (§6):
-                    // the pin exercises the pure converter, never Tiled's own
-                    // read/write path, so only a verify.sh leg catches it — and
-                    // it caught this one.
-                    cls: o.className,
-                    properties: o.properties(),
-                };
-                // Both vertex shapes carry their nodes: a route (polyline) and
-                // a region outline (polygon).
-                if (out.shape === 'polyline' || out.shape === 'polygon') {
-                    out.polygon = o.polygon;
+            if (layer.isGroupLayer) {
+                var children = [];
+                for (var c = 0; c < layer.layerCount; c++) {
+                    var child = layer.layerAt(c);
+                    children.push({name: child.name,
+                        objects: readObjects(child, layer.name + '.' + child.name)});
                 }
-                objects.push(out);
+                layers.push({name: layer.name, layers: children});
+            } else if (layer.isObjectLayer) {
+                layers.push({name: layer.name, objects: readObjects(layer, layer.name)});
             }
-            layers.push({name: layer.name, objects: objects});
         }
 
         var bw = map.property('boundsWidth');

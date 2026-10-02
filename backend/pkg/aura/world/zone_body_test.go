@@ -72,11 +72,11 @@ func TestScaledProp_CollisionBodyIsScaled(t *testing.T) {
 	const doc = `{
 		"name": "Body",
 		"bounds": { "width": 60, "height": 40 },
-		"props": [
+		"props": {"default": [
 			{ "type": "Tree", "x": 0, "y": 0, "rotation": 0, "blocksMovement": true },
 			{ "type": "Tree", "x": 3, "y": 0, "rotation": 0,
 			  "blocksMovement": true, "scale": 2.5 }
-		]
+		]}
 	}`
 	z := loadForBody(t, doc)
 
@@ -103,10 +103,10 @@ func TestScaledRectProp_CollisionBodyIsScaled(t *testing.T) {
 	const doc = `{
 		"name": "Body",
 		"bounds": { "width": 60, "height": 40 },
-		"props": [
+		"props": {"default": [
 			{ "type": "House", "x": 0, "y": 0, "rotation": 0,
 			  "blocksMovement": true, "scale": 2 }
-		]
+		]}
 	}`
 	z := loadForBody(t, doc)
 	p := buildProp(&z.Props[0])
@@ -126,11 +126,11 @@ func TestPropRotation_ReachesTheEntity(t *testing.T) {
 	const doc = `{
 		"name": "Body",
 		"bounds": { "width": 60, "height": 40 },
-		"props": [
+		"props": {"default": [
 			{ "type": "Tree", "x": 0, "y": 0, "rotation": 2.03, "blocksMovement": true },
 			{ "type": "House", "x": 9, "y": 0, "rotation": 0.75, "blocksMovement": true },
 			{ "type": "Tree", "x": 4, "y": 0, "rotation": 0, "blocksMovement": true }
-		]
+		]}
 	}`
 	z := loadForBody(t, doc)
 
@@ -155,10 +155,10 @@ func TestRotatedRectProp_ColliderTurnsWithTheSprite(t *testing.T) {
 	const doc = `{
 		"name": "Body",
 		"bounds": { "width": 60, "height": 40 },
-		"props": [
+		"props": {"default": [
 			{ "type": "House", "x": 0, "y": 0, "rotation": 0.7854, "blocksMovement": true },
 			{ "type": "House", "x": 20, "y": 0, "rotation": 0, "blocksMovement": true }
-		]
+		]}
 	}`
 	z := loadForBody(t, doc)
 	turned, flat := buildProp(&z.Props[0]), buildProp(&z.Props[1])
@@ -190,10 +190,10 @@ func TestRotatedRectProp_BlocksWhereItIsDrawn(t *testing.T) {
 	const doc = `{
 		"name": "Body",
 		"bounds": { "width": 60, "height": 40 },
-		"props": [
+		"props": {"default": [
 			{ "type": "House", "x": 0, "y": 0, "rotation": 0.7854, "blocksMovement": true },
 			{ "type": "House", "x": 20, "y": 0, "rotation": 0, "blocksMovement": true }
-		]
+		]}
 	}`
 	z := loadForBody(t, doc)
 	turned := buildProp(&z.Props[0]).Bodies()[0].(*phy.SolidAABB)
@@ -221,10 +221,10 @@ func TestScaledProp_NonBlockingStaysNonBlocking(t *testing.T) {
 	const doc = `{
 		"name": "Body",
 		"bounds": { "width": 60, "height": 40 },
-		"props": [
+		"props": {"default": [
 			{ "type": "Tree", "x": 0, "y": 0, "rotation": 0,
 			  "blocksMovement": false, "scale": 3 }
-		]
+		]}
 	}`
 	z := loadForBody(t, doc)
 	p := buildProp(&z.Props[0])

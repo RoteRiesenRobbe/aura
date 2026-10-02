@@ -852,6 +852,23 @@ func TestPropEntityFlatbufMarshal_RealPropCostsNothing(t *testing.T) {
 			"if this diverges, every prop in every snapshot just got bigger")
 }
 
+// plan-prop-draw-order.md D4: a placement in props.underfoot reaches the client
+// as Resource.underfoot, which is how the client picks the container under the
+// characters. Every other placement leaves the field absent — the byte-identity
+// half is TestPropEntityFlatbufMarshal_RealPropCostsNothing above, whose
+// reference table has no underfoot slot.
+func TestPropEntityFlatbufMarshal_UnderfootRidesTheWire(t *testing.T) {
+	def := &world.PropDefinition{Name: "Crate", EntityType: AuraApi.EntityTypeStone, Body: world.PropBody{Radius: 1}}
+	decode := func(layer string) *AuraApi.Resource {
+		b := flatbuffers.NewBuilder(256)
+		b.Finish(PropEntityFlatbufMarshal(prop.FromZone(&world.Prop{Layer: layer, Def: def}), b))
+		return AuraApi.GetRootAsResource(b.FinishedBytes(), 0)
+	}
+	assert.True(t, decode(world.PropLayerUnderfoot).Underfoot())
+	assert.False(t, decode(world.PropLayerDefault).Underfoot())
+	assert.False(t, decode(world.PropLayerCanopy).Underfoot())
+}
+
 // M1-F1: a corpse must marshal, not panic. `EntitiesMarshalFlatbuf` switched
 // Player/Mob/Prop and panicked in `default`, and `CorpseEntity` matches none of
 // them — a corpse carries no `PropName`, so it does not satisfy `PropEntity`.

@@ -44,7 +44,8 @@ const propDefs = new Map(readdirSync(join(repo, 'api/props'))
   .map((f) => readJSON(join(repo, 'api/props', f)))
   .map((d) => [d.name, d]));
 const zone = (name) => readJSON(join(repo, 'api/zones', `${name}.json`));
-const knownProps = (z) => (z.props || []).filter((p) => propDefs.has(p.type));
+// `props` is one array per prop layer since plan-prop-draw-order.md P3.
+const knownProps = (z) => Object.values(z.props || {}).flat().filter((p) => propDefs.has(p.type));
 
 // The 'prop' style colour (Graphics.ts miniMap.icons.prop) and its alpha.
 const PROP_COLOR = [0x4A, 0x3A, 0x28];

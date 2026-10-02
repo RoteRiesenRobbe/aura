@@ -7,6 +7,7 @@
  * The backend parses zone.json with DisallowUnknownFields, so the serialized
  * field set here must match the Go structs exactly.
  */
+import {DEFAULT_PROP_LAYER, flattenProps, groupProps, PropLayer, PropLayersJSON} from '../../zones/logic/PropLayers';
 
 export interface ZoneBounds {
     width: number;
@@ -44,6 +45,11 @@ export interface ZoneProp {
     // in-game editor never authors it — Tiled and the placement scripts do —
     // but it MUST survive a round-trip through here (see getZoneAsJSON).
     scale?: number;
+    // IN MEMORY ONLY: which array of the file's `props` this placement came
+    // from (plan-prop-draw-order.md D3), so a save puts it back there. The file
+    // carries no such key (the nesting IS the layer), and getZoneAsJSON never
+    // writes one. Absent = a new in-game placement, which lands in 'default'.
+    layer?: PropLayer;
 }
 
 export interface ZoneWaypoint {
@@ -264,7 +270,11 @@ export interface ZoneData {
     // edited — Tiled authors it as a map property.
     ground?: string;
     terrain: ZoneTerrain[];
-    props: ZoneProp[];
+    // One array per prop layer (plan-prop-draw-order.md D3). The model holds
+    // them FLAT (rank, then file order — the server's spawn order), so the
+    // editor's flat prop index keeps working; fromJSON flattens and
+    // getZoneAsJSON regroups.
+    props: PropLayersJSON<ZoneProp>;
     spawns: ZoneSpawn[];
     // Omitted when empty so pre-step-3 zones round-trip diff-clean.
     campfires?: ZoneCampfire[];
@@ -406,7 +416,10 @@ export class ZoneModel {
             data.name,
             {width: data.bounds.width, height: data.bounds.height},
             (data.terrain || []).map(t => ({...t})),
-            (data.props || []).map(p => ({...p})),
+            // ⚑ L3: the flat index the editor addresses props by is THIS
+            // order, and each entry remembers its layer so a save puts it back
+            // in its own array.
+            flattenProps(data.props),
             // wanderRadius/idleSpeedFactor/patrolMode keep their tri-state:
             // absent stays undefined (= inherit), explicit values survive.
             (data.spawns || []).map(s => ({
@@ -460,16 +473,21 @@ export class ZoneModel {
         return model;
     }
 
+    // A new in-game placement goes to the 'default' layer (D3); moving it to
+    // another layer is a Tiled job. Appended, so every existing index holds.
     addProp(prop: ZoneProp): number {
-        return this.props.push(prop) - 1;
+        return this.props.push({...prop, layer: prop.layer || DEFAULT_PROP_LAYER}) - 1;
     }
 
     addSpawn(spawn: ZoneSpawn): number {
         return this.spawns.push(spawn) - 1;
     }
 
+    // ⚑ The layer is KEPT: the panel rebuilds a prop from its controls and has
+    // no layer control, so taking the caller's would move an edited canopy
+    // tree into 'default' on the next save.
     updateProp(index: number, prop: ZoneProp) {
-        this.props[index] = prop;
+        this.props[index] = {...prop, layer: this.props[index].layer};
     }
 
     updateSpawn(index: number, spawn: ZoneSpawn) {
@@ -557,7 +575,9 @@ export class ZoneModel {
                 rotation: round(t.rotation, 3),
                 flipped: t.flipped,
             })),
-            props: this.props.map(p => ({
+            // All four layer arrays in rank order, empty ones included —
+            // serializeZone's shape exactly, so the two writers agree.
+            props: groupProps(this.props, p => ({
                 type: p.type,
                 x: round(p.x, 2),
                 y: round(p.y, 2),

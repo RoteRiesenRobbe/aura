@@ -13,7 +13,7 @@ function zone(campfires: ZoneData['campfires']): ZoneModel {
         name: 'X',
         bounds: {width: 60, height: 40},
         terrain: [],
-        props: [],
+        props: {},
         spawns: [],
         campfires,
     });
@@ -24,7 +24,7 @@ function zoneWithSpawns(spawns: ZoneSpawn[]): ZoneModel {
         name: 'X',
         bounds: {width: 60, height: 40},
         terrain: [],
-        props: [],
+        props: {},
         spawns,
     });
 }
@@ -34,7 +34,7 @@ function zoneWithProps(props: ZoneProp[]): ZoneModel {
         name: 'X',
         bounds: {width: 60, height: 40},
         terrain: [],
-        props,
+        props: {default: props},
         spawns: [],
     });
 }
@@ -240,7 +240,7 @@ describe('ZoneModel prop scale', () => {
 
         let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
 
-        expect(exported.props[0].scale).toBe(2.5);
+        expect(exported.props.default![0].scale).toBe(2.5);
     });
 
     it('emits no scale key for a prop that inherits its type body', () => {
@@ -250,7 +250,7 @@ describe('ZoneModel prop scale', () => {
 
         let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
 
-        expect(exported.props[0]).not.toHaveProperty('scale');
+        expect(exported.props.default![0]).not.toHaveProperty('scale');
     });
 
     it('rounds scale to 3 decimals, like rotation', () => {
@@ -258,7 +258,65 @@ describe('ZoneModel prop scale', () => {
 
         let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
 
-        expect(exported.props[0].scale).toBe(1.235);
+        expect(exported.props.default![0].scale).toBe(1.235);
+    });
+});
+
+// ⚑ L3 — the prop layers (plan-prop-draw-order.md P3). The file holds four
+// arrays; this editor addresses props by ONE flat index (selection, markers,
+// the panel). So the flat order must be the server's (rank, then file order),
+// and every add, edit and removal must land back in the right array, or an
+// in-game save quietly moves a canopy tree under the roof it should cover.
+describe('ZoneModel prop layers', () => {
+    const layered = (): ZoneData => ({
+        name: 'X',
+        bounds: {width: 60, height: 40},
+        terrain: [],
+        // Keys deliberately NOT in rank order: the flat order must not care.
+        props: {
+            canopy: [prop({type: 'OakTree', x: 1}), prop({type: 'Tree', x: 2})],
+            buildings: [prop({type: 'House', x: 3})],
+            default: [prop({type: 'Crate', x: 4})],
+            underfoot: [prop({type: 'Bridge', x: 5})],
+        },
+        spawns: [],
+    });
+    const types = (model: ZoneModel) => model.props.map(p => `${p.layer}/${p.type}`);
+
+    it('flattens in the server spawn order: layer bottom to top, then file order', () => {
+        expect(types(ZoneModel.fromJSON(layered()))).toEqual([
+            'underfoot/Bridge', 'default/Crate', 'buildings/House', 'canopy/OakTree', 'canopy/Tree',
+        ]);
+    });
+
+    it('writes every prop back into its own array, in order, all four keys present', () => {
+        let exported = JSON.parse(ZoneModel.fromJSON(layered()).getZoneAsJSON()) as ZoneData;
+        expect(Object.keys(exported.props)).toEqual(['underfoot', 'default', 'buildings', 'canopy']);
+        expect(exported.props.canopy!.map(p => p.type)).toEqual(['OakTree', 'Tree']);
+        expect(exported.props.underfoot!.map(p => p.type)).toEqual(['Bridge']);
+        // The in-memory layer tag must never reach the file: zone.go would
+        // refuse the key by name.
+        expect(JSON.stringify(exported)).not.toContain('"layer"');
+    });
+
+    it('puts a new in-game placement in default, after what is already there', () => {
+        let model = ZoneModel.fromJSON(layered());
+        let index = model.addProp(prop({type: 'Barrel', x: 9}));
+        expect(index).toBe(5);
+        let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
+        expect(exported.props.default!.map(p => p.type)).toEqual(['Crate', 'Barrel']);
+        expect(exported.props.canopy!.map(p => p.type)).toEqual(['OakTree', 'Tree']);
+    });
+
+    it('keeps the layer when the panel rewrites a prop, and removes from the right array', () => {
+        let model = ZoneModel.fromJSON(layered());
+        // The panel rebuilds a prop from its controls, with no layer on it.
+        model.updateProp(3, prop({type: 'OakTree', x: 42}));
+        model.removeProp(1); // the Crate
+        let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
+        expect(exported.props.canopy!.map(p => p.x)).toEqual([42, 2]);
+        expect(exported.props.default).toEqual([]);
+        expect(exported.props.buildings!.map(p => p.type)).toEqual(['House']);
     });
 });
 
@@ -300,7 +358,7 @@ describe('ZoneModel regions', () => {
             name: 'X',
             bounds: {width: 60, height: 40},
             terrain: [],
-            props: [],
+            props: {},
             spawns: [],
             ...overrides,
         };

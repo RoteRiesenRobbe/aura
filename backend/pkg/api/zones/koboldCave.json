@@ -9,176 +9,181 @@
     "y": 3000
   },
   "terrain": [],
-  "props": [
-    {
-      "type": "Torch",
-      "x": -11.63,
-      "y": 9.73,
-      "rotation": 0,
-      "scale": 1.603
-    },
-    {
-      "type": "Torch",
-      "x": 15.58,
-      "y": -3.87,
-      "rotation": 0,
-      "scale": 1.603
-    },
-    {
-      "type": "Torch",
-      "x": -19.72,
-      "y": -2.95,
-      "rotation": 0,
-      "scale": 1.603
-    },
-    {
-      "type": "Torch",
-      "x": 4.2,
-      "y": -9.74,
-      "rotation": 0,
-      "scale": 1.603
-    },
-    {
-      "type": "Crate",
-      "x": -19.76,
-      "y": 0.49,
-      "rotation": 0,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": -18.49,
-      "y": -0.4,
-      "rotation": 0,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": 6.99,
-      "y": -10.18,
-      "rotation": 0,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": 5.93,
-      "y": -11.74,
-      "rotation": 0,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": 7.38,
-      "y": -11.81,
-      "rotation": 0,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": -16.51,
-      "y": -10.11,
-      "rotation": 0,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": -17.89,
-      "y": -10.33,
-      "rotation": 0,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": 13.77,
-      "y": -6.62,
-      "rotation": 0,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": 16.77,
-      "y": -8.56,
-      "rotation": 0,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": 20.06,
-      "y": -8.77,
-      "rotation": 0,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": 20.56,
-      "y": -5.73,
-      "rotation": 0,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": -14.88,
-      "y": 10.73,
-      "rotation": 0,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": -16.23,
-      "y": 9.57,
-      "rotation": 0,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": -15.34,
-      "y": 7.94,
-      "rotation": 0,
-      "scale": 0.926
-    },
-    {
-      "type": "Rock",
-      "x": -13.59,
-      "y": 6.44,
-      "rotation": 0,
-      "scale": 1.433
-    },
-    {
-      "type": "Rock",
-      "x": 4.62,
-      "y": -3.97,
-      "rotation": 0,
-      "scale": 1.531
-    },
-    {
-      "type": "Rock",
-      "x": 12.75,
-      "y": -1.24,
-      "rotation": 0,
-      "scale": 0.937
-    },
-    {
-      "type": "Rock",
-      "x": 17.89,
-      "y": 10.26,
-      "rotation": 0,
-      "scale": 1.498
-    },
-    {
-      "type": "Rock",
-      "x": 0.62,
-      "y": 6.84,
-      "rotation": 0,
-      "scale": 1.682
-    },
-    {
-      "type": "Rock",
-      "x": -15.93,
-      "y": -4.65,
-      "rotation": 0,
-      "scale": 1.366
-    }
-  ],
+  "props": {
+    "underfoot": [],
+    "default": [
+      {
+        "type": "Torch",
+        "x": -11.63,
+        "y": 9.73,
+        "rotation": 0,
+        "scale": 1.603
+      },
+      {
+        "type": "Torch",
+        "x": 15.58,
+        "y": -3.87,
+        "rotation": 0,
+        "scale": 1.603
+      },
+      {
+        "type": "Torch",
+        "x": -19.72,
+        "y": -2.95,
+        "rotation": 0,
+        "scale": 1.603
+      },
+      {
+        "type": "Torch",
+        "x": 4.2,
+        "y": -9.74,
+        "rotation": 0,
+        "scale": 1.603
+      },
+      {
+        "type": "Crate",
+        "x": -19.76,
+        "y": 0.49,
+        "rotation": 0,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": -18.49,
+        "y": -0.4,
+        "rotation": 0,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": 6.99,
+        "y": -10.18,
+        "rotation": 0,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": 5.93,
+        "y": -11.74,
+        "rotation": 0,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": 7.38,
+        "y": -11.81,
+        "rotation": 0,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": -16.51,
+        "y": -10.11,
+        "rotation": 0,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": -17.89,
+        "y": -10.33,
+        "rotation": 0,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": 13.77,
+        "y": -6.62,
+        "rotation": 0,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": 16.77,
+        "y": -8.56,
+        "rotation": 0,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": 20.06,
+        "y": -8.77,
+        "rotation": 0,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": 20.56,
+        "y": -5.73,
+        "rotation": 0,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": -14.88,
+        "y": 10.73,
+        "rotation": 0,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": -16.23,
+        "y": 9.57,
+        "rotation": 0,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": -15.34,
+        "y": 7.94,
+        "rotation": 0,
+        "scale": 0.926
+      },
+      {
+        "type": "Rock",
+        "x": -13.59,
+        "y": 6.44,
+        "rotation": 0,
+        "scale": 1.433
+      },
+      {
+        "type": "Rock",
+        "x": 4.62,
+        "y": -3.97,
+        "rotation": 0,
+        "scale": 1.531
+      },
+      {
+        "type": "Rock",
+        "x": 12.75,
+        "y": -1.24,
+        "rotation": 0,
+        "scale": 0.937
+      },
+      {
+        "type": "Rock",
+        "x": 17.89,
+        "y": 10.26,
+        "rotation": 0,
+        "scale": 1.498
+      },
+      {
+        "type": "Rock",
+        "x": 0.62,
+        "y": 6.84,
+        "rotation": 0,
+        "scale": 1.682
+      },
+      {
+        "type": "Rock",
+        "x": -15.93,
+        "y": -4.65,
+        "rotation": 0,
+        "scale": 1.366
+      }
+    ],
+    "buildings": [],
+    "canopy": []
+  },
   "spawns": [
     {
       "mob": "CaveExit",

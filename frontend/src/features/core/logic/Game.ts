@@ -282,20 +282,22 @@ export class Game implements IGame {
                 // Ground scuffing is authored as a terrain decal where wanted.
             },
             // The two prop containers (plan-prop-draw-order.md D7). Each keeps
-            // its props sorted by entity id (OrderedLayer, D6), which is
-            // zone-file order, so the stacking is the authored one.
+            // its props sorted by entity id (OrderedLayer, D6), which is spawn
+            // order: prop layer, then zone-file order (D5), so the stacking
+            // is the authored one.
             props: {
                 // Bridges, docks, plank walkways — anything a character stands
-                // ON TOP OF, i.e. every prop definition authoring
-                // `underfoot: true` (PO 2026-09-16, plan-world-paths.md D6).
+                // ON TOP OF, i.e. every placement in the zone file's
+                // props.underfoot, streamed as Resource.underfoot (D4; PO
+                // 2026-09-16, plan-world-paths.md D6).
                 //
                 // ⭐ ADDED AS THE LAST TERRAIN LAYER, AND THEREFORE STILL UNDER
                 // EVERY ENTITY — which is the entire point. `standing` is drawn
                 // above `characters`, so a bridge there would cover the player
                 // crossing it: the campfire defect (see the
                 // mobs-under-characters note below), applied to world geometry.
-                // The server refuses `crossesPaths` without `underfoot` so the
-                // two cannot drift apart.
+                // The server refuses a `crossesPaths` placement outside
+                // props.underfoot, so the two cannot drift apart.
                 underfoot: createNamedContainer('propsUnderfoot'),
                 // Every other prop: trees, rocks, houses, walls. Above the
                 // characters (you walk behind a tree), below flyers.

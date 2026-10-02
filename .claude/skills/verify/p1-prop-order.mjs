@@ -1,14 +1,18 @@
 #!/usr/bin/env node
-// plan-prop-draw-order.md P1: props stack in ZONE-FILE order, every time.
+// plan-prop-draw-order.md P1 + P3: props stack in SPAWN order, every time —
+// prop layer bottom to top, then zone-file order inside a layer.
 //
-// Venue: Eliza's farmhouse (Farmlands), the PO's original report. In
-// api/zones/world.json the Cottage is prop #155 and the OakTree beside it #170,
-// so after P1 the oak draws OVER the cottage, and keeps doing so.
+// Venue: Eliza's farmhouse (Farmlands), the PO's original report. Since P3 the
+// OakTree beside her Cottage sits in props.canopy and the Cottage in
+// props.buildings, so the oak draws OVER the cottage by its LAYER, with no
+// hand-ordering — and keeps doing so.
 //
 // Legs, each read in ONE page.evaluate (one sample = one evaluate):
 //   1. Every child of `props.standing` maps to a world.json prop by position,
-//      and the children are in ascending file index. That is the whole claim
-//      of D5/D6: id order = spawn order = file order.
+//      and the children are in ascending SPAWN index: the four `props` arrays
+//      flattened underfoot, default, buildings, canopy (world.PropLayers),
+//      each in file order. That is the whole claim of D5/D6: id order = spawn
+//      order = draw order.
 //   2. The oak is above the cottage.
 //   3. Walk away and come back (a WARP far enough that both leave the
 //      snapshot, then back): legs 1 and 2 again. ⭐ This is the case that used
@@ -34,8 +38,11 @@ import { joinAsNewCharacter } from './lib/join.mjs';
 const url = process.argv[2] || 'http://localhost:2001/?token=plz&wsUrl=ws://localhost:2000/game&develop';
 const repo = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 const world = JSON.parse(readFileSync(join(repo, 'api/zones/world.json'), 'utf8'));
-// Position in wire pixels -> file index. World's origin is (0, 0).
-const props = world.props.map((p, i) => ({ i, type: p.type, x: p.x * 120, y: p.y * 120 }));
+// Position in wire pixels -> spawn index. World's origin is (0, 0).
+// ⚑ The rank is zone.go's PropLayers field order; `where` is the file path.
+const RANK = ['underfoot', 'default', 'buildings', 'canopy'];
+const props = RANK.flatMap((layer) => (world.props[layer] || []).map((p, n) => ({ layer, n, p })))
+  .map(({ layer, n, p }, i) => ({ i, where: `${layer}[${n}]`, type: p.type, x: p.x * 120, y: p.y * 120 }));
 const eliza = world.spawns.find((s) => s.mob === 'Eliza');
 const nearEliza = (type) => props
   .filter((p) => p.type === type)
@@ -98,10 +105,10 @@ function judgeOrder(s, when) {
   const inversions = order.filter((v, k) => k > 0 && v < order[k - 1]).length;
   check(unmapped === 0 && order.length > 0, `${when}: every standing prop is a world.json placement`,
     `${order.length} mapped, ${unmapped} unmapped`);
-  check(inversions === 0, `${when}: standing children are in file order`,
+  check(inversions === 0, `${when}: standing children are in spawn order (layer, then file)`,
     inversions ? `${inversions} inversion(s): ${order.join(',')}` : `${order.length} props, ascending`);
   const ci = order.indexOf(cottage.i), oi = order.indexOf(oak.i);
-  check(ci >= 0 && oi >= 0 && oi > ci, `${when}: the oak (#${oak.i}) draws over the cottage (#${cottage.i})`,
+  check(ci >= 0 && oi >= 0 && oi > ci, `${when}: the oak (${oak.where}) draws over the cottage (${cottage.where})`,
     `cottage at child ${ci}, oak at child ${oi}`);
 }
 
@@ -112,7 +119,7 @@ await page.waitForSelector('#console_command', { state: 'attached', timeout: 60_
 await page.evaluate(() => { const p = document.getElementById('developPanel'); if (p) p.style.display = 'none'; });
 await cmd('GOD');
 
-console.log(`venue: Eliza (${eliza.x}, ${eliza.y}); cottage #${cottage.i}, oak #${oak.i}`);
+console.log(`venue: Eliza (${eliza.x}, ${eliza.y}); cottage ${cottage.where}, oak ${oak.where}`);
 await warp(HOME);
 const arrived = await waitFor(async () => (await standingHas(cottage)) && (await standingHas(oak)));
 if (!arrived) {

@@ -78,11 +78,6 @@ interface PropDefJSON {
     entityType: string;
     sprite: string;
     body: { radius?: number; width?: number; height?: number };
-    // Z-ORDER: a prop a character stands ON TOP OF (a bridge deck, a dock).
-    // ⚑ Client-only in EFFECT, but the server parses it all the same —
-    // parsePropDefinition uses DisallowUnknownFields, so a key this table
-    // invented on its own would refuse the boot by name.
-    underfoot?: boolean;
     // Whether placements of this type block movement unless the placement says
     // otherwise. ⭐ ABSENT MEANS TRUE — a prop is solid unless its type declares
     // it decorative — which is why nothing here may coerce it with `!`. Read it
@@ -105,7 +100,13 @@ type GameObjectClass = new (...args: any[]) => unknown;
  * cover the player crossing it. `underfoot` puts it on `props.underfoot`, the
  * last TERRAIN slot, under every entity. It is the mobs-under-characters ruling ("a
  * player standing on a campfire must never be covered by its art") applied to
- * world geometry, and the server refuses `crossesPaths` without it.
+ * world geometry, and the server refuses a `crossesPaths` placement outside it.
+ *
+ * ⭐ A PLACEMENT fact since plan-prop-draw-order.md P3 (D4): the placement sits
+ * in the zone file's props.underfoot or it does not, and the server streams
+ * that as Resource.underfoot. So one prop type can draw in both containers (a
+ * broken crate on the road, another one underfoot), and nothing here may read
+ * it off the type.
  *
  * ⚑ Resolved per INSTANCE, never captured at module load: the generated
  * classes below are built while this module is imported, and `Game` is still
@@ -218,21 +219,17 @@ defsByEntityType.forEach((defs, entityType) => {
     }
     const maxSize = MAX_SIZE_OVERRIDE[entityType] ?? Math.round(maxUnits * PX_PER_UNIT);
 
-    // ⚑ The layer belongs to the generated CLASS, so a group whose defs
-    // disagreed would draw half of them in the wrong place and say nothing —
-    // refused here, in the same breath as the missing-sprite throw above.
-    const underfoot = defs[0].underfoot === true;
-    if (defs.some((d) => (d.underfoot === true) !== underfoot)) {
-        throw new Error(`Props.ts: entityType "${entityType}" mixes underfoot and ordinary `
-            + `definitions (${defs.map((d) => d.name).join(', ')}) — they share one render layer`);
-    }
-
     class GeneratedProp extends SimpleProp {
         static svg: Texture;
         static bodyAspect = bodyAspect;
 
-        constructor(id: number, x: number, y: number, size: number, rotation: number) {
-            super(id, propLayer(underfoot), x, y, size, rotation, GeneratedProp.svg);
+        // The 6th and 7th arguments are EntityManager's one constructor seam
+        // (prop name, then the streamed `underfoot`); only the second is read
+        // here. The layer is resolved in the super() ARGUMENT: `this` does
+        // not exist yet.
+        constructor(id: number, x: number, y: number, size: number, rotation: number,
+                    _propName?: string, underfoot?: boolean) {
+            super(id, propLayer(underfoot === true), x, y, size, rotation, GeneratedProp.svg);
         }
     }
 
@@ -320,14 +317,13 @@ const STROKE_MAX = 5;
  * different definition.)
  */
 export class PropPlaceholder extends Resource {
-    constructor(id: number, x: number, y: number, size: number, rotation: number, propName: string) {
-        // ⚑ The layer is resolved in the super() ARGUMENT, from the same map the
-        // body comes from a moment later: `this` does not exist yet. The
-        // placeholder path has to honour `underfoot` as well, because it is how
-        // the FIRST bridge arrives — the deck art is unstarted (art/assets.md),
-        // so a labelled square is what the PO will walk across.
-        super(id, propLayer(propDefsByName.get(propName)?.underfoot === true),
-            x, y, size, rotation, null);
+    constructor(id: number, x: number, y: number, size: number, rotation: number, propName: string,
+                underfoot?: boolean) {
+        // ⚑ The layer is resolved in the super() ARGUMENT, from the streamed
+        // per-placement flag (D4): `this` does not exist yet. The placeholder
+        // path honours `underfoot` like the generic one, because a prop with no
+        // art yet is still walked across or around.
+        super(id, propLayer(underfoot === true), x, y, size, rotation, null);
 
         // ⚑ The SHAPE needs the definition; the LABEL does not — the wire
         // carries the name itself. So a name this build cannot resolve (a prop

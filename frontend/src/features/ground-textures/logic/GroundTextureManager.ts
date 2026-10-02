@@ -5,6 +5,7 @@ import {IGame} from "../../core/logic/IGame";
 import {meter2px} from '../../../client-data/BasicConfig';
 import { Container } from 'pixi.js';
 import {pickZoneSet} from './ZoneSets';
+import {PropLayersJSON} from '../../zones/logic/PropLayers';
 
 
 const textures: GroundTexture[] = [];
@@ -258,7 +259,9 @@ export interface ZoneJSON {
     // ⚑ Still a deliberately PARTIAL view: placement fields only, because the
     // type's own fields here would be a second definition competing with
     // api/props/.
-    props?: ZonePropPoint[];
+    // ⚑ One array per prop layer since plan-prop-draw-order.md P3. Read it
+    // through PropLayers.flattenProps, never by hand.
+    props?: PropLayersJSON<ZonePropPoint>;
 }
 
 // Bundle every zone's data straight from the repo api/ (chunk 6, §7.4) — same

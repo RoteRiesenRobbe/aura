@@ -493,6 +493,9 @@
       "h": 1.4
     }
   },
+  "CROSSES_PATHS": [
+    "Bridge"
+  ],
   "TERRAIN_SIZE": 1,
   "MOB_KIND": {
     "AlphaBoar": "combat",

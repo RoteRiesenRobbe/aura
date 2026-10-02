@@ -268,7 +268,8 @@ func TestZoneSet_NoStartZoneRefusesWhenSeveralZonesExist(t *testing.T) {
 // counter in spawn order, so THIS order is the draw order: a prop later in a
 // zone's `props` array draws over an earlier one, and a later zone's props over
 // an earlier zone's. Only the relative order matters; an id is never compared
-// across boots (§7 L1). P3 extends propEntities to the four-layer flatten.
+// across boots (§7 L1). Since P3, Props is the four-layer flatten (rank, then
+// file order), pinned in world.TestZone_PropLayersFlattenInRankThenFileOrder.
 func TestZoneSet_PropsSpawnInZoneFileOrder(t *testing.T) {
 	def := &world.PropDefinition{Name: "T", Body: world.PropBody{Radius: 1}}
 	placed := func(xs ...float32) []world.Prop {

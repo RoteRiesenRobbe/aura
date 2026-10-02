@@ -89,6 +89,12 @@ export function loadZone(name) {
     return JSON.parse(fs.readFileSync(path.join(ZONES, name + ".json"), "utf8"));
 }
 
+// Every placement of a zone: `props` is one array per prop layer since
+// plan-prop-draw-order.md P3, and the census does not care which.
+export function propsOf(zone) {
+    return Object.values(zone.props || {}).flat();
+}
+
 function zoneFiles(dir) {
     return fs.readdirSync(dir).filter(f => f.endsWith(".json")).map(f => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
 }
@@ -124,7 +130,7 @@ function census(zoneName, grid) {
     const row = pt => rows[regionOf(pt, regions)] || ground;
 
     for (const s of zone.spawns || []) (hostile(s.mob) ? row(s).hostile : row(s).other).push(s);
-    for (const p of zone.props || []) row(p).props++;
+    for (const p of propsOf(zone)) row(p).props++;
     for (const c of zone.campfires || []) row(c).fires.push(c.id);
     for (const a of zone.atmospheres || []) {
         const touched = new Set([...a.points, centroid(a.points)].map(p => regionOf(p, regions)));
@@ -133,7 +139,7 @@ function census(zoneName, grid) {
 
     const b = zone.bounds;
     console.log(`Zone "${zone.name}"  ${b.width} x ${b.height} u  ·  ${(zone.spawns || []).length} spawns · ` +
-        `${(zone.props || []).length} props · ${(zone.campfires || []).length} campfires · ` +
+        `${propsOf(zone).length} props · ${(zone.campfires || []).length} campfires · ` +
         `${regions.length} regions · ${(zone.atmospheres || []).length} atmospheres\n`);
 
     const table = [...rows, ground].filter(r => r.i >= 0 || r.hostile.length + r.other.length + r.props + r.fires.length > 0);
@@ -209,7 +215,7 @@ function census(zoneName, grid) {
     if (grid) {
         const cell = 60, w = Math.ceil(b.width / cell), h = Math.ceil(b.height / cell);
         const counts = Array.from({length: h}, () => new Array(w).fill(0));
-        for (const p of [...(zone.spawns || []), ...(zone.props || [])]) {
+        for (const p of [...(zone.spawns || []), ...propsOf(zone)]) {
             const cx = Math.floor((p.x + b.width / 2) / cell), cy = Math.floor((p.y + b.height / 2) / cell);
             if (counts[cy] && cx >= 0 && cx < w) counts[cy][cx]++;
         }

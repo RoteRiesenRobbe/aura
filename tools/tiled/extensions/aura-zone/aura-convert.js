@@ -30,6 +30,21 @@ var AuraConvert = (function () {
     // the next reader. Keep the two in step.
     var LAYERS = ['regions', 'paths', 'terrain', 'props', 'spawns', 'campfires', 'darkAreas', 'atmospheres', 'anchors'];
 
+    /* ---- the prop layers (plan-prop-draw-order.md D1-D3) -------------------
+     * `props` is the one GROUP in the stack: a group layer holding these four
+     * object layers, bottom to top, one per array of the zone file's `props`
+     * object. A higher layer draws over a lower one in game, and inside a layer
+     * Tiled's object order is the draw order.
+     *
+     * ⚑ Mirrors zone.go's PropLayers, whose FIELD ORDER is the rank (the
+     * server spawns props in that order, and the client stacks them by id).
+     * AuraTiledConvert.test.ts scrapes zone.go to pin this list to it.
+     *
+     * ⚑ The sub-layers are found BY NAME, never by position, through
+     * propLayerObjects below — P4 will reuse the same walk once per area. */
+    var PROPS_GROUP = 'props';
+    var PROP_LAYERS = ['underfoot', 'default', 'buildings', 'canopy'];
+
     // ZoneModel's rounding helper, verbatim.
     function round(value, digits) {
         var factor = Math.pow(10, digits);
@@ -117,11 +132,16 @@ var AuraConvert = (function () {
     var content = {
         TERRAIN_TYPES: [], PROP_SIZE: {}, MOB_KIND: {}, MOB_SPEED: {},
         PROFILE_NAMES: [], AIR_PROFILE_NAMES: [], EFFECT_NAMES: [], ENUM_VALUES: {},
+        CROSSES_PATHS: [],
     };
     function useContent(c) {
         content = {
             TERRAIN_TYPES: (c && c.TERRAIN_TYPES) || [],
             PROP_SIZE: (c && c.PROP_SIZE) || {},
+            // The prop types whose api/props/<type>.json authors crossesPaths
+            // (bridges): every placement must sit in props/underfoot (D4).
+            // Absent = none known, and the check skips itself like the rest.
+            CROSSES_PATHS: (c && c.CROSSES_PATHS) || [],
             // The canonical size a terrain patch is cut at, generated from the
             // same constant the templates use. A texture has no body, so this
             // is the only thing "its true size" can mean for one. 0 means "no
@@ -423,6 +443,36 @@ var AuraConvert = (function () {
         return text.length > 0 && text.charAt(text.length - 1) === '\n';
     }
 
+    /* A zone's `props` object mapped layer by layer: every key of PROP_LAYERS,
+     * in rank order, an absent array read as empty. */
+    function byPropLayer(props, fn) {
+        var out = {};
+        for (var i = 0; i < PROP_LAYERS.length; i++) {
+            var k = PROP_LAYERS[i];
+            out[k] = ((props && props[k]) || []).map(fn);
+        }
+        return out;
+    }
+
+    /* ⛔ Refuse to OPEN what would lose props on the next save. A `props` the
+     * reader cannot map is either the flat array from before prop layers or a
+     * key nobody knows; read leniently, either would open with props missing
+     * and the next Ctrl+S would delete them. zone.go refuses both at boot. */
+    function checkPropsShape(props) {
+        if (props === undefined || props === null) { return; }
+        if (Array.isArray(props) || typeof props !== 'object') {
+            throw new Error('this zone file has the flat `props` array from before prop layers'
+                + ' (plan-prop-draw-order.md P3); migrate it with'
+                + ' node scripts/migrate-prop-layers.mjs <file>');
+        }
+        for (var k in props) {
+            if (Object.prototype.hasOwnProperty.call(props, k) && PROP_LAYERS.indexOf(k) < 0) {
+                throw new Error('props has an unknown layer "' + k + '"; the prop layers are '
+                    + PROP_LAYERS.join(', '));
+            }
+        }
+    }
+
     /* ---- The canonical serializer ------------------------------------------
      * Field order, rounding and omit rules mirror ZoneModel.getZoneAsJSON().
      * undefined values are dropped by JSON.stringify — that is how every
@@ -454,7 +504,10 @@ var AuraConvert = (function () {
                     flipped: t.flipped,
                 };
             }),
-            props: z.props.map(function (p) {
+            // All four layer arrays, in rank order, empty ones included — the
+            // same "always present" rule terrain and spawns follow, so every
+            // zone file has one shape (and ZoneModel emits exactly this).
+            props: byPropLayer(z.props, function (p) {
                 return {
                     type: p.type,
                     x: round(p.x, 2),
@@ -649,13 +702,24 @@ var AuraConvert = (function () {
         // what you see is what blocks movement, at the size it really blocks.
         // Resizing the box IS authoring scale (C1); the writer derives the
         // multiplier straight back out of it.
-        var props = (z.props || []).map(function (p2) {
+        //
+        // ⭐ One sub-layer per prop layer (D3), every one present even when
+        // empty, so each zone opens with the same four drop targets (D2).
+        checkPropsShape(z.props);
+        var propLayers = PROP_LAYERS.map(function (k) {
+            return {name: k, drawOrder: 'index', objects: ((z.props || {})[k] || []).map(function (p2) {
+                return propObject(p2, PROPS_GROUP + '.' + k);
+            })};
+        });
+        function propObject(p2, layerName) {
             var sz = propSize(p2.type);
             var sc = (typeof p2.scale === 'number' && p2.scale > 0) ? p2.scale : 1;
             var w = sz.w * PX * sc, h = sz.h * PX * sc;
             var a = anchorOf(px(p2.x, hw), px(p2.y, hh), w, h, rad2deg(p2.rotation || 0));
             var o = {
-                shape: 'tile', layer: 'props', name: p2.type,
+                // The zone-file path of the array, which is what a validation
+                // message should name (props.canopy[3]).
+                shape: 'tile', layer: layerName, name: p2.type,
                 tileset: 'props', tileType: p2.type, cls: 'AuraProp',
                 x: a.x, y: a.y, width: w, height: h,
                 rotation: rad2deg(p2.rotation || 0),
@@ -673,7 +737,7 @@ var AuraConvert = (function () {
                     p2.blocksMovement ? PROP_BLOCKS : PROP_WALK_THROUGH;
             }
             return o;
-        });
+        }
 
         var spawns = (z.spawns || []).map(function (s) {
             var o = {
@@ -942,7 +1006,8 @@ var AuraConvert = (function () {
              *   regions     -> layers.terrain.regions      the ground itself
              *   paths       -> terrain.polygons + .paths   masses, then ribbons
              *   terrain     -> layers.terrain.textures     blobs ON the ground
-             *   props       -> props.standing / .underfoot
+             *   props       -> props.standing / .underfoot (a GROUP: one
+             *                  sub-layer per prop layer, bottom to top)
              *   spawns      -> layers.mobs.*
              *   campfires   -> (not rendered from this array at all)
              *   darkAreas   -> layers.darkness
@@ -987,7 +1052,10 @@ var AuraConvert = (function () {
                 // the layer must draw by index or the canvas lies about which
                 // piece covers which.
                 {name: 'terrain', drawOrder: 'index', objects: terrain},
-                {name: 'props', drawOrder: 'index', objects: props},
+                // ⭐ The one GROUP (plan-prop-draw-order.md D3): `layers`
+                // instead of `objects`, bottom to top. The game draws a higher
+                // sub-layer over a lower one, exactly as Tiled stacks them.
+                {name: PROPS_GROUP, layers: propLayers},
                 {name: 'spawns', drawOrder: 'index', objects: spawns},
                 {name: 'campfires', drawOrder: 'index', objects: campfires},
                 {name: 'darkAreas', drawOrder: 'index', objects: darkAreas},
@@ -1021,6 +1089,22 @@ var AuraConvert = (function () {
                 {name: 'anchors', drawOrder: 'index', objects: anchors},
             ],
         };
+    }
+
+    /* The objects of one sub-layer of a model's group, found BY NAME: the group
+     * among the top-level layers, then the sub-layer inside it. A missing group
+     * or sub-layer is empty — an author may delete one, and the next open
+     * brings it back. (layerRefusals has already refused any duplicate name,
+     * so first-match loses nothing.) */
+    function subLayerObjects(m, group, name) {
+        for (var i = 0; i < m.layers.length; i++) {
+            var g = m.layers[i];
+            if (g.name !== group || !g.layers) { continue; }
+            for (var j = 0; j < g.layers.length; j++) {
+                if (g.layers[j].name === name) { return g.layers[j].objects || []; }
+            }
+        }
+        return [];
     }
 
     /* ---- plain model  ->  zone JSON ---------------------------------------- */
@@ -1067,16 +1151,23 @@ var AuraConvert = (function () {
                     flipped: o.flipH ? 'horizontal' : (o.flipV ? 'vertical' : 'none'),
                 };
             }),
-            props: layer('props').map(function (o) {
-                var c = centre(o);
-                return {
-                    type: o.name,
-                    x: u(c.x, hw), y: u(c.y, hh),
-                    rotation: deg2rad(o.rotation || 0),
-                    blocksMovement: readPropBlocks(o),
-                    scale: readPropScale(o),
-                };
-            }),
+            // Each sub-layer back to its own array, in its own object order.
+            props: (function () {
+                var out = {};
+                PROP_LAYERS.forEach(function (k) {
+                    out[k] = subLayerObjects(m, PROPS_GROUP, k).map(function (o) {
+                        var c = centre(o);
+                        return {
+                            type: o.name,
+                            x: u(c.x, hw), y: u(c.y, hh),
+                            rotation: deg2rad(o.rotation || 0),
+                            blocksMovement: readPropBlocks(o),
+                            scale: readPropScale(o),
+                        };
+                    });
+                });
+                return out;
+            })(),
             spawns: layer('spawns').map(function (o) {
                 // Every sentinel comes back as undefined here, which the
                 // serializer drops — that is what keeps the ~226 inheriting
@@ -1468,7 +1559,21 @@ var AuraConvert = (function () {
         });
 
         var propsKnown = Object.keys(content.PROP_SIZE).length > 0;
-        layer('props').forEach(function (o, i) {
+        PROP_LAYERS.forEach(function (k) {
+            subLayerObjects(m, PROPS_GROUP, k).forEach(function (o, i) {
+                checkProp(o, i, k);
+            });
+        });
+        function checkProp(o, i, propLayer) {
+            /* ⛔ D4: a type that clears the river under its deck must DRAW under
+             * the character walking on it, and since P3 which layer a prop
+             * draws in is where it sits. zone.go refuses the same at boot; this
+             * names the object id while the author is looking at it. */
+            if (propLayer !== 'underfoot' && hasValue(content.CROSSES_PATHS, o.name)) {
+                bad(o, i, '"' + o.name + '" crosses paths, so it must sit in the "'
+                    + PROPS_GROUP + '/underfoot" layer — a deck you walk across has to draw'
+                    + ' below the character on it. Use Layer ▸ Move Objects to Layer');
+            }
             /* ⛔ PRESENT AND WRONG IS REFUSED; ABSENT IS THE DEFAULT. The same
              * asymmetry `clears` records below, for the same reason: an absent
              * property is Tiled dropping a value still at its member default,
@@ -1516,7 +1621,7 @@ var AuraConvert = (function () {
                     + Math.round(expectedH) + ') — world.json has one uniform scale,'
                     + ' so hold Shift while resizing');
             }
-        });
+        }
 
         var mobsKnown = Object.keys(content.MOB_KIND).length > 0;
         layer('spawns').forEach(function (o, i) {
@@ -1929,8 +2034,9 @@ var AuraConvert = (function () {
     var MAX_REPORTED = 12;
     /* ---- layers the writer would drop (plan-prop-draw-order.md P0) ---------
      * The zone file stores arrays, never layers: write() reads exactly the
-     * top-level object layers named in LAYERS. Anything else in the Layers
-     * panel would vanish on save, so it refuses the save instead.
+     * top-level object layers named in LAYERS, plus the prop layers inside the
+     * `props` group (P3). Anything else in the Layers panel would vanish on
+     * save, so it refuses the save instead.
      *
      * ⛔ It used to SKIP every non-object layer without a word, so props dragged
      * into a hand-made group layer were deleted from the zone file on save.
@@ -1941,27 +2047,49 @@ var AuraConvert = (function () {
      *    layers: [...] (a group's children, same shape)}
      * Returns one message per offending layer; none means the save may go on.
      *
-     * - Every GROUP refuses, empty or not. ⚑ P3 will accept exactly one, `props`,
-     *   and walk its children by name; that is why a group's descriptor already
-     *   carries `layers`.
+     * - Exactly one GROUP is legal, `props` (P3), and only with prop layers
+     *   inside it (propsGroupRefusals). Every other group refuses, empty or not.
      * - A TILE or IMAGE layer refuses only when it holds something. An empty
      *   one loses nothing on save, and Tiled's New Map starts with one.
      * - An OBJECT layer refuses when LAYERS does not name it, empty or not:
      *   a misnamed layer is an authoring mistake even before anything is in it.
+     *   `props` as a plain object layer refuses too (it must be the group), and
+     *   so does a prop layer dragged out of the group.
+     * - Two object or group layers with one name refuse: the writer reads the
+     *   first by name and the second would vanish.
      * - A kind this function does not know refuses rather than being skipped. */
     function layerRefusals(layers) {
         var out = [];
+        var seen = {};
         for (var i = 0; i < layers.length; i++) {
             var l = layers[i];
             var name = '"' + l.name + '"';
+            if ((l.kind === 'object' || l.kind === 'group') && seen[l.name]) {
+                out.push('two layers are named ' + name + ': only the first is saved, so the second\'s'
+                    + ' objects would be lost. Move them into the first, then delete the second.');
+                continue;
+            }
+            seen[l.name] = true;
             if (l.kind === 'object') {
-                if (LAYERS.indexOf(l.name) < 0) {
+                if (l.name === PROPS_GROUP) {
+                    out.push('object layer ' + name + ' must be a GROUP holding the prop layers ('
+                        + PROP_LAYERS.join(', ') + '), so its objects would be lost. Move them into'
+                        + ' one of those, then delete this layer.');
+                } else if (PROP_LAYERS.indexOf(l.name) >= 0) {
+                    out.push('object layer ' + name + ' is a prop layer outside the "' + PROPS_GROUP
+                        + '" group, so its objects would be lost. Drag it back into the group.');
+                } else if (LAYERS.indexOf(l.name) < 0) {
                     out.push('object layer ' + name + ' is not a zone layer, so its objects would be lost.'
                         + ' Expected only: ' + LAYERS.join(', '));
                 }
             } else if (l.kind === 'group') {
-                out.push('group layer ' + name + ': the zone format has no group layers, so everything in it'
-                    + ' would be lost. Move its objects to the top-level layers, then delete the group.');
+                if (l.name === PROPS_GROUP) {
+                    out = out.concat(propsGroupRefusals(l));
+                } else {
+                    out.push('group layer ' + name + ': the only group the zone format has is "'
+                        + PROPS_GROUP + '", so everything in this one would be lost. Move its objects'
+                        + ' to the zone layers, then delete the group.');
+                }
             } else if (l.kind === 'tile' || l.kind === 'image') {
                 if (!l.empty) {
                     out.push(l.kind + ' layer ' + name + ' holds ' + (l.kind === 'tile' ? 'tiles' : 'an image')
@@ -1974,6 +2102,31 @@ var AuraConvert = (function () {
         }
         return out;
     }
+
+    /* The `props` group's half of layerRefusals: it may hold the four prop
+     * layers (any subset — a missing one is empty, and the next open restores
+     * it), each an object layer, each once. Anything else inside it would be
+     * dropped on save, so it refuses, named as group/child. */
+    function propsGroupRefusals(g) {
+        var out = [];
+        var seen = {};
+        var children = g.layers || [];
+        for (var i = 0; i < children.length; i++) {
+            var c = children[i];
+            var where = '"' + g.name + '/' + c.name + '"';
+            if (c.kind !== 'object' || PROP_LAYERS.indexOf(c.name) < 0) {
+                out.push('layer ' + where + ' is not a prop layer, so ' + (c.empty ? 'it' : 'everything in it')
+                    + ' would be lost. The "' + PROPS_GROUP + '" group holds only the object layers '
+                    + PROP_LAYERS.join(', ') + '. Move its objects into one of those, then delete it.');
+            } else if (seen[c.name]) {
+                out.push('two layers are named ' + where + ': only the first is saved, so the second\'s'
+                    + ' objects would be lost. Move them into the first, then delete the second.');
+            }
+            seen[c.name] = true;
+        }
+        return out;
+    }
+
     function formatLayerRefusals(refusals) {
         return 'Refusing to save — saving would delete the contents of '
             + refusals.length + ' layer(s):\n\n' + refusals.join('\n');
@@ -2019,6 +2172,8 @@ var AuraConvert = (function () {
     return {
         PX: PX,
         LAYERS: LAYERS,
+        PROPS_GROUP: PROPS_GROUP,
+        PROP_LAYERS: PROP_LAYERS,
         // ⚑ The raw tables, for aura-fit-size.js. It deliberately does NOT go
         // through propSize(): that helper falls back to a 1-unit box when the
         // vocabulary is absent, which is right for a conversion (the geometry

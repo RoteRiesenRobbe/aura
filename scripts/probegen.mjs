@@ -65,7 +65,8 @@ for (const [k, cols, rows] of LADDER) {
     name: `Probe ${k}x`,
     bounds: { width: W * cols, height: H * rows },
     terrain: [],
-    props: [],
+    // One array per prop layer (plan-prop-draw-order.md P3).
+    props: { underfoot: [], default: [], buildings: [], canopy: [] },
     spawns: [],
     campfires: [],
     darkAreas: [],
@@ -78,7 +79,9 @@ for (const [k, cols, rows] of LADDER) {
       const dx = (cx - (cols - 1) / 2) * W;
       const dy = (cy - (rows - 1) / 2) * H;
       probe.terrain.push(...shift(world.terrain, dx, dy));
-      probe.props.push(...shift(world.props, dx, dy));
+      for (const layer of Object.keys(probe.props)) {
+        probe.props[layer].push(...shift(world.props[layer], dx, dy));
+      }
       probe.spawns.push(...shift(world.spawns, dx, dy));
       probe.darkAreas.push(...shift(world.darkAreas, dx, dy));
       // Campfire ids and anchor names are validated unique ZONE-wide
@@ -101,6 +104,6 @@ for (const [k, cols, rows] of LADDER) {
   writeFileSync(path, JSON.stringify(probe, null, 2) + "\n");
   console.log(
     `probe-${k}  ${cols}x${rows} tiles  ${probe.bounds.width}x${probe.bounds.height} u  ` +
-      `spawns=${probe.spawns.length} props=${probe.props.length} terrain=${probe.terrain.length}`,
+      `spawns=${probe.spawns.length} props=${Object.values(probe.props).flat().length} terrain=${probe.terrain.length}`,
   );
 }

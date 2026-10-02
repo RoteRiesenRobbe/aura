@@ -109,7 +109,7 @@ node -e '
 const fs = require("fs");
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/bad.json", JSON.stringify({
-    name: z.name, bounds: z.bounds, terrain: [], props: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {},
     spawns: [{mob: "Tree", x: 1, y: 1, angle: 0}],
     campfires: z.campfires, anchors: z.anchors,
 }, null, 2));
@@ -134,7 +134,7 @@ node -e '
 const fs = require("fs");
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/grouped.json", JSON.stringify({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors,
 }, null, 2));
 '
@@ -158,6 +158,56 @@ else
     fi
 fi
 
+# ---- 2a-ii. the props group holds only prop layers (P3) ---------------------
+# plan-prop-draw-order.md P3 relaxed 2a for exactly one group, `props`, and only
+# with the four prop layers inside it. A layer of any other name in there would
+# be dropped on save, so it must refuse. Same TMX route as 2a, and the same
+# control (the map as read() built it, props group included, saved above).
+echo
+echo "a stray layer inside the props group"
+if [ ! -e tools/tiled/.verify/grouped-control.json ]; then
+    bad "no control from 2a — this leg would pass for nothing"
+else
+    "$TILED" --export-map tmx tools/tiled/.verify/grouped.json \
+        "$(native "$ROOT/tools/tiled/.verify/stray.tmx")" >/dev/null 2>&1 || true
+    sed -i 's#\(<group [^>]*name="props"[^>]*>\)#\1<objectgroup id="9102" name="roofs"><object id="9103" name="OakTree" x="600" y="600" width="120" height="120"/></objectgroup>#' \
+        tools/tiled/.verify/stray.tmx
+    if ! grep -q 'name="roofs"' tools/tiled/.verify/stray.tmx; then
+        bad "the TMX has no props group to inject into — read() did not build one"
+    elif "$TILED" --export-map aura-zone tools/tiled/.verify/stray.tmx \
+            "$(native "$ROOT/tools/tiled/.verify/stray-out.json")" >/dev/null 2>&1; then
+        bad "the save was ACCEPTED — props/roofs was dropped"
+    elif [ -e tools/tiled/.verify/stray-out.json ]; then
+        bad "refused, but a file was written anyway"
+    else
+        ok "refused, nothing written"
+    fi
+fi
+
+# D4: a bridge clears the river under its deck, so it must sit in
+# props/underfoot. The scaled leg below proves one in underfoot saves.
+echo
+echo "a bridge outside props/underfoot"
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/bridge.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, terrain: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+    props: {default: [{type: "Bridge", x: 0, y: 0, rotation: 0}]},
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/bridge.json \
+        "$(native "$ROOT/tools/tiled/.verify/bridge-out.json")" >/dev/null 2>&1; then
+    bad "the save was ACCEPTED — a deck would draw over the player crossing it"
+elif [ -e tools/tiled/.verify/bridge-out.json ]; then
+    bad "refused, but a file was written anyway"
+else
+    ok "refused, nothing written"
+fi
+
 # ---- 2b. per-placement prop scale survives Tiled's own box handling ---------
 # ⚑ vitest cannot cover this leg: it drives the pure converter, which never
 # meets Tiled's MapObject. Scale is carried IN the object's width, so the whole
@@ -173,14 +223,19 @@ const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/scaled.json", C.serializeZone({
     name: z.name, bounds: z.bounds, terrain: [], spawns: [],
     campfires: z.campfires, anchors: z.anchors,
-    props: [
-        // A circle body and a rect body, scaled up and down, plus an
-        // unscaled neighbour that must NOT grow a scale key.
-        {type: "Tree",  x: 0, y: 0, rotation: 0,     blocksMovement: true, scale: 2.5},
-        {type: "House", x: 8, y: 0, rotation: 0,     blocksMovement: true, scale: 0.5},
-        {type: "Rock",  x: -8, y: 0, rotation: 1.25, blocksMovement: true, scale: 10},
-        {type: "Boulder", x: 0, y: 8, rotation: 0.5, blocksMovement: true},
-    ],
+    // A circle body and a rect body, scaled up and down, plus an unscaled
+    // neighbour that must NOT grow a scale key. Spread over ALL FOUR prop
+    // layers (plan-prop-draw-order.md P3), so this is also the leg that proves
+    // the props group and its sub-layers survive the real reader and writer.
+    props: {
+        underfoot: [{type: "Bridge", x: 0, y: -8, rotation: 0}],
+        default: [
+            {type: "Rock",  x: -8, y: 0, rotation: 1.25, blocksMovement: true, scale: 10},
+            {type: "Boulder", x: 0, y: 8, rotation: 0.5, blocksMovement: true},
+        ],
+        buildings: [{type: "House", x: 8, y: 0, rotation: 0, blocksMovement: true, scale: 0.5}],
+        canopy: [{type: "Tree",  x: 0, y: 0, rotation: 0, blocksMovement: true, scale: 2.5}],
+    },
 }, false));
 '
 if "$TILED" --export-map aura-zone tools/tiled/.verify/scaled.json         "$(native "$ROOT/tools/tiled/.verify/scaled-out.json")" >/dev/null 2>&1    && cmp -s tools/tiled/.verify/scaled.json tools/tiled/.verify/scaled-out.json; then
@@ -199,7 +254,7 @@ const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/overscale.json", C.serializeZone({
     name: z.name, bounds: z.bounds, terrain: [], spawns: [],
     campfires: z.campfires, anchors: z.anchors,
-    props: [{type: "Tree", x: 0, y: 0, rotation: 0, blocksMovement: true, scale: 25}],
+    props: {canopy: [{type: "Tree", x: 0, y: 0, rotation: 0, blocksMovement: true, scale: 25}]},
 }, false));
 '
 if "$TILED" --export-map aura-zone tools/tiled/.verify/overscale.json         "$(native "$ROOT/tools/tiled/.verify/overscale-out.json")" >/dev/null 2>&1; then
@@ -231,13 +286,13 @@ const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/propblocks.json", C.serializeZone({
     name: z.name, bounds: z.bounds, terrain: [], spawns: [],
     campfires: z.campfires, anchors: z.anchors,
-    props: [
+    props: {
         // Inheriting — NO key, and it must still have none on the way back.
-        {type: "Tree", x: 0, y: 0, rotation: 0},
+        canopy: [{type: "Tree", x: 0, y: 0, rotation: 0}],
         // The two explicit overrides, one each way.
-        {type: "House", x: 8, y: 0, rotation: 0, blocksMovement: true},
-        {type: "Rock", x: -8, y: 0, rotation: 0, blocksMovement: false},
-    ],
+        buildings: [{type: "House", x: 8, y: 0, rotation: 0, blocksMovement: true}],
+        default: [{type: "Rock", x: -8, y: 0, rotation: 0, blocksMovement: false}],
+    },
 }, false));
 '
 if "$TILED" --export-map aura-zone tools/tiled/.verify/propblocks.json         "$(native "$ROOT/tools/tiled/.verify/propblocks-out.json")" >/dev/null 2>&1    && cmp -s tools/tiled/.verify/propblocks.json tools/tiled/.verify/propblocks-out.json; then
@@ -269,7 +324,7 @@ const regions = content.PROFILE_NAMES.map(function (profile, i) {
     ]};
 });
 fs.writeFileSync("tools/tiled/.verify/regions.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, regions: regions, anchors: z.anchors,
 }, false));
 '
@@ -301,7 +356,7 @@ fs.writeFileSync("tools/tiled/.verify/placed.json", C.serializeZone({
     // reconstructs it from y alone, so dropping originX is invisible and this leg
     // passes while half the bridge is broken. (Proven: it did.)
     name: z.name, bounds: {width: 48, height: 28}, origin: {x: 500, y: 300},
-    terrain: [], props: [], spawns: [],
+    terrain: [], props: {}, spawns: [],
     campfires: [{id: "underworld-1", x: 0, y: 8}],
     anchors: [{name: "under-west", x: -16, y: 0}],
 }, false));
@@ -334,7 +389,7 @@ const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/closedpath.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors,
     paths: [
         // A moat: closed, blocking, three points.
@@ -372,7 +427,7 @@ const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/polygons.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors,
     polygons: [
         // A blocking rock mass, four points.
@@ -434,7 +489,7 @@ const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/atmospheres.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors,
     // The wall the fog hangs over — a different layer, a different array.
     polygons: [{profile: "Mountains", blocksMovement: true, points: [
@@ -491,7 +546,7 @@ const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/clearings.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors,
     atmospheres: [
         {profile: "Cave Air", points: [
@@ -529,7 +584,7 @@ const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/emptyclearing.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors,
     clearings: [{clears: "both", points: []}],
 }, false));
@@ -568,7 +623,7 @@ const air = content.AIR_PROFILE_NAMES.map(function (profile, i) {
 });
 if (air.length === 0) { throw new Error("no air profiles in the palette"); }
 fs.writeFileSync("tools/tiled/.verify/air-profiles.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors, atmospheres: air,
 }, false));
 '
@@ -599,7 +654,7 @@ const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/outlines.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors,
     polygons: [
         {profile: "Water", outlineProfile: "Coast", outlineWidth: 1.25, points: [
@@ -633,7 +688,7 @@ C.useContent(require("./tools/tiled/palette/content.json"));
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 const tri = (n) => [{x: n, y: 0}, {x: n + 6, y: 0}, {x: n + 6, y: 6}];
 fs.writeFileSync("tools/tiled/.verify/region-titles.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors,
     regions: [
         {profile: "Fields", points: tri(-30), title: "The Farmlands", subtitle: "Where it began"},
@@ -659,7 +714,7 @@ const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/halfoutline.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors,
     // ⚑ A zero-wide outline strokes nothing, so this fails SILENTLY in game and
     // has to be caught where the author can still see the object.
@@ -684,7 +739,7 @@ const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/badpolyprofile.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors,
     // ⚑ zone.go ACCEPTS this (D8) and the client absorbs it (D11), so Tiled is
     // the only place it can be caught — and the polygon class has to inherit
@@ -719,7 +774,7 @@ const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/emptyatmo.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors,
     atmospheres: [{profile: "Fog", points: []}],
 }, false));
@@ -741,7 +796,7 @@ const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/badprofile.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors,
     // ⚑ zone.go ACCEPTS this (D8) and the client absorbs it (D11), so Tiled is
     // the only place it can be caught at all.
@@ -802,7 +857,7 @@ const E = content.EFFECT_NAMES;
 // might not be there.
 const P = content.PROFILE_NAMES[0], A = content.AIR_PROFILE_NAMES[0];
 fs.writeFileSync("tools/tiled/.verify/effects.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors,
     // A river that does something to whoever wades it — a stroked shape.
     paths: [{profile: P, width: 2.5, effect: E[0],
@@ -842,7 +897,7 @@ const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/noeffect.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors,
     paths: [{profile: "Road", width: 2.5, points: [{x: -20, y: 12}, {x: 20, y: 12}]}],
     polygons: [{profile: "Mountains", points: [
@@ -874,7 +929,7 @@ const content = require("./tools/tiled/palette/content.json");
 C.useContent(content);
 const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/badeffect.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    name: z.name, bounds: z.bounds, terrain: [], props: {}, spawns: [],
     campfires: z.campfires, anchors: z.anchors,
     polygons: [{profile: content.PROFILE_NAMES[0], effect: "NoSuchSkill", points: [
         {x: 0, y: 0}, {x: 8, y: 0}, {x: 8, y: 8}]}],
@@ -969,6 +1024,13 @@ if [ "$fail" -eq 0 ]; then
     echo "     carries no lock state, so the converter's flag is the only state there"
     echo "     is. Verifying this headlessly is impossible — --export-map never"
     echo "     builds a Layers panel."
+    echo " 10. 'props' is a GROUP holding canopy · buildings · default · underfoot,"
+    echo "     top to bottom (plan-prop-draw-order.md P3). Hide 'canopy' with its eye:"
+    echo "     the tree crowns vanish and the roofs under them show. Move one prop"
+    echo "     with Layer ▸ Move Objects to Layer, save, and confirm the zone file"
+    echo "     has it in the other array. Drag a Bridge into 'default' and save: it"
+    echo "     must refuse, naming the object. ⚑ The legs above prove the group's"
+    echo "     NAMES survive a save, never what the panel shows."
 else
     echo "FAILED — see above."
 fi

@@ -54,10 +54,10 @@ func TestPropScale_AbsentInheritsTheBodyVerbatim(t *testing.T) {
 	const doc = `{
 		"name": "Scale",
 		"bounds": { "width": 60, "height": 40 },
-		"props": [
+		"props": {"default": [
 			{ "type": "Tree", "x": 0, "y": 0, "rotation": 0, "blocksMovement": true },
 			{ "type": "House", "x": 5, "y": 5, "rotation": 0, "blocksMovement": true }
-		]
+		]}
 	}`
 
 	z := loadScaleZone(t, doc)
@@ -71,10 +71,10 @@ func TestPropScale_ScalesACircleBody(t *testing.T) {
 	const doc = `{
 		"name": "Scale",
 		"bounds": { "width": 60, "height": 40 },
-		"props": [
+		"props": {"default": [
 			{ "type": "Tree", "x": 0, "y": 0, "rotation": 0,
 			  "blocksMovement": true, "scale": 2.5 }
-		]
+		]}
 	}`
 
 	z := loadScaleZone(t, doc)
@@ -94,10 +94,10 @@ func TestPropScale_ScalesBothRectAxesAndKeepsTheAspect(t *testing.T) {
 	const doc = `{
 		"name": "Scale",
 		"bounds": { "width": 60, "height": 40 },
-		"props": [
+		"props": {"default": [
 			{ "type": "House", "x": 0, "y": 0, "rotation": 0,
 			  "blocksMovement": true, "scale": 2 }
-		]
+		]}
 	}`
 
 	z := loadScaleZone(t, doc)
@@ -117,10 +117,10 @@ func TestPropScale_MultipliesTheTypeNotAnAbsoluteSize(t *testing.T) {
 	const doc = `{
 		"name": "Scale",
 		"bounds": { "width": 60, "height": 40 },
-		"props": [
+		"props": {"default": [
 			{ "type": "House", "x": 0, "y": 0, "rotation": 0,
 			  "blocksMovement": true, "scale": 2 }
-		]
+		]}
 	}`
 	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), &bodiedPropRegistry{
 		byName: map[string]*PropDefinition{
@@ -147,14 +147,14 @@ func TestPropScale_RejectsOutOfRange(t *testing.T) {
 			doc := `{
 				"name": "Scale",
 				"bounds": { "width": 60, "height": 40 },
-				"props": [
+				"props": {"default": [
 					{ "type": "Tree", "x": 0, "y": 0, "rotation": 0,
 					  "blocksMovement": true, "scale": ` + tc.scale + ` }
-				]
+				]}
 			}`
 			_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), scaleRegistry())
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), "prop 0: scale")
+			assert.Contains(t, err.Error(), "prop props.default[0]: scale")
 			assert.Contains(t, err.Error(), "must be in (0, 10]")
 		})
 	}
@@ -165,31 +165,35 @@ func TestPropScale_AcceptsTheRailExactly(t *testing.T) {
 	const doc = `{
 		"name": "Scale",
 		"bounds": { "width": 60, "height": 40 },
-		"props": [
+		"props": {"default": [
 			{ "type": "Tree", "x": 0, "y": 0, "rotation": 0,
 			  "blocksMovement": true, "scale": 10 }
-		]
+		]}
 	}`
 	z := loadScaleZone(t, doc)
 	assert.EqualValues(t, 10, z.Props[0].VisualBody().Radius)
 }
 
 // The index in the message is what an author uses to find the offender, so it
-// is worth pinning that it is the PROP index and not a spawn's.
+// is worth pinning that it is the PROP index and not a spawn's — and, since
+// plan-prop-draw-order.md P3, the index INSIDE the layer's array, as the file
+// spells it, never the flattened one (3 here) that no author can find.
 func TestPropScale_ErrorNamesTheOffendingIndex(t *testing.T) {
 	const doc = `{
 		"name": "Scale",
 		"bounds": { "width": 60, "height": 40 },
-		"props": [
+		"props": {"default": [
 			{ "type": "Tree", "x": 0, "y": 0, "rotation": 0, "blocksMovement": true },
-			{ "type": "Tree", "x": 1, "y": 1, "rotation": 0, "blocksMovement": true },
+			{ "type": "Tree", "x": 1, "y": 1, "rotation": 0, "blocksMovement": true }
+		], "canopy": [
+			{ "type": "Tree", "x": 3, "y": 3, "rotation": 0, "blocksMovement": true },
 			{ "type": "Tree", "x": 2, "y": 2, "rotation": 0,
 			  "blocksMovement": true, "scale": -3 }
-		]
+		]}
 	}`
 	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), scaleRegistry())
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "prop 2: scale -3")
+	assert.Contains(t, err.Error(), "prop props.canopy[1]: scale -3")
 }
 
 // ⭐ The C1b migration pin, against the REAL api/props content.

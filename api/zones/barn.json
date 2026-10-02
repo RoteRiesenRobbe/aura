@@ -9,106 +9,111 @@
     "y": 5000
   },
   "terrain": [],
-  "props": [
-    {
-      "type": "Torch",
-      "x": -1.26,
-      "y": 3.1,
-      "rotation": 0,
-      "scale": 1.603
-    },
-    {
-      "type": "Haystack",
-      "x": 3.5,
-      "y": -0.59,
-      "rotation": 0,
-      "scale": 0.804
-    },
-    {
-      "type": "Haystack",
-      "x": -3.71,
-      "y": -3.83,
-      "rotation": 0,
-      "scale": 0.941
-    },
-    {
-      "type": "Crate",
-      "x": 4.22,
-      "y": -4.33,
-      "rotation": 0,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": 3.4,
-      "y": -4.24,
-      "rotation": 0.262,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": 4.08,
-      "y": -3.5,
-      "rotation": 6.24,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": -4.27,
-      "y": 0.91,
-      "rotation": 0.311,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": -4.27,
-      "y": -0.04,
-      "rotation": 6.166,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": 4.16,
-      "y": 0.81,
-      "rotation": 6.267,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": 4.36,
-      "y": 4.33,
-      "rotation": 6.267,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": 3.49,
-      "y": 4.48,
-      "rotation": 6.267,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": -4,
-      "y": 3.21,
-      "rotation": 6.267,
-      "scale": 0.926
-    },
-    {
-      "type": "Crate",
-      "x": -2.36,
-      "y": -4.32,
-      "rotation": 0.057,
-      "scale": 0.873
-    },
-    {
-      "type": "Crate",
-      "x": -1.39,
-      "y": -4.37,
-      "rotation": 0.262,
-      "scale": 0.926
-    }
-  ],
+  "props": {
+    "underfoot": [],
+    "default": [
+      {
+        "type": "Torch",
+        "x": -1.26,
+        "y": 3.1,
+        "rotation": 0,
+        "scale": 1.603
+      },
+      {
+        "type": "Haystack",
+        "x": 3.5,
+        "y": -0.59,
+        "rotation": 0,
+        "scale": 0.804
+      },
+      {
+        "type": "Haystack",
+        "x": -3.71,
+        "y": -3.83,
+        "rotation": 0,
+        "scale": 0.941
+      },
+      {
+        "type": "Crate",
+        "x": 4.22,
+        "y": -4.33,
+        "rotation": 0,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": 3.4,
+        "y": -4.24,
+        "rotation": 0.262,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": 4.08,
+        "y": -3.5,
+        "rotation": 6.24,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": -4.27,
+        "y": 0.91,
+        "rotation": 0.311,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": -4.27,
+        "y": -0.04,
+        "rotation": 6.166,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": 4.16,
+        "y": 0.81,
+        "rotation": 6.267,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": 4.36,
+        "y": 4.33,
+        "rotation": 6.267,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": 3.49,
+        "y": 4.48,
+        "rotation": 6.267,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": -4,
+        "y": 3.21,
+        "rotation": 6.267,
+        "scale": 0.926
+      },
+      {
+        "type": "Crate",
+        "x": -2.36,
+        "y": -4.32,
+        "rotation": 0.057,
+        "scale": 0.873
+      },
+      {
+        "type": "Crate",
+        "x": -1.39,
+        "y": -4.37,
+        "rotation": 0.262,
+        "scale": 0.926
+      }
+    ],
+    "buildings": [],
+    "canopy": []
+  },
   "spawns": [
     {
       "mob": "CaveExit",

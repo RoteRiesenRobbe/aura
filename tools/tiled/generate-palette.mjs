@@ -117,7 +117,8 @@ function readProps() {
         const wUnits = body.radius ? body.radius * 2 : body.width;
         const hUnits = body.radius ? body.radius * 2 : body.height;
         if (!(wUnits > 0) || !(hUnits > 0)) { fail(`prop "${def.name}" has no usable body`); }
-        return {type: def.name, entityType: def.entityType, abs, wUnits, hUnits, ...imageSize(abs)};
+        return {type: def.name, entityType: def.entityType, crossesPaths: def.crossesPaths === true,
+            abs, wUnits, hUnits, ...imageSize(abs)};
     }).sort((a, b) => a.type.localeCompare(b.type));
 }
 
@@ -557,6 +558,10 @@ function contentJson(terrain, props, mobs, profiles, airProfiles, effects, types
         ENUM_VALUES: enums,
         TERRAIN_TYPES: terrain.map(t => t.type),
         PROP_SIZE: sizes,
+        // The bridges: types whose every placement must sit in the
+        // props/underfoot layer (plan-prop-draw-order.md D4). The converter
+        // refuses the save otherwise, as zone.go refuses the boot.
+        CROSSES_PATHS: props.filter(p => p.crossesPaths).map(p => p.type),
         // ⚑ The SAME number the terrain templates are cut at, published so the
         // "fit to true size" action does not declare a second one. A prop has
         // its body to be measured against; a texture has nothing, so this is

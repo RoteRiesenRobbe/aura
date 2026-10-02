@@ -48,7 +48,8 @@ double-click `world.json` in the project's folder list on the left.
 > but you get plain text fields instead of dropdowns. If you prefer that flow,
 > import `tools/tiled/palette/propertytypes.json` once via View ▸ Custom Types.
 
-You should see nine object layers, and no tile layers. They are listed here in
+You should see eight object layers and one group, `props`, and no tile layers.
+They are listed here in
 the order Tiled shows them — **top of the panel is the top of the stack**, so
 read the table bottom-up to walk from the ground to the sky:
 
@@ -59,7 +60,7 @@ read the table bottom-up to walk from the ground to the sky:
 | `darkAreas` | the unlit circles (the older primitive `atmospheres` is replacing) | ellipse | |
 | `campfires` | bind points / starting spawns | point | |
 | `spawns` | every mob and NPC | point, or a **polyline** if it patrols | |
-| `props` | trees, stones, houses, walls | tile object at its true physics size | |
+| `props` ▾ | a **group** of four prop layers, top to bottom `canopy` · `buildings` · `default` · `underfoot` (see Props) | tile object at its true physics size | |
 | `terrain` | ground textures | tile object (the art itself) | |
 | `paths` | roads and rivers, **plus** the filled masses (`AuraPolygon`) that share this layer | polyline, or **polygon** | |
 | `regions` | named areas that carry their own look | **polygon** | 🔒 |
@@ -128,6 +129,27 @@ Rotate and scale freely. Horizontal and vertical flip (X / Y) both work.
 
 Drag from the **Templates** view. Each prop draws at its **visual footprint** —
 the same size it is in game, to the pixel — so the editor is WYSIWYG.
+
+⭐ **Select a sub-layer of the `props` group first: the layer IS where the prop
+draws** (`plan-prop-draw-order.md` P3). A higher layer always draws over a lower
+one; inside a layer, Raise / Lower decide.
+
+| Sub-layer | Draws | Put here |
+|---|---|---|
+| `canopy` | over everything below | tree crowns |
+| `buildings` | over `default` | houses, walls, gates, a torch mounted on a wall |
+| `default` | over characters | everything else |
+| `underfoot` | **under** every character and mob | bridges, rugs, debris — anything walked ON |
+
+- Move a placed prop between them with **Layer ▸ Move Objects to Layer**. Hide
+  `canopy` with its eye to see under the trees.
+- ⛔ A **Bridge** (any `crossesPaths` type) must sit in `underfoot`; the save
+  refuses it anywhere else. Any other prop may go anywhere.
+- ⛔ The group holds only these four. A layer of another name inside it, a
+  second group, or a prop layer dragged out of the group refuses the save,
+  naming the layer — saving would lose its objects.
+- ⚑ The game shows a reorder only after a server restart (the order is the
+  server's spawn order).
 
 - ⛔ **Drag from Templates, never from the aura-props tileset**, and this is not
   a style preference. Tiled sizes a tile object it inserts by the tile

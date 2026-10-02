@@ -87,10 +87,10 @@ func TestZone_LoadsValid(t *testing.T) {
 	const doc = `{
 		"name": "Scaffold",
 		"bounds": { "width": 60, "height": 40 },
-		"props": [
+		"props": {"default": [
 			{ "type": "Rock", "x": 12, "y": -5, "rotation": 0,
 			  "blocksMovement": true }
-		],
+		]},
 		"spawns": [
 			{ "mob": "Boar", "x": 30, "y": 12, "angle": 0,
 			  "respawnTicks": 900, "respawnVariancePct": 0.2 }
@@ -358,7 +358,7 @@ func TestZone_RejectsUnknownSpawnMob(t *testing.T) {
 func TestZone_RejectsUnknownPropType(t *testing.T) {
 	const doc = `{
 		"name": "X", "bounds": { "width": 60, "height": 40 },
-		"props": [ { "type": "Nonexistent", "x": 0, "y": 0 } ]
+		"props": {"default": [ { "type": "Nonexistent", "x": 0, "y": 0 } ]}
 	}`
 
 	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry("Rock"))

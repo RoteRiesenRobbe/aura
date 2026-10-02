@@ -345,6 +345,16 @@ table Resource {
   // REAL prop still encodes exactly the bytes it encoded before this field
   // existed — rotated or not.
   prop_name:string;
+
+  // Whether this PLACEMENT sits in the zone file's props.underfoot, which picks
+  // the client container: under every character and mob instead of over them
+  // (plan-prop-draw-order.md D4). A placement fact, so it cannot come from the
+  // prop type the way it used to.
+  //
+  // ⚑ Appended last for prop_name's reason: false is the default, so the
+  // builder omits it and trims the slot, and every prop outside underfoot still
+  // encodes exactly the bytes it did before this field existed.
+  underfoot:bool = false;
 }
 
 table Mob {

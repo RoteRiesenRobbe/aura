@@ -78,7 +78,7 @@ json.dump(out, sys.stdout)
 // Low to high — the order C2's own walk instruction gives (§7).
 const ORDER = ['F', 'W', 'D', 'K', 'M', 'T', 'B', 'V', 'P', 'R'];
 
-const blockers = zone.props.filter((p) => p.blocksMovement);
+const blockers = Object.values(zone.props).flat().filter((p) => p.blocksMovement);
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
 
 function venueFor(letter) {

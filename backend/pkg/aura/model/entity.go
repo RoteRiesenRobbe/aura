@@ -61,6 +61,11 @@ type PropEntity interface {
 	// development-time stand-ins, and a second identity for a thing that already
 	// has one is pure upkeep.
 	PropName() string
+
+	// Underfoot is whether the placement was authored in the zone file's
+	// props.underfoot (plan-prop-draw-order.md D4): the client then draws it
+	// under characters and mobs. Draw order only, never collision.
+	Underfoot() bool
 }
 
 // CorpseEntity is a dead player's corpse (atmosphere & recovery chunk 4): a

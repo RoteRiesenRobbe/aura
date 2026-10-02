@@ -149,8 +149,20 @@ func (rcv *Resource) PropName() []byte {
 	return nil
 }
 
+func (rcv *Resource) Underfoot() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *Resource) MutateUnderfoot(n bool) bool {
+	return rcv._tab.MutateBoolSlot(20, n)
+}
+
 func ResourceStart(builder *flatbuffers.Builder) {
-	builder.StartObject(8)
+	builder.StartObject(9)
 }
 func ResourceAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -178,6 +190,9 @@ func ResourceAddRotation(builder *flatbuffers.Builder, rotation float32) {
 }
 func ResourceAddPropName(builder *flatbuffers.Builder, propName flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(propName), 0)
+}
+func ResourceAddUnderfoot(builder *flatbuffers.Builder, underfoot bool) {
+	builder.PrependBoolSlot(8, underfoot, false)
 }
 func ResourceEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
