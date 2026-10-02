@@ -8,14 +8,14 @@ import {capabilitiesOf, kindOf, ZoneData, ZoneModel, ZoneProp, ZoneSpawn} from '
 // re-issues unbinds or misplaces real characters, and neither failure is
 // visible in the editor itself.
 
-function zone(campfires: ZoneData['campfires']): ZoneModel {
+function zone(bindPoints: ZoneData['bindPoints']): ZoneModel {
     return ZoneModel.fromJSON({
         name: 'X',
         bounds: {width: 60, height: 40},
-        terrain: [],
+        decals: [],
         props: {},
         spawns: [],
-        campfires,
+        bindPoints,
     });
 }
 
@@ -23,7 +23,7 @@ function zoneWithSpawns(spawns: ZoneSpawn[]): ZoneModel {
     return ZoneModel.fromJSON({
         name: 'X',
         bounds: {width: 60, height: 40},
-        terrain: [],
+        decals: [],
         props: {},
         spawns,
     });
@@ -33,7 +33,7 @@ function zoneWithProps(props: ZoneProp[]): ZoneModel {
     return ZoneModel.fromJSON({
         name: 'X',
         bounds: {width: 60, height: 40},
-        terrain: [],
+        decals: [],
         props: {default: props},
         spawns: [],
     });
@@ -67,7 +67,7 @@ describe('ZoneModel spawn points', () => {
 
         let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
 
-        expect(exported.campfires).toEqual([
+        expect(exported.bindPoints).toEqual([
             {id: 'spawnpoint-1', x: 3, y: -4.5, startingSpawn: true},
             {id: 'spawnpoint-2', x: 0, y: 0},
         ]);
@@ -78,7 +78,7 @@ describe('ZoneModel spawn points', () => {
 
         model.addCampfire({id: '', x: 5, y: 5});
 
-        expect(model.campfires[1].id).toBe('spawnpoint-2');
+        expect(model.bindPoints[1].id).toBe('spawnpoint-2');
     });
 
     it('mints above the highest existing number, not the array length', () => {
@@ -91,7 +91,7 @@ describe('ZoneModel spawn points', () => {
 
         model.addCampfire({id: '', x: 1, y: 1});
 
-        expect(model.campfires[2].id).toBe('spawnpoint-8');
+        expect(model.bindPoints[2].id).toBe('spawnpoint-8');
     });
 
     it('does not reuse the number of a fire deleted in this session', () => {
@@ -104,7 +104,7 @@ describe('ZoneModel spawn points', () => {
         model.removeCampfire(2);
         model.addCampfire({id: '', x: 2, y: 2});
 
-        expect(model.campfires[2].id).toBe('spawnpoint-4');
+        expect(model.bindPoints[2].id).toBe('spawnpoint-4');
     });
 
     it('leaves a hand-authored id alone', () => {
@@ -112,7 +112,7 @@ describe('ZoneModel spawn points', () => {
 
         model.addCampfire({id: 'crossroads-fire', x: 5, y: 5});
 
-        expect(model.campfires.map(c => c.id)).toEqual(['village-fire', 'crossroads-fire']);
+        expect(model.bindPoints.map(c => c.id)).toEqual(['village-fire', 'crossroads-fire']);
     });
 });
 
@@ -271,7 +271,7 @@ describe('ZoneModel prop layers', () => {
     const layered = (): ZoneData => ({
         name: 'X',
         bounds: {width: 60, height: 40},
-        terrain: [],
+        decals: [],
         // Keys deliberately NOT in rank order: the flat order must not care.
         props: {
             canopy: [prop({type: 'OakTree', x: 1}), prop({type: 'Tree', x: 2})],
@@ -357,7 +357,7 @@ describe('ZoneModel regions', () => {
         return {
             name: 'X',
             bounds: {width: 60, height: 40},
-            terrain: [],
+            decals: [],
             props: {},
             spawns: [],
             ...overrides,

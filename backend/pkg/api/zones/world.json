@@ -5,7 +5,7 @@
     "height": 360
   },
   "ground": "Water",
-  "terrain": [
+  "decals": [
     {
       "type": "Flowers",
       "x": -188.15,
@@ -197,8 +197,8 @@
       },
       {
         "type": "Torch",
-        "x": -174.81,
-        "y": 17.65,
+        "x": -173.77,
+        "y": 6.72,
         "rotation": 0
       },
       {
@@ -5192,7 +5192,7 @@
       "level": 1
     }
   ],
-  "campfires": [
+  "bindPoints": [
     {
       "id": "spawnpoint-1",
       "x": -237.25,
@@ -7679,7 +7679,7 @@
       "width": 1.5
     }
   ],
-  "polygons": [
+  "structures": [
     {
       "profile": "Wheat",
       "points": [

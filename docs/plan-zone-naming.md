@@ -1,6 +1,6 @@
 # Plan: Zone / level-editor naming, and the Tiled layer order
 
-**Status:** designed 2026-09-20 (PO session). **N1 BUILT 2026-09-20** (ledger §10, uncommitted); **N2 unstarted.**
+**Status:** designed 2026-09-20 (PO session). **N1 BUILT 2026-09-20; N2 BUILT 2026-10-02** (ledger §10; N2 uncommitted). Both chunks are done; the PO's Tiled GUI checks are owed, then the plan archives.
 
 PO ask, verbatim: *"i want to plan changing some namings of zone / level editor
 elements to better match the intention … i also want to reorder the layers in
@@ -319,6 +319,8 @@ regenerate the palette, and re-run `verify.sh` through real Tiled.
 
 1. ⚑ **The Go `Zone` field names** — renamed with their tags by D3's judgement
    call, leaving `Decals []TerrainTexture`. PO may overrule either way.
+   **Built that way in N2** (`Decals`, `Structures`, `BindPoints`); still the
+   PO's to overrule.
 2. ⚑ **Does the `regions` lock survive contact with authoring?** It cannot
    persist (fact 3), so every region edit costs an unlock, every session. One
    line to revert if it grates.
@@ -396,3 +398,125 @@ content, not N1. N1 touches no Go at all.
 
 **Owed:** the human checks (footer items 8 and 9) have not been run — the PO has
 not opened Tiled since. Open call #2 in §9 is live until they do.
+
+### N2 — the three key renames ✅ 2026-10-02 (uncommitted)
+
+Session note: the PO asked for `plan-prop-draw-order.md` P4, whose L9 puts it
+after N2; the PO chose "N2 first" and ruled P4's D10/D13/D14 the same session
+(recorded there, §8).
+
+**What landed (§6's table):**
+
+- **Zone files.** `scripts/migrate-zone-key-names.mjs`, kept as the record:
+  renames each key IN PLACE (same position, so each file differs by those
+  names only), refuses a file not in `JSON.stringify(…, null, 2)` form or one
+  carrying an old key AND its new one, all or nothing. ⭐ **Idempotent (L2)**:
+  a second run over the tree reports "already on the new names" for all 8.
+  - world: decals · bindPoints · structures; koboldCave, underworld (both
+    sets): decals · structures; tunnel (both sets), world_debug: decals ·
+    bindPoints; barn: decals. 16 lines changed across the 8 files.
+  - Embedded copies refreshed with the `cp-defs` recipe by hand (`make` is
+    not on this box). ⚑ That also refreshed `backend/pkg/api/zones/world.json`,
+    stale since the P3 commit by one moved Torch.
+- **Go** (`world/zone.go`): `Decals []TerrainTexture json:"decals"`,
+  `BindPoints []Campfire json:"bindPoints"`, `Structures []Polygon
+  json:"structures"` (§9 call #1 as designed; types keep their names, D3).
+  Readers: `place.go`, `area_effects.go`, `polygons_collision.go`,
+  `cmd/aurad/zoneset.go`.
+  - ⚑ **Beyond the brief: the author-facing messages say the new nouns.**
+    `structure N: …` and `bind point N: …` in validation, `zone %q flags bind
+    point %q …` / `N bind point(s) are placed …` in `world.Place`, the
+    area-effect identity `Kind` "polygon" → "structure" (it exists "for
+    messages", area_effects.go), and the coarsening log key. A message saying
+    `polygon 3` about a file with no `polygons` key sends the author hunting.
+    The `placed campfires` boot log stays: it counts the campfire MOBS.
+- **Converter** (`aura-convert.js`): `LAYERS`, the layer specs, both writers,
+  validation, classes `AuraDecal` / `AuraStructure` / `AuraBindPoint`, the
+  `decals` tileset key and `aura-decals` in the refusal text.
+  - ⚑ **Beyond the brief: a pre-N2 file refuses to OPEN** (`checkKeyNames`),
+    naming the old key, the new one and the migration script. Read leniently
+    it opened with that array empty and the next Ctrl+S deleted it — P3's
+    flat-`props` refusal, the same trap. **Mutation-checked through real
+    Tiled:** with the check commented out, `--export-map` of world.json put
+    back on `terrain` exits 0 and writes `"decals": []`; restored, it refuses
+    and writes nothing.
+- **Extension glue.** `aura-world-format.js`: the palette probe looks for
+  `decals.tsx`, the tileset map key is `decals`. **L3 confirmed:** none of
+  the three keys is a map-level value; nothing else there names them.
+  `aura-fit-size.js`: the true-size branch keys on the `decals` layer (it
+  would otherwise have silently stopped fitting textures) and its messages.
+- **Palette.** `generate-palette.mjs`: `AuraDecalType`, `AuraDecal`,
+  `AuraBindPoint`, `AuraStructure`, `decals.tsx` (tileset `aura-decals`),
+  `templates/decals/`. The old files were `git mv`'d first so history
+  follows, then regenerated: the diff is names only, every type keeps its id.
+  ⚑ `AuraDecalType` (ex-`AuraTerrainType`) is declared but no class member
+  uses it, so **L6 does not apply** (it is in no `REGION_ENUMS`). An orphan
+  enum, left as found.
+- **Client.** `ZoneJSON` (`GroundTextureManager.ts`) and `ZoneModel` fields
+  renamed (types keep their names, D3); readers: `GroundTextureManager`
+  (decals), `Game.ts` → `Polygons` (structures), `MapTerrain` (both),
+  `DarknessOverlay` + `MapCampfires` (bindPoints), the in-game editor
+  (`ZoneEditor.ts`, `_ZoneEditorPanel.ts`). Typecheck found every one. The
+  in-game editor's mode names and method names (`'terrain'`, `addCampfire`)
+  are internal and stay.
+- **Other readers.** `verify.sh` fixtures, labels and footer; harness comments
+  (`c2-campfire-markers`, `c3-flight-client`, `campfire-bind-persistence`);
+  the live scripts `zone-census.mjs`, `probegen.mjs`, `world-place.py`. Left
+  alone as already-run one-offs: `double-world-vertical`, `recenter-world-y`,
+  `scale-world-15x`. The harnesses' `miniMap['campfires']` is MapCampfires'
+  own field, not the zone key.
+- **Docs.** `manual-tiled-editor.md` (the layer table, Decals and Bind points
+  sections, the rebuild table; ⚑ also its stale `AuraProfile`, which N1
+  renamed), `content-zone-design-guide.md`, the two zone content docs, the
+  `manual-zone-editor.md` intro. Other plan docs keep the old names as the
+  record of when they were written.
+- **Facts re-checked:** fact 7 is stale, there are **8** zone files now (5 +
+  3 in `.debug/`), all migrated. **L4** re-read: `SHARED_LAYERS.paths` is
+  `['structures', 'paths']`. **L5** as predicted: the gitignored
+  `aura.tiled-session` keeps `#aura-terrain` dock keys and an expanded
+  `palette/templates/terrain` folder; both reset once, cosmetically.
+
+**Tests:**
+
+- **Go:** `TestZone_N2KeysParseAndTheOldNamesRefuse` red first (undefined
+  fields), then green: each new key parses into its field, each old key
+  refuses the boot by name. ~20 fixtures and field reads moved to the new
+  names; message expectations follow the new nouns. `go build` / `go vet`
+  clean. `go test ./...` (AURA_* set, so `store` / `accounts` ran) green
+  except the known `world.TestPropContent_C1bMigrationPreservesLookAndCollision`
+  (red at HEAD, same Tree / Boulder messages).
+- **`aurad -validate`:** 0 findings for `-content ../api`, `-debug-zones` and
+  the embedded copy.
+- **vitest 1481/0** (62 files; +1). The new open-refusal leg was red first.
+  The completeness pins went red on the ZoneModel side until it was renamed,
+  then green: both writers emit the same key set, which is zone.go's.
+  World.json still byte-stable through both writers. `tsc` clean.
+- **`verify.sh` 29 ✅ / 0 ❌**, extension reinstalled (leg 0 in step). New
+  leg: world.json with `decals` put back to `terrain` refuses at read,
+  nothing written. world.json round-trips byte-identically through real
+  Tiled on the new names and the new tileset; the palette leg is up to date
+  and idempotent.
+- **In-game** (`dev-restart-windows.sh all`): the boot loads all five zones
+  and `placed campfires count=46` (world 45 + tunnel 1 bind points). A
+  one-off probe (not kept) on a fresh character: 8 of 8 decals on
+  `terrain.textures`, the map's campfire markers hold 45 of 45 bind points,
+  `terrain.polygons` populated (23 display objects for 11 structures), no
+  page errors. `map-props-bake.mjs` 7/7, `p1-prop-order.mjs` 10/10.
+
+**Schema:** DB **NONE** · wire **NONE** · conf **NONE** · content (prop /
+mob defs) **NONE** · zone format **three keys renamed** (breaking, no
+compatibility window, L1; all 16 files, 8 + 8 embedded, migrated).
+
+**PO checks owed** (server and webpack are restarted on N2, the extension is
+installed):
+
+1. ⛔ **Reopen** any zone Tiled has open: a document read before the
+   reinstall still carries `AuraPolygon` objects, and its save refuses them
+   (the paths layer's class check), losing nothing.
+2. Tiled's Layers panel reads anchors · atmospheres · darkAreas · bindPoints
+   · spawns · props · decals · paths · regions (footer item 8).
+3. Click a filled mass: its class reads `AuraStructure`; a bind point reads
+   `AuraBindPoint`; drag a Sand patch from **Templates ▸ decals** and it lands
+   at size 1 on the `decals` layer.
+4. N1's footer items 8 and 9 (the order and the padlocks) are still owed from
+   2026-09-20.

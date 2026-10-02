@@ -39,7 +39,7 @@ C.useContent(content);
 function zone(overrides: Record<string, unknown> = {}) {
     return {
         name: 'T', bounds: {width: 20, height: 10},
-        terrain: [], props: {}, spawns: [],
+        decals: [], props: {}, spawns: [],
         ...overrides,
     };
 }
@@ -126,7 +126,7 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
     //
     // ⭐ A LAYER IS NOT ALWAYS ONE ARRAY, and this is the only structural fact
     // this test has to state rather than derive. Two layers carry two classes
-    // each: `paths` holds AuraPath + AuraPolygon (zone-polygons D5) and, since
+    // each: `paths` holds AuraPath + AuraStructure (zone-polygons D5) and, since
     // A4, `atmospheres` holds AuraAtmosphere + AuraClearing.
     //
     // ⛔ THE PATHS ROW WAS ALREADY WRONG AND NOBODY KNEW, which is the durable
@@ -136,7 +136,7 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
     // A4 made the same latent defect fire at once, because world.json DOES
     // author a clearing. The bug was found by content, not by the suite.
     const SHARED_LAYERS: Record<string, string[]> = {
-        paths: ['polygons', 'paths'],
+        paths: ['structures', 'paths'],
         atmospheres: ['atmospheres', 'clearings'],
     };
 
@@ -184,7 +184,7 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
 
     /* ⛔ THE FIXTURE IS SYNTHETIC ON PURPOSE, and the reason is a defect this
      * test HAD (found during plan-zone-naming.md N1). It used to read the blob
-     * list out of the live world.json and index `src.terrain[last]` — so the day
+     * list out of the live world.json and index `src.decals[last]` — so the day
      * an authoring session left `terrain` EMPTY, `last` went to -1,
      * `objects[0]` was undefined and the test died on `.name` with a message
      * naming nothing about paint order.
@@ -197,20 +197,20 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
      *
      * The byte-stability tests above still read the real world.json, which is
      * the thing they are actually about. */
-    it('terrain paint order is preserved as index draw order', () => {
+    it('decals paint order is preserved as index draw order', () => {
         const src = zone({
-            terrain: [
+            decals: [
                 {type: 'Land', x: 0, y: 0, size: 1, rotation: 0, flipped: 'none'},
                 {type: 'Sand', x: 1, y: 1, size: 1, rotation: 0, flipped: 'none'},
                 {type: 'Pebble', x: 2, y: 2, size: 1, rotation: 0, flipped: 'none'},
             ],
-        }) as {terrain: {type: string}[]};
+        }) as {decals: {type: string}[]};
         const model = C.zoneToModel(src);
-        const terrain = layerNamed(model, 'terrain');
-        expect(terrain.drawOrder).toBe('index');
+        const decals = layerNamed(model, 'decals');
+        expect(decals.drawOrder).toBe('index');
         // array order is paint order, so object order must match file order
-        expect(terrain.objects.map(o => o.name))
-            .toEqual(src.terrain.map(t => t.type));
+        expect(decals.objects.map(o => o.name))
+            .toEqual(src.decals.map(t => t.type));
     });
 
     /* ⭐ THE STACK IS THE CLIENT'S DRAW ORDER, BOTTOM-FIRST
@@ -232,10 +232,10 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
         expect(model.layers.map((l: {name: string}) => l.name)).toEqual([
             'regions',      // terrain.regions — the ground itself
             'paths',        // terrain.polygons + terrain.paths
-            'terrain',      // terrain.textures — blobs ON the ground
+            'decals',       // terrain.textures — blobs ON the ground
             'props',        // props.standing / props.underfoot
             'spawns',       // mobs.*
-            'campfires',    // not rendered from this array
+            'bindPoints',   // not rendered from this array
             'darkAreas',    // darkness
             'atmospheres',  // haze + darkness
             'anchors',      // not rendered
@@ -387,41 +387,41 @@ describe('AuraConvert — the tri-state fields', () => {
     });
 });
 
-describe('AuraConvert — terrain geometry', () => {
+describe('AuraConvert — decal geometry', () => {
     it('size is a HALF-EXTENT: 1.75 becomes a 420 px box', () => {
         const model = C.zoneToModel(zone({
-            terrain: [{type: 'Land', x: 0, y: 0, size: 1.75, rotation: 0, flipped: 'none'}],
+            decals: [{type: 'Land', x: 0, y: 0, size: 1.75, rotation: 0, flipped: 'none'}],
         }));
-        const o = layerNamed(model, 'terrain').objects[0];
+        const o = layerNamed(model, 'decals').objects[0];
         expect(o.width).toBe(420);
         expect(o.height).toBe(420);
     });
 
     it('a rotated, flipped piece round-trips', () => {
         const t = {type: 'Sand', x: -12.34, y: 5.67, size: 1.42, rotation: 6.176, flipped: 'horizontal'};
-        expect(roundTrip(zone({terrain: [t]})).terrain[0]).toEqual(t);
+        expect(roundTrip(zone({decals: [t]})).decals[0]).toEqual(t);
     });
 
     it('each flip value round-trips', () => {
         ['none', 'horizontal', 'vertical'].forEach(flipped => {
             const t = {type: 'Land', x: 1, y: 2, size: 1, rotation: 1.5, flipped};
-            expect(roundTrip(zone({terrain: [t]})).terrain[0].flipped).toBe(flipped);
+            expect(roundTrip(zone({decals: [t]})).decals[0].flipped).toBe(flipped);
         });
     });
 
     it('rejects a both-axes flip, which world.json cannot express', () => {
         const model = C.zoneToModel(zone({
-            terrain: [{type: 'Land', x: 0, y: 0, size: 1, rotation: 0, flipped: 'horizontal'}],
+            decals: [{type: 'Land', x: 0, y: 0, size: 1, rotation: 0, flipped: 'horizontal'}],
         }));
-        layerNamed(model, 'terrain').objects[0].flipV = true;
+        layerNamed(model, 'decals').objects[0].flipV = true;
         expect(() => C.modelToZone(model)).toThrow(/both-axes flip/);
     });
 
     it('flip rides the real gid flags, not a custom property', () => {
         const model = C.zoneToModel(zone({
-            terrain: [{type: 'Land', x: 0, y: 0, size: 1, rotation: 0, flipped: 'vertical'}],
+            decals: [{type: 'Land', x: 0, y: 0, size: 1, rotation: 0, flipped: 'vertical'}],
         }));
-        const o = layerNamed(model, 'terrain').objects[0];
+        const o = layerNamed(model, 'decals').objects[0];
         expect(o.shape).toBe('tile');
         expect({h: o.flipH, v: o.flipV}).toEqual({h: false, v: true});
         expect(o.properties.flipped).toBeUndefined();
@@ -446,7 +446,7 @@ describe('AuraConvert — the generated object templates', () => {
     const dir = nodeRequire.resolve('../../../../../tools/tiled/palette/content.json')
         .replace(/content\.json$/, 'templates');
 
-    function templates(kind: 'props' | 'terrain') {
+    function templates(kind: 'props' | 'decals') {
         return readdirSync(dir + '/' + kind).map(f => {
             const text = readFileSync(dir + '/' + kind + '/' + f, 'utf8');
             const obj = /<object name="([^"]*)" class="([^"]*)" gid="(\d+)" width="([\d.]+)" height="([\d.]+)"\/>/
@@ -475,10 +475,10 @@ describe('AuraConvert — the generated object templates', () => {
 
     // Through the real derivation, never a reimplementation of it: drop the
     // template's box onto a placement and ask the serializer what it authors.
-    function authored(kind: 'props' | 'terrain', name: string, w: number, h: number) {
+    function authored(kind: 'props' | 'decals', name: string, w: number, h: number) {
         const z = kind === 'props'
             ? withProps([{type: name, x: 0, y: 0, rotation: 0, blocksMovement: false}])
-            : zone({terrain: [{type: name, x: 0, y: 0, size: 1, rotation: 0, flipped: 'none'}]});
+            : zone({decals: [{type: name, x: 0, y: 0, size: 1, rotation: 0, flipped: 'none'}]});
         const model = C.zoneToModel(z);
         const o = kind === 'props' ? propObjects(model)[0] : layerNamed(model, kind).objects[0];
         o.width = w;
@@ -489,12 +489,12 @@ describe('AuraConvert — the generated object templates', () => {
     it('there is exactly one template per prop and per texture', () => {
         expect(templates('props').map(t => t.name).sort())
             .toEqual(Object.keys(content.PROP_SIZE).sort());
-        expect(templates('terrain').map(t => t.name).sort())
+        expect(templates('decals').map(t => t.name).sort())
             .toEqual([...content.TERRAIN_TYPES].sort());
     });
 
     it('each gid points at the tile its own tileset holds for that name', () => {
-        (['props', 'terrain'] as const).forEach(kind => {
+        (['props', 'decals'] as const).forEach(kind => {
             templates(kind).forEach(t => {
                 const ids = tileIds(t.tsx);
                 expect(t.gid, `${kind}/${t.file} gid`).toBe(ids[t.name] + 1);
@@ -520,12 +520,12 @@ describe('AuraConvert — the generated object templates', () => {
      * [PLACEHOLDER] look call, so this pins the invariants rather than the
      * value: every texture starts the same, and it serializes clean. */
     it('every texture template shares one box, and it round-trips clean', () => {
-        const all = templates('terrain');
+        const all = templates('decals');
         const [first] = all;
         all.forEach(t => expect({w: t.w, h: t.h}, `${t.file} box`)
             .toEqual({w: first.w, h: first.h}));
         expect(first.w).toBe(first.h);
-        const size = authored('terrain', first.name, first.w, first.h).terrain[0].size;
+        const size = authored('decals', first.name, first.w, first.h).decals[0].size;
         expect(size).toBeGreaterThan(0);
         expect(size, 'a box that serializes to float dust is a box nobody can retype')
             .toBe(Math.round(size * 100) / 100);
@@ -552,7 +552,7 @@ describe('AuraConvert — the generated object templates', () => {
 
     it('the class matches the layer the template belongs on', () => {
         templates('props').forEach(t => expect(t.cls, t.file).toBe('AuraProp'));
-        templates('terrain').forEach(t => expect(t.cls, t.file).toBe('AuraTerrain'));
+        templates('decals').forEach(t => expect(t.cls, t.file).toBe('AuraDecal'));
     });
 });
 
@@ -715,13 +715,13 @@ describe('AuraConvert — patrol routes and the remaining arrays', () => {
 
     it('a campfire keeps its id and its startingSpawn flag only when true', () => {
         const out = roundTrip(zone({
-            campfires: [
+            bindPoints: [
                 {id: 'spawnpoint-1', x: -58.2, y: 24, startingSpawn: true},
                 {id: 'spawnpoint-2', x: 44, y: 10.5},
             ],
         }));
-        expect(out.campfires[0]).toEqual({id: 'spawnpoint-1', x: -58.2, y: 24, startingSpawn: true});
-        expect('startingSpawn' in out.campfires[1]).toBe(false);
+        expect(out.bindPoints[0]).toEqual({id: 'spawnpoint-1', x: -58.2, y: 24, startingSpawn: true});
+        expect('startingSpawn' in out.bindPoints[1]).toBe(false);
     });
 
     it('a dark area survives as a circle', () => {
@@ -838,7 +838,7 @@ describe('AuraConvert — patrol routes and the remaining arrays', () => {
 
     it('empty optional arrays stay omitted', () => {
         const out = JSON.stringify(roundTrip(zone()));
-        expect(out).not.toContain('campfires');
+        expect(out).not.toContain('bindPoints');
         expect(out).not.toContain('darkAreas');
         expect(out).not.toContain('regions');
         expect(out).not.toContain('anchors');
@@ -903,6 +903,17 @@ describe('AuraConvert — prop layers (P3)', () => {
     it('refuses to open a flat props array, or an unknown layer', () => {
         expect(() => C.zoneToModel(zone({props: []}))).toThrow(/migrate-prop-layers/);
         expect(() => C.zoneToModel(zone({props: {roof: []}}))).toThrow(/"roof"/);
+    });
+
+    // ⛔ plan-zone-naming.md N2 renamed three arrays. Read leniently, a file
+    // still on an old name would open with that array empty and the next save
+    // would delete it, so the open refuses and names the migration.
+    it('refuses to open a zone still on a pre-N2 key name', () => {
+        ([['terrain', 'decals'], ['polygons', 'structures'], ['campfires', 'bindPoints']] as const)
+            .forEach(([old, now]) => {
+                expect(() => C.zoneToModel(zone({[old]: []})), old)
+                    .toThrow(new RegExp(`"${old}".*"${now}".*migrate-zone-key-names`));
+            });
     });
 
     /* ⛔ D4: a bridge clears the river under its deck, so it must DRAW under
@@ -1134,7 +1145,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
     // ⭐ P1: a POLYGON on the paths layer is now legal and IS the closed flag.
     // Before this it was refused outright ("a closed river is a lake"), which
     // is the assertion this replaces — the fill it was protecting against is
-    // AuraPolygon's job, not a shape rule's.
+    // AuraStructure's job, not a shape rule's.
     it('a path drawn as a closed polygon validates cleanly', () => {
         const z = pathZone({points: [{x: 0, y: 0}, {x: 5, y: 0}, {x: 5, y: 5}], closed: true});
         expect(C.validateModel(C.zoneToModel(z))).toEqual([]);
@@ -1171,7 +1182,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
 
     function polyZone(over: Record<string, unknown> = {}) {
         return zone({
-            polygons: [{
+            structures: [{
                 profile: 'Fields',
                 points: [{x: 0, y: 0}, {x: 5, y: 0}, {x: 5, y: 5}],
                 ...over,
@@ -1206,7 +1217,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
         });
         const msg = C.validateModel(model).join(' | ');
         expect(msg).toContain('AuraPath');
-        expect(msg).toContain('AuraPolygon');
+        expect(msg).toContain('AuraStructure');
         expect(msg).toContain('DROPPED on save');
     });
 
@@ -1214,21 +1225,21 @@ describe('AuraConvert — save-time validation (C4)', () => {
     // path would come back width-less (and be refused for it, which at least is
     // loud); a path read as a polygon would come back as a filled shape, which
     // is not loud at all.
-    it('paths and polygons on one layer round-trip into their own arrays', () => {
+    it('paths and structures on one layer round-trip into their own arrays', () => {
         const z = zone({
             paths: [{profile: 'Road', points: [{x: 0, y: 0}, {x: 5, y: 2}], width: 3}],
-            polygons: [{profile: 'Water', points: [{x: 1, y: 1}, {x: 6, y: 1}, {x: 6, y: 6}]}],
+            structures: [{profile: 'Water', points: [{x: 1, y: 1}, {x: 6, y: 1}, {x: 6, y: 6}]}],
         });
         const model = C.zoneToModel(z);
         const layer = model.layers.find((l: {name: string}) => l.name === 'paths');
-        expect(layer.objects.map((o: {cls: string}) => o.cls)).toEqual(['AuraPolygon', 'AuraPath']);
+        expect(layer.objects.map((o: {cls: string}) => o.cls)).toEqual(['AuraStructure', 'AuraPath']);
 
         const back = C.modelToZone(model);
         expect(back.paths).toHaveLength(1);
         expect(back.paths[0].profile).toBe('Road');
-        expect(back.polygons).toHaveLength(1);
-        expect(back.polygons[0].profile).toBe('Water');
-        expect(back.polygons[0]).not.toHaveProperty('width');
+        expect(back.structures).toHaveLength(1);
+        expect(back.structures[0].profile).toBe('Water');
+        expect(back.structures[0]).not.toHaveProperty('width');
     });
 
     // ---- A4: the SECOND shared layer, and its own class split -------------
@@ -1325,7 +1336,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
 
     it('a decorative polygon emits no blocksMovement key', () => {
         const out = JSON.parse(C.serializeZone(C.modelToZone(C.zoneToModel(polyZone()))));
-        expect(out.polygons[0]).not.toHaveProperty('blocksMovement');
+        expect(out.structures[0]).not.toHaveProperty('blocksMovement');
     });
 
     // ---- outlines, on both surface types (plan-zone-polygons.md D3) -------
@@ -1336,7 +1347,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
                 profile: 'Road', points: [{x: 0, y: 0}, {x: 5, y: 0}], width: 2,
                 outlineProfile: 'Desert', outlineWidth: 0.5,
             }],
-            polygons: [{
+            structures: [{
                 profile: 'Water', points: [{x: -8, y: -4}, {x: -2, y: -4}, {x: -2, y: 2}],
                 outlineProfile: 'Coast', outlineWidth: 1.25,
             }],
@@ -1344,8 +1355,8 @@ describe('AuraConvert — save-time validation (C4)', () => {
         const back = C.modelToZone(C.zoneToModel(z));
         expect(back.paths[0].outlineProfile).toBe('Desert');
         expect(back.paths[0].outlineWidth).toBe(0.5);
-        expect(back.polygons[0].outlineProfile).toBe('Coast');
-        expect(back.polygons[0].outlineWidth).toBe(1.25);
+        expect(back.structures[0].outlineProfile).toBe('Coast');
+        expect(back.structures[0].outlineWidth).toBe(1.25);
     });
 
     // ⚑ Tri-state, like every other optional key: a shape with no outline must
@@ -1410,7 +1421,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
     // Where each closed-area type lives, and the class Tiled marks it with.
     const CLOSED_AREAS: [string, string, string][] = [
         ['regions', 'AuraRegion', 'Swamp'],
-        ['paths', 'AuraPolygon', 'Mountains'],
+        ['paths', 'AuraStructure', 'Mountains'],
         ['atmospheres', 'AuraAtmosphere', 'Fog'],
     ];
 
@@ -1439,7 +1450,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
             expect(C.validateModel(model)).toEqual([]);
 
             const back = C.modelToZone(model);
-            const key = layer === 'paths' ? 'polygons' : layer;
+            const key = layer === 'paths' ? 'structures' : layer;
             const pts = back[key][back[key].length - 1].points;
             // 1200,600 px at 120 px/u is (10, 5) from the top-left of a 20x10
             // zone, i.e. (0, 0) in world units; the rect is 5 x 3 u.
@@ -1506,18 +1517,18 @@ describe('AuraConvert — save-time validation (C4)', () => {
         expect(msg).toContain('#101');
     });
 
-    // terrain.type is validated on NEITHER side today — the server ignores it
+    // decals[].type is validated on NEITHER side today — the server ignores it
     // and the client dereferences undefined at render time.
-    it('catches a terrain type nothing else in the pipeline checks', () => {
+    it('catches a decal type nothing else in the pipeline checks', () => {
         const t = {type: 'Not A Texture', x: 0, y: 0, size: 1, rotation: 0, flipped: 'none'};
-        expect(only(zone({terrain: [t]}))).toContain('unknown ground texture');
+        expect(only(zone({decals: [t]}))).toContain('unknown ground texture');
     });
 
-    it('accepts every terrain type the game actually ships', () => {
+    it('accepts every decal type the game actually ships', () => {
         const terrain = (content.TERRAIN_TYPES as string[]).map((type, i) => ({
             type, x: i - 8, y: 0, size: 1, rotation: 0, flipped: 'none',
         }));
-        expect(errs(zone({terrain}))).toEqual([]);
+        expect(errs(zone({decals: terrain}))).toEqual([]);
     });
 
     // ⚑ -1, 0 and 0 are NOT used here on purpose: C6 reserved exactly those
@@ -1671,14 +1682,14 @@ describe('AuraConvert — save-time validation (C4)', () => {
         it('leaves every ground surface on the terrain enum', () => {
             expect(memberType('AuraRegion', 'profile')).toBe('AuraTerrainProfile');
             expect(memberType('AuraPath', 'profile')).toBe('AuraTerrainProfile');
-            expect(memberType('AuraPolygon', 'profile')).toBe('AuraTerrainProfile');
+            expect(memberType('AuraStructure', 'profile')).toBe('AuraTerrainProfile');
         });
 
         // ⚑ An outline is a GROUND surface even on a shape that is not — it
         // strokes the boundary, so it paints from the terrain table.
         it('keeps outlines on the terrain enum, on both surface types', () => {
             expect(memberType('AuraPath', 'outlineProfile')).toBe('AuraTerrainProfile');
-            expect(memberType('AuraPolygon', 'outlineProfile')).toBe('AuraTerrainProfile');
+            expect(memberType('AuraStructure', 'outlineProfile')).toBe('AuraTerrainProfile');
         });
 
         // ⭐ The area effect (plan-area-effects.md E1) — a THIRD vocabulary, and
@@ -1687,7 +1698,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
         // see which enum a member declares.
         it('gives every effect-bearing shape the skill enum', () => {
             expect(memberType('AuraPath', 'effect')).toBe('AuraEffect');
-            expect(memberType('AuraPolygon', 'effect')).toBe('AuraEffect');
+            expect(memberType('AuraStructure', 'effect')).toBe('AuraEffect');
             expect(memberType('AuraAtmosphere', 'effect')).toBe('AuraEffect');
         });
 
@@ -1732,7 +1743,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
         // answer. A default naming a real skill would arm every shape in the
         // world with a hazard nobody drew.
         it('defaults every effect member to the placeholder', () => {
-            ['AuraPath', 'AuraPolygon', 'AuraAtmosphere'].forEach(cls => {
+            ['AuraPath', 'AuraStructure', 'AuraAtmosphere'].forEach(cls => {
                 const m = (classOf(cls).members || []).filter(x => x.name === 'effect')[0];
                 expect(m.value, cls).toBe(C.EFFECT_UNSET);
             });
@@ -1781,7 +1792,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
         const shaped = (over: Record<string, unknown> = {}) => zone({
             paths: [{profile: A_REAL_PROFILE, width: 2,
                 points: [{x: 0, y: 0}, {x: 4, y: 0}], effect: E_PATH}],
-            polygons: [{profile: A_REAL_PROFILE,
+            structures: [{profile: A_REAL_PROFILE,
                 points: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}], effect: E_POLY}],
             atmospheres: [{profile: (content.AIR_PROFILE_NAMES as string[])[0],
                 points: [{x: 1, y: 1}, {x: 5, y: 1}, {x: 5, y: 5}], effect: E_AIR}],
@@ -1791,7 +1802,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
         it('⭐ each shape keeps its OWN effect through a full round-trip', () => {
             const back = roundTrip(shaped());
             expect(back.paths[0].effect).toBe(E_PATH);
-            expect(back.polygons[0].effect).toBe(E_POLY);
+            expect(back.structures[0].effect).toBe(E_POLY);
             expect(back.atmospheres[0].effect).toBe(E_AIR);
         });
 
@@ -1812,13 +1823,13 @@ describe('AuraConvert — save-time validation (C4)', () => {
             const back = roundTrip(zone({
                 paths: [{profile: A_REAL_PROFILE, width: 2,
                     points: [{x: 0, y: 0}, {x: 4, y: 0}]}],
-                polygons: [{profile: A_REAL_PROFILE,
+                structures: [{profile: A_REAL_PROFILE,
                     points: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}]}],
                 atmospheres: [{profile: (content.AIR_PROFILE_NAMES as string[])[0],
                     points: [{x: 1, y: 1}, {x: 5, y: 1}, {x: 5, y: 5}]}],
             }));
             expect(Object.keys(back.paths[0])).not.toContain('effect');
-            expect(Object.keys(back.polygons[0])).not.toContain('effect');
+            expect(Object.keys(back.structures[0])).not.toContain('effect');
             expect(Object.keys(back.atmospheres[0])).not.toContain('effect');
         });
 
@@ -1836,7 +1847,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
             expect(C.validateModel(model)).toEqual([]);
             const back = C.modelToZone(model);
             expect(back.paths[0].effect).toBeUndefined();
-            expect(back.polygons[0].effect).toBeUndefined();
+            expect(back.structures[0].effect).toBeUndefined();
             expect(back.atmospheres[0].effect).toBeUndefined();
         });
 
@@ -1860,7 +1871,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
         // boot. The server refuses an unknown effect too
         // (world.CrossValidateAreaEffects); this says so hours earlier, with an
         // id that goes into Edit ▸ Select Object by Id.
-        (['paths', 'polygons', 'atmospheres'] as const).forEach(array => {
+        (['paths', 'structures', 'atmospheres'] as const).forEach(array => {
             it('refuses an unknown effect on ' + array + ', by id', () => {
                 const over: Record<string, unknown> = {};
                 const base = shaped()[array] as Record<string, unknown>[];
@@ -1874,7 +1885,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
         });
 
         it('refuses an effect with stray whitespace rather than trimming it', () => {
-            const msg = only(shaped({polygons: [{profile: A_REAL_PROFILE,
+            const msg = only(shaped({structures: [{profile: A_REAL_PROFILE,
                 points: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}],
                 effect: ' ' + E_POLY}]}));
             expect(msg).toContain('stray whitespace');
@@ -1886,7 +1897,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
         it('accepts every effect the palette actually offers', () => {
             expect(EFFECTS.length).toBeGreaterThan(0);
             EFFECTS.forEach(effect => expect(
-                errs(zone({polygons: [{profile: A_REAL_PROFILE,
+                errs(zone({structures: [{profile: A_REAL_PROFILE,
                     points: [{x: 0, y: 0}, {x: 4, y: 0}, {x: 4, y: 4}], effect}]})),
                 effect).toEqual([]));
         });
@@ -1936,10 +1947,10 @@ describe('AuraConvert — save-time validation (C4)', () => {
 
     it('rejects an empty campfire id or a duplicate one', () => {
         const fire = (id: string, startingSpawn?: boolean) => ({id, x: 0, y: 0, startingSpawn});
-        expect(errs(zone({campfires: [fire('a', true)]}))).toEqual([]);
-        expect(errs(zone({campfires: [fire('a', true), fire('a')]})).join(' '))
+        expect(errs(zone({bindPoints: [fire('a', true)]}))).toEqual([]);
+        expect(errs(zone({bindPoints: [fire('a', true), fire('a')]})).join(' '))
             .toContain('duplicate spawn point id');
-        expect(errs(zone({campfires: [fire('', true)]})).join(' ')).toContain('must not be empty');
+        expect(errs(zone({bindPoints: [fire('', true)]})).join(' ')).toContain('must not be empty');
     });
 
     // ⭐ AND ACCEPTS A ZONE WITH FIRES BUT NO STARTING SPAWN, which used to be
@@ -1952,9 +1963,9 @@ describe('AuraConvert — save-time validation (C4)', () => {
     // so keeping the check here refused to save every legal cave — which is how
     // it was found, on the first attempt to edit underworld.json. The invariant
     // is not weakened: world.Place still hard-fails the boot.
-    it('accepts a cave: campfires with no starting spawn is a SET-wide question', () => {
+    it('accepts a cave: bind points with no starting spawn is a SET-wide question', () => {
         const fire = (id: string, startingSpawn?: boolean) => ({id, x: 0, y: 0, startingSpawn});
-        expect(errs(zone({campfires: [fire('underworld-1')]}))).toEqual([]);
+        expect(errs(zone({bindPoints: [fire('underworld-1')]}))).toEqual([]);
     });
 
     it('rejects a duplicate anchor name and one placed outside the bounds', () => {
@@ -2088,7 +2099,7 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         // ⚑ Authored for the same reason: absent is the default (black), so a
         // fixture without it would let both writers drop every zone's ground.
         ground: 'Wall',
-        terrain: [{type: 'Green Grass 1', x: 0, y: 0, size: 1, rotation: 0.5, flipped: 'horizontal'}],
+        decals: [{type: 'Green Grass 1', x: 0, y: 0, size: 1, rotation: 0.5, flipped: 'horizontal'}],
         // ⚑ The four layer keys are always emitted, so they reach the key set
         // whatever is in them; one placement is what exercises a prop's own
         // keys. In canopy rather than default, so a writer that collapsed
@@ -2111,7 +2122,7 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             // writers quietly dropped every cave mouth’s destination.
             anchor: 'underworld-entry',
         }],
-        campfires: [{id: 'spawnpoint-1', x: 6, y: 6, startingSpawn: true}],
+        bindPoints: [{id: 'spawnpoint-1', x: 6, y: 6, startingSpawn: true}],
         darkAreas: [{x: 7, y: 7, radius: 2}],
         // ⚑ title AND subtitle are authored: both are omitted when blank, so a
         // fixture without them would pass this pin while the writers drop them.
@@ -2153,7 +2164,7 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         // ⚑ blocksMovement TRUE for the same tri-state reason as the path above:
         // false is the authored default, so a decorative fixture would never
         // emit the key and this pin would pass while both writers dropped it.
-        polygons: [{
+        structures: [{
             profile: 'Mountains',
             points: [{x: 2, y: 1}, {x: 6, y: 1}, {x: 6, y: 5}],
             blocksMovement: true,
@@ -2228,7 +2239,7 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
     it('finds the schema where it expects it', () => {
         const keys = goJsonKeys();
         expect(keys.size).toBeGreaterThan(20);
-        ['name', 'bounds', 'terrain', 'props', 'spawns', 'waypoints', 'patrolMode']
+        ['name', 'bounds', 'decals', 'props', 'spawns', 'waypoints', 'patrolMode']
             .forEach(k => expect(keys).toContain(k));
     });
 
@@ -2348,7 +2359,7 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
     // showed an EMPTY Properties panel and saved as non-blocking. The fix was to
     // stop asking a bool to carry three answers — see the AuraProp block below.
     it('gives the OTHER classes no members, deliberately', () => {
-        ['AuraTerrain', 'AuraCampfire', 'AuraDarkArea', 'AuraAnchor']
+        ['AuraDecal', 'AuraBindPoint', 'AuraDarkArea', 'AuraAnchor']
             .forEach(n => expect(byName(n).members ?? [], n).toEqual([]));
     });
 
@@ -2531,7 +2542,7 @@ describe('AuraConvert — inherit sentinels and the typed spawn form (C6)', () =
         expect(at('spawns', 'point')).toContain('Set its Class');
         expect(at('spawns', 'point')).toContain('AuraSpawnCombat');
         expect(at('props', 'rect', 120)).toContain('aura-props tileset');
-        expect(at('terrain', 'rect', 120)).toContain('aura-terrain tileset');
+        expect(at('decals', 'rect', 120)).toContain('aura-decals tileset');
     });
 
     it('refuses a spawn nobody has assigned a mob to', () => {

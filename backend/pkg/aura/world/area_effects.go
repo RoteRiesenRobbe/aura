@@ -39,9 +39,9 @@ func areaEffectShapes(z *Zone, visit func(kind string, i int, effect string)) {
 			visit("path", i, z.Paths[i].Effect)
 		}
 	}
-	for i := range z.Polygons {
-		if z.Polygons[i].Effect != "" {
-			visit("polygon", i, z.Polygons[i].Effect)
+	for i := range z.Structures {
+		if z.Structures[i].Effect != "" {
+			visit("structure", i, z.Structures[i].Effect)
 		}
 	}
 	for i := range z.Atmospheres {
@@ -145,7 +145,7 @@ type PlacedAreaEffect struct {
 	// Bounds is the axis-aligned extent of Points.
 	Bounds BoundingBox
 	// Zone, Kind and Index identify the authored shape for messages: the zone
-	// stem, "path"/"polygon"/"atmosphere", and the position in that array. ⚑ The
+	// stem, "path"/"structure"/"atmosphere", and the position in that array. ⚑ The
 	// array index is the only handle an author has — no shape carries an id.
 	Zone  string
 	Kind  string
@@ -179,8 +179,8 @@ func CollectAreaEffects(zones []*Zone) []PlacedAreaEffect {
 			switch kind {
 			case "path":
 				points = z.Paths[i].Points
-			case "polygon":
-				points = z.Polygons[i].Points
+			case "structure":
+				points = z.Structures[i].Points
 			case "atmosphere":
 				points = z.Atmospheres[i].Points
 			}

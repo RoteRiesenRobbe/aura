@@ -11,7 +11,7 @@ import (
 // threat cleared, aura off, mob walks home. The tester had no reliable place
 // to stop and read the screen; the fires now provide one.
 //
-// The zones are world data placed once at boot from zone.campfires (see
+// The zones are world data placed once at boot from zone.bindPoints (see
 // cmd/aurad) and never move, so they live in one package-level slice rather
 // than being threaded through all five NewMob call sites. Nothing installs
 // them in the sim harness or in tests, where the slice stays nil and mob

@@ -104,13 +104,13 @@ here needs Go.
 |---|---|---|
 | `regions` | Filled area naming a **terrain profile** — the ground | The zone's base ground (Fields, Forest, Suburbs) |
 | `paths` | Stroked line or **closed ring**, a profile + width, optionally blocking, optionally **`alignTexture`** (runs the tile *along* the path — required by `Fence`, wrong for everything else), **`corners`** (`round` default · `sharp` for a wall) and **`ends`** (`round` default · `flat` · `point`, which narrows the last 2 × width to nothing so a cliff fades out — collision narrows with it; not on a closed ring) | Roads, rivers, hedgerows, fences, cliff edges, cave walls |
-| `polygons` | Filled closed area, optionally **blocking**, with an outline | Ponds, rock masses, building footprints, walls of a hideout |
+| `structures` | Filled closed area, optionally **blocking**, with an outline | Ponds, rock masses, building footprints, walls of a hideout |
 | `atmospheres` | The **air** over an area — `darkness` and/or `haze`, plus `sight` | Canopy gloom, forest fog, a dark tunnel, weather |
 | `clearings` | A closed area that **erases** atmosphere (`darkness`/`haze`/`both`) | A sunlit glade in the canopy, a lit camp inside the gloom |
 | `darkAreas` | Legacy circles of darkness | Existing content only — prefer `atmospheres` for new work |
 | `props` | Placed art with a collider (Tree, Rock, Boulder, House, GateWall, Tombstone) | Scatter, buildings, walls |
 | `spawns` | A mob or NPC placement, with level / respawn / wander overrides | All life |
-| `campfires` | Respawn anchor + rest point; one per zone is `startingSpawn` | Village, camp, waypoints |
+| `bindPoints` | Respawn anchor + rest point (drawn as a campfire); one per zone is `startingSpawn` | Village, camp, waypoints |
 | `anchors` | Named points a script or a door reads | Encounter geometry, tunnel destinations |
 | `effect` *(designed, unbuilt)* | One optional key on a polygon/path/atmosphere naming an authored effect | Bog rot, lava, healing spring |
 

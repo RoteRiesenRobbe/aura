@@ -704,20 +704,26 @@ type Zone struct {
 	// bounds AND beyond them, beneath every region and polygon (PO 2026-09-27).
 	// Absent = black. Client-visual only and unvalidated against the profile
 	// table, Region's D8 posture verbatim: the server never reads it.
-	Ground  string           `json:"ground,omitempty"`
-	Terrain []TerrainTexture `json:"terrain"`
+	Ground string `json:"ground,omitempty"`
+	// Decals are the scattered ground-texture patches. The key was `terrain`
+	// until plan-zone-naming.md N2: that is also the word for the whole ground.
+	Decals []TerrainTexture `json:"decals"`
 	// PropLayers is `props` exactly as the file nests it. parseZone flattens it
 	// into Props and then empties it, so there is one copy of every placement
 	// and every reader iterates Props.
 	PropLayers PropLayers `json:"props"`
 	// Props is every placement, flattened in draw order (PropLayers.flatten).
-	Props     []Prop     `json:"-"`
-	Spawns    []Spawn    `json:"spawns"`
-	Campfires []Campfire `json:"campfires"`
-	DarkAreas []DarkArea `json:"darkAreas"`
-	Regions   []Region   `json:"regions"`
-	Paths     []Path     `json:"paths"`
-	Polygons  []Polygon  `json:"polygons"`
+	Props  []Prop  `json:"-"`
+	Spawns []Spawn `json:"spawns"`
+	// BindPoints are where a character binds and respawns. The key was
+	// `campfires` until N2, named for the art; the fires a player sees are mobs.
+	BindPoints []Campfire `json:"bindPoints"`
+	DarkAreas  []DarkArea `json:"darkAreas"`
+	Regions    []Region   `json:"regions"`
+	Paths      []Path     `json:"paths"`
+	// Structures are the filled masses: rock, buildings, lakes. The key was
+	// `polygons` until N2, named for the geometry every area shape shares.
+	Structures []Polygon `json:"structures"`
 	// Atmospheres is client-visual only and the server never reads it past
 	// validation — DarkArea's and Region's posture verbatim.
 	Atmospheres []Atmosphere `json:"atmospheres"`
@@ -1048,20 +1054,20 @@ func (z *Zone) validate() error {
 		}
 	}
 	// Polygons name the INDEX for the same reason regions and paths do.
-	for i := range z.Polygons {
-		if strings.TrimSpace(z.Polygons[i].Profile) == "" {
-			return fmt.Errorf("polygon %d: profile must not be empty", i)
+	for i := range z.Structures {
+		if strings.TrimSpace(z.Structures[i].Profile) == "" {
+			return fmt.Errorf("structure %d: profile must not be empty", i)
 		}
 		// THREE, like a region: a filled shape has to enclose an area. Two
 		// points are a line, and a line is a path.
-		if len(z.Polygons[i].Points) < 3 {
-			return fmt.Errorf("polygon %d: needs at least 3 points to enclose an area, got %d",
-				i, len(z.Polygons[i].Points))
+		if len(z.Structures[i].Points) < 3 {
+			return fmt.Errorf("structure %d: needs at least 3 points to enclose an area, got %d",
+				i, len(z.Structures[i].Points))
 		}
-		if err := validateOutline("polygon", i, z.Polygons[i].OutlineProfile, z.Polygons[i].OutlineWidth); err != nil {
+		if err := validateOutline("structure", i, z.Structures[i].OutlineProfile, z.Structures[i].OutlineWidth); err != nil {
 			return err
 		}
-		if err := validateEffect("polygon", i, z.Polygons[i].Effect); err != nil {
+		if err := validateEffect("structure", i, z.Structures[i].Effect); err != nil {
 			return err
 		}
 	}
@@ -1108,14 +1114,14 @@ func (z *Zone) validate() error {
 	// asked at the right scope.
 	// Spawn-point identity. The map is zone-wide by design (Campfire.ID) even
 	// though campfires are its only members today.
-	spawnPointIDs := make(map[string]bool, len(z.Campfires))
-	for i := range z.Campfires {
-		id := strings.TrimSpace(z.Campfires[i].ID)
+	spawnPointIDs := make(map[string]bool, len(z.BindPoints))
+	for i := range z.BindPoints {
+		id := strings.TrimSpace(z.BindPoints[i].ID)
 		if id == "" {
-			return fmt.Errorf("campfire %d: id must not be empty", i)
+			return fmt.Errorf("bind point %d: id must not be empty", i)
 		}
 		if spawnPointIDs[id] {
-			return fmt.Errorf("campfire %d: duplicate spawn point id %q", i, id)
+			return fmt.Errorf("bind point %d: duplicate spawn point id %q", i, id)
 		}
 		spawnPointIDs[id] = true
 	}

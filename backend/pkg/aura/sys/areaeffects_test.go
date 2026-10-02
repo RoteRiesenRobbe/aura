@@ -125,7 +125,7 @@ var areaBox = []world.Point{
 func areaAt(effect string, pts []world.Point) world.PlacedAreaEffect {
 	return world.PlacedAreaEffect{
 		Effect: effect, Points: pts, Bounds: world.BoundsOf(pts),
-		Zone: "test", Kind: "polygon", Index: 0,
+		Zone: "test", Kind: "structure", Index: 0,
 	}
 }
 
@@ -483,7 +483,7 @@ func TestAreaDot_ActuallyDamagesThroughTheDispatch(t *testing.T) {
 	m := mob.NewMob(testMobDef(), 0, nil)
 	before := float64(m.Health())
 
-	area := &world.PlacedAreaEffect{Effect: "TestBurn", Zone: "test", Kind: "polygon"}
+	area := &world.PlacedAreaEffect{Effect: "TestBurn", Zone: "test", Kind: "structure"}
 	// One application, due immediately: Interval 1 so the first event lands on
 	// the next drain.
 	m.ApplyDot(skills.SkillID(9001), skills.DotBuff{
@@ -509,7 +509,7 @@ func TestAreaHot_HealsThroughTheSamePath(t *testing.T) {
 	hurt := float64(m.Health())
 	require.Less(t, hurt, float64(m.MaxHealth()), "the fixture must actually be damaged first")
 
-	area := &world.PlacedAreaEffect{Effect: "TestSpring", Zone: "test", Kind: "polygon"}
+	area := &world.PlacedAreaEffect{Effect: "TestSpring", Zone: "test", Kind: "structure"}
 	m.ApplyHot(skills.SkillID(9002), skills.HotBuff{HP: 10, Interval: 1, Caster: area}, 10)
 	for i := 0; i < 3; i++ {
 		sk.tickBuffEvents(m)

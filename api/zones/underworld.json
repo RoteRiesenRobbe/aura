@@ -8,7 +8,7 @@
     "x": 5000,
     "y": 3000
   },
-  "terrain": [],
+  "decals": [],
   "props": {
     "underfoot": [],
     "default": [
@@ -149,7 +149,7 @@
       ]
     }
   ],
-  "polygons": [
+  "structures": [
     {
       "profile": "City",
       "points": [

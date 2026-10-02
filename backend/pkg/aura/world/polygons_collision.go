@@ -94,8 +94,8 @@ func PolygonColliders(z *Zone) ([]Corridor, []PolygonCoarsening) {
 	bridges := crossingProps(z)
 	var out []Corridor
 	var coarsened []PolygonCoarsening
-	for i := range z.Polygons {
-		g := &z.Polygons[i]
+	for i := range z.Structures {
+		g := &z.Structures[i]
 		if !g.BlocksMovement || len(g.Points) < 3 {
 			continue
 		}

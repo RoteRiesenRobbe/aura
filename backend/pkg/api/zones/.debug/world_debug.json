@@ -4,7 +4,7 @@
     "width": 144,
     "height": 72
   },
-  "terrain": [
+  "decals": [
     {
       "type": "Land",
       "x": -49.32,
@@ -14015,7 +14015,7 @@
       "angle": 0
     }
   ],
-  "campfires": [
+  "bindPoints": [
     {
       "id": "spawnpoint-1",
       "x": -58.2,

@@ -77,7 +77,7 @@ rules make it work:
 - **Region**: `Forest` over the whole zone.
 - **Kingsroad**: one `Road` path, width 3 u, W→E, **non-blocking**, dead-ending
   into the gate. Wide enough to be unmistakable.
-- **The forest mass**: blocking `polygons` — big, chunky, *not* jagged (collider
+- **The forest mass**: blocking `structures` — big, chunky, *not* jagged (collider
   budget) — with Tree props scattered densely on top of and around them. The
   polygons are the navigation; the props are the look. Never rely on prop
   colliders to wall a forest.

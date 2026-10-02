@@ -55,7 +55,7 @@
         var dir = FileInfo.path(zoneFileName);
         for (var i = 0; i < 16; i++) {
             var candidate = FileInfo.cleanPath(dir + '/tools/tiled/palette');
-            if (File.exists(candidate + '/terrain.tsx')) { return candidate + '/'; }
+            if (File.exists(candidate + '/decals.tsx')) { return candidate + '/'; }
             var up = FileInfo.cleanPath(dir + '/..');
             if (up === dir) { break; }
             dir = up;
@@ -96,7 +96,7 @@
         var tsx = tiled.tilesetFormat('tsx');
         if (!tsx) { throw new Error('Tiled has no tsx tileset format'); }
         var sets = {};
-        ['terrain', 'props'].forEach(function (name) {
+        ['decals', 'props'].forEach(function (name) {
             var p = dir + name + '.tsx';
             if (!File.exists(p)) {
                 throw new Error('palette missing: ' + p
@@ -147,7 +147,7 @@
         var map = new TileMap();
         map.setSize(Math.ceil(model.boundsWidth), Math.ceil(model.boundsHeight));
         map.setTileSize(C.PX, C.PX);
-        map.addTileset(palette.terrain.tileset);
+        map.addTileset(palette.decals.tileset);
         map.addTileset(palette.props.tileset);
         // Bounds may be fractional and the tile grid may not be; carry the
         // authored values verbatim so the writer never has to guess them back.
@@ -216,7 +216,7 @@
     // One object layer of the model as Tiled's ObjectGroup.
     function objectGroup(spec, palette) {
         var group = new ObjectGroup(spec.name);
-        // terrain array order IS paint order, so the canvas must draw by
+        // decals array order IS paint order, so the canvas must draw by
         // index rather than Tiled's default y-sort.
         group.drawOrder = ObjectGroup.IndexOrder;
         /* ⭐ The big background layers open LOCKED (plan-zone-naming.md D2).
@@ -318,7 +318,7 @@
                 // one handle that points at the thing you actually dragged.
                 id: o.id,
                 // A tile object's identity is the TILE it carries, not the
-                // object's name — dragging a Sand tile onto the terrain
+                // object's name — dragging a Sand tile onto the decals
                 // layer gives an unnamed object, and the tile is what says
                 // what it is.
                 name: (o.tile && o.tile.property('auraType')) || o.name,

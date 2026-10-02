@@ -2,7 +2,7 @@
   "propertyTypes": [
     {
       "id": 1,
-      "name": "AuraTerrainType",
+      "name": "AuraDecalType",
       "type": "enum",
       "storageType": "string",
       "values": [
@@ -441,7 +441,7 @@
     },
     {
       "id": 13,
-      "name": "AuraTerrain",
+      "name": "AuraDecal",
       "type": "class",
       "color": "#ff8bc34a",
       "drawFill": true,
@@ -472,7 +472,7 @@
     },
     {
       "id": 15,
-      "name": "AuraCampfire",
+      "name": "AuraBindPoint",
       "type": "class",
       "color": "#ffff9800",
       "drawFill": true,
@@ -600,7 +600,7 @@
     },
     {
       "id": 20,
-      "name": "AuraPolygon",
+      "name": "AuraStructure",
       "type": "class",
       "color": "#ff8d6e63",
       "drawFill": true,

@@ -28,7 +28,7 @@ var AuraConvert = (function () {
     // to answer "is this a layer we know?" — but a whitelist that disagrees with
     // the stack is a second, wrong answer to "what order are the layers in" for
     // the next reader. Keep the two in step.
-    var LAYERS = ['regions', 'paths', 'terrain', 'props', 'spawns', 'campfires', 'darkAreas', 'atmospheres', 'anchors'];
+    var LAYERS = ['regions', 'paths', 'decals', 'props', 'spawns', 'bindPoints', 'darkAreas', 'atmospheres', 'anchors'];
 
     /* ---- the prop layers (plan-prop-draw-order.md D1-D3) -------------------
      * `props` is the one GROUP in the stack: a group layer holding these four
@@ -83,7 +83,7 @@ var AuraConvert = (function () {
         return {x: x + (w / 2 * c - h / 2 * s), y: y + (w / 2 * s + h / 2 * c)};
     }
 
-    /* The vertices of a CLOSED-AREA object — a region, an AuraPolygon or an
+    /* The vertices of a CLOSED-AREA object — a region, an AuraStructure or an
      * atmosphere — in pixels RELATIVE to o.x/o.y, which is the form o.polygon
      * already takes.
      *
@@ -117,7 +117,7 @@ var AuraConvert = (function () {
         });
     }
 
-    // Which anchor convention the boxed objects (terrain, props) use. C2 gave
+    // Which anchor convention the boxed objects (decals, props) use. C2 gave
     // them real tilesets, so they are tile objects now.
     var ANCHOR = 'tile';
 
@@ -473,6 +473,21 @@ var AuraConvert = (function () {
         }
     }
 
+    /* ⛔ The same refusal for the three arrays plan-zone-naming.md N2 renamed.
+     * Read leniently, a file still on an old name opens with that array empty
+     * and the next save deletes it; zone.go refuses the old names at boot. */
+    var RENAMED_KEYS = {terrain: 'decals', polygons: 'structures', campfires: 'bindPoints'};
+    function checkKeyNames(z) {
+        for (var old in RENAMED_KEYS) {
+            if (Object.prototype.hasOwnProperty.call(RENAMED_KEYS, old)
+                && Object.prototype.hasOwnProperty.call(z, old)) {
+                throw new Error('this zone file still has "' + old + '", which is "'
+                    + RENAMED_KEYS[old] + '" since plan-zone-naming.md N2; migrate it with'
+                    + ' node scripts/migrate-zone-key-names.mjs <file>');
+            }
+        }
+    }
+
     /* ---- The canonical serializer ------------------------------------------
      * Field order, rounding and omit rules mirror ZoneModel.getZoneAsJSON().
      * undefined values are dropped by JSON.stringify — that is how every
@@ -494,7 +509,7 @@ var AuraConvert = (function () {
             origin: z.origin !== undefined ? z.origin : undefined,
             // The zone's base fill (PO 2026-09-27); undefined = black, no key.
             ground: z.ground ? z.ground : undefined,
-            terrain: z.terrain.map(function (t) {
+            decals: z.decals.map(function (t) {
                 return {
                     type: t.type,
                     x: round(t.x, 2),
@@ -505,7 +520,7 @@ var AuraConvert = (function () {
                 };
             }),
             // All four layer arrays, in rank order, empty ones included — the
-            // same "always present" rule terrain and spawns follow, so every
+            // same "always present" rule decals and spawns follow, so every
             // zone file has one shape (and ZoneModel emits exactly this).
             props: byPropLayer(z.props, function (p) {
                 return {
@@ -546,8 +561,8 @@ var AuraConvert = (function () {
                     anchor: s.anchor || undefined,
                 };
             }),
-            campfires: z.campfires && z.campfires.length > 0
-                ? z.campfires.map(function (c) {
+            bindPoints: z.bindPoints && z.bindPoints.length > 0
+                ? z.bindPoints.map(function (c) {
                     return {
                         id: c.id,
                         x: round(c.x, 2),
@@ -612,8 +627,8 @@ var AuraConvert = (function () {
             // A polygon's points are never closed in the FILE — no first-vertex
             // repeat to strip, exactly as a region's are not. blocksMovement is
             // tri-state like everywhere else.
-            polygons: z.polygons && z.polygons.length > 0
-                ? z.polygons.map(function (g) {
+            structures: z.structures && z.structures.length > 0
+                ? z.structures.map(function (g) {
                     return {
                         profile: g.profile,
                         points: g.points.map(function (v) {
@@ -648,7 +663,7 @@ var AuraConvert = (function () {
                 })
                 : undefined,
             // The HOLES cut in that air (plan-region-atmosphere.md A4). Its own
-            // array for the reason polygons got one despite sharing a layer with
+            // array for the reason structures got one despite sharing a layer with
             // paths: two kinds of object, told apart by CLASS, landing in two
             // places.
             //
@@ -681,12 +696,13 @@ var AuraConvert = (function () {
         function px(u, half) { return (u + half) * PX; }
         function set(o, k, v) { if (v !== undefined && v !== null) { o[k] = v; } }
 
-        var terrain = (z.terrain || []).map(function (t) {
+        checkKeyNames(z);
+        var decals = (z.decals || []).map(function (t) {
             var side = t.size * 2 * PX;
             var a = anchorOf(px(t.x, hw), px(t.y, hh), side, side, rad2deg(t.rotation || 0));
             return {
-                shape: 'tile', layer: 'terrain', name: t.type,
-                tileset: 'terrain', tileType: t.type, cls: 'AuraTerrain',
+                shape: 'tile', layer: 'decals', name: t.type,
+                tileset: 'decals', tileType: t.type, cls: 'AuraDecal',
                 x: a.x, y: a.y, width: side, height: side,
                 rotation: rad2deg(t.rotation || 0),
                 // Real gid flip flags now that a tileset exists (C1 parked
@@ -793,9 +809,9 @@ var AuraConvert = (function () {
             return o;
         });
 
-        var campfires = (z.campfires || []).map(function (c) {
+        var bindPoints = (z.bindPoints || []).map(function (c) {
             var o = {
-                shape: 'point', layer: 'campfires', name: c.id, cls: 'AuraCampfire',
+                shape: 'point', layer: 'bindPoints', name: c.id, cls: 'AuraBindPoint',
                 x: px(c.x, hw), y: px(c.y, hh),
                 width: 0, height: 0, rotation: 0, flipH: false, flipV: false,
                 properties: {},
@@ -886,15 +902,15 @@ var AuraConvert = (function () {
         // a little crazy" — eight object layers exist already, and the class is
         // the more honest discriminator anyway, because it is what the
         // Properties panel shows. ⚑ The cost, and it is real: an object on this
-        // layer whose class is neither AuraPath nor AuraPolygon lands in NEITHER
+        // layer whose class is neither AuraPath nor AuraStructure lands in NEITHER
         // array and would vanish on save, so validateModel refuses one by id
         // (L2b). The layer-per-type scheme got that check for free.
-        var polygons = (z.polygons || []).map(function (g) {
+        var structures = (z.structures || []).map(function (g) {
             var pts = g.points || [];
             var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
             var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
             var o = {
-                shape: 'polygon', layer: 'paths', name: g.profile, cls: 'AuraPolygon',
+                shape: 'polygon', layer: 'paths', name: g.profile, cls: 'AuraStructure',
                 x: ox, y: oy, width: 0, height: 0, rotation: 0,
                 flipH: false, flipV: false,
                 polygon: pts.map(function (v) {
@@ -1004,12 +1020,12 @@ var AuraConvert = (function () {
              * Game.ts's cameraGroup.addChild calls, layer for layer:
              *
              *   regions     -> layers.terrain.regions      the ground itself
-             *   paths       -> terrain.polygons + .paths   masses, then ribbons
-             *   terrain     -> layers.terrain.textures     blobs ON the ground
+             *   paths       -> terrain.polygons + .paths   structures, then ribbons
+             *   decals      -> layers.terrain.textures     blobs ON the ground
              *   props       -> props.standing / .underfoot (a GROUP: one
              *                  sub-layer per prop layer, bottom to top)
              *   spawns      -> layers.mobs.*
-             *   campfires   -> (not rendered from this array at all)
+             *   bindPoints  -> (not rendered from this array at all)
              *   darkAreas   -> layers.darkness
              *   atmospheres -> layers.haze + layers.darkness
              *   anchors     -> (not rendered)
@@ -1025,14 +1041,14 @@ var AuraConvert = (function () {
              * screen-sized region polygon drawn over the props won every click
              * aimed at one of them.
              *
-             * ⚑ campfires above spawns is arbitrary (both are points, neither
-             * occludes the other, and campfires are not rendered from here);
+             * ⚑ bindPoints above spawns is arbitrary (both are points, neither
+             * occludes the other, and bind points are not rendered from here);
              * their relative order is simply preserved.
              */
             layers: [
                 // Region array order is resolution order (D0: the LAST
                 // containing region that declares a property wins), so this
-                // layer draws by index for the same reason terrain does.
+                // layer draws by index for the same reason decals does.
                 //
                 // ⭐ LOCKED (plan-zone-naming.md D2). Being at the bottom stops
                 // a region winning a click aimed at something above it; the lock
@@ -1043,21 +1059,21 @@ var AuraConvert = (function () {
                 {name: 'regions', drawOrder: 'index', locked: true, objects: regions},
                 // Path array order is draw order too — a bridge road drawn over
                 // a river is authored by putting it later in the array.
-                // ⚑ POLYGONS FIRST, then paths — the draw order is regions →
-                // polygons → paths (masses under ribbons), and modelToZone
+                // ⚑ STRUCTURES FIRST, then paths — the draw order is regions →
+                // structures → paths (masses under ribbons), and modelToZone
                 // splits them back out by class with each array's own order
                 // intact, so the round-trip stays byte-identical.
-                {name: 'paths', drawOrder: 'index', objects: polygons.concat(paths)},
-                // terrain array order IS paint order (GroundTextureManager), so
+                {name: 'paths', drawOrder: 'index', objects: structures.concat(paths)},
+                // decals array order IS paint order (GroundTextureManager), so
                 // the layer must draw by index or the canvas lies about which
                 // piece covers which.
-                {name: 'terrain', drawOrder: 'index', objects: terrain},
+                {name: 'decals', drawOrder: 'index', objects: decals},
                 // ⭐ The one GROUP (plan-prop-draw-order.md D3): `layers`
                 // instead of `objects`, bottom to top. The game draws a higher
                 // sub-layer over a lower one, exactly as Tiled stacks them.
                 {name: PROPS_GROUP, layers: propLayers},
                 {name: 'spawns', drawOrder: 'index', objects: spawns},
-                {name: 'campfires', drawOrder: 'index', objects: campfires},
+                {name: 'bindPoints', drawOrder: 'index', objects: bindPoints},
                 {name: 'darkAreas', drawOrder: 'index', objects: darkAreas},
                 // Atmosphere array order is draw order AND resolution order,
                 // regions' rule exactly (D0/D3: the last declaring shape wins,
@@ -1137,9 +1153,9 @@ var AuraConvert = (function () {
                 ? {x: Number(m.originX) || 0, y: Number(m.originY) || 0}
                 : undefined,
             ground: readGround(m.ground),
-            terrain: layer('terrain').map(function (o, i) {
+            decals: layer('decals').map(function (o, i) {
                 if (o.flipH && o.flipV) {
-                    throw new Error('terrain[' + i + '] "' + o.name + '": world.json has no'
+                    throw new Error('decals[' + i + '] "' + o.name + '": world.json has no'
                         + ' both-axes flip; use one flip plus 180 degrees of rotation');
                 }
                 var c = centre(o);
@@ -1192,7 +1208,7 @@ var AuraConvert = (function () {
                 }
                 return s;
             }),
-            campfires: layer('campfires').map(function (o) {
+            bindPoints: layer('bindPoints').map(function (o) {
                 return {
                     id: o.name,
                     x: u(o.x, hw), y: u(o.y, hh),
@@ -1242,7 +1258,7 @@ var AuraConvert = (function () {
                     effect: readEffect(o),
                 };
             }),
-            polygons: onLayer('paths', 'AuraPolygon').map(function (o) {
+            structures: onLayer('paths', 'AuraStructure').map(function (o) {
                 return {
                     profile: readRegionProfile(o),
                     points: closedAreaPoints(o).map(function (v) {
@@ -1261,7 +1277,7 @@ var AuraConvert = (function () {
             // class it does not recognise.
             //
             // ⛔ Two keys out, two keys in. If a future reader is tempted to add
-            // blocksMovement here "for symmetry with polygons": don't. The
+            // blocksMovement here "for symmetry with structures": don't. The
             // server refuses the key by name, so it would round-trip into a zone
             // file that no longer boots.
             atmospheres: onLayer('atmospheres', 'AuraAtmosphere').map(function (o) {
@@ -1328,7 +1344,7 @@ var AuraConvert = (function () {
         return v;
     }
 
-    /* The area effect (plan-area-effects.md E1), shared by paths, polygons and
+    /* The area effect (plan-area-effects.md E1), shared by paths, structures and
      * atmospheres because all three carry exactly the same key.
      *
      * ⚑ Written ONLY when authored, which is what keeps every existing shape
@@ -1424,7 +1440,7 @@ var AuraConvert = (function () {
         if (hasValue(content.TERRAIN_TYPES, name)) { return 'ground texture'; }
         return null;
     }
-    var LAYER_OF_KIND = {'prop type': 'props', 'mob': 'spawns', 'ground texture': 'terrain'};
+    var LAYER_OF_KIND = {'prop type': 'props', 'mob': 'spawns', 'ground texture': 'decals'};
 
     function unknownName(layer, name, what) {
         var msg = 'unknown ' + what + ' "' + name + '"';
@@ -1465,7 +1481,7 @@ var AuraConvert = (function () {
             var objs = m.layers[li].objects || [];
             for (var i = 0; i < objs.length; i++) {
                 var o = objs[i];
-                if (o.cls !== 'AuraPolygon') { continue; }
+                if (o.cls !== 'AuraStructure') { continue; }
                 if (!(o.properties && o.properties.blocksMovement)) { continue; }
                 var pts = o.polygon || [];
                 if (pts.length < 3) { continue; }
@@ -1480,7 +1496,7 @@ var AuraConvert = (function () {
                 if (cells > POLY_BODY_CAP) {
                     notes.push('paths #' + (o.id !== undefined ? o.id : '?')
                         + (o.name ? ' "' + o.name + '"' : '')
-                        + ': this blocking polygon is large (~' + Math.round(area)
+                        + ': this blocking structure is large (~' + Math.round(area)
                         + ' sq units, roughly ' + cells + ' cells at ' + POLY_CELL
                         + 'u against a cap of ' + POLY_BODY_CAP + '). The server will'
                         + ' COARSEN its collision to fit and boot normally, so it will'
@@ -1532,8 +1548,8 @@ var AuraConvert = (function () {
             errors.push('bounds must be positive, got ' + m.boundsWidth + 'x' + m.boundsHeight);
         }
 
-        // ⭐ terrain.type is the one field validated NOWHERE else: the server
-        // ignores it (zone.go has no terrain checks at all) and the client
+        // ⭐ decals[].type is the one field validated NOWHERE else: the server
+        // ignores it (zone.go has no decal checks at all) and the client
         // dereferences undefined at render time, so a typo shows up as a broken
         // browser rather than a failed boot. Free to close here.
         // A boxed object gets its identity from the TILE it carries, so one
@@ -1546,11 +1562,11 @@ var AuraConvert = (function () {
         }
 
         var terrainKnown = content.TERRAIN_TYPES.length > 0;
-        layer('terrain').forEach(function (o, i) {
+        layer('decals').forEach(function (o, i) {
             if (!o.name) {
-                fromTileset(o, i, 'texture', 'aura-terrain');
+                fromTileset(o, i, 'texture', 'aura-decals');
             } else if (terrainKnown && whereElse(o.name) !== 'ground texture') {
-                bad(o, i, unknownName('terrain', o.name, 'ground texture'));
+                bad(o, i, unknownName('decals', o.name, 'ground texture'));
             }
             if (!(o.width > 0)) { bad(o, i, 'size must be positive'); }
             if (o.flipH && o.flipV) {
@@ -1691,11 +1707,11 @@ var AuraConvert = (function () {
             }
         });
 
-        var campfires = layer('campfires');
+        var bindPoints = layer('bindPoints');
         var seenFire = {};
-        campfires.forEach(function (o, i) {
+        bindPoints.forEach(function (o, i) {
             var id = String(o.name || '').replace(/^\s+|\s+$/g, '');
-            if (!id) { bad(o, i, 'id must not be empty (the object\'s Name is the campfire id)'); }
+            if (!id) { bad(o, i, 'id must not be empty (the object\'s Name is the bind point id)'); }
             else if (seenFire[id]) { bad(o, i, 'duplicate spawn point id "' + id + '"'); }
             seenFire[id] = true;
         });
@@ -1834,10 +1850,10 @@ var AuraConvert = (function () {
         // every other check green. This is the only thing that says so, and the
         // layer-per-type scheme got it for free.
         layer('paths').forEach(function (o, i) {
-            if (o.cls !== 'AuraPath' && o.cls !== 'AuraPolygon') {
+            if (o.cls !== 'AuraPath' && o.cls !== 'AuraStructure') {
                 bad(o, i, 'is on the paths layer but its Class is '
                     + (o.cls ? '"' + o.cls + '"' : 'not set')
-                    + ' — this layer holds AuraPath (a stroked line) and AuraPolygon'
+                    + ' — this layer holds AuraPath (a stroked line) and AuraStructure'
                     + ' (a filled area), and anything else is DROPPED on save.'
                     + ' Set the Class in the Properties panel');
             }
@@ -1873,10 +1889,10 @@ var AuraConvert = (function () {
         });
 
         // Polygons carry the same profile vocabulary and get the same messages.
-        onLayer('paths', 'AuraPolygon').forEach(function (o, i) {
+        onLayer('paths', 'AuraStructure').forEach(function (o, i) {
             checkProfile(o, i, profilesKnown);
             checkEffect(o, i);
-            checkClosedArea(o, i, 'an AuraPolygon',
+            checkClosedArea(o, i, 'an AuraStructure',
                 ' — or change its Class to AuraPath if you meant a line');
         });
 
@@ -1901,7 +1917,7 @@ var AuraConvert = (function () {
             var n = (o.polygon || []).length;
             // ⭐ BOTH shapes are legal here, and which one it is IS the closed
             // flag (plan-zone-polygons.md P1). A polygon strokes a ring — a moat,
-            // a ring road — it does not fill one; filling is AuraPolygon's job.
+            // a ring road — it does not fill one; filling is AuraStructure's job.
             if (o.shape !== 'polyline' && o.shape !== 'polygon') {
                 bad(o, i, 'must be a POLYLINE or a POLYGON — a path is a line, and any'
                     + ' other shape is dropped on save');

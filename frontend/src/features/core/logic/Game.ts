@@ -762,7 +762,7 @@ export class Game implements IGame {
             left: originX - width / 2 - reach, top: originY - height / 2 - reach,
             right: originX + width / 2 + reach, bottom: originY + height / 2 + reach,
         });
-        Polygons.loadPolygons(zoneData?.polygons, origin);
+        Polygons.loadPolygons(zoneData?.structures, origin);
         Paths.loadPaths(zoneData?.paths, origin);
         // The AIR over an area (plan-region-atmosphere.md A0) — loaded beside
         // its three siblings and for the same reason: it is client-visual, so

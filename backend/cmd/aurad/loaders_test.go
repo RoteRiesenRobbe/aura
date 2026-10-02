@@ -130,7 +130,7 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	// C3 retired that map.)
 	zone, err := world.LoadZoneFS(content.zones, "world", mobsRegistry, propsRegistry)
 	require.NoError(t, err)
-	assert.NotEmpty(t, zone.Terrain, "the world should carry authored terrain")
+	assert.NotEmpty(t, zone.Decals, "the world should carry authored terrain")
 	var wanderers, patrollers int
 	for _, s := range zone.Spawns {
 		if s.EffectiveWanderRadius() > 0 {

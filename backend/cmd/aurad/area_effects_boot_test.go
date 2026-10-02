@@ -48,7 +48,7 @@ func zoneFSWithEffect(effect string) fstest.MapFS {
 	doc := `{
 		"name": "Hazards",
 		"bounds": { "width": 60, "height": 40 },
-		"campfires": [{ "id": "spawnpoint-1", "x": 0, "y": 0, "startingSpawn": true }],
+		"bindPoints": [{ "id": "spawnpoint-1", "x": 0, "y": 0, "startingSpawn": true }],
 		"atmospheres": [{
 			"profile": "Miasma",
 			"effect": "` + effect + `",

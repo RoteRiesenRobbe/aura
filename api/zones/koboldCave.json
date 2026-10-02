@@ -8,7 +8,7 @@
     "x": 4000,
     "y": 3000
   },
-  "terrain": [],
+  "decals": [],
   "props": {
     "underfoot": [],
     "default": [
@@ -416,7 +416,7 @@
       "subtitle": "Kobold Hideout"
     }
   ],
-  "polygons": [
+  "structures": [
     {
       "profile": "City",
       "points": [

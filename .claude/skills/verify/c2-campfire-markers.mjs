@@ -42,7 +42,7 @@ const outDir = dirname(fileURLToPath(import.meta.url));
 
 // WARP takes 1/120 units and wants whole units.
 const w = (x, y) => `${Math.round(x) * 120} ${Math.round(y) * 120}`;
-// api/zones/world.json campfires.
+// api/zones/world.json bindPoints.
 const BOUND_FIRE = { id: 'spawnpoint-2', x: 44, y: 10.5 };  // not startingSpawn
 const START_FIRE = { id: 'spawnpoint-1', x: -58.2, y: 24 }; // startingSpawn
 // ⚑ The negative control has to be a fire this run NEVER visits. spawnpoint-1

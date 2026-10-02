@@ -8,7 +8,7 @@
     "x": 6000,
     "y": 4000
   },
-  "terrain": [],
+  "decals": [],
   "props": {
     "underfoot": [],
     "default": [],
@@ -131,7 +131,7 @@
       "level": 14
     }
   ],
-  "campfires": [
+  "bindPoints": [
     {
       "id": "underworld-1",
       "x": 0,

@@ -126,12 +126,12 @@ export function bakeTerrain(
         Regions.withGround(Regions.toRegions(zone.regions), zone.ground, {
             left: -mapWidth / 2, top: -mapHeight / 2, right: mapWidth / 2, bottom: mapHeight / 2,
         }),
-        Polygons.toPolygons(zone.polygons),
+        Polygons.toPolygons(zone.structures),
         Paths.toPaths(zone.paths),
         renderer);
 
     let unknownTypes = 0;
-    (zone.terrain || []).forEach((piece) => {
+    (zone.decals || []).forEach((piece) => {
         const type = groundTextureTypes[piece.type];
         if (!type) {
             unknownTypes++;

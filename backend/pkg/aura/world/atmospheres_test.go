@@ -74,14 +74,14 @@ func TestThreePointAtmosphereIsValid(t *testing.T) {
 func TestAtmospheresAreTheirOwnArray(t *testing.T) {
 	z, err := parseZone([]byte(`{"name":"A","bounds":{"width":60,"height":40},
 		"regions":[{"profile":"Fields","points":[{"x":0,"y":0},{"x":9,"y":0},{"x":9,"y":9}]}],
-		"polygons":[{"profile":"Mountains","points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}]}],
+		"structures":[{"profile":"Mountains","points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}]}],
 		"atmospheres":[{"profile":"CaveAir","points":[{"x":0,"y":0},{"x":7,"y":0},{"x":7,"y":7}]}]}`))
 	require.NoError(t, err)
 	require.Len(t, z.Regions, 1)
-	require.Len(t, z.Polygons, 1)
+	require.Len(t, z.Structures, 1)
 	require.Len(t, z.Atmospheres, 1)
 	assert.Equal(t, "Fields", z.Regions[0].Profile)
-	assert.Equal(t, "Mountains", z.Polygons[0].Profile)
+	assert.Equal(t, "Mountains", z.Structures[0].Profile)
 	assert.Equal(t, "CaveAir", z.Atmospheres[0].Profile)
 }
 
@@ -118,13 +118,13 @@ func TestAtmosphereEmitsNoColliders(t *testing.T) {
 	square := `"points":[{"x":-5,"y":-5},{"x":5,"y":-5},{"x":5,"y":5},{"x":-5,"y":5}]`
 
 	withPolygon, err := parseZone([]byte(`{"name":"A","bounds":{"width":60,"height":40},
-		"polygons":[{"profile":"Mountains","blocksMovement":true,` + square + `}]}`))
+		"structures":[{"profile":"Mountains","blocksMovement":true,` + square + `}]}`))
 	require.NoError(t, err)
 	baseline, _ := PolygonColliders(withPolygon)
 	require.NotEmpty(t, baseline, "the control: a blocking polygon does emit bodies")
 
 	withBoth, err := parseZone([]byte(`{"name":"A","bounds":{"width":60,"height":40},
-		"polygons":[{"profile":"Mountains","blocksMovement":true,` + square + `}],
+		"structures":[{"profile":"Mountains","blocksMovement":true,` + square + `}],
 		"atmospheres":[{"profile":"CaveAir",` + square + `}]}`))
 	require.NoError(t, err)
 	both, _ := PolygonColliders(withBoth)
@@ -160,13 +160,13 @@ func TestAtmosphereEmitsNoColliders(t *testing.T) {
 func TestAtmospherePointsArePlaced(t *testing.T) {
 	z, err := parseZone([]byte(`{"name":"A","bounds":{"width":40,"height":20},
 		"origin":{"x":500,"y":300},
-		"polygons":[{"profile":"Mountains","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}],
+		"structures":[{"profile":"Mountains","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}],
 		"atmospheres":[{"profile":"CaveAir","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}],
 		"clearings":[{"clears":"both","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`))
 	require.NoError(t, err)
 	require.NoError(t, Place([]*Zone{z}))
 
-	assert.EqualValues(t, 500, z.Polygons[0].Points[0].X, "the control: polygons ARE placed")
+	assert.EqualValues(t, 500, z.Structures[0].Points[0].X, "the control: polygons ARE placed")
 	assert.EqualValues(t, 500, z.Atmospheres[0].Points[0].X,
 		"atmospheres are placed too since E2 — an effect-bearing one must act where it is DRAWN")
 	assert.EqualValues(t, 300, z.Atmospheres[0].Points[0].Y)
@@ -261,13 +261,13 @@ func TestClearingEmitsNoColliders(t *testing.T) {
 	square := `"points":[{"x":-5,"y":-5},{"x":5,"y":-5},{"x":5,"y":5},{"x":-5,"y":5}]`
 
 	withPolygon, err := parseZone([]byte(`{"name":"A","bounds":{"width":60,"height":40},
-		"polygons":[{"profile":"Mountains","blocksMovement":true,` + square + `}]}`))
+		"structures":[{"profile":"Mountains","blocksMovement":true,` + square + `}]}`))
 	require.NoError(t, err)
 	baseline, _ := PolygonColliders(withPolygon)
 	require.NotEmpty(t, baseline)
 
 	withBoth, err := parseZone([]byte(`{"name":"A","bounds":{"width":60,"height":40},
-		"polygons":[{"profile":"Mountains","blocksMovement":true,` + square + `}],
+		"structures":[{"profile":"Mountains","blocksMovement":true,` + square + `}],
 		"clearings":[{"clears":"both",` + square + `}]}`))
 	require.NoError(t, err)
 	both, _ := PolygonColliders(withBoth)
@@ -280,12 +280,12 @@ func TestClearingEmitsNoColliders(t *testing.T) {
 func TestClearingPointsStayZoneLocal(t *testing.T) {
 	z, err := parseZone([]byte(`{"name":"A","bounds":{"width":40,"height":20},
 		"origin":{"x":500,"y":300},
-		"polygons":[{"profile":"Mountains","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}],
+		"structures":[{"profile":"Mountains","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}],
 		"clearings":[{"clears":"both","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`))
 	require.NoError(t, err)
 	require.NoError(t, Place([]*Zone{z}))
 
-	assert.EqualValues(t, 500, z.Polygons[0].Points[0].X, "the control: polygons ARE placed")
+	assert.EqualValues(t, 500, z.Structures[0].Points[0].X, "the control: polygons ARE placed")
 	assert.EqualValues(t, 0, z.Clearings[0].Points[0].X,
 		"clearings are NOT — the client applies the origin, and doing it here too would move them twice")
 }

@@ -62,15 +62,15 @@ func allSpawns(zones []*world.Zone) []world.Spawn {
 
 func allCampfires(zones []*world.Zone) []world.Campfire {
 	if len(zones) == 1 {
-		return zones[0].Campfires
+		return zones[0].BindPoints
 	}
 	total := 0
 	for _, z := range zones {
-		total += len(z.Campfires)
+		total += len(z.BindPoints)
 	}
 	out := make([]world.Campfire, 0, total)
 	for _, z := range zones {
-		out = append(out, z.Campfires...)
+		out = append(out, z.BindPoints...)
 	}
 	return out
 }
@@ -124,8 +124,8 @@ func allCorridors(zones []*world.Zone) []world.Corridor {
 		bodies, coarsened := world.PolygonColliders(z)
 		out = append(out, bodies...)
 		for _, c := range coarsened {
-			slog.Warn("polygon collider coarsened to fit the body cap",
-				"zone", z.ID, "polygon", c.Index,
+			slog.Warn("structure collider coarsened to fit the body cap",
+				"zone", z.ID, "structure", c.Index,
 				"cell", c.Cell, "authoredCell", c.FromCell,
 				"bodies", c.Bodies, "wouldHaveBeen", c.FromBodies)
 		}

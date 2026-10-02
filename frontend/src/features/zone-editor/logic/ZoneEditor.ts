@@ -244,7 +244,7 @@ function rebuildMarkers() {
     redrawBounds();
     propMarkers = model.props.map(prop => addMarkerToStage(drawPropMarker(prop, false)));
     spawnMarkers = model.spawns.map(spawn => addMarkerToStage(drawSpawnMarker(spawn, false)));
-    campfireMarkers = model.campfires.map(campfire => addMarkerToStage(drawCampfireMarker(campfire, false)));
+    campfireMarkers = model.bindPoints.map(campfire => addMarkerToStage(drawCampfireMarker(campfire, false)));
     darkAreaMarkers = model.darkAreas.map(darkArea => addMarkerToStage(drawDarkAreaMarker(darkArea, false)));
     anchorMarkers = model.anchors.map(anchor => addMarkerToStage(drawAnchorMarker(anchor, false)));
 }
@@ -344,8 +344,8 @@ export function hitTestSpawn(x: number, y: number): number {
 }
 
 export function hitTestCampfire(x: number, y: number): number {
-    for (let i = model.campfires.length - 1; i >= 0; i--) {
-        let campfire = model.campfires[i];
+    for (let i = model.bindPoints.length - 1; i >= 0; i--) {
+        let campfire = model.bindPoints[i];
         if (distance(x, y, campfire.x, campfire.y) <= CAMPFIRE_MARKER_RADIUS) {
             return i;
         }
@@ -519,11 +519,11 @@ function redrawMarker(kind: SelectionKind, index: number) {
         spawnMarkers[index].destroy({children: true});
         spawnMarkers[index] = addMarkerToStage(drawSpawnMarker(model.spawns[index], selected));
     } else if (kind === 'campfire') {
-        if (index >= model.campfires.length) {
+        if (index >= model.bindPoints.length) {
             return;
         }
         campfireMarkers[index].destroy({children: true});
-        campfireMarkers[index] = addMarkerToStage(drawCampfireMarker(model.campfires[index], selected));
+        campfireMarkers[index] = addMarkerToStage(drawCampfireMarker(model.bindPoints[index], selected));
     } else if (kind === 'dark') {
         if (index >= model.darkAreas.length) {
             return;

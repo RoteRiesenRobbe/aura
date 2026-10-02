@@ -246,7 +246,7 @@ export function loadZone(zoneName: string) {
     // result is identical.
     if (active) {
         const zone = getZoneData(zoneName);
-        const campfires = zone?.campfires || [];
+        const campfires = zone?.bindPoints || [];
         campfires.forEach((fire) => {
             punchStaticLight(fire.x + ox, fire.y + oy, CAMPFIRE_LIGHT_RADIUS);
         });

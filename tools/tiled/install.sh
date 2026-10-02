@@ -33,7 +33,7 @@ echo
 echo "restart Tiled, then open the PROJECT:  tools/tiled/aura.tiled-project"
 echo "and open world.json from its folder list (api/zones)."
 echo
-echo "The project is what carries the custom types — the mob/terrain/prop enums"
+echo "The project is what carries the custom types — the mob/decal/prop enums"
 echo "and the per-kind colours. Opening api/zones/world.json on its own still"
 echo "works, but those types will be missing; import palette/propertytypes.json"
 echo "by hand (View > Custom Types) if you prefer that flow."

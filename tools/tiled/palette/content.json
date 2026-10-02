@@ -1,7 +1,7 @@
 {
   "_generated": "tools/tiled/generate-palette.mjs — do not hand-edit",
   "ENUM_VALUES": {
-    "AuraTerrainType": [
+    "AuraDecalType": [
       "Dark Green Grass 1",
       "Dark Green Grass 2",
       "Green Grass 1",

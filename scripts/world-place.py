@@ -413,7 +413,7 @@ def check(catalog, zone, base="HEAD"):
     # bound fire must be outside the reach of everything that would come for
     # them — measured on the PLACED species, which is what re-skinning moves.
     print("\n  campfires (§5) — clearance = closest approach - aggroRadius")
-    for fire in zone["campfires"]:
+    for fire in zone["bindPoints"]:
         point = (fire["x"], fire["y"])
         threats = sorted(((clearance(catalog, s, point), s) for s in combat
                           if aggros_players(catalog, s["mob"])), key=lambda t: t[0])

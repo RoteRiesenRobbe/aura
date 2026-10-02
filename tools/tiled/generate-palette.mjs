@@ -6,7 +6,7 @@
  *     node tools/tiled/generate-palette.mjs
  *
  * Output (all checked in, all overwritten wholesale — never hand-edit):
- *   tools/tiled/palette/terrain.tsx        image-collection tileset, 1 tile per ground-texture type
+ *   tools/tiled/palette/decals.tsx         image-collection tileset, 1 tile per ground-texture type
  *   tools/tiled/palette/props.tsx          image-collection tileset, 1 tile per prop type
  *   tools/tiled/palette/propertytypes.json the same custom types, for hand-import when
  *                                          working WITHOUT the project
@@ -83,7 +83,7 @@ function imageSize(abs) {
 /* ---- sources ------------------------------------------------------------- */
 
 // Ground textures live in the client's Graphics config, keyed by exactly the
-// string world.json's terrain[].type carries.
+// string world.json's decals[].type carries.
 function readTerrainTypes() {
     const src = readFileSync(path.join(ROOT, 'frontend/src/client-data/Graphics.ts'), 'utf8');
     const i = src.indexOf('groundTextureTypes:');
@@ -378,7 +378,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         .concat([member('patrolMode', 'string', C.PATROL_INHERIT, 'AuraPatrolMode')]);
 
     const types = [
-        enumType('AuraTerrainType', terrain.map(t => t.type)),
+        enumType('AuraDecalType', terrain.map(t => t.type)),
         enumType('AuraPropType', props.map(p => p.type)),
         // ⚑ The sentinel leads the list so it is the natural default, like
         // AuraMobName's — but it means the OPPOSITE of MOB_UNSET's: "(pick a
@@ -425,7 +425,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // dropped default and a kept one reach the same answer.
         enumType(C.PATH_SHAPE_ENUMS.corners, [C.PATH_SHAPE_DEFAULT].concat(C.PATH_SHAPE_VALUES.corners)),
         enumType(C.PATH_SHAPE_ENUMS.ends, [C.PATH_SHAPE_DEFAULT].concat(C.PATH_SHAPE_VALUES.ends)),
-        classType('AuraTerrain', '#ff8bc34a'),
+        classType('AuraDecal', '#ff8bc34a'),
         // ⭐ ONE member, and the enum above is what makes it safe — see the
         // block comment over KIND_COLOUR. The default IS C.PROP_BLOCKS_INHERIT,
         // which aura-convert.js's readPropBlocks maps back to "not authored";
@@ -433,7 +433,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // them being equal.
         classType('AuraProp', '#fff44336',
             [member('blocksMovement', 'string', PROP_BLOCKS_INHERIT, C.PROP_BLOCKS_ENUM)]),
-        classType('AuraCampfire', '#ffff9800'),
+        classType('AuraBindPoint', '#ffff9800'),
         classType('AuraDarkArea', '#ff673ab7'),
         classType('AuraAnchor', '#ff00bcd4'),
         // ⚑ AuraRegion DOES carry a member where AuraProp deliberately does
@@ -476,7 +476,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // means something else (L7). ⛔ A blocking polygon can SEAL A REGION OFF
         // rather than merely across — a path can only cut a line, a polygon has
         // an inside — and no automated check catches that (L3).
-        classType('AuraPolygon', '#ff8d6e63',
+        classType('AuraStructure', '#ff8d6e63',
             [member('profile', 'string', PROFILE_UNSET, 'AuraTerrainProfile'),
                 member('blocksMovement', 'bool', false),
                 ...OUTLINE_MEMBERS, EFFECT_MEMBER]),
@@ -507,7 +507,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
                 EFFECT_MEMBER]),
         // ⭐ THE HOLE (plan-region-atmosphere.md A4) — the second class on the
         // atmospheres layer, told apart from the air it cuts by CLASS the way
-        // AuraPolygon is told from AuraPath (zone-polygons D5).
+        // AuraStructure is told from AuraPath (zone-polygons D5).
         //
         // ⛔ NO PROFILE MEMBER, AND THE EMPTINESS IS THE RULING (L7). This is
         // the whole of A4: the PO rejected 'darkness: 0 means erase' because one
@@ -630,11 +630,11 @@ const effects = readEffects();
 const types = propertyTypes(terrain, props, mobs, profiles, airProfiles, effects);
 
 mkdirSync(PALETTE, {recursive: true});
-writeFileSync(path.join(PALETTE, 'terrain.tsx'), tileset('aura-terrain', 'AuraTerrain', terrain));
+writeFileSync(path.join(PALETTE, 'decals.tsx'), tileset('aura-decals', 'AuraDecal', terrain));
 writeFileSync(path.join(PALETTE, 'props.tsx'), tileset('aura-props', 'AuraProp', props));
 writeTemplates(path.join(TEMPLATES, 'props'), '../props.tsx', 'AuraProp', props,
     p => ({w: p.wUnits, h: p.hUnits}));
-writeTemplates(path.join(TEMPLATES, 'terrain'), '../terrain.tsx', 'AuraTerrain', terrain,
+writeTemplates(path.join(TEMPLATES, 'decals'), '../decals.tsx', 'AuraDecal', terrain,
     () => ({w: TERRAIN_TEMPLATE_SIZE * 2, h: TERRAIN_TEMPLATE_SIZE * 2}));
 writeFileSync(path.join(PALETTE, 'content.json'),
     contentJson(terrain, props, mobs, profiles, airProfiles, effects, types));
@@ -645,13 +645,13 @@ writeFileSync(path.join(TOOLS, 'aura.tiled-project'), patchProject(path.join(TOO
 writeFileSync(path.join(PALETTE, 'propertytypes.json'), JSON.stringify({propertyTypes: types}, null, 2) + '\n');
 
 const kindCounts = mobs.reduce((a, m) => (a[m.kind] = (a[m.kind] || 0) + 1, a), {});
-console.log(`terrain.tsx        ${terrain.length} textures`);
+console.log(`decals.tsx         ${terrain.length} textures`);
 console.log(`props.tsx          ${props.length} props (${props.map(p => p.type).join(', ')})`);
 console.log(`templates          ${props.length + terrain.length} .tx (${props.length} props at their body size,`
     + ` ${terrain.length} textures at size ${TERRAIN_TEMPLATE_SIZE}) → palette/templates/`);
 const nEnum = types.filter(t => t.type === 'enum').length;
 console.log(`custom types       ${types.length} (${nEnum} enums + ${types.length - nEnum} classes) → aura.tiled-project + palette/propertytypes.json`);
 console.log(`content.json       ${terrain.length} textures, ${props.length} props, ${mobs.length} mobs ${JSON.stringify(kindCounts)}`);
-console.log(`terrain profiles   ${profiles.length} (${profiles.join(', ')}) → AuraTerrainProfile + AuraRegion + AuraPath + AuraPolygon`);
+console.log(`terrain profiles   ${profiles.length} (${profiles.join(', ')}) → AuraTerrainProfile + AuraRegion + AuraPath + AuraStructure`);
 console.log(`air profiles       ${airProfiles.length} (${airProfiles.join(', ')}) → AuraAtmosphereProfile + AuraAtmosphere`);
-console.log(`area effects       ${effects.length} skills → AuraEffect + AuraPath + AuraPolygon + AuraAtmosphere`);
+console.log(`area effects       ${effects.length} skills → AuraEffect + AuraPath + AuraStructure + AuraAtmosphere`);

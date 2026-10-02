@@ -67,8 +67,8 @@ func TestZoneSet_RepoWorldIsUnmovedByThePlacedPath(t *testing.T) {
 		require.Equal(t, single.Spawns[i].X, placed.Spawns[i].X, "spawn %d moved", i)
 		require.Equal(t, single.Spawns[i].Y, placed.Spawns[i].Y, "spawn %d moved", i)
 	}
-	for i := range single.Campfires {
-		require.Equal(t, single.Campfires[i].X, placed.Campfires[i].X, "campfire %d moved", i)
+	for i := range single.BindPoints {
+		require.Equal(t, single.BindPoints[i].X, placed.BindPoints[i].X, "campfire %d moved", i)
 	}
 	for i := range single.Anchors {
 		require.Equal(t, single.Anchors[i].X, placed.Anchors[i].X, "anchor %q moved", single.Anchors[i].Name)
@@ -120,8 +120,8 @@ func TestZoneSet_WallsForGivesEachZoneItsOwnRectangle(t *testing.T) {
 }
 
 func TestZoneSet_FlattensSpawnsAndCampfiresAcrossZones(t *testing.T) {
-	a := &world.Zone{ID: "world", Spawns: []world.Spawn{{Mob: "Wolf"}}, Campfires: []world.Campfire{{ID: "spawnpoint-1"}}}
-	b := &world.Zone{ID: "under", Spawns: []world.Spawn{{Mob: "Bat"}, {Mob: "Rat"}}, Campfires: []world.Campfire{{ID: "u-1"}}}
+	a := &world.Zone{ID: "world", Spawns: []world.Spawn{{Mob: "Wolf"}}, BindPoints: []world.Campfire{{ID: "spawnpoint-1"}}}
+	b := &world.Zone{ID: "under", Spawns: []world.Spawn{{Mob: "Bat"}, {Mob: "Rat"}}, BindPoints: []world.Campfire{{ID: "u-1"}}}
 
 	assert.Len(t, allSpawns([]*world.Zone{a, b}), 3)
 	assert.Len(t, allCampfires([]*world.Zone{a, b}), 2)

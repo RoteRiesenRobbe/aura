@@ -24,7 +24,7 @@ func TestAreaEffectParsesOnEveryShape(t *testing.T) {
 			{ "profile": "Water", "width": 2, "effect": "Blight",
 			  "points": [{"x":-10,"y":-10},{"x":10,"y":-10}] }
 		],
-		"polygons": [
+		"structures": [
 			{ "profile": "Lava", "effect": "Immolate",
 			  "points": [{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}] }
 		],
@@ -36,7 +36,7 @@ func TestAreaEffectParsesOnEveryShape(t *testing.T) {
 	z, err := parseZone([]byte(doc))
 	require.NoError(t, err)
 	assert.Equal(t, "Blight", z.Paths[0].Effect)
-	assert.Equal(t, "Immolate", z.Polygons[0].Effect)
+	assert.Equal(t, "Immolate", z.Structures[0].Effect)
 	assert.Equal(t, "Envenom", z.Atmospheres[0].Effect)
 }
 
@@ -50,7 +50,7 @@ func TestShapesWithoutAnEffectAreInert(t *testing.T) {
 		"bounds": { "width": 60, "height": 40 },
 		"paths": [{ "profile": "Road", "width": 2,
 		            "points": [{"x":-10,"y":-10},{"x":10,"y":-10}] }],
-		"polygons": [{ "profile": "Mountains",
+		"structures": [{ "profile": "Mountains",
 		               "points": [{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}] }],
 		"atmospheres": [{ "profile": "Fog",
 		                  "points": [{"x":1,"y":1},{"x":6,"y":1},{"x":6,"y":6}] }]
@@ -58,7 +58,7 @@ func TestShapesWithoutAnEffectAreInert(t *testing.T) {
 	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
 	assert.Empty(t, z.Paths[0].Effect)
-	assert.Empty(t, z.Polygons[0].Effect)
+	assert.Empty(t, z.Structures[0].Effect)
 	assert.Empty(t, z.Atmospheres[0].Effect)
 }
 
@@ -71,9 +71,9 @@ func TestBlankEffectIsRefusedOnEveryShape(t *testing.T) {
 		{"path", `{"name":"Z","bounds":{"width":60,"height":40},
 			"paths":[{"profile":"Water","width":2,"effect":"  ",
 			          "points":[{"x":0,"y":0},{"x":4,"y":0}]}]}`, "path 0: effect"},
-		{"polygon", `{"name":"Z","bounds":{"width":60,"height":40},
-			"polygons":[{"profile":"Lava","effect":" ",
-			             "points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`, "polygon 0: effect"},
+		{"structure", `{"name":"Z","bounds":{"width":60,"height":40},
+			"structures":[{"profile":"Lava","effect":" ",
+			             "points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`, "structure 0: effect"},
 		{"atmosphere", `{"name":"Z","bounds":{"width":60,"height":40},
 			"atmospheres":[{"profile":"Fog","effect":"\t",
 			                "points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`, "atmosphere 0: effect"},
@@ -126,7 +126,7 @@ const effectDoc = `{
 	"bounds": { "width": 60, "height": 40 },
 	"paths": [{ "profile": "Water", "width": 2, "effect": "Blight",
 	            "points": [{"x":-10,"y":-10},{"x":10,"y":-10}] }],
-	"polygons": [{ "profile": "Lava", "effect": "Immolate",
+	"structures": [{ "profile": "Lava", "effect": "Immolate",
 	               "points": [{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}] }],
 	"atmospheres": [{ "profile": "Fog", "effect": "Envenom",
 	                  "points": [{"x":1,"y":1},{"x":6,"y":1},{"x":6,"y":6}] }]
@@ -143,13 +143,13 @@ func TestCrossValidateAreaEffects_AcceptsNamesTheRegistryKnows(t *testing.T) {
 // — so it refuses the boot rather than warning.
 //
 // ⚑ One case per array, and each one leaves exactly ONE name out of the
-// registry: a pass that walked only `polygons` would sail through a fixture
+// registry: a pass that walked only `structures` would sail through a fixture
 // that broke every name at once.
 func TestCrossValidateAreaEffects_RefusesAnUnknownNameOnEveryShape(t *testing.T) {
 	all := []string{"Blight", "Immolate", "Envenom"}
 	cases := []struct{ name, missing, wantKind string }{
 		{"path", "Blight", "path 0"},
-		{"polygon", "Immolate", "polygon 0"},
+		{"structure", "Immolate", "structure 0"},
 		{"atmosphere", "Envenom", "atmosphere 0"},
 	}
 	for _, c := range cases {
@@ -186,7 +186,7 @@ func strconvQuote(s string) string { return `"` + s + `"` }
 func TestCrossValidateAreaEffects_NeverLooksUpAnythingForAnInertZone(t *testing.T) {
 	z := zoneWithEffects(t, "world", `{
 		"name": "Plain", "bounds": { "width": 60, "height": 40 },
-		"polygons": [{ "profile": "Mountains",
+		"structures": [{ "profile": "Mountains",
 		               "points": [{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}] }],
 		"atmospheres": [{ "profile": "Fog",
 		                  "points": [{"x":1,"y":1},{"x":6,"y":1},{"x":6,"y":6}] }]
@@ -239,7 +239,7 @@ func TestCollectAreaEffects_UsesWorldCoordinates(t *testing.T) {
 func TestCollectAreaEffects_SkipsDecorativeShapes(t *testing.T) {
 	z := zoneWithEffects(t, "world", `{
 		"name": "Mixed", "bounds": { "width": 60, "height": 40 },
-		"polygons": [
+		"structures": [
 			{ "profile": "Lava", "effect": "Immolate",
 			  "points": [{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}] },
 			{ "profile": "Mountains",
@@ -250,7 +250,7 @@ func TestCollectAreaEffects_SkipsDecorativeShapes(t *testing.T) {
 	}`)
 	got := CollectAreaEffects([]*Zone{z})
 	require.Len(t, got, 1, "only the shape naming an effect is collected")
-	assert.Equal(t, "polygon", got[0].Kind)
+	assert.Equal(t, "structure", got[0].Kind)
 	assert.Equal(t, 0, got[0].Index)
 }
 
@@ -266,7 +266,7 @@ func TestCollectAreaEffects_CoversEveryShapeKind(t *testing.T) {
 		assert.NotEmpty(t, a.Points)
 	}
 	assert.Equal(t, map[string]string{
-		"path": "Blight", "polygon": "Immolate", "atmosphere": "Envenom",
+		"path": "Blight", "structure": "Immolate", "atmosphere": "Envenom",
 	}, kinds)
 }
 
@@ -303,7 +303,7 @@ func defsWith(name string, types ...skills.EffectType) fakeSkillDefs {
 // a pool that draws, reads as dangerous, and does nothing.
 func TestCrossValidateAreaEffectShapes_RefusesASkillAnAreaCannotApply(t *testing.T) {
 	z := zoneWithEffects(t, "hazards", `{"name":"Z","bounds":{"width":60,"height":40},
-		"polygons":[{"profile":"Lava","effect":"Dash",
+		"structures":[{"profile":"Lava","effect":"Dash",
 		             "points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`)
 	err := CrossValidateAreaEffectShapes(defsWith("Dash", skills.EffectTypeSpeedBurst), []*Zone{z})
 	require.Error(t, err)
@@ -315,7 +315,7 @@ func TestCrossValidateAreaEffectShapes_RefusesASkillAnAreaCannotApply(t *testing
 func TestCrossValidateAreaEffectShapes_AcceptsDotAndHot(t *testing.T) {
 	for _, ty := range []skills.EffectType{skills.EffectTypeDotAura, skills.EffectTypeHotAura} {
 		z := zoneWithEffects(t, "hazards", `{"name":"Z","bounds":{"width":60,"height":40},
-			"polygons":[{"profile":"Lava","effect":"Thing",
+			"structures":[{"profile":"Lava","effect":"Thing",
 			             "points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`)
 		assert.NoError(t, CrossValidateAreaEffectShapes(defsWith("Thing", ty), []*Zone{z}))
 	}
@@ -325,7 +325,7 @@ func TestCrossValidateAreaEffectShapes_AcceptsDotAndHot(t *testing.T) {
 // authored for a player often does. The area applies what it can.
 func TestCrossValidateAreaEffectShapes_AcceptsAMixedSkill(t *testing.T) {
 	z := zoneWithEffects(t, "hazards", `{"name":"Z","bounds":{"width":60,"height":40},
-		"polygons":[{"profile":"Lava","effect":"Mixed",
+		"structures":[{"profile":"Lava","effect":"Mixed",
 		             "points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`)
 	assert.NoError(t, CrossValidateAreaEffectShapes(
 		defsWith("Mixed", skills.EffectTypeSpeedBurst, skills.EffectTypeDotAura), []*Zone{z}))
@@ -335,7 +335,7 @@ func TestCrossValidateAreaEffectShapes_AcceptsAMixedSkill(t *testing.T) {
 // one mistake to one message.
 func TestCrossValidateAreaEffectShapes_LeavesTheUnknownNameToTheOtherPass(t *testing.T) {
 	z := zoneWithEffects(t, "hazards", `{"name":"Z","bounds":{"width":60,"height":40},
-		"polygons":[{"profile":"Lava","effect":"NoSuchSkill",
+		"structures":[{"profile":"Lava","effect":"NoSuchSkill",
 		             "points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`)
 	assert.NoError(t, CrossValidateAreaEffectShapes(defsWith("Other", skills.EffectTypeDotAura), []*Zone{z}))
 }

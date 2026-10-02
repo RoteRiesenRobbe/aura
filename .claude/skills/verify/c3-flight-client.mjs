@@ -51,7 +51,7 @@ const outDir = dirname(fileURLToPath(import.meta.url));
 // WARP takes 1/120 units and wants whole units.
 const w = (p) => `${Math.round(p.x) * 120} ${Math.round(p.y) * 120}`;
 
-// api/zones/world.json campfires. The origin is the fire the flight LEAVES
+// api/zones/world.json bindPoints. The origin is the fire the flight LEAVES
 // from — it must be discovered too (a C2 ruling), which the dwell provides.
 // The destination is the far southwest, ~85 units away: long enough that the
 // flight is still running several samples after takeoff at 4× walk.

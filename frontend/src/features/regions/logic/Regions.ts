@@ -591,7 +591,7 @@ export function buildProfiles(raw: { [k: string]: unknown }): { [name: string]: 
 
 /**
  * The GROUND table, keyed by profile name — what `zone.regions`, `zone.paths`
- * and `zone.polygons` name, plus the `outlineProfile` of the latter two.
+ * and `zone.structures` name, plus the `outlineProfile` of the latter two.
  *
  * ⚑ Typed DOWN to {@link TerrainProfile} deliberately: `TERRAIN_PROFILES.Forest
  * .darkness` is a compile error, where before the split it was data that simply

@@ -1,11 +1,11 @@
 # Plan: prop draw order: deterministic stacking, prop layers and area groups authored in Tiled
 
 **Status:** DESIGNED 2026-09-20, **REVISED 2026-10-02** (PO session: D1, D3,
-D4, D8 and D9 ruled the same day). **P0-P3 built and PO-passed (§11); P4
-waits on D10/D13/D14 and `plan-zone-naming.md` N2.** Five chunks: P0 → P1 → P2 →
-P3 → P4. P4 (area groups) was added on 2026-10-02 at the PO's request; its
-decisions D10-D14 are PROPOSED. Line refs come from a survey of HEAD `3bff5220` on 2026-10-02; re-verify
-them before executing.
+D4, D8 and D9 ruled the same day). **P0-P3 built and PO-passed (§11); P4's
+decisions D10-D14 are all ruled (D10/D13/D14 on 2026-10-02, §8), and N2, the
+one thing P4 waited on, was built 2026-10-02 (`plan-zone-naming.md` §10): P4 is unblocked.** Five chunks: P0 → P1 → P2 → P3 → P4. P4
+(area groups) was added on 2026-10-02 at the PO's request. Line refs come from
+a survey of HEAD `3bff5220` on 2026-10-02; re-verify them before executing.
 
 **Origin.**
 
@@ -497,7 +497,7 @@ its layer anyway.
   editor.
 - Non-underfoot props cost zero extra wire bytes.
 
-### P4: area groups (PROPOSED, design in §10; after P3 and N2)
+### P4: area groups (RULED, design in §10; after P3 and N2)
 
 1. **Go** (`world/zone.go`):
    - Add `Areas []Area` to `Zone`. An `Area` has an `id` plus any of the
@@ -536,6 +536,9 @@ its layer anyway.
   and props into it, and saves.
 - The game behaves identically, and the file reopens with the same groups.
 - A zone with no `areas` is byte-identical to before P4.
+- ⭐ **The game can still say which area every object lives in** (the PO's
+  condition on D10): a test asserts the area on each flattened object, in Go
+  and on the client, and zone-level objects carry none.
 
 ---
 
@@ -626,11 +629,18 @@ its layer anyway.
   field. PO: *"what if we consider json structure itself to carry that info in
   its hierarchy?"*, then *"yes"*.
 
+- **2026-10-02, D10 + D13 + D14 (P4, §10):**
+  - **D10**, the nested `areas` section: *"yes, if the game can still find out
+    which area each object lives in"*. It can: D11 keeps the area on every
+    flattened object (Go `Area`, the client's `area` field), so the condition
+    is part of P4's done-when, not a new design.
+  - **D13**, every area opens with the full kind set in Tiled: *"yes"*. The
+    measure-and-fall-back note in §10.4 stands.
+  - **D14**, area over kind, with the Tiled-only discrepancy: accepted. PO:
+    *"there was no solution for this AFAIK, so it is accepted"*.
+
 ### Open
 
-- **D10, D13, D14 (P4, §10):** a nested `areas` section rather than a tag;
-  every area showing the full kind set in Tiled; area over kind as the
-  hierarchy.
 - **D2, D5, D6, D7:** fixed vocabulary, spawn order as the in-container order,
   ordered insertion, and the container table. Presented 2026-10-02 and not
   vetoed; listed here so the record shows they were proposed rather than
@@ -660,7 +670,7 @@ its layer anyway.
 
 ---
 
-## 10. P4 design: area groups (PROPOSED)
+## 10. P4 design: area groups (RULED 2026-10-02)
 
 PO, 2026-10-02: *"Ultimately I would also like to be able to have a container
 level on top for regions. eg. "Farmlands" -> anchors, atmorspheres and "Dark
@@ -672,7 +682,7 @@ Later the same day: *"i also want [it] added to the plan as P step in the end.
 i suppose this will also change json structure by adding a regions section, or
 do you have a better proposal?"*
 
-### 10.1 D10: a nested section, not a per-object tag
+### 10.1 D10: a nested section, not a per-object tag (RULED 2026-10-02)
 
 An earlier draft of §10 recommended an `area` tag on each object, to keep each
 array's order across the whole zone. **That argument does not survive Tiled.**
@@ -795,7 +805,7 @@ PO, 2026-10-02: *"can also be ids and the game can later name them if needed."*
   - A required link would make renaming a region title a two-place edit.
 - Either can come later if the game starts reading areas.
 
-### 10.4 D13: every area shows the full kind set in Tiled
+### 10.4 D13: every area shows the full kind set in Tiled (RULED 2026-10-02)
 
 - Each area group opens with every kind layer, empty ones included, and `props`
   with its four sub-layers. That gives predictable drop targets, the same rule
@@ -809,7 +819,7 @@ PO, 2026-10-02: *"can also be ids and the game can later name them if needed."*
   23-area world is a long list. Measure this in P4, and fall back to "only
   non-empty kinds" if it reads badly.
 
-### 10.5 D14: area over kind (the PO's ask), with one Tiled-only discrepancy
+### 10.5 D14: area over kind (the PO's ask), with one Tiled-only discrepancy (ACCEPTED 2026-10-02)
 
 ```text
 Layers panel (top = drawn last)

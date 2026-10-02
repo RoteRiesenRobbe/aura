@@ -224,7 +224,9 @@ export interface ZoneJSON {
     // The terrain profile the zone is filled with, inside AND beyond its
     // bounds, beneath every region and polygon. Absent = black (PO 2026-09-27).
     ground?: string;
-    terrain?: GroundTextureDefinition[];
+    // The scattered ground-texture patches (plan-zone-naming.md N2: was
+    // `terrain`, which is also the word for the whole ground).
+    decals?: GroundTextureDefinition[];
     darkAreas?: DarkAreaDefinition[];
     // Ground-colour/presentation polygons, read by Regions.loadZone
     // (plan-region-primitive.md). Server units, like everything in the file.
@@ -235,7 +237,7 @@ export interface ZoneJSON {
     paths?: PathDefinition[];
     // Filled masses — rock, buildings, lakes — read by Polygons.loadPolygons
     // (plan-zone-polygons.md P2). Same posture as the two above.
-    polygons?: PolygonDefinition[];
+    structures?: PolygonDefinition[];
     // The AIR over an area — read by Atmospheres.loadAtmospheres
     // (plan-region-atmosphere.md A0). ⛔ NOT a polygon: it never blocks, takes
     // no outline, and draws on top of everything rather than into the ground
@@ -247,9 +249,10 @@ export interface ZoneJSON {
     // nothing, so there is no look to author (L7). ⚑ Same warning as every
     // array above — one not named HERE never reaches the renderer, silently.
     clearings?: ClearingDefinition[];
-    // World campfires (chunk 2): read by the darkness overlay for their
-    // static glow (chunk 4 follow-up).
-    campfires?: CampfireDefinition[];
+    // Bind points (chunk 2's world campfires; the key was `campfires` until
+    // N2): read by the darkness overlay for their static glow (chunk 4
+    // follow-up) and by the map's campfire markers.
+    bindPoints?: CampfireDefinition[];
     // Placed props. ⭐ The WORLD learns about props from the WIRE, as streamed
     // entities, and does not read this array to draw them. It is read for what
     // a streamed prop cannot do: a `Torch` casts a STATIC light, punched into
@@ -319,7 +322,7 @@ export function loadZone(zoneName: string) {
     // (plan-underworld.md U2).
     const ox = zone.origin ? zone.origin.x : 0;
     const oy = zone.origin ? zone.origin.y : 0;
-    (zone.terrain || []).forEach(function (t: GroundTextureDefinition) {
+    (zone.decals || []).forEach(function (t: GroundTextureDefinition) {
         placeTexture({
             type: groundTextureTypes[t.type],
             x: meter2px(t.x + ox),

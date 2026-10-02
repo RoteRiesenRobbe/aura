@@ -269,7 +269,7 @@ export interface ZoneData {
     // bounds, beneath every region and polygon. Absent = black. Carried, never
     // edited — Tiled authors it as a map property.
     ground?: string;
-    terrain: ZoneTerrain[];
+    decals: ZoneTerrain[];
     // One array per prop layer (plan-prop-draw-order.md D3). The model holds
     // them FLAT (rank, then file order — the server's spawn order), so the
     // editor's flat prop index keeps working; fromJSON flattens and
@@ -277,12 +277,12 @@ export interface ZoneData {
     props: PropLayersJSON<ZoneProp>;
     spawns: ZoneSpawn[];
     // Omitted when empty so pre-step-3 zones round-trip diff-clean.
-    campfires?: ZoneCampfire[];
+    bindPoints?: ZoneCampfire[];
     darkAreas?: ZoneDarkArea[];
     // Omitted when empty so pre-step-5 zones round-trip diff-clean.
     regions?: ZoneRegion[];
     paths?: ZonePath[];
-    polygons?: ZonePolygon[];
+    structures?: ZonePolygon[];
     atmospheres?: ZoneAtmosphere[];
     clearings?: ZoneClearing[];
     // Omitted when empty so pre-C6 zones round-trip diff-clean.
@@ -370,13 +370,13 @@ function round(value: number, digits: number): number {
 export class ZoneModel {
     name: string;
     bounds: ZoneBounds;
-    // terrain is a serialization slot filled at export time from the live
+    // decals is a serialization slot filled at export time from the live
     // GroundTextureManager store (the editor renders/edits terrain there, in
     // pixels). Kept here so getZoneAsJSON is the single whole-zone serializer.
-    terrain: ZoneTerrain[];
+    decals: ZoneTerrain[];
     props: ZoneProp[];
     spawns: ZoneSpawn[];
-    campfires: ZoneCampfire[];
+    bindPoints: ZoneCampfire[];
     darkAreas: ZoneDarkArea[];
     anchors: ZoneAnchor[];
     // ⚑ Carried, never edited (D9), which is why it is not a constructor
@@ -387,7 +387,7 @@ export class ZoneModel {
     regions: ZoneRegion[] = [];
     // Carried, never edited — see ZonePath and the region field above.
     paths: ZonePath[] = [];
-    polygons: ZonePolygon[] = [];
+    structures: ZonePolygon[] = [];
     atmospheres: ZoneAtmosphere[] = [];
     clearings: ZoneClearing[] = [];
     // Carried, never edited — see ZoneData.origin. undefined means the zone
@@ -400,13 +400,13 @@ export class ZoneModel {
     // 0 until the first mint, which seeds it from the loaded zone.
     private nextSpawnPointNumber: number = 0;
 
-    constructor(name: string, bounds: ZoneBounds, terrain: ZoneTerrain[], props: ZoneProp[], spawns: ZoneSpawn[], campfires: ZoneCampfire[], darkAreas: ZoneDarkArea[], anchors: ZoneAnchor[]) {
+    constructor(name: string, bounds: ZoneBounds, decals: ZoneTerrain[], props: ZoneProp[], spawns: ZoneSpawn[], bindPoints: ZoneCampfire[], darkAreas: ZoneDarkArea[], anchors: ZoneAnchor[]) {
         this.name = name;
         this.bounds = bounds;
-        this.terrain = terrain;
+        this.decals = decals;
         this.props = props;
         this.spawns = spawns;
-        this.campfires = campfires;
+        this.bindPoints = bindPoints;
         this.darkAreas = darkAreas;
         this.anchors = anchors;
     }
@@ -415,7 +415,7 @@ export class ZoneModel {
         const model = new ZoneModel(
             data.name,
             {width: data.bounds.width, height: data.bounds.height},
-            (data.terrain || []).map(t => ({...t})),
+            (data.decals || []).map(t => ({...t})),
             // ⚑ L3: the flat index the editor addresses props by is THIS
             // order, and each entry remembers its layer so a save puts it back
             // in its own array.
@@ -426,7 +426,7 @@ export class ZoneModel {
                 ...s,
                 waypoints: (s.waypoints || []).map(w => ({...w})),
             })),
-            (data.campfires || []).map(c => ({...c})),
+            (data.bindPoints || []).map(c => ({...c})),
             (data.darkAreas || []).map(d => ({...d})),
             (data.anchors || []).map(a => ({...a})),
         );
@@ -451,7 +451,7 @@ export class ZoneModel {
             ends: p.ends,
             effect: p.effect,
         }));
-        model.polygons = (data.polygons || []).map(g => ({
+        model.structures = (data.structures || []).map(g => ({
             profile: g.profile,
             points: (g.points || []).map(pt => ({...pt})),
             blocksMovement: g.blocksMovement,
@@ -505,7 +505,7 @@ export class ZoneModel {
     // The id is minted HERE rather than at the call site so no path can add a
     // fire without one — a campfire with no id fails zone validation at boot.
     addCampfire(campfire: ZoneCampfire): number {
-        return this.campfires.push({...campfire, id: campfire.id || this.mintSpawnPointId()}) - 1;
+        return this.bindPoints.push({...campfire, id: campfire.id || this.mintSpawnPointId()}) - 1;
     }
 
     // mintSpawnPointId hands out spawnpoint-<n> above every number currently in
@@ -525,14 +525,14 @@ export class ZoneModel {
     // remember — the fire they bound to no longer exists either way.
     private mintSpawnPointId(): string {
         if (this.nextSpawnPointNumber === 0) {
-            this.nextSpawnPointNumber = 1 + this.campfires.reduce(
+            this.nextSpawnPointNumber = 1 + this.bindPoints.reduce(
                 (highest, c) => Math.max(highest, spawnPointNumber(c.id)), 0);
         }
         return `spawnpoint-${this.nextSpawnPointNumber++}`;
     }
 
     removeCampfire(index: number) {
-        this.campfires.splice(index, 1);
+        this.bindPoints.splice(index, 1);
     }
 
     addDarkArea(darkArea: ZoneDarkArea): number {
@@ -567,7 +567,7 @@ export class ZoneModel {
             // is all of them today — round-trips diff-clean.
             ...(this.origin ? {origin: {x: this.origin.x, y: this.origin.y}} : {}),
             ...(this.ground ? {ground: this.ground} : {}),
-            terrain: this.terrain.map(t => ({
+            decals: this.decals.map(t => ({
                 type: t.type,
                 x: round(t.x, 2),
                 y: round(t.y, 2),
@@ -625,14 +625,14 @@ export class ZoneModel {
             })),
             // Omitted (undefined key) while empty, so pre-step-3 zones
             // round-trip diff-clean — the chunk-5 array precedent.
-            campfires: this.campfires.length > 0
+            bindPoints: this.bindPoints.length > 0
                 // startingSpawn only serializes when true — non-spawn fires
                 // stay bare {x, y} like the hand-written file.
                 // ⚑ The id is serialized FIRST and unconditionally. This
                 // whitelist is the whole reason a hand-authored id could be
                 // silently dropped by a round-trip through the editor, which
                 // would unbind every character bound to that fire.
-                ? this.campfires.map(c => ({
+                ? this.bindPoints.map(c => ({
                     id: c.id,
                     x: round(c.x, 2),
                     y: round(c.y, 2),
@@ -693,8 +693,8 @@ export class ZoneModel {
             // ⚑ Named here or the whitelist eats it (L1) — the fifth time this
             // comment has had to be written, after spawn.level, prop.scale,
             // regions and paths. This editor cannot author a polygon either.
-            polygons: this.polygons.length > 0
-                ? this.polygons.map(g => ({
+            structures: this.structures.length > 0
+                ? this.structures.map(g => ({
                     profile: g.profile,
                     points: g.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
                     blocksMovement: g.blocksMovement ? true : undefined,

@@ -215,7 +215,7 @@ Authoring shape:
   - ⭐ **It has a direction.** Everything loose in the art is pushed to one
     side, so the prop's rotation says which way the thing came through. Point
     it *into* the field.
-- **Field plots** = `polygons` with the Fields/Suburbs profile at a different
+- **Field plots** = `structures` with the Fields/Suburbs profile at a different
   tint, non-blocking, rectangular-ish and *aligned to each other*. Straight
   parallel edges are the whole visual language of farmland; anywhere else in the
   game, straight is wrong.
