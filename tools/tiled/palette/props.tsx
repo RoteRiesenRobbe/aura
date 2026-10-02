@@ -150,7 +150,7 @@
   <properties>
    <property name="auraType" value="Stump"/>
   </properties>
-  <image source="../../../frontend/src/features/game-objects/assets/resources/stump.svg" width="100" height="100"/>
+  <image source="../../../frontend/src/features/game-objects/assets/resources/treeSpot.svg" width="100" height="100"/>
  </tile>
  <tile id="25" type="AuraProp">
   <properties>
