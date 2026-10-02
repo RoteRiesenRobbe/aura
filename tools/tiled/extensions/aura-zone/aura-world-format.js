@@ -257,16 +257,46 @@
     }
 
     /* ---- write: TileMap -> world.json -------------------------------------- */
-    function write(map, fileName) {
-        var known = {};
-        for (var k = 0; k < C.LAYERS.length; k++) { known[C.LAYERS[k]] = true; }
 
+    // A Tiled layer as the plain descriptor C.layerRefusals decides on (P0).
+    // Only this adapter touches Tiled's layer API; the decision is tested in
+    // vitest. A group is described with its children because P3 walks them.
+    function describeLayer(layer) {
+        var d = {name: layer.name, kind: 'other', empty: true};
+        if (layer.isObjectLayer) {
+            d.kind = 'object';
+            d.empty = layer.objectCount === 0;
+        } else if (layer.isGroupLayer) {
+            d.kind = 'group';
+            d.layers = [];
+            for (var i = 0; i < layer.layerCount; i++) {
+                var child = describeLayer(layer.layerAt(i));
+                d.layers.push(child);
+                if (!child.empty) { d.empty = false; }
+            }
+        } else if (layer.isTileLayer) {
+            d.kind = 'tile';
+            d.empty = layer.region().rects.length === 0;
+        } else if (layer.isImageLayer) {
+            d.kind = 'image';
+            d.empty = String(layer.imageSource || '') === '';
+        }
+        return d;
+    }
+
+    function write(map, fileName) {
+        // P0: refuse before anything else, so no layer is ever skipped unseen.
+        var described = [];
+        for (var li = 0; li < map.layerCount; li++) { described.push(describeLayer(map.layerAt(li))); }
+        var refusals = C.layerRefusals(described);
+        if (refusals.length > 0) { return C.formatLayerRefusals(refusals); }
+
+        // Past the refusal, every object layer is one LAYERS names, and every
+        // other layer is empty.
         var layers = [];
-        var unknown = [];
         for (var i = 0; i < map.layerCount; i++) {
             var layer = map.layerAt(i);
             if (!layer.isObjectLayer) { continue; }
-            if (!known[layer.name]) { unknown.push(layer.name); continue; }
 
             var objects = [];
             for (var j = 0; j < layer.objectCount; j++) {
@@ -313,14 +343,6 @@
                 objects.push(out);
             }
             layers.push({name: layer.name, objects: objects});
-        }
-
-        // D5: a layer name selects a world.json array. An unrecognised object
-        // layer is an authoring mistake, and silently dropping it would delete
-        // content on save — refuse instead.
-        if (unknown.length > 0) {
-            return 'unknown object layer(s): ' + unknown.join(', ')
-                + '. Expected only: ' + C.LAYERS.join(', ');
         }
 
         var bw = map.property('boundsWidth');

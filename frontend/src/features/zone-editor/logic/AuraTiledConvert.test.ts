@@ -830,6 +830,73 @@ describe('AuraConvert — utf8Bytes (the CRLF workaround needs bytes)', () => {
 });
 
 /**
+ * plan-prop-draw-order.md P0 — the writer never drops a layer silently.
+ *
+ * write() used to skip every top-level layer that was not an object layer, so
+ * props dragged into a hand-made GROUP layer were deleted from the zone file on
+ * save, without a word. layerRefusals is the pure decision; write() only
+ * describes Tiled's layers to it as {name, kind, empty, layers?}.
+ */
+describe('AuraConvert — layers the writer would drop refuse the save (P0)', () => {
+    type Desc = {name: string, kind: string, empty: boolean, layers?: Desc[]};
+    const obj = (name: string, empty = false): Desc => ({name, kind: 'object', empty});
+    const known = (): Desc[] => C.LAYERS.map((n: string) => obj(n));
+    const refusals = (layers: Desc[]): string[] => C.layerRefusals(layers);
+
+    it('accepts the layer set read() builds', () => {
+        expect(refusals(known())).toEqual([]);
+        expect(refusals(C.LAYERS.map((n: string) => obj(n, true)))).toEqual([]);
+    });
+
+    it('refuses a group layer full of props, naming it', () => {
+        const trees: Desc = {name: 'trees', kind: 'group', empty: false, layers: [obj('props')]};
+        const r = refusals([...known(), trees]);
+        expect(r).toHaveLength(1);
+        expect(r[0]).toContain('"trees"');
+        expect(r[0]).toMatch(/group/);
+    });
+
+    it('refuses every group layer, even an empty one, and even one named like a zone layer', () => {
+        // P3 will accept exactly one group, `props`. Until then none is legal.
+        expect(refusals([...known(), {name: 'spare', kind: 'group', empty: true, layers: []}])).toHaveLength(1);
+        expect(refusals([{name: 'props', kind: 'group', empty: false, layers: [obj('default')]}])).toHaveLength(1);
+    });
+
+    it('refuses a tile layer or an image layer that holds content', () => {
+        const r = refusals([...known(), {name: 'Tile Layer 1', kind: 'tile', empty: false},
+            {name: 'reference', kind: 'image', empty: false}]);
+        expect(r).toHaveLength(2);
+        expect(r[0]).toContain('"Tile Layer 1"');
+        expect(r[1]).toContain('"reference"');
+    });
+
+    it('lets an EMPTY tile or image layer through: dropping it loses nothing', () => {
+        // Tiled's New Map starts with an empty "Tile Layer 1"; refusing it
+        // would block a save that deletes nothing.
+        expect(refusals([...known(), {name: 'Tile Layer 1', kind: 'tile', empty: true},
+            {name: 'blank', kind: 'image', empty: true}])).toEqual([]);
+    });
+
+    it('still refuses an unknown object layer, empty or not, naming the expected set', () => {
+        const r = refusals([...known(), obj('prop'), obj('scratch', true)]);
+        expect(r).toHaveLength(2);
+        expect(r[0]).toContain('"prop"');
+        expect(r[1]).toContain('"scratch"');
+        expect(r[0]).toContain(C.LAYERS.join(', '));
+    });
+
+    it('refuses a layer of a kind it does not know, rather than skipping it', () => {
+        expect(refusals([...known(), {name: 'odd', kind: 'other', empty: true}])).toHaveLength(1);
+    });
+
+    it('formats the refusals into one message that says nothing was saved', () => {
+        const msg: string = C.formatLayerRefusals(refusals([{name: 'trees', kind: 'group', empty: false, layers: []}]));
+        expect(msg).toMatch(/^Refusing to save/);
+        expect(msg).toContain('"trees"');
+    });
+});
+
+/**
  * C4 — save-time validation.
  *
  * Every rule below is one the server already enforces at boot; the value here

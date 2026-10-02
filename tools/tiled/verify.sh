@@ -123,6 +123,41 @@ else
     ok "refused, nothing written"
 fi
 
+# ---- 2a. a group layer refuses the save instead of being dropped ------------
+# plan-prop-draw-order.md P0. The writer used to skip every non-object layer,
+# so a hand-made group full of props saved as `props: []` (measured at
+# b9e71599). A zone JSON cannot hold a group, so the map arrives as TMX: Tiled
+# writes the zone out as TMX, the leg appends a group, and saves it back.
+echo
+echo "a group layer full of props"
+node -e '
+const fs = require("fs");
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/grouped.json", JSON.stringify({
+    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
+    campfires: z.campfires, anchors: z.anchors,
+}, null, 2));
+'
+"$TILED" --export-map tmx tools/tiled/.verify/grouped.json \
+    "$(native "$ROOT/tools/tiled/.verify/grouped.tmx")" >/dev/null 2>&1 || true
+# The control: the same map WITHOUT the group must save, or a refusal below
+# proves nothing.
+if ! "$TILED" --export-map aura-zone tools/tiled/.verify/grouped.tmx \
+        "$(native "$ROOT/tools/tiled/.verify/grouped-control.json")" >/dev/null 2>&1; then
+    bad "the control (no group) was refused too — the leg below would pass for nothing"
+else
+    sed -i 's#</map>#<group id="9001" name="trees"><objectgroup id="9002" name="props"><object id="9003" name="OakTree" x="600" y="600" width="120" height="120"/></objectgroup></group>\n</map>#' \
+        tools/tiled/.verify/grouped.tmx
+    if "$TILED" --export-map aura-zone tools/tiled/.verify/grouped.tmx \
+            "$(native "$ROOT/tools/tiled/.verify/grouped-out.json")" >/dev/null 2>&1; then
+        bad "the save was ACCEPTED — the group's props were dropped"
+    elif [ -e tools/tiled/.verify/grouped-out.json ]; then
+        bad "refused, but a file was written anyway"
+    else
+        ok "refused, nothing written (the control without the group saves)"
+    fi
+fi
+
 # ---- 2b. per-placement prop scale survives Tiled's own box handling ---------
 # ⚑ vitest cannot cover this leg: it drives the pure converter, which never
 # meets Tiled's MapObject. Scale is carried IN the object's width, so the whole

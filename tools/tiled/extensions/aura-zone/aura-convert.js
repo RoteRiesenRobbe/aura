@@ -1927,6 +1927,58 @@ var AuraConvert = (function () {
     // One refusal message for Tiled. Capped: a layer mistake made in bulk would
     // otherwise produce hundreds of lines and hide its own first one.
     var MAX_REPORTED = 12;
+    /* ---- layers the writer would drop (plan-prop-draw-order.md P0) ---------
+     * The zone file stores arrays, never layers: write() reads exactly the
+     * top-level object layers named in LAYERS. Anything else in the Layers
+     * panel would vanish on save, so it refuses the save instead.
+     *
+     * ⛔ It used to SKIP every non-object layer without a word, so props dragged
+     * into a hand-made group layer were deleted from the zone file on save.
+     *
+     * Takes the top-level layers as plain descriptors, which write() builds
+     * from Tiled's layer objects, so the decision is testable outside Tiled:
+     *   {name, kind: 'object' | 'group' | 'tile' | 'image' | other, empty,
+     *    layers: [...] (a group's children, same shape)}
+     * Returns one message per offending layer; none means the save may go on.
+     *
+     * - Every GROUP refuses, empty or not. ⚑ P3 will accept exactly one, `props`,
+     *   and walk its children by name; that is why a group's descriptor already
+     *   carries `layers`.
+     * - A TILE or IMAGE layer refuses only when it holds something. An empty
+     *   one loses nothing on save, and Tiled's New Map starts with one.
+     * - An OBJECT layer refuses when LAYERS does not name it, empty or not:
+     *   a misnamed layer is an authoring mistake even before anything is in it.
+     * - A kind this function does not know refuses rather than being skipped. */
+    function layerRefusals(layers) {
+        var out = [];
+        for (var i = 0; i < layers.length; i++) {
+            var l = layers[i];
+            var name = '"' + l.name + '"';
+            if (l.kind === 'object') {
+                if (LAYERS.indexOf(l.name) < 0) {
+                    out.push('object layer ' + name + ' is not a zone layer, so its objects would be lost.'
+                        + ' Expected only: ' + LAYERS.join(', '));
+                }
+            } else if (l.kind === 'group') {
+                out.push('group layer ' + name + ': the zone format has no group layers, so everything in it'
+                    + ' would be lost. Move its objects to the top-level layers, then delete the group.');
+            } else if (l.kind === 'tile' || l.kind === 'image') {
+                if (!l.empty) {
+                    out.push(l.kind + ' layer ' + name + ' holds ' + (l.kind === 'tile' ? 'tiles' : 'an image')
+                        + ', which the zone format cannot store. Clear it or delete the layer.');
+                }
+            } else {
+                out.push('layer ' + name + ' is of a kind the zone format cannot store (' + l.kind + ').'
+                    + ' Delete it.');
+            }
+        }
+        return out;
+    }
+    function formatLayerRefusals(refusals) {
+        return 'Refusing to save — saving would delete the contents of '
+            + refusals.length + ' layer(s):\n\n' + refusals.join('\n');
+    }
+
     function formatErrors(errors) {
         var shown = errors.slice(0, MAX_REPORTED);
         var more = errors.length - shown.length;
@@ -1990,6 +2042,8 @@ var AuraConvert = (function () {
         validateModel: validateModel,
         polygonNotices: polygonNotices,
         formatErrors: formatErrors,
+        layerRefusals: layerRefusals,
+        formatLayerRefusals: formatLayerRefusals,
         SPAWN_INHERIT: SPAWN_INHERIT,
         SPAWN_ENUMS: SPAWN_ENUMS,
         plainValue: plainValue,

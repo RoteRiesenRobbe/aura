@@ -831,4 +831,52 @@ Layers panel (top = drawn last)
 
 ## 11. Chunk ledgers
 
-(empty, nothing built)
+### P0: the silent-drop trap closed ✅ 2026-10-02 (uncommitted)
+
+**What landed:**
+
+- `aura-convert.js`: `layerRefusals(layers)` decides what a save would drop,
+  and `formatLayerRefusals` words it. It is pure and takes plain descriptors
+  `{name, kind, empty, layers?}`. One message per offending layer:
+  - every **group** layer refuses, empty or not, and so does one named like a
+    zone layer;
+  - a **tile** or **image** layer refuses only when it holds something;
+  - an **object** layer refuses when `LAYERS` does not name it, empty or not
+    (the old unknown-layer refusal, folded in so there is one decision);
+  - a layer of any **other** kind refuses rather than being skipped.
+- `aura-world-format.js`: `describeLayer` adapts Tiled's layers (tile:
+  `region().rects`, image: `imageSource`) and `write()` refuses **before**
+  walking any objects. The separate unknown-layer check is gone.
+- ⚑ **For P3:** a group's descriptor already carries its children
+  (`layers`), so P3 changes one branch: accept a group named `props` and walk
+  its children by name. `LAYERS` is untouched.
+- **The empty-layer decision:** an empty tile or image layer is let through.
+  Dropping it loses nothing, and Tiled's New Map starts with an empty
+  "Tile Layer 1", so refusing would block a save that deletes nothing. An empty
+  **group** still refuses, as briefed: P3 gives a group meaning by its name, so
+  a stray one is a mistake worth naming now.
+
+**Tests:**
+
+- vitest `AuraTiledConvert.test.ts`, 8 new cases. Red first (8/8,
+  `C.layerRefusals is not a function`), then green. Full suite **1463/0**
+  (61 files; it was 1455/0 at HEAD, byte-stability **green before and after**).
+  `npm run typecheck` clean.
+- **Real Tiled (1.12.2), headless:** seven hand-built TMX variants exported to
+  `aura-zone`. Group with props, empty group, filled tile layer, image layer
+  with an image, and an unknown object layer were all refused with nothing
+  written. Empty tile layer, empty image layer and the base map all saved, and
+  the base saved byte-identical.
+- **The bug, measured at HEAD's writer:** the group, filled-tile and image
+  variants all **saved**, the group's OakTree gone (`props: 0`).
+- `verify.sh` gained leg **2a**: a group of props refuses, with a control
+  proving the same map saves without the group. All legs green, 0 ❌.
+- Extension reinstalled (`install.sh`). Leg 0 confirms the copy is in step.
+- ⚑ Headless `--export-map` prints **no** refusal text, only the exit code.
+  The message wording is seen only in the GUI (PO check).
+
+**Schema:** DB **NONE** · wire **NONE** · conf **NONE** · content **NONE** ·
+zone format **NONE**.
+
+**PO GUI check ✅ 2026-10-02:** the refusal dialog names the layer, the
+document stays open, and the save goes through once the group is deleted.
