@@ -48,7 +48,8 @@ role/faction/curveLevel/entityType, factors incl. resistances/gateKeys as
 fixed-vocabulary pickers, body incl. collision layer/mask as bitmask
 checkboxes, skills[], unlocks[]); NPC `interaction.nodes[]` / `.ambient` /
 `.range` on any mob that carries one; quest `stages[]`/`objectives[]`/`next`
-on `api/quests/*.json`, including a clickable "referenced by" panel showing
+on `api/quests/*.json` (an objective's `tracker` on a talk_to, `chance` +
+`guaranteedAt` on a kill/harvest), including a clickable "referenced by" panel showing
 which NPCs' grants offer/advance each quest stage (click a reference to jump
 straight to that dialogue node); faction `displayName`/`friendlyToPlayers`/
 `hostileTo` on `api/factions/*.json`, hostileTo as checkboxes over every

@@ -86,6 +86,10 @@ var expectedQuests = map[string]string{
 	// fight, not a cull.
 	"the-sounder-at-the-mill": "The Sounder at the Mill",
 
+	// The Miller's second quest, and the first CHANCE objective: each beach
+	// seaweed heap harvested rolls a find, and the 12th always finds.
+	"the-millers-ring": "The Miller's Ring",
+
 	// ⭐ THE OPENING ARC (content-zone-design-guide.md §2.0): the first quest
 	// in the game, and the only one whose stages exist to hand over the
 	// starting kit — Wild at the father, Harvest at the uncle, FirstAid on the
@@ -352,6 +356,10 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		// the Lamplighter's three dire wolves pay — the elite premium is in the
 		// drop table, not here. Revisit if elite kills are ever re-priced.
 		"the-sounder-at-the-mill": 370, // L6, ½ × 300 × 1.2^5
+
+		// The beach search, priced at the zone's level-3 band: its target is a
+		// harvest structure, which has no level worth pricing.
+		"the-millers-ring": 216, // L3, ½ × 300 × 1.2²
 
 		// ⭐ The opening arc (content-zone-design-guide.md §2.0). ⚑ L1 content,
 		// so the L9 rule bottoms out at the same 150 village-welcome and

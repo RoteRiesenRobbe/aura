@@ -115,6 +115,32 @@ func TestLoad_TrackerRoundTrips(t *testing.T) {
 	assert.Equal(t, "Report back to nobody in particular.", q.Stages[1].Tracker)
 }
 
+// An objective tracker rides a talk_to objective only: it rewords the derived
+// "Talk to the X" line, which is the one line a proper name breaks.
+func TestLoad_ObjectiveTrackerRoundTrips(t *testing.T) {
+	r := loadOne(t, `{"id": "q", "title": "Q", "stages": [
+		{"id": "s", "journal": "j", "objectives": [{"kind": "talk_to", "npc": "TownCrier", "tracker": "Find the crier"}], "next": "t"},
+		{"id": "t", "journal": "done"}
+	]}`)
+	q, err := r.Get("q")
+	require.NoError(t, err)
+	assert.Equal(t, "Find the crier", q.Stages[0].Objectives[0].Tracker)
+}
+
+// A chance objective (a find rolled per credited harvest, guaranteed on the
+// Nth) round-trips both keys.
+func TestLoad_ChanceObjectiveRoundTrips(t *testing.T) {
+	r := loadOne(t, `{"id": "q", "title": "Q", "stages": [
+		{"id": "s", "journal": "j", "tracker": "Search", "objectives": [{"kind": "harvest", "species": "Bramble", "chance": 0.06, "guaranteedAt": 12}], "next": "t"},
+		{"id": "t", "journal": "done"}
+	]}`)
+	q, err := r.Get("q")
+	require.NoError(t, err)
+	o := q.Stages[0].Objectives[0]
+	assert.InDelta(t, 0.06, o.Chance, 1e-9)
+	assert.Equal(t, uint64(12), o.GuaranteedAt)
+}
+
 func loadErr(t *testing.T, quest string) error {
 	t.Helper()
 	_, err := RegistryFromFS(fstest.MapFS{"q.json": &fstest.MapFile{Data: []byte(quest)}}, testMobs())
@@ -165,6 +191,44 @@ func TestLoad_Rejections(t *testing.T) {
 			{"id": "s", "journal": "j", "tracker": "Kill {n} of {m} things"}]}`,
 		"count placeholder on a talk_to-only stage": `{"id": "q", "title": "Q", "stages": [
 			{"id": "s", "journal": "j", "tracker": "{n}/{m} met", "objectives": [{"kind": "talk_to", "npc": "Farmer"}], "next": "t"},
+			{"id": "t", "journal": "done"}]}`,
+		// An objective tracker rewords a talk_to line only; a kill/harvest
+		// line carries a live count the static text would hide.
+		"objective tracker on a kill": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "objectives": [{"kind": "kill", "species": "Wolf", "tracker": "Wolves"}], "next": "t"},
+			{"id": "t", "journal": "done"}]}`,
+		// A stage tracker wins outright, so an objective tracker under it
+		// would be dead text.
+		"objective tracker under a stage tracker": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "tracker": "Go", "objectives": [{"kind": "talk_to", "npc": "Farmer", "tracker": "Find him"}], "next": "t"},
+			{"id": "t", "journal": "done"}]}`,
+		// A chance objective: a probability in (0, 1], a kill/harvest, alone in
+		// its stage (a hit advances the stage at once, so there is no "found"
+		// state to keep beside a sibling), count 1, and a stage tracker (the
+		// count is hidden, so nothing derives a line).
+		"chance above one": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "tracker": "S", "objectives": [{"kind": "harvest", "species": "Bramble", "chance": 1.5}], "next": "t"},
+			{"id": "t", "journal": "done"}]}`,
+		"negative chance": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "tracker": "S", "objectives": [{"kind": "harvest", "species": "Bramble", "chance": -0.1}], "next": "t"},
+			{"id": "t", "journal": "done"}]}`,
+		"guarantee without a chance": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "objectives": [{"kind": "harvest", "species": "Bramble", "guaranteedAt": 12}], "next": "t"},
+			{"id": "t", "journal": "done"}]}`,
+		"chance on a talk_to": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "tracker": "S", "objectives": [{"kind": "talk_to", "npc": "Farmer", "chance": 0.5}], "next": "t"},
+			{"id": "t", "journal": "done"}]}`,
+		"chance beside another objective": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "tracker": "S", "objectives": [{"kind": "harvest", "species": "Bramble", "chance": 0.5}, {"kind": "kill", "species": "Wolf"}], "next": "t"},
+			{"id": "t", "journal": "done"}]}`,
+		"chance with a count": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "tracker": "S", "objectives": [{"kind": "harvest", "species": "Bramble", "chance": 0.5, "count": 3}], "next": "t"},
+			{"id": "t", "journal": "done"}]}`,
+		"chance without a stage tracker": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "objectives": [{"kind": "harvest", "species": "Bramble", "chance": 0.5}], "next": "t"},
+			{"id": "t", "journal": "done"}]}`,
+		"count placeholder on a chance stage": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "tracker": "{n}/{m}", "objectives": [{"kind": "harvest", "species": "Bramble", "chance": 0.5, "guaranteedAt": 12}], "next": "t"},
 			{"id": "t", "journal": "done"}]}`,
 	}
 	for name, quest := range cases {

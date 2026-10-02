@@ -695,6 +695,28 @@ func TestObjectiveLines_TalkToCheckmark(t *testing.T) {
 		l.Snapshot()[0].Objectives, "one done, one open — the stage holds and says which is which")
 }
 
+// An objective-level tracker rewords ONE derived talk_to line and keeps its ✓,
+// where a stage tracker would replace every line and lose the ticks: the shape
+// the-strays needs, whose proper names read wrong as "Talk to the Baabara".
+func TestObjectiveLines_ObjectiveTrackerKeepsCheckmark(t *testing.T) {
+	crier := mobs.MobID(62)
+	l := testLedger(t, &QuestDefinition{
+		ID: "meet", Title: "Meet",
+		Stages: []*Stage{
+			{ID: "go", Journal: "Go.", Objectives: []Objective{
+				{Kind: ObjectiveTalkTo, Target: farmer, TargetName: "Farmer", Count: 1, Tracker: "Find Baabara"},
+				{Kind: ObjectiveTalkTo, Target: crier, TargetName: "Town Crier", Count: 1},
+			}, Next: "back"},
+			{ID: "back", Journal: "Back."},
+		},
+	})
+	require.NoError(t, l.Accept("meet"))
+	assert.Equal(t, []string{"Find Baabara", "Talk to the Town Crier"}, l.Snapshot()[0].Objectives)
+
+	l.NoteTalkedTo(farmer)
+	assert.Equal(t, []string{"Find Baabara ✓", "Talk to the Town Crier"}, l.Snapshot()[0].Objectives)
+}
+
 // The authored override (Q2 ruling: {n}/{m} placeholders): tracker wins over
 // the derived lines, and the placeholders keep the count live — substituted
 // from the stage's first countable objective.
@@ -893,4 +915,87 @@ func TestLedger_TitleIsTheSpellingAPlayerHasSeen(t *testing.T) {
 	// key.
 	assert.Equal(t, "unknown-quest", l.Title("unknown-quest"))
 	assert.Equal(t, "lamp", NewLedger(nil).Title("lamp"), "no registry at all (the sim)")
+}
+
+// ringQuest is the-millers-ring's shape: a single CHANCE objective (a find
+// rolled on each credited harvest, guaranteed on the Nth since stage entry)
+// that walks into a dialogue turn-in.
+func ringQuest() *QuestDefinition {
+	q := &QuestDefinition{
+		ID: "ring", Title: "The Ring",
+		Stages: []*Stage{
+			{ID: "search", Journal: "Search.", Tracker: "Search the seaweed", Objectives: []Objective{
+				{Kind: ObjectiveHarvest, Target: turnip, TargetName: "Turnip", Count: 1, Chance: 0.06, GuaranteedAt: 12},
+			}, Next: "return"},
+			{ID: "return", Journal: "Found it."},
+			{ID: "done", Journal: "Done."},
+		},
+	}
+	q.NoteDialogueEdgeFrom("return")
+	return q
+}
+
+func stageOf(l *Ledger, questID string) string {
+	p := l.quests[questID]
+	return p.Path[len(p.Path)-1]
+}
+
+// A credited harvest rolls the chance; a miss holds the stage, a hit advances it.
+func TestChanceObjective_ARollFindsIt(t *testing.T) {
+	l := testLedger(t, ringQuest())
+	require.NoError(t, l.Accept("ring"))
+
+	l.roll = func() float64 { return 0.06 } // a miss: the chance is strictly below
+	l.NoteKill(turnip)
+	assert.Equal(t, "search", stageOf(l, "ring"))
+
+	l.roll = func() float64 { return 0.0599 }
+	l.NoteKill(turnip)
+	assert.Equal(t, "return", stageOf(l, "ring"))
+}
+
+// The hidden guarantee: with every roll missing, the 12th harvest since stage
+// entry finds it, and not the 11th.
+func TestChanceObjective_GuaranteedOnTheNth(t *testing.T) {
+	l := testLedger(t, ringQuest())
+	l.roll = func() float64 { return 0.99 }
+	for range 3 {
+		l.NoteKill(turnip) // before the quest: never counts toward the guarantee
+	}
+	require.NoError(t, l.Accept("ring"))
+
+	for range 11 {
+		l.NoteKill(turnip)
+	}
+	assert.Equal(t, "search", stageOf(l, "ring"))
+	l.NoteKill(turnip)
+	assert.Equal(t, "return", stageOf(l, "ring"))
+}
+
+// Only a credit of the TARGET species rolls, and only while the stage is
+// current: a wolf kill or a talk consumes no roll, and neither does a harvest
+// after the find.
+func TestChanceObjective_RollsOnlyForItsTargetWhileCurrent(t *testing.T) {
+	l := testLedger(t, ringQuest())
+	rolls := 0
+	l.roll = func() float64 { rolls++; return 0 }
+	require.NoError(t, l.Accept("ring"))
+
+	l.NoteKill(wolf)
+	l.NoteTalkedTo(farmer)
+	assert.Equal(t, 0, rolls)
+
+	l.NoteKill(turnip)
+	assert.Equal(t, 1, rolls)
+	l.NoteKill(turnip)
+	assert.Equal(t, 1, rolls, "the stage has moved on")
+}
+
+// The count is hidden: the tracker is the authored sentence, never "n/12".
+func TestChanceObjective_TrackerHidesTheCount(t *testing.T) {
+	l := testLedger(t, ringQuest())
+	l.roll = func() float64 { return 0.99 }
+	require.NoError(t, l.Accept("ring"))
+	l.NoteKill(turnip)
+	assert.Equal(t, []string{"Search the seaweed"}, l.Snapshot()[0].Objectives)
 }

@@ -1,0 +1,30 @@
+{
+  "_comment": "The Miller's second quest: his wedding ring is lost on Saltgrass Strand, the beach north of the Farmlands. Offered and turned in by the Miller (miller.json). ⭐ THE FIRST CHANCE OBJECTIVE: the search stage is a FIND — every Seaweed heap harvested while it runs rolls a 6 % chance of turning up the ring (`chance`), and the 12th since stage entry always does (`guaranteedAt`, hidden: the tracker never shows a count). A hit advances the stage at once, so nothing beyond the stage path is persisted. ⚑ The beach is the SPECIES, not a region: Seaweed is placed only on the Strand (seaweed.json). Reward 216 XP on the turn-in row = the L9 half-level rule at the zone's level-3 band, 0.5 x 300 x 1.2^2. All values [PLACEHOLDER]; text plain (PO 2026-08-02).",
+  "id": "the-millers-ring",
+  "title": "The Miller's Ring",
+  "stages": [
+    {
+      "id": "search",
+      "journal": "The Miller lost his wedding ring on the beach north of the farmland. It must be tangled in the seaweed washed up along the shore.",
+      "tracker": "Search the seaweed on the beach for the ring",
+      "objectives": [
+        {
+          "kind": "harvest",
+          "species": "Seaweed",
+          "chance": 0.06,
+          "guaranteedAt": 12
+        }
+      ],
+      "next": "return"
+    },
+    {
+      "id": "return",
+      "journal": "The ring was tangled in a heap of seaweed. The Miller will want it back.",
+      "tracker": "Return the ring to the Miller"
+    },
+    {
+      "id": "done",
+      "journal": "Done. The Miller has his ring back."
+    }
+  ]
+}

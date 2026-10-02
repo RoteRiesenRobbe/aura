@@ -2,6 +2,7 @@ package quests
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"sort"
 	"strconv"
 	"strings"
@@ -84,6 +85,10 @@ type Ledger struct {
 	// tracker would sit on a stale "3/8" for up to the ~5s heartbeat — while
 	// the player watches the mob they just killed fail to count.
 	displayRev uint64
+
+	// roll draws in [0, 1) for a chance objective's find (Objective.Chance).
+	// Tests swap it for a fixed sequence.
+	roll func() float64
 }
 
 // Revision is the quest-state change counter — the SAVE trigger. See the field.
@@ -124,7 +129,7 @@ func (l *Ledger) SetNotifier(fn func(Notice)) {
 }
 
 func NewLedger(reg Registry) *Ledger {
-	return &Ledger{reg: reg}
+	return &Ledger{reg: reg, roll: rand.Float64}
 }
 
 // NoteKill counts one credited kill (or harvest — same counters, D2) of the
@@ -136,7 +141,34 @@ func (l *Ledger) NoteKill(species mobs.MobID) {
 		l.killCounts = make(map[mobs.MobID]uint64)
 	}
 	l.killCounts[species]++
+	l.rollFinds(species)
 	l.recheck()
+}
+
+// rollFinds rolls every running chance objective (Objective.Chance) that
+// targets the credited species, and advances its stage on a hit. Only a
+// credit of the target rolls: a talk or another species' kill consumes none.
+// The guarantee is not rolled here; satisfied() reads it off the count.
+func (l *Ledger) rollFinds(species mobs.MobID) {
+	if l.reg == nil {
+		return
+	}
+	for questID, p := range l.quests {
+		if !p.Running {
+			continue
+		}
+		q, err := l.reg.Get(questID)
+		if err != nil {
+			continue
+		}
+		s := q.Stage(p.Path[len(p.Path)-1])
+		if len(s.Objectives) != 1 || s.Objectives[0].Chance == 0 || s.Objectives[0].Target != species {
+			continue
+		}
+		if l.roll() < s.Objectives[0].Chance {
+			l.enter(q, p, q.Stage(s.Next))
+		}
+	}
 }
 
 // NoteTalkedTo stamps a conversant as talked-to and re-checks running stages.
@@ -547,7 +579,8 @@ func (l *Ledger) recheck() {
 // objectiveLines composes the current stage's journal lines (Q2/R2): the
 // server sends the finished sentence, the client renders it verbatim. An
 // authored Tracker wins outright, with {n}/{m} substituted live; otherwise one
-// line per objective is derived from its load-resolved display name. Counts
+// line per objective is derived from its load-resolved display name (a talk_to
+// objective's own Tracker rewords its line and keeps the ✓). Counts
 // are since stage entry (N4) and capped at the threshold — the counters keep
 // climbing while a sibling objective holds the stage, the display must not.
 //
@@ -571,6 +604,9 @@ func (l *Ledger) objectiveLines(p *Progress, s *Stage) []string {
 		switch o.Kind {
 		case ObjectiveTalkTo:
 			line := "Talk to the " + o.TargetName
+			if o.Tracker != "" {
+				line = o.Tracker
+			}
 			if l.talkedSince(p, o.Target) {
 				line += " ✓"
 			}
@@ -595,6 +631,14 @@ func (l *Ledger) satisfied(p *Progress, s *Stage) bool {
 				return false
 			}
 		default: // kill and harvest share the counters (D2)
+			if o.Chance > 0 {
+				// A find: only the hidden guarantee satisfies it here; a hit
+				// on the roll advances the stage in rollFinds.
+				if o.GuaranteedAt == 0 || l.countSince(p, o.Target) < o.GuaranteedAt {
+					return false
+				}
+				continue
+			}
 			if l.countSince(p, o.Target) < o.Count {
 				return false
 			}

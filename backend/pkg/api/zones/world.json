@@ -4819,6 +4819,186 @@
       "x": -46.6,
       "y": 140,
       "angle": 1.57
+    },
+    {
+      "mob": "Seaweed",
+      "x": -267.2,
+      "y": -32.4,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -262.45,
+      "y": -33.1,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -257.69,
+      "y": -32.7,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -254.69,
+      "y": -33.2,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -249.94,
+      "y": -32.5,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -246.94,
+      "y": -32.9,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -242.18,
+      "y": -33,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -237.43,
+      "y": -32.6,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -234.43,
+      "y": -32.4,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -229.68,
+      "y": -33.1,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -226.67,
+      "y": -32.7,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -221.92,
+      "y": -33.2,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -217.17,
+      "y": -32.5,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -214.17,
+      "y": -32.9,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -209.41,
+      "y": -33,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -206.41,
+      "y": -32.6,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -201.66,
+      "y": -32.4,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -196.91,
+      "y": -33.1,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -193.9,
+      "y": -32.7,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
+    },
+    {
+      "mob": "Seaweed",
+      "x": -189.15,
+      "y": -33.2,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "level": 1
     }
   ],
   "campfires": [

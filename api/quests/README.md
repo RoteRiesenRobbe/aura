@@ -62,3 +62,17 @@ objective line; `{n}/{m}` substitutes the stage's first countable objective and
 is rejected on stages with nothing to count. A non-terminal **dialogue** stage
 has no derivable line at all, so authoring a tracker on it is what keeps the
 journal from going silent between the deed and the turn-in.
+
+A stage tracker replaces *every* derived line, so the per-objective ✓ ticks go
+with it. To reword a single `talk_to` line and keep its ✓, author `tracker` on
+the objective instead (`{ "kind": "talk_to", "npc": "Baabara", "tracker":
+"Find Baabara" }`, as `the-strays` does). It is `talk_to` only, and rejected
+beside a stage tracker, which would hide it.
+
+A kill/harvest objective with `chance` (0-1) is a **find**: each credit of the
+target while the stage is current rolls it, and a hit advances the stage at
+once. `guaranteedAt` (optional) is the hidden pity: the Nth credit since stage
+entry always finds. It must be its stage's only objective, takes no `count`,
+and its stage must author a `tracker` without `{n}/{m}` (the count is hidden).
+`the-millers-ring` is the worked example: `{ "kind": "harvest", "species":
+"Seaweed", "chance": 0.06, "guaranteedAt": 12 }`.

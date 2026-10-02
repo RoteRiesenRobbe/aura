@@ -57,9 +57,10 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	//
 	// BlueMushroom and RedMushroom are the Turnip twice more on the forest
 	// floor, harvest lock included - structures for the Turnip's reason.
+	// Seaweed is the Turnip on Saltgrass Strand, for the Miller's ring.
 	assert.ElementsMatch(t, []string{
 		"Beet", "BlueMushroom", "Bramble", "Camp", "Campfire", "FireTotem", "PoisonPool", "ProjectileBomb",
-		"RedMushroom", "Rockfall", "SpiderWeb", "SpikeBarricade", "Totem", "Turnip", "WarbannerTotem",
+		"RedMushroom", "Rockfall", "Seaweed", "SpiderWeb", "SpikeBarricade", "Totem", "Turnip", "WarbannerTotem",
 	}, byRole[RoleStructure], "the authored structures")
 
 	// 36 before chunk 3a, plus the 14 merged NPCs: D4 authors them as creatures
