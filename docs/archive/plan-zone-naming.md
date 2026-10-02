@@ -1,6 +1,6 @@
 # Plan: Zone / level-editor naming, and the Tiled layer order
 
-**Status:** designed 2026-09-20 (PO session). **N1 BUILT 2026-09-20; N2 BUILT 2026-10-02** (ledger §10; N2 uncommitted). Both chunks are done; the PO's Tiled GUI checks are owed, then the plan archives.
+**Status:** **COMPLETE 2026-10-02, archived.** N1 `2f50dcd5` (built 2026-09-20) · N2 `38932082` (built 2026-10-02); the PO's Tiled GUI checks for both passed 2026-10-02 (ledger §10).
 
 PO ask, verbatim: *"i want to plan changing some namings of zone / level editor
 elements to better match the intention … i also want to reorder the layers in
@@ -315,21 +315,22 @@ regenerate the palette, and re-run `verify.sh` through real Tiled.
 4. Locks? → **`regions` and `atmospheres`, both, in N1.**
 5. Internal names? → **left alone** (D3).
 
-### Still open
+### Answered 2026-10-02 (the PO's GUI pass)
 
 1. ⚑ **The Go `Zone` field names** — renamed with their tags by D3's judgement
    call, leaving `Decals []TerrainTexture`. PO may overrule either way.
-   **Built that way in N2** (`Decals`, `Structures`, `BindPoints`); still the
-   PO's to overrule.
+   **Built that way in N2** (`Decals`, `Structures`, `BindPoints`) and not
+   overruled at the 2026-10-02 review, so it stands.
 2. ⚑ **Does the `regions` lock survive contact with authoring?** It cannot
    persist (fact 3), so every region edit costs an unlock, every session. One
-   line to revert if it grates.
+   line to revert if it grates. → **Kept**: the PO checked the padlocks on
+   2026-10-02, "fine".
 
 ---
 
 ## 10. Chunk ledgers
 
-### N1 — layer order, locks, and `AuraTerrainProfile` ✅ 2026-09-20 (uncommitted)
+### N1 — layer order, locks, and `AuraTerrainProfile` ✅ 2026-09-20 `2f50dcd5`
 
 The Tiled layer stack is now the client's own draw order read bottom-first, the
 two big background layers open locked, and the ground profile enum is
@@ -396,10 +397,10 @@ whitelist from the stack.
 **identical with this chunk's changes stashed**, so it is the PO's uncommitted
 content, not N1. N1 touches no Go at all.
 
-**Owed:** the human checks (footer items 8 and 9) have not been run — the PO has
-not opened Tiled since. Open call #2 in §9 is live until they do.
+**PO GUI check ✅ 2026-10-02** (run with N2's): footer items 8 and 9, the layer
+order and the two padlocks, confirmed in Tiled. Open call #2 in §9 is closed.
 
-### N2 — the three key renames ✅ 2026-10-02 (uncommitted)
+### N2 — the three key renames ✅ 2026-10-02 `38932082`
 
 Session note: the PO asked for `plan-prop-draw-order.md` P4, whose L9 puts it
 after N2; the PO chose "N2 first" and ruled P4's D10/D13/D14 the same session
@@ -507,8 +508,8 @@ after N2; the PO chose "N2 first" and ruled P4's D10/D13/D14 the same session
 mob defs) **NONE** · zone format **three keys renamed** (breaking, no
 compatibility window, L1; all 16 files, 8 + 8 embedded, migrated).
 
-**PO checks owed** (server and webpack are restarted on N2, the extension is
-installed):
+**PO checks ✅ 2026-10-02** (PO: "all is fine"), run on the restarted server
+with the reinstalled extension:
 
 1. ⛔ **Reopen** any zone Tiled has open: a document read before the
    reinstall still carries `AuraPolygon` objects, and its save refuses them
@@ -518,5 +519,5 @@ installed):
 3. Click a filled mass: its class reads `AuraStructure`; a bind point reads
    `AuraBindPoint`; drag a Sand patch from **Templates ▸ decals** and it lands
    at size 1 on the `decals` layer.
-4. N1's footer items 8 and 9 (the order and the padlocks) are still owed from
-   2026-09-20.
+4. N1's footer items 8 and 9 (the order and the padlocks), owed since
+   2026-09-20: also confirmed.
