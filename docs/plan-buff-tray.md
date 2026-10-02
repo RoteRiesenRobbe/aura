@@ -453,7 +453,7 @@ membership change.
 
 ## 11. Chunk ledgers
 
-### C1 (server) ✅ BUILT 2026-10-02 `[uncommitted]`
+### C1 (server) ✅ BUILT 2026-10-02 `49eb390e`
 
 What shipped, against §7's row, with the three rulings the session added
 (D16-D18):
