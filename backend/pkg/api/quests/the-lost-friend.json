@@ -1,16 +1,16 @@
 {
-  "_comment": "The Wanderer's lost friend (content-zone-2-woodland.md §3.5 quest 1): find his friend in the kobold cave north-west of him and come back. The friend is the FallenTraveller remains in the cave's east chamber; reaching him means fighting through the den. Offered and turned in by the Wanderer (wanderer.json). Reward 311 XP on the turn-in row = the L9 half-level rule at the cave's L5 kobolds, 0.5 x 300 x 1.2^4. All values [PLACEHOLDER]; text plain.",
+  "_comment": "The Wanderer's lost friend (content-zone-2-woodland.md §3.5 quest 1): find his friend, who went into the forest for berries, and come back. The brief names only the forest: the player finds him as the FallenTraveller remains in the kobold cave's east chamber, through the den. Offered and turned in by the Wanderer (wanderer.json). Reward 311 XP on the turn-in row = the L9 half-level rule at the cave's L5 kobolds, 0.5 x 300 x 1.2^4. All values [PLACEHOLDER]; text plain.",
   "id": "the-lost-friend",
   "title": "The Lost Friend",
   "stages": [
     {
       "id": "search",
-      "journal": "The Wanderer's friend went into the kobold cave north-west of the Wanderer and did not come back. He wears a grey cloak and carries a walking staff.",
+      "journal": "The Wanderer's friend went into the forest to collect berries and did not come back. He wears a grey cloak and carries a walking staff.",
       "objectives": [
         {
           "kind": "talk_to",
           "npc": "FallenTraveller",
-          "tracker": "Find the Wanderer's friend in the kobold cave"
+          "tracker": "Find the Wanderer's friend in the forest"
         }
       ],
       "next": "return"

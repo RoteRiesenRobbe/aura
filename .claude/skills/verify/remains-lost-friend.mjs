@@ -213,7 +213,7 @@ if (!w1) {
   check('C3 before accepting, no turn-in row', !(brief?.rows ?? []).includes('I found him. He is dead.'), JSON.stringify(brief?.rows));
   await clickRow("I'll look for him.");
   check('C4 accepting shows the search tracker',
-    await waitFor(async () => (await journalObjectives()).objectives.some((o) => /Find the Wanderer's friend in the kobold cave/.test(o))),
+    await waitFor(async () => (await journalObjectives()).objectives.some((o) => /Find the Wanderer's friend in the forest/.test(o))),
     JSON.stringify(await journalObjectives()));
 
   // --- leg D: the body in the cave --------------------------------------------
