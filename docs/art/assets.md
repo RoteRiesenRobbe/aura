@@ -118,6 +118,7 @@ of which **11 are P0**:
 | ✅ | **GreaterFireElemental** | `greaterFireElemental.svg` | P2 | 1 | 144–168 | A walking furnace. The size gap is the tier signal — keep them obviously the same creature. |
 | ✅ | **Troll** | `troll.svg` | P2 | 6 | 128–144 | Solitary bruiser at the map outskirts. Nothing else in the world looks like it should. |
 | ✅ | **Turnip** | `turnip.svg` | P2 | 6 | 40–52 | Smallest sprite in the game. Immune to everything but Harvest. A plant you pull, not a creature you kill. |
+| 🟡 | **Deadwood** | `deadwood.svg` | P3 | 8 | 52–64 | Glimmerwood — A heap of dead branches around Grandfather Knot, cleared with Harvest for the-old-roots. Scatter on the forest floor like the mushrooms. |
 | ❌ | **Goblin** | — | P1 |  | 60–76 | Z2 Woodland — Named in the world bible beside Kobold; no definition and no art exist. Must read as a DIFFERENT species from Kobold at the same size, not a recolour. |
 | ✅ | **AlphaBoar** | `wildboar_alpha.png` | P2 |  | 104–124 | Z1 Farmland — Elite tusker leading the sounder, and the first elite a new player meets. It got its OWN silhouette rather than the entityType-variant shortcut this row used to allow — a mob whose only tell is the health bar is one the player cannot decide to avoid. Rendered at 52-62 (this column is DPR-2). Placement is the PO's: the mill POI takes exactly one. |
 | ❌ | **BanditLeader** | — | P2 |  | 100–116 | Z2 bandit camp — Named elite leading the Woodland camp. Content on top of EliteBandit — art optional, but a named antagonist with the generic elite face is a missed beat. |
@@ -161,6 +162,7 @@ of which **11 are P0**:
 | ✅ | **VillageHealer** | `villageHealer.svg` | P3 |  |  | Z2 village campfire — Teaches Revive — the group-support capstone. |
 | ✅ | **CityGuard** | `cityGuard.png` | P3 |  |  | Z2 City Gates — Teaches Strong. Gates shut while the front burns; Zone 3 teaser. |
 | ✅ | **FrontCaptain** | `frontCaptain.svg` | P3 |  |  | Z2 front staging — Teaches Vanguard @L20. The last giver before the world boss — should look like the end of the road. |
+| ✅ | **GrandfatherKnot** | `grandfatherKnot.png` | P2 | 1 |  | Glimmerwood — The wise old tree (docs/plan-grandfather-knot.md): smug, half-lidded, a mossy crown, in the bark ring. Drawn twice a normal NPC (body radius 0.7). First draft 2026-10-03 from a PO reference image, PO: good for now. |
 | ✅ | **ForestSign** | `signpost.svg` | P3 |  |  | Z1 dark-forest edge — "DANGER! STAY AWAY!" Points at the Elite Wolf — deliberately the only warning. |
 | ⚠️ | **AscensionStone** | `signpost.svg` | P0 |  |  | Z1 village — ⭐ The meta-progression altar, where a max-level character is spent. The game's most significant object currently looks like a road sign. Owes a site, not just a prop. |
 | ⚠️ | **MemorialStone** | `signpost.svg` | P1 |  |  | Z1 village — Names of everyone ascended. Stands beside the stone — so the village has two identical signposts side by side. |

@@ -133,6 +133,14 @@ var expectedConversants = []string{
 	"Eliza",
 	"Hendrik",
 	"Benjamin",
+	// Grandfather Knot (docs/plan-grandfather-knot.md) offers and turns in
+	// `clear-the-grove`, then `the-sleeping-roots`, whose talk_to targets are
+	// his three sleeping roots, one definition each for the sheep's reason
+	// (talk_to keys the definition).
+	"GrandfatherKnot",
+	"StreamRoot",
+	"StoneRoot",
+	"GladeRoot",
 }
 
 func conversants(t *testing.T) map[string]*MobDefinition {

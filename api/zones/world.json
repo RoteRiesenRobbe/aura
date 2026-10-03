@@ -9057,6 +9057,102 @@
           "respawnVariancePct": 0.2,
           "wanderRadius": 2,
           "level": 14
+        },
+        {
+          "mob": "GrandfatherKnot",
+          "x": 40,
+          "y": -148,
+          "angle": 0
+        },
+        {
+          "mob": "Deadwood",
+          "x": 44.01,
+          "y": -146.76,
+          "angle": 0,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "level": 12
+        },
+        {
+          "mob": "Deadwood",
+          "x": 41.3,
+          "y": -144.64,
+          "angle": 0,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "level": 12
+        },
+        {
+          "mob": "Deadwood",
+          "x": 37.92,
+          "y": -143.45,
+          "angle": 0,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "level": 12
+        },
+        {
+          "mob": "Deadwood",
+          "x": 36.31,
+          "y": -147.09,
+          "angle": 0,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "level": 12
+        },
+        {
+          "mob": "Deadwood",
+          "x": 36.1,
+          "y": -150.44,
+          "angle": 0,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "level": 12
+        },
+        {
+          "mob": "Deadwood",
+          "x": 38.86,
+          "y": -153.28,
+          "angle": 0,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "level": 12
+        },
+        {
+          "mob": "Deadwood",
+          "x": 42.16,
+          "y": -151.25,
+          "angle": 0,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "level": 12
+        },
+        {
+          "mob": "Deadwood",
+          "x": 44.61,
+          "y": -149.34,
+          "angle": 0,
+          "respawnTicks": 600,
+          "respawnVariancePct": 0.2,
+          "level": 12
+        },
+        {
+          "mob": "StreamRoot",
+          "x": 22,
+          "y": -160,
+          "angle": 0
+        },
+        {
+          "mob": "StoneRoot",
+          "x": 30,
+          "y": -118,
+          "angle": 0
+        },
+        {
+          "mob": "GladeRoot",
+          "x": 76,
+          "y": -163,
+          "angle": 0
         }
       ],
       "bindPoints": [

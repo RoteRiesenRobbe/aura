@@ -114,6 +114,14 @@ export const GraphicsConfig = {
             maxSize: <number> 26,
         },
 
+        // Grandfather Knot's grove (docs/plan-grandfather-knot.md): a branch
+        // heap, a little larger than the mushrooms.
+        deadwood: {
+            file: require('../features/game-objects/assets/mobs/deadwood.svg'),
+            minSize: <number> 26,
+            maxSize: <number> 32,
+        },
+
         redMushroom: {
             file: require('../features/game-objects/assets/mobs/redMushroom.svg'),
             minSize: <number> 20,
@@ -496,6 +504,15 @@ export const GraphicsConfig = {
             packIcon: 'portrait-gold-helm',
             borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             maxSize: <number> 60,
+        },
+        // The wise old tree (docs/plan-grandfather-knot.md). Twice a normal NPC:
+        // the drawn size follows his body radius (0.7, every other NPC 0.35),
+        // so maxSize doubles only to match. The bark ring, not the grey one: a
+        // tree in the forest frame (PO 2026-10-03).
+        grandfatherKnot: {
+            file: require('../features/game-objects/assets/resources/grandfatherKnot.png'),
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
+            maxSize: <number> 120,
         },
     },
 

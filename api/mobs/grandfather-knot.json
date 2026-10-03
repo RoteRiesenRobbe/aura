@@ -1,0 +1,245 @@
+{
+  "_comment": "The wise old tree of the Glimmerwood (docs/plan-grandfather-knot.md): offers and turns in TWO quests in a row. clear-the-grove (six deadwood, simple), then the-sleeping-roots (offered only once the first is completed; it carries the story: his roots hum the wood calm, three sleep, so the young treants have turned angry) whose turn-in row is the only source of EntanglingRoots. Standing talkable-NPC shape (hermit.json): faction townsfolk, collisionLayer 97 (NOT Action), role creature + speed 0, xpFactor 0. Body radius 0.7 = twice a normal NPC (PO ask); interaction.range 2.4 keeps the usual reach from his bark. ⭐ EACH STAGE HAS ITS OWN WORDS: briefs and the deadwood reminder are stage-gated nodes, and every step row sits on root, where the show-rule leaves exactly the walkable one. ⚑ TEXT HAS A VOICE (PO 2026-10-03, the plain-text exception): slow, smug and kind, thinks in seasons, calls you little walker (plan §3.4). The player rows stay plain. All values [PLACEHOLDER].",
+  "id": 109,
+  "name": "GrandfatherKnot",
+  "type": "MOB",
+  "entityType": "GrandfatherKnot",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.7,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2.4,
+    "nodes": [
+      {
+        "id": "root_done",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-sleeping-roots",
+            "stage": "completed"
+          }
+        ],
+        "lines": [
+          "Come back in about a century, little walker. Tell me how your journey went."
+        ]
+      },
+      {
+        "id": "root",
+        "lines": [
+          "Ah. A little walker. You move so... quickly."
+        ],
+        "options": [
+          {
+            "text": "Do you have a task for me?",
+            "next": "grove_brief"
+          },
+          {
+            "text": "About the deadwood.",
+            "next": "deadwood"
+          },
+          {
+            "text": "The grove is clear.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "clear-the-grove",
+                "fromStage": "tidied",
+                "toStage": "cleared",
+                "line": "Ah. I can breathe again."
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 600,
+                "line": "Take this, little walker. Slowly. There is no hurry."
+              }
+            ]
+          },
+          {
+            "text": "Do you have another task?",
+            "next": "roots_brief"
+          },
+          {
+            "text": "The root by the stream is awake.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "the-sleeping-roots",
+                "fromStage": "back_one",
+                "toStage": "root_two",
+                "line": "Hm. That one was awake already. Or it is now. Try the one by the stones, to the south."
+              }
+            ]
+          },
+          {
+            "text": "The root by the stones is awake.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "the-sleeping-roots",
+                "fromStage": "back_two",
+                "toStage": "root_three",
+                "line": "Was it warm? No? Then it was asleep. Good. The last one lies east, where the wisps gather."
+              }
+            ]
+          },
+          {
+            "text": "The last root is awake.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "the-sleeping-roots",
+                "fromStage": "back_three",
+                "toStage": "rooted",
+                "line": "There. Do you feel it? You have walked my roots end to end."
+              },
+              {
+                "kind": "teach_skill",
+                "skill": "EntanglingRoots",
+                "line": "They know your hand now. Ask them to hold, and they will."
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 1000,
+                "line": "The young ones will not calm in a day. A tree's day is long. Take this as well."
+              }
+            ]
+          },
+          {
+            "text": "Which root was it again?",
+            "next": "where_one"
+          },
+          {
+            "text": "Which root was it again?",
+            "next": "where_two"
+          },
+          {
+            "text": "Which root was it again?",
+            "next": "where_three"
+          }
+        ]
+      },
+      {
+        "id": "grove_brief",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "clear-the-grove",
+            "stage": "not_started"
+          }
+        ],
+        "lines": [
+          "My grove is choked with deadwood, little walker. Clear it for an old tree?"
+        ],
+        "options": [
+          {
+            "text": "I'll do it.",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "clear-the-grove",
+                "line": "Good. I will wait. I am good at waiting."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "deadwood",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "clear-the-grove",
+            "stage": "tidy"
+          }
+        ],
+        "lines": [
+          "Six heaps will do. The rest can wait a winter."
+        ]
+      },
+      {
+        "id": "roots_brief",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "clear-the-grove",
+            "stage": "completed"
+          },
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-sleeping-roots",
+            "stage": "not_started"
+          }
+        ],
+        "lines": [
+          "The young trees of this wood have grown angry, little walker. Have you met them?",
+          "My roots run beneath all of it. Through them I hum the wood to rest. But three of my roots have fallen asleep.",
+          "Wake them for me. One sleeps by the stream, to the west. Lay a hand on it."
+        ],
+        "options": [
+          {
+            "text": "I'll do it.",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "the-sleeping-roots",
+                "line": "Good. West, to the stream. I will be here."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "where_one",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-sleeping-roots",
+            "stage": "root_one"
+          }
+        ],
+        "lines": [
+          "West, little walker. The root by the stream."
+        ]
+      },
+      {
+        "id": "where_two",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-sleeping-roots",
+            "stage": "root_two"
+          }
+        ],
+        "lines": [
+          "South. The root by the stones. Take your time. I do."
+        ]
+      },
+      {
+        "id": "where_three",
+        "conditions": [
+          {
+            "kind": "quest_at_stage",
+            "quest": "the-sleeping-roots",
+            "stage": "root_three"
+          }
+        ],
+        "lines": [
+          "East, where the wisps gather. The last one. Probably."
+        ]
+      }
+    ]
+  }
+}

@@ -721,6 +721,20 @@ export class RedMushroom extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(RedMushroom, file('redMushroom'), maxSize('redMushroom'));
 
+// Grandfather Knot's harvest target, the mushrooms' twin as dead branches.
+export class Deadwood extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.turnip, x, y,
+            randomInt(minSize('deadwood'), maxSize('deadwood')),
+            Deadwood.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Deadwood, file('deadwood'), maxSize('deadwood'));
+
 // The beach's harvest-mob (the Miller's ring), the Turnip's pattern.
 export class Seaweed extends Mob {
     static svg: PIXI.Texture;
@@ -1719,3 +1733,22 @@ export class FrontCaptain extends Mob {
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(FrontCaptain, npcFile('frontCaptain'), npcCfg('frontCaptain').maxSize);
+
+const grandfatherKnotBorder = registerBorder(
+    GraphicsConfig.npcs.grandfatherKnot.borderFile, GraphicsConfig.npcs.grandfatherKnot.maxSize);
+
+export class GrandfatherKnot extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.mobs.npcs, x, y, size, GrandfatherKnot.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), grandfatherKnotBorder, size);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(GrandfatherKnot, npcFile('grandfatherKnot'), npcCfg('grandfatherKnot').maxSize);

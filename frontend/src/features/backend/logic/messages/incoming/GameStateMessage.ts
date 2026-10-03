@@ -662,6 +662,8 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Orc]: Mobs.Orc,
     [AuraApi.EntityType.SpikeBarricade]: Mobs.SpikeBarricade,
     [AuraApi.EntityType.FrontCaptain]: Mobs.FrontCaptain,
+    [AuraApi.EntityType.GrandfatherKnot]: Mobs.GrandfatherKnot,
+    [AuraApi.EntityType.Deadwood]: Mobs.Deadwood,
     [AuraApi.EntityType.OrcWarlord]: Mobs.OrcWarlord,
     [AuraApi.EntityType.WarbannerTotem]: Mobs.WarbannerTotem,
     [AuraApi.EntityType.OrcGrunt]: Mobs.OrcGrunt,

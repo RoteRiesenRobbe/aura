@@ -100,5 +100,7 @@ export enum EntityType {
   Rowboat = 110,
   NetRack = 111,
   FishingHut = 112,
-  Fish = 113
+  Fish = 113,
+  GrandfatherKnot = 114,
+  Deadwood = 115
 }

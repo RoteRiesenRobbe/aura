@@ -166,7 +166,10 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 	// you are sent to kill.
 	// 46 → 47 with the SpiderWeb (plan-aura-drawbacks.md C2): a web the giant
 	// spider spins is a hazard, not prey, like the poison pool it copies.
-	assert.Len(t, free, 47, "every xpFactor-0 species: %v", free)
+	// 47 → 51 with Grandfather Knot and his three sleeping roots
+	// (docs/plan-grandfather-knot.md), off the nameplate and the XP path like
+	// every other NPC.
+	assert.Len(t, free, 51, "every xpFactor-0 species: %v", free)
 
 	// ⚑ Exactly TWO structures pay anything, and both are harvest targets: the
 	// Turnip at 0.05 (PO 2026-08-05, the one §3.4 curation pulled into C1 —
@@ -187,8 +190,8 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 		}
 	}
 	// BlueMushroom and RedMushroom: two more harvest targets at the Turnip's price.
-	// Seaweed: the beach's, for the Miller's ring.
-	assert.ElementsMatch(t, []string{"Beet", "BlueMushroom", "RedMushroom", "Seaweed", "Turnip"}, payingStructures)
+	// Seaweed: the beach's, for the Miller's ring. Deadwood: Grandfather Knot's grove.
+	assert.ElementsMatch(t, []string{"Beet", "BlueMushroom", "Deadwood", "RedMushroom", "Seaweed", "Turnip"}, payingStructures)
 }
 
 // A new tier added without a kill-XP weight would silently pay like a normal.

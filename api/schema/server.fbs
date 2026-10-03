@@ -267,7 +267,12 @@ enum EntityType : ushort {
   // One fish lying flat, NON-BLOCKING scatter: on a jetty, in a boat, on the
   // sand by a net rack. Replaced a drying-rack drawing that never read from
   // above (PO 2026-10-03).
-  Fish = 113
+  Fish = 113,
+  // The wise old tree of the Glimmerwood (docs/plan-grandfather-knot.md), a
+  // medallion NPC portrait drawn twice a normal NPC's size by its body radius.
+  GrandfatherKnot = 114,
+  // His grove's harvest target, scatter on the forest floor like the mushrooms.
+  Deadwood = 115
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the

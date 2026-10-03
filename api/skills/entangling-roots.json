@@ -1,0 +1,31 @@
+{
+  "_comment": "A root: roots up to three nearby enemies in place. A full slow, not a stun, so a rooted mob keeps its aura and keeps hitting whatever is in its reach. Levels buy duration only; the fraction stays 1.0 (pinned in quests/content_test.go). All values placeholder.",
+  "id": 157,
+  "name": "EntanglingRoots",
+  "icon": "lorc/vine-leaf",
+  "category": "cooldown",
+  "maxLevel": 5,
+  "cooldownTicks": 600,
+  "description": "Rooted enemies cannot move, but they still fight.",
+  "visual": {
+    "layers": [
+      { "kind": "wave", "on": "fired", "ms": 500, "count": 1, "tint": "#7a9a3c" }
+    ]
+  },
+  "effects": [
+    {
+      "type": "instant_slow",
+      "costFractionOfMax": 0.03,
+      "costFractionOfMaxPerLevel": 0.004,
+      "radius": 2.5,
+      "radiusPerLevel": 0.0,
+      "maxTargets": 3,
+      "selector": "nearest",
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "slowFraction": 1.0,
+      "slowDurationTicks": 90,
+      "slowDurationTicksPerLevel": 9
+    }
+  ]
+}
