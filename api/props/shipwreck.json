@@ -1,0 +1,6 @@
+{
+  "name": "Shipwreck",
+  "entityType": "Shipwreck",
+  "sprite": "shipwreck.svg",
+  "body": { "width": 8, "height": 3, "collisionFactor": 0.85 }
+}

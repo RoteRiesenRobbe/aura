@@ -1,0 +1,86 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" preserveAspectRatio="none">
+  <!-- Placeholder shipwreck: TRUE top-down, a hull beached on its keel with the
+       bow pointing EAST. The viewBox is 800x300 to match the 8 x 3 rect body
+       in api/props/shipwreck.json - the largest prop in the game, the Wrecker's
+       Bluff landmark. collisionFactor 0.85: the bow and the stern tumble-home
+       are air at the rect's corners.
+
+       ⭐ IT READS AS A SHIP FIRST AND A WRECK SECOND, the BurntCart rule: the
+       outline is whole (pointed bow, square transom, the stern cabin), and the
+       wreck is ONE thing - the back is BROKEN amidships, the deck gone and the
+       RIBS showing over a black hold. Ribs are what a picture of a wreck is;
+       without them it is a boat that ran aground and could be floated off.
+       ⚑ The mast lies where it fell, across the break. -->
+
+  <!-- ground shadow, offset down-right -->
+  <path d="M58,76 C178,44 438,38 578,56 C698,74 778,126 796,166 C778,206 698,258 578,276 C438,294 178,288 58,256 Q44,166 58,76 Z"
+        fill="#000000" opacity="0.24"/>
+
+  <!-- the hull: outer planking -->
+  <path d="M40,60 C160,28 420,22 560,40 C680,58 760,110 790,150 C760,190 680,242 560,260 C420,278 160,272 40,240 Q26,150 40,60 Z"
+        fill="#6e5a44" stroke="#2a2016" stroke-width="7" stroke-linejoin="round"/>
+  <!-- the gunwale, a lighter rail inset from the hull line -->
+  <path d="M56,72 C170,44 420,38 556,56 C664,72 734,116 760,150 C734,184 664,228 556,244 C420,262 170,256 56,228 Q44,150 56,72 Z"
+        fill="#8b7558" stroke="#3a2c1e" stroke-width="4" stroke-linejoin="round"/>
+  <!-- the deck, planked fore and aft -->
+  <path d="M70,84 C176,58 420,52 552,70 C650,84 712,122 734,150 C712,178 650,216 552,230 C420,248 176,242 70,216 Q60,150 70,84 Z"
+        fill="#7f6a4f"/>
+  <g stroke="#4a3a28" stroke-width="2.5" opacity="0.7" fill="none">
+    <path d="M72,108 C220,84 470,80 640,104"/>
+    <path d="M70,132 C220,118 470,116 700,130"/>
+    <path d="M70,168 C220,182 470,184 700,170"/>
+    <path d="M72,192 C220,216 470,220 640,196"/>
+  </g>
+
+  <!-- the stern cabin, the one structure still standing -->
+  <rect x="78" y="104" width="104" height="92" rx="4" fill="#5a4936" stroke="#2a2016" stroke-width="5"/>
+  <path d="M82,150 L178,150" stroke="#2a2016" stroke-width="3"/>
+  <rect x="82" y="108" width="96" height="40" fill="#6c5940" opacity="0.8"/>
+  <!-- its roof is stove in at one corner -->
+  <path d="M150,108 L178,108 L178,136 L160,124 Z" fill="#17120c" stroke="#2a2016" stroke-width="2"/>
+
+  <!-- ⭐ THE BREAK: deck gone, the hold black, the ribs across it -->
+  <path d="M318,66 L344,84 L362,62 L394,80 L420,60 L452,82 L476,64 L500,86 L512,70
+           L520,150 L508,232 L488,214 L462,236 L436,216 L404,240 L378,218 L350,238 L326,216 L310,232
+           L304,150 Z"
+        fill="#16110b" stroke="#2a2016" stroke-width="4" stroke-linejoin="round"/>
+  <g stroke="#7a6248" stroke-width="9" stroke-linecap="round" fill="none">
+    <path d="M336,72 Q326,150 336,228"/>
+    <path d="M376,66 Q366,150 376,234"/>
+    <path d="M416,64 Q406,150 416,236"/>
+    <path d="M456,66 Q446,150 456,234"/>
+    <path d="M494,72 Q484,150 494,226"/>
+  </g>
+  <g stroke="#3a2c1e" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.8">
+    <path d="M340,74 Q330,150 340,226"/>
+    <path d="M380,68 Q370,150 380,232"/>
+    <path d="M420,66 Q410,150 420,234"/>
+    <path d="M460,68 Q450,150 460,232"/>
+    <path d="M498,74 Q488,150 498,224"/>
+  </g>
+  <!-- the keelson running under them -->
+  <line x1="306" y1="152" x2="518" y2="148" stroke="#5a4532" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- the bow: a short bowsprit stub and the forepeak hatch -->
+  <rect x="610" y="136" width="44" height="28" rx="3" fill="#5a4936" stroke="#2a2016" stroke-width="4"/>
+  <line x1="740" y1="150" x2="788" y2="150" stroke="#4a3a28" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- the mast: stump amidships-aft, the spar lying across the break -->
+  <circle cx="262" cy="150" r="14" fill="#7a6248" stroke="#2a2016" stroke-width="4"/>
+  <circle cx="262" cy="150" r="6" fill="none" stroke="#4a3a28" stroke-width="2"/>
+  <path d="M276,158 L600,232" stroke="#2a2016" stroke-width="20" stroke-linecap="round"/>
+  <path d="M276,158 L600,232" stroke="#8a7254" stroke-width="13" stroke-linecap="round"/>
+  <path d="M290,156 L590,224" stroke="#a48a68" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+  <!-- rigging still fouled round it -->
+  <g stroke="#b5a27a" stroke-width="2" fill="none" opacity="0.85">
+    <path d="M330,170 C360,140 400,200 430,186 C460,172 470,210 520,206"/>
+    <path d="M232,96 C250,120 256,136 262,140"/>
+  </g>
+
+  <!-- weed dried on the planks, the tide has been over her -->
+  <g fill="#4d5a2c" opacity="0.8">
+    <ellipse cx="560" cy="250" rx="34" ry="7"/>
+    <ellipse cx="200" cy="262" rx="40" ry="6"/>
+    <ellipse cx="690" cy="222" rx="22" ry="6" transform="rotate(-24 690 222)"/>
+  </g>
+</svg>

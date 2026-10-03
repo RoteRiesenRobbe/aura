@@ -1,0 +1,27 @@
+<svg width="100px" height="100px" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Placeholder decal: marram grass on the dunes, seen from above. ⭐ It is
+       TUFTS, not a mat (that is saltgrass): each tuft is a fan of long stiff
+       blades bursting from one point, with bare sand between the tufts. The
+       blades are pale straw-green and curve, because wind lays them over. -->
+  <g id="tuft" stroke-linecap="round" fill="none">
+    <g stroke="#8d955a" stroke-width="3.2">
+      <path d="M30,34 Q22,22 14,18"/>
+      <path d="M30,34 Q28,20 30,10"/>
+      <path d="M30,34 Q38,22 46,18"/>
+      <path d="M30,34 Q18,34 10,40"/>
+      <path d="M30,34 Q42,34 50,30"/>
+      <path d="M30,34 Q24,44 18,50"/>
+      <path d="M30,34 Q38,44 44,48"/>
+    </g>
+    <g stroke="#c8c387" stroke-width="2">
+      <path d="M30,34 Q25,24 20,20"/>
+      <path d="M30,34 Q34,24 40,20"/>
+      <path d="M30,34 Q22,38 14,40"/>
+      <path d="M30,34 Q38,40 46,40"/>
+    </g>
+    <circle cx="30" cy="34" r="3" fill="#6f7444"/>
+  </g>
+  <use href="#tuft" transform="translate(36 30) rotate(25 30 34)"/>
+  <use href="#tuft" transform="translate(10 44) scale(0.8) rotate(-40 30 34)"/>
+  <use href="#tuft" transform="translate(44 0) scale(0.7) rotate(70 30 34)"/>
+</svg>

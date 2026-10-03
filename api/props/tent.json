@@ -1,0 +1,6 @@
+{
+  "name": "Tent",
+  "entityType": "Tent",
+  "sprite": "tent.svg",
+  "body": { "width": 1.6, "height": 1.2 }
+}

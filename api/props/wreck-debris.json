@@ -1,0 +1,7 @@
+{
+  "name": "WreckDebris",
+  "entityType": "WreckDebris",
+  "sprite": "wreckDebris.svg",
+  "body": { "width": 2.4, "height": 1.6 },
+  "blocksMovement": false
+}

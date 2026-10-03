@@ -1,0 +1,6 @@
+{
+  "name": "NetRack",
+  "entityType": "NetRack",
+  "sprite": "netRack.svg",
+  "body": { "width": 3.0, "height": 0.8 }
+}

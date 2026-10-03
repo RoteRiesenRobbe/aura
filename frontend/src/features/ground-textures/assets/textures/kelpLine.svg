@@ -1,0 +1,39 @@
+<svg width="100px" height="100px" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Placeholder decal: the strand line, the band of dead kelp and wrack the
+       last high tide left along the beach. ⭐ It is a LINE, drawn west to east
+       across the square, so a row of these rotated along a shore makes one
+       continuous tide mark; the ends thin out so two of them overlap cleanly.
+       Dark olive-brown wrack, a few pale bits of driftwood and a smear of
+       dried foam. -->
+  <path d="M4,52 C16,44 28,56 40,48 C52,40 62,54 74,46 C84,40 92,48 96,46
+           C92,56 84,52 74,58 C62,64 52,54 40,60 C28,66 16,56 4,56 Z"
+        fill="#4a4426" opacity="0.85"/>
+  <g stroke="#3a3418" stroke-width="2.4" stroke-linecap="round" fill="none">
+    <path d="M10,52 C18,48 22,56 30,52"/>
+    <path d="M34,54 C42,46 48,58 56,50"/>
+    <path d="M60,52 C66,46 72,56 80,50"/>
+  </g>
+  <!-- bladderwrack: the little air bladders are what name it -->
+  <g fill="#6b6230" stroke="#2e2a12" stroke-width="0.8">
+    <circle cx="22" cy="54" r="2.2"/>
+    <circle cx="27" cy="51" r="1.8"/>
+    <circle cx="48" cy="52" r="2.2"/>
+    <circle cx="68" cy="51" r="2"/>
+    <circle cx="84" cy="49" r="1.8"/>
+  </g>
+  <!-- a few long kelp straps -->
+  <g stroke="#5b4a22" stroke-width="3.5" stroke-linecap="round" fill="none" opacity="0.9">
+    <path d="M14,58 C24,64 36,62 44,66"/>
+    <path d="M56,46 C64,40 74,42 82,38"/>
+  </g>
+  <!-- driftwood -->
+  <g stroke="#3e3426" stroke-width="1" fill="#b8a888">
+    <rect x="36" y="42" width="16" height="3.5" rx="1.5" transform="rotate(-12 44 44)"/>
+    <rect x="70" y="56" width="11" height="3" rx="1.5" transform="rotate(18 75 57)"/>
+  </g>
+  <!-- dried foam -->
+  <g fill="#e8e4d6" opacity="0.55">
+    <ellipse cx="58" cy="60" rx="6" ry="1.8"/>
+    <ellipse cx="18" cy="48" rx="5" ry="1.5"/>
+  </g>
+</svg>

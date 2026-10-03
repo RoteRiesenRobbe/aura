@@ -669,6 +669,33 @@ export const GraphicsConfig = {
             file: require('../features/ground-textures/assets/textures/land1.svg'),
             minSize: 150,
             maxSize: 200,
+        },
+        // The coast set (docs/art/assets.csv): beach and clifftop dressing for
+        // the Strand, Wrecker's Bluff and Netmender's Coast. Placeholder SVGs.
+        'Saltgrass': {
+            displayName: 'Greens - Saltgrass',
+            file: require('../features/ground-textures/assets/textures/saltgrass.svg'),
+            minSize: 100,
+            maxSize: 220,
+        },
+        'Dune Grass': {
+            displayName: 'Yellows - Dune Grass',
+            file: require('../features/ground-textures/assets/textures/duneGrass.svg'),
+            minSize: 80,
+            maxSize: 180,
+        },
+        'Shells': {
+            displayName: 'Whites - Shells',
+            file: require('../features/ground-textures/assets/textures/shells.svg'),
+            minSize: 50,
+            maxSize: 110,
+        },
+        /** A LINE drawn west to east: rotate it along the shore and overlap the ends. */
+        'Kelp Line': {
+            displayName: 'Browns - Kelp Line',
+            file: require('../features/ground-textures/assets/textures/kelpLine.svg'),
+            minSize: 120,
+            maxSize: 300,
         }
     }
 };

@@ -1,0 +1,25 @@
+<svg width="100px" height="100px" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Placeholder decal: a low mat of salt-bleached sward, the grass the
+       Saltgrass Strand is named for. Short fine blades in clumps, a cool
+       sage green paler than any inland grass decal - salt and wind take the
+       colour out. No shadow: it is the ground. -->
+  <g fill="#94a983" opacity="0.85">
+    <path d="M18,40 C22,26 40,20 52,28 C62,22 78,30 76,44 C86,52 80,68 66,70 C60,82 40,84 32,74 C18,76 10,62 18,52 C12,48 14,42 18,40 Z"/>
+  </g>
+  <g fill="#a9bb93" opacity="0.8">
+    <path d="M30,38 C36,30 48,32 50,40 C58,36 66,44 60,52 C64,60 54,66 46,62 C40,68 28,64 30,56 C22,52 24,42 30,38 Z"/>
+  </g>
+  <g stroke="#6f8566" stroke-width="1.6" stroke-linecap="round" fill="none">
+    <path d="M24,48 l-4,-6 M27,47 l-1,-8 M30,48 l3,-7"/>
+    <path d="M44,34 l-3,-7 M47,33 l1,-8 M50,34 l4,-6"/>
+    <path d="M66,46 l-2,-7 M69,46 l2,-7 M72,48 l5,-5"/>
+    <path d="M38,70 l-4,-6 M41,69 l0,-8 M44,70 l4,-6"/>
+    <path d="M58,62 l-3,-7 M61,61 l1,-8 M64,62 l4,-5"/>
+    <path d="M20,60 l-3,-5 M23,59 l1,-6"/>
+  </g>
+  <g stroke="#c3cfae" stroke-width="1.2" stroke-linecap="round" fill="none" opacity="0.9">
+    <path d="M36,50 l-2,-6 M39,49 l1,-6"/>
+    <path d="M52,46 l-1,-6 M55,46 l2,-6"/>
+    <path d="M48,58 l-2,-5 M51,58 l2,-5"/>
+  </g>
+</svg>

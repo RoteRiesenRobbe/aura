@@ -1,0 +1,6 @@
+{
+  "name": "FishingHut",
+  "entityType": "FishingHut",
+  "sprite": "fishingHut.svg",
+  "body": { "width": 3.0, "height": 2.4 }
+}
