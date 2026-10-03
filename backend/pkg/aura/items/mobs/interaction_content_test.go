@@ -141,6 +141,11 @@ var expectedConversants = []string{
 	"StreamRoot",
 	"StoneRoot",
 	"GladeRoot",
+	// Talkable remains (EntityType Remains): DeadCarter is lore at the
+	// farmland's burnt cart, FallenTraveller the talk_to target of the
+	// Wanderer's `the-lost-friend`.
+	"DeadCarter",
+	"FallenTraveller",
 }
 
 func conversants(t *testing.T) map[string]*MobDefinition {

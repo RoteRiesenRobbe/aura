@@ -122,6 +122,16 @@ export const GraphicsConfig = {
             maxSize: <number> 32,
         },
 
+        // A talkable dead body (lore, quest talk_to targets): drawn flat like
+        // the deadwood, never in a medallion. Shares its file with the
+        // Remains prop; 54 = the prop's 0.45 radius x 120 px/unit, so a talkable
+        // body and a silent one look the same size.
+        remains: {
+            file: require('../features/game-objects/assets/resources/remains.svg'),
+            minSize: <number> 54,
+            maxSize: <number> 54,
+        },
+
         redMushroom: {
             file: require('../features/game-objects/assets/mobs/redMushroom.svg'),
             minSize: <number> 20,

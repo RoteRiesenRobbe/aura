@@ -664,6 +664,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.FrontCaptain]: Mobs.FrontCaptain,
     [AuraApi.EntityType.GrandfatherKnot]: Mobs.GrandfatherKnot,
     [AuraApi.EntityType.Deadwood]: Mobs.Deadwood,
+    [AuraApi.EntityType.Remains]: Mobs.Remains,
     [AuraApi.EntityType.OrcWarlord]: Mobs.OrcWarlord,
     [AuraApi.EntityType.WarbannerTotem]: Mobs.WarbannerTotem,
     [AuraApi.EntityType.OrcGrunt]: Mobs.OrcGrunt,
@@ -743,6 +744,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.NetRack]: Props.genericPropClasses.NetRack,
     [AuraApi.EntityType.FishingHut]: Props.genericPropClasses.FishingHut,
     [AuraApi.EntityType.Fish]: Props.genericPropClasses.Fish,
+    [AuraApi.EntityType.RemainsProp]: Props.genericPropClasses.RemainsProp,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

@@ -735,6 +735,18 @@ export class Deadwood extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Deadwood, file('deadwood'), maxSize('deadwood'));
 
+// A talkable dead body, drawn flat under the characters like the deadwood.
+export class Remains extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.turnip, x, y, maxSize('remains'), Remains.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Remains, file('remains'), maxSize('remains'));
+
 // The beach's harvest-mob (the Miller's ring), the Turnip's pattern.
 export class Seaweed extends Mob {
     static svg: PIXI.Texture;

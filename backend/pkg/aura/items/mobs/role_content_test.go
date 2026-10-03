@@ -110,7 +110,9 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// 82 → 86 with Grandfather Knot and his three sleeping roots
 	// (docs/plan-grandfather-knot.md): the standing talkable-NPC shape, role
 	// creature + speed 0.
-	assert.Len(t, byRole[RoleCreature], 86, "everything else is a creature")
+	// 86 → 88 with the two talkable remains (DeadCarter, FallenTraveller),
+	// the same talking-object shape.
+	assert.Len(t, byRole[RoleCreature], 88, "everything else is a creature")
 	assert.Len(t, byRole, 2, "no def carries a role outside the two")
 }
 

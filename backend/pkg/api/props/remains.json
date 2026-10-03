@@ -1,0 +1,7 @@
+{
+  "name": "Remains",
+  "entityType": "RemainsProp",
+  "sprite": "remains.svg",
+  "body": { "radius": 0.45 },
+  "blocksMovement": false
+}

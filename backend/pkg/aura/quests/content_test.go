@@ -108,6 +108,10 @@ var expectedQuests = map[string]string{
 	// two entered from dialogue rows, one root at a time.
 	"clear-the-grove":    "Clear the Grove",
 	"the-sleeping-roots": "The Sleeping Roots",
+
+	// The Wanderer's lost friend (content-zone-2-woodland.md §3.5): a talk_to
+	// on a dead body (EntityType Remains) at the back of the kobold cave.
+	"the-lost-friend": "The Lost Friend",
 }
 
 func TestContent_QuestCensus(t *testing.T) {
@@ -383,6 +387,9 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		// 2026-10-03, option a): splitting the errand did not make it worth more.
 		"clear-the-grove":    600,
 		"the-sleeping-roots": 1000,
+
+		// The Wanderer's lost friend, priced at the kobold cave's L5 kobolds.
+		"the-lost-friend": 311, // L5, ½ × 300 × 1.2⁴
 	}, total)
 }
 

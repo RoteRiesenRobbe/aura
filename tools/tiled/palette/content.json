@@ -50,6 +50,7 @@
       "OakTree",
       "Palisade",
       "PineTree",
+      "Remains",
       "Rock",
       "Rowboat",
       "RuinedHouse",
@@ -94,6 +95,7 @@
       "CultAcolyte",
       "CultHighPriest",
       "Cultist",
+      "DeadCarter",
       "Deadwood",
       "DeathKnight",
       "DireBear",
@@ -106,6 +108,7 @@
       "EliteWolf",
       "Eliza",
       "Emberkeeper",
+      "FallenTraveller",
       "Farmhand",
       "FireElemental",
       "FireTotem",
@@ -530,6 +533,10 @@
       "w": 1.8,
       "h": 1.8
     },
+    "Remains": {
+      "w": 0.9,
+      "h": 0.9
+    },
     "Rock": {
       "w": 1.07,
       "h": 1.07
@@ -605,6 +612,7 @@
     "CultAcolyte": "combat",
     "CultHighPriest": "combat",
     "Cultist": "combat",
+    "DeadCarter": "talker",
     "Deadwood": "fixture",
     "DeathKnight": "combat",
     "DireBear": "combat",
@@ -617,6 +625,7 @@
     "EliteWolf": "combat",
     "Eliza": "talker",
     "Emberkeeper": "talker",
+    "FallenTraveller": "talker",
     "Farmhand": "talker",
     "FireElemental": "combat",
     "FireTotem": "fixture",
@@ -710,6 +719,7 @@
     "CultAcolyte": 0.6,
     "CultHighPriest": 0.52,
     "Cultist": 0.55,
+    "DeadCarter": 0,
     "Deadwood": 0,
     "DeathKnight": 0.52,
     "DireBear": 0.4,
@@ -722,6 +732,7 @@
     "EliteWolf": 0.52,
     "Eliza": 0,
     "Emberkeeper": 0,
+    "FallenTraveller": 0,
     "Farmhand": 0.7,
     "FireElemental": 0.55,
     "FireTotem": 0,

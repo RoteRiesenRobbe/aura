@@ -1,0 +1,36 @@
+{
+  "_comment": "Lore-only remains at the farmland's burnt cart (content-zone-1-farmland.md §2.4, the bandit breadcrumb): an object that talks, the forest-sign.json shape (townsfolk, collisionLayer 97 so no aura targets it, role creature + speed 0, xpFactor 0, one node with no options). EntityType Remains, the talkable dead-body sprite; RemainsProp is the same art as silent dressing. No quest names it. All values [PLACEHOLDER]; text plain.",
+  "id": 114,
+  "name": "DeadCarter",
+  "type": "MOB",
+  "entityType": "Remains",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1.0
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2.0,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          "A dead carter lies face down beside his burnt cart.",
+          "His purse is gone and his crates are smashed. There are arrows in the wood of the cart.",
+          "Bandits did this."
+        ]
+      }
+    ]
+  }
+}

@@ -169,7 +169,8 @@ func TestContent_XPFactorZeroSpeciesAreNotPrey(t *testing.T) {
 	// 47 → 51 with Grandfather Knot and his three sleeping roots
 	// (docs/plan-grandfather-knot.md), off the nameplate and the XP path like
 	// every other NPC.
-	assert.Len(t, free, 51, "every xpFactor-0 species: %v", free)
+	// 51 → 53 with the two talkable remains (DeadCarter, FallenTraveller).
+	assert.Len(t, free, 53, "every xpFactor-0 species: %v", free)
 
 	// ⚑ Exactly TWO structures pay anything, and both are harvest targets: the
 	// Turnip at 0.05 (PO 2026-08-05, the one §3.4 curation pulled into C1 —

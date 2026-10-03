@@ -102,5 +102,7 @@ export enum EntityType {
   FishingHut = 112,
   Fish = 113,
   GrandfatherKnot = 114,
-  Deadwood = 115
+  Deadwood = 115,
+  Remains = 116,
+  RemainsProp = 117
 }
