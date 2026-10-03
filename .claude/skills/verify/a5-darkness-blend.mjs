@@ -48,6 +48,7 @@
 
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
+import { readZone } from './lib/zone.mjs';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -97,7 +98,7 @@ function venue() {
     join(root, 'frontend/src/client-data/atmosphere-profiles.json'), 'utf8'));
   for (const file of fs.readdirSync(join(root, 'api/zones'))) {
     if (!file.endsWith('.json')) { continue; }
-    const zone = JSON.parse(readFileSync(join(root, 'api/zones', file), 'utf8'));
+    const zone = readZone(join(root, 'api/zones', file));
     const origin = zone.origin || { x: 0, y: 0 };
     for (const atm of (zone.atmospheres || [])) {
       const p = air[atm.profile];

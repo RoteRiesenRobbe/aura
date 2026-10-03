@@ -401,6 +401,44 @@ healing spring heals, because the same machinery runs both directions.
 - **Anchor**: a point whose **Name** is what content refers to. Unique, and
   inside the zone bounds.
 
+### Areas: grouping a zone by place
+
+An **area** is a group layer of class `AuraArea` that holds the zone's layers
+again — anchors, spawns, props, regions, the lot — so you can keep one place's
+objects together and collapse, hide or lock them as one
+(`plan-prop-draw-order.md` P4, P4b). **It changes nothing in game:** the server
+and the client fold every area back into the zone's own arrays at load.
+
+- **Make one:** Layer ▸ New ▸ Group Layer. In Properties set its **Class** to
+  `AuraArea` and pick its **id** from the dropdown (`farmlands`,
+  `brackenfold` …). Save. On the next open it comes back named by its id,
+  holding the full layer set (`regions` and `atmospheres` locked, as at the
+  zone level). You can also drag in only the layers you need: any subset saves.
+- **The id comes from one list,** `api/areas/areas.json` (D15), so a typo
+  cannot make a second area. The save refuses a group with no id picked, an
+  id the list does not hold, and two groups with one id. A group without the
+  `AuraArea` class refuses too (the save would drop it). The id is not shown
+  to players.
+- **world.json is already split** into one area per titled region
+  (`scripts/migrate-areas.mjs`, P4c; the Saltgrass Strand sits in
+  `farmlands`). What stayed at the zone level spans areas (the river, the
+  cliffs, the long roads) or had to stay there to keep its draw order.
+- **The group's name is only a label.** Rename it freely; the file keeps the
+  picked id. A new area is one line in `areas.json` plus a palette
+  regenerate (§6); its id never changes once a zone uses it.
+- **Move objects in** with Layer ▸ Move Objects to Layer into the area's layer
+  of the same kind (a tree into `farmlands` ▸ `props` ▸ `canopy`).
+- **What stacks over what.** Areas sit ABOVE the zone-level layers, later areas
+  above earlier ones, and the game uses that order *per kind*: the zone level's
+  paths draw first, then each area's in panel order. So an object that spans
+  areas (the river, the coast) belongs at the **zone level**, the floor every
+  area sits on. ⚑ Tiled draws group by group, so where two areas touch, one
+  area's regions can cover the other's props **in Tiled only**; in game every
+  region is under every prop.
+- Names that must be unique — anchor names, bind point ids — are unique across
+  the WHOLE zone, areas included.
+- A new in-game placement goes to the zone level.
+
 ## 4. Make the server use your edit
 
 What needs rebuilding depends on what you touched:

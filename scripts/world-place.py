@@ -444,6 +444,12 @@ def main():
     args = parser.parse_args()
 
     catalog, zone, combat, other = wr.load()
+    # ⛔ Since plan-prop-draw-order.md P4c world.json keeps most spawns inside
+    # `areas`, and this tool indexes and rewrites zone["spawns"] only. Refuse
+    # rather than plan against the zone level alone.
+    if zone.get("areas"):
+        print("world-place: world.json has areas (P4c); this tool reads zone-level spawns only")
+        return 1
     if args.check:
         return 0 if check(catalog, zone, args.base) else 1
 

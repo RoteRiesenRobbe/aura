@@ -78,7 +78,10 @@ def load():
     zone = json.loads((ROOT / "api" / "zones" / "world.json").read_text())
 
     combat, other = [], []
-    for spawn in zone["spawns"]:
+    # Areas (plan-prop-draw-order.md P4) flatten as the game does (D11): the
+    # zone level first, then each area in file order.
+    spawns = zone["spawns"] + [s for a in zone.get("areas", []) for s in a.get("spawns", [])]
+    for spawn in spawns:
         factors = catalog[spawn["mob"]].get("factors", {})
         (combat if factors.get("xpFactor", 1) != 0 else other).append(spawn)
     return catalog, zone, combat, other
@@ -91,7 +94,7 @@ def main():
     args = parser.parse_args()
 
     catalog, zone, combat, other = load()
-    print(f"{len(zone['spawns'])} spawns: {len(combat)} combat, {len(other)} non-combat")
+    print(f"{len(combat) + len(other)} spawns: {len(combat)} combat, {len(other)} non-combat")
 
     unresolved = [s for s in combat if region(s["x"], s["y"])[0] is None]
 

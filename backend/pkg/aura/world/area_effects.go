@@ -33,20 +33,20 @@ type effectSource interface {
 // no look and carries no profile (A4/L7); it is an ERASE, and an erase that also
 // burned you would be a second job for one shape, which is the ambiguity A4
 // exists to have removed.
-func areaEffectShapes(z *Zone, visit func(kind string, i int, effect string)) {
+func areaEffectShapes(z *Zone, visit func(kind string, i int, ref, effect string)) {
 	for i := range z.Paths {
 		if z.Paths[i].Effect != "" {
-			visit("path", i, z.Paths[i].Effect)
+			visit("path", i, objectRef("path", z.Paths, i), z.Paths[i].Effect)
 		}
 	}
 	for i := range z.Structures {
 		if z.Structures[i].Effect != "" {
-			visit("structure", i, z.Structures[i].Effect)
+			visit("structure", i, objectRef("structure", z.Structures, i), z.Structures[i].Effect)
 		}
 	}
 	for i := range z.Atmospheres {
 		if z.Atmospheres[i].Effect != "" {
-			visit("atmosphere", i, z.Atmospheres[i].Effect)
+			visit("atmosphere", i, objectRef("atmosphere", z.Atmospheres, i), z.Atmospheres[i].Effect)
 		}
 	}
 }
@@ -95,7 +95,7 @@ func areaEffectShapes(z *Zone, visit func(kind string, i int, effect string)) {
 func CrossValidateAreaEffectShapes(sr effectSource, zones []*Zone) error {
 	for _, z := range zones {
 		var bad error
-		areaEffectShapes(z, func(kind string, i int, effect string) {
+		areaEffectShapes(z, func(_ string, _ int, ref, effect string) {
 			if bad != nil {
 				return
 			}
@@ -111,10 +111,10 @@ func CrossValidateAreaEffectShapes(sr effectSource, zones []*Zone) error {
 					return
 				}
 			}
-			bad = fmt.Errorf("zone %q: %s %d names effect %q, which exists but carries no "+
+			bad = fmt.Errorf("zone %q: %s names effect %q, which exists but carries no "+
 				"dot_aura or hot_aura — an area applies those two and nothing else, so this "+
 				"shape would draw, read as dangerous and do nothing "+
-				"(plan-area-effects.md E2)", z.ID, kind, i, effect)
+				"(plan-area-effects.md E2)", z.ID, ref, effect)
 		})
 		if bad != nil {
 			return bad
@@ -174,7 +174,7 @@ func (a *PlacedAreaEffect) AreaEffectName() string { return a.Effect }
 func CollectAreaEffects(zones []*Zone) []PlacedAreaEffect {
 	var out []PlacedAreaEffect
 	for _, z := range zones {
-		areaEffectShapes(z, func(kind string, i int, effect string) {
+		areaEffectShapes(z, func(kind string, i int, _, effect string) {
 			var points []Point
 			switch kind {
 			case "path":
@@ -216,14 +216,14 @@ func CollectAreaEffects(zones []*Zone) []PlacedAreaEffect {
 func CrossValidateAreaEffects(sr effectSource, zones []*Zone) error {
 	for _, z := range zones {
 		var bad error
-		areaEffectShapes(z, func(kind string, i int, effect string) {
+		areaEffectShapes(z, func(_ string, _ int, ref, effect string) {
 			if bad != nil {
 				return
 			}
 			if _, err := sr.GetByName(effect); err != nil {
-				bad = fmt.Errorf("zone %q: %s %d names effect %q, which no skill declares — "+
+				bad = fmt.Errorf("zone %q: %s names effect %q, which no skill declares — "+
 					"the area would draw and do nothing. Effects are authored in api/skills/ "+
-					"(plan-area-effects.md E1)", z.ID, kind, i, effect)
+					"(plan-area-effects.md E1)", z.ID, ref, effect)
 			}
 		})
 		if bad != nil {

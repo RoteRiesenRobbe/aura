@@ -324,3 +324,15 @@ func TestCatalogGates_ResolveAgainstTheRealRegistries(t *testing.T) {
 	assert.Error(t, gates.CheckQuestStage("the-lost-lantern", "completed"))
 	assert.Error(t, gates.CheckQuestStage("the-lost-lamp", "nosuchstage"))
 }
+
+// The shipped area list loads, and the embedded copy is the authored one
+// (P4b): a stale copy would refuse a zone that -content boots.
+func TestEmbeddedAreaList_LoadsAndMatchesSource(t *testing.T) {
+	disk, err := diskContent("../../../api")
+	require.NoError(t, err)
+	want, err := world.LoadAreaIDs(disk.areas)
+	require.NoError(t, err)
+	got, err := world.LoadAreaIDs(embeddedContent().areas)
+	require.NoError(t, err)
+	assert.Equal(t, want, got, "embedded area list is stale — run `make -C backend cp-defs`")
+}

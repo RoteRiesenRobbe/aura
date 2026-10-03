@@ -12,7 +12,7 @@
  *                                          working WITHOUT the project
  *   tools/tiled/palette/content.json        the converter's content vocabulary
  *                                          (terrain types, prop bodies, mob kinds + speeds,
- *                                           region profiles)
+ *                                           region profiles, area ids)
  *   tools/tiled/aura.tiled-project          its propertyTypes array, patched in place
  *
  * ⚑ Why generated: the in-game editor bundles api/ straight in with
@@ -128,6 +128,16 @@ function kindOf(def) {
     if (def.interaction != null) { return 'talker'; }
     if (def.role === 'structure') { return 'fixture'; }
     return 'combat';
+}
+
+// The one list of area ids (plan-prop-draw-order.md P4b, D15). zone.go's
+// LoadAreaIDs is the authority on its rules; this only reads it.
+function readAreas() {
+    const file = path.join(ROOT, 'api', 'areas', 'areas.json');
+    if (!existsSync(file)) { fail('area list not found: ' + path.relative(ROOT, file)); }
+    const ids = JSON.parse(readFileSync(file, 'utf8')).areas;
+    if (!Array.isArray(ids) || ids.length === 0) { fail('api/areas/areas.json lists no areas'); }
+    return ids;
 }
 
 function readMobs() {
@@ -316,15 +326,15 @@ const KIND_COLOUR = {
     fixture: '#ff9e9e9e',
 };
 
-function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
+function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, areas) {
     let id = 0;
     const enumType = (name, values) => ({
         id: ++id, name, type: 'enum', storageType: 'string',
         values, valuesAsFlags: false,
     });
-    const classType = (name, color, members = []) => ({
+    const classType = (name, color, members = [], useAs = ['property', 'object']) => ({
         id: ++id, name, type: 'class', color,
-        drawFill: true, useAs: ['property', 'object'], members,
+        drawFill: true, useAs, members,
     });
 
     const member = (name, type, value, propertyType) =>
@@ -530,6 +540,19 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         types.push(classType('AuraSpawn' + kind[0].toUpperCase() + kind.slice(1),
             KIND_COLOUR[kind], SPAWN_MEMBERS));
     }
+    // ⭐ The area ids (plan-prop-draw-order.md P4b, D15), api/areas/areas.json
+    // in file order. LAST, so adding them renumbered no existing type. The
+    // sentinel leads for MOB_UNSET's reason: a group made an area and never
+    // given an id refuses the save instead of silently becoming whichever
+    // area is listed first.
+    types.push(enumType(C.AREA_ENUM, [C.AREA_UNSET].concat(areas)));
+    // ⭐ The one class used on a LAYER: a group layer of this class is an
+    // area, and its id is this member, never the group's name (a free label).
+    // The default is C.AREA_UNSET, which the save refuses, so a Tiled that
+    // drops a default-valued property and one that keeps it reach the same
+    // answer (the C6 rule).
+    types.push(classType(C.AREA_CLASS, '#ff607d8b',
+        [member('id', 'string', C.AREA_UNSET, C.AREA_ENUM)], ['layer']));
     return types;
 }
 
@@ -540,7 +563,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
 // the extension carries no content at all and is installed once per machine and
 // never again; being JSON means the extension parses it with JSON.parse rather
 // than eval'ing a script it read off disk.
-function contentJson(terrain, props, mobs, profiles, airProfiles, effects, types) {
+function contentJson(terrain, props, mobs, profiles, airProfiles, effects, areas, types) {
     const sizes = {};
     props.forEach(p => { sizes[p.type] = {w: p.wUnits, h: p.hUnits}; });
     const kinds = {};
@@ -584,6 +607,9 @@ function contentJson(terrain, props, mobs, profiles, airProfiles, effects, types
         // converter checks membership against this list so the placeholder earns
         // its own (legal) answer rather than "unknown effect".
         EFFECT_NAMES: effects,
+        // ⚑ The area ids WITHOUT the sentinel (P4b, D15), the EFFECT_NAMES
+        // rule: the converter refuses an id outside this list.
+        AREA_IDS: areas,
     }, null, 2) + '\n';
 }
 
@@ -626,8 +652,9 @@ if (clash.length > 0) {
 }
 
 const effects = readEffects();
+const areas = readAreas();
 
-const types = propertyTypes(terrain, props, mobs, profiles, airProfiles, effects);
+const types = propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, areas);
 
 mkdirSync(PALETTE, {recursive: true});
 writeFileSync(path.join(PALETTE, 'decals.tsx'), tileset('aura-decals', 'AuraDecal', terrain));
@@ -637,7 +664,7 @@ writeTemplates(path.join(TEMPLATES, 'props'), '../props.tsx', 'AuraProp', props,
 writeTemplates(path.join(TEMPLATES, 'decals'), '../decals.tsx', 'AuraDecal', terrain,
     () => ({w: TERRAIN_TEMPLATE_SIZE * 2, h: TERRAIN_TEMPLATE_SIZE * 2}));
 writeFileSync(path.join(PALETTE, 'content.json'),
-    contentJson(terrain, props, mobs, profiles, airProfiles, effects, types));
+    contentJson(terrain, props, mobs, profiles, airProfiles, effects, areas, types));
 writeFileSync(path.join(TOOLS, 'aura.tiled-project'), patchProject(path.join(TOOLS, 'aura.tiled-project'), types));
 // ⚑ Kept as well as the project copy, and deliberately: project-embedded types
 // apply only while the PROJECT is open. Opening api/zones/world.json on its own
@@ -655,3 +682,4 @@ console.log(`content.json       ${terrain.length} textures, ${props.length} prop
 console.log(`terrain profiles   ${profiles.length} (${profiles.join(', ')}) → AuraTerrainProfile + AuraRegion + AuraPath + AuraStructure`);
 console.log(`air profiles       ${airProfiles.length} (${airProfiles.join(', ')}) → AuraAtmosphereProfile + AuraAtmosphere`);
 console.log(`area effects       ${effects.length} skills → AuraEffect + AuraPath + AuraStructure + AuraAtmosphere`);
+console.log(`areas              ${areas.length} ids → AuraAreaId + AuraArea (a group layer's class)`);

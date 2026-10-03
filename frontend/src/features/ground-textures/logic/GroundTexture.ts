@@ -10,7 +10,11 @@ export interface Parameters {
     size: integer,
     rotation: radians,
     flipped: 'none' | 'horizontal' | 'vertical',
-    stacking: 'bottom' | 'top'
+    stacking: 'bottom' | 'top',
+    // The zone file's area this decal was authored in (plan-prop-draw-order.md
+    // P4), carried only so the in-game editor's export puts it back there.
+    // Absent = the zone level, which is also where a decal placed in-game goes.
+    area?: string,
 }
 
 export class GroundTexture {

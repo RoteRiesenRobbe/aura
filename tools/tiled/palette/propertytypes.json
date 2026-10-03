@@ -847,6 +847,56 @@
           "value": "pingpong"
         }
       ]
+    },
+    {
+      "id": 26,
+      "name": "AuraAreaId",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "(pick an area)",
+        "farmlands",
+        "brackenfold",
+        "deep-woods",
+        "southgate",
+        "umberwood",
+        "brunnstedt",
+        "grimwatch",
+        "ashen-fields",
+        "cinder-conclave",
+        "wreckers-bluff",
+        "greyspine",
+        "netmenders-coast",
+        "northgate",
+        "sorrowfen",
+        "sunscar",
+        "fallow-reach",
+        "glimmerwood",
+        "rimefrost",
+        "hollow-marsh",
+        "moonveil",
+        "witherwood",
+        "wyrmhold"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 27,
+      "name": "AuraArea",
+      "type": "class",
+      "color": "#ff607d8b",
+      "drawFill": true,
+      "useAs": [
+        "layer"
+      ],
+      "members": [
+        {
+          "name": "id",
+          "type": "string",
+          "propertyType": "AuraAreaId",
+          "value": "(pick an area)"
+        }
+      ]
     }
   ]
 }

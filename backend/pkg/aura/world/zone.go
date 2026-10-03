@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
+	"reflect"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -26,6 +28,20 @@ type Bounds struct {
 	Width  float32 `json:"width"`
 	Height float32 `json:"height"`
 }
+
+// InArea is the area an object was authored in (plan-prop-draw-order.md D11):
+// the id of the `areas` entry whose arrays held it, or "" at the zone level.
+// Every object type embeds it. Set by Zone.flatten at load; not part of the
+// JSON, because in the file the NESTING is the area.
+//
+// ⚑ Nothing reads it yet beyond error messages (YAGNI). It is what lets the
+// game say which area every object lives in, the PO's condition on D10.
+type InArea struct {
+	Area string `json:"-"`
+}
+
+func (a InArea) area() string       { return a.Area }
+func (a *InArea) setArea(id string) { a.Area = id }
 
 // Prop is a hand-placed static object. blocksMovement puts the body on the
 // static-collision layers. Def is resolved at load time so an unknown prop type
@@ -53,10 +69,10 @@ type Bounds struct {
 // cosmetic one: a 2.5× tree blocks 2.5× the radius (D5). That is deliberate —
 // a prop that looks big and walks small is the worse lie.
 type Prop struct {
-	Type           string   `json:"type"`
-	X              float32  `json:"x"`
-	Y              float32  `json:"y"`
-	Rotation       float32  `json:"rotation"`
+	Type     string  `json:"type"`
+	X        float32 `json:"x"`
+	Y        float32 `json:"y"`
+	Rotation float32 `json:"rotation"`
 	// BlocksMovement is a TRI-STATE OVERRIDE of the prop TYPE's own
 	// blocksMovement: nil = inherit the definition, which is what a prop dragged
 	// fresh in Tiled authors. Read it through Blocks(), never directly.
@@ -74,6 +90,7 @@ type Prop struct {
 	// PropLayers.flatten at load; not part of the JSON, because in the file the
 	// NESTING is the layer (plan-prop-draw-order.md D3).
 	Layer string `json:"-"`
+	InArea
 
 	// Def is the prop definition resolved from Type; not part of the JSON.
 	Def *PropDefinition `json:"-"`
@@ -108,23 +125,39 @@ type PropLayers struct {
 	Canopy    []Prop `json:"canopy"`
 }
 
-// flatten returns every placement in rank order, then file order, each tagged
-// with its layer. This is the []Prop every Go reader iterates.
-func (l PropLayers) flatten() []Prop {
-	ranked := []struct {
-		name  string
-		props []Prop
-	}{
+// rankedLayer is one prop layer's name and placements.
+type rankedLayer struct {
+	name  string
+	props []Prop
+}
+
+// ranked returns the four layers bottom to top, the order flattenProps walks.
+func (l PropLayers) ranked() [4]rankedLayer {
+	return [4]rankedLayer{
 		{PropLayerUnderfoot, l.Underfoot},
 		{PropLayerDefault, l.Default},
 		{PropLayerBuildings, l.Buildings},
 		{PropLayerCanopy, l.Canopy},
 	}
+}
+
+// flattenProps returns every placement of the zone level and its areas, each
+// tagged with its layer and area. This is the []Prop every Go reader iterates.
+//
+// ⭐ THE LAYER RANK IS THE OUTER KEY, across areas (D11): P3's "a higher layer
+// draws over a lower one" holds zone-wide, so a Dark Woods canopy draws over a
+// Farmlands building. Inside one layer: the zone level first, then each area
+// in file order, each in its own array order.
+func flattenProps(parts []Area) []Prop {
 	var out []Prop
-	for _, r := range ranked {
-		for _, p := range r.props {
-			p.Layer = r.name
-			out = append(out, p)
+	for r := range len(PropLayers{}.ranked()) {
+		for _, a := range parts {
+			layer := a.PropLayers.ranked()[r]
+			for _, p := range layer.props {
+				p.Layer = layer.name
+				p.Area = a.ID
+				out = append(out, p)
+			}
 		}
 	}
 	return out
@@ -233,6 +266,7 @@ type Spawn struct {
 	// A generic door - the shipped CaveMouth/CaveExit - authors no default at
 	// all and takes its destination entirely from here.
 	Anchor string `json:"anchor"`
+	InArea
 
 	// Def is the mob definition resolved from Mob; not part of the JSON.
 	Def *mobs.MobDefinition `json:"-"`
@@ -264,6 +298,7 @@ type TerrainTexture struct {
 	Size     float32 `json:"size"`
 	Rotation float32 `json:"rotation"`
 	Flipped  string  `json:"flipped"`
+	InArea
 }
 
 // Campfire is a fixed world campfire position (atmosphere & recovery
@@ -300,6 +335,7 @@ type Campfire struct {
 	// a fresh character — and only the PRIMARY zone may flag one, or a new
 	// character lands underground. Both halves hard-fail the boot.
 	StartingSpawn bool `json:"startingSpawn"`
+	InArea
 }
 
 // DarkArea is a hand-placed circle of constant darkness (atmosphere &
@@ -311,6 +347,7 @@ type DarkArea struct {
 	X      float32 `json:"x"`
 	Y      float32 `json:"y"`
 	Radius float32 `json:"radius"`
+	InArea
 }
 
 // Point is a vertex in server units — the shape a Region polygon is built from.
@@ -348,6 +385,7 @@ type Region struct {
 	// unnamed region, which the name lookup sees straight through.
 	Title    string `json:"title,omitempty"`
 	Subtitle string `json:"subtitle,omitempty"`
+	InArea
 }
 
 // Path is a POLYLINE naming a client-side presentation PROFILE, stroked into
@@ -469,6 +507,7 @@ type Path struct {
 	// ⚑ ON THE SHAPE, NEVER ON THE PROFILE (D2) — the full argument sits on
 	// Polygon.Effect below, because the two carry exactly the same key.
 	Effect string `json:"effect,omitempty"`
+	InArea
 }
 
 // Polygon is a CLOSED polygon naming a client-side presentation PROFILE and
@@ -547,6 +586,7 @@ type Polygon struct {
 	// ⛔ The server does not READ this yet. E1 ships the key inert; the system
 	// pass that applies it is E2.
 	Effect string `json:"effect,omitempty"`
+	InArea
 }
 
 // Anchor is a named point encounter scripts look up at registration (content
@@ -558,6 +598,7 @@ type Anchor struct {
 	Name string  `json:"name"`
 	X    float32 `json:"x"`
 	Y    float32 `json:"y"`
+	InArea
 }
 
 // Atmosphere is a closed area naming a client-side presentation PROFILE that
@@ -600,8 +641,9 @@ type Atmosphere struct {
 	// An area effect describes no wall: it is a region of space acting on what
 	// stands in it (D1), which air does as readily as ground. Lava is ground,
 	// miasma is air, ONE key covers both — which is the whole reason this is one
-	// feature rather than two.
+	// one feature rather than two.
 	Effect string `json:"effect,omitempty"`
+	InArea
 }
 
 // ClearsDarkness, ClearsHaze and ClearsBoth are the closed set a Clearing's
@@ -653,6 +695,75 @@ type Clearing struct {
 	// drew in the wrong place.
 	Clears string  `json:"clears"`
 	Points []Point `json:"points"`
+	InArea
+}
+
+// Objects is every object array a zone file holds, and therefore everything an
+// area may hold (plan-prop-draw-order.md D10). Zone and Area both embed it, so
+// the two cannot disagree about what an object array is.
+//
+// ⭐ After load, the zone level's Objects hold EVERY object of the zone, areas
+// included (Zone.flatten), and each object's Area says where it came from.
+type Objects struct {
+	// Decals are the scattered ground-texture patches. The key was `terrain`
+	// until plan-zone-naming.md N2: that is also the word for the whole ground.
+	Decals []TerrainTexture `json:"decals"`
+	// PropLayers is `props` exactly as the file nests it. Zone.flatten folds it
+	// into Zone.Props and then empties it, so there is one copy of every
+	// placement and every reader iterates Props.
+	PropLayers PropLayers `json:"props"`
+	Spawns     []Spawn    `json:"spawns"`
+	// BindPoints are where a character binds and respawns. The key was
+	// `campfires` until N2, named for the art; the fires a player sees are mobs.
+	BindPoints []Campfire `json:"bindPoints"`
+	DarkAreas  []DarkArea `json:"darkAreas"`
+	Regions    []Region   `json:"regions"`
+	Paths      []Path     `json:"paths"`
+	// Structures are the filled masses: rock, buildings, lakes. The key was
+	// `polygons` until N2, named for the geometry every area shape shares.
+	Structures []Polygon `json:"structures"`
+	// Atmospheres is client-visual only and the server never reads it past
+	// validation — DarkArea's and Region's posture verbatim.
+	Atmospheres []Atmosphere `json:"atmospheres"`
+	// Clearings ERASE what Atmospheres paint, and they are applied AFTER every
+	// atmosphere regardless of authoring order (A4/D17) — "a hole in whatever is
+	// already there", which is the only reading two separate arrays can support
+	// without inventing an interleaving key. Client-visual only, like the array
+	// above.
+	Clearings []Clearing `json:"clearings"`
+	Anchors   []Anchor   `json:"anchors"`
+}
+
+// Area is one entry of the zone file's `areas`: a named group of objects, for
+// the author's convenience in Tiled (plan-prop-draw-order.md P4, §10). It may
+// hold any subset of the object arrays and nothing else; the zone-level
+// settings (name, bounds, origin, ground) stay zone-level.
+//
+// ⭐ IT CHANGES NOTHING IN GAME. Zone.flatten folds every area into the zone's
+// own arrays at load (D11), so no gameplay or render code learns areas exist;
+// each object only remembers its area (InArea).
+type Area struct {
+	// ID is a slug (D12), unique in the zone and never a kind name, and since
+	// P4b one of api/areas/areas.json's (D15, CrossValidateAreaIDs). In Tiled
+	// it is the area group's `id` property, picked from a dropdown; the
+	// group's name is a free label. Not a display name: the game maps it to
+	// text if it ever shows one.
+	ID string `json:"id"`
+	Objects
+}
+
+// areaIDPattern is D12's slug.
+var areaIDPattern = regexp.MustCompile(`^[a-z0-9-]+$`)
+
+// objectKindNames are the JSON keys of Objects, the names an area id must not
+// take. Derived from the struct, so a new object array is reserved with it.
+func objectKindNames() []string {
+	var out []string
+	t := reflect.TypeFor[Objects]()
+	for i := range t.NumField() {
+		out = append(out, strings.Split(t.Field(i).Tag.Get("json"), ",")[0])
+	}
+	return out
 }
 
 // Zone is the whole authored world description loaded from a zone file. One
@@ -705,35 +816,19 @@ type Zone struct {
 	// Absent = black. Client-visual only and unvalidated against the profile
 	// table, Region's D8 posture verbatim: the server never reads it.
 	Ground string `json:"ground,omitempty"`
-	// Decals are the scattered ground-texture patches. The key was `terrain`
-	// until plan-zone-naming.md N2: that is also the word for the whole ground.
-	Decals []TerrainTexture `json:"decals"`
-	// PropLayers is `props` exactly as the file nests it. parseZone flattens it
-	// into Props and then empties it, so there is one copy of every placement
-	// and every reader iterates Props.
-	PropLayers PropLayers `json:"props"`
-	// Props is every placement, flattened in draw order (PropLayers.flatten).
-	Props  []Prop  `json:"-"`
-	Spawns []Spawn `json:"spawns"`
-	// BindPoints are where a character binds and respawns. The key was
-	// `campfires` until N2, named for the art; the fires a player sees are mobs.
-	BindPoints []Campfire `json:"bindPoints"`
-	DarkAreas  []DarkArea `json:"darkAreas"`
-	Regions    []Region   `json:"regions"`
-	Paths      []Path     `json:"paths"`
-	// Structures are the filled masses: rock, buildings, lakes. The key was
-	// `polygons` until N2, named for the geometry every area shape shares.
-	Structures []Polygon `json:"structures"`
-	// Atmospheres is client-visual only and the server never reads it past
-	// validation — DarkArea's and Region's posture verbatim.
-	Atmospheres []Atmosphere `json:"atmospheres"`
-	// Clearings ERASE what Atmospheres paint, and they are applied AFTER every
-	// atmosphere regardless of authoring order (A4/D17) — "a hole in whatever is
-	// already there", which is the only reading two separate arrays can support
-	// without inventing an interleaving key. Client-visual only, like the array
-	// above.
-	Clearings []Clearing `json:"clearings"`
-	Anchors   []Anchor   `json:"anchors"`
+	// The zone-level object arrays: objects in no area, exactly as before P4.
+	// After load they hold every area's objects too (flatten).
+	Objects
+	// Areas is the file's optional `areas` (plan-prop-draw-order.md P4).
+	// flatten folds them into Objects and then empties this, so there is one
+	// copy of every object.
+	Areas []Area `json:"areas"`
+	// AreaIDs are the file's area ids in file order, kept once flatten has
+	// emptied Areas (an empty area holds no object to remember it by), so the
+	// boot can check each against the list (CrossValidateAreaIDs).
+	AreaIDs []string `json:"-"`
+	// Props is every placement, flattened in draw order (flattenProps).
+	Props []Prop `json:"-"`
 
 	// ID is the file stem the zone was loaded from — the -zone selection key
 	// and the identity sent to the client so it renders the matching terrain.
@@ -946,12 +1041,110 @@ func parseZone(data []byte) (*Zone, error) {
 	if err := dec.Decode(&z); err != nil {
 		return nil, fmt.Errorf("cannot parse: %w", err)
 	}
-	z.Props = z.PropLayers.flatten()
-	z.PropLayers = PropLayers{}
+	if err := z.validateAreaIDs(); err != nil {
+		return nil, err
+	}
+	z.flatten()
 	if err := z.validate(); err != nil {
 		return nil, err
 	}
 	return &z, nil
+}
+
+// validateAreaIDs is D12: a slug, unique in the zone, and never a kind name.
+// An area is addressed by its INDEX here because its id is the thing in doubt.
+func (z *Zone) validateAreaIDs() error {
+	ids := make([]string, len(z.Areas))
+	for i, a := range z.Areas {
+		ids[i] = a.ID
+	}
+	return checkAreaIDs(ids)
+}
+
+// checkAreaIDs is D12's rule for a list of ids, shared by a zone's areas and
+// by api/areas/areas.json itself (D15): each a slug, never a kind name (an
+// error would read `spawn 1 in area "spawns"`), and each once. An id is
+// addressed by its INDEX because the id is the thing in doubt.
+func checkAreaIDs(ids []string) error {
+	kinds := objectKindNames()
+	seen := map[string]bool{}
+	for i, id := range ids {
+		switch {
+		case !areaIDPattern.MatchString(id):
+			return fmt.Errorf("area %d: id %q must be a slug of a-z, 0-9 and '-' (e.g. \"dark-woods\")", i, id)
+		case slices.Contains(kinds, id):
+			return fmt.Errorf("area %d: id %q is the name of an object array; pick another", i, id)
+		case seen[id]:
+			return fmt.Errorf("area %d: duplicate id %q", i, id)
+		}
+		seen[id] = true
+	}
+	return nil
+}
+
+// flatten folds every area into the zone level (D11), so every reader keeps
+// iterating one slice per kind: for each kind, the zone-level objects first,
+// then each area in file order, each in its own array order, each tagged with
+// its area. Props keep the layer rank as the outer key (flattenProps).
+//
+// ⚑ The order is area-major (§7 L11): an area's paths can no longer draw
+// BETWEEN two of another area's. That is the one order Tiled can show, so the
+// server, the client and the editor agree on it. The client's
+// ZoneAreas.flattenAreas is the twin, pinned by testdata/area-flatten.json.
+func (z *Zone) flatten() {
+	z.Props = flattenProps(append([]Area{{Objects: z.Objects}}, z.Areas...))
+	for _, a := range z.Areas {
+		z.Decals = appendArea(z.Decals, a.Decals, a.ID)
+		z.Spawns = appendArea(z.Spawns, a.Spawns, a.ID)
+		z.BindPoints = appendArea(z.BindPoints, a.BindPoints, a.ID)
+		z.DarkAreas = appendArea(z.DarkAreas, a.DarkAreas, a.ID)
+		z.Regions = appendArea(z.Regions, a.Regions, a.ID)
+		z.Paths = appendArea(z.Paths, a.Paths, a.ID)
+		z.Structures = appendArea(z.Structures, a.Structures, a.ID)
+		z.Atmospheres = appendArea(z.Atmospheres, a.Atmospheres, a.ID)
+		z.Clearings = appendArea(z.Clearings, a.Clearings, a.ID)
+		z.Anchors = appendArea(z.Anchors, a.Anchors, a.ID)
+	}
+	z.AreaIDs = nil
+	for _, a := range z.Areas {
+		z.AreaIDs = append(z.AreaIDs, a.ID)
+	}
+	z.PropLayers = PropLayers{}
+	z.Areas = nil
+}
+
+// appendArea appends an area's objects of one kind, each tagged with the area.
+func appendArea[T any, PT interface {
+	*T
+	setArea(string)
+}](dst, src []T, id string) []T {
+	for _, o := range src {
+		PT(&o).setArea(id)
+		dst = append(dst, o)
+	}
+	return dst
+}
+
+// objectRef names element i of a flattened array the way the FILE does: its
+// index in the array it was authored in, plus the area that array sits in. A
+// zone-level object reads exactly as before areas ("spawn 3"), because the
+// zone level flattens first.
+func objectRef[T interface{ area() string }](kind string, items []T, i int) string {
+	n := 0
+	for j := range i {
+		if items[j].area() == items[i].area() {
+			n++
+		}
+	}
+	return fmt.Sprintf("%s %d%s", kind, n, inArea(items[i].area()))
+}
+
+// inArea is the suffix a message about an object in an area carries.
+func inArea(id string) string {
+	if id == "" {
+		return ""
+	}
+	return fmt.Sprintf(" in area %q", id)
 }
 
 func (z *Zone) validate() error {
@@ -970,15 +1163,16 @@ func (z *Zone) validate() error {
 		}
 	}
 	for i := range z.Spawns {
+		ref := objectRef("spawn", z.Spawns, i)
 		s := &z.Spawns[i]
 		if s.WanderRadius != nil && *s.WanderRadius < 0 {
-			return fmt.Errorf("spawn %d: wanderRadius must not be negative, got %g", i, *s.WanderRadius)
+			return fmt.Errorf("%s: wanderRadius must not be negative, got %g", ref, *s.WanderRadius)
 		}
 		if s.WanderRadius != nil && *s.WanderRadius > 0 && len(s.Waypoints) > 0 {
-			return fmt.Errorf("spawn %d: wanderRadius and waypoints are mutually exclusive", i)
+			return fmt.Errorf("%s: wanderRadius and waypoints are mutually exclusive", ref)
 		}
 		if f := s.IdleSpeedFactor; f != nil && (*f <= 0 || *f > 1) {
-			return fmt.Errorf("spawn %d: idleSpeedFactor %g must be in (0, 1]", i, *f)
+			return fmt.Errorf("%s: idleSpeedFactor %g must be in (0, 1]", ref, *f)
 		}
 		// Mirrors the species check (mobs/definitions.go: "curveLevel %d must
 		// be >= 1"); no upper bound there or here — the player caps at 30 in
@@ -988,86 +1182,90 @@ func (z *Zone) validate() error {
 		// ⚑ Rejecting 0 is not cosmetic: Mob.spawnLevel encodes "no override"
 		// as 0, which is only safe because 0 can never be authored.
 		if l := s.Level; l != nil && *l < 1 {
-			return fmt.Errorf("spawn %d: level %d must be >= 1", i, *l)
+			return fmt.Errorf("%s: level %d must be >= 1", ref, *l)
 		}
 		if len(s.Waypoints) == 1 {
-			return fmt.Errorf("spawn %d: waypoints needs at least 2 points for a route", i)
+			return fmt.Errorf("%s: waypoints needs at least 2 points for a route", ref)
 		}
 		switch s.PatrolMode {
 		case "", "pingpong", "loop":
 		default:
-			return fmt.Errorf("spawn %d: patrolMode %q must be \"pingpong\" or \"loop\"", i, s.PatrolMode)
+			return fmt.Errorf("%s: patrolMode %q must be \"pingpong\" or \"loop\"", ref, s.PatrolMode)
 		}
 		if s.PatrolMode != "" && len(s.Waypoints) == 0 {
-			return fmt.Errorf("spawn %d: patrolMode without waypoints", i)
+			return fmt.Errorf("%s: patrolMode without waypoints", ref)
 		}
 	}
 	for i := range z.DarkAreas {
+		ref := objectRef("darkArea", z.DarkAreas, i)
 		if z.DarkAreas[i].Radius <= 0 {
-			return fmt.Errorf("darkArea %d: radius must be positive, got %g", i, z.DarkAreas[i].Radius)
+			return fmt.Errorf("%s: radius must be positive, got %g", ref, z.DarkAreas[i].Radius)
 		}
 	}
 	// Both messages name the INDEX: a region has no id and no unique name, so
 	// the position in the array is the only thing the author can search for.
 	for i := range z.Regions {
+		ref := objectRef("region", z.Regions, i)
 		if strings.TrimSpace(z.Regions[i].Profile) == "" {
-			return fmt.Errorf("region %d: profile must not be empty", i)
+			return fmt.Errorf("%s: profile must not be empty", ref)
 		}
 		if len(z.Regions[i].Points) < 3 {
-			return fmt.Errorf("region %d: needs at least 3 points to enclose an area, got %d",
-				i, len(z.Regions[i].Points))
+			return fmt.Errorf("%s: needs at least 3 points to enclose an area, got %d",
+				ref, len(z.Regions[i].Points))
 		}
 		// A subtitle is the line UNDER a title; alone it would never show.
 		if strings.TrimSpace(z.Regions[i].Subtitle) != "" && strings.TrimSpace(z.Regions[i].Title) == "" {
-			return fmt.Errorf("region %d: subtitle %q needs a title to sit under", i, z.Regions[i].Subtitle)
+			return fmt.Errorf("%s: subtitle %q needs a title to sit under", ref, z.Regions[i].Subtitle)
 		}
 	}
 	// Paths name the INDEX for the same reason regions do: no id, no unique
 	// name, so the array position is the only thing an author can search for.
 	for i := range z.Paths {
+		ref := objectRef("path", z.Paths, i)
 		if strings.TrimSpace(z.Paths[i].Profile) == "" {
-			return fmt.Errorf("path %d: profile must not be empty", i)
+			return fmt.Errorf("%s: profile must not be empty", ref)
 		}
 		// TWO, not three: a path is an OPEN polyline. One point is not a line.
 		if len(z.Paths[i].Points) < 2 {
-			return fmt.Errorf("path %d: needs at least 2 points to draw a line, got %d",
-				i, len(z.Paths[i].Points))
+			return fmt.Errorf("%s: needs at least 2 points to draw a line, got %d",
+				ref, len(z.Paths[i].Points))
 		}
 		// A CLOSED one needs three, for the same reason a region does: two
 		// points joined back to themselves are one segment walked twice, not a
 		// ring, and the wraparound would lay a second body on top of the first.
 		if z.Paths[i].Closed && len(z.Paths[i].Points) < 3 {
-			return fmt.Errorf("path %d: a closed path needs at least 3 points to make a ring, got %d",
-				i, len(z.Paths[i].Points))
+			return fmt.Errorf("%s: a closed path needs at least 3 points to make a ring, got %d",
+				ref, len(z.Paths[i].Points))
 		}
 		if z.Paths[i].Width <= 0 {
-			return fmt.Errorf("path %d: width must be positive, got %g", i, z.Paths[i].Width)
+			return fmt.Errorf("%s: width must be positive, got %g", ref, z.Paths[i].Width)
 		}
-		if err := validatePathShape(i, &z.Paths[i]); err != nil {
+		if err := validatePathShape(ref, &z.Paths[i]); err != nil {
 			return err
 		}
-		if err := validateOutline("path", i, z.Paths[i].OutlineProfile, z.Paths[i].OutlineWidth); err != nil {
+		if err := validateOutline(ref, z.Paths[i].OutlineProfile, z.Paths[i].OutlineWidth); err != nil {
 			return err
 		}
-		if err := validateEffect("path", i, z.Paths[i].Effect); err != nil {
+		if err := validateEffect(ref, z.Paths[i].Effect); err != nil {
 			return err
 		}
 	}
 	// Polygons name the INDEX for the same reason regions and paths do.
 	for i := range z.Structures {
+		ref := objectRef("structure", z.Structures, i)
 		if strings.TrimSpace(z.Structures[i].Profile) == "" {
-			return fmt.Errorf("structure %d: profile must not be empty", i)
+			return fmt.Errorf("%s: profile must not be empty", ref)
 		}
 		// THREE, like a region: a filled shape has to enclose an area. Two
 		// points are a line, and a line is a path.
 		if len(z.Structures[i].Points) < 3 {
-			return fmt.Errorf("structure %d: needs at least 3 points to enclose an area, got %d",
-				i, len(z.Structures[i].Points))
+			return fmt.Errorf("%s: needs at least 3 points to enclose an area, got %d",
+				ref, len(z.Structures[i].Points))
 		}
-		if err := validateOutline("structure", i, z.Structures[i].OutlineProfile, z.Structures[i].OutlineWidth); err != nil {
+		if err := validateOutline(ref, z.Structures[i].OutlineProfile, z.Structures[i].OutlineWidth); err != nil {
 			return err
 		}
-		if err := validateEffect("structure", i, z.Structures[i].Effect); err != nil {
+		if err := validateEffect(ref, z.Structures[i].Effect); err != nil {
 			return err
 		}
 	}
@@ -1077,14 +1275,15 @@ func (z *Zone) validate() error {
 	// blocksMovement, no outline — and that short loop IS the D15 ruling
 	// showing up in the code.
 	for i := range z.Atmospheres {
+		ref := objectRef("atmosphere", z.Atmospheres, i)
 		if strings.TrimSpace(z.Atmospheres[i].Profile) == "" {
-			return fmt.Errorf("atmosphere %d: profile must not be empty", i)
+			return fmt.Errorf("%s: profile must not be empty", ref)
 		}
 		if len(z.Atmospheres[i].Points) < 3 {
-			return fmt.Errorf("atmosphere %d: needs at least 3 points to enclose an area, got %d",
-				i, len(z.Atmospheres[i].Points))
+			return fmt.Errorf("%s: needs at least 3 points to enclose an area, got %d",
+				ref, len(z.Atmospheres[i].Points))
 		}
-		if err := validateEffect("atmosphere", i, z.Atmospheres[i].Effect); err != nil {
+		if err := validateEffect(ref, z.Atmospheres[i].Effect); err != nil {
 			return err
 		}
 	}
@@ -1094,15 +1293,16 @@ func (z *Zone) validate() error {
 	// — a clearing that silently cleared nothing is indistinguishable on screen
 	// from one drawn in the wrong place, which is a whole debugging session.
 	for i := range z.Clearings {
+		ref := objectRef("clearing", z.Clearings, i)
 		switch strings.TrimSpace(z.Clearings[i].Clears) {
 		case ClearsDarkness, ClearsHaze, ClearsBoth:
 		default:
-			return fmt.Errorf("clearing %d: clears %q must be one of %q, %q or %q",
-				i, z.Clearings[i].Clears, ClearsDarkness, ClearsHaze, ClearsBoth)
+			return fmt.Errorf("%s: clears %q must be one of %q, %q or %q",
+				ref, z.Clearings[i].Clears, ClearsDarkness, ClearsHaze, ClearsBoth)
 		}
 		if len(z.Clearings[i].Points) < 3 {
-			return fmt.Errorf("clearing %d: needs at least 3 points to enclose an area, got %d",
-				i, len(z.Clearings[i].Points))
+			return fmt.Errorf("%s: needs at least 3 points to enclose an area, got %d",
+				ref, len(z.Clearings[i].Points))
 		}
 	}
 	// ⚑ "at least one campfire is a startingSpawn" USED TO LIVE HERE and moved
@@ -1116,28 +1316,30 @@ func (z *Zone) validate() error {
 	// though campfires are its only members today.
 	spawnPointIDs := make(map[string]bool, len(z.BindPoints))
 	for i := range z.BindPoints {
+		ref := objectRef("bind point", z.BindPoints, i)
 		id := strings.TrimSpace(z.BindPoints[i].ID)
 		if id == "" {
-			return fmt.Errorf("bind point %d: id must not be empty", i)
+			return fmt.Errorf("%s: id must not be empty", ref)
 		}
 		if spawnPointIDs[id] {
-			return fmt.Errorf("bind point %d: duplicate spawn point id %q", i, id)
+			return fmt.Errorf("%s: duplicate spawn point id %q", ref, id)
 		}
 		spawnPointIDs[id] = true
 	}
 	anchorNames := make(map[string]bool, len(z.Anchors))
 	for i := range z.Anchors {
+		ref := objectRef("anchor", z.Anchors, i)
 		a := &z.Anchors[i]
 		if strings.TrimSpace(a.Name) == "" {
-			return fmt.Errorf("anchor %d: name must not be empty", i)
+			return fmt.Errorf("%s: name must not be empty", ref)
 		}
 		if anchorNames[a.Name] {
-			return fmt.Errorf("anchor %d: duplicate name %q", i, a.Name)
+			return fmt.Errorf("%s: duplicate name %q", ref, a.Name)
 		}
 		anchorNames[a.Name] = true
 		if a.X < -z.Bounds.Width/2 || a.X > z.Bounds.Width/2 ||
 			a.Y < -z.Bounds.Height/2 || a.Y > z.Bounds.Height/2 {
-			return fmt.Errorf("anchor %d (%q): (%g, %g) is outside the bounds", i, a.Name, a.X, a.Y)
+			return fmt.Errorf("%s (%q): (%g, %g) is outside the bounds", ref, a.Name, a.X, a.Y)
 		}
 	}
 	return nil
@@ -1179,7 +1381,7 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 		s := &z.Spawns[i]
 		def, err := mr.GetByName(s.Mob)
 		if err != nil {
-			return fmt.Errorf("spawn %d: unknown mob %q", i, s.Mob)
+			return fmt.Errorf("%s: unknown mob %q", objectRef("spawn", z.Spawns, i), s.Mob)
 		}
 		if def.Legacy {
 			noteLegacy("mob", def.Name)
@@ -1190,7 +1392,8 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 		// registry load.)
 		wanders := s.WanderRadius != nil && *s.WanderRadius > 0
 		if (wanders || len(s.Waypoints) > 0) && def.Factors.Speed <= 0 {
-			return fmt.Errorf("spawn %d: stationary mob %q (speed 0) cannot wander or patrol", i, s.Mob)
+			return fmt.Errorf("%s: stationary mob %q (speed 0) cannot wander or patrol",
+				objectRef("spawn", z.Spawns, i), s.Mob)
 		}
 		s.Def = def
 	}
@@ -1223,16 +1426,18 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 	return nil
 }
 
-// propRef names placement i the way the FILE does, props.<layer>[n]. The flat
+// propRef names placement i the way the FILE does, props.<layer>[n] plus its
+// area (objectRef's rule, with the layer as part of the address). The flat
 // index is a load-time artefact that no author can find in a zone file.
 func (z *Zone) propRef(i int) string {
+	p := &z.Props[i]
 	n := 0
 	for j := range i {
-		if z.Props[j].Layer == z.Props[i].Layer {
+		if z.Props[j].Layer == p.Layer && z.Props[j].Area == p.Area {
 			n++
 		}
 	}
-	return fmt.Sprintf("props.%s[%d]", z.Props[i].Layer, n)
+	return fmt.Sprintf("props.%s[%d]%s", p.Layer, n, inArea(p.Area))
 }
 
 // validateEffect is the half of the area-effect check that needs no registry
@@ -1248,10 +1453,10 @@ func (z *Zone) propRef(i int) string {
 // ⛔ The NAME is deliberately not checked here. The skill registry is built
 // before any zone but is not an argument to the zone loader, so this function
 // could not resolve one even if it wanted to — see CrossValidateAreaEffects.
-func validateEffect(kind string, i int, effect string) error {
+func validateEffect(ref string, effect string) error {
 	if effect != "" && strings.TrimSpace(effect) == "" {
-		return fmt.Errorf("%s %d: effect %q is blank — leave the key out entirely for no effect",
-			kind, i, effect)
+		return fmt.Errorf("%s: effect %q is blank — leave the key out entirely for no effect",
+			ref, effect)
 	}
 	return nil
 }
@@ -1271,28 +1476,28 @@ var (
 // validatePathShape refuses a corners or ends value outside its vocabulary,
 // and any ends on a closed path: a ring has no ends, so the key would silently
 // do nothing.
-func validatePathShape(i int, p *Path) error {
+func validatePathShape(ref string, p *Path) error {
 	if p.Corners != "" && !slices.Contains(PathCorners, p.Corners) {
-		return fmt.Errorf("path %d: corners %q is not one of %s", i, p.Corners, strings.Join(PathCorners, ", "))
+		return fmt.Errorf("%s: corners %q is not one of %s", ref, p.Corners, strings.Join(PathCorners, ", "))
 	}
 	if p.Ends != "" && !slices.Contains(PathEnds, p.Ends) {
-		return fmt.Errorf("path %d: ends %q is not one of %s", i, p.Ends, strings.Join(PathEnds, ", "))
+		return fmt.Errorf("%s: ends %q is not one of %s", ref, p.Ends, strings.Join(PathEnds, ", "))
 	}
 	if p.Ends != "" && p.Closed {
-		return fmt.Errorf("path %d: ends %q on a closed path, which has no ends", i, p.Ends)
+		return fmt.Errorf("%s: ends %q on a closed path, which has no ends", ref, p.Ends)
 	}
 	return nil
 }
 
-func validateOutline(kind string, i int, profile string, width float32) error {
+func validateOutline(ref string, profile string, width float32) error {
 	named := strings.TrimSpace(profile) != ""
 	switch {
 	case named && width <= 0:
-		return fmt.Errorf("%s %d: outlineProfile %q needs a positive outlineWidth, got %g",
-			kind, i, profile, width)
+		return fmt.Errorf("%s: outlineProfile %q needs a positive outlineWidth, got %g",
+			ref, profile, width)
 	case !named && width != 0:
-		return fmt.Errorf("%s %d: outlineWidth %g draws nothing without an outlineProfile",
-			kind, i, width)
+		return fmt.Errorf("%s: outlineWidth %g draws nothing without an outlineProfile",
+			ref, width)
 	}
 	return nil
 }

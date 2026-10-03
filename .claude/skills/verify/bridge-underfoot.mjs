@@ -27,6 +27,7 @@
 import { createRequire } from 'node:module';
 import { join, dirname } from 'node:path';
 import { readFileSync } from 'node:fs';
+import { readZone } from './lib/zone.mjs';
 import { fileURLToPath } from 'node:url';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
@@ -36,7 +37,7 @@ import { joinAsNewCharacter } from './lib/join.mjs';
 
 const url = process.argv[2] || 'http://localhost:2001/?token=plz&wsUrl=ws://localhost:2000/game&develop';
 const repo = join(dirname(fileURLToPath(import.meta.url)), '../../..');
-const world = JSON.parse(readFileSync(join(repo, 'api/zones/world.json'), 'utf8'));
+const world = readZone(join(repo, 'api/zones/world.json'));
 // World's origin is (0, 0), so file units x 120 are wire pixels.
 const deck = ((world.props && world.props.underfoot) || [])[0];
 

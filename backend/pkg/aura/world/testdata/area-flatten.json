@@ -1,0 +1,90 @@
+{
+  "_comment": "plan-prop-draw-order.md P4, the cross-language pin. world/zone_areas_test.go and the client's ZoneAreas.test.ts both flatten `zone` and compare against `expected`, so the server and the client cannot disagree about the order (D11). Each object's label is its x (a shape's: its first point's x); area \"\" is the zone level, which carries no area at all.",
+  "zone": {
+    "name": "Areas",
+    "bounds": {"width": 60, "height": 40},
+    "decals": [
+      {"type": "Sand", "x": 1, "y": 0, "size": 1, "rotation": 0, "flipped": "none"}
+    ],
+    "props": {
+      "underfoot": [],
+      "default": [{"type": "Crate", "x": 1, "y": 0, "rotation": 0}],
+      "buildings": [],
+      "canopy": [{"type": "OakTree", "x": 2, "y": 0, "rotation": 0}]
+    },
+    "spawns": [
+      {"mob": "Wolf", "x": 1, "y": 0, "angle": 0},
+      {"mob": "Wolf", "x": 2, "y": 0, "angle": 0}
+    ],
+    "bindPoints": [{"id": "spawnpoint-1", "x": 1, "y": 0}],
+    "darkAreas": [{"x": 1, "y": 0, "radius": 1}],
+    "regions": [{"profile": "Grass", "points": [{"x": 1, "y": 0}, {"x": 3, "y": 0}, {"x": 3, "y": 2}]}],
+    "paths": [
+      {"profile": "Water", "points": [{"x": 1, "y": 0}, {"x": 5, "y": 0}], "width": 1},
+      {"profile": "Road", "points": [{"x": 2, "y": 0}, {"x": 5, "y": 1}], "width": 1}
+    ],
+    "structures": [{"profile": "Rock", "points": [{"x": 1, "y": 0}, {"x": 3, "y": 0}, {"x": 3, "y": 2}]}],
+    "atmospheres": [{"profile": "Fog", "points": [{"x": 1, "y": 0}, {"x": 3, "y": 0}, {"x": 3, "y": 2}]}],
+    "clearings": [{"clears": "both", "points": [{"x": 1, "y": 0}, {"x": 3, "y": 0}, {"x": 3, "y": 2}]}],
+    "anchors": [{"name": "zone-a", "x": 1, "y": 0}],
+    "areas": [
+      {
+        "id": "farmlands",
+        "decals": [{"type": "Sand", "x": 11, "y": 0, "size": 1, "rotation": 0, "flipped": "none"}],
+        "props": {
+          "underfoot": [{"type": "Bridge", "x": 12, "y": 0, "rotation": 0}],
+          "default": [{"type": "Crate", "x": 13, "y": 0, "rotation": 0}],
+          "canopy": [{"type": "OakTree", "x": 11, "y": 0, "rotation": 0}]
+        },
+        "spawns": [{"mob": "Wolf", "x": 11, "y": 0, "angle": 0}],
+        "bindPoints": [{"id": "spawnpoint-2", "x": 11, "y": 0}],
+        "darkAreas": [{"x": 11, "y": 0, "radius": 1}],
+        "regions": [
+          {"profile": "Grass", "points": [{"x": 11, "y": 0}, {"x": 13, "y": 0}, {"x": 13, "y": 2}]},
+          {"profile": "Field", "points": [{"x": 12, "y": 0}, {"x": 13, "y": 0}, {"x": 13, "y": 2}]}
+        ],
+        "paths": [{"profile": "Road", "points": [{"x": 11, "y": 0}, {"x": 15, "y": 0}], "width": 1}],
+        "structures": [{"profile": "Rock", "points": [{"x": 11, "y": 0}, {"x": 13, "y": 0}, {"x": 13, "y": 2}]}],
+        "atmospheres": [{"profile": "Fog", "points": [{"x": 11, "y": 0}, {"x": 13, "y": 0}, {"x": 13, "y": 2}]}],
+        "clearings": [{"clears": "haze", "points": [{"x": 11, "y": 0}, {"x": 13, "y": 0}, {"x": 13, "y": 2}]}],
+        "anchors": [{"name": "farm-a", "x": 11, "y": 0}]
+      },
+      {
+        "id": "dark-woods",
+        "decals": [{"type": "Sand", "x": 21, "y": 0, "size": 1, "rotation": 0, "flipped": "none"}],
+        "props": {
+          "default": [{"type": "Crate", "x": 21, "y": 0, "rotation": 0}],
+          "buildings": [{"type": "House", "x": 22, "y": 0, "rotation": 0}],
+          "canopy": [{"type": "OakTree", "x": 23, "y": 0, "rotation": 0}]
+        },
+        "spawns": [{"mob": "Wolf", "x": 21, "y": 0, "angle": 0}],
+        "regions": [{"profile": "Forest", "points": [{"x": 21, "y": 0}, {"x": 23, "y": 0}, {"x": 23, "y": 2}]}],
+        "paths": [{"profile": "Water", "points": [{"x": 21, "y": 0}, {"x": 25, "y": 0}], "width": 1}],
+        "atmospheres": [{"profile": "Gloom", "points": [{"x": 21, "y": 0}, {"x": 23, "y": 0}, {"x": 23, "y": 2}]}],
+        "anchors": [{"name": "woods-a", "x": 21, "y": 0}]
+      }
+    ]
+  },
+  "expected": {
+    "decals": [{"x": 1, "area": ""}, {"x": 11, "area": "farmlands"}, {"x": 21, "area": "dark-woods"}],
+    "props": [
+      {"x": 12, "area": "farmlands", "layer": "underfoot"},
+      {"x": 1, "area": "", "layer": "default"},
+      {"x": 13, "area": "farmlands", "layer": "default"},
+      {"x": 21, "area": "dark-woods", "layer": "default"},
+      {"x": 22, "area": "dark-woods", "layer": "buildings"},
+      {"x": 2, "area": "", "layer": "canopy"},
+      {"x": 11, "area": "farmlands", "layer": "canopy"},
+      {"x": 23, "area": "dark-woods", "layer": "canopy"}
+    ],
+    "spawns": [{"x": 1, "area": ""}, {"x": 2, "area": ""}, {"x": 11, "area": "farmlands"}, {"x": 21, "area": "dark-woods"}],
+    "bindPoints": [{"x": 1, "area": ""}, {"x": 11, "area": "farmlands"}],
+    "darkAreas": [{"x": 1, "area": ""}, {"x": 11, "area": "farmlands"}],
+    "regions": [{"x": 1, "area": ""}, {"x": 11, "area": "farmlands"}, {"x": 12, "area": "farmlands"}, {"x": 21, "area": "dark-woods"}],
+    "paths": [{"x": 1, "area": ""}, {"x": 2, "area": ""}, {"x": 11, "area": "farmlands"}, {"x": 21, "area": "dark-woods"}],
+    "structures": [{"x": 1, "area": ""}, {"x": 11, "area": "farmlands"}],
+    "atmospheres": [{"x": 1, "area": ""}, {"x": 11, "area": "farmlands"}, {"x": 21, "area": "dark-woods"}],
+    "clearings": [{"x": 1, "area": ""}, {"x": 11, "area": "farmlands"}],
+    "anchors": [{"x": 1, "area": ""}, {"x": 11, "area": "farmlands"}, {"x": 21, "area": "dark-woods"}]
+  }
+}

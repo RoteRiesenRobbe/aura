@@ -56,7 +56,7 @@ func TestPropLayers_StructOrderIsTheRank(t *testing.T) {
 	one := Prop{Type: "X"}
 	l := PropLayers{Underfoot: []Prop{one}, Default: []Prop{one}, Buildings: []Prop{one}, Canopy: []Prop{one}}
 	var walked []string
-	for _, p := range l.flatten() {
+	for _, p := range flattenProps([]Area{{Objects: Objects{PropLayers: l}}}) {
 		walked = append(walked, p.Layer)
 	}
 	assert.Equal(t, tags, walked)

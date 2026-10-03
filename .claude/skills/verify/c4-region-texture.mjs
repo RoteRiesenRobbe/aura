@@ -17,6 +17,7 @@
 
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
+import { readZone } from './lib/zone.mjs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { joinAsNewCharacter } from './lib/join.mjs';
@@ -57,7 +58,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
  */
 function expectations() {
   const root = join(outDir, '../../..');
-  const zone = JSON.parse(readFileSync(join(root, 'api/zones/world.json'), 'utf8'));
+  const zone = readZone(join(root, 'api/zones/world.json'));
   const table = JSON.parse(readFileSync(join(root, 'frontend/src/client-data/terrain-profiles.json'), 'utf8'));
   const regions = (zone.regions || []).map((r) => {
     const xs = r.points.map(p => p.x), ys = r.points.map(p => p.y);

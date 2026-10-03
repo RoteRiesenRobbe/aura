@@ -465,7 +465,7 @@ export function placeAnchor(anchor: ZoneAnchor): number {
 }
 
 export function updateAnchor(index: number, anchor: ZoneAnchor) {
-    model.anchors[index] = anchor;
+    model.updateAnchor(index, anchor);
     redrawMarker('anchor', index);
 }
 

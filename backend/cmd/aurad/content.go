@@ -28,6 +28,7 @@ type loadedContent struct {
 	ascension  ascension.Catalog
 	props      world.PropRegistry
 	zones      []*world.Zone
+	areas      []string
 }
 
 // loadContent runs every content stage in dependency order and returns the
@@ -57,7 +58,7 @@ func loadContent(src contentSources, config *cfg.Config, startZone string) (load
 		findings = append(findings, fmt.Sprintf("%s: skipped (%s did not load)", stage, strings.Join(missing, " + ")))
 	}
 
-	var okFactions, okSkills, okMobs, okQuests, okProps bool
+	var okFactions, okSkills, okMobs, okQuests, okProps, okAreas bool
 	var err error
 
 	// Factions load FIRST: since plan-faction-flips chunk 2 a skill may author
@@ -127,12 +128,19 @@ func loadContent(src contentSources, config *cfg.Config, startZone string) (load
 		okProps = true
 	}
 
+	// The area list depends on nothing, like props (P4b, D15).
+	if out.areas, err = world.LoadAreaIDs(src.areas); err != nil {
+		fail("areas", err)
+	} else {
+		okAreas = true
+	}
+
 	// ⚑ Zones are PLACED here, with each zone's Origin already applied
 	// (plan-underworld.md U1), so validating them validates the placement rules
 	// too, not only the files.
-	if !okMobs || !okProps {
-		skip("zones", missing(input{okMobs, "mobs"}, input{okProps, "props"})...)
-	} else if out.zones, err = loadZones(src.zones, startZone, out.mobs, out.props, out.skills); err != nil {
+	if !okMobs || !okProps || !okAreas {
+		skip("zones", missing(input{okMobs, "mobs"}, input{okProps, "props"}, input{okAreas, "areas"})...)
+	} else if out.zones, err = loadZones(src.zones, startZone, out.mobs, out.props, out.skills, out.areas); err != nil {
 		fail("zones", err)
 	}
 

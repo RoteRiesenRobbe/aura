@@ -40,10 +40,14 @@ const repo = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 const world = JSON.parse(readFileSync(join(repo, 'api/zones/world.json'), 'utf8'));
 // Position in wire pixels -> spawn index. World's origin is (0, 0).
 // ⚑ The rank is zone.go's PropLayers field order; `where` is the file path.
+// ⚑ Areas (plan-prop-draw-order.md P4) flatten as the server does (D11): per
+// layer, the zone level first, then each area in file order.
 const RANK = ['underfoot', 'default', 'buildings', 'canopy'];
-const props = RANK.flatMap((layer) => (world.props[layer] || []).map((p, n) => ({ layer, n, p })))
-  .map(({ layer, n, p }, i) => ({ i, where: `${layer}[${n}]`, type: p.type, x: p.x * 120, y: p.y * 120 }));
-const eliza = world.spawns.find((s) => s.mob === 'Eliza');
+const parts = [{ id: '', ...world }, ...(world.areas || [])];
+const props = RANK.flatMap((layer) => parts.flatMap((a) => ((a.props && a.props[layer]) || [])
+  .map((p, n) => ({ layer, n, p, area: a.id }))))
+  .map(({ layer, n, p, area }, i) => ({ i, where: `${area ? area + '/' : ''}${layer}[${n}]`, type: p.type, x: p.x * 120, y: p.y * 120 }));
+const eliza = parts.flatMap((a) => a.spawns || []).find((s) => s.mob === 'Eliza');
 const nearEliza = (type) => props
   .filter((p) => p.type === type)
   .sort((a, b) => Math.hypot(a.x / 120 - eliza.x, a.y / 120 - eliza.y) - Math.hypot(b.x / 120 - eliza.x, b.y / 120 - eliza.y))[0];

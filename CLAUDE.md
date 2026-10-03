@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Next
 
-- **⭐ NEXT: PROP DRAW ORDER P4, area groups** (`docs/plan-prop-draw-order.md` §6 + §10, all ruled 2026-10-02): an optional nested `areas` section, flattened alike by Go and the client, each object keeping its area. Else a PO call among the bullets below, or BUFF TRAY C1 (approved). Owed look: PATH CORNERS + ENDS chunk A (B held; `docs/plan-world-paths.md` §12).
+- **⭐ PROP DRAW ORDER P4 + P4b + P4c DONE 2026-10-03, PO-passed** (`docs/plan-prop-draw-order.md` §11, all five chunks shipped; archive the plan at the next wrap): area groups (`areas`, flattened alike by Go and the client), area ids from ONE list `api/areas/areas.json` picked in Tiled from the `AuraArea` class dropdown, and world.json migrated into 22 areas order-preservingly (`scripts/migrate-areas.mjs`). **Schema: DB/wire/conf NONE; content +1 file; zone format +1 optional key `areas`.** Then a PO call among the bullets below, or BUFF TRAY C1 (approved). Owed look: PATH CORNERS + ENDS chunk A (B held; `docs/plan-world-paths.md` §12).
 
 - **⏸ QUEST-GIVER MARKERS** (`plan-quest-giver-markers.md`, coworker 2026-09-28, NOT ruled, nothing built): `!`/`?` map markers for quest givers. ⛔ D1 reverses the PO's 2026-07-29 "no quest markers, ever" (backlog §42, GDD §8). Schema DB NONE, wire +1 table +1 field.
 

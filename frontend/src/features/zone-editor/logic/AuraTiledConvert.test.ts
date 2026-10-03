@@ -56,11 +56,12 @@ function propObjects(m: any, layer = 'default'): any[] {
     return layerNamed({layers: layerNamed(m, 'props').layers}, layer).objects;
 }
 
-// Every object of a model, the props group's sub-layers included.
+// Every object of a model, at any depth: the props group's sub-layers, and
+// since P4 every area group's layers (and its own props group) too.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function allObjects(m: any): any[] {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return m.layers.flatMap((l: any) => (l.layers ? l.layers.flatMap((c: any) => c.objects) : l.objects));
+    return m.layers.flatMap((l: any) => (l.layers ? allObjects(l) : l.objects));
 }
 
 // Through the serializer on purpose. modelToZone returns raw floats and leaves
@@ -140,27 +141,39 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
         atmospheres: ['atmospheres', 'clearings'],
     };
 
+    // ⚑ Summed over the zone level and every area (plan-prop-draw-order.md
+    // P4c moved most of world.json into areas): each area is a group holding
+    // the same layers, and its arrays sit in its own entry of `areas`.
     it('maps every array onto its own layer, losing nothing', () => {
         const src = JSON.parse(worldText);
         const model = C.zoneToModel(src);
+        type L = {name: string; cls?: string; objects?: unknown[]; layers?: L[]};
         const counts: Record<string, number> = {};
-        model.layers.forEach((l: {name: string; objects?: unknown[]; layers?: {name: string; objects: unknown[]}[]}) => {
-            if (l.layers) {
+        const add = (k: string, n: number) => { counts[k] = (counts[k] || 0) + n; };
+        const countLayers = (layers: L[]) => layers.forEach(l => {
+            if (l.cls === C.AREA_CLASS) {
+                countLayers(l.layers as L[]);
+            } else if (l.layers) {
                 // The props GROUP (plan-prop-draw-order.md P3): one sub-layer
                 // per array of the file's `props` object.
-                l.layers.forEach(c => { counts[l.name + '.' + c.name] = c.objects.length; });
+                l.layers.forEach(c => add(l.name + '.' + c.name, (c.objects as unknown[]).length));
             } else {
-                counts[l.name] = (l.objects as unknown[]).length;
+                add(l.name, (l.objects as unknown[]).length);
             }
         });
+        countLayers(model.layers);
+        const parts = [src, ...(src.areas || [])];
+        const sum = (f: (p: Record<string, never>) => unknown[] | undefined) =>
+            parts.reduce((n: number, p: Record<string, never>) => n + (f(p) || []).length, 0);
         const expected: Record<string, number> = {};
         C.LAYERS.forEach((name: string) => {
             if (name === C.PROPS_GROUP) {
-                C.PROP_LAYERS.forEach((k: string) => { expected[name + '.' + k] = (src.props[k] || []).length; });
+                C.PROP_LAYERS.forEach((k: string) => {
+                    expected[name + '.' + k] = sum(p => p.props && (p.props as Record<string, never[]>)[k]);
+                });
                 return;
             }
-            expected[name] = (SHARED_LAYERS[name] || [name])
-                .reduce((n, array) => n + (src[array] || []).length, 0);
+            expected[name] = (SHARED_LAYERS[name] || [name]).reduce((n, array) => n + sum(p => p[array]), 0);
         });
         expect(counts).toEqual(expected);
     });
@@ -227,9 +240,13 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
      * "derive, never hardcode" rule wants: the order IS the decision. Deriving
      * it from C.LAYERS would only assert that two copies of the same list agree,
      * which is what the next test is for. */
+    // The zone level's own stack; the area groups (P4) stack above it.
+    const zoneLevel = (model: {layers: {name: string; cls?: string}[]}) =>
+        model.layers.filter(l => l.cls !== C.AREA_CLASS).map(l => l.name);
+
     it('the layer stack is the client draw order, bottom-first', () => {
         const model = C.zoneToModel(JSON.parse(worldText));
-        expect(model.layers.map((l: {name: string}) => l.name)).toEqual([
+        expect(zoneLevel(model)).toEqual([
             'regions',      // terrain.regions — the ground itself
             'paths',        // terrain.polygons + terrain.paths
             'decals',       // terrain.textures — blobs ON the ground
@@ -247,7 +264,7 @@ describe('AuraConvert — byte-stability against the shipped world.json', () => 
     // them drift would leave two different answers to "what layers are there".
     it('the LAYERS whitelist matches the stack, order included', () => {
         const model = C.zoneToModel(JSON.parse(worldText));
-        expect(model.layers.map((l: {name: string}) => l.name)).toEqual(C.LAYERS);
+        expect(zoneLevel(model)).toEqual(C.LAYERS);
     });
 
     /* ⭐ The two big background layers open LOCKED (D2) — a screen-sized region
@@ -940,7 +957,7 @@ describe('AuraConvert — prop layers (P3)', () => {
  * describes Tiled's layers to it as {name, kind, empty, layers?}.
  */
 describe('AuraConvert — layers the writer would drop refuse the save (P0)', () => {
-    type Desc = {name: string, kind: string, empty: boolean, layers?: Desc[]};
+    type Desc = {name: string, kind: string, empty: boolean, cls?: string, layers?: Desc[]};
     const obj = (name: string, empty = false): Desc => ({name, kind: 'object', empty});
     // `props` is the one group since P3, holding the four prop layers.
     const propsGroup = (children: Desc[] = C.PROP_LAYERS.map((k: string) => obj(k))): Desc =>
@@ -964,18 +981,32 @@ describe('AuraConvert — layers the writer would drop refuse the save (P0)', ()
         props.layers.forEach((l: {drawOrder: string}) => expect(l.drawOrder).toBe('index'));
     });
 
-    it('refuses a group layer full of props, naming it', () => {
-        const trees: Desc = {name: 'trees', kind: 'group', empty: false, layers: [obj('props')]};
+    // ⚑ Since P4b a group other than `props` is an AREA only when its class is
+    // AuraArea. A plain group is the P0 trap itself: the writer would skip it.
+    // Inside an area the trap fires one level down, named as area/layer: the
+    // props here sit in an OBJECT layer called props, which must be the group.
+    it('refuses a group layer full of props it cannot store, naming it', () => {
+        const plain = refusals([...known(), {name: 'trees', kind: 'group', empty: false, layers: [obj('canopy')]}]);
+        expect(plain).toHaveLength(1);
+        expect(plain[0]).toContain('group "trees" is neither');
+        expect(plain[0]).toContain(C.AREA_CLASS);
+        const trees: Desc = {name: 'trees', kind: 'group', cls: C.AREA_CLASS, empty: false, layers: [obj('props')]};
         const r = refusals([...known(), trees]);
         expect(r).toHaveLength(1);
-        expect(r[0]).toContain('"trees"');
-        expect(r[0]).toMatch(/group/);
+        expect(r[0]).toContain('"trees/props"');
+        expect(r[0]).toMatch(/GROUP/);
     });
 
-    it('refuses every group but props, even an empty one, and even one named like a zone layer', () => {
-        expect(refusals([...known(), {name: 'spare', kind: 'group', empty: true, layers: []}])).toHaveLength(1);
+    // What the save would DROP is this function's question. An area's label
+    // drops nothing, whatever it says, and its id is validateModel's to check.
+    it('refuses a group inside an area, and leaves an area\'s label alone', () => {
         expect(refusals([...known().filter(l => l.name !== 'spawns'),
-            {name: 'spawns', kind: 'group', empty: false, layers: [obj('spawns')]}])).toHaveLength(1);
+            {name: 'spawns', kind: 'group', cls: C.AREA_CLASS, empty: false, layers: [obj('spawns')]}]))
+            .toHaveLength(0);
+        const r = refusals([...known(), {name: 'farmlands', kind: 'group', cls: C.AREA_CLASS, empty: false,
+            layers: [{name: 'barn', kind: 'group', empty: false, layers: [obj('spawns')]}]}]);
+        expect(r).toHaveLength(1);
+        expect(r[0]).toContain('"farmlands/barn"');
     });
 
     /* ---- P3: the props group ------------------------------------------- */
@@ -1048,9 +1079,296 @@ describe('AuraConvert — layers the writer would drop refuse the save (P0)', ()
     });
 
     it('formats the refusals into one message that says nothing was saved', () => {
-        const msg: string = C.formatLayerRefusals(refusals([{name: 'trees', kind: 'group', empty: false, layers: []}]));
+        const msg: string = C.formatLayerRefusals(refusals([{name: 'trees', kind: 'group', cls: C.AREA_CLASS,
+            empty: false, layers: [obj('roofs')]}]));
         expect(msg).toMatch(/^Refusing to save/);
-        expect(msg).toContain('"trees"');
+        expect(msg).toContain('"trees/roofs"');
+    });
+});
+
+/**
+ * plan-prop-draw-order.md P4 — area groups. A zone file's optional `areas`
+ * holds named groups of objects; in Tiled each is a group layer named by the
+ * area id, holding the zone's full layer set (D13). The game flattens them
+ * away (D11), so what these pin is that nothing is lost or moved on the way
+ * through either writer.
+ */
+describe('AuraConvert — area groups (P4)', () => {
+    // The server's own fixture (world/testdata/area-flatten.json), which the
+    // flatten pins on both sides also read: two areas, every kind.
+    const fixtureZone = () => JSON.parse(readFileSync(nodeRequire.resolve(
+        '../../../../../backend/pkg/aura/world/testdata/area-flatten.json'), 'utf8')).zone;
+
+    function stamped(z: unknown) {
+        const m = C.zoneToModel(z);
+        let id = 100;
+        allObjects(m).forEach((o: {id: number}) => { o.id = ++id; });
+        return m;
+    }
+
+    it('the converter\'s object kinds are zone.go\'s Objects keys, in order', () => {
+        const body = /type Objects struct \{([\s\S]*?)\n\}/.exec(readFileSync(
+            nodeRequire.resolve('../../../../../backend/pkg/aura/world/zone.go'), 'utf8'));
+        expect(body, 'zone.go no longer declares Objects where this test looks').not.toBeNull();
+        expect(C.OBJECT_KINDS).toEqual([...(body as RegExpExecArray)[1].matchAll(/`json:"([^",]+)/g)].map(m => m[1]));
+    });
+
+    // D14: the zone level stays where it was, and each area stacks above it
+    // in file order, so an area later in the file draws later, as in game.
+    it('opens one group per area after the zone-level layers, in file order', () => {
+        const m = C.zoneToModel(fixtureZone());
+        expect(m.layers.map((l: {name: string}) => l.name)).toEqual([...C.LAYERS, 'farmlands', 'dark-woods']);
+    });
+
+    // D13: the same drop targets in every area, empty ones included, and the
+    // two big background layers locked there too (N1's D2).
+    it('every area opens with the full layer set, props as its group, regions and atmospheres locked', () => {
+        const m = C.zoneToModel(fixtureZone());
+        ['farmlands', 'dark-woods'].forEach(id => {
+            const g = layerNamed(m, id);
+            expect(g.layers.map((l: {name: string}) => l.name)).toEqual(C.LAYERS);
+            expect(layerNamed(g, C.PROPS_GROUP).layers.map((l: {name: string}) => l.name)).toEqual(C.PROP_LAYERS);
+            expect(g.layers.filter((l: {locked?: boolean}) => l.locked).map((l: {name: string}) => l.name))
+                .toEqual(['regions', 'atmospheres']);
+        });
+    });
+
+    it('round-trips every object into its own area and array, in order', () => {
+        const out = roundTrip(fixtureZone());
+        expect(out).toEqual(JSON.parse(C.serializeZone(fixtureZone())));
+        expect(out.areas.map((a: {id: string}) => a.id)).toEqual(['farmlands', 'dark-woods']);
+        expect(out.areas[0].regions.map((r: {profile: string}) => r.profile)).toEqual(['Grass', 'Field']);
+        expect(out.spawns).toHaveLength(2);
+        expect(out.areas[1].props.buildings.map((p: {type: string}) => p.type)).toEqual(['House']);
+    });
+
+    // ⭐ A Tiled save and an in-game save land in the same file.
+    it('both writers write a zone with areas byte for byte alike', () => {
+        const z = fixtureZone();
+        const canonical = C.serializeZone(z);
+        expect(C.serializeZone(C.modelToZone(C.zoneToModel(z)))).toBe(canonical);
+        expect(ZoneModel.fromJSON(z).getZoneAsJSON()).toBe(canonical);
+    });
+
+    // "Emitting empty arrays nowhere" — but an area the author made stays,
+    // even with nothing in it yet, or their group would vanish on save.
+    it('writes an area\'s non-empty arrays only, in zone.go\'s order, and an empty area as its id', () => {
+        const out = roundTrip(zone({areas: [
+            {id: 'a', spawns: [], anchors: [{name: 'x', x: 1, y: 1}], props: {canopy: []}},
+            {id: 'empty'},
+        ]}));
+        expect(out.areas).toEqual([{id: 'a', anchors: [{name: 'x', x: 1, y: 1}]}, {id: 'empty'}]);
+        const full = JSON.parse(C.serializeZone(fixtureZone())).areas[0];
+        expect(Object.keys(full)).toEqual(['id', ...C.OBJECT_KINDS.filter((k: string) => k in full)]);
+        expect(Object.keys(full.props)).toEqual(['underfoot', 'default', 'canopy']);
+    });
+
+    it('a zone with no areas gains no key and no layer', () => {
+        expect(roundTrip(zone())).not.toHaveProperty('areas');
+        expect(C.zoneToModel(zone()).layers.map((l: {name: string}) => l.name)).toEqual(C.LAYERS);
+    });
+
+    // The zone level's open refusals, applied inside every area: read
+    // leniently, either would open with that array empty and the next save
+    // would delete it.
+    it('refuses to open an area on a pre-N2 key or with the flat props array', () => {
+        expect(() => C.zoneToModel(zone({areas: [{id: 'a', terrain: []}]}))).toThrow(/"terrain".*"decals"/);
+        expect(() => C.zoneToModel(zone({areas: [{id: 'a', props: []}]}))).toThrow(/migrate-prop-layers/);
+    });
+
+    it('names an object in an area by area/layer and its index in that area\'s array', () => {
+        const wolf = {mob: 'Wolf', x: 0, y: 0, angle: 0};
+        const e = C.validateModel(stamped(zone({spawns: [wolf],
+            areas: [{id: 'farmlands', spawns: [wolf, {...wolf, mob: 'Tree'}]}]}))) as string[];
+        expect(e).toHaveLength(1);
+        expect(e[0]).toMatch(/^farmlands\/spawns #\d+ "Tree" \(farmlands\/spawns\[1\]\): unknown mob "Tree"/);
+    });
+
+    it('checks a prop in an area\'s props group like a zone-level one (D4)', () => {
+        const e = C.validateModel(stamped(zone({areas: [{id: 'farmlands',
+            props: {default: [{type: 'Bridge', x: 0, y: 0, rotation: 0}]}}]}))) as string[];
+        expect(e).toHaveLength(1);
+        expect(e[0]).toContain('(farmlands/props.default[0])');
+        expect(e[0]).toContain('crosses paths');
+    });
+
+    // An encounter script looks an anchor up by name and a bind is persisted
+    // by id, whichever group the author put the object in: zone-wide, as in Go.
+    it('keeps names unique zone-wide across areas', () => {
+        const e = C.validateModel(stamped(zone({
+            anchors: [{name: 'boss', x: 0, y: 0}],
+            areas: [
+                {id: 'farmlands', anchors: [{name: 'boss', x: 1, y: 1}], bindPoints: [{id: 'spawnpoint-1', x: 0, y: 0}]},
+                {id: 'deep-woods', bindPoints: [{id: 'spawnpoint-1', x: 1, y: 1}]},
+            ],
+        }))) as string[];
+        expect(e).toHaveLength(2);
+        expect(e[0]).toContain('(farmlands/anchors[0]): duplicate anchor name "boss"');
+        expect(e[1]).toContain('(deep-woods/bindPoints[0]): duplicate spawn point id "spawnpoint-1"');
+    });
+
+    // D12, mirroring zone.go's checkAreaIDs, on the group's `id` property.
+    it('refuses an area id zone.go would refuse', () => {
+        ['Farmlands', 'dark woods', 'spawns', 'props'].forEach(id => {
+            const e = C.validateModel(stamped(zone({areas: [{id}]}))) as string[];
+            expect(e, id).toHaveLength(1);
+            expect(e[0], id).toContain('area group "' + id + '"');
+        });
+        const dup = C.validateModel(stamped(zone({areas: [{id: 'farmlands'}, {id: 'farmlands'}]}))) as string[];
+        expect(dup).toHaveLength(1);
+        expect(dup[0]).toContain('area group "farmlands"');
+        expect(C.validateModel(stamped(zone({areas: [{id: 'deep-woods'}]})))).toEqual([]);
+    });
+
+    // D6's notice (a blocking structure the server will coarsen) reads every
+    // paths layer, an area's included.
+    it('raises the large-structure notice for a structure in an area', () => {
+        const big = [{x: -9, y: -4}, {x: 9, y: -4}, {x: 9, y: 4}, {x: -9, y: 4}];
+        const m = stamped(zone({bounds: {width: 100, height: 100}, areas: [{id: 'a',
+            structures: [{profile: 'Mountains', points: big.map(p => ({x: p.x * 3, y: p.y * 3})),
+                blocksMovement: true}]}]}));
+        const notes = C.polygonNotices(m) as string[];
+        expect(notes).toHaveLength(1);
+        expect(notes[0]).toMatch(/^a\/paths #/);
+    });
+
+    /* ---- what a save would drop, inside an area ------------------------ */
+    type Desc = {name: string, kind: string, empty: boolean, cls?: string, layers?: Desc[]};
+    const obj = (name: string): Desc => ({name, kind: 'object', empty: false});
+    const group = (name: string, layers: Desc[]): Desc => ({name, kind: 'group', empty: false, layers});
+    const area = (name: string, layers: Desc[]): Desc => ({...group(name, layers), cls: C.AREA_CLASS});
+    const zoneLevel = (): Desc[] => C.LAYERS.map((n: string) => (n === C.PROPS_GROUP
+        ? group(n, C.PROP_LAYERS.map(obj)) : obj(n)));
+    const refusals = (layers: Desc[]): string[] => C.layerRefusals(layers);
+
+    it('accepts an area holding any subset of the zone layers, and an empty one', () => {
+        expect(refusals([...zoneLevel(), area('farmlands', zoneLevel())])).toEqual([]);
+        expect(refusals([...zoneLevel(), area('a', [obj('anchors'), group('props', [obj('canopy')])]),
+            area('b', [])])).toEqual([]);
+    });
+
+    it('refuses what an area cannot store, naming each as area/layer', () => {
+        const r = refusals([...zoneLevel(), area('farmlands', [
+            obj('roofs'), obj('props'), obj('canopy'), obj('spawns'), obj('spawns'),
+            {name: 'Tile Layer 1', kind: 'tile', empty: false},
+            {name: 'blank', kind: 'tile', empty: true},
+        ])]);
+        expect(r).toHaveLength(5);
+        expect(r[0]).toContain('"farmlands/roofs"');
+        expect(r[1]).toContain('"farmlands/props"');
+        expect(r[1]).toMatch(/GROUP/);
+        expect(r[2]).toContain('"farmlands/canopy"');
+        expect(r[3]).toContain('"farmlands/spawns"');
+        expect(r[3]).toMatch(/two layers/);
+        expect(r[4]).toContain('"farmlands/Tile Layer 1"');
+    });
+
+    // P4b: the class makes an area, so its label is free, `props` included.
+    // Two top-level layers still may not share a name (a message names the
+    // layer), and a plain group named props is still the props group.
+    it('an area may be labelled anything, but not like another top-level layer', () => {
+        const alone = zoneLevel().filter(l => l.name !== 'props');
+        expect(refusals([...alone, area('props', [obj('spawns')])])).toEqual([]);
+        const dup = refusals([...zoneLevel(), area('props', [obj('spawns')])]);
+        expect(dup).toHaveLength(1);
+        expect(dup[0]).toMatch(/only its label/);
+        const plain = refusals([...alone, group('props', [obj('spawns')])]);
+        expect(plain).toHaveLength(1);
+        expect(plain[0]).toContain('"props/spawns"');
+    });
+
+    it('refuses a stray layer in an area\'s props group, named area/props/layer', () => {
+        const r = refusals([...zoneLevel(), area('farmlands', [group('props', [obj('canopy'), obj('roofs')])])]);
+        expect(r).toHaveLength(1);
+        expect(r[0]).toContain('"farmlands/props/roofs"');
+    });
+});
+
+/**
+ * plan-prop-draw-order.md P4b — area ids from one list (D15). A group is an
+ * area because its class is AuraArea; its id is the class's typed `id`,
+ * picked from the AuraAreaId dropdown generated from api/areas/areas.json.
+ * The group's name is a free label.
+ */
+describe('AuraConvert — area ids from the list (P4b)', () => {
+    const areaList = (JSON.parse(readFileSync(nodeRequire.resolve(
+        '../../../../../api/areas/areas.json'), 'utf8')) as {areas: string[]}).areas;
+    const types = nodeRequire('../../../../../tools/tiled/palette/propertytypes.json')
+        .propertyTypes as {name: string; type: string; values?: string[]; useAs?: string[];
+            members?: {name: string; value?: unknown; propertyType?: string}[]}[];
+    const byName = (n: string) => types.filter(t => t.name === n)[0];
+
+    function stamped(z: unknown) {
+        const m = C.zoneToModel(z);
+        let id = 100;
+        allObjects(m).forEach((o: {id: number}) => { o.id = ++id; });
+        return m;
+    }
+    const twoAreas = () => zone({areas: [
+        {id: 'farmlands', anchors: [{name: 'x', x: 1, y: 1}]},
+        {id: 'deep-woods'},
+    ]});
+
+    it('the palette offers the list as an enum, the sentinel first, on a layer class', () => {
+        expect(byName(C.AREA_ENUM).values).toEqual([C.AREA_UNSET, ...areaList]);
+        const cls = byName(C.AREA_CLASS);
+        expect(cls.useAs).toEqual(['layer']);
+        expect(cls.members).toEqual([{name: 'id', type: 'string', propertyType: C.AREA_ENUM, value: C.AREA_UNSET}]);
+        expect(content.AREA_IDS).toEqual(areaList);
+    });
+
+    it('opens each area as a group of class AuraArea carrying its typed id', () => {
+        const g = layerNamed(C.zoneToModel(twoAreas()), 'farmlands');
+        expect(g.cls).toBe(C.AREA_CLASS);
+        expect(g.properties).toEqual({id: 'farmlands'});
+        expect(g.enums).toEqual({id: C.AREA_ENUM});
+    });
+
+    // ⭐ The point of D15: renaming the group in the Layers panel renames a
+    // label, never the area.
+    it('saves under the picked id, whatever the group is called', () => {
+        const m = C.zoneToModel(twoAreas());
+        layerNamed(m, 'farmlands').name = 'The Farmlands (west)';
+        const out = C.modelToZone(m);
+        expect(out.areas.map((a: {id: string}) => a.id)).toEqual(['farmlands', 'deep-woods']);
+        expect(C.validateModel(m)).toEqual([]);
+    });
+
+    // Tiled hands a typed enum back as an index into the declared values.
+    it('decodes a typed id, as a spawn\'s mob is', () => {
+        const m = C.zoneToModel(twoAreas());
+        const values = byName(C.AREA_ENUM).values as string[];
+        layerNamed(m, 'farmlands').properties.id = {value: values.indexOf('grimwatch'), typeName: C.AREA_ENUM};
+        expect(C.modelToZone(m).areas[0].id).toBe('grimwatch');
+    });
+
+    it('refuses a group with no area picked, the sentinel or nothing at all', () => {
+        [{id: C.AREA_UNSET}, {}, undefined].forEach(props => {
+            const m = stamped(twoAreas());
+            layerNamed(m, 'farmlands').properties = props;
+            const e = C.validateModel(m) as string[];
+            expect(e, JSON.stringify(props)).toHaveLength(1);
+            expect(e[0]).toContain('area group "farmlands": no area picked');
+        });
+    });
+
+    it('refuses an id the list does not hold, and one id on two groups', () => {
+        const unlisted = C.validateModel(stamped(zone({areas: [{id: 'dark-woods'}]}))) as string[];
+        expect(unlisted).toHaveLength(1);
+        expect(unlisted[0]).toContain('id "dark-woods" is not in api/areas/areas.json');
+
+        const m = stamped(twoAreas());
+        layerNamed(m, 'deep-woods').properties = {id: 'farmlands'};
+        const dup = C.validateModel(m) as string[];
+        expect(dup).toHaveLength(1);
+        expect(dup[0]).toContain('area group "deep-woods": another area group has the id "farmlands"');
+    });
+
+    // A group that is not of the class is not an area: never read as one.
+    it('reads only AuraArea groups as areas', () => {
+        const m = C.zoneToModel(twoAreas());
+        delete layerNamed(m, 'deep-woods').cls;
+        expect(C.modelToZone(m).areas.map((a: {id: string}) => a.id)).toEqual(['farmlands']);
     });
 });
 
@@ -2202,6 +2520,11 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
             points: [{x: 3, y: 3}, {x: 5, y: 3}, {x: 5, y: 5}],
         }],
         anchors: [{name: 'a', x: 8, y: 8}],
+        // ⚑ An area that HOLDS something (plan-prop-draw-order.md P4): a writer
+        // that dropped `areas` would only lose the key if the area survives
+        // into the file, and an area's own keys are the zone's object arrays,
+        // which the fields above already exercise.
+        areas: [{id: 'farmlands', anchors: [{name: 'b', x: 1, y: 2}]}],
     };
 
     // Every key present anywhere in a serialized zone, at any depth.

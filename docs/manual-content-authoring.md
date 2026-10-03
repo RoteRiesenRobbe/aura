@@ -323,6 +323,15 @@ behavior — movement blockers + visuals). One JSON per type in `api/props/`:
   definition any more (`plan-prop-draw-order.md` P3, D4): where a prop draws is
   where its PLACEMENT sits (below), and a definition still authoring
   `underfoot` refuses the boot by name.
+- ⚑ **Areas** (`plan-prop-draw-order.md` P4): a zone may also carry
+  `areas: [{id, …}]`, each entry holding any subset of the zone's object arrays
+  (`props` in the same four-array shape) and nothing else. Loaders flatten them
+  away (zone level first, then each area in file order; props by layer first),
+  so a placement behaves the same wherever it is grouped. `id` must be one of
+  `api/areas/areas.json` (P4b, D15: a lowercase slug, never an array name,
+  unique in the zone), or the boot refuses. A new area is one line there plus
+  `node tools/tiled/generate-palette.mjs`; an id never changes once a zone
+  uses it. See `manual-tiled-editor.md` §3 Areas.
 - Placement: `zone.props` is an **object of four arrays, one per prop layer**
   (`plan-prop-draw-order.md` D1/D3), each entry `type`, `x`, `y`, `rotation`,
   optional `blocksMovement` / `scale`. In Tiled these are the four sub-layers

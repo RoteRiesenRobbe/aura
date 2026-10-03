@@ -1,9 +1,10 @@
 # Plan: prop draw order: deterministic stacking, prop layers and area groups authored in Tiled
 
 **Status:** DESIGNED 2026-09-20, **REVISED 2026-10-02** (PO session: D1, D3,
-D4, D8 and D9 ruled the same day). **P0-P3 built and PO-passed (§11); P4's
-decisions D10-D14 are all ruled (D10/D13/D14 on 2026-10-02, §8), and N2, the
-one thing P4 waited on, was built 2026-10-02 (`plan-zone-naming.md` §10): P4 is unblocked.** Five chunks: P0 → P1 → P2 → P3 → P4. P4
+D4, D8 and D9 ruled the same day). **P0-P3 built and PO-passed (§11); P4,
+P4b (area ids from one list, a Tiled dropdown, D15) and P4c (world.json
+migrated into 22 areas, D16) built 2026-10-03 (§11) and PO-passed the same
+day ("i checked all": the GUI checks and the Deep Woods / Strand seam).** Five chunks: P0 → P1 → P2 → P3 → P4. P4
 (area groups) was added on 2026-10-02 at the PO's request. Line refs come from
 a survey of HEAD `3bff5220` on 2026-10-02; re-verify them before executing.
 
@@ -390,6 +391,10 @@ Layers panel (top = drawn last)
 
 ---
 
+P4b (built): DB/wire/conf NONE · content **+1 file** `api/areas/areas.json` ·
+zone format NONE (an area `id` must name a listed area). P4c (built):
+world.json rewritten into `areas`, no format change.
+
 ## 6. Chunks
 
 ### P0: close the silent-drop trap (tiny, extension only)
@@ -540,6 +545,43 @@ its layer anyway.
   condition on D10): a test asserts the area on each flattened object, in Go
   and on the client, and zone-level objects carry none.
 
+### P4b: area ids from one list, picked from a dropdown (RULED 2026-10-03, design in §10.6)
+
+1. **Content:** `api/areas/areas.json`, the area list (D15's table). It joins
+   `contentSources`, `cp-defs` and the embed (CLAUDE.md: a missing directory
+   hard-fails the boot, a forgotten one silently no-ops).
+2. **Go:** load the list; a zone area whose `id` is not in it refuses the boot
+   (it replaces P4's slug-only check, which stays as the list's own rule).
+   `-validate` reports it.
+3. **Palette** (`generate-palette.mjs`): an `AuraAreaId` enum from the list,
+   and an `AuraArea` class with `useAs: ["layer"]` and one `id` member
+   defaulting to `(pick an area)`.
+4. **Converter + extension:** an area group is one whose class is `AuraArea`;
+   its `id` comes from that property (typed, as a spawn's `mob` is), never from
+   its name. On read the group is named by its id. The save refuses
+   `(pick an area)`, an id not in the list, and a group that is neither
+   `props` nor an `AuraArea`.
+5. **Tests:** Go (unknown id refused, the list loads), vitest (the class and
+   enum in the palette, the id read off the property, the name ignored, the
+   refusals), `verify.sh` (an area round-trips, an unknown id refuses), and the
+   cross-language fixture's ids added to a test list.
+6. **Docs:** the Tiled manual's Areas section, the authoring manual,
+   `add-content` (a new area is one line plus a palette regenerate).
+
+**Done when:** a fresh group's Properties panel offers the area dropdown
+(PO GUI check), a group renamed freely still saves under its picked id, and an
+id that is not in the list cannot reach a zone file through either writer.
+
+### P4c: migrate world.json into areas (RULED 2026-10-03, design in §10.7)
+
+A one-off, kept script (`scripts/migrate-areas.mjs`, the
+`migrate-prop-layers.mjs` posture: all-or-nothing, canonical-form input only).
+
+**Done when:** every titled region of world.json and everything inside it sits
+in its area per §10.7, the leftovers are listed, and in game nothing looks or
+behaves differently (`p1-prop-order`, `map-props-bake`, `-validate`, a
+same-order check of every order-sensitive array where it overlaps).
+
 ---
 
 ## 7. ⚑ Landmines
@@ -638,6 +680,12 @@ its layer anyway.
     measure-and-fall-back note in §10.4 stands.
   - **D14**, area over kind, with the Tiled-only discrepancy: accepted. PO:
     *"there was no solution for this AFAIK, so it is accepted"*.
+
+- **2026-10-03, D15 + D16 (P4b, P4c, §10.6-§10.7):** area ids come from one
+  list in code, picked from a Tiled dropdown (*"Then later there can be no
+  mismatch"*); world.json migrates one area per titled region, Saltgrass
+  Strand inside `farmlands`, order-preserving. The id table is proposed, to be
+  confirmed when P4b writes it.
 
 ### Open
 
@@ -837,6 +885,94 @@ Layers panel (top = drawn last)
 - **The alternative,** kind over area (`regions → Farmlands, Dark Woods`), has
   no discrepancy but splits one area across ten places. That is the opposite
   of the ask.
+
+### 10.6 D15: one list of area ids, picked from a dropdown (RULED 2026-10-03, amends D12)
+
+PO, 2026-10-03, on the id convention: *"we should establish a clean id for
+areas throughout the code base. "01" would be too sterile and a long name too
+arbitrary"*, then *"Maybe a code source of truth would be better and we can
+only pick one from a drop down in tiled? Then later there can be no
+mismatch."*
+
+- **Amends D12 as built in P4**, where the Tiled group's NAME is the id. The id
+  becomes a typed `id` property on an `AuraArea` layer class, picked from an
+  `AuraAreaId` enum generated from `api/areas/areas.json`. The group name is a
+  free label. Go refuses an id the list does not hold.
+- **The convention for an id:** the short name a player would call the place,
+  lowercase, words joined by `-`. Drop "The", apostrophes, and a generic word
+  (Meadows, Sprawl, Fort, Mount, Commons, Grove) when a coined name remains;
+  keep two words when both are ordinary. Once anything references an id it
+  never changes (the `spawnpoint-N` and skill-id rule). The display title can
+  change freely; it is not the id.
+- **The first list** (proposed 2026-10-03; the PO confirms or edits it when
+  P4b writes the file):
+
+  | Region (world.json title) | id |
+  | --- | --- |
+  | Farmlands + Saltgrass Strand | `farmlands` |
+  | Brackenfold Meadows | `brackenfold` |
+  | Deep Woods | `deep-woods` |
+  | Southgate Sprawl | `southgate` |
+  | The Umberwood | `umberwood` |
+  | Brunnstedt | `brunnstedt` |
+  | Fort Grimwatch | `grimwatch` |
+  | The Ashen Fields | `ashen-fields` |
+  | The Cinder Conclave | `cinder-conclave` |
+  | Wrecker's Bluff | `wreckers-bluff` |
+  | The Greyspine | `greyspine` |
+  | Netmender's Coast | `netmenders-coast` |
+  | Northgate Commons | `northgate` |
+  | Sorrowfen | `sorrowfen` |
+  | The Sunscar | `sunscar` |
+  | The Fallow Reach | `fallow-reach` |
+  | The Glimmerwood | `glimmerwood` |
+  | Rimefrost | `rimefrost` |
+  | Hollow Marsh | `hollow-marsh` |
+  | Moonveil Grove | `moonveil` |
+  | The Witherwood | `witherwood` |
+  | Mount Wyrmhold | `wyrmhold` |
+
+- **Measured headless (Tiled 1.12.2, a throwaway probe extension, 2026-10-03):**
+  a `GroupLayer` takes `className = 'AuraArea'` and an `id` property; both
+  survive a TMX save; a TMX carrying the enum as a typed property
+  (`propertytype="AuraAreaId"`, string storage) reads back as the plain string.
+  With no project loaded, `tiled.propertyValue('AuraAreaId', …)` throws
+  "Unknown type", so the read falls back to a bare string exactly as a spawn's
+  `mob` does. ⛔ Whether the Properties panel shows the DROPDOWN on a group
+  layer is GUI-only (the [[project-tiled-roundtrip-blind-spot]] rule).
+- **Rejected:** the group name as the id (P4 as built), because a typo makes a
+  second area silently; a sterile number ("01"); the full title as a slug
+  (`the-cinder-conclave`), arbitrary and long.
+
+### 10.7 D16: migrating world.json, one area per Zone or titled region, order-preserving (RULED 2026-10-03)
+
+Reverses §10.1's "no migration, the PO moves content at their own pace" for
+world.json (PO 2026-10-03: *"Could we auto migrate our existing areas in
+world.json? Each region and all objects in it should map to one area."*).
+
+- **Membership:** each titled region goes into its area, in region file order,
+  and every object goes to the area of the region containing it (a point: its
+  position; a shape: all its vertices; "the last containing region wins",
+  the game's own rule). An object crossing areas stays at the zone level (D11).
+- ⭐ **Saltgrass Strand belongs to `farmlands`** (PO 2026-10-03: *"the strand in
+  zone 1 belongs to farmland"*, `content-zone-1-farmland.md`: Zone 1 is
+  Farmlands + Strand). Measured safe for region lookup: the Strand (region 15)
+  moves ahead of regions 1-14 in flattened order, but overlaps none of them
+  (half-unit grid). Every other titled region is its own area until
+  `content-world.md` maps it to a zone.
+- **Order-preserving** (PO: *"sounds ok"*): an object whose move would flip its
+  order against an overlapping object of the same kind stays at the zone
+  level, so the game looks exactly as before; the script lists those. ⚑ PO:
+  this is what could get P4 reverted *"if workflow sucks for paths and co"*;
+  the migration is lossless (folding the areas back gives a file the game
+  treats identically), so a revert costs nothing.
+- **The census (2026-10-03, world.json at `b058eb5c`):** 23 titled regions,
+  every title unique. Inside one region: 393 of 393 spawns, 181 of 182 props,
+  45 of 45 bind points, 10 of 10 anchors, 8 of 8 decals, 19 of 28 paths, 21 of
+  25 atmospheres, 8 of 11 structures. A rough bounding-box check finds about
+  10 overlapping pairs a naive move would flip (4 paths, 1 structure, 2
+  atmospheres, 3 canopy trees on the Farmlands and Brackenfold borders); the
+  order-preserving rule keeps them at the zone level.
 
 ---
 
@@ -1184,3 +1320,297 @@ the extension is installed):
 prop they stand in. That is P1's D9 (NPCs on `mobs.npcs`, under the
 characters, while props stand above them), not P3. PO: *"not convinced these
 should be NPCs and not a sort of interactable prop? but not for this plan."*
+
+### P4: area groups ✅ 2026-10-03 (PO: "i checked all")
+
+**Preconditions checked:** tree clean at `b058eb5c` (N2 landed, L9 held).
+Baseline before any change: vitest 1481/0; Go green except the known
+`world.TestPropContent_C1bMigrationPreservesLookAndCollision`.
+
+**What landed, item by item (§6):**
+
+1. **Go** (`world/zone.go`).
+   - `Objects` holds every object array; `Zone` and `Area {ID; Objects}` both
+     embed it, so the two cannot disagree about what an area may hold. An
+     area with any other key (name, bounds, ground, a typo) refuses through
+     `DisallowUnknownFields`.
+   - Every object type embeds `InArea` (`Area string json:"-"`).
+     `Zone.flatten` (in `parseZone`, after `validateAreaIDs`, before
+     `validate`) appends each area's objects kind by kind, tagged, and
+     empties `Areas`. Props go through `flattenProps`: rank outer, then zone
+     level, then area by area (D11). The `aurad.go` spawn loop is unchanged.
+   - D12 in `validateAreaIDs`: slug, unique, not one of `objectKindNames()`
+     (derived from `Objects`' tags, so a new array is reserved with it).
+   - **Messages name the area:** `objectRef` counts the index inside the
+     object's own array: `spawn 1 in area "b": level 0 must be >= 1`.
+     Zone-level messages read exactly as before. `propRef`, the outline /
+     effect / path-shape helpers and the two area-effect cross-validations
+     (`area_effects.go`) take the same ref.
+   - Uniqueness stays ZONE-WIDE across areas (anchor names, bind point ids):
+     validate runs on the flattened slices.
+2. **Converter** (`aura-convert.js`).
+   - `zoneToModel`: the zone-level stack as before, then one group per area in
+     file order, each `kindLayers(area, 'id/')`: the full layer set, the props
+     group with its four sub-layers, `regions`/`atmospheres` locked (D13). The
+     P3/N2 open refusals also run inside every area.
+   - `modelToZone`: `readKinds` per group; every top-level group except
+     `props` is an area (`areaGroups`), its name the id.
+   - `serializeZone` → `serializeObjects(group, inArea)`: the zone level
+     writes as before; an area writes no empty array (prop layers included)
+     and stays `{id}` when empty, so the author's group survives a save.
+     `areas` follows `anchors`, zone.go's order.
+   - Validation runs per scope with shared uniqueness maps; labels read
+     `farmlands/spawns`, `farmlands/props.canopy`. Area ids are checked as in
+     Go. `polygonNotices` reads every area's paths layer.
+   - `layerRefusals`: a group other than `props` is an area (`areaRefusals`):
+     the zone's layers and a props group, each once; anything else (an
+     unknown layer, `props` as an object layer, a prop layer outside the
+     group, a nested group, a filled tile/image layer) refuses as
+     `area/layer`. A badly NAMED area drops nothing, so its name is
+     validateModel's. `OBJECT_KINDS` exported and pinned.
+3. **Extension** (`aura-world-format.js`): `tiledLayer` builds groups and
+   `modelLayer` reads them recursively. `aura-fit-size.js` needed nothing.
+4. **`ZoneModel.ts`**: `fromJSON` runs the shared flatten and keeps `areaIds`;
+   every object type extends `InArea` (in memory only); `getZoneAsJSON`
+   regroups through `objectsJSON(area)`, byte-identical to the converter. A
+   new in-game placement is zone level; `updateProp` / `updateSpawn` /
+   `updateDarkArea` and the new `updateAnchor` keep the area
+   (`ZoneEditor.updateAnchor` used to write the array directly). Decals carry
+   their area through `GroundTexture.Parameters.area`, because the editor
+   re-reads them from the texture store at export.
+5. **Client zone readers:** `features/zones/logic/ZoneAreas.ts`
+   (`OBJECT_KINDS`, `flattenAreas`), applied once in `GroundTextureManager`'s
+   `bundleByStem`, the one place a bundled zone is picked (L10: the only other
+   `require.context` over `api/zones` is the in-game editor's, which goes
+   through `ZoneModel.fromJSON`). Area objects carry `area`; zone-level ones
+   carry no key; a zone without areas comes back as the same object.
+6. **The cross-language pin:** `world/testdata/area-flatten.json`, two areas
+   and every kind, with the expected order and area per object. Go
+   (`TestZone_AreasFlattenLikeTheClient`) and vitest (`ZoneAreas.test.ts`)
+   both assert against it; both `OBJECT_KINDS` copies are scraped from
+   zone.go's `Objects`.
+7. **Docs:** `manual-tiled-editor.md` §3 "Areas", `manual-content-authoring.md`
+   §1b. **Harnesses:** `p1-prop-order.mjs` and `map-props-bake.mjs` flatten
+   areas when deriving expectations.
+
+**Tests:**
+
+- **Go:** `zone_areas_test.go`, 7 tests, red first (undefined `Area`), then
+  green. ⚑ Mutation: flattening areas before the zone level turned the fixture
+  pin red; reverted. `go build` / `go vet` clean; `go test ./...` green except
+  the known C1b test.
+- **`aurad -validate`:** 0 findings for `-content ../api`, `-debug-zones` and
+  the embedded copy. A copy of `api/` with world.json content moved into two
+  areas plus an empty one: **0 findings, still 182 props / 393 spawns**; with
+  an id `Dark Woods`, refused by name.
+- **vitest 1511/0** (63 files; +30), the new legs red first. The P0 legs P4
+  deliberately changes were rewritten (a group is now an area; the trap fires
+  one level down as `trees/props`). The completeness pin's fixture gained an
+  area. `npm run typecheck` clean.
+- **`tools/tiled/verify.sh` 32 ✅ / 0 ❌**, extension reinstalled. New:
+  world.json with content of most kinds moved into two areas plus an empty one
+  round-trips **byte-identically through real Tiled** (area > props > canopy);
+  a stray `roofs` layer in an area and a group renamed `Farmlands` both refuse
+  with nothing written. Footer item 11 lists the GUI checks.
+- **In-game** (`dev-restart-windows.sh all`): shipped zones `p1-prop-order`
+  10/10, `map-props-bake` 7/7, `bridge-underfoot` PASS. ⭐ **With world.json
+  temporarily rewritten into two areas** (Eliza's oak in `farmlands`, her
+  cottage in `dark-woods`, 100 spawns, decals, regions, paths, an atmosphere,
+  bind points, an anchor moved; restored and restarted after):
+  `p1-prop-order` 10/10, the server's spawn order matching the area-aware
+  flatten prop for prop, and `map-props-bake` 7/7 (182 of 182).
+
+**Schema:** DB **NONE** · wire **NONE** · conf **NONE** · content **NONE** ·
+zone format **+1 optional key `areas`** (additive; no zone authors it, every
+file byte-identical).
+
+⚑ **Left open:**
+
+- **D13's cost is unmeasured:** whether Tiled reopens area groups expanded.
+  Headless cannot see it (footer item 11).
+- **Other harnesses read world.json's zone-level arrays raw** (~30, for
+  venues). Once content moves into areas, one whose venue moved goes
+  INCONCLUSIVE, not wrong. `scripts/zone-census.mjs` and `probegen.mjs` also
+  count the zone level only.
+
+**PO checks owed** (server and webpack restarted on P4, extension installed):
+
+1. In Tiled, Layer ▸ New ▸ Group Layer `farmlands` at the top, save, reopen:
+   it holds the full layer set, `regions` / `atmospheres` padlocked. Does it
+   reopen expanded, and does a list of areas read acceptably (§10.4)?
+2. Move a few anchors, a spawn and a tree into it (Move Objects to Layer),
+   save, restart: the game is unchanged, and world.json has them under
+   `areas[0]`.
+3. Rename the group `Farmlands` and save: refused, naming the group.
+
+⚑ **Superseded by P4b:** checks 1 and 3 above assumed the group's NAME is the
+id. Since P4b a group must carry the class `AuraArea` and an id picked from
+the dropdown; the P4b ledger below lists the checks that replace them.
+
+### P4b: area ids from one list ✅ 2026-10-03 (PO: "i checked all")
+
+The PO confirmed D15's id table by asking for P4b to be built ("Do P4b and
+P4c"), so `api/areas/areas.json` ships the table as proposed.
+
+**Built:**
+
+- **Content:** `api/areas/areas.json`, `{"areas": [22 ids]}` in D15's table
+  order. It joins `contentSources` (`areas`), `embeddedContent` (new embed
+  package `pkg/api/areas`), `diskContent`, the Makefile's `cp-defs` and
+  `validate_test.go`'s copy list.
+- **Go:**
+  - `world/areas.go`: `LoadAreaIDs` (strict decode, a non-empty list, every id
+    under D12's rule) and `CrossValidateAreaIDs` (every zone area must be
+    listed; all failures joined).
+  - `world/zone.go`: D12's rule is now `checkAreaIDs`, shared by the list and
+    each zone. `Zone.AreaIDs` (`json:"-"`) keeps the ids once `flatten` has
+    emptied `Areas`, so an area that holds nothing is still checked.
+  - `cmd/aurad`: an `areas` load stage with no dependencies; the zones stage
+    skips without it. `loadZones` runs the cross-check beside the
+    area-effect passes. This follows `area_effects.go`'s precedent: the list
+    is not threaded through ~70 `LoadZoneFS` call sites.
+- **Palette** (`generate-palette.mjs`):
+  - the `AuraAreaId` enum, `(pick an area)` first, then the list;
+  - the `AuraArea` class (`useAs: ["layer"]`) with one member, `id`.
+  - Both are appended LAST, so no existing type id renumbered (the diff is
+    additions only).
+  - `content.json` gains `AREA_IDS`.
+- **Converter:**
+  - A group is an area when its class is `AuraArea` (`areaGroups`). Its id is
+    `areaId(g)`: the typed `id` property decoded through `plainValue`, absent
+    reading as `AREA_UNSET`. It is never the group's name.
+  - On read, each area opens named by its id with class + typed property.
+  - validateModel refuses no id picked, a malformed id, an unlisted id and
+    one id on two groups.
+  - layerRefusals refuses a group that is neither `props` nor an `AuraArea`.
+    A duplicate name involving an area gets its own message: the name is
+    only a label.
+  - An area group is never mistaken for the props group, whatever its label.
+- **Extension** (`aura-world-format.js`): a group carries `className` and
+  typed properties on read, and reports `cls` and `properties` on write.
+
+**Verified:**
+
+- **Go green bar the known C1b test.** New tests:
+  - `areas_test.go`: the list loads in order; a bad list is refused six ways
+    plus a missing file; an unlisted area is refused, an empty one included.
+  - `TestLoadZones_RunsTheAreaListCheck`, at the boot seam.
+  - `TestEmbeddedAreaList_LoadsAndMatchesSource`.
+  - The cross-language fixture's ids are checked against a test list.
+- **`-validate` 0 findings**: embedded, `-content ../api` and `-debug-zones`.
+- **vitest 1518/0**, typecheck clean.
+  - New describe "area ids from the list (P4b)", 7 tests: palette shape,
+    read side, the rename keeps the id, typed decode, the three no-id forms,
+    unlisted and duplicate ids, a classless group not read as an area.
+  - The P0/P4 tests now mark area groups by class.
+- **`verify.sh` 35 ✅ / 0 ❌**, extension reinstalled.
+  - The area round-trip uses listed ids. New leg: the group is renamed AND
+    its id stored as a typed `propertytype="AuraAreaId"` (what the GUI
+    writes), and it saves byte-identically under `farmlands`.
+  - `area-stray`, `area-unlisted`, `area-noid` and `area-noclass` each refuse
+    with nothing written, and each leg first proves its edit applied.
+
+**Schema:** DB **NONE** · wire **NONE** · conf **NONE** · content **+1 file**
+(`api/areas/areas.json`) · zone format **NONE** (an area id must now be
+listed).
+
+**PO GUI checks owed** (verify.sh footer item 11):
+
+1. New Group Layer: save is refused (not an area).
+2. Class `AuraArea`: does the `id` DROPDOWN show on a group layer? This is
+   the one thing headless cannot prove (§10.6).
+3. With the id still at `(pick an area)`: save is refused.
+4. Pick an id and save: it reopens named by its id, with the dropdown kept.
+5. Rename the group: the file does not change.
+
+### P4c: world.json migrated into areas ✅ 2026-10-03 (PO: "i checked all")
+
+**Built:**
+
+- **`scripts/migrate-areas.mjs`** (D16), all or nothing, canonical input
+  only; once areas exist it refuses.
+  - Titled region → area per D15's table, the Strand into `farmlands`.
+    Membership by the game's lookup (the last containing region): a point by
+    its position, a shape only when all its vertices land in one area.
+  - Order-preserving: footprints are padded by `--margin` (3 u by default;
+    the result is identical at 1 and 5 u). The earlier object of an
+    overlapping pair that would reorder stays at the zone level, repeated
+    until stable. A titled region is never demoted: a real overlap that
+    reorders refuses the run, and a near miss inside the margin is printed
+    as a seam notice.
+  - The script then checks itself: it folds the areas back (D11) and
+    refuses if any object changed or vanished, or if any overlapping pair is
+    reordered.
+- **The result**, 22 areas:
+  - Into areas: spawns 393/393, props 182/182 (all four layers), bind points
+    45/45, anchors 10/10, decals 8/8, regions 23/23.
+  - Paths 14/28, structures 8/11, atmospheres 19/25.
+  - The 23 left at the zone level are, by original index:
+    - paths 0-4, 12, 17-22, 24, 25: the river, cliffs, roads and Brunnstedt's
+      walls;
+    - structures 2, 6, 9;
+    - atmospheres 0, 1, 2, 5, 6, 17.
+  - Seven of those stay for order rather than spanning areas:
+    - paths 1, 17, 19, 21, 22;
+    - atmospheres 1, 5.
+  - The census's "19 of 28 paths" counted vertices inside regions, without
+    the order rule.
+- **The readers taught areas:**
+  - `.claude/skills/verify/lib/zone.mjs` (`readZone`/`flattenZone`, D11), now
+    used by `a4-clearing`, `a5-darkness-blend`, `bridge-underfoot`,
+    `c2-world-walk` and `c4-region-texture`.
+  - `c2-mob-level` finds its probe by mob and position. ⚑ Its probe Stag was
+    already gone before P4c (index 213 is a Bear), so it still says
+    "re-pick the probe".
+  - `verify.sh` builds its fixtures from a flattened copy (leg 1 still
+    round-trips the real file).
+  - `world-regions.py` flattens spawns.
+  - `world-place.py` refuses a zone with areas: it rewrites zone-level
+    spawns only. Untested, since there is no Python on this box.
+  - Two tests read world.json raw and now sum or flatten across areas:
+    `AuraTiledConvert.test.ts` "maps every array…" and "the layer stack…",
+    and `ZoneModel.test.ts` "respawn-free".
+
+**Verified:**
+
+- **Go loads the same world.** A throwaway test (deleted after) parsed the
+  pre-migration file and the migrated one: every kind holds the same objects
+  (props 182, spawns 393, bind points 45, regions 23, paths 28, structures 11,
+  atmospheres 25, anchors 10, decals 8). All 182 props carry an area, and the
+  ids come in table order.
+- **Go green bar C1b**, with the embed refreshed (`cp-defs` by hand: no
+  `make` here). **`-validate` 0 findings ×3.** **vitest 1518/0.**
+  **`verify.sh` 35 ✅ / 0 ❌**: the migrated world.json round-trips through
+  real Tiled byte-identically (204213 bytes; +36 KB, because nested objects
+  indent deeper).
+- **In game** (`dev-restart-windows.sh all`):
+  - `p1-prop-order` 10/10. Eliza's oak `farmlands/canopy[49]` still draws
+    over her cottage `farmlands/buildings[5]`, in spawn order.
+  - `map-props-bake` 7/7 (182 of 182).
+  - `bridge-underfoot` PASS.
+
+**Schema:** DB **NONE** · wire **NONE** · conf **NONE** · content: world.json
+rewritten into `areas` (no format change).
+
+⚑ **For the PO:**
+
+- ⭐ **One seam may look different.**
+  - Deep Woods (region 2) and Saltgrass Strand (region 15) come within 0.41 u
+    near (-184, -28). The Strand now draws BEFORE Deep Woods (it moved into
+    `farmlands`, D16), so where their feathered edges meet, Deep Woods'
+    1.5 u band lies over the Strand's instead of under it.
+  - The region LOOKUP is unchanged: the two do not overlap.
+  - Wrecker's Bluff and the Strand also swap, but they sit 5.29 u apart
+    with 0.5 u bands, so nothing meets.
+  - Look check: `WARP` to about (-184, -28).
+- **The workflow risk the PO named.** Every region and nearly every object
+  now opens inside an area group, 22 of them, each with 14 layers. D13's
+  "does a long list read badly" (§10.4) is now a real-world question, not a
+  hypothetical.
+- **Still zone-level only:** `scripts/zone-census.mjs` and `probegen.mjs` (dev
+  scripts, not taught), and the one-off historical scripts
+  (`scale-world-15x`, `double-world-vertical`, `recenter-world-y`).
+- **Revert path (D16):** fold the areas back. The game treats the result
+  identically, and the pre-migration file is `git show HEAD:api/zones/world.json`.
+
+**PO pass, 2026-10-03:** *"i checked all"*: the P4/P4b GUI checks (the `AuraArea` dropdown on a group layer included) and the Deep Woods / Strand seam. Pre-commit re-run on a fresh boot: `p1-prop-order` 10/10, `map-props-bake` 7/7, `bridge-underfoot` PASS.

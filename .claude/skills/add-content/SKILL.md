@@ -168,6 +168,12 @@ the bottom. Trust the code over the manual if a path has drifted.
   (`docs/manual-tiled-editor.md` §6). It reads the prop's own `sprite` field —
   no separate map to maintain any more, but a missing/empty `sprite` hard-fails
   at server boot (`world/props.go`), before this script would ever see it.
+- **A new zone AREA is one line in `api/areas/areas.json`** (`plan-prop-draw-order.md`
+  P4b, D15), then `node tools/tiled/generate-palette.mjs` so Tiled's `AuraAreaId`
+  dropdown offers it (commit the palette files). A zone naming an unlisted area
+  refuses the boot. The id is the short name a player would call the place,
+  lowercase, words joined by `-` (`deep-woods`), and it never changes once
+  used; never remove one a zone still names.
 - **A prop TYPE has no draw layer; its PLACEMENT does** (`plan-prop-draw-order.md`
   P3). A zone's `props` is four arrays — `underfoot` · `default` · `buildings` ·
   `canopy`, bottom to top — and which one a placement sits in is where it draws

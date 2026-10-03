@@ -6,6 +6,7 @@ import {meter2px} from '../../../client-data/BasicConfig';
 import { Container } from 'pixi.js';
 import {pickZoneSet} from './ZoneSets';
 import {PropLayersJSON} from '../../zones/logic/PropLayers';
+import {AreaJSON, flattenAreas} from '../../zones/logic/ZoneAreas';
 
 
 const textures: GroundTexture[] = [];
@@ -68,6 +69,8 @@ interface GroundTextureDefinition {
     size: number;
     rotation: number;
     flipped: 'none' | 'horizontal' | 'vertical';
+    // In memory only: the area the decal came from (ZoneAreas.flattenAreas).
+    area?: string;
 }
 
 export function getTexturesAsJSON() {
@@ -111,6 +114,7 @@ export function getTerrainServerUnits(): GroundTextureDefinition[] {
             size: round(p.size / PX_PER_UNIT, 2),
             rotation: round(p.rotation, 3),
             flipped: p.flipped,
+            area: p.area,
         };
     });
 }
@@ -272,11 +276,17 @@ export interface ZoneJSON {
 // the terrain of whichever zone the server selected (Welcome.zoneName).
 // ⚑ TWO sets: the main one and `.debug/` (`aurad -debug-zones`). Which one is
 // live is the server's call, read off Welcome.zoneName by selectZoneSet.
+//
+// ⭐ THE ONE PLACE A BUNDLED ZONE IS PICKED, so it is where its areas are
+// flattened away (plan-prop-draw-order.md P4, D11), exactly as the server does
+// at load. Every reader of getZoneData sees today's flat arrays, each area
+// object tagged with its `area`. (The in-game editor bundles the raw files
+// itself; ZoneModel.fromJSON runs the same flatten and keeps the areas.)
 function bundleByStem(context: __WebpackModuleApi.RequireContext): { [stem: string]: ZoneJSON } {
     const byStem: { [stem: string]: ZoneJSON } = {};
     context.keys().forEach((key: string) => {
         const stem = key.replace(/^\.\//, '').replace(/\.json$/, '');
-        byStem[stem] = context(key) as ZoneJSON;
+        byStem[stem] = flattenAreas(context(key) as ZoneJSON & {areas?: AreaJSON[]});
     });
     return byStem;
 }
@@ -331,6 +341,7 @@ export function loadZone(zoneName: string) {
             rotation: t.rotation,
             flipped: t.flipped,
             stacking: 'top',
+            area: t.area,
         });
     });
 }

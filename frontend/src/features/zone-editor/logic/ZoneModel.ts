@@ -7,14 +7,23 @@
  * The backend parses zone.json with DisallowUnknownFields, so the serialized
  * field set here must match the Go structs exactly.
  */
-import {DEFAULT_PROP_LAYER, flattenProps, groupProps, PropLayer, PropLayersJSON} from '../../zones/logic/PropLayers';
+import {DEFAULT_PROP_LAYER, flattenProps, groupProps, PROP_LAYERS, PropLayer, PropLayersJSON} from '../../zones/logic/PropLayers';
+import {AreaJSON, flattenAreas, ObjectKind} from '../../zones/logic/ZoneAreas';
+
+// IN MEMORY ONLY, on every object: the zone file's area it came from
+// (plan-prop-draw-order.md P4), so a save puts it back in that group. The file
+// carries no such key (the nesting IS the area). Absent = the zone level, which
+// is also where a new in-game placement goes.
+export interface InArea {
+    area?: string;
+}
 
 export interface ZoneBounds {
     width: number;
     height: number;
 }
 
-export interface ZoneTerrain {
+export interface ZoneTerrain extends InArea {
     type: string;
     x: number;
     y: number;
@@ -23,7 +32,7 @@ export interface ZoneTerrain {
     flipped: 'none' | 'horizontal' | 'vertical';
 }
 
-export interface ZoneProp {
+export interface ZoneProp extends InArea {
     type: string;
     x: number;
     y: number;
@@ -57,7 +66,7 @@ export interface ZoneWaypoint {
     y: number;
 }
 
-export interface ZoneSpawn {
+export interface ZoneSpawn extends InArea {
     mob: string;
     x: number;
     y: number;
@@ -110,7 +119,7 @@ export interface ZoneSpawn {
 // a cave nobody binds in legitimately carries fires with no starting spawn,
 // while the WORLD must still have somewhere to put a fresh character. Only
 // the PRIMARY zone may flag one, and world.Place enforces both halves at boot.
-export interface ZoneCampfire {
+export interface ZoneCampfire extends InArea {
     // Stable spawn-point identity. A character's campfire bind is persisted as
     // this string, so it must survive editor round-trips and must never be
     // handed to a different fire — see mintSpawnPointId. The backend hard-fails
@@ -123,7 +132,7 @@ export interface ZoneCampfire {
 
 // A circle of constant darkness (atmosphere & recovery chunk 3) — purely
 // client-visual; the radius is the outer (soft) edge of the dark pocket.
-export interface ZoneDarkArea {
+export interface ZoneDarkArea extends InArea {
     x: number;
     y: number;
     radius: number;
@@ -139,7 +148,7 @@ export interface ZoneDarkArea {
 // editor owns WHERE (boss home, totem spots, wave mouth), the Go script owns
 // WHAT happens. Names must stay in sync with the script's lookups: the server
 // hard-fails at boot on a missing anchor.
-export interface ZoneAnchor {
+export interface ZoneAnchor extends InArea {
     name: string;
     x: number;
     y: number;
@@ -151,7 +160,7 @@ export interface ZoneAnchor {
 // ⚑ This editor deliberately cannot author one (D9): regions are placed in
 // Tiled, and everything here exists purely so a save carries them through
 // untouched (D3/L1). Nothing in the panel reads it.
-export interface ZoneRegion {
+export interface ZoneRegion extends InArea {
     profile: string;
     points: { x: number, y: number }[];
     // The place's name and the line under it (the region title banner,
@@ -167,7 +176,7 @@ export interface ZoneRegion {
 // (L1). blocksMovement is tri-state on purpose — false is the authored default,
 // so an undefined stays undefined and a decorative path exports byte-identically
 // to the file it was loaded from.
-export interface ZonePath {
+export interface ZonePath extends InArea {
     profile: string;
     points: { x: number, y: number }[];
     width: number;
@@ -202,7 +211,7 @@ export interface ZonePath {
 // placed in Tiled and everything here exists so an in-game save carries them
 // through untouched (L1). blocksMovement is tri-state for the same reason it is
 // on a path.
-export interface ZonePolygon {
+export interface ZonePolygon extends InArea {
     profile: string;
     points: { x: number, y: number }[];
     blocksMovement?: boolean;
@@ -226,7 +235,7 @@ export interface ZonePolygon {
 // walk into, an atmosphere is air you walk through, and they share a shape and
 // nothing else. Adding a collision field here would make it survive a round-trip
 // and do nothing, which is worse than it being refused.
-export interface ZoneAtmosphere {
+export interface ZoneAtmosphere extends InArea {
     profile: string;
     points: { x: number, y: number }[];
     // ⚑ THE ONE KEY THE D15 NOTE ABOVE DOES NOT REFUSE (plan-area-effects.md
@@ -248,7 +257,7 @@ export interface ZoneAtmosphere {
 // doing two jobs — *how much* and *which operation* — and the PO rejected it on
 // sight. Carrying a profile here would re-create the ambiguity in the one writer
 // nobody re-reads.
-export interface ZoneClearing {
+export interface ZoneClearing extends InArea {
     clears: 'darkness' | 'haze' | 'both';
     points: { x: number, y: number }[];
 }
@@ -287,7 +296,13 @@ export interface ZoneData {
     clearings?: ZoneClearing[];
     // Omitted when empty so pre-C6 zones round-trip diff-clean.
     anchors?: ZoneAnchor[];
+    // Named groups of objects (plan-prop-draw-order.md P4). Omitted when
+    // empty, so a zone without areas round-trips diff-clean.
+    areas?: ZoneArea[];
 }
+
+// One entry of `areas`: an id plus any of the object arrays.
+export type ZoneArea = {id: string} & Partial<Pick<ZoneData, ObjectKind>>;
 
 // The spawn editor's derived category (plan-zone-editor-structure.md D1):
 // computed from fields every mob def already carries, never authored. It
@@ -397,6 +412,10 @@ export class ZoneModel {
     origin?: ZoneOrigin;
     // Carried, never edited — see ZoneData.ground. undefined = no key.
     ground?: string;
+    // The file's area ids, in file order (P4). Every object is held FLAT and
+    // tagged with its area; getZoneAsJSON regroups by these. Kept as a list
+    // so an area the author made survives even once it is empty.
+    areaIds: string[] = [];
     // 0 until the first mint, which seeds it from the loaded zone.
     private nextSpawnPointNumber: number = 0;
 
@@ -411,7 +430,11 @@ export class ZoneModel {
         this.anchors = anchors;
     }
 
-    static fromJSON(data: ZoneData): ZoneModel {
+    static fromJSON(file: ZoneData): ZoneModel {
+        // ⚑ The same flatten the server and the bundled-zone readers run
+        // (ZoneAreas, D11): every area's objects join the flat lists below,
+        // each tagged with its area.
+        const data = flattenAreas(file as ZoneData & {areas?: AreaJSON[]});
         const model = new ZoneModel(
             data.name,
             {width: data.bounds.width, height: data.bounds.height},
@@ -437,6 +460,7 @@ export class ZoneModel {
             points: (r.points || []).map(p => ({...p})),
             title: r.title,
             subtitle: r.subtitle,
+            area: r.area,
         }));
         model.paths = (data.paths || []).map(p => ({
             profile: p.profile,
@@ -450,6 +474,7 @@ export class ZoneModel {
             corners: p.corners,
             ends: p.ends,
             effect: p.effect,
+            area: p.area,
         }));
         model.structures = (data.structures || []).map(g => ({
             profile: g.profile,
@@ -458,23 +483,27 @@ export class ZoneModel {
             outlineProfile: g.outlineProfile,
             outlineWidth: g.outlineWidth,
             effect: g.effect,
+            area: g.area,
         }));
         model.atmospheres = (data.atmospheres || []).map(a => ({
             profile: a.profile,
             points: (a.points || []).map(pt => ({...pt})),
             effect: a.effect,
+            area: a.area,
         }));
         model.clearings = (data.clearings || []).map(c => ({
             clears: c.clears,
             points: (c.points || []).map(pt => ({...pt})),
+            area: c.area,
         }));
+        model.areaIds = (file.areas || []).map(a => a.id);
         model.origin = data.origin ? {x: data.origin.x, y: data.origin.y} : undefined;
         model.ground = data.ground || undefined;
         return model;
     }
 
-    // A new in-game placement goes to the 'default' layer (D3); moving it to
-    // another layer is a Tiled job. Appended, so every existing index holds.
+    // A new in-game placement goes to the 'default' layer (D3) at the zone
+    // level (P4); moving it is a Tiled job. Appended, so every index holds.
     addProp(prop: ZoneProp): number {
         return this.props.push({...prop, layer: prop.layer || DEFAULT_PROP_LAYER}) - 1;
     }
@@ -483,15 +512,16 @@ export class ZoneModel {
         return this.spawns.push(spawn) - 1;
     }
 
-    // ⚑ The layer is KEPT: the panel rebuilds a prop from its controls and has
-    // no layer control, so taking the caller's would move an edited canopy
-    // tree into 'default' on the next save.
+    // ⚑ The layer and the area are KEPT: the panel rebuilds a prop from its
+    // controls and has no control for either, so taking the caller's would
+    // move an edited canopy tree into 'default', or out of its area, on the
+    // next save. Every update below keeps the area for the same reason.
     updateProp(index: number, prop: ZoneProp) {
-        this.props[index] = {...prop, layer: this.props[index].layer};
+        this.props[index] = {...prop, layer: this.props[index].layer, area: this.props[index].area};
     }
 
     updateSpawn(index: number, spawn: ZoneSpawn) {
-        this.spawns[index] = spawn;
+        this.spawns[index] = {...spawn, area: this.spawns[index].area};
     }
 
     removeProp(index: number) {
@@ -540,7 +570,7 @@ export class ZoneModel {
     }
 
     updateDarkArea(index: number, darkArea: ZoneDarkArea) {
-        this.darkAreas[index] = darkArea;
+        this.darkAreas[index] = {...darkArea, area: this.darkAreas[index].area};
     }
 
     removeDarkArea(index: number) {
@@ -549,6 +579,10 @@ export class ZoneModel {
 
     addAnchor(anchor: ZoneAnchor): number {
         return this.anchors.push(anchor) - 1;
+    }
+
+    updateAnchor(index: number, anchor: ZoneAnchor) {
+        this.anchors[index] = {...anchor, area: this.anchors[index].area};
     }
 
     removeAnchor(index: number) {
@@ -560,14 +594,48 @@ export class ZoneModel {
      * Coordinates are rounded to 2 decimals (~1.2 px), angles to 3.
      */
     getZoneAsJSON(): string {
-        const data: ZoneData = {
+        // The zone level always carries decals, props and spawns, so the
+        // spread below completes the ZoneData shape.
+        const data = {
             name: this.name,
             bounds: {width: this.bounds.width, height: this.bounds.height},
             // Omitted when absent so every zone that authors no origin — which
             // is all of them today — round-trips diff-clean.
             ...(this.origin ? {origin: {x: this.origin.x, y: this.origin.y}} : {}),
             ...(this.ground ? {ground: this.ground} : {}),
-            decals: this.decals.map(t => ({
+            ...this.objectsJSON(undefined),
+            // The areas (plan-prop-draw-order.md P4), after every zone-level
+            // array, as zone.go declares them. Omitted when there are none, so
+            // a zone without areas round-trips diff-clean.
+            areas: this.areaIds.length > 0
+                ? this.areaIds.map(id => ({id, ...this.objectsJSON(id)}))
+                : undefined,
+        } as ZoneData;
+        return JSON.stringify(data, null, 2);
+    }
+
+    /**
+     * The object arrays of one group, the zone level (undefined) or an area,
+     * in zone.go's Objects order — serializeObjects in aura-convert.js exactly,
+     * so the two writers agree byte for byte. The zone level always writes
+     * decals, the four prop arrays and spawns; an AREA writes no empty array
+     * at all, prop layers included (P4).
+     */
+    private objectsJSON(area: string | undefined): Partial<Pick<ZoneData, ObjectKind>> {
+        const mine = <T extends InArea>(list: T[]): T[] => list.filter(o => o.area === area);
+        const decals = mine(this.decals);
+        const props = mine(this.props);
+        const spawns = mine(this.spawns);
+        const bindPoints = mine(this.bindPoints);
+        const darkAreas = mine(this.darkAreas);
+        const regions = mine(this.regions);
+        const paths = mine(this.paths);
+        const structures = mine(this.structures);
+        const atmospheres = mine(this.atmospheres);
+        const clearings = mine(this.clearings);
+        const anchors = mine(this.anchors);
+        const out: Partial<Pick<ZoneData, ObjectKind>> = {
+            decals: decals.map(t => ({
                 type: t.type,
                 x: round(t.x, 2),
                 y: round(t.y, 2),
@@ -577,7 +645,7 @@ export class ZoneModel {
             })),
             // All four layer arrays in rank order, empty ones included —
             // serializeZone's shape exactly, so the two writers agree.
-            props: groupProps(this.props, p => ({
+            props: groupProps(props, p => ({
                 type: p.type,
                 x: round(p.x, 2),
                 y: round(p.y, 2),
@@ -592,7 +660,7 @@ export class ZoneModel {
                 // serialize byte-for-byte as before.
                 scale: p.scale !== undefined ? round(p.scale, 3) : undefined,
             })),
-            spawns: this.spawns.map(s => ({
+            spawns: spawns.map(s => ({
                 mob: s.mob,
                 x: round(s.x, 2),
                 y: round(s.y, 2),
@@ -625,22 +693,22 @@ export class ZoneModel {
             })),
             // Omitted (undefined key) while empty, so pre-step-3 zones
             // round-trip diff-clean — the chunk-5 array precedent.
-            bindPoints: this.bindPoints.length > 0
+            bindPoints: bindPoints.length > 0
                 // startingSpawn only serializes when true — non-spawn fires
                 // stay bare {x, y} like the hand-written file.
                 // ⚑ The id is serialized FIRST and unconditionally. This
                 // whitelist is the whole reason a hand-authored id could be
                 // silently dropped by a round-trip through the editor, which
                 // would unbind every character bound to that fire.
-                ? this.bindPoints.map(c => ({
+                ? bindPoints.map(c => ({
                     id: c.id,
                     x: round(c.x, 2),
                     y: round(c.y, 2),
                     startingSpawn: c.startingSpawn ? true : undefined,
                 }))
                 : undefined,
-            darkAreas: this.darkAreas.length > 0
-                ? this.darkAreas.map(d => ({x: round(d.x, 2), y: round(d.y, 2), radius: round(d.radius, 2)}))
+            darkAreas: darkAreas.length > 0
+                ? darkAreas.map(d => ({x: round(d.x, 2), y: round(d.y, 2), radius: round(d.radius, 2)}))
                 : undefined,
             // ⚑ Named here or the whitelist eats it (L1). This editor cannot
             // author a region (D9), so what it would delete is entirely
@@ -648,8 +716,8 @@ export class ZoneModel {
             // failure, a third time. Coordinates are rounded exactly like every
             // other array so a Tiled save and an in-game save agree byte for
             // byte; the profile name is kept verbatim.
-            regions: this.regions.length > 0
-                ? this.regions.map(r => ({
+            regions: regions.length > 0
+                ? regions.map(r => ({
                     profile: r.profile,
                     points: r.points.map(p => ({x: round(p.x, 2), y: round(p.y, 2)})),
                     // Same omit rule as aura-convert.js serializeZone.
@@ -664,8 +732,8 @@ export class ZoneModel {
             // blocksMovement stays tri-state: undefined is dropped by
             // JSON.stringify, so a decorative path exports exactly as authored
             // rather than growing a "blocksMovement": false nobody wrote.
-            paths: this.paths.length > 0
-                ? this.paths.map(p => ({
+            paths: paths.length > 0
+                ? paths.map(p => ({
                     profile: p.profile,
                     points: p.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
                     width: round(p.width, 2),
@@ -693,8 +761,8 @@ export class ZoneModel {
             // ⚑ Named here or the whitelist eats it (L1) — the fifth time this
             // comment has had to be written, after spawn.level, prop.scale,
             // regions and paths. This editor cannot author a polygon either.
-            structures: this.structures.length > 0
-                ? this.structures.map(g => ({
+            structures: structures.length > 0
+                ? structures.map(g => ({
                     profile: g.profile,
                     points: g.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
                     blocksMovement: g.blocksMovement ? true : undefined,
@@ -713,8 +781,8 @@ export class ZoneModel {
             // is air. ⚑ `effect` is the one addition that ruling does not turn
             // away (plan-area-effects.md D1): it describes no wall, it describes
             // a region of space acting on what stands in it.
-            atmospheres: this.atmospheres.length > 0
-                ? this.atmospheres.map(a => ({
+            atmospheres: atmospheres.length > 0
+                ? atmospheres.map(a => ({
                     profile: a.profile,
                     points: a.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
                     effect: a.effect || undefined,
@@ -725,18 +793,34 @@ export class ZoneModel {
             // deletes somebody else's Tiled work with every test still green.
             //
             // ⛔ Two keys and NO profile (L7) — a clearing paints nothing.
-            clearings: this.clearings.length > 0
-                ? this.clearings.map(c => ({
+            clearings: clearings.length > 0
+                ? clearings.map(c => ({
                     clears: c.clears,
                     points: c.points.map(pt => ({x: round(pt.x, 2), y: round(pt.y, 2)})),
                 }))
                 : undefined,
             // Omitted (undefined key) while empty, so pre-C6 zones round-trip
             // diff-clean. Names are script-lookup keys kept verbatim.
-            anchors: this.anchors.length > 0
-                ? this.anchors.map(a => ({name: a.name, x: round(a.x, 2), y: round(a.y, 2)}))
+            anchors: anchors.length > 0
+                ? anchors.map(a => ({name: a.name, x: round(a.x, 2), y: round(a.y, 2)}))
                 : undefined,
         };
-        return JSON.stringify(data, null, 2);
+        if (area !== undefined) {
+            const loose = out as Record<string, unknown>;
+            Object.keys(loose).forEach(k => {
+                if (Array.isArray(loose[k]) && (loose[k] as unknown[]).length === 0) {
+                    loose[k] = undefined;
+                }
+            });
+            const props: PropLayersJSON<ZoneProp> = {};
+            PROP_LAYERS.forEach(l => {
+                const list = (out.props || {})[l] || [];
+                if (list.length > 0) {
+                    props[l] = list;
+                }
+            });
+            out.props = Object.keys(props).length > 0 ? props : undefined;
+        }
+        return out;
     }
 }

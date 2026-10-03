@@ -193,24 +193,32 @@
         map.setProperty('trailingNewline', C.endsWithNewline(text));
 
         for (var i = 0; i < model.layers.length; i++) {
-            var spec = model.layers[i];
-            /* ⭐ A spec with `layers` is a GROUP (plan-prop-draw-order.md P3:
-             * `props`, holding one object layer per prop layer). Its children
-             * are added bottom-first, which is Tiled's own order: index 0 draws
-             * lowest. Measured headless on 1.12.2 — GroupLayer, addLayer,
-             * layerAt, isGroupLayer and parentLayer all work under
-             * --export-map. */
-            if (spec.layers) {
-                var gl = new GroupLayer(spec.name);
-                for (var c = 0; c < spec.layers.length; c++) {
-                    gl.addLayer(objectGroup(spec.layers[c], palette));
-                }
-                map.addLayer(gl);
-            } else {
-                map.addLayer(objectGroup(spec, palette));
-            }
+            map.addLayer(tiledLayer(model.layers[i], palette));
         }
         return map;
+    }
+
+    /* One layer spec of the model as a Tiled layer. ⭐ A spec with `layers` is
+     * a GROUP: `props` (plan-prop-draw-order.md P3, one object layer per prop
+     * layer) or an AREA (P4, the zone's layers again, its own props group
+     * included), so this recurses. Children are added bottom-first, which is
+     * Tiled's own order: index 0 draws lowest. Measured headless on 1.12.2 —
+     * GroupLayer, addLayer, layerAt, isGroupLayer and parentLayer all work
+     * under --export-map. An area group carries its class (AuraArea) and its
+     * typed `id` (P4b, D15), set exactly as an object's are. */
+    function tiledLayer(spec, palette) {
+        if (!spec.layers) { return objectGroup(spec, palette); }
+        var gl = new GroupLayer(spec.name);
+        if (spec.cls) { gl.className = spec.cls; }
+        for (var key in spec.properties || {}) {
+            if (Object.prototype.hasOwnProperty.call(spec.properties, key)) {
+                gl.setProperty(key, typedValue(spec, key));
+            }
+        }
+        for (var c = 0; c < spec.layers.length; c++) {
+            gl.addLayer(tiledLayer(spec.layers[c], palette));
+        }
+        return gl;
     }
 
     // One object layer of the model as Tiled's ObjectGroup.
@@ -287,6 +295,8 @@
             d.empty = layer.objectCount === 0;
         } else if (layer.isGroupLayer) {
             d.kind = 'group';
+            // An area is told apart by its class (P4b), never its name.
+            d.cls = layer.className;
             d.layers = [];
             for (var i = 0; i < layer.layerCount; i++) {
                 var child = describeLayer(layer.layerAt(i));
@@ -304,8 +314,8 @@
     }
 
     /* One object layer as the model's plain objects. `label` is the layer as
-     * validation messages name it: the layer itself, or group.child for a prop
-     * layer (props.canopy), which is also the zone-file path of its array. */
+     * validation messages name it: the layer itself, props.canopy for a prop
+     * layer (the zone-file path of its array), and area/… inside an area. */
     function readObjects(layer, label) {
         var objects = [];
         for (var j = 0; j < layer.objectCount; j++) {
@@ -354,6 +364,28 @@
         return objects;
     }
 
+    /* One Tiled layer as the model's plain layer, or null for a layer that
+     * holds nothing the zone stores (an empty tile or image layer). A group
+     * recurses; its children are labelled props.canopy inside a props group
+     * and farmlands/spawns inside an area. */
+    function modelLayer(layer, label) {
+        if (layer.isGroupLayer) {
+            var children = [];
+            for (var c = 0; c < layer.layerCount; c++) {
+                var child = layer.layerAt(c);
+                var read = modelLayer(child,
+                    label + (layer.name === C.PROPS_GROUP ? '.' : '/') + child.name);
+                if (read) { children.push(read); }
+            }
+            // The class and properties carry an area's id (P4b).
+            return {name: layer.name, cls: layer.className, properties: layer.properties(), layers: children};
+        }
+        if (layer.isObjectLayer) {
+            return {name: layer.name, objects: readObjects(layer, label)};
+        }
+        return null;
+    }
+
     function write(map, fileName) {
         // P0: refuse before anything else, so no layer is ever skipped unseen.
         var described = [];
@@ -361,23 +393,13 @@
         var refusals = C.layerRefusals(described);
         if (refusals.length > 0) { return C.formatLayerRefusals(refusals); }
 
-        // Past the refusal, every object layer is one LAYERS names, the only
-        // group is `props` holding only prop layers (P3), and every other layer
-        // is empty.
+        // Past the refusal, every object layer is one LAYERS names, a group is
+        // `props` holding only prop layers (P3) or an area holding the zone's
+        // layers (P4), and every other layer is empty.
         var layers = [];
         for (var i = 0; i < map.layerCount; i++) {
-            var layer = map.layerAt(i);
-            if (layer.isGroupLayer) {
-                var children = [];
-                for (var c = 0; c < layer.layerCount; c++) {
-                    var child = layer.layerAt(c);
-                    children.push({name: child.name,
-                        objects: readObjects(child, layer.name + '.' + child.name)});
-                }
-                layers.push({name: layer.name, layers: children});
-            } else if (layer.isObjectLayer) {
-                layers.push({name: layer.name, objects: readObjects(layer, layer.name)});
-            }
+            var read = modelLayer(map.layerAt(i), map.layerAt(i).name);
+            if (read) { layers.push(read); }
         }
 
         var bw = map.property('boundsWidth');

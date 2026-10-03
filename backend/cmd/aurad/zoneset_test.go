@@ -120,8 +120,8 @@ func TestZoneSet_WallsForGivesEachZoneItsOwnRectangle(t *testing.T) {
 }
 
 func TestZoneSet_FlattensSpawnsAndCampfiresAcrossZones(t *testing.T) {
-	a := &world.Zone{ID: "world", Spawns: []world.Spawn{{Mob: "Wolf"}}, BindPoints: []world.Campfire{{ID: "spawnpoint-1"}}}
-	b := &world.Zone{ID: "under", Spawns: []world.Spawn{{Mob: "Bat"}, {Mob: "Rat"}}, BindPoints: []world.Campfire{{ID: "u-1"}}}
+	a := &world.Zone{ID: "world", Objects: world.Objects{Spawns: []world.Spawn{{Mob: "Wolf"}}, BindPoints: []world.Campfire{{ID: "spawnpoint-1"}}}}
+	b := &world.Zone{ID: "under", Objects: world.Objects{Spawns: []world.Spawn{{Mob: "Bat"}, {Mob: "Rat"}}, BindPoints: []world.Campfire{{ID: "u-1"}}}}
 
 	assert.Len(t, allSpawns([]*world.Zone{a, b}), 3)
 	assert.Len(t, allCampfires([]*world.Zone{a, b}), 2)
@@ -138,8 +138,8 @@ func TestZoneSet_FlattensSpawnsAndCampfiresAcrossZones(t *testing.T) {
 // faithful because names are unique set-wide (world.Place checkSetWide, L5b) -
 // without that rule this merge would silently keep whichever zone came last.
 func TestZoneSet_FlattensAnchorsAcrossZones(t *testing.T) {
-	a := &world.Zone{ID: "world", Anchors: []world.Anchor{{Name: "surface-return", X: 5, Y: 6}}}
-	b := &world.Zone{ID: "under", Anchors: []world.Anchor{{Name: "underworld-entry", X: 1, Y: -499}}}
+	a := &world.Zone{ID: "world", Objects: world.Objects{Anchors: []world.Anchor{{Name: "surface-return", X: 5, Y: 6}}}}
+	b := &world.Zone{ID: "under", Objects: world.Objects{Anchors: []world.Anchor{{Name: "underworld-entry", X: 1, Y: -499}}}}
 
 	anchors := allAnchors([]*world.Zone{a, b})
 	require.Len(t, anchors, 2)
