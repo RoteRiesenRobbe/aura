@@ -731,6 +731,16 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     // Crate's wreck, the same pattern on the same body; what makes it
     // walkable is its definition (`blocksMovement: false`), never a class.
     [AuraApi.EntityType.BrokenCrate]: Props.genericPropClasses.BrokenCrate,
+    // The coast set. All generic; Bedroll, WreckDebris and Fish are walkable by
+    // their definitions (`blocksMovement: false`), never by a class.
+    [AuraApi.EntityType.Tent]: Props.genericPropClasses.Tent,
+    [AuraApi.EntityType.Bedroll]: Props.genericPropClasses.Bedroll,
+    [AuraApi.EntityType.Shipwreck]: Props.genericPropClasses.Shipwreck,
+    [AuraApi.EntityType.WreckDebris]: Props.genericPropClasses.WreckDebris,
+    [AuraApi.EntityType.Rowboat]: Props.genericPropClasses.Rowboat,
+    [AuraApi.EntityType.NetRack]: Props.genericPropClasses.NetRack,
+    [AuraApi.EntityType.FishingHut]: Props.genericPropClasses.FishingHut,
+    [AuraApi.EntityType.Fish]: Props.genericPropClasses.Fish,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

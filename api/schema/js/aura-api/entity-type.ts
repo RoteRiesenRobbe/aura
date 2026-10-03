@@ -92,5 +92,13 @@ export enum EntityType {
   RedMushroom = 102,
   OakTree = 103,
   Seaweed = 104,
-  BrokenCrate = 105
+  BrokenCrate = 105,
+  Tent = 106,
+  Bedroll = 107,
+  Shipwreck = 108,
+  WreckDebris = 109,
+  Rowboat = 110,
+  NetRack = 111,
+  FishingHut = 112,
+  Fish = 113
 }

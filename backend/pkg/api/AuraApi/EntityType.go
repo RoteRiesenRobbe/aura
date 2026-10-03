@@ -97,6 +97,14 @@ const (
 	EntityTypeOakTree               EntityType = 103
 	EntityTypeSeaweed               EntityType = 104
 	EntityTypeBrokenCrate           EntityType = 105
+	EntityTypeTent                  EntityType = 106
+	EntityTypeBedroll               EntityType = 107
+	EntityTypeShipwreck             EntityType = 108
+	EntityTypeWreckDebris           EntityType = 109
+	EntityTypeRowboat               EntityType = 110
+	EntityTypeNetRack               EntityType = 111
+	EntityTypeFishingHut            EntityType = 112
+	EntityTypeFish                  EntityType = 113
 )
 
 var EnumNamesEntityType = map[EntityType]string{
@@ -190,6 +198,14 @@ var EnumNamesEntityType = map[EntityType]string{
 	EntityTypeOakTree:               "OakTree",
 	EntityTypeSeaweed:               "Seaweed",
 	EntityTypeBrokenCrate:           "BrokenCrate",
+	EntityTypeTent:                  "Tent",
+	EntityTypeBedroll:               "Bedroll",
+	EntityTypeShipwreck:             "Shipwreck",
+	EntityTypeWreckDebris:           "WreckDebris",
+	EntityTypeRowboat:               "Rowboat",
+	EntityTypeNetRack:               "NetRack",
+	EntityTypeFishingHut:            "FishingHut",
+	EntityTypeFish:                  "Fish",
 }
 
 var EnumValuesEntityType = map[string]EntityType{
@@ -283,6 +299,14 @@ var EnumValuesEntityType = map[string]EntityType{
 	"OakTree":               EntityTypeOakTree,
 	"Seaweed":               EntityTypeSeaweed,
 	"BrokenCrate":           EntityTypeBrokenCrate,
+	"Tent":                  EntityTypeTent,
+	"Bedroll":               EntityTypeBedroll,
+	"Shipwreck":             EntityTypeShipwreck,
+	"WreckDebris":           EntityTypeWreckDebris,
+	"Rowboat":               EntityTypeRowboat,
+	"NetRack":               EntityTypeNetRack,
+	"FishingHut":            EntityTypeFishingHut,
+	"Fish":                  EntityTypeFish,
 }
 
 func (v EntityType) String() string {
