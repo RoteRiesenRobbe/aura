@@ -517,8 +517,27 @@ func (rcv *GameState) MapFog(obj *MapFog) *MapFog {
 	return nil
 }
 
+func (rcv *GameState) OwnEffects(obj *OwnEffect, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(64))
+	if o != 0 {
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 24
+		obj.Init(rcv._tab.Bytes, x)
+		return true
+	}
+	return false
+}
+
+func (rcv *GameState) OwnEffectsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(64))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(30)
+	builder.StartObject(31)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -639,6 +658,12 @@ func GameStateStartSkillEventsVector(builder *flatbuffers.Builder, numElems int)
 }
 func GameStateAddMapFog(builder *flatbuffers.Builder, mapFog flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(29, flatbuffers.UOffsetT(mapFog), 0)
+}
+func GameStateAddOwnEffects(builder *flatbuffers.Builder, ownEffects flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(30, flatbuffers.UOffsetT(ownEffects), 0)
+}
+func GameStateStartOwnEffectsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(24, numElems, 8)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

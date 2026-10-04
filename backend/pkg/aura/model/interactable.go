@@ -82,6 +82,10 @@ type AreaSource interface {
 	// AreaEffectName is the authored effect the area names — "Blight", not
 	// "the bog". It is what an obituary and a debug line quote.
 	AreaEffectName() string
+	// AreaID is the place's identity on the wire (plan-buff-tray.md C1): the
+	// caster a dot from this area reports, so the own player's tray can draw
+	// one circle per pool. world.PlacedAreaEffect.ID; see SourceID.
+	AreaID() uint64
 }
 
 // AreaHittable is implemented by entities an area effect can act on: players

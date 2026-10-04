@@ -34,10 +34,10 @@ type wireFakeGame struct {
 	qr  quests.Registry
 }
 
-func (g *wireFakeGame) Config() *cfg.GameConfig  { return &g.cfg }
-func (g *wireFakeGame) Skills() skills.Registry  { return g.reg }
-func (g *wireFakeGame) Quests() quests.Registry  { return g.qr }
-func (g *wireFakeGame) Ticks() uint64            { return 0 }
+func (g *wireFakeGame) Config() *cfg.GameConfig { return &g.cfg }
+func (g *wireFakeGame) Skills() skills.Registry { return g.reg }
+func (g *wireFakeGame) Quests() quests.Registry { return g.qr }
+func (g *wireFakeGame) Ticks() uint64           { return 0 }
 
 type wireFakeClient struct {
 	model.Client
@@ -307,4 +307,90 @@ func TestNetSystem_OwnerStateBlock_HeartbeatResendsWithNoMutation(t *testing.T) 
 	n.game.Tick = 1 + ownerStateHeartbeatTicks
 	healed := decodeGameState(t, send(n, p))
 	assert.Greater(t, healed.SpellbookLength(), 0, "the heartbeat must resend with zero mutation")
+}
+
+// --- the buff tray (plan-buff-tray.md C1) ---
+
+type buffablePlayer interface {
+	ApplySpeed(source skills.SkillID, factor float32, ticks int) bool
+	ResetTickNumbers()
+}
+
+// An application resends the block on the SAME tick, carrying the circle with
+// its expiry as an absolute tick; the next quiet tick omits everything again.
+func TestNetSystem_OwnEffects_ApplyResendsTheBlockOnTheSameTick(t *testing.T) {
+	p, _ := newWirePlayer(t)
+	n := &NetSystem{game: &game{Tick: 1}}
+	n.players = []model.PlayerEntity{p}
+
+	first := decodeGameState(t, send(n, p))
+	assert.True(t, first.OwnerState())
+	assert.Zero(t, first.OwnEffectsLength(), "nothing on a fresh player")
+
+	n.game.Tick = 2
+	require.True(t, p.(buffablePlayer).ApplySpeed(1, 1.5, 300))
+	got := decodeGameState(t, send(n, p))
+	require.True(t, got.OwnerState(), "the application must bring the block back on the same tick")
+	require.Equal(t, 1, got.OwnEffectsLength())
+	var e AuraApi.OwnEffect
+	require.True(t, got.OwnEffects(&e, 0))
+	assert.Equal(t, uint16(1), e.SkillId())
+	assert.Equal(t, AuraApi.EffectKindSpeed, e.Kinds())
+	assert.Equal(t, uint16(300), e.TotalTicks())
+	assert.Equal(t, uint64(2+300), e.ExpiresTick(), "expiry is absolute: this tick plus the ticks left")
+	assert.Zero(t, e.Caster(), "a speed buff has no caster; it is the skill's shared circle")
+
+	n.game.Tick = 3
+	p.(buffablePlayer).ResetTickNumbers() // the buff ages one tick
+	quiet := decodeGameState(t, send(n, p))
+	assert.False(t, quiet.OwnerState(), "aging is not a change")
+	assert.Zero(t, quiet.OwnEffectsLength())
+}
+
+// ⛔ The constraint D15 stands on, measured at the socket: a live effect that
+// neither refreshes nor expires adds no resend over a steady run. The run
+// stays inside one heartbeat window on purpose (the first send at tick 1 arms
+// the heartbeat for tick 151).
+func TestNetSystem_OwnEffects_ALiveEffectCostsNothingWhileItAges(t *testing.T) {
+	p, _ := newWirePlayer(t)
+	n := &NetSystem{game: &game{Tick: 1}}
+	n.players = []model.PlayerEntity{p}
+	require.True(t, p.(buffablePlayer).ApplySpeed(1, 1.5, 1000))
+	withEffect := len(send(n, p)) // tick 1: the join send carries the circle
+
+	quietBytes := 0
+	for tick := uint64(2); tick <= 149; tick++ {
+		n.game.Tick = tick
+		p.(buffablePlayer).ResetTickNumbers()
+		payload := send(n, p)
+		require.False(t, decodeGameState(t, payload).OwnerState(), "tick %d resent the block for a merely aging effect", tick)
+		if quietBytes == 0 {
+			quietBytes = len(payload)
+		}
+		assert.Equal(t, quietBytes, len(payload), "tick %d: quiet ticks are byte-stable", tick)
+	}
+	t.Logf("join send with one circle: %d B; quiet tick: %d B", withEffect, quietBytes)
+	assert.Less(t, quietBytes, withEffect)
+}
+
+// An expiry is a change: the block comes back on that tick with NO circle, and
+// the client clears the tray off owner_state, never off the vector's absence.
+func TestNetSystem_OwnEffects_ExpiryResendsTheBlockEmpty(t *testing.T) {
+	p, _ := newWirePlayer(t)
+	n := &NetSystem{game: &game{Tick: 1}}
+	n.players = []model.PlayerEntity{p}
+	require.True(t, p.(buffablePlayer).ApplySpeed(1, 1.5, 3))
+	require.Equal(t, 1, decodeGameState(t, send(n, p)).OwnEffectsLength())
+
+	for tick := uint64(2); tick <= 3; tick++ {
+		n.game.Tick = tick
+		p.(buffablePlayer).ResetTickNumbers()
+		assert.False(t, decodeGameState(t, send(n, p)).OwnerState(), "tick %d: still live, still quiet", tick)
+	}
+
+	n.game.Tick = 4
+	p.(buffablePlayer).ResetTickNumbers() // the third aging tick expires it
+	got := decodeGameState(t, send(n, p))
+	assert.True(t, got.OwnerState(), "the expiry resends the block on its tick")
+	assert.Zero(t, got.OwnEffectsLength(), "with nothing on the player")
 }

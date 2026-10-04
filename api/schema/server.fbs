@@ -885,6 +885,42 @@ table MapFog {
   chunks:[FogChunk];  // explored chunks only
 }
 
+// --- the buff tray (plan-buff-tray.md C1, D11/D13/D15) ---
+
+// The kinds of timed effect the buff store can hold, as BITS: an OwnEffect
+// carries the union of the kinds live under its circle. The Go mirror is
+// skills.EffectKind, pinned against this enum by a codec test and against
+// api/shared-constants.json by both sides' twins, so a renumber goes red before
+// a slow draws as a buff. Which side a circle sits on is the CLIENT's rule
+// (D13: Slow, Dot and Stun are harmful, the rest beneficial); nothing here
+// says so, because the server has no reason to know.
+enum EffectKind : ushort (bit_flags) {
+  Resist, Slow, Speed, Lifesteal, Reflect, TickRate, Dot, Hot, Shield, Calm, Stun, Charm
+}
+
+// One circle on the own player's buff tray: a skill's timed effects, with the
+// time they have left. The client counts down from `expires_tick` against
+// GameState.tick on every frame and draws `(expires - tick) / total_ticks`;
+// nothing about it streams per tick (WoW's shape, D15).
+//
+// ⭐ The circle key is (skill_id, caster), PO 2026-10-02 (it amends D11's
+// "one circle per skill"): a damage-over-time stream is applied and ticks PER
+// CASTER on the server, so two wolves' Venom Spit are two circles, each with
+// its own time. Everything that has no caster on the server (a slow, a resist,
+// a stun, a shield, a heal-over-time, where a second caster only refreshes the
+// same stream) folds into ONE circle per skill with caster 0, and while a skill
+// has dot circles its caster-less kinds ride in those circles' `kinds` instead.
+//
+// `caster` is the applying entity's id, or a placed area effect's id (lava, the
+// bog: a disjoint range above 2^32, world.PlacedAreaEffect.ID), or 0.
+struct OwnEffect {
+  skill_id:ushort;
+  kinds:EffectKind;     // the union of EffectKind bits live under this circle
+  total_ticks:ushort;   // the lifetime the longest stream started with; a refresh resets it (D2)
+  caster:ulong;         // see above; 0 = the skill's shared circle
+  expires_tick:ulong;   // the server tick the longest stream ends on; GameState.tick is the clock
+}
+
 table GameState {
   tick:ulong;
 
@@ -1098,6 +1134,18 @@ table GameState {
   // out of band of its contents. Appended at the table end so existing field
   // IDs stay stable.
   map_fog:MapFog;
+
+  // The own player's buff tray (plan-buff-tray.md C1, D15): every timed effect
+  // on this player as an OwnEffect, see the struct. ⭐ RIDES THE OWNER BLOCK:
+  // built only on a tick that carries `owner_state`, and resent through the
+  // same gate when the buff store's revision moves (an application, a refresh
+  // that extends a stream, an expiry, an early removal) or the heartbeat is
+  // due. On such a tick an ABSENT or empty vector means "nothing on you" and
+  // the tray clears; on a tick without `owner_state` the client keeps counting
+  // down from the expiries it was last told, and never reads emptiness as a
+  // clear (perf chunk 3's F1 rule, applied here). Appended at the table end so
+  // existing field IDs stay stable.
+  own_effects:[OwnEffect];
 }
 
 table Welcome {

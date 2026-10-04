@@ -146,6 +146,13 @@ type PlayerEntity interface {
 	// this player (wire applied_effects — the client draws the pips from it;
 	// the received-status mirror of AuraCategories).
 	AppliedEffects() skills.AppliedEffect
+	// BuffRevision and OwnEffects are the buff tray's two reads
+	// (plan-buff-tray.md C1, D15): the store's change counter the owner-state
+	// gate watches, and the per-circle projection the owner block carries on a
+	// tick the gate lets through. Own player only; a mob's effects stay the
+	// pips applied_effects draws.
+	BuffRevision() uint64
+	OwnEffects() []skills.OwnEffect
 	// MovementFactor is this player's transient movement-speed multiplier —
 	// speed_burst buffs composed with the strongest slow (skills.Buffs). Read
 	// at the movement site (core/input.go), the same shape as the passive

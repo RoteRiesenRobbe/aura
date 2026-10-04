@@ -281,7 +281,9 @@ func TestPlacedAreaEffect_IsItsOwnSource(t *testing.T) {
 
 // fakeSkillDefs answers with real definitions, so the effect-type check has
 // something to look at.
-type fakeSkillDefs struct{ defs map[string]*skills.SkillDefinition }
+type fakeSkillDefs struct {
+	defs map[string]*skills.SkillDefinition
+}
 
 func (f fakeSkillDefs) GetByName(name string) (*skills.SkillDefinition, error) {
 	if d, ok := f.defs[name]; ok {
@@ -338,4 +340,20 @@ func TestCrossValidateAreaEffectShapes_LeavesTheUnknownNameToTheOtherPass(t *tes
 		"structures":[{"profile":"Lava","effect":"NoSuchSkill",
 		             "points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`)
 	assert.NoError(t, CrossValidateAreaEffectShapes(defsWith("Other", skills.EffectTypeDotAura), []*Zone{z}))
+}
+
+// The buff tray keys a dot's circle by its caster (plan-buff-tray.md C1), and
+// a place has to be one too: every collected area gets an id of its own, in a
+// range entity ids never reach, so two lava pools draw as two circles.
+func TestCollectAreaEffects_GivesEveryAreaAnIDAboveTheEntityRange(t *testing.T) {
+	z := zoneWithEffects(t, "hazards", effectDoc)
+	got := CollectAreaEffects([]*Zone{z})
+	require.Len(t, got, 3)
+	seen := map[uint64]bool{}
+	for _, a := range got {
+		assert.Greater(t, a.ID, AreaIDBase, "above 2^32")
+		assert.Equal(t, a.ID, a.AreaID())
+		assert.False(t, seen[a.ID], "ids are distinct")
+		seen[a.ID] = true
+	}
 }

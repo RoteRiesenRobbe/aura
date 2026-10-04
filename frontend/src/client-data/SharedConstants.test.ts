@@ -152,6 +152,10 @@ describe('shared constants (api/shared-constants.json)', () => {
         expect(numericMembers(AppliedEffectBit)).toEqual(pascalKeyed(shared.appliedEffectBits));
     });
 
+    it('pins the buff-tray effect-kind bits (plan-buff-tray.md C1)', () => {
+        expect(numericMembers(AuraApi.EffectKind)).toEqual(pascalKeyed(shared.effectKindBits));
+    });
+
     it('pins the aura-ring category bits', () => {
         expect(numericMembers(AuraCategoryBit)).toEqual(pascalKeyed(shared.auraCategoryBits));
     });

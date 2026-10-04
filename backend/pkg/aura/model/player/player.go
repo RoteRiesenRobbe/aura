@@ -799,6 +799,13 @@ func (p *player) AppliedEffects() skills.AppliedEffect {
 	return p.buffs.AppliedEffects()
 }
 
+// BuffRevision is the buff tray's change counter (plan-buff-tray.md C1).
+func (p *player) BuffRevision() uint64 { return p.buffs.Revision() }
+
+// OwnEffects is the buff tray's projection (plan-buff-tray.md C1). Allocates;
+// the codec calls it only on a tick that sends the owner block.
+func (p *player) OwnEffects() []skills.OwnEffect { return p.buffs.OwnEffects() }
+
 // DueBuffEvents advances and drains this tick's due dot damage and hot heal
 // events; called once per tick by the SkillSystem's acting site.
 func (p *player) DueBuffEvents() ([]skills.DotHit, []skills.HotEvent) {

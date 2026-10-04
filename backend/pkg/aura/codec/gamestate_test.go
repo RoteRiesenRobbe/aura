@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"github.com/EngoEngine/ecs"
 	"testing"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
@@ -975,4 +976,89 @@ func TestMapFogMarshalFlatbuf_RoundTrip(t *testing.T) {
 func TestMapFogMarshalFlatbuf_EmptyIsAbsent(t *testing.T) {
 	b := flatbuffers.NewBuilder(64)
 	assert.Zero(t, MapFogMarshalFlatbuf(nil, b))
+}
+
+// --- the buff tray (plan-buff-tray.md C1) ---
+
+type ownEffectEntity struct{ b ecs.BasicEntity }
+
+func (e ownEffectEntity) Basic() ecs.BasicEntity { return e.b }
+
+type ownEffectArea struct{ id uint64 }
+
+func (a ownEffectArea) AreaEffectName() string { return "Immolate" }
+func (a ownEffectArea) AreaID() uint64         { return a.id }
+
+func TestOwnEffectsMarshalFlatbuf_RoundTrip(t *testing.T) {
+	wolf := ownEffectEntity{b: ecs.NewBasic()}
+	lava := ownEffectArea{id: 1<<32 + 3}
+	effects := []skills.OwnEffect{
+		{Skill: 7, Kinds: skills.EffectKindResist | skills.EffectKindSlow, Total: 90, Left: 42},
+		{Skill: 12, Caster: wolf, Kinds: skills.EffectKindDot, Total: 150, Left: 150},
+		{Skill: 12, Caster: lava, Kinds: skills.EffectKindDot, Total: 30, Left: 1},
+		{Skill: 40, Caster: "a test double", Kinds: skills.EffectKindStun, Total: 70000, Left: 5},
+	}
+
+	b := flatbuffers.NewBuilder(256)
+	offset := OwnEffectsMarshalFlatbuf(effects, 1000, b)
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddTick(b, 1000)
+	AuraApi.GameStateAddOwnEffects(b, offset)
+	b.Finish(AuraApi.GameStateEnd(b))
+
+	got := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0)
+	require.Equal(t, 4, got.OwnEffectsLength())
+	var e AuraApi.OwnEffect
+
+	require.True(t, got.OwnEffects(&e, 0))
+	assert.Equal(t, uint16(7), e.SkillId(), "entry order survives the reversal")
+	assert.Equal(t, AuraApi.EffectKindResist|AuraApi.EffectKindSlow, e.Kinds(), "kinds are a bit union")
+	assert.Equal(t, uint16(90), e.TotalTicks())
+	assert.Equal(t, uint64(1042), e.ExpiresTick(), "expiry = the snapshot tick + ticks left")
+	assert.Zero(t, e.Caster(), "nil caster is the skill's shared circle")
+
+	require.True(t, got.OwnEffects(&e, 1))
+	assert.Equal(t, wolf.b.ID(), e.Caster(), "an entity caster is its id")
+	assert.Equal(t, uint64(1150), e.ExpiresTick())
+
+	require.True(t, got.OwnEffects(&e, 2))
+	assert.Equal(t, uint64(1<<32+3), e.Caster(), "a placed area is its area id, above 2^32")
+	assert.Equal(t, uint64(1001), e.ExpiresTick())
+
+	require.True(t, got.OwnEffects(&e, 3))
+	assert.Zero(t, e.Caster(), "a caster that is neither resolves to 0 rather than panicking")
+	assert.Equal(t, uint16(0xFFFF), e.TotalTicks(), "a lifetime past the ushort clamps instead of wrapping")
+}
+
+func TestOwnEffectsMarshalFlatbuf_EmptyWritesNothing(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+	assert.Zero(t, OwnEffectsMarshalFlatbuf(nil, 5, b), "nothing on the player writes no vector at all")
+
+	AuraApi.GameStateStart(b)
+	b.Finish(AuraApi.GameStateEnd(b))
+	assert.Zero(t, AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).OwnEffectsLength())
+}
+
+// The Go bits and the wire enum are two copies of one decision, pinned against
+// each other (the HitKind rule): a renumber on either side would draw a slow
+// as a buff.
+func TestEffectKind_MirrorsTheWireEnum(t *testing.T) {
+	pairs := map[skills.EffectKind]AuraApi.EffectKind{
+		skills.EffectKindResist:    AuraApi.EffectKindResist,
+		skills.EffectKindSlow:      AuraApi.EffectKindSlow,
+		skills.EffectKindSpeed:     AuraApi.EffectKindSpeed,
+		skills.EffectKindLifesteal: AuraApi.EffectKindLifesteal,
+		skills.EffectKindReflect:   AuraApi.EffectKindReflect,
+		skills.EffectKindTickRate:  AuraApi.EffectKindTickRate,
+		skills.EffectKindDot:       AuraApi.EffectKindDot,
+		skills.EffectKindHot:       AuraApi.EffectKindHot,
+		skills.EffectKindShield:    AuraApi.EffectKindShield,
+		skills.EffectKindCalm:      AuraApi.EffectKindCalm,
+		skills.EffectKindStun:      AuraApi.EffectKindStun,
+		skills.EffectKindCharm:     AuraApi.EffectKindCharm,
+	}
+	for goKind, wireKind := range pairs {
+		assert.Equal(t, wireKind, AuraApi.EffectKind(goKind), "%s", wireKind)
+	}
+	assert.Len(t, AuraApi.EnumNamesEffectKind, len(pairs), "a new kind needs a skills constant too")
 }

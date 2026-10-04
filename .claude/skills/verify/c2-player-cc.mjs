@@ -116,8 +116,11 @@ const bootLine = (re) => (bootLog.match(re) || [])[0] || null;
 const debugZones = /"msg":"Loading content"[^\n]*"debugZones":true/.test(bootLog);
 const skillCount = Number((bootLog.match(/"Loaded skill definitions","count":(\d+)/) || [])[1]);
 const mobCount = Number((bootLog.match(/"Loaded mob definitions","count":(\d+)/) || [])[1]);
-check('Boot: debug zone set, 121 skills, 77 mobs',
-  debugZones && bootLine(/"id":"world_debug"[^\n]*"primary":true/) !== null && skillCount === 121 && mobCount === 77,
+// ⚑ No content COUNT here (harness rule 1): the exact 121/77 pin went red the
+// moment the PO authored more mobs (97 on 2026-10-02) and said nothing about
+// CC. The boot leg asserts the debug set is primary and the catalogs loaded.
+check('Boot: debug zone set, skills and mobs loaded',
+  debugZones && bootLine(/"id":"world_debug"[^\n]*"primary":true/) !== null && skillCount >= 100 && mobCount >= 70,
   `debugZones ${debugZones}, skills ${skillCount}, mobs ${mobCount}, primary world_debug ${bootLine(/"id":"world_debug"[^\n]*"primary":true/) !== null}`);
 
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
