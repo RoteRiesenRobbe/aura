@@ -3,7 +3,7 @@
     {
       "id": "farmlands",
       "title": "Farmlands",
-      "subtitle": "Home and Hearth"
+      "subtitle": ""
     },
     {
       "id": "saltgrass",
@@ -118,6 +118,16 @@
       "id": "den-of-evil",
       "title": "Den of Evil",
       "subtitle": "Kobold Hideout"
+    },
+    {
+      "id": "homestead",
+      "title": "Homestead",
+      "subtitle": "Farmlands"
+    },
+    {
+      "id": "farmreinhard",
+      "title": "Reinhard's Farm",
+      "subtitle": "Farmlands"
     }
   ]
 }
