@@ -537,7 +537,7 @@ clear on such a tick, keep counting down otherwise, §10); tenant key =
 mask); `fraction = (expires_tick - tick) / total_ticks` clamped to [0, 1];
 a `caster` above 2^32 is a place (name it by the skill, as the tooltip does).
 
-### C2 (client, desktop) + C0 (content) ✅ BUILT 2026-10-03 `[uncommitted]`
+### C2 (client, desktop) + C0 (content) ✅ BUILT 2026-10-03/04 `116a9519`
 
 What shipped, against §7's rows, with the one choice prompt the session took
 (C0 folded in, PO 2026-10-03) and the deviations it found:
