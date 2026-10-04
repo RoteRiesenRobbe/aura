@@ -140,6 +140,16 @@ function readAreas() {
     return ids;
 }
 
+// The one list of places (plan-region-identity.md D2). zone.go's
+// LoadRegionList is the authority on its rules; this only reads the ids.
+function readRegionIds() {
+    const file = path.join(ROOT, 'api', 'regions', 'regions.json');
+    if (!existsSync(file)) { fail('region list not found: ' + path.relative(ROOT, file)); }
+    const regions = JSON.parse(readFileSync(file, 'utf8')).regions;
+    if (!Array.isArray(regions) || regions.length === 0) { fail('api/regions/regions.json lists no regions'); }
+    return regions.map(r => r.id);
+}
+
 function readMobs() {
     const dir = path.join(ROOT, 'api', 'mobs');
     return readdirSync(dir).filter(f => f.endsWith('.json')).map(f => {
@@ -326,7 +336,7 @@ const KIND_COLOUR = {
     fixture: '#ff9e9e9e',
 };
 
-function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, areas) {
+function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, areas, regionIds) {
     let id = 0;
     const enumType = (name, values) => ({
         id: ++id, name, type: 'enum', storageType: 'string',
@@ -452,13 +462,14 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, are
         // authored". PROFILE_UNSET is that value — it is not a profile name and
         // the save refuses it — so a Tiled that drops a default-valued property
         // and a Tiled that keeps it reach the same answer.
-        // ⭐ title / subtitle (the region title banner, 2026-09-28) obey the
-        // same rule with '' as the "not authored" value — the spawn `anchor`
-        // reading: aura-convert.js readText maps a blank back to absent.
+        // ⭐ Since plan-region-identity.md R1 a region carries an id, a profile,
+        // or both (D1), so on a REGION PROFILE_UNSET reads "no ground" and the
+        // save refuses only a region with neither. The `id` names the place
+        // (D2), picked from AuraRegionId; its default C.REGION_ID_UNSET maps
+        // back to "no place", the EFFECT_UNSET reading of a sentinel.
         classType('AuraRegion', '#ffcddc39',
-            [member('profile', 'string', PROFILE_UNSET, 'AuraTerrainProfile'),
-                member('title', 'string', ''),
-                member('subtitle', 'string', '')]),
+            [member('id', 'string', C.REGION_ID_UNSET, C.REGION_ID_ENUM),
+                member('profile', 'string', PROFILE_UNSET, 'AuraTerrainProfile')]),
         // A path wears the same profile vocabulary as a region and adds its own
         // geometry. ⚑ Both extra members obey the C6 rule the AuraRegion note
         // above states: 'width' defaults to 0, which the save REFUSES, so a
@@ -553,6 +564,11 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, are
     // answer (the C6 rule).
     types.push(classType(C.AREA_CLASS, '#ff607d8b',
         [member('id', 'string', C.AREA_UNSET, C.AREA_ENUM)], ['layer']));
+    // ⭐ The place ids (plan-region-identity.md D2), api/regions/regions.json
+    // in file order. LAST, for AuraAreaId's reason: no existing type id
+    // renumbers. The sentinel leads and means "no place": a region that only
+    // paints ground is the common case, not a mistake.
+    types.push(enumType(C.REGION_ID_ENUM, [C.REGION_ID_UNSET].concat(regionIds)));
     return types;
 }
 
@@ -563,7 +579,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, are
 // the extension carries no content at all and is installed once per machine and
 // never again; being JSON means the extension parses it with JSON.parse rather
 // than eval'ing a script it read off disk.
-function contentJson(terrain, props, mobs, profiles, airProfiles, effects, areas, types) {
+function contentJson(terrain, props, mobs, profiles, airProfiles, effects, areas, regionIds, types) {
     const sizes = {};
     props.forEach(p => { sizes[p.type] = {w: p.wUnits, h: p.hUnits}; });
     const kinds = {};
@@ -610,6 +626,9 @@ function contentJson(terrain, props, mobs, profiles, airProfiles, effects, areas
         // ⚑ The area ids WITHOUT the sentinel (P4b, D15), the EFFECT_NAMES
         // rule: the converter refuses an id outside this list.
         AREA_IDS: areas,
+        // ⚑ The place ids WITHOUT the sentinel (plan-region-identity.md D2):
+        // the converter refuses a region id outside this list.
+        REGION_IDS: regionIds,
     }, null, 2) + '\n';
 }
 
@@ -654,7 +673,9 @@ if (clash.length > 0) {
 const effects = readEffects();
 const areas = readAreas();
 
-const types = propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, areas);
+const regionIds = readRegionIds();
+
+const types = propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, areas, regionIds);
 
 mkdirSync(PALETTE, {recursive: true});
 writeFileSync(path.join(PALETTE, 'decals.tsx'), tileset('aura-decals', 'AuraDecal', terrain));
@@ -664,7 +685,7 @@ writeTemplates(path.join(TEMPLATES, 'props'), '../props.tsx', 'AuraProp', props,
 writeTemplates(path.join(TEMPLATES, 'decals'), '../decals.tsx', 'AuraDecal', terrain,
     () => ({w: TERRAIN_TEMPLATE_SIZE * 2, h: TERRAIN_TEMPLATE_SIZE * 2}));
 writeFileSync(path.join(PALETTE, 'content.json'),
-    contentJson(terrain, props, mobs, profiles, airProfiles, effects, areas, types));
+    contentJson(terrain, props, mobs, profiles, airProfiles, effects, areas, regionIds, types));
 writeFileSync(path.join(TOOLS, 'aura.tiled-project'), patchProject(path.join(TOOLS, 'aura.tiled-project'), types));
 // ⚑ Kept as well as the project copy, and deliberately: project-embedded types
 // apply only while the PROJECT is open. Opening api/zones/world.json on its own
@@ -683,3 +704,4 @@ console.log(`terrain profiles   ${profiles.length} (${profiles.join(', ')}) → 
 console.log(`air profiles       ${airProfiles.length} (${airProfiles.join(', ')}) → AuraAtmosphereProfile + AuraAtmosphere`);
 console.log(`area effects       ${effects.length} skills → AuraEffect + AuraPath + AuraStructure + AuraAtmosphere`);
 console.log(`areas              ${areas.length} ids → AuraAreaId + AuraArea (a group layer's class)`);
+console.log(`places             ${regionIds.length} ids → AuraRegionId + AuraRegion`);

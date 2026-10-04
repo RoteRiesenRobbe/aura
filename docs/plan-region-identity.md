@@ -1,7 +1,7 @@
 # Plan: region identity: a region names a place by a unique id, its ground texture becomes optional, and a "go to" quest objective
 
-**Status:** DESIGNED 2026-10-04 (planning session), **RULED the same day (D2-D9;
-D1 ruled in shape, its id-optional half proposed, §3).** Nothing built. Two chunks:
+**Status:** DESIGNED 2026-10-04 (planning session), **RULED the same day (D1-D9;
+D1(b), the id-optional half, confirmed by the PO at the start of R1, §3).** R1 BUILT 2026-10-04 (uncommitted, ledger §10); R2 next. Two chunks:
 R1 (region ids) → R2 (the `reach` quest objective). Line refs come from a survey
 of HEAD `3d0b6738`; re-verify them before executing.
 
@@ -104,11 +104,12 @@ done when the player stands in a region.
 
 ## 3. Decisions
 
-### D1: a region carries an id and/or a texture (RULED in shape 2026-10-04; (b) PROPOSED)
+### D1: a region carries an id and/or a texture (RULED 2026-10-04)
 
 - **(a) RULED:** regions carry an `id` and an optional `profile`. No separate
   place polygon is drawn (the PO's objection to the first draft).
-- **(b) PROPOSED, PO to confirm: the id is optional too.** A region with only a
+- **(b) RULED (PO, confirmed 2026-10-04 at the start of R1): the id is optional
+  too.** A region carries an id, a profile, or both, never neither. A region with only a
   profile is a pure ground patch, which is exactly today's untitled region, so
   it needs no new object type and no migration. At least one of the two is
   required. The PO asked for "another ground texture object for the case where
@@ -199,8 +200,12 @@ casually a place. The XP plan's D7(b) asked for exactly an id-only region.
 ```
 
 Ids are slugs (the area-id rule). Order in the list means nothing; the zone
-decides order. Every listed id must be drawn somewhere, and every drawn id must
-be listed (both are boot errors: an undrawn id can never be reached).
+decides order. Every drawn id must be listed (a boot error). ⚑ **Amended at
+R1 (PO-confirmed in the R1 pre-build pause):** a listed id no zone draws is a
+boot WARNING, not an error. As an error, every `-debug-zones` boot would fail
+(the debug set draws none of the shipped places), and nothing can reference an
+id in R1. R2 makes "a quest names an undrawn region" the hard error, which is
+the real hazard (a goal nobody can reach).
 
 ### 4.2 The zone file
 
@@ -349,3 +354,130 @@ to prove it: a debug quest, or the PO's first real one.
   `AuraPlace` class, regions reduced to ground only. Rejected by the PO the same
   day: it meant drawing a region and an equivalent place polygon for every
   textured place.
+
+---
+
+## 10. Chunk ledgers
+
+### R1: region ids ✅ 2026-10-04 (uncommitted; PO Tiled pass ✅)
+
+**Rulings taken at the pre-build pause** (PO: "yep"):
+
+- D1(b) confirmed (recorded in §3 before the build).
+- The two titles with no matching area id: "Saltgrass Strand" → `saltgrass`
+  (D15's convention drops the generic "Strand"), "Den of Evil" → `den-of-evil`.
+  The other 22 reuse their area id.
+- A listed id no zone draws is a boot WARNING, not an error (§4.1 amended).
+- On a region, `(pick a profile)` now reads "no ground". The save refuses only a
+  region with neither an id nor a profile.
+- The converter's o.name fallback for the profile applies only to a region with
+  no id. Otherwise an id-only region, which opens named by its id, would read
+  the id as its profile (§2.4).
+
+**Built:**
+
+- **Content:** `api/regions/regions.json`, `{"regions": [{id, title, subtitle?}]}`,
+  24 places (world.json's 23 in file order, then koboldCave's one). It joins
+  `contentSources` (`regions`), the embed package `pkg/api/regions`,
+  `diskContent`, the Makefile's `cp-defs` and `validate_test.go`'s copy list.
+- **Go:**
+  - `world/regions.go`: `LoadRegionList` (strict decode, a non-empty list,
+    slug ids, unique, title required) and `CrossValidateRegionIDs` (unlisted
+    drawn id = an error, all joined; returns the undrawn ids).
+  - `Region`: `ID` first (`id,omitempty`), `Profile` `omitempty`,
+    `Title`/`Subtitle` removed, so `DisallowUnknownFields` refuses a stale file
+    by name. Validation: an id or a profile; a blank-but-present profile and a
+    non-slug id are refused.
+  - `cmd/aurad`: a `regions` load stage with no dependencies; zones skip
+    without it; `loadZones` runs the cross-check beside `CrossValidateAreaIDs`
+    and logs the undrawn ids as ONE warning line.
+- **Migration:** `scripts/migrate-region-ids.mjs`. It is idempotent (a second
+  run changes nothing), all or nothing, refuses a non-canonical file, and
+  merges into an existing list (an id clash refuses). It ran on `world.json`
+  (23 regions) and `koboldCave.json` (1). The diffs are the key moves only.
+- **Palette:** the `AuraRegionId` enum, `(no place)` first, appended LAST (type
+  id 28; no existing id renumbered). `AuraRegion` = `id` + `profile` (title and
+  subtitle gone). `content.json` gains `REGION_IDS`.
+- **Converter:**
+  - ⛔ The open refusal: `checkRegionTitles` at zone level and in every area,
+    naming the migration script.
+  - Read and write carry `id`. A region opens named by its id, else its profile.
+  - `readRegionId` / `readRegionGround` map both sentinels to absent.
+  - validateModel refuses neither-nor, a non-slug id, and an unlisted id.
+- **ZoneModel** (the fourth writer) and `GroundTextureManager`'s type carry `id`;
+  profile is optional.
+- **Client:**
+  - `Region.profile` is optional, and `Region.id` replaces title/subtitle.
+  - ⛔ `Regions.paintedRegions` filters out profile-less regions. It is used
+    inside `RegionPaint.paintRegions`, the one function both the world and the
+    map bake draw through, and also for the texture loader's list.
+  - `RegionNames.placeAt` reads ids and joins `PLACES` (the bundled list). The
+    announcer is keyed on the id (D3), and the curtain's title card follows.
+  - `BrowserConsole` exposes `regions.places()`.
+- **Harness:**
+  - `region-banner.mjs` now runs on ids. It picks its places off the list,
+    never names them, and adds leg 7 (an id-only sub-place inside a place).
+  - `verify/SKILL.md` row updated: run it on the DEBUG zones.
+  - `verify.sh` footer item 12 holds the GUI check.
+
+**Verified:**
+
+- **Go:** `go build ./...` green; `go test -count=1 ./...` green bar the known
+  C1b test (`TestPropContent_C1bMigrationPreservesLookAndCollision`). New
+  tests:
+  - `regions_test.go` covers: the list loads; a bad list refused seven ways plus
+    a missing file; id / profile / both / neither; blank profile and bad slug;
+    the retired keys refused by name; unlisted refused (an area included);
+    undrawn returned.
+  - `TestLoadZones_RunsTheRegionListCheck` at the boot seam.
+  - `TestEmbeddedRegionList_LoadsAndMatchesSource`.
+  - Superseded: `TestRegionTitleAndSubtitle` and
+    `TestZone_RejectsRegionWithoutProfile`.
+- **`-validate`:** 0 findings embedded, with `-content ../api`, and with
+  `-debug-zones`. The debug set logs one undrawn-places warning, as designed.
+- **vitest:** 1527/0, typecheck clean. New tests:
+  - region ids through the converter: the round trip, id first; the enum marker
+    and index decode; sentinels read as absent; never reading an id-only
+    region's name as its profile; unlisted and non-slug ids refused; the open
+    refusal, in an area too.
+  - `placeAt` on ids: an id-only sub-place, the shipped list, `paintedRegions`.
+  - The completeness pin now authors `id`.
+  - The two byte-stability tests passed on the migrated world.json.
+- **`verify.sh`:** 39 ✅ / 0 ❌ after reinstalling the extension. The title leg
+  became five legs:
+  - the JSON round trip of id / id-only / profile-only;
+  - a TMX with the id typed as `AuraRegionId` and the object renamed, saved
+    back byte-identical;
+  - an unlisted id refused;
+  - an id-only region with its id removed refused (it falls back to its name as
+    a profile, which is unknown);
+  - a titled file refused at open.
+- **`region-banner.mjs`:** 11 pass / 0 fail / 0 inconclusive, on the debug zones.
+- **In game, main world (scratch script, headless):**
+  - The spawn announced "Farmlands / Home and Hearth".
+  - WARPs announced Deep Woods, Brunnstedt, Sorrowfen and Saltgrass Strand,
+    each with its exact listed title + subtitle.
+  - Then a temporary id-only `r1-probe` region (6 × 6 u, inside the Farmlands)
+    and a list entry announced "R1 Probe Farm" there.
+  - The region layer held 54 children with and without the probe.
+  - The two screenshots show the same ground: no base fill, nothing painted.
+  - 0 console errors.
+  - Probe reverted, frontend rebuilt, harness residue cleaned.
+
+**Schema:** DB **NONE** · wire **NONE** · conf **NONE** · content **+1 file**
+(`api/regions/regions.json`) · zone format ⛔ **BREAKING**: regions +`id`,
+`profile` optional, −`title`, −`subtitle` (the converter refuses a pre-R1 file;
+zone.go refuses the keys).
+
+**PO Tiled pass ✅ 2026-10-04** (verify.sh footer item 12): *"dropdown shows. i
+drew a new region with only id in farmlands area. saving worked [...] can
+confirm it refuses save with both placeholders."* The save wrote `{id, points}`
+with no profile, and the rest of world.json came back byte-identical. ⚑ That
+test region (id `sunscar`, around the spawn fire) was left UNCOMMITTED in the
+working tree: committed, every fresh character would spawn announced as "The
+Sunscar". ⚑ Still a look call: on a region, the `(pick a profile)` label now
+means "no ground".
+
+**Not done (R2):** the `reach` objective, regions offset in `world.Place`.
+⚑ `scripts/migrate-areas.mjs` (P4c, already run) still reads region titles. It
+is history, so it was left as is.

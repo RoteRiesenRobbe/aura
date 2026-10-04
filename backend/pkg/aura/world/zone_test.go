@@ -756,25 +756,6 @@ func TestZone_RejectsRegionWithFewerThanThreePoints(t *testing.T) {
 	}
 }
 
-func TestZone_RejectsRegionWithoutProfile(t *testing.T) {
-	for _, profile := range []string{`""`, `"   "`} {
-		doc := `{
-			"name": "X",
-			"bounds": { "width": 60, "height": 40 },
-			"regions": [
-				{ "profile": "swamp", "points": [
-					{ "x": 0, "y": 0 }, { "x": 1, "y": 0 }, { "x": 1, "y": 1 } ] },
-				{ "profile": ` + profile + `, "points": [
-					{ "x": 0, "y": 0 }, { "x": 1, "y": 0 }, { "x": 1, "y": 1 } ] } ]
-		}`
-
-		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
-		require.Error(t, err, "profile %s must be rejected", profile)
-		assert.Contains(t, err.Error(), "region 1")
-		assert.Contains(t, err.Error(), "profile")
-	}
-}
-
 // D8/§4.6: an UNKNOWN profile name is deliberately not a boot error — the
 // table lives in the client, and D11 resolves a miss to the default profile.
 // Tiled catches typos at save time, with the object id.
@@ -789,32 +770,6 @@ func TestZone_AcceptsUnknownRegionProfile(t *testing.T) {
 	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
 	assert.Equal(t, "no-such-profile", z.Regions[0].Profile)
-}
-
-// The region title banner (2026-09-28): a region may name the place it is.
-// Both keys are optional and client-only; the server's part is accepting them
-// (DisallowUnknownFields) and refusing the one shape that could never show.
-func TestRegionTitleAndSubtitle(t *testing.T) {
-	const tri = `[{"x":0,"y":0},{"x":9,"y":0},{"x":9,"y":9}]`
-	parse := func(region string) (*Zone, error) {
-		return parseZone([]byte(`{"name":"R","bounds":{"width":60,"height":40},"regions":[` + region + `]}`))
-	}
-
-	z, err := parse(`{"profile":"Fields","points":` + tri + `,"title":"Farmlands","subtitle":"Where it began"}`)
-	require.NoError(t, err)
-	assert.Equal(t, "Farmlands", z.Regions[0].Title)
-	assert.Equal(t, "Where it began", z.Regions[0].Subtitle)
-
-	z, err = parse(`{"profile":"Fields","points":` + tri + `,"title":"Farmlands"}`)
-	require.NoError(t, err, "a title alone is fine")
-	assert.Empty(t, z.Regions[0].Subtitle)
-
-	z, err = parse(`{"profile":"Fields","points":` + tri + `}`)
-	require.NoError(t, err, "an unnamed region is the common case")
-	assert.Empty(t, z.Regions[0].Title)
-
-	_, err = parse(`{"profile":"Fields","points":` + tri + `,"subtitle":"Orphan"}`)
-	assert.EqualError(t, err, `region 0: subtitle "Orphan" needs a title to sit under`)
 }
 
 // ⛔ A DOT-DIRECTORY IS NOT A ZONE (PO 2026-09-20). zoneStems walks the whole

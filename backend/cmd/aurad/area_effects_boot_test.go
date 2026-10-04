@@ -87,7 +87,7 @@ func TestLoadZones_RunsTheAreaEffectCheck(t *testing.T) {
 	require.NotEmpty(t, realName, "the content must author at least one area-applicable skill")
 
 	t.Run("a known effect boots", func(t *testing.T) {
-		zones, err := loadZones(zoneFSWithEffect(realName), "hazards", mr, pr, sr, nil)
+		zones, err := loadZones(zoneFSWithEffect(realName), "hazards", mr, pr, sr, nil, nil)
 		require.NoError(t, err)
 		require.Len(t, zones, 1)
 		assert.Equal(t, realName, zones[0].Atmospheres[0].Effect)
@@ -98,7 +98,7 @@ func TestLoadZones_RunsTheAreaEffectCheck(t *testing.T) {
 	// hazard that draws, reads as dangerous and does nothing at all. The boot is
 	// what panics on it (aurad.go); this pins that the check ran and reported.
 	t.Run("an unknown effect refuses the boot", func(t *testing.T) {
-		_, err := loadZones(zoneFSWithEffect("NoSuchSkill"), "hazards", mr, pr, sr, nil)
+		_, err := loadZones(zoneFSWithEffect("NoSuchSkill"), "hazards", mr, pr, sr, nil, nil)
 		require.Error(t, err, "loadZones must refuse an unknown effect")
 		assert.Contains(t, err.Error(), "NoSuchSkill")
 		assert.Contains(t, err.Error(), "api/skills/")
@@ -114,10 +114,27 @@ func TestLoadZones_RunsTheAreaListCheck(t *testing.T) {
 		"areas": [{"id": "dark-woods"}]}`
 	fsys := fstest.MapFS{"hazards.json": {Data: []byte(doc)}}
 
-	_, err := loadZones(fsys, "hazards", mr, pr, sr, []string{"farmlands", "dark-woods"})
+	_, err := loadZones(fsys, "hazards", mr, pr, sr, []string{"farmlands", "dark-woods"}, nil)
 	require.NoError(t, err)
 
-	_, err = loadZones(fsys, "hazards", mr, pr, sr, []string{"farmlands"})
+	_, err = loadZones(fsys, "hazards", mr, pr, sr, []string{"farmlands"}, nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), `area 0: id "dark-woods" is not in api/areas/areas.json`)
+}
+
+// R1 (plan-region-identity.md D2): the boot refuses a region id
+// api/regions/regions.json does not list, and boots one it does.
+func TestLoadZones_RunsTheRegionListCheck(t *testing.T) {
+	mr, pr, sr := areaEffectContent(t)
+	doc := `{"name": "Hazards", "bounds": {"width": 60, "height": 40},
+		"bindPoints": [{"id": "spawnpoint-1", "x": 0, "y": 0, "startingSpawn": true}],
+		"regions": [{"id": "home", "points": [{"x": 0, "y": 0}, {"x": 9, "y": 0}, {"x": 9, "y": 9}]}]}`
+	fsys := fstest.MapFS{"hazards.json": {Data: []byte(doc)}}
+
+	_, err := loadZones(fsys, "hazards", mr, pr, sr, nil, []world.RegionName{{ID: "home", Title: "Home"}})
+	require.NoError(t, err)
+
+	_, err = loadZones(fsys, "hazards", mr, pr, sr, nil, []world.RegionName{{ID: "away", Title: "Away"}})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `region 0: id "home" is not in api/regions/regions.json`)
 }

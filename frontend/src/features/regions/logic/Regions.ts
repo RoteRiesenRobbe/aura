@@ -620,14 +620,18 @@ export interface RegionPoint {
  *  ⚑ The zone file authors server units; {@link loadZone} converts once, so
  *  every consumer can pass the pixel position it already holds. */
 export interface Region {
-    profile: string;
+    /** The ground it paints. ⭐ Optional on a REGION since
+     *  plan-region-identity.md R1 (D1): an id-only region names a place and
+     *  paints nothing, so it is transparent to {@link resolveIn} (no profile,
+     *  no property) and ⛔ never reaches the painter (RegionPaint.paintRegions
+     *  skips it; handed over, it would paint the base land fill, §2.4). Every
+     *  other shape that rides this type always carries one. */
+    profile?: string;
     points: RegionPoint[];
-    /** The place's name, shown on entering it (RegionNames). Per PLACEMENT,
-     *  never per profile: two "Forest" regions can be two different woods.
-     *  Absent = an unnamed region, transparent to the name lookup. */
-    title?: string;
-    /** A smaller line under the title. Only meaningful with one. */
-    subtitle?: string;
+    /** The place it names, from api/regions/regions.json (RegionNames). Per
+     *  PLACEMENT: several polygons may share one (D3). Absent = an unnamed
+     *  region, transparent to the name lookup. */
+    id?: string;
 }
 
 let regions: Region[] = [];
@@ -682,6 +686,13 @@ export function resolveIn<K extends keyof Profile>(
     return DEFAULT_PROFILE[property];
 }
 
+/** The regions that paint ground: every one carrying a profile
+ *  (plan-region-identity.md D1). RegionPaint.paintRegions draws only these,
+ *  so an id-only place never paints the base land fill (§2.4). */
+export function paintedRegions(inRegions: Region[]): Region[] {
+    return inRegions.filter(region => !!region.profile);
+}
+
 /** {@link resolveIn} against the loaded zone and the authored table. */
 export function resolve<K extends keyof Profile>(property: K, point: RegionPoint): Profile[K] {
     return resolveIn(property, point, regions, TERRAIN_PROFILES);
@@ -731,10 +742,9 @@ export function outlineOf(def: {outlineProfile?: string, outlineWidth?: number})
 }
 
 export interface RegionDefinition {
-    profile: string;
+    id?: string;
+    profile?: string;
     points: { x: number, y: number }[];
-    title?: string;
-    subtitle?: string;
 }
 
 /** Authored server units → world pixels. The ONE conversion, so the world and
@@ -743,13 +753,12 @@ export interface RegionDefinition {
  *  An absent array = no regions, which is every zone shipped before this. */
 export function toRegions(defs: RegionDefinition[] | undefined, origin?: {x: number, y: number}): Region[] {
     return (defs || []).map(r => ({
-        profile: r.profile,
+        ...(r.profile ? {profile: r.profile} : {}),
         points: (r.points || []).map(p => ({
             x: meter2px(p.x + (origin ? origin.x : 0)),
             y: meter2px(p.y + (origin ? origin.y : 0)),
         })),
-        ...(r.title ? {title: r.title} : {}),
-        ...(r.title && r.subtitle ? {subtitle: r.subtitle} : {}),
+        ...(r.id ? {id: r.id} : {}),
     }));
 }
 

@@ -5,6 +5,7 @@ import {BackendValidTokenEvent, GameSetupEvent, PlayerCreatedEvent} from '../../
 import * as Console from '../../console/logic/Console';
 import * as DarknessOverlay from '../../../darkness/logic/DarknessOverlay';
 import * as Regions from '../../../regions/logic/Regions';
+import {PLACES} from '../../../regions/logic/RegionNames';
 import {Player} from "../../../player/logic/Player";
 import {IGame} from "../../../core/logic/IGame";
 import {SkillEventData} from "../../../backend/logic/SkillEventNumbers";
@@ -117,10 +118,12 @@ function setup() {
         // rather than screenshot. Nothing in the game reads it back.
         consoleCommands.darkness = {isHidden: DarknessOverlay.isHidden};
         // The loaded zone's regions, LIVE (the region title banner, 2026-09-28):
-        // `region-banner.mjs` pushes titled regions around the player into this
-        // very array, so the banner is driven through the real lookup without a
-        // zone edit. A zone swap replaces the array, which drops them again.
-        consoleCommands.regions = {loaded: Regions.loadedRegions};
+        // `region-banner.mjs` pushes regions carrying a place id around the
+        // player into this very array, so the banner is driven through the real
+        // lookup without a zone edit. A zone swap replaces the array, which drops
+        // them again. `places` is the bundled list (plan-region-identity.md D2),
+        // so the harness picks real ids instead of naming them.
+        consoleCommands.regions = {loaded: Regions.loadedRegions, places: () => Array.from(PLACES.values())};
         // Every held body drawn OFF its logical position, as {id, x, y}
         // (plan-natural-weapons.md §3.2). The manager's counters only see its
         // own writes; this reads the real token node back, so an empty list

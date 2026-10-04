@@ -4,12 +4,15 @@
  * (RegionBanner) feeds it positions and `now`.
  *
  * ⭐ A NAME IS PER PLACEMENT, not per profile. A region authors an optional
- * `title` and `subtitle` in the zone file; an untitled region is transparent to
- * this lookup, exactly as a profile that omits a property is transparent to
- * `resolveIn` (D0). So a small unnamed blob inside "Ashen Fields" leaves you in
- * Ashen Fields, and the LAST containing titled region wins, as everywhere else.
+ * `id` naming its place (plan-region-identity.md R1); the title and subtitle
+ * come from api/regions/regions.json (D2). A region without an id is
+ * transparent to this lookup, exactly as a profile that omits a property is
+ * transparent to `resolveIn` (D0). So a small unnamed blob inside "Ashen
+ * Fields" leaves you in Ashen Fields, and the LAST containing region with an
+ * id wins, as everywhere else (D4: the region above wins).
  */
 import {pointInPolygon, Region, RegionPoint} from './Regions';
+import regionListJson from '../../../../../api/regions/regions.json';
 
 /** Stay this long before a place is announced, so skimming a border (or a
  *  warp passing through one) says nothing. [PLACEHOLDER] */
@@ -20,26 +23,49 @@ export const SETTLE_MS = 1000;
 export const REPEAT_COOLDOWN_MS = 30_000;
 
 export interface PlaceName {
+    /** The place's id. Absent only on a card that names a ZONE (the crossing
+     *  curtain's fallback), which never reaches the announcer. */
+    id?: string;
     title: string;
     subtitle?: string;
 }
 
+/** One entry of api/regions/regions.json. */
+export interface ListedPlace {
+    id: string;
+    title: string;
+    subtitle?: string;
+}
+
+/** The place list, by id. The server refuses a boot on an unlisted id, so a
+ *  miss here only happens against a hand-edited bundle; it reads as no name. */
+export function placeTable(list: ListedPlace[]): Map<string, PlaceName> {
+    return new Map(list.map(p => [p.id, p.subtitle
+        ? {id: p.id, title: p.title, subtitle: p.subtitle}
+        : {id: p.id, title: p.title}]));
+}
+
+/** The shipped list (D2), bundled like the zones themselves. */
+export const PLACES: Map<string, PlaceName> = placeTable((regionListJson as {regions: ListedPlace[]}).regions);
+
 /** The place at `point`: the last region in authored order that contains it and
- *  carries a title, or null. */
-export function placeAt(regions: Region[], point: RegionPoint): PlaceName | null {
+ *  carries an id, or null. */
+export function placeAt(
+    regions: Region[], point: RegionPoint, places: Map<string, PlaceName> = PLACES,
+): PlaceName | null {
     for (let i = regions.length - 1; i >= 0; i--) {
         const r = regions[i];
-        if (r.title && pointInPolygon(point, r.points)) {
-            return r.subtitle ? {title: r.title, subtitle: r.subtitle} : {title: r.title};
+        if (r.id && pointInPolygon(point, r.points)) {
+            return places.get(r.id) || null;
         }
     }
     return null;
 }
 
-/** Two regions carrying the same title and subtitle are ONE place: crossing
- *  from one polygon of "Ashen Fields" into the next announces nothing. */
+/** Two polygons carrying one id are ONE place (D3): crossing from one polygon
+ *  of "Ashen Fields" into the next announces nothing. */
 function keyOf(place: PlaceName | null): string | null {
-    return place ? place.title + '\n' + (place.subtitle || '') : null;
+    return place ? (place.id || place.title) : null;
 }
 
 /**

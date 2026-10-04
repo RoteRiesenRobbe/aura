@@ -1,6 +1,7 @@
 # Plan: prop draw order: deterministic stacking, prop layers and area groups authored in Tiled
 
-**Status:** DESIGNED 2026-09-20, **REVISED 2026-10-02** (PO session: D1, D3,
+**Status:** ✅ **COMPLETE, archived 2026-10-04** (P4 + P4b + P4c `dd3f3582`).
+DESIGNED 2026-09-20, **REVISED 2026-10-02** (PO session: D1, D3,
 D4, D8 and D9 ruled the same day). **P0-P3 built and PO-passed (§11); P4,
 P4b (area ids from one list, a Tiled dropdown, D15) and P4c (world.json
 migrated into 22 areas, D16) built 2026-10-03 (§11) and PO-passed the same

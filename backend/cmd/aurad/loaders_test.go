@@ -336,3 +336,15 @@ func TestEmbeddedAreaList_LoadsAndMatchesSource(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, want, got, "embedded area list is stale — run `make -C backend cp-defs`")
 }
+
+// The shipped region list loads, and the embedded copy is the authored one
+// (plan-region-identity.md R1): a stale copy would refuse a zone -content boots.
+func TestEmbeddedRegionList_LoadsAndMatchesSource(t *testing.T) {
+	disk, err := diskContent("../../../api")
+	require.NoError(t, err)
+	want, err := world.LoadRegionList(disk.regions)
+	require.NoError(t, err)
+	got, err := world.LoadRegionList(embeddedContent().regions)
+	require.NoError(t, err)
+	assert.Equal(t, want, got, "embedded region list is stale — run `make -C backend cp-defs`")
+}

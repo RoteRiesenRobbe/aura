@@ -542,20 +542,16 @@
       ],
       "members": [
         {
+          "name": "id",
+          "type": "string",
+          "propertyType": "AuraRegionId",
+          "value": "(no place)"
+        },
+        {
           "name": "profile",
           "type": "string",
           "propertyType": "AuraTerrainProfile",
           "value": "(pick a profile)"
-        },
-        {
-          "name": "title",
-          "type": "string",
-          "value": ""
-        },
-        {
-          "name": "subtitle",
-          "type": "string",
-          "value": ""
         }
       ]
     },
@@ -921,6 +917,42 @@
           "value": "(pick an area)"
         }
       ]
+    },
+    {
+      "id": 28,
+      "name": "AuraRegionId",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "(no place)",
+        "farmlands",
+        "saltgrass",
+        "brackenfold",
+        "deep-woods",
+        "southgate",
+        "umberwood",
+        "brunnstedt",
+        "grimwatch",
+        "ashen-fields",
+        "cinder-conclave",
+        "wreckers-bluff",
+        "greyspine",
+        "netmenders-coast",
+        "northgate",
+        "sorrowfen",
+        "sunscar",
+        "fallow-reach",
+        "glimmerwood",
+        "rimefrost",
+        "hollow-marsh",
+        "moonveil",
+        "witherwood",
+        "wyrmhold",
+        "den-of-evil",
+        "homestead",
+        "farmreinhard"
+      ],
+      "valuesAsFlags": false
     }
   ]
 }

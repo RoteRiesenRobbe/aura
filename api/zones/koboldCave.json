@@ -399,6 +399,7 @@
   ],
   "regions": [
     {
+      "id": "den-of-evil",
       "profile": "Derelict Fortress",
       "points": [
         {
@@ -417,9 +418,7 @@
           "x": -42.53,
           "y": 28.53
         }
-      ],
-      "title": "Den of Evil",
-      "subtitle": "Kobold Hideout"
+      ]
     }
   ],
   "structures": [

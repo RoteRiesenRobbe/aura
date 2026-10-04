@@ -810,7 +810,8 @@ export class Game implements IGame {
         // reintroduced by a tidier-looking line.
         Promise.all([
             RegionPaint.loadZoneTextures(
-                (Regions.loadedRegions() as Region[])
+                // Only regions that paint ground (plan-region-identity.md §2.4).
+                Regions.paintedRegions(Regions.loadedRegions() as Region[])
                     .concat(Polygons.loadedPolygons())
                     .concat(Paths.loadedPaths()),
             ),
@@ -889,8 +890,9 @@ export class Game implements IGame {
     }
 
     /**
-     * The crossing curtain's title card: the titled region the player arrived
-     * in (with its subtitle), else the zone's name (PO 2026-10-04).
+     * The crossing curtain's title card: the place (a region's id, its text
+     * from api/regions/regions.json) the player arrived in, with its subtitle,
+     * else the zone's name (PO 2026-10-04).
      *
      * ⚑ Read off the BUNDLED zone data, not Regions.loadedRegions(): the new
      * zone is only loaded under full cover, after this runs.

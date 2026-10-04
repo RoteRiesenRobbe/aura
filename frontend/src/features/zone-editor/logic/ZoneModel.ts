@@ -161,12 +161,12 @@ export interface ZoneAnchor extends InArea {
 // Tiled, and everything here exists purely so a save carries them through
 // untouched (D3/L1). Nothing in the panel reads it.
 export interface ZoneRegion extends InArea {
-    profile: string;
+    // The place it names (api/regions/regions.json) and the ground it paints:
+    // either, or both (plan-region-identity.md D1). Carried like everything
+    // else here.
+    id?: string;
+    profile?: string;
     points: { x: number, y: number }[];
-    // The place's name and the line under it (the region title banner,
-    // 2026-09-28). Carried like everything else here.
-    title?: string;
-    subtitle?: string;
 }
 
 // An open polyline stroked as a road or a river (plan-world-paths.md).
@@ -456,10 +456,9 @@ export class ZoneModel {
         // Deep-copied like every other array, so an edit here could never reach
         // the caller's data — even though nothing edits it.
         model.regions = (data.regions || []).map(r => ({
+            id: r.id,
             profile: r.profile,
             points: (r.points || []).map(p => ({...p})),
-            title: r.title,
-            subtitle: r.subtitle,
             area: r.area,
         }));
         model.paths = (data.paths || []).map(p => ({
@@ -718,11 +717,10 @@ export class ZoneModel {
             // byte; the profile name is kept verbatim.
             regions: regions.length > 0
                 ? regions.map(r => ({
-                    profile: r.profile,
+                    // Same omit rule and key order as aura-convert.js serializeZone.
+                    id: r.id || undefined,
+                    profile: r.profile || undefined,
                     points: r.points.map(p => ({x: round(p.x, 2), y: round(p.y, 2)})),
-                    // Same omit rule as aura-convert.js serializeZone.
-                    title: r.title || undefined,
-                    subtitle: r.title && r.subtitle ? r.subtitle : undefined,
                 }))
                 : undefined,
             // ⚑ Named here or the whitelist eats it (L1) — the fourth time this

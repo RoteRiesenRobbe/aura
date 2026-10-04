@@ -64,6 +64,15 @@ var AuraConvert = (function () {
     var AREA_ENUM = 'AuraAreaId';
     var AREA_UNSET = '(pick an area)';
 
+    /* ---- region ids (plan-region-identity.md R1) ---------------------------
+     * A region names its PLACE by an id from api/regions/regions.json (D2),
+     * picked from the AuraRegionId dropdown. REGION_ID_UNSET is the member's
+     * default and means "no place": a region that only paints ground is the
+     * common case, so it maps back to ABSENT (the EFFECT_UNSET reading of a
+     * sentinel, not the MOB_UNSET one). */
+    var REGION_ID_ENUM = 'AuraRegionId';
+    var REGION_ID_UNSET = '(no place)';
+
     // ZoneModel's rounding helper, verbatim.
     function round(value, digits) {
         var factor = Math.pow(10, digits);
@@ -151,7 +160,7 @@ var AuraConvert = (function () {
     var content = {
         TERRAIN_TYPES: [], PROP_SIZE: {}, MOB_KIND: {}, MOB_SPEED: {},
         PROFILE_NAMES: [], AIR_PROFILE_NAMES: [], EFFECT_NAMES: [], ENUM_VALUES: {},
-        CROSSES_PATHS: [], AREA_IDS: [],
+        CROSSES_PATHS: [], AREA_IDS: [], REGION_IDS: [],
     };
     function useContent(c) {
         content = {
@@ -190,6 +199,9 @@ var AuraConvert = (function () {
             // WITHOUT the sentinel. Absent means "no vocabulary loaded" and
             // the not-listed check skips itself, as every content check here.
             AREA_IDS: (c && c.AREA_IDS) || [],
+            // api/regions/regions.json, the ids a region may name (R1, D2),
+            // WITHOUT the sentinel. Absent skips the not-listed check, as above.
+            REGION_IDS: (c && c.REGION_IDS) || [],
             ENUM_VALUES: (c && c.ENUM_VALUES) || {},
         };
     }
@@ -511,6 +523,20 @@ var AuraConvert = (function () {
         }
     }
 
+    /* ⛔ The same refusal for region titles, which moved into
+     * api/regions/regions.json with plan-region-identity.md R1. Read leniently,
+     * a file still carrying them opens without them and the next save deletes
+     * every title in the world; zone.go refuses the keys at boot. */
+    function checkRegionTitles(regions) {
+        (regions || []).forEach(function (r) {
+            if (r && (r.title !== undefined || r.subtitle !== undefined)) {
+                throw new Error('this zone file still has region titles, which live in'
+                    + ' api/regions/regions.json since plan-region-identity.md R1; migrate it with'
+                    + ' node scripts/migrate-region-ids.mjs <file>');
+            }
+        });
+    }
+
     /* ---- The canonical serializer ------------------------------------------
      * Field order, rounding and omit rules mirror ZoneModel.getZoneAsJSON().
      * undefined values are dropped by JSON.stringify — that is how every
@@ -629,15 +655,14 @@ var AuraConvert = (function () {
             // must match ZoneModel.getZoneAsJSON byte for byte.
             regions: z.regions && z.regions.length > 0
                 ? z.regions.map(function (r) {
+                    // An id, a profile, or both (plan-region-identity.md D1);
+                    // either absent when blank, like zone.go's omitempty.
                     return {
-                        profile: r.profile,
+                        id: r.id || undefined,
+                        profile: r.profile || undefined,
                         points: r.points.map(function (p2) {
                             return {x: round(p2.x, 2), y: round(p2.y, 2)};
                         }),
-                        // The region title banner (2026-09-28). Absent when
-                        // blank, like zone.go's omitempty.
-                        title: r.title || undefined,
-                        subtitle: r.title && r.subtitle ? r.subtitle : undefined,
                     };
                 })
                 : undefined,
@@ -757,10 +782,11 @@ var AuraConvert = (function () {
 
         checkKeyNames(z);
         checkPropsShape(z.props);
+        checkRegionTitles(z.regions);
         var areas = z.areas || [];
         // The same open refusals inside every area: read leniently, either
         // would open with that array empty and the next save would delete it.
-        areas.forEach(function (a) { checkKeyNames(a); checkPropsShape(a.props); });
+        areas.forEach(function (a) { checkKeyNames(a); checkPropsShape(a.props); checkRegionTitles(a.regions); });
         /* ⭐ THE ZONE LEVEL, THEN ONE GROUP PER AREA in file order
          * (plan-prop-draw-order.md D14). Tiled's list is bottom-to-top, so an
          * area later in the file stacks higher, which is also where the game
@@ -936,22 +962,25 @@ var AuraConvert = (function () {
                 var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
                 var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
                 return {
-                    shape: 'polygon', layer: prefix + 'regions', name: r.profile, cls: 'AuraRegion',
+                    // Named by its place when it has one, else by its ground:
+                    // a readable label only, never read back as either
+                    // (readRegionId, readRegionGround).
+                    shape: 'polygon', layer: prefix + 'regions', name: r.id || r.profile, cls: 'AuraRegion',
                     x: ox, y: oy, width: 0, height: 0, rotation: 0,
                     flipH: false, flipV: false,
                     polygon: pts.map(function (p2) {
                         return {x: px(p2.x, hw) - ox, y: px(p2.y, hh) - oy};
                     }),
-                    // The title and subtitle only when authored: absent is the
-                    // palette default ('') and reads back as absent (readText).
-                    properties: Object.assign({profile: r.profile},
-                        r.title ? {title: r.title} : {},
-                        r.title && r.subtitle ? {subtitle: r.subtitle} : {}),
+                    // The id and the profile only when authored (D1): absent is
+                    // the member's default and reads back as absent.
+                    properties: Object.assign({},
+                        r.id ? {id: r.id} : {},
+                        r.profile ? {profile: r.profile} : {}),
                     // C2: typed, or the Properties panel degrades to a free-text
                     // box — an object-level PLAIN string shadows the class member
                     // that declares the enum. Same marker, same reason, as a
                     // spawn's mob.
-                    enums: {profile: REGION_ENUMS.profile},
+                    enums: {profile: REGION_ENUMS.profile, id: REGION_ID_ENUM},
                 };
             });
 
@@ -1340,12 +1369,11 @@ var AuraConvert = (function () {
                 }),
                 regions: layer('regions').map(function (o) {
                     return {
-                        profile: readRegionProfile(o),
+                        id: readRegionId(o),
+                        profile: readRegionGround(o),
                         points: closedAreaPoints(o).map(function (v) {
                             return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
                         }),
-                        title: readText(o, 'title'),
-                        subtitle: readText(o, 'subtitle'),
                     };
                 }),
                 // ⚑ Split by CLASS, not by layer (D5). An object that is neither is
@@ -1504,6 +1532,27 @@ var AuraConvert = (function () {
         var v = o.properties && o.properties.profile !== undefined && o.properties.profile !== null
             ? plainValue(o.properties.profile) : undefined;
         return v !== undefined ? v : o.name;
+    }
+
+    /* A region's place id (plan-region-identity.md D2), or undefined for "no
+     * place": the sentinel, a blank and an absent member alike. */
+    function readRegionId(o) {
+        var v = readText(o, 'id');
+        return v === REGION_ID_UNSET ? undefined : v;
+    }
+
+    /* A region's ground, OPTIONAL since R1 (D1): the sentinel and a blank read
+     * as "paints no ground". ⛔ readRegionProfile's o.name fallback applies only
+     * to a region WITHOUT an id: an id-only region opens named by its id, and
+     * reading that name as a profile would paint the base land fill over
+     * whatever lies below (plan §2.4). */
+    function readRegionGround(o) {
+        var has = o.properties && o.properties.profile !== undefined && o.properties.profile !== null;
+        var v = has ? plainValue(o.properties.profile) : (readRegionId(o) === undefined ? o.name : undefined);
+        if (v === undefined || v === null || v === PROFILE_UNSET || !String(v).replace(/^s+|s+$/g, '')) {
+            return undefined;
+        }
+        return v;
     }
 
     /* Which layers an AuraClearing cuts (A4).
@@ -1993,14 +2042,25 @@ var AuraConvert = (function () {
                 }
             }
 
+            // Mirrors zone.go (plan-region-identity.md D1): an id, a profile, or
+            // both, never neither. The profile is checked only when there is one.
+            var regionIdsKnown = content.REGION_IDS.length > 0;
             layer('regions').forEach(function (o, i) {
-                checkProfile(o, i, profilesKnown);
-                checkClosedArea(o, i, 'a region');
-                // Mirrors zone.go: a subtitle is the line UNDER a title.
-                if (readText(o, 'subtitle') !== undefined && readText(o, 'title') === undefined) {
-                    bad(o, i, 'has a subtitle but no title; the banner shows the subtitle under'
-                        + ' the title, so give the region a title or clear the subtitle');
+                var id = readRegionId(o);
+                if (id === undefined && readRegionGround(o) === undefined) {
+                    bad(o, i, 'names no place and paints no ground. Pick an id (the place it is),'
+                        + ' a profile (the ground it paints), or both in the Properties panel');
+                } else if (readRegionGround(o) !== undefined) {
+                    checkProfile(o, i, profilesKnown);
                 }
+                if (id !== undefined && !AREA_ID.test(id)) {
+                    bad(o, i, 'id "' + id + '" is not a valid place id (a slug of a-z, 0-9 and "-").'
+                        + ' Pick one in the Properties panel');
+                } else if (id !== undefined && regionIdsKnown && !hasValue(content.REGION_IDS, id)) {
+                    bad(o, i, 'id "' + id + '" is not in api/regions/regions.json. Add it there and'
+                        + ' regenerate the palette, or pick a listed one');
+                }
+                checkClosedArea(o, i, 'a region');
             });
 
             // ⭐ THE SHARED LAYER'S OWN CHECK (L2b, the one cost of D5). Two classes
@@ -2397,6 +2457,8 @@ var AuraConvert = (function () {
         AREA_CLASS: AREA_CLASS,
         AREA_ENUM: AREA_ENUM,
         AREA_UNSET: AREA_UNSET,
+        REGION_ID_ENUM: REGION_ID_ENUM,
+        REGION_ID_UNSET: REGION_ID_UNSET,
         // ⚑ The raw tables, for aura-fit-size.js. It deliberately does NOT go
         // through propSize(): that helper falls back to a 1-unit box when the
         // vocabulary is absent, which is right for a conversion (the geometry

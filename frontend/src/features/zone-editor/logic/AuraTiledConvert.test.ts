@@ -786,42 +786,87 @@ describe('AuraConvert — patrol routes and the remaining arrays', () => {
         expect(out.regions.map((r: {profile: string}) => r.profile)).toEqual(['swamp', 'bog', 'ash']);
     });
 
-    // --- the region title banner (2026-09-28) --------------------------------
+    // --- region ids (plan-region-identity.md R1) -----------------------------
 
     const TRI = [{x: 0, y: 0}, {x: 2, y: 0}, {x: 2, y: 2}];
+    // A listed place and a real ground, derived so no map edit reddens these.
+    const PLACE = (content.REGION_IDS as string[])[0];
+    const OTHER_PLACE = (content.REGION_IDS as string[])[1];
+    const GROUND = (content.PROFILE_NAMES as string[])[0];
+    type RegionModel = {layers: {name: string, objects: {name: string, properties: Record<string, unknown>}[]}[]};
+    const regionModel = (r: Record<string, unknown>) => C.zoneToModel(zone({regions: [r]})) as RegionModel;
+    const regionOf = (m: RegionModel) => m.layers.filter(l => l.name === 'regions')[0].objects[0];
     const regionObject = (props: Record<string, unknown>) => {
-        const m = C.zoneToModel(zone({regions: [{profile: 'swamp', points: TRI}]})) as
-            {layers: {name: string, objects: {properties: Record<string, unknown>}[]}[]};
-        Object.assign(m.layers.filter(l => l.name === 'regions')[0].objects[0].properties, props);
+        const m = regionModel({profile: GROUND, points: TRI});
+        Object.assign(regionOf(m).properties, props);
         return m;
     };
 
-    it('carries a region title and subtitle through Tiled', () => {
-        const r = {profile: 'swamp', points: TRI, title: 'The Mire', subtitle: 'Mind your step'};
-        const m = C.zoneToModel(zone({regions: [r]}));
-        const o = m.layers.filter(l => l.name === 'regions')[0].objects[0];
-        expect(o.properties).toEqual({profile: 'swamp', title: 'The Mire', subtitle: 'Mind your step'});
-        expect(roundTrip(zone({regions: [r]})).regions[0]).toEqual(r);
+    it('carries an id, a profile, or both through Tiled, id first like zone.go', () => {
+        for (const r of [
+            {id: PLACE, profile: GROUND, points: TRI},
+            {id: PLACE, points: TRI},
+            {profile: GROUND, points: TRI},
+        ]) {
+            expect(roundTrip(zone({regions: [r]})).regions[0]).toEqual(r);
+            expect(Object.keys(JSON.parse(C.serializeZone(roundTrip(zone({regions: [r]})))).regions[0]))
+                .toEqual(Object.keys(r));
+        }
+        const o = regionOf(regionModel({id: PLACE, profile: GROUND, points: TRI}));
+        expect(o.properties).toEqual({id: PLACE, profile: GROUND});
+        expect(o.name, 'named by its place').toBe(PLACE);
+        expect(regionOf(regionModel({profile: GROUND, points: TRI})).name, 'else by its ground').toBe(GROUND);
     });
 
-    // '' is the palette default, i.e. what Tiled holds for a region nobody named.
-    it('reads a blank title or subtitle as not authored', () => {
-        const out = C.modelToZone(regionObject({title: '  ', subtitle: ''}));
-        expect(out.regions[0].title).toBeUndefined();
-        expect(out.regions[0].subtitle).toBeUndefined();
-        expect(C.serializeZone(out)).not.toContain('title');
+    it('marks id as an AuraRegionId enum and decodes an index handed back', () => {
+        const m = regionModel({id: PLACE, points: TRI});
+        expect((regionOf(m) as unknown as {enums: object}).enums)
+            .toEqual({profile: 'AuraTerrainProfile', id: C.REGION_ID_ENUM});
+        const values = (content.ENUM_VALUES as Record<string, string[]>)[C.REGION_ID_ENUM];
+        expect(values[0]).toBe(C.REGION_ID_UNSET);
+        regionOf(m).properties.id = {typeName: C.REGION_ID_ENUM, typeId: 1, value: values.indexOf(OTHER_PLACE)};
+        expect(C.modelToZone(m).regions[0].id).toBe(OTHER_PLACE);
     });
 
-    it('trims the title the author typed', () => {
-        expect(C.modelToZone(regionObject({title: ' The Mire '})).regions[0].title).toBe('The Mire');
+    // The members' defaults are what a Tiled region nobody touched holds: both
+    // read back as absent, and the save says why.
+    it('reads the id and profile sentinels as not authored', () => {
+        const m = regionObject({id: C.REGION_ID_UNSET, profile: C.PROFILE_UNSET});
+        const out = C.modelToZone(m);
+        expect(out.regions[0].id).toBeUndefined();
+        expect(out.regions[0].profile).toBeUndefined();
+        expect(C.validateModel(m).join(' | ')).toContain('names no place and paints no ground');
+        const idOnly = C.modelToZone(regionObject({id: PLACE, profile: C.PROFILE_UNSET}));
+        expect(idOnly.regions[0]).toEqual({id: PLACE, profile: undefined, points: TRI});
+        expect(C.serializeZone(idOnly)).not.toContain('profile');
     });
 
-    // Mirrors zone.go, which refuses the boot on it.
-    it('refuses a subtitle without a title at save time', () => {
-        expect(C.validateModel(regionObject({subtitle: 'Orphan'})).join(' | '))
-            .toContain('has a subtitle but no title');
-        expect(C.validateModel(regionObject({title: 'The Mire', subtitle: 'Orphan'})).join(' | '))
-            .not.toContain('subtitle');
+    // ⛔ plan §2.4: an id-only region opens NAMED by its id; reading that name
+    // as a profile would paint the base land fill over the ground below.
+    it('never reads an id-only region\'s name as its profile', () => {
+        const m = regionModel({id: PLACE, points: TRI});
+        expect(regionOf(m).properties).toEqual({id: PLACE});   // what Tiled holds with defaults dropped
+        expect(C.modelToZone(m).regions[0].profile).toBeUndefined();
+        expect(C.validateModel(m)).toEqual([]);
+    });
+
+    it('refuses an id the list does not hold, or no slug at all, at save time', () => {
+        expect(C.validateModel(regionObject({id: PLACE + '-typo'})).join(' | '))
+            .toContain('is not in api/regions/regions.json');
+        expect(C.validateModel(regionObject({id: 'Not A Slug'})).join(' | '))
+            .toContain('is not a valid place id');
+        expect(C.validateModel(regionObject({id: PLACE}))).toEqual([]);
+    });
+
+    // ⛔ The open refusal (the N2 lesson): read leniently, a pre-R1 file would
+    // open without its titles and the next save would delete every one.
+    it('refuses to open a file whose regions still carry a title, in an area too', () => {
+        expect(() => C.zoneToModel(zone({regions: [{profile: GROUND, points: TRI, title: 'Old'}]})))
+            .toThrow(/migrate-region-ids\.mjs/);
+        expect(() => C.zoneToModel(zone({regions: [{profile: GROUND, points: TRI, subtitle: 'Old'}]})))
+            .toThrow(/region titles/);
+        expect(() => C.zoneToModel(zone({areas: [{id: 'a', regions: [{profile: GROUND, points: TRI, title: 'Old'}]}]})))
+            .toThrow(/migrate-region-ids\.mjs/);
     });
 
     // --- the typed profile dropdown (C2) ------------------------------------
@@ -835,7 +880,7 @@ describe('AuraConvert — patrol routes and the remaining arrays', () => {
             regions: [{profile: 'swamp', points: [{x: 0, y: 0}, {x: 2, y: 0}, {x: 2, y: 2}]}],
         }));
         const o = m.layers.filter(l => l.name === 'regions')[0].objects[0];
-        expect(o.enums).toEqual({profile: 'AuraTerrainProfile'});
+        expect(o.enums).toEqual({profile: 'AuraTerrainProfile', id: C.REGION_ID_ENUM});
     });
 
     // ⚑ And the other half of that defect: Tiled hands a typed enum property
@@ -1907,8 +1952,10 @@ describe('AuraConvert — save-time validation (C4)', () => {
         expect(errs(region())).toEqual([]);
     });
 
-    it('rejects a region with an empty profile', () => {
-        expect(only(region({profile: ''}))).toContain('profile must not be empty');
+    // Since plan-region-identity.md R1 the profile is optional (D1); what is
+    // refused is a region with neither a place id nor a ground.
+    it('rejects a region with an empty profile and no id', () => {
+        expect(only(region({profile: ''}))).toContain('names no place and paints no ground');
     });
 
     it('rejects a region with fewer than 3 points', () => {
@@ -2442,10 +2489,10 @@ describe('AuraConvert — the format completeness pin (C5)', () => {
         }],
         bindPoints: [{id: 'spawnpoint-1', x: 6, y: 6, startingSpawn: true}],
         darkAreas: [{x: 7, y: 7, radius: 2}],
-        // ⚑ title AND subtitle are authored: both are omitted when blank, so a
-        // fixture without them would pass this pin while the writers drop them.
-        regions: [{profile: 'swamp', points: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 2}],
-            title: 'The Mire', subtitle: 'Mind your step'}],
+        // ⚑ id AND profile are authored: both are omitted when blank (R1, D1),
+        // so a fixture without either would pass this pin while the writers
+        // drop it.
+        regions: [{id: 'the-mire', profile: 'swamp', points: [{x: 1, y: 1}, {x: 3, y: 1}, {x: 3, y: 2}]}],
         // ⚑ blocksMovement is tri-state on a path (false = absent), so the
         // fixture has to author it TRUE or the key never appears and the pin
         // passes while the writers quietly disagree about it.

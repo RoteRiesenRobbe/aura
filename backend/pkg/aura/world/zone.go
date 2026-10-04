@@ -371,20 +371,17 @@ type Point struct {
 // typo costs one region's look, never a broken client. `terrain.type` has
 // always had that same posture.
 //
-// Regions carry no identity: array order is the only ordering (D0 — the last
-// containing region that declares a property wins) and nothing outside the
-// zone file references one. A stable id is what a quest-readable region would
-// need, and it is an open question, not a shipped requirement (§11).
+// ⭐ A region carries an ID, a PROFILE, or both, never neither
+// (plan-region-identity.md D1). The ID names the PLACE it is, from
+// api/regions/regions.json, which holds the title and subtitle the client
+// announces (D2); several polygons may share one (D3). The profile paints the
+// ground. An id-only region paints nothing (Reinhard's Farm inside the
+// Farmlands); a profile-only one names nothing (a dirt patch). Array order
+// decides both alike (D4, D0's rule: the region above wins).
 type Region struct {
-	Profile string  `json:"profile"`
+	ID      string  `json:"id,omitempty"`
+	Profile string  `json:"profile,omitempty"`
 	Points  []Point `json:"points"`
-	// Title names the PLACE this region is, announced on the client when a
-	// player enters it (the region title banner, 2026-09-28); Subtitle is a
-	// smaller line under it. Client-only like Profile. Per placement, never per
-	// profile: two "Forest" regions can be two different woods. Absent = an
-	// unnamed region, which the name lookup sees straight through.
-	Title    string `json:"title,omitempty"`
-	Subtitle string `json:"subtitle,omitempty"`
 	InArea
 }
 
@@ -1202,20 +1199,22 @@ func (z *Zone) validate() error {
 			return fmt.Errorf("%s: radius must be positive, got %g", ref, z.DarkAreas[i].Radius)
 		}
 	}
-	// Both messages name the INDEX: a region has no id and no unique name, so
-	// the position in the array is the only thing the author can search for.
+	// The messages name the INDEX: an id is not unique (D3) and most regions
+	// carry none, so the position in the array is what the author can search for.
 	for i := range z.Regions {
 		ref := objectRef("region", z.Regions, i)
-		if strings.TrimSpace(z.Regions[i].Profile) == "" {
-			return fmt.Errorf("%s: profile must not be empty", ref)
+		r := z.Regions[i]
+		switch {
+		case r.ID == "" && r.Profile == "":
+			return fmt.Errorf("%s: needs an id, a profile, or both", ref)
+		case r.Profile != "" && strings.TrimSpace(r.Profile) == "":
+			return fmt.Errorf("%s: profile must not be blank (omit it for a region that paints no ground)", ref)
+		case r.ID != "" && !areaIDPattern.MatchString(r.ID):
+			return fmt.Errorf("%s: id %q must be a slug of a-z, 0-9 and '-' (e.g. \"reinhards-farm\")", ref, r.ID)
 		}
-		if len(z.Regions[i].Points) < 3 {
+		if len(r.Points) < 3 {
 			return fmt.Errorf("%s: needs at least 3 points to enclose an area, got %d",
-				ref, len(z.Regions[i].Points))
-		}
-		// A subtitle is the line UNDER a title; alone it would never show.
-		if strings.TrimSpace(z.Regions[i].Subtitle) != "" && strings.TrimSpace(z.Regions[i].Title) == "" {
-			return fmt.Errorf("%s: subtitle %q needs a title to sit under", ref, z.Regions[i].Subtitle)
+				ref, len(r.Points))
 		}
 	}
 	// Paths name the INDEX for the same reason regions do: no id, no unique

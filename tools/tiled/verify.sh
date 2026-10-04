@@ -806,33 +806,102 @@ else
 fi
 
 echo
-echo "REGION TITLES survive real Tiled (the region title banner, 2026-09-28)"
-# ⭐ Two FREE-TEXT members on AuraRegion, the first on that class besides its
-# enum. A titled region, a title-only one and an unnamed one side by side: the
-# unnamed one must grow no key, and the title-only one no subtitle.
+echo "REGION IDS survive real Tiled (plan-region-identity.md R1)"
+# ⭐ A region carries an id, a profile, or both (D1). All three side by side:
+# the profile-only one must grow no id, and the id-only one no profile. The
+# ids come from the generated list, so no map edit reddens this leg.
 node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
-C.useContent(require("./tools/tiled/palette/content.json"));
+const content = require("./tools/tiled/palette/content.json");
+C.useContent(content);
 const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 const tri = (n) => [{x: n, y: 0}, {x: n + 6, y: 0}, {x: n + 6, y: 6}];
-fs.writeFileSync("tools/tiled/.verify/region-titles.json", C.serializeZone({
+const [a, b] = content.REGION_IDS;
+fs.writeFileSync("tools/tiled/.verify/region-ids.json", C.serializeZone({
     name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
     bindPoints: z.bindPoints, anchors: z.anchors,
     regions: [
-        {profile: "Fields", points: tri(-30), title: "The Farmlands", subtitle: "Where it began"},
-        {profile: "Forest", points: tri(-10), title: "Darkwood"},
+        {id: a, profile: "Fields", points: tri(-30)},
+        {id: b, points: tri(-10)},
         {profile: "Swamp", points: tri(10)},
     ],
 }, false));
+fs.writeFileSync("tools/tiled/.verify/region-ids.id", b);
 '
-if "$TILED" --export-map aura-zone tools/tiled/.verify/region-titles.json \
-        "$(native "$ROOT/tools/tiled/.verify/region-titles-out.json")" >/dev/null 2>&1 \
-   && cmp -s tools/tiled/.verify/region-titles.json tools/tiled/.verify/region-titles-out.json; then
-    ok "byte-identical — title and subtitle survived, the unnamed region stayed unnamed"
+REGION_ID="$(cat tools/tiled/.verify/region-ids.id)"
+if "$TILED" --export-map aura-zone tools/tiled/.verify/region-ids.json \
+        "$(native "$ROOT/tools/tiled/.verify/region-ids-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/region-ids.json tools/tiled/.verify/region-ids-out.json; then
+    ok "byte-identical — every id survived, the id-only region grew no profile"
 else
-    bad "region titles did not survive: $(cmp tools/tiled/.verify/region-titles.json \
-        tools/tiled/.verify/region-titles-out.json 2>&1 | head -1)"
+    bad "region ids did not survive: $(cmp tools/tiled/.verify/region-ids.json \
+        tools/tiled/.verify/region-ids-out.json 2>&1 | head -1)"
+fi
+
+# Through Tiled's own TMX, with the id stored as the typed enum the GUI writes
+# and the object renamed: the label is free, the id is the place.
+echo
+echo "a region's id stored as the typed AuraRegionId, the object renamed"
+"$TILED" --export-map tmx tools/tiled/.verify/region-ids.json \
+    "$(native "$ROOT/tools/tiled/.verify/region-ids.tmx")" >/dev/null 2>&1 || true
+if ! grep -q "<property name=\"id\" value=\"$REGION_ID\"/>" tools/tiled/.verify/region-ids.tmx; then
+    bad "the TMX carries no id property $REGION_ID — read() did not build the region"
+else
+    sed -e "s#<property name=\"id\" value=\"$REGION_ID\"/>#<property name=\"id\" propertytype=\"AuraRegionId\" value=\"$REGION_ID\"/>#" \
+        -e "s#name=\"$REGION_ID\" class=\"AuraRegion\"#name=\"Reinhard label\" class=\"AuraRegion\"#" \
+        tools/tiled/.verify/region-ids.tmx > tools/tiled/.verify/region-typed.tmx
+    if cmp -s tools/tiled/.verify/region-ids.tmx tools/tiled/.verify/region-typed.tmx; then
+        bad "the edit did not apply — this leg would pass for nothing"
+    elif "$TILED" --export-map aura-zone tools/tiled/.verify/region-typed.tmx \
+            "$(native "$ROOT/tools/tiled/.verify/region-typed-out.json")" >/dev/null 2>&1 \
+       && cmp -s tools/tiled/.verify/region-ids.json tools/tiled/.verify/region-typed-out.json; then
+        ok "byte-identical — the label changed, the place did not, and no profile was read off the name"
+    else
+        bad "the typed id did not save back: $(cmp tools/tiled/.verify/region-ids.json \
+            tools/tiled/.verify/region-typed-out.json 2>&1 | head -1)"
+    fi
+
+    echo
+    echo "an unlisted region id, and an id-only region whose id is removed (no place, no ground)"
+    sed "s#<property name=\"id\" value=\"$REGION_ID\"/>#<property name=\"id\" value=\"$REGION_ID-typo\"/>#" \
+        tools/tiled/.verify/region-ids.tmx > tools/tiled/.verify/region-unlisted.tmx
+    sed "s#<property name=\"id\" value=\"$REGION_ID\"/>##" \
+        tools/tiled/.verify/region-ids.tmx > tools/tiled/.verify/region-neither.tmx
+    for leg in region-unlisted region-neither; do
+        if cmp -s tools/tiled/.verify/region-ids.tmx tools/tiled/.verify/$leg.tmx; then
+            bad "$leg: the edit did not apply — this leg would pass for nothing"
+        elif "$TILED" --export-map aura-zone tools/tiled/.verify/$leg.tmx \
+                "$(native "$ROOT/tools/tiled/.verify/$leg-out.json")" >/dev/null 2>&1; then
+            bad "$leg: the save was ACCEPTED"
+        elif [ -e tools/tiled/.verify/$leg-out.json ]; then
+            bad "$leg: refused, but a file was written anyway"
+        else
+            ok "$leg: refused, nothing written"
+        fi
+    done
+fi
+
+# ⛔ The open refusal (the N2 lesson): a pre-R1 file would OPEN without its
+# region titles, and the next save would delete every one in the world.
+echo
+echo "a zone file whose regions still carry a title"
+node -e '
+const fs = require("fs");
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
+const r = z.regions.find(r => r.id) || z.regions[0];
+const {id, ...rest} = r;
+Object.assign(r, rest, {title: "Old Title"});
+delete r.id;
+fs.writeFileSync("tools/tiled/.verify/old-titles.json", JSON.stringify(z, null, 2));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/old-titles.json \
+        "$(native "$ROOT/tools/tiled/.verify/old-titles-out.json")" >/dev/null 2>&1; then
+    bad "the open was ACCEPTED — a titled file would lose every title on save"
+elif [ -e tools/tiled/.verify/old-titles-out.json ]; then
+    bad "refused, but a file was written anyway"
+else
+    ok "refused, nothing written"
 fi
 
 echo
@@ -1173,6 +1242,14 @@ if [ "$fail" -eq 0 ]; then
     echo "     anything and save: the file does NOT change (the name is a label)."
     echo "     ⚑ Note whether the group reopens EXPANDED: if a many-area world reads"
     echo "     as a long list, D13 falls back to 'only non-empty kinds' (§10.4)."
+    echo " 12. REGION IDS (plan-region-identity.md R1): select a titled region (e.g. the"
+    echo "     Farmlands field, in its area's 'regions' layer, padlock off): Properties"
+    echo "     shows an 'id' DROPDOWN of the api/regions/regions.json ids above its"
+    echo "     'profile'. Draw a new region inside it and set only its id (profile left"
+    echo "     at '(pick a profile)'): save is ACCEPTED, the file gains {id, points}"
+    echo "     and no profile. Set both back to their placeholders: save REFUSES ('names"
+    echo "     no place and paints no ground'). Undo, restart the server: walking into"
+    echo "     the new region announces its place and the ground there is unchanged."
 else
     echo "FAILED — see above."
 fi
