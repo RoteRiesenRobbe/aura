@@ -481,3 +481,114 @@ means "no ground".
 **Not done (R2):** the `reach` objective, regions offset in `world.Place`.
 ⚑ `scripts/migrate-areas.mjs` (P4c, already run) still reads region titles. It
 is history, so it was left as is.
+
+### R2: the `reach` objective ✅ 2026-10-05 (uncommitted)
+
+**PO rulings taken during the chunk:**
+
+- **Content, not a debug quest:** the first reach quest is real.
+  `eliza-sends-me`: Eliza hands it over, it is done on arriving at Reinhard's
+  farm, then you talk to Reinhard, and his row "Eliza sends me." completes it.
+- **Handed over automatically on the dinner turn-in.** Her completed greeting
+  already says "go to the farm". This relaxes the "one quest op per row" rule:
+  - a row keeps ONE quest move;
+  - at most one trailing `offer_quest` may follow it as a reward;
+  - a refused offer (already running or done) skips that reward alone;
+  - a trailing `advance_quest` stays refused, and so does an offer of the row's
+    own quest.
+- **The PO asked why the server checks again** when the title card already
+  knows the region. The card runs in the browser, while the quest ledger lives
+  on the server. A client-reported arrival would need a new wire message and
+  would let a client finish any reach quest from anywhere.
+
+**Deviations from §4.6 / §6, all at build time:**
+
+- **The check lives in `QuestSystem`, not in a new system.** It runs at priority
+  20 and reads the last physics step's position, one tick late.
+- **Titles are bound after the zones load** (`quests.BindRegions`), not in the
+  quest loader. Changing the loader would have touched 11 `RegistryFromFS` call
+  sites. An unbound objective reads "Go to <id>".
+- **A reach region no loaded zone draws is a WARNING, not a boot error.** As an
+  error, every `-debug-zones` boot would fail, because the debug world draws
+  none of the shipped places. This follows the travel-anchor precedent. An
+  unlisted id stays a boot error.
+
+**Built:**
+
+- **quests:**
+  - `ObjectiveReach` + `Objective.Region`. The loader refuses species, npc,
+    count, chance and an objective-level tracker on it, and refuses a reach
+    objective that is not alone in its stage (D6).
+  - `{n}`/`{m}` count kill/harvest only.
+  - Ledger: each `Progress` caches its stage's reach target (`reach`).
+    `reachTargets` is rebuilt on enter, Abandon and Restore, always as a FRESH
+    slice, because the caller iterates it while `NoteReached` can rebuild it.
+  - A reach stage is never satisfied by counters, so being inside at stage
+    entry completes it on the next tick (D5).
+  - The tracker reads "Go to {title}", and a stage tracker overrides it (D7).
+  - Nothing new is persisted (DB unchanged).
+- **world:**
+  - `placeOne` offsets regions (the "what the server reads gets offset" rule).
+    `TestPolygonPointsMoveWithTheZoneOrigin`'s regions assertion flipped with it.
+  - `CollectRegions` maps id → `[]PlacedRegion` with bounds. `InRegion` tests
+    bounds first, then the exact polygon test.
+- **sys:**
+  - `QuestSystem(regions)` skips a player with no target or one who is flying
+    (D8). A dead player is not in any system at all.
+  - `applyQuestRow` accepts the trailing offer, and addressing it directly is
+    refused.
+- **mobs:** the loader's quest-row rule as ruled above.
+- **boot:** a `quest regions` stage after the zones. `core.Regions` passes the
+  placed region map to `QuestSystem`.
+- **Content:**
+  - `api/quests/eliza-sends-me.json`: road (reach `farmreinhard`) → meet
+    ("Talk to Reinhard") → done.
+  - Eliza: the dinner turn-in's trailing offer, plus a fallback offer row on
+    her `root_fed` greeting for characters who finished dinner before this
+    shipped.
+  - Reinhard: a root "Eliza sends me." row, meet → done.
+  - No reward.
+- **Content editor:** `validate.mjs` + `app.js` know `reach` (a free-text region
+  id; the list check is Go's) and the trailing offer.
+
+**Verified:**
+
+- **Go:** `go test -count=1 ./...` is green bar the known C1b test. New tests:
+  - `reach_test.go`: loading, seven rejections, `{n}/{m}`, arriving later,
+    counters never satisfy, abandon, two quests to one region, reload mid-stage,
+    the authored tracker wins, `BindRegions`;
+  - `TestPlace_OffsetsRegions`, `TestCollectRegions`;
+  - `quest_reach_test.go` on a REAL player: arrival, already inside at accept,
+    a flyer skipped;
+  - the trailing-offer loader tests;
+  - three applyGrant hand-over tests;
+  - `TestContent_ElizaSendsMeWalksEndToEnd` on the real rows and registry, with
+    the region read off the quest. The census gained the quest.
+- **`-validate`:** 0 findings embedded and with `-content ../api`. With
+  `-debug-zones`: 0 findings plus one unreachable-quest-region warning. A
+  mutation (an unlisted region) produced the expected one finding.
+- **Content editor:** its quest/NPC validation over the real content gives 0
+  findings.
+- **In game, main world (scratch script, headless): 8/8.**
+  - QUEST ACCEPT gives "Go to Reinhard's Farm".
+  - Standing outside the farm moves nothing.
+  - Walking in turns the tracker into "Talk to Reinhard", and the banner says
+    "Reinhard's Farm".
+  - Reinhard offers "Eliza sends me." and it vanishes once taken.
+  - The quest completes with three diary entries. 0 console errors.
+  - ⚑ The first run's banner leg failed because `frontend/dist` predated the
+    PO's farm region (the client bundles zones). After a rebuild it passed.
+- **Not walked in game:** the dinner hand-over (it needs the whole dinner
+  quest; covered by Go) and a flight over the farm (covered by a Go test on a
+  real player).
+
+**Schema:** DB **NONE** · wire **NONE** · conf **NONE** · quest format
+**+1 kind `reach`, +1 key `region`** · conversation format **+1 trailing
+`offer_quest`** · zone format **NONE** · content **+1 quest**, 2 NPCs edited.
+
+⚑ **Found, not fixed (pre-existing):** `applyGrant` handles `teach_skill` before
+it checks for a quest row. A crafted message addressing a quest row's TEACH
+reward by its index would teach without the quest moving (e.g. FirstAid on the
+dinner turn-in). Only the XP case is pinned (`RefusesAQuestGrantAddressedByARewardIndex`).
+
+**Plan status:** R1 + R2 are built; archive at the next wrap.

@@ -19,7 +19,7 @@ func questFixture(t *testing.T) (*QuestSystem, model.PlayerEntity, *fakeClient) 
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 
-	qs := NewQuestSystem()
+	qs := NewQuestSystem(nil)
 	qs.AddPlayer(p)
 	return qs, p, c
 }

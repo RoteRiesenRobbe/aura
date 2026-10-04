@@ -32,7 +32,7 @@ const QUEST_SENTINELS = ['not_started', 'completed', 'running'];
 const CONDITION_KINDS = ['minLevel', 'quest_at_stage', 'bloodline_ascensions', 'kills_this_life'];
 const GRANT_KINDS = ['teach_skill', 'offer_quest', 'advance_quest', 'grant_xp', 'travel_to'];
 const ROW_KINDS = ['', 'ascension_catalog', 'memorial_names'];
-const OBJECTIVE_KINDS = ['kill', 'harvest', 'talk_to'];
+const OBJECTIVE_KINDS = ['kill', 'harvest', 'talk_to', 'reach'];
 
 /* ---- state ------------------------------------------------------------ */
 const state = {
@@ -1286,9 +1286,27 @@ function objectiveRow(stage, o, oi, onChange, onStructuralChange) {
   const wrap = el('div', { class: 'condition-row' });
   wrap.appendChild(select(OBJECTIVE_KINDS, o.kind, (v) => {
     o.kind = v;
-    if (v === 'talk_to') { o.npc = o.npc || o.species || ''; delete o.species; } else { o.species = o.species || o.npc || ''; delete o.npc; }
+    if (v === 'reach') {
+      // A region id, nothing else (plan-region-identity.md R2).
+      for (const k of ['species', 'npc', 'count', 'tracker', 'chance', 'guaranteedAt']) delete o[k];
+      o.region = o.region || '';
+    } else {
+      delete o.region;
+      if (v === 'talk_to') { o.npc = o.npc || o.species || ''; delete o.species; } else { o.species = o.species || o.npc || ''; delete o.npc; }
+    }
     onStructuralChange();
   }, null, 'col-fixed-md'));
+  // A reach objective names a region id from api/regions/regions.json. Free
+  // text: this editor does not load the region list, and Go's
+  // quests.BindRegions refuses an id that is unlisted or undrawn.
+  if (o.kind === 'reach') {
+    wrap.appendChild(el('input', {
+      type: 'text', class: 'col-flex', value: o.region || '', placeholder: 'region id (api/regions/regions.json)',
+      oninput: (e) => { o.region = e.target.value; onChange(); },
+    }));
+    wrap.appendChild(el('button', { class: 'danger', onclick: () => { stage.objectives.splice(oi, 1); onStructuralChange(); } }, '×'));
+    return wrap;
+  }
   // Target is the same mob-name list either way (an npc IS a mob), so one
   // column serves kill/harvest's species and talk_to's npc — only the JSON
   // key it writes to differs.

@@ -7,6 +7,7 @@ package quests
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"path"
@@ -27,7 +28,22 @@ const (
 	ObjectiveKill ObjectiveKind = iota
 	ObjectiveHarvest
 	ObjectiveTalkTo
+	// ObjectiveReach is done when the player stands inside a region while the
+	// stage is current (plan-region-identity.md R2, D5). It names a REGION id,
+	// never a MobID, and stands alone in its stage (D6): arrival advances the
+	// stage at once, so nothing about it is persisted.
+	ObjectiveReach
 )
+
+// String is the authored spelling, for messages.
+func (k ObjectiveKind) String() string {
+	for name, kind := range objectiveKinds {
+		if kind == k {
+			return name
+		}
+	}
+	return fmt.Sprintf("ObjectiveKind(%d)", int(k))
+}
 
 // Objective is one satisfaction condition of an objective stage, checked
 // against the ledger's lifetime state (D3: thresholds are lifetime totals, L7).
@@ -48,9 +64,16 @@ const (
 // always finds. A chance objective stands alone in its stage (a hit IS the
 // stage moving, so no "found" state exists to persist) behind an authored
 // stage tracker (the count is hidden, so nothing derives a line).
+//
+// Region is a reach objective's target, a region id from
+// api/regions/regions.json (plan-region-identity.md R2); Target stays zero on
+// one. Its TargetName is the place's TITLE, bound after the zones load
+// (BindRegions), because the region list is not the quest loader's input; until
+// then it holds the id, so an unbound registry still reads "Go to <id>".
 type Objective struct {
 	Kind         ObjectiveKind
 	Target       mobs.MobID
+	Region       string
 	TargetName   string
 	Count        uint64
 	Tracker      string
@@ -199,7 +222,16 @@ func validateQuest(q *QuestDefinition) error {
 			return fmt.Errorf("quest %q stage %q: next without objectives (a dialogue stage advances via rows)", q.ID, s.ID)
 		}
 		for _, o := range s.Objectives {
-			if o.Target == 0 {
+			if o.Kind == ObjectiveReach {
+				if o.Region == "" {
+					return fmt.Errorf("quest %q stage %q: reach names a region", q.ID, s.ID)
+				}
+				// D6: arrival IS the stage moving, so there is no "reached"
+				// state to persist beside a sibling that still holds the stage.
+				if len(s.Objectives) != 1 {
+					return fmt.Errorf("quest %q stage %q: a reach objective must be its stage's only objective", q.ID, s.ID)
+				}
+			} else if o.Target == 0 {
 				return fmt.Errorf("quest %q stage %q: objective without a target", q.ID, s.ID)
 			}
 			if o.Count == 0 {
@@ -248,8 +280,8 @@ func validateChance(o Objective, s *Stage) error {
 	switch {
 	case o.Chance < 0 || o.Chance > 1:
 		return fmt.Errorf("chance %v is not in (0, 1]", o.Chance)
-	case o.Kind == ObjectiveTalkTo:
-		return fmt.Errorf("a chance rides a kill/harvest objective, not talk_to")
+	case o.Kind == ObjectiveTalkTo || o.Kind == ObjectiveReach:
+		return fmt.Errorf("a chance rides a kill/harvest objective, not %s", o.Kind)
 	case len(s.Objectives) != 1:
 		return fmt.Errorf("a chance objective must be its stage's only objective")
 	case o.Count != 1:
@@ -261,15 +293,21 @@ func validateChance(o Objective, s *Stage) error {
 }
 
 // firstCountable is the objective whose counters {n}/{m} substitution reads:
-// the first kill/harvest one (talk_to has no meaningful count to show, and a
-// chance objective's count is hidden).
+// the first kill/harvest one (talk_to and reach have no meaningful count to
+// show, and a chance objective's count is hidden).
 func firstCountable(s *Stage) *Objective {
 	for i := range s.Objectives {
-		if s.Objectives[i].Kind != ObjectiveTalkTo && s.Objectives[i].Chance == 0 {
+		if s.Objectives[i].Kind.counts() && s.Objectives[i].Chance == 0 {
 			return &s.Objectives[i]
 		}
 	}
 	return nil
+}
+
+// counts reports a kind that reads the kill counters (D2: kill and harvest
+// share them).
+func (k ObjectiveKind) counts() bool {
+	return k == ObjectiveKill || k == ObjectiveHarvest
 }
 
 // validateAcyclicObjectiveChains rejects a cycle in the objective-stage next
@@ -301,6 +339,7 @@ type jsonObjective struct {
 	NPC     string `json:"npc"`     // talk_to
 	Count   uint64 `json:"count"`   // absent → 1
 	Tracker string `json:"tracker"` // talk_to only
+	Region  string `json:"region"`  // reach
 
 	Chance       float64 `json:"chance"`       // kill/harvest: a find rolled per credit
 	GuaranteedAt uint64  `json:"guaranteedAt"` // with chance: the Nth credit always finds
@@ -329,6 +368,7 @@ var objectiveKinds = map[string]ObjectiveKind{
 	"kill":    ObjectiveKill,
 	"harvest": ObjectiveHarvest,
 	"talk_to": ObjectiveTalkTo,
+	"reach":   ObjectiveReach,
 }
 
 // RegistryFromFS loads every quest definition, resolving authored species and
@@ -389,6 +429,12 @@ func mapObjective(jo jsonObjective, mr speciesResolver) (Objective, error) {
 	if !ok {
 		return Objective{}, fmt.Errorf("unknown objective kind %q", jo.Kind)
 	}
+	if kind == ObjectiveReach {
+		return mapReach(jo)
+	}
+	if jo.Region != "" {
+		return Objective{}, fmt.Errorf("only a reach objective names a region")
+	}
 
 	name := jo.Species
 	if kind == ObjectiveTalkTo {
@@ -425,4 +471,56 @@ func mapObjective(jo jsonObjective, mr speciesResolver) (Objective, error) {
 	}
 	return Objective{Kind: kind, Target: def.ID, TargetName: displayName, Count: count, Tracker: jo.Tracker,
 		Chance: jo.Chance, GuaranteedAt: jo.GuaranteedAt}, nil
+}
+
+// mapReach maps a reach objective (plan-region-identity.md R2). The region id is
+// checked against the list and the drawn zones after the zones load
+// (BindRegions); here only its shape is.
+func mapReach(jo jsonObjective) (Objective, error) {
+	switch {
+	case jo.Species != "" || jo.NPC != "":
+		return Objective{}, fmt.Errorf("reach names a region, not a species or an npc")
+	case jo.Region == "":
+		return Objective{}, fmt.Errorf("reach names a region")
+	case jo.Count != 0:
+		return Objective{}, fmt.Errorf("a reach objective takes no count")
+	}
+	return Objective{Kind: ObjectiveReach, Region: jo.Region, TargetName: jo.Region, Count: 1,
+		Tracker: jo.Tracker, Chance: jo.Chance, GuaranteedAt: jo.GuaranteedAt}, nil
+}
+
+// BindRegions checks every reach objective against the place list and the
+// drawn zones, and gives it the place's title (plan-region-identity.md R2).
+//
+// ⚑ It runs after the zones load, beside world.CrossValidateRegionIDs, because
+// that is the first point at which the quest registry, the list and the zones
+// all exist. An UNLISTED id is a boot failure (a typo). An UNDRAWN one is a
+// WARNING, for world.CrossValidateTravelAnchors' reason: the debug zone set
+// draws none of the shipped places, and a quest may be authored before its
+// place is drawn. All failures are reported at once.
+func BindRegions(r Registry, titles map[string]string, drawn map[string]bool) (warnings []string, err error) {
+	var errs []error
+	for _, q := range r.All() {
+		for _, s := range q.Stages {
+			for i := range s.Objectives {
+				o := &s.Objectives[i]
+				if o.Kind != ObjectiveReach {
+					continue
+				}
+				title, listed := titles[o.Region]
+				switch {
+				case !listed:
+					errs = append(errs, fmt.Errorf("quest %q stage %q: reach names region %q, which "+
+						"api/regions/regions.json does not list", q.ID, s.ID, o.Region))
+				default:
+					o.TargetName = title
+					if !drawn[o.Region] {
+						warnings = append(warnings, fmt.Sprintf("quest %q stage %q: reach names region %q, which no "+
+							"loaded zone draws, so the quest cannot be completed in this world", q.ID, s.ID, o.Region))
+					}
+				}
+			}
+		}
+	}
+	return warnings, errors.Join(errs...)
 }

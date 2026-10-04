@@ -1380,6 +1380,11 @@ func applyQuestRow(opt *mobs.InteractionOption, p learner) (string, *skills.Skil
 			p.ApplyRecipeCascade()
 			id := g.Skill.ID
 			taught = &id
+		case mobs.GrantOfferQuest:
+			// The next quest, handed over (plan-region-identity.md R2): a
+			// refusal (already running, or done) skips this reward alone, the
+			// way a skill already known is skipped above.
+			_ = ledger.Accept(g.Quest)
 		}
 	}
 	// The reply is the QUEST grant's line — the actor's answer to the row, which is

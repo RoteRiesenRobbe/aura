@@ -94,3 +94,41 @@ func CrossValidateRegionIDs(list []RegionName, zones []*Zone) (undrawn []string,
 	}
 	return undrawn, errors.Join(errs...)
 }
+
+// PlacedRegion is one polygon of a place, in WORLD coordinates (after Place),
+// with its bounds for the prefilter (plan-region-identity.md R2).
+type PlacedRegion struct {
+	Points []Point
+	Bounds BoundingBox
+}
+
+// CollectRegions maps every place id to its polygons across the placed zone set
+// and every area (zones are already flattened). A region without an id names no
+// place and is left out. Several polygons may share an id (D3), and a reach
+// objective tests ITS region's polygons whatever is drawn above them (D4).
+//
+// ⛔ It must run AFTER world.Place, for CollectAreaEffects' reason: unplaced
+// points are zone-local, which origin {0,0} makes indistinguishable from right.
+func CollectRegions(zones []*Zone) map[string][]PlacedRegion {
+	out := map[string][]PlacedRegion{}
+	for _, z := range zones {
+		for _, r := range z.Regions {
+			if r.ID == "" {
+				continue
+			}
+			out[r.ID] = append(out[r.ID], PlacedRegion{Points: r.Points, Bounds: BoundsOf(r.Points)})
+		}
+	}
+	return out
+}
+
+// InRegion reports the point inside any of the place's polygons: bounds first,
+// then the exact test, as the area effects do.
+func InRegion(polygons []PlacedRegion, x, y float32) bool {
+	for i := range polygons {
+		if polygons[i].Bounds.Contains(x, y) && PointInPolygon(x, y, polygons[i].Points) {
+			return true
+		}
+	}
+	return false
+}

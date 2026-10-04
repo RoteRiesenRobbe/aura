@@ -78,6 +78,11 @@ type GameConfig struct {
 	// costs nothing until someone draws one (D10).
 	AreaEffects []world.PlacedAreaEffect
 
+	// Regions maps every place id to its polygons in WORLD coordinates
+	// (plan-region-identity.md R2): what a reach objective's arrival check
+	// tests. Collected after world.Place, like AreaEffects.
+	Regions map[string][]world.PlacedRegion
+
 	// ZoneAnchors is every loaded zone's named anchors, flattened into one
 	// lookup in WORLD coordinates (plan-underworld.md U3). It is what an
 	// anchor-mode travel_to row resolves its destination against.

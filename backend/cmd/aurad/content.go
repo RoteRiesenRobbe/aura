@@ -59,7 +59,7 @@ func loadContent(src contentSources, config *cfg.Config, startZone string) (load
 		findings = append(findings, fmt.Sprintf("%s: skipped (%s did not load)", stage, strings.Join(missing, " + ")))
 	}
 
-	var okFactions, okSkills, okMobs, okQuests, okProps, okAreas, okRegions bool
+	var okFactions, okSkills, okMobs, okQuests, okProps, okAreas, okRegions, okZones bool
 	var err error
 
 	// Factions load FIRST: since plan-faction-flips chunk 2 a skill may author
@@ -152,6 +152,17 @@ func loadContent(src contentSources, config *cfg.Config, startZone string) (load
 	} else if out.zones, err = loadZones(src.zones, startZone, out.mobs, out.props, out.skills, out.areas,
 		out.regions); err != nil {
 		fail("zones", err)
+	} else {
+		okZones = true
+	}
+
+	// A reach objective's region must be listed AND drawn, and takes the
+	// listed title (plan-region-identity.md R2). The first point at which the
+	// quests, the place list and the placed zones all exist.
+	if !okQuests || !okZones {
+		skip("quest regions", missing(input{okQuests, "quests"}, input{okZones, "zones"})...)
+	} else if err = bindQuestRegions(out.quests, out.regions, out.zones); err != nil {
+		fail("quest regions", err)
 	}
 
 	return out, findings
@@ -299,3 +310,20 @@ func validateConf() (*cfg.Config, error) {
 	return config, nil
 }
 
+// bindQuestRegions hands quests.BindRegions the place titles and the ids the
+// placed zones draw.
+func bindQuestRegions(qr quests.Registry, list []world.RegionName, zones []*world.Zone) error {
+	titles := make(map[string]string, len(list))
+	for _, r := range list {
+		titles[r.ID] = r.Title
+	}
+	drawn := map[string]bool{}
+	for id := range world.CollectRegions(zones) {
+		drawn[id] = true
+	}
+	warnings, err := quests.BindRegions(qr, titles, drawn)
+	for _, w := range warnings {
+		slog.Warn("unreachable quest region", slog.String("detail", w))
+	}
+	return err
+}

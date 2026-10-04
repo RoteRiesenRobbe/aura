@@ -226,6 +226,15 @@ func AreaEffects(areas []world.PlacedAreaEffect) Configuration {
 	}
 }
 
+// Regions installs the places a reach objective tests arrival against
+// (plan-region-identity.md R2). PLACED content: collect after world.Place.
+func Regions(regions map[string][]world.PlacedRegion) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.Regions = regions
+		return nil
+	}
+}
+
 // PathCorridors installs the blocking paths' collision shapes. Separate from
 // the zone itself for the same reason Spawns is: the game takes resolved
 // content, not a file.

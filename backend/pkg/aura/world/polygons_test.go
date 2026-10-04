@@ -97,8 +97,8 @@ func TestPolygonPointsMoveWithTheZoneOrigin(t *testing.T) {
 
 	assert.EqualValues(t, 500, z.Structures[0].Points[0].X, "polygons are placed")
 	assert.EqualValues(t, 300, z.Structures[0].Points[0].Y)
-	assert.EqualValues(t, 0, z.Regions[0].Points[0].X,
-		"regions are NOT — the client applies the origin itself, and doing it here too would move them twice")
+	assert.EqualValues(t, 500, z.Regions[0].Points[0].X,
+		"regions are placed too since plan-region-identity.md R2: a reach objective reads them in world coordinates (the client never sees this copy)")
 }
 
 // ---- outlines, on BOTH surface types (plan-zone-polygons.md D3) -----------
