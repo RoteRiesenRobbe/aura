@@ -21,6 +21,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **⭐ PROP DRAW ORDER P4 + P4b + P4c DONE 2026-10-03, PO-passed** (`docs/plan-prop-draw-order.md` §11, all five chunks shipped; archive the plan at the next wrap): area groups (`areas`, flattened alike by Go and the client), area ids from ONE list `api/areas/areas.json` picked in Tiled from the `AuraArea` class dropdown, and world.json migrated into 22 areas order-preservingly (`scripts/migrate-areas.mjs`). **Schema: DB/wire/conf NONE; content +1 file; zone format +1 optional key `areas`.** Then a PO call among the bullets below, or BUFF TRAY C1 (approved). Owed look: PATH CORNERS + ENDS chunk A (B held; `docs/plan-world-paths.md` §12).
 
+- **⏸ MAP FOG vs DARKNESS** (`docs/plan-map-fog-darkness.md`, 2026-10-04, D1-D3 ruled, D4-D6 proposed, nothing built): the map reveal maps unlit caves in full. Fix: in complete darkness reveal only cells your own light (≥ 3 u) or a static light covers; the server decides, the client draws its pushed chunks. Schema DB/wire/conf NONE; content: profiles move into `api/`.
+
+- **⏸ REGION IDENTITY** (`docs/plan-region-identity.md`, 2026-10-04, D2-D9 ruled, D1's id-optional half proposed, nothing built): a region carries an `id` (list `api/regions/regions.json` holds title/subtitle) and/or a ground `profile`; the region drawn above wins for ground and banner alike. R1 ids + title migration, R2 a `reach` ("Go to {title}") quest objective. Schema DB/wire/conf NONE; regions +`id`, −`title`/`subtitle` (breaking).
+
 - **⏸ QUEST-GIVER MARKERS** (`plan-quest-giver-markers.md`, coworker 2026-09-28, NOT ruled, nothing built): `!`/`?` map markers for quest givers. ⛔ D1 reverses the PO's 2026-07-29 "no quest markers, ever" (backlog §42, GDD §8). Schema DB NONE, wire +1 table +1 field.
 
 - **⏸ WORLD EFFECTS: narrowed, NOT approved** (`docs/plan-world-effects.md`, D1-D30, 7 chunks): ⛔ waits for first content (Q11); only its C2 needs the BUFF TRAY (D30). ⚑ `damageDealt`'s read site unsurveyed (Q13); line refs pinned to `56ebb5a7`.
