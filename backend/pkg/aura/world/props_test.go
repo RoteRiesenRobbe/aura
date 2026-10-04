@@ -203,7 +203,7 @@ func TestPropDefinition_CrossesPathsMustNotBlock(t *testing.T) {
 	_, err := parsePropDefinition([]byte(`{
 		"name": "Bridge", "entityType": "House", "sprite": "bridge.png",
 		"body": { "width": 6, "height": 2 },
-		"crossesPaths": true, "underfoot": true
+		"crossesPaths": true
 	}`))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "blocksMovement")

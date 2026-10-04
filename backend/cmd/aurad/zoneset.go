@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/prop"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
 
@@ -61,15 +62,15 @@ func allSpawns(zones []*world.Zone) []world.Spawn {
 
 func allCampfires(zones []*world.Zone) []world.Campfire {
 	if len(zones) == 1 {
-		return zones[0].Campfires
+		return zones[0].BindPoints
 	}
 	total := 0
 	for _, z := range zones {
-		total += len(z.Campfires)
+		total += len(z.BindPoints)
 	}
 	out := make([]world.Campfire, 0, total)
 	for _, z := range zones {
-		out = append(out, z.Campfires...)
+		out = append(out, z.BindPoints...)
 	}
 	return out
 }
@@ -123,10 +124,29 @@ func allCorridors(zones []*world.Zone) []world.Corridor {
 		bodies, coarsened := world.PolygonColliders(z)
 		out = append(out, bodies...)
 		for _, c := range coarsened {
-			slog.Warn("polygon collider coarsened to fit the body cap",
-				"zone", z.ID, "polygon", c.Index,
+			slog.Warn("structure collider coarsened to fit the body cap",
+				"zone", z.ID, "structure", c.Index,
 				"cell", c.Cell, "authoredCell", c.FromCell,
 				"bodies", c.Bodies, "wouldHaveBeen", c.FromBodies)
+		}
+	}
+	return out
+}
+
+// propEntities builds every zone's props as entities, in zone order and then
+// each zone's flattened order: prop layer bottom to top, then file order inside
+// a layer (plan-prop-draw-order.md P1, P3; world.PropLayers.flatten).
+//
+// ⭐ SPAWN ORDER IS DRAW ORDER. Entity ids come from a global counter, and the
+// client inserts each prop by id (D6), so the order built here is the order
+// the props stack in: later in the file draws on top, which is also what
+// Tiled shows. Building them anywhere else, or in another order, reorders the
+// world.
+func propEntities(zones []*world.Zone) []*prop.Prop {
+	var out []*prop.Prop
+	for _, z := range zones {
+		for i := range z.Props {
+			out = append(out, prop.FromZone(&z.Props[i]))
 		}
 	}
 	return out

@@ -2,7 +2,7 @@
  *
  * ⭐ WHY THIS EXISTS, and it is not a convenience. In this repo THE BOX IS THE
  * SCALE: a prop's `scale` is derived from its box (plan-prop-scale.md C1) and a
- * terrain patch's `size` IS its box. Tiled, meanwhile, sizes a tile object it
+ * decal's `size` IS its box. Tiled, meanwhile, sizes a tile object it
  * INSERTS by the tile IMAGE's natural pixel size — and the art knows nothing
  * about world units. roundTree.png is 512² against a 240 px Tree body, so a
  * tree dragged out of the aura-props tileset authors `"scale": 2.133`, silently,
@@ -41,13 +41,16 @@
     // published through content.json rather than declared twice.
     function trueBox(o) {
         var layer = o.layer ? o.layer.name : '';
+        // A prop sits in one of the `props` group's sub-layers since
+        // plan-prop-draw-order.md P3, so the group is what says "prop".
+        var parent = o.layer && o.layer.parentLayer ? o.layer.parentLayer.name : '';
         var name = (o.tile && o.tile.property('auraType')) || o.name;
-        if (layer === 'props') {
+        if (parent === C.PROPS_GROUP) {
             var sizes = C.propSizes();
             if (!Object.prototype.hasOwnProperty.call(sizes, name)) { return null; }
             return {w: sizes[name].w * C.PX, h: sizes[name].h * C.PX};
         }
-        if (layer === 'terrain') {
+        if (layer === 'decals') {
             var side = C.terrainSize() * 2 * C.PX;
             if (!(side > 0)) { return null; }
             return {w: side, h: side};
@@ -79,7 +82,7 @@
     var action = tiled.registerAction('AuraFitToTrueSize', function () {
         var map = tiled.activeAsset;
         if (!map || !map.isTileMap) {
-            tiled.alert('Open a zone first — this resizes props and terrain in a map.');
+            tiled.alert('Open a zone first — this resizes props and decals in a map.');
             return;
         }
         var selected = map.selectedObjects || [];
@@ -115,10 +118,10 @@
         var msg = 'fit ' + changed + ' of ' + selected.length + ' selected object(s)'
             + ' to their true size';
         if (skipped.length > 0) {
-            // ⛔ Named, never silent. Only props and terrain HAVE a true size —
+            // ⛔ Named, never silent. Only props and decals HAVE a true size —
             // a region or a spawn is geometry the author drew, and squashing one
             // to a 1-unit box would be the very bug this action exists to undo.
-            msg += '\nleft alone (only props and terrain have a true size): '
+            msg += '\nleft alone (only props and decals have a true size): '
                 + skipped.join(', ');
         }
         tiled.log(msg);

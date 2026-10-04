@@ -2,20 +2,21 @@ import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {describe, expect, it} from 'vitest';
 import {capabilitiesOf, kindOf, ZoneData, ZoneModel, ZoneProp, ZoneSpawn} from './ZoneModel';
+import {flattenAreas} from '../../zones/logic/ZoneAreas';
 
 // A character's campfire bind is persisted as the spawn-point id, so these are
 // persistence tests wearing an editor's clothes: an id the editor drops or
 // re-issues unbinds or misplaces real characters, and neither failure is
 // visible in the editor itself.
 
-function zone(campfires: ZoneData['campfires']): ZoneModel {
+function zone(bindPoints: ZoneData['bindPoints']): ZoneModel {
     return ZoneModel.fromJSON({
         name: 'X',
         bounds: {width: 60, height: 40},
-        terrain: [],
-        props: [],
+        decals: [],
+        props: {},
         spawns: [],
-        campfires,
+        bindPoints,
     });
 }
 
@@ -23,8 +24,8 @@ function zoneWithSpawns(spawns: ZoneSpawn[]): ZoneModel {
     return ZoneModel.fromJSON({
         name: 'X',
         bounds: {width: 60, height: 40},
-        terrain: [],
-        props: [],
+        decals: [],
+        props: {},
         spawns,
     });
 }
@@ -33,8 +34,8 @@ function zoneWithProps(props: ZoneProp[]): ZoneModel {
     return ZoneModel.fromJSON({
         name: 'X',
         bounds: {width: 60, height: 40},
-        terrain: [],
-        props,
+        decals: [],
+        props: {default: props},
         spawns: [],
     });
 }
@@ -67,7 +68,7 @@ describe('ZoneModel spawn points', () => {
 
         let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
 
-        expect(exported.campfires).toEqual([
+        expect(exported.bindPoints).toEqual([
             {id: 'spawnpoint-1', x: 3, y: -4.5, startingSpawn: true},
             {id: 'spawnpoint-2', x: 0, y: 0},
         ]);
@@ -78,7 +79,7 @@ describe('ZoneModel spawn points', () => {
 
         model.addCampfire({id: '', x: 5, y: 5});
 
-        expect(model.campfires[1].id).toBe('spawnpoint-2');
+        expect(model.bindPoints[1].id).toBe('spawnpoint-2');
     });
 
     it('mints above the highest existing number, not the array length', () => {
@@ -91,7 +92,7 @@ describe('ZoneModel spawn points', () => {
 
         model.addCampfire({id: '', x: 1, y: 1});
 
-        expect(model.campfires[2].id).toBe('spawnpoint-8');
+        expect(model.bindPoints[2].id).toBe('spawnpoint-8');
     });
 
     it('does not reuse the number of a fire deleted in this session', () => {
@@ -104,7 +105,7 @@ describe('ZoneModel spawn points', () => {
         model.removeCampfire(2);
         model.addCampfire({id: '', x: 2, y: 2});
 
-        expect(model.campfires[2].id).toBe('spawnpoint-4');
+        expect(model.bindPoints[2].id).toBe('spawnpoint-4');
     });
 
     it('leaves a hand-authored id alone', () => {
@@ -112,7 +113,7 @@ describe('ZoneModel spawn points', () => {
 
         model.addCampfire({id: 'crossroads-fire', x: 5, y: 5});
 
-        expect(model.campfires.map(c => c.id)).toEqual(['village-fire', 'crossroads-fire']);
+        expect(model.bindPoints.map(c => c.id)).toEqual(['village-fire', 'crossroads-fire']);
     });
 });
 
@@ -209,8 +210,10 @@ describe('world.json round-trip', () => {
         expect(exported).toEqual(worldRaw);
     });
 
+    // Read flattened (plan-prop-draw-order.md P4c keeps most spawns in areas),
+    // which is also the order the editor holds them in.
     it('keeps every respawn-free spawn respawn-free', () => {
-        let authored = worldRaw.spawns
+        let authored = flattenAreas(worldRaw).spawns
             .map((s, i) => ('respawnTicks' in s ? -1 : i))
             .filter(i => i >= 0);
         // A world with no talkers at all would make the leg vacuous.
@@ -220,11 +223,12 @@ describe('world.json round-trip', () => {
 
         let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
 
-        let survived = exported.spawns
+        let flat = flattenAreas(exported).spawns;
+        let survived = flat
             .map((s, i) => ('respawnTicks' in s ? -1 : i))
             .filter(i => i >= 0);
         expect(survived).toEqual(authored);
-        expect(authored.every(i => !('respawnVariancePct' in exported.spawns[i]))).toBe(true);
+        expect(authored.every(i => !('respawnVariancePct' in flat[i]))).toBe(true);
     });
 });
 
@@ -240,7 +244,7 @@ describe('ZoneModel prop scale', () => {
 
         let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
 
-        expect(exported.props[0].scale).toBe(2.5);
+        expect(exported.props.default![0].scale).toBe(2.5);
     });
 
     it('emits no scale key for a prop that inherits its type body', () => {
@@ -250,7 +254,7 @@ describe('ZoneModel prop scale', () => {
 
         let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
 
-        expect(exported.props[0]).not.toHaveProperty('scale');
+        expect(exported.props.default![0]).not.toHaveProperty('scale');
     });
 
     it('rounds scale to 3 decimals, like rotation', () => {
@@ -258,7 +262,65 @@ describe('ZoneModel prop scale', () => {
 
         let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
 
-        expect(exported.props[0].scale).toBe(1.235);
+        expect(exported.props.default![0].scale).toBe(1.235);
+    });
+});
+
+// ⚑ L3 — the prop layers (plan-prop-draw-order.md P3). The file holds four
+// arrays; this editor addresses props by ONE flat index (selection, markers,
+// the panel). So the flat order must be the server's (rank, then file order),
+// and every add, edit and removal must land back in the right array, or an
+// in-game save quietly moves a canopy tree under the roof it should cover.
+describe('ZoneModel prop layers', () => {
+    const layered = (): ZoneData => ({
+        name: 'X',
+        bounds: {width: 60, height: 40},
+        decals: [],
+        // Keys deliberately NOT in rank order: the flat order must not care.
+        props: {
+            canopy: [prop({type: 'OakTree', x: 1}), prop({type: 'Tree', x: 2})],
+            buildings: [prop({type: 'House', x: 3})],
+            default: [prop({type: 'Crate', x: 4})],
+            underfoot: [prop({type: 'Bridge', x: 5})],
+        },
+        spawns: [],
+    });
+    const types = (model: ZoneModel) => model.props.map(p => `${p.layer}/${p.type}`);
+
+    it('flattens in the server spawn order: layer bottom to top, then file order', () => {
+        expect(types(ZoneModel.fromJSON(layered()))).toEqual([
+            'underfoot/Bridge', 'default/Crate', 'buildings/House', 'canopy/OakTree', 'canopy/Tree',
+        ]);
+    });
+
+    it('writes every prop back into its own array, in order, all four keys present', () => {
+        let exported = JSON.parse(ZoneModel.fromJSON(layered()).getZoneAsJSON()) as ZoneData;
+        expect(Object.keys(exported.props)).toEqual(['underfoot', 'default', 'buildings', 'canopy']);
+        expect(exported.props.canopy!.map(p => p.type)).toEqual(['OakTree', 'Tree']);
+        expect(exported.props.underfoot!.map(p => p.type)).toEqual(['Bridge']);
+        // The in-memory layer tag must never reach the file: zone.go would
+        // refuse the key by name.
+        expect(JSON.stringify(exported)).not.toContain('"layer"');
+    });
+
+    it('puts a new in-game placement in default, after what is already there', () => {
+        let model = ZoneModel.fromJSON(layered());
+        let index = model.addProp(prop({type: 'Barrel', x: 9}));
+        expect(index).toBe(5);
+        let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
+        expect(exported.props.default!.map(p => p.type)).toEqual(['Crate', 'Barrel']);
+        expect(exported.props.canopy!.map(p => p.type)).toEqual(['OakTree', 'Tree']);
+    });
+
+    it('keeps the layer when the panel rewrites a prop, and removes from the right array', () => {
+        let model = ZoneModel.fromJSON(layered());
+        // The panel rebuilds a prop from its controls, with no layer on it.
+        model.updateProp(3, prop({type: 'OakTree', x: 42}));
+        model.removeProp(1); // the Crate
+        let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
+        expect(exported.props.canopy!.map(p => p.x)).toEqual([42, 2]);
+        expect(exported.props.default).toEqual([]);
+        expect(exported.props.buildings!.map(p => p.type)).toEqual(['House']);
     });
 });
 
@@ -299,8 +361,8 @@ describe('ZoneModel regions', () => {
         return {
             name: 'X',
             bounds: {width: 60, height: 40},
-            terrain: [],
-            props: [],
+            decals: [],
+            props: {},
             spawns: [],
             ...overrides,
         };
@@ -340,5 +402,76 @@ describe('ZoneModel regions', () => {
         let model = ZoneModel.fromJSON(zoneData({}));
 
         expect(model.getZoneAsJSON()).not.toContain('regions');
+    });
+});
+
+// plan-prop-draw-order.md P4: areas. The editor holds every object flat, each
+// remembering its area, and regroups on save, so an in-game save neither
+// moves an object between groups nor drops a group the author made in Tiled.
+describe('ZoneModel areas', () => {
+    const fixture = (): ZoneData => JSON.parse(readFileSync(resolve(__dirname,
+        '../../../../../backend/pkg/aura/world/testdata/area-flatten.json'), 'utf8')).zone;
+
+    it('round-trips every area untouched', () => {
+        expect(JSON.parse(ZoneModel.fromJSON(fixture()).getZoneAsJSON())).toEqual(fixture());
+    });
+
+    it('holds objects flat in the server order, each carrying its area', () => {
+        const m = ZoneModel.fromJSON(fixture());
+        expect(m.spawns.map(s => [s.x, s.area])).toEqual([[1, undefined], [2, undefined], [11, 'farmlands'], [21, 'dark-woods']]);
+        expect(m.props.map(p => [p.x, p.layer, p.area])).toEqual([
+            [12, 'underfoot', 'farmlands'],
+            [1, 'default', undefined], [13, 'default', 'farmlands'], [21, 'default', 'dark-woods'],
+            [22, 'buildings', 'dark-woods'],
+            [2, 'canopy', undefined], [11, 'canopy', 'farmlands'], [23, 'canopy', 'dark-woods'],
+        ]);
+        expect(m.regions.map(r => r.area)).toEqual([undefined, 'farmlands', 'farmlands', 'dark-woods']);
+    });
+
+    it('puts a new in-game placement at the zone level', () => {
+        const m = ZoneModel.fromJSON(fixture());
+        m.addSpawn({mob: 'Wolf', x: 99, y: 0, angle: 0});
+        m.addProp({type: 'Crate', x: 99, y: 0, rotation: 0});
+        m.addAnchor({name: 'new', x: 99, y: 0});
+        const out = JSON.parse(m.getZoneAsJSON());
+        expect(out.spawns.map((s: ZoneSpawn) => s.x)).toEqual([1, 2, 99]);
+        expect(out.props.default.map((p: ZoneProp) => p.x)).toEqual([1, 99]);
+        expect(out.anchors.map((a: {x: number}) => a.x)).toEqual([1, 99]);
+        expect(out.areas).toEqual(fixture().areas);
+    });
+
+    // The panel rebuilds an object from its controls and knows no area.
+    it('keeps the area when the panel rewrites an object', () => {
+        const m = ZoneModel.fromJSON(fixture());
+        m.updateSpawn(2, {mob: 'Wolf', x: 11, y: 5, angle: 0});
+        m.updateProp(1 + 1, {type: 'Crate', x: 13, y: 5, rotation: 0});
+        m.updateDarkArea(1, {x: 11, y: 5, radius: 2});
+        m.updateAnchor(1, {name: 'farm-a', x: 11, y: 5});
+        const farm = JSON.parse(m.getZoneAsJSON()).areas[0];
+        expect(farm.spawns[0].y).toBe(5);
+        expect(farm.props.default[0].y).toBe(5);
+        expect(farm.darkAreas[0].radius).toBe(2);
+        expect(farm.anchors[0].y).toBe(5);
+    });
+
+    // Decals are edited in the GroundTextureManager and synced back at export
+    // carrying their area, so they land in their own group too.
+    it('regroups decals by the area they carry', () => {
+        const m = ZoneModel.fromJSON(fixture());
+        m.decals = m.decals.map(d => ({...d, rotation: 1}));
+        const out = JSON.parse(m.getZoneAsJSON());
+        expect(out.decals).toHaveLength(1);
+        expect(out.areas[1].decals[0].rotation).toBe(1);
+    });
+
+    it('keeps an area the author made, even once it is empty', () => {
+        const m = ZoneModel.fromJSON({name: 'X', bounds: {width: 60, height: 40}, decals: [], props: {}, spawns: [],
+            areas: [{id: 'a', anchors: [{name: 'x', x: 0, y: 0}]}]});
+        m.removeAnchor(0);
+        expect(JSON.parse(m.getZoneAsJSON()).areas).toEqual([{id: 'a'}]);
+    });
+
+    it('writes no areas key for a zone without areas', () => {
+        expect(zoneWithSpawns([]).getZoneAsJSON()).not.toContain('areas');
     });
 });

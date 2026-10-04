@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest';
-import {PlaceAnnouncer, placeAt, REPEAT_COOLDOWN_MS, SETTLE_MS} from './RegionNames';
-import {Region} from './Regions';
+import {PLACES, PlaceAnnouncer, placeAt, placeTable, REPEAT_COOLDOWN_MS, SETTLE_MS} from './RegionNames';
+import {paintedRegions, Region} from './Regions';
+import regionListJson from '../../../../../api/regions/regions.json';
 
 const square = (x: number, y: number, size: number, extra: Partial<Region> = {}): Region => ({
     profile: 'Fields',
@@ -8,31 +9,64 @@ const square = (x: number, y: number, size: number, extra: Partial<Region> = {})
     ...extra,
 });
 
+// plan-region-identity.md R1: a region names its place by an id; the text
+// lives in a list (D2). A test table, so no content edit reddens these.
+const TABLE = placeTable([
+    {id: 'outer', title: 'Outer', subtitle: 'The wide land'},
+    {id: 'inner', title: 'Inner'},
+]);
+
 describe('placeAt', () => {
-    it('names the last containing titled region', () => {
-        const regions = [
-            square(0, 0, 100, {title: 'Outer', subtitle: 'The wide land'}),
-            square(10, 10, 20, {title: 'Inner'}),
-        ];
-        expect(placeAt(regions, {x: 15, y: 15})).toEqual({title: 'Inner'});
-        expect(placeAt(regions, {x: 50, y: 50})).toEqual({title: 'Outer', subtitle: 'The wide land'});
+    it('names the last containing region with an id, its text from the list', () => {
+        const regions = [square(0, 0, 100, {id: 'outer'}), square(10, 10, 20, {id: 'inner'})];
+        expect(placeAt(regions, {x: 15, y: 15}, TABLE)).toEqual({id: 'inner', title: 'Inner'});
+        expect(placeAt(regions, {x: 50, y: 50}, TABLE))
+            .toEqual({id: 'outer', title: 'Outer', subtitle: 'The wide land'});
     });
 
-    it('sees through an untitled region, like D0 sees through an undeclared property', () => {
-        const regions = [square(0, 0, 100, {title: 'Ashen Fields'}), square(10, 10, 20)];
-        expect(placeAt(regions, {x: 15, y: 15})).toEqual({title: 'Ashen Fields'});
+    it('sees through a region without an id, like D0 sees through an undeclared property', () => {
+        const regions = [square(0, 0, 100, {id: 'outer'}), square(10, 10, 20)];
+        expect(placeAt(regions, {x: 15, y: 15}, TABLE)?.id).toBe('outer');
     });
 
-    it('is null outside every titled region', () => {
-        expect(placeAt([square(0, 0, 10)], {x: 5, y: 5})).toBeNull();
-        expect(placeAt([square(0, 0, 10, {title: 'A'})], {x: 50, y: 50})).toBeNull();
-        expect(placeAt([], {x: 0, y: 0})).toBeNull();
+    // D1: an id-only region (no profile) names a place like any other, and the
+    // region above wins for the name exactly as for the ground (D4).
+    it('names an id-only sub-place inside a textured place, and the outer one around it', () => {
+        const regions = [square(0, 0, 100, {id: 'outer'}), {...square(10, 10, 20), profile: undefined, id: 'inner'}];
+        expect(placeAt(regions, {x: 15, y: 15}, TABLE)?.id).toBe('inner');
+        expect(placeAt(regions, {x: 50, y: 50}, TABLE)?.id).toBe('outer');
+    });
+
+    it('is null outside every region with an id, and for an id the list lacks', () => {
+        expect(placeAt([square(0, 0, 10)], {x: 5, y: 5}, TABLE)).toBeNull();
+        expect(placeAt([square(0, 0, 10, {id: 'outer'})], {x: 50, y: 50}, TABLE)).toBeNull();
+        expect(placeAt([], {x: 0, y: 0}, TABLE)).toBeNull();
+        expect(placeAt([square(0, 0, 10, {id: 'unlisted'})], {x: 5, y: 5}, TABLE)).toBeNull();
+    });
+
+    it('reads the shipped list: every entry, with its subtitle only when authored', () => {
+        const list = (regionListJson as {regions: {id: string, title: string, subtitle?: string}[]}).regions;
+        expect(PLACES.size).toBe(list.length);
+        for (const p of list) {
+            expect(PLACES.get(p.id)).toEqual(p.subtitle ? p : {id: p.id, title: p.title});
+        }
+    });
+});
+
+// ⛔ plan §2.4: a region without a profile is never painted. Handed to the
+// painter it would resolve to the default profile, the base land fill.
+describe('paintedRegions', () => {
+    it('keeps every region that paints ground and drops an id-only one', () => {
+        const ground = square(0, 0, 10);
+        const both = square(0, 0, 10, {id: 'outer'});
+        const idOnly = {...square(0, 0, 10), profile: undefined, id: 'inner'};
+        expect(paintedRegions([ground, idOnly, both])).toEqual([ground, both]);
     });
 });
 
 describe('PlaceAnnouncer', () => {
-    const A = {title: 'Farmlands', subtitle: 'Where it began'};
-    const B = {title: 'Dark Forest'};
+    const A = {id: 'home', title: 'Home', subtitle: 'Where it began'};
+    const B = {id: 'woods', title: 'Dark Forest'};
 
     it('announces a place once you have stayed in it for the settle time', () => {
         const a = new PlaceAnnouncer();
@@ -86,15 +120,16 @@ describe('PlaceAnnouncer', () => {
         expect(a.update(A, REPEAT_COOLDOWN_MS * 3)).toBeNull();
     });
 
-    it('treats two regions with the same title and subtitle as one place', () => {
+    // D3: several polygons carrying one id are one place.
+    it('treats two regions with the same id as one place, and another id as another', () => {
         const a = new PlaceAnnouncer();
         a.update(A, 0);
         a.update(A, SETTLE_MS);
         expect(a.update({...A}, SETTLE_MS * 3)).toBeNull();
-        // A different subtitle is a different place.
-        a.update({title: A.title, subtitle: 'Elsewhere'}, SETTLE_MS * 4);
-        expect(a.update({title: A.title, subtitle: 'Elsewhere'}, SETTLE_MS * 5)).toEqual(
-            {title: A.title, subtitle: 'Elsewhere'});
+        // A different id is a different place, even under the same title.
+        const twin = {...A, id: 'home-two'};
+        a.update(twin, SETTLE_MS * 4);
+        expect(a.update(twin, SETTLE_MS * 5)).toEqual(twin);
     });
 
     it('reset makes the current place a fresh entry but keeps the cooldown', () => {
@@ -106,6 +141,19 @@ describe('PlaceAnnouncer', () => {
         expect(a.update(B, 3 * SETTLE_MS)).toBeNull();
         a.reset();
         const later = SETTLE_MS + REPEAT_COOLDOWN_MS;
+        a.update(B, later);
+        expect(a.update(B, later + SETTLE_MS)).toEqual(B);
+    });
+
+    // The crossing curtain's title card already named the place you arrived in;
+    // the banner repeating it a second later would announce it twice.
+    it('counts a place shown elsewhere against the cooldown', () => {
+        const a = new PlaceAnnouncer();
+        a.noteShown(B, 0);
+        a.update(B, 100);
+        expect(a.update(B, 100 + SETTLE_MS)).toBeNull();
+        const later = REPEAT_COOLDOWN_MS + 200;
+        a.update(null, later);
         a.update(B, later);
         expect(a.update(B, later + SETTLE_MS)).toEqual(B);
     });

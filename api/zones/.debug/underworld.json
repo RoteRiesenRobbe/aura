@@ -8,8 +8,13 @@
     "x": 5000,
     "y": 3000
   },
-  "terrain": [],
-  "props": [],
+  "decals": [],
+  "props": {
+    "underfoot": [],
+    "default": [],
+    "buildings": [],
+    "canopy": []
+  },
   "spawns": [
     {
       "mob": "CaveExit",
@@ -129,7 +134,7 @@
       ]
     }
   ],
-  "polygons": [
+  "structures": [
     {
       "profile": "City",
       "points": [

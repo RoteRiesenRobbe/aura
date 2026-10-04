@@ -33,6 +33,7 @@
 
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
+import { readZone } from './lib/zone.mjs';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -104,7 +105,7 @@ function inPoly(p, poly) {
  */
 function venue() {
   const root = join(outDir, '../../..');
-  const zone = JSON.parse(readFileSync(join(root, 'api/zones/world.json'), 'utf8'));
+  const zone = readZone(join(root, 'api/zones/world.json'));
   const air = JSON.parse(readFileSync(
     join(root, 'frontend/src/client-data/atmosphere-profiles.json'), 'utf8'));
 

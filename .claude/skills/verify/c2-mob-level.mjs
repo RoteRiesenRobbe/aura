@@ -60,14 +60,19 @@ import { readFileSync, writeFileSync } from 'node:fs';
 // untouched. Same species, so the control is exact. Stag is cL1 in the catalog,
 // which makes 25 unmistakably an override rather than a coincidence.
 const ZONE = 'api/zones/world.json';
+// ⚑ Found by mob and position, wherever it sits: since plan-prop-draw-order.md
+// P4c most spawns live inside `areas`, so the index alone no longer finds one.
+// The index is kept as the spawn's flattened position, for the messages.
+const findSpawn = (zone, want) => [zone, ...(zone.areas || [])].flatMap((p) => p.spawns || [])
+  .find((s) => s.mob === want.mob && s.x === want.x && s.y === want.y);
 const SUBJECT = { index: 213, mob: 'Stag', x: -62.12, y: 29.88, level: 25 };
 const CONTROL = { index: 172, mob: 'Stag', x: -66.36, y: 22.55, level: 1 };
 
 if (process.argv[2] === '--install' || process.argv[2] === '--revert') {
   const zone = JSON.parse(readFileSync(ZONE, 'utf8'));
-  const s = zone.spawns[SUBJECT.index];
-  if (s.mob !== SUBJECT.mob) {
-    console.error(`spawn ${SUBJECT.index} is a ${s.mob}, not a ${SUBJECT.mob} — the zone moved; re-pick the probe`);
+  const s = findSpawn(zone, SUBJECT);
+  if (!s) {
+    console.error(`no ${SUBJECT.mob} at (${SUBJECT.x}, ${SUBJECT.y}) — the zone moved; re-pick the probe`);
     process.exit(1);
   }
   if (process.argv[2] === '--install') {
@@ -100,7 +105,7 @@ const YELLOW = 0xf5d442;
 // The probe must actually be installed, or every leg below measures nothing.
 const installed = (() => {
   try {
-    return JSON.parse(readFileSync(ZONE, 'utf8')).spawns[SUBJECT.index].level === SUBJECT.level;
+    return findSpawn(JSON.parse(readFileSync(ZONE, 'utf8')), SUBJECT).level === SUBJECT.level;
   } catch { return false; }
 })();
 if (!installed) {

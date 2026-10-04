@@ -1,7 +1,7 @@
 {
   "_generated": "tools/tiled/generate-palette.mjs — do not hand-edit",
   "ENUM_VALUES": {
-    "AuraTerrainType": [
+    "AuraDecalType": [
       "Dark Green Grass 1",
       "Dark Green Grass 2",
       "Green Grass 1",
@@ -17,12 +17,18 @@
       "Flowers",
       "Leaves",
       "Sand",
-      "Land"
+      "Land",
+      "Saltgrass",
+      "Dune Grass",
+      "Shells",
+      "Kelp Line"
     ],
     "AuraPropType": [
       "Barn",
+      "Bedroll",
       "Boulder",
       "Bridge",
+      "BrokenCrate",
       "BrokenFence",
       "BurntCart",
       "Bush",
@@ -33,21 +39,29 @@
       "DeadTree",
       "FallenLog",
       "FencePost",
+      "Fish",
+      "FishingHut",
       "Gate",
       "GateWall",
       "Haystack",
       "House",
       "Mill",
+      "NetRack",
       "OakTree",
       "Palisade",
       "PineTree",
+      "Remains",
       "Rock",
+      "Rowboat",
       "RuinedHouse",
+      "Shipwreck",
       "Stump",
+      "Tent",
       "Tombstone",
       "Torch",
       "Tree",
-      "Well"
+      "Well",
+      "WreckDebris"
     ],
     "AuraPropBlocks": [
       "(inherit)",
@@ -81,6 +95,8 @@
       "CultAcolyte",
       "CultHighPriest",
       "Cultist",
+      "DeadCarter",
+      "Deadwood",
       "DeathKnight",
       "DireBear",
       "DireWolf",
@@ -92,6 +108,7 @@
       "EliteWolf",
       "Eliza",
       "Emberkeeper",
+      "FallenTraveller",
       "Farmhand",
       "FireElemental",
       "FireTotem",
@@ -102,6 +119,8 @@
       "GiantRat",
       "GiantScorpion",
       "GiantSpider",
+      "GladeRoot",
+      "GrandfatherKnot",
       "GreaterFireElemental",
       "Hendrik",
       "Hermit",
@@ -142,6 +161,8 @@
       "SpiderWeb",
       "SpikeBarricade",
       "Stag",
+      "StoneRoot",
+      "StreamRoot",
       "Totem",
       "TownCrier",
       "Treant",
@@ -177,6 +198,8 @@
       "Swamp",
       "Coastal Cliff",
       "Coast",
+      "Limestone",
+      "Coast Grass",
       "Magic Forest",
       "Dead Magic Forest",
       "Ashen Fields",
@@ -191,6 +214,7 @@
       "Fence",
       "Cliff",
       "Cliff Smooth",
+      "Shoreline",
       "Wall",
       "Road",
       "Cobblestone",
@@ -252,6 +276,7 @@
       "EliteBanditSlash",
       "EliteWolfBite",
       "EmberAura",
+      "EntanglingRoots",
       "Envenom",
       "Fade",
       "FieldMedics",
@@ -354,6 +379,60 @@
       "round",
       "flat",
       "point"
+    ],
+    "AuraAreaId": [
+      "(pick an area)",
+      "farmlands",
+      "brackenfold",
+      "deep-woods",
+      "southgate",
+      "umberwood",
+      "brunnstedt",
+      "grimwatch",
+      "ashen-fields",
+      "cinder-conclave",
+      "wreckers-bluff",
+      "greyspine",
+      "netmenders-coast",
+      "northgate",
+      "sorrowfen",
+      "sunscar",
+      "fallow-reach",
+      "glimmerwood",
+      "rimefrost",
+      "hollow-marsh",
+      "moonveil",
+      "witherwood",
+      "wyrmhold"
+    ],
+    "AuraRegionId": [
+      "(no place)",
+      "farmlands",
+      "saltgrass",
+      "brackenfold",
+      "deep-woods",
+      "southgate",
+      "umberwood",
+      "brunnstedt",
+      "grimwatch",
+      "ashen-fields",
+      "cinder-conclave",
+      "wreckers-bluff",
+      "greyspine",
+      "netmenders-coast",
+      "northgate",
+      "sorrowfen",
+      "sunscar",
+      "fallow-reach",
+      "glimmerwood",
+      "rimefrost",
+      "hollow-marsh",
+      "moonveil",
+      "witherwood",
+      "wyrmhold",
+      "den-of-evil",
+      "homestead",
+      "farmreinhard"
     ]
   },
   "TERRAIN_TYPES": [
@@ -372,12 +451,20 @@
     "Flowers",
     "Leaves",
     "Sand",
-    "Land"
+    "Land",
+    "Saltgrass",
+    "Dune Grass",
+    "Shells",
+    "Kelp Line"
   ],
   "PROP_SIZE": {
     "Barn": {
       "w": 6,
       "h": 4
+    },
+    "Bedroll": {
+      "w": 0.5,
+      "h": 1.4
     },
     "Boulder": {
       "w": 2.2,
@@ -386,6 +473,10 @@
     "Bridge": {
       "w": 5,
       "h": 2
+    },
+    "BrokenCrate": {
+      "w": 0.9,
+      "h": 0.9
     },
     "BrokenFence": {
       "w": 2,
@@ -427,6 +518,14 @@
       "w": 0.44,
       "h": 0.44
     },
+    "Fish": {
+      "w": 0.5,
+      "h": 0.2
+    },
+    "FishingHut": {
+      "w": 3,
+      "h": 2.4
+    },
     "Gate": {
       "w": 2,
       "h": 1.6
@@ -447,6 +546,10 @@
       "w": 5,
       "h": 4
     },
+    "NetRack": {
+      "w": 3,
+      "h": 0.8
+    },
     "OakTree": {
       "w": 2,
       "h": 2
@@ -459,17 +562,33 @@
       "w": 1.8,
       "h": 1.8
     },
+    "Remains": {
+      "w": 0.9,
+      "h": 0.9
+    },
     "Rock": {
       "w": 1.07,
       "h": 1.07
+    },
+    "Rowboat": {
+      "w": 2.6,
+      "h": 1.1
     },
     "RuinedHouse": {
       "w": 4,
       "h": 3
     },
+    "Shipwreck": {
+      "w": 8,
+      "h": 3
+    },
     "Stump": {
       "w": 1.1,
       "h": 1.1
+    },
+    "Tent": {
+      "w": 1.6,
+      "h": 1.2
     },
     "Tombstone": {
       "w": 0.8,
@@ -486,8 +605,15 @@
     "Well": {
       "w": 1.4,
       "h": 1.4
+    },
+    "WreckDebris": {
+      "w": 2.4,
+      "h": 1.6
     }
   },
+  "CROSSES_PATHS": [
+    "Bridge"
+  ],
   "TERRAIN_SIZE": 1,
   "MOB_KIND": {
     "AlphaBoar": "combat",
@@ -515,6 +641,8 @@
     "CultAcolyte": "combat",
     "CultHighPriest": "combat",
     "Cultist": "combat",
+    "DeadCarter": "talker",
+    "Deadwood": "fixture",
     "DeathKnight": "combat",
     "DireBear": "combat",
     "DireWolf": "combat",
@@ -526,6 +654,7 @@
     "EliteWolf": "combat",
     "Eliza": "talker",
     "Emberkeeper": "talker",
+    "FallenTraveller": "talker",
     "Farmhand": "talker",
     "FireElemental": "combat",
     "FireTotem": "fixture",
@@ -536,6 +665,8 @@
     "GiantRat": "combat",
     "GiantScorpion": "combat",
     "GiantSpider": "combat",
+    "GladeRoot": "talker",
+    "GrandfatherKnot": "talker",
     "GreaterFireElemental": "combat",
     "Hendrik": "talker",
     "Hermit": "talker",
@@ -576,6 +707,8 @@
     "SpiderWeb": "fixture",
     "SpikeBarricade": "fixture",
     "Stag": "combat",
+    "StoneRoot": "talker",
+    "StreamRoot": "talker",
     "Totem": "fixture",
     "TownCrier": "talker",
     "Treant": "combat",
@@ -615,6 +748,8 @@
     "CultAcolyte": 0.6,
     "CultHighPriest": 0.52,
     "Cultist": 0.55,
+    "DeadCarter": 0,
+    "Deadwood": 0,
     "DeathKnight": 0.52,
     "DireBear": 0.4,
     "DireWolf": 0.55,
@@ -626,6 +761,7 @@
     "EliteWolf": 0.52,
     "Eliza": 0,
     "Emberkeeper": 0,
+    "FallenTraveller": 0,
     "Farmhand": 0.7,
     "FireElemental": 0.55,
     "FireTotem": 0,
@@ -636,6 +772,8 @@
     "GiantRat": 0.62,
     "GiantScorpion": 0.6,
     "GiantSpider": 0.95,
+    "GladeRoot": 0,
+    "GrandfatherKnot": 0,
     "GreaterFireElemental": 0.45,
     "Hendrik": 0,
     "Hermit": 0,
@@ -676,6 +814,8 @@
     "SpiderWeb": 0,
     "SpikeBarricade": 0,
     "Stag": 0.85,
+    "StoneRoot": 0,
+    "StreamRoot": 0,
     "Totem": 0,
     "TownCrier": 0,
     "Treant": 0.4,
@@ -701,6 +841,8 @@
     "Swamp",
     "Coastal Cliff",
     "Coast",
+    "Limestone",
+    "Coast Grass",
     "Magic Forest",
     "Dead Magic Forest",
     "Ashen Fields",
@@ -715,6 +857,7 @@
     "Fence",
     "Cliff",
     "Cliff Smooth",
+    "Shoreline",
     "Wall",
     "Road",
     "Cobblestone",
@@ -769,6 +912,7 @@
     "EliteBanditSlash",
     "EliteWolfBite",
     "EmberAura",
+    "EntanglingRoots",
     "Envenom",
     "Fade",
     "FieldMedics",
@@ -860,5 +1004,57 @@
     "Wild",
     "Wildfire",
     "WolfBite"
+  ],
+  "AREA_IDS": [
+    "farmlands",
+    "brackenfold",
+    "deep-woods",
+    "southgate",
+    "umberwood",
+    "brunnstedt",
+    "grimwatch",
+    "ashen-fields",
+    "cinder-conclave",
+    "wreckers-bluff",
+    "greyspine",
+    "netmenders-coast",
+    "northgate",
+    "sorrowfen",
+    "sunscar",
+    "fallow-reach",
+    "glimmerwood",
+    "rimefrost",
+    "hollow-marsh",
+    "moonveil",
+    "witherwood",
+    "wyrmhold"
+  ],
+  "REGION_IDS": [
+    "farmlands",
+    "saltgrass",
+    "brackenfold",
+    "deep-woods",
+    "southgate",
+    "umberwood",
+    "brunnstedt",
+    "grimwatch",
+    "ashen-fields",
+    "cinder-conclave",
+    "wreckers-bluff",
+    "greyspine",
+    "netmenders-coast",
+    "northgate",
+    "sorrowfen",
+    "sunscar",
+    "fallow-reach",
+    "glimmerwood",
+    "rimefrost",
+    "hollow-marsh",
+    "moonveil",
+    "witherwood",
+    "wyrmhold",
+    "den-of-evil",
+    "homestead",
+    "farmreinhard"
   ]
 }

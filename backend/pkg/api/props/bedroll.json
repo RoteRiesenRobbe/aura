@@ -1,0 +1,7 @@
+{
+  "name": "Bedroll",
+  "entityType": "Bedroll",
+  "sprite": "bedroll.svg",
+  "body": { "width": 0.5, "height": 1.4 },
+  "blocksMovement": false
+}

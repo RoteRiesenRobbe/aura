@@ -74,8 +74,8 @@ await cmd(`WARP ${w(SPOT.x, SPOT.y)}`);
 // shot renders the PREVIOUS position, silently and plausibly.
 await page.waitForTimeout(22_000);
 
-// The prop layers are the wire path under test: Game.layers.resources.{trees,
-// minerals} is where every Resource-table entity is parented, so counting
+// The prop layers are the wire path under test: Game.layers.props.{standing,
+// underfoot} is where every Resource-table entity is parented, so counting
 // rendered sprites there is counting successful Resource decodes.
 const props = await page.evaluate(() => {
   const out = { sprites: [], byAspect: {} };

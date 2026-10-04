@@ -130,7 +130,7 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	// C3 retired that map.)
 	zone, err := world.LoadZoneFS(content.zones, "world", mobsRegistry, propsRegistry)
 	require.NoError(t, err)
-	assert.NotEmpty(t, zone.Terrain, "the world should carry authored terrain")
+	assert.NotEmpty(t, zone.Decals, "the world should carry authored terrain")
 	var wanderers, patrollers int
 	for _, s := range zone.Spawns {
 		if s.EffectiveWanderRadius() > 0 {
@@ -323,4 +323,28 @@ func TestCatalogGates_ResolveAgainstTheRealRegistries(t *testing.T) {
 	assert.NoError(t, gates.CheckQuestStage("the-lost-lamp", "completed"))
 	assert.Error(t, gates.CheckQuestStage("the-lost-lantern", "completed"))
 	assert.Error(t, gates.CheckQuestStage("the-lost-lamp", "nosuchstage"))
+}
+
+// The shipped area list loads, and the embedded copy is the authored one
+// (P4b): a stale copy would refuse a zone that -content boots.
+func TestEmbeddedAreaList_LoadsAndMatchesSource(t *testing.T) {
+	disk, err := diskContent("../../../api")
+	require.NoError(t, err)
+	want, err := world.LoadAreaIDs(disk.areas)
+	require.NoError(t, err)
+	got, err := world.LoadAreaIDs(embeddedContent().areas)
+	require.NoError(t, err)
+	assert.Equal(t, want, got, "embedded area list is stale — run `make -C backend cp-defs`")
+}
+
+// The shipped region list loads, and the embedded copy is the authored one
+// (plan-region-identity.md R1): a stale copy would refuse a zone -content boots.
+func TestEmbeddedRegionList_LoadsAndMatchesSource(t *testing.T) {
+	disk, err := diskContent("../../../api")
+	require.NoError(t, err)
+	want, err := world.LoadRegionList(disk.regions)
+	require.NoError(t, err)
+	got, err := world.LoadRegionList(embeddedContent().regions)
+	require.NoError(t, err)
+	assert.Equal(t, want, got, "embedded region list is stale — run `make -C backend cp-defs`")
 }

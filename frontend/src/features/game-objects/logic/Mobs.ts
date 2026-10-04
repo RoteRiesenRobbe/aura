@@ -721,6 +721,32 @@ export class RedMushroom extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(RedMushroom, file('redMushroom'), maxSize('redMushroom'));
 
+// Grandfather Knot's harvest target, the mushrooms' twin as dead branches.
+export class Deadwood extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.turnip, x, y,
+            randomInt(minSize('deadwood'), maxSize('deadwood')),
+            Deadwood.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Deadwood, file('deadwood'), maxSize('deadwood'));
+
+// A talkable dead body, drawn flat under the characters like the deadwood.
+export class Remains extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.turnip, x, y, maxSize('remains'), Remains.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Remains, file('remains'), maxSize('remains'));
+
 // The beach's harvest-mob (the Miller's ring), the Turnip's pattern.
 export class Seaweed extends Mob {
     static svg: PIXI.Texture;
@@ -1484,9 +1510,10 @@ Preloading.registerGameObjectSVG(FireTotem, file('fireTotem'), maxSize('fireTote
 // their sprite classes live here. Three deliberate departures from the mob
 // classes above:
 //
-//  1. They render on `resources.trees`, the layer they have always been on.
-//     The `mobs` layers are added to the stage BEFORE `resources`, so giving
-//     them a mob layer would silently move every NPC underneath the trees.
+//  1. They render on `mobs.npcs`, UNDER the characters and the props
+//     (plan-prop-draw-order.md D9, PO 2026-10-02: "yes under players"). They
+//     used to share the props container, which drew every NPC over the
+//     player, stacked at random among the trees.
 //  2. They size from the WIRE radius (the 4th constructor argument
 //     EntityManager always passes) rather than from a GraphicsConfig
 //     min/max roll — the npc entries carry no minSize, and a fixed
@@ -1517,7 +1544,7 @@ export class Farmer extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.trees, x, y, size, Farmer.svg);
+        super(id, Game.layers.mobs.npcs, x, y, size, Farmer.svg);
     }
 
     override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
@@ -1538,7 +1565,7 @@ export class NpcPlaceholder extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.trees, x, y, size, NpcPlaceholder.svg);
+        super(id, Game.layers.mobs.npcs, x, y, size, NpcPlaceholder.svg);
     }
 }
 
@@ -1549,7 +1576,7 @@ export class Signpost extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.trees, x, y, size, Signpost.svg);
+        super(id, Game.layers.mobs.npcs, x, y, size, Signpost.svg);
     }
 }
 
@@ -1563,7 +1590,7 @@ export class Hermit extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.trees, x, y, size, Hermit.svg);
+        super(id, Game.layers.mobs.npcs, x, y, size, Hermit.svg);
     }
 
     override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
@@ -1582,7 +1609,7 @@ export class Wanderer extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.trees, x, y, size, Wanderer.svg);
+        super(id, Game.layers.mobs.npcs, x, y, size, Wanderer.svg);
     }
 
     override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
@@ -1601,7 +1628,7 @@ export class Traveller extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.trees, x, y, size, Traveller.svg);
+        super(id, Game.layers.mobs.npcs, x, y, size, Traveller.svg);
     }
 
     override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
@@ -1620,7 +1647,7 @@ export class TownCrier extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.trees, x, y, size, TownCrier.svg);
+        super(id, Game.layers.mobs.npcs, x, y, size, TownCrier.svg);
     }
 
     override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
@@ -1636,7 +1663,7 @@ export class DogNpc extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.trees, x, y, size, DogNpc.svg);
+        super(id, Game.layers.mobs.npcs, x, y, size, DogNpc.svg);
     }
 }
 
@@ -1650,7 +1677,7 @@ export class Miner extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.trees, x, y, size, Miner.svg);
+        super(id, Game.layers.mobs.npcs, x, y, size, Miner.svg);
     }
 
     override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
@@ -1669,7 +1696,7 @@ export class CityGuard extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.trees, x, y, size, CityGuard.svg);
+        super(id, Game.layers.mobs.npcs, x, y, size, CityGuard.svg);
     }
 
     override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
@@ -1688,7 +1715,7 @@ export class VillageHealer extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.trees, x, y, size, VillageHealer.svg);
+        super(id, Game.layers.mobs.npcs, x, y, size, VillageHealer.svg);
     }
 
     override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
@@ -1707,7 +1734,7 @@ export class FrontCaptain extends Mob {
     static svg: PIXI.Texture;
 
     constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.trees, x, y, size, FrontCaptain.svg);
+        super(id, Game.layers.mobs.npcs, x, y, size, FrontCaptain.svg);
     }
 
     override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
@@ -1718,3 +1745,22 @@ export class FrontCaptain extends Mob {
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(FrontCaptain, npcFile('frontCaptain'), npcCfg('frontCaptain').maxSize);
+
+const grandfatherKnotBorder = registerBorder(
+    GraphicsConfig.npcs.grandfatherKnot.borderFile, GraphicsConfig.npcs.grandfatherKnot.maxSize);
+
+export class GrandfatherKnot extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.mobs.npcs, x, y, size, GrandfatherKnot.svg);
+    }
+
+    override initShape(svg: PIXI.Texture, x: number, y: number, size: number,
+                       rotation: number, anchor?: IVector): PIXI.Container {
+        return withBorder(super.initShape(svg, x, y, size, rotation, anchor), grandfatherKnotBorder, size);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(GrandfatherKnot, npcFile('grandfatherKnot'), npcCfg('grandfatherKnot').maxSize);

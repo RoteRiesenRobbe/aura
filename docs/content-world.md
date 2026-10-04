@@ -3,7 +3,10 @@
 The zone map skeleton: progression order, scope tiers, connections, and
 locations not yet owned by a zone doc. Conventions → `README.md` → Content.
 Zone 1 + Zone 2 design intent lives in
-[`content-zone-design-guide.md`](content-zone-design-guide.md) (the old
+[`content-zone-1-farmland.md`](content-zone-1-farmland.md) and
+[`content-zone-2-woodland.md`](content-zone-2-woodland.md), the shared
+authoring rules in [`content-zone-design-guide.md`](content-zone-design-guide.md),
+and level bands per zone in [`plan-xp-progression.md`](plan-xp-progression.md) (the old
 `content-zone1.md` / `content-zone2.md` are archived: they describe the
 144×72 world). Runtime placement truth is the zone JSON authored in Tiled
 (`manual-tiled-editor.md`): `api/zones/world.json`, read it with
@@ -115,8 +118,8 @@ volcano node or a second mountain dungeon reached from the City side.
 **Connections:** the **dark tunnel** is the first dark area and the natural
 light-role tutorial (GDD §7). The level design guide puts it in Zone 2 as the
 alternate route into the City
-([`content-zone-design-guide.md`](content-zone-design-guide.md) §3.2); ⚑ the
-live `tunnel.json` is not that yet (guide §0.3). The sketch adds a **second,
+([`content-zone-2-woodland.md`](content-zone-2-woodland.md) §3.2); ⚑ the
+live `tunnel.json` is not that yet (that doc's "As built" table). The sketch adds a **second,
 much later tunnel**, City ↔ zone 13, which closes the loop.
 
 **The playfield (since 2026-09-24):** the PO rebuilt `api/zones/world.json`
@@ -134,7 +137,7 @@ the same coordinate space and entered through a door: `barn.json`,
 
 | Zone | Region(s) in `world.json` |
 |---|---|
-| 1 Starting village, forest and fields | Farmlands · Brackenfold Meadows · Saltgrass Strand |
+| 1 Starting village, forest and fields | Farmlands · Saltgrass Strand. ⛔ Brackenfold Meadows is still painted here but is leaving Zone 1 (PO 2026-10-02: "zone 1 is primarily farmland and the strand"); the map fix is owed, its destination is a map call |
 | 2 Forest and a logging camp | Deep Woods |
 | The City | Brunnstedt |
 

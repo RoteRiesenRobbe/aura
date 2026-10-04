@@ -301,11 +301,12 @@ behavior — movement blockers + visuals). One JSON per type in `api/props/`:
   `api/props/`) and derives everything else: the render class, the preload
   call, and the `maxSize` it rasterises at (`body units × 120`, the same
   px/unit the WARP cheat uses). **No `Resources.ts` class to write.**
-- A prop needing actual behavior beyond drawing its sprite (à la `Tree`'s
-  resource-spot decal, `Mineral`'s authored-not-random rotation) still gets a
-  hand-written class in `Resources.ts`, added to `Props.ts`'s
-  `BESPOKE_ENTITY_TYPES` exclusion set, and its own `gameObjectClasses` line —
-  the generic path is additive, never a ceiling.
+- A prop needing actual behavior beyond drawing its sprite (today only
+  `PropPlaceholder`, drawn procedurally) gets a hand-written class extending
+  `Resource` in `Props.ts`, added to its `BESPOKE_ENTITY_TYPES` exclusion set,
+  and its own `gameObjectClasses` line — the generic path is additive, never a
+  ceiling. (`Resources.ts` and its Tree/Stone classes are gone since
+  `plan-prop-draw-order.md` P2.)
 - The wire carries a single size scalar (max half-extent for rects); a
   non-square rect prop's aspect comes from its own `body` in `api/props/`,
   read at build time — no schema change needed to retune it.
@@ -318,13 +319,46 @@ behavior — movement blockers + visuals). One JSON per type in `api/props/`:
     boot refuses it otherwise. A bridge that blocks is a bridge you cannot
     cross: it clears the water under its deck and then walls that same deck with
     its own body.
-- Placement: `zone.props` entries (`type`, `x`, `y`, optional
-  `blocksMovement`) via the zone editor — rect props draw and hit-test as
-  rectangles there.
-  - ⚑ The placement key is a **tri-state OVERRIDE**: absent inherits the type.
+- ⚑ **A prop type carries NO draw layer.** There is no `underfoot` key on a
+  definition any more (`plan-prop-draw-order.md` P3, D4): where a prop draws is
+  where its PLACEMENT sits (below), and a definition still authoring
+  `underfoot` refuses the boot by name.
+- ⚑ **Areas** (`plan-prop-draw-order.md` P4): a zone may also carry
+  `areas: [{id, …}]`, each entry holding any subset of the zone's object arrays
+  (`props` in the same four-array shape) and nothing else. Loaders flatten them
+  away (zone level first, then each area in file order; props by layer first),
+  so a placement behaves the same wherever it is grouped. `id` must be one of
+  `api/areas/areas.json` (P4b, D15: a lowercase slug, never an array name,
+  unique in the zone), or the boot refuses. A new area is one line there plus
+  `node tools/tiled/generate-palette.mjs`; an id never changes once a zone
+  uses it. See `manual-tiled-editor.md` §3 Areas.
+- Placement: `zone.props` is an **object of four arrays, one per prop layer**
+  (`plan-prop-draw-order.md` D1/D3), each entry `type`, `x`, `y`, `rotation`,
+  optional `blocksMovement` / `scale`. In Tiled these are the four sub-layers
+  of the `props` group; the in-game zone editor puts a new placement in
+  `default`.
+
+  | Layer | Draws | Usually holds |
+  | --- | --- | --- |
+  | `canopy` | over everything below | tree crowns |
+  | `buildings` | over `default` | houses, walls, gates, a cave mouth, a wall-mounted torch |
+  | `default` | over characters | everything else: crates, carts, rocks, stumps, torches |
+  | `underfoot` | **under** every character and mob | bridges, rugs, debris, a dock |
+
+  - A higher layer always draws over a lower one; inside a layer, the later
+    entry draws on top (Tiled's Raise/Lower). The type table is a convention,
+    not a rule: any prop may sit in any layer, and `underfoot` changes ONLY the
+    draw order — a blocking prop there still blocks.
+  - ⛔ **A `crossesPaths` placement MUST sit in `underfoot`**, and the boot (and
+    the Tiled save) refuses it otherwise: a deck you walk across has to draw
+    below the character on it.
+  - ⚑ The order is SPAWN order (layer, then file order), so a reorder shows only
+    after a server restart, like any zone edit.
+  - ⚑ The placement `blocksMovement` is a **tri-state OVERRIDE**: absent inherits the type.
     That is what makes re-typing a prop move every placement of it — the same
     property `scale` has by being a multiplier. Author it only where one
     particular rock really is different from every other rock.
+  - Rect props draw and hit-test as rectangles in the zone editor.
 - **Every new `api/props/*.json` file needs the Tiled palette regenerated**,
   regardless of whether the entityType is new or reused: `node
   tools/tiled/generate-palette.mjs` (`docs/manual-tiled-editor.md` §6), then

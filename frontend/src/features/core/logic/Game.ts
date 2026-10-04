@@ -1,8 +1,9 @@
 import {Application, Container, Graphics, RenderTexture, Ticker} from 'pixi.js';
 
 import {meter2px, px2meter} from '../../../client-data/BasicConfig';
-import {ActiveZoneTracker} from '../../zones/logic/ActiveZone';
-import {cancelCrossing, noteZoneChange, runWhenCovered} from '../../zones/logic/ZoneCurtain';
+import {ActiveZoneTracker, ZoneRect} from '../../zones/logic/ActiveZone';
+import {cancelCrossing, isCrossing, noteZoneChange, runWhenCovered} from '../../zones/logic/ZoneCurtain';
+import {PlaceName, placeAt} from '../../regions/logic/RegionNames';
 import {Backend} from '../../backend/logic/Backend';
 import {EntityManager} from '../../backend/logic/EntityManager';
 import {MiniMap} from '../../map/logic/MiniMap';
@@ -269,30 +270,39 @@ export class Game implements IGame {
                 // ground, UNDER the texture blobs. A road lies ON the field it
                 // crosses, and the blobs keep doing edge treatment on top of
                 // both. A bridge is a PROP (D6) and therefore an entity — but an
-                // entity you WALK ON, so it draws on `decks` a few lines below,
-                // never in the `resources` layers with the trees (PO 2026-09-16).
+                // entity you WALK ON, so it draws on `props.underfoot`, never
+                // on `props.standing` with the trees (PO 2026-09-16).
                 // Filled masses (plan-zone-polygons.md P2): OVER the region
                 // ground, UNDER the paths. Material, then masses, then ribbons —
                 // a rock sits on the field, and a road still runs over the rock.
                 polygons: createNamedContainer('polygons'),
                 paths: createNamedContainer('paths'),
                 textures: createNamedContainer('textures'),
-                resourceSpots: createNamedContainer('resourceSpots'),
+                // No `resourceSpots`: the tree/rock ground decals were retired
+                // with their bespoke classes (plan-prop-draw-order.md P2, D8).
+                // Ground scuffing is authored as a terrain decal where wanted.
+            },
+            // The two prop containers (plan-prop-draw-order.md D7). Each keeps
+            // its props sorted by entity id (OrderedLayer, D6), which is spawn
+            // order: prop layer, then zone-file order (D5), so the stacking
+            // is the authored one.
+            props: {
                 // Bridges, docks, plank walkways — anything a character stands
-                // ON TOP OF, i.e. every prop definition authoring
-                // `underfoot: true` (PO 2026-09-16, plan-world-paths.md D6).
+                // ON TOP OF, i.e. every placement in the zone file's
+                // props.underfoot, streamed as Resource.underfoot (D4; PO
+                // 2026-09-16, plan-world-paths.md D6).
                 //
-                // ⭐ THE LAST TERRAIN LAYER, AND THEREFORE STILL UNDER EVERY
-                // ENTITY — which is the entire point. A prop drawn in the
-                // `resources` layers is drawn above `characters`, so a bridge
-                // there would cover the player crossing it: the campfire defect
-                // (see the mobs-under-characters note below), applied to world
-                // geometry. The server refuses `crossesPaths` without
-                // `underfoot` so the two cannot drift apart.
-                //
-                // ⚑ ABOVE `resourceSpots`: a deck hides the ground scuffing it
-                // is laid over, not the other way round.
-                decks: createNamedContainer('decks'),
+                // ⭐ ADDED AS THE LAST TERRAIN LAYER, AND THEREFORE STILL UNDER
+                // EVERY ENTITY — which is the entire point. `standing` is drawn
+                // above `characters`, so a bridge there would cover the player
+                // crossing it: the campfire defect (see the
+                // mobs-under-characters note below), applied to world geometry.
+                // The server refuses a `crossesPaths` placement outside
+                // props.underfoot, so the two cannot drift apart.
+                underfoot: createNamedContainer('propsUnderfoot'),
+                // Every other prop: trees, rocks, houses, walls. Above the
+                // characters (you walk behind a tree), below flyers.
+                standing: createNamedContainer('propsStanding'),
             },
             // No `placeables` group: the Berryhunter build/placeable feature is
             // gone (backlog §26/§28), so all seven of its containers rendered
@@ -307,10 +317,10 @@ export class Game implements IGame {
                 turnip: createNamedContainer('turnip'),
                 // Z1 wildlife + brambles share one layer (content pass C2).
                 wildlife: createNamedContainer('wildlife'),
-            },
-            resources: {
-                minerals: createNamedContainer('minerals'),
-                trees: createNamedContainer('trees'),
+                // NPCs, under the player like every other mob
+                // (plan-prop-draw-order.md D9). They used to share the props
+                // container and draw over the player.
+                npcs: createNamedContainer('npcs'),
             },
             // A character in FLIGHT, above the props (flight C3, PO
             // pass 2026-08-05). Every other character stays on `characters`,
@@ -375,8 +385,7 @@ export class Game implements IGame {
             this.layers.terrain.polygons,
             this.layers.terrain.paths,
             this.layers.terrain.textures,
-            this.layers.terrain.resourceSpots,
-            this.layers.terrain.decks,
+            this.layers.props.underfoot,
         );
 
         // Corpses below the living
@@ -402,16 +411,15 @@ export class Game implements IGame {
             this.layers.mobs.campfire,
             this.layers.mobs.turnip,
             this.layers.mobs.wildlife,
+            this.layers.mobs.npcs,
         );
 
         // Characters above mobs
         this.cameraGroup.addChild(this.layers.characters);
 
-        // Resources
-        this.cameraGroup.addChild(
-            this.layers.resources.minerals,
-            this.layers.resources.trees,
-        );
+        // Props, one container: rocks no longer draw below every other prop,
+        // the id order decides (plan-prop-draw-order.md D7).
+        this.cameraGroup.addChild(this.layers.props.standing);
 
         // …and a flyer above even those. Walking behind a tree is correct;
         // flying behind one breaks the only thing selling the flight, since
@@ -755,7 +763,7 @@ export class Game implements IGame {
             left: originX - width / 2 - reach, top: originY - height / 2 - reach,
             right: originX + width / 2 + reach, bottom: originY + height / 2 + reach,
         });
-        Polygons.loadPolygons(zoneData?.polygons, origin);
+        Polygons.loadPolygons(zoneData?.structures, origin);
         Paths.loadPaths(zoneData?.paths, origin);
         // The AIR over an area (plan-region-atmosphere.md A0) — loaded beside
         // its three siblings and for the same reason: it is client-visual, so
@@ -802,7 +810,8 @@ export class Game implements IGame {
         // reintroduced by a tidier-looking line.
         Promise.all([
             RegionPaint.loadZoneTextures(
-                (Regions.loadedRegions() as Region[])
+                // Only regions that paint ground (plan-region-identity.md §2.4).
+                Regions.paintedRegions(Regions.loadedRegions() as Region[])
                     .concat(Polygons.loadedPolygons())
                     .concat(Paths.loadedPaths()),
             ),
@@ -848,7 +857,8 @@ export class Game implements IGame {
         // already being sent, which is the whole of the transition mechanic
         // (§5.1). A no-op when no curtain is running — a cheat WARP across zones
         // stays the instant cut it is today.
-        noteZoneChange(left ? left.originY : entered.originY, entered.originY);
+        noteZoneChange(left ? left.originY : entered.originY, entered.originY,
+            this.arrivalPlace(entered, xPx, yPx));
         // ⭐ UNDER COVER, NEVER IN PLAIN SIGHT (§5.1 step 2). Everything below is
         // a visible teardown — renderZone destroys the ground layer and reloads
         // every texture, and the map re-bakes — so it waits for the curtain to
@@ -877,6 +887,30 @@ export class Game implements IGame {
                 meter2px(entered.originX), meter2px(entered.originY));
         });
         return entered.name;
+    }
+
+    /**
+     * The crossing curtain's title card: the place (a region's id, its text
+     * from api/regions/regions.json) the player arrived in, with its subtitle,
+     * else the zone's name (PO 2026-10-04).
+     *
+     * ⚑ Read off the BUNDLED zone data, not Regions.loadedRegions(): the new
+     * zone is only loaded under full cover, after this runs.
+     */
+    private arrivalPlace(entered: ZoneRect, xPx: number, yPx: number): PlaceName | null {
+        const zoneData = GroundTextureManager.getZoneData(entered.name);
+        const regions = Regions.toRegions(zoneData?.regions, {x: entered.originX, y: entered.originY});
+        const place = placeAt(regions, {x: xPx, y: yPx});
+        if (place === null) {
+            return zoneData?.name ? {title: zoneData.name} : null;
+        }
+        // The card names the place, so the region banner must not name it again
+        // a second after the reveal. Only when a card is actually shown: a cheat
+        // WARP covers nothing, and there the banner is the only announcement.
+        if (isCrossing()) {
+            RegionBanner.noteShown(place);
+        }
+        return place;
     }
 
     private paintTerrainSurfaces(): void {

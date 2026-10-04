@@ -142,7 +142,7 @@ mouth borrows the boulder master. ⚑ Bridge deck must author `crossesPaths:true
 | Prop | Prio | State | px |
 |---|---|---|---|
 | Torch | P1 | placeholder | 62 |
-| Tent | P2 | missing | - |
+| Tent | P2 | placeholder | 216 x 144 |
 | Mushroom cluster | P3 | missing | - |
 
 ⭐ Torch is **the only prop that emits light** (half a campfire radius, 3.5 u).

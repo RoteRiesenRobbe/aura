@@ -1,4 +1,5 @@
 import {TravelDirection} from '../../conversation/logic/ConversationModel';
+import type {PlaceName} from '../../regions/logic/RegionNames';
 
 /**
  * The zone-crossing curtain's state machine, with no DOM in it
@@ -55,6 +56,13 @@ export const REVEAL_MS = 180;
 export const HOLD_MIN_MS = 80;
 
 /**
+ * [PLACEHOLDER] The hold when the arrival names its place: long enough to READ
+ * the title card on the black (PO 2026-10-04, "deliberate, not accidental").
+ * Replaces HOLD_MIN_MS for that crossing, measured from the swap the same way.
+ */
+export const TITLE_HOLD_MS = 1200;
+
+/**
  * [PLACEHOLDER] The longest the curtain will hold at full black waiting for the
  * new place to arrive.
  *
@@ -83,6 +91,7 @@ export class CurtainSequence {
     private hasArrived = false;
     /** When the arrival landed, so the settle beat is measured from the SWAP. */
     private arrivedAt = 0;
+    private arrivedPlace: PlaceName | null = null;
 
     get currentPhase(): CurtainPhase {
         return this.phase;
@@ -95,6 +104,11 @@ export class CurtainSequence {
 
     get running(): boolean {
         return this.phase !== 'idle';
+    }
+
+    /** The arrived place for the title card (title + optional subtitle), or null. */
+    get place(): PlaceName | null {
+        return this.arrivedPlace;
     }
 
     /**
@@ -118,6 +132,7 @@ export class CurtainSequence {
         this.startedAt = now;
         this.hasArrived = false;
         this.arrivedAt = 0;
+        this.arrivedPlace = null;
     }
 
     /**
@@ -155,14 +170,22 @@ export class CurtainSequence {
      * ⚑ Never DOWNGRADES a direction, and never changes one mid-reveal: the
      * curtain is already travelling, and reversing it is the two-fades failure
      * this whole module exists to avoid.
+     *
+     * `place` names the place arrived in, for the title card; it lengthens the
+     * hold to TITLE_HOLD_MS. ⚑ Taken from the FIRST arrival only, and never once
+     * the reveal has begun: a card popping in on a curtain already leaving reads
+     * as a glitch, the opposite of what it is for.
      */
-    arrived(now: number, actual: TravelDirection = TravelDirection.None): void {
+    arrived(now: number, actual: TravelDirection = TravelDirection.None, place: PlaceName | null = null): void {
         if (!this.running) {
             return;
         }
         if (!this.hasArrived) {
             this.hasArrived = true;
             this.arrivedAt = now;
+            if (this.phase !== 'revealing') {
+                this.arrivedPlace = place;
+            }
         }
         if (this.dir === TravelDirection.Lateral
             && actual !== TravelDirection.None
@@ -201,7 +224,8 @@ export class CurtainSequence {
                 // forever. It still takes the settle beat, so both kinds of
                 // crossing have the same rhythm.
                 const ready = this.hasArrived || this.dir === TravelDirection.Lateral;
-                if (ready && now >= this.swapAt + HOLD_MIN_MS) {
+                const hold = this.arrivedPlace !== null ? TITLE_HOLD_MS : HOLD_MIN_MS;
+                if (ready && now >= this.swapAt + hold) {
                     this.startReveal(now);
                 }
                 return;
@@ -211,6 +235,7 @@ export class CurtainSequence {
                 if (now - this.revealAt >= REVEAL_MS) {
                     this.phase = 'idle';
                     this.dir = TravelDirection.None;
+                    this.arrivedPlace = null;
                 }
                 return;
 
@@ -229,6 +254,7 @@ export class CurtainSequence {
         this.dir = TravelDirection.None;
         this.hasArrived = false;
         this.arrivedAt = 0;
+        this.arrivedPlace = null;
     }
 
     private startReveal(now: number): void {

@@ -31,7 +31,7 @@ The brief every row is judged against — the Portrait Rule, tone, scale, and th
 rendering constraints new art must survive — lives in [`README.md`](README.md).
 How a file becomes a sprite: [`pipeline.md`](pipeline.md).
 
-Rendered 2026-09-29 from 223 rows.
+Rendered 2026-10-03 from 240 rows.
 
 ---
 
@@ -39,7 +39,7 @@ Rendered 2026-09-29 from 223 rows.
 
 | Kind | Rows |
 | --- | ---: |
-| Art | 189 |
+| Art | 206 |
 | Audio | 20 |
 | Animation | 8 |
 | Constraint | 6 |
@@ -48,9 +48,9 @@ Rendered 2026-09-29 from 223 rows.
 | --- | ---: | --- |
 | ✅ drawn | 89 | has its own art today |
 | ⚠️ shared | 9 | ⚠ renders using another entity's art — needs its own to exist as a distinct thing |
-| 🟡 placeholder | 41 | a placeholder file ships; it is not the real thing |
+| 🟡 placeholder | 59 | a placeholder file ships; it is not the real thing |
 | 🟡 stock | 10 | a stock/borrowed texture stands in (the pd* set) |
-| ❌ missing | 44 | nothing exists |
+| ❌ missing | 43 | nothing exists |
 | ⚙️ code | 15 | drawn procedurally in code, no art file |
 | ⛔ blocked | 5 | cannot be delivered until engine work lands |
 | — n/a | 10 | a constraint or a number to judge, not a file to draw |
@@ -58,11 +58,11 @@ Rendered 2026-09-29 from 223 rows.
 | Priority | Rows | Rule |
 | --- | ---: | --- |
 | **P0** | 31 | do first — highest placement count, or flagged ⭐ as unusually high stakes |
-| **P1** | 54 | high — shared art, or 20+ placements, or a named gameplay gap |
-| **P2** | 71 | normal — placed but not everywhere |
-| **P3** | 67 | low — unplaced, deferred, or already fine |
+| **P1** | 60 | high — shared art, or 20+ placements, or a named gameplay gap |
+| **P2** | 81 | normal — placed but not everywhere |
+| **P3** | 68 | low — unplaced, deferred, or already fine |
 
-**109 rows need work** (missing, shared, placeholder, stock or blocked),
+**126 rows need work** (missing, shared, placeholder, stock or blocked),
 of which **11 are P0**:
 
 | | Asset | Kind | State | Why it matters |
@@ -85,7 +85,7 @@ of which **11 are P0**:
 
 # Art
 
-## Mob — 32
+## Mob — 33
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -118,6 +118,7 @@ of which **11 are P0**:
 | ✅ | **GreaterFireElemental** | `greaterFireElemental.svg` | P2 | 1 | 144–168 | A walking furnace. The size gap is the tier signal — keep them obviously the same creature. |
 | ✅ | **Troll** | `troll.svg` | P2 | 6 | 128–144 | Solitary bruiser at the map outskirts. Nothing else in the world looks like it should. |
 | ✅ | **Turnip** | `turnip.svg` | P2 | 6 | 40–52 | Smallest sprite in the game. Immune to everything but Harvest. A plant you pull, not a creature you kill. |
+| 🟡 | **Deadwood** | `deadwood.svg` | P3 | 8 | 52–64 | Glimmerwood — A heap of dead branches around Grandfather Knot, cleared with Harvest for the-old-roots. Scatter on the forest floor like the mushrooms. |
 | ❌ | **Goblin** | — | P1 |  | 60–76 | Z2 Woodland — Named in the world bible beside Kobold; no definition and no art exist. Must read as a DIFFERENT species from Kobold at the same size, not a recolour. |
 | ✅ | **AlphaBoar** | `wildboar_alpha.png` | P2 |  | 104–124 | Z1 Farmland — Elite tusker leading the sounder, and the first elite a new player meets. It got its OWN silhouette rather than the entityType-variant shortcut this row used to allow — a mob whose only tell is the health bar is one the player cannot decide to avoid. Rendered at 52-62 (this column is DPR-2). Placement is the PO's: the mill POI takes exactly one. |
 | ❌ | **BanditLeader** | — | P2 |  | 100–116 | Z2 bandit camp — Named elite leading the Woodland camp. Content on top of EliteBandit — art optional, but a named antagonist with the generic elite face is a missed beat. |
@@ -144,7 +145,7 @@ of which **11 are P0**:
 | ✅ | **ShieldbearerCompanion** | `shieldbearerCompanion.svg` | P3 |  | 76–84 | The Hold the Line tank. |
 | ✅ | **MedicCompanion** | `medicCompanion.svg` | P3 |  | 64–72 | The Field Medics healer. |
 
-## NPC — 18
+## NPC — 19
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -161,13 +162,14 @@ of which **11 are P0**:
 | ✅ | **VillageHealer** | `villageHealer.svg` | P3 |  |  | Z2 village campfire — Teaches Revive — the group-support capstone. |
 | ✅ | **CityGuard** | `cityGuard.png` | P3 |  |  | Z2 City Gates — Teaches Strong. Gates shut while the front burns; Zone 3 teaser. |
 | ✅ | **FrontCaptain** | `frontCaptain.svg` | P3 |  |  | Z2 front staging — Teaches Vanguard @L20. The last giver before the world boss — should look like the end of the road. |
+| ✅ | **GrandfatherKnot** | `grandfatherKnot.png` | P2 | 1 |  | Glimmerwood — The wise old tree (docs/plan-grandfather-knot.md): smug, half-lidded, a mossy crown, in the bark ring. Drawn twice a normal NPC (body radius 0.7). First draft 2026-10-03 from a PO reference image, PO: good for now. |
 | ✅ | **ForestSign** | `signpost.svg` | P3 |  |  | Z1 dark-forest edge — "DANGER! STAY AWAY!" Points at the Elite Wolf — deliberately the only warning. |
 | ⚠️ | **AscensionStone** | `signpost.svg` | P0 |  |  | Z1 village — ⭐ The meta-progression altar, where a max-level character is spent. The game's most significant object currently looks like a road sign. Owes a site, not just a prop. |
 | ⚠️ | **MemorialStone** | `signpost.svg` | P1 |  |  | Z1 village — Names of everyone ascended. Stands beside the stone — so the village has two identical signposts side by side. |
 | ⚠️ | **FrontAscensionStone** | `signpost.svg` | P1 |  |  | Z2 front — The second site (level 25). Same kind of monument, war-front setting. |
 | ❌ | **Shepherd** | — | P2 |  | 84 | Z1 north pasture — Herder NPC for the pasture. A Farmer reskin is acceptable; a distinct one is better, since Farmer is the first NPC in the game. |
 
-## Prop — 35
+## Prop — 43
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -199,15 +201,23 @@ of which **11 are P0**:
 | 🟡 | **Fence post** | `fencePost.svg` | P2 |  | 53 | Terminates hedgerow/fence paths, which have no end-cap art. Placeholder SVG (body r0.22): the post END GRAIN, seen top-down. No rail stubs - a path leaves in any direction and a prop rotation is never applied. |
 | 🟡 | **Gate** | `gate.svg` | P2 |  | 240x192 | Z1 |
 | 🟡 | **Palisade segment** | `palisade.svg` | P1 |  | 288 x 96 | Z2 |
-| ❌ | **Tent** | — | P2 |  |  | Z2 — Bandit camp. |
+| 🟡 | **Tent** | `tent.svg` | P2 |  | 192 × 144 | Z3–4 — Bandit camp. Ridge tent, lit north slope / shaded south slope, patched, a closed laced entrance on the east gable. ⛔ No guy ropes (PO 2026-10-03): a prop draws over characters, so ropes would cross every passing player. |
+| 🟡 | **Bedroll** | `bedroll.svg` | P2 |  | 60 × 168 | Z3–4 — ⛔ ONE BROWN (PO 2026-10-03: "less like a real bed or chocolate bar"): a drab wool roll, the pack as pillow, about a player wide. |
+| 🟡 | **Shipwreck** | `shipwreck.svg` | P1 |  | 960 × 360 | Z3 — ⭐ The Wrecker's Bluff landmark, the largest prop (8x3). Reads as a ship first, a wreck second: whole outline, back BROKEN amidships with ribs over a black hold, the mast fallen across the break. |
+| 🟡 | **Wreck debris** | `wreckDebris.svg` | P2 |  | 288 × 192 | Z3 — What the tide brought in off the Shipwreck: torn planks in the hull colour, a stove-in barrel, rope, a rag of sail. |
+| 🟡 | **Rowboat** | `rowboat.svg` | P2 |  | 312 × 132 | Z4 — Beached, bow east. Painted (white + blue gunwale): the fishing hut owns the tar black. Thwarts and shipped oars are what make it a boat. |
+| 🟡 | **Net-drying rack** | `netRack.svg` | P1 |  | 360 × 96 | Z4 — ⭐ Netmender's Coast's signature. The NET is the drawing: diamond mesh, corks along one edge, weights along the other, hung both sides of the rail. |
+| 🟡 | **Fishing hut** | `fishingHut.svg` | P2 |  | 360 × 288 | Z4 — Material first: TARRED FELT on boards (house = red tile, cottage = gold thatch). Net heaped over the eave, glass floats, tin stovepipe. |
+| 🟡 | **Fish** | `fish.svg` | P2 |  | 60 × 24 | Z4 — One mackerel lying flat, head east: scatter for a jetty, a boat, a net rack, a table. Replaced the fish-drying rack, which never read from above (PO 2026-10-03). Seen from above a fish is its BACK: spindle, forked tail, pectoral fins, dark wavy bars. |
 | 🟡 | **Crate** | `crate.svg` | P3 |  | 108 | Z1 — Camp/village clutter. Placeholder SVG (body 0.9x0.9 rect): lid boards, iron banding, top-down. |
+| 🟡 | **BrokenCrate** | `brokenCrate.svg` | P3 |  | 108 | Z1 — Crate's wreck (RuinedHouse's pattern), same 0.9x0.9 body so a placement swaps between them. Placeholder SVG: lid gone and lying in pieces, two sides standing as an L on one surviving bracket, the other two burst outward and flat, straw spilled out of the box. |
 | 🟡 | **Torch** | `torch.svg` | P1 |  | 62 | Z1 — The only prop that EMITS LIGHT. Half a campfire radius (3.5 u), punched into the darkness overlay from zone.props at load - never streamed, or a dark pocket pops lit the moment the torch enters the viewport. Placeholder SVG (body r0.26, about a player wide): a tiny campfire from above, palette lifted from mobs/campfire.svg. Draws at 62 px: doubled from r0.13 on 2026-09-20 because a torch is the one small prop a player looks at. |
 | ❌ | **Signpost art** | — | P1 |  |  | Z2 — ForestSign exists as an NPC but wears signpost.svg alongside three monuments — see the shared-art warning. |
 | ❌ | **Mushroom cluster** | — | P3 |  |  | Z2 — Forest floor dressing, Zone 2. |
 | ❌ | **Mossy rock** | — | P2 |  |  | Z2 — Rock variant for the forest. Rock and Boulder are the same SVG scaled. |
 | 🟡 | **Cave mouth frame** | `caveMouth.svg` | P1 |  | 360 x 288 | Z2 |
 
-## Ground decal — 16
+## Ground decal — 20
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -227,6 +237,10 @@ of which **11 are P0**:
 | ✅ | **Dark Puddle** | `darkPuddle.svg` | P3 | 0 | 60–140 | Never placed. |
 | ✅ | **Flowers** | `flowers.svg` | P2 | 15 | 70–100 | White-outlined cluster — currently the only colour accent in the terrain set. |
 | ✅ | **Leaves** | `leaves.svg` | P2 | 5 | 50–100 | Fallen leaf scatter. |
+| 🟡 | **Saltgrass** | `saltgrass.svg` | P2 |  | 100–220 | Z1 Strand · Z3–4 — A low mat of pale sage sward, the grass the Saltgrass Strand is named for. |
+| 🟡 | **Dune Grass** | `duneGrass.svg` | P2 |  | 80–180 | Z1 Strand · Z3–4 — Marram TUFTS (not a mat, that is Saltgrass): fans of stiff pale blades with sand between. |
+| 🟡 | **Shells** | `shells.svg` | P2 |  | 50–110 | Z1 Strand · Z3–4 — Tide-line scatter: cockles, mussels, periwinkles. Three kinds so it reads as a beach, not confetti. |
+| 🟡 | **Kelp Line** | `kelpLine.svg` | P2 |  | 120–300 | Z1 Strand · Z3–4 — The strand line of dead wrack the high tide leaves. A LINE drawn west-east: rotate along the shore, overlap the thin ends. |
 
 ## Player — 3
 
@@ -282,7 +296,7 @@ of which **11 are P0**:
 | ✅ | **Settings icon** | `settings-icon.svg` | P3 |  |  | Gear. |
 | ✅ | **Day cycle icon** | `cycle-icon.svg` | P3 |  |  | Day/night indicator — the cycle is switched off at config level, so this is dark code. |
 
-## Terrain profile — 26
+## Terrain profile — 29
 
 | | Name | Current | Pri | # | Size | Where / notes |
 | --- | --- | --- | --- | ---: | --- | --- |
@@ -292,8 +306,11 @@ of which **11 are P0**:
 | 🟡 | **Wheat** | `wheat-placeholder.png` | P1 |  | seamless tile 750² | Z1 — Standing crop, same posture as Ploughed: a polygon plot, blend 0, and a Wheat Cross twin for the other row direction. GENERATED placeholder (tools/make-field-tiles.mjs), tuned against a tabletop static-grass reference the PO supplied: a dense flock of ~0.05 u TUFTS (the cellular lattice, not waves - wave marks read as squiggles or as ribbed card), with the drills deciding how much crop stands so bare earth shows between them. scale 1, drills 0.5 u apart. Fallback colour moved to #b08f4c with the art. |
 | 🟡 | **Forest** | `forest-placeholder.png` | P0 |  | seamless tile, 512² suggested | Zone 2 base ground. GENERATED placeholder (tools/make-cellular-tiles.mjs): moss duff |
 | 🟡 | **Swamp** | `pd161.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #585044. All numbers [PLACEHOLDER]. |
-| ✅ | **Coastal Cliff** | `sand.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #9c8f74. All numbers [PLACEHOLDER]. |
+| 🟡 | **Coastal Cliff** | `limestone-placeholder.png + coast-grass-placeholder.png` | P1 |  | seamless tile 750² | Z3 — ⭐ The clifftop of Wrecker's Bluff: Burren LIMESTONE under a COAST GRASS overlay (coverage 0.72), so it reads as rock with grass on it. Was the Mountains tile (pd196). Two generated tiles (tools/make-cellular-tiles.mjs); real art = a limestone tile + a pale salt-bleached sward tile. All numbers [PLACEHOLDER]. |
 | ✅ | **Coast** | `sand.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #dfc78d. All numbers [PLACEHOLDER]. |
+| 🟡 | **Limestone** | `limestone-placeholder.png` | P1 |  | seamless tile 750² | Z3 — Pale pavement slabs (clints) cut by mossy cracks (grikes). Coastal Cliff's base; also a profile on its own. ⛔ Must not read as paving: big irregular slabs, soft uneven cracks. |
+| 🟡 | **Coast Grass** | `coast-grass-placeholder.png` | P1 |  | seamless tile 750² | Z3 — Short, pale, salt-bleached Atlantic sward; Coastal Cliff's overlay, also a profile on its own. Must read as a different place from the Farmlands' lush Fields green. |
+| 🟡 | **Shoreline** | `shoreline-placeholder.png` | P1 |  | 720 × 320 RGBA, band ≤ 180 px | Z1 Strand · Z3–4 — ⭐ The waterline as a path: wet sand fading in, the bright swash line, foam lace over the Water beneath, a fainter second line. Generated (tools/make-shoreline-tile.mjs). |
 | 🟡 | **Magic Forest** | `pd184.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #6a52d4. All numbers [PLACEHOLDER]. |
 | 🟡 | **Dead Magic Forest** | `pd153.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #3b2d78. All numbers [PLACEHOLDER]. |
 | 🟡 | **Ashen Fields** | `pd163.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #8a2e1c. All numbers [PLACEHOLDER]. |
@@ -305,7 +322,7 @@ of which **11 are P0**:
 | 🟡 | **Mountains** | `pd196.jpg` | P3 |  | seamless tile, 512² suggested | Terrain profile. Colour #736d66. All numbers [PLACEHOLDER]. |
 | ❌ | **Ice** | — | P2 |  | seamless tile, 512² suggested | No texture — flat colour. |
 | 🟡 | **Wall** | `wall-placeholder.png` | P2 |  | seamless tile, 512² suggested | Worn by polygon outlines and blocking masses. GENERATED placeholder (tools/make-cellular-tiles.mjs): fieldstone courses of varied height with mortar joints. At scale 1 a stone is ~0.69 u |
-| 🟡 | **Fence** | `fence-placeholder.png` | P2 |  | RGBA tile 750x96 | Z1 — ⭐ The FIRST directional tile: WRONG unless its path authors alignTexture true, which turns the tile along the path AND registers it across the path. Generated by tools/make-fence-tile.mjs, the fifth technique family. ⛔ The first cut was OPAQUE and read as a boardwalk (PO: not like a fence at all) - because registration did not exist yet, so nothing could sit at a known height across the ribbon, and A FENCE IS MOSTLY GAPS. It is now RGBA, alone among the ground tiles: a thin rail with posts standing proud of it and grass showing through. ⚑ The tile PIXEL HEIGHT is load-bearing - fence in the middle 48 of 96 rows, so width 0.40 reveals exactly the fence; safe to 0.80. Posts every 2.08 u. No baked shadow (the tile turns with its path). Author one path per straight leg. |
+| 🟡 | **Fence** | `fence-placeholder.png` | P2 |  | RGBA tile 750x96 | Z1 — ⭐ The FIRST directional tile: WRONG unless its path authors alignTexture true, which turns the tile along the path AND registers it across the path. Generated by tools/make-fence-tile.mjs, the fifth technique family. ⛔ The first cut was OPAQUE and read as a boardwalk (PO: not like a fence at all) - because registration did not exist yet, so nothing could sit at a known height across the ribbon, and A FENCE IS MOSTLY GAPS. It is now RGBA, alone among the ground tiles: a thin rail with posts standing proud of it and grass showing through. ⚑ The tile PIXEL HEIGHT is load-bearing - fence in the middle 48 of 96 rows, so width 0.40 reveals exactly the fence; safe to 0.80. Posts every 6.25 u (one per tile, on the wrap edge; a clean rail between). No baked shadow (the tile turns with its path). Author one path per straight leg. |
 | 🟡 | **Road** | `road-placeholder.png` | P0 |  | seamless tile 750² | Every road in the game. GENERATED placeholder (tools/make-cellular-tiles.mjs, the cellular family's third tile): packed brown earth with two warm grades of pebble pressed into it and hairline dried-mud cracks, all of it DELIBERATELY QUIET. ⛔ It USED TO BORROW pd106, the DESERT tile, so every lane was golden sandstone - that was the whole brief. ⛑ Three faults worth not repeating, all of them only visible once the tile REPEATS: too few slow bed waves paint a diagonal corduroy stripe; a neutral-grey pebble reads BLUE against warm brown; and mud cracks as a ridged field make closed loops that read as worm trails until they are thin and faint. ⛔ NO CART RUTS - a rut is directional and would need alignTexture, which wants one path per straight leg, and all three Road paths are multi-point meanders. Ruts are a second tile. ⭐ It ships at a SIXTH of its first pass' detail (PO: reads a little messy) - a ground tile is looked THROUGH, not at, and every mark repeats nine times across a screen, so one that looks slightly empty alone is the one that is right in the world. Real art wanted. |
 | 🟡 | **Stones** | `stones-placeholder.png` | P2 |  | seamless tile 750² | The first OVERLAY tile (docs/plan-ground-noise.md W2): Meant to be named by another profile's overlay to show as stony patches (none does yet: FieldsForestBlend, the first overlay content, uses Forest). GENERATED placeholder (tools/make-cellular-tiles.mjs, the cellular family's fourth tile): the road's pebbles turned up until they are the material, about 45 % warm-grey stones over thin dark earth. Busier than a ground tile may be on purpose: a patch shows a piece of it and stops. Real art wanted. |
 | 🟡 | **Cobblestone** | `cobble-placeholder.png` | P1 |  | seamless tile 750² | The city street: Road paved. GENERATED placeholder (tools/make-cellular-tiles.mjs, the cellular family's fifth tile): rounded warm-grey cobbles (a Voronoi cut with soft-minned corners) in dark dirt joints, a step darker than the City ground so the street reads as laid into the plaza, and warm so it is not the Wall laid flat. Undirected, so a drop-in for Road on any meandering path (no alignTexture). Real art wanted. |

@@ -2,6 +2,7 @@ import {AlphaFilter, Container, Sprite, Texture} from 'pixi.js';
 import {meter2px} from '../../../client-data/BasicConfig';
 import {PrerenderEvent} from '../../core/logic/Events';
 import {getZoneData} from '../../ground-textures/logic/GroundTextureManager';
+import {flattenProps} from '../../zones/logic/PropLayers';
 import {gameObjectId} from '../../common/logic/Types';
 import * as Atmospheres from '../../atmospheres/logic/Atmospheres';
 import * as Clearings from '../../atmospheres/logic/Clearings';
@@ -245,7 +246,7 @@ export function loadZone(zoneName: string) {
     // result is identical.
     if (active) {
         const zone = getZoneData(zoneName);
-        const campfires = zone?.campfires || [];
+        const campfires = zone?.bindPoints || [];
         campfires.forEach((fire) => {
             punchStaticLight(fire.x + ox, fire.y + oy, CAMPFIRE_LIGHT_RADIUS);
         });
@@ -263,7 +264,7 @@ export function loadZone(zoneName: string) {
         // and leave the sim insisting the lit pocket is dark — the A4 seam
         // verbatim (see the comment on `inDarkness`). `punchStaticLight` does
         // both, which is why it exists rather than two call sites.
-        (zone?.props || []).forEach((prop) => {
+        flattenProps(zone?.props).forEach((prop) => {
             if (prop.type === TORCH_PROP_TYPE) {
                 punchStaticLight(prop.x + ox, prop.y + oy, TORCH_LIGHT_RADIUS);
             }

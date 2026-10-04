@@ -6,13 +6,13 @@
  *     node tools/tiled/generate-palette.mjs
  *
  * Output (all checked in, all overwritten wholesale — never hand-edit):
- *   tools/tiled/palette/terrain.tsx        image-collection tileset, 1 tile per ground-texture type
+ *   tools/tiled/palette/decals.tsx         image-collection tileset, 1 tile per ground-texture type
  *   tools/tiled/palette/props.tsx          image-collection tileset, 1 tile per prop type
  *   tools/tiled/palette/propertytypes.json the same custom types, for hand-import when
  *                                          working WITHOUT the project
  *   tools/tiled/palette/content.json        the converter's content vocabulary
  *                                          (terrain types, prop bodies, mob kinds + speeds,
- *                                           region profiles)
+ *                                           region profiles, area ids)
  *   tools/tiled/aura.tiled-project          its propertyTypes array, patched in place
  *
  * ⚑ Why generated: the in-game editor bundles api/ straight in with
@@ -83,7 +83,7 @@ function imageSize(abs) {
 /* ---- sources ------------------------------------------------------------- */
 
 // Ground textures live in the client's Graphics config, keyed by exactly the
-// string world.json's terrain[].type carries.
+// string world.json's decals[].type carries.
 function readTerrainTypes() {
     const src = readFileSync(path.join(ROOT, 'frontend/src/client-data/Graphics.ts'), 'utf8');
     const i = src.indexOf('groundTextureTypes:');
@@ -117,7 +117,8 @@ function readProps() {
         const wUnits = body.radius ? body.radius * 2 : body.width;
         const hUnits = body.radius ? body.radius * 2 : body.height;
         if (!(wUnits > 0) || !(hUnits > 0)) { fail(`prop "${def.name}" has no usable body`); }
-        return {type: def.name, entityType: def.entityType, abs, wUnits, hUnits, ...imageSize(abs)};
+        return {type: def.name, entityType: def.entityType, crossesPaths: def.crossesPaths === true,
+            abs, wUnits, hUnits, ...imageSize(abs)};
     }).sort((a, b) => a.type.localeCompare(b.type));
 }
 
@@ -127,6 +128,26 @@ function kindOf(def) {
     if (def.interaction != null) { return 'talker'; }
     if (def.role === 'structure') { return 'fixture'; }
     return 'combat';
+}
+
+// The one list of area ids (plan-prop-draw-order.md P4b, D15). zone.go's
+// LoadAreaIDs is the authority on its rules; this only reads it.
+function readAreas() {
+    const file = path.join(ROOT, 'api', 'areas', 'areas.json');
+    if (!existsSync(file)) { fail('area list not found: ' + path.relative(ROOT, file)); }
+    const ids = JSON.parse(readFileSync(file, 'utf8')).areas;
+    if (!Array.isArray(ids) || ids.length === 0) { fail('api/areas/areas.json lists no areas'); }
+    return ids;
+}
+
+// The one list of places (plan-region-identity.md D2). zone.go's
+// LoadRegionList is the authority on its rules; this only reads the ids.
+function readRegionIds() {
+    const file = path.join(ROOT, 'api', 'regions', 'regions.json');
+    if (!existsSync(file)) { fail('region list not found: ' + path.relative(ROOT, file)); }
+    const regions = JSON.parse(readFileSync(file, 'utf8')).regions;
+    if (!Array.isArray(regions) || regions.length === 0) { fail('api/regions/regions.json lists no regions'); }
+    return regions.map(r => r.id);
 }
 
 function readMobs() {
@@ -315,15 +336,15 @@ const KIND_COLOUR = {
     fixture: '#ff9e9e9e',
 };
 
-function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
+function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, areas, regionIds) {
     let id = 0;
     const enumType = (name, values) => ({
         id: ++id, name, type: 'enum', storageType: 'string',
         values, valuesAsFlags: false,
     });
-    const classType = (name, color, members = []) => ({
+    const classType = (name, color, members = [], useAs = ['property', 'object']) => ({
         id: ++id, name, type: 'class', color,
-        drawFill: true, useAs: ['property', 'object'], members,
+        drawFill: true, useAs, members,
     });
 
     const member = (name, type, value, propertyType) =>
@@ -377,7 +398,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         .concat([member('patrolMode', 'string', C.PATROL_INHERIT, 'AuraPatrolMode')]);
 
     const types = [
-        enumType('AuraTerrainType', terrain.map(t => t.type)),
+        enumType('AuraDecalType', terrain.map(t => t.type)),
         enumType('AuraPropType', props.map(p => p.type)),
         // ⚑ The sentinel leads the list so it is the natural default, like
         // AuraMobName's — but it means the OPPOSITE of MOB_UNSET's: "(pick a
@@ -424,7 +445,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // dropped default and a kept one reach the same answer.
         enumType(C.PATH_SHAPE_ENUMS.corners, [C.PATH_SHAPE_DEFAULT].concat(C.PATH_SHAPE_VALUES.corners)),
         enumType(C.PATH_SHAPE_ENUMS.ends, [C.PATH_SHAPE_DEFAULT].concat(C.PATH_SHAPE_VALUES.ends)),
-        classType('AuraTerrain', '#ff8bc34a'),
+        classType('AuraDecal', '#ff8bc34a'),
         // ⭐ ONE member, and the enum above is what makes it safe — see the
         // block comment over KIND_COLOUR. The default IS C.PROP_BLOCKS_INHERIT,
         // which aura-convert.js's readPropBlocks maps back to "not authored";
@@ -432,7 +453,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // them being equal.
         classType('AuraProp', '#fff44336',
             [member('blocksMovement', 'string', PROP_BLOCKS_INHERIT, C.PROP_BLOCKS_ENUM)]),
-        classType('AuraCampfire', '#ffff9800'),
+        classType('AuraBindPoint', '#ffff9800'),
         classType('AuraDarkArea', '#ff673ab7'),
         classType('AuraAnchor', '#ff00bcd4'),
         // ⚑ AuraRegion DOES carry a member where AuraProp deliberately does
@@ -441,13 +462,14 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // authored". PROFILE_UNSET is that value — it is not a profile name and
         // the save refuses it — so a Tiled that drops a default-valued property
         // and a Tiled that keeps it reach the same answer.
-        // ⭐ title / subtitle (the region title banner, 2026-09-28) obey the
-        // same rule with '' as the "not authored" value — the spawn `anchor`
-        // reading: aura-convert.js readText maps a blank back to absent.
+        // ⭐ Since plan-region-identity.md R1 a region carries an id, a profile,
+        // or both (D1), so on a REGION PROFILE_UNSET reads "no ground" and the
+        // save refuses only a region with neither. The `id` names the place
+        // (D2), picked from AuraRegionId; its default C.REGION_ID_UNSET maps
+        // back to "no place", the EFFECT_UNSET reading of a sentinel.
         classType('AuraRegion', '#ffcddc39',
-            [member('profile', 'string', PROFILE_UNSET, 'AuraTerrainProfile'),
-                member('title', 'string', ''),
-                member('subtitle', 'string', '')]),
+            [member('id', 'string', C.REGION_ID_UNSET, C.REGION_ID_ENUM),
+                member('profile', 'string', PROFILE_UNSET, 'AuraTerrainProfile')]),
         // A path wears the same profile vocabulary as a region and adds its own
         // geometry. ⚑ Both extra members obey the C6 rule the AuraRegion note
         // above states: 'width' defaults to 0, which the save REFUSES, so a
@@ -475,7 +497,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         // means something else (L7). ⛔ A blocking polygon can SEAL A REGION OFF
         // rather than merely across — a path can only cut a line, a polygon has
         // an inside — and no automated check catches that (L3).
-        classType('AuraPolygon', '#ff8d6e63',
+        classType('AuraStructure', '#ff8d6e63',
             [member('profile', 'string', PROFILE_UNSET, 'AuraTerrainProfile'),
                 member('blocksMovement', 'bool', false),
                 ...OUTLINE_MEMBERS, EFFECT_MEMBER]),
@@ -506,7 +528,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
                 EFFECT_MEMBER]),
         // ⭐ THE HOLE (plan-region-atmosphere.md A4) — the second class on the
         // atmospheres layer, told apart from the air it cuts by CLASS the way
-        // AuraPolygon is told from AuraPath (zone-polygons D5).
+        // AuraStructure is told from AuraPath (zone-polygons D5).
         //
         // ⛔ NO PROFILE MEMBER, AND THE EMPTINESS IS THE RULING (L7). This is
         // the whole of A4: the PO rejected 'darkness: 0 means erase' because one
@@ -529,6 +551,24 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
         types.push(classType('AuraSpawn' + kind[0].toUpperCase() + kind.slice(1),
             KIND_COLOUR[kind], SPAWN_MEMBERS));
     }
+    // ⭐ The area ids (plan-prop-draw-order.md P4b, D15), api/areas/areas.json
+    // in file order. LAST, so adding them renumbered no existing type. The
+    // sentinel leads for MOB_UNSET's reason: a group made an area and never
+    // given an id refuses the save instead of silently becoming whichever
+    // area is listed first.
+    types.push(enumType(C.AREA_ENUM, [C.AREA_UNSET].concat(areas)));
+    // ⭐ The one class used on a LAYER: a group layer of this class is an
+    // area, and its id is this member, never the group's name (a free label).
+    // The default is C.AREA_UNSET, which the save refuses, so a Tiled that
+    // drops a default-valued property and one that keeps it reach the same
+    // answer (the C6 rule).
+    types.push(classType(C.AREA_CLASS, '#ff607d8b',
+        [member('id', 'string', C.AREA_UNSET, C.AREA_ENUM)], ['layer']));
+    // ⭐ The place ids (plan-region-identity.md D2), api/regions/regions.json
+    // in file order. LAST, for AuraAreaId's reason: no existing type id
+    // renumbers. The sentinel leads and means "no place": a region that only
+    // paints ground is the common case, not a mistake.
+    types.push(enumType(C.REGION_ID_ENUM, [C.REGION_ID_UNSET].concat(regionIds)));
     return types;
 }
 
@@ -539,7 +579,7 @@ function propertyTypes(terrain, props, mobs, profiles, airProfiles, effects) {
 // the extension carries no content at all and is installed once per machine and
 // never again; being JSON means the extension parses it with JSON.parse rather
 // than eval'ing a script it read off disk.
-function contentJson(terrain, props, mobs, profiles, airProfiles, effects, types) {
+function contentJson(terrain, props, mobs, profiles, airProfiles, effects, areas, regionIds, types) {
     const sizes = {};
     props.forEach(p => { sizes[p.type] = {w: p.wUnits, h: p.hUnits}; });
     const kinds = {};
@@ -557,6 +597,10 @@ function contentJson(terrain, props, mobs, profiles, airProfiles, effects, types
         ENUM_VALUES: enums,
         TERRAIN_TYPES: terrain.map(t => t.type),
         PROP_SIZE: sizes,
+        // The bridges: types whose every placement must sit in the
+        // props/underfoot layer (plan-prop-draw-order.md D4). The converter
+        // refuses the save otherwise, as zone.go refuses the boot.
+        CROSSES_PATHS: props.filter(p => p.crossesPaths).map(p => p.type),
         // ⚑ The SAME number the terrain templates are cut at, published so the
         // "fit to true size" action does not declare a second one. A prop has
         // its body to be measured against; a texture has nothing, so this is
@@ -579,6 +623,12 @@ function contentJson(terrain, props, mobs, profiles, airProfiles, effects, types
         // converter checks membership against this list so the placeholder earns
         // its own (legal) answer rather than "unknown effect".
         EFFECT_NAMES: effects,
+        // ⚑ The area ids WITHOUT the sentinel (P4b, D15), the EFFECT_NAMES
+        // rule: the converter refuses an id outside this list.
+        AREA_IDS: areas,
+        // ⚑ The place ids WITHOUT the sentinel (plan-region-identity.md D2):
+        // the converter refuses a region id outside this list.
+        REGION_IDS: regionIds,
     }, null, 2) + '\n';
 }
 
@@ -621,18 +671,21 @@ if (clash.length > 0) {
 }
 
 const effects = readEffects();
+const areas = readAreas();
 
-const types = propertyTypes(terrain, props, mobs, profiles, airProfiles, effects);
+const regionIds = readRegionIds();
+
+const types = propertyTypes(terrain, props, mobs, profiles, airProfiles, effects, areas, regionIds);
 
 mkdirSync(PALETTE, {recursive: true});
-writeFileSync(path.join(PALETTE, 'terrain.tsx'), tileset('aura-terrain', 'AuraTerrain', terrain));
+writeFileSync(path.join(PALETTE, 'decals.tsx'), tileset('aura-decals', 'AuraDecal', terrain));
 writeFileSync(path.join(PALETTE, 'props.tsx'), tileset('aura-props', 'AuraProp', props));
 writeTemplates(path.join(TEMPLATES, 'props'), '../props.tsx', 'AuraProp', props,
     p => ({w: p.wUnits, h: p.hUnits}));
-writeTemplates(path.join(TEMPLATES, 'terrain'), '../terrain.tsx', 'AuraTerrain', terrain,
+writeTemplates(path.join(TEMPLATES, 'decals'), '../decals.tsx', 'AuraDecal', terrain,
     () => ({w: TERRAIN_TEMPLATE_SIZE * 2, h: TERRAIN_TEMPLATE_SIZE * 2}));
 writeFileSync(path.join(PALETTE, 'content.json'),
-    contentJson(terrain, props, mobs, profiles, airProfiles, effects, types));
+    contentJson(terrain, props, mobs, profiles, airProfiles, effects, areas, regionIds, types));
 writeFileSync(path.join(TOOLS, 'aura.tiled-project'), patchProject(path.join(TOOLS, 'aura.tiled-project'), types));
 // ⚑ Kept as well as the project copy, and deliberately: project-embedded types
 // apply only while the PROJECT is open. Opening api/zones/world.json on its own
@@ -640,13 +693,15 @@ writeFileSync(path.join(TOOLS, 'aura.tiled-project'), patchProject(path.join(TOO
 writeFileSync(path.join(PALETTE, 'propertytypes.json'), JSON.stringify({propertyTypes: types}, null, 2) + '\n');
 
 const kindCounts = mobs.reduce((a, m) => (a[m.kind] = (a[m.kind] || 0) + 1, a), {});
-console.log(`terrain.tsx        ${terrain.length} textures`);
+console.log(`decals.tsx         ${terrain.length} textures`);
 console.log(`props.tsx          ${props.length} props (${props.map(p => p.type).join(', ')})`);
 console.log(`templates          ${props.length + terrain.length} .tx (${props.length} props at their body size,`
     + ` ${terrain.length} textures at size ${TERRAIN_TEMPLATE_SIZE}) → palette/templates/`);
 const nEnum = types.filter(t => t.type === 'enum').length;
 console.log(`custom types       ${types.length} (${nEnum} enums + ${types.length - nEnum} classes) → aura.tiled-project + palette/propertytypes.json`);
 console.log(`content.json       ${terrain.length} textures, ${props.length} props, ${mobs.length} mobs ${JSON.stringify(kindCounts)}`);
-console.log(`terrain profiles   ${profiles.length} (${profiles.join(', ')}) → AuraTerrainProfile + AuraRegion + AuraPath + AuraPolygon`);
+console.log(`terrain profiles   ${profiles.length} (${profiles.join(', ')}) → AuraTerrainProfile + AuraRegion + AuraPath + AuraStructure`);
 console.log(`air profiles       ${airProfiles.length} (${airProfiles.join(', ')}) → AuraAtmosphereProfile + AuraAtmosphere`);
-console.log(`area effects       ${effects.length} skills → AuraEffect + AuraPath + AuraPolygon + AuraAtmosphere`);
+console.log(`area effects       ${effects.length} skills → AuraEffect + AuraPath + AuraStructure + AuraAtmosphere`);
+console.log(`areas              ${areas.length} ids → AuraAreaId + AuraArea (a group layer's class)`);
+console.log(`places             ${regionIds.length} ids → AuraRegionId + AuraRegion`);

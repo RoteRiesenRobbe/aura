@@ -133,6 +133,19 @@ var expectedConversants = []string{
 	"Eliza",
 	"Hendrik",
 	"Benjamin",
+	// Grandfather Knot (docs/plan-grandfather-knot.md) offers and turns in
+	// `clear-the-grove`, then `the-sleeping-roots`, whose talk_to targets are
+	// his three sleeping roots, one definition each for the sheep's reason
+	// (talk_to keys the definition).
+	"GrandfatherKnot",
+	"StreamRoot",
+	"StoneRoot",
+	"GladeRoot",
+	// Talkable remains (EntityType Remains): DeadCarter is lore at the
+	// farmland's burnt cart, FallenTraveller the talk_to target of the
+	// Wanderer's `the-lost-friend`.
+	"DeadCarter",
+	"FallenTraveller",
 }
 
 func conversants(t *testing.T) map[string]*MobDefinition {

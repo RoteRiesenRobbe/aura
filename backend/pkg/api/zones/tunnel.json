@@ -8,8 +8,13 @@
     "x": 6000,
     "y": 4000
   },
-  "terrain": [],
-  "props": [],
+  "decals": [],
+  "props": {
+    "underfoot": [],
+    "default": [],
+    "buildings": [],
+    "canopy": []
+  },
   "spawns": [
     {
       "mob": "CaveExit",
@@ -126,7 +131,7 @@
       "level": 14
     }
   ],
-  "campfires": [
+  "bindPoints": [
     {
       "id": "underworld-1",
       "x": 0,

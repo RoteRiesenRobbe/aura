@@ -1,7 +1,7 @@
 # Zone Editor — Step-by-Step Manual
 
-How to author a zone file (`api/zones/<id>.json` — world bounds, terrain,
-props, mob spawns, campfires, dark areas, anchors) directly in-game, and
+How to author a zone file (`api/zones/<id>.json` — world bounds, decals,
+props, mob spawns, bind points, dark areas, anchors) directly in-game, and
 how to make the server load your result. No coding required. Current as of
 2026-07-19. Two zones ship today: `world.json` (the live game world — the
 default via conf `game.zone`).

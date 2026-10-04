@@ -48,7 +48,8 @@ double-click `world.json` in the project's folder list on the left.
 > but you get plain text fields instead of dropdowns. If you prefer that flow,
 > import `tools/tiled/palette/propertytypes.json` once via View ▸ Custom Types.
 
-You should see nine object layers, and no tile layers. They are listed here in
+You should see eight object layers and one group, `props`, and no tile layers.
+They are listed here in
 the order Tiled shows them — **top of the panel is the top of the stack**, so
 read the table bottom-up to walk from the ground to the sky:
 
@@ -57,11 +58,11 @@ read the table bottom-up to walk from the ground to the sky:
 | `anchors` | named positions the content refers to | point | |
 | `atmospheres` | the air over an area — fog, gloom, canopy — and the **clearings** that cut holes in it | **polygon** | 🔒 |
 | `darkAreas` | the unlit circles (the older primitive `atmospheres` is replacing) | ellipse | |
-| `campfires` | bind points / starting spawns | point | |
+| `bindPoints` | bind points / starting spawns (`AuraBindPoint`) | point | |
 | `spawns` | every mob and NPC | point, or a **polyline** if it patrols | |
-| `props` | trees, stones, houses, walls | tile object at its true physics size | |
-| `terrain` | ground textures | tile object (the art itself) | |
-| `paths` | roads and rivers, **plus** the filled masses (`AuraPolygon`) that share this layer | polyline, or **polygon** | |
+| `props` ▾ | a **group** of four prop layers, top to bottom `canopy` · `buildings` · `default` · `underfoot` (see Props) | tile object at its true physics size | |
+| `decals` | ground-texture patches (`AuraDecal`) | tile object (the art itself) | |
+| `paths` | roads and rivers, **plus** the filled masses, the `structures` (`AuraStructure`), that share this layer | polyline, or **polygon** | |
 | `regions` | named areas that carry their own look | **polygon** | 🔒 |
 
 ⭐ **The stack is the order the game draws in**, bottom-first: a region is the
@@ -104,12 +105,12 @@ The number is the object's Tiled id, so **Edit ▸ Select Object by Id** takes
 you straight to it. A refused save loses nothing: the document stays open, so
 fix and save again.
 
-### Terrain
+### Decals
 
-Drag a texture from the **Templates** view onto the `terrain` layer.
+Drag a texture from the **Templates** view onto the `decals` layer.
 Rotate and scale freely. Horizontal and vertical flip (X / Y) both work.
 
-- ⭐ **Drag from Templates, not from the aura-terrain tileset.** A terrain patch
+- ⭐ **Drag from Templates, not from the aura-decals tileset.** A decal
   has no type size to be right about — the box *is* the size — so a tile dragged
   straight off the tileset inherits its **image's** pixel size, and the images do
   not agree: twelve of the sixteen textures are 100×100 SVGs (`size` 0.42) and
@@ -128,6 +129,27 @@ Rotate and scale freely. Horizontal and vertical flip (X / Y) both work.
 
 Drag from the **Templates** view. Each prop draws at its **visual footprint** —
 the same size it is in game, to the pixel — so the editor is WYSIWYG.
+
+⭐ **Select a sub-layer of the `props` group first: the layer IS where the prop
+draws** (`plan-prop-draw-order.md` P3). A higher layer always draws over a lower
+one; inside a layer, Raise / Lower decide.
+
+| Sub-layer | Draws | Put here |
+|---|---|---|
+| `canopy` | over everything below | tree crowns |
+| `buildings` | over `default` | houses, walls, gates, a torch mounted on a wall |
+| `default` | over characters | everything else |
+| `underfoot` | **under** every character and mob | bridges, rugs, debris — anything walked ON |
+
+- Move a placed prop between them with **Layer ▸ Move Objects to Layer**. Hide
+  `canopy` with its eye to see under the trees.
+- ⛔ A **Bridge** (any `crossesPaths` type) must sit in `underfoot`; the save
+  refuses it anywhere else. Any other prop may go anywhere.
+- ⛔ The group holds only these four. A layer of another name inside it, a
+  second group, or a prop layer dragged out of the group refuses the save,
+  naming the layer — saving would lose its objects.
+- ⚑ The game shows a reorder only after a server restart (the order is the
+  server's spawn order).
 
 - ⛔ **Drag from Templates, never from the aura-props tileset**, and this is not
   a style preference. Tiled sizes a tile object it inserts by the tile
@@ -301,7 +323,7 @@ footsteps and atmosphere are later consumers of the same region.
   profile: the save refuses until you choose one, rather than silently painting
   the ground in whichever profile happens to come first.
 - ⚑ **Layer order is resolution order.** The **last** region containing a point
-  decides — the same "later covers earlier" rule the `terrain` layer follows.
+  decides — the same "later covers earlier" rule the `decals` layer follows.
   A small blob drawn after the zone-sized area paints on top of it.
 - ⚑ A profile only overrides what it *declares*. A blob that sets a colour and
   nothing else still takes the surrounding region's music once music exists —
@@ -311,8 +333,8 @@ footsteps and atmosphere are later consumers of the same region.
   editing that file and re-running the generator (§6). The save refuses a name
   that is not in it, because the client would silently paint nothing.
 - ⭐ **There are TWO profile tables, and two dropdowns** (2026-09-15). The
-  ground — `regions`, `paths`, `polygons`, and the `outlineProfile` of the last
-  two — reads `terrain-profiles.json` (`AuraProfile`). The **air** —
+  ground — `regions`, `paths`, `structures`, and the `outlineProfile` of the last
+  two — reads `terrain-profiles.json` (`AuraTerrainProfile`). The **air** —
   `atmospheres` — reads `atmosphere-profiles.json` (`AuraAtmosphereProfile`).
   They used to be one file and therefore one dropdown, which made two silent
   mistakes possible: a ground profile on a fog bank drew **nothing**, and an
@@ -338,7 +360,7 @@ footsteps and atmosphere are later consumers of the same region.
 
 ### Area effects — making a shape *do* something
 
-A **path**, a **polygon** and an **atmosphere** each carry an optional
+A **path**, a **structure** and an **atmosphere** each carry an optional
 `effect` in the Properties panel. Pick a skill from the dropdown and whatever
 stands inside the shape gets it: lava burns, a bog rots, miasma poisons — and a
 healing spring heals, because the same machinery runs both directions.
@@ -369,15 +391,53 @@ healing spring heals, because the same machinery runs both directions.
   clearing only erases atmosphere, and an erase that also burned you would be one
   shape doing two jobs.
 
-### Campfires, dark areas, anchors
+### Bind points, dark areas, anchors
 
-- **Campfire**: a point whose **Name** is the campfire id, which must be
-  unique. Tick `startingSpawn` on at least one, or fresh players have nowhere
-  to land.
+- **Bind point** (`bindPoints`, drawn in game as a campfire): a point whose
+  **Name** is its spawn-point id, which must be unique. Tick `startingSpawn`
+  on at least one, or fresh players have nowhere to land.
 - **Dark area**: an ellipse. ⚑ Hold **Shift** while resizing — the format
   carries one radius, so a stretched ellipse is refused.
 - **Anchor**: a point whose **Name** is what content refers to. Unique, and
   inside the zone bounds.
+
+### Areas: grouping a zone by place
+
+An **area** is a group layer of class `AuraArea` that holds the zone's layers
+again — anchors, spawns, props, regions, the lot — so you can keep one place's
+objects together and collapse, hide or lock them as one
+(`plan-prop-draw-order.md` P4, P4b). **It changes nothing in game:** the server
+and the client fold every area back into the zone's own arrays at load.
+
+- **Make one:** Layer ▸ New ▸ Group Layer. In Properties set its **Class** to
+  `AuraArea` and pick its **id** from the dropdown (`farmlands`,
+  `brackenfold` …). Save. On the next open it comes back named by its id,
+  holding the full layer set (`regions` and `atmospheres` locked, as at the
+  zone level). You can also drag in only the layers you need: any subset saves.
+- **The id comes from one list,** `api/areas/areas.json` (D15), so a typo
+  cannot make a second area. The save refuses a group with no id picked, an
+  id the list does not hold, and two groups with one id. A group without the
+  `AuraArea` class refuses too (the save would drop it). The id is not shown
+  to players.
+- **world.json is already split** into one area per titled region
+  (`scripts/migrate-areas.mjs`, P4c; the Saltgrass Strand sits in
+  `farmlands`). What stayed at the zone level spans areas (the river, the
+  cliffs, the long roads) or had to stay there to keep its draw order.
+- **The group's name is only a label.** Rename it freely; the file keeps the
+  picked id. A new area is one line in `areas.json` plus a palette
+  regenerate (§6); its id never changes once a zone uses it.
+- **Move objects in** with Layer ▸ Move Objects to Layer into the area's layer
+  of the same kind (a tree into `farmlands` ▸ `props` ▸ `canopy`).
+- **What stacks over what.** Areas sit ABOVE the zone-level layers, later areas
+  above earlier ones, and the game uses that order *per kind*: the zone level's
+  paths draw first, then each area's in panel order. So an object that spans
+  areas (the river, the coast) belongs at the **zone level**, the floor every
+  area sits on. ⚑ Tiled draws group by group, so where two areas touch, one
+  area's regions can cover the other's props **in Tiled only**; in game every
+  region is under every prop.
+- Names that must be unique — anchor names, bind point ids — are unique across
+  the WHOLE zone, areas included.
+- A new in-game placement goes to the zone level.
 
 ## 4. Make the server use your edit
 
@@ -386,8 +446,8 @@ What needs rebuilding depends on what you touched:
 | You changed | What is needed |
 |---|---|
 | `props`, `spawns`, `anchors`, bounds | **backend restart** |
-| `terrain`, `darkAreas`, `regions` | **frontend rebuild** (the client bundles zone terrain) |
-| `campfires` | **both** |
+| `decals`, `darkAreas`, `regions` | **frontend rebuild** (the client bundles zone terrain) |
+| `bindPoints` | **both** |
 
 ```bash
 cd backend && ./aurad -dev -content ../api
@@ -502,7 +562,7 @@ after touching anything under `tools/tiled/`.
 | Paint an area's ground | Insert Polygon on `regions`, then pick `profile` |
 | Add a new ground profile | edit `frontend/src/client-data/terrain-profiles.json`, then regenerate the palette |
 | Add a new atmosphere profile | edit `frontend/src/client-data/atmosphere-profiles.json`, then regenerate the palette |
-| Make a pool burn / a spring heal | set `effect` on the path, polygon or atmosphere — then **restart the server** |
+| Make a pool burn / a spring heal | set `effect` on the path, structure or atmosphere — then **restart the server** |
 | Make a shape purely decorative | leave `effect` at `(no effect)` |
 | Use the species defaults | leave the sentinels alone (`-1` / `0` / `pingpong`) |
 | Find the object an error names | Edit ▸ Select Object by Id |

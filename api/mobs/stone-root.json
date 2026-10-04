@@ -1,0 +1,34 @@
+{
+  "_comment": "The second leg: placed SOUTH of him, by stones. One of Grandfather Knot's three sleeping roots, a talk_to target of `the-sleeping-roots` (docs/plan-grandfather-knot.md): laying a hand on it (opening the panel) wakes it. baabara.json shape: unattackable (townsfolk, collisionLayer 97), role creature + speed 0, xpFactor 0, one lore node with no options. ⚑ One DEFINITION per root because talk_to is keyed by the definition id, never the spawn. ⛑ entityType Signpost is placeholder art, the standing talkable-object reuse. All values [PLACEHOLDER].",
+  "id": 111,
+  "name": "StoneRoot",
+  "type": "MOB",
+  "entityType": "Signpost",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1.0
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2.0,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          "A root clenched around the stones like a fist. It loosens under your hand."
+        ]
+      }
+    ]
+  }
+}

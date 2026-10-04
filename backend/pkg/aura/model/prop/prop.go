@@ -48,6 +48,9 @@ func FromZone(p *world.Prop) *Prop {
 	// FromZone is the single authored-prop → entity seam (see the header), so
 	// this is the one assignment that has to exist.
 	e.propName = p.Def.Name
+	// The draw container is a PLACEMENT fact (plan-prop-draw-order.md D4): the
+	// array of the zone file's `props` this one was authored in.
+	e.underfoot = p.Layer == world.PropLayerUnderfoot
 	return e
 }
 
@@ -90,6 +93,11 @@ type Prop struct {
 	// (plan-prop-placeholders.md §4.1). Empty for a prop built outside FromZone
 	// (tests, ad-hoc props), which is exactly the wire's "absent" value.
 	propName string
+
+	// underfoot is whether the placement sits in the zone file's
+	// props.underfoot, so the client draws it under characters and mobs (D4).
+	// Draw order only: collision is the body's business, never this flag's.
+	underfoot bool
 }
 
 var _ = model.PropEntity(&Prop{})
@@ -180,6 +188,12 @@ func (p *Prop) Radius() float32 {
 // PropName is the authored prop definition name — see Prop.propName.
 func (p *Prop) PropName() string {
 	return p.propName
+}
+
+// Underfoot reports whether the placement draws under characters — see
+// Prop.underfoot.
+func (p *Prop) Underfoot() bool {
+	return p.underfoot
 }
 
 // Angle is the authored orientation in radians. BaseEntity returns a constant

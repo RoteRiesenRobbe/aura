@@ -87,10 +87,10 @@ func TestZone_LoadsValid(t *testing.T) {
 	const doc = `{
 		"name": "Scaffold",
 		"bounds": { "width": 60, "height": 40 },
-		"props": [
+		"props": {"default": [
 			{ "type": "Rock", "x": 12, "y": -5, "rotation": 0,
 			  "blocksMovement": true }
-		],
+		]},
 		"spawns": [
 			{ "mob": "Boar", "x": 30, "y": 12, "angle": 0,
 			  "respawnTicks": 900, "respawnVariancePct": 0.2 }
@@ -130,7 +130,7 @@ func TestZone_ParsesCampfires(t *testing.T) {
 	const doc = `{
 		"name": "X",
 		"bounds": { "width": 60, "height": 40 },
-		"campfires": [
+		"bindPoints": [
 			{ "id": "spawnpoint-1", "x": 3, "y": -4.5, "startingSpawn": true },
 			{ "id": "spawnpoint-2", "x": 0, "y": 0 }
 		]
@@ -138,12 +138,12 @@ func TestZone_ParsesCampfires(t *testing.T) {
 
 	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
-	require.Len(t, z.Campfires, 2)
-	assert.EqualValues(t, 3, z.Campfires[0].X)
-	assert.EqualValues(t, -4.5, z.Campfires[0].Y)
-	assert.Equal(t, "spawnpoint-1", z.Campfires[0].ID)
-	assert.True(t, z.Campfires[0].StartingSpawn, "the flagged fire parses its startingSpawn flag")
-	assert.False(t, z.Campfires[1].StartingSpawn, "an unflagged fire defaults to false")
+	require.Len(t, z.BindPoints, 2)
+	assert.EqualValues(t, 3, z.BindPoints[0].X)
+	assert.EqualValues(t, -4.5, z.BindPoints[0].Y)
+	assert.Equal(t, "spawnpoint-1", z.BindPoints[0].ID)
+	assert.True(t, z.BindPoints[0].StartingSpawn, "the flagged fire parses its startingSpawn flag")
+	assert.False(t, z.BindPoints[1].StartingSpawn, "an unflagged fire defaults to false")
 }
 
 // The spawn-point id is what a character's campfire bind is persisted AS, so an
@@ -153,7 +153,7 @@ func TestZone_RejectsCampfireWithoutID(t *testing.T) {
 	const doc = `{
 		"name": "X",
 		"bounds": { "width": 60, "height": 40 },
-		"campfires": [ { "x": 3, "y": -4.5, "startingSpawn": true } ]
+		"bindPoints": [ { "x": 3, "y": -4.5, "startingSpawn": true } ]
 	}`
 
 	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
@@ -170,7 +170,7 @@ func TestZone_RejectsDuplicateSpawnPointID(t *testing.T) {
 	const doc = `{
 		"name": "X",
 		"bounds": { "width": 60, "height": 40 },
-		"campfires": [
+		"bindPoints": [
 			{ "id": "spawnpoint-1", "x": 3, "y": -4.5, "startingSpawn": true },
 			{ "id": "spawnpoint-1", "x": 0, "y": 0 }
 		]
@@ -191,7 +191,7 @@ func TestZone_RejectsCampfiresWithNoStartingSpawn(t *testing.T) {
 	const doc = `{
 		"name": "X",
 		"bounds": { "width": 60, "height": 40 },
-		"campfires": [
+		"bindPoints": [
 			{ "id": "spawnpoint-1", "x": 3, "y": -4.5 },
 			{ "id": "spawnpoint-2", "x": 0, "y": 0 }
 		]
@@ -279,7 +279,7 @@ func TestZone_RejectsUnknownCampfireKey(t *testing.T) {
 	const doc = `{
 		"name": "X",
 		"bounds": { "width": 60, "height": 40 },
-		"campfires": [ { "x": 3, "y": -4.5, "radius": 2 } ]
+		"bindPoints": [ { "x": 3, "y": -4.5, "radius": 2 } ]
 	}`
 
 	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
@@ -358,7 +358,7 @@ func TestZone_RejectsUnknownSpawnMob(t *testing.T) {
 func TestZone_RejectsUnknownPropType(t *testing.T) {
 	const doc = `{
 		"name": "X", "bounds": { "width": 60, "height": 40 },
-		"props": [ { "type": "Nonexistent", "x": 0, "y": 0 } ]
+		"props": {"default": [ { "type": "Nonexistent", "x": 0, "y": 0 } ]}
 	}`
 
 	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry("Rock"))
@@ -599,26 +599,53 @@ func TestZone_RejectsNoZone(t *testing.T) {
 func TestZone_ParsesTerrain(t *testing.T) {
 	const doc = `{
 		"name": "T", "bounds": { "width": 60, "height": 40 },
-		"terrain": [
+		"decals": [
 			{ "type": "Sand", "x": 1.5, "y": -2.5, "size": 3, "rotation": 0.7, "flipped": "vertical" }
 		]
 	}`
 	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
-	require.Len(t, z.Terrain, 1)
-	assert.Equal(t, "Sand", z.Terrain[0].Type)
-	assert.EqualValues(t, 1.5, z.Terrain[0].X)
-	assert.Equal(t, "vertical", z.Terrain[0].Flipped)
+	require.Len(t, z.Decals, 1)
+	assert.Equal(t, "Sand", z.Decals[0].Type)
+	assert.EqualValues(t, 1.5, z.Decals[0].X)
+	assert.Equal(t, "vertical", z.Decals[0].Flipped)
 }
 
 func TestZone_RejectsUnknownTerrainKey(t *testing.T) {
 	const doc = `{
 		"name": "T", "bounds": { "width": 60, "height": 40 },
-		"terrain": [ { "type": "Sand", "x": 0, "y": 0, "size": 1, "flip": "vertical" } ]
+		"decals": [ { "type": "Sand", "x": 0, "y": 0, "size": 1, "flip": "vertical" } ]
 	}`
 	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "flip")
+}
+
+// plan-zone-naming.md N2: three arrays are named for what they ARE. Each new
+// key parses into its renamed field, and each old key refuses the boot BY NAME
+// (L1: no compatibility window, so a file that missed the migration says so).
+func TestZone_N2KeysParseAndTheOldNamesRefuse(t *testing.T) {
+	const doc = `{
+		"name": "N", "bounds": { "width": 60, "height": 40 },
+		"decals": [ { "type": "Sand", "x": 1, "y": 2, "size": 1, "rotation": 0, "flipped": "none" } ],
+		"bindPoints": [ { "id": "spawnpoint-1", "x": 3, "y": 4, "startingSpawn": true } ],
+		"structures": [ { "profile": "Mountains", "points": [ {"x": 0, "y": 0}, {"x": 4, "y": 0}, {"x": 0, "y": 4} ] } ]
+	}`
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
+	require.NoError(t, err)
+	require.Len(t, z.Decals, 1)
+	assert.Equal(t, "Sand", z.Decals[0].Type)
+	require.Len(t, z.BindPoints, 1)
+	assert.Equal(t, "spawnpoint-1", z.BindPoints[0].ID)
+	require.Len(t, z.Structures, 1)
+	assert.Equal(t, "Mountains", z.Structures[0].Profile)
+
+	for _, old := range []string{"terrain", "campfires", "polygons"} {
+		doc := `{ "name": "N", "bounds": { "width": 60, "height": 40 }, "` + old + `": [] }`
+		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
+		require.Error(t, err, "the pre-N2 key %q must refuse the boot", old)
+		assert.Contains(t, err.Error(), old, "the refusal names the old key")
+	}
 }
 
 func TestZone_ParsesAnchorsAndLooksThemUp(t *testing.T) {
@@ -729,25 +756,6 @@ func TestZone_RejectsRegionWithFewerThanThreePoints(t *testing.T) {
 	}
 }
 
-func TestZone_RejectsRegionWithoutProfile(t *testing.T) {
-	for _, profile := range []string{`""`, `"   "`} {
-		doc := `{
-			"name": "X",
-			"bounds": { "width": 60, "height": 40 },
-			"regions": [
-				{ "profile": "swamp", "points": [
-					{ "x": 0, "y": 0 }, { "x": 1, "y": 0 }, { "x": 1, "y": 1 } ] },
-				{ "profile": ` + profile + `, "points": [
-					{ "x": 0, "y": 0 }, { "x": 1, "y": 0 }, { "x": 1, "y": 1 } ] } ]
-		}`
-
-		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
-		require.Error(t, err, "profile %s must be rejected", profile)
-		assert.Contains(t, err.Error(), "region 1")
-		assert.Contains(t, err.Error(), "profile")
-	}
-}
-
 // D8/§4.6: an UNKNOWN profile name is deliberately not a boot error — the
 // table lives in the client, and D11 resolves a miss to the default profile.
 // Tiled catches typos at save time, with the object id.
@@ -762,32 +770,6 @@ func TestZone_AcceptsUnknownRegionProfile(t *testing.T) {
 	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
 	assert.Equal(t, "no-such-profile", z.Regions[0].Profile)
-}
-
-// The region title banner (2026-09-28): a region may name the place it is.
-// Both keys are optional and client-only; the server's part is accepting them
-// (DisallowUnknownFields) and refusing the one shape that could never show.
-func TestRegionTitleAndSubtitle(t *testing.T) {
-	const tri = `[{"x":0,"y":0},{"x":9,"y":0},{"x":9,"y":9}]`
-	parse := func(region string) (*Zone, error) {
-		return parseZone([]byte(`{"name":"R","bounds":{"width":60,"height":40},"regions":[` + region + `]}`))
-	}
-
-	z, err := parse(`{"profile":"Fields","points":` + tri + `,"title":"Farmlands","subtitle":"Where it began"}`)
-	require.NoError(t, err)
-	assert.Equal(t, "Farmlands", z.Regions[0].Title)
-	assert.Equal(t, "Where it began", z.Regions[0].Subtitle)
-
-	z, err = parse(`{"profile":"Fields","points":` + tri + `,"title":"Farmlands"}`)
-	require.NoError(t, err, "a title alone is fine")
-	assert.Empty(t, z.Regions[0].Subtitle)
-
-	z, err = parse(`{"profile":"Fields","points":` + tri + `}`)
-	require.NoError(t, err, "an unnamed region is the common case")
-	assert.Empty(t, z.Regions[0].Title)
-
-	_, err = parse(`{"profile":"Fields","points":` + tri + `,"subtitle":"Orphan"}`)
-	assert.EqualError(t, err, `region 0: subtitle "Orphan" needs a title to sit under`)
 }
 
 // ⛔ A DOT-DIRECTORY IS NOT A ZONE (PO 2026-09-20). zoneStems walks the whole
@@ -805,7 +787,7 @@ func TestZoneStems_SkipsDotDirectories(t *testing.T) {
 	const doc = `{
 		"name": "Scaffold",
 		"bounds": { "width": 60, "height": 40 },
-		"campfires": [{ "id": "spawnpoint-1", "x": 0, "y": 0, "startingSpawn": true }]
+		"bindPoints": [{ "id": "spawnpoint-1", "x": 0, "y": 0, "startingSpawn": true }]
 	}`
 	fsys := fstest.MapFS{
 		"world.json":              {Data: []byte(doc)},

@@ -31,8 +31,8 @@ the bottom. Trust the code over the manual if a path has drifted.
   new art — enum append + regen + **one** `gameObjectClasses` line pointing at
   `Props.genericPropClasses.<EntityType>`. Reusing an existing entityType is
   pure JSON, no frontend touch at all. A prop needing real behavior (decal,
-  custom rotation policy, anything stateful) still gets a hand-written
-  `Resources.ts` class, excluded from the generic path via `Props.ts`'s
+  custom rotation policy, anything stateful) still gets a hand-written class
+  extending `Resource` in `Props.ts`, excluded from the generic path via its
   `BESPOKE_ENTITY_TYPES` set.
 - **A new frontend layer is TWO edits in `core/logic/Game.ts`** —
   `createNamedContainer(...)` **and** `cameraGroup.addChild(...)`. Miss the
@@ -168,6 +168,18 @@ the bottom. Trust the code over the manual if a path has drifted.
   (`docs/manual-tiled-editor.md` §6). It reads the prop's own `sprite` field —
   no separate map to maintain any more, but a missing/empty `sprite` hard-fails
   at server boot (`world/props.go`), before this script would ever see it.
+- **A new zone AREA is one line in `api/areas/areas.json`** (`plan-prop-draw-order.md`
+  P4b, D15), then `node tools/tiled/generate-palette.mjs` so Tiled's `AuraAreaId`
+  dropdown offers it (commit the palette files). A zone naming an unlisted area
+  refuses the boot. The id is the short name a player would call the place,
+  lowercase, words joined by `-` (`deep-woods`), and it never changes once
+  used; never remove one a zone still names.
+- **A prop TYPE has no draw layer; its PLACEMENT does** (`plan-prop-draw-order.md`
+  P3). A zone's `props` is four arrays — `underfoot` · `default` · `buildings` ·
+  `canopy`, bottom to top — and which one a placement sits in is where it draws
+  (manual §1b has the table). Never author `underfoot` on an `api/props/*.json`
+  file: the key is gone and refuses the boot by name. ⛔ A `crossesPaths` type's
+  placements must sit in `props.underfoot`, or the boot and the Tiled save refuse.
 - **A change to the SKILL tables in `backend/pkg/aura/skills/definition.go`
   or `visual.go` needs the vocabulary fixture regenerated** (`effectKeys`,
   `effectCategories`, `costKeys`, the categories, the top-level key list, and

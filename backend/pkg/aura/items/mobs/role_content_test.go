@@ -58,8 +58,9 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// BlueMushroom and RedMushroom are the Turnip twice more on the forest
 	// floor, harvest lock included - structures for the Turnip's reason.
 	// Seaweed is the Turnip on Saltgrass Strand, for the Miller's ring.
+	// Deadwood is the Turnip in Grandfather Knot's grove, for clear-the-grove.
 	assert.ElementsMatch(t, []string{
-		"Beet", "BlueMushroom", "Bramble", "Camp", "Campfire", "FireTotem", "PoisonPool", "ProjectileBomb",
+		"Beet", "BlueMushroom", "Bramble", "Camp", "Campfire", "Deadwood", "FireTotem", "PoisonPool", "ProjectileBomb",
 		"RedMushroom", "Rockfall", "Seaweed", "SpiderWeb", "SpikeBarricade", "Totem", "Turnip", "WarbannerTotem",
 	}, byRole[RoleStructure], "the authored structures")
 
@@ -106,7 +107,12 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	// 64 → 82 with the content-world.md placeholder roster: eighteen walking,
 	// fighting creatures for the mercenaries, undead, cult, dragonkin, fey and
 	// desert beasts, all drawn as NpcPlaceholder until their art exists.
-	assert.Len(t, byRole[RoleCreature], 82, "everything else is a creature")
+	// 82 → 86 with Grandfather Knot and his three sleeping roots
+	// (docs/plan-grandfather-knot.md): the standing talkable-NPC shape, role
+	// creature + speed 0.
+	// 86 → 88 with the two talkable remains (DeadCarter, FallenTraveller),
+	// the same talking-object shape.
+	assert.Len(t, byRole[RoleCreature], 88, "everything else is a creature")
 	assert.Len(t, byRole, 2, "no def carries a role outside the two")
 }
 

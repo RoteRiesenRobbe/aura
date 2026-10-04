@@ -102,22 +102,236 @@ else
     bad "the trailing newline was not preserved"
 fi
 
+# ⚑ Since plan-prop-draw-order.md P4c world.json keeps most objects inside
+# `areas`. The legs below build their fixtures from the zone's arrays, so they
+# read this FLATTENED copy (D11: zone level first, then each area in file
+# order), where every object sits at the zone level as before. Leg 1 above is
+# the one that round-trips the real file, areas and all.
+node -e '
+const fs = require("fs");
+const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const parts = [z, ...(z.areas || [])];
+const KINDS = ["decals", "spawns", "bindPoints", "darkAreas", "regions",
+    "paths", "structures", "atmospheres", "clearings", "anchors"];
+const flat = {};
+// Every key in zone.go order: a kind the zone level no longer holds (all of
+// it moved into areas) is not written there, so it is gathered by name.
+for (const k of Object.keys(z).concat(KINDS.filter(k => !(k in z)))) {
+    if (k === "areas") { continue; }
+    if (KINDS.includes(k)) {
+        if (parts.some(p => p[k])) { flat[k] = parts.flatMap(p => p[k] || []); }
+    } else if (k === "props") {
+        flat.props = {};
+        for (const l of Object.keys(z.props)) { flat.props[l] = parts.flatMap(p => (p.props && p.props[l]) || []); }
+    } else { flat[k] = z[k]; }
+}
+fs.writeFileSync("tools/tiled/.verify/flat-world.json", JSON.stringify(flat, null, 2) + "\n");
+'
+
 # ---- 2. save-time validation still refuses what the server would reject -----
 echo
 echo "a prop dropped on the spawns layer"
 node -e '
 const fs = require("fs");
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/bad.json", JSON.stringify({
-    name: z.name, bounds: z.bounds, terrain: [], props: [],
+    name: z.name, bounds: z.bounds, decals: [], props: {},
     spawns: [{mob: "Tree", x: 1, y: 1, angle: 0}],
-    campfires: z.campfires, anchors: z.anchors,
+    bindPoints: z.bindPoints, anchors: z.anchors,
 }, null, 2));
 '
 if "$TILED" --export-map aura-zone tools/tiled/.verify/bad.json \
         "$(native "$ROOT/tools/tiled/.verify/bad-out.json")" >/dev/null 2>&1; then
     bad "the save was ACCEPTED — validation is not running"
 elif [ -e tools/tiled/.verify/bad-out.json ]; then
+    bad "refused, but a file was written anyway"
+else
+    ok "refused, nothing written"
+fi
+
+# ⛔ plan-zone-naming.md N2: a file still on a pre-N2 key would OPEN with that
+# array empty, and the next save would delete it. The real world.json with
+# `decals` put back to `terrain` must refuse at read, before anything is saved.
+echo
+echo "a zone file still on a pre-N2 key name"
+node -e '
+const fs = require("fs");
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
+const old = {};
+for (const [k, v] of Object.entries(z)) { old[k === "decals" ? "terrain" : k] = v; }
+fs.writeFileSync("tools/tiled/.verify/old-keys.json", JSON.stringify(old, null, 2));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/old-keys.json \
+        "$(native "$ROOT/tools/tiled/.verify/old-keys-out.json")" >/dev/null 2>&1; then
+    bad "the open was ACCEPTED — an old-key file would lose that array on save"
+elif [ -e tools/tiled/.verify/old-keys-out.json ]; then
+    bad "refused, but a file was written anyway"
+else
+    ok "refused, nothing written"
+fi
+
+# ---- 2a. a group layer refuses the save instead of being dropped ------------
+# plan-prop-draw-order.md P0. The writer used to skip every non-object layer,
+# so a hand-made group full of props saved as `props: []` (measured at
+# b9e71599). A zone JSON cannot hold a group, so the map arrives as TMX: Tiled
+# writes the zone out as TMX, the leg appends a group, and saves it back.
+# ⚑ Since P4b a group is an AREA only when its class is AuraArea, so this
+# plain group refuses as one the writer would skip.
+echo
+echo "a group layer full of props"
+node -e '
+const fs = require("fs");
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/grouped.json", JSON.stringify({
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
+}, null, 2));
+'
+"$TILED" --export-map tmx tools/tiled/.verify/grouped.json \
+    "$(native "$ROOT/tools/tiled/.verify/grouped.tmx")" >/dev/null 2>&1 || true
+# The control: the same map WITHOUT the group must save, or a refusal below
+# proves nothing.
+if ! "$TILED" --export-map aura-zone tools/tiled/.verify/grouped.tmx \
+        "$(native "$ROOT/tools/tiled/.verify/grouped-control.json")" >/dev/null 2>&1; then
+    bad "the control (no group) was refused too — the leg below would pass for nothing"
+else
+    sed -i 's#</map>#<group id="9001" name="trees"><objectgroup id="9002" name="props"><object id="9003" name="OakTree" x="600" y="600" width="120" height="120"/></objectgroup></group>\n</map>#' \
+        tools/tiled/.verify/grouped.tmx
+    if "$TILED" --export-map aura-zone tools/tiled/.verify/grouped.tmx \
+            "$(native "$ROOT/tools/tiled/.verify/grouped-out.json")" >/dev/null 2>&1; then
+        bad "the save was ACCEPTED — the group's props were dropped"
+    elif [ -e tools/tiled/.verify/grouped-out.json ]; then
+        bad "refused, but a file was written anyway"
+    else
+        ok "refused, nothing written (the control without the group saves)"
+    fi
+fi
+
+# ---- 2a-ii. the props group holds only prop layers (P3) ---------------------
+# plan-prop-draw-order.md P3 relaxed 2a for exactly one group, `props`, and only
+# with the four prop layers inside it. A layer of any other name in there would
+# be dropped on save, so it must refuse. Same TMX route as 2a, and the same
+# control (the map as read() built it, props group included, saved above).
+echo
+echo "a stray layer inside the props group"
+if [ ! -e tools/tiled/.verify/grouped-control.json ]; then
+    bad "no control from 2a — this leg would pass for nothing"
+else
+    "$TILED" --export-map tmx tools/tiled/.verify/grouped.json \
+        "$(native "$ROOT/tools/tiled/.verify/stray.tmx")" >/dev/null 2>&1 || true
+    sed -i 's#\(<group [^>]*name="props"[^>]*>\)#\1<objectgroup id="9102" name="roofs"><object id="9103" name="OakTree" x="600" y="600" width="120" height="120"/></objectgroup>#' \
+        tools/tiled/.verify/stray.tmx
+    if ! grep -q 'name="roofs"' tools/tiled/.verify/stray.tmx; then
+        bad "the TMX has no props group to inject into — read() did not build one"
+    elif "$TILED" --export-map aura-zone tools/tiled/.verify/stray.tmx \
+            "$(native "$ROOT/tools/tiled/.verify/stray-out.json")" >/dev/null 2>&1; then
+        bad "the save was ACCEPTED — props/roofs was dropped"
+    elif [ -e tools/tiled/.verify/stray-out.json ]; then
+        bad "refused, but a file was written anyway"
+    else
+        ok "refused, nothing written"
+    fi
+fi
+
+# ---- 2a-iii. areas round-trip, and refuse what they cannot store (P4, P4b) --
+# plan-prop-draw-order.md P4. world.json with objects of most kinds moved into
+# areas must survive a real Tiled read and write byte for byte: the nested
+# groups (area > props > canopy) are exactly what vitest cannot see, because
+# it never meets Tiled's GroupLayer. Since P4b (D15) an area is a group of
+# class AuraArea whose `id` property is the id, so the class and the property
+# must survive Tiled too. The ids are LISTED ones (api/areas/areas.json).
+echo
+echo "a zone with areas round-trips"
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
+const take = (list, n) => list.splice(0, n);
+z.areas = [
+    {id: "farmlands", spawns: take(z.spawns, 3), bindPoints: take(z.bindPoints, 1),
+     regions: take(z.regions, 1), atmospheres: take(z.atmospheres || [], 1),
+     props: {canopy: take(z.props.canopy, 2), underfoot: take(z.props.underfoot, 1)}},
+    {id: "deep-woods", decals: take(z.decals, 1), spawns: take(z.spawns, 2),
+     paths: take(z.paths, 1), anchors: take(z.anchors, 1),
+     props: {default: take(z.props.default, 1), buildings: take(z.props.buildings, 1)}},
+    {id: "brackenfold"},
+];
+fs.writeFileSync("tools/tiled/.verify/areas.json", C.serializeZone(z, true));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/areas.json \
+        "$(native "$ROOT/tools/tiled/.verify/areas-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/areas.json tools/tiled/.verify/areas-out.json; then
+    ok "byte-identical — every area, its props group and an empty area survive"
+else
+    bad "the areas did not survive: $(cmp tools/tiled/.verify/areas.json tools/tiled/.verify/areas-out.json 2>&1 | head -1)"
+fi
+
+# ⭐ D15's point, through Tiled's own TMX: the group's NAME is a free label.
+# Renamed, and with the id stored as the typed enum the GUI writes, the save
+# must still come back byte-identical under the picked id.
+echo
+echo "an area group renamed freely saves under its picked id"
+"$TILED" --export-map tmx tools/tiled/.verify/areas.json \
+    "$(native "$ROOT/tools/tiled/.verify/areas.tmx")" >/dev/null 2>&1 || true
+if ! grep -q '<group [^>]*name="farmlands" class="AuraArea"' tools/tiled/.verify/areas.tmx \
+   || ! grep -q '<property name="id" value="farmlands"/>' tools/tiled/.verify/areas.tmx; then
+    bad "the TMX has no farmlands group of class AuraArea carrying its id — read() did not build the areas"
+else
+    sed -e 's#\(<group [^>]*\)name="farmlands"#\1name="The Farmlands (west)"#' \
+        -e 's#<property name="id" value="farmlands"/>#<property name="id" propertytype="AuraAreaId" value="farmlands"/>#' \
+        tools/tiled/.verify/areas.tmx > tools/tiled/.verify/area-renamed.tmx
+    if "$TILED" --export-map aura-zone tools/tiled/.verify/area-renamed.tmx \
+            "$(native "$ROOT/tools/tiled/.verify/area-renamed-out.json")" >/dev/null 2>&1 \
+       && cmp -s tools/tiled/.verify/areas.json tools/tiled/.verify/area-renamed-out.json; then
+        ok "byte-identical — the label changed, the area did not"
+    else
+        bad "the renamed area did not save as farmlands: $(cmp tools/tiled/.verify/areas.json tools/tiled/.verify/area-renamed-out.json 2>&1 | head -1)"
+    fi
+
+    echo
+    echo "a stray layer in an area, an unlisted id, no id, and a group that is not an area"
+    sed 's#\(<group [^>]*name="farmlands"[^>]*>\)#\1<objectgroup id="9202" name="roofs"><object id="9203" name="OakTree" x="600" y="600" width="120" height="120"/></objectgroup>#' \
+        tools/tiled/.verify/areas.tmx > tools/tiled/.verify/area-stray.tmx
+    sed 's#<property name="id" value="farmlands"/>#<property name="id" value="dark-woods"/>#' \
+        tools/tiled/.verify/areas.tmx > tools/tiled/.verify/area-unlisted.tmx
+    sed 's#<property name="id" value="farmlands"/>##' \
+        tools/tiled/.verify/areas.tmx > tools/tiled/.verify/area-noid.tmx
+    sed 's#\(<group [^>]*name="farmlands"\) class="AuraArea"#\1#' \
+        tools/tiled/.verify/areas.tmx > tools/tiled/.verify/area-noclass.tmx
+    for leg in area-stray area-unlisted area-noid area-noclass; do
+        if cmp -s tools/tiled/.verify/areas.tmx tools/tiled/.verify/$leg.tmx; then
+            bad "$leg: the edit did not apply — this leg would pass for nothing"
+        elif "$TILED" --export-map aura-zone tools/tiled/.verify/$leg.tmx \
+                "$(native "$ROOT/tools/tiled/.verify/$leg-out.json")" >/dev/null 2>&1; then
+            bad "$leg: the save was ACCEPTED"
+        elif [ -e tools/tiled/.verify/$leg-out.json ]; then
+            bad "$leg: refused, but a file was written anyway"
+        else
+            ok "$leg: refused, nothing written"
+        fi
+    done
+fi
+
+# D4: a bridge clears the river under its deck, so it must sit in
+# props/underfoot. The scaled leg below proves one in underfoot saves.
+echo
+echo "a bridge outside props/underfoot"
+node -e '
+const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
+const fs = require("fs");
+C.useContent(require("./tools/tiled/palette/content.json"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
+fs.writeFileSync("tools/tiled/.verify/bridge.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, decals: [], spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
+    props: {default: [{type: "Bridge", x: 0, y: 0, rotation: 0}]},
+}, false));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/bridge.json \
+        "$(native "$ROOT/tools/tiled/.verify/bridge-out.json")" >/dev/null 2>&1; then
+    bad "the save was ACCEPTED — a deck would draw over the player crossing it"
+elif [ -e tools/tiled/.verify/bridge-out.json ]; then
     bad "refused, but a file was written anyway"
 else
     ok "refused, nothing written"
@@ -134,18 +348,23 @@ node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/scaled.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
-    props: [
-        // A circle body and a rect body, scaled up and down, plus an
-        // unscaled neighbour that must NOT grow a scale key.
-        {type: "Tree",  x: 0, y: 0, rotation: 0,     blocksMovement: true, scale: 2.5},
-        {type: "House", x: 8, y: 0, rotation: 0,     blocksMovement: true, scale: 0.5},
-        {type: "Rock",  x: -8, y: 0, rotation: 1.25, blocksMovement: true, scale: 10},
-        {type: "Boulder", x: 0, y: 8, rotation: 0.5, blocksMovement: true},
-    ],
+    name: z.name, bounds: z.bounds, decals: [], spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
+    // A circle body and a rect body, scaled up and down, plus an unscaled
+    // neighbour that must NOT grow a scale key. Spread over ALL FOUR prop
+    // layers (plan-prop-draw-order.md P3), so this is also the leg that proves
+    // the props group and its sub-layers survive the real reader and writer.
+    props: {
+        underfoot: [{type: "Bridge", x: 0, y: -8, rotation: 0}],
+        default: [
+            {type: "Rock",  x: -8, y: 0, rotation: 1.25, blocksMovement: true, scale: 10},
+            {type: "Boulder", x: 0, y: 8, rotation: 0.5, blocksMovement: true},
+        ],
+        buildings: [{type: "House", x: 8, y: 0, rotation: 0, blocksMovement: true, scale: 0.5}],
+        canopy: [{type: "Tree",  x: 0, y: 0, rotation: 0, blocksMovement: true, scale: 2.5}],
+    },
 }, false));
 '
 if "$TILED" --export-map aura-zone tools/tiled/.verify/scaled.json         "$(native "$ROOT/tools/tiled/.verify/scaled-out.json")" >/dev/null 2>&1    && cmp -s tools/tiled/.verify/scaled.json tools/tiled/.verify/scaled-out.json; then
@@ -160,11 +379,11 @@ node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/overscale.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
-    props: [{type: "Tree", x: 0, y: 0, rotation: 0, blocksMovement: true, scale: 25}],
+    name: z.name, bounds: z.bounds, decals: [], spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
+    props: {canopy: [{type: "Tree", x: 0, y: 0, rotation: 0, blocksMovement: true, scale: 25}]},
 }, false));
 '
 if "$TILED" --export-map aura-zone tools/tiled/.verify/overscale.json         "$(native "$ROOT/tools/tiled/.verify/overscale-out.json")" >/dev/null 2>&1; then
@@ -192,17 +411,17 @@ node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/propblocks.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
-    props: [
+    name: z.name, bounds: z.bounds, decals: [], spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
+    props: {
         // Inheriting — NO key, and it must still have none on the way back.
-        {type: "Tree", x: 0, y: 0, rotation: 0},
+        canopy: [{type: "Tree", x: 0, y: 0, rotation: 0}],
         // The two explicit overrides, one each way.
-        {type: "House", x: 8, y: 0, rotation: 0, blocksMovement: true},
-        {type: "Rock", x: -8, y: 0, rotation: 0, blocksMovement: false},
-    ],
+        buildings: [{type: "House", x: 8, y: 0, rotation: 0, blocksMovement: true}],
+        default: [{type: "Rock", x: -8, y: 0, rotation: 0, blocksMovement: false}],
+    },
 }, false));
 '
 if "$TILED" --export-map aura-zone tools/tiled/.verify/propblocks.json         "$(native "$ROOT/tools/tiled/.verify/propblocks-out.json")" >/dev/null 2>&1    && cmp -s tools/tiled/.verify/propblocks.json tools/tiled/.verify/propblocks-out.json; then
@@ -224,7 +443,7 @@ const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 const content = require("./tools/tiled/palette/content.json");
 C.useContent(content);
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 // Every profile the palette offers, so a wrong index lands on a DIFFERENT
 // name rather than accidentally on the right one.
 const regions = content.PROFILE_NAMES.map(function (profile, i) {
@@ -234,8 +453,8 @@ const regions = content.PROFILE_NAMES.map(function (profile, i) {
     ]};
 });
 fs.writeFileSync("tools/tiled/.verify/regions.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, regions: regions, anchors: z.anchors,
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, regions: regions, anchors: z.anchors,
 }, false));
 '
 if "$TILED" --export-map aura-zone tools/tiled/.verify/regions.json \
@@ -258,7 +477,7 @@ echo "a PLACED zone round-trips — the origin survives real Tiled"
 # origin went missing exactly this way, and the server refused the next boot.
 node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
-const z = require("./api/zones/world.json");
+const z = require("./tools/tiled/.verify/flat-world.json");
 fs = require("fs");
 fs.writeFileSync("tools/tiled/.verify/placed.json", C.serializeZone({
     // ⛑ BOTH AXES NON-ZERO, the fixture trap AuraTiledConvert.test.ts already
@@ -266,8 +485,8 @@ fs.writeFileSync("tools/tiled/.verify/placed.json", C.serializeZone({
     // reconstructs it from y alone, so dropping originX is invisible and this leg
     // passes while half the bridge is broken. (Proven: it did.)
     name: z.name, bounds: {width: 48, height: 28}, origin: {x: 500, y: 300},
-    terrain: [], props: [], spawns: [],
-    campfires: [{id: "underworld-1", x: 0, y: 8}],
+    decals: [], props: {}, spawns: [],
+    bindPoints: [{id: "underworld-1", x: 0, y: 8}],
     anchors: [{name: "under-west", x: -16, y: 0}],
 }, false));
 '
@@ -297,10 +516,10 @@ node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/closedpath.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
     paths: [
         // A moat: closed, blocking, three points.
         {profile: "Water", width: 4, blocksMovement: true, closed: true,
@@ -320,7 +539,7 @@ else
 fi
 
 echo
-echo "polygons and paths SHARE a layer and come back to their own arrays"
+echo "structures and paths SHARE a layer and come back to their own arrays"
 # ⭐ P2's leg (plan-zone-polygons.md D5). Two classes ride the paths layer and
 # modelToZone routes by CLASS, so the whole primitive rests on Tiled handing the
 # class back on every object in a mixed layer — which the pure converter can only
@@ -335,11 +554,11 @@ node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/polygons.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
-    polygons: [
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
+    structures: [
         // A blocking rock mass, four points.
         {profile: "Mountains", blocksMovement: true, points: [
             {x: -20, y: -10}, {x: -12, y: -10}, {x: -12, y: -2}, {x: -20, y: -2}]},
@@ -397,12 +616,12 @@ node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/atmospheres.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
     // The wall the fog hangs over — a different layer, a different array.
-    polygons: [{profile: "Mountains", blocksMovement: true, points: [
+    structures: [{profile: "Mountains", blocksMovement: true, points: [
         {x: -20, y: -10}, {x: -12, y: -10}, {x: -12, y: -2}, {x: -20, y: -2}]}],
     atmospheres: [
         // A dark cave interior, four points, covering the wall above.
@@ -454,10 +673,10 @@ node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/clearings.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
     atmospheres: [
         {profile: "Cave Air", points: [
             {x: -22, y: -12}, {x: -10, y: -12}, {x: -10, y: 0}, {x: -22, y: 0}]},
@@ -492,10 +711,10 @@ node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/emptyclearing.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
     clearings: [{clears: "both", points: []}],
 }, false));
 '
@@ -523,7 +742,7 @@ const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 const content = require("./tools/tiled/palette/content.json");
 C.useContent(content);
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 // Every air profile the palette offers, each on its own triangle, stepped
 // along X so no two shapes coincide.
 const air = content.AIR_PROFILE_NAMES.map(function (profile, i) {
@@ -533,8 +752,8 @@ const air = content.AIR_PROFILE_NAMES.map(function (profile, i) {
 });
 if (air.length === 0) { throw new Error("no air profiles in the palette"); }
 fs.writeFileSync("tools/tiled/.verify/air-profiles.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors, atmospheres: air,
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors, atmospheres: air,
 }, false));
 '
 if "$TILED" --export-map aura-zone tools/tiled/.verify/air-profiles.json \
@@ -562,11 +781,11 @@ node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/outlines.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
-    polygons: [
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
+    structures: [
         {profile: "Water", outlineProfile: "Coast", outlineWidth: 1.25, points: [
             {x: 4, y: -8}, {x: 14, y: -8}, {x: 9, y: 2}]},
         // ...and one with NO outline beside it, which must keep both keys absent.
@@ -587,33 +806,102 @@ else
 fi
 
 echo
-echo "REGION TITLES survive real Tiled (the region title banner, 2026-09-28)"
-# ⭐ Two FREE-TEXT members on AuraRegion, the first on that class besides its
-# enum. A titled region, a title-only one and an unnamed one side by side: the
-# unnamed one must grow no key, and the title-only one no subtitle.
+echo "REGION IDS survive real Tiled (plan-region-identity.md R1)"
+# ⭐ A region carries an id, a profile, or both (D1). All three side by side:
+# the profile-only one must grow no id, and the id-only one no profile. The
+# ids come from the generated list, so no map edit reddens this leg.
 node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
-C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const content = require("./tools/tiled/palette/content.json");
+C.useContent(content);
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 const tri = (n) => [{x: n, y: 0}, {x: n + 6, y: 0}, {x: n + 6, y: 6}];
-fs.writeFileSync("tools/tiled/.verify/region-titles.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
+const [a, b] = content.REGION_IDS;
+fs.writeFileSync("tools/tiled/.verify/region-ids.json", C.serializeZone({
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
     regions: [
-        {profile: "Fields", points: tri(-30), title: "The Farmlands", subtitle: "Where it began"},
-        {profile: "Forest", points: tri(-10), title: "Darkwood"},
+        {id: a, profile: "Fields", points: tri(-30)},
+        {id: b, points: tri(-10)},
         {profile: "Swamp", points: tri(10)},
     ],
 }, false));
+fs.writeFileSync("tools/tiled/.verify/region-ids.id", b);
 '
-if "$TILED" --export-map aura-zone tools/tiled/.verify/region-titles.json \
-        "$(native "$ROOT/tools/tiled/.verify/region-titles-out.json")" >/dev/null 2>&1 \
-   && cmp -s tools/tiled/.verify/region-titles.json tools/tiled/.verify/region-titles-out.json; then
-    ok "byte-identical — title and subtitle survived, the unnamed region stayed unnamed"
+REGION_ID="$(cat tools/tiled/.verify/region-ids.id)"
+if "$TILED" --export-map aura-zone tools/tiled/.verify/region-ids.json \
+        "$(native "$ROOT/tools/tiled/.verify/region-ids-out.json")" >/dev/null 2>&1 \
+   && cmp -s tools/tiled/.verify/region-ids.json tools/tiled/.verify/region-ids-out.json; then
+    ok "byte-identical — every id survived, the id-only region grew no profile"
 else
-    bad "region titles did not survive: $(cmp tools/tiled/.verify/region-titles.json \
-        tools/tiled/.verify/region-titles-out.json 2>&1 | head -1)"
+    bad "region ids did not survive: $(cmp tools/tiled/.verify/region-ids.json \
+        tools/tiled/.verify/region-ids-out.json 2>&1 | head -1)"
+fi
+
+# Through Tiled's own TMX, with the id stored as the typed enum the GUI writes
+# and the object renamed: the label is free, the id is the place.
+echo
+echo "a region's id stored as the typed AuraRegionId, the object renamed"
+"$TILED" --export-map tmx tools/tiled/.verify/region-ids.json \
+    "$(native "$ROOT/tools/tiled/.verify/region-ids.tmx")" >/dev/null 2>&1 || true
+if ! grep -q "<property name=\"id\" value=\"$REGION_ID\"/>" tools/tiled/.verify/region-ids.tmx; then
+    bad "the TMX carries no id property $REGION_ID — read() did not build the region"
+else
+    sed -e "s#<property name=\"id\" value=\"$REGION_ID\"/>#<property name=\"id\" propertytype=\"AuraRegionId\" value=\"$REGION_ID\"/>#" \
+        -e "s#name=\"$REGION_ID\" class=\"AuraRegion\"#name=\"Reinhard label\" class=\"AuraRegion\"#" \
+        tools/tiled/.verify/region-ids.tmx > tools/tiled/.verify/region-typed.tmx
+    if cmp -s tools/tiled/.verify/region-ids.tmx tools/tiled/.verify/region-typed.tmx; then
+        bad "the edit did not apply — this leg would pass for nothing"
+    elif "$TILED" --export-map aura-zone tools/tiled/.verify/region-typed.tmx \
+            "$(native "$ROOT/tools/tiled/.verify/region-typed-out.json")" >/dev/null 2>&1 \
+       && cmp -s tools/tiled/.verify/region-ids.json tools/tiled/.verify/region-typed-out.json; then
+        ok "byte-identical — the label changed, the place did not, and no profile was read off the name"
+    else
+        bad "the typed id did not save back: $(cmp tools/tiled/.verify/region-ids.json \
+            tools/tiled/.verify/region-typed-out.json 2>&1 | head -1)"
+    fi
+
+    echo
+    echo "an unlisted region id, and an id-only region whose id is removed (no place, no ground)"
+    sed "s#<property name=\"id\" value=\"$REGION_ID\"/>#<property name=\"id\" value=\"$REGION_ID-typo\"/>#" \
+        tools/tiled/.verify/region-ids.tmx > tools/tiled/.verify/region-unlisted.tmx
+    sed "s#<property name=\"id\" value=\"$REGION_ID\"/>##" \
+        tools/tiled/.verify/region-ids.tmx > tools/tiled/.verify/region-neither.tmx
+    for leg in region-unlisted region-neither; do
+        if cmp -s tools/tiled/.verify/region-ids.tmx tools/tiled/.verify/$leg.tmx; then
+            bad "$leg: the edit did not apply — this leg would pass for nothing"
+        elif "$TILED" --export-map aura-zone tools/tiled/.verify/$leg.tmx \
+                "$(native "$ROOT/tools/tiled/.verify/$leg-out.json")" >/dev/null 2>&1; then
+            bad "$leg: the save was ACCEPTED"
+        elif [ -e tools/tiled/.verify/$leg-out.json ]; then
+            bad "$leg: refused, but a file was written anyway"
+        else
+            ok "$leg: refused, nothing written"
+        fi
+    done
+fi
+
+# ⛔ The open refusal (the N2 lesson): a pre-R1 file would OPEN without its
+# region titles, and the next save would delete every one in the world.
+echo
+echo "a zone file whose regions still carry a title"
+node -e '
+const fs = require("fs");
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
+const r = z.regions.find(r => r.id) || z.regions[0];
+const {id, ...rest} = r;
+Object.assign(r, rest, {title: "Old Title"});
+delete r.id;
+fs.writeFileSync("tools/tiled/.verify/old-titles.json", JSON.stringify(z, null, 2));
+'
+if "$TILED" --export-map aura-zone tools/tiled/.verify/old-titles.json \
+        "$(native "$ROOT/tools/tiled/.verify/old-titles-out.json")" >/dev/null 2>&1; then
+    bad "the open was ACCEPTED — a titled file would lose every title on save"
+elif [ -e tools/tiled/.verify/old-titles-out.json ]; then
+    bad "refused, but a file was written anyway"
+else
+    ok "refused, nothing written"
 fi
 
 echo
@@ -622,10 +910,10 @@ node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/halfoutline.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
     // ⚑ A zero-wide outline strokes nothing, so this fails SILENTLY in game and
     // has to be caught where the author can still see the object.
     paths: [{profile: "Road", width: 2.5, outlineProfile: "Desert", outlineWidth: 0,
@@ -642,26 +930,26 @@ else
 fi
 
 echo
-echo "a polygon naming a profile that does not exist"
+echo "a structure naming a profile that does not exist"
 node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/badpolyprofile.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
     // ⚑ zone.go ACCEPTS this (D8) and the client absorbs it (D11), so Tiled is
     // the only place it can be caught — and the polygon class has to inherit
     // that check rather than merely look like it does.
-    polygons: [{profile: "no-such-profile", points: [
+    structures: [{profile: "no-such-profile", points: [
         {x: 0, y: 0}, {x: 8, y: 0}, {x: 8, y: 8},
     ]}],
 }, false));
 '
 if "$TILED" --export-map aura-zone tools/tiled/.verify/badpolyprofile.json \
         "$(native "$ROOT/tools/tiled/.verify/badpolyprofile-out.json")" >/dev/null 2>&1; then
-    bad "the save was ACCEPTED — the profile vocabulary is not enforced on polygons"
+    bad "the save was ACCEPTED — the profile vocabulary is not enforced on structures"
 elif [ -e tools/tiled/.verify/badpolyprofile-out.json ]; then
     bad "refused, but a file was written anyway"
 else
@@ -682,10 +970,10 @@ node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/emptyatmo.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
     atmospheres: [{profile: "Fog", points: []}],
 }, false));
 '
@@ -704,10 +992,10 @@ node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/badprofile.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
     // ⚑ zone.go ACCEPTS this (D8) and the client absorbs it (D11), so Tiled is
     // the only place it can be caught at all.
     regions: [{profile: "no-such-profile", points: [
@@ -756,7 +1044,7 @@ const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 const content = require("./tools/tiled/palette/content.json");
 C.useContent(content);
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 // ⚑ Names taken from the generated vocabulary, never typed: renaming a skill
 // must not redden this leg, and a hand-typed name would.
 const E = content.EFFECT_NAMES;
@@ -767,15 +1055,15 @@ const E = content.EFFECT_NAMES;
 // might not be there.
 const P = content.PROFILE_NAMES[0], A = content.AIR_PROFILE_NAMES[0];
 fs.writeFileSync("tools/tiled/.verify/effects.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
     // A river that does something to whoever wades it — a stroked shape.
     paths: [{profile: P, width: 2.5, effect: E[0],
         points: [{x: -20, y: 12}, {x: 20, y: 12}]}],
     // The lava pool — a FILLED shape, on the same layer as the path above, with
     // a different effect. Also decorative-sibling free: the polygon and the path
     // must come back to their own arrays carrying their own names.
-    polygons: [{profile: P, blocksMovement: true, effect: E[1], points: [
+    structures: [{profile: P, blocksMovement: true, effect: E[1], points: [
         {x: -20, y: -10}, {x: -12, y: -10}, {x: -12, y: -2}, {x: -20, y: -2}]}],
     // The miasma — AIR, on a different layer, with a third effect. This is the
     // half that proves the key is not a ground-shape-only property.
@@ -805,12 +1093,12 @@ node -e '
 const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 C.useContent(require("./tools/tiled/palette/content.json"));
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/noeffect.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
     paths: [{profile: "Road", width: 2.5, points: [{x: -20, y: 12}, {x: 20, y: 12}]}],
-    polygons: [{profile: "Mountains", points: [
+    structures: [{profile: "Mountains", points: [
         {x: -20, y: -10}, {x: -12, y: -10}, {x: -12, y: -2}]}],
     atmospheres: [{profile: "Fog", points: [{x: 4, y: -8}, {x: 14, y: -8}, {x: 9, y: 2}]}],
 }, false));
@@ -837,11 +1125,11 @@ const C = require("./tools/tiled/extensions/aura-zone/aura-convert.js");
 const fs = require("fs");
 const content = require("./tools/tiled/palette/content.json");
 C.useContent(content);
-const z = JSON.parse(fs.readFileSync("api/zones/world.json", "utf8"));
+const z = JSON.parse(fs.readFileSync("tools/tiled/.verify/flat-world.json", "utf8"));
 fs.writeFileSync("tools/tiled/.verify/badeffect.json", C.serializeZone({
-    name: z.name, bounds: z.bounds, terrain: [], props: [], spawns: [],
-    campfires: z.campfires, anchors: z.anchors,
-    polygons: [{profile: content.PROFILE_NAMES[0], effect: "NoSuchSkill", points: [
+    name: z.name, bounds: z.bounds, decals: [], props: {}, spawns: [],
+    bindPoints: z.bindPoints, anchors: z.anchors,
+    structures: [{profile: content.PROFILE_NAMES[0], effect: "NoSuchSkill", points: [
         {x: 0, y: 0}, {x: 8, y: 0}, {x: 8, y: 8}]}],
 }, false));
 '
@@ -865,7 +1153,7 @@ echo "generated palette matches the content it is generated from"
 # empty `before` is exactly the "stale, regenerate" answer this leg should give.
 palette_state() {
     cat tools/tiled/palette/content.json tools/tiled/palette/propertytypes.json \
-        tools/tiled/palette/terrain.tsx tools/tiled/palette/props.tsx \
+        tools/tiled/palette/decals.tsx tools/tiled/palette/props.tsx \
         tools/tiled/palette/templates/*/*.tx \
         tools/tiled/aura.tiled-project 2>/dev/null || true
 }
@@ -892,7 +1180,7 @@ if [ "$fail" -eq 0 ]; then
     echo "     field at all, and that its 'clears' field is a DROPDOWN offering"
     echo "     darkness / haze / both. The empty property bag is the A4 ruling (L7):"
     echo "     a clearing paints nothing, so there is no look to name."
-    echo "  4. click an AuraPath, an AuraPolygon and an AuraAtmosphere and confirm each"
+    echo "  4. click an AuraPath, an AuraStructure and an AuraAtmosphere and confirm each"
     echo "     has an 'effect' DROPDOWN listing the skills, led by '(no effect)' — and"
     echo "     that an AuraRegion and an AuraClearing have NO effect field at all."
     echo "     Which enum a member declares is invisible headlessly (measured), so the"
@@ -917,10 +1205,10 @@ if [ "$fail" -eq 0 ]; then
     echo "     object anchors bottom-left, so a resize that ignores the centre walks"
     echo "     the art up and right by half the change. Then Ctrl+Z: one undo step,"
     echo "     not one per object. ⚑ Also try it on a REGION polygon and confirm it"
-    echo "     is left alone and named in the message — only props and terrain have"
+    echo "     is left alone and named in the message — only props and decals have"
     echo "     a true size, and squashing a drawn shape is the bug, not the fix."
     echo "  8. the LAYERS panel, top to bottom: anchors · atmospheres · darkAreas ·"
-    echo "     campfires · spawns · props · terrain · paths · regions. That is the"
+    echo "     bindPoints · spawns · props · decals · paths · regions. That is the"
     echo "     CLIENT's draw order upside down, which is what Tiled's panel shows —"
     echo "     regions at the BOTTOM because a region is the ground everything else"
     echo "     is drawn on (plan-zone-naming.md D1). ⚑ A vitest leg pins the array"
@@ -934,6 +1222,34 @@ if [ "$fail" -eq 0 ]; then
     echo "     carries no lock state, so the converter's flag is the only state there"
     echo "     is. Verifying this headlessly is impossible — --export-map never"
     echo "     builds a Layers panel."
+    echo " 10. 'props' is a GROUP holding canopy · buildings · default · underfoot,"
+    echo "     top to bottom (plan-prop-draw-order.md P3). Hide 'canopy' with its eye:"
+    echo "     the tree crowns vanish and the roofs under them show. Move one prop"
+    echo "     with Layer ▸ Move Objects to Layer, save, and confirm the zone file"
+    echo "     has it in the other array. Drag a Bridge into 'default' and save: it"
+    echo "     must refuse, naming the object. ⚑ The legs above prove the group's"
+    echo "     NAMES survive a save, never what the panel shows."
+    echo " 11. AREAS (plan-prop-draw-order.md P4, P4b): Layer ▸ New ▸ Group Layer at"
+    echo "     the TOP of the panel, any name. Save: it must REFUSE (a plain group is"
+    echo "     not an area). In Properties set its Class to AuraArea: an 'id' field"
+    echo "     appears as a DROPDOWN of the api/areas/areas.json ids, reading '(pick"
+    echo "     an area)'. Save: refused, 'no area picked'. Pick 'brackenfold', save,"
+    echo "     reopen: the group comes back named brackenfold, holding the full layer"
+    echo "     set, regions and atmospheres padlocked (D13), the dropdown still on"
+    echo "     brackenfold. Move a spawn and a tree into its layers with Layer ▸ Move"
+    echo "     Objects to Layer, save, restart the server: the game is unchanged and"
+    echo "     the zone file has them under areas[brackenfold]. Rename the group to"
+    echo "     anything and save: the file does NOT change (the name is a label)."
+    echo "     ⚑ Note whether the group reopens EXPANDED: if a many-area world reads"
+    echo "     as a long list, D13 falls back to 'only non-empty kinds' (§10.4)."
+    echo " 12. REGION IDS (plan-region-identity.md R1): select a titled region (e.g. the"
+    echo "     Farmlands field, in its area's 'regions' layer, padlock off): Properties"
+    echo "     shows an 'id' DROPDOWN of the api/regions/regions.json ids above its"
+    echo "     'profile'. Draw a new region inside it and set only its id (profile left"
+    echo "     at '(pick a profile)'): save is ACCEPTED, the file gains {id, points}"
+    echo "     and no profile. Set both back to their placeholders: save REFUSES ('names"
+    echo "     no place and paints no ground'). Undo, restart the server: walking into"
+    echo "     the new region announces its place and the ground there is unchanged."
 else
     echo "FAILED — see above."
 fi

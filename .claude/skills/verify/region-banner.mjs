@@ -1,17 +1,22 @@
 // The region title banner (2026-09-28), at the real game surface.
 //
-// Owns: entering a titled region shows its title (and subtitle) at the top
-// centre after the settle time and not before; the banner fades out after its
-// hold; walking out and straight back in says nothing (the per-place cooldown);
-// a title-only region hides the subtitle line; a region only skimmed says
-// nothing; and a WARP into a titled region announces it (entry by movement).
+// Owns: entering a region that names a place (its `id`, plan-region-identity.md
+// R1) shows the place's title (and subtitle) from api/regions/regions.json at
+// the top centre after the settle time and not before; the banner fades out
+// after its hold; walking out and straight back in says nothing (the per-place
+// cooldown); a place with no subtitle hides the subtitle line; a region only
+// skimmed says nothing; a WARP into a place announces it (entry by movement);
+// and an id-only sub-place (no profile) inside another place announces itself.
 // Does NOT own the settle/cooldown arithmetic (vitest, RegionNames.test.ts) or
-// the zone-format plumbing (AuraTiledConvert.test.ts, zone_test.go, verify.sh).
+// the zone-format plumbing (AuraTiledConvert.test.ts, regions_test.go, verify.sh).
 //
-// ⚑ NO ZONE EDIT: titled regions are pushed into the LIVE region array
-// (`game.regions.loaded()`, BrowserConsole) around the player, so entering and
-// leaving are mostly done by moving the REGION, not the player. The lookup,
-// the frame loop and the DOM are the real ones. ⚑ It restates SETTLE_MS (1 s)
+// ⚑ NO ZONE EDIT: regions carrying a place id are pushed into the LIVE region
+// array (`game.regions.loaded()`, BrowserConsole) around the player, so entering
+// and leaving are mostly done by moving the REGION, not the player. The lookup,
+// the frame loop and the DOM are the real ones. ⚑ The ids are PICKED from the
+// bundled list (`game.regions.places()`), never named here, so a reworded or
+// re-listed place cannot redden this. ⚑ Leg 0 needs a spawn in no place: run it
+// on the DEBUG zone set, which draws no place ids. ⚑ It restates SETTLE_MS (1 s)
 // and the fade + hold (0.6 + 3 s + 1.2 s): update them with a retune.
 //
 //   node .claude/skills/verify/region-banner.mjs [label] [url]
@@ -73,24 +78,25 @@ const banner = () => page.evaluate(() => {
   };
 });
 
-/** Pushes a titled square (world px, half-size `half` metres) centred on
- *  (cx, cy) metres, or on the player when no centre is given. */
-const pushRegion = (title, subtitle, half, cx, cy) => page.evaluate(({ title, subtitle, half, cx, cy }) => {
+/** Pushes a square naming place `place.id` (world px, half-size `half` metres)
+ *  centred on (cx, cy) metres, or on the player when no centre is given. With
+ *  `idOnly` it carries no profile, the R1 sub-place. */
+const pushRegion = (place, half, cx, cy, idOnly) => page.evaluate(({ id, half, cx, cy, idOnly }) => {
   const ch = window.game.character;
   const x = cx === undefined ? ch.getX() : cx * 120;
   const y = cy === undefined ? ch.getY() : cy * 120;
   const h = half * 120;
-  const r = { profile: 'Fields', title, points: [
+  const r = { id, points: [
     { x: x - h, y: y - h }, { x: x + h, y: y - h }, { x: x + h, y: y + h }, { x: x - h, y: y + h }] };
-  if (subtitle) r.subtitle = subtitle;
+  if (!idOnly) r.profile = 'Fields';
   window.game.regions.loaded().push(r);
-}, { title, subtitle, half, cx, cy });
+}, { id: place.id, half, cx, cy, idOnly: !!idOnly });
 
-const dropRegion = (title) => page.evaluate((title) => {
+const dropRegion = (place) => page.evaluate((id) => {
   const list = window.game.regions.loaded();
-  const i = list.findIndex((r) => r.title === title);
+  const i = list.findIndex((r) => r.id === id);
   if (i >= 0) list.splice(i, 1);
-}, title);
+}, place.id);
 
 try {
   await page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -104,20 +110,31 @@ try {
   await cmd('GOD');
   await sleep(1500);
 
+  // Five distinct places off the bundled list: one with a subtitle, one
+  // without, and three more. Picked, never named.
+  const places = await page.evaluate(() => window.game.regions.places());
+  const SUB = places.find((p) => p.subtitle);
+  const BARE = places.find((p) => !p.subtitle);
+  const rest = places.filter((p) => p !== SUB && p !== BARE);
+  if (!SUB || !BARE || rest.length < 3) {
+    throw new Error(`the place list cannot supply the venues (${places.length} places)`);
+  }
+  const [SKIM, FAR, INNER] = rest;
+
   let b = await banner();
   if (!b) throw new Error('#regionBanner is not in the HUD');
-  check(!b.visible, '0 nothing shows where no region is titled (the shipped world)',
+  check(!b.visible, '0 nothing shows where no region names a place (the debug world)',
     `visible ${b.visible}, title "${b.title}"`);
 
   // --- 1. entering: after the settle, not before ----------------------------
-  await pushRegion('Testmarch', 'Where harnesses roam', 15);
+  await pushRegion(SUB, 15);
   await sleep(400);
   b = await banner();
   check(!b.visible, '1a nothing in the first 0.4 s (the 1 s settle)', `visible ${b.visible}`);
   await sleep(1400);
   b = await banner();
-  check(b.visible && b.title === 'Testmarch' && b.subtitle === 'Where harnesses roam' && b.subtitleShown,
-    '1b the title and subtitle show once settled', JSON.stringify(b));
+  check(b.visible && b.title === SUB.title && b.subtitle === SUB.subtitle && b.subtitleShown,
+    '1b the listed title and subtitle show once settled', JSON.stringify(b));
   await page.screenshot({ path: join(shotDir, `region-banner-${label}.png`), clip: { x: 240, y: 60, width: 800, height: 260 } })
     .catch(() => {});
 
@@ -127,46 +144,46 @@ try {
   check(!b.visible, '2 the banner has faded out after its hold', `visible ${b.visible}`);
 
   // --- 3. out and straight back in: the cooldown -----------------------------
-  await dropRegion('Testmarch');
+  await dropRegion(SUB);
   await sleep(300);
-  await pushRegion('Testmarch', 'Where harnesses roam', 15);
+  await pushRegion(SUB, 15);
   await sleep(2500);
   b = await banner();
   check(!b.visible, '3 re-entering the same place at once says nothing', `visible ${b.visible}`);
-  await dropRegion('Testmarch');
+  await dropRegion(SUB);
 
-  // --- 4. a title-only region hides the subtitle line -----------------------
-  await pushRegion('Barewold', undefined, 15);
+  // --- 4. a place with no subtitle hides the subtitle line ------------------
+  await pushRegion(BARE, 15);
   await sleep(1800);
   b = await banner();
-  check(b.visible && b.title === 'Barewold' && !b.subtitleShown,
-    '4 a title-only region shows no subtitle line', JSON.stringify(b));
-  await dropRegion('Barewold');
+  check(b.visible && b.title === BARE.title && !b.subtitleShown,
+    '4 a place with no subtitle shows no subtitle line', JSON.stringify(b));
+  await dropRegion(BARE);
   await sleep(4500);
 
   // --- 5. skimming a region says nothing ------------------------------------
-  await pushRegion('Brushby', undefined, 15);
+  await pushRegion(SKIM, 15);
   await sleep(400);
-  await dropRegion('Brushby');
+  await dropRegion(SKIM);
   await sleep(2000);
   b = await banner();
-  check(!(b.visible && b.title === 'Brushby'), '5 a region left inside the settle says nothing',
+  check(!(b.visible && b.title === SKIM.title), '5 a region left inside the settle says nothing',
     JSON.stringify(b));
 
   // --- 6. entering by MOVING: a warp into a titled region --------------------
   const me = await page.evaluate(() => ({ x: window.game.character.getX() / 120,
     y: window.game.character.getY() / 120 }));
   const target = { x: me.x + 40, y: me.y };
-  await pushRegion('Farreach', 'Forty metres east', 20, target.x, target.y);
+  await pushRegion(FAR, 20, target.x, target.y);
   await sleep(1500);
   b = await banner();
-  check(!(b.visible && b.title === 'Farreach'), '6a nothing while you stand outside it', JSON.stringify(b));
+  check(!(b.visible && b.title === FAR.title), '6a nothing while you stand outside it', JSON.stringify(b));
   await cmd(`WARP ${Math.round(target.x * 120)} ${Math.round(target.y * 120)}`);
   let shown = null;
   for (let i = 0; i < 12 && !shown; i++) {
     await sleep(400);
     const s = await banner();
-    if (s.visible && s.title === 'Farreach') shown = s;
+    if (s.visible && s.title === FAR.title) shown = s;
   }
   const at = await page.evaluate(() => ({ x: window.game.character.getX() / 120,
     y: window.game.character.getY() / 120 }));
@@ -176,6 +193,21 @@ try {
   } else {
     check(!!shown, '6b a warp into it announces it', JSON.stringify(shown || await banner()));
   }
+
+  // --- 7. an id-only sub-place inside a place (R1, D1 + D4) -----------------
+  // Standing inside FAR (just announced), an id-only square appears around the
+  // player: the region above wins, so INNER announces itself. Its ground is not
+  // this harness's (a pushed region is never painted); paintedRegions' vitest
+  // pins that an id-only region never reaches the painter.
+  await sleep(5000); // let FAR's banner fade
+  await pushRegion(INNER, 4, undefined, undefined, true);
+  let inner = null;
+  for (let i = 0; i < 10 && !inner; i++) {
+    await sleep(400);
+    const s = await banner();
+    if (s.visible && s.title === INNER.title) inner = s;
+  }
+  check(!!inner, '7 an id-only sub-place inside a place announces itself', JSON.stringify(inner || await banner()));
 
   check(consoleErrors.length === 0, `${consoleErrors.length} console errors`,
     consoleErrors.slice(0, 3).join(' | '));

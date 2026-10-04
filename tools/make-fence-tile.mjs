@@ -91,7 +91,8 @@ const TILE = {
         core: hex('#a68a63'),       // the lit crown of the rail
     },
     post: {
-        bays: 3,                    // → one post every 2.08 u at scale 1
+        bays: 1,                    // → one post every 6.25 u at scale 1, on
+                                    // the wrap edge only: a clean rail between
         along: 0.17,                // world units ALONG the fence
         across: 0.30,               // ...and across it: MORE than the rail,
                                     // which is the whole silhouette
@@ -101,7 +102,8 @@ const TILE = {
     // ⚑ One dark outline for everything, so posts and rail read as ONE object
     // against grass. Direction-neutral by necessity (see the header).
     edge: {colour: hex('#3a2d1c'), width: 2.2},
-    // Per-post variation, so three posts are not one post stamped three times.
+    // Per-post variation, so posts are not one post stamped over and over
+    // (with `bays: 1` every copy shares bay 0, so it is moot until bays > 1).
     vary: {size: 0.18, tone: 0.16},
 };
 

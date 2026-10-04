@@ -4763,6 +4763,15 @@ permissive defaults. *(Done — see the banner above.)*
 
 ## 44. Cheat authority is a shared secret, and persistence changes what it costs
 
+> ⭐ **PLANNED 2026-10-02: `plan-cheat-authority.md`** (D1-D7 ruled, P1-P6 open,
+> NOT approved, nothing built, 3 chunks). The plan supersedes "The shape of the
+> fix" below in three places. (1) The flag rides the play ticket rather than
+> being looked up from the loop. (2) `tokens.list` retires **everywhere**, and
+> `-dev` makes every account a developer, so the harness needs no flagged
+> accounts. (3) `audit_log` gains `character_id` and `detail` in migration
+> `000004`. ⚑ The planning survey also found that `devops/cleanup-loadbots.sql`
+> is likely stale against migrations `000002` and `000003` (plan H12).
+
 **Found 2026-07-31**, while designing the 8a browser harness. Not a bug today;
 a risk profile that changes the day step 8a ships.
 

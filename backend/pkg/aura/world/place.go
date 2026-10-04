@@ -123,9 +123,9 @@ func placeOne(z *Zone) error {
 			z.Spawns[i].Waypoints[j].Y += oy
 		}
 	}
-	for i := range z.Campfires {
-		z.Campfires[i].X += ox
-		z.Campfires[i].Y += oy
+	for i := range z.BindPoints {
+		z.BindPoints[i].X += ox
+		z.BindPoints[i].Y += oy
 	}
 	for i := range z.Anchors {
 		z.Anchors[i].X += ox
@@ -141,10 +141,10 @@ func placeOne(z *Zone) error {
 			z.Paths[i].Points[j].Y += oy
 		}
 	}
-	for i := range z.Polygons {
-		for j := range z.Polygons[i].Points {
-			z.Polygons[i].Points[j].X += ox
-			z.Polygons[i].Points[j].Y += oy
+	for i := range z.Structures {
+		for j := range z.Structures[i].Points {
+			z.Structures[i].Points[j].X += ox
+			z.Structures[i].Points[j].Y += oy
 		}
 	}
 	// ⭐ Atmospheres joined this list at plan-area-effects.md E2, when the air
@@ -211,19 +211,19 @@ func checkSetWide(zones []*Zone) error {
 	// across everything that is loaded, with no idea which zone it is in.
 	starts := 0
 	for i, z := range zones {
-		for c := range z.Campfires {
-			id := strings.TrimSpace(z.Campfires[c].ID)
+		for c := range z.BindPoints {
+			id := strings.TrimSpace(z.BindPoints[c].ID)
 			if other, dup := seenFire[id]; dup {
 				return fmt.Errorf("zones %q and %q both author spawn point %q; ids reach the database as "+
 					"bare text, so they must be unique across every loaded zone (plan-underworld.md L5)",
 					other, z.ID, id)
 			}
 			seenFire[id] = z.ID
-			if !z.Campfires[c].StartingSpawn {
+			if !z.BindPoints[c].StartingSpawn {
 				continue
 			}
 			if i != 0 {
-				return fmt.Errorf("zone %q flags campfire %q as a starting spawn, but only the primary zone "+
+				return fmt.Errorf("zone %q flags bind point %q as a starting spawn, but only the primary zone "+
 					"(%q) may: fresh characters land on a random flagged fire, so this would spawn them "+
 					"outside the starting world (plan-underworld.md L4)", z.ID, id, zones[0].ID)
 			}
@@ -243,7 +243,7 @@ func checkSetWide(zones []*Zone) error {
 	// does. A zone with no fires of its own is now legal — a cave nobody binds
 	// in — while a set with none is still not.
 	if len(seenFire) > 0 && starts == 0 {
-		return fmt.Errorf("%d campfire(s) are placed but none is flagged startingSpawn; fresh characters "+
+		return fmt.Errorf("%d bind point(s) are placed but none is flagged startingSpawn; fresh characters "+
 			"would have nowhere to land", len(seenFire))
 	}
 	return nil

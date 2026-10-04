@@ -52,6 +52,12 @@ function update(game: IGame) {
     }
 }
 
+/** A place announced elsewhere (the crossing curtain's title card): the banner
+ *  will not repeat it on arrival. */
+export function noteShown(place: PlaceName) {
+    announcer.noteShown(place, performance.now());
+}
+
 export function show(place: PlaceName) {
     if (element === null) return;
     titleElement.textContent = place.title;

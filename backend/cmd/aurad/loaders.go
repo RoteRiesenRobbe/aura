@@ -16,6 +16,8 @@ import (
 
 	"github.com/google/uuid"
 
+	aareas "github.com/RoteRiesenRobbe/aura/pkg/api/areas"
+	aregions "github.com/RoteRiesenRobbe/aura/pkg/api/regions"
 	aascension "github.com/RoteRiesenRobbe/aura/pkg/api/ascension"
 	afactions "github.com/RoteRiesenRobbe/aura/pkg/api/factions"
 	amilestones "github.com/RoteRiesenRobbe/aura/pkg/api/milestones"
@@ -57,6 +59,11 @@ type contentSources struct {
 	// directory: api/skill-fx/ is hyphenated and a Go identifier cannot be.
 	// The coverage test knows about the exception by name (loaders_test.go).
 	skillFx fs.FS
+	// areas is the one list of area ids a zone may name (P4b, D15).
+	areas fs.FS
+	// regions is the one list of places a region may name, with their
+	// banner text (plan-region-identity.md D2).
+	regions fs.FS
 }
 
 func embeddedContent() contentSources {
@@ -71,12 +78,14 @@ func embeddedContent() contentSources {
 		quests:     aquests.Quests,
 		ascension:  aascension.Ascension,
 		skillFx:    askillfx.SkillFx,
+		areas:      aareas.Areas,
+		regions:    aregions.Regions,
 	}
 }
 
 // diskContent loads content from dir, which must have the repo api/ layout
 // (mobs/, skills/, recipes/, zones/, props/, factions/, milestones/, quests/,
-// ascension/, skill-fx/).
+// ascension/, skill-fx/, areas/, regions/).
 // Missing subdirectories hard-fail here — content errors are loud, matching
 // the registry ethos.
 func diskContent(dir string) (contentSources, error) {
@@ -118,6 +127,12 @@ func diskContent(dir string) (contentSources, error) {
 		return contentSources{}, err
 	}
 	if c.skillFx, err = sub("skill-fx"); err != nil {
+		return contentSources{}, err
+	}
+	if c.areas, err = sub("areas"); err != nil {
+		return contentSources{}, err
+	}
+	if c.regions, err = sub("regions"); err != nil {
 		return contentSources{}, err
 	}
 	return c, nil
@@ -296,7 +311,7 @@ func loadZone(fsys fs.FS, name string, mr mobs.Registry, pr world.PropRegistry) 
 // validation failure, including the placement rules, is a finding — and since
 // the directory is now the zone list, that includes a WIP file nobody selected.
 func loadZones(fsys fs.FS, startZone string, mr mobs.Registry, pr world.PropRegistry,
-	sr skills.Registry) ([]*world.Zone, error) {
+	sr skills.Registry, areas []string, regions []world.RegionName) ([]*world.Zone, error) {
 	zones, err := world.LoadAllZonesFS(fsys, startZone, mr, pr)
 
 	if err != nil {
@@ -360,6 +375,23 @@ func loadZones(fsys fs.FS, startZone string, mr mobs.Registry, pr world.PropRegi
 	// "carries no dot_aura".
 	if err := world.CrossValidateAreaEffectShapes(sr, zones); err != nil {
 		return nil, err
+	}
+	// Does every zone area name a listed id (plan-prop-draw-order.md P4b,
+	// D15)? Here for the anchor pass's reason: the list is its own content,
+	// loaded before any zone, and the zone loader does not take it.
+	if err := world.CrossValidateAreaIDs(areas, zones); err != nil {
+		return nil, err
+	}
+	// Does every region id name a listed place (plan-region-identity.md D2)?
+	// The same pass for the same reason. A listed place no zone draws is only
+	// a warning: the debug zone set draws none, and a place may be listed first.
+	undrawn, err := world.CrossValidateRegionIDs(regions, zones)
+	if err != nil {
+		return nil, err
+	}
+	if len(undrawn) > 0 {
+		slog.Warn("places listed in api/regions/regions.json but drawn in no zone",
+			slog.String("ids", strings.Join(undrawn, ", ")))
 	}
 	return zones, nil
 

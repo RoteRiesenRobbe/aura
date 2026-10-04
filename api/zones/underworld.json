@@ -8,23 +8,28 @@
     "x": 5000,
     "y": 3000
   },
-  "terrain": [],
-  "props": [
-    {
-      "type": "Torch",
-      "x": -20.39,
-      "y": -4.05,
-      "rotation": 0,
-      "scale": 1.603
-    },
-    {
-      "type": "Torch",
-      "x": 15.97,
-      "y": -4.05,
-      "rotation": 0,
-      "scale": 1.603
-    }
-  ],
+  "decals": [],
+  "props": {
+    "underfoot": [],
+    "default": [
+      {
+        "type": "Torch",
+        "x": -20.39,
+        "y": -4.05,
+        "rotation": 0,
+        "scale": 1.603
+      },
+      {
+        "type": "Torch",
+        "x": 15.97,
+        "y": -4.05,
+        "rotation": 0,
+        "scale": 1.603
+      }
+    ],
+    "buildings": [],
+    "canopy": []
+  },
   "spawns": [
     {
       "mob": "CaveExit",
@@ -144,7 +149,7 @@
       ]
     }
   ],
-  "polygons": [
+  "structures": [
     {
       "profile": "City",
       "points": [

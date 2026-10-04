@@ -1,0 +1,42 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40" preserveAspectRatio="none">
+  <!-- Placeholder fish: TRUE top-down, one mackerel lying flat, head EAST.
+       The viewBox is 100x40 to match the 0.5 x 0.2 rect body in
+       api/props/fish.json; rect so a placement's rotation turns it.
+
+       ⭐ It replaced a drying rack that never read from above (PO 2026-10-03:
+       "a simple fish prop we can place"): one fish is scatter you can drop on a
+       jetty, in a boat, by a net rack or across a table, in any number.
+       ⭐ Seen from above a fish is its BACK, so what names it is a spindle
+       outline, the forked tail, two pectoral fins out to the sides and the
+       mackerel's dark wavy bars - the one pattern every coast reads as fish.
+       ⚑ NON-BLOCKING, so the shadow is barely there. -->
+
+  <!-- a whisper of shadow -->
+  <path d="M8,24 L22,22 C40,13 70,12 92,20 C70,30 40,30 22,26 L8,30 Z" fill="#000000" opacity="0.12"/>
+
+  <!-- tail, forked -->
+  <path d="M24,20 L4,8 L10,20 L4,32 Z" fill="#46606a" stroke="#1e2a30" stroke-width="2" stroke-linejoin="round"/>
+  <!-- pectoral fins -->
+  <path d="M66,12 L58,4 L56,13 Z M66,28 L58,36 L56,27 Z" fill="#5f7a80" stroke="#1e2a30" stroke-width="1.5" stroke-linejoin="round"/>
+
+  <!-- the body, a spindle -->
+  <path d="M20,20 C36,8 70,7 94,18 Q97,20 94,22 C70,33 36,32 20,20 Z"
+        fill="#3f6a6e" stroke="#1e2a30" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- paler flanks showing at the edges -->
+  <path d="M28,12 C46,6 72,8 90,16" fill="none" stroke="#a8bcb4" stroke-width="2" opacity="0.6"/>
+  <path d="M28,28 C46,34 72,32 90,24" fill="none" stroke="#a8bcb4" stroke-width="2" opacity="0.6"/>
+  <!-- the mackerel bars -->
+  <g stroke="#14262a" stroke-width="2.2" fill="none" stroke-linecap="round">
+    <path d="M32,14 Q35,20 32,26"/>
+    <path d="M41,12 Q45,18 41,24 Q39,27 42,29"/>
+    <path d="M51,11 Q55,17 51,23 Q49,27 52,29"/>
+    <path d="M61,11 Q64,17 61,23 Q60,26 62,28"/>
+    <path d="M70,12 Q73,18 70,25"/>
+  </g>
+  <!-- the head: darker crown, eyes bulging just past the outline -->
+  <path d="M80,13 C88,15 94,18 94,20 C94,22 88,25 80,27 Q84,20 80,13 Z" fill="#2c4a4e"/>
+  <circle cx="86" cy="14.5" r="2.4" fill="#d8d2b8" stroke="#1e2a30" stroke-width="1"/>
+  <circle cx="86" cy="25.5" r="2.4" fill="#d8d2b8" stroke="#1e2a30" stroke-width="1"/>
+  <!-- a wet highlight along the back -->
+  <path d="M36,17 C50,14 66,14 80,17" fill="none" stroke="#e4f0ea" stroke-width="1.5" opacity="0.55" stroke-linecap="round"/>
+</svg>

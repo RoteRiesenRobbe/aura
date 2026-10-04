@@ -1,0 +1,29 @@
+{
+  "_comment": "Grandfather Knot's first errand (docs/plan-grandfather-knot.md): clear six deadwood from his grove with Harvest. Kept simple on purpose; the story of the angry young trees opens the follow-up, the-sleeping-roots, which his rows offer only once this one is completed. Turn-in: 600 XP (the 1600 the single quest paid, split 600 + 1000).",
+  "id": "clear-the-grove",
+  "title": "Clear the Grove",
+  "stages": [
+    {
+      "id": "tidy",
+      "journal": "Clear the deadwood from Grandfather Knot's grove with Harvest.",
+      "tracker": "{n}/{m} deadwood cleared",
+      "objectives": [
+        {
+          "kind": "harvest",
+          "species": "Deadwood",
+          "count": 6
+        }
+      ],
+      "next": "tidied"
+    },
+    {
+      "id": "tidied",
+      "journal": "The grove is clear. Grandfather Knot waits in the Glimmerwood.",
+      "tracker": "Return to Grandfather Knot"
+    },
+    {
+      "id": "cleared",
+      "journal": "Done. Grandfather Knot's grove is clear."
+    }
+  ]
+}

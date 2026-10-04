@@ -37,7 +37,7 @@ const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), pro
 
 // WARP takes 1/120 units and wants whole units.
 const w = (x, y) => `${Math.round(x) * 120} ${Math.round(y) * 120}`;
-// api/zones/world.json campfires.
+// api/zones/world.json bindPoints.
 const BOUND_FIRE = { x: 44, y: 10.5, id: 'spawnpoint-2' }; // not startingSpawn
 const START_FIRE = { x: -58.2, y: 24 };                    // spawnpoint-1, startingSpawn
 const WARP_TO_BOUND = w(BOUND_FIRE.x, BOUND_FIRE.y);

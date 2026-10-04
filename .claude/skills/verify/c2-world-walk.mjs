@@ -56,10 +56,11 @@
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
+import { readZone } from './lib/zone.mjs';
 import { execFileSync } from 'node:child_process';
 
 const ROOT = join(import.meta.dirname, '../../..');
-const zone = JSON.parse(readFileSync(join(ROOT, 'api/zones/world.json'), 'utf8'));
+const zone = readZone(join(ROOT, 'api/zones/world.json'));
 
 // The region map and the band table, read out of the one file that owns them.
 const regions = JSON.parse(execFileSync('python3', ['-c', `
@@ -78,7 +79,7 @@ json.dump(out, sys.stdout)
 // Low to high — the order C2's own walk instruction gives (§7).
 const ORDER = ['F', 'W', 'D', 'K', 'M', 'T', 'B', 'V', 'P', 'R'];
 
-const blockers = zone.props.filter((p) => p.blocksMovement);
+const blockers = Object.values(zone.props).flat().filter((p) => p.blocksMovement);
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
 
 function venueFor(letter) {

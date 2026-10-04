@@ -64,10 +64,11 @@ for (const [k, cols, rows] of LADDER) {
   const probe = {
     name: `Probe ${k}x`,
     bounds: { width: W * cols, height: H * rows },
-    terrain: [],
-    props: [],
+    decals: [],
+    // One array per prop layer (plan-prop-draw-order.md P3).
+    props: { underfoot: [], default: [], buildings: [], canopy: [] },
     spawns: [],
-    campfires: [],
+    bindPoints: [],
     darkAreas: [],
     anchors: [],
   };
@@ -77,15 +78,17 @@ for (const [k, cols, rows] of LADDER) {
     for (let cx = 0; cx < cols; cx++, tile++) {
       const dx = (cx - (cols - 1) / 2) * W;
       const dy = (cy - (rows - 1) / 2) * H;
-      probe.terrain.push(...shift(world.terrain, dx, dy));
-      probe.props.push(...shift(world.props, dx, dy));
+      probe.decals.push(...shift(world.decals, dx, dy));
+      for (const layer of Object.keys(probe.props)) {
+        probe.props[layer].push(...shift(world.props[layer], dx, dy));
+      }
       probe.spawns.push(...shift(world.spawns, dx, dy));
       probe.darkAreas.push(...shift(world.darkAreas, dx, dy));
-      // Campfire ids and anchor names are validated unique ZONE-wide
+      // Bind-point ids and anchor names are validated unique ZONE-wide
       // (world/zone.go validate), so every tile past the first needs a suffix.
       // Only tile 0 keeps startingSpawn, so bots all enter at one place.
-      for (const c of shift(world.campfires, dx, dy)) {
-        probe.campfires.push({
+      for (const c of shift(world.bindPoints, dx, dy)) {
+        probe.bindPoints.push({
           ...c,
           id: tile === 0 ? c.id : `${c.id}-t${tile}`,
           startingSpawn: tile === 0 && c.startingSpawn,
@@ -101,6 +104,6 @@ for (const [k, cols, rows] of LADDER) {
   writeFileSync(path, JSON.stringify(probe, null, 2) + "\n");
   console.log(
     `probe-${k}  ${cols}x${rows} tiles  ${probe.bounds.width}x${probe.bounds.height} u  ` +
-      `spawns=${probe.spawns.length} props=${probe.props.length} terrain=${probe.terrain.length}`,
+      `spawns=${probe.spawns.length} props=${Object.values(probe.props).flat().length} decals=${probe.decals.length}`,
   );
 }

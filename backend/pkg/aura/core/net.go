@@ -1,14 +1,17 @@
 package core
 
 import (
+	"cmp"
 	"log"
 	"log/slog"
+	"slices"
 
 	"github.com/EngoEngine/ecs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/google/flatbuffers/go"
 	"github.com/google/uuid"
 )
@@ -257,19 +260,30 @@ func (n *NetSystem) sendRoster() {
 	}
 }
 
-func (n *NetSystem) playerSendState(p model.PlayerEntity, gs codec.CharacterGameState) {
+// entitiesInView is every entity behind a viewport's colliders, in ascending
+// entity id (plan-prop-draw-order.md P1).
+//
+// ⚑ The collisions are a Go MAP, whose iteration order Go randomises on
+// purpose, so without the sort the snapshot was reshuffled every tick. The
+// client orders props by id on its own (D6); this only keeps the 30 Hz
+// message from changing order for no reason.
+func entitiesInView(collisions phy.ColliderSet) []model.Entity {
 	var entities []model.Entity
-
-	// find all entities in view
-	for c := range p.Viewport().Collisions() {
+	for c := range collisions {
 		userData := c.Shape().UserData
 		if userData != nil {
 			entities = append(entities, userData.(model.Entity))
 		}
 	}
+	slices.SortFunc(entities, func(a, b model.Entity) int {
+		return cmp.Compare(a.Basic().ID(), b.Basic().ID())
+	})
+	return entities
+}
 
+func (n *NetSystem) playerSendState(p model.PlayerEntity, gs codec.CharacterGameState) {
 	// copy gameStatePrototype
-	gs.Entities = entities
+	gs.Entities = entitiesInView(p.Viewport().Collisions())
 	gs.Player = p
 
 	// Owner-only block + conversation tree (plan-server-performance.md chunk
@@ -296,18 +310,8 @@ func (n *NetSystem) playerSendState(p model.PlayerEntity, gs codec.CharacterGame
 }
 
 func (n *NetSystem) spectatorSendState(s model.Spectator, gs codec.SpectatorGameState) {
-	var entities []model.Entity
-
-	// find all entities in view
-	for c := range s.Viewport().Collisions() {
-		userData := c.Shape().UserData
-		if userData != nil {
-			entities = append(entities, userData.(model.Entity))
-		}
-	}
-
 	// copy gameStatePrototype
-	gs.Entities = entities
+	gs.Entities = entitiesInView(s.Viewport().Collisions())
 	gs.Spectator = s
 
 	// marshal and send state

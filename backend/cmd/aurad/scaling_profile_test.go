@@ -315,9 +315,9 @@ func runScale(t *testing.T, config *cfg.Config,
 	if err != nil {
 		t.Fatal(err)
 	}
-	anchors := make([]sys.CampfireAnchor, 0, len(zone.Campfires))
-	safeZones := make([]mob.SafeZone, 0, len(zone.Campfires))
-	for _, c := range zone.Campfires {
+	anchors := make([]sys.CampfireAnchor, 0, len(zone.BindPoints))
+	safeZones := make([]mob.SafeZone, 0, len(zone.BindPoints))
+	for _, c := range zone.BindPoints {
 		m := mob.NewMob(campfireDef, g.Config().MobChaseIntoAuraMargin, nil)
 		m.SetPosition(phy.Vec2f{X: c.X + tile0.X, Y: c.Y + tile0.Y})
 		m.Align()

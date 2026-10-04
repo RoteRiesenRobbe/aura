@@ -3,8 +3,8 @@
 Cross-zone story arcs and breadcrumb chains — the *sequence* side of
 storytelling. Conventions → `README.md` → Content. World *texture*
 (history, factions, tone) lives in `content-lore.md`; a single zone's
-internal flow lives in its zone doc (Zones 1 + 2:
-`content-zone-design-guide.md`).
+internal flow lives in its zone doc (`content-zone-1-farmland.md`,
+`content-zone-2-woodland.md`).
 
 ## Principles
 
@@ -20,7 +20,8 @@ internal flow lives in its zone doc (Zones 1 + 2:
   player east to Reinhard; the bandit breadcrumb (a burnt cart, tracks into
   the trees) hands off to the Woodland; there the sealed city gate sends the
   player north or through the dark tunnel, where the light-aura clue waits.
-  The chain and its quests: `content-zone-design-guide.md` §2.6, §3.5.
+  The chain and its quests: `content-zone-1-farmland.md` §2.6,
+  `content-zone-2-woodland.md` §3.5.
   ⚑ This line used to describe the old world's chain (the Farmer's wolf-pack
   task, the tunnel guard between Zones 1 and 2; `archive/content-zone1.md`).
 - **Troll territory:** a clue NPC leads there; the reward is the Heal

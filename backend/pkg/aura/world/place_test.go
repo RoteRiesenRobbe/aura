@@ -30,19 +30,19 @@ func TestPlace_OffsetsGeometryIntoTheSharedSpace(t *testing.T) {
 	z := zoneAt("under", 60, 40, 0, -500)
 	z.Props = []Prop{{Type: "Rock", X: 1, Y: 2}}
 	z.Spawns = []Spawn{{Mob: "Wolf", X: 3, Y: 4, Waypoints: []Waypoint{{X: 5, Y: 6}}}}
-	z.Campfires = []Campfire{{ID: "u-1", X: 7, Y: 8}}
+	z.BindPoints = []Campfire{{ID: "u-1", X: 7, Y: 8}}
 	z.Anchors = []Anchor{{Name: "u-entry", X: 9, Y: 10}}
 	z.Paths = []Path{{Profile: "Water", Width: 2, Points: []Point{{X: 11, Y: 12}}}}
 
 	surface := zoneAt("world", 144, 72, 0, 0)
-	surface.Campfires = []Campfire{{ID: "spawnpoint-1", StartingSpawn: true}}
+	surface.BindPoints = []Campfire{{ID: "spawnpoint-1", StartingSpawn: true}}
 	require.NoError(t, Place([]*Zone{surface, z}))
 
 	assert.Equal(t, float32(1), z.Props[0].X)
 	assert.Equal(t, float32(-498), z.Props[0].Y, "props move with the zone")
 	assert.Equal(t, float32(-496), z.Spawns[0].Y, "spawns move with the zone")
 	assert.Equal(t, float32(-494), z.Spawns[0].Waypoints[0].Y, "patrol waypoints move too")
-	assert.Equal(t, float32(-492), z.Campfires[0].Y, "campfires move with the zone")
+	assert.Equal(t, float32(-492), z.BindPoints[0].Y, "campfires move with the zone")
 	assert.Equal(t, float32(-490), z.Anchors[0].Y, "anchors move with the zone")
 	assert.Equal(t, float32(-488), z.Paths[0].Points[0].Y,
 		"path points move: PathCorridors turns them into collision bodies")
@@ -53,13 +53,13 @@ func TestPlace_OffsetsGeometryIntoTheSharedSpace(t *testing.T) {
 // invites the two sides to disagree about who did it.
 func TestPlace_LeavesClientVisualArraysAlone(t *testing.T) {
 	z := zoneAt("under", 60, 40, 0, -500)
-	z.Terrain = []TerrainTexture{{Type: "Land", X: 1, Y: 2, Size: 1}}
+	z.Decals = []TerrainTexture{{Type: "Land", X: 1, Y: 2, Size: 1}}
 	z.DarkAreas = []DarkArea{{X: 3, Y: 4, Radius: 5}}
 	z.Regions = []Region{{Profile: "Cave", Points: []Point{{X: 6, Y: 7}}}}
 
 	require.NoError(t, Place([]*Zone{zoneAt("world", 144, 72, 0, 0), z}))
 
-	assert.Equal(t, float32(2), z.Terrain[0].Y, "terrain is client-visual and stays zone-local")
+	assert.Equal(t, float32(2), z.Decals[0].Y, "terrain is client-visual and stays zone-local")
 	assert.Equal(t, float32(4), z.DarkAreas[0].Y, "dark areas are client-visual")
 	assert.Equal(t, float32(7), z.Regions[0].Points[0].Y, "regions are client-visual")
 }
@@ -132,9 +132,9 @@ func TestPlace_CeilingCountsTheZonesFarEdge(t *testing.T) {
 // not just memory. Zone-wide uniqueness stops being enough with two zones.
 func TestPlace_RejectsSpawnPointIDsDuplicatedAcrossZones(t *testing.T) {
 	a := zoneAt("world", 144, 72, 0, 0)
-	a.Campfires = []Campfire{{ID: "spawnpoint-1", X: 0, Y: 0, StartingSpawn: true}}
+	a.BindPoints = []Campfire{{ID: "spawnpoint-1", X: 0, Y: 0, StartingSpawn: true}}
 	b := zoneAt("under", 144, 72, 0, -500)
-	b.Campfires = []Campfire{{ID: "spawnpoint-1", X: 0, Y: 0}}
+	b.BindPoints = []Campfire{{ID: "spawnpoint-1", X: 0, Y: 0}}
 
 	err := Place([]*Zone{a, b})
 	require.Error(t, err)
@@ -159,9 +159,9 @@ func TestPlace_RejectsAnchorNamesDuplicatedAcrossZones(t *testing.T) {
 // spawns fresh characters underground.
 func TestPlace_RejectsAStartingSpawnOutsideThePrimaryZone(t *testing.T) {
 	a := zoneAt("world", 144, 72, 0, 0)
-	a.Campfires = []Campfire{{ID: "spawnpoint-1", StartingSpawn: true}}
+	a.BindPoints = []Campfire{{ID: "spawnpoint-1", StartingSpawn: true}}
 	b := zoneAt("under", 144, 72, 0, -500)
-	b.Campfires = []Campfire{{ID: "u-1", StartingSpawn: true}}
+	b.BindPoints = []Campfire{{ID: "u-1", StartingSpawn: true}}
 
 	err := Place([]*Zone{a, b})
 	require.Error(t, err)
@@ -172,16 +172,16 @@ func TestPlace_RejectsAStartingSpawnOutsideThePrimaryZone(t *testing.T) {
 // does not. This is the half that moved out of Zone.validate.
 func TestPlace_AllowsASecondZoneWithFiresButNoStartingSpawn(t *testing.T) {
 	a := zoneAt("world", 144, 72, 0, 0)
-	a.Campfires = []Campfire{{ID: "spawnpoint-1", StartingSpawn: true}}
+	a.BindPoints = []Campfire{{ID: "spawnpoint-1", StartingSpawn: true}}
 	b := zoneAt("under", 144, 72, 0, -500)
-	b.Campfires = []Campfire{{ID: "u-1"}}
+	b.BindPoints = []Campfire{{ID: "u-1"}}
 
 	require.NoError(t, Place([]*Zone{a, b}))
 }
 
 func TestPlace_RejectsASetWithNoStartingSpawnAtAll(t *testing.T) {
 	a := zoneAt("world", 144, 72, 0, 0)
-	a.Campfires = []Campfire{{ID: "spawnpoint-1"}}
+	a.BindPoints = []Campfire{{ID: "spawnpoint-1"}}
 
 	err := Place([]*Zone{a})
 	require.Error(t, err)

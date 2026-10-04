@@ -1,7 +1,7 @@
 /**
  * The filled-polygon primitive (plan-zone-polygons.md P2).
  *
- * A zone can name closed polygons — `zone.polygons` — each pointing at the SAME
+ * A zone can name closed polygons — `zone.structures` — each pointing at the SAME
  * profile a region and a path do, and FILLED into the world: a rock mass, a
  * building footprint, a lake you cannot swim.
  *

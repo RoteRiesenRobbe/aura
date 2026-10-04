@@ -5,6 +5,8 @@ import {IGame} from "../../core/logic/IGame";
 import {meter2px} from '../../../client-data/BasicConfig';
 import { Container } from 'pixi.js';
 import {pickZoneSet} from './ZoneSets';
+import {PropLayersJSON} from '../../zones/logic/PropLayers';
+import {AreaJSON, flattenAreas} from '../../zones/logic/ZoneAreas';
 
 
 const textures: GroundTexture[] = [];
@@ -67,6 +69,8 @@ interface GroundTextureDefinition {
     size: number;
     rotation: number;
     flipped: 'none' | 'horizontal' | 'vertical';
+    // In memory only: the area the decal came from (ZoneAreas.flattenAreas).
+    area?: string;
 }
 
 export function getTexturesAsJSON() {
@@ -110,6 +114,7 @@ export function getTerrainServerUnits(): GroundTextureDefinition[] {
             size: round(p.size / PX_PER_UNIT, 2),
             rotation: round(p.rotation, 3),
             flipped: p.flipped,
+            area: p.area,
         };
     });
 }
@@ -121,12 +126,12 @@ interface DarkAreaDefinition {
 }
 
 interface RegionDefinition {
-    profile: string;
+    // The place it names (api/regions/regions.json, announced on entering by
+    // RegionNames) and the ground it paints: either or both
+    // (plan-region-identity.md D1).
+    id?: string;
+    profile?: string;
     points: { x: number, y: number }[];
-    // The place's name and a smaller line under it, announced on entering
-    // (RegionNames). Optional: most regions are just ground.
-    title?: string;
-    subtitle?: string;
 }
 
 // A road or a river (plan-world-paths.md). Declared locally like every other
@@ -211,6 +216,9 @@ export interface ZoneOriginJSON {
 }
 
 export interface ZoneJSON {
+    // The zone's display name, shown on the crossing curtain's title card
+    // (ZoneCurtain). Its identity everywhere else is the file STEM, never this.
+    name?: string;
     // Zone size in server units. The server's border wall is built from
     // exactly this rectangle, so it is also what the camera clamp and the map
     // must size themselves to (plan-underworld.md U2/L13).
@@ -223,7 +231,9 @@ export interface ZoneJSON {
     // The terrain profile the zone is filled with, inside AND beyond its
     // bounds, beneath every region and polygon. Absent = black (PO 2026-09-27).
     ground?: string;
-    terrain?: GroundTextureDefinition[];
+    // The scattered ground-texture patches (plan-zone-naming.md N2: was
+    // `terrain`, which is also the word for the whole ground).
+    decals?: GroundTextureDefinition[];
     darkAreas?: DarkAreaDefinition[];
     // Ground-colour/presentation polygons, read by Regions.loadZone
     // (plan-region-primitive.md). Server units, like everything in the file.
@@ -234,7 +244,7 @@ export interface ZoneJSON {
     paths?: PathDefinition[];
     // Filled masses — rock, buildings, lakes — read by Polygons.loadPolygons
     // (plan-zone-polygons.md P2). Same posture as the two above.
-    polygons?: PolygonDefinition[];
+    structures?: PolygonDefinition[];
     // The AIR over an area — read by Atmospheres.loadAtmospheres
     // (plan-region-atmosphere.md A0). ⛔ NOT a polygon: it never blocks, takes
     // no outline, and draws on top of everything rather than into the ground
@@ -246,9 +256,10 @@ export interface ZoneJSON {
     // nothing, so there is no look to author (L7). ⚑ Same warning as every
     // array above — one not named HERE never reaches the renderer, silently.
     clearings?: ClearingDefinition[];
-    // World campfires (chunk 2): read by the darkness overlay for their
-    // static glow (chunk 4 follow-up).
-    campfires?: CampfireDefinition[];
+    // Bind points (chunk 2's world campfires; the key was `campfires` until
+    // N2): read by the darkness overlay for their static glow (chunk 4
+    // follow-up) and by the map's campfire markers.
+    bindPoints?: CampfireDefinition[];
     // Placed props. ⭐ The WORLD learns about props from the WIRE, as streamed
     // entities, and does not read this array to draw them. It is read for what
     // a streamed prop cannot do: a `Torch` casts a STATIC light, punched into
@@ -258,7 +269,9 @@ export interface ZoneJSON {
     // ⚑ Still a deliberately PARTIAL view: placement fields only, because the
     // type's own fields here would be a second definition competing with
     // api/props/.
-    props?: ZonePropPoint[];
+    // ⚑ One array per prop layer since plan-prop-draw-order.md P3. Read it
+    // through PropLayers.flattenProps, never by hand.
+    props?: PropLayersJSON<ZonePropPoint>;
 }
 
 // Bundle every zone's data straight from the repo api/ (chunk 6, §7.4) — same
@@ -266,11 +279,17 @@ export interface ZoneJSON {
 // the terrain of whichever zone the server selected (Welcome.zoneName).
 // ⚑ TWO sets: the main one and `.debug/` (`aurad -debug-zones`). Which one is
 // live is the server's call, read off Welcome.zoneName by selectZoneSet.
+//
+// ⭐ THE ONE PLACE A BUNDLED ZONE IS PICKED, so it is where its areas are
+// flattened away (plan-prop-draw-order.md P4, D11), exactly as the server does
+// at load. Every reader of getZoneData sees today's flat arrays, each area
+// object tagged with its `area`. (The in-game editor bundles the raw files
+// itself; ZoneModel.fromJSON runs the same flatten and keeps the areas.)
 function bundleByStem(context: __WebpackModuleApi.RequireContext): { [stem: string]: ZoneJSON } {
     const byStem: { [stem: string]: ZoneJSON } = {};
     context.keys().forEach((key: string) => {
         const stem = key.replace(/^\.\//, '').replace(/\.json$/, '');
-        byStem[stem] = context(key) as ZoneJSON;
+        byStem[stem] = flattenAreas(context(key) as ZoneJSON & {areas?: AreaJSON[]});
     });
     return byStem;
 }
@@ -316,7 +335,7 @@ export function loadZone(zoneName: string) {
     // (plan-underworld.md U2).
     const ox = zone.origin ? zone.origin.x : 0;
     const oy = zone.origin ? zone.origin.y : 0;
-    (zone.terrain || []).forEach(function (t: GroundTextureDefinition) {
+    (zone.decals || []).forEach(function (t: GroundTextureDefinition) {
         placeTexture({
             type: groundTextureTypes[t.type],
             x: meter2px(t.x + ox),
@@ -325,6 +344,7 @@ export function loadZone(zoneName: string) {
             rotation: t.rotation,
             flipped: t.flipped,
             stacking: 'top',
+            area: t.area,
         });
     });
 }

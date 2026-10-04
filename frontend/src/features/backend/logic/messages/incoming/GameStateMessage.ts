@@ -1,5 +1,4 @@
 import * as BackendConstants from '../../BackendConstants';
-import * as Resources from '../../../../game-objects/logic/Resources';
 import * as Props from '../../../../game-objects/logic/Props';
 import * as Mobs from '../../../../game-objects/logic/Mobs';
 import {DebugCircle} from '../../../../internal-tools/develop/logic/DebugCircle';
@@ -493,6 +492,10 @@ function unmarshalEntity(entity, eType) {
         // entityType only, which is the only prop whose shape and label are not
         // implied by its entityType (plan-prop-placeholders.md §4.2).
         propName: undefined,
+        // whether the PROP placement sits in the zone file's props.underfoot,
+        // which picks its container under the characters
+        // (plan-prop-draw-order.md D4). Props only.
+        underfoot: undefined,
         // effective combat level of a MOB instance (plan-mob-levels.md C2).
         // Deliberately NOT the `level` slot above: that one is character-only,
         // and reusing it would make isDefined(entity.level) newly true for
@@ -624,6 +627,9 @@ function unmarshalEntity(entity, eType) {
         // name as "unlabelled", which is exactly right for a prop that streamed
         // no name.
         result.propName = entity.propName() ?? '';
+        // false for every placement outside props.underfoot: the server omits
+        // the default, and an absent bool reads as its default.
+        result.underfoot = entity.underfoot();
     }
 
     if (isFunction(entity.statusEffectsLength) &&
@@ -644,9 +650,9 @@ type GameObjectClass = (new (...args: any[]) => unknown) | undefined;
  */
 const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.DebugCircle]: DebugCircle,
-    [AuraApi.EntityType.RoundTree]: Resources.RoundTree,
+    [AuraApi.EntityType.RoundTree]: Props.genericPropClasses.RoundTree,
     [AuraApi.EntityType.Character]: Character,
-    [AuraApi.EntityType.Stone]: Resources.Stone,
+    [AuraApi.EntityType.Stone]: Props.genericPropClasses.Stone,
     [AuraApi.EntityType.Totem]: Mobs.Totem,
     [AuraApi.EntityType.Companion]: Mobs.Companion,
     [AuraApi.EntityType.Campfire]: Mobs.Campfire,
@@ -687,6 +693,9 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Orc]: Mobs.Orc,
     [AuraApi.EntityType.SpikeBarricade]: Mobs.SpikeBarricade,
     [AuraApi.EntityType.FrontCaptain]: Mobs.FrontCaptain,
+    [AuraApi.EntityType.GrandfatherKnot]: Mobs.GrandfatherKnot,
+    [AuraApi.EntityType.Deadwood]: Mobs.Deadwood,
+    [AuraApi.EntityType.Remains]: Mobs.Remains,
     [AuraApi.EntityType.OrcWarlord]: Mobs.OrcWarlord,
     [AuraApi.EntityType.WarbannerTotem]: Mobs.WarbannerTotem,
     [AuraApi.EntityType.OrcGrunt]: Mobs.OrcGrunt,
@@ -710,7 +719,8 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.NpcPlaceholder]: Mobs.NpcPlaceholder,
     [AuraApi.EntityType.Tombstone]: Props.genericPropClasses.Tombstone,
     // A bridge deck. Generic like every other simple prop — what makes it a
-    // bridge is its DEFINITION (`crossesPaths` + `underfoot`), never a class.
+    // bridge is its DEFINITION (`crossesPaths`) and its PLACEMENT in
+    // props.underfoot (plan-prop-draw-order.md D4), never a class.
     [AuraApi.EntityType.Bridge]: Props.genericPropClasses.Bridge,
     // Farmland dressing for Zone 1 — five ordinary blocking props, each one
     // api/props/*.json and one SVG, all on the generic path.
@@ -752,6 +762,20 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.CaveMouth]: Props.genericPropClasses.CaveMouth,
     // House's wreck, a second sprite on the same body (BurntCart's pattern).
     [AuraApi.EntityType.RuinedHouse]: Props.genericPropClasses.RuinedHouse,
+    // Crate's wreck, the same pattern on the same body; what makes it
+    // walkable is its definition (`blocksMovement: false`), never a class.
+    [AuraApi.EntityType.BrokenCrate]: Props.genericPropClasses.BrokenCrate,
+    // The coast set. All generic; Bedroll, WreckDebris and Fish are walkable by
+    // their definitions (`blocksMovement: false`), never by a class.
+    [AuraApi.EntityType.Tent]: Props.genericPropClasses.Tent,
+    [AuraApi.EntityType.Bedroll]: Props.genericPropClasses.Bedroll,
+    [AuraApi.EntityType.Shipwreck]: Props.genericPropClasses.Shipwreck,
+    [AuraApi.EntityType.WreckDebris]: Props.genericPropClasses.WreckDebris,
+    [AuraApi.EntityType.Rowboat]: Props.genericPropClasses.Rowboat,
+    [AuraApi.EntityType.NetRack]: Props.genericPropClasses.NetRack,
+    [AuraApi.EntityType.FishingHut]: Props.genericPropClasses.FishingHut,
+    [AuraApi.EntityType.Fish]: Props.genericPropClasses.Fish,
+    [AuraApi.EntityType.RemainsProp]: Props.genericPropClasses.RemainsProp,
     // Bespoke, and the only prop class that takes a 6th constructor argument
     // (the prop name) — see EntityManager's default branch.
     [AuraApi.EntityType.PropPlaceholder]: Props.PropPlaceholder,

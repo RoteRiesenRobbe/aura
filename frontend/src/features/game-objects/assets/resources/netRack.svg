@@ -1,0 +1,66 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" preserveAspectRatio="none">
+  <!-- Placeholder net-drying rack: TRUE top-down, three posts and a rail with a
+       fishing net hung over it to dry. The viewBox is 300x80 to match the
+       3.0 x 0.8 rect body in api/props/net-rack.json. Netmender's Coast is
+       named for this, so it is the area's signature prop.
+
+       ⭐ THE NET IS THE DRAWING: a diamond mesh, corks along one edge and dark
+       weights along the other. Without the corks it is a trellis; without the
+       mesh it is a tarpaulin. ⚑ The net hangs down BOTH sides of the rail, so
+       from above it is a band centred on the line, wider than the posts. -->
+
+  <!-- ground shadow -->
+  <rect x="16" y="14" width="280" height="62" rx="6" fill="#000000" opacity="0.2"/>
+
+  <!-- the net, a band hanging both sides of the rail -->
+  <defs>
+    <pattern id="mesh" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <path d="M0,0 L12,0 M0,0 L0,12" stroke="#5f5c3c" stroke-width="2" fill="none"/>
+    </pattern>
+  </defs>
+  <path d="M14,12 C70,6 120,14 160,8 C200,4 250,12 288,8 L290,72 C250,76 200,68 160,74 C120,78 70,70 12,74 Z"
+        fill="#8d8a62" opacity="0.35"/>
+  <path d="M14,12 C70,6 120,14 160,8 C200,4 250,12 288,8 L290,72 C250,76 200,68 160,74 C120,78 70,70 12,74 Z"
+        fill="url(#mesh)" stroke="#4a4830" stroke-width="2"/>
+  <!-- sags where it droops between the posts -->
+  <g stroke="#4a4830" stroke-width="1.5" fill="none" opacity="0.7">
+    <path d="M30,24 C70,34 110,34 140,24"/>
+    <path d="M160,56 C200,46 240,46 276,56"/>
+  </g>
+
+  <!-- corks along the north edge -->
+  <g fill="#c99a5a" stroke="#5a3e1c" stroke-width="1.5">
+    <ellipse cx="26" cy="11" rx="6" ry="4"/>
+    <ellipse cx="62" cy="9" rx="6" ry="4"/>
+    <ellipse cx="98" cy="11" rx="6" ry="4"/>
+    <ellipse cx="134" cy="10" rx="6" ry="4"/>
+    <ellipse cx="170" cy="7" rx="6" ry="4"/>
+    <ellipse cx="206" cy="7" rx="6" ry="4"/>
+    <ellipse cx="242" cy="10" rx="6" ry="4"/>
+    <ellipse cx="278" cy="9" rx="6" ry="4"/>
+  </g>
+  <!-- weights along the south edge -->
+  <g fill="#3a3a3e">
+    <circle cx="30" cy="73" r="3.5"/>
+    <circle cx="70" cy="71" r="3.5"/>
+    <circle cx="110" cy="73" r="3.5"/>
+    <circle cx="150" cy="74" r="3.5"/>
+    <circle cx="190" cy="71" r="3.5"/>
+    <circle cx="230" cy="70" r="3.5"/>
+    <circle cx="270" cy="72" r="3.5"/>
+  </g>
+
+  <!-- the rail, and the post tops seen end-on -->
+  <line x1="10" y1="40" x2="290" y2="40" stroke="#3b2a18" stroke-width="8" stroke-linecap="round"/>
+  <line x1="10" y1="40" x2="290" y2="40" stroke="#8a6a44" stroke-width="4" stroke-linecap="round"/>
+  <g fill="#7a5c38" stroke="#2e2012" stroke-width="3">
+    <circle cx="14" cy="40" r="9"/>
+    <circle cx="150" cy="40" r="9"/>
+    <circle cx="286" cy="40" r="9"/>
+  </g>
+  <g fill="none" stroke="#4e3a22" stroke-width="1.5">
+    <circle cx="14" cy="40" r="4"/>
+    <circle cx="150" cy="40" r="4"/>
+    <circle cx="286" cy="40" r="4"/>
+  </g>
+</svg>

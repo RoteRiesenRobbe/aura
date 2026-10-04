@@ -67,8 +67,8 @@ func TestZoneSet_RepoWorldIsUnmovedByThePlacedPath(t *testing.T) {
 		require.Equal(t, single.Spawns[i].X, placed.Spawns[i].X, "spawn %d moved", i)
 		require.Equal(t, single.Spawns[i].Y, placed.Spawns[i].Y, "spawn %d moved", i)
 	}
-	for i := range single.Campfires {
-		require.Equal(t, single.Campfires[i].X, placed.Campfires[i].X, "campfire %d moved", i)
+	for i := range single.BindPoints {
+		require.Equal(t, single.BindPoints[i].X, placed.BindPoints[i].X, "campfire %d moved", i)
 	}
 	for i := range single.Anchors {
 		require.Equal(t, single.Anchors[i].X, placed.Anchors[i].X, "anchor %q moved", single.Anchors[i].Name)
@@ -120,8 +120,8 @@ func TestZoneSet_WallsForGivesEachZoneItsOwnRectangle(t *testing.T) {
 }
 
 func TestZoneSet_FlattensSpawnsAndCampfiresAcrossZones(t *testing.T) {
-	a := &world.Zone{ID: "world", Spawns: []world.Spawn{{Mob: "Wolf"}}, Campfires: []world.Campfire{{ID: "spawnpoint-1"}}}
-	b := &world.Zone{ID: "under", Spawns: []world.Spawn{{Mob: "Bat"}, {Mob: "Rat"}}, Campfires: []world.Campfire{{ID: "u-1"}}}
+	a := &world.Zone{ID: "world", Objects: world.Objects{Spawns: []world.Spawn{{Mob: "Wolf"}}, BindPoints: []world.Campfire{{ID: "spawnpoint-1"}}}}
+	b := &world.Zone{ID: "under", Objects: world.Objects{Spawns: []world.Spawn{{Mob: "Bat"}, {Mob: "Rat"}}, BindPoints: []world.Campfire{{ID: "u-1"}}}}
 
 	assert.Len(t, allSpawns([]*world.Zone{a, b}), 3)
 	assert.Len(t, allCampfires([]*world.Zone{a, b}), 2)
@@ -138,8 +138,8 @@ func TestZoneSet_FlattensSpawnsAndCampfiresAcrossZones(t *testing.T) {
 // faithful because names are unique set-wide (world.Place checkSetWide, L5b) -
 // without that rule this merge would silently keep whichever zone came last.
 func TestZoneSet_FlattensAnchorsAcrossZones(t *testing.T) {
-	a := &world.Zone{ID: "world", Anchors: []world.Anchor{{Name: "surface-return", X: 5, Y: 6}}}
-	b := &world.Zone{ID: "under", Anchors: []world.Anchor{{Name: "underworld-entry", X: 1, Y: -499}}}
+	a := &world.Zone{ID: "world", Objects: world.Objects{Anchors: []world.Anchor{{Name: "surface-return", X: 5, Y: 6}}}}
+	b := &world.Zone{ID: "under", Objects: world.Objects{Anchors: []world.Anchor{{Name: "underworld-entry", X: 1, Y: -499}}}}
 
 	anchors := allAnchors([]*world.Zone{a, b})
 	require.Len(t, anchors, 2)
@@ -260,4 +260,38 @@ func TestZoneSet_NoStartZoneRefusesWhenSeveralZonesExist(t *testing.T) {
 	_, err = world.LoadAllZonesFS(content.zones, "", mobsRegistry, propsRegistry)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "startZone")
+}
+
+// plan-prop-draw-order.md P1 item 5: props spawn in zone-file order.
+//
+// ⭐ The client stacks props by entity id (D6), and ids come from a global
+// counter in spawn order, so THIS order is the draw order: a prop later in a
+// zone's `props` array draws over an earlier one, and a later zone's props over
+// an earlier zone's. Only the relative order matters; an id is never compared
+// across boots (§7 L1). Since P3, Props is the four-layer flatten (rank, then
+// file order), pinned in world.TestZone_PropLayersFlattenInRankThenFileOrder.
+func TestZoneSet_PropsSpawnInZoneFileOrder(t *testing.T) {
+	def := &world.PropDefinition{Name: "T", Body: world.PropBody{Radius: 1}}
+	placed := func(xs ...float32) []world.Prop {
+		out := make([]world.Prop, len(xs))
+		for i, x := range xs {
+			out[i] = world.Prop{Type: "T", X: x, Def: def}
+		}
+		return out
+	}
+	zones := []*world.Zone{
+		{ID: "world", Props: placed(3, 1, 2)},
+		{ID: "under", Props: placed(20, 10)},
+	}
+
+	got := propEntities(zones)
+	require.Len(t, got, 5)
+	var xs []float32
+	for i, p := range got {
+		xs = append(xs, p.Position().X)
+		if i > 0 {
+			assert.Greater(t, p.Basic().ID(), got[i-1].Basic().ID(), "entity %d", i)
+		}
+	}
+	assert.Equal(t, []float32{3, 1, 2, 20, 10}, xs)
 }

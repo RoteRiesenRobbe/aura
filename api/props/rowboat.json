@@ -1,0 +1,6 @@
+{
+  "name": "Rowboat",
+  "entityType": "Rowboat",
+  "sprite": "rowboat.svg",
+  "body": { "width": 2.6, "height": 1.1, "collisionFactor": 0.85 }
+}

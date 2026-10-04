@@ -1,0 +1,54 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" preserveAspectRatio="none">
+  <!-- Placeholder wreck debris: TRUE top-down, what the tide brought in off
+       the Shipwreck - three planks, a stove-in barrel, a coil of rope and a
+       rag of sail. The viewBox is 240x160 to match the 2.4 x 1.6 rect body in
+       api/props/wreck-debris.json.
+
+       ⚑ NON-BLOCKING by definition (BrokenCrate's ruling): it is flat and you
+       walk over it, so its shadows are thin. ⭐ The planks are the hull's own
+       colour and their ends are TORN, not sawn - wreckage, not a lumber pile. -->
+
+  <!-- thin shadows -->
+  <g fill="#000000" opacity="0.14">
+    <rect x="22" y="34" width="120" height="18" rx="3" transform="rotate(-12 82 43)"/>
+    <rect x="96" y="104" width="110" height="16" rx="3" transform="rotate(8 151 112)"/>
+    <circle cx="186" cy="54" r="30"/>
+  </g>
+
+  <!-- the sail rag, under everything -->
+  <path d="M30,92 L92,84 L104,128 L70,150 L40,138 L48,118 Z" fill="#cfc3a2" stroke="#6b5f45" stroke-width="2.5" stroke-linejoin="round" opacity="0.95"/>
+  <path d="M46,100 L88,96" stroke="#9c8f6c" stroke-width="2"/>
+
+  <!-- planks: torn ends, nail holes -->
+  <g stroke="#2a2016" stroke-width="3" stroke-linejoin="round">
+    <path d="M18,40 L128,18 L132,26 L126,30 L134,36 L22,58 Z" fill="#7a654b" transform="rotate(0)"/>
+    <path d="M92,106 L196,116 L204,124 L196,128 L200,134 L90,124 Z" fill="#6e5a44"/>
+    <path d="M118,62 L126,58 L150,128 L140,132 Z" fill="#86705a"/>
+  </g>
+  <g fill="#2a2016">
+    <circle cx="30" cy="48" r="2"/>
+    <circle cx="110" cy="31" r="2"/>
+    <circle cx="104" cy="114" r="2"/>
+    <circle cx="180" cy="122" r="2"/>
+  </g>
+
+  <!-- the barrel: hoops still round, staves splayed out of one side -->
+  <g stroke="#2a2016" stroke-width="2.5" stroke-linejoin="round">
+    <path d="M206,30 L224,22 L222,34 Z" fill="#8a6a40"/>
+    <path d="M210,74 L230,80 L216,86 Z" fill="#8a6a40"/>
+  </g>
+  <circle cx="182" cy="50" r="27" fill="#8a6a40" stroke="#2a2016" stroke-width="3"/>
+  <circle cx="182" cy="50" r="21" fill="none" stroke="#4a4038" stroke-width="4"/>
+  <path d="M182,50 L204,38 L208,62 Z" fill="#1a140d"/>
+  <g stroke="#5a4428" stroke-width="2" opacity="0.8">
+    <line x1="162" y1="40" x2="176" y2="70"/>
+    <line x1="172" y1="30" x2="186" y2="72"/>
+  </g>
+
+  <!-- the rope, coiled the way a sailor left it -->
+  <g fill="none" stroke="#b39a68" stroke-width="4">
+    <circle cx="64" cy="74" r="14"/>
+    <circle cx="64" cy="74" r="8"/>
+  </g>
+  <path d="M78,74 C90,78 92,92 110,90" fill="none" stroke="#b39a68" stroke-width="4" stroke-linecap="round"/>
+</svg>

@@ -1,21 +1,18 @@
 /**
  * Generic, JSON-driven prop rendering (the collapse of the old per-prop
- * boilerplate: a hand-written Resources.ts class + a Graphics.ts entry per
- * simple prop, one for each of House/GateWall/Tombstone doing the exact same
- * thing). A "simple" prop — no behavior beyond drawing its sprite at its
- * authored size/aspect — needs none of that any more: `api/props/*.json`
- * names its own sprite file, and this module discovers every such prop at
- * build time and derives a render class for it.
+ * boilerplate: a hand-written class + a Graphics.ts entry per simple prop,
+ * one for each of House/GateWall/Tombstone doing the exact same thing). A
+ * "simple" prop — no behavior beyond drawing its sprite at its authored
+ * size/aspect — needs none of that any more: `api/props/*.json` names its own
+ * sprite file, and this module discovers every such prop at build time and
+ * derives a render class for it. Since plan-prop-draw-order.md P2 that is
+ * every prop with art, trees and rocks included; the `Resource` base class
+ * lives here, and Resources.ts is gone.
  *
- * Props with real behavior (Tree/RoundTree, Mineral/Stone — the resource-spot
- * decal, the non-random mineral rotation) keep their bespoke classes in
- * Resources.ts, excluded here by entityType. A future prop needing its own
- * behavior follows the same path: write a class, add its entityType to
- * BESPOKE_ENTITY_TYPES below, give it its own `gameObjectClasses` line.
- *
- * PropPlaceholder is the one bespoke class that lives HERE rather than in
- * Resources.ts (plan-prop-placeholders.md C2), because it is the only render
- * class that needs the prop DEFINITIONS this module already compiles in.
+ * A future prop needing its own behavior: write a class extending Resource,
+ * add its entityType to BESPOKE_ENTITY_TYPES below, give it its own
+ * `gameObjectClasses` line. PropPlaceholder (plan-prop-placeholders.md C2) is
+ * the one such class today.
  */
 import {Container, Graphics, Text, Texture} from 'pixi.js';
 import * as Preloading from '../../core/logic/Preloading';
@@ -23,7 +20,9 @@ import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import {requireAll} from '../../common/logic/Utils';
 import {GameSetupEvent} from '../../core/logic/Events';
 import {IGame} from '../../core/logic/IGame';
-import {Resource} from './Resources';
+import {GameObject} from './_GameObject';
+import {StatusEffect} from './StatusEffect';
+import {addChildOrdered} from './OrderedLayer';
 import * as TextDisplay from '../../../client-data/TextDisplay';
 import {
     LABEL_REFERENCE_FONT_SIZE,
@@ -37,16 +36,48 @@ GameSetupEvent.subscribe((game: IGame) => {
     Game = game;
 });
 
+// The wire table this rides is still called Resource, but nothing harvestable
+// is left on it — props are its only occupants since the actor merge moved NPCs
+// to the Mob path. The stock/capacity yield pair (and the sprite rescale it
+// drove) went with the pre-accounts hygiene chunk: the server had been sending
+// a constant 1/1 ever since the §26 prune emptied the resource system.
+//
+// ⚑ Not a live map icon: every placed prop is baked into the map from the zone
+// data instead (MapProps), so the map does not depend on what was streamed.
+export abstract class Resource extends GameObject {
+    protected constructor(
+        id: number,
+        gameLayer: Container,
+        x: number,
+        y: number,
+        size: number,
+        rotation: number,
+        svg: Texture,
+    ) {
+        super(id, gameLayer, x, y, size, rotation, svg);
+    }
+
+    createStatusEffects() {
+        return {
+            Damaged: StatusEffect.forDamaged(this.shape),
+            DamagedAmbient: StatusEffect.forDamagedOverTime(this.shape),
+        };
+    }
+
+    // ⭐ By entity id, never appended (plan-prop-draw-order.md D6): ids ascend
+    // in zone-file order, so a later prop in the file draws on top, and a prop
+    // that leaves the view and comes back returns to its own slot.
+    show() {
+        addChildOrdered(this.layer, this.shape, this.id);
+    }
+
+}
+
 interface PropDefJSON {
     name: string;
     entityType: string;
     sprite: string;
     body: { radius?: number; width?: number; height?: number };
-    // Z-ORDER: a prop a character stands ON TOP OF (a bridge deck, a dock).
-    // ⚑ Client-only in EFFECT, but the server parses it all the same —
-    // parsePropDefinition uses DisallowUnknownFields, so a key this table
-    // invented on its own would refuse the boot by name.
-    underfoot?: boolean;
     // Whether placements of this type block movement unless the placement says
     // otherwise. ⭐ ABSENT MEANS TRUE — a prop is solid unless its type declares
     // it decorative — which is why nothing here may coerce it with `!`. Read it
@@ -63,26 +94,34 @@ type GameObjectClass = new (...args: any[]) => unknown;
  * Which container a prop draws in — the z-order question, and the only thing
  * `underfoot` decides (PO 2026-09-16).
  *
- * ⭐ A prop you WALK ON has to draw BELOW the character walking on it. The
- * `resources` layers are added AFTER `layers.characters` (Game.ts), which is
+ * ⭐ A prop you WALK ON has to draw BELOW the character walking on it.
+ * `props.standing` is added AFTER `layers.characters` (Game.ts), which is
  * right for a tree — you walk behind it — and wrong for a bridge, which would
- * cover the player crossing it. `underfoot` puts it on the last TERRAIN layer
- * instead, under every entity. It is the mobs-under-characters ruling ("a
+ * cover the player crossing it. `underfoot` puts it on `props.underfoot`, the
+ * last TERRAIN slot, under every entity. It is the mobs-under-characters ruling ("a
  * player standing on a campfire must never be covered by its art") applied to
- * world geometry, and the server refuses `crossesPaths` without it.
+ * world geometry, and the server refuses a `crossesPaths` placement outside it.
+ *
+ * ⭐ A PLACEMENT fact since plan-prop-draw-order.md P3 (D4): the placement sits
+ * in the zone file's props.underfoot or it does not, and the server streams
+ * that as Resource.underfoot. So one prop type can draw in both containers (a
+ * broken crate on the road, another one underfoot), and nothing here may read
+ * it off the type.
  *
  * ⚑ Resolved per INSTANCE, never captured at module load: the generated
  * classes below are built while this module is imported, and `Game` is still
  * null until the GameSetupEvent fires.
  */
 function propLayer(underfoot: boolean): Container {
-    return underfoot ? Game.layers.terrain.decks : Game.layers.resources.trees;
+    return underfoot ? Game.layers.props.underfoot : Game.layers.props.standing;
 }
 
-// Tree/RoundTree and Mineral/Stone have real behavior (resource-spot decal,
-// authored-not-random rotation) and keep their hand-written Resources.ts
-// classes — never routed through the generic path.
-const BESPOKE_ENTITY_TYPES = new Set(['RoundTree', 'Stone', 'PropPlaceholder']);
+// PropPlaceholder is drawn procedurally (below), never from a sprite.
+// ⚑ Tree and Rock/Boulder used to be excluded here too, for their hand-written
+// Tree/Stone classes and the resource-spot decal; both retired with
+// plan-prop-draw-order.md P2 (D8), so they ride the generic path like
+// everything else.
+const BESPOKE_ENTITY_TYPES = new Set(['PropPlaceholder']);
 
 // Escape hatch for a future prop whose SVG needs extra rasterisation
 // crispness beyond the derived (body units × PX_PER_UNIT). Empty today.
@@ -180,21 +219,17 @@ defsByEntityType.forEach((defs, entityType) => {
     }
     const maxSize = MAX_SIZE_OVERRIDE[entityType] ?? Math.round(maxUnits * PX_PER_UNIT);
 
-    // ⚑ The layer belongs to the generated CLASS, so a group whose defs
-    // disagreed would draw half of them in the wrong place and say nothing —
-    // refused here, in the same breath as the missing-sprite throw above.
-    const underfoot = defs[0].underfoot === true;
-    if (defs.some((d) => (d.underfoot === true) !== underfoot)) {
-        throw new Error(`Props.ts: entityType "${entityType}" mixes underfoot and ordinary `
-            + `definitions (${defs.map((d) => d.name).join(', ')}) — they share one render layer`);
-    }
-
     class GeneratedProp extends SimpleProp {
         static svg: Texture;
         static bodyAspect = bodyAspect;
 
-        constructor(id: number, x: number, y: number, size: number, rotation: number) {
-            super(id, propLayer(underfoot), x, y, size, rotation, GeneratedProp.svg);
+        // The 6th and 7th arguments are EntityManager's one constructor seam
+        // (prop name, then the streamed `underfoot`); only the second is read
+        // here. The layer is resolved in the super() ARGUMENT: `this` does
+        // not exist yet.
+        constructor(id: number, x: number, y: number, size: number, rotation: number,
+                    _propName?: string, underfoot?: boolean) {
+            super(id, propLayer(underfoot === true), x, y, size, rotation, GeneratedProp.svg);
         }
     }
 
@@ -282,14 +317,13 @@ const STROKE_MAX = 5;
  * different definition.)
  */
 export class PropPlaceholder extends Resource {
-    constructor(id: number, x: number, y: number, size: number, rotation: number, propName: string) {
-        // ⚑ The layer is resolved in the super() ARGUMENT, from the same map the
-        // body comes from a moment later: `this` does not exist yet. The
-        // placeholder path has to honour `underfoot` as well, because it is how
-        // the FIRST bridge arrives — the deck art is unstarted (art/assets.md),
-        // so a labelled square is what the PO will walk across.
-        super(id, propLayer(propDefsByName.get(propName)?.underfoot === true),
-            x, y, size, rotation, null);
+    constructor(id: number, x: number, y: number, size: number, rotation: number, propName: string,
+                underfoot?: boolean) {
+        // ⚑ The layer is resolved in the super() ARGUMENT, from the streamed
+        // per-placement flag (D4): `this` does not exist yet. The placeholder
+        // path honours `underfoot` like the generic one, because a prop with no
+        // art yet is still walked across or around.
+        super(id, propLayer(underfoot === true), x, y, size, rotation, null);
 
         // ⚑ The SHAPE needs the definition; the LABEL does not — the wire
         // carries the name itself. So a name this build cannot resolve (a prop

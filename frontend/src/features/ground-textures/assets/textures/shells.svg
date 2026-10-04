@@ -1,0 +1,38 @@
+<svg width="100px" height="100px" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Placeholder decal: shells along the tide line. Three kinds, so a
+       scatter of them reads as a beach and not as confetti: ribbed cockles
+       (pale fans), mussels (blue-black ovals, the darkest marks on the sand)
+       and periwinkles (small spirals). -->
+  <defs>
+    <g id="cockle" stroke="#8a7a62" stroke-width="1" stroke-linejoin="round">
+      <path d="M0,0 C-7,-2 -8,-9 -4,-12 L4,-12 C8,-9 7,-2 0,0 Z" fill="#e8dcc4"/>
+      <path d="M0,0 L-5,-11 M0,0 L-2,-12 M0,0 L2,-12 M0,0 L5,-11" fill="none" opacity="0.8"/>
+    </g>
+  </defs>
+  <use href="#cockle" transform="translate(24 30) rotate(20)"/>
+  <use href="#cockle" transform="translate(64 22) rotate(-50) scale(0.8)"/>
+  <use href="#cockle" transform="translate(76 66) rotate(140)"/>
+  <use href="#cockle" transform="translate(30 78) rotate(-110) scale(0.9)"/>
+  <g fill="#e2c6b6" stroke="#8a6a5a" stroke-width="1">
+    <path d="M52,52 C46,50 45,44 48,41 L54,41 C57,44 57,50 52,52 Z" transform="rotate(60 52 47)"/>
+  </g>
+  <g fill="#2c3346" stroke="#151a26" stroke-width="1">
+    <ellipse cx="44" cy="20" rx="7" ry="3.2" transform="rotate(-25 44 20)"/>
+    <ellipse cx="18" cy="56" rx="6" ry="3" transform="rotate(40 18 56)"/>
+    <ellipse cx="70" cy="44" rx="7.5" ry="3.4" transform="rotate(10 70 44)"/>
+    <ellipse cx="56" cy="80" rx="6" ry="2.8" transform="rotate(-60 56 80)"/>
+  </g>
+  <g fill="#7f8aa6" opacity="0.6">
+    <ellipse cx="42" cy="19" rx="3" ry="1" transform="rotate(-25 42 19)"/>
+    <ellipse cx="68" cy="43" rx="3" ry="1" transform="rotate(10 68 43)"/>
+  </g>
+  <g fill="#a08868" stroke="#5a4630" stroke-width="1">
+    <circle cx="36" cy="46" r="3.2"/>
+    <circle cx="84" cy="30" r="2.8"/>
+    <circle cx="14" cy="80" r="2.6"/>
+  </g>
+  <g fill="none" stroke="#5a4630" stroke-width="0.8">
+    <path d="M36,46 m-1.5,0 a1.5,1.5 0 1,1 1.5,1.5"/>
+    <path d="M84,30 m-1.2,0 a1.2,1.2 0 1,1 1.2,1.2"/>
+  </g>
+</svg>

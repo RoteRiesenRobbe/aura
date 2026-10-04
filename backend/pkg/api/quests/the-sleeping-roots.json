@@ -1,0 +1,62 @@
+{
+  "_comment": "Grandfather Knot's second errand (docs/plan-grandfather-knot.md), offered only after clear-the-grove is completed: his roots hum the Glimmerwood calm, but three have fallen asleep, so the young treants have turned angry. Wake the three roots ONE AT A TIME, returning to him between each. The first leg starts on accept; the next two are objective stages ENTERED FROM A DIALOGUE ROW (grandfather-knot.json), so entering one re-baselines its talk_to and an early talk does not count. Turn-in: EntanglingRoots + 1000 XP. Journal text stays plain; only the tree carries a voice.",
+  "id": "the-sleeping-roots",
+  "title": "The Sleeping Roots",
+  "stages": [
+    {
+      "id": "root_one",
+      "journal": "Grandfather Knot's roots calm the treants of the Glimmerwood, but three of them have fallen asleep. Wake the root by the stream, west of him.",
+      "objectives": [
+        {
+          "kind": "talk_to",
+          "npc": "StreamRoot",
+          "tracker": "Wake the root by the stream"
+        }
+      ],
+      "next": "back_one"
+    },
+    {
+      "id": "back_one",
+      "journal": "The root by the stream is awake.",
+      "tracker": "Return to Grandfather Knot"
+    },
+    {
+      "id": "root_two",
+      "journal": "Wake the root by the stones, south of Grandfather Knot.",
+      "objectives": [
+        {
+          "kind": "talk_to",
+          "npc": "StoneRoot",
+          "tracker": "Wake the root by the stones"
+        }
+      ],
+      "next": "back_two"
+    },
+    {
+      "id": "back_two",
+      "journal": "The root by the stones is awake.",
+      "tracker": "Return to Grandfather Knot"
+    },
+    {
+      "id": "root_three",
+      "journal": "Wake the last root, east of Grandfather Knot where the wisps gather.",
+      "objectives": [
+        {
+          "kind": "talk_to",
+          "npc": "GladeRoot",
+          "tracker": "Wake the last root"
+        }
+      ],
+      "next": "back_three"
+    },
+    {
+      "id": "back_three",
+      "journal": "The last root is awake.",
+      "tracker": "Return to Grandfather Knot"
+    },
+    {
+      "id": "rooted",
+      "journal": "Done. Learned Entangling Roots."
+    }
+  ]
+}

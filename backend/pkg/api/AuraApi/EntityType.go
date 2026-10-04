@@ -96,6 +96,19 @@ const (
 	EntityTypeRedMushroom           EntityType = 102
 	EntityTypeOakTree               EntityType = 103
 	EntityTypeSeaweed               EntityType = 104
+	EntityTypeBrokenCrate           EntityType = 105
+	EntityTypeTent                  EntityType = 106
+	EntityTypeBedroll               EntityType = 107
+	EntityTypeShipwreck             EntityType = 108
+	EntityTypeWreckDebris           EntityType = 109
+	EntityTypeRowboat               EntityType = 110
+	EntityTypeNetRack               EntityType = 111
+	EntityTypeFishingHut            EntityType = 112
+	EntityTypeFish                  EntityType = 113
+	EntityTypeGrandfatherKnot       EntityType = 114
+	EntityTypeDeadwood              EntityType = 115
+	EntityTypeRemains               EntityType = 116
+	EntityTypeRemainsProp           EntityType = 117
 )
 
 var EnumNamesEntityType = map[EntityType]string{
@@ -188,6 +201,19 @@ var EnumNamesEntityType = map[EntityType]string{
 	EntityTypeRedMushroom:           "RedMushroom",
 	EntityTypeOakTree:               "OakTree",
 	EntityTypeSeaweed:               "Seaweed",
+	EntityTypeBrokenCrate:           "BrokenCrate",
+	EntityTypeTent:                  "Tent",
+	EntityTypeBedroll:               "Bedroll",
+	EntityTypeShipwreck:             "Shipwreck",
+	EntityTypeWreckDebris:           "WreckDebris",
+	EntityTypeRowboat:               "Rowboat",
+	EntityTypeNetRack:               "NetRack",
+	EntityTypeFishingHut:            "FishingHut",
+	EntityTypeFish:                  "Fish",
+	EntityTypeGrandfatherKnot:       "GrandfatherKnot",
+	EntityTypeDeadwood:              "Deadwood",
+	EntityTypeRemains:               "Remains",
+	EntityTypeRemainsProp:           "RemainsProp",
 }
 
 var EnumValuesEntityType = map[string]EntityType{
@@ -280,6 +306,19 @@ var EnumValuesEntityType = map[string]EntityType{
 	"RedMushroom":           EntityTypeRedMushroom,
 	"OakTree":               EntityTypeOakTree,
 	"Seaweed":               EntityTypeSeaweed,
+	"BrokenCrate":           EntityTypeBrokenCrate,
+	"Tent":                  EntityTypeTent,
+	"Bedroll":               EntityTypeBedroll,
+	"Shipwreck":             EntityTypeShipwreck,
+	"WreckDebris":           EntityTypeWreckDebris,
+	"Rowboat":               EntityTypeRowboat,
+	"NetRack":               EntityTypeNetRack,
+	"FishingHut":            EntityTypeFishingHut,
+	"Fish":                  EntityTypeFish,
+	"GrandfatherKnot":       EntityTypeGrandfatherKnot,
+	"Deadwood":              EntityTypeDeadwood,
+	"Remains":               EntityTypeRemains,
+	"RemainsProp":           EntityTypeRemainsProp,
 }
 
 func (v EntityType) String() string {

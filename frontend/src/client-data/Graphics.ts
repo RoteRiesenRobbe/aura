@@ -114,6 +114,24 @@ export const GraphicsConfig = {
             maxSize: <number> 26,
         },
 
+        // Grandfather Knot's grove (docs/plan-grandfather-knot.md): a branch
+        // heap, a little larger than the mushrooms.
+        deadwood: {
+            file: require('../features/game-objects/assets/mobs/deadwood.svg'),
+            minSize: <number> 26,
+            maxSize: <number> 32,
+        },
+
+        // A talkable dead body (lore, quest talk_to targets): drawn flat like
+        // the deadwood, never in a medallion. Shares its file with the
+        // Remains prop; 54 = the prop's 0.45 radius x 120 px/unit, so a talkable
+        // body and a silent one look the same size.
+        remains: {
+            file: require('../features/game-objects/assets/resources/remains.svg'),
+            minSize: <number> 54,
+            maxSize: <number> 54,
+        },
+
         redMushroom: {
             file: require('../features/game-objects/assets/mobs/redMushroom.svg'),
             minSize: <number> 20,
@@ -497,6 +515,15 @@ export const GraphicsConfig = {
             borderFile: require('../features/game-objects/assets/border/npcBorder.png'),
             maxSize: <number> 60,
         },
+        // The wise old tree (docs/plan-grandfather-knot.md). Twice a normal NPC:
+        // the drawn size follows his body radius (0.7, every other NPC 0.35),
+        // so maxSize doubles only to match. The bark ring, not the grey one: a
+        // tree in the forest frame (PO 2026-10-03).
+        grandfatherKnot: {
+            file: require('../features/game-objects/assets/resources/grandfatherKnot.png'),
+            borderFile: require('../features/game-objects/assets/border/forestBorder.png'),
+            maxSize: <number> 120,
+        },
     },
 
     // Player corpse (chunk 4): gravestone placeholder at the deathspot.
@@ -505,28 +532,9 @@ export const GraphicsConfig = {
         size: <number> 50,
     },
 
-    resources: {
-        tree: {
-            spotFile: require('../features/game-objects/assets/resources/treeSpot.svg'),
-            // ⚑ Shared by both files below, and it now means different things to
-            // each: the spot is still SVG and rasterises at 2 × this, while the
-            // PNG ignores it entirely (Preloading.ts). Don't tune it for the tree.
-            maxSize: <number> 210,
-
-            // Painted art ships as PNG — see the `farmer` entry above and
-            // docs/art/pipeline.md §3. 512×512 because a tree draws at 492 px
-            // (radius 1.0 m → size × 1.8 + character.size, Resources.ts), the
-            // largest common asset in the world.
-            roundTreeFile: require('../features/game-objects/assets/resources/roundTree.png'),
-        },
-
-        mineral: {
-            spotFile: require('../features/game-objects/assets/resources/stoneSpot.svg'),
-            maxSize: <number> 142,
-
-            stoneFile: require('../features/game-objects/assets/resources/stone.png'),
-        },
-    },
+    // No `resources` entry: trees and rocks draw through the generic prop path
+    // (Props.ts), which reads each sprite from its api/props/*.json, and their
+    // resource-spot decals were retired (plan-prop-draw-order.md P2, D8).
 
     miniMap: {
         /**
@@ -688,6 +696,33 @@ export const GraphicsConfig = {
             file: require('../features/ground-textures/assets/textures/land1.svg'),
             minSize: 150,
             maxSize: 200,
+        },
+        // The coast set (docs/art/assets.csv): beach and clifftop dressing for
+        // the Strand, Wrecker's Bluff and Netmender's Coast. Placeholder SVGs.
+        'Saltgrass': {
+            displayName: 'Greens - Saltgrass',
+            file: require('../features/ground-textures/assets/textures/saltgrass.svg'),
+            minSize: 100,
+            maxSize: 220,
+        },
+        'Dune Grass': {
+            displayName: 'Yellows - Dune Grass',
+            file: require('../features/ground-textures/assets/textures/duneGrass.svg'),
+            minSize: 80,
+            maxSize: 180,
+        },
+        'Shells': {
+            displayName: 'Whites - Shells',
+            file: require('../features/ground-textures/assets/textures/shells.svg'),
+            minSize: 50,
+            maxSize: 110,
+        },
+        /** A LINE drawn west to east: rotate it along the shore and overlap the ends. */
+        'Kelp Line': {
+            displayName: 'Browns - Kelp Line',
+            file: require('../features/ground-textures/assets/textures/kelpLine.svg'),
+            minSize: 120,
+            maxSize: 300,
         }
     }
 };

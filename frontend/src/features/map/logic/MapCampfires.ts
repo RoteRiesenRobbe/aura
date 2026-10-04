@@ -105,7 +105,7 @@ export class MapCampfires {
         // Absent bundled data degrades to "no markers", the same way the map
         // degrades to no terrain — never a throw on a zone the client does not
         // happen to ship.
-        this.campfires = (getZoneData(zoneName)?.campfires || []) as ZoneCampfirePoint[];
+        this.campfires = (getZoneData(zoneName)?.bindPoints || []) as ZoneCampfirePoint[];
     }
 
     /**
@@ -120,7 +120,7 @@ export class MapCampfires {
      * as a one-shot: the markers would simply never come back.
      */
     setZone(zoneName: string) {
-        this.campfires = (getZoneData(zoneName)?.campfires || []) as ZoneCampfirePoint[];
+        this.campfires = (getZoneData(zoneName)?.bindPoints || []) as ZoneCampfirePoint[];
     }
 
     /**

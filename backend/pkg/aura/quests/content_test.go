@@ -102,6 +102,16 @@ var expectedQuests = map[string]string{
 	// first three-offer giver, where the Farmer he used to be was the first
 	// two-offer one.
 	"giant-rats-in-the-barn": "Giant Rats in the Barn",
+
+	// Grandfather Knot's two errands (docs/plan-grandfather-knot.md): a harvest,
+	// then — offered only once that is completed — three talk_to legs, the last
+	// two entered from dialogue rows, one root at a time.
+	"clear-the-grove":    "Clear the Grove",
+	"the-sleeping-roots": "The Sleeping Roots",
+
+	// The Wanderer's lost friend (content-zone-2-woodland.md §3.5): a talk_to
+	// on a dead body (EntityType Remains) at the back of the kobold cave.
+	"the-lost-friend": "The Lost Friend",
 }
 
 func TestContent_QuestCensus(t *testing.T) {
@@ -371,7 +381,104 @@ func TestContent_QuestXPBudget(t *testing.T) {
 		// TARGET'S LEVEL, and the GiantRat is curveLevel 2 exactly like the Boar.
 		// What differs between those two quests is the fight, not the payout.
 		"giant-rats-in-the-barn": 180, // L2 giant rats, ½ × 300 × 1.2
+
+		// Grandfather Knot (docs/plan-grandfather-knot.md §3.2): ONE L14 price,
+		// ½ × 300 × 1.2^13 ≈ 1605 → 1600, SPLIT across his two quests (PO
+		// 2026-10-03, option a): splitting the errand did not make it worth more.
+		"clear-the-grove":    600,
+		"the-sleeping-roots": 1000,
+
+		// The Wanderer's lost friend, priced at the kobold cave's L5 kobolds.
+		"the-lost-friend": 311, // L5, ½ × 300 × 1.2⁴
 	}, total)
+}
+
+// EntanglingRoots (docs/plan-grandfather-knot.md §3.5) is QUEST-ONLY, the
+// Lantern rule: Grandfather Knot's turn-in row is its single source. It is also
+// a ROOT at every level — instant_slow at 1.0 — so a level can only ever buy
+// duration, never a weaker hold; a re-price that drops the fraction below 1
+// turns the reward into an ordinary slow.
+func TestContent_EntanglingRootsIsQuestOnlyAndRootsAtEveryLevel(t *testing.T) {
+	mr, _ := contentRegistries(t)
+
+	var sources []string
+	for _, def := range mr.Mobs() {
+		for _, u := range def.Unlocks {
+			assert.NotEqual(t, "EntanglingRoots", u.Skill.Name, "%s: the quest is the only source", def.Name)
+		}
+		if def.Interaction == nil {
+			continue
+		}
+		for _, node := range def.Interaction.Nodes {
+			for _, opt := range node.Options {
+				turnInOf := ""
+				var taught *skills.SkillDefinition
+				for _, g := range opt.Grants {
+					switch {
+					case g.Kind == mobs.GrantAdvanceQuest:
+						turnInOf = g.Quest
+					case g.Kind == mobs.GrantTeachSkill && g.Skill.Name == "EntanglingRoots":
+						taught = g.Skill
+					}
+				}
+				if taught == nil {
+					continue
+				}
+				sources = append(sources, def.Name)
+				assert.Equal(t, "the-sleeping-roots", turnInOf, "it rides the quest's turn-in row")
+
+				require.Len(t, taught.Effects, 1)
+				e := taught.Effects[0]
+				assert.Equal(t, skills.EffectTypeInstantSlow, e.Type)
+				require.NotNil(t, e.Slow)
+				for level := 1; level <= taught.MaxLevel; level++ {
+					assert.InDelta(t, 1.0, e.Slow.FractionAt(level), 1e-6, "level %d is a full root", level)
+				}
+			}
+		}
+	}
+	assert.Equal(t, []string{"GrandfatherKnot"}, sources, "exactly one row in the world grants EntanglingRoots")
+}
+
+// Grandfather Knot's two quests walked off the REAL registry and the REAL rows'
+// stage ids: the grove, then the roots, whose last two talk_to legs are ENTERED
+// FROM A DIALOGUE ROW — dialogue edges leading back into objective stages. The
+// early talk to the stone root is the D4 trap the plan names (§10): entering a
+// talk_to stage re-baselines it, so a root talked to before its leg needs a
+// fresh talk.
+func TestContent_GrandfatherKnotsQuestsWalkEndToEnd(t *testing.T) {
+	mr, qr := contentRegistries(t)
+	id := func(name string) mobs.MobID {
+		def, err := mr.GetByName(name)
+		require.NoError(t, err)
+		return def.ID
+	}
+
+	l := NewLedger(qr)
+	require.NoError(t, l.Accept("clear-the-grove"))
+	for range 6 {
+		l.NoteKill(id("Deadwood"))
+	}
+	path, _, _ := l.Progress("clear-the-grove")
+	assert.Equal(t, []string{"tidy", "tidied"}, path, "six deadwood clear the grove")
+	require.NoError(t, l.AdvanceDialogue("clear-the-grove", "tidied", "cleared"))
+	assert.True(t, l.MatchesStage("clear-the-grove", mobs.QuestStageCompleted), "the roots quest's offer is gated on this")
+
+	require.NoError(t, l.Accept("the-sleeping-roots"))
+	l.NoteTalkedTo(id("StoneRoot")) // too early: it is the second leg's root
+	l.NoteTalkedTo(id("StreamRoot"))
+	require.NoError(t, l.AdvanceDialogue("the-sleeping-roots", "back_one", "root_two"))
+
+	path, _, _ = l.Progress("the-sleeping-roots")
+	assert.Equal(t, "root_two", path[len(path)-1], "the early talk does not carry into the stone leg")
+	l.NoteTalkedTo(id("StoneRoot"))
+	require.NoError(t, l.AdvanceDialogue("the-sleeping-roots", "back_two", "root_three"))
+	l.NoteTalkedTo(id("GladeRoot"))
+	require.NoError(t, l.AdvanceDialogue("the-sleeping-roots", "back_three", "rooted"))
+
+	_, running, completed := l.Progress("the-sleeping-roots")
+	assert.False(t, running)
+	assert.True(t, completed)
 }
 
 // A whole quest walked off the REAL registry, using the REAL authored edge —

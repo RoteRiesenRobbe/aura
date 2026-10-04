@@ -33,6 +33,16 @@ JPEG), renamed from `461223NNN.jpg`:
 CC0 asks for nothing, so this is not a legal obligation: it is here so the next
 person can find the other ~90 tiles instead of guessing where these came from.
 
+### `Grass6-enchanted.jpg` — a RECOLOUR of `Grass6.jpg`
+
+`Grass6.jpg` rotated 55° in hue with saturation × 0.85, nothing else (2026-10-03):
+a soft teal-jade for an enchanted feel. A per-pixel change, so it tiles exactly as
+`Grass6` does. Mean colour `#01ab93`, for a profile's `color`. Re-make it with
+`sharp('Grass6.jpg').modulate({ hue: 55, saturation: 0.85 }).jpeg({ quality: 92 })`.
+⛔ Stronger recolours (gradient maps, split-toning) were tried and dropped: Grass6
+spans only ~24 luminance levels, so any contrast boost turns its soft blotches into
+a visible repeating pattern.
+
 ### `water-` / `bog-` / `lava-` / `ice-` / `snow-ground-placeholder.png` — GENERATED, not from a pack
 
 | | |
@@ -103,7 +113,7 @@ fallback and **never** a tint, so the tile's own colour is the only lever, and
 adding *density* to fix a *contrast* fault just walks a tile toward the other
 family (which is exactly how the sandstorm tripped the coverage ceiling).
 
-### `forest-` / `wall-` / `road-` / `stones-placeholder.png` — GENERATED, not from a pack
+### `forest-` / `wall-` / `road-` / `stones-` / `cobble-` / `limestone-` / `coast-grass-placeholder.png` — GENERATED, not from a pack
 
 | | |
 |---|---|
@@ -327,3 +337,32 @@ one. The posts and a dark outline carry the depth instead.
 `assertRegistered`: the ink must fit the authored width, be centred (the middle
 row is what lands on the centreline, so an off-centre fence hangs out of its
 own collider) and leave the wrap rows clear.
+
+### `limestone-` + `coast-grass-placeholder.png` — the clifftop pair (cellular, above)
+
+⭐ **`limestone` + `coast-grass` are one look, the clifftop** (`Coastal Cliff` =
+limestone under a coast-grass overlay, PO 2026-10-03). ⛔ The limestone took two
+recuts, both worth knowing: the wall's `course()` made a BRICK WALL with green
+mortar, and a crisp six-cell Voronoi made a PAVED PLAZA in-game. Pavement is
+big slabs with soft, uneven cracks, so it is the cobble's cut with the
+rounding off, four cells, a heavy warp and a grey-green joint at reduced
+strength. It is meant to be seen in patches through the grass, never alone.
+
+### `shoreline-placeholder.png` — GENERATED, the third DIRECTIONAL tile
+
+| | |
+|---|---|
+| Source | `tools/make-shoreline-tile.mjs` in this repo |
+| Author | generated procedurally; no third-party asset involved |
+| Licence | same as the repo — nothing to attribute |
+
+⭐ **The cliff's convention, copied on purpose**: `alignTexture: true`, the
+middle row registered on the centreline, the TOP rows the land. So for the same
+winding a `Cliff` and a `Shoreline` put the land on the same side. Land to sea:
+wet sand fading in by alpha, then the bright swash line, and the tile ENDS
+there: the sea half is transparent, so the Water beneath shows untouched.
+RGBA, 720 × 320, land half ≤ 90 px = half of `width` 1.5 at `scale` 1.
+⛔ Cut 2026-10-03 (PO): the pale film, foam lace and fainter second line that
+filled the sea half read as a frozen ripple over moving water.
+⛔ Static, no `scroll`: one world drift vector per profile would push anything
+along one shore and into the next.

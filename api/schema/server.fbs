@@ -243,7 +243,42 @@ enum EntityType : ushort {
   // The beach's harvest-mob, the Turnip's pattern: heaps of washed-up kelp
   // only Harvest can pop, along the tide line of Saltgrass Strand, where the
   // Miller lost his ring.
-  Seaweed = 104
+  Seaweed = 104,
+
+  // The smashed twin of Crate (79), the way RuinedHouse (100) is House's: a
+  // second DRAWING on the same 0.9x0.9 body, so a placement swaps between them
+  // without moving anything. NON-BLOCKING, unlike its intact twin: the sides
+  // are down and the boards lie flat, so it is debris you walk over.
+  BrokenCrate = 105,
+
+  // ── The COAST SET (docs/art/assets.csv): Wrecker's Bluff, Netmender's Coast
+  // and the bandit camps along them. Eight ordinary generic props, each one
+  // api/props/*.json naming its own sprite, here only because an entityType is
+  // what a prop instance puts on the wire. Bedroll, WreckDebris and Fish are
+  // NON-BLOCKING (you step over them); the rest block.
+  Tent = 106,
+  Bedroll = 107,
+  // ⭐ The largest prop in the game (8x3), the Wrecker's Bluff landmark.
+  Shipwreck = 108,
+  WreckDebris = 109,
+  Rowboat = 110,
+  NetRack = 111,
+  FishingHut = 112,
+  // One fish lying flat, NON-BLOCKING scatter: on a jetty, in a boat, on the
+  // sand by a net rack. Replaced a drying-rack drawing that never read from
+  // above (PO 2026-10-03).
+  Fish = 113,
+  // The wise old tree of the Glimmerwood (docs/plan-grandfather-knot.md), a
+  // medallion NPC portrait drawn twice a normal NPC's size by its body radius.
+  GrandfatherKnot = 114,
+  // His grove's harvest target, scatter on the forest floor like the mushrooms.
+  Deadwood = 115,
+  // A dead body lying on the ground, drawn flat (no medallion ring). Two values,
+  // one sprite: Remains is the TALKABLE body, a mob definition with lines and
+  // quest rows (lore at the burnt cart, the Wanderer's lost friend); RemainsProp
+  // is the same art as a silent, non-blocking prop for set dressing.
+  Remains = 116,
+  RemainsProp = 117
 }
 
 // Explicit and permanent, same contract as EntityType above. Gaps 1-3 = the
@@ -339,6 +374,16 @@ table Resource {
   // REAL prop still encodes exactly the bytes it encoded before this field
   // existed — rotated or not.
   prop_name:string;
+
+  // Whether this PLACEMENT sits in the zone file's props.underfoot, which picks
+  // the client container: under every character and mob instead of over them
+  // (plan-prop-draw-order.md D4). A placement fact, so it cannot come from the
+  // prop type the way it used to.
+  //
+  // ⚑ Appended last for prop_name's reason: false is the default, so the
+  // builder omits it and trims the slot, and every prop outside underfoot still
+  // encodes exactly the bytes it did before this field existed.
+  underfoot:bool = false;
 }
 
 table Mob {

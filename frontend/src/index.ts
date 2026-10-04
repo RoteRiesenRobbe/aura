@@ -12,7 +12,7 @@ import './features/internal-tools/develop/logic/DebugCircle';
 import './features/internal-tools/develop/logic/_Develop';
 import './features/game-objects/logic/Character';
 import './features/game-objects/logic/Mobs';
-import './features/game-objects/logic/Resources';
+import './features/game-objects/logic/Props';
 import './features/game-settings/logic/GameSettingsUI';
 import './features/ground-textures/logic/GroundTexture';
 import './features/ground-textures/logic/_GroundTexturesPanel';

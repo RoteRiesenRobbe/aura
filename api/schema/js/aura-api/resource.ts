@@ -80,8 +80,13 @@ propName(optionalEncoding?:any):string|Uint8Array|null {
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 }
 
+underfoot():boolean {
+  const offset = this.bb!.__offset(this.bb_pos, 20);
+  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
+}
+
 static startResource(builder:flatbuffers.Builder) {
-  builder.startObject(8);
+  builder.startObject(9);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -126,6 +131,10 @@ static addRotation(builder:flatbuffers.Builder, rotation:number) {
 
 static addPropName(builder:flatbuffers.Builder, propNameOffset:flatbuffers.Offset) {
   builder.addFieldOffset(7, propNameOffset, 0);
+}
+
+static addUnderfoot(builder:flatbuffers.Builder, underfoot:boolean) {
+  builder.addFieldInt8(8, +underfoot, +false);
 }
 
 static endResource(builder:flatbuffers.Builder):flatbuffers.Offset {

@@ -406,7 +406,7 @@ export function setupPanel() {
  * model as server units, then serializes the whole zone. The single export path.
  */
 function currentZoneJSON(): string {
-    ZoneEditor.model.terrain = GroundTextureManager.getTerrainServerUnits();
+    ZoneEditor.model.decals = GroundTextureManager.getTerrainServerUnits();
     return ZoneEditor.model.getZoneAsJSON();
 }
 
@@ -867,7 +867,7 @@ function updatePropRadiusLabel() {
 function updateCounts() {
     propCountLabel.textContent = String(ZoneEditor.model.props.length);
     spawnCountLabel.textContent = String(ZoneEditor.model.spawns.length);
-    campfireCountLabel.textContent = String(ZoneEditor.model.campfires.length);
+    campfireCountLabel.textContent = String(ZoneEditor.model.bindPoints.length);
     darkCountLabel.textContent = String(ZoneEditor.model.darkAreas.length);
     anchorCountLabel.textContent = String(ZoneEditor.model.anchors.length);
 }

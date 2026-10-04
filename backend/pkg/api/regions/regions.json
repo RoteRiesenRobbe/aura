@@ -1,0 +1,133 @@
+{
+  "regions": [
+    {
+      "id": "farmlands",
+      "title": "Farmlands",
+      "subtitle": ""
+    },
+    {
+      "id": "saltgrass",
+      "title": "Saltgrass Strand",
+      "subtitle": "Sea and Salt"
+    },
+    {
+      "id": "brackenfold",
+      "title": "Brackenfold Meadows",
+      "subtitle": "Plough and Bramble"
+    },
+    {
+      "id": "deep-woods",
+      "title": "Deep Woods",
+      "subtitle": "City Outskirts"
+    },
+    {
+      "id": "southgate",
+      "title": "Southgate Sprawl",
+      "subtitle": "Coin and Steel"
+    },
+    {
+      "id": "umberwood",
+      "title": "The Umberwood",
+      "subtitle": "The Frontline"
+    },
+    {
+      "id": "brunnstedt",
+      "title": "Brunnstedt",
+      "subtitle": "Walls and Wells"
+    },
+    {
+      "id": "grimwatch",
+      "title": "Fort Grimwatch",
+      "subtitle": "The Last Watch"
+    },
+    {
+      "id": "ashen-fields",
+      "title": "The Ashen Fields",
+      "subtitle": "Cinder and Bone"
+    },
+    {
+      "id": "cinder-conclave",
+      "title": "The Cinder Conclave",
+      "subtitle": "Kindled Faith"
+    },
+    {
+      "id": "wreckers-bluff",
+      "title": "Wrecker's Bluff",
+      "subtitle": "Wind and Wreckage"
+    },
+    {
+      "id": "greyspine",
+      "title": "The Greyspine",
+      "subtitle": "Stone Teeth"
+    },
+    {
+      "id": "netmenders-coast",
+      "title": "Netmender's Coast",
+      "subtitle": "Tide and Tar"
+    },
+    {
+      "id": "northgate",
+      "title": "Northgate Commons",
+      "subtitle": "Field and Wall"
+    },
+    {
+      "id": "sorrowfen",
+      "title": "Sorrowfen",
+      "subtitle": "Still Water"
+    },
+    {
+      "id": "sunscar",
+      "title": "The Sunscar",
+      "subtitle": "Road's End"
+    },
+    {
+      "id": "fallow-reach",
+      "title": "The Fallow Reach",
+      "subtitle": "Barren Earth"
+    },
+    {
+      "id": "glimmerwood",
+      "title": "The Glimmerwood",
+      "subtitle": "Whispering Boughs"
+    },
+    {
+      "id": "rimefrost",
+      "title": "Rimefrost",
+      "subtitle": "Ice and Silence"
+    },
+    {
+      "id": "hollow-marsh",
+      "title": "Hollow Marsh",
+      "subtitle": "Empty Hearths"
+    },
+    {
+      "id": "moonveil",
+      "title": "Moonveil Grove"
+    },
+    {
+      "id": "witherwood",
+      "title": "The Witherwood",
+      "subtitle": "Root to Rot"
+    },
+    {
+      "id": "wyrmhold",
+      "title": "Mount Wyrmhold",
+      "subtitle": "The Dragon's Throne"
+    },
+    {
+      "id": "den-of-evil",
+      "title": "Den of Evil",
+      "subtitle": "Kobold Hideout"
+    },
+    {
+      "id": "homestead",
+      "title": "Homestead",
+      "subtitle": "Farmlands"
+    },
+    {
+      "id": "farmreinhard",
+      "title": "Reinhard's Farm",
+      "subtitle": "Farmlands"
+    }
+  ]
+}

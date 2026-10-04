@@ -22,7 +22,7 @@
  */
 
 import {Container, Graphics, Rectangle, Renderer, Sprite, Texture} from 'pixi.js';
-import {getZoneData, ZoneJSON} from '../../ground-textures/logic/GroundTextureManager';
+import {getZoneData} from '../../ground-textures/logic/GroundTextureManager';
 import {groundTextureTypes} from '../../ground-textures/logic/GroundTextureTypes';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import {meter2px} from '../../../client-data/BasicConfig';
@@ -32,7 +32,8 @@ import {paintTerrainSurfaces} from '../../regions/logic/RegionPaint';
 import * as Paths from '../../paths/logic/Paths';
 import * as Polygons from '../../polygons/logic/Polygons';
 import {resizeTerrain} from './MapScale';
-import {mapPropShapes} from './MapProps';
+import {MapPropPlacement, mapPropShapes} from './MapProps';
+import {flattenProps} from '../../zones/logic/PropLayers';
 import {propDefinition} from '../../game-objects/logic/Props';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {TwoDimensional} from '../../common/logic/Utils';
@@ -125,12 +126,12 @@ export function bakeTerrain(
         Regions.withGround(Regions.toRegions(zone.regions), zone.ground, {
             left: -mapWidth / 2, top: -mapHeight / 2, right: mapWidth / 2, bottom: mapHeight / 2,
         }),
-        Polygons.toPolygons(zone.polygons),
+        Polygons.toPolygons(zone.structures),
         Paths.toPaths(zone.paths),
         renderer);
 
     let unknownTypes = 0;
-    (zone.terrain || []).forEach((piece) => {
+    (zone.decals || []).forEach((piece) => {
         const type = groundTextureTypes[piece.type];
         if (!type) {
             unknownTypes++;
@@ -161,7 +162,7 @@ export function bakeTerrain(
         console.warn(`Map terrain: skipped ${unknownTypes} piece(s) of unknown type.`);
     }
 
-    const propCount = drawProps(scratch, zone.props);
+    const propCount = drawProps(scratch, flattenProps(zone.props));
 
     // ⚑ The frame is given explicitly rather than left to the container's own
     // bounds. Terrain does not reach the exact edges (the world zone's
@@ -202,7 +203,7 @@ export function bakeTerrain(
  * layer, from the bundled zone data rather than the wire (MapProps' header).
  * Baked with the rest, so the fog masks it and a crossing re-bakes it.
  */
-function drawProps(scratch: Container, props: ZoneJSON['props']): number {
+function drawProps(scratch: Container, props: MapPropPlacement[]): number {
     const icons = GraphicsConfig.miniMap.icons;
     const {shapes, unknown} = mapPropShapes(props, propDefinition,
         {tree: icons.tree, stone: icons.stone, prop: icons.prop}, meter2px(1));

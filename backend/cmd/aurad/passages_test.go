@@ -141,7 +141,7 @@ func TestPassages_NoDoorStandsInsideACampfiresDwellCircle(t *testing.T) {
 		// use the door is also a spot the flight offer would claim.
 		clearance := float64(dwell + door.Def.Interaction.Range)
 		for _, z := range zones {
-			for _, c := range z.Campfires {
+			for _, c := range z.BindPoints {
 				d := math.Hypot(float64(c.X-door.X), float64(c.Y-door.Y))
 				assert.Greater(t, d, clearance,
 					"the door to %q stands %.2f units from campfire %q, inside the %.2f it needs "+

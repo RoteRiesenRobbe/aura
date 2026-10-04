@@ -13,7 +13,7 @@ import (
 func polyZone(t *testing.T, polys string, props ...Prop) *Zone {
 	t.Helper()
 	z, err := parseZone([]byte(
-		`{"name":"P","bounds":{"width":2000,"height":2000},"polygons":[` + polys + `]}`))
+		`{"name":"P","bounds":{"width":2000,"height":2000},"structures":[` + polys + `]}`))
 	require.NoError(t, err)
 	z.Props = props
 	return z
@@ -144,7 +144,7 @@ func TestNoBodyReachesPastTheDrawnOutline(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			z := polyZone(t, c.poly)
-			pts := windingNormalised(z.Polygons[0].Points)
+			pts := windingNormalised(z.Structures[0].Points)
 			cs, _ := PolygonColliders(z)
 			require.NotEmpty(t, cs)
 
@@ -194,7 +194,7 @@ func TestStrokeAndFillLeaveNoGap(t *testing.T) {
 
 func noGapIn(t *testing.T, poly string) {
 	z := polyZone(t, poly)
-	pts := windingNormalised(z.Polygons[0].Points)
+	pts := windingNormalised(z.Structures[0].Points)
 	cs, _ := PolygonColliders(z)
 
 	n := len(pts)
@@ -293,12 +293,12 @@ func TestTheCapBindsTheBoundaryAndFreesTheInterior(t *testing.T) {
 
 // The two fixtures' points, already parsed — the boundary and interior builders
 // take points rather than a zone.
-func square(t *testing.T) []Point { return polyZone(t, squareCCW).Polygons[0].Points }
+func square(t *testing.T) []Point { return polyZone(t, squareCCW).Structures[0].Points }
 
 func bigSquare(t *testing.T) []Point {
 	const doc = `{"profile":"Mountains","blocksMovement":true,"points":[
 		{"x":-60,"y":-40},{"x":60,"y":-40},{"x":60,"y":40},{"x":-60,"y":40}]}`
-	return polyZone(t, doc).Polygons[0].Points
+	return polyZone(t, doc).Structures[0].Points
 }
 
 // ⭐ A rectangular mass merges into exactly ONE interior box, which is what makes
@@ -431,7 +431,7 @@ func TestNothingPokesOutOfASlantedFace(t *testing.T) {
 
 func noPokeOut(t *testing.T, poly string) {
 	z := polyZone(t, poly)
-	pts := windingNormalised(z.Polygons[0].Points)
+	pts := windingNormalised(z.Structures[0].Points)
 	cs, _ := PolygonColliders(z)
 	require.NotEmpty(t, cs)
 

@@ -13,7 +13,7 @@ func TestPolygonParses(t *testing.T) {
 	const doc = `{
 		"name": "Polys",
 		"bounds": { "width": 60, "height": 40 },
-		"polygons": [
+		"structures": [
 			{ "profile": "Mountains", "blocksMovement": true,
 			  "points": [{"x":-10,"y":-10},{"x":10,"y":-10},{"x":10,"y":10},{"x":-10,"y":10}] },
 			{ "profile": "Water",
@@ -22,19 +22,19 @@ func TestPolygonParses(t *testing.T) {
 	}`
 	z, err := parseZone([]byte(doc))
 	require.NoError(t, err)
-	require.Len(t, z.Polygons, 2)
-	assert.Equal(t, "Mountains", z.Polygons[0].Profile)
-	assert.True(t, z.Polygons[0].BlocksMovement)
-	assert.Len(t, z.Polygons[0].Points, 4)
+	require.Len(t, z.Structures, 2)
+	assert.Equal(t, "Mountains", z.Structures[0].Profile)
+	assert.True(t, z.Structures[0].BlocksMovement)
+	assert.Len(t, z.Structures[0].Points, 4)
 	// The zero value is the safe one: a polygon is decorative unless it says so.
-	assert.False(t, z.Polygons[1].BlocksMovement)
+	assert.False(t, z.Structures[1].BlocksMovement)
 }
 
 // Every zone shipped before this authors none — the feature is inert at HEAD.
 func TestZoneWithoutPolygonsIsValid(t *testing.T) {
 	z, err := parseZone([]byte(`{"name":"None","bounds":{"width":60,"height":40}}`))
 	require.NoError(t, err)
-	assert.Empty(t, z.Polygons)
+	assert.Empty(t, z.Structures)
 }
 
 // Each message names the INDEX: a polygon has no id and no unique name, so the
@@ -46,14 +46,14 @@ func TestPolygonValidationNamesTheIndex(t *testing.T) {
 	}{
 		{"empty profile",
 			`{"profile":"  ","points":[{"x":0,"y":0},{"x":1,"y":0},{"x":1,"y":1}]}`,
-			"polygon 0: profile must not be empty"},
+			"structure 0: profile must not be empty"},
 		{"two points are a line, not an area",
 			`{"profile":"Water","points":[{"x":0,"y":0},{"x":1,"y":0}]}`,
-			"polygon 0: needs at least 3 points to enclose an area, got 2"},
+			"structure 0: needs at least 3 points to enclose an area, got 2"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			doc := `{"name":"P","bounds":{"width":60,"height":40},"polygons":[` + c.poly + `]}`
+			doc := `{"name":"P","bounds":{"width":60,"height":40},"structures":[` + c.poly + `]}`
 			_, err := parseZone([]byte(doc))
 			require.Error(t, err)
 			assert.EqualError(t, err, c.want)
@@ -66,7 +66,7 @@ func TestPolygonValidationNamesTheIndex(t *testing.T) {
 // collider (P3) has no inside to fill.
 func TestThreePointPolygonIsValid(t *testing.T) {
 	_, err := parseZone([]byte(`{"name":"P","bounds":{"width":60,"height":40},
-		"polygons":[{"profile":"Water","points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}]}]}`))
+		"structures":[{"profile":"Water","points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}]}]}`))
 	require.NoError(t, err)
 }
 
@@ -76,12 +76,12 @@ func TestThreePointPolygonIsValid(t *testing.T) {
 func TestPolygonsAndRegionsAreSeparateArrays(t *testing.T) {
 	z, err := parseZone([]byte(`{"name":"P","bounds":{"width":60,"height":40},
 		"regions":[{"profile":"Fields","points":[{"x":0,"y":0},{"x":9,"y":0},{"x":9,"y":9}]}],
-		"polygons":[{"profile":"Mountains","points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}]}]}`))
+		"structures":[{"profile":"Mountains","points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}]}]}`))
 	require.NoError(t, err)
 	require.Len(t, z.Regions, 1)
-	require.Len(t, z.Polygons, 1)
+	require.Len(t, z.Structures, 1)
 	assert.Equal(t, "Fields", z.Regions[0].Profile)
-	assert.Equal(t, "Mountains", z.Polygons[0].Profile)
+	assert.Equal(t, "Mountains", z.Structures[0].Profile)
 }
 
 // ⚑ Polygons are COLLISION geometry (P3), so they move with a placed zone's
@@ -91,12 +91,12 @@ func TestPolygonPointsMoveWithTheZoneOrigin(t *testing.T) {
 	z, err := parseZone([]byte(`{"name":"P","bounds":{"width":40,"height":20},
 		"origin":{"x":500,"y":300},
 		"regions":[{"profile":"Fields","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}],
-		"polygons":[{"profile":"Mountains","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`))
+		"structures":[{"profile":"Mountains","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}]}`))
 	require.NoError(t, err)
 	require.NoError(t, Place([]*Zone{z}))
 
-	assert.EqualValues(t, 500, z.Polygons[0].Points[0].X, "polygons are placed")
-	assert.EqualValues(t, 300, z.Polygons[0].Points[0].Y)
+	assert.EqualValues(t, 500, z.Structures[0].Points[0].X, "polygons are placed")
+	assert.EqualValues(t, 300, z.Structures[0].Points[0].Y)
 	assert.EqualValues(t, 0, z.Regions[0].Points[0].X,
 		"regions are NOT — the client applies the origin itself, and doing it here too would move them twice")
 }
@@ -107,24 +107,24 @@ func TestOutlineParsesOnBothSurfaceTypes(t *testing.T) {
 	z, err := parseZone([]byte(`{"name":"O","bounds":{"width":60,"height":40},
 		"paths":[{"profile":"Water","width":3,"points":[{"x":0,"y":0},{"x":5,"y":0}],
 		          "outlineProfile":"Coast","outlineWidth":0.5}],
-		"polygons":[{"profile":"Water","points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}],
+		"structures":[{"profile":"Water","points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}],
 		             "outlineProfile":"Ice","outlineWidth":1.25}]}`))
 	require.NoError(t, err)
 	assert.Equal(t, "Coast", z.Paths[0].OutlineProfile)
 	assert.EqualValues(t, 0.5, z.Paths[0].OutlineWidth)
-	assert.Equal(t, "Ice", z.Polygons[0].OutlineProfile)
-	assert.EqualValues(t, 1.25, z.Polygons[0].OutlineWidth)
+	assert.Equal(t, "Ice", z.Structures[0].OutlineProfile)
+	assert.EqualValues(t, 1.25, z.Structures[0].OutlineWidth)
 }
 
 // Absent-safe: every shape authored before this has neither key.
 func TestOutlineIsAbsentSafe(t *testing.T) {
 	z, err := parseZone([]byte(`{"name":"O","bounds":{"width":60,"height":40},
 		"paths":[{"profile":"Road","width":2,"points":[{"x":0,"y":0},{"x":5,"y":0}]}],
-		"polygons":[{"profile":"Water","points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}]}]}`))
+		"structures":[{"profile":"Water","points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}]}]}`))
 	require.NoError(t, err)
 	assert.Empty(t, z.Paths[0].OutlineProfile)
 	assert.EqualValues(t, 0, z.Paths[0].OutlineWidth)
-	assert.Empty(t, z.Polygons[0].OutlineProfile)
+	assert.Empty(t, z.Structures[0].OutlineProfile)
 }
 
 // ⭐ Both HALF-authored forms are refused, and the reason is that both fail
@@ -142,13 +142,13 @@ func TestHalfAuthoredOutlineIsRefusedOnBothTypes(t *testing.T) {
 			  "outlineWidth":0.5}]`,
 			"path 0: outlineWidth 0.5 draws nothing without an outlineProfile"},
 		{"polygon: profile without width",
-			`"polygons":[{"profile":"Water","points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}],
+			`"structures":[{"profile":"Water","points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}],
 			  "outlineProfile":"Ice"}]`,
-			`polygon 0: outlineProfile "Ice" needs a positive outlineWidth, got 0`},
+			`structure 0: outlineProfile "Ice" needs a positive outlineWidth, got 0`},
 		{"polygon: width without profile",
-			`"polygons":[{"profile":"Water","points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}],
+			`"structures":[{"profile":"Water","points":[{"x":0,"y":0},{"x":5,"y":0},{"x":5,"y":5}],
 			  "outlineWidth":2}]`,
-			"polygon 0: outlineWidth 2 draws nothing without an outlineProfile"},
+			"structure 0: outlineWidth 2 draws nothing without an outlineProfile"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -167,7 +167,7 @@ func TestOutlineDoesNotChangeAnyCollider(t *testing.T) {
 	bare, err := parseZone([]byte(`{"name":"O","bounds":{"width":200,"height":200},
 		"paths":[{"profile":"Water","width":3,"blocksMovement":true,
 		          "points":[{"x":-20,"y":0},{"x":20,"y":0}]}],
-		"polygons":[{"profile":"Mountains","blocksMovement":true,
+		"structures":[{"profile":"Mountains","blocksMovement":true,
 		             "points":[{"x":-10,"y":-10},{"x":10,"y":-10},{"x":10,"y":10},{"x":-10,"y":10}]}]}`))
 	require.NoError(t, err)
 	// The same world with a FAT outline on both — far wider than either shape.
@@ -175,7 +175,7 @@ func TestOutlineDoesNotChangeAnyCollider(t *testing.T) {
 		"paths":[{"profile":"Water","width":3,"blocksMovement":true,
 		          "points":[{"x":-20,"y":0},{"x":20,"y":0}],
 		          "outlineProfile":"Coast","outlineWidth":9}],
-		"polygons":[{"profile":"Mountains","blocksMovement":true,
+		"structures":[{"profile":"Mountains","blocksMovement":true,
 		             "points":[{"x":-10,"y":-10},{"x":10,"y":-10},{"x":10,"y":10},{"x":-10,"y":10}],
 		             "outlineProfile":"Ice","outlineWidth":9}]}`))
 	require.NoError(t, err)

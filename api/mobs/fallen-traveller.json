@@ -1,0 +1,35 @@
+{
+  "_comment": "The Wanderer's lost friend, dead at the back of the kobold cave (koboldCave.json, the east chamber): the talk_to target of `the-lost-friend`, the zone-2 'lost friend' beat (content-zone-2-woodland.md §3.3). dead-carter.json's shape: unattackable (townsfolk, collisionLayer 97), speed 0, xpFactor 0, one lore node with no options; opening the panel is the talk. Its lines match the Wanderer's brief (grey cloak, walking staff) and read true without the quest, so nothing is gated. EntityType Remains. All values [PLACEHOLDER]; text plain.",
+  "id": 115,
+  "name": "FallenTraveller",
+  "type": "MOB",
+  "entityType": "Remains",
+  "faction": "townsfolk",
+  "role": "creature",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 200,
+    "xpFactor": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.35,
+    "collisionLayer": 97,
+    "collisionMask": 16,
+    "aggroRadius": 1.0
+  },
+  "skills": [],
+  "interaction": {
+    "range": 2.0,
+    "nodes": [
+      {
+        "id": "root",
+        "lines": [
+          "A dead traveller in a grey cloak, deep in the kobold den.",
+          "His pack has been emptied. A broken walking staff lies beside him."
+        ]
+      }
+    ]
+  }
+}

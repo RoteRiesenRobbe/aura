@@ -26,7 +26,7 @@ import {
 import {Clearing, clearsDarkness, clearsHaze} from '../../atmospheres/logic/Clearings';
 import {
     ATMOSPHERE_PROFILES, AtmosphereProfile, declaresDarkness, declaresHaze,
-    neededTextures, Outlined, Region, regionBlend, REGION_BLEND_OUTWARD, regionBlendOutward,
+    neededTextures, Outlined, paintedRegions, Region, regionBlend, REGION_BLEND_OUTWARD, regionBlendOutward,
     regionDarkness, regionHaze, regionMotes, regionOverlay, RegionPoint, regionPaintSpec, regionScroll,
     regionWobble,
     ResolvedOverlay, TERRAIN_PROFILES, Wobble,
@@ -782,6 +782,11 @@ function paintSurface(
  * Adds, never clears: the map bakes regions into a scratch container that
  * already holds its land fill. A caller that repaints (the world, once the
  * tiles land) empties its own layer first.
+ *
+ * ⛔ A region WITHOUT a profile (an id-only place, plan-region-identity.md D1)
+ * is skipped HERE, at the one function both draw sites share. Handed to
+ * paintFilled it would resolve to the default profile and paint the base land
+ * fill over whatever lies below (§2.4); skipping here guards the map as well.
  */
 export function paintRegions(
     container: Container,
@@ -789,7 +794,7 @@ export function paintRegions(
     renderer: Renderer,
 ): PaintedSurfaces {
     const out: PaintedSurfaces = {masks: [], scrollers: []};
-    regions.forEach((region) => {
+    paintedRegions(regions).forEach((region) => {
         paintFilled(container, region, region.points, REGION_BLEND_OUTWARD, renderer, out);
     });
     return out;

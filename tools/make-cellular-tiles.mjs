@@ -6,7 +6,8 @@
  * the same fix).
  *
  *     forest · wall · road · stones (the first OVERLAY tile, ground-noise W2)
- *     · cobble (the city street)
+ *     · cobble (the city street) · limestone + coast-grass (the clifftop,
+ *     `Coastal Cliff` = limestone under a coast-grass overlay)
  *
  * ⭐ Checked in as a script, not just images, because a placeholder's whole job
  * is to be re-tuned: change a constant, re-run, look at it again. The committed
@@ -80,7 +81,8 @@
  * stays runnable alone with no repo-internal import, and a build-time npm
  * dependency for a placeholder is not worth it.
  *
- * Usage: node tools/make-cellular-tiles.mjs
+ * Usage: node tools/make-cellular-tiles.mjs [stem ...]   (no stems = every tile;
+ *        e.g. `limestone coast-grass` re-renders just those two)
  */
 import {deflateSync} from 'node:zlib';
 import {writeFileSync} from 'node:fs';
@@ -519,6 +521,77 @@ const TILES = [
         // wall's near-black line, and wide at the corners where three stones
         // meet, which is what rounds them off.
         joint: {width: 0.045, strength: 0.75, color: [0x42, 0x3a, 0x2f]},
+    },
+    {
+        // ⭐ BURREN LIMESTONE, the base of `Coastal Cliff` (PO 2026-10-03:
+        // "a pale irish coast grass texture … blended over a limestone rock, a
+        // cliff feel should exist"). Limestone pavement is SLABS (clints) cut
+        // by deep cracks (grikes), and it is the wall's CUT read again with
+        // three changes: the courses are few and ragged (rock split along
+        // joints, not stone laid by a mason), the stone is PALE (limestone
+        // weathers to a light grey, the brightest ground on the coast), and the
+        // joint is wide and GREEN, because in a grike the moss and ferns grow
+        // out of the wind. That green line is what stops it reading as paving.
+        // ⚑ It is seen mostly through the `Coast Grass` overlay's gaps, so the
+        // slabs can be big: one tile is 2.19 u at the profile's 0.35.
+        file: 'limestone-placeholder.png',
+        profileColor: [0xa9, 0xa7, 0x9b],
+        paint: 'cobble',
+        warp: {waves: STONE_WARP, strength: 30, offset: [0.43, 0.09]},
+        // ⛔ NOT COURSES. The first cut used the wall's `course()` and came out
+        // as a brick wall with green mortar: rows of equal-ish rectangles are
+        // what a MASON makes. Pavement splits along joints into irregular
+        // polygons, which is the cobble's Voronoi with the rounding taken OFF
+        // (`round` near 0, so the corners stay sharp) and the cells made huge.
+        // ⛔ AND NOT CRISP. The second cut (6 cells, a hard green joint) read
+        // in-game as a PAVED PLAZA: an even dark line round every slab is
+        // grout. Bigger slabs, a heavier warp and a soft grey-green joint at
+        // three quarters strength let the cracks be cracks.
+        cells: {n: 4, jitter: 0.9, round: 0.012, salt: 520},
+        ramp: [[0x86, 0x85, 0x7c], [0xa6, 0xa4, 0x99], [0xc4, 0xc1, 0xb5]],
+        base: 0.2,
+        tintWeight: 0.55,
+        // Strong tooth: limestone is PITTED, the rain dissolves it.
+        grit: {waves: STONE_GRIT, weight: 0.3},
+        dome: 0.04,
+        bevel: {width: 0.08, strength: 0.14},
+        joint: {width: 0.035, strength: 0.75, color: [0x4a, 0x50, 0x3c]},
+    },
+    {
+        // ⭐ COAST GRASS: the short salt-bleached sward of an Atlantic
+        // clifftop, the overlay `Coastal Cliff` lays over the limestone. The
+        // litter's PLACING read again with the leaf turned into a BLADE (`elong`
+        // 4, a third the radius) and the fill turned right up, so the pieces
+        // are most of the surface and the "duff" is the paler thatch between
+        // them. ⚑ PALE and yellow-green on purpose: salt and wind take the
+        // colour out, and it has to read as a different place from the
+        // Farmlands' lush `Fields` green beside it. No roots (strength 0).
+        file: 'coast-grass-placeholder.png',
+        profileColor: [0x8e, 0x9c, 0x5e],
+        paint: 'litter',
+        warp: {waves: LITTER_WARP, strength: 12, offset: [0.77, 0.29]},
+        duff: {
+            waves: DUFF,
+            ramp: [[0x7c, 0x8a, 0x52], [0x98, 0xa4, 0x66], [0xb2, 0xb4, 0x7c]],
+            grit: 0.3,
+            gamma: 1.0,
+        },
+        roots: {waves: ROOT_WAVES, sharpness: 15, strength: 0, color: [0, 0, 0]},
+        layers: [
+            {
+                n: 71, jitter: 0.5, elong: 3.6, radius: 0.48, sizeVar: 0.4,
+                fill: 0.92, salt: 410,
+                ramp: [[0x68, 0x7a, 0x44], [0x86, 0x96, 0x56]],
+                rim: 0.15, shadow: [2, 2], shadowStrength: 0.18,
+            },
+            {
+                n: 101, jitter: 0.5, elong: 3.8, radius: 0.46, sizeVar: 0.4,
+                fill: 0.7, salt: 470,
+                ramp: [[0xa4, 0xae, 0x72], [0xc6, 0xc6, 0x90]],
+                rim: 0.12, shadow: [1, 2], shadowStrength: 0.14,
+            },
+        ],
+        shadowColor: [0x4a, 0x56, 0x30],
     },
 ];
 
@@ -1022,7 +1095,7 @@ function writePng(tile, out) {
 
 /* ---- go ------------------------------------------------------------------ */
 
-for (const tile of TILES) {
+for (const tile of TILES.filter(t => process.argv.length < 3 || process.argv.slice(2).includes(t.file.replace('-placeholder.png', '')))) {
     console.log(tile.file.replace('-placeholder.png', ''));
     assertLatticeSound(tile);
     assertSeamless(tile);

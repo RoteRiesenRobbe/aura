@@ -28,7 +28,50 @@ var AuraConvert = (function () {
     // to answer "is this a layer we know?" — but a whitelist that disagrees with
     // the stack is a second, wrong answer to "what order are the layers in" for
     // the next reader. Keep the two in step.
-    var LAYERS = ['regions', 'paths', 'terrain', 'props', 'spawns', 'campfires', 'darkAreas', 'atmospheres', 'anchors'];
+    var LAYERS = ['regions', 'paths', 'decals', 'props', 'spawns', 'bindPoints', 'darkAreas', 'atmospheres', 'anchors'];
+
+    /* ---- the prop layers (plan-prop-draw-order.md D1-D3) -------------------
+     * `props` is the one GROUP in the stack: a group layer holding these four
+     * object layers, bottom to top, one per array of the zone file's `props`
+     * object. A higher layer draws over a lower one in game, and inside a layer
+     * Tiled's object order is the draw order.
+     *
+     * ⚑ Mirrors zone.go's PropLayers, whose FIELD ORDER is the rank (the
+     * server spawns props in that order, and the client stacks them by id).
+     * AuraTiledConvert.test.ts scrapes zone.go to pin this list to it.
+     *
+     * ⚑ The sub-layers are found BY NAME, never by position, through
+     * subLayerObjects below, which P4 runs once per area. */
+    var PROPS_GROUP = 'props';
+    var PROP_LAYERS = ['underfoot', 'default', 'buildings', 'canopy'];
+
+    /* ---- areas (plan-prop-draw-order.md P4, P4b) ---------------------------
+     * A zone file's optional `areas` holds groups of objects; in Tiled each is
+     * a group layer holding the zone's layers. OBJECT_KINDS is everything an
+     * area may hold: zone.go's Objects keys, in its order
+     * (AuraTiledConvert.test.ts scrapes the struct to pin it). An id is a slug
+     * and never one of them (D12), mirroring zone.go's checkAreaIDs.
+     *
+     * ⭐ Since P4b (D15) a group is an area because its CLASS is AuraArea, and
+     * its id is the class's `id` member, picked from the AuraAreaId dropdown
+     * (api/areas/areas.json). The group's NAME is a free label, so a typo in
+     * it can no longer make a second area. AREA_UNSET is the member's default
+     * and the save refuses it: the MOB_UNSET reading of a sentinel. */
+    var OBJECT_KINDS = ['decals', 'props', 'spawns', 'bindPoints', 'darkAreas', 'regions',
+        'paths', 'structures', 'atmospheres', 'clearings', 'anchors'];
+    var AREA_ID = /^[a-z0-9-]+$/;
+    var AREA_CLASS = 'AuraArea';
+    var AREA_ENUM = 'AuraAreaId';
+    var AREA_UNSET = '(pick an area)';
+
+    /* ---- region ids (plan-region-identity.md R1) ---------------------------
+     * A region names its PLACE by an id from api/regions/regions.json (D2),
+     * picked from the AuraRegionId dropdown. REGION_ID_UNSET is the member's
+     * default and means "no place": a region that only paints ground is the
+     * common case, so it maps back to ABSENT (the EFFECT_UNSET reading of a
+     * sentinel, not the MOB_UNSET one). */
+    var REGION_ID_ENUM = 'AuraRegionId';
+    var REGION_ID_UNSET = '(no place)';
 
     // ZoneModel's rounding helper, verbatim.
     function round(value, digits) {
@@ -68,7 +111,7 @@ var AuraConvert = (function () {
         return {x: x + (w / 2 * c - h / 2 * s), y: y + (w / 2 * s + h / 2 * c)};
     }
 
-    /* The vertices of a CLOSED-AREA object — a region, an AuraPolygon or an
+    /* The vertices of a CLOSED-AREA object — a region, an AuraStructure or an
      * atmosphere — in pixels RELATIVE to o.x/o.y, which is the form o.polygon
      * already takes.
      *
@@ -102,7 +145,7 @@ var AuraConvert = (function () {
         });
     }
 
-    // Which anchor convention the boxed objects (terrain, props) use. C2 gave
+    // Which anchor convention the boxed objects (decals, props) use. C2 gave
     // them real tilesets, so they are tile objects now.
     var ANCHOR = 'tile';
 
@@ -117,11 +160,16 @@ var AuraConvert = (function () {
     var content = {
         TERRAIN_TYPES: [], PROP_SIZE: {}, MOB_KIND: {}, MOB_SPEED: {},
         PROFILE_NAMES: [], AIR_PROFILE_NAMES: [], EFFECT_NAMES: [], ENUM_VALUES: {},
+        CROSSES_PATHS: [], AREA_IDS: [], REGION_IDS: [],
     };
     function useContent(c) {
         content = {
             TERRAIN_TYPES: (c && c.TERRAIN_TYPES) || [],
             PROP_SIZE: (c && c.PROP_SIZE) || {},
+            // The prop types whose api/props/<type>.json authors crossesPaths
+            // (bridges): every placement must sit in props/underfoot (D4).
+            // Absent = none known, and the check skips itself like the rest.
+            CROSSES_PATHS: (c && c.CROSSES_PATHS) || [],
             // The canonical size a terrain patch is cut at, generated from the
             // same constant the templates use. A texture has no body, so this
             // is the only thing "its true size" can mean for one. 0 means "no
@@ -147,6 +195,13 @@ var AuraConvert = (function () {
             // loaded" and the unknown-effect check skips itself — the same
             // posture every other content check here takes.
             EFFECT_NAMES: (c && c.EFFECT_NAMES) || [],
+            // api/areas/areas.json, the ids an area may take (P4b, D15),
+            // WITHOUT the sentinel. Absent means "no vocabulary loaded" and
+            // the not-listed check skips itself, as every content check here.
+            AREA_IDS: (c && c.AREA_IDS) || [],
+            // api/regions/regions.json, the ids a region may name (R1, D2),
+            // WITHOUT the sentinel. Absent skips the not-listed check, as above.
+            REGION_IDS: (c && c.REGION_IDS) || [],
             ENUM_VALUES: (c && c.ENUM_VALUES) || {},
         };
     }
@@ -423,6 +478,65 @@ var AuraConvert = (function () {
         return text.length > 0 && text.charAt(text.length - 1) === '\n';
     }
 
+    /* A zone's `props` object mapped layer by layer: every key of PROP_LAYERS,
+     * in rank order, an absent array read as empty. */
+    function byPropLayer(props, fn) {
+        var out = {};
+        for (var i = 0; i < PROP_LAYERS.length; i++) {
+            var k = PROP_LAYERS[i];
+            out[k] = ((props && props[k]) || []).map(fn);
+        }
+        return out;
+    }
+
+    /* ⛔ Refuse to OPEN what would lose props on the next save. A `props` the
+     * reader cannot map is either the flat array from before prop layers or a
+     * key nobody knows; read leniently, either would open with props missing
+     * and the next Ctrl+S would delete them. zone.go refuses both at boot. */
+    function checkPropsShape(props) {
+        if (props === undefined || props === null) { return; }
+        if (Array.isArray(props) || typeof props !== 'object') {
+            throw new Error('this zone file has the flat `props` array from before prop layers'
+                + ' (plan-prop-draw-order.md P3); migrate it with'
+                + ' node scripts/migrate-prop-layers.mjs <file>');
+        }
+        for (var k in props) {
+            if (Object.prototype.hasOwnProperty.call(props, k) && PROP_LAYERS.indexOf(k) < 0) {
+                throw new Error('props has an unknown layer "' + k + '"; the prop layers are '
+                    + PROP_LAYERS.join(', '));
+            }
+        }
+    }
+
+    /* ⛔ The same refusal for the three arrays plan-zone-naming.md N2 renamed.
+     * Read leniently, a file still on an old name opens with that array empty
+     * and the next save deletes it; zone.go refuses the old names at boot. */
+    var RENAMED_KEYS = {terrain: 'decals', polygons: 'structures', campfires: 'bindPoints'};
+    function checkKeyNames(z) {
+        for (var old in RENAMED_KEYS) {
+            if (Object.prototype.hasOwnProperty.call(RENAMED_KEYS, old)
+                && Object.prototype.hasOwnProperty.call(z, old)) {
+                throw new Error('this zone file still has "' + old + '", which is "'
+                    + RENAMED_KEYS[old] + '" since plan-zone-naming.md N2; migrate it with'
+                    + ' node scripts/migrate-zone-key-names.mjs <file>');
+            }
+        }
+    }
+
+    /* ⛔ The same refusal for region titles, which moved into
+     * api/regions/regions.json with plan-region-identity.md R1. Read leniently,
+     * a file still carrying them opens without them and the next save deletes
+     * every title in the world; zone.go refuses the keys at boot. */
+    function checkRegionTitles(regions) {
+        (regions || []).forEach(function (r) {
+            if (r && (r.title !== undefined || r.subtitle !== undefined)) {
+                throw new Error('this zone file still has region titles, which live in'
+                    + ' api/regions/regions.json since plan-region-identity.md R1; migrate it with'
+                    + ' node scripts/migrate-region-ids.mjs <file>');
+            }
+        });
+    }
+
     /* ---- The canonical serializer ------------------------------------------
      * Field order, rounding and omit rules mirror ZoneModel.getZoneAsJSON().
      * undefined values are dropped by JSON.stringify — that is how every
@@ -444,7 +558,33 @@ var AuraConvert = (function () {
             origin: z.origin !== undefined ? z.origin : undefined,
             // The zone's base fill (PO 2026-09-27); undefined = black, no key.
             ground: z.ground ? z.ground : undefined,
-            terrain: z.terrain.map(function (t) {
+        };
+        copyKeys(data, serializeObjects(z, false));
+        /* The areas (plan-prop-draw-order.md P4), after every zone-level
+         * array, as zone.go declares them. undefined when there are none, so
+         * a zone without areas is byte-identical to before. An area keeps its
+         * entry even when empty: the author made that group. */
+        data.areas = z.areas && z.areas.length > 0
+            ? z.areas.map(function (a) { return copyKeys({id: a.id}, serializeObjects(a, true)); })
+            : undefined;
+        return JSON.stringify(data, null, 2) + (trailingNewline ? '\n' : '');
+    }
+
+    function copyKeys(to, from) {
+        for (var k in from) { if (Object.prototype.hasOwnProperty.call(from, k)) { to[k] = from[k]; } }
+        return to;
+    }
+
+    /* The object arrays of one group, the zone level or an area, in zone.go's
+     * Objects order (OBJECT_KINDS; a vitest pins the two).
+     *
+     * ⚑ The zone level always writes decals, the four prop arrays and spawns,
+     * as it always has. An AREA writes no empty array at all, prop layers
+     * included (P4: "emitting empty arrays nowhere"), so it carries exactly
+     * the kinds it uses. */
+    function serializeObjects(z, inArea) {
+        var out = {
+            decals: (z.decals || []).map(function (t) {
                 return {
                     type: t.type,
                     x: round(t.x, 2),
@@ -454,7 +594,10 @@ var AuraConvert = (function () {
                     flipped: t.flipped,
                 };
             }),
-            props: z.props.map(function (p) {
+            // All four layer arrays, in rank order, empty ones included — the
+            // same "always present" rule decals and spawns follow, so every
+            // zone file has one shape (and ZoneModel emits exactly this).
+            props: byPropLayer(z.props, function (p) {
                 return {
                     type: p.type,
                     x: round(p.x, 2),
@@ -470,7 +613,7 @@ var AuraConvert = (function () {
                     scale: p.scale !== undefined ? round(p.scale, 3) : undefined,
                 };
             }),
-            spawns: z.spawns.map(function (s) {
+            spawns: (z.spawns || []).map(function (s) {
                 return {
                     mob: s.mob,
                     x: round(s.x, 2),
@@ -493,8 +636,8 @@ var AuraConvert = (function () {
                     anchor: s.anchor || undefined,
                 };
             }),
-            campfires: z.campfires && z.campfires.length > 0
-                ? z.campfires.map(function (c) {
+            bindPoints: z.bindPoints && z.bindPoints.length > 0
+                ? z.bindPoints.map(function (c) {
                     return {
                         id: c.id,
                         x: round(c.x, 2),
@@ -512,15 +655,14 @@ var AuraConvert = (function () {
             // must match ZoneModel.getZoneAsJSON byte for byte.
             regions: z.regions && z.regions.length > 0
                 ? z.regions.map(function (r) {
+                    // An id, a profile, or both (plan-region-identity.md D1);
+                    // either absent when blank, like zone.go's omitempty.
                     return {
-                        profile: r.profile,
+                        id: r.id || undefined,
+                        profile: r.profile || undefined,
                         points: r.points.map(function (p2) {
                             return {x: round(p2.x, 2), y: round(p2.y, 2)};
                         }),
-                        // The region title banner (2026-09-28). Absent when
-                        // blank, like zone.go's omitempty.
-                        title: r.title || undefined,
-                        subtitle: r.title && r.subtitle ? r.subtitle : undefined,
                     };
                 })
                 : undefined,
@@ -559,8 +701,8 @@ var AuraConvert = (function () {
             // A polygon's points are never closed in the FILE — no first-vertex
             // repeat to strip, exactly as a region's are not. blocksMovement is
             // tri-state like everywhere else.
-            polygons: z.polygons && z.polygons.length > 0
-                ? z.polygons.map(function (g) {
+            structures: z.structures && z.structures.length > 0
+                ? z.structures.map(function (g) {
                     return {
                         profile: g.profile,
                         points: g.points.map(function (v) {
@@ -595,7 +737,7 @@ var AuraConvert = (function () {
                 })
                 : undefined,
             // The HOLES cut in that air (plan-region-atmosphere.md A4). Its own
-            // array for the reason polygons got one despite sharing a layer with
+            // array for the reason structures got one despite sharing a layer with
             // paths: two kinds of object, told apart by CLASS, landing in two
             // places.
             //
@@ -616,7 +758,17 @@ var AuraConvert = (function () {
                 ? z.anchors.map(function (a) { return {name: a.name, x: round(a.x, 2), y: round(a.y, 2)}; })
                 : undefined,
         };
-        return JSON.stringify(data, null, 2) + (trailingNewline ? '\n' : '');
+        if (inArea) {
+            for (var k in out) {
+                if (Array.isArray(out[k]) && out[k].length === 0) { out[k] = undefined; }
+            }
+            var props = {}, anyProp = false;
+            PROP_LAYERS.forEach(function (l) {
+                if (out.props[l].length > 0) { props[l] = out.props[l]; anyProp = true; }
+            });
+            out.props = anyProp ? props : undefined;
+        }
+        return out;
     }
 
     /* ---- zone JSON  ->  plain layer/object model ---------------------------
@@ -628,301 +780,25 @@ var AuraConvert = (function () {
         function px(u, half) { return (u + half) * PX; }
         function set(o, k, v) { if (v !== undefined && v !== null) { o[k] = v; } }
 
-        var terrain = (z.terrain || []).map(function (t) {
-            var side = t.size * 2 * PX;
-            var a = anchorOf(px(t.x, hw), px(t.y, hh), side, side, rad2deg(t.rotation || 0));
-            return {
-                shape: 'tile', layer: 'terrain', name: t.type,
-                tileset: 'terrain', tileType: t.type, cls: 'AuraTerrain',
-                x: a.x, y: a.y, width: side, height: side,
-                rotation: rad2deg(t.rotation || 0),
-                // Real gid flip flags now that a tileset exists (C1 parked
-                // these in a custom property for want of a tile).
-                flipH: t.flipped === 'horizontal',
-                flipV: t.flipped === 'vertical',
-                properties: {},
-            };
+        checkKeyNames(z);
+        checkPropsShape(z.props);
+        checkRegionTitles(z.regions);
+        var areas = z.areas || [];
+        // The same open refusals inside every area: read leniently, either
+        // would open with that array empty and the next save would delete it.
+        areas.forEach(function (a) { checkKeyNames(a); checkPropsShape(a.props); checkRegionTitles(a.regions); });
+        /* ⭐ THE ZONE LEVEL, THEN ONE GROUP PER AREA in file order
+         * (plan-prop-draw-order.md D14). Tiled's list is bottom-to-top, so an
+         * area later in the file stacks higher, which is also where the game
+         * draws it (D11: zone level first, then area by area). Each group
+         * opens named by its id, carries it as the AuraArea class's typed `id`
+         * (P4b), and holds the full layer set (D13), so every area opens with
+         * the same drop targets as the zone. */
+        var layers = kindLayers(z, '');
+        areas.forEach(function (a) {
+            layers.push({name: a.id, cls: AREA_CLASS, properties: {id: a.id}, enums: {id: AREA_ENUM},
+                layers: kindLayers(a, a.id + '/')});
         });
-
-        // ⚑ The box a prop is drawn at is the TYPE's true physics footprint
-        // (api/props/*.json body) times the placement's optional scale — so
-        // what you see is what blocks movement, at the size it really blocks.
-        // Resizing the box IS authoring scale (C1); the writer derives the
-        // multiplier straight back out of it.
-        var props = (z.props || []).map(function (p2) {
-            var sz = propSize(p2.type);
-            var sc = (typeof p2.scale === 'number' && p2.scale > 0) ? p2.scale : 1;
-            var w = sz.w * PX * sc, h = sz.h * PX * sc;
-            var a = anchorOf(px(p2.x, hw), px(p2.y, hh), w, h, rad2deg(p2.rotation || 0));
-            var o = {
-                shape: 'tile', layer: 'props', name: p2.type,
-                tileset: 'props', tileType: p2.type, cls: 'AuraProp',
-                x: a.x, y: a.y, width: w, height: h,
-                rotation: rad2deg(p2.rotation || 0),
-                flipH: false, flipV: false,
-                properties: {},
-                enums: {blocksMovement: PROP_BLOCKS_ENUM},
-            };
-            // ⛔ Set NOTHING when the file authored nothing, so the Properties
-            // panel shows the CLASS member sitting at '(inherit)'. An
-            // object-level property SHADOWS the member that gives it its type,
-            // which degrades the dropdown to a free-text box — measured, and the
-            // same trap readSpawn's sentinels exist to avoid.
-            if (typeof p2.blocksMovement === 'boolean') {
-                o.properties.blocksMovement =
-                    p2.blocksMovement ? PROP_BLOCKS : PROP_WALK_THROUGH;
-            }
-            return o;
-        });
-
-        var spawns = (z.spawns || []).map(function (s) {
-            var o = {
-                shape: 'point', layer: 'spawns', name: s.mob, cls: spawnClass(s.mob),
-                x: px(s.x, hw), y: px(s.y, hh),
-                width: 0, height: 0, rotation: rad2deg(s.angle || 0),
-                flipH: false, flipV: false, properties: {},
-            };
-            // C6: the whole form is visible on every spawn because the CLASS
-            // declares all seven members. Only the ones actually authored are
-            // set on the object, so the rest render as inherited defaults —
-            // which is also what keeps them typed (an object-level property
-            // shadows the member that gives it its type).
-            //
-            // ⚑ Setting the sentinel explicitly and omitting it are the same
-            // thing to readSpawn, by design and by test. Omitting is chosen
-            // only because it reads better in the panel.
-            o.properties.mob = s.mob;
-            o.enums = {mob: SPAWN_ENUMS.mob};
-            for (var k in SPAWN_INHERIT) {
-                if (Object.prototype.hasOwnProperty.call(SPAWN_INHERIT, k)
-                    && s[k] !== undefined && s[k] !== null && s[k] !== SPAWN_INHERIT[k]) {
-                    o.properties[k] = s[k];
-                }
-            }
-            if (s.patrolMode === 'loop') {
-                o.properties.patrolMode = 'loop';
-                o.enums.patrolMode = SPAWN_ENUMS.patrolMode;
-            }
-            // A patrolling spawn IS its route: a polyline drawn from the spawn
-            // point, one vertex per waypoint. Editing the route is then dragging
-            // vertices, which is the whole point.
-            //
-            // ⭐ EVERY vertex is a waypoint, node 0 included (PO ruling
-            // 2026-08-23, plan-prop-scale.md-era Tiled follow-up). Tiled puts
-            // node 0 at the object origin when you DRAW, so a fresh route's
-            // first waypoint lands on the spawn — a mob starts, and in loop mode
-            // returns, home. It used to be dropped as "the origin, not a
-            // waypoint", which made N clicks give N-1 waypoints and left the
-            // node-0 handle a silent no-op. The engine never had that notion:
-            // patrol.go marches the waypoint list and treats the spawn purely as
-            // where the mob starts, so both readings were legal — this one is
-            // WYSIWYG. ⚑ Nothing forces node 0 to stay on the origin: a route
-            // whose first waypoint is elsewhere (5 of the 7 in world.json,
-            // hand-authored in the in-game editor) simply serialises with a
-            // non-zero first vertex, and round-trips.
-            if (s.waypoints && s.waypoints.length > 0) {
-                o.shape = 'polyline';
-                o.polygon = s.waypoints.map(function (w) {
-                    return {x: px(w.x, hw) - o.x, y: px(w.y, hh) - o.y};
-                });
-            }
-            return o;
-        });
-
-        var campfires = (z.campfires || []).map(function (c) {
-            var o = {
-                shape: 'point', layer: 'campfires', name: c.id, cls: 'AuraCampfire',
-                x: px(c.x, hw), y: px(c.y, hh),
-                width: 0, height: 0, rotation: 0, flipH: false, flipV: false,
-                properties: {},
-            };
-            if (c.startingSpawn) { o.properties.startingSpawn = true; }
-            return o;
-        });
-
-        var darkAreas = (z.darkAreas || []).map(function (d) {
-            var side = d.radius * 2 * PX;
-            return {
-                shape: 'ellipse', layer: 'darkAreas', name: '', cls: 'AuraDarkArea',
-                x: px(d.x, hw) - side / 2, y: px(d.y, hh) - side / 2,
-                width: side, height: side, rotation: 0,
-                flipH: false, flipV: false, properties: {},
-            };
-        });
-
-        // A region IS its outline: a polygon object whose origin sits on the
-        // first vertex, so node 0 is {0,0} exactly as Tiled produces when you
-        // draw one. Same relative-vertex convention as a patrol polyline.
-        //
-        // ⚑ The PROFILE is both the object's Name (a readable label in the
-        // layer list) and a typed property; readRegion lets the property win,
-        // mirroring how a spawn's mob works. C2 turns that property into a
-        // generated AuraTerrainProfile enum — here it is still free text.
-        var regions = (z.regions || []).map(function (r) {
-            var pts = r.points || [];
-            var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
-            var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
-            return {
-                shape: 'polygon', layer: 'regions', name: r.profile, cls: 'AuraRegion',
-                x: ox, y: oy, width: 0, height: 0, rotation: 0,
-                flipH: false, flipV: false,
-                polygon: pts.map(function (p2) {
-                    return {x: px(p2.x, hw) - ox, y: px(p2.y, hh) - oy};
-                }),
-                // The title and subtitle only when authored: absent is the
-                // palette default ('') and reads back as absent (readText).
-                properties: Object.assign({profile: r.profile},
-                    r.title ? {title: r.title} : {},
-                    r.title && r.subtitle ? {subtitle: r.subtitle} : {}),
-                // C2: typed, or the Properties panel degrades to a free-text
-                // box — an object-level PLAIN string shadows the class member
-                // that declares the enum. Same marker, same reason, as a
-                // spawn's mob.
-                enums: {profile: REGION_ENUMS.profile},
-            };
-        });
-
-        // A path IS its centreline: a polyline whose origin sits on the first
-        // vertex, exactly like a patrol route and a region outline.
-        //
-        // ⭐ THE SHAPE IS THE FLAG (plan-zone-polygons.md P1). A polyline is an
-        // open path, a polygon is a closed one — there is no `closed` property in
-        // the Properties panel, deliberately: an authored bool could contradict
-        // the shape it was drawn as, and then the two would disagree about where
-        // a road ends. Closure is still only a STROKE either way; the FILLED
-        // shape is a class of its own (D1), which is what makes an accidental
-        // close in Tiled a one-undo cosmetic slip rather than a lake.
-        var paths = (z.paths || []).map(function (p2) {
-            var pts = p2.points || [];
-            var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
-            var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
-            var o = {
-                shape: p2.closed ? 'polygon' : 'polyline',
-                layer: 'paths', name: p2.profile, cls: 'AuraPath',
-                x: ox, y: oy, width: 0, height: 0, rotation: 0,
-                flipH: false, flipV: false,
-                polygon: pts.map(function (v) {
-                    return {x: px(v.x, hw) - ox, y: px(v.y, hh) - oy};
-                }),
-                properties: {profile: p2.profile, width: p2.width},
-                enums: {profile: REGION_ENUMS.profile},
-            };
-            // Only when true, so the Properties panel shows the class default
-            // for an ordinary path and the round-trip stays byte-identical.
-            if (p2.blocksMovement) { o.properties.blocksMovement = true; }
-            if (p2.alignTexture) { o.properties.alignTexture = true; }
-            writePathShape(o, p2);
-            writeOutline(o, p2);
-            writeEffect(o, p2);
-            return o;
-        });
-
-        // ⭐ A polygon rides the SAME LAYER as a path and is told apart by its
-        // CLASS (D5). PO ask 2026-09-09: "too many layers in Tiled will make me
-        // a little crazy" — eight object layers exist already, and the class is
-        // the more honest discriminator anyway, because it is what the
-        // Properties panel shows. ⚑ The cost, and it is real: an object on this
-        // layer whose class is neither AuraPath nor AuraPolygon lands in NEITHER
-        // array and would vanish on save, so validateModel refuses one by id
-        // (L2b). The layer-per-type scheme got that check for free.
-        var polygons = (z.polygons || []).map(function (g) {
-            var pts = g.points || [];
-            var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
-            var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
-            var o = {
-                shape: 'polygon', layer: 'paths', name: g.profile, cls: 'AuraPolygon',
-                x: ox, y: oy, width: 0, height: 0, rotation: 0,
-                flipH: false, flipV: false,
-                polygon: pts.map(function (v) {
-                    return {x: px(v.x, hw) - ox, y: px(v.y, hh) - oy};
-                }),
-                properties: {profile: g.profile},
-                enums: {profile: REGION_ENUMS.profile},
-            };
-            if (g.blocksMovement) { o.properties.blocksMovement = true; }
-            writeOutline(o, g);
-            writeEffect(o, g);
-            return o;
-        });
-
-        // ⭐ An atmosphere gets its OWN LAYER, and it is the one place this file
-        // does NOT follow D5's class-discriminator (plan-region-atmosphere.md
-        // D16). Two reasons, and the first is decisive: `darkAreas` — the
-        // primitive atmosphere retires — already owns a layer, so sharing one
-        // would give the successor worse authoring than the thing it replaces.
-        // The second is that a polygon sits BESIDE a path while an atmosphere
-        // COVERS the walls and roads it darkens, and Tiled toggles visibility
-        // per LAYER and never per class — so on a shared layer there would be no
-        // way to hide the fog to select the wall underneath.
-        //
-        // ⛔ NO blocksMovement, NO outline, NO width (D15). An atmosphere is
-        // air: a polygon is a wall you walk into, this is what you walk through.
-        // The two share a shape and nothing else, and the short property bag
-        // here is that ruling where an author can see it.
-        // ⛔ enums.profile is REGION_ENUMS.air here, NOT .profile — this is the
-        // one writer of the four whose vocabulary is the atmosphere table.
-        var atmospheres = (z.atmospheres || []).map(function (a) {
-            var pts = a.points || [];
-            var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
-            var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
-            var o = {
-                shape: 'polygon', layer: 'atmospheres', name: a.profile, cls: 'AuraAtmosphere',
-                x: ox, y: oy, width: 0, height: 0, rotation: 0,
-                flipH: false, flipV: false,
-                polygon: pts.map(function (v) {
-                    return {x: px(v.x, hw) - ox, y: px(v.y, hh) - oy};
-                }),
-                properties: {profile: a.profile},
-                enums: {profile: REGION_ENUMS.air},
-            };
-            writeEffect(o, a);
-            return o;
-        });
-
-        // ⭐ A CLEARING RIDES THE ATMOSPHERES LAYER AND IS TOLD APART BY ITS
-        // CLASS (plan-region-atmosphere.md A4) — zone-polygons D5's scheme, not
-        // D16's. D16 gave atmosphere a layer of its own because an atmosphere
-        // COVERS the walls it darkens and Tiled toggles visibility per layer, so
-        // a shared layer would leave no way to hide the fog and select the wall.
-        // A clearing is the opposite case: it sits INSIDE the air it cuts, is
-        // authored in the same breath, and hiding one to reach the other is
-        // never the need. Sharing the layer also keeps the two visible together,
-        // which is the only way to see that the hole lands in the bank.
-        //
-        // ⛔ NO profile member, and the emptiness IS the ruling (L7). A clearing
-        // paints nothing; an author reaching for "what colour is my clearing"
-        // must find NOTHING rather than a field that quietly means something
-        // else. zone.go refuses the key by name.
-        var clearings = (z.clearings || []).map(function (c) {
-            var pts = c.points || [];
-            var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
-            var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
-            return {
-                shape: 'polygon', layer: 'atmospheres',
-                // ⚑ The NAME is the clears value, so the Objects panel reads
-                // "both" / "darkness" rather than a row of blank entries. The
-                // typed property is still what modelToZone reads (readClears) —
-                // the name is a label, exactly as it is for a region's profile.
-                name: c.clears, cls: 'AuraClearing',
-                x: ox, y: oy, width: 0, height: 0, rotation: 0,
-                flipH: false, flipV: false,
-                polygon: pts.map(function (v) {
-                    return {x: px(v.x, hw) - ox, y: px(v.y, hh) - oy};
-                }),
-                properties: {clears: c.clears},
-                enums: {clears: REGION_ENUMS.clears},
-            };
-        });
-
-        var anchors = (z.anchors || []).map(function (a) {
-            return {
-                shape: 'point', layer: 'anchors', name: a.name, cls: 'AuraAnchor',
-                x: px(a.x, hw), y: px(a.y, hh),
-                width: 0, height: 0, rotation: 0,
-                flipH: false, flipV: false, properties: {},
-            };
-        });
-
         return {
             zoneName: z.name,
             boundsWidth: z.bounds.width,
@@ -934,17 +810,333 @@ var AuraConvert = (function () {
             originY: z.origin ? z.origin.y : undefined,
             // A map property like the origin; undefined = the zone authors none.
             ground: z.ground ? z.ground : undefined,
+            layers: layers,
+        };
+
+        /* The object layers of one group, the zone level or an area, bottom
+         * first. `prefix` is how a validation message names the group: ''
+         * at the zone level, 'farmlands/' inside an area. */
+        function kindLayers(src, prefix) {
+            var decals = (src.decals || []).map(function (t) {
+                var side = t.size * 2 * PX;
+                var a = anchorOf(px(t.x, hw), px(t.y, hh), side, side, rad2deg(t.rotation || 0));
+                return {
+                    shape: 'tile', layer: prefix + 'decals', name: t.type,
+                    tileset: 'decals', tileType: t.type, cls: 'AuraDecal',
+                    x: a.x, y: a.y, width: side, height: side,
+                    rotation: rad2deg(t.rotation || 0),
+                    // Real gid flip flags now that a tileset exists (C1 parked
+                    // these in a custom property for want of a tile).
+                    flipH: t.flipped === 'horizontal',
+                    flipV: t.flipped === 'vertical',
+                    properties: {},
+                };
+            });
+
+            // ⚑ The box a prop is drawn at is the TYPE's true physics footprint
+            // (api/props/*.json body) times the placement's optional scale — so
+            // what you see is what blocks movement, at the size it really blocks.
+            // Resizing the box IS authoring scale (C1); the writer derives the
+            // multiplier straight back out of it.
+            //
+            // ⭐ One sub-layer per prop layer (D3), every one present even when
+            // empty, so each zone opens with the same four drop targets (D2).
+            var propLayers = PROP_LAYERS.map(function (k) {
+                return {name: k, drawOrder: 'index', objects: ((src.props || {})[k] || []).map(function (p2) {
+                    return propObject(p2, prefix + PROPS_GROUP + '.' + k);
+                })};
+            });
+            function propObject(p2, layerName) {
+                var sz = propSize(p2.type);
+                var sc = (typeof p2.scale === 'number' && p2.scale > 0) ? p2.scale : 1;
+                var w = sz.w * PX * sc, h = sz.h * PX * sc;
+                var a = anchorOf(px(p2.x, hw), px(p2.y, hh), w, h, rad2deg(p2.rotation || 0));
+                var o = {
+                    // The zone-file path of the array, which is what a validation
+                    // message should name (props.canopy[3]).
+                    shape: 'tile', layer: layerName, name: p2.type,
+                    tileset: 'props', tileType: p2.type, cls: 'AuraProp',
+                    x: a.x, y: a.y, width: w, height: h,
+                    rotation: rad2deg(p2.rotation || 0),
+                    flipH: false, flipV: false,
+                    properties: {},
+                    enums: {blocksMovement: PROP_BLOCKS_ENUM},
+                };
+                // ⛔ Set NOTHING when the file authored nothing, so the Properties
+                // panel shows the CLASS member sitting at '(inherit)'. An
+                // object-level property SHADOWS the member that gives it its type,
+                // which degrades the dropdown to a free-text box — measured, and the
+                // same trap readSpawn's sentinels exist to avoid.
+                if (typeof p2.blocksMovement === 'boolean') {
+                    o.properties.blocksMovement =
+                        p2.blocksMovement ? PROP_BLOCKS : PROP_WALK_THROUGH;
+                }
+                return o;
+            }
+
+            var spawns = (src.spawns || []).map(function (s) {
+                var o = {
+                    shape: 'point', layer: prefix + 'spawns', name: s.mob, cls: spawnClass(s.mob),
+                    x: px(s.x, hw), y: px(s.y, hh),
+                    width: 0, height: 0, rotation: rad2deg(s.angle || 0),
+                    flipH: false, flipV: false, properties: {},
+                };
+                // C6: the whole form is visible on every spawn because the CLASS
+                // declares all seven members. Only the ones actually authored are
+                // set on the object, so the rest render as inherited defaults —
+                // which is also what keeps them typed (an object-level property
+                // shadows the member that gives it its type).
+                //
+                // ⚑ Setting the sentinel explicitly and omitting it are the same
+                // thing to readSpawn, by design and by test. Omitting is chosen
+                // only because it reads better in the panel.
+                o.properties.mob = s.mob;
+                o.enums = {mob: SPAWN_ENUMS.mob};
+                for (var k in SPAWN_INHERIT) {
+                    if (Object.prototype.hasOwnProperty.call(SPAWN_INHERIT, k)
+                        && s[k] !== undefined && s[k] !== null && s[k] !== SPAWN_INHERIT[k]) {
+                        o.properties[k] = s[k];
+                    }
+                }
+                if (s.patrolMode === 'loop') {
+                    o.properties.patrolMode = 'loop';
+                    o.enums.patrolMode = SPAWN_ENUMS.patrolMode;
+                }
+                // A patrolling spawn IS its route: a polyline drawn from the spawn
+                // point, one vertex per waypoint. Editing the route is then dragging
+                // vertices, which is the whole point.
+                //
+                // ⭐ EVERY vertex is a waypoint, node 0 included (PO ruling
+                // 2026-08-23, plan-prop-scale.md-era Tiled follow-up). Tiled puts
+                // node 0 at the object origin when you DRAW, so a fresh route's
+                // first waypoint lands on the spawn — a mob starts, and in loop mode
+                // returns, home. It used to be dropped as "the origin, not a
+                // waypoint", which made N clicks give N-1 waypoints and left the
+                // node-0 handle a silent no-op. The engine never had that notion:
+                // patrol.go marches the waypoint list and treats the spawn purely as
+                // where the mob starts, so both readings were legal — this one is
+                // WYSIWYG. ⚑ Nothing forces node 0 to stay on the origin: a route
+                // whose first waypoint is elsewhere (5 of the 7 in world.json,
+                // hand-authored in the in-game editor) simply serialises with a
+                // non-zero first vertex, and round-trips.
+                if (s.waypoints && s.waypoints.length > 0) {
+                    o.shape = 'polyline';
+                    o.polygon = s.waypoints.map(function (w) {
+                        return {x: px(w.x, hw) - o.x, y: px(w.y, hh) - o.y};
+                    });
+                }
+                return o;
+            });
+
+            var bindPoints = (src.bindPoints || []).map(function (c) {
+                var o = {
+                    shape: 'point', layer: prefix + 'bindPoints', name: c.id, cls: 'AuraBindPoint',
+                    x: px(c.x, hw), y: px(c.y, hh),
+                    width: 0, height: 0, rotation: 0, flipH: false, flipV: false,
+                    properties: {},
+                };
+                if (c.startingSpawn) { o.properties.startingSpawn = true; }
+                return o;
+            });
+
+            var darkAreas = (src.darkAreas || []).map(function (d) {
+                var side = d.radius * 2 * PX;
+                return {
+                    shape: 'ellipse', layer: prefix + 'darkAreas', name: '', cls: 'AuraDarkArea',
+                    x: px(d.x, hw) - side / 2, y: px(d.y, hh) - side / 2,
+                    width: side, height: side, rotation: 0,
+                    flipH: false, flipV: false, properties: {},
+                };
+            });
+
+            // A region IS its outline: a polygon object whose origin sits on the
+            // first vertex, so node 0 is {0,0} exactly as Tiled produces when you
+            // draw one. Same relative-vertex convention as a patrol polyline.
+            //
+            // ⚑ The PROFILE is both the object's Name (a readable label in the
+            // layer list) and a typed property; readRegion lets the property win,
+            // mirroring how a spawn's mob works. C2 turns that property into a
+            // generated AuraTerrainProfile enum — here it is still free text.
+            var regions = (src.regions || []).map(function (r) {
+                var pts = r.points || [];
+                var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
+                var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
+                return {
+                    // Named by its place when it has one, else by its ground:
+                    // a readable label only, never read back as either
+                    // (readRegionId, readRegionGround).
+                    shape: 'polygon', layer: prefix + 'regions', name: r.id || r.profile, cls: 'AuraRegion',
+                    x: ox, y: oy, width: 0, height: 0, rotation: 0,
+                    flipH: false, flipV: false,
+                    polygon: pts.map(function (p2) {
+                        return {x: px(p2.x, hw) - ox, y: px(p2.y, hh) - oy};
+                    }),
+                    // The id and the profile only when authored (D1): absent is
+                    // the member's default and reads back as absent.
+                    properties: Object.assign({},
+                        r.id ? {id: r.id} : {},
+                        r.profile ? {profile: r.profile} : {}),
+                    // C2: typed, or the Properties panel degrades to a free-text
+                    // box — an object-level PLAIN string shadows the class member
+                    // that declares the enum. Same marker, same reason, as a
+                    // spawn's mob.
+                    enums: {profile: REGION_ENUMS.profile, id: REGION_ID_ENUM},
+                };
+            });
+
+            // A path IS its centreline: a polyline whose origin sits on the first
+            // vertex, exactly like a patrol route and a region outline.
+            //
+            // ⭐ THE SHAPE IS THE FLAG (plan-zone-polygons.md P1). A polyline is an
+            // open path, a polygon is a closed one — there is no `closed` property in
+            // the Properties panel, deliberately: an authored bool could contradict
+            // the shape it was drawn as, and then the two would disagree about where
+            // a road ends. Closure is still only a STROKE either way; the FILLED
+            // shape is a class of its own (D1), which is what makes an accidental
+            // close in Tiled a one-undo cosmetic slip rather than a lake.
+            var paths = (src.paths || []).map(function (p2) {
+                var pts = p2.points || [];
+                var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
+                var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
+                var o = {
+                    shape: p2.closed ? 'polygon' : 'polyline',
+                    layer: prefix + 'paths', name: p2.profile, cls: 'AuraPath',
+                    x: ox, y: oy, width: 0, height: 0, rotation: 0,
+                    flipH: false, flipV: false,
+                    polygon: pts.map(function (v) {
+                        return {x: px(v.x, hw) - ox, y: px(v.y, hh) - oy};
+                    }),
+                    properties: {profile: p2.profile, width: p2.width},
+                    enums: {profile: REGION_ENUMS.profile},
+                };
+                // Only when true, so the Properties panel shows the class default
+                // for an ordinary path and the round-trip stays byte-identical.
+                if (p2.blocksMovement) { o.properties.blocksMovement = true; }
+                if (p2.alignTexture) { o.properties.alignTexture = true; }
+                writePathShape(o, p2);
+                writeOutline(o, p2);
+                writeEffect(o, p2);
+                return o;
+            });
+
+            // ⭐ A polygon rides the SAME LAYER as a path and is told apart by its
+            // CLASS (D5). PO ask 2026-09-09: "too many layers in Tiled will make me
+            // a little crazy" — eight object layers exist already, and the class is
+            // the more honest discriminator anyway, because it is what the
+            // Properties panel shows. ⚑ The cost, and it is real: an object on this
+            // layer whose class is neither AuraPath nor AuraStructure lands in NEITHER
+            // array and would vanish on save, so validateModel refuses one by id
+            // (L2b). The layer-per-type scheme got that check for free.
+            var structures = (src.structures || []).map(function (g) {
+                var pts = g.points || [];
+                var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
+                var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
+                var o = {
+                    shape: 'polygon', layer: prefix + 'paths', name: g.profile, cls: 'AuraStructure',
+                    x: ox, y: oy, width: 0, height: 0, rotation: 0,
+                    flipH: false, flipV: false,
+                    polygon: pts.map(function (v) {
+                        return {x: px(v.x, hw) - ox, y: px(v.y, hh) - oy};
+                    }),
+                    properties: {profile: g.profile},
+                    enums: {profile: REGION_ENUMS.profile},
+                };
+                if (g.blocksMovement) { o.properties.blocksMovement = true; }
+                writeOutline(o, g);
+                writeEffect(o, g);
+                return o;
+            });
+
+            // ⭐ An atmosphere gets its OWN LAYER, and it is the one place this file
+            // does NOT follow D5's class-discriminator (plan-region-atmosphere.md
+            // D16). Two reasons, and the first is decisive: `darkAreas` — the
+            // primitive atmosphere retires — already owns a layer, so sharing one
+            // would give the successor worse authoring than the thing it replaces.
+            // The second is that a polygon sits BESIDE a path while an atmosphere
+            // COVERS the walls and roads it darkens, and Tiled toggles visibility
+            // per LAYER and never per class — so on a shared layer there would be no
+            // way to hide the fog to select the wall underneath.
+            //
+            // ⛔ NO blocksMovement, NO outline, NO width (D15). An atmosphere is
+            // air: a polygon is a wall you walk into, this is what you walk through.
+            // The two share a shape and nothing else, and the short property bag
+            // here is that ruling where an author can see it.
+            // ⛔ enums.profile is REGION_ENUMS.air here, NOT .profile — this is the
+            // one writer of the four whose vocabulary is the atmosphere table.
+            var atmospheres = (src.atmospheres || []).map(function (a) {
+                var pts = a.points || [];
+                var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
+                var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
+                var o = {
+                    shape: 'polygon', layer: prefix + 'atmospheres', name: a.profile, cls: 'AuraAtmosphere',
+                    x: ox, y: oy, width: 0, height: 0, rotation: 0,
+                    flipH: false, flipV: false,
+                    polygon: pts.map(function (v) {
+                        return {x: px(v.x, hw) - ox, y: px(v.y, hh) - oy};
+                    }),
+                    properties: {profile: a.profile},
+                    enums: {profile: REGION_ENUMS.air},
+                };
+                writeEffect(o, a);
+                return o;
+            });
+
+            // ⭐ A CLEARING RIDES THE ATMOSPHERES LAYER AND IS TOLD APART BY ITS
+            // CLASS (plan-region-atmosphere.md A4) — zone-polygons D5's scheme, not
+            // D16's. D16 gave atmosphere a layer of its own because an atmosphere
+            // COVERS the walls it darkens and Tiled toggles visibility per layer, so
+            // a shared layer would leave no way to hide the fog and select the wall.
+            // A clearing is the opposite case: it sits INSIDE the air it cuts, is
+            // authored in the same breath, and hiding one to reach the other is
+            // never the need. Sharing the layer also keeps the two visible together,
+            // which is the only way to see that the hole lands in the bank.
+            //
+            // ⛔ NO profile member, and the emptiness IS the ruling (L7). A clearing
+            // paints nothing; an author reaching for "what colour is my clearing"
+            // must find NOTHING rather than a field that quietly means something
+            // else. zone.go refuses the key by name.
+            var clearings = (src.clearings || []).map(function (c) {
+                var pts = c.points || [];
+                var ox = pts.length > 0 ? px(pts[0].x, hw) : 0;
+                var oy = pts.length > 0 ? px(pts[0].y, hh) : 0;
+                return {
+                    shape: 'polygon', layer: prefix + 'atmospheres',
+                    // ⚑ The NAME is the clears value, so the Objects panel reads
+                    // "both" / "darkness" rather than a row of blank entries. The
+                    // typed property is still what modelToZone reads (readClears) —
+                    // the name is a label, exactly as it is for a region's profile.
+                    name: c.clears, cls: 'AuraClearing',
+                    x: ox, y: oy, width: 0, height: 0, rotation: 0,
+                    flipH: false, flipV: false,
+                    polygon: pts.map(function (v) {
+                        return {x: px(v.x, hw) - ox, y: px(v.y, hh) - oy};
+                    }),
+                    properties: {clears: c.clears},
+                    enums: {clears: REGION_ENUMS.clears},
+                };
+            });
+
+            var anchors = (src.anchors || []).map(function (a) {
+                return {
+                    shape: 'point', layer: prefix + 'anchors', name: a.name, cls: 'AuraAnchor',
+                    x: px(a.x, hw), y: px(a.y, hh),
+                    width: 0, height: 0, rotation: 0,
+                    flipH: false, flipV: false, properties: {},
+                };
+            });
+
             /* ⭐ THE STACK IS THE CLIENT'S DRAW ORDER, BOTTOM-FIRST
              * (plan-zone-naming.md D1). Tiled's layer list is bottom-to-top, and
              * this array is that list — so the order below is read against
              * Game.ts's cameraGroup.addChild calls, layer for layer:
              *
              *   regions     -> layers.terrain.regions      the ground itself
-             *   paths       -> terrain.polygons + .paths   masses, then ribbons
-             *   terrain     -> layers.terrain.textures     blobs ON the ground
-             *   props       -> resources.* / terrain.decks
+             *   paths       -> terrain.polygons + .paths   structures, then ribbons
+             *   decals      -> layers.terrain.textures     blobs ON the ground
+             *   props       -> props.standing / .underfoot (a GROUP: one
+             *                  sub-layer per prop layer, bottom to top)
              *   spawns      -> layers.mobs.*
-             *   campfires   -> (not rendered from this array at all)
+             *   bindPoints  -> (not rendered from this array at all)
              *   darkAreas   -> layers.darkness
              *   atmospheres -> layers.haze + layers.darkness
              *   anchors     -> (not rendered)
@@ -960,14 +1152,14 @@ var AuraConvert = (function () {
              * screen-sized region polygon drawn over the props won every click
              * aimed at one of them.
              *
-             * ⚑ campfires above spawns is arbitrary (both are points, neither
-             * occludes the other, and campfires are not rendered from here);
+             * ⚑ bindPoints above spawns is arbitrary (both are points, neither
+             * occludes the other, and bind points are not rendered from here);
              * their relative order is simply preserved.
              */
-            layers: [
+            return [
                 // Region array order is resolution order (D0: the LAST
                 // containing region that declares a property wins), so this
-                // layer draws by index for the same reason terrain does.
+                // layer draws by index for the same reason decals does.
                 //
                 // ⭐ LOCKED (plan-zone-naming.md D2). Being at the bottom stops
                 // a region winning a click aimed at something above it; the lock
@@ -978,18 +1170,21 @@ var AuraConvert = (function () {
                 {name: 'regions', drawOrder: 'index', locked: true, objects: regions},
                 // Path array order is draw order too — a bridge road drawn over
                 // a river is authored by putting it later in the array.
-                // ⚑ POLYGONS FIRST, then paths — the draw order is regions →
-                // polygons → paths (masses under ribbons), and modelToZone
+                // ⚑ STRUCTURES FIRST, then paths — the draw order is regions →
+                // structures → paths (masses under ribbons), and modelToZone
                 // splits them back out by class with each array's own order
                 // intact, so the round-trip stays byte-identical.
-                {name: 'paths', drawOrder: 'index', objects: polygons.concat(paths)},
-                // terrain array order IS paint order (GroundTextureManager), so
+                {name: 'paths', drawOrder: 'index', objects: structures.concat(paths)},
+                // decals array order IS paint order (GroundTextureManager), so
                 // the layer must draw by index or the canvas lies about which
                 // piece covers which.
-                {name: 'terrain', drawOrder: 'index', objects: terrain},
-                {name: 'props', drawOrder: 'index', objects: props},
+                {name: 'decals', drawOrder: 'index', objects: decals},
+                // ⭐ The one GROUP (plan-prop-draw-order.md D3): `layers`
+                // instead of `objects`, bottom to top. The game draws a higher
+                // sub-layer over a lower one, exactly as Tiled stacks them.
+                {name: PROPS_GROUP, layers: propLayers},
                 {name: 'spawns', drawOrder: 'index', objects: spawns},
-                {name: 'campfires', drawOrder: 'index', objects: campfires},
+                {name: 'bindPoints', drawOrder: 'index', objects: bindPoints},
                 {name: 'darkAreas', drawOrder: 'index', objects: darkAreas},
                 // Atmosphere array order is draw order AND resolution order,
                 // regions' rule exactly (D0/D3: the last declaring shape wins,
@@ -1019,8 +1214,39 @@ var AuraConvert = (function () {
                 {name: 'atmospheres', drawOrder: 'index', locked: true,
                     objects: atmospheres.concat(clearings)},
                 {name: 'anchors', drawOrder: 'index', objects: anchors},
-            ],
-        };
+            ];
+        }
+    }
+
+    /* The objects of one sub-layer of a group within a layer list (the zone
+     * level's, or an area's), found BY NAME: the group, then the sub-layer
+     * inside it. A missing group or sub-layer is empty — an author may delete
+     * one, and the next open brings it back. (layerRefusals has already
+     * refused any duplicate name, so first-match loses nothing.) An area
+     * group is never the props group, whatever its label says. */
+    function subLayerObjects(layers, group, name) {
+        for (var i = 0; i < layers.length; i++) {
+            var g = layers[i];
+            if (g.name !== group || !g.layers || g.cls === AREA_CLASS) { continue; }
+            for (var j = 0; j < g.layers.length; j++) {
+                if (g.layers[j].name === name) { return g.layers[j].objects || []; }
+            }
+        }
+        return [];
+    }
+
+    /* The area groups of a model, in stack order (plan-prop-draw-order.md
+     * P4): every top-level group of class AuraArea (P4b). */
+    function areaGroups(m) {
+        return m.layers.filter(function (l) { return l.layers && l.cls === AREA_CLASS; });
+    }
+
+    /* An area group's id: its typed `id` property, never its name (P4b,
+     * D15). Absent is AREA_UNSET, because Tiled may drop a member left at
+     * its default, and the save refuses both alike. */
+    function areaId(g) {
+        var v = plainValue(g.properties ? g.properties.id : undefined);
+        return v === undefined || v === null || v === '' ? AREA_UNSET : String(v);
     }
 
     /* ---- plain model  ->  zone JSON ---------------------------------------- */
@@ -1031,21 +1257,13 @@ var AuraConvert = (function () {
             return o.properties && o.properties[k] !== undefined && o.properties[k] !== null
                 ? o.properties[k] : undefined;
         }
-        function layer(name) {
-            for (var i = 0; i < m.layers.length; i++) {
-                if (m.layers[i].name === name) { return m.layers[i].objects || []; }
-            }
-            return [];
-        }
-        // ⚑ The paths layer holds TWO classes since plan-zone-polygons.md D5.
-        // Everything that reads it must say which one it wants, or a polygon
-        // gets read as a width-less path.
-        function onLayer(name, cls) {
-            return layer(name).filter(function (o) { return o.cls === cls; });
-        }
         function centre(o) { return centreOf(o.x, o.y, o.width, o.height, o.rotation || 0); }
+        function copyInto(to, from) {
+            for (var k in from) { if (has(from, k)) { to[k] = from[k]; } }
+            return to;
+        }
 
-        return {
+        var zone = copyInto({
             name: m.zoneName,
             bounds: {width: m.boundsWidth, height: m.boundsHeight},
             origin: (m.originX !== undefined && m.originX !== null)
@@ -1053,150 +1271,184 @@ var AuraConvert = (function () {
                 ? {x: Number(m.originX) || 0, y: Number(m.originY) || 0}
                 : undefined,
             ground: readGround(m.ground),
-            terrain: layer('terrain').map(function (o, i) {
-                if (o.flipH && o.flipV) {
-                    throw new Error('terrain[' + i + '] "' + o.name + '": world.json has no'
-                        + ' both-axes flip; use one flip plus 180 degrees of rotation');
+        }, readKinds(m.layers));
+        // Each area group back to its entry, in stack order. undefined when
+        // there are none, so a zone without areas is written as before.
+        var areas = areaGroups(m);
+        zone.areas = areas.length > 0 ? areas.map(function (g) {
+            return copyInto({id: areaId(g)}, readKinds(g.layers));
+        }) : undefined;
+        return zone;
+
+        // Every object array of one group: the zone level's layers, or an
+        // area group's. Layers are read BY NAME, so the stack order never
+        // matters to the file.
+        function readKinds(layers) {
+            function layer(name) {
+                for (var i = 0; i < layers.length; i++) {
+                    if (layers[i].name === name) { return layers[i].objects || []; }
                 }
-                var c = centre(o);
-                return {
-                    type: o.name,
-                    x: u(c.x, hw), y: u(c.y, hh),
-                    size: o.width / (2 * PX),
-                    rotation: deg2rad(o.rotation || 0),
-                    flipped: o.flipH ? 'horizontal' : (o.flipV ? 'vertical' : 'none'),
-                };
-            }),
-            props: layer('props').map(function (o) {
-                var c = centre(o);
-                return {
-                    type: o.name,
-                    x: u(c.x, hw), y: u(c.y, hh),
-                    rotation: deg2rad(o.rotation || 0),
-                    blocksMovement: readPropBlocks(o),
-                    scale: readPropScale(o),
-                };
-            }),
-            spawns: layer('spawns').map(function (o) {
-                // Every sentinel comes back as undefined here, which the
-                // serializer drops — that is what keeps the ~226 inheriting
-                // spawns byte-identical while the editor shows a full form.
-                var p = readSpawn(o);
-                var s = {
-                    mob: p.mob,
-                    x: u(o.x, hw), y: u(o.y, hh),
-                    angle: deg2rad(o.rotation || 0),
-                    respawnTicks: p.respawnTicks,
-                    respawnVariancePct: p.respawnVariancePct,
-                    wanderRadius: p.wanderRadius,
-                    idleSpeedFactor: p.idleSpeedFactor,
-                    level: p.level,
-                    patrolMode: p.patrolMode,
-                    anchor: p.anchor,
-                };
-                if (o.shape === 'polyline' && o.polygon && o.polygon.length > 0) {
-                    s.waypoints = o.polygon.map(function (v) {
-                        return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
+                return [];
+            }
+            // ⚑ The paths layer holds TWO classes since plan-zone-polygons.md D5.
+            // Everything that reads it must say which one it wants, or a polygon
+            // gets read as a width-less path.
+            function onLayer(name, cls) {
+                return layer(name).filter(function (o) { return o.cls === cls; });
+            }
+
+            return {
+                decals: layer('decals').map(function (o, i) {
+                    if (o.flipH && o.flipV) {
+                        throw new Error((o.layer || 'decals') + '[' + i + '] "' + o.name + '": world.json has no'
+                            + ' both-axes flip; use one flip plus 180 degrees of rotation');
+                    }
+                    var c = centre(o);
+                    return {
+                        type: o.name,
+                        x: u(c.x, hw), y: u(c.y, hh),
+                        size: o.width / (2 * PX),
+                        rotation: deg2rad(o.rotation || 0),
+                        flipped: o.flipH ? 'horizontal' : (o.flipV ? 'vertical' : 'none'),
+                    };
+                }),
+                // Each sub-layer back to its own array, in its own object order.
+                props: (function () {
+                    var out = {};
+                    PROP_LAYERS.forEach(function (k) {
+                        out[k] = subLayerObjects(layers, PROPS_GROUP, k).map(function (o) {
+                            var c = centre(o);
+                            return {
+                                type: o.name,
+                                x: u(c.x, hw), y: u(c.y, hh),
+                                rotation: deg2rad(o.rotation || 0),
+                                blocksMovement: readPropBlocks(o),
+                                scale: readPropScale(o),
+                            };
+                        });
                     });
-                }
-                return s;
-            }),
-            campfires: layer('campfires').map(function (o) {
-                return {
-                    id: o.name,
-                    x: u(o.x, hw), y: u(o.y, hh),
-                    startingSpawn: get(o, 'startingSpawn') ? true : undefined,
-                };
-            }),
-            darkAreas: layer('darkAreas').map(function (o) {
-                return {
-                    x: u(o.x + o.width / 2, hw),
-                    y: u(o.y + o.height / 2, hh),
-                    radius: o.width / (2 * PX),
-                };
-            }),
-            regions: layer('regions').map(function (o) {
-                return {
-                    profile: readRegionProfile(o),
-                    points: closedAreaPoints(o).map(function (v) {
-                        return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
-                    }),
-                    title: readText(o, 'title'),
-                    subtitle: readText(o, 'subtitle'),
-                };
-            }),
-            // ⚑ Split by CLASS, not by layer (D5). An object that is neither is
-            // refused by validateModel before it can reach here, which is what
-            // stops it from silently vanishing.
-            paths: onLayer('paths', 'AuraPath').map(function (o) {
-                var w = get(o, 'width');
-                return {
-                    profile: readRegionProfile(o),
-                    points: (o.polygon || []).map(function (v) {
-                        return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
-                    }),
-                    width: typeof w === 'number' ? w : 0,
-                    blocksMovement: get(o, 'blocksMovement') ? true : undefined,
-                    // ⚑ Read off the SHAPE, never off a property — see the
-                    // matching note in zoneToModel. get(o, 'closed') would be a
-                    // second source of truth for something Tiled already knows.
-                    closed: o.shape === 'polygon' ? true : undefined,
-                    outlineProfile: readOutlineProfile(o),
-                    outlineWidth: readOutlineProfile(o) !== undefined
-                        ? (typeof get(o, 'outlineWidth') === 'number' ? get(o, 'outlineWidth') : 0)
-                        : undefined,
-                    alignTexture: get(o, 'alignTexture') ? true : undefined,
-                    corners: readPathShape(o, 'corners'),
-                    ends: readPathShape(o, 'ends'),
-                    effect: readEffect(o),
-                };
-            }),
-            polygons: onLayer('paths', 'AuraPolygon').map(function (o) {
-                return {
-                    profile: readRegionProfile(o),
-                    points: closedAreaPoints(o).map(function (v) {
-                        return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
-                    }),
-                    blocksMovement: get(o, 'blocksMovement') ? true : undefined,
-                    outlineProfile: readOutlineProfile(o),
-                    outlineWidth: readOutlineProfile(o) !== undefined
-                        ? (typeof get(o, 'outlineWidth') === 'number' ? get(o, 'outlineWidth') : 0)
-                        : undefined,
-                    effect: readEffect(o),
-                };
-            }),
-            // ⚑ Read by LAYER, not by class (D16) — so unlike the paths layer
-            // this one needs no onLayer() split and cannot lose an object to a
-            // class it does not recognise.
-            //
-            // ⛔ Two keys out, two keys in. If a future reader is tempted to add
-            // blocksMovement here "for symmetry with polygons": don't. The
-            // server refuses the key by name, so it would round-trip into a zone
-            // file that no longer boots.
-            atmospheres: onLayer('atmospheres', 'AuraAtmosphere').map(function (o) {
-                return {
-                    profile: readRegionProfile(o),
-                    points: closedAreaPoints(o).map(function (v) {
-                        return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
-                    }),
-                    effect: readEffect(o),
-                };
-            }),
-            // ⭐ The SECOND class on this layer since A4, read by class for the
-            // same reason the paths layer's two are: an object read as the wrong
-            // kind comes back profile-less or clears-less, and both are silent.
-            clearings: onLayer('atmospheres', 'AuraClearing').map(function (o) {
-                return {
-                    clears: readClears(o),
-                    points: closedAreaPoints(o).map(function (v) {
-                        return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
-                    }),
-                };
-            }),
-            anchors: layer('anchors').map(function (o) {
-                return {name: o.name, x: u(o.x, hw), y: u(o.y, hh)};
-            }),
-        };
+                    return out;
+                })(),
+                spawns: layer('spawns').map(function (o) {
+                    // Every sentinel comes back as undefined here, which the
+                    // serializer drops — that is what keeps the ~226 inheriting
+                    // spawns byte-identical while the editor shows a full form.
+                    var p = readSpawn(o);
+                    var s = {
+                        mob: p.mob,
+                        x: u(o.x, hw), y: u(o.y, hh),
+                        angle: deg2rad(o.rotation || 0),
+                        respawnTicks: p.respawnTicks,
+                        respawnVariancePct: p.respawnVariancePct,
+                        wanderRadius: p.wanderRadius,
+                        idleSpeedFactor: p.idleSpeedFactor,
+                        level: p.level,
+                        patrolMode: p.patrolMode,
+                        anchor: p.anchor,
+                    };
+                    if (o.shape === 'polyline' && o.polygon && o.polygon.length > 0) {
+                        s.waypoints = o.polygon.map(function (v) {
+                            return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
+                        });
+                    }
+                    return s;
+                }),
+                bindPoints: layer('bindPoints').map(function (o) {
+                    return {
+                        id: o.name,
+                        x: u(o.x, hw), y: u(o.y, hh),
+                        startingSpawn: get(o, 'startingSpawn') ? true : undefined,
+                    };
+                }),
+                darkAreas: layer('darkAreas').map(function (o) {
+                    return {
+                        x: u(o.x + o.width / 2, hw),
+                        y: u(o.y + o.height / 2, hh),
+                        radius: o.width / (2 * PX),
+                    };
+                }),
+                regions: layer('regions').map(function (o) {
+                    return {
+                        id: readRegionId(o),
+                        profile: readRegionGround(o),
+                        points: closedAreaPoints(o).map(function (v) {
+                            return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
+                        }),
+                    };
+                }),
+                // ⚑ Split by CLASS, not by layer (D5). An object that is neither is
+                // refused by validateModel before it can reach here, which is what
+                // stops it from silently vanishing.
+                paths: onLayer('paths', 'AuraPath').map(function (o) {
+                    var w = get(o, 'width');
+                    return {
+                        profile: readRegionProfile(o),
+                        points: (o.polygon || []).map(function (v) {
+                            return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
+                        }),
+                        width: typeof w === 'number' ? w : 0,
+                        blocksMovement: get(o, 'blocksMovement') ? true : undefined,
+                        // ⚑ Read off the SHAPE, never off a property — see the
+                        // matching note in zoneToModel. get(o, 'closed') would be a
+                        // second source of truth for something Tiled already knows.
+                        closed: o.shape === 'polygon' ? true : undefined,
+                        outlineProfile: readOutlineProfile(o),
+                        outlineWidth: readOutlineProfile(o) !== undefined
+                            ? (typeof get(o, 'outlineWidth') === 'number' ? get(o, 'outlineWidth') : 0)
+                            : undefined,
+                        alignTexture: get(o, 'alignTexture') ? true : undefined,
+                        corners: readPathShape(o, 'corners'),
+                        ends: readPathShape(o, 'ends'),
+                        effect: readEffect(o),
+                    };
+                }),
+                structures: onLayer('paths', 'AuraStructure').map(function (o) {
+                    return {
+                        profile: readRegionProfile(o),
+                        points: closedAreaPoints(o).map(function (v) {
+                            return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
+                        }),
+                        blocksMovement: get(o, 'blocksMovement') ? true : undefined,
+                        outlineProfile: readOutlineProfile(o),
+                        outlineWidth: readOutlineProfile(o) !== undefined
+                            ? (typeof get(o, 'outlineWidth') === 'number' ? get(o, 'outlineWidth') : 0)
+                            : undefined,
+                        effect: readEffect(o),
+                    };
+                }),
+                // ⚑ Read by LAYER, not by class (D16) — so unlike the paths layer
+                // this one needs no onLayer() split and cannot lose an object to a
+                // class it does not recognise.
+                //
+                // ⛔ Two keys out, two keys in. If a future reader is tempted to add
+                // blocksMovement here "for symmetry with structures": don't. The
+                // server refuses the key by name, so it would round-trip into a zone
+                // file that no longer boots.
+                atmospheres: onLayer('atmospheres', 'AuraAtmosphere').map(function (o) {
+                    return {
+                        profile: readRegionProfile(o),
+                        points: closedAreaPoints(o).map(function (v) {
+                            return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
+                        }),
+                        effect: readEffect(o),
+                    };
+                }),
+                // ⭐ The SECOND class on this layer since A4, read by class for the
+                // same reason the paths layer's two are: an object read as the wrong
+                // kind comes back profile-less or clears-less, and both are silent.
+                clearings: onLayer('atmospheres', 'AuraClearing').map(function (o) {
+                    return {
+                        clears: readClears(o),
+                        points: closedAreaPoints(o).map(function (v) {
+                            return {x: u(o.x + v.x, hw), y: u(o.y + v.y, hh)};
+                        }),
+                    };
+                }),
+                anchors: layer('anchors').map(function (o) {
+                    return {name: o.name, x: u(o.x, hw), y: u(o.y, hh)};
+                }),
+            };
+        }
     }
 
     // ⚑ The typed property wins over the object's Name, which is only a
@@ -1237,7 +1489,7 @@ var AuraConvert = (function () {
         return v;
     }
 
-    /* The area effect (plan-area-effects.md E1), shared by paths, polygons and
+    /* The area effect (plan-area-effects.md E1), shared by paths, structures and
      * atmospheres because all three carry exactly the same key.
      *
      * ⚑ Written ONLY when authored, which is what keeps every existing shape
@@ -1280,6 +1532,27 @@ var AuraConvert = (function () {
         var v = o.properties && o.properties.profile !== undefined && o.properties.profile !== null
             ? plainValue(o.properties.profile) : undefined;
         return v !== undefined ? v : o.name;
+    }
+
+    /* A region's place id (plan-region-identity.md D2), or undefined for "no
+     * place": the sentinel, a blank and an absent member alike. */
+    function readRegionId(o) {
+        var v = readText(o, 'id');
+        return v === REGION_ID_UNSET ? undefined : v;
+    }
+
+    /* A region's ground, OPTIONAL since R1 (D1): the sentinel and a blank read
+     * as "paints no ground". ⛔ readRegionProfile's o.name fallback applies only
+     * to a region WITHOUT an id: an id-only region opens named by its id, and
+     * reading that name as a profile would paint the base land fill over
+     * whatever lies below (plan §2.4). */
+    function readRegionGround(o) {
+        var has = o.properties && o.properties.profile !== undefined && o.properties.profile !== null;
+        var v = has ? plainValue(o.properties.profile) : (readRegionId(o) === undefined ? o.name : undefined);
+        if (v === undefined || v === null || v === PROFILE_UNSET || !String(v).replace(/^s+|s+$/g, '')) {
+            return undefined;
+        }
+        return v;
     }
 
     /* Which layers an AuraClearing cuts (A4).
@@ -1333,7 +1606,7 @@ var AuraConvert = (function () {
         if (hasValue(content.TERRAIN_TYPES, name)) { return 'ground texture'; }
         return null;
     }
-    var LAYER_OF_KIND = {'prop type': 'props', 'mob': 'spawns', 'ground texture': 'terrain'};
+    var LAYER_OF_KIND = {'prop type': 'props', 'mob': 'spawns', 'ground texture': 'decals'};
 
     function unknownName(layer, name, what) {
         var msg = 'unknown ' + what + ' "' + name + '"';
@@ -1369,12 +1642,18 @@ var AuraConvert = (function () {
 
     function polygonNotices(m) {
         var notes = [];
-        for (var li = 0; li < m.layers.length; li++) {
-            if (m.layers[li].name !== 'paths') { continue; }
-            var objs = m.layers[li].objects || [];
+        // The zone level's paths layer and every area's (P4).
+        var pathLayers = [m.layers].concat(areaGroups(m).map(function (g) { return g.layers; }))
+            .map(function (layers) {
+                for (var j = 0; j < layers.length; j++) { if (layers[j].name === 'paths') { return layers[j]; } }
+                return null;
+            });
+        for (var li = 0; li < pathLayers.length; li++) {
+            if (!pathLayers[li]) { continue; }
+            var objs = pathLayers[li].objects || [];
             for (var i = 0; i < objs.length; i++) {
                 var o = objs[i];
-                if (o.cls !== 'AuraPolygon') { continue; }
+                if (o.cls !== 'AuraStructure') { continue; }
                 if (!(o.properties && o.properties.blocksMovement)) { continue; }
                 var pts = o.polygon || [];
                 if (pts.length < 3) { continue; }
@@ -1387,9 +1666,9 @@ var AuraConvert = (function () {
                 var area = Math.abs(a2) / 2 / (PX * PX);
                 var cells = Math.ceil(area / (POLY_CELL * POLY_CELL));
                 if (cells > POLY_BODY_CAP) {
-                    notes.push('paths #' + (o.id !== undefined ? o.id : '?')
+                    notes.push((o.layer || 'paths') + ' #' + (o.id !== undefined ? o.id : '?')
                         + (o.name ? ' "' + o.name + '"' : '')
-                        + ': this blocking polygon is large (~' + Math.round(area)
+                        + ': this blocking structure is large (~' + Math.round(area)
                         + ' sq units, roughly ' + cells + ' cells at ' + POLY_CELL
                         + 'u against a cap of ' + POLY_BODY_CAP + '). The server will'
                         + ' COARSEN its collision to fit and boot normally, so it will'
@@ -1409,9 +1688,13 @@ var AuraConvert = (function () {
             errors.push(o.layer + ' #' + (o.id !== undefined ? o.id : '?')
                 + (o.name ? ' "' + o.name + '"' : '') + ' (' + o.layer + '[' + i + ']): ' + msg);
         }
+        // The layer list being checked: the zone level's, then each area's
+        // in turn (P4). Every per-object rule below reads through it, so an
+        // area's objects get exactly the zone level's checks.
+        var scope = m.layers;
         function layer(name) {
-            for (var i = 0; i < m.layers.length; i++) {
-                if (m.layers[i].name === name) { return m.layers[i].objects || []; }
+            for (var i = 0; i < scope.length; i++) {
+                if (scope[i].name === name) { return scope[i].objects || []; }
             }
             return [];
         }
@@ -1441,492 +1724,693 @@ var AuraConvert = (function () {
             errors.push('bounds must be positive, got ' + m.boundsWidth + 'x' + m.boundsHeight);
         }
 
-        // ⭐ terrain.type is the one field validated NOWHERE else: the server
-        // ignores it (zone.go has no terrain checks at all) and the client
-        // dereferences undefined at render time, so a typo shows up as a broken
-        // browser rather than a failed boot. Free to close here.
-        // A boxed object gets its identity from the TILE it carries, so one
-        // drawn with the rectangle tool has no identity at all. Same confusion
-        // as a bare point on the spawns layer, same kind of answer.
-        function fromTileset(o, i, which, set) {
-            bad(o, i, 'this has no type — it was drawn as a plain shape rather than dragged'
-                + ' from the ' + set + ' tileset. Delete it and drag a ' + which + ' from the'
-                + ' tileset panel instead; the tile is what says what it is');
-        }
-
-        var terrainKnown = content.TERRAIN_TYPES.length > 0;
-        layer('terrain').forEach(function (o, i) {
-            if (!o.name) {
-                fromTileset(o, i, 'texture', 'aura-terrain');
-            } else if (terrainKnown && whereElse(o.name) !== 'ground texture') {
-                bad(o, i, unknownName('terrain', o.name, 'ground texture'));
+        // D12 + D15: the id is the group's `id` property, picked from the
+        // area list. zone.go's checkAreaIDs and CrossValidateAreaIDs.
+        var seenArea = {};
+        var areasKnown = content.AREA_IDS.length > 0;
+        areaGroups(m).forEach(function (g) {
+            var id = areaId(g);
+            var where = 'area group "' + g.name + '": ';
+            if (id === AREA_UNSET) {
+                errors.push(where + 'no area picked. Select the group and pick its id in the'
+                    + ' Properties panel');
+            } else if (!AREA_ID.test(id) || hasValue(OBJECT_KINDS, id)) {
+                errors.push(where + 'id "' + id + '" is not a valid area id (a slug of a-z, 0-9 and'
+                    + ' "-", never a zone array\'s name). Pick one in the Properties panel');
+            } else if (areasKnown && !hasValue(content.AREA_IDS, id)) {
+                errors.push(where + 'id "' + id + '" is not in api/areas/areas.json. Add it there'
+                    + ' and regenerate the palette, or pick a listed one');
+            } else if (seenArea[id]) {
+                errors.push(where + 'another area group has the id "' + id + '". Move its layers'
+                    + ' into one group, or pick another id');
             }
-            if (!(o.width > 0)) { bad(o, i, 'size must be positive'); }
-            if (o.flipH && o.flipV) {
-                bad(o, i, 'world.json has no both-axes flip; use one flip plus 180° of rotation');
-            }
+            seenArea[id] = true;
         });
 
-        var propsKnown = Object.keys(content.PROP_SIZE).length > 0;
-        layer('props').forEach(function (o, i) {
-            /* ⛔ PRESENT AND WRONG IS REFUSED; ABSENT IS THE DEFAULT. The same
-             * asymmetry `clears` records below, for the same reason: an absent
-             * property is Tiled dropping a value still at its member default,
-             * which is invisible to the author and must round-trip — while a
-             * value that is present and unrecognised is somebody having typed
-             * it, and a prop that silently stopped blocking looks on screen
-             * exactly like one that still does. */
-            var rawBlocks = o.properties && o.properties.blocksMovement !== undefined
-                && o.properties.blocksMovement !== null
-                ? plainValue(o.properties.blocksMovement) : undefined;
-            if (rawBlocks !== undefined && typeof rawBlocks !== 'boolean'
-                && !hasValue(PROP_BLOCKS_VALUES, rawBlocks)) {
-                bad(o, i, 'blocksMovement ' + JSON.stringify(rawBlocks) + ' must be one of '
-                    + PROP_BLOCKS_VALUES.join(', ') + ' — "' + PROP_BLOCKS_INHERIT
-                    + '" takes whatever api/props/' + (o.name || '<type>') + ' says');
-            }
-
-            var known = true;
-            if (!o.name) {
-                fromTileset(o, i, 'prop', 'aura-props');
-                known = false;
-            } else if (propsKnown && !has(content.PROP_SIZE, o.name)) {
-                bad(o, i, unknownName('props', o.name, 'prop type'));
-                known = false;
-            }
-            // The scale checks need the type's real footprint to divide by, so
-            // they only run once the name resolves — otherwise propSize's
-            // {w:1,h:1} fallback would turn every box into a nonsense multiple.
-            if (!known || !propsKnown) { return; }
-
-            var sc = readPropScale(o);
-            if (sc !== undefined && (!(sc > 0) || sc > MAX_PROP_SCALE)) {
-                bad(o, i, 'scale ' + sc + ' must be in (0, ' + MAX_PROP_SCALE + '] —'
-                    + ' a prop is sized by resizing its box, and this one is '
-                    + (sc > MAX_PROP_SCALE ? sc + '× the body of its type' : 'not a positive size'));
-            }
-            // world.json carries ONE multiplier, so a box dragged out of
-            // proportion would silently lose an axis. Same call as the dark
-            // area's circle check, and the same fix: hold Shift.
-            var sz = propSize(o.name);
-            var expectedH = sz.h * PX * (sc === undefined ? 1 : sc);
-            if (Math.abs(o.height - expectedH) > 0.5) {
-                bad(o, i, 'must keep its proportions (' + Math.round(o.width) + '×'
-                    + Math.round(o.height) + ' px, expected ' + Math.round(o.width) + '×'
-                    + Math.round(expectedH) + ') — world.json has one uniform scale,'
-                    + ' so hold Shift while resizing');
-            }
-        });
-
-        var mobsKnown = Object.keys(content.MOB_KIND).length > 0;
-        layer('spawns').forEach(function (o, i) {
-            // ⚑ A route is a POLYLINE. Until regions existed a polygon drawn
-            // here was quietly read as one; now that the two shapes are
-            // distinct, an unrefused polygon would drop its waypoints in
-            // silence. Refusing the save is the whole point of this pass.
-            if (o.shape === 'polygon') {
-                bad(o, i, 'a patrol route must be a POLYLINE, not a closed polygon — redraw it'
-                    + ' with the polyline tool, or its waypoints are lost on save');
-            }
-            // ⚑ Through readSpawn, never off the raw properties: every
-            // inheriting spawn carries `level: 0` and `wanderRadius: -1`, and
-            // range-checking those raw would flag ~226 healthy spawns.
-            var p = readSpawn(o);
-            var known = !mobsKnown || has(content.MOB_KIND, p.mob);
-            if (p.mob === MOB_UNSET) {
-                bad(o, i, 'no mob chosen yet — pick one in the Properties panel ("mob")');
-                known = false;
-            } else if (!p.mob) {
-                // A freshly drawn point has no name, no class and no properties,
-                // so the form never appeared. Say how to make it appear rather
-                // than reporting an unknown mob named "".
-                bad(o, i, 'this spawn has no mob. Set its Class (Properties panel, top row) to'
-                    + ' AuraSpawnCombat / AuraSpawnTalker / AuraSpawnFixture'
-                    + ' — that is what brings up the spawn form — then'
-                    + ' pick a "mob" from the dropdown');
-                known = false;
-            } else if (!known) {
-                bad(o, i, unknownName('spawns', p.mob, 'mob'));
-            }
-
-            var waypoints = p.waypointCount;
-            if (waypoints === 1) {
-                bad(o, i, 'a route needs at least 2 waypoints — the polyline needs a second point');
-            }
-
-            var wr = p.wanderRadius;
-            num(o, i, 'wanderRadius', wr, function (v) { return v >= 0; }, 'zero or positive');
-            if (typeof wr === 'number' && wr > 0 && waypoints > 0) {
-                bad(o, i, 'wanderRadius and waypoints are mutually exclusive');
-            }
-            num(o, i, 'idleSpeedFactor', p.idleSpeedFactor,
-                function (v) { return v > 0 && v <= 1; }, 'in (0, 1]');
-            num(o, i, 'level', p.level,
-                function (v) { return v >= 1 && v === Math.floor(v); }, 'a whole number >= 1');
-            num(o, i, 'respawnTicks', p.respawnTicks,
-                function (v) { return v >= 0; }, 'zero or positive');
-            num(o, i, 'respawnVariancePct', p.respawnVariancePct,
-                function (v) { return v >= 0; }, 'zero or positive');
-
-            // Only "loop" survives readSpawn — "pingpong" IS the inherit
-            // sentinel, so anything left here is a typo.
-            var mode = p.patrolMode;
-            if (mode !== undefined && mode !== 'loop') {
-                bad(o, i, 'patrolMode "' + mode + '" must be "pingpong" or "loop"');
-            }
-            if (mode !== undefined && waypoints === 0) { bad(o, i, 'patrolMode without waypoints'); }
-
-            // zone.go checks this in resolve(), not validate(), because it needs
-            // the resolved species — which is why the generated MOB_SPEED exists.
-            if (known && mobsKnown) {
-                var moves = (typeof wr === 'number' && wr > 0) || waypoints > 0;
-                if (moves && !(content.MOB_SPEED[p.mob] > 0)) {
-                    bad(o, i, 'stationary mob "' + p.mob + '" (speed 0) cannot wander or patrol');
-                }
-            }
-        });
-
-        var campfires = layer('campfires');
+        // Names that must be unique are unique ZONE-WIDE, across areas, as in
+        // zone.go: an anchor is looked up by name, a bind persisted by id.
         var seenFire = {};
-        campfires.forEach(function (o, i) {
-            var id = String(o.name || '').replace(/^\s+|\s+$/g, '');
-            if (!id) { bad(o, i, 'id must not be empty (the object\'s Name is the campfire id)'); }
-            else if (seenFire[id]) { bad(o, i, 'duplicate spawn point id "' + id + '"'); }
-            seenFire[id] = true;
-        });
-        /* ⛔ "at least one campfire is a startingSpawn" USED TO BE CHECKED HERE and
-         * cannot be any more (plan-underworld.md U1/L4). The server moved it from
-         * per-FILE to per-SET (world.Place checkSetWide) the moment more than one
-         * zone could load: a cave nobody binds in legitimately carries campfires
-         * with no starting spawn, while the WORLD still must have somewhere to put
-         * a fresh character.
-         *
-         * ⚑ Tiled edits ONE file, so it simply cannot answer a question about the
-         * set — keeping the old rule here refused to save every legal cave. The
-         * invariant is NOT weakened: aurad still hard-fails at boot, only later
-         * and with the whole set in scope, which is the only scope it is true at.
-         *
-         * ⚑ Duplicate ids stay checked above, deliberately: those are a per-file
-         * question too (the SET-wide half is checkSetWide's L5), and catching the
-         * cheap half at save time still beats catching it at boot. */
-
-        layer('darkAreas').forEach(function (o, i) {
-            if (!(o.width > 0)) { bad(o, i, 'radius must be positive'); }
-            // world.json carries a single radius, and the writer reads it off the
-            // width — so an ellipse dragged out of round would silently lose its
-            // height. Refuse rather than pick a side.
-            else if (Math.abs(o.width - o.height) > 0.5) {
-                bad(o, i, 'must stay a circle (' + Math.round(o.width) + '×' + Math.round(o.height)
-                    + ' px) — world.json has one radius, so hold Shift while resizing');
-            }
-        });
-
-        // Mirrors zone.go's region checks (§4.6), plus the one check the server
-        // deliberately does not make (D8): the profile NAME.
-        //
-        // ⭐ C2 is what makes that possible. zone.go accepts any non-empty name
-        // because the profile table lives in the client, so a typo reaches the
-        // browser and resolves to the default (D11) — the region simply does
-        // not paint, at load, with nothing said anywhere. The generated
-        // AuraTerrainProfile enum is that vocabulary, so the typo becomes an error
-        // where it was written, naming the object id.
-        //
-        // ⚑ Skipped when no palette is loaded, exactly like every other content
-        // check here: the converter stays usable (and testable) without one.
-        var profilesKnown = content.PROFILE_NAMES.length > 0;
-
-        // ⭐ WHICH TABLE this shape’s profile must come from. Ground and air are
-        // separate namespaces (2026-09-15), so the check needs to know which one
-        // it is holding — and the payoff is the MESSAGE: naming an atmosphere
-        // profile on a region used to read "unknown profile", which is true and
-        // useless. Now it says where the name actually lives.
-        function vocabulary(air) {
-            return {
-                names: air ? (content.AIR_PROFILE_NAMES || []) : content.PROFILE_NAMES,
-                other: air ? content.PROFILE_NAMES : (content.AIR_PROFILE_NAMES || []),
-                file: air ? 'atmosphere-profiles.json' : 'terrain-profiles.json',
-                otherFile: air ? 'terrain-profiles.json' : 'atmosphere-profiles.json',
-                otherKind: air ? 'a terrain' : 'an atmosphere',
-            };
-        }
-
-        function checkProfile(o, i, known, air) {
-            var v = vocabulary(air);
-            var profile = String(readRegionProfile(o) || '').replace(/^\s+|\s+$/g, '');
-            if (!profile) {
-                bad(o, i, 'profile must not be empty');
-            } else if (profile === PROFILE_UNSET) {
-                // Its own message: "you have not picked one yet" and "that name
-                // does not exist" are different mistakes with different fixes.
-                bad(o, i, 'no profile chosen — "' + PROFILE_UNSET + '" is the placeholder,'
-                    + ' not a profile. Pick one in the Properties panel');
-            } else if (known && hasValue(v.other, profile)) {
-                // ⭐ THE MESSAGE THE SPLIT EXISTS FOR. The dropdown no longer
-                // offers this, so reaching it means a hand-edited file or a stale
-                // palette — and both of those this names exactly.
-                bad(o, i, '"' + profile + '" is ' + v.otherKind + ' profile (it lives in'
-                    + ' frontend/src/client-data/' + v.otherFile + '), and this shape'
-                    + ' needs one from ' + v.file + '. The two are separate'
-                    + ' vocabularies: ' + v.names.join(', '));
-            } else if (known && !hasValue(v.names, profile)) {
-                bad(o, i, 'unknown profile "' + profile + '" — the profiles are: '
-                    + v.names.join(', ') + '. Add it to'
-                    + ' frontend/src/client-data/' + v.file + ' and re-run'
-                    + ' node tools/tiled/generate-palette.mjs, or pick an existing one');
-            }
-        }
-        /* ⭐ THE AREA-EFFECT LEG, ADDED THE DAY THE KEY LANDS (L5). The
-         * atmospheres layer shipped with NO validateModel leg at all, which is
-         * what let a vertex-less shape reach the server and refuse the PO's boot
-         * — and the missing leg, not the bad shape, was the cause. So this is
-         * written with the key rather than after the lesson.
-         *
-         * ⛔ An unknown effect name is REFUSED, not absorbed: the server refuses
-         * it too (world.CrossValidateAreaEffects), and a hazard that draws,
-         * reads as dangerous and does nothing is precisely the failure the whole
-         * feature is written against. This says it hours earlier, next to the
-         * shape, with an id that goes into Edit ▸ Select Object by Id.
-         *
-         * ⚑ The sentinel is LEGAL here, which is where this parts company with
-         * checkProfile: "(no effect)" means decorative, and decorative is what
-         * every shape in every shipped zone is. */
-        var effectsKnown = content.EFFECT_NAMES.length > 0;
-        function checkEffect(o, i) {
-            var raw = prop(o, 'effect');
-            if (raw === undefined) { return; }
-            var effect = plainValue(raw);
-            if (effect === EFFECT_UNSET || effect === '') { return; }
-            if (typeof effect !== 'string') {
-                bad(o, i, 'effect ' + JSON.stringify(effect) + ' is not a name');
-                return;
-            }
-            if (effect !== effect.replace(/^\s+|\s+$/g, '')) {
-                bad(o, i, 'effect ' + JSON.stringify(effect) + ' has stray whitespace —'
-                    + ' the server matches the name exactly');
-                return;
-            }
-            if (effectsKnown && !hasValue(content.EFFECT_NAMES, effect)) {
-                bad(o, i, 'unknown effect "' + effect + '" — an area effect names a SKILL,'
-                    + ' authored in api/skills/. The server refuses the boot on this, and'
-                    + ' until then the shape would draw and do nothing. Pick one from the'
-                    + ' dropdown, or set it back to "' + EFFECT_UNSET + '"');
-            }
-        }
-
-        layer('regions').forEach(function (o, i) {
-            checkProfile(o, i, profilesKnown);
-            checkClosedArea(o, i, 'a region');
-            // Mirrors zone.go: a subtitle is the line UNDER a title.
-            if (readText(o, 'subtitle') !== undefined && readText(o, 'title') === undefined) {
-                bad(o, i, 'has a subtitle but no title; the banner shows the subtitle under'
-                    + ' the title, so give the region a title or clear the subtitle');
-            }
-        });
-
-        // ⭐ THE SHARED LAYER'S OWN CHECK (L2b, the one cost of D5). Two classes
-        // live here and modelToZone routes by class, so an object that is
-        // NEITHER lands in neither array and vanishes on the next save with
-        // every other check green. This is the only thing that says so, and the
-        // layer-per-type scheme got it for free.
-        layer('paths').forEach(function (o, i) {
-            if (o.cls !== 'AuraPath' && o.cls !== 'AuraPolygon') {
-                bad(o, i, 'is on the paths layer but its Class is '
-                    + (o.cls ? '"' + o.cls + '"' : 'not set')
-                    + ' — this layer holds AuraPath (a stroked line) and AuraPolygon'
-                    + ' (a filled area), and anything else is DROPPED on save.'
-                    + ' Set the Class in the Properties panel');
-            }
-        });
-
-        // ⚑ The outline pair is ALL-OR-NOTHING, and both half-authored forms
-        // fail SILENTLY: a named profile with no width strokes zero pixels, a
-        // width with no profile strokes nothing at all. Either one looks exactly
-        // like the outline feature not working, which is why they are refused
-        // here rather than absorbed. Mirrors validateOutline in world/zone.go.
-        layer('paths').forEach(function (o, i) {
-            var op = prop(o, 'outlineProfile');
-            var ow = prop(o, 'outlineWidth');
-            var named = op !== undefined && plainValue(op) !== ''
-                && plainValue(op) !== PROFILE_UNSET;
-            var w = typeof ow === 'number' ? ow : 0;
-            if (named && w <= 0) {
-                bad(o, i, 'outlineProfile is set but outlineWidth is ' + w
-                    + ' — a zero-wide outline draws nothing. Give it a width, or'
-                    + ' put outlineProfile back to "' + PROFILE_UNSET + '"');
-            } else if (!named && w !== 0) {
-                bad(o, i, 'outlineWidth is ' + w + ' but no outlineProfile is chosen'
-                    + ' — the width draws nothing on its own. Pick an outline profile,'
-                    + ' or set the width back to 0');
-            }
-            // ⚑ An outline is a GROUND surface even on a shape that is not: it
-            // strokes the boundary, so it reads from the terrain table like every
-            // other painted edge.
-            if (named && profilesKnown && !hasValue(content.PROFILE_NAMES, plainValue(op))) {
-                bad(o, i, 'unknown outline profile "' + plainValue(op) + '" — known profiles are: '
-                    + content.PROFILE_NAMES.join(', '));
-            }
-        });
-
-        // Polygons carry the same profile vocabulary and get the same messages.
-        onLayer('paths', 'AuraPolygon').forEach(function (o, i) {
-            checkProfile(o, i, profilesKnown);
-            checkEffect(o, i);
-            checkClosedArea(o, i, 'an AuraPolygon',
-                ' — or change its Class to AuraPath if you meant a line');
-        });
-
-        // Paths carry the SAME profile vocabulary as regions, so the same three
-        // profile mistakes get the same three messages, from the same function.
-        onLayer('paths', 'AuraPath').forEach(function (o, i) {
-            checkProfile(o, i, profilesKnown);
-            checkEffect(o, i);
-            // Mirrors validatePathShape in world/zone.go, said while the author
-            // is still looking at the line.
-            ['corners', 'ends'].forEach(function (k) {
-                var v = readPathShape(o, k);
-                if (v !== undefined && !hasValue(PATH_SHAPE_VALUES[k], v)) {
-                    bad(o, i, k + ' ' + JSON.stringify(v) + ' must be one of "' + PATH_SHAPE_DEFAULT
-                        + '", ' + PATH_SHAPE_VALUES[k].join(', '));
-                }
-            });
-            if (o.shape === 'polygon' && readPathShape(o, 'ends') !== undefined) {
-                bad(o, i, 'ends is "' + readPathShape(o, 'ends') + '" but this path is a closed'
-                    + ' ring, which has no ends. Put ends back to "' + PATH_SHAPE_DEFAULT + '"');
-            }
-            var n = (o.polygon || []).length;
-            // ⭐ BOTH shapes are legal here, and which one it is IS the closed
-            // flag (plan-zone-polygons.md P1). A polygon strokes a ring — a moat,
-            // a ring road — it does not fill one; filling is AuraPolygon's job.
-            if (o.shape !== 'polyline' && o.shape !== 'polygon') {
-                bad(o, i, 'must be a POLYLINE or a POLYGON — a path is a line, and any'
-                    + ' other shape is dropped on save');
-            } else if (o.shape === 'polygon' && n < 3) {
-                bad(o, i, 'a closed path needs at least 3 points to make a ring, has ' + n
-                    + ' — draw it with the polyline tool if it is meant to be open');
-            } else if (n < 2) {
-                bad(o, i, 'needs at least 2 points to draw a line, has ' + n);
-            }
-            // ⚑ prop(), not get(): get() is modelToZone's local reader and does
-            // not exist in this scope. Using it here threw "get is not defined"
-            // on every save from Tiled, and no test caught it because nothing
-            // drove validateModel over a path.
-            var w = prop(o, 'width');
-            if (w === undefined) {
-                bad(o, i, 'width is not set — a path needs a width in world units.'
-                    + ' Was this drawn with the plain polyline tool rather than as'
-                    + ' an AuraPath?');
-            } else {
-                num(o, i, 'width', w, function (v) { return v > 0; },
-                    'a positive number of world units');
-            }
-        });
-
-        /* ⭐ THE CHECK THE ATMOSPHERES LAYER DID NOT HAVE, and its absence is how
-         * a zone that Tiled saved happily refused the next boot (2026-09-14):
-         * three atmospheres went to disk with "points": [] and aurad died on
-         * "needs at least 3 points to enclose an area, got 0". Every other shape
-         * layer had a leg; this one was added without one.
-         *
-         * ⛔ That is the whole point of save-time validation — catch what the
-         * server would reject while the author is still looking at the object —
-         * so a new shape layer without a leg here is a boot waiting to break.
-         */
-        function checkClosedArea(o, i, what, hint) {
-            if (o.shape !== 'polygon' && o.shape !== 'rect') {
-                bad(o, i, what + ' must be a POLYGON or a RECTANGLE — it encloses an'
-                    + ' AREA, and ' + aOrAn(o.shape || 'shape') + ' has no inside to fill.'
-                    + ' Draw it with the polygon or the rectangle tool'
-                    + (hint || ''));
-                return;
-            }
-            // ⛔ A rect ALWAYS yields four corners, so the point count cannot catch a
-            // rectangle with no size — its four corners are the same point, the area
-            // is zero, and the server's own "at least 3 points" rule waves it
-            // through. That is WORSE than the empty-polygon crash it replaces: the
-            // shape boots, draws nothing, blocks nothing, and says nothing. Measure
-            // the size instead.
-            if (o.shape === 'rect' && (Math.abs(o.width || 0) < 1 || Math.abs(o.height || 0) < 1)) {
-                bad(o, i, what + ' is a rectangle with no size (' + (o.width || 0) + ' x '
-                    + (o.height || 0) + ' px) — it encloses nothing. Drag it out, or delete it');
-                return;
-            }
-            var n = closedAreaPoints(o).length;
-            if (n < 3) {
-                bad(o, i, what + ' needs at least 3 points to enclose an area, has ' + n
-                    + ' — the polygon tool needs its nodes placed, or use the'
-                    + ' rectangle tool instead');
-            }
-        }
-
-        /* ⭐ THE SHARED LAYER'S OWN CHECK, second application (L2b). A4 put a
-         * SECOND class on the atmospheres layer, so this layer now carries the
-         * same cost the paths layer has carried since zone-polygons D5: an
-         * object that is NEITHER class lands in neither array and VANISHES on
-         * the next save with every other check green.
-         *
-         * ⛔ It is worth stating plainly that this check did not exist here
-         * before A4 and did not need to — modelToZone read the layer whole. The
-         * moment a class becomes a discriminator the layer needs a guard, and
-         * the atmospheres layer has now been through the OTHER version of this
-         * lesson too: it shipped without a closed-area leg at all, and that is
-         * what let a vertex-less shape refuse the PO's boot (2026-09-14).
-         */
-        layer('atmospheres').forEach(function (o, i) {
-            if (o.cls !== 'AuraAtmosphere' && o.cls !== 'AuraClearing') {
-                bad(o, i, 'is on the atmospheres layer but its Class is '
-                    + (o.cls ? '"' + o.cls + '"' : 'not set')
-                    + ' — this layer holds AuraAtmosphere (air that PAINTS) and'
-                    + ' AuraClearing (a hole that ERASES), and anything else is'
-                    + ' DROPPED on save. Set the Class in the Properties panel');
-            }
-        });
-
-        onLayer('atmospheres', 'AuraAtmosphere').forEach(function (o, i) {
-            checkProfile(o, i, profilesKnown, true);
-            checkEffect(o, i);
-            checkClosedArea(o, i, 'an atmosphere',
-                ' — or change its Class to AuraClearing if you meant a hole');
-        });
-
-        /* ⛔ THE CLEARS VALUE IS REFUSED, NEVER DEFAULTED, and that asymmetry
-         * with readClears is deliberate. An ABSENT property is Tiled dropping a
-         * value still at its default, which is invisible to the author and must
-         * round-trip — so readClears supplies it. An property that is PRESENT
-         * and wrong is the author having typed something, and a clearing that
-         * silently cleared nothing looks on screen exactly like one drawn in the
-         * wrong place. zone.go refuses the same set at boot; this says so hours
-         * earlier, next to the shape.
-         */
-        onLayer('atmospheres', 'AuraClearing').forEach(function (o, i) {
-            var raw = o.properties && o.properties.clears !== undefined
-                && o.properties.clears !== null ? plainValue(o.properties.clears) : undefined;
-            if (raw !== undefined && !hasValue(CLEARS_VALUES, raw)) {
-                bad(o, i, 'clears ' + JSON.stringify(raw) + ' must be one of '
-                    + CLEARS_VALUES.join(', ') + ' — which layers should this hole cut?');
-            }
-            checkClosedArea(o, i, 'an AuraClearing',
-                ' — or change its Class to AuraAtmosphere if you meant air that paints');
-        });
-
         var seenAnchor = {};
         var hw = m.boundsWidth / 2, hh = m.boundsHeight / 2;
-        layer('anchors').forEach(function (o, i) {
-            var name = String(o.name || '').replace(/^\s+|\s+$/g, '');
-            if (!name) { bad(o, i, 'name must not be empty'); }
-            else if (seenAnchor[name]) { bad(o, i, 'duplicate anchor name "' + name + '"'); }
-            seenAnchor[name] = true;
-            var x = o.x / PX - hw, y = o.y / PX - hh;
-            if (x < -hw || x > hw || y < -hh || y > hh) {
-                bad(o, i, 'at (' + round(x, 2) + ', ' + round(y, 2) + ') is outside the bounds');
-            }
-        });
-
+        [m.layers].concat(areaGroups(m).map(function (g) { return g.layers; }))
+            .forEach(function (layers) { scope = layers; checkScope(); });
         return errors;
+
+        function checkScope() {
+            // ⭐ decals[].type is the one field validated NOWHERE else: the server
+            // ignores it (zone.go has no decal checks at all) and the client
+            // dereferences undefined at render time, so a typo shows up as a broken
+            // browser rather than a failed boot. Free to close here.
+            // A boxed object gets its identity from the TILE it carries, so one
+            // drawn with the rectangle tool has no identity at all. Same confusion
+            // as a bare point on the spawns layer, same kind of answer.
+            function fromTileset(o, i, which, set) {
+                bad(o, i, 'this has no type — it was drawn as a plain shape rather than dragged'
+                    + ' from the ' + set + ' tileset. Delete it and drag a ' + which + ' from the'
+                    + ' tileset panel instead; the tile is what says what it is');
+            }
+
+            var terrainKnown = content.TERRAIN_TYPES.length > 0;
+            layer('decals').forEach(function (o, i) {
+                if (!o.name) {
+                    fromTileset(o, i, 'texture', 'aura-decals');
+                } else if (terrainKnown && whereElse(o.name) !== 'ground texture') {
+                    bad(o, i, unknownName('decals', o.name, 'ground texture'));
+                }
+                if (!(o.width > 0)) { bad(o, i, 'size must be positive'); }
+                if (o.flipH && o.flipV) {
+                    bad(o, i, 'world.json has no both-axes flip; use one flip plus 180° of rotation');
+                }
+            });
+
+            var propsKnown = Object.keys(content.PROP_SIZE).length > 0;
+            PROP_LAYERS.forEach(function (k) {
+                subLayerObjects(scope, PROPS_GROUP, k).forEach(function (o, i) {
+                    checkProp(o, i, k);
+                });
+            });
+            function checkProp(o, i, propLayer) {
+                /* ⛔ D4: a type that clears the river under its deck must DRAW under
+                 * the character walking on it, and since P3 which layer a prop
+                 * draws in is where it sits. zone.go refuses the same at boot; this
+                 * names the object id while the author is looking at it. */
+                if (propLayer !== 'underfoot' && hasValue(content.CROSSES_PATHS, o.name)) {
+                    bad(o, i, '"' + o.name + '" crosses paths, so it must sit in the "'
+                        + PROPS_GROUP + '/underfoot" layer — a deck you walk across has to draw'
+                        + ' below the character on it. Use Layer ▸ Move Objects to Layer');
+                }
+                /* ⛔ PRESENT AND WRONG IS REFUSED; ABSENT IS THE DEFAULT. The same
+                 * asymmetry `clears` records below, for the same reason: an absent
+                 * property is Tiled dropping a value still at its member default,
+                 * which is invisible to the author and must round-trip — while a
+                 * value that is present and unrecognised is somebody having typed
+                 * it, and a prop that silently stopped blocking looks on screen
+                 * exactly like one that still does. */
+                var rawBlocks = o.properties && o.properties.blocksMovement !== undefined
+                    && o.properties.blocksMovement !== null
+                    ? plainValue(o.properties.blocksMovement) : undefined;
+                if (rawBlocks !== undefined && typeof rawBlocks !== 'boolean'
+                    && !hasValue(PROP_BLOCKS_VALUES, rawBlocks)) {
+                    bad(o, i, 'blocksMovement ' + JSON.stringify(rawBlocks) + ' must be one of '
+                        + PROP_BLOCKS_VALUES.join(', ') + ' — "' + PROP_BLOCKS_INHERIT
+                        + '" takes whatever api/props/' + (o.name || '<type>') + ' says');
+                }
+
+                var known = true;
+                if (!o.name) {
+                    fromTileset(o, i, 'prop', 'aura-props');
+                    known = false;
+                } else if (propsKnown && !has(content.PROP_SIZE, o.name)) {
+                    bad(o, i, unknownName('props', o.name, 'prop type'));
+                    known = false;
+                }
+                // The scale checks need the type's real footprint to divide by, so
+                // they only run once the name resolves — otherwise propSize's
+                // {w:1,h:1} fallback would turn every box into a nonsense multiple.
+                if (!known || !propsKnown) { return; }
+
+                var sc = readPropScale(o);
+                if (sc !== undefined && (!(sc > 0) || sc > MAX_PROP_SCALE)) {
+                    bad(o, i, 'scale ' + sc + ' must be in (0, ' + MAX_PROP_SCALE + '] —'
+                        + ' a prop is sized by resizing its box, and this one is '
+                        + (sc > MAX_PROP_SCALE ? sc + '× the body of its type' : 'not a positive size'));
+                }
+                // world.json carries ONE multiplier, so a box dragged out of
+                // proportion would silently lose an axis. Same call as the dark
+                // area's circle check, and the same fix: hold Shift.
+                var sz = propSize(o.name);
+                var expectedH = sz.h * PX * (sc === undefined ? 1 : sc);
+                if (Math.abs(o.height - expectedH) > 0.5) {
+                    bad(o, i, 'must keep its proportions (' + Math.round(o.width) + '×'
+                        + Math.round(o.height) + ' px, expected ' + Math.round(o.width) + '×'
+                        + Math.round(expectedH) + ') — world.json has one uniform scale,'
+                        + ' so hold Shift while resizing');
+                }
+            }
+
+            var mobsKnown = Object.keys(content.MOB_KIND).length > 0;
+            layer('spawns').forEach(function (o, i) {
+                // ⚑ A route is a POLYLINE. Until regions existed a polygon drawn
+                // here was quietly read as one; now that the two shapes are
+                // distinct, an unrefused polygon would drop its waypoints in
+                // silence. Refusing the save is the whole point of this pass.
+                if (o.shape === 'polygon') {
+                    bad(o, i, 'a patrol route must be a POLYLINE, not a closed polygon — redraw it'
+                        + ' with the polyline tool, or its waypoints are lost on save');
+                }
+                // ⚑ Through readSpawn, never off the raw properties: every
+                // inheriting spawn carries `level: 0` and `wanderRadius: -1`, and
+                // range-checking those raw would flag ~226 healthy spawns.
+                var p = readSpawn(o);
+                var known = !mobsKnown || has(content.MOB_KIND, p.mob);
+                if (p.mob === MOB_UNSET) {
+                    bad(o, i, 'no mob chosen yet — pick one in the Properties panel ("mob")');
+                    known = false;
+                } else if (!p.mob) {
+                    // A freshly drawn point has no name, no class and no properties,
+                    // so the form never appeared. Say how to make it appear rather
+                    // than reporting an unknown mob named "".
+                    bad(o, i, 'this spawn has no mob. Set its Class (Properties panel, top row) to'
+                        + ' AuraSpawnCombat / AuraSpawnTalker / AuraSpawnFixture'
+                        + ' — that is what brings up the spawn form — then'
+                        + ' pick a "mob" from the dropdown');
+                    known = false;
+                } else if (!known) {
+                    bad(o, i, unknownName('spawns', p.mob, 'mob'));
+                }
+
+                var waypoints = p.waypointCount;
+                if (waypoints === 1) {
+                    bad(o, i, 'a route needs at least 2 waypoints — the polyline needs a second point');
+                }
+
+                var wr = p.wanderRadius;
+                num(o, i, 'wanderRadius', wr, function (v) { return v >= 0; }, 'zero or positive');
+                if (typeof wr === 'number' && wr > 0 && waypoints > 0) {
+                    bad(o, i, 'wanderRadius and waypoints are mutually exclusive');
+                }
+                num(o, i, 'idleSpeedFactor', p.idleSpeedFactor,
+                    function (v) { return v > 0 && v <= 1; }, 'in (0, 1]');
+                num(o, i, 'level', p.level,
+                    function (v) { return v >= 1 && v === Math.floor(v); }, 'a whole number >= 1');
+                num(o, i, 'respawnTicks', p.respawnTicks,
+                    function (v) { return v >= 0; }, 'zero or positive');
+                num(o, i, 'respawnVariancePct', p.respawnVariancePct,
+                    function (v) { return v >= 0; }, 'zero or positive');
+
+                // Only "loop" survives readSpawn — "pingpong" IS the inherit
+                // sentinel, so anything left here is a typo.
+                var mode = p.patrolMode;
+                if (mode !== undefined && mode !== 'loop') {
+                    bad(o, i, 'patrolMode "' + mode + '" must be "pingpong" or "loop"');
+                }
+                if (mode !== undefined && waypoints === 0) { bad(o, i, 'patrolMode without waypoints'); }
+
+                // zone.go checks this in resolve(), not validate(), because it needs
+                // the resolved species — which is why the generated MOB_SPEED exists.
+                if (known && mobsKnown) {
+                    var moves = (typeof wr === 'number' && wr > 0) || waypoints > 0;
+                    if (moves && !(content.MOB_SPEED[p.mob] > 0)) {
+                        bad(o, i, 'stationary mob "' + p.mob + '" (speed 0) cannot wander or patrol');
+                    }
+                }
+            });
+
+            var bindPoints = layer('bindPoints');
+            bindPoints.forEach(function (o, i) {
+                var id = String(o.name || '').replace(/^\s+|\s+$/g, '');
+                if (!id) { bad(o, i, 'id must not be empty (the object\'s Name is the bind point id)'); }
+                else if (seenFire[id]) { bad(o, i, 'duplicate spawn point id "' + id + '"'); }
+                seenFire[id] = true;
+            });
+            /* ⛔ "at least one campfire is a startingSpawn" USED TO BE CHECKED HERE and
+             * cannot be any more (plan-underworld.md U1/L4). The server moved it from
+             * per-FILE to per-SET (world.Place checkSetWide) the moment more than one
+             * zone could load: a cave nobody binds in legitimately carries campfires
+             * with no starting spawn, while the WORLD still must have somewhere to put
+             * a fresh character.
+             *
+             * ⚑ Tiled edits ONE file, so it simply cannot answer a question about the
+             * set — keeping the old rule here refused to save every legal cave. The
+             * invariant is NOT weakened: aurad still hard-fails at boot, only later
+             * and with the whole set in scope, which is the only scope it is true at.
+             *
+             * ⚑ Duplicate ids stay checked above, deliberately: those are a per-file
+             * question too (the SET-wide half is checkSetWide's L5), and catching the
+             * cheap half at save time still beats catching it at boot. */
+
+            layer('darkAreas').forEach(function (o, i) {
+                if (!(o.width > 0)) { bad(o, i, 'radius must be positive'); }
+                // world.json carries a single radius, and the writer reads it off the
+                // width — so an ellipse dragged out of round would silently lose its
+                // height. Refuse rather than pick a side.
+                else if (Math.abs(o.width - o.height) > 0.5) {
+                    bad(o, i, 'must stay a circle (' + Math.round(o.width) + '×' + Math.round(o.height)
+                        + ' px) — world.json has one radius, so hold Shift while resizing');
+                }
+            });
+
+            // Mirrors zone.go's region checks (§4.6), plus the one check the server
+            // deliberately does not make (D8): the profile NAME.
+            //
+            // ⭐ C2 is what makes that possible. zone.go accepts any non-empty name
+            // because the profile table lives in the client, so a typo reaches the
+            // browser and resolves to the default (D11) — the region simply does
+            // not paint, at load, with nothing said anywhere. The generated
+            // AuraTerrainProfile enum is that vocabulary, so the typo becomes an error
+            // where it was written, naming the object id.
+            //
+            // ⚑ Skipped when no palette is loaded, exactly like every other content
+            // check here: the converter stays usable (and testable) without one.
+            var profilesKnown = content.PROFILE_NAMES.length > 0;
+
+            // ⭐ WHICH TABLE this shape’s profile must come from. Ground and air are
+            // separate namespaces (2026-09-15), so the check needs to know which one
+            // it is holding — and the payoff is the MESSAGE: naming an atmosphere
+            // profile on a region used to read "unknown profile", which is true and
+            // useless. Now it says where the name actually lives.
+            function vocabulary(air) {
+                return {
+                    names: air ? (content.AIR_PROFILE_NAMES || []) : content.PROFILE_NAMES,
+                    other: air ? content.PROFILE_NAMES : (content.AIR_PROFILE_NAMES || []),
+                    file: air ? 'atmosphere-profiles.json' : 'terrain-profiles.json',
+                    otherFile: air ? 'terrain-profiles.json' : 'atmosphere-profiles.json',
+                    otherKind: air ? 'a terrain' : 'an atmosphere',
+                };
+            }
+
+            function checkProfile(o, i, known, air) {
+                var v = vocabulary(air);
+                var profile = String(readRegionProfile(o) || '').replace(/^\s+|\s+$/g, '');
+                if (!profile) {
+                    bad(o, i, 'profile must not be empty');
+                } else if (profile === PROFILE_UNSET) {
+                    // Its own message: "you have not picked one yet" and "that name
+                    // does not exist" are different mistakes with different fixes.
+                    bad(o, i, 'no profile chosen — "' + PROFILE_UNSET + '" is the placeholder,'
+                        + ' not a profile. Pick one in the Properties panel');
+                } else if (known && hasValue(v.other, profile)) {
+                    // ⭐ THE MESSAGE THE SPLIT EXISTS FOR. The dropdown no longer
+                    // offers this, so reaching it means a hand-edited file or a stale
+                    // palette — and both of those this names exactly.
+                    bad(o, i, '"' + profile + '" is ' + v.otherKind + ' profile (it lives in'
+                        + ' frontend/src/client-data/' + v.otherFile + '), and this shape'
+                        + ' needs one from ' + v.file + '. The two are separate'
+                        + ' vocabularies: ' + v.names.join(', '));
+                } else if (known && !hasValue(v.names, profile)) {
+                    bad(o, i, 'unknown profile "' + profile + '" — the profiles are: '
+                        + v.names.join(', ') + '. Add it to'
+                        + ' frontend/src/client-data/' + v.file + ' and re-run'
+                        + ' node tools/tiled/generate-palette.mjs, or pick an existing one');
+                }
+            }
+            /* ⭐ THE AREA-EFFECT LEG, ADDED THE DAY THE KEY LANDS (L5). The
+             * atmospheres layer shipped with NO validateModel leg at all, which is
+             * what let a vertex-less shape reach the server and refuse the PO's boot
+             * — and the missing leg, not the bad shape, was the cause. So this is
+             * written with the key rather than after the lesson.
+             *
+             * ⛔ An unknown effect name is REFUSED, not absorbed: the server refuses
+             * it too (world.CrossValidateAreaEffects), and a hazard that draws,
+             * reads as dangerous and does nothing is precisely the failure the whole
+             * feature is written against. This says it hours earlier, next to the
+             * shape, with an id that goes into Edit ▸ Select Object by Id.
+             *
+             * ⚑ The sentinel is LEGAL here, which is where this parts company with
+             * checkProfile: "(no effect)" means decorative, and decorative is what
+             * every shape in every shipped zone is. */
+            var effectsKnown = content.EFFECT_NAMES.length > 0;
+            function checkEffect(o, i) {
+                var raw = prop(o, 'effect');
+                if (raw === undefined) { return; }
+                var effect = plainValue(raw);
+                if (effect === EFFECT_UNSET || effect === '') { return; }
+                if (typeof effect !== 'string') {
+                    bad(o, i, 'effect ' + JSON.stringify(effect) + ' is not a name');
+                    return;
+                }
+                if (effect !== effect.replace(/^\s+|\s+$/g, '')) {
+                    bad(o, i, 'effect ' + JSON.stringify(effect) + ' has stray whitespace —'
+                        + ' the server matches the name exactly');
+                    return;
+                }
+                if (effectsKnown && !hasValue(content.EFFECT_NAMES, effect)) {
+                    bad(o, i, 'unknown effect "' + effect + '" — an area effect names a SKILL,'
+                        + ' authored in api/skills/. The server refuses the boot on this, and'
+                        + ' until then the shape would draw and do nothing. Pick one from the'
+                        + ' dropdown, or set it back to "' + EFFECT_UNSET + '"');
+                }
+            }
+
+            // Mirrors zone.go (plan-region-identity.md D1): an id, a profile, or
+            // both, never neither. The profile is checked only when there is one.
+            var regionIdsKnown = content.REGION_IDS.length > 0;
+            layer('regions').forEach(function (o, i) {
+                var id = readRegionId(o);
+                if (id === undefined && readRegionGround(o) === undefined) {
+                    bad(o, i, 'names no place and paints no ground. Pick an id (the place it is),'
+                        + ' a profile (the ground it paints), or both in the Properties panel');
+                } else if (readRegionGround(o) !== undefined) {
+                    checkProfile(o, i, profilesKnown);
+                }
+                if (id !== undefined && !AREA_ID.test(id)) {
+                    bad(o, i, 'id "' + id + '" is not a valid place id (a slug of a-z, 0-9 and "-").'
+                        + ' Pick one in the Properties panel');
+                } else if (id !== undefined && regionIdsKnown && !hasValue(content.REGION_IDS, id)) {
+                    bad(o, i, 'id "' + id + '" is not in api/regions/regions.json. Add it there and'
+                        + ' regenerate the palette, or pick a listed one');
+                }
+                checkClosedArea(o, i, 'a region');
+            });
+
+            // ⭐ THE SHARED LAYER'S OWN CHECK (L2b, the one cost of D5). Two classes
+            // live here and modelToZone routes by class, so an object that is
+            // NEITHER lands in neither array and vanishes on the next save with
+            // every other check green. This is the only thing that says so, and the
+            // layer-per-type scheme got it for free.
+            layer('paths').forEach(function (o, i) {
+                if (o.cls !== 'AuraPath' && o.cls !== 'AuraStructure') {
+                    bad(o, i, 'is on the paths layer but its Class is '
+                        + (o.cls ? '"' + o.cls + '"' : 'not set')
+                        + ' — this layer holds AuraPath (a stroked line) and AuraStructure'
+                        + ' (a filled area), and anything else is DROPPED on save.'
+                        + ' Set the Class in the Properties panel');
+                }
+            });
+
+            // ⚑ The outline pair is ALL-OR-NOTHING, and both half-authored forms
+            // fail SILENTLY: a named profile with no width strokes zero pixels, a
+            // width with no profile strokes nothing at all. Either one looks exactly
+            // like the outline feature not working, which is why they are refused
+            // here rather than absorbed. Mirrors validateOutline in world/zone.go.
+            layer('paths').forEach(function (o, i) {
+                var op = prop(o, 'outlineProfile');
+                var ow = prop(o, 'outlineWidth');
+                var named = op !== undefined && plainValue(op) !== ''
+                    && plainValue(op) !== PROFILE_UNSET;
+                var w = typeof ow === 'number' ? ow : 0;
+                if (named && w <= 0) {
+                    bad(o, i, 'outlineProfile is set but outlineWidth is ' + w
+                        + ' — a zero-wide outline draws nothing. Give it a width, or'
+                        + ' put outlineProfile back to "' + PROFILE_UNSET + '"');
+                } else if (!named && w !== 0) {
+                    bad(o, i, 'outlineWidth is ' + w + ' but no outlineProfile is chosen'
+                        + ' — the width draws nothing on its own. Pick an outline profile,'
+                        + ' or set the width back to 0');
+                }
+                // ⚑ An outline is a GROUND surface even on a shape that is not: it
+                // strokes the boundary, so it reads from the terrain table like every
+                // other painted edge.
+                if (named && profilesKnown && !hasValue(content.PROFILE_NAMES, plainValue(op))) {
+                    bad(o, i, 'unknown outline profile "' + plainValue(op) + '" — known profiles are: '
+                        + content.PROFILE_NAMES.join(', '));
+                }
+            });
+
+            // Polygons carry the same profile vocabulary and get the same messages.
+            onLayer('paths', 'AuraStructure').forEach(function (o, i) {
+                checkProfile(o, i, profilesKnown);
+                checkEffect(o, i);
+                checkClosedArea(o, i, 'an AuraStructure',
+                    ' — or change its Class to AuraPath if you meant a line');
+            });
+
+            // Paths carry the SAME profile vocabulary as regions, so the same three
+            // profile mistakes get the same three messages, from the same function.
+            onLayer('paths', 'AuraPath').forEach(function (o, i) {
+                checkProfile(o, i, profilesKnown);
+                checkEffect(o, i);
+                // Mirrors validatePathShape in world/zone.go, said while the author
+                // is still looking at the line.
+                ['corners', 'ends'].forEach(function (k) {
+                    var v = readPathShape(o, k);
+                    if (v !== undefined && !hasValue(PATH_SHAPE_VALUES[k], v)) {
+                        bad(o, i, k + ' ' + JSON.stringify(v) + ' must be one of "' + PATH_SHAPE_DEFAULT
+                            + '", ' + PATH_SHAPE_VALUES[k].join(', '));
+                    }
+                });
+                if (o.shape === 'polygon' && readPathShape(o, 'ends') !== undefined) {
+                    bad(o, i, 'ends is "' + readPathShape(o, 'ends') + '" but this path is a closed'
+                        + ' ring, which has no ends. Put ends back to "' + PATH_SHAPE_DEFAULT + '"');
+                }
+                var n = (o.polygon || []).length;
+                // ⭐ BOTH shapes are legal here, and which one it is IS the closed
+                // flag (plan-zone-polygons.md P1). A polygon strokes a ring — a moat,
+                // a ring road — it does not fill one; filling is AuraStructure's job.
+                if (o.shape !== 'polyline' && o.shape !== 'polygon') {
+                    bad(o, i, 'must be a POLYLINE or a POLYGON — a path is a line, and any'
+                        + ' other shape is dropped on save');
+                } else if (o.shape === 'polygon' && n < 3) {
+                    bad(o, i, 'a closed path needs at least 3 points to make a ring, has ' + n
+                        + ' — draw it with the polyline tool if it is meant to be open');
+                } else if (n < 2) {
+                    bad(o, i, 'needs at least 2 points to draw a line, has ' + n);
+                }
+                // ⚑ prop(), not get(): get() is modelToZone's local reader and does
+                // not exist in this scope. Using it here threw "get is not defined"
+                // on every save from Tiled, and no test caught it because nothing
+                // drove validateModel over a path.
+                var w = prop(o, 'width');
+                if (w === undefined) {
+                    bad(o, i, 'width is not set — a path needs a width in world units.'
+                        + ' Was this drawn with the plain polyline tool rather than as'
+                        + ' an AuraPath?');
+                } else {
+                    num(o, i, 'width', w, function (v) { return v > 0; },
+                        'a positive number of world units');
+                }
+            });
+
+            /* ⭐ THE CHECK THE ATMOSPHERES LAYER DID NOT HAVE, and its absence is how
+             * a zone that Tiled saved happily refused the next boot (2026-09-14):
+             * three atmospheres went to disk with "points": [] and aurad died on
+             * "needs at least 3 points to enclose an area, got 0". Every other shape
+             * layer had a leg; this one was added without one.
+             *
+             * ⛔ That is the whole point of save-time validation — catch what the
+             * server would reject while the author is still looking at the object —
+             * so a new shape layer without a leg here is a boot waiting to break.
+             */
+            function checkClosedArea(o, i, what, hint) {
+                if (o.shape !== 'polygon' && o.shape !== 'rect') {
+                    bad(o, i, what + ' must be a POLYGON or a RECTANGLE — it encloses an'
+                        + ' AREA, and ' + aOrAn(o.shape || 'shape') + ' has no inside to fill.'
+                        + ' Draw it with the polygon or the rectangle tool'
+                        + (hint || ''));
+                    return;
+                }
+                // ⛔ A rect ALWAYS yields four corners, so the point count cannot catch a
+                // rectangle with no size — its four corners are the same point, the area
+                // is zero, and the server's own "at least 3 points" rule waves it
+                // through. That is WORSE than the empty-polygon crash it replaces: the
+                // shape boots, draws nothing, blocks nothing, and says nothing. Measure
+                // the size instead.
+                if (o.shape === 'rect' && (Math.abs(o.width || 0) < 1 || Math.abs(o.height || 0) < 1)) {
+                    bad(o, i, what + ' is a rectangle with no size (' + (o.width || 0) + ' x '
+                        + (o.height || 0) + ' px) — it encloses nothing. Drag it out, or delete it');
+                    return;
+                }
+                var n = closedAreaPoints(o).length;
+                if (n < 3) {
+                    bad(o, i, what + ' needs at least 3 points to enclose an area, has ' + n
+                        + ' — the polygon tool needs its nodes placed, or use the'
+                        + ' rectangle tool instead');
+                }
+            }
+
+            /* ⭐ THE SHARED LAYER'S OWN CHECK, second application (L2b). A4 put a
+             * SECOND class on the atmospheres layer, so this layer now carries the
+             * same cost the paths layer has carried since zone-polygons D5: an
+             * object that is NEITHER class lands in neither array and VANISHES on
+             * the next save with every other check green.
+             *
+             * ⛔ It is worth stating plainly that this check did not exist here
+             * before A4 and did not need to — modelToZone read the layer whole. The
+             * moment a class becomes a discriminator the layer needs a guard, and
+             * the atmospheres layer has now been through the OTHER version of this
+             * lesson too: it shipped without a closed-area leg at all, and that is
+             * what let a vertex-less shape refuse the PO's boot (2026-09-14).
+             */
+            layer('atmospheres').forEach(function (o, i) {
+                if (o.cls !== 'AuraAtmosphere' && o.cls !== 'AuraClearing') {
+                    bad(o, i, 'is on the atmospheres layer but its Class is '
+                        + (o.cls ? '"' + o.cls + '"' : 'not set')
+                        + ' — this layer holds AuraAtmosphere (air that PAINTS) and'
+                        + ' AuraClearing (a hole that ERASES), and anything else is'
+                        + ' DROPPED on save. Set the Class in the Properties panel');
+                }
+            });
+
+            onLayer('atmospheres', 'AuraAtmosphere').forEach(function (o, i) {
+                checkProfile(o, i, profilesKnown, true);
+                checkEffect(o, i);
+                checkClosedArea(o, i, 'an atmosphere',
+                    ' — or change its Class to AuraClearing if you meant a hole');
+            });
+
+            /* ⛔ THE CLEARS VALUE IS REFUSED, NEVER DEFAULTED, and that asymmetry
+             * with readClears is deliberate. An ABSENT property is Tiled dropping a
+             * value still at its default, which is invisible to the author and must
+             * round-trip — so readClears supplies it. An property that is PRESENT
+             * and wrong is the author having typed something, and a clearing that
+             * silently cleared nothing looks on screen exactly like one drawn in the
+             * wrong place. zone.go refuses the same set at boot; this says so hours
+             * earlier, next to the shape.
+             */
+            onLayer('atmospheres', 'AuraClearing').forEach(function (o, i) {
+                var raw = o.properties && o.properties.clears !== undefined
+                    && o.properties.clears !== null ? plainValue(o.properties.clears) : undefined;
+                if (raw !== undefined && !hasValue(CLEARS_VALUES, raw)) {
+                    bad(o, i, 'clears ' + JSON.stringify(raw) + ' must be one of '
+                        + CLEARS_VALUES.join(', ') + ' — which layers should this hole cut?');
+                }
+                checkClosedArea(o, i, 'an AuraClearing',
+                    ' — or change its Class to AuraAtmosphere if you meant air that paints');
+            });
+
+            layer('anchors').forEach(function (o, i) {
+                var name = String(o.name || '').replace(/^\s+|\s+$/g, '');
+                if (!name) { bad(o, i, 'name must not be empty'); }
+                else if (seenAnchor[name]) { bad(o, i, 'duplicate anchor name "' + name + '"'); }
+                seenAnchor[name] = true;
+                var x = o.x / PX - hw, y = o.y / PX - hh;
+                if (x < -hw || x > hw || y < -hh || y > hh) {
+                    bad(o, i, 'at (' + round(x, 2) + ', ' + round(y, 2) + ') is outside the bounds');
+                }
+            });
+        }
     }
 
     // One refusal message for Tiled. Capped: a layer mistake made in bulk would
     // otherwise produce hundreds of lines and hide its own first one.
     var MAX_REPORTED = 12;
+    /* ---- layers the writer would drop (plan-prop-draw-order.md P0) ---------
+     * The zone file stores arrays, never layers: write() reads exactly the
+     * top-level object layers named in LAYERS, the prop layers inside the
+     * `props` group (P3), and the same again inside each area group (P4).
+     * Anything else in the Layers panel would vanish on
+     * save, so it refuses the save instead.
+     *
+     * ⛔ It used to SKIP every non-object layer without a word, so props dragged
+     * into a hand-made group layer were deleted from the zone file on save.
+     *
+     * Takes the top-level layers as plain descriptors, which write() builds
+     * from Tiled's layer objects, so the decision is testable outside Tiled:
+     *   {name, kind: 'object' | 'group' | 'tile' | 'image' | other, empty,
+     *    layers: [...] (a group's children, same shape)}
+     * Returns one message per offending layer; none means the save may go on.
+     *
+     * - The GROUP `props` (P3) holds only prop layers (propsGroupRefusals).
+     *   A group of class AuraArea is an AREA (P4b), holding the zone's layers
+     *   and its own props group (areaRefusals); its name is a free label and
+     *   its id is validateModel's to check, since a bad id drops nothing. Any
+     *   other group refuses: the writer would skip it.
+     * - A TILE or IMAGE layer refuses only when it holds something. An empty
+     *   one loses nothing on save, and Tiled's New Map starts with one.
+     * - An OBJECT layer refuses when LAYERS does not name it, empty or not:
+     *   a misnamed layer is an authoring mistake even before anything is in it.
+     *   `props` as a plain object layer refuses too (it must be the group), and
+     *   so does a prop layer dragged out of the group.
+     * - Two object or group layers with one name refuse: the writer reads the
+     *   first by name and the second would vanish.
+     * - A kind this function does not know refuses rather than being skipped. */
+    function layerRefusals(layers) {
+        var out = [];
+        var seen = {};
+        for (var i = 0; i < layers.length; i++) {
+            var l = layers[i];
+            var name = '"' + l.name + '"';
+            if ((l.kind === 'object' || l.kind === 'group') && seen[l.name]) {
+                out.push(l.cls === AREA_CLASS || seen[l.name] === AREA_CLASS
+                    ? 'two layers are named ' + name + '. An area group\'s name is only its label,'
+                        + ' and a message naming it must say which one: rename one.'
+                    : 'two layers are named ' + name + ': only the first is saved, so the second\'s'
+                        + ' objects would be lost. Move them into the first, then delete the second.');
+                continue;
+            }
+            seen[l.name] = l.cls === AREA_CLASS ? AREA_CLASS : true;
+            if (l.kind === 'object') {
+                if (l.name === PROPS_GROUP) {
+                    out.push('object layer ' + name + ' must be a GROUP holding the prop layers ('
+                        + PROP_LAYERS.join(', ') + '), so its objects would be lost. Move them into'
+                        + ' one of those, then delete this layer.');
+                } else if (PROP_LAYERS.indexOf(l.name) >= 0) {
+                    out.push('object layer ' + name + ' is a prop layer outside the "' + PROPS_GROUP
+                        + '" group, so its objects would be lost. Drag it back into the group.');
+                } else if (LAYERS.indexOf(l.name) < 0) {
+                    out.push('object layer ' + name + ' is not a zone layer, so its objects would be lost.'
+                        + ' Expected only: ' + LAYERS.join(', '));
+                }
+            } else if (l.kind === 'group' && l.cls === AREA_CLASS) {
+                out = out.concat(areaRefusals(l));
+            } else if (l.kind === 'group' && l.name === PROPS_GROUP) {
+                out = out.concat(propsGroupRefusals(l, ''));
+            } else if (l.kind === 'group') {
+                out.push('group ' + name + ' is neither the "' + PROPS_GROUP + '" group nor an area, so '
+                    + (l.empty ? 'it' : 'everything in it') + ' would be lost. To make it an area, set its'
+                    + ' Class to ' + AREA_CLASS + ' and pick its id in the Properties panel.');
+            } else if (l.kind === 'tile' || l.kind === 'image') {
+                if (!l.empty) {
+                    out.push(l.kind + ' layer ' + name + ' holds ' + (l.kind === 'tile' ? 'tiles' : 'an image')
+                        + ', which the zone format cannot store. Clear it or delete the layer.');
+                }
+            } else {
+                out.push('layer ' + name + ' is of a kind the zone format cannot store (' + l.kind + ').'
+                    + ' Delete it.');
+            }
+        }
+        return out;
+    }
+
+    /* The `props` group's half of layerRefusals: it may hold the four prop
+     * layers (any subset — a missing one is empty, and the next open restores
+     * it), each an object layer, each once. Anything else inside it would be
+     * dropped on save, so it refuses, named as group/child. */
+    function propsGroupRefusals(g, prefix) {
+        var out = [];
+        var seen = {};
+        var children = g.layers || [];
+        for (var i = 0; i < children.length; i++) {
+            var c = children[i];
+            var where = '"' + prefix + g.name + '/' + c.name + '"';
+            if (c.kind !== 'object' || PROP_LAYERS.indexOf(c.name) < 0) {
+                out.push('layer ' + where + ' is not a prop layer, so ' + (c.empty ? 'it' : 'everything in it')
+                    + ' would be lost. The "' + PROPS_GROUP + '" group holds only the object layers '
+                    + PROP_LAYERS.join(', ') + '. Move its objects into one of those, then delete it.');
+            } else if (seen[c.name]) {
+                out.push('two layers are named ' + where + ': only the first is saved, so the second\'s'
+                    + ' objects would be lost. Move them into the first, then delete the second.');
+            }
+            seen[c.name] = true;
+        }
+        return out;
+    }
+
+    /* An AREA's half of layerRefusals (plan-prop-draw-order.md P4): it may hold
+     * the zone's object layers and the props group (any subset, a missing one
+     * is empty and the next open restores it), each once. Anything else
+     * inside it would be dropped on save, so it refuses, named as area/layer:
+     * an unknown layer, `props` as a plain layer, a prop layer outside the
+     * props group, a group inside the area, a tile or image layer that holds
+     * something. */
+    function areaRefusals(g) {
+        var out = [];
+        var seen = {};
+        var children = g.layers || [];
+        for (var i = 0; i < children.length; i++) {
+            var c = children[i];
+            var where = '"' + g.name + '/' + c.name + '"';
+            if ((c.kind === 'object' || c.kind === 'group') && seen[c.name]) {
+                out.push('two layers are named ' + where + ': only the first is saved, so the second\'s'
+                    + ' objects would be lost. Move them into the first, then delete the second.');
+                continue;
+            }
+            seen[c.name] = true;
+            if (c.kind === 'group' && c.name === PROPS_GROUP) {
+                out = out.concat(propsGroupRefusals(c, g.name + '/'));
+            } else if (c.kind === 'object' && c.name === PROPS_GROUP) {
+                out.push('object layer ' + where + ' must be a GROUP holding the prop layers ('
+                    + PROP_LAYERS.join(', ') + '), so its objects would be lost. Move them into'
+                    + ' one of those, then delete this layer.');
+            } else if (c.kind === 'object' && LAYERS.indexOf(c.name) >= 0) {
+                continue;
+            } else if ((c.kind === 'tile' || c.kind === 'image') && c.empty) {
+                continue;
+            } else {
+                out.push('layer ' + where + ' is not a zone layer, so ' + (c.empty ? 'it' : 'everything in it')
+                    + ' would be lost. An area holds only the zone layers (' + LAYERS.join(', ')
+                    + '), with "' + PROPS_GROUP + '" as a group. Move its objects into one of those,'
+                    + ' then delete it.');
+            }
+        }
+        return out;
+    }
+
+    function formatLayerRefusals(refusals) {
+        return 'Refusing to save — saving would delete the contents of '
+            + refusals.length + ' layer(s):\n\n' + refusals.join('\n');
+    }
+
     function formatErrors(errors) {
         var shown = errors.slice(0, MAX_REPORTED);
         var more = errors.length - shown.length;
@@ -1967,6 +2451,14 @@ var AuraConvert = (function () {
     return {
         PX: PX,
         LAYERS: LAYERS,
+        PROPS_GROUP: PROPS_GROUP,
+        PROP_LAYERS: PROP_LAYERS,
+        OBJECT_KINDS: OBJECT_KINDS,
+        AREA_CLASS: AREA_CLASS,
+        AREA_ENUM: AREA_ENUM,
+        AREA_UNSET: AREA_UNSET,
+        REGION_ID_ENUM: REGION_ID_ENUM,
+        REGION_ID_UNSET: REGION_ID_UNSET,
         // ⚑ The raw tables, for aura-fit-size.js. It deliberately does NOT go
         // through propSize(): that helper falls back to a 1-unit box when the
         // vocabulary is absent, which is right for a conversion (the geometry
@@ -1990,6 +2482,8 @@ var AuraConvert = (function () {
         validateModel: validateModel,
         polygonNotices: polygonNotices,
         formatErrors: formatErrors,
+        layerRefusals: layerRefusals,
+        formatLayerRefusals: formatLayerRefusals,
         SPAWN_INHERIT: SPAWN_INHERIT,
         SPAWN_ENUMS: SPAWN_ENUMS,
         plainValue: plainValue,

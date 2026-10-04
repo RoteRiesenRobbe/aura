@@ -10,7 +10,7 @@
     "propertyTypes": [
         {
             "id": 1,
-            "name": "AuraTerrainType",
+            "name": "AuraDecalType",
             "type": "enum",
             "storageType": "string",
             "values": [
@@ -29,7 +29,11 @@
                 "Flowers",
                 "Leaves",
                 "Sand",
-                "Land"
+                "Land",
+                "Saltgrass",
+                "Dune Grass",
+                "Shells",
+                "Kelp Line"
             ],
             "valuesAsFlags": false
         },
@@ -40,8 +44,10 @@
             "storageType": "string",
             "values": [
                 "Barn",
+                "Bedroll",
                 "Boulder",
                 "Bridge",
+                "BrokenCrate",
                 "BrokenFence",
                 "BurntCart",
                 "Bush",
@@ -52,21 +58,29 @@
                 "DeadTree",
                 "FallenLog",
                 "FencePost",
+                "Fish",
+                "FishingHut",
                 "Gate",
                 "GateWall",
                 "Haystack",
                 "House",
                 "Mill",
+                "NetRack",
                 "OakTree",
                 "Palisade",
                 "PineTree",
+                "Remains",
                 "Rock",
+                "Rowboat",
                 "RuinedHouse",
+                "Shipwreck",
                 "Stump",
+                "Tent",
                 "Tombstone",
                 "Torch",
                 "Tree",
-                "Well"
+                "Well",
+                "WreckDebris"
             ],
             "valuesAsFlags": false
         },
@@ -114,6 +128,8 @@
                 "CultAcolyte",
                 "CultHighPriest",
                 "Cultist",
+                "DeadCarter",
+                "Deadwood",
                 "DeathKnight",
                 "DireBear",
                 "DireWolf",
@@ -125,6 +141,7 @@
                 "EliteWolf",
                 "Eliza",
                 "Emberkeeper",
+                "FallenTraveller",
                 "Farmhand",
                 "FireElemental",
                 "FireTotem",
@@ -135,6 +152,8 @@
                 "GiantRat",
                 "GiantScorpion",
                 "GiantSpider",
+                "GladeRoot",
+                "GrandfatherKnot",
                 "GreaterFireElemental",
                 "Hendrik",
                 "Hermit",
@@ -175,6 +194,8 @@
                 "SpiderWeb",
                 "SpikeBarricade",
                 "Stag",
+                "StoneRoot",
+                "StreamRoot",
                 "Totem",
                 "TownCrier",
                 "Treant",
@@ -231,6 +252,8 @@
                 "Swamp",
                 "Coastal Cliff",
                 "Coast",
+                "Limestone",
+                "Coast Grass",
                 "Magic Forest",
                 "Dead Magic Forest",
                 "Ashen Fields",
@@ -245,6 +268,7 @@
                 "Fence",
                 "Cliff",
                 "Cliff Smooth",
+                "Shoreline",
                 "Wall",
                 "Road",
                 "Cobblestone",
@@ -327,6 +351,7 @@
                 "EliteBanditSlash",
                 "EliteWolfBite",
                 "EmberAura",
+                "EntanglingRoots",
                 "Envenom",
                 "Fade",
                 "FieldMedics",
@@ -448,7 +473,7 @@
         },
         {
             "id": 13,
-            "name": "AuraTerrain",
+            "name": "AuraDecal",
             "type": "class",
             "color": "#ff8bc34a",
             "drawFill": true,
@@ -479,7 +504,7 @@
         },
         {
             "id": 15,
-            "name": "AuraCampfire",
+            "name": "AuraBindPoint",
             "type": "class",
             "color": "#ffff9800",
             "drawFill": true,
@@ -525,20 +550,16 @@
             ],
             "members": [
                 {
+                    "name": "id",
+                    "type": "string",
+                    "propertyType": "AuraRegionId",
+                    "value": "(no place)"
+                },
+                {
                     "name": "profile",
                     "type": "string",
                     "propertyType": "AuraTerrainProfile",
                     "value": "(pick a profile)"
-                },
-                {
-                    "name": "title",
-                    "type": "string",
-                    "value": ""
-                },
-                {
-                    "name": "subtitle",
-                    "type": "string",
-                    "value": ""
                 }
             ]
         },
@@ -607,7 +628,7 @@
         },
         {
             "id": 20,
-            "name": "AuraPolygon",
+            "name": "AuraStructure",
             "type": "class",
             "color": "#ff8d6e63",
             "drawFill": true,
@@ -854,6 +875,92 @@
                     "value": "pingpong"
                 }
             ]
+        },
+        {
+            "id": 26,
+            "name": "AuraAreaId",
+            "type": "enum",
+            "storageType": "string",
+            "values": [
+                "(pick an area)",
+                "farmlands",
+                "brackenfold",
+                "deep-woods",
+                "southgate",
+                "umberwood",
+                "brunnstedt",
+                "grimwatch",
+                "ashen-fields",
+                "cinder-conclave",
+                "wreckers-bluff",
+                "greyspine",
+                "netmenders-coast",
+                "northgate",
+                "sorrowfen",
+                "sunscar",
+                "fallow-reach",
+                "glimmerwood",
+                "rimefrost",
+                "hollow-marsh",
+                "moonveil",
+                "witherwood",
+                "wyrmhold"
+            ],
+            "valuesAsFlags": false
+        },
+        {
+            "id": 27,
+            "name": "AuraArea",
+            "type": "class",
+            "color": "#ff607d8b",
+            "drawFill": true,
+            "useAs": [
+                "layer"
+            ],
+            "members": [
+                {
+                    "name": "id",
+                    "type": "string",
+                    "propertyType": "AuraAreaId",
+                    "value": "(pick an area)"
+                }
+            ]
+        },
+        {
+            "id": 28,
+            "name": "AuraRegionId",
+            "type": "enum",
+            "storageType": "string",
+            "values": [
+                "(no place)",
+                "farmlands",
+                "saltgrass",
+                "brackenfold",
+                "deep-woods",
+                "southgate",
+                "umberwood",
+                "brunnstedt",
+                "grimwatch",
+                "ashen-fields",
+                "cinder-conclave",
+                "wreckers-bluff",
+                "greyspine",
+                "netmenders-coast",
+                "northgate",
+                "sorrowfen",
+                "sunscar",
+                "fallow-reach",
+                "glimmerwood",
+                "rimefrost",
+                "hollow-marsh",
+                "moonveil",
+                "witherwood",
+                "wyrmhold",
+                "den-of-evil",
+                "homestead",
+                "farmreinhard"
+            ],
+            "valuesAsFlags": false
         }
     ]
 }

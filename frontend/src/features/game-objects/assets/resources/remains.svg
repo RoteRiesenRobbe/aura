@@ -1,0 +1,30 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- Placeholder remains: TRUE top-down, a dead traveller lying face down on
+       the diagonal, head to the upper right, one arm flung out, a dark stain
+       under him. Square, so the mob (Remains) and the prop (RemainsProp) share
+       one file and a placement's rotation turns it. Placeholder art. -->
+  <!-- stain / ground shadow -->
+  <ellipse cx="60" cy="62" rx="50" ry="26" transform="rotate(-40 60 62)" fill="rgb(40,20,18)" fill-opacity="0.35"/>
+  <ellipse cx="70" cy="55" rx="16" ry="10" transform="rotate(-40 70 55)" fill="rgb(90,20,18)" fill-opacity="0.45"/>
+  <!-- legs: boots to the lower left -->
+  <path d="M42 78 L22 100" stroke="rgb(70,58,44)" stroke-width="11" stroke-linecap="round"/>
+  <path d="M50 84 L36 108" stroke="rgb(70,58,44)" stroke-width="11" stroke-linecap="round"/>
+  <ellipse cx="21" cy="102" rx="6" ry="8" transform="rotate(-40 21 102)" fill="rgb(45,34,26)"/>
+  <ellipse cx="35" cy="110" rx="6" ry="8" transform="rotate(-30 35 110)" fill="rgb(45,34,26)"/>
+  <!-- the arm under him, tucked toward the hip -->
+  <path d="M64 58 L56 74" stroke="rgb(96,80,60)" stroke-width="8" stroke-linecap="round"/>
+  <!-- torso in a torn travelling cloak -->
+  <path d="M38 72 Q34 58 48 46 Q62 34 76 40 Q86 46 82 58 Q76 72 60 82 Q46 88 38 72 Z" fill="rgb(92,74,54)" stroke="rgb(52,40,30)" stroke-width="2"/>
+  <path d="M44 74 L50 64 L46 60 M66 74 L70 66" stroke="rgb(52,40,30)" stroke-width="2" fill="none"/>
+  <!-- belt -->
+  <path d="M44 70 Q58 62 72 66" stroke="rgb(40,30,22)" stroke-width="4" fill="none"/>
+  <!-- the flung arm, reaching to the upper left -->
+  <path d="M60 44 L44 28 L34 24" stroke="rgb(96,80,60)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="31" cy="23" r="5" fill="rgb(196,160,130)"/>
+  <!-- head, face down: the back of the head, hair -->
+  <circle cx="86" cy="34" r="11" fill="rgb(70,48,32)" stroke="rgb(40,28,20)" stroke-width="2"/>
+  <path d="M80 30 Q86 26 92 31" stroke="rgb(50,34,24)" stroke-width="2" fill="none"/>
+  <!-- a dropped pack, cut open -->
+  <rect x="88" y="62" width="16" height="13" rx="3" transform="rotate(20 96 68)" fill="rgb(120,96,64)" stroke="rgb(60,46,32)" stroke-width="2"/>
+  <path d="M90 66 L102 70" stroke="rgb(60,46,32)" stroke-width="2"/>
+</svg>

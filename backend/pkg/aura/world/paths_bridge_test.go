@@ -55,10 +55,10 @@ func loadBridgeZone(doc string) (*Zone, error) {
 func TestCrossingPropThatAlsoBlocksIsRefused(t *testing.T) {
 	_, err := loadBridgeZone(`{
 		"name": "P", "bounds": {"width": 60, "height": 40},
-		"props": [{"type":"Bridge","x":0,"y":0,"rotation":0,"blocksMovement":true}]
+		"props": {"underfoot": [{"type":"Bridge","x":0,"y":0,"rotation":0,"blocksMovement":true}]}
 	}`)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "prop 0")
+	assert.Contains(t, err.Error(), "prop props.underfoot[0]")
 	assert.Contains(t, err.Error(), "crosses paths")
 }
 
@@ -66,7 +66,7 @@ func TestCrossingPropThatAlsoBlocksIsRefused(t *testing.T) {
 func TestCrossingPropWithoutBlockingLoads(t *testing.T) {
 	z, err := loadBridgeZone(`{
 		"name": "P", "bounds": {"width": 60, "height": 40},
-		"props": [{"type":"Bridge","x":0,"y":0,"rotation":0,"blocksMovement":false}]
+		"props": {"underfoot": [{"type":"Bridge","x":0,"y":0,"rotation":0,"blocksMovement":false}]}
 	}`)
 	require.NoError(t, err)
 	require.Len(t, z.Props, 1)
@@ -78,7 +78,7 @@ func TestCrossingPropWithoutBlockingLoads(t *testing.T) {
 func TestOrdinaryBlockingPropStillLoads(t *testing.T) {
 	_, err := loadBridgeZone(`{
 		"name": "P", "bounds": {"width": 60, "height": 40},
-		"props": [{"type":"House","x":0,"y":0,"rotation":0,"blocksMovement":true}]
+		"props": {"default": [{"type":"House","x":0,"y":0,"rotation":0,"blocksMovement":true}]}
 	}`)
 	require.NoError(t, err)
 }
@@ -91,7 +91,6 @@ func TestPropDefinitionParsesCrossesPaths(t *testing.T) {
 		"name": "Bridge", "entityType": "House", "sprite": "bridge.png",
 		"body": { "width": 6, "height": 2 },
 		"crossesPaths": true,
-		"underfoot": true,
 		"blocksMovement": false
 	}`))
 	require.NoError(t, err)
@@ -106,32 +105,46 @@ func TestPropDefinitionParsesCrossesPaths(t *testing.T) {
 	assert.False(t, plain.CrossesPaths)
 }
 
-// ⛔ A bridge that draws OVER the player is the defect this refuses (PO
-// 2026-09-16). crossesPaths says "walk across me"; underfoot says "and I draw
-// below you while you do" — the second does not follow from the first by
-// itself, so authoring the one without the other is refused rather than
-// quietly rendering a deck on top of the character crossing it.
-func TestCrossesPathsWithoutUnderfootIsRefused(t *testing.T) {
+// ⚑ `underfoot` left the TYPE in plan-prop-draw-order.md P3 (D4): which layer a
+// prop draws in is where the placement sits in the zone file. A definition still
+// carrying the key refuses by name rather than being quietly ignored.
+func TestUnderfootIsNoLongerATypeKey(t *testing.T) {
 	_, err := parsePropDefinition([]byte(`{
 		"name": "Bridge", "entityType": "House", "sprite": "bridge.png",
 		"body": { "width": 6, "height": 2 },
-		"crossesPaths": true, "blocksMovement": false
+		"crossesPaths": true, "underfoot": true, "blocksMovement": false
 	}`))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "underfoot")
 }
 
-// ⚑ The implication runs ONE WAY, and this is what keeps the render field from
-// collapsing into crossesPaths: a dock, a jetty or a plank walkway is walked on
-// and crosses nothing at all.
-func TestUnderfootAloneIsLegal(t *testing.T) {
-	def, err := parsePropDefinition([]byte(`{
-		"name": "Dock", "entityType": "House", "sprite": "house.svg",
-		"body": { "width": 4, "height": 2 },
-		"underfoot": true
-	}`))
+// ⛔ A bridge that draws OVER the player is the defect this refuses (PO
+// 2026-09-16). crossesPaths says "walk across me"; props.underfoot says "and I
+// draw below you while you do". The second is a placement fact since D4, so a
+// crossing placement in any other layer is refused, naming where it sits.
+func TestCrossingPropOutsideUnderfootIsRefused(t *testing.T) {
+	_, err := loadBridgeZone(`{
+		"name": "P", "bounds": {"width": 60, "height": 40},
+		"props": {"underfoot": [{"type":"Bridge","x":0,"y":0,"rotation":0}],
+		          "default":   [{"type":"Bridge","x":9,"y":0,"rotation":0}]}
+	}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "props.default[0]")
+	assert.Contains(t, err.Error(), "props.underfoot")
+}
+
+// ⚑ The rule runs ONE WAY: any prop may sit in underfoot (a broken crate, a
+// rug, a dock), it only draws under characters there. It still blocks if its
+// type does: underfoot is draw order, never collision.
+func TestAnyPropMayBeUnderfoot(t *testing.T) {
+	z, err := loadBridgeZone(`{
+		"name": "P", "bounds": {"width": 60, "height": 40},
+		"props": {"underfoot": [{"type":"House","x":0,"y":0,"rotation":0}]}
+	}`)
 	require.NoError(t, err)
-	assert.False(t, def.CrossesPaths)
+	require.Len(t, z.Props, 1)
+	assert.Equal(t, PropLayerUnderfoot, z.Props[0].Layer)
+	assert.True(t, z.Props[0].Blocks())
 }
 
 /* ---- the placement's tri-state against the type's default ------------------
@@ -147,7 +160,7 @@ func boolPtr(v bool) *bool { return &v }
 func TestPropPlacementInheritsBlockingFromItsType(t *testing.T) {
 	z, err := loadBridgeZone(`{
 		"name": "P", "bounds": {"width": 60, "height": 40},
-		"props": [{"type":"House","x":0,"y":0,"rotation":0}]
+		"props": {"default": [{"type":"House","x":0,"y":0,"rotation":0}]}
 	}`)
 	require.NoError(t, err)
 	require.Len(t, z.Props, 1)
@@ -160,7 +173,7 @@ func TestPropPlacementInheritsBlockingFromItsType(t *testing.T) {
 func TestPropPlacementInheritsWalkThroughFromItsType(t *testing.T) {
 	z, err := loadBridgeZone(`{
 		"name": "P", "bounds": {"width": 60, "height": 40},
-		"props": [{"type":"Bridge","x":0,"y":0,"rotation":0}]
+		"props": {"underfoot": [{"type":"Bridge","x":0,"y":0,"rotation":0}]}
 	}`)
 	require.NoError(t, err)
 	require.Len(t, z.Props, 1)
@@ -172,7 +185,7 @@ func TestPropPlacementInheritsWalkThroughFromItsType(t *testing.T) {
 func TestPropPlacementOverridesItsType(t *testing.T) {
 	z, err := loadBridgeZone(`{
 		"name": "P", "bounds": {"width": 60, "height": 40},
-		"props": [{"type":"House","x":0,"y":0,"rotation":0,"blocksMovement":false}]
+		"props": {"default": [{"type":"House","x":0,"y":0,"rotation":0,"blocksMovement":false}]}
 	}`)
 	require.NoError(t, err)
 	require.Len(t, z.Props, 1)
@@ -186,9 +199,9 @@ func TestPropPlacementOverridesItsType(t *testing.T) {
 func TestCrossingPropRefusedWhenThePlacementOverridesToBlocking(t *testing.T) {
 	_, err := loadBridgeZone(`{
 		"name": "P", "bounds": {"width": 60, "height": 40},
-		"props": [{"type":"Bridge","x":0,"y":0,"rotation":0,"blocksMovement":true}]
+		"props": {"underfoot": [{"type":"Bridge","x":0,"y":0,"rotation":0,"blocksMovement":true}]}
 	}`)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "prop 0")
+	assert.Contains(t, err.Error(), "prop props.underfoot[0]")
 	assert.Contains(t, err.Error(), "crosses paths")
 }

@@ -7,6 +7,7 @@ import {
     HOLD_CEILING_MS,
     HOLD_MIN_MS,
     REVEAL_MS,
+    TITLE_HOLD_MS,
 } from './CurtainSequence';
 
 /**
@@ -219,6 +220,49 @@ describe('CurtainSequence', () => {
         const c = new CurtainSequence();
         c.arrived(0, TravelDirection.Descend);
         expect(c.running).toBe(false);
+    });
+
+    // ⭐ THE TITLE CARD (PO 2026-10-04): a black hold that names the place you
+    // arrived in reads as a chapter break, not as the picture dropping out. It
+    // must stay up long enough to be read, measured from the SWAP like every
+    // other hold, so a late arrival still gets the whole card.
+    it('holds long enough to read a title when the arrival carries one', () => {
+        const c = new CurtainSequence();
+        c.begin(TravelDirection.Descend, 0);
+        c.arrived(10, TravelDirection.Descend, {title: 'Brunnstedt', subtitle: 'The last town'});
+        expect(c.place).toEqual({title: 'Brunnstedt', subtitle: 'The last town'});
+
+        c.tick(SETTLED);
+        expect(c.currentPhase).toBe('held');
+        c.tick(COVER_MS + TITLE_HOLD_MS - 1);
+        expect(c.currentPhase).toBe('held');
+        c.tick(COVER_MS + TITLE_HOLD_MS);
+        expect(c.currentPhase).toBe('revealing');
+
+        const late = new CurtainSequence();
+        late.begin(TravelDirection.Descend, 0);
+        late.arrived(900, TravelDirection.Descend, {title: 'Underworld'});
+        late.tick(900 + TITLE_HOLD_MS - 1);
+        expect(late.currentPhase).toBe('held');
+        late.tick(900 + TITLE_HOLD_MS);
+        expect(late.currentPhase).toBe('revealing');
+    });
+
+    // The card belongs to ONE crossing: the next one starts blank, and a
+    // cancelled one drops it.
+    it('forgets the title when the crossing ends', () => {
+        const c = new CurtainSequence();
+        c.begin(TravelDirection.Descend, 0);
+        c.arrived(10, TravelDirection.Descend, {title: 'Underworld'});
+        c.tick(COVER_MS + TITLE_HOLD_MS);
+        c.tick(COVER_MS + TITLE_HOLD_MS + REVEAL_MS);
+        expect(c.currentPhase).toBe('idle');
+        expect(c.place).toBeNull();
+
+        c.begin(TravelDirection.Ascend, 5000);
+        c.arrived(5010, TravelDirection.Ascend, {title: 'World'});
+        c.cancel();
+        expect(c.place).toBeNull();
     });
 
     // Death is the one end of a crossing that never produces an arrival.

@@ -413,7 +413,7 @@ def check(catalog, zone, base="HEAD"):
     # bound fire must be outside the reach of everything that would come for
     # them — measured on the PLACED species, which is what re-skinning moves.
     print("\n  campfires (§5) — clearance = closest approach - aggroRadius")
-    for fire in zone["campfires"]:
+    for fire in zone["bindPoints"]:
         point = (fire["x"], fire["y"])
         threats = sorted(((clearance(catalog, s, point), s) for s in combat
                           if aggros_players(catalog, s["mob"])), key=lambda t: t[0])
@@ -444,6 +444,12 @@ def main():
     args = parser.parse_args()
 
     catalog, zone, combat, other = wr.load()
+    # ⛔ Since plan-prop-draw-order.md P4c world.json keeps most spawns inside
+    # `areas`, and this tool indexes and rewrites zone["spawns"] only. Refuse
+    # rather than plan against the zone level alone.
+    if zone.get("areas"):
+        print("world-place: world.json has areas (P4c); this tool reads zone-level spawns only")
+        return 1
     if args.check:
         return 0 if check(catalog, zone, args.base) else 1
 

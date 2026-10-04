@@ -1,0 +1,7 @@
+{
+  "name": "Fish",
+  "entityType": "Fish",
+  "sprite": "fish.svg",
+  "body": { "width": 0.5, "height": 0.2 },
+  "blocksMovement": false
+}
