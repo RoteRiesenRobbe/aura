@@ -216,6 +216,9 @@ export interface ZoneOriginJSON {
 }
 
 export interface ZoneJSON {
+    // The zone's display name, shown on the crossing curtain's title card
+    // (ZoneCurtain). Its identity everywhere else is the file STEM, never this.
+    name?: string;
     // Zone size in server units. The server's border wall is built from
     // exactly this rectangle, so it is also what the camera clamp and the map
     // must size themselves to (plan-underworld.md U2/L13).

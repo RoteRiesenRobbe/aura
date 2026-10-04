@@ -12,6 +12,8 @@
  * for it again.
  */
 
+@import "../../user-interface/assets/variables";
+
 #zoneCurtain {
   position: fixed;
   top: 0;
@@ -138,5 +140,58 @@
 
   &.lateral.revealing {
     opacity: 0;
+  }
+
+  /* ---- the title card ---------------------------------------------------- */
+
+  /* ⭐ THE PLACE'S NAME ON THE BLACK (PO 2026-10-04): a hold that names where
+   * you arrived reads as a chapter break, where a bare black reads as the
+   * picture dropping out. A CHILD of the curtain, so it leaves with the black
+   * rather than fading on its own; it fades IN only, once full cover is
+   * reached, so it never rides in over the old place. CurtainSequence
+   * lengthens the hold to TITLE_HOLD_MS so it can be read.
+   *
+   * ⚑ Pinned to the middle of the VIEWPORT, not of the 130vh element: the
+   * viewport is the element's top 100vh going down and its bottom 100vh going
+   * up (see the anchor note on .up), hence one rule each way. */
+  .zoneCurtainTitle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50vh;
+    transform: translateY(-50%);
+    text-align: center;
+    color: Cornsilk;
+    opacity: 0;
+
+    /* Sizes are the region banner's (HUD.less #regionBanner), so a place reads
+     * the same on the card and on the banner. */
+    .zoneCurtainName {
+      font-size: (1.5 * @uiElementHeight); // [PLACEHOLDER]
+      font-weight: bold;
+      letter-spacing: 0.15em; // [PLACEHOLDER]
+      line-height: 1.1;
+    }
+
+    .zoneCurtainSubtitle {
+      font-size: (0.6 * @uiElementHeight); // [PLACEHOLDER]
+      margin-top: 0.4vh;
+
+      &:empty {
+        display: none;
+      }
+    }
+  }
+
+  &.up .zoneCurtainTitle {
+    top: auto;
+    bottom: 50vh;
+    transform: translateY(50%);
+  }
+
+  &.titled.held .zoneCurtainTitle,
+  &.titled.revealing .zoneCurtainTitle {
+    opacity: 1;
+    transition: opacity 300ms ease-out; // [PLACEHOLDER]
   }
 }

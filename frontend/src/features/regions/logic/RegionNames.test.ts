@@ -109,4 +109,17 @@ describe('PlaceAnnouncer', () => {
         a.update(B, later);
         expect(a.update(B, later + SETTLE_MS)).toEqual(B);
     });
+
+    // The crossing curtain's title card already named the place you arrived in;
+    // the banner repeating it a second later would announce it twice.
+    it('counts a place shown elsewhere against the cooldown', () => {
+        const a = new PlaceAnnouncer();
+        a.noteShown(B, 0);
+        a.update(B, 100);
+        expect(a.update(B, 100 + SETTLE_MS)).toBeNull();
+        const later = REPEAT_COOLDOWN_MS + 200;
+        a.update(null, later);
+        a.update(B, later);
+        expect(a.update(B, later + SETTLE_MS)).toEqual(B);
+    });
 });

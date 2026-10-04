@@ -1,8 +1,9 @@
 import {Application, Container, Graphics, RenderTexture, Ticker} from 'pixi.js';
 
 import {meter2px, px2meter} from '../../../client-data/BasicConfig';
-import {ActiveZoneTracker} from '../../zones/logic/ActiveZone';
-import {cancelCrossing, noteZoneChange, runWhenCovered} from '../../zones/logic/ZoneCurtain';
+import {ActiveZoneTracker, ZoneRect} from '../../zones/logic/ActiveZone';
+import {cancelCrossing, isCrossing, noteZoneChange, runWhenCovered} from '../../zones/logic/ZoneCurtain';
+import {PlaceName, placeAt} from '../../regions/logic/RegionNames';
 import {Backend} from '../../backend/logic/Backend';
 import {EntityManager} from '../../backend/logic/EntityManager';
 import {MiniMap} from '../../map/logic/MiniMap';
@@ -855,7 +856,8 @@ export class Game implements IGame {
         // already being sent, which is the whole of the transition mechanic
         // (§5.1). A no-op when no curtain is running — a cheat WARP across zones
         // stays the instant cut it is today.
-        noteZoneChange(left ? left.originY : entered.originY, entered.originY);
+        noteZoneChange(left ? left.originY : entered.originY, entered.originY,
+            this.arrivalPlace(entered, xPx, yPx));
         // ⭐ UNDER COVER, NEVER IN PLAIN SIGHT (§5.1 step 2). Everything below is
         // a visible teardown — renderZone destroys the ground layer and reloads
         // every texture, and the map re-bakes — so it waits for the curtain to
@@ -884,6 +886,29 @@ export class Game implements IGame {
                 meter2px(entered.originX), meter2px(entered.originY));
         });
         return entered.name;
+    }
+
+    /**
+     * The crossing curtain's title card: the titled region the player arrived
+     * in (with its subtitle), else the zone's name (PO 2026-10-04).
+     *
+     * ⚑ Read off the BUNDLED zone data, not Regions.loadedRegions(): the new
+     * zone is only loaded under full cover, after this runs.
+     */
+    private arrivalPlace(entered: ZoneRect, xPx: number, yPx: number): PlaceName | null {
+        const zoneData = GroundTextureManager.getZoneData(entered.name);
+        const regions = Regions.toRegions(zoneData?.regions, {x: entered.originX, y: entered.originY});
+        const place = placeAt(regions, {x: xPx, y: yPx});
+        if (place === null) {
+            return zoneData?.name ? {title: zoneData.name} : null;
+        }
+        // The card names the place, so the region banner must not name it again
+        // a second after the reveal. Only when a card is actually shown: a cheat
+        // WARP covers nothing, and there the banner is the only announcement.
+        if (isCrossing()) {
+            RegionBanner.noteShown(place);
+        }
+        return place;
     }
 
     private paintTerrainSurfaces(): void {

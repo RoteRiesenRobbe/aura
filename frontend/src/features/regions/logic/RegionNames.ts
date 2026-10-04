@@ -81,6 +81,12 @@ export class PlaceAnnouncer {
         return place;
     }
 
+    /** Records a place announced by something else (the crossing curtain's
+     *  title card), so entering it now does not announce it a second time. */
+    noteShown(place: PlaceName, now: number) {
+        this.lastShown.set(keyOf(place), now);
+    }
+
     /** Forget where you are, NOT what was shown: the next place (a join, a
      *  respawn, a zone crossing) is a fresh entry, and the cooldown still holds. */
     reset() {

@@ -2,6 +2,7 @@ import '../assets/zoneCurtain.less';
 
 import {TravelDirection} from '../../conversation/logic/ConversationModel';
 import {COVER_MS, CurtainSequence, REVEAL_MS} from './CurtainSequence';
+import type {PlaceName} from '../../regions/logic/RegionNames';
 
 /**
  * The DOM half of the zone-crossing curtain (plan-underworld.md U4b).
@@ -17,6 +18,7 @@ import {COVER_MS, CurtainSequence, REVEAL_MS} from './CurtainSequence';
  */
 
 const ELEMENT_ID = 'zoneCurtain';
+const TITLE_CLASS = 'zoneCurtainTitle';
 
 const sequence = new CurtainSequence();
 let element: HTMLElement | null = null;
@@ -35,6 +37,14 @@ function root(): HTMLElement {
         element = document.createElement('div');
         element.id = ELEMENT_ID;
         document.body.appendChild(element);
+    }
+    // ⭐ THE TITLE CARD IS A CHILD OF THE CURTAIN, so it rides off the far edge
+    // with the black instead of fading on its own: one movement, not two.
+    if (!element.querySelector('.' + TITLE_CLASS)) {
+        const card = document.createElement('div');
+        card.className = TITLE_CLASS;
+        card.innerHTML = '<div class="zoneCurtainName"></div><div class="zoneCurtainSubtitle"></div>';
+        element.appendChild(card);
     }
     // ⛑ ONE SOURCE FOR THE TIMING, AND IT IS THE STATE MACHINE. The stylesheet
     // reads these as var(--curtain-*-ms); without them CSS falls back to a
@@ -80,12 +90,18 @@ function render(): void {
         return;
     }
 
-    const wanted = `running ${axisClass(sequence.direction)} ${phase}`;
+    const place = sequence.place;
+    const titled = place !== null ? ' titled' : '';
+    const wanted = `running ${axisClass(sequence.direction)} ${phase}${titled}`;
     if (wanted === applied) {
         return;
     }
 
     const el = root();
+    if (place !== null) {
+        el.querySelector('.zoneCurtainName').textContent = place.title;
+        el.querySelector('.zoneCurtainSubtitle').textContent = place.subtitle || '';
+    }
     // ⭐ THE REFLOW IS LOAD-BEARING ON THE FIRST FRAME. The element goes from
     // `display: none` to its start transform in the same task, and a browser
     // that has not laid it out yet has no "from" value to animate away from —
@@ -194,15 +210,17 @@ export function beginCrossing(direction: TravelDirection): void {
  * ⚑ Called on EVERY zone change, including ones no press caused (a cheat WARP).
  * `arrived` is a no-op while nothing is running, so an uncovered crossing stays
  * the instant cut it is today rather than flashing a curtain after the fact.
+ *
+ * `place` is where the player arrived, shown on the black (the title card).
  */
-export function noteZoneChange(fromOriginY: number, toOriginY: number): void {
+export function noteZoneChange(fromOriginY: number, toOriginY: number, place: PlaceName | null = null): void {
     let actual = TravelDirection.Lateral;
     if (toOriginY > fromOriginY) {
         actual = TravelDirection.Descend;
     } else if (toOriginY < fromOriginY) {
         actual = TravelDirection.Ascend;
     }
-    sequence.arrived(performance.now(), actual);
+    sequence.arrived(performance.now(), actual, place);
     render();
 }
 
