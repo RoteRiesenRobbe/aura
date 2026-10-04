@@ -148,6 +148,18 @@ content*, which is the one kind this project does not accept casually.
 | **Trigger** | ⭐ **The first time a second profile is made ONLY to change an overlay's numbers** (A), or repetition between shapes is noticed in-game (B). Until then, extra profiles are free and cover it. |
 | **Closes when** | The PO rules either option in (it becomes a `plan-ground-noise.md` chunk) or out (delete this row). |
 
+### 4. A region's `(pick a profile)` placeholder now means "no ground"
+
+⚑ A vocabulary leftover, added at the PO's ask (2026-10-05) when region
+identity R2 closed (`docs/archive/plan-region-identity.md`).
+
+| | |
+|---|---|
+| **What** | `PROFILE_UNSET` (`(pick a profile)`, `aura-convert.js`) leads the ONE `AuraTerrainProfile` enum that regions, paths and structures share. On a path or a structure it still means "you forgot", and the save refuses it. Since R1 (D1(b)) it means "paints no ground" on a REGION, which is legal: that is an id-only place. One sentinel, two meanings, and on a region its label reads like a demand. |
+| **Successor** | A region-only label, e.g. `(no ground)`: either a separate enum for `AuraRegion`'s `profile` member (appended LAST in `generate-palette.mjs` so no type id renumbers), or a renamed sentinel. ⚑ The C6 rule ([[project-tiled-class-member-sentinel]]): the converter must map the new default back to "not authored", and the vitest pinning palette default ↔ converter constant must follow. Zone files hold no sentinel (it reads as absent), so nothing migrates. |
+| **Trigger** | ⭐ **The next chunk that touches the Tiled palette or `AuraRegion`**, or the first time the label misleads someone in Tiled. |
+| **Closes when** | The region's placeholder says what it means (delete this row), or the PO rules the shared label fine. |
+
 ---
 
 

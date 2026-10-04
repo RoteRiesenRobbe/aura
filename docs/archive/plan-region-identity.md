@@ -1,7 +1,7 @@
 # Plan: region identity: a region names a place by a unique id, its ground texture becomes optional, and a "go to" quest objective
 
-**Status:** DESIGNED 2026-10-04 (planning session), **RULED the same day (D1-D9;
-D1(b), the id-optional half, confirmed by the PO at the start of R1, §3).** R1 BUILT 2026-10-04 `bacbf6d4` (ledger §10); R2 next. Two chunks:
+**Status:** ✅ **COMPLETE, archived 2026-10-05.** R1 `bacbf6d4` (2026-10-04) · R2 `6a62636d` + fix `1e14b8e0` (2026-10-05), ledgers §10. DESIGNED 2026-10-04, **RULED the same day (D1-D9;
+D1(b), the id-optional half, confirmed by the PO at the start of R1, §3).** Two chunks:
 R1 (region ids) → R2 (the `reach` quest objective). Line refs come from a survey
 of HEAD `3d0b6738`; re-verify them before executing.
 
@@ -482,7 +482,7 @@ means "no ground".
 ⚑ `scripts/migrate-areas.mjs` (P4c, already run) still reads region titles. It
 is history, so it was left as is.
 
-### R2: the `reach` objective ✅ 2026-10-05 (uncommitted)
+### R2: the `reach` objective ✅ 2026-10-05 `6a62636d` (fix `1e14b8e0`)
 
 **PO rulings taken during the chunk:**
 
@@ -593,4 +593,4 @@ the quest moving (e.g. FirstAid off the dinner turn-in). Only the XP case was
 pinned. A quest row now refuses any grant index but 0 before the per-kind
 dispatch; `TestApplyGrant_RefusesATeachRewardAddressedDirectly` reproduced it red first.
 
-**Plan status:** R1 + R2 are built; archive at the next wrap.
+**Plan status:** COMPLETE, archived 2026-10-05. The region `(pick a profile)` wording went to `docs/cleanup.md` #4 (PO 2026-10-05).
