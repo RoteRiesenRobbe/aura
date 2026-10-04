@@ -2,6 +2,8 @@
   "_comment": "The slow carried by the spider's web: every 10 ticks it slows each enemy of the web's side within 1.5 units by 40 percent, and the slow wears off 11 ticks after the target steps out. The radius must stay 1.5 with no per-level growth, since the web's sprite is drawn at that fixed size. All values placeholder.",
   "id": 156,
   "name": "SpiderWebAura",
+  "icon": "lorc/spider-web",
+  "packIcon": "throwing-net",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

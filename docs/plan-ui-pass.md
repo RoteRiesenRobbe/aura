@@ -743,7 +743,9 @@ client: content JSON (`api/skills`) + a one-field Go catalog rider + client.
   tail runs `go test -count=1`.
 - **The client accessor degrades**: `skillIcon(id)` falls back to an
   initial-letter token when the catalog fetch failed or a skill has no
-  icon (mob skills, future gaps) - same degrade discipline as every other
+  icon (mob skills until plan-buff-tray.md C0 on 2026-10-03 gave the ones that
+  land a timed effect on a player an icon for the tray; future gaps) - same
+  degrade discipline as every other
   catalog accessor.
 - **The utility island rides along**: Recall and Camp get icons via a tiny
   mapped table beside `UTILITY_NAMES` in `Utilities.ts` (utilities are

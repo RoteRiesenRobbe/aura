@@ -458,6 +458,13 @@ export class Backend implements IBackend {
             // changes. Undefined slots = "loadout unchanged", handled inside.
             HUD.updateCooldownLoadout(snapshot.cooldownSlots, snapshot.cooldownRemainingTicks ?? []);
 
+            // ⚑ Also unconditional, for the opposite reason: the tray's vector
+            // IS change-only (it rides the owner block, plan-buff-tray.md
+            // D15), but every wedge counts down off the snapshot tick, so the
+            // tray needs each tick's clock. undefined = the set is unchanged
+            // and only ages; [] = the block rode and listed nothing (BuffTray.ts).
+            HUD.updateBuffTray(snapshot.ownEffects, snapshot.tick);
+
             if (Utils.isDefined(snapshot.activeAuraSlot)) {
                 HUD.updateActiveAuraSlot(snapshot.activeAuraSlot);
             }

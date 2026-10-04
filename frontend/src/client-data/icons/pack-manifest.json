@@ -12,6 +12,7 @@
     "burning-knight": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_Burn.png",
     "charge": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_Charge.png",
     "claws": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Aura_ClawsAnimal.png",
+    "cleaver": "6000FantasyIcons/MedievalIcons/SkillsMedieval/Skill_Cleave.png",
     "clock": "6000FantasyIcons/SkillsIcons/Skillicons2/Skill_standart/Skill_395_time.png",
     "crit-blade": "6000FantasyIcons/SkillsIcons/Bonus/Skill1_Standart/Critical_strike.png",
     "cross-shield": "6000FantasyIcons/SkillsIcons/Skillicons2/Skill_standart/Skill_243_discipline.png",
@@ -95,10 +96,14 @@
     "sword-grip": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_SwordAttack.png",
     "thick-skin": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Aura_ThickSkin.png",
     "three-soldiers": "6000FantasyIcons/SkillsIcons/Skillicons2/Skill_standart/Skill_294_army.png",
+    "throwing-net": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_Net.png",
     "torch": "6000FantasyIcons/SkillsIcons/Skillicons1/Skill_standart/Mageskill_49_tourch.png",
     "torso": "6000FantasyIcons/SkillsIcons/SkillIcons3/SkillVol3/Skill_Muscles.png",
     "totem-blue": "6000FantasyIcons/SkillsIcons/Skillicons1/Skill_standart/Shamanskill_15_totem.png",
     "totem-fire": "6000FantasyIcons/SkillsIcons/Skillicons1/Skill_standart/Shamanskill_04_totem.png",
-    "war-banner": "6000FantasyIcons/SkillsIcons/Skillicons1/Skill_standart/Warriorskill_36_flag.png"
+    "venom-drip": "6000FantasyIcons/SkillsIcons/Skillicons2/Skill_standart/venom.png",
+    "venom-splat": "6000FantasyIcons/SkillsIcons/Skillicons2/Skill_standart/venom02.png",
+    "war-banner": "6000FantasyIcons/SkillsIcons/Skillicons1/Skill_standart/Warriorskill_36_flag.png",
+    "war-drum": "6000FantasyIcons/MedievalIcons/Update/Drums.png"
   }
 }

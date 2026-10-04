@@ -100,11 +100,10 @@ export class Player {
         if (isDefined(entity.auraCategory)) {
             this.character.setAuraCategories(entity.auraCategory);
         }
-        // Own buff/debuff pips (applied_effects): the kinds currently applied
-        // TO this player — a dot shows before its first damage tick lands.
-        if (isDefined(entity.appliedEffects)) {
-            this.character.setAppliedEffects(entity.appliedEffects);
-        }
+        // No own pips (plan-buff-tray.md D10): the buff tray above the action
+        // bars draws the own player's effects from own_effects, so the own
+        // overhead bar's strip is never fed. applied_effects keeps feeding
+        // every OTHER entity's strip (EntityManager).
         if (isDefined(entity.auraRadius)) {
             this.character.setAuraRadius(entity.auraRadius);
         }

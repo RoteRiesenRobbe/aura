@@ -6,6 +6,7 @@ import {QuestProgress} from '../../journal/logic/JournalModel';
 import {SkillEventData} from './SkillEventNumbers';
 import {GameStateMessage} from './messages/incoming/GameStateMessage';
 import {MapFogData} from '../../map/logic/FogReveal';
+import {OwnEffectData} from '../../user-interface/HUD/logic/BuffTray';
 
 
 let lastGameState;
@@ -54,6 +55,8 @@ export class Snapshot {
     // running + completed quests, ids only (C3). Rides the same change-only
     // gate as the spellbook block above; undefined = unchanged.
     questProgress: QuestProgress[] | undefined;
+    // the buff tray's vector (plan-buff-tray.md C2), change-only like the spellbook
+    ownEffects: OwnEffectData[] | undefined;
     // This tick's skill landings and casts (plan-skill-vfx.md C1); [] on a
     // quiet tick. Events, not state: nothing to carry forward, ever.
     skillEvents: SkillEventData[];
@@ -135,6 +138,9 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
         // actually resends — which it does the same tick Abandon() runs,
         // since that bumps the ledger's revision.
         snapshot.questProgress = gameState.questProgress;
+        // The buff tray's vector rides the same gate as the spellbook (plan-buff-tray.md
+        // C2): carried VERBATIM, undefined meaning unchanged, [] meaning cleared.
+        snapshot.ownEffects = gameState.ownEffects;
         // Always carried, and never diffed: an event that happened cannot be
         // "unchanged". An empty list is the honest reading of a quiet tick.
         snapshot.skillEvents = gameState.skillEvents;

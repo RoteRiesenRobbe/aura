@@ -1244,6 +1244,20 @@ stays required and `packIcon` is optional. `PackIcons.test.ts` pins every
 Only the seat holder can pick a pack icon; a new skill authored elsewhere
 ships with its glyph until then.
 
+**Mob skills and icons (plan-buff-tray.md C0, 2026-10-03).** A mob-embedded
+skill (`api/skills/mobs/`) never renders a spellbook row, but since the buff
+tray its timed effects draw as icon circles on the PLAYER, so the UI pass C4
+rule "mob skills author no icon" is amended: a mob skill MAY author `icon`
+(+ `packIcon`), and one that carries an effect type landing a timed effect on
+another entity MUST (`dot_aura`, `instant_dot`, `slow_aura`, `instant_slow`,
+`shield_aura`, `instant_shield`, `hot_aura`, `instant_hot`, `resist_aura`,
+`instant_resist`, `speed_aura`, `calm`, `charm`, `stun`, `retaliate_slow`;
+pinned by `cmd/aurad/skill_icon_content_test.go`). A self-only effect such as
+the warlord's `tick_rate` frenzy stays bare. The same three steps as a player
+skill: the `icon` glyph is bundled by `scripts/fetch-skill-icons.mjs` (it
+walks `mobs/` too, icon optional there), the `packIcon` names a manifest entry
+and the seat holder repacks, and both vitest pins read `mobs/` as well.
+
 ### Portrait style checklist (applies to every creature/humanoid icon)
 
 The world is top-down, but creatures and humanoids are **portrait icons**, not
@@ -1467,6 +1481,40 @@ row appears exactly when its edge is walkable. So **quest rows need no
 - `grant_xp` is legal **only** on an edge that ENDS the quest (L10): abandon
   leaves the counters standing, so anything else is a loopable faucet.
 - A quest grant takes no `requiredLevel` — the stage graph is its gate.
+
+### The two-row shape: a row that offers, a row that asks how it goes
+
+The Gothic shape (PO 2026-10-04), and a deliberate second pattern beside the
+one-node shape above. `api/mobs/reinhard.json` (`giant-rats-in-the-barn`) is the
+worked example. The root carries TWO rows for one quest, and exactly one of them
+is ever on screen:
+
+- `"Anything in the barn?"` leads to the **offer node**: the brief as its lines,
+  and only the Accept row.
+- `"About the rats in the barn..."` leads to the **progress node**: the turn-in
+  row plus every row that only makes sense while the quest runs.
+
+⭐ **Neither node is gated.** The show-rule hides the Accept row once the quest
+runs and the turn-in row until its edge is walkable, and `pruneEmptyDestinations`
+then takes away the root row of whichever node presents nothing. Before the
+accept that is the progress node, while the quest runs it is the offer node,
+after the turn-in it is both. An abandon brings the offer row back.
+
+- A row for ONE stage (`"I am on it."` during the kill stage) navigates to a
+  lines-only node gated `quest_at_stage` on that stage id. Options carry no
+  conditions, so the gate sits on the destination.
+- A further question about the running quest is the same thing gated `running`.
+- ⚑ **Every row on the progress node must hide itself outside the running band**
+  (a quest row, or a `next` to a gated node). One ungated lore row there keeps
+  the node alive, and its root row then shows before the accept and forever
+  after the turn-in.
+- ⚑ Do not gate the two quest nodes themselves with `not_started` / `running`.
+  It reads the same on root, but the node the player stands on vanishes with the
+  click, and the panel drops back to the greeting instead of staying on the
+  reply.
+
+Pinned by `TestContent_ReinhardsRatsQuestSwapsItsRootRow` (`sys/`), which walks
+the real content through every quest state.
 
 ### Node conditions — greetings, and hiding a spent info row
 

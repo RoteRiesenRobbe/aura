@@ -2,6 +2,8 @@
   "_comment": "The orc warlord's cleave: a heavy sweep hitting up to 3 nearest enemies for 50 HP plus 7.5 per level, plus a bleed dot on the nearest enemy for 11 HP plus 2 per level over 4 ticks at 45-tick intervals, both within a 1.6-unit ring on the same 90-tick beat. The boss's only active aura; the shared cadence makes both halves land together every swing. All values placeholder.",
   "id": 128,
   "name": "WarlordCleave",
+  "icon": "lorc/meat-cleaver",
+  "packIcon": "cleaver",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

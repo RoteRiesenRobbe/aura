@@ -1110,6 +1110,31 @@ export function hideTooltip() {
     tooltipElement?.classList.add('hidden');
 }
 
+/** The element the tooltip is open on, or null. The buff tray re-renders a hovered circle's time line off it. */
+export function tooltipAnchor(): HTMLElement | null {
+    return currentAnchor;
+}
+
+// showEffectTooltip is the buff tray's hover (plan-buff-tray.md D12/D14): the
+// skill's own tooltip at the given level, with NO next-level preview (a circle
+// is not a spend surface), plus one appended time line the tray words (§9 P6:
+// "12 s left", or "while in range" for a circle an aura keeps up). The line
+// shown is stamped on the anchor so the tray can re-render only when it would
+// change.
+export function showEffectTooltip(anchor: HTMLElement, skillId: number, level: number, timeLine: string) {
+    const def = skillDefinition(skillId);
+    if (!def) {
+        hideTooltip();
+        return;
+    }
+    const content = formatSkillTooltip(def, level, powerScaleAt(getLocalPlayerLevel()),
+        getLocalPlayerMaxHealth(), getLocalPlayerCostFactor(), false,
+        getLocalPlayerDamageFactor(), getLocalPlayerLevel());
+    content.lines.push({text: timeLine});
+    anchor.dataset.timeLine = timeLine;
+    showTooltip(anchor, content);
+}
+
 function showSkillTooltip(anchor: HTMLElement, skillId: number, level: number) {
     const def = skillDefinition(skillId);
     if (!def) {

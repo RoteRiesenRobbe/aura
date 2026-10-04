@@ -135,6 +135,13 @@ html.mobile {
 		pointer-events: auto;
 	}
 
+	// The buff tray HIDES on the phone until C3 places it under the Focus/XP
+	// bars on the top edge (plan-buff-tray.md §3.5, D8): the bottom column is
+	// the thumb's, and an interim look there was never ruled.
+	#buffTray {
+		display: none;
+	}
+
 	/* --- always on: Focus + XP ---------------------------------------- */
 	// Off the bottom-right corner, which is where the right thumb and the
 	// action tiles are, and onto the top edge beside the ☰.

@@ -5,7 +5,11 @@
 // refactor. Run once at the pre-change tree ("before") and once after
 // ("after"); the samples must match.
 //
-// Scenes: (a) own plate with health bar + HoT pip, (c) shield segment visible,
+// Scenes: (a) own plate with health bar (NO HoT pip any more: the own pip strip
+// is never fed since plan-buff-tray.md C2, D10, and Rejuvenation's hot aura
+// skips its caster on the server, so neither a pip nor a tray circle shows on
+// the own player; pipChildren/pipDrawn read the unfed strip and trayCircles the
+// tray, both expected empty), (c) shield segment visible,
 // (b) mob plates/bars at the boar field (eyeball only — mobs wander, so pixels
 // are not comparable, but the geometry class is shared with (a)),
 // (d) cast bar mid-Recall with the indicator rect vs the shown fraction.
@@ -113,6 +117,8 @@ const sampleOverhead = () => page.evaluate(() => {
     shieldX: r(ob?.shieldFillGroup?.position.x),
     pipY: r(ob?.effectPips?.container?.y),
     pipChildren: ob?.effectPips?.container?.children?.length,
+    pipDrawn: (ob?.effectPips?.container?.children?.[0]?.context?.instructions || []).length,
+    trayCircles: [...document.querySelectorAll('#buffTray .buffCircle')].map((c) => c.dataset.skillName),
     hudShield: document.querySelector('#healthBar .shieldIndicator')?.style.display,
     focusText: document.querySelector('#healthBar .barText')?.textContent,
   };
@@ -129,9 +135,9 @@ await cmd('SKILL Rejuvenation');
 await cmd('WARP ' + wire(OPEN));
 await page.waitForTimeout(20_000); // camera settle after WARP (standing gotcha)
 
-// --- (a) plate: bar + HoT pip ---
+// --- (a) plate: bar (+ the HoT circle on the tray) ---
 const rejuv = await equipAndActivateAura(/Rejuvenation/, 0);
-await page.waitForTimeout(3_000); // first HoT tick -> own pip
+await page.waitForTimeout(3_000); // the aura's first beat (lands on allies only, not on the own plate)
 out.rejuvSetup = rejuv;
 out.sceneA_plate = await sampleOverhead();
 await shot('a-plate', CENTER);

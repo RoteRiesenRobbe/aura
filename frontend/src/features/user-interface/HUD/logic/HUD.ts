@@ -11,6 +11,7 @@ import * as Mobile from '../../logic/Mobile';
 import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
 import {
+    skillDefinition,
     skillDisplayName,
     skillIcon, skillPackIcon,
     skillMaxLevel,
@@ -20,7 +21,8 @@ import {
 } from '../../../../client-data/Skills';
 import {createIconToken, hasGlyph} from './IconToken';
 import {createSweepMemory, sweepFraction} from './CooldownSweep';
-import {attachSkillTooltips, setAvailableSkillPoints} from './SkillTooltip';
+import {attachSkillTooltips, attachTooltips, hideTooltip, setAvailableSkillPoints, showEffectTooltip, tooltipAnchor} from './SkillTooltip';
+import {applyOwnEffects, createTrayState, fractionLeft, OwnEffectData, secondsLeft, Tenant} from './BuffTray';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
 import * as AlertBanner from '../../alert-banner/logic/AlertBanner';
 import {VitalSignBar} from '../../../vital-signs/logic/VitalSignBar';
@@ -58,6 +60,15 @@ let currentCooldownRemaining: number[] = [];
 // ticks left — this remembers the length each running cooldown started at
 // (CooldownSweep, UI pass C5).
 const cooldownSweep = createSweepMemory();
+
+// The buff tray (plan-buff-tray.md C2): the pure tenant set, the two boxes it
+// renders into, and the last snapshot tick (the clock a hovered circle's time
+// line is read against).
+const buffTray = createTrayState();
+let buffTrayElement: HTMLElement | null = null;
+let buffBeneficialBox: HTMLElement | null = null;
+let buffHarmfulBox: HTMLElement | null = null;
+let buffTrayTick = 0;
 
 // Current level of every spellbook-known skill, kept by updateSpellbook.
 // Feeds the hover tooltips (spellbook entries AND loadout slots — a slotted
@@ -113,6 +124,7 @@ export function setup(game) {
     setupAuraLoadout();
     setupPassiveLoadout();
     setupCooldownLoadout();
+    setupBuffTray();
     Utilities.setup();
     Conversation.setup();
     Journal.setup();
@@ -965,6 +977,131 @@ function renderSlotToken(li: HTMLElement, skillId: number) {
         li.insertBefore(createIconToken(skillIcon(skillId), skillDisplayName(skillId), skillPackIcon(skillId)),
             li.firstChild);
     }
+}
+
+function setupBuffTray() {
+    buffTrayElement = document.getElementById('buffTray');
+    if (!buffTrayElement) return;
+    buffBeneficialBox = buffTrayElement.querySelector('.buffBox.beneficial');
+    buffHarmfulBox = buffTrayElement.querySelector('.buffBox.harmful');
+    // Hover only, the loadout slots' wiring (D12): the MouseManager pointerdown
+    // gotcha does not touch hover. The phone's hold variant is C3's.
+    attachTooltips(buffTrayElement, '.buffCircle', showBuffCircleTooltip);
+}
+
+function buffTenantOf(circle: HTMLElement): Tenant | undefined {
+    const key = circle.dataset.key;
+    return buffTray.beneficial.find((t) => t.key === key) ?? buffTray.harmful.find((t) => t.key === key);
+}
+
+// The level the tooltip scales to (plan-buff-tray.md §3.4, Q1 as proposed):
+// the own spellbook level for the player's own skills, and skillLevelOf's
+// fallback of 1 for a skill cast by someone else, which the client never
+// knows the level of.
+function showBuffCircleTooltip(circle: HTMLElement) {
+    const tenant = buffTenantOf(circle);
+    if (!tenant) {
+        hideTooltip();
+        return;
+    }
+    showEffectTooltip(circle, tenant.skillId, skillLevelOf(tenant.skillId), buffTimeLine(tenant));
+}
+
+// The tooltip's time line (§9 P6). A circle an aura keeps up has no countdown
+// to name while the aura holds it (PO look 2026-10-04), so it says so; once
+// the aura lets go, and for every timed circle, it is the seconds left.
+function buffTimeLine(tenant: Tenant): string {
+    if (tenant.sustained && tenant.leavingAt === undefined) {
+        return 'while in range';
+    }
+    return `${secondsLeft(tenant, buffTrayTick)} s left`;
+}
+
+// "Is this skill an aura?" for BuffTray's sustained rule. Asked of the
+// definition, not skillCategory(): that accessor falls back to 'aura' while
+// the catalog is still in flight, which would call every circle sustained.
+function isAuraSkill(skillId: number): boolean {
+    return skillDefinition(skillId)?.category === 'aura';
+}
+
+/**
+ * Repaint the buff tray from this snapshot (plan-buff-tray.md C2).
+ *
+ * Runs on EVERY snapshot like updateCooldownLoadout, and for the same reason:
+ * the wedges count down off the tick. `effects` is undefined on a tick
+ * without the owner block (the set is unchanged and only ages) and [] when
+ * the block rode with nothing on the player (BuffTray.ts header). The DOM
+ * changes only when the tenant set does; a quiet tick costs one custom
+ * property per circle.
+ */
+export function updateBuffTray(effects: OwnEffectData[] | undefined, tick: number) {
+    if (!buffBeneficialBox || !buffHarmfulBox) return;
+    buffTrayTick = tick;
+    applyOwnEffects(buffTray, effects, tick, isAuraSkill);
+    renderBuffBox(buffBeneficialBox, buffTray.beneficial, tick);
+    renderBuffBox(buffHarmfulBox, buffTray.harmful, tick);
+
+    // A tooltip open on a circle follows the countdown: re-rendered only when
+    // its time line would change, and closed when its circle has gone.
+    const anchor = tooltipAnchor();
+    if (anchor && anchor.classList.contains('buffCircle')) {
+        const tenant = buffTenantOf(anchor);
+        if (!tenant || !anchor.isConnected) {
+            hideTooltip();
+        } else if (anchor.dataset.timeLine !== buffTimeLine(tenant)) {
+            showBuffCircleTooltip(anchor);
+        }
+    }
+}
+
+// renderBuffBox makes `box`'s children match `tenants` in order (newest first,
+// which the stylesheet puts at the inner end). A known key keeps its element,
+// a new one gets a fresh circle inserted at its index, and whatever is left
+// past the end has left the set. Then every circle takes its wedge angle.
+function renderBuffBox(box: HTMLElement, tenants: Tenant[], tick: number) {
+    for (let i = 0; i < tenants.length; i++) {
+        const t = tenants[i];
+        let el = box.children[i] as HTMLElement | undefined;
+        if (!el || el.dataset.key !== t.key) {
+            const existing = box.querySelector(`:scope > [data-key="${t.key}"]`) as HTMLElement | null;
+            el = existing ?? createBuffCircle(t);
+            box.insertBefore(el, box.children[i] ?? null);
+        }
+        // The same late-catalog repair renderSlotToken makes: a circle built
+        // before /skills answered is a letter until the glyph can be drawn.
+        const token = el.querySelector(':scope > .ink-token');
+        if (token?.classList.contains('letterFallback') && hasGlyph(skillIcon(t.skillId), skillPackIcon(t.skillId))) {
+            token.replaceWith(createBuffToken(t.skillId));
+        }
+        el.classList.toggle('harmful', t.harmful);
+        // Read by the verify suite: a circle an aura keeps up, and one whose
+        // aura has let go and that is sweeping out (the server no longer has it).
+        el.classList.toggle('sustained', t.sustained);
+        el.classList.toggle('leaving', t.leavingAt !== undefined);
+        el.dataset.kinds = String(t.kinds);
+        el.style.setProperty('--gone', `${((1 - fractionLeft(t, tick)) * 360).toFixed(1)}deg`);
+    }
+    while (box.children.length > tenants.length) {
+        box.lastElementChild!.remove();
+    }
+}
+
+function createBuffToken(skillId: number): HTMLElement {
+    return createIconToken(skillIcon(skillId), skillDisplayName(skillId), skillPackIcon(skillId));
+}
+
+function createBuffCircle(t: Tenant): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'buffCircle';
+    el.dataset.key = t.key;
+    el.dataset.skillId = String(t.skillId);
+    el.dataset.skillName = skillDisplayName(t.skillId);
+    el.dataset.caster = String(t.caster);
+    el.appendChild(createBuffToken(t.skillId));
+    const sweep = document.createElement('span');
+    sweep.className = 'buffSweep';
+    el.appendChild(sweep);
+    return el;
 }
 
 export function updateAuraLoadout(slots: number[]) {

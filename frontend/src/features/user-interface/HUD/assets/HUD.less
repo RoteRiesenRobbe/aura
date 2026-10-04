@@ -1617,6 +1617,116 @@
 	}
 }
 
+// The buff tray (plan-buff-tray.md C2, §3.3). Two boxes either side of the
+// centre line: beneficial grows LEFT from it, harmful grows RIGHT, and both
+// wrap UPWARD so the first row stays glued to the action bars (D7). The DOM is
+// newest-first, so `row-reverse` on the left box and `row` on the right both
+// put index 0 at the inner end (D6). Neither the tray nor its boxes take
+// pointer events, only the circles do: the two half-width boxes would
+// otherwise swallow every click across the strip above the action bars, and
+// hover still bubbles from a circle to the tray's delegated tooltip listener.
+// [PLACEHOLDER] every size. The mockup drew 46 px circles; the PO's look on
+// 2026-10-04 tried half as big again (68 px) and then took 30 % off that,
+// which lands at 48 px: three quarters of an ability slot (64 px).
+@buff-circle:     48px;
+@buff-gap:        6px;
+@buff-centre-gap: 22px;
+@buff-harm-rim:   #7a1f1f; // the harmful circle's dark red rim
+
+#buffTray {
+	align-self: stretch;
+	display: flex;
+	justify-content: center;
+	align-items: flex-end;
+	gap: @buff-centre-gap;
+	min-height: @buff-circle;
+	pointer-events: none;
+
+	> .buffBox {
+		flex: 1 1 0;
+		min-width: 0;
+		display: flex;
+		flex-wrap: wrap-reverse;
+		align-content: flex-start;
+		gap: @buff-gap;
+		pointer-events: none;
+
+		&.beneficial {
+			flex-direction: row-reverse;
+		}
+
+		&.harmful {
+			flex-direction: row;
+		}
+	}
+}
+
+// One circle: the slot's well and ink ring at the tray's size, the C4 token
+// RE-SIZED to fill it (the C4 rule, the slot's treatment), and the wedge on top.
+.buffCircle {
+	position: relative;
+	flex: 0 0 auto;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	width: @buff-circle;
+	height: @buff-circle;
+	pointer-events: auto;
+	background: @slot-well;
+	border: 3px solid @ink;
+	border-radius: 50%;
+	overflow: hidden; // clips the token round
+	color: @parchment;
+
+	&.harmful {
+		border-color: @buff-harm-rim;
+	}
+
+	> .ink-token {
+		width: 100%;
+		height: 100%;
+		background: none;
+		border: none;
+		border-radius: 0;
+		box-shadow: none;
+
+		> svg {
+			width: 68%;
+			height: 68%;
+		}
+
+		> .packImage {
+			width: 100%;
+			height: 100%;
+		}
+
+		&.packIcon {
+			border-radius: inherit;
+			overflow: hidden;
+		}
+
+		&.letterFallback {
+			font-size: 19px;
+		}
+	}
+
+	// The wedge: the cooldown slot's conic sweep (.cdSweep) with the meaning
+	// INVERTED. On a cooldown the dark part is what is still locked; here it
+	// is what has PASSED, darkening clockwise from twelve as `--gone` grows
+	// (set per snapshot by HUD.updateBuffTray), and a refresh snaps it back to
+	// 0deg: the circle fills again (D2).
+	> .buffSweep {
+		position: absolute;
+		inset: 0;
+		border-radius: 50%;
+		background: conic-gradient(fade(#0a0805, 75%) 0deg var(--gone, 0deg),
+			transparent var(--gone, 0deg));
+		pointer-events: none;
+	}
+}
+
 // Baseline utilities (plan-downtime.md D1): always-present and always
 // pressable, so a utility slot never wears the empty-slot dim and always
 // carries a pointer cursor - unlike a loadout slot, whose affordance is

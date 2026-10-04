@@ -2,6 +2,8 @@
   "_comment": "GiantSpider's grown-up venom: a poison bite plus a poison dot, both on the nearest enemy within 1.6 units every 40 ticks. Bite: 3.5 HP plus 0.7 per level. Dot: 6 HP plus 1.2 per level over 5 ticks, 45-tick intervals. The bite exists so brief contact still deals damage. Both effects share radius, tickInterval and maxTargets since the aura sensor sizes to the largest. All values placeholder.",
   "id": 137,
   "name": "GiantVenomSpit",
+  "icon": "lorc/poison-bottle",
+  "packIcon": "venom-drip",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

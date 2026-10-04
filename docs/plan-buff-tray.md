@@ -81,6 +81,8 @@ cooldown slots' remaining ticks.
 | **D16** | ⭐ **The circle key is (skill, caster)**, amending D11 (PO 2026-10-02, C1's session, "WoW literal shape"): a dot stream is applied and ticks PER CASTER on the server (round-7 item 6, pinned in `buffs_test.go`), so two wolves' dots are two circles, each with its own time. PO: *"if it is the truth meaning two dots two identical enemies would tick independently on the player already"*; confirmed in the code first. Everything with no caster on the server (slow, resist, stun, shield, speed, tick rate, lifesteal, reflect, calm, charm, and hots: only the strongest heals) stays ONE circle per skill. PO: *"for debuff effects like slows, resists, stuns, one circle, that is fine"*. |
 | **D17** | **An entry carries a kinds BITMASK, not one kind** (PO 2026-10-02, after "each skill would get its own entry with all of the effects listed in a text"): `OwnEffect.kinds` is the union of the kinds live under the circle. The side is "harmful if any harmful kind is present" (D13 applied to a mask), so no tie-break was needed; while a skill has dot circles its caster-less kinds ride in each dot circle's mask rather than forming a third circle. The tooltip stays the skill's own text (D14), which already lists every effect. |
 | **D18** | **World effects (lava, the bog) are their own circles too** (PO 2026-10-02: *"circles per effect that comes from the world or other players"*): every placed area effect gets an id at load (`world.PlacedAreaEffect.ID`, a range above 2^32 that entity ids never reach), and a dot's caster resolves to it, so two lava pools draw apart. |
+| **D19** | **A circle an AURA keeps up draws STEADY, then sweeps out once** (PO look 2026-10-04, amending D2 for this one class): the spider web's slow lives 11 ticks and is re-applied every 10, so its honest wedge strobed three times a second. PO: *"steady and then a very fast circle fill in the case of the web"*, and it then disappears as any other effect does. Positions stay D6's (new at the inner end); gameplay, content and the wire are untouched. D2's refill stands for everything with a real duration (a re-bitten dot). |
+| **D20** | **Circle size: 48 px** (PO look 2026-10-04, two passes): first roughly 50 % bigger than the mockup's 46 px (68 px), then 30 % smaller than that. Still [PLACEHOLDER]. |
 
 ---
 
@@ -333,9 +335,9 @@ membership change.
 
 | chunk | what | depends on |
 |---|---|---|
-| **C0 (optional, content)** | `icon` (and `packIcon` where the pack has one) on the mob skills that land a timed effect on a player. Census at HEAD, 11 of 42: `bomb-burst`, `ember-aura`, `fire-elemental-aura`, `fire-totem-aura`, `giant-venom-spit`, `rally-drum`, `spider-web-aura`, `totem-aura`, `venom-spit`, `warbanner-shield`, `warlord-cleave`. No mob skill carries an icon today. | nothing; the `add-content` skill |
+| **C0 (content)** ✅ built 2026-10-03 with C2 (PO: fold it in), see §11 | `icon` (and `packIcon` where the pack has one) on the mob skills that land a timed effect on a player. Census at HEAD, 11 of 42: `bomb-burst`, `ember-aura`, `fire-elemental-aura`, `fire-totem-aura`, `giant-venom-spit`, `rally-drum`, `spider-web-aura`, `totem-aura`, `venom-spit`, `warbanner-shield`, `warlord-cleave`. No mob skill carries an icon today. | nothing; the `add-content` skill |
 | **C1 (server)** ✅ built 2026-10-02, see §11 (the row below is the planning shape; D16-D18 changed the entry to (skill, caster) + a kinds mask) | `Buffs.Revision()` bumped on every mutation and expiry; `total` on `buffEntry`; `Buffs.OwnEffects()` projection (one per skill, longest stream, kind); `EffectKind` + `OwnEffect` + `own_effects` on the wire inside the owner block; `ownerStateWatch.buffRev`; the shared-constants pin. | nothing |
-| **C2 (client, desktop)** | Decode; `BuffTray.ts` (pure tenant set, ordering, wrap, fraction) + the element above the action bars; circles with icon and wedge; countdown off `snapshot.tick`; hover tooltip with the time line; retire the own player's dots (D10). | C1 |
+| **C2 (client, desktop)** ✅ built 2026-10-03, see §11 | Decode; `BuffTray.ts` (pure tenant set, ordering, wrap, fraction) + the element above the action bars; circles with icon and wedge; countdown off `snapshot.tick`; hover tooltip with the time line; retire the own player's dots (D10). | C1 |
 | **C3 (client, phone + always-on)** | The phone placement under the bars; the 500 ms hold tooltip in `attachTooltips`; passives and aura drawbacks as permanent circles. | C2 |
 | *(world effects C2)* | World effects and heir buffs as tenants through §3.8. Owned by `plan-world-effects.md`. | C2 here, and that plan's approval |
 
@@ -534,3 +536,163 @@ clear on such a tick, keep counting down otherwise, §10); tenant key =
 `(skill_id, caster)`; side = any of Slow | Dot | Stun set in `kinds` (D13 on a
 mask); `fraction = (expires_tick - tick) / total_ticks` clamped to [0, 1];
 a `caster` above 2^32 is a place (name it by the skill, as the tooltip does).
+
+### C2 (client, desktop) + C0 (content) ✅ BUILT 2026-10-03 `[uncommitted]`
+
+What shipped, against §7's rows, with the one choice prompt the session took
+(C0 folded in, PO 2026-10-03) and the deviations it found:
+
+- **Decode**: `own_effects` read inside the `ownerState()` branch of
+  `GameStateMessage.ts` (`unmarshalOwnEffects`, the two ulongs narrowed to
+  numbers as `tick` is), undefined on every other tick; carried verbatim by
+  `SnapshotFactory.ts`; `Backend.ts` feeds `HUD.updateBuffTray(effects, tick)`
+  on EVERY snapshot beside the cooldown bar, since the wedges count down off
+  the tick.
+- **`BuffTray.ts`** (pure, the CooldownSweep pattern): the tenant set per side,
+  newest first; key `skill:caster`; side = any of Slow | Dot | Stun in `kinds`
+  (`HARMFUL_KINDS` off the generated enum); a known key keeps its position and
+  takes the new expiry (D2/D6), a new one is inserted at the inner end, a key
+  the vector no longer lists leaves; `[]` clears, `undefined` keeps (§10) and
+  **drops a tenant locally once its expiry passes**, the rule §10 left
+  implicit (a lost expiry resend would otherwise leave a dead circle until the
+  heartbeat); a circle whose kinds flip sides moves boxes. 16 vitest legs.
+- **The element**: `#buffTray` in `#bottomCenter` between the flight bar and
+  `#actionBars`, two boxes (`.beneficial` `row-reverse`, `.harmful` `row`, both
+  `wrap-reverse` so the second row grows upward, D7), the circle the slot's
+  well + ink ring at 46 px with the C4 token re-sized to fill it, a conic
+  `--gone` wedge inverted from `.cdSweep`, a dark red rim on a harmful circle.
+  ⚑ The tray reserves its 46 px row even when empty, so the cast bar and the
+  action bars never jump when the first circle lands. ⚑ Only the circles take
+  pointer events; the two half-width boxes would otherwise swallow every click
+  across the strip. Every size [PLACEHOLDER] per §9 P4.
+- **The tooltip**: `attachTooltips` on the tray (hover only, D12) rendering
+  `showEffectTooltip`: `formatSkillTooltip` with NO next-level preview plus one
+  `N s left` line (P6); the open tooltip follows the countdown, re-rendered
+  only when its seconds change. Level per Q1 as proposed: the own spellbook
+  level, else 1.
+- **D10**: `Player.ts` no longer feeds the own character's `setAppliedEffects`;
+  the `EffectPips.ts` header and the `applied_effects` comment in `server.fbs`
+  say "for others" (comment only, no regen). Every other entity keeps its pips.
+- **Phone**: `#buffTray` is `display: none` under `html.mobile` until C3 places
+  it (§3.5); an interim bottom-column look was never ruled.
+- **NOT built**: §3.8's `BuffTray.register(tenant)` / `unregister(key)` for
+  world effects (YAGNI until that plan's C2); the `permanent` time line and
+  always-on tenants (C3).
+- **C0**: `icon` + `packIcon` on the 11 mob skills (bomb-burst `bomb`,
+  ember-aura `fireball`, fire-elemental-aura `fire-ring`, fire-totem-aura
+  `totem-fire`, giant-venom-spit `venom-drip` NEW, rally-drum `war-drum` NEW,
+  spider-web-aura `throwing-net` NEW, totem-aura `totem-blue`, venom-spit
+  `venom-splat` NEW, warbanner-shield `war-banner`, warlord-cleave `cleaver`
+  NEW; glyphs reused where vendored, `delapouite/drum`, `lorc/spider-web`,
+  `lorc/meat-cleaver` fetched). ⚑ **The icon pipeline was scoped to the top
+  level of `api/skills` by the UI pass C4 ruling, in four places**: the fetch
+  script, `SkillIcons.test.ts`, `PackIcons.test.ts`, and a Go pin asserting
+  `mobs/` authors NONE. All four now walk `mobs/` (icon optional there), and
+  the Go pin became `TestSkillContent_MobSkillsThatLandATimedEffectAuthorAnIcon`:
+  a mob skill carrying any of the 15 effect types that land a timed effect on
+  ANOTHER entity must author one. That census matched §7's eleven exactly
+  once self-only types were excluded (`warlord-frenzy`'s `tick_rate` is a
+  self buff and stays bare). Atlases repacked locally (104 entries, seat
+  holder only, `THIRD_PARTY.md`); `manual-content-authoring.md` §4 records
+  the amended rule.
+
+**Schema impact: DB NONE · wire NONE** (C1 added the fields; C2 edits two
+comments, no regen) · **conf NONE** · **content: 11 mob skills + 5
+pack-manifest entries + 3 vendored glyphs**.
+
+**Verified:**
+
+- `go test ./...` green except the pre-existing
+  `world.TestPropContent_C1bMigrationPreservesLookAndCollision` (C1's
+  finding). The rewritten Go pin passes with `-count=1`.
+- `npm test` 1472/0 (16 new in `BuffTray.test.ts`, both icon pins over
+  `mobs/`), `npm run typecheck` clean, prod build clean, atlases repacked
+  (104 entries).
+- Harnesses, each alone on a freshly restarted DEBUG zone set: the new
+  `buff-tray.mjs` **13/13** (Swift circle appears / darkens / tooltips /
+  leaves; Recover hot circle; the giant spiders' venom as a harmful circle
+  keyed by the biting spider, refilled by every re-bite, draining out after
+  the warp away; a spider under Immolate keeps its own Dot pip; no own pips).
+  `c2-player-cc.mjs` **22 PASS, 1 INCONCLUSIVE, 0 FAIL** (C1's baseline;
+  the DR leg is the documented never-red one) after its clock and Slow read
+  moved. `swift-cooldown.mjs` **7/7** (legs 3 and 5 read the tray).
+  `c5-bars.mjs` capture clean (the own strip unfed, a Warbanner shield
+  circle on the tray). `hygiene-wire-prune.mjs` 627 sprites, 0 console
+  errors. `mobile-layout.mjs` 3 red on its "journal from the sheet" leg,
+  **identical at clean HEAD** (stash round-trip), recorded in CLAUDE.md's
+  known-red list, not this chunk's.
+- ✅ **The PO's look, 2026-10-04**: *"it works and looks good for now"*, with
+  two changes ruled as choice prompts (D19, D20) and built the same day, see
+  "The look round" below. ⛔ Owed after them: a second look at the steady web
+  circle and the bigger size.
+
+**Found on the way:**
+
+- **A hot AURA skips its caster on the server** (`applyHotAura`: "self-HoT is
+  the instant_hot cooldown's job"), so §7's harness line "switch Heal on while
+  hurt, a hot circle that refills every beat" was unbuildable as written.
+  Recover (`instant_hot`, self) gives the hot circle; D2's refill is observed
+  on the giant spider's venom, re-applied every bite.
+- **The own `setAppliedEffects` was a harness CLOCK**: `c2-player-cc.mjs`
+  counted its calls as snapshots for every duration it measures, so D10 would
+  have stopped the clock, not just one leg. It now wraps `setAuraTick` (fed on
+  every own snapshot) and reads the Slow state off the tray's DOM, one
+  snapshot late (every leg has a 30-snapshot tolerance).
+- **Sample faster than the refresh**: a 1 s probe against the spider's 1.33 s
+  bite cycle aliased the wedge into a sawtooth running backwards.
+- `data-skill-name` is the DISPLAY name with spaces ("Giant Venom Spit"); the
+  verify skill has the gotcha.
+- The venom-drip pack art reads as a green leaf at 40 px (a look item).
+
+**The look round (PO 2026-10-04, D19 + D20):**
+
+- **Measured before ruling**: standing still in the pack for 24 s, the web's
+  circle never dropped while its web lived (the server's beat + 1 lifetime is
+  already "slowed while in range, gone a third of a second after leaving"), so
+  neither the slow's mechanics nor the content needed a change. What the PO
+  saw was (a) the wedge of an 11-tick lifetime sweeping and refilling three
+  times a second and (b) every re-entry (a new web every 8 s, a step across an
+  edge) arriving as a NEW circle at the inner end.
+- **D19 as built** (`BuffTray.ts`, client only): a tenant is `sustained` when
+  its skill is an aura in the catalog and its kinds carry no dot or hot (the
+  four beat + 1 appliers are `slow_aura`, `resist_aura`, `shield_aura`,
+  `speed_aura`; a dot or hot has a real duration even under an aura). A
+  sustained circle draws full while the server lists it; when the server
+  stops (or its expiry passes on a quiet tick) it stays for one more lifetime
+  with `leavingAt` set, sweeping its wedge once, then leaves. Caught again
+  mid-sweep it returns to steady IN PLACE, which also absorbs a walk along a
+  web's edge. The tooltip line reads `while in range` while steady. The
+  circle carries the classes `sustained` and `leaving` for the harnesses.
+  ⚑ The lookup asks `skillDefinition(id)?.category`, not `skillCategory()`,
+  whose fallback is 'aura' while the catalog is in flight. ⚑ The sweep runs
+  AFTER the server dropped the effect, so `c2-player-cc.mjs` skips `.leaving`
+  circles when it times the server's slow. 6 more vitest legs (22).
+- **D20**: `@buff-circle` 48 px after two passes (68 px, then 30 % off),
+  `@buff-gap` 6 px, the centre gap unchanged.
+- **Not changed**: positions (the PO kept D6 over an outer-end group and a
+  remembered slot).
+- **Verified after the look round**: vitest 1478/0, typecheck, prod build;
+  `buff-tray.mjs` 13/13; `c2-player-cc.mjs` twice on fresh restarts: its new
+  leg "inside the web the circle is STEADY" PASS both times, "stepping out
+  frees within a second" PASS (Slow dark on the same snapshot the player
+  cleared the edge, the `.leaving` sweep excluded), totals 16/1/6 and
+  20/1/2 (PASS / FAIL / INCONCLUSIVE; the pack decides the inconclusive
+  legs). ⚑ The one FAIL both times was "the web expires on its own": an
+  `every` over the webs' lifetimes with a 215-265 window, reddened by a
+  single web read at 130 and at 213 beside seven values around 237 (a web
+  first seen late or dying with its spider reads short). A knife-edge,
+  harness rule 3, and nothing a client-only change can move; repaired to
+  median + ceiling. Pre-commit, on the 48 px bundle: `buff-tray.mjs` 13/13
+  and `c2-player-cc.mjs` **17 PASS, 0 FAIL, 6 INCONCLUSIVE** with the
+  repaired leg green (three webs at 235 / 239 / 235). ⚑ One run before it
+  was VOID (connection refused, zero snapshots): another session restarted
+  the shared dev server mid-run, the verify skill's "anything else touching
+  the server kills the run".
+
+**For C3:** remove the `html.mobile` hide and place the tray under
+`#vitalSigns` (§3.5); `showEffectTooltip` grows the `permanent` line (pass
+`null` seconds); the 500 ms hold variant in `attachTooltips`; always-on
+tenants need a second feed into `TrayState` (passives from `passive_slots`,
+drawbacks from the active aura's definition) since they carry no expiry, at
+the OUTER end of each box (P5). Harness legs under `?mobile` per §7.
+

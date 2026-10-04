@@ -393,6 +393,18 @@
             <span class="barText"></span>
         </div>
 
+        <!-- The buff tray (plan-buff-tray.md C2): the own player's timed effects
+             as icon circles, beneficial LEFT of the centre line and harmful RIGHT
+             of it, newest nearest the centre (D5/D6), wrapping upward (D7).
+             Rendered by HUD.updateBuffTray from the pure BuffTray.ts set; a
+             circle carries data-skill-id / data-skill-name / data-caster /
+             data-kinds for the tooltip and the verify suite, and `--gone` for
+             its wedge. Sits between the timers above and the action bars. -->
+        <div id="buffTray">
+            <div class="buffBox beneficial"></div>
+            <div class="buffBox harmful"></div>
+        </div>
+
         <!-- Action bars (UI pass C5): ONE bar holding both slot families with a
              wood divider between them, and the utility island beside it.
              ⚑ WRAP, NEVER RENAME: #auraLoadout / #cooldownLoadout and their

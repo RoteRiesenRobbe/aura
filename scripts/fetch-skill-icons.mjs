@@ -2,7 +2,8 @@
 // Re-derive the vendored skill-icon set (UI pass C4).
 //
 // A ONE-TIME TOOL, never a build step. It reads the `icon` values authored in
-// api/skills/*.json (plus the small EXTRAS list below), downloads each glyph
+// api/skills/*.json and api/skills/mobs/*.json (plus the small EXTRAS list
+// below), downloads each glyph
 // from game-icons.net once, strips it so `currentColor` can tint it, and writes
 // three committed artifacts:
 //
@@ -78,18 +79,26 @@ function strip(path, raw) {
 }
 
 async function authoredIcons() {
-    // Top level only: api/skills/mobs holds the mob-embedded skills, which
-    // author no icon by ruling D1.
-    const files = (await readdir(skillsDir, {withFileTypes: true}))
-        .filter(e => e.isFile() && e.name.endsWith('.json'))
-        .map(e => e.name);
+    // The top level is every player skill, and each of them MUST author an
+    // icon (UI pass C4 D1; the Go content test pins it). api/skills/mobs holds
+    // the mob-embedded skills, where an icon is OPTIONAL: the buff tray draws a
+    // mob's timed effect as a circle on the player (plan-buff-tray.md C0), so
+    // the mob skills that land one author an icon and the rest stay bare.
     const icons = new Set(EXTRAS);
-    for (const file of files) {
-        const def = JSON.parse(await readFile(join(skillsDir, file), 'utf8'));
-        if (!def.icon) {
-            throw new Error(`${file}: authors no icon (the Go content test pins this too)`);
+    for (const [dir, required] of [[skillsDir, true], [join(skillsDir, 'mobs'), false]]) {
+        const files = (await readdir(dir, {withFileTypes: true}))
+            .filter(e => e.isFile() && e.name.endsWith('.json'))
+            .map(e => e.name);
+        for (const file of files) {
+            const def = JSON.parse(await readFile(join(dir, file), 'utf8'));
+            if (!def.icon) {
+                if (required) {
+                    throw new Error(`${file}: authors no icon (the Go content test pins this too)`);
+                }
+                continue;
+            }
+            icons.add(def.icon);
         }
-        icons.add(def.icon);
     }
     return [...icons].sort();
 }

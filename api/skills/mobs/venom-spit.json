@@ -2,6 +2,8 @@
   "_comment": "A venom spider's spit: applies a poison dot to the nearest enemy within 1.0 unit every 50 ticks, dealing 5 HP plus 1 per level over 4 ticks at 45-tick intervals. The dot keeps ticking after the target leaves the radius. Antivenom resists it. All values placeholder.",
   "id": 118,
   "name": "VenomSpit",
+  "icon": "lorc/poison-bottle",
+  "packIcon": "venom-splat",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

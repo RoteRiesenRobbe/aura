@@ -8,6 +8,11 @@ import {OVERHEAD_BAR_BACKDROP} from '../../../client-data/Theme';
  * kinds currently applied TO an entity — the received-status opposite of
  * `aura_category`, which describes what the entity projects.
  *
+ * ⚑ Drawn for every entity but the OWN player since plan-buff-tray.md D10:
+ * the own player's effects draw as circles on the buff tray (BuffTray.ts),
+ * and Player.ts never feeds the own strip. Other characters and mobs keep
+ * their pips.
+ *
  * SYNCED WITH BACKEND (backend/pkg/aura/skills/applied_effects.go), pinned on
  * both sides by api/shared-constants.json (§35 C4c) — a regular enum on
  * purpose, so the pin test can enumerate its members.

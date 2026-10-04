@@ -582,9 +582,11 @@ table Character {
   // Bitmask of the buff/debuff kinds currently applied TO this character
   // (dot/slow/hot/resist/tickrate — skills.AppliedEffect); 0 = none. Mirrors
   // Mob.applied_effects — the received-status opposite of aura_category. The
-  // client draws the buff/debuff pips from it; shields are deliberately absent
-  // (shield_hp already carries them). Appended at the table end so existing
-  // field IDs stay stable.
+  // client draws the buff/debuff pips from it for OTHER characters; the own
+  // player's effects draw on the buff tray from GameState.own_effects instead
+  // (plan-buff-tray.md D10), so the own value is sent and ignored. Shields are
+  // deliberately absent (shield_hp already carries them). Appended at the
+  // table end so existing field IDs stay stable.
   applied_effects:ubyte = 0;
 
   // Resource cost paid this tick (round-7 item 7): the damage_taken twin for

@@ -2,6 +2,8 @@
   "_comment": "A fire elemental's burn field: applies a fire dot to every hostile entity within 2.0 units every 60 ticks, dealing 7 HP plus 1.8 per level over 3 ticks at 60-tick intervals, and casts light out to 2.5 units. Shared by both the normal and greater fire elemental; their difference comes from baseline stats, not this skill. All values placeholder.",
   "id": 134,
   "name": "FireElementalAura",
+  "icon": "carl-olsen/flame",
+  "packIcon": "fire-ring",
   "category": "active_aura",
   "maxLevel": 5,
   "visual": {

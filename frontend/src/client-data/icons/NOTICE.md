@@ -12,11 +12,11 @@ icon name on game-icons.net, so every asset stays traceable to its original.
 ## Authors used
 
 - **carl-olsen** (1): flame
-- **delapouite** (5): healing, invisible, knight-banner, knocked-out-stars, peace-dove
-- **lorc** (26): ankh, bleeding-wound, bordered-shield, broadsword, campfire, charm, energy-shield, land-mine, lantern-flame, life-tap, magic-portal, meditation, mining, muscle-up, poison-bottle, return-arrow, scythe, shield-reflect, shouting, snail, snowflake-1, star-swirl, stopwatch, totem-head, vine-leaf, wingfoot
+- **delapouite** (6): drum, healing, invisible, knight-banner, knocked-out-stars, peace-dove
+- **lorc** (28): ankh, bleeding-wound, bordered-shield, broadsword, campfire, charm, energy-shield, land-mine, lantern-flame, life-tap, magic-portal, meat-cleaver, meditation, mining, muscle-up, poison-bottle, return-arrow, scythe, shield-reflect, shouting, snail, snowflake-1, spider-web, star-swirl, stopwatch, totem-head, vine-leaf, wingfoot
 - **sbed** (1): health-increase
 
-Total: 33 glyphs.
+Total: 36 glyphs.
 
 These are FUNCTIONAL PLACEHOLDERS (UI pass C4, ruling D3) - a small shared
 vocabulary keyed to what a skill does, expected to be replaced by original

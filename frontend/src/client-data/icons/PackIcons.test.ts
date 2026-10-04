@@ -13,11 +13,14 @@ function portraitOf(npc: object): string | undefined {
 const manifest = JSON.parse(readFileSync(join(repoRoot, 'frontend/src/client-data/icons/pack-manifest.json'), 'utf8'));
 const manifestNames = new Set(Object.keys(manifest.icons));
 
+/** Player skills and the mob-embedded ones: a mob skill may carry a packIcon since plan-buff-tray.md C0. */
 function skillPackIcons(): { file: string, packIcon: string }[] {
-    const dir = join(repoRoot, 'api/skills');
-    return readdirSync(dir, {withFileTypes: true})
-        .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
-        .map((entry) => ({file: entry.name, packIcon: JSON.parse(readFileSync(join(dir, entry.name), 'utf8')).packIcon ?? ''}));
+    return ['api/skills', 'api/skills/mobs'].flatMap((rel) => {
+        const dir = join(repoRoot, rel);
+        return readdirSync(dir, {withFileTypes: true})
+            .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+            .map((entry) => ({file: `${rel}/${entry.name}`, packIcon: JSON.parse(readFileSync(join(dir, entry.name), 'utf8')).packIcon ?? ''}));
+    });
 }
 
 describe('pack icon lookup', () => {

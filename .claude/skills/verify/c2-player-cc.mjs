@@ -22,10 +22,17 @@
 // character is levelled to 30 instead, which buys ~35 s of the pack. GOD goes
 // back on between the legs that need the spiders' attention but not their bite.
 // ⚑ Observation seams, all read-only: the own Character's prototype methods
-// setAppliedEffects (called once per GameState, so its call count is a SNAPSHOT
-// CLOCK and durations come out in ticks) and showFloatingText (the "Stunned"
-// text), wrapped at the PROTOTYPE so the respawned character (a new instance
-// window.game.character never re-points to) is caught too; the turnip layer
+// setAuraTick (fed once per GameState for the own character, so its call count
+// is a SNAPSHOT CLOCK and durations come out in ticks; it was setAppliedEffects
+// until plan-buff-tray.md C2 retired the own pip feed, D10) and
+// showFloatingText (the "Stunned" text), wrapped at the PROTOTYPE so the
+// respawned character (a new instance window.game.character never re-points
+// to) is caught too; the Slow state is read off the BUFF TRAY's DOM (a harmful
+// `.buffCircle` whose data-kinds carries the Slow bit) and folded into the same
+// `m` mask shape the legs always read (⚑ one snapshot LATE: setAuraTick fires
+// inside Player.updateFromBackend, before Backend feeds HUD.updateBuffTray for
+// the same snapshot, so the mask column lags the server by one tick; every
+// leg reading it has a 30-snapshot tolerance); the turnip layer
 // for the webs (fingerprinted by the web SVG's stroke colour, since the venom
 // spider is also a data-URI SVG); the THREAT cheat's log lines for who is
 // fighting whom.
@@ -163,9 +170,20 @@ check('Catalog carries OmniStrike instant_slow', /"durationTicks":120/.test(cata
 await page.evaluate(() => {
   const h = window.__h = { snap: 0, lastMask: -1, masks: [], floats: [], samples: [], trace: [], key: '', char: null, chars: 0 };
   const proto = Object.getPrototypeOf(window.game.character);
-  const oSet = proto.setAppliedEffects;
-  proto.setAppliedEffects = function (m) {
+  // The own effects' mask, read off the tray and folded into the OLD
+  // applied_effects shape every leg reads: a Slow kind (EffectKind bit 2, the
+  // strip's AppliedEffectBit.Slow value) OR a Stun kind (bit 1024) lights
+  // SLOW_BIT, because on the pips a stun always lit the Slow bit (CLAUDE.md
+  // watch item) and the stun legs time the hold by that bit going dark.
+  // ⚑ A `.leaving` circle is skipped: a sustained circle (the web's slow)
+  // stays one more lifetime sweeping out AFTER the server dropped it (PO look
+  // 2026-10-04), and the legs time the SERVER's slow.
+  h.mask = () => [...document.querySelectorAll('#buffTray .buffCircle:not(.leaving)')]
+    .reduce((acc, c) => acc | ((Number(c.dataset.kinds) & (2 | 1024)) ? 2 : 0), 0);
+  const oSet = proto.setAuraTick;
+  proto.setAuraTick = function (...args) {
     if (this.isPlayerCharacter) {
+      const m = h.mask();
       if (h.char !== this) { h.char = this; h.chars++; h.lastMask = -1; }
       h.snap++;
       if (m !== h.lastMask) { h.masks.push({ snap: h.snap, t: performance.now(), m }); h.lastMask = m; }
@@ -176,7 +194,7 @@ await page.evaluate(() => {
       h.trace.push({ snap: h.snap, real: performance.now(), x: p.x / 120, y: p.y / 120, m, key: h.key });
       if (h.trace.length > 30000) h.trace.splice(0, 5000);
     }
-    return oSet.call(this, m);
+    return oSet.apply(this, args);
   };
   const oFloat = proto.showFloatingText;
   proto.showFloatingText = function (text, ...rest) {
@@ -209,7 +227,8 @@ await page.evaluate(() => {
     x: +(c.position.x / 120).toFixed(2), y: +(c.position.y / 120).toFixed(2), w: Math.round(c.width),
   }));
   h.me = () => { const c = h.char || window.game.character; return { x: c.getX() / 120, y: c.getY() / 120 }; };
-  h.pip = () => { const c = h.char || window.game.character; return c?.overheadBar?.effectPips?.drawnMask ?? null; };
+  // The own plate's strip is never fed since D10; the tray's harmful box is the read.
+  h.pip = () => [...document.querySelectorAll('#buffTray .buffBox.harmful .buffCircle')].map((c) => `${c.dataset.skillName}:${c.dataset.kinds}${c.classList.contains('sustained') && !c.classList.contains('leaving') && parseFloat(c.style.getPropertyValue('--gone')) === 0 ? ':steady' : ''}`).join(',');
   setInterval(() => {
     const me = h.me();
     h.samples.push({ t: performance.now(), snap: h.snap, x: me.x, y: me.y, m: h.lastMask, key: h.key, webs: h.webs(),
@@ -657,9 +676,9 @@ if (!webLeg) {
     + `off the web before ${f2(webLeg.outside.step.pace)} (${webLeg.outside.step.n}), after ${f2(webLeg.after.step.pace)} (${webLeg.after.step.n}); baseline ${f2(baseline)} u/s; inside/baseline ${f2(ratio)}x; `
     + `run paces (stalls included) inside ${f2(webLeg.inside.pace)} over ${webLeg.inside.ms} ms, after ${f2(webLeg.after.pace)} over ${webLeg.after.ms} ms`);
   const shot = webTries.map((r) => r.shot).find((x) => x) || null;
-  check('Inside the web: the Slow bit and the Slow pip are lit on the own character',
-    shot ? (shot.m & SLOW_BIT) !== 0 && ((shot.pip ?? 0) & SLOW_BIT) !== 0 : null,
-    shot ? `mask ${shot.m}, pip strip draws mask ${shot.pip}, ${f2(shot.d)} u from the web centre; screenshot ${shot.path}`
+  check('Inside the web: the Slow bit is lit and the tray shows the harmful SpiderWebAura circle, STEADY (no strobing wedge)',
+    shot ? (shot.m & SLOW_BIT) !== 0 && /Spider Web Aura:\d+:steady/.test(shot.pip || '') : null,
+    shot ? `mask ${shot.m}, harmful circles [${shot.pip}], ${f2(shot.d)} u from the web centre; screenshot ${shot.path}`
       : 'never sampled inside 1.0 u of the web centre with the bit lit');
   const ex = webLeg.exitS; const cl = webLeg.clearS;
   const vafter = webLeg.after.step.pace;
@@ -732,7 +751,17 @@ if (!webLeg) {
   const sightings = await webSightings();
   const expired = sightings.filter((w) => !w.stillThere && w.born);
   check('The web expires on its own (~240 ticks)',
-    expired.length === 0 ? null : expired.every((w) => w.toShrink !== null && w.toShrink >= 215 && w.toShrink <= 265),
+    // ⚑ Median + ceiling, not `every` (harness rule 3, repaired 2026-10-04): a
+    // web first SEEN a few 100 ms samples after it was spun, or one that died
+    // with its spider, reads SHORT (213 and 130 were seen beside seven values
+    // around 237), and that says nothing about the TTL. The invariant is: the
+    // typical web lasts its ~240 ticks, and none OUTLIVES them.
+    expired.length === 0 ? null : (() => {
+      const lives = expired.map((w) => w.toShrink).filter((n) => n !== null).sort((a, b) => a - b);
+      if (!lives.length) return false;
+      const median = lives[Math.floor(lives.length / 2)];
+      return median >= 215 && median <= 265 && lives[lives.length - 1] <= 265;
+    })(),
     `${expired.length} webs seen from birth to gone (${sightings.length - expired.length} others walked into view or were still up); toShrink ${JSON.stringify(expired.map((w) => w.toShrink))} snapshots (first seen to the container narrowing), `
     + `whole visible life ${JSON.stringify(expired.map((w) => w.snaps))} snapshots`);
 }
@@ -793,7 +822,7 @@ if (!webLeg) {
     const r1 = await state();
     check('Death while stunned or slowed: the respawned character is free',
       respawned ? (r0.m & SLOW_BIT) === 0 && pace > baseline * 0.85 : false,
-      `died ${dead}, respawned as a new character ${respawned}; mask after respawn ${r0.m} (last changes ${JSON.stringify(masksAfter.map((e) => e.m))}), pip ${r0.pip}; `
+      `died ${dead}, respawned as a new character ${respawned}; mask after respawn ${r0.m} (last changes ${JSON.stringify(masksAfter.map((e) => e.m))}), harmful circles [${r0.pip}]; `
       + `step pace ${f2(pace)} u/s (baseline ${f2(baseline)}) walking from (${f2(r0.x)}, ${f2(r0.y)}) to (${f2(r1.x)}, ${f2(r1.y)})`);
   }
 }

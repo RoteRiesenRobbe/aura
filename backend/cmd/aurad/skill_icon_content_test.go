@@ -18,9 +18,9 @@ import (
 // at boot - a missing glyph is a content gap, not a reason to refuse to start.
 //
 // ⚑ Scoped to the TOP LEVEL of api/skills on purpose. api/skills/mobs holds the
-// mob-embedded skills, which author no icon by the same ruling: they are in the
-// loaded catalog but never appear in a spellbook. Walking the loaded registry
-// instead of the directory would fail by construction.
+// mob-embedded skills, which never appear in a spellbook; their own, narrower
+// rule is the second test below. Walking the loaded registry instead of the
+// directory would fail by construction.
 //
 // ⚑ This reads the repo's api/ tree, not the embedded copy. Content edits do not
 // invalidate the Go test cache - run with `-count=1` after touching any JSON.
@@ -78,13 +78,52 @@ func TestSkillContent_EveryDefinitionAuthorsAnIcon(t *testing.T) {
 	}
 }
 
-// The mob-embedded half of the ruling, asserted rather than assumed: those
-// definitions deliberately have no icon of either kind, and one appearing there
-// would mean the vocabulary had started leaking into content that never renders
-// a row.
-func TestSkillContent_MobEmbeddedSkillsAuthorNoIcon(t *testing.T) {
-	for file, def := range skillIconValues(t, filepath.Join(skillContentDir, "mobs")) {
-		assert.Empty(t, def.Icon, "mobs/%s authors an icon; mob-embedded skills render no row (D1)", file)
-		assert.Empty(t, def.PackIcon, "mobs/%s authors a packIcon; mob-embedded skills render no row (D1)", file)
+// The mob-embedded half, amended by plan-buff-tray.md C0 (2026-10-03): a mob
+// skill never renders a spellbook row, but since the buff tray its timed
+// effects draw as circles on the PLAYER, keyed by the skill's icon. So every
+// mob skill carrying an effect type that lands a timed effect on another entity
+// authors an icon (and a well-formed one), and the rest stay bare: a bare one
+// on the tray would draw a letter fallback nobody notices.
+//
+// ⚑ The list is the effect types whose payload the buff store holds AND that
+// are applied to a target rather than the caster itself (a self tick_rate or
+// speed_burst never reaches a player's tray). Grow it with the vocabulary.
+var mobTimedEffectTypes = map[string]bool{
+	"dot_aura": true, "instant_dot": true,
+	"slow_aura": true, "instant_slow": true,
+	"shield_aura": true, "instant_shield": true,
+	"hot_aura": true, "instant_hot": true,
+	"resist_aura": true, "instant_resist": true,
+	"speed_aura": true, "calm": true, "charm": true, "stun": true, "retaliate_slow": true,
+}
+
+type skillEffectTypes struct {
+	Effects []struct {
+		Type string `json:"type"`
+	} `json:"effects"`
+}
+
+func TestSkillContent_MobSkillsThatLandATimedEffectAuthorAnIcon(t *testing.T) {
+	dir := filepath.Join(skillContentDir, "mobs")
+	for file, def := range skillIconValues(t, dir) {
+		raw, err := os.ReadFile(filepath.Join(dir, file))
+		require.NoError(t, err)
+		var effects skillEffectTypes
+		require.NoError(t, json.Unmarshal(raw, &effects), file)
+		landsTimed := false
+		for _, e := range effects.Effects {
+			landsTimed = landsTimed || mobTimedEffectTypes[e.Type]
+		}
+		if landsTimed {
+			assert.NotEmpty(t, def.Icon, "mobs/%s lands a timed effect on a player and authors no `icon` (plan-buff-tray.md C0: the tray draws it)", file)
+		}
+		if def.Icon != "" {
+			assert.Regexp(t, iconPathPattern, def.Icon,
+				"mobs/%s: icon must be a game-icons.net \"author/name\" path (the pack icon goes in `packIcon`)", file)
+		}
+		if def.PackIcon != "" {
+			assert.Regexp(t, packIconNamePattern, def.PackIcon,
+				"mobs/%s: packIcon must be a pack-manifest name (lowercase, digits, hyphens)", file)
+		}
 	}
 }

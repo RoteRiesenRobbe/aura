@@ -6,11 +6,12 @@
 //   1. Swift reads as a COOLDOWN client-side and binds to a cooldown slot —
 //      a passive could not, so the category flip is proven by where it fits
 //   2. its tooltip names the pace and the window (the new speed_burst case)
-//   3. firing it lights the speed pip on the player
+//   3. firing it puts a Swift circle on the buff tray (the own pips retired
+//      at plan-buff-tray.md C2, D10; the tray is where the own effects show)
 //   4. ⭐ the player actually MOVES FARTHER while it is up — the only check
 //      that says the buff reached the movement site rather than just the
 //      buff store (the standing "never assert on Derived" habit)
-//   5. it EXPIRES on its own: the pip goes out and the pace returns to normal.
+//   5. it EXPIRES on its own: the circle goes and the pace returns to normal.
 //      That is what makes it a burst rather than the passive it replaced.
 //
 // ⚑⚑ WHERE YOU STAND DECIDES WHAT YOU MEASURE. This script cost four runs to
@@ -33,9 +34,9 @@
 // `Cam Boundaries: On` clamps the camera at map edges, so the player is not
 // drawn at the viewport centre and a screen metric lies (2026-07-27).
 //
-// ⚑ The pip signal is DRAWN INSTRUCTIONS, not `visible`: EffectPips early-returns
-// when the mask is unchanged, so a never-pipped Graphics keeps its constructed
-// visible=true with nothing in it (2026-07-29, chunk3-charm).
+// ⚑ The buff signal is the TRAY's DOM since buff-tray C2 (D10 retired the own
+// player's pip strip): a `.buffCircle` with data-skill-name="Swift" in the
+// beneficial box. The strip's drawn-instructions gotcha moved with the mobs.
 //
 // Usage: node .claude/skills/verify/swift-cooldown.mjs [label] [url]
 import { createRequire } from 'node:module';
@@ -150,25 +151,11 @@ const equipped = await page.evaluate(() =>
 check('It binds into a cooldown slot', /Swift/i.test(equipped),
   `cooldown bar reads: ${JSON.stringify(equipped.slice(0, 60))}`);
 
-// --- the pip strip on the player's own plate ---
-// Same shape as the mob strip: a container at x=0, y>0 holding exactly one
-// Graphics, parked below the overhead bar (Character.ts: y = barHeight/2 + 9).
-const pipOn = () => page.evaluate(`
-  (() => {
-    let found = null;
-    const walk = (c) => {
-      if (found !== null || !c) return;
-      const kids = c.children || [];
-      if (kids.length === 1 && kids[0] && kids[0].context && c.x === 0 && c.y > 0) {
-        found = !!kids[0].visible && (kids[0].context.instructions || []).length > 0;
-        return;
-      }
-      kids.forEach(walk);
-    };
-    walk(window.game.character.plate);
-    return found;
-  })()
-`);
+// --- the Swift circle on the buff tray (plan-buff-tray.md C2) ---
+// The own player's effects draw on the tray above the action bars, not on the
+// plate (D10): one `.buffCircle` per effect, named by data-skill-name.
+const pipOn = () => page.evaluate(() =>
+  !!document.querySelector('#buffTray .buffBox.beneficial .buffCircle[data-skill-name="Swift"]'));
 
 // Units per second is a fair metric here even under a throttled rAF: the server
 // coasts on held movement for up to maxHoldTicks (15) between input packets, so
@@ -252,9 +239,9 @@ const coldPace = median(cold.map((w) => w.pace));
 const hotPace = median(hot.map((w) => w.pace));
 const fmtLegs = (xs) => xs.map((w) => `${w.dist.toFixed(2)}u=${w.pace.toFixed(2)}u/s`).join(', ');
 
-check('Firing it lights the speed pip on the player',
+check('Firing it puts a Swift circle on the buff tray',
   pipBefore === false && pipDuring === true,
-  `pip before firing: ${pipBefore}, during: ${pipDuring}`);
+  `Swift circle before firing: ${pipBefore}, during: ${pipDuring}`);
 
 const ratio = coldPace > 0 ? hotPace / coldPace : 0;
 const openGround = coldPace >= OPEN_GROUND_MIN;
@@ -271,9 +258,9 @@ check('The player moves faster while the sprint is up',
 // Every cold leg from cycle 2 on is a post-expiry leg: the burst was fired in
 // the previous cycle and 6 s of idling passed. Their pace matching the very
 // first (never-buffed) leg is what says the buff ended rather than latched.
-check('It expires on its own — pip out, pace back to normal',
+check('It expires on its own: circle gone, pace back to normal',
   pipAfter === false && openGround && ratio > 1.3,
-  `pip during: ${pipDuring} → after a cycle: ${pipAfter}; `
+  `Swift circle during: ${pipDuring} → after a cycle: ${pipAfter}; `
   + `post-expiry legs sit at the unbuffed median (${coldPace.toFixed(2)} u/s), `
   + `not the sprint one (${hotPace.toFixed(2)} u/s)`);
 

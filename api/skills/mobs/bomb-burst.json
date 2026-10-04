@@ -2,6 +2,8 @@
   "_comment": "A thrown bomb's detonation: instant fire damage of 18 HP plus 2 per level, plus a dot of 5 HP plus 0.6 per level over 3 ticks at 30-tick intervals, both within a growing 2.0-unit radius. Deliberately mirrors nova-burst.json's numbers so the bomb reads as a thrown version of that skill; keep them in sync.",
   "id": 149,
   "name": "BombBurst",
+  "icon": "lorc/land-mine",
+  "packIcon": "bomb",
   "category": "cooldown",
   "maxLevel": 5,
   "cooldownTicks": 300,

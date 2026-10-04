@@ -15,6 +15,7 @@ import {
     TravelDirection,
 } from '../../../../conversation/logic/ConversationModel';
 import {QuestProgress} from '../../../../journal/logic/JournalModel';
+import {OwnEffectData} from '../../../../user-interface/HUD/logic/BuffTray';
 import {SkillEventData} from '../../SkillEventNumbers';
 import {MapFogData} from '../../../../map/logic/FogReveal';
 
@@ -118,6 +119,10 @@ export class GameStateMessage {
     // titles and diary prose come from the /quests catalog. Rides the same
     // change-only gate as the spellbook block above.
     questProgress: QuestProgress[] | undefined;
+    // the own player's buff tray (plan-buff-tray.md C2): one entry per
+    // (skill, caster) with an absolute expiry tick. Rides the same change-only
+    // gate as the spellbook block: undefined = unchanged, [] = nothing on you.
+    ownEffects: OwnEffectData[] | undefined;
 
     constructor(gameState: AuraApi.GameState) {
         this.tick = Number(gameState.tick());
@@ -182,6 +187,7 @@ export class GameStateMessage {
             this.activeAuraSlot = gameState.activeAuraSlot();
 
             this.questProgress = unmarshalQuestProgress(gameState);
+            this.ownEffects = unmarshalOwnEffects(gameState);
         } else {
             this.spellbook = undefined;
             this.spellbookLevels = undefined;
@@ -193,6 +199,7 @@ export class GameStateMessage {
             this.cooldownSlots = undefined;
             this.activeAuraSlot = undefined;
             this.questProgress = undefined;
+            this.ownEffects = undefined;
         }
 
         // cooldown_remaining_ticks stays always-sent (L3): it changes every
@@ -266,6 +273,30 @@ function unmarshalMapFog(gameState: AuraApi.GameState): MapFogData | undefined {
         chunks.push({x: chunk.x(), y: chunk.y(), bits: (chunk.bitsArray() ?? new Uint8Array(0)).slice()});
     }
     return {cellSize: fog.cellSize(), chunkCells: fog.chunkCells(), chunks};
+}
+
+/**
+ * Read the own player's buff tray out of a snapshot (plan-buff-tray.md C2).
+ *
+ * ⚑ Only called inside the owner-state branch: an EMPTY vector there means
+ * "nothing on you" and clears the tray, while a tick without the block never
+ * reaches here (undefined = unchanged). The two ulongs narrow to numbers the
+ * way `tick` does; a placed area's id sits above 2^32 and is still exact.
+ */
+function unmarshalOwnEffects(gameState: AuraApi.GameState): OwnEffectData[] {
+    const effects: OwnEffectData[] = [];
+    const e = new AuraApi.OwnEffect();
+    for (let i = 0; i < gameState.ownEffectsLength(); ++i) {
+        gameState.ownEffects(i, e);
+        effects.push({
+            skillId: e.skillId(),
+            kinds: e.kinds(),
+            totalTicks: e.totalTicks(),
+            caster: Number(e.caster()),
+            expiresTick: Number(e.expiresTick()),
+        });
+    }
+    return effects;
 }
 
 /**

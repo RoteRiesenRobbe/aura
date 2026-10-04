@@ -2,6 +2,8 @@
   "_comment": "A fire totem's burn field: applies a fire dot to every hostile entity within 2.5 units every 60 ticks, dealing 6 HP plus 2 per level over 3 ticks at 60-tick intervals, and casts light out to 3.0 units. The totem's level is copied from the FireTotem skill at spawn, so this skill's maxLevel must stay equal to FireTotem's. All values placeholder.",
   "id": 135,
   "name": "FireTotemAura",
+  "icon": "lorc/totem-head",
+  "packIcon": "totem-fire",
   "category": "active_aura",
   "maxLevel": 3,
   "visual": {
