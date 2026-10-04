@@ -1220,6 +1220,27 @@ func TestApplyGrant_TrailingOfferRefusedSkipsItselfAlone(t *testing.T) {
 	assert.Equal(t, []string{"go"}, path, "the running quest is untouched")
 }
 
+// ⛔ The same for a TEACH reward, which applyGrant used to dispatch before it
+// asked whether the option is a quest row: a crafted message naming the reward's
+// index took the skill with the quest unmoved (FirstAid off the dinner turn-in).
+func TestApplyGrant_RefusesATeachRewardAddressedDirectly(t *testing.T) {
+	in := oneOption("Here are the pelts.",
+		advanceGrant(),
+		namedGrant(7, "Torch", 0, "and this"))
+	p := newQuestLearner(t, 1, peltsQuest())
+	require.NoError(t, p.ledger.Accept(questID))
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3) // waiting at turn_in: the row itself would be takeable
+
+	_, taught, ok := applyGrant(in, p, noRows, noTravel, "root", 0, 1)
+
+	assert.False(t, ok)
+	assert.Nil(t, taught)
+	assert.False(t, p.sc.HasDiscovered(7), "no skill without the turn-in")
+	path, _, _ := p.ledger.Progress(questID)
+	assert.Equal(t, stageTurn, path[len(path)-1], "and the quest did not move")
+}
+
 // The offer is a reward: addressed directly it is a crafted message.
 func TestApplyGrant_RefusesATrailingOfferAddressedDirectly(t *testing.T) {
 	p := newQuestLearner(t, 1, peltsQuest(), nextQuest())

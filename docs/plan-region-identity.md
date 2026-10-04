@@ -586,9 +586,11 @@ is history, so it was left as is.
 **+1 kind `reach`, +1 key `region`** · conversation format **+1 trailing
 `offer_quest`** · zone format **NONE** · content **+1 quest**, 2 NPCs edited.
 
-⚑ **Found, not fixed (pre-existing):** `applyGrant` handles `teach_skill` before
-it checks for a quest row. A crafted message addressing a quest row's TEACH
-reward by its index would teach without the quest moving (e.g. FirstAid on the
-dinner turn-in). Only the XP case is pinned (`RefusesAQuestGrantAddressedByARewardIndex`).
+⚑ **Found and FIXED right after (pre-existing, PO: "commit then fix"):** `applyGrant`
+handled `teach_skill` before it checked for a quest row, so a crafted message
+addressing a quest row's TEACH reward by its index taught the skill without
+the quest moving (e.g. FirstAid off the dinner turn-in). Only the XP case was
+pinned. A quest row now refuses any grant index but 0 before the per-kind
+dispatch; `TestApplyGrant_RefusesATeachRewardAddressedDirectly` reproduced it red first.
 
 **Plan status:** R1 + R2 are built; archive at the next wrap.

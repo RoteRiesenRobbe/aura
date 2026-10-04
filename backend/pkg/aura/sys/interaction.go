@@ -1283,6 +1283,14 @@ func applyGrant(in *mobs.Interaction, p learner, src RowSource, travel travelSea
 	if grant < 0 || grant >= len(opt.Grants) {
 		return "", nil, false
 	}
+	// ⛔ A quest row is reached through its lead grant ONLY, and this is checked
+	// before any per-kind dispatch below: a quest row's rewards (a teach, XP, a
+	// trailing offer) are paid by applyQuestRow once the quest op succeeded.
+	// The teach case used to come first, so a crafted message naming a reward's
+	// index took the skill with the quest unmoved.
+	if opt.Grants[0].Kind.IsQuestKind() && grant != 0 {
+		return "", nil, false
+	}
 	g := &opt.Grants[grant]
 	switch {
 	case g.Kind == mobs.GrantTeachSkill:
