@@ -1,7 +1,7 @@
 # Plan: region identity: a region names a place by a unique id, its ground texture becomes optional, and a "go to" quest objective
 
 **Status:** DESIGNED 2026-10-04 (planning session), **RULED the same day (D1-D9;
-D1(b), the id-optional half, confirmed by the PO at the start of R1, §3).** R1 BUILT 2026-10-04 (uncommitted, ledger §10); R2 next. Two chunks:
+D1(b), the id-optional half, confirmed by the PO at the start of R1, §3).** R1 BUILT 2026-10-04 `bacbf6d4` (ledger §10); R2 next. Two chunks:
 R1 (region ids) → R2 (the `reach` quest objective). Line refs come from a survey
 of HEAD `3d0b6738`; re-verify them before executing.
 
@@ -359,7 +359,7 @@ to prove it: a debug quest, or the PO's first real one.
 
 ## 10. Chunk ledgers
 
-### R1: region ids ✅ 2026-10-04 (uncommitted; PO Tiled pass ✅)
+### R1: region ids ✅ 2026-10-04 `bacbf6d4` (PO Tiled pass ✅)
 
 **Rulings taken at the pre-build pause** (PO: "yep"):
 
