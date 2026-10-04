@@ -57,8 +57,11 @@ export function zoneRects(zoneNames: string[]): ZoneRect[] {
     return rects;
 }
 
-/** Whether a world position (server units) falls inside this zone. */
-export function contains(rect: ZoneRect, x: number, y: number): boolean {
+/**
+ * Whether a world position falls inside this zone. Unit-agnostic: the camera
+ * asks it in px, of the EntityManager's bounds, which share these four keys.
+ */
+export function contains(rect: Omit<ZoneRect, 'name'>, x: number, y: number): boolean {
     return x >= rect.originX - rect.width / 2 && x <= rect.originX + rect.width / 2
         && y >= rect.originY - rect.height / 2 && y <= rect.originY + rect.height / 2;
 }

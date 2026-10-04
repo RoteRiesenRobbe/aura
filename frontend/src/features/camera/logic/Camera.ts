@@ -6,6 +6,7 @@ import {CameraUpdatedEvent, ISubscriptionToken, PrerenderEvent} from "../../core
 import {ICharacterLike} from "../../game-objects/logic/ICharacter";
 import * as Zoom from './Zoom';
 import * as Flight from '../../flight/logic/Flight';
+import {contains} from '../../zones/logic/ActiveZone';
 
 let Game: IGame = null;
 
@@ -71,6 +72,16 @@ export class Camera {
 
     update() {
         const target = this.character.getPosition();
+        // ⭐ HOLD THE VIEW WHILE THE PLAYER IS OUTSIDE THE DRAWN ZONE. A crossing
+        // moves the player into the next zone before the world is rebuilt (the
+        // rebuild waits for the curtain's full cover, ZoneCurtain.runWhenCovered),
+        // so for those frames the clamp below still holds the OLD zone's
+        // rectangle. Following anyway snapped the view onto the old zone's edge
+        // nearest the destination and showed it through the still-sweeping
+        // curtain: the world's Volcano corner, on every trip down.
+        if (!insideActiveZone(target.x, target.y)) {
+            return;
+        }
         const scale = viewScale();
 
         // After a teleport (WARP cheat, Recall) the followed character jumps far
@@ -127,6 +138,14 @@ export class Camera {
         // The camera centers the viewport on its position.
         return Vector.clone(this.position);
     }
+}
+
+/**
+ * Whether a px position lies inside the zone the world is drawn for. Players
+ * are walled inside their zone, so only a crossing ever puts one outside it.
+ */
+function insideActiveZone(x: number, y: number): boolean {
+    return contains(Game.map, x, y);
 }
 
 function keepWithinMapBoundaries(vehicle: Vehicle) {
