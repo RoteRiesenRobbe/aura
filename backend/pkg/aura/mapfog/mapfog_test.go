@@ -55,7 +55,7 @@ func TestChunkOf_FloorsOnBothSidesOfZero(t *testing.T) {
 // reaches 5 cells either side in x and 3 in y → cells x 5…15, y 5…11.
 func TestMarkAt_SetsTheCellsTheAOICanOverlapFromThisCell(t *testing.T) {
 	f := New()
-	require.True(t, f.MarkAt(phy.Vec2f{X: 20, Y: 16}))
+	require.True(t, f.MarkAt(phy.Vec2f{X: 20, Y: 16}, 0, nil))
 
 	for cy := 0; cy <= 15; cy++ {
 		for cx := 0; cx <= 20; cx++ {
@@ -71,8 +71,8 @@ func TestMarkAt_SetsTheCellsTheAOICanOverlapFromThisCell(t *testing.T) {
 // gate suppresses the second mark, so the first has to have covered it.
 func TestMarkAt_EnteringACellOnItsLineStillCoversTheWholeCell(t *testing.T) {
 	f := New()
-	f.MarkAt(phy.Vec2f{X: 20, Y: 16})
-	require.False(t, f.MarkAt(phy.Vec2f{X: 21.9, Y: 17.9}), "same cell: gated")
+	f.MarkAt(phy.Vec2f{X: 20, Y: 16}, 0, nil)
+	require.False(t, f.MarkAt(phy.Vec2f{X: 21.9, Y: 17.9}, 0, nil), "same cell: gated")
 	assert.True(t, f.Revealed(15, 11), "the AOI at (21.9, 17.9) overlaps cell (15, 11)")
 }
 
@@ -80,7 +80,7 @@ func TestMarkAt_EnteringACellOnItsLineStillCoversTheWholeCell(t *testing.T) {
 // sides of 0 are set.
 func TestMarkAt_AcrossTheOriginTouchesFourChunks(t *testing.T) {
 	f := New()
-	f.MarkAt(phy.Vec2f{X: 0, Y: 0})
+	f.MarkAt(phy.Vec2f{X: 0, Y: 0}, 0, nil)
 	assert.Equal(t, 4, f.Len(), "(−1,−1) (0,−1) (−1,0) (0,0)")
 	assert.True(t, f.Revealed(-1, -1))
 	assert.True(t, f.Revealed(-5, -3), "cell (0, 0) ± (5, 3)")
@@ -95,7 +95,7 @@ func TestMarkAt_AcrossTheOriginTouchesFourChunks(t *testing.T) {
 func TestMarkAt_AcrossOneChunkEdgeTouchesTwoChunks(t *testing.T) {
 	f := New()
 	edge := float32(ChunkCells * CellSize) // x = 128 is chunk 1's first cell
-	f.MarkAt(phy.Vec2f{X: edge, Y: 30})
+	f.MarkAt(phy.Vec2f{X: edge, Y: 30}, 0, nil)
 	assert.Equal(t, 2, f.Len())
 	assert.True(t, f.Revealed(ChunkCells-1, 15))
 	assert.True(t, f.Revealed(ChunkCells, 15))
@@ -105,12 +105,12 @@ func TestMarkAt_AcrossOneChunkEdgeTouchesTwoChunks(t *testing.T) {
 // the same cell does nothing and says so.
 func TestMarkAt_IsGatedOnEnteringANewCell(t *testing.T) {
 	f := New()
-	assert.True(t, f.MarkAt(phy.Vec2f{X: 20.1, Y: 16.1}))
+	assert.True(t, f.MarkAt(phy.Vec2f{X: 20.1, Y: 16.1}, 0, nil))
 	for i := range 30 {
-		assert.False(t, f.MarkAt(phy.Vec2f{X: 20.9, Y: 16.9}), "same cell, tick %d", i)
+		assert.False(t, f.MarkAt(phy.Vec2f{X: 20.9, Y: 16.9}, 0, nil), "same cell, tick %d", i)
 	}
-	assert.True(t, f.MarkAt(phy.Vec2f{X: 22.1, Y: 16.1}), "a new cell marks")
-	assert.False(t, f.MarkAt(phy.Vec2f{X: 22.1, Y: 16.1}))
+	assert.True(t, f.MarkAt(phy.Vec2f{X: 22.1, Y: 16.1}, 0, nil), "a new cell marks")
+	assert.False(t, f.MarkAt(phy.Vec2f{X: 22.1, Y: 16.1}, 0, nil))
 }
 
 // A position no grid can hold (a NaN from a physics bug, a teleport into the
@@ -119,9 +119,9 @@ func TestMarkAt_IgnoresUnrepresentablePositions(t *testing.T) {
 	f := New()
 	nan := float32(0)
 	nan = nan / nan
-	f.MarkAt(phy.Vec2f{X: nan, Y: 0})
-	f.MarkAt(phy.Vec2f{X: 1e9, Y: 0})
-	f.MarkAt(phy.Vec2f{X: 0, Y: -1e9})
+	f.MarkAt(phy.Vec2f{X: nan, Y: 0}, 0, nil)
+	f.MarkAt(phy.Vec2f{X: 1e9, Y: 0}, 0, nil)
+	f.MarkAt(phy.Vec2f{X: 0, Y: -1e9}, 0, nil)
 	assert.Equal(t, 0, f.Len())
 }
 
@@ -129,7 +129,7 @@ func TestMarkAt_IgnoresUnrepresentablePositions(t *testing.T) {
 // carries the grid it was drawn on (D10).
 func TestChunks_SortedAndStampedWithTheGrid(t *testing.T) {
 	f := New()
-	f.MarkAt(phy.Vec2f{X: 0, Y: 0})
+	f.MarkAt(phy.Vec2f{X: 0, Y: 0}, 0, nil)
 	chunks := f.Chunks()
 	require.Len(t, chunks, 4)
 	var keys [][2]int16
@@ -146,10 +146,10 @@ func TestChunks_SortedAndStampedWithTheGrid(t *testing.T) {
 // live bitmap the game loop keeps writing into.
 func TestChunks_DoesNotAliasTheLiveBits(t *testing.T) {
 	f := New()
-	f.MarkAt(phy.Vec2f{X: 20, Y: 16})
+	f.MarkAt(phy.Vec2f{X: 20, Y: 16}, 0, nil)
 	snap := f.Chunks()
 	before := append([]byte(nil), snap[0].Bits...)
-	f.MarkAt(phy.Vec2f{X: 60, Y: 40})
+	f.MarkAt(phy.Vec2f{X: 60, Y: 40}, 0, nil)
 	assert.Equal(t, before, snap[0].Bits)
 }
 
@@ -164,10 +164,10 @@ func TestChunks_OfAnEmptyOrNilFogIsNil(t *testing.T) {
 // snapshot both survive; and a repeat seed changes nothing.
 func TestSeed_UnionsWithWhatIsAlreadyRevealed(t *testing.T) {
 	stored := New()
-	stored.MarkAt(phy.Vec2f{X: -100, Y: -100})
+	stored.MarkAt(phy.Vec2f{X: -100, Y: -100}, 0, nil)
 
 	f := New()
-	f.MarkAt(phy.Vec2f{X: 100, Y: 100})
+	f.MarkAt(phy.Vec2f{X: 100, Y: 100}, 0, nil)
 	f.Seed(stored.Chunks())
 	f.Seed(stored.Chunks())
 
@@ -198,8 +198,8 @@ func TestSeed_SkipsAChunkFromAnotherGrid(t *testing.T) {
 // depends on.
 func TestSeed_RoundTripsChunks(t *testing.T) {
 	f := New()
-	f.MarkAt(phy.Vec2f{X: 0, Y: 0})
-	f.MarkAt(phy.Vec2f{X: 300, Y: -200})
+	f.MarkAt(phy.Vec2f{X: 0, Y: 0}, 0, nil)
+	f.MarkAt(phy.Vec2f{X: 300, Y: -200}, 0, nil)
 	g := New()
 	g.Seed(f.Chunks())
 	assert.Equal(t, f.Chunks(), g.Chunks())

@@ -19,7 +19,6 @@ import {
     rescaleCoordinate,
     resizeTerrain,
     rimPoint,
-    toZoneLocal,
     worldToMap,
 } from './MapScale';
 import {StartFlightMessage} from '../../backend/logic/messages/outgoing/StartFlightMessage';
@@ -459,17 +458,20 @@ export class MiniMap {
      * Applies a server publication of the stored map reveal
      * (plan-map-fog-persistence.md F2).
      *
-     * ⚑ Called every tick with whatever the snapshot carried, which is almost
-     * always nothing: a one-shot on entering the world (D7). What arrives is
-     * MERGED into what is held (D8) and painted into every zone fog that
-     * already exists; a zone seen later is painted when its fog is created.
+     * ⚑ Called every tick with whatever the snapshot carried: the whole stored
+     * reveal on entering the world (D7), and since plan-map-fog-darkness.md C3
+     * the chunks each new mark touched while walking. What arrives is MERGED
+     * into what is held (D8), so a zone seen later is painted whole when its
+     * fog is created, and ONLY THE PUBLICATION is painted into the zone fogs
+     * that already exist: re-painting the whole merged reveal on every step
+     * would upload a zone-sized canvas a few times a second.
      */
     public setMapFog(published: MapFogData | undefined) {
         if (!published) {
             return;
         }
         this.storedFog = mergeMapFog(this.storedFog, published);
-        this.fogByZone.forEach(fog => fog.applyRevealed(this.application.renderer, this.storedFog));
+        this.fogByZone.forEach(fog => fog.applyRevealed(this.application.renderer, published));
     }
 
     /**
@@ -1058,19 +1060,8 @@ export class MiniMap {
     };
 
     private update() {
-        // Discovery happens while PLAYING, not while looking at the map — the
-        // fog accumulates whether the map is open or docked, which is what
-        // makes opening it show where you have been rather than where you are.
-        if (this.fog && this.playerCharacter) {
-            // ⚑ Zone-local, not world: revealAt corner-origins the coordinate
-            // against the ZONE's rectangle, so a world y of 300 units would
-            // stamp far off the texture and reveal nothing at all.
-            this.fog.revealAt(
-                this.application.renderer,
-                toZoneLocal(this.playerCharacter.getX(), this.zoneOriginX),
-                toZoneLocal(this.playerCharacter.getY(), this.zoneOriginY),
-            );
-        }
+        // ⚑ No local reveal here any more (plan-map-fog-darkness.md D6): the
+        // server pushes what each step revealed, through setMapFog.
 
         this.icons.forEach((icon: MiniMapIcon) => {
             icon.shape.position.x = worldToMap(icon.gameObject.getX(), this.scale, this.zoneOriginX);

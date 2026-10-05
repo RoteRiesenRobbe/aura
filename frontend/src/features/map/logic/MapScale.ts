@@ -244,8 +244,8 @@ export function worldToMap(world: number, scale: number, originPx: number = 0): 
  * (`meter2px(zone.origin.x)`), and it defaults to 0 because that is the answer
  * for `world` and for every zone authored before origins existed.
  *
- * Separate from worldToMap because the fog wants the px space and not the
- * canvas one: MapFog.revealAt corner-origins the coordinate itself.
+ * Separate from worldToMap so the subtraction has one home; worldToMap scales
+ * it into canvas space.
  */
 export function toZoneLocal(world: number, originPx: number = 0): number {
     return world - originPx;

@@ -228,6 +228,9 @@ type ConnectionStateSystem struct {
 	// re-added after death's removal fan-out, dropped on disconnect. It only
 	// ever grows, which is what lets the save path upsert and never delete.
 	fog map[uuid.UUID]*mapfog.Fog
+	// dark is where a mark needs light (plan-map-fog-darkness.md C1), baked
+	// once at boot; nil means nothing is dark.
+	dark *mapfog.DarkMask
 	// dwell tracks a player's bind progress at ONE campfire, keyed by player
 	// entity ID (reset on leave or on reaching a different fire, dropped on
 	// removal).
@@ -332,6 +335,10 @@ func (s *ConnectionStateSystem) discoveredFor(client uuid.UUID) stringSet {
 	return set
 }
 
+// SetDarkMask installs where the map reveal needs light
+// (plan-map-fog-darkness.md C1); nil means nothing is dark.
+func (s *ConnectionStateSystem) SetDarkMask(mask *mapfog.DarkMask) { s.dark = mask }
+
 // fogFor is a client's map reveal, created empty on first touch.
 func (s *ConnectionStateSystem) fogFor(client uuid.UUID) *mapfog.Fog {
 	fog, ok := s.fog[client]
@@ -344,7 +351,16 @@ func (s *ConnectionStateSystem) fogFor(client uuid.UUID) *mapfog.Fog {
 
 // trackMapFog marks each player's AOI into its reveal
 // (plan-map-fog-persistence.md D4/D5). One comparison per player per tick
-// unless the player entered a new cell.
+// unless the player entered a new cell or changed their light.
+//
+// ⭐ DARKNESS (plan-map-fog-darkness.md C2): the mark obeys the mask, so a
+// completely dark cell is revealed only by a static light or the player's own
+// light of at least mapfog.MinRevealLight.
+//
+// ⭐ THE LIVE MAP COMES FROM HERE (C3, D6): a mark that set new bits publishes
+// only the chunks it touched. APPENDED to whatever this tick already carries,
+// because a join publishes the whole stored reveal earlier in the same tick
+// and the client unions both (FogReveal.mergeMapFog).
 //
 // ⚑ It never forces a save (D6): exploring would otherwise write constantly.
 // The reveal rides the interval, logout, session expiry and shutdown flush.
@@ -354,7 +370,13 @@ func (s *ConnectionStateSystem) fogFor(client uuid.UUID) *mapfog.Fog {
 // tour included, are not in s.players and reveal nothing (L4).
 func (s *ConnectionStateSystem) trackMapFog() {
 	for _, p := range s.players {
-		s.fogFor(p.Client().UUID()).MarkAt(p.Position())
+		fog := s.fogFor(p.Client().UUID())
+		if !fog.MarkAt(p.Position(), p.LightRadius(), s.dark) {
+			continue
+		}
+		if touched := fog.TakeDirty(); touched != nil {
+			p.NoteMapFog(append(p.MapFog(), touched...))
+		}
 	}
 }
 

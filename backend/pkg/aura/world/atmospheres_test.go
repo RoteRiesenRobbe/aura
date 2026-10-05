@@ -171,11 +171,10 @@ func TestAtmospherePointsArePlaced(t *testing.T) {
 		"atmospheres are placed too since E2 — an effect-bearing one must act where it is DRAWN")
 	assert.EqualValues(t, 300, z.Atmospheres[0].Points[0].Y)
 
-	// ⛔ And the line has to stay somewhere: a CLEARING is still client-only —
-	// it erases atmosphere on the client and no server code reads it (A4). It is
-	// the control that stops "place everything" being read into this change.
-	assert.EqualValues(t, 0, z.Clearings[0].Points[0].X,
-		"clearings stay zone-local — the server still never reads one")
+	// Clearings crossed the line at plan-map-fog-darkness.md C1 (the map reveal
+	// reads them); Decals are the client-only control now (place_test.go).
+	assert.EqualValues(t, 500, z.Clearings[0].Points[0].X,
+		"clearings are placed since plan-map-fog-darkness.md C1 — the map reveal reads them")
 }
 
 // ---- A4: the clearing is its own CLASS, not a magic value ------------------
@@ -277,7 +276,7 @@ func TestClearingEmitsNoColliders(t *testing.T) {
 // ⚑ Client-visual, so zone-local — the atmospheres rule verbatim. A clearing
 // placed here as well would be cut 300 units from the hole it belongs in, and
 // the failure is invisible in `world` (origin {0,0}).
-func TestClearingPointsStayZoneLocal(t *testing.T) {
+func TestClearingPointsArePlaced(t *testing.T) {
 	z, err := parseZone([]byte(`{"name":"A","bounds":{"width":40,"height":20},
 		"origin":{"x":500,"y":300},
 		"structures":[{"profile":"Mountains","points":[{"x":0,"y":0},{"x":4,"y":0},{"x":4,"y":4}]}],
@@ -286,6 +285,6 @@ func TestClearingPointsStayZoneLocal(t *testing.T) {
 	require.NoError(t, Place([]*Zone{z}))
 
 	assert.EqualValues(t, 500, z.Structures[0].Points[0].X, "the control: polygons ARE placed")
-	assert.EqualValues(t, 0, z.Clearings[0].Points[0].X,
-		"clearings are NOT — the client applies the origin, and doing it here too would move them twice")
+	assert.EqualValues(t, 500, z.Clearings[0].Points[0].X,
+		"clearings ARE too since plan-map-fog-darkness.md C1 — the map reveal reads them; the client reads its own copy")
 }

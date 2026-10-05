@@ -908,7 +908,7 @@ export function paintAtmospheres(
  *  ⚑ A constant rather than a profile value, and that is FORCED rather than
  *  chosen: a clearing names NO profile (L7), so unlike every other soft edge in
  *  this file the band cannot come from the look table. [PLACEHOLDER], like every
- *  number in atmosphere-profiles.json — and it wants judging beside the 2-unit
+ *  number in api/atmospheres/profiles.json — and it wants judging beside the 2-unit
  *  `EDGE_FADE` on DarknessOverlay's authored circles, which is the other
  *  hand-authored rim living in this same layer. */
 const CLEARING_FADE = 2;

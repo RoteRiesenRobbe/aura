@@ -250,6 +250,7 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	g.AddSystem(ae)
 
 	s := sys.NewConnectionStateSystem(g)
+	s.SetDarkMask(gc.MapFogDark)
 	g.AddSystem(s)
 	g.connState = s
 	// Recall's anchor seam (plan-skill-vocab chunk 4): the SkillSystem is

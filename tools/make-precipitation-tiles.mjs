@@ -61,7 +61,7 @@ import {dirname, join} from 'node:path';
 const SIZE = 750;
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const GROUND = join(ROOT, 'frontend/src/features/regions/assets/ground');
-const PROFILES = join(ROOT, 'frontend/src/client-data/atmosphere-profiles.json');
+const PROFILES = join(ROOT, 'api/atmospheres/profiles.json');
 
 /* ---- the tiles ----------------------------------------------------------- */
 
@@ -234,7 +234,7 @@ function leanOf(profileName) {
     const scroll = table[profileName] && table[profileName].scroll;
     const len = scroll ? Math.hypot(scroll.x, scroll.y) : 0;
     if (!(len > 0)) {
-        throw new Error(`atmosphere-profiles.json has no \`${profileName}\` `
+        throw new Error(`api/atmospheres/profiles.json has no \`${profileName}\` `
             + 'profile with a non-zero `scroll` — the streak lean is derived '
             + 'from it, so there is nothing to draw along.');
     }

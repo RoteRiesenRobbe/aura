@@ -20,7 +20,9 @@
 // Usage: node .claude/skills/verify/f2-map-fog-persistence.mjs [label] [url]
 // Afterwards: stop aurad, then cd backend && go run ./cmd/harnessdb -cleanup
 import { createRequire } from 'node:module';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { readZone } from './lib/zone.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -34,7 +36,9 @@ const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), pro
 // WARP takes 1/120 units and wants whole units.
 const w = (x, y) => `${Math.round(x) * 120} ${Math.round(y) * 120}`;
 // api/zones/world.json: the only startingSpawn fire is spawnpoint-1.
-const START_FIRE = { x: -237.85, y: 31.49 };
+// Derived, never typed in: the fire moved once and this leg went red on a stale number.
+const START_FIRE = readZone(join(dirname(fileURLToPath(import.meta.url)), '../../../api/zones/world.json'))
+  .bindPoints.find((b) => b.startingSpawn);
 const VISITED = { x: -100, y: 60 };     // ~140 u from the start fire
 const NEVER = { x: 100, y: -100 };      // the negative control
 

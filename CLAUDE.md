@@ -22,7 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **⭐ Next: BUFF TRAY C2** (client desktop; `docs/plan-buff-tray.md` §7, the C2 hand-off at the end of §11 C1), or a PO call among the bullets below. Owed look: PATH CORNERS + ENDS chunk A (B held; `docs/plan-world-paths.md` §12).
 
-- **⏸ MAP FOG vs DARKNESS** (`docs/plan-map-fog-darkness.md`, 2026-10-04, D1-D3 ruled, D4-D6 proposed, nothing built): the map reveal maps unlit caves in full. Fix: in complete darkness reveal only cells your own light (≥ 3 u) or a static light covers; the server decides, the client draws its pushed chunks. Schema DB/wire/conf NONE; content: profiles move into `api/`.
+- **⭐ MAP FOG vs DARKNESS: C1-C3 COMMITTED 2026-10-05** (`docs/plan-map-fog-darkness.md` §7): in complete darkness the map reveals only cells your own light (≥ 2.5 u, the Torch's level 1; lowered from 3 u by the PO 2026-10-05) or a static light covers; the server decides and pushes the touched chunks, the client no longer reveals on its own. Verified: Go green bar the known C1b test · `-validate` 0 ×3 · vitest 1529/0 · `d-map-fog-darkness.mjs` 10/10 (debug) · `f2-map-fog-persistence.mjs` 10/10. Owed: PO look, wire cost. Schema DB/wire/conf NONE; content: profiles → `api/atmospheres/`, props +`lightFraction`.
 
 - **⏸ QUEST-GIVER MARKERS** (`plan-quest-giver-markers.md`, coworker 2026-09-28, NOT ruled, nothing built): `!`/`?` map markers for quest givers. ⛔ D1 reverses the PO's 2026-07-29 "no quest markers, ever" (backlog §42, GDD §8). Schema DB NONE, wire +1 table +1 field.
 

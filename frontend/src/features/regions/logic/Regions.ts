@@ -18,7 +18,7 @@
 // and PixiJS asset loading are webpack-only and would make this whole module
 // untestable — the lookup is the piece most worth having tests on.
 import terrainProfilesJson from '../../../client-data/terrain-profiles.json';
-import atmosphereProfilesJson from '../../../client-data/atmosphere-profiles.json';
+import atmosphereProfilesJson from '../../../../../api/atmospheres/profiles.json';
 import {LAND_COLOR} from '../../../client-data/Theme';
 import {meter2px, px2meter} from '../../../client-data/BasicConfig';
 
@@ -161,7 +161,7 @@ export const OVERLAY_DEFAULTS = {size: 1.5, roughness: 0.5};
  * ⭐ THE SPLIT IS A SEPARATE FILE, not a flag (PO 2026-09-15). One shared
  * table meant one Tiled dropdown holding both vocabularies, so a ground
  * profile on an atmosphere drew nothing and an atmosphere profile on a region
- * painted grey mud — L15, and it cost a session. `atmosphere-profiles.json`
+ * painted grey mud — L15, and it cost a session. `api/atmospheres/profiles.json`
  * feeds its own `AuraAtmosphereProfile` enum, so neither mistake is offerable.
  *
  * ⚑ It EXTENDS rather than replaces, because fog legitimately wants `texture`,

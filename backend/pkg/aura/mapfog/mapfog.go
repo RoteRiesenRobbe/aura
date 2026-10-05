@@ -55,14 +55,20 @@ type cell struct{ x, y int }
 // copies before anything crosses to the writer goroutine.
 type Fog struct {
 	chunks map[chunkKey]*[chunkBytes]byte
-	// last is the cell the previous mark was taken in (D5), valid once marked.
-	last   cell
-	marked bool
+	// last is the cell the previous mark was taken in (D5), valid once marked;
+	// lastLight the own light radius it was taken with (plan-map-fog-darkness.md
+	// C2): lighting a Lantern while standing still must map at once.
+	last      cell
+	lastLight float32
+	marked    bool
+	// dirty is every chunk a mark set a NEW bit in since the last TakeDirty
+	// (plan-map-fog-darkness.md C2/C3): what the live map is pushed.
+	dirty map[chunkKey]struct{}
 }
 
 // New returns an empty reveal.
 func New() *Fog {
-	return &Fog{chunks: map[chunkKey]*[chunkBytes]byte{}}
+	return &Fog{chunks: map[chunkKey]*[chunkBytes]byte{}, dirty: map[chunkKey]struct{}{}}
 }
 
 // cellOf maps a world coordinate to its cell index.
@@ -90,17 +96,22 @@ func representable(coord float32) bool {
 
 // MarkAt reveals the fixed AOI around pos, reporting whether it marked.
 //
-// ⚑ GATED ON ENTERING A NEW CELL (D5), the rule MapFog.revealAt already uses
-// client-side: a standing character costs one comparison per tick.
-func (f *Fog) MarkAt(pos phy.Vec2f) bool {
+// ⭐ DARKNESS (plan-map-fog-darkness.md §3): a cell the mask says needs light
+// is revealed only when the own light is at least MinRevealLight and reaches
+// the cell's centre (D2, D4). Every other cell is revealed as before. A nil
+// mask means nothing is dark.
+//
+// ⚑ GATED ON ENTERING A NEW CELL (D5) OR A CHANGED LIGHT RADIUS (C2): a
+// standing character costs one comparison per tick.
+func (f *Fog) MarkAt(pos phy.Vec2f, light float32, dark *DarkMask) bool {
 	if !representable(pos.X) || !representable(pos.Y) {
 		return false
 	}
 	here := cell{cellOf(pos.X), cellOf(pos.Y)}
-	if f.marked && here == f.last {
+	if f.marked && here == f.last && light == f.lastLight {
 		return false
 	}
-	f.last, f.marked = here, true
+	f.last, f.lastLight, f.marked = here, light, true
 
 	// ⚑ THE RECTANGLE COMES FROM THE CELL, not the exact position. Marking is
 	// gated per cell, so it must cover every cell the AOI overlaps from ANY
@@ -111,6 +122,9 @@ func (f *Fog) MarkAt(pos phy.Vec2f) bool {
 	// toward revealing is D4's rule.
 	for cy := here.y - reachY; cy <= here.y+reachY; cy++ {
 		for cx := here.x - reachX; cx <= here.x+reachX; cx++ {
+			if dark.NeedsLight(cx, cy) && !ownLightReaches(pos.X, pos.Y, light, cx, cy) {
+				continue
+			}
 			f.set(cx, cy)
 		}
 	}
@@ -141,7 +155,33 @@ func (f *Fog) set(cx, cy int) {
 		bits = new([chunkBytes]byte)
 		f.chunks[key] = bits
 	}
-	bits[bit/8] |= 1 << (bit % 8)
+	if bits[bit/8]&(1<<(bit%8)) == 0 {
+		bits[bit/8] |= 1 << (bit % 8)
+		f.dirty[key] = struct{}{}
+	}
+}
+
+// TakeDirty snapshots every chunk a mark has set a new bit in since the last
+// call, sorted by (x, y), and forgets them; nil when there are none
+// (plan-map-fog-darkness.md C3). Seed never dirties: the stored reveal is
+// published whole on entering the world.
+//
+// ⚑ A COPY, for Chunks' reason.
+func (f *Fog) TakeDirty() []persist.FogChunk {
+	if len(f.dirty) == 0 {
+		return nil
+	}
+	out := make([]persist.FogChunk, 0, len(f.dirty))
+	for key := range f.dirty {
+		out = append(out, persist.FogChunk{
+			X: key.x, Y: key.y,
+			CellSize: CellSize, ChunkCells: ChunkCells,
+			Bits: append([]byte(nil), f.chunks[key][:]...),
+		})
+	}
+	clear(f.dirty)
+	persist.SortFogChunks(out)
+	return out
 }
 
 // Revealed reports whether a cell is set.

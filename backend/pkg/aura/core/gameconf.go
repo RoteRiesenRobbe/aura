@@ -4,6 +4,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/mapfog"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/player"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -256,4 +257,13 @@ func zoneNamesOrPrimary(gc *cfg.GameConfig) []string {
 		return nil
 	}
 	return []string{gc.ZoneName}
+}
+
+// MapFogDark installs the darkness mask the map reveal obeys
+// (plan-map-fog-darkness.md C1). PLACED content: bake after world.Place.
+func MapFogDark(mask *mapfog.DarkMask) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.MapFogDark = mask
+		return nil
+	}
 }

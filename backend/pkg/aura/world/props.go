@@ -125,6 +125,12 @@ type PropDefinition struct {
 	// every one of the six shipped defs authors nothing and every one of them
 	// must keep blocking. Read it through Blocks(), never directly.
 	BlocksMovement *bool
+	// LightFraction makes every placement of this type a STATIC LIGHT that
+	// lights this fraction of the campfire's light radius (PO 2026-09-20: a
+	// torch follows the campfire when the campfire is retuned). 0 = no light.
+	// The map reveal reads it here and the client's darkness overlay from the
+	// same file (plan-map-fog-darkness.md C1). [PLACEHOLDER] values.
+	LightFraction float32
 }
 
 // Blocks reports whether placements of this type block movement unless the
@@ -222,6 +228,8 @@ type propDefinitionDoc struct {
 	// PropDefinition.Blocks). ⚑ DisallowUnknownFields again: this field and the
 	// exported one must move together or every prop file fails boot by name.
 	BlocksMovement *bool `json:"blocksMovement"`
+	// LightFraction: see PropDefinition. DisallowUnknownFields again.
+	LightFraction float32 `json:"lightFraction"`
 }
 
 func parsePropDefinition(data []byte) (*PropDefinition, error) {
@@ -266,6 +274,9 @@ func parsePropDefinition(data []byte) (*PropDefinition, error) {
 	// already refuses that combination per PLACEMENT; said at the TYPE it is
 	// refused once, for every placement there will ever be — which is the level
 	// crossesPaths itself lives at.
+	if doc.LightFraction < 0 {
+		return nil, fmt.Errorf("lightFraction must not be negative, got %g", doc.LightFraction)
+	}
 	if doc.CrossesPaths && (doc.BlocksMovement == nil || *doc.BlocksMovement) {
 		return nil, fmt.Errorf("crossesPaths needs blocksMovement: false — a prop you walk " +
 			"across must not also wall its own deck (an absent blocksMovement means true)")
@@ -276,5 +287,6 @@ func parsePropDefinition(data []byte) (*PropDefinition, error) {
 		Body:           doc.Body,
 		CrossesPaths:   doc.CrossesPaths,
 		BlocksMovement: doc.BlocksMovement,
+		LightFraction:  doc.LightFraction,
 	}, nil
 }

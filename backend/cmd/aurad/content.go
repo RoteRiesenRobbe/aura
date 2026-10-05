@@ -30,6 +30,9 @@ type loadedContent struct {
 	zones      []*world.Zone
 	areas      []string
 	regions    []world.RegionName
+	// darkness is each atmosphere profile's declared darkness, which the map
+	// reveal reads (plan-map-fog-darkness.md C1).
+	darkness map[string]float32
 }
 
 // loadContent runs every content stage in dependency order and returns the
@@ -141,6 +144,11 @@ func loadContent(src contentSources, config *cfg.Config, startZone string) (load
 		fail("regions", err)
 	} else {
 		okRegions = true
+	}
+
+	// And the atmosphere darkness table (plan-map-fog-darkness.md C1).
+	if out.darkness, err = world.LoadAtmosphereDarkness(src.atmospheres); err != nil {
+		fail("atmospheres", err)
 	}
 
 	// ⚑ Zones are PLACED here, with each zone's Origin already applied
