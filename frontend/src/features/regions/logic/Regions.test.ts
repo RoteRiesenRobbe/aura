@@ -18,7 +18,7 @@ import {
     withGround,
 } from './Regions';
 import terrainProfilesJson from '../../../client-data/terrain-profiles.json';
-import atmosphereProfilesJson from '../../../client-data/atmosphere-profiles.json';
+import atmosphereProfilesJson from '../../../../../api/atmospheres/profiles.json';
 
 // The resolution rule (D0) and the fallback chain (D11), pinned against a
 // hand-written table so the palette (C3, a taste decision) can change freely

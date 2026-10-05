@@ -319,6 +319,11 @@ behavior — movement blockers + visuals). One JSON per type in `api/props/`:
     boot refuses it otherwise. A bridge that blocks is a bridge you cannot
     cross: it clears the water under its deck and then walls that same deck with
     its own body.
+- ⭐ **`lightFraction` makes a prop type a STATIC LIGHT** (absent = no light): every
+  placement lights that fraction of the campfire's light radius, so it follows the
+  campfire when that is retuned. `Torch` authors `0.3`. The client punches the hole
+  in the darkness from it and the server maps that pocket from the same key
+  (`plan-map-fog-darkness.md` C1); negative refuses the boot. [PLACEHOLDER] values.
 - ⚑ **A prop type carries NO draw layer.** There is no `underfoot` key on a
   definition any more (`plan-prop-draw-order.md` P3, D4): where a prop draws is
   where its PLACEMENT sits (below), and a definition still authoring

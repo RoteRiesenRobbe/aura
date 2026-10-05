@@ -1283,6 +1283,14 @@ func applyGrant(in *mobs.Interaction, p learner, src RowSource, travel travelSea
 	if grant < 0 || grant >= len(opt.Grants) {
 		return "", nil, false
 	}
+	// ⛔ A quest row is reached through its lead grant ONLY, and this is checked
+	// before any per-kind dispatch below: a quest row's rewards (a teach, XP, a
+	// trailing offer) are paid by applyQuestRow once the quest op succeeded.
+	// The teach case used to come first, so a crafted message naming a reward's
+	// index took the skill with the quest unmoved.
+	if opt.Grants[0].Kind.IsQuestKind() && grant != 0 {
+		return "", nil, false
+	}
 	g := &opt.Grants[grant]
 	switch {
 	case g.Kind == mobs.GrantTeachSkill:
@@ -1380,6 +1388,11 @@ func applyQuestRow(opt *mobs.InteractionOption, p learner) (string, *skills.Skil
 			p.ApplyRecipeCascade()
 			id := g.Skill.ID
 			taught = &id
+		case mobs.GrantOfferQuest:
+			// The next quest, handed over (plan-region-identity.md R2): a
+			// refusal (already running, or done) skips this reward alone, the
+			// way a skill already known is skipped above.
+			_ = ledger.Accept(g.Quest)
 		}
 	}
 	// The reply is the QUEST grant's line — the actor's answer to the row, which is

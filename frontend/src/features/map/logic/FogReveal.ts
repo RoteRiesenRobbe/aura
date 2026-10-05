@@ -100,14 +100,24 @@ export function mergeMapFog(held: MapFogData | null, incoming: MapFogData): MapF
  * zone's edge is included and clipped by the fog texture's own bounds when it
  * is drawn. ⚑ The zone's ORIGIN is part of the rectangle (L3): a zone placed
  * away from {0,0} — the underworld — maps to entirely different cells.
+ *
+ * ⭐ BOUNDED BY THE PUBLICATION'S CHUNKS too (plan-map-fog-darkness.md C3): a
+ * walking publication carries one or two chunks, and a mask the size of the
+ * whole zone would re-upload a zone-sized canvas every few steps.
  */
 export function zoneCellMask(fog: MapFogData, zone: ZoneRect): CellMask {
     const cs = fog.cellSize;
     const n = fog.chunkCells;
-    const cellX0 = Math.floor((zone.originX - zone.width / 2) / cs);
-    const cellY0 = Math.floor((zone.originY - zone.height / 2) / cs);
-    const cellX1 = Math.ceil((zone.originX + zone.width / 2) / cs) - 1;
-    const cellY1 = Math.ceil((zone.originY + zone.height / 2) / cs) - 1;
+    let cellX0 = Math.floor((zone.originX - zone.width / 2) / cs);
+    let cellY0 = Math.floor((zone.originY - zone.height / 2) / cs);
+    let cellX1 = Math.ceil((zone.originX + zone.width / 2) / cs) - 1;
+    let cellY1 = Math.ceil((zone.originY + zone.height / 2) / cs) - 1;
+    if (fog.chunks.length > 0) {
+        cellX0 = Math.max(cellX0, Math.min(...fog.chunks.map(c => c.x)) * n);
+        cellY0 = Math.max(cellY0, Math.min(...fog.chunks.map(c => c.y)) * n);
+        cellX1 = Math.min(cellX1, (Math.max(...fog.chunks.map(c => c.x)) + 1) * n - 1);
+        cellY1 = Math.min(cellY1, (Math.max(...fog.chunks.map(c => c.y)) + 1) * n - 1);
+    }
     const cols = Math.max(0, cellX1 - cellX0 + 1);
     const rows = Math.max(0, cellY1 - cellY0 + 1);
     const revealed = new Uint8Array(cols * rows);

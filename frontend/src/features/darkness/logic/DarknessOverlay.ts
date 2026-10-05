@@ -3,6 +3,7 @@ import {meter2px} from '../../../client-data/BasicConfig';
 import {PrerenderEvent} from '../../core/logic/Events';
 import {getZoneData} from '../../ground-textures/logic/GroundTextureManager';
 import {flattenProps} from '../../zones/logic/PropLayers';
+import {requireAll} from '../../common/logic/Utils';
 import {gameObjectId} from '../../common/logic/Types';
 import * as Atmospheres from '../../atmospheres/logic/Atmospheres';
 import * as Clearings from '../../atmospheres/logic/Clearings';
@@ -70,18 +71,26 @@ const campfireAura = require('../../../../../api/skills/mobs/campfire-aura.json'
 const CAMPFIRE_LIGHT_RADIUS: number =
     campfireAura.effects.find((e) => e.type === 'light_aura')?.radius ?? 0;
 
-/** The prop type whose placements cast a static light. Matched against the
- *  `type` in `zone.props`, which is the prop's `name` in api/props/. */
-const TORCH_PROP_TYPE = 'Torch';
 /**
- * A torch lights HALF as far as a campfire (PO 2026-09-20), and it is written
- * as a fraction rather than as 3.5 deliberately: the two are the same kind of
- * thing, so the small one should follow the big one when the big one is
- * retuned. Same argument the campfire radius above makes for reading its own
- * value out of the skill definition instead of restating it. [PLACEHOLDER].
+ * The static light each prop TYPE casts, in world units, keyed by the prop's
+ * `name` in api/props/ (what `zone.props` names as `type`). A definition that
+ * authors `lightFraction` lights that fraction of the campfire's radius: a
+ * torch follows the campfire when the campfire is retuned (PO 2026-09-20).
+ * [PLACEHOLDER] values.
+ *
+ * ⭐ Read from the prop file, never restated here, because the SERVER reads the
+ * same key to map the torch's pocket (plan-map-fog-darkness.md C1): one number,
+ * two readers, so the drawn pocket and the mapped one cannot drift apart.
+ * ⚑ Its own require.context rather than Props.propDefinition: Props imports
+ * _GameObject, which imports this module, and that cycle would run a class
+ * `extends` before its base exists.
  */
-const TORCH_LIGHT_FRACTION = 0.3;
-const TORCH_LIGHT_RADIUS: number = CAMPFIRE_LIGHT_RADIUS * TORCH_LIGHT_FRACTION;
+const PROP_LIGHT_RADIUS = new Map<string, number>(
+    (requireAll(require.context('../../../../../api/props', false, /\.json$/)) as unknown as
+        { name: string, lightFraction?: number }[])
+        .filter(def => (def.lightFraction ?? 0) > 0)
+        .map(def => [def.name, CAMPFIRE_LIGHT_RADIUS * def.lightFraction] as [string, number]),
+);
 
 interface LightSource {
     // Minimal structural slice of GameObject — id + world-positioned shape.
@@ -265,8 +274,9 @@ export function loadZone(zoneName: string) {
         // verbatim (see the comment on `inDarkness`). `punchStaticLight` does
         // both, which is why it exists rather than two call sites.
         flattenProps(zone?.props).forEach((prop) => {
-            if (prop.type === TORCH_PROP_TYPE) {
-                punchStaticLight(prop.x + ox, prop.y + oy, TORCH_LIGHT_RADIUS);
+            const radius = PROP_LIGHT_RADIUS.get(prop.type);
+            if (radius !== undefined) {
+                punchStaticLight(prop.x + ox, prop.y + oy, radius);
             }
         });
     }

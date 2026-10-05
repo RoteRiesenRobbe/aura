@@ -3,6 +3,7 @@ package quests
 import (
 	"fmt"
 	"math/rand/v2"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -33,6 +34,11 @@ import (
 // ⚑ Persisted state: the baselines belong in the character record step 8a
 // writes (recorded in plan-accounts-schema.md), or a reload would hand every
 // in-flight objective its lifetime totals back.
+//
+// reach is the current stage's reach target, a region id (plan-region-identity.md
+// R2), or empty. Derived from the stage the quest rests on and never persisted
+// (D6): enter, Abandon and Restore keep it current, so the per-tick arrival
+// check never walks the stage graph.
 type Progress struct {
 	Path       []string
 	Running    bool
@@ -40,6 +46,7 @@ type Progress struct {
 	Objectives []string
 	KillBase   map[mobs.MobID]uint64
 	TalkBase   map[mobs.MobID]bool
+	reach      string
 }
 
 // Ledger is a character's lifetime quest state (D3/D5): per-species kill
@@ -89,6 +96,65 @@ type Ledger struct {
 	// roll draws in [0, 1) for a chance objective's find (Objective.Chance).
 	// Tests swap it for a fixed sequence.
 	roll func() float64
+
+	// reachTargets is every region a running quest's current stage asks the
+	// player to reach, deduplicated and sorted (plan-region-identity.md R2).
+	// Rebuilt only when a quest moves (refreshReach), so the per-tick check of
+	// the usual player reads an empty slice and stops.
+	reachTargets []string
+}
+
+// ReachTargets lists the regions this character is currently sent to. Empty
+// for almost everyone, which is what keeps the per-tick arrival check free.
+func (l *Ledger) ReachTargets() []string {
+	if l == nil {
+		return nil
+	}
+	return l.reachTargets
+}
+
+// NoteReached reports the player standing inside a region: every running quest
+// whose current stage targets it advances (D5: no fresh arrival is needed, so
+// standing there when the stage starts counts on the next report).
+func (l *Ledger) NoteReached(region string) {
+	if l.reg == nil {
+		return
+	}
+	for questID, p := range l.quests {
+		if !p.Running || p.reach != region {
+			continue
+		}
+		q, err := l.reg.Get(questID)
+		if err != nil {
+			continue
+		}
+		l.enter(q, p, q.Stage(q.Stage(p.Path[len(p.Path)-1]).Next))
+	}
+}
+
+// reachOf is a stage's reach target, or "" (D6: a reach objective stands alone).
+func reachOf(s *Stage) string {
+	if s != nil && len(s.Objectives) == 1 && s.Objectives[0].Kind == ObjectiveReach {
+		return s.Objectives[0].Region
+	}
+	return ""
+}
+
+// refreshReach rebuilds reachTargets from every running quest's cached target.
+//
+// ⚑ A FRESH slice, never l.reachTargets[:0]: the arrival check iterates the
+// slice ReachTargets handed it and calls NoteReached inside that loop, which
+// lands here, so reusing the backing array would rewrite it under the caller.
+// It only runs when a quest moves, so the allocation is rare.
+func (l *Ledger) refreshReach() {
+	var targets []string
+	for _, p := range l.quests {
+		if p.Running && p.reach != "" && !slices.Contains(targets, p.reach) {
+			targets = append(targets, p.reach)
+		}
+	}
+	sort.Strings(targets)
+	l.reachTargets = targets
 }
 
 // Revision is the quest-state change counter — the SAVE trigger. See the field.
@@ -370,6 +436,8 @@ func (l *Ledger) Abandon(questID string) error {
 	p.Path = nil
 	p.Objectives = nil
 	p.KillBase, p.TalkBase = nil, nil // re-accept re-baselines via enter anyway; keep no stale state
+	p.reach = ""
+	l.refreshReach()
 	l.revision++
 	l.displayRev++
 	return nil
@@ -486,9 +554,12 @@ func (l *Ledger) enter(q *QuestDefinition, p *Progress, s *Stage) {
 	// a completed quest carries none — its diary is the record (§7.1 ruling).
 	if p.Running {
 		p.Objectives = l.objectiveLines(p, s)
+		p.reach = reachOf(s)
 	} else {
 		p.Objectives = nil
+		p.reach = ""
 	}
+	l.refreshReach()
 	l.revision++
 	l.displayRev++
 	if l.notify != nil {
@@ -513,6 +584,8 @@ func (l *Ledger) baseline(p *Progress, s *Stage) {
 				}
 				p.TalkBase[o.Target] = true
 			}
+		} else if !o.Kind.counts() {
+			continue // a reach objective counts nothing
 		} else if n := l.killCounts[o.Target]; n > 0 {
 			if p.KillBase == nil {
 				p.KillBase = make(map[mobs.MobID]uint64, len(s.Objectives))
@@ -611,6 +684,9 @@ func (l *Ledger) objectiveLines(p *Progress, s *Stage) []string {
 				line += " ✓"
 			}
 			lines = append(lines, line)
+		case ObjectiveReach:
+			// D7. No tick: arrival moves the stage, so this line never shows done.
+			lines = append(lines, "Go to "+o.TargetName)
 		case ObjectiveHarvest:
 			lines = append(lines, fmt.Sprintf("%d/%d %s harvested", min(l.countSince(p, o.Target), o.Count), o.Count, o.TargetName))
 		default:
@@ -630,6 +706,10 @@ func (l *Ledger) satisfied(p *Progress, s *Stage) bool {
 			if !l.talkedSince(p, o.Target) {
 				return false
 			}
+		case ObjectiveReach:
+			// Only an arrival moves it (NoteReached), like a chance objective's
+			// roll: no counter can.
+			return false
 		default: // kill and harvest share the counters (D2)
 			if o.Chance > 0 {
 				// A find: only the hidden guarantee satisfies it here; a hit

@@ -14,6 +14,7 @@
 const QUEST_STAGE_SENTINELS = ['not_started', 'completed', 'running'];
 const CONDITION_KINDS = ['minLevel', 'quest_at_stage', 'bloodline_ascensions', 'kills_this_life'];
 const GRANT_KINDS = ['teach_skill', 'offer_quest', 'advance_quest', 'grant_xp', 'travel_to'];
+const QUEST_KINDS = ['offer_quest', 'advance_quest'];
 // The closed destination vocabulary of a travel_to grant (interaction.go
 // travelModes). `anchor` (underworld U3b, 2026-09-08) delivers to the zone
 // anchor named on the PLACEMENT (world.Spawn.Anchor); the grant's own `anchor`
@@ -23,7 +24,10 @@ const GRANT_KINDS = ['teach_skill', 'offer_quest', 'advance_quest', 'grant_xp', 
 // app.js offers exactly this list rather than a second copy.
 export const TRAVEL_MODES = ['home_campfire', 'caster', 'anchor'];
 const ROW_SOURCE_KINDS = ['ascension_catalog', 'memorial_names'];
-const OBJECTIVE_KINDS = ['kill', 'harvest', 'talk_to'];
+// 'reach' (plan-region-identity.md R2) names a REGION id; whether the id is
+// listed and drawn needs api/regions/ and the zones, which only Go's
+// quests.BindRegions has, so this port checks its shape alone.
+const OBJECTIVE_KINDS = ['kill', 'harvest', 'talk_to', 'reach'];
 
 // Mob-definition vocabulary, ported from the Go single sources of truth:
 // backend/pkg/aura/items/mobs/role.go, definitions.go's tierRanks, and
@@ -142,6 +146,17 @@ export function validateQuest(quest, idx) {
         err(`${q} stage "${s.id}": objective kind "${o.kind}" must be one of ${OBJECTIVE_KINDS.join('/')}`);
         continue;
       }
+      if (o.kind === 'reach') {
+        // Mirrors quests.go mapReach + validateQuest.
+        if (o.species || o.npc) err(`${q} stage "${s.id}": reach names a region, not a species or an npc`);
+        if (!o.region) err(`${q} stage "${s.id}": reach names a region`);
+        if (o.count) err(`${q} stage "${s.id}": a reach objective takes no count`);
+        if (o.chance) err(`${q} stage "${s.id}": a chance rides a kill/harvest objective, not reach`);
+        if (o.tracker) err(`${q} stage "${s.id}": an objective tracker rewords a talk_to line only`);
+        if (objectives.length !== 1) err(`${q} stage "${s.id}": a reach objective must be its stage's only objective`);
+        continue;
+      }
+      if (o.region) err(`${q} stage "${s.id}": only a reach objective names a region`);
       let name = o.species;
       if (o.kind === 'talk_to') {
         if (o.species) err(`${q} stage "${s.id}": talk_to names an npc, not a species`);
@@ -170,7 +185,7 @@ export function validateQuest(quest, idx) {
       else if (!idx.mobNames.has(name)) err(`${q} stage "${s.id}": objective "${o.kind}" names unknown target "${name}"`);
     }
     if (s.tracker && (s.tracker.includes('{n}') || s.tracker.includes('{m}'))) {
-      if (!objectives.some((o) => o.kind !== 'talk_to' && !o.chance)) {
+      if (!objectives.some((o) => (o.kind === 'kill' || o.kind === 'harvest') && !o.chance)) {
         err(`${q} stage "${s.id}": tracker uses {n}/{m} but the stage has no kill/harvest objective to count`);
       }
     }
@@ -276,6 +291,7 @@ export function validateInteraction(mob, idx) {
 
       let questKindIdx = -1;
       let questKindCount = 0;
+      let trailingOffers = 0;
       let xpCount = 0;
       let travelCount = 0;
       for (const [gi, g] of grants.entries()) {
@@ -295,6 +311,14 @@ export function validateInteraction(mob, idx) {
           }
           if (!g.skill) err(`${gWho}: teach_skill needs a skill`);
           else if (!idx.skills.has(g.skill)) err(`${gWho}: skill "${g.skill}" not found`);
+        } else if (g.kind === 'offer_quest' && gi > 0 && QUEST_KINDS.includes(grants[0]?.kind)) {
+          // A trailing offer_quest is a reward: the next quest, handed over
+          // after the row's one quest move (plan-region-identity.md R2).
+          trailingOffers++;
+          if (g.quest === grants[0].quest) err(`${gWho}: the trailing offer_quest offers the quest the row itself moves`);
+          if (!g.quest) err(`${gWho}: offer_quest needs a quest id`);
+          else if (!idx.questsById.has(g.quest)) err(`${gWho}: offer_quest names unknown quest "${g.quest}"`);
+          if (g.fromStage || g.toStage) err(`${gWho}: offer_quest carries no edge — drop fromStage/toStage`);
         } else if (g.kind === 'offer_quest') {
           questKindCount++; if (questKindIdx < 0) questKindIdx = gi;
           if (!g.quest) err(`${gWho}: offer_quest needs a quest id`);
@@ -330,6 +354,7 @@ export function validateInteraction(mob, idx) {
         }
       }
 
+      if (trailingOffers > 1) err(`${oWho}: at most one trailing offer_quest per row — it is the next quest, handed over`);
       if (questKindCount > 1) err(`${oWho}: one quest op per row — a row that advanced two quests at once could half-fail`);
       if (questKindCount === 1 && questKindIdx !== 0) {
         err(`${oWho}: the quest grant must come first, or its rewards are handed over before the quest check`);

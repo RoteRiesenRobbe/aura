@@ -1973,8 +1973,8 @@ var AuraConvert = (function () {
                 return {
                     names: air ? (content.AIR_PROFILE_NAMES || []) : content.PROFILE_NAMES,
                     other: air ? content.PROFILE_NAMES : (content.AIR_PROFILE_NAMES || []),
-                    file: air ? 'atmosphere-profiles.json' : 'terrain-profiles.json',
-                    otherFile: air ? 'terrain-profiles.json' : 'atmosphere-profiles.json',
+                    file: air ? 'api/atmospheres/profiles.json' : 'terrain-profiles.json',
+                    otherFile: air ? 'terrain-profiles.json' : 'api/atmospheres/profiles.json',
                     otherKind: air ? 'a terrain' : 'an atmosphere',
                 };
             }

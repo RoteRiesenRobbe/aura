@@ -128,3 +128,25 @@ func TestCrossValidateRegionIDs_WarnsOfAnUndrawnID(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"elsewhere"}, undrawn)
 }
+
+// R2: the server's view of the places, id → polygons in world coordinates,
+// across zones and areas, profile-only regions left out.
+func TestCollectRegions(t *testing.T) {
+	a, err := parseZone([]byte(`{"name": "A", "bounds": {"width": 60, "height": 40},
+		"regions": [{"id": "home", "profile": "Fields", "points": ` + regionTri + `}, {"profile": "Dirt", "points": ` + regionTri + `}],
+		"areas": [{"id": "x", "regions": [{"id": "farm", "points": [{"x": 20, "y": 20}, {"x": 24, "y": 20}, {"x": 24, "y": 24}]}]}]}`))
+	require.NoError(t, err)
+	b, err := parseRegions(`{"id":"home","points":[{"x":-9,"y":-9},{"x":-5,"y":-9},{"x":-5,"y":-5}]}`)
+	require.NoError(t, err)
+
+	got := CollectRegions([]*Zone{a, b})
+	require.Len(t, got, 2, "two places; the dirt patch names none")
+	require.Len(t, got["home"], 2, "one place, two polygons (D3), across zones")
+	require.Len(t, got["farm"], 1, "a region inside an area counts")
+	assert.Equal(t, BoundingBox{MinX: 20, MinY: 20, MaxX: 24, MaxY: 24}, got["farm"][0].Bounds)
+
+	assert.True(t, InRegion(got["farm"], 23, 21))
+	assert.False(t, InRegion(got["farm"], 21, 23), "outside the triangle, inside its box")
+	assert.True(t, InRegion(got["home"], -6, -8), "the second polygon counts")
+	assert.False(t, InRegion(got["nowhere"], 0, 0))
+}

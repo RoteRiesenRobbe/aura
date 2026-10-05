@@ -348,3 +348,17 @@ func TestEmbeddedRegionList_LoadsAndMatchesSource(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, want, got, "embedded region list is stale — run `make -C backend cp-defs`")
 }
+
+// The shipped atmosphere profiles load, and the embedded copy is the authored
+// one (plan-map-fog-darkness.md C1): a stale copy would map darkness by
+// numbers the client no longer draws.
+func TestEmbeddedAtmosphereProfiles_LoadAndMatchSource(t *testing.T) {
+	disk, err := diskContent("../../../api")
+	require.NoError(t, err)
+	want, err := world.LoadAtmosphereDarkness(disk.atmospheres)
+	require.NoError(t, err)
+	got, err := world.LoadAtmosphereDarkness(embeddedContent().atmospheres)
+	require.NoError(t, err)
+	assert.Equal(t, want, got, "embedded atmosphere profiles are stale — run `make -C backend cp-defs`")
+	assert.Equal(t, float32(1), want["Cave Air"], "the cave darkness the map reveal gates on")
+}

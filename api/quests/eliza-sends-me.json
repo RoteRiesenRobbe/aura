@@ -1,0 +1,24 @@
+{
+  "_comment": "The opening arc's handoff (plan-region-identity.md R2, PO 2026-10-05): the first `reach` quest. Eliza hands it over automatically on the dinner turn-in, as that row's trailing offer_quest, since her completed-dinner greeting already points down the road; her `root_fed` node also offers it on 'Do you have a task for me?' for a character who finished dinner before this quest existed (the row shows only while the quest is not started). `road` is done the first tick the player stands inside the `farmreinhard` region (api/regions/regions.json), not while flying; `meet` is turned in on Reinhard's 'Eliza sends me.' row. No reward: it is a handoff, and his own quests follow. ⚑ NO MARKER of any kind points at the farm (gdd.md §42). Text deliberately plain (PO 2026-08-02).",
+  "id": "eliza-sends-me",
+  "title": "Eliza Sends Me",
+  "stages": [
+    {
+      "id": "road",
+      "journal": "Eliza points east down the road, to Reinhard's farm. He is fair, she says, and he has work.",
+      "objectives": [
+        { "kind": "reach", "region": "farmreinhard" }
+      ],
+      "next": "meet"
+    },
+    {
+      "id": "meet",
+      "journal": "I have reached Reinhard's farm. Now to find the man himself.",
+      "tracker": "Talk to Reinhard"
+    },
+    {
+      "id": "done",
+      "journal": "I told Reinhard that Eliza sent me. He looked me over and nodded: there is work."
+    }
+  ]
+}

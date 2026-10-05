@@ -1167,6 +1167,89 @@ func TestApplyGrant_TurnInAdvancesAndPaysOut(t *testing.T) {
 	assert.Equal(t, 1, p.cascadeCalls, "and the recipe cascade ran for the taught skill")
 }
 
+// plan-region-identity.md R2 (PO 2026-10-05): a turn-in hands over the next
+// quest. The trailing offer runs after the lead op, like every reward.
+func nextQuest() *quests.QuestDefinition {
+	return &quests.QuestDefinition{ID: "next", Title: "Next", Stages: []*quests.Stage{{ID: "go", Journal: "Go."}, {ID: "end", Journal: "End."}}}
+}
+
+func handOverRow() *mobs.Interaction {
+	return oneOption("Here are the pelts.",
+		advanceGrant(),
+		mobs.InteractionGrant{Kind: mobs.GrantXP, XP: 250, Line: "experience"},
+		mobs.InteractionGrant{Kind: mobs.GrantOfferQuest, Quest: "next", Line: "Now go."})
+}
+
+func TestApplyGrant_TurnInHandsOverTheNextQuest(t *testing.T) {
+	q := nextQuest()
+	q.NoteDialogueEdgeFrom("go")
+	p := newQuestLearner(t, 1, peltsQuest(), q)
+	require.NoError(t, p.ledger.Accept(questID))
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+
+	reply, _, ok := applyGrant(handOverRow(), p, noRows, noTravel, "root", 0, 0)
+
+	require.True(t, ok)
+	assert.Equal(t, "You have my thanks.", reply, "the reply is still the lead grant's")
+	_, _, completed := p.ledger.Progress(questID)
+	assert.True(t, completed)
+	path, running, _ := p.ledger.Progress("next")
+	assert.True(t, running, "the next quest was handed over")
+	assert.Equal(t, []string{"go"}, path)
+	assert.Equal(t, []uint64{250}, p.xp)
+}
+
+// A refused hand-over skips itself alone: the turn-in still lands and pays.
+func TestApplyGrant_TrailingOfferRefusedSkipsItselfAlone(t *testing.T) {
+	q := nextQuest()
+	q.NoteDialogueEdgeFrom("go")
+	p := newQuestLearner(t, 1, peltsQuest(), q)
+	require.NoError(t, p.ledger.Accept("next")) // already running
+	require.NoError(t, p.ledger.Accept(questID))
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+
+	_, _, ok := applyGrant(handOverRow(), p, noRows, noTravel, "root", 0, 0)
+
+	require.True(t, ok)
+	_, _, completed := p.ledger.Progress(questID)
+	assert.True(t, completed)
+	assert.Equal(t, []uint64{250}, p.xp)
+	path, _, _ := p.ledger.Progress("next")
+	assert.Equal(t, []string{"go"}, path, "the running quest is untouched")
+}
+
+// ⛔ The same for a TEACH reward, which applyGrant used to dispatch before it
+// asked whether the option is a quest row: a crafted message naming the reward's
+// index took the skill with the quest unmoved (FirstAid off the dinner turn-in).
+func TestApplyGrant_RefusesATeachRewardAddressedDirectly(t *testing.T) {
+	in := oneOption("Here are the pelts.",
+		advanceGrant(),
+		namedGrant(7, "Torch", 0, "and this"))
+	p := newQuestLearner(t, 1, peltsQuest())
+	require.NoError(t, p.ledger.Accept(questID))
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3) // waiting at turn_in: the row itself would be takeable
+
+	_, taught, ok := applyGrant(in, p, noRows, noTravel, "root", 0, 1)
+
+	assert.False(t, ok)
+	assert.Nil(t, taught)
+	assert.False(t, p.sc.HasDiscovered(7), "no skill without the turn-in")
+	path, _, _ := p.ledger.Progress(questID)
+	assert.Equal(t, stageTurn, path[len(path)-1], "and the quest did not move")
+}
+
+// The offer is a reward: addressed directly it is a crafted message.
+func TestApplyGrant_RefusesATrailingOfferAddressedDirectly(t *testing.T) {
+	p := newQuestLearner(t, 1, peltsQuest(), nextQuest())
+	_, _, ok := applyGrant(handOverRow(), p, noRows, noTravel, "root", 0, 2)
+	assert.False(t, ok)
+	_, running, _ := p.ledger.Progress("next")
+	assert.False(t, running)
+}
+
 // The transaction, from the other side: a turn-in taken at the wrong time pays
 // out NOTHING, not "everything except the advance".
 func TestApplyGrant_TurnInAtTheWrongStageGrantsNothing(t *testing.T) {

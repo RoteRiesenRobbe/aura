@@ -1057,17 +1057,32 @@ func (m *mobDefinition) checkTravelRowShape(nodeID string, j int, opt *Interacti
 func (m *mobDefinition) checkQuestRowShape(nodeID string, j int, opt *InteractionOption) error {
 	where := fmt.Sprintf("mob %q: interaction node %q option %d", m.Name, nodeID, j)
 
-	questGrants, xpGrants, questFirst := 0, 0, false
+	// ⭐ One quest MOVE per row, plus at most one trailing offer_quest as a
+	// reward (plan-region-identity.md R2, PO 2026-10-05): a turn-in may hand
+	// over the next quest. The offer runs only after the lead op succeeded, and
+	// a refusal (already running, or done) skips it alone, like a skill already
+	// known, so the row still cannot half-fail. A trailing ADVANCE stays
+	// refused: two branch edges in one click is the half-fail this rule exists for.
+	questGrants, xpGrants, questFirst, trailingOffers := 0, 0, false, 0
 	for i := range opt.Grants {
+		g := &opt.Grants[i]
 		switch {
-		case opt.Grants[i].Kind.IsQuestKind():
+		case g.Kind == GrantOfferQuest && i > 0 && opt.Grants[0].Kind.IsQuestKind():
+			trailingOffers++
+			if g.Quest == opt.Grants[0].Quest {
+				return fmt.Errorf("%s: the trailing offer_quest offers the quest the row itself moves", where)
+			}
+		case g.Kind.IsQuestKind():
 			questGrants++
 			questFirst = questFirst || i == 0
-		case opt.Grants[i].Kind == GrantXP:
+		case g.Kind == GrantXP:
 			xpGrants++
 		}
 	}
 
+	if trailingOffers > 1 {
+		return fmt.Errorf("%s: at most one trailing offer_quest per row — it is the next quest, handed over", where)
+	}
 	if questGrants > 1 {
 		return fmt.Errorf("%s: one quest op per row — a row that advanced two quests at once could half-fail", where)
 	}

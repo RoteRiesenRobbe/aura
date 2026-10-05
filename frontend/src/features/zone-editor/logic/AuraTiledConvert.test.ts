@@ -1987,7 +1987,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
         it('refuses an atmosphere profile on a region, and says so', () => {
             const msg = only(region({profile: AN_AIR_PROFILE}));
             expect(msg).toContain('"' + AN_AIR_PROFILE + '" is an atmosphere profile');
-            expect(msg).toContain('atmosphere-profiles.json');
+            expect(msg).toContain('api/atmospheres/profiles.json');
             expect(msg).toContain('needs one from terrain-profiles.json');
         });
 
@@ -2000,7 +2000,7 @@ describe('AuraConvert — save-time validation (C4)', () => {
             }));
             expect(msg).toContain('"' + A_REAL_PROFILE + '" is a terrain profile');
             expect(msg).toContain('terrain-profiles.json');
-            expect(msg).toContain('needs one from atmosphere-profiles.json');
+            expect(msg).toContain('needs one from api/atmospheres/profiles.json');
         });
 
         // ⚑ The two lists must be disjoint or the messages above are

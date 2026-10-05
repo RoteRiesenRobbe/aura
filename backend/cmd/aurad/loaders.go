@@ -17,14 +17,15 @@ import (
 	"github.com/google/uuid"
 
 	aareas "github.com/RoteRiesenRobbe/aura/pkg/api/areas"
-	aregions "github.com/RoteRiesenRobbe/aura/pkg/api/regions"
 	aascension "github.com/RoteRiesenRobbe/aura/pkg/api/ascension"
+	aatmospheres "github.com/RoteRiesenRobbe/aura/pkg/api/atmospheres"
 	afactions "github.com/RoteRiesenRobbe/aura/pkg/api/factions"
 	amilestones "github.com/RoteRiesenRobbe/aura/pkg/api/milestones"
 	amobs "github.com/RoteRiesenRobbe/aura/pkg/api/mobs"
 	aprops "github.com/RoteRiesenRobbe/aura/pkg/api/props"
 	aquests "github.com/RoteRiesenRobbe/aura/pkg/api/quests"
 	arecipes "github.com/RoteRiesenRobbe/aura/pkg/api/recipes"
+	aregions "github.com/RoteRiesenRobbe/aura/pkg/api/regions"
 	askillfx "github.com/RoteRiesenRobbe/aura/pkg/api/skill-fx"
 	askills "github.com/RoteRiesenRobbe/aura/pkg/api/skills"
 	azones "github.com/RoteRiesenRobbe/aura/pkg/api/zones"
@@ -64,28 +65,32 @@ type contentSources struct {
 	// regions is the one list of places a region may name, with their
 	// banner text (plan-region-identity.md D2).
 	regions fs.FS
+	// atmospheres is the atmosphere profile table, shared with the client; the
+	// server reads only each profile's darkness (plan-map-fog-darkness.md C1).
+	atmospheres fs.FS
 }
 
 func embeddedContent() contentSources {
 	return contentSources{
-		mobs:       amobs.Mobs,
-		skills:     askills.Skills,
-		recipes:    arecipes.Recipes,
-		zones:      azones.Zones,
-		props:      aprops.Props,
-		factions:   afactions.Factions,
-		milestones: amilestones.Milestones,
-		quests:     aquests.Quests,
-		ascension:  aascension.Ascension,
-		skillFx:    askillfx.SkillFx,
-		areas:      aareas.Areas,
-		regions:    aregions.Regions,
+		mobs:        amobs.Mobs,
+		skills:      askills.Skills,
+		recipes:     arecipes.Recipes,
+		zones:       azones.Zones,
+		props:       aprops.Props,
+		factions:    afactions.Factions,
+		milestones:  amilestones.Milestones,
+		quests:      aquests.Quests,
+		ascension:   aascension.Ascension,
+		skillFx:     askillfx.SkillFx,
+		areas:       aareas.Areas,
+		regions:     aregions.Regions,
+		atmospheres: aatmospheres.Atmospheres,
 	}
 }
 
 // diskContent loads content from dir, which must have the repo api/ layout
 // (mobs/, skills/, recipes/, zones/, props/, factions/, milestones/, quests/,
-// ascension/, skill-fx/, areas/, regions/).
+// ascension/, skill-fx/, areas/, regions/, atmospheres/).
 // Missing subdirectories hard-fail here — content errors are loud, matching
 // the registry ethos.
 func diskContent(dir string) (contentSources, error) {
@@ -130,6 +135,9 @@ func diskContent(dir string) (contentSources, error) {
 		return contentSources{}, err
 	}
 	if c.areas, err = sub("areas"); err != nil {
+		return contentSources{}, err
+	}
+	if c.atmospheres, err = sub("atmospheres"); err != nil {
 		return contentSources{}, err
 	}
 	if c.regions, err = sub("regions"); err != nil {

@@ -7,6 +7,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/mapfog"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
@@ -77,6 +78,15 @@ type GameConfig struct {
 	// `effect`, so AreaEffectSystem returns on a length check and the feature
 	// costs nothing until someone draws one (D10).
 	AreaEffects []world.PlacedAreaEffect
+
+	// Regions maps every place id to its polygons in WORLD coordinates
+	// (plan-region-identity.md R2): what a reach objective's arrival check
+	// tests. Collected after world.Place, like AreaEffects.
+	Regions map[string][]world.PlacedRegion
+
+	// MapFogDark is where the map reveal needs light (plan-map-fog-darkness.md
+	// C1), baked once from the PLACED zones. Nil means nothing is dark.
+	MapFogDark *mapfog.DarkMask
 
 	// ZoneAnchors is every loaded zone's named anchors, flattened into one
 	// lookup in WORLD coordinates (plan-underworld.md U3). It is what an

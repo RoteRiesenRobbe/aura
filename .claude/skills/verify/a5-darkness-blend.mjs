@@ -63,7 +63,7 @@ const key = subject === 'clearing' ? 'clearing-' + mode : mode;
 const label = process.argv[3] || ('a5-' + key);
 // ⚑ PORT 2001, the webpack dev server — the same note a4-clearing carries: on
 // 2000 the account screens never become visible on this host and the join times
-// out. It also means an edit to atmosphere-profiles.json reaches the next run
+// out. It also means an edit to api/atmospheres/profiles.json reaches the next run
 // through HMR, which is what makes the A/B cheap.
 const url = process.argv[4]
   || 'http://localhost:2001/?token=plz&wsUrl=ws://localhost:2000/game&develop';
@@ -95,7 +95,7 @@ const STAND_OFF_U = 2;     // how far west of the edge the probe stands
  */
 function venue() {
   const air = JSON.parse(readFileSync(
-    join(root, 'frontend/src/client-data/atmosphere-profiles.json'), 'utf8'));
+    join(root, 'api/atmospheres/profiles.json'), 'utf8'));
   for (const file of fs.readdirSync(join(root, 'api/zones'))) {
     if (!file.endsWith('.json')) { continue; }
     const zone = readZone(join(root, 'api/zones', file));

@@ -112,6 +112,11 @@ var expectedQuests = map[string]string{
 	// The Wanderer's lost friend (content-zone-2-woodland.md §3.5): a talk_to
 	// on a dead body (EntityType Remains) at the back of the kobold cave.
 	"the-lost-friend": "The Lost Friend",
+
+	// The opening arc's handoff and the first REACH quest
+	// (plan-region-identity.md R2): handed over on the dinner turn-in, done on
+	// arriving at Reinhard's farm, turned in on his 'Eliza sends me.' row.
+	"eliza-sends-me": "Eliza Sends Me",
 }
 
 func TestContent_QuestCensus(t *testing.T) {
@@ -477,6 +482,52 @@ func TestContent_GrandfatherKnotsQuestsWalkEndToEnd(t *testing.T) {
 	require.NoError(t, l.AdvanceDialogue("the-sleeping-roots", "back_three", "rooted"))
 
 	_, running, completed := l.Progress("the-sleeping-roots")
+	assert.False(t, running)
+	assert.True(t, completed)
+}
+
+// eliza-sends-me walked off the REAL rows (plan-region-identity.md R2): the
+// dinner turn-in hands it over as its trailing offer, the reach stage moves on
+// arrival in its own region (read off the quest, never named here), and
+// Reinhard's row is the edge out of the stage the arrival lands on.
+func TestContent_ElizaSendsMeWalksEndToEnd(t *testing.T) {
+	mr, qr := contentRegistries(t)
+	rowFor := func(mob, quest string, kind mobs.GrantKind) *mobs.InteractionOption {
+		def, err := mr.GetByName(mob)
+		require.NoError(t, err)
+		for ni := range def.Interaction.Nodes {
+			for oi := range def.Interaction.Nodes[ni].Options {
+				opt := &def.Interaction.Nodes[ni].Options[oi]
+				for _, g := range opt.Grants {
+					if g.Kind == kind && g.Quest == quest {
+						return opt
+					}
+				}
+			}
+		}
+		t.Fatalf("%s has no %s row for %s", mob, kind, quest)
+		return nil
+	}
+
+	turnIn := rowFor("Eliza", "dinner-for-the-family", mobs.GrantAdvanceQuest)
+	last := turnIn.Grants[len(turnIn.Grants)-1]
+	assert.Equal(t, mobs.GrantOfferQuest, last.Kind, "the dinner turn-in hands over the next quest")
+	assert.Equal(t, "eliza-sends-me", last.Quest)
+
+	q, err := qr.Get("eliza-sends-me")
+	require.NoError(t, err)
+	region := q.First().Objectives[0].Region
+
+	l := NewLedger(qr)
+	require.NoError(t, l.Accept("eliza-sends-me"))
+	assert.Equal(t, []string{region}, l.ReachTargets())
+	l.NoteReached(region)
+
+	edge := rowFor("Reinhard", "eliza-sends-me", mobs.GrantAdvanceQuest).Grants[0]
+	path, _, _ := l.Progress("eliza-sends-me")
+	assert.Equal(t, edge.FromStage, path[len(path)-1], "arrival lands where Reinhard's row picks up")
+	require.NoError(t, l.AdvanceDialogue("eliza-sends-me", edge.FromStage, edge.ToStage))
+	_, running, completed := l.Progress("eliza-sends-me")
 	assert.False(t, running)
 	assert.True(t, completed)
 }

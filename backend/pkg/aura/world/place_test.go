@@ -54,14 +54,38 @@ func TestPlace_OffsetsGeometryIntoTheSharedSpace(t *testing.T) {
 func TestPlace_LeavesClientVisualArraysAlone(t *testing.T) {
 	z := zoneAt("under", 60, 40, 0, -500)
 	z.Decals = []TerrainTexture{{Type: "Land", X: 1, Y: 2, Size: 1}}
-	z.DarkAreas = []DarkArea{{X: 3, Y: 4, Radius: 5}}
-	z.Regions = []Region{{Profile: "Cave", Points: []Point{{X: 6, Y: 7}}}}
 
 	require.NoError(t, Place([]*Zone{zoneAt("world", 144, 72, 0, 0), z}))
 
 	assert.Equal(t, float32(2), z.Decals[0].Y, "terrain is client-visual and stays zone-local")
-	assert.Equal(t, float32(4), z.DarkAreas[0].Y, "dark areas are client-visual")
-	assert.Equal(t, float32(7), z.Regions[0].Points[0].Y, "regions are client-visual")
+}
+
+// ⭐ plan-map-fog-darkness.md C1: the map reveal reads dark areas and
+// clearings in world coordinates, so both move with their zone.
+func TestPlace_OffsetsDarkAreasAndClearings(t *testing.T) {
+	z := zoneAt("under", 60, 40, 0, -500)
+	z.DarkAreas = []DarkArea{{X: 3, Y: 4, Radius: 5}}
+	z.Clearings = []Clearing{{Clears: ClearsDarkness, Points: []Point{{X: 1, Y: 2}, {X: 3, Y: 2}, {X: 3, Y: 4}}}}
+
+	require.NoError(t, Place([]*Zone{zoneAt("world", 144, 72, 0, 0), z}))
+
+	assert.Equal(t, float32(-496), z.DarkAreas[0].Y)
+	assert.Equal(t, float32(5), z.DarkAreas[0].Radius, "a radius is a size, never offset")
+	assert.Equal(t, float32(-498), z.Clearings[0].Points[0].Y)
+}
+
+// ⭐ plan-region-identity.md R2 moved REGIONS across the line: a reach objective
+// point-tests the player against them in world coordinates. ⛔ The trap is the
+// atmosphere one (area effects E2): at origin {0,0} no offset shows, so only a
+// placed zone can prove it.
+func TestPlace_OffsetsRegions(t *testing.T) {
+	z := zoneAt("under", 60, 40, 0, -500)
+	z.Regions = []Region{{ID: "den", Points: []Point{{X: 6, Y: 7}, {X: 9, Y: 7}, {X: 9, Y: 9}}}}
+
+	require.NoError(t, Place([]*Zone{zoneAt("world", 144, 72, 0, 0), z}))
+
+	assert.Equal(t, float32(-493), z.Regions[0].Points[0].Y, "regions move: the server reads them since R2")
+	assert.Equal(t, float32(6), z.Regions[0].Points[0].X)
 }
 
 func TestPlace_ZoneAtTheOriginIsUntouched(t *testing.T) {
