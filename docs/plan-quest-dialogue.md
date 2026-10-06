@@ -336,7 +336,7 @@ server). Schema line for every chunk: DB NONE, wire NONE.
   stands at (-122, -30) on the main world, the harness warps to (-55, 26)).
   ⚑ Unwalked: an `any` gate in-game (first content is C2). `skill-inventory`
   is red at HEAD on `packIcon`, so its "or" join got a syntax check only.
-- **C2 the rats example:** ✅ 2026-10-07 `[uncommitted]`, PO-walked ("works").
+- **C2 the rats example:** ✅ 2026-10-07 `36068d47`, PO-walked ("works").
   `api/mobs/reinhard.json`: root gains "About the rats in the barn..." →
   `rats_running` beside the offer row; `rats` keeps the brief + Accept only;
   `rats_running` ("The rats?") holds the turn-in (moved, unchanged), "I am on
