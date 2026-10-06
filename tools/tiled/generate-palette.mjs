@@ -229,7 +229,7 @@ function readEffects() {
 // ⚑ '_'-prefixed keys are documentation (the repo's _comment convention),
 // skipped here exactly as Regions.buildProfiles skips them client-side.
 function readProfileTable(name) {
-    const file = path.join(ROOT, 'frontend/src/client-data/' + name);
+    const file = path.join(ROOT, name.indexOf('/') >= 0 ? name : 'frontend/src/client-data/' + name);
     if (!existsSync(file)) { fail('profile table not found: ' + path.relative(ROOT, file)); }
     const table = JSON.parse(readFileSync(file, 'utf8'));
     const out = Object.keys(table).filter(k => k.charAt(0) !== '_');
@@ -658,7 +658,7 @@ const terrain = readTerrainTypes();
 const props = readProps();
 const mobs = readMobs();
 const profiles = readProfileTable('terrain-profiles.json');
-const airProfiles = readProfileTable('atmosphere-profiles.json');
+const airProfiles = readProfileTable('api/atmospheres/profiles.json');
 // ⛔ The two namespaces must stay DISJOINT: every accessor picks its table by
 // call site, so a name in both would make "which Fog?" depend on which lookup
 // ran. Regions.test.ts pins the same thing client-side; this is the half that
@@ -666,7 +666,7 @@ const airProfiles = readProfileTable('atmosphere-profiles.json');
 const clash = profiles.filter(n => airProfiles.indexOf(n) >= 0);
 if (clash.length > 0) {
     fail('profile name in BOTH tables: ' + clash.join(', ')
-        + ' — terrain-profiles.json and atmosphere-profiles.json are separate'
+        + ' — terrain-profiles.json and api/atmospheres/profiles.json are separate'
         + ' namespaces, so rename one.');
 }
 

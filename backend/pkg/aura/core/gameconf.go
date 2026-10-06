@@ -4,6 +4,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/ascension"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/mapfog"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/player"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -226,6 +227,15 @@ func AreaEffects(areas []world.PlacedAreaEffect) Configuration {
 	}
 }
 
+// Regions installs the places a reach objective tests arrival against
+// (plan-region-identity.md R2). PLACED content: collect after world.Place.
+func Regions(regions map[string][]world.PlacedRegion) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.Regions = regions
+		return nil
+	}
+}
+
 // PathCorridors installs the blocking paths' collision shapes. Separate from
 // the zone itself for the same reason Spawns is: the game takes resolved
 // content, not a file.
@@ -247,4 +257,13 @@ func zoneNamesOrPrimary(gc *cfg.GameConfig) []string {
 		return nil
 	}
 	return []string{gc.ZoneName}
+}
+
+// MapFogDark installs the darkness mask the map reveal obeys
+// (plan-map-fog-darkness.md C1). PLACED content: bake after world.Place.
+func MapFogDark(mask *mapfog.DarkMask) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.MapFogDark = mask
+		return nil
+	}
 }

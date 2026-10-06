@@ -49,8 +49,9 @@ const gridCellMargin = 10
 // WORLD coordinates, while Bounds stays the zone-local size and Origin says
 // where its centre sits.
 //
-// ⚑ Client-visual arrays (Terrain, Regions, DarkAreas, Clearings) are
-// deliberately NOT offset. The server never reads them — the client reads the
+// ⚑ Client-visual arrays (Terrain) are deliberately NOT offset (Regions were
+// too until plan-region-identity.md R2, DarkAreas and Clearings until
+// plan-map-fog-darkness.md C1, see placeOne). The server never reads them — the client reads the
 // zone file itself and applies Origin on its own — so shifting them here would
 // be dead work that only invites the two sides to disagree. Paths ARE offset,
 // because PathCorridors turns them into collision bodies.
@@ -131,10 +132,18 @@ func placeOne(z *Zone) error {
 		z.Anchors[i].X += ox
 		z.Anchors[i].Y += oy
 	}
+	// ⭐ Regions joined this list at plan-region-identity.md R2: a reach
+	// objective point-tests the player against a region in WORLD coordinates
+	// (CollectRegions). It does not move them twice: the client reads the zone
+	// file itself and applies the origin in toRegions, never this copy.
+	for i := range z.Regions {
+		for j := range z.Regions[i].Points {
+			z.Regions[i].Points[j].X += ox
+			z.Regions[i].Points[j].Y += oy
+		}
+	}
 	// Collision geometry, so it has to move with the zone (PathCorridors,
-	// PolygonColliders). ⚑ REGIONS are deliberately absent from this list: they
-	// are client-only, and the client applies the origin itself in toRegions —
-	// offsetting them here as well would move them twice.
+	// PolygonColliders).
 	for i := range z.Paths {
 		for j := range z.Paths[i].Points {
 			z.Paths[i].Points[j].X += ox
@@ -150,12 +159,24 @@ func placeOne(z *Zone) error {
 	// ⭐ Atmospheres joined this list at plan-area-effects.md E2, when the air
 	// stopped being purely client-visual: one may carry an `effect`, and the
 	// area-effect system tests entity positions against its polygon in WORLD
-	// coordinates. ⛔ Clearings deliberately do NOT join it — a clearing erases
-	// atmosphere on the client and the server still never reads it (A4).
+	// coordinates.
 	for i := range z.Atmospheres {
 		for j := range z.Atmospheres[i].Points {
 			z.Atmospheres[i].Points[j].X += ox
 			z.Atmospheres[i].Points[j].Y += oy
+		}
+	}
+	// ⭐ Dark areas and clearings joined at plan-map-fog-darkness.md C1: the
+	// map reveal bakes its darkness mask from them in WORLD coordinates. Same
+	// trap as above: at origin {0,0} a missing offset shows nothing.
+	for i := range z.DarkAreas {
+		z.DarkAreas[i].X += ox
+		z.DarkAreas[i].Y += oy
+	}
+	for i := range z.Clearings {
+		for j := range z.Clearings[i].Points {
+			z.Clearings[i].Points[j].X += ox
+			z.Clearings[i].Points[j].Y += oy
 		}
 	}
 	return nil

@@ -1,13 +1,14 @@
 # Plan: The Map Reveal Respects Darkness
 
-> **Status: DESIGNED 2026-10-04, D1-D3 RULED (PO, this session), D4-D6 proposed, nothing
-> built, 3 chunks.** The map reveals the full screen-sized box wherever you walk, lit or not,
+> **Status: DESIGNED 2026-10-04, D1-D3 RULED (PO), D4-D6 RULED 2026-10-05, nothing built,
+> 3 chunks, ready for C1.** The map reveals the full screen-sized box wherever you walk, lit or not,
 > so a pitch-black cave is mapped in full. Wanted (PO): "a map or mini map should only reveal
 > areas with darkness that we actually lit up sufficiently."
 >
 > ⚑ Line refs pinned to `6f7a29fb`.
 >
-> **Schema: DB NONE · wire NONE · conf NONE · content: one file moves into `api/`.**
+> **Schema: DB NONE · wire NONE · conf NONE · content: the atmosphere profiles move to
+> `api/atmospheres/profiles.json` (+1 content dir), prop definitions gain `lightFraction`.**
 
 ---
 
@@ -39,30 +40,44 @@
 - **D1 · Whose light counts: your own + static lights. RULED.** Your own `LightRadius()`, plus
   the fixed campfire and torch pockets. Not other players' lanterns, not light-emitting mobs
   (that would need a re-check every time a nearby light moves, not only when you enter a cell).
-- **D2 · "Lit sufficiently" = a light radius of at least 3 u. RULED** (value [PLACEHOLDER]).
-  Below that, your own light reveals nothing inside darkness. The Lantern (4 u) maps a cave;
-  the bare sight floor (0.33 u) and the Torch aura (2.5 u) do not. Static lights are not gated
+- **D2 · "Lit sufficiently" = a light radius of at least 2.5 u. RULED** (value [PLACEHOLDER];
+  ⭐ lowered from 3 u by the PO 2026-10-05 so the Torch passive maps from its first level).
+  Below that, your own light reveals nothing inside darkness. The Torch (2.5 u at level 1) maps
+  a narrow trail, the Lantern (4 u) a wider one; the bare sight floor (0.33 u) maps nothing.
+  Static lights are not gated
   (the campfire is 7 u, a torch ~2.1 u: a torch pocket is mapped because you can see it).
 - **D3 · Reveals stored under the old rule stay. RULED.** No scrub, no migration. Only new
   exploration follows the rule.
-- **D4 · Inside darkness a cell is revealed WHOLE when its CENTRE is lit. PROPOSED.**
+- **D4 · Inside darkness a cell is revealed WHOLE when its CENTRE is lit. RULED 2026-10-05.**
+  Rejected: any-overlap (a Lantern maps ~21 cells, up to ~2.8 u past the light), fully-inside
+  (a 3 u light maps one cell), smaller cells (resets every stored reveal, against D3).
   The reveal is already blocky: 2 u cells (`mapfog.CellSize`, [PLACEHOLDER]); the restored
   map is drawn cell by cell. So a lit circle maps as a stepped disc, not a smooth one, and a
   block's corner can show up to ~1.4 u of ground that stayed dark on screen. This errs toward
   revealing, as the persistence plan's D4 does. Finer edges mean a smaller `CellSize`, which
   resets every stored reveal (that plan's D10); not proposed.
-- **D5 · "Complete darkness" is what the rule applies to. PROPOSED.** A point is completely
-  dark when EITHER:
+- **D5 · "Complete darkness" is what the rule applies to. RULED 2026-10-05.** A point is
+  completely dark when EITHER:
   - it is inside a `darkArea` circle's **authored radius** (drawn fully black; the 2 u
     `EDGE_FADE` ring outside it is not dark, the same line `isHidden` uses), OR
-  - the last atmosphere there that declares `darkness` resolves to **≥ 1.0**
-    (`DarkRevealThreshold`, [PLACEHOLDER]): today `Cave Air` and `Darkness`;
+  - the **stacked** darkness of every atmosphere there that declares `darkness`,
+    `1 − Π(1 − dᵢ)`, is **≥ 1.0** (`DarkRevealThreshold`, [PLACEHOLDER]): today `Cave Air`
+    and `Darkness`;
 
   AND no `darkness` / `both` clearing covers it. Partly dark air stays mapped like daylight,
   because the ground shows through it: `Gloom` 0.55, `Canopy` 0.35, `Storm Sky` 0.28. The shape
   test is the polygon itself, not its `blend` band (as `inDarkness` does). Lowering the
   threshold to 0.5 to include Gloom later is a one-number change.
-- **D6 · The server decides, and the client only draws what the server marked. PROPOSED.**
+
+  ⭐ **Stacked, NOT last-declaring-wins (PO 2026-10-05).** The painter stacks overlapping
+  atmospheres (each is its own alpha group, `RegionPaint.paintAtmospheres`), so 1.0 under a
+  later 0.5 draws black in either order, while `resolveIn` would answer 0.5 and map it. The
+  map follows the screen: 1.0 + 0.5 → dark in either order; 0.5 + 0.5 → 0.75, not dark. At a
+  1.0 threshold this equals "any covering atmosphere is ≥ 1.0"; stacking keeps it true if the
+  threshold drops. ⚑ The client's `inDarkness` (nameplate hiding) still uses
+  last-declaring-wins, so a later `darkness: 0` atmosphere over a black one shows nameplates
+  in visible black. Pre-existing, out of scope here.
+- **D6 · The server decides, and the client only draws what the server marked. RULED 2026-10-05.**
   The archived persistence plan's D1 already makes the server the owner of the reveal. If the
   client kept its own box, or its own port of the rule, the live map and the restored map would
   disagree, which is this bug in another shape. So the client's own reveal is deleted and the
@@ -76,7 +91,8 @@ darkness the box is replaced by the light circle (counts for a player standing a
 | light | cells per mark | area vs. today's box (22 × 14 u) |
 | --- | --- | --- |
 | no light / sight floor 0.33 u | 0 (below D2's gate) | nothing |
-| 3 u (the gate) | 9 | ~12 % |
+| Torch level 1, 2.5 u (the gate) | 5 | ~6 % |
+| 3 u | 9 | ~12 % |
 | Lantern 4 u | 13 | ~17 % |
 | campfire 7 u (static) | ~37 | ~48 % |
 
@@ -91,7 +107,7 @@ Per cell of the AOI box, judged at the cell centre:
 
 1. not completely dark (D5) → reveal (today's behaviour);
 2. dark, but inside a static light → reveal;
-3. dark, within your light circle, and your radius ≥ 3 u (D2) → reveal;
+3. dark, within your light circle, and your radius ≥ 2.5 u (D2) → reveal;
 4. otherwise it stays hidden.
 
 It lives in one place, Go `mapfog`. `sight` is not read: the floor (0.33 u) is far below the
@@ -140,10 +156,11 @@ gate, and no shipped dark profile authors more than 0.5.
 
 ## 5. Tests (TDD: `mapfog`, `sys`, `world`, vitest)
 
-- An unlit dark cell stays hidden; a cell inside a ≥ 3 u own light is revealed; a 2.5 u light
+- An unlit dark cell stays hidden; a cell inside a ≥ 2.5 u own light is revealed; a 2 u light
   reveals nothing dark; a cell whose centre is just outside the circle stays hidden.
 - A campfire pocket is revealed with no own light; a clearing inside darkness is revealed.
 - `Gloom` and `Canopy` do not gate; the `darkArea` fade ring does not gate.
+- Overlap (D5): 1.0 + a later 0.5 gates in either authored order; 0.5 + 0.5 does not.
 - A `darkArea` in a zone placed away from {0,0} gates at its world position.
 - Gate: same cell, light 0 → 4 re-marks; same cell, same light does not.
 - `TakeDirty` returns only the touched chunks, then empties.
@@ -159,3 +176,47 @@ gate, and no shipped dark profile authors more than 0.5.
 - In game (`scripts/dev-restart-windows.sh`; the debug zones have dark caves): walk a cave with
   no light → the map stays black there; light a Lantern → its circle maps; a campfire pocket
   maps; relog → the restored map equals the live one.
+
+---
+
+## 7. Ledger
+
+### C1-C3 · built + committed 2026-10-05, one session (PO asked for all three chunks at once; gate lowered to 2.5 u before the commit, both harnesses re-run 10/10)
+
+**Built.**
+- **C1.** `frontend/src/client-data/atmosphere-profiles.json` → `api/atmospheres/profiles.json`
+  (`git mv`); every reader repointed (Regions.ts + test, generate-palette, make-precipitation-tiles,
+  the a4/a5 harnesses, aura-convert's messages + their test). New content dir `atmospheres`
+  (embed package, `contentSources`, cp-defs, `validate_test`'s list, a loadContent stage);
+  `world.LoadAtmosphereDarkness` reads ONLY each profile's `darkness`. `world.Place` now offsets
+  `DarkAreas` and `Clearings` (two placement tests flipped: clearings ARE placed now).
+  ⭐ **Torch radius:** `TORCH_LIGHT_FRACTION` became a prop-definition key, `lightFraction`
+  (Torch 0.3); the client's `DarknessOverlay` and the server's mask both read it, so ANY prop
+  type authoring it now casts a static light (the old code matched the name `Torch`). The
+  client reads it through its own `require.context`, not `Props.propDefinition`: Props →
+  _GameObject → DarknessOverlay would be an import cycle. `mapfog.DarkMask` +
+  `mapfog.DarkWorldOf` bake one `hidden` bitmap (completely dark AND no static light) per
+  touched chunk at boot; the campfire radius comes from the `CampfireAura` skill
+  (`cmd/aurad/map_fog_dark.go`). Boot logs `🌑 map reveal darkness baked`: 891 cells on the main
+  world, 1203 on the debug world.
+- **C2.** `Fog.MarkAt(pos, light, mask)` applies §3 per cell; the gate re-marks on a new cell OR a
+  changed light; `set` records a dirty set of chunks that got a NEW bit; `TakeDirty`.
+- **C3.** `trackMapFog` publishes `TakeDirty()` APPENDED to whatever the tick already carries (a
+  join publishes the whole reveal earlier in the same tick). Client: `MapFog.revealAt`, its stamp
+  and its call in `MiniMap.update` deleted; `setMapFog` paints only the incoming publication;
+  `zoneCellMask` is bounded by the publication's chunks as well as the zone. The live map is now
+  2 u-blocky like the restored one.
+
+**Verified.** `go build` · `go test -count=1 ./...` green bar the known
+`TestPropContent_C1bMigrationPreservesLookAndCollision` · `-validate` 0 findings ×3 (main
+`-content`, debug, embedded) · vitest 1529/0 + typecheck · new harness
+`.claude/skills/verify/d-map-fog-darkness.mjs` **10/10** on the debug zones (unlit cave black, spawn
+control mapped, campfire pocket mapped with no own light and dark ground past it black, Lantern
+maps its cell and not a dark cell 7 u off, relog restores exactly the live map, 0 console errors)
+· `f2-map-fog-persistence.mjs` **10/10** on the main world (its hardcoded start fire, stale since
+the map rebuild, now derived from `world.json`) · `generate-palette.mjs` regenerates byte-identical.
+
+**Owed.**
+- ⭐ **PO look in game**, desktop and phone: walk a cave with and without a Lantern, open the map.
+- ⚑ **Wire cost unmeasured** (§4 C3: ≤ 512 B per touched chunk, about every 2 u walked, owner only).
+- ⚑ `DarknessOverlay.inDarkness` still answers last-declaring-wins (D5's note); out of scope.

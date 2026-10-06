@@ -115,3 +115,25 @@ describe('mergeMapFog', () => {
         expect(merged.chunks).toHaveLength(1);
     });
 });
+
+// plan-map-fog-darkness.md C3: a walking publication carries one chunk, and the
+// painted canvas must be bounded by it, never by the whole zone.
+describe('zoneCellMask bounded by the publication', () => {
+    it('spans only the incoming chunk inside a much larger zone', () => {
+        const zone = {originX: 0, originY: 0, width: 4 * N * 2, height: 4 * N * 2};
+        const mask = zoneCellMask(fog(chunkWith(1, 0, [[N + 3, 5]])), zone);
+        expect(mask.cols).toBe(N);
+        expect(mask.rows).toBe(N);
+        expect(mask.cellX0).toBe(N);
+        expect(mask.cellY0).toBe(0);
+        expect(isRevealed(mask, N + 3, 5)).toBe(true);
+        expect(mask.count).toBe(1);
+    });
+
+    it('still clips to the zone when the chunk is larger than it', () => {
+        const mask = zoneCellMask(fog(chunkWith(0, 0, [[1, 1]])), {originX: 4, originY: 4, width: 8, height: 8});
+        expect(mask.cols).toBe(4);
+        expect(mask.rows).toBe(4);
+        expect(isRevealed(mask, 1, 1)).toBe(true);
+    });
+});

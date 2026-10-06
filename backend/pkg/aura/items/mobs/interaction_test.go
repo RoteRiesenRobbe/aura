@@ -478,6 +478,37 @@ func TestMapMobDefinition_RejectsAQuestGrantThatDoesNotLead(t *testing.T) {
 	assert.Contains(t, err.Error(), "first")
 }
 
+// plan-region-identity.md R2 (PO 2026-10-05): a turn-in may hand over the NEXT
+// quest. A trailing offer_quest is a reward behind the row's one quest move: it
+// runs only after the lead op succeeded, and a refusal skips it alone.
+func TestMapMobDefinition_AcceptsATrailingOfferAsAReward(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "here", "grants": [
+	    {"kind": "advance_quest", "quest": "a", "fromStage": "x", "toStage": "y", "line": "1"},
+	    {"kind": "grant_xp", "xp": 10, "line": "reward"},
+	    {"kind": "offer_quest", "quest": "b", "line": "and now this"}
+	  ]}]
+	}]}`)
+	require.NoError(t, err)
+	assert.Len(t, def.Interaction.Nodes[0].Options[0].Grants, 3)
+}
+
+func TestMapMobDefinition_RejectsABadTrailingQuestGrant(t *testing.T) {
+	for name, tc := range map[string]struct{ grants, want string }{
+		"a trailing advance": {`{"kind": "advance_quest", "quest": "a", "fromStage": "x", "toStage": "y", "line": "1"},
+		    {"kind": "advance_quest", "quest": "b", "fromStage": "x", "toStage": "y", "line": "2"}`, "one quest op per row"},
+		"two trailing offers": {`{"kind": "advance_quest", "quest": "a", "fromStage": "x", "toStage": "y", "line": "1"},
+		    {"kind": "offer_quest", "quest": "b", "line": "2"}, {"kind": "offer_quest", "quest": "c", "line": "3"}`, "at most one trailing offer_quest"},
+		"offering the lead's own quest": {`{"kind": "advance_quest", "quest": "a", "fromStage": "x", "toStage": "y", "line": "1"},
+		    {"kind": "offer_quest", "quest": "a", "line": "2"}`, "offers the quest the row itself moves"},
+	} {
+		_, err := mapInteraction(t, `{"nodes": [{"id": "root", "lines": ["hi"], "options": [{"text": "here", "grants": [`+tc.grants+`]}]}]}`)
+		require.Error(t, err, name)
+		assert.Contains(t, err.Error(), tc.want, name)
+	}
+}
+
 func TestMapMobDefinition_RejectsTwoQuestGrantsInOneOption(t *testing.T) {
 	_, err := mapInteraction(t, `{"nodes": [{
 	  "id": "root", "lines": ["hi"],

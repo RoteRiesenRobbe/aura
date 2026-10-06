@@ -2,7 +2,7 @@
 
 The seamless tiles a region profile paints (`plan-region-primitive.md` C4/D13).
 A profile's `texture` key in `frontend/src/client-data/terrain-profiles.json`
-(or `atmosphere-profiles.json`, for a fog bank — the air is a surface too)
+(or `api/atmospheres/profiles.json`, for a fog bank — the air is a surface too)
 names one of these files **by stem** — `"texture": "pd163"` is `pd163.jpg`.
 ⚑ The seven `*-placeholder.png` tiles are the RGBA ones here, and the only ones
 an atmosphere profile names — a ground tile is opaque, because it IS the ground;

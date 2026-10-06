@@ -218,6 +218,7 @@ func (l *Ledger) Restore(state LedgerState) {
 			l.restoreObjectives(id, &held)
 		}
 	}
+	l.refreshReach()
 }
 
 // restoreObjectives rebuilds one quest's objective lines after a load.
@@ -245,5 +246,9 @@ func (l *Ledger) restoreObjectives(id string, p *Progress) {
 	}
 	if s := q.Stage(p.Path[len(p.Path)-1]); s != nil {
 		p.Objectives = l.objectiveLines(p, s)
+		// The reach target is derived the same way (plan-region-identity.md
+		// D6: nothing about it is stored), so a reload mid-stage waits for an
+		// arrival exactly as before it.
+		p.reach = reachOf(s)
 	}
 }

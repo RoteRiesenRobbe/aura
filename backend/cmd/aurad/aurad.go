@@ -209,6 +209,12 @@ func main() {
 		// The shapes that ACT on what stands in them (plan-area-effects.md E2).
 		// Collected above, after Place, because they carry world coordinates.
 		core.AreaEffects(areaEffects),
+		// The places a reach objective sends a player to (plan-region-identity.md
+		// R2). After Place for the area effects' reason: world coordinates.
+		core.Regions(world.CollectRegions(zones)),
+		// Where the map reveal needs light (plan-map-fog-darkness.md C1). After
+		// Place for the same reason: world coordinates.
+		core.MapFogDark(mapFogDarkMask(zones, loaded.darkness, skillsRegistry, loaded.props)),
 	)
 	if err != nil {
 		panic(err)

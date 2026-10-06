@@ -79,7 +79,7 @@ const PX = 120;   // api/shared-constants.json pointsPerMeter
 
 // ⚑ Roughly what the local player's own light erases around them, in world
 // units — the starting aura's radius, the scale Lantern (4.0) and Torch (2.5)
-// are quoted at in atmosphere-profiles.json. It is a THRESHOLD FOR REPORTING,
+// are quoted at in api/atmospheres/profiles.json. It is a THRESHOLD FOR REPORTING,
 // never an assertion: all it decides is whether this script is allowed to call
 // a flat pixel reading "inconclusive" instead of "broken".
 const OWN_LIGHT_U = 4;
@@ -107,7 +107,7 @@ function venue() {
   const root = join(outDir, '../../..');
   const zone = readZone(join(root, 'api/zones/world.json'));
   const air = JSON.parse(readFileSync(
-    join(root, 'frontend/src/client-data/atmosphere-profiles.json'), 'utf8'));
+    join(root, 'api/atmospheres/profiles.json'), 'utf8'));
 
   const dark = (zone.atmospheres || []).filter(a => {
     const p = air[a.profile];

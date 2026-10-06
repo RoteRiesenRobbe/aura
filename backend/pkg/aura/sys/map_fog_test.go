@@ -98,7 +98,7 @@ func TestMapFog_TheSaveCarriesTheReveal(t *testing.T) {
 func TestMapFog_JoinSeedsFromTheTicket(t *testing.T) {
 	s, g := newStateFixture(t)
 	stored := mapfog.New()
-	stored.MarkAt(distantSpot)
+	stored.MarkAt(distantSpot, 0, nil)
 	chunks := append(stored.Chunks(), persist.FogChunk{
 		X: 9, Y: 9, CellSize: mapfog.CellSize * 2, ChunkCells: mapfog.ChunkCells, Bits: []byte{0xff},
 	})
@@ -190,7 +190,7 @@ func TestMapFog_SessionExpirySaveCarriesTheReveal(t *testing.T) {
 func TestMapFog_JoinPublishesTheStoredRevealOnce(t *testing.T) {
 	s, g := newStateFixture(t)
 	stored := mapfog.New()
-	stored.MarkAt(distantSpot)
+	stored.MarkAt(distantSpot, 0, nil)
 
 	c := newFakeClient()
 	p := joinWithState(t, s, g, c, "Alice", persist.CharacterState{
@@ -203,7 +203,7 @@ func TestMapFog_JoinPublishesTheStoredRevealOnce(t *testing.T) {
 
 	resetTick(p) // what the StatusEffectsSystem does at the next tick's start
 	s.Update(0)
-	assert.Nil(t, p.MapFog(), "a one-shot: nothing on an ordinary tick, however far the player walks")
+	assert.Nil(t, p.MapFog(), "a one-shot: nothing on an ordinary tick that marks nothing new")
 }
 
 // A respawn, a reconnect and a revive build a brand-new player with empty
@@ -255,4 +255,42 @@ func TestMapFog_ADwellDoesNotRepublish(t *testing.T) {
 // the start of each tick (this fixture drives only the ConnectionStateSystem).
 func resetTick(p model.PlayerEntity) {
 	p.(interface{ ResetTickNumbers() }).ResetTickNumbers()
+}
+
+// --- plan-map-fog-darkness.md C2/C3: the live map comes from the server ---
+
+// D6: a mark that sets new bits publishes ONLY the chunks it touched, and
+// walking back over mapped ground publishes nothing.
+func TestMapFog_ANewMarkPublishesOnlyTheTouchedChunks(t *testing.T) {
+	s, g := newStateFixture(t)
+	p := joinPlayer(t, s, g, newFakeClient(), "Alice")
+
+	resetTick(p)
+	walkTo(s, p, distantSpot)
+	require.NotEmpty(t, p.MapFog(), "the step published its delta")
+	live := mapfog.New()
+	live.Seed(p.MapFog())
+	assert.True(t, live.RevealedAt(distantSpot))
+	assert.Len(t, p.MapFog(), 1, "one chunk touched, not the whole reveal")
+
+	spawn := g.players[0].Position()
+	resetTick(p)
+	walkTo(s, p, spawn)
+	resetTick(p)
+	walkTo(s, p, distantSpot)
+	assert.Nil(t, p.MapFog(), "walking back over mapped ground publishes nothing")
+}
+
+// §3 end to end: in complete darkness with no light the step marks nothing
+// there (the light cases live in mapfog's dark_test.go).
+func TestMapFog_DarknessNeedsLight(t *testing.T) {
+	s, g := newStateFixture(t)
+	s.SetDarkMask(mapfog.BuildDarkMask(mapfog.DarkWorld{
+		Circles: []mapfog.Circle{{X: distantSpot.X, Y: distantSpot.Y, R: 30}},
+	}))
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+
+	walkTo(s, p, distantSpot)
+	assert.False(t, s.fog[c.UUID()].RevealedAt(distantSpot), "no light, nothing mapped")
 }

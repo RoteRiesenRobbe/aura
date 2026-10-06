@@ -221,7 +221,7 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	// The journal's one upstream verb (plan-quests.md chunk C3, D13): abandon.
 	// Its own system because the journal is not a conversation — no actor, no
 	// range, no session, just a player acting on their own ledger.
-	g.AddSystem(sys.NewQuestSystem())
+	g.AddSystem(sys.NewQuestSystem(gc.Regions))
 
 	// Chat is constructed before the encounter + command systems so both can
 	// take it as their Announcer (server-wide system messages, content pass C6).
@@ -250,6 +250,7 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	g.AddSystem(ae)
 
 	s := sys.NewConnectionStateSystem(g)
+	s.SetDarkMask(gc.MapFogDark)
 	g.AddSystem(s)
 	g.connState = s
 	// Recall's anchor seam (plan-skill-vocab chunk 4): the SkillSystem is
