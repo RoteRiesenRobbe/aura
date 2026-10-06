@@ -1,6 +1,8 @@
 # Plan: the buff tray
 
-> **Status: C1 (server) BUILT 2026-10-02, see §11; C2 (client desktop) next.
+> **Status: C1 (server) BUILT 2026-10-02, C2 (client desktop) + C0 BUILT
+> 2026-10-03/04 `116a9519` with the D19 + D20 look round, PO second look passed
+> 2026-10-06, see §11; C3 (client phone + always-on) next.
 > DESIGNED + APPROVED 2026-10-01 (one PO session, D1-D15 taken as choice
 > prompts after a mockup round), 3 chunks + an optional content C0. ⭐ §7
 > approved the same day, PO: *"All approved though things might change in
@@ -623,8 +625,15 @@ pack-manifest entries + 3 vendored glyphs**.
   known-red list, not this chunk's.
 - ✅ **The PO's look, 2026-10-04**: *"it works and looks good for now"*, with
   two changes ruled as choice prompts (D19, D20) and built the same day, see
-  "The look round" below. ⛔ Owed after them: a second look at the steady web
-  circle and the bigger size.
+  "The look round" below.
+- ✅ **The PO's second look, 2026-10-06** (D19 + D20 on the desktop, main
+  world, the Giant Spider pack with GOD off): all nine checklist items
+  passed. D19: the web's Slow circle steady while inside (tooltip "while in
+  range"), no second circle or shuffle over 20+ s of new webs, one sweep on
+  leaving, back to steady IN PLACE on re-entry mid-sweep, no flicker along a
+  web's edge, the venom dot's refill wedge honest beside it. D20: 48 px and
+  the 6 px gap read well with three or more circles, the upward wrap and the
+  tooltip anchor hold. Nothing changed; the look is closed, C3 is unblocked.
 
 **Found on the way:**
 
